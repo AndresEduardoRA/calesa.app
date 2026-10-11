@@ -3220,6 +3220,8 @@ export type Database = {
           especialidades: string[]
           handle: string | null
           id: string
+          invitacion_aceptada_en: string | null
+          invitado_en: string | null
           nombre: string
           publico_web: boolean
           telefono: string | null
@@ -3246,6 +3248,8 @@ export type Database = {
           especialidades?: string[]
           handle?: string | null
           id: string
+          invitacion_aceptada_en?: string | null
+          invitado_en?: string | null
           nombre?: string
           publico_web?: boolean
           telefono?: string | null
@@ -3271,6 +3275,8 @@ export type Database = {
           especialidades?: string[]
           handle?: string | null
           id?: string
+          invitacion_aceptada_en?: string | null
+          invitado_en?: string | null
           nombre?: string
           publico_web?: boolean
           telefono?: string | null
@@ -5815,6 +5821,7 @@ export type Database = {
       crear_lead: { Args: { p: Json }; Returns: string }
       en_cartera: { Args: { p_lead: string }; Returns: boolean }
       enmascarar_telefono: { Args: { p: string }; Returns: string }
+      equipo_aceptar_invitacion: { Args: Record<PropertyKey, never>; Returns: undefined }
       equipo_bloquear: {
         Args: { p_bloquear: boolean; p_motivo?: string; p_usuario: string }
         Returns: undefined

@@ -22,7 +22,26 @@ commit;
 do $$ begin
   if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-000000000005') then raise exception 'la invitada no nació'; end if;
   if exists (select 1 from public.usuarios_roles where usuario_id = '00000000-0000-0000-0000-000000000005') then raise exception 'una invitada nace sin rol: se lo da quien la invita'; end if;
+  if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-000000000005' and invitado_en is not null and invitacion_aceptada_en is null) then raise exception 'la invitación no quedó pendiente'; end if;
+  if exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-000000000001' and invitado_en is not null) then raise exception 'la dueña no es una invitada'; end if;
 end $$;
+-- Aceptar es sobre la fila propia: la dueña no acepta por nadie, la invitada sí por sí misma.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+select public.equipo_aceptar_invitacion();
+reset role;
+do $$ begin
+  if exists (select 1 from public.perfiles where invitacion_aceptada_en is not null) then raise exception 'alguien aceptó una invitación ajena'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000005', false);
+set role authenticated;
+select public.equipo_aceptar_invitacion();
+reset role;
+do $$ begin
+  if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-000000000005' and invitacion_aceptada_en is not null) then raise exception 'la invitada no pudo aceptar su invitación'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
 
 -- @test la dueña asigna roles con dominancia y el guardián protege
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);

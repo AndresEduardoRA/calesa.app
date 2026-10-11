@@ -66,6 +66,32 @@ drop trigger if exists trg_auth_crear_perfil on auth.users;
 create trigger trg_auth_crear_perfil after insert on auth.users
   for each row execute function public.auth_crear_perfil();
 
+-- Invitación pendiente = `invitado_en` sin `invitacion_aceptada_en`. La marca llega en un UPDATE
+-- posterior al INSERT (así la escribe Auth), por eso el sello cuelga de los dos eventos. Corre
+-- después de `trg_auth_crear_perfil` (orden alfabético): el perfil ya existe.
+create or replace function public.auth_sellar_invitacion()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if coalesce((new.raw_app_meta_data ->> 'invitado')::boolean, false) then
+    update public.perfiles set invitado_en = now() where id = new.id and invitado_en is null;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trg_auth_sellar_invitacion on auth.users;
+create trigger trg_auth_sellar_invitacion after insert or update of raw_app_meta_data on auth.users
+  for each row execute function public.auth_sellar_invitacion();
+
+-- La persona invitada eligió su contraseña: la invitación deja de estar pendiente. Sólo sobre
+-- la fila propia; sin invitación pendiente no hace nada.
+create or replace function public.equipo_aceptar_invitacion()
+returns void language sql security definer set search_path = '' as $$
+  update public.perfiles set invitacion_aceptada_en = now()
+  where id = (select auth.uid()) and invitado_en is not null and invitacion_aceptada_en is null;
+$$;
+revoke all on function public.equipo_aceptar_invitacion() from public, anon;
+grant execute on function public.equipo_aceptar_invitacion() to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Permisos efectivos
 -- ---------------------------------------------------------------------------

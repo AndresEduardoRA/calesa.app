@@ -179,6 +179,8 @@ create table public.perfiles (
   bloqueo_motivo    text,
   baja_en           timestamptz,
   baja_por          uuid references public.perfiles (id),
+  invitado_en       timestamptz,                       -- la cuenta nació invitada (app_metadata.invitado)
+  invitacion_aceptada_en timestamptz,                  -- eligió su contraseña; hasta entonces está pendiente
   publico_web       boolean not null default false,    -- aparece en /asesores de la web
   cargo_web         text,
   whatsapp_web      text check (whatsapp_web is null or whatsapp_web ~ '^\+[1-9][0-9]{6,14}$'),
@@ -188,7 +190,7 @@ create table public.perfiles (
   creado_en         timestamptz not null default now(),
   actualizado_en    timestamptz not null default now()
 );
-comment on table public.perfiles is 'Perfil de cada usuario del equipo. Se crea por trigger al nacer en auth.users. activo=false es baja; bloqueado=true impide operar sin perder nada.';
+comment on table public.perfiles is 'Perfil de cada usuario del equipo. Se crea por trigger al nacer en auth.users. activo=false es baja; bloqueado=true impide operar sin perder nada. invitado_en sin invitacion_aceptada_en = invitación pendiente.';
 
 create table public.roles (
   id          uuid primary key default gen_random_uuid(),
