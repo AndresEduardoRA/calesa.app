@@ -3,7 +3,7 @@
 import { fallo } from '@/shared/lib/errores'
 import { puede } from '@/shared/lib/permisos'
 import { actionClient } from '@/shared/lib/safe-action'
-import { conCuentasInvitadas, leerEquipo } from '../../../composicion'
+import { conCuentasInvitadas, leerEquipo, repositorioRoles } from '../../../composicion'
 import { origenDelSitio } from '../../auth/origen'
 import { enlaceParaInvitada } from '../invitar'
 import { esquemaPersona } from '../schemas/equipo'
@@ -24,5 +24,7 @@ export const generarEnlace = actionClient
       return fallo('no_encontrado', 'Esa persona ya no está en el equipo.')
     }
     const origen = await origenDelSitio()
-    return conCuentasInvitadas((cuentas) => enlaceParaInvitada(cuentas, { persona, origen }))
+    return conCuentasInvitadas((cuentas) =>
+      enlaceParaInvitada({ cuentas, roles: repositorioRoles }, { persona, origen }),
+    )
   })

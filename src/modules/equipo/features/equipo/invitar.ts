@@ -4,6 +4,7 @@ import { fallo, ok, type Resultado } from '@/shared/lib/errores'
 import { MOTIVO_ROL_NO_DOMINADO } from '../../entities/dominancia'
 import {
   MENSAJE_YA_ACEPTO,
+  MOTIVO_ENLACE_NO_DOMINADO,
   enlaceDeInvitacion,
   type InvitacionHecha,
 } from '../../entities/invitacion'
@@ -74,14 +75,26 @@ export async function invitarPersona(
 
 // Un enlace nuevo para alguien que todavía no aceptó. Reemplaza al anterior, también al que
 // salió por correo: sólo hay uno vigente.
+// Quien abre el enlace elige la contraseña de esa cuenta, o sea que generarlo es poder entrar
+// como ella. Por eso exige dominar todos sus roles: si no, alguien que sólo gestiona personas
+// podría generarse el enlace de una dueña recién invitada y quedarse con su cuenta.
 export async function enlaceParaInvitada(
-  cuentas: Pick<CuentasInvitadas, 'generarEnlace'>,
-  pedido: { persona: Pick<PersonaDelEquipo, 'email' | 'estado'>; origen: string },
+  puertos: { cuentas: Pick<CuentasInvitadas, 'generarEnlace'>; roles: Puertos['roles'] },
+  pedido: { persona: Pick<PersonaDelEquipo, 'email' | 'estado' | 'roles'>; origen: string },
 ): Promise<Resultado<{ enlace: string }>> {
   if (pedido.persona.estado !== 'invitacion_pendiente') {
     return fallo('regla', MENSAJE_YA_ACEPTO)
   }
-  const enlace = await cuentas.generarEnlace(pedido.persona.email)
+  for (const rol of pedido.persona.roles) {
+    const dominado = await puertos.roles.dominado(rol.id)
+    if (!dominado.ok) {
+      return dominado
+    }
+    if (!dominado.data) {
+      return fallo('sin_permiso', MOTIVO_ENLACE_NO_DOMINADO)
+    }
+  }
+  const enlace = await puertos.cuentas.generarEnlace(pedido.persona.email)
   if (!enlace.ok) {
     return enlace
   }

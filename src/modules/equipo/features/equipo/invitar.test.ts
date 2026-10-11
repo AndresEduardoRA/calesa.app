@@ -113,22 +113,39 @@ describe('invitarPersona', () => {
 
 describe('enlaceParaInvitada', () => {
   const origen = 'https://app.test'
+  const suRol = { id: ROL, clave: 'ventas', nombre: 'Ventas', color: null, esPrincipal: true }
+  const pendiente = {
+    email: 'ana@ejemplo.com',
+    estado: 'invitacion_pendiente' as const,
+    roles: [suRol],
+  }
+  const con = (cuentas: CuentasInvitadas, dominado = true) => ({
+    cuentas,
+    roles: { dominado: () => Promise.resolve(ok(dominado)) },
+  })
 
   it('genera un enlace nuevo mientras la invitación está pendiente', async () => {
     const { cuentas } = auth({
       generarEnlace: () => Promise.resolve(ok({ tokenHash: 'xyz', tipo: 'recovery' as const })),
     })
-    const persona = { email: 'ana@ejemplo.com', estado: 'invitacion_pendiente' as const }
-    expect(await enlaceParaInvitada(cuentas, { persona, origen })).toEqual(
+    expect(await enlaceParaInvitada(con(cuentas), { persona: pendiente, origen })).toEqual(
       ok({ enlace: 'https://app.test/auth/callback?token_hash=xyz&type=recovery' }),
     )
   })
 
   it('a quien ya aceptó no se le genera: no es un atajo para entrar a su cuenta', async () => {
     const { cuentas, pasos } = auth()
-    const persona = { email: 'ana@ejemplo.com', estado: 'activa' as const }
-    const enlace = await enlaceParaInvitada(cuentas, { persona, origen })
+    const persona = { ...pendiente, estado: 'activa' as const }
+    const enlace = await enlaceParaInvitada(con(cuentas), { persona, origen })
     expect(enlace.ok).toBe(false)
+    expect(pasos).toEqual([])
+  })
+
+  it('no se genera el de alguien con un rol que quien lo pide no domina', async () => {
+    const { cuentas, pasos } = auth()
+    const enlace = await enlaceParaInvitada(con(cuentas, false), { persona: pendiente, origen })
+    expect(enlace.ok).toBe(false)
+    expect(!enlace.ok && enlace.error.codigo).toBe('sin_permiso')
     expect(pasos).toEqual([])
   })
 })

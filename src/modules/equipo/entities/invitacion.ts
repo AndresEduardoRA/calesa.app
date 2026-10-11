@@ -22,3 +22,6 @@ export type InvitacionHecha = {
 
 export const MENSAJE_YA_ACEPTO =
   'Esa persona ya aceptó su invitación. Si olvidó su contraseña, la recupera desde la pantalla de ingreso.'
+
+export const MOTIVO_ENLACE_NO_DOMINADO =
+  'Esa persona tiene un rol con permisos que tú no tienes: no puedes generar su enlace de invitación.'
