@@ -40,7 +40,7 @@ Ajustes de la empresa (marca, datos legales, país, locale, zona horaria), moned
 
 ### `equipo`
 Autenticación, perfiles, roles y permisos (RBAC puro), bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 46 archivos
-- API: `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, `avisoDe`, `Aviso`, `canjearAcceso`, `googleHabilitado`, +9
+- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +13
 - Depende de: empresa
 - Casos de uso: auth, perfil
 

@@ -41,6 +41,22 @@ proposito() {
   fi
 }
 
+# Un `export { a, b }` que Prettier partió en varias líneas, de vuelta en una sola.
+aplanar_exports() {
+  awk '/^export (type )?\{[^}]*$/ { junta = $0; while ((getline linea) > 0) { junta = junta " " linea; if (linea ~ /\}/) break }; print junta; next } { print }' "$1"
+}
+
+# Nombres que exporta un archivo de entrada de TypeScript.
+exports_del_archivo() {
+  aplanar_exports "$1" > "$TMPD/entrada"
+  {
+    sed -nE 's/^export (default )?(async )?(declare )?(abstract )?(function\*?|const|let|class|type|interface|enum) +([A-Za-z0-9_$]+).*/\6/p' "$TMPD/entrada"
+    sed -nE 's/^export (type )?\{([^}]*)\}.*/\2/p' "$TMPD/entrada" | tr ',' '\n' \
+      | sed -E 's/^ *(type +)?//; s/.* as +//; s/ *$//' | grep -v '^$' || true
+    sed -nE "s/^export \* from ['\"]([^'\"]+)['\"].*/* \1/p" "$TMPD/entrada"
+  } | awk '!seen[$0]++'
+}
+
 # API pública de una unidad: nombres exportados por su archivo de entrada.
 exports_de() {
   local dir="$1" nombre entrada
@@ -49,12 +65,7 @@ exports_de() {
     entrada=""
     for f in "$dir/index.ts" "$dir/index.tsx"; do [ -f "$f" ] && entrada="$f" && break; done
     [ -z "$entrada" ] && return 0
-    {
-      sed -nE 's/^export (default )?(async )?(declare )?(abstract )?(function\*?|const|let|class|type|interface|enum) +([A-Za-z0-9_$]+).*/\6/p' "$entrada"
-      sed -nE 's/^export (type )?\{([^}]*)\}.*/\2/p' "$entrada" | tr ',' '\n' \
-        | sed -E 's/^ *(type +)?//; s/.* as +//; s/ *$//' | grep -v '^$' || true
-      sed -nE "s/^export \* from ['\"]([^'\"]+)['\"].*/* \1/p" "$entrada"
-    } | awk '!seen[$0]++'
+    exports_del_archivo "$entrada"
   else
     entrada="$dir/$nombre.dart"
     [ -f "$entrada" ] || return 0
