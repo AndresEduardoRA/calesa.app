@@ -401,3 +401,84 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test dominancia: quien gestiona roles sólo otorga, edita y asigna lo que tiene
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+-- Gabriela vuelve a gestionar roles, y además ve vehículos sólo de Oficina y sólo los propios.
+select public.rbac_asignar_rol('00000000-0000-0000-0000-000000000006', (select id from public.roles where clave = 'humo_roles'));
+select public.rbac_otorgar((select id from public.roles where clave = 'humo_roles'), 'vehiculos.ver', (select id from public.origenes where clave = 'oficina'), 'propios');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000006', false);
+set role authenticated;
+do $$ declare r uuid; asesor uuid; oficina uuid; usa uuid; begin
+  select id into asesor from public.roles where clave = 'asesor';
+  select id into oficina from public.origenes where clave = 'oficina';
+  select id into usa from public.origenes where clave = 'subasta_usa';
+  r := public.rbac_crear_rol('humo_ventas', 'Humo ventas');
+  begin
+    perform public.rbac_crear_rol('humo_ventas', 'Humo ventas');
+    raise exception 'creó dos roles con la misma clave';
+  exception when unique_violation then null; end;
+  -- Lo que tiene, lo otorga.
+  perform public.rbac_otorgar(r, 'equipo.roles.gestionar');
+  perform public.rbac_otorgar(r, 'vehiculos.ver', oficina, 'propios');
+  -- Lo que no tiene, no: ni el permiso, ni otro origen, ni todos los orígenes, ni más alcance.
+  begin perform public.rbac_otorgar(r, 'leads.crear'); raise exception 'otorgó un permiso que no tiene';
+  exception when insufficient_privilege then null; end;
+  begin perform public.rbac_otorgar(r, 'vehiculos.ver', usa, 'propios'); raise exception 'otorgó en un origen que no tiene';
+  exception when insufficient_privilege then null; end;
+  begin perform public.rbac_otorgar(r, 'vehiculos.ver', null, 'propios'); raise exception 'otorgó en todos los orígenes teniendo uno';
+  exception when insufficient_privilege then null; end;
+  begin perform public.rbac_otorgar(r, 'vehiculos.ver', oficina, 'todos'); raise exception 'otorgó «todos» teniendo «propios»';
+  exception when insufficient_privilege then null; end;
+  -- Un rol con permisos que no tiene no lo edita, no lo asigna, no lo quita y no lo elimina.
+  begin perform public.rbac_otorgar(asesor, 'equipo.roles.ver'); raise exception 'editó un rol que no domina';
+  exception when insufficient_privilege then null; end;
+  begin perform public.rbac_revocar(asesor, 'leads.crear'); raise exception 'revocó en un rol que no domina';
+  exception when insufficient_privilege then null; end;
+  begin perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000005', asesor, true); raise exception 'asignó un rol que no domina';
+  exception when insufficient_privilege then null; end;
+  begin perform public.rbac_quitar_rol('00000000-0000-0000-0000-000000000004', asesor); raise exception 'quitó un rol que no domina';
+  exception when insufficient_privilege then null; end;
+  begin perform public.rbac_eliminar_rol(asesor); raise exception 'eliminó un rol que no domina';
+  exception when insufficient_privilege then null; end;
+  -- El que sí domina, lo asigna.
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000005', r, true);
+end $$;
+reset role;
+
+-- @test conflictos: editar un rol con una versión vieja o bloquear a quien ya lo está es PT409
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare r uuid; v timestamptz; v2 timestamptz; begin
+  select id, actualizado_en into r, v from public.roles where clave = 'humo_ventas';
+  begin perform public.rbac_otorgar(r, 'equipo.usuarios.ver', null, 'todos', v - interval '1 second'); raise exception 'otorgó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  begin perform public.rbac_revocar(r, 'equipo.roles.gestionar', null, v - interval '1 second'); raise exception 'revocó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  begin perform public.rbac_eliminar_rol(r, v - interval '1 second'); raise exception 'eliminó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  -- Con la versión que tiene, pasa y devuelve la nueva.
+  v2 := public.rbac_otorgar(r, 'equipo.usuarios.ver', null, 'todos', v);
+  if v2 is null or v2 is distinct from (select actualizado_en from public.roles where id = r) then raise exception 'otorgar no devolvió la versión nueva del rol'; end if;
+  v2 := public.rbac_revocar(r, 'equipo.usuarios.ver', null, v2);
+  -- Con una persona adentro no se elimina; sin ella sí, y eliminarlo dos veces es un conflicto.
+  begin perform public.rbac_eliminar_rol(r, v2); raise exception 'eliminó un rol que alguien tiene';
+  exception when foreign_key_violation then null; end;
+  perform public.rbac_quitar_rol('00000000-0000-0000-0000-000000000005', r);
+  perform public.rbac_eliminar_rol(r, v2);
+  begin perform public.rbac_eliminar_rol(r); raise exception 'eliminó un rol que ya no existe';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  -- Rosa ya estaba bloqueada (prueba de acceso) y Sofía dada de baja.
+  begin perform public.equipo_bloquear('00000000-0000-0000-0000-000000000003', true); raise exception 'bloqueó a quien ya estaba bloqueada';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  begin perform public.equipo_bloquear('00000000-0000-0000-0000-000000000002', true); raise exception 'bloqueó a quien ya no está en el equipo';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  begin perform public.equipo_bloquear('00000000-0000-0000-0000-000000000001', true); raise exception 'se bloqueó a sí misma';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

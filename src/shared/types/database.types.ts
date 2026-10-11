@@ -5758,6 +5758,8 @@ export type Database = {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
       }
+      _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
+      _rol_tocar: { Args: { p_rol: string }; Returns: string }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
@@ -5938,20 +5940,29 @@ export type Database = {
         Args: { p_clave: string; p_color?: string; p_descripcion?: string; p_nombre: string }
         Returns: string
       }
-      rbac_eliminar_rol: { Args: { p_rol: string }; Returns: undefined }
+      rbac_eliminar_rol: {
+        Args: { p_actualizado_en_esperado?: string; p_rol: string }
+        Returns: undefined
+      }
       rbac_otorgar: {
         Args: {
+          p_actualizado_en_esperado?: string
           p_alcance?: Database['public']['Enums']['alcance_permiso']
           p_clave: string
           p_origen?: string
           p_rol: string
         }
-        Returns: undefined
+        Returns: string
       }
       rbac_quitar_rol: { Args: { p_rol: string; p_usuario: string }; Returns: undefined }
       rbac_revocar: {
-        Args: { p_clave: string; p_origen?: string; p_rol: string }
-        Returns: undefined
+        Args: {
+          p_actualizado_en_esperado?: string
+          p_clave: string
+          p_origen?: string
+          p_rol: string
+        }
+        Returns: string
       }
       reasignar_tarea: { Args: { p_responsable: string; p_tarea: string }; Returns: undefined }
       recordatorios_notificar: { Args: Record<PropertyKey, never>; Returns: number }

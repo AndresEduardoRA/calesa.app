@@ -163,7 +163,7 @@ returns void language plpgsql stable security definer set search_path = '' as $$
 begin
   perform public.assert_activo();
   if not public.tiene_permiso(p_clave, p_origen) then
-    raise exception 'No tenés el permiso «%».', p_clave using errcode = '42501';
+    raise exception 'No tienes el permiso «%».', p_clave using errcode = '42501';
   end if;
 end;
 $$;
@@ -216,41 +216,72 @@ grant execute on function public.concesion_dominada(text, uuid, public.alcance_p
 -- ---------------------------------------------------------------------------
 -- RPC de administración de roles (única puerta de escritura)
 -- ---------------------------------------------------------------------------
+-- La versión de un rol es `roles.actualizado_en`: cubre su nombre y también sus concesiones
+-- (otorgar y revocar la tocan). Bloquea la fila, así dos ediciones del mismo rol van en fila.
+-- `p_esperado` nulo salta el control: es para el seed y las pruebas, la app siempre lo manda.
+create or replace function public._rol_para_editar(p_rol uuid, p_esperado timestamptz)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v_actual timestamptz;
+begin
+  select actualizado_en into v_actual from public.roles where id = p_rol for update;
+  if not found then raise exception 'Ese rol ya no existe.' using errcode = 'PT409'; end if;
+  if p_esperado is not null and v_actual is distinct from p_esperado then
+    raise exception 'Otra persona cambió este rol mientras lo editabas.' using errcode = 'PT409';
+  end if;
+end;
+$$;
+revoke all on function public._rol_para_editar(uuid, timestamptz) from public, anon, authenticated;
+
+-- Deja la versión nueva del rol y la devuelve: quien edita sigue sin recargar.
+create or replace function public._rol_tocar(p_rol uuid)
+returns timestamptz language sql security definer set search_path = '' as $$
+  update public.roles set actualizado_en = now() where id = p_rol returning actualizado_en;
+$$;
+revoke all on function public._rol_tocar(uuid) from public, anon, authenticated;
+
 create or replace function public.rbac_crear_rol(p_clave text, p_nombre text, p_color text default null, p_descripcion text default null)
 returns uuid language plpgsql security definer set search_path = '' as $$
 declare v_id uuid;
 begin
   perform public.assert_permiso('equipo.roles.gestionar');
-  insert into public.roles (clave, nombre, color, descripcion) values (p_clave, p_nombre, p_color, p_descripcion) returning id into v_id;
+  begin
+    insert into public.roles (clave, nombre, color, descripcion) values (p_clave, p_nombre, p_color, p_descripcion) returning id into v_id;
+  exception when unique_violation then
+    raise exception 'Ya existe un rol con ese nombre.' using errcode = '23505';
+  end;
   perform public.registrar_actividad('rol.creado', 'roles', v_id::text, null, jsonb_build_object('clave', p_clave, 'nombre', p_nombre));
   return v_id;
 end;
 $$;
 
-create or replace function public.rbac_otorgar(p_rol uuid, p_clave text, p_origen uuid default null, p_alcance public.alcance_permiso default 'todos')
-returns void language plpgsql security definer set search_path = '' as $$
+create or replace function public.rbac_otorgar(p_rol uuid, p_clave text, p_origen uuid default null, p_alcance public.alcance_permiso default 'todos', p_actualizado_en_esperado timestamptz default null)
+returns timestamptz language plpgsql security definer set search_path = '' as $$
 declare v_por_origen boolean; v_con_alcance boolean;
 begin
   perform public.assert_permiso('equipo.roles.gestionar');
+  perform public._rol_para_editar(p_rol, p_actualizado_en_esperado);
   select por_origen, con_alcance into v_por_origen, v_con_alcance from public.permisos where clave = p_clave;
   if not found then raise exception 'Permiso desconocido: %', p_clave using errcode = '22023'; end if;
   if p_origen is not null and not v_por_origen then raise exception 'El permiso % no se acota por origen.', p_clave using errcode = '22023'; end if;
-  if p_alcance = 'propios' and not v_con_alcance then raise exception 'El permiso % no tiene alcance propios/todos.', p_clave using errcode = '22023'; end if;
-  if not public.rol_dominado(p_rol) then raise exception 'No podés editar un rol con permisos que no tenés.' using errcode = '42501'; end if;
-  if not public.concesion_dominada(p_clave, p_origen, p_alcance) then raise exception 'No podés otorgar «%» con ese alcance: no lo tenés.', p_clave using errcode = '42501'; end if;
+  if p_alcance = 'propios' and not v_con_alcance then raise exception 'El permiso % no distingue entre lo propio y todo.', p_clave using errcode = '22023'; end if;
+  if not public.rol_dominado(p_rol) then raise exception 'No puedes editar un rol con permisos que no tienes.' using errcode = '42501'; end if;
+  if not public.concesion_dominada(p_clave, p_origen, p_alcance) then raise exception 'No puedes otorgar «%» con ese origen y alcance: no lo tienes.', p_clave using errcode = '42501'; end if;
   insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance) values (p_rol, p_clave, p_origen, p_alcance)
   on conflict (rol_id, permiso_clave, origen_id) do update set alcance = excluded.alcance;
   perform public.registrar_actividad('rol.permiso_otorgado', 'roles_permisos', p_rol::text, null, jsonb_build_object('clave', p_clave, 'origen', p_origen, 'alcance', p_alcance));
+  return public._rol_tocar(p_rol);
 end;
 $$;
 
-create or replace function public.rbac_revocar(p_rol uuid, p_clave text, p_origen uuid default null)
-returns void language plpgsql security definer set search_path = '' as $$
+create or replace function public.rbac_revocar(p_rol uuid, p_clave text, p_origen uuid default null, p_actualizado_en_esperado timestamptz default null)
+returns timestamptz language plpgsql security definer set search_path = '' as $$
 begin
   perform public.assert_permiso('equipo.roles.gestionar');
-  if not public.rol_dominado(p_rol) then raise exception 'No podés editar un rol con permisos que no tenés.' using errcode = '42501'; end if;
+  perform public._rol_para_editar(p_rol, p_actualizado_en_esperado);
+  if not public.rol_dominado(p_rol) then raise exception 'No puedes editar un rol con permisos que no tienes.' using errcode = '42501'; end if;
   delete from public.roles_permisos where rol_id = p_rol and permiso_clave = p_clave and origen_id is not distinct from p_origen;
   perform public.registrar_actividad('rol.permiso_revocado', 'roles_permisos', p_rol::text, jsonb_build_object('clave', p_clave, 'origen', p_origen), null);
+  return public._rol_tocar(p_rol);
 end;
 $$;
 
@@ -258,7 +289,7 @@ create or replace function public.rbac_asignar_rol(p_usuario uuid, p_rol uuid, p
 returns void language plpgsql security definer set search_path = '' as $$
 begin
   perform public.assert_permiso('equipo.usuarios.gestionar');
-  if not public.rol_dominado(p_rol) then raise exception 'No podés asignar un rol con permisos que no tenés.' using errcode = '42501'; end if;
+  if not public.rol_dominado(p_rol) then raise exception 'No puedes asignar un rol con permisos que no tienes.' using errcode = '42501'; end if;
   insert into public.usuarios_roles (usuario_id, rol_id, es_principal, asignado_por) values (p_usuario, p_rol, p_principal, (select auth.uid()))
   on conflict (usuario_id, rol_id) do update set es_principal = excluded.es_principal;
   if p_principal then update public.usuarios_roles set es_principal = false where usuario_id = p_usuario and rol_id <> p_rol; end if;
@@ -270,22 +301,24 @@ create or replace function public.rbac_quitar_rol(p_usuario uuid, p_rol uuid)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
   perform public.assert_permiso('equipo.usuarios.gestionar');
-  if not public.rol_dominado(p_rol) then raise exception 'No podés quitar un rol con permisos que no tenés.' using errcode = '42501'; end if;
+  if not public.rol_dominado(p_rol) then raise exception 'No puedes quitar un rol con permisos que no tienes.' using errcode = '42501'; end if;
   delete from public.usuarios_roles where usuario_id = p_usuario and rol_id = p_rol;
   perform public.registrar_actividad('usuario.rol_quitado', 'usuarios_roles', p_usuario::text, jsonb_build_object('rol', p_rol), null);
 end;
 $$;
 
-create or replace function public.rbac_eliminar_rol(p_rol uuid)
+create or replace function public.rbac_eliminar_rol(p_rol uuid, p_actualizado_en_esperado timestamptz default null)
 returns void language plpgsql security definer set search_path = '' as $$
-declare v_sistema boolean; v_usuarios int;
+declare v_sistema boolean; v_personas int;
 begin
   perform public.assert_permiso('equipo.roles.gestionar');
+  perform public._rol_para_editar(p_rol, p_actualizado_en_esperado);
   select es_sistema into v_sistema from public.roles where id = p_rol;
   if v_sistema then raise exception 'Un rol de sistema no se elimina.' using errcode = '42501'; end if;
-  if not public.rol_dominado(p_rol) then raise exception 'No podés eliminar un rol con permisos que no tenés.' using errcode = '42501'; end if;
-  select count(*) into v_usuarios from public.usuarios_roles where rol_id = p_rol;
-  if v_usuarios > 0 then raise exception 'El rol tiene % usuario(s): reasignalos antes.', v_usuarios using errcode = '23503'; end if;
+  if not public.rol_dominado(p_rol) then raise exception 'No puedes eliminar un rol con permisos que no tienes.' using errcode = '42501'; end if;
+  select count(*) into v_personas from public.usuarios_roles where rol_id = p_rol;
+  if v_personas = 1 then raise exception 'Una persona tiene este rol: quítaselo antes de eliminarlo.' using errcode = '23503'; end if;
+  if v_personas > 1 then raise exception '% personas tienen este rol: quítaselo antes de eliminarlo.', v_personas using errcode = '23503'; end if;
   delete from public.roles where id = p_rol;
   perform public.registrar_actividad('rol.eliminado', 'roles', p_rol::text, null, null);
 end;
@@ -335,12 +368,22 @@ drop trigger if exists trg_rbac_guardian_perfiles on public.perfiles;
 create constraint trigger trg_rbac_guardian_perfiles after update of activo, bloqueado on public.perfiles
   deferrable initially deferred for each row execute function public.rbac_guardian();
 
--- Bloquear / desbloquear
+-- Bloquear / desbloquear. En vez de `actualizado_en` (que cambia cuando la persona edita su
+-- propio nombre y daría conflictos falsos) la precondición es el estado: si otra persona ya la
+-- bloqueó, la desbloqueó o la dio de baja, es un conflicto legible.
 create or replace function public.equipo_bloquear(p_usuario uuid, p_bloquear boolean, p_motivo text default null)
 returns void language plpgsql security definer set search_path = '' as $$
+declare v_activo boolean; v_bloqueado boolean; v_nombre text;
 begin
   perform public.assert_permiso('equipo.usuarios.gestionar');
-  if p_usuario = (select auth.uid()) then raise exception 'No podés bloquearte a vos mismo.' using errcode = '42501'; end if;
+  if p_usuario = (select auth.uid()) then raise exception 'No puedes bloquearte a ti mismo.' using errcode = '42501'; end if;
+  select activo, bloqueado, coalesce(nullif(nombre, ''), email::text) into v_activo, v_bloqueado, v_nombre
+  from public.perfiles where id = p_usuario for update;
+  if not found then raise exception 'Esa persona ya no está en el equipo.' using errcode = 'PT409'; end if;
+  if not v_activo then raise exception '% ya no forma parte del equipo.', v_nombre using errcode = 'PT409'; end if;
+  if v_bloqueado = p_bloquear then
+    raise exception 'La cuenta de % ya estaba %.', v_nombre, case when p_bloquear then 'bloqueada' else 'desbloqueada' end using errcode = 'PT409';
+  end if;
   update public.perfiles set bloqueado = p_bloquear,
     bloqueado_en = case when p_bloquear then now() else null end,
     bloqueado_por = case when p_bloquear then (select auth.uid()) else null end,
@@ -351,10 +394,10 @@ end;
 $$;
 
 revoke all on function public.rbac_crear_rol(text, text, text, text) from public, anon;
-revoke all on function public.rbac_otorgar(uuid, text, uuid, public.alcance_permiso) from public, anon;
-revoke all on function public.rbac_revocar(uuid, text, uuid) from public, anon;
+revoke all on function public.rbac_otorgar(uuid, text, uuid, public.alcance_permiso, timestamptz) from public, anon;
+revoke all on function public.rbac_revocar(uuid, text, uuid, timestamptz) from public, anon;
 revoke all on function public.rbac_asignar_rol(uuid, uuid, boolean) from public, anon;
 revoke all on function public.rbac_quitar_rol(uuid, uuid) from public, anon;
-revoke all on function public.rbac_eliminar_rol(uuid) from public, anon;
+revoke all on function public.rbac_eliminar_rol(uuid, timestamptz) from public, anon;
 revoke all on function public.equipo_bloquear(uuid, boolean, text) from public, anon;
-grant execute on function public.rbac_crear_rol(text, text, text, text), public.rbac_otorgar(uuid, text, uuid, public.alcance_permiso), public.rbac_revocar(uuid, text, uuid), public.rbac_asignar_rol(uuid, uuid, boolean), public.rbac_quitar_rol(uuid, uuid), public.rbac_eliminar_rol(uuid), public.equipo_bloquear(uuid, boolean, text) to authenticated;
+grant execute on function public.rbac_crear_rol(text, text, text, text), public.rbac_otorgar(uuid, text, uuid, public.alcance_permiso, timestamptz), public.rbac_revocar(uuid, text, uuid, timestamptz), public.rbac_asignar_rol(uuid, uuid, boolean), public.rbac_quitar_rol(uuid, uuid), public.rbac_eliminar_rol(uuid, timestamptz), public.equipo_bloquear(uuid, boolean, text) to authenticated;
