@@ -1,0 +1,113 @@
+// Aplica supabase/schemas + migrations + seed.sql en Postgres 17 embebido (PGlite) con stubs de
+// auth/storage/pgcrypto y corre supabase/tests/humo.sql. Uso: node scripts/probar-schema.mjs supabase
+// No reemplaza a `supabase db reset` ni a splinter: es la red rápida del pre-commit.
+import { PGlite } from '@electric-sql/pglite'
+import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm'
+import { citext } from '@electric-sql/pglite/contrib/citext'
+import fs from 'node:fs'
+import path from 'node:path'
+import { NOMBRE_BASE, esquemaBaseAlDia } from './esquema-base.mjs'
+
+const base = process.argv[2] ?? 'supabase'
+const db = new PGlite({ extensions: { pg_trgm, citext } })
+
+const preambulo = `
+create schema if not exists extensions;
+create extension if not exists pg_trgm with schema extensions;
+create extension if not exists citext with schema extensions;
+-- stubs de pgcrypto (no disponible en PGlite)
+create or replace function extensions.gen_salt(t text) returns text language sql as $$ select '$stub$' $$;
+create or replace function extensions.crypt(p text, s text) returns text language sql as $$ select '$stub$' || md5(p || '$stub$') $$;
+create or replace function extensions.gen_random_bytes(n int) returns bytea language sql as $$ select decode(md5(random()::text), 'hex') $$;
+-- roles de Supabase
+do $$ begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
+end $$;
+-- auth y storage
+create schema if not exists auth;
+create table if not exists auth.users (
+  id uuid primary key default gen_random_uuid(),
+  email text, raw_user_meta_data jsonb default '{}'::jsonb, raw_app_meta_data jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+create or replace function auth.role() returns text language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon') $$;
+create or replace function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
+grant usage on schema auth to anon, authenticated, service_role;
+grant usage on schema extensions to anon, authenticated, service_role;
+grant execute on all functions in schema extensions to anon, authenticated, service_role;
+create schema if not exists storage;
+grant usage on schema storage to anon, authenticated, service_role;
+create table if not exists storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
+create table if not exists storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid, metadata jsonb);
+create or replace function storage.foldername(n text) returns text[] language sql immutable as $$ select (string_to_array(n, '/'))[1:array_length(string_to_array(n,'/'),1)-1] $$;
+create schema if not exists vault;
+grant usage on schema public to anon, authenticated, service_role;
+`
+
+function* archivos(dir) {
+  for (const e of fs
+    .readdirSync(dir, { withFileTypes: true })
+    .sort((a, b) => a.name.localeCompare(b.name))) {
+    const p = path.join(dir, e.name)
+    if (e.isDirectory()) yield* archivos(p)
+    else if (e.name.endsWith('.sql')) yield p
+  }
+}
+
+// La migración base es la copia generada de schemas/ (lo que aplica `supabase db reset`). Acá se
+// aplica schemas/ directo, así que se salta; pero si quedó vieja, la base local no es lo que se probó.
+if (!esquemaBaseAlDia(base)) {
+  console.error(
+    `✗ migrations/${NOMBRE_BASE} está desactualizada respecto de schemas/. Corre: pnpm db:base`,
+  )
+  process.exit(1)
+}
+const migraciones = [...archivos(path.join(base, 'migrations'))].filter(
+  (f) => path.basename(f) !== NOMBRE_BASE,
+)
+const lista = [...archivos(path.join(base, 'schemas')), ...migraciones]
+if (fs.existsSync(path.join(base, 'seed.sql'))) lista.push(path.join(base, 'seed.sql'))
+
+await db.exec(preambulo)
+let ok = 0
+for (const f of lista) {
+  let sql = fs.readFileSync(f, 'utf8')
+  // en producción las extensiones ya existen; en el test las saltamos
+  if (f.endsWith('01_extensiones.sql')) continue
+  try {
+    await db.exec(sql)
+    ok++
+  } catch (e) {
+    console.error(`✗ ${path.relative(base, f)}\n  ${e.message}`)
+    const pos = e.position ? Number(e.position) : null
+    if (pos)
+      console.error(
+        '  …' + sql.slice(Math.max(0, pos - 160), pos + 80).replace(/\n/g, '\n  ') + '…',
+      )
+    process.exit(1)
+  }
+}
+console.log(`✓ ${ok} archivos aplicados`)
+
+// pruebas de humo si existe tests.sql
+const t = path.join(base, 'tests', 'humo.sql')
+if (fs.existsSync(t)) {
+  const bloques = fs
+    .readFileSync(t, 'utf8')
+    .split(/^-- @test\s+/m)
+    .filter(Boolean)
+  for (const b of bloques) {
+    const [nombre, ...resto] = b.split('\n')
+    try {
+      await db.exec(resto.join('\n'))
+      console.log('  ✓ ' + nombre.trim())
+    } catch (e) {
+      console.error('  ✗ ' + nombre.trim() + '\n    ' + e.message)
+      process.exitCode = 1
+    }
+  }
+}
+await db.close()

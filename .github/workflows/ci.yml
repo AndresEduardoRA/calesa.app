@@ -1,0 +1,72 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# El stack local de Supabase usa los puertos 546xx (supabase/config.toml).
+env:
+  SUPABASE_API_LOCAL: http://127.0.0.1:54621
+  SUPABASE_DB_LOCAL: postgresql://postgres:postgres@127.0.0.1:54622/postgres
+  # config.toml lee las credenciales de Google con env(): en CI van de relleno, nadie ingresa con Google.
+  SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: relleno-ci
+  SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: relleno-ci
+
+jobs:
+  calidad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # la versión sale de packageManager en package.json
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck # corre `next typegen` antes de tsc
+      - run: pnpm test
+      - run: bash scripts/mapa.sh --check
+      - run: node scripts/esquema-base.mjs --check # la migración base es copia fiel de supabase/schemas
+      - run: pnpm db:probar
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_LOCAL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+
+  base-de-datos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+      - run: supabase db lint --fail-on error
+      - name: splinter (advisors de seguridad)
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/supabase/splinter/main/splinter.sql -o /tmp/splinter.sql
+          psql "$SUPABASE_DB_LOCAL" -At -f /tmp/splinter.sql > /tmp/advisors.txt || true
+          if grep -i '|ERROR|' /tmp/advisors.txt; then echo "Advisors con nivel ERROR"; exit 1; fi
+      - run: supabase stop
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [calidad]
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # la versión sale de packageManager en package.json
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - run: pnpm install --frozen-lockfile
+      - run: npx playwright install --with-deps chromium
+      - run: supabase start -x studio,imgproxy,logflare,vector
+      - run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_API_LOCAL" >> .env.local
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status -o env | grep PUBLISHABLE_KEY | cut -d= -f2 | tr -d '"')" >> .env.local
+          echo "SUPABASE_SECRET_KEY=$(supabase status -o env | grep SECRET_KEY | cut -d= -f2 | tr -d '"')" >> .env.local
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: playwright-report }

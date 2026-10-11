@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+/*
+ * Tokens de diseño: design/tokens.css es la única fuente (claro, oscuro y movimiento reducido).
+ * Va sin capa a propósito: así sus `--text-*`, `--radius-sm|md` y `--font-*` pisan a los del tema
+ * por defecto de Tailwind (que vive en `@layer theme`) y `text-sm`, `rounded-md` o `font-sans`
+ * ya salen con los valores del proyecto.
+ *
+ * En los componentes propios los tokens se usan con la sintaxis de variable:
+ * `bg-(--color-surface)`, `text-(--color-ink)`, `shadow-(--shadow-md)`. Nunca un hex suelto.
+ */
+@import '../../design/tokens.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Puente shadcn → tokens. Los componentes de src/shared/ui hablan en las variables semánticas de
+ * shadcn (`bg-primary`, `text-muted-foreground`, `border-input`…); acá cada una apunta a un token.
+ * Como los tokens ya conmutan con `.dark`, el puente no necesita su propio bloque oscuro.
+ */
+:root {
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-primario);
+  --primary-foreground: var(--color-sobre-primario);
+  --secondary: var(--color-surface-3);
+  --secondary-foreground: var(--color-ink);
+  --muted: var(--color-surface-2);
+  --muted-foreground: var(--color-ink-soft);
+  --accent: var(--color-surface-3);
+  --accent-foreground: var(--color-ink);
+  /* shadcn usa `destructive` como texto sobre su propio tinte: va el `-ink`, que sí da contraste. */
+  --destructive: var(--color-peligro-ink);
+  --border: var(--color-line);
+  --input: var(--color-line-strong);
+  --ring: var(--color-primario);
+  /* Radio base de shadcn. `--radius-sm` (6px) y `--radius-md` (8px) los definen los tokens. */
+  --radius: 0.625rem;
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-heading: var(--font-sans);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius-card);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: var(--text-base);
+  }
+}

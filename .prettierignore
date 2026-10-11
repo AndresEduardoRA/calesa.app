@@ -1,0 +1,9 @@
+docs/MAPA.md
+src/shared/types/database.types.ts
+supabase/**/*.sql
+pnpm-lock.yaml
+.next
+.next-e2e
+coverage
+playwright-report
+public/sw.js

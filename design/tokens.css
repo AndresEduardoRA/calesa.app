@@ -1,0 +1,165 @@
+/*
+ * Tokens de diseño — fuente de verdad. `src/app/globals.css` los importa dentro de `@theme`
+ * (Tailwind 4) y agrega el bloque `.dark`. Nunca un hex suelto en un componente: siempre
+ * `bg-(--color-surface)`, `text-(--color-ink)`, etc.
+ *
+ * Producto white-label: la marca de CADA despliegue (color primario, logo) se carga desde
+ * Configuración › Empresa y se inyecta en `<html style="--color-primario: …">` en runtime. Los
+ * valores de acá son el DEFAULT NEUTRO, pensados para que la app sea usable antes de cargar una marca.
+ *
+ * Reglas:
+ *  - `-ink` es para texto e íconos (≥ 4.5:1 sobre su superficie); el hue base es para rellenos.
+ *  - Los hues semánticos (positivo, aviso, peligro, info) NO conmutan con el tema; sus `-soft` e `-ink` sí.
+ *  - Los colores de fases, orígenes y etiquetas NO son tokens: salen de la fila (`fases.color`) y
+ *    pasan por `src/shared/lib/color.ts` para derivar texto legible en claro y oscuro.
+ */
+
+:root {
+  /* --- Tipografía ------------------------------------------------------ */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, 'SFMono-Regular', monospace;
+  --text-xs: 0.75rem; /* 12px — metadatos, chips */
+  --text-sm: 0.8125rem; /* 13px — tablas densas, hoja del cotizador */
+  --text-base: 0.9375rem; /* 15px — cuerpo */
+  --text-lg: 1.125rem; /* 18px — títulos de bloque */
+  --text-xl: 1.375rem; /* 22px — título de página */
+  --text-2xl: 1.75rem; /* 28px — cifras del tablero */
+
+  /* --- Geometría -------------------------------------------------------- */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+  --fila-compacta: 38px; /* densidad escritorio */
+  --fila-comoda: 48px; /* densidad táctil */
+  --sidebar: 15.5rem;
+  --topbar: 3.25rem;
+
+  /* --- Marca (default neutro; la empresa lo pisa en runtime) ------------ */
+  --color-primario: #3b5bdb; /* = ajustes_empresa.color_acento cuando está cargado */
+  --color-primario-oscuro: #2f4ac4;
+  --color-primario-soft: rgba(59, 91, 219, 0.12);
+  --color-primario-ink: #2f4ac4;
+  --color-sobre-primario: #ffffff;
+
+  /* --- Superficies y texto (claro) -------------------------------------- */
+  --color-paper: #f6f7f9; /* fondo de la app */
+  --color-paper-soft: #fafbfc; /* secciones */
+  --color-paper-dim: #eef0f4; /* zonas hundidas */
+  --color-surface: #ffffff; /* tarjetas */
+  --color-surface-2: #f8f9fb; /* filas alternas, inputs */
+  --color-surface-3: #f1f3f6; /* hover */
+  --color-ink: #1b2130;
+  --color-ink-soft: #4a5468;
+  --color-ink-faint: #76809a;
+  --color-line: #e5e8ee;
+  --color-line-strong: #cfd4de;
+  --color-overlay: rgba(16, 20, 32, 0.45);
+
+  /* --- Semánticos ------------------------------------------------------- */
+  --color-positivo: #0f8a5f;
+  --color-positivo-soft: #e8f7f0;
+  --color-positivo-ink: #0b6e4b;
+  --color-aviso: #e08a00;
+  --color-aviso-soft: #fff4e0;
+  --color-aviso-ink: #8a5300;
+  --color-peligro: #d93838;
+  --color-peligro-soft: #fdeeee;
+  --color-peligro-ink: #b02a2a;
+  --color-info: #2a7fd5;
+  --color-info-soft: #e9f2fc;
+  --color-info-ink: #1f63a8;
+
+  /* --- Celdas del cotizador (XCell) — fijos en ambos temas -------------- */
+  --color-celda-input: #fff7d6; /* amarillo: lo tipea el asesor */
+  --color-celda-input-borde: #e9d27a;
+  --color-celda-fijo: #e6f6ee; /* verde: costos fijos / constantes */
+  --color-celda-fijo-borde: #8fd3b0;
+  --color-celda-atencion: #ffe9d6; /* naranja: requiere revisión */
+  --color-celda-atencion-borde: #f0b27a;
+
+  /* --- Visitados / último abierto -------------------------------------- */
+  --color-visitado: #7a5af8;
+  --color-visitado-soft: rgba(122, 90, 248, 0.12);
+  --color-ultimo-visitado: #0e7490;
+  --color-ultimo-visitado-soft: rgba(14, 116, 144, 0.12);
+
+  /* --- Sombras y foco --------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(16, 20, 32, 0.06);
+  --shadow-md: 0 4px 12px rgba(16, 20, 32, 0.08);
+  --shadow-lg: 0 12px 32px rgba(16, 20, 32, 0.12);
+  --shadow-focus: 0 0 0 3px var(--color-primario-soft);
+
+  /* --- Movimiento ------------------------------------------------------- */
+  --dur-rapida: 120ms;
+  --dur-normal: 200ms;
+  --dur-pagina: 280ms;
+  --ease-salida: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Dataviz (fuera de @theme para que Tailwind no los purgue). Ver skill `dataviz`. */
+:root {
+  --viz-series-1: var(--color-primario);
+  --viz-series-2: #e0712e;
+  --viz-series-3: #10a37f;
+  --viz-series-4: #b94fcf;
+  --viz-series-5: #c9a227;
+  --viz-series-6: #5c7cfa;
+  --viz-bueno: var(--color-positivo);
+  --viz-aviso: var(--color-aviso);
+  --viz-critico: var(--color-peligro);
+  --viz-enfasis: var(--color-ink);
+  --viz-apagado: var(--color-ink-faint);
+  --viz-grilla: var(--color-line);
+  --viz-pista: var(--color-surface-3);
+  --viz-referencia: var(--color-ink-soft);
+}
+
+.dark {
+  --color-primario-soft: rgba(59, 91, 219, 0.22);
+  --color-primario-ink: #9fb4ff;
+
+  --color-paper: #12161f;
+  --color-paper-soft: #171c27;
+  --color-paper-dim: #0e1219;
+  --color-surface: #1d2330;
+  --color-surface-2: #242b3a;
+  --color-surface-3: #2c3445;
+  --color-ink: #f2f4f8;
+  --color-ink-soft: #c4cbd8;
+  --color-ink-faint: #8d97ab;
+  --color-line: #2c3344;
+  --color-line-strong: #3b4457;
+  --color-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-positivo-soft: rgba(15, 138, 95, 0.18);
+  --color-positivo-ink: #4fd39f;
+  --color-aviso-soft: rgba(224, 138, 0, 0.18);
+  --color-aviso-ink: #ffbe55;
+  --color-peligro-soft: rgba(217, 56, 56, 0.18);
+  --color-peligro-ink: #ff8a8a;
+  --color-info-soft: rgba(42, 127, 213, 0.18);
+  --color-info-ink: #7fb6f2;
+
+  --color-celda-input: rgba(233, 210, 122, 0.16);
+  --color-celda-input-borde: rgba(233, 210, 122, 0.45);
+  --color-celda-fijo: rgba(143, 211, 176, 0.14);
+  --color-celda-fijo-borde: rgba(143, 211, 176, 0.45);
+  --color-celda-atencion: rgba(240, 178, 122, 0.16);
+  --color-celda-atencion-borde: rgba(240, 178, 122, 0.5);
+
+  --color-visitado: #a78bfa;
+  --color-ultimo-visitado: #22d3ee;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-rapida: 0ms;
+    --dur-normal: 0ms;
+    --dur-pagina: 0ms;
+  }
+}

@@ -1,0 +1,88 @@
+# Supabase CLI — proyecto importadora. Generado por arranque-proyecto; setup.sh lo completa con el project_id.
+# Puertos en el bloque 546xx: el 5432x por defecto choca con otros stacks locales de la misma máquina.
+project_id = "importadora"
+
+[api]
+enabled = true
+port = 54621
+schemas = ["public", "graphql_public", "web"]   # `web` es la superficie de la web pública
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54622
+shadow_port = 54620
+major_version = 17
+
+[db.migrations]
+# Declarativo: el estado deseado vive en schemas/; las migraciones a mano llevan RLS, grants,
+# triggers, RPC, storage y cron. El orden importa por las FKs entre dominios.
+schema_paths = [
+  "./schemas/00_base/*.sql",
+  "./schemas/01_empresa/*.sql",
+  "./schemas/02_equipo/*.sql",
+  "./schemas/03_origenes/*.sql",
+  "./schemas/04_flujos/*.sql",
+  "./schemas/05_leads/*.sql",
+  "./schemas/06_vehiculos/*.sql",
+  "./schemas/07_cotizaciones/*.sql",
+  "./schemas/08_repuestos/*.sql",
+  "./schemas/09_logistica/*.sql",
+  "./schemas/10_agenda/*.sql",
+  "./schemas/11_chat/*.sql",
+  "./schemas/12_notificaciones/*.sql",
+  "./schemas/13_actividad/*.sql",
+  "./schemas/14_web/*.sql",
+  "./schemas/15_datos/*.sql",
+]
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[studio]
+enabled = true
+port = 54623
+
+# Correo local: los mails de auth (confirmar, recuperar, invitar) se leen acá, no se envían.
+[local_smtp]
+enabled = true
+port = 54624
+
+[analytics]
+enabled = true
+port = 54627
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true          # el candado real es ajustes_empresa.registro_abierto (trigger en auth.users)
+enable_anonymous_sign_ins = false
+minimum_password_length = 8
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+otp_expiry = 3600
+
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = ""
+skip_nonce_check = false
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[realtime]
+enabled = true
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
