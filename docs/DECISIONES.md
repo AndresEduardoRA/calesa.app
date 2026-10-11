@@ -221,3 +221,85 @@ con la misma semántica que `tiene_permiso()`, `alcance_de()` y `origenes_con_pe
 lee `supabase/seed.sql` y falla si el catálogo y el archivo divergen.
 **Consecuencia:** `equipo` aporta los datos (`mis_permisos()`), no la regla. Un permiso nuevo se
 agrega en el seed (o su migración) y en `permisos.ts` en el mismo commit, o el test lo frena.
+
+## 2026-10-11 — Lo que se ve sin sesión sale de `web.ajustes_acceso()`, con `primer_registro`
+
+**Contexto:** las pantallas de acceso necesitan el nombre, el logo y saber si ofrecer «Crear
+cuenta», pero corren como `anon` y `ajustes_empresa` sólo la lee `authenticated`. Además
+`registro_abierto` nace en `false`: mirando sólo esa columna, en una instalación recién hecha el
+botón queda oculto y la primera persona (la dueña) no tiene por dónde entrar.
+**Decisión:** función DEFINER `web.ajustes_acceso()` con las columnas contadas (nombre, logo,
+locale, moneda base, registro abierto) más `primer_registro` (no hay perfiles todavía).
+`registroDisponible()` repite en TS la condición del trigger `auth_registro_permitido()`.
+**Alternativas:** un grant de columnas a `anon` sobre la tabla (rompe «`anon` sólo toca `web`» y
+no resuelve `primer_registro`); leer con el cliente admin (la regla lo reserva a portal y crons).
+**Consecuencia:** `web` deja de ser sólo «lo que consume la web pública»: también lleva lo poco
+que el propio sistema muestra antes de ingresar. Lo que haga falta ahí se suma a esa función.
+
+## 2026-10-11 — `/auth/callback` canjea `code` (Google) y `token_hash` (correos)
+
+**Contexto:** el pedido era un handler que canjea el código. Con PKCE ese código sólo sirve en el
+navegador que lo pidió: recuperar la contraseña desde la computadora y abrir el correo en el
+celular falla. Y los enlaces que genera la API admin (las invitaciones) no traen `code`.
+**Decisión:** las plantillas de correo (`supabase/templates/`, declaradas en `config.toml`) arman
+el enlace como `{{ .SiteURL }}/auth/callback?token_hash=…&type=…`; el handler acepta las dos
+formas y los errores que Auth devuelve por redirección. `recovery` e `invite` siguen a
+`/auth/nueva-contrasena`; lo que falla vuelve a una pantalla con su `?aviso=`.
+**Consecuencia:** un enlace funciona en cualquier dispositivo y las invitaciones entran por la
+misma puerta. En la nube las plantillas se cargan a mano (Auth › Emails) y `Site URL` tiene que
+ser la dirección real de la app; los e2e reescriben el origen porque corren en otro puerto.
+
+## 2026-10-11 — `mi_sesion()`: la sesión entera en una ida a la base
+
+**Contexto:** cada pantalla necesita perfil, roles, permisos y preferencias (cuatro consultas), y
+una persona bloqueada ni siquiera puede leer su perfil (la policy exige estar activa), así que
+la app no tenía cómo decirle por qué no entra. El exceso de peticiones fue un problema de `ip`.
+**Decisión:** RPC DEFINER `mi_sesion()` que devuelve estado de la cuenta (`activa`, `bloqueada`,
+`baja`), perfil, roles, concesiones y preferencias de quien llama; `getSesion()` la envuelve en
+`cache()` de React: una verificación del JWT y una RPC por request.
+**Alternativas:** `'use cache: private'` (guarda la sesión cinco minutos en el navegador: un
+permiso quitado se seguiría viendo); el hook de access token (ya anotado como deuda, sólo si esto
+se vuelve caro).
+**Consecuencia:** un dato nuevo que el shell necesite de la persona se suma a esa función.
+`actionClient` sigue llamando a `mis_permisos()` por su lado.
+
+## 2026-10-11 — Google sin variable de entorno; el botón depende de lo que diga Auth
+
+**Contexto:** con el proveedor apagado, mandar a alguien a `/authorize` le muestra un JSON de error.
+**Decisión:** `/ingreso` consulta `/auth/v1/settings` (público) y dibuja el botón sólo si Google
+está encendido. Lo que falla después vuelve por `/auth/callback` y se lee como aviso (cancelado,
+registro cerrado, error genérico).
+**Consecuencia:** no hay nada que configurar del lado de la app. Queda un caso sin cubrir:
+proveedor encendido con credenciales de relleno (el local de hoy), donde el error lo muestra
+Google en su propia página. Se resuelve apagando el proveedor donde no hay credenciales.
+
+## 2026-10-11 — El `index.ts` de un módulo se importa sólo desde Server Components
+
+**Contexto:** la API de `equipo` mezcla código de servidor (`requerirSesion`, actions) con
+componentes de cliente. Probado: un Client Component que importa `@/modules/equipo` rompe el build
+(arrastra `next/headers` y `server-only` al navegador).
+**Decisión:** un Client Component de `app/` o de otro módulo recibe la action o el dato por props
+desde un Server Component (así llega `cerrarSesion` al menú del usuario). Dentro del módulo,
+`features/` toma las implementaciones de `composicion.ts` (servidor) y `composicion.client.ts`
+(navegador), nunca de `infra/`.
+**Alternativas:** una segunda entrada `cliente.ts` por módulo: hoy `scripts/mapa.sh --check` la
+contaría como «importar las tripas».
+**Consecuencia:** cuando `equipo` exponga hooks (`usePerspectiva()`) para Client Components de
+otros módulos, hará falta esa segunda entrada y ajustar el mapa y el lint. Decisión pendiente.
+
+## 2026-10-11 — La navegación se declara entera y un test la compara con las rutas que existen
+
+**Decisión:** `src/app/(app)/_shell/navegacion.ts` lista todas las pantallas de `docs/UX.md` con
+su permiso y un `disponible`; sólo se muestran las disponibles. `navegacion.test.ts` falla si
+`disponible` no coincide con que exista `page.tsx`.
+**Consecuencia:** ningún enlace del menú lleva a un 404, y quien agrega una pantalla tiene que
+prender su entrada (el test se lo recuerda).
+
+## 2026-10-11 — El e2e de acceso exige la base local sin personas
+
+**Contexto:** «la primera persona nace dueña» sólo se puede probar con el equipo vacío.
+**Decisión:** el e2e crea cuentas `@e2e.importadora.test`, borra sólo esas y, si encuentra otras,
+frena y pide correr `pnpm db:reset`. Se niega a correr contra un Supabase que no sea local.
+**Alternativas:** borrar a todos (destruye datos de quien desarrolla); un stack aparte para e2e.
+**Consecuencia:** quien tenga gente cargada en su base local tiene que resetearla para correr los
+e2e. Si molesta, la salida es un segundo stack de Supabase sólo para e2e.

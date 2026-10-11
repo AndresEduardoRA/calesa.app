@@ -34,12 +34,15 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Depende de: ningún otro módulo
 
 ### `empresa`
-Ajustes de la empresa (marca, datos legales, país, locale, zona horaria), monedas y tipos de cambio nombrados con historial, integraciones activables. · 1 archivos
+Ajustes de la empresa (marca, datos legales, país, locale, zona horaria), monedas y tipos de cambio nombrados con historial, integraciones activables. · 4 archivos
+- API: `registroDisponible`, `Ajustes`, `getAjustes`
 - Depende de: ningún otro módulo
 
 ### `equipo`
-Autenticación, perfiles, roles y permisos (RBAC puro), bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 1 archivos
-- Depende de: ningún otro módulo
+Autenticación, perfiles, roles y permisos (RBAC puro), bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 46 archivos
+- API: `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, `avisoDe`, `Aviso`, `canjearAcceso`, `googleHabilitado`, +9
+- Depende de: empresa
+- Casos de uso: auth, perfil
 
 ### `flujos`
 Motor único de flujos: fases, transiciones, requisitos (documento | dato | espera), roles por fase y transición, reglas por flujo, jubilar/eliminar, revisión de coherencia y la RPC `cambiar_fase` que mueve vehículos y repuestos. · 1 archivos
@@ -66,8 +69,10 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 - Depende de: ningún otro módulo
 
 ### `tablero`
-Bandeja de inicio por rol y tablero de métricas con widgets personalizables por usuario; compone a los demás módulos por su API pública. · 1 archivos
+Bandeja de inicio por rol y tablero de métricas con widgets personalizables por usuario; compone a los demás módulos por su API pública. · 4 archivos
+- API: `Bandeja`
 - Depende de: ningún otro módulo
+- Casos de uso: bandeja
 
 ### `vehiculos`
 Inventario de vehículos por origen con atributos dinámicos, hasta 24 fotos optimizadas, interesados y vínculo a lead, vitrina web, papelera por lotes e importación desde Copart/IAAI vía apibara. · 1 archivos
@@ -82,14 +87,24 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 Infraestructura transversal sin reglas de negocio: clientes de Supabase, permisos, errores como valores, formato de números y fechas, configuración y los componentes de interfaz que usan todos los módulos.
 
 - `config/`: `app.ts`, `entorno.ts`
-- `lib/`: `errores.ts`, `fechas.ts`, `formato.ts`, `permisos.ts`, `safe-action.ts`, `utils.ts`
-- `lib/supabase/`: `admin.ts`, `browser.ts`, `proxy.ts`, `server.ts`
+- `lib/`: `almacen.ts`, `atajos.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
+- `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `proxy.ts`, `server.ts`
 - `types/`: `database.types.ts`
-- `ui/`: `badge.tsx`, `button.tsx`, `checkbox.tsx`, `command.tsx`, `conmutador-tema.tsx`, `dialog.tsx`, `dropdown-menu.tsx`, `input-group.tsx`, `input.tsx`, `label.tsx`, `popover.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `tooltip.tsx`
+- `ui/`: `avatar.tsx`, `aviso.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`
+- `ui/atajos/`: `index.ts`, `proveedor-atajos.tsx`, `use-atajo.ts`
+- `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-tabla.tsx`, `index.ts`
+- `ui/estados/`: `estado-error.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
 
 ## Rutas
 
 - `/` — página
+- `/auth/callback` — API
+- `/auth/cerrar` — API
+- `/auth/nueva-contrasena` — página
+- `/ingreso` — página
+- `/perfil` — página
+- `/recuperar` — página
+- `/registro` — página
 
 ## Tablas (supabase/schemas)
 

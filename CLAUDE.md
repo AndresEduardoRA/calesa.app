@@ -86,6 +86,12 @@ Dónde va cada cosa:
   son async; `next lint` no existe (`pnpm lint` = eslint); `revalidateTag('x', 'max')` exige
   perfil; `cacheComponents: true` → nada de `export const dynamic`, y `useSearchParams()` va
   dentro de `<Suspense>`.
+- **Cache Components en la práctica**: leer la sesión o la base es de cada request → va detrás de
+  `<Suspense>` y empieza con `await connection()` (si no, Next lo intenta al preparar la ruta por
+  adelantado). Next conserva el estado de una pantalla al salir y volver (un formulario reaparece
+  con su último resultado: `key` para reiniciarlo). Una action que escribe cookies vuelve a dibujar
+  la página. `redirect()` está tipado: destinos calculados con `redirigir()`. El `index.ts` de un
+  módulo sólo se importa desde Server Components.
 - **Supabase**: la clave pública es `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_…`);
   en servidor `getClaims()`, nunca `getSession()`; cliente de servidor por request, jamás global;
   cookies con `getAll`/`setAll`. El schema `web` se expone en PostgREST (`config.toml`).
