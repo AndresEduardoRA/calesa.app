@@ -1,3 +1,4 @@
 // API pública del módulo `tablero`. Lo único que `app/` u otro módulo puede importar.
-// Se llena en su fase de docs/PLAN.md; la ficha CLAUDE.md de esta carpeta dice qué entra y qué sale.
-export {}
+// Por ahora sólo la bandeja de inicio, con sus bloques declarados y vacíos. El tablero de
+// métricas (`/tablero`) llega en su fase de docs/PLAN.md.
+export { Bandeja } from './features/bandeja/components/bandeja'
