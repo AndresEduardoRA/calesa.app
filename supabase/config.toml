@@ -85,8 +85,11 @@ content_path = "./supabase/templates/confirmacion.html"
 subject = "Recuperación de tu contraseña"
 content_path = "./supabase/templates/recuperacion.html"
 
+# Apagado en local: sin credenciales reales el botón aparecería y fallaría en la página de Google.
+# La app lo dibuja sólo si Auth dice que el proveedor está encendido (/auth/v1/settings).
+# En la nube se enciende desde Auth › Providers, con sus credenciales.
 [auth.external.google]
-enabled = true
+enabled = false
 client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
 redirect_uri = ""
