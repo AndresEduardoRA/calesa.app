@@ -1,0 +1,8 @@
+<!-- Recuperación de contraseña. Mismo mecanismo que la confirmación: `token_hash` canjeado por
+     /auth/callback, que después lleva a /auth/nueva-contrasena. -->
+<h2>Recuperación de tu contraseña</h2>
+<p>Pediste cambiar la contraseña de tu cuenta. Abre este enlace para elegir una nueva:</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery">Elegir una contraseña nueva</a>
+</p>
+<p>El enlace vence en una hora y sirve una sola vez. Si no lo pediste, ignora este mensaje.</p>

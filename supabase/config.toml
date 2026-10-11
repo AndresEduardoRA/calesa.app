@@ -56,7 +56,13 @@ port = 54627
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://localhost:3000"]
+# Destinos permitidos para `redirectTo` (ingreso con Google). 3210 es el puerto de los e2e.
+additional_redirect_urls = [
+  "https://localhost:3000/**",
+  "http://localhost:3000/**",
+  "http://127.0.0.1:3000/**",
+  "http://localhost:3210/**",
+]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 enable_signup = true          # el candado real es ajustes_empresa.registro_abierto (trigger en auth.users)
@@ -68,6 +74,16 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
 otp_expiry = 3600
+
+# Correos en español con `token_hash`: /auth/callback los canjea sin depender del navegador que
+# pidió el enlace. En la nube estas plantillas se cargan a mano en Auth › Emails.
+[auth.email.template.confirmation]
+subject = "Confirmación de tu cuenta"
+content_path = "./supabase/templates/confirmacion.html"
+
+[auth.email.template.recovery]
+subject = "Recuperación de tu contraseña"
+content_path = "./supabase/templates/recuperacion.html"
 
 [auth.external.google]
 enabled = true

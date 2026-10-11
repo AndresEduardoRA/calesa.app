@@ -1,0 +1,8 @@
+<!-- Confirmación de cuenta. El enlace lleva `token_hash` (no un código PKCE) para que funcione
+     aunque se abra en otro navegador o dispositivo: lo canjea /auth/callback. -->
+<h2>Confirmación de tu cuenta</h2>
+<p>Alguien creó una cuenta con este correo. Para activarla, abre este enlace:</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup">Confirmar mi correo</a>
+</p>
+<p>Si no fuiste tú, ignora este mensaje: sin confirmar, la cuenta no se activa.</p>
