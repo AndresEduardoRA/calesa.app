@@ -88,3 +88,75 @@
     font-size: var(--text-base);
   }
 }
+
+/*
+ * Densidad: `--fila` es la altura de una fila de lista, de tabla o del menú. Compacta en
+ * escritorio, cómoda donde se toca con el dedo; si la persona eligió una, `<ProveedorDensidad>`
+ * la pone en `data-densidad` (en <html>) y gana.
+ */
+:root {
+  --fila: var(--fila-compacta);
+}
+
+@media (pointer: coarse) {
+  :root {
+    --fila: var(--fila-comoda);
+  }
+}
+
+[data-densidad='compacta'] {
+  --fila: var(--fila-compacta);
+}
+
+[data-densidad='comoda'] {
+  --fila: var(--fila-comoda);
+}
+
+/*
+ * Modo Live: con la clase `live` en <html>, toda cifra de dinero y su símbolo de moneda salen de
+ * la vista y del árbol de accesibilidad. <Monto> siempre trae las dos versiones; acá se elige.
+ */
+[data-monto-oculto] {
+  display: none;
+}
+
+.live [data-monto-valor] {
+  display: none;
+}
+
+.live [data-monto-oculto] {
+  display: inline;
+}
+
+/*
+ * Transiciones entre páginas (View Transitions, <TransicionPagina>): un fundido corto con los
+ * tiempos de los tokens. Con `prefers-reduced-motion` no se anima nada.
+ */
+::view-transition-old(.pagina) {
+  animation: var(--dur-rapida) var(--ease-salida) both pagina-sale;
+}
+
+::view-transition-new(.pagina) {
+  animation: var(--dur-pagina) var(--ease-salida) both pagina-entra;
+}
+
+@keyframes pagina-sale {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pagina-entra {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
