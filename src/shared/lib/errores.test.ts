@@ -66,10 +66,10 @@ describe('errorDePostgrest', () => {
   it('usa el mensaje de la RPC cuando un 23503 viene escrito para la persona', () => {
     const error = errorDePostgrest({
       code: '23503',
-      message: 'El rol tiene 2 usuario(s): reasignalos antes.',
+      message: '2 personas tienen este rol: quítaselo antes de eliminarlo.',
     })
     expect(error.codigo).toBe('regla')
-    expect(error.mensaje).toBe('El rol tiene 2 usuario(s): reasignalos antes.')
+    expect(error.mensaje).toBe('2 personas tienen este rol: quítaselo antes de eliminarlo.')
   })
 
   it('cae al genérico si el mensaje llega vacío', () => {
