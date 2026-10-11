@@ -1,3 +1,33 @@
 // API pública del módulo `equipo`. Lo único que `app/` u otro módulo puede importar.
-// Se llena en su fase de docs/PLAN.md; la ficha CLAUDE.md de esta carpeta dice qué entra y qué sale.
-export {}
+//
+// Este archivo mezcla código de servidor (`requerirSesion`, las actions) con componentes de
+// cliente: lo importan los Server Components. Un Client Component de afuera no importa de acá
+// (arrastraría `server-only` al navegador): recibe lo que necesita por props.
+
+// Sesión y permisos
+export {
+  cerrarSiInactiva,
+  getPermisos,
+  requerirSesion,
+  requerirSesionDeEnlace,
+} from './features/auth/sesion'
+export { nombreVisible, sinRol, type Sesion } from './entities/sesion'
+// `puede()` y el catálogo viven en `shared` para que `entities/` de cualquier módulo los use
+// (docs/DECISIONES.md); se reexportan porque esta es su puerta natural.
+export { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
+
+// Acceso: ingresar, registrarse, recuperar
+export { avisoDe, type Aviso } from './entities/avisos'
+export { canjearAcceso } from './features/auth/canjear'
+export { googleHabilitado } from './features/auth/proveedores'
+export { cerrarSesion } from './features/auth/actions/cerrar-sesion'
+export { FormularioIngreso } from './features/auth/components/formulario-ingreso'
+export { FormularioNuevaContrasena } from './features/auth/components/formulario-nueva-contrasena'
+export { FormularioRecuperar } from './features/auth/components/formulario-recuperar'
+export { FormularioRegistro } from './features/auth/components/formulario-registro'
+export { RegistroCerrado } from './features/auth/components/registro-cerrado'
+
+// Perfil propio y preferencias
+export { FormularioPerfil } from './features/perfil/components/formulario-perfil'
+export { PreferenciasPerfil } from './features/perfil/components/preferencias-perfil'
+export { ProveedorPreferencias } from './features/perfil/components/proveedor-preferencias'
