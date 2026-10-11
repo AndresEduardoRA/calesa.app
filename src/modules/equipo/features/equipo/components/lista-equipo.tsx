@@ -1,12 +1,11 @@
 'use client'
 
 import { debounce, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
+import { useState } from 'react'
 import type { Permisos } from '@/shared/lib/permisos'
-import { Aviso } from '@/shared/ui/aviso'
 import { EstadoSinResultados } from '@/shared/ui/estados'
 import {
   FILTROS_DE_ESTADO,
-  accionesSobre,
   filtrarPersonas,
   nombreDePersona,
   type PersonaDelEquipo,
@@ -14,10 +13,12 @@ import {
 } from '../../../entities/persona'
 import type { RolConConcesiones } from '../../../entities/rol'
 import { useAccionesEquipo } from '../hooks/use-acciones-equipo'
+import { useInvitaciones } from '../hooks/use-invitaciones'
+import { CabeceraEquipo } from './cabecera-equipo'
 import { ConfirmarBaja } from './confirmar-baja'
-import { FilaPersona } from './fila-persona'
+import { EnlaceDePersona, type EnlaceGenerado } from './enlace-de-persona'
 import { FiltrosEquipo } from './filtros-equipo'
-import { MenuPersona } from './menu-persona'
+import { InvitarPersona } from './invitar-persona'
 import { PanelRolesPersona } from './panel-roles-persona'
 import { TablaEquipo } from './tabla-equipo'
 
@@ -35,7 +36,8 @@ type Props = {
 const PARAMETROS = {
   q: parseAsString.withDefault(''),
   estado: parseAsStringLiteral(FILTROS_DE_ESTADO).withDefault('vigentes'),
-  // El panel de roles de una persona y el diálogo de baja tienen su URL.
+  // Invitar, el panel de roles de una persona y el diálogo de baja tienen su URL.
+  panel: parseAsString,
   persona: parseAsString,
   baja: parseAsString,
 }
@@ -45,17 +47,26 @@ export function ListaEquipo(props: Props) {
   const { personas, roles, misPermisos, yoId, puedeGestionar, vistaPreviaDeBaja } = props
   const [parametros, setParametros] = useQueryStates(PARAMETROS, { shallow: false })
   const { cambiarBloqueo, darBaja, cambiarRol, enCurso } = useAccionesEquipo()
+  const { pedirEnlace, generando } = useInvitaciones()
+  const [enlace, setEnlace] = useState<EnlaceGenerado | null>(null)
   const visibles = filtrarPersonas(personas, { estado: parametros.estado, texto: parametros.q })
-  const deLaBaja = personas.find(
-    (persona) => persona.id === parametros.baja && persona.estado !== 'baja',
-  )
+  const buscar = (id: string | null) => personas.find((persona) => persona.id === id) ?? null
+  const deLaBaja = buscar(parametros.baja)
+
+  async function generarEnlace(persona: PersonaDelEquipo) {
+    const nuevo = await pedirEnlace(persona.id)
+    if (nuevo) {
+      setEnlace({ nombre: nombreDePersona(persona), enlace: nuevo })
+    }
+  }
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">Equipo</h1>
-      {personas.length === 1 ? (
-        <Aviso>Por ahora el equipo eres tú. Cuando invites a alguien aparece acá.</Aviso>
-      ) : null}
+      <CabeceraEquipo
+        puedeGestionar={puedeGestionar}
+        soloYo={personas.length === 1}
+        alInvitar={() => void setParametros({ panel: 'invitar' })}
+      />
       <FiltrosEquipo
         texto={parametros.q}
         estado={parametros.estado}
@@ -65,34 +76,31 @@ export function ListaEquipo(props: Props) {
       {visibles.length === 0 ? (
         <EstadoSinResultados alLimpiar={() => void setParametros({ q: null, estado: null })} />
       ) : (
-        <TablaEquipo>
-          {visibles.map((persona) => (
-            <FilaPersona
-              key={persona.id}
-              persona={persona}
-              esPropia={persona.id === yoId}
-              acciones={
-                puedeGestionar && persona.estado !== 'baja' ? (
-                  <MenuPersona
-                    nombre={nombreDePersona(persona)}
-                    acciones={accionesSobre(persona, yoId)}
-                    deshabilitado={enCurso}
-                    alVerRoles={() => void setParametros({ persona: persona.id })}
-                    alCambiarBloqueo={(valor) => void cambiarBloqueo(persona, valor)}
-                    alDarDeBaja={() => void setParametros({ baja: persona.id })}
-                  />
-                ) : null
-              }
-            />
-          ))}
-        </TablaEquipo>
+        <TablaEquipo
+          personas={visibles}
+          yoId={yoId}
+          puedeGestionar={puedeGestionar}
+          deshabilitado={enCurso || generando}
+          alVerRoles={(persona) => void setParametros({ persona: persona.id })}
+          alCambiarBloqueo={(persona, valor) => void cambiarBloqueo(persona, valor)}
+          alDarDeBaja={(persona) => void setParametros({ baja: persona.id })}
+          alGenerarEnlace={(persona) => void generarEnlace(persona)}
+        />
       )}
+      <InvitarPersona
+        abierto={puedeGestionar && parametros.panel === 'invitar'}
+        alCerrar={() => void setParametros({ panel: null })}
+        roles={roles}
+        misPermisos={misPermisos}
+      />
+      <EnlaceDePersona
+        generado={enlace}
+        alCerrar={() => {
+          setEnlace(null)
+        }}
+      />
       <PanelRolesPersona
-        persona={
-          puedeGestionar
-            ? (personas.find((persona) => persona.id === parametros.persona) ?? null)
-            : null
-        }
+        persona={puedeGestionar ? buscar(parametros.persona) : null}
         roles={roles}
         misPermisos={misPermisos}
         enCurso={enCurso}
@@ -100,7 +108,7 @@ export function ListaEquipo(props: Props) {
         alCerrar={() => void setParametros({ persona: null })}
       />
       <ConfirmarBaja
-        persona={deLaBaja ?? null}
+        persona={deLaBaja?.estado === 'baja' ? null : deLaBaja}
         vistaPrevia={vistaPreviaDeBaja?.personaId === deLaBaja?.id ? vistaPreviaDeBaja : null}
         enCurso={enCurso}
         alConfirmar={(persona) => {

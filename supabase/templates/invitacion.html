@@ -1,0 +1,11 @@
+<!-- Invitación al equipo. Mismo mecanismo que la confirmación: `token_hash` canjeado por
+     /auth/callback, que después lleva a /auth/nueva-contrasena. La cuenta ya nació con su rol. -->
+<h2>Te invitaron al equipo</h2>
+<p>Alguien del equipo creó una cuenta para ti. Abre este enlace para elegir tu contraseña y entrar:</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite">Elegir mi contraseña</a>
+</p>
+<p>
+  El enlace sirve una sola vez y vence pronto. Si ya no funciona, pide uno nuevo a quien te
+  invitó. Si no esperabas esta invitación, ignora este mensaje.
+</p>

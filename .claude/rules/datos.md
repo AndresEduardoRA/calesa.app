@@ -9,8 +9,16 @@ paths:
 - Lecturas en `infra/queries/*.ts` con `import 'server-only'`; realtime y fetch desde el browser en
   `infra/*.client.ts` (cliente de `@/shared/lib/supabase/browser`). Nunca desde componentes.
 - El cliente de servidor se crea por request (`createClient()` de `@/shared/lib/supabase/server`),
-  jamás en una variable global. El cliente admin (`secret key`) sólo en route handlers del portal,
-  webhooks y crons, y nunca lee `leads`, `vehiculos` ni `cotizaciones` (saltaría la papelera).
+  jamás en una variable global.
+- El cliente admin (`secret key`) salta la RLS. Sólo se crea en route handlers del portal,
+  webhooks y crons, con **una excepción**: invitar personas, que exige la API de admin de Auth.
+  Esa excepción vive en un solo lugar, `conAdminDeAuth()` de
+  `src/modules/equipo/infra/invitaciones.ts`, y con tres candados: comprueba
+  `equipo.usuarios.gestionar` en la base con el cliente de quien invita **antes** de crear el
+  cliente admin; entrega sólo `auth.admin` envuelto en `CuentasInvitadas` (nunca `.from()` ni
+  `.rpc()`); y no asigna el rol (eso lo hace `rbac_asignar_rol` con la sesión de quien invita).
+  El lint prohíbe importar `@/shared/lib/supabase/admin` desde cualquier otro archivo. En ningún
+  caso el cliente admin lee `leads`, `vehiculos` ni `cotizaciones` (saltaría la papelera).
 - Los tipos vienen de `@/shared/types/database.types` (`Tables<'leads'>`, `Enums<'tipo_lead'>`).
   Si un tipo contradice el código, el código está mal.
 - Leads: se leen de `leads_vista` (teléfono enmascarado salvo cartera). Nunca `from('leads')`

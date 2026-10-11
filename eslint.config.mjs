@@ -19,6 +19,16 @@ const SOLO_LAS_ENTRADAS = {
     'Entre módulos sólo se importa @/modules/<otro> (desde el servidor) o @/modules/<otro>/client (desde un Client Component).',
 }
 
+// El cliente admin salta la RLS. Fuera de `src/shared/lib/supabase` lo crea un solo archivo, que
+// comprueba el permiso antes y no expone más que `auth.admin` (.claude/rules/datos.md). Los route
+// handlers del portal, los webhooks y los crons se suman a esa lista cuando existan.
+const SOLO_DONDE_SE_PERMITE_EL_ADMIN = {
+  name: '@/shared/lib/supabase/admin',
+  message:
+    'El cliente admin sólo se crea en src/modules/equipo/infra/invitaciones.ts (.claude/rules/datos.md).',
+}
+const DONDE_SE_PERMITE_EL_ADMIN = ['src/modules/equipo/infra/invitaciones.ts']
+
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -172,6 +182,7 @@ export default defineConfig([
       'no-restricted-imports': [
         'error',
         {
+          paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN],
           patterns: [SOLO_CLIENTES_DE_SHARED, SOLO_LAS_ENTRADAS],
         },
       ],
@@ -205,8 +216,13 @@ export default defineConfig([
       ],
     },
   },
+  // infra/ sí importa los clientes de Supabase; lo único que le sigue vedado es el cliente admin.
   {
-    files: ['src/shared/lib/supabase/**/*.ts', 'src/modules/*/infra/**/*.ts'],
+    files: ['src/modules/*/infra/**/*.ts'],
+    rules: { 'no-restricted-imports': ['error', { paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN] }] },
+  },
+  {
+    files: ['src/shared/lib/supabase/**/*.ts', ...DONDE_SE_PERMITE_EL_ADMIN],
     rules: { 'no-restricted-imports': 'off' },
   },
 

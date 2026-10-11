@@ -1,10 +1,25 @@
 'use client'
 
-import type { ReactNode } from 'react'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
+import { accionesSobre, nombreDePersona, type PersonaDelEquipo } from '../../../entities/persona'
+import { FilaPersona } from './fila-persona'
+import { MenuPersona } from './menu-persona'
 
-// El marco de la lista: las columnas. Las filas son <FilaPersona>.
-export function TablaEquipo({ children }: { children: ReactNode }) {
+type Props = {
+  personas: readonly PersonaDelEquipo[]
+  yoId: string
+  // Sin el permiso de gestionar no hay menú de acciones: sólo se lee.
+  puedeGestionar: boolean
+  deshabilitado: boolean
+  alVerRoles: (persona: PersonaDelEquipo) => void
+  alCambiarBloqueo: (persona: PersonaDelEquipo, bloquear: boolean) => void
+  alDarDeBaja: (persona: PersonaDelEquipo) => void
+  alGenerarEnlace: (persona: PersonaDelEquipo) => void
+}
+
+// La lista: una fila por persona, con su menú de acciones si quien mira gestiona el equipo.
+export function TablaEquipo(props: Props) {
+  const { personas, yoId, puedeGestionar, deshabilitado } = props
   return (
     <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
       <Table>
@@ -18,7 +33,36 @@ export function TablaEquipo({ children }: { children: ReactNode }) {
             </TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>{children}</TableBody>
+        <TableBody>
+          {personas.map((persona) => (
+            <FilaPersona
+              key={persona.id}
+              persona={persona}
+              esPropia={persona.id === yoId}
+              acciones={
+                puedeGestionar && persona.estado !== 'baja' ? (
+                  <MenuPersona
+                    nombre={nombreDePersona(persona)}
+                    acciones={accionesSobre(persona, yoId)}
+                    deshabilitado={deshabilitado}
+                    alVerRoles={() => {
+                      props.alVerRoles(persona)
+                    }}
+                    alCambiarBloqueo={(bloquear) => {
+                      props.alCambiarBloqueo(persona, bloquear)
+                    }}
+                    alDarDeBaja={() => {
+                      props.alDarDeBaja(persona)
+                    }}
+                    alGenerarEnlace={() => {
+                      props.alGenerarEnlace(persona)
+                    }}
+                  />
+                ) : null
+              }
+            />
+          ))}
+        </TableBody>
       </Table>
     </div>
   )
