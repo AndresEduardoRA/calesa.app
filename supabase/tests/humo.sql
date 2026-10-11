@@ -336,3 +336,68 @@ do $$ begin
   if public.mi_sesion() ->> 'estado' <> 'baja' then raise exception 'esperaba baja: %', public.mi_sesion() ->> 'estado'; end if;
 end $$;
 reset role;
+
+-- @test guardián: suma los roles de la persona, no cuenta invitaciones pendientes y cuida equipo.* del dueño
+reset role;
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-000000000006', 'gestora@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-000000000007', 'pendiente@ejemplo.com', '{"invitado": true}');
+update public.perfiles set nombre = 'Gabriela Flores', invitacion_aceptada_en = now() where id = '00000000-0000-0000-0000-000000000006';
+update public.perfiles set nombre = 'Pablo Rojas' where id = '00000000-0000-0000-0000-000000000007';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare r1 uuid; r2 uuid; begin
+  set constraints all immediate;
+  -- El dueño no pierde NINGÚN permiso de equipo, no sólo el de roles.
+  begin
+    perform public.rbac_revocar((select id from public.roles where clave = 'dueno'), 'equipo.usuarios.ver');
+    raise exception 'el rol dueño perdió equipo.usuarios.ver';
+  exception when check_violation then null; end;
+  -- Dos roles que sumados dan los dos permisos de administración, y una segunda dueña sin aceptar.
+  r1 := public.rbac_crear_rol('humo_roles', 'Humo roles');
+  r2 := public.rbac_crear_rol('humo_personas', 'Humo personas');
+  perform public.rbac_otorgar(r1, 'equipo.roles.gestionar');
+  perform public.rbac_otorgar(r2, 'equipo.usuarios.gestionar');
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000006', r1, true);
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000006', r2);
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000007', (select id from public.roles where clave = 'dueno'), true);
+end $$;
+reset role;
+-- Gabriela (dos roles que suman) alcanza para que la dueña pueda ser bloqueada.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000006', false);
+set role authenticated;
+do $$ begin
+  set constraints all immediate;
+  perform public.equipo_bloquear('00000000-0000-0000-0000-000000000001', true, 'humo');
+  perform public.equipo_bloquear('00000000-0000-0000-0000-000000000001', false);
+end $$;
+reset role;
+-- Sin uno de sus dos roles, Gabriela ya no administra: la única que queda es la dueña. Pablo
+-- tiene el rol dueño pero no aceptó su invitación: no cuenta.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+select public.rbac_quitar_rol('00000000-0000-0000-0000-000000000006', (select id from public.roles where clave = 'humo_roles'));
+do $$ begin
+  set constraints all immediate;
+  begin
+    perform public.rbac_quitar_rol('00000000-0000-0000-0000-000000000001', (select id from public.roles where clave = 'dueno'));
+    raise exception 'la última que administra se quedó sin su rol';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000006', false);
+set role authenticated;
+do $$ begin
+  set constraints all immediate;
+  begin
+    perform public.equipo_bloquear('00000000-0000-0000-0000-000000000001', true, 'humo');
+    raise exception 'se bloqueó a la última que administra';
+  exception when check_violation then null; end;
+  begin
+    perform public.equipo_dar_de_baja('00000000-0000-0000-0000-000000000001');
+    raise exception 'se dio de baja a la última que administra';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

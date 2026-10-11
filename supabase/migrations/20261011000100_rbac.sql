@@ -291,23 +291,36 @@ begin
 end;
 $$;
 
--- Guardián diferido: al cerrar la transacción siempre queda alguien ACTIVO con los dos
--- permisos de administración, y el rol `dueno` nunca pierde equipo.*.
+-- Guardián diferido. Al cerrar la transacción:
+--  1. Queda al menos una persona que puede operar (activa, sin bloqueo y con su invitación
+--     aceptada) cuyos roles, SUMADOS, le dan los dos permisos de administración. Los permisos son
+--     la unión de los roles: no hace falta que un mismo rol tenga los dos.
+--  2. El rol `dueno` conserva todos los permisos del módulo `equipo`. Un permiso nuevo de
+--     `equipo` se le otorga al dueño en la misma migración que lo crea.
 create or replace function public.rbac_guardian()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
-  if not exists (
+  if exists (select 1 from public.perfiles) and not exists (
     select 1 from public.perfiles p
-    join public.usuarios_roles ur on ur.usuario_id = p.id
-    join public.roles_permisos a on a.rol_id = ur.rol_id and a.permiso_clave = 'equipo.roles.gestionar'
-    join public.roles_permisos b on b.rol_id = ur.rol_id and b.permiso_clave = 'equipo.usuarios.gestionar'
     where p.activo and not p.bloqueado
-  ) and exists (select 1 from public.perfiles) then
-    raise exception 'Siempre tiene que quedar alguien activo que administre roles y usuarios.' using errcode = '23514';
+      and (p.invitado_en is null or p.invitacion_aceptada_en is not null)
+      and exists (
+        select 1 from public.usuarios_roles ur join public.roles_permisos rp on rp.rol_id = ur.rol_id
+        where ur.usuario_id = p.id and rp.permiso_clave = 'equipo.roles.gestionar' and rp.origen_id is null)
+      and exists (
+        select 1 from public.usuarios_roles ur join public.roles_permisos rp on rp.rol_id = ur.rol_id
+        where ur.usuario_id = p.id and rp.permiso_clave = 'equipo.usuarios.gestionar' and rp.origen_id is null)
+  ) then
+    raise exception 'Siempre tiene que quedar alguien activo que gestione los roles y las personas del equipo.' using errcode = '23514';
   end if;
-  if exists (select 1 from public.roles where clave = 'dueno')
-     and not exists (select 1 from public.roles r join public.roles_permisos rp on rp.rol_id = r.id where r.clave = 'dueno' and rp.permiso_clave = 'equipo.roles.gestionar') then
-    raise exception 'El rol dueño no puede perder equipo.roles.gestionar.' using errcode = '23514';
+  if exists (select 1 from public.roles where clave = 'dueno') and exists (
+    select 1 from public.permisos pe
+    where pe.modulo = 'equipo'
+      and not exists (
+        select 1 from public.roles r join public.roles_permisos rp on rp.rol_id = r.id
+        where r.clave = 'dueno' and rp.permiso_clave = pe.clave and rp.origen_id is null and rp.alcance = 'todos')
+  ) then
+    raise exception 'El rol dueño no puede perder los permisos de equipo.' using errcode = '23514';
   end if;
   return null;
 end;
