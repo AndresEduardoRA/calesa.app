@@ -7,7 +7,10 @@ import {
   DESCRIPCION_APP,
   NOMBRE_POR_DEFECTO,
 } from '@/shared/config/app'
+import { ProveedorAtajos } from '@/shared/ui/atajos'
+import { GuionLive } from '@/shared/ui/guion-live'
 import { RegistrarServiceWorker } from '@/shared/ui/registrar-service-worker'
+import { Toaster } from '@/shared/ui/sonner'
 import './globals.css'
 
 // design/tokens.css arma `--font-sans` y `--font-mono` a partir de estas dos variables.
@@ -38,20 +41,23 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    // next-themes pone la clase `.dark` en <html> antes de hidratar: de ahí el suppressHydrationWarning.
+    // next-themes pone la clase `.dark` en <html> antes de hidratar, y <GuionLive> la del Modo
+    // Live: de ahí el suppressHydrationWarning.
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
+        <GuionLive />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ProveedorAtajos>{children}</ProveedorAtajos>
+          <Toaster position="bottom-right" closeButton />
         </ThemeProvider>
         <RegistrarServiceWorker />
       </body>
