@@ -5,12 +5,14 @@ Orígenes de vehículos configurables (subasta/apibara o manual), su layout de c
 ## Entra y sale
 
 - Entra: CRUD del dueño en Configuración › Orígenes; editor del layout (orden, grupo, requerido, en tarjeta, filtrable, público, `clave_apibara`).
-- Sale: `getOrigenes()`, `getLayout(origenId)` (campos + categorías), `esDeSubasta(origen)`. Lo consumen `vehiculos` (ficha, filtros, alta), `cotizaciones`, `flujos`, `web`.
-- Depende de: `equipo` (permiso `origenes.gestionar`).
+- Sale (hoy): `getOrigenes()` — los orígenes activos con lo mínimo para nombrarlos y elegirlos (`OrigenResumen`: id, nombre, color). Lo consume `app/` para la matriz de roles, que acota permisos por origen.
+- Sale (fase 2): `getLayout(origenId)` (campos + categorías), `esDeSubasta(origen)`. Los consumirán `vehiculos` (ficha, filtros, alta), `cotizaciones`, `flujos`, `web`.
+- Depende de: `equipo` (permiso `origenes.gestionar`). Por eso `equipo` nunca importa este módulo: quien necesita orígenes en una pantalla de `equipo` los lee en la página y los pasa por props.
 
 ## Archivos clave
 
-- `entities/layout.ts` — tipos de campo (texto, número, moneda, fecha, select, booleano, enlace), validación pura de `atributos` contra el layout.
+- `entities/origen.ts` — `OrigenResumen` y `origenesDesde()`; `infra/queries/origenes.ts` — `getOrigenes()`, una lectura por request.
+- Pendiente: `entities/layout.ts` — tipos de campo (texto, número, moneda, fecha, select, booleano, enlace), validación pura de `atributos` contra el layout.
 - `entities/preconfiguraciones.ts` — espejo TS de `origen_preconfigurar_campos()` (sólo para mostrar qué va a nacer).
 - `features/origenes/`, `features/campos/` (editor con arrastrar), `features/categorias/`.
 

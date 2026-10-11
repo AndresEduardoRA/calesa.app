@@ -1,3 +1,5 @@
 // API pública del módulo `origenes`. Lo único que `app/` u otro módulo puede importar.
-// Se llena en su fase de docs/PLAN.md; la ficha CLAUDE.md de esta carpeta dice qué entra y qué sale.
-export {}
+// Por ahora sólo la lectura que otras pantallas necesitan para nombrar y elegir un origen; el
+// CRUD, el layout de campos y las categorías llegan en la fase 2 (docs/PLAN.md).
+export { getOrigenes } from './infra/queries/origenes'
+export type { OrigenResumen } from './entities/origen'

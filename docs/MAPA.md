@@ -61,7 +61,8 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 - Depende de: ningún otro módulo
 
 ### `origenes`
-Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías; al crear uno nacen su flujo y su fórmula vacía. · 1 archivos
+Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías; al crear uno nacen su flujo y su fórmula vacía. · 4 archivos
+- API: `getOrigenes`, `OrigenResumen`
 - Depende de: ningún otro módulo
 
 ### `repuestos`
