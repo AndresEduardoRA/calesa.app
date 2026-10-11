@@ -1,6 +1,11 @@
 // Traduce lo que responde Supabase Auth a un error que se le puede mostrar a una persona.
 // Regla de la pantalla de ingreso: correo inexistente y contraseña equivocada dicen lo mismo.
-import { MENSAJE_INESPERADO, type CodigoError, type ErrorApp } from '@/shared/lib/errores'
+import {
+  MENSAJE_INESPERADO,
+  MENSAJE_SESION_VENCIDA,
+  type CodigoError,
+  type ErrorApp,
+} from '@/shared/lib/errores'
 
 // Lo mínimo de un AuthError de supabase-js.
 export type ErrorDeAuth = { code?: string | null; message: string }
@@ -41,8 +46,8 @@ const POR_CODIGO: Record<string, { codigo: CodigoError; mensaje: string }> = {
   flow_state_expired: { codigo: 'regla', mensaje: MENSAJE_ENLACE_VENCIDO },
   flow_state_not_found: { codigo: 'regla', mensaje: MENSAJE_ENLACE_VENCIDO },
   bad_code_verifier: { codigo: 'regla', mensaje: MENSAJE_ENLACE_VENCIDO },
-  session_not_found: { codigo: 'no_autenticado', mensaje: 'Tu sesión venció. Vuelve a ingresar.' },
-  session_expired: { codigo: 'no_autenticado', mensaje: 'Tu sesión venció. Vuelve a ingresar.' },
+  session_not_found: { codigo: 'no_autenticado', mensaje: MENSAJE_SESION_VENCIDA },
+  session_expired: { codigo: 'no_autenticado', mensaje: MENSAJE_SESION_VENCIDA },
 }
 
 // Cuando el trigger `auth_registro_permitido()` rechaza el alta, Auth no reenvía su mensaje:

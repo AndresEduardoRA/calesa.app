@@ -40,8 +40,8 @@ describe('errorDePostgrest', () => {
   })
 
   it('traduce 42501 a sin_permiso con el motivo que escribió la RPC', () => {
-    const error = errorDePostgrest({ code: '42501', message: 'No podés bloquearte a vos mismo.' })
-    expect(error).toEqual({ codigo: 'sin_permiso', mensaje: 'No podés bloquearte a vos mismo.' })
+    const error = errorDePostgrest({ code: '42501', message: 'No puedes bloquearte a ti mismo.' })
+    expect(error).toEqual({ codigo: 'sin_permiso', mensaje: 'No puedes bloquearte a ti mismo.' })
   })
 
   it('no muestra el texto técnico de una violación de constraint', () => {

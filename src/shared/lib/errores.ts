@@ -14,7 +14,9 @@ export type ErrorApp = { codigo: CodigoError; mensaje: string }
 
 export type Resultado<T> = { ok: true; data: T } | { ok: false; error: ErrorApp }
 
-export const MENSAJE_INESPERADO = 'Algo falló de nuestro lado. Volvé a intentar en un momento.'
+export const MENSAJE_INESPERADO = 'Algo falló de nuestro lado. Vuelve a intentar en un momento.'
+
+export const MENSAJE_SESION_VENCIDA = 'Tu sesión venció. Vuelve a ingresar.'
 
 export function ok<T>(data: T): Resultado<T> {
   return { ok: true, data }
@@ -41,13 +43,13 @@ const MENSAJE_TECNICO = /violates|constraint|relation|column|syntax/i
 
 const POR_CODIGO: Record<string, { codigo: CodigoError; generico: string }> = {
   PT409: { codigo: 'conflicto', generico: MENSAJE_CONFLICTO },
-  '42501': { codigo: 'sin_permiso', generico: 'No tenés permiso para hacer esto.' },
+  '42501': { codigo: 'sin_permiso', generico: 'No tienes permiso para hacer esto.' },
   '23505': { codigo: 'duplicado', generico: 'Ya existe un registro con esos datos.' },
   '23503': { codigo: 'regla', generico: 'No se puede: hay otros datos que dependen de este.' },
   '23514': { codigo: 'regla', generico: 'El dato no cumple una regla del sistema.' },
   P0001: { codigo: 'regla', generico: 'No se puede completar la operación.' },
   PGRST116: { codigo: 'no_encontrado', generico: 'No se encontró lo que buscabas.' },
-  PGRST301: { codigo: 'no_autenticado', generico: 'Tu sesión venció. Volvé a ingresar.' },
+  PGRST301: { codigo: 'no_autenticado', generico: MENSAJE_SESION_VENCIDA },
 }
 
 export function errorDePostgrest(error: ErrorPostgrest): ErrorApp {

@@ -2,7 +2,7 @@
 // (`.inputSchema()`), y lo esperable vuelve como valor (`Resultado<T>` desde el cuerpo de la
 // action); sólo lo que nadie previó cae en `handleServerError`.
 import { createSafeActionClient, returnServerError } from 'next-safe-action'
-import { MENSAJE_INESPERADO, type ErrorApp } from './errores'
+import { MENSAJE_INESPERADO, MENSAJE_SESION_VENCIDA, type ErrorApp } from './errores'
 import { concesionesDe } from './permisos'
 import { createClient } from './supabase/server'
 
@@ -26,7 +26,7 @@ export const actionClient = actionClientPublico.use(async ({ next }) => {
   if (!usuarioId) {
     return returnServerError<ErrorApp>({
       codigo: 'no_autenticado',
-      mensaje: 'Tu sesión venció. Volvé a ingresar.',
+      mensaje: MENSAJE_SESION_VENCIDA,
     })
   }
 

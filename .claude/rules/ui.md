@@ -33,6 +33,8 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
 - Formularios en bloques: `<Bloque titulo>` plegable; los secundarios nacen plegados.
 - Fechas cruzan servidor → cliente como string ISO; nunca `Date` en props de Server → Client.
 - Textos de la interfaz con los términos de `docs/GLOSARIO.md`; sin signos de exclamación; sin
-  mayúsculas sostenidas; español neutro, «vos» sólo en llamados a la acción cortos.
+  mayúsculas sostenidas; español neutro con tuteo («vuelve a intentar», «no tienes permiso»),
+  nunca voseo ni usted. Vale igual para los mensajes de `raise exception` de la base: llegan a la
+  pantalla tal cual.
 - Transiciones de página con `<Link>` + View Transitions; respetar `prefers-reduced-motion`.
 - Objetivos táctiles ≥ 44 px en móvil; densidad desde `useDensidad()`.
