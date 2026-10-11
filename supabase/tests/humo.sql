@@ -258,3 +258,50 @@ do $$ declare o uuid; f2 uuid; begin
   exception when invalid_parameter_value then null; end;
 end $$;
 reset role;
+
+-- @test acceso: ajustes sin sesión con las columnas contadas; mi_sesion dice el estado de la cuenta
+select set_config('request.jwt.claim.sub', '', false);
+select set_config('request.jwt.claim.role', 'anon', false);
+set role anon;
+do $$ declare a record; begin
+  select * into a from web.ajustes_acceso();
+  if a.nombre is null or a.moneda_base <> 'USD' then raise exception 'ajustes_acceso incompleto: %', a; end if;
+  if a.registro_abierto or a.primer_registro then raise exception 'con personas y registro cerrado no se ofrece crear cuenta: %', a; end if;
+  begin
+    perform 1 from public.ajustes_empresa;
+    raise exception 'anon leyó ajustes_empresa';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.mi_sesion();
+    raise exception 'anon ejecutó mi_sesion';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+insert into public.preferencias_usuario (usuario_id, clave, valor) values ('00000000-0000-0000-0000-000000000001', 'densidad', '"comoda"');
+do $$ declare s jsonb; begin
+  s := public.mi_sesion();
+  if s ->> 'estado' <> 'activa' then raise exception 'la dueña debía estar activa: %', s ->> 'estado'; end if;
+  if s -> 'roles' -> 0 ->> 'clave' <> 'dueno' then raise exception 'sin el rol dueño: %', s -> 'roles'; end if;
+  if jsonb_array_length(s -> 'permisos') = 0 then raise exception 'la dueña sin permisos'; end if;
+  if s -> 'preferencias' ->> 'densidad' <> 'comoda' then raise exception 'sin la preferencia: %', s -> 'preferencias'; end if;
+  perform public.equipo_bloquear('00000000-0000-0000-0000-000000000003', true, 'prueba');
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false);
+set role authenticated;
+do $$ declare s jsonb; begin
+  s := public.mi_sesion();
+  if s ->> 'estado' <> 'bloqueada' then raise exception 'esperaba bloqueada: %', s ->> 'estado'; end if;
+  if jsonb_array_length(s -> 'permisos') <> 0 then raise exception 'una cuenta bloqueada no tiene permisos'; end if;
+  if (select count(*) from public.perfiles) <> 0 then raise exception 'una cuenta bloqueada no lee perfiles'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', false);
+set role authenticated;
+do $$ begin
+  if public.mi_sesion() ->> 'estado' <> 'baja' then raise exception 'esperaba baja: %', public.mi_sesion() ->> 'estado'; end if;
+end $$;
+reset role;

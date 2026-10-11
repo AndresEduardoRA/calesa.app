@@ -5860,6 +5860,7 @@ export type Database = {
       }
       lead_en_limbo: { Args: { p_lead: string }; Returns: boolean }
       margen_vehiculo: { Args: { p_vehiculo: string }; Returns: Json }
+      mi_sesion: { Args: Record<PropertyKey, never>; Returns: Json }
       mis_leads: { Args: Record<PropertyKey, never>; Returns: string[] }
       mis_permisos: {
         Args: Record<PropertyKey, never>
@@ -6190,6 +6191,17 @@ export type Database = {
       }
     }
     Functions: {
+      ajustes_acceso: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          locale: string
+          logo_ruta: string
+          moneda_base: string
+          nombre: string
+          primer_registro: boolean
+          registro_abierto: boolean
+        }[]
+      }
       portal_cambiar_clave: {
         Args: { p_actual: string; p_lead: string; p_nueva: string }
         Returns: boolean
