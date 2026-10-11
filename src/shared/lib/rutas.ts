@@ -10,6 +10,9 @@ export const RUTAS = {
   nuevaContrasena: '/auth/nueva-contrasena',
   cierre: '/auth/cerrar',
   perfil: '/perfil',
+  configuracion: '/configuracion',
+  equipo: '/configuracion/equipo',
+  roles: '/configuracion/roles',
 } as const
 
 // Quien ya tiene sesión no tiene nada que hacer acá.

@@ -26,6 +26,15 @@ export function fallo(codigo: CodigoError, mensaje: string): Resultado<never> {
   return { ok: false, error: { codigo, mensaje } }
 }
 
+// Para un Server Component que lee: el error de una lectura sube al `error.tsx` de la ruta, que
+// es quien puede ofrecer «Reintentar». En una action nunca: ahí el error se devuelve como valor.
+export function datosO<T>(resultado: Resultado<T>): T {
+  if (!resultado.ok) {
+    throw new Error(resultado.error.mensaje)
+  }
+  return resultado.data
+}
+
 export const MENSAJE_CONFLICTO = 'Otra persona cambió esto mientras lo editabas.'
 
 // Un `PT409` nunca es un error genérico: la pantalla lo muestra con «Recargar». El mensaje de la

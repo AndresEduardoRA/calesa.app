@@ -147,3 +147,41 @@ export function origenesCon(permisos: Permisos, clave: ClavePermiso): 'todos' | 
   }
   return [...new Set(propias.flatMap((c) => (c.origenId === null ? [] : [c.origenId])))]
 }
+
+// El módulo de un permiso es el primer tramo de su clave (`equipo.roles.gestionar` → `equipo`).
+type Prefijo<Clave> = Clave extends `${infer Modulo}.${string}` ? Modulo : never
+export type ModuloPermiso = Prefijo<ClavePermiso>
+
+// Cómo se llama cada módulo en pantalla. Tipado contra el catálogo: una clave con un módulo nuevo
+// no compila hasta que el módulo tenga título acá. El orden es el de la matriz de roles.
+export const MODULOS_PERMISO: Record<ModuloPermiso, string> = {
+  equipo: 'Equipo',
+  empresa: 'Empresa',
+  origenes: 'Orígenes',
+  vehiculos: 'Vehículos',
+  leads: 'Leads',
+  cotizaciones: 'Cotizaciones',
+  flujos: 'Flujos',
+  logistica: 'Logística',
+  repuestos: 'Repuestos',
+  agenda: 'Agenda',
+  chat: 'Chat',
+  notificaciones: 'Notificaciones',
+  actividad: 'Actividad',
+  web: 'Web',
+  tablero: 'Tablero',
+  datos: 'Datos',
+}
+
+function esModulo(valor: string): valor is ModuloPermiso {
+  return Object.hasOwn(MODULOS_PERMISO, valor)
+}
+
+export function moduloDe(clave: ClavePermiso): ModuloPermiso {
+  const modulo = clave.slice(0, clave.indexOf('.'))
+  if (!esModulo(modulo)) {
+    // Imposible mientras el tipo `ModuloPermiso` salga del catálogo: lo exige el compilador.
+    throw new Error(`El permiso ${clave} no tiene módulo.`)
+  }
+  return modulo
+}

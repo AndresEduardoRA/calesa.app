@@ -3,6 +3,7 @@ import {
   MENSAJE_CONFLICTO,
   MENSAJE_INESPERADO,
   conflicto,
+  datosO,
   errorDePostgrest,
   fallo,
   ok,
@@ -15,6 +16,16 @@ describe('ok / fallo', () => {
       ok: false,
       error: { codigo: 'regla', mensaje: 'No se puede.' },
     })
+  })
+})
+
+describe('datosO', () => {
+  it('entrega el dato de una lectura que salió bien', () => {
+    expect(datosO(ok([1, 2]))).toEqual([1, 2])
+  })
+
+  it('lanza con el mensaje legible, para el error.tsx de la ruta', () => {
+    expect(() => datosO(fallo('inesperado', 'No se pudo leer.'))).toThrow('No se pudo leer.')
   })
 })
 

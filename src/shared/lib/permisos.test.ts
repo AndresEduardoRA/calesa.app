@@ -3,9 +3,11 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   CLAVES_PERMISO,
+  MODULOS_PERMISO,
   alcanceDe,
   concesionesDe,
   esClavePermiso,
+  moduloDe,
   origenesCon,
   puede,
   type Permisos,
@@ -130,5 +132,23 @@ describe('origenesCon', () => {
 
   it('es vacío si no tiene el permiso', () => {
     expect(origenesCon(asesora, 'leads.editar')).toEqual([])
+  })
+})
+
+describe('módulos', () => {
+  it('cada permiso del catálogo cae en un módulo con título', () => {
+    for (const clave of CLAVES_PERMISO) {
+      expect(MODULOS_PERMISO[moduloDe(clave)]).toBeTruthy()
+    }
+  })
+
+  it('no queda ningún título sin permisos', () => {
+    const usados = new Set(CLAVES_PERMISO.map(moduloDe))
+    expect(Object.keys(MODULOS_PERMISO).sort()).toEqual([...usados].sort())
+  })
+
+  it('el módulo es el primer tramo de la clave', () => {
+    expect(moduloDe('equipo.roles.gestionar')).toBe('equipo')
+    expect(moduloDe('logistica.pagos.confirmar')).toBe('logistica')
   })
 })
