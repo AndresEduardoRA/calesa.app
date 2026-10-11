@@ -4,6 +4,7 @@
 #   bash scripts/mapa.sh           regenera docs/MAPA.md
 #   bash scripts/mapa.sh --check   falla (exit 1) si MAPA.md está desactualizado, si una unidad
 #                                  no tiene CLAUDE.md, o si un módulo importa las tripas de otro
+#                                  (cualquier cosa que no sea `@/modules/<x>` o `@/modules/<x>/client`)
 #
 # Lo corre el hook Stop de Claude Code (regenera), lefthook en pre-commit (--check) y CI (--check).
 # No escribe fechas a propósito: la salida es determinista, así --check solo falla si algo cambió.
@@ -73,6 +74,12 @@ exports_de() {
   fi
 }
 
+# La segunda entrada de un módulo: lo que puede importar un Client Component (`client.ts`).
+exports_cliente_de() {
+  [ "$STACK" = next ] && [ -f "$1/client.ts" ] || return 0
+  exports_del_archivo "$1/client.ts"
+}
+
 lista_corta() {
   awk -v max="$MAX_EXPORTS" '{ if (NR<=max) out = out (NR>1?", ":"") "`" $0 "`" } END { if (NR>max) out = out ", +" (NR-max); print out }'
 }
@@ -90,8 +97,8 @@ dependencias() {
     [ -z "$imp" ] && continue
     mod="${imp%%/*}"; resto="${imp#"$mod"}"
     [ "$mod" = "$yo" ] && continue
-    if [ "$STACK" = next ] && [ -n "$resto" ]; then
-      avisar "\`$yo\` importa las tripas de \`$mod\` (\`$imp\`): usa \`@/modules/$mod\`"
+    if [ "$STACK" = next ] && [ -n "$resto" ] && [ "$resto" != "/client" ]; then
+      avisar "\`$yo\` importa las tripas de \`$mod\` (\`$imp\`): usa \`@/modules/$mod\` o \`@/modules/$mod/client\`"
     elif [ "$STACK" = flutter ] && [ "$resto" != "/$mod.dart" ]; then
       avisar "\`$yo\` importa las tripas de \`$mod\` (\`$imp\`): usa \`modules/$mod/$mod.dart\`"
     fi
@@ -105,6 +112,8 @@ unidad() {
   echo "$(proposito "$dir") · $(contar_archivos "$dir") archivos"
   exps=$(exports_de "$dir" | lista_corta)
   [ -n "$exps" ] && echo "- API: $exps"
+  exps=$(exports_cliente_de "$dir" | lista_corta)
+  [ -n "$exps" ] && echo "- API de cliente (\`client.ts\`): $exps"
   if [ "$NIVEL" = 2 ]; then
     deps=$(dependencias "$dir")
     echo "- Depende de: ${deps:-ningún otro módulo}"

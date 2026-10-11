@@ -51,25 +51,34 @@ un evento o con una función que el módulo de abajo expone, no importándose mu
 
 ## Capas
 
-| Desde (dentro de un módulo) | Puede importar                                                                    |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| `features/`                 | `entities/` del mismo módulo, `@/shared`, `@/modules/<otro>` (sólo su `index.ts`) |
-| `entities/`                 | `@/shared`                                                                        |
-| `infra/`                    | `entities/` del mismo módulo, `@/shared`                                          |
-| `src/app/`                  | `@/modules/<x>` (su `index.ts`), `@/shared`                                       |
-| `src/shared/`               | `src/shared/`                                                                     |
+| Desde (dentro de un módulo) | Puede importar                                                               |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| `features/`                 | `entities/` del mismo módulo, `@/shared`, las entradas de `@/modules/<otro>` |
+| `entities/`                 | `@/shared`                                                                   |
+| `infra/`                    | `entities/` del mismo módulo, `@/shared`                                     |
+| `src/app/`                  | las entradas de `@/modules/<x>`, `@/shared`                                  |
+| `src/shared/`               | `src/shared/`                                                                |
 
 `features` no importa `infra`: los casos de uso dependen de la interfaz de repositorio que declara
-`entities`, y `app` (o el `index.ts` del módulo) decide qué implementación concreta inyecta. Lo
-verifica `eslint-plugin-boundaries`; la regla entre módulos la verifica además
-`scripts/mapa.sh --check`.
+`entities`, y la composición del módulo (`composicion.ts` en el servidor, `composicion.client.ts`
+en el navegador) decide qué implementación concreta reciben. Lo verifica
+`eslint-plugin-boundaries`; la regla entre módulos la verifica además `scripts/mapa.sh --check`.
+
+Un módulo tiene **dos entradas** y nada más se importa desde afuera:
+
+- `@/modules/<x>` (`index.ts`) — para Server Components. Puede traer código de servidor
+  (`server-only`, actions, lecturas), así que un Client Component que la importe rompe el build.
+- `@/modules/<x>/client` (`client.ts`) — para Client Components de `app/` o de otro módulo: hooks,
+  componentes de cliente y tipos de `entities/`. Nunca nada de servidor.
+
+`composicion*.ts` es privado del módulo aunque esté en su raíz.
 
 ## Dónde va cada cosa
 
 - `src/proxy.ts` — refresco de sesión; Next 16 lo exige al nivel de `app/`, no adentro.
 - `src/app/` — rutas (App Router), `layout.tsx`, `manifest.ts`, route
   handlers (`api/portal`, `api/revalidar`, `api/push`, `api/pdf`). Composition root.
-- `src/modules/<dominio>/index.ts` — API pública del módulo.
+- `src/modules/<dominio>/index.ts` — API pública del módulo (servidor); `client.ts` — la de cliente.
 - `src/modules/<dominio>/features/<caso>/` — `components/`, `hooks/`, `actions/`, `schemas/`.
 - `src/modules/<dominio>/entities/` — tipos, reglas puras, `puede()`, transiciones, interfaces.
 - `src/modules/<dominio>/infra/` — repositorios Supabase (`queries/`, `*.client.ts`), adaptadores.

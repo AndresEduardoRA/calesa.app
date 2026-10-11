@@ -36,17 +36,20 @@ pnpm db:probar           # aplica schema+migraciones+seed en Postgres embebido y
 
 Nivel 2, monolito modular: `src/modules/<dominio>/` con sus propias capas adentro.
 
-| Desde (dentro de un módulo) | Puede importar                                                                    |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| `features/`                 | `entities/` del mismo módulo, `@/shared`, `@/modules/<otro>` (sólo su `index.ts`) |
-| `entities/`                 | `@/shared`                                                                        |
-| `infra/`                    | `entities/` del mismo módulo, `@/shared`                                          |
-| `src/app/`                  | `@/modules/<x>` (su `index.ts`), `@/shared`                                       |
-| `src/shared/`               | `src/shared/`                                                                     |
+| Desde (dentro de un módulo) | Puede importar                                                               |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| `features/`                 | `entities/` del mismo módulo, `@/shared`, las entradas de `@/modules/<otro>` |
+| `entities/`                 | `@/shared`                                                                   |
+| `infra/`                    | `entities/` del mismo módulo, `@/shared`                                     |
+| `src/app/`                  | las entradas de `@/modules/<x>`, `@/shared`                                  |
+| `src/shared/`               | `src/shared/`                                                                |
+
+Las entradas de un módulo son dos: `@/modules/<x>` (su `index.ts`, sólo desde Server Components) y
+`@/modules/<x>/client` (su `client.ts`, desde Client Components: hooks y componentes de cliente).
 
 `features` **no** importa `infra`: los casos de uso dependen de la interfaz que declara `entities`
-y `app` inyecta la implementación. Entre módulos sólo `@/modules/<otro>` (su `index.ts`); dentro
-del módulo, rutas relativas. Lo verifican `eslint-plugin-boundaries` y `scripts/mapa.sh --check`.
+y la composición del módulo (`composicion.ts`) le da la implementación. Entre módulos sólo las dos
+entradas; dentro del módulo, rutas relativas. Lo verifican `eslint-plugin-boundaries` y `scripts/mapa.sh --check`.
 
 Dónde va cada cosa:
 
@@ -55,7 +58,8 @@ Dónde va cada cosa:
 - `src/modules/<dominio>/features/<caso>/` — `components/`, `hooks/`, `actions/`, `schemas/`.
 - `src/modules/<dominio>/entities/` — tipos, reglas puras, permisos y transiciones, interfaces de repositorio. Cero I/O.
 - `src/modules/<dominio>/infra/` — repositorios Supabase, adaptadores externos (apibara, push, PDF).
-- `src/modules/<dominio>/index.ts` — la API pública del módulo. Nada más se importa desde afuera.
+- `src/modules/<dominio>/index.ts` — la API pública del módulo para el servidor.
+- `src/modules/<dominio>/client.ts` — la API pública para Client Components (si el módulo la necesita).
 - `src/shared/ui/` — shadcn y componentes transversales (XCell, FilterShell, Drawer, Monto, estados, esqueletos).
 - `src/shared/lib/` — `supabase/` (clientes server/browser/admin), `formato.ts`, `fechas.ts`, `permisos.ts`.
 - `src/shared/types/database.types.ts` — generado por `pnpm db:types`. No se edita.
@@ -91,7 +95,7 @@ Dónde va cada cosa:
   adelantado). Next conserva el estado de una pantalla al salir y volver (un formulario reaparece
   con su último resultado: `key` para reiniciarlo). Una action que escribe cookies vuelve a dibujar
   la página. `redirect()` está tipado: destinos calculados con `redirigir()`. El `index.ts` de un
-  módulo sólo se importa desde Server Components.
+  módulo sólo se importa desde Server Components; un Client Component importa `client.ts`.
 - **Supabase**: la clave pública es `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_…`);
   en servidor `getClaims()`, nunca `getSession()`; cliente de servidor por request, jamás global;
   cookies con `getAll`/`setAll`. El schema `web` se expone en PostgREST (`config.toml`).

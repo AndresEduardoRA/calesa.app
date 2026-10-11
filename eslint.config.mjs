@@ -5,6 +5,20 @@ import nextTs from 'eslint-config-next/typescript'
 import boundaries from 'eslint-plugin-boundaries'
 import prettier from 'eslint-config-prettier/flat'
 
+// Nadie importa el cliente de Supabase fuera de infra/ y shared/lib/supabase.
+const SOLO_CLIENTES_DE_SHARED = {
+  group: ['@supabase/supabase-js', '@supabase/ssr'],
+  message: 'Los clientes de Supabase viven en src/shared/lib/supabase y se usan desde infra/.',
+}
+
+// Un módulo tiene dos entradas: `@/modules/<x>` (index.ts, para Server Components) y
+// `@/modules/<x>/client` (client.ts, para Client Components). Todo lo demás son sus tripas.
+const SOLO_LAS_ENTRADAS = {
+  group: ['@/modules/*/*', '!@/modules/*/client'],
+  message:
+    'Entre módulos sólo se importa @/modules/<otro> (desde el servidor) o @/modules/<otro>/client (desde un Client Component).',
+}
+
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -64,7 +78,9 @@ export default defineConfig([
   // Sintaxis de eslint-plugin-boundaries v7, probada el 2026-10-11 contra un árbol de ejemplo:
   // los elementos son CARPETAS (sin `**/*`, sin `mode`), las políticas van en `policies` y el
   // "mismo módulo" se expresa con `captured: { modulo: "{{ from.element.captured.modulo }}" }`.
-  // `modulo-api` = lo que queda directo en src/modules/<x>/ (su index.ts).
+  // `modulo-api` = lo que queda directo en src/modules/<x>/: `index.ts` (la entrada de servidor),
+  // `client.ts` (la entrada de cliente) y `composicion*.ts` (privado del módulo). Desde afuera sólo
+  // se importan las dos entradas: lo cuida `no-restricted-imports`, más abajo.
   {
     files: ['src/**/*.{ts,tsx}'],
     plugins: { boundaries },
@@ -153,19 +169,36 @@ export default defineConfig([
           ],
         },
       ],
-      // Nadie importa el cliente de Supabase fuera de infra/ y shared/lib/supabase.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [SOLO_CLIENTES_DE_SHARED, SOLO_LAS_ENTRADAS],
+        },
+      ],
+    },
+  },
+  // La entrada de cliente de un módulo: hooks, componentes de cliente y tipos de `entities/`.
+  // Nada de servidor, ni directo ni por la composición (lo transitivo lo frena el build).
+  {
+    files: ['src/modules/*/client.ts'],
+    rules: {
       'no-restricted-imports': [
         'error',
         {
           patterns: [
+            SOLO_CLIENTES_DE_SHARED,
+            SOLO_LAS_ENTRADAS,
             {
-              group: ['@supabase/supabase-js', '@supabase/ssr'],
+              group: [
+                './index',
+                './composicion',
+                './infra/**',
+                '!./infra/*.client',
+                'server-only',
+                'next/headers',
+              ],
               message:
-                'Los clientes de Supabase viven en src/shared/lib/supabase y se usan desde infra/.',
-            },
-            {
-              group: ['@/modules/*/features/*', '@/modules/*/entities/*', '@/modules/*/infra/*'],
-              message: 'Entre módulos sólo se importa @/modules/<otro> (su index.ts).',
+                'client.ts es la entrada de cliente: sólo hooks, componentes de cliente y tipos de entities.',
             },
           ],
         },
