@@ -5871,7 +5871,7 @@ export type Database = {
       }
       lead_en_limbo: { Args: { p_lead: string }; Returns: boolean }
       margen_vehiculo: { Args: { p_vehiculo: string }; Returns: Json }
-      mi_sesion: { Args: Record<PropertyKey, never>; Returns: Json }
+      mi_sesion: { Args: { p_perspectiva?: string }; Returns: Json }
       mis_leads: { Args: Record<PropertyKey, never>; Returns: string[] }
       mis_permisos: {
         Args: Record<PropertyKey, never>
@@ -5915,6 +5915,14 @@ export type Database = {
       papelera_purgar: { Args: { p_lote: string }; Returns: number }
       papelera_purgar_vencidos: { Args: Record<PropertyKey, never>; Returns: number }
       papelera_restaurar: { Args: { p_lote: string }; Returns: number }
+      permisos_efectivos: {
+        Args: { p_perspectiva?: string }
+        Returns: {
+          alcance: Database['public']['Enums']['alcance_permiso']
+          clave: string
+          origen_id: string
+        }[]
+      }
       plantilla_guardar_borrador: {
         Args: { p_def: Json; p_nota?: string; p_origen: string }
         Returns: string

@@ -514,3 +514,56 @@ do $$ declare antes jsonb; mandados int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test perspectiva: los permisos efectivos nunca exceden los reales y RLS no se entera
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+select public.rbac_asignar_rol('00000000-0000-0000-0000-000000000005', (select id from public.roles where clave = 'asesor'), true);
+do $$ declare asesor uuid; s jsonb; begin
+  select id into asesor from public.roles where clave = 'asesor';
+  -- Sin perspectiva, o con un rol que no existe, son los reales.
+  if (select count(*) from public.permisos_efectivos()) <> (select count(*) from public.mis_permisos()) then raise exception 'sin perspectiva deben ser los reales'; end if;
+  if (select count(*) from public.permisos_efectivos(gen_random_uuid())) <> (select count(*) from public.mis_permisos()) then raise exception 'un rol inexistente no cambia nada'; end if;
+  -- La dueña mirando como asesor: exactamente lo del asesor, y nada que ella no tenga.
+  if (select count(*) from public.permisos_efectivos(asesor)) <> (select count(*) from public.roles_permisos where rol_id = asesor) then raise exception 'la dueña como asesor debería ver lo del asesor'; end if;
+  if exists (select 1 from public.permisos_efectivos(asesor) e where not public.concesion_dominada(e.clave, e.origen_id, e.alcance)) then raise exception 'un permiso efectivo excede los reales'; end if;
+  if exists (select 1 from public.permisos_efectivos(asesor) e where e.clave like 'equipo.%') then raise exception 'como asesor no se dibuja nada de equipo'; end if;
+  s := public.mi_sesion(asesor);
+  if s -> 'perspectiva' -> 'rol' ->> 'nombre' <> 'Asesor' or not (s -> 'perspectiva' ->> 'disponible')::boolean then raise exception 'mi_sesion no dice la perspectiva: %', s -> 'perspectiva'; end if;
+  if jsonb_array_length(s -> 'perspectiva' -> 'roles') = 0 then raise exception 'sin roles para elegir'; end if;
+  if s -> 'roles' -> 0 ->> 'clave' <> 'dueno' then raise exception 'los roles de la sesión son los reales: %', s -> 'roles'; end if;
+  if (public.mi_sesion() -> 'perspectiva' -> 'rol') <> 'null'::jsonb then raise exception 'sin perspectiva, el rol viene nulo'; end if;
+  -- Sólo interfaz: con la perspectiva puesta, la base sigue respondiendo con el rol real.
+  if not public.tiene_permiso('equipo.roles.gestionar') then raise exception 'la perspectiva no toca tiene_permiso()'; end if;
+end $$;
+reset role;
+-- Gabriela (gestiona roles, y ve vehículos sólo de Oficina y sólo los propios) mirando como dueño:
+-- el rol tiene todo, pero ella no gana nada.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000006', false);
+set role authenticated;
+do $$ declare dueno uuid; asesor uuid; oficina uuid; begin
+  select id into dueno from public.roles where clave = 'dueno';
+  select id into asesor from public.roles where clave = 'asesor';
+  select id into oficina from public.origenes where clave = 'oficina';
+  if exists (select 1 from public.permisos_efectivos(dueno) e where not public.concesion_dominada(e.clave, e.origen_id, e.alcance)) then raise exception 'mirar como dueño dio un permiso que no tiene'; end if;
+  if (select count(*) from public.permisos_efectivos(dueno)) <> (select count(*) from (select distinct * from public.mis_permisos()) m) then raise exception 'mirar como un rol que tiene todo debe dejar exactamente lo propio'; end if;
+  if exists (select 1 from public.permisos_efectivos(dueno) e where e.clave = 'leads.ver') then raise exception 'apareció leads.ver, que no tiene'; end if;
+  -- El asesor ve vehículos de todos los orígenes y todos; ella sólo Oficina y propios: queda lo angosto.
+  if not exists (select 1 from public.permisos_efectivos(asesor) e where e.clave = 'vehiculos.ver' and e.origen_id = oficina and e.alcance = 'propios') then raise exception 'la intersección no dejó el origen y el alcance más angostos'; end if;
+  if exists (select 1 from public.permisos_efectivos(asesor) e where e.clave = 'vehiculos.ver' and (e.origen_id is null or e.alcance = 'todos')) then raise exception 'la intersección amplió el origen o el alcance'; end if;
+end $$;
+reset role;
+-- La invitada (asesora, no gestiona roles) no puede usar la perspectiva: el parámetro se ignora.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000005', false);
+set role authenticated;
+do $$ declare dueno uuid; s jsonb; begin
+  select id into dueno from public.roles where clave = 'dueno';
+  if (select count(*) from public.permisos_efectivos(dueno)) <> (select count(*) from public.mis_permisos()) then raise exception 'sin equipo.roles.gestionar la perspectiva se ignora'; end if;
+  if exists (select 1 from public.permisos_efectivos(dueno) e where e.clave like 'equipo.%') then raise exception 'una asesora ganó permisos de equipo mirando como dueño'; end if;
+  s := public.mi_sesion(dueno);
+  if (s -> 'perspectiva' ->> 'disponible')::boolean or (s -> 'perspectiva' -> 'rol') <> 'null'::jsonb or jsonb_array_length(s -> 'perspectiva' -> 'roles') <> 0 then raise exception 'la perspectiva no está disponible para ella: %', s -> 'perspectiva'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
