@@ -12,6 +12,9 @@ type Props = {
   // El hueco de la barra superior para el tipo de cambio del día. Lo llena `empresa` cuando
   // exista la pantalla de tipos de cambio; mientras tanto no ocupa lugar.
   tipoCambio?: ReactNode
+  // Lo que tiene que quedar a la vista en toda pantalla, pegado bajo la barra superior (el banner
+  // de la perspectiva «ver como»). Quien lo llena decide si se muestra.
+  aviso?: ReactNode
   children: ReactNode
 }
 
@@ -23,6 +26,7 @@ export function Marco({
   navegacion,
   menuUsuario,
   tipoCambio,
+  aviso,
   children,
 }: Props) {
   return (
@@ -51,6 +55,7 @@ export function Marco({
             {menuUsuario}
           </div>
         </header>
+        {aviso}
         <main id="contenido" className="flex-1 p-4 md:p-6">
           {children}
         </main>

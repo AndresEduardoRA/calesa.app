@@ -43,3 +43,7 @@ export { RoleBadge } from './features/roles/components/role-badge'
 export { leerEquipo, leerVistaPreviaDeBaja } from './composicion'
 export { idDePersona } from './entities/persona'
 export { ListaEquipo } from './features/equipo/components/lista-equipo'
+
+// Perspectiva «ver como» (el hook `usePerspectiva()` sale por `client.ts`)
+export { BannerPerspectiva } from './features/perspectiva/components/banner-perspectiva'
+export { ProveedorPerspectiva } from './features/perspectiva/components/proveedor-perspectiva'

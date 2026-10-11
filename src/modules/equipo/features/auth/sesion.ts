@@ -7,6 +7,7 @@ import { leerSesion, servicioAcceso } from '../../composicion'
 import { AVISOS } from '../../entities/avisos'
 import { destinoDeCuentaInactiva } from '../../entities/canje'
 import type { EstadoCuenta, Sesion } from '../../entities/sesion'
+import { borrarPerspectiva } from '../perspectiva/cookie'
 
 // Para toda pantalla de la app: devuelve la sesión o saca a la persona. Sin sesión va al ingreso
 // (el proxy ya lo hizo antes, con `returnTo`; esto es la segunda barrera). Con la cuenta
@@ -49,6 +50,8 @@ export async function rechazarSiInactiva(
     return null
   }
   await servicioAcceso.cerrarSesion()
+  // Con la sesión se va la perspectiva «ver como»: no la hereda quien ingrese después.
+  await borrarPerspectiva()
   return {
     resultado: fallo('sin_permiso', AVISOS[estado].mensaje),
     destino: destinoDeCuentaInactiva(estado),

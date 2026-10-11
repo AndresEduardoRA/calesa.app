@@ -1,6 +1,8 @@
 import { Suspense, type ReactNode } from 'react'
 import { getAjustes } from '@/modules/empresa'
 import {
+  BannerPerspectiva,
+  ProveedorPerspectiva,
   ProveedorPreferencias,
   cerrarSesion,
   nombreVisible,
@@ -31,27 +33,31 @@ async function Shell({ children }: { children: ReactNode }) {
   return (
     <ProveedorRegional locale={ajustes.locale} monedaBase={ajustes.monedaBase}>
       <ProveedorPreferencias {...sesion.preferencias}>
-        <Marco
-          nombreEmpresa={ajustes.nombre}
-          marca={
-            <Marca nombre={ajustes.nombre} logoUrl={urlPublicaONull('marca', ajustes.logoRuta)} />
-          }
-          navegacion={<BarraLateral permisos={sesion.permisos} />}
-          menuUsuario={
-            <MenuUsuario
-              persona={{
-                nombre,
-                email: sesion.email,
-                avatarUrl: urlPublicaONull('avatares', sesion.avatarRuta),
-                rol: sesion.roles[0]?.nombre ?? null,
-              }}
-              entradas={delUsuario}
-              alCerrarSesion={cerrarSesion}
-            />
-          }
-        >
-          {children}
-        </Marco>
+        {/* La perspectiva «ver como» de esta sesión, para el menú, el banner y quien la pida. */}
+        <ProveedorPerspectiva perspectiva={sesion.perspectiva}>
+          <Marco
+            nombreEmpresa={ajustes.nombre}
+            marca={
+              <Marca nombre={ajustes.nombre} logoUrl={urlPublicaONull('marca', ajustes.logoRuta)} />
+            }
+            navegacion={<BarraLateral permisos={sesion.permisos} />}
+            aviso={<BannerPerspectiva />}
+            menuUsuario={
+              <MenuUsuario
+                persona={{
+                  nombre,
+                  email: sesion.email,
+                  avatarUrl: urlPublicaONull('avatares', sesion.avatarRuta),
+                  rol: sesion.roles[0]?.nombre ?? null,
+                }}
+                entradas={delUsuario}
+                alCerrarSesion={cerrarSesion}
+              />
+            }
+          >
+            {children}
+          </Marco>
+        </ProveedorPerspectiva>
       </ProveedorPreferencias>
     </ProveedorRegional>
   )
