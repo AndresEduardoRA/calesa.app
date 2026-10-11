@@ -1,8 +1,9 @@
-// API pública del módulo `equipo`. Lo único que `app/` u otro módulo puede importar.
+// API pública del módulo `equipo` para el servidor. Con `client.ts`, lo único que `app/` u otro
+// módulo puede importar.
 //
-// Este archivo mezcla código de servidor (`requerirSesion`, las actions) con componentes de
-// cliente: lo importan los Server Components. Un Client Component de afuera no importa de acá
-// (arrastraría `server-only` al navegador): recibe lo que necesita por props.
+// Este archivo mezcla código de servidor (`requerirSesion`, las actions, las lecturas) con
+// componentes de cliente: lo importan los Server Components. Un Client Component de afuera no
+// importa de acá (arrastraría `server-only` al navegador): importa `@/modules/equipo/client`.
 
 // Sesión y permisos
 export {
@@ -31,3 +32,9 @@ export { RegistroCerrado } from './features/auth/components/registro-cerrado'
 export { FormularioPerfil } from './features/perfil/components/formulario-perfil'
 export { PreferenciasPerfil } from './features/perfil/components/preferencias-perfil'
 export { ProveedorPreferencias } from './features/perfil/components/proveedor-preferencias'
+
+// Roles y permisos
+export { leerMatriz } from './composicion'
+export { agruparPorModulo } from './entities/matriz'
+export { MatrizDeRoles } from './features/roles/components/matriz-de-roles'
+export { RoleBadge } from './features/roles/components/role-badge'

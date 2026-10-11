@@ -39,10 +39,11 @@ Ajustes de la empresa (marca, datos legales, país, locale, zona horaria), moned
 - Depende de: ningún otro módulo
 
 ### `equipo`
-Autenticación, perfiles, roles y permisos (RBAC puro), bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 46 archivos
-- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +13
+Autenticación, perfiles, roles y permisos (RBAC puro), bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 83 archivos
+- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +17
+- API de cliente (`client.ts`): `RoleBadge`
 - Depende de: empresa
-- Casos de uso: auth, perfil
+- Casos de uso: auth, equipo, perfil, perspectiva, roles
 
 ### `flujos`
 Motor único de flujos: fases, transiciones, requisitos (documento | dato | espera), roles por fase y transición, reglas por flujo, jubilar/eliminar, revisión de coherencia y la RPC `cambiar_fase` que mueve vehículos y repuestos. · 1 archivos
@@ -102,6 +103,8 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `/auth/callback` — API
 - `/auth/cerrar` — API
 - `/auth/nueva-contrasena` — página
+- `/configuracion/roles` — página
+- `/configuracion` — página
 - `/ingreso` — página
 - `/perfil` — página
 - `/recuperar` — página

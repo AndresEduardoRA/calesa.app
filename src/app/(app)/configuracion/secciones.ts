@@ -1,0 +1,32 @@
+import { ShieldCheckIcon, type LucideIcon } from 'lucide-react'
+import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
+import { RUTAS } from '@/shared/lib/rutas'
+
+// Las secciones de Configuración que ya tienen pantalla. Cada una se abre con cualquiera de sus
+// permisos (ver o gestionar): el hub muestra sólo las que esta persona puede abrir.
+// secciones.test.ts falla si una sección apunta a una ruta sin `page.tsx`.
+export type SeccionDeConfiguracion = {
+  clave: string
+  titulo: string
+  descripcion: string
+  ruta: string
+  Icono: LucideIcon
+  permisos: readonly ClavePermiso[]
+}
+
+export const SECCIONES = [
+  {
+    clave: 'roles',
+    titulo: 'Roles y permisos',
+    descripcion: 'Qué puede hacer cada rol, por origen y con qué alcance.',
+    ruta: RUTAS.roles,
+    Icono: ShieldCheckIcon,
+    permisos: ['equipo.roles.ver', 'equipo.roles.gestionar'],
+  },
+] as const satisfies readonly SeccionDeConfiguracion[]
+
+export function seccionesVisibles(permisos: Permisos): SeccionDeConfiguracion[] {
+  return SECCIONES.filter((seccion: SeccionDeConfiguracion) =>
+    seccion.permisos.some((clave) => puede(permisos, clave)),
+  )
+}

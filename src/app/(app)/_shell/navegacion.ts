@@ -153,7 +153,7 @@ export const NAVEGACION = [
       'web.contenido.gestionar',
       'web.cola.gestionar',
     ],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'actividad',

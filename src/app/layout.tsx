@@ -12,6 +12,7 @@ import { GuionLive } from '@/shared/ui/guion-live'
 import { RegistrarServiceWorker } from '@/shared/ui/registrar-service-worker'
 import { Toaster } from '@/shared/ui/sonner'
 import './globals.css'
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 // design/tokens.css arma `--font-sans` y `--font-mono` a partir de estas dos variables.
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -56,7 +57,10 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           enableSystem
           disableTransitionOnChange
         >
-          <ProveedorAtajos>{children}</ProveedorAtajos>
+          {/* Filtros, panel abierto y registro elegido viven en la URL (nuqs). */}
+          <NuqsAdapter>
+            <ProveedorAtajos>{children}</ProveedorAtajos>
+          </NuqsAdapter>
           <Toaster position="bottom-right" closeButton />
         </ThemeProvider>
         <RegistrarServiceWorker />

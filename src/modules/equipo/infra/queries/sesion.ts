@@ -1,17 +1,26 @@
 import 'server-only'
+import { cookies } from 'next/headers'
 import { connection } from 'next/server'
 import { cache } from 'react'
 import { createClient, type ClienteSupabase } from '@/shared/lib/supabase/server'
+import { COOKIE_PERSPECTIVA, leerPerspectiva } from '../../entities/perspectiva'
 import type { LectorDeSesion } from '../../entities/repositorios'
 import { sesionDesde, sesionSinPerfil, type EstadoCuenta, type Sesion } from '../../entities/sesion'
 
 // Con un cliente que ya tiene sesión: perfil, roles, permisos y preferencias en una sola ida.
+// La perspectiva «ver como» viaja en una cookie con el id del rol; la base decide si esta persona
+// puede usarla y devuelve los permisos efectivos (nunca más que los reales).
 async function leerSesion(
   supabase: ClienteSupabase,
   usuarioId: string,
   email: string,
 ): Promise<Sesion> {
-  const { data, error } = await supabase.rpc('mi_sesion')
+  const almacen = await cookies()
+  const perspectiva = leerPerspectiva(almacen.get(COOKIE_PERSPECTIVA)?.value)
+  const { data, error } = await supabase.rpc(
+    'mi_sesion',
+    perspectiva ? { p_perspectiva: perspectiva } : {},
+  )
   if (error) {
     throw new Error(`mi_sesion() falló: ${error.message}`)
   }

@@ -2,6 +2,7 @@
 // Sale de la RPC `mi_sesion()` (una sola ida a la base). Acá sólo se le da forma.
 import { z } from 'zod'
 import { concesionesDe, type Permisos } from '@/shared/lib/permisos'
+import { SIN_PERSPECTIVA, perspectivaDesde, type Perspectiva } from './perspectiva'
 import { preferenciasDesde, type Preferencias } from './preferencias'
 
 export const ESTADOS_CUENTA = ['activa', 'bloqueada', 'baja'] as const
@@ -27,8 +28,10 @@ export type Sesion = {
   perfilActualizadoEn: string
   // Los nombres salen de la base: sirven para mostrarlos, nunca para decidir qué se puede hacer.
   roles: RolDeLaPersona[]
-  // Vacío si la cuenta no está activa o no tiene ningún rol.
+  // Los EFECTIVOS: con una perspectiva «ver como» activa, los que la interfaz debe dibujar
+  // (nunca más que los reales). Vacío si la cuenta no está activa o no tiene ningún rol.
   permisos: Permisos
+  perspectiva: Perspectiva
   preferencias: Preferencias
 }
 
@@ -52,6 +55,7 @@ const esquemaSesion = z.object({
     }),
   ),
   permisos: z.unknown(),
+  perspectiva: z.unknown(),
   preferencias: z.unknown(),
 })
 
@@ -61,7 +65,7 @@ export function sesionDesde(json: unknown): Sesion | null {
   if (json === null || json === undefined) {
     return null
   }
-  const { estado, perfil, roles, permisos, preferencias } = esquemaSesion.parse(json)
+  const { estado, perfil, roles, permisos, perspectiva, preferencias } = esquemaSesion.parse(json)
   return {
     usuarioId: perfil.id,
     estado,
@@ -77,6 +81,7 @@ export function sesionDesde(json: unknown): Sesion | null {
       esPrincipal: rol.es_principal,
     })),
     permisos: concesionesDe(permisos),
+    perspectiva: perspectivaDesde(perspectiva),
     preferencias: preferenciasDesde(preferencias),
   }
 }
@@ -92,6 +97,7 @@ export function sesionSinPerfil(usuarioId: string, email: string): Sesion {
     perfilActualizadoEn: '',
     roles: [],
     permisos: [],
+    perspectiva: SIN_PERSPECTIVA,
     preferencias: { densidad: null, tema: null },
   }
 }

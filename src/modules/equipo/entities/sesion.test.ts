@@ -18,6 +18,11 @@ const json = {
     { clave: 'leads.ver', origen_id: null, alcance: 'todos' },
     { clave: 'permiso.que.no.existe', origen_id: null, alcance: 'todos' },
   ],
+  perspectiva: {
+    disponible: true,
+    rol: null,
+    roles: [{ id: ROL, nombre: 'Dueño', color: '#465fff' }],
+  },
   preferencias: { densidad: 'comoda' },
 }
 
@@ -33,6 +38,11 @@ describe('sesionDesde', () => {
       roles: [{ id: ROL, clave: 'dueno', nombre: 'Dueño', color: '#465fff', esPrincipal: true }],
       // La clave que este código no conoce se descarta.
       permisos: [{ clave: 'leads.ver', origenId: null, alcance: 'todos' }],
+      perspectiva: {
+        disponible: true,
+        rol: null,
+        roles: [{ id: ROL, nombre: 'Dueño', color: '#465fff' }],
+      },
       preferencias: { densidad: 'comoda', tema: null },
     })
   })
