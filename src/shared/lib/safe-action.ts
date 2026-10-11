@@ -8,6 +8,8 @@ import { createClient } from './supabase/server'
 
 // Sólo para lo que ocurre antes de tener sesión: ingresar, registrarse, recuperar la contraseña.
 export const actionClientPublico = createSafeActionClient({
+  // Errores de validación planos (`fieldErrors.campo[]`): es lo que un formulario pinta por campo.
+  defaultValidationErrorsShape: 'flattened',
   handleServerError(error): ErrorApp {
     // El detalle queda en el log del servidor; a la persona no se le muestra.
     console.error(error)
