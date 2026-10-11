@@ -144,21 +144,49 @@ begin
 end;
 $$;
 
--- Dar de baja: sus leads quedan en el LIMBO (sin asesores vigentes, invisibles) hasta que
--- alguien registre ese teléfono y los adopte. Queda registro de todo.
-create or replace function public.equipo_dar_de_baja(p_usuario uuid)
-returns int language plpgsql security definer set search_path = '' as $$
-declare n int;
+-- Los leads que quedarían sin nadie si esa persona saliera ahora: vivos (fuera de la papelera),
+-- con ella como asesora vigente y sin ninguna otra vigente. Es `lead_en_limbo()` aplicada por
+-- adelantado. La usan la vista previa y la baja: no pueden decir números distintos. Un lead que
+-- además está compartido con otra persona no cae al limbo, y no se cuenta.
+create or replace function public._leads_al_limbo_de(p_usuario uuid)
+returns int language sql stable security definer set search_path = '' as $$
+  select count(*)::int from public.leads l
+  where l.eliminado_en is null
+    and exists (select 1 from public.leads_asesores a where a.lead_id = l.id and a.usuario_id = p_usuario and a.revocado_en is null)
+    and not exists (select 1 from public.leads_asesores a where a.lead_id = l.id and a.usuario_id <> p_usuario and a.revocado_en is null);
+$$;
+revoke all on function public._leads_al_limbo_de(uuid) from public, anon, authenticated;
+
+-- Lo que hay que saber ANTES de dar de baja a alguien. Sólo lectura y sólo conteos: es DEFINER
+-- porque quien gestiona personas no necesariamente ve los leads ajenos, y no devuelve ninguno.
+create or replace function public.equipo_vista_previa_baja(p_usuario uuid)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
 begin
   perform public.assert_permiso('equipo.usuarios.gestionar');
-  if p_usuario = (select auth.uid()) then raise exception 'No podés darte de baja a vos mismo.' using errcode = '42501'; end if;
-  update public.perfiles set activo = false, baja_en = now(), baja_por = (select auth.uid()), publico_web = false where id = p_usuario and activo;
+  return jsonb_build_object(
+    'leads_al_limbo', public._leads_al_limbo_de(p_usuario),
+    'oportunidades_abiertas', (select count(*) from public.oportunidades o where o.usuario_id = p_usuario and o.estado = 'abierta'));
+end;
+$$;
+
+-- Dar de baja: sus leads quedan en el LIMBO (sin asesores vigentes, invisibles) hasta que
+-- alguien registre ese teléfono y los adopte. Queda registro de todo. Devuelve cuántos leads
+-- fueron al limbo, con la misma cuenta que mostró la vista previa.
+create or replace function public.equipo_dar_de_baja(p_usuario uuid)
+returns int language plpgsql security definer set search_path = '' as $$
+declare n int; v_activo boolean; v_nombre text;
+begin
+  perform public.assert_permiso('equipo.usuarios.gestionar');
+  if p_usuario = (select auth.uid()) then raise exception 'No puedes darte de baja a ti mismo.' using errcode = '42501'; end if;
+  select activo, coalesce(nullif(nombre, ''), email::text) into v_activo, v_nombre
+  from public.perfiles where id = p_usuario for update;
+  if not found then raise exception 'Esa persona ya no está en el equipo.' using errcode = 'PT409'; end if;
+  if not v_activo then raise exception '% ya no forma parte del equipo.', v_nombre using errcode = 'PT409'; end if;
+  n := public._leads_al_limbo_de(p_usuario);
+  update public.perfiles set activo = false, baja_en = now(), baja_por = (select auth.uid()), publico_web = false where id = p_usuario;
   update public.cola_web_asesores set habilitado = false, disponible = false where usuario_id = p_usuario;
-  with r as (
-    update public.leads_asesores set revocado_en = now(), revocado_por = (select auth.uid())
-    where usuario_id = p_usuario and revocado_en is null returning lead_id, tipo_acceso
-  )
-  select count(*) into n from r where tipo_acceso = 'dueno';
+  update public.leads_asesores set revocado_en = now(), revocado_por = (select auth.uid())
+  where usuario_id = p_usuario and revocado_en is null;
   update public.oportunidades set estado = 'cancelada' where usuario_id = p_usuario and estado = 'abierta';
   perform public.registrar_actividad('usuario.baja', 'perfiles', p_usuario::text, null, jsonb_build_object('leads_al_limbo', n));
   return n;
@@ -168,7 +196,7 @@ $$;
 do $$
 declare f text;
 begin
-  for f in select unnest(array['compartir_lead(uuid,uuid)', 'transferir_lead(uuid,uuid)', 'revocar_acceso_lead(uuid,uuid)', 'equipo_dar_de_baja(uuid)']) loop
+  for f in select unnest(array['compartir_lead(uuid,uuid)', 'transferir_lead(uuid,uuid)', 'revocar_acceso_lead(uuid,uuid)', 'equipo_dar_de_baja(uuid)', 'equipo_vista_previa_baja(uuid)']) loop
     execute format('revoke all on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
   end loop;

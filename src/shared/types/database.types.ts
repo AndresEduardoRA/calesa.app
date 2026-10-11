@@ -5753,6 +5753,7 @@ export type Database = {
       }
     }
     Functions: {
+      _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
       _requisito_dato_cumplido: {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
@@ -5829,6 +5830,7 @@ export type Database = {
         Returns: undefined
       }
       equipo_dar_de_baja: { Args: { p_usuario: string }; Returns: number }
+      equipo_vista_previa_baja: { Args: { p_usuario: string }; Returns: Json }
       es_miembro: { Args: { p_conversacion: string }; Returns: boolean }
       es_usuario_activo: { Args: Record<PropertyKey, never>; Returns: boolean }
       evaluar_requisitos: {

@@ -482,3 +482,35 @@ do $$ declare r uuid; v timestamptz; v2 timestamptz; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test limbo: la vista previa cuenta lo mismo que manda la baja, y un lead compartido no se cuenta
+-- nuevo@ (4) tiene el lead que adoptó; suma uno propio y otro que además comparte con la invitada (5).
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare propio uuid; compartido uuid; begin
+  propio := public.crear_lead('{"nombre": "Luis Choque", "telefono_cc": "+591", "telefono_principal": "70000021"}');
+  compartido := public.crear_lead('{"nombre": "Marta Vaca", "telefono_cc": "+591", "telefono_principal": "70000022"}');
+  perform public.compartir_lead(compartido, '00000000-0000-0000-0000-000000000005');
+  -- Sin el permiso de gestionar personas, la vista previa no responde.
+  begin perform public.equipo_vista_previa_baja('00000000-0000-0000-0000-000000000001'); raise exception 'un asesor vio la vista previa de una baja';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare antes jsonb; mandados int; begin
+  antes := public.equipo_vista_previa_baja('00000000-0000-0000-0000-000000000004');
+  if (antes ->> 'leads_al_limbo')::int <> 2 then raise exception 'esperaba 2 leads al limbo (el adoptado y el propio; el compartido no): %', antes; end if;
+  mandados := public.equipo_dar_de_baja('00000000-0000-0000-0000-000000000004');
+  if mandados <> (antes ->> 'leads_al_limbo')::int then raise exception 'la baja mandó % y la vista previa dijo %', mandados, antes; end if;
+  if (public.verificar_telefono('+591', '70000021') ->> 'estado') <> 'limbo' then raise exception 'el lead propio no quedó en el limbo'; end if;
+  if (public.verificar_telefono('+591', '70000022') ->> 'estado') = 'limbo' then raise exception 'el lead compartido cayó al limbo'; end if;
+  if (public.equipo_vista_previa_baja('00000000-0000-0000-0000-000000000004') ->> 'leads_al_limbo')::int <> 0 then raise exception 'después de la baja no queda nada por mandar'; end if;
+  begin perform public.equipo_dar_de_baja('00000000-0000-0000-0000-000000000004'); raise exception 'dio de baja dos veces';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  begin perform public.equipo_dar_de_baja('00000000-0000-0000-0000-000000000001'); raise exception 'se dio de baja a sí misma';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
