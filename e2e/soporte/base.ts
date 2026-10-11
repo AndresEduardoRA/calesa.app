@@ -62,6 +62,83 @@ export async function borrarPersonasDePrueba(): Promise<void> {
   }
 }
 
+// «La primera persona nace dueña» y «el guardián cuida a la última que administra» sólo se
+// pueden probar sin nadie más en el equipo. No se borra a nadie que no haya creado un e2e: si hay
+// gente, se avisa y se frena.
+export async function exigirEquipoSinAjenos(): Promise<void> {
+  const ajenas = await personasAjenas()
+  if (ajenas > 0) {
+    throw new Error(
+      `La base local tiene ${String(ajenas)} persona(s) que no son de prueba. ` +
+        'Este e2e necesita el equipo vacío: ejecuta `pnpm db:reset` y vuelve a intentar.',
+    )
+  }
+}
+
+// Una cuenta lista para ingresar (correo confirmado y contraseña puesta), sin pasar por el
+// registro ni por la pantalla de invitar. Con el equipo vacío es la primera: nace dueña. Las
+// siguientes necesitan `invitada` (el registro está cerrado) y nacen sin rol.
+export async function crearPersona(datos: {
+  email: string
+  contrasena: string
+  nombre: string
+  invitada?: boolean
+}): Promise<void> {
+  const { error } = await admin().auth.admin.createUser({
+    email: datos.email,
+    password: datos.contrasena,
+    email_confirm: true,
+    user_metadata: { nombre: datos.nombre },
+    ...(datos.invitada ? { app_metadata: { invitado: true } } : {}),
+  })
+  if (error) {
+    throw new Error(`No se pudo crear a ${datos.email}: ${error.message}`)
+  }
+}
+
+// El id de un origen que siembra `supabase/seed.sql`. El CRUD de orígenes todavía no existe: los
+// permisos acotados a un origen se prueban contra uno sembrado.
+export async function origenSembrado(clave: string): Promise<{ id: string; nombre: string }> {
+  const { data, error } = await admin()
+    .from('origenes')
+    .select('id, nombre')
+    .eq('clave', clave)
+    .maybeSingle<{ id: string; nombre: string }>()
+  if (error) {
+    throw new Error(`No se pudo leer el origen ${clave}: ${error.message}`)
+  }
+  if (!data) {
+    throw new Error(`Falta el origen sembrado «${clave}»: ejecuta \`pnpm db:reset\`.`)
+  }
+  return data
+}
+
+type ConcesionEnLaBase = { permiso_clave: string; origen_id: string | null; alcance: string }
+
+// Lo que un rol tiene otorgado, leído de la base (lo que la pantalla dice no alcanza).
+export async function concesionesDelRol(nombre: string): Promise<ConcesionEnLaBase[]> {
+  const { data, error } = await admin()
+    .from('roles')
+    .select('roles_permisos(permiso_clave, origen_id, alcance)')
+    .eq('nombre', nombre)
+    .single<{ roles_permisos: ConcesionEnLaBase[] }>()
+  if (error) {
+    throw new Error(`No se pudo leer el rol ${nombre}: ${error.message}`)
+  }
+  return data.roles_permisos
+}
+
+// Todo rol que crea un e2e se llama «E2E …»: es lo único que esta limpieza borra. Va después de
+// borrar a las personas, porque un rol con alguien adentro no se elimina.
+export const PREFIJO_ROL_E2E = 'E2E '
+
+export async function borrarRolesDePrueba(): Promise<void> {
+  const { error } = await admin().from('roles').delete().like('nombre', `${PREFIJO_ROL_E2E}%`)
+  if (error) {
+    throw new Error(`No se pudo borrar los roles de prueba: ${error.message}`)
+  }
+}
+
 // Las claves de los roles de una persona, leídas de la base.
 export async function rolesDe(email: string): Promise<string[]> {
   const cliente = admin()

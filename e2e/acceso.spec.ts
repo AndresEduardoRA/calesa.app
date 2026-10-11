@@ -1,11 +1,12 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import {
   borrarPersonasDePrueba,
   correoDePrueba,
   enlaceDelCorreo,
-  personasAjenas,
+  exigirEquipoSinAjenos,
   rolesDe,
 } from './soporte/base'
+import { ingresar } from './soporte/pasos'
 
 // Acceso y shell contra la app compilada y el Supabase local. Los cuatro tests cuentan una sola
 // historia, en orden: la primera persona se registra y queda dueña; después se prueba el ingreso
@@ -18,27 +19,14 @@ let email = ''
 
 test.beforeAll(async ({}, info) => {
   await borrarPersonasDePrueba()
-  // «La primera persona nace dueña» sólo se puede probar sin nadie en el equipo. No se borra a
-  // nadie que no haya creado un e2e: si hay gente, se avisa y se frena.
-  const ajenas = await personasAjenas()
-  if (ajenas > 0) {
-    throw new Error(
-      `La base local tiene ${String(ajenas)} persona(s) que no son de prueba. ` +
-        'Este e2e necesita el equipo vacío: ejecuta `pnpm db:reset` y vuelve a intentar.',
-    )
-  }
+  // «La primera persona nace dueña» sólo se puede probar sin nadie en el equipo.
+  await exigirEquipoSinAjenos()
   email = correoDePrueba(`duena-${info.project.name}`)
 })
 
 test.afterAll(async () => {
   await borrarPersonasDePrueba()
 })
-
-async function ingresar(page: Page, correo: string, contrasena: string) {
-  await page.getByLabel('Correo').fill(correo)
-  await page.getByLabel('Contraseña').fill(contrasena)
-  await page.getByRole('button', { name: 'Ingresar' }).click()
-}
 
 test('la primera persona que se registra nace dueña y ve su menú', async ({ page, isMobile }) => {
   await page.goto('/ingreso')
