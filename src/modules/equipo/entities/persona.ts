@@ -180,3 +180,50 @@ export function descripcionDeBaja(vista: VistaPreviaDeBaja): string {
     .filter((frase) => frase !== null)
     .join(' ')
 }
+
+// El id de una persona tal como llegó en la URL (`?persona=`, `?baja=`): un uuid, o nada.
+export function idDePersona(valor: string | undefined | null): string | null {
+  const id = z.guid().safeParse(valor)
+  return id.success ? id.data : null
+}
+
+export const MOTIVO_CUENTA_PROPIA = 'Es tu propia cuenta: no puedes bloquearla ni darla de baja.'
+
+// Lo que quien gestiona el equipo puede hacer sobre una persona, según en qué estado está.
+// Sobre la cuenta propia no se bloquea ni se da de baja (la base también lo impide).
+export type AccionesSobrePersona = {
+  roles: boolean
+  bloqueo: 'bloquear' | 'desbloquear' | null
+  baja: boolean
+  // Generar otro enlace de invitación: sólo mientras está pendiente.
+  enlace: boolean
+  esPropia: boolean
+}
+
+export function accionesSobre(
+  persona: Pick<PersonaDelEquipo, 'id' | 'estado'>,
+  yoId: string,
+): AccionesSobrePersona {
+  const esPropia = persona.id === yoId
+  if (persona.estado === 'baja') {
+    return { roles: false, bloqueo: null, baja: false, enlace: false, esPropia }
+  }
+  const bloqueo = persona.estado === 'bloqueada' ? 'desbloquear' : 'bloquear'
+  return {
+    roles: true,
+    bloqueo: esPropia ? null : bloqueo,
+    baja: !esPropia,
+    enlace: persona.estado === 'invitacion_pendiente',
+    esPropia,
+  }
+}
+
+// Lo que se le dice a quien dio de baja a alguien, con el número que devolvió la base.
+export function resultadoDeBaja(nombre: string, leadsAlLimbo: number): string {
+  if (leadsAlLimbo === 0) {
+    return `${nombre} ya no forma parte del equipo.`
+  }
+  return leadsAlLimbo === 1
+    ? `${nombre} ya no forma parte del equipo. 1 lead quedó en el limbo.`
+    : `${nombre} ya no forma parte del equipo. ${String(leadsAlLimbo)} leads quedaron en el limbo.`
+}

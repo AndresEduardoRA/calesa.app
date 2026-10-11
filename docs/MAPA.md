@@ -39,8 +39,8 @@ Ajustes de la empresa (marca, datos legales, país, locale, zona horaria), moned
 - Depende de: ningún otro módulo
 
 ### `equipo`
-Autenticación, perfiles, roles y permisos (RBAC puro), bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 83 archivos
-- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +17
+Autenticación, perfiles, roles y permisos (RBAC puro), bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 98 archivos
+- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +21
 - API de cliente (`client.ts`): `RoleBadge`
 - Depende de: empresa
 - Casos de uso: auth, equipo, perfil, perspectiva, roles
@@ -92,7 +92,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `lib/`: `almacen.ts`, `atajos.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
 - `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `proxy.ts`, `server.ts`
 - `types/`: `database.types.ts`
-- `ui/`: `avatar.tsx`, `aviso.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`
+- `ui/`: `avatar.tsx`, `aviso.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`, `use-ultimo.ts`
 - `ui/atajos/`: `index.ts`, `proveedor-atajos.tsx`, `use-atajo.ts`
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
@@ -103,6 +103,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `/auth/callback` — API
 - `/auth/cerrar` — API
 - `/auth/nueva-contrasena` — página
+- `/configuracion/equipo` — página
 - `/configuracion/roles` — página
 - `/configuracion` — página
 - `/ingreso` — página

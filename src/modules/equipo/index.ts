@@ -38,3 +38,8 @@ export { leerMatriz } from './composicion'
 export { agruparPorModulo } from './entities/matriz'
 export { MatrizDeRoles } from './features/roles/components/matriz-de-roles'
 export { RoleBadge } from './features/roles/components/role-badge'
+
+// Las personas del equipo
+export { leerEquipo, leerVistaPreviaDeBaja } from './composicion'
+export { idDePersona } from './entities/persona'
+export { ListaEquipo } from './features/equipo/components/lista-equipo'

@@ -1,4 +1,4 @@
-import { ShieldCheckIcon, type LucideIcon } from 'lucide-react'
+import { ShieldCheckIcon, UsersRoundIcon, type LucideIcon } from 'lucide-react'
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import { RUTAS } from '@/shared/lib/rutas'
 
@@ -15,6 +15,14 @@ export type SeccionDeConfiguracion = {
 }
 
 export const SECCIONES = [
+  {
+    clave: 'equipo',
+    titulo: 'Equipo',
+    descripcion: 'Las personas, sus roles, las invitaciones, el bloqueo y la baja.',
+    ruta: RUTAS.equipo,
+    Icono: UsersRoundIcon,
+    permisos: ['equipo.usuarios.ver', 'equipo.usuarios.gestionar'],
+  },
   {
     clave: 'roles',
     titulo: 'Roles y permisos',

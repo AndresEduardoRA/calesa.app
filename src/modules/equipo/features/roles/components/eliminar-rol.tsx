@@ -3,6 +3,7 @@
 import { useAction } from 'next-safe-action/hooks'
 import { errorDeAccion } from '@/shared/lib/formularios'
 import { Confirmar } from '@/shared/ui/confirmar'
+import { useUltimo } from '@/shared/ui/use-ultimo'
 import { avisarError, avisarExito } from '@/shared/ui/toasts'
 import type { RolConConcesiones } from '../../../entities/rol'
 import { eliminarRol } from '../actions/eliminar-rol'
@@ -16,6 +17,8 @@ type Props = {
 // Eliminar un rol no se deshace: se confirma nombrándolo.
 export function EliminarRol({ rol, alCerrar }: Props) {
   const { executeAsync, isPending } = useAction(eliminarRol)
+  // El último rol que mostró, para que el título no se vacíe mientras se cierra.
+  const mostrado = useUltimo(rol)
 
   async function eliminar(elegido: RolConConcesiones) {
     const resultado = await executeAsync({
@@ -42,7 +45,7 @@ export function EliminarRol({ rol, alCerrar }: Props) {
           void eliminar(rol)
         }
       }}
-      titulo={rol ? `Eliminar el rol ${rol.nombre}` : 'Eliminar el rol'}
+      titulo={mostrado ? `Eliminar el rol ${mostrado.nombre}` : 'Eliminar el rol'}
       descripcion="El rol y los permisos que tiene dados desaparecen. No se puede deshacer."
       etiquetaConfirmar="Eliminar rol"
       enCurso={isPending}

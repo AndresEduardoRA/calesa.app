@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  accionesSobre,
   descripcionDeBaja,
   estadoDePersona,
   filtrarPersonas,
+  idDePersona,
   nombreDePersona,
   personasDesde,
+  resultadoDeBaja,
   vistaPreviaDesde,
   type PersonaDelEquipo,
 } from './persona'
@@ -174,6 +177,68 @@ describe('descripcionDeBaja', () => {
   it('sin leads lo dice', () => {
     expect(descripcionDeBaja({ leadsAlLimbo: 0, oportunidadesAbiertas: 1 })).toBe(
       'No tiene leads a su cargo. Su oportunidad abierta se cancela. Deja de poder ingresar. No se puede deshacer.',
+    )
+  })
+})
+
+describe('idDePersona', () => {
+  it('acepta un uuid y descarta cualquier otra cosa', () => {
+    expect(idDePersona('00000000-0000-0000-0000-000000000002')).toBe(
+      '00000000-0000-0000-0000-000000000002',
+    )
+    expect(idDePersona('sofia')).toBeNull()
+    expect(idDePersona(undefined)).toBeNull()
+    expect(idDePersona(null)).toBeNull()
+  })
+})
+
+describe('accionesSobre', () => {
+  const YO = 'yo'
+
+  it('sobre una persona activa: roles, bloquear y dar de baja', () => {
+    expect(accionesSobre({ id: 'otra', estado: 'activa' }, YO)).toEqual({
+      roles: true,
+      bloqueo: 'bloquear',
+      baja: true,
+      enlace: false,
+      esPropia: false,
+    })
+  })
+
+  it('a una bloqueada se la desbloquea; a una pendiente se le puede generar otro enlace', () => {
+    expect(accionesSobre({ id: 'otra', estado: 'bloqueada' }, YO).bloqueo).toBe('desbloquear')
+    expect(accionesSobre({ id: 'otra', estado: 'invitacion_pendiente' }, YO).enlace).toBe(true)
+  })
+
+  it('sobre la cuenta propia no se bloquea ni se da de baja', () => {
+    expect(accionesSobre({ id: YO, estado: 'activa' }, YO)).toEqual({
+      roles: true,
+      bloqueo: null,
+      baja: false,
+      enlace: false,
+      esPropia: true,
+    })
+  })
+
+  it('sobre una dada de baja no queda nada por hacer', () => {
+    expect(accionesSobre({ id: 'otra', estado: 'baja' }, YO)).toEqual({
+      roles: false,
+      bloqueo: null,
+      baja: false,
+      enlace: false,
+      esPropia: false,
+    })
+  })
+})
+
+describe('resultadoDeBaja', () => {
+  it('dice cuántos leads quedaron en el limbo', () => {
+    expect(resultadoDeBaja('Sofía Ramos', 0)).toBe('Sofía Ramos ya no forma parte del equipo.')
+    expect(resultadoDeBaja('Sofía Ramos', 1)).toBe(
+      'Sofía Ramos ya no forma parte del equipo. 1 lead quedó en el limbo.',
+    )
+    expect(resultadoDeBaja('Sofía Ramos', 12)).toBe(
+      'Sofía Ramos ya no forma parte del equipo. 12 leads quedaron en el limbo.',
     )
   })
 })
