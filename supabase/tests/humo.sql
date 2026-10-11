@@ -2,6 +2,8 @@
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000001', 'duena@ejemplo.com');
 do $$ begin
   if not exists (select 1 from public.usuarios_roles ur join public.roles r on r.id = ur.rol_id where ur.usuario_id = '00000000-0000-0000-0000-000000000001' and r.clave = 'dueno') then raise exception 'el primero no es dueño'; end if;
+  -- El chequeo de registro es diferido (corre al cerrar la transacción): acá se adelanta.
+  set constraints all immediate;
   begin
     insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000002', 'colada@ejemplo.com');
     raise exception 'el registro cerrado dejó pasar un signup';
@@ -11,6 +13,16 @@ do $$ begin
 end $$;
 update public.perfiles set nombre = 'Sofía Ramos', handle = 'sofia', whatsapp_web = '+59170000000', publico_web = true where id = '00000000-0000-0000-0000-000000000002';
 update public.perfiles set nombre = 'Rosa Mamani' where id = '00000000-0000-0000-0000-000000000003';
+
+-- @test Auth inserta la cuenta y después le pone app_metadata: la invitada pasa igual
+begin;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000005', 'invitada@ejemplo.com');
+update auth.users set raw_app_meta_data = raw_app_meta_data || '{"invitado": true}' where id = '00000000-0000-0000-0000-000000000005';
+commit;
+do $$ begin
+  if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-000000000005') then raise exception 'la invitada no nació'; end if;
+  if exists (select 1 from public.usuarios_roles where usuario_id = '00000000-0000-0000-0000-000000000005') then raise exception 'una invitada nace sin rol: se lo da quien la invita'; end if;
+end $$;
 
 -- @test la dueña asigna roles con dominancia y el guardián protege
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);

@@ -50,8 +50,10 @@ const POR_CODIGO: Record<string, { codigo: CodigoError; mensaje: string }> = {
   session_expired: { codigo: 'no_autenticado', mensaje: MENSAJE_SESION_VENCIDA },
 }
 
-// Cuando el trigger `auth_registro_permitido()` rechaza el alta, Auth no reenvía su mensaje:
-// responde un 500 genérico con este texto. Es la única señal de que el registro está cerrado.
+// Lo que respondía Auth cuando la base rechazaba el alta al insertar. Hoy el chequeo de
+// `auth_registro_permitido()` corre al cerrar la transacción y Auth responde un error sin detalle,
+// así que la app comprueba el registro por su cuenta (`registroDisponible()`) antes de pedir el
+// alta y al volver de Google. Esto queda por si Auth vuelve a decirlo con este texto.
 const RECHAZO_DE_LA_BASE = /database error saving new user/i
 
 export function esRechazoDeRegistro(mensaje: string | null | undefined): boolean {

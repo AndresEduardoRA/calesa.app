@@ -4,26 +4,37 @@
 -- ---------------------------------------------------------------------------
 -- Perfil espejo + registro abierto/cerrado (aplicado en DB, no sólo en UI)
 -- ---------------------------------------------------------------------------
+-- Diferido al cierre de la transacción, y leyendo la fila como quedó: Auth inserta la cuenta y
+-- recién después, en un UPDATE de la misma transacción, le pone `app_metadata`. Un trigger
+-- BEFORE INSERT nunca ve `invitado = true` y rechazaba también a los invitados (probado contra
+-- Auth el 2026-10-11). Costo: al fallar en el commit, Auth responde un error genérico en vez de
+-- «Database error saving new user»; por eso la app comprueba el registro antes de pedir el alta.
 create or replace function public.auth_registro_permitido()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare
   abierto boolean;
-  hay_usuarios boolean;
+  hay_otros boolean;
+  invitado boolean;
 begin
+  select coalesce((u.raw_app_meta_data ->> 'invitado')::boolean, false) into invitado
+  from auth.users u where u.id = new.id;
+  -- La cuenta se creó y se borró en la misma transacción: no hay nada que permitir.
+  if not found then return null; end if;
   select registro_abierto into abierto from public.ajustes_empresa where id = 1;
-  select exists (select 1 from public.perfiles) into hay_usuarios;
-  -- El primer usuario siempre puede nacer (es el dueño). Los invitados por un admin traen
-  -- raw_app_meta_data.invitado = true (lo pone la RPC equipo_invitar vía API de admin).
-  if hay_usuarios and coalesce(abierto, false) = false
-     and coalesce((new.raw_app_meta_data ->> 'invitado')::boolean, false) = false then
+  -- A esta altura el perfil de esta cuenta ya existe: se cuentan los demás.
+  select exists (select 1 from public.perfiles p where p.id <> new.id) into hay_otros;
+  -- La primera cuenta siempre puede nacer (es la dueña). A las invitadas las crea
+  -- `auth.admin.createUser` con `app_metadata.invitado = true`: esa marca sólo la escribe quien
+  -- tiene la secret key, nunca un registro público.
+  if hay_otros and not coalesce(abierto, false) and not invitado then
     raise exception 'El registro de cuentas nuevas está cerrado.' using errcode = '42501';
   end if;
-  return new;
+  return null;
 end;
 $$;
 drop trigger if exists trg_auth_registro_permitido on auth.users;
-create trigger trg_auth_registro_permitido before insert on auth.users
-  for each row execute function public.auth_registro_permitido();
+create constraint trigger trg_auth_registro_permitido after insert on auth.users
+  deferrable initially deferred for each row execute function public.auth_registro_permitido();
 
 create or replace function public.auth_crear_perfil()
 returns trigger language plpgsql security definer set search_path = '' as $$

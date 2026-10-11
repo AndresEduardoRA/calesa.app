@@ -36,7 +36,7 @@ RPC: `mi_sesion`, `rbac_crear_rol`, `rbac_eliminar_rol`, `rbac_otorgar`, `rbac_r
 
 ## Ojo
 
-- `auth_registro_permitido()` corre en trigger sobre `auth.users`: con registro cerrado el signup falla aunque la UI lo esconda. Auth no reenvía el mensaje del trigger: responde `Database error saving new user`, que `errorDeAuth()` traduce.
+- `auth_registro_permitido()` corre en trigger sobre `auth.users`, **diferido al cierre de la transacción**: Auth inserta la cuenta y después le pone `app_metadata` en un UPDATE, y un `BEFORE INSERT` rechazaba también a las invitadas. Con registro cerrado el signup falla aunque la UI lo esconda, pero Auth responde un error sin detalle: la app comprueba `registroDisponible()` antes de pedir el alta (`registrarse`) y al volver de Google (`canjearAcceso`).
 - Las policies llaman `(select tiene_permiso('…'))` como InitPlan: nunca cambiar la firma sin tocar `20261011000200_rls_y_grants.sql`.
 - `perfiles.rol` no existe a propósito: ningún `if (rol === …)` en componentes.
 - `index.ts` mezcla servidor y cliente: lo importan Server Components. Un Client Component de `app/` o de otro módulo recibe la action o el dato por props (importar el índice arrastraría `server-only` al navegador).

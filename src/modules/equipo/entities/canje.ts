@@ -65,12 +65,18 @@ const AVISO_POR_ENLACE: Partial<Record<TipoEnlace, ClaveAviso>> = {
 }
 
 // Cuando no se pudo canjear. Cada caso vuelve a la pantalla desde la que se puede reintentar.
-export function destinoDeFallo(pedido: PedidoDeCanje): string {
+// `registroCerrado`: la base rechaza las cuentas nuevas al cerrar la transacción y Auth vuelve con
+// un `server_error` sin detalle; con el registro cerrado, ese es el motivo más probable y el
+// único que la persona puede resolver (pedir una invitación).
+export function destinoDeFallo(pedido: PedidoDeCanje, registroCerrado = false): string {
   switch (pedido.tipo) {
     case 'vacio':
       return RUTAS.ingreso
     case 'rechazo':
-      if (esRechazoDeRegistro(pedido.descripcion)) {
+      if (
+        esRechazoDeRegistro(pedido.descripcion) ||
+        (registroCerrado && pedido.error === 'server_error')
+      ) {
         return conAviso(RUTAS.ingreso, 'registro_cerrado')
       }
       return conAviso(

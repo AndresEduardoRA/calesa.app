@@ -74,6 +74,16 @@ describe('destinoDeFallo', () => {
 
   it('cancelar en Google no es un error', () => {
     expect(destinoDeFallo(leer('error=access_denied'))).toBe('/ingreso?aviso=google_cancelado')
+    // La base rechaza la cuenta nueva al cerrar la transacción: Auth vuelve sin decir por qué.
+    expect(
+      destinoDeFallo(leer('error=server_error&error_description=Unexpected+failure'), true),
+    ).toBe('/ingreso?aviso=registro_cerrado')
+    expect(destinoDeFallo(leer('error=server_error&error_description=Unexpected+failure'))).toBe(
+      '/ingreso?aviso=google',
+    )
+    expect(destinoDeFallo(leer('error=access_denied'), true)).toBe(
+      '/ingreso?aviso=google_cancelado',
+    )
   })
 
   it('una cuenta nueva de Google con el registro cerrado lo explica', () => {

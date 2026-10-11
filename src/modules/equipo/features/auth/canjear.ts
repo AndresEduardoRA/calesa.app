@@ -1,4 +1,5 @@
 import 'server-only'
+import { getAjustes, registroDisponible } from '@/modules/empresa'
 import { servicioAcceso } from '../../composicion'
 import { destinoDeFallo, destinoTrasCanje, leerCanje } from '../../entities/canje'
 import { rechazarSiInactiva } from './sesion'
@@ -7,7 +8,10 @@ import { rechazarSiInactiva } from './sesion'
 // redirigir. Nunca lanza por un enlace malo: un enlace vencido es un destino con su aviso.
 export async function canjearAcceso(parametros: URLSearchParams): Promise<string> {
   const pedido = leerCanje(parametros)
-  if (pedido.tipo === 'rechazo' || pedido.tipo === 'vacio') {
+  if (pedido.tipo === 'rechazo') {
+    return destinoDeFallo(pedido, !registroDisponible(await getAjustes()))
+  }
+  if (pedido.tipo === 'vacio') {
     return destinoDeFallo(pedido)
   }
   const canje = await servicioAcceso.canjear(pedido)
