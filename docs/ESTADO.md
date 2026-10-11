@@ -6,75 +6,75 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-11
-**Fase actual:** 1 — Equipo, empresa y shell, **abierta**. Hecha la parte 1 de 3 (acceso y shell).
+**Fase actual:** 1 — Equipo, empresa y shell, **abierta**. Hechas las partes 1 y 2 de 3.
 
 ## Funcionando
 
-- `pnpm lint`, `pnpm typecheck`, `pnpm test` (164), `pnpm db:probar` (11 pruebas de humo),
-  `bash scripts/mapa.sh --check`, `pnpm build` y `pnpm test:e2e` (8: 4 casos × escritorio y móvil).
-- Acceso: registro (si está abierto o es la primera persona), ingreso con contraseña, cerrar sesión,
-  recuperación por correo. `/auth/callback` canjea el código de Google y los enlaces de los correos.
-- Google: **sin probar de punta a punta** (en local las credenciales son de relleno). Probados la
-  salida hacia Google y todos los regresos por `/auth/callback` (cancelado, registro cerrado, error).
-- `src/proxy.ts` refresca la sesión y decide el acceso: sin sesión → `/ingreso?returnTo=…`; con
-  sesión, `/ingreso` y `/registro` devuelven al inicio. Una Server Action nunca se redirige.
-- Casos no felices probados en vivo: contraseña mala (mismo mensaje exista o no el correo), cuenta
-  bloqueada o dada de baja (mensaje y sesión cerrada, al ingresar y con la sesión abierta), registro
-  cerrado (sin botón; forzado, error legible y ninguna cuenta creada), persona sin rol, falla y
-  cancelación de Google, enlace vencido o reusado, sesión que vence con un formulario abierto
-  (no se pierde lo tipeado), conflicto al editar el perfil.
-- Shell `(app)`: barra lateral por permisos, barra superior (buscador deshabilitado, hueco para el
-  tipo de cambio), menú del usuario, tema y densidad recordados por persona, Modo Live, View
-  Transitions. Inicio = bandeja con 10 bloques por permiso, vacíos. Perfil propio.
-- `src/shared/ui`: estados, esqueletos, `<Monto>`, `<Drawer>`, `<Modal>`, `<Bloque>`, `<Confirmar>`,
-  toasts y registro de atajos (`Esc` funcionando; `N` y `Ctrl/Cmd+K` en el catálogo, sin destino).
+- `pnpm lint`, `pnpm typecheck`, `pnpm test` (254), `pnpm db:probar` (17 pruebas de humo),
+  `bash scripts/mapa.sh --check`, `pnpm build` y `pnpm test:e2e` (16: 8 casos × escritorio y móvil).
+- Parte 1: acceso, proxy con `returnTo`, shell por permisos, bandeja, perfil propio.
+- **Invitar** (`/configuracion/equipo?panel=invitar`): por correo y con un rol. La cuenta nace con
+  `auth.admin.createUser` e `invitado = true`; el rol lo da `rbac_asignar_rol` con la sesión de
+  quien invita. Sale el correo de Auth; si falla, el enlace queda a la vista. Un solo enlace
+  vigente: «Copiar enlace» y «Generar otro enlace» reemplazan al anterior.
+- **Equipo:** lista con estado (activa, invitación pendiente, bloqueada, dada de baja), búsqueda y
+  filtro en la URL, roles por persona con un interruptor por rol, bloquear con «Deshacer», y baja
+  con un diálogo que nombra a la persona y dice cuántos leads van al limbo.
+- **Roles** (`/configuracion/roles`): matriz por módulo, crear y eliminar, otorgar y revocar con
+  origen y alcance. Dominancia visible. Cada celda manda la versión del rol; `PT409` → «Recargar».
+- **«Ver como»:** selector en el menú del usuario, banner fijo «Viendo como <rol> · Salir»,
+  permisos efectivos calculados en SQL. Sólo para quien tiene `equipo.roles.gestionar`.
+- `client.ts`: segunda entrada de un módulo, para Client Components (lint y mapa la reconocen).
+- Voz en tuteo (`errores.ts`, `safe-action.ts`, SQL de equipo y roles). Google apagado en local.
 
-## Siguiente: fase 1, partes 2 y 3
+## Siguiente: fase 1, parte 3 — empresa
 
-- **Parte 2 — equipo:** lista, roles y matriz de permisos, invitaciones, bloquear, dar de baja,
-  «ver como». Lo anotado antes sigue en pie: no existe la RPC `equipo_invitar` (alta con
-  `auth.admin.createUser` y `app_metadata.invitado = true`, rol con `rbac_asignar_rol` bajo la
-  sesión de quien invita); `.claude/rules/datos.md` necesita la excepción escrita para ese uso del
-  cliente admin; falta la vista previa de cuántos leads van al limbo; «ver como» pide su migración.
-  El enlace de invitación tiene que ser `/auth/callback?token_hash=…&type=invite` (ya soportado).
-- **Parte 3 — empresa:** formularios de ajustes, monedas, tipos de cambio (y llenar el hueco de la
-  barra superior), integraciones, «Regenerar íconos». `getAjustes()` hoy es mínimo.
-- Al crear una pantalla: prender su `disponible` en `_shell/navegacion.ts` (el test lo exige).
+- Formularios de ajustes, monedas, tipos de cambio (y llenar el hueco de la barra superior),
+  integraciones, «Regenerar íconos». `getAjustes()` hoy es mínimo.
+- Al crear una pantalla: sumarla a `configuracion/secciones.ts` (el test exige que exista) y, si
+  es de primer nivel, prender su `disponible` en `_shell/navegacion.ts`.
+- Un permiso nuevo de `equipo` se le otorga al rol dueño en su misma migración (lo exige el guardián).
 
 ## Pendiente de decidir
 
-- **Voz de los textos:** `ui.md` pide español neutro y lo nuevo quedó así («avisa», «pide»); los
-  mensajes de la base y de `errores.ts` / `safe-action.ts` hablan de vos («No tenés permiso»).
-- **Hooks de módulo para Client Components** (`usePerspectiva()`): el `index.ts` no se importa
-  desde el navegador; segunda entrada (ajustando mapa y lint) o todo por props (docs/DECISIONES.md).
-- **Google en local:** el proveedor está encendido con credenciales de relleno; el botón aparece y
-  falla en la página de Google. Poner credenciales reales o apagarlo en `config.toml`.
-- **En la nube (una persona):** proyecto y `supabase link`; plantillas de `supabase/templates/` en
-  Auth › Emails; `Site URL` real y `…/auth/callback` en Redirect URLs; SMTP; credenciales de Google.
+- **Dominancia sobre la persona:** quien tiene `equipo.usuarios.gestionar` puede bloquear o dar
+  de baja a alguien con más permisos que él (el guardián sólo salva al último). Se dejó afuera.
+- **Vencimiento de la invitación:** es el `otp_expiry` de Auth (1 h en local; en la nube, hasta
+  24 h). Subirlo afecta también a recuperar contraseña.
+- **En la nube (una persona):** proyecto y `supabase link`; las **tres** plantillas de
+  `supabase/templates/` en Auth › Emails (confirmar, recuperar, invitar); `Site URL` real y
+  `…/auth/callback` en Redirect URLs; SMTP; credenciales de Google y encender el proveedor.
 - Secretos de integraciones (Vault o variables de entorno): antes de la parte 3. Rama: sigue `master`.
 
 ## Descubierto sobre la marcha
 
+- **Auth pone `app_metadata` después de insertar la cuenta**, en un UPDATE de la misma
+  transacción. El trigger de registro cerrado rechazaba a los invitados; ahora es diferido. Efecto:
+  con el registro cerrado Auth responde un error sin detalle, y la app lo comprueba por su cuenta.
+- Auth guarda un solo token de invitación por cuenta y `generateLink` no manda correo: el enlace
+  copiable y el del correo no pueden ser el mismo. Sobre una cuenta ya confirmada sólo deja
+  generar uno de recuperación.
+- Una etiqueta de menú de Base UI fuera de un grupo tumba la pantalla recién al abrir ese menú.
 - El rol `dueno`, el catálogo de permisos y la fila de `ajustes_empresa` viven en `seed.sql`: el
   primer `db push` a producción necesita `--include-seed`, o el primer usuario nace sin rol.
-- Auth no reenvía el mensaje del trigger de registro cerrado: responde «Database error saving new
-  user». Se traduce en `errorDeAuth()`.
-- Con Cache Components, leer sesión o base exige `await connection()` además de `<Suspense>`; Next
-  conserva el estado de una pantalla al volver a ella; una action que escribe cookies redibuja la
-  página (el e2e lo encontró: «revisa tu correo» se convertía en «registro cerrado»).
-- Cambiar `supabase/config.toml` (plantillas, redirect URLs) pide `supabase stop` y `start`.
-- `lint-archivo.sh` corre ESLint también sobre archivos de fuera del repo, y ahí falla sin config.
-- `next build` con `NEXT_DIST_DIR=.next-e2e` reescribía `tsconfig.json`; ahora esas rutas están declaradas.
+- Con Cache Components, leer sesión o base exige `await connection()` además de `<Suspense>`; una
+  action que escribe cookies redibuja la página (así se aplica «ver como», sin nada a mano).
+- Cambiar `supabase/config.toml` (plantillas, proveedores) pide `supabase stop` y `start`.
+- Un commit que falla en el pre-commit no avisa si se filtra su salida: mirar `git log` después.
 
 ## Deuda aceptada
 
-- El e2e de acceso exige la base local sin personas (frena y pide `pnpm db:reset`).
-- Sin e2e de Google, recuperación, bloqueo ni perfil: se recorrieron a mano contra el stack local.
-- Quitar o reemplazar la foto borra el objeto anterior desde el navegador; si falla queda un
-  huérfano hasta que exista `storage-gc`.
-- Seis claves del catálogo siguen sin enforcement en la base (`equipo.usuarios.ver`,
-  `equipo.roles.ver`, `tablero.metricas.ver`, `datos.exportar.todo`, `notificaciones.push`,
-  `logistica.pagos.confirmar`).
-- El guardián sólo impide que `dueno` pierda `equipo.roles.gestionar`, no todo `equipo.*`.
+- Los e2e exigen la base local sin personas ajenas (frenan y piden `pnpm db:reset`) y usan el
+  origen `oficina` de `seed.sql`: el CRUD de orígenes llega en la fase 2.
+- Sin e2e de Google, recuperación, perfil, conflicto en la matriz ni «ver como»: se recorrieron a
+  mano. El conflicto y la perspectiva sí tienen prueba de humo en SQL.
+- Las RPC de leads, flujos y cotizaciones siguen hablando de vos: se reescriben con su fase.
+- `equipo.usuarios.ver` y `equipo.roles.ver` no tienen enforcement en la base (los comprueba la
+  página); tampoco `tablero.metricas.ver`, `datos.exportar.todo`, `notificaciones.push` ni
+  `logistica.pagos.confirmar`.
+- No se puede renombrar un rol ni reactivar a alguien dado de baja desde la interfaz.
+- Tras dar de baja a alguien recién bloqueado, el toast «Deshacer» del bloqueo sigue a la vista;
+  usarlo responde «ya no forma parte del equipo».
+- Quitar o reemplazar la foto puede dejar un objeto huérfano hasta que exista `storage-gc`.
 - Edge functions sólo declaradas en `supabase/functions/README.md`; RPC del cotizador de repuestos
   y vistas de embarques y agenda: llegan en sus fases. Permisos en el JWT: sólo si `mi_sesion()` pesa.

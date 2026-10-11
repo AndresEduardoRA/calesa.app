@@ -11,8 +11,8 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 
 - `lib/supabase/server.ts` — `createClient()`: uno por request, con la sesión y la RLS del usuario. `browser.ts` (`createClient()`, realtime y auth en cliente), `admin.ts` (`createAdminClient()`, secret key, salta la RLS, sólo servidor), `proxy.ts` (`actualizarSesion()`, lo llama `src/proxy.ts`).
 - `lib/safe-action.ts` — `actionClient` (exige sesión; deja `supabase`, `usuarioId` y `permisos` en `ctx`) y `actionClientPublico` (ingresar, registrarse, recuperar). Toda mutación entra por acá.
-- `lib/errores.ts` — `Resultado<T>` (`{ ok: true, data }` | `{ ok: false, error }`), `ok()`, `fallo()`, `conflicto()`, `errorDePostgrest()` (`PT409` → `conflicto`, `42501` → `sin_permiso`).
-- `lib/permisos.ts` — `CLAVES_PERMISO`, `ClavePermiso`, `puede()`, `alcanceDe()`, `origenesCon()`, `concesionesDe()` (filas de `mis_permisos()` → concesiones).
+- `lib/errores.ts` — `Resultado<T>` (`{ ok: true, data }` | `{ ok: false, error }`), `ok()`, `fallo()`, `conflicto()`, `errorDePostgrest()` (`PT409` → `conflicto`, `42501` → `sin_permiso`), `datosO()` (en un Server Component: el error de una lectura sube al `error.tsx` de la ruta).
+- `lib/permisos.ts` — `CLAVES_PERMISO`, `ClavePermiso`, `puede()`, `alcanceDe()`, `origenesCon()`, `concesionesDe()` (filas de `mis_permisos()` → concesiones), `ModuloPermiso`, `MODULOS_PERMISO` (el título de cada módulo, tipado contra el catálogo) y `moduloDe()`.
 - `lib/rutas.ts` — `RUTAS`, `decidirAcceso()` (la regla del proxy), `returnToSeguro()`, `destinoTrasIngresar()`, `rutaDeIngreso()`; `lib/navegacion.ts` — `redirigir()` para destinos calculados (con `typedRoutes`, `redirect()` sólo acepta rutas conocidas).
 - `lib/formularios.ts` — `valoresDe()`, `errorDeAccion()`, `errorDeCampo()`, `enfocarPrimerError()`: lo común de un formulario con `useAction`.
 - `lib/atajos.ts` — catálogo `ATAJOS` y `atajoDe(evento)`; `ui/atajos/` — `<ProveedorAtajos>` y `useAtajo(clave, manejador, activo)`: responde el último registrado (así `Esc` cierra de a un panel) y un atajo sin nadie registrado no hace nada.
@@ -22,7 +22,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `config/entorno.ts` — variables públicas validadas con Zod; `config/app.ts` — nombre y colores por defecto.
 - `ui/` — componentes de shadcn (nombres en inglés, los escribe `shadcn add`) y los transversales propios (en español):
   - `estados/` (`EstadoVacio`, `EstadoSinResultados`, `EstadoError`, `EstadoSinPermiso`) y `esqueletos/` (`EsqueletoTabla`, `EsqueletoDetalle`, `EsqueletoFormulario`, `EsqueletoBandeja`): los cinco estados de toda vista.
-  - `drawer.tsx`, `modal.tsx` (controlados: el estado «abierto» vive en la URL de quien los usa), `confirmar.tsx` (irreversible; con `palabraClave` pide tipearla), `bloque.tsx` (sección plegable), `toasts.ts` (`avisarExito`, `avisarError`, `avisarConDeshacer`).
+  - `drawer.tsx`, `modal.tsx` (controlados: el estado «abierto» vive en la URL de quien los usa), `confirmar.tsx` (irreversible; con `palabraClave` pide tipearla), `bloque.tsx` (sección plegable), `toasts.ts` (`avisarExito`, `avisarError`, `avisarConDeshacer`), `use-ultimo.ts` (`useUltimo()`: un panel conserva su último dato mientras se cierra).
   - `monto.tsx` + `live.ts` (`useLive()`) + `guion-live.tsx`: Modo Live. `regional.tsx` (`<ProveedorRegional>`: locale y moneda base para `<Monto>`), `densidad.tsx` (`<ProveedorDensidad>`, `useDensidad()`).
   - `campo.tsx`, `aviso.tsx`, `opciones.tsx`, `avatar.tsx`, `marca.tsx`, `transicion-pagina.tsx` (View Transitions).
 - `types/database.types.ts` — generado por `pnpm db:types`. No se edita.
@@ -38,7 +38,9 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 ## Ojo
 
 - Los componentes de shadcn hablan en sus variables (`bg-primary`, `border-input`); `src/app/globals.css` las apunta a los tokens. En componentes propios se usa `bg-(--color-surface)`.
-- `admin.ts` importa `server-only`: si llega al bundle del navegador, el build falla. Se usa después de comprobar el permiso con el cliente del usuario.
+- `admin.ts` importa `server-only`: si llega al bundle del navegador, el build falla. El lint sólo deja importarlo desde `equipo/infra/invitaciones.ts` (`.claude/rules/datos.md`).
+- Los textos hablan de tú (español neutro), también los `MENSAJE_*` de `errores.ts`.
+- El estado de filtros y paneles vive en la URL con `nuqs` (`<NuqsAdapter>` está en `src/app/layout.tsx`).
 - Los toasts de error salen de `avisarError(error)`: con `no_autenticado` no redirige (la persona tiene un formulario abierto), ofrece «Ingresar» en otra pestaña; con `conflicto` ofrece «Recargar».
 - `--fila` (altura de fila según la densidad) y las reglas del Modo Live y de View Transitions están en `src/app/globals.css`.
 - `entornoPublico()` valida al primer uso, no al importar; las `NEXT_PUBLIC_*` se leen con el nombre literal para que Next las incruste.

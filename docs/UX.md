@@ -68,8 +68,8 @@ esta cotización usa la versión N»).
 
 Navegación de primer nivel (hasta 7, filtrada por permisos): Inicio · Leads · Vehículos · Cotizaciones ·
 Logística · Agenda · Chat. Repuestos aparece como entrada propia sólo con permiso. Configuración,
-Actividad y Datos viven en el menú del usuario y en `Ctrl/Cmd+K`, junto a «Mi perfil», el tema, la densidad
-y «Cerrar sesión». La navegación está declarada entera en `src/app/(app)/_shell/navegacion.ts`; una entrada
+Actividad y Datos viven en el menú del usuario y en `Ctrl/Cmd+K`, junto a «Mi perfil», «Ver como» (sólo
+para quien gestiona roles), el tema, la densidad y «Cerrar sesión». La navegación está declarada entera en `src/app/(app)/_shell/navegacion.ts`; una entrada
 sin pantalla todavía no se muestra.
 
 | Pantalla       | Ruta                                  | Patrón                                      | Roles                             | Notas                                                                                                                            |
@@ -90,6 +90,8 @@ sin pantalla todavía no se muestra.
 | Perfil         | `/perfil`                             | Formulario en bloques                       | todos                             | Nombre, foto y preferencias (tema, densidad); desde el menú del usuario                                                          |
 | Actividad      | `/actividad`                          | Tabla agrupada por día + drawer diff        | con `actividad.ver`               | 14 días                                                                                                                          |
 | Configuración  | `/configuracion/*`                    | Hub + formularios en bloques                | por permiso de cada sección       | empresa, equipo, roles, orígenes, cotización (fórmulas, tablas, tarjeta), flujos, web, cola web, integraciones                   |
+| Equipo         | `/configuracion/equipo`               | Tabla + panel lateral                       | con `equipo.usuarios.*`           | `?q=&estado=`; invitar en `?panel=invitar`; roles de una persona en `?persona=`; baja en `?baja=` con el conteo del limbo        |
+| Roles          | `/configuracion/roles`                | Matriz roles × permisos                     | con `equipo.roles.*`              | Agrupada por módulo; cada celda guarda sola; en móvil un rol a la vez (`?rol=`); `?panel=nuevo-rol`, `?eliminar=`                |
 | Datos          | `/datos`                              | Importación/exportación                     | propio: todos; todo: `datos.todo` | Plantilla CSV, mapeo, vista previa por fila                                                                                      |
 | Buscador       | `Ctrl/Cmd+K`                          | Paleta                                      | todos                             | Resultados por tipo, acotados a permisos; acciones («nuevo lead»)                                                                |
 
@@ -123,6 +125,15 @@ sin pantalla todavía no se muestra.
 - Un modal nunca abre otro modal: segundo nivel = panel lateral o página.
 - Permisos en UI: ocultar lo que nunca va a usar; deshabilitar con motivo lo que espera poder hacer. RLS es la seguridad.
 - Conflictos: todo formulario de edición manda `actualizado_en` esperado; `PT409` → «X cambió esto hace N min · ver / recargar».
+- Dominancia: lo que la persona no puede dar (un permiso que no tiene, un rol con permisos que no tiene) aparece deshabilitado con el motivo escrito, nunca escondido.
+- Perspectiva «ver como»: mientras está activa, un banner fijo bajo la barra superior dice «Viendo como <rol> · Salir». Cambia lo que se ve, no lo que se puede.
+- Voz: español neutro con tuteo, en la interfaz y en los mensajes que vienen de la base.
+
+### Equipo y roles (estados propios)
+
+- **Equipo:** sólo tú en el equipo (aviso con invitación a sumar a alguien); sin resultados por filtro; invitación pendiente con «Generar otro enlace»; sobre la cuenta propia el menú dice por qué no se puede bloquear ni dar de baja; el rechazo del guardián se muestra con su motivo. Bloquear se hace y ofrece «Deshacer»; dar de baja pide confirmar en un diálogo que nombra a la persona y dice cuántos leads van al limbo.
+- **Invitar:** el correo sale por Auth; si falla, el enlace queda a la vista para copiarlo. «Copiar enlace» genera uno nuevo y avisa que el del correo deja de servir.
+- **Roles:** rol que no dominas → columna de sólo lectura con el motivo; permiso que no tienes → celda deshabilitada con el motivo; con cero orígenes el editor dice «Sin orígenes todavía» y sólo ofrece «Todos los orígenes»; conflicto → «Otra persona cambió este rol · Recargar».
 
 ## Decisiones de UX
 
@@ -132,4 +143,6 @@ sin pantalla todavía no se muestra.
 - Mover de fase desde la cadena (kanban) y desde la ficha del vehículo con el mismo panel de requisitos; nunca drag & drop entre columnas (oculta el porqué del rechazo) → asumido.
 - Documentos se suben al confirmar (commit diferido), nunca al elegir el archivo → regla de ip conservada.
 - Chat con menciones por `#` que abren el drawer de la entidad sin salir; referenciar no otorga acceso → regla de ip conservada.
+- Los roles de una persona se cambian con un interruptor por rol (los permisos son la unión de sus roles), no eligiendo «el» rol → asumido.
+- La matriz guarda cada celda sola, sin botón de guardar: un conflicto pierde un clic, no una tarde de configuración → asumido.
 - Los nombres de orígenes, fases, tipos de documento y categorías salen de la base (con sustantivo y género); ningún texto fijo en la UI los nombra → asumido.

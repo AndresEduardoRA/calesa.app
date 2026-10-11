@@ -39,7 +39,7 @@ Ajustes de la empresa (marca, datos legales, país, locale, zona horaria), moned
 - Depende de: ningún otro módulo
 
 ### `equipo`
-Autenticación, perfiles, roles y permisos (RBAC puro), bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 119 archivos
+Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 119 archivos
 - API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +23
 - API de cliente (`client.ts`): `RoleBadge`, `usePerspectiva`, `Perspectiva`, `RolParaVerComo`
 - Depende de: empresa

@@ -117,12 +117,18 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 - **Permisos**: catálogo fijo en `supabase/seed.sql` (`permisos`) + `src/shared/lib/permisos.ts`
   (mismas claves, tipadas). `puede(permisos, clave, origenId)` en `entities/`; en la base,
   `tiene_permiso()` / `alcance_de()` en policies y RPC. La UI esconde o deshabilita; la base decide.
+- **Perspectiva «ver como»**: cookie `perspectiva` → `mi_sesion(p_perspectiva)` →
+  `permisos_efectivos()` (los propios ∩ los del rol). Son los que trae `Sesion.permisos` y dibujan
+  la interfaz; las policies, las RPC y `actionClient` usan `mis_permisos()` (los reales).
+- **Cliente admin**: salta la RLS. Una sola excepción fuera del portal, webhooks y crons:
+  `conAdminDeAuth()` en `equipo/infra/invitaciones.ts` (`.claude/rules/datos.md`).
 - **Auditoría**: tabla `actividad` escrita por el trigger `auditar()` y por `registrar_actividad()`
   desde las RPC. Purga a 14 días (`ajustes_empresa.actividad_dias`).
 - **Estados**: fases como datos (`flujos`, `fases`, `fases_transiciones`) y un único motor
   `cambiar_fase`. Las reglas que la UI necesita (transiciones permitidas, qué falta) salen de
   `previsualizar_cambio_fase`, nunca se reimplementan en componentes.
-- **Conflictos**: `actualizado_en` + `p_*_esperado` → `PT409` → `codigo: 'conflicto'`.
+- **Conflictos**: `actualizado_en` + `p_*_esperado` → `PT409` → `codigo: 'conflicto'`. Donde la
+  versión daría conflictos falsos (bloquear, dar de baja), la precondición es el estado.
 - **Trabajo en segundo plano**: `supabase/functions/` (`storage-gc`, `push`, `apibara`,
   `importar-csv`) + `pg_cron` (recordatorios, expirar turnos, alertas de demora, purgas).
 - **Realtime**: canales de Supabase para chat y notificaciones; la fila es señal, se rehidrata por fetch.
