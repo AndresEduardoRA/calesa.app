@@ -185,3 +185,157 @@ export async function enlaceDelCorreo(email: string): Promise<string> {
   }
   throw new Error(`No llegó ningún correo a ${email} (¿está corriendo \`npx supabase start\`?).`)
 }
+
+// Un rol de prueba con los permisos dados (en todos los orígenes) y una persona que lo tiene, sin
+// pasar por la matriz ni por la pantalla de invitar. El nombre lleva `PREFIJO_ROL_E2E`.
+export async function darRolDePrueba(datos: {
+  email: string
+  rol: { nombre: string; clave: string }
+  permisos: string[]
+}): Promise<void> {
+  const cliente = admin()
+  const { data: rol, error } = await cliente
+    .from('roles')
+    .insert(datos.rol)
+    .select('id')
+    .single<{ id: string }>()
+  if (error) {
+    throw new Error(`No se pudo crear el rol ${datos.rol.nombre}: ${error.message}`)
+  }
+  const concesiones = datos.permisos.map((clave) => ({ rol_id: rol.id, permiso_clave: clave }))
+  const { error: errorDePermisos } = await cliente.from('roles_permisos').insert(concesiones)
+  if (errorDePermisos) {
+    throw new Error(`No se pudo dar permisos a ${datos.rol.nombre}: ${errorDePermisos.message}`)
+  }
+  const { data: perfil, error: errorDePerfil } = await cliente
+    .from('perfiles')
+    .select('id')
+    .eq('email', datos.email)
+    .single<{ id: string }>()
+  if (errorDePerfil) {
+    throw new Error(`No se pudo leer el perfil de ${datos.email}: ${errorDePerfil.message}`)
+  }
+  const { error: errorDeRol } = await cliente
+    .from('usuarios_roles')
+    .insert({ usuario_id: perfil.id, rol_id: rol.id, es_principal: true })
+  if (errorDeRol) {
+    throw new Error(`No se pudo asignar el rol a ${datos.email}: ${errorDeRol.message}`)
+  }
+}
+
+type AjustesEnLaBase = {
+  nombre: string
+  zona_horaria: string
+  logo_ruta: string | null
+  iconos: Record<string, string> | null
+}
+
+// Los ajustes de la empresa como quedaron en la base.
+export async function ajustesGuardados(): Promise<AjustesEnLaBase> {
+  const { data, error } = await admin()
+    .from('ajustes_empresa')
+    .select('nombre, zona_horaria, logo_ruta, iconos')
+    .eq('id', 1)
+    .single<AjustesEnLaBase>()
+  if (error) {
+    throw new Error(`No se pudo leer los ajustes: ${error.message}`)
+  }
+  return data
+}
+
+type CambioEnLaBase = { valor_anterior: number | null; valor_nuevo: number }
+
+// El último cambio de valor de un tipo de cambio, leído del historial que escribe el trigger.
+export async function ultimoCambioDe(clave: string): Promise<CambioEnLaBase | null> {
+  const { data, error } = await admin()
+    .from('tipos_cambio_historial')
+    .select('valor_anterior, valor_nuevo, tipos_cambio!inner(clave)')
+    .eq('tipos_cambio.clave', clave)
+    .order('id', { ascending: false })
+    .limit(1)
+    .maybeSingle<CambioEnLaBase>()
+  if (error) {
+    throw new Error(`No se pudo leer el historial de ${clave}: ${error.message}`)
+  }
+  return data
+}
+
+// Si apibara quedó con su secreto guardado y activa.
+export async function estadoDeApibara(): Promise<{ activa: boolean; conSecreto: boolean }> {
+  const { data, error } = await admin()
+    .from('integraciones')
+    .select('activa, secreto_guardado_en')
+    .eq('clave', 'apibara')
+    .single<{ activa: boolean; secreto_guardado_en: string | null }>()
+  if (error) {
+    throw new Error(`No se pudo leer la integración: ${error.message}`)
+  }
+  return { activa: data.activa, conSecreto: data.secreto_guardado_en !== null }
+}
+
+function exigir(error: { message: string } | null, que: string): void {
+  if (error) {
+    throw new Error(`No se pudo restaurar ${que}: ${error.message}`)
+  }
+}
+
+// La empresa es una fila única y los tipos de cambio vienen sembrados: lo que un e2e les cambia
+// se deja como en `supabase/seed.sql`, para que el siguiente (y el otro proyecto) arranquen igual.
+export async function restaurarEmpresa(): Promise<void> {
+  const cliente = admin()
+  const ajustes = await cliente
+    .from('ajustes_empresa')
+    .update({
+      nombre: 'Mi importadora',
+      razon_social: null,
+      color_acento: null,
+      logo_ruta: null,
+      iconos: null,
+      locale: 'es-BO',
+      zona_horaria: 'America/La_Paz',
+      registro_abierto: false,
+      papelera_dias: 30,
+      actividad_dias: 14,
+    })
+    .eq('id', 1)
+  exigir(ajustes.error, 'los ajustes')
+  const sobrantes = await cliente
+    .from('tipos_cambio')
+    .delete()
+    .not('clave', 'in', '(oficial,paralelo)')
+  exigir(sobrantes.error, 'los tipos de cambio')
+  // Primero se desmarca el que no es por defecto: entre dos monedas sólo cabe uno.
+  const paralelo = await cliente
+    .from('tipos_cambio')
+    .update({ nombre: 'Paralelo', valor: 12.4, activo: true, es_default: false })
+    .eq('clave', 'paralelo')
+  exigir(paralelo.error, 'el paralelo')
+  const oficial = await cliente
+    .from('tipos_cambio')
+    .update({ nombre: 'Oficial', valor: 6.96, activo: true, es_default: true })
+    .eq('clave', 'oficial')
+  exigir(oficial.error, 'el oficial')
+  const historial = await cliente
+    .from('tipos_cambio_historial')
+    .delete()
+    .not('valor_anterior', 'is', null)
+  exigir(historial.error, 'el historial')
+  const apibara = await cliente
+    .from('integraciones')
+    .update({
+      activa: false,
+      secreto_guardado_en: null,
+      config: { plataformas: ['copart', 'iaai'], endpoint: 'https://api.apibara.tech' },
+    })
+    .eq('clave', 'apibara')
+  exigir(apibara.error, 'la integración')
+  // Lo que un e2e subió al bucket `marca` ya no lo referencia nadie.
+  for (const carpeta of ['logos', 'iconos']) {
+    const { data: objetos, error } = await cliente.storage.from('marca').list(carpeta)
+    exigir(error, `la carpeta ${carpeta}`)
+    const rutas = (objetos ?? []).map((objeto) => `${carpeta}/${objeto.name}`)
+    if (rutas.length > 0) {
+      exigir((await cliente.storage.from('marca').remove(rutas)).error, `los objetos de ${carpeta}`)
+    }
+  }
+}
