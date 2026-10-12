@@ -44,3 +44,26 @@ export function errorDeCampo<Campo extends string>(
   const mensajes: string[] | undefined = errores?.[campo]
   return mensajes?.[0]
 }
+
+// Una action que no llega al servidor no responde con un resultado: su promesa falla. Esto lo
+// convierte en un error como cualquier otro, para que el formulario lo muestre y siga abierto con
+// lo tipeado.
+export async function conRed<Respuesta extends object>(
+  envio: Promise<Respuesta | undefined>,
+): Promise<Respuesta | { serverError: ErrorApp; data?: undefined }> {
+  try {
+    return (await envio) ?? { serverError: errorDeRed() }
+  } catch {
+    return { serverError: errorDeRed() }
+  }
+}
+
+function errorDeRed(): ErrorApp {
+  const sinConexion = typeof navigator !== 'undefined' && !navigator.onLine
+  return {
+    codigo: 'inesperado',
+    mensaje: sinConexion
+      ? 'No hay conexión. Lo que escribiste sigue acá: vuelve a guardar cuando vuelva.'
+      : 'No pudimos llegar al servidor. Lo que escribiste sigue acá: vuelve a intentar.',
+  }
+}

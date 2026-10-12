@@ -18,6 +18,14 @@ export function avisarExito(mensaje: string, accion?: Accion): void {
   )
 }
 
+// Algo que la persona tiene que saber y no es ni un éxito ni un error.
+export function avisar(mensaje: string, accion?: Accion): void {
+  toast(
+    mensaje,
+    accion ? { action: { label: accion.etiqueta, onClick: accion.alHacer } } : undefined,
+  )
+}
+
 export function avisarConDeshacer(mensaje: string, alDeshacer: () => void): void {
   toast(mensaje, {
     duration: DESHACER_MS,

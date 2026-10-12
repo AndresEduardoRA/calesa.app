@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { errorDeAccion, errorDeCampo, valoresDe } from './formularios'
+import { conRed, errorDeAccion, errorDeCampo, valoresDe } from './formularios'
 
 describe('valoresDe', () => {
   it('lee los campos pedidos por nombre', () => {
@@ -40,5 +40,23 @@ describe('errorDeCampo', () => {
   it('sin errores o sin ese campo devuelve undefined', () => {
     expect(errorDeCampo(undefined, 'email')).toBeUndefined()
     expect(errorDeCampo<'email' | 'nombre'>({ nombre: ['x'] }, 'email')).toBeUndefined()
+  })
+})
+
+describe('conRed', () => {
+  it('deja pasar la respuesta de la action', async () => {
+    const respuesta = { data: { ok: true as const, data: 1 } }
+    expect(await conRed(Promise.resolve(respuesta))).toBe(respuesta)
+  })
+
+  it('si la action no llega al servidor, lo devuelve como un error que conserva el formulario', async () => {
+    const resultado = await conRed(Promise.reject(new TypeError('Failed to fetch')))
+    const error = errorDeAccion(resultado)
+    expect(error?.codigo).toBe('inesperado')
+    expect(error?.mensaje).toContain('Lo que escribiste sigue acá')
+  })
+
+  it('una respuesta vacía también es un error', async () => {
+    expect(errorDeAccion(await conRed(Promise.resolve(undefined)))).not.toBeNull()
   })
 })
