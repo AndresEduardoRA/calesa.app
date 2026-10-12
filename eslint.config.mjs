@@ -230,6 +230,9 @@ export default defineConfig([
   globalIgnores([
     '.next/**',
     '.next-e2e/**',
+    // Lo que deja Playwright cuando un e2e falla (el visor de trazas es JS minificado).
+    'playwright-report/**',
+    'test-results/**',
     'out/**',
     'build/**',
     'next-env.d.ts',
