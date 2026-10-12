@@ -9,6 +9,16 @@ ARCHIVO=$(printf '%s' "$ENTRADA" | sed -nE 's/.*"file_path" *: *"([^"]+)".*/\1/p
 [ -z "$ARCHIVO" ] && exit 0
 [ -f "$ARCHIVO" ] || exit 0
 
+# Sólo se lintea lo de este repo. Un archivo de afuera (el plan, el scratchpad, otro proyecto) no
+# tiene nuestra configuración de ESLint: fallaría sin haber hecho nada mal, y `--fix` no tiene
+# por qué reescribirlo. Se comparan rutas reales, para que un enlace simbólico no engañe.
+RAIZ=$(pwd -P)
+REAL="$(cd "$(dirname "$ARCHIVO")" 2>/dev/null && pwd -P)/$(basename "$ARCHIVO")"
+case "$REAL" in
+  "$RAIZ"/*) ARCHIVO="$REAL" ;;
+  *) exit 0 ;;
+esac
+
 case "$ARCHIVO" in
   *.ts|*.tsx|*.mts|*.mjs)
     # --no-warn-ignored: un archivo ignorado a propósito (tipos generados, probar-schema.mjs) no es un fallo.
