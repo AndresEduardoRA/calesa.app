@@ -33,24 +33,29 @@ function escribir(formulario: HTMLFormElement, valores: Borrador): void {
   }
 }
 
-// Borrador de un formulario: guarda lo tipeado en cada cambio y lo repone al volver
-// a abrirlo, avisando con «Descartar». `campos` son los nombres de los campos de texto (una
-// constante de quien llama: si cambia de identidad, el borrador se vuelve a leer); lo que no es
-// texto (un archivo, un interruptor) no entra.
+// Borrador de un formulario: guarda lo que la persona cambió respecto de lo guardado y lo repone
+// al volver a abrirlo, avisando con «Descartar». Sólo lo que cambió: si mientras tanto otra
+// persona guardó otro campo, reponer el formulario entero pisaría su cambio sin que nadie lo vea.
+// `campos` son los nombres de los campos de texto (una constante de quien llama); lo que no es
+// texto (un archivo, un interruptor) no entra. Con `activo` en falso no guarda ni repone: quien no
+// puede editar no tiene nada que recuperar.
 export function useBorrador<Clave extends string>(
   clave: string,
   formulario: RefObject<HTMLFormElement | null>,
   campos: readonly Clave[],
+  activo = true,
 ) {
   useEffect(() => {
     const elemento = formulario.current
-    if (!elemento) {
+    if (!elemento || !activo) {
       return
     }
+    // Lo guardado, como llegó del servidor: contra esto se mide qué tipeó la persona.
+    const guardado = valoresDe(elemento, campos)
     const borrador = leerBorrador(window.sessionStorage, clave)
-    const cambios = borrador ? cambiosDelBorrador(borrador, valoresDe(elemento, campos)) : {}
-    if (Object.keys(cambios).length > 0) {
-      escribir(elemento, cambios)
+    const pendientes = borrador ? cambiosDelBorrador(borrador, guardado) : {}
+    if (Object.keys(pendientes).length > 0) {
+      escribir(elemento, pendientes)
       avisar('Recuperamos lo que habías escrito y no guardaste.', {
         etiqueta: 'Descartar',
         alHacer: () => {
@@ -60,7 +65,12 @@ export function useBorrador<Clave extends string>(
       })
     }
     const alTipear = () => {
-      guardarBorrador(window.sessionStorage, clave, valoresDe(elemento, campos))
+      const tipeado = cambiosDelBorrador(valoresDe(elemento, campos), guardado)
+      if (Object.keys(tipeado).length > 0) {
+        guardarBorrador(window.sessionStorage, clave, tipeado)
+      } else {
+        borrarBorrador(window.sessionStorage, clave)
+      }
     }
     elemento.addEventListener('input', alTipear)
     elemento.addEventListener('change', alTipear)
@@ -68,7 +78,7 @@ export function useBorrador<Clave extends string>(
       elemento.removeEventListener('input', alTipear)
       elemento.removeEventListener('change', alTipear)
     }
-  }, [clave, formulario, campos])
+  }, [clave, formulario, campos, activo])
 
   return {
     // Después de guardar: lo tipeado ya está en la base.
