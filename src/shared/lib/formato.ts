@@ -13,7 +13,13 @@ function formateador(locale: string, opciones: Intl.NumberFormatOptions): Intl.N
   const clave = `${locale}|${JSON.stringify(opciones)}`
   let existente = formateadores.get(clave)
   if (!existente) {
-    existente = new Intl.NumberFormat(locale, opciones)
+    try {
+      existente = new Intl.NumberFormat(locale, opciones)
+    } catch {
+      // Un locale o una moneda que `Intl` no conoce (un dato mal guardado) no puede tumbar cada
+      // pantalla que imprime un número: se formatea con lo de fábrica.
+      existente = new Intl.NumberFormat(LOCALE_POR_DEFECTO, { ...opciones, currency: 'USD' })
+    }
     formateadores.set(clave, existente)
   }
   return existente

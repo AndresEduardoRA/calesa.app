@@ -39,3 +39,11 @@ describe('formatearPorcentaje', () => {
     expect(plano(formatearPorcentaje(0.5, { decimales: 0 }))).toBe('50%')
   })
 })
+
+describe('con un locale o una moneda que Intl no conoce', () => {
+  it('formatea con lo de fábrica en vez de tumbar la pantalla', () => {
+    expect(() => formatearNumero(1234.5, { locale: 'zzz_x' })).not.toThrow()
+    expect(formatearNumero(1234.5, { locale: 'zzz_x' })).toBe(formatearNumero(1234.5))
+    expect(() => formatearMonto(10, { moneda: 'no', locale: 'es-BO' })).not.toThrow()
+  })
+})
