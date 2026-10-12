@@ -1,7 +1,7 @@
 import { errorDeCampo } from '@/shared/lib/formularios'
 import { Bloque } from '@/shared/ui/bloque'
 import { Campo } from '@/shared/ui/campo'
-import { Switch } from '@/shared/ui/switch'
+import { Interruptor } from '@/shared/ui/interruptor'
 import {
   RETENCION_MAXIMA_DIAS,
   RETENCION_MINIMA_DIAS,
@@ -26,26 +26,13 @@ export function BloquePoliticas(props: Props) {
       descripcion="Quién puede crear su cuenta y cuánto tiempo se guarda lo borrado."
       plegado
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="grid gap-0.5">
-          <span
-            id="registro-abierto"
-            className="text-(length:--text-sm) font-medium text-(--color-ink)"
-          >
-            Registro abierto
-          </span>
-          <span className="text-(length:--text-sm) text-(--color-ink-faint)">
-            Con el registro abierto, cualquiera puede crear su cuenta desde la pantalla de ingreso.
-            Cerrado, sólo entra quien recibe una invitación.
-          </span>
-        </div>
-        <Switch
-          aria-labelledby="registro-abierto"
-          checked={registroAbierto}
-          disabled={deshabilitado}
-          onCheckedChange={alCambiarRegistro}
-        />
-      </div>
+      <Interruptor
+        titulo="Registro abierto"
+        ayuda="Con el registro abierto, cualquiera puede crear su cuenta desde la pantalla de ingreso. Cerrado, sólo entra quien recibe una invitación."
+        valor={registroAbierto}
+        alCambiar={alCambiarRegistro}
+        deshabilitado={deshabilitado}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo
           nombre="papeleraDias"

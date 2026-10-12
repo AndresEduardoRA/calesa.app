@@ -34,10 +34,10 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Depende de: ningún otro módulo
 
 ### `empresa`
-Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 60 archivos
-- API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `zonasHorarias`, `FormularioEmpresa`, `getTiposCambio`, `leerHistorial`, `TipoCambio`, +2
+Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 67 archivos
+- API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `zonasHorarias`, `FormularioEmpresa`, `getTiposCambio`, `leerHistorial`, `TipoCambio`, +6
 - Depende de: ningún otro módulo
-- Casos de uso: empresa, tipos-cambio
+- Casos de uso: empresa, integraciones, tipos-cambio
 
 ### `equipo`
 Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 119 archivos
@@ -93,7 +93,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `lib/`: `almacen.ts`, `atajos.ts`, `borrador.ts`, `color.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
 - `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `proxy.ts`, `server.ts`
 - `types/`: `database.types.ts`
-- `ui/`: `avatar.tsx`, `aviso.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo-seleccion.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `estilo-de-marca.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`, `use-borrador.ts`, `use-en-linea.ts`, `use-ultimo.ts`
+- `ui/`: `avatar.tsx`, `aviso.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo-seleccion.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `estilo-de-marca.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `interruptor.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`, `use-borrador.ts`, `use-en-linea.ts`, `use-ultimo.ts`
 - `ui/atajos/`: `index.ts`, `proveedor-atajos.tsx`, `use-atajo.ts`
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`

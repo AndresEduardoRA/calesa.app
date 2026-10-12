@@ -3,6 +3,7 @@
 export const PESTANAS = [
   { clave: 'empresa', titulo: 'Empresa' },
   { clave: 'monedas', titulo: 'Monedas' },
+  { clave: 'integraciones', titulo: 'Integraciones' },
 ] as const
 
 export type Pestana = (typeof PESTANAS)[number]['clave']

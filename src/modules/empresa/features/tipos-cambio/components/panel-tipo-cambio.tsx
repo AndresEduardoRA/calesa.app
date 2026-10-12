@@ -7,11 +7,11 @@ import { Button } from '@/shared/ui/button'
 import { Campo } from '@/shared/ui/campo'
 import { Drawer } from '@/shared/ui/drawer'
 import { useUltimo } from '@/shared/ui/use-ultimo'
+import { Interruptor } from '@/shared/ui/interruptor'
 import { MOTIVO_SIN_PERMISO_TIPOS_CAMBIO } from '../../../entities/motivos'
 import { valorTipeado, type CambioDeValor, type TipoCambio } from '../../../entities/tipos-cambio'
 import type { EdicionesDeTiposCambio } from '../hooks/use-tipos-cambio'
 import { Historial } from './historial'
-import { Interruptor } from './interruptor'
 
 type Props = {
   // El tipo de cambio de `?tc=`, o null con el panel cerrado.
@@ -74,7 +74,7 @@ function Campos(props: PropsDeCampos) {
         }
         valor={esDefault}
         alCambiar={alCambiarDefault}
-        deshabilitado={tipo.esDefault || !activo}
+        deshabilitado={!puedeGestionar || tipo.esDefault || !activo}
       />
       <Interruptor
         titulo="Activo"
@@ -85,7 +85,7 @@ function Campos(props: PropsDeCampos) {
         }
         valor={activo}
         alCambiar={alCambiarActivo}
-        deshabilitado={esDefault}
+        deshabilitado={!puedeGestionar || esDefault}
       />
     </>
   )

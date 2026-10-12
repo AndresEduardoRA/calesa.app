@@ -9,8 +9,9 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
   - `getAjustes()` — lo mínimo de la empresa, una lectura por request, funciona sin sesión: nombre, logo, color, íconos, formato regional, zona horaria, moneda base, registro abierto, primer registro. Nunca tumba una pantalla. Lo consumen `app/` (marca, tokens de color, formato, zona horaria, pantallas de acceso) y `equipo` (registro).
   - `registroDisponible()`.
   - `getTiposCambio()` — los tipos de cambio vigentes, con el por defecto adelante. Tampoco tumba una pantalla (devuelve una lista vacía). Lo consume `app/` para la barra superior (`<TiposCambioVigentes>`); lo consumirá `cotizaciones`, que congela los que usa.
-  - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `zonasHorarias()`, `<FormularioEmpresa>`, `<MonedasYTiposCambio>`.
-- Pendiente en esta fase: integraciones (`integracionActiva('apibara')`, la consumirá `vehiculos`) e íconos.
+  - `integracionActiva('apibara')` — si una integración está prendida; si la base no responde, no. La consumirá `vehiculos` antes de ofrecer el alta por enlace.
+  - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`, `<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`.
+- Pendiente en esta fase: íconos.
 - Depende de: ningún otro módulo. No tiene `client.ts`: ningún Client Component de afuera necesita nada de acá.
 
 ## Archivos clave
@@ -25,6 +26,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - `infra/queries/` — lecturas (`server-only`). `infra/{empresa,tipos-cambio,integraciones}.ts` — escrituras, todas por RPC. `infra/{logo,iconos}.client.ts` — preparar, subir y descartar en Storage desde el navegador.
 - `composicion.ts` (servidor) y `composicion.client.ts` (navegador): de ahí toman `features/` sus implementaciones.
 - `features/empresa/` — el formulario. `guardar-con-logo.ts` son los pasos del commit diferido, contra puertos.
+- `features/integraciones/` — la pestaña «Integraciones»: apibara con su interruptor, su configuración no secreta y `<CampoSecreto>` (dice «guardada el …» y deja reemplazarla; nunca la muestra).
 - `features/tipos-cambio/` — la pestaña «Monedas»: listas, un panel por tipo de cambio (valor e historial) y por moneda, y `<TiposCambioVigentes>` para la barra superior.
 
 ## Tablas
@@ -42,6 +44,7 @@ RPC: `web.ajustes_acceso` (lo único de la empresa que lee `anon`), `empresa_gua
 - Un valor vigente por clave: cambiarlo pisa el anterior, y el historial lo escribe un trigger (`tipos_cambio_historial_trg`). **No** altera cotizaciones guardadas (ellas tienen su snapshot).
 - Entre dos monedas hay un solo tipo de cambio por defecto (índice único parcial): marcar otro desmarca al anterior en la misma RPC. El por defecto no se desactiva; la moneda base y las que usa un tipo de cambio activo, tampoco.
 - La clave de un tipo de cambio sale de su nombre al crearlo y no cambia: la nombran las fórmulas. Nada se borra: se desactiva (borrar arrastraría el historial).
+- El secreto de una integración entra una vez y no vuelve a salir: ninguna action, lectura ni columna lo devuelve. apibara no se activa sin su clave guardada (lo impide la RPC; la UI lo deshabilita y lo dice).
 - Los valores de los tipos de cambio pasan por `<Monto>`: el Modo Live los oculta también en la barra superior.
 - `registro_abierto = false` lo aplica la base (trigger en `auth.users`), no sólo la UI.
 - `registroDisponible()` repite la condición del trigger: registro abierto **o** todavía no hay nadie (la primera cuenta nace siempre, y nace dueña).
@@ -53,5 +56,6 @@ RPC: `web.ajustes_acceso` (lo único de la empresa que lee `anon`), `empresa_gua
 - No hay permiso de «ver»: la pantalla la abre quien tiene `empresa.ajustes.gestionar` o `empresa.tipos_cambio.gestionar`, y lo que no puede editar lo ve deshabilitado con el motivo.
 - `<Marca>` y `<EstiloDeMarca>` viven en `src/shared/ui` y reciben nombre, logo y color por props: `shared` no importa este módulo. El color entra como un `<style>` con `:root` y `.dark`, no en `<html style>`: un estilo en línea le ganaría al tema oscuro.
 - El secreto de apibara no se guarda en columnas legibles: va a Vault por `integracion_guardar_secreto()` y la app sólo lee `integraciones.secreto_guardado_en`. `integraciones.config` lleva lo no secreto. Variables de entorno sólo para la infraestructura del despliegue (secret key, VAPID privada): ver docs/DECISIONES.md.
+- `push_web` y `web_publica` existen como filas pero no tienen interfaz hasta sus fases (7 y 8). Una integración nueva se suma a `CLAVES_INTEGRACION`; si lleva secreto, también a `esquemaGuardarSecreto`.
 - «Retención» son `papelera_dias` y `actividad_dias`. `demora_dias_default`, `lead_dormido_meses` y `logo_oscuro_ruta` todavía no tienen interfaz.
 - Un logo no pasa por `comprimirImagen()` como una foto: el SVG se sube tal cual y un raster de más de 1024 px se reduce a PNG, sin pérdida.

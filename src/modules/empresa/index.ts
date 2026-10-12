@@ -16,3 +16,8 @@ export { getTiposCambio, leerHistorial } from './composicion'
 export type { TipoCambio } from './entities/tipos-cambio'
 export { MonedasYTiposCambio } from './features/tipos-cambio/components/monedas-y-tipos-cambio'
 export { TiposCambioVigentes } from './features/tipos-cambio/components/tipos-cambio-vigentes'
+
+// Integraciones: el interruptor, lo no secreto y si están prendidas
+export { integracionActiva, leerIntegraciones } from './composicion'
+export type { ClaveIntegracion } from './entities/integraciones'
+export { Integraciones } from './features/integraciones/components/integraciones'

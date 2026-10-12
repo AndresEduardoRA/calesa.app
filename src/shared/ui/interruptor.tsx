@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { Switch } from '@/shared/ui/switch'
+import { Switch } from './switch'
 
 type Props = {
   titulo: string

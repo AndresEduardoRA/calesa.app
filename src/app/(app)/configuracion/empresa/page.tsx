@@ -5,6 +5,7 @@ import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { pestanaDe } from './pestanas'
 import { PestanasEmpresa } from './pestanas-empresa'
 import { SeccionEmpresa } from './seccion-empresa'
+import { SeccionIntegraciones } from './seccion-integraciones'
 import { SeccionMonedas } from './seccion-monedas'
 
 export const metadata: Metadata = { title: 'Empresa' }
@@ -31,6 +32,7 @@ export default async function PaginaEmpresa({ searchParams }: PageProps<'/config
           tipoCambioAbierto={unParametro(parametros['tc'])}
         />
       ) : null}
+      {pestana === 'integraciones' ? <SeccionIntegraciones puedeEditar={puedeAjustes} /> : null}
     </div>
   )
 }

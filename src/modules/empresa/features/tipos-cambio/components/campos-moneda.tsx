@@ -1,7 +1,7 @@
 import { errorDeCampo } from '@/shared/lib/formularios'
 import { Campo } from '@/shared/ui/campo'
+import { Interruptor } from '@/shared/ui/interruptor'
 import type { Moneda } from '../../../entities/tipos-cambio'
-import { Interruptor } from './interruptor'
 
 type Errores = Partial<Record<'codigo' | 'nombre' | 'simbolo' | 'decimales', string[]>> | undefined
 
@@ -12,10 +12,13 @@ type Props = {
   errores: Errores
   activa: boolean
   alCambiarActiva: (activa: boolean) => void
+  // El interruptor no es un control nativo: el <fieldset> deshabilitado no lo apaga solo.
+  deshabilitado: boolean
 }
 
 // Los campos de una moneda. El código sólo se pide al crearla: después no cambia.
-export function CamposMoneda({ moneda, esBase, errores, activa, alCambiarActiva }: Props) {
+export function CamposMoneda(props: Props) {
+  const { moneda, esBase, errores, activa, alCambiarActiva, deshabilitado } = props
   return (
     <>
       {moneda ? null : (
@@ -68,7 +71,7 @@ export function CamposMoneda({ moneda, esBase, errores, activa, alCambiarActiva 
           }
           valor={activa}
           alCambiar={alCambiarActiva}
-          deshabilitado={esBase}
+          deshabilitado={deshabilitado || esBase}
         />
       ) : null}
     </>

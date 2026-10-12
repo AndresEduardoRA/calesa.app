@@ -66,6 +66,7 @@ function Formulario(props: PropsDelFormulario) {
           errores={moneda ? ediciones.errores.guardarMoneda : ediciones.errores.crearMoneda}
           activa={activa}
           alCambiarActiva={setActiva}
+          deshabilitado={!puedeGestionar}
         />
       </fieldset>
     </form>
