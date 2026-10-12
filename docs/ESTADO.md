@@ -44,7 +44,7 @@
 - **En la nube (una persona):** proyecto y `supabase link`; las **tres** plantillas de
   `supabase/templates/` en Auth › Emails (confirmar, recuperar, invitar); `Site URL` real y
   `…/auth/callback` en Redirect URLs; SMTP; credenciales de Google y encender el proveedor.
-- Secretos de integraciones (Vault o variables de entorno): antes de la parte 3. Rama: sigue `master`.
+- Rama: sigue `master`.
 
 ## Descubierto sobre la marcha
 

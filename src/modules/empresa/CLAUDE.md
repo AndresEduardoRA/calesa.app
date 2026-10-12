@@ -32,5 +32,5 @@ RPC: `web.ajustes_acceso` (lo único de la empresa que lee `anon`).
 
 - `ajustes_empresa` sólo la lee `authenticated`; las pantallas de acceso corren como `anon`. Por eso `getAjustes()` va por `web.ajustes_acceso()`, con las columnas contadas. Una columna nueva que haga falta antes de ingresar se suma ahí, no con un grant a `anon`.
 - `<Marca>` vive en `src/shared/ui/marca.tsx` y recibe nombre y logo por props: `shared` no importa este módulo.
-- El secreto de apibara (y de push) no se guarda en columnas legibles; `integraciones.config` sólo lleva lo no secreto. Vault o variables de entorno: pendiente de decidir (docs/ESTADO.md).
+- El secreto de apibara no se guarda en columnas legibles: va a Vault por `integracion_guardar_secreto()` y la app sólo lee `integraciones.secreto_guardado_en`. `integraciones.config` lleva lo no secreto. Variables de entorno sólo para la infraestructura del despliegue (secret key, VAPID privada): ver docs/DECISIONES.md.
 - Logo y color primario alimentarán `design/tokens.css` en runtime (variables en `<html>`): los íconos de `public/` son neutros hasta que se cargue uno.

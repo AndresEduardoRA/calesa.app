@@ -126,6 +126,7 @@ sincronizar con el transporte por vehículo.
 **Decisión:** `integraciones.config` nunca guarda claves; apibara, VAPID y el secreto de
 revalidación de la web van en variables de entorno de Vercel y de las edge functions (o Vault).
 **Consecuencia:** activar apibara es un switch en la UI + una variable en el entorno.
+Reemplazada más abajo: «Secretos: Vault por RPC para lo que se edita en la interfaz».
 
 ## 2026-10-11 — Monedas: base + N tipos de cambio nombrados, congelados por cotización
 
@@ -425,3 +426,22 @@ los roles de la persona: se decidió dejarlo fuera de esta parte.
 mensaje de una RPC se muestra tal cual). Se reescribieron `errores.ts`, `safe-action.ts` y las
 funciones SQL de equipo y roles.
 **Consecuencia:** las RPC de leads, flujos y cotizaciones siguen de vos hasta que su fase las toque.
+
+## 2026-10-12 — Secretos: Vault por RPC para lo que se edita en la interfaz
+
+**Contexto:** la decisión anterior mandaba el secreto de apibara a una variable de entorno, y la
+ficha de `empresa` lo dejaba pendiente. El producto se vende por repositorio: quien configura
+apibara es el dueño, que no entra a Vercel. Además apibara corre en una edge function y la
+revalidación de la web sale de un trigger: los dos leen de la base, no del entorno de la app.
+**Decisión:** lo que el dueño carga desde la interfaz vive en Vault. `integracion_guardar_secreto()`
+(con `empresa.ajustes.gestionar`) crea o reemplaza `vault.secrets` con el nombre
+`integracion:<clave>` y sella `integraciones.secreto_guardado_en`, que es lo único que la app lee:
+la pantalla dice «Guardado el …» y ofrece reemplazarlo. `integracion_secreto()` lo devuelve sólo a
+`service_role`. Variables de entorno quedan para la infraestructura del despliegue:
+`SUPABASE_SECRET_KEY`, `VAPID_PRIVATE_KEY`, las credenciales de Google.
+**Alternativas:** todo en variables de entorno (activar una integración exige a alguien con acceso
+al despliegue, y un trigger no las lee); una columna cifrada propia (reinventa Vault).
+**Consecuencia:** activar apibara es guardar la clave y prender el interruptor, sin tocar el
+despliegue. PGlite no trae Vault: `scripts/probar-schema.mjs` lo imita, así que la prueba de humo
+cubre nuestras funciones y sus grants, y los privilegios reales de Vault los cubre el e2e contra el
+Supabase local. No hay borrado desde la interfaz: apagar el interruptor alcanza.
