@@ -8,8 +8,9 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - Sale:
   - `getAjustes()` — lo mínimo de la empresa, una lectura por request, funciona sin sesión: nombre, logo, color, íconos, formato regional, zona horaria, moneda base, registro abierto, primer registro. Nunca tumba una pantalla. Lo consumen `app/` (marca, tokens de color, formato, zona horaria, pantallas de acceso) y `equipo` (registro).
   - `registroDisponible()`.
-  - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `zonasHorarias()`, `<FormularioEmpresa>`.
-- Pendiente en esta fase: monedas y tipos de cambio (`getTiposCambio()`), integraciones (`integracionActiva('apibara')`), íconos. Los consumirán `cotizaciones` (TC congelados), `web`, `vehiculos` (apibara).
+  - `getTiposCambio()` — los tipos de cambio vigentes, con el por defecto adelante. Tampoco tumba una pantalla (devuelve una lista vacía). Lo consume `app/` para la barra superior (`<TiposCambioVigentes>`); lo consumirá `cotizaciones`, que congela los que usa.
+  - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `zonasHorarias()`, `<FormularioEmpresa>`, `<MonedasYTiposCambio>`.
+- Pendiente en esta fase: integraciones (`integracionActiva('apibara')`, la consumirá `vehiculos`) e íconos.
 - Depende de: ningún otro módulo. No tiene `client.ts`: ningún Client Component de afuera necesita nada de acá.
 
 ## Archivos clave
@@ -24,6 +25,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - `infra/queries/` — lecturas (`server-only`). `infra/{empresa,tipos-cambio,integraciones}.ts` — escrituras, todas por RPC. `infra/{logo,iconos}.client.ts` — preparar, subir y descartar en Storage desde el navegador.
 - `composicion.ts` (servidor) y `composicion.client.ts` (navegador): de ahí toman `features/` sus implementaciones.
 - `features/empresa/` — el formulario. `guardar-con-logo.ts` son los pasos del commit diferido, contra puertos.
+- `features/tipos-cambio/` — la pestaña «Monedas»: listas, un panel por tipo de cambio (valor e historial) y por moneda, y `<TiposCambioVigentes>` para la barra superior.
 
 ## Tablas
 
@@ -37,7 +39,10 @@ RPC: `web.ajustes_acceso` (lo único de la empresa que lee `anon`), `empresa_gua
 - Un color que no da contraste AA con el texto de los botones (ni en blanco ni en oscuro) se rechaza con el motivo, en el campo y otra vez en el servidor.
 - Locale y zona horaria se validan contra `Intl`, y la zona además en la base (`now() at time zone`).
 - La moneda base no se cambia con datos cargados: la UI lo deshabilita y lo dice, y `empresa_guardar_ajustes()` lo rechaza.
-- Un cambio de tipo de cambio escribe historial por trigger (`tipos_cambio_historial_trg`) y **no** altera cotizaciones guardadas (ellas tienen su snapshot).
+- Un valor vigente por clave: cambiarlo pisa el anterior, y el historial lo escribe un trigger (`tipos_cambio_historial_trg`). **No** altera cotizaciones guardadas (ellas tienen su snapshot).
+- Entre dos monedas hay un solo tipo de cambio por defecto (índice único parcial): marcar otro desmarca al anterior en la misma RPC. El por defecto no se desactiva; la moneda base y las que usa un tipo de cambio activo, tampoco.
+- La clave de un tipo de cambio sale de su nombre al crearlo y no cambia: la nombran las fórmulas. Nada se borra: se desactiva (borrar arrastraría el historial).
+- Los valores de los tipos de cambio pasan por `<Monto>`: el Modo Live los oculta también en la barra superior.
 - `registro_abierto = false` lo aplica la base (trigger en `auth.users`), no sólo la UI.
 - `registroDisponible()` repite la condición del trigger: registro abierto **o** todavía no hay nadie (la primera cuenta nace siempre, y nace dueña).
 - `getAjustes()` nunca tumba una pantalla: si la base no responde devuelve la identidad neutra con el registro cerrado y deja el error en el log.

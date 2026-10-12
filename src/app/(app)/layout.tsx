@@ -1,11 +1,12 @@
 import { Suspense, type ReactNode } from 'react'
-import { getAjustes } from '@/modules/empresa'
+import { TiposCambioVigentes, getAjustes, getTiposCambio } from '@/modules/empresa'
 import {
   BannerPerspectiva,
   ProveedorPerspectiva,
   ProveedorPreferencias,
   cerrarSesion,
   nombreVisible,
+  puede,
   requerirSesion,
 } from '@/modules/equipo'
 import { urlPublicaONull } from '@/shared/lib/almacen'
@@ -21,7 +22,11 @@ import { entradasVisibles } from './_shell/navegacion'
 // Todo lo que depende de quién entró: la sesión, sus permisos y los ajustes de la empresa. Acá se
 // leen una vez y se reparten por props a un marco que no sabe de dónde salen.
 async function Shell({ children }: { children: ReactNode }) {
-  const [sesion, ajustes] = await Promise.all([requerirSesion(), getAjustes()])
+  const [sesion, ajustes, tiposCambio] = await Promise.all([
+    requerirSesion(),
+    getAjustes(),
+    getTiposCambio(),
+  ])
   const nombre = nombreVisible(sesion)
   const delUsuario = entradasVisibles(sesion.permisos, 'usuario').map(
     ({ clave, titulo, ruta }) => ({
@@ -48,6 +53,15 @@ async function Shell({ children }: { children: ReactNode }) {
               <Marca nombre={ajustes.nombre} logoUrl={urlPublicaONull('marca', ajustes.logoRuta)} />
             }
             navegacion={<BarraLateral permisos={sesion.permisos} />}
+            // Sin tipos de cambio vigentes el hueco no ocupa lugar.
+            tipoCambio={
+              tiposCambio.length > 0 ? (
+                <TiposCambioVigentes
+                  tipos={tiposCambio}
+                  puedeGestionar={puede(sesion.permisos, 'empresa.tipos_cambio.gestionar')}
+                />
+              ) : undefined
+            }
             aviso={<BannerPerspectiva />}
             menuUsuario={
               <MenuUsuario

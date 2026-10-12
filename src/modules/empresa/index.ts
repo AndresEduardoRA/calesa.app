@@ -10,3 +10,9 @@ export { getAjustes } from './composicion'
 export { leerAjustes, leerMonedasYTiposCambio } from './composicion'
 export { zonasHorarias } from './entities/regional'
 export { FormularioEmpresa } from './features/empresa/components/formulario-empresa'
+
+// Monedas y tipos de cambio nombrados
+export { getTiposCambio, leerHistorial } from './composicion'
+export type { TipoCambio } from './entities/tipos-cambio'
+export { MonedasYTiposCambio } from './features/tipos-cambio/components/monedas-y-tipos-cambio'
+export { TiposCambioVigentes } from './features/tipos-cambio/components/tipos-cambio-vigentes'
