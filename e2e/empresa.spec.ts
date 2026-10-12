@@ -1,17 +1,22 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import {
   PREFIJO_ROL_E2E,
-  ajustesGuardados,
   borrarPersonasDePrueba,
   borrarRolesDePrueba,
   correoDePrueba,
   crearPersona,
   darRolDePrueba,
-  estadoDeApibara,
+  enlaceDelCorreo,
   exigirEquipoSinAjenos,
+  rolesDe,
+} from './soporte/base'
+import {
+  ajustesGuardados,
+  estadoDeApibara,
+  pedirSecreto,
   restaurarEmpresa,
   ultimoCambioDe,
-} from './soporte/base'
+} from './soporte/empresa'
 import { ingresar } from './soporte/pasos'
 
 // Configuración › Empresa contra la app compilada y el Supabase local. La empresa es una fila
@@ -186,11 +191,24 @@ test('guarda la clave de apibara sin volver a mostrarla, y recién entonces la a
   await expect(page.getByLabel('Clave nueva')).toHaveValue('')
   await page.getByRole('button', { name: 'Cancelar' }).click()
 
-  // Con la clave en Vault, ahora sí.
+  // Con la clave en Vault, ahora sí. Prender el interruptor no borra lo tipeado y sin guardar en
+  // la configuración, aunque las dos cosas sean la misma fila.
+  await page.getByLabel('Dirección del servicio').fill('https://api.apibara.tech/v2')
   await activa.click()
   await expect(page.getByText('apibara activada')).toBeVisible()
   await expect(activa).toBeChecked()
+  await expect(page.getByLabel('Dirección del servicio')).toHaveValue('https://api.apibara.tech/v2')
+
+  // La dirección no puede apuntar fuera de apibara.tech: ahí viaja la clave.
+  await page.getByLabel('Dirección del servicio').fill('https://atacante.example')
+  await page.getByRole('button', { name: 'Guardar configuración' }).click()
+  await expect(page.getByText('ser de apibara.tech')).toBeVisible()
   expect(await estadoDeApibara()).toEqual({ activa: true, conSecreto: true })
+
+  // Contra la base real: ni quien la guardó ni alguien sin sesión pueden pedir la clave.
+  const rechazo = { codigo: '42501', dato: null }
+  expect(await pedirSecreto({ email: duena, contrasena: CLAVE })).toEqual(rechazo)
+  expect(await pedirSecreto()).toEqual(rechazo)
 
   await page.reload()
   await expect(page.getByRole('switch', { name: 'Activa' })).toBeChecked()
@@ -302,4 +320,36 @@ test('carga el logo al guardar, regenera los íconos y el manifest los sirve', a
   await expect(page.getByText('La app vuelve a usar los íconos neutros')).toBeVisible()
   const neutro = (await (await request.get('/manifest.webmanifest')).json()) as Manifest
   expect(neutro.icons[0]?.src).toBe('/iconos/icono-192.png')
+})
+
+test('la dueña abre el registro y otra persona crea su cuenta y entra, sin rol', async ({
+  page,
+  browser,
+}) => {
+  const nueva = correoDePrueba(`registrada-${proyecto}`)
+  await entrar(page, duena)
+
+  // Con el registro cerrado y el equipo ya creado, la pantalla de ingreso no ofrece crear cuenta.
+  const suya = await otraPersona(browser, page)
+  await suya.goto('/ingreso')
+  await expect(suya.getByRole('link', { name: 'Crear cuenta' })).toBeHidden()
+
+  await page.goto('/configuracion/empresa')
+  await page.getByText('Políticas', { exact: true }).click()
+  await page.getByRole('switch', { name: 'Registro abierto' }).click()
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click()
+  await expect(page.getByText('Ajustes de la empresa guardados')).toBeVisible()
+
+  // Ahora sí: se registra, confirma su correo y queda adentro, sin ningún rol.
+  await suya.reload()
+  await suya.getByRole('link', { name: 'Crear cuenta' }).click()
+  await suya.getByLabel('Nombre y apellido').fill('Nora Nueva')
+  await suya.getByLabel('Correo').fill(nueva)
+  await suya.getByLabel('Contraseña').fill(CLAVE)
+  await suya.getByRole('button', { name: 'Crear cuenta' }).click()
+  await expect(suya).toHaveURL('/ingreso?aviso=confirmar_correo')
+  await suya.goto(await enlaceDelCorreo(nueva))
+  await expect(suya).toHaveURL('/')
+  expect(await rolesDe(nueva)).toEqual([])
+  await suya.context().close()
 })
