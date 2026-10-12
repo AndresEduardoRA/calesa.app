@@ -6,15 +6,21 @@ comporta la interfaz, y eso vive acá.
 
 ## De dónde sale cada cosa
 
-| Pieza                                                          | Fuente                                                                    | Dónde se aplica                                                                                                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Nombre comercial, NIT/razón social, dirección, teléfono, redes | `ajustes_empresa` (Configuración › Empresa)                               | topbar, PDF de cotización, comprobantes, `web.ajustes`                                                                |
-| Logo (SVG o PNG), versión para fondo oscuro                    | `ajustes_empresa.logo_ruta`, `logo_oscuro_ruta` (bucket `marca`, público) | sidebar, login, PDF, íconos PWA regenerados                                                                           |
-| Color primario                                                 | `ajustes_empresa.color_acento`                                            | `<html style="--color-primario: …">` + derivados (`-oscuro`, `-soft`, `-ink`) calculados en `src/shared/lib/color.ts` |
-| Todo lo demás (superficies, texto, semánticos, celdas, viz)    | `design/tokens.css`                                                       | `src/app/globals.css` → `@theme`                                                                                      |
+| Pieza                                                                                | Fuente                                                                    | Dónde se aplica                                                                                                                             |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nombre comercial, NIT/razón social, dirección, teléfono, redes                       | `ajustes_empresa` (Configuración › Empresa)                               | topbar, PDF de cotización, comprobantes, `web.ajustes`                                                                                      |
+| Logo (SVG, PNG, WebP o JPEG); la versión para fondo oscuro todavía no tiene interfaz | `ajustes_empresa.logo_ruta`, `logo_oscuro_ruta` (bucket `marca`, público) | sidebar, login, PDF, íconos PWA regenerados                                                                                                 |
+| Color primario                                                                       | `ajustes_empresa.color_acento`                                            | `<EstiloDeMarca>`: un `<style>` con `--color-primario` y sus derivados (`-oscuro`, `-soft`, `-ink`, `-sobre-`) de `src/shared/lib/color.ts` |
+| Todo lo demás (superficies, texto, semánticos, celdas, viz)                          | `design/tokens.css`                                                       | `src/app/globals.css` → `@theme`                                                                                                            |
 
 Sin marca cargada, la app usa los **defaults neutros** de `tokens.css` (primario `#3b5bdb`) y los
 íconos de `public/` (marca neutra: ver `design/ICONOS.md`). No hay ningún estado «sin estilo».
+
+El color de la empresa se acepta sólo si el texto de un botón se lee sobre él con contraste AA
+(4,5:1), en blanco o en la tinta oscura; el que mejor dé pasa a ser `--color-sobre-primario`. Los
+`-ink` se derivan por tema, oscureciendo o aclarando hasta llegar a AA sobre su superficie. Un
+tono intermedio que no se lee con ninguno (un rojo puro) se rechaza con el motivo y un tono
+cercano que sí sirve.
 
 El color de **fases, orígenes y etiquetas** lo elige el usuario por fila; `color.ts` deriva el
 texto legible y el fondo suave para claro y oscuro. Nunca se mapea un nombre de fase a un color

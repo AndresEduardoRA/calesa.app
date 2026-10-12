@@ -37,16 +37,17 @@ RPC: `web.ajustes_acceso` (lo único de la empresa que lee `anon`), `empresa_gua
 
 ## No se rompe
 
-- Toda edición manda la versión que tenía en pantalla (`actualizado_en`) y la base responde `PT409` si otra persona lo cambió. Los ajustes son una fila con una versión: el formulario lleva `key={ajustes.actualizadoEn}` y arranca de lo guardado cada vez que la versión cambia.
+- Toda edición manda la versión que tenía en pantalla (`actualizado_en`) y la base responde `PT409` si otra persona lo cambió. Los ajustes son una fila con una versión que editan dos cosas (el formulario y los íconos), y apibara otra que editan tres: la versión llega por props y cada parte lleva de `key` lo que ella muestra (`huellaDelFormulario()`), así arranca de lo guardado cuando eso cambia y no pierde lo tipeado cuando guardó la de al lado.
 - Los íconos se dibujan desde el logo **guardado** y se suben recién al confirmar la vista previa. Su dirección cambia en cada regeneración (el nombre es el hash): es lo que le avisa al navegador.
 - El logo se sube al guardar, no al elegirlo. Si la fila no se guarda, el objeto recién subido se descarta; si se guarda, se descarta el anterior. Siempre por `storage_refcount`.
 - Un color que no da contraste AA con el texto de los botones (ni en blanco ni en oscuro) se rechaza con el motivo, en el campo y otra vez en el servidor.
-- Locale y zona horaria se validan contra `Intl`, y la zona además en la base (`now() at time zone`).
+- Locale y zona horaria se validan contra `Intl`; en la base, la zona con `now() at time zone` y el locale por su forma. Si igual llegara uno inválido, `formato.ts` formatea con el de fábrica en vez de tumbar la pantalla.
+- El borrador del formulario guarda sólo lo que la persona cambió: reponer el formulario entero pisaría lo que otra guardó mientras tanto. Quien no puede editar no tiene borrador.
 - La moneda base no se cambia con datos cargados: la UI lo deshabilita y lo dice, y `empresa_guardar_ajustes()` lo rechaza.
 - Un valor vigente por clave: cambiarlo pisa el anterior, y el historial lo escribe un trigger (`tipos_cambio_historial_trg`). **No** altera cotizaciones guardadas (ellas tienen su snapshot).
 - Entre dos monedas hay un solo tipo de cambio por defecto (índice único parcial): marcar otro desmarca al anterior en la misma RPC. El por defecto no se desactiva; la moneda base y las que usa un tipo de cambio activo, tampoco.
 - La clave de un tipo de cambio sale de su nombre al crearlo y no cambia: la nombran las fórmulas. Nada se borra: se desactiva (borrar arrastraría el historial).
-- El secreto de una integración entra una vez y no vuelve a salir: ninguna action, lectura ni columna lo devuelve. apibara no se activa sin su clave guardada (lo impide la RPC; la UI lo deshabilita y lo dice).
+- El secreto de una integración entra una vez y no vuelve a salir: ninguna action, lectura ni columna lo devuelve. La dirección de apibara sólo puede ser de `apibara.tech` (en Zod y en la RPC): es a donde la edge function manda la clave, y quien pudiera apuntarla a otro sitio se la llevaría. apibara no se activa sin su clave guardada (lo impide la RPC; la UI lo deshabilita y lo dice).
 - Los valores de los tipos de cambio pasan por `<Monto>`: el Modo Live los oculta también en la barra superior.
 - `registro_abierto = false` lo aplica la base (trigger en `auth.users`), no sólo la UI.
 - `registroDisponible()` repite la condición del trigger: registro abierto **o** todavía no hay nadie (la primera cuenta nace siempre, y nace dueña).

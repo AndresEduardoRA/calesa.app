@@ -436,12 +436,89 @@ revalidación de la web sale de un trigger: los dos leen de la base, no del ento
 **Decisión:** lo que el dueño carga desde la interfaz vive en Vault. `integracion_guardar_secreto()`
 (con `empresa.ajustes.gestionar`) crea o reemplaza `vault.secrets` con el nombre
 `integracion:<clave>` y sella `integraciones.secreto_guardado_en`, que es lo único que la app lee:
-la pantalla dice «Guardado el …» y ofrece reemplazarlo. `integracion_secreto()` lo devuelve sólo a
-`service_role`. Variables de entorno quedan para la infraestructura del despliegue:
+la pantalla dice «Guardada el …» y ofrece reemplazarla. `integracion_secreto()` lo devuelve sólo a
+`service_role`. La dirección a la que apibara manda la clave sólo puede ser de `apibara.tech` (Zod
+y la RPC): si fuera libre, quien edita la configuración podría llevársela. Variables de entorno quedan para la infraestructura del despliegue:
 `SUPABASE_SECRET_KEY`, `VAPID_PRIVATE_KEY`, las credenciales de Google.
 **Alternativas:** todo en variables de entorno (activar una integración exige a alguien con acceso
 al despliegue, y un trigger no las lee); una columna cifrada propia (reinventa Vault).
 **Consecuencia:** activar apibara es guardar la clave y prender el interruptor, sin tocar el
 despliegue. PGlite no trae Vault: `scripts/probar-schema.mjs` lo imita, así que la prueba de humo
-cubre nuestras funciones y sus grants, y los privilegios reales de Vault los cubre el e2e contra el
-Supabase local. No hay borrado desde la interfaz: apagar el interruptor alcanza.
+cubre nuestras funciones y sus grants; contra el Supabase local, el e2e guarda la clave en el Vault
+real y comprueba que ni quien la guardó ni alguien sin sesión ejecutan `integracion_secreto()`.
+No hay borrado desde la interfaz: apagar el interruptor alcanza.
+
+## 2026-10-12 — La empresa se escribe sólo por RPC; sus tablas son de sólo lectura
+
+**Contexto:** `ajustes_empresa`, `monedas`, `tipos_cambio` e `integraciones` se editaban con
+`.update()` bajo RLS. El grant de tabla dejaba escribir a mano `moneda_base`, `registro_abierto` y
+`actualizado_por`, no había control de versión y nada impedía dos tipos de cambio por defecto.
+**Decisión:** se quitaron las policies de escritura y cada edición pasa por una RPC DEFINER
+(`…001200_empresa.sql`): comprueba el permiso, compara `actualizado_en` (`PT409`), sella quién
+cambió y aplica lo que un CHECK no expresa (la moneda base no cambia con datos cargados; un solo
+tipo por defecto entre dos monedas; apibara no se activa sin su clave). Los ajustes viajan como
+`jsonb` porque ahí «no tocar» y «vaciar» son cosas distintas; el resto, con parámetros opcionales.
+**Alternativas:** `.update().eq('actualizado_en', …)` como en `perfiles` (cero filas no distingue
+un conflicto de una falta de permiso, y la guarda de la moneda base quedaba sólo en la interfaz).
+**Consecuencia:** una columna editable nueva de `ajustes_empresa` se suma a la lista de la RPC, no
+a un grant. Nada de esto se borra desde la app: monedas y tipos de cambio se desactivan.
+
+## 2026-10-12 — El color de la marca se acepta si el texto de un botón se lee sobre él
+
+**Contexto:** se pedía rechazar un color que no diera contraste AA «en claro y oscuro». El relleno
+(`--color-primario`) es el mismo en los dos temas, así que exigirle contraste contra las dos
+superficies a la vez es imposible: lo que es legible sobre blanco no lo es sobre casi negro.
+**Decisión:** se rechaza el color sobre el que el texto de un botón no llega a 4,5:1 ni en blanco
+ni en la tinta oscura (un rojo puro, por ejemplo); el que mejor dé pasa a ser
+`--color-sobre-primario`, que deja de ser blanco fijo. El texto en el color de la marca (`-ink`)
+se deriva por tema, oscureciendo o aclarando hasta llegar a AA sobre su superficie. El rechazo
+dice cuánto da y propone el tono más cercano que sí sirve. Entra por un `<style>` y no por
+`<html style>`: un estilo en línea le ganaría al bloque `.dark`, y el layout raíz es estático.
+**Alternativas:** exigir además 3:1 del relleno contra las dos superficies (deja una franja de
+tonos tan angosta que ni el color neutro del producto pasa).
+**Consecuencia:** negro, azul marino y amarillo se aceptan. En una carga completa, el esqueleto
+del marco sale con el color neutro un instante antes de que llegue el de la empresa.
+
+## 2026-10-12 — Íconos: dibujados en el navegador, guardados en Storage, servidos por el manifest
+
+**Contexto:** «Regenerar íconos» tenía que salir del logo. `sharp` es sólo una dependencia
+transitiva de Next y el layout raíz, que lleva los `<link rel="icon">`, es estático.
+**Decisión:** se dibujan con Canvas (cero dependencias, como las fotos), se muestran y recién al
+confirmar se suben a `marca/iconos/<hash>.png`; las rutas van a `ajustes_empresa.iconos`.
+`manifest.ts` lee los ajustes y declara esas direcciones, que cambian en cada regeneración. Los
+`<link>` apuntan a `/iconos/vigente/<tamaño>`, que redirige al de Storage o al neutro. El fondo se
+elige (color de la marca o blanco): un logo del color de la marca no se ve sobre ese color.
+**Alternativas:** `generateMetadata()` en el layout raíz (con Cache Components rompe las rutas
+estáticas, como `/_not-found`); `sharp` en el servidor (una dependencia más y una subida desde el
+servidor que hoy no existe); un route handler que los dibuje en cada pedido (sin hash en la
+dirección, el navegador no se entera del cambio).
+**Consecuencia:** el título de la pestaña y `favicon.ico` siguen neutros. En iOS, una PWA ya
+instalada no cambia de ícono hasta que se reinstala; en Android cambia sola, con días de demora.
+
+## 2026-10-12 — Empresa es una pantalla con pestañas; cada formulario lleva de `key` lo que edita
+
+**Contexto:** hay dos permisos de empresa y ninguno de «ver»: quien tiene uno lee todo. Y los
+ajustes son una sola fila que editan dos cosas distintas (el formulario y los íconos).
+**Decisión:** una ruta, `/configuracion/empresa`, con la pestaña en la URL (`?seccion=`). Entra
+quien tiene cualquiera de los dos permisos y ve deshabilitada, con el motivo, la parte que no
+puede editar. La versión de la fila llega por props, y cada formulario lleva de `key` una huella
+de lo que él muestra (`huellaDelFormulario()`): arranca de lo guardado cuando eso cambia (lo
+guardó esta persona u otra), sin estado local de versión que mantener.
+**Alternativas:** tres secciones en el hub (cada una se esconde sin su permiso: no hay dónde
+mostrar «ves pero no editas»); `key={actualizadoEn}` (se probó: regenerar los íconos o prender una
+integración, que tocan la misma fila, reiniciaban el formulario de al lado y borraban lo tipeado);
+sin `key` (al volver a la pantalla, Next conserva el formulario viejo con la versión nueva, y
+guardar pisaría sin conflicto lo que otra persona cambió).
+**Consecuencia:** al guardar, los bloques vuelven a su estado inicial (el secundario se pliega).
+El borrador de `sessionStorage` guarda sólo lo que la persona cambió, no el formulario entero:
+reponerlo todo revertiría en silencio lo que otra guardó mientras tanto.
+
+## 2026-10-12 — Un logo no pasa por la compresión de fotos
+
+**Decisión:** el SVG se sube tal cual (hasta 200 KB; se rechaza si trae código, contenido
+incrustado o no dice cuánto mide). Un raster va tal cual si su lado mayor no pasa de 1024 px; si
+pasa, se reduce a PNG, sin pérdida y con su transparencia. Tope de lo que se sube: 1 MB.
+**Alternativas:** `comprimirImagen()` como una foto (WebP con pérdida: ensucia los bordes de un
+logo plano y convierte un SVG en una imagen).
+**Consecuencia:** `comprimirImagen()` acepta el formato de salida. «Retenciones», que el plan
+nombraba sin definir, son `papelera_dias` y `actividad_dias` (`docs/PRODUCTO.md`).

@@ -4,8 +4,10 @@
  * `bg-(--color-surface)`, `text-(--color-ink)`, etc.
  *
  * Producto white-label: la marca de CADA despliegue (color primario, logo) se carga desde
- * Configuración › Empresa y se inyecta en `<html style="--color-primario: …">` en runtime. Los
- * valores de acá son el DEFAULT NEUTRO, pensados para que la app sea usable antes de cargar una marca.
+ * Configuración › Empresa y se inyecta en runtime con un <style> (`<EstiloDeMarca>`), que pisa
+ * las variables de marca en `:root` y en `.dark`. Los valores de acá son el DEFAULT NEUTRO,
+ * pensados para que la app sea usable antes de cargar una marca. Los que tienen copia en
+ * `src/shared/config/app.ts` los vigila un test.
  *
  * Reglas:
  *  - `-ink` es para texto e íconos (≥ 4.5:1 sobre su superficie); el hue base es para rellenos.
