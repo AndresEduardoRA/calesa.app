@@ -10,9 +10,11 @@ const nombre = z
   .min(2, { error: 'Escribe un nombre.' })
   .max(40, { error: 'El nombre no puede pasar de 40 caracteres.' })
 
+// La base guarda `numeric(18, 6)`: doce cifras enteras.
 const valor = z
   .number({ error: 'Escribe un valor mayor que cero, con hasta 6 decimales.' })
   .positive({ error: 'Escribe un valor mayor que cero, con hasta 6 decimales.' })
+  .lt(1_000_000_000_000, { error: 'Ese valor es demasiado grande.' })
 
 const moneda = z.string().length(3, { error: 'Elige una moneda.' })
 

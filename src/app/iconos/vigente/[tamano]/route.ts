@@ -17,7 +17,9 @@ export async function GET(
   const destino = urlDeIcono(ajustes.iconos, clave, (ruta) => urlPublica('marca', ruta))
   return new Response(null, {
     status: 307,
-    // Cinco minutos: un ícono regenerado se ve pronto sin pedirle a la base en cada pestaña.
-    headers: { Location: destino, 'Cache-Control': 'public, max-age=300' },
+    // La redirección no se guarda: al regenerar, los íconos anteriores se borran de Storage, y
+    // una redirección vieja apuntaría a un objeto que ya no está. El destino sí se cachea (su
+    // nombre es el hash de su contenido).
+    headers: { Location: destino, 'Cache-Control': 'no-cache' },
   })
 }

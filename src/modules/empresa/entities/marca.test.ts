@@ -75,6 +75,7 @@ describe('motivoDeSvgInvalido', () => {
       'código',
     )
     expect(motivoDeSvgInvalido('<svg viewBox="0 0 1 1" onload="x()"/>')).toContain('código')
+    expect(motivoDeSvgInvalido('<svg/onload=x() viewBox="0 0 1 1"/>')).toContain('código')
     expect(motivoDeSvgInvalido('<svg viewBox="0 0 1 1"><foreignObject/></svg>')).toContain('código')
   })
 

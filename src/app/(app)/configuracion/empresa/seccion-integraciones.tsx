@@ -15,6 +15,5 @@ export async function SeccionIntegraciones({ puedeEditar }: { puedeEditar: boole
       />
     )
   }
-  // Al guardar, la pantalla vuelve con la versión nueva y el bloque arranca de lo guardado.
-  return <Integraciones key={apibara.actualizadoEn} apibara={apibara} puedeEditar={puedeEditar} />
+  return <Integraciones apibara={apibara} puedeEditar={puedeEditar} />
 }

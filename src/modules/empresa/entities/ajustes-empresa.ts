@@ -91,6 +91,14 @@ export function cambiosComoColumnas(cambios: CambiosDeAjustes): Record<string, V
   return columnas
 }
 
+// Lo que el formulario de la empresa muestra y edita, en un texto. Sirve de `key`: cambia cuando
+// cambia algo de eso y no cuando sólo se movió la versión (regenerar los íconos toca la misma
+// fila, y no tiene por qué reiniciar un formulario a medio tipear).
+export function huellaDelFormulario(ajustes: AjustesEmpresa): string {
+  const { iconos: _iconos, actualizadoEn: _version, ...loQueEdita } = ajustes
+  return JSON.stringify(loQueEdita)
+}
+
 // Lo mínimo y lo máximo de las dos retenciones (los mismos CHECK de la tabla).
 export const RETENCION_MINIMA_DIAS = 1
 export const RETENCION_MAXIMA_DIAS = 365

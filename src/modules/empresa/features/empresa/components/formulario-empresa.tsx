@@ -26,15 +26,16 @@ type Props = {
 }
 
 // Marca, datos legales, región y políticas en un solo formulario con un «Guardar» y una versión.
-// Quien lo usa le pone `key={ajustes.actualizadoEn}`: al guardar, la pantalla vuelve del servidor
-// con la versión nueva y el formulario arranca de lo guardado.
+// Quien lo usa le pone de `key` la huella de lo guardado (`huellaDelFormulario()`): cuando eso
+// cambia (lo guardó esta persona u otra), el formulario arranca de nuevo de lo guardado. La
+// versión llega por props: que se regeneren los íconos, que son la misma fila, no lo reinicia.
 export function FormularioEmpresa(props: Props) {
   const { ajustes, puedeEditar, conDatosCargados } = props
   const formulario = useRef<HTMLFormElement>(null)
   const [logo, setLogo] = useState<LogoElegido>({ tipo: 'igual' })
   const [registroAbierto, setRegistroAbierto] = useState(ajustes.registroAbierto)
   const enLinea = useEnLinea()
-  const borrador = useBorrador('ajustes-empresa', formulario, CAMPOS_DE_AJUSTES)
+  const borrador = useBorrador('ajustes-empresa', formulario, CAMPOS_DE_AJUSTES, puedeEditar)
   const { guardar, enCurso, errores } = useGuardarAjustes({
     logoRuta: ajustes.logoRuta,
     actualizadoEn: ajustes.actualizadoEn,

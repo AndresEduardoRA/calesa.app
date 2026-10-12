@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { enfocarPrimerError, valoresDe } from '@/shared/lib/formularios'
+import { enfocarPrimerError, errorDeCampo, valoresDe } from '@/shared/lib/formularios'
 import { Button } from '@/shared/ui/button'
 import { Campo } from '@/shared/ui/campo'
 import {
@@ -15,6 +15,49 @@ import type { EdicionesDeApibara } from '../hooks/use-apibara'
 const NOMBRE_DE_PLATAFORMA: Record<PlataformaApibara, string> = { copart: 'Copart', iaai: 'IAAI' }
 
 type Props = { config: Config; puedeEditar: boolean; ediciones: EdicionesDeApibara }
+
+type PropsDePlataformas = {
+  elegidas: readonly PlataformaApibara[]
+  alCambiar: (elegidas: PlataformaApibara[]) => void
+  error: string | undefined
+}
+
+function Plataformas({ elegidas, alCambiar, error }: PropsDePlataformas) {
+  return (
+    <fieldset className="grid gap-1.5">
+      <legend className="mb-1.5 text-(length:--text-sm) font-medium text-(--color-ink)">
+        Plataformas
+      </legend>
+      <div className="flex flex-wrap gap-x-5 gap-y-1">
+        {PLATAFORMAS_APIBARA.map((plataforma) => (
+          <label
+            key={plataforma}
+            className="flex min-h-11 cursor-pointer items-center gap-2 text-(length:--text-sm) text-(--color-ink) md:min-h-8"
+          >
+            <input
+              type="checkbox"
+              className="size-4 accent-(--color-primario)"
+              checked={elegidas.includes(plataforma)}
+              onChange={(evento) => {
+                alCambiar(
+                  evento.target.checked
+                    ? [...elegidas, plataforma]
+                    : elegidas.filter((una) => una !== plataforma),
+                )
+              }}
+            />
+            {NOMBRE_DE_PLATAFORMA[plataforma]}
+          </label>
+        ))}
+      </div>
+      {error ? (
+        <p role="alert" className="text-(length:--text-sm) text-(--color-peligro-ink)">
+          {error}
+        </p>
+      ) : null}
+    </fieldset>
+  )
+}
 
 // Lo no secreto de apibara: a dónde se le pregunta y de qué plataformas.
 export function ConfigApibara({ config, puedeEditar, ediciones }: Props) {
@@ -50,36 +93,14 @@ export function ConfigApibara({ config, puedeEditar, ediciones }: Props) {
           autoComplete="off"
           spellCheck={false}
           defaultValue={config.endpoint}
-          // Zod marca el error en `config`: es el único campo de texto de este formulario.
-          error={errores?.config?.[0]}
+          error={errorDeCampo(errores, 'endpoint')}
+          ayuda="A esta dirección se le manda la clave: sólo puede ser de apibara.tech."
         />
-        <fieldset className="grid gap-1.5">
-          <legend className="mb-1.5 text-(length:--text-sm) font-medium text-(--color-ink)">
-            Plataformas
-          </legend>
-          <div className="flex flex-wrap gap-x-5 gap-y-1">
-            {PLATAFORMAS_APIBARA.map((plataforma) => (
-              <label
-                key={plataforma}
-                className="flex min-h-11 cursor-pointer items-center gap-2 text-(length:--text-sm) text-(--color-ink) md:min-h-8"
-              >
-                <input
-                  type="checkbox"
-                  className="size-4 accent-(--color-primario)"
-                  checked={plataformas.includes(plataforma)}
-                  onChange={(evento) => {
-                    setPlataformas(
-                      evento.target.checked
-                        ? [...plataformas, plataforma]
-                        : plataformas.filter((una) => una !== plataforma),
-                    )
-                  }}
-                />
-                {NOMBRE_DE_PLATAFORMA[plataforma]}
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        <Plataformas
+          elegidas={plataformas}
+          alCambiar={setPlataformas}
+          error={errorDeCampo(errores, 'plataformas')}
+        />
         {puedeEditar ? (
           <div>
             <Button

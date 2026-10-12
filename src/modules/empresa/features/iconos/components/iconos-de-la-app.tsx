@@ -18,7 +18,7 @@ type Props = {
   iconos: Iconos | null
   // La dirección del ícono de 192 px en uso (el propio o el neutro), ya armada en el servidor.
   iconoActualUrl: string
-  // ISO: la versión de los ajustes. Quien usa esto le pone `key` con ella.
+  // ISO: la versión de los ajustes, que viaja con cada guardado.
   actualizadoEn: string
   puedeEditar: boolean
 }

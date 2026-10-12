@@ -88,7 +88,8 @@ export function motivoDeSvgInvalido(texto: string): string | null {
   if (!raiz) {
     return 'El archivo no es un SVG.'
   }
-  if (/<script\b|<foreignObject\b|\son[a-z]+\s*=/i.test(texto)) {
+  // Un manejador puede venir pegado a la etiqueta con una barra: `<svg/onload=…>`.
+  if (/<script\b|<foreignObject\b|[\s/"']on[a-z]+\s*=/i.test(texto)) {
     return 'El SVG trae código o contenido incrustado. Expórtalo como SVG simple.'
   }
   const conMedidas =

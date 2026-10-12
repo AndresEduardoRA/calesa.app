@@ -34,7 +34,7 @@ export function useApibara(version: string) {
     guardarConfig: async (config: ConfigApibara) =>
       cerrar(
         resultadoDeAccion(
-          await conRed(guardando.executeAsync({ actualizadoEnEsperado: version, config })),
+          await conRed(guardando.executeAsync({ actualizadoEnEsperado: version, ...config })),
         ),
         'Configuración de apibara guardada',
       ),

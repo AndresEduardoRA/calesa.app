@@ -12,19 +12,38 @@ describe('esquemaGuardarApibara', () => {
   })
 
   it('la configuración se valida: dirección https y al menos una plataforma', () => {
-    const con = (config: unknown) =>
-      esquemaGuardarApibara.safeParse({ actualizadoEnEsperado: version, config }).success
+    const con = (config: object) =>
+      esquemaGuardarApibara.safeParse({ actualizadoEnEsperado: version, ...config }).success
     expect(con({ endpoint: 'https://api.apibara.tech', plataformas: ['copart'] })).toBe(true)
     expect(con({ endpoint: 'http://api.apibara.tech', plataformas: ['copart'] })).toBe(false)
+    expect(con({ endpoint: 'https://atacante.example', plataformas: ['copart'] })).toBe(false)
     expect(con({ endpoint: 'https://api.apibara.tech', plataformas: [] })).toBe(false)
+    expect(con({ endpoint: 'https://api.apibara.tech' })).toBe(false)
+  })
+
+  it('el error de la dirección queda en su campo, en el primer nivel', () => {
+    const leida = esquemaGuardarApibara.safeParse({
+      actualizadoEnEsperado: version,
+      endpoint: 'https://atacante.example',
+      plataformas: ['copart'],
+    })
+    expect(leida.success ? [] : leida.error.issues.map((problema) => problema.path)).toEqual([
+      ['endpoint'],
+    ])
   })
 
   it('una clave de API metida en la configuración no pasa: no es parte de su forma', () => {
     const leida = esquemaGuardarApibara.parse({
       actualizadoEnEsperado: version,
-      config: { endpoint: 'https://api.apibara.tech', plataformas: ['iaai'], api_key: 'x' },
+      endpoint: 'https://api.apibara.tech',
+      plataformas: ['iaai'],
+      api_key: 'x',
     })
-    expect(leida.config).toEqual({ endpoint: 'https://api.apibara.tech', plataformas: ['iaai'] })
+    expect(leida).toEqual({
+      actualizadoEnEsperado: version,
+      endpoint: 'https://api.apibara.tech',
+      plataformas: ['iaai'],
+    })
   })
 })
 

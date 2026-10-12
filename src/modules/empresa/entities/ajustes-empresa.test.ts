@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Tables } from '@/shared/types/database.types'
-import { ajustesEmpresaDesde, cambiosComoColumnas } from './ajustes-empresa'
+import { ajustesEmpresaDesde, cambiosComoColumnas, huellaDelFormulario } from './ajustes-empresa'
 
 const fila: Tables<'ajustes_empresa'> = {
   id: 1,
@@ -58,5 +58,27 @@ describe('cambiosComoColumnas', () => {
 
   it('sin cambios no manda nada', () => {
     expect(cambiosComoColumnas({})).toEqual({})
+  })
+})
+
+describe('huellaDelFormulario', () => {
+  const ajustes = ajustesEmpresaDesde(fila)
+
+  it('cambia cuando cambia algo de lo que el formulario edita', () => {
+    expect(huellaDelFormulario({ ...ajustes, nombre: 'Otra' })).not.toBe(
+      huellaDelFormulario(ajustes),
+    )
+    expect(huellaDelFormulario({ ...ajustes, logoRuta: 'logos/x.png' })).not.toBe(
+      huellaDelFormulario(ajustes),
+    )
+  })
+
+  it('no cambia si sólo se regeneraron los íconos o se movió la versión', () => {
+    const conIconos = {
+      ...ajustes,
+      actualizadoEn: '2026-10-13T09:00:00+00:00',
+      iconos: { '32': 'a', '180': 'b', '192': 'c', '512': 'd', '512m': 'e' },
+    }
+    expect(huellaDelFormulario(conIconos)).toBe(huellaDelFormulario(ajustes))
   })
 })

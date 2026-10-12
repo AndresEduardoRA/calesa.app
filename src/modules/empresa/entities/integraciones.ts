@@ -43,10 +43,26 @@ export function integracionesDesde(filas: readonly Tables<'integraciones'>[]): I
 export const PLATAFORMAS_APIBARA = ['copart', 'iaai'] as const
 export type PlataformaApibara = (typeof PLATAFORMAS_APIBARA)[number]
 
+// A esta dirección manda la edge function la clave de la API. Por eso no puede ser cualquiera:
+// quien pudiera apuntarla a otro sitio se llevaría la clave sin haberla leído. La base repite la
+// regla (`integracion_guardar`).
+const DOMINIO_DE_APIBARA = 'apibara.tech'
+
+export function esDireccionDeApibara(direccion: string): boolean {
+  try {
+    const url = new URL(direccion)
+    const delDominio =
+      url.hostname === DOMINIO_DE_APIBARA || url.hostname.endsWith(`.${DOMINIO_DE_APIBARA}`)
+    return url.protocol === 'https:' && delDominio && url.username === '' && url.password === ''
+  } catch {
+    return false
+  }
+}
+
 export const esquemaConfigApibara = z.object({
-  endpoint: z
-    .url({ error: 'Escribe la dirección completa, con https://.' })
-    .refine((url) => url.startsWith('https://'), { error: 'La dirección tiene que ser https://.' }),
+  endpoint: z.string().trim().refine(esDireccionDeApibara, {
+    error: 'La dirección tiene que empezar con https:// y ser de apibara.tech.',
+  }),
   plataformas: z
     .array(z.enum(PLATAFORMAS_APIBARA))
     .min(1, { error: 'Elige al menos una plataforma.' }),

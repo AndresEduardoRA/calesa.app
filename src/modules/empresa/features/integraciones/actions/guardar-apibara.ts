@@ -17,7 +17,14 @@ export const guardarApibara = actionClient
     if (!puede(ctx.permisos, 'empresa.ajustes.gestionar')) {
       return fallo('sin_permiso', MOTIVO_SIN_PERMISO_AJUSTES)
     }
-    const guardada = await repositorioIntegraciones.guardar({ clave: 'apibara', ...parsedInput })
+    const { actualizadoEnEsperado, activa, endpoint, plataformas } = parsedInput
+    const guardada = await repositorioIntegraciones.guardar({
+      clave: 'apibara',
+      actualizadoEnEsperado,
+      activa,
+      // Sólo lo que este schema conoce: una clave de más en la configuración no llega a la base.
+      config: endpoint && plataformas ? { endpoint, plataformas } : undefined,
+    })
     if (guardada.ok) {
       revalidatePath(RUTAS.empresa)
     }

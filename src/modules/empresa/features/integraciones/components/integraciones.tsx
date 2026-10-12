@@ -10,8 +10,8 @@ import { CampoSecreto } from './campo-secreto'
 import { ConfigApibara } from './config-apibara'
 
 type Props = {
-  // La fila de apibara. Quien usa esto le pone `key={apibara.actualizadoEn}`: sus tres ediciones
-  // tocan la misma fila, y cada una deja a la pantalla con la versión nueva.
+  // La fila de apibara. Sus tres ediciones tocan la misma fila: la versión llega por props, y
+  // cada parte lleva de `key` lo suyo, para que guardar una no borre lo tipeado en otra.
   apibara: Integracion
   puedeEditar: boolean
 }
@@ -21,6 +21,7 @@ type Props = {
 export function Integraciones({ apibara, puedeEditar }: Props) {
   const ediciones = useApibara(apibara.actualizadoEn)
   const sinClave = !puedeActivarse(apibara)
+  const config = configDeApibara(apibara.config)
 
   return (
     <div className="grid gap-4">
@@ -41,12 +42,15 @@ export function Integraciones({ apibara, puedeEditar }: Props) {
           deshabilitado={!puedeEditar || ediciones.enCurso || (sinClave && !apibara.activa)}
         />
         <CampoSecreto
+          // Al guardarse la clave, el campo vuelve a nacer vacío y cerrado.
+          key={apibara.secretoGuardadoEn ?? 'sin-clave'}
           guardadoEn={apibara.secretoGuardadoEn}
           puedeEditar={puedeEditar}
           ediciones={ediciones}
         />
         <ConfigApibara
-          config={configDeApibara(apibara.config)}
+          key={JSON.stringify(config)}
+          config={config}
           puedeEditar={puedeEditar}
           ediciones={ediciones}
         />

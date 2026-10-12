@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CONFIG_APIBARA_POR_DEFECTO,
+  esDireccionDeApibara,
   configDeApibara,
   esquemaConfigApibara,
   integracionesDesde,
@@ -38,24 +39,43 @@ describe('la configuración de apibara', () => {
     expect(configDeApibara(null)).toEqual(CONFIG_APIBARA_POR_DEFECTO)
   })
 
+  it('la dirección sólo puede ser de apibara.tech, por https', () => {
+    expect(esDireccionDeApibara('https://api.apibara.tech')).toBe(true)
+    expect(esDireccionDeApibara('https://apibara.tech/api/v1')).toBe(true)
+    expect(esDireccionDeApibara('http://api.apibara.tech')).toBe(false)
+    expect(esDireccionDeApibara('https://atacante.example')).toBe(false)
+    expect(esDireccionDeApibara('https://apibara.tech.atacante.example')).toBe(false)
+    expect(esDireccionDeApibara('https://atacante.example/apibara.tech')).toBe(false)
+    expect(esDireccionDeApibara('https://api.apibara.tech@atacante.example')).toBe(false)
+    expect(esDireccionDeApibara('api.apibara.tech')).toBe(false)
+  })
+
   it('exige una dirección https y al menos una plataforma', () => {
     expect(
-      esquemaConfigApibara.safeParse({ endpoint: 'http://api.test', plataformas: ['copart'] })
+      esquemaConfigApibara.safeParse({
+        endpoint: 'http://api.apibara.tech',
+        plataformas: ['copart'],
+      }).success,
+    ).toBe(false)
+    expect(
+      esquemaConfigApibara.safeParse({ endpoint: 'api.apibara.tech', plataformas: ['copart'] })
         .success,
     ).toBe(false)
     expect(
-      esquemaConfigApibara.safeParse({ endpoint: 'api.test', plataformas: ['copart'] }).success,
-    ).toBe(false)
-    expect(
-      esquemaConfigApibara.safeParse({ endpoint: 'https://api.test', plataformas: [] }).success,
-    ).toBe(false)
-    expect(
-      esquemaConfigApibara.safeParse({ endpoint: 'https://api.test', plataformas: ['otra'] })
+      esquemaConfigApibara.safeParse({ endpoint: 'https://api.apibara.tech', plataformas: [] })
         .success,
     ).toBe(false)
     expect(
-      esquemaConfigApibara.safeParse({ endpoint: 'https://api.test', plataformas: ['iaai'] })
-        .success,
+      esquemaConfigApibara.safeParse({
+        endpoint: 'https://api.apibara.tech',
+        plataformas: ['otra'],
+      }).success,
+    ).toBe(false)
+    expect(
+      esquemaConfigApibara.safeParse({
+        endpoint: 'https://api.apibara.tech',
+        plataformas: ['iaai'],
+      }).success,
     ).toBe(true)
   })
 })

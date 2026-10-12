@@ -1,6 +1,7 @@
 import {
   FormularioEmpresa,
   IconosDeLaApp,
+  huellaDelFormulario,
   leerAjustes,
   leerMonedasYTiposCambio,
   urlDeIcono,
@@ -18,12 +19,12 @@ export async function SeccionEmpresa({ puedeEditar }: { puedeEditar: boolean }) 
 
   const logoUrl = urlPublicaONull('marca', ajustes.logoRuta)
 
-  // Los ajustes son una fila con una versión: al guardar cualquiera de los dos, la pantalla
-  // vuelve con la versión nueva y los dos arrancan de lo guardado.
+  // Los ajustes son una fila con una versión, que editan dos cosas. Cada una lleva de `key` lo
+  // que ella muestra: arranca de nuevo cuando eso cambia, y no cuando guardó la otra.
   return (
     <>
       <FormularioEmpresa
-        key={`ajustes-${ajustes.actualizadoEn}`}
+        key={huellaDelFormulario(ajustes)}
         ajustes={ajustes}
         logoUrl={logoUrl}
         monedas={monedas.filter((moneda) => moneda.activa || moneda.codigo === ajustes.monedaBase)}
@@ -32,7 +33,7 @@ export async function SeccionEmpresa({ puedeEditar }: { puedeEditar: boolean }) 
         puedeEditar={puedeEditar}
       />
       <IconosDeLaApp
-        key={`iconos-${ajustes.actualizadoEn}`}
+        key={`${ajustes.logoRuta ?? ''}|${ajustes.colorAcento ?? ''}|${JSON.stringify(ajustes.iconos)}`}
         logoUrl={logoUrl}
         colorAcento={ajustes.colorAcento}
         iconos={ajustes.iconos}

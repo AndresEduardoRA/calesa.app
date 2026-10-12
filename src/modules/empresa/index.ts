@@ -8,6 +8,7 @@ export { getAjustes } from './composicion'
 
 // Configuración › Empresa: marca, datos legales, región y políticas
 export { leerAjustes, leerMonedasYTiposCambio } from './composicion'
+export { huellaDelFormulario } from './entities/ajustes-empresa'
 export { zonasHorarias } from './entities/regional'
 export { FormularioEmpresa } from './features/empresa/components/formulario-empresa'
 
