@@ -18,10 +18,13 @@ revoke all on function public._exigir_version(timestamptz, timestamptz, text) fr
 -- Ajustes de la empresa (fila única)
 -- ---------------------------------------------------------------------------
 -- Los montos se guardan en la moneda base: con algo cargado, cambiarla los dejaría mal expresados.
--- Cuenta también lo que está en la papelera.
+-- Cuenta también lo que está en la papelera. Entra toda tabla con montos en la moneda base (no las
+-- que llevan su propia columna `moneda`, ni las fórmulas: sus constantes van por tipo de cambio).
+-- Una tabla nueva con montos en la moneda base se suma acá.
 create or replace function public.empresa_con_datos_cargados()
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.vehiculos)
+      or exists (select 1 from public.oportunidades o where o.monto_estimado is not null)
       or exists (select 1 from public.cotizaciones)
       or exists (select 1 from public.gastos)
       or exists (select 1 from public.pagos)
@@ -65,6 +68,10 @@ begin
     exception when others then
       raise exception 'La zona horaria «%» no existe.', p_cambios ->> 'zona_horaria';
     end;
+  end if;
+  -- Con el locale se formatea cada número de la app: uno con otra forma rompería todas las pantallas.
+  if p_cambios ? 'locale' and btrim(p_cambios ->> 'locale') !~ '^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$' then
+    raise exception 'El formato regional «%» no tiene la forma esperada, como es-BO.', p_cambios ->> 'locale';
   end if;
   if p_cambios ? 'iconos' and jsonb_typeof(p_cambios -> 'iconos') not in ('object', 'null') then
     raise exception 'Los íconos no tienen la forma esperada.';
@@ -189,7 +196,8 @@ begin
   if nullif(btrim(p_nombre), '') is null then
     raise exception 'El tipo de cambio necesita un nombre.';
   end if;
-  if p_valor is null or p_valor <= 0 then
+  -- NaN es mayor que cualquier número para Postgres: pasaría el `<= 0` y el CHECK de la tabla.
+  if p_valor is null or p_valor = 'NaN'::numeric or p_valor <= 0 then
     raise exception 'El valor tiene que ser mayor que cero.';
   end if;
   if v_de = v_a then
@@ -226,7 +234,7 @@ begin
     raise exception 'Ese tipo de cambio ya no existe.' using errcode = 'PT409';
   end if;
   perform public._exigir_version(v.actualizado_en, p_actualizado_en_esperado, 'Otra persona cambió este tipo de cambio mientras lo editabas.');
-  if p_valor is not null and p_valor <= 0 then
+  if p_valor is not null and (p_valor = 'NaN'::numeric or p_valor <= 0) then
     raise exception 'El valor tiene que ser mayor que cero.';
   end if;
   if v.es_default and p_es_default = false then
@@ -259,7 +267,9 @@ grant execute on function public.tipo_cambio_guardar(uuid, timestamptz, text, nu
 -- ---------------------------------------------------------------------------
 -- Integraciones: interruptor, configuración no secreta y el secreto en Vault
 -- ---------------------------------------------------------------------------
--- Un parámetro nulo no toca esa columna. apibara no se activa sin su clave guardada.
+-- Un parámetro nulo no toca esa columna. apibara no se activa sin su clave guardada, y su
+-- dirección sólo puede ser de apibara.tech: ahí es a donde la edge function manda la clave, así que
+-- quien pudiera apuntarla a otro lado se la llevaría sin leerla.
 create or replace function public.integracion_guardar(p_clave text, p_actualizado_en_esperado timestamptz, p_activa boolean default null, p_config jsonb default null)
 returns timestamptz language plpgsql security definer set search_path = '' as $$
 declare
@@ -274,6 +284,10 @@ begin
   perform public._exigir_version(v.actualizado_en, p_actualizado_en_esperado, 'Otra persona cambió esta integración mientras la editabas.');
   if p_config is not null and jsonb_typeof(p_config) <> 'object' then
     raise exception 'La configuración no tiene la forma esperada.';
+  end if;
+  if v.clave = 'apibara' and p_config is not null
+     and coalesce(p_config ->> 'endpoint', '') !~ '^https://([a-z0-9-]+\.)*apibara\.tech(:[0-9]+)?(/[^[:space:]]*)?$' then
+    raise exception 'La dirección de apibara tiene que empezar con https:// y ser de apibara.tech.';
   end if;
   if coalesce(p_activa, v.activa) and v.clave = 'apibara' and v.secreto_guardado_en is null then
     raise exception 'Guarda la clave de apibara antes de activarla.';

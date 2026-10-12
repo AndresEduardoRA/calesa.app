@@ -80,6 +80,8 @@ do $$ declare v timestamptz; v2 timestamptz; a public.ajustes_empresa; rechazo b
   -- Reglas que un CHECK no expresa.
   rechazo := false; begin perform public.empresa_guardar_ajustes('{"zona_horaria": "Marte/Olympus"}', null); exception when raise_exception then rechazo := true; end;
   if not rechazo then raise exception 'aceptó una zona horaria que no existe'; end if;
+  rechazo := false; begin perform public.empresa_guardar_ajustes('{"locale": "es_BO; drop"}', null); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó un formato regional sin forma de locale'; end if;
   rechazo := false; begin perform public.empresa_guardar_ajustes('{"id": 2}', null); exception when raise_exception then rechazo := true; end;
   if not rechazo then raise exception 'dejó cambiar una columna que no es editable'; end if;
   rechazo := false; begin perform public.empresa_guardar_ajustes('{"nombre": "   "}', null); exception when raise_exception then rechazo := true; end;
@@ -653,6 +655,8 @@ do $$ declare oficial uuid; paralelo uuid; banco uuid; v timestamptz; v2 timesta
   if not exists (select 1 from public.tipos_cambio_historial where tipo_cambio_id = banco and valor_anterior is null and valor_nuevo = 9.5) then raise exception 'crear no dejó el primer valor en el historial'; end if;
   begin perform public.tipo_cambio_crear('banco', 'Otro', 'USD', 'BOB', 9); raise exception 'repitió la clave de un tipo de cambio';
   exception when unique_violation then null; end;
+  rechazo := false; begin perform public.tipo_cambio_guardar(banco, null, p_valor => 'NaN'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó NaN como valor de un tipo de cambio'; end if;
   rechazo := false; begin perform public.tipo_cambio_crear('Con Espacios', 'Mal', 'USD', 'BOB', 9); exception when raise_exception then rechazo := true; end;
   if not rechazo then raise exception 'aceptó una clave con espacios'; end if;
   rechazo := false; begin perform public.tipo_cambio_crear('euro', 'Euro', 'USD', 'EUR', 0.9); exception when raise_exception then rechazo := true; end;
@@ -717,6 +721,14 @@ do $$ declare v timestamptz; v2 timestamptz; i public.integraciones; rechazo boo
   perform public.integracion_guardar('apibara', v2, p_activa => true, p_config => '{"endpoint": "https://api.apibara.tech", "plataformas": ["copart"]}');
   select * into i from public.integraciones where clave = 'apibara';
   if not i.activa or i.config -> 'plataformas' <> '["copart"]'::jsonb or i.actualizado_por is distinct from '00000000-0000-0000-0000-000000000001'::uuid then raise exception 'no guardó la integración: %', i; end if;
+  -- La dirección no puede apuntar fuera de apibara.tech: ahí viaja la clave.
+  rechazo := false; begin perform public.integracion_guardar('apibara', null, p_config => '{"endpoint": "https://atacante.example", "plataformas": ["copart"]}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó apuntar apibara a otro sitio'; end if;
+  rechazo := false; begin perform public.integracion_guardar('apibara', null, p_config => '{"endpoint": "https://apibara.tech.atacante.example/x", "plataformas": ["copart"]}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó apuntar apibara a un dominio que sólo empieza igual'; end if;
+  rechazo := false; begin perform public.integracion_guardar('apibara', null, p_config => '{"plataformas": ["copart"]}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó guardar la configuración de apibara sin su dirección'; end if;
+  perform public.integracion_guardar('apibara', null, p_config => '{"endpoint": "https://apibara.tech/api/v1", "plataformas": ["copart"]}');
   -- Reemplazar no crea un segundo secreto.
   perform public.integracion_guardar_secreto('apibara', 'humo-secreto-segundo-456', null);
 end $$;
