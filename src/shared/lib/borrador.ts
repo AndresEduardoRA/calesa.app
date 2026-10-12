@@ -42,8 +42,11 @@ export function borrarBorrador(almacen: Almacen, clave: string): void {
 }
 
 // Lo que del borrador difiere de lo guardado: si no difiere nada, no hay borrador que ofrecer.
+// Los espacios de los bordes no cuentan: al guardar se recortan.
 export function cambiosDelBorrador(borrador: Borrador, guardado: Borrador): Borrador {
   return Object.fromEntries(
-    Object.entries(borrador).filter(([campo, valor]) => (guardado[campo] ?? '') !== valor),
+    Object.entries(borrador).filter(
+      ([campo, valor]) => (guardado[campo] ?? '').trim() !== valor.trim(),
+    ),
   )
 }

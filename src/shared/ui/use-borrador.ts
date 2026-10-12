@@ -11,6 +11,8 @@ import {
 import { valoresDe } from '@/shared/lib/formularios'
 import { avisar } from './toasts'
 
+// Escribe en el campo como si la persona lo hubiera tipeado: con el `value` del prototipo y un
+// evento `input`, para que un campo controlado por React también se entere.
 function escribir(formulario: HTMLFormElement, valores: Borrador): void {
   for (const [nombre, valor] of Object.entries(valores)) {
     const campo = formulario.elements.namedItem(nombre)
@@ -19,12 +21,19 @@ function escribir(formulario: HTMLFormElement, valores: Borrador): void {
       campo instanceof HTMLSelectElement ||
       campo instanceof HTMLTextAreaElement
     ) {
-      campo.value = valor
+      const prototipo: unknown = Object.getPrototypeOf(campo)
+      const propiedad = Object.getOwnPropertyDescriptor(prototipo, 'value')
+      if (propiedad?.set) {
+        propiedad.set.call(campo, valor)
+      } else {
+        campo.value = valor
+      }
+      campo.dispatchEvent(new Event('input', { bubbles: true }))
     }
   }
 }
 
-// Borrador de un formulario no controlado: guarda lo tipeado en cada cambio y lo repone al volver
+// Borrador de un formulario: guarda lo tipeado en cada cambio y lo repone al volver
 // a abrirlo, avisando con «Descartar». `campos` son los nombres de los campos de texto (una
 // constante de quien llama: si cambia de identidad, el borrador se vuelve a leer); lo que no es
 // texto (un archivo, un interruptor) no entra.

@@ -56,6 +56,10 @@ describe('borrador', () => {
 })
 
 describe('cambiosDelBorrador', () => {
+  it('un espacio de más en los bordes no es un cambio', () => {
+    expect(cambiosDelBorrador({ nombre: 'Andina ' }, { nombre: 'Andina' })).toEqual({})
+  })
+
   it('deja sólo lo que difiere de lo guardado', () => {
     expect(
       cambiosDelBorrador(

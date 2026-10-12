@@ -1,4 +1,4 @@
-// Fotos antes de subir: se achican y se pasan a WebP en el navegador (el límite del body es de
+// Imágenes antes de subir: se achican y se pasan a WebP en el navegador (el límite del body es de
 // 2 MB y nadie necesita 12 megapíxeles en una tarjeta). Los documentos NO pasan por acá: se
 // suben tal cual. Sólo corre en el navegador.
 
@@ -20,9 +20,14 @@ export function dimensionesAjustadas(original: Dimensiones, ladoMaximo: number):
   }
 }
 
+// WebP para fotos (con pérdida, pesa poco). PNG para lo que no tolera pérdida ni perder la
+// transparencia: un logo.
+export type FormatoDeSalida = 'image/webp' | 'image/png'
+
 export async function comprimirImagen(
   archivo: Blob,
   ladoMaximo: number = LADO_MAXIMO_FOTO,
+  formato: FormatoDeSalida = 'image/webp',
 ): Promise<Blob> {
   // `from-image` respeta la orientación EXIF: una foto de celular no sale acostada.
   const mapa = await createImageBitmap(archivo, { imageOrientation: 'from-image' })
@@ -48,7 +53,8 @@ export async function comprimirImagen(
             rechazar(new Error('El navegador no pudo convertir la imagen.'))
           }
         },
-        'image/webp',
+        formato,
+        // PNG no tiene calidad: es sin pérdida y el navegador ignora el argumento.
         CALIDAD_WEBP,
       )
     })

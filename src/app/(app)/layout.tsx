@@ -9,6 +9,7 @@ import {
   requerirSesion,
 } from '@/modules/equipo'
 import { urlPublicaONull } from '@/shared/lib/almacen'
+import { EstiloDeMarca } from '@/shared/ui/estilo-de-marca'
 import { Marca } from '@/shared/ui/marca'
 import { ProveedorRegional } from '@/shared/ui/regional'
 import { BarraLateral } from './_shell/barra-lateral'
@@ -31,7 +32,13 @@ async function Shell({ children }: { children: ReactNode }) {
   )
 
   return (
-    <ProveedorRegional locale={ajustes.locale} monedaBase={ajustes.monedaBase}>
+    <ProveedorRegional
+      locale={ajustes.locale}
+      monedaBase={ajustes.monedaBase}
+      zonaHoraria={ajustes.zonaHoraria}
+    >
+      {/* El color de la empresa pisa los tokens neutros de design/tokens.css. */}
+      <EstiloDeMarca color={ajustes.colorAcento} />
       <ProveedorPreferencias {...sesion.preferencias}>
         {/* La perspectiva «ver como» de esta sesión, para el menú, el banner y quien la pida. */}
         <ProveedorPerspectiva perspectiva={sesion.perspectiva}>

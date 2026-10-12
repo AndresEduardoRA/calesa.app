@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { conRed, errorDeAccion, errorDeCampo, valoresDe } from './formularios'
+import { conRed, errorDeAccion, errorDeCampo, resultadoDeAccion, valoresDe } from './formularios'
 
 describe('valoresDe', () => {
   it('lee los campos pedidos por nombre', () => {
@@ -58,5 +58,23 @@ describe('conRed', () => {
 
   it('una respuesta vacía también es un error', async () => {
     expect(errorDeAccion(await conRed(Promise.resolve(undefined)))).not.toBeNull()
+  })
+})
+
+describe('resultadoDeAccion', () => {
+  const error = { codigo: 'conflicto', mensaje: 'Otra persona lo cambió.' } as const
+
+  it('devuelve el resultado de la action', () => {
+    expect(resultadoDeAccion({ data: { ok: true, data: 7 } })).toEqual({ ok: true, data: 7 })
+    expect(resultadoDeAccion({ data: { ok: false, error } })).toEqual({ ok: false, error })
+  })
+
+  it('el error que cortó la action antes de ejecutar también es un resultado', () => {
+    expect(resultadoDeAccion({ serverError: error })).toEqual({ ok: false, error })
+  })
+
+  it('si no ejecutó por validación, queda un error de validación', () => {
+    const resultado = resultadoDeAccion({})
+    expect(!resultado.ok && resultado.error.codigo).toBe('validacion')
   })
 })

@@ -2,12 +2,18 @@ import { Suspense, type ReactNode } from 'react'
 import { getAjustes } from '@/modules/empresa'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 import { ConmutadorTema } from '@/shared/ui/conmutador-tema'
+import { EstiloDeMarca } from '@/shared/ui/estilo-de-marca'
 import { Marca } from '@/shared/ui/marca'
 import { Skeleton } from '@/shared/ui/skeleton'
 
 async function MarcaDeLaEmpresa() {
   const ajustes = await getAjustes()
-  return <Marca nombre={ajustes.nombre} logoUrl={urlPublicaONull('marca', ajustes.logoRuta)} />
+  return (
+    <>
+      <EstiloDeMarca color={ajustes.colorAcento} />
+      <Marca nombre={ajustes.nombre} logoUrl={urlPublicaONull('marca', ajustes.logoRuta)} />
+    </>
+  )
 }
 
 // Marco de las pantallas de antes de entrar: ingreso, registro, recuperación y contraseña nueva.

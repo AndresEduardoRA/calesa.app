@@ -1,4 +1,4 @@
-import { ShieldCheckIcon, UsersRoundIcon, type LucideIcon } from 'lucide-react'
+import { Building2Icon, ShieldCheckIcon, UsersRoundIcon, type LucideIcon } from 'lucide-react'
 import { puede, type ClavePermiso, type Permisos } from '@/shared/lib/permisos'
 import { RUTAS } from '@/shared/lib/rutas'
 
@@ -15,6 +15,14 @@ export type SeccionDeConfiguracion = {
 }
 
 export const SECCIONES = [
+  {
+    clave: 'empresa',
+    titulo: 'Empresa',
+    descripcion: 'La marca, los datos legales, la región, las monedas y las integraciones.',
+    ruta: RUTAS.empresa,
+    Icono: Building2Icon,
+    permisos: ['empresa.ajustes.gestionar', 'empresa.tipos_cambio.gestionar'],
+  },
   {
     clave: 'equipo',
     titulo: 'Equipo',

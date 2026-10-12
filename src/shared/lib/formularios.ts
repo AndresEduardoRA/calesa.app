@@ -1,4 +1,4 @@
-import type { ErrorApp, Resultado } from './errores'
+import { fallo, type ErrorApp, type Resultado } from './errores'
 
 // Ningún formulario pierde lo tipeado: si el envío falla, los valores quedan y el foco va al
 // primer campo con error (.claude/rules/ui.md).
@@ -33,6 +33,18 @@ export function errorDeAccion(resultado: ResultadoDeAccion): ErrorApp | null {
     return resultado.serverError
   }
   return resultado.data && !resultado.data.ok ? resultado.data.error : null
+}
+
+// La respuesta de una action como un `Resultado`, para encadenarla con otros pasos. Si no ejecutó
+// por un error de validación, los campos ya lo dicen: acá queda un error sin más detalle.
+export function resultadoDeAccion<Dato>(respuesta: {
+  serverError?: ErrorApp
+  data?: Resultado<Dato>
+}): Resultado<Dato> {
+  if (respuesta.serverError) {
+    return { ok: false, error: respuesta.serverError }
+  }
+  return respuesta.data ?? fallo('validacion', 'Revisa los campos marcados.')
 }
 
 // El primer mensaje de un campo entre los errores de validación de una action (los que
