@@ -56,6 +56,54 @@ do $$ begin
   exception when check_violation then null; end;
 end $$;
 
+-- @test empresa: los ajustes se guardan por RPC con versión, permiso y reglas; sin datos la moneda base cambia
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare v timestamptz; v2 timestamptz; a public.ajustes_empresa; rechazo boolean; begin
+  select actualizado_en into v from public.ajustes_empresa;
+  begin update public.ajustes_empresa set registro_abierto = true; raise exception 'el update directo de ajustes_empresa pasó';
+  exception when insufficient_privilege then null; end;
+  begin perform public.empresa_guardar_ajustes('{"nombre": "X"}', v - interval '1 second'); raise exception 'guardó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  v2 := public.empresa_guardar_ajustes('{"nombre": "  Importadora Andina  ", "nit": "", "color_acento": "#0B7285", "zona_horaria": "America/Santiago", "papelera_dias": 45, "iconos": {"192": "iconos/a.png"}}', v);
+  select * into a from public.ajustes_empresa;
+  if a.nombre <> 'Importadora Andina' or a.nit is not null or a.color_acento <> '#0b7285' or a.zona_horaria <> 'America/Santiago' or a.papelera_dias <> 45 then raise exception 'no guardó lo pedido: %', a; end if;
+  if a.locale <> 'es-BO' or a.actividad_dias <> 14 or a.registro_abierto then raise exception 'tocó lo que no venía en los cambios: %', a; end if;
+  if a.actualizado_por is distinct from '00000000-0000-0000-0000-000000000001'::uuid then raise exception 'no selló quién cambió los ajustes'; end if;
+  if v2 is distinct from a.actualizado_en then raise exception 'no devolvió la versión nueva'; end if;
+  if public.storage_refcount('marca', 'iconos/a.png') <> 1 then raise exception 'storage_refcount no cuenta los íconos'; end if;
+  -- Un valor nulo vacía la columna; una clave ausente no la toca.
+  perform public.empresa_guardar_ajustes('{"iconos": null, "color_acento": null}', null);
+  select * into a from public.ajustes_empresa;
+  if a.iconos is not null or a.color_acento is not null or a.nombre <> 'Importadora Andina' then raise exception 'nulo debía vaciar y ausente no tocar: %', a; end if;
+  -- Reglas que un CHECK no expresa.
+  rechazo := false; begin perform public.empresa_guardar_ajustes('{"zona_horaria": "Marte/Olympus"}', null); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó una zona horaria que no existe'; end if;
+  rechazo := false; begin perform public.empresa_guardar_ajustes('{"id": 2}', null); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó cambiar una columna que no es editable'; end if;
+  rechazo := false; begin perform public.empresa_guardar_ajustes('{"nombre": "   "}', null); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó el nombre vacío'; end if;
+  rechazo := false; begin perform public.empresa_guardar_ajustes('{"moneda_base": "EUR"}', null); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó como base una moneda que no existe'; end if;
+  -- Todavía no hay vehículos, cotizaciones ni gastos: la moneda base se puede cambiar.
+  if public.empresa_con_datos_cargados() then raise exception 'no debería haber datos cargados todavía'; end if;
+  perform public.empresa_guardar_ajustes('{"moneda_base": "BOB"}', null);
+  if (select moneda_base from public.ajustes_empresa) <> 'BOB' then raise exception 'sin datos, la moneda base debía cambiar'; end if;
+  perform public.empresa_guardar_ajustes('{"moneda_base": "USD", "nombre": "Mi importadora", "zona_horaria": "America/La_Paz", "papelera_dias": 30}', null);
+end $$;
+reset role;
+-- Sofía (asesora) lee los ajustes pero no los guarda.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', false);
+set role authenticated;
+do $$ begin
+  if (select nombre from public.ajustes_empresa) <> 'Mi importadora' then raise exception 'una asesora debía leer los ajustes'; end if;
+  begin perform public.empresa_guardar_ajustes('{"nombre": "Otra"}', null); raise exception 'guardó los ajustes sin permiso';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
 -- @test crear lead, verificar teléfono, compartir, enmascarado para la dueña
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', false);
 set role authenticated;
@@ -567,3 +615,140 @@ do $$ declare dueno uuid; s jsonb; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test empresa: tipos de cambio y monedas por RPC, un valor vigente y uno por defecto, historial con autor; con datos la moneda base no cambia
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare oficial uuid; paralelo uuid; banco uuid; v timestamptz; v2 timestamptz; h public.tipos_cambio_historial; rechazo boolean; begin
+  select id, actualizado_en into oficial, v from public.tipos_cambio where clave = 'oficial';
+  select id into paralelo from public.tipos_cambio where clave = 'paralelo';
+  begin update public.tipos_cambio set valor = 1 where id = oficial; raise exception 'el update directo de tipos_cambio pasó';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.monedas (codigo, nombre, simbolo) values ('XXX', 'x', 'x'); raise exception 'el insert directo de monedas pasó';
+  exception when insufficient_privilege then null; end;
+  begin perform public.tipo_cambio_guardar(oficial, v - interval '1 second', p_valor => 7); raise exception 'guardó un tipo de cambio con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  -- Cambiar el valor: sigue habiendo una sola fila por clave y el trigger deja el historial con autor.
+  v2 := public.tipo_cambio_guardar(oficial, v, p_valor => 6.97);
+  if v2 is distinct from (select actualizado_en from public.tipos_cambio where id = oficial) then raise exception 'no devolvió la versión nueva del tipo de cambio'; end if;
+  if (select count(*) from public.tipos_cambio where clave = 'oficial') <> 1 or (select valor from public.tipos_cambio where id = oficial) <> 6.97 then raise exception 'debía quedar un solo valor vigente'; end if;
+  select * into h from public.tipos_cambio_historial where tipo_cambio_id = oficial order by id desc limit 1;
+  if h.valor_anterior <> 6.96 or h.valor_nuevo <> 6.97 or h.cambiado_por is distinct from '00000000-0000-0000-0000-000000000001'::uuid then raise exception 'el historial no registró el cambio: %', h; end if;
+  -- Cambiar sólo el nombre no escribe historial.
+  perform public.tipo_cambio_guardar(oficial, null, p_nombre => 'Oficial BCB');
+  if (select count(*) from public.tipos_cambio_historial where tipo_cambio_id = oficial) <> 2 then raise exception 'renombrar no debía escribir historial'; end if;
+  -- Uno por defecto entre dos monedas: marcar otro desmarca al anterior; no se puede dejar sin ninguno.
+  perform public.tipo_cambio_guardar(paralelo, null, p_es_default => true);
+  if (select count(*) from public.tipos_cambio where moneda_de = 'USD' and moneda_a = 'BOB' and es_default) <> 1 or not (select es_default from public.tipos_cambio where id = paralelo) then raise exception 'debía quedar sólo el paralelo por defecto'; end if;
+  rechazo := false; begin perform public.tipo_cambio_guardar(paralelo, null, p_es_default => false); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó al par sin tipo de cambio por defecto'; end if;
+  rechazo := false; begin perform public.tipo_cambio_guardar(paralelo, null, p_activo => false); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'desactivó el tipo de cambio por defecto'; end if;
+  perform public.tipo_cambio_guardar(oficial, null, p_es_default => true);
+  -- Crear: el segundo del par no nace por defecto; la clave no se repite ni lleva espacios.
+  banco := public.tipo_cambio_crear('banco', 'Banco', 'usd', 'bob', 9.5);
+  if (select es_default from public.tipos_cambio where id = banco) then raise exception 'el tercero del par no nace por defecto'; end if;
+  if not exists (select 1 from public.tipos_cambio_historial where tipo_cambio_id = banco and valor_anterior is null and valor_nuevo = 9.5) then raise exception 'crear no dejó el primer valor en el historial'; end if;
+  begin perform public.tipo_cambio_crear('banco', 'Otro', 'USD', 'BOB', 9); raise exception 'repitió la clave de un tipo de cambio';
+  exception when unique_violation then null; end;
+  rechazo := false; begin perform public.tipo_cambio_crear('Con Espacios', 'Mal', 'USD', 'BOB', 9); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó una clave con espacios'; end if;
+  rechazo := false; begin perform public.tipo_cambio_crear('euro', 'Euro', 'USD', 'EUR', 0.9); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'creó un tipo de cambio con una moneda que no existe'; end if;
+  -- Monedas: se crean y se editan; la base y las que usa un tipo de cambio activo no se desactivan.
+  perform public.moneda_crear('eur', 'Euro', '€');
+  if not exists (select 1 from public.monedas where codigo = 'EUR' and activa and decimales = 2) then raise exception 'no creó la moneda'; end if;
+  begin perform public.moneda_crear('EUR', 'Euro', '€'); raise exception 'repitió una moneda';
+  exception when unique_violation then null; end;
+  perform public.moneda_guardar('EUR', (select actualizado_en from public.monedas where codigo = 'EUR'), p_simbolo => 'EUR', p_activa => false);
+  if (select activa from public.monedas where codigo = 'EUR') or (select simbolo from public.monedas where codigo = 'EUR') <> 'EUR' then raise exception 'no editó la moneda'; end if;
+  rechazo := false; begin perform public.moneda_guardar('USD', null, p_activa => false); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'desactivó la moneda base'; end if;
+  rechazo := false; begin perform public.moneda_guardar('BOB', null, p_activa => false); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'desactivó una moneda con tipos de cambio activos'; end if;
+  -- Con vehículos y cotizaciones cargados, la moneda base ya no cambia.
+  if not public.empresa_con_datos_cargados() then raise exception 'a esta altura hay datos cargados'; end if;
+  rechazo := false; begin perform public.empresa_guardar_ajustes('{"moneda_base": "BOB"}', null); exception when raise_exception then rechazo := true; end;
+  if not rechazo or (select moneda_base from public.ajustes_empresa) <> 'USD' then raise exception 'cambió la moneda base con datos cargados'; end if;
+end $$;
+reset role;
+-- La invitada (asesora) ve los tipos de cambio vigentes, pero no el historial ni puede cambiarlos.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000005', false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from public.tipos_cambio where activo) < 2 then raise exception 'una asesora debía leer los tipos de cambio'; end if;
+  if (select count(*) from public.tipos_cambio_historial) <> 0 then raise exception 'leyó el historial sin permiso'; end if;
+  begin perform public.tipo_cambio_guardar((select id from public.tipos_cambio where clave = 'oficial'), null, p_valor => 1); raise exception 'cambió un tipo de cambio sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.moneda_crear('CLP', 'Peso chileno', '$'); raise exception 'creó una moneda sin permiso';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test empresa: el secreto de una integración va a Vault y ningún rol de la app lo lee
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare v timestamptz; v2 timestamptz; i public.integraciones; rechazo boolean; begin
+  select actualizado_en into v from public.integraciones where clave = 'apibara';
+  begin update public.integraciones set activa = true where clave = 'apibara'; raise exception 'el update directo de integraciones pasó';
+  exception when insufficient_privilege then null; end;
+  rechazo := false; begin perform public.integracion_guardar('apibara', v, p_activa => true); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'activó apibara sin su clave guardada'; end if;
+  rechazo := false; begin perform public.integracion_guardar_secreto('apibara', 'corta', v); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó una clave demasiado corta'; end if;
+  begin perform public.integracion_guardar_secreto('apibara', 'humo-secreto-primero-123', v - interval '1 second'); raise exception 'guardó el secreto con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  v2 := public.integracion_guardar_secreto('apibara', 'humo-secreto-primero-123', v);
+  select * into i from public.integraciones where clave = 'apibara';
+  if i.secreto_guardado_en is null or v2 is distinct from i.actualizado_en then raise exception 'no quedó dicho que el secreto está guardado: %', i; end if;
+  if to_jsonb(i)::text like '%humo-secreto%' then raise exception 'el secreto quedó en una columna legible'; end if;
+  -- Quien lo guardó tampoco lo puede leer.
+  begin perform 1 from vault.secrets; raise exception 'un rol de la app leyó vault.secrets';
+  exception when insufficient_privilege then null; end;
+  begin perform 1 from vault.decrypted_secrets; raise exception 'un rol de la app leyó vault.decrypted_secrets';
+  exception when insufficient_privilege then null; end;
+  begin perform public.integracion_secreto('apibara'); raise exception 'un rol de la app ejecutó integracion_secreto';
+  exception when insufficient_privilege then null; end;
+  -- Con la clave guardada sí se activa, y la configuración no secreta se edita.
+  perform public.integracion_guardar('apibara', v2, p_activa => true, p_config => '{"endpoint": "https://api.apibara.tech", "plataformas": ["copart"]}');
+  select * into i from public.integraciones where clave = 'apibara';
+  if not i.activa or i.config -> 'plataformas' <> '["copart"]'::jsonb or i.actualizado_por is distinct from '00000000-0000-0000-0000-000000000001'::uuid then raise exception 'no guardó la integración: %', i; end if;
+  -- Reemplazar no crea un segundo secreto.
+  perform public.integracion_guardar_secreto('apibara', 'humo-secreto-segundo-456', null);
+end $$;
+reset role;
+do $$ begin
+  if (select count(*) from vault.secrets where name = 'integracion:apibara') <> 1 then raise exception 'reemplazar debía dejar un solo secreto en Vault'; end if;
+  if exists (select 1 from public.actividad where coalesce(antes::text, '') || coalesce(despues::text, '') || coalesce(detalle::text, '') like '%humo-secreto%') then raise exception 'el secreto quedó en la actividad'; end if;
+end $$;
+-- Las edge functions (cliente de servicio) sí lo leen.
+set role service_role;
+do $$ begin
+  if public.integracion_secreto('apibara') is distinct from 'humo-secreto-segundo-456' then raise exception 'service_role debía leer el secreto vigente'; end if;
+end $$;
+reset role;
+-- Sin el permiso no se guarda ni se activa; sin sesión, nada.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000005', false);
+set role authenticated;
+do $$ begin
+  begin perform public.integracion_guardar_secreto('apibara', 'humo-secreto-ajeno-789', null); raise exception 'guardó un secreto sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.integracion_guardar('apibara', null, p_activa => false); raise exception 'apagó una integración sin permiso';
+  exception when insufficient_privilege then null; end;
+  if not (select activa from public.integraciones where clave = 'apibara') then raise exception 'una asesora debía leer si apibara está activa'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+select set_config('request.jwt.claim.role', 'anon', false);
+set role anon;
+do $$ begin
+  begin perform public.integracion_secreto('apibara'); raise exception 'anon ejecutó integracion_secreto';
+  exception when insufficient_privilege then null; end;
+  begin perform public.integracion_guardar_secreto('apibara', 'humo-secreto-anon-000', null); raise exception 'anon guardó un secreto';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;

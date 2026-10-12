@@ -1,5 +1,5 @@
 // Aplica supabase/schemas + migrations + seed.sql en Postgres 17 embebido (PGlite) con stubs de
-// auth/storage/pgcrypto y corre supabase/tests/humo.sql. Uso: node scripts/probar-schema.mjs supabase
+// auth/storage/pgcrypto/vault y corre supabase/tests/humo.sql. Uso: node scripts/probar-schema.mjs supabase
 // No reemplaza a `supabase db reset` ni a splinter: es la red rápida del pre-commit.
 import { PGlite } from '@electric-sql/pglite'
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm'
@@ -43,7 +43,19 @@ grant usage on schema storage to anon, authenticated, service_role;
 create table if not exists storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
 create table if not exists storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid, metadata jsonb);
 create or replace function storage.foldername(n text) returns text[] language sql immutable as $$ select (string_to_array(n, '/'))[1:array_length(string_to_array(n,'/'),1)-1] $$;
+-- Vault (extensión supabase_vault, que PGlite no trae): sólo lo que usan nuestras RPC, sin cifrar.
+-- Prueba nuestra lógica y nuestros grants; los privilegios reales de Vault los cubre el e2e.
 create schema if not exists vault;
+create table if not exists vault.secrets (
+  id uuid primary key default gen_random_uuid(), name text unique, description text default '',
+  secret text not null, created_at timestamptz default now(), updated_at timestamptz default now()
+);
+create or replace view vault.decrypted_secrets as
+  select id, name, description, secret, secret as decrypted_secret, created_at, updated_at from vault.secrets;
+create or replace function vault.create_secret(new_secret text, new_name text default null, new_description text default '', new_key_id uuid default null)
+  returns uuid language sql as $$ insert into vault.secrets (secret, name, description) values (new_secret, new_name, new_description) returning id $$;
+create or replace function vault.update_secret(secret_id uuid, new_secret text default null, new_name text default null, new_description text default null, new_key_id uuid default null)
+  returns void language sql as $$ update vault.secrets set secret = coalesce(new_secret, secret), name = coalesce(new_name, name), description = coalesce(new_description, description), updated_at = now() where id = secret_id $$;
 grant usage on schema public to anon, authenticated, service_role;
 `
 

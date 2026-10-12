@@ -125,6 +125,7 @@ export type Database = {
           demora_dias_default: number
           direccion: string | null
           email: string | null
+          iconos: Json | null
           id: number
           lead_dormido_meses: number
           locale: string
@@ -151,6 +152,7 @@ export type Database = {
           demora_dias_default?: number
           direccion?: string | null
           email?: string | null
+          iconos?: Json | null
           id?: number
           lead_dormido_meses?: number
           locale?: string
@@ -176,6 +178,7 @@ export type Database = {
           demora_dias_default?: number
           direccion?: string | null
           email?: string | null
+          iconos?: Json | null
           id?: number
           lead_dormido_meses?: number
           locale?: string
@@ -2091,6 +2094,7 @@ export type Database = {
           actualizado_por: string | null
           clave: string
           config: NonNullable<Json>
+          secreto_guardado_en: string | null
         }
         ComputedFields: never
         Insert: {
@@ -2099,6 +2103,7 @@ export type Database = {
           actualizado_por?: string | null
           clave: string
           config?: NonNullable<Json>
+          secreto_guardado_en?: string | null
         }
         Update: {
           activa?: boolean
@@ -2106,6 +2111,7 @@ export type Database = {
           actualizado_por?: string | null
           clave?: string
           config?: NonNullable<Json>
+          secreto_guardado_en?: string | null
         }
         Relationships: []
       }
@@ -2627,6 +2633,7 @@ export type Database = {
       monedas: {
         Row: {
           activa: boolean
+          actualizado_en: string
           codigo: string
           decimales: number
           nombre: string
@@ -2636,6 +2643,7 @@ export type Database = {
         ComputedFields: never
         Insert: {
           activa?: boolean
+          actualizado_en?: string
           codigo: string
           decimales?: number
           nombre: string
@@ -2644,6 +2652,7 @@ export type Database = {
         }
         Update: {
           activa?: boolean
+          actualizado_en?: string
           codigo?: string
           decimales?: number
           nombre?: string
@@ -5753,6 +5762,10 @@ export type Database = {
       }
     }
     Functions: {
+      _exigir_version: {
+        Args: { p_actual: string; p_esperado: string; p_mensaje: string }
+        Returns: undefined
+      }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
       _requisito_dato_cumplido: {
@@ -5822,6 +5835,11 @@ export type Database = {
         Returns: undefined
       }
       crear_lead: { Args: { p: Json }; Returns: string }
+      empresa_con_datos_cargados: { Args: Record<PropertyKey, never>; Returns: boolean }
+      empresa_guardar_ajustes: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json }
+        Returns: string
+      }
       en_cartera: { Args: { p_lead: string }; Returns: boolean }
       enmascarar_telefono: { Args: { p: string }; Returns: string }
       equipo_aceptar_invitacion: { Args: Record<PropertyKey, never>; Returns: undefined }
@@ -5869,6 +5887,20 @@ export type Database = {
           vehiculo_id: string
         }[]
       }
+      integracion_guardar: {
+        Args: {
+          p_activa?: boolean
+          p_actualizado_en_esperado: string
+          p_clave: string
+          p_config?: Json
+        }
+        Returns: string
+      }
+      integracion_guardar_secreto: {
+        Args: { p_actualizado_en_esperado: string; p_clave: string; p_secreto: string }
+        Returns: string
+      }
+      integracion_secreto: { Args: { p_clave: string }; Returns: string }
       lead_en_limbo: { Args: { p_lead: string }; Returns: boolean }
       margen_vehiculo: { Args: { p_vehiculo: string }; Returns: Json }
       mi_sesion: { Args: { p_perspectiva?: string }; Returns: Json }
@@ -5880,6 +5912,21 @@ export type Database = {
           clave: string
           origen_id: string
         }[]
+      }
+      moneda_crear: {
+        Args: { p_codigo: string; p_decimales?: number; p_nombre: string; p_simbolo: string }
+        Returns: string
+      }
+      moneda_guardar: {
+        Args: {
+          p_activa?: boolean
+          p_actualizado_en_esperado: string
+          p_codigo: string
+          p_decimales?: number
+          p_nombre?: string
+          p_simbolo?: string
+        }
+        Returns: string
       }
       normalizar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: string }
       notificar: {
@@ -6003,6 +6050,27 @@ export type Database = {
       storage_refcount: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       telefono_lead: { Args: { p_lead: string }; Returns: string }
       tiene_permiso: { Args: { p_clave: string; p_origen?: string }; Returns: boolean }
+      tipo_cambio_crear: {
+        Args: {
+          p_clave: string
+          p_moneda_a: string
+          p_moneda_de: string
+          p_nombre: string
+          p_valor: number
+        }
+        Returns: string
+      }
+      tipo_cambio_guardar: {
+        Args: {
+          p_activo?: boolean
+          p_actualizado_en_esperado: string
+          p_es_default?: boolean
+          p_id: string
+          p_nombre?: string
+          p_valor?: number
+        }
+        Returns: string
+      }
       transferir_lead: { Args: { p_destino: string; p_lead: string }; Returns: undefined }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
@@ -6222,12 +6290,15 @@ export type Database = {
       ajustes_acceso: {
         Args: Record<PropertyKey, never>
         Returns: {
+          color_acento: string
+          iconos: Json
           locale: string
           logo_ruta: string
           moneda_base: string
           nombre: string
           primer_registro: boolean
           registro_abierto: boolean
+          zona_horaria: string
         }[]
       }
       portal_cambiar_clave: {

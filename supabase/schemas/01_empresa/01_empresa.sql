@@ -13,6 +13,7 @@ create table public.ajustes_empresa (
   email              text,
   logo_ruta          text,                      -- bucket público `marca`
   logo_oscuro_ruta   text,
+  iconos             jsonb,                     -- rutas de los íconos generados desde el logo; NULL = los neutros de public/
   color_acento       text check (color_acento ~ '^#[0-9a-fA-F]{6}$'),
   locale             text not null default 'es-BO',
   zona_horaria       text not null default 'America/La_Paz',
@@ -25,6 +26,7 @@ create table public.ajustes_empresa (
   actualizado_en     timestamptz not null default now(),
   actualizado_por    uuid
 );
+comment on column public.ajustes_empresa.iconos is 'Objeto {"32","180","192","512","512m"} → ruta en el bucket marca. Lo escribe «Regenerar íconos»; lo lee manifest.ts.';
 comment on table public.ajustes_empresa is 'Fila única (id = 1). Marca, país, locale, zona horaria, moneda base y políticas globales. Nada de cotización vive acá: eso es formulas.';
 
 create table public.monedas (
@@ -33,7 +35,8 @@ create table public.monedas (
   simbolo    text not null,
   decimales  smallint not null default 2 check (decimales between 0 and 4),
   activa     boolean not null default true,
-  orden      smallint not null default 0
+  orden      smallint not null default 0,
+  actualizado_en timestamptz not null default now()
 );
 comment on table public.monedas is 'Monedas que la empresa usa. La base está en ajustes_empresa.moneda_base; las demás se convierten con tipos_cambio.';
 
@@ -51,6 +54,8 @@ create table public.tipos_cambio (
   actualizado_por uuid,
   check (moneda_de <> moneda_a)
 );
+-- A lo sumo un tipo de cambio por defecto entre dos monedas.
+create unique index tipos_cambio_un_default_por_par on public.tipos_cambio (moneda_de, moneda_a) where es_default;
 comment on table public.tipos_cambio is 'Tipos de cambio nombrados (N por par de monedas). Cambian seguido: no se versionan, se congelan en cada cotización (cotizaciones.tipos_cambio).';
 
 create table public.tipos_cambio_historial (
@@ -65,8 +70,9 @@ create table public.tipos_cambio_historial (
 create table public.integraciones (
   clave          text primary key,                 -- 'apibara', 'push_web', 'web_publica'
   activa         boolean not null default false,
-  config         jsonb not null default '{}'::jsonb, -- NUNCA secretos: esos van en Vault o en env
+  config         jsonb not null default '{}'::jsonb, -- NUNCA secretos: esos van en Vault
+  secreto_guardado_en timestamptz,                -- cuándo se guardó su secreto en Vault; NULL = no hay
   actualizado_en timestamptz not null default now(),
   actualizado_por uuid
 );
-comment on table public.integraciones is 'Interruptor y configuración no secreta de cada integración. Las claves de API viven en Vault (vault.secrets) o en variables de entorno del despliegue, nunca acá.';
+comment on table public.integraciones is 'Interruptor y configuración no secreta de cada integración. Las claves de API viven en Vault (vault.secrets, nombre integracion:<clave>) y se escriben con integracion_guardar_secreto(); acá sólo queda cuándo se guardaron.';

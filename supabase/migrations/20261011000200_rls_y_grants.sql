@@ -167,11 +167,13 @@ select public._rls('visitados', 'usuario_id = (select auth.uid())', 'usuario_id 
 -- ---------------------------------------------------------------------------
 -- empresa
 -- ---------------------------------------------------------------------------
-select public._rls('ajustes_empresa', 'true', null, '(select public.tiene_permiso(''empresa.ajustes.gestionar''))', null);
-select public._rls('monedas', 'true', '(select public.tiene_permiso(''empresa.tipos_cambio.gestionar''))', '(select public.tiene_permiso(''empresa.tipos_cambio.gestionar''))', '(select public.tiene_permiso(''empresa.tipos_cambio.gestionar''))');
-select public._rls('tipos_cambio', 'true', '(select public.tiene_permiso(''empresa.tipos_cambio.gestionar''))', '(select public.tiene_permiso(''empresa.tipos_cambio.gestionar''))', '(select public.tiene_permiso(''empresa.tipos_cambio.gestionar''))');
+-- Sólo lectura: todo lo que se escribe pasa por las RPC de `…001200_empresa.sql` (control de
+-- versión, sello de quién cambió, guarda de la moneda base, un solo tipo de cambio por defecto).
+select public._rls('ajustes_empresa', 'true', null, null, null);
+select public._rls('monedas', 'true', null, null, null);
+select public._rls('tipos_cambio', 'true', null, null, null);
 select public._rls('tipos_cambio_historial', '(select public.tiene_permiso(''empresa.tipos_cambio.gestionar''))', null, null, null);
-select public._rls('integraciones', 'true', null, '(select public.tiene_permiso(''empresa.ajustes.gestionar''))', null);
+select public._rls('integraciones', 'true', null, null, null);
 
 -- ---------------------------------------------------------------------------
 -- orígenes

@@ -60,7 +60,8 @@ returns int language sql stable security definer set search_path = '' as $$
     (select count(*) from public.perfiles where p_bucket = 'avatares' and avatar_ruta = p_ruta) +
     (select count(*) from public.web_guias where p_bucket = 'web' and portada_ruta = p_ruta) +
     (select count(*) from public.web_testimonios where p_bucket = 'web' and foto_ruta = p_ruta) +
-    (select count(*) from public.ajustes_empresa where p_bucket = 'marca' and (logo_ruta = p_ruta or logo_oscuro_ruta = p_ruta))
+    (select count(*) from public.ajustes_empresa where p_bucket = 'marca' and (logo_ruta = p_ruta or logo_oscuro_ruta = p_ruta)) +
+    (select count(*) from public.ajustes_empresa e, jsonb_each_text(coalesce(e.iconos, '{}'::jsonb)) i where p_bucket = 'marca' and i.value = p_ruta)
   )::int;
 $$;
 revoke all on function public.storage_refcount(text, text) from public, anon;
