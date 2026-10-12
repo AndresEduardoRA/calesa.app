@@ -1,33 +1,25 @@
 import type { MetadataRoute } from 'next'
-import {
-  COLOR_FONDO_CLARO,
-  COLOR_TEMA,
-  DESCRIPCION_APP,
-  NOMBRE_POR_DEFECTO,
-} from '@/shared/config/app'
+import { getAjustes, iconosDelManifest } from '@/modules/empresa'
+import { COLOR_FONDO_CLARO, COLOR_TEMA, DESCRIPCION_APP } from '@/shared/config/app'
+import { urlPublica } from '@/shared/lib/almacen'
 
-// Manifest de la PWA. Íconos neutros de public/iconos (design/ICONOS.md) hasta que la empresa
-// cargue su logo y los regenere.
-export default function manifest(): MetadataRoute.Manifest {
+// Manifest de la PWA, con la identidad de la empresa: su nombre, su color y los íconos generados
+// desde su logo. Sin íconos propios, los neutros de public/iconos (design/ICONOS.md). Se pide sin
+// sesión: `getAjustes()` lee lo que `anon` puede ver.
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const ajustes = await getAjustes()
   return {
-    name: NOMBRE_POR_DEFECTO,
-    short_name: NOMBRE_POR_DEFECTO,
+    name: ajustes.nombre,
+    short_name: ajustes.nombre,
     description: DESCRIPCION_APP,
     lang: 'es',
     start_url: '/',
     scope: '/',
     display: 'standalone',
     background_color: COLOR_FONDO_CLARO,
-    theme_color: COLOR_TEMA,
-    icons: [
-      { src: '/iconos/icono-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/iconos/icono-512.png', sizes: '512x512', type: 'image/png' },
-      {
-        src: '/iconos/icono-512-maskable.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'maskable',
-      },
-    ],
+    theme_color: ajustes.colorAcento ?? COLOR_TEMA,
+    // La dirección de un ícono propio cambia cada vez que se regenera (su nombre es el hash de
+    // su contenido): así el navegador se entera de que hay uno nuevo.
+    icons: iconosDelManifest(ajustes.iconos, (ruta) => urlPublica('marca', ruta)),
   }
 }

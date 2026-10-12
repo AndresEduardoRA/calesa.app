@@ -22,12 +22,14 @@ export const metadata: Metadata = {
   title: { default: NOMBRE_POR_DEFECTO, template: `%s · ${NOMBRE_POR_DEFECTO}` },
   description: DESCRIPCION_APP,
   applicationName: NOMBRE_POR_DEFECTO,
+  // Este layout es estático y no lee los ajustes: los íconos apuntan a una dirección fija que
+  // redirige al de la empresa o al neutro (`app/iconos/vigente/[tamano]/route.ts`).
   icons: {
     icon: [
-      { url: '/iconos/icono-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/iconos/icono-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/iconos/vigente/32', sizes: '32x32', type: 'image/png' },
+      { url: '/iconos/vigente/192', sizes: '192x192', type: 'image/png' },
     ],
-    apple: '/apple-touch-icon.png',
+    apple: '/iconos/vigente/180',
   },
   // Sistema interno: nada de esto se indexa.
   robots: { index: false, follow: false },

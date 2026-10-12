@@ -12,7 +12,7 @@ export function BloqueLegales({ ajustes, errores }: Props) {
       titulo="Datos legales y de contacto"
       descripcion="Salen en las cotizaciones, los comprobantes y la web pública."
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-4 sm:grid-cols-2">
         <Campo
           nombre="razonSocial"
           etiqueta="Razón social"
@@ -29,7 +29,7 @@ export function BloqueLegales({ ajustes, errores }: Props) {
           error={errorDeCampo(errores, 'nit')}
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-4 sm:grid-cols-2">
         <Campo
           nombre="direccion"
           etiqueta="Dirección"
@@ -47,7 +47,7 @@ export function BloqueLegales({ ajustes, errores }: Props) {
           error={errorDeCampo(errores, 'ciudad')}
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-4 sm:grid-cols-2">
         <Campo
           nombre="telefono"
           etiqueta="Teléfono"

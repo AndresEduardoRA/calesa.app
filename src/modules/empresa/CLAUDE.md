@@ -11,7 +11,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
   - `getTiposCambio()` — los tipos de cambio vigentes, con el por defecto adelante. Tampoco tumba una pantalla (devuelve una lista vacía). Lo consume `app/` para la barra superior (`<TiposCambioVigentes>`); lo consumirá `cotizaciones`, que congela los que usa.
   - `integracionActiva('apibara')` — si una integración está prendida; si la base no responde, no. La consumirá `vehiculos` antes de ofrecer el alta por enlace.
   - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`, `<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`.
-- Pendiente en esta fase: íconos.
+  - Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` para `app/manifest.ts` y `app/iconos/vigente/[tamano]`; `<IconosDeLaApp>` para la pantalla.
 - Depende de: ningún otro módulo. No tiene `client.ts`: ningún Client Component de afuera necesita nada de acá.
 
 ## Archivos clave
@@ -26,6 +26,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - `infra/queries/` — lecturas (`server-only`). `infra/{empresa,tipos-cambio,integraciones}.ts` — escrituras, todas por RPC. `infra/{logo,iconos}.client.ts` — preparar, subir y descartar en Storage desde el navegador.
 - `composicion.ts` (servidor) y `composicion.client.ts` (navegador): de ahí toman `features/` sus implementaciones.
 - `features/empresa/` — el formulario. `guardar-con-logo.ts` son los pasos del commit diferido, contra puertos.
+- `features/iconos/` — «Regenerar íconos»: dibuja, muestra y, al confirmar, sube y guarda. `regenerar-iconos.ts` son los pasos, contra puertos.
 - `features/integraciones/` — la pestaña «Integraciones»: apibara con su interruptor, su configuración no secreta y `<CampoSecreto>` (dice «guardada el …» y deja reemplazarla; nunca la muestra).
 - `features/tipos-cambio/` — la pestaña «Monedas»: listas, un panel por tipo de cambio (valor e historial) y por moneda, y `<TiposCambioVigentes>` para la barra superior.
 
@@ -37,6 +38,7 @@ RPC: `web.ajustes_acceso` (lo único de la empresa que lee `anon`), `empresa_gua
 ## No se rompe
 
 - Toda edición manda la versión que tenía en pantalla (`actualizado_en`) y la base responde `PT409` si otra persona lo cambió. Los ajustes son una fila con una versión: el formulario lleva `key={ajustes.actualizadoEn}` y arranca de lo guardado cada vez que la versión cambia.
+- Los íconos se dibujan desde el logo **guardado** y se suben recién al confirmar la vista previa. Su dirección cambia en cada regeneración (el nombre es el hash): es lo que le avisa al navegador.
 - El logo se sube al guardar, no al elegirlo. Si la fila no se guarda, el objeto recién subido se descarta; si se guarda, se descarta el anterior. Siempre por `storage_refcount`.
 - Un color que no da contraste AA con el texto de los botones (ni en blanco ni en oscuro) se rechaza con el motivo, en el campo y otra vez en el servidor.
 - Locale y zona horaria se validan contra `Intl`, y la zona además en la base (`now() at time zone`).

@@ -21,3 +21,7 @@ export { TiposCambioVigentes } from './features/tipos-cambio/components/tipos-ca
 export { integracionActiva, leerIntegraciones } from './composicion'
 export type { ClaveIntegracion } from './entities/integraciones'
 export { Integraciones } from './features/integraciones/components/integraciones'
+
+// Íconos de la app generados desde el logo
+export { claveDeIconoVigente, iconosDelManifest, urlDeIcono } from './entities/iconos'
+export { IconosDeLaApp } from './features/iconos/components/iconos-de-la-app'

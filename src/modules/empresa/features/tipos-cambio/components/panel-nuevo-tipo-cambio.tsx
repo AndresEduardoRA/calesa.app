@@ -41,7 +41,7 @@ function Campos({ opciones, monedaBase, otra, errores, valorInvalido }: PropsDeC
         error={errorDeCampo(errores, 'nombre')}
         ayuda="De él sale la clave con la que lo nombran las fórmulas. La clave no cambia después."
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-4 sm:grid-cols-2">
         <CampoSeleccion
           nombre="monedaDe"
           etiqueta="Una unidad de"

@@ -21,7 +21,7 @@ type Props = {
 export function BloqueRegion({ ajustes, monedas, zonas, conDatosCargados, errores }: Props) {
   return (
     <Bloque titulo="Región" descripcion="Cómo se escriben los números, las fechas y los montos.">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid items-start gap-4 sm:grid-cols-2">
         <Campo
           nombre="pais"
           etiqueta="País"

@@ -34,10 +34,10 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Depende de: ningún otro módulo
 
 ### `empresa`
-Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 67 archivos
-- API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `zonasHorarias`, `FormularioEmpresa`, `getTiposCambio`, `leerHistorial`, `TipoCambio`, +6
+Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 74 archivos
+- API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `zonasHorarias`, `FormularioEmpresa`, `getTiposCambio`, `leerHistorial`, `TipoCambio`, +10
 - Depende de: ningún otro módulo
-- Casos de uso: empresa, integraciones, tipos-cambio
+- Casos de uso: empresa, iconos, integraciones, tipos-cambio
 
 ### `equipo`
 Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 119 archivos
@@ -108,6 +108,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `/configuracion/equipo` — página
 - `/configuracion/roles` — página
 - `/configuracion` — página
+- `/iconos/vigente/[tamano]` — API
 - `/ingreso` — página
 - `/perfil` — página
 - `/recuperar` — página

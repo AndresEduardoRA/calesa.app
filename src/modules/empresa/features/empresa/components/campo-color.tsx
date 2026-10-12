@@ -22,12 +22,13 @@ export function CampoColor({ guardado, error }: Props) {
 
   return (
     <div className="grid gap-2">
-      <div className="flex items-end gap-2">
+      <div className="flex items-start gap-2">
         <input
           type="color"
-          aria-label="Elegir el color de la marca"
+          aria-label="Selector del color"
           value={revisado?.ok ? revisado.color : COLOR_TEMA}
-          className="h-11 w-12 shrink-0 cursor-pointer rounded-(--radius-md) border border-(--color-line-strong) bg-(--color-surface) p-1 disabled:cursor-not-allowed disabled:opacity-50 md:h-9"
+          // `mt-5`: arranca a la altura del campo de texto, no de su etiqueta.
+          className="mt-5 h-11 w-12 shrink-0 cursor-pointer rounded-(--radius-md) border border-(--color-line-strong) bg-(--color-surface) p-1 disabled:cursor-not-allowed disabled:opacity-50 md:h-9"
           onChange={(evento) => {
             setValor(evento.target.value)
           }}
