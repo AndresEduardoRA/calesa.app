@@ -1421,3 +1421,76 @@ reset role;
 do $$ begin
   if (select count(*) from public.vistas_guardadas where nombre = 'Humo de Irene') <> 1 then raise exception 'otra persona tocó una vista ajena'; end if;
 end $$;
+
+-- @test limpieza de storage: sólo se reclama lo viejo y sin referencias; lo reclamado no se vuelve a referenciar
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare n int; r record; begin
+  delete from public.cola_gc_storage;
+  -- Un huérfano viejo, uno reciente (una subida en curso) y uno viejo que sí tiene quien lo use.
+  insert into storage.objects (bucket_id, name, created_at) values
+    ('vehiculos', 'gc/viejo.webp', now() - interval '3 days'),
+    ('vehiculos', 'gc/reciente.webp', now() - interval '1 hour'),
+    ('avatares', 'gc/en-uso.webp', now() - interval '3 days');
+  update public.perfiles set avatar_ruta = 'gc/en-uso.webp' where id = '00000000-0000-0000-0000-000000000001';
+  insert into public.cola_gc_storage (bucket, ruta, encolado_en) values
+    ('avatares', 'gc/en-uso.webp', now() - interval '2 days'),
+    ('vehiculos', 'gc/recien-encolado.webp', now());
+
+  n := 0;
+  for r in select * from public.storage_gc_reclamar(100) loop
+    n := n + 1;
+    if (r.bucket, r.ruta) <> ('vehiculos', 'gc/viejo.webp') then raise exception 'reclamó lo que no debía: %/%', r.bucket, r.ruta; end if;
+  end loop;
+  if n <> 1 then raise exception 'esperaba reclamar sólo el huérfano viejo, reclamó %', n; end if;
+  if exists (select 1 from public.cola_gc_storage where ruta = 'gc/en-uso.webp') then raise exception 'lo que tiene referencias debía salir de la cola'; end if;
+  if exists (select 1 from public.cola_gc_storage where ruta = 'gc/reciente.webp') then raise exception 'encoló un objeto recién subido'; end if;
+  if (select reclamado_en from public.cola_gc_storage where ruta = 'gc/recien-encolado.webp') is not null then raise exception 'reclamó algo que acaba de entrar a la cola'; end if;
+
+  -- Lo reclamado no se vuelve a reclamar enseguida, y nadie puede referenciarlo.
+  if exists (select 1 from public.storage_gc_reclamar(100)) then raise exception 'reclamó dos veces lo mismo'; end if;
+  begin
+    perform public.storage_gc_rescatar('vehiculos', 'gc/viejo.webp');
+    raise exception 'dejó referenciar un objeto que se está borrando';
+  exception when raise_exception then
+    if sqlerrm not like 'Ese archivo se está limpiando%' then raise; end if;
+  end;
+  -- Lo encolado y sin reclamar se rescata: sale de la cola.
+  perform public.storage_gc_rescatar('vehiculos', 'gc/recien-encolado.webp');
+  if exists (select 1 from public.cola_gc_storage where ruta = 'gc/recien-encolado.webp') then raise exception 'rescatar no sacó la ruta de la cola'; end if;
+  perform public.storage_gc_rescatar('vehiculos', 'gc/nunca-estuvo.webp');
+
+  -- Un reclamo que nadie confirmó en una hora se vuelve a ofrecer; confirmar sólo saca lo reclamado.
+  update public.cola_gc_storage set reclamado_en = now() - interval '2 hours' where ruta = 'gc/viejo.webp';
+  if (select count(*) from public.storage_gc_reclamar(100)) <> 1 then raise exception 'un reclamo vencido no se volvió a ofrecer'; end if;
+  insert into public.cola_gc_storage (bucket, ruta) values ('vehiculos', 'gc/sin-reclamar.webp');
+  n := public.storage_gc_confirmar('vehiculos', array['gc/viejo.webp', 'gc/sin-reclamar.webp']);
+  if n <> 1 then raise exception 'confirmar debía sacar sólo lo reclamado, sacó %', n; end if;
+  if not exists (select 1 from public.cola_gc_storage where ruta = 'gc/sin-reclamar.webp') then raise exception 'confirmó algo que nadie había reclamado'; end if;
+
+  update public.perfiles set avatar_ruta = null where id = '00000000-0000-0000-0000-000000000001';
+  delete from storage.objects where name like 'gc/%';
+  delete from public.cola_gc_storage;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ begin
+  begin
+    perform public.storage_gc_reclamar(1);
+    raise exception 'una persona de la app pudo reclamar la limpieza';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.storage_gc_confirmar('vehiculos', array['x']);
+    raise exception 'una persona de la app pudo confirmar la limpieza';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.storage_gc_rescatar('vehiculos', 'x');
+    raise exception 'una persona de la app pudo tocar la cola';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform 1 from public.cola_gc_storage;
+    raise exception 'la cola se lee desde la app';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;

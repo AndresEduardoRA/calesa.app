@@ -341,17 +341,20 @@ export type Database = {
         Row: {
           bucket: string
           encolado_en: string
+          reclamado_en: string | null
           ruta: string
         }
         ComputedFields: never
         Insert: {
           bucket: string
           encolado_en?: string
+          reclamado_en?: string | null
           ruta: string
         }
         Update: {
           bucket?: string
           encolado_en?: string
+          reclamado_en?: string | null
           ruta?: string
         }
         Relationships: []
@@ -5772,6 +5775,7 @@ export type Database = {
       }
     }
     Functions: {
+      _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
         Returns: undefined
@@ -6262,6 +6266,19 @@ export type Database = {
       revocar_portal: { Args: { p_lead: string }; Returns: undefined }
       rol_dominado: { Args: { p_rol: string }; Returns: boolean }
       slugificar: { Args: { p: string }; Returns: string }
+      storage_gc_confirmar: { Args: { p_bucket: string; p_rutas: string[] }; Returns: number }
+      storage_gc_encolar_huerfanos: {
+        Args: { p_bucket: string; p_gracia: string }
+        Returns: number
+      }
+      storage_gc_reclamar: {
+        Args: { p_max?: number }
+        Returns: {
+          bucket: string
+          ruta: string
+        }[]
+      }
+      storage_gc_rescatar: { Args: { p_bucket: string; p_ruta: string }; Returns: undefined }
       storage_refcount: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       telefono_lead: { Args: { p_lead: string }; Returns: string }
       tiene_permiso: { Args: { p_clave: string; p_origen?: string }; Returns: boolean }

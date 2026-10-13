@@ -41,7 +41,7 @@ grant execute on all functions in schema extensions to anon, authenticated, serv
 create schema if not exists storage;
 grant usage on schema storage to anon, authenticated, service_role;
 create table if not exists storage.buckets (id text primary key, name text, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
-create table if not exists storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid, metadata jsonb);
+create table if not exists storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid, metadata jsonb, created_at timestamptz default now());
 create or replace function storage.foldername(n text) returns text[] language sql immutable as $$ select (string_to_array(n, '/'))[1:array_length(string_to_array(n,'/'),1)-1] $$;
 -- Vault (extensión supabase_vault, que PGlite no trae): sólo lo que usan nuestras RPC, sin cifrar.
 -- Prueba nuestra lógica y nuestros grants; los privilegios reales de Vault los cubre el e2e.

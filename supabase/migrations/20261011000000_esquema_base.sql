@@ -771,12 +771,13 @@ create table public.vehiculos_vinculos (
 comment on table public.vehiculos_vinculos is 'Historial del vínculo activo vehículo ↔ lead.';
 
 create table public.cola_gc_storage (
-  bucket      text not null,
-  ruta        text not null,
-  encolado_en timestamptz not null default now(),
+  bucket       text not null,
+  ruta         text not null,
+  encolado_en  timestamptz not null default now(),
+  reclamado_en timestamptz,                     -- la limpieza lo va a borrar: nadie puede volver a referenciarlo
   primary key (bucket, ruta)
 );
-comment on table public.cola_gc_storage is 'Objetos a borrar por la purga de la papelera. Los procesa la edge function storage-gc recontando referencias antes de borrar por la API. Sólo service_role.';
+comment on table public.cola_gc_storage is 'Objetos de Storage que quizá ya nadie referencia: los encolan la purga de la papelera, el borrado de una foto y el barrido de huérfanos. storage_gc_reclamar() recuenta bajo candado y marca reclamado_en; sólo lo reclamado se borra por la API, y storage_gc_confirmar() lo saca. Sólo service_role.';
 
 -- >>> schemas/07_cotizaciones/01_cotizaciones.sql
 -- Módulo cotizaciones: fórmula por origen como grafo de nodos versionado, tablas de
