@@ -15,6 +15,7 @@ export const RUTAS = {
   roles: '/configuracion/roles',
   empresa: '/configuracion/empresa',
   origenes: '/configuracion/origenes',
+  vehiculos: '/vehiculos',
 } as const
 
 // Quien ya tiene sesión no tiene nada que hacer acá.

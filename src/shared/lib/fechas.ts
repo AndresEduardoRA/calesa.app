@@ -88,3 +88,17 @@ export function fechaRelativa(iso: string, opciones: OpcionesRelativa = {}): str
   }
   return relativaPorDias(iso, instante, ahora, zona)
 }
+
+// El día que sigue a un `YYYY-MM-DD`, también como `YYYY-MM-DD`. Sirve para «hasta ese día
+// inclusive» escrito como «antes del día siguiente».
+export function diaSiguiente(dia: string): string {
+  const instante = new Date(`${dia}T00:00:00Z`)
+  instante.setUTCDate(instante.getUTCDate() + 1)
+  return instante.toISOString().slice(0, 10)
+}
+
+// El instante (ISO, en UTC) en que empieza un día del calendario de la empresa. Con esto un
+// filtro «desde el 13» sobre una fecha con hora empieza a la medianoche de la empresa, no de UTC.
+export function inicioDelDia(dia: string, { zona = ZONA_POR_DEFECTO }: Opciones = {}): string {
+  return fromZonedTime(`${dia}T00:00:00`, zona).toISOString()
+}

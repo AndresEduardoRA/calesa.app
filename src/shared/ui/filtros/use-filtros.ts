@@ -3,6 +3,9 @@
 import { debounce, parseAsString, useQueryStates } from 'nuqs'
 import { useMemo, useTransition } from 'react'
 import {
+  CLAVE_DE_CURSOR,
+  CLAVE_DE_PANEL,
+  PANEL_DE_FILTROS,
   clavesDeUrl,
   escribirFiltro,
   hayFiltros,
@@ -13,12 +16,6 @@ import {
   type ValorDeFiltro,
   type ValoresDeFiltros,
 } from '@/shared/lib/filtros'
-
-// La página de un listado, en su URL. Cambiar un filtro vuelve a la primera.
-export const CLAVE_DE_CURSOR = 'cursor'
-// El panel abierto (la hoja de filtros en el celular, o el que abra el listado).
-export const CLAVE_DE_PANEL = 'panel'
-export const PANEL_DE_FILTROS = 'filtros'
 
 const DEMORA_AL_TIPEAR_MS = 300
 

@@ -9,7 +9,10 @@ export {
   type ValoresDeFiltros,
 } from './esquema'
 export {
+  CLAVE_DE_CURSOR,
+  CLAVE_DE_PANEL,
   LARGO_MAXIMO_DE_TEXTO,
+  PANEL_DE_FILTROS,
   clavesDeFiltro,
   clavesDeUrl,
   escribirFiltro,

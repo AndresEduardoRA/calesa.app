@@ -64,7 +64,7 @@ export const NAVEGACION = [
     Icono: CarFrontIcon,
     zona: 'principal',
     permisos: ['vehiculos.ver'],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'cotizaciones',

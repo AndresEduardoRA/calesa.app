@@ -12,6 +12,13 @@ import type {
 
 export const LARGO_MAXIMO_DE_TEXTO = 100
 
+// Claves de la URL que un listado comparte con su `FilterShell`. La página de la lista (cambiar
+// un filtro vuelve a la primera) y el panel abierto (la hoja de filtros del celular, o el que
+// abra el listado: «nuevo», un registro).
+export const CLAVE_DE_CURSOR = 'cursor'
+export const CLAVE_DE_PANEL = 'panel'
+export const PANEL_DE_FILTROS = 'filtros'
+
 const FECHA = /^\d{4}-\d{2}-\d{2}$/
 
 // Las claves de la URL que le pertenecen a un filtro.

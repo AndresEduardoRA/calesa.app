@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   diaEnZona,
+  diaSiguiente,
   fechaRelativa,
   formatearFecha,
   formatearFechaHora,
   formatearHora,
+  inicioDelDia,
 } from './fechas'
 
 describe('formatear en la zona de la empresa', () => {
@@ -59,5 +61,18 @@ describe('fechaRelativa', () => {
     expect(relativa('2026-10-11')).toBe('hoy')
     expect(relativa('2026-10-12')).toBe('mañana')
     expect(relativa('2026-10-10')).toBe('ayer')
+  })
+})
+
+describe('días para filtrar', () => {
+  it('el día siguiente cruza de mes y de año', () => {
+    expect(diaSiguiente('2026-10-13')).toBe('2026-10-14')
+    expect(diaSiguiente('2026-02-28')).toBe('2026-03-01')
+    expect(diaSiguiente('2026-12-31')).toBe('2027-01-01')
+  })
+
+  it('un día de la empresa empieza a su medianoche, no a la de UTC', () => {
+    expect(inicioDelDia('2026-10-13', { zona: 'America/La_Paz' })).toBe('2026-10-13T04:00:00.000Z')
+    expect(inicioDelDia('2026-10-13', { zona: 'UTC' })).toBe('2026-10-13T00:00:00.000Z')
   })
 })
