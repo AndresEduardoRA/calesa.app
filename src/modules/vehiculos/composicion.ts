@@ -4,13 +4,17 @@
 import 'server-only'
 import type {
   BuscadorDeVehiculos,
+  ConsultaDeEditables,
   LectorDeGaleria,
+  LectorDeRelaciones,
   LectorDeVehiculo,
   RepositorioFotos,
   RepositorioVehiculos,
 } from './entities/repositorios'
 import { fotosSupabase } from './infra/fotos'
+import { getEditables } from './infra/queries/editables'
 import { getGaleria } from './infra/queries/fotos'
+import { getRelaciones } from './infra/queries/vinculo'
 import { buscarVehiculos as buscarEnSupabase, getVehiculo } from './infra/queries/listado'
 import { vehiculosSupabase } from './infra/vehiculos'
 
@@ -19,3 +23,5 @@ export const leerVehiculo: LectorDeVehiculo = getVehiculo
 export const repositorioVehiculos: RepositorioVehiculos = vehiculosSupabase
 export const leerGaleria: LectorDeGaleria = getGaleria
 export const repositorioFotos: RepositorioFotos = fotosSupabase
+export const leerRelaciones: LectorDeRelaciones = getRelaciones
+export const consultarEditables: ConsultaDeEditables = getEditables

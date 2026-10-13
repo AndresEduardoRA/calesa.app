@@ -4,6 +4,8 @@ Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo
 
 ## Entra y sale
 
+> Todavía no hay código: esto es el contrato de la Fase 3. Hasta entonces nadie puede importar `getLead()`, `<SelectorLead>` ni `<ChipLead>`; `vehiculos` muestra el nombre de un lead con sus propias funciones de lectura (`vehiculo_vinculos`, `vehiculo_interesados`).
+
 - Entra: drawer «Nuevo lead» (verifica el teléfono al tipear), seguimientos con Tiptap saneado, importación CSV propia.
 - Sale: `getLead()`, `buscarLeads()`, `<SelectorLead>`, `<ChipLead>`, `telefonoDe(leadId)` (sólo cartera). Lo consumen `cotizaciones`, `vehiculos`, `agenda`, `chat`, `web`, `repuestos`, `buscador`, `tablero`, `datos`.
 - Depende de: `equipo` (permisos y alcance propios/todos).

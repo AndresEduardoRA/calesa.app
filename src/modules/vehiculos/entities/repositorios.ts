@@ -6,6 +6,7 @@ import type { DatosDeVehiculo } from './esquema'
 import type { Condicion } from './filtros'
 import type { FotoEliminada, FotoSubida, Galeria } from './foto'
 import type { Vehiculo } from './vehiculo'
+import type { Relaciones } from './vinculo'
 
 // Una página del inventario de un origen, de lo más nuevo a lo más viejo. La RLS decide qué ve
 // quien llama: acá no se filtra por permiso.
@@ -78,3 +79,10 @@ export type RepositorioFotos = {
     fotoId: string
   }) => Promise<Resultado<{ actualizadoEn: string | null; foto: FotoEliminada | null }>>
 }
+
+// El vínculo activo, su historial y los interesados, con el nombre de cada lead sólo si quien
+// llama lo ve.
+export type LectorDeRelaciones = (vehiculoId: string) => Promise<Resultado<Relaciones>>
+
+// De estos ids, cuáles puede editar quien llama: lo responde la base.
+export type ConsultaDeEditables = (ids: readonly string[]) => Promise<Resultado<string[]>>

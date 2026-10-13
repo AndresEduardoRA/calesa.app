@@ -82,11 +82,11 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 - Casos de uso: bandeja
 
 ### `vehiculos`
-Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, y fotos (hasta 24, con portada). Más adelante: vitrina web, papelera por lotes e importación desde Copart/IAAI vía apibara. · 91 archivos
-- API: `buscarVehiculos`, `leerGaleria`, `leerVehiculo`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, `puedeEditar`, `PermisoDeAlta`, +11
+Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), y el vínculo a un lead con sus interesados (por ahora de sólo lectura). Más adelante: vitrina web, papelera por lotes e importación desde Copart/IAAI vía apibara. · 98 archivos
+- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerVehiculo`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, `PermisoDeAlta`, +14
 - API de cliente (`client.ts`): `TarjetaVehiculo`, `BadgeDeFase`, `Vehiculo`
 - Depende de: empresa, equipo, flujos, origenes
-- Casos de uso: alta, ficha, fotos, listado
+- Casos de uso: alta, ficha, fotos, listado, permisos, vinculo
 
 ### `web`
 Lo que el CRM configura para la web pública y el portal del cliente: ajustes del sitio, guías, FAQs, testimonios con consentimiento, cola web round-robin («turnos»), vistas y RPC del esquema `web`, revalidación on-demand. · 1 archivos

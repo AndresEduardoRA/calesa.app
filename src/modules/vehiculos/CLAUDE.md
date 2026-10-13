@@ -1,6 +1,6 @@
 # vehiculos
 
-Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, y fotos (hasta 24, con portada). Más adelante: vitrina web, papelera por lotes e importación desde Copart/IAAI vía apibara.
+Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), y el vínculo a un lead con sus interesados (por ahora de sólo lectura). Más adelante: vitrina web, papelera por lotes e importación desde Copart/IAAI vía apibara.
 
 ## Entra y sale
 
@@ -8,10 +8,11 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
 - Sale por `index.ts` (servidor):
   - `buscarVehiculos({ origenId, condiciones, cursor, tamano })` → una página (`Pagina<Vehiculo>`), y `leerVehiculo(id)`; los dos traen la miniatura de la portada (`portadaRuta`) y el vínculo activo (`leadId`). `leerGaleria(id)` → las fotos y su versión.
   - `esquemaDeFiltros({ campos, fases, categorias })` y `condicionesDe(campos, valores, { zona })`: los filtros de un origen desde su layout.
-  - `origenesVisibles()`, `origenElegido()`, `permisoDeAlta()`, `puedeEditar()`: qué ve y qué puede hacer la persona.
+  - `origenesVisibles()`, `origenElegido()`, `permisoDeAlta()`: qué ve y qué puede hacer la persona. `editablesDe(quien, vehiculos)` → los ids que ofrecen «Editar».
+  - `leerRelaciones(id)` → el vínculo activo, su historial y los interesados; `<VinculoEInteresados relaciones>`.
   - `<ListadoDeVehiculos>`, `<CabeceraDeVehiculo>`, `<FichaDeVehiculo>`, `<TarjetaVehiculo>`; `<PanelDeVehiculo>` (va una vez por pantalla), `<BotonEditarVehiculo>` y `CLAVE_DE_EDICION`; `<SeccionDeFotos vehiculoId galeria puedeEditar>` y `<EsqueletoDeFotos>`.
 - Sale por `client.ts`: `<TarjetaVehiculo>`, `<BadgeDeFase>` y el tipo `Vehiculo`.
-- Todavía no existe (partes 4 y 5 de la fase 2): `<SelectorVehiculo>`, vitrina, papelera, apibara (ni fotos por URL).
+- Todavía no existe: vitrina, papelera, apibara y fotos por URL (partes 4 y 5 de la fase 2); `<SelectorVehiculo>` y la interfaz que vincula y marca interesados (Fase 3). **Esa interfaz vive en este módulo** aunque se muestre en la ficha del lead: `app/` la compone. `leads` no importa `vehiculos` (este módulo va a depender de `leads` por `<SelectorLead>`; al revés sería un ciclo).
 - Depende de: `origenes` (layout, orígenes, cómo se nombra lo que entra), `flujos` (las fases de un origen), `equipo` (sesión, permisos y `<MenuDeVistas>`). Lo consumirán `cotizaciones`, `logistica`, `repuestos`, `agenda`, `chat`, `web`, `buscador`, `tablero`, `datos`.
 
 ## Archivos clave
@@ -23,12 +24,14 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
 - `entities/comunes.ts` — `camposComunes(tipoDeOrigen)`: los datos que son columna (título, marca, año, VIN, precio…; lote, plataforma y enlace sólo en subasta), con su etiqueta, su bloque («Datos principales», «Precio») y sus topes. `valorComun()`. Es el único lugar con etiquetas fijas de campos.
 - `entities/formulario.ts` — el estado del formulario (`ValoresDeFormulario`: lo que la persona ve y escribe, con los campos del layout bajo `a.<clave>`), `valoresIniciales()` (en un alta, el `valor_defecto` de cada campo).
 - `entities/esquema.ts` — `esquemaDeVehiculo(fuentes)`: el `z.object` armado desde los datos comunes y el layout; `validarVehiculo()` devuelve los datos listos para la base o el primer motivo de cada campo. **Lo usan igual el formulario y la Server Action.**
-- `entities/permisos.ts` — espejo de las reglas de la base para dibujar; `entities/repositorios.ts`.
+- `entities/permisos.ts` — qué se dibuja: `puedeEditar()` (lo que se sabe sin ir a la base) y `candidatosPorCartera()` (por cuáles hay que preguntarle); `entities/repositorios.ts`.
+- `entities/vinculo.ts` — `Vinculo`, `Interesado`, `Relaciones`, `relacionesDesde()`, `nombreDeLead()` (un lead que quien mira no ve no se nombra).
 - `entities/foto.ts` — `Foto`, `Galeria` (fotos + versión), `MAXIMO_DE_FOTOS`, `lugarPara()`, `destinoDeMovimiento()` («después de», como en el layout de campos), `esRutaDeFoto()`. `entities/seleccion-de-fotos.ts` — qué entra de lo que la persona eligió y por qué no lo que no: `motivoPorArchivo()`, `repartirLugar()`, `mensajeDeRechazo()`, `avisoDeTope()`, `resumenDeSubida()`. Todos los textos de un rechazo salen de acá.
-- `infra/queries/condiciones.ts` — `aplicarCondiciones()`, `aplicarCursor()` y los saneadores `citar()` y `patronContiene()`. `infra/queries/listado.ts` — `buscarVehiculos()`, `getVehiculo()`. `infra/vehiculos.ts` — las dos RPC de escritura; traduce el `hint` de la base (`anio`, `atributos.color`) a la clave del campo en el formulario. `infra/queries/fotos.ts` y `infra/fotos.ts` (las cuatro RPC de fotos). `infra/fotos.client.ts` — en el navegador: `prepararFoto()` (hash del archivo + los dos tamaños, una sola decodificación) y `subirFoto()` (los dos objetos). `composicion.ts` y `composicion.client.ts`.
+- `infra/queries/condiciones.ts` — `aplicarCondiciones()`, `aplicarCursor()` y los saneadores `citar()` y `patronContiene()`. `infra/queries/listado.ts` — `buscarVehiculos()`, `getVehiculo()`. `infra/vehiculos.ts` — las dos RPC de escritura; traduce el `hint` de la base (`anio`, `atributos.color`) a la clave del campo en el formulario. `infra/queries/fotos.ts` y `infra/fotos.ts` (las cuatro RPC de fotos). `infra/queries/vinculo.ts` (`vehiculo_vinculos` + `vehiculo_interesados`) y `infra/queries/editables.ts` (`vehiculos_editables`). `infra/fotos.client.ts` — en el navegador: `prepararFoto()` (hash del archivo + los dos tamaños, una sola decodificación) y `subirFoto()` (los dos objetos). `composicion.ts` y `composicion.client.ts`.
 - `features/alta/` — `controles.ts` (qué control dibuja cada dato, común o del layout), `fuentes.ts` (lo que el servidor vuelve a leer para validar), `actions/crear-vehiculo.ts` y `guardar-vehiculo.ts`, `hooks/use-formulario-de-vehiculo.ts` (validar, enviar, borrador, conflicto, reintento al volver la conexión, atajos), `hooks/use-panel-de-vehiculo.ts` (el panel en la URL), `components/` (`panel-de-vehiculo`, `formulario-de-vehiculo`, `campo-de-formulario`, `botones`).
 - `features/ficha/components/` — `cabecera-de-vehiculo` (portada, título, número, origen y la fase de sólo lectura: va arriba de todas las pestañas), `ficha-de-vehiculo` (los dos bloques comunes y un `<Bloque>` por grupo del layout), `valor-mostrado` (dibuja un `ValorMostrado`; lo usa también la celda del listado).
 - `features/fotos/` — `bandeja.ts` (el estado puro de lo elegido: `reducirBandeja()`, `verBandeja()`, `paraSubir()`, `etiquetaDeSubir()`), `tandas.ts`, `envio.ts`, `permiso.ts`; `hooks/` (`use-bandeja-de-fotos`: leer lo elegido; `use-subida-de-fotos`: subir y registrar; `use-galeria` y `use-version-de-fotos`: mover, portada, eliminar y deshacer); `actions/` (`agregar-fotos`, `mover-foto`, `fijar-portada`, `eliminar-foto`, `restaurar-foto`); `components/` (`seccion-de-fotos`, `subida-de-fotos`, `bandeja-de-subida`, `item-de-bandeja`, `progreso-de-subida`, `galeria-de-fotos`, `foto-de-galeria`, `botones-de-foto`, `esqueleto-de-fotos`).
+- `features/vinculo/components/vinculo-e-interesados` — el bloque de sólo lectura bajo la ficha. `features/permisos/editables.ts` — `editablesDe()`.
 - `features/listado/components/` — `listado-de-vehiculos` (pestañas + `FilterShell` + resultado), `resultado-del-listado` (los estados vacíos), `tabla-de-vehiculos` (escritorio), `tarjeta-vehiculo` (celular), `valor-de-campo`, `badge-de-fase`, `miniatura`, `paginacion`, `vistas-de-vehiculos`, `pie-de-filtros`.
 
 ## Tablas
@@ -58,6 +61,9 @@ RPC: `vehiculo_crear`, `vehiculo_guardar`, `vehiculo_fotos_agregar`, `vehiculo_f
 - Nadie borra objetos de `vehiculos` desde la app. Eliminar una foto borra la fila y encola sus rutas (`cola_gc_storage`); «Deshacer» (10 s) vuelve a registrar la misma foto en su lugar y la saca de la cola. La limpieza reclama recién a las 24 h y recontando bajo candado: una fila nunca queda apuntando a un objeto borrado.
 - El listado, la cabecera y la grilla cargan sólo miniaturas, con `<Image unoptimized loading="lazy">`: ya llegan chicas y con caché de un año, y pasarlas por el optimizador sumaría otra descarga. La completa se abre aparte, al tocar la foto.
 - Las fotos se reordenan con botones y, con el foco en una foto, con `Alt+←` y `Alt+→`; tras mover, el foco sigue en la misma foto. No hay arrastre.
+- **Vínculo e interesados, sólo por RPC:** `vehiculo_vincular(p_vehiculo, p_actualizado_en_esperado, p_lead)` (versión del vehículo; `p_lead` nulo lo quita; exige `vehiculos.editar` sobre el vehículo y `leads.editar` sobre el lead), `vehiculo_interesado_marcar` y `vehiculo_interesado_quitar` (idempotentes, sin versión: no editan nada; exigen ver el vehículo y poder editar el lead). El vínculo otorga permisos: con alcance «propios», quien tiene ese lead en su cartera ve y edita el vehículo.
+- Este módulo no lee `leads`: el nombre de un lead lo devuelven `vehiculo_vinculos()` y `vehiculo_interesados()`, que corren con la RLS de quien llama. Un lead que no ve llega sin nombre («Un lead que no está en tu cartera»); el interés de un lead que no ve no llega. El bloque sólo se dibuja para quien tiene `leads.ver`.
+- «Editar» lo decide la base. `editablesDe()` resuelve sin consultarla lo evidente (alcance «todos», o lo creó) y pregunta por `vehiculos_editables(ids)` sólo por los que podría editar por cartera, acotado a lo que hay en pantalla. Las RPC de escritura comprueban con `puede_vehiculo()`.
 - Todo monto pasa por `<Monto>` (Modo Live). En esta parte no se muestra ningún costo: `precio` es precio de lista; los costos reales llegan con logística, con sus permisos.
 
 ## Ojo
@@ -73,7 +79,8 @@ RPC: `vehiculo_crear`, `vehiculo_guardar`, `vehiculo_fotos_agregar`, `vehiculo_f
 - Una constante que la página lee en el servidor no se exporta desde un archivo `'use client'` (llegaría como referencia): por eso `CLAVE_DE_EDICION` vive en `features/alta/claves.ts`.
 - El pie del panel es `sticky` con `-bottom-4`: el área que desplaza tiene relleno y «pegajoso» se mide contra el borde de adentro.
 - Un campo deshabilitado no recibe el foco: tras «guardar y cargar otro» se espera a que termine el envío.
-- `puedeEditar()` sólo sabe «lo creé yo»; con alcance «propios» la base también deja editar lo vinculado a un lead de la cartera. Se completa con el vínculo (parte 4).
+- En plpgsql, un permiso nunca se decide con `if not (… lead_id in (select mis_leads()))`: con `lead_id` nulo eso da nulo y el `if` no levanta. Se pregunta con `puede_vehiculo()` (hubo un fallo así en `vehiculo_guardar`; el humo lo cubre con una persona que tiene leads).
+- Desvincular un vehículo que tiene una cotización final no se frena: el portal del cliente deja de mostrarlo. Se decide con la interfaz, en la Fase 3.
 - La tabla (escritorio) y las tarjetas (celular) están las dos en el DOM: un e2e mira lo visible.
 - La ficha declara todas sus pestañas en `src/app/(app)/vehiculos/[id]/pestanas.ts` y sólo muestra las que tienen su `seccion-<clave>.tsx` (un test lo compara con el disco). Sumar una pestaña = crear su sección, prender `disponible` y dibujarla en `page.tsx` según `?seccion=`.
 - Una foto de menos de 480 px no se achica: su completa y su miniatura son el mismo objeto (`ruta = ruta_miniatura`). Es válido, y por eso el refcount de una ruta puede ser 2 con una sola foto.

@@ -3,7 +3,7 @@
 // los Server Components. Un Client Component de afuera importa `@/modules/vehiculos/client`.
 
 // El inventario: leer una página de un origen y un vehículo
-export { buscarVehiculos, leerGaleria, leerVehiculo } from './composicion'
+export { buscarVehiculos, leerGaleria, leerRelaciones, leerVehiculo } from './composicion'
 export type { Vehiculo } from './entities/vehiculo'
 export type { Galeria } from './entities/foto'
 
@@ -12,9 +12,11 @@ export {
   origenElegido,
   origenesVisibles,
   permisoDeAlta,
-  puedeEditar,
   type PermisoDeAlta,
 } from './entities/permisos'
+// De estos vehículos, cuáles puede editar: lo propio se sabe acá; lo vinculado a un lead de su
+// cartera, se le pregunta a la base
+export { editablesDe } from './features/permisos/editables'
 
 // Los filtros de un origen, desde su layout: el esquema que dibuja FilterShell y las condiciones
 // que entiende `buscarVehiculos()`
@@ -34,3 +36,7 @@ export { EsqueletoDeFotos } from './features/fotos/components/esqueleto-de-fotos
 export { PanelDeVehiculo } from './features/alta/components/panel-de-vehiculo'
 export { BotonEditarVehiculo } from './features/alta/components/botones'
 export { CLAVE_DE_EDICION } from './features/alta/claves'
+
+// El vínculo a un lead y los interesados, de sólo lectura (se escriben desde la ficha del lead)
+export { VinculoEInteresados } from './features/vinculo/components/vinculo-e-interesados'
+export type { Relaciones } from './entities/vinculo'

@@ -41,13 +41,37 @@ export function permisoDeAlta(permisos: Permisos, origen: Origen): PermisoDeAlta
       }
 }
 
-// ¿Puede editar este vehículo? Con alcance «propios», lo que creó. La base además deja editar lo
-// vinculado a un lead de su cartera: eso la interfaz todavía no lo sabe (llega con el vínculo).
+type Editable = { id: string; origenId: string; creadoPor: string | null; leadId: string | null }
+
+// ¿Puede editar este vehículo? Con alcance «todos», sí. Con «propios», lo que creó o lo que está
+// vinculado a un lead de su cartera: eso último sólo lo sabe la base (`vehiculos_editables`), y
+// llega acá como `loDiceLaBase`.
 export function puedeEditar(
   permisos: Permisos,
-  vehiculo: { origenId: string; creadoPor: string | null },
+  vehiculo: Pick<Editable, 'origenId' | 'creadoPor'>,
   usuarioId: string,
+  loDiceLaBase = false,
 ): boolean {
   const alcance = alcanceDe(permisos, 'vehiculos.editar', vehiculo.origenId)
-  return alcance === 'todos' || (alcance === 'propios' && vehiculo.creadoPor === usuarioId)
+  return (
+    alcance === 'todos' ||
+    (alcance === 'propios' && (vehiculo.creadoPor === usuarioId || loDiceLaBase))
+  )
+}
+
+// Por cuáles hay que preguntarle a la base: los que la persona no creó, con alcance «propios», y
+// que tienen un vínculo (sin lead no hay cartera que valga). Suelen ser pocos o ninguno.
+export function candidatosPorCartera(
+  permisos: Permisos,
+  vehiculos: readonly Editable[],
+  usuarioId: string,
+): string[] {
+  return vehiculos
+    .filter(
+      (vehiculo) =>
+        vehiculo.leadId !== null &&
+        vehiculo.creadoPor !== usuarioId &&
+        alcanceDe(permisos, 'vehiculos.editar', vehiculo.origenId) === 'propios',
+    )
+    .map((vehiculo) => vehiculo.id)
 }

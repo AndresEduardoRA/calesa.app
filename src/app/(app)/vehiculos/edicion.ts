@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CLAVE_DE_EDICION, leerVehiculo, puedeEditar, type Vehiculo } from '@/modules/vehiculos'
+import { CLAVE_DE_EDICION, editablesDe, leerVehiculo, type Vehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import type { Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
@@ -21,5 +21,5 @@ export async function vehiculoEnEdicion(
   if (!vehiculo || (origenId !== undefined && vehiculo.origenId !== origenId)) {
     return null
   }
-  return puedeEditar(quien.permisos, vehiculo, quien.usuarioId) ? vehiculo : null
+  return (await editablesDe(quien, [vehiculo])).has(vehiculo.id) ? vehiculo : null
 }

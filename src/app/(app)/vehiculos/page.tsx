@@ -7,11 +7,11 @@ import {
   ListadoDeVehiculos,
   buscarVehiculos,
   condicionesDe,
+  editablesDe,
   esquemaDeFiltros,
   origenElegido,
   origenesVisibles,
   permisoDeAlta,
-  puedeEditar,
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR, leerFiltros } from '@/shared/lib/filtros'
@@ -59,6 +59,8 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
     vehiculoEnEdicion(parametros, sesion, origen.id),
   ])
   const pagina = datosO(leida)
+  // Quién ofrece «Editar»: de los de esta página, y sólo por ellos se le pregunta a la base.
+  const editables = await editablesDe(sesion, pagina.filas)
   const idsVisibles = new Set(visibles.map((uno) => uno.id))
 
   return (
@@ -72,9 +74,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       vistas={datosO(vistas).filter((vista) => idsVisibles.has(vista.params['origen'] ?? ''))}
       puedeConfigurarCampos={puede(sesion.permisos, 'origenes.gestionar')}
       permisoDeAlta={permisoDeAlta(sesion.permisos, origen)}
-      editables={pagina.filas
-        .filter((vehiculo) => puedeEditar(sesion.permisos, vehiculo, sesion.usuarioId))
-        .map((vehiculo) => vehiculo.id)}
+      editables={[...editables]}
       enEdicion={enEdicion}
     />
   )

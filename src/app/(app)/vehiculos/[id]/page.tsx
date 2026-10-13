@@ -3,7 +3,7 @@ import type { Metadata, Route } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { z } from 'zod'
-import { requerirSesion } from '@/modules/equipo'
+import { puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
 import {
@@ -11,15 +11,16 @@ import {
   CabeceraDeVehiculo,
   EsqueletoDeFotos,
   PanelDeVehiculo,
+  editablesDe,
   leerVehiculo,
   origenesVisibles,
-  puedeEditar,
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { vehiculoEnEdicion } from '../edicion'
+import { BloqueVinculo } from './bloque-vinculo'
 import { CLAVE_DE_PESTANA, hayBarraDePestanas, pestanaDeVehiculo } from './pestanas'
 import { PestanasDeVehiculo } from './pestanas-de-vehiculo'
 import { SeccionFicha } from './seccion-ficha'
@@ -61,13 +62,14 @@ export default async function PaginaVehiculo({
   if (!encontrado || !origen) {
     return <NoDisponible />
   }
-  const [layout, fases, enEdicion] = await Promise.all([
+  const [layout, fases, enEdicion, editables] = await Promise.all([
     leerLayout(origen.id, { conUso: false }),
     leerFasesDeOrigen(origen.id),
     vehiculoEnEdicion(parametros, sesion, origen.id),
+    editablesDe(sesion, [encontrado]),
   ])
   const suLayout = datosO(layout)
-  const editable = puedeEditar(sesion.permisos, encontrado, sesion.usuarioId)
+  const editable = editables.has(encontrado.id)
   const pestana = pestanaDeVehiculo(unParametro(parametros[CLAVE_DE_PESTANA]))
   return (
     <div className="grid max-w-4xl gap-4">
@@ -86,7 +88,15 @@ export default async function PaginaVehiculo({
       />
       {hayBarraDePestanas() ? <PestanasDeVehiculo /> : null}
       {pestana === 'ficha' ? (
-        <SeccionFicha vehiculo={encontrado} origen={origen} layout={suLayout} />
+        <>
+          <SeccionFicha vehiculo={encontrado} origen={origen} layout={suLayout} />
+          {/* A quién pertenece y a quién le interesa: sólo para quien ve leads. */}
+          {puede(sesion.permisos, 'leads.ver') ? (
+            <Suspense fallback={null}>
+              <BloqueVinculo vehiculoId={encontrado.id} />
+            </Suspense>
+          ) : null}
+        </>
       ) : null}
       {pestana === 'fotos' ? (
         // La cabecera y las pestañas ya están: las fotos llegan en su propio hueco.
