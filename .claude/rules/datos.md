@@ -23,6 +23,8 @@ paths:
   Si un tipo contradice el código, el código está mal.
 - Leads: se leen de `leads_vista` (teléfono enmascarado salvo cartera). Nunca `from('leads')`
   para leer el teléfono.
+- Los orígenes, su layout de campos y sus categorías se escriben sólo por RPC (`origen_*`,
+  `categoria_*`): sus tablas son de sólo lectura, y un campo con datos no cambia de tipo ni se elimina.
 - Lo que otorga permisos se escribe por RPC: `crear_lead`, `cambiar_fase`, `vehiculo_vitrina`,
   `papelera_*`, `formula_*`, `rbac_*`, `otorgar_portal`, `transferir_lead`, `compartir_lead`,
   `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.

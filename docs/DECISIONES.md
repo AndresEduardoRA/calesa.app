@@ -522,3 +522,125 @@ pasa, se reduce a PNG, sin pérdida y con su transparencia. Tope de lo que se su
 logo plano y convierte un SVG en una imagen).
 **Consecuencia:** `comprimirImagen()` acepta el formato de salida. «Retenciones», que el plan
 nombraba sin definir, son `papelera_dias` y `actividad_dias` (`docs/PRODUCTO.md`).
+
+## 2026-10-12 — Toda RPC de edición exige la versión: un nulo se rechaza
+
+**Contexto:** `_rol_para_editar()` y `_exigir_version()` saltaban el control con la versión nula
+«para el seed y las pruebas», y las tres RPC de roles llevaban `default null`. Quien olvidara mandar
+la versión pisaba en silencio lo que otra persona había cambiado, y nada en los tipos lo avisaba.
+**Decisión:** `p_actualizado_en_esperado` es obligatorio y un nulo se rechaza con un mensaje legible
+(`…001300_version_obligatoria.sql`). En las RPC de roles pasa antes de `p_origen` y `p_alcance`:
+Postgres exige que lo que sigue a un parámetro con default también lo tenga. Las pruebas de humo
+pasan la versión real. La regla quedó en `.claude/rules/migraciones.md` y `datos.md`.
+**Alternativas:** dejar el nulo para las pruebas (un control que se salta en la prueba no está
+probado); sólo rechazarlo en el helper y mantener el default (el tipo generado seguía diciendo
+«opcional»).
+**Consecuencia:** el parámetro es obligatorio en `database.types.ts` y `typecheck` caza al llamador
+que lo omite. Crear una fila no lleva versión: no hay nada que versionar.
+
+## 2026-10-12 — Orígenes, campos y categorías se escriben sólo por RPC, con versión por fila
+
+**Contexto:** las tres tablas se editaban con `.update()` bajo RLS: sin control de versión, sin
+regla sobre lo que ya tiene datos y con un `INSERT` del origen que dependía de que la interfaz no
+duplicara lo que los triggers ya crean. Campos y categorías no tenían `actualizado_en`.
+**Decisión:** `origenes`, `origenes_campos` y `categorias` son de sólo lectura; cada operación es una
+RPC con permiso, versión y sus reglas (`…001400_origenes.sql`). Campos y categorías ganan su
+`actualizado_en`: editar una fila sólo choca con otra edición de **esa** fila. Ordenar toma el
+origen entero `FOR UPDATE` y renumera 10, 20, 30… tocando sólo las filas que cambian. Crear un origen
+es un solo `INSERT`: sus triggers (flujo, reglas, campos) corren en la misma transacción, así que no
+queda uno a medias. El nombre del origen y el de una categoría no se repiten sin importar
+mayúsculas ni espacios (índice único; en categorías, con el padre nulo bajo una constante).
+**Alternativas:** la versión del origen como versión de su layout (dos personas editando campos
+distintos chocarían siempre); un `UNIQUE` común en categorías (los nulos no chocan: dos raíces con el
+mismo nombre pasaban).
+**Consecuencia:** el layout editado por dos personas a la vez sólo avisa si tocan lo mismo; reordenar
+sí conflictúa con otro reordenamiento. Un campo o categoría nuevo no necesita versión.
+
+## 2026-10-12 — Un origen con uso se desactiva; sólo uno sin uso se elimina
+
+**Contexto:** un origen cuelga de vehículos (`restrict`), cotizaciones (`restrict`), un flujo, una
+fórmula, categorías, campos y concesiones de roles (`cascade`). Eliminarlo con datos rompe fichas y
+cotizaciones; dejarlo para siempre estorba al dar de alta.
+**Decisión:** desactivar (`activo = false`) siempre se puede y es reversible: se hace y sale
+«Deshacer». Deja de ofrecerse y un trigger le impide recibir vehículos y cotizaciones nuevos; sus
+fichas se siguen viendo y la matriz de roles lo sigue listando, marcado «inactivo». Eliminar sólo
+vale sin vehículos (papelera incluida), cotizaciones ni fórmula publicada; es irreversible y pide
+tipear el nombre porque la cascada (campos, categorías, flujo, borrador, concesiones) no se ve. Con
+uso, el botón sale apagado y dice qué lo ata («tiene 12 vehículos y 3 cotizaciones: desactívalo»).
+**Alternativas:** archivar con una fecha (otra columna que significa lo mismo que `activo`);
+bloquear toda baja (un origen creado por error quedaba para siempre); cascada con confirmación (se
+llevaba vehículos y cotizaciones).
+**Consecuencia:** desactivar el último origen activo deja el alta sin dónde caer (se avisa, no se
+bloquea). Antes de que haya vehículos, un origen equivocado se elimina y se vuelve a crear.
+
+## 2026-10-12 — Un campo con datos no cambia de tipo ni se elimina: se desactiva
+
+**Contexto:** los valores de un campo viven en `vehiculos.atributos`. Cambiar el tipo de uno con
+datos deja valores que ya no son de ese tipo, y `vehiculo_validar_atributos` sólo mira al escribir
+el vehículo: el dato malo aparecería recién cuando alguien lo edite.
+**Decisión:** la regla vive en la base y la pantalla la cuenta antes (`origen_campo_impacto`, que
+incluye la papelera). **Quitar** es desactivar: el dato queda y reactivar lo devuelve (reversible,
+«Deshacer»). **Eliminar** sólo un campo propio sin ningún valor. **Cambiar el tipo** sólo con 0
+vehículos con valor; el de un campo de sistema no cambia nunca. **Volver requerido** se permite con
+aviso («2 vehículos no tienen este dato: no podrán guardarse hasta completarlo»): no toca
+vehículos. **Sacar una opción en uso** se permite con el conteo por opción: el valor se conserva. El
+aviso va dentro del panel del campo, no en un diálogo: un modal no abre otro modal.
+**Alternativas:** convertir los valores al cambiar el tipo (reescribir datos sin que nadie lo vea);
+bloquear también «volver requerido» (impide ordenar el layout antes de cargar datos).
+**Consecuencia:** para «cambiar» el tipo de un campo con datos hay que desactivarlo y crear otro. Un
+campo desactivado sigue ocupando su clave: no se puede crear otro con ella.
+
+## 2026-10-12 — El tipo de un origen (subasta o manual) no cambia
+
+**Contexto:** el tipo decide, sólo al insertar, los campos preconfigurados, la regla `aduana` del
+flujo y el mapeo `clave_apibara`. Cambiarlo después dejaría un origen con la mitad de cada mundo.
+**Decisión:** no se edita: la RPC no lo recibe y un trigger `before update of tipo` lo impide para
+cualquier escritor. El alta muestra qué trae cada tipo (espejo `entities/preconfiguraciones.ts`,
+comparado por un test con el SQL de los triggers). Un origen equivocado y todavía sin uso se elimina
+y se crea de nuevo. `clave_apibara` y `apibara_plataformas` sólo existen en subasta (RPC y trigger).
+**Alternativas:** re-preconfigurar al cambiar (borra y vuelve a crear campos de sistema con datos
+posibles, y decide si `aduana` se apaga con fases ya armadas); permitirlo sólo sin uso (dos caminos
+para lo mismo: ya existe eliminar y crear).
+**Consecuencia:** acierta o se rehace: por eso la decisión de eliminar «sin uso» va con ésta.
+
+## 2026-10-12 — Nombre, sustantivo y género: tres datos de la fila y reglas puras
+
+**Contexto:** `docs/UX.md` pide que ningún texto fijo nombre un origen, y la interfaz necesita
+concordar («ninguna unidad en Corea todavía»). El esquema ya tiene `nombre`, `sustantivo` y `genero`.
+**Decisión:** un formulario con tres campos: el nombre, cómo se llama lo que entra por ahí (con
+sugerencias, libre) y su género, que acompaña al sustantivo mientras la persona no lo elige. Debajo,
+la frase con la concordancia a la vista. Las reglas son puras y salen por `client.ts`
+(`claveDeNombre`, `generoSugerido`, `pluralDe`, `contados`, `frasePorVacio`) para que cualquier
+pantalla las use sin repetirlas. La clave sale del nombre en el servidor, una vez.
+**Alternativas:** plural editable (una columna más sin necesidad todavía); género de un
+diccionario cerrado (obliga a programar cada sustantivo nuevo).
+**Consecuencia:** el esquema no tiene plural: `pluralDe()` es una regla (vocal → s, consonante → es,
+z → ces, -ón → -ones). Si falla en un caso real, la salida es una columna `sustantivo_plural`.
+
+## 2026-10-12 — El orden se cambia con botones y por movimiento relativo, no arrastrando
+
+**Contexto:** reordenar el layout de campos y las categorías no puede depender de arrastrar: no
+funciona con teclado ni bien en el celular, y arrastrar exige una dependencia (dnd-kit) que
+`CLAUDE.md` pide verificar el día que se agrega.
+**Decisión:** «Subir» y «Bajar» por fila, con `aria-label` del campo y apagados en los extremos con
+el motivo. La RPC recibe «después de X» (nulo = primero) y no una posición: si otra persona agregó un
+campo entre tanto, queda junto al vecino que se eligió. `destinoDeMovimiento()` lo calcula sobre el
+origen entero (desactivados incluidos) pero sólo se mueve dentro del grupo; cambiar de grupo es
+editar `grupo`, y lo manda al final del grupo nuevo.
+**Alternativas:** posición numérica (con un campo nuevo entre tanto, queda en otro lugar sin
+avisar); arrastrar con una dependencia nueva (queda sumable: la RPC ya admite «después de X»).
+**Consecuencia:** mover un campo muy lejos cuesta varios toques. El arrastre es una mejora de
+interfaz que no toca la base.
+
+## 2026-10-12 — Quién abre Configuración › Orígenes: sin `origenes.ver`
+
+**Contexto:** el esquema sólo tiene `origenes.gestionar`, y la lectura de las tres tablas es `true`
+para toda cuenta (los selectores y las fichas la necesitan). Quien configura el flujo o la fórmula
+de un origen necesita ver cómo está armado.
+**Decisión:** entra quien tiene `origenes.gestionar` y, de sólo lectura (todo deshabilitado con el
+motivo), quien tiene `flujos.configurar` o `cotizaciones.configurar`. El resto ve «No tienes permiso»
+y la tarjeta no aparece en el hub. No se crea `origenes.ver`: sin enforcement no hay permiso, y
+restringir el `select` rompería los selectores de todos. Contar vehículos por origen y por categoría
+pide uno de esos tres permisos (`origenes_resumen()`).
+**Consecuencia:** una cuenta sin esos permisos sigue pudiendo leer `origenes` por la API; es lo que
+ya pasaba y lo que necesita el resto de la aplicación.
