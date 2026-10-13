@@ -47,7 +47,9 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
 - Casos de uso: auth, equipo, perfil, perspectiva, roles
 
 ### `flujos`
-Motor único de flujos: fases, transiciones, requisitos (documento | dato | espera), roles por fase y transición, reglas por flujo, jubilar/eliminar, revisión de coherencia y la RPC `cambiar_fase` que mueve vehículos y repuestos. · 1 archivos
+Motor único de flujos: fases, transiciones, requisitos (documento | dato | espera), roles por fase y transición, reglas por flujo, jubilar/eliminar, revisión de coherencia y la RPC `cambiar_fase` que mueve vehículos y repuestos. · 7 archivos
+- API: `leerFasesDeOrigen`, `FaseResumen`
+- API de cliente (`client.ts`): `FaseResumen`
 - Depende de: ningún otro módulo
 
 ### `leads`
