@@ -31,8 +31,8 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
 
 ## Tablas
 
-`vehiculos`, `vehiculos_imagenes`, `vehiculos_interesados`, `vehiculos_vinculos`, `cola_gc_storage`, `lotes_papelera` (compartida con leads y cotizaciones).
-RPC: `vehiculo_crear`, `vehiculo_guardar`, `vehiculo_vitrina`, `papelera_enviar/listar/restaurar/purgar`. `vehiculos` es de sólo lectura para la app (`supabase/migrations/20261013000200_vehiculos_escritura.sql`).
+`vehiculos`, `vehiculos_imagenes`, `vehiculos_imagenes_version`, `vehiculos_interesados`, `vehiculos_vinculos`, `cola_gc_storage` (la cola de limpieza de Storage: vive acá, sirve a todos los buckets), `lotes_papelera` (compartida con leads y cotizaciones).
+RPC: `vehiculo_crear`, `vehiculo_guardar`, `vehiculo_fotos_agregar`, `vehiculo_foto_mover`, `vehiculo_foto_portada`, `vehiculo_foto_eliminar`, `vehiculos_editables`, `vehiculo_vitrina`, `papelera_enviar/listar/restaurar/purgar`; sólo para `service_role`, `storage_gc_reclamar` y `storage_gc_confirmar`. `vehiculos` y `vehiculos_imagenes` son de sólo lectura para la app (`supabase/migrations/20261013000200_vehiculos_escritura.sql`, `…000500_vehiculos_fotos.sql`).
 
 ## No se rompe
 

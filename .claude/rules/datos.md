@@ -29,6 +29,10 @@ paths:
   reintentar no duplica) y `vehiculo_guardar` (con versión). La tabla es de sólo lectura: no hay
   `.insert()` ni `.update()` sobre `vehiculos`. Un error de validación trae en `hint` el campo
   (`anio`, `atributos.<clave>`). Bajo RLS los filtros sobre `atributos` no usan el GIN.
+- Las fotos de un vehículo se escriben sólo por RPC: `vehiculo_fotos_agregar` (idempotente por
+  hash; devuelve `agregadas`, `repetidas` y `sin_lugar`), `vehiculo_foto_mover`,
+  `vehiculo_foto_portada` y `vehiculo_foto_eliminar`. `vehiculos_imagenes` es de sólo lectura. Su
+  versión es la de `vehiculos_imagenes_version`, no la del vehículo.
 - Lo que otorga permisos se escribe por RPC: `crear_lead`, `cambiar_fase`, `vehiculo_vitrina`,
   `papelera_*`, `formula_*`, `rbac_*`, `otorgar_portal`, `transferir_lead`, `compartir_lead`,
   `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.
@@ -39,8 +43,13 @@ paths:
   nunca como error genérico.
 - Una query de seguimiento sobre una página ya paginada se acota con los ids de esa página
   (`.in('id', ids)`), nunca con un filtro sin cota. Listas grandes: keyset por `(creado_en, id)`.
-- Uploads desde el browser: fotos por `comprimirImagen()` (WebP, ≤ 1600 px) y
-  `subirPorHash()`; documentos sin comprimir. Commit diferido: el archivo se sube al confirmar el
-  formulario, y si la fila falla se hace `remove([ruta])`. Borrar un objeto pasa por
-  `storage_refcount` (RPC), nunca `remove` directo de algo que otra fila pueda referenciar.
+- Uploads desde el browser: fotos por `comprimirImagen()` o `comprimirEnTamanos()` (WebP, o JPEG
+  donde el navegador no lo codifica; ≤ 1600 px) y `subirPorHash()`, con la extensión de
+  `extensionDe(blob.type)`; documentos sin comprimir. Commit diferido: el archivo se sube al
+  confirmar, nunca al elegirlo.
+- Borrar un objeto de Storage nunca es un `remove` directo de algo que otra fila pueda
+  referenciar. En `marca` y `avatares`, `quitarSiHuerfano()` (cuenta con `storage_refcount`). En
+  `vehiculos` el navegador no borra nada (no hay policy): eliminar una foto encola sus objetos, y
+  lo que se subió y no llegó a tener fila lo junta el barrido de huérfanos
+  (`storage_gc_reclamar`).
 - `revalidatePath` en la action que muta; sin `router.refresh()` encima en el camino de éxito.

@@ -5204,40 +5204,46 @@ export type Database = {
       }
       vehiculos_imagenes: {
         Row: {
-          alto: number | null
-          ancho: number | null
-          bytes: number | null
+          alto: number
+          ancho: number
+          bytes: number
           creado_en: string
           es_portada: boolean
+          hash: string
           id: string
           orden: number
           origen_url: string | null
           ruta: string
+          ruta_miniatura: string
           vehiculo_id: string
         }
         ComputedFields: never
         Insert: {
-          alto?: number | null
-          ancho?: number | null
-          bytes?: number | null
+          alto: number
+          ancho: number
+          bytes: number
           creado_en?: string
           es_portada?: boolean
+          hash: string
           id?: string
           orden?: number
           origen_url?: string | null
           ruta: string
+          ruta_miniatura: string
           vehiculo_id: string
         }
         Update: {
-          alto?: number | null
-          ancho?: number | null
-          bytes?: number | null
+          alto?: number
+          ancho?: number
+          bytes?: number
           creado_en?: string
           es_portada?: boolean
+          hash?: string
           id?: string
           orden?: number
           origen_url?: string | null
           ruta?: string
+          ruta_miniatura?: string
           vehiculo_id?: string
         }
         Relationships: [
@@ -5245,6 +5251,30 @@ export type Database = {
             foreignKeyName: 'vehiculos_imagenes_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'vehiculos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      vehiculos_imagenes_version: {
+        Row: {
+          actualizado_en: string
+          vehiculo_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          actualizado_en?: string
+          vehiculo_id: string
+        }
+        Update: {
+          actualizado_en?: string
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'vehiculos_imagenes_version_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: true
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -5784,6 +5814,15 @@ export type Database = {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
       }
+      _fotos_abrir: { Args: { p_vehiculo: string }; Returns: string }
+      _fotos_cerrar: {
+        Args: { p_accion: string; p_detalle: Json; p_vehiculo: string }
+        Returns: string
+      }
+      _fotos_exigir_version: {
+        Args: { p_actual: string; p_esperado: string; p_vehiculo: string }
+        Returns: undefined
+      }
       _hace: { Args: { p_cuando: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
@@ -6202,6 +6241,7 @@ export type Database = {
       puede_cotizacion: { Args: { p_clave: string; p_cot: string }; Returns: boolean }
       puede_evento: { Args: { p_evento: string }; Returns: boolean }
       puede_lead: { Args: { p_clave: string; p_lead: string }; Returns: boolean }
+      puede_objeto_de_vehiculo: { Args: { p_clave: string; p_nombre: string }; Returns: boolean }
       puede_repuesto: { Args: { p_clave: string; p_item: string }; Returns: boolean }
       puede_unidad: {
         Args: { p_clave_r: string; p_clave_v: string; p_repuesto: string; p_vehiculo: string }
@@ -6311,6 +6351,24 @@ export type Database = {
       usuario_tiene_permiso: { Args: { p_clave: string; p_usuario: string }; Returns: boolean }
       validar_formula: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
       vehiculo_crear: { Args: { p_datos: Json; p_id: string; p_origen: string }; Returns: Json }
+      vehiculo_foto_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_foto: string; p_vehiculo: string }
+        Returns: Json
+      }
+      vehiculo_foto_mover: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_despues_de?: string
+          p_foto: string
+          p_vehiculo: string
+        }
+        Returns: Json
+      }
+      vehiculo_foto_portada: {
+        Args: { p_actualizado_en_esperado: string; p_foto: string; p_vehiculo: string }
+        Returns: Json
+      }
+      vehiculo_fotos_agregar: { Args: { p_fotos: Json; p_vehiculo: string }; Returns: Json }
       vehiculo_guardar: {
         Args: { p_actualizado_en_esperado: string; p_datos: Json; p_vehiculo: string }
         Returns: Json
@@ -6326,6 +6384,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
       verificar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: Json }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }
       web_expirar_solicitudes: { Args: { p_limite?: number }; Returns: number }

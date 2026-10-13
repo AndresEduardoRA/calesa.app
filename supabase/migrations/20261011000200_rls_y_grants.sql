@@ -270,6 +270,8 @@ grant update (categoria_id, titulo, marca, modelo, anio, vin, lote, plataforma, 
 -- fase_id, publicado_web, precio_web*, eliminado_*: sólo por RPC.
 
 select public._rls('vehiculos_imagenes', '(select public.puede_vehiculo(vehiculo_id, ''vehiculos.ver''))', '(select public.puede_vehiculo(vehiculo_id, ''vehiculos.editar''))', '(select public.puede_vehiculo(vehiculo_id, ''vehiculos.editar''))', '(select public.puede_vehiculo(vehiculo_id, ''vehiculos.editar''))');
+-- La versión de las fotos se lee si se ve el vehículo (la subconsulta corre con su RLS); la escriben las RPC de fotos.
+select public._rls('vehiculos_imagenes_version', 'exists (select 1 from public.vehiculos v where v.id = vehiculo_id)', null, null, null);
 select public._rls('vehiculos_interesados',
   '(select public.puede_vehiculo(vehiculo_id, ''vehiculos.ver'')) and (select public.puede_lead(lead_id, ''leads.ver''))',
   'usuario_id = (select auth.uid()) and (select public.puede_vehiculo(vehiculo_id, ''vehiculos.ver'')) and (select public.puede_lead(lead_id, ''leads.editar''))',

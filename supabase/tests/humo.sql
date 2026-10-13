@@ -168,7 +168,7 @@ do $$ begin
   if not exists (select 1 from public.actividad where accion = 'lead.adoptado_del_limbo') then raise exception 'sin registro de adopción'; end if;
 end $$;
 
--- @test vehículo de subasta: alta sólo por RPC, atributos validados, 24 fotos, vitrina sólo por RPC
+-- @test vehículo de subasta: alta sólo por RPC, atributos validados, fotos y vitrina sólo por RPC
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 set role authenticated;
 do $$ declare o uuid; v uuid; i int; begin
@@ -184,11 +184,10 @@ do $$ declare o uuid; v uuid; i int; begin
   v := (public.vehiculo_crear('aaaaaaaa-0000-4000-8000-000000000001', o,
     '{"titulo": "2021 Toyota RAV4 XLE", "marca": "Toyota", "modelo": "RAV4", "anio": 2021, "vin": "JTMW1RFV8MD012345", "lote": "58741223", "plataforma": "copart", "atributos": {"color": "Gris", "cilindros": 4, "enciende_y_anda": true}}') ->> 'id')::uuid;
   if (select creado_por from public.vehiculos where id = v) <> '00000000-0000-0000-0000-000000000004' then raise exception 'el alta no selló quién lo creó'; end if;
-  for i in 1..24 loop insert into public.vehiculos_imagenes (vehiculo_id, ruta, orden) values (v, v || '/' || i || '.webp', i); end loop;
   begin
-    insert into public.vehiculos_imagenes (vehiculo_id, ruta, orden) values (v, v || '/25.webp', 25);
-    raise exception 'aceptó la imagen 25';
-  exception when check_violation then null; end;
+    insert into public.vehiculos_imagenes (vehiculo_id, hash, ruta, ruta_miniatura, ancho, alto, bytes) values (v, repeat('0', 64), v || '/' || repeat('a', 64) || '.webp', v || '/' || repeat('b', 64) || '.webp', 1, 1, 1);
+    raise exception 'insertó una foto sin pasar por vehiculo_fotos_agregar';
+  exception when insufficient_privilege then null; end;
   begin
     update public.vehiculos set publicado_web = true where id = v;
     raise exception 'dejó publicar por UPDATE directo';
@@ -1494,3 +1493,229 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+
+-- @test fotos: sólo por RPC, sin repetir, una portada, orden relativo, versión propia y deshacer
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- La foto número n de un vehículo, como la manda la app después de subir sus dos objetos.
+create or replace function pg_temp.foto(v uuid, n int) returns jsonb language sql as $$
+  select jsonb_build_object('hash', lpad(to_hex(n), 64, '0'),
+    'ruta', v || '/' || lpad(to_hex(n), 64, 'a') || '.webp', 'ruta_miniatura', v || '/' || lpad(to_hex(n), 64, 'b') || '.webp',
+    'ancho', 1600, 'alto', 1200, 'bytes', 300000) $$;
+create or replace function pg_temp.fotos(v uuid, desde int, hasta int) returns jsonb language sql as $$
+  select jsonb_agg(pg_temp.foto(v, n) order by n) from generate_series(desde, hasta) n $$;
+create or replace function pg_temp.foto_id(v uuid, n int) returns uuid language sql as $$
+  select id from public.vehiculos_imagenes where vehiculo_id = v and hash = lpad(to_hex(n), 64, '0') $$;
+create or replace function pg_temp.orden_de(v uuid) returns text language sql as $$
+  select coalesce(string_agg(ltrim(hash, '0'), ',' order by orden), '') from public.vehiculos_imagenes where vehiculo_id = v $$;
+-- Los objetos ya están en Storage (los sube el navegador antes de registrar la fila).
+insert into storage.objects (bucket_id, name)
+select 'vehiculos', f ->> clave from public.vehiculos v, generate_series(1, 27) n, lateral pg_temp.foto(v.id, n) f, unnest(array['ruta', 'ruta_miniatura']) clave
+where v.id = 'bbbbbbbb-0000-4000-8000-000000000001' or v.titulo in ('Humo oficina ajeno', 'Humo subasta ajeno');
+delete from storage.objects where name like 'bbbbbbbb-0000-4000-8000-000000000001/' || lpad(to_hex(27), 64, 'a') || '%';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; r jsonb; ver timestamptz; m text; begin
+  r := public.vehiculo_fotos_agregar(v, pg_temp.fotos(v, 1, 3));
+  if jsonb_array_length(r -> 'agregadas') <> 3 then raise exception 'esperaba 3 agregadas: %', r; end if;
+  if pg_temp.orden_de(v) <> '1,2,3' then raise exception 'no quedaron en el orden en que llegaron: %', pg_temp.orden_de(v); end if;
+  if (select hash from public.vehiculos_imagenes where vehiculo_id = v and es_portada) <> lpad('1', 64, '0') then raise exception 'la primera foto no nació portada'; end if;
+  ver := (r ->> 'actualizado_en')::timestamptz;
+  if ver is distinct from (select actualizado_en from public.vehiculos_imagenes_version where vehiculo_id = v) then raise exception 'agregar no devolvió la versión de las fotos'; end if;
+  -- Subir fotos no mueve la versión de la ficha: quien la edita no ve un conflicto.
+  if exists (select 1 from public.actividad a where a.tabla = 'vehiculos' and a.registro_id = v::text and a.creado_en >= ver - interval '1 second' and a.accion = 'vehiculos.update') then raise exception 'agregar fotos tocó la fila del vehículo'; end if;
+
+  -- La misma foto no entra dos veces, y reintentar no cambia nada.
+  r := public.vehiculo_fotos_agregar(v, pg_temp.fotos(v, 2, 3));
+  if jsonb_array_length(r -> 'repetidas') <> 2 or jsonb_array_length(r -> 'agregadas') <> 0 then raise exception 'no detectó la foto repetida: %', r; end if;
+  if (r ->> 'actualizado_en')::timestamptz is distinct from ver then raise exception 'un reintento movió la versión'; end if;
+
+  -- Una ruta de la carpeta de otro vehículo, o un objeto que no terminó de subir, no entran.
+  begin
+    perform public.vehiculo_fotos_agregar(v, jsonb_build_array(pg_temp.foto(v, 9) || jsonb_build_object('ruta', (select id from public.vehiculos where titulo = 'Humo oficina ajeno') || '/' || lpad('9', 64, 'a') || '.webp')));
+    raise exception 'aceptó una foto de la carpeta de otro vehículo';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.vehiculo_fotos_agregar(v, jsonb_build_array(pg_temp.foto(v, 27)));
+    raise exception 'aceptó una foto cuyo objeto no está en Storage';
+  exception when raise_exception then
+    get stacked diagnostics m = message_text;
+    if m not like 'La foto no terminó de subir%' then raise; end if;
+  end;
+
+  -- Mover: sin versión no, con la vigente sí, y es relativo («después de»).
+  begin perform public.vehiculo_foto_mover(v, null, pg_temp.foto_id(v, 3)); raise exception 'movió sin versión';
+  exception when others then get stacked diagnostics m = message_text; if m not like 'Falta la versión%' then raise; end if; end;
+  r := public.vehiculo_foto_mover(v, ver, pg_temp.foto_id(v, 3));
+  if pg_temp.orden_de(v) <> '3,1,2' then raise exception 'mover al principio dejó %', pg_temp.orden_de(v); end if;
+  if (r ->> 'actualizado_en')::timestamptz is not distinct from ver then raise exception 'mover no cambió la versión'; end if;
+  ver := (r ->> 'actualizado_en')::timestamptz;
+  r := public.vehiculo_foto_mover(v, ver, pg_temp.foto_id(v, 3), pg_temp.foto_id(v, 2));
+  if pg_temp.orden_de(v) <> '1,2,3' then raise exception 'mover después de la última dejó %', pg_temp.orden_de(v); end if;
+  ver := (r ->> 'actualizado_en')::timestamptz;
+  -- Pedir lo que ya está no es un conflicto, aunque la versión sea vieja.
+  r := public.vehiculo_foto_mover(v, ver - interval '1 hour', pg_temp.foto_id(v, 2), pg_temp.foto_id(v, 1));
+  if (r ->> 'actualizado_en')::timestamptz is distinct from ver then raise exception 'un movimiento que no mueve nada cambió la versión'; end if;
+
+  -- Portada: una sola.
+  begin perform public.vehiculo_foto_portada(v, null, pg_temp.foto_id(v, 2)); raise exception 'fijó portada sin versión';
+  exception when others then get stacked diagnostics m = message_text; if m not like 'Falta la versión%' then raise; end if; end;
+  r := public.vehiculo_foto_portada(v, ver, pg_temp.foto_id(v, 2));
+  if (select count(*) from public.vehiculos_imagenes where vehiculo_id = v and es_portada) <> 1 or not (select es_portada from public.vehiculos_imagenes where id = pg_temp.foto_id(v, 2)) then raise exception 'la portada no quedó en la foto 2, sola'; end if;
+end $$;
+-- Bruno las reordena; Irene, con la versión que tenía, se entera de quién fue.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; begin
+  perform public.vehiculo_foto_mover(v, (select actualizado_en from public.vehiculos_imagenes_version where vehiculo_id = v), pg_temp.foto_id(v, 3));
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; vieja timestamptz; ver timestamptz; r jsonb; f jsonb; m text; e text; begin
+  select actualizado_en into ver from public.vehiculos_imagenes_version where vehiculo_id = v;
+  vieja := ver - interval '1 second';
+  begin
+    perform public.vehiculo_foto_mover(v, vieja, pg_temp.foto_id(v, 1));
+    raise exception 'movió con una versión vieja';
+  exception when others then
+    get stacked diagnostics m = message_text, e = returned_sqlstate;
+    if e <> 'PT409' then raise; end if;
+    if m not like 'Bruno Lima cambió las fotos de este vehículo hace %' then raise exception 'el conflicto de fotos no dice quién ni cuándo: %', m; end if;
+  end;
+  begin perform public.vehiculo_foto_portada(v, vieja, pg_temp.foto_id(v, 1)); raise exception 'fijó portada con una versión vieja';
+  exception when others then get stacked diagnostics e = returned_sqlstate; if e <> 'PT409' then raise; end if; end;
+  begin perform public.vehiculo_foto_eliminar(v, vieja, pg_temp.foto_id(v, 1)); raise exception 'eliminó con una versión vieja';
+  exception when others then get stacked diagnostics e = returned_sqlstate; if e <> 'PT409' then raise; end if; end;
+  begin perform public.vehiculo_foto_eliminar(v, null, pg_temp.foto_id(v, 1)); raise exception 'eliminó sin versión';
+  exception when others then get stacked diagnostics m = message_text; if m not like 'Falta la versión%' then raise; end if; end;
+  if pg_temp.orden_de(v) <> '3,1,2' then raise exception 'un conflicto movió las fotos: %', pg_temp.orden_de(v); end if;
+
+  -- Eliminar la portada: la primera que queda asciende, y sus dos objetos van a la cola.
+  if public.storage_refcount('vehiculos', pg_temp.foto(v, 2) ->> 'ruta') <> 1 or public.storage_refcount('vehiculos', pg_temp.foto(v, 2) ->> 'ruta_miniatura') <> 1 then raise exception 'el refcount no cuenta las dos rutas de una foto'; end if;
+  r := public.vehiculo_foto_eliminar(v, ver, pg_temp.foto_id(v, 2));
+  f := r -> 'foto';
+  if pg_temp.orden_de(v) <> '3,1' then raise exception 'eliminar dejó %', pg_temp.orden_de(v); end if;
+  if (select hash from public.vehiculos_imagenes where vehiculo_id = v and es_portada) <> lpad('3', 64, '0') then raise exception 'al eliminar la portada no ascendió la primera'; end if;
+  if (f ->> 'orden')::int <> 3 or not (f ->> 'es_portada')::boolean then raise exception 'eliminar no devolvió la foto como estaba: %', f; end if;
+  if public.storage_refcount('vehiculos', f ->> 'ruta') <> 0 then raise exception 'la foto eliminada sigue contando'; end if;
+  -- Repetir el eliminar (se perdió la respuesta) no es un error.
+  if (public.vehiculo_foto_eliminar(v, ver, gen_random_uuid()) -> 'foto') <> 'null'::jsonb then raise exception 'eliminar lo que ya no está debía ser inocuo'; end if;
+end $$;
+reset role;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; begin
+  if (select count(*) from public.cola_gc_storage where bucket = 'vehiculos' and ruta in (pg_temp.foto(v, 2) ->> 'ruta', pg_temp.foto(v, 2) ->> 'ruta_miniatura') and reclamado_en is null) <> 2 then raise exception 'eliminar no encoló los dos objetos'; end if;
+  -- Recién encolado: la limpieza no lo toca (el «Deshacer» cae siempre adentro).
+  if exists (select 1 from public.storage_gc_reclamar(100)) then raise exception 'la limpieza reclamó una foto recién eliminada'; end if;
+end $$;
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; r jsonb; begin
+  -- Deshacer: vuelve a su lugar y a ser portada, y sale de la cola.
+  r := public.vehiculo_fotos_agregar(v, jsonb_build_array(pg_temp.foto(v, 2) || '{"orden": 3, "es_portada": true}'));
+  if pg_temp.orden_de(v) <> '3,1,2' then raise exception 'deshacer no devolvió la foto a su lugar: %', pg_temp.orden_de(v); end if;
+  if (select count(*) from public.vehiculos_imagenes where vehiculo_id = v and es_portada) <> 1 or not (select es_portada from public.vehiculos_imagenes where id = pg_temp.foto_id(v, 2)) then raise exception 'deshacer no devolvió la portada'; end if;
+end $$;
+reset role;
+do $$ begin
+  if exists (select 1 from public.cola_gc_storage where bucket = 'vehiculos') then raise exception 'deshacer no sacó los objetos de la cola'; end if;
+end $$;
+
+-- @test fotos: el tope de 24 lo pone la base, y lo que la limpieza reclamó no vuelve a entrar
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; r jsonb; begin
+  -- Tiene 3. Llegan 23: entran, en orden, las 21 que caben.
+  r := public.vehiculo_fotos_agregar(v, pg_temp.fotos(v, 4, 26));
+  if jsonb_array_length(r -> 'agregadas') <> 21 or jsonb_array_length(r -> 'sin_lugar') <> 2 then raise exception 'esperaba 21 y 2: %', r; end if;
+  if r -> 'sin_lugar' <> jsonb_build_array(lpad(to_hex(25), 64, '0'), lpad(to_hex(26), 64, '0')) then raise exception 'debían quedar afuera las dos últimas: %', r -> 'sin_lugar'; end if;
+  if (select count(*) from public.vehiculos_imagenes where vehiculo_id = v) <> 24 then raise exception 'no quedaron 24'; end if;
+  r := public.vehiculo_fotos_agregar(v, pg_temp.fotos(v, 25, 25));
+  if jsonb_array_length(r -> 'sin_lugar') <> 1 then raise exception 'la 25.ª entró: %', r; end if;
+  begin
+    perform public.vehiculo_fotos_agregar(v, pg_temp.fotos(v, 1, 25));
+    raise exception 'aceptó un pedido de más de 24 fotos';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; f jsonb; begin
+  -- El trigger es el respaldo para quien escribe sin pasar por la RPC.
+  f := pg_temp.foto(v, 25);
+  begin
+    insert into public.vehiculos_imagenes (vehiculo_id, hash, ruta, ruta_miniatura, ancho, alto, bytes) values (v, f ->> 'hash', f ->> 'ruta', f ->> 'ruta_miniatura', 1, 1, 1);
+    raise exception 'el trigger dejó pasar la foto 25';
+  exception when check_violation then null; end;
+  -- Queda lugar y la limpieza reclamó ese objeto: la fila no nace.
+  delete from public.vehiculos_imagenes where vehiculo_id = v and hash = lpad(to_hex(24), 64, '0');
+  insert into public.cola_gc_storage (bucket, ruta, reclamado_en) values ('vehiculos', f ->> 'ruta_miniatura', now());
+end $$;
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; m text; begin
+  begin
+    perform public.vehiculo_fotos_agregar(v, pg_temp.fotos(v, 25, 25));
+    raise exception 'nació una foto sobre un objeto que la limpieza está borrando';
+  exception when raise_exception then
+    get stacked diagnostics m = message_text;
+    if m not like 'Ese archivo se está limpiando%' then raise; end if;
+  end;
+end $$;
+reset role;
+delete from public.cola_gc_storage;
+
+-- @test fotos: RLS por origen en las tablas y en storage; editar lo decide la base
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare ajeno uuid; usa uuid; begin
+  select id into ajeno from public.vehiculos where titulo = 'Humo oficina ajeno';
+  select id into usa from public.vehiculos where titulo = 'Humo subasta ajeno';
+  -- Bruno edita todo en todos los orígenes: la misma foto en dos vehículos son dos filas y dos objetos.
+  perform public.vehiculo_fotos_agregar(ajeno, pg_temp.fotos(ajeno, 1, 1));
+  perform public.vehiculo_fotos_agregar(usa, pg_temp.fotos(usa, 1, 2));
+end $$;
+-- Irene: ve todo y edita lo propio, sólo en Oficina.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; ajeno uuid; usa uuid; n int; begin
+  select id into ajeno from public.vehiculos where titulo = 'Humo oficina ajeno';
+  -- El de la subasta no lo ve: su id sale de las fotos que tampoco ve.
+  if exists (select 1 from public.vehiculos where titulo = 'Humo subasta ajeno') then raise exception 'Irene ve un vehículo de otro origen'; end if;
+  if (select count(*) from public.vehiculos_imagenes where vehiculo_id = ajeno) <> 1 then raise exception 'no ve las fotos de un vehículo que sí ve'; end if;
+  if (select count(distinct vehiculo_id) from public.vehiculos_imagenes) <> 2 then raise exception 've fotos de un vehículo de un origen donde no tiene permiso'; end if;
+  if (select count(*) from public.vehiculos_imagenes_version) <> 2 then raise exception 've la versión de las fotos de un vehículo que no ve'; end if;
+  -- Con alcance «propios» no toca las fotos de lo que creó otra persona.
+  begin perform public.vehiculo_fotos_agregar(ajeno, pg_temp.fotos(ajeno, 2, 2)); raise exception 'agregó fotos a un vehículo ajeno';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_foto_eliminar(ajeno, now(), pg_temp.foto_id(ajeno, 1)); raise exception 'eliminó una foto de un vehículo ajeno';
+  exception when insufficient_privilege then null; end;
+  if (select array_agg(x) from public.vehiculos_editables(array[v, ajeno, gen_random_uuid()]) x) <> array[v] then raise exception 'vehiculos_editables no devolvió sólo el propio'; end if;
+
+  -- Storage: sube a la carpeta de lo que puede editar, y a ninguna otra.
+  insert into storage.objects (bucket_id, name) values ('vehiculos', v || '/' || repeat('c', 64) || '.webp');
+  begin insert into storage.objects (bucket_id, name) values ('vehiculos', ajeno || '/' || repeat('c', 64) || '.webp'); raise exception 'subió a la carpeta de un vehículo que no puede editar';
+  exception when insufficient_privilege then null; end;
+  begin insert into storage.objects (bucket_id, name) values ('vehiculos', 'sueltas/' || repeat('c', 64) || '.webp'); raise exception 'subió a una carpeta que no es de un vehículo';
+  exception when insufficient_privilege then null; end;
+  begin insert into storage.objects (bucket_id, name) values ('vehiculos', repeat('c', 64) || '.webp'); raise exception 'subió a la raíz del bucket';
+  exception when insufficient_privilege then null; end;
+  -- Lista lo de los vehículos que ve (los dos de Oficina), no lo del otro origen.
+  if exists (select 1 from storage.objects o where o.bucket_id = 'vehiculos' and split_part(o.name, '/', 1) not in (v::text, ajeno::text)) then raise exception 'lista objetos de un vehículo que no ve'; end if;
+  if not exists (select 1 from storage.objects o where o.bucket_id = 'vehiculos' and o.name like ajeno || '/%') then raise exception 'no lista los objetos de un vehículo que ve'; end if;
+  -- Nadie borra ni pisa objetos de este bucket desde la app.
+  delete from storage.objects where bucket_id = 'vehiculos' and name like v || '/%';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'borró % objetos del bucket vehiculos desde la app', n; end if;
+  update storage.objects set name = name || 'x' where bucket_id = 'vehiculos' and name like v || '/%';
+  get diagnostics n = row_count;
+  if n <> 0 then raise exception 'pisó % objetos del bucket vehiculos', n; end if;
+end $$;
+reset role;
+insert into storage.objects (bucket_id, name) values ('marca', 'logos/humo.png');
+select set_config('request.jwt.claim.sub', '', false);
+select set_config('request.jwt.claim.role', 'anon', false);
+set role anon;
+do $$ begin
+  if exists (select 1 from storage.objects where bucket_id = 'vehiculos') then raise exception 'sin sesión se lista el bucket de vehículos'; end if;
+  if not exists (select 1 from storage.objects where bucket_id = 'marca') then raise exception 'el bucket de la marca dejó de listarse'; end if;
+end $$;
+reset role;
+delete from storage.objects where name = 'logos/humo.png';

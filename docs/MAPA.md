@@ -173,6 +173,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `accesos_portal` — `supabase/schemas/05_leads/01_leads.sql`
 - `vehiculos` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
 - `vehiculos_imagenes` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
+- `vehiculos_imagenes_version` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
 - `vehiculos_interesados` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
 - `vehiculos_vinculos` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
 - `cola_gc_storage` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`

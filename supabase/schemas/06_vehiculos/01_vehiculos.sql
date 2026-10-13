@@ -51,19 +51,28 @@ alter table public.recordatorios add constraint recordatorios_vehiculo_fk foreig
 alter table public.oportunidades add constraint oportunidades_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete set null;
 
 create table public.vehiculos_imagenes (
-  id          uuid primary key default gen_random_uuid(),
-  vehiculo_id uuid not null references public.vehiculos (id) on delete cascade,
-  ruta        text not null,                   -- bucket público `vehiculos`, nombrado por hash
-  orden       smallint not null default 0,
-  es_portada  boolean not null default false,
-  ancho       int,
-  alto        int,
-  bytes       int,
-  origen_url  text,                            -- si vino del scraper
-  creado_en   timestamptz not null default now()
+  id             uuid primary key default gen_random_uuid(),
+  vehiculo_id    uuid not null references public.vehiculos (id) on delete cascade,
+  hash           text not null check (hash ~ '^[0-9a-f]{64}$'),  -- SHA-256 del archivo que eligió la persona
+  ruta           text not null,                -- la completa (lado mayor ≤ 1600): `<vehiculo_id>/<sha-256 del contenido>.<ext>`
+  ruta_miniatura text not null,                -- lado mayor ≤ 480: la que cargan el listado y la grilla
+  orden          smallint not null default 0,
+  es_portada     boolean not null default false,
+  ancho          int not null check (ancho > 0),   -- de la completa
+  alto           int not null check (alto > 0),
+  bytes          int not null check (bytes > 0),
+  origen_url     text,                         -- si vino del scraper
+  creado_en      timestamptz not null default now()
 );
 create unique index vehiculos_portada_unica on public.vehiculos_imagenes (vehiculo_id) where es_portada;
-comment on table public.vehiculos_imagenes is 'Hasta 24 por vehículo (trigger). Se optimizan en el cliente (WebP, lado mayor 1600) antes de subir; el objeto se nombra por hash de contenido y puede compartirse entre filas: borrar pasa por storage_refcount.';
+create unique index vehiculos_imagenes_hash_unico on public.vehiculos_imagenes (vehiculo_id, hash);
+comment on table public.vehiculos_imagenes is 'Las fotos de un vehículo: hasta 24, una sola portada. De sólo lectura para la app: se escriben por vehiculo_fotos_agregar(), vehiculo_foto_mover(), vehiculo_foto_portada() y vehiculo_foto_eliminar(). Cada foto son dos objetos del bucket público `vehiculos`, generados en el navegador y nombrados por el hash de su contenido, siempre en la carpeta de su vehículo. `hash` es el del archivo original: la misma foto no entra dos veces al mismo vehículo.';
+
+create table public.vehiculos_imagenes_version (
+  vehiculo_id    uuid primary key references public.vehiculos (id) on delete cascade,
+  actualizado_en timestamptz not null default now()
+);
+comment on table public.vehiculos_imagenes_version is 'La versión de las fotos de un vehículo, aparte de la de su ficha (subir fotos no le da un conflicto a quien edita los datos). Mover, fijar portada y eliminar la mandan; su fila es además el candado que ordena las operaciones sobre las fotos de un mismo vehículo.';
 
 create table public.vehiculos_interesados (
   vehiculo_id uuid not null references public.vehiculos (id) on delete cascade,

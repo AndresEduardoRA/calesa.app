@@ -36,12 +36,20 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   enforcement, con `aplicado_en` diciendo cuál. Sin enforcement no hay permiso.
 - Clave de dato nueva para requisitos de fase = caso en `_requisito_dato_cumplido()` **y** en
   `claves_dato_requisito()`.
-- Columna nueva que guarde una ruta de storage = sumarla a `storage_refcount()`.
+- Columna nueva que guarde una ruta de storage = sumarla a `storage_refcount()`. Si sus objetos
+  se borran por la cola (`cola_gc_storage`): un trigger `before insert` llama
+  `storage_gc_rescatar(bucket, ruta)` (toma el candado del objeto y se niega si la limpieza ya lo
+  reclamó), y quien borra la fila encola la ruta. Nunca `delete` sobre `storage.objects`.
+- Tabla nueva en `schemas/` = su `_rls(...)` en `…000200_rls_y_grants.sql`: ese archivo termina
+  comprobando que ninguna tabla de `public` quede sin RLS.
 - Después de cualquier cambio: `pnpm db:base` (si tocaste `schemas/`), `pnpm db:reset`, `pnpm db:types`,
   `pnpm db:probar`, y si tocaste policies agregá una prueba a `supabase/tests/humo.sql` con un usuario
   simulado.
 - `migrations/20261011000000_esquema_base.sql` es la copia generada de `schemas/` (lo único que aplica
   `supabase db reset`): no se edita a mano, se regenera con `pnpm db:base`.
 - `storage.objects` no es nuestra: se le crean policies, nunca `alter table` (falla en Postgres real y
-  PGlite no lo detecta).
+  PGlite no lo detecta). El `storage.objects` de `db:probar` es un doble con RLS encendida: sirve
+  para probar las policies en humo, y `db:reset` confirma que aplican en el real. La carpeta de una
+  ruta se lee con una función que niegue lo que no es uuid (`puede_objeto_de_vehiculo`), no con un
+  cast suelto.
 - Renombrar columnas o tablas: migración a mano con `alter … rename`; el diff lo ve como drop+add.

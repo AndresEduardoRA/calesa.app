@@ -34,7 +34,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('origenes.gestionar', 'origenes', 'Gestionar orígenes', 'Crear orígenes, su layout de campos y categorías', false, false, 'origen_crear, origen_guardar, origen_eliminar, origen_campo_*, categoria_*, origenes_resumen', 70),
   ('vehiculos.ver', 'vehiculos', 'Ver vehículos', 'Ver el inventario (por origen; propios = creados por mí o vinculados a mis leads)', true, true, 'policy vehiculos, puede_vehiculo', 80),
   ('vehiculos.crear', 'vehiculos', 'Crear vehículos', 'Dar de alta vehículos (por origen)', true, false, 'vehiculo_crear', 90),
-  ('vehiculos.editar', 'vehiculos', 'Editar vehículos', 'Editar ficha, fotos e interesados (por origen y alcance)', true, true, 'vehiculo_guardar, puede_vehiculo', 100),
+  ('vehiculos.editar', 'vehiculos', 'Editar vehículos', 'Editar la ficha y las fotos (por origen y alcance)', true, true, 'vehiculo_guardar, vehiculo_fotos_agregar, vehiculo_foto_*, policy storage vehiculos, puede_vehiculo', 100),
   ('vehiculos.eliminar', 'vehiculos', 'Enviar vehículos a la papelera', 'Enviar a la papelera (por origen y alcance)', true, true, 'papelera_enviar', 110),
   ('vehiculos.vitrina', 'vehiculos', 'Publicar en la web', 'Poner vehículos en la vitrina del sitio público (por origen)', true, false, 'vehiculo_vitrina', 120),
   ('vehiculos.papelera.purgar', 'vehiculos', 'Vaciar la papelera', 'Ver toda la papelera, restaurar y purgar antes de tiempo', false, false, 'papelera_*', 130),
