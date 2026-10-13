@@ -82,8 +82,11 @@ export function useFiltros(esquema: EsquemaDeFiltros): Filtros {
     abrirPanel: () => {
       void setParametros({ [CLAVE_DE_PANEL]: PANEL_DE_FILTROS }, { history: 'push', shallow: true })
     },
+    // Cerrar no cambia lo que se lista: alcanza con tocar la URL. Salvo que la lista todavía se
+    // esté pidiendo con un filtro recién elegido: un cambio sólo de URL pisa esa navegación (la URL
+    // queda con el filtro y la lista sin él), así que entonces cerrar también va al servidor.
     cerrarPanel: () => {
-      void setParametros({ [CLAVE_DE_PANEL]: null }, { shallow: true })
+      void setParametros({ [CLAVE_DE_PANEL]: null }, { shallow: !pendiente })
     },
   }
 }
