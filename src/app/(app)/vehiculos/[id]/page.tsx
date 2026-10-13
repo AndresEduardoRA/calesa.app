@@ -9,8 +9,11 @@ import { getOrigenes, leerLayout } from '@/modules/origenes'
 import {
   EsqueletoDeFotos,
   editablesDe,
+  eliminablesDe,
+  motivoParaNoEnviar,
   leerVehiculo,
   origenesVisibles,
+  permisoDePapelera,
   permisoDeVitrina,
   vistaPreviaDe,
 } from '@/modules/vehiculos'
@@ -63,12 +66,13 @@ export default async function PaginaVehiculo({
   if (!encontrado || !origen) {
     return <NoDisponible />
   }
-  const [layout, fases, enEdicion, editables, previa] = await Promise.all([
+  const [layout, fases, enEdicion, editables, previa, eliminables] = await Promise.all([
     leerLayout(origen.id, { conUso: false }),
     leerFasesDeOrigen(origen.id),
     vehiculoEnEdicion(parametros, sesion, origen.id),
     editablesDe(sesion, [encontrado]),
     vistaPreviaDe(encontrado.id),
+    eliminablesDe(sesion, [encontrado]),
   ])
   const suLayout = datosO(layout)
   const editable = editables.has(encontrado.id)
@@ -91,6 +95,10 @@ export default async function PaginaVehiculo({
         previa={previa}
         publicar={publicar}
         editable={editable}
+        papelera={permisoDePapelera(
+          eliminables.has(encontrado.id),
+          motivoParaNoEnviar(encontrado, fase),
+        )}
       />
       {hayBarraDePestanas() ? <PestanasDeVehiculo /> : null}
       {pestana === 'ficha' ? (

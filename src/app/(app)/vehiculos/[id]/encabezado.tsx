@@ -5,6 +5,8 @@ import {
   BotonEditarVehiculo,
   CabeceraDeVehiculo,
   InsigniaDeVitrina,
+  MenuDeVehiculo,
+  type PermisoDePapelera,
   type PermisoDeVitrina,
   type Vehiculo,
   type VistaPreviaDeVitrina,
@@ -18,11 +20,13 @@ type Props = {
   previa: VistaPreviaDeVitrina | null
   publicar: PermisoDeVitrina
   editable: boolean
+  papelera: PermisoDePapelera
 }
 
 // La cabecera de la ficha con lo que la persona puede hacer desde ahí: publicar (apagado y con el
-// motivo si no tiene el permiso) y editar.
-export function Encabezado({ vehiculo, origen, fase, previa, publicar, editable }: Props) {
+// motivo si no tiene el permiso), editar y, en el menú, enviar a la papelera.
+export function Encabezado(props: Props) {
+  const { vehiculo, origen, fase, previa, publicar, editable, papelera } = props
   return (
     <CabeceraDeVehiculo
       vehiculo={vehiculo}
@@ -42,6 +46,7 @@ export function Encabezado({ vehiculo, origen, fase, previa, publicar, editable 
         <>
           <BotonDeVitrina permiso={publicar} />
           {editable ? <BotonEditarVehiculo vehiculo={vehiculo} /> : null}
+          <MenuDeVehiculo vehiculo={vehiculo} permiso={papelera} />
         </>
       }
     />

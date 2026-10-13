@@ -1,0 +1,49 @@
+import 'server-only'
+import { z } from 'zod'
+import { errorDePostgrest, ok } from '@/shared/lib/errores'
+import { createClient } from '@/shared/lib/supabase/server'
+import { limpiezaPendienteDesde, lotesDesde } from '../../entities/papelera'
+import type {
+  ConsultaDePermiso,
+  LectorDeLimpiezaPendiente,
+  LectorDePapelera,
+} from '../../entities/repositorios'
+
+// Los lotes que todavía tienen algo adentro. La RLS esconde lo eliminado a todos: la papelera
+// sólo se lee por esta RPC, que da lo propio o, con `vehiculos.papelera.purgar`, todo.
+export const getPapelera: LectorDePapelera = async () => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('vehiculos_papelera_listar')
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(lotesDesde(data))
+}
+
+// De estos vehículos, sobre cuáles tiene quien llama este permiso. Lo responde la base con la
+// regla de sus RPC (`puede_vehiculo`), acotado a los ids que se le pasan.
+export const getConPermiso: ConsultaDePermiso = async (ids, clave) => {
+  if (ids.length === 0) {
+    return ok([])
+  }
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('vehiculos_con_permiso', {
+    p_ids: [...ids],
+    p_clave: clave,
+  })
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(z.array(z.guid()).parse(data))
+}
+
+// Cuánto lleva esperando lo que ya debía haberse borrado de Storage. Nulo si no hay nada, o si
+// quien pregunta no puede vaciar la papelera.
+export const getLimpiezaPendiente: LectorDeLimpiezaPendiente = async () => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('storage_gc_pendiente')
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(limpiezaPendienteDesde(data))
+}

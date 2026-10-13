@@ -16,6 +16,7 @@ export const RUTAS = {
   empresa: '/configuracion/empresa',
   origenes: '/configuracion/origenes',
   vehiculos: '/vehiculos',
+  papeleraDeVehiculos: '/vehiculos/papelera',
 } as const
 
 // Quien ya tiene sesión no tiene nada que hacer acá.

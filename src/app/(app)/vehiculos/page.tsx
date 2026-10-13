@@ -8,10 +8,12 @@ import {
   buscarVehiculos,
   condicionesDe,
   editablesDe,
+  eliminablesDe,
   esquemaDeFiltros,
   origenElegido,
   origenesVisibles,
   permisoDeAlta,
+  puedeAbrirLaPapelera,
   vitrinaDelOrigen,
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
@@ -62,8 +64,12 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
     vehiculoEnEdicion(parametros, sesion, origen.id),
   ])
   const pagina = datosO(leida)
-  // Quién ofrece «Editar»: de los de esta página, y sólo por ellos se le pregunta a la base.
-  const editables = await editablesDe(sesion, pagina.filas)
+  // Quién ofrece «Editar» y a quién se puede elegir para la papelera: de los de esta página, y
+  // sólo por ellos se le pregunta a la base.
+  const [editables, eliminables] = await Promise.all([
+    editablesDe(sesion, pagina.filas),
+    eliminablesDe(sesion, pagina.filas),
+  ])
   const idsVisibles = new Set(visibles.map((uno) => uno.id))
 
   return (
@@ -78,6 +84,8 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       puedeConfigurarCampos={puede(sesion.permisos, 'origenes.gestionar')}
       permisoDeAlta={permisoDeAlta(sesion.permisos, origen)}
       editables={[...editables]}
+      eliminables={[...eliminables]}
+      verPapelera={puedeAbrirLaPapelera(sesion.permisos)}
       enEdicion={enEdicion}
     />
   )

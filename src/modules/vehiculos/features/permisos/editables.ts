@@ -1,7 +1,7 @@
 import 'server-only'
 import type { Permisos } from '@/shared/lib/permisos'
-import { consultarEditables } from '../../composicion'
-import { candidatosPorCartera, puedeEditar } from '../../entities/permisos'
+import { consultarEditables, consultarPermiso } from '../../composicion'
+import { candidatosPorCartera, puedeEditar, puedeSobre } from '../../entities/permisos'
 import type { Vehiculo } from '../../entities/vehiculo'
 
 type Quien = { permisos: Permisos; usuarioId: string }
@@ -22,6 +22,23 @@ export async function editablesDe(
       .filter((vehiculo) =>
         puedeEditar(quien.permisos, vehiculo, quien.usuarioId, porCartera.has(vehiculo.id)),
       )
+      .map((vehiculo) => vehiculo.id),
+  )
+}
+
+// De estos vehículos, cuáles puede enviar a la papelera. La misma regla y el mismo camino que
+// «Editar», con `vehiculos.eliminar`.
+export async function eliminablesDe(
+  quien: Quien,
+  vehiculos: readonly Vehiculo[],
+): Promise<Set<string>> {
+  const clave = 'vehiculos.eliminar'
+  const candidatos = candidatosPorCartera(quien.permisos, vehiculos, quien.usuarioId, clave)
+  const consulta = await consultarPermiso(candidatos, clave)
+  const porCartera = new Set(consulta.ok ? consulta.data : [])
+  return new Set(
+    vehiculos
+      .filter((vehiculo) => puedeSobre({ ...quien, clave }, vehiculo, porCartera.has(vehiculo.id)))
       .map((vehiculo) => vehiculo.id),
   )
 }

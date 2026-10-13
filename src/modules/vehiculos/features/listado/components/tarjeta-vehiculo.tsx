@@ -21,11 +21,14 @@ type Props = {
   acciones?: ReactNode
   // Lo que va al lado de la fase (si está en la vitrina).
   insignias?: ReactNode
+  // La casilla para elegirlo, delante de la foto.
+  seleccion?: ReactNode
 }
 
 // Un vehículo en una tarjeta: lo que se ve en el celular en vez de la fila de la tabla, y lo que
 // otros módulos usan para mostrar un vehículo.
-export function TarjetaVehiculo({ vehiculo, campos, fase, href, acciones, insignias }: Props) {
+export function TarjetaVehiculo(props: Props) {
+  const { vehiculo, campos, fase, href, acciones, insignias, seleccion } = props
   const datos = camposDeTarjeta(campos).filter((campo) => {
     const valor = vehiculo.atributos[campo.clave]
     return valor !== undefined && valor !== null && valor !== ''
@@ -33,6 +36,7 @@ export function TarjetaVehiculo({ vehiculo, campos, fase, href, acciones, insign
   return (
     <article className="grid gap-3 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3">
       <div className="flex items-start gap-3">
+        {seleccion}
         <Miniatura ruta={vehiculo.portadaRuta} className="w-20" />
         <div className="grid min-w-0 flex-1 gap-1">
           <h3 className="text-(length:--text-base) font-medium text-(--color-ink)">

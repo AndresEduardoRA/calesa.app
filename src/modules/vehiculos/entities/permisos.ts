@@ -1,6 +1,12 @@
 // Qué puede hacer una persona con el inventario. Es lo que la interfaz muestra; lo que protege
 // es la base (`vehiculo_crear`, `vehiculo_guardar` y la policy de lectura), con la misma regla.
-import { alcanceDe, origenesCon, puede, type Permisos } from '@/shared/lib/permisos'
+import {
+  alcanceDe,
+  origenesCon,
+  puede,
+  type ClavePermiso,
+  type Permisos,
+} from '@/shared/lib/permisos'
 
 type Origen = { id: string; nombre: string; activo: boolean }
 
@@ -43,20 +49,31 @@ export function permisoDeAlta(permisos: Permisos, origen: Origen): PermisoDeAlta
 
 type Editable = { id: string; origenId: string; creadoPor: string | null; leadId: string | null }
 
-// ¿Puede editar este vehículo? Con alcance «todos», sí. Con «propios», lo que creó o lo que está
-// vinculado a un lead de su cartera: eso último sólo lo sabe la base (`vehiculos_editables`), y
-// llega acá como `loDiceLaBase`.
+// Los permisos sobre un vehículo que llevan alcance: la misma regla para los dos.
+export type PermisoConAlcance = Extract<ClavePermiso, 'vehiculos.editar' | 'vehiculos.eliminar'>
+
+// ¿Tiene este permiso sobre este vehículo? Con alcance «todos», sí. Con «propios», lo que creó o
+// lo que está vinculado a un lead de su cartera: eso último sólo lo sabe la base
+// (`vehiculos_con_permiso`), y llega acá como `loDiceLaBase`.
+export function puedeSobre(
+  pedido: { permisos: Permisos; clave: PermisoConAlcance; usuarioId: string },
+  vehiculo: Pick<Editable, 'origenId' | 'creadoPor'>,
+  loDiceLaBase = false,
+): boolean {
+  const alcance = alcanceDe(pedido.permisos, pedido.clave, vehiculo.origenId)
+  return (
+    alcance === 'todos' ||
+    (alcance === 'propios' && (vehiculo.creadoPor === pedido.usuarioId || loDiceLaBase))
+  )
+}
+
 export function puedeEditar(
   permisos: Permisos,
   vehiculo: Pick<Editable, 'origenId' | 'creadoPor'>,
   usuarioId: string,
   loDiceLaBase = false,
 ): boolean {
-  const alcance = alcanceDe(permisos, 'vehiculos.editar', vehiculo.origenId)
-  return (
-    alcance === 'todos' ||
-    (alcance === 'propios' && (vehiculo.creadoPor === usuarioId || loDiceLaBase))
-  )
+  return puedeSobre({ permisos, clave: 'vehiculos.editar', usuarioId }, vehiculo, loDiceLaBase)
 }
 
 // Por cuáles hay que preguntarle a la base: los que la persona no creó, con alcance «propios», y
@@ -65,13 +82,14 @@ export function candidatosPorCartera(
   permisos: Permisos,
   vehiculos: readonly Editable[],
   usuarioId: string,
+  clave: PermisoConAlcance = 'vehiculos.editar',
 ): string[] {
   return vehiculos
     .filter(
       (vehiculo) =>
         vehiculo.leadId !== null &&
         vehiculo.creadoPor !== usuarioId &&
-        alcanceDe(permisos, 'vehiculos.editar', vehiculo.origenId) === 'propios',
+        alcanceDe(permisos, clave, vehiculo.origenId) === 'propios',
     )
     .map((vehiculo) => vehiculo.id)
 }

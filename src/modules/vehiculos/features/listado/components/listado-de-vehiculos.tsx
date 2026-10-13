@@ -11,6 +11,7 @@ import type { PermisoDeAlta } from '../../../entities/permisos'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { BotonNuevoVehiculo, ID_DEL_MOTIVO_DE_ALTA } from '../../alta/components/botones'
 import { PanelDeVehiculo } from '../../alta/components/panel-de-vehiculo'
+import { EnlaceAPapelera } from '../../papelera/components/enlace-a-papelera'
 import { PestanasDeOrigen } from './pestanas-de-origen'
 import { PieDeFiltros } from './pie-de-filtros'
 import { ResultadoDelListado } from './resultado-del-listado'
@@ -29,13 +30,17 @@ type Props = DatosDelOrigen & {
   // Los vehículos de esta página que puede editar, y el que está editando (`?editar=`).
   editables: readonly string[]
   enEdicion: Vehiculo | null
+  // Los que puede enviar a la papelera (se eligen y se mandan juntos), y si puede abrirla.
+  eliminables: readonly string[]
+  verPapelera: boolean
 }
 
 // El inventario: una pestaña por origen y, adentro, los filtros de ese origen, su lista y el
 // panel de alta y edición. Todo el estado (origen, filtros, página, panel) vive en la URL.
 export function ListadoDeVehiculos(props: Props) {
-  const { origenes, esquema, vistas, puedeConfigurarCampos, permisoDeAlta, enEdicion, ...resto } =
+  const { origenes, esquema, vistas, puedeConfigurarCampos, permisoDeAlta, enEdicion, ...demas } =
     props
+  const { verPapelera, ...resto } = demas
   const { origen, campos, categorias } = resto
   const nuevo = <BotonNuevoVehiculo origen={origen} permiso={permisoDeAlta} />
   return (
@@ -51,7 +56,12 @@ export function ListadoDeVehiculos(props: Props) {
         key={origen.id}
         esquema={esquema}
         vistas={<VistasDeVehiculos esquema={esquema} origenId={origen.id} vistas={vistas} />}
-        acciones={nuevo}
+        acciones={
+          <>
+            {verPapelera ? <EnlaceAPapelera /> : null}
+            {nuevo}
+          </>
+        }
         pieDelPanel={
           <PieDeFiltros
             origen={origen}

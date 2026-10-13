@@ -5,18 +5,24 @@ import 'server-only'
 import type {
   BuscadorDeVehiculos,
   ConsultaDeEditables,
+  ConsultaDePermiso,
+  LectorDeLimpiezaPendiente,
+  LectorDePapelera,
   LectorDeGaleria,
   LectorDeRelaciones,
   LectorDeVehiculo,
   LectorDeVistaPrevia,
   LectorDeVitrinaDelOrigen,
   RepositorioFotos,
+  RepositorioPapelera,
   RepositorioVehiculos,
   RepositorioVitrina,
 } from './entities/repositorios'
 import { fotosSupabase } from './infra/fotos'
+import { papeleraSupabase } from './infra/papelera'
 import { getEditables } from './infra/queries/editables'
 import { getGaleria } from './infra/queries/fotos'
+import { getConPermiso, getLimpiezaPendiente, getPapelera } from './infra/queries/papelera'
 import { getRelaciones } from './infra/queries/vinculo'
 import { getVistaPrevia, getVitrinaDelOrigen } from './infra/queries/vitrina'
 import { buscarVehiculos as buscarEnSupabase, getVehiculo } from './infra/queries/listado'
@@ -33,3 +39,7 @@ export const consultarEditables: ConsultaDeEditables = getEditables
 export const repositorioVitrina: RepositorioVitrina = vitrinaSupabase
 export const leerVistaPrevia: LectorDeVistaPrevia = getVistaPrevia
 export const leerVitrinaDelOrigen: LectorDeVitrinaDelOrigen = getVitrinaDelOrigen
+export const repositorioPapelera: RepositorioPapelera = papeleraSupabase
+export const leerPapelera: LectorDePapelera = getPapelera
+export const consultarPermiso: ConsultaDePermiso = getConPermiso
+export const leerLimpiezaPendiente: LectorDeLimpiezaPendiente = getLimpiezaPendiente

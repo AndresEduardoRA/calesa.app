@@ -16,7 +16,7 @@ export {
 } from './entities/permisos'
 // De estos vehículos, cuáles puede editar: lo propio se sabe acá; lo vinculado a un lead de su
 // cartera, se le pregunta a la base
-export { editablesDe } from './features/permisos/editables'
+export { editablesDe, eliminablesDe } from './features/permisos/editables'
 
 // Los filtros de un origen, desde su layout: el esquema que dibuja FilterShell y las condiciones
 // que entiende `buscarVehiculos()`
@@ -32,6 +32,21 @@ export {
 export { BotonDeVitrina } from './features/vitrina/components/boton-de-vitrina'
 export { InsigniaDeVitrina } from './features/vitrina/components/insignia-de-vitrina'
 export { PanelDeVitrina } from './features/vitrina/components/panel-de-vitrina'
+
+// La papelera: enviar (desde la ficha y, en lote, desde el listado), restaurar y purgar
+export { leerPapelera } from './composicion'
+export { limpiezaPendiente } from './features/papelera/lecturas'
+export {
+  motivoParaNoEnviar,
+  permisoDePapelera,
+  puedeAbrirLaPapelera,
+  puedePurgar,
+  type LimpiezaPendiente,
+  type LoteDePapelera,
+  type PermisoDePapelera,
+} from './entities/papelera'
+export { MenuDeVehiculo } from './features/papelera/components/menu-de-vehiculo'
+export { PapeleraDeVehiculos } from './features/papelera/components/papelera-de-vehiculos'
 
 // Pantallas
 export { ListadoDeVehiculos } from './features/listado/components/listado-de-vehiculos'

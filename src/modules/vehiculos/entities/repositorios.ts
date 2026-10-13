@@ -5,6 +5,14 @@ import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { DatosDeVehiculo } from './esquema'
 import type { Condicion } from './filtros'
 import type { FotoEliminada, FotoSubida, Galeria } from './foto'
+import type {
+  LimpiezaPendiente,
+  LoteDePapelera,
+  ResultadoDeEnvio,
+  ResultadoDePurgar,
+  ResultadoDeRestaurar,
+} from './papelera'
+import type { PermisoConAlcance } from './permisos'
 import type { Vehiculo } from './vehiculo'
 import type { Relaciones } from './vinculo'
 import type { DatosDeVitrina, VistaPreviaDeVitrina, VitrinaDelOrigen } from './vitrina'
@@ -102,3 +110,31 @@ export type LectorDeVistaPrevia = (
 
 // Lo que hace falta para que algo de un origen se vea en la web.
 export type LectorDeVitrinaDelOrigen = (origenId: string) => Promise<Resultado<VitrinaDelOrigen>>
+
+// De estos ids, sobre cuáles tiene quien llama este permiso: lo responde la base.
+export type ConsultaDePermiso = (
+  ids: readonly string[],
+  clave: PermisoConAlcance,
+) => Promise<Resultado<string[]>>
+
+// La papelera se escribe sólo por RPC, y las tres operaciones devuelven un resultado parcial.
+// Enviar lleva la versión de cada vehículo; restaurar y purgar, la del lote, y sin `vehiculos` son
+// el lote entero.
+type SobreUnLote = {
+  loteId: string
+  actualizadoEnEsperado: string
+  vehiculos?: readonly string[]
+}
+export type RepositorioPapelera = {
+  enviar: (
+    vehiculos: readonly { id: string; actualizadoEn: string }[],
+  ) => Promise<Resultado<ResultadoDeEnvio>>
+  restaurar: (pedido: SobreUnLote) => Promise<Resultado<ResultadoDeRestaurar>>
+  purgar: (pedido: SobreUnLote) => Promise<Resultado<ResultadoDePurgar>>
+}
+
+// Los lotes abiertos: los propios o, con `vehiculos.papelera.purgar`, todos.
+export type LectorDePapelera = () => Promise<Resultado<LoteDePapelera[]>>
+
+// Lo que la limpieza de Storage tiene atrasado; null = nada, o no le corresponde saberlo.
+export type LectorDeLimpiezaPendiente = () => Promise<Resultado<LimpiezaPendiente | null>>

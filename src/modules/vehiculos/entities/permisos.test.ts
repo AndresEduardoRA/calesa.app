@@ -6,6 +6,7 @@ import {
   origenesVisibles,
   permisoDeAlta,
   puedeEditar,
+  puedeSobre,
 } from './permisos'
 
 const COREA = { id: 'corea', nombre: 'Corea', activo: true }
@@ -109,5 +110,21 @@ describe('candidatosPorCartera', () => {
   it('el alcance se mira por origen', () => {
     const soloOficina = en('vehiculos.editar', 'oficina', 'propios')
     expect(candidatosPorCartera(soloOficina, flota, 'yo')).toEqual([])
+  })
+})
+
+describe('puedeSobre', () => {
+  const vehiculo = { origenId: 'corea', creadoPor: 'otra' }
+
+  it('la misma regla vale para enviar a la papelera', () => {
+    const propios = en('vehiculos.eliminar', 'corea', 'propios')
+    const pedido = { permisos: propios, clave: 'vehiculos.eliminar' as const, usuarioId: 'yo' }
+    expect(puedeSobre(pedido, vehiculo)).toBe(false)
+    expect(puedeSobre(pedido, { ...vehiculo, creadoPor: 'yo' })).toBe(true)
+    expect(puedeSobre(pedido, vehiculo, true)).toBe(true)
+    // Editar no da enviar a la papelera.
+    expect(puedeSobre({ ...pedido, permisos: en('vehiculos.editar', 'corea') }, vehiculo)).toBe(
+      false,
+    )
   })
 })
