@@ -4,12 +4,12 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
 
 ## Entra y sale
 
-- Entra: `/vehiculos` (una pestaña por origen, `?origen=`, filtros, `?cursor=`). El layout de campos, las categorías y los orígenes vienen de `origenes`; las fases, de `flujos`; las vistas guardadas, de `equipo`. La página los lee y se los pasa por props.
+- Entra: `/vehiculos` (una pestaña por origen, `?origen=`, filtros, `?cursor=`) y `/vehiculos/[id]` (la ficha). El layout de campos, las categorías y los orígenes vienen de `origenes`; las fases, de `flujos`; las vistas guardadas, de `equipo`. La página los lee y se los pasa por props.
 - Sale por `index.ts` (servidor):
   - `buscarVehiculos({ origenId, condiciones, cursor, tamano })` → una página (`Pagina<Vehiculo>`), y `leerVehiculo(id)`.
   - `esquemaDeFiltros({ campos, fases, categorias })` y `condicionesDe(campos, valores, { zona })`: los filtros de un origen desde su layout.
   - `origenesVisibles()`, `origenElegido()`, `permisoDeAlta()`, `puedeEditar()`: qué ve y qué puede hacer la persona.
-  - `<ListadoDeVehiculos>`, `<TarjetaVehiculo>`.
+  - `<ListadoDeVehiculos>`, `<FichaDeVehiculo>`, `<TarjetaVehiculo>`.
 - Sale por `client.ts`: `<TarjetaVehiculo>`, `<BadgeDeFase>` y el tipo `Vehiculo`.
 - Todavía no existe (partes 3 a 5 de la fase 2): fotos, `<SelectorVehiculo>`, `vincularLead()`, vitrina, papelera, apibara.
 - Depende de: `origenes` (layout, orígenes, cómo se nombra lo que entra), `flujos` (las fases de un origen), `equipo` (sesión, permisos y `<MenuDeVistas>`). Lo consumirán `cotizaciones`, `logistica`, `repuestos`, `agenda`, `chat`, `web`, `buscador`, `tablero`, `datos`.
@@ -20,8 +20,10 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
 - `entities/campo.ts` — `CampoDeVehiculo`: la forma de un campo del layout que este módulo necesita. `entities/` no importa otros módulos, así que la declara y `features/` le pasa el `CampoDeLayout` de `origenes`, que la cumple. `camposActivos()`, `camposDeTarjeta()`.
 - `entities/filtros.ts` — `esquemaDeFiltros()` (los fijos: búsqueda, fase, categoría, año; y uno por cada campo `filtrable` activo, con el prefijo `a.`), `condicionesDe()` → `Condicion[]`, la lista neutra que `infra/` traduce.
 - `entities/valor.ts` — `valorMostrado(campo, valor)`: qué mostrar de un atributo según su tipo (un monto queda para `<Monto>`).
+- `entities/comunes.ts` — `camposComunes(tipoDeOrigen)`: los datos que son columna (título, marca, año, VIN, precio…; lote, plataforma y enlace sólo en subasta), con su etiqueta, su bloque («Datos principales», «Precio») y sus topes. `valorComun()`. Es el único lugar con etiquetas fijas de campos.
 - `entities/permisos.ts` — espejo de las reglas de la base para dibujar; `entities/repositorios.ts`.
 - `infra/queries/condiciones.ts` — `aplicarCondiciones()`, `aplicarCursor()` y los saneadores `citar()` y `patronContiene()`. `infra/queries/listado.ts` — `buscarVehiculos()`, `getVehiculo()`. `composicion.ts`.
+- `features/ficha/components/` — `ficha-de-vehiculo` (cabecera con la fase de sólo lectura, los dos bloques comunes y un `<Bloque>` por grupo del layout), `valor-mostrado` (dibuja un `ValorMostrado`; lo usa también la celda del listado).
 - `features/listado/components/` — `listado-de-vehiculos` (pestañas + `FilterShell` + resultado), `resultado-del-listado` (los estados vacíos), `tabla-de-vehiculos` (escritorio), `tarjeta-vehiculo` (celular), `valor-de-campo`, `badge-de-fase`, `miniatura`, `paginacion`, `vistas-de-vehiculos`, `pie-de-filtros`.
 
 ## Tablas
@@ -52,4 +54,6 @@ RPC: `vehiculo_crear`, `vehiculo_guardar`, `vehiculo_vitrina`, `papelera_enviar/
 - El `id` del alta lo genera el navegador al abrir el formulario: reintentar tras perder la respuesta devuelve el mismo vehículo.
 - `puedeEditar()` sólo sabe «lo creé yo»; con alcance «propios» la base también deja editar lo vinculado a un lead de la cartera. Se completa con el vínculo (parte 4).
 - La tabla (escritorio) y las tarjetas (celular) están las dos en el DOM: un e2e mira lo visible.
+- La ficha declara todas sus pestañas en `src/app/(app)/vehiculos/[id]/pestanas.ts` y sólo muestra las que tienen su `seccion-<clave>.tsx` (un test lo compara con el disco). Con una sola no dibuja la barra. Sumar una pestaña = crear su sección y prender `disponible`.
+- Lo que no existe, lo que está en la papelera y lo que la persona no ve se muestran igual («No existe o no tienes acceso»): `leerVehiculo()` devuelve `null` en los tres casos.
 - apibara (parte 5): no distingue plataforma para un lote suelto (con URL se usa `urltodetails`); 429 = cuota del mes agotada (no reintentar), 5xx sí, con tope. El scrape trae identidad del vehículo, nunca números de la cotización.

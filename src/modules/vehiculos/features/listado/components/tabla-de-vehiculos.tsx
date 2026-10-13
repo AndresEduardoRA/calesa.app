@@ -1,5 +1,8 @@
 'use client'
 
+import type { Route } from 'next'
+import Link from 'next/link'
+import { RUTAS } from '@/shared/lib/rutas'
 import { Monto } from '@/shared/ui/monto'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTarjeta } from '../../../entities/campo'
@@ -41,9 +44,12 @@ export function TablaDeVehiculos({ vehiculos, campos, fases, encabezado }: Props
                 <div className="flex items-center gap-3">
                   <Miniatura />
                   <div className="grid min-w-0">
-                    <span className="max-w-72 truncate font-medium text-(--color-ink)">
+                    <Link
+                      href={`${RUTAS.vehiculos}/${vehiculo.id}` as Route}
+                      className="max-w-72 truncate font-medium text-(--color-ink) underline-offset-2 outline-none hover:underline focus-visible:shadow-(--shadow-focus)"
+                    >
                       {vehiculo.titulo}
-                    </span>
+                    </Link>
                     <span className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
                       #{vehiculo.numero}
                       {vehiculo.vin ? ` · ${vehiculo.vin}` : ''}

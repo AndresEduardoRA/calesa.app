@@ -82,11 +82,11 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 - Casos de uso: bandeja
 
 ### `vehiculos`
-Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición. Más adelante: fotos, interesados y vínculo a lead, vitrina web, papelera por lotes e importación desde Copart/IAAI vía apibara. · 29 archivos
-- API: `buscarVehiculos`, `leerVehiculo`, `Vehiculo`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, `puedeEditar`, `PermisoDeAlta`, `condicionesDe`, `esquemaDeFiltros`, +2
+Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición. Más adelante: fotos, interesados y vínculo a lead, vitrina web, papelera por lotes e importación desde Copart/IAAI vía apibara. · 33 archivos
+- API: `buscarVehiculos`, `leerVehiculo`, `Vehiculo`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, `puedeEditar`, `PermisoDeAlta`, `condicionesDe`, `esquemaDeFiltros`, +3
 - API de cliente (`client.ts`): `TarjetaVehiculo`, `BadgeDeFase`, `Vehiculo`
 - Depende de: equipo, flujos, origenes
-- Casos de uso: listado
+- Casos de uso: ficha, listado
 
 ### `web`
 Lo que el CRM configura para la web pública y el portal del cliente: ajustes del sitio, guías, FAQs, testimonios con consentimiento, cola web round-robin («turnos»), vistas y RPC del esquema `web`, revalidación on-demand. · 1 archivos
@@ -124,6 +124,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `/perfil` — página
 - `/recuperar` — página
 - `/registro` — página
+- `/vehiculos/[id]` — página
 - `/vehiculos` — página
 
 ## Tablas (supabase/schemas)

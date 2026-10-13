@@ -22,3 +22,4 @@ export { condicionesDe, esquemaDeFiltros } from './entities/filtros'
 // Pantallas
 export { ListadoDeVehiculos } from './features/listado/components/listado-de-vehiculos'
 export { TarjetaVehiculo } from './features/listado/components/tarjeta-vehiculo'
+export { FichaDeVehiculo } from './features/ficha/components/ficha-de-vehiculo'

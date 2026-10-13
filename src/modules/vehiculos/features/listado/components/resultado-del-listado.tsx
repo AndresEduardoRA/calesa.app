@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 import { frasePorVacio } from '@/modules/origenes/client'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
+import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
@@ -88,6 +89,7 @@ export function ResultadoDelListado({ pagina, accionDeVacio, ...datos }: Props) 
               vehiculo={vehiculo}
               campos={campos}
               fase={faseDe(fases, vehiculo.faseId)}
+              href={`${RUTAS.vehiculos}/${vehiculo.id}`}
             />
           </li>
         ))}

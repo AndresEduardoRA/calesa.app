@@ -1,5 +1,7 @@
 'use client'
 
+import type { Route } from 'next'
+import Link from 'next/link'
 import { Monto } from '@/shared/ui/monto'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import type { Vehiculo } from '../../../entities/vehiculo'
@@ -12,11 +14,13 @@ type Props = {
   // El layout del origen del vehículo: de ahí salen los datos «en tarjeta».
   campos: readonly CampoDeVehiculo[]
   fase: { nombre: string; color: string } | null
+  // A dónde lleva el título (la ficha); sin esto es sólo texto.
+  href?: string
 }
 
 // Un vehículo en una tarjeta: lo que se ve en el celular en vez de la fila de la tabla, y lo que
 // otros módulos usan para mostrar un vehículo.
-export function TarjetaVehiculo({ vehiculo, campos, fase }: Props) {
+export function TarjetaVehiculo({ vehiculo, campos, fase, href }: Props) {
   const datos = camposDeTarjeta(campos).filter((campo) => {
     const valor = vehiculo.atributos[campo.clave]
     return valor !== undefined && valor !== null && valor !== ''
@@ -27,7 +31,16 @@ export function TarjetaVehiculo({ vehiculo, campos, fase }: Props) {
         <Miniatura className="w-20" />
         <div className="grid min-w-0 flex-1 gap-1">
           <h3 className="text-(length:--text-base) font-medium text-(--color-ink)">
-            {vehiculo.titulo}
+            {href ? (
+              <Link
+                href={href as Route}
+                className="underline-offset-2 outline-none hover:underline focus-visible:shadow-(--shadow-focus)"
+              >
+                {vehiculo.titulo}
+              </Link>
+            ) : (
+              vehiculo.titulo
+            )}
           </h3>
           <p className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
             #{vehiculo.numero}
