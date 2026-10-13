@@ -20,6 +20,7 @@ function anotador(pedidos: string[] = []): Anotador {
     pedidos,
     in: (columna: string, valores: readonly string[]) =>
       con(`${columna}=in.(${valores.join(',')})`),
+    eq: (columna: string, valor: boolean) => con(`${columna}=eq.${String(valor)}`),
     is: (columna: string) => con(`${columna}=is.null`),
     gte: (columna: string, valor: string | number) => con(`${columna}=gte.${escribir(valor)}`),
     lte: (columna: string, valor: string | number) => con(`${columna}=lte.${escribir(valor)}`),
@@ -125,6 +126,26 @@ describe('aplicarCondiciones', () => {
         { tipo: 'columna_rango', columna: 'anio', min: null, max: 2020 },
       ),
     ).toHaveLength(2)
+  })
+})
+
+describe('en vitrina', () => {
+  it('sí: publicado y en una fase que publica; sin fases, nada', () => {
+    expect(pedidosDe({ tipo: 'en_vitrina', valor: true, fases: ['f1', 'f2'] })).toEqual([
+      'publicado_web=eq.true',
+      'fase_id=in.(f1,f2)',
+    ])
+    expect(pedidosDe({ tipo: 'en_vitrina', valor: true, fases: [] })).toEqual([
+      'publicado_web=eq.true',
+      'fase_id=in.()',
+    ])
+  })
+
+  it('no: sin publicar, sin fase o en otra fase; sin fases que publiquen, todo', () => {
+    expect(pedidosDe({ tipo: 'en_vitrina', valor: false, fases: ['f1'] })).toEqual([
+      'or=(publicado_web.is.false,fase_id.is.null,fase_id.not.in.(f1))',
+    ])
+    expect(pedidosDe({ tipo: 'en_vitrina', valor: false, fases: [] })).toEqual([])
   })
 })
 

@@ -12,6 +12,7 @@ import {
   origenElegido,
   origenesVisibles,
   permisoDeAlta,
+  vitrinaDelOrigen,
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR, leerFiltros } from '@/shared/lib/filtros'
@@ -38,20 +39,22 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
     )
   }
 
-  const [layout, fases, vistas, ajustes] = await Promise.all([
+  const [layout, fases, vistas, ajustes, vitrina] = await Promise.all([
     leerLayout(origen.id, { conUso: false }),
     leerFasesDeOrigen(origen.id),
     leerVistas('vehiculos'),
     getAjustes(),
+    vitrinaDelOrigen(origen.id),
   ])
   const { campos, categorias } = datosO(layout)
-  const fuentes = { campos, categorias, fases: datosO(fases) }
+  const fuentes = { campos, categorias, fases: datosO(fases), vitrina }
   const esquema = esquemaDeFiltros(fuentes)
   const [leida, enEdicion] = await Promise.all([
     buscarVehiculos({
       origenId: origen.id,
       condiciones: condicionesDe(campos, leerFiltros(esquema, parametros), {
         zona: ajustes.zonaHoraria,
+        vitrina,
       }),
       cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR])),
       tamano: TAMANO_DE_PAGINA,

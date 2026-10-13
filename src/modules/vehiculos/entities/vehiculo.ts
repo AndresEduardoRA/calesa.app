@@ -28,6 +28,13 @@ export type Vehiculo = {
   // El vínculo activo: el lead dueño o comprador. Con alcance «propios», quien lo tiene en su
   // cartera ve y edita el vehículo.
   leadId: string | null
+  // La marca de la vitrina y su precio público (null = «Consultar»). Que además se vea en la web
+  // depende de la fase y del origen: ver `entities/vitrina.ts`.
+  publicadoWeb: boolean
+  destacadoWeb: boolean
+  precioWeb: number | null
+  precioWebHasta: number | null
+  precioWebNota: string | null
   // La miniatura de la foto de portada (ruta en el bucket `vehiculos`); null = sin fotos.
   portadaRuta: string | null
   creadoPor: string | null
@@ -36,11 +43,11 @@ export type Vehiculo = {
   actualizadoEn: string
 }
 
-// Las columnas que pide `vehiculosDesde()`. Sin `apibara_raw` ni lo de la vitrina. Las fotos
+// Las columnas que pide `vehiculosDesde()`. Sin `apibara_raw`. Las fotos
 // vienen embebidas en la misma consulta; quien consulta las acota a la portada con
 // `FILTRO_DE_PORTADA` (sin ese filtro vendrían las 24).
 export const COLUMNAS_DE_VEHICULO =
-  'id, numero, origen_id, titulo, marca, modelo, anio, vin, lote, plataforma, url_origen, precio, precio_negociable, acepta_permuta, placado, kilometraje, categoria_id, fase_id, atributos, lead_id, creado_por, creado_en, actualizado_en, vehiculos_imagenes(ruta_miniatura)'
+  'id, numero, origen_id, titulo, marca, modelo, anio, vin, lote, plataforma, url_origen, precio, precio_negociable, acepta_permuta, placado, kilometraje, categoria_id, fase_id, atributos, lead_id, publicado_web, destacado_web, precio_web, precio_web_hasta, precio_web_nota, creado_por, creado_en, actualizado_en, vehiculos_imagenes(ruta_miniatura)'
 
 export const FILTRO_DE_PORTADA = { columna: 'vehiculos_imagenes.es_portada', valor: true } as const
 
@@ -67,6 +74,11 @@ const esquemaVehiculos = z.array(
     // Unos atributos ilegibles no tumban la lista: ese vehículo se muestra sin ellos.
     atributos: z.record(z.string(), z.unknown()).catch({}),
     lead_id: z.guid().nullable(),
+    publicado_web: z.boolean(),
+    destacado_web: z.boolean(),
+    precio_web: z.number().nullable(),
+    precio_web_hasta: z.number().nullable(),
+    precio_web_nota: z.string().nullable(),
     // A lo sumo una: la portada. Sin fotos (o si no llegaron) el vehículo se muestra sin ella.
     vehiculos_imagenes: z.array(z.object({ ruta_miniatura: z.string() })).catch([]),
     creado_por: z.guid().nullable(),
@@ -98,6 +110,11 @@ export function vehiculosDesde(filas: unknown): Vehiculo[] {
     faseId: fila.fase_id,
     atributos: fila.atributos,
     leadId: fila.lead_id,
+    publicadoWeb: fila.publicado_web,
+    destacadoWeb: fila.destacado_web,
+    precioWeb: fila.precio_web,
+    precioWebHasta: fila.precio_web_hasta,
+    precioWebNota: fila.precio_web_nota,
     portadaRuta: fila.vehiculos_imagenes[0]?.ruta_miniatura ?? null,
     creadoPor: fila.creado_por,
     creadoEn: fila.creado_en,

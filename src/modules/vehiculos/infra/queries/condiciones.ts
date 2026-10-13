@@ -18,6 +18,7 @@ export function patronContiene(texto: string): string {
 // Lo que se usa del constructor de consultas de PostgREST. Así se prueba sin base.
 export type Filtrable<Consulta> = {
   in: (columna: string, valores: readonly string[]) => Consulta
+  eq: (columna: string, valor: boolean) => Consulta
   is: (columna: string, valor: null) => Consulta
   gte: (columna: string, valor: string | number) => Consulta
   lte: (columna: string, valor: string | number) => Consulta
@@ -71,6 +72,21 @@ function atributosContienen<Consulta extends Filtrable<Consulta>>(
     : consulta.or(alternativas.map((una) => `atributos.cs.${citar(JSON.stringify(una))}`).join(','))
 }
 
+// «En vitrina» = publicado y en una fase que hoy publica. Las fases llegan resueltas por la base
+// y son ids: no llevan nada que escapar. Sin ninguna, nada está en vitrina: «sí» no trae filas
+// (un `in` vacío) y «no» las trae todas.
+function enVitrina<Consulta extends Filtrable<Consulta>>(
+  consulta: Consulta,
+  { valor, fases }: Extract<Condicion, { tipo: 'en_vitrina' }>,
+): Consulta {
+  if (valor) {
+    return consulta.eq('publicado_web', true).in('fase_id', fases)
+  }
+  return fases.length === 0
+    ? consulta
+    : consulta.or(`publicado_web.is.false,fase_id.is.null,fase_id.not.in.(${fases.join(',')})`)
+}
+
 function aplicarUna<Consulta extends Filtrable<Consulta>>(
   consulta: Consulta,
   condicion: Condicion,
@@ -88,6 +104,8 @@ function aplicarUna<Consulta extends Filtrable<Consulta>>(
         desde: condicion.min,
         hasta: condicion.max,
       })
+    case 'en_vitrina':
+      return enVitrina(consulta, condicion)
     case 'atributos_contienen':
       return atributosContienen(consulta, condicion.alternativas)
     case 'atributo_rango_numero':

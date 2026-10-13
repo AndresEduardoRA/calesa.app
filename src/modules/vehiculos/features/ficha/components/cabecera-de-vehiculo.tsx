@@ -10,13 +10,15 @@ type Props = {
   origen: OrigenResumen
   // La fase actual, entre las del flujo del origen; null = sin fase.
   fase: FaseResumen | null
-  // «Editar», si la persona puede.
+  // «Publicar en la web», «Editar» y lo demás que la persona puede hacer.
   acciones?: ReactNode
+  // Lo que va al lado de la fase (si está en la vitrina).
+  insignias?: ReactNode
 }
 
 // Lo que se ve de un vehículo arriba de todas sus pestañas: su portada, su título, su número, su
 // origen y su fase. La fase se muestra y no se cambia acá (se mueve desde logística).
-export function CabeceraDeVehiculo({ vehiculo, origen, fase, acciones }: Props) {
+export function CabeceraDeVehiculo({ vehiculo, origen, fase, acciones, insignias }: Props) {
   return (
     <header className="flex flex-wrap items-start gap-4">
       <Miniatura ruta={vehiculo.portadaRuta} className="w-24" />
@@ -35,9 +37,10 @@ export function CabeceraDeVehiculo({ vehiculo, origen, fase, acciones }: Props) 
             {origen.nombre}
           </span>
           <BadgeDeFase fase={fase} />
+          {insignias}
         </div>
       </div>
-      {acciones ? <div className="flex gap-2">{acciones}</div> : null}
+      {acciones ? <div className="flex flex-wrap items-start gap-2">{acciones}</div> : null}
     </header>
   )
 }

@@ -16,12 +16,15 @@ import {
   type FaseDeVehiculo,
   type TipoDeCampo,
 } from './campo'
+import { VITRINA_CERRADA, vitrinaAbierta, type VitrinaDelOrigen } from './vitrina'
 
 // Las claves de URL de los fijos. Las de los campos del layout van con el prefijo `a.`: una clave
 // de campo no lleva punto, así que nunca choca con `origen`, `panel`, `cursor` ni con un fijo.
 export const FILTRO_FASE = 'fase'
 export const FILTRO_CATEGORIA = 'categoria'
 export const FILTRO_ANIO = 'anio'
+// Sí = se ve hoy en la web pública; no = todo lo demás (sin publicar, o publicado y no visible).
+export const FILTRO_VITRINA = 'vitrina'
 // En el filtro de fase: lo que todavía no entró al flujo.
 export const SIN_FASE = 'ninguna'
 
@@ -116,6 +119,7 @@ function filtrosFijos({ fases, categorias }: Fuentes): DefFiltro[] {
     entero: true,
     sinMiles: true,
   })
+  fijos.push({ tipo: 'booleano', clave: FILTRO_VITRINA, etiqueta: 'En vitrina' })
   return fijos
 }
 
@@ -136,6 +140,9 @@ export type Condicion =
       incluirNulo: boolean
     }
   | { tipo: 'columna_rango'; columna: 'anio'; min: number | null; max: number | null }
+  // Publicado y en una de estas fases (las que hoy publican; ninguna si el origen no se ve), o
+  // lo contrario. La regla es de la base (`vitrina_del_origen`): acá sólo llega resuelta.
+  | { tipo: 'en_vitrina'; valor: boolean; fases: string[] }
   // `atributos` contiene alguno de estos objetos (`@>`).
   | { tipo: 'atributos_contienen'; alternativas: Record<string, string | boolean | string[]>[] }
   | { tipo: 'atributo_rango_numero'; clave: string; min: number | null; max: number | null }
@@ -143,9 +150,20 @@ export type Condicion =
   | { tipo: 'atributo_rango_texto'; clave: string; desde: string | null; antesDe: string | null }
   | { tipo: 'atributo_texto'; clave: string; texto: string }
 
-function condicionFija(clave: string, valor: ValorDeFiltro): Condicion | null {
+function condicionFija(
+  clave: string,
+  valor: ValorDeFiltro,
+  vitrina: VitrinaDelOrigen,
+): Condicion | null {
   if (clave === FILTRO_ANIO && valor.tipo === 'rango_numero') {
     return { tipo: 'columna_rango', columna: 'anio', min: valor.min, max: valor.max }
+  }
+  if (clave === FILTRO_VITRINA && valor.tipo === 'booleano') {
+    return {
+      tipo: 'en_vitrina',
+      valor: valor.valor,
+      fases: vitrinaAbierta(vitrina) ? [...vitrina.fasesQuePublican] : [],
+    }
   }
   if (valor.tipo !== 'opciones') {
     return null
@@ -217,7 +235,7 @@ function condicionDeCampo(
 export function condicionesDe(
   campos: readonly CampoDeVehiculo[],
   valores: ValoresDeFiltros,
-  opciones: { zona?: string } = {},
+  opciones: { zona?: string; vitrina?: VitrinaDelOrigen } = {},
 ): Condicion[] {
   const condiciones: Condicion[] = []
   if (valores.busqueda !== '') {
@@ -230,7 +248,7 @@ export function condicionesDe(
     const campo = porClave.get(clave)
     const condicion = campo
       ? condicionDeCampo(campo, valor, opciones.zona)
-      : condicionFija(clave, valor)
+      : condicionFija(clave, valor, opciones.vitrina ?? VITRINA_CERRADA)
     if (condicion) {
       condiciones.push(condicion)
     }

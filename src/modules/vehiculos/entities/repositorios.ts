@@ -7,6 +7,7 @@ import type { Condicion } from './filtros'
 import type { FotoEliminada, FotoSubida, Galeria } from './foto'
 import type { Vehiculo } from './vehiculo'
 import type { Relaciones } from './vinculo'
+import type { DatosDeVitrina, VistaPreviaDeVitrina, VitrinaDelOrigen } from './vitrina'
 
 // Una página del inventario de un origen, de lo más nuevo a lo más viejo. La RLS decide qué ve
 // quien llama: acá no se filtra por permiso.
@@ -86,3 +87,18 @@ export type LectorDeRelaciones = (vehiculoId: string) => Promise<Resultado<Relac
 
 // De estos ids, cuáles puede editar quien llama: lo responde la base.
 export type ConsultaDeEditables = (ids: readonly string[]) => Promise<Resultado<string[]>>
+
+// Publicar se escribe sólo por RPC, con la versión del vehículo y el estado entero de la vitrina.
+export type RepositorioVitrina = {
+  publicar: (
+    pedido: { vehiculoId: string; actualizadoEnEsperado: string } & DatosDeVitrina,
+  ) => Promise<{ ok: true; data: { actualizadoEn: string } } | FalloAlGuardar>
+}
+
+// Lo que vería un visitante y por qué no lo ve; null = quien llama no ve el vehículo.
+export type LectorDeVistaPrevia = (
+  vehiculoId: string,
+) => Promise<Resultado<VistaPreviaDeVitrina | null>>
+
+// Lo que hace falta para que algo de un origen se vea en la web.
+export type LectorDeVitrinaDelOrigen = (origenId: string) => Promise<Resultado<VitrinaDelOrigen>>

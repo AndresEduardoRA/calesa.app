@@ -45,13 +45,19 @@ const FUENTES = { campos: CAMPOS, fases: FASES, categorias: CATEGORIAS }
 describe('esquemaDeFiltros', () => {
   const esquema = esquemaDeFiltros(FUENTES)
 
-  it('los fijos van primero: fase (con «Sin fase»), categoría (sólo activas) y año', () => {
+  it('los fijos van primero: fase (con «Sin fase»), categoría (sólo activas), año y vitrina', () => {
     expect(esquema.busqueda?.clave).toBe('q')
-    expect(esquema.filtros.slice(0, 3).map((filtro) => filtro.clave)).toEqual([
+    expect(esquema.filtros.slice(0, 4).map((filtro) => filtro.clave)).toEqual([
       'fase',
       'categoria',
       'anio',
+      'vitrina',
     ])
+    expect(esquema.filtros[3]).toEqual({
+      tipo: 'booleano',
+      clave: 'vitrina',
+      etiqueta: 'En vitrina',
+    })
     const [fase, categoria] = esquema.filtros
     expect(fase).toMatchObject({
       opciones: [
@@ -63,7 +69,7 @@ describe('esquemaDeFiltros', () => {
   })
 
   it('después, los campos filtrables y activos del layout, con su etiqueta y el prefijo a.', () => {
-    expect(esquema.filtros.slice(3).map((filtro) => [filtro.clave, filtro.tipo])).toEqual([
+    expect(esquema.filtros.slice(4).map((filtro) => [filtro.clave, filtro.tipo])).toEqual([
       ['a.color', 'texto'],
       ['a.transmision', 'opciones'],
       ['a.extras', 'opciones'],
@@ -79,13 +85,13 @@ describe('esquemaDeFiltros', () => {
     expect(camposFiltrables(CAMPOS).map((uno) => uno.clave)).not.toContain('carroceria')
   })
 
-  it('sin fases ni categorías sólo queda el año, y sin campos filtrables nada del layout', () => {
+  it('sin fases ni categorías quedan el año y la vitrina, y sin campos filtrables nada del layout', () => {
     const vacio = esquemaDeFiltros({
       campos: [campo('motor', { filtrable: false })],
       fases: [],
       categorias: [],
     })
-    expect(vacio.filtros.map((filtro) => filtro.clave)).toEqual(['anio'])
+    expect(vacio.filtros.map((filtro) => filtro.clave)).toEqual(['anio', 'vitrina'])
   })
 })
 
@@ -157,5 +163,29 @@ describe('condicionesDe', () => {
       porClave: { 'a.motor': { tipo: 'texto' as const, texto: 'v8' } },
     }
     expect(condicionesDe(CAMPOS, colado)).toEqual([])
+  })
+})
+
+describe('condicionesDe: en vitrina', () => {
+  const esquema = esquemaDeFiltros(FUENTES)
+
+  it('«en vitrina» lleva las fases que hoy publican; con el origen cerrado, ninguna', () => {
+    const filtros = leerFiltros(esquema, { vitrina: 'si' })
+    const abierta = {
+      webActiva: true,
+      origenActivo: true,
+      origenVisible: true,
+      fasesQuePublican: ['f1'],
+    }
+    expect(condicionesDe(CAMPOS, filtros, { vitrina: abierta })).toEqual([
+      { tipo: 'en_vitrina', valor: true, fases: ['f1'] },
+    ])
+    expect(
+      condicionesDe(CAMPOS, filtros, { vitrina: { ...abierta, origenVisible: false } }),
+    ).toEqual([{ tipo: 'en_vitrina', valor: true, fases: [] }])
+    // Sin saber del origen, nada está en vitrina.
+    expect(condicionesDe(CAMPOS, leerFiltros(esquema, { vitrina: 'no' }))).toEqual([
+      { tipo: 'en_vitrina', valor: false, fases: [] },
+    ])
   })
 })

@@ -7,9 +7,10 @@ import { Monto } from '@/shared/ui/monto'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTarjeta } from '../../../entities/campo'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
+import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
 import { BadgeDeFase } from './badge-de-fase'
 import { Miniatura } from './miniatura'
-import { faseDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
+import { faseDe, vitrinaDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
 import { ValorDeCampo } from './valor-de-campo'
 
 type Props = DatosDelOrigen & {
@@ -24,7 +25,8 @@ const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
 // El inventario de un origen en escritorio: lo común adelante y, después, una columna por cada
 // campo «en tarjeta» del layout. Las filas tienen la altura de la densidad elegida.
-export function TablaDeVehiculos({ vehiculos, campos, fases, encabezado, editables }: Props) {
+export function TablaDeVehiculos(props: Props) {
+  const { vehiculos, origen, campos, fases, vitrina, encabezado, editables } = props
   const columnas = camposDeTarjeta(campos)
   return (
     <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
@@ -66,7 +68,14 @@ export function TablaDeVehiculos({ vehiculos, campos, fases, encabezado, editabl
                 </div>
               </TableCell>
               <TableCell>
-                <BadgeDeFase fase={faseDe(fases, vehiculo.faseId)} />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <BadgeDeFase fase={faseDe(fases, vehiculo.faseId)} />
+                  <InsigniaDeVitrina
+                    {...vitrinaDe(vehiculo, vitrina)}
+                    origen={origen}
+                    fase={faseDe(fases, vehiculo.faseId)}
+                  />
+                </div>
               </TableCell>
               <TableCell className="text-right tabular-nums">{vehiculo.anio ?? VACIO}</TableCell>
               <TableCell className="text-right">

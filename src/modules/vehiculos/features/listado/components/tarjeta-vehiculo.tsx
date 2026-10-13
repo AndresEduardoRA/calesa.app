@@ -19,11 +19,13 @@ type Props = {
   href?: string
   // Lo que se puede hacer con él (editar), arriba a la derecha.
   acciones?: ReactNode
+  // Lo que va al lado de la fase (si está en la vitrina).
+  insignias?: ReactNode
 }
 
 // Un vehículo en una tarjeta: lo que se ve en el celular en vez de la fila de la tabla, y lo que
 // otros módulos usan para mostrar un vehículo.
-export function TarjetaVehiculo({ vehiculo, campos, fase, href, acciones }: Props) {
+export function TarjetaVehiculo({ vehiculo, campos, fase, href, acciones, insignias }: Props) {
   const datos = camposDeTarjeta(campos).filter((campo) => {
     const valor = vehiculo.atributos[campo.clave]
     return valor !== undefined && valor !== null && valor !== ''
@@ -52,6 +54,7 @@ export function TarjetaVehiculo({ vehiculo, campos, fase, href, acciones }: Prop
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <BadgeDeFase fase={fase} />
+            {insignias}
             {vehiculo.precio === null ? null : (
               <Monto valor={vehiculo.precio} className="text-(length:--text-sm) font-medium" />
             )}

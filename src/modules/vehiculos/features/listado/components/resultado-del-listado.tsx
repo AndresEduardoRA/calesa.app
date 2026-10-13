@@ -12,10 +12,11 @@ import { buttonVariants } from '@/shared/ui/button'
 import { EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
+import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
 import { Paginacion } from './paginacion'
 import { TablaDeVehiculos } from './tabla-de-vehiculos'
 import { TarjetaVehiculo } from './tarjeta-vehiculo'
-import { faseDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
+import { faseDe, vitrinaDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
 
 type Props = DatosDelOrigen & {
   pagina: Pagina<FilaDeVehiculo>
@@ -54,7 +55,7 @@ function PaginaSinFilas() {
 export function ResultadoDelListado({ pagina, accionDeVacio, editables, ...datos }: Props) {
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
-  const { origen, campos, fases } = datos
+  const { origen, campos, fases, vitrina } = datos
   const puedeEditar = new Set(editables)
 
   if (pagina.filas.length === 0) {
@@ -95,6 +96,13 @@ export function ResultadoDelListado({ pagina, accionDeVacio, editables, ...datos
               campos={campos}
               fase={faseDe(fases, vehiculo.faseId)}
               href={`${RUTAS.vehiculos}/${vehiculo.id}`}
+              insignias={
+                <InsigniaDeVitrina
+                  {...vitrinaDe(vehiculo, vitrina)}
+                  origen={origen}
+                  fase={faseDe(fases, vehiculo.faseId)}
+                />
+              }
               acciones={
                 puedeEditar.has(vehiculo.id) ? (
                   <BotonEditarVehiculo vehiculo={vehiculo} compacto />

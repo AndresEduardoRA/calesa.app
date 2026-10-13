@@ -7,13 +7,12 @@ import { puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
 import {
-  BotonEditarVehiculo,
-  CabeceraDeVehiculo,
   EsqueletoDeFotos,
-  PanelDeVehiculo,
   editablesDe,
   leerVehiculo,
   origenesVisibles,
+  permisoDeVitrina,
+  vistaPreviaDe,
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { RUTAS, unParametro } from '@/shared/lib/rutas'
@@ -21,6 +20,8 @@ import { buttonVariants } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { vehiculoEnEdicion } from '../edicion'
 import { BloqueVinculo } from './bloque-vinculo'
+import { Encabezado } from './encabezado'
+import { Paneles } from './paneles'
 import { CLAVE_DE_PESTANA, hayBarraDePestanas, pestanaDeVehiculo } from './pestanas'
 import { PestanasDeVehiculo } from './pestanas-de-vehiculo'
 import { SeccionFicha } from './seccion-ficha'
@@ -62,14 +63,17 @@ export default async function PaginaVehiculo({
   if (!encontrado || !origen) {
     return <NoDisponible />
   }
-  const [layout, fases, enEdicion, editables] = await Promise.all([
+  const [layout, fases, enEdicion, editables, previa] = await Promise.all([
     leerLayout(origen.id, { conUso: false }),
     leerFasesDeOrigen(origen.id),
     vehiculoEnEdicion(parametros, sesion, origen.id),
     editablesDe(sesion, [encontrado]),
+    vistaPreviaDe(encontrado.id),
   ])
   const suLayout = datosO(layout)
   const editable = editables.has(encontrado.id)
+  const fase = datosO(fases).find((una) => una.id === encontrado.faseId) ?? null
+  const publicar = permisoDeVitrina(sesion.permisos, origen)
   const pestana = pestanaDeVehiculo(unParametro(parametros[CLAVE_DE_PESTANA]))
   return (
     <div className="grid max-w-4xl gap-4">
@@ -80,11 +84,13 @@ export default async function PaginaVehiculo({
         <ArrowLeftIcon aria-hidden className="size-4" />
         {origen.nombre}
       </Link>
-      <CabeceraDeVehiculo
+      <Encabezado
         vehiculo={encontrado}
         origen={origen}
-        fase={datosO(fases).find((fase) => fase.id === encontrado.faseId) ?? null}
-        acciones={editable ? <BotonEditarVehiculo vehiculo={encontrado} /> : undefined}
+        fase={fase}
+        previa={previa}
+        publicar={publicar}
+        editable={editable}
       />
       {hayBarraDePestanas() ? <PestanasDeVehiculo /> : null}
       {pestana === 'ficha' ? (
@@ -104,12 +110,13 @@ export default async function PaginaVehiculo({
           <SeccionFotos vehiculoId={encontrado.id} puedeEditar={editable} />
         </Suspense>
       ) : null}
-      {/* Desde la ficha sólo se edita: el alta vive en el inventario. */}
-      <PanelDeVehiculo
+      <Paneles
+        vehiculo={encontrado}
         origen={origen}
-        campos={suLayout.campos}
-        categorias={suLayout.categorias}
-        puedeCrear={false}
+        fase={fase}
+        layout={suLayout}
+        previa={previa}
+        publicar={publicar}
         enEdicion={enEdicion?.id === encontrado.id ? enEdicion : null}
       />
     </div>

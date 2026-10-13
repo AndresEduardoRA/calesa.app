@@ -22,6 +22,17 @@ export { editablesDe } from './features/permisos/editables'
 // que entiende `buscarVehiculos()`
 export { condicionesDe, esquemaDeFiltros } from './entities/filtros'
 
+// La vitrina: qué se ve en la web pública y quién publica. Las dos lecturas no tumban la pantalla
+export { vistaPreviaDe, vitrinaDelOrigen } from './features/vitrina/lecturas'
+export {
+  permisoDeVitrina,
+  type PermisoDeVitrina,
+  type VistaPreviaDeVitrina,
+} from './entities/vitrina'
+export { BotonDeVitrina } from './features/vitrina/components/boton-de-vitrina'
+export { InsigniaDeVitrina } from './features/vitrina/components/insignia-de-vitrina'
+export { PanelDeVitrina } from './features/vitrina/components/panel-de-vitrina'
+
 // Pantallas
 export { ListadoDeVehiculos } from './features/listado/components/listado-de-vehiculos'
 export { TarjetaVehiculo } from './features/listado/components/tarjeta-vehiculo'

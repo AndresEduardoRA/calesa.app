@@ -22,6 +22,11 @@ const FILA = {
   fase_id: null,
   atributos: { color: 'Gris', cilindros: 4 },
   lead_id: null,
+  publicado_web: true,
+  destacado_web: false,
+  precio_web: 25900,
+  precio_web_hasta: null,
+  precio_web_nota: null,
   vehiculos_imagenes: [
     { ruta_miniatura: `00000000-0000-0000-0000-000000000001/${'a'.repeat(64)}.webp` },
   ],
@@ -38,6 +43,8 @@ describe('vehiculosDesde', () => {
       titulo: '2021 Toyota RAV4',
       precio: 24500.5,
       faseId: null,
+      publicadoWeb: true,
+      precioWeb: 25900,
       atributos: { color: 'Gris', cilindros: 4 },
       // La versión viaja como texto, con sus microsegundos.
       actualizadoEn: '2026-10-13T12:05:00.654321+00:00',
