@@ -44,6 +44,10 @@ export { leerEquipo, leerVistaPreviaDeBaja } from './composicion'
 export { idDePersona } from './entities/persona'
 export { ListaEquipo } from './features/equipo/components/lista-equipo'
 
+// Vistas guardadas de un listado (`<MenuDeVistas>` sale por `client.ts`)
+export { leerVistas } from './composicion'
+export type { VistaGuardada } from './entities/vista'
+
 // Perspectiva «ver como» (el hook `usePerspectiva()` sale por `client.ts`)
 export { BannerPerspectiva } from './features/perspectiva/components/banner-perspectiva'
 export { ProveedorPerspectiva } from './features/perspectiva/components/proveedor-perspectiva'

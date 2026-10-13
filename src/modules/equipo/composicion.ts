@@ -11,6 +11,7 @@ import type {
   RepositorioEquipo,
   RepositorioRoles,
 } from './entities/repositorios-equipo'
+import type { LectorDeVistas, RepositorioVistas } from './entities/repositorios-vistas'
 import { accesoSupabase } from './infra/acceso'
 import { equipoSupabase } from './infra/equipo'
 import { conAdminDeAuth } from './infra/invitaciones'
@@ -18,7 +19,9 @@ import { perfilSupabase } from './infra/perfil'
 import { getEquipo, getVistaPreviaDeBaja } from './infra/queries/equipo'
 import { getMatriz } from './infra/queries/roles'
 import { getSesion } from './infra/queries/sesion'
+import { getVistas } from './infra/queries/vistas'
 import { rolesSupabase } from './infra/rbac'
+import { vistasSupabase } from './infra/vistas'
 
 export const servicioAcceso: ServicioAcceso = accesoSupabase
 export const repositorioPerfil: RepositorioPerfil = perfilSupabase
@@ -31,3 +34,6 @@ export const conCuentasInvitadas: ConCuentasInvitadas = conAdminDeAuth
 export const leerEquipo: LectorDeEquipo = getEquipo
 export const leerMatriz: LectorDeMatriz = getMatriz
 export const leerVistaPreviaDeBaja: LectorDeVistaPreviaDeBaja = getVistaPreviaDeBaja
+
+export const repositorioVistas: RepositorioVistas = vistasSupabase
+export const leerVistas: LectorDeVistas = getVistas

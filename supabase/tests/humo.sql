@@ -1395,3 +1395,29 @@ do $$ declare o uuid; c uuid; begin
   perform public.origen_campo_eliminar(c, (select actualizado_en from public.origenes_campos where id = c));
 end $$;
 reset role;
+
+-- @test vistas guardadas: cada persona lee y escribe sólo las suyas, y un nombre repetido reemplaza
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ begin
+  insert into public.vistas_guardadas (usuario_id, pantalla, nombre, params) values ('00000000-0000-0000-0000-000000000008', 'vehiculos', 'Humo de Irene', '{"fase": "a"}');
+  insert into public.vistas_guardadas (usuario_id, pantalla, nombre, params) values ('00000000-0000-0000-0000-000000000008', 'vehiculos', 'Humo de Irene', '{"fase": "b"}')
+    on conflict (usuario_id, pantalla, nombre) do update set params = excluded.params;
+  if (select params from public.vistas_guardadas where nombre = 'Humo de Irene') <> '{"fase": "b"}'::jsonb then raise exception 'guardar con el mismo nombre no reemplazó la vista'; end if;
+  begin
+    insert into public.vistas_guardadas (usuario_id, pantalla, nombre) values ('00000000-0000-0000-0000-000000000009', 'vehiculos', 'Colada');
+    raise exception 'guardó una vista a nombre de otra persona';
+  exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+do $$ begin
+  if exists (select 1 from public.vistas_guardadas) then raise exception 'leyó las vistas de otra persona'; end if;
+  update public.vistas_guardadas set nombre = 'Pisada' where nombre = 'Humo de Irene';
+  delete from public.vistas_guardadas where nombre = 'Humo de Irene';
+end $$;
+reset role;
+do $$ begin
+  if (select count(*) from public.vistas_guardadas where nombre = 'Humo de Irene') <> 1 then raise exception 'otra persona tocó una vista ajena'; end if;
+end $$;

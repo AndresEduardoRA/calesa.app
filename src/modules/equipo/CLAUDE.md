@@ -12,7 +12,8 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
   - Equipo: `leerEquipo()`, `leerVistaPreviaDeBaja()`, `idDePersona()`, `<ListaEquipo>`.
   - Roles: `leerMatriz()`, `agruparPorModulo()`, `<MatrizDeRoles>`, `<RoleBadge>`.
   - Perspectiva: `<ProveedorPerspectiva>`, `<BannerPerspectiva>`.
-- Sale por `client.ts` (Client Components de `app/` y de otros módulos): `usePerspectiva()`, `<RoleBadge>`, tipos `Perspectiva` y `RolParaVerComo`.
+  - Vistas guardadas: `leerVistas(pantalla)` (las de quien llama).
+- Sale por `client.ts` (Client Components de `app/` y de otros módulos): `usePerspectiva()`, `<RoleBadge>`, tipos `Perspectiva` y `RolParaVerComo`; y `<MenuDeVistas pantalla vistas actuales puedeGuardar>` con los tipos `VistaGuardada` y `ParamsDeVista`: el menú que un listado monta en el hueco `vistas` de `<FilterShell>`.
 - Lo consumen `app/` y todos los módulos. Depende de: `empresa` (registro abierto, ajustes). **Nunca de `origenes`** (que depende de este): la página lee los orígenes y se los pasa a la matriz por props.
 
 ## Archivos clave
@@ -26,6 +27,7 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
 - `features/auth/`, `features/perfil/` — acceso y perfil propio.
 - `features/roles/` — matriz (`matriz-de-roles`, `grupo-matriz`, `celda-concesion`, `editor-concesion`), `hooks/use-matriz.ts` (una edición por rol a la vez), crear y eliminar rol.
 - `features/equipo/` — `invitar.ts` (los pasos de invitar, con puertos), lista, panel de roles, bloqueo, baja, enlace copiable; `hooks/use-acciones-equipo.ts`, `hooks/use-invitaciones.ts`.
+- `entities/vista.ts` — `VistaGuardada`, `RUTA_DE_PANTALLA` (qué listados guardan vistas y su ruta: uno nuevo se suma ahí), `esLaVistaActual()`, `urlDeVista()`, `motivoParaNoGuardar()`. `infra/vistas.ts`, `infra/queries/vistas.ts`, `features/vistas/` (actions, `use-vistas.ts`, `menu-de-vistas.tsx`).
 - `features/perspectiva/` — `cookie.ts`, actions `verComo` y `salirDePerspectiva`, `usePerspectiva()`, banner.
 - `puede()` y el catálogo de claves y módulos viven en `@/shared/lib/permisos` (docs/DECISIONES.md).
 
@@ -46,6 +48,7 @@ RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_pe
 - El cliente admin sólo se crea en `infra/invitaciones.ts`, después de comprobar `equipo.usuarios.gestionar`, y nunca sale de ahí más que `auth.admin` (lo cuida el lint).
 - Dar de baja manda al limbo los leads que quedan sin ningún asesor vigente; la vista previa y la baja cuentan con la misma función. Bloquear no toca datos.
 - Una cuenta bloqueada o dada de baja nunca se queda adentro: al ingresar, al canjear un enlace y en cada pantalla (`requerirSesion()` → `/auth/cerrar`) se cierra la sesión y se dice el motivo.
+- Una vista guardada son **parámetros de URL** (`vistas_guardadas.params`) de una pantalla: aplicarla es navegar. Son de quien las guarda (RLS de fila propia), no otorgan nada y no chocan con nadie: se escriben directo, sin RPC ni versión, como las preferencias. Guardar con un nombre que ya existe reemplaza; hay un tope de 20 por pantalla; eliminar ofrece «Deshacer». Qué significa cada parámetro lo decide el listado al leerlos (tolerante): `equipo` no conoce los filtros de nadie.
 - El ingreso no revela si un correo existe. El texto de un aviso sale del catálogo, nunca de la URL.
 
 ## Ojo
