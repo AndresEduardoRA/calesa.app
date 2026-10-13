@@ -6409,17 +6409,20 @@ export type Database = {
       }
       vehiculo_vitrina: {
         Args: {
-          p_destacado?: boolean
-          p_nota?: string
-          p_precio?: number
-          p_precio_hasta?: number
+          p_actualizado_en_esperado: string
+          p_destacado: boolean
+          p_nota: string
+          p_precio: number
+          p_precio_hasta: number
           p_publicado: boolean
           p_vehiculo: string
         }
-        Returns: undefined
+        Returns: Json
       }
+      vehiculo_vitrina_previa: { Args: { p_vehiculo: string }; Returns: Json }
       vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
       verificar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: Json }
+      vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }
       web_expirar_solicitudes: { Args: { p_limite?: number }; Returns: number }
     }
@@ -6585,32 +6588,23 @@ export type Database = {
       }
       vehiculos: {
         Row: {
-          acepta_permuta: boolean | null
           actualizado_en: string | null
           anio: number | null
           atributos: Json | null
           categoria: string | null
           destacado: boolean | null
-          estado_subasta: string | null
-          fase: string | null
           id: string | null
           imagen: string | null
-          imagenes: string[] | null
-          kilometraje: number | null
-          lote: string | null
           marca: string | null
+          miniatura: string | null
           modelo: string | null
           numero: number | null
           origen: string | null
           origen_nombre: string | null
           precio: number | null
           precio_hasta: number | null
-          precio_negociable: boolean | null
           precio_nota: string | null
-          subasta_en: string | null
-          subasta_fin_en: string | null
           titulo: string | null
-          vin_parcial: string | null
         }
         ComputedFields: never
         Relationships: []

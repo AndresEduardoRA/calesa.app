@@ -197,7 +197,7 @@ do $$ declare o uuid; v uuid; i int; begin
     raise exception 'dejó editar por UPDATE directo, sin versión';
   exception when insufficient_privilege then null; end;
   begin
-    perform public.vehiculo_vitrina(v, true);
+    perform public.vehiculo_vitrina(v, (select actualizado_en from public.vehiculos where id = v), true, null, null, null, false);
     raise exception 'el asesor no tiene vehiculos.vitrina';
   exception when insufficient_privilege then null; end;
 end $$;
@@ -1860,3 +1860,171 @@ do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; begin
   exception when unique_violation then null; end;
   delete from public.vehiculos_vinculos where vehiculo_id = v and hasta is null;
 end $$;
+
+-- @test vitrina: el anónimo ve sólo lo publicado, con lo público y la portada; publicar pide permiso por origen, versión y ver el vehículo
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Vera: ve todo el inventario y publica sólo en Oficina.
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-00000000000a', 'vera@ejemplo.com', '{"invitado": true}');
+update public.perfiles set nombre = 'Vera Soto', invitacion_aceptada_en = now() where id = '00000000-0000-0000-0000-00000000000a';
+insert into public.roles (clave, nombre) values ('humo_vitrina', 'Humo vitrina');
+insert into public.usuarios_roles (usuario_id, rol_id) select '00000000-0000-0000-0000-00000000000a', id from public.roles where clave = 'humo_vitrina';
+insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+select r.id, 'vehiculos.ver', null, 'todos' from public.roles r where r.clave = 'humo_vitrina';
+insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+select r.id, 'vehiculos.vitrina', o.id, 'todos' from public.roles r, public.origenes o where r.clave = 'humo_vitrina' and o.clave = 'oficina';
+-- Un campo público y uno que no lo es.
+insert into public.origenes_campos (origen_id, clave, etiqueta, tipo, publico_web)
+select o.id, x.clave, x.etiqueta, 'texto', x.publico
+from public.origenes o, (values ('humo_color', 'Color', true), ('humo_costo', 'Costo de compra', false)) as x (clave, etiqueta, publico)
+where o.clave = 'oficina';
+insert into public.vehiculos (id, origen_id, titulo, marca, modelo, anio, vin, precio, kilometraje, fase_id, atributos, creado_por)
+select x.id::uuid, o.id, x.titulo, 'Toyota', 'Hilux', 2022, x.vin, 18500, 45123, case when x.con_fase then f.id end,
+       '{"humo_color": "Blanco", "humo_costo": "17999"}', '00000000-0000-0000-0000-000000000001'
+from public.origenes o join public.flujos fl on fl.origen_id = o.id join public.fases f on f.flujo_id = fl.id and f.nombre = 'Disponible',
+  (values ('dddddddd-0000-4000-8000-000000000001', 'Vitrina publicado', 'JTFVTR00000000001', true),
+          ('dddddddd-0000-4000-8000-000000000002', 'Vitrina sin publicar', 'JTFVTR00000000002', true),
+          ('dddddddd-0000-4000-8000-000000000003', 'Vitrina sin fase', 'JTFVTR00000000003', false)) as x (id, titulo, vin, con_fase)
+where o.clave = 'oficina';
+-- Dos fotos en el publicado (la segunda no es portada) y una en el que no se publica.
+insert into storage.objects (bucket_id, name)
+select 'vehiculos', v || '/' || repeat(letra, 64) || '.webp'
+from unnest(array['dddddddd-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000002']) v, unnest(array['1', '2', '3', '4']) letra;
+insert into public.vehiculos_imagenes (vehiculo_id, hash, ruta, ruta_miniatura, ancho, alto, bytes, orden, es_portada)
+select v::uuid, repeat(x.completa, 64), v || '/' || repeat(x.completa, 64) || '.webp', v || '/' || repeat(x.mini, 64) || '.webp', 1600, 1200, 300000, x.orden, x.portada
+from unnest(array['dddddddd-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000002']) v,
+  (values ('1', '2', 1, true), ('3', '4', 2, false)) as x (completa, mini, orden, portada)
+where v = 'dddddddd-0000-4000-8000-000000000001' or x.portada;
+update public.integraciones set activa = true where clave = 'web_publica';
+update public.ajustes_web set origenes_visibles = array(select id from public.origenes where clave in ('oficina', 'subasta_usa')) where id = 1;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare v1 uuid := 'dddddddd-0000-4000-8000-000000000001'; v2 uuid := 'dddddddd-0000-4000-8000-000000000002'; v3 uuid := 'dddddddd-0000-4000-8000-000000000003';
+  ajeno uuid; ver timestamptz; r jsonb; m text; e text; begin
+  select actualizado_en into ver from public.vehiculos where id = v1;
+  begin perform public.vehiculo_vitrina(v1, null, true, 21500, null, null, false); raise exception 'publicó sin versión';
+  exception when others then get stacked diagnostics m = message_text; if m not like 'Falta la versión%' then raise; end if; end;
+  begin perform public.vehiculo_vitrina(v1, ver - interval '1 second', true, 21500, null, null, false); raise exception 'publicó con una versión vieja';
+  exception when others then get stacked diagnostics e = returned_sqlstate; if e <> 'PT409' then raise; end if; end;
+  begin perform public.vehiculo_vitrina(v1, ver, true, -1, null, null, false); raise exception 'aceptó un precio público negativo';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_vitrina(v1, ver, true, 21500, 20000, null, false); raise exception 'aceptó un «hasta» menor que el precio';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_vitrina(v1, ver, true, null, 20000, null, false); raise exception 'aceptó un «hasta» sin precio';
+  exception when invalid_parameter_value then null; end;
+  select id into ajeno from public.vehiculos where titulo = 'Humo subasta ajeno';
+  if ajeno is null then raise exception 'falta el vehículo de subasta de las pruebas'; end if;
+  begin perform public.vehiculo_vitrina(ajeno, (select actualizado_en from public.vehiculos where id = ajeno), true, null, null, null, false);
+    raise exception 'publicó en un origen donde no tiene vehiculos.vitrina';
+  exception when insufficient_privilege then null; end;
+
+  r := public.vehiculo_vitrina(v1, ver, true, 21500, 23000, '  IVA incluido  ', true);
+  if not (select publicado_web and destacado_web and precio_web = 21500 and precio_web_hasta = 23000 and precio_web_nota = 'IVA incluido' from public.vehiculos where id = v1) then
+    raise exception 'publicar no guardó la marca, el precio y la nota';
+  end if;
+  if (r ->> 'actualizado_en')::timestamptz is distinct from (select actualizado_en from public.vehiculos where id = v1) then raise exception 'publicar no devolvió la versión nueva'; end if;
+  -- Lo que ya está guardado no es un conflicto, aunque la versión sea vieja.
+  perform public.vehiculo_vitrina(v1, ver - interval '1 hour', true, 21500, 23000, 'IVA incluido', true);
+
+  -- La vista previa es, campo por campo, lo que ve el visitante.
+  r := public.vehiculo_vitrina_previa(v1);
+  if not (r ->> 'visible')::boolean then raise exception 'el publicado debía verse: %', r; end if;
+  if r -> 'tarjeta' is distinct from (select to_jsonb(w) from web.vehiculos w where w.id = v1) then raise exception 'la vista previa no es lo que ve el visitante: %', r; end if;
+  -- Sin publicar: hay tarjeta (lo que se vería) y dice que no está publicado.
+  r := public.vehiculo_vitrina_previa(v2);
+  if (r ->> 'publicado')::boolean or (r ->> 'visible')::boolean or r -> 'tarjeta' ->> 'titulo' <> 'Vitrina sin publicar' then raise exception 'vista previa de uno sin publicar: %', r; end if;
+  -- Publicado sin fase: la marca queda, y no se ve.
+  perform public.vehiculo_vitrina(v3, (select actualizado_en from public.vehiculos where id = v3), true, null, null, null, false);
+  r := public.vehiculo_vitrina_previa(v3);
+  if not (r ->> 'publicado')::boolean or (r ->> 'con_fase')::boolean or (r ->> 'visible')::boolean then raise exception 'publicado sin fase: %', r; end if;
+  -- Despublicar apaga también el destacado.
+  perform public.vehiculo_vitrina(v3, (select actualizado_en from public.vehiculos where id = v3), false, 9000, null, null, true);
+  if (select publicado_web or destacado_web or precio_web is distinct from 9000 from public.vehiculos where id = v3) then raise exception 'despublicar debía apagar el destacado y conservar el precio que se le mandó'; end if;
+end $$;
+reset role;
+
+-- Sin `vehiculos.vitrina` no se publica; con el permiso pero sin ver el vehículo, tampoco.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+set role authenticated;
+do $$ declare v1 uuid := 'dddddddd-0000-4000-8000-000000000001'; begin
+  begin perform public.vehiculo_vitrina(v1, (select actualizado_en from public.vehiculos where id = v1), false, null, null, null, false);
+    raise exception 'despublicó sin vehiculos.vitrina';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.roles_permisos set alcance = 'propios' where permiso_clave = 'vehiculos.ver' and rol_id = (select id from public.roles where clave = 'humo_vitrina');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+do $$ declare v1 uuid := 'dddddddd-0000-4000-8000-000000000001'; begin
+  if public.vehiculo_vitrina_previa(v1) is not null then raise exception 'la vista previa respondió por un vehículo que no ve'; end if;
+  begin perform public.vehiculo_vitrina(v1, now(), false, null, null, null, false);
+    raise exception 'despublicó un vehículo que no ve';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.roles_permisos set alcance = 'todos' where permiso_clave = 'vehiculos.ver' and rol_id = (select id from public.roles where clave = 'humo_vitrina');
+
+-- El visitante.
+select set_config('request.jwt.claim.sub', '', false);
+select set_config('request.jwt.claim.role', 'anon', false);
+set role anon;
+do $$ declare w record; columnas text[]; v1 uuid := 'dddddddd-0000-4000-8000-000000000001';
+  esperadas constant text[] := array['id', 'numero', 'origen', 'origen_nombre', 'titulo', 'marca', 'modelo', 'anio', 'categoria', 'precio', 'precio_hasta',
+    'precio_nota', 'destacado', 'atributos', 'imagen', 'miniatura', 'actualizado_en']; begin
+  if (select count(*) from web.vehiculos) <> 1 then raise exception 'la vitrina debía mostrar un vehículo y muestra %', (select count(*) from web.vehiculos); end if;
+  select * into w from web.vehiculos;
+  select array_agg(k) into columnas from jsonb_object_keys(to_jsonb(w)) k;
+  if not (columnas @> esperadas and columnas <@ esperadas) then raise exception 'web.vehiculos expone otras columnas: %', columnas; end if;
+  if w.id <> v1 or w.titulo <> 'Vitrina publicado' or w.precio <> 21500 or w.precio_hasta <> 23000 or w.precio_nota <> 'IVA incluido' or not w.destacado then raise exception 'la fila pública no es la esperada: %', to_jsonb(w); end if;
+  if w.atributos <> '{"humo_color": "Blanco"}'::jsonb then raise exception 'atributos debía traer sólo el campo público: %', w.atributos; end if;
+  if w.imagen <> v1 || '/' || repeat('1', 64) || '.webp' or w.miniatura <> v1 || '/' || repeat('2', 64) || '.webp' then raise exception 'la portada no es la esperada: % / %', w.imagen, w.miniatura; end if;
+  -- Ni el costo, ni el precio de lista, ni el VIN, ni el kilometraje, ni la otra foto.
+  if to_jsonb(w)::text ~ '17999|18500|JTFVTR|45123|3333' then raise exception 'se filtró un dato que no es público: %', to_jsonb(w); end if;
+  begin perform 1 from interno.vitrina_vehiculos; raise exception 'anon leyó el esquema interno';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_vitrina_previa(v1); raise exception 'anon pidió la vista previa';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vitrina_del_origen(v1); raise exception 'anon preguntó por la vitrina de un origen';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_vitrina(v1, now(), false, null, null, null, false); raise exception 'anon despublicó';
+  exception when insufficient_privilege then null; end;
+  begin perform 1 from public.vehiculos; raise exception 'anon leyó vehiculos';
+  exception when insufficient_privilege then null; end;
+  begin perform 1 from public.vehiculos_imagenes; raise exception 'anon leyó las fotos';
+  exception when insufficient_privilege then null; end;
+  begin perform 1 from public.vehiculos_interesados; raise exception 'anon leyó los interesados';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Las condiciones que no son del vehículo: lo que dice `vitrina_del_origen()` es lo que aplica la vista.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+do $$ declare oficina uuid; d jsonb; v1 uuid := 'dddddddd-0000-4000-8000-000000000001'; begin
+  select id into oficina from public.origenes where clave = 'oficina';
+  d := public.vitrina_del_origen(oficina);
+  if not ((d ->> 'web_activa')::boolean and (d ->> 'origen_activo')::boolean and (d ->> 'origen_visible')::boolean) or jsonb_array_length(d -> 'fases_que_publican') <> 1 then
+    raise exception 'vitrina_del_origen: %', d;
+  end if;
+  if exists (
+    select 1 from interno.vitrina_vehiculos t join public.vehiculos v on v.id = t.id
+    where t.origen_id = oficina and t.visible is distinct from (t.publicado and (d ->> 'web_activa')::boolean and (d ->> 'origen_activo')::boolean
+      and (d ->> 'origen_visible')::boolean and coalesce(v.fase_id::text in (select jsonb_array_elements_text(d -> 'fases_que_publican')), false))) then
+    raise exception 'vitrina_del_origen no coincide con lo que la vista deja ver';
+  end if;
+  -- Lo que está en la papelera no se ve, y vuelve a verse al salir.
+  update public.vehiculos set eliminado_en = now() where id = v1;
+  if (select count(*) from web.vehiculos) <> 0 then raise exception 'un vehículo en la papelera seguía en la vitrina'; end if;
+  update public.vehiculos set eliminado_en = null where id = v1;
+  -- El origen deja de estar visible, o la web se apaga: nada se ve.
+  update public.ajustes_web set origenes_visibles = array(select id from public.origenes where clave = 'subasta_usa') where id = 1;
+  if (select count(*) from web.vehiculos) <> 0 or (public.vitrina_del_origen(oficina) ->> 'origen_visible')::boolean then raise exception 'un origen no visible seguía en la vitrina'; end if;
+  update public.ajustes_web set origenes_visibles = array(select id from public.origenes where clave in ('oficina', 'subasta_usa')) where id = 1;
+  update public.integraciones set activa = false where clave = 'web_publica';
+  if (select count(*) from web.vehiculos) <> 0 then raise exception 'con la web apagada la vitrina seguía mostrando'; end if;
+  update public.integraciones set activa = true where clave = 'web_publica';
+  if (select count(*) from web.vehiculos) <> 1 then raise exception 'la vitrina no volvió a mostrar el publicado'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

@@ -868,3 +868,51 @@ policies y vive en un `where` (ahí un nulo es «no»). El humo lo prueba con un
 lead en su cartera.
 **Consecuencia:** una sola regla para leer, escribir y dibujar. Lo mismo vale para las RPC de
 leads y cotizaciones cuando se reescriban: se revisan con esta lupa.
+
+## 2026-10-13 — La vitrina muestra identidad, precio público, campos públicos y la portada; nada más
+
+**Contexto:** `web.vehiculos` exponía, además de los campos que el origen marcó como públicos, el
+kilometraje, el lote, la fecha y el estado de la subasta, parte del VIN, el nombre interno de la
+fase, si el precio es negociable, si acepta permuta y **todas** las fotos. Las columnas comunes no
+tienen fila en `origenes_campos`: nadie las puede marcar ni desmarcar como públicas.
+**Decisión:** la vista queda en `id, numero, origen, origen_nombre, titulo, marca, modelo, anio,
+categoria, precio, precio_hasta, precio_nota, destacado, atributos, imagen, miniatura,
+actualizado_en`. De las columnas comunes sale sólo la identidad; `atributos` trae sólo los campos
+`publico_web` activos (y `{}`, no nulo, si no hay ninguno); de las fotos, la portada en sus dos
+tamaños. Las filas no cambian: publicado, fuera de la papelera, fase activa que publica, origen
+activo y visible, integración web activa.
+**Alternativas:** dejar las diez columnas como estaban (el sitio todavía no existe para decir cuáles
+necesita, y el lote más la fecha de subasta dejan encontrar el precio de martillo); una marca
+«público» para las columnas comunes (es una pantalla de configuración nueva: va con el sitio).
+**Consecuencia:** hoy no hay consumidor (el sitio es la Fase 8), así que achicar no rompe nada;
+agrandar después es deliberado y columna por columna, con su razón acá. El tipado del sitio sale de
+esta lista. Despublicar no revoca una URL de foto que alguien ya tenga: el bucket es público.
+
+## 2026-10-13 — Una sola definición de lo público: el esquema `interno`
+
+**Contexto:** la ficha tiene que mostrar «así lo verá el visitante» también antes de publicar, y el
+listado, cuáles de los publicados se ven de verdad. Copiar la proyección o el `WHERE` de la vista en
+una RPC o en TypeScript es la forma de que la vista previa mienta el día que la vista cambie.
+**Decisión:** `interno.vitrina_vehiculos` proyecta **todo** vehículo vivo a lo público y calcula sus
+cinco condiciones (`publicado`, `fase_publica`, `origen_activo`, `origen_visible`, `web_activa`) y
+`visible`. `web.vehiculos` es esa vista `where visible`; `vehiculo_vitrina_previa()` devuelve su
+fila sin las banderas; `vitrina_del_origen()` da las condiciones que no son del vehículo, y con ellas
+el listado arma el filtro y el indicador. `interno` no se expone en PostgREST y ningún rol de la app
+tiene `usage`.
+**Alternativas:** la vista interna en `public` (toda relación nueva nace ahí con privilegios para
+`anon`, y una vista sin `security_invoker` en un esquema expuesto es un error de los advisors); en
+`web` sin grants (aparece en los tipos del sitio); una función que devuelva la proyección (no se
+integra al plan: cada lectura del sitio recorrería todo el inventario).
+**Consecuencia:** el humo compara la vista previa con la fila de `web.vehiculos` campo por campo.
+Publicar no exige que la fase publique: la marca es del vehículo y la visibilidad se calcula, así
+que existe el estado «publicado, no visible», y la interfaz tiene que decir por qué.
+
+## 2026-10-13 — Publicar lleva la versión del vehículo y manda el estado entero
+
+**Contexto:** `vehiculo_vitrina()` no llevaba versión ni bloqueaba la fila, y sus parámetros con
+default pisaban el precio y la nota cuando alguien despublicaba sin reenviarlos.
+**Decisión:** siete parámetros sin default, con `p_actualizado_en_esperado` obligatorio; exige
+`vehiculos.vitrina` del origen **y** ver el vehículo; guardar lo ya guardado no es conflicto; el
+precio nulo es «Consultar»; despublicar apaga el destacado.
+**Consecuencia:** como toda escritura sobre la fila, publicar mueve la versión: quien tiene la ficha
+abierta en edición ve un conflicto (la misma deuda que mover de fase).
