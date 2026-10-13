@@ -1,18 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  cambiosRespectoDe,
-  claveDeCampo,
-  necesitaVistaPrevia,
-  type CampoDeLayout,
-} from '../../../entities/campo'
+import { cambiosRespectoDe, necesitaVistaPrevia } from '../../../entities/cambios-de-campo'
+import { claveDeCampo, type CampoDeLayout } from '../../../entities/campo'
 import {
   resumenDeEliminacion,
   resumenDeImpacto,
   type ResumenDeImpacto,
 } from '../../../entities/impacto'
 import type { TipoDeOrigen } from '../../../entities/origen'
+import { valorDefectoPara } from '../../../entities/valor-defecto'
 import type { ErroresDeCampo, ValoresDeCampo } from '../components/campos-de-campo'
 import type { EdicionesDeCampos } from './use-campos'
 
@@ -39,6 +36,7 @@ const VALORES_DE_UN_CAMPO_NUEVO: ValoresDeCampo = {
   publicoWeb: false,
   claveApibara: '',
   activo: true,
+  valorDefecto: null,
 }
 
 function valoresIniciales(campo: CampoDeLayout | null): ValoresDeCampo {
@@ -49,6 +47,14 @@ function valoresIniciales(campo: CampoDeLayout | null): ValoresDeCampo {
     ...campo,
     grupo: campo.grupo ?? '',
     claveApibara: campo.claveApibara ?? '',
+  }
+}
+
+// Un valor por defecto que deja de servir (cambió el tipo, se sacó su opción) se va solo.
+function conDefectoVigente(valores: ValoresDeCampo): ValoresDeCampo {
+  return {
+    ...valores,
+    valorDefecto: valorDefectoPara(valores.tipo, valores.opciones, valores.valorDefecto),
   }
 }
 
@@ -67,6 +73,7 @@ function cambiosDelFormulario(campo: CampoDeLayout, valores: ValoresDeCampo) {
     publicoWeb: valores.publicoWeb,
     claveApibara: vacioANulo(valores.claveApibara),
     activo: valores.activo,
+    valorDefecto: valores.valorDefecto,
   })
 }
 
@@ -119,21 +126,15 @@ export function useFormularioDeCampo(args: Args) {
   function cambiar(parcial: Partial<ValoresDeCampo>) {
     setAviso(null)
     setErrores({})
-    setValores((actuales) => ({ ...actuales, ...parcial }))
+    setValores((actuales) => conDefectoVigente({ ...actuales, ...parcial }))
   }
 
   async function crear() {
+    const { activo: _activo, ...nuevo } = valores
     const resultado = await ediciones.crear({
+      ...nuevo,
       origenId,
       clave,
-      etiqueta: valores.etiqueta,
-      tipo: valores.tipo,
-      opciones: valores.opciones,
-      requerido: valores.requerido,
-      grupo: valores.grupo,
-      enTarjeta: valores.enTarjeta,
-      filtrable: valores.filtrable,
-      publicoWeb: valores.publicoWeb,
       claveApibara: tipoDeOrigen === 'subasta' ? valores.claveApibara : null,
     })
     if (resultado.ok) {

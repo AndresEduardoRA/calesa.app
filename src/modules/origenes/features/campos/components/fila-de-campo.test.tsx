@@ -19,6 +19,7 @@ const CAMPO: CampoDeLayout = {
   filtrable: false,
   publicoWeb: true,
   claveApibara: null,
+  valorDefecto: null,
   esSistema: true,
   activo: true,
   actualizadoEn: '2026-10-12T20:00:00+00:00',

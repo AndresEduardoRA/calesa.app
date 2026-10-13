@@ -11,8 +11,10 @@ import {
   type CampoDeLayout,
   type OpcionDeCampo,
   type TipoDeCampo,
+  type ValorDefecto,
 } from '../../../entities/campo'
 import { MOTIVO_CAMPO_DE_SISTEMA } from '../../../entities/motivos'
+import { CampoValorDefecto } from './campo-valor-defecto'
 import { EditorDeOpciones } from './editor-de-opciones'
 
 // Lo que el formulario de un campo edita.
@@ -28,9 +30,12 @@ export type ValoresDeCampo = {
   publicoWeb: boolean
   claveApibara: string
   activo: boolean
+  valorDefecto: ValorDefecto | null
 }
 
-export type ErroresDeCampo = Partial<Record<'etiqueta' | 'clave' | 'opciones' | 'grupo', string>>
+export type ErroresDeCampo = Partial<
+  Record<'etiqueta' | 'clave' | 'opciones' | 'grupo' | 'valorDefecto', string>
+>
 
 type Props = {
   valores: ValoresDeCampo
@@ -86,10 +91,45 @@ function Banderas({ valores, alCambiar, esNuevo, deshabilitado }: PropsDeBandera
   )
 }
 
+type PropsDeGrupo = {
+  valor: string
+  alCambiar: (grupo: string) => void
+  existentes: readonly string[]
+  error: string | undefined
+  deshabilitado: boolean
+}
+
+// El grupo se escribe libre, con los que ya existen como sugerencia.
+function CampoGrupo({ valor, alCambiar, existentes, error, deshabilitado }: PropsDeGrupo) {
+  const idGrupos = useId()
+  return (
+    <div className="grid gap-1.5">
+      <Campo
+        nombre="grupo"
+        etiqueta="Grupo"
+        autoComplete="off"
+        maxLength={40}
+        list={idGrupos}
+        value={valor}
+        onChange={(evento) => {
+          alCambiar(evento.target.value)
+        }}
+        error={error}
+        ayuda="El bloque del formulario donde va. Cambiarlo lo manda al final del grupo."
+        disabled={deshabilitado}
+      />
+      <datalist id={idGrupos}>
+        {existentes.map((grupo) => (
+          <option key={grupo} value={grupo} />
+        ))}
+      </datalist>
+    </div>
+  )
+}
+
 // Los datos de un campo del layout. La clave sale de la etiqueta al crear y no cambia después.
 export function CamposDeCampo(props: Props) {
   const { valores, alCambiar, campo, gruposExistentes, errores, deshabilitado } = props
-  const idGrupos = useId()
   const esNuevo = campo === null
   const tipoFijo = campo?.esSistema ?? false
   return (
@@ -135,27 +175,25 @@ export function CamposDeCampo(props: Props) {
           deshabilitado={deshabilitado}
         />
       ) : null}
-      <div className="grid gap-1.5">
-        <Campo
-          nombre="grupo"
-          etiqueta="Grupo"
-          autoComplete="off"
-          maxLength={40}
-          list={idGrupos}
-          value={valores.grupo}
-          onChange={(evento) => {
-            alCambiar({ grupo: evento.target.value })
-          }}
-          error={errores.grupo}
-          ayuda="El bloque del formulario donde va. Cambiarlo lo manda al final del grupo."
-          disabled={deshabilitado}
-        />
-        <datalist id={idGrupos}>
-          {gruposExistentes.map((grupo) => (
-            <option key={grupo} value={grupo} />
-          ))}
-        </datalist>
-      </div>
+      <CampoValorDefecto
+        tipo={valores.tipo}
+        opciones={valores.opciones}
+        valor={valores.valorDefecto}
+        alCambiar={(valorDefecto) => {
+          alCambiar({ valorDefecto })
+        }}
+        error={errores.valorDefecto}
+        deshabilitado={deshabilitado}
+      />
+      <CampoGrupo
+        valor={valores.grupo}
+        alCambiar={(grupo) => {
+          alCambiar({ grupo })
+        }}
+        existentes={gruposExistentes}
+        error={errores.grupo}
+        deshabilitado={deshabilitado}
+      />
       <Banderas
         valores={valores}
         alCambiar={alCambiar}

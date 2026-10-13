@@ -1364,3 +1364,34 @@ do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; m text; begin
 end $$;
 reset role;
 update public.origenes_campos set requerido = false where clave = 'condicion' and origen_id = (select id from public.origenes where clave = 'oficina');
+
+-- @test origenes: el valor por defecto de un campo se valida contra su tipo y se limpia cuando deja de servir
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare o uuid; c uuid; begin
+  select id into o from public.origenes where clave = 'oficina';
+  begin perform public.origen_campo_crear(o, 'humo_def_mal', 'Humo mal', 'numero', p_valor_defecto => '"siete"'); raise exception 'aceptó un texto como defecto de un número';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.origen_campo_crear(o, 'humo_def_fecha', 'Humo fecha', 'fecha', p_valor_defecto => '"2026-01-01"'); raise exception 'aceptó un defecto en una fecha';
+  exception when invalid_parameter_value then null; end;
+  c := (public.origen_campo_crear(o, 'humo_def', 'Humo defecto', 'opcion', '[{"clave": "a", "etiqueta": "A"}, {"clave": "b", "etiqueta": "B"}]', p_valor_defecto => '"a"') ->> 'id')::uuid;
+  if (select valor_defecto from public.origenes_campos where id = c) is distinct from '"a"'::jsonb then raise exception 'no guardó el valor por defecto'; end if;
+  begin perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"valor_defecto": "z"}'); raise exception 'aceptó como defecto algo que no es una opción';
+  exception when invalid_parameter_value then null; end;
+  -- Tocar otra cosa no lo mueve; sacar la opción que era el defecto lo limpia.
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"filtrable": true}');
+  if (select valor_defecto from public.origenes_campos where id = c) is distinct from '"a"'::jsonb then raise exception 'editar otra cosa movió el valor por defecto'; end if;
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"opciones": [{"clave": "b", "etiqueta": "B"}]}');
+  if (select valor_defecto from public.origenes_campos where id = c) is not null then raise exception 'quedó como defecto una opción que ya no existe'; end if;
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"valor_defecto": "b"}');
+  -- Cambiar el tipo lo limpia, y un nulo explícito también.
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"tipo": "texto"}');
+  if (select valor_defecto from public.origenes_campos where id = c) is not null then raise exception 'cambiar el tipo conservó el valor por defecto'; end if;
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"valor_defecto": "Sin datos"}');
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"valor_defecto": null}');
+  if (select valor_defecto from public.origenes_campos where id = c) is not null then raise exception 'un nulo no vació el valor por defecto'; end if;
+  perform public.origen_campo_eliminar(c, (select actualizado_en from public.origenes_campos where id = c));
+end $$;
+reset role;

@@ -1,7 +1,8 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { Resultado } from '@/shared/lib/errores'
-import type { CambiosDeCampo, CampoDeLayout, OpcionDeCampo, TipoDeCampo } from './campo'
+import type { CambiosDeCampo } from './cambios-de-campo'
+import type { CampoDeLayout, OpcionDeCampo, TipoDeCampo, ValorDefecto } from './campo'
 import type { Categoria } from './categoria'
 import type { ImpactoDeCampo } from './impacto'
 import type { Genero, OrigenConUso, TipoDeOrigen } from './origen'
@@ -48,6 +49,7 @@ export type RepositorioCampos = {
     filtrable: boolean
     publicoWeb: boolean
     claveApibara: string | null
+    valorDefecto: ValorDefecto | null
   }) => Promise<Resultado<Creado>>
   guardar: (pedido: {
     id: string

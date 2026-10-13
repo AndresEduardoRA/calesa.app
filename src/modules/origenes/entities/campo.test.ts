@@ -1,14 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   agruparCampos,
-  cambiosComoColumnas,
-  cambiosRespectoDe,
   camposDesde,
   claveDeCampo,
   destinoDeMovimiento,
-  necesitaVistaPrevia,
   nombresDeGrupo,
-  opcionesQuitadas,
   tieneOpciones,
   type CampoDeLayout,
 } from './campo'
@@ -24,6 +20,7 @@ function fila(n: number, extra: Record<string, unknown> = {}) {
     tipo: 'texto',
     opciones: [],
     requerido: false,
+    valor_defecto: null,
     grupo: 'Vehículo',
     orden: n * 10,
     en_tarjeta: false,
@@ -50,6 +47,12 @@ describe('camposDesde', () => {
   it('unas opciones mal formadas no tumban la pantalla', () => {
     const [campo] = camposDesde([fila(1, { opciones: 'no es una lista' })])
     expect(campo?.opciones).toEqual([])
+  })
+
+  it('trae el valor por defecto, y uno mal formado es «sin valor»', () => {
+    expect(layout({ valor_defecto: 'Gris' })[0]?.valorDefecto).toBe('Gris')
+    expect(layout({ valor_defecto: ['a', 'b'] })[0]?.valorDefecto).toEqual(['a', 'b'])
+    expect(layout({ valor_defecto: { raro: true } })[0]?.valorDefecto).toBeNull()
   })
 
   it('rechaza un tipo que la base no conoce', () => {
@@ -119,73 +122,6 @@ describe('claveDeCampo', () => {
     expect(claveDeCampo('VIN', [])).toBe('vin_2')
     expect(claveDeCampo('Color', ['color'])).toBe('color_2')
     expect(claveDeCampo('Color', ['color', 'color_2'])).toBe('color_3')
-  })
-})
-
-describe('cambios', () => {
-  const [campo] = layout({
-    tipo: 'opcion',
-    opciones: [
-      { clave: 'a', etiqueta: 'A' },
-      { clave: 'b', etiqueta: 'B' },
-    ],
-  })
-  if (!campo) {
-    throw new Error('sin campo')
-  }
-  const igual = {
-    etiqueta: campo.etiqueta,
-    tipo: campo.tipo,
-    opciones: campo.opciones,
-    requerido: campo.requerido,
-    grupo: campo.grupo,
-    enTarjeta: campo.enTarjeta,
-    filtrable: campo.filtrable,
-    publicoWeb: campo.publicoWeb,
-    claveApibara: campo.claveApibara,
-    activo: campo.activo,
-  }
-
-  it('sin tocar nada no hay cambios', () => {
-    expect(cambiosRespectoDe(campo, igual)).toEqual({})
-  })
-
-  it('sólo viaja lo que cambió', () => {
-    expect(cambiosRespectoDe(campo, { ...igual, filtrable: true, grupo: null })).toEqual({
-      filtrable: true,
-      grupo: null,
-    })
-  })
-
-  it('traduce a columnas y deja un nulo explícito', () => {
-    expect(cambiosComoColumnas({ enTarjeta: true, grupo: null, publicoWeb: false })).toEqual({
-      en_tarjeta: true,
-      grupo: null,
-      publico_web: false,
-    })
-  })
-
-  it('sabe qué opciones se sacan', () => {
-    expect(opcionesQuitadas(campo, { opciones: [{ clave: 'a', etiqueta: 'A' }] })).toEqual([
-      { clave: 'b', etiqueta: 'B' },
-    ])
-    expect(opcionesQuitadas(campo, {})).toEqual([])
-  })
-
-  it('pide contar sólo cuando un cambio puede tocar datos', () => {
-    expect(necesitaVistaPrevia(campo, { filtrable: true })).toBe(false)
-    expect(necesitaVistaPrevia(campo, { activo: false })).toBe(false)
-    expect(necesitaVistaPrevia(campo, { tipo: 'texto' })).toBe(true)
-    expect(necesitaVistaPrevia(campo, { requerido: true })).toBe(true)
-    expect(necesitaVistaPrevia(campo, { opciones: [{ clave: 'a', etiqueta: 'A' }] })).toBe(true)
-    expect(
-      necesitaVistaPrevia(campo, {
-        opciones: [
-          { clave: 'a', etiqueta: 'A' },
-          { clave: 'b', etiqueta: 'Be' },
-        ],
-      }),
-    ).toBe(false)
   })
 })
 

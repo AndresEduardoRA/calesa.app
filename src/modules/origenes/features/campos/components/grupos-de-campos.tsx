@@ -1,6 +1,6 @@
+import type { CambiosDeCampo } from '../../../entities/cambios-de-campo'
 import {
   destinoDeMovimiento,
-  type CambiosDeCampo,
   type CampoDeLayout,
   type GrupoDeCampos,
   type Sentido,

@@ -3022,6 +3022,7 @@ export type Database = {
           publico_web: boolean
           requerido: boolean
           tipo: Database['public']['Enums']['tipo_campo']
+          valor_defecto: Json | null
         }
         ComputedFields: never
         Insert: {
@@ -3041,6 +3042,7 @@ export type Database = {
           publico_web?: boolean
           requerido?: boolean
           tipo: Database['public']['Enums']['tipo_campo']
+          valor_defecto?: Json | null
         }
         Update: {
           activo?: boolean
@@ -3059,6 +3061,7 @@ export type Database = {
           publico_web?: boolean
           requerido?: boolean
           tipo?: Database['public']['Enums']['tipo_campo']
+          valor_defecto?: Json | null
         }
         Relationships: [
           {
@@ -5786,6 +5789,10 @@ export type Database = {
         Returns: string
       }
       _origen_opciones_validas: { Args: { p_opciones: Json }; Returns: undefined }
+      _origen_valor_defecto: {
+        Args: { p_opciones: Json; p_tipo: Database['public']['Enums']['tipo_campo']; p_valor: Json }
+        Returns: Json
+      }
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
       _requisito_dato_cumplido: {
@@ -6087,6 +6094,7 @@ export type Database = {
           p_publico_web?: boolean
           p_requerido?: boolean
           p_tipo: Database['public']['Enums']['tipo_campo']
+          p_valor_defecto?: Json
         }
         Returns: Json
       }

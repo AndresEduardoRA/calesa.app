@@ -39,6 +39,7 @@ function erroresDelFormulario(
     etiqueta: propios.etiqueta ?? delServidor('etiqueta'),
     opciones: propios.opciones ?? delServidor('opciones'),
     grupo: propios.grupo ?? delServidor('grupo'),
+    valorDefecto: propios.valorDefecto ?? delServidor('valorDefecto'),
   }
 }
 

@@ -4,9 +4,9 @@ import { ArrowDownIcon, ArrowUpIcon, PencilIcon } from 'lucide-react'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { Switch } from '@/shared/ui/switch'
+import type { CambiosDeCampo } from '../../../entities/cambios-de-campo'
 import {
   ETIQUETA_DE_TIPO_DE_CAMPO,
-  type CambiosDeCampo,
   type CampoDeLayout,
   type Sentido,
 } from '../../../entities/campo'

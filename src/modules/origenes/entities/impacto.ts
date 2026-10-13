@@ -1,7 +1,8 @@
 // Lo que cambiaría una edición del layout, contado por la base antes de hacerla, y cómo se dice.
 import { z } from 'zod'
 import { contados } from './nombre'
-import { opcionesQuitadas, type CambiosDeCampo, type CampoDeLayout } from './campo'
+import { opcionesQuitadas, type CambiosDeCampo } from './cambios-de-campo'
+import type { CampoDeLayout } from './campo'
 
 export type ImpactoDeCampo = {
   // Vehículos del origen (también los de la papelera).

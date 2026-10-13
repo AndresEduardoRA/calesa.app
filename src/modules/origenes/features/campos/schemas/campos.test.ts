@@ -15,6 +15,7 @@ const NUEVO = {
   filtrable: false,
   publicoWeb: false,
   claveApibara: '',
+  valorDefecto: null,
 }
 
 describe('esquemaCrearCampo', () => {
@@ -57,6 +58,20 @@ describe('esquemaCrearCampo', () => {
       ],
     })
     expect(r.success).toBe(false)
+  })
+})
+
+describe('valor por defecto', () => {
+  it('tiene que servir para el tipo y sus opciones', () => {
+    expect(esquemaCrearCampo.safeParse({ ...NUEVO, valorDefecto: 'Gris' }).success).toBe(true)
+    expect(esquemaCrearCampo.safeParse({ ...NUEVO, valorDefecto: 4 }).success).toBe(false)
+    expect(
+      esquemaCrearCampo.safeParse({ ...NUEVO, tipo: 'fecha', valorDefecto: 'x' }).success,
+    ).toBe(false)
+    const opciones = [{ clave: 'a', etiqueta: 'A' }]
+    const deOpcion = { ...NUEVO, tipo: 'opcion', opciones }
+    expect(esquemaCrearCampo.safeParse({ ...deOpcion, valorDefecto: 'a' }).success).toBe(true)
+    expect(esquemaCrearCampo.safeParse({ ...deOpcion, valorDefecto: 'z' }).success).toBe(false)
   })
 })
 

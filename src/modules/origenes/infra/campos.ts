@@ -1,7 +1,7 @@
 import 'server-only'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
-import { cambiosComoColumnas } from '../entities/campo'
+import { cambiosComoColumnas } from '../entities/cambios-de-campo'
 import { impactoDesde } from '../entities/impacto'
 import type { RepositorioCampos } from '../entities/repositorios'
 import { respuestaDeCreacion } from './origenes'
@@ -23,6 +23,7 @@ const crear: RepositorioCampos['crear'] = async (nuevo) => {
     p_filtrable: nuevo.filtrable,
     p_publico_web: nuevo.publicoWeb,
     p_clave_apibara: nuevo.claveApibara ?? undefined,
+    p_valor_defecto: nuevo.valorDefecto ?? undefined,
   })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }

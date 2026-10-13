@@ -1,5 +1,10 @@
 import { z } from 'zod'
 import { CLAVES_RESERVADAS, TIPOS_DE_CAMPO, tieneOpciones } from '../../../entities/campo'
+import {
+  LARGO_MAXIMO_DE_VALOR_DEFECTO,
+  admiteValorDefecto,
+  valorDefectoPara,
+} from '../../../entities/valor-defecto'
 
 const version = z.string().min(1)
 
@@ -46,6 +51,18 @@ const claveApibara = z
   .transform((valor) => (valor === '' ? null : valor))
   .nullable()
 
+// Su forma depende del tipo y de las opciones: acá sólo se acota; `valorDefectoPara()` decide.
+const valorDefecto = z
+  .union([
+    z.string().max(LARGO_MAXIMO_DE_VALOR_DEFECTO, {
+      error: `Hasta ${String(LARGO_MAXIMO_DE_VALOR_DEFECTO)} caracteres.`,
+    }),
+    z.number(),
+    z.boolean(),
+    z.array(z.string()).max(60),
+  ])
+  .nullable()
+
 export const esquemaCrearCampo = z
   .object({
     origenId: z.guid(),
@@ -59,6 +76,7 @@ export const esquemaCrearCampo = z
     filtrable: z.boolean(),
     publicoWeb: z.boolean(),
     claveApibara,
+    valorDefecto,
   })
   .refine((campo) => !tieneOpciones(campo.tipo) || campo.opciones.length > 0, {
     path: ['opciones'],
@@ -68,6 +86,13 @@ export const esquemaCrearCampo = z
     path: ['opciones'],
     error: 'Sólo un campo de opciones lleva opciones.',
   })
+  .refine(
+    (campo) =>
+      campo.valorDefecto === null ||
+      (admiteValorDefecto(campo.tipo) &&
+        valorDefectoPara(campo.tipo, campo.opciones, campo.valorDefecto) !== null),
+    { path: ['valorDefecto'], error: 'Ese valor por defecto no sirve para este tipo de campo.' },
+  )
 
 // Lo que no viaja no se toca. Un `null` explícito vacía el grupo o la clave de apibara.
 export const esquemaGuardarCampo = z.object({
@@ -85,6 +110,7 @@ export const esquemaGuardarCampo = z.object({
       publicoWeb: z.boolean().optional(),
       claveApibara: claveApibara.optional(),
       activo: z.boolean().optional(),
+      valorDefecto: valorDefecto.optional(),
     })
     .refine((cambios) => Object.values<unknown>(cambios).some((valor) => valor !== undefined), {
       error: 'No hay nada que guardar.',

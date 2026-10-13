@@ -31,6 +31,7 @@ create table public.origenes_campos (
   tipo          public.tipo_campo not null,
   opciones      jsonb not null default '[]'::jsonb,     -- para opcion/multi_opcion: [{clave, etiqueta}]
   requerido     boolean not null default false,
+  valor_defecto jsonb,                                   -- lo que trae puesto el formulario de alta; NULL = nada
   grupo         text,                                    -- bloque del formulario
   orden         smallint not null default 0,
   en_tarjeta    boolean not null default false,          -- se muestra en la card del listado
@@ -42,7 +43,7 @@ create table public.origenes_campos (
   actualizado_en timestamptz not null default now(),     -- versión de la fila: toda edición la manda
   unique (origen_id, clave)
 );
-comment on table public.origenes_campos is 'Layout de campos de un origen. Los campos comunes (marca, modelo, año, vin, lote, precio) viven como columnas de vehiculos; el resto en vehiculos.atributos, validado contra esta tabla por trigger.';
+comment on table public.origenes_campos is 'Layout de campos de un origen. Los campos comunes (marca, modelo, año, vin, lote, precio) viven como columnas de vehiculos; el resto en vehiculos.atributos, validado contra esta tabla por trigger. valor_defecto sólo precarga el formulario de alta: la base nunca lo aplica sola.';
 
 create table public.categorias (
   id        uuid primary key default gen_random_uuid(),
