@@ -853,9 +853,13 @@ do $$ declare r jsonb; o uuid; rechazo boolean; begin
 
   -- Nombre y clave no se repiten (el nombre, sin importar mayúsculas ni espacios).
   begin perform public.origen_crear('otra_clave', ' COREA ', 'vehículo', 'm', 'manual'); raise exception 'repitió el nombre de un origen';
-  exception when unique_violation then null; end;
+  exception when unique_violation then if sqlerrm not like 'Ya existe un origen llamado%' then raise; end if; end;
+  -- Mismo nombre y misma clave a la vez: cuenta el nombre.
+  begin perform public.origen_crear('corea_humo', 'corea', 'vehículo', 'm', 'manual'); raise exception 'repitió nombre y clave';
+  exception when unique_violation then if sqlerrm not like 'Ya existe un origen llamado%' then raise; end if; end;
+  -- Otro nombre con la misma clave: se dice la clave.
   begin perform public.origen_crear('corea_humo', 'Corea del Sur', 'vehículo', 'm', 'manual'); raise exception 'repitió la clave de un origen';
-  exception when unique_violation then null; end;
+  exception when unique_violation then if sqlerrm not like '%nombre muy parecido%' then raise; end if; end;
   -- Reglas que un CHECK no expresa.
   rechazo := false; begin perform public.origen_crear('Mala Clave', 'Algo', 'vehículo', 'm', 'manual'); exception when raise_exception then rechazo := true; end;
   if not rechazo then raise exception 'aceptó una clave con mayúsculas y espacios'; end if;

@@ -129,7 +129,7 @@ create or replace function public.origen_crear(
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
   v_nombre text; v_sustantivo text; v_color text; v_plataformas text[] := coalesce(p_apibara_plataformas, '{}');
-  v_id uuid; v_version timestamptz; v_constraint text;
+  v_id uuid; v_version timestamptz;
 begin
   perform public.assert_permiso('origenes.gestionar');
   v_nombre := public._origen_nombre_valido(p_nombre, 'el nombre del origen', 60);
@@ -153,11 +153,12 @@ begin
             coalesce((select max(o.orden) + 10 from public.origenes o), 0), v_plataformas)
     returning id, actualizado_en into v_id, v_version;
   exception when unique_violation then
-    get stacked diagnostics v_constraint = constraint_name;
-    if v_constraint = 'origenes_clave_key' then
-      raise exception 'Ya existe un origen con un nombre muy parecido a «%». Cámbialo un poco.', v_nombre using errcode = '23505';
+    -- Dos orígenes con el mismo nombre chocan también en la clave que sale de él: el que cuenta es
+    -- el nombre. Sólo si el nombre es otro (dos nombres que dan la misma clave) se dice la clave.
+    if exists (select 1 from public.origenes o where lower(btrim(o.nombre)) = lower(v_nombre)) then
+      raise exception 'Ya existe un origen llamado «%».', v_nombre using errcode = '23505';
     end if;
-    raise exception 'Ya existe un origen llamado «%».', v_nombre using errcode = '23505';
+    raise exception 'Ya existe un origen con un nombre muy parecido a «%». Cámbialo un poco.', v_nombre using errcode = '23505';
   end;
   return jsonb_build_object('id', v_id, 'actualizado_en', v_version);
 end;
@@ -172,7 +173,7 @@ create or replace function public.origen_guardar(
   p_color text default null, p_activo boolean default null, p_apibara_plataformas text[] default null)
 returns timestamptz language plpgsql security definer set search_path = '' as $$
 declare
-  v public.origenes; v_nombre text; v_color text; v_nueva timestamptz; v_constraint text;
+  v public.origenes; v_nombre text; v_color text; v_nueva timestamptz;
 begin
   perform public.assert_permiso('origenes.gestionar');
   select * into v from public.origenes o where o.id = p_origen for update;
@@ -204,7 +205,6 @@ begin
     where o.id = p_origen
     returning o.actualizado_en into v_nueva;
   exception when unique_violation then
-    get stacked diagnostics v_constraint = constraint_name;
     raise exception 'Ya existe un origen llamado «%».', v_nombre using errcode = '23505';
   end;
 
