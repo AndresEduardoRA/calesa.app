@@ -6,55 +6,51 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-13
-**Fase actual:** 2 — Orígenes y vehículos, **abierta**. Partes 1 (orígenes) y 2 (vehículos:
-listado, ficha, alta y edición) hechas; sigue la parte 3 (fotos) en sesión nueva.
+**Fase actual:** 2 — Orígenes y vehículos, **abierta**. Hechas las partes 1 (orígenes), 2
+(vehículos) y 3 (fotos, vínculo e interesados); siguen la 4 y la 5, cada una en sesión nueva.
 
 ## Funcionando
 
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm db:probar`, `bash scripts/mapa.sh --check`,
   `pnpm build` y `pnpm test:e2e` (los números de la última corrida están en `docs/BITACORA.md`).
-- **Fase 1** completa. **Orígenes** (`/configuracion/origenes`): alta, datos, activar y
-  desactivar, layout de campos (ahora con **valor por defecto**) y categorías, por RPC con versión.
-- **Vehículos** (`/vehiculos`, `/vehiculos/[id]`):
-  - Una pestaña por origen donde la persona tiene `vehiculos.ver` (también los inactivos);
-    `?origen=`. Tabla en escritorio y tarjetas en el celular, con el lugar de la foto reservado.
-  - `FilterShell`: búsqueda, panel de filtros (al costado; hoja inferior en el celular), chips y
-    «Limpiar». Los filtros salen de los campos `filtrable` del origen, más fase, categoría y año.
-    Todo en la URL; lo que no corresponde se ignora. Vistas guardadas por persona. Keyset.
-  - Ficha por el layout del origen, con la fase de sólo lectura. Sólo la pestaña «Ficha».
-  - Alta y edición en un panel (`?panel=nuevo`, `?editar=`): bloques por grupo del layout, valores
-    por defecto, `N`, `Ctrl/Cmd+S`, `Ctrl/Cmd+Enter`. Conflicto con quién y cuándo («Ver cómo
-    quedó» / «Recargar»). Con la conexión caída conserva lo escrito y reintenta sin duplicar.
-- `vehiculos` es de **sólo lectura** para la app: se escribe por `vehiculo_crear` y
-  `vehiculo_guardar` (versión obligatoria). El vehículo nace en la fase inicial si hay una sola.
+- **Fase 1** completa. **Orígenes** y **vehículos** (listado con filtros en la URL y vistas
+  guardadas, ficha por layout, alta y edición en panel con conflicto y reintento sin conexión).
+- **Fotos** (`/vehiculos/[id]?seccion=fotos`): elegir (selector, soltar, cámara en el celular)
+  arma una bandeja y no sube nada; al confirmar se suben los dos tamaños de cada foto y una action
+  las registra. Hasta 24, sin repetir (por hash del archivo), una portada, orden con botones o
+  `Alt+←/→`, eliminar con «Deshacer». Resultado parcial explícito y reintento de lo que faltó.
+  La portada se ve en el listado y en la cabecera. Todo por RPC, con versión propia de las fotos.
+- **Vínculo e interesados:** RPC de escritura y de lectura, y un bloque de sólo lectura bajo la
+  ficha (para quien tiene `leads.ver`). «Editar» lo decide la base (`vehiculos_editables`).
+- `vehiculos`, `vehiculos_imagenes` y `vehiculos_interesados` son de **sólo lectura** para la app.
 
-## Siguiente: Fase 2, partes 3 a 5
+## Siguiente: Fase 2, partes 4 y 5
 
-- 3: fotos (≤ 24, WebP, portada, hash + refcount; `comprimirImagen()` y `subirPorHash()` ya
-  existen). El hueco está en `<Miniatura url>`; la pestaña se suma creando
-  `vehiculos/[id]/seccion-fotos.tsx` y prendiendo `disponible` en `pestanas.ts`.
-- 4: vitrina por RPC, papelera, interesados y vínculo. 5: apibara (alta por enlace).
-- **Cada una trae su RPC de escritura:** al cerrar `vehiculos` quedaron sin escritor `lead_id`
-  (parte 4) y `subasta_*`, `estado_subasta`, `apibara_*` (parte 5).
-- Leads y cotizaciones reutilizan `FilterShell` (`src/shared/lib/filtros`, `ui/filtros`),
-  `lib/paginacion.ts`, `<AvisoDeConflicto>`, `useBorradorDeEstado()` y `<MenuDeVistas>` (sumar la
-  pantalla a `RUTA_DE_PANTALLA` en `equipo/entities/vista.ts`).
+- 4: vitrina por RPC con precio público, y papelera (enviar, listar, restaurar, purgar). Con ella:
+  - **La edge function `storage-gc`** y su job (`pg_cron` + `pg_net` + un secreto). El protocolo
+    ya está en SQL (`supabase/functions/README.md`). Hasta entonces **nada se borra de Storage**.
+  - `web.vehiculos` publica `imagen` e `imagenes` con la ruta completa: sumarle la miniatura.
+  - `papelera_purgar` encola sólo `ruta`: las miniaturas las junta el barrido de huérfanos.
+  - `vehiculo_vitrina` no lleva versión (deuda).
+- 5: apibara (alta por enlace, fotos por URL). Sin escritor todavía: `subasta_*`,
+  `estado_subasta`, `apibara_*`. Las fotos que traiga pasan por `vehiculo_fotos_agregar`
+  (el trigger exige que los dos objetos existan y sean `.webp` o `.jpg`).
+- Fase 3 (leads): la interfaz que vincula y marca interesados se muestra en la ficha del lead pero
+  **vive en `vehiculos`** (`leads` no puede importarlo). Decidir si desvincular un vehículo con
+  cotización final se frena.
 
-## Lo que el plan no había previsto (parte 2)
+## Lo que el plan no había previsto (parte 3)
 
-- **No había RPC de alta ni de edición**, y el `INSERT` directo dejaba poner `fase_id` y
-  `publicado_web`: el grant por columna sólo cubría el `UPDATE`.
-- **La policy de `vehiculos` no era de InitPlan:** `(select alcance_de('x', origen_id))` nombra la
-  fila y corre por fila. Regla nueva en `.claude/rules/migraciones.md`.
-- **Bajo RLS el GIN de `atributos` y los trigram no se usan** (`@>` e `ilike` no son `leakproof`).
-  El listado se apoya en `vehiculos_origen_listado_idx`. Si un origen pasa de decenas de miles,
-  la salida es una función `definer` de búsqueda (docs/DECISIONES.md).
-- `origenes_campos` no tenía valor por defecto; un VIN repetido **bloquea** (único global); los
-  campos `opcion` preconfigurados nacen sin opciones (no se ofrecen como filtro hasta tenerlas).
-- `nuqs` a secas es `'use client'`, y una constante exportada desde un archivo de cliente llega al
-  servidor como referencia: lo que también corre en el servidor lee la URL a mano.
-- Un hook frena todo comando de Bash que nombre la secret key: para mirar la base local,
-  `docker exec supabase_db_importadora psql …` o los helpers de `e2e/soporte`.
+- **Fallo de permisos en `vehiculo_guardar` (parte 2), corregido:** con alcance «propios», quien
+  tenía algún lead en su cartera editaba cualquier vehículo sin vínculo de ese origen (`if` sobre
+  un `in (…)` que da nulo). Regla nueva en DECISIONES; el humo lo cubre.
+- **Safari no codifica WebP en canvas:** devolvía PNG llamado `.webp` (también en avatar). Ahora
+  cae a JPEG. **Falta probarlo a mano en un iPhone:** los e2e corren en Chromium.
+- `anon` podía listar el bucket `vehiculos` entero; quien editaba podía borrar objetos. Cerrado.
+- Las policies de storage nunca se habían probado: el `storage.objects` de PGlite no tenía RLS.
+- Una tabla nueva necesita su `_rls()` en `…000200_rls_y_grants.sql` (ese archivo lo comprueba).
+- Una foto de menos de 480 px es un solo objeto (completa = miniatura): es válido.
+- Faltaban índices en `vehiculos.lead_id` y en las tablas hijas de vehículos.
 
 ## Pendiente de decidir
 
@@ -66,15 +62,18 @@ listado, ficha, alta y edición) hechas; sigue la parte 3 (fotos) en sesión nue
 
 ## Deuda aceptada
 
-- `puedeEditar()` sólo sabe «lo creé yo»: con alcance «propios», lo vinculado a un lead de la
-  cartera lo edita la base pero la interfaz no ofrece el botón (se completa con el vínculo).
-- `cambiar_fase` acepta `p_fase_esperada` nulo y `vehiculo_vitrina` no lleva versión; el bucket
-  `vehiculos` deja hacer `remove` directo. Mover de fase mueve la versión del vehículo (quien edita
-  la ficha en ese momento ve un conflicto). Los planes se midieron con la tabla vacía.
+- `registrar_actividad()` y `storage_refcount()` tienen `execute` para `authenticated`: cualquiera
+  escribe en `actividad` (de ahí sale el «quién» de un conflicto) o sondea si una ruta existe.
+- `marca` y `avatares` siguen borrando con `quitarSiHuerfano()` (cuenta y después borra).
+- `cambiar_fase` acepta `p_fase_esperada` nulo. Mover de fase mueve la versión del vehículo (quien
+  edita la ficha en ese momento ve un conflicto). Los planes se midieron con las tablas casi vacías.
 - Sin interfaz todavía: `demora_dias_default`, `lead_dormido_meses`, el logo oscuro, `push_web` y
-  `web_publica`; el `icono` y el orden de los orígenes. Reordenar es con botones, sin arrastre.
+  `web_publica`; el `icono` y el orden de los orígenes; vincular y marcar interesados.
 - Los e2e (salvo los del inventario) exigen la base local sin personas ajenas (`pnpm db:reset`) y
-  no corren en paralelo. Sin e2e de Google, recuperación, perfil ni «ver como».
+  no corren en paralelo. Sin e2e de Google, recuperación, perfil ni «ver como». El de filtros en
+  móvil (`vehiculos.spec.ts:57`) falló una vez con la máquina ocupada y no se repitió: vigilarlo.
 - Las RPC de leads, flujos y cotizaciones siguen hablando de vos: se reescriben con su fase.
 - Sin enforcement en la base: `equipo.usuarios.ver`, `equipo.roles.ver`, `tablero.metricas.ver`,
   `datos.exportar.todo`, `notificaciones.push`, `logistica.pagos.confirmar`.
+- Un hook frena todo comando de Bash que nombre la secret key: para mirar la base local,
+  `docker exec supabase_db_importadora psql …` o los helpers de `e2e/soporte`.

@@ -751,3 +751,120 @@ prueban que la primera persona nace dueña. Resetear borra la cuenta de quien es
 tiene los permisos de vehículos, y limpia sólo lo suyo (orígenes `e2e_…`, cuentas `@e2e…`, roles «E2E …»).
 **Consecuencia:** se pueden correr mientras alguien usa la app local. `pnpm test:e2e` entero sigue
 necesitando el reset por los otros specs.
+
+## 2026-10-13 — Las fotos van a un bucket público, cada una en la carpeta de su vehículo
+
+**Contexto:** había que decidir bucket público o privado, la ruta, y qué pasa con las policies cuando
+la misma foto la usan dos vehículos de orígenes distintos. La policy que había dejaba a `anon` listar
+el bucket entero (ids de vehículos y fotos de lo no publicado) y a quien edita borrar objetos.
+**Decisión:** bucket `vehiculos` público, ruta `<vehiculo_id>/<sha-256 del contenido>.<webp|jpg>`.
+Subir exige `vehiculos.editar` sobre el vehículo de la carpeta; listar, `vehiculos.ver` (sólo con
+sesión); borrar y pisar, nadie desde la app. La misma foto en dos vehículos son dos objetos, y la
+base rechaza una fila cuya ruta no empiece por su propio vehículo.
+**Alternativas:** bucket privado con URL firmada (la firma cambia en cada lectura: ni el navegador ni
+el CDN cachean, y la vitrina necesita URL pública igual); un objeto por hash compartido entre
+vehículos (ahorra ~0,3 MB cuando ocurre, pero un objeto compartido no tiene origen: su policy sólo
+podría decir «edita vehículos en algún lado», y borrar en uno dependería del otro).
+**Consecuencia:** storage se limita por origen igual que las tablas. La foto de un vehículo no
+publicado es alcanzable por quien tenga su URL (uuid + SHA-256, no adivinable): lo confidencial va a
+`documentos`, que es privado. Para fotos de vehículos el refcount vale 0 o 1 (2 si la foto es tan
+chica que su miniatura es el mismo objeto): es la red de la limpieza, no un mecanismo de compartir.
+
+## 2026-10-13 — Dos tamaños por foto, hechos en el navegador; sin optimizador
+
+**Contexto:** el listado muestra la portada en un hueco de 56 a 96 px y había una sola ruta, la de
+1600 px. El egress de Storage se cobra, las transformaciones de imagen de Supabase también (por
+imagen de origen), y el optimizador de Next volvería a bajar cada foto desde Supabase.
+**Decisión:** el navegador decodifica el archivo una vez y genera la completa (≤ 1600 px) y la
+miniatura (≤ 480 px), con nombre por hash y caché de un año. El listado, la cabecera y la grilla
+cargan sólo miniaturas, con `<Image unoptimized loading="lazy">`; la completa se abre aparte. La
+miniatura se genera al elegir el archivo y es la vista previa.
+**Alternativas:** un solo tamaño (una página de 50 filas pesaría ~15 MB en vez de ≤ 2 MB);
+tres tamaños con `srcset` (el más chico ahorra unos KB por fila y suma un objeto y una columna);
+transformaciones de Supabase o el optimizador de Next (se pagan y no hacen falta: ya llega chica).
+**Consecuencia:** 480 px sobra en el listado y alcanza para la tarjeta de la vitrina. Safari no
+codifica WebP en un canvas y devuelve PNG sin avisar: se mira el tipo del blob y ahí se usa JPEG.
+Eso no lo cubren los e2e (corren en Chromium): hay que probarlo a mano en un iPhone.
+
+## 2026-10-13 — Las fotos tienen su propia versión, aparte de la de la ficha
+
+**Contexto:** reordenar, fijar portada y eliminar necesitan una versión para dar `PT409`. La del
+vehículo estaba a mano, pero cualquier escritura la mueve: subir fotos desde el celular le daría un
+conflicto a quien tiene la ficha abierta en el escritorio (la misma deuda de «mover de fase»).
+**Decisión:** `vehiculos_imagenes_version (vehiculo_id, actualizado_en)`. Las tres RPC de edición la
+mandan; agregar no lleva versión (sumar no pisa a nadie y es idempotente por hash). Su fila es además
+el candado que ordena las operaciones sobre las fotos de un vehículo: el tope de 24 se cuenta con
+ella bloqueada. La versión se pone con la hora del reloj, no con la de inicio de la transacción.
+**Alternativas:** la versión del vehículo (conflictos falsos entre quien sube fotos y quien edita
+datos); una columna en `vehiculos` (el trigger genérico mueve `actualizado_en` igual, y `auditar`
+anotaría cada foto como un cambio del vehículo); comparar el conjunto de ids (detecta altas y bajas,
+no dos reordenamientos).
+**Consecuencia:** un conflicto de fotos dice «<quién> cambió las fotos de este vehículo»: el quién
+sale de `actividad`, donde cada operación de fotos deja su registro. Una tabla más, de una fila
+por vehículo con fotos.
+
+## 2026-10-13 — La limpieza de Storage reclama antes de borrar; la función queda para la parte 4
+
+**Contexto:** `quitarSiHuerfano()` cuenta referencias y después borra, desde el navegador: entre las
+dos cosas puede nacer una fila (deshacer un eliminar, volver a subir la misma foto) que queda
+apuntando a nada. La cola existía pero sólo la llenaba la purga y no tenía estados.
+**Decisión:** nadie borra objetos de `vehiculos` desde la app. Eliminar una foto borra la fila y
+encola sus rutas. La limpieza **reclama** antes de borrar: con el candado consultivo del objeto
+tomado recuenta, y sólo si da 0 lo marca `reclamado_en`; sólo se borra lo reclamado, y sólo lo que
+lleva 24 h en la cola. Toda fila nueva pasa por un trigger que toma el mismo candado: si el objeto
+está reclamado no nace (reintentable), y si sólo estaba en la cola lo saca. El mismo trigger exige
+que los dos objetos existan. Lo que se subió y no llegó a tener fila lo encola un barrido en SQL.
+La edge function `storage-gc` (un bucle sobre reclamar y confirmar) no se construye ahora.
+**Alternativas:** bloquear la fila de la cola en vez del objeto (un objeto puede no estar todavía en
+la cola cuando alguien lo referencia); borrar desde SQL (`delete` sobre `storage.objects` deja el
+archivo en el disco); que el navegador avise qué descartar (no avisa si se cierra la pestaña);
+construir la función ya (no hay proyecto en la nube, ni `pg_cron`, ni forma de dejarla en verde).
+**Consecuencia:** una fila de foto nunca apunta a un objeto borrado; el peor caso es un «vuelve a
+intentarlo». Hasta la parte 4 nada se borra de Storage: cada foto eliminada deja ~0,35 MB.
+`marca` y `avatares` siguen con `quitarSiHuerfano()`: tienen un solo dueño y la ventana no les pega.
+
+## 2026-10-13 — Una foto se valida decodificándola, y se reconoce por el hash del archivo original
+
+**Contexto:** qué formatos entran, qué pasa con un HEIC, cuánto puede pesar un archivo y cómo se
+detecta «la misma foto».
+**Decisión:** el selector ofrece `image/*` (así un iPhone entrega sus HEIC como JPEG). Lo que no
+declara ser imagen se rechaza sin abrirlo; lo demás se intenta decodificar, y si no se puede se dice
+(con un mensaje propio para HEIC). Tope de entrada: 25 MB por archivo. La misma foto se detecta por
+el SHA-256 del **archivo que eligió la persona** (`vehiculos_imagenes.hash`, único por vehículo).
+**Alternativas:** validar por extensión (miente en los dos sentidos); un decodificador HEIC en wasm
+(1 a 2 MB para un caso que iOS ya resuelve); detectar el duplicado por el hash del WebP (cambia de
+un navegador a otro, y de WebP a JPEG).
+**Consecuencia:** los motivos se dicen en la bandeja, antes de subir, y sus textos viven en un solo
+lugar (`entities/seleccion-de-fotos.ts`). Dos copias de la misma foto con distintos bytes (una
+reenviada por WhatsApp) cuentan como dos fotos.
+
+## 2026-10-13 — Vínculo e interesados: RPC y lectura ahora, interfaz con leads
+
+**Contexto:** el vínculo y los interesados dependen de `leads`, que llega en la Fase 3: `vehiculos`
+no puede importar una API que no existe. Y `vehiculos.lead_id`, que con alcance «propios» da ver y
+editar, había quedado sin escritor.
+**Decisión:** en la parte 3, las RPC (`vehiculo_vincular` con la versión del vehículo;
+`vehiculo_interesado_marcar` y `_quitar`, idempotentes y sin versión porque no editan nada), dos
+funciones de lectura que corren con la RLS de quien llama y devuelven el nombre del lead sólo si lo
+ve, y un bloque de sólo lectura bajo la ficha. La interfaz que escribe llega en la Fase 3, se muestra
+en la ficha del lead y **vive en `vehiculos`**, compuesta por `app/`. «Editar» deja de copiar la
+regla: `vehiculos_editables(ids)` le pregunta a la base por lo vinculado a un lead de la cartera.
+**Alternativas:** embeber `leads(nombre)` por PostgREST desde `vehiculos` (lee una tabla de otro
+módulo); poner la interfaz de escritura en `leads` (`vehiculos` depende de `leads` por
+`<SelectorLead>`: sería un ciclo); traer toda la cartera al servidor para decidir «Editar» (no tiene
+cota).
+**Consecuencia:** hay tres RPC sin interfaz hasta la Fase 3; las cubre el humo. Desvincular un
+vehículo con una cotización final no se frena todavía (el portal del cliente deja de mostrarlo): se
+decide cuando exista el botón.
+
+## 2026-10-13 — En plpgsql un permiso se pregunta con `puede_*()`, no con un `if` sobre `in (…)`
+
+**Contexto:** `vehiculo_guardar` decidía el alcance «propios» con
+`if not (creado_por = yo or lead_id in (select mis_leads()))`. Con `lead_id` nulo y la cartera no
+vacía, `in` da nulo, el `if` no levanta y se editaba cualquier vehículo sin vínculo del origen. No
+se veía porque en las pruebas nadie tenía leads.
+**Decisión:** las RPC de vehículos comprueban con `puede_vehiculo(id, clave)`, que es la regla de las
+policies y vive en un `where` (ahí un nulo es «no»). El humo lo prueba con una persona que tiene un
+lead en su cartera.
+**Consecuencia:** una sola regla para leer, escribir y dibujar. Lo mismo vale para las RPC de
+leads y cotizaciones cuando se reescriban: se revisan con esta lupa.
