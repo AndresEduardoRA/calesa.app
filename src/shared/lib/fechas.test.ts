@@ -7,6 +7,8 @@ import {
   formatearFechaHora,
   formatearHora,
   inicioDelDia,
+  instanteDeLocal,
+  localDeInstante,
 } from './fechas'
 
 describe('formatear en la zona de la empresa', () => {
@@ -74,5 +76,22 @@ describe('días para filtrar', () => {
   it('un día de la empresa empieza a su medianoche, no a la de UTC', () => {
     expect(inicioDelDia('2026-10-13', { zona: 'America/La_Paz' })).toBe('2026-10-13T04:00:00.000Z')
     expect(inicioDelDia('2026-10-13', { zona: 'UTC' })).toBe('2026-10-13T00:00:00.000Z')
+  })
+})
+
+describe('fecha con hora de un formulario', () => {
+  it('la hora que se escribe es la de la empresa, y se guarda en UTC', () => {
+    expect(instanteDeLocal('2026-10-13T14:30', { zona: 'America/La_Paz' })).toBe(
+      '2026-10-13T18:30:00.000Z',
+    )
+    expect(localDeInstante('2026-10-13T18:30:00.000Z', { zona: 'America/La_Paz' })).toBe(
+      '2026-10-13T14:30',
+    )
+  })
+
+  it('lo que no es una fecha no se inventa', () => {
+    expect(instanteDeLocal('mañana')).toBeNull()
+    expect(instanteDeLocal('2026-13-45T99:99')).toBeNull()
+    expect(localDeInstante('ayer')).toBe('')
   })
 })

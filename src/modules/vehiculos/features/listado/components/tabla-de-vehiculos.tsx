@@ -6,6 +6,7 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { Monto } from '@/shared/ui/monto'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTarjeta } from '../../../entities/campo'
+import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { BadgeDeFase } from './badge-de-fase'
 import { Miniatura } from './miniatura'
 import { faseDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
@@ -15,13 +16,15 @@ type Props = DatosDelOrigen & {
   vehiculos: readonly FilaDeVehiculo[]
   // Cómo se llama lo que entra por este origen («Unidad», «Lote»): encabeza la primera columna.
   encabezado: string
+  // Los que la persona puede editar: llevan su botón al final de la fila.
+  editables: ReadonlySet<string>
 }
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
 // El inventario de un origen en escritorio: lo común adelante y, después, una columna por cada
 // campo «en tarjeta» del layout. Las filas tienen la altura de la densidad elegida.
-export function TablaDeVehiculos({ vehiculos, campos, fases, encabezado }: Props) {
+export function TablaDeVehiculos({ vehiculos, campos, fases, encabezado, editables }: Props) {
   const columnas = camposDeTarjeta(campos)
   return (
     <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
@@ -35,6 +38,11 @@ export function TablaDeVehiculos({ vehiculos, campos, fases, encabezado }: Props
             {columnas.map((campo) => (
               <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
             ))}
+            {editables.size > 0 ? (
+              <TableHead>
+                <span className="sr-only">Acciones</span>
+              </TableHead>
+            ) : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -69,6 +77,13 @@ export function TablaDeVehiculos({ vehiculos, campos, fases, encabezado }: Props
                   <ValorDeCampo campo={campo} valor={vehiculo.atributos[campo.clave]} />
                 </TableCell>
               ))}
+              {editables.size > 0 ? (
+                <TableCell className="w-px py-0 pr-2 text-right">
+                  {editables.has(vehiculo.id) ? (
+                    <BotonEditarVehiculo vehiculo={vehiculo} compacto />
+                  ) : null}
+                </TableCell>
+              ) : null}
             </TableRow>
           ))}
         </TableBody>

@@ -1,12 +1,16 @@
 'use client'
 
-import type { ReactNode } from 'react'
 import type { VistaGuardada } from '@/modules/equipo/client'
 import type { OrigenResumen } from '@/modules/origenes/client'
 import type { EsquemaDeFiltros } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
+import { Aviso } from '@/shared/ui/aviso'
 import { FilterShell } from '@/shared/ui/filtros'
 import { camposFiltrables } from '../../../entities/filtros'
+import type { PermisoDeAlta } from '../../../entities/permisos'
+import type { Vehiculo } from '../../../entities/vehiculo'
+import { BotonNuevoVehiculo, ID_DEL_MOTIVO_DE_ALTA } from '../../alta/components/botones'
+import { PanelDeVehiculo } from '../../alta/components/panel-de-vehiculo'
 import { PestanasDeOrigen } from './pestanas-de-origen'
 import { PieDeFiltros } from './pie-de-filtros'
 import { ResultadoDelListado } from './resultado-del-listado'
@@ -20,25 +24,34 @@ type Props = DatosDelOrigen & {
   pagina: Pagina<FilaDeVehiculo>
   vistas: readonly VistaGuardada[]
   puedeConfigurarCampos: boolean
-  // «Nuevo» en la barra y en el vacío de primera vez, si corresponde.
-  acciones?: ReactNode
-  accionDeVacio?: ReactNode
+  // Si puede dar de alta en este origen, y por qué no cuando el origen está desactivado.
+  permisoDeAlta: PermisoDeAlta
+  // Los vehículos de esta página que puede editar, y el que está editando (`?editar=`).
+  editables: readonly string[]
+  enEdicion: Vehiculo | null
 }
 
-// El inventario: una pestaña por origen y, adentro, los filtros de ese origen y su lista. Todo el
-// estado (origen, filtros, página) vive en la URL.
+// El inventario: una pestaña por origen y, adentro, los filtros de ese origen, su lista y el
+// panel de alta y edición. Todo el estado (origen, filtros, página, panel) vive en la URL.
 export function ListadoDeVehiculos(props: Props) {
-  const { origenes, esquema, vistas, puedeConfigurarCampos, acciones, ...resto } = props
-  const { origen, campos } = resto
+  const { origenes, esquema, vistas, puedeConfigurarCampos, permisoDeAlta, enEdicion, ...resto } =
+    props
+  const { origen, campos, categorias } = resto
+  const nuevo = <BotonNuevoVehiculo origen={origen} permiso={permisoDeAlta} />
   return (
     <div className="grid gap-4">
       <PestanasDeOrigen origenes={origenes} actual={origen.id} />
+      {permisoDeAlta.estado === 'deshabilitado' ? (
+        <div id={ID_DEL_MOTIVO_DE_ALTA}>
+          <Aviso>{permisoDeAlta.motivo}</Aviso>
+        </div>
+      ) : null}
       {/* Los filtros salen del layout de cada origen: al cambiar de pestaña se arma otro. */}
       <FilterShell
         key={origen.id}
         esquema={esquema}
         vistas={<VistasDeVehiculos esquema={esquema} origenId={origen.id} vistas={vistas} />}
-        acciones={acciones}
+        acciones={nuevo}
         pieDelPanel={
           <PieDeFiltros
             origen={origen}
@@ -47,8 +60,18 @@ export function ListadoDeVehiculos(props: Props) {
           />
         }
       >
-        <ResultadoDelListado {...resto} />
+        <ResultadoDelListado
+          {...resto}
+          accionDeVacio={permisoDeAlta.estado === 'habilitado' ? nuevo : undefined}
+        />
       </FilterShell>
+      <PanelDeVehiculo
+        origen={origen}
+        campos={campos}
+        categorias={categorias}
+        puedeCrear={permisoDeAlta.estado === 'habilitado'}
+        enEdicion={enEdicion}
+      />
     </div>
   )
 }

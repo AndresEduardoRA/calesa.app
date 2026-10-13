@@ -10,12 +10,15 @@ import {
   esquemaDeFiltros,
   origenElegido,
   origenesVisibles,
+  permisoDeAlta,
+  puedeEditar,
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR, leerFiltros } from '@/shared/lib/filtros'
 import { leerCursor } from '@/shared/lib/paginacion'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
+import { vehiculoEnEdicion } from './edicion'
 
 export const metadata: Metadata = { title: 'Vehículos' }
 
@@ -44,14 +47,18 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
   const { campos, categorias } = datosO(layout)
   const fuentes = { campos, categorias, fases: datosO(fases) }
   const esquema = esquemaDeFiltros(fuentes)
-  const pagina = await buscarVehiculos({
-    origenId: origen.id,
-    condiciones: condicionesDe(campos, leerFiltros(esquema, parametros), {
-      zona: ajustes.zonaHoraria,
+  const [leida, enEdicion] = await Promise.all([
+    buscarVehiculos({
+      origenId: origen.id,
+      condiciones: condicionesDe(campos, leerFiltros(esquema, parametros), {
+        zona: ajustes.zonaHoraria,
+      }),
+      cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR])),
+      tamano: TAMANO_DE_PAGINA,
     }),
-    cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR])),
-    tamano: TAMANO_DE_PAGINA,
-  })
+    vehiculoEnEdicion(parametros, sesion, origen.id),
+  ])
+  const pagina = datosO(leida)
   const idsVisibles = new Set(visibles.map((uno) => uno.id))
 
   return (
@@ -60,10 +67,15 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       origen={origen}
       {...fuentes}
       esquema={esquema}
-      pagina={datosO(pagina)}
+      pagina={pagina}
       // Una vista de un origen que la persona ya no ve no se ofrece.
       vistas={datosO(vistas).filter((vista) => idsVisibles.has(vista.params['origen'] ?? ''))}
       puedeConfigurarCampos={puede(sesion.permisos, 'origenes.gestionar')}
+      permisoDeAlta={permisoDeAlta(sesion.permisos, origen)}
+      editables={pagina.filas
+        .filter((vehiculo) => puedeEditar(sesion.permisos, vehiculo, sesion.usuarioId))
+        .map((vehiculo) => vehiculo.id)}
+      enEdicion={enEdicion}
     />
   )
 }

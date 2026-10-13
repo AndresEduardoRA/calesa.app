@@ -9,6 +9,8 @@ type Props = {
   descripcion?: string
   // Los bloques secundarios nacen plegados: el formulario muestra primero lo imprescindible.
   plegado?: boolean
+  // Lo abre aunque esté plegado: un bloque con un error adentro no puede quedar cerrado.
+  forzarAbierto?: boolean
   className?: string
   children: ReactNode
 }
@@ -16,12 +18,19 @@ type Props = {
 // Sección plegable de un formulario o de una ficha. Es un <details> nativo: funciona con teclado
 // y lector de pantalla sin nada extra, y lo plegado sigue en el DOM (no se pierde lo tipeado ni
 // deja de enviarse con el formulario).
-export function Bloque({ titulo, descripcion, plegado = false, className, children }: Props) {
+export function Bloque({
+  titulo,
+  descripcion,
+  plegado = false,
+  forzarAbierto = false,
+  className,
+  children,
+}: Props) {
   const [abierto, setAbierto] = useState(!plegado)
 
   return (
     <details
-      open={abierto}
+      open={abierto || forzarAbierto}
       onToggle={(evento) => {
         setAbierto(evento.currentTarget.open)
       }}

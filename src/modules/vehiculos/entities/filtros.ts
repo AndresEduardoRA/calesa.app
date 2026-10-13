@@ -9,6 +9,7 @@ import type {
   ValoresDeFiltros,
 } from '@/shared/lib/filtros'
 import {
+  PREFIJO_DE_ATRIBUTO,
   camposActivos,
   type CampoDeVehiculo,
   type CategoriaDeVehiculo,
@@ -21,7 +22,6 @@ import {
 export const FILTRO_FASE = 'fase'
 export const FILTRO_CATEGORIA = 'categoria'
 export const FILTRO_ANIO = 'anio'
-export const PREFIJO_DE_ATRIBUTO = 'a.'
 // En el filtro de fase: lo que todavía no entró al flujo.
 export const SIN_FASE = 'ninguna'
 

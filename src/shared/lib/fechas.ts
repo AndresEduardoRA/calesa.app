@@ -102,3 +102,21 @@ export function diaSiguiente(dia: string): string {
 export function inicioDelDia(dia: string, { zona = ZONA_POR_DEFECTO }: Opciones = {}): string {
   return fromZonedTime(`${dia}T00:00:00`, zona).toISOString()
 }
+
+const LOCAL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
+
+// Un `<input type="datetime-local">` entrega «2026-10-13T14:30» sin zona: es la hora de la
+// empresa. Esto la lleva al instante (ISO, en UTC) que se guarda; null si no es una fecha.
+export function instanteDeLocal(local: string, { zona = ZONA_POR_DEFECTO }: Opciones = {}) {
+  if (!LOCAL.test(local)) {
+    return null
+  }
+  const instante = fromZonedTime(`${local}:00`, zona)
+  return Number.isNaN(instante.getTime()) ? null : instante.toISOString()
+}
+
+// El camino de vuelta: un instante guardado, como lo espera el `datetime-local` (hora de la
+// empresa). Lo que no es un instante vuelve vacío.
+export function localDeInstante(iso: string, { zona = ZONA_POR_DEFECTO }: Opciones = {}): string {
+  return Number.isNaN(Date.parse(iso)) ? '' : formatear(iso, "yyyy-MM-dd'T'HH:mm", zona)
+}

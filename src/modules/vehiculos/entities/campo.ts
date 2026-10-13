@@ -22,6 +22,10 @@ export type CampoDeVehiculo = {
   valorDefecto: string | number | boolean | string[] | null
 }
 
+// Las claves de los campos del layout van con este prefijo en la URL (filtros) y en el estado del
+// formulario: una clave de campo no lleva punto, así que nunca choca con un dato común.
+export const PREFIJO_DE_ATRIBUTO = 'a.'
+
 export type FaseDeVehiculo = { id: string; nombre: string; color: string; activa: boolean }
 
 export type CategoriaDeVehiculo = { id: string; nombre: string; activa: boolean }

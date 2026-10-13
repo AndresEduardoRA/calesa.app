@@ -1,29 +1,25 @@
 import type { ReactNode } from 'react'
-import { leerFasesDeOrigen } from '@/modules/flujos'
-import { leerLayout, type OrigenResumen } from '@/modules/origenes'
+import type { FaseResumen } from '@/modules/flujos'
+import type { LayoutDeOrigen, OrigenResumen } from '@/modules/origenes'
 import { FichaDeVehiculo, type Vehiculo } from '@/modules/vehiculos'
-import { datosO } from '@/shared/lib/errores'
 
 type Props = {
   vehiculo: Vehiculo
   origen: OrigenResumen
+  layout: LayoutDeOrigen
+  fases: readonly FaseResumen[]
   acciones?: ReactNode
 }
 
 // La pestaña «Ficha»: los datos del vehículo según el layout de su origen, con su fase actual.
-export async function SeccionFicha({ vehiculo, origen, acciones }: Props) {
-  const [layout, fases] = await Promise.all([
-    leerLayout(origen.id, { conUso: false }),
-    leerFasesDeOrigen(origen.id),
-  ])
-  const { campos, categorias } = datosO(layout)
+export function SeccionFicha({ vehiculo, origen, layout, fases, acciones }: Props) {
   return (
     <FichaDeVehiculo
       vehiculo={vehiculo}
       origen={origen}
-      campos={campos}
-      categorias={categorias}
-      fase={datosO(fases).find((fase) => fase.id === vehiculo.faseId) ?? null}
+      campos={layout.campos}
+      categorias={layout.categorias}
+      fase={fases.find((fase) => fase.id === vehiculo.faseId) ?? null}
       acciones={acciones}
     />
   )

@@ -2,6 +2,7 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { Monto } from '@/shared/ui/monto'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import type { Vehiculo } from '../../../entities/vehiculo'
@@ -16,11 +17,13 @@ type Props = {
   fase: { nombre: string; color: string } | null
   // A dónde lleva el título (la ficha); sin esto es sólo texto.
   href?: string
+  // Lo que se puede hacer con él (editar), arriba a la derecha.
+  acciones?: ReactNode
 }
 
 // Un vehículo en una tarjeta: lo que se ve en el celular en vez de la fila de la tabla, y lo que
 // otros módulos usan para mostrar un vehículo.
-export function TarjetaVehiculo({ vehiculo, campos, fase, href }: Props) {
+export function TarjetaVehiculo({ vehiculo, campos, fase, href, acciones }: Props) {
   const datos = camposDeTarjeta(campos).filter((campo) => {
     const valor = vehiculo.atributos[campo.clave]
     return valor !== undefined && valor !== null && valor !== ''
@@ -54,6 +57,7 @@ export function TarjetaVehiculo({ vehiculo, campos, fase, href }: Props) {
             )}
           </div>
         </div>
+        {acciones}
       </div>
       {datos.length > 0 ? (
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-(--color-line) pt-3">

@@ -23,3 +23,8 @@ export { condicionesDe, esquemaDeFiltros } from './entities/filtros'
 export { ListadoDeVehiculos } from './features/listado/components/listado-de-vehiculos'
 export { TarjetaVehiculo } from './features/listado/components/tarjeta-vehiculo'
 export { FichaDeVehiculo } from './features/ficha/components/ficha-de-vehiculo'
+
+// Alta y edición: el panel (va una vez por pantalla) y el botón que abre la edición
+export { PanelDeVehiculo } from './features/alta/components/panel-de-vehiculo'
+export { BotonEditarVehiculo } from './features/alta/components/botones'
+export { CLAVE_DE_EDICION } from './features/alta/claves'

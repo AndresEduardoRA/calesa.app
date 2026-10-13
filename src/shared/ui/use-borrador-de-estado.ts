@@ -13,8 +13,9 @@ type Args<Valores extends Record<string, unknown>> = {
   // El estado del formulario y lo guardado contra lo que se mide.
   valores: Valores
   guardado: Valores
-  // Pone en el formulario lo que se había escrito (o lo guardado, al descartar).
-  alReponer: (cambios: Partial<Valores>) => void
+  // Pone en el formulario lo que se había escrito (o lo guardado, al descartar). Recibe sólo las
+  // claves que cambian: se mezclan sobre el estado.
+  alReponer: (cambios: Valores) => void
   // En falso no guarda ni repone: quien no puede editar no tiene nada que recuperar.
   activo?: boolean
 }
@@ -43,7 +44,7 @@ export function useBorradorDeEstado<Valores extends Record<string, unknown>>(
     const conocidas = Object.fromEntries(
       Object.entries(borrador ?? {}).filter(([campo]) => campo in base.current),
     )
-    const pendientes = cambiosDeEstado(conocidas, base.current) as Partial<Valores>
+    const pendientes = cambiosDeEstado(conocidas, base.current) as Valores
     const claves = Object.keys(pendientes)
     if (claves.length > 0) {
       reponer.current(pendientes)
@@ -52,9 +53,7 @@ export function useBorradorDeEstado<Valores extends Record<string, unknown>>(
         alHacer: () => {
           guardarBorradorDeEstado(window.sessionStorage, clave, {})
           reponer.current(
-            Object.fromEntries(
-              claves.map((campo) => [campo, base.current[campo]]),
-            ) as Partial<Valores>,
+            Object.fromEntries(claves.map((campo) => [campo, base.current[campo]])) as Valores,
           )
         },
       })

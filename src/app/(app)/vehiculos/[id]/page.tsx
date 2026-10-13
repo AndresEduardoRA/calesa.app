@@ -3,12 +3,20 @@ import type { Metadata, Route } from 'next'
 import Link from 'next/link'
 import { z } from 'zod'
 import { requerirSesion } from '@/modules/equipo'
-import { getOrigenes } from '@/modules/origenes'
-import { leerVehiculo, origenesVisibles } from '@/modules/vehiculos'
+import { leerFasesDeOrigen } from '@/modules/flujos'
+import { getOrigenes, leerLayout } from '@/modules/origenes'
+import {
+  BotonEditarVehiculo,
+  PanelDeVehiculo,
+  leerVehiculo,
+  origenesVisibles,
+  puedeEditar,
+} from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
+import { vehiculoEnEdicion } from '../edicion'
 import { SeccionFicha } from './seccion-ficha'
 
 export const metadata: Metadata = { title: 'Vehículo' }
@@ -31,8 +39,11 @@ function NoDisponible() {
 
 // La ficha de un vehículo. Hoy tiene una sola pestaña (ver `pestanas.ts`); las demás se suman
 // con su sección cuando existan.
-export default async function PaginaVehiculo({ params }: PageProps<'/vehiculos/[id]'>) {
-  const [sesion, { id }] = await Promise.all([requerirSesion(), params])
+export default async function PaginaVehiculo({
+  params,
+  searchParams,
+}: PageProps<'/vehiculos/[id]'>) {
+  const [sesion, { id }, parametros] = await Promise.all([requerirSesion(), params, searchParams])
   if (!z.guid().safeParse(id).success) {
     return <NoDisponible />
   }
@@ -44,6 +55,13 @@ export default async function PaginaVehiculo({ params }: PageProps<'/vehiculos/[
   if (!encontrado || !origen) {
     return <NoDisponible />
   }
+  const [layout, fases, enEdicion] = await Promise.all([
+    leerLayout(origen.id, { conUso: false }),
+    leerFasesDeOrigen(origen.id),
+    vehiculoEnEdicion(parametros, sesion, origen.id),
+  ])
+  const suLayout = datosO(layout)
+  const editable = puedeEditar(sesion.permisos, encontrado, sesion.usuarioId)
   return (
     <div className="grid max-w-4xl gap-4">
       <Link
@@ -53,7 +71,21 @@ export default async function PaginaVehiculo({ params }: PageProps<'/vehiculos/[
         <ArrowLeftIcon aria-hidden className="size-4" />
         {origen.nombre}
       </Link>
-      <SeccionFicha vehiculo={encontrado} origen={origen} />
+      <SeccionFicha
+        vehiculo={encontrado}
+        origen={origen}
+        layout={suLayout}
+        fases={datosO(fases)}
+        acciones={editable ? <BotonEditarVehiculo vehiculo={encontrado} /> : undefined}
+      />
+      {/* Desde la ficha sólo se edita: el alta vive en el inventario. */}
+      <PanelDeVehiculo
+        origen={origen}
+        campos={suLayout.campos}
+        categorias={suLayout.categorias}
+        puedeCrear={false}
+        enEdicion={enEdicion?.id === encontrado.id ? enEdicion : null}
+      />
     </div>
   )
 }

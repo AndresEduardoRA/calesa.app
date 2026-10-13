@@ -11,6 +11,7 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
+import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { Paginacion } from './paginacion'
 import { TablaDeVehiculos } from './tabla-de-vehiculos'
 import { TarjetaVehiculo } from './tarjeta-vehiculo'
@@ -20,6 +21,8 @@ type Props = DatosDelOrigen & {
   pagina: Pagina<FilaDeVehiculo>
   // «Nuevo», si la persona puede dar de alta acá: llena el vacío de primera vez.
   accionDeVacio?: ReactNode
+  // Los ids de la página que la persona puede editar.
+  editables: readonly string[]
 }
 
 const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1)
@@ -48,10 +51,11 @@ function PaginaSinFilas() {
 
 // La lista de un origen o el estado que corresponda: vacío de primera vez (con la frase del
 // origen), vacío por filtro (con «Limpiar») o una página que se quedó sin filas.
-export function ResultadoDelListado({ pagina, accionDeVacio, ...datos }: Props) {
+export function ResultadoDelListado({ pagina, accionDeVacio, editables, ...datos }: Props) {
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
   const { origen, campos, fases } = datos
+  const puedeEditar = new Set(editables)
 
   if (pagina.filas.length === 0) {
     if (filtros.hayFiltros) {
@@ -80,6 +84,7 @@ export function ResultadoDelListado({ pagina, accionDeVacio, ...datos }: Props) 
           {...datos}
           vehiculos={pagina.filas}
           encabezado={mayuscula(origen.sustantivo)}
+          editables={puedeEditar}
         />
       </div>
       <ul className="grid gap-2 md:hidden">
@@ -90,6 +95,11 @@ export function ResultadoDelListado({ pagina, accionDeVacio, ...datos }: Props) 
               campos={campos}
               fase={faseDe(fases, vehiculo.faseId)}
               href={`${RUTAS.vehiculos}/${vehiculo.id}`}
+              acciones={
+                puedeEditar.has(vehiculo.id) ? (
+                  <BotonEditarVehiculo vehiculo={vehiculo} compacto />
+                ) : null
+              }
             />
           </li>
         ))}
