@@ -170,12 +170,17 @@ export async function enlaceDelCorreo(email: string): Promise<string> {
   throw new Error(`No llegó ningún correo a ${email} (¿está corriendo \`npx supabase start\`?).`)
 }
 
-// Un rol de prueba con los permisos dados (en todos los orígenes) y una persona que lo tiene, sin
-// pasar por la matriz ni por la pantalla de invitar. El nombre lleva `PREFIJO_ROL_E2E`.
+// Un permiso de un rol de prueba: la clave sola vale en todos los orígenes y para todo; con
+// `origenId` se acota a ese origen, y con `alcance` a lo propio.
+export type PermisoDePrueba =
+  string | { clave: string; origenId?: string; alcance?: 'propios' | 'todos' }
+
+// Un rol de prueba con los permisos dados y una persona que lo tiene, sin pasar por la matriz ni
+// por la pantalla de invitar. El nombre lleva `PREFIJO_ROL_E2E`.
 export async function darRolDePrueba(datos: {
   email: string
   rol: { nombre: string; clave: string }
-  permisos: string[]
+  permisos: PermisoDePrueba[]
 }): Promise<void> {
   const cliente = admin()
   const { data: rol, error } = await cliente
@@ -186,7 +191,15 @@ export async function darRolDePrueba(datos: {
   if (error) {
     throw new Error(`No se pudo crear el rol ${datos.rol.nombre}: ${error.message}`)
   }
-  const concesiones = datos.permisos.map((clave) => ({ rol_id: rol.id, permiso_clave: clave }))
+  const concesiones = datos.permisos.map((permiso) => {
+    const { clave, origenId, alcance } = typeof permiso === 'string' ? { clave: permiso } : permiso
+    return {
+      rol_id: rol.id,
+      permiso_clave: clave,
+      origen_id: origenId ?? null,
+      alcance: alcance ?? 'todos',
+    }
+  })
   const { error: errorDePermisos } = await cliente.from('roles_permisos').insert(concesiones)
   if (errorDePermisos) {
     throw new Error(`No se pudo dar permisos a ${datos.rol.nombre}: ${errorDePermisos.message}`)
