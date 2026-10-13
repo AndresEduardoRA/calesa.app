@@ -322,23 +322,24 @@ do $$ declare l uuid; cod text; i int; snap jsonb; begin
   if snap::text like '%total_base%' or snap::text like '%"ruta"%' then raise exception 'el snapshot filtra datos internos'; end if;
 end $$;
 
--- @test papelera: enviar, listar, restaurar; comprobante emitido bloquea
+-- @test papelera: las genéricas ya no aceptan vehículos; con un comprobante emitido un vehículo no entra
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 set role authenticated;
-do $$ declare v uuid; v_lote uuid; n int; begin
+do $$ declare v uuid; r jsonb; begin
   select id into v from public.vehiculos where lote = '58741223';
-  v_lote := public.papelera_enviar('vehiculos', array[v]);
-  if (select count(*) from public.vehiculos where id = v) <> 0 then raise exception 'la RESTRICTIVE debe esconder lo borrado'; end if;
-  if (select count(*) from public.papelera_listar('vehiculos')) <> 1 then raise exception 'papelera_listar vacía'; end if;
-  n := public.papelera_restaurar(v_lote);
-  if (select count(*) from public.vehiculos where id = v) <> 1 then raise exception 'no restauró'; end if;
+  begin perform public.papelera_enviar('vehiculos', array[v]); raise exception 'la genérica mandó un vehículo a la papelera';
+  exception when invalid_parameter_value then null; end;
+  begin perform 1 from public.papelera_listar('vehiculos'); raise exception 'la genérica listó vehículos';
+  exception when invalid_parameter_value then null; end;
   perform public.comprobante_emitir((select id from public.cotizaciones where clase = 'final'), 'A', '{"cliente": "Ana Quispe"}');
-  begin
-    perform public.papelera_enviar('vehiculos', array[v]);
-    raise exception 'con comprobante emitido no va a la papelera';
-  exception when check_violation then null; end;
+  r := public.vehiculos_papelera_enviar(jsonb_build_array(jsonb_build_object('id', v, 'actualizado_en', (select actualizado_en from public.vehiculos where id = v))));
+  if r ->> 'lote' is not null or jsonb_array_length(r -> 'enviados') <> 0 or r -> 'rechazados' -> 0 ->> 'codigo' <> '23514' then raise exception 'un vehículo vendido entró a la papelera: %', r; end if;
+  if (select count(*) from public.vehiculos where id = v) <> 1 then raise exception 'el vehículo rechazado dejó de verse'; end if;
 end $$;
 reset role;
+do $$ begin
+  if exists (select 1 from public.lotes_papelera where tipo = 'vehiculos') then raise exception 'un envío sin ningún vehículo dejó un lote vacío'; end if;
+end $$;
 
 -- @test fórmula: cambiar una constante desde el ⚙ publica v2 y archiva v1
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
@@ -2027,4 +2028,169 @@ do $$ declare oficina uuid; d jsonb; v1 uuid := 'dddddddd-0000-4000-8000-0000000
   update public.integraciones set activa = true where clave = 'web_publica';
   if (select count(*) from web.vehiculos) <> 1 then raise exception 'la vitrina no volvió a mostrar el publicado'; end if;
 end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test papelera de vehículos: enviar con versión y resultado parcial, lo que bloquea, despublicar, y restaurar entero o por partes
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Irene pasa a poder enviar a la papelera lo propio, en Oficina.
+insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+select r.id, 'vehiculos.eliminar', o.id, 'propios' from public.roles r, public.origenes o where r.clave = 'humo_inventario' and o.clave = 'oficina';
+insert into public.vehiculos (id, origen_id, titulo, vin, fase_id, lead_id, creado_por)
+select x.id::uuid, o.id, x.titulo, x.vin,
+       case x.fase when 'inicial' then (select f.id from public.fases f where f.flujo_id = fl.id and f.es_inicial)
+                   when 'otra' then (select f.id from public.fases f where f.flujo_id = fl.id and f.nombre = 'Reservado') end,
+       x.lead::uuid, x.creador::uuid
+from public.origenes o join public.flujos fl on fl.origen_id = o.id,
+  (values ('eeeeeeee-0000-4000-8000-000000000001', 'Papelera de Irene', 'JTFPAP00000000001', 'inicial', null, '00000000-0000-0000-0000-000000000008'),
+          ('eeeeeeee-0000-4000-8000-000000000002', 'Papelera con lead', null, 'inicial', 'cccccccc-0000-4000-8000-000000000008', '00000000-0000-0000-0000-000000000001'),
+          ('eeeeeeee-0000-4000-8000-000000000003', 'Papelera en otra fase', null, 'otra', null, '00000000-0000-0000-0000-000000000001'),
+          ('eeeeeeee-0000-4000-8000-000000000004', 'Papelera con pago', null, null, null, '00000000-0000-0000-0000-000000000001'),
+          ('eeeeeeee-0000-4000-8000-000000000005', 'Papelera con declaración', null, null, null, '00000000-0000-0000-0000-000000000001'),
+          ('eeeeeeee-0000-4000-8000-000000000006', 'Papelera con repuestos', null, null, null, '00000000-0000-0000-0000-000000000001')
+  ) as x (id, titulo, vin, fase, lead, creador)
+where o.clave = 'oficina';
+insert into public.pagos (vehiculo_id, concepto, moneda, monto, monto_base) values ('eeeeeeee-0000-4000-8000-000000000004', 'Seña', 'USD', 500, 500);
+insert into public.declaraciones_aduana (id, numero) values ('eeeeeeee-0000-4000-8000-0000000000d1', 'HUMO-PAP-1');
+insert into public.declaraciones_vehiculos (declaracion_id, vehiculo_id) values ('eeeeeeee-0000-4000-8000-0000000000d1', 'eeeeeeee-0000-4000-8000-000000000005');
+insert into public.repuestos_proyectos (vehiculo_id, creado_por) values ('eeeeeeee-0000-4000-8000-000000000006', '00000000-0000-0000-0000-000000000001');
+insert into public.vehiculos_interesados (vehiculo_id, lead_id) values ('dddddddd-0000-4000-8000-000000000001', 'cccccccc-0000-4000-8000-000000000009');
+
+-- Irene: lo propio sí, lo ajeno no; sin versión o con una vieja, tampoco.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare suyo uuid := 'eeeeeeee-0000-4000-8000-000000000001'; ajeno uuid := 'dddddddd-0000-4000-8000-000000000002';
+  ver timestamptz; r jsonb; l jsonb; begin
+  select actualizado_en into ver from public.vehiculos where id = suyo;
+  if (select array_agg(x) from public.vehiculos_con_permiso(array[suyo, ajeno], 'vehiculos.eliminar') x) is distinct from array[suyo] then raise exception 'vehiculos_con_permiso debía dar sólo el propio'; end if;
+  if exists (select 1 from public.vehiculos_con_permiso(array[suyo], 'leads.ver')) then raise exception 'vehiculos_con_permiso respondió por un permiso que no es de vehículos'; end if;
+
+  r := public.vehiculos_papelera_enviar(jsonb_build_array(jsonb_build_object('id', suyo), jsonb_build_object('id', ajeno, 'actualizado_en', now())));
+  if r ->> 'lote' is not null or jsonb_array_length(r -> 'rechazados') <> 2 then raise exception 'sin versión y sin permiso no debía enviar nada: %', r; end if;
+  if not exists (select 1 from jsonb_array_elements(r -> 'rechazados') x where x ->> 'id' = suyo::text and x ->> 'motivo' like 'Falta la versión%') then raise exception 'sin versión debía decirlo: %', r; end if;
+  if not exists (select 1 from jsonb_array_elements(r -> 'rechazados') x where x ->> 'id' = ajeno::text and x ->> 'codigo' = '42501' and x ->> 'titulo' = 'Vitrina sin publicar') then raise exception 'lo ajeno debía rechazarse por permiso, con su título: %', r; end if;
+  r := public.vehiculos_papelera_enviar(jsonb_build_array(jsonb_build_object('id', suyo, 'actualizado_en', ver - interval '1 second')));
+  if r -> 'rechazados' -> 0 ->> 'codigo' <> 'PT409' then raise exception 'una versión vieja debía ser PT409: %', r; end if;
+  if r::text ~ suyo::text and r -> 'rechazados' -> 0 ->> 'motivo' ~ '[0-9a-f]{8}-[0-9a-f]{4}' then raise exception 'el motivo lleva un uuid: %', r; end if;
+  begin perform public.vehiculos_papelera_enviar('[]'::jsonb); raise exception 'aceptó un envío vacío';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculos_papelera_enviar('[{"id": "no-es-un-id"}]'::jsonb); raise exception 'aceptó un id que no lo es';
+  exception when invalid_parameter_value then null; end;
+
+  r := public.vehiculos_papelera_enviar(jsonb_build_array(jsonb_build_object('id', suyo, 'actualizado_en', ver), jsonb_build_object('id', ajeno, 'actualizado_en', now())));
+  if jsonb_array_length(r -> 'enviados') <> 1 or jsonb_array_length(r -> 'rechazados') <> 1 or r ->> 'lote' is null then raise exception 'esperaba uno enviado y uno rechazado: %', r; end if;
+  if (select count(*) from public.vehiculos where id = suyo) <> 0 then raise exception 'la RESTRICTIVE debe esconder lo enviado'; end if;
+  if (select count(*) from public.vehiculos where id = ajeno) <> 1 then raise exception 'el rechazado dejó de verse'; end if;
+  l := public.vehiculos_papelera_listar();
+  if jsonb_array_length(l) <> 1 or l -> 0 ->> 'id' <> r ->> 'lote' or not (l -> 0 ->> 'es_mio')::boolean or l -> 0 ->> 'creado_por_nombre' <> 'Irene Paz'
+     or l -> 0 ->> 'actualizado_en' <> r ->> 'actualizado_en' or jsonb_array_length(l -> 0 -> 'vehiculos') <> 1 or l -> 0 -> 'vehiculos' -> 0 ->> 'titulo' <> 'Papelera de Irene' then
+    raise exception 'la papelera de Irene no trae su lote: %', l;
+  end if;
+  if (l -> 0 ->> 'purga_el')::timestamptz <> (l -> 0 ->> 'creado_en')::timestamptz + make_interval(days => 30) then raise exception 'purga_el no es creado_en + papelera_dias: %', l; end if;
+  begin perform public._vehiculo_a_papelera(ajeno, now(), gen_random_uuid()); raise exception 'una persona de la app llamó a la función interna';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- La dueña: lo que bloquea, lo que despublica, y lo que se conserva.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare publicado uuid := 'dddddddd-0000-4000-8000-000000000001'; r jsonb; l jsonb; m text; begin
+  r := public.vehiculos_papelera_enviar((
+    select jsonb_agg(jsonb_build_object('id', v.id, 'actualizado_en', v.actualizado_en))
+    from public.vehiculos v where v.id = publicado or v.titulo like 'Papelera con %' or v.titulo = 'Papelera en otra fase'));
+  if jsonb_array_length(r -> 'enviados') <> 1 or r -> 'enviados' -> 0 ->> 'id' <> publicado::text or not (r -> 'enviados' -> 0 ->> 'despublicado')::boolean then raise exception 'sólo debía entrar el publicado, y decir que se despublicó: %', r; end if;
+  if jsonb_array_length(r -> 'rechazados') <> 5 or exists (select 1 from jsonb_array_elements(r -> 'rechazados') x where x ->> 'codigo' <> '23514') then raise exception 'esperaba cinco bloqueados: %', r; end if;
+  select string_agg(x ->> 'motivo', ' | ' order by x ->> 'id') into m from jsonb_array_elements(r -> 'rechazados') x;
+  if m not like 'Está vinculado a un lead%| Está en «Reservado»%| Tiene pagos o gastos%| Está en una declaración aduanera%| Tiene un proyecto de repuestos%' then raise exception 'los motivos no son los esperados: %', m; end if;
+  -- Ve toda la papelera: su lote y el de Irene.
+  l := public.vehiculos_papelera_listar();
+  if jsonb_array_length(l) <> 2 then raise exception 'quien puede vaciar la papelera debía ver los dos lotes: %', l; end if;
+end $$;
+reset role;
+do $$ declare publicado uuid := 'dddddddd-0000-4000-8000-000000000001'; begin
+  if (select publicado_web or destacado_web or precio_web is distinct from 21500 from public.vehiculos where id = publicado) then raise exception 'enviar debía despublicar y conservar el precio'; end if;
+  if (select count(*) from web.vehiculos) <> 0 then raise exception 'lo enviado a la papelera seguía en la vitrina'; end if;
+  if (select count(*) from public.vehiculos_interesados where vehiculo_id = publicado) <> 1 then raise exception 'enviar a la papelera perdió a los interesados'; end if;
+  if (select count(*) from public.lotes_papelera where tipo = 'vehiculos') <> 2 then raise exception 'debían quedar dos lotes, uno por envío'; end if;
+  -- Otro vehículo toma el VIN del que Irene mandó a la papelera.
+  insert into public.vehiculos (id, origen_id, titulo, vin, creado_por)
+  select 'eeeeeeee-0000-4000-8000-000000000009', origen_id, 'Papelera con el VIN tomado', 'JTFPAP00000000001', '00000000-0000-0000-0000-000000000001' from public.vehiculos where id = publicado;
+end $$;
+select set_config('humo.lote_de_la_duena', (select l.id::text from public.lotes_papelera l where l.tipo = 'vehiculos' and l.creado_por = '00000000-0000-0000-0000-000000000001'), false);
+
+-- Restaurar: quién, con qué versión, y qué pasa con un VIN que ya tomó otro.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+set role authenticated;
+do $$ declare suyo uuid := 'eeeeeeee-0000-4000-8000-000000000001'; l jsonb; mio jsonb; r jsonb; m text; e text; begin
+  l := public.vehiculos_papelera_listar();
+  mio := l -> 0;
+  begin perform public.vehiculos_papelera_restaurar((mio ->> 'id')::uuid, null); raise exception 'restauró sin versión';
+  exception when others then get stacked diagnostics m = message_text; if m not like 'Falta la versión%' then raise; end if; end;
+  begin perform public.vehiculos_papelera_restaurar((mio ->> 'id')::uuid, (mio ->> 'actualizado_en')::timestamptz - interval '1 second'); raise exception 'restauró con una versión vieja';
+  exception when others then get stacked diagnostics m = message_text, e = returned_sqlstate;
+    if e <> 'PT409' or m not like 'Cambiaste este lote de la papelera%' then raise exception 'conflicto del lote: % %', e, m; end if; end;
+  begin perform public.vehiculos_papelera_restaurar(current_setting('humo.lote_de_la_duena')::uuid, now()); raise exception 'restauró un lote que no envió';
+  exception when insufficient_privilege then null; end;
+
+  r := public.vehiculos_papelera_restaurar((mio ->> 'id')::uuid, (mio ->> 'actualizado_en')::timestamptz);
+  if jsonb_array_length(r -> 'restaurados') <> 0 or (r ->> 'quedan')::int <> 1 or r -> 'pendientes' -> 0 ->> 'motivo' not like 'Ya hay un vehículo con el VIN JTFPAP00000000001%' then raise exception 'con el VIN tomado debía quedar pendiente: %', r; end if;
+  if r ->> 'actualizado_en' <> mio ->> 'actualizado_en' then raise exception 'sin restaurar nada, la versión del lote no debía moverse'; end if;
+  if (select count(*) from public.vehiculos where id = suyo) <> 0 then raise exception 'restauró pese al VIN repetido'; end if;
+end $$;
+reset role;
+delete from public.vehiculos where id = 'eeeeeeee-0000-4000-8000-000000000009';
+set role authenticated;
+do $$ declare suyo uuid := 'eeeeeeee-0000-4000-8000-000000000001'; mio jsonb; r jsonb; begin
+  mio := public.vehiculos_papelera_listar() -> 0;
+  r := public.vehiculos_papelera_restaurar((mio ->> 'id')::uuid, (mio ->> 'actualizado_en')::timestamptz);
+  if jsonb_array_length(r -> 'restaurados') <> 1 or (r ->> 'quedan')::int <> 0 or r ->> 'actualizado_en' = mio ->> 'actualizado_en' then raise exception 'debía restaurar y mover la versión: %', r; end if;
+  if (select count(*) from public.vehiculos where id = suyo and lote_papelera_id is null) <> 1 then raise exception 'el restaurado no volvió al inventario'; end if;
+  if jsonb_array_length(public.vehiculos_papelera_listar()) <> 0 then raise exception 'un lote sin nada adentro seguía en la papelera'; end if;
+end $$;
+reset role;
+
+-- El lote de la dueña vuelve por partes, y sin publicar. Las genéricas no lo tocan.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare publicado uuid := 'dddddddd-0000-4000-8000-000000000001'; v2 uuid := 'dddddddd-0000-4000-8000-000000000002'; v3 uuid := 'dddddddd-0000-4000-8000-000000000003';
+  r jsonb; l jsonb; lote uuid; begin
+  r := public.vehiculos_papelera_enviar((select jsonb_agg(jsonb_build_object('id', v.id, 'actualizado_en', v.actualizado_en)) from public.vehiculos v where v.id in (v2, v3)));
+  if jsonb_array_length(r -> 'enviados') <> 2 then raise exception 'esperaba un lote de dos: %', r; end if;
+  lote := (r ->> 'lote')::uuid;
+  begin perform public.papelera_restaurar(lote); raise exception 'la genérica restauró un lote de vehículos';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.papelera_purgar(lote); raise exception 'la genérica purgó un lote de vehículos';
+  exception when invalid_parameter_value then null; end;
+  r := public.vehiculos_papelera_restaurar(lote, (r ->> 'actualizado_en')::timestamptz, array[v2]);
+  if jsonb_array_length(r -> 'restaurados') <> 1 or (r ->> 'quedan')::int <> 1 then raise exception 'restaurar una parte: %', r; end if;
+  if (select count(*) from public.vehiculos where id in (v2, v3)) <> 1 then raise exception 'debía volver uno solo'; end if;
+  -- El otro sigue adentro y el lote, abierto. Se restaura para dejar el inventario como estaba.
+  r := public.vehiculos_papelera_restaurar(lote, (r ->> 'actualizado_en')::timestamptz);
+  if (r ->> 'quedan')::int <> 0 then raise exception 'el lote debía quedar vacío: %', r; end if;
+
+  select x into l from jsonb_array_elements(public.vehiculos_papelera_listar()) x where x -> 'vehiculos' -> 0 ->> 'id' = publicado::text;
+  r := public.vehiculos_papelera_restaurar((l ->> 'id')::uuid, (l ->> 'actualizado_en')::timestamptz);
+  if (select publicado_web from public.vehiculos where id = publicado) then raise exception 'un vehículo restaurado volvió publicado'; end if;
+  if (select count(*) from public.vehiculos_interesados where vehiculo_id = publicado) <> 1 then raise exception 'restaurar perdió a los interesados'; end if;
+end $$;
+reset role;
+do $$ begin
+  if exists (select 1 from public.lotes_papelera l where l.tipo = 'vehiculos' and l.restaurado_en is null) then raise exception 'un lote vacío no quedó cerrado'; end if;
+  if exists (select 1 from public.lotes_papelera l where l.tipo = 'vehiculos' and (l.resumen ->> 'restaurados')::int <> (l.resumen ->> 'cantidad')::int) then raise exception 'el resumen del lote no cuenta lo restaurado'; end if;
+  if exists (select 1 from public.vehiculos where eliminado_en is not null or lote_papelera_id is not null) then raise exception 'quedó algo en la papelera'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+select set_config('request.jwt.claim.role', 'anon', false);
+set role anon;
+do $$ begin
+  begin perform public.vehiculos_papelera_listar(); raise exception 'anon listó la papelera';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculos_papelera_enviar('[]'::jsonb); raise exception 'anon envió a la papelera';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculos_papelera_restaurar(gen_random_uuid(), now()); raise exception 'anon restauró';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
 select set_config('request.jwt.claim.sub', '', false);

@@ -498,9 +498,10 @@ create table public.lotes_papelera (
   restaurado_en timestamptz,
   restaurado_por uuid references public.perfiles (id),
   purgado_en  timestamptz,
-  resumen     jsonb not null default '{}'::jsonb
+  resumen     jsonb not null default '{}'::jsonb,    -- {cantidad, restaurados, purgados}
+  actualizado_en timestamptz not null default now()  -- versión del lote: restaurar y purgar la mandan
 );
-comment on table public.lotes_papelera is 'Un «mandar a la papelera», de 1 o de 200. Unidad de restaurar y purgar. Nunca se borra: sobrevive a la purga como constancia.';
+comment on table public.lotes_papelera is 'Un «mandar a la papelera», de 1 o de 200. Unidad de restaurar y purgar, entero o por partes. Se cierra (restaurado_en o purgado_en) cuando no le queda nada; nunca se borra: sobrevive a la purga como constancia. actualizado_en es su versión y la sellan las RPC con la hora del reloj.';
 
 create table public.leads (
   id                   uuid primary key default gen_random_uuid(),

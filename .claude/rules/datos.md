@@ -35,13 +35,20 @@ paths:
   versión es la de `vehiculos_imagenes_version`, no la del vehículo.
 - Lo que otorga permisos se escribe por RPC: `crear_lead`, `cambiar_fase`, `vehiculo_vitrina`,
   `vehiculo_vincular` (el vínculo da ver y editar con alcance «propios»),
-  `papelera_*`, `formula_*`, `rbac_*`, `otorgar_portal`, `transferir_lead`, `compartir_lead`,
+  `vehiculos_papelera_*` (las `papelera_*` genéricas son sólo de leads y cotizaciones: rechazan
+  vehículos), `formula_*`, `rbac_*`, `otorgar_portal`, `transferir_lead`, `compartir_lead`,
   `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.
   Un `.update()` sobre `fase_id`, `lead_id`, `publicado_web`, `eliminado_en`, `creado_por` o `responsable_id`
   es un bug (la base lo rechaza).
 - Toda mutación de edición manda `p_actualizado_en_esperado` o `p_fase_esperada` (la RPC los exige: un
   nulo se rechaza) y trata `PT409` como conflicto legible (`conflicto()` de `@/shared/lib/errores`),
-  nunca como error genérico.
+  nunca como error genérico. Una RPC de lote (`vehiculos_papelera_enviar`) lleva la versión de cada
+  fila en su arreglo (`[{id, actualizado_en}]`) y devuelve un resultado parcial: lo que no pasó
+  vuelve con su `codigo` y su `motivo`, y se muestra entero.
+- La vitrina se escribe con `vehiculo_vitrina` (versión del vehículo, el estado entero) y se lee
+  con `vehiculo_vitrina_previa` y `vitrina_del_origen`. Nada de la app lee el esquema `interno`.
+- La papelera de vehículos se lee con `vehiculos_papelera_listar()` (la RLS esconde lo eliminado a
+  todos) y se restaura o purga con la versión **del lote** (`lotes_papelera.actualizado_en`).
 - Una query de seguimiento sobre una página ya paginada se acota con los ids de esa página
   (`.in('id', ids)`), nunca con un filtro sin cota. Listas grandes: keyset por `(creado_en, id)`.
 - Uploads desde el browser: fotos por `comprimirImagen()` o `comprimirEnTamanos()` (WebP, o JPEG

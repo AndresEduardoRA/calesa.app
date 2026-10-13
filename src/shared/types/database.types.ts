@@ -2446,6 +2446,7 @@ export type Database = {
       }
       lotes_papelera: {
         Row: {
+          actualizado_en: string
           creado_en: string
           creado_por: string | null
           id: string
@@ -2457,6 +2458,7 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          actualizado_en?: string
           creado_en?: string
           creado_por?: string | null
           id?: string
@@ -2467,6 +2469,7 @@ export type Database = {
           tipo: Database['public']['Enums']['tipo_lote_papelera']
         }
         Update: {
+          actualizado_en?: string
           creado_en?: string
           creado_por?: string | null
           id?: string
@@ -5825,6 +5828,7 @@ export type Database = {
       }
       _hace: { Args: { p_cuando: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
+      _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
       _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
       _origen_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
       _origen_nombre_valido: {
@@ -5837,6 +5841,10 @@ export type Database = {
         Returns: Json
       }
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
+      _papelera_sin_vehiculos: {
+        Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
+        Returns: undefined
+      }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
       _requisito_dato_cumplido: {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
@@ -5844,6 +5852,10 @@ export type Database = {
       }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
       _rol_tocar: { Args: { p_rol: string }; Returns: string }
+      _vehiculo_a_papelera: {
+        Args: { p_esperado: string; p_lote: string; p_vehiculo: string }
+        Returns: Json
+      }
       _vehiculo_aplicar: {
         Args: {
           p_datos: Json
@@ -5900,6 +5912,16 @@ export type Database = {
         }
       }
       _vehiculo_fase_de_entrada: { Args: { p_origen: string; p_vehiculo: string }; Returns: string }
+      _vehiculo_motivo_de_bloqueo: {
+        Args: {
+          p_al_enviar: boolean
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
       _vehiculo_numero: {
         Args: {
           p_clave: string
@@ -6420,7 +6442,14 @@ export type Database = {
         Returns: Json
       }
       vehiculo_vitrina_previa: { Args: { p_vehiculo: string }; Returns: Json }
+      vehiculos_con_permiso: { Args: { p_clave: string; p_ids: string[] }; Returns: string[] }
       vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
+      vehiculos_papelera_enviar: { Args: { p_vehiculos: Json }; Returns: Json }
+      vehiculos_papelera_listar: { Args: Record<PropertyKey, never>; Returns: Json }
+      vehiculos_papelera_restaurar: {
+        Args: { p_actualizado_en_esperado: string; p_lote: string; p_vehiculos?: string[] }
+        Returns: Json
+      }
       verificar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: Json }
       vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }

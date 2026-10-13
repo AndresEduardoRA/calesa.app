@@ -31,7 +31,11 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
 - Toda RPC de edición nace con `p_actualizado_en_esperado timestamptz` **sin default** (va antes de los
   parámetros con default) y rechaza un nulo con un mensaje legible: `_exigir_version()` hace las dos
   cosas. El seed y `humo.sql` pasan la versión real; un nulo «para las pruebas» es un control que no
-  existe. Las de crear no la llevan: no hay fila que versionar.
+  existe. Las de crear no la llevan: no hay fila que versionar. Una RPC de lote la lleva por
+  elemento, dentro de su arreglo, y rechaza el elemento que no la trae.
+- Una versión que tiene que moverse en cada operación (también dos en la misma transacción) no usa
+  el trigger genérico (`now()` es la hora de inicio): se quita `trg_actualizado_en` de esa tabla y
+  la RPC sella con `greatest(clock_timestamp(), anterior + 1 µs)` (fotos, lotes de papelera).
 - Permiso nuevo = fila en `seed.sql` (`permisos`) **en la misma migración** que crea su punto de
   enforcement, con `aplicado_en` diciendo cuál. Sin enforcement no hay permiso.
 - Clave de dato nueva para requisitos de fase = caso en `_requisito_dato_cumplido()` **y** en

@@ -916,3 +916,44 @@ default pisaban el precio y la nota cuando alguien despublicaba sin reenviarlos.
 precio nulo es «Consultar»; despublicar apaga el destacado.
 **Consecuencia:** como toda escritura sobre la fila, publicar mueve la versión: quien tiene la ficha
 abierta en edición ve un conflicto (la misma deuda que mover de fase).
+
+## 2026-10-13 — Qué no va a la papelera, y que todo lo que entra se pueda purgar
+
+**Contexto:** `papelera_enviar` sólo frenaba un vehículo con un comprobante **no anulado**; la FK de
+`comprobantes` es `restrict` para cualquiera, y la purga borra en cascada pagos, gastos, documentos
+y transportes. Un vehículo podía entrar a la papelera y no salir nunca, o salir llevándose dinero
+registrado. Tampoco miraba el vínculo, la fase ni la vitrina.
+**Decisión:** una sola lista (`_vehiculo_motivo_de_bloqueo`) para enviar y para purgar. **Bloquea:**
+vínculo activo (es de un cliente y su portal lo muestra); estar fuera de la fase inicial (ya entró a
+logística: sacarlo de la cadena no lo decide quien sólo tiene `vehiculos.eliminar`); cualquier
+comprobante, pagos, gastos, una declaración aduanera vigente o un proyecto de repuestos vivo.
+**Despublica y sigue** lo publicado (en la misma RPC; conserva el precio). **Sigue** con
+interesados: se conservan y vuelven. Las cotizaciones del vehículo viajan con él, como antes.
+**Alternativas:** avisar en vez de bloquear (el patrón de la papelera es «hacer y deshacer», sin
+diálogo previo: un aviso llegaría después del hecho); permitir cualquier fase (hoy nadie llega a
+otra fase sin `cambiar_fase`, así que bloquear no le cuesta a nadie; relajarlo en la Fase 6, con la
+cadena a la vista, es seguro, y endurecerlo después dejaría vehículos en proceso ya en la papelera).
+**Consecuencia:** para mandar a la papelera un vehículo vinculado hay que desvincularlo, y eso no
+tiene interfaz hasta la Fase 3. La purga vuelve a preguntar: `cotizacion_marcar_final` puede
+vincular un vehículo que ya está adentro.
+
+## 2026-10-13 — Los vehículos tienen su papelera; el envío es por lote, con versión por vehículo
+
+**Contexto:** `papelera_*` servía a leads, vehículos y cotizaciones con una función por operación:
+sin versión, todo o nada, con el uuid en los mensajes y restaurando sólo el lote entero.
+**Decisión:** `vehiculos_papelera_enviar(p_vehiculos jsonb)` recibe `[{id, actualizado_en}]`, va uno
+por uno en su subtransacción y devuelve `enviados` y `rechazados` (con `codigo` y `motivo`, y el
+título sólo de lo que quien llama ve). Un envío es un lote; si no pasa ninguno, no queda lote.
+`lotes_papelera` gana `actualizado_en`, su versión: restaurar (y purgar) la mandan y aceptan el lote
+entero o algunos de sus vehículos; el lote se cierra cuando no le queda nada. **Restaurar** vuelve
+sin publicar —también con «Deshacer»— y deja pendiente, con el motivo, lo que choca con un VIN o un
+lote de subasta que ya tomó otro. Lo hace quien envió el lote o quien tiene
+`vehiculos.papelera.purgar`: no hay permiso nuevo. Las genéricas rechazan vehículos, por el tipo que
+reciben y por el del lote.
+**Alternativas:** reescribir las genéricas (las reglas de un vehículo —vínculo, fase, vitrina, VIN—
+no son las de un lead; cada una se reescribe con su fase); una RPC de uno y otra de lote (dos
+puertas para la misma regla); `p_actualizado_en_esperado` escalar (un lote no tiene una versión
+antes de existir: la versión que protege es la de cada vehículo).
+**Consecuencia:** la regla «toda RPC de edición lleva `p_actualizado_en_esperado`» se lee, para un
+lote, como «cada elemento lleva su versión». `vehiculos.papelera.purgar` sigue siendo global y
+gobernando también la papelera de leads y cotizaciones: se parte cuando lleguen sus fases.
