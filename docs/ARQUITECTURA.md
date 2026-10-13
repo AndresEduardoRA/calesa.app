@@ -13,6 +13,7 @@ flowchart LR
   flujos --> origenes
   vehiculos --> origenes
   vehiculos --> flujos
+  vehiculos --> equipo
   leads --> equipo
   cotizaciones --> leads
   cotizaciones --> vehiculos
@@ -133,7 +134,7 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
   `importar-csv`) + `pg_cron` (recordatorios, expirar turnos, alertas de demora, purgas).
 - **Realtime**: canales de Supabase para chat y notificaciones; la fila es señal, se rehidrata por fetch.
 - **Modo Live**: `useLive()` + `<Monto>`; clase en `<html>`; todo monto pasa por ahí.
-- **Filtros en URL**: `nuqs` con esquema declarativo por listado y `FilterShell`.
+- **Filtros en URL**: esquema declarativo por listado (`shared/lib/filtros`), `FilterShell` y `nuqs`. La página lee la URL con `leerFiltros()` (tolerante) y el módulo traduce los valores a condiciones para su consulta. Listas grandes: keyset con `shared/lib/paginacion`. Vistas guardadas: de `equipo` (`<MenuDeVistas>`), montadas por el listado.
 - **Tema**: tokens en `design/tokens.css` → `src/app/globals.css` (`@theme`), modo oscuro por
   clase `.dark`, preferencia por usuario.
 

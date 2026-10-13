@@ -5,76 +5,76 @@
 > el siguiente prompt va a asumir cosas falsas. Máximo 80 líneas: lo que ya no es actual se mueve
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
-**Última actualización:** 2026-10-12
-**Fase actual:** 2 — Orígenes y vehículos, **abierta**. Parte 1 de 5 (orígenes) hecha; sigue la
-parte 2 (vehículos: listado, ficha y alta manual) en sesión nueva.
+**Última actualización:** 2026-10-13
+**Fase actual:** 2 — Orígenes y vehículos, **abierta**. Partes 1 (orígenes) y 2 (vehículos:
+listado, ficha, alta y edición) hechas; sigue la parte 3 (fotos) en sesión nueva.
 
 ## Funcionando
 
-- `pnpm lint`, `pnpm typecheck`, `pnpm test` (504), `pnpm db:probar` (26 pruebas de humo),
-  `bash scripts/mapa.sh --check`, `pnpm build` y `pnpm test:e2e` (46: 23 casos × escritorio y móvil).
-- **Fase 1:** acceso y shell, equipo y roles (matriz con dominancia, «ver como»), empresa (marca,
-  región, monedas y tipos de cambio, integraciones, íconos). Toda escritura de empresa y de roles va
-  por RPC con versión **obligatoria**: un nulo se rechaza (regla en `.claude/rules/migraciones.md`).
-- **Orígenes** (`/configuracion/origenes`, `/[id]?seccion=datos|campos|categorias`):
-  - Lista con lo que ata a cada origen; alta (tipo, nombre, sustantivo, género, color,
-    plataformas) con la vista previa de lo que nace. Nace en un INSERT: flujo, reglas y campos del
-    tipo por trigger, o no nace nada. No nace una fórmula.
-  - Datos: editar, activar y desactivar (reversible), eliminar sólo sin uso (tipeando el nombre).
-  - Layout de campos: banderas que guardan solas, subir y bajar con botones, campo propio con
-    opciones, grupo, `clave_apibara` (sólo subasta), desactivar y reactivar. El aviso de impacto
-    cuenta vehículos antes de cambiar tipo, volver requerido o sacar una opción.
-  - Categorías de un nivel con orden, activa y eliminar sin uso.
-  - Siguientes pasos derivados de lo que hay; sin enlace a flujo ni fórmula (no tienen pantalla).
-- Cada sección se ve por su permiso: `origenes.gestionar` edita; `flujos.configurar` o
-  `cotizaciones.configurar` lo ven todo deshabilitado con el motivo.
-- La matriz de roles lista los orígenes reales, también los inactivos (marcados).
+- `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm db:probar`, `bash scripts/mapa.sh --check`,
+  `pnpm build` y `pnpm test:e2e` (los números de la última corrida están en `docs/BITACORA.md`).
+- **Fase 1** completa. **Orígenes** (`/configuracion/origenes`): alta, datos, activar y
+  desactivar, layout de campos (ahora con **valor por defecto**) y categorías, por RPC con versión.
+- **Vehículos** (`/vehiculos`, `/vehiculos/[id]`):
+  - Una pestaña por origen donde la persona tiene `vehiculos.ver` (también los inactivos);
+    `?origen=`. Tabla en escritorio y tarjetas en el celular, con el lugar de la foto reservado.
+  - `FilterShell`: búsqueda, panel de filtros (al costado; hoja inferior en el celular), chips y
+    «Limpiar». Los filtros salen de los campos `filtrable` del origen, más fase, categoría y año.
+    Todo en la URL; lo que no corresponde se ignora. Vistas guardadas por persona. Keyset.
+  - Ficha por el layout del origen, con la fase de sólo lectura. Sólo la pestaña «Ficha».
+  - Alta y edición en un panel (`?panel=nuevo`, `?editar=`): bloques por grupo del layout, valores
+    por defecto, `N`, `Ctrl/Cmd+S`, `Ctrl/Cmd+Enter`. Conflicto con quién y cuándo («Ver cómo
+    quedó» / «Recargar»). Con la conexión caída conserva lo escrito y reintenta sin duplicar.
+- `vehiculos` es de **sólo lectura** para la app: se escribe por `vehiculo_crear` y
+  `vehiculo_guardar` (versión obligatoria). El vehículo nace en la fase inicial si hay una sola.
 
-## Siguiente: Fase 2, partes 2 a 5
+## Siguiente: Fase 2, partes 3 a 5
 
-- 2: listado de vehículos por origen con `FilterShell` (filtros desde `origenes_campos.filtrable`,
-  estado en URL), ficha por layout, alta y edición en drawer. Lee `getLayout()`/`leerLayout()`.
 - 3: fotos (≤ 24, WebP, portada, hash + refcount; `comprimirImagen()` y `subirPorHash()` ya
-  existen). 4: vitrina por RPC y papelera. 5: apibara (`supabase/functions/apibara`, alta por enlace).
-- `integracionActiva('apibara')` y `integracion_secreto('apibara')` (sólo `service_role`) ya están.
-- Una pantalla nueva se suma a `configuracion/secciones.ts` y, si es de primer nivel, prende su
-  `disponible` en `_shell/navegacion.ts`. Las del flujo (fase 5) y la fórmula (fase 4) ponen su
-  ruta en `configuracion/origenes/pasos.ts`; su test la comprueba contra el disco.
+  existen). El hueco está en `<Miniatura url>`; la pestaña se suma creando
+  `vehiculos/[id]/seccion-fotos.tsx` y prendiendo `disponible` en `pestanas.ts`.
+- 4: vitrina por RPC, papelera, interesados y vínculo. 5: apibara (alta por enlace).
+- **Cada una trae su RPC de escritura:** al cerrar `vehiculos` quedaron sin escritor `lead_id`
+  (parte 4) y `subasta_*`, `estado_subasta`, `apibara_*` (parte 5).
+- Leads y cotizaciones reutilizan `FilterShell` (`src/shared/lib/filtros`, `ui/filtros`),
+  `lib/paginacion.ts`, `<AvisoDeConflicto>`, `useBorradorDeEstado()` y `<MenuDeVistas>` (sumar la
+  pantalla a `RUTA_DE_PANTALLA` en `equipo/entities/vista.ts`).
 
-## Lo que el plan no había previsto (parte 1)
+## Lo que el plan no había previsto (parte 2)
 
-- **La ficha decía que nacía una fórmula vacía y que un trigger rechazaba `clave_apibara` en
-  manual: ninguna de las dos cosas existía.** La segunda existe ahora; «fórmula pendiente» es no
-  tener fila `publicada`.
-- `origenes.nombre` no era único y `categorias` no deduplicaba raíces (un nulo no choca): ahora sí.
-  Campos y categorías ganaron su `actualizado_en`; un origen inactivo ya no recibe vehículos.
-- `create or replace` no quita defaults y un parámetro sin default no puede ir tras uno con default:
-  la versión y «después de X» se reordenaron en las RPC de roles y de mover.
-- `PLATAFORMAS_APIBARA` pasó a `shared/lib/apibara.ts` (`origenes` no importa `empresa`).
-- Next conserva la pestaña anterior oculta (un e2e cuenta sólo lo visible), y un `router.push`
-  justo después de cerrar un panel con nuqs lo pisa la URL: sólo se navega.
+- **No había RPC de alta ni de edición**, y el `INSERT` directo dejaba poner `fase_id` y
+  `publicado_web`: el grant por columna sólo cubría el `UPDATE`.
+- **La policy de `vehiculos` no era de InitPlan:** `(select alcance_de('x', origen_id))` nombra la
+  fila y corre por fila. Regla nueva en `.claude/rules/migraciones.md`.
+- **Bajo RLS el GIN de `atributos` y los trigram no se usan** (`@>` e `ilike` no son `leakproof`).
+  El listado se apoya en `vehiculos_origen_listado_idx`. Si un origen pasa de decenas de miles,
+  la salida es una función `definer` de búsqueda (docs/DECISIONES.md).
+- `origenes_campos` no tenía valor por defecto; un VIN repetido **bloquea** (único global); los
+  campos `opcion` preconfigurados nacen sin opciones (no se ofrecen como filtro hasta tenerlas).
+- `nuqs` a secas es `'use client'`, y una constante exportada desde un archivo de cliente llega al
+  servidor como referencia: lo que también corre en el servidor lee la URL a mano.
+- Un hook frena todo comando de Bash que nombre la secret key: para mirar la base local,
+  `docker exec supabase_db_importadora psql …` o los helpers de `e2e/soporte`.
 
 ## Pendiente de decidir
 
 - **Dominancia sobre la persona:** quien tiene `equipo.usuarios.gestionar` puede bloquear o dar de
   baja a alguien con más permisos que él (el guardián sólo salva al último).
 - **Vencimiento de la invitación:** es el `otp_expiry` de Auth (1 h en local; hasta 24 h en la nube).
-- **En la nube (una persona):** proyecto y `supabase link`; el primer `db push` con
-  `--include-seed`; plantillas de `supabase/templates/` en Auth › Emails; `Site URL` y
-  `…/auth/callback`; SMTP; credenciales de Google; revisar que el log no registre los parámetros de
-  `integracion_guardar_secreto`. Rama: sigue `master`.
+- **En la nube (una persona):** proyecto y `supabase link`; primer `db push --include-seed`;
+  plantillas de correo; `Site URL` y `…/auth/callback`; SMTP; Google. Rama: sigue `master`.
 
 ## Deuda aceptada
 
+- `puedeEditar()` sólo sabe «lo creé yo»: con alcance «propios», lo vinculado a un lead de la
+  cartera lo edita la base pero la interfaz no ofrece el botón (se completa con el vínculo).
+- `cambiar_fase` acepta `p_fase_esperada` nulo y `vehiculo_vitrina` no lleva versión; el bucket
+  `vehiculos` deja hacer `remove` directo. Mover de fase mueve la versión del vehículo (quien edita
+  la ficha en ese momento ve un conflicto). Los planes se midieron con la tabla vacía.
 - Sin interfaz todavía: `demora_dias_default`, `lead_dormido_meses`, el logo oscuro, `push_web` y
-  `web_publica` (fases 7 y 8); el `icono` del origen y el orden de los orígenes entre sí.
-- Reordenar con arrastre: sólo botones; sumarlo es una dependencia a verificar (la RPC ya lo admite).
-  El esquema no tiene plural del sustantivo: `pluralDe()` es una regla.
-- Título de la pestaña y `favicon.ico` neutros; iOS no cambia el ícono de una PWA instalada. Sin
-  e2e de Google, recuperación, perfil ni «ver como».
-- Los e2e exigen la base local sin personas ajenas (`pnpm db:reset`) y no corren en paralelo.
+  `web_publica`; el `icono` y el orden de los orígenes. Reordenar es con botones, sin arrastre.
+- Los e2e (salvo los del inventario) exigen la base local sin personas ajenas (`pnpm db:reset`) y
+  no corren en paralelo. Sin e2e de Google, recuperación, perfil ni «ver como».
 - Las RPC de leads, flujos y cotizaciones siguen hablando de vos: se reescriben con su fase.
 - Sin enforcement en la base: `equipo.usuarios.ver`, `equipo.roles.ver`, `tablero.metricas.ver`,
   `datos.exportar.todo`, `notificaciones.push`, `logistica.pagos.confirmar`.
-- No se renombra un rol ni se reactiva a quien se dio de baja. Un objeto de Storage puede quedar
-  huérfano si se cierra la pestaña entre subir y guardar: lo juntará `storage-gc` (parte 3).

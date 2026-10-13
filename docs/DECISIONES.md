@@ -644,3 +644,110 @@ restringir el `select` rompería los selectores de todos. Contar vehículos por 
 pide uno de esos tres permisos (`origenes_resumen()`).
 **Consecuencia:** una cuenta sin esos permisos sigue pudiendo leer `origenes` por la API; es lo que
 ya pasaba y lo que necesita el resto de la aplicación.
+
+## 2026-10-13 — FilterShell vive en `shared`; las vistas guardadas las posee `equipo`
+
+**Contexto:** el inventario necesita filtros en la URL, chips, panel lateral y hoja inferior, y lo
+mismo van a necesitar leads y cotizaciones. Las vistas guardadas están en una tabla de `equipo`.
+**Decisión:** `shared/lib/filtros` (el esquema declarativo, la lectura tolerante de la URL, los
+chips) y `shared/ui/filtros` (`<FilterShell>`), sin importar ningún módulo: cada listado arma su
+esquema en `entities/` y se lo pasa. La lectura no usa nuqs (`nuqs` a secas es `'use client'` y la
+página la corre en el servidor): todas las claves son texto y `leerFiltros()` decide qué significan,
+igual en las dos partes. Las vistas son de `equipo`: `leerVistas(pantalla)` por `index.ts` y
+`<MenuDeVistas>` por `client.ts`; el listado lo monta en un hueco del FilterShell. Una vista guarda
+parámetros de URL, así que `equipo` no conoce los filtros de nadie.
+**Alternativas:** FilterShell dentro de `vehiculos` (leads lo importaría de otro módulo); las vistas
+en `shared` (una lectura con reglas va en `infra/` de un módulo, y la tabla ya tenía dueño); parsers
+tipados de nuqs por filtro (tipos heterogéneos por un mapa que se arma en ejecución, y dos lectores).
+**Consecuencia:** un listado nuevo declara su esquema y suma su pantalla a `RUTA_DE_PANTALLA`. Una
+vista de un origen que la persona ya no ve no se lista; un filtro que dejó de existir se ignora solo.
+
+## 2026-10-13 — Un solo esquema Zod, armado desde el layout, valida en el navegador y en el servidor
+
+**Contexto:** los campos de un vehículo dependen del layout de su origen: no hay un schema fijo que
+poner en `schemas/`, y el trigger de la base valida tarde, de a un error y sin conocer las opciones.
+**Decisión:** `esquemaDeVehiculo(fuentes)` (en `vehiculos/entities/esquema.ts`) arma un `z.object`
+con los datos comunes y un validador por tipo de campo. El formulario lo usa antes de enviar; la
+Server Action recibe el estado del formulario, **vuelve a leer el layout** y usa la misma función.
+Los motivos vuelven por campo en un resultado propio (`porCampo`): `returnValidationErrors` sólo
+aplana un nivel. La base es la última línea y dice en `hint` qué campo frenó el guardado. Una opción
+que se sacó del campo, o una categoría desactivada, siguen valiendo mientras el vehículo las tenga.
+`origenes_campos` gana `valor_defecto`, que sólo precarga el alta.
+**Alternativas:** confiar en el trigger (errores tardíos); guardar un JSON Schema en la base (otra
+fuente que mantener igual al layout); mandar al servidor el dato ya convertido (el servidor tendría
+que confiar en la conversión del navegador).
+**Consecuencia:** un tipo de campo nuevo se suma en `ESQUEMA_POR_TIPO`, `CONTROL_DE_TIPO`,
+`LECTOR_POR_TIPO` y `FILTRO_POR_TIPO`: son `Record<TipoDeCampo, …>` y no compilan si falta uno.
+`entities/` no importa otros módulos: declara la forma de campo que necesita y recibe el de `origenes`.
+
+## 2026-10-13 — Filtros sobre `atributos` por PostgREST, keyset y policy de InitPlan; el GIN no cuenta
+
+**Contexto:** hay que filtrar por atributos dinámicos y paginar con eficiencia. Se daba por hecho
+que las policies eran de InitPlan y que el GIN de `atributos` servía a los filtros.
+**Decisión:** una consulta por página, siempre de un origen. Opciones y sí o no por contención
+(`@>`), números por rango sobre `atributos->clave`, fechas como texto ISO, texto con `ilike`; la clave
+sale del layout, nunca de la URL, y todo texto de la persona pasa por `citar()` o `patronContiene()`.
+Keyset `(creado_en, id)` con índice propio (`vehiculos_origen_listado_idx`). La policy de lectura se
+reescribió: `origen_id = any ((select origenes_con_alcance(…))::uuid[])` es InitPlan; la anterior,
+`(select alcance_de('x', origen_id))`, corría por fila. Una prueba de humo lo comprueba con `EXPLAIN`.
+**Lo que se encontró:** bajo RLS, `@>` e `ilike` no son `leakproof` y Postgres no los evalúa antes
+que la policy: ni el GIN ni los trigram se usan. La consulta camina el índice del listado, filtra y
+corta. En `atributos` nunca se guarda un `null` (entraría en todo «hasta N»).
+**Alternativas:** una función `definer` de búsqueda desde el primer día (ahí el GIN sí entra, pero el
+permiso queda en dos lugares antes de saber si hace falta); una tabla EAV; `offset`.
+**Consecuencia:** alcanza para miles de vehículos por origen. Si un origen pasa de decenas de miles y
+un filtro poco selectivo se siente, el listado pasa a esa función `definer`. Los planes se midieron
+con la tabla vacía: hay que volver a mirarlos con datos reales.
+
+## 2026-10-13 — Vehículos se escriben sólo por RPC; el alta entra a la única fase inicial
+
+**Contexto:** no había RPC de alta ni de edición. El `INSERT` directo dejaba poner `fase_id` y
+`publicado_web` (el grant por columna sólo cubría el `UPDATE`) y editar no comparaba versión. Ningún
+trigger ponía la fase inicial, y quien carga un vehículo no suele tener `flujos.mover`.
+**Decisión:** la tabla queda de sólo lectura y se escribe por `vehiculo_crear(p_id, p_origen,
+p_datos)` y `vehiculo_guardar(p_vehiculo, p_actualizado_en_esperado, p_datos)`, con una lista cerrada
+de claves. El `id` del alta lo genera el navegador: reintentar no duplica. Al nacer, el vehículo entra
+a la fase inicial **sólo si no hay nada que decidir** (una sola inicial activa, sin nota obligatoria,
+sin requisitos bloqueantes pendientes, sin roles que excluyan a quien crea), con su fila en
+`historial_fases`; si no, nace «Sin fase». Es la segunda y última escritura de `fase_id`. El conflicto
+dice quién y cuándo, sacado de `actividad`; guardar lo ya guardado no es conflicto. Un origen
+desactivado conserva y deja editar lo suyo, pero no recibe altas.
+**Alternativas:** `INSERT` con grant por columna (deja la fase y la versión del lado de la app);
+`.update().eq('actualizado_en', …)` (cero filas no distingue conflicto de falta de permiso); una
+columna `actualizado_por` (la auditoría ya lo sabe); dejar siempre la fase en nulo (lo que carga un
+asesor no aparecería en la cadena hasta que otra persona lo ubique).
+**Consecuencia:** `lead_id`, `subasta_*` y `apibara_*` quedaron sin escritor: el vínculo y apibara
+traen su RPC. Cualquier escritura sobre la fila (mover de fase) mueve la versión, y quien edita la
+ficha en ese momento ve un conflicto: pierde un clic, no pisa nada.
+
+## 2026-10-13 — Campos sensibles: el esquema no los resuelve, y el inventario no muestra costos
+
+**Contexto:** se pedía respetar los campos sensibles (costos) en el listado y la ficha.
+**Decisión:** no hay marca de «sensible» en `origenes_campos` ni permiso de costos de vehículos, y RLS
+no esconde columnas ni claves de un jsonb. Nada de lo que muestra el inventario es un costo
+(`vehiculos.precio` es precio de lista; los `moneda` del layout son datos de la subasta), así que no
+se inventó un control. Todo monto pasa por `<Monto>` (Modo Live). Los costos reales (gastos, pagos,
+margen) llegan con logística, ya protegidos por `logistica.gastos.ver`, `.pagos.ver` y `.margen.ver`.
+**Alternativas:** una columna `sensible` y esconder el campo en la interfaz (no protege nada: el dato
+viaja igual en `atributos`).
+**Consecuencia:** el día que haga falta ocultar un campo del layout, es esa columna **más** una vista
+o RPC que recorte `atributos` (como `leads_vista`), con su permiso sembrado en la misma migración.
+
+## 2026-10-13 — Un VIN repetido bloquea, y se dice junto al campo
+
+**Contexto:** la ficha decía «un VIN repetido avisa, no bloquea». `vehiculos_vin_unico` es UNIQUE
+entre los vehículos vivos y global, no por origen; fue una decisión del 10-11 (por eso el VIN es
+columna y no atributo).
+**Decisión:** se respeta el índice. La RPC lo detecta antes y responde con el VIN y `hint = 'vin'`; el
+lote se frena también con la plataforma vacía, que el índice deja pasar.
+**Consecuencia:** puede chocar con un vehículo de un origen que la persona no ve: el mensaje dice que
+existe, no cuál. Si eso molesta, la salida es hacer el índice por origen.
+
+## 2026-10-13 — Los e2e del inventario no piden el equipo vacío
+
+**Contexto:** los e2e existentes exigen la base local sin personas ajenas (`pnpm db:reset`), porque
+prueban que la primera persona nace dueña. Resetear borra la cuenta de quien está usando la app local.
+**Decisión:** `e2e/soporte/inventario.ts` crea sus personas como invitadas con un rol de prueba que
+tiene los permisos de vehículos, y limpia sólo lo suyo (orígenes `e2e_…`, cuentas `@e2e…`, roles «E2E …»).
+**Consecuencia:** se pueden correr mientras alguien usa la app local. `pnpm test:e2e` entero sigue
+necesitando el reset por los otros specs.
