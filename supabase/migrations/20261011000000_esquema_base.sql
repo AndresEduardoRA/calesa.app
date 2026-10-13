@@ -767,7 +767,7 @@ create table public.vehiculos_interesados (
   creado_en   timestamptz not null default now(),
   primary key (vehiculo_id, lead_id)
 );
-comment on table public.vehiculos_interesados is 'Leads interesados en un vehículo (N:M). Distinto del vínculo activo vehiculos.lead_id, que es uno.';
+comment on table public.vehiculos_interesados is 'Leads interesados en un vehículo (N:M). Distinto del vínculo activo vehiculos.lead_id, que es uno. De sólo lectura para la app: vehiculo_interesado_marcar() y vehiculo_interesado_quitar().';
 
 create table public.vehiculos_vinculos (
   id          bigint generated always as identity primary key,
@@ -777,7 +777,8 @@ create table public.vehiculos_vinculos (
   hasta       timestamptz,
   usuario_id  uuid references public.perfiles (id)
 );
-comment on table public.vehiculos_vinculos is 'Historial del vínculo activo vehículo ↔ lead.';
+create unique index vehiculos_vinculo_abierto_unico on public.vehiculos_vinculos (vehiculo_id) where hasta is null;
+comment on table public.vehiculos_vinculos is 'Historial del vínculo activo vehículo ↔ lead: la fila sin `hasta` es el vigente, y hay a lo sumo una por vehículo. La escribe un trigger cuando cambia vehiculos.lead_id, que sólo cambia por vehiculo_vincular() y cotizacion_marcar_final().';
 
 create table public.cola_gc_storage (
   bucket       text not null,

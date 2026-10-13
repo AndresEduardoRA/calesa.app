@@ -34,9 +34,10 @@ paths:
   `vehiculo_foto_portada` y `vehiculo_foto_eliminar`. `vehiculos_imagenes` es de sólo lectura. Su
   versión es la de `vehiculos_imagenes_version`, no la del vehículo.
 - Lo que otorga permisos se escribe por RPC: `crear_lead`, `cambiar_fase`, `vehiculo_vitrina`,
+  `vehiculo_vincular` (el vínculo da ver y editar con alcance «propios»),
   `papelera_*`, `formula_*`, `rbac_*`, `otorgar_portal`, `transferir_lead`, `compartir_lead`,
   `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.
-  Un `.update()` sobre `fase_id`, `publicado_web`, `eliminado_en`, `creado_por` o `responsable_id`
+  Un `.update()` sobre `fase_id`, `lead_id`, `publicado_web`, `eliminado_en`, `creado_por` o `responsable_id`
   es un bug (la base lo rechaza).
 - Toda mutación de edición manda `p_actualizado_en_esperado` o `p_fase_esperada` (la RPC los exige: un
   nulo se rechaza) y trata `PT409` como conflicto legible (`conflicto()` de `@/shared/lib/errores`),

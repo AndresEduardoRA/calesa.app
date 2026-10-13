@@ -6373,6 +6373,40 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_datos: Json; p_vehiculo: string }
         Returns: Json
       }
+      vehiculo_interesado_marcar: {
+        Args: { p_lead: string; p_nota?: string; p_vehiculo: string }
+        Returns: undefined
+      }
+      vehiculo_interesado_quitar: {
+        Args: { p_lead: string; p_vehiculo: string }
+        Returns: undefined
+      }
+      vehiculo_interesados: {
+        Args: { p_vehiculo: string }
+        Returns: {
+          creado_en: string
+          lead_id: string
+          lead_nombre: string
+          lead_numero: number
+          nota: string
+          por_nombre: string
+        }[]
+      }
+      vehiculo_vincular: {
+        Args: { p_actualizado_en_esperado: string; p_lead: string; p_vehiculo: string }
+        Returns: Json
+      }
+      vehiculo_vinculos: {
+        Args: { p_vehiculo: string }
+        Returns: {
+          desde: string
+          hasta: string
+          lead_id: string
+          lead_nombre: string
+          lead_numero: number
+          por_nombre: string
+        }[]
+      }
       vehiculo_vitrina: {
         Args: {
           p_destacado?: boolean

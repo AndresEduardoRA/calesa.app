@@ -1744,3 +1744,106 @@ do $$ declare ajeno uuid; begin
   if exists (select 1 from public.vehiculos_editables(array[ajeno])) then raise exception 'vehiculos_editables da por editable un vehículo ajeno sin vínculo'; end if;
 end $$;
 reset role;
+
+-- @test vínculo e interesados: sólo por RPC, con versión, un vínculo abierto, y el nombre sólo de los leads que se ven
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Las carteras de Irene y Bruno (un lead cada uno) vienen de la prueba anterior.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; suyo uuid := 'cccccccc-0000-4000-8000-000000000008'; de_bruno uuid := 'cccccccc-0000-4000-8000-000000000009';
+  ajeno uuid; ver timestamptz; r jsonb; m text; e text; begin
+  select id into ajeno from public.vehiculos where titulo = 'Humo oficina ajeno';
+  select actualizado_en into ver from public.vehiculos where id = v;
+  begin perform public.vehiculo_vincular(v, null, suyo); raise exception 'vinculó sin versión';
+  exception when others then get stacked diagnostics m = message_text; if m not like 'Falta la versión%' then raise; end if; end;
+  begin perform public.vehiculo_vincular(v, ver, de_bruno); raise exception 'vinculó a un lead que no es de su cartera';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_vincular(ajeno, now(), suyo); raise exception 'vinculó un vehículo que no puede editar';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_vincular(v, ver - interval '1 second', suyo); raise exception 'vinculó con una versión vieja';
+  exception when others then get stacked diagnostics e = returned_sqlstate; if e <> 'PT409' then raise; end if; end;
+
+  r := public.vehiculo_vincular(v, ver, suyo);
+  if (select lead_id from public.vehiculos where id = v) is distinct from suyo then raise exception 'no quedó vinculado'; end if;
+  if (r ->> 'actualizado_en')::timestamptz is distinct from (select actualizado_en from public.vehiculos where id = v) then raise exception 'vincular no devolvió la versión nueva'; end if;
+  if not exists (select 1 from public.vehiculos_vinculos k where k.vehiculo_id = v and k.lead_id = suyo and k.hasta is null and k.usuario_id = '00000000-0000-0000-0000-000000000008') then raise exception 'el historial no registró el vínculo ni quién lo hizo'; end if;
+  -- Pedir lo que ya está no es un conflicto.
+  perform public.vehiculo_vincular(v, ver - interval '1 hour', suyo);
+  if (select count(*) from public.vehiculo_vinculos(v) k where k.lead_nombre = 'Lead de Irene' and k.hasta is null and k.por_nombre = 'Irene Paz') <> 1 then raise exception 'la lectura del vínculo no trae al lead ni a quien lo vinculó'; end if;
+
+  -- Interesados: ver el vehículo y poder editar el lead. Marcar dos veces es marcar una.
+  perform public.vehiculo_interesado_marcar(ajeno, suyo, '  Lo quiere en blanco  ');
+  perform public.vehiculo_interesado_marcar(ajeno, suyo, 'otra nota');
+  if (select count(*) from public.vehiculo_interesados(ajeno) i where i.lead_nombre = 'Lead de Irene' and i.nota = 'Lo quiere en blanco' and i.por_nombre = 'Irene Paz') <> 1 then raise exception 'la lectura de interesados no trae lo marcado'; end if;
+  begin perform public.vehiculo_interesado_marcar(ajeno, de_bruno); raise exception 'marcó el interés de un lead ajeno';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_interesado_marcar((select id from public.vehiculos_imagenes limit 0), suyo); raise exception 'marcó interés sin vehículo';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_interesado_marcar(ajeno, suyo, repeat('x', 501)); raise exception 'aceptó una nota de más de 500 caracteres';
+  exception when invalid_parameter_value then null; end;
+  begin insert into public.vehiculos_interesados (vehiculo_id, lead_id, usuario_id) values (v, suyo, '00000000-0000-0000-0000-000000000008'); raise exception 'insertó un interesado sin pasar por la RPC';
+  exception when insufficient_privilege then null; end;
+  begin delete from public.vehiculos_interesados where lead_id = suyo; raise exception 'borró un interesado sin pasar por la RPC';
+  exception when insufficient_privilege then null; end;
+end $$;
+-- Bruno edita todo: lo pasa a su lead. El vínculo anterior se cierra y queda uno solo abierto.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; de_bruno uuid := 'cccccccc-0000-4000-8000-000000000009'; usa uuid; begin
+  perform public.vehiculo_vincular(v, (select actualizado_en from public.vehiculos where id = v), de_bruno);
+  if (select count(*) from public.vehiculos_vinculos where vehiculo_id = v) <> 2 or (select count(*) from public.vehiculos_vinculos where vehiculo_id = v and hasta is null) <> 1 then raise exception 'cambiar el vínculo no cerró el anterior'; end if;
+  -- Ve el historial entero, pero el nombre sólo del lead que está en su cartera.
+  if (select count(*) from public.vehiculo_vinculos(v)) <> 2 then raise exception 'no ve el historial del vínculo'; end if;
+  if (select lead_nombre from public.vehiculo_vinculos(v) limit 1) <> 'Lead de Bruno' then raise exception 'el vínculo vigente no viene primero'; end if;
+  if (select count(*) from public.vehiculo_vinculos(v) k where k.lead_nombre is null and k.hasta is not null) <> 1 then raise exception 'leyó el nombre de un lead que no ve'; end if;
+  -- El interés de un lead que no ve no le aparece.
+  if exists (select 1 from public.vehiculo_interesados((select id from public.vehiculos where titulo = 'Humo oficina ajeno'))) then raise exception 've el interés de un lead ajeno'; end if;
+  -- Quitar el vínculo.
+  perform public.vehiculo_vincular(v, (select actualizado_en from public.vehiculos where id = v), null);
+  if (select lead_id from public.vehiculos where id = v) is not null or exists (select 1 from public.vehiculos_vinculos where vehiculo_id = v and hasta is null) then raise exception 'quitar el vínculo dejó uno abierto'; end if;
+  -- Marca el interés de su lead en un vehículo de otro origen, que él sí ve.
+  select id into usa from public.vehiculos where titulo = 'Humo subasta ajeno';
+  perform public.vehiculo_interesado_marcar(usa, de_bruno);
+  perform public.vehiculo_interesado_quitar(usa, de_bruno);
+  perform public.vehiculo_interesado_quitar(usa, de_bruno);
+  if exists (select 1 from public.vehiculo_interesados(usa)) then raise exception 'quitar no quitó el interés'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+do $$ declare ajeno uuid; begin
+  select id into ajeno from public.vehiculos where titulo = 'Humo oficina ajeno';
+  begin perform public.vehiculo_interesado_marcar((select id from public.vehiculos where titulo = 'Humo subasta ajeno'), 'cccccccc-0000-4000-8000-000000000008'); raise exception 'marcó interés en un vehículo que no ve';
+  exception when insufficient_privilege then null; end;
+  -- Con alcance «propios» todavía no puede editar lo que creó otra persona…
+  if exists (select 1 from public.vehiculos_editables(array[ajeno])) then raise exception 'edita un vehículo ajeno sin vínculo'; end if;
+end $$;
+reset role;
+-- …hasta que ese vehículo queda vinculado a un lead de su cartera.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+set role authenticated;
+do $$ declare ajeno uuid; begin
+  select id into ajeno from public.vehiculos where titulo = 'Humo oficina ajeno';
+  begin perform public.vehiculo_vincular(ajeno, (select actualizado_en from public.vehiculos where id = ajeno), 'cccccccc-0000-4000-8000-000000000008'); raise exception 'Bruno vinculó a un lead que no es suyo';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.vehiculos set lead_id = 'cccccccc-0000-4000-8000-000000000008' where titulo = 'Humo oficina ajeno';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+set role authenticated;
+do $$ declare ajeno uuid; begin
+  select id into ajeno from public.vehiculos where titulo = 'Humo oficina ajeno';
+  if (select array_agg(x) from public.vehiculos_editables(array[ajeno]) x) is distinct from array[ajeno] then raise exception 'lo vinculado a un lead de su cartera debía ser editable'; end if;
+  perform public.vehiculo_fotos_agregar(ajeno, pg_temp.fotos(ajeno, 2, 2));
+  -- Y puede soltarlo, aunque al hacerlo deje de poder editarlo.
+  perform public.vehiculo_vincular(ajeno, (select actualizado_en from public.vehiculos where id = ajeno), null);
+  if exists (select 1 from public.vehiculos_editables(array[ajeno])) then raise exception 'sin el vínculo debía dejar de ser editable'; end if;
+end $$;
+reset role;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; begin
+  insert into public.vehiculos_vinculos (vehiculo_id, lead_id) values (v, 'cccccccc-0000-4000-8000-000000000008');
+  begin
+    insert into public.vehiculos_vinculos (vehiculo_id, lead_id) values (v, 'cccccccc-0000-4000-8000-000000000009');
+    raise exception 'un vehículo quedó con dos vínculos abiertos';
+  exception when unique_violation then null; end;
+  delete from public.vehiculos_vinculos where vehiculo_id = v and hasta is null;
+end $$;
