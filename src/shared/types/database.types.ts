@@ -5813,6 +5813,10 @@ export type Database = {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
         Returns: undefined
       }
+      _encolar_para_limpiar: {
+        Args: { p_bucket: string; p_rutas: string[]; p_ya: boolean }
+        Returns: number
+      }
       _exigir_version: {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
@@ -5826,6 +5830,7 @@ export type Database = {
         Args: { p_actual: string; p_esperado: string; p_vehiculo: string }
         Returns: undefined
       }
+      _gracia_de_storage: { Args: Record<PropertyKey, never>; Returns: string }
       _hace: { Args: { p_cuando: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
@@ -5841,6 +5846,7 @@ export type Database = {
         Returns: Json
       }
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
+      _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
       _papelera_sin_vehiculos: {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: undefined
@@ -6446,6 +6452,10 @@ export type Database = {
       vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
       vehiculos_papelera_enviar: { Args: { p_vehiculos: Json }; Returns: Json }
       vehiculos_papelera_listar: { Args: Record<PropertyKey, never>; Returns: Json }
+      vehiculos_papelera_purgar: {
+        Args: { p_actualizado_en_esperado: string; p_lote: string; p_vehiculos?: string[] }
+        Returns: Json
+      }
       vehiculos_papelera_restaurar: {
         Args: { p_actualizado_en_esperado: string; p_lote: string; p_vehiculos?: string[] }
         Returns: Json

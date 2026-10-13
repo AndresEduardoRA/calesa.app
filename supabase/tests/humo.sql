@@ -2194,3 +2194,109 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test purga: pide permiso y la versión del lote, no se lleva dinero, encola sólo lo que nadie más usa, y la automática no purga lo que la manual bloquea
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+delete from public.cola_gc_storage;
+-- En la carpeta del publicado queda además un objeto sin fila (una subida que no se registró).
+insert into storage.objects (bucket_id, name) values ('vehiculos', 'dddddddd-0000-4000-8000-000000000001/' || repeat('9', 64) || '.webp');
+-- Y otra fila usa su portada: el objeto no se puede limpiar mientras exista.
+alter table public.vehiculos_imagenes disable trigger trg_vehiculo_imagen_integridad;
+insert into public.vehiculos_imagenes (vehiculo_id, hash, ruta, ruta_miniatura, ancho, alto, bytes, orden)
+values ('dddddddd-0000-4000-8000-000000000002', repeat('7', 64), 'dddddddd-0000-4000-8000-000000000001/' || repeat('1', 64) || '.webp',
+        'dddddddd-0000-4000-8000-000000000002/' || repeat('2', 64) || '.webp', 1600, 1200, 300000, 2);
+alter table public.vehiculos_imagenes enable trigger trg_vehiculo_imagen_integridad;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  -- Un lote de tres: el publicado (con fotos), el de Irene y el que después va a tener un pago.
+  r := public.vehiculos_papelera_enviar((
+    select jsonb_agg(jsonb_build_object('id', v.id, 'actualizado_en', v.actualizado_en)) from public.vehiculos v
+    where v.id in ('dddddddd-0000-4000-8000-000000000001', 'dddddddd-0000-4000-8000-000000000003', 'eeeeeeee-0000-4000-8000-000000000001')));
+  if jsonb_array_length(r -> 'enviados') <> 3 then raise exception 'esperaba un lote de tres: %', r; end if;
+  perform set_config('humo.lote', r ->> 'lote', false);
+  perform set_config('humo.version', r ->> 'actualizado_en', false);
+end $$;
+reset role;
+-- Mientras está en la papelera, a uno le registran un pago.
+insert into public.pagos (vehiculo_id, concepto, moneda, monto, monto_base) values ('dddddddd-0000-4000-8000-000000000003', 'Seña', 'USD', 300, 300);
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+set role authenticated;
+do $$ begin
+  begin perform public.vehiculos_papelera_purgar(current_setting('humo.lote')::uuid, current_setting('humo.version')::timestamptz); raise exception 'purgó sin vehiculos.papelera.purgar';
+  exception when insufficient_privilege then null; end;
+  begin perform public._papelera_purgar_vehiculos(current_setting('humo.lote')::uuid, null); raise exception 'una persona de la app llamó a la purga interna';
+  exception when insufficient_privilege then null; end;
+  begin perform public.papelera_purgar_vencidos(); raise exception 'una persona de la app corrió la purga automática';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare lote uuid := current_setting('humo.lote')::uuid; ver timestamptz := current_setting('humo.version')::timestamptz;
+  publicado uuid := 'dddddddd-0000-4000-8000-000000000001'; con_pago uuid := 'dddddddd-0000-4000-8000-000000000003'; r jsonb; l jsonb; m text; e text; begin
+  begin perform public.vehiculos_papelera_purgar(lote, null); raise exception 'purgó sin versión';
+  exception when others then get stacked diagnostics m = message_text; if m not like 'Falta la versión%' then raise; end if; end;
+  -- El que tiene un pago no se purga, y lo dice la lista.
+  select x into l from jsonb_array_elements(public.vehiculos_papelera_listar()) x where x ->> 'id' = lote::text;
+  if not exists (select 1 from jsonb_array_elements(l -> 'vehiculos') x where x ->> 'id' = con_pago::text and x ->> 'motivo_de_bloqueo' like 'Tiene pagos%') then raise exception 'la lista no dice que uno no se purga: %', l; end if;
+  if (select (x ->> 'fotos')::int from jsonb_array_elements(l -> 'vehiculos') x where x ->> 'id' = publicado::text) <> 2 then raise exception 'la lista no cuenta las fotos: %', l; end if;
+
+  r := public.vehiculos_papelera_purgar(lote, ver, array[publicado, con_pago]);
+  if jsonb_array_length(r -> 'purgados') <> 1 or r -> 'purgados' -> 0 ->> 'titulo' <> 'Vitrina publicado' or (r ->> 'quedan')::int <> 2
+     or r -> 'bloqueados' -> 0 ->> 'motivo' not like 'Tiene pagos%' then raise exception 'purgar una parte: %', r; end if;
+  -- Quien tenía la lista de antes ya no purga con ella: otra persona (acá, ella misma) cambió el lote.
+  begin perform public.vehiculos_papelera_purgar(lote, ver); raise exception 'purgó con la versión de antes';
+  exception when others then get stacked diagnostics m = message_text, e = returned_sqlstate;
+    if e <> 'PT409' or m not like '%este lote de la papelera%' then raise exception 'conflicto de la purga: % %', e, m; end if; end;
+  perform set_config('humo.version', r ->> 'actualizado_en', false);
+end $$;
+reset role;
+-- Lo que sigue corre sin sesión, como el job.
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare publicado uuid := 'dddddddd-0000-4000-8000-000000000001'; n int; r record; begin
+  if exists (select 1 from public.vehiculos where id = publicado) or exists (select 1 from public.vehiculos_imagenes where vehiculo_id = publicado) then raise exception 'la purga no borró el vehículo y sus fotos'; end if;
+  if (select count(*) from public.pagos where vehiculo_id = 'dddddddd-0000-4000-8000-000000000003') <> 1 then raise exception 'la purga se llevó un pago'; end if;
+  -- En la cola: la miniatura, la segunda foto (dos objetos) y el objeto sin fila. La portada no: otra fila la usa.
+  select count(*) into n from public.cola_gc_storage c where c.bucket = 'vehiculos' and c.ruta like publicado || '/%';
+  if n <> 4 then raise exception 'esperaba 4 objetos encolados y hay %: %', n, (select array_agg(left(split_part(ruta, '/', 2), 2)) from public.cola_gc_storage); end if;
+  if exists (select 1 from public.cola_gc_storage c where c.ruta = publicado || '/' || repeat('1', 64) || '.webp') then raise exception 'encoló un objeto que otra fila sigue usando'; end if;
+  -- Y se reclaman ya, sin esperar las 24 h.
+  n := 0;
+  for r in select * from public.storage_gc_reclamar(100) loop
+    n := n + 1;
+    if r.ruta not like publicado || '/%' then raise exception 'reclamó algo que no era de la purga: %', r.ruta; end if;
+  end loop;
+  if n <> 4 then raise exception 'lo purgado debía reclamarse de inmediato: reclamó %', n; end if;
+  if public.storage_gc_confirmar('vehiculos', (select array_agg(ruta) from public.cola_gc_storage where reclamado_en is not null)) <> 4 then raise exception 'no confirmó lo reclamado'; end if;
+  delete from public.vehiculos_imagenes where hash = repeat('7', 64);
+
+  -- La automática: sólo lo vencido, y nunca lo que la manual bloquea.
+  if public.papelera_purgar_vencidos() <> 0 then raise exception 'la purga automática se llevó un lote que no venció'; end if;
+  update public.lotes_papelera set creado_en = now() - interval '31 days' where id = current_setting('humo.lote')::uuid;
+  if public.papelera_purgar_vencidos() <> 1 then raise exception 'la purga automática debía purgar uno solo'; end if;
+  if exists (select 1 from public.vehiculos where id = 'eeeeeeee-0000-4000-8000-000000000001') then raise exception 'la automática no purgó el vencido'; end if;
+  if not exists (select 1 from public.vehiculos where id = 'dddddddd-0000-4000-8000-000000000003' and eliminado_en is not null) then raise exception 'la automática purgó (o sacó de la papelera) uno con un pago'; end if;
+  if (select purgado_en is not null or (resumen ->> 'purgados')::int <> 2 from public.lotes_papelera where id = current_setting('humo.lote')::uuid) then raise exception 'el lote con un bloqueado no debía cerrarse, y debía contar dos purgados'; end if;
+  if not exists (select 1 from public.actividad a where a.tabla = 'lotes_papelera' and a.registro_id = current_setting('humo.lote') and a.actor_id is null and (a.detalle ->> 'automatica')::boolean) then raise exception 'la purga automática no quedó registrada como tal'; end if;
+  -- Corre otra vez y no se rompe ni purga nada.
+  if public.papelera_purgar_vencidos() <> 0 then raise exception 'la automática volvió a purgar'; end if;
+  -- Sin el pago, el último se purga y el lote se cierra.
+  delete from public.pagos where vehiculo_id = 'dddddddd-0000-4000-8000-000000000003';
+  if public.papelera_purgar_vencidos() <> 1 then raise exception 'sin el pago debía purgarse'; end if;
+  if (select purgado_en is null from public.lotes_papelera where id = current_setting('humo.lote')::uuid) then raise exception 'el lote vacío no quedó cerrado'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+select set_config('request.jwt.claim.role', 'anon', false);
+set role anon;
+do $$ begin
+  begin perform public.vehiculos_papelera_purgar(gen_random_uuid(), now()); raise exception 'anon purgó';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

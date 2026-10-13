@@ -957,3 +957,25 @@ antes de existir: la versión que protege es la de cada vehículo).
 **Consecuencia:** la regla «toda RPC de edición lleva `p_actualizado_en_esperado`» se lee, para un
 lote, como «cada elemento lleva su versión». `vehiculos.papelera.purgar` sigue siendo global y
 gobernando también la papelera de leads y cotizaciones: se parte cuando lleguen sus fases.
+
+## 2026-10-13 — La purga manual y la automática son la misma función
+
+**Contexto:** `papelera_purgar` borraba el lote entero sin versión y sin mirar qué se llevaba la
+cascada; encolaba sólo la foto completa (no la miniatura) y con 24 h de espera;
+`papelera_purgar_vencidos` abortaba entera si un lote fallaba, y su job nunca se había programado:
+`papelera_dias` no hacía nada.
+**Decisión:** `vehiculos_papelera_purgar(p_lote, p_actualizado_en_esperado, p_vehiculos)` (con
+`vehiculos.papelera.purgar`) y `papelera_purgar_vencidos()` (el job, sin sesión) llaman a
+`_papelera_purgar_vehiculos()`, que vuelve a preguntar qué no se purga. La automática no puede
+purgar lo que la manual bloquea: lo bloqueado se queda en la papelera, la lista dice por qué, y el
+lote sigue abierto. Cada lote y cada vehículo van en su subtransacción. Se encolan las dos rutas de
+cada foto y lo que haya quedado en la carpeta del vehículo, sólo lo que quedó sin referencia, y
+**sin espera** (`encolado_en` retro-fechado, como ya hace el barrido de huérfanos): un vehículo
+purgado no tiene «Deshacer». Documentos y adjuntos conservan las 24 h.
+**Alternativas:** una columna `reclamable_en` (el barrido ya usa `encolado_en` como «desde cuándo
+corre la espera»: una columna más para decir lo mismo); no filtrar por referencias al encolar
+(reclamar recuenta igual, pero la cola se llenaría de lo que se sabe que no se va a borrar).
+**Consecuencia:** la automática, por ahora, sólo purga lotes de vehículos: los de leads y
+cotizaciones esperan las reglas de sus fases. Si alguien recreara un vehículo con el mismo id antes
+de que corra la limpieza, lo que protege sus fotos es `storage_gc_rescatar()` bajo candado, no la
+espera.
