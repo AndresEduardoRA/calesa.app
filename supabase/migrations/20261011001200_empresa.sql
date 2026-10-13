@@ -3,7 +3,7 @@
 -- (`…000200_rls_y_grants.sql`): acá se comprueba el permiso, la versión que tenía en pantalla quien
 -- edita (`PT409`), y las reglas que un CHECK no expresa.
 
--- `p_esperado` nulo salta el control: es para el seed y las pruebas, la app siempre lo manda.
+-- `p_esperado` es obligatorio: un nulo se rechaza (…001300_version_obligatoria.sql).
 create or replace function public._exigir_version(p_actual timestamptz, p_esperado timestamptz, p_mensaje text)
 returns void language plpgsql set search_path = '' as $$
 begin

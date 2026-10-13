@@ -218,7 +218,7 @@ grant execute on function public.concesion_dominada(text, uuid, public.alcance_p
 -- ---------------------------------------------------------------------------
 -- La versión de un rol es `roles.actualizado_en`: cubre su nombre y también sus concesiones
 -- (otorgar y revocar la tocan). Bloquea la fila, así dos ediciones del mismo rol van en fila.
--- `p_esperado` nulo salta el control: es para el seed y las pruebas, la app siempre lo manda.
+-- `p_esperado` es obligatorio: un nulo se rechaza (…001300_version_obligatoria.sql).
 create or replace function public._rol_para_editar(p_rol uuid, p_esperado timestamptz)
 returns void language plpgsql security definer set search_path = '' as $$
 declare v_actual timestamptz;

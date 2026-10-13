@@ -28,8 +28,9 @@ paths:
   `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.
   Un `.update()` sobre `fase_id`, `publicado_web`, `eliminado_en`, `creado_por` o `responsable_id`
   es un bug (la base lo rechaza por grant de columna).
-- Toda mutación de edición manda `p_actualizado_en_esperado` o `p_fase_esperada` y trata `PT409`
-  como conflicto legible (`conflicto()` de `@/shared/lib/errores`), nunca como error genérico.
+- Toda mutación de edición manda `p_actualizado_en_esperado` o `p_fase_esperada` (la RPC los exige: un
+  nulo se rechaza) y trata `PT409` como conflicto legible (`conflicto()` de `@/shared/lib/errores`),
+  nunca como error genérico.
 - Una query de seguimiento sobre una página ya paginada se acota con los ids de esa página
   (`.in('id', ids)`), nunca con un filtro sin cota. Listas grandes: keyset por `(creado_en, id)`.
 - Uploads desde el browser: fotos por `comprimirImagen()` (WebP, ≤ 1600 px) y

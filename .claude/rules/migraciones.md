@@ -20,6 +20,10 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   columnas; `puede_*(id)` es para tablas hijas. Una función STABLE no ve la fila recién insertada
   en `INSERT … RETURNING`.
 - Conflictos de edición: `raise exception … using errcode = 'PT409'`. Jamás `40001`.
+- Toda RPC de edición nace con `p_actualizado_en_esperado timestamptz` **sin default** (va antes de los
+  parámetros con default) y rechaza un nulo con un mensaje legible: `_exigir_version()` hace las dos
+  cosas. El seed y `humo.sql` pasan la versión real; un nulo «para las pruebas» es un control que no
+  existe. Las de crear no la llevan: no hay fila que versionar.
 - Permiso nuevo = fila en `seed.sql` (`permisos`) **en la misma migración** que crea su punto de
   enforcement, con `aplicado_en` diciendo cuál. Sin enforcement no hay permiso.
 - Clave de dato nueva para requisitos de fase = caso en `_requisito_dato_cumplido()` **y** en

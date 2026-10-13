@@ -5998,12 +5998,12 @@ export type Database = {
         Returns: string
       }
       rbac_eliminar_rol: {
-        Args: { p_actualizado_en_esperado?: string; p_rol: string }
+        Args: { p_actualizado_en_esperado: string; p_rol: string }
         Returns: undefined
       }
       rbac_otorgar: {
         Args: {
-          p_actualizado_en_esperado?: string
+          p_actualizado_en_esperado: string
           p_alcance?: Database['public']['Enums']['alcance_permiso']
           p_clave: string
           p_origen?: string
@@ -6014,7 +6014,7 @@ export type Database = {
       rbac_quitar_rol: { Args: { p_rol: string; p_usuario: string }; Returns: undefined }
       rbac_revocar: {
         Args: {
-          p_actualizado_en_esperado?: string
+          p_actualizado_en_esperado: string
           p_clave: string
           p_origen?: string
           p_rol: string
