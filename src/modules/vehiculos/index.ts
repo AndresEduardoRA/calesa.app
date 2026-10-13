@@ -3,8 +3,9 @@
 // los Server Components. Un Client Component de afuera importa `@/modules/vehiculos/client`.
 
 // El inventario: leer una página de un origen y un vehículo
-export { buscarVehiculos, leerVehiculo } from './composicion'
+export { buscarVehiculos, leerGaleria, leerVehiculo } from './composicion'
 export type { Vehiculo } from './entities/vehiculo'
+export type { Galeria } from './entities/foto'
 
 // Qué ve y qué puede hacer la persona
 export {
@@ -22,7 +23,12 @@ export { condicionesDe, esquemaDeFiltros } from './entities/filtros'
 // Pantallas
 export { ListadoDeVehiculos } from './features/listado/components/listado-de-vehiculos'
 export { TarjetaVehiculo } from './features/listado/components/tarjeta-vehiculo'
+export { CabeceraDeVehiculo } from './features/ficha/components/cabecera-de-vehiculo'
 export { FichaDeVehiculo } from './features/ficha/components/ficha-de-vehiculo'
+
+// Las fotos: subir, portada, orden y eliminar
+export { SeccionDeFotos } from './features/fotos/components/seccion-de-fotos'
+export { EsqueletoDeFotos } from './features/fotos/components/esqueleto-de-fotos'
 
 // Alta y edición: el panel (va una vez por pantalla) y el botón que abre la edición
 export { PanelDeVehiculo } from './features/alta/components/panel-de-vehiculo'

@@ -21,7 +21,9 @@ describe('pestañas de la ficha de un vehículo', () => {
 
   it('lo que no es una pestaña disponible abre la ficha', () => {
     expect(pestanaDeVehiculo(undefined)).toBe('ficha')
-    expect(pestanaDeVehiculo('fotos')).toBe('ficha')
+    expect(pestanaDeVehiculo('fotos')).toBe('fotos')
+    // Declarada, pero todavía sin su sección.
+    expect(pestanaDeVehiculo('documentos')).toBe('ficha')
     expect(pestanaDeVehiculo('<script>')).toBe('ficha')
   })
 

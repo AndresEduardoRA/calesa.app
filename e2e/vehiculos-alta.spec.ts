@@ -103,8 +103,8 @@ test('dar de alta un vehículo en Corea, con los valores por defecto y los atajo
   await expect(aLaVista(page.getByText('KNDEU2AA5N7123456'))).toBeVisible()
   await expect(aLaVista(page.getByText('Verde', { exact: true }))).toBeVisible()
   await expect(aLaVista(page.getByText('Automática', { exact: true }))).toBeVisible()
-  // Sólo existe la pestaña «Ficha»: no hay barra de pestañas ni enlaces a lo que falta.
-  await expect(aLaVista(page.getByRole('tab'))).toHaveCount(0)
+  // Las pestañas que existen, y ninguna que lleve a lo que falta.
+  await expect(aLaVista(page.getByRole('tab'))).toHaveText(['Ficha', 'Fotos'])
 })
 
 test('un VIN repetido se dice junto al campo', async ({ page }) => {

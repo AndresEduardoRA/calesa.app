@@ -4,6 +4,7 @@ import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { DatosDeVehiculo } from './esquema'
 import type { Condicion } from './filtros'
+import type { FotoEliminada, FotoSubida, Galeria } from './foto'
 import type { Vehiculo } from './vehiculo'
 
 // Una página del inventario de un origen, de lo más nuevo a lo más viejo. La RLS decide qué ve
@@ -36,4 +37,44 @@ export type RepositorioVehiculos = {
     actualizadoEnEsperado: string
     datos: DatosDeVehiculo
   }) => Promise<{ ok: true; data: { actualizadoEn: string } } | FalloAlGuardar>
+}
+
+// Las fotos de un vehículo y su versión. Lo que ve cada quien lo decide la RLS.
+export type LectorDeGaleria = (vehiculoId: string) => Promise<Resultado<Galeria>>
+
+// Qué pasó con cada foto que se pidió agregar, por su hash: las que ya estaban vuelven en
+// `repetidas` (reintentar es inocuo) y las que no entraron por el tope, en `sinLugar`.
+export type FotosAgregadas = {
+  actualizadoEn: string | null
+  agregadas: string[]
+  repetidas: string[]
+  sinLugar: string[]
+}
+
+// Las fotos se escriben sólo por RPC. Agregar no lleva versión (sumar no pisa a nadie); mover,
+// fijar portada y eliminar mandan la de las fotos, que es otra que la de la ficha.
+export type RepositorioFotos = {
+  agregar: (pedido: {
+    vehiculoId: string
+    // Con `orden` y `esPortada` cuando es deshacer un eliminar: la foto vuelve a su lugar.
+    fotos: readonly (FotoSubida & Partial<Pick<FotoEliminada, 'orden' | 'esPortada'>>)[]
+  }) => Promise<Resultado<FotosAgregadas>>
+  mover: (pedido: {
+    vehiculoId: string
+    actualizadoEnEsperado: string
+    fotoId: string
+    // «Después de» esta foto; null = primera.
+    despuesDe: string | null
+  }) => Promise<Resultado<{ actualizadoEn: string }>>
+  fijarPortada: (pedido: {
+    vehiculoId: string
+    actualizadoEnEsperado: string
+    fotoId: string
+  }) => Promise<Resultado<{ actualizadoEn: string }>>
+  // `foto` es la que se eliminó, tal como estaba; null = ya no estaba.
+  eliminar: (pedido: {
+    vehiculoId: string
+    actualizadoEnEsperado: string
+    fotoId: string
+  }) => Promise<Resultado<{ actualizadoEn: string | null; foto: FotoEliminada | null }>>
 }

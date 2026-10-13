@@ -1,23 +1,29 @@
 import { ArrowLeftIcon } from 'lucide-react'
 import type { Metadata, Route } from 'next'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { z } from 'zod'
 import { requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
 import {
   BotonEditarVehiculo,
+  CabeceraDeVehiculo,
+  EsqueletoDeFotos,
   PanelDeVehiculo,
   leerVehiculo,
   origenesVisibles,
   puedeEditar,
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
-import { RUTAS } from '@/shared/lib/rutas'
+import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { vehiculoEnEdicion } from '../edicion'
+import { CLAVE_DE_PESTANA, hayBarraDePestanas, pestanaDeVehiculo } from './pestanas'
+import { PestanasDeVehiculo } from './pestanas-de-vehiculo'
 import { SeccionFicha } from './seccion-ficha'
+import { SeccionFotos } from './seccion-fotos'
 
 export const metadata: Metadata = { title: 'Vehículo' }
 
@@ -37,8 +43,8 @@ function NoDisponible() {
   )
 }
 
-// La ficha de un vehículo. Hoy tiene una sola pestaña (ver `pestanas.ts`); las demás se suman
-// con su sección cuando existan.
+// La ficha de un vehículo: su cabecera y, debajo, la pestaña de `?seccion=` (ver `pestanas.ts`;
+// las que faltan se suman con su sección cuando existan).
 export default async function PaginaVehiculo({
   params,
   searchParams,
@@ -62,6 +68,7 @@ export default async function PaginaVehiculo({
   ])
   const suLayout = datosO(layout)
   const editable = puedeEditar(sesion.permisos, encontrado, sesion.usuarioId)
+  const pestana = pestanaDeVehiculo(unParametro(parametros[CLAVE_DE_PESTANA]))
   return (
     <div className="grid max-w-4xl gap-4">
       <Link
@@ -71,13 +78,22 @@ export default async function PaginaVehiculo({
         <ArrowLeftIcon aria-hidden className="size-4" />
         {origen.nombre}
       </Link>
-      <SeccionFicha
+      <CabeceraDeVehiculo
         vehiculo={encontrado}
         origen={origen}
-        layout={suLayout}
-        fases={datosO(fases)}
+        fase={datosO(fases).find((fase) => fase.id === encontrado.faseId) ?? null}
         acciones={editable ? <BotonEditarVehiculo vehiculo={encontrado} /> : undefined}
       />
+      {hayBarraDePestanas() ? <PestanasDeVehiculo /> : null}
+      {pestana === 'ficha' ? (
+        <SeccionFicha vehiculo={encontrado} origen={origen} layout={suLayout} />
+      ) : null}
+      {pestana === 'fotos' ? (
+        // La cabecera y las pestañas ya están: las fotos llegan en su propio hueco.
+        <Suspense fallback={<EsqueletoDeFotos />}>
+          <SeccionFotos vehiculoId={encontrado.id} puedeEditar={editable} />
+        </Suspense>
+      ) : null}
       {/* Desde la ficha sólo se edita: el alta vive en el inventario. */}
       <PanelDeVehiculo
         origen={origen}

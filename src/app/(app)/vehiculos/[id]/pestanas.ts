@@ -4,11 +4,14 @@
 
 export const PESTANAS_DE_VEHICULO = [
   { clave: 'ficha', titulo: 'Ficha', disponible: true },
-  { clave: 'fotos', titulo: 'Fotos', disponible: false },
+  { clave: 'fotos', titulo: 'Fotos', disponible: true },
   { clave: 'documentos', titulo: 'Documentos', disponible: false },
   { clave: 'cotizaciones', titulo: 'Cotizaciones', disponible: false },
   { clave: 'repuestos', titulo: 'Repuestos', disponible: false },
 ] as const
+
+// El parámetro de la URL que dice qué pestaña está abierta.
+export const CLAVE_DE_PESTANA = 'seccion'
 
 export type PestanaDeVehiculo = (typeof PESTANAS_DE_VEHICULO)[number]['clave']
 

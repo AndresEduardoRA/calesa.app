@@ -30,7 +30,9 @@ export async function subirPorHash(subida: Subida): Promise<Resultado<{ ruta: st
 }
 
 // Borra un objeto sólo si ninguna fila lo referencia (`storage_refcount`). Nunca `remove` directo:
-// dos filas pueden apuntar al mismo objeto, porque el nombre es el hash del contenido.
+// dos filas pueden apuntar al mismo objeto, porque el nombre es el hash del contenido. Contar y
+// después borrar tiene una ventana (una fila puede nacer en el medio): alcanza para el logo y el
+// avatar, que tienen un solo dueño. Las fotos de vehículos no pasan por acá: van por la cola.
 export async function quitarSiHuerfano(bucket: BucketPublico, ruta: string): Promise<void> {
   const supabase = createClient()
   const { data: referencias, error } = await supabase.rpc('storage_refcount', {
@@ -42,7 +44,7 @@ export async function quitarSiHuerfano(bucket: BucketPublico, ruta: string): Pro
   }
   const { error: errorAlBorrar } = await supabase.storage.from(bucket).remove([ruta])
   if (errorAlBorrar) {
-    // No es grave: queda un objeto huérfano que junta la limpieza periódica de Storage.
+    // No es grave: queda un objeto que ya nadie usa.
     console.error('No se pudo borrar el objeto huérfano', errorAlBorrar)
   }
 }
