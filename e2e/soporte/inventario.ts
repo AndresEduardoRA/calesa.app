@@ -8,6 +8,7 @@ import {
   correoDePrueba,
   crearPersona,
   darRolDePrueba,
+  personasAjenas,
 } from './base'
 import { PREFIJO_CLAVE_E2E, borrarOrigenes, crearOrigenDePrueba } from './origenes'
 import { ingresar } from './pasos'
@@ -37,37 +38,22 @@ export async function limpiarInventario(): Promise<void> {
   await borrarRolesDePrueba()
 }
 
-export async function prepararInventario(proyecto: string): Promise<Terreno> {
-  await limpiarInventario()
-  const duena = correoDePrueba(`duena-inventario-${proyecto}`)
-  const soloCorea = correoDePrueba(`solo-corea-${proyecto}`)
-  const sinPermisos = correoDePrueba(`sin-inventario-${proyecto}`)
-  // No hace falta el equipo vacío: quien administra el inventario acá es una persona invitada con
-  // un rol que lo puede todo sobre vehículos (si además resulta la primera del equipo, nace dueña).
-  await crearPersona({ email: duena, contrasena: CLAVE, nombre: 'Dalia Prueba', invitada: true })
-  await darRolDePrueba({
-    email: duena,
-    rol: {
-      nombre: `${PREFIJO_ROL_E2E}Inventario ${proyecto}`,
-      clave: `e2e_inventario_${proyecto}`,
-    },
-    permisos: ['vehiculos.ver', 'vehiculos.crear', 'vehiculos.editar', 'origenes.gestionar'],
-  })
-  const corea = await crearOrigenDePrueba(COREA, 'corea_inv')
-  const taiwan = await crearOrigenDePrueba(TAIWAN, 'taiwan_inv')
+// El origen donde se prueba casi todo: un layout con opciones, un sí o no y un número con valor
+// por defecto, y tres vehículos ya cargados para filtrar.
+async function armarCorea(coreaId: string): Promise<void> {
   // El layout manual trae «Transmisión» sin opciones: se le ponen, y se suman un sí o no y un número.
-  await ponerOpciones(corea.id, 'transmision', [
+  await ponerOpciones(coreaId, 'transmision', [
     { clave: 'automatica', etiqueta: 'Automática' },
     { clave: 'manual', etiqueta: 'Manual' },
   ])
-  await agregarCampo(corea.id, {
+  await agregarCampo(coreaId, {
     clave: 'tiene_llave',
     etiqueta: 'Tiene llave',
     tipo: 'booleano',
     grupo: 'Venta',
     filtrable: true,
   })
-  await agregarCampo(corea.id, {
+  await agregarCampo(coreaId, {
     clave: 'puertas',
     etiqueta: 'Puertas',
     tipo: 'numero',
@@ -77,7 +63,7 @@ export async function prepararInventario(proyecto: string): Promise<Terreno> {
     // Lo que el formulario de alta trae puesto.
     valor_defecto: 5,
   })
-  await cargarVehiculos(corea.id, [
+  await cargarVehiculos(coreaId, [
     {
       titulo: 'Kia Morning, base (2019)',
       anio: 2019,
@@ -94,6 +80,34 @@ export async function prepararInventario(proyecto: string): Promise<Terreno> {
       atributos: { color: 'Blanco', transmision: 'automatica', puertas: 3 },
     },
   ])
+}
+
+export async function prepararInventario(proyecto: string): Promise<Terreno> {
+  await limpiarInventario()
+  const duena = correoDePrueba(`duena-inventario-${proyecto}`)
+  const soloCorea = correoDePrueba(`solo-corea-${proyecto}`)
+  const sinPermisos = correoDePrueba(`sin-inventario-${proyecto}`)
+  // No hace falta el equipo vacío. Si ya hay alguien (quien usa la app local), quien administra el
+  // inventario acá entra invitada, con un rol que lo puede todo sobre vehículos. Con el equipo
+  // vacío es la primera: nace dueña (una invitada pendiente no alcanza para el guardián).
+  const hayEquipo = (await personasAjenas()) > 0
+  await crearPersona({
+    email: duena,
+    contrasena: CLAVE,
+    nombre: 'Dalia Prueba',
+    invitada: hayEquipo,
+  })
+  await darRolDePrueba({
+    email: duena,
+    rol: {
+      nombre: `${PREFIJO_ROL_E2E}Inventario ${proyecto}`,
+      clave: `e2e_inventario_${proyecto}`,
+    },
+    permisos: ['vehiculos.ver', 'vehiculos.crear', 'vehiculos.editar', 'origenes.gestionar'],
+  })
+  const corea = await crearOrigenDePrueba(COREA, 'corea_inv')
+  const taiwan = await crearOrigenDePrueba(TAIWAN, 'taiwan_inv')
+  await armarCorea(corea.id)
   await crearPersona({ email: soloCorea, contrasena: CLAVE, nombre: 'Sara Corea', invitada: true })
   await darRolDePrueba({
     email: soloCorea,
