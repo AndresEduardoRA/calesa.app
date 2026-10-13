@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { cn } from 'cn'
 import { useAtajo } from './atajos'
 import {
   Sheet,
@@ -20,6 +21,8 @@ type Props = {
   descripcion?: string
   // En móvil conviene 'bottom' (hoja inferior).
   lado?: 'right' | 'left' | 'bottom'
+  // Un formulario con muchos campos pide más lugar que una ficha corta.
+  ancho?: 'normal' | 'amplio'
   pie?: ReactNode
   children: ReactNode
 }
@@ -32,6 +35,7 @@ export function Drawer({
   titulo,
   descripcion,
   lado = 'right',
+  ancho = 'normal',
   pie,
   children,
 }: Props) {
@@ -46,7 +50,18 @@ export function Drawer({
         }
       }}
     >
-      <SheetContent side={lado} className="gap-0 sm:max-w-md">
+      <SheetContent
+        side={lado}
+        // La hoja inferior no pasa del alto de la pantalla: lo de adentro se desplaza.
+        className={cn(
+          'gap-0',
+          lado === 'bottom'
+            ? 'max-h-[85dvh] rounded-t-(--radius-card)'
+            : ancho === 'amplio'
+              ? 'data-[side=left]:w-full data-[side=right]:w-full sm:max-w-xl data-[side=left]:sm:max-w-xl data-[side=right]:sm:max-w-xl'
+              : 'sm:max-w-md',
+        )}
+      >
         <SheetHeader className="border-b border-(--color-line)">
           <SheetTitle>{titulo}</SheetTitle>
           {descripcion ? <SheetDescription>{descripcion}</SheetDescription> : null}

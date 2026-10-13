@@ -1,0 +1,147 @@
+'use client'
+
+import { SlidersHorizontalIcon } from 'lucide-react'
+import { useState, useSyncExternalStore, type ReactNode } from 'react'
+import { cn } from 'cn'
+import type { EsquemaDeFiltros } from '@/shared/lib/filtros'
+import { Button } from '../button'
+import { Drawer } from '../drawer'
+import { ChipsDeFiltros } from './chips-de-filtros'
+import { ContextoDeFiltros } from './contexto'
+import { CampoDeBusqueda } from './controles'
+import { PanelDeFiltros } from './panel-de-filtros'
+import { useFiltros } from './use-filtros'
+
+// Desde acá el panel de filtros entra al costado; por debajo, en una hoja inferior.
+const ESCRITORIO = '(min-width: 1024px)'
+
+function suscribir(alCambiar: () => void): () => void {
+  const consulta = window.matchMedia(ESCRITORIO)
+  consulta.addEventListener('change', alCambiar)
+  return () => {
+    consulta.removeEventListener('change', alCambiar)
+  }
+}
+
+function useEsEscritorio(): boolean {
+  return useSyncExternalStore(
+    suscribir,
+    () => window.matchMedia(ESCRITORIO).matches,
+    () => false,
+  )
+}
+
+// Abre el panel (o lo pliega, en escritorio) y dice cuántos filtros hay puestos.
+function BotonDeFiltros(props: { cantidad: number; abierto: boolean; alPulsar: () => void }) {
+  return (
+    <Button
+      variant="outline"
+      className="h-11 md:h-9"
+      aria-expanded={props.abierto}
+      onClick={props.alPulsar}
+    >
+      <SlidersHorizontalIcon aria-hidden />
+      Filtros
+      {props.cantidad > 0 ? (
+        <span className="rounded-full bg-(--color-primario) px-1.5 text-(length:--text-xs) text-(--color-sobre-primario) tabular-nums">
+          {props.cantidad}
+        </span>
+      ) : null}
+    </Button>
+  )
+}
+
+type Props = {
+  esquema: EsquemaDeFiltros
+  // El menú de vistas guardadas, si el listado las tiene.
+  vistas?: ReactNode
+  // A la derecha de la barra: «Nuevo», exportar…
+  acciones?: ReactNode
+  // Al pie del panel de filtros.
+  pieDelPanel?: ReactNode
+  // La lista. Adentro puede usar `useFiltrosDelListado()`.
+  children: ReactNode
+}
+
+// El armazón de un listado con filtros: búsqueda, botón «Filtros», chips de lo que está activo y
+// «Limpiar»; el panel al costado en escritorio (plegable) y en una hoja inferior en el celular.
+// Todo el estado vive en la URL. No sabe de ningún módulo: cada listado le pasa su esquema.
+export function FilterShell({ esquema, vistas, acciones, pieDelPanel, children }: Props) {
+  const filtros = useFiltros(esquema)
+  const esEscritorio = useEsEscritorio()
+  const [plegado, setPlegado] = useState(false)
+  const hayPanel = esquema.filtros.length > 0 || pieDelPanel !== undefined
+  const panel = <PanelDeFiltros filtros={esquema.filtros} pie={pieDelPanel} />
+
+  return (
+    <ContextoDeFiltros value={filtros}>
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {esquema.busqueda ? (
+            <CampoDeBusqueda
+              etiqueta={esquema.busqueda.etiqueta}
+              valor={filtros.valores.busqueda}
+              alBuscar={filtros.buscar}
+            />
+          ) : null}
+          {hayPanel ? (
+            <BotonDeFiltros
+              cantidad={Object.keys(filtros.valores.porClave).length}
+              abierto={esEscritorio ? !plegado : filtros.panelAbierto}
+              alPulsar={() => {
+                if (esEscritorio) {
+                  setPlegado((antes) => !antes)
+                } else {
+                  filtros.abrirPanel()
+                }
+              }}
+            />
+          ) : null}
+          {vistas}
+          <div className="ml-auto flex items-center gap-2">{acciones}</div>
+        </div>
+        <ChipsDeFiltros esquema={esquema} />
+        <div
+          className={cn(
+            'grid items-start gap-4',
+            hayPanel && !plegado && 'lg:grid-cols-[15rem_minmax(0,1fr)]',
+          )}
+        >
+          {hayPanel && !plegado ? (
+            <aside
+              aria-label="Filtros"
+              className="hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-4 lg:block"
+            >
+              {panel}
+            </aside>
+          ) : null}
+          <div
+            aria-busy={filtros.pendiente}
+            className={cn(
+              'min-w-0 transition-opacity duration-(--dur-rapida)',
+              filtros.pendiente && 'opacity-60',
+            )}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+      <Drawer
+        lado="bottom"
+        titulo="Filtros"
+        abierto={filtros.panelAbierto && !esEscritorio}
+        alCerrar={filtros.cerrarPanel}
+        pie={
+          <div className="flex w-full justify-between gap-2">
+            <Button variant="ghost" onClick={filtros.limpiar} disabled={!filtros.hayFiltros}>
+              Limpiar
+            </Button>
+            <Button onClick={filtros.cerrarPanel}>Ver resultados</Button>
+          </div>
+        }
+      >
+        {panel}
+      </Drawer>
+    </ContextoDeFiltros>
+  )
+}

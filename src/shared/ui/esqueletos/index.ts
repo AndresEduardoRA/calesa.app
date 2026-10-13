@@ -2,4 +2,5 @@
 export { EsqueletoBandeja } from './esqueleto-bandeja'
 export { EsqueletoDetalle } from './esqueleto-detalle'
 export { EsqueletoFormulario } from './esqueleto-formulario'
+export { EsqueletoListado } from './esqueleto-listado'
 export { EsqueletoTabla } from './esqueleto-tabla'

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { borrarBorrador, cambiosDelBorrador, guardarBorrador, leerBorrador } from './borrador'
+import {
+  borrarBorrador,
+  cambiosDeEstado,
+  cambiosDelBorrador,
+  guardarBorrador,
+  guardarBorradorDeEstado,
+  leerBorrador,
+  leerBorradorDeEstado,
+} from './borrador'
 
 function almacenDePrueba() {
   const datos = new Map<string, string>()
@@ -67,5 +75,35 @@ describe('cambiosDelBorrador', () => {
         { nombre: 'Mi importadora', ciudad: 'La Paz' },
       ),
     ).toEqual({ nombre: 'Andina' })
+  })
+})
+
+describe('borrador de un formulario controlado', () => {
+  it('se queda con lo que difiere de lo guardado, sea texto, número, sí o no o lista', () => {
+    const guardado = { titulo: 'RAV4', anio: 2020, placado: false, extras: ['a'], nota: '' }
+    expect(cambiosDeEstado(guardado, guardado)).toEqual({})
+    expect(
+      cambiosDeEstado({ ...guardado, titulo: 'RAV4 ', anio: 2021, extras: ['a', 'b'] }, guardado),
+    ).toEqual({ anio: 2021, extras: ['a', 'b'] })
+    expect(cambiosDeEstado({ ...guardado, placado: true, nota: 'x' }, guardado)).toEqual({
+      placado: true,
+      nota: 'x',
+    })
+  })
+
+  it('guarda, recupera y se borra solo cuando ya no hay cambios', () => {
+    const almacen = almacenDePrueba()
+    guardarBorradorDeEstado(almacen, 'vehiculo-nuevo', { anio: 2021, extras: ['a'] })
+    expect(leerBorradorDeEstado(almacen, 'vehiculo-nuevo')).toEqual({ anio: 2021, extras: ['a'] })
+    guardarBorradorDeEstado(almacen, 'vehiculo-nuevo', {})
+    expect(leerBorradorDeEstado(almacen, 'vehiculo-nuevo')).toBeNull()
+  })
+
+  it('uno ilegible es lo mismo que no tener', () => {
+    const almacen = almacenDePrueba()
+    almacen.setItem('borrador-estado:roto', '{no es json')
+    expect(leerBorradorDeEstado(almacen, 'roto')).toBeNull()
+    almacen.setItem('borrador-estado:lista', '[1,2]')
+    expect(leerBorradorDeEstado(almacen, 'lista')).toBeNull()
   })
 })
