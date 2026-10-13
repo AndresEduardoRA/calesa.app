@@ -813,3 +813,286 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+
+-- @test origenes: crear es atómico y trae su flujo, sus reglas y sus campos; el nombre no se repite
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare r jsonb; o uuid; rechazo boolean; begin
+  begin insert into public.origenes (clave, nombre) values ('directo', 'Directo'); raise exception 'el insert directo de origenes pasó';
+  exception when insufficient_privilege then null; end;
+  begin update public.origenes set nombre = 'Otro'; raise exception 'el update directo de origenes pasó';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.origenes_campos (origen_id, clave, etiqueta, tipo) select id, 'x', 'X', 'texto' from public.origenes limit 1; raise exception 'el insert directo de campos pasó';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.categorias (origen_id, nombre) select id, 'X' from public.origenes limit 1; raise exception 'el insert directo de categorías pasó';
+  exception when insufficient_privilege then null; end;
+
+  -- Manual: un flujo, nueve reglas (sin aduana), ocho campos de sistema, sin fórmula ni fases.
+  r := public.origen_crear('corea_humo', '  Corea  ', 'Vehículo', 'm', 'manual');
+  o := (r ->> 'id')::uuid;
+  if (select count(*) from public.flujos where origen_id = o and ambito = 'vehiculos') <> 1 then raise exception 'el origen manual debía nacer con un flujo'; end if;
+  if (select nombre from public.flujos where origen_id = o) <> 'Logística Corea' then raise exception 'el flujo no lleva el nombre del origen'; end if;
+  if (select count(*) from public.flujos_reglas fr join public.flujos f on f.id = fr.flujo_id where f.origen_id = o) <> 9
+     or exists (select 1 from public.flujos_reglas fr join public.flujos f on f.id = fr.flujo_id where f.origen_id = o and fr.regla = 'aduana') then
+    raise exception 'las reglas del origen manual no son las nueve sin aduana'; end if;
+  if (select count(*) from public.origenes_campos where origen_id = o and es_sistema) <> 8 or (select count(*) from public.origenes_campos where origen_id = o) <> 8 then
+    raise exception 'el origen manual debía nacer con ocho campos de sistema'; end if;
+  if exists (select 1 from public.origenes_campos where origen_id = o and clave_apibara is not null) then raise exception 'un campo manual lleva clave de apibara'; end if;
+  if exists (select 1 from public.formulas where origen_id = o) or exists (select 1 from public.fases f join public.flujos fl on fl.id = f.flujo_id where fl.origen_id = o) then
+    raise exception 'un origen nuevo no trae fórmula ni fases'; end if;
+  if (select nombre || '/' || sustantivo from public.origenes where id = o) <> 'Corea/vehículo' then raise exception 'no limpió el nombre ni el sustantivo'; end if;
+
+  -- Subasta: diecisiete campos con su clave de apibara y la regla de aduana.
+  r := public.origen_crear('japon_humo', 'Japón', 'lote', 'm', 'subasta', '#7A5AF8', array['copart']);
+  o := (r ->> 'id')::uuid;
+  if (select count(*) from public.origenes_campos where origen_id = o) <> 17 or (select count(clave_apibara) from public.origenes_campos where origen_id = o) <> 17 then
+    raise exception 'el origen de subasta debía nacer con diecisiete campos mapeados'; end if;
+  if not exists (select 1 from public.flujos_reglas fr join public.flujos f on f.id = fr.flujo_id where f.origen_id = o and fr.regla = 'aduana') then raise exception 'la subasta nace con la regla de aduana'; end if;
+  if (select color || '/' || apibara_plataformas::text from public.origenes where id = o) <> '#7a5af8/{copart}' then raise exception 'no guardó color ni plataformas'; end if;
+
+  -- Nombre y clave no se repiten (el nombre, sin importar mayúsculas ni espacios).
+  begin perform public.origen_crear('otra_clave', ' COREA ', 'vehículo', 'm', 'manual'); raise exception 'repitió el nombre de un origen';
+  exception when unique_violation then null; end;
+  begin perform public.origen_crear('corea_humo', 'Corea del Sur', 'vehículo', 'm', 'manual'); raise exception 'repitió la clave de un origen';
+  exception when unique_violation then null; end;
+  -- Reglas que un CHECK no expresa.
+  rechazo := false; begin perform public.origen_crear('Mala Clave', 'Algo', 'vehículo', 'm', 'manual'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó una clave con mayúsculas y espacios'; end if;
+  rechazo := false; begin perform public.origen_crear('vacio_humo', '   ', 'vehículo', 'm', 'manual'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó un nombre vacío'; end if;
+  rechazo := false; begin perform public.origen_crear('plataf_humo', 'Plataformas', 'vehículo', 'm', 'manual', null, array['copart']); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'un origen manual aceptó plataformas de apibara'; end if;
+end $$;
+reset role;
+
+-- Si un trigger falla después de crear el flujo y los campos, no queda nada de nada.
+create function public._humo_origen_falla() returns trigger language plpgsql as $$ begin raise exception 'humo: falla a propósito'; end; $$;
+create trigger trg_zz_humo_origen_falla after insert on public.origenes for each row execute function public._humo_origen_falla();
+set role authenticated;
+do $$ declare m text; begin
+  begin perform public.origen_crear('fallida_humo', 'Fallida', 'vehículo', 'm', 'manual'); raise exception 'creó un origen con un trigger que falla';
+  exception when raise_exception then
+    get stacked diagnostics m = message_text;
+    if m <> 'humo: falla a propósito' then raise; end if;
+  end;
+end $$;
+reset role;
+drop trigger trg_zz_humo_origen_falla on public.origenes;
+drop function public._humo_origen_falla();
+do $$ begin
+  if exists (select 1 from public.origenes where clave = 'fallida_humo')
+     or exists (select 1 from public.flujos where nombre = 'Logística Fallida')
+     or exists (select 1 from public.origenes_campos c where not exists (select 1 from public.origenes o where o.id = c.origen_id)) then
+    raise exception 'un origen a medias: crear no es atómico';
+  end if;
+end $$;
+
+-- @test origenes: versión, tipo inmutable, renombrar acompaña al flujo y un origen inactivo no recibe vehículos
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare o uuid; v timestamptz; v2 timestamptz; rechazo boolean; begin
+  select id, actualizado_en into o, v from public.origenes where clave = 'corea_humo';
+  begin perform public.origen_guardar(o, v - interval '1 second', p_color => '#112233'); raise exception 'guardó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  rechazo := false; begin perform public.origen_guardar(o, null, p_color => '#112233'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'guardó sin versión'; end if;
+  v2 := public.origen_guardar(o, v, p_nombre => 'Corea del Sur', p_sustantivo => 'Unidad', p_genero => 'f');
+  if v2 is distinct from (select actualizado_en from public.origenes where id = o) then raise exception 'no devolvió la versión nueva'; end if;
+  if (select nombre || '/' || sustantivo || '/' || genero from public.origenes where id = o) <> 'Corea del Sur/unidad/f' then raise exception 'no guardó el nombre, el sustantivo y el género'; end if;
+  if (select nombre from public.flujos where origen_id = o) <> 'Logística Corea del Sur' then raise exception 'el flujo no acompañó al nombre'; end if;
+  begin perform public.origen_guardar(o, v2, p_nombre => 'Subasta EE. UU.'); raise exception 'repitió el nombre de otro origen';
+  exception when unique_violation then null; end;
+  rechazo := false; begin perform public.origen_guardar(o, v2, p_apibara_plataformas => array['iaai']); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'un origen manual aceptó plataformas de apibara'; end if;
+  begin update public.origenes set tipo = 'subasta' where id = o; raise exception 'el update directo del tipo pasó';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- Aunque se escriba sin pasar por la RPC (el rol de servicio), el tipo no cambia.
+do $$ begin
+  begin update public.origenes set tipo = 'subasta' where clave = 'corea_humo'; raise exception 'el tipo de un origen cambió';
+  exception when raise_exception then if sqlstate <> 'P0001' or sqlerrm like 'el tipo de un origen cambió' then raise; end if; end;
+end $$;
+set role authenticated;
+do $$ declare o uuid; v timestamptz; begin
+  select id, actualizado_en into o, v from public.origenes where clave = 'corea_humo';
+  perform public.origen_guardar(o, v, p_activo => false);
+  if (select activo from public.origenes where id = o) then raise exception 'no desactivó el origen'; end if;
+end $$;
+reset role;
+do $$ declare o uuid; begin
+  select id into o from public.origenes where clave = 'corea_humo';
+  begin insert into public.vehiculos (origen_id, titulo, creado_por) values (o, 'No debería entrar', '00000000-0000-0000-0000-000000000001'); raise exception 'un origen inactivo recibió un vehículo';
+  exception when check_violation then null; end;
+end $$;
+set role authenticated;
+do $$ declare o uuid; v timestamptz; begin
+  select id, actualizado_en into o, v from public.origenes where clave = 'corea_humo';
+  perform public.origen_guardar(o, v, p_activo => true);
+end $$;
+reset role;
+
+-- @test origenes: campos, tipo y datos de un campo, orden relativo, y quitar es desactivar cuando hay datos
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare
+  o uuid; r jsonb; c uuid; sist uuid; v timestamptz; v2 timestamptz; rechazo boolean; ordenes int[]; n int; imp jsonb;
+begin
+  select id into o from public.origenes where clave = 'corea_humo';
+  r := public.origen_campo_crear(o, 'kit_humo', 'Kit de extras', 'opcion', '[{"clave": "basico", "etiqueta": "Básico"}, {"clave": "full", "etiqueta": "Full"}]', p_grupo => 'Venta', p_filtrable => true);
+  c := (r ->> 'id')::uuid;
+  if (select es_sistema or orden <> 90 from public.origenes_campos where id = c) then raise exception 'el campo propio nace al final y no es de sistema'; end if;
+  begin perform public.origen_campo_crear(o, 'kit_humo', 'Otro', 'texto'); raise exception 'repitió la clave de un campo';
+  exception when unique_violation then null; end;
+  rechazo := false; begin perform public.origen_campo_crear(o, 'vin', 'VIN', 'texto'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'creó un campo con la clave de una columna de vehículos'; end if;
+  rechazo := false; begin perform public.origen_campo_crear(o, 'sin_opciones', 'Sin opciones', 'opcion'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'creó un campo de opciones sin opciones'; end if;
+  rechazo := false; begin perform public.origen_campo_crear(o, 'apibara_mal', 'Mal', 'texto', p_clave_apibara => 'color'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'un origen manual aceptó una clave de apibara'; end if;
+
+  -- Banderas y grupo, con versión.
+  select actualizado_en into v from public.origenes_campos where id = c;
+  begin perform public.origen_campo_guardar(c, v - interval '1 second', '{"en_tarjeta": true}'); raise exception 'guardó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  v2 := public.origen_campo_guardar(c, v, '{"en_tarjeta": true, "grupo": "Extras", "publico_web": true}');
+  if not (select en_tarjeta and publico_web and grupo = 'Extras' and filtrable and not requerido from public.origenes_campos where id = c) then raise exception 'no guardó las banderas'; end if;
+  rechazo := false; begin perform public.origen_campo_guardar(c, v2, '{"clave": "otra"}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó cambiar la clave de un campo'; end if;
+
+  -- Campo de sistema: sus banderas se editan, su tipo y su existencia no.
+  select id, actualizado_en into sist, v from public.origenes_campos where origen_id = o and clave = 'color';
+  perform public.origen_campo_guardar(sist, v, '{"filtrable": false}');
+  rechazo := false; begin perform public.origen_campo_guardar(sist, (select actualizado_en from public.origenes_campos where id = sist), '{"tipo": "numero"}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'cambió el tipo de un campo de sistema'; end if;
+  begin perform public.origen_campo_eliminar(sist, (select actualizado_en from public.origenes_campos where id = sist)); raise exception 'eliminó un campo de sistema';
+  exception when foreign_key_violation then null; end;
+
+  -- Orden relativo: «después de X» y «primero»; los números quedan en 10, 20, 30…
+  perform public.origen_campo_mover(c, null, (select actualizado_en from public.origenes_campos where id = c));
+  if (select id from public.origenes_campos where origen_id = o order by orden limit 1) <> c then raise exception 'no lo puso primero'; end if;
+  perform public.origen_campo_mover(c, sist, (select actualizado_en from public.origenes_campos where id = c));
+  select array_agg(orden order by orden) into ordenes from public.origenes_campos where origen_id = o;
+  if ordenes <> array[10, 20, 30, 40, 50, 60, 70, 80, 90] then raise exception 'el orden no quedó en 10, 20, 30…: %', ordenes; end if;
+  if (select clave from public.origenes_campos where origen_id = o order by orden offset 1 limit 1) <> 'kit_humo' then raise exception 'no lo puso después de color'; end if;
+  begin perform public.origen_campo_mover(c, c, (select actualizado_en from public.origenes_campos where id = c)); raise exception 'lo puso después de sí mismo';
+  exception when raise_exception then if sqlerrm like 'lo puso%' then raise; end if; end;
+  select count(*) into n from public.origenes_campos where origen_id = o and orden = 10;
+  if n <> 1 then raise exception 'orden repetido'; end if;
+end $$;
+reset role;
+-- Un vehículo con ese dato: el tipo queda bloqueado, eliminar también, y desactivar conserva el valor.
+do $$ declare o uuid; begin
+  select id into o from public.origenes where clave = 'corea_humo';
+  insert into public.vehiculos (origen_id, titulo, creado_por, atributos) values (o, 'Con kit', '00000000-0000-0000-0000-000000000001', '{"kit_humo": "full"}');
+  insert into public.vehiculos (origen_id, titulo, creado_por, atributos) values (o, 'Sin kit', '00000000-0000-0000-0000-000000000001', '{}');
+end $$;
+set role authenticated;
+do $$ declare o uuid; c uuid; imp jsonb; rechazo boolean; v timestamptz; begin
+  select id into o from public.origenes where clave = 'corea_humo';
+  select id into c from public.origenes_campos where origen_id = o and clave = 'kit_humo';
+  imp := public.origen_campo_impacto(c);
+  if (imp ->> 'total')::int <> 2 or (imp ->> 'con_valor')::int <> 1 or (imp ->> 'sin_valor')::int <> 1 or imp -> 'por_opcion' <> '{"full": 1}'::jsonb then raise exception 'impacto mal contado: %', imp; end if;
+  rechazo := false; begin perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"tipo": "numero"}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'cambió el tipo de un campo con datos'; end if;
+  begin perform public.origen_campo_eliminar(c, (select actualizado_en from public.origenes_campos where id = c)); raise exception 'eliminó un campo con datos';
+  exception when foreign_key_violation then null; end;
+  -- Volverlo requerido no toca los vehículos: el trigger sólo mira cuando se escribe uno.
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"requerido": true}');
+  if (select count(*) from public.vehiculos where origen_id = o) <> 2 then raise exception 'volver requerido tocó vehículos'; end if;
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"activo": false}');
+  if (select activo from public.origenes_campos where id = c) then raise exception 'no desactivó el campo'; end if;
+  if not exists (select 1 from public.vehiculos where origen_id = o and atributos ->> 'kit_humo' = 'full') then raise exception 'desactivar el campo perdió el dato'; end if;
+  perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"activo": true}');
+end $$;
+reset role;
+
+-- @test origenes: categorías de un solo nivel, sin repetir nombre ni entre raíces, y eliminar con uso se rechaza
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare o uuid; padre uuid; hija uuid; otra uuid; v timestamptz; rechazo boolean; begin
+  select id into o from public.origenes where clave = 'corea_humo';
+  padre := (public.categoria_crear(o, 'Sedán') ->> 'id')::uuid;
+  otra := (public.categoria_crear(o, 'SUV') ->> 'id')::uuid;
+  hija := (public.categoria_crear(o, 'Compacto', padre) ->> 'id')::uuid;
+  begin perform public.categoria_crear(o, 'sedán'); raise exception 'repitió una raíz';
+  exception when unique_violation then null; end;
+  -- Mismo nombre en otro lugar sí vale.
+  perform public.categoria_crear(o, 'Compacto', otra);
+  rechazo := false; begin perform public.categoria_crear(o, 'Nieta', hija); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'anidó más de un nivel'; end if;
+  rechazo := false; begin perform public.categoria_guardar(padre, (select actualizado_en from public.categorias where id = padre), p_activa => false); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'desactivó una categoría con subcategorías activas'; end if;
+  begin perform public.categoria_eliminar(padre, (select actualizado_en from public.categorias where id = padre)); raise exception 'eliminó una categoría con subcategorías';
+  exception when foreign_key_violation then null; end;
+  begin perform public.categoria_guardar(padre, (select actualizado_en from public.categorias where id = padre) - interval '1 second', p_nombre => 'X'); raise exception 'guardó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  -- Orden entre hermanas: SUV pasa primero.
+  perform public.categoria_mover(otra, null, (select actualizado_en from public.categorias where id = otra));
+  if (select id from public.categorias where origen_id = o and padre_id is null order by orden limit 1) <> otra then raise exception 'no la puso primera'; end if;
+  begin perform public.categoria_mover(otra, hija, (select actualizado_en from public.categorias where id = otra)); raise exception 'la puso entre hermanas de otro padre';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  perform public.categoria_eliminar(hija, (select actualizado_en from public.categorias where id = hija));
+end $$;
+reset role;
+
+-- @test origenes: eliminar sólo sin uso (cae con su flujo y sus campos); sin permiso nadie escribe ni cuenta
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare o uuid; j uuid; r record; begin
+  -- Con vehículos: no.
+  select id into o from public.origenes where clave = 'corea_humo';
+  begin perform public.origen_eliminar(o, (select actualizado_en from public.origenes where id = o)); raise exception 'eliminó un origen con vehículos';
+  exception when foreign_key_violation then null; end;
+  begin perform public.origen_eliminar(o, (select actualizado_en from public.origenes where id = o) - interval '1 second'); raise exception 'eliminó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  -- Con fórmula publicada, fases y vehículos: no, y el mensaje dice por qué.
+  select id into o from public.origenes where clave = 'subasta_usa';
+  begin perform public.origen_eliminar(o, (select actualizado_en from public.origenes where id = o)); raise exception 'eliminó un origen con fórmula publicada';
+  exception when foreign_key_violation then
+    if sqlerrm not like '%vehículo%' or sqlerrm not like '%fórmula publicada%' then raise exception 'el motivo no cuenta lo que lo ata: %', sqlerrm; end if;
+  end;
+  -- Uno sin uso: sí, y con él cae todo lo que colgaba.
+  select id into o from public.origenes where clave = 'japon_humo';
+  select id into j from public.flujos where origen_id = o;
+  perform public.origen_eliminar(o, (select actualizado_en from public.origenes where id = o));
+  if exists (select 1 from public.origenes_campos where origen_id = o) or exists (select 1 from public.flujos where id = j)
+     or exists (select 1 from public.flujos_reglas where flujo_id = j) then raise exception 'eliminar no se llevó el flujo y los campos'; end if;
+  -- El resumen: una fila por origen, con los conteos de uso.
+  select * into r from public.origenes_resumen() x where x.origen_id = (select id from public.origenes where clave = 'corea_humo');
+  if r.vehiculos <> 2 or r.campos_activos <> 9 or r.categorias <> 3 or r.fases <> 0 or r.formula_publicada then raise exception 'resumen mal contado: %', r; end if;
+  select * into r from public.origenes_resumen() x where x.origen_id = (select id from public.origenes where clave = 'subasta_usa');
+  if not r.formula_publicada or r.fases <> 7 then raise exception 'el resumen de subasta_usa no ve su fórmula y sus fases: %', r; end if;
+end $$;
+reset role;
+-- La asesora no escribe, no cuenta ni mide el impacto; sin sesión, tampoco.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000005', false);
+set role authenticated;
+do $$ declare o uuid; c uuid; begin
+  select id into o from public.origenes where clave = 'corea_humo';
+  select id into c from public.origenes_campos where origen_id = o limit 1;
+  begin perform public.origen_crear('asesora_humo', 'Asesora', 'vehículo', 'm', 'manual'); raise exception 'creó un origen sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.origen_guardar(o, (select actualizado_en from public.origenes where id = o), p_nombre => 'Otro'); raise exception 'editó un origen sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.origen_campo_guardar(c, (select actualizado_en from public.origenes_campos where id = c), '{"requerido": true}'); raise exception 'editó un campo sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.categoria_crear(o, 'Intrusa'); raise exception 'creó una categoría sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.origenes_resumen(); raise exception 'contó el uso de los orígenes sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.origen_campo_impacto(c); raise exception 'midió el impacto sin permiso';
+  exception when insufficient_privilege then null; end;
+  -- La lectura de los orígenes sí es de todos: los selectores la necesitan.
+  if (select count(*) from public.origenes) < 2 then raise exception 'una asesora debía leer los orígenes'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+select set_config('request.jwt.claim.role', 'anon', false);
+set role anon;
+do $$ begin
+  begin perform public.origen_crear('anon_humo', 'Anon', 'vehículo', 'm', 'manual'); raise exception 'anon creó un origen';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;

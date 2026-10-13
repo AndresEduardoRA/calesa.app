@@ -31,7 +31,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('equipo.roles.gestionar', 'equipo', 'Gestionar roles', 'Crear roles y otorgar permisos (sólo los que uno tiene)', false, false, 'rbac_crear_rol, rbac_otorgar, rbac_revocar, rbac_eliminar_rol, permisos_efectivos', 40),
   ('empresa.ajustes.gestionar', 'empresa', 'Ajustes de la empresa', 'Marca, datos legales, registro abierto, integraciones', false, false, 'empresa_guardar_ajustes, integracion_guardar, integracion_guardar_secreto, storage marca', 50),
   ('empresa.tipos_cambio.gestionar', 'empresa', 'Tipos de cambio', 'Monedas y tipos de cambio', false, false, 'moneda_guardar, tipo_cambio_guardar, policy tipos_cambio_historial', 60),
-  ('origenes.gestionar', 'origenes', 'Gestionar orígenes', 'Crear orígenes, su layout de campos y categorías', false, false, 'policy origenes, origenes_campos, categorias', 70),
+  ('origenes.gestionar', 'origenes', 'Gestionar orígenes', 'Crear orígenes, su layout de campos y categorías', false, false, 'origen_crear, origen_guardar, origen_eliminar, origen_campo_*, categoria_*, origenes_resumen', 70),
   ('vehiculos.ver', 'vehiculos', 'Ver vehículos', 'Ver el inventario (por origen; propios = creados por mí o vinculados a mis leads)', true, true, 'puede_vehiculo', 80),
   ('vehiculos.crear', 'vehiculos', 'Crear vehículos', 'Dar de alta vehículos (por origen)', true, false, 'policy vehiculos insert', 90),
   ('vehiculos.editar', 'vehiculos', 'Editar vehículos', 'Editar ficha, fotos e interesados (por origen y alcance)', true, true, 'puede_vehiculo', 100),

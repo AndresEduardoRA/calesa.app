@@ -16,6 +16,8 @@ create table public.origenes (
   creado_en   timestamptz not null default now(),
   actualizado_en timestamptz not null default now()
 );
+-- El nombre se ve en pantalla y en selectores: dos orígenes no pueden llamarse igual.
+create unique index origenes_nombre_unico on public.origenes (lower(btrim(nombre)));
 comment on table public.origenes is 'Origen configurable de vehículos. tipo=subasta usa la preconfiguración apibara (lote, link, plataforma…); tipo=manual la preconfiguración de venta directa. Cada origen tiene exactamente un flujo de logística (flujos.origen_id) y una serie de fórmulas de cotización.';
 
 alter table public.roles_permisos
@@ -37,6 +39,7 @@ create table public.origenes_campos (
   clave_apibara text,                                    -- de qué campo del scraper se llena
   es_sistema    boolean not null default false,          -- viene de la preconfiguración: no se borra
   activo        boolean not null default true,
+  actualizado_en timestamptz not null default now(),     -- versión de la fila: toda edición la manda
   unique (origen_id, clave)
 );
 comment on table public.origenes_campos is 'Layout de campos de un origen. Los campos comunes (marca, modelo, año, vin, lote, precio) viven como columnas de vehiculos; el resto en vehiculos.atributos, validado contra esta tabla por trigger.';
@@ -48,6 +51,10 @@ create table public.categorias (
   nombre    text not null,
   orden     smallint not null default 0,
   activa    boolean not null default true,
-  unique (origen_id, padre_id, nombre)
+  actualizado_en timestamptz not null default now()
 );
+-- Un nombre por lugar, sin importar mayúsculas ni espacios. `padre_id` nulo es una raíz: en un
+-- UNIQUE común dos raíces con el mismo nombre no chocarían (los nulos no son iguales entre sí).
+create unique index categorias_nombre_unico on public.categorias
+  (origen_id, coalesce(padre_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(btrim(nombre)));
 comment on table public.categorias is 'Categorías dentro de un origen (marcas, «vehículos medio uso», segmentos). Un nivel de anidado opcional.';

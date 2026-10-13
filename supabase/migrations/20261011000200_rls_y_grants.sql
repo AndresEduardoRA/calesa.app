@@ -178,9 +178,11 @@ select public._rls('integraciones', 'true', null, null, null);
 -- ---------------------------------------------------------------------------
 -- orígenes
 -- ---------------------------------------------------------------------------
-select public._rls('origenes', 'true', '(select public.tiene_permiso(''origenes.gestionar''))', '(select public.tiene_permiso(''origenes.gestionar''))', '(select public.tiene_permiso(''origenes.gestionar''))');
-select public._rls('origenes_campos', 'true', '(select public.tiene_permiso(''origenes.gestionar''))', '(select public.tiene_permiso(''origenes.gestionar''))', '(select public.tiene_permiso(''origenes.gestionar'')) and not es_sistema');
-select public._rls('categorias', 'true', '(select public.tiene_permiso(''origenes.gestionar''))', '(select public.tiene_permiso(''origenes.gestionar''))', '(select public.tiene_permiso(''origenes.gestionar''))');
+-- Sólo lectura: orígenes, campos y categorías se escriben por las RPC de `…001400_origenes.sql`
+-- (permiso, versión, reglas de uso). El layout de un origen con vehículos no se toca a mano.
+select public._rls('origenes', 'true', null, null, null);
+select public._rls('origenes_campos', 'true', null, null, null);
+select public._rls('categorias', 'true', null, null, null);
 
 -- ---------------------------------------------------------------------------
 -- flujos (configuración: lectura para todos los activos; escritura sólo quien configura ese flujo)

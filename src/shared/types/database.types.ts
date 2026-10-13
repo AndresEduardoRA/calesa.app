@@ -269,6 +269,7 @@ export type Database = {
       categorias: {
         Row: {
           activa: boolean
+          actualizado_en: string
           id: string
           nombre: string
           orden: number
@@ -278,6 +279,7 @@ export type Database = {
         ComputedFields: never
         Insert: {
           activa?: boolean
+          actualizado_en?: string
           id?: string
           nombre: string
           orden?: number
@@ -286,6 +288,7 @@ export type Database = {
         }
         Update: {
           activa?: boolean
+          actualizado_en?: string
           id?: string
           nombre?: string
           orden?: number
@@ -3004,6 +3007,7 @@ export type Database = {
       origenes_campos: {
         Row: {
           activo: boolean
+          actualizado_en: string
           clave: string
           clave_apibara: string | null
           en_tarjeta: boolean
@@ -3022,6 +3026,7 @@ export type Database = {
         ComputedFields: never
         Insert: {
           activo?: boolean
+          actualizado_en?: string
           clave: string
           clave_apibara?: string | null
           en_tarjeta?: boolean
@@ -3039,6 +3044,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          actualizado_en?: string
           clave?: string
           clave_apibara?: string | null
           en_tarjeta?: boolean
@@ -5767,6 +5773,14 @@ export type Database = {
         Returns: undefined
       }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
+      _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
+      _origen_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
+      _origen_nombre_valido: {
+        Args: { p_largo: number; p_que: string; p_texto: string }
+        Returns: string
+      }
+      _origen_opciones_validas: { Args: { p_opciones: Json }; Returns: undefined }
+      _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
       _requisito_dato_cumplido: {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
@@ -5799,6 +5813,34 @@ export type Database = {
       cambiar_telefono_lead: {
         Args: { p_cc: string; p_lead: string; p_tel: string }
         Returns: undefined
+      }
+      categoria_crear: {
+        Args: { p_nombre: string; p_origen: string; p_padre?: string }
+        Returns: Json
+      }
+      categoria_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_categoria: string }
+        Returns: undefined
+      }
+      categoria_guardar: {
+        Args: {
+          p_activa?: boolean
+          p_actualizado_en_esperado: string
+          p_categoria: string
+          p_nombre?: string
+        }
+        Returns: string
+      }
+      categoria_mover: {
+        Args: { p_actualizado_en_esperado: string; p_categoria: string; p_despues_de: string }
+        Returns: string
+      }
+      categorias_con_uso: {
+        Args: { p_origen: string }
+        Returns: {
+          categoria_id: string
+          vehiculos: number
+        }[]
       }
       claves_dato_requisito: {
         Args: { p_ambito: Database['public']['Enums']['ambito_flujo'] }
@@ -5942,7 +5984,78 @@ export type Database = {
         }
         Returns: undefined
       }
+      origen_campo_crear: {
+        Args: {
+          p_clave: string
+          p_clave_apibara?: string
+          p_en_tarjeta?: boolean
+          p_etiqueta: string
+          p_filtrable?: boolean
+          p_grupo?: string
+          p_opciones?: Json
+          p_origen: string
+          p_publico_web?: boolean
+          p_requerido?: boolean
+          p_tipo: Database['public']['Enums']['tipo_campo']
+        }
+        Returns: Json
+      }
+      origen_campo_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_campo: string }
+        Returns: undefined
+      }
+      origen_campo_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_campo: string }
+        Returns: string
+      }
+      origen_campo_impacto: { Args: { p_campo: string }; Returns: Json }
+      origen_campo_mover: {
+        Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de: string }
+        Returns: string
+      }
+      origen_crear: {
+        Args: {
+          p_apibara_plataformas?: string[]
+          p_clave: string
+          p_color?: string
+          p_genero: Database['public']['Enums']['genero_gramatical']
+          p_nombre: string
+          p_sustantivo: string
+          p_tipo: Database['public']['Enums']['tipo_origen']
+        }
+        Returns: Json
+      }
+      origen_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_origen: string }
+        Returns: undefined
+      }
+      origen_guardar: {
+        Args: {
+          p_activo?: boolean
+          p_actualizado_en_esperado: string
+          p_apibara_plataformas?: string[]
+          p_color?: string
+          p_genero?: Database['public']['Enums']['genero_gramatical']
+          p_nombre?: string
+          p_origen: string
+          p_sustantivo?: string
+        }
+        Returns: string
+      }
       origenes_con_permiso: { Args: { p_clave: string }; Returns: string[] }
+      origenes_resumen: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          campos_activos: number
+          categorias: number
+          concesiones: number
+          cotizaciones: number
+          fases: number
+          formula_publicada: boolean
+          origen_id: string
+          vehiculos: number
+        }[]
+      }
       otorgar_portal: { Args: { p_clave: string; p_lead: string }; Returns: string }
       papelera_enviar: {
         Args: { p_ids: string[]; p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }

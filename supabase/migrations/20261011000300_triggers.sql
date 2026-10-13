@@ -32,7 +32,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['leads', 'vehiculos', 'cotizaciones', 'fases', 'fases_requisitos', 'fases_transiciones', 'roles_permisos', 'usuarios_roles', 'ajustes_empresa', 'ajustes_web', 'formulas', 'plantillas_tarjeta', 'documentos', 'pagos', 'gastos', 'transportes', 'declaraciones_aduana', 'accesos_portal', 'origenes', 'origenes_campos', 'tipos_cambio', 'integraciones', 'cola_web_asesores', 'repuestos_items', 'repuestos_compras', 'comprobantes'] loop
+  foreach t in array array['leads', 'vehiculos', 'cotizaciones', 'fases', 'fases_requisitos', 'fases_transiciones', 'roles_permisos', 'usuarios_roles', 'ajustes_empresa', 'ajustes_web', 'formulas', 'plantillas_tarjeta', 'documentos', 'pagos', 'gastos', 'transportes', 'declaraciones_aduana', 'accesos_portal', 'origenes', 'origenes_campos', 'categorias', 'tipos_cambio', 'integraciones', 'cola_web_asesores', 'repuestos_items', 'repuestos_compras', 'comprobantes'] loop
     execute format('drop trigger if exists trg_auditar on public.%I', t);
     execute format('create trigger trg_auditar after insert or update or delete on public.%I for each row execute function public.auditar()', t);
   end loop;
