@@ -1004,3 +1004,23 @@ dejar la función abierta (el barrido de huérfanos recorre el bucket: cualquier
 corridas. `pg_cron` da por bueno un job que sólo encola un pedido: si la función deja de responder
 no avisa, y por eso existe `storage_gc_pendiente()`. Deno queda fuera de lint y typecheck: a la
 función la cubre el e2e. Los otros cuatro jobs de `…000800` siguen sin programar hasta sus fases.
+
+## 2026-10-13 — Vitrina y papelera no suman permisos: los cuatro que había, todos con enforcement
+
+**Contexto:** había que saber qué permisos existen para publicar, enviar, restaurar y purgar, y si
+alguno no tenía enforcement en la base.
+**Decisión:** ninguna clave nueva. **Publicar:** `vehiculos.vitrina`, por origen, en
+`vehiculo_vitrina()`, que ahora exige además ver el vehículo. **Enviar:** `vehiculos.eliminar`, por
+origen y con alcance, en `vehiculos_papelera_enviar()` (con `puede_vehiculo`, la regla de las
+policies) y en `vehiculos_con_permiso()`, que es lo que le pregunta la interfaz para dibujar las
+casillas. **Restaurar:** sin permiso propio: quien envió el lote, o quien purga. **Purgar y ver toda
+la papelera:** `vehiculos.papelera.purgar`, global, en `vehiculos_papelera_listar/restaurar/purgar`
+y en la policy de `lotes_papelera`. Las cuatro acciones tenían enforcement; lo que faltaba era la
+versión, el resultado parcial y las reglas de qué no entra.
+**Alternativas:** un `vehiculos.restaurar` (quien envió algo por error tiene que poder traerlo de
+vuelta sin pedirle permiso a nadie; quien purga ya ve todo); `vehiculos.papelera.purgar` por origen
+(hoy gobierna también la papelera de leads y cotizaciones, que no tienen origen: se parte con sus
+fases).
+**Consecuencia:** quien tiene `vehiculos.papelera.purgar` ve en la papelera títulos de orígenes
+donde quizá no tiene `vehiculos.ver`. Es un permiso de administración, y así se describe en el
+catálogo.
