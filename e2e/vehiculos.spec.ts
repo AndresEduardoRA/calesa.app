@@ -3,6 +3,7 @@ import { camposDelOrigen } from './soporte/origenes'
 import {
   COREA,
   TAIWAN,
+  aLaVista,
   cerrarPanelDeFiltros,
   entrar,
   esMovil,
@@ -51,7 +52,7 @@ test('una pestaña por origen con permiso, y el inventario del que se elige', as
 
   // Un origen sin nada cargado lo dice con su nombre, no con un texto fijo.
   await pestanas.getByRole('link', { name: TAIWAN }).click()
-  await expect(page.getByText('Ningún vehículo en Taiwán todavía')).toBeVisible()
+  await expect(aLaVista(page.getByText('Ningún vehículo en Taiwán todavía'))).toBeVisible()
 })
 
 test('los filtros son los campos filtrables del origen y sobreviven a recargar', async ({
@@ -82,7 +83,8 @@ test('los filtros son los campos filtrables del origen y sobreviven a recargar',
   await expect(chips.getByText('Transmisión: Automática')).toBeVisible()
 
   panel = await panelDeFiltros(page)
-  await panel.getByRole('radio', { name: 'No' }).check()
+  // «En vitrina» también es un sí o no: se elige el del campo.
+  await panel.getByRole('group', { name: 'Tiene llave' }).getByRole('radio', { name: 'No' }).check()
   await cerrarPanelDeFiltros(page)
   await expect(vehiculo(page, 'Kia Sportage')).toBeHidden()
   await expect(vehiculo(page, 'Hyundai Tucson 100%')).toBeVisible()
@@ -127,7 +129,7 @@ test('buscar con comas y paréntesis, filtrar por número, y un vacío por filtr
   ).toBeVisible()
 
   await busqueda.fill('no existe ninguno así')
-  await expect(page.getByText('Nada coincide con los filtros')).toBeVisible()
+  await expect(aLaVista(page.getByText('Nada coincide con los filtros'))).toBeVisible()
   await page.getByRole('button', { name: 'Limpiar filtros' }).click()
   await expect(vehiculo(page, 'Kia Sportage')).toBeVisible()
 })
@@ -167,7 +169,7 @@ test('una vista guardada vuelve a poner sus filtros', async ({ page }) => {
 
   // Desde otra pestaña de origen, sin filtros: aplicarla vuelve a Corea con los suyos.
   await page.goto(`/vehiculos?origen=${taiwan.id}`)
-  await expect(page.getByText('Ningún vehículo en Taiwán todavía')).toBeVisible()
+  await expect(aLaVista(page.getByText('Ningún vehículo en Taiwán todavía'))).toBeVisible()
   await page.getByRole('button', { name: 'Vistas' }).click()
   await page.getByRole('button', { name: 'Automáticos nuevos', exact: true }).click()
   await expect(page).toHaveURL(/a\.transmision=automatica/)
@@ -190,14 +192,14 @@ test('quien tiene permiso en un solo origen no ve la pestaña de los otros', asy
   await page.goto(`/vehiculos?origen=${taiwan.id}`)
   await expect(pestanas.getByRole('link', { name: COREA })).toHaveAttribute('aria-current', 'page')
   await expect(pestanas.getByRole('link', { name: TAIWAN })).toBeHidden()
-  await expect(page.getByText('Ningún vehículo en Taiwán todavía')).toBeHidden()
+  await expect(aLaVista(page.getByText('Ningún vehículo en Taiwán todavía'))).toBeHidden()
 })
 
 test('sin permiso en ningún origen, lo dice', async ({ page }) => {
   await entrar(page, sinPermisos)
   await page.goto('/vehiculos')
   await expect(
-    page.getByText('No tienes permiso para ver vehículos en ningún origen.'),
+    aLaVista(page.getByText('No tienes permiso para ver vehículos en ningún origen.')),
   ).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Orígenes' })).toBeHidden()
 })

@@ -211,7 +211,10 @@ test('un origen desactivado se sigue viendo, y «Nuevo» sale apagado con el mot
   await expect(vehiculo(page, 'Luxgen U6')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Nuevo vehículo' })).toBeDisabled()
   await expect(
-    page.getByText('Taiwán está desactivado: no recibe registros nuevos.', { exact: false }),
+    // El listado llega por streaming: por un instante el aviso está también en el tramo oculto.
+    aLaVista(
+      page.getByText('Taiwán está desactivado: no recibe registros nuevos.', { exact: false }),
+    ),
   ).toBeVisible()
   // La tecla N no abre nada, y pedirlo por URL tampoco.
   await page.keyboard.press('n')

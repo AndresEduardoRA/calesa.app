@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
+import { PREFIJO_ROL_E2E, correoDePrueba, crearPersona, darRolDePrueba } from './soporte/base'
 import { borrarFotosDe, enColaDe, fotos, fotosDe, objetosDe, urlDeObjeto } from './soporte/fotos'
 import {
+  CLAVE,
   aLaVista,
   descartarAviso,
   entrar,
@@ -41,6 +43,8 @@ const TOMADOR = 'Papelera Tomó El VIN'
 
 let duena = ''
 let soloCorea = ''
+// Envía a la papelera y no puede vaciarla: en la papelera ve sólo lo suyo.
+let soloEnvia = ''
 let corea: Terreno['corea'] = { id: '', nombre: '' }
 const ids: Record<string, string> = {}
 
@@ -58,6 +62,16 @@ test.beforeAll(async ({}, info) => {
     ids[titulo] = (await vehiculoPorTitulo(titulo))?.id ?? ''
   }
   await ponerVin(id(T.vin), VIN)
+  soloEnvia = correoDePrueba(`solo-envia-${info.project.name}`)
+  await crearPersona({ email: soloEnvia, contrasena: CLAVE, nombre: 'Elsa Envía', invitada: true })
+  await darRolDePrueba({
+    email: soloEnvia,
+    rol: {
+      nombre: `${PREFIJO_ROL_E2E}Envía ${info.project.name}`,
+      clave: `e2e_envia_${info.project.name}`,
+    },
+    permisos: ['vehiculos.ver', 'vehiculos.eliminar'],
+  })
   // Uno ya salió de la fase inicial: no va a la papelera.
   await ponerEnFase(id(T.enTransito), await crearFaseInterna(corea.id, 'En tránsito'))
 })
@@ -301,7 +315,10 @@ test('purgar algo que otra persona ya restauró es un conflicto, y no purga nada
   expect(await estadoDe(id(T.disputado))).toMatchObject({ eliminado_en: null })
 })
 
-test('purgar un lote pide tipear, y al final la papelera queda vacía', async ({ page }) => {
+test('purgar un lote pide tipear, y quien no envió nada ve su papelera vacía', async ({
+  page,
+  browser,
+}) => {
   await entrar(page, duena)
   await abrirPapelera(page)
   await loteDe(page, T.b).getByRole('button', { name: 'Purgar el lote' }).click()
@@ -314,5 +331,15 @@ test('purgar un lote pide tipear, y al final la papelera queda vacía', async ({
   await descartarAviso(page, 'Se purgaron 2.')
   expect(await estadoDe(id(T.b))).toBeNull()
   expect(await estadoDe(id(T.c))).toBeNull()
-  await expect(page.getByText('La papelera está vacía')).toBeVisible()
+  await expect(loteDe(page, T.b)).toBeHidden()
+
+  // Quien sólo envía ve lo suyo: todavía nada. Y no tiene con qué purgar lo de nadie. (La
+  // papelera de quien puede vaciarla muestra la de todos: no se le puede pedir que esté vacía.)
+  const otra = await otraPersona(browser, page)
+  await entrar(otra, soloEnvia)
+  await abrirPapelera(otra)
+  await expect(otra.getByText('Lo que enviaste a la papelera.', { exact: false })).toBeVisible()
+  await expect(otra.getByText('La papelera está vacía')).toBeVisible()
+  await expect(otra.getByRole('button', { name: /^Purgar/ })).toHaveCount(0)
+  await otra.context().close()
 })

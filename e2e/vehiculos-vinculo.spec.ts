@@ -122,7 +122,9 @@ test('el interés de su lead se ve en el otro vehículo, que no puede editar', a
   await expect(interesados(page).getByText(/lo marcó Ada Asesora/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Editar' })).toHaveCount(0)
   await page.goto(`/vehiculos/${suelto}?seccion=fotos`)
-  await expect(page.getByText('Este vehículo no tiene fotos')).toBeVisible()
+  // Las fotos llegan por streaming: por un instante el texto está también en el tramo oculto
+  // que React todavía no movió a su lugar.
+  await expect(aLaVista(page.getByText('Este vehículo no tiene fotos'))).toBeVisible()
   await expect(page.getByRole('button', { name: 'Elegir fotos' })).toHaveCount(0)
 })
 
