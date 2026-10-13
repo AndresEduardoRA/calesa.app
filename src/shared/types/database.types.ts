@@ -337,6 +337,25 @@ export type Database = {
         }
         Relationships: []
       }
+      cola_gc_pases: {
+        Row: {
+          creado_en: string
+          pase: string
+          usado_en: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          creado_en?: string
+          pase?: string
+          usado_en?: string | null
+        }
+        Update: {
+          creado_en?: string
+          pase?: string
+          usado_en?: string | null
+        }
+        Relationships: []
+      }
       cola_gc_storage: {
         Row: {
           bucket: string
@@ -6334,11 +6353,15 @@ export type Database = {
       revocar_portal: { Args: { p_lead: string }; Returns: undefined }
       rol_dominado: { Args: { p_rol: string }; Returns: boolean }
       slugificar: { Args: { p: string }; Returns: string }
+      storage_gc_abrir: { Args: { p_pase: string }; Returns: boolean }
       storage_gc_confirmar: { Args: { p_bucket: string; p_rutas: string[] }; Returns: number }
+      storage_gc_disparar: { Args: { p_url: string }; Returns: number }
       storage_gc_encolar_huerfanos: {
         Args: { p_bucket: string; p_gracia: string }
         Returns: number
       }
+      storage_gc_pendiente: { Args: Record<PropertyKey, never>; Returns: Json }
+      storage_gc_programar: { Args: { p_url: string }; Returns: undefined }
       storage_gc_reclamar: {
         Args: { p_max?: number }
         Returns: {

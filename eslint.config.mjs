@@ -240,5 +240,8 @@ export default defineConfig([
     'src/shared/types/database.types.ts',
     'public/sw.js',
     'scripts/probar-schema.mjs',
+    // Deno, con sus globales y sus imports: `tsconfig.json` ya lo excluye, y sin proyecto de
+    // TypeScript el lint tipado no tiene cómo leerlo. Se verifica con el e2e contra el runtime.
+    'supabase/functions/**',
   ]),
 ])

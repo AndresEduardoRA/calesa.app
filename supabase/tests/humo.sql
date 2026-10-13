@@ -2300,3 +2300,74 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test storage-gc: el pase vale una vez y diez minutos, los jobs quedan programados, y nadie de la app dispara ni canjea
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare n bigint; p uuid; direccion constant text := 'http://api.local:8000/functions/v1/storage-gc'; begin
+  if not exists (select 1 from cron.job j where j.jobname = 'papelera-purgar' and j.schedule = '30 3 * * *' and j.command like '%papelera_purgar_vencidos()%') then raise exception 'la purga automática no quedó programada'; end if;
+  begin perform public.storage_gc_disparar('http://otro.sitio/llevarse-el-pase'); raise exception 'mandó un pase a una dirección que no es la función';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.storage_gc_programar(null); raise exception 'programó sin dirección';
+  exception when invalid_parameter_value then null; end;
+  perform public.storage_gc_programar('http://vieja.local/functions/v1/storage-gc');
+  perform public.storage_gc_programar(direccion);
+  if (select count(*) from cron.job j where j.jobname = 'storage-gc') <> 1 or (select j.command from cron.job j where j.jobname = 'storage-gc') <> format('select public.storage_gc_disparar(%L)', direccion) then
+    raise exception 'reprogramar debía reemplazar el job: %', (select jsonb_agg(to_jsonb(j)) from cron.job j);
+  end if;
+
+  n := public.storage_gc_disparar(direccion);
+  select (x.body ->> 'pase')::uuid into p from net.pedidos x where x.id = n and x.url = direccion;
+  if p is null or not exists (select 1 from public.cola_gc_pases c where c.pase = p and c.usado_en is null) then raise exception 'disparar no mandó un pase vigente'; end if;
+  if public.storage_gc_abrir(gen_random_uuid()) then raise exception 'aceptó un pase inventado'; end if;
+  if not public.storage_gc_abrir(p) then raise exception 'rechazó el pase que acababa de emitir'; end if;
+  if public.storage_gc_abrir(p) then raise exception 'el mismo pase valió dos veces'; end if;
+  n := public.storage_gc_disparar(direccion);
+  select (x.body ->> 'pase')::uuid into p from net.pedidos x where x.id = n;
+  update public.cola_gc_pases set creado_en = now() - interval '11 minutes' where pase = p;
+  if public.storage_gc_abrir(p) then raise exception 'aceptó un pase vencido'; end if;
+  -- Los pases viejos se van solos.
+  update public.cola_gc_pases set creado_en = now() - interval '8 days' where pase = p;
+  perform public.storage_gc_disparar(direccion);
+  if exists (select 1 from public.cola_gc_pases c where c.pase = p) then raise exception 'no limpió los pases viejos'; end if;
+end $$;
+select set_config('request.jwt.claim.role', 'service_role', false);
+set role service_role;
+do $$ begin
+  if public.storage_gc_abrir(gen_random_uuid()) then raise exception 'service_role canjeó un pase inventado'; end if;
+end $$;
+reset role;
+-- Irene no dispara, no canjea, no programa, no mira los pases, y no se entera de la cola.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ begin
+  begin perform public.storage_gc_disparar('http://api.local:8000/functions/v1/storage-gc'); raise exception 'una persona de la app disparó la limpieza';
+  exception when insufficient_privilege then null; end;
+  begin perform public.storage_gc_abrir(gen_random_uuid()); raise exception 'una persona de la app canjeó un pase';
+  exception when insufficient_privilege then null; end;
+  begin perform public.storage_gc_programar('http://api.local:8000/functions/v1/storage-gc'); raise exception 'una persona de la app programó el job';
+  exception when insufficient_privilege then null; end;
+  begin perform 1 from public.cola_gc_pases; raise exception 'una persona de la app leyó los pases';
+  exception when insufficient_privilege then null; end;
+  if public.storage_gc_pendiente() is not null then raise exception 'sin vehiculos.papelera.purgar no debía saber de la cola'; end if;
+end $$;
+reset role;
+-- La dueña sí: nada pendiente, hasta que algo lleva más de tres horas pudiendo borrarse.
+delete from public.cola_gc_storage;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  if (public.storage_gc_pendiente() ->> 'objetos')::int <> 0 then raise exception 'con la cola vacía no hay nada pendiente'; end if;
+end $$;
+reset role;
+insert into public.cola_gc_storage (bucket, ruta, encolado_en) values
+  ('vehiculos', 'gc/recien-reclamable.webp', now() - interval '25 hours'),
+  ('vehiculos', 'gc/atrasado.webp', now() - interval '30 hours');
+set role authenticated;
+do $$ declare d jsonb := public.storage_gc_pendiente(); begin
+  if (d ->> 'objetos')::int <> 1 or (d ->> 'desde')::timestamptz > now() - interval '5 hours' then raise exception 'esperaba un objeto atrasado desde hace seis horas: %', d; end if;
+end $$;
+reset role;
+delete from public.cola_gc_storage;
+select set_config('request.jwt.claim.sub', '', false);

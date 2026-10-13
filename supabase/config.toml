@@ -110,3 +110,8 @@ enabled = true
 [edge_runtime]
 enabled = true
 policy = "oneshot"
+
+# La llama la base (pg_net), que no tiene un JWT que mandar: se autentica con un pase de un
+# solo uso que la propia función canjea (supabase/functions/README.md).
+[functions.storage-gc]
+verify_jwt = false

@@ -102,4 +102,11 @@ create table public.cola_gc_storage (
   reclamado_en timestamptz,                     -- la limpieza lo va a borrar: nadie puede volver a referenciarlo
   primary key (bucket, ruta)
 );
-comment on table public.cola_gc_storage is 'Objetos de Storage que quizá ya nadie referencia: los encolan la purga de la papelera, el borrado de una foto y el barrido de huérfanos. storage_gc_reclamar() recuenta bajo candado y marca reclamado_en; sólo lo reclamado se borra por la API, y storage_gc_confirmar() lo saca. Sólo service_role.';
+comment on table public.cola_gc_storage is 'Objetos de Storage que quizá ya nadie referencia: los encolan la purga de la papelera, el borrado de una foto y el barrido de huérfanos. encolado_en es desde cuándo corre la espera de 24 h (la purga y el barrido lo retro-fechan). storage_gc_reclamar() recuenta bajo candado y marca reclamado_en; sólo lo reclamado se borra por la API, y storage_gc_confirmar() lo saca. Sólo service_role.';
+
+create table public.cola_gc_pases (
+  pase      uuid primary key default gen_random_uuid(),
+  creado_en timestamptz not null default now(),
+  usado_en  timestamptz                         -- la función storage-gc lo canjeó: no vale otra vez
+);
+comment on table public.cola_gc_pases is 'Pases de un solo uso con los que el job le pide a la función storage-gc que limpie: storage_gc_disparar() crea uno y lo manda, storage_gc_abrir() lo quema (vale 10 minutos). Es la bitácora de las corridas. Sólo service_role.';

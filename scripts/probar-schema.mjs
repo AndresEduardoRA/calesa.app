@@ -1,5 +1,5 @@
-// Aplica supabase/schemas + migrations + seed.sql en Postgres 17 embebido (PGlite) con stubs de
-// auth/storage/pgcrypto/vault y corre supabase/tests/humo.sql. Uso: node scripts/probar-schema.mjs supabase
+// Aplica supabase/schemas + migrations + seed.sql en un Postgres embebido (PGlite 0.5: Postgres 18,
+// uno más que la base real: nada de sintaxis nueva) con stubs de auth/storage/pgcrypto/vault/cron/net y corre supabase/tests/humo.sql. Uso: node scripts/probar-schema.mjs supabase
 // No reemplaza a `supabase db reset` ni a splinter: es la red rápida del pre-commit.
 import { PGlite } from '@electric-sql/pglite'
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm'
@@ -60,6 +60,19 @@ create or replace function vault.create_secret(new_secret text, new_name text de
   returns uuid language sql as $$ insert into vault.secrets (secret, name, description) values (new_secret, new_name, new_description) returning id $$;
 create or replace function vault.update_secret(secret_id uuid, new_secret text default null, new_name text default null, new_description text default null, new_key_id uuid default null)
   returns void language sql as $$ update vault.secrets set secret = coalesce(new_secret, secret), name = coalesce(new_name, name), description = coalesce(new_description, description), updated_at = now() where id = secret_id $$;
+-- pg_cron y pg_net (PGlite no las trae): sólo lo que usan nuestras funciones. Los jobs quedan
+-- anotados y los pedidos HTTP no salen: se guardan para que humo mire qué se habría mandado.
+create schema if not exists cron;
+create table if not exists cron.job (jobid bigint generated always as identity primary key, jobname text unique, schedule text not null, command text not null);
+create or replace function cron.schedule(job_name text, schedule text, command text) returns bigint language sql as $$
+  insert into cron.job (jobname, schedule, command) values (job_name, schedule, command)
+  on conflict (jobname) do update set schedule = excluded.schedule, command = excluded.command returning jobid $$;
+create or replace function cron.unschedule(job_name text) returns boolean language sql as $$
+  with borrado as (delete from cron.job where jobname = job_name returning 1) select exists (select 1 from borrado) $$;
+create schema if not exists net;
+create table if not exists net.pedidos (id bigint generated always as identity primary key, url text, body jsonb, headers jsonb, timeout_milliseconds int);
+create or replace function net.http_post(url text, body jsonb default '{}'::jsonb, params jsonb default '{}'::jsonb, headers jsonb default '{}'::jsonb, timeout_milliseconds int default 5000)
+  returns bigint language sql as $$ insert into net.pedidos (url, body, headers, timeout_milliseconds) values (url, body, headers, timeout_milliseconds) returning id $$;
 grant usage on schema public to anon, authenticated, service_role;
 `
 

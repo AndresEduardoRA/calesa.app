@@ -979,3 +979,28 @@ corre la espera»: una columna más para decir lo mismo); no filtrar por referen
 cotizaciones esperan las reglas de sus fases. Si alguien recreara un vehículo con el mismo id antes
 de que corra la limpieza, lo que protege sus fotos es `storage_gc_rescatar()` bajo candado, no la
 espera.
+
+## 2026-10-13 — `storage-gc` se dispara desde la base y se autentica con un pase de un solo uso
+
+**Contexto:** los archivos sólo se borran por la API de Storage, así que hace falta una función con
+la service key y algo que la llame cada tanto. El contrato decía «secreto en Vault»; Vault quedó
+para lo que el dueño edita desde la interfaz (decisión del 10-12), y un secreto de infraestructura
+vive en el entorno de un despliegue. Pero quien llama es la base (`pg_cron` → `pg_net`), que no
+tiene entorno: el secreto tendría que estar en Vault o en claro dentro de `cron.job`. Además
+`pg_cron` y `pg_net` nunca se habían instalado: ningún job había corrido jamás.
+**Decisión:** la base no guarda ningún secreto. `storage_gc_disparar(url)` crea un pase (uuid, un
+uso, 10 minutos) y lo manda; la función lo canjea con `storage_gc_abrir()` usando la service key
+que el runtime ya le inyecta, que es el único secreto en juego, y sin pase válido no hace nada
+(`verify_jwt = false`). La migración instala las extensiones donde están disponibles y programa la
+purga automática; `storage_gc_programar(url)` programa la limpieza cada hora y es el único paso
+por despliegue, porque la dirección de la función no se conoce desde una migración. La función no
+tiene dependencias: habla con PostgREST y Storage por HTTP.
+**Alternativas:** `STORAGE_GC_SECRET` compartido (`supabase secrets set` + el mismo valor incrustado
+en el job: queda en claro en `cron.job` y en cada fila de `cron.job_run_details`, y hay que rotarlo
+en dos lados); Vault (descartado arriba; PGlite no lo trae); un cron de Vercel que llame a un route
+handler (el cliente admin saldría de la edge function, y el despliegue todavía no existe);
+dejar la función abierta (el barrido de huérfanos recorre el bucket: cualquiera lo dispararía).
+**Consecuencia:** nada que sincronizar entre despliegues, y `cola_gc_pases` es la bitácora de las
+corridas. `pg_cron` da por bueno un job que sólo encola un pedido: si la función deja de responder
+no avisa, y por eso existe `storage_gc_pendiente()`. Deno queda fuera de lint y typecheck: a la
+función la cubre el e2e. Los otros cuatro jobs de `…000800` siguen sin programar hasta sus fases.
