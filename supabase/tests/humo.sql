@@ -1100,3 +1100,54 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+
+-- @test vehículos: la lectura se limita por origen y por alcance, con una policy de InitPlan
+reset role;
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-000000000008', 'inventario@ejemplo.com', '{"invitado": true}');
+update public.perfiles set nombre = 'Irene Paz', invitacion_aceptada_en = now() where id = '00000000-0000-0000-0000-000000000008';
+insert into public.roles (clave, nombre) values ('humo_inventario', 'Humo inventario');
+insert into public.usuarios_roles (usuario_id, rol_id) select '00000000-0000-0000-0000-000000000008', id from public.roles where clave = 'humo_inventario';
+insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+select r.id, 'vehiculos.ver', o.id, 'propios' from public.roles r, public.origenes o where r.clave = 'humo_inventario' and o.clave = 'oficina';
+insert into public.vehiculos (origen_id, titulo, creado_por)
+select o.id, x.titulo, x.creador::uuid from public.origenes o join (values
+  ('oficina', 'Humo oficina propio', '00000000-0000-0000-0000-000000000008'),
+  ('oficina', 'Humo oficina ajeno', '00000000-0000-0000-0000-000000000001'),
+  ('subasta_usa', 'Humo subasta ajeno', '00000000-0000-0000-0000-000000000001')
+) as x (origen, titulo, creador) on x.origen = o.clave;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare o uuid; linea text; plan text := ''; begin
+  -- Con alcance «propios» en un solo origen: lo suyo de ese origen y nada más.
+  if (select count(*) from public.vehiculos where titulo like 'Humo %') <> 1 then raise exception 'con alcance «propios» debía ver sólo el suyo'; end if;
+  if not exists (select 1 from public.vehiculos where titulo = 'Humo oficina propio') then raise exception 'no ve el que creó'; end if;
+  if public.origenes_con_alcance('vehiculos.ver', 'todos') <> '{}' then raise exception 'no tiene «todos» en ningún origen'; end if;
+  if cardinality(public.origenes_con_alcance('vehiculos.ver', 'propios')) <> 1 then raise exception 'tiene el permiso en un solo origen'; end if;
+  -- La policy compara la fila con lo ya calculado: ninguna función de permisos corre por fila.
+  select id into o from public.origenes where clave = 'oficina';
+  for linea in execute format('explain (verbose, costs off) select id from public.vehiculos where origen_id = %L order by creado_en desc, id desc limit 51', o) loop
+    plan := plan || linea || E'\n';
+  end loop;
+  if plan !~ 'origen_id = ANY \(\(InitPlan' then raise exception 'la policy de lectura dejó de ser de InitPlan: %', plan; end if;
+  if plan ~ 'alcance_de' then raise exception 'la policy volvió a llamar alcance_de() por fila: %', plan; end if;
+end $$;
+reset role;
+-- Con «todos» en ese origen ve los dos de ahí, y sigue sin ver el otro origen.
+update public.roles_permisos set alcance = 'todos' where rol_id = (select id from public.roles where clave = 'humo_inventario') and permiso_clave = 'vehiculos.ver';
+set role authenticated;
+do $$ begin
+  if (select count(*) from public.vehiculos where titulo like 'Humo oficina %') <> 2 then raise exception 'con «todos» en Oficina debía ver los dos de Oficina'; end if;
+  if exists (select 1 from public.vehiculos where titulo = 'Humo subasta ajeno') then raise exception 'leyó un vehículo de un origen donde no tiene permiso'; end if;
+  if cardinality(public.origenes_con_alcance('vehiculos.ver', 'todos')) <> 1 then raise exception '«todos» vale en un solo origen'; end if;
+end $$;
+reset role;
+-- Una concesión sin origen vale en todos.
+update public.roles_permisos set origen_id = null where rol_id = (select id from public.roles where clave = 'humo_inventario') and permiso_clave = 'vehiculos.ver';
+set role authenticated;
+do $$ begin
+  if (select count(*) from public.vehiculos where titulo like 'Humo %') <> 3 then raise exception 'sin origen en la concesión debía ver los tres'; end if;
+  if cardinality(public.origenes_con_alcance('vehiculos.ver', 'todos')) <> (select count(*) from public.origenes) then raise exception 'sin origen vale en todos, inactivos incluidos'; end if;
+end $$;
+reset role;

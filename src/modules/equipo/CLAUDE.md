@@ -32,7 +32,7 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
 ## Tablas
 
 `perfiles` (con `invitado_en` e `invitacion_aceptada_en`), `roles`, `permisos` (catálogo fijo), `roles_permisos`, `usuarios_roles`, `preferencias_usuario`, `vistas_guardadas`, `visitados`.
-RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_permiso`, `alcance_de`, `origenes_con_permiso`, `rol_dominado`, `concesion_dominada`, `rbac_crear_rol`, `rbac_eliminar_rol`, `rbac_otorgar`, `rbac_revocar`, `rbac_asignar_rol`, `rbac_quitar_rol`, `equipo_bloquear`, `equipo_dar_de_baja`, `equipo_vista_previa_baja`, `equipo_aceptar_invitacion`.
+RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_permiso`, `alcance_de`, `origenes_con_permiso`, `origenes_con_alcance`, `rol_dominado`, `concesion_dominada`, `rbac_crear_rol`, `rbac_eliminar_rol`, `rbac_otorgar`, `rbac_revocar`, `rbac_asignar_rol`, `rbac_quitar_rol`, `equipo_bloquear`, `equipo_dar_de_baja`, `equipo_vista_previa_baja`, `equipo_aceptar_invitacion`.
 
 ## No se rompe
 
@@ -54,7 +54,7 @@ RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_pe
 - La invitación vence con `otp_expiry` de Auth (1 h en local, hasta 24 h en la nube). Para eso está «Generar otro enlace». Si la persona ya abrió un enlace pero no eligió contraseña, Auth sólo deja generar uno de recuperación: llega a la misma pantalla.
 - `equipo.usuarios.ver` y `equipo.roles.ver` no tienen enforcement en la base (`perfiles`, `roles` y sus concesiones las lee cualquier cuenta activa): los comprueba la página.
 - Bloquear y dar de baja **no** exigen dominar los roles de la persona (deuda anotada en docs/ESTADO.md).
-- Las policies llaman `(select tiene_permiso('…'))` como InitPlan: nunca cambiar la firma sin tocar `20261011000200_rls_y_grants.sql`.
+- Las policies llaman `(select tiene_permiso('…'))` como InitPlan: nunca cambiar la firma sin tocar `20261011000200_rls_y_grants.sql`. Sólo es InitPlan si la llamada **no nombra una columna de la fila**: `(select alcance_de('x', origen_id))` corre por fila. Para acotar por origen, `origen_id = any ((select origenes_con_alcance('x', 'todos'))::uuid[])` (así está `vehiculos`).
 - `perfiles.rol` no existe a propósito: ningún `if (rol === …)` en componentes.
 - `index.ts` mezcla servidor y cliente: lo importan Server Components. Un Client Component de afuera importa `client.ts`.
 - Una etiqueta de menú de Base UI (`DropdownMenuLabel`) sólo vale dentro de un grupo: suelta, tumba la pantalla al abrir el menú.

@@ -6042,6 +6042,10 @@ export type Database = {
         }
         Returns: string
       }
+      origenes_con_alcance: {
+        Args: { p_clave: string; p_minimo: Database['public']['Enums']['alcance_permiso'] }
+        Returns: string[]
+      }
       origenes_con_permiso: { Args: { p_clave: string }; Returns: string[] }
       origenes_resumen: {
         Args: Record<PropertyKey, never>
