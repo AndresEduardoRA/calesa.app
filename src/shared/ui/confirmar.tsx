@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { Button } from './button'
 import { Input } from './input'
 import { Label } from './label'
@@ -18,6 +18,11 @@ type Props = {
   enCurso?: boolean
   // Para lo masivo e irreversible: hay que tipear esta palabra para habilitar el botón.
   palabraClave?: string
+  // No se puede confirmar ahora (sin conexión): el diálogo sigue abierto y lo dice en `children`.
+  deshabilitado?: boolean
+  // Lo que pasó con el intento (sin conexión, otra persona lo cambió): un `<Aviso>` dentro del
+  // diálogo, que no se cierra hasta que la persona decide.
+  children?: ReactNode
 }
 
 // Confirmación de lo irreversible. Lo reversible no pasa por acá: se hace y se ofrece «Deshacer»
@@ -31,6 +36,8 @@ export function Confirmar({
   etiquetaConfirmar,
   enCurso = false,
   palabraClave,
+  deshabilitado = false,
+  children,
 }: Props) {
   const idCampo = useId()
   const [tipeado, setTipeado] = useState('')
@@ -52,12 +59,17 @@ export function Confirmar({
           <Button variant="outline" onClick={cerrar} disabled={enCurso}>
             Cancelar
           </Button>
-          <Button variant="destructive" onClick={alConfirmar} disabled={enCurso || falta}>
+          <Button
+            variant="destructive"
+            onClick={alConfirmar}
+            disabled={enCurso || falta || deshabilitado}
+          >
             {etiquetaConfirmar}
           </Button>
         </>
       }
     >
+      {children}
       {palabraClave !== undefined ? (
         <div className="grid gap-2">
           <Label htmlFor={idCampo}>Para confirmar, escribir «{palabraClave}»</Label>
