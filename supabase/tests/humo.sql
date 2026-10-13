@@ -1657,8 +1657,21 @@ do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; m text; begin
     get stacked diagnostics m = message_text;
     if m not like 'Ese archivo se está limpiando%' then raise; end if;
   end;
+  -- Una foto de menos de 480 px: la completa y la miniatura son el mismo objeto. Entra, cuenta
+  -- por las dos columnas y al eliminarla se encola una sola vez.
+  declare chica jsonb; r jsonb; begin
+    chica := pg_temp.foto(v, 26) || jsonb_build_object('ruta_miniatura', pg_temp.foto(v, 26) ->> 'ruta');
+    r := public.vehiculo_fotos_agregar(v, jsonb_build_array(chica));
+    if jsonb_array_length(r -> 'agregadas') <> 1 then raise exception 'no entró la foto chica: %', r; end if;
+    if public.storage_refcount('vehiculos', chica ->> 'ruta') <> 2 then raise exception 'la foto chica debía contar por sus dos columnas'; end if;
+    r := public.vehiculo_foto_eliminar(v, (r ->> 'actualizado_en')::timestamptz, pg_temp.foto_id(v, 26));
+    if (r -> 'foto' ->> 'ruta') is distinct from (chica ->> 'ruta') then raise exception 'no eliminó la foto chica: %', r; end if;
+  end;
 end $$;
 reset role;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; begin
+  if (select count(*) from public.cola_gc_storage where ruta = pg_temp.foto(v, 26) ->> 'ruta') <> 1 then raise exception 'la foto chica debía quedar una vez en la cola'; end if;
+end $$;
 delete from public.cola_gc_storage;
 
 -- @test fotos: RLS por origen en las tablas y en storage; editar lo decide la base

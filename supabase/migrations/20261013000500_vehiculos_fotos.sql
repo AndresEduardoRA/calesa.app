@@ -299,8 +299,10 @@ begin
   end if;
   perform public._fotos_exigir_version(p_vehiculo, v_version, p_actualizado_en_esperado);
   delete from public.vehiculos_imagenes x where x.id = f.id;
+  -- `distinct`: una foto de menos de 480 px tiene la completa y la miniatura iguales, o sea un
+  -- solo objeto, y un `on conflict do update` no puede tocar dos veces la misma fila.
   insert into public.cola_gc_storage as c (bucket, ruta)
-  select 'vehiculos', r from unnest(array[f.ruta, f.ruta_miniatura]) as r
+  select distinct 'vehiculos', r from unnest(array[f.ruta, f.ruta_miniatura]) as r
   on conflict (bucket, ruta) do update set encolado_en = now() where c.reclamado_en is null;
   return jsonb_build_object(
     'actualizado_en', public._fotos_cerrar(p_vehiculo, 'vehiculo.foto_eliminada', jsonb_build_object('foto', f.id, 'hash', f.hash)),
