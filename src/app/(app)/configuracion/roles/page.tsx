@@ -21,13 +21,17 @@ export default async function PaginaRoles() {
   if (!puedeGestionar && !puede(sesion.permisos, 'equipo.roles.ver')) {
     return <EstadoSinPermiso />
   }
-  const [matriz, origenes] = await Promise.all([leerMatriz(), getOrigenes()])
+  // También los desactivados: lo que se les otorgó sigue valiendo y no se esconde.
+  const [matriz, origenes] = await Promise.all([leerMatriz(), getOrigenes(true)])
   const { roles, catalogo } = datosO(matriz)
   return (
     <MatrizDeRoles
       roles={roles}
       grupos={agruparPorModulo(catalogo)}
-      origenes={datosO(origenes).map(({ id, nombre }) => ({ id, nombre }))}
+      origenes={datosO(origenes).map(({ id, nombre, activo }) => ({
+        id,
+        nombre: activo ? nombre : `${nombre} (inactivo)`,
+      }))}
       misPermisos={sesion.permisos}
       puedeGestionar={puedeGestionar}
     />

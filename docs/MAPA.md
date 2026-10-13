@@ -63,9 +63,11 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 - Depende de: ningún otro módulo
 
 ### `origenes`
-Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías; al crear uno nacen su flujo y su fórmula vacía. · 4 archivos
-- API: `getOrigenes`, `OrigenResumen`
+Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías; al crear uno nacen su flujo y su fórmula vacía. · 73 archivos
+- API: `getOrigenes`, `OrigenResumen`, `leerLayout`, `leerOrigenes`, `OrigenConUso`, `ListaDeOrigenes`, `DatosDelOrigen`, `EditorDeCampos`, `ArbolDeCategorias`, `pasosDe`, +4
+- API de cliente (`client.ts`): `articulo`, `concordar`, `contados`, `frasePorVacio`, `generoSugerido`, `ninguno`, `pluralDe`, `Genero`, `OrigenResumen`, `TipoDeOrigen`, +1
 - Depende de: ningún otro módulo
+- Casos de uso: campos, categorias, origenes, pasos
 
 ### `repuestos`
 Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo de repuestos con el mismo motor, imágenes, stock, compras con permiso de costos y un cotizador propio con configuración versionada. · 1 archivos
@@ -106,6 +108,8 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `/auth/nueva-contrasena` — página
 - `/configuracion/empresa` — página
 - `/configuracion/equipo` — página
+- `/configuracion/origenes/[id]` — página
+- `/configuracion/origenes` — página
 - `/configuracion/roles` — página
 - `/configuracion` — página
 - `/iconos/vigente/[tamano]` — API
