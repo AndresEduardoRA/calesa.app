@@ -6,8 +6,22 @@
 export { getOrigenes } from './composicion'
 export type { OrigenResumen } from './entities/origen'
 
+// El layout de un origen para quien lo consume: la ficha, los filtros y el alta de `vehiculos`.
+// `leerLayout()` trae todos los campos (también los desactivados) y las categorías.
+export { leerLayout } from './composicion'
+export { agruparCampos, tieneOpciones } from './entities/campo'
+export type {
+  CampoDeLayout,
+  GrupoDeCampos,
+  OpcionDeCampo,
+  TipoDeCampo,
+  ValorDefecto,
+} from './entities/campo'
+export type { Categoria } from './entities/categoria'
+export type { LayoutDeOrigen } from './entities/repositorios'
+
 // Configuración › Orígenes: lista, datos, layout de campos y categorías
-export { leerLayout, leerOrigenes } from './composicion'
+export { leerOrigenes } from './composicion'
 export type { OrigenConUso } from './entities/origen'
 export { ListaDeOrigenes } from './features/origenes/components/lista-de-origenes'
 export { DatosDelOrigen } from './features/origenes/components/datos-del-origen'

@@ -13,18 +13,34 @@ export const ETIQUETA_DE_TIPO_DE_ORIGEN: Record<TipoDeOrigen, string> = {
   manual: 'Manual',
 }
 
-// Lo mínimo para nombrar y elegir un origen desde otra pantalla (la matriz de roles acota
-// permisos por origen). `activo` deja marcar uno desactivado sin esconder lo que se le otorgó.
+// Lo mínimo para nombrar y elegir un origen desde otra pantalla: la matriz de roles acota permisos
+// por origen, y el inventario tiene una pestaña por cada uno. `activo` deja marcar uno desactivado
+// sin esconder lo suyo; el sustantivo y el género son para escribir «Nueva unidad» sin texto fijo,
+// y el tipo decide qué datos comunes lleva lo que entra (lote y plataforma sólo en subasta).
 export type OrigenResumen = {
   id: string
   nombre: string
   color: string
   activo: boolean
+  sustantivo: string
+  genero: Genero
+  tipo: TipoDeOrigen
 }
+
+// Las columnas que pide `origenesDesde()`.
+export const COLUMNAS_DE_RESUMEN = 'id, nombre, color, activo, sustantivo, genero, tipo'
 
 // guid y no uuid: `z.uuid()` exige versión y variante RFC, y Postgres acepta cualquier uuid.
 const esquemaResumen = z.array(
-  z.object({ id: z.guid(), nombre: z.string(), color: z.string(), activo: z.boolean() }),
+  z.object({
+    id: z.guid(),
+    nombre: z.string(),
+    color: z.string(),
+    activo: z.boolean(),
+    sustantivo: z.string(),
+    genero: z.enum(GENEROS),
+    tipo: z.enum(TIPOS_DE_ORIGEN),
+  }),
 )
 
 export function origenesDesde(filas: unknown): OrigenResumen[] {
@@ -34,9 +50,6 @@ export function origenesDesde(filas: unknown): OrigenResumen[] {
 export type Origen = OrigenResumen & {
   // Estable: lo nombran las fórmulas y las fichas. Sale del nombre al crear y no cambia.
   clave: string
-  sustantivo: string
-  genero: Genero
-  tipo: TipoDeOrigen
   apibaraPlataformas: string[]
   // La versión de la fila: toda edición la manda.
   actualizadoEn: string

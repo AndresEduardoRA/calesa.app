@@ -11,10 +11,16 @@ const ID = '00000000-0000-0000-0000-00000000000a'
 
 describe('origenesDesde', () => {
   it('se queda con lo que hace falta para nombrar y elegir un origen', () => {
-    const filas = [{ id: ID, nombre: 'Oficina', color: '#027a48', activo: true, tipo: 'manual' }]
-    expect(origenesDesde(filas)).toEqual([
-      { id: ID, nombre: 'Oficina', color: '#027a48', activo: true },
-    ])
+    const origen = {
+      id: ID,
+      nombre: 'Oficina',
+      color: '#027a48',
+      activo: true,
+      sustantivo: 'unidad',
+      genero: 'f',
+      tipo: 'manual',
+    }
+    expect(origenesDesde([{ ...origen, clave: 'oficina', orden: 3 }])).toEqual([origen])
   })
 
   it('sin orígenes devuelve una lista vacía', () => {
@@ -22,7 +28,18 @@ describe('origenesDesde', () => {
   })
 
   it('rechaza una fila sin nombre en vez de inventarlo', () => {
-    expect(() => origenesDesde([{ id: ID, color: '#027a48', activo: true }])).toThrow()
+    expect(() =>
+      origenesDesde([
+        {
+          id: ID,
+          color: '#027a48',
+          activo: true,
+          sustantivo: 'unidad',
+          genero: 'f',
+          tipo: 'manual',
+        },
+      ]),
+    ).toThrow()
   })
 })
 

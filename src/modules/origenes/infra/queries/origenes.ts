@@ -3,6 +3,7 @@ import { cache } from 'react'
 import { errorDePostgrest, ok, type Resultado } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import {
+  COLUMNAS_DE_RESUMEN,
   origenesConUsoDesde,
   origenesDesde,
   type OrigenConUso,
@@ -15,7 +16,7 @@ import {
 export const getOrigenes = cache(
   async (incluirInactivos = false): Promise<Resultado<OrigenResumen[]>> => {
     const supabase = await createClient()
-    const consulta = supabase.from('origenes').select('id, nombre, color, activo')
+    const consulta = supabase.from('origenes').select(COLUMNAS_DE_RESUMEN)
     const { data, error } = await (incluirInactivos ? consulta : consulta.eq('activo', true))
       .order('orden')
       .order('nombre')
