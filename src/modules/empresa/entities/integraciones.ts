@@ -1,6 +1,7 @@
 // Integraciones: un interruptor y su configuración no secreta. El secreto (la clave de la API)
 // vive en Vault; de él la app sólo sabe cuándo se guardó (docs/DECISIONES.md).
 import { z } from 'zod'
+import { PLATAFORMAS_APIBARA, type PlataformaApibara } from '@/shared/lib/apibara'
 import type { Tables } from '@/shared/types/database.types'
 
 export const CLAVES_INTEGRACION = ['apibara', 'push_web', 'web_publica'] as const
@@ -40,8 +41,8 @@ export function integracionesDesde(filas: readonly Tables<'integraciones'>[]): I
 
 // --- apibara: trae la ficha de un vehículo de subasta a partir de su link o su lote ------------
 
-export const PLATAFORMAS_APIBARA = ['copart', 'iaai'] as const
-export type PlataformaApibara = (typeof PLATAFORMAS_APIBARA)[number]
+// La lista vive en `shared`: los orígenes de subasta también la usan y no pueden importar `empresa`.
+export { PLATAFORMAS_APIBARA, type PlataformaApibara }
 
 // A esta dirección manda la edge function la clave de la API. Por eso no puede ser cualquiera:
 // quien pudiera apuntarla a otro sitio se llevaría la clave sin haberla leído. La base repite la

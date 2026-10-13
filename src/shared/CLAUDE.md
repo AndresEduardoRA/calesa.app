@@ -19,6 +19,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `lib/color.ts` — `contraste()`, `tokensDeMarca()` (acepta o rechaza el color de la empresa y deriva sus tokens), `cssDeMarca()`.
 - `lib/atajos.ts` — catálogo `ATAJOS` y `atajoDe(evento)`; `ui/atajos/` — `<ProveedorAtajos>` y `useAtajo(clave, manejador, activo)`: responde el último registrado (así `Esc` cierra de a un panel) y un atajo sin nadie registrado no hace nada.
 - `lib/almacen.ts` — `urlPublica(bucket, ruta)`; `lib/imagenes.ts` — `comprimirImagen()` (WebP para fotos; PNG para lo que no tolera pérdida), `hashDe()`; `lib/supabase/almacen.client.ts` — `subirPorHash()`, `quitarSiHuerfano()` (borra sólo con `storage_refcount` en 0).
+- `lib/apibara.ts` — `PLATAFORMAS_APIBARA` y `NOMBRE_DE_PLATAFORMA`: el vocabulario del proveedor, que `empresa` (integración) y `origenes` (subasta) comparten sin importarse.
 - `lib/formato.ts` — `formatearMonto()`, `formatearNumero()`, `formatearPorcentaje()` con `Intl`.
 - `lib/fechas.ts` — `formatearFecha()`, `formatearFechaHora()`, `fechaRelativa()`, `diaEnZona()` en la zona de la empresa.
 - `config/entorno.ts` — variables públicas validadas con Zod; `config/app.ts` — nombre y colores por defecto (copias de `design/tokens.css` que un test compara).

@@ -1,18 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  NOMBRE_DE_PLATAFORMA,
+  PLATAFORMAS_APIBARA,
+  type PlataformaApibara,
+} from '@/shared/lib/apibara'
 import { enfocarPrimerError, errorDeCampo, valoresDe } from '@/shared/lib/formularios'
 import { Button } from '@/shared/ui/button'
 import { Campo } from '@/shared/ui/campo'
-import {
-  PLATAFORMAS_APIBARA,
-  type ConfigApibara as Config,
-  type PlataformaApibara,
-} from '../../../entities/integraciones'
+import type { ConfigApibara as Config } from '../../../entities/integraciones'
 import type { EdicionesDeApibara } from '../hooks/use-apibara'
-
-// Nombres propios de las casas de subasta que apibara sabe leer.
-const NOMBRE_DE_PLATAFORMA: Record<PlataformaApibara, string> = { copart: 'Copart', iaai: 'IAAI' }
 
 type Props = { config: Config; puedeEditar: boolean; ediciones: EdicionesDeApibara }
 
