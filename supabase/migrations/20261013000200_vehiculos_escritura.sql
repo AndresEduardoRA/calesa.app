@@ -332,16 +332,16 @@ grant execute on function public.vehiculo_crear(uuid, uuid, jsonb) to authentica
 -- sólo lo que creó o lo vinculado a un lead de su cartera. El origen de un vehículo no cambia.
 create or replace function public.vehiculo_guardar(p_vehiculo uuid, p_actualizado_en_esperado timestamptz, p_datos jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v public.vehiculos; n public.vehiculos; v_alcance public.alcance_permiso;
+declare v public.vehiculos; n public.vehiculos;
 begin
   perform public.assert_activo();
   select * into v from public.vehiculos x where x.id = p_vehiculo and x.eliminado_en is null for update;
   if not found then
     raise exception 'Ese vehículo ya no existe o está en la papelera.' using errcode = 'PT409';
   end if;
-  v_alcance := public.alcance_de('vehiculos.editar', v.origen_id);
-  if v_alcance is null
-     or (v_alcance = 'propios' and not (v.creado_por = (select auth.uid()) or v.lead_id in (select public.mis_leads()))) then
+  -- `puede_vehiculo()` y no la condición escrita acá: con `lead_id` nulo, `lead_id in (…)` da nulo,
+  -- y un `if` con nulo no levanta (dejaba editar lo ajeno a quien tuviera algún lead en su cartera).
+  if not public.puede_vehiculo(v.id, 'vehiculos.editar') then
     raise exception 'No tienes permiso para editar este vehículo.' using errcode = '42501';
   end if;
   if p_actualizado_en_esperado is null then

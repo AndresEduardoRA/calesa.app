@@ -92,20 +92,18 @@ create trigger trg_vehiculo_imagen_integridad before insert on public.vehiculos_
 -- ---------------------------------------------------------------------------
 -- Abrir y cerrar una operación sobre las fotos de un vehículo
 -- ---------------------------------------------------------------------------
--- Misma regla de permiso que `vehiculo_guardar()`. Devuelve la versión vigente con su fila
+-- Misma regla de permiso que `vehiculo_guardar()` (`puede_vehiculo`). Devuelve la versión vigente con su fila
 -- bloqueada: desde acá, las operaciones sobre las fotos de este vehículo van de a una.
 create or replace function public._fotos_abrir(p_vehiculo uuid)
 returns timestamptz language plpgsql security definer set search_path = '' as $$
-declare v public.vehiculos; v_alcance public.alcance_permiso; v_version timestamptz;
+declare v public.vehiculos; v_version timestamptz;
 begin
   perform public.assert_activo();
   select * into v from public.vehiculos x where x.id = p_vehiculo and x.eliminado_en is null for key share;
   if not found then
     raise exception 'Ese vehículo ya no existe o está en la papelera.' using errcode = 'PT409';
   end if;
-  v_alcance := public.alcance_de('vehiculos.editar', v.origen_id);
-  if v_alcance is null
-     or (v_alcance = 'propios' and not (v.creado_por = (select auth.uid()) or v.lead_id in (select public.mis_leads()))) then
+  if not public.puede_vehiculo(v.id, 'vehiculos.editar') then
     raise exception 'No tienes permiso para cambiar las fotos de este vehículo.' using errcode = '42501';
   end if;
   insert into public.vehiculos_imagenes_version (vehiculo_id, actualizado_en)

@@ -1719,3 +1719,28 @@ do $$ begin
 end $$;
 reset role;
 delete from storage.objects where name = 'logos/humo.png';
+
+-- @test alcance «propios»: tener leads en la cartera no abre los vehículos ajenos sin vínculo
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Irene y Bruno llevan cada uno su cartera: ven y editan sólo sus leads.
+insert into public.roles_permisos (rol_id, permiso_clave, alcance)
+select r.id, x.clave, 'propios' from public.roles r, (values ('leads.ver'), ('leads.editar')) as x (clave)
+where r.clave in ('humo_inventario', 'humo_inventario_todo');
+insert into public.leads (id, nombre, telefono_principal, creado_por) values
+  ('cccccccc-0000-4000-8000-000000000008', 'Lead de Irene', '59170000108', '00000000-0000-0000-0000-000000000008'),
+  ('cccccccc-0000-4000-8000-000000000009', 'Lead de Bruno', '59170000109', '00000000-0000-0000-0000-000000000009');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare ajeno uuid; begin
+  select id into ajeno from public.vehiculos where titulo = 'Humo oficina ajeno';
+  if (select count(*) from public.mis_leads()) <> 1 then raise exception 'Irene debía tener un lead en su cartera'; end if;
+  -- El vehículo no tiene lead: `lead_id in (mis leads)` da nulo, y eso no puede leerse como «sí».
+  begin perform public.vehiculo_guardar(ajeno, (select actualizado_en from public.vehiculos where id = ajeno), '{"marca": "Pisada"}'); raise exception 'con un lead en la cartera editó un vehículo ajeno sin vínculo';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_fotos_agregar(ajeno, pg_temp.fotos(ajeno, 2, 2)); raise exception 'con un lead en la cartera cambió las fotos de un vehículo ajeno sin vínculo';
+  exception when insufficient_privilege then null; end;
+  if exists (select 1 from public.vehiculos_editables(array[ajeno])) then raise exception 'vehiculos_editables da por editable un vehículo ajeno sin vínculo'; end if;
+end $$;
+reset role;
