@@ -56,6 +56,9 @@ const POR_CODIGO: Record<string, { codigo: CodigoError; generico: string }> = {
   '23505': { codigo: 'duplicado', generico: 'Ya existe un registro con esos datos.' },
   '23503': { codigo: 'regla', generico: 'No se puede: hay otros datos que dependen de este.' },
   '23514': { codigo: 'regla', generico: 'El dato no cumple una regla del sistema.' },
+  // Lo que levantan las RPC y los triggers cuando un dato no es válido o falta uno requerido.
+  '22023': { codigo: 'regla', generico: 'Hay un dato que no es válido.' },
+  '23502': { codigo: 'regla', generico: 'Falta un dato requerido.' },
   P0001: { codigo: 'regla', generico: 'No se puede completar la operación.' },
   PGRST116: { codigo: 'no_encontrado', generico: 'No se encontró lo que buscabas.' },
   PGRST301: { codigo: 'no_autenticado', generico: MENSAJE_SESION_VENCIDA },

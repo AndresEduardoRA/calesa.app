@@ -76,6 +76,23 @@ describe('errorDePostgrest', () => {
     expect(errorDePostgrest({ code: 'PT409', message: '  ' }).mensaje).toBe(MENSAJE_CONFLICTO)
   })
 
+  it('un dato inválido o un requerido que falta es una regla, con el motivo de la base', () => {
+    expect(
+      errorDePostgrest({ code: '22023', message: '«Cilindros» tiene que ser un número.' }),
+    ).toEqual({
+      codigo: 'regla',
+      mensaje: '«Cilindros» tiene que ser un número.',
+    })
+    expect(errorDePostgrest({ code: '23502', message: 'Falta «Condición».' })).toEqual({
+      codigo: 'regla',
+      mensaje: 'Falta «Condición».',
+    })
+    expect(
+      errorDePostgrest({ code: '23502', message: 'null value in column "titulo" of relation' })
+        .mensaje,
+    ).toBe('Falta un dato requerido.')
+  })
+
   it('un código desconocido o ausente es inesperado y no filtra detalles', () => {
     expect(errorDePostgrest({ code: 'XX000', message: 'internal error at 0x1f' })).toEqual({
       codigo: 'inesperado',

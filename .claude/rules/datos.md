@@ -25,11 +25,15 @@ paths:
   para leer el teléfono.
 - Los orígenes, su layout de campos y sus categorías se escriben sólo por RPC (`origen_*`,
   `categoria_*`): sus tablas son de sólo lectura, y un campo con datos no cambia de tipo ni se elimina.
+- Los vehículos se escriben sólo por RPC: `vehiculo_crear` (con el `id` que genera el navegador:
+  reintentar no duplica) y `vehiculo_guardar` (con versión). La tabla es de sólo lectura: no hay
+  `.insert()` ni `.update()` sobre `vehiculos`. Un error de validación trae en `hint` el campo
+  (`anio`, `atributos.<clave>`). Bajo RLS los filtros sobre `atributos` no usan el GIN.
 - Lo que otorga permisos se escribe por RPC: `crear_lead`, `cambiar_fase`, `vehiculo_vitrina`,
   `papelera_*`, `formula_*`, `rbac_*`, `otorgar_portal`, `transferir_lead`, `compartir_lead`,
   `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.
   Un `.update()` sobre `fase_id`, `publicado_web`, `eliminado_en`, `creado_por` o `responsable_id`
-  es un bug (la base lo rechaza por grant de columna).
+  es un bug (la base lo rechaza).
 - Toda mutación de edición manda `p_actualizado_en_esperado` o `p_fase_esperada` (la RPC los exige: un
   nulo se rechaza) y trata `PT409` como conflicto legible (`conflicto()` de `@/shared/lib/errores`),
   nunca como error genérico.

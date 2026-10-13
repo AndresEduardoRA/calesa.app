@@ -5054,8 +5054,9 @@ export type Database = {
           titulo: string
           url_origen: string | null
           vin: string | null
+          _vehiculo_sin_repetidos: undefined | null
         }
-        ComputedFields: never
+        ComputedFields: '_vehiculo_sin_repetidos'
         Insert: {
           acepta_permuta?: boolean | null
           actualizado_en?: string
@@ -5768,10 +5769,15 @@ export type Database = {
       }
     }
     Functions: {
+      _conflicto_de_edicion: {
+        Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
+        Returns: undefined
+      }
       _exigir_version: {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
       }
+      _hace: { Args: { p_cuando: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
       _origen_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
@@ -5788,6 +5794,90 @@ export type Database = {
       }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
       _rol_tocar: { Args: { p_rol: string }; Returns: string }
+      _vehiculo_aplicar: {
+        Args: {
+          p_datos: Json
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: {
+          acepta_permuta: boolean | null
+          actualizado_en: string
+          anio: number | null
+          apibara_raw: Json | null
+          apibara_sync_en: string | null
+          atributos: NonNullable<Json>
+          categoria_id: string | null
+          creado_en: string
+          creado_por: string | null
+          destacado_web: boolean
+          eliminado_en: string | null
+          eliminado_por: string | null
+          estado_subasta: string | null
+          fase_desde: string | null
+          fase_id: string | null
+          id: string
+          kilometraje: number | null
+          lead_id: string | null
+          lote: string | null
+          lote_papelera_id: string | null
+          marca: string | null
+          modelo: string | null
+          numero: number
+          origen_id: string
+          placado: boolean | null
+          plataforma: string | null
+          precio: number | null
+          precio_negociable: boolean | null
+          precio_web: number | null
+          precio_web_hasta: number | null
+          precio_web_nota: string | null
+          publicado_web: boolean
+          subasta_en: string | null
+          subasta_fin_en: string | null
+          subasta_zona: string | null
+          titulo: string
+          url_origen: string | null
+          vin: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'vehiculos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _vehiculo_fase_de_entrada: { Args: { p_origen: string; p_vehiculo: string }; Returns: string }
+      _vehiculo_numero: {
+        Args: {
+          p_clave: string
+          p_datos: Json
+          p_entero: boolean
+          p_maximo: number
+          p_minimo: number
+          p_nombre: string
+        }
+        Returns: number
+      }
+      _vehiculo_si_no: {
+        Args: { p_clave: string; p_datos: Json; p_nombre: string }
+        Returns: boolean
+      }
+      _vehiculo_sin_repetidos: {
+        Args: {
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: undefined
+      }
+      _vehiculo_texto: {
+        Args: { p_clave: string; p_datos: Json; p_largo: number; p_nombre: string }
+        Returns: string
+      }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
@@ -6195,6 +6285,11 @@ export type Database = {
       }
       usuario_tiene_permiso: { Args: { p_clave: string; p_usuario: string }; Returns: boolean }
       validar_formula: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
+      vehiculo_crear: { Args: { p_datos: Json; p_id: string; p_origen: string }; Returns: Json }
+      vehiculo_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_datos: Json; p_vehiculo: string }
+        Returns: Json
+      }
       vehiculo_vitrina: {
         Args: {
           p_destacado?: boolean

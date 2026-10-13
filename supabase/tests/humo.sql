@@ -168,17 +168,22 @@ do $$ begin
   if not exists (select 1 from public.actividad where accion = 'lead.adoptado_del_limbo') then raise exception 'sin registro de adopción'; end if;
 end $$;
 
--- @test vehículo de subasta: atributos validados, 24 fotos, vitrina sólo por RPC
+-- @test vehículo de subasta: alta sólo por RPC, atributos validados, 24 fotos, vitrina sólo por RPC
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 set role authenticated;
 do $$ declare o uuid; v uuid; i int; begin
   select id into o from public.origenes where clave = 'subasta_usa';
   begin
-    insert into public.vehiculos (origen_id, titulo, atributos, creado_por) values (o, 'Mal', '{"cilindros": "cuatro"}', '00000000-0000-0000-0000-000000000004');
+    insert into public.vehiculos (origen_id, titulo, creado_por) values (o, 'Directo', '00000000-0000-0000-0000-000000000004');
+    raise exception 'insertó un vehículo sin pasar por vehiculo_crear';
+  exception when insufficient_privilege then null; end;
+  begin
+    perform public.vehiculo_crear(gen_random_uuid(), o, '{"titulo": "Mal", "atributos": {"cilindros": "cuatro"}}');
     raise exception 'aceptó un atributo con tipo incorrecto';
   exception when invalid_parameter_value then null; end;
-  insert into public.vehiculos (origen_id, titulo, marca, modelo, anio, vin, lote, plataforma, atributos, creado_por)
-  values (o, '2021 Toyota RAV4 XLE', 'Toyota', 'RAV4', 2021, 'JTMW1RFV8MD012345', '58741223', 'copart', '{"color": "Gris", "cilindros": 4, "enciende_y_anda": true}', '00000000-0000-0000-0000-000000000004') returning id into v;
+  v := (public.vehiculo_crear('aaaaaaaa-0000-4000-8000-000000000001', o,
+    '{"titulo": "2021 Toyota RAV4 XLE", "marca": "Toyota", "modelo": "RAV4", "anio": 2021, "vin": "JTMW1RFV8MD012345", "lote": "58741223", "plataforma": "copart", "atributos": {"color": "Gris", "cilindros": 4, "enciende_y_anda": true}}') ->> 'id')::uuid;
+  if (select creado_por from public.vehiculos where id = v) <> '00000000-0000-0000-0000-000000000004' then raise exception 'el alta no selló quién lo creó'; end if;
   for i in 1..24 loop insert into public.vehiculos_imagenes (vehiculo_id, ruta, orden) values (v, v || '/' || i || '.webp', i); end loop;
   begin
     insert into public.vehiculos_imagenes (vehiculo_id, ruta, orden) values (v, v || '/25.webp', 25);
@@ -189,6 +194,10 @@ do $$ declare o uuid; v uuid; i int; begin
     raise exception 'dejó publicar por UPDATE directo';
   exception when insufficient_privilege then null; end;
   begin
+    update public.vehiculos set titulo = 'Pisado' where id = v;
+    raise exception 'dejó editar por UPDATE directo, sin versión';
+  exception when insufficient_privilege then null; end;
+  begin
     perform public.vehiculo_vitrina(v, true);
     raise exception 'el asesor no tiene vehiculos.vitrina';
   exception when insufficient_privilege then null; end;
@@ -196,16 +205,23 @@ end $$;
 reset role;
 
 -- @test motor de flujos: inicial, requisitos bloqueantes, cotización final, PT409, lote parcial
+insert into public.vehiculos (origen_id, titulo, creado_por)
+select id, 'Sin fase de humo', '00000000-0000-0000-0000-000000000001' from public.origenes where clave = 'subasta_usa';
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false);
 set role authenticated;
-do $$ declare v uuid; f_sub uuid; f_comp uuid; pre jsonb; h bigint; res jsonb; begin
+do $$ declare v uuid; sin_fase uuid; f_sub uuid; f_comp uuid; pre jsonb; h bigint; res jsonb; begin
   select id into v from public.vehiculos where lote = '58741223';
+  select id into sin_fase from public.vehiculos where titulo = 'Sin fase de humo';
   select f.id into f_sub from public.fases f join public.flujos fl on fl.id = f.flujo_id join public.origenes o on o.id = fl.origen_id where o.clave = 'subasta_usa' and f.nombre = 'En subasta';
   select f.id into f_comp from public.fases f join public.flujos fl on fl.id = f.flujo_id join public.origenes o on o.id = fl.origen_id where o.clave = 'subasta_usa' and f.nombre = 'Comprado';
-  pre := public.previsualizar_cambio_fase(v, null, f_comp);
+  -- Uno que quedó sin fase (lo que pasa con cero o varias iniciales) entra por cambiar_fase.
+  pre := public.previsualizar_cambio_fase(sin_fase, null, f_comp);
   if (pre ->> 'ok')::boolean then raise exception 'sin fase no se puede ir a Comprado'; end if;
-  h := public.cambiar_fase(v, null, f_sub, null, null);
-  if (select fase_id from public.vehiculos where id = v) <> f_sub then raise exception 'no entró a la inicial'; end if;
+  h := public.cambiar_fase(sin_fase, null, f_sub, null, null);
+  if (select fase_id from public.vehiculos where id = sin_fase) <> f_sub then raise exception 'no entró a la inicial'; end if;
+  -- El que se dio de alta por la RPC ya nació en la única inicial del flujo, con su historial.
+  if (select fase_id from public.vehiculos where id = v) is distinct from f_sub then raise exception 'el alta no lo dejó en la fase inicial'; end if;
+  if (select count(*) from public.historial_fases where vehiculo_id = v and de_fase_id is null and a_fase_id = f_sub) <> 1 then raise exception 'la entrada a la inicial no quedó en el historial'; end if;
   pre := public.previsualizar_cambio_fase(v, null, f_comp);
   if (pre ->> 'ok')::boolean or jsonb_array_length(pre -> 'faltan') <> 2 then raise exception 'esperaba 2 requisitos faltantes: %', pre; end if;
   begin
@@ -1151,3 +1167,200 @@ do $$ begin
   if cardinality(public.origenes_con_alcance('vehiculos.ver', 'todos')) <> (select count(*) from public.origenes) then raise exception 'sin origen vale en todos, inactivos incluidos'; end if;
 end $$;
 reset role;
+
+-- @test vehículos: el alta valida, no se duplica y entra a la única fase inicial
+reset role;
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-000000000009', 'bruno@ejemplo.com', '{"invitado": true}');
+update public.perfiles set nombre = 'Bruno Lima', invitacion_aceptada_en = now() where id = '00000000-0000-0000-0000-000000000009';
+-- Irene: crea y edita lo propio, sólo en Oficina. Bruno: crea y edita todo, en todos los orígenes.
+delete from public.roles_permisos where rol_id = (select id from public.roles where clave = 'humo_inventario');
+insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+select r.id, x.clave, o.id, x.alcance::public.alcance_permiso from public.roles r, public.origenes o,
+  (values ('vehiculos.ver', 'todos'), ('vehiculos.crear', 'todos'), ('vehiculos.editar', 'propios')) as x (clave, alcance)
+where r.clave = 'humo_inventario' and o.clave = 'oficina';
+insert into public.roles (clave, nombre) values ('humo_inventario_todo', 'Humo inventario todo');
+insert into public.usuarios_roles (usuario_id, rol_id) select '00000000-0000-0000-0000-000000000009', id from public.roles where clave = 'humo_inventario_todo';
+insert into public.roles_permisos (rol_id, permiso_clave, alcance)
+select r.id, x.clave, 'todos' from public.roles r, (values ('vehiculos.ver'), ('vehiculos.crear'), ('vehiculos.editar')) as x (clave) where r.clave = 'humo_inventario_todo';
+insert into public.origenes (clave, nombre, tipo) values ('humo_sin_fases', 'Humo sin fases', 'manual');
+insert into public.categorias (origen_id, nombre) select id, 'Humo ajena' from public.origenes where clave = 'subasta_usa';
+insert into public.categorias (origen_id, nombre) select id, 'Humo propia' from public.origenes where clave = 'oficina';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare oficina uuid; usa uuid; r jsonb; v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; f uuid; n int; begin
+  select id into oficina from public.origenes where clave = 'oficina';
+  select id into usa from public.origenes where clave = 'subasta_usa';
+  select fa.id into f from public.fases fa join public.flujos fl on fl.id = fa.flujo_id where fl.origen_id = oficina and fa.es_inicial;
+  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Colado"}'); raise exception 'creó en un origen donde no tiene permiso';
+  exception when insufficient_privilege then null; end;
+  -- Lo que antes dejaba pasar el INSERT directo: fase, vitrina, dueño.
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, jsonb_build_object('titulo', 'Colado', 'fase_id', f)); raise exception 'aceptó fase_id en el alta';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Colado", "publicado_web": true}'); raise exception 'aceptó publicado_web en el alta';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Colado", "creado_por": "00000000-0000-0000-0000-000000000001"}'); raise exception 'aceptó creado_por en el alta';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"marca": "Sin título"}'); raise exception 'creó un vehículo sin título';
+  exception when not_null_violation then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Año malo", "anio": 99999}'); raise exception 'aceptó un año fuera de rango';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "VIN malo", "vin": "OOOO"}'); raise exception 'aceptó un VIN mal formado';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, jsonb_build_object('titulo', 'Categoría ajena', 'categoria_id', (select id from public.categorias where nombre = 'Humo ajena'))); raise exception 'aceptó una categoría de otro origen';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Campo ajeno", "atributos": {"cilindros": 4}}'); raise exception 'aceptó un atributo que no es del layout de ese origen';
+  exception when invalid_parameter_value then null; end;
+
+  r := public.vehiculo_crear(v, oficina, jsonb_build_object('titulo', '  2020 Kia Rio  ', 'marca', 'Kia', 'anio', 2020, 'vin', 'kmhd35le5du123456', 'precio', 9800.456,
+    'categoria_id', (select id from public.categorias where nombre = 'Humo propia'), 'atributos', '{"color": "Rojo", "motor": "1.6", "descripcion": ""}'::jsonb));
+  if (r ->> 'id')::uuid <> v or (r ->> 'fase_id')::uuid is distinct from f then raise exception 'el alta no devolvió el vehículo en su fase inicial: %', r; end if;
+  if not exists (select 1 from public.vehiculos x where x.id = v and x.titulo = '2020 Kia Rio' and x.vin = 'KMHD35LE5DU123456' and x.precio = 9800.46
+      and x.creado_por = '00000000-0000-0000-0000-000000000008' and x.atributos = '{"color": "Rojo", "motor": "1.6"}'::jsonb and x.fase_desde is not null) then
+    raise exception 'el alta no normalizó lo que guardó: %', (select to_jsonb(x) - 'apibara_raw' from public.vehiculos x where x.id = v);
+  end if;
+  -- Reintentar con el mismo id (se perdió la respuesta) devuelve el mismo: no duplica.
+  select count(*) into n from public.vehiculos;
+  r := public.vehiculo_crear(v, oficina, '{"titulo": "2020 Kia Rio"}');
+  if (r ->> 'id')::uuid <> v or (select count(*) from public.vehiculos) <> n then raise exception 'repetir el alta con el mismo id duplicó el vehículo'; end if;
+  -- El VIN es único entre los vehículos vivos; el lote, por origen, también sin plataforma.
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "VIN repetido", "vin": "KMHD35LE5DU123456"}'); raise exception 'aceptó un VIN repetido';
+  exception when unique_violation then null; end;
+  perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Lote uno", "lote": "L-1"}');
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Lote dos", "lote": "L-1"}'); raise exception 'aceptó un lote repetido sin plataforma';
+  exception when unique_violation then null; end;
+end $$;
+reset role;
+-- El historial lo lee quien ve la logística: se comprueba sin RLS.
+do $$ begin
+  if (select count(*) from public.historial_fases h where h.vehiculo_id = 'bbbbbbbb-0000-4000-8000-000000000001' and h.de_fase_id is null
+      and h.usuario_id = '00000000-0000-0000-0000-000000000008') <> 1 then raise exception 'la entrada a la inicial no quedó en el historial'; end if;
+end $$;
+-- El id de otra persona no se «reintenta».
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+set role authenticated;
+do $$ declare o uuid; r jsonb; begin
+  begin perform public.vehiculo_crear('bbbbbbbb-0000-4000-8000-000000000001', (select id from public.origenes where clave = 'oficina'), '{"titulo": "Ajeno"}'); raise exception 'devolvió el vehículo de otra persona';
+  exception when unique_violation then null; end;
+  -- Un origen sin fases: nace sin fase.
+  select id into o from public.origenes where clave = 'humo_sin_fases';
+  r := public.vehiculo_crear(gen_random_uuid(), o, '{"titulo": "Sin dónde entrar"}');
+  if r -> 'fase_id' <> 'null'::jsonb then raise exception 'entró a una fase en un flujo sin fases: %', r; end if;
+end $$;
+reset role;
+-- Con dos iniciales no hay nada que decidir por la persona: nace sin fase. Un origen inactivo no recibe.
+insert into public.fases (flujo_id, nombre, es_inicial) select fl.id, x.nombre, true from public.flujos fl join public.origenes o on o.id = fl.origen_id, (values ('Humo A'), ('Humo B')) as x (nombre) where o.clave = 'humo_sin_fases';
+set role authenticated;
+do $$ declare o uuid; r jsonb; begin
+  select id into o from public.origenes where clave = 'humo_sin_fases';
+  r := public.vehiculo_crear(gen_random_uuid(), o, '{"titulo": "Dos puertas"}');
+  if r -> 'fase_id' <> 'null'::jsonb then raise exception 'eligió sola entre dos fases iniciales: %', r; end if;
+end $$;
+reset role;
+update public.fases set activa = false where nombre = 'Humo B';
+update public.fases set nota_obligatoria = true where nombre = 'Humo A';
+set role authenticated;
+do $$ declare o uuid; r jsonb; begin
+  select id into o from public.origenes where clave = 'humo_sin_fases';
+  r := public.vehiculo_crear(gen_random_uuid(), o, '{"titulo": "Pide nota"}');
+  if r -> 'fase_id' <> 'null'::jsonb then raise exception 'entró a una inicial que pide nota: %', r; end if;
+end $$;
+reset role;
+update public.fases set nota_obligatoria = false where nombre = 'Humo A';
+insert into public.fases_roles (fase_id, rol_id) select f.id, r.id from public.fases f, public.roles r where f.nombre = 'Humo A' and r.clave = 'dueno';
+set role authenticated;
+do $$ declare o uuid; r jsonb; begin
+  select id into o from public.origenes where clave = 'humo_sin_fases';
+  r := public.vehiculo_crear(gen_random_uuid(), o, '{"titulo": "Otro rol"}');
+  if r -> 'fase_id' <> 'null'::jsonb then raise exception 'entró a una inicial reservada a otro rol: %', r; end if;
+end $$;
+reset role;
+delete from public.fases_roles where fase_id = (select id from public.fases where nombre = 'Humo A');
+set role authenticated;
+do $$ declare o uuid; r jsonb; begin
+  select id into o from public.origenes where clave = 'humo_sin_fases';
+  r := public.vehiculo_crear(gen_random_uuid(), o, '{"titulo": "Ahora sí"}');
+  if (r ->> 'fase_id')::uuid is distinct from (select id from public.fases where nombre = 'Humo A') then raise exception 'con una sola inicial activa debía entrar: %', r; end if;
+end $$;
+reset role;
+update public.origenes set activo = false where clave = 'humo_sin_fases';
+set role authenticated;
+do $$ begin
+  begin perform public.vehiculo_crear(gen_random_uuid(), (select id from public.origenes where clave = 'humo_sin_fases'), '{"titulo": "Tarde"}'); raise exception 'un origen inactivo recibió un vehículo';
+  exception when check_violation then null; end;
+end $$;
+reset role;
+
+-- @test vehículos: editar pide la versión, dice quién lo cambió, respeta el alcance y no pierde datos
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; ver timestamptz; r jsonb; m text; begin
+  select actualizado_en into ver from public.vehiculos where id = v;
+  begin perform public.vehiculo_guardar(v, null, '{"marca": "X"}'); raise exception 'guardó sin versión';
+  exception when others then get stacked diagnostics m = message_text; if m not like 'Falta la versión%' then raise; end if; end;
+  begin perform public.vehiculo_guardar(v, ver, '{"fase_id": null}'); raise exception 'aceptó fase_id al editar';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_guardar(v, ver, '{"lead_id": null}'); raise exception 'aceptó lead_id al editar';
+  exception when invalid_parameter_value then null; end;
+  -- Una clave ausente no se toca; un nulo vacía; vaciar un atributo quita la clave.
+  r := public.vehiculo_guardar(v, ver, '{"marca": "Hyundai", "anio": null, "atributos": {"color": null}}');
+  if not exists (select 1 from public.vehiculos x where x.id = v and x.marca = 'Hyundai' and x.anio is null and x.titulo = '2020 Kia Rio'
+      and x.vin = 'KMHD35LE5DU123456' and x.atributos = '{"motor": "1.6"}'::jsonb) then
+    raise exception 'la edición no respetó ausente/nulo: %', (select to_jsonb(x) - 'apibara_raw' from public.vehiculos x where x.id = v);
+  end if;
+  if (r ->> 'actualizado_en')::timestamptz is distinct from (select actualizado_en from public.vehiculos where id = v) then raise exception 'guardar no devolvió la versión nueva'; end if;
+  -- Guardar lo que ya está guardado no es un conflicto, aunque la versión sea vieja (un reintento).
+  r := public.vehiculo_guardar(v, ver - interval '1 hour', '{"marca": "Hyundai"}');
+  if (r ->> 'actualizado_en')::timestamptz is distinct from (select actualizado_en from public.vehiculos where id = v) then raise exception 'lo ya guardado debía devolver la versión vigente'; end if;
+  -- Con alcance «propios» no edita lo que creó otra persona.
+  begin perform public.vehiculo_guardar((select id from public.vehiculos where titulo = 'Humo oficina ajeno'), now(), '{"marca": "X"}'); raise exception 'editó un vehículo ajeno con alcance «propios»';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- Un campo desactivado conserva su dato aunque el vehículo se siga editando, y no se escribe.
+update public.origenes_campos set activo = false where clave = 'motor' and origen_id = (select id from public.origenes where clave = 'oficina');
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; begin
+  perform public.vehiculo_guardar(v, (select actualizado_en from public.vehiculos where id = v), '{"modelo": "Accent", "atributos": {"color": "Azul"}}');
+  if (select atributos from public.vehiculos where id = v) <> '{"motor": "1.6", "color": "Azul"}'::jsonb then raise exception 'editar perdió el dato de un campo desactivado: %', (select atributos from public.vehiculos where id = v); end if;
+  begin perform public.vehiculo_guardar(v, (select actualizado_en from public.vehiculos where id = v), '{"atributos": {"motor": "2.0"}}'); raise exception 'escribió un campo desactivado';
+  exception when invalid_parameter_value then null; end;
+end $$;
+reset role;
+update public.origenes_campos set activo = true where clave = 'motor' and origen_id = (select id from public.origenes where clave = 'oficina');
+-- Bruno lo cambia; Irene, con la versión que tenía, se entera de quién fue.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; begin
+  perform public.vehiculo_guardar(v, (select actualizado_en from public.vehiculos where id = v), '{"kilometraje": 45000}');
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; m text; e text; begin
+  begin
+    perform public.vehiculo_guardar(v, (select actualizado_en from public.vehiculos where id = v) - interval '1 second', '{"marca": "Kia"}');
+    raise exception 'guardó con una versión vieja';
+  exception when others then
+    get stacked diagnostics m = message_text, e = returned_sqlstate;
+    if e <> 'PT409' then raise; end if;
+    if m not like 'Bruno Lima cambió este vehículo hace %' then raise exception 'el conflicto no dice quién ni cuándo: %', m; end if;
+  end;
+  if (select marca from public.vehiculos where id = v) <> 'Hyundai' then raise exception 'el conflicto pisó el dato'; end if;
+  -- Un requerido que falta frena el guardado, dicho con la etiqueta del campo.
+end $$;
+reset role;
+update public.origenes_campos set requerido = true where clave = 'condicion' and origen_id = (select id from public.origenes where clave = 'oficina');
+set role authenticated;
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; m text; begin
+  begin
+    perform public.vehiculo_guardar(v, (select actualizado_en from public.vehiculos where id = v), '{"marca": "Kia"}');
+    raise exception 'guardó sin un campo requerido';
+  exception when not_null_violation then
+    get stacked diagnostics m = message_text;
+    if m <> 'Falta «Condición».' then raise exception 'el requerido no se dice con la etiqueta: %', m; end if;
+  end;
+end $$;
+reset role;
+update public.origenes_campos set requerido = false where clave = 'condicion' and origen_id = (select id from public.origenes where clave = 'oficina');
