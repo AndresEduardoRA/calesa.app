@@ -50,7 +50,7 @@ export function TablaDeVehiculos({ vehiculos, campos, fases, encabezado, editabl
             <TableRow key={vehiculo.id} className="h-(--fila)">
               <TableCell className="py-1 pl-3">
                 <div className="flex items-center gap-3">
-                  <Miniatura />
+                  <Miniatura ruta={vehiculo.portadaRuta} />
                   <div className="grid min-w-0">
                     <Link
                       href={`${RUTAS.vehiculos}/${vehiculo.id}` as Route}

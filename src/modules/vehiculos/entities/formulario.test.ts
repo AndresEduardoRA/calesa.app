@@ -50,6 +50,8 @@ const VEHICULO: Vehiculo = {
     extras: ['techo'],
     subasta: '2026-10-13T18:30:00.000Z',
   },
+  leadId: null,
+  portadaRuta: null,
   creadoPor: null,
   creadoEn: '2026-10-13T12:00:00+00:00',
   actualizadoEn: '2026-10-13T12:00:00+00:00',

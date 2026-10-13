@@ -21,6 +21,10 @@ const FILA = {
   categoria_id: null,
   fase_id: null,
   atributos: { color: 'Gris', cilindros: 4 },
+  lead_id: null,
+  vehiculos_imagenes: [
+    { ruta_miniatura: `00000000-0000-0000-0000-000000000001/${'a'.repeat(64)}.webp` },
+  ],
   creado_por: '00000000-0000-0000-0000-0000000000bb',
   creado_en: '2026-10-13T12:00:00.123456+00:00',
   actualizado_en: '2026-10-13T12:05:00.654321+00:00',
@@ -38,9 +42,28 @@ describe('vehiculosDesde', () => {
       // La versión viaja como texto, con sus microsegundos.
       actualizadoEn: '2026-10-13T12:05:00.654321+00:00',
     })
+    // Lo embebido se pide como `tabla(columnas)`: la clave de la fila es el nombre de la tabla.
+    const pedidas = COLUMNAS_DE_VEHICULO.split(', ').map((columna) =>
+      columna.replace(/\(.*\)$/, ''),
+    )
     for (const columna of Object.keys(FILA)) {
-      expect(COLUMNAS_DE_VEHICULO.split(', ')).toContain(columna)
+      expect(pedidas).toContain(columna)
     }
+  })
+
+  it('la portada es la miniatura de la foto que vino; sin fotos, ninguna', () => {
+    expect(vehiculosDesde([FILA])[0]?.portadaRuta).toBe(
+      `00000000-0000-0000-0000-000000000001/${'a'.repeat(64)}.webp`,
+    )
+    expect(vehiculosDesde([{ ...FILA, vehiculos_imagenes: [] }])[0]?.portadaRuta).toBeNull()
+    // Si la consulta no las trajo, el vehículo se muestra igual.
+    const { vehiculos_imagenes: _sinFotos, ...sinFotos } = FILA
+    expect(vehiculosDesde([sinFotos])[0]?.portadaRuta).toBeNull()
+  })
+
+  it('trae el vínculo activo', () => {
+    const lead = '00000000-0000-0000-0000-0000000000cc'
+    expect(vehiculosDesde([{ ...FILA, lead_id: lead }])[0]?.leadId).toBe(lead)
   })
 
   it('conserva el orden de la consulta', () => {

@@ -31,7 +31,7 @@ export function TarjetaVehiculo({ vehiculo, campos, fase, href, acciones }: Prop
   return (
     <article className="grid gap-3 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3">
       <div className="flex items-start gap-3">
-        <Miniatura className="w-20" />
+        <Miniatura ruta={vehiculo.portadaRuta} className="w-20" />
         <div className="grid min-w-0 flex-1 gap-1">
           <h3 className="text-(length:--text-base) font-medium text-(--color-ink)">
             {href ? (

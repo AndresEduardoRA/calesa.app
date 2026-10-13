@@ -48,7 +48,7 @@ export function FichaDeVehiculo({ vehiculo, origen, campos, categorias, fase, ac
   return (
     <div className="grid gap-4">
       <header className="flex flex-wrap items-start gap-4">
-        <Miniatura className="w-24" />
+        <Miniatura ruta={vehiculo.portadaRuta} className="w-24" />
         <div className="grid min-w-0 flex-1 gap-1.5">
           <h1 className="text-(length:--text-xl) font-semibold text-(--color-ink)">
             {vehiculo.titulo}

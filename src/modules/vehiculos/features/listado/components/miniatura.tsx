@@ -1,25 +1,40 @@
 import { CarFrontIcon } from 'lucide-react'
+import Image from 'next/image'
 import { cn } from 'cn'
+import { urlPublica } from '@/shared/lib/almacen'
 
 type Props = {
-  // La portada del vehículo. Todavía no hay fotos: el hueco queda reservado para que la lista no
-  // salte el día que lleguen.
-  url?: string | null
+  // La miniatura de la portada del vehículo (ruta en el bucket `vehiculos`); sin fotos, el hueco.
+  ruta?: string | null
   className?: string
 }
 
-// El lugar de la foto de un vehículo, siempre del mismo tamaño (4:3).
-export function Miniatura({ url, className }: Props) {
+// El lugar de la foto de un vehículo, siempre del mismo tamaño (4:3): con o sin foto, la lista no
+// salta. Es decorativa (el título está al lado), por eso va oculta a los lectores de pantalla.
+export function Miniatura({ ruta, className }: Props) {
   return (
     <span
       aria-hidden
       className={cn(
-        'flex aspect-4/3 w-14 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-sm) bg-(--color-paper-dim) bg-cover bg-center text-(--color-ink-faint)',
+        'relative flex aspect-4/3 w-14 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-sm) bg-(--color-paper-dim) text-(--color-ink-faint)',
         className,
       )}
-      style={url ? { backgroundImage: `url(${JSON.stringify(url)})` } : undefined}
     >
-      {url ? null : <CarFrontIcon className="size-5" />}
+      {ruta ? (
+        <Image
+          src={urlPublica('vehiculos', ruta)}
+          alt=""
+          fill
+          // Ya llega chica (480 px) desde Storage y con caché de un año: pasarla por el
+          // optimizador sólo sumaría otra descarga. Lo que no está a la vista no se pide.
+          unoptimized
+          loading="lazy"
+          sizes="96px"
+          className="object-cover"
+        />
+      ) : (
+        <CarFrontIcon className="size-5" />
+      )}
     </span>
   )
 }

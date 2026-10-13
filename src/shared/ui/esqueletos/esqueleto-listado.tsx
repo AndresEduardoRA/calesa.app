@@ -47,7 +47,7 @@ export function EsqueletoListado({
               className="flex min-h-(--fila) items-center gap-4 border-b border-(--color-line) px-4 py-1.5 last:border-b-0"
             >
               {conMiniatura ? (
-                <Skeleton className="h-9 w-12 shrink-0 rounded-(--radius-sm)" />
+                <Skeleton className="aspect-4/3 w-14 shrink-0 rounded-(--radius-sm)" />
               ) : null}
               {Array.from({ length: columnas }, (_, columna) => (
                 <Skeleton key={columna} className="h-3.5 flex-1" />
