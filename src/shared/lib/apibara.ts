@@ -9,3 +9,8 @@ export const NOMBRE_DE_PLATAFORMA: Record<PlataformaApibara, string> = {
   copart: 'Copart',
   iaai: 'IAAI',
 }
+
+// De lo que guarda la base (texto libre) a lo que apibara sabe consultar.
+export function plataformasConocidas(valores: readonly string[]): PlataformaApibara[] {
+  return PLATAFORMAS_APIBARA.filter((plataforma) => valores.includes(plataforma))
+}
