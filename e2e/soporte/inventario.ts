@@ -9,10 +9,13 @@ import {
   crearPersona,
   darRolDePrueba,
   personasAjenas,
+  type PermisoDePrueba,
 } from './base'
 import { PREFIJO_CLAVE_E2E, borrarOrigenes, crearOrigenDePrueba } from './origenes'
 import { ingresar } from './pasos'
 import { agregarCampo, borrarVehiculosDe, cargarVehiculos, ponerOpciones } from './vehiculos'
+import { borrarLotesDePrueba } from './papelera'
+import { borrarFasesDe } from './vitrina'
 
 export const CLAVE = 'una-clave-de-prueba-9'
 export const COREA = 'Corea'
@@ -33,7 +36,9 @@ export type Terreno = {
 // Sólo lo que crean estos e2e: sus orígenes (con sus vehículos), sus personas y sus roles.
 export async function limpiarInventario(): Promise<void> {
   await borrarVehiculosDe(CLAVES_DE_ORIGEN)
+  await borrarFasesDe(CLAVES_DE_ORIGEN)
   await borrarOrigenes(CLAVES_DE_ORIGEN)
+  await borrarLotesDePrueba()
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
 }
@@ -82,7 +87,11 @@ async function armarCorea(coreaId: string): Promise<void> {
   ])
 }
 
-export async function prepararInventario(proyecto: string): Promise<Terreno> {
+// `ademas`: los permisos que la dueña de prueba suma a los del inventario (vitrina, papelera).
+export async function prepararInventario(
+  proyecto: string,
+  ademas: PermisoDePrueba[] = [],
+): Promise<Terreno> {
   await limpiarInventario()
   const duena = correoDePrueba(`duena-inventario-${proyecto}`)
   const soloCorea = correoDePrueba(`solo-corea-${proyecto}`)
@@ -103,7 +112,13 @@ export async function prepararInventario(proyecto: string): Promise<Terreno> {
       nombre: `${PREFIJO_ROL_E2E}Inventario ${proyecto}`,
       clave: `e2e_inventario_${proyecto}`,
     },
-    permisos: ['vehiculos.ver', 'vehiculos.crear', 'vehiculos.editar', 'origenes.gestionar'],
+    permisos: [
+      'vehiculos.ver',
+      'vehiculos.crear',
+      'vehiculos.editar',
+      'origenes.gestionar',
+      ...ademas,
+    ],
   })
   const corea = await crearOrigenDePrueba(COREA, 'corea_inv')
   const taiwan = await crearOrigenDePrueba(TAIWAN, 'taiwan_inv')
