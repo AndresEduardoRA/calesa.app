@@ -97,23 +97,6 @@ export async function crearPersona(datos: {
   }
 }
 
-// El id de un origen que siembra `supabase/seed.sql`. El CRUD de orígenes todavía no existe: los
-// permisos acotados a un origen se prueban contra uno sembrado.
-export async function origenSembrado(clave: string): Promise<{ id: string; nombre: string }> {
-  const { data, error } = await admin()
-    .from('origenes')
-    .select('id, nombre')
-    .eq('clave', clave)
-    .maybeSingle<{ id: string; nombre: string }>()
-  if (error) {
-    throw new Error(`No se pudo leer el origen ${clave}: ${error.message}`)
-  }
-  if (!data) {
-    throw new Error(`Falta el origen sembrado «${clave}»: ejecuta \`pnpm db:reset\`.`)
-  }
-  return data
-}
-
 type ConcesionEnLaBase = { permiso_clave: string; origen_id: string | null; alcance: string }
 
 // Lo que un rol tiene otorgado, leído de la base (lo que la pantalla dice no alcanza).

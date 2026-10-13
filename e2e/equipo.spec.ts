@@ -7,9 +7,9 @@ import {
   correoDePrueba,
   crearPersona,
   exigirEquipoSinAjenos,
-  origenSembrado,
   rolesDe,
 } from './soporte/base'
+import { borrarOrigenes, crearOrigenDePrueba } from './soporte/origenes'
 import { ingresar } from './soporte/pasos'
 
 // Equipo y roles contra la app compilada y el Supabase local. Una sola historia, en orden: la
@@ -21,8 +21,8 @@ test.describe.configure({ mode: 'serial' })
 const CLAVE = 'una-clave-de-prueba-9'
 const DUENA = 'Dalia Prueba'
 const INVITADA = 'Ana Invitada'
-// El CRUD de orígenes llega en la fase 2: el permiso se acota a uno que siembra `seed.sql`.
-const ORIGEN_SEMBRADO = 'oficina'
+// El permiso se acota a un origen que el propio test crea: nada depende de lo que siembre `seed.sql`.
+const NOMBRE_DE_ORIGEN = 'Origen de la matriz'
 
 let duena = ''
 let invitada = ''
@@ -35,7 +35,8 @@ test.beforeAll(async ({}, info) => {
   await borrarRolesDePrueba()
   // El guardián y «la primera cuenta nace dueña» necesitan el equipo sin nadie más.
   await exigirEquipoSinAjenos()
-  origen = await origenSembrado(ORIGEN_SEMBRADO)
+  await borrarOrigenes([])
+  origen = await crearOrigenDePrueba(NOMBRE_DE_ORIGEN, 'matriz')
   duena = correoDePrueba(`duena-equipo-${info.project.name}`)
   invitada = correoDePrueba(`invitada-${info.project.name}`)
   rol = `${PREFIJO_ROL_E2E}Ventas ${info.project.name}`
@@ -46,6 +47,7 @@ test.beforeAll(async ({}, info) => {
 test.afterAll(async () => {
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
+  await borrarOrigenes([])
 })
 
 async function entrar(page: Page, correo: string) {
@@ -80,7 +82,7 @@ test('la dueña crea un rol y le da permisos acotados a un origen', async ({ pag
   await tareas.click()
   await expect(tareas).toBeChecked()
 
-  // Un permiso que se acota por origen: se da sólo en el origen sembrado.
+  // Un permiso que se acota por origen: se da sólo en el origen creado por el test.
   await page.getByRole('button', { name: `Ver vehículos para ${rol}: No. Cambiar` }).click()
   const enElOrigen = page.getByRole('switch', {
     name: `Ver vehículos para ${rol}: ${origen.nombre}`,
