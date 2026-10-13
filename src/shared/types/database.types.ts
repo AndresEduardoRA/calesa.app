@@ -5832,7 +5832,7 @@ export type Database = {
         Returns: string
       }
       categoria_mover: {
-        Args: { p_actualizado_en_esperado: string; p_categoria: string; p_despues_de: string }
+        Args: { p_actualizado_en_esperado: string; p_categoria: string; p_despues_de?: string }
         Returns: string
       }
       categorias_con_uso: {
@@ -6010,7 +6010,7 @@ export type Database = {
       }
       origen_campo_impacto: { Args: { p_campo: string }; Returns: Json }
       origen_campo_mover: {
-        Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de: string }
+        Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de?: string }
         Returns: string
       }
       origen_crear: {

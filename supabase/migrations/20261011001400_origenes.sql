@@ -411,7 +411,7 @@ grant execute on function public.origen_campo_guardar(uuid, timestamptz, jsonb) 
 
 -- «Ponlo después de X» (nulo = primero). Relativo y no por posición: si alguien agregó un campo
 -- entre tanto, el campo queda donde la persona lo quiso, junto a su vecino.
-create or replace function public.origen_campo_mover(p_campo uuid, p_despues_de uuid, p_actualizado_en_esperado timestamptz)
+create or replace function public.origen_campo_mover(p_campo uuid, p_actualizado_en_esperado timestamptz, p_despues_de uuid default null)
 returns timestamptz language plpgsql security definer set search_path = '' as $$
 declare c public.origenes_campos; v_nueva timestamptz;
 begin
@@ -447,8 +447,8 @@ begin
   return v_nueva;
 end;
 $$;
-revoke all on function public.origen_campo_mover(uuid, uuid, timestamptz) from public, anon;
-grant execute on function public.origen_campo_mover(uuid, uuid, timestamptz) to authenticated;
+revoke all on function public.origen_campo_mover(uuid, timestamptz, uuid) from public, anon;
+grant execute on function public.origen_campo_mover(uuid, timestamptz, uuid) to authenticated;
 
 -- Sólo un campo propio que ningún vehículo usa. Si no, se desactiva y el dato se conserva.
 create or replace function public.origen_campo_eliminar(p_campo uuid, p_actualizado_en_esperado timestamptz)
@@ -531,7 +531,7 @@ revoke all on function public.categoria_guardar(uuid, timestamptz, text, boolean
 grant execute on function public.categoria_guardar(uuid, timestamptz, text, boolean) to authenticated;
 
 -- Entre hermanas (mismo origen y mismo padre). «Después de X», nulo = primera.
-create or replace function public.categoria_mover(p_categoria uuid, p_despues_de uuid, p_actualizado_en_esperado timestamptz)
+create or replace function public.categoria_mover(p_categoria uuid, p_actualizado_en_esperado timestamptz, p_despues_de uuid default null)
 returns timestamptz language plpgsql security definer set search_path = '' as $$
 declare c public.categorias; v_nueva timestamptz;
 begin
@@ -566,8 +566,8 @@ begin
   return v_nueva;
 end;
 $$;
-revoke all on function public.categoria_mover(uuid, uuid, timestamptz) from public, anon;
-grant execute on function public.categoria_mover(uuid, uuid, timestamptz) to authenticated;
+revoke all on function public.categoria_mover(uuid, timestamptz, uuid) from public, anon;
+grant execute on function public.categoria_mover(uuid, timestamptz, uuid) to authenticated;
 
 create or replace function public.categoria_eliminar(p_categoria uuid, p_actualizado_en_esperado timestamptz)
 returns void language plpgsql security definer set search_path = '' as $$

@@ -970,13 +970,13 @@ begin
   exception when foreign_key_violation then null; end;
 
   -- Orden relativo: «después de X» y «primero»; los números quedan en 10, 20, 30…
-  perform public.origen_campo_mover(c, null, (select actualizado_en from public.origenes_campos where id = c));
+  perform public.origen_campo_mover(c, (select actualizado_en from public.origenes_campos where id = c));
   if (select id from public.origenes_campos where origen_id = o order by orden limit 1) <> c then raise exception 'no lo puso primero'; end if;
-  perform public.origen_campo_mover(c, sist, (select actualizado_en from public.origenes_campos where id = c));
+  perform public.origen_campo_mover(c, (select actualizado_en from public.origenes_campos where id = c), p_despues_de => sist);
   select array_agg(orden order by orden) into ordenes from public.origenes_campos where origen_id = o;
   if ordenes <> array[10, 20, 30, 40, 50, 60, 70, 80, 90] then raise exception 'el orden no quedó en 10, 20, 30…: %', ordenes; end if;
   if (select clave from public.origenes_campos where origen_id = o order by orden offset 1 limit 1) <> 'kit_humo' then raise exception 'no lo puso después de color'; end if;
-  begin perform public.origen_campo_mover(c, c, (select actualizado_en from public.origenes_campos where id = c)); raise exception 'lo puso después de sí mismo';
+  begin perform public.origen_campo_mover(c, (select actualizado_en from public.origenes_campos where id = c), p_despues_de => c); raise exception 'lo puso después de sí mismo';
   exception when raise_exception then if sqlerrm like 'lo puso%' then raise; end if; end;
   select count(*) into n from public.origenes_campos where origen_id = o and orden = 10;
   if n <> 1 then raise exception 'orden repetido'; end if;
@@ -1029,9 +1029,9 @@ do $$ declare o uuid; padre uuid; hija uuid; otra uuid; v timestamptz; rechazo b
   begin perform public.categoria_guardar(padre, (select actualizado_en from public.categorias where id = padre) - interval '1 second', p_nombre => 'X'); raise exception 'guardó con una versión vieja';
   exception when others then if sqlstate <> 'PT409' then raise; end if; end;
   -- Orden entre hermanas: SUV pasa primero.
-  perform public.categoria_mover(otra, null, (select actualizado_en from public.categorias where id = otra));
+  perform public.categoria_mover(otra, (select actualizado_en from public.categorias where id = otra));
   if (select id from public.categorias where origen_id = o and padre_id is null order by orden limit 1) <> otra then raise exception 'no la puso primera'; end if;
-  begin perform public.categoria_mover(otra, hija, (select actualizado_en from public.categorias where id = otra)); raise exception 'la puso entre hermanas de otro padre';
+  begin perform public.categoria_mover(otra, (select actualizado_en from public.categorias where id = otra), p_despues_de => hija); raise exception 'la puso entre hermanas de otro padre';
   exception when others then if sqlstate <> 'PT409' then raise; end if; end;
   perform public.categoria_eliminar(hija, (select actualizado_en from public.categorias where id = hija));
 end $$;
