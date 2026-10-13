@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dimensionesAjustadas, hashDe } from './imagenes'
+import { convieneJpeg, dimensionesAjustadas, extensionDe, hashDe } from './imagenes'
 
 describe('dimensionesAjustadas', () => {
   it('achica el lado mayor y conserva la proporción', () => {
@@ -19,6 +19,30 @@ describe('dimensionesAjustadas', () => {
 
   it('no deja un lado en cero', () => {
     expect(dimensionesAjustadas({ ancho: 10000, alto: 2 }, 100)).toEqual({ ancho: 100, alto: 1 })
+  })
+})
+
+describe('extensionDe', () => {
+  it('sale del tipo del archivo, no de lo que se pidió', () => {
+    expect(extensionDe('image/webp')).toBe('webp')
+    expect(extensionDe('image/jpeg')).toBe('jpg')
+    expect(extensionDe('image/png')).toBe('png')
+  })
+
+  it('lo que no es una imagen de las nuestras no tiene extensión', () => {
+    expect(extensionDe('image/heic')).toBeNull()
+    expect(extensionDe('')).toBeNull()
+  })
+})
+
+describe('convieneJpeg', () => {
+  it('cuando se pidió WebP y el navegador devolvió otra cosa (Safari devuelve PNG)', () => {
+    expect(convieneJpeg('image/webp', 'image/png')).toBe(true)
+    expect(convieneJpeg('image/webp', 'image/webp')).toBe(false)
+  })
+
+  it('un PNG pedido a propósito se queda en PNG', () => {
+    expect(convieneJpeg('image/png', 'image/png')).toBe(false)
   })
 })
 

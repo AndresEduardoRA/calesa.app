@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
-// `<uuid de la persona>/<sha-256 del contenido>.webp`: lo único que `subirAvatar()` produce.
-const RUTA_AVATAR = /^[0-9a-f-]{36}\/[0-9a-f]{64}\.webp$/
+// `<uuid de la persona>/<sha-256 del contenido>.webp`: lo único que `subirAvatar()` produce. Es
+// `.jpg` donde el navegador no codifica WebP (Safari).
+const RUTA_AVATAR = /^[0-9a-f-]{36}\/[0-9a-f]{64}\.(webp|jpg)$/
 
 export const esquemaPerfil = z.object({
   nombre: z

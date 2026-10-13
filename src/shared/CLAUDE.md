@@ -20,7 +20,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `lib/paginacion.ts` — keyset `(creado_en, id)`: `leerCursor()` (valida el de la URL; uno ilegible es la primera página), `codificarCursor()`, `armarPagina(leidas, tamano, cursor)` (la consulta pide una fila de más).
 - `lib/color.ts` — `contraste()`, `tokensDeMarca()` (acepta o rechaza el color de la empresa y deriva sus tokens), `cssDeMarca()`.
 - `lib/atajos.ts` — catálogo `ATAJOS` y `atajoDe(evento)`; `ui/atajos/` — `<ProveedorAtajos>` y `useAtajo(clave, manejador, activo)`: responde el último registrado (así `Esc` cierra de a un panel) y un atajo sin nadie registrado no hace nada.
-- `lib/almacen.ts` — `urlPublica(bucket, ruta)`; `lib/imagenes.ts` — `comprimirImagen()` (WebP para fotos; PNG para lo que no tolera pérdida), `hashDe()`; `lib/supabase/almacen.client.ts` — `subirPorHash()`, `quitarSiHuerfano()` (borra sólo con `storage_refcount` en 0).
+- `lib/almacen.ts` — `urlPublica(bucket, ruta)`; `lib/imagenes.ts` — `comprimirImagen()` (WebP para fotos; PNG para lo que no tolera pérdida), `comprimirEnTamanos()` (varios tamaños con una sola decodificación, cada uno con sus medidas), `extensionDe(tipo)`, `hashDe()`; `lib/supabase/almacen.client.ts` — `subirPorHash()`, `quitarSiHuerfano()` (borra sólo con `storage_refcount` en 0).
 - `lib/apibara.ts` — `PLATAFORMAS_APIBARA` y `NOMBRE_DE_PLATAFORMA`: el vocabulario del proveedor, que `empresa` (integración) y `origenes` (subasta) comparten sin importarse.
 - `lib/formato.ts` — `formatearMonto()`, `formatearNumero()`, `formatearPorcentaje()` con `Intl`.
 - `lib/fechas.ts` — `formatearFecha()`, `formatearFechaHora()`, `fechaRelativa()`, `diaEnZona()` en la zona de la empresa.
@@ -55,4 +55,5 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - Los toasts de error salen de `avisarError(error)`: con `no_autenticado` no redirige (la persona tiene un formulario abierto), ofrece «Ingresar» en otra pestaña; con `conflicto` ofrece «Recargar».
 - Un `<fieldset disabled>` apaga los campos nativos de adentro, no los de Base UI (`Switch`): a esos se les pasa `disabled` a mano.
 - `--fila` (altura de fila según la densidad) y las reglas del Modo Live y de View Transitions están en `src/app/globals.css`.
+- Safari no codifica WebP en canvas y devuelve PNG sin avisar: `comprimirImagen()` mira el tipo del blob que salió y, si no es WebP, lo vuelve a pedir en JPEG (sobre blanco). Quien sube saca la extensión de `extensionDe(blob.type)`, nunca la escribe a mano. Los e2e corren en Chromium: esto se prueba a mano en un iPhone.
 - `entornoPublico()` valida al primer uso, no al importar; las `NEXT_PUBLIC_*` se leen con el nombre literal para que Next las incruste.

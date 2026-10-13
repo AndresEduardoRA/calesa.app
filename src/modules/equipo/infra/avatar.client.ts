@@ -1,12 +1,13 @@
 import { fallo, type Resultado } from '@/shared/lib/errores'
-import { comprimirImagen } from '@/shared/lib/imagenes'
+import { comprimirImagen, extensionDe } from '@/shared/lib/imagenes'
 import { quitarSiHuerfano, subirPorHash } from '@/shared/lib/supabase/almacen.client'
 
 // Una foto de perfil se ve como mucho a 96 px: 512 alcanza para pantallas densas.
 const LADO_AVATAR = 512
 
-// Achica la foto, la pasa a WebP y la sube a `avatares/<id de la persona>/<hash>.webp` (la
-// policy de Storage exige que la carpeta sea la propia). Devuelve la ruta para guardar en el perfil.
+// Achica la foto, la pasa a WebP (o a JPEG, donde el navegador no codifica WebP) y la sube a
+// `avatares/<id de la persona>/<hash>.<ext>` (la policy de Storage exige que la carpeta sea la
+// propia). Devuelve la ruta para guardar en el perfil.
 export async function subirAvatar(
   usuarioId: string,
   archivo: File,
@@ -22,7 +23,7 @@ export async function subirAvatar(
     bucket: 'avatares',
     carpeta: usuarioId,
     contenido: comprimida,
-    extension: 'webp',
+    extension: extensionDe(comprimida.type) ?? 'webp',
   })
 }
 

@@ -12,6 +12,11 @@ describe('esquemaPerfil', () => {
     expect(esquemaPerfil.parse({ ...base, avatarRuta: null }).avatarRuta).toBeNull()
   })
 
+  it('acepta la foto en JPEG de un navegador que no codifica WebP', () => {
+    const enJpeg = `${ID}/${'b'.repeat(64)}.jpg`
+    expect(esquemaPerfil.parse({ ...base, avatarRuta: enJpeg }).avatarRuta).toBe(enJpeg)
+  })
+
   it('rechaza una ruta que no salió de subirAvatar()', () => {
     expect(esquemaPerfil.safeParse({ ...base, avatarRuta: '../marca/logo.png' }).success).toBe(
       false,
