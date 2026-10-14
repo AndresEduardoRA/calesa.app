@@ -25,6 +25,18 @@ function iguales(a: unknown, b: unknown): boolean {
 // hay guardado (`actual`). Si lo guardado sigue siendo lo que la API había dicho, la persona no lo
 // tocó y toma el valor nuevo; si difiere, lo editó y se conserva. Un dato que la API ya no trae no
 // borra nada. No hace falta una columna que recuerde quién editó qué: el bruto anterior es el testigo.
+type Decision = 'escribir' | 'conservar' | 'nada'
+
+// Qué hacer con un dato: nada si la API no dice algo distinto de lo guardado, o de lo que ya
+// había dicho (no hay nada nuevo que escribir ni nada que conservar); escribirlo si la persona
+// no lo tocó (o no tenía nada); conservarlo si lo editó.
+function decidir(nuevo: unknown, actual: unknown, previo: unknown): Decision {
+  if (iguales(nuevo, actual) || iguales(nuevo, previo)) {
+    return 'nada'
+  }
+  return actual === undefined || iguales(actual, previo) ? 'escribir' : 'conservar'
+}
+
 export function fusionarRefresco(
   previo: DatosDeSubasta,
   nuevo: DatosDeSubasta,
@@ -33,27 +45,20 @@ export function fusionarRefresco(
   const refresco: Refresco = { columnas: {}, atributos: {}, conservados: [] }
 
   for (const clave of Object.keys(nuevo.columnas) as (keyof ColumnasDeSubasta)[]) {
-    const valorNuevo = nuevo.columnas[clave]
-    const valorActual = actual.columnas[clave]
-    const valorPrevio = previo.columnas[clave]
-    if (iguales(valorNuevo, valorActual)) {
-      continue
-    }
-    if (valorActual === undefined || iguales(valorActual, valorPrevio)) {
-      Object.assign(refresco.columnas, { [clave]: valorNuevo })
-    } else {
+    const valor = nuevo.columnas[clave]
+    const decision = decidir(valor, actual.columnas[clave], previo.columnas[clave])
+    if (decision === 'escribir') {
+      Object.assign(refresco.columnas, { [clave]: valor })
+    } else if (decision === 'conservar') {
       refresco.conservados.push(clave)
     }
   }
 
-  for (const [clave, valorNuevo] of Object.entries(nuevo.atributos)) {
-    const valorActual = actual.atributos[clave]
-    if (iguales(valorNuevo, valorActual)) {
-      continue
-    }
-    if (valorActual === undefined || iguales(valorActual, previo.atributos[clave])) {
-      refresco.atributos[clave] = valorNuevo
-    } else {
+  for (const [clave, valor] of Object.entries(nuevo.atributos)) {
+    const decision = decidir(valor, actual.atributos[clave], previo.atributos[clave])
+    if (decision === 'escribir') {
+      refresco.atributos[clave] = valor
+    } else if (decision === 'conservar') {
       refresco.conservados.push(clave)
     }
   }

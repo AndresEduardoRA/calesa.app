@@ -59,10 +59,16 @@ export async function borrarOrigenes(claves: string[]): Promise<void> {
 export async function crearOrigenDePrueba(
   nombre: string,
   clave: string,
+  opciones: { tipo?: 'subasta' | 'manual'; plataformas?: string[] } = {},
 ): Promise<{ id: string; nombre: string }> {
   const { data, error } = await admin()
     .from('origenes')
-    .insert({ clave: `${PREFIJO_CLAVE_E2E}${clave}`, nombre })
+    .insert({
+      clave: `${PREFIJO_CLAVE_E2E}${clave}`,
+      nombre,
+      ...(opciones.tipo ? { tipo: opciones.tipo } : {}),
+      ...(opciones.plataformas ? { apibara_plataformas: opciones.plataformas } : {}),
+    })
     .select('id, nombre')
     .single<{ id: string; nombre: string }>()
   if (error) {

@@ -69,6 +69,22 @@ describe('fusionarRefresco', () => {
     })
     expect(igual).toEqual({ columnas: {}, atributos: {}, conservados: [] })
   })
+})
+
+describe('fusionarRefresco: lo que no cambia', () => {
+  const previo: DatosDeSubasta = {
+    columnas: { titulo: 'Titulo viejo', kilometraje: 1000 },
+    atributos: { puja: 2500, color: 'Gris' },
+    sinCoincidencia: [],
+  }
+
+  it('si la API no cambió lo que dijo, lo que la persona editó no se cuenta como conservado', () => {
+    const refresco = fusionarRefresco(previo, previo, {
+      columnas: { titulo: 'Mi título', kilometraje: 1000 },
+      atributos: { puja: 3000, color: 'Gris' },
+    })
+    expect(refresco).toEqual({ columnas: {}, atributos: {}, conservados: [] })
+  })
 
   it('compara listas por contenido', () => {
     const conLista = (valor: string[]): DatosDeSubasta => ({
