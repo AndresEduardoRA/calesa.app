@@ -14,6 +14,8 @@ type Base = {
   // `.hasta`): elegir claves que no terminen así.
   clave: string
   etiqueta: string
+  // Una línea bajo el control que aclara qué filtra («Solo busca en tus leads»).
+  ayuda?: string
 }
 
 export type DefFiltro =

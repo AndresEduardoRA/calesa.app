@@ -17,7 +17,12 @@ const ESQUEMA: EsquemaDeFiltros = {
         { valor: 'b', etiqueta: 'Comprado' },
       ],
     },
-    { tipo: 'booleano', clave: 'a.llave', etiqueta: 'Tiene llave' },
+    {
+      tipo: 'booleano',
+      clave: 'a.llave',
+      etiqueta: 'Tiene llave',
+      ayuda: 'Solo busca en tus leads',
+    },
     {
       tipo: 'rango_numero',
       clave: 'anio',
@@ -103,6 +108,13 @@ describe('FilterShell', () => {
     const url = await ultima()
     expect(url.get('a.llave')).toBe('si')
     expect(url.get('fase')).toBe('a,b')
+  })
+
+  it('la ayuda de un filtro va debajo de su control', () => {
+    montar('')
+    const panel = within(screen.getByRole('complementary', { name: 'Filtros' }))
+    expect(panel.getByText('Solo busca en tus leads')).toBeTruthy()
+    expect(panel.getAllByText(/Solo busca/)).toHaveLength(1)
   })
 
   it('«Limpiar» quita todos los filtros y la búsqueda', async () => {

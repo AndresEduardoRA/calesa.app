@@ -18,7 +18,7 @@ export type CampoFiltrable = {
 
 const NUMERO_MAXIMO = 1_000_000_000_000
 
-type Base = { clave: string; etiqueta: string }
+type Base = { clave: string; etiqueta: string; ayuda?: string }
 
 // Sin opciones configuradas no hay nada que elegir: no se ofrece.
 const deOpciones = (base: Base, campo: CampoFiltrable): DefFiltro | null =>
@@ -62,9 +62,13 @@ const FILTRO_POR_TIPO: Record<
 
 // El filtro de un campo, con su clave de URL (`prefijo` + clave del campo): una clave de campo no
 // lleva punto, así que con un prefijo propio nunca choca con un filtro fijo ni con `cursor`.
-export function filtroDeCampo(campo: CampoFiltrable, prefijo: string): DefFiltro | null {
+export function filtroDeCampo(
+  campo: CampoFiltrable,
+  prefijo: string,
+  ayuda?: string,
+): DefFiltro | null {
   return FILTRO_POR_TIPO[campo.tipo](
-    { clave: prefijo + campo.clave, etiqueta: campo.etiqueta },
+    { clave: prefijo + campo.clave, etiqueta: campo.etiqueta, ...(ayuda ? { ayuda } : {}) },
     campo,
   )
 }

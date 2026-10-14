@@ -57,14 +57,18 @@ export function PanelDeFiltros({ filtros, pie }: Props) {
   return (
     <div className="grid gap-4">
       {filtros.map((def) => (
-        <Control
-          key={def.clave}
-          def={def}
-          valor={estado.valores.porClave[def.clave] ?? null}
-          alCambiar={(valor, opciones) => {
-            estado.cambiar(def, valor, opciones)
-          }}
-        />
+        <div key={def.clave} className="grid gap-1">
+          <Control
+            def={def}
+            valor={estado.valores.porClave[def.clave] ?? null}
+            alCambiar={(valor, opciones) => {
+              estado.cambiar(def, valor, opciones)
+            }}
+          />
+          {def.ayuda ? (
+            <p className="text-(length:--text-xs) text-(--color-ink-soft)">{def.ayuda}</p>
+          ) : null}
+        </div>
       ))}
       {pie}
     </div>
