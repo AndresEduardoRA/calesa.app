@@ -69,7 +69,7 @@ export function useRefrescoDeSubasta({
         executeAsync({
           vehiculoId,
           actualizadoEnEsperado: actualizadoEn,
-          ficha: ficha.data.data,
+          consulta: ficha.data.consulta,
         }),
       )
       if (escrito.ok) {

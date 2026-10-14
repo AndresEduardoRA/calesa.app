@@ -4,9 +4,12 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   BASE_APIBARA,
   CLAVE,
+  CONSULTA,
   ORIGEN,
+  USUARIO,
   codigoDe,
   fixture,
+  guardadas,
   llamadas,
   llamar,
   simular,
@@ -23,13 +26,46 @@ describe('función apibara: la ficha', () => {
     const texto = await respuesta.text()
     const cuerpo = JSON.parse(texto) as {
       ok: boolean
-      data: { data: { lot_number: string }; url: string }
+      data: { consulta: string; data: { lot_number: string }; url: string }
     }
     expect(cuerpo.ok).toBe(true)
     expect(cuerpo.data.data.lot_number).toBe('58540656')
     expect(cuerpo.data.url).toBe(ENLACE)
     expect(texto).not.toContain(CLAVE)
     expect(llamadas).toEqual([{ url: URL_DE_FICHA, clave: CLAVE }])
+  })
+
+  it('guarda la ficha en la base a nombre de quien consultó y devuelve sólo su id', async () => {
+    simular({}, (url) => (url === URL_DE_FICHA ? Response.json(fixture('copart.json')) : undefined))
+    const respuesta = await llamar({ accion: 'ficha', origen: ORIGEN, entrada: ENLACE })
+    const cuerpo = (await respuesta.json()) as { data: { consulta: string } }
+    expect(cuerpo.data.consulta).toBe(CONSULTA)
+    expect(guardadas).toHaveLength(1)
+    const [guardada] = guardadas
+    expect(guardada?.cuerpo['p_usuario']).toBe(USUARIO)
+    expect(guardada?.cuerpo['p_origen']).toBe(ORIGEN)
+    expect(guardada?.cuerpo['p_raw']).toEqual((fixture('copart.json') as { data: unknown }).data)
+    // La guarda la función con la service key, no la sesión de quien llama.
+    expect(guardada?.autorizacion).toBe('Bearer servicio')
+  })
+
+  it('si la base no guarda la consulta, la ficha no vuelve: no serviría para guardar', async () => {
+    simular(
+      {},
+      () => Response.json(fixture('copart.json')),
+      () => new Response('{}', { status: 400 }),
+    )
+    expect(await codigoDe(await llamar({ accion: 'ficha', origen: ORIGEN, entrada: ENLACE }))).toBe(
+      'proveedor',
+    )
+  })
+
+  it('sin quién consultó no guarda nada', async () => {
+    simular({ usuario: null }, () => Response.json(fixture('copart.json')))
+    expect(await codigoDe(await llamar({ accion: 'ficha', origen: ORIGEN, entrada: ENLACE }))).toBe(
+      'proveedor',
+    )
+    expect(guardadas).toHaveLength(0)
   })
 
   it('un VIN o un lote van por /vehicles/{id}', async () => {

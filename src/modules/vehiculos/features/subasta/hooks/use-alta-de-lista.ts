@@ -52,7 +52,12 @@ export function useAltaDeLista({ origenId, fuentes, campos, fijarEstado, traerFo
     }
     const id = ids.current.get(linea.clave) ?? crypto.randomUUID()
     ids.current.set(linea.clave, id)
-    const resultado = await ediciones.crear({ id, origenId, valores, apibara: ficha.data })
+    const resultado = await ediciones.crear({
+      id,
+      origenId,
+      valores,
+      consulta: ficha.consulta,
+    })
     if (resultado.ok) {
       fijarEstado(linea.clave, { tipo: 'guardada', vehiculoId: id, numero: resultado.data.numero })
       return { id, titulo: datos.columnas.titulo ?? linea.texto }

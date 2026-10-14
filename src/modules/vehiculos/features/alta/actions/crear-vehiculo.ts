@@ -18,7 +18,7 @@ type Creado = { id: string; numero: number; actualizadoEn: string }
 export const crearVehiculo = actionClient
   .inputSchema(esquemaCrearVehiculo)
   .action(async ({ parsedInput, ctx }): Promise<ResultadoDeGuardar<Creado>> => {
-    const { id, origenId, valores, apibara } = parsedInput
+    const { id, origenId, valores, consulta } = parsedInput
     if (!puede(ctx.permisos, 'vehiculos.crear', origenId)) {
       return fallo('sin_permiso', 'No tienes permiso para dar de alta en este origen.')
     }
@@ -36,14 +36,14 @@ export const crearVehiculo = actionClient
     if (!validacion.ok) {
       return noValido(validacion.porCampo)
     }
-    if (apibara && leido.data.origen.tipo !== 'subasta') {
+    if (consulta && leido.data.origen.tipo !== 'subasta') {
       return fallo('regla', 'Sólo un origen de subasta guarda datos de apibara.')
     }
     const creado = await repositorioVehiculos.crear({
       id,
       origenId,
       datos: validacion.datos,
-      ...(apibara ? { apibara } : {}),
+      ...(consulta ? { consulta } : {}),
     })
     if (!creado.ok) {
       const { campo, error } = creado

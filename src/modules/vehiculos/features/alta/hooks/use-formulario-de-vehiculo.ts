@@ -16,8 +16,9 @@ import {
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { useVehiculos, type Envio } from './use-vehiculos'
 
-// La respuesta de apibara que llenó la ficha, y de qué línea de lo pegado salió (si salió de una).
-export type DeSubasta = { raw: Record<string, unknown>; clave: string | null }
+// La consulta a apibara que llenó la ficha (`consulta`, lo que viaja al guardar; `raw`, para traer
+// las fotos después), y de qué línea de lo pegado salió (si salió de una).
+export type DeSubasta = { consulta: string; raw: Record<string, unknown>; clave: string | null }
 
 export type Guardado = {
   id: string
@@ -183,7 +184,7 @@ export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, a
       id: estado.id,
       origenId,
       valores,
-      ...(estado.subasta ? { apibara: estado.subasta.raw } : {}),
+      ...(estado.subasta ? { consulta: estado.subasta.consulta } : {}),
     })
     return resolver(creado, creado.ok ? creado.data.numero : null, seguir)
   }

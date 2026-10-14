@@ -59,14 +59,14 @@ function fallo(error: ErrorDeRpc): FalloAlGuardar {
 const creado = z.object({ id: z.guid(), numero: z.number(), actualizado_en: z.string() })
 const guardado = z.object({ actualizado_en: z.string() })
 
-const crear: RepositorioVehiculos['crear'] = async ({ id, origenId, datos, apibara }) => {
+const crear: RepositorioVehiculos['crear'] = async ({ id, origenId, datos, consulta }) => {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('vehiculo_crear', {
     p_id: id,
     p_origen: origenId,
     p_datos: comoColumnas(datos),
-    // Sin respuesta de apibara el parámetro no viaja: la RPC lo tiene por defecto en nulo.
-    ...(apibara ? { p_apibara: apibara as Json } : {}),
+    // Sin consulta a apibara el parámetro no viaja: la RPC lo tiene por defecto en nulo.
+    ...(consulta ? { p_consulta: consulta } : {}),
   })
   if (error) {
     return fallo(error)
@@ -100,7 +100,7 @@ const refrescado = z.object({
 const refrescarSubasta: RepositorioVehiculos['refrescarSubasta'] = async ({
   id,
   actualizadoEnEsperado,
-  apibara,
+  consulta,
   columnas,
   atributos,
 }) => {
@@ -108,7 +108,7 @@ const refrescarSubasta: RepositorioVehiculos['refrescarSubasta'] = async ({
   const { data, error } = await supabase.rpc('vehiculo_subasta_refrescar', {
     p_vehiculo: id,
     p_actualizado_en_esperado: actualizadoEnEsperado,
-    p_apibara: apibara as Json,
+    p_consulta: consulta,
     // Las claves son las columnas de la base; los atributos sólo viajan si hay alguno.
     p_datos: {
       ...columnas,

@@ -53,6 +53,36 @@ export const ficha = (data: Record<string, unknown>, url: string | null = null):
   data: { data, url },
 })
 
+type RespuestaConConsulta = {
+  ok: true
+  data: { consulta: string; data: Record<string, unknown>; url: string | null }
+}
+
+function usuarioDe(autorizacion: string): string {
+  const carga = autorizacion.replace(/^Bearer\s+/i, '').split('.')[1] ?? ''
+  const sub = (JSON.parse(Buffer.from(carga, 'base64url').toString('utf8')) as { sub?: string }).sub
+  if (!sub) {
+    throw new Error('La petición a apibara no traía una sesión.')
+  }
+  return sub
+}
+
+async function guardarConsulta(
+  autorizacion: string,
+  origen: string,
+  respuesta: Extract<Respuesta, { ok: true }>,
+): Promise<RespuestaConConsulta> {
+  const { data, error } = await admin().rpc('apibara_consulta_guardar', {
+    p_usuario: usuarioDe(autorizacion),
+    p_origen: origen,
+    p_raw: respuesta.data.data as never,
+  })
+  if (error || typeof data !== 'string') {
+    throw new Error(`No se pudo guardar la consulta simulada: ${error?.message ?? 'sin id'}`)
+  }
+  return { ok: true, data: { consulta: data, ...respuesta.data } }
+}
+
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-headers': 'authorization, x-client-info, apikey, content-type',
@@ -88,7 +118,17 @@ export async function simularApibara(
       })
       return
     }
-    const respuesta = pedido.accion === 'ficha' ? alFicha(pedido.entrada ?? '') : fallo('proveedor')
+    let respuesta: Respuesta | RespuestaConConsulta =
+      pedido.accion === 'ficha' ? alFicha(pedido.entrada ?? '') : fallo('proveedor')
+    if (respuesta.ok && pedido.origen) {
+      // Como la función real: la ficha queda en la base a nombre de quien consulta (sale de su JWT)
+      // y al navegador vuelve el id. El alta y el refresco la referencian por ese id.
+      respuesta = await guardarConsulta(
+        peticion.headers()['authorization'] ?? '',
+        pedido.origen,
+        respuesta,
+      )
+    }
     await ruta.fulfill({
       status: 200,
       headers: { ...CORS, 'content-type': 'application/json' },

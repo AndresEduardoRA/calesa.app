@@ -1,7 +1,10 @@
 // apibara: la única que habla con la API de Copart e IAAI. Existe para que la clave no salga de la
 // base: la lee de Vault con la service key del runtime (`integracion_secreto`) y nunca la devuelve.
 // Quien llama es el navegador, con su sesión; antes de leer la clave se le pregunta a la base qué
-// puede hacer esa persona en ese origen (`apibara_contexto`). Contrato en supabase/functions/README.md.
+// puede hacer esa persona en ese origen (`apibara_contexto`). La ficha que trae la guarda en la base
+// (`apibara_consulta_guardar`) y devuelve su id: guardar el vehículo la referencia, así el bruto
+// del que la base deriva fecha y estado nunca sale del navegador. Contrato en
+// supabase/functions/README.md.
 // Sin dependencias: habla con PostgREST y con apibara por HTTP.
 
 const BASE = Deno.env.get('SUPABASE_URL') ?? ''
@@ -33,6 +36,7 @@ type Codigo =
 
 type Contexto = {
   aplica: boolean
+  usuario: string | null
   activa: boolean
   endpoint: string | null
   plataformas: string[]
@@ -219,6 +223,23 @@ async function consultarFicha(
   return { ok: true, cuerpo: { data, url: delEnlace === null ? null : entrada } }
 }
 
+// La ficha queda en la base a nombre de quien consultó: el alta y el refresco la referencian por
+// id. Si no se puede guardar (demasiado grande, la base no responde), la ficha no sirve para
+// guardar el vehículo y se dice como un problema de la consulta.
+async function guardarConsulta(usuario: string | null, origen: string, data: unknown) {
+  if (usuario === null || !UUID.test(usuario)) return null
+  try {
+    const id = await rpc<string>(
+      'apibara_consulta_guardar',
+      { p_usuario: usuario, p_origen: origen, p_raw: data },
+      comoServicio,
+    )
+    return typeof id === 'string' && UUID.test(id) ? id : null
+  } catch {
+    return null
+  }
+}
+
 async function consultarFoto(base: string, clave: string, direccion: string): Promise<Resultado> {
   let url: URL
   try {
@@ -333,6 +354,12 @@ Deno.serve(async (req) => {
   )
 
   if (!resultado.ok) return fallo(resultado.codigo)
+  if (pedido.accion === 'ficha') {
+    const { data, url } = resultado.cuerpo as { data: unknown; url: string | null }
+    const consulta = await guardarConsulta(contexto.usuario, pedido.origen, data)
+    if (consulta === null) return fallo('proveedor')
+    return json({ ok: true, data: { consulta, data, url } })
+  }
   if (resultado.binario) {
     return new Response(resultado.binario, {
       status: 200,

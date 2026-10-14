@@ -140,8 +140,11 @@ export function sePuedeReintentar(codigo: CodigoDeApibara): boolean {
   return codigo === 'tiempo' || codigo === 'proveedor' || codigo === 'red'
 }
 
-// La ficha tal como la devuelve apibara: `data` es la respuesta en bruto (lo que se guarda).
+// La ficha tal como la devuelve la edge function. `consulta` es el id con el que la base la guardó:
+// el alta y el refresco la referencian, y la base copia el bruto de ahí. `data` es ese mismo bruto,
+// para llenar el formulario y listar las fotos; lo que se manda al guardar nunca es él.
 export type FichaDeApibara = {
+  consulta: string
   data: Record<string, unknown>
   // La dirección que consultó la API, si la entrada fue un enlace.
   url: string | null

@@ -48,8 +48,8 @@ export function useVehiculos() {
       id: string
       origenId: string
       valores: ValoresDeFormulario
-      // La respuesta de apibara que llenó la ficha, si el alta vino de ahí.
-      apibara?: Record<string, unknown>
+      // La consulta a apibara que llenó la ficha, si el alta vino de ahí.
+      consulta?: string
     }) => enviar(creando.executeAsync(pedido)),
     guardar: (pedido: {
       id: string

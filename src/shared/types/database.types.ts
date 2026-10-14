@@ -266,6 +266,56 @@ export type Database = {
           },
         ]
       }
+      apibara_consultas: {
+        Row: {
+          creado_en: string
+          creado_por: string
+          id: string
+          origen_id: string
+          raw: NonNullable<Json>
+          vehiculo_id: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          creado_en?: string
+          creado_por: string
+          id?: string
+          origen_id: string
+          raw: NonNullable<Json>
+          vehiculo_id?: string | null
+        }
+        Update: {
+          creado_en?: string
+          creado_por?: string
+          id?: string
+          origen_id?: string
+          raw?: NonNullable<Json>
+          vehiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'apibara_consultas_creado_por_fkey'
+            columns: ['creado_por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'apibara_consultas_origen_id_fkey'
+            columns: ['origen_id']
+            isOneToOne: false
+            referencedRelation: 'origenes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'apibara_consultas_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'vehiculos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       categorias: {
         Row: {
           activa: boolean
@@ -5060,6 +5110,7 @@ export type Database = {
           fase_desde: string | null
           fase_id: string | null
           id: string
+          importado_apibara: boolean
           kilometraje: number | null
           lead_id: string | null
           lote: string | null
@@ -5102,6 +5153,7 @@ export type Database = {
           fase_desde?: string | null
           fase_id?: string | null
           id?: string
+          importado_apibara?: boolean
           kilometraje?: number | null
           lead_id?: string | null
           lote?: string | null
@@ -5142,6 +5194,7 @@ export type Database = {
           fase_desde?: string | null
           fase_id?: string | null
           id?: string
+          importado_apibara?: boolean
           kilometraje?: number | null
           lead_id?: string | null
           lote?: string | null
@@ -5842,6 +5895,23 @@ export type Database = {
           tipo: Database['public']['Enums']['tipo_campo']
         }[]
       }
+      _apibara_consulta_tomar: {
+        Args: { p_consulta: string; p_origen: string; p_vehiculo: string }
+        Returns: {
+          creado_en: string
+          creado_por: string
+          id: string
+          origen_id: string
+          raw: NonNullable<Json>
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'apibara_consultas'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _apibara_hojas: {
         Args: { p_raw: Json }
         Returns: {
@@ -5931,6 +6001,7 @@ export type Database = {
           fase_desde: string | null
           fase_id: string | null
           id: string
+          importado_apibara: boolean
           kilometraje: number | null
           lead_id: string | null
           lote: string | null
@@ -6007,6 +6078,12 @@ export type Database = {
         Returns: Database['public']['Enums']['alcance_permiso']
       }
       alertas_demora: { Args: Record<PropertyKey, never>; Returns: number }
+      apibara_consulta_guardar: {
+        Args: { p_origen: string; p_raw: Json; p_usuario: string }
+        Returns: string
+      }
+      apibara_consulta_leer: { Args: { p_consulta: string }; Returns: Json }
+      apibara_consultas_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       apibara_contexto: { Args: { p_origen: string }; Returns: Json }
       assert_activo: { Args: Record<PropertyKey, never>; Returns: undefined }
       assert_permiso: { Args: { p_clave: string; p_origen?: string }; Returns: undefined }
@@ -6439,7 +6516,7 @@ export type Database = {
       usuario_tiene_permiso: { Args: { p_clave: string; p_usuario: string }; Returns: boolean }
       validar_formula: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
       vehiculo_crear: {
-        Args: { p_apibara?: Json; p_datos: Json; p_id: string; p_origen: string }
+        Args: { p_consulta?: string; p_datos: Json; p_id: string; p_origen: string }
         Returns: Json
       }
       vehiculo_foto_eliminar: {
@@ -6486,7 +6563,7 @@ export type Database = {
       vehiculo_subasta_refrescar: {
         Args: {
           p_actualizado_en_esperado: string
-          p_apibara: Json
+          p_consulta: string
           p_datos?: Json
           p_vehiculo: string
         }

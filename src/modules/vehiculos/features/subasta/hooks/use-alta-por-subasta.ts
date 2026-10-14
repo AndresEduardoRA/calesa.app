@@ -72,6 +72,7 @@ export function useAltaPorSubasta({
     }
     setSinLlenar(dela.datos.sinCoincidencia.map((una) => `${una.etiqueta} («${una.valor}»)`))
     estado.aplicarSubasta(dela.datos, {
+      consulta: dela.ficha.consulta,
       raw: dela.ficha.data,
       clave: total > 1 ? linea.clave : null,
     })

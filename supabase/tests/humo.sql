@@ -2401,11 +2401,35 @@ do $$ declare raw jsonb := '{"auction": {"state": "open", "auction_at": "2030-01
   if public.origen_apibara_completar(o) <> 0 then raise exception 'completar un origen completo no debía sumar nada'; end if;
   if public.origen_apibara_completar((select id from public.origenes where clave = 'oficina')) <> 0 then raise exception 'un origen manual no recibe el catálogo'; end if;
 end $$;
+-- Las consultas las guarda la edge function (service_role) a nombre de quien consultó: así sólo
+-- ella origina el bruto del que la base deriva fecha y estado.
+do $$ declare usa uuid; oficina uuid; raw jsonb; bruno uuid := '00000000-0000-0000-0000-000000000009'; begin
+  select id into usa from public.origenes where clave = 'subasta_usa';
+  select id into oficina from public.origenes where clave = 'oficina';
+  raw := jsonb_build_object('lot_number', '77700001', 'novedad', jsonb_build_object('dato', 5),
+    'auction', jsonb_build_object('state', 'open', 'auction_at', '2030-01-05T18:00:00+00:00'),
+    'pricing', jsonb_build_object('current_bid_usd', 2500));
+  perform set_config('humo.c_alta', public.apibara_consulta_guardar(bruno, usa, raw)::text, false);
+  perform set_config('humo.c_otro', public.apibara_consulta_guardar(bruno, usa, raw)::text, false);
+  perform set_config('humo.c_vendida', public.apibara_consulta_guardar(bruno, usa,
+    jsonb_set(jsonb_set(raw, '{auction,outcome_status}', '"Sold"'), '{pricing,current_bid_usd}', '4100'))::text, false);
+  perform set_config('humo.c_ajena', public.apibara_consulta_guardar('00000000-0000-0000-0000-000000000001', usa, raw)::text, false);
+  perform set_config('humo.c_vieja', public.apibara_consulta_guardar(bruno, usa, raw)::text, false);
+  update public.apibara_consultas set creado_en = now() - interval '25 hours' where id = current_setting('humo.c_vieja')::uuid;
+  -- Lo que la función no puede guardar: un origen manual, algo que no es un objeto, algo desmesurado.
+  begin perform public.apibara_consulta_guardar(bruno, oficina, raw); raise exception 'guardó una consulta de un origen manual';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.apibara_consulta_guardar(bruno, usa, '[1, 2]'); raise exception 'aceptó una respuesta que no es un objeto';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.apibara_consulta_guardar(bruno, usa, jsonb_build_object('relleno', repeat('x', 600000))); raise exception 'aceptó una respuesta de más de 512 KB';
+  exception when invalid_parameter_value then null; end;
+end $$;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
 select set_config('request.jwt.claim.role', 'authenticated', false);
 set role authenticated;
 do $$ declare
-  usa uuid; oficina uuid; v uuid := 'cccccccc-0000-4000-8000-000000000001'; r jsonb; ver timestamptz; raw jsonb; grande jsonb; n int;
+  usa uuid; oficina uuid; v uuid := 'cccccccc-0000-4000-8000-000000000001'; r jsonb; ver timestamptz; raw jsonb; n int;
+  c_alta uuid := current_setting('humo.c_alta')::uuid; c_vendida uuid := current_setting('humo.c_vendida')::uuid;
 begin
   select id into usa from public.origenes where clave = 'subasta_usa';
   select id into oficina from public.origenes where clave = 'oficina';
@@ -2413,43 +2437,79 @@ begin
     'auction', jsonb_build_object('state', 'open', 'auction_at', '2030-01-05T18:00:00+00:00'),
     'pricing', jsonb_build_object('current_bid_usd', 2500));
 
-  -- Lo que se rechaza al crear: un origen manual, algo que no es un objeto, algo desmesurado.
-  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Manual con bruto"}', raw); raise exception 'un origen manual guardó datos de apibara';
-  exception when invalid_parameter_value then null; end;
-  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Bruto roto"}', '[1, 2]'); raise exception 'aceptó una respuesta que no es un objeto';
-  exception when invalid_parameter_value then null; end;
-  grande := jsonb_build_object('relleno', repeat('x', 600000));
-  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Bruto grande"}', grande); raise exception 'aceptó una respuesta de más de 512 KB';
-  exception when invalid_parameter_value then null; end;
+  -- Quien crea o edita no escribe el bruto ni lo que la base deriva de él: ni por la tabla ni por
+  -- la de consultas, que no lee ni escribe.
+  if has_column_privilege('authenticated', 'public.vehiculos', 'apibara_raw', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.vehiculos', 'estado_subasta', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.vehiculos', 'subasta_en', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.vehiculos', 'subasta_fin_en', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.vehiculos', 'apibara_sync_en', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.vehiculos', 'importado_apibara', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.vehiculos', 'apibara_raw', 'INSERT') then
+    raise exception 'authenticated puede escribir el bruto o las columnas de la subasta'; end if;
+  begin perform 1 from public.apibara_consultas limit 1; raise exception 'Bruno leyó las consultas';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.apibara_consultas (origen_id, creado_por, raw) values (usa, (select auth.uid()), '{}'); raise exception 'Bruno guardó una consulta';
+  exception when insufficient_privilege then null; end;
+  begin perform public.apibara_consulta_guardar((select auth.uid()), usa, '{}'); raise exception 'Bruno llamó a la función que guarda consultas';
+  exception when insufficient_privilege then null; end;
+  -- La vieja firma (el bruto como parámetro) ya no existe.
+  if to_regprocedure('public.vehiculo_crear(uuid, uuid, jsonb, jsonb)') is not null
+     or to_regprocedure('public.vehiculo_subasta_refrescar(uuid, timestamptz, jsonb, jsonb)') is not null then
+    raise exception 'quedó la firma que recibía el bruto del navegador'; end if;
 
-  -- El alta con la respuesta: fecha, estado y último refresco en sus columnas, y el bruto entero.
+  -- Lo que se rechaza al crear: una consulta en un origen manual, ajena, vencida o inventada.
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Manual con consulta"}', c_alta); raise exception 'un origen manual guardó datos de apibara';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Consulta ajena"}', current_setting('humo.c_ajena')::uuid); raise exception 'usó la consulta de otra persona';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Consulta vieja"}', current_setting('humo.c_vieja')::uuid); raise exception 'usó una consulta vencida';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Consulta inventada"}', gen_random_uuid()); raise exception 'usó una consulta que no existe';
+  exception when invalid_parameter_value then null; end;
+  -- Sin consulta, el alta es manual aunque el origen sea de subasta: sin bruto y no importado.
+  r := public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Subasta a mano"}');
+  if (select apibara_raw is not null or importado_apibara or estado_subasta is not null from public.vehiculos where id = (r ->> 'id')::uuid) then
+    raise exception 'un alta sin consulta quedó con datos de apibara'; end if;
+
+  -- El alta con la consulta: fecha, estado y último refresco en sus columnas, el bruto entero y
+  -- la marca de importado.
   r := public.vehiculo_crear(v, usa,
-    '{"titulo": "2030 Apibara Humo", "vin": "JTMW1RFV8MD099999", "lote": "77700001", "plataforma": "copart", "atributos": {"color": "Gris"}}', raw);
+    '{"titulo": "2030 Apibara Humo", "vin": "JTMW1RFV8MD099999", "lote": "77700001", "plataforma": "copart", "atributos": {"color": "Gris"}}', c_alta);
+  raw := public.apibara_consulta_leer(c_alta);
+  if not (select importado_apibara from public.vehiculos where id = v) then raise exception 'el alta con consulta no quedó importada'; end if;
   if (select estado_subasta::text from public.vehiculos where id = v) <> 'abierta' then raise exception 'el alta no dejó el estado'; end if;
   if (select subasta_en from public.vehiculos where id = v) <> '2030-01-05T18:00:00+00:00'::timestamptz then raise exception 'el alta no dejó la fecha'; end if;
   if (select apibara_sync_en from public.vehiculos where id = v) is null then raise exception 'el alta no selló el último refresco'; end if;
   if (select apibara_raw from public.vehiculos where id = v) is distinct from raw then raise exception 'el alta no guardó el bruto entero'; end if;
   -- Reintentar tras perder la respuesta devuelve el mismo vehículo, sin duplicar.
-  if (public.vehiculo_crear(v, usa, '{"titulo": "2030 Apibara Humo"}', raw) ->> 'id')::uuid <> v then raise exception 'reintentar el alta no devolvió el mismo vehículo'; end if;
+  if (public.vehiculo_crear(v, usa, '{"titulo": "2030 Apibara Humo"}', c_alta) ->> 'id')::uuid <> v then raise exception 'reintentar el alta no devolvió el mismo vehículo'; end if;
+  -- La misma consulta no sirve para otro vehículo.
+  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Otra con la misma"}', c_alta); raise exception 'una consulta sirvió para dos vehículos';
+  exception when invalid_parameter_value then null; end;
 
   -- Refrescar: con la versión, lo que la app decidió actualizar, y fecha, estado y bruto siempre.
   ver := (r ->> 'actualizado_en')::timestamptz;
-  begin perform public.vehiculo_subasta_refrescar(v, null, raw); raise exception 'refrescó sin versión';
+  begin perform public.vehiculo_subasta_refrescar(v, null, c_vendida); raise exception 'refrescó sin versión';
   exception when raise_exception then if sqlerrm not like 'Falta la versión%' then raise; end if; end;
-  begin perform public.vehiculo_subasta_refrescar(v, ver - interval '1 day', raw); raise exception 'refrescó con una versión vieja';
+  begin perform public.vehiculo_subasta_refrescar(v, ver - interval '1 day', c_vendida); raise exception 'refrescó con una versión vieja';
   exception when sqlstate 'PT409' then null; end;
-  begin perform public.vehiculo_subasta_refrescar(v, ver, raw, '{"fase_id": "00000000-0000-0000-0000-000000000000"}'); raise exception 'refrescar aceptó fase_id';
+  begin perform public.vehiculo_subasta_refrescar(v, ver, c_vendida, '{"fase_id": "00000000-0000-0000-0000-000000000000"}'); raise exception 'refrescar aceptó fase_id';
   exception when invalid_parameter_value then null; end;
-  r := public.vehiculo_subasta_refrescar(v, ver,
-    jsonb_set(jsonb_set(raw, '{auction,outcome_status}', '"Sold"'), '{pricing,current_bid_usd}', '4100'),
-    '{"atributos": {"color": "Negro"}}');
+  begin perform public.vehiculo_subasta_refrescar(v, ver, null); raise exception 'refrescó sin consulta';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_subasta_refrescar(v, ver, current_setting('humo.c_ajena')::uuid); raise exception 'refrescó con la consulta de otra persona';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.apibara_consulta_leer(current_setting('humo.c_ajena')::uuid); raise exception 'Bruno leyó la consulta de otra persona';
+  exception when invalid_parameter_value then null; end;
+  r := public.vehiculo_subasta_refrescar(v, ver, c_vendida, '{"atributos": {"color": "Negro"}}');
   if (r ->> 'estado_subasta') <> 'vendida' or (select estado_subasta::text from public.vehiculos where id = v) <> 'vendida' then raise exception 'refrescar no dejó el estado nuevo'; end if;
   if (select atributos ->> 'color' from public.vehiculos where id = v) <> 'Negro' then raise exception 'refrescar no aplicó lo que la app decidió actualizar'; end if;
   if (select apibara_raw #>> '{pricing,current_bid_usd}' from public.vehiculos where id = v) <> '4100' then raise exception 'refrescar no guardó el bruto nuevo'; end if;
   if (r ->> 'actualizado_en')::timestamptz < ver then raise exception 'refrescar devolvió una versión anterior'; end if;
   -- Un vehículo de un origen manual no se refresca desde apibara.
   r := public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Oficina sin subasta"}');
-  begin perform public.vehiculo_subasta_refrescar((r ->> 'id')::uuid, (r ->> 'actualizado_en')::timestamptz, raw); raise exception 'refrescó un vehículo manual';
+  begin perform public.vehiculo_subasta_refrescar((r ->> 'id')::uuid, (r ->> 'actualizado_en')::timestamptz, current_setting('humo.c_otro')::uuid); raise exception 'refrescó un vehículo manual';
   exception when invalid_parameter_value then null; end;
 
   -- Repetidos: por VIN en cualquier origen y por lote en éste. Lo que no está, no vuelve.

@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { esquemaFichaDeApibara } from '../../subasta/schemas/ficha'
 
 // El sobre de un guardado. Lo que viaja en `valores` es el estado del formulario tal como está
 // (texto, sí o no, listas): qué campos lleva y qué vale cada uno depende del layout del origen,
@@ -21,8 +20,8 @@ export const esquemaCrearVehiculo = z.object({
   id: z.guid(),
   origenId: z.guid(),
   valores,
-  // La respuesta de apibara que llenó la ficha, si el alta vino de ahí.
-  apibara: esquemaFichaDeApibara.optional(),
+  // La consulta a apibara que llenó la ficha, si el alta vino de ahí: la base copia el bruto de ella.
+  consulta: z.guid().optional(),
 })
 
 export const esquemaGuardarVehiculo = z.object({

@@ -14,7 +14,11 @@ import {
 
 const respuestaDeFicha = z.object({
   ok: z.literal(true),
-  data: z.object({ data: z.record(z.string(), z.unknown()), url: z.string().nullable() }),
+  data: z.object({
+    consulta: z.guid(),
+    data: z.record(z.string(), z.unknown()),
+    url: z.string().nullable(),
+  }),
 })
 const respuestaDeFallo = z.object({
   ok: z.literal(false),

@@ -10,12 +10,15 @@ export const ORIGEN = '11111111-1111-4111-8111-111111111111'
 export const CLAVE = 'clave-secreta-de-prueba-0123456789'
 export const BASE_APIBARA = 'https://apibara.tech/api/v1/vehicle-auction'
 export const FUENTE = join(process.cwd(), 'supabase/functions/apibara/index.ts')
+export const USUARIO = '22222222-2222-4222-8222-222222222222'
+export const CONSULTA = '33333333-3333-4333-8333-333333333333'
 
 type Manejador = (req: Request) => Promise<Response>
 export let manejador: Manejador
 
 const contexto = {
   aplica: true,
+  usuario: USUARIO as string | null,
   activa: true,
   endpoint: BASE_APIBARA,
   plataformas: ['copart', 'iaai'],
@@ -30,10 +33,18 @@ export function fixture(nombre: string): unknown {
 
 type Ruteo = (url: string) => Response | Promise<Response> | Error | undefined
 export let llamadas: { url: string; clave: string | null }[] = []
+// Lo que la función le pidió guardar a la base, y con qué credencial.
+export let guardadas: { cuerpo: Record<string, unknown>; autorizacion: string | null }[] = []
 
-// Simula la base y apibara. `apibara` decide qué responde la API a cada dirección.
-export function simular(ctx: Partial<typeof contexto> | null, apibara: Ruteo) {
+// Simula la base y apibara. `apibara` decide qué responde la API a cada dirección; `guardar`, qué
+// responde la base al guardar la consulta (por defecto, su id).
+export function simular(
+  ctx: Partial<typeof contexto> | null,
+  apibara: Ruteo,
+  guardar: () => Response = () => Response.json(CONSULTA),
+) {
   llamadas = []
+  guardadas = []
   vi.stubGlobal(
     'fetch',
     vi.fn(async (entrada: string | URL, init?: RequestInit) => {
@@ -46,6 +57,13 @@ export function simular(ctx: Partial<typeof contexto> | null, apibara: Ruteo) {
       }
       if (url.endsWith('/rpc/integracion_secreto')) {
         return Response.json(CLAVE)
+      }
+      if (url.endsWith('/rpc/apibara_consulta_guardar')) {
+        guardadas.push({
+          cuerpo: JSON.parse(String(init?.body)) as Record<string, unknown>,
+          autorizacion: cabeceras.get('Authorization'),
+        })
+        return guardar()
       }
       llamadas.push({ url, clave: cabeceras.get('X-API-Key') })
       const respuesta = await apibara(url)

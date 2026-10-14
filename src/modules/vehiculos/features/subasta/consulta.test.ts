@@ -5,6 +5,7 @@ import { CONSULTAS_A_LA_VEZ, consultarLineas, type Dependencias } from './consul
 import { lineasDePegado, type EstadoDeLinea } from './lineas'
 
 const ficha = (lote: string, vin: string): FichaDeApibara => ({
+  consulta: '00000000-0000-0000-0000-0000000000c1',
   data: { lot_number: lote, vin, platform: 'copart', title: `Vehículo ${lote}` },
   url: null,
 })

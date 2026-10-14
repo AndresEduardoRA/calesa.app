@@ -41,9 +41,9 @@ export type RepositorioVehiculos = {
     id: string
     origenId: string
     datos: DatosDeVehiculo
-    // La respuesta de apibara en bruto, si el alta vino de ahí: la base deriva de ella la fecha y
-    // el estado de la subasta y la guarda entera.
-    apibara?: Record<string, unknown>
+    // La consulta a apibara, si el alta vino de ahí: la base copia de ella el bruto, deriva la
+    // fecha y el estado de la subasta y marca el vehículo como importado.
+    consulta?: string
   }) => Promise<
     { ok: true; data: { id: string; numero: number; actualizadoEn: string } } | FalloAlGuardar
   >
@@ -52,12 +52,13 @@ export type RepositorioVehiculos = {
     actualizadoEnEsperado: string
     datos: DatosDeVehiculo
   }) => Promise<{ ok: true; data: { actualizadoEn: string } } | FalloAlGuardar>
-  // Vuelve a escribir la subasta de un vehículo: la respuesta nueva (fecha y estado los deriva la
-  // base de ella) y lo que se decidió actualizar de la ficha, con la versión que tenía quien pide.
+  // Vuelve a escribir la subasta de un vehículo: la consulta nueva (la base copia el bruto y deriva
+  // de él fecha y estado) y lo que se decidió actualizar de la ficha, con la versión que tenía
+  // quien pide.
   refrescarSubasta: (pedido: {
     id: string
     actualizadoEnEsperado: string
-    apibara: Record<string, unknown>
+    consulta: string
     columnas: ColumnasDeSubasta
     atributos: Record<string, ValorDeAtributo>
   }) => Promise<
@@ -82,6 +83,12 @@ export type RepetidoEncontrado = { posicion: number; vehiculoId: string | null }
 
 // La subasta de un vehículo: lo que dice la base y lo que trajo apibara. null = no se ve o no existe.
 export type LectorDeSubasta = (vehiculoId: string) => Promise<Resultado<SubastaDeVehiculo | null>>
+
+// El bruto de una consulta a apibara de quien pregunta (de las últimas 24 h): con él el servidor
+// compara el refresco con lo guardado. Viene de la base, no del navegador.
+export type LectorDeConsultaDeApibara = (
+  consulta: string,
+) => Promise<Resultado<Record<string, unknown>>>
 
 // Las fotos de un vehículo y su versión. Lo que ve cada quien lo decide la RLS.
 export type LectorDeGaleria = (vehiculoId: string) => Promise<Resultado<Galeria>>

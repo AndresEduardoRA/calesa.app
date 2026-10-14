@@ -33,17 +33,22 @@ línea, y guardar sigue siendo una Server Action con su RPC.
 
 **Lo que recibe** (`POST`, JSON, `verify_jwt = true`):
 
-- `{ accion: 'ficha', origen, entrada }` → `{ ok: true, data: { data, url } }`, con `data` = la respuesta en bruto
-  (lo que se guarda en `vehiculos.apibara_raw`) y `url` la dirección consultada (la API devuelve
-  `url: true`, no la repite).
+- `{ accion: 'ficha', origen, entrada }` → `{ ok: true, data: { consulta, data, url } }`. `data` es la
+  respuesta en bruto (el navegador llena el formulario y lista las fotos con ella), `url` la dirección
+  consultada (la API devuelve `url: true`, no la repite) y `consulta` el id con el que la función la
+  guardó en `apibara_consultas` **a nombre de quien consultó** (`apibara_consulta_guardar`, service
+  key). El alta (`vehiculo_crear`) y el refresco (`vehiculo_subasta_refrescar`) reciben ese id y la base
+  copia el bruto de ahí: así sólo esta función origina lo que la base deriva (fecha y estado de la
+  subasta), y la limpieza automática puede decidir por ellos. Si no se puede guardar, la ficha no
+  vuelve (`proveedor`): no serviría para guardar el vehículo.
 - `{ accion: 'foto', origen, url }` → los bytes (`application/octet-stream`), sólo de `cs.copart.com` y
   `vis.iaai.com`: con la lista libre, esta función sería un proxy abierto con nuestra clave.
 - `{ accion: 'uso' }` → `{ plan, usadas, limite, restantes, hasta }` (nada más de la cuenta). Exige
   `empresa.ajustes.gestionar`.
 
 **Qué hace, en orden.** (1) Le pregunta a la base **como quien llama** `apibara_contexto(origen)`:
-si apibara aplica y está activa con clave, a qué dirección, qué plataformas y qué puede esa persona
-(crear o editar vehículos en ese origen). (2) Recién ahí lee la clave. La dirección sólo puede ser de
+si apibara aplica y está activa con clave, a qué dirección, qué plataformas, qué puede esa persona
+(crear o editar vehículos en ese origen) y quién es (`usuario`). (2) Recién ahí lee la clave. La dirección sólo puede ser de
 `apibara.tech` (si no, no manda nada). (3) Consulta con tope de 15 s y un solo reintento ante un 5xx
 o un corte; nunca ante un 429.
 
@@ -51,6 +56,10 @@ o un corte; nunca ante un 429.
 app: `mensajeDeApibara()`): `apagada` · `sin_permiso` · `entrada` · `plataforma` · `no_soportado`
 (400/422 o un enlace de otro sitio) · `no_encontrado` (404) · `clave_invalida` (401/403) · `cuota`
 (429) · `tiempo` · `proveedor` (5xx o una respuesta que no se entiende). Sin datos personales en los logs.
+
+Una consulta vale 24 h, la usa un solo vehículo y la propia persona es la única que la puede usar
+(`_apibara_consulta_tomar`); el job `apibara-consultas-purgar` (04:40 UTC) borra las de más de 48 h.
+`apibara_consultas` es sólo de `service_role`: el navegador no la lee ni la escribe.
 
 **Pruebas.** Corre en Deno y no entra a lint ni typecheck. `src/modules/vehiculos/infra/funcion-apibara*.test.ts`
 la carga en Node con un `Deno` mínimo y un `fetch` simulado que responde con lo grabado
@@ -94,7 +103,9 @@ papelera cuánto lleva esperando lo que ya debía haberse borrado.
 **Por despliegue (una vez):** `supabase functions deploy storage-gc` y, en el editor de SQL,
 `select public.storage_gc_programar('https://<ref>.supabase.co/functions/v1/storage-gc');`. La
 dirección no se puede saber desde una migración; el job (`17 * * * *`) queda con ella. La purga
-automática de la papelera (`papelera-purgar`, 03:30) la programa la migración.
+automática de la papelera (`papelera-purgar`, `30 3 * * *`) la programa la migración. **Ojo con la
+hora:** `pg_cron` corre en UTC (`cron.timezone = GMT`) y ningún job mira `ajustes_empresa.zona_horaria`:
+`03:30` es la madrugada de Greenwich, no la de la empresa (en La Paz son las 23:30 del día anterior).
 
 **En local:** `supabase start` sirve la función (si el contenedor `edge_runtime` quedó caído o se
 cambió `config.toml`, `npx supabase stop && npx supabase start`). Desde la base se la alcanza en
@@ -102,5 +113,5 @@ cambió `config.toml`, `npx supabase stop && npx supabase start`). Desde la base
 typecheck (`tsconfig` y ESLint excluyen `supabase/functions`): la cubre `e2e/vehiculos-papelera.spec.ts`,
 que purga, la llama con un pase y comprueba que los objetos salieron de Storage.
 
-Reglas: una función = un `index.ts` + `deno.json`; CORS sólo si la llama el navegador (ninguna de
-estas); errores como valores `{ ok, error }` en JSON; logs sin datos personales.
+Reglas: una función = un `index.ts` + `deno.json`; CORS sólo si la llama el navegador (`apibara` sí
+lo usa: la llama el navegador; `storage-gc` y `push` no); errores como valores `{ ok, error }` en JSON; logs sin datos personales.

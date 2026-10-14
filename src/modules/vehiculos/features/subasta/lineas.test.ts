@@ -9,7 +9,11 @@ import {
   type Linea,
 } from './lineas'
 
-const FICHA = { data: { lot_number: '1' }, url: null }
+const FICHA = {
+  consulta: '00000000-0000-0000-0000-0000000000c1',
+  data: { lot_number: '1' },
+  url: null,
+}
 const DATOS = { columnas: {}, atributos: {}, sinCoincidencia: [] }
 
 describe('lineasDePegado', () => {

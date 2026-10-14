@@ -25,7 +25,8 @@ create table public.vehiculos (
   subasta_zona       text,                              -- zona horaria de la yarda
   estado_subasta     public.estado_subasta,             -- abierta | en_vivo | terminada | vendida; lo deriva la base del bruto
   apibara_sync_en    timestamptz,                       -- cuándo se consultó a apibara por última vez
-  apibara_raw        jsonb,                             -- última respuesta cruda, para re-mapear sin re-consultar
+  apibara_raw        jsonb,                             -- última respuesta cruda, para re-mapear sin re-consultar; la copia la base de apibara_consultas
+  importado_apibara  boolean not null default false,    -- nació de una consulta a apibara; no cambia nunca
   fase_id            uuid references public.fases (id) on delete restrict,
   fase_desde         timestamptz,
   lead_id            uuid references public.leads (id) on delete set null,  -- vínculo activo (cliente/comprador)
@@ -51,6 +52,23 @@ alter table public.historial_fases add constraint historial_fases_vehiculo_fk fo
 alter table public.seguimientos add constraint seguimientos_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete set null;
 alter table public.recordatorios add constraint recordatorios_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete cascade;
 alter table public.oportunidades add constraint oportunidades_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete set null;
+
+comment on column public.vehiculos.importado_apibara is 'Nació de una consulta a apibara (vehiculo_crear con p_consulta). No cambia nunca: la limpieza automática sólo mira a estos.';
+comment on column public.vehiculos.apibara_raw is 'La última respuesta de apibara, entera. La copia la base desde apibara_consultas: nunca llega del navegador.';
+
+create table public.apibara_consultas (
+  id          uuid primary key default gen_random_uuid(),
+  origen_id   uuid not null references public.origenes (id) on delete cascade,
+  creado_por  uuid not null references public.perfiles (id) on delete cascade,
+  raw         jsonb not null,
+  creado_en   timestamptz not null default now(),
+  vehiculo_id uuid references public.vehiculos (id) on delete set null  -- el vehículo que la usó
+);
+create index apibara_consultas_origen_idx on public.apibara_consultas (origen_id);
+create index apibara_consultas_creado_por_idx on public.apibara_consultas (creado_por);
+create index apibara_consultas_vehiculo_idx on public.apibara_consultas (vehiculo_id) where vehiculo_id is not null;
+create index apibara_consultas_creado_en_idx on public.apibara_consultas (creado_en);
+comment on table public.apibara_consultas is 'Cada respuesta que trajo la edge function apibara, a nombre de quien consultó. vehiculo_crear() y vehiculo_subasta_refrescar() la reciben por id y copian el bruto: así sólo la función origina lo que la base deriva (fecha y estado de la subasta). Vale 24 h y la usa un solo vehículo. Sólo service_role.';
 
 create table public.vehiculos_imagenes (
   id             uuid primary key default gen_random_uuid(),

@@ -26,10 +26,12 @@ paths:
 - Los orígenes, su layout de campos y sus categorías se escriben sólo por RPC (`origen_*`,
   `categoria_*`): sus tablas son de sólo lectura, y un campo con datos no cambia de tipo ni se elimina.
 - Los vehículos se escriben sólo por RPC: `vehiculo_crear` (con el `id` que genera el navegador:
-  reintentar no duplica; con `p_apibara`, la respuesta en bruto), `vehiculo_guardar` (con versión) y
-  `vehiculo_subasta_refrescar` (con versión: bruto, fecha y estado, más lo que la app decidió
-  actualizar). `subasta_en`, `estado_subasta` y `apibara_*` los escribe sólo la base, derivados del
-  bruto. La clave de apibara la lee sólo `integracion_secreto()` (service role) desde la edge
+  reintentar no duplica; con `p_consulta`, el id de una consulta a apibara), `vehiculo_guardar` (con
+  versión) y `vehiculo_subasta_refrescar` (con versión y `p_consulta`, más lo que la app decidió
+  actualizar). **El bruto de apibara no llega nunca del navegador:** lo guarda la edge function en
+  `apibara_consultas` (sólo `service_role`) y la RPC lo copia por id (suya, del mismo origen, de las
+  últimas 24 h, de un solo vehículo). `subasta_en`, `estado_subasta`, `apibara_*` e
+  `importado_apibara` los escribe sólo la base. La clave de apibara la lee sólo `integracion_secreto()` (service role) desde la edge
   function: nunca el cliente admin de la app. La tabla es de sólo lectura: no hay
   `.insert()` ni `.update()` sobre `vehiculos`. Un error de validación trae en `hint` el campo
   (`anio`, `atributos.<clave>`). Bajo RLS los filtros sobre `atributos` no usan el GIN.

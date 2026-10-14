@@ -6,7 +6,12 @@ import { fallo, ok } from '@/shared/lib/errores'
 import { puede } from '@/shared/lib/permisos'
 import { RUTAS } from '@/shared/lib/rutas'
 import { actionClient } from '@/shared/lib/safe-action'
-import { leerSubasta, leerVehiculo, repositorioVehiculos } from '../../../composicion'
+import {
+  leerConsultaDeApibara,
+  leerSubasta,
+  leerVehiculo,
+  repositorioVehiculos,
+} from '../../../composicion'
 import { camposActivos } from '../../../entities/campo'
 import { camposComunes } from '../../../entities/comunes'
 import { datosDesdeSubasta, type ColumnasDeSubasta } from '../../../entities/subasta'
@@ -46,14 +51,15 @@ const COLUMNA_A_COMUN: Record<string, string> = {
   url_origen: 'urlOrigen',
 }
 
-// Vuelve a escribir la subasta de un vehículo con una respuesta nueva. La fecha, el estado y el
+// Vuelve a escribir la subasta de un vehículo con una consulta nueva. La fecha, el estado y el
 // bruto siempre se actualizan; del resto sólo lo que la persona no editó (`fusionarRefresco`: el
-// bruto anterior es el testigo). El permiso se comprueba acá y de nuevo en la RPC, que además
+// bruto anterior es el testigo). Los dos brutos se leen de la base: el navegador sólo manda la
+// referencia de la consulta. El permiso se comprueba acá y de nuevo en la RPC, que además
 // compara la versión: si alguien editó mientras tanto, es un conflicto y no se pisa nada.
 export const refrescarSubasta = actionClient
   .inputSchema(esquemaRefrescarSubasta)
   .action(async ({ parsedInput, ctx }) => {
-    const { vehiculoId, actualizadoEnEsperado, ficha } = parsedInput
+    const { vehiculoId, actualizadoEnEsperado, consulta } = parsedInput
     const leido = await leerVehiculo(vehiculoId)
     if (!leido.ok) {
       return leido
@@ -65,12 +71,16 @@ export const refrescarSubasta = actionClient
     if (!puede(ctx.permisos, 'vehiculos.editar', vehiculo.origenId)) {
       return fallo('sin_permiso', 'No tienes permiso para editar este vehículo.')
     }
-    const [subasta, layout] = await Promise.all([
+    const [subasta, layout, ficha] = await Promise.all([
       leerSubasta(vehiculoId),
       leerLayout(vehiculo.origenId, { conUso: false }),
+      leerConsultaDeApibara(consulta),
     ])
     if (!subasta.ok) {
       return subasta
+    }
+    if (!ficha.ok) {
+      return ficha
     }
     if (!layout.ok) {
       return layout
@@ -78,7 +88,7 @@ export const refrescarSubasta = actionClient
     const campos = camposActivos(layout.data.campos)
     // Lo que había dicho apibara la vez anterior contra lo que dice ahora y lo que hay guardado.
     const previo = datosDesdeSubasta(subasta.data?.raw ?? {}, campos, null)
-    const nuevo = datosDesdeSubasta(ficha, campos, null)
+    const nuevo = datosDesdeSubasta(ficha.data, campos, null)
     const actual: DatosActuales = {
       columnas: columnasActuales(vehiculo),
       atributos: vehiculo.atributos,
@@ -88,7 +98,7 @@ export const refrescarSubasta = actionClient
     const escrito = await repositorioVehiculos.refrescarSubasta({
       id: vehiculoId,
       actualizadoEnEsperado,
-      apibara: ficha,
+      consulta,
       columnas: refresco.columnas,
       atributos: refresco.atributos,
     })
