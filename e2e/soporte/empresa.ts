@@ -60,26 +60,119 @@ function exigir(error: { message: string } | null, que: string): void {
   }
 }
 
-// La empresa es una fila única y los tipos de cambio vienen sembrados: lo que un e2e les cambia
-// se deja como en `supabase/seed.sql`, para que el siguiente (y el otro proyecto) arranquen igual.
-export async function restaurarEmpresa(): Promise<void> {
+type Fila = Record<string, unknown>
+
+// Cómo estaba la empresa antes de que un e2e la tocara: sus ajustes, los tipos de cambio, dónde
+// terminaba el historial y la integración de apibara con su clave. Con ella, al terminar se deja
+// todo como estaba, también cuando hay datos reales en la base local.
+export type InstantaneaDeEmpresa = {
+  ajustes: Fila
+  tiposDeCambio: Fila[]
+  ultimoHistorial: number
+  apibara: { activa: boolean; config: unknown; secretoGuardadoEn: string | null }
+  // La clave de apibara, si había una (sólo la lee la service role, vía `integracion_secreto`).
+  secreto: string | null
+}
+
+export async function tomarInstantaneaDeEmpresa(): Promise<InstantaneaDeEmpresa> {
+  const cliente = admin()
+  const ajustes = await cliente.from('ajustes_empresa').select('*').eq('id', 1).single<Fila>()
+  exigir(ajustes.error, 'los ajustes')
+  const tipos = await cliente.from('tipos_cambio').select('*').returns<Fila[]>()
+  exigir(tipos.error, 'los tipos de cambio')
+  const historial = await cliente
+    .from('tipos_cambio_historial')
+    .select('id')
+    .order('id', { ascending: false })
+    .limit(1)
+  exigir(historial.error, 'el historial')
+  const integracion = await cliente
+    .from('integraciones')
+    .select('activa, config, secreto_guardado_en')
+    .eq('clave', 'apibara')
+    .single<{ activa: boolean; config: unknown; secreto_guardado_en: string | null }>()
+  exigir(integracion.error, 'la integración')
+  const secreto = await cliente.rpc('integracion_secreto', { p_clave: 'apibara' })
+  return {
+    ajustes: ajustes.data as Fila,
+    tiposDeCambio: tipos.data ?? [],
+    ultimoHistorial: Number((historial.data?.[0] as { id?: number } | undefined)?.id ?? 0),
+    apibara: {
+      activa: integracion.data?.activa ?? false,
+      config: integracion.data?.config ?? {},
+      secretoGuardadoEn: integracion.data?.secreto_guardado_en ?? null,
+    },
+    secreto: typeof secreto.data === 'string' ? secreto.data : null,
+  }
+}
+
+// Deja la empresa como en `supabase/seed.sql` (para que el e2e arranque igual en cualquier base), o,
+// con una instantánea, como estaba antes. Lo que un e2e subió al bucket `marca` se descarta.
+export async function restaurarEmpresa(instantanea?: InstantaneaDeEmpresa): Promise<void> {
   const cliente = admin()
   const ajustes = await cliente
     .from('ajustes_empresa')
-    .update({
-      nombre: 'Mi importadora',
-      razon_social: null,
-      color_acento: null,
-      logo_ruta: null,
-      iconos: null,
-      locale: 'es-BO',
-      zona_horaria: 'America/La_Paz',
-      registro_abierto: false,
-      papelera_dias: 30,
-      actividad_dias: 14,
-    })
+    .update(
+      instantanea
+        ? (({ id: _id, ...resto }) => resto)(instantanea.ajustes as Fila & { id: unknown })
+        : {
+            nombre: 'Mi importadora',
+            razon_social: null,
+            color_acento: null,
+            logo_ruta: null,
+            iconos: null,
+            locale: 'es-BO',
+            zona_horaria: 'America/La_Paz',
+            registro_abierto: false,
+            papelera_dias: 30,
+            actividad_dias: 14,
+          },
+    )
     .eq('id', 1)
   exigir(ajustes.error, 'los ajustes')
+  if (instantanea) {
+    await restaurarTiposDeCambio(instantanea)
+  } else {
+    await dejarTiposDeCambioComoElSeed()
+  }
+  const integracion = instantanea
+    ? {
+        activa: instantanea.apibara.activa,
+        config: instantanea.apibara.config,
+        secreto_guardado_en: instantanea.apibara.secretoGuardadoEn,
+      }
+    : {
+        activa: false,
+        secreto_guardado_en: null,
+        config: {
+          plataformas: ['copart', 'iaai'],
+          endpoint: 'https://apibara.tech/api/v1/vehicle-auction',
+        },
+      }
+  const apibara = await cliente.from('integraciones').update(integracion).eq('clave', 'apibara')
+  exigir(apibara.error, 'la integración')
+  // Lo que un e2e subió al bucket `marca` ya no lo referencia nadie... salvo lo que la empresa
+  // real usa: lo que referencian los ajustes que acaban de volver se queda.
+  const enUso = new Set(
+    [
+      instantanea?.ajustes['logo_ruta'],
+      ...Object.values(instantanea?.ajustes['iconos'] ?? {}),
+    ].filter((ruta): ruta is string => typeof ruta === 'string'),
+  )
+  for (const carpeta of ['logos', 'iconos']) {
+    const { data: objetos, error } = await cliente.storage.from('marca').list(carpeta)
+    exigir(error, `la carpeta ${carpeta}`)
+    const rutas = (objetos ?? [])
+      .map((objeto) => `${carpeta}/${objeto.name}`)
+      .filter((ruta) => !enUso.has(ruta))
+    if (rutas.length > 0) {
+      exigir((await cliente.storage.from('marca').remove(rutas)).error, `los objetos de ${carpeta}`)
+    }
+  }
+}
+
+async function dejarTiposDeCambioComoElSeed(): Promise<void> {
+  const cliente = admin()
   const sobrantes = await cliente
     .from('tipos_cambio')
     .delete()
@@ -101,27 +194,60 @@ export async function restaurarEmpresa(): Promise<void> {
     .delete()
     .not('valor_anterior', 'is', null)
   exigir(historial.error, 'el historial')
-  const apibara = await cliente
-    .from('integraciones')
-    .update({
-      activa: false,
-      secreto_guardado_en: null,
-      config: {
-        plataformas: ['copart', 'iaai'],
-        endpoint: 'https://apibara.tech/api/v1/vehicle-auction',
-      },
-    })
-    .eq('clave', 'apibara')
-  exigir(apibara.error, 'la integración')
-  // Lo que un e2e subió al bucket `marca` ya no lo referencia nadie.
-  for (const carpeta of ['logos', 'iconos']) {
-    const { data: objetos, error } = await cliente.storage.from('marca').list(carpeta)
-    exigir(error, `la carpeta ${carpeta}`)
-    const rutas = (objetos ?? []).map((objeto) => `${carpeta}/${objeto.name}`)
-    if (rutas.length > 0) {
-      exigir((await cliente.storage.from('marca').remove(rutas)).error, `los objetos de ${carpeta}`)
-    }
+}
+
+async function restaurarTiposDeCambio(instantanea: InstantaneaDeEmpresa): Promise<void> {
+  const cliente = admin()
+  const claves = instantanea.tiposDeCambio.map((fila) => String(fila['clave']))
+  const sobrantes = await cliente
+    .from('tipos_cambio')
+    .delete()
+    .not('clave', 'in', `(${claves.join(',')})`)
+  exigir(sobrantes.error, 'los tipos de cambio')
+  // Entre dos monedas sólo cabe uno por defecto: primero se desmarcan, después se vuelve a marcar.
+  const sinDefecto: Fila[] = instantanea.tiposDeCambio.map((una) => ({ ...una, es_default: false }))
+  for (const fila of [...sinDefecto, ...instantanea.tiposDeCambio]) {
+    const { error } = await cliente.from('tipos_cambio').upsert(fila, { onConflict: 'clave' })
+    exigir(error, `el tipo de cambio ${String(fila['clave'])}`)
   }
+  // Lo que escribió el e2e en el historial; lo que ya había se queda.
+  const historial = await cliente
+    .from('tipos_cambio_historial')
+    .delete()
+    .gt('id', instantanea.ultimoHistorial)
+  exigir(historial.error, 'el historial')
+}
+
+// Vuelve a guardar la clave real de apibara por la RPC (como lo haría la dueña desde la pantalla),
+// porque el test guardó una de prueba en su lugar. `persona` es quien la guarda: necesita
+// `empresa.ajustes.gestionar`. Se hace antes de `restaurarEmpresa(instantanea)`, que deja la fila
+// como estaba (la RPC sella su fecha).
+export async function restaurarSecretoDeApibara(
+  secreto: string,
+  persona: { email: string; contrasena: string },
+): Promise<void> {
+  const cliente = createClient(
+    entorno('NEXT_PUBLIC_SUPABASE_URL'),
+    entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  )
+  const sesion = await cliente.auth.signInWithPassword({
+    email: persona.email,
+    password: persona.contrasena,
+  })
+  exigir(sesion.error, `la sesión de ${persona.email}`)
+  const fila = await admin()
+    .from('integraciones')
+    .select('actualizado_en')
+    .eq('clave', 'apibara')
+    .single<{ actualizado_en: string }>()
+  exigir(fila.error, 'la versión de la integración')
+  const guardado = await cliente.rpc('integracion_guardar_secreto', {
+    p_clave: 'apibara',
+    p_secreto: secreto,
+    p_actualizado_en_esperado: fila.data?.actualizado_en ?? '',
+  })
+  exigir(guardado.error, 'la clave de apibara')
 }
 
 // Lo que responde la base cuando alguien que NO es el cliente de servicio pide el secreto de una

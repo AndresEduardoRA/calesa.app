@@ -4,10 +4,10 @@ import {
   borrarPersonasDePrueba,
   borrarRolesDePrueba,
   correoDePrueba,
+  crearDuenaDePrueba,
   crearPersona,
   darRolDePrueba,
   enlaceDelCorreo,
-  exigirEquipoSinAjenos,
   rolesDe,
 } from './soporte/base'
 import {
@@ -15,12 +15,16 @@ import {
   estadoDeApibara,
   pedirSecreto,
   restaurarEmpresa,
+  restaurarSecretoDeApibara,
+  tomarInstantaneaDeEmpresa,
   ultimoCambioDe,
+  type InstantaneaDeEmpresa,
 } from './soporte/empresa'
 import { ingresar } from './soporte/pasos'
 
 // Configuración › Empresa contra la app compilada y el Supabase local. La empresa es una fila
-// única: al terminar se deja como en `supabase/seed.sql`.
+// única: antes de empezar se guarda cómo estaba (también la clave de apibara, que el test
+// reemplaza) y al terminar se deja exactamente así.
 test.describe.configure({ mode: 'serial' })
 
 const CLAVE = 'una-clave-de-prueba-9'
@@ -35,16 +39,17 @@ const MOTIVO_SIN_PERMISO =
 let duena = ''
 let cambista = ''
 let proyecto = ''
+let antes: InstantaneaDeEmpresa
 
 test.beforeAll(async ({}, info) => {
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
-  await exigirEquipoSinAjenos()
+  antes = await tomarInstantaneaDeEmpresa()
   await restaurarEmpresa()
   proyecto = info.project.name
   duena = correoDePrueba(`duena-empresa-${proyecto}`)
   cambista = correoDePrueba(`cambista-${proyecto}`)
-  await crearPersona({ email: duena, contrasena: CLAVE, nombre: DUENA })
+  await crearDuenaDePrueba({ email: duena, contrasena: CLAVE, nombre: DUENA })
   // Alguien que gestiona los tipos de cambio y nada más de la empresa.
   await crearPersona({ email: cambista, contrasena: CLAVE, nombre: CAMBISTA, invitada: true })
   await darRolDePrueba({
@@ -55,7 +60,12 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
-  await restaurarEmpresa()
+  // La clave real (si había) vuelve por la misma RPC que la guardó, con la sesión de la dueña de
+  // prueba, antes de que se la borre.
+  if (antes.secreto) {
+    await restaurarSecretoDeApibara(antes.secreto, { email: duena, contrasena: CLAVE })
+  }
+  await restaurarEmpresa(antes)
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
 })

@@ -219,3 +219,67 @@ export async function darRolDePrueba(datos: {
     throw new Error(`No se pudo asignar el rol a ${datos.email}: ${errorDeRol.message}`)
   }
 }
+
+// Una persona que administra todo, para los e2e que necesitan «la dueña». Con el equipo vacío es la
+// primera cuenta y nace dueña. Con gente en el equipo (quien usa la app local) la primera ya no
+// puede nacer así: entra invitada y se le da el rol de dueño, con los mismos permisos.
+export async function crearDuenaDePrueba(datos: {
+  email: string
+  contrasena: string
+  nombre: string
+}): Promise<void> {
+  const hayEquipo = (await personasAjenas()) > 0
+  await crearPersona({ ...datos, ...(hayEquipo ? { invitada: true } : {}) })
+  if (!hayEquipo) {
+    return
+  }
+  const cliente = admin()
+  const { data: perfil, error: errorDePerfil } = await cliente
+    .from('perfiles')
+    .select('id')
+    .eq('email', datos.email)
+    .single<{ id: string }>()
+  const { data: rol, error: errorDeRol } = await cliente
+    .from('roles')
+    .select('id')
+    .eq('clave', 'dueno')
+    .single<{ id: string }>()
+  if (errorDePerfil || errorDeRol) {
+    throw new Error(
+      `No se pudo preparar a ${datos.email}: ${(errorDePerfil ?? errorDeRol)?.message ?? ''}`,
+    )
+  }
+  const { error } = await cliente
+    .from('usuarios_roles')
+    .insert({ usuario_id: perfil.id, rol_id: rol.id, es_principal: true })
+  if (error) {
+    throw new Error(`No se pudo darle el rol de dueño a ${datos.email}: ${error.message}`)
+  }
+  // Entró por la puerta de atrás, pero no es una invitación a medias: la dueña ya está adentro.
+  const aceptada = await cliente
+    .from('perfiles')
+    .update({ invitacion_aceptada_en: new Date().toISOString() })
+    .eq('id', perfil.id)
+  if (aceptada.error) {
+    throw new Error(`No se pudo aceptar la invitación de ${datos.email}: ${aceptada.error.message}`)
+  }
+}
+
+// Los tests que sólo se pueden probar con el equipo vacío («la primera persona nace dueña», «el
+// guardián cuida a la última que administra») se saltan en local si hay cuentas reales, con un
+// aviso, y corren siempre en CI: ahí, que haya gente es un error del entorno, no algo que saltar.
+export async function hayEquipoQueImpide(): Promise<{ saltar: boolean; motivo: string }> {
+  const ajenas = await personasAjenas()
+  if (ajenas === 0) {
+    return { saltar: false, motivo: '' }
+  }
+  if (process.env['CI']) {
+    await exigirEquipoSinAjenos()
+  }
+  return {
+    saltar: true,
+    motivo:
+      `AVISO: la base local tiene ${String(ajenas)} persona(s) reales; este test necesita el ` +
+      'equipo vacío y corre siempre en CI. No se resetea la base: se salta.',
+  }
+}

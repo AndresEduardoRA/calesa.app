@@ -4,9 +4,9 @@ import {
   borrarPersonasDePrueba,
   borrarRolesDePrueba,
   correoDePrueba,
+  crearDuenaDePrueba,
   crearPersona,
   darRolDePrueba,
-  exigirEquipoSinAjenos,
 } from './soporte/base'
 import {
   borrarOrigenes,
@@ -39,13 +39,12 @@ let proyecto = ''
 test.beforeAll(async ({}, info) => {
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
-  await exigirEquipoSinAjenos()
   await borrarOrigenes(CLAVES_DE_ORIGEN)
   proyecto = info.project.name
   duena = correoDePrueba(`duena-origenes-${proyecto}`)
   configuradora = correoDePrueba(`configuradora-${proyecto}`)
   sinPermisos = correoDePrueba(`sinpermisos-${proyecto}`)
-  await crearPersona({ email: duena, contrasena: CLAVE, nombre: DUENA })
+  await crearDuenaDePrueba({ email: duena, contrasena: CLAVE, nombre: DUENA })
   // Quien configura el flujo de un origen puede verlo, pero no gestionarlo.
   await crearPersona({
     email: configuradora,
@@ -168,8 +167,11 @@ test('se crea un origen manual y uno de subasta, cada uno con su flujo y sus cam
   const japon = await origenDeLaBase('subasta_japon')
   expect(japon).toMatchObject({ tipo: 'subasta', apibara_plataformas: ['copart'] })
   const campos = await camposDelOrigen(japon.id)
-  expect(campos).toHaveLength(17)
-  expect(campos.every((campo) => campo.clave_apibara !== null && campo.es_sistema)).toBe(true)
+  // Nace con los 17 de siempre y un campo por cada dato normalizado de la API, todos encendidos.
+  expect(campos.length).toBeGreaterThan(100)
+  expect(campos.filter((campo) => campo.es_sistema)).toHaveLength(17)
+  expect(campos.filter((campo) => campo.clave_apibara !== null).length).toBeGreaterThan(95)
+  expect(campos.every((campo) => campo.activo)).toBe(true)
   expect((await flujoDelOrigen(japon.id)).reglas).toContain('aduana')
   // Un origen de subasta suma activar apibara a lo que le falta.
   await expect(

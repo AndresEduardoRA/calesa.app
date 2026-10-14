@@ -1,34 +1,56 @@
 import { expect, test } from '@playwright/test'
 import {
+  admin,
   borrarPersonasDePrueba,
   correoDePrueba,
+  crearPersona,
   enlaceDelCorreo,
-  exigirEquipoSinAjenos,
+  hayEquipoQueImpide,
   rolesDe,
 } from './soporte/base'
 import { ingresar } from './soporte/pasos'
 
 // Acceso y shell contra la app compilada y el Supabase local. Los cuatro tests cuentan una sola
 // historia, en orden: la primera persona se registra y queda dueña; después se prueba el ingreso
-// con esa cuenta. Al terminar se borra todo lo que se creó.
+// con esa cuenta. Al terminar se borra todo lo que se creó. Con cuentas reales en la base local,
+// el primero se salta con un aviso (y corre siempre en CI): la cuenta que prueba el ingreso se
+// crea entonces por la puerta de atrás, como invitada.
 test.describe.configure({ mode: 'serial' })
 
 const CLAVE = 'una-clave-de-prueba-9'
 const NOMBRE = 'Dalia Prueba'
 let email = ''
+let impide = { saltar: false, motivo: '' }
+// El registro tiene que estar cerrado para que el segundo test lo compruebe; si la empresa real lo
+// tenía abierto, se cierra mientras corre y vuelve a como estaba.
+let registroAbierto: boolean | null = null
 
 test.beforeAll(async ({}, info) => {
   await borrarPersonasDePrueba()
   // «La primera persona nace dueña» sólo se puede probar sin nadie en el equipo.
-  await exigirEquipoSinAjenos()
+  impide = await hayEquipoQueImpide()
   email = correoDePrueba(`duena-${info.project.name}`)
+  const ajustes = await admin()
+    .from('ajustes_empresa')
+    .select('registro_abierto')
+    .eq('id', 1)
+    .single<{ registro_abierto: boolean }>()
+  registroAbierto = ajustes.data?.registro_abierto ?? null
+  if (impide.saltar) {
+    await crearPersona({ email, contrasena: CLAVE, nombre: NOMBRE, invitada: true })
+    await admin().from('ajustes_empresa').update({ registro_abierto: false }).eq('id', 1)
+  }
 })
 
 test.afterAll(async () => {
   await borrarPersonasDePrueba()
+  if (registroAbierto !== null) {
+    await admin().from('ajustes_empresa').update({ registro_abierto: registroAbierto }).eq('id', 1)
+  }
 })
 
 test('la primera persona que se registra nace dueña y ve su menú', async ({ page, isMobile }) => {
+  test.skip(impide.saltar, impide.motivo)
   await page.goto('/ingreso')
   await page.getByRole('link', { name: 'Crear cuenta' }).click()
   await expect(page).toHaveURL('/registro')

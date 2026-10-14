@@ -5,8 +5,8 @@ import {
   borrarRolesDePrueba,
   concesionesDelRol,
   correoDePrueba,
-  crearPersona,
-  exigirEquipoSinAjenos,
+  crearDuenaDePrueba,
+  hayEquipoQueImpide,
   rolesDe,
 } from './soporte/base'
 import { borrarOrigenes, crearOrigenDePrueba } from './soporte/origenes'
@@ -33,15 +33,13 @@ let origen = { id: '', nombre: '' }
 test.beforeAll(async ({}, info) => {
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
-  // El guardián y «la primera cuenta nace dueña» necesitan el equipo sin nadie más.
-  await exigirEquipoSinAjenos()
   await borrarOrigenes([])
   origen = await crearOrigenDePrueba(NOMBRE_DE_ORIGEN, 'matriz')
   duena = correoDePrueba(`duena-equipo-${info.project.name}`)
   invitada = correoDePrueba(`invitada-${info.project.name}`)
   rol = `${PREFIJO_ROL_E2E}Ventas ${info.project.name}`
   claveDelRol = `e2e_ventas_${info.project.name}`
-  await crearPersona({ email: duena, contrasena: CLAVE, nombre: DUENA })
+  await crearDuenaDePrueba({ email: duena, contrasena: CLAVE, nombre: DUENA })
 })
 
 test.afterAll(async () => {
@@ -187,6 +185,10 @@ test('la dueña bloquea a alguien y esa persona queda afuera', async ({ page, br
 test('el guardián no deja al equipo sin quien lo administre, y lo dice en claro', async ({
   page,
 }) => {
+  // El guardián protege a la última persona que administra: con la dueña real en la base, la de
+  // prueba no lo es. Se salta en local con un aviso y corre siempre en CI.
+  const impide = await hayEquipoQueImpide()
+  test.skip(impide.saltar, impide.motivo)
   await entrar(page, duena)
   await page.goto('/configuracion/equipo')
 
