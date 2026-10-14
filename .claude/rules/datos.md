@@ -26,7 +26,11 @@ paths:
 - Los orígenes, su layout de campos y sus categorías se escriben sólo por RPC (`origen_*`,
   `categoria_*`): sus tablas son de sólo lectura, y un campo con datos no cambia de tipo ni se elimina.
 - Los vehículos se escriben sólo por RPC: `vehiculo_crear` (con el `id` que genera el navegador:
-  reintentar no duplica) y `vehiculo_guardar` (con versión). La tabla es de sólo lectura: no hay
+  reintentar no duplica; con `p_apibara`, la respuesta en bruto), `vehiculo_guardar` (con versión) y
+  `vehiculo_subasta_refrescar` (con versión: bruto, fecha y estado, más lo que la app decidió
+  actualizar). `subasta_en`, `estado_subasta` y `apibara_*` los escribe sólo la base, derivados del
+  bruto. La clave de apibara la lee sólo `integracion_secreto()` (service role) desde la edge
+  function: nunca el cliente admin de la app. La tabla es de sólo lectura: no hay
   `.insert()` ni `.update()` sobre `vehiculos`. Un error de validación trae en `hint` el campo
   (`anio`, `atributos.<clave>`). Bajo RLS los filtros sobre `atributos` no usan el GIN.
 - Las fotos de un vehículo se escriben sólo por RPC: `vehiculo_fotos_agregar` (idempotente por

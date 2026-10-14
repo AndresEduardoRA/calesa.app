@@ -19,5 +19,7 @@ paths:
 - Route handlers públicos (portal, webhooks, revalidación de la web): validan el secreto o la
   cookie firmada con `jose` antes de cualquier lectura, usan el cliente admin sólo para la RPC
   `web.portal_*`, y nunca devuelven `ruta` de storage: generan `createSignedUrl` de 60 s.
-- Nada de trabajo largo en una action (importación CSV, envío de push masivo, apibara en lote):
-  encolar y procesar en `supabase/functions/`.
+- Nada de trabajo largo en una action (importación CSV, envío de push masivo): encolar y procesar en
+  `supabase/functions/`. **apibara** es la excepción razonada: la llamada vive en la edge function
+  `apibara` (tiene la clave) y la hace el navegador con su sesión (`functions.invoke`), de a pocas
+  y con resultado por línea; la action sólo guarda (`crearVehiculo`, `refrescarSubasta`).

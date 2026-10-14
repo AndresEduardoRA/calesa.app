@@ -1024,3 +1024,113 @@ fases).
 **Consecuencia:** quien tiene `vehiculos.papelera.purgar` ve en la papelera títulos de orígenes
 donde quizá no tiene `vehiculos.ver`. Es un permiso de administración, y así se describe en el
 catálogo.
+
+## 2026-10-14 — apibara: se guarda todo lo que devuelve, y cada dato normalizado es un campo
+
+**Contexto:** el pedido era traer _todo_ lo que la API devuelve y dejar que el dueño decida después
+qué no usar. Las 17 `clave_apibara` del preset eran suposiciones: ninguna calzaba con la respuesta
+real (`drivetrain`, `title_code`, `location`…), y una clave plana no alcanza para los grupos
+anidados (`vehicle_specs.engine.raw`). La respuesta de IAAI trae además `details`, el volcado de su
+página (~450 hojas con `$id`, HTML y «You are not logged in»).
+**Decisión:** dos capas. **La respuesta entera** en `vehiculos.apibara_raw` (tope 512 KB, que la base
+repite), con `apibara_sync_en`. **Cada hoja normalizada** (106 campos con los 17 de siempre) es un
+campo del origen con su ruta con puntos como `clave_apibara`, activo, sin tarjeta ni filtro y **no
+público**: la vitrina es segura por defecto. El catálogo vive en `_apibara_catalogo()` y lo espeja
+`catalogo-apibara.ts`, con un test que lo compara con el SQL y con las respuestas grabadas. Quedan
+fuera de los campos (y siguen en el bruto): `details`, las listas, lo que caduca al minuto, los
+duplicados, las clases CSS y lo que ya es columna. Los orígenes que existían reciben el catálogo
+por migración (`origen_apibara_completar()`, idempotente); los cinco campos de opciones del preset
+sin opciones pasan a texto, porque un valor de la API no calza con una lista vacía. Un dato nuevo
+de la API **no crea un campo solo**: queda en el bruto y la pestaña Campos avisa, con «Agregarlos».
+**Alternativas:** todo en `atributos` sin campo (el dueño no podría apagar nada ni verlo en el
+layout); incluir `details` (580 campos, la mayoría ruido de una página de IAAI); crear el campo
+solo al ver un dato nuevo (el alta es de un asesor y el layout, del dueño: un campo que aparece
+solo mueve la versión de todo el origen).
+**Consecuencia:** el formulario de alta de un origen de subasta tiene ~100 campos más (los grupos
+secundarios nacen plegados). Un campo nuevo no rellena a los vehículos que ya estaban: se llena
+desde su próximo refresco. `estado_subasta` pasó de texto libre a un enum (`abierta`, `en_vivo`,
+`terminada`, `vendida`) que deriva la base del bruto: una sola regla para el alta, el refresco y la
+limpieza que viene.
+
+## 2026-10-14 — Refrescar no pisa lo que la persona editó: tres vías con el bruto anterior
+
+**Contexto:** al volver a consultar cambian la puja, el estado y la fecha; pero un asesor pudo
+corregir el título o el color a mano, y la API volvería a pisarlos.
+**Decisión:** siempre se actualizan `apibara_raw`, `apibara_sync_en`, `subasta_en`, `subasta_fin_en`
+y `estado_subasta` (son del sistema y nadie los edita). Del resto (columnas mapeadas y atributos con
+ruta), `fusionarRefresco(previo, nuevo, actual)` compara tres cosas: si lo guardado es lo que la API
+había dicho la vez anterior, la persona no lo tocó y toma el valor nuevo; si difiere, lo editó y se
+conserva. Un dato que la API no cambió no se escribe ni se cuenta como conservado; uno que dejó de
+traer no borra nada. El refresco lleva la versión del vehículo (`PT409` si alguien editó en el medio).
+**Alternativas:** una columna con «qué editó la persona» (hay que mantenerla en cada edición, y
+`vehiculo_guardar` no sabe de apibara); pisar siempre (pierde ediciones); no actualizar nada salvo
+la puja (deja el vehículo con datos viejos).
+**Consecuencia:** sin columnas nuevas. Un vehículo cargado a mano no tiene bruto anterior: el
+refresco llena lo vacío y respeta lo escrito.
+
+## 2026-10-14 — Las fotos de una subasta pasan por la tubería del navegador, en primer plano
+
+**Contexto:** bajar 24 fotos por `/image-proxy` y dejarlas como las de la parte 3 (dos tamaños,
+nombre por hash, registro idempotente). La clave sólo la tiene la edge function.
+**Decisión:** la edge function descarga (sólo de `cs.copart.com` y `vis.iaai.com`: la clave no es un
+proxy abierto) y devuelve los bytes; el navegador los pasa por `prepararFoto()` y `subirFoto()` y
+registra con **una** llamada a `vehiculo_fotos_agregar`, que ahora guarda `origen_url`. Las primeras
+24 imágenes (`full` en Copart, `large` en IAAI: ninguna pasa de 1600 px); la primera es la portada
+sólo si el vehículo no tenía fotos; el video y el 360° quedan en el bruto. Cuesta ~1,4 s por foto sin
+caché, de a tres (24 fotos en 10–15 s) y ~120 KB por foto cruzando la edge function (~3 MB de egress
+por vehículo; con 500 altas al mes, ~1,5 GB frente a los 250 GB del plan Pro). **No se hace en
+segundo plano en el servidor:** el aviso de progreso es de la pantalla y sigue aunque se cierre el
+panel; si se cierra la pestaña, lo que falta se trae después con «Traer las que faltan».
+**Alternativas:** generar los tamaños en el servidor (`sharp` o un codificador WebP en WASM dentro de
+Deno: una dependencia y otra tubería, sin ganancia); una cola con un job con la service role (las
+RPC de fotos piden `auth.uid()` y habría que duplicar el registro).
+**Consecuencia:** a revisar con uso real si alguien carga decenas de lotes y cierra la pestaña en
+el medio.
+
+## 2026-10-14 — La llamada a apibara vive en la edge function y la hace el navegador
+
+**Contexto:** `.claude/rules/acciones.md` decía «apibara en lote: encolar y procesar en
+`supabase/functions/`», y `datos.md` prohíbe el cliente admin fuera de portal, webhooks, crons e
+invitar. La clave está en Vault y `integracion_secreto()` sólo la entrega a `service_role`.
+**Decisión:** la única que lee la clave es la edge function `apibara`, con la service key que le
+inyecta el runtime. La llama el **navegador** con su sesión (`functions.invoke`), no una Server
+Action: antes de leerla le pregunta a la base **como quien llama** `apibara_contexto(origen)` (si
+está activa, a qué dirección, qué plataformas, y si esa persona puede crear o editar ahí). La
+dirección sólo puede ser de `apibara.tech`. Los errores salen como valores (`{ ok: false, error: {
+codigo } }`, siempre HTTP 200): apagada, sin permiso, entrada, plataforma, no soportado, no
+encontrado, clave inválida, cuota, tiempo, proveedor. **Guardar** sigue siendo una Server Action
+con RPC. El alta de varias líneas son consultas cortas de a dos con resultado por línea; con la
+cuota agotada o la clave rechazada se deja de consultar. «Ver uso» (`/usage`) se pide a mano.
+**Alternativas:** una Server Action que lea el secreto con el cliente admin (rompe la regla del
+admin); encolar el lote (no hay dónde mostrar el resultado por línea y no es trabajo largo);
+llamar a la API desde el navegador con la clave (nunca).
+**Consecuencia:** la función se prueba cargándola en Node con un `fetch` simulado que responde con
+lo grabado; el e2e la intercepta en el navegador y otro spec sólo toca la verdadera en los caminos
+que no llegan a apibara. Ningún test llama a la API real.
+
+## 2026-10-14 — «Subastas próximas en la ficha» es la subasta de ese vehículo
+
+**Contexto:** `docs/PLAN.md` lo nombra y `docs/PRODUCTO.md` no lo define (sólo «subastas en un
+calendario», de la Agenda, Fase 7). `GET /vehicles?upcoming=only` lista subastas de cualquier
+vehículo, no las nuestras.
+**Decisión:** el bloque «Subasta» de la ficha de un vehículo de subasta muestra su fecha en la zona
+de la empresa con la cuenta regresiva, su estado, la puja y cuándo se consultó, con «Refrescar». Si
+la hora pasó y el estado sigue «abierta», avisa que quedó vieja. No usa `/related` ni `upcoming`:
+gastan cuota y la Agenda compondrá su calendario con `subasta_en`, que ya está indexada.
+**Consecuencia:** `subasta_en`, `estado_subasta` y `apibara_sync_en` quedan en columnas con índices
+parciales (`(estado_subasta, subasta_en)` y `(apibara_sync_en)`, sólo vivos): lo que necesita la
+limpieza automática de la parte 6 sin tocar el bruto.
+
+## 2026-10-14 — Migraciones sobre una base viva, y e2e que no exigen la base vacía
+
+**Contexto:** la base local tenía una cuenta real y la clave real de apibara; `pnpm db:reset` las
+habría borrado, y cuatro specs exigían el equipo vacío.
+**Decisión:** el cambio de esquema va en `supabase/schemas/` (para la migración base) **y**, de forma
+idempotente, en su migración (`do` con `if not exists`, `create … if not exists`): se aplicó con
+`supabase migration up` y `pnpm db:probar` prueba el camino desde cero. Los e2e no exigen la base
+vacía: la dueña de prueba entra invitada con el rol de dueño cuando ya hay cuentas. Sólo «la primera
+persona nace dueña» y el guardián (que protege a la _última_ que administra) necesitan el equipo
+vacío: se saltan en local con un aviso y corren siempre en CI. El spec de empresa guarda cómo estaba
+la empresa y la clave real y los deja como estaban.
+**Consecuencia:** quien corre los e2e con cuentas reales no pierde su clave ni sus ajustes, pero esas
+dos pruebas no corren en su máquina.
