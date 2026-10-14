@@ -33,7 +33,7 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
 
 ## Tablas
 
-`perfiles` (con `invitado_en` e `invitacion_aceptada_en`), `roles`, `permisos` (catálogo fijo), `roles_permisos`, `usuarios_roles`, `preferencias_usuario`, `vistas_guardadas`, `visitados`.
+`perfiles` (con `invitado_en` e `invitacion_aceptada_en`), `roles`, `permisos` (catálogo fijo), `roles_permisos`, `usuarios_roles`, `preferencias_usuario` (además de `tema` y `densidad`, `leads.ultimo_origen_lead`: la escribe `crear_lead()` y la lee `lead_alta_contexto()`; `mi_sesion()` la ignora), `vistas_guardadas`, `visitados`.
 RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_permiso`, `alcance_de`, `origenes_con_permiso`, `origenes_con_alcance`, `rol_dominado`, `concesion_dominada`, `rbac_crear_rol`, `rbac_eliminar_rol`, `rbac_otorgar`, `rbac_revocar`, `rbac_asignar_rol`, `rbac_quitar_rol`, `equipo_bloquear`, `equipo_dar_de_baja`, `equipo_vista_previa_baja`, `equipo_aceptar_invitacion`.
 
 ## No se rompe

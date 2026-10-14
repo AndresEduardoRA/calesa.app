@@ -27,15 +27,20 @@ Estos son los perfiles de referencia para diseñar:
 
 ### Flujo 1 — Registrar lead y seguimiento
 
-1. En cualquier pantalla `N` → drawer «Nuevo lead» (no página). Foco en **Teléfono principal** (es la clave).
-2. Al completar el teléfono (debounce 400 ms) se consulta `verificar_telefono`: si existe y es mío → «Ya existe: Ana Quispe · Abrir»; si es de otro → «Lo tiene Diego Vargas · Escribirle por chat» (sin mostrar nada más del lead); si está en limbo → «Sin dueño · Tomar lead» y al guardar se adopta con registro.
-3. Nombre, origen (último usado por defecto), tipo (prospecto) y los campos **requeridos** del layout de leads, en su orden (la ciudad, si es requerida, trae la de la empresa por defecto). Todo lo demás plegado en «Más datos», ya con su valor por defecto; el encabezado del bloque resume lo precargado («Ciudad: Santa Cruz») para no tener que abrirlo. Volver requerido un campo suma un paso al alta rápida: Configuración lo avisa con el número (desde el cuarto, que la meta de 25 s cuesta).
-4. `Ctrl/Cmd+Enter` guarda y abre el bloque «Primer seguimiento» en el mismo drawer: tipo (WhatsApp por defecto), resumen, recordatorio opcional (fecha+hora con atajos «mañana 9:00», «en 3 días»).
-5. Guardar → toast «Lead #124 creado» con «Abrir ficha»; el drawer queda listo para el siguiente (`N` de nuevo).
+1. Botón «Nuevo lead» de la barra superior o `N` donde la pantalla no tiene un «nuevo» propio (en vehículos `N` es de un vehículo) → drawer «Nuevo lead» (no página), con `?panel=nuevo-lead`. Foco en **Teléfono principal** (es la clave).
+2. Al completar el teléfono (debounce 400 ms) se consulta `verificar_telefono`: si existe y es mío → «Ya existe: Ana Quispe (#12), y es tuyo»; si es de otro → «Lo tiene Diego Vargas» (sin mostrar nada más del lead, y sin acción hasta que llegue el chat); si está en limbo → «Sin dueño» y «Tomar lead»: al aceptarlo se adopta al guardar, queda de dueño, no se pisa lo que el lead ya tiene y queda constancia. Un teléfono que ya existe o es de otra persona no deja seguir. Debajo, cómo va a quedar guardado («Se guardará como +591 70011002»).
+3. Nombre, origen (el último usado por defecto, por persona), tipo (prospecto) y los campos **requeridos** del layout de leads, en su orden, también los propios (la ciudad, si es requerida, trae la de la empresa por defecto). Todo lo demás plegado en «Más datos», ya con su valor por defecto; el encabezado del bloque resume lo precargado («Ciudad: Santa Cruz») para no tener que abrirlo. Un privado lleva «(solo la cartera)»: quien crea queda en la cartera y lo puede llenar. Volver requerido un campo suma un paso al alta rápida: Configuración lo avisa con el número (desde el cuarto, que la meta de 25 s cuesta).
+4. `Ctrl/Cmd+Enter` valida y abre «Primer seguimiento» en el mismo drawer, sin guardar todavía: tipo (el primero activo por orden, WhatsApp en el de fábrica), resumen (obligatorio; un título corto y, si hace falta, un detalle en texto plano) y recordatorio opcional con atajos «Mañana 09:00» y «En 3 días 09:00» antes del campo de fecha. `Esc` vuelve a los datos.
+5. `Ctrl/Cmd+Enter` otra vez guarda el lead, su seguimiento y el recordatorio en una sola transacción → toast «Lead #124 creado» (o «tomado»); el drawer queda listo para el siguiente, con el foco en el teléfono. «Abrir ficha» llega con la ficha (parte 3).
 
 Estados propios: teléfono en verificación (spinner dentro del campo, el resto sigue editable); sin
-permiso para crear leads (el botón no aparece); conexión caída al guardar (el drawer conserva
-todo y reintenta).
+permiso para crear leads (no hay botón, ni atajo, ni URL que lo abra); conexión caída al guardar (el
+drawer conserva todo, avisa y guarda solo al volver; el intento lleva su id, así que reintentar no
+duplica); dos personas que guardan el mismo teléfono a la vez (la segunda vuelve a los datos diciendo
+que ya existe, con todo lo suyo); cerrar o recargar con datos tipeados (se conservan; tras recargar
+vuelven del borrador, avisando con «Descartar»); un dato que no pasa (el motivo junto al campo y el
+foco en el primero); un recordatorio en el pasado; ningún origen de lead activo (el campo sale
+deshabilitado con su motivo y se guarda sin origen).
 
 ### Flujo 2 — Cotizar
 
@@ -120,7 +125,7 @@ sin pantalla todavía no se muestra.
 - Destructivas: papelera (vehículos, cotizaciones, leads) = hacer + toast con deshacer 10 s; purga y baja de usuario = diálogo que nombra el objeto; masivas irreversibles = confirmación tipeada.
 - Formatos: `Intl` con el locale y la moneda de la empresa (`es-BO` por defecto); montos con cifras tabulares; fechas cruzan servidor↔cliente como ISO `YYYY-MM-DD`/`timestamptz` y se muestran en la zona horaria de la empresa.
 - Modo Live: oculta cifras sensibles **y** símbolos de moneda en toda la app (clase en `<html>`), no sólo en el cotizador.
-- Atajos globales: `Ctrl/Cmd+K` buscar/comandos · `N` nuevo (lead/vehículo/cotización según pantalla) · `Ctrl/Cmd+S` guardar · `Ctrl/Cmd+Enter` guardar y seguir · `Esc` cerrar panel · `?` lista de atajos.
+- Atajos globales: `Ctrl/Cmd+K` buscar/comandos · `N` nuevo, lo propio de la pantalla (un vehículo en vehículos; donde no hay un «nuevo» propio, un lead; «Nuevo lead» siempre tiene su botón en la barra superior) · `Ctrl/Cmd+S` guardar · `Ctrl/Cmd+Enter` guardar y seguir (en «Nuevo lead», avanzar al seguimiento y, ahí, guardar) · `Esc` cerrar panel (o volver un paso) · `?` lista de atajos (todavía sin dibujar).
 - Densidad: compacta en escritorio (filas 36–40 px), cómoda en táctil (48 px); conmutable y recordada por usuario.
 - Formularios en drawer/modal compactados en bloques plegables; crear desde cualquier contexto sin abandonar la tarea; `returnTo` para volver de donde se vino.
 - Filtros: panel lateral plegable (bottom-sheet en móvil) + chips activos + «limpiar»; esquema declarativo por listado; estado en URL (nuqs, `shallow:false`); vistas guardadas por usuario.

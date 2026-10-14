@@ -2,17 +2,18 @@
 
 Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, compartir/transferir, oportunidades en embudos, portal del cliente, limbo y papelera.
 
-> Estado: en la Fase 3 existe el **layout de campos** (esquema, RPC, privacidad y la pantalla Configuración › Leads › Campos). El alta, la ficha, el listado y el resto todavía no tienen código: lo que sigue en «Entra y sale» como pendiente es el contrato de las partes que faltan. Hasta entonces `vehiculos` muestra el nombre de un lead con sus propias funciones de lectura (`vehiculo_vinculos`, `vehiculo_interesados`).
+> Estado: en la Fase 3 existen el **layout de campos** (esquema, RPC, privacidad y la pantalla Configuración › Leads › Campos) y el **alta rápida** con su primer seguimiento. La ficha, el listado y el resto todavía no tienen código: lo que sigue en «Entra y sale» como pendiente es el contrato de las partes que faltan. Hasta entonces `vehiculos` muestra el nombre de un lead con sus propias funciones de lectura (`vehiculo_vinculos`, `vehiculo_interesados`).
 
 ## Entra y sale
 
-- Entra: Configuración › Leads (`/configuracion/leads`, `?seccion=campos`, un campo en `?campo=`) con `leads.configurar`. Pendiente: drawer «Nuevo lead» (verifica el teléfono al tipear), seguimientos con Tiptap saneado, importación CSV propia.
+- Entra: Configuración › Leads (`/configuracion/leads`, `?seccion=campos`, un campo en `?campo=`) con `leads.configurar`; el drawer «Nuevo lead» (`?panel=nuevo-lead`, botón de la barra superior y tecla `N`) con `leads.crear`. Pendiente: seguimientos con Tiptap saneado, importación CSV propia.
 - Sale por `index.ts` (servidor):
   - `leerLayoutDeLeads()` — todos los campos (también los desactivados: quien consume filtra `activo`) como `CampoDeLead`. Es lo que leerán el alta, la ficha, el listado y los filtros.
   - `valorDefectoVigente(campo, empresa)` — el valor con el que arranca el alta: el fijo, o la ciudad o el país de la empresa resuelto hoy.
   - `<EditorDeCamposDeLead campos puedeGestionar empresa>` — la pestaña «Campos».
-  - `CLAVES_RESERVADAS_DE_LEAD` y los tipos `CampoDeLead`, `DatosDeLaEmpresa`.
-- Sale por `client.ts`: las mismas reglas puras y tipos, sin servidor.
+  - `leerContextoDeAlta()` y `<AltaDeLead contexto campos>` — «Nuevo lead»: lo monta el shell (`src/app/(app)/layout.tsx`) sólo con `leads.crear`; el contexto trae orígenes y tipos de seguimiento activos, el último origen de la persona, el código de país y la ciudad y el país de la empresa (`lead_alta_contexto()`).
+  - `CLAVES_RESERVADAS_DE_LEAD` y los tipos `CampoDeLead`, `DatosDeLaEmpresa`, `ContextoDeAlta`.
+- Sale por `client.ts`: las mismas reglas puras y tipos, sin servidor, más `<AltaDeLead>`, `normalizarTelefono()` y `telefonoParaMostrar()`.
 - Pendiente: `getLead()`, `buscarLeads()`, `<SelectorLead>`, `<ChipLead>`, `telefonoDe(leadId)` (sólo cartera). Los consumirán `cotizaciones`, `vehiculos`, `agenda`, `chat`, `web`, `repuestos`, `buscador`, `tablero`, `datos`.
 - Depende de: `equipo` (permisos y alcance propios/todos) y de `shared/lib/campos` + `shared/ui/campos` (el motor de campos y su editor, compartidos con `origenes`). **No** depende de `origenes` ni de `empresa`: la ciudad y el país de la empresa los trae la página por props.
 
@@ -23,13 +24,16 @@ Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo
 - `infra/campos.ts` (las cinco RPC `lead_campo_*`), `infra/queries/campos.ts` (`leads_campos`), `composicion.ts`.
 - `features/campos/` — `configuracion.tsx` (`configuracionDeLeads()`: las banderas, los textos, cómo se arma lo que viaja y el hueco «Valor de la empresa»), `components/editor-de-campos-de-lead.tsx` (el envoltorio del editor compartido), `hooks/use-campos.ts`, `actions/` (crear, guardar, mover, eliminar, vista previa) y `schemas/campos.ts`.
 - La página compone lo que cruza módulos: `src/app/(app)/configuracion/leads/` (lee el layout y los ajustes de la empresa).
-- Pendiente: `entities/telefono.ts` (normalización) y `entities/cartera.ts` (reglas de acceso puras); `infra/queries/leads.ts` lee **`leads_vista`**, nunca la tabla; `infra/rpc.ts` envuelve `crear_lead`, `verificar_telefono`, `compartir_lead`, `transferir_lead`, `otorgar_portal`; `features/listado/`, `ficha/`, `seguimientos/`, `recordatorios/`, `embudo/`, `portal/`, `importar/`.
+- `entities/telefono.ts` — `normalizarTelefono()` y `telefonoParaMostrar()`, **espejo** de `normalizar_telefono()` (un test ejecuta la función SQL en PGlite sobre `telefono.casos.ts`). `entities/alta.ts` — el contexto, qué va arriba y qué en «Más datos», los valores iniciales, `validarAlta()` (las claves del formulario son los `hint` de la base) y el orden del foco. `entities/verificacion.ts` — los cuatro estados de un teléfono y qué se le dice a quien tipea. `entities/recordatorio.ts` — los atajos «Mañana» y «En 3 días» en la zona de la empresa y que sea a futuro.
+- `infra/alta.ts` (`crear_lead`, `verificar_telefono`), `infra/queries/alta.ts` (`lead_alta_contexto`).
+- `features/alta/` — `components/` (`alta-de-lead` el botón, la tecla N y el drawer; `panel-de-alta`; `campo-telefono`; `paso-seguimiento`), `hooks/` (`use-alta-de-lead` el estado y el borrador, `use-envio-del-alta` avanzar y guardar, `use-verificar-telefono` el debounce, `estado-del-alta` los cambios puros), `actions/` (`crear-lead`, `verificar-telefono`) y `schemas/alta.ts`.
+- Pendiente: `entities/cartera.ts` (reglas de acceso puras); `infra/queries/leads.ts` lee **`leads_vista`**, nunca la tabla; `infra/rpc.ts` envuelve `compartir_lead`, `transferir_lead`, `otorgar_portal`; `features/listado/`, `ficha/`, `seguimientos/`, `recordatorios/`, `embudo/`, `portal/`, `importar/`.
 
 ## Tablas
 
 `leads` (con `atributos`), `leads_campos` (el layout), `leads_telefonos`, `leads_asesores` (cartera), `leads_favoritos`, `leads_tachados`, `etiquetas`, `leads_etiquetas`, `tipos_seguimiento`, `seguimientos`, `recordatorios`, `embudos`, `embudos_etapas`, `oportunidades`, `oportunidades_historial`, `accesos_portal`, `origenes_lead`, `lotes_papelera` (compartida con vehículos y cotizaciones).
 
-RPC de campos (`…20261014000800_leads_campos.sql`): `lead_campo_crear`, `lead_campo_guardar`, `lead_campo_mover`, `lead_campo_eliminar`, `lead_campo_impacto`. Privacidad y datos (`…000900_leads_atributos.sql`): `atributos_lead()`, `lead_validar_atributos` (trigger), `crear_lead`, `_leads_columnas_a_atributos()` (la migración de las seis columnas). El motor SQL es común con los orígenes (`…000600_campos_motor.sql`).
+RPC de campos (`…20261014000800_leads_campos.sql`): `lead_campo_crear`, `lead_campo_guardar`, `lead_campo_mover`, `lead_campo_eliminar`, `lead_campo_impacto`. Privacidad y datos (`…000900_leads_atributos.sql`): `atributos_lead()`, `lead_validar_atributos` (trigger), `_leads_columnas_a_atributos()` (la migración de las seis columnas). El motor SQL es común con los orígenes (`…000600_campos_motor.sql`). El alta (`…20261014001000_lead_alta.sql`): `crear_lead(p_id, p_lead, p_seguimiento, p_recordatorio)`, `verificar_telefono()`, `lead_alta_contexto()`, `_lead_verificar()`, `_atributos_completar()` y `normalizar_telefono()`.
 
 ## No se rompe
 
@@ -42,15 +46,20 @@ RPC de campos (`…20261014000800_leads_campos.sql`): `lead_campo_crear`, `lead_
   - Compartir, transferir y adoptar del limbo le dan los privados a quien entra a la cartera; revocar se los quita. No se mueven datos: se decide al leer.
   - Un trigger no deja que quien está fuera de la cartera cambie un privado, ni le exige uno requerido que no ve.
   - `actividad` ya no entrega `antes` ni `despues` (la fila entera, con el teléfono y los privados): la pantalla de Actividad (Fase 9) leerá el diff por una función que recorta según la cartera.
-- **`crear_lead`** recibe los datos propios en `atributos`; una clave suelta (`ciudad`) se rechaza diciendo dónde va. Un atributo que no existe, de tipo equivocado, con una opción que no está o sin un requerido se rechaza con el campo en el `hint` (`atributos.<clave>`). Al adoptar del limbo se suman los atributos que trae.
+- **`crear_lead(p_id, …)`** escribe el lead, su primer seguimiento, el recordatorio y el último origen en **una transacción**: o entra todo o nada. Recibe los datos propios en `atributos`; una clave suelta (`ciudad`) se rechaza diciendo dónde va, y un dato que no pasa (atributo que no existe, tipo equivocado, opción que no está, requerido que falta, origen apagado, recordatorio pasado) se rechaza con el campo en el `hint` (`atributos.<clave>`, `seguimiento.titulo`, `recordatorio.recordar_en`…).
+  - **El intento lleva su id** (`p_id` = `leads.id`): un reintento tras perder la respuesta devuelve lo mismo con `repetido`.
+  - **Un duplicado es un valor**, no una excepción: `existe` (con su número y si es mío), `de_otro` (sólo de quién) o `limbo`. No crea nada. Dos personas a la vez terminan en `existe`/`de_otro`.
+  - **Adoptar** exige `adoptar: true` («Tomar lead»), deja de **dueño**, completa sólo lo vacío (nombre y lo que había se conservan) y reactiva la fila de cartera revocada.
+  - El teléfono lo normaliza `normalizar_telefono()` con el código de país de la empresa (`ajustes_empresa.telefono_cc`); `leads.telefono_cc` guarda el código sólo cuando es el de la empresa.
 - **Los campos propios nunca salen** en el portal del cliente ni en la web pública (por ahora). Una etiqueta es privada de cada persona; un campo de lead es del despliegue y su visibilidad la decide el layout.
 - Los tipos son los de un vehículo sin VIN ni lote, más `correo` y `documento` (que nacen «solo la cartera»). Un vehículo no lleva correo ni documento (un `check` en cada tabla). Los teléfonos extra siguen en `leads_telefonos`.
 - El **valor por defecto** sólo precarga el alta; la base no lo aplica sola. «La de la empresa» (`valor_defecto_empresa`: `ciudad` o `pais`) se resuelve al leer el layout, así que sigue a la empresa si cambia; es excluyente con un valor fijo y sólo vale en un campo de texto.
 - **Alta rápida (Flujo 1, ≤ 25 s):** el drawer lleva los cuatro fijos y los campos activos requeridos; lo demás va plegado en «Más datos», precargado. Volver requerido un campo avisa dentro del panel cuántos datos pedirá el alta; desde el cuarto, que la meta cuesta cumplirla.
-- `telefono_principal` es único entre leads vivos; sólo `crear_lead` y `cambiar_telefono_lead` lo escriben. Si existe: dice de quién es (CTA al chat) o, si está en limbo, lo adopta y queda en `actividad`.
+- `telefono_principal` es único entre leads vivos; sólo `crear_lead` y `cambiar_telefono_lead` lo escriben. Si existe: dice de quién es (el CTA «Escribirle por chat» llega con el chat, Fase 7) o, si está en limbo, se ofrece «Tomar lead» y, al aceptarlo, se adopta y queda en `actividad`.
+- **`verificar_telefono` exige `leads.crear`**: sin él no hay forma de preguntar de quién es un número. Del lead de otra persona dice sólo quién lo tiene.
 - El teléfono completo sólo lo ve la cartera (`telefono_lead()`), **incluido el dueño**: es deliberado, no un bug.
 - Favoritos, tachados y etiquetas son privados por usuario: compartir un lead no los comparte.
-- Un seguimiento con `visibilidad = 'publico'` es lo único del lead que ve el portal.
+- Un seguimiento con `visibilidad = 'publico'` es lo único del lead que ve el portal. El primer seguimiento se escribe sólo por `crear_lead`; **los siguientes se escriben hoy directo en la tabla** (RLS) hasta que la parte 4 tenga sus RPC. Su `detalle_texto` es texto plano; `detalle_html` queda nulo hasta el editor enriquecido.
 - Todo texto de la interfaz sale de la fila (`etiqueta`): ningún nombre de campo está escrito en componentes.
 
 ## Ojo
@@ -59,6 +68,8 @@ RPC de campos (`…20261014000800_leads_campos.sql`): `lead_campo_crear`, `lead_
 - Una vista se valida al crearse: por eso las migraciones antiguas ya no nombran las seis columnas, y `_leads_vista_crear()` es la única definición actual de `leads_vista`.
 - `atributos` nunca guarda un nulo: vaciar quita la clave. Lo de un campo desactivado se conserva y no se cambia.
 - Sin rango: la columna `edad` tenía `between 1 and 120`; el campo «Edad» es un número cualquiera. Si hace falta un tope, es una regla del motor para todos los campos, no de este.
+- El valor `adoptado` de `tipo_acceso` quedó sin uso: quien adopta entra como `dueno`.
+- La policy de `recordatorios` no comprueba el acceso al `lead_id`, y la de `seguimientos` no mira si el tipo está activo (parte 4).
 - Un lead insertado con el cliente de servicio (los e2e) pasa por el mismo trigger: con un campo requerido activo, falta el dato y se rechaza. Los e2e que cargan leads completan los requeridos (`e2e/soporte/leads.ts`).
 - Discrepancias que se anotaron y **no** cambian el enmascarado: `leads_telefonos` no se enmascara a quien ve el lead sin la cartera; `telefono_lead(id)` no comprueba acceso (da el teléfono enmascarado de cualquier id); quien tiene `leads.editar` «todos» puede compartirse un lead ajeno. Van con la parte de la cartera.
 - El código del portal (`XXX-YYYYY`, alfabeto sin I/O/0/1) se muestra una sola vez en grande; la clave se guarda con bcrypt y nadie la lee.

@@ -1374,3 +1374,118 @@ de 25 segundos cuesta cumplirla. Sin un campo requerido, la base lo rechaza con 
 vale también para el cliente de servicio, así que los e2e que cargan leads completan los requeridos.
 **Consecuencia:** el aviso es de la pantalla de configuración; el alta (parte siguiente) lo
 materializa.
+
+## 2026-10-14 — El alta rápida es una sola RPC: el lead, su seguimiento y el recordatorio entran juntos
+
+**Contexto:** `crear_lead(jsonb)` devolvía sólo un `uuid`, no tenía forma de distinguir un reintento de un
+duplicado y el seguimiento se escribía directo en la tabla: dos pasos, y un fallo en el segundo dejaba
+un lead sin seguimiento.
+**Decisión:** `crear_lead(p_id, p_lead, p_seguimiento, p_recordatorio)` escribe el lead (o lo adopta),
+el seguimiento, el recordatorio y el último origen usado (`preferencias_usuario`) en una transacción.
+El navegador genera `p_id` al abrir el drawer y lo conserva en cada reintento: si ya entró, devuelve lo
+mismo con `repetido` (el patrón de `vehiculo_crear`; una adopción se reconoce por el `intento` de su
+constancia en `actividad`). Un teléfono que ya existe, es de otra persona o está sin dueño sin tomar es
+un **valor** (`existe`, `de_otro`, `limbo`), no una excepción: la pantalla lo dice junto al teléfono. Dos
+personas que guardan el mismo teléfono a la vez terminan ahí: el `unique_violation` se atrapa y se
+vuelve a verificar. `p_seguimiento` es opcional en la firma (la importación CSV, parte 7, no lo trae);
+el drawer lo manda siempre y el resumen es obligatorio.
+**Alternativas:** dos llamadas (si el seguimiento falla queda un lead a medias); una clave de
+idempotencia en una tabla aparte (otra tabla para algo que `leads.id` ya resuelve).
+**Consecuencia:** un rechazo no deja nada. El humo prueba la atomicidad, un fallo a mitad y el reintento;
+el e2e, la carrera real. Los dos pendientes de la parte 4 (policies directas de `seguimientos` y
+`recordatorios`) siguen: esta RPC es la única puerta del primer seguimiento, no la de los siguientes.
+
+## 2026-10-14 — El teléfono lo normaliza la base y el código de país es de la empresa
+
+**Decisión:** `normalizar_telefono(cc, tel)` entiende espacios, guiones, puntos y paréntesis; «+» o «00»
+al inicio es internacional (el número ya trae su código); sin ellos es nacional (código de la empresa
+y un 0 troncal menos); rechaza con el motivo letras, un «+» en medio y lo que no tiene entre 8 y 15
+dígitos. `leads/entities/telefono.ts` es su espejo, para responder al tipear, y un test **ejecuta** la
+función SQL en PGlite sobre la misma tabla de casos y exige el mismo número y el mismo motivo. El código
+de país es `ajustes_empresa.telefono_cc` (Empresa › Región); `leads.telefono_cc` deja de tener default y
+guarda el código sólo cuando el número es el de la empresa. Sin código de empresa, el alta pide el número
+con «+» y lo dice. La migración conservó el `+591` que la instalación ya usaba como dato de la empresa.
+**No se adivina:** un número que empieza con el código de la empresa pero se escribió sin «+» ni «00» se
+toma como nacional. La pantalla dice cómo va a quedar guardado («Se guardará como +591 70011002») para
+que se vea antes de guardar.
+**Alternativas:** derivar el código del `locale` (una tabla más, y falla con un locale raro); espejo
+sólo con regex sobre el SQL (no prueba que haga lo mismo).
+
+## 2026-10-14 — Tomar un lead sin dueño exige aceptarlo, deja de dueño y no pisa
+
+**Contexto:** `crear_lead` adoptaba solo, dejaba al adoptante como «adoptado» (sin dueño: «Lo tiene
+null») y reemplazaba el nombre y los atributos del lead con lo que se tipeaba.
+**Decisión:** el lead sin dueño se adopta sólo con `adoptar = true` («Tomar lead»); sin eso, el servidor
+dice `limbo` y nada cambia (nadie adopta por una verificación que llegó tarde). Quien lo toma entra como
+**dueño**, el nombre se conserva, el origen sólo se completa si estaba vacío y de los atributos entran
+las claves que faltan (`_atributos_completar`). La fila de cartera que ya tenía (revocada) se reactiva.
+El drawer lo dice antes de guardar. El valor `adoptado` del enum queda sin uso: quitar un valor de un
+enum cuesta más que dejarlo.
+**Consecuencia:** «Lo tiene …» siempre nombra a alguien. Un campo requerido que el lead no tiene lo
+completa quien lo toma; uno que ya tenía no se toca.
+
+## 2026-10-14 — Ctrl/Cmd+Enter avanza al seguimiento y se guarda al final
+
+**Contexto:** `docs/UX.md` decía «guarda y abre el primer seguimiento»: dos escrituras. Con la RPC
+atómica eso dejaría de ser una transacción.
+**Decisión:** en el paso de los datos, `Ctrl/Cmd+Enter` valida y abre «Primer seguimiento» sin escribir
+nada; el segundo `Ctrl/Cmd+Enter` guarda todo. Los dos pasos son un solo formulario en el mismo drawer
+(el que no se ve queda oculto, no desmontado: lo escrito no se pierde al ir y volver); `Esc` del segundo
+vuelve al primero. No hay «guardar sin seguimiento»: el resumen es obligatorio, así que no nace un lead
+sin seguimiento. Los atajos de fecha van **antes** del campo de fecha: un `datetime-local` tiene una
+parada de Tab por cada parte.
+**Consecuencia:** 7 teclas de control desde `N` hasta el lead guardado con seguimiento y recordatorio.
+
+## 2026-10-14 — `N` es de la pantalla; «Nuevo lead» siempre tiene botón
+
+**Contexto:** `docs/UX.md` decía «en cualquier pantalla `N` abre Nuevo lead» y, más abajo, «`N` nuevo
+(lead, vehículo o cotización según pantalla)».
+**Decisión:** `N` abre lo propio de la pantalla (en vehículos, un vehículo). Donde la pantalla no tiene
+un «nuevo» propio (Inicio, Configuración, Perfil) cae a «Nuevo lead». En vehículos `N` es siempre del
+vehículo: si no se puede (origen desactivado, sin permiso, otro panel abierto) no hace nada, no cae a
+lead. El botón «Nuevo lead» está siempre en la barra superior de quien tiene `leads.crear`, así que la
+meta se mide también desde él. Sin `leads.crear` no se monta nada: ni botón, ni atajo, ni URL.
+**Consecuencia:** la pila de `ProveedorAtajos` ya resolvía «el más adentro gana»; no hizo falta otro
+mecanismo. La lista de atajos con `?` sigue sin dibujarse (pendiente).
+
+## 2026-10-14 — El resumen de un seguimiento es un título corto y un detalle en texto plano
+
+**Decisión:** hasta que llegue el editor enriquecido (parte 4), el primer seguimiento lleva `titulo`
+(≤ 120) y `detalle_texto` (≤ 5000, texto plano); `detalle_html` queda nulo. Lo que se guarde hoy sigue
+siendo válido: el editor mostrará `detalle_texto` cuando no haya HTML. El recordatorio usa el título del
+seguimiento (no se pide otro).
+
+## 2026-10-14 — El formulario por bloques y los controles por tipo son de `shared`
+
+**Contexto:** `docs/ESTADO.md` lo anticipaba; el alta de leads necesita lo mismo que el de vehículos.
+**Decisión:** `shared/lib/campos` suma `valor.ts` (el estado de un formulario de campos), `controles.ts`
+(un `Control` por cada uno de los 14 tipos, la clave del dato la pone quien llama) y `esquema-de-valor.ts`
+(el Zod de cada tipo; correo y documento espejan `_lead_atributos_formato()`); `shared/ui/campos` suma
+`<CampoDeFormulario>` y `<BloqueDeCampos>`. Vehículos conserva sus datos comunes, sus bloques, la
+conversión de apibara, el lector y el filtro por tipo (los usa el listado). Fue su propio commit, sin
+cambios de comportamiento: los e2e de vehículos y orígenes siguieron en verde.
+
+## 2026-10-14 — La guardia de los e2e: respaldo en disco, funciones servidas y teardown
+
+**Contexto:** un e2e que falló a mitad dejó apagada la integración de apibara y la corrida siguiente
+respaldó ese estado ya malo: el respaldo era una variable de cada spec, tomada de la base viva.
+**Decisión:** `globalSetup`/`globalTeardown` de Playwright. Antes de empezar: si existe
+`e2e/.estado/respaldo.json`, una corrida anterior no restauró: se **repone desde el archivo** antes de
+tomar uno nuevo, y nunca se lo pisa con lo que hay en la base. Se respalda `integraciones` de apibara
+(sin la clave: nunca va a disco). Se prueba con `OPTIONS` (no llama a apibara) que `apibara` y
+`storage-gc` estén servidas y, si no, falla en segundos diciendo qué correr. Al terminar: restaura,
+comprueba que la clave de Vault sigue y borra los leads `E2E …` que hayan quedado. Los `afterAll` de
+empresa y de la limpieza restauran en `finally`.
+**Costo:** los e2e exigen `npx supabase functions serve` siempre (`E2E_SIN_FUNCIONES=1` lo salta, y lo
+avisa); unas 120 líneas. **No cubre** un `kill -9` en medio de una corrida: lo cubre la siguiente.
+**Una base de pruebas aparte no hace falta todavía:** el riesgo era el estado compartido que se pisa,
+no la base; si algún día los e2e tienen que correr en paralelo o contra datos reales sensibles, sí.
+
+## 2026-10-14 — Cómo se mide la tarea de oro 1
+
+**Decisión:** el e2e hace el recorrido entero con el teclado, sin un solo clic, y cuenta lo que se pulsa
+(sin contar lo que se tipea). Lo que comprueba: ≤ 8 teclas de control, el reloj del robot bajo un tope
+generoso y la estimación de una persona por KLM (0,28 s por tecla, 1,35 s por decisión) ≤ 25 s. El
+reloj del robot **no** es la hora de una persona: tipea sin demora. La meta de 25 s se sostiene por la
+cuenta de pulsaciones y por el KLM; la detección del duplicado se mide aparte (≈ 0,8 s después de
+tipear: 400 ms de espera y un viaje).
