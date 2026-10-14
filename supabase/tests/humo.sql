@@ -2886,3 +2886,422 @@ begin
   if not exists (select 1 from cron.job where jobname = 'limpieza-automatica' and schedule = '7 * * * *' and command like '%limpieza_automatica_correr%') then
     raise exception 'el job de la limpieza no está programado'; end if;
 end $$;
+
+-- @test leads: el layout de fábrica, y crear, ordenar, desactivar y eliminar un campo con sus reglas
+-- Dos asesores propios de estas pruebas: los de antes ya se dieron de baja.
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-000000000030', 'asesora-leads@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-000000000031', 'asesor-leads@ejemplo.com', '{"invitado": true}');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare
+  r jsonb; c uuid; v timestamptz; v2 timestamptz; rechazo boolean; claves text[]; privado uuid;
+begin
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000030', (select id from public.roles where clave = 'asesor'), true);
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000031', (select id from public.roles where clave = 'asesor'), true);
+  select array_agg(clave order by orden) into claves from public.leads_campos where es_sistema;
+  if claves <> array['edad', 'genero', 'ciudad', 'pais', 'direccion', 'notas'] then raise exception 'los campos de fábrica: %', claves; end if;
+  if (select count(*) from public.leads_campos where solo_cartera) <> 1 or not (select solo_cartera from public.leads_campos where clave = 'direccion') then
+    raise exception 'sólo la dirección nace «solo la cartera»'; end if;
+  if (select valor_defecto_empresa from public.leads_campos where clave = 'ciudad') is distinct from 'ciudad'
+     or (select valor_defecto_empresa from public.leads_campos where clave = 'pais') is distinct from 'pais' then
+    raise exception 'la ciudad y el país nacen con los de la empresa'; end if;
+
+  -- Un campo propio nace al final, activo y no de fábrica.
+  r := public.lead_campo_crear('signo_humo', 'Signo zodiacal', 'opcion',
+    '[{"clave": "aries", "etiqueta": "Aries"}, {"clave": "leo", "etiqueta": "Leo"}]', p_grupo => 'Datos personales');
+  c := (r ->> 'id')::uuid;
+  if (select es_sistema or not activo or solo_cartera or orden <> 70 from public.leads_campos where id = c) then
+    raise exception 'el campo propio nace al final, activo y visible para quien ve el lead'; end if;
+
+  -- Clave reservada, repetida, tipo que un lead no lleva, opciones faltantes.
+  rechazo := false; begin perform public.lead_campo_crear('telefono_principal', 'Teléfono', 'texto'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'creó un campo con la clave de una columna'; end if;
+  rechazo := false; begin perform public.lead_campo_crear('atributos', 'Atributos', 'texto'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'creó un campo con la clave «atributos»'; end if;
+  begin perform public.lead_campo_crear('signo_humo', 'Otro signo', 'texto'); raise exception 'repitió la clave de un campo';
+  exception when unique_violation then null; end;
+  rechazo := false; begin perform public.lead_campo_crear('chasis_humo', 'Chasis', 'vin'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'un lead aceptó un campo VIN'; end if;
+  rechazo := false; begin perform public.lead_campo_crear('sin_opciones', 'Sin opciones', 'opcion'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'creó un campo de opciones sin opciones'; end if;
+
+  -- El correo y el documento nacen «solo la cartera»; el valor de la empresa sólo en texto y sin valor fijo.
+  privado := (public.lead_campo_crear('correo_hum', 'Correo', 'correo') ->> 'id')::uuid;
+  if not (select solo_cartera from public.leads_campos where id = privado) then raise exception 'el correo debía nacer privado'; end if;
+  rechazo := false; begin perform public.lead_campo_crear('doc_humo', 'Documento', 'documento', p_valor_defecto => '"123"'); exception when invalid_parameter_value then rechazo := true; end;
+  if not rechazo then raise exception 'un documento aceptó un valor por defecto'; end if;
+  rechazo := false; begin perform public.lead_campo_crear('dato_humo', 'Dato', 'numero', p_valor_defecto_empresa => 'ciudad'); exception when invalid_parameter_value then rechazo := true; end;
+  if not rechazo then raise exception 'un número aceptó el dato de la empresa'; end if;
+  rechazo := false; begin perform public.lead_campo_crear('dato_humo', 'Dato', 'texto', p_valor_defecto => '"x"', p_valor_defecto_empresa => 'ciudad'); exception when invalid_parameter_value then rechazo := true; end;
+  if not rechazo then raise exception 'aceptó un valor fijo y el de la empresa a la vez'; end if;
+
+  -- Editar pide la versión: una vieja es PT409 y nada cambia.
+  select actualizado_en into v from public.leads_campos where id = c;
+  begin perform public.lead_campo_guardar(c, v - interval '1 second', '{"filtrable": true}'); raise exception 'guardó con una versión vieja';
+  exception when others then if sqlstate <> 'PT409' then raise; end if; end;
+  v2 := public.lead_campo_guardar(c, v, '{"filtrable": true, "en_tabla": true, "grupo": "Extras"}');
+  if not (select filtrable and en_tabla and grupo = 'Extras' from public.leads_campos where id = c) then raise exception 'no guardó las banderas'; end if;
+  rechazo := false; begin perform public.lead_campo_guardar(c, v2, '{"clave": "otra"}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó cambiar la clave de un campo'; end if;
+  rechazo := false; begin perform public.lead_campo_guardar(c, v2, '{"etiqueta": null}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'dejó vaciar el nombre'; end if;
+
+  -- Uno de fábrica se edita, pero no cambia de tipo ni se elimina.
+  select id, actualizado_en into privado, v from public.leads_campos where clave = 'edad';
+  perform public.lead_campo_guardar(privado, v, '{"filtrable": false, "etiqueta": "Años"}');
+  if (select etiqueta from public.leads_campos where id = privado) <> 'Años' then raise exception 'no renombró un campo de fábrica'; end if;
+  rechazo := false; begin perform public.lead_campo_guardar(privado, (select actualizado_en from public.leads_campos where id = privado), '{"tipo": "texto"}'); exception when raise_exception then rechazo := true; end;
+  if not rechazo then raise exception 'cambió el tipo de un campo de fábrica'; end if;
+  begin perform public.lead_campo_eliminar(privado, (select actualizado_en from public.leads_campos where id = privado)); raise exception 'eliminó un campo de fábrica';
+  exception when foreign_key_violation then null; end;
+  perform public.lead_campo_guardar(privado, (select actualizado_en from public.leads_campos where id = privado), '{"etiqueta": "Edad", "filtrable": true}');
+
+  -- Orden relativo: «primero» y «después de X»; los números quedan en 10, 20, 30…
+  perform public.lead_campo_mover(c, (select actualizado_en from public.leads_campos where id = c));
+  if (select id from public.leads_campos order by orden limit 1) <> c then raise exception 'no lo puso primero'; end if;
+  perform public.lead_campo_mover(c, (select actualizado_en from public.leads_campos where id = c), p_despues_de => (select id from public.leads_campos where clave = 'genero'));
+  select array_agg(clave order by orden) into claves from public.leads_campos;
+  if claves[1:3] <> array['edad', 'genero', 'signo_humo'] then raise exception 'no lo puso después de género: %', claves; end if;
+  if exists (select 1 from public.leads_campos where orden % 10 <> 0) then raise exception 'el orden no quedó en 10, 20, 30…'; end if;
+  begin perform public.lead_campo_mover(c, (select actualizado_en from public.leads_campos where id = c), p_despues_de => c); raise exception 'lo puso después de sí mismo';
+  exception when raise_exception then if sqlerrm like 'lo puso%' then raise; end if; end;
+
+  -- Sin leads, el impacto es cero y un campo propio se elimina.
+  if (public.lead_campo_impacto(c) ->> 'con_valor')::int <> 0 then raise exception 'no había leads con signo'; end if;
+  perform public.lead_campo_eliminar(c, (select actualizado_en from public.leads_campos where id = c));
+  if exists (select 1 from public.leads_campos where clave = 'signo_humo') then raise exception 'no eliminó el campo sin datos'; end if;
+  perform public.lead_campo_eliminar(
+    (select id from public.leads_campos where clave = 'correo_hum'),
+    (select actualizado_en from public.leads_campos where clave = 'correo_hum'));
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test leads: sin leads.configurar nadie escribe el layout ni cuenta; leerlo es de toda cuenta
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ declare c uuid; v timestamptz;
+begin
+  select id, actualizado_en into c, v from public.leads_campos where clave = 'edad';
+  if (select count(*) from public.leads_campos) < 6 then raise exception 'una asesora debía leer el layout'; end if;
+  begin perform public.lead_campo_crear('x_humo', 'X', 'texto'); raise exception 'creó un campo sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.lead_campo_guardar(c, v, '{"filtrable": false}'); raise exception 'editó un campo sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.lead_campo_mover(c, v); raise exception 'movió un campo sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.lead_campo_eliminar(c, v); raise exception 'eliminó un campo sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin perform public.lead_campo_impacto(c); raise exception 'contó sin permiso';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.leads_campos (clave, etiqueta, tipo) values ('directo_humo', 'Directo', 'texto'); raise exception 'insertó directo';
+  exception when insufficient_privilege then null; end;
+  begin update public.leads_campos set etiqueta = 'X' where id = c; raise exception 'actualizó directo';
+  exception when insufficient_privilege then null; end;
+  begin delete from public.leads_campos where id = c; raise exception 'borró directo';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- Quien no tiene rol tampoco; y sin sesión no se ve ni se escribe.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000005', false);
+set role authenticated;
+do $$ begin
+  begin perform public.lead_campo_crear('x_humo', 'X', 'texto'); raise exception 'creó un campo sin rol';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+do $$ begin
+  begin perform count(*) from public.leads_campos; raise exception 'anon leyó el layout';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- @test leads: crear_lead rechaza lo que el layout no admite y guarda lo que sí
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  perform public.lead_campo_crear('req_humo', 'Requerido humo', 'texto', p_requerido => true);
+  perform public.lead_campo_crear('correo_humo', 'Correo humo', 'correo');
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ declare v_id uuid; hint text;
+begin
+  -- Una clave suelta se rechaza diciendo dónde va.
+  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "ciudad": "Cbba", "atributos": {"req_humo": "x"}}'); raise exception 'aceptó una clave suelta';
+  exception when invalid_parameter_value then
+    if sqlerrm not like '%atributos%' then raise exception 'no dijo dónde va: %', sqlerrm; end if; end;
+  -- Un atributo que no existe.
+  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "no_existe": 1}}'); raise exception 'aceptó un atributo que no existe';
+  exception when invalid_parameter_value then
+    get stacked diagnostics hint = pg_exception_hint;
+    if hint <> 'atributos.no_existe' then raise exception 'el hint no nombra el campo: %', hint; end if; end;
+  -- De tipo equivocado.
+  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "edad": "mucha"}}'); raise exception 'aceptó una edad que no es número';
+  exception when invalid_parameter_value then
+    if sqlerrm not like '%Edad%' then raise exception 'no nombró el campo: %', sqlerrm; end if; end;
+  -- Con una opción que no está.
+  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "genero": "marciano"}}'); raise exception 'aceptó una opción que no existe';
+  exception when invalid_parameter_value then
+    if sqlerrm not like '%marciano%' then raise exception 'no dijo cuál: %', sqlerrm; end if; end;
+  -- Con un formato que no es.
+  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "correo_humo": "sin-arroba"}}'); raise exception 'aceptó un correo sin arroba';
+  exception when invalid_parameter_value then null; end;
+  -- Sin un requerido.
+  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"edad": 30}}'); raise exception 'creó un lead sin su requerido';
+  exception when not_null_violation then
+    get stacked diagnostics hint = pg_exception_hint;
+    if hint <> 'atributos.req_humo' then raise exception 'el hint no nombra el requerido: %', hint; end if; end;
+  -- Ninguna de las rechazadas dejó un lead.
+  if exists (select 1 from public.leads_vista where nombre = 'A') then raise exception 'un rechazo dejó el lead a medias'; end if;
+  -- Lo válido entra, y vaciar un dato lo quita.
+  v_id := public.crear_lead('{"nombre": "Valida Humo", "telefono_principal": "70011002", "atributos": {"req_humo": "x", "edad": 31, "genero": "otro", "correo_humo": "ana@ejemplo.com", "ciudad": ""}}');
+  if (select atributos from public.leads_vista v where v.id = v_id) is distinct from '{"edad": 31, "genero": "otro", "req_humo": "x", "correo_humo": "ana@ejemplo.com"}'::jsonb then
+    raise exception 'los atributos guardados: %', (select atributos from public.leads_vista v where v.id = v_id); end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  -- Volver requerido no toca los leads que ya existen.
+  perform public.lead_campo_guardar((select id from public.leads_campos where clave = 'edad'), (select actualizado_en from public.leads_campos where clave = 'edad'), '{"requerido": true}');
+  if not exists (select 1 from public.leads where nombre = 'Valida Humo') then raise exception 'se perdió el lead'; end if;
+  perform public.lead_campo_guardar((select id from public.leads_campos where clave = 'edad'), (select actualizado_en from public.leads_campos where clave = 'edad'), '{"requerido": false}');
+end $$;
+reset role;
+-- Los campos de prueba de este bloque se van antes del siguiente: un requerido frenaría a los demás.
+delete from public.leads where nombre = 'Valida Humo';
+delete from public.leads_campos where clave in ('req_humo', 'correo_humo');
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test leads: un privado de cartera no llega a quien sólo ve el lead, ni en pantalla ni al filtrar
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  perform public.lead_campo_crear('ci_humo', 'Cédula', 'documento');
+  perform public.lead_campo_crear('hobby_humo', 'Pasatiempo', 'texto');
+  if not (select solo_cartera from public.leads_campos where clave = 'ci_humo') then raise exception 'el documento debía nacer privado'; end if;
+end $$;
+reset role;
+-- Sofía crea el lead: queda de dueña y le llega todo.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ declare a jsonb; begin
+  perform public.crear_lead('{"nombre": "Privado Humo", "telefono_principal": "70022001", "atributos": {"ciudad": "Santa Cruz", "direccion": "Calle 5 #12", "notas": "Pidió rojo", "ci_humo": "123456 SC", "hobby_humo": "Ajedrez"}}');
+  select atributos into a from public.leads_vista where nombre = 'Privado Humo';
+  if a ->> 'direccion' is distinct from 'Calle 5 #12' or a ->> 'ci_humo' is distinct from '123456 SC' then raise exception 'la cartera debía recibir los privados: %', a; end if;
+end $$;
+reset role;
+
+-- La dueña ve el lead (alcance «todos») pero no está en su cartera: sin los privados.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare a jsonb; n int; rechazo boolean;
+begin
+  select atributos into a from public.leads_vista where nombre = 'Privado Humo';
+  if a is null then raise exception 'la dueña debía ver el lead'; end if;
+  if a ->> 'ciudad' is distinct from 'Santa Cruz' or a ->> 'hobby_humo' is distinct from 'Ajedrez' or a ->> 'notas' is null then
+    raise exception 'la dueña debía recibir lo que no es privado: %', a; end if;
+  if a ? 'direccion' or a ? 'ci_humo' then raise exception 'la dueña recibió un privado: %', a; end if;
+  -- Filtrar también es leer: ni por valor, ni por existencia, ni por contención.
+  select count(*) into n from public.leads_vista where atributos ->> 'direccion' = 'Calle 5 #12';
+  if n <> 0 then raise exception 'filtró por un privado y encontró el lead'; end if;
+  select count(*) into n from public.leads_vista where atributos ? 'ci_humo';
+  if n <> 0 then raise exception 'preguntó si existía un privado y se lo dijeron'; end if;
+  select count(*) into n from public.leads_vista where atributos @> '{"ci_humo": "123456 SC"}';
+  if n <> 0 then raise exception 'filtró por contención de un privado'; end if;
+  select count(*) into n from public.leads_vista where atributos ->> 'ciudad' = 'Santa Cruz';
+  if n <> 1 then raise exception 'sí debía poder filtrar por lo que no es privado'; end if;
+  -- La tabla no se lee ni se escribe: ni con select, ni filtrando, ni actualizando.
+  rechazo := false; begin perform atributos from public.leads limit 1; exception when insufficient_privilege then rechazo := true; end;
+  if not rechazo then raise exception 'leyó leads.atributos'; end if;
+  rechazo := false; begin perform id from public.leads where atributos ->> 'direccion' = 'Calle 5 #12'; exception when insufficient_privilege then rechazo := true; end;
+  if not rechazo then raise exception 'filtró leads.atributos'; end if;
+  rechazo := false; begin update public.leads set atributos = '{}'::jsonb where nombre = 'Privado Humo'; exception when insufficient_privilege then rechazo := true; end;
+  if not rechazo then raise exception 'escribió leads.atributos directo'; end if;
+  -- Desactivar el campo privado no lo expone.
+  perform public.lead_campo_guardar((select id from public.leads_campos where clave = 'direccion'), (select actualizado_en from public.leads_campos where clave = 'direccion'), '{"activo": false}');
+  select atributos into a from public.leads_vista where nombre = 'Privado Humo';
+  if a ? 'direccion' then raise exception 'desactivar el privado lo expuso'; end if;
+  perform public.lead_campo_guardar((select id from public.leads_campos where clave = 'direccion'), (select actualizado_en from public.leads_campos where clave = 'direccion'), '{"activo": true}');
+end $$;
+-- La actividad ya no entrega la fila entera (ni el teléfono ni los privados).
+do $$ declare rechazo boolean; begin
+  rechazo := false; begin perform antes from public.actividad limit 1; exception when insufficient_privilege then rechazo := true; end;
+  if not rechazo then raise exception 'leyó actividad.antes'; end if;
+  rechazo := false; begin perform despues from public.actividad limit 1; exception when insufficient_privilege then rechazo := true; end;
+  if not rechazo then raise exception 'leyó actividad.despues'; end if;
+  if not exists (select 1 from public.actividad where accion = 'lead.creado') then raise exception 'la actividad debía seguir diciendo qué pasó'; end if;
+end $$;
+reset role;
+
+-- Quien está fuera de la cartera no cambia un privado (la sesión es la de la dueña; escribe el dueño de la tabla).
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+do $$ begin
+  begin update public.leads set atributos = atributos || '{"direccion": "Otra"}' where nombre = 'Privado Humo'; raise exception 'cambió un privado sin ser de la cartera';
+  exception when insufficient_privilege then null; end;
+  begin update public.leads set atributos = atributos || '{"ci_humo": "999"}' where nombre = 'Privado Humo'; raise exception 'cambió el documento sin ser de la cartera';
+  exception when insufficient_privilege then null; end;
+  -- Lo que no es privado sí.
+  update public.leads set atributos = atributos || '{"hobby_humo": "Ajedrez y damas"}' where nombre = 'Privado Humo';
+  if (select atributos ->> 'direccion' from public.leads where nombre = 'Privado Humo') <> 'Calle 5 #12' then raise exception 'se perdió la dirección'; end if;
+end $$;
+
+-- Compartir se los da; revocar se los quita.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ begin
+  perform public.compartir_lead((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001');
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  if (select atributos ->> 'direccion' from public.leads_vista where nombre = 'Privado Humo') is distinct from 'Calle 5 #12' then
+    raise exception 'compartir no le dio los privados'; end if;
+  if (select count(*) from public.leads_vista where atributos ->> 'direccion' = 'Calle 5 #12') <> 1 then raise exception 'ya en la cartera, debía poder filtrar'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ declare rechazo boolean; begin
+  perform public.revocar_acceso_lead((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001');
+  -- Al dueño no se le revoca, y el mensaje habla de tú.
+  rechazo := false;
+  begin perform public.revocar_acceso_lead((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000030');
+  exception when check_violation then
+    if sqlerrm not like '%transfiere%' then raise exception 'el mensaje no habla de tú: %', sqlerrm; end if; rechazo := true; end;
+  if not rechazo then raise exception 'revocó al dueño'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  if (select atributos from public.leads_vista where nombre = 'Privado Humo') ? 'direccion' then raise exception 'revocar no le quitó los privados'; end if;
+end $$;
+reset role;
+
+-- Transferir se los da a quien recibe el lead.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ begin
+  perform public.transferir_lead((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001');
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  if (select atributos ->> 'ci_humo' from public.leads_vista where nombre = 'Privado Humo') is distinct from '123456 SC' then
+    raise exception 'transferir no le dio los privados al nuevo dueño'; end if;
+end $$;
+reset role;
+
+-- Adoptar del limbo se los da a quien lo adopta: nadie lo ve hasta que alguien registra el teléfono.
+update public.leads_asesores set revocado_en = now() where lead_id = (select id from public.leads where nombre = 'Privado Humo') and revocado_en is null;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000031', false);
+set role authenticated;
+do $$ declare v uuid; begin
+  if exists (select 1 from public.leads_vista where nombre = 'Privado Humo') then raise exception 'un lead en limbo debía ser invisible'; end if;
+  v := public.crear_lead('{"nombre": "Privado Humo", "telefono_principal": "70022001"}');
+  if (select atributos ->> 'direccion' from public.leads_vista where id = v) is distinct from 'Calle 5 #12' then
+    raise exception 'adoptar no le dio los privados'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test leads: apagar un campo no pierde lo cargado y reactivarlo lo devuelve; con datos no cambia de tipo ni se elimina
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare c uuid; v timestamptz; rechazo boolean; imp jsonb; v2 timestamptz;
+begin
+  select id into c from public.leads_campos where clave = 'hobby_humo';
+  -- Hay un lead con ese dato: el conteo lo dice, y son números, nunca el valor.
+  imp := public.lead_campo_impacto(c);
+  if (imp ->> 'con_valor')::int <> 1 or (imp ->> 'total')::int < 1 then raise exception 'el impacto no contó: %', imp; end if;
+  -- Con datos: el tipo no cambia y no se elimina.
+  rechazo := false;
+  begin perform public.lead_campo_guardar(c, (select actualizado_en from public.leads_campos where id = c), '{"tipo": "numero"}');
+  exception when raise_exception then if sqlerrm not like '%ya tienen un valor%' then raise; end if; rechazo := true; end;
+  if not rechazo then raise exception 'cambió el tipo de un campo con datos'; end if;
+  rechazo := false;
+  begin perform public.lead_campo_eliminar(c, (select actualizado_en from public.leads_campos where id = c));
+  exception when foreign_key_violation then rechazo := true; end;
+  if not rechazo then raise exception 'eliminó un campo con datos'; end if;
+  -- Se desactiva: el dato queda en el lead.
+  v := public.lead_campo_guardar(c, (select actualizado_en from public.leads_campos where id = c), '{"activo": false}');
+end $$;
+reset role;
+-- El dato sigue en el lead (se mira como dueño de la tabla: la API no lee `atributos`).
+do $$ begin
+  if not exists (select 1 from public.leads where atributos ? 'hobby_humo') then raise exception 'apagar el campo perdió lo cargado'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ declare rechazo boolean; begin
+  rechazo := false;
+  begin perform public.crear_lead('{"nombre": "Apagado", "telefono_principal": "70033001", "atributos": {"hobby_humo": "x"}}');
+  exception when invalid_parameter_value then rechazo := true; end;
+  if not rechazo then raise exception 'escribió en un campo desactivado'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare c uuid; begin
+  select id into c from public.leads_campos where clave = 'hobby_humo';
+  perform public.lead_campo_guardar(c, (select actualizado_en from public.leads_campos where id = c), '{"activo": true}');
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ declare v uuid; begin
+  v := public.crear_lead('{"nombre": "Reactivado", "telefono_principal": "70033002", "atributos": {"hobby_humo": "Lectura"}}');
+  if (select atributos ->> 'hobby_humo' from public.leads_vista where id = v) <> 'Lectura' then raise exception 'reactivar el campo no lo devolvió'; end if;
+  -- Una asesora con alcance «propios» sólo ve el suyo: el lead de antes es de otra cartera.
+  if (select count(*) from public.leads_vista where atributos ->> 'hobby_humo' is not null) <> 1 then raise exception 'sólo debía ver el suyo'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test leads: las seis columnas pasan a atributos, se retiran con su enum y la vista sigue
+select set_config('request.jwt.claim.sub', '', false);
+reset role;
+do $$ declare v uuid; n int; a jsonb;
+begin
+  -- Se arma el estado de antes de la migración: las columnas y el enum, con un lead que las usa.
+  create type public.genero_persona as enum ('femenino', 'masculino', 'otro', 'sin_especificar');
+  alter table public.leads add column edad smallint, add column ciudad text, add column pais text,
+    add column direccion text, add column genero public.genero_persona not null default 'sin_especificar', add column notas text;
+  insert into public.leads (nombre, telefono_principal, creado_por, edad, ciudad, pais, direccion, genero, notas)
+    values ('Migrado Humo', '59170044001', '00000000-0000-0000-0000-000000000030', 28, ' La Paz ', 'Bolivia', 'Av. 6 de Agosto', 'femenino', 'Dejó su tarjeta')
+    returning id into v;
+  insert into public.leads (nombre, telefono_principal, creado_por) values ('Sin datos Humo', '59170044002', '00000000-0000-0000-0000-000000000030');
+  insert into public.leads (nombre, telefono_principal, creado_por, genero, ciudad) values ('Vacío Humo', '59170044003', '00000000-0000-0000-0000-000000000030', 'sin_especificar', '   ');
+
+  select public._leads_columnas_a_atributos() into n;
+  if n < 3 then raise exception 'tocó % leads, esperaba al menos 3', n; end if;
+  select atributos into a from public.leads where id = v;
+  if a <> '{"edad": 28, "ciudad": "La Paz", "pais": "Bolivia", "direccion": "Av. 6 de Agosto", "genero": "femenino", "notas": "Dejó su tarjeta"}'::jsonb then
+    raise exception 'lo copiado: %', a; end if;
+  if (select atributos from public.leads where nombre = 'Sin datos Humo') <> '{}'::jsonb then raise exception 'un lead sin datos debía quedar sin atributos'; end if;
+  if (select atributos from public.leads where nombre = 'Vacío Humo') <> '{}'::jsonb then raise exception '«sin_especificar» y un texto en blanco son «sin dato»'; end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'leads' and column_name in ('edad', 'ciudad', 'pais', 'direccion', 'genero', 'notas')) then
+    raise exception 'las columnas siguen ahí'; end if;
+  if exists (select 1 from pg_type where typname = 'genero_persona') then raise exception 'el enum siguió'; end if;
+  -- Correrla otra vez no hace nada: ya no hay columnas.
+  if public._leads_columnas_a_atributos() <> 0 then raise exception 'la segunda corrida tocó algo'; end if;
+  -- La vista se recrea con la misma definición.
+  perform public._leads_vista_crear();
+  delete from public.leads where nombre in ('Migrado Humo', 'Sin datos Humo', 'Vacío Humo');
+end $$;
+-- La vista sigue sirviendo a quien tiene el lead.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from public.leads_vista where nombre = 'Reactivado') <> 1 then raise exception 'la vista no devolvió el lead'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
