@@ -2,7 +2,12 @@
 
 import { useId, useState } from 'react'
 import { Input } from '../input'
-import type { DefFiltro, ValorDeFiltro } from '@/shared/lib/filtros'
+import {
+  OPCIONES_PARA_BUSCAR,
+  opcionesQueCoinciden,
+  type DefFiltro,
+  type ValorDeFiltro,
+} from '@/shared/lib/filtros'
 
 type De<Tipo extends DefFiltro['tipo']> = Extract<DefFiltro, { tipo: Tipo }>
 type Valor<Tipo extends ValorDeFiltro['tipo']> = Extract<ValorDeFiltro, { tipo: Tipo }>
@@ -34,11 +39,33 @@ const OPCION =
 
 export function FiltroDeOpciones({ def, valor, alCambiar }: Props<'opciones'>) {
   const elegidas = valor?.valores ?? []
+  const [busqueda, setBusqueda] = useState('')
+  // Con muchas opciones se ofrece buscar dentro; con pocas, sólo la lista.
+  const conBusqueda = def.opciones.length >= OPCIONES_PARA_BUSCAR
+  const visibles = conBusqueda ? opcionesQueCoinciden(def.opciones, busqueda) : def.opciones
   return (
     <fieldset className="grid">
       <legend className={LEYENDA}>{def.etiqueta}</legend>
+      {conBusqueda ? (
+        <Input
+          type="search"
+          value={busqueda}
+          aria-label={`Buscar en ${def.etiqueta}`}
+          placeholder="Buscar"
+          autoComplete="off"
+          className="mb-1"
+          onChange={(evento) => {
+            setBusqueda(evento.target.value)
+          }}
+        />
+      ) : null}
       <div className="grid max-h-56 overflow-y-auto">
-        {def.opciones.map((opcion) => (
+        {visibles.length === 0 ? (
+          <p role="status" className="py-2 text-(length:--text-sm) text-(--color-ink-soft)">
+            Ninguna opción coincide.
+          </p>
+        ) : null}
+        {visibles.map((opcion) => (
           <label key={opcion.valor} className={OPCION}>
             <input
               type="checkbox"

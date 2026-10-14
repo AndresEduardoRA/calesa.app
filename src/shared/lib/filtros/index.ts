@@ -29,3 +29,4 @@ export {
   type CampoFiltrable,
   type CondicionDeAtributo,
 } from './campos'
+export { OPCIONES_PARA_BUSCAR, opcionesQueCoinciden } from './opciones'
