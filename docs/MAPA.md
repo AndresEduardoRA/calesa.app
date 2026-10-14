@@ -160,6 +160,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `origenes_lead` — `supabase/schemas/05_leads/01_leads.sql`
 - `lotes_papelera` — `supabase/schemas/05_leads/01_leads.sql`
 - `leads` — `supabase/schemas/05_leads/01_leads.sql`
+- `leads_campos` — `supabase/schemas/05_leads/01_leads.sql`
 - `leads_telefonos` — `supabase/schemas/05_leads/01_leads.sql`
 - `leads_asesores` — `supabase/schemas/05_leads/01_leads.sql`
 - `leads_favoritos` — `supabase/schemas/05_leads/01_leads.sql`

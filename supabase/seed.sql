@@ -45,7 +45,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('leads.transferir', 'leads', 'Transferir leads', 'Cambiar el dueño de un lead (propios = sólo los míos)', false, true, 'transferir_lead', 180),
   ('leads.eliminar', 'leads', 'Enviar leads a la papelera', 'Enviar leads a la papelera', false, true, 'papelera_enviar', 190),
   ('leads.portal.gestionar', 'leads', 'Acceso al portal', 'Otorgar y revocar el acceso del cliente al portal', false, true, 'otorgar_portal, revocar_portal', 200),
-  ('leads.configurar', 'leads', 'Configurar leads', 'Orígenes de lead y tipos de seguimiento', false, false, 'policy origenes_lead, tipos_seguimiento', 210),
+  ('leads.configurar', 'leads', 'Configurar leads', 'Los campos de los leads, los orígenes de lead y los tipos de seguimiento', false, false, 'lead_campo_*, policy origenes_lead, tipos_seguimiento', 210),
   ('cotizaciones.ver', 'cotizaciones', 'Ver cotizaciones', 'Ver cotizaciones (por origen; propios = mías o de mis leads)', true, true, 'puede_cotizacion', 220),
   ('cotizaciones.crear', 'cotizaciones', 'Cotizar', 'Crear cotizaciones preventa (por origen)', true, false, 'policy cotizaciones insert', 230),
   ('cotizaciones.editar', 'cotizaciones', 'Editar cotizaciones', 'Editar preventas, adjuntar, comentar (por origen y alcance)', true, true, 'puede_cotizacion', 240),

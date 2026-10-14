@@ -2199,21 +2199,16 @@ export type Database = {
       leads: {
         Row: {
           actualizado_en: string
-          ciudad: string | null
+          atributos: NonNullable<Json>
           creado_en: string
           creado_por: string | null
-          direccion: string | null
-          edad: number | null
           eliminado_en: string | null
           eliminado_por: string | null
-          genero: Database['public']['Enums']['genero_persona']
           id: string
           lote_papelera_id: string | null
           nombre: string
-          notas: string | null
           numero: number
           origen_lead_id: string | null
-          pais: string | null
           telefono_cc: string
           telefono_principal: string
           tipo: Database['public']['Enums']['tipo_lead']
@@ -2222,21 +2217,16 @@ export type Database = {
         ComputedFields: never
         Insert: {
           actualizado_en?: string
-          ciudad?: string | null
+          atributos?: NonNullable<Json>
           creado_en?: string
           creado_por?: string | null
-          direccion?: string | null
-          edad?: number | null
           eliminado_en?: string | null
           eliminado_por?: string | null
-          genero?: Database['public']['Enums']['genero_persona']
           id?: string
           lote_papelera_id?: string | null
           nombre: string
-          notas?: string | null
           numero?: never
           origen_lead_id?: string | null
-          pais?: string | null
           telefono_cc?: string
           telefono_principal: string
           tipo?: Database['public']['Enums']['tipo_lead']
@@ -2244,21 +2234,16 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string
-          ciudad?: string | null
+          atributos?: NonNullable<Json>
           creado_en?: string
           creado_por?: string | null
-          direccion?: string | null
-          edad?: number | null
           eliminado_en?: string | null
           eliminado_por?: string | null
-          genero?: Database['public']['Enums']['genero_persona']
           id?: string
           lote_papelera_id?: string | null
           nombre?: string
-          notas?: string | null
           numero?: never
           origen_lead_id?: string | null
-          pais?: string | null
           telefono_cc?: string
           telefono_principal?: string
           tipo?: Database['public']['Enums']['tipo_lead']
@@ -2361,6 +2346,64 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      leads_campos: {
+        Row: {
+          activo: boolean
+          actualizado_en: string
+          clave: string
+          en_tabla: boolean
+          es_sistema: boolean
+          etiqueta: string
+          filtrable: boolean
+          grupo: string | null
+          id: string
+          opciones: NonNullable<Json>
+          orden: number
+          requerido: boolean
+          solo_cartera: boolean
+          tipo: Database['public']['Enums']['tipo_campo']
+          valor_defecto: Json | null
+          valor_defecto_empresa: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string
+          clave: string
+          en_tabla?: boolean
+          es_sistema?: boolean
+          etiqueta: string
+          filtrable?: boolean
+          grupo?: string | null
+          id?: string
+          opciones?: NonNullable<Json>
+          orden?: number
+          requerido?: boolean
+          solo_cartera?: boolean
+          tipo: Database['public']['Enums']['tipo_campo']
+          valor_defecto?: Json | null
+          valor_defecto_empresa?: string | null
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string
+          clave?: string
+          en_tabla?: boolean
+          es_sistema?: boolean
+          etiqueta?: string
+          filtrable?: boolean
+          grupo?: string | null
+          id?: string
+          opciones?: NonNullable<Json>
+          orden?: number
+          requerido?: boolean
+          solo_cartera?: boolean
+          tipo?: Database['public']['Enums']['tipo_campo']
+          valor_defecto?: Json | null
+          valor_defecto_empresa?: string | null
+        }
+        Relationships: []
       }
       leads_etiquetas: {
         Row: {
@@ -5882,22 +5925,17 @@ export type Database = {
       leads_vista: {
         Row: {
           actualizado_en: string | null
-          ciudad: string | null
+          atributos: Json | null
           cotizaciones_count: number | null
           creado_en: string | null
           creado_por: string | null
-          direccion: string | null
           dueno_id: string | null
-          edad: number | null
           es_favorito: boolean | null
           esta_tachado: boolean | null
-          genero: Database['public']['Enums']['genero_persona'] | null
           id: string | null
           nombre: string | null
-          notas: string | null
           numero: number | null
           origen_lead_id: string | null
-          pais: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
@@ -5907,22 +5945,17 @@ export type Database = {
         ComputedFields: never
         Insert: {
           actualizado_en?: string | null
-          ciudad?: string | null
+          atributos?: never
           cotizaciones_count?: never
           creado_en?: string | null
           creado_por?: string | null
-          direccion?: string | null
           dueno_id?: never
-          edad?: number | null
           es_favorito?: never
           esta_tachado?: never
-          genero?: Database['public']['Enums']['genero_persona'] | null
           id?: string | null
           nombre?: string | null
-          notas?: string | null
           numero?: number | null
           origen_lead_id?: string | null
-          pais?: string | null
           telefono_cc?: string | null
           telefono_principal?: never
           telefono_visible?: never
@@ -5931,22 +5964,17 @@ export type Database = {
         }
         Update: {
           actualizado_en?: string | null
-          ciudad?: string | null
+          atributos?: never
           cotizaciones_count?: never
           creado_en?: string | null
           creado_por?: string | null
-          direccion?: string | null
           dueno_id?: never
-          edad?: number | null
           es_favorito?: never
           esta_tachado?: never
-          genero?: Database['public']['Enums']['genero_persona'] | null
           id?: string | null
           nombre?: string | null
-          notas?: string | null
           numero?: number | null
           origen_lead_id?: string | null
-          pais?: string | null
           telefono_cc?: string | null
           telefono_principal?: never
           telefono_visible?: never
@@ -6013,6 +6041,48 @@ export type Database = {
         }[]
       }
       _apibara_ruta_ignorada: { Args: { p_ruta: string }; Returns: boolean }
+      _atributos_fusionar: {
+        Args: {
+          p_activas: string[]
+          p_actuales: Json
+          p_cambios: Json
+          p_msg_clave: string
+          p_msg_objeto: string
+        }
+        Returns: Json
+      }
+      _atributos_validar: {
+        Args: { p_atributos: Json; p_campos: Json; p_msg_objeto: string }
+        Returns: undefined
+      }
+      _campo_impacto: {
+        Args: { p_tipo: Database['public']['Enums']['tipo_campo']; p_valores: Json[] }
+        Returns: Json
+      }
+      _campo_nombre_valido: {
+        Args: { p_largo: number; p_que: string; p_texto: string }
+        Returns: string
+      }
+      _campo_opciones_validas: { Args: { p_opciones: Json }; Returns: undefined }
+      _campo_tiene_valor: { Args: { p_valor: Json }; Returns: boolean }
+      _campo_valor_defecto: {
+        Args: { p_opciones: Json; p_tipo: Database['public']['Enums']['tipo_campo']; p_valor: Json }
+        Returns: Json
+      }
+      _campos_renumerar: {
+        Args: { p_filas: Json }
+        Returns: {
+          campo_id: string
+          orden_nuevo: number
+        }[]
+      }
+      _campos_reordenar: {
+        Args: { p_campo: string; p_despues_de: string; p_filas: Json }
+        Returns: {
+          campo_id: string
+          orden_nuevo: number
+        }[]
+      }
       _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
@@ -6037,7 +6107,24 @@ export type Database = {
       }
       _gracia_de_storage: { Args: Record<PropertyKey, never>; Returns: string }
       _hace: { Args: { p_cuando: string }; Returns: string }
+      _lead_atributos_formato: {
+        Args: { p_anteriores: Json; p_campos: Json; p_nuevos: Json }
+        Returns: undefined
+      }
+      _lead_campo_con_valor: { Args: { p_clave: string }; Returns: number }
+      _lead_campos_renumerar: { Args: Record<PropertyKey, never>; Returns: undefined }
+      _lead_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
+      _lead_defecto_empresa: {
+        Args: {
+          p_defecto: Json
+          p_empresa: string
+          p_tipo: Database['public']['Enums']['tipo_campo']
+        }
+        Returns: string
+      }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
+      _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
+      _leads_vista_crear: { Args: Record<PropertyKey, never>; Returns: undefined }
       _limpieza_ancla: {
         Args: {
           v: Omit<
@@ -6240,6 +6327,7 @@ export type Database = {
       apibara_contexto: { Args: { p_origen: string }; Returns: Json }
       assert_activo: { Args: Record<PropertyKey, never>; Returns: undefined }
       assert_permiso: { Args: { p_clave: string; p_origen?: string }; Returns: undefined }
+      atributos_lead: { Args: { p_lead: string }; Returns: Json }
       cambiar_fase: {
         Args: {
           p_fase_destino: string
@@ -6387,6 +6475,35 @@ export type Database = {
         Returns: string
       }
       integracion_secreto: { Args: { p_clave: string }; Returns: string }
+      lead_campo_crear: {
+        Args: {
+          p_clave: string
+          p_en_tabla?: boolean
+          p_etiqueta: string
+          p_filtrable?: boolean
+          p_grupo?: string
+          p_opciones?: Json
+          p_requerido?: boolean
+          p_solo_cartera?: boolean
+          p_tipo: Database['public']['Enums']['tipo_campo']
+          p_valor_defecto?: Json
+          p_valor_defecto_empresa?: string
+        }
+        Returns: Json
+      }
+      lead_campo_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_campo: string }
+        Returns: undefined
+      }
+      lead_campo_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_campo: string }
+        Returns: string
+      }
+      lead_campo_impacto: { Args: { p_campo: string }; Returns: Json }
+      lead_campo_mover: {
+        Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de?: string }
+        Returns: string
+      }
       lead_en_limbo: { Args: { p_lead: string }; Returns: boolean }
       limpieza_automatica_correr: {
         Args: { p_ahora?: string; p_origenes?: string[] }
@@ -6807,7 +6924,6 @@ export type Database = {
       estado_subasta: 'abierta' | 'en_vivo' | 'terminada' | 'vendida'
       estado_version: 'borrador' | 'publicada' | 'archivada'
       genero_gramatical: 'm' | 'f'
-      genero_persona: 'femenino' | 'masculino' | 'otro' | 'sin_especificar'
       modo_vencimiento: 'ninguno' | 'renovar' | 'solicitar'
       tipo_acceso_lead: 'dueno' | 'compartido' | 'adoptado'
       tipo_campo:
@@ -6823,6 +6939,8 @@ export type Database = {
         | 'url'
         | 'vin'
         | 'lote'
+        | 'correo'
+        | 'documento'
       tipo_conversacion: 'directa' | 'grupo'
       tipo_lead: 'prospecto' | 'cliente'
       tipo_lote_papelera: 'vehiculos' | 'leads' | 'cotizaciones'
@@ -7155,7 +7273,6 @@ export const Constants = {
       estado_subasta: ['abierta', 'en_vivo', 'terminada', 'vendida'],
       estado_version: ['borrador', 'publicada', 'archivada'],
       genero_gramatical: ['m', 'f'],
-      genero_persona: ['femenino', 'masculino', 'otro', 'sin_especificar'],
       modo_vencimiento: ['ninguno', 'renovar', 'solicitar'],
       tipo_acceso_lead: ['dueno', 'compartido', 'adoptado'],
       tipo_campo: [
@@ -7171,6 +7288,8 @@ export const Constants = {
         'url',
         'vin',
         'lote',
+        'correo',
+        'documento',
       ],
       tipo_conversacion: ['directa', 'grupo'],
       tipo_lead: ['prospecto', 'cliente'],

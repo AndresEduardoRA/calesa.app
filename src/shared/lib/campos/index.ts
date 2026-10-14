@@ -3,10 +3,15 @@
 export {
   ETIQUETA_DE_TIPO_DE_CAMPO,
   TIPOS_DE_CAMPO,
+  TIPOS_DE_LEAD,
+  TIPOS_DE_VEHICULO,
   tieneOpciones,
+  tipoEntre,
   type CampoBase,
   type OpcionDeCampo,
   type TipoDeCampo,
+  type TipoDeLead,
+  type TipoDeVehiculo,
   type ValorDefecto,
 } from './tipos'
 export { agruparCampos, nombresDeGrupo, type GrupoDeCampos } from './agrupar'

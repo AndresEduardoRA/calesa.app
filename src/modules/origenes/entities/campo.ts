@@ -3,10 +3,11 @@
 // en `vehiculos.atributos` y se describe acá.
 import { z } from 'zod'
 import {
-  TIPOS_DE_CAMPO,
+  TIPOS_DE_VEHICULO,
   claveDeCampo as claveDeCampoGenerica,
   type CampoBase,
   type GrupoDeCampos as GrupoGenerico,
+  type TipoDeVehiculo,
 } from '@/shared/lib/campos'
 import { ESTILO_DE_CLAVE } from './nombre'
 
@@ -14,16 +15,19 @@ import { ESTILO_DE_CLAVE } from './nombre'
 // `index.ts`, `client.ts` y los otros módulos sigan importándolo de `origenes`.
 export {
   ETIQUETA_DE_TIPO_DE_CAMPO,
-  TIPOS_DE_CAMPO,
   agruparCampos,
   destinoDeMovimiento,
   nombresDeGrupo,
   tieneOpciones,
   type OpcionDeCampo,
   type Sentido,
-  type TipoDeCampo,
   type ValorDefecto,
 } from '@/shared/lib/campos'
+
+// El layout de un origen sólo ofrece los tipos de un vehículo: el correo y el documento son de los
+// leads (la base lo cuida con un `check`).
+export const TIPOS_DE_CAMPO = TIPOS_DE_VEHICULO
+export type TipoDeCampo = TipoDeVehiculo
 
 // Son columnas de `vehiculos`: un campo propio con esa clave se prestaría a confusión. Espejo de
 // `_origen_clave_reservada()`; la base lo vuelve a comprobar.
@@ -45,7 +49,7 @@ export const CLAVES_RESERVADAS: readonly string[] = [
   'atributos',
 ]
 
-export type CampoDeLayout = CampoBase & {
+export type CampoDeLayout = CampoBase<TipoDeCampo> & {
   origenId: string
   enTarjeta: boolean
   filtrable: boolean

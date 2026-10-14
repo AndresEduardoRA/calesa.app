@@ -1,5 +1,6 @@
 import {
   claveDeCampo as claveDeCampoGenerica,
+  tipoEntre,
   type ImpactoDeCampo,
   type ResumenDeImpacto,
 } from '@/shared/lib/campos'
@@ -70,7 +71,7 @@ function cambiosDe(campo: CampoDeLayout, valores: ValoresDeCampo): CambiosDeCamp
   const { banderas } = valores
   return cambiosRespectoDe(campo, {
     etiqueta: valores.etiqueta.trim(),
-    tipo: valores.tipo,
+    tipo: tipoEntre(TIPOS_DE_CAMPO, valores.tipo, 'texto'),
     opciones: valores.opciones,
     requerido: banderas['requerido'] ?? false,
     grupo: vacioANulo(valores.grupo),
@@ -162,7 +163,7 @@ export function configuracionDeOrigen({
       origenId,
       clave: valores.clave,
       etiqueta: valores.etiqueta,
-      tipo: valores.tipo,
+      tipo: tipoEntre(TIPOS_DE_CAMPO, valores.tipo, 'texto'),
       opciones: valores.opciones,
       requerido: valores.banderas['requerido'] ?? false,
       grupo: valores.grupo,

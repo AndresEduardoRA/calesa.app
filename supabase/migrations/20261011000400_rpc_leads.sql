@@ -17,7 +17,7 @@ create or replace view public.leads_vista with (security_invoker = true) as
 select l.id, l.numero, l.nombre, l.telefono_cc,
        public.telefono_lead(l.id) as telefono_principal,
        public.en_cartera(l.id) as telefono_visible,
-       l.tipo, l.origen_lead_id, l.edad, l.ciudad, l.pais, l.direccion, l.genero, l.notas,
+       l.tipo, l.origen_lead_id,
        l.creado_por, l.ultimo_seguimiento_en, l.creado_en, l.actualizado_en,
        exists (select 1 from public.leads_favoritos f where f.lead_id = l.id and f.usuario_id = (select auth.uid())) as es_favorito,
        exists (select 1 from public.leads_tachados t where t.lead_id = l.id and t.usuario_id = (select auth.uid())) as esta_tachado,

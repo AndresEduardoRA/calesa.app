@@ -41,7 +41,9 @@ create table public.origenes_campos (
   es_sistema    boolean not null default false,          -- viene de la preconfiguración: no se borra
   activo        boolean not null default true,
   actualizado_en timestamptz not null default now(),     -- versión de la fila: toda edición la manda
-  unique (origen_id, clave)
+  unique (origen_id, clave),
+  -- El correo y el documento son tipos de los leads: un vehículo no los lleva.
+  constraint origenes_campos_tipo_de_vehiculo check (tipo not in ('correo', 'documento'))
 );
 create unique index origenes_campos_apibara_unico on public.origenes_campos (origen_id, clave_apibara) where clave_apibara is not null;
 comment on table public.origenes_campos is 'Layout de campos de un origen. Los campos comunes (marca, modelo, año, vin, lote, precio) viven como columnas de vehiculos; el resto en vehiculos.atributos, validado contra esta tabla por trigger. valor_defecto sólo precarga el formulario de alta: la base nunca lo aplica sola.';

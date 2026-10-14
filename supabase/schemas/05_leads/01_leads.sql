@@ -32,12 +32,7 @@ create table public.leads (
   telefono_principal   text not null,                -- normalizado: dígitos con código de país
   tipo                 public.tipo_lead not null default 'prospecto',
   origen_lead_id       uuid references public.origenes_lead (id) on delete restrict,
-  edad                 smallint check (edad is null or edad between 1 and 120),
-  ciudad               text,
-  pais                 text,
-  direccion            text,
-  genero               public.genero_persona not null default 'sin_especificar',
-  notas                text,
+  atributos            jsonb not null default '{}'::jsonb check (jsonb_typeof(atributos) = 'object'),  -- los campos de leads_campos; no es legible: se lee por leads_vista
   creado_por           uuid references public.perfiles (id),   -- NULL = sin creador vivo (limbo se decide por cartera)
   ultimo_seguimiento_en timestamptz,
   eliminado_en         timestamptz,
@@ -48,7 +43,29 @@ create table public.leads (
   check (telefono_principal ~ '^[0-9]{7,15}$')
 );
 create unique index leads_telefono_unico on public.leads (telefono_principal) where eliminado_en is null;
-comment on table public.leads is 'Prospectos y clientes. El teléfono principal es único entre leads vivos y sólo lo ve completo quien está en la cartera (leads_asesores): la app lee leads_vista, no esta tabla. Un lead sin asesores vigentes está en el LIMBO: invisible hasta que alguien lo adopta registrando su teléfono.';
+comment on table public.leads is 'Prospectos y clientes. El teléfono principal es único entre leads vivos y sólo lo ve completo quien está en la cartera (leads_asesores): la app lee leads_vista, no esta tabla. Un lead sin asesores vigentes está en el LIMBO: invisible hasta que alguien lo adopta registrando su teléfono. Fijos: nombre, teléfono, tipo y origen; el resto son campos configurables (leads_campos) y viven en atributos, que sólo lee quien está en la cartera completos.';
+
+create table public.leads_campos (
+  id            uuid primary key default gen_random_uuid(),
+  clave         text not null unique check (clave ~ '^[a-z][a-z0-9_]{1,40}$'),
+  etiqueta      text not null,
+  tipo          public.tipo_campo not null,
+  opciones      jsonb not null default '[]'::jsonb,     -- para opcion/multi_opcion: [{clave, etiqueta}]
+  requerido     boolean not null default false,
+  valor_defecto jsonb,                                   -- lo que trae puesto el formulario de alta; NULL = nada
+  valor_defecto_empresa text check (valor_defecto_empresa in ('ciudad', 'pais')),  -- «la de la empresa»: se resuelve al leer el layout
+  grupo         text,                                    -- bloque del formulario y de la ficha
+  orden         smallint not null default 0,
+  en_tabla      boolean not null default false,          -- columna del listado
+  filtrable     boolean not null default false,          -- entra al panel de filtros
+  solo_cartera  boolean not null default false,          -- sólo lo recibe quien está en la cartera (como el teléfono)
+  es_sistema    boolean not null default false,          -- de fábrica: no se borra, ni cambia de tipo ni de clave
+  activo        boolean not null default true,
+  actualizado_en timestamptz not null default now(),     -- versión de la fila: toda edición la manda
+  constraint leads_campos_tipo_de_lead check (tipo not in ('vin', 'lote')),
+  constraint leads_campos_defecto_excluyente check (valor_defecto_empresa is null or (valor_defecto is null and tipo = 'texto'))
+);
+comment on table public.leads_campos is 'Layout de campos de los leads: uno por despliegue, igual para prospectos y clientes. Lo que no es columna de leads (nombre, teléfono, tipo y origen) vive en leads.atributos, validado contra esta tabla por trigger. solo_cartera se recorta en la base (atributos_lead): quien ve el lead sin estar en la cartera no lo recibe. Distinta de una etiqueta, que es privada de cada persona.';
 
 create table public.leads_telefonos (
   id       uuid primary key default gen_random_uuid(),

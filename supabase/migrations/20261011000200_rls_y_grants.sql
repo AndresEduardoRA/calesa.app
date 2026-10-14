@@ -208,6 +208,8 @@ select public._rls('historial_fases',
 -- ---------------------------------------------------------------------------
 select public._rls('origenes_lead', 'true', '(select public.tiene_permiso(''leads.configurar''))', '(select public.tiene_permiso(''leads.configurar''))', '(select public.tiene_permiso(''leads.configurar''))');
 select public._rls('tipos_seguimiento', 'true', '(select public.tiene_permiso(''leads.configurar''))', '(select public.tiene_permiso(''leads.configurar''))', '(select public.tiene_permiso(''leads.configurar''))');
+-- Sólo lectura: los campos de los leads se escriben por las RPC `lead_campo_*` (permiso y versión).
+select public._rls('leads_campos', 'true', null, null, null);
 select public._rls('lotes_papelera', 'creado_por = (select auth.uid()) or (select public.tiene_permiso(''vehiculos.papelera.purgar''))', null, null, null);
 
 select public._rls('leads',
@@ -218,9 +220,10 @@ select public._rls('leads',
 select public._rls_papelera('leads');
 -- El teléfono principal NO se lee de la tabla: la app usa leads_vista (enmascara salvo cartera).
 revoke select on table public.leads from authenticated;
-grant select (id, numero, nombre, telefono_cc, tipo, origen_lead_id, edad, ciudad, pais, direccion, genero, notas, creado_por, ultimo_seguimiento_en, eliminado_en, lote_papelera_id, creado_en, actualizado_en) on table public.leads to authenticated;
+-- `atributos` queda fuera: lo recorta `atributos_lead()` según la cartera y llega por leads_vista.
+grant select (id, numero, nombre, telefono_cc, tipo, origen_lead_id, creado_por, ultimo_seguimiento_en, eliminado_en, lote_papelera_id, creado_en, actualizado_en) on table public.leads to authenticated;
 revoke update on table public.leads from authenticated;
-grant update (nombre, tipo, origen_lead_id, edad, ciudad, pais, direccion, genero, notas) on table public.leads to authenticated;
+grant update (nombre, tipo, origen_lead_id) on table public.leads to authenticated;
 
 select public._rls('leads_telefonos', '(select public.puede_lead(lead_id, ''leads.ver''))', '(select public.puede_lead(lead_id, ''leads.editar''))', '(select public.puede_lead(lead_id, ''leads.editar''))', '(select public.puede_lead(lead_id, ''leads.editar''))');
 select public._rls('leads_asesores', '(select public.puede_lead(lead_id, ''leads.ver''))', null, null, null);

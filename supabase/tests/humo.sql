@@ -109,7 +109,7 @@ select set_config('request.jwt.claim.sub', '', false);
 -- @test crear lead, verificar teléfono, compartir, enmascarado para la dueña
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', false);
 set role authenticated;
-select public.crear_lead('{"nombre": "Ana Quispe", "telefono_cc": "+591", "telefono_principal": "7 000 0001", "ciudad": "Santa Cruz"}');
+select public.crear_lead('{"nombre": "Ana Quispe", "telefono_cc": "+591", "telefono_principal": "7 000 0001", "atributos": {"ciudad": "Santa Cruz"}}');
 do $$ declare r jsonb; v_id uuid; begin
   r := public.verificar_telefono('+591', '70000001');
   if r ->> 'estado' <> 'existe' or (r ->> 'es_mio')::boolean is not true then raise exception 'verificar_telefono mío: %', r; end if;

@@ -3,7 +3,8 @@
 // cumple. El enum de tipos sale de la base, que es la misma fuente para los dos.
 import type { Enums } from '@/shared/types/database.types'
 
-export type TipoDeCampo = Enums<'tipo_campo'>
+// Los tipos de un vehículo: el correo y el documento son de los leads.
+export type TipoDeCampo = Exclude<Enums<'tipo_campo'>, 'correo' | 'documento'>
 
 export type OpcionDeCampo = { clave: string; etiqueta: string }
 
