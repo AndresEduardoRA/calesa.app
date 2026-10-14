@@ -5056,7 +5056,7 @@ export type Database = {
           destacado_web: boolean
           eliminado_en: string | null
           eliminado_por: string | null
-          estado_subasta: string | null
+          estado_subasta: Database['public']['Enums']['estado_subasta'] | null
           fase_desde: string | null
           fase_id: string | null
           id: string
@@ -5098,7 +5098,7 @@ export type Database = {
           destacado_web?: boolean
           eliminado_en?: string | null
           eliminado_por?: string | null
-          estado_subasta?: string | null
+          estado_subasta?: Database['public']['Enums']['estado_subasta'] | null
           fase_desde?: string | null
           fase_id?: string | null
           id?: string
@@ -5138,7 +5138,7 @@ export type Database = {
           destacado_web?: boolean
           eliminado_en?: string | null
           eliminado_por?: string | null
-          estado_subasta?: string | null
+          estado_subasta?: Database['public']['Enums']['estado_subasta'] | null
           fase_desde?: string | null
           fase_id?: string | null
           id?: string
@@ -5827,6 +5827,30 @@ export type Database = {
       }
     }
     Functions: {
+      _apibara_catalogo: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          clave: string
+          clave_apibara: string
+          en_tarjeta: boolean
+          es_sistema: boolean
+          etiqueta: string
+          filtrable: boolean
+          grupo: string
+          orden: number
+          publico_web: boolean
+          tipo: Database['public']['Enums']['tipo_campo']
+        }[]
+      }
+      _apibara_hojas: {
+        Args: { p_raw: Json }
+        Returns: {
+          ruta: string
+          tipo: string
+          valor: Json
+        }[]
+      }
+      _apibara_ruta_ignorada: { Args: { p_ruta: string }; Returns: boolean }
       _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
@@ -5881,6 +5905,7 @@ export type Database = {
         Args: { p_esperado: string; p_lote: string; p_vehiculo: string }
         Returns: Json
       }
+      _vehiculo_apibara_valido: { Args: { p_raw: Json }; Returns: undefined }
       _vehiculo_aplicar: {
         Args: {
           p_datos: Json
@@ -5902,7 +5927,7 @@ export type Database = {
           destacado_web: boolean
           eliminado_en: string | null
           eliminado_por: string | null
-          estado_subasta: string | null
+          estado_subasta: Database['public']['Enums']['estado_subasta'] | null
           fase_desde: string | null
           fase_id: string | null
           id: string
@@ -5971,6 +5996,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      _vehiculo_subasta_desde: { Args: { p_raw: Json }; Returns: Json }
       _vehiculo_texto: {
         Args: { p_clave: string; p_datos: Json; p_largo: number; p_nombre: string }
         Returns: string
@@ -5981,6 +6007,7 @@ export type Database = {
         Returns: Database['public']['Enums']['alcance_permiso']
       }
       alertas_demora: { Args: Record<PropertyKey, never>; Returns: number }
+      apibara_contexto: { Args: { p_origen: string }; Returns: Json }
       assert_activo: { Args: Record<PropertyKey, never>; Returns: undefined }
       assert_permiso: { Args: { p_clave: string; p_origen?: string }; Returns: undefined }
       cambiar_fase: {
@@ -6170,6 +6197,16 @@ export type Database = {
           p_usuario: string
         }
         Returns: undefined
+      }
+      origen_apibara_agregar: { Args: { p_origen: string; p_rutas: string[] }; Returns: number }
+      origen_apibara_completar: { Args: { p_origen: string }; Returns: number }
+      origen_apibara_rutas_sin_campo: {
+        Args: { p_origen: string }
+        Returns: {
+          ejemplo: string
+          ruta: string
+          tipo: string
+        }[]
       }
       origen_campo_crear: {
         Args: {
@@ -6401,7 +6438,10 @@ export type Database = {
       }
       usuario_tiene_permiso: { Args: { p_clave: string; p_usuario: string }; Returns: boolean }
       validar_formula: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
-      vehiculo_crear: { Args: { p_datos: Json; p_id: string; p_origen: string }; Returns: Json }
+      vehiculo_crear: {
+        Args: { p_apibara?: Json; p_datos: Json; p_id: string; p_origen: string }
+        Returns: Json
+      }
       vehiculo_foto_eliminar: {
         Args: { p_actualizado_en_esperado: string; p_foto: string; p_vehiculo: string }
         Returns: Json
@@ -6443,6 +6483,15 @@ export type Database = {
           por_nombre: string
         }[]
       }
+      vehiculo_subasta_refrescar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_apibara: Json
+          p_datos?: Json
+          p_vehiculo: string
+        }
+        Returns: Json
+      }
       vehiculo_vincular: {
         Args: { p_actualizado_en_esperado: string; p_lead: string; p_vehiculo: string }
         Returns: Json
@@ -6483,6 +6532,14 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_lote: string; p_vehiculos?: string[] }
         Returns: Json
       }
+      vehiculos_repetidos: {
+        Args: { p_claves: Json; p_origen: string }
+        Returns: {
+          posicion: number
+          vehiculo_id: string
+          visible: boolean
+        }[]
+      }
       verificar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: Json }
       vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }
@@ -6501,6 +6558,7 @@ export type Database = {
       estado_importacion: 'pendiente' | 'procesando' | 'terminada' | 'fallida'
       estado_oportunidad: 'abierta' | 'ganada' | 'perdida' | 'cancelada'
       estado_solicitud_web: 'asignada' | 'contactada' | 'vencida' | 'sin_asignar' | 'cancelada'
+      estado_subasta: 'abierta' | 'en_vivo' | 'terminada' | 'vendida'
       estado_version: 'borrador' | 'publicada' | 'archivada'
       genero_gramatical: 'm' | 'f'
       genero_persona: 'femenino' | 'masculino' | 'otro' | 'sin_especificar'
@@ -6848,6 +6906,7 @@ export const Constants = {
       estado_importacion: ['pendiente', 'procesando', 'terminada', 'fallida'],
       estado_oportunidad: ['abierta', 'ganada', 'perdida', 'cancelada'],
       estado_solicitud_web: ['asignada', 'contactada', 'vencida', 'sin_asignar', 'cancelada'],
+      estado_subasta: ['abierta', 'en_vivo', 'terminada', 'vendida'],
       estado_version: ['borrador', 'publicada', 'archivada'],
       genero_gramatical: ['m', 'f'],
       genero_persona: ['femenino', 'masculino', 'otro', 'sin_especificar'],

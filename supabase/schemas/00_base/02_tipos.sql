@@ -2,6 +2,7 @@
 
 create type public.alcance_permiso as enum ('propios', 'todos');
 create type public.tipo_origen as enum ('subasta', 'manual');
+create type public.estado_subasta as enum ('abierta', 'en_vivo', 'terminada', 'vendida');
 create type public.genero_gramatical as enum ('m', 'f');
 create type public.tipo_campo as enum ('texto', 'texto_largo', 'numero', 'moneda', 'booleano', 'fecha', 'fecha_hora', 'opcion', 'multi_opcion', 'url', 'vin', 'lote');
 create type public.ambito_flujo as enum ('vehiculos', 'repuestos');

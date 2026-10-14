@@ -1,7 +1,8 @@
 // Lo que nace con un origen según su tipo: espejo de `origen_preconfigurar_campos()` y de
-// `origen_crear_flujo()` (supabase/migrations/…000300_triggers.sql). Sirve sólo para mostrar qué
-// va a nacer antes de crearlo: la base es la que crea. `preconfiguraciones.test.ts` lee el SQL y
-// falla si las dos listas divergen.
+// `origen_crear_flujo()` (supabase/migrations/…000300_triggers.sql y …20261014000200_apibara.sql).
+// Sirve sólo para mostrar qué va a nacer antes de crearlo: la base es la que crea.
+// `preconfiguraciones.test.ts` lee el SQL y falla si las dos listas divergen.
+import { CATALOGO_APIBARA, GRUPOS_DEL_CATALOGO } from './catalogo-apibara'
 import type { TipoDeOrigen } from './origen'
 
 export type CampoPreconfigurado = {
@@ -45,65 +46,18 @@ function campos(filas: readonly Fila[]): CampoPreconfigurado[] {
   )
 }
 
-const DE_SUBASTA = campos([
-  ['color', 'Color', 'texto', 'Vehículo', 10, true, true, true, 'color'],
-  ['transmision', 'Transmisión', 'opcion', 'Vehículo', 20, true, true, true, 'transmission'],
-  ['combustible', 'Combustible', 'opcion', 'Vehículo', 30, false, true, true, 'fuel_type'],
-  ['motor', 'Motor', 'texto', 'Vehículo', 40, false, false, true, 'engine_type'],
-  ['cilindros', 'Cilindros', 'numero', 'Vehículo', 50, false, true, true, 'cylinders'],
-  ['traccion', 'Tracción', 'opcion', 'Vehículo', 60, false, true, true, 'drivetrain'],
-  ['carroceria', 'Carrocería', 'opcion', 'Vehículo', 70, false, true, true, 'body_style'],
-  ['tipo_vehiculo', 'Tipo', 'opcion', 'Vehículo', 80, false, true, true, 'vehicle_type'],
-  ['codigo_titulo', 'Código de título', 'texto', 'Subasta', 90, true, true, true, 'title_code'],
-  ['dano_principal', 'Daño principal', 'texto', 'Subasta', 100, true, true, true, 'primary_damage'],
-  [
-    'dano_secundario',
-    'Daño secundario',
-    'texto',
-    'Subasta',
-    110,
-    false,
-    true,
-    true,
-    'secondary_damage',
-  ],
-  [
-    'enciende_y_anda',
-    'Enciende y anda',
-    'booleano',
-    'Subasta',
-    120,
-    true,
-    true,
-    true,
-    'run_and_drive',
-  ],
-  ['tiene_llave', 'Tiene llave', 'booleano', 'Subasta', 130, false, true, true, 'has_key'],
-  [
-    'valor_mercado',
-    'Valor de mercado (USD)',
-    'moneda',
-    'Subasta',
-    140,
-    false,
-    false,
-    true,
-    'estimated_retail_value',
-  ],
-  ['ubicacion', 'Ubicación', 'texto', 'Subasta', 150, true, true, true, 'location'],
-  [
-    'nota_subasta',
-    'Nota de la subasta',
-    'texto_largo',
-    'Subasta',
-    160,
-    false,
-    false,
-    true,
-    'auction_note',
-  ],
-  ['banderas_subasta', 'Banderas', 'multi_opcion', 'Subasta', 170, false, true, true, 'sale_flags'],
-])
+// En subasta nace el catálogo de apibara entero (los 17 campos de siempre y cada dato normalizado).
+const DE_SUBASTA: CampoPreconfigurado[] = CATALOGO_APIBARA.map((dato) => ({
+  clave: dato.clave,
+  etiqueta: dato.etiqueta,
+  tipo: dato.tipo,
+  grupo: dato.grupo,
+  orden: dato.orden,
+  enTarjeta: dato.enTarjeta,
+  filtrable: dato.filtrable,
+  publicoWeb: dato.publicoWeb,
+  ...(dato.claveApibara === null ? {} : { claveApibara: dato.claveApibara }),
+}))
 
 const MANUAL = campos([
   ['color', 'Color', 'texto', 'Vehículo', 10, true, true, true],
@@ -137,12 +91,16 @@ export function reglasPreconfiguradas(tipo: TipoDeOrigen): readonly string[] {
   return tipo === 'subasta' ? [...REGLAS_COMUNES, 'aduana'] : REGLAS_COMUNES
 }
 
-// «17 campos» o «8 campos»: lo que el alta le dice a la persona antes de crear.
+// «106 campos (…)» o «8 campos»: lo que el alta le dice a la persona antes de crear.
 export function resumenDePreconfiguracion(tipo: TipoDeOrigen): string {
   const cantidad = camposPreconfigurados(tipo).length
+  if (tipo === 'subasta') {
+    return (
+      `Nace con ${cantidad} campos en ${GRUPOS_DEL_CATALOGO.length} secciones y su flujo de logística, sin fases todavía. ` +
+      'Cada dato que devuelve apibara tiene su campo, encendido: después apagas los que no uses. ' +
+      'El flujo trae la regla de aduana.'
+    )
+  }
   const grupos = [...new Set(camposPreconfigurados(tipo).map((campo) => campo.grupo))]
-  const base = `Nace con ${cantidad} campos (grupos ${grupos.join(' y ')}) y su flujo de logística, sin fases todavía.`
-  return tipo === 'subasta'
-    ? `${base} Cada campo se llena desde apibara y el flujo trae la regla de aduana.`
-    : base
+  return `Nace con ${cantidad} campos (grupos ${grupos.join(' y ')}) y su flujo de logística, sin fases todavía.`
 }

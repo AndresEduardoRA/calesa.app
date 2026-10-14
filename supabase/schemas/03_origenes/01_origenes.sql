@@ -43,6 +43,7 @@ create table public.origenes_campos (
   actualizado_en timestamptz not null default now(),     -- versión de la fila: toda edición la manda
   unique (origen_id, clave)
 );
+create unique index origenes_campos_apibara_unico on public.origenes_campos (origen_id, clave_apibara) where clave_apibara is not null;
 comment on table public.origenes_campos is 'Layout de campos de un origen. Los campos comunes (marca, modelo, año, vin, lote, precio) viven como columnas de vehiculos; el resto en vehiculos.atributos, validado contra esta tabla por trigger. valor_defecto sólo precarga el formulario de alta: la base nunca lo aplica sola.';
 
 create table public.categorias (

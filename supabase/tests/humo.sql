@@ -831,6 +831,9 @@ end $$;
 reset role;
 
 -- @test origenes: crear es atómico y trae su flujo, sus reglas y sus campos; el nombre no se repite
+-- El catálogo de apibara es interno: se cuenta como dueño de la base y se lee de acá.
+create temp table catalogo_humo as select count(*)::int as n, count(clave_apibara)::int as con_ruta from public._apibara_catalogo();
+grant select on catalogo_humo to authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 select set_config('request.jwt.claim.role', 'authenticated', false);
 set role authenticated;
@@ -859,11 +862,17 @@ do $$ declare r jsonb; o uuid; rechazo boolean; begin
     raise exception 'un origen nuevo no trae fórmula ni fases'; end if;
   if (select nombre || '/' || sustantivo from public.origenes where id = o) <> 'Corea/vehículo' then raise exception 'no limpió el nombre ni el sustantivo'; end if;
 
-  -- Subasta: diecisiete campos con su clave de apibara y la regla de aduana.
+  -- Subasta: el catálogo de apibara entero (los 17 de siempre y cada dato normalizado) y la regla de aduana.
   r := public.origen_crear('japon_humo', 'Japón', 'lote', 'm', 'subasta', '#7A5AF8', array['copart']);
   o := (r ->> 'id')::uuid;
-  if (select count(*) from public.origenes_campos where origen_id = o) <> 17 or (select count(clave_apibara) from public.origenes_campos where origen_id = o) <> 17 then
-    raise exception 'el origen de subasta debía nacer con diecisiete campos mapeados'; end if;
+  if (select n from catalogo_humo) < 100 then raise exception 'el catálogo de apibara quedó incompleto'; end if;
+  if (select count(*) from public.origenes_campos where origen_id = o) <> (select n from catalogo_humo)
+     or (select count(*) from public.origenes_campos where origen_id = o and es_sistema) <> 17
+     or (select count(clave_apibara) from public.origenes_campos where origen_id = o) <> (select con_ruta from catalogo_humo) then
+    raise exception 'el origen de subasta debía nacer con el catálogo de apibara'; end if;
+  if exists (select 1 from public.origenes_campos where origen_id = o and not activo) then raise exception 'un campo del catálogo nació apagado'; end if;
+  if exists (select 1 from public.origenes_campos where origen_id = o and not es_sistema and (publico_web or en_tarjeta or filtrable)) then
+    raise exception 'un dato extra de apibara nació público, en tarjeta o filtrable'; end if;
   if not exists (select 1 from public.flujos_reglas fr join public.flujos f on f.id = fr.flujo_id where f.origen_id = o and fr.regla = 'aduana') then raise exception 'la subasta nace con la regla de aduana'; end if;
   if (select color || '/' || apibara_plataformas::text from public.origenes where id = o) <> '#7a5af8/{copart}' then raise exception 'no guardó color ni plataformas'; end if;
 
@@ -2370,4 +2379,143 @@ do $$ declare d jsonb := public.storage_gc_pendiente(); begin
 end $$;
 reset role;
 delete from public.cola_gc_storage;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test apibara: estado y fecha derivados, alta y refresco por RPC con versión, repetidos, contexto y datos nuevos
+reset role;
+-- Las reglas internas (nadie de la app las ejecuta): se prueban como dueño de la base.
+do $$ declare raw jsonb := '{"auction": {"state": "open", "auction_at": "2030-01-05T18:00:00+00:00"}}'; o uuid; begin
+  if public._vehiculo_subasta_desde(raw) ->> 'estado_subasta' <> 'abierta' then raise exception 'una subasta futura debía estar abierta'; end if;
+  if public._vehiculo_subasta_desde('{"auction": {"state": "open", "lot_sub_status": "Live"}}') ->> 'estado_subasta' <> 'en_vivo' then raise exception 'esperaba en vivo'; end if;
+  if public._vehiculo_subasta_desde('{"auction": {"state": "open", "outcome_status": "Not Sold"}}') ->> 'estado_subasta' <> 'terminada' then raise exception 'esperaba terminada'; end if;
+  if public._vehiculo_subasta_desde('{"auction": {"state": "open", "lot_removed": true}}') ->> 'estado_subasta' <> 'terminada' then raise exception 'un lote retirado terminó'; end if;
+  if public._vehiculo_subasta_desde('{"auction": {"state": "open", "auction_ended_at": "2026-10-01T10:00:00+00:00", "outcome_status": "Sold"}}') ->> 'estado_subasta' <> 'vendida' then raise exception 'vendida gana a terminada'; end if;
+  if public._vehiculo_subasta_desde('{"auction": {"state": "open", "sold_buy_now": true}}') ->> 'estado_subasta' <> 'vendida' then raise exception 'la compra inmediata vendió'; end if;
+  if public._vehiculo_subasta_desde('{}') ->> 'estado_subasta' is not null then raise exception 'sin datos no hay estado'; end if;
+  if public._vehiculo_subasta_desde('{"auction": {"auction_at": "no es fecha"}}') ->> 'subasta_en' is not null then raise exception 'una fecha rota no debía tumbar el alta'; end if;
+  select id into o from public.origenes where clave = 'subasta_usa';
+  begin
+    insert into public.origenes_campos (origen_id, clave, etiqueta, tipo, clave_apibara) values (o, 'repetido_humo', 'Repetido', 'texto', 'vehicle_specs.exterior_color');
+    raise exception 'dos campos del mismo origen llenaron la misma ruta de apibara';
+  exception when unique_violation then null; end;
+  if public.origen_apibara_completar(o) <> 0 then raise exception 'completar un origen completo no debía sumar nada'; end if;
+  if public.origen_apibara_completar((select id from public.origenes where clave = 'oficina')) <> 0 then raise exception 'un origen manual no recibe el catálogo'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare
+  usa uuid; oficina uuid; v uuid := 'cccccccc-0000-4000-8000-000000000001'; r jsonb; ver timestamptz; raw jsonb; grande jsonb; n int;
+begin
+  select id into usa from public.origenes where clave = 'subasta_usa';
+  select id into oficina from public.origenes where clave = 'oficina';
+  raw := jsonb_build_object('lot_number', '77700001', 'novedad', jsonb_build_object('dato', 5),
+    'auction', jsonb_build_object('state', 'open', 'auction_at', '2030-01-05T18:00:00+00:00'),
+    'pricing', jsonb_build_object('current_bid_usd', 2500));
+
+  -- Lo que se rechaza al crear: un origen manual, algo que no es un objeto, algo desmesurado.
+  begin perform public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Manual con bruto"}', raw); raise exception 'un origen manual guardó datos de apibara';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Bruto roto"}', '[1, 2]'); raise exception 'aceptó una respuesta que no es un objeto';
+  exception when invalid_parameter_value then null; end;
+  grande := jsonb_build_object('relleno', repeat('x', 600000));
+  begin perform public.vehiculo_crear(gen_random_uuid(), usa, '{"titulo": "Bruto grande"}', grande); raise exception 'aceptó una respuesta de más de 512 KB';
+  exception when invalid_parameter_value then null; end;
+
+  -- El alta con la respuesta: fecha, estado y último refresco en sus columnas, y el bruto entero.
+  r := public.vehiculo_crear(v, usa,
+    '{"titulo": "2030 Apibara Humo", "vin": "JTMW1RFV8MD099999", "lote": "77700001", "plataforma": "copart", "atributos": {"color": "Gris"}}', raw);
+  if (select estado_subasta::text from public.vehiculos where id = v) <> 'abierta' then raise exception 'el alta no dejó el estado'; end if;
+  if (select subasta_en from public.vehiculos where id = v) <> '2030-01-05T18:00:00+00:00'::timestamptz then raise exception 'el alta no dejó la fecha'; end if;
+  if (select apibara_sync_en from public.vehiculos where id = v) is null then raise exception 'el alta no selló el último refresco'; end if;
+  if (select apibara_raw from public.vehiculos where id = v) is distinct from raw then raise exception 'el alta no guardó el bruto entero'; end if;
+  -- Reintentar tras perder la respuesta devuelve el mismo vehículo, sin duplicar.
+  if (public.vehiculo_crear(v, usa, '{"titulo": "2030 Apibara Humo"}', raw) ->> 'id')::uuid <> v then raise exception 'reintentar el alta no devolvió el mismo vehículo'; end if;
+
+  -- Refrescar: con la versión, lo que la app decidió actualizar, y fecha, estado y bruto siempre.
+  ver := (r ->> 'actualizado_en')::timestamptz;
+  begin perform public.vehiculo_subasta_refrescar(v, null, raw); raise exception 'refrescó sin versión';
+  exception when raise_exception then if sqlerrm not like 'Falta la versión%' then raise; end if; end;
+  begin perform public.vehiculo_subasta_refrescar(v, ver - interval '1 day', raw); raise exception 'refrescó con una versión vieja';
+  exception when sqlstate 'PT409' then null; end;
+  begin perform public.vehiculo_subasta_refrescar(v, ver, raw, '{"fase_id": "00000000-0000-0000-0000-000000000000"}'); raise exception 'refrescar aceptó fase_id';
+  exception when invalid_parameter_value then null; end;
+  r := public.vehiculo_subasta_refrescar(v, ver,
+    jsonb_set(jsonb_set(raw, '{auction,outcome_status}', '"Sold"'), '{pricing,current_bid_usd}', '4100'),
+    '{"atributos": {"color": "Negro"}}');
+  if (r ->> 'estado_subasta') <> 'vendida' or (select estado_subasta::text from public.vehiculos where id = v) <> 'vendida' then raise exception 'refrescar no dejó el estado nuevo'; end if;
+  if (select atributos ->> 'color' from public.vehiculos where id = v) <> 'Negro' then raise exception 'refrescar no aplicó lo que la app decidió actualizar'; end if;
+  if (select apibara_raw #>> '{pricing,current_bid_usd}' from public.vehiculos where id = v) <> '4100' then raise exception 'refrescar no guardó el bruto nuevo'; end if;
+  if (r ->> 'actualizado_en')::timestamptz < ver then raise exception 'refrescar devolvió una versión anterior'; end if;
+  -- Un vehículo de un origen manual no se refresca desde apibara.
+  r := public.vehiculo_crear(gen_random_uuid(), oficina, '{"titulo": "Oficina sin subasta"}');
+  begin perform public.vehiculo_subasta_refrescar((r ->> 'id')::uuid, (r ->> 'actualizado_en')::timestamptz, raw); raise exception 'refrescó un vehículo manual';
+  exception when invalid_parameter_value then null; end;
+
+  -- Repetidos: por VIN en cualquier origen y por lote en éste. Lo que no está, no vuelve.
+  select count(*) into n from public.vehiculos_repetidos(usa,
+    '[{"vin": "JTMW1RFV8MD099999"}, {"vin": "JTMW1RFV8MD088888"}, {"lote": "77700001", "plataforma": "copart"}, {"lote": "77700001", "plataforma": "iaai"}]');
+  if n <> 2 then raise exception 'esperaba dos repetidos (VIN y lote), vinieron %', n; end if;
+  if (select count(*) from public.vehiculos_repetidos(usa, '[{"vin": "JTMW1RFV8MD099999"}]') x where x.vehiculo_id = v and x.visible) <> 1 then
+    raise exception 'el repetido visible no trajo el vehículo'; end if;
+  begin perform public.vehiculos_repetidos(usa, '"no es lista"'); raise exception 'aceptó claves que no son una lista';
+  exception when invalid_parameter_value then null; end;
+
+  -- Contexto: qué puede hacer quien llama con apibara en cada origen.
+  r := public.apibara_contexto(usa);
+  if not (r ->> 'aplica')::boolean or not (r ->> 'puede_crear')::boolean then raise exception 'el contexto de un origen de subasta: %', r; end if;
+  if (r ->> 'puede_ver_uso')::boolean then raise exception 'Bruno no gestiona los ajustes de la empresa'; end if;
+  if (public.apibara_contexto(oficina) ->> 'aplica')::boolean then raise exception 'apibara no aplica a un origen manual'; end if;
+  if (public.apibara_contexto(gen_random_uuid()) ->> 'aplica')::boolean then raise exception 'apibara no aplica a un origen que no existe'; end if;
+
+  -- Sin origenes.gestionar no se lee ni se agrega lo que trajo la API.
+  begin perform public.origen_apibara_rutas_sin_campo(usa); raise exception 'Bruno vio las rutas sin campo';
+  exception when insufficient_privilege then null; end;
+  begin perform public.origen_apibara_agregar(usa, array['novedad.dato']); raise exception 'Bruno agregó un campo';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- Los dos objetos de la foto ya están en Storage (los sube el navegador antes de registrar la fila).
+insert into storage.objects (bucket_id, name) values
+  ('vehiculos', 'cccccccc-0000-4000-8000-000000000001/' || repeat('d', 64) || '.webp'),
+  ('vehiculos', 'cccccccc-0000-4000-8000-000000000001/' || repeat('e', 64) || '.webp');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+set role authenticated;
+do $$ declare v uuid := 'cccccccc-0000-4000-8000-000000000001'; r jsonb; begin
+  r := public.vehiculo_fotos_agregar(v, jsonb_build_array(jsonb_build_object('hash', repeat('c', 64),
+    'ruta', v || '/' || repeat('d', 64) || '.webp', 'ruta_miniatura', v || '/' || repeat('e', 64) || '.webp',
+    'ancho', 960, 'alto', 720, 'bytes', 70000, 'es_portada', true,
+    'origen_url', 'https://cs.copart.com/v1/AUTH_svc/lpp/0626/abc_ful.jpg')));
+  if jsonb_array_length(r -> 'agregadas') <> 1 then raise exception 'no registró la foto: %', r; end if;
+  if (select origen_url from public.vehiculos_imagenes where vehiculo_id = v) <> 'https://cs.copart.com/v1/AUTH_svc/lpp/0626/abc_ful.jpg' then
+    raise exception 'la foto no guardó de dónde vino'; end if;
+  begin
+    perform public.vehiculo_fotos_agregar(v, jsonb_build_array(jsonb_build_object('hash', repeat('f', 64), 'origen_url', 'javascript:alert(1)',
+      'ruta', v || '/' || repeat('d', 64) || '.webp', 'ruta_miniatura', v || '/' || repeat('e', 64) || '.webp', 'ancho', 1, 'alto', 1, 'bytes', 1)));
+    raise exception 'aceptó una dirección de origen que no es http';
+  exception when invalid_parameter_value then null; end;
+end $$;
+reset role;
+
+-- Lo que la API trajo después y el origen no tiene como campo: la dueña lo ve y lo agrega.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare usa uuid; n int; c record; begin
+  select id into usa from public.origenes where clave = 'subasta_usa';
+  select * into c from public.origen_apibara_rutas_sin_campo(usa) x where x.ruta = 'novedad.dato';
+  if not found or c.tipo <> 'number' then raise exception 'no encontró el dato nuevo que trajo apibara'; end if;
+  if exists (select 1 from public.origen_apibara_rutas_sin_campo(usa) x where x.ruta in ('details', 'media.items', 'auction.countdown.days', 'lot_number')) then
+    raise exception 'ofreció como campo algo que no se ofrece'; end if;
+  begin perform public.origen_apibara_agregar(usa, array['ruta.inventada']); n := 0;
+  exception when others then n := -1; end;
+  if n <> 0 then raise exception 'una ruta que ningún vehículo trajo no debía fallar sino no sumar nada'; end if;
+  if public.origen_apibara_agregar(usa, array['ruta.inventada']) <> 0 then raise exception 'creó un campo para una ruta inventada'; end if;
+  if public.origen_apibara_agregar(usa, array['novedad.dato']) <> 1 then raise exception 'no agregó el dato nuevo'; end if;
+  if (select tipo::text || '/' || activo::text from public.origenes_campos where origen_id = usa and clave_apibara = 'novedad.dato') <> 'numero/true' then
+    raise exception 'el campo nuevo no nació numérico y activo'; end if;
+  if public.origen_apibara_agregar(usa, array['novedad.dato']) <> 0 then raise exception 'agregar dos veces creó dos campos'; end if;
+  if not (public.apibara_contexto(usa) ->> 'puede_ver_uso')::boolean then raise exception 'la dueña ve el uso de apibara'; end if;
+end $$;
+reset role;
 select set_config('request.jwt.claim.sub', '', false);

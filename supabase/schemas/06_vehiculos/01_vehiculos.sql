@@ -23,8 +23,8 @@ create table public.vehiculos (
   subasta_en         timestamptz,                       -- fecha/hora de la subasta (UTC)
   subasta_fin_en     timestamptz,
   subasta_zona       text,                              -- zona horaria de la yarda
-  estado_subasta     text,                              -- FUTURE | PRE_BID | LIVE | SOLD | NO_SALE | …
-  apibara_sync_en    timestamptz,
+  estado_subasta     public.estado_subasta,             -- abierta | en_vivo | terminada | vendida; lo deriva la base del bruto
+  apibara_sync_en    timestamptz,                       -- cuándo se consultó a apibara por última vez
   apibara_raw        jsonb,                             -- última respuesta cruda, para re-mapear sin re-consultar
   fase_id            uuid references public.fases (id) on delete restrict,
   fase_desde         timestamptz,
@@ -44,6 +44,8 @@ create table public.vehiculos (
 comment on table public.vehiculos is 'Inventario. fase_id sólo lo escribe cambiar_fase(). publicado_web + fase.publica_web + integración web activa = sale en la vitrina. Papelera: eliminado_en + lote; una policy RESTRICTIVE esconde lo borrado a todos.';
 create unique index vehiculos_lote_unico on public.vehiculos (origen_id, plataforma, lote) where lote is not null and eliminado_en is null;
 create unique index vehiculos_vin_unico on public.vehiculos (vin) where vin is not null and eliminado_en is null;
+create index vehiculos_subasta_estado_idx on public.vehiculos (estado_subasta, subasta_en) where eliminado_en is null and estado_subasta is not null;
+create index vehiculos_apibara_sync_idx on public.vehiculos (apibara_sync_en) where eliminado_en is null and apibara_sync_en is not null;
 
 alter table public.historial_fases add constraint historial_fases_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete cascade;
 alter table public.seguimientos add constraint seguimientos_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete set null;
