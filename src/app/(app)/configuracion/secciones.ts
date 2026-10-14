@@ -1,5 +1,6 @@
 import {
   Building2Icon,
+  ContactRoundIcon,
   MapPinIcon,
   ShieldCheckIcon,
   UsersRoundIcon,
@@ -37,6 +38,14 @@ export const SECCIONES = [
     ruta: RUTAS.origenes,
     Icono: MapPinIcon,
     permisos: PERMISOS_DE_ORIGENES,
+  },
+  {
+    clave: 'leads',
+    titulo: 'Leads',
+    descripcion: 'Los campos de los leads: qué datos llevan y quién los ve.',
+    ruta: RUTAS.configuracionDeLeads,
+    Icono: ContactRoundIcon,
+    permisos: ['leads.configurar'],
   },
   {
     clave: 'equipo',

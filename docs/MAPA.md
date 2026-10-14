@@ -53,8 +53,11 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, seguimientos, recordatorios, etiquetas, favoritos/tachados, compartir/transferir, oportunidades en embudos, portal del cliente, limbo y papelera. · 1 archivos
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, compartir/transferir, oportunidades en embudos, portal del cliente, limbo y papelera. · 23 archivos
+- API: `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `EditorDeCamposDeLead`
+- API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`
 - Depende de: ningún otro módulo
+- Casos de uso: campos
 
 ### `logistica`
 Operación diaria sobre el flujo: cadena por fase, mover con vista previa, documentos con aprobación y vencimiento, transporte (embarques y contenedores como grupos), declaraciones aduaneras, gastos y pagos, notas, alertas por demora y margen contra la cotización final. · 1 archivos
@@ -104,7 +107,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `types/`: `database.types.ts`
 - `ui/`: `avatar.tsx`, `aviso-de-conflicto.tsx`, `aviso.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo-seleccion.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `estilo-de-marca.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `interruptor.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`, `use-borrador-de-estado.ts`, `use-borrador.ts`, `use-en-linea.ts`, `use-ultimo.ts`, `zona-de-archivos.tsx`
 - `ui/atajos/`: `index.ts`, `proveedor-atajos.tsx`, `use-atajo.ts`
-- `ui/campos/`: `aviso-de-impacto.tsx`, `campo-valor-defecto.tsx`, `campos-de-campo.tsx`, `campos-desactivados.tsx`, `editor-de-campos.tsx`, `editor-de-opciones.tsx`, `fila-de-campo.tsx`, `formulario-de-campo.tsx`, `grupos-de-campos.tsx`, `index.ts`, `panel-de-campo.tsx`, `pie-del-formulario.tsx`, `tipos.ts`, `use-formulario-de-campo.ts`
+- `ui/campos/`: `aviso-de-impacto.tsx`, `campo-valor-defecto.tsx`, `campos-de-campo.tsx`, `campos-desactivados.tsx`, `cerrar-con-aviso.ts`, `ediciones.ts`, `editor-de-campos.tsx`, `editor-de-opciones.tsx`, `fila-de-campo.tsx`, `formulario-de-campo.tsx`, `grupos-de-campos.tsx`, `index.ts`, `panel-de-campo.tsx`, `pie-del-formulario.tsx`, `tipos.ts`, `use-formulario-de-campo.ts`
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-listado.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
 - `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `use-filtros.ts`
@@ -117,6 +120,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `/auth/nueva-contrasena` — página
 - `/configuracion/empresa` — página
 - `/configuracion/equipo` — página
+- `/configuracion/leads` — página
 - `/configuracion/origenes/[id]` — página
 - `/configuracion/origenes` — página
 - `/configuracion/roles` — página

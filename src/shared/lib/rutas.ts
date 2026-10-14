@@ -15,6 +15,7 @@ export const RUTAS = {
   roles: '/configuracion/roles',
   empresa: '/configuracion/empresa',
   origenes: '/configuracion/origenes',
+  configuracionDeLeads: '/configuracion/leads',
   vehiculos: '/vehiculos',
   papeleraDeVehiculos: '/vehiculos/papelera',
 } as const
