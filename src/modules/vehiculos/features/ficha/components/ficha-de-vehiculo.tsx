@@ -7,12 +7,12 @@ import {
   type Categoria,
   type OrigenResumen,
 } from '@/modules/origenes/client'
+import { valorMostrado } from '@/shared/lib/campos'
 import { Bloque } from '@/shared/ui/bloque'
+import { ValorMostrado } from '@/shared/ui/campos'
 import { useRegional } from '@/shared/ui/regional'
 import { BLOQUES_COMUNES, camposComunes, valorComun } from '../../../entities/comunes'
-import { valorMostrado } from '../../../entities/valor'
 import type { Vehiculo } from '../../../entities/vehiculo'
-import { ValorMostrado } from './valor-mostrado'
 
 type Props = {
   vehiculo: Vehiculo

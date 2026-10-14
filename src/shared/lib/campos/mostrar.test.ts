@@ -1,21 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { CampoDeVehiculo, TipoDeCampo } from './campo'
-import { valorMostrado } from './valor'
+import { valorMostrado, type CampoMostrable } from './mostrar'
+import type { TipoDeCampo } from './tipos'
 
-function campo(tipo: TipoDeCampo, extra: Partial<CampoDeVehiculo> = {}): CampoDeVehiculo {
-  return {
-    clave: 'dato',
-    etiqueta: 'Dato',
-    tipo,
-    opciones: [],
-    requerido: false,
-    grupo: null,
-    enTarjeta: true,
-    filtrable: false,
-    activo: true,
-    valorDefecto: null,
-    ...extra,
-  }
+function campo(tipo: TipoDeCampo, extra: Partial<CampoMostrable> = {}): CampoMostrable {
+  return { tipo, opciones: [], ...extra }
 }
 
 const FORMATO = { locale: 'es-BO', zona: 'America/La_Paz' }
@@ -87,5 +75,16 @@ describe('valorMostrado', () => {
       texto: 'JTMW1RFV8MD012345',
     })
     expect(valorMostrado(campo('lote'), 58741223)).toEqual({ tipo: 'texto', texto: '58741223' })
+  })
+
+  it('el correo y el documento de un lead salen tal cual, sin enlazar', () => {
+    expect(valorMostrado(campo('correo'), 'ana@correo.test')).toEqual({
+      tipo: 'texto',
+      texto: 'ana@correo.test',
+    })
+    expect(valorMostrado(campo('documento'), '1234567 LP')).toEqual({
+      tipo: 'texto',
+      texto: '1234567 LP',
+    })
   })
 })

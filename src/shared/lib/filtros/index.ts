@@ -22,3 +22,10 @@ export {
   parametrosDeFiltros,
 } from './url'
 export { chipsDe, type Chip } from './chips'
+export {
+  camposFiltrables,
+  condicionDeCampo,
+  filtroDeCampo,
+  type CampoFiltrable,
+  type CondicionDeAtributo,
+} from './campos'

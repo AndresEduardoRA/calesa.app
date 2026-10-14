@@ -1,9 +1,9 @@
 'use client'
 
+import { valorMostrado } from '@/shared/lib/campos'
+import { ValorMostrado } from '@/shared/ui/campos'
 import { useRegional } from '@/shared/ui/regional'
 import type { CampoDeVehiculo } from '../../../entities/campo'
-import { valorMostrado } from '../../../entities/valor'
-import { ValorMostrado } from '../../ficha/components/valor-mostrado'
 
 type Props = { campo: CampoDeVehiculo; valor: unknown }
 

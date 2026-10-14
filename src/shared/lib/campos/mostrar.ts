@@ -1,8 +1,14 @@
 // Cómo se muestra el valor de un campo del layout, según su tipo. Devuelve qué mostrar, no cómo
 // dibujarlo: un monto lo imprime `<Monto>` (Modo Live) y un enlace es un enlace.
-import { formatearFecha, formatearFechaHora } from '@/shared/lib/fechas'
-import { formatearNumero } from '@/shared/lib/formato'
-import type { CampoDeVehiculo, TipoDeCampo } from './campo'
+import { formatearFecha, formatearFechaHora } from '../fechas'
+import { formatearNumero } from '../formato'
+import type { OpcionDeCampo, TipoDeCampo } from './tipos'
+
+// Lo que hace falta de un campo para mostrar su valor: de un vehículo o de un lead.
+export type CampoMostrable = {
+  tipo: TipoDeCampo
+  opciones: readonly OpcionDeCampo[]
+}
 
 export type ValorMostrado =
   | { tipo: 'vacio' }
@@ -23,12 +29,12 @@ const esVacio = (valor: unknown) =>
 const texto = (valor: string): ValorMostrado => ({ tipo: 'texto', texto: valor })
 
 // Una opción que ya se sacó del campo se sigue mostrando, con su clave: el dato no se perdió.
-function etiquetaDeOpcion(campo: CampoDeVehiculo, clave: unknown): string {
+function etiquetaDeOpcion(campo: CampoMostrable, clave: unknown): string {
   const comoTexto = typeof clave === 'string' || typeof clave === 'number' ? String(clave) : ''
   return campo.opciones.find((opcion) => opcion.clave === comoTexto)?.etiqueta ?? comoTexto
 }
 
-type Lector = (campo: CampoDeVehiculo, valor: unknown, formato: Formato) => ValorMostrado
+type Lector = (campo: CampoMostrable, valor: unknown, formato: Formato) => ValorMostrado
 
 const fecha =
   (conHora: boolean): Lector =>
@@ -79,10 +85,12 @@ const LECTOR_POR_TIPO: Record<TipoDeCampo, Lector> = {
   texto_largo: textoPlano,
   vin: textoPlano,
   lote: textoPlano,
+  correo: textoPlano,
+  documento: textoPlano,
 }
 
 export function valorMostrado(
-  campo: CampoDeVehiculo,
+  campo: CampoMostrable,
   valor: unknown,
   formato: Formato = {},
 ): ValorMostrado {

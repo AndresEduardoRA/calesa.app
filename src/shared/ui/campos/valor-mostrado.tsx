@@ -1,7 +1,7 @@
 'use client'
 
-import { Monto } from '@/shared/ui/monto'
-import type { ValorMostrado as Valor } from '../../../entities/valor'
+import type { ValorMostrado as Valor } from '@/shared/lib/campos'
+import { Monto } from '../monto'
 
 // Dibuja lo que `valorMostrado()` o `valorComun()` decidieron mostrar. Un monto pasa por <Monto>
 // (Modo Live); un enlace se abre en otra pestaña.

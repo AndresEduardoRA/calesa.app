@@ -1,10 +1,11 @@
 import 'server-only'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { armarPagina } from '@/shared/lib/paginacion'
+import { aplicarCursor } from '@/shared/lib/supabase/consultas'
 import { createClient } from '@/shared/lib/supabase/server'
 import type { BuscadorDeVehiculos, LectorDeVehiculo } from '../../entities/repositorios'
 import { COLUMNAS_DE_VEHICULO, FILTRO_DE_PORTADA, vehiculosDesde } from '../../entities/vehiculo'
-import { aplicarCondiciones, aplicarCursor } from './condiciones'
+import { aplicarCondiciones } from './condiciones'
 
 // Una página del inventario de un origen, con la portada de cada vehículo: una sola consulta, de lo más nuevo a lo más viejo, con
 // una fila de más para saber si hay otra página. Lo que ve cada quien lo decide la RLS. Bajo RLS

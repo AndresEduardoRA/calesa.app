@@ -14,6 +14,7 @@ export {
   type TipoDeVehiculo,
   type ValorDefecto,
 } from './tipos'
+export { valorMostrado, type CampoMostrable, type ValorMostrado } from './mostrar'
 export { agruparCampos, nombresDeGrupo, type GrupoDeCampos } from './agrupar'
 export { destinoDeMovimiento, type Sentido } from './orden'
 export { claveDeCampo, claveDeTexto, type EstiloDeClave } from './clave'

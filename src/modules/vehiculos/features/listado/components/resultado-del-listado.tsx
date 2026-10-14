@@ -1,18 +1,15 @@
 'use client'
 
-import type { Route } from 'next'
-import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { frasePorVacio } from '@/modules/origenes/client'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
-import { buttonVariants } from '@/shared/ui/button'
-import { EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
+import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
+import { Paginacion } from '@/shared/ui/paginacion'
 import { BarraDeSeleccion } from '../../papelera/components/barra-de-seleccion'
 import { usePapeleraDelListado } from '../../papelera/hooks/use-papelera-del-listado'
-import { Paginacion } from './paginacion'
 import { TablaDeVehiculos } from './tabla-de-vehiculos'
 import { TarjetasDeVehiculos } from './tarjetas-de-vehiculos'
 import type { DatosDelOrigen, FilaDeVehiculo } from './tipos'
@@ -29,28 +26,6 @@ type Props = DatosDelOrigen & {
 
 const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1)
 
-// Se llegó con un cursor a una página que ya no tiene nada (se borró, cambió un filtro por otro
-// lado): se ofrece volver al principio en vez de mostrar un vacío sin salida.
-function PaginaSinFilas() {
-  const ruta = usePathname()
-  const parametros = new URLSearchParams(useSearchParams())
-  parametros.delete(CLAVE_DE_CURSOR)
-  return (
-    <EstadoVacio
-      titulo="No hay más en esta página"
-      descripcion="Lo que había acá cambió mientras navegabas."
-      accion={
-        <Link
-          href={`${ruta}?${parametros.toString()}` as Route}
-          className={buttonVariants({ variant: 'outline' })}
-        >
-          Volver al principio
-        </Link>
-      }
-    />
-  )
-}
-
 // La lista de un origen o el estado que corresponda: vacío de primera vez (con la frase del
 // origen), vacío por filtro (con «Limpiar») o una página que se quedó sin filas.
 export function ResultadoDelListado(props: Props) {
@@ -66,7 +41,7 @@ export function ResultadoDelListado(props: Props) {
       return <EstadoSinResultados alLimpiar={filtros.limpiar} />
     }
     if (hayCursor) {
-      return <PaginaSinFilas />
+      return <EstadoPaginaSinFilas />
     }
     return (
       <EstadoVacio

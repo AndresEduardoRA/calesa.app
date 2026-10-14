@@ -6,6 +6,7 @@ export { CampoDeFormulario } from './campo-de-formulario'
 export { cerrarConAviso } from './cerrar-con-aviso'
 export { EditorDeCampos } from './editor-de-campos'
 export { edicionesDeCampos } from './ediciones'
+export { ValorMostrado } from './valor-mostrado'
 export {
   banderaDe,
   type BanderaDeCampo,

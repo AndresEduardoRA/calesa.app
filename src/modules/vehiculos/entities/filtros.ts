@@ -1,20 +1,21 @@
 // Los filtros del inventario: unos pocos fijos, que la tabla justifica con una columna o un
 // índice, y los que salen de los campos «filtrables» del layout del origen. De acá sale el esquema
 // que dibuja `FilterShell` y las condiciones que `infra/` le pasa a la base.
-import { diaSiguiente, inicioDelDia } from '@/shared/lib/fechas'
-import type {
-  DefFiltro,
-  EsquemaDeFiltros,
-  ValorDeFiltro,
-  ValoresDeFiltros,
+import {
+  camposFiltrables,
+  condicionDeCampo,
+  filtroDeCampo,
+  type CondicionDeAtributo,
+  type DefFiltro,
+  type EsquemaDeFiltros,
+  type ValorDeFiltro,
+  type ValoresDeFiltros,
 } from '@/shared/lib/filtros'
 import {
   PREFIJO_DE_ATRIBUTO,
-  camposActivos,
   type CampoDeVehiculo,
   type CategoriaDeVehiculo,
   type FaseDeVehiculo,
-  type TipoDeCampo,
 } from './campo'
 import { VITRINA_CERRADA, vitrinaAbierta, type VitrinaDelOrigen } from './vitrina'
 
@@ -33,7 +34,6 @@ export const FILTRO_LIMPIEZA = 'limpieza'
 export const SIN_FASE = 'ninguna'
 
 const BUSQUEDA = { clave: 'q', etiqueta: 'Buscar por título, VIN o lote' }
-const NUMERO_MAXIMO = 1_000_000_000_000
 
 type Fuentes = {
   campos: readonly CampoDeVehiculo[]
@@ -44,55 +44,8 @@ type Fuentes = {
   limpieza?: { activa: boolean }
 }
 
-type Base = { clave: string; etiqueta: string }
-
-// Sin opciones configuradas no hay nada que elegir: no se ofrece.
-const deOpciones = (base: Base, campo: CampoDeVehiculo): DefFiltro | null =>
-  campo.opciones.length === 0
-    ? null
-    : {
-        ...base,
-        tipo: 'opciones',
-        opciones: campo.opciones.map((o) => ({ valor: o.clave, etiqueta: o.etiqueta })),
-      }
-const deNumero = (base: Base): DefFiltro => ({
-  ...base,
-  tipo: 'rango_numero',
-  minimo: -NUMERO_MAXIMO,
-  maximo: NUMERO_MAXIMO,
-  entero: false,
-})
-const deFecha = (base: Base): DefFiltro => ({ ...base, tipo: 'rango_fecha' })
-const deTexto = (base: Base): DefFiltro => ({ ...base, tipo: 'texto' })
-
-// Qué filtro le toca a cada tipo de campo.
-const FILTRO_POR_TIPO: Record<
-  TipoDeCampo,
-  (base: Base, campo: CampoDeVehiculo) => DefFiltro | null
-> = {
-  opcion: deOpciones,
-  multi_opcion: deOpciones,
-  booleano: (base) => ({ ...base, tipo: 'booleano' }),
-  numero: deNumero,
-  moneda: deNumero,
-  fecha: deFecha,
-  fecha_hora: deFecha,
-  texto: deTexto,
-  texto_largo: deTexto,
-  url: deTexto,
-  vin: deTexto,
-  lote: deTexto,
-}
-
-function filtroDeCampo(campo: CampoDeVehiculo): DefFiltro | null {
-  const base = { clave: PREFIJO_DE_ATRIBUTO + campo.clave, etiqueta: campo.etiqueta }
-  return FILTRO_POR_TIPO[campo.tipo](base, campo)
-}
-
 // Los campos del layout que hoy se pueden filtrar.
-export function camposFiltrables<Campo extends CampoDeVehiculo>(campos: readonly Campo[]): Campo[] {
-  return camposActivos(campos).filter((campo) => campo.filtrable && filtroDeCampo(campo) !== null)
-}
+export { camposFiltrables }
 
 function filtrosFijos({ fases, categorias, limpieza }: Fuentes): DefFiltro[] {
   const fijos: DefFiltro[] = []
@@ -134,7 +87,9 @@ function filtrosFijos({ fases, categorias, limpieza }: Fuentes): DefFiltro[] {
 }
 
 export function esquemaDeFiltros(fuentes: Fuentes): EsquemaDeFiltros {
-  const delLayout = camposFiltrables(fuentes.campos).flatMap((campo) => filtroDeCampo(campo) ?? [])
+  const delLayout = camposFiltrables(fuentes.campos).flatMap(
+    (campo) => filtroDeCampo(campo, PREFIJO_DE_ATRIBUTO) ?? [],
+  )
   return { busqueda: BUSQUEDA, filtros: [...filtrosFijos(fuentes), ...delLayout] }
 }
 
@@ -157,12 +112,7 @@ export type Condicion =
   // lo contrario. El día llega calculado por la página con la zona de la empresa; la fecha de cada
   // vehículo (`limpieza_el`) la calcula la base: nada de esto copia la regla.
   | { tipo: 'por_limpiar'; valor: boolean; hasta: string }
-  // `atributos` contiene alguno de estos objetos (`@>`).
-  | { tipo: 'atributos_contienen'; alternativas: Record<string, string | boolean | string[]>[] }
-  | { tipo: 'atributo_rango_numero'; clave: string; min: number | null; max: number | null }
-  // Compara como texto: una fecha ISO ordena igual que su instante. `antesDe` es exclusivo.
-  | { tipo: 'atributo_rango_texto'; clave: string; desde: string | null; antesDe: string | null }
-  | { tipo: 'atributo_texto'; clave: string; texto: string }
+  | CondicionDeAtributo
 
 function condicionFija(
   clave: string,
@@ -204,49 +154,6 @@ function condicionFija(
     }
   }
   return null
-}
-
-// «Hasta el 13 inclusive» = antes del 14. Una fecha con hora se guarda en UTC: el día empieza a
-// la medianoche de la empresa.
-function rangoDeFecha(
-  campo: CampoDeVehiculo,
-  valor: Extract<ValorDeFiltro, { tipo: 'rango_fecha' }>,
-  zona: string | undefined,
-): Condicion {
-  const conHora = campo.tipo === 'fecha_hora'
-  const borde = (dia: string) => (conHora ? inicioDelDia(dia, { zona }) : dia)
-  return {
-    tipo: 'atributo_rango_texto',
-    clave: campo.clave,
-    desde: valor.desde === null ? null : borde(valor.desde),
-    antesDe: valor.hasta === null ? null : borde(diaSiguiente(valor.hasta)),
-  }
-}
-
-function condicionDeCampo(
-  campo: CampoDeVehiculo,
-  valor: ValorDeFiltro,
-  zona: string | undefined,
-): Condicion | null {
-  const { clave } = campo
-  switch (valor.tipo) {
-    case 'opciones':
-      // Una opción elegida de un campo de varias: el vehículo la tiene entre las suyas.
-      return {
-        tipo: 'atributos_contienen',
-        alternativas: valor.valores.map((elegida) => ({
-          [clave]: campo.tipo === 'multi_opcion' ? [elegida] : elegida,
-        })),
-      }
-    case 'booleano':
-      return { tipo: 'atributos_contienen', alternativas: [{ [clave]: valor.valor }] }
-    case 'rango_numero':
-      return { tipo: 'atributo_rango_numero', clave, min: valor.min, max: valor.max }
-    case 'rango_fecha':
-      return rangoDeFecha(campo, valor, zona)
-    case 'texto':
-      return { tipo: 'atributo_texto', clave, texto: valor.texto }
-  }
 }
 
 // Las condiciones de lo que la persona filtró. La clave de un atributo sale siempre del layout

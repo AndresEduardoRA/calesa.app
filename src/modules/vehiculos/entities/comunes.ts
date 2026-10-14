@@ -2,9 +2,9 @@
 // `origenes` las tiene como claves reservadas). No hay fila que les ponga etiqueta: éste es el
 // único lugar donde un campo del vehículo se nombra con texto fijo. La ficha y el formulario los
 // dibujan en dos bloques, delante de los grupos del layout.
+import type { ValorMostrado } from '@/shared/lib/campos'
 import { formatearNumero } from '@/shared/lib/formato'
 import type { CategoriaDeVehiculo } from './campo'
-import type { ValorMostrado } from './valor'
 import type { Vehiculo } from './vehiculo'
 
 export type BloqueComun = 'principales' | 'precio'
