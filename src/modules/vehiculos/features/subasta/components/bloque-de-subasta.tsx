@@ -80,7 +80,7 @@ function DatosDeLaSubasta({ subasta, ahora, zona }: DatosProps) {
           ? `${formatearFechaHora(subasta.subastaEn, { zona })}${cuenta ? ` · ${cuenta.texto}` : ''}`
           : 'Sin fecha'}
       </Dato>
-      <Dato etiqueta="Última consulta a apibara">
+      <Dato etiqueta="Última consulta">
         {subasta.sincronizadoEn ? fechaRelativa(subasta.sincronizadoEn, { zona, ahora }) : 'Nunca'}
       </Dato>
       <Cifras subasta={subasta} />

@@ -48,7 +48,7 @@ export function interpretarLinea(linea: string): LineaInterpretada {
     const plataforma = plataformaDeEnlace(texto)
     return plataforma
       ? { ok: true, texto, entrada: { tipo: 'enlace', valor: texto, plataforma } }
-      : { ok: false, texto, motivo: 'Ese enlace no es de Copart ni de IAAI.' }
+      : { ok: false, texto, motivo: 'Ese enlace no es de una subasta que se pueda consultar.' }
   }
   const vin = texto.toUpperCase()
   if (PATRON_DE_VIN.test(vin)) {
@@ -60,7 +60,7 @@ export function interpretarLinea(linea: string): LineaInterpretada {
   return {
     ok: false,
     texto,
-    motivo: 'Pega un enlace de Copart o IAAI, un VIN de 17 caracteres o un número de lote.',
+    motivo: 'Pega un enlace de la subasta, un VIN de 17 caracteres o un número de lote.',
   }
 }
 
@@ -112,17 +112,17 @@ export function esCodigoDeApibara(valor: unknown): valor is CodigoDeApibara {
 }
 
 const MENSAJES: Record<CodigoDeApibara, string> = {
-  apagada: 'apibara está apagada en este origen. Puedes cargar el vehículo a mano.',
-  sin_permiso: 'No tienes permiso para consultar apibara en este origen.',
-  entrada: 'Pega un enlace de Copart o IAAI, un VIN de 17 caracteres o un número de lote.',
+  apagada: 'La consulta de subastas está apagada en este origen. Puedes cargar el vehículo a mano.',
+  sin_permiso: 'No tienes permiso para consultar subastas en este origen.',
+  entrada: 'Pega un enlace de la subasta, un VIN de 17 caracteres o un número de lote.',
   plataforma: 'Este origen no consulta esa plataforma.',
-  no_soportado: 'apibara no pudo leer ese dato. Revisa el enlace, el VIN o el lote.',
-  no_encontrado: 'apibara no tiene ese vehículo. Revisa el dato o cárgalo a mano.',
-  clave_invalida: 'apibara rechazó la clave guardada. Puedes seguir a mano.',
-  cuota: 'Se agotó la cuota de consultas de apibara de este período. Puedes seguir a mano.',
-  tiempo: 'apibara tardó demasiado en responder. Vuelve a intentar o sigue a mano.',
-  proveedor: 'apibara tuvo un problema. Vuelve a intentar en un momento o sigue a mano.',
-  red: 'No se pudo llegar a apibara. Revisa tu conexión y vuelve a intentar.',
+  no_soportado: 'No se pudo leer ese dato. Revisa el enlace, el VIN o el lote.',
+  no_encontrado: 'No hay un vehículo con ese dato en la subasta. Revisa el dato o cárgalo a mano.',
+  clave_invalida: 'La clave guardada para consultar subastas fue rechazada. Puedes seguir a mano.',
+  cuota: 'Se agotó la cuota de consultas de este período. Puedes seguir a mano.',
+  tiempo: 'La consulta tardó demasiado en responder. Vuelve a intentar o sigue a mano.',
+  proveedor: 'La consulta tuvo un problema. Vuelve a intentar en un momento o sigue a mano.',
+  red: 'No se pudo llegar al servicio de subastas. Revisa tu conexión y vuelve a intentar.',
 }
 
 export function mensajeDeApibara(codigo: CodigoDeApibara): string {

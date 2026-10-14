@@ -37,7 +37,7 @@ export const crearVehiculo = actionClient
       return noValido(validacion.porCampo)
     }
     if (consulta && leido.data.origen.tipo !== 'subasta') {
-      return fallo('regla', 'Sólo un origen de subasta guarda datos de apibara.')
+      return fallo('regla', 'Sólo un origen de subasta trae datos de una subasta.')
     }
     const creado = await repositorioVehiculos.crear({
       id,

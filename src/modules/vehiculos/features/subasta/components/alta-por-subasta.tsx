@@ -38,7 +38,7 @@ type Props = {
 function DatosTraidos({ raw, sinLlenar }: { raw: Record<string, unknown>; sinLlenar: string[] }) {
   const plataforma = String(raw['platform'] ?? '')
   const conocida = plataformasConocidas([plataforma])[0]
-  const nombre = conocida ? NOMBRE_DE_PLATAFORMA[conocida] : 'apibara'
+  const nombre = conocida ? NOMBRE_DE_PLATAFORMA[conocida] : 'la subasta'
   const lote = raw['lot_number'] ? ` · lote ${String(raw['lot_number'])}` : ''
   const fotos = fotosDeSubasta(raw).length
   return (
@@ -59,7 +59,7 @@ function ApibaraApagada({ puedeConfigurar }: { puedeConfigurar: boolean }) {
   return (
     <Aviso>
       <p>
-        apibara está apagada: carga el vehículo a mano.
+        La consulta de subastas está apagada: carga el vehículo a mano.
         {puedeConfigurar ? (
           <>
             {' '}
@@ -158,8 +158,8 @@ export function AltaPorSubasta({
   }
   return (
     <Bloque
-      titulo="Traer de apibara"
-      descripcion="Llena la ficha y las fotos desde Copart o IAAI. También puedes cargarla a mano."
+      titulo="Traer de la subasta"
+      descripcion="Llena la ficha y las fotos desde el enlace, el VIN o el lote. También puedes cargarla a mano."
     >
       <div className="grid gap-3">
         <PegadoDeSubasta

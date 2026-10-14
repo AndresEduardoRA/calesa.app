@@ -29,7 +29,7 @@ export function SeccionDeFotos({ vehiculoId, galeria, puedeEditar, deSubasta }: 
       {puedeEditar && deSubasta && deSubasta.fotas.length > 0 ? (
         <Aviso>
           <p>
-            Faltan fotos de la subasta: apibara trae {deSubasta.fotas.length} más de las que hay
+            Faltan fotos de la subasta: la subasta trae {deSubasta.fotas.length} más de las que hay
             acá.
           </p>
           <div className="mt-2">

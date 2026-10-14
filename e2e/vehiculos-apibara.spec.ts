@@ -139,11 +139,11 @@ test('varias líneas: resultado por línea, una que falla, otra que ya está y l
   const lista = panel.getByRole('list', { name: 'Resultado por línea' })
   await expect(lista.getByText('2011 LEXUS ES 350')).toBeVisible()
   await expect(lista.getByText('2011 · lote 45312823 · IAAI')).toBeVisible()
-  await expect(lista.getByText('apibara no tiene ese vehículo.', { exact: false })).toBeVisible()
   await expect(
-    lista.getByText(
-      'Pega un enlace de Copart o IAAI, un VIN de 17 caracteres o un número de lote.',
-    ),
+    lista.getByText('No hay un vehículo con ese dato en la subasta.', { exact: false }),
+  ).toBeVisible()
+  await expect(
+    lista.getByText('Pega un enlace de la subasta, un VIN de 17 caracteres o un número de lote.'),
   ).toBeVisible()
   // La que ya está en el inventario se ofrece abrir, no se vuelve a dar de alta.
   await expect(lista.getByText('Ya está en el inventario.')).toBeVisible()
@@ -181,7 +181,9 @@ test('con apibara apagada el alta sigue a mano', async ({ page }) => {
   await fijarApibara(false)
   await entrar(page, duena)
   const panel = await abrirAlta(page)
-  await expect(panel.getByText('apibara está apagada: carga el vehículo a mano.')).toBeVisible()
+  await expect(
+    panel.getByText('La consulta de subastas está apagada: carga el vehículo a mano.'),
+  ).toBeVisible()
   await expect(panel.getByLabel('Enlaces, VIN o lotes')).toHaveCount(0)
   await expect(panel.getByRole('link', { name: 'Ir a Integraciones' })).toHaveAttribute(
     'href',
@@ -209,9 +211,7 @@ test('cuota agotada: se dice claro, no se reintenta y se sigue a mano sin perder
 
   const lista = panel.getByRole('list', { name: 'Resultado por línea' })
   await expect(
-    lista.getByText(
-      'Se agotó la cuota de consultas de apibara de este período. Puedes seguir a mano.',
-    ),
+    lista.getByText('Se agotó la cuota de consultas de este período. Puedes seguir a mano.'),
   ).toBeVisible()
   // Reintentar sólo gastaría otra consulta.
   await expect(lista.getByRole('button', { name: 'Reintentar' })).toHaveCount(0)
@@ -258,7 +258,7 @@ test('un corte del momento se reintenta; una clave rechazada lleva a Integracion
   await pegar(panel, '77777777')
   const lista = panel.getByRole('list', { name: 'Resultado por línea' })
   await expect(
-    lista.getByText('apibara tardó demasiado en responder. Vuelve a intentar o sigue a mano.'),
+    lista.getByText('La consulta tardó demasiado en responder. Vuelve a intentar o sigue a mano.'),
   ).toBeVisible()
   await lista.getByRole('button', { name: 'Reintentar' }).click()
   // Una sola línea y bien: llena la ficha.
@@ -267,7 +267,9 @@ test('un corte del momento se reintenta; una clave rechazada lleva a Integracion
 
   await pegar(panel, '88888888')
   await expect(
-    lista.getByText('apibara rechazó la clave guardada. Puedes seguir a mano.'),
+    lista.getByText(
+      'La clave guardada para consultar subastas fue rechazada. Puedes seguir a mano.',
+    ),
   ).toBeVisible()
   await expect(lista.getByRole('button', { name: 'Reintentar' })).toHaveCount(0)
   await expect(lista.getByRole('link', { name: 'Ir a Integraciones' })).toBeVisible()

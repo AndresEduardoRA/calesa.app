@@ -40,7 +40,9 @@ describe('interpretarLinea', () => {
       expect(linea.ok, enlace).toBe(false)
     }
     const linea = interpretarLinea('https://www.example.com/lot/1')
-    expect(!linea.ok && linea.motivo).toBe('Ese enlace no es de Copart ni de IAAI.')
+    expect(!linea.ok && linea.motivo).toBe(
+      'Ese enlace no es de una subasta que se pueda consultar.',
+    )
   })
 
   it('reconoce un VIN (en mayúsculas) y un número de lote', () => {
