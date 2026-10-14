@@ -40,6 +40,17 @@ export function BloqueRegion({ ajustes, monedas, zonas, conDatosCargados, errore
           ayuda="Idioma y país, como es-BO: decide el separador de miles y el orden de la fecha."
           error={errorDeCampo(errores, 'locale')}
         />
+        <Campo
+          nombre="telefonoCc"
+          etiqueta="Código de país de los teléfonos"
+          type="tel"
+          inputMode="tel"
+          autoComplete="off"
+          maxLength={4}
+          defaultValue={ajustes.telefonoCc ?? ''}
+          ayuda="Se agrega a los teléfonos de los leads que se escriben sin «+» ni «00». Lleva un «+» y de 1 a 3 dígitos."
+          error={errorDeCampo(errores, 'telefonoCc')}
+        />
         <datalist id="locales-sugeridos">
           {LOCALES_SUGERIDOS.map((locale) => (
             <option key={locale} value={locale} />

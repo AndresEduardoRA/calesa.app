@@ -144,7 +144,7 @@ begin
   end if;
   if p_cambios ? 'telefono_cc' and nullif(btrim(p_cambios ->> 'telefono_cc'), '') is not null
      and btrim(p_cambios ->> 'telefono_cc') !~ '^\+[1-9][0-9]{0,2}$' then
-    raise exception 'El código de país lleva un «+» y de 1 a 3 dígitos, como +591.' using errcode = '22023', hint = 'telefono_cc';
+    raise exception 'El código de país lleva un «+» y de 1 a 3 dígitos.' using errcode = '22023', hint = 'telefono_cc';
   end if;
   if p_cambios ? 'limpieza_dias_gracia'
      and (btrim(p_cambios ->> 'limpieza_dias_gracia') !~ '^[0-9]{1,3}$' or (p_cambios ->> 'limpieza_dias_gracia')::int not between 1 and 90) then

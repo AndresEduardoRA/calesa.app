@@ -9,6 +9,7 @@ const valida: EntradaDeAjustes = {
   direccion: '',
   ciudad: 'Santa Cruz',
   telefono: '',
+  telefonoCc: '',
   whatsapp: '',
   email: '',
   pais: 'Bolivia',
@@ -75,6 +76,19 @@ describe('esquemaAjustes', () => {
     expect(errorDe({ limpiezaDiasGracia: 2.5 }, 'limpiezaDiasGracia')).toContain('sin decimales')
     expect(errorDe({ limpiezaDiasGracia: 7 }, 'limpiezaDiasGracia')).toBeUndefined()
     expect(errorDe({ limpiezaDiasGracia: 90 }, 'limpiezaDiasGracia')).toBeUndefined()
+  })
+
+  it('el código de país lleva «+» y de 1 a 3 dígitos, o queda vacío', () => {
+    const dato = (telefonoCc: string) => {
+      const leida = esquemaAjustes.safeParse({ ...valida, telefonoCc })
+      return leida.success ? leida.data.telefonoCc : 'ERROR'
+    }
+    expect(dato(' +54 ')).toBe('+54')
+    expect(dato('')).toBeNull()
+    for (const mal of ['591', '+', '+0591', '+5911', '+5 1', '++59']) {
+      expect(dato(mal)).toBe('ERROR')
+      expect(errorDe({ telefonoCc: mal }, 'telefonoCc')).toContain('código de país')
+    }
   })
 
   it('exige nombre, país y un correo con forma de correo', () => {

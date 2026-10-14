@@ -17,6 +17,9 @@ function opcional(largoMaximo: number) {
     .transform((valor) => (valor === '' ? null : valor))
 }
 
+// Espejo del `check` de `ajustes_empresa.telefono_cc`.
+const CODIGO_DE_PAIS = /^\+[1-9][0-9]{0,2}$/
+
 const dias = z
   .number({ error: 'Escribe un número de días.' })
   .int({ error: 'Escribe un número de días, sin decimales.' })
@@ -58,6 +61,13 @@ export const esquemaAjustes = z.object({
   direccion: opcional(200),
   ciudad: opcional(80),
   telefono: opcional(40),
+  telefonoCc: z
+    .string()
+    .trim()
+    .refine((valor) => valor === '' || CODIGO_DE_PAIS.test(valor), {
+      error: 'El código de país lleva un «+» y de 1 a 3 dígitos.',
+    })
+    .transform((valor) => (valor === '' ? null : valor)),
   whatsapp: opcional(40),
   email: z
     .union([z.literal(''), z.email({ error: 'Ese correo no parece válido.' })])

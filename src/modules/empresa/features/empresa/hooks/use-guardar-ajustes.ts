@@ -18,6 +18,7 @@ export const CAMPOS_DE_AJUSTES = [
   'direccion',
   'ciudad',
   'telefono',
+  'telefonoCc',
   'whatsapp',
   'email',
   'pais',

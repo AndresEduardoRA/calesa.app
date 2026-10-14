@@ -102,6 +102,12 @@ test('la dueña cambia el nombre y la zona horaria y se ven en el shell', async 
 
   await page.getByLabel('Nombre de la empresa').fill(nombre)
   await page.getByLabel('Zona horaria').fill('Asia/Tokyo')
+  // El código de país de los teléfonos de los leads: con la forma de un código o vacío.
+  await page.getByLabel('Código de país de los teléfonos').fill('54')
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click()
+  await expect(page.getByText('El código de país lleva un «+» y de 1 a 3 dígitos.')).toBeVisible()
+  await expect(page.getByLabel('Código de país de los teléfonos')).toHaveValue('54')
+  await page.getByLabel('Código de país de los teléfonos').fill('+54')
   await page.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(page.getByText('Ajustes de la empresa guardados')).toBeVisible()
 
@@ -120,7 +126,11 @@ test('la dueña cambia el nombre y la zona horaria y se ven en el shell', async 
   await page.keyboard.press('Escape')
 
   // Lo que quedó en la base.
-  expect(await ajustesGuardados()).toMatchObject({ nombre, zona_horaria: 'Asia/Tokyo' })
+  expect(await ajustesGuardados()).toMatchObject({
+    nombre,
+    zona_horaria: 'Asia/Tokyo',
+    telefono_cc: '+54',
+  })
 
   // Una zona que no existe se rechaza con el motivo, y lo tipeado queda.
   await page.getByLabel('Zona horaria').fill('Marte/Olympus')

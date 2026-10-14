@@ -15,6 +15,7 @@ const ajustes: AjustesEmpresa = {
   ciudad: null,
   pais: 'Bolivia',
   telefono: null,
+  telefonoCc: null,
   whatsapp: null,
   email: null,
   logoRuta: null,

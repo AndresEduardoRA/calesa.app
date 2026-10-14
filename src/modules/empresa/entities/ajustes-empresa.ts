@@ -11,6 +11,9 @@ export type AjustesEmpresa = {
   ciudad: string | null
   pais: string
   telefono: string | null
+  // El código de país de los teléfonos de los leads (+ y 1 a 3 dígitos): completa un número que se
+  // escribe sin «+» ni «00». Sin él, el alta de un lead pide el número con «+».
+  telefonoCc: string | null
   whatsapp: string | null
   email: string | null
   logoRuta: string | null
@@ -40,6 +43,7 @@ export function ajustesEmpresaDesde(fila: Tables<'ajustes_empresa'>): AjustesEmp
     ciudad: fila.ciudad,
     pais: fila.pais,
     telefono: fila.telefono,
+    telefonoCc: fila.telefono_cc,
     whatsapp: fila.whatsapp,
     email: fila.email,
     logoRuta: fila.logo_ruta,
@@ -69,6 +73,7 @@ const COLUMNA: Record<keyof CambiosDeAjustes, string> = {
   ciudad: 'ciudad',
   pais: 'pais',
   telefono: 'telefono',
+  telefonoCc: 'telefono_cc',
   whatsapp: 'whatsapp',
   email: 'email',
   logoRuta: 'logo_ruta',

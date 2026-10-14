@@ -7,6 +7,7 @@ import { admin, entorno } from './base'
 type AjustesEnLaBase = {
   nombre: string
   zona_horaria: string
+  telefono_cc: string | null
   logo_ruta: string | null
   iconos: Record<string, string> | null
 }
@@ -15,7 +16,7 @@ type AjustesEnLaBase = {
 export async function ajustesGuardados(): Promise<AjustesEnLaBase> {
   const { data, error } = await admin()
     .from('ajustes_empresa')
-    .select('nombre, zona_horaria, logo_ruta, iconos')
+    .select('nombre, zona_horaria, telefono_cc, logo_ruta, iconos')
     .eq('id', 1)
     .single<AjustesEnLaBase>()
   if (error) {
