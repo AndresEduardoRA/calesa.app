@@ -95,5 +95,3 @@ export function useCampos() {
     },
   }
 }
-
-export type EdicionesDeCampos = ReturnType<typeof useCampos>

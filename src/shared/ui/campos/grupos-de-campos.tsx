@@ -1,26 +1,28 @@
-import type { CambiosDeCampo } from '../../../entities/cambios-de-campo'
 import {
   destinoDeMovimiento,
-  type CampoDeLayout,
+  type CampoBase,
   type GrupoDeCampos,
   type Sentido,
-} from '../../../entities/campo'
+} from '@/shared/lib/campos'
 import { FilaDeCampo } from './fila-de-campo'
+import type { BanderaDeCampo } from './tipos'
 
-type Props = {
-  grupos: readonly GrupoDeCampos[]
-  // Todos, también los desactivados: el orden se mide sobre el origen entero.
-  campos: readonly CampoDeLayout[]
+type Props<Campo extends CampoBase> = {
+  grupos: readonly GrupoDeCampos<Campo>[]
+  // Todos, también los desactivados: el orden se mide sobre el layout entero.
+  campos: readonly Campo[]
+  banderas: readonly BanderaDeCampo[]
   puedeGestionar: boolean
   ocupado: boolean
   alAbrir: (id: string) => void
-  alMover: (campo: CampoDeLayout, sentido: Sentido) => void
-  alCambiarBandera: (campo: CampoDeLayout, cambios: CambiosDeCampo) => void
+  alMover: (campo: Campo, sentido: Sentido) => void
+  alCambiarBandera: (campo: Campo, clave: string, valor: boolean) => void
 }
 
 // Los campos activos, un bloque por grupo, en el orden del layout.
-export function GruposDeCampos(props: Props) {
-  const { grupos, campos, puedeGestionar, ocupado, alAbrir, alMover, alCambiarBandera } = props
+export function GruposDeCampos<Campo extends CampoBase>(props: Props<Campo>) {
+  const { grupos, campos, banderas, puedeGestionar, ocupado } = props
+  const { alAbrir, alMover, alCambiarBandera } = props
   return (
     <>
       {grupos.map((grupo) => (
@@ -33,6 +35,7 @@ export function GruposDeCampos(props: Props) {
               <FilaDeCampo
                 key={campo.id}
                 campo={campo}
+                banderas={banderas}
                 puedeGestionar={puedeGestionar}
                 ocupado={ocupado}
                 puedeSubir={destinoDeMovimiento(campos, campo.id, 'subir') !== null}
@@ -43,8 +46,8 @@ export function GruposDeCampos(props: Props) {
                 alMover={(sentido) => {
                   alMover(campo, sentido)
                 }}
-                alCambiarBandera={(cambios) => {
-                  alCambiarBandera(campo, cambios)
+                alCambiarBandera={(clave, valor) => {
+                  alCambiarBandera(campo, clave, valor)
                 }}
               />
             ))}

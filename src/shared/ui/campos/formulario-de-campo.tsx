@@ -1,28 +1,23 @@
 'use client'
 
 import { useRef } from 'react'
+import { nombresDeGrupo, type CampoBase } from '@/shared/lib/campos'
 import { enfocarPrimerError, errorDeCampo } from '@/shared/lib/formularios'
 import { Aviso } from '@/shared/ui/aviso'
-import { Bloque } from '@/shared/ui/bloque'
-import { Campo } from '@/shared/ui/campo'
 import { useBorrador } from '@/shared/ui/use-borrador'
-import { nombresDeGrupo, type CampoDeLayout } from '../../../entities/campo'
-import { MOTIVO_SIN_PERMISO_ORIGENES } from '../../../entities/motivos'
-import type { TipoDeOrigen } from '../../../entities/origen'
-import type { EdicionesDeCampos } from '../hooks/use-campos'
-import { useFormularioDeCampo } from '../hooks/use-formulario-de-campo'
 import { AvisoDeImpacto } from './aviso-de-impacto'
-import { CamposDeCampo, type ErroresDeCampo } from './campos-de-campo'
+import { CamposDeCampo } from './campos-de-campo'
 import { PieDelFormulario } from './pie-del-formulario'
+import type { ConfiguracionDeCampos, EdicionesDeCampos, ErroresDeCampo } from './tipos'
+import { useFormularioDeCampo } from './use-formulario-de-campo'
 
-type Props = {
-  origenId: string
-  tipoDeOrigen: TipoDeOrigen
+type Props<Campo extends CampoBase, Cambios extends object, Nuevo> = {
   // null = un campo nuevo.
-  campo: CampoDeLayout | null
-  todos: readonly CampoDeLayout[]
+  campo: Campo | null
+  todos: readonly Campo[]
   puedeGestionar: boolean
-  ediciones: EdicionesDeCampos
+  configuracion: ConfiguracionDeCampos<Campo, Cambios, Nuevo>
+  ediciones: EdicionesDeCampos<Cambios, Nuevo>
   alCerrar: () => void
 }
 
@@ -43,23 +38,24 @@ function erroresDelFormulario(
   }
 }
 
-// Crear o editar un campo. Los cambios que pueden tocar vehículos ya cargados (cambiar el tipo,
+// Crear o editar un campo. Los cambios que pueden tocar datos ya cargados (cambiar el tipo,
 // volverlo requerido, sacar una opción) cuentan primero y muestran su aviso acá mismo.
-export function FormularioDeCampo(props: Props) {
-  const { origenId, tipoDeOrigen, campo, todos, puedeGestionar, ediciones, alCerrar } = props
+export function FormularioDeCampo<Campo extends CampoBase, Cambios extends object, Nuevo>(
+  props: Props<Campo, Cambios, Nuevo>,
+) {
+  const { campo, todos, puedeGestionar, configuracion, ediciones, alCerrar } = props
   const formulario = useRef<HTMLFormElement>(null)
   const estado = useFormularioDeCampo({
-    origenId,
-    tipoDeOrigen,
     campo,
     todos,
+    configuracion,
     ediciones,
     alTerminar: alCerrar,
   })
   useBorrador(
-    `origen-campo-${campo?.id ?? 'nuevo'}`,
+    `${configuracion.textos.borrador}-${campo?.id ?? 'nuevo'}`,
     formulario,
-    ['etiqueta', 'grupo', 'claveApibara'],
+    ['etiqueta', 'grupo', ...configuracion.textosLibres],
     puedeGestionar,
   )
   const erroresDeValidacion = ediciones.errores.crear
@@ -84,30 +80,23 @@ export function FormularioDeCampo(props: Props) {
     >
       <fieldset disabled={!puedeGestionar} className="grid min-w-0 gap-4">
         <legend className="sr-only">{campo ? `Campo ${campo.etiqueta}` : 'Campo nuevo'}</legend>
-        {puedeGestionar ? null : <Aviso>{MOTIVO_SIN_PERMISO_ORIGENES}</Aviso>}
+        {puedeGestionar ? null : <Aviso>{configuracion.textos.motivoSinPermiso}</Aviso>}
         <CamposDeCampo
           valores={estado.valores}
           alCambiar={estado.cambiar}
+          alCambiarBandera={estado.cambiarBandera}
           campo={campo}
+          banderas={configuracion.banderas}
+          tipos={configuracion.tipos}
           gruposExistentes={nombresDeGrupo(todos)}
           errores={erroresDelFormulario(estado.errores, erroresDeValidacion)}
           deshabilitado={!puedeGestionar}
         />
-        {tipoDeOrigen === 'subasta' ? (
-          <Bloque titulo="Apibara" plegado>
-            <Campo
-              nombre="claveApibara"
-              etiqueta="Campo de apibara"
-              autoComplete="off"
-              maxLength={60}
-              value={estado.valores.claveApibara}
-              onChange={(evento) => {
-                estado.cambiar({ claveApibara: evento.target.value })
-              }}
-              ayuda="El campo del scraper del que se llena este dato al dar de alta por enlace. Déjalo vacío si se carga a mano."
-            />
-          </Bloque>
-        ) : null}
+        {configuracion.hueco?.({
+          valores: estado.valores,
+          cambiarTexto: estado.cambiarTexto,
+          deshabilitado: !puedeGestionar,
+        })}
       </fieldset>
       {estado.aviso ? <AvisoDeImpacto resumen={estado.aviso.resumen} /> : null}
       {puedeGestionar ? (

@@ -1,9 +1,14 @@
 'use client'
 
+import {
+  LARGO_MAXIMO_DE_VALOR_DEFECTO,
+  admiteValorDefecto,
+  type OpcionDeCampo,
+  type TipoDeCampo,
+  type ValorDefecto,
+} from '@/shared/lib/campos'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
-import type { OpcionDeCampo, TipoDeCampo, ValorDefecto } from '../../../entities/campo'
-import { LARGO_MAXIMO_DE_VALOR_DEFECTO, admiteValorDefecto } from '../../../entities/valor-defecto'
 
 type Props = {
   tipo: TipoDeCampo

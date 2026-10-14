@@ -1,22 +1,16 @@
 // Cómo se nombra un origen y lo que se importa en él: el nombre («Corea»), el sustantivo
 // («vehículo», «unidad», «lote») y su género, para que la interfaz concuerde sin texto fijo
 // («Ninguna unidad en Corea todavía»). Piezas puras: salen por `client.ts`.
+import { claveDeTexto, type EstiloDeClave } from '@/shared/lib/campos'
 import type { Genero } from './origen'
 
-const ACENTOS = /\p{M}/gu
+// Así se arma toda clave interna de este módulo: el origen, y también los campos del layout.
+export const ESTILO_DE_CLAVE: EstiloDeClave = { prefijo: 'o_', vacio: 'origen' }
 
 // De un nombre a la clave interna: sin acentos, en minúsculas, con guion bajo, de 2 a 31
 // caracteres y empezando con una letra (el CHECK de `origenes.clave`).
 export function claveDeNombre(nombre: string, largoMaximo = 31): string {
-  const limpia = nombre
-    .normalize('NFD')
-    .replace(ACENTOS, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-  const conLetra = /^[a-z]/.test(limpia) ? limpia : `o_${limpia}`
-  const recortada = conLetra.slice(0, largoMaximo).replace(/_+$/, '')
-  return recortada.length >= 2 ? recortada : 'origen'
+  return claveDeTexto(nombre, largoMaximo, ESTILO_DE_CLAVE)
 }
 
 // Casi todo lo que termina en -a, -ción, -dad, -tad, -tud es femenino. Es una sugerencia: la

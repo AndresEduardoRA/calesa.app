@@ -1,77 +1,54 @@
 'use client'
 
 import { useId } from 'react'
+import {
+  ETIQUETA_DE_TIPO_DE_CAMPO,
+  MOTIVO_CAMPO_DE_SISTEMA,
+  tieneOpciones,
+  type CampoBase,
+  type TipoDeCampo,
+} from '@/shared/lib/campos'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { Interruptor } from '@/shared/ui/interruptor'
-import {
-  ETIQUETA_DE_TIPO_DE_CAMPO,
-  TIPOS_DE_CAMPO,
-  tieneOpciones,
-  type CampoDeLayout,
-  type OpcionDeCampo,
-  type TipoDeCampo,
-  type ValorDefecto,
-} from '../../../entities/campo'
-import { MOTIVO_CAMPO_DE_SISTEMA } from '../../../entities/motivos'
 import { CampoValorDefecto } from './campo-valor-defecto'
 import { EditorDeOpciones } from './editor-de-opciones'
-
-// Lo que el formulario de un campo edita.
-export type ValoresDeCampo = {
-  etiqueta: string
-  clave: string
-  tipo: TipoDeCampo
-  opciones: OpcionDeCampo[]
-  requerido: boolean
-  grupo: string
-  enTarjeta: boolean
-  filtrable: boolean
-  publicoWeb: boolean
-  claveApibara: string
-  activo: boolean
-  valorDefecto: ValorDefecto | null
-}
-
-export type ErroresDeCampo = Partial<
-  Record<'etiqueta' | 'clave' | 'opciones' | 'grupo' | 'valorDefecto', string>
->
+import type { BanderaDeCampo, ErroresDeCampo, ValoresDeCampo } from './tipos'
 
 type Props = {
   valores: ValoresDeCampo
-  alCambiar: (parcial: Partial<ValoresDeCampo>) => void
+  alCambiar: (parcial: Partial<Omit<ValoresDeCampo, 'banderas' | 'textos'>>) => void
+  alCambiarBandera: (clave: string, valor: boolean) => void
   // El campo que se edita, o null al crear uno.
-  campo: CampoDeLayout | null
+  campo: CampoBase | null
+  banderas: readonly BanderaDeCampo[]
+  tipos: readonly TipoDeCampo[]
   gruposExistentes: readonly string[]
   errores: ErroresDeCampo
   deshabilitado: boolean
 }
 
-const BANDERAS = [
-  ['requerido', 'Requerido', 'El vehículo no se guarda sin este dato.'],
-  ['enTarjeta', 'En tarjeta', 'Se muestra en la tarjeta del listado.'],
-  ['filtrable', 'Filtrable', 'Entra al panel de filtros del listado.'],
-  ['publicoWeb', 'Público', 'La web pública puede mostrarlo.'],
-] as const
-
 type PropsDeBanderas = {
   valores: ValoresDeCampo
-  alCambiar: (parcial: Partial<ValoresDeCampo>) => void
+  banderas: readonly BanderaDeCampo[]
+  alCambiar: Props['alCambiar']
+  alCambiarBandera: Props['alCambiarBandera']
   esNuevo: boolean
   deshabilitado: boolean
 }
 
-function Banderas({ valores, alCambiar, esNuevo, deshabilitado }: PropsDeBanderas) {
+function Banderas(props: PropsDeBanderas) {
+  const { valores, banderas, alCambiar, alCambiarBandera, esNuevo, deshabilitado } = props
   return (
     <>
-      {BANDERAS.map(([clave, titulo, ayuda]) => (
+      {banderas.map(({ clave, etiqueta, ayuda }) => (
         <Interruptor
           key={clave}
-          titulo={titulo}
+          titulo={etiqueta}
           ayuda={ayuda}
-          valor={valores[clave]}
+          valor={valores.banderas[clave] ?? false}
           alCambiar={(valor) => {
-            alCambiar({ [clave]: valor })
+            alCambiarBandera(clave, valor)
           }}
           deshabilitado={deshabilitado}
         />
@@ -129,7 +106,8 @@ function CampoGrupo({ valor, alCambiar, existentes, error, deshabilitado }: Prop
 
 // Los datos de un campo del layout. La clave sale de la etiqueta al crear y no cambia después.
 export function CamposDeCampo(props: Props) {
-  const { valores, alCambiar, campo, gruposExistentes, errores, deshabilitado } = props
+  const { valores, alCambiar, alCambiarBandera, campo, banderas, tipos } = props
+  const { gruposExistentes, errores, deshabilitado } = props
   const esNuevo = campo === null
   const tipoFijo = campo?.esSistema ?? false
   return (
@@ -154,7 +132,7 @@ export function CamposDeCampo(props: Props) {
       <CampoSeleccion
         nombre="tipo"
         etiqueta="Tipo"
-        opciones={TIPOS_DE_CAMPO.map((tipo) => ({
+        opciones={tipos.map((tipo) => ({
           valor: tipo,
           etiqueta: ETIQUETA_DE_TIPO_DE_CAMPO[tipo],
         }))}
@@ -196,7 +174,9 @@ export function CamposDeCampo(props: Props) {
       />
       <Banderas
         valores={valores}
+        banderas={banderas}
         alCambiar={alCambiar}
+        alCambiarBandera={alCambiarBandera}
         esNuevo={esNuevo}
         deshabilitado={deshabilitado}
       />

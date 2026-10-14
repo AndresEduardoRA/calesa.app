@@ -1,13 +1,14 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { CampoDeLayout } from '../../../entities/campo'
+import type { CampoBase } from '@/shared/lib/campos'
 import { FilaDeCampo } from './fila-de-campo'
+import type { BanderaDeCampo } from './tipos'
 
 afterEach(cleanup)
 
-const CAMPO: CampoDeLayout = {
+// Un campo de cualquier módulo: lo base más las banderas que ese módulo ofrece.
+const CAMPO: CampoBase & { enTarjeta: boolean; filtrable: boolean } = {
   id: '00000000-0000-0000-0000-000000000001',
-  origenId: '00000000-0000-0000-0000-0000000000aa',
   clave: 'color',
   etiqueta: 'Color',
   tipo: 'texto',
@@ -17,13 +18,16 @@ const CAMPO: CampoDeLayout = {
   orden: 10,
   enTarjeta: true,
   filtrable: false,
-  publicoWeb: true,
-  claveApibara: null,
   valorDefecto: null,
   esSistema: true,
   activo: true,
   actualizadoEn: '2026-10-12T20:00:00+00:00',
 }
+
+const BANDERAS: BanderaDeCampo[] = [
+  { clave: 'enTarjeta', etiqueta: 'En tarjeta', ayuda: '', enFila: true },
+  { clave: 'filtrable', etiqueta: 'Filtrable', ayuda: '', enFila: true },
+]
 
 function fila(props: Partial<Parameters<typeof FilaDeCampo>[0]> = {}) {
   const manejadores = { alAbrir: vi.fn(), alMover: vi.fn(), alCambiarBandera: vi.fn() }
@@ -31,6 +35,7 @@ function fila(props: Partial<Parameters<typeof FilaDeCampo>[0]> = {}) {
     <ul>
       <FilaDeCampo
         campo={CAMPO}
+        banderas={BANDERAS}
         puedeGestionar
         ocupado={false}
         puedeSubir={false}
@@ -44,10 +49,20 @@ function fila(props: Partial<Parameters<typeof FilaDeCampo>[0]> = {}) {
 }
 
 describe('FilaDeCampo', () => {
-  it('una bandera manda sólo ese cambio', () => {
+  it('una bandera manda su clave y el valor nuevo', () => {
     const { alCambiarBandera } = fila()
     fireEvent.click(screen.getByRole('switch', { name: 'Color: filtrable' }))
-    expect(alCambiarBandera).toHaveBeenCalledWith({ filtrable: true })
+    expect(alCambiarBandera).toHaveBeenCalledWith('filtrable', true)
+  })
+
+  it('cada interruptor refleja la propiedad del campo', () => {
+    fila()
+    expect(
+      screen.getByRole('switch', { name: 'Color: en tarjeta' }).getAttribute('aria-checked'),
+    ).toBe('true')
+    expect(
+      screen.getByRole('switch', { name: 'Color: filtrable' }).getAttribute('aria-checked'),
+    ).toBe('false')
   })
 
   it('bajar manda el sentido; subir está apagado y dice por qué', () => {

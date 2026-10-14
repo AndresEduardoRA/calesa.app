@@ -1,19 +1,22 @@
 'use client'
 
 import { ArrowDownIcon, ArrowUpIcon, PencilIcon } from 'lucide-react'
+import {
+  ETIQUETA_DE_TIPO_DE_CAMPO,
+  MOTIVO_PRIMERO_DE_SU_GRUPO,
+  MOTIVO_ULTIMO_DE_SU_GRUPO,
+  type CampoBase,
+  type Sentido,
+} from '@/shared/lib/campos'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { Switch } from '@/shared/ui/switch'
-import type { CambiosDeCampo } from '../../../entities/cambios-de-campo'
-import {
-  ETIQUETA_DE_TIPO_DE_CAMPO,
-  type CampoDeLayout,
-  type Sentido,
-} from '../../../entities/campo'
-import { MOTIVO_PRIMERO_DE_SU_GRUPO, MOTIVO_ULTIMO_DE_SU_GRUPO } from '../../../entities/motivos'
+import { banderaDe, type BanderaDeCampo } from './tipos'
 
 type Props = {
-  campo: CampoDeLayout
+  campo: CampoBase
+  // Las que se guardan solas desde la fila.
+  banderas: readonly BanderaDeCampo[]
   puedeGestionar: boolean
   // Mientras algo se guarda no se toca nada: cada edición manda la versión que vio.
   ocupado: boolean
@@ -21,18 +24,12 @@ type Props = {
   puedeBajar: boolean
   alAbrir: () => void
   alMover: (sentido: Sentido) => void
-  alCambiarBandera: (cambios: CambiosDeCampo) => void
+  alCambiarBandera: (clave: string, valor: boolean) => void
 }
 
-const BANDERAS = [
-  { clave: 'enTarjeta', etiqueta: 'En tarjeta' },
-  { clave: 'filtrable', etiqueta: 'Filtrable' },
-  { clave: 'publicoWeb', etiqueta: 'Público' },
-] as const
-
-// Un campo del layout: su orden, sus tres banderas y el panel para el resto.
+// Un campo del layout: su orden, sus banderas y el panel para el resto.
 export function FilaDeCampo(props: Props) {
-  const { campo, puedeGestionar, ocupado, puedeSubir, puedeBajar } = props
+  const { campo, banderas, puedeGestionar, ocupado, puedeSubir, puedeBajar } = props
   const { alAbrir, alMover, alCambiarBandera } = props
   const sinEditar = !puedeGestionar || ocupado
   return (
@@ -78,7 +75,7 @@ export function FilaDeCampo(props: Props) {
         </span>
       </div>
       <div className="order-4 flex w-full flex-wrap items-center gap-x-4 gap-y-1 md:order-3 md:w-auto">
-        {BANDERAS.map(({ clave, etiqueta }) => (
+        {banderas.map(({ clave, etiqueta }) => (
           <label
             key={clave}
             className="flex min-h-11 items-center gap-2 text-(length:--text-sm) text-(--color-ink-soft) md:min-h-8"
@@ -86,10 +83,10 @@ export function FilaDeCampo(props: Props) {
             <Switch
               size="sm"
               aria-label={`${campo.etiqueta}: ${etiqueta.toLowerCase()}`}
-              checked={campo[clave]}
+              checked={banderaDe(campo, clave)}
               disabled={sinEditar}
               onCheckedChange={(valor) => {
-                alCambiarBandera({ [clave]: valor })
+                alCambiarBandera(clave, valor)
               }}
             />
             {etiqueta}

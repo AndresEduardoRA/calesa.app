@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  agruparCampos,
-  camposDesde,
-  claveDeCampo,
-  destinoDeMovimiento,
-  nombresDeGrupo,
-  tieneOpciones,
-  type CampoDeLayout,
-} from './campo'
+import { camposDesde, claveDeCampo, type CampoDeLayout } from './campo'
 
 const ORIGEN = '00000000-0000-0000-0000-0000000000aa'
 
@@ -60,59 +52,6 @@ describe('camposDesde', () => {
   })
 })
 
-describe('agruparCampos', () => {
-  it('agrupa por el primer campo de cada grupo y deja «sin grupo» al final', () => {
-    const grupos = agruparCampos(
-      layout({ grupo: null }, { grupo: 'Subasta' }, { grupo: 'Vehículo' }, { grupo: 'Subasta' }),
-    )
-    expect(grupos.map((g) => g.nombre)).toEqual(['Subasta', 'Vehículo', null])
-    expect(grupos[0]?.campos.map((c) => c.clave)).toEqual(['campo_2', 'campo_4'])
-  })
-
-  it('no muestra los desactivados', () => {
-    const grupos = agruparCampos(layout({}, { activo: false }))
-    expect(grupos.flatMap((g) => g.campos)).toHaveLength(1)
-    expect(nombresDeGrupo(layout({}, { grupo: 'Venta', activo: false }))).toEqual(['Vehículo'])
-  })
-})
-
-describe('destinoDeMovimiento', () => {
-  const campos = layout({}, {}, {}, { grupo: 'Venta' })
-
-  it('bajar lo pone después de su vecino de grupo', () => {
-    expect(destinoDeMovimiento(campos, campos[0]?.id ?? '', 'bajar')).toEqual({
-      despuesDe: campos[1]?.id,
-    })
-  })
-
-  it('subir lo pone antes de su vecino: después del que estaba antes de él', () => {
-    expect(destinoDeMovimiento(campos, campos[2]?.id ?? '', 'subir')).toEqual({
-      despuesDe: campos[0]?.id,
-    })
-  })
-
-  it('subir al segundo lo deja primero de todo', () => {
-    expect(destinoDeMovimiento(campos, campos[1]?.id ?? '', 'subir')).toEqual({ despuesDe: null })
-  })
-
-  it('no se sale de su grupo', () => {
-    expect(destinoDeMovimiento(campos, campos[0]?.id ?? '', 'subir')).toBeNull()
-    expect(destinoDeMovimiento(campos, campos[2]?.id ?? '', 'bajar')).toBeNull()
-    expect(destinoDeMovimiento(campos, campos[3]?.id ?? '', 'subir')).toBeNull()
-  })
-
-  it('cuenta los desactivados al medir «antes de»', () => {
-    const conInactivo = layout({ activo: false }, {}, {})
-    expect(destinoDeMovimiento(conInactivo, conInactivo[2]?.id ?? '', 'subir')).toEqual({
-      despuesDe: conInactivo[0]?.id,
-    })
-  })
-
-  it('un campo que no existe no se mueve', () => {
-    expect(destinoDeMovimiento(campos, 'no-existe', 'subir')).toBeNull()
-  })
-})
-
 describe('claveDeCampo', () => {
   it('sale de la etiqueta', () => {
     expect(claveDeCampo('Kit de extras', [])).toBe('kit_de_extras')
@@ -122,13 +61,5 @@ describe('claveDeCampo', () => {
     expect(claveDeCampo('VIN', [])).toBe('vin_2')
     expect(claveDeCampo('Color', ['color'])).toBe('color_2')
     expect(claveDeCampo('Color', ['color', 'color_2'])).toBe('color_3')
-  })
-})
-
-describe('tieneOpciones', () => {
-  it('sólo los campos de opciones', () => {
-    expect(tieneOpciones('opcion')).toBe(true)
-    expect(tieneOpciones('multi_opcion')).toBe(true)
-    expect(tieneOpciones('texto')).toBe(false)
   })
 })

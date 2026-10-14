@@ -1,6 +1,6 @@
-// El valor por defecto de un campo del layout: lo que el formulario de alta de un vehículo trae
-// puesto. Espejo de `_origen_valor_defecto()`; la base lo vuelve a comprobar.
-import type { OpcionDeCampo, TipoDeCampo, ValorDefecto } from './campo'
+// El valor por defecto de un campo del layout: lo que el formulario de alta trae puesto. Espejo de
+// `_campo_valor_defecto()`; la base lo vuelve a comprobar.
+import type { OpcionDeCampo, TipoDeCampo, ValorDefecto } from './tipos'
 
 export const LARGO_MAXIMO_DE_VALOR_DEFECTO = 500
 

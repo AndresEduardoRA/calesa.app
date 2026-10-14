@@ -1,5 +1,5 @@
+import type { ResumenDeImpacto } from '@/shared/lib/campos'
 import { Button } from '@/shared/ui/button'
-import type { ResumenDeImpacto } from '../../../entities/impacto'
 
 type Props = {
   esNuevo: boolean

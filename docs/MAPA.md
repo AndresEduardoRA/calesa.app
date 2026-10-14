@@ -65,7 +65,7 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 - Depende de: ningún otro módulo
 
 ### `origenes`
-Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías. Al crear uno nacen, por trigger y en la misma transacción, su flujo de logística (con sus reglas, sin fases) y los campos de su tipo. Uno de subasta nace con **un campo por cada dato normalizado que devuelve apibara** (el catálogo), todos encendidos. **No** nace una fórmula: «fórmula pendiente» es no tener una fila `publicada`. · 87 archivos
+Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías. Al crear uno nacen, por trigger y en la misma transacción, su flujo de logística (con sus reglas, sin fases) y los campos de su tipo. Uno de subasta nace con **un campo por cada dato normalizado que devuelve apibara** (el catálogo), todos encendidos. **No** nace una fórmula: «fórmula pendiente» es no tener una fila `publicada`. · 73 archivos
 - API: `getOrigenes`, `OrigenResumen`, `leerDatosNuevosDeApibara`, `leerLayout`, `agruparCampos`, `tieneOpciones`, `CampoDeLayout`, `GrupoDeCampos`, `OpcionDeCampo`, `TipoDeCampo`, +15
 - API de cliente (`client.ts`): `articulo`, `concordar`, `contados`, `frasePorVacio`, `generoSugerido`, `ninguno`, `pluralDe`, `Genero`, `OrigenResumen`, `TipoDeOrigen`, +9
 - Depende de: ningún otro módulo
@@ -98,11 +98,13 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 
 - `config/`: `app.ts`, `entorno.ts`
 - `lib/`: `almacen.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `color.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
+- `lib/campos/`: `agrupar.ts`, `cambios.ts`, `clave.ts`, `esquemas.ts`, `impacto.ts`, `index.ts`, `motivos.ts`, `orden.ts`, `tipos.ts`, `valor-defecto.ts`
 - `lib/filtros/`: `chips.ts`, `esquema.ts`, `index.ts`, `url.ts`
 - `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `funciones.client.ts`, `proxy.ts`, `server.ts`
 - `types/`: `database.types.ts`
 - `ui/`: `avatar.tsx`, `aviso-de-conflicto.tsx`, `aviso.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo-seleccion.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `estilo-de-marca.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `interruptor.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`, `use-borrador-de-estado.ts`, `use-borrador.ts`, `use-en-linea.ts`, `use-ultimo.ts`, `zona-de-archivos.tsx`
 - `ui/atajos/`: `index.ts`, `proveedor-atajos.tsx`, `use-atajo.ts`
+- `ui/campos/`: `aviso-de-impacto.tsx`, `campo-valor-defecto.tsx`, `campos-de-campo.tsx`, `campos-desactivados.tsx`, `editor-de-campos.tsx`, `editor-de-opciones.tsx`, `fila-de-campo.tsx`, `formulario-de-campo.tsx`, `grupos-de-campos.tsx`, `index.ts`, `panel-de-campo.tsx`, `pie-del-formulario.tsx`, `tipos.ts`, `use-formulario-de-campo.ts`
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-listado.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
 - `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `use-filtros.ts`

@@ -1,5 +1,5 @@
+import type { ResumenDeImpacto } from '@/shared/lib/campos'
 import { Aviso } from '@/shared/ui/aviso'
-import type { ResumenDeImpacto } from '../../../entities/impacto'
 
 type Props = { resumen: ResumenDeImpacto }
 

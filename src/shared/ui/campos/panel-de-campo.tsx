@@ -1,37 +1,35 @@
 'use client'
 
+import type { CampoBase } from '@/shared/lib/campos'
 import { Drawer } from '@/shared/ui/drawer'
 import { useUltimo } from '@/shared/ui/use-ultimo'
-import type { CampoDeLayout } from '../../../entities/campo'
-import type { TipoDeOrigen } from '../../../entities/origen'
-import type { EdicionesDeCampos } from '../hooks/use-campos'
 import { FormularioDeCampo } from './formulario-de-campo'
+import type { ConfiguracionDeCampos, EdicionesDeCampos } from './tipos'
 
-type Props = {
+type Props<Campo extends CampoBase, Cambios extends object, Nuevo> = {
   // 'nuevo' para crear, el campo de `?campo=` para editar, null con el panel cerrado.
-  campo: CampoDeLayout | 'nuevo' | null
-  origenId: string
-  tipoDeOrigen: TipoDeOrigen
-  todos: readonly CampoDeLayout[]
+  campo: Campo | 'nuevo' | null
+  todos: readonly Campo[]
   puedeGestionar: boolean
-  ediciones: EdicionesDeCampos
+  configuracion: ConfiguracionDeCampos<Campo, Cambios, Nuevo>
+  ediciones: EdicionesDeCampos<Cambios, Nuevo>
   alCerrar: () => void
 }
 
 // El segundo nivel del editor: un campo, con su URL (`?campo=`).
-export function PanelDeCampo({ campo, ...resto }: Props) {
+export function PanelDeCampo<Campo extends CampoBase, Cambios extends object, Nuevo>({
+  campo,
+  ...resto
+}: Props<Campo, Cambios, Nuevo>) {
   const aLaVista = useUltimo(campo)
   const existente = aLaVista === 'nuevo' ? null : aLaVista
+  const { textos } = resto.configuracion
   return (
     <Drawer
       abierto={campo !== null}
       alCerrar={resto.alCerrar}
-      titulo={existente ? existente.etiqueta : 'Campo nuevo'}
-      descripcion={
-        existente
-          ? 'Cómo se ve y se usa este dato en los vehículos del origen.'
-          : 'Un dato propio de los vehículos de este origen.'
-      }
+      titulo={existente ? existente.etiqueta : textos.panelNuevo}
+      descripcion={existente ? textos.panelDescripcionExistente : textos.panelDescripcionNuevo}
     >
       {aLaVista ? (
         <FormularioDeCampo

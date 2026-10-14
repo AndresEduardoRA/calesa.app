@@ -1,15 +1,21 @@
+import type { CampoBase } from '@/shared/lib/campos'
 import { Bloque } from '@/shared/ui/bloque'
 import { Button } from '@/shared/ui/button'
-import type { CampoDeLayout } from '../../../entities/campo'
 
-type Props = {
-  campos: readonly CampoDeLayout[]
+type DelCampo = Pick<CampoBase, 'id' | 'etiqueta'>
+
+type Props<Campo extends DelCampo> = {
+  campos: readonly Campo[]
   deshabilitado: boolean
-  alReactivar: (campo: CampoDeLayout) => void
+  alReactivar: (campo: Campo) => void
 }
 
 // Los campos que se sacaron del formulario. Sus datos siguen guardados: reactivarlos los devuelve.
-export function CamposDesactivados({ campos, deshabilitado, alReactivar }: Props) {
+export function CamposDesactivados<Campo extends DelCampo>({
+  campos,
+  deshabilitado,
+  alReactivar,
+}: Props<Campo>) {
   return (
     <Bloque titulo={`Campos desactivados (${campos.length})`} plegado>
       <ul className="grid gap-2">

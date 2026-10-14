@@ -2,10 +2,9 @@
 
 import { PlusIcon, XIcon } from 'lucide-react'
 import { useState } from 'react'
+import { claveDeTexto, type OpcionDeCampo } from '@/shared/lib/campos'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
-import type { OpcionDeCampo } from '../../../entities/campo'
-import { claveDeNombre } from '../../../entities/nombre'
 
 type Props = {
   opciones: readonly OpcionDeCampo[]
@@ -14,9 +13,9 @@ type Props = {
   deshabilitado: boolean
 }
 
-// La clave de una opción nueva sale de su nombre y no cambia: los vehículos guardan esa clave.
+// La clave de una opción nueva sale de su nombre y no cambia: los registros guardan esa clave.
 function claveNueva(etiqueta: string, existentes: readonly OpcionDeCampo[]): string {
-  const base = claveDeNombre(etiqueta, 30)
+  const base = claveDeTexto(etiqueta, 30, { prefijo: 'o_', vacio: 'opcion' })
   const usadas = new Set(existentes.map((opcion) => opcion.clave))
   let candidata = base
   for (let n = 2; usadas.has(candidata); n += 1) {
@@ -26,7 +25,7 @@ function claveNueva(etiqueta: string, existentes: readonly OpcionDeCampo[]): str
 }
 
 // Las opciones de un campo de «una opción» o «varias opciones». Cambiar el nombre de una no toca
-// su clave; sacar una la quita de la lista pero no de los vehículos que ya la tienen.
+// su clave; sacar una la quita de la lista pero no de los registros que ya la tienen.
 export function EditorDeOpciones({ opciones, alCambiar, error, deshabilitado }: Props) {
   const [nueva, setNueva] = useState('')
 

@@ -1,5 +1,11 @@
 // Lo que cambia una edición de un campo del layout: sólo viaja lo que la persona tocó, y algunos
 // cambios pueden tocar datos ya cargados.
+import {
+  mismasOpciones,
+  mismoValorDefecto,
+  necesitaVistaPrevia as necesitaVistaPreviaDelMotor,
+  opcionesQuitadas as opcionesQuitadasDelMotor,
+} from '@/shared/lib/campos'
 import type { Json } from '@/shared/types/database.types'
 import type { CampoDeLayout, OpcionDeCampo, TipoDeCampo, ValorDefecto } from './campo'
 
@@ -37,23 +43,6 @@ export function cambiosComoColumnas(cambios: CambiosDeCampo): Record<string, Jso
   return columnas
 }
 
-function mismasOpciones(a: readonly OpcionDeCampo[], b: readonly OpcionDeCampo[]): boolean {
-  return (
-    a.length === b.length &&
-    a.every((opcion, i) => {
-      const otra = b[i]
-      return otra !== undefined && opcion.clave === otra.clave && opcion.etiqueta === otra.etiqueta
-    })
-  )
-}
-
-function mismoValorDefecto(a: ValorDefecto | null, b: ValorDefecto | null): boolean {
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return a.length === b.length && a.every((clave, i) => clave === b[i])
-  }
-  return a === b
-}
-
 // Sólo lo que la persona cambió respecto de lo guardado: así una edición no pisa lo que otra
 // persona tocó en el mismo campo mientras tanto.
 export function cambiosRespectoDe(
@@ -79,21 +68,11 @@ export function cambiosRespectoDe(
 
 // Las claves de las opciones que el cambio saca.
 export function opcionesQuitadas(campo: CampoDeLayout, cambios: CambiosDeCampo): OpcionDeCampo[] {
-  if (!cambios.opciones) {
-    return []
-  }
-  const quedan = new Set(cambios.opciones.map((opcion) => opcion.clave))
-  return campo.opciones.filter((opcion) => !quedan.has(opcion.clave))
+  return opcionesQuitadasDelMotor(campo, cambios)
 }
 
 // ¿Hace falta contar vehículos antes de guardar? Cambiar el tipo, volver requerido o sacar una
 // opción pueden tocar datos que ya existen. Desactivar no: el dato se conserva y se deshace.
 export function necesitaVistaPrevia(campo: CampoDeLayout, cambios: CambiosDeCampo): boolean {
-  if (cambios.tipo !== undefined && cambios.tipo !== campo.tipo) {
-    return true
-  }
-  if (cambios.requerido === true && !campo.requerido) {
-    return true
-  }
-  return opcionesQuitadas(campo, cambios).length > 0
+  return necesitaVistaPreviaDelMotor(campo, cambios)
 }
