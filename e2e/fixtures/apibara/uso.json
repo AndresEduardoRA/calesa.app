@@ -1,0 +1,57 @@
+{
+  "ok": true,
+  "data": {
+    "product": {
+      "id": 1,
+      "name": "Copart & IAAI Auction Data API",
+      "slug": "vehicle-auction-data-api"
+    },
+    "plan": {
+      "id": 2,
+      "name": "Test",
+      "per_page_limit": 20
+    },
+    "period": {
+      "range": "subscription",
+      "from": "2026-10-12",
+      "to": "2026-10-14",
+      "subscription_from": "2026-10-12",
+      "subscription_to": "2026-10-14",
+      "quota_from": "2026-10-12",
+      "quota_to": "2026-10-14"
+    },
+    "quota": {
+      "used": 60,
+      "limit": 100,
+      "left": 40,
+      "percent": 60
+    },
+    "summary": {
+      "today_requests": 9,
+      "today_errors": 0,
+      "period_requests": 60,
+      "period_errors": 0,
+      "avg_latency_ms": 82
+    },
+    "chart": {
+      "labels": ["2026-10-12", "2026-10-13", "2026-10-14"],
+      "requests": [19, 32, 9],
+      "errors": [0, 0, 0],
+      "latency_ms": [77, 68, 136]
+    },
+    "top_endpoints": [
+      {
+        "endpoint": "/api/v1/vehicle-auction/vehicles/{id}",
+        "requests": 64,
+        "errors": 6,
+        "avg_latency_ms": 71
+      },
+      {
+        "endpoint": "/api/v1/vehicle-auction/vehicles",
+        "requests": 2,
+        "errors": 0,
+        "avg_latency_ms": 431
+      }
+    ]
+  }
+}

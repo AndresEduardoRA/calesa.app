@@ -1,0 +1,293 @@
+{
+  "ok": true,
+  "data": {
+    "slug_vin": "2024-ford-bronco-big-bend-3FMCR9B64RRE04601",
+    "vin": "3FMCR9B64RRE04601",
+    "platform": "copart",
+    "platform_id": 1,
+    "lot_number": "58540656",
+    "ad": "2026-10-14T18:00:00+00:00",
+    "title": "2024 FORD BRONCO BIG BEND",
+    "year": 2024,
+    "make": "FORD",
+    "model": "BRONCO",
+    "series": {
+      "key": "BRONCO",
+      "name": "Bronco"
+    },
+    "generation": {
+      "id": 1235,
+      "name": "Mk6 (U725)",
+      "generation": "Mk6 (U725)",
+      "make": "Ford",
+      "model": "Bronco",
+      "series": "Bronco",
+      "series_key": "BRONCO",
+      "year_from": 2020,
+      "year_to": null,
+      "label": "Mk6 (U725) (2020+)"
+    },
+    "type": "AUTOMOBILE",
+    "subLot": false,
+    "auction": {
+      "state": "open",
+      "formatted": "Oct 14, 2026 21:00",
+      "full_date": "2026-10-14T18:00:00+00:00",
+      "diff_minutes": 54,
+      "ad": "2026-10-14T18:00:00+00:00",
+      "countdown": {
+        "days": 0,
+        "hours": 0,
+        "minutes": 54
+      },
+      "is_timed": false,
+      "is_buy_now": false,
+      "auction_at": "2026-10-14T18:00:00+00:00",
+      "timed_end_at": null,
+      "last_sold_day": null,
+      "last_sold_at": null,
+      "last_sold_status": null,
+      "outcome_status": null,
+      "auction_ended_at": null,
+      "outcome_observed_at": null,
+      "lot_removed": false,
+      "sold_buy_now": false,
+      "sold_timed": false
+    },
+    "pricing": {
+      "current_bid_usd": 2500,
+      "current_bid_at": null,
+      "current_bid2_usd": 2500,
+      "buy_now_usd": null,
+      "estimated_retail_value_usd": null,
+      "sale_price_usd": null,
+      "last_sold_price_usd": null,
+      "estimated_cost": {
+        "from": 13200,
+        "to": 20500,
+        "median": 16150,
+        "text": "$13,200 - $20,500",
+        "sample_count": 258,
+        "refinement_method": null,
+        "refinement_sample_count": null,
+        "engine_size_l": null,
+        "mileage_bucket": null,
+        "market_multiplier": null,
+        "previous_high_bid_usd": 6200
+      }
+    },
+    "location": {
+      "display": "Casper (WY)",
+      "send_from": "Chicago",
+      "state": null
+    },
+    "seller": {
+      "name": "Non-insurance Company",
+      "type": "non_insurance",
+      "class": "bg-warning-F6AD71",
+      "text_class": "text-warning"
+    },
+    "condition": {
+      "run_condition": {
+        "value": "Run & Drive Verified",
+        "label": "Run & drive verified",
+        "class_hint": "warning"
+      },
+      "has_key": true,
+      "loss": null,
+      "primary_damage": "Front end",
+      "secondary_damage": null
+    },
+    "odometer": {
+      "mi": 32172,
+      "km": 51776
+    },
+    "vehicle_specs": {
+      "exterior_color": "Gray",
+      "engine": {
+        "raw": null,
+        "size_l": null,
+        "hp": null,
+        "layout": null
+      },
+      "transmission": "Automatic",
+      "fuel_type": null,
+      "drive_type": null,
+      "body_style": null,
+      "airbags": null,
+      "restraint_system": null
+    },
+    "sale_document": {
+      "name": "CERT OF TITLE-SALVAGE",
+      "type": "success",
+      "export": true,
+      "registration": true,
+      "is_pending": false,
+      "page_id": 9,
+      "sale_document_group": "approved"
+    },
+    "media": {
+      "thumbs_count": 14,
+      "images_count": 14,
+      "items_count": 15,
+      "has_video": true,
+      "has_360": false,
+      "thumbs": [
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f8caf435090e4dc2bce7a7ffecdf7ac6_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c57bed1575634e97a6c2ba961922e607_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/9cb9499706bf4a168c16d6aeb4f4ecd2_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f8704b995e2e482ea711deceb7a757c1_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/3adf3d83d9e74c10be2659a5bfcc6fd6_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f7d8a8d26b764d5884688d2c1b83c19e_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/e0b11acf9c2c4f878b64293f736a2d90_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/73e8aafe2d544fb4b6e0ced7c75ba066_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/64ad3ed1175741219020cd8d933ab9b9_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/d24d14c6d68b46359acdefff67b1d05c_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c5ddb2d3b2414809bd87fab14d821ca3_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/01be00d0da634cfebb151eb4e5b00f29_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c7c5e2a5f94a466c89a2982d6ba24607_ful.jpg",
+        "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/184dcf786ffa46d8ac35260d202b80f2_vful.jpg"
+      ],
+      "items": [
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f8caf435090e4dc2bce7a7ffecdf7ac6_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f8caf435090e4dc2bce7a7ffecdf7ac6_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f8caf435090e4dc2bce7a7ffecdf7ac6_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c57bed1575634e97a6c2ba961922e607_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c57bed1575634e97a6c2ba961922e607_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c57bed1575634e97a6c2ba961922e607_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/9cb9499706bf4a168c16d6aeb4f4ecd2_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/9cb9499706bf4a168c16d6aeb4f4ecd2_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/9cb9499706bf4a168c16d6aeb4f4ecd2_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f8704b995e2e482ea711deceb7a757c1_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f8704b995e2e482ea711deceb7a757c1_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f8704b995e2e482ea711deceb7a757c1_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/3adf3d83d9e74c10be2659a5bfcc6fd6_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/3adf3d83d9e74c10be2659a5bfcc6fd6_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/3adf3d83d9e74c10be2659a5bfcc6fd6_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f7d8a8d26b764d5884688d2c1b83c19e_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f7d8a8d26b764d5884688d2c1b83c19e_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/f7d8a8d26b764d5884688d2c1b83c19e_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/e0b11acf9c2c4f878b64293f736a2d90_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/e0b11acf9c2c4f878b64293f736a2d90_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/e0b11acf9c2c4f878b64293f736a2d90_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/73e8aafe2d544fb4b6e0ced7c75ba066_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/73e8aafe2d544fb4b6e0ced7c75ba066_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/73e8aafe2d544fb4b6e0ced7c75ba066_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/64ad3ed1175741219020cd8d933ab9b9_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/64ad3ed1175741219020cd8d933ab9b9_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/64ad3ed1175741219020cd8d933ab9b9_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/d24d14c6d68b46359acdefff67b1d05c_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/d24d14c6d68b46359acdefff67b1d05c_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/d24d14c6d68b46359acdefff67b1d05c_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c5ddb2d3b2414809bd87fab14d821ca3_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c5ddb2d3b2414809bd87fab14d821ca3_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c5ddb2d3b2414809bd87fab14d821ca3_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/01be00d0da634cfebb151eb4e5b00f29_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/01be00d0da634cfebb151eb4e5b00f29_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/01be00d0da634cfebb151eb4e5b00f29_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c7c5e2a5f94a466c89a2982d6ba24607_ful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c7c5e2a5f94a466c89a2982d6ba24607_ful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/c7c5e2a5f94a466c89a2982d6ba24607_hrs.jpg"
+        },
+        {
+          "type": "image",
+          "thumb": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/184dcf786ffa46d8ac35260d202b80f2_vful.jpg",
+          "full": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/184dcf786ffa46d8ac35260d202b80f2_vful.jpg",
+          "large": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0626/184dcf786ffa46d8ac35260d202b80f2_vhrs.jpg"
+        },
+        {
+          "type": "video",
+          "url": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/ids-c-prod-lpp/0626/f51e3e593d6d408bbb4c2582d6e8dba8_O.mp4"
+        }
+      ]
+    },
+    "details": {
+      "source": "copart_csv",
+      "sale_status": "Minimum Bid",
+      "bid_status": null,
+      "has_bid": null,
+      "seller_reserve_met": false,
+      "starting_bid": null,
+      "buy_now_available": false,
+      "buy_now_price_usd": null,
+      "estimated_retail_value_usd": null,
+      "yard": {
+        "number": 328,
+        "name": "WY - CASPER"
+      },
+      "media": {
+        "source_image_count": null,
+        "views_360_count": 0,
+        "image_api_url": "https://inventoryv2.copart.io/v1/lotImages/58540656?country=us&brand=cprt&yardNumber=328",
+        "fetched_at": null
+      },
+      "source_updated_at": "2026-10-12 17:57:32"
+    },
+    "facility": {
+      "id": 328,
+      "state": "WY",
+      "zip": "82601",
+      "lat": 42.8836321,
+      "lng": -106.348644,
+      "office_name": "WY - CASPER",
+      "address": "2600 SALT CREEK HIGHWAY",
+      "city": "CASPER",
+      "source_location_name": "WY - CASPER",
+      "is_offsite": false,
+      "storage_location_id": null,
+      "storage_facility_id": 328,
+      "canonical": {
+        "id": 328,
+        "name": "WY - CASPER",
+        "address": "2600 SALT CREEK HIGHWAY",
+        "city": "CASPER",
+        "state": "WY",
+        "zip": "82601",
+        "lat": 42.8836321,
+        "lng": -106.348644,
+        "url": "/locations/casper-wy-328"
+      }
+    },
+    "distance": null,
+    "updated_at": "2026-10-14T15:01:02.000000Z"
+  },
+  "url": true
+}

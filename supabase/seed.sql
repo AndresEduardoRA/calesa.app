@@ -16,7 +16,7 @@ insert into public.tipos_cambio (clave, nombre, moneda_de, moneda_a, valor, es_d
   ('paralelo', 'Paralelo', 'USD', 'BOB', 12.40, false, 1)
 on conflict do nothing;
 insert into public.integraciones (clave, activa, config) values
-  ('apibara', false, '{"plataformas": ["copart", "iaai"], "endpoint": "https://api.apibara.tech"}'),
+  ('apibara', false, '{"plataformas": ["copart", "iaai"], "endpoint": "https://apibara.tech/api/v1/vehicle-auction"}'),
   ('push_web', false, '{}'),
   ('web_publica', false, '{"revalidar_url": null}')
 on conflict do nothing;

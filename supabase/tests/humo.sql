@@ -783,7 +783,7 @@ do $$ declare v timestamptz; v2 timestamptz; i public.integraciones; rechazo boo
   begin perform public.integracion_secreto('apibara'); raise exception 'un rol de la app ejecutó integracion_secreto';
   exception when insufficient_privilege then null; end;
   -- Con la clave guardada sí se activa, y la configuración no secreta se edita.
-  perform public.integracion_guardar('apibara', v2, p_activa => true, p_config => '{"endpoint": "https://api.apibara.tech", "plataformas": ["copart"]}');
+  perform public.integracion_guardar('apibara', v2, p_activa => true, p_config => '{"endpoint": "https://apibara.tech/api/v1/vehicle-auction", "plataformas": ["copart"]}');
   select * into i from public.integraciones where clave = 'apibara';
   if not i.activa or i.config -> 'plataformas' <> '["copart"]'::jsonb or i.actualizado_por is distinct from '00000000-0000-0000-0000-000000000001'::uuid then raise exception 'no guardó la integración: %', i; end if;
   -- La dirección no puede apuntar fuera de apibara.tech: ahí viaja la clave.

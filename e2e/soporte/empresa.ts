@@ -106,7 +106,10 @@ export async function restaurarEmpresa(): Promise<void> {
     .update({
       activa: false,
       secreto_guardado_en: null,
-      config: { plataformas: ['copart', 'iaai'], endpoint: 'https://api.apibara.tech' },
+      config: {
+        plataformas: ['copart', 'iaai'],
+        endpoint: 'https://apibara.tech/api/v1/vehicle-auction',
+      },
     })
     .eq('clave', 'apibara')
   exigir(apibara.error, 'la integración')

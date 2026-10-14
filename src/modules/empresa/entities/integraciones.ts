@@ -72,7 +72,7 @@ export const esquemaConfigApibara = z.object({
 export type ConfigApibara = z.infer<typeof esquemaConfigApibara>
 
 export const CONFIG_APIBARA_POR_DEFECTO: ConfigApibara = {
-  endpoint: 'https://api.apibara.tech',
+  endpoint: 'https://apibara.tech/api/v1/vehicle-auction',
   plataformas: ['copart', 'iaai'],
 }
 
