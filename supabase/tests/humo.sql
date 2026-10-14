@@ -847,7 +847,7 @@ do $$ declare r jsonb; o uuid; rechazo boolean; begin
   begin insert into public.categorias (origen_id, nombre) select id, 'X' from public.origenes limit 1; raise exception 'el insert directo de categorías pasó';
   exception when insufficient_privilege then null; end;
 
-  -- Manual: un flujo, nueve reglas (sin aduana), ocho campos de sistema, sin fórmula ni fases.
+  -- Manual: un flujo, nueve reglas (sin aduana), ocho campos de fábrica, sin fórmula ni fases.
   r := public.origen_crear('corea_humo', '  Corea  ', 'Vehículo', 'm', 'manual');
   o := (r ->> 'id')::uuid;
   if (select count(*) from public.flujos where origen_id = o and ambito = 'vehiculos') <> 1 then raise exception 'el origen manual debía nacer con un flujo'; end if;
@@ -856,7 +856,7 @@ do $$ declare r jsonb; o uuid; rechazo boolean; begin
      or exists (select 1 from public.flujos_reglas fr join public.flujos f on f.id = fr.flujo_id where f.origen_id = o and fr.regla = 'aduana') then
     raise exception 'las reglas del origen manual no son las nueve sin aduana'; end if;
   if (select count(*) from public.origenes_campos where origen_id = o and es_sistema) <> 8 or (select count(*) from public.origenes_campos where origen_id = o) <> 8 then
-    raise exception 'el origen manual debía nacer con ocho campos de sistema'; end if;
+    raise exception 'el origen manual debía nacer con ocho campos de fábrica'; end if;
   if exists (select 1 from public.origenes_campos where origen_id = o and clave_apibara is not null) then raise exception 'un campo manual lleva clave de apibara'; end if;
   if exists (select 1 from public.formulas where origen_id = o) or exists (select 1 from public.fases f join public.flujos fl on fl.id = f.flujo_id where fl.origen_id = o) then
     raise exception 'un origen nuevo no trae fórmula ni fases'; end if;
@@ -994,8 +994,8 @@ begin
   select id, actualizado_en into sist, v from public.origenes_campos where origen_id = o and clave = 'color';
   perform public.origen_campo_guardar(sist, v, '{"filtrable": false}');
   rechazo := false; begin perform public.origen_campo_guardar(sist, (select actualizado_en from public.origenes_campos where id = sist), '{"tipo": "numero"}'); exception when raise_exception then rechazo := true; end;
-  if not rechazo then raise exception 'cambió el tipo de un campo de sistema'; end if;
-  begin perform public.origen_campo_eliminar(sist, (select actualizado_en from public.origenes_campos where id = sist)); raise exception 'eliminó un campo de sistema';
+  if not rechazo then raise exception 'cambió el tipo de un campo de fábrica'; end if;
+  begin perform public.origen_campo_eliminar(sist, (select actualizado_en from public.origenes_campos where id = sist)); raise exception 'eliminó un campo de fábrica';
   exception when foreign_key_violation then null; end;
 
   -- Orden relativo: «después de X» y «primero»; los números quedan en 10, 20, 30…

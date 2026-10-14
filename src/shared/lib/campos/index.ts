@@ -43,7 +43,7 @@ export {
   esquemaVersion,
 } from './esquemas'
 export {
-  MOTIVO_CAMPO_DE_SISTEMA,
+  MOTIVO_CAMPO_DE_FABRICA,
   MOTIVO_PRIMERO_DE_SU_GRUPO,
   MOTIVO_ULTIMO_DE_SU_GRUPO,
 } from './motivos'

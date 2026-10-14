@@ -88,9 +88,9 @@ describe('FilaDeCampo', () => {
     expect(screen.getByRole('button', { name: 'Bajar Color' })).toHaveProperty('disabled', true)
   })
 
-  it('un campo de sistema y uno requerido lo dicen con texto', () => {
+  it('un campo de fábrica y uno requerido lo dicen con texto', () => {
     fila({ campo: { ...CAMPO, requerido: true } })
-    expect(screen.getByText('Sistema')).toBeTruthy()
+    expect(screen.getByText('De fábrica')).toBeTruthy()
     expect(screen.getByText('Requerido')).toBeTruthy()
   })
 })

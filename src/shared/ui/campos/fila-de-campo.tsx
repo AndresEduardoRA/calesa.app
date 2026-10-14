@@ -68,7 +68,7 @@ export function FilaDeCampo(props: Props) {
             {campo.etiqueta}
           </span>
           {campo.requerido ? <Badge variant="secondary">Requerido</Badge> : null}
-          {campo.esSistema ? <Badge variant="outline">Sistema</Badge> : null}
+          {campo.esSistema ? <Badge variant="outline">De fábrica</Badge> : null}
         </span>
         <span className="text-(length:--text-sm) text-(--color-ink-faint)">
           {ETIQUETA_DE_TIPO_DE_CAMPO[campo.tipo]} · <span className="font-mono">{campo.clave}</span>

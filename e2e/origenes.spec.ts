@@ -243,13 +243,13 @@ test('se edita el layout de campos y se refleja', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Editar Kit de extras' })).toBeVisible()
 })
 
-test('un campo de sistema no cambia de tipo ni se elimina', async ({ page }) => {
+test('un campo de fábrica no cambia de tipo ni se elimina', async ({ page }) => {
   await entrar(page, duena)
   await irADetalle(page, MANUAL, 'Campos')
   await page.getByRole('button', { name: 'Editar Color' }).click()
   const panel = page.getByRole('dialog')
   await expect(panel.getByLabel('Tipo')).toBeDisabled()
-  await expect(panel.getByText('Es un campo del sistema')).toBeVisible()
+  await expect(panel.getByText('Es un campo de fábrica')).toBeVisible()
   await expect(panel.getByRole('button', { name: 'Eliminar campo' })).toHaveCount(0)
 })
 

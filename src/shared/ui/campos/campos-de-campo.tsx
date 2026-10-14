@@ -3,7 +3,7 @@
 import { useId } from 'react'
 import {
   ETIQUETA_DE_TIPO_DE_CAMPO,
-  MOTIVO_CAMPO_DE_SISTEMA,
+  MOTIVO_CAMPO_DE_FABRICA,
   tieneOpciones,
   type CampoBase,
   type TipoDeCampo,
@@ -140,7 +140,7 @@ export function CamposDeCampo(props: Props) {
         onChange={(evento) => {
           alCambiar({ tipo: evento.target.value as TipoDeCampo })
         }}
-        ayuda={tipoFijo ? MOTIVO_CAMPO_DE_SISTEMA : undefined}
+        ayuda={tipoFijo ? MOTIVO_CAMPO_DE_FABRICA : undefined}
         disabled={deshabilitado || tipoFijo}
       />
       {tieneOpciones(valores.tipo) ? (
