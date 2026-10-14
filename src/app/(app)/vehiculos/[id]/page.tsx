@@ -1,13 +1,11 @@
 import { ArrowLeftIcon } from 'lucide-react'
 import type { Metadata, Route } from 'next'
 import Link from 'next/link'
-import { Suspense } from 'react'
 import { z } from 'zod'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
 import {
-  EsqueletoDeFotos,
   editablesDe,
   eliminablesDe,
   motivoParaNoEnviar,
@@ -22,13 +20,11 @@ import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { vehiculoEnEdicion } from '../edicion'
-import { BloqueVinculo } from './bloque-vinculo'
+import { ContenidoDeLaPestana } from './contenido-de-la-pestana'
 import { Encabezado } from './encabezado'
 import { Paneles } from './paneles'
 import { CLAVE_DE_PESTANA, hayBarraDePestanas, pestanaDeVehiculo } from './pestanas'
 import { PestanasDeVehiculo } from './pestanas-de-vehiculo'
-import { SeccionFicha } from './seccion-ficha'
-import { SeccionFotos } from './seccion-fotos'
 
 export const metadata: Metadata = { title: 'Vehículo' }
 
@@ -101,23 +97,14 @@ export default async function PaginaVehiculo({
         )}
       />
       {hayBarraDePestanas() ? <PestanasDeVehiculo /> : null}
-      {pestana === 'ficha' ? (
-        <>
-          <SeccionFicha vehiculo={encontrado} origen={origen} layout={suLayout} />
-          {/* A quién pertenece y a quién le interesa: sólo para quien ve leads. */}
-          {puede(sesion.permisos, 'leads.ver') ? (
-            <Suspense fallback={null}>
-              <BloqueVinculo vehiculoId={encontrado.id} />
-            </Suspense>
-          ) : null}
-        </>
-      ) : null}
-      {pestana === 'fotos' ? (
-        // La cabecera y las pestañas ya están: las fotos llegan en su propio hueco.
-        <Suspense fallback={<EsqueletoDeFotos />}>
-          <SeccionFotos vehiculoId={encontrado.id} puedeEditar={editable} />
-        </Suspense>
-      ) : null}
+      <ContenidoDeLaPestana
+        pestana={pestana}
+        vehiculo={encontrado}
+        origen={origen}
+        layout={suLayout}
+        editable={editable}
+        verLeads={puede(sesion.permisos, 'leads.ver')}
+      />
       <Paneles
         vehiculo={encontrado}
         origen={origen}

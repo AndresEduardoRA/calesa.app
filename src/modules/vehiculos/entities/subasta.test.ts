@@ -6,8 +6,10 @@ import {
   columnasDesdeSubasta,
   columnasDeEntrada,
   datosDesdeSubasta,
+  entradaDeRefresco,
   esEstadoDeSubasta,
   etiquetaDeEstado,
+  numeroEnRuta,
   valorEnRuta,
   type CampoConRuta,
 } from './subasta'
@@ -182,5 +184,40 @@ describe('columnasDeEntrada', () => {
       vin: '3FMCR9B64RRE04601',
     })
     expect(columnasDeEntrada({ tipo: 'lote', valor: '58540656' })).toEqual({ lote: '58540656' })
+  })
+})
+
+describe('numeroEnRuta', () => {
+  it('lee un número de la respuesta o dice que no hay', () => {
+    expect(numeroEnRuta(COPART.data, 'pricing.current_bid_usd')).toBe(2500)
+    expect(numeroEnRuta(COPART.data, 'pricing.buy_now_usd')).toBeNull()
+    expect(numeroEnRuta(COPART.data, 'nada.de.esto')).toBeNull()
+  })
+})
+
+describe('entradaDeRefresco', () => {
+  it('prefiere el enlace, después el lote y después el VIN', () => {
+    const base = { urlOrigen: null, lote: null, vin: null }
+    expect(
+      entradaDeRefresco({ ...base, urlOrigen: 'https://www.copart.com/lot/1', lote: '58540656' }),
+    ).toBe('https://www.copart.com/lot/1')
+    expect(entradaDeRefresco({ ...base, lote: '58540656', vin: '3FMCR9B64RRE04601' })).toBe(
+      '58540656',
+    )
+    expect(entradaDeRefresco({ ...base, vin: '3FMCR9B64RRE04601' })).toBe('3FMCR9B64RRE04601')
+  })
+
+  it('un enlace de otro sitio o un lote que no es número no sirven; sin nada, null', () => {
+    expect(
+      entradaDeRefresco({ urlOrigen: 'https://www.example.com/x', lote: 'AB-1', vin: null }),
+    ).toBeNull()
+    expect(
+      entradaDeRefresco({
+        urlOrigen: 'https://www.example.com/x',
+        lote: null,
+        vin: '3FMCR9B64RRE04601',
+      }),
+    ).toBe('3FMCR9B64RRE04601')
+    expect(entradaDeRefresco({ urlOrigen: null, lote: null, vin: null })).toBeNull()
   })
 })

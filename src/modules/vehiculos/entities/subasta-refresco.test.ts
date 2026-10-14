@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DatosDeSubasta } from './subasta'
-import { fusionarRefresco } from './subasta-refresco'
+import { etiquetasDeConservados, fusionarRefresco } from './subasta-refresco'
 
 describe('fusionarRefresco', () => {
   const previo: DatosDeSubasta = {
@@ -81,5 +81,16 @@ describe('fusionarRefresco', () => {
       atributos: { banderas: ['a'] },
     })
     expect(refresco.atributos).toEqual({ banderas: ['a', 'b'] })
+  })
+})
+
+describe('etiquetasDeConservados', () => {
+  it('nombra cada clave como la ve la persona y deja afuera las que no conoce', () => {
+    expect(
+      etiquetasDeConservados(['titulo', 'color', 'extraña'], {
+        columnas: { titulo: 'Título' },
+        campos: [{ clave: 'color', etiqueta: 'Color exterior' }],
+      }),
+    ).toEqual(['Título', 'Color exterior'])
   })
 })

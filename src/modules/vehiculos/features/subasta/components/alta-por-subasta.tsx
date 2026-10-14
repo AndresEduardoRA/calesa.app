@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import Link from 'next/link'
 import type { CampoDeLayout, OrigenResumen } from '@/modules/origenes/client'
 import { NOMBRE_DE_PLATAFORMA, plataformasConocidas } from '@/shared/lib/apibara'
@@ -15,7 +16,7 @@ import type { FormularioDeVehiculo } from '../../alta/hooks/use-formulario-de-ve
 import { useAltaPorSubasta } from '../hooks/use-alta-por-subasta'
 import type { GuardadoDeLinea } from '../hooks/use-guardado-de-subasta'
 import { ListaDeLineas } from './lista-de-lineas'
-import { RUTA_DE_INTEGRACIONES } from './linea-de-subasta'
+import { RUTA_DE_INTEGRACIONES } from '../ruta'
 
 type Props = {
   origen: OrigenResumen
@@ -63,7 +64,7 @@ function ApibaraApagada({ puedeConfigurar }: { puedeConfigurar: boolean }) {
           <>
             {' '}
             <Link
-              href={RUTA_DE_INTEGRACIONES}
+              href={RUTA_DE_INTEGRACIONES as Route}
               className="text-(--color-primary) underline underline-offset-2"
             >
               Ir a Integraciones

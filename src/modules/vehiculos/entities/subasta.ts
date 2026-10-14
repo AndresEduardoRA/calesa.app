@@ -1,7 +1,7 @@
 // La subasta de un vehículo: de la respuesta de apibara a los datos de la ficha, qué se actualiza
 // al refrescar, qué fotos trae y cómo se dice la cuenta regresiva. Todo puro: la respuesta llega
 // como `unknown` y nunca se confía en su forma.
-import type { EntradaDeApibara } from './apibara'
+import { interpretarLinea, type EntradaDeApibara } from './apibara'
 import type { CampoDeVehiculo, OpcionDeCampo, TipoDeCampo } from './campo'
 
 export type EstadoDeSubasta = 'abierta' | 'en_vivo' | 'terminada' | 'vendida'
@@ -268,4 +268,24 @@ export function columnasDeEntrada(entrada: EntradaDeApibara): ColumnasDeSubasta 
     case 'lote':
       return { lote: entrada.valor }
   }
+}
+
+// Un número de la respuesta (o null si no está o no es un número).
+export function numeroEnRuta(raw: unknown, ruta: string): number | null {
+  return numeroDe(valorEnRuta(raw, ruta)) ?? null
+}
+
+// Con qué se vuelve a preguntar por un vehículo: su enlace si es de Copart o IAAI (es lo que
+// distingue la plataforma), si no su lote, si no su VIN.
+export function entradaDeRefresco(vehiculo: {
+  urlOrigen: string | null
+  lote: string | null
+  vin: string | null
+}): string | null {
+  for (const candidata of [vehiculo.urlOrigen, vehiculo.lote, vehiculo.vin]) {
+    if (candidata && interpretarLinea(candidata).ok) {
+      return candidata.trim()
+    }
+  }
+  return null
 }

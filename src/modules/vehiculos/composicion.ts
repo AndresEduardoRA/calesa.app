@@ -10,6 +10,7 @@ import type {
   LectorDePapelera,
   LectorDeGaleria,
   LectorDeRelaciones,
+  LectorDeSubasta,
   LectorDeVehiculo,
   LectorDeVistaPrevia,
   LectorDeVitrinaDelOrigen,
@@ -23,6 +24,7 @@ import { papeleraSupabase } from './infra/papelera'
 import { getEditables } from './infra/queries/editables'
 import { getGaleria } from './infra/queries/fotos'
 import { getConPermiso, getLimpiezaPendiente, getPapelera } from './infra/queries/papelera'
+import { getSubasta } from './infra/queries/subasta'
 import { getRelaciones } from './infra/queries/vinculo'
 import { getVistaPrevia, getVitrinaDelOrigen } from './infra/queries/vitrina'
 import { buscarVehiculos as buscarEnSupabase, getVehiculo } from './infra/queries/listado'
@@ -33,6 +35,7 @@ export const buscarVehiculos: BuscadorDeVehiculos = buscarEnSupabase
 export const leerVehiculo: LectorDeVehiculo = getVehiculo
 export const repositorioVehiculos: RepositorioVehiculos = vehiculosSupabase
 export const leerGaleria: LectorDeGaleria = getGaleria
+export const leerSubasta: LectorDeSubasta = getSubasta
 export const repositorioFotos: RepositorioFotos = fotosSupabase
 export const leerRelaciones: LectorDeRelaciones = getRelaciones
 export const consultarEditables: ConsultaDeEditables = getEditables

@@ -4,6 +4,8 @@ import { useAction } from 'next-safe-action/hooks'
 import { descargarFoto, prepararFoto, subirFoto } from '../../../composicion.client'
 import { mensajeDeApibara, type CodigoDeApibara } from '../../../entities/apibara'
 import type { FotoSubida } from '../../../entities/foto'
+import type { FotosAgregadas } from '../../../entities/repositorios'
+import type { Resultado } from '@/shared/lib/errores'
 import {
   fotosQueFaltan,
   resumenDeFotosDeSubasta,
@@ -25,14 +27,65 @@ type Traida =
 
 type Pedido = {
   vehiculoId: string
-  // La respuesta de apibara en bruto: de ahí salen las direcciones de las fotos.
-  raw: unknown
-  // Las direcciones de origen que el vehículo ya tiene registradas (para traer sólo las que faltan).
-  registradas?: readonly string[]
   // El aviso que se actualiza mientras corre; con varios vehículos, cada uno el suyo.
   idDeAviso?: string
   // Qué vehículo es, para el mensaje (opcional).
   nombre?: string
+  // El vehículo no tiene ninguna foto: la primera de la lista queda de portada. Si ya tiene, traer
+  // las que faltan no le quita la portada que la persona eligió.
+  sinFotos?: boolean
+} & (
+  | {
+      // La respuesta de apibara en bruto: de ahí salen las direcciones de las fotos, menos las que
+      // el vehículo ya tiene registradas.
+      raw: unknown
+      registradas?: readonly string[]
+    }
+  | {
+      // Las que faltan, ya calculadas por el servidor (la ficha no tiene el bruto).
+      fotas: readonly FotoDeSubasta[]
+    }
+)
+
+// Qué fotos hay que traer: las que dice el pedido, o las de la respuesta menos las ya registradas.
+function fotasDe(pedido: Pedido): readonly FotoDeSubasta[] {
+  return 'fotas' in pedido ? pedido.fotas : fotosQueFaltan(pedido.raw, pedido.registradas ?? [])
+}
+
+// Si el vehículo no tiene ninguna foto, la primera de la lista queda de portada. Si ya tiene,
+// traer las que faltan no le quita la que la persona eligió.
+function seQuedaSinFotos(pedido: Pedido): boolean {
+  return pedido.sinFotos ?? ('raw' in pedido && (pedido.registradas ?? []).length === 0)
+}
+
+// Por qué no se trajeron las que faltan, dicho con las palabras de apibara; undefined si fue otra
+// cosa (una imagen que no se pudo leer).
+function motivoDeLasFallidas(traidas: readonly Traida[]): string | undefined {
+  const fallida = traidas.find((una) => !una.ok && una.codigo !== null)
+  return fallida && !fallida.ok && fallida.codigo ? mensajeDeApibara(fallida.codigo) : undefined
+}
+
+type FotoPorRegistrar = FotoSubida & { origenUrl: string; orden: number; esPortada?: boolean }
+
+// Registra en una sola llamada las que subieron; devuelve cuántas quedaron guardadas.
+async function registrar(
+  guardar: (fotos: FotoPorRegistrar[]) => Promise<Resultado<FotosAgregadas>>,
+  pedido: Pedido,
+  subidas: readonly Extract<Traida, { ok: true }>[],
+): Promise<number> {
+  if (subidas.length === 0) {
+    return 0
+  }
+  const sinFotos = seQuedaSinFotos(pedido)
+  const respuesta = await guardar(
+    subidas.map(({ foto, subida }) => ({
+      ...subida,
+      origenUrl: foto.url,
+      orden: foto.orden,
+      ...(sinFotos && foto.orden === 1 ? { esPortada: true } : {}),
+    })),
+  )
+  return respuesta.ok ? respuesta.data.agregadas.length + respuesta.data.repetidas.length : 0
 }
 
 // Trae las fotos de la subasta: las baja por la edge function (que tiene la clave), les saca los
@@ -56,15 +109,17 @@ export function useFotosDeSubasta(origenId: string) {
   }
 
   async function traer(pedido: Pedido): Promise<ResultadoDeFotos> {
-    const { vehiculoId, raw, registradas = [], idDeAviso = `fotos-${pedido.vehiculoId}` } = pedido
-    const faltan = fotosQueFaltan(raw, registradas)
+    const { vehiculoId, idDeAviso = `fotos-${pedido.vehiculoId}` } = pedido
+    const faltan = fotasDe(pedido)
     if (faltan.length === 0) {
       return { total: 0, guardadas: 0 }
     }
     const donde = pedido.nombre ? ` de ${pedido.nombre}` : ''
+    const avance = (hechas: number) =>
+      `Trayendo las fotos${donde}: ${String(hechas)} de ${String(faltan.length)}`
     let hechas = 0
     let corte: CodigoDeApibara | null = null
-    avisarProgreso(idDeAviso, `Trayendo las fotos${donde}: 0 de ${String(faltan.length)}`)
+    avisarProgreso(idDeAviso, avance(0))
     const traidas = await enTandas(faltan, FOTOS_A_LA_VEZ, async (foto): Promise<Traida> => {
       // Con la cuota agotada o la clave rechazada, las demás fallarían igual.
       const resultado: Traida = corte
@@ -74,42 +129,21 @@ export function useFotosDeSubasta(origenId: string) {
         corte = resultado.codigo
       }
       hechas += 1
-      avisarProgreso(
-        idDeAviso,
-        `Trayendo las fotos${donde}: ${String(hechas)} de ${String(faltan.length)}`,
-      )
+      avisarProgreso(idDeAviso, avance(hechas))
       return resultado
     })
 
-    const subidas = traidas.flatMap((una) => (una.ok ? [una] : []))
-    const motivo = traidas.find((una) => !una.ok && una.codigo !== null)
-    const porQue =
-      motivo && !motivo.ok && motivo.codigo ? mensajeDeApibara(motivo.codigo) : undefined
-    let guardadas = 0
-    if (subidas.length > 0) {
-      const sinFotos = registradas.length === 0
-      const respuesta = await respuestaDe(
-        executeAsync({
-          vehiculoId,
-          fotos: subidas.map(({ foto, subida }) => ({
-            ...subida,
-            origenUrl: foto.url,
-            orden: foto.orden,
-            // La primera de la lista es la portada, pero sólo si el vehículo no tenía fotos: si
-            // la persona ya eligió otra, traer las que faltan no se la quita.
-            ...(sinFotos && foto.orden === 1 ? { esPortada: true } : {}),
-          })),
-        }),
-      )
-      guardadas = respuesta.ok
-        ? respuesta.data.agregadas.length + respuesta.data.repetidas.length
-        : 0
-    }
+    const guardadas = await registrar(
+      (fotos) => respuestaDe(executeAsync({ vehiculoId, fotos })),
+      pedido,
+      traidas.filter((una) => una.ok),
+    )
     terminarProgreso(idDeAviso)
+    const motivo = motivoDeLasFallidas(traidas)
     const resultado: ResultadoDeFotos = {
       total: faltan.length,
       guardadas,
-      ...(porQue ? { motivo: porQue } : {}),
+      ...(motivo ? { motivo } : {}),
     }
     const mensaje = resumenDeFotosDeSubasta(resultado)
     if (guardadas === faltan.length) {

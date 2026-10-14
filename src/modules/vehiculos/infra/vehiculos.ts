@@ -91,6 +91,44 @@ const guardar: RepositorioVehiculos['guardar'] = async ({ id, actualizadoEnEsper
   return { ok: true, data: { actualizadoEn: guardado.parse(data).actualizado_en } }
 }
 
+const refrescado = z.object({
+  actualizado_en: z.string(),
+  estado_subasta: z.string().nullable(),
+  subasta_en: z.string().nullable(),
+})
+
+const refrescarSubasta: RepositorioVehiculos['refrescarSubasta'] = async ({
+  id,
+  actualizadoEnEsperado,
+  apibara,
+  columnas,
+  atributos,
+}) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('vehiculo_subasta_refrescar', {
+    p_vehiculo: id,
+    p_actualizado_en_esperado: actualizadoEnEsperado,
+    p_apibara: apibara as Json,
+    // Las claves son las columnas de la base; los atributos sólo viajan si hay alguno.
+    p_datos: {
+      ...columnas,
+      ...(Object.keys(atributos).length > 0 ? { atributos } : {}),
+    } as Json,
+  })
+  if (error) {
+    return fallo(error)
+  }
+  const fila = refrescado.parse(data)
+  return {
+    ok: true,
+    data: {
+      actualizadoEn: fila.actualizado_en,
+      estado: fila.estado_subasta,
+      subastaEn: fila.subasta_en,
+    },
+  }
+}
+
 const repetido = z.array(
   z.object({ posicion: z.number().int(), vehiculo_id: z.guid().nullable(), visible: z.boolean() }),
 )
@@ -113,4 +151,9 @@ const repetidos: RepositorioVehiculos['repetidos'] = async ({ origenId, claves }
   )
 }
 
-export const vehiculosSupabase: RepositorioVehiculos = { crear, guardar, repetidos }
+export const vehiculosSupabase: RepositorioVehiculos = {
+  crear,
+  guardar,
+  repetidos,
+  refrescarSubasta,
+}

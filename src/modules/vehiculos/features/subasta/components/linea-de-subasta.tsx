@@ -9,8 +9,7 @@ import { Button } from '@/shared/ui/button'
 import { pideRevisarIntegracion } from '../../../entities/apibara'
 import type { DatosDeSubasta } from '../../../entities/subasta'
 import { sePuedeReintentarLinea, type Linea } from '../lineas'
-
-export const RUTA_DE_INTEGRACIONES = `${RUTAS.empresa}?seccion=integraciones` as Route
+import { RUTA_DE_INTEGRACIONES } from '../ruta'
 
 type Props = {
   linea: Linea
@@ -138,7 +137,7 @@ function Acciones({
       ) : null}
       {llevaAIntegraciones ? (
         <Link
-          href={RUTA_DE_INTEGRACIONES}
+          href={RUTA_DE_INTEGRACIONES as Route}
           className="inline-flex h-7 items-center text-(length:--text-sm) text-(--color-primary) underline underline-offset-2"
         >
           Ir a Integraciones

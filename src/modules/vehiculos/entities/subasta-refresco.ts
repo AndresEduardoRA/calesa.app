@@ -59,3 +59,21 @@ export function fusionarRefresco(
   }
   return refresco
 }
+
+export type EtiquetasConocidas = {
+  // Las columnas (por su nombre en la base) y los campos del layout (por su clave).
+  columnas: Readonly<Record<string, string>>
+  campos: readonly { clave: string; etiqueta: string }[]
+}
+
+// Las claves que se conservaron, dichas con el nombre que la persona ve. Una que no se conoce se
+// deja afuera: no se inventa un nombre.
+export function etiquetasDeConservados(
+  claves: readonly string[],
+  { columnas, campos }: EtiquetasConocidas,
+): string[] {
+  return claves.flatMap((clave) => {
+    const etiqueta = columnas[clave] ?? campos.find((campo) => campo.clave === clave)?.etiqueta
+    return etiqueta === undefined ? [] : [etiqueta]
+  })
+}

@@ -13,6 +13,8 @@ import type {
   ResultadoDeRestaurar,
 } from './papelera'
 import type { PermisoConAlcance } from './permisos'
+import type { SubastaDeVehiculo } from './subasta-vehiculo'
+import type { ColumnasDeSubasta, ValorDeAtributo } from './subasta'
 import type { Vehiculo } from './vehiculo'
 import type { Relaciones } from './vinculo'
 import type { DatosDeVitrina, VistaPreviaDeVitrina, VitrinaDelOrigen } from './vitrina'
@@ -50,6 +52,21 @@ export type RepositorioVehiculos = {
     actualizadoEnEsperado: string
     datos: DatosDeVehiculo
   }) => Promise<{ ok: true; data: { actualizadoEn: string } } | FalloAlGuardar>
+  // Vuelve a escribir la subasta de un vehículo: la respuesta nueva (fecha y estado los deriva la
+  // base de ella) y lo que se decidió actualizar de la ficha, con la versión que tenía quien pide.
+  refrescarSubasta: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    apibara: Record<string, unknown>
+    columnas: ColumnasDeSubasta
+    atributos: Record<string, ValorDeAtributo>
+  }) => Promise<
+    | {
+        ok: true
+        data: { actualizadoEn: string; estado: string | null; subastaEn: string | null }
+      }
+    | FalloAlGuardar
+  >
   // Qué de lo que se va a dar de alta ya está en el inventario (por VIN en cualquier origen y por
   // lote en éste). `vehiculoId` null = existe, pero quien pregunta no lo ve.
   repetidos: (pedido: {
@@ -62,6 +79,9 @@ export type ClaveDeBusqueda = { vin?: string; lote?: string; plataforma?: string
 
 // `posicion` es el índice de la clave en la lista que se mandó (desde 0).
 export type RepetidoEncontrado = { posicion: number; vehiculoId: string | null }
+
+// La subasta de un vehículo: lo que dice la base y lo que trajo apibara. null = no se ve o no existe.
+export type LectorDeSubasta = (vehiculoId: string) => Promise<Resultado<SubastaDeVehiculo | null>>
 
 // Las fotos de un vehículo y su versión. Lo que ve cada quien lo decide la RLS.
 export type LectorDeGaleria = (vehiculoId: string) => Promise<Resultado<Galeria>>

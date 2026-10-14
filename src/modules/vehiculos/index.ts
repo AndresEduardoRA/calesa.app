@@ -3,7 +3,13 @@
 // los Server Components. Un Client Component de afuera importa `@/modules/vehiculos/client`.
 
 // El inventario: leer una página de un origen y un vehículo
-export { buscarVehiculos, leerGaleria, leerRelaciones, leerVehiculo } from './composicion'
+export {
+  buscarVehiculos,
+  leerGaleria,
+  leerRelaciones,
+  leerSubasta,
+  leerVehiculo,
+} from './composicion'
 export type { Vehiculo } from './entities/vehiculo'
 export type { Galeria } from './entities/foto'
 
@@ -67,3 +73,7 @@ export { SIN_APIBARA, type DisponibilidadDeApibara } from './entities/apibara'
 // El vínculo a un lead y los interesados, de sólo lectura (se escriben desde la ficha del lead)
 export { VinculoEInteresados } from './features/vinculo/components/vinculo-e-interesados'
 export type { Relaciones } from './entities/vinculo'
+
+// La subasta de un vehículo de subasta: su fecha, su estado, cuándo se consultó y refrescarla.
+export { BloqueDeSubasta } from './features/subasta/components/bloque-de-subasta'
+export { fotosPorTraerDe, type SubastaDeVehiculo } from './entities/subasta-vehiculo'
