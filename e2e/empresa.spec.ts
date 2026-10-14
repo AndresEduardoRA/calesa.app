@@ -62,12 +62,17 @@ test.beforeAll(async ({}, info) => {
 test.afterAll(async () => {
   // La clave real (si había) vuelve por la misma RPC que la guardó, con la sesión de la dueña de
   // prueba, antes de que se la borre.
-  if (antes.secreto) {
-    await restaurarSecretoDeApibara(antes.secreto, { email: duena, contrasena: CLAVE })
+  // En `finally`: si devolver la clave falla, la empresa se restaura igual (apibara no se queda
+  // apagada) y el error se ve igual.
+  try {
+    if (antes.secreto) {
+      await restaurarSecretoDeApibara(antes.secreto, { email: duena, contrasena: CLAVE })
+    }
+  } finally {
+    await restaurarEmpresa(antes)
+    await borrarPersonasDePrueba()
+    await borrarRolesDePrueba()
   }
-  await restaurarEmpresa(antes)
-  await borrarPersonasDePrueba()
-  await borrarRolesDePrueba()
 })
 
 async function entrar(page: Page, correo: string) {

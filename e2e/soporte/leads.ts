@@ -2,7 +2,8 @@
 // cliente de servicio. Todos se llaman «E2E …» y se borran por ese prefijo.
 import { admin } from './base'
 
-const PREFIJO = 'E2E '
+export const PREFIJO_DE_LEAD_E2E = 'E2E '
+const PREFIJO = PREFIJO_DE_LEAD_E2E
 
 function exigir(error: { message: string } | null, que: string): void {
   if (error) {

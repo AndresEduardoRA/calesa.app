@@ -10,6 +10,10 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
+  // La guardia: repone apibara y los leads de prueba si una corrida anterior murió a mitad, y falla
+  // rápido si las funciones edge no están servidas (e2e/soporte/guardia.ts).
+  globalSetup: './e2e/global-setup.ts',
+  globalTeardown: './e2e/global-teardown.ts',
   use: {
     baseURL: `http://localhost:${puerto}`,
     trace: 'retain-on-failure',

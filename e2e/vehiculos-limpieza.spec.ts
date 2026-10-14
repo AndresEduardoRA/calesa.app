@@ -96,38 +96,42 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
-  exigir(
-    (await admin().from('ajustes_empresa').update(ajustesAntes).eq('id', 1)).error,
-    'restaurar los ajustes de la empresa',
-  )
-  // Los lotes de la limpieza no tienen autor (no los alcanza el borrado por persona) y los que se
-  // restauraron recuerdan quién: se borran después de sus vehículos y antes de las personas.
-  const cliente = admin()
-  const { data } = await cliente
-    .from('vehiculos')
-    .select('lote_papelera_id')
-    .eq('origen_id', subasta.id)
-    .not('lote_papelera_id', 'is', null)
-    .returns<{ lote_papelera_id: string }[]>()
-  const delOrigen = (data ?? []).map((una) => una.lote_papelera_id)
-  exigir(
-    (await cliente.from('vehiculos').delete().eq('origen_id', subasta.id)).error,
-    'borrar los vehículos',
-  )
-  if (corridas.length > 0) {
+  // En `finally`: si algo de la limpieza falla, apibara se restaura igual y no queda apagada.
+  try {
     exigir(
-      (await cliente.from('limpieza_corridas').delete().in('id', corridas)).error,
-      'borrar las corridas',
+      (await admin().from('ajustes_empresa').update(ajustesAntes).eq('id', 1)).error,
+      'restaurar los ajustes de la empresa',
     )
-  }
-  const todos = [...new Set([...lotes, ...delOrigen])]
-  if (todos.length > 0) {
+    // Los lotes de la limpieza no tienen autor (no los alcanza el borrado por persona) y los que se
+    // restauraron recuerdan quién: se borran después de sus vehículos y antes de las personas.
+    const cliente = admin()
+    const { data } = await cliente
+      .from('vehiculos')
+      .select('lote_papelera_id')
+      .eq('origen_id', subasta.id)
+      .not('lote_papelera_id', 'is', null)
+      .returns<{ lote_papelera_id: string }[]>()
+    const delOrigen = (data ?? []).map((una) => una.lote_papelera_id)
     exigir(
-      (await cliente.from('lotes_papelera').delete().in('id', todos)).error,
-      'borrar los lotes',
+      (await cliente.from('vehiculos').delete().eq('origen_id', subasta.id)).error,
+      'borrar los vehículos',
     )
+    if (corridas.length > 0) {
+      exigir(
+        (await cliente.from('limpieza_corridas').delete().in('id', corridas)).error,
+        'borrar las corridas',
+      )
+    }
+    const todos = [...new Set([...lotes, ...delOrigen])]
+    if (todos.length > 0) {
+      exigir(
+        (await cliente.from('lotes_papelera').delete().in('id', todos)).error,
+        'borrar los lotes',
+      )
+    }
+  } finally {
+    await desmontarSubasta(apibaraAntes)
   }
-  await desmontarSubasta(apibaraAntes)
 })
 
 async function irAlListado(page: Page, filtro = ''): Promise<void> {
