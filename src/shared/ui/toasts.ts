@@ -68,3 +68,13 @@ export function avisarError(error: ErrorApp): void {
   }
   toast.error(error.mensaje)
 }
+
+// Un trabajo largo que sigue después de cerrar el panel (traer las fotos de una subasta): un aviso
+// que se actualiza con el mismo `id` hasta que termina y se reemplaza por su resultado.
+export function avisarProgreso(id: string, mensaje: string): void {
+  toast.loading(mensaje, { id })
+}
+
+export function terminarProgreso(id: string): void {
+  toast.dismiss(id)
+}

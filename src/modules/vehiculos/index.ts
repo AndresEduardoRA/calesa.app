@@ -62,6 +62,7 @@ export { EsqueletoDeFotos } from './features/fotos/components/esqueleto-de-fotos
 export { PanelDeVehiculo } from './features/alta/components/panel-de-vehiculo'
 export { BotonEditarVehiculo } from './features/alta/components/botones'
 export { CLAVE_DE_EDICION } from './features/alta/claves'
+export { SIN_APIBARA, type DisponibilidadDeApibara } from './entities/apibara'
 
 // El vínculo a un lead y los interesados, de sólo lectura (se escriben desde la ficha del lead)
 export { VinculoEInteresados } from './features/vinculo/components/vinculo-e-interesados'

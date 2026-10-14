@@ -2,7 +2,7 @@
 
 import type { Route } from 'next'
 import { useRouter } from 'next/navigation'
-import { useEffect, useId, useMemo, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import {
   concordar,
   type CampoDeLayout,
@@ -13,15 +13,15 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Button } from '@/shared/ui/button'
 import { Drawer } from '@/shared/ui/drawer'
-import { useRegional } from '@/shared/ui/regional'
 import { avisarExito } from '@/shared/ui/toasts'
 import { useUltimo } from '@/shared/ui/use-ultimo'
-import { camposActivos } from '../../../entities/campo'
-import { camposComunes } from '../../../entities/comunes'
-import type { Fuentes } from '../../../entities/esquema'
+import type { DisponibilidadDeApibara } from '../../../entities/apibara'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { useFormularioDeVehiculo, type Guardado } from '../hooks/use-formulario-de-vehiculo'
+import { useFuentesDelPanel } from '../hooks/use-fuentes-del-panel'
 import { usePanelDeVehiculo } from '../hooks/use-panel-de-vehiculo'
+import { useGuardadoDeSubasta } from '../../subasta/hooks/use-guardado-de-subasta'
+import { AltaPorSubasta } from '../../subasta/components/alta-por-subasta'
 import { FormularioDeVehiculo } from './formulario-de-vehiculo'
 
 type Datos = {
@@ -35,11 +35,14 @@ type Props = Datos & {
   puedeCrear: boolean
   // El vehículo de `?editar=`, ya leído por el servidor; null si no hay o no lo puede editar.
   enEdicion: Vehiculo | null
+  // Si el alta de un origen de subasta puede traer la ficha de apibara.
+  apibara: DisponibilidadDeApibara
 }
 
 const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1)
 
 type PropsDeContenido = Datos & {
+  apibara: DisponibilidadDeApibara
   vehiculo: Vehiculo | null
   alCerrar: () => void
   alCrear: () => void
@@ -74,44 +77,49 @@ function PieDelPanel({ idFormulario, esAlta, enCurso, alCancelar, alGuardarYSegu
   )
 }
 
+// «Vehículo #12 creado», con un atajo a su ficha.
+function avisarCreado(origen: OrigenResumen, { numero }: Guardado, abrirFicha: () => void) {
+  const creado = concordar(origen.genero, { m: 'creado', f: 'creada' })
+  avisarExito(`${mayuscula(origen.sustantivo)} #${String(numero ?? '')} ${creado}`, {
+    etiqueta: 'Abrir ficha',
+    alHacer: abrirFicha,
+  })
+}
+
 // Lo de adentro del panel. Se monta al abrirlo (y de nuevo si cambia la versión de lo que se
 // edita): así cada apertura arranca de lo guardado y cada alta, con su id.
-function Contenido({ origen, campos, categorias, vehiculo, alCerrar, alCrear }: PropsDeContenido) {
+function Contenido({
+  origen,
+  campos,
+  categorias,
+  apibara,
+  vehiculo,
+  alCerrar,
+  alCrear,
+}: PropsDeContenido) {
   const idFormulario = useId()
+  const router = useRouter()
+  const { activos, fuentes } = useFuentesDelPanel({ origen, campos, categorias, vehiculo })
   // Tras «guardar y cargar otro» el foco vuelve al primer campo, pero recién cuando los campos
   // dejaron de estar deshabilitados por el envío.
   const volverAlTitulo = useRef(false)
-  const router = useRouter()
-  const { zonaHoraria } = useRegional()
-  const activos = useMemo(() => camposActivos(campos), [campos])
-  const fuentes = useMemo<Fuentes>(
-    () => ({
-      comunes: camposComunes(origen.tipo),
-      campos: activos,
-      categorias,
-      zona: zonaHoraria,
-      ...(vehiculo
-        ? { actuales: { atributos: vehiculo.atributos, categoriaId: vehiculo.categoriaId } }
-        : {}),
-    }),
-    [origen.tipo, activos, categorias, zonaHoraria, vehiculo],
-  )
 
-  function alGuardar({ id, numero, seguir }: Guardado) {
+  const subasta = useGuardadoDeSubasta(origen.id)
+
+  function alGuardar(datos: Guardado) {
+    const { id, seguir } = datos
     if (vehiculo) {
       avisarExito('Cambios guardados')
       alCerrar()
       return
     }
-    const creado = concordar(origen.genero, { m: 'creado', f: 'creada' })
-    avisarExito(`${mayuscula(origen.sustantivo)} #${String(numero ?? '')} ${creado}`, {
-      etiqueta: 'Abrir ficha',
-      alHacer: () => {
-        router.push(`${RUTAS.vehiculos}/${id}` as Route)
-      },
+    avisarCreado(origen, datos, () => {
+      router.push(`${RUTAS.vehiculos}/${id}` as Route)
     })
-    if (seguir) {
-      volverAlTitulo.current = true
+    subasta.despuesDeGuardar(datos)
+    // Con varias líneas pegadas, guardar una no cierra el panel: quedan las demás.
+    if (seguir || datos.subasta?.clave) {
+      volverAlTitulo.current = seguir
     } else {
       alCrear()
     }
@@ -135,6 +143,17 @@ function Contenido({ origen, campos, categorias, vehiculo, alCerrar, alCrear }: 
 
   return (
     <div className="grid gap-4">
+      {vehiculo === null && origen.tipo === 'subasta' ? (
+        <AltaPorSubasta
+          origen={origen}
+          campos={activos}
+          fuentes={fuentes}
+          estado={estado}
+          apibara={apibara}
+          traerFotos={subasta.traerFotos}
+          guardado={subasta.guardado}
+        />
+      ) : null}
       <FormularioDeVehiculo
         id={idFormulario}
         estado={estado}
@@ -161,7 +180,7 @@ function Contenido({ origen, campos, categorias, vehiculo, alCerrar, alCrear }: 
 // El panel de alta y edición del inventario. Qué muestra lo dice la URL (`?panel=nuevo`,
 // `?editar=<id>`). La tecla N abre «Nuevo» cuando la persona puede dar de alta y no hay otro
 // panel abierto. Va una sola vez por pantalla.
-export function PanelDeVehiculo({ puedeCrear, enEdicion, ...datos }: Props) {
+export function PanelDeVehiculo({ puedeCrear, enEdicion, apibara, ...datos }: Props) {
   const panel = usePanelDeVehiculo()
   const { origen } = datos
   const editando = enEdicion !== null && panel.enEdicion === enEdicion.id ? enEdicion : null
@@ -186,6 +205,7 @@ export function PanelDeVehiculo({ puedeCrear, enEdicion, ...datos }: Props) {
         // Otra versión de lo que se edita (se recargó tras un conflicto) arranca de nuevo.
         key={vehiculo ? `${vehiculo.id}-${vehiculo.actualizadoEn}` : 'nuevo'}
         {...datos}
+        apibara={apibara}
         vehiculo={vehiculo}
         alCerrar={panel.cerrar}
         alCrear={panel.cerrarYVolverAlPrincipio}

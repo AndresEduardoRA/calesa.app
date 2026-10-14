@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getAjustes } from '@/modules/empresa'
+import { getAjustes, integracionActiva } from '@/modules/empresa'
 import { leerVistas, puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
@@ -41,12 +41,14 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
     )
   }
 
-  const [layout, fases, vistas, ajustes, vitrina] = await Promise.all([
+  const [layout, fases, vistas, ajustes, vitrina, apibaraActiva] = await Promise.all([
     leerLayout(origen.id, { conUso: false }),
     leerFasesDeOrigen(origen.id),
     leerVistas('vehiculos'),
     getAjustes(),
     vitrinaDelOrigen(origen.id),
+    // Sólo un origen de subasta trae fichas de apibara; el resto ni pregunta.
+    origen.tipo === 'subasta' ? integracionActiva('apibara') : Promise.resolve(false),
   ])
   const { campos, categorias } = datosO(layout)
   const fuentes = { campos, categorias, fases: datosO(fases), vitrina }
@@ -87,6 +89,10 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       eliminables={[...eliminables]}
       verPapelera={puedeAbrirLaPapelera(sesion.permisos)}
       enEdicion={enEdicion}
+      apibara={{
+        activa: apibaraActiva,
+        puedeConfigurar: puede(sesion.permisos, 'empresa.ajustes.gestionar'),
+      }}
     />
   )
 }

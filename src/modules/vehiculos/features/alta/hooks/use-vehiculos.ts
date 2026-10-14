@@ -44,8 +44,13 @@ export function useVehiculos() {
   const creando = useAction(crearVehiculo)
   const guardando = useAction(guardarVehiculo)
   return {
-    crear: (pedido: { id: string; origenId: string; valores: ValoresDeFormulario }) =>
-      enviar(creando.executeAsync(pedido)),
+    crear: (pedido: {
+      id: string
+      origenId: string
+      valores: ValoresDeFormulario
+      // La respuesta de apibara que llenó la ficha, si el alta vino de ahí.
+      apibara?: Record<string, unknown>
+    }) => enviar(creando.executeAsync(pedido)),
     guardar: (pedido: {
       id: string
       actualizadoEnEsperado: string

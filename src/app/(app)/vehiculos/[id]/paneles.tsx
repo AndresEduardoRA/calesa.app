@@ -2,6 +2,7 @@ import type { FaseResumen } from '@/modules/flujos'
 import type { OrigenResumen, leerLayout } from '@/modules/origenes'
 import {
   PanelDeVehiculo,
+  SIN_APIBARA,
   PanelDeVitrina,
   type PermisoDeVitrina,
   type Vehiculo,
@@ -40,6 +41,7 @@ export function Paneles({ vehiculo, origen, fase, layout, previa, publicar, enEd
         categorias={layout.categorias}
         puedeCrear={false}
         enEdicion={enEdicion}
+        apibara={SIN_APIBARA}
       />
     </>
   )

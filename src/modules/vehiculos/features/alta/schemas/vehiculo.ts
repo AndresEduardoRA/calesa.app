@@ -15,11 +15,20 @@ const valores = z
   .record(z.string().min(1).max(60), valor)
   .refine((campos) => Object.keys(campos).length <= 300, { error: 'Son demasiados campos.' })
 
+// La respuesta de apibara que llenó la ficha, tal como llegó: un objeto y de tamaño razonable (la
+// base repite el tope). Lo que importa de ella lo deriva la base.
+const respuestaDeApibara = z
+  .record(z.string(), z.unknown())
+  .refine((objeto) => JSON.stringify(objeto).length <= 500_000, {
+    error: 'La respuesta de apibara es demasiado grande.',
+  })
+
 export const esquemaCrearVehiculo = z.object({
   // Lo genera el navegador al abrir el formulario: reintentar el alta no la duplica.
   id: z.guid(),
   origenId: z.guid(),
   valores,
+  apibara: respuestaDeApibara.optional(),
 })
 
 export const esquemaGuardarVehiculo = z.object({

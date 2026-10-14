@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   atributosDesdeSubasta,
   columnasDesdeSubasta,
+  columnasDeEntrada,
   datosDesdeSubasta,
   esEstadoDeSubasta,
   etiquetaDeEstado,
@@ -165,5 +166,21 @@ describe('estados', () => {
     expect(etiquetaDeEstado('en_vivo')).toBe('En vivo')
     expect(esEstadoDeSubasta('vendida')).toBe(true)
     expect(esEstadoDeSubasta('SOLD')).toBe(false)
+  })
+})
+
+describe('columnasDeEntrada', () => {
+  it('conserva lo pegado para seguir a mano', () => {
+    expect(
+      columnasDeEntrada({
+        tipo: 'enlace',
+        valor: 'https://www.copart.com/lot/1',
+        plataforma: 'copart',
+      }),
+    ).toEqual({ url_origen: 'https://www.copart.com/lot/1', plataforma: 'copart' })
+    expect(columnasDeEntrada({ tipo: 'vin', valor: '3FMCR9B64RRE04601' })).toEqual({
+      vin: '3FMCR9B64RRE04601',
+    })
+    expect(columnasDeEntrada({ tipo: 'lote', valor: '58540656' })).toEqual({ lote: '58540656' })
   })
 })

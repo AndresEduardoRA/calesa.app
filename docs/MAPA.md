@@ -82,11 +82,11 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 - Casos de uso: bandeja
 
 ### `vehiculos`
-Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), el vínculo a un lead con sus interesados (por ahora de sólo lectura) la vitrina (publicar en la web con precio público y vista previa de lo que verá el visitante) y la papelera por lotes (enviar con «Deshacer», restaurar y purgar). Más adelante: importación desde Copart/IAAI vía apibara. · 151 archivos
-- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerVehiculo`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, `PermisoDeAlta`, +34
+Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), el vínculo a un lead con sus interesados (por ahora de sólo lectura) la vitrina (publicar en la web con precio público y vista previa de lo que verá el visitante) y la papelera por lotes (enviar con «Deshacer», restaurar y purgar). Más adelante: importación desde Copart/IAAI vía apibara. · 167 archivos
+- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerVehiculo`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, `PermisoDeAlta`, +36
 - API de cliente (`client.ts`): `TarjetaVehiculo`, `BadgeDeFase`, `Vehiculo`
 - Depende de: empresa, equipo, flujos, origenes
-- Casos de uso: alta, ficha, fotos, listado, papelera, permisos, vinculo, vitrina
+- Casos de uso: alta, ficha, fotos, listado, papelera, permisos, subasta, vinculo, vitrina
 
 ### `web`
 Lo que el CRM configura para la web pública y el portal del cliente: ajustes del sitio, guías, FAQs, testimonios con consentimiento, cola web round-robin («turnos»), vistas y RPC del esquema `web`, revalidación on-demand. · 1 archivos
@@ -99,7 +99,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `config/`: `app.ts`, `entorno.ts`
 - `lib/`: `almacen.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `color.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
 - `lib/filtros/`: `chips.ts`, `esquema.ts`, `index.ts`, `url.ts`
-- `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `proxy.ts`, `server.ts`
+- `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `funciones.client.ts`, `proxy.ts`, `server.ts`
 - `types/`: `database.types.ts`
 - `ui/`: `avatar.tsx`, `aviso-de-conflicto.tsx`, `aviso.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo-seleccion.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `estilo-de-marca.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `interruptor.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`, `use-borrador-de-estado.ts`, `use-borrador.ts`, `use-en-linea.ts`, `use-ultimo.ts`, `zona-de-archivos.tsx`
 - `ui/atajos/`: `index.ts`, `proveedor-atajos.tsx`, `use-atajo.ts`

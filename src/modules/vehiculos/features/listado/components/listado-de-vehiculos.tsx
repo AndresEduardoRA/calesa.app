@@ -10,6 +10,7 @@ import { camposFiltrables } from '../../../entities/filtros'
 import type { PermisoDeAlta } from '../../../entities/permisos'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { BotonNuevoVehiculo, ID_DEL_MOTIVO_DE_ALTA } from '../../alta/components/botones'
+import type { DisponibilidadDeApibara } from '../../../entities/apibara'
 import { PanelDeVehiculo } from '../../alta/components/panel-de-vehiculo'
 import { EnlaceAPapelera } from '../../papelera/components/enlace-a-papelera'
 import { PestanasDeOrigen } from './pestanas-de-origen'
@@ -33,6 +34,8 @@ type Props = DatosDelOrigen & {
   // Los que puede enviar a la papelera (se eligen y se mandan juntos), y si puede abrirla.
   eliminables: readonly string[]
   verPapelera: boolean
+  // Si el alta de este origen puede traer la ficha de apibara.
+  apibara: DisponibilidadDeApibara
 }
 
 // El inventario: una pestaña por origen y, adentro, los filtros de ese origen, su lista y el
@@ -40,7 +43,7 @@ type Props = DatosDelOrigen & {
 export function ListadoDeVehiculos(props: Props) {
   const { origenes, esquema, vistas, puedeConfigurarCampos, permisoDeAlta, enEdicion, ...demas } =
     props
-  const { verPapelera, ...resto } = demas
+  const { verPapelera, apibara, ...resto } = demas
   const { origen, campos, categorias } = resto
   const nuevo = <BotonNuevoVehiculo origen={origen} permiso={permisoDeAlta} />
   return (
@@ -81,6 +84,7 @@ export function ListadoDeVehiculos(props: Props) {
         categorias={categorias}
         puedeCrear={permisoDeAlta.estado === 'habilitado'}
         enEdicion={enEdicion}
+        apibara={apibara}
       />
     </div>
   )

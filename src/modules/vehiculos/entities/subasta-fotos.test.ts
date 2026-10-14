@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { fotosDeSubasta, fotosQueFaltan } from './subasta-fotos'
+import { fotosDeSubasta, fotosQueFaltan, resumenDeFotosDeSubasta } from './subasta-fotos'
 
 function datos(nombre: string): Record<string, unknown> {
   const texto = readFileSync(join(process.cwd(), 'e2e/fixtures/apibara', nombre), 'utf8')
@@ -60,5 +60,28 @@ describe('fotosDeSubasta', () => {
         todas.map((foto) => foto.url),
       ),
     ).toEqual([])
+  })
+})
+
+describe('resumenDeFotosDeSubasta', () => {
+  it('dice cuántas se guardaron y cuántas faltan, con el motivo', () => {
+    expect(resumenDeFotosDeSubasta({ total: 14, guardadas: 14 })).toBe(
+      'Se guardaron las 14 fotos de la subasta.',
+    )
+    expect(resumenDeFotosDeSubasta({ total: 1, guardadas: 1 })).toBe(
+      'Se guardó la foto de la subasta.',
+    )
+    expect(resumenDeFotosDeSubasta({ total: 14, guardadas: 11 })).toBe(
+      'Se guardaron 11 de 14 fotos de la subasta. Faltan 3. Puedes traerlas desde Fotos.',
+    )
+    expect(resumenDeFotosDeSubasta({ total: 14, guardadas: 13, motivo: 'apibara tardó.' })).toBe(
+      'Se guardaron 13 de 14 fotos de la subasta. Falta 1. apibara tardó. Puedes traerlas desde Fotos.',
+    )
+    expect(resumenDeFotosDeSubasta({ total: 5, guardadas: 0 })).toBe(
+      'No se pudo traer ninguna foto de la subasta. Puedes intentarlo desde Fotos.',
+    )
+    expect(resumenDeFotosDeSubasta({ total: 0, guardadas: 0 })).toBe(
+      'No hay fotos nuevas que traer.',
+    )
   })
 })

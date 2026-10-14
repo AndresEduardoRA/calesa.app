@@ -28,6 +28,7 @@ const agregar: RepositorioFotos['agregar'] = async ({ vehiculoId, fotos }) => {
       ancho: foto.ancho,
       alto: foto.alto,
       bytes: foto.bytes,
+      ...(foto.origenUrl === undefined ? {} : { origen_url: foto.origenUrl }),
       ...(foto.orden === undefined ? {} : { orden: foto.orden }),
       ...(foto.esPortada === undefined ? {} : { es_portada: foto.esPortada }),
     })),

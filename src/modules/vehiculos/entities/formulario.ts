@@ -4,6 +4,7 @@
 import { localDeInstante } from '@/shared/lib/fechas'
 import { PREFIJO_DE_ATRIBUTO, type CampoDeVehiculo } from './campo'
 import type { CampoComun } from './comunes'
+import type { DatosDeSubasta } from './subasta'
 import type { Vehiculo } from './vehiculo'
 
 // Texto para lo que se escribe o se elige; `boolean | null` para un sí o no (null = sin dato);
@@ -71,4 +72,41 @@ export function valoresIniciales({
     valores[claveDeAtributo(campo.clave)] = deAtributo(campo, guardado, zona)
   }
   return valores
+}
+
+// Cómo se llama en el formulario cada columna que apibara llena.
+const CLAVE_DE_COLUMNA: Record<keyof DatosDeSubasta['columnas'], string> = {
+  titulo: 'titulo',
+  marca: 'marca',
+  modelo: 'modelo',
+  anio: 'anio',
+  vin: 'vin',
+  lote: 'lote',
+  plataforma: 'plataforma',
+  kilometraje: 'kilometraje',
+  url_origen: 'urlOrigen',
+}
+
+// Lo que trajo apibara puesto en el formulario, encima de lo que ya había. Sólo toca lo que la
+// respuesta trae y lo que el formulario tiene: el resto queda como estaba, editable.
+export function conDatosDeSubasta(
+  valores: ValoresDeFormulario,
+  datos: DatosDeSubasta,
+  campos: readonly CampoDeVehiculo[],
+  zona?: string,
+): ValoresDeFormulario {
+  const siguiente: ValoresDeFormulario = { ...valores }
+  for (const [columna, valor] of Object.entries(datos.columnas)) {
+    const clave = CLAVE_DE_COLUMNA[columna as keyof DatosDeSubasta['columnas']]
+    if (clave in siguiente) {
+      siguiente[clave] = String(valor)
+    }
+  }
+  for (const campo of campos) {
+    const valor = datos.atributos[campo.clave]
+    if (valor !== undefined) {
+      siguiente[claveDeAtributo(campo.clave)] = deAtributo(campo, valor, zona)
+    }
+  }
+  return siguiente
 }

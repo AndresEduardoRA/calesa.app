@@ -1,6 +1,7 @@
 // La subasta de un vehículo: de la respuesta de apibara a los datos de la ficha, qué se actualiza
 // al refrescar, qué fotos trae y cómo se dice la cuenta regresiva. Todo puro: la respuesta llega
 // como `unknown` y nunca se confía en su forma.
+import type { EntradaDeApibara } from './apibara'
 import type { CampoDeVehiculo, OpcionDeCampo, TipoDeCampo } from './campo'
 
 export type EstadoDeSubasta = 'abierta' | 'en_vivo' | 'terminada' | 'vendida'
@@ -254,4 +255,17 @@ export function datosDesdeSubasta(
   urlPegada?: string | null,
 ): DatosDeSubasta {
   return { columnas: columnasDesdeSubasta(raw, urlPegada), ...atributosDesdeSubasta(raw, campos) }
+}
+
+// Lo que ya se sabe de lo que se pegó aunque apibara no responda: seguir a mano no pierde el
+// enlace, el VIN ni el lote. Un enlace trae además su plataforma.
+export function columnasDeEntrada(entrada: EntradaDeApibara): ColumnasDeSubasta {
+  switch (entrada.tipo) {
+    case 'enlace':
+      return { url_origen: entrada.valor.slice(0, 500), plataforma: entrada.plataforma }
+    case 'vin':
+      return { vin: entrada.valor }
+    case 'lote':
+      return { lote: entrada.valor }
+  }
 }

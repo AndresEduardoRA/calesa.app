@@ -39,6 +39,9 @@ export type RepositorioVehiculos = {
     id: string
     origenId: string
     datos: DatosDeVehiculo
+    // La respuesta de apibara en bruto, si el alta vino de ahí: la base deriva de ella la fecha y
+    // el estado de la subasta y la guarda entera.
+    apibara?: Record<string, unknown>
   }) => Promise<
     { ok: true; data: { id: string; numero: number; actualizadoEn: string } } | FalloAlGuardar
   >
@@ -47,7 +50,18 @@ export type RepositorioVehiculos = {
     actualizadoEnEsperado: string
     datos: DatosDeVehiculo
   }) => Promise<{ ok: true; data: { actualizadoEn: string } } | FalloAlGuardar>
+  // Qué de lo que se va a dar de alta ya está en el inventario (por VIN en cualquier origen y por
+  // lote en éste). `vehiculoId` null = existe, pero quien pregunta no lo ve.
+  repetidos: (pedido: {
+    origenId: string
+    claves: readonly ClaveDeBusqueda[]
+  }) => Promise<Resultado<RepetidoEncontrado[]>>
 }
+
+export type ClaveDeBusqueda = { vin?: string; lote?: string; plataforma?: string }
+
+// `posicion` es el índice de la clave en la lista que se mandó (desde 0).
+export type RepetidoEncontrado = { posicion: number; vehiculoId: string | null }
 
 // Las fotos de un vehículo y su versión. Lo que ve cada quien lo decide la RLS.
 export type LectorDeGaleria = (vehiculoId: string) => Promise<Resultado<Galeria>>
@@ -67,7 +81,9 @@ export type RepositorioFotos = {
   agregar: (pedido: {
     vehiculoId: string
     // Con `orden` y `esPortada` cuando es deshacer un eliminar: la foto vuelve a su lugar.
-    fotos: readonly (FotoSubida & Partial<Pick<FotoEliminada, 'orden' | 'esPortada'>>)[]
+    // `origenUrl`: de dónde se bajó, cuando vino de apibara (con eso se sabe cuáles faltan).
+    fotos: readonly (FotoSubida &
+      Partial<Pick<FotoEliminada, 'orden' | 'esPortada'>> & { origenUrl?: string })[]
   }) => Promise<Resultado<FotosAgregadas>>
   mover: (pedido: {
     vehiculoId: string

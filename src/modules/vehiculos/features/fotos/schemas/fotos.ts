@@ -16,6 +16,11 @@ const fotoSubida = z.object({
     .int()
     .min(1)
     .max(5 * 1024 * 1024),
+  // De dónde se bajó, si vino de apibara.
+  origenUrl: z
+    .url({ protocol: /^https$/ })
+    .max(1000)
+    .optional(),
 })
 
 type ConRutas = { ruta: string; rutaMiniatura: string }
@@ -31,7 +36,16 @@ const MAL_SUBIDAS = 'Las fotos no se subieron bien. Vuelve a elegirlas.'
 export const esquemaAgregarFotos = z
   .object({
     vehiculoId: z.guid(),
-    fotos: z.array(fotoSubida).min(1).max(MAXIMO_DE_FOTOS),
+    fotos: z
+      .array(
+        fotoSubida.extend({
+          // Con su lugar y, si lo es, de portada: lo que trae apibara (la primera es la portada).
+          orden: z.number().int().min(1).max(MAXIMO_DE_FOTOS).optional(),
+          esPortada: z.boolean().optional(),
+        }),
+      )
+      .min(1)
+      .max(MAXIMO_DE_FOTOS),
   })
   .refine((pedido) => enSuCarpeta(pedido.vehiculoId, pedido.fotos), { error: MAL_SUBIDAS })
 

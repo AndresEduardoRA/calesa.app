@@ -47,3 +47,31 @@ export function fotosQueFaltan(raw: unknown, registradas: readonly string[]): Fo
   const tiene = new Set(registradas)
   return fotosDeSubasta(raw).filter((foto) => !tiene.has(foto.url))
 }
+
+export type ResultadoDeFotos = {
+  // Cuántas había por traer, cuántas quedaron guardadas y por qué no las demás (si hay un motivo).
+  total: number
+  guardadas: number
+  motivo?: string
+}
+
+// Lo que se le dice a la persona cuando terminó de traer las fotos. El vehículo ya está guardado:
+// lo que falta se puede traer después, y el mensaje lo dice con cuántas son.
+export function resumenDeFotosDeSubasta({ total, guardadas, motivo }: ResultadoDeFotos): string {
+  if (total === 0) {
+    return 'No hay fotos nuevas que traer.'
+  }
+  if (guardadas === total) {
+    return total === 1
+      ? 'Se guardó la foto de la subasta.'
+      : `Se guardaron las ${String(total)} fotos de la subasta.`
+  }
+  const porque = motivo ? ` ${motivo}` : ''
+  if (guardadas === 0) {
+    return `No se pudo traer ninguna foto de la subasta.${porque} Puedes intentarlo desde Fotos.`
+  }
+  const faltan = total - guardadas
+  return `Se guardaron ${String(guardadas)} de ${String(total)} fotos de la subasta. ${
+    faltan === 1 ? 'Falta 1' : `Faltan ${String(faltan)}`
+  }.${porque} Puedes traerlas desde Fotos.`
+}

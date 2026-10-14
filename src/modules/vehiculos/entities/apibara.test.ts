@@ -11,6 +11,7 @@ import {
   mensajeDeApibara,
   pideRevisarIntegracion,
   sePuedeReintentar,
+  tipoDeImagen,
 } from './apibara'
 
 describe('interpretarLinea', () => {
@@ -115,5 +116,19 @@ describe('esFotoPermitida', () => {
     expect(esFotoPermitida('https://cs.copart.com.atacante.example/a.jpg')).toBe(false)
     expect(esFotoPermitida('https://apibara.tech/api/v1/vehicle-auction/usage')).toBe(false)
     expect(esFotoPermitida('no es una dirección')).toBe(false)
+  })
+})
+
+describe('tipoDeImagen', () => {
+  it('reconoce JPEG, PNG y WebP por sus primeros bytes', () => {
+    expect(tipoDeImagen(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 0]))).toBe('image/jpeg')
+    expect(tipoDeImagen(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]))).toBe('image/png')
+    const webp = new TextEncoder().encode('RIFF\0\0\0\0WEBPVP8 ')
+    expect(tipoDeImagen(webp)).toBe('image/webp')
+  })
+
+  it('no toma por imagen lo que no lo es', () => {
+    expect(tipoDeImagen(new TextEncoder().encode('<html></html>'))).toBeNull()
+    expect(tipoDeImagen(new Uint8Array([]))).toBeNull()
   })
 })

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CampoDeVehiculo, TipoDeCampo } from './campo'
 import { camposComunes } from './comunes'
-import { claveDeAtributo, vacioDe, valoresIniciales } from './formulario'
+import { claveDeAtributo, conDatosDeSubasta, vacioDe, valoresIniciales } from './formulario'
 import type { Vehiculo } from './vehiculo'
 
 function campo(
@@ -135,5 +135,59 @@ describe('claves y vacíos', () => {
     expect(vacioDe({ tipo: 'texto' })).toBe('')
     expect(vacioDe({ tipo: 'booleano' })).toBeNull()
     expect(vacioDe({ tipo: 'multi_opcion' })).toEqual([])
+  })
+})
+
+describe('conDatosDeSubasta', () => {
+  const comunes = camposComunes('subasta')
+  const campos = [
+    campo('color', 'texto'),
+    campo('puja', 'moneda'),
+    campo('llave', 'booleano'),
+    campo('subasta', 'fecha_hora'),
+    campo('transmision', 'opcion', { opciones: [{ clave: 'auto', etiqueta: 'Automática' }] }),
+  ]
+  const inicial = valoresIniciales({ comunes, campos, vehiculo: null, zona: 'America/La_Paz' })
+  const datos = {
+    columnas: {
+      titulo: '2024 FORD BRONCO',
+      anio: 2024,
+      lote: '58540656',
+      kilometraje: 51776,
+      url_origen: 'https://www.copart.com/lot/58540656',
+    },
+    atributos: {
+      color: 'Gray',
+      puja: 2500,
+      llave: true,
+      subasta: '2026-10-14T18:00:00.000Z',
+      transmision: 'auto',
+    },
+    sinCoincidencia: [],
+  }
+
+  it('pone lo traído como lo muestra el formulario: texto, sí o no y fecha en la zona', () => {
+    const valores = conDatosDeSubasta(inicial, datos, campos, 'America/La_Paz')
+    expect(valores['titulo']).toBe('2024 FORD BRONCO')
+    expect(valores['anio']).toBe('2024')
+    expect(valores['lote']).toBe('58540656')
+    expect(valores['kilometraje']).toBe('51776')
+    expect(valores['urlOrigen']).toBe('https://www.copart.com/lot/58540656')
+    expect(valores[claveDeAtributo('color')]).toBe('Gray')
+    expect(valores[claveDeAtributo('puja')]).toBe('2500')
+    expect(valores[claveDeAtributo('llave')]).toBe(true)
+    expect(valores[claveDeAtributo('subasta')]).toBe('2026-10-14T14:00')
+    expect(valores[claveDeAtributo('transmision')]).toBe('auto')
+  })
+
+  it('no toca lo que la respuesta no trae ni inventa claves que el formulario no tiene', () => {
+    const valores = conDatosDeSubasta(
+      { ...inicial, marca: 'Escrito a mano' },
+      { columnas: { titulo: 'Otro' }, atributos: { nadie: 'x' }, sinCoincidencia: [] },
+      campos,
+    )
+    expect(valores['marca']).toBe('Escrito a mano')
+    expect(valores['titulo']).toBe('Otro')
+    expect(Object.keys(valores)).not.toContain('a.nadie')
   })
 })

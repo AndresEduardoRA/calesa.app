@@ -167,3 +167,23 @@ export function esFotoPermitida(direccion: string): boolean {
     return false
   }
 }
+
+// El tipo de una imagen por sus primeros bytes. La edge function manda las fotos como bytes sin
+// tipo (el cliente de Supabase decodifica `image/*` como texto), así que se lo vuelve a poner acá.
+export function tipoDeImagen(bytes: Uint8Array): 'image/jpeg' | 'image/png' | 'image/webp' | null {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg'
+  }
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return 'image/png'
+  }
+  const riff = String.fromCharCode(...bytes.slice(0, 4))
+  const webp = String.fromCharCode(...bytes.slice(8, 12))
+  return riff === 'RIFF' && webp === 'WEBP' ? 'image/webp' : null
+}
+
+// Lo que la pantalla sabe de apibara en un origen de subasta: si está encendida (con su clave) y si
+// quien mira puede ir a configurarla (para ofrecerle el enlace cuando algo la frena).
+export type DisponibilidadDeApibara = { activa: boolean; puedeConfigurar: boolean }
+
+export const SIN_APIBARA: DisponibilidadDeApibara = { activa: false, puedeConfigurar: false }

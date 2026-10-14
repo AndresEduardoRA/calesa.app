@@ -6,7 +6,9 @@ import { useAtajo } from '@/shared/ui/atajos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
 import { useEnLinea } from '@/shared/ui/use-en-linea'
 import { validarVehiculo, type Fuentes } from '../../../entities/esquema'
+import type { DatosDeSubasta } from '../../../entities/subasta'
 import {
+  conDatosDeSubasta,
   valoresIniciales,
   type ValorDeFormulario,
   type ValoresDeFormulario,
@@ -14,7 +16,16 @@ import {
 import type { Vehiculo } from '../../../entities/vehiculo'
 import { useVehiculos, type Envio } from './use-vehiculos'
 
-export type Guardado = { id: string; numero: number | null; seguir: boolean }
+// La respuesta de apibara que llenó la ficha, y de qué línea de lo pegado salió (si salió de una).
+export type DeSubasta = { raw: Record<string, unknown>; clave: string | null }
+
+export type Guardado = {
+  id: string
+  numero: number | null
+  seguir: boolean
+  // Lo que se dio de alta venía de apibara: quedan las fotos por traer.
+  subasta: DeSubasta | null
+}
 
 type Args = {
   origenId: string
@@ -38,6 +49,8 @@ type Estado = {
   aviso: string | null
   // Un guardado que no llegó al servidor y espera a que vuelva la conexión.
   pendiente: { seguir: boolean } | null
+  // De dónde se llenó la ficha, si fue de apibara. Viaja con el alta; editar no la lleva.
+  subasta: DeSubasta | null
 }
 
 const nuevoId = () => crypto.randomUUID()
@@ -49,7 +62,24 @@ const limpio = (id: string, valores: ValoresDeFormulario): Estado => ({
   conflicto: null,
   aviso: null,
   pendiente: null,
+  subasta: null,
 })
+
+// Lo que trajo apibara puesto encima de lo que había; los errores de antes ya no valen.
+function conSubasta(
+  antes: Estado,
+  datos: DatosDeSubasta,
+  subasta: DeSubasta | null,
+  fuentes: Fuentes,
+): Estado {
+  return {
+    ...antes,
+    valores: conDatosDeSubasta(antes.valores, datos, fuentes.campos, fuentes.zona),
+    errores: {},
+    aviso: null,
+    subasta,
+  }
+}
 
 // Lo que queda en pantalla después de un guardado que el servidor rechazó. Lo que ya se dice
 // junto a un campo o en el aviso de conflicto no se repite arriba.
@@ -62,6 +92,21 @@ function trasRechazo(antes: Estado, error: ErrorApp, porCampo?: Record<string, s
     conflicto: esConflicto ? error.mensaje : null,
     aviso: esConflicto || porCampo ? null : error.mensaje,
   }
+}
+
+// Lo que muestra el formulario al abrirse: lo guardado, o en un alta el valor por defecto de cada
+// campo del layout.
+function useValoresIniciales(fuentes: Fuentes, vehiculo: Vehiculo | null): ValoresDeFormulario {
+  return useMemo(
+    () =>
+      valoresIniciales({
+        comunes: fuentes.comunes,
+        campos: fuentes.campos,
+        vehiculo,
+        zona: fuentes.zona,
+      }),
+    [fuentes, vehiculo],
+  )
 }
 
 // Al volver la conexión, el guardado que quedó esperando sale solo. Es seguro repetirlo: el alta
@@ -87,16 +132,7 @@ function useReintentoAlVolver(
 // pinta los motivos junto a cada campo, guarda un borrador de lo escrito, muestra el conflicto si
 // otra persona lo cambió y, si se cae la conexión, conserva todo y reintenta al volver.
 export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, alGuardar }: Args) {
-  const iniciales = useMemo(
-    () =>
-      valoresIniciales({
-        comunes: fuentes.comunes,
-        campos: fuentes.campos,
-        vehiculo,
-        zona: fuentes.zona,
-      }),
-    [fuentes, vehiculo],
-  )
+  const iniciales = useValoresIniciales(fuentes, vehiculo)
   const [estado, setEstado] = useState(() => limpio(vehiculo?.id ?? nuevoId(), iniciales))
   const ediciones = useVehiculos()
   const borrador = useBorradorDeEstado({
@@ -116,11 +152,17 @@ export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, a
     })
   }
 
+  // Llena el formulario con lo que trajo apibara (o, sin `raw`, sólo con lo que se pegó), encima de
+  // lo que ya hay. Queda editable: nada se guarda hasta que la persona lo confirme.
+  function aplicarSubasta(datos: DatosDeSubasta, subasta: DeSubasta | null) {
+    setEstado((antes) => conSubasta(antes, datos, subasta, fuentes))
+  }
+
   function guardado(numero: number | null, seguir: boolean) {
     borrador.limpiar()
     // Tras un alta, el formulario queda listo para el siguiente, con otro id.
     setEstado(vehiculo ? limpio(vehiculo.id, estado.valores) : limpio(nuevoId(), iniciales))
-    alGuardar({ id: estado.id, numero, seguir })
+    alGuardar({ id: estado.id, numero, seguir, subasta: estado.subasta })
   }
 
   async function enviar(seguir: boolean): Promise<boolean> {
@@ -137,7 +179,12 @@ export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, a
       const { id, actualizadoEn: actualizadoEnEsperado } = vehiculo
       return resolver(await ediciones.guardar({ id, actualizadoEnEsperado, valores }), null, seguir)
     }
-    const creado = await ediciones.crear({ id: estado.id, origenId, valores })
+    const creado = await ediciones.crear({
+      id: estado.id,
+      origenId,
+      valores,
+      ...(estado.subasta ? { apibara: estado.subasta.raw } : {}),
+    })
     return resolver(creado, creado.ok ? creado.data.numero : null, seguir)
   }
 
@@ -167,6 +214,8 @@ export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, a
     esperandoConexion: estado.pendiente !== null,
     enLinea,
     enCurso: ediciones.enCurso,
+    subasta: estado.subasta,
+    aplicarSubasta,
     cambiar,
     enviar,
     // Antes de recargar la versión de otra persona: lo escrito se descarta a propósito.

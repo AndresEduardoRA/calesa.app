@@ -1,6 +1,6 @@
 import 'server-only'
 import { z } from 'zod'
-import { errorDePostgrest } from '@/shared/lib/errores'
+import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import type { Json } from '@/shared/types/database.types'
 import { PREFIJO_DE_ATRIBUTO } from '../entities/campo'
@@ -59,12 +59,14 @@ function fallo(error: ErrorDeRpc): FalloAlGuardar {
 const creado = z.object({ id: z.guid(), numero: z.number(), actualizado_en: z.string() })
 const guardado = z.object({ actualizado_en: z.string() })
 
-const crear: RepositorioVehiculos['crear'] = async ({ id, origenId, datos }) => {
+const crear: RepositorioVehiculos['crear'] = async ({ id, origenId, datos, apibara }) => {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('vehiculo_crear', {
     p_id: id,
     p_origen: origenId,
     p_datos: comoColumnas(datos),
+    // Sin respuesta de apibara el parámetro no viaja: la RPC lo tiene por defecto en nulo.
+    ...(apibara ? { p_apibara: apibara as Json } : {}),
   })
   if (error) {
     return fallo(error)
@@ -89,4 +91,26 @@ const guardar: RepositorioVehiculos['guardar'] = async ({ id, actualizadoEnEsper
   return { ok: true, data: { actualizadoEn: guardado.parse(data).actualizado_en } }
 }
 
-export const vehiculosSupabase: RepositorioVehiculos = { crear, guardar }
+const repetido = z.array(
+  z.object({ posicion: z.number().int(), vehiculo_id: z.guid().nullable(), visible: z.boolean() }),
+)
+
+const repetidos: RepositorioVehiculos['repetidos'] = async ({ origenId, claves }) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('vehiculos_repetidos', {
+    p_origen: origenId,
+    p_claves: claves.map((clave) => ({ ...clave })),
+  })
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(
+    repetido.parse(data).map((fila) => ({
+      // La RPC cuenta desde 1.
+      posicion: fila.posicion - 1,
+      vehiculoId: fila.visible ? fila.vehiculo_id : null,
+    })),
+  )
+}
+
+export const vehiculosSupabase: RepositorioVehiculos = { crear, guardar, repetidos }
