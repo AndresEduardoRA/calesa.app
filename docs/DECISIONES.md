@@ -1134,3 +1134,130 @@ vacío: se saltan en local con un aviso y corren siempre en CI. El spec de empre
 la empresa y la clave real y los deja como estaban.
 **Consecuencia:** quien corre los e2e con cuentas reales no pierde su clave ni sus ajustes, pero esas
 dos pruebas no corren en su máquina.
+
+## 2026-10-14 — El bruto de apibara lo origina la función; el navegador manda una referencia
+
+**Contexto:** `vehiculo_crear(…, p_apibara)` y `vehiculo_subasta_refrescar(…, p_apibara, …)` guardaban el
+JSON que mandaba el navegador, y de él la base deriva `subasta_en` y `estado_subasta`. Quien crea o
+edita podía falsear la fecha o el estado de lo suyo, y la limpieza automática decide por ellos.
+**Decisión:** la edge function guarda cada ficha que trae en `apibara_consultas` (sólo `service_role`) a
+nombre de quien consultó (`apibara_contexto()` devuelve su `usuario`) y devuelve `{ consulta, data, url }`.
+El alta y el refresco reciben el id y la base copia el bruto, con cuatro condiciones: la consulta es de
+quien llama, es del mismo origen, tiene menos de 24 h y la usa un solo vehículo (reintentar el mismo
+no choca). Las firmas viejas desaparecen (`drop function`). Nace `vehiculos.importado_apibara`, que sólo
+pone `vehiculo_crear` con consulta y no cambia nunca; en la base viva se rellenó con `apibara_raw is not null`.
+La action de refrescar lee el bruto nuevo con `apibara_consulta_leer()`, no del input. Un job borra las
+consultas de más de 48 h.
+**Alternativas:** re-consultar a apibara dentro de la limpieza (gasta cuota y el pedido de la limpieza
+es no llamar); firmar el bruto con un HMAC (hay que guardar un secreto en la base y rotarlo); una tabla
+con la clave del cliente y su bruto sin vencimiento (crece sin cota).
+**Consecuencia:** el navegador sigue recibiendo `data` (llena el formulario y lista las fotos), pero lo que
+viaja al guardar es el id. Costo: un INSERT por línea dentro de la función y un SELECT más al refrescar; ni
+una consulta más a la API. Un vehículo cargado a mano y refrescado después nunca fue «importado» (no pasa
+por `vehiculo_crear` con consulta): el relleno inicial de la base viva los contó como importados porque
+la base no podía distinguirlos; es el único caso.
+
+## 2026-10-14 — La regla de limpieza vive en un solo lugar de la base
+
+**Contexto:** el job, el filtro «Se limpiará pronto» y el banner de la ficha necesitan la misma regla:
+si un vehículo es basura, qué lo retiene y en qué fecha se va. Copiarla en TypeScript es la forma de que
+el banner prometa una fecha distinta de la que aplica el job.
+**Decisión:** funciones SQL, y sólo ellas: `_limpieza_aplica` (importado por apibara, de un origen de
+subasta, vivo), `_limpieza_termino` (por la fecha guardada: fin o inicio si ya pasó; fecha en el futuro =
+no terminó aunque el estado diga «terminada»; sin fecha y estado terminal, desde la última consulta; sin
+fecha y sin estado terminal, nunca), `_limpieza_vence` (el día **local** en que cumple los días de
+gracia), `_limpieza_ancla` (el código de la primera ancla) y `_limpieza_fecha` (el día en que el job lo
+mueve). `limpieza_el(vehiculos)` es la columna calculada que leen el filtro (`.lte('limpieza_el', hasta)`),
+la insignia y el banner. La fecha es **un día, no una hora**: lo que cumple después de las 03:00 locales
+espera al día siguiente, así que banner y job no discrepan por minutos; una fecha ya vencida se dice como
+la próxima corrida. Cambiar los días de gracia o la zona mueve los dos por igual, porque los dos leen
+`ajustes_empresa`. El interruptor apagado hace nulas las fechas: desaparecen filtro, insignia y banner.
+**Alternativas:** una vista `vehiculos_a_limpiar` (no compone con el listado ni se filtra por `or()`);
+persistir la fecha en una columna (caduca con cada cambio de ajustes o de ancla); calcularla en la app.
+**Consecuencia:** la columna calculada corre con los derechos de la base (mira pagos y documentos que
+quien lista quizá no lee) y sólo devuelve una fecha o nulo: revela, como mucho, que algo retiene al
+vehículo. Se evalúa por fila (50 por página): medirla con 5 a 10 mil vehículos es de la Fase 9.
+
+## 2026-10-14 — Qué ancla y qué no; la cotización final queda para la Fase 4
+
+**Contexto:** un vehículo de subasta que nadie compró se va; uno al que alguien le puso algo encima, no.
+**Decisión:** ancla = marca «Conservar», vínculo activo con un lead, fase posterior a la inicial,
+documentos, gastos, pagos (cuentan todas las filas, también las borradas: la purga las llevaría en
+cascada), publicado en la vitrina, y lo que la papelera manual ya rechaza (comprobante, declaración
+aduanera, proyecto de repuestos): la limpieza nunca intenta lo que la puerta de siempre cerraría. Los
+**interesados no anclan**. «Sin fase» no ancla. El orden de los códigos es `conservar`, `vinculo`, `fase`,
+`documentos`, `gastos`, `pagos`, `vitrina`, `bloqueo`, y la corrida cuenta cada ancla por separado.
+**La cotización final será ancla en la Fase 4:** `cotizaciones.clase = 'final' and estado = 'activa'`
+ya existe en la base; no se suma ahora porque nada la crea todavía. Se suma con una línea en
+`_limpieza_ancla()` (hay un comentario en el punto exacto). Hoy `cotizacion_marcar_final` vincula el lead
+si no tenía, y eso ya ancla por el vínculo.
+**Consecuencia:** hasta la Fase 3 ninguna ancla de vínculo se puede crear desde la pantalla, y hasta la
+Fase 6 tampoco documentos, gastos ni pagos: en la práctica sólo retienen «Conservar» y la vitrina.
+
+## 2026-10-14 — «Conservar» es una marca aparte, sin versión, y restaurar la deja puesta
+
+**Contexto:** hay que poder decir «éste no», sin mover la versión de la ficha (que le daría un conflicto
+a quien la está editando) y sin que un vehículo restaurado vuelva a irse esa noche.
+**Decisión:** `vehiculos_conservados (vehiculo_id, conservado_por, conservado_en)`, de sólo lectura para la
+app, escrita por `vehiculo_conservar(p_vehiculo, p_conservar)`. La marca y quitarla las hace quien puede
+editar el vehículo (`puede_vehiculo`), sólo en un importado de apibara, y dejan una fila en `actividad`
+(`vehiculo.conservado` / `vehiculo.conservar_quitado`). Manda el estado deseado y no lleva
+`p_actualizado_en_esperado`: es idempotente y no edita la ficha; es la misma razón por la que marcar un
+interesado no la lleva. Al restaurar un lote de limpieza un trigger deja el vehículo conservado, con quien
+restauró: la puerta de restaurar no se reescribe.
+**Consecuencia:** coherente con el pendiente de la Fase 6 (mover de fase sin cambiar la versión de la
+ficha). Quien quita la marca a mano lo devuelve a la limpieza, y se irá la noche en que le toque.
+
+## 2026-10-14 — El job: una vez por día local, desde las 03:00, lote acotado y con registro
+
+**Contexto:** `pg_cron` corre en UTC (`cron.timezone = GMT`) y ningún job miraba la zona de la empresa:
+`papelera-purgar` «03:30» es la madrugada de Greenwich (las 23:30 en La Paz).
+**Decisión:** `limpieza_automatica_correr(p_ahora, p_origenes)`, sólo `service_role`, programada **cada
+hora** (`7 * * * *`) y que actúa a lo sumo una vez por día local, a partir de las 03:00 de la zona de la
+empresa: una corrida perdida (base caída) se recupera a la hora siguiente y un cambio de zona no la
+desplaza. La reserva del día es una fila de `limpieza_corridas` con índice único por fecha, tomada antes de
+mover nada; dos a la vez no duplican. Por vehículo: fila bloqueada con `for update skip locked` (si alguien
+la está editando, se salta y queda para la noche siguiente), se vuelve a decidir con la fila en la mano, y
+sube a un lote `es_limpieza` sin autor con hasta 200 (el tope de un lote de papelera; el resto queda en
+`pendientes`). Deja la corrida (movidos, saltados por ancla, pendientes) y una fila en `actividad` sin
+autor. `p_origenes` hace la corrida «parcial»: no espera la hora ni tapa la de verdad (es lo que usan las
+pruebas, sobre sus propios orígenes). `_vehiculo_a_lote()` es el movimiento que comparten la papelera manual
+y la limpieza: la manual lo llama ahora, con el mismo comportamiento que ya cubría el humo.
+**Consecuencia:** desde el lote sigue el camino que ya existía (`papelera_dias`, purga, `storage-gc`).
+Quien edita un vehículo que el job movió recibe el PT409 de siempre («ya no existe o está en la papelera»),
+que ya es legible. `papelera-purgar` sigue a las 03:30 UTC: alinearlo con la zona de la empresa es un
+pendiente para la nube.
+
+## 2026-10-14 — El lote de la limpieza lo ven y restauran quienes pueden vaciar la papelera
+
+**Contexto:** un lote armado por el sistema no tiene autor, y la papelera muestra lo propio o, con
+`vehiculos.papelera.purgar`, todo.
+**Decisión:** nadie más lo ve. Quien creó el vehículo tuvo el aviso previo y «Conservar»; si se le fue,
+se lo pide a quien administra. Se lee igual que un lote ajeno y se dice «Limpieza automática del dd/mm».
+**Alternativas:** que cada persona vea sus vehículos dentro del lote (obliga a reescribir el listado y
+la restauración de la papelera, que esta parte no toca).
+
+## 2026-10-14 — El aviso: los próximos 3 días, y el interruptor apagado lo borra todo
+
+**Decisión:** «Se limpiará pronto» son los vehículos con fecha de limpieza en los próximos 3 días, hoy
+incluido (`VENTANA_DE_AVISO_DIAS`, el mismo número en el filtro, la insignia y el banner); los anclados no
+aparecen porque su fecha es nula. El banner dice «Se limpiará el dd/mm» con «Conservar»; fuera de la
+ventana, una línea con la fecha; conservado, «Se conserva · lo marcó X el dd/mm» con «Quitar». El
+interruptor general nace encendido; apagado, no hay filtro, insignia, banner ni corrida (y encenderlo más
+tarde el mismo día todavía limpia esa noche). La notificación llega en la Fase 7.
+
+## 2026-10-14 — Los textos de uso diario dicen «subasta»; el proveedor se nombra donde se configura
+
+**Contexto:** al cerrar la Fase 2 se revisó la interfaz: nada de voseo y ningún nombre de proveedor fuera
+de lo que viene del dato. No había voseo en `src/`; el nombre del proveedor estaba escrito en unos veinte textos,
+entre pantallas de uso diario (alta, ficha, fotos, errores) y pantallas que configuran la integración.
+**Decisión:** el alta, la ficha, las fotos y los mensajes de error de la consulta dicen «la subasta»,
+«la consulta de subastas» o «el servicio de subastas» (`mensajeDeApibara()`, `<AltaPorSubasta>`,
+`<BloqueDeSubasta>`, `<SeccionDeFotos>`). El nombre de la plataforma sigue saliendo del dato
+(`raw.platform` → `NOMBRE_DE_PLATAFORMA`). El proveedor se nombra sólo donde se lo configura:
+Configuración › Integraciones («apibara», su dirección y su cuota), el campo de apibara de un campo del
+layout, «Plataformas» al crear un origen y el paso «Activa apibara» de sus siguientes pasos.
+**Consecuencia:** quedan los textos de configuración y las etiquetas del catálogo («Estado según apibara»,
+«Actualizado en apibara»): son filas de `origenes_campos`, datos del origen que el dueño puede renombrar.
+Los mensajes con voseo que quedan están en tres RPC de leads, flujos y cotizaciones que ninguna pantalla
+llama todavía: se reescriben con su fase.

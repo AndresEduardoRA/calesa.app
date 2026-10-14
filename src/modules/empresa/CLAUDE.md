@@ -8,6 +8,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - Sale:
   - `getAjustes()` — lo mínimo de la empresa, una lectura por request, funciona sin sesión: nombre, logo, color, íconos, formato regional, zona horaria, moneda base, registro abierto, primer registro. Nunca tumba una pantalla. Lo consumen `app/` (marca, tokens de color, formato, zona horaria, pantallas de acceso) y `equipo` (registro).
   - `registroDisponible()`.
+  - `getPoliticaDeLimpieza()` — si la limpieza automática de vehículos de subasta está encendida y cuántos días de gracia. La lee cualquier cuenta con sesión; nunca tumba una pantalla (sin poder leerla, se da por apagada). La consulta `app/` para decirle a `vehiculos` si ofrece el filtro y las insignias.
   - `getTiposCambio()` — los tipos de cambio vigentes, con el por defecto adelante. Tampoco tumba una pantalla (devuelve una lista vacía). Lo consume `app/` para la barra superior (`<TiposCambioVigentes>`); lo consumirá `cotizaciones`, que congela los que usa.
   - `integracionActiva('apibara')` — si una integración está prendida; si la base no responde, no. La consulta `app/` para decirle a `vehiculos` si ofrece el alta por enlace y el refresco de la subasta.
   - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`, `<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`.
@@ -17,7 +18,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 ## Archivos clave
 
 - `entities/ajustes.ts` — `Ajustes` (lo mínimo, para toda pantalla), `ajustesDesde()`, `registroDisponible()`, `AJUSTES_POR_DEFECTO`.
-- `entities/ajustes-empresa.ts` — `AjustesEmpresa` (la fila entera, con su versión), `CambiosDeAjustes`, `cambiosComoColumnas()`.
+- `entities/ajustes-empresa.ts` — `AjustesEmpresa` (la fila entera, con su versión), `CambiosDeAjustes`, `cambiosComoColumnas()`; la política de la limpieza automática (`PoliticaDeLimpieza`, `GRACIA_*_DIAS`).
 - `entities/marca.ts` — `validarColorDeMarca()` (contraste AA, con el motivo y un tono cercano que sí pasa) y las reglas del logo: formatos, pesos, `motivoDeSvgInvalido()`, `medidasDeSvg()`.
 - `entities/regional.ts` — `localeCanonico()`, `zonaHorariaValida()`, `codigoDeMoneda()`: todo contra `Intl`.
 - `entities/iconos.ts` — tamaños, `encuadreDeIcono()`, `iconosDelManifest()`, `urlDeIcono()`.
@@ -61,5 +62,5 @@ RPC: `web.ajustes_acceso` (lo único de la empresa que lee `anon`), `empresa_gua
 - `<Marca>` y `<EstiloDeMarca>` viven en `src/shared/ui` y reciben nombre, logo y color por props: `shared` no importa este módulo. El color entra como un `<style>` con `:root` y `.dark`, no en `<html style>`: un estilo en línea le ganaría al tema oscuro.
 - El secreto de apibara no se guarda en columnas legibles: va a Vault por `integracion_guardar_secreto()` y la app sólo lee `integraciones.secreto_guardado_en`. `integraciones.config` lleva lo no secreto. Variables de entorno sólo para la infraestructura del despliegue (secret key, VAPID privada): ver docs/DECISIONES.md.
 - `push_web` y `web_publica` existen como filas pero no tienen interfaz hasta sus fases (7 y 8). Una integración nueva se suma a `CLAVES_INTEGRACION`; si lleva secreto, también a `esquemaGuardarSecreto`.
-- «Retención» son `papelera_dias` y `actividad_dias`. `demora_dias_default`, `lead_dormido_meses` y `logo_oscuro_ruta` todavía no tienen interfaz.
+- «Retención» son `papelera_dias` y `actividad_dias`. La **limpieza automática** (`limpieza_automatica`, `limpieza_dias_gracia`, de 1 a 90) se edita en el bloque «Políticas» y la regla que la usa es de `vehiculos` y de la base: este módulo sólo guarda el interruptor y los días. `demora_dias_default`, `lead_dormido_meses` y `logo_oscuro_ruta` todavía no tienen interfaz.
 - Un logo no pasa por `comprimirImagen()` como una foto: el SVG se sube tal cual y un raster de más de 1024 px se reduce a PNG, sin pérdida.

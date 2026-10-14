@@ -6,75 +6,75 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-14
-**Fase actual:** 2 — Orígenes y vehículos, **abierta**. Hechas las partes 1 a 5 (orígenes,
-vehículos, fotos y vínculo, vitrina y papelera, apibara); falta la 6 (limpieza automática de
-vehículos de subasta que no se compraron, y el cierre), en sesión nueva.
+**Fase actual:** 2 — Orígenes y vehículos, **cerrada** el 2026-10-14. **Siguiente: Fase 3** (leads).
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar`, `scripts/mapa.sh --check`, build y `test:e2e`
-  (números en `docs/BITACORA.md`). **Fase 1** completa y, de la 2, lo que sigue.
-- **apibara:** en un origen de subasta con la integración encendida, «Nuevo» acepta un enlace de
-  Copart o IAAI, un VIN o un lote (hasta 20, una por línea, con resultado por línea). Llena la
-  ficha (editable), detecta repetidos y tras guardar trae las primeras 24 fotos. Apagada o con la
-  API caída (cuota, clave, no encontrado, corte), se sigue a mano con lo pegado.
-- **Se guarda todo lo que devuelve la API:** la respuesta entera (`apibara_raw`) y un campo por
-  cada dato normalizado (106; no públicos). Fecha, estado (`abierta`, `en_vivo`, `terminada`,
-  `vendida`) y última consulta, en columnas con índice.
-- **Subasta en la ficha:** fecha con cuenta regresiva, estado, puja y «Refrescar» (no pisa lo
-  editado); «Traer las fotos que faltan» en Fotos; «Ver uso» de la cuota en Integraciones.
-- **La clave no llega al navegador:** la lee la edge function `apibara` (Vault) y la llama el
-  navegador con su sesión; la base dice antes qué puede esa persona en ese origen.
+  (números en `docs/BITACORA.md`). Fases 0, 1 y 2 completas (`docs/PLAN.md`).
+- **Orígenes y vehículos:** orígenes de subasta o manuales con su flujo y su layout; listado con filtros
+  en la URL y vistas guardadas; ficha, alta y edición; fotos; vitrina; papelera por lotes con purga y
+  `storage-gc`; vínculo e interesados (de sólo lectura hasta la Fase 3).
+- **apibara:** alta por enlace, VIN o lote (hasta 20), «Refrescar» y fotos. La función guarda cada
+  consulta (`apibara_consultas`) y el alta y el refresco sólo mandan su id: nadie falsea desde el
+  navegador la fecha ni el estado de una subasta.
+- **Limpieza automática:** cada madrugada (desde las 03:00 de la zona de la empresa) manda a la
+  papelera, en un lote «Limpieza automática», lo importado de una subasta que terminó hace más de 7
+  días (configurable, con interruptor, en Empresa › Políticas) y no tiene ancla. Antes se avisa: filtro
+  «Se limpiará pronto», insignia y banner con «Conservar». La regla es de la base (`limpieza_el`).
 
-## Siguiente: Fase 2, parte 6
+## Siguiente: Fase 3 — Leads (`docs/PLAN.md`)
 
-- Limpieza automática de vehículos de subasta que no se compraron (`terminada`, sin ancla). Ya
-  están `vehiculos_subasta_estado_idx`, `apibara_sync_en` y `_vehiculo_subasta_desde()`; **no** el
-  job, la regla de «sin ancla» ni qué hace con un estado viejo (nadie lo refresca solo).
-- Fase 3 (leads): vincular e interesados vive en `vehiculos`; hasta entonces un vehículo
-  vinculado no va a la papelera (no hay cómo desvincularlo).
+- Vincular y marcar interesados vive en `vehiculos` (RPC y lectura listas, sin interfaz).
 
-## Lo que el plan no había previsto (parte 5)
+## Pendientes que se arrastran
 
-- **La dirección de apibara estaba mal** (`api.apibara.tech`; la real es
-  `https://apibara.tech/api/v1/vehicle-auction`): una migración corrige la fila. Las 17
-  `clave_apibara` del preset eran adivinadas.
-- **`docs/PRODUCTO.md` no define «subastas próximas en la ficha»:** se tomó como la subasta de ese
-  vehículo (`docs/DECISIONES.md`); la lista `upcoming=only` no se usa.
-- Plan «Test»: 100 consultas por período; `/image-proxy` y `/usage` parecen no contarse. Sin
-  `db:reset`: la base local tiene una cuenta real y su clave.
+- **Fase 4:** la cotización final como ancla de la limpieza (una línea en `_limpieza_ancla()`, con su
+  comentario); si se puede desvincular un vehículo con cotización final; las rutas de flujo y de fórmula
+  en `app/(app)/configuracion/origenes/pasos.ts`.
+- **Fase 6:** mover de fase y publicar sin mover la versión de la ficha (el patrón de «Conservar»); la
+  papelera manual no mira `documentos` (la purga se los lleva en cascada).
+- **Fase 7:** la notificación de la limpieza.
+- **Fase 9:** medir con 5 a 10 mil vehículos: el listado (`limpieza_el` por fila), los filtros sobre
+  `atributos` y la papelera.
+- **Remoto de git y CI:** no hay remoto; `.github/` existe y todavía no corrió.
+
+## Lista para la nube (una persona)
+
+- Proyecto y `supabase link`; primer `db push --include-seed`; plantillas de correo; `Site URL`; SMTP;
+  Google. `supabase functions deploy storage-gc` y `apibara`, y
+  `select public.storage_gc_programar('https://<ref>.supabase.co/functions/v1/storage-gc');` (sin eso la
+  purga borra filas y los archivos se quedan). La clave de apibara se carga en Integraciones.
+- **Programar el job de limpieza:** `limpieza-automatica` (cada hora; actúa una vez por día local desde
+  las 03:00) lo programa la migración: comprobar en `cron.job` que quedó, con `apibara-consultas-purgar`
+  y `papelera-purgar`, y que `create extension pg_cron` pasa con el rol de las migraciones. `pg_cron`
+  corre en UTC: `papelera-purgar` (03:30) es la madrugada de Greenwich. Comprobar que el runtime inyecta
+  `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_ANON_KEY`.
 
 ## Pendiente de decidir
 
 - **Dominancia sobre la persona** y **vencimiento de la invitación** (`otp_expiry`).
-- **En la nube (una persona):** proyecto y `supabase link`; primer `db push --include-seed`;
-  plantillas de correo; `Site URL`; SMTP; Google. `supabase functions deploy storage-gc` y
-  `select public.storage_gc_programar('https://<ref>.supabase.co/functions/v1/storage-gc');`
-  (sin eso la purga borra filas y los archivos se quedan); y `supabase functions deploy apibara`
-  (la clave se carga en Integraciones). Comprobar que `create extension pg_cron` pasa con el rol de
-  las migraciones y que el runtime inyecta `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_ANON_KEY`.
-- **Fotos de una subasta en segundo plano:** hoy van en el navegador (cerrar la pestaña las deja
-  para «Traer las que faltan»). Revisar con uso real.
+- **Fotos de una subasta en segundo plano:** hoy van en el navegador (cerrar la pestaña las deja para
+  «Traer las que faltan»). Revisar con uso real.
+- **Nombres de proveedor:** quedan «apibara», «Copart» e «IAAI» donde se configura la integración y en
+  las etiquetas del catálogo (`docs/DECISIONES.md`, 2026-10-14).
 
 ## Deuda aceptada
 
 - `registrar_actividad()` y `storage_refcount()` tienen `execute` para `authenticated`; `marca` y
   `avatares` borran con `quitarSiHuerfano()` (cuenta y después borra).
-- `cambiar_fase` acepta `p_fase_esperada` nulo. Mover de fase y publicar mueven la versión del
-  vehículo: quien edita en ese momento ve un conflicto.
+- `cambiar_fase` acepta `p_fase_esperada` nulo. Mover de fase y publicar mueven la versión del vehículo.
 - `vehiculos.papelera.purgar` es global y gobierna también la papelera de leads y cotizaciones, que
-  siguen sin versión ni purga automática hasta sus fases. `web.solicitar_asesor` no valida el
-  vehículo y `cotizacion_marcar_final` vincula sin mirar la papelera (fases 8 y 4).
-- `apibara_raw` lo manda el navegador: quien crea o edita podría falsear el estado de lo suyo.
-  Importa cuando la limpieza borre por él: la parte 6 decide si re-consulta antes.
+  siguen sin versión ni purga automática. `web.solicitar_asesor` no valida el vehículo y
+  `cotizacion_marcar_final` vincula sin mirar la papelera (fases 8 y 4).
+- `limpieza_el` corre con los derechos de la base: un nulo revela que algo retiene al vehículo, que
+  quien lista ya ve, aunque no lea sus pagos o documentos.
 - Despublicar no revoca la URL de una foto que alguien ya tenga (bucket público).
-- `storage-gc` y `apibara` (Deno) no entran en lint ni typecheck: las cubren sus e2e y, la de
-  apibara, un test que la carga en Node con un `fetch` simulado. `cron.job_run_details` crece.
-- Con cuentas reales en la base local, «la primera persona nace dueña» y el guardián se saltan
-  (corren siempre en CI). Vitrina, papelera y apibara necesitan el edge runtime local arriba
-  (`npx supabase functions serve`). Falta probar las fotos en un iPhone.
-- Las RPC de leads, flujos y cotizaciones hablan de vos (se reescriben con su fase).
-- Sin interfaz: `demora_dias_default`, `lead_dormido_meses`, el logo oscuro, `push_web`,
-  `web_publica`, `ajustes_web.origenes_visibles`, `fases.publica_web`, el `icono` y el orden de los
-  orígenes. Sin enforcement: `equipo.usuarios.ver`, `equipo.roles.ver`, `tablero.metricas.ver`,
-  `datos.exportar.todo`, `notificaciones.push`, `logistica.pagos.confirmar`.
+- `storage-gc` y `apibara` (Deno) no entran en lint ni typecheck: las cubren sus e2e y un test en Node.
+- Con cuentas reales en la base local, «la primera persona nace dueña» y el guardián se saltan (corren
+  en CI). Vitrina, papelera y apibara necesitan `npx supabase functions serve`. Falta probar fotos en iPhone.
+- Tres mensajes de RPC de leads, flujos y cotizaciones hablan de vos; ninguna pantalla las llama aún.
+- Sin interfaz: `demora_dias_default`, `lead_dormido_meses`, el logo oscuro, `push_web`, `web_publica`,
+  `ajustes_web.origenes_visibles`, `fases.publica_web`, el `icono` y el orden de los orígenes. Sin
+  enforcement: `equipo.usuarios.ver`, `equipo.roles.ver`, `tablero.metricas.ver`, `datos.exportar.todo`,
+  `notificaciones.push`, `logistica.pagos.confirmar`.
