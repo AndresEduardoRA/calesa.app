@@ -1,7 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { formatearFechaHora } from '@/shared/lib/fechas'
+import { diaEnZona, formatearDiaYMes, formatearFechaHora } from '@/shared/lib/fechas'
 import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
 import {
@@ -117,13 +117,18 @@ function Acciones(props: {
 const DEL_LOTE = { restaurar: 'Restaurar el lote', purgar: 'Purgar el lote' }
 const DE_UNO = { restaurar: 'Restaurar', purgar: 'Purgar' }
 
-// Qué lote es: cuántos se enviaron y cuántos quedan.
-function tituloDe(lote: Lote): string {
+// Qué lote es: cuántos se enviaron y cuántos quedan. El de la limpieza automática se dice por su
+// origen y su día (el día es del calendario de la empresa).
+function tituloDe(lote: Lote, zona: string): string {
+  const quedan =
+    lote.vehiculos.length < lote.enviados ? ` · quedan ${String(lote.vehiculos.length)}` : ''
+  if (lote.esLimpieza) {
+    const dia = formatearDiaYMes(diaEnZona(lote.creadoEn, { zona }))
+    return `Limpieza automática del ${dia} · ${String(lote.enviados)}${quedan}`
+  }
   if (lote.enviados <= 1) {
     return 'Envío de uno'
   }
-  const quedan =
-    lote.vehiculos.length < lote.enviados ? ` · quedan ${String(lote.vehiculos.length)}` : ''
   return `Lote de ${String(lote.enviados)}${quedan}`
 }
 
@@ -133,7 +138,11 @@ function tituloDe(lote: Lote): string {
 export function LoteDePapelera(props: Props) {
   const { lote, origenes, ahora, puedePurgar, enCurso, alRestaurar, alPurgar } = props
   const { zonaHoraria } = useRegional()
-  const quien = lote.esMio ? 'ti' : (lote.creadoPorNombre ?? 'alguien que ya no está')
+  const quien = lote.esLimpieza
+    ? 'la limpieza automática'
+    : lote.esMio
+      ? 'ti'
+      : (lote.creadoPorNombre ?? 'alguien que ya no está')
   const comunes = {
     puedeRestaurar: lote.esMio || puedePurgar,
     puedePurgar,
@@ -150,12 +159,18 @@ export function LoteDePapelera(props: Props) {
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-(--color-line) px-3 py-2">
           <div className="grid gap-0.5">
             <p className="text-(length:--text-sm) font-medium text-(--color-ink)">
-              {tituloDe(lote)}
+              {tituloDe(lote, zonaHoraria)}
             </p>
             <p className="text-(length:--text-xs) text-(--color-ink-soft)">
               Enviado por {quien} el {formatearFechaHora(lote.creadoEn, { zona: zonaHoraria })} ·{' '}
               {textoDePurga(diasParaLaPurga(lote.purgaEl, ahora))}
             </p>
+            {lote.esLimpieza ? (
+              <p className="text-(length:--text-xs) text-(--color-ink-soft)">
+                Era de una subasta que terminó y nadie lo usaba. Al restaurarlo queda marcado como
+                «Conservar», para que no vuelva a irse.
+              </p>
+            ) : null}
           </div>
           {lote.vehiculos.length > 1 ? (
             <Acciones {...comunes} objetivo={{ lote }} etiquetas={DEL_LOTE} />

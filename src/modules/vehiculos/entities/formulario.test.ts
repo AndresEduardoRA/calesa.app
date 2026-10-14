@@ -56,6 +56,7 @@ const VEHICULO: Vehiculo = {
   precioWeb: null,
   precioWebHasta: null,
   precioWebNota: null,
+  limpiezaEl: null,
   portadaRuta: null,
   creadoPor: null,
   creadoEn: '2026-10-13T12:00:00+00:00',

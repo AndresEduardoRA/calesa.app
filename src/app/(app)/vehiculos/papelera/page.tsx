@@ -7,6 +7,8 @@ import {
   limpiezaPendiente,
   puedeAbrirLaPapelera,
   puedePurgar,
+  resumenDeUltimaLimpieza,
+  ultimaLimpieza,
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
@@ -22,10 +24,12 @@ export default async function PaginaPapeleraDeVehiculos() {
       <EstadoSinPermiso descripcion="No tienes permiso para enviar vehículos a la papelera ni para vaciarla. Pídeselo a quien administra los roles." />
     )
   }
-  const [lotes, origenes, limpieza] = await Promise.all([
+  const [lotes, origenes, limpieza, ultima] = await Promise.all([
     leerPapelera(),
     getOrigenes(true),
     limpiezaPendiente(),
+    // Sólo quien puede vaciar la papelera la ve; para el resto la base responde nulo.
+    ultimaLimpieza(),
   ])
   return (
     <PapeleraDeVehiculos
@@ -35,6 +39,7 @@ export default async function PaginaPapeleraDeVehiculos() {
       // Contra este instante se cuentan los días que faltan: el mismo en el servidor y al hidratar.
       ahora={new Date().toISOString()}
       limpieza={limpieza}
+      ultimaLimpiezaAutomatica={ultima ? resumenDeUltimaLimpieza(ultima) : null}
     />
   )
 }

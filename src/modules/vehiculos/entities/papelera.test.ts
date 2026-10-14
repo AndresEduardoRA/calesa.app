@@ -39,6 +39,7 @@ describe('lotesDesde', () => {
         creado_en: '2026-10-13T12:00:00+00:00',
         creado_por_nombre: 'Rosa Mamani',
         es_mio: false,
+        es_limpieza: true,
         purga_el: '2026-11-12T12:00:00+00:00',
         enviados: 2,
         vehiculos: [
@@ -57,6 +58,7 @@ describe('lotesDesde', () => {
     expect(lote).toMatchObject({
       actualizadoEn: '2026-10-13T12:00:00.5+00:00',
       creadoPorNombre: 'Rosa Mamani',
+      esLimpieza: true,
       enviados: 2,
       vehiculos: [{ numero: 7, fotos: 3, motivoDeBloqueo: 'Tiene pagos o gastos registrados.' }],
     })

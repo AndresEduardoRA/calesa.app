@@ -1,6 +1,7 @@
 import { ArrowLeftIcon } from 'lucide-react'
 import type { Metadata, Route } from 'next'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { z } from 'zod'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
@@ -20,6 +21,7 @@ import { RUTAS, unParametro } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { vehiculoEnEdicion } from '../edicion'
+import { AvisoLimpieza } from './aviso-limpieza'
 import { ContenidoDeLaPestana } from './contenido-de-la-pestana'
 import { Encabezado } from './encabezado'
 import { Paneles } from './paneles'
@@ -96,6 +98,11 @@ export default async function PaginaVehiculo({
           motivoParaNoEnviar(encontrado, fase),
         )}
       />
+      {origen.tipo === 'subasta' ? (
+        <Suspense fallback={null}>
+          <AvisoLimpieza vehiculo={encontrado} editable={editable} />
+        </Suspense>
+      ) : null}
       {hayBarraDePestanas() ? <PestanasDeVehiculo /> : null}
       <ContenidoDeLaPestana
         pestana={pestana}

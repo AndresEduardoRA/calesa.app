@@ -39,6 +39,21 @@ export { BotonDeVitrina } from './features/vitrina/components/boton-de-vitrina'
 export { InsigniaDeVitrina } from './features/vitrina/components/insignia-de-vitrina'
 export { PanelDeVitrina } from './features/vitrina/components/panel-de-vitrina'
 
+// La limpieza automática de los vehículos de subasta que nadie compró: lo que dice la base de cada
+// vehículo (cuándo se va, si se conserva), la ventana del aviso y la última noche. La regla es de
+// la base; acá sólo se lee y se dice. Las lecturas no tumban la pantalla.
+export { limpiezaDe, ultimaLimpieza } from './features/limpieza/lecturas'
+export {
+  hoyEnZona,
+  limiteDeAviso,
+  resumenDeUltimaLimpieza,
+  seLimpiaPronto,
+  VENTANA_DE_AVISO_DIAS,
+  type LimpiezaDeVehiculo,
+  type UltimaLimpieza,
+} from './entities/limpieza'
+export { AvisoDeLimpieza } from './features/limpieza/components/aviso-de-limpieza'
+
 // La papelera: enviar (desde la ficha y, en lote, desde el listado), restaurar y purgar
 export { leerPapelera } from './composicion'
 export { limpiezaPendiente } from './features/papelera/lecturas'

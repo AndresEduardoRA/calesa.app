@@ -4,6 +4,7 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
+import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpieza'
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
 import { TarjetaVehiculo } from './tarjeta-vehiculo'
 import { faseDe, vitrinaDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
@@ -17,7 +18,7 @@ type Props = DatosDelOrigen & {
 // El inventario de un origen en el celular: una tarjeta por vehículo, con lo mismo que la fila
 // de la tabla (la fase, si está en la vitrina, editar y la casilla para elegirlo).
 export function TarjetasDeVehiculos(props: Props) {
-  const { vehiculos, origen, campos, fases, vitrina, editables, seleccion } = props
+  const { vehiculos, origen, campos, fases, vitrina, limpiezaHoy, editables, seleccion } = props
   return (
     <ul className="grid gap-2 md:hidden">
       {vehiculos.map((vehiculo) => {
@@ -41,7 +42,14 @@ export function TarjetasDeVehiculos(props: Props) {
                 ) : null
               }
               insignias={
-                <InsigniaDeVitrina {...vitrinaDe(vehiculo, vitrina)} origen={origen} fase={fase} />
+                <>
+                  <InsigniaDeVitrina
+                    {...vitrinaDe(vehiculo, vitrina)}
+                    origen={origen}
+                    fase={fase}
+                  />
+                  <InsigniaDeLimpieza fecha={vehiculo.limpiezaEl} hoy={limpiezaHoy} />
+                </>
               }
               acciones={
                 editables.has(vehiculo.id) ? (

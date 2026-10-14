@@ -35,6 +35,10 @@ export type Vehiculo = {
   precioWeb: number | null
   precioWebHasta: number | null
   precioWebNota: string | null
+  // El día (`YYYY-MM-DD`, en la zona de la empresa) en que la limpieza automática lo va a mandar a
+  // la papelera; null = hoy no hay fecha (no le toca, está apagada o tiene una ancla). Lo calcula
+  // la base: ver `entities/limpieza.ts`.
+  limpiezaEl: string | null
   // La miniatura de la foto de portada (ruta en el bucket `vehiculos`); null = sin fotos.
   portadaRuta: string | null
   creadoPor: string | null
@@ -47,7 +51,7 @@ export type Vehiculo = {
 // vienen embebidas en la misma consulta; quien consulta las acota a la portada con
 // `FILTRO_DE_PORTADA` (sin ese filtro vendrían las 24).
 export const COLUMNAS_DE_VEHICULO =
-  'id, numero, origen_id, titulo, marca, modelo, anio, vin, lote, plataforma, url_origen, precio, precio_negociable, acepta_permuta, placado, kilometraje, categoria_id, fase_id, atributos, lead_id, publicado_web, destacado_web, precio_web, precio_web_hasta, precio_web_nota, creado_por, creado_en, actualizado_en, vehiculos_imagenes(ruta_miniatura)'
+  'id, numero, origen_id, titulo, marca, modelo, anio, vin, lote, plataforma, url_origen, precio, precio_negociable, acepta_permuta, placado, kilometraje, categoria_id, fase_id, atributos, lead_id, publicado_web, destacado_web, precio_web, precio_web_hasta, precio_web_nota, creado_por, creado_en, actualizado_en, limpieza_el, vehiculos_imagenes(ruta_miniatura)'
 
 export const FILTRO_DE_PORTADA = { columna: 'vehiculos_imagenes.es_portada', valor: true } as const
 
@@ -79,6 +83,8 @@ const esquemaVehiculos = z.array(
     precio_web: z.number().nullable(),
     precio_web_hasta: z.number().nullable(),
     precio_web_nota: z.string().nullable(),
+    // Columna calculada de la base (`limpieza_el()`); nunca tumba la lista.
+    limpieza_el: z.string().nullable().catch(null),
     // A lo sumo una: la portada. Sin fotos (o si no llegaron) el vehículo se muestra sin ella.
     vehiculos_imagenes: z.array(z.object({ ruta_miniatura: z.string() })).catch([]),
     creado_por: z.guid().nullable(),
@@ -115,6 +121,7 @@ export function vehiculosDesde(filas: unknown): Vehiculo[] {
     precioWeb: fila.precio_web,
     precioWebHasta: fila.precio_web_hasta,
     precioWebNota: fila.precio_web_nota,
+    limpiezaEl: fila.limpieza_el,
     portadaRuta: fila.vehiculos_imagenes[0]?.ruta_miniatura ?? null,
     creadoPor: fila.creado_por,
     creadoEn: fila.creado_en,

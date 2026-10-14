@@ -97,6 +97,23 @@ export function diaSiguiente(dia: string): string {
   return instante.toISOString().slice(0, 10)
 }
 
+// `YYYY-MM-DD` más o menos N días, también como `YYYY-MM-DD`. Aritmética de calendario: no
+// depende de la zona del proceso.
+export function sumarDias(dia: string, dias: number): string {
+  const instante = new Date(`${dia}T00:00:00Z`)
+  instante.setUTCDate(instante.getUTCDate() + dias)
+  return instante.toISOString().slice(0, 10)
+}
+
+// «15/10»: el día y el mes de un `YYYY-MM-DD`. Un día del calendario no lleva zona: no se
+// convierte. Lo que no es una fecha así vuelve vacío.
+export function formatearDiaYMes(dia: string): string {
+  if (!SOLO_FECHA.test(dia)) {
+    return ''
+  }
+  return `${dia.slice(8, 10)}/${dia.slice(5, 7)}`
+}
+
 // El instante (ISO, en UTC) en que empieza un día del calendario de la empresa. Con esto un
 // filtro «desde el 13» sobre una fecha con hora empieza a la medianoche de la empresa, no de UTC.
 export function inicioDelDia(dia: string, { zona = ZONA_POR_DEFECTO }: Opciones = {}): string {

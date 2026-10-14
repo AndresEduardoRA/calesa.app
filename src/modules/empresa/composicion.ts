@@ -13,7 +13,7 @@ import type {
 } from './entities/repositorios'
 import { empresaSupabase } from './infra/empresa'
 import { integracionesSupabase } from './infra/integraciones'
-import { getAjustes, getAjustesParaEditar } from './infra/queries/ajustes'
+import { getAjustes, getAjustesParaEditar, getPoliticaDeLimpieza } from './infra/queries/ajustes'
 import { getIntegraciones, integracionActiva } from './infra/queries/integraciones'
 import { getHistorial, getMonedasYTiposCambio, getTiposCambio } from './infra/queries/tipos-cambio'
 import { tiposCambioSupabase } from './infra/tipos-cambio'
@@ -28,4 +28,4 @@ export const leerHistorial: LectorDeHistorial = getHistorial
 export const leerIntegraciones: LectorDeIntegraciones = getIntegraciones
 
 // Lo que consumen el shell y otros módulos: nunca tumban una pantalla.
-export { getAjustes, getTiposCambio, integracionActiva }
+export { getAjustes, getPoliticaDeLimpieza, getTiposCambio, integracionActiva }

@@ -11,6 +11,9 @@ import type {
   LectorDeGaleria,
   LectorDeRelaciones,
   LectorDeConsultaDeApibara,
+  LectorDeLimpiezaAutomatica,
+  LectorDeUltimaLimpieza,
+  RepositorioDeLimpieza,
   LectorDeSubasta,
   LectorDeVehiculo,
   LectorDeVistaPrevia,
@@ -21,6 +24,8 @@ import type {
   RepositorioVitrina,
 } from './entities/repositorios'
 import { fotosSupabase } from './infra/fotos'
+import { limpiezaSupabase } from './infra/limpieza'
+import { getLimpiezaAutomatica, getUltimaLimpieza } from './infra/queries/limpieza'
 import { papeleraSupabase } from './infra/papelera'
 import { getEditables } from './infra/queries/editables'
 import { getGaleria } from './infra/queries/fotos'
@@ -48,3 +53,6 @@ export const repositorioPapelera: RepositorioPapelera = papeleraSupabase
 export const leerPapelera: LectorDePapelera = getPapelera
 export const consultarPermiso: ConsultaDePermiso = getConPermiso
 export const leerLimpiezaPendiente: LectorDeLimpiezaPendiente = getLimpiezaPendiente
+export const leerLimpiezaAutomatica: LectorDeLimpiezaAutomatica = getLimpiezaAutomatica
+export const leerUltimaLimpieza: LectorDeUltimaLimpieza = getUltimaLimpieza
+export const repositorioDeLimpieza: RepositorioDeLimpieza = limpiezaSupabase

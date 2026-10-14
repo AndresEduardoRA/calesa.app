@@ -87,6 +87,20 @@ function enVitrina<Consulta extends Filtrable<Consulta>>(
     : consulta.or(`publicado_web.is.false,fase_id.is.null,fase_id.not.in.(${fases.join(',')})`)
 }
 
+// «Se limpiará pronto» = importado de apibara y con `limpieza_el` hasta ese día. La fecha la calcula
+// la base (`limpieza_el()`, columna calculada: nunca se reconstruye acá), y es nula si el vehículo
+// no aplica o tiene una ancla, así que lo retenido nunca entra. `hasta` lo calcula la página (un
+// día, no texto de la persona).
+function porLimpiar<Consulta extends Filtrable<Consulta>>(
+  consulta: Consulta,
+  { valor, hasta }: Extract<Condicion, { tipo: 'por_limpiar' }>,
+): Consulta {
+  if (valor) {
+    return consulta.eq('importado_apibara', true).lte('limpieza_el', hasta)
+  }
+  return consulta.or(`importado_apibara.is.false,limpieza_el.is.null,limpieza_el.gt.${hasta}`)
+}
+
 function aplicarUna<Consulta extends Filtrable<Consulta>>(
   consulta: Consulta,
   condicion: Condicion,
@@ -106,6 +120,8 @@ function aplicarUna<Consulta extends Filtrable<Consulta>>(
       })
     case 'en_vitrina':
       return enVitrina(consulta, condicion)
+    case 'por_limpiar':
+      return porLimpiar(consulta, condicion)
     case 'atributos_contienen':
       return atributosContienen(consulta, condicion.alternativas)
     case 'atributo_rango_numero':

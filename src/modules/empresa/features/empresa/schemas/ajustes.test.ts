@@ -18,6 +18,8 @@ const valida: EntradaDeAjustes = {
   registroAbierto: false,
   papeleraDias: 30,
   actividadDias: 14,
+  limpiezaAutomatica: true,
+  limpiezaDiasGracia: 7,
   actualizadoEnEsperado: '2026-10-12T14:00:00+00:00',
 }
 
@@ -65,6 +67,14 @@ describe('esquemaAjustes', () => {
     expect(errorDe({ actividadDias: 366 }, 'actividadDias')).toBe('Como máximo, 365 días.')
     expect(errorDe({ papeleraDias: 1.5 }, 'papeleraDias')).toContain('sin decimales')
     expect(errorDe({ papeleraDias: Number.NaN }, 'papeleraDias')).toBe('Escribe un número de días.')
+  })
+
+  it('los días de gracia de la limpieza van de 1 a 90 días enteros', () => {
+    expect(errorDe({ limpiezaDiasGracia: 0 }, 'limpiezaDiasGracia')).toBe('Como mínimo, 1 día.')
+    expect(errorDe({ limpiezaDiasGracia: 91 }, 'limpiezaDiasGracia')).toBe('Como máximo, 90 días.')
+    expect(errorDe({ limpiezaDiasGracia: 2.5 }, 'limpiezaDiasGracia')).toContain('sin decimales')
+    expect(errorDe({ limpiezaDiasGracia: 7 }, 'limpiezaDiasGracia')).toBeUndefined()
+    expect(errorDe({ limpiezaDiasGracia: 90 }, 'limpiezaDiasGracia')).toBeUndefined()
   })
 
   it('exige nombre, país y un correo con forma de correo', () => {

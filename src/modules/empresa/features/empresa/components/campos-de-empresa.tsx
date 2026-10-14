@@ -25,6 +25,8 @@ type Props = {
   alCambiarLogo: (logo: LogoElegido) => void
   registroAbierto: boolean
   alCambiarRegistro: (abierto: boolean) => void
+  limpiezaAutomatica: boolean
+  alCambiarLimpieza: (encendida: boolean) => void
   errores: ErroresDeAjustes
 }
 
@@ -56,6 +58,8 @@ export function CamposDeEmpresa(props: Props) {
         ajustes={ajustes}
         registroAbierto={props.registroAbierto}
         alCambiarRegistro={props.alCambiarRegistro}
+        limpiezaAutomatica={props.limpiezaAutomatica}
+        alCambiarLimpieza={props.alCambiarLimpieza}
         deshabilitado={!puedeEditar}
         errores={errores}
       />

@@ -26,6 +26,7 @@ export const CAMPOS_DE_AJUSTES = [
   'monedaBase',
   'papeleraDias',
   'actividadDias',
+  'limpiezaDiasGracia',
 ] as const
 
 export type LogoElegido = CambioDeLogo<LogoListo>
@@ -47,7 +48,10 @@ export function useGuardarAjustes(opciones: Opciones) {
   const { executeAsync, result, isPending } = useAction(guardarAjustes)
   const [subiendo, setSubiendo] = useState(false)
 
-  async function guardar(logo: LogoElegido, registroAbierto: boolean): Promise<void> {
+  async function guardar(
+    logo: LogoElegido,
+    interruptores: { registroAbierto: boolean; limpiezaAutomatica: boolean },
+  ): Promise<void> {
     const elemento = formulario.current
     if (!elemento) {
       return
@@ -58,7 +62,8 @@ export function useGuardarAjustes(opciones: Opciones) {
       monedaBase: conDatosCargados ? undefined : valores.monedaBase,
       papeleraDias: Number(valores.papeleraDias),
       actividadDias: Number(valores.actividadDias),
-      registroAbierto,
+      limpiezaDiasGracia: Number(valores.limpiezaDiasGracia),
+      ...interruptores,
       actualizadoEnEsperado: actualizadoEn,
     }
     setSubiendo(true)

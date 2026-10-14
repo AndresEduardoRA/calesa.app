@@ -25,6 +25,10 @@ export const FILTRO_CATEGORIA = 'categoria'
 export const FILTRO_ANIO = 'anio'
 // Sí = se ve hoy en la web pública; no = todo lo demás (sin publicar, o publicado y no visible).
 export const FILTRO_VITRINA = 'vitrina'
+// Sí = la limpieza automática lo va a mandar a la papelera en los próximos días (la ventana y la
+// regla son de la base y de `entities/limpieza.ts`); no = todo lo demás. Sólo existe en un origen de
+// subasta con la limpieza encendida.
+export const FILTRO_LIMPIEZA = 'limpieza'
 // En el filtro de fase: lo que todavía no entró al flujo.
 export const SIN_FASE = 'ninguna'
 
@@ -35,6 +39,9 @@ type Fuentes = {
   campos: readonly CampoDeVehiculo[]
   fases: readonly FaseDeVehiculo[]
   categorias: readonly CategoriaDeVehiculo[]
+  // La limpieza automática de este origen: con `activa` el filtro «Se limpiará pronto» existe. La
+  // página lo resuelve (sólo un origen de subasta con el interruptor encendido).
+  limpieza?: { activa: boolean }
 }
 
 type Base = { clave: string; etiqueta: string }
@@ -87,7 +94,7 @@ export function camposFiltrables<Campo extends CampoDeVehiculo>(campos: readonly
   return camposActivos(campos).filter((campo) => campo.filtrable && filtroDeCampo(campo) !== null)
 }
 
-function filtrosFijos({ fases, categorias }: Fuentes): DefFiltro[] {
+function filtrosFijos({ fases, categorias, limpieza }: Fuentes): DefFiltro[] {
   const fijos: DefFiltro[] = []
   if (fases.length > 0) {
     fijos.push({
@@ -120,6 +127,9 @@ function filtrosFijos({ fases, categorias }: Fuentes): DefFiltro[] {
     sinMiles: true,
   })
   fijos.push({ tipo: 'booleano', clave: FILTRO_VITRINA, etiqueta: 'En vitrina' })
+  if (limpieza?.activa) {
+    fijos.push({ tipo: 'booleano', clave: FILTRO_LIMPIEZA, etiqueta: 'Se limpiará pronto' })
+  }
   return fijos
 }
 
@@ -143,6 +153,10 @@ export type Condicion =
   // Publicado y en una de estas fases (las que hoy publican; ninguna si el origen no se ve), o
   // lo contrario. La regla es de la base (`vitrina_del_origen`): acá sólo llega resuelta.
   | { tipo: 'en_vitrina'; valor: boolean; fases: string[] }
+  // La limpieza automática lo va a mandar a la papelera hasta ese día (`YYYY-MM-DD`, inclusive), o
+  // lo contrario. El día llega calculado por la página con la zona de la empresa; la fecha de cada
+  // vehículo (`limpieza_el`) la calcula la base: nada de esto copia la regla.
+  | { tipo: 'por_limpiar'; valor: boolean; hasta: string }
   // `atributos` contiene alguno de estos objetos (`@>`).
   | { tipo: 'atributos_contienen'; alternativas: Record<string, string | boolean | string[]>[] }
   | { tipo: 'atributo_rango_numero'; clave: string; min: number | null; max: number | null }
@@ -154,6 +168,7 @@ function condicionFija(
   clave: string,
   valor: ValorDeFiltro,
   vitrina: VitrinaDelOrigen,
+  limpieza: { hasta: string } | undefined,
 ): Condicion | null {
   if (clave === FILTRO_ANIO && valor.tipo === 'rango_numero') {
     return { tipo: 'columna_rango', columna: 'anio', min: valor.min, max: valor.max }
@@ -164,6 +179,10 @@ function condicionFija(
       valor: valor.valor,
       fases: vitrinaAbierta(vitrina) ? [...vitrina.fasesQuePublican] : [],
     }
+  }
+  if (clave === FILTRO_LIMPIEZA && valor.tipo === 'booleano') {
+    // Sin la limpieza encendida el filtro ni existe en el esquema: una URL vieja no filtra nada.
+    return limpieza ? { tipo: 'por_limpiar', valor: valor.valor, hasta: limpieza.hasta } : null
   }
   if (valor.tipo !== 'opciones') {
     return null
@@ -235,7 +254,7 @@ function condicionDeCampo(
 export function condicionesDe(
   campos: readonly CampoDeVehiculo[],
   valores: ValoresDeFiltros,
-  opciones: { zona?: string; vitrina?: VitrinaDelOrigen } = {},
+  opciones: { zona?: string; vitrina?: VitrinaDelOrigen; limpieza?: { hasta: string } } = {},
 ): Condicion[] {
   const condiciones: Condicion[] = []
   if (valores.busqueda !== '') {
@@ -248,7 +267,7 @@ export function condicionesDe(
     const campo = porClave.get(clave)
     const condicion = campo
       ? condicionDeCampo(campo, valor, opciones.zona)
-      : condicionFija(clave, valor, opciones.vitrina ?? VITRINA_CERRADA)
+      : condicionFija(clave, valor, opciones.vitrina ?? VITRINA_CERRADA, opciones.limpieza)
     if (condicion) {
       condiciones.push(condicion)
     }

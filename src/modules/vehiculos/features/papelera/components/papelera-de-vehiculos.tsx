@@ -23,6 +23,9 @@ type Props = {
   ahora: string
   // Lo que la limpieza de Storage tiene atrasado; sólo le llega a quien puede vaciar la papelera.
   limpieza: LimpiezaPendiente | null
+  // Lo que hizo la última noche la limpieza automática, ya dicho; sólo para quien puede vaciar la
+  // papelera (null para el resto, y mientras no corrió nunca).
+  ultimaLimpiezaAutomatica?: string | null
 }
 
 const VOLVER =
@@ -30,7 +33,14 @@ const VOLVER =
 
 // La papelera de vehículos, por lote: quién envió qué, cuándo, y cuánto falta para que se purgue
 // solo. Restaurar se hace y lo dice; purgar pide confirmar nombrando lo que se borra.
-export function PapeleraDeVehiculos({ lotes, origenes, puedePurgar, ahora, limpieza }: Props) {
+export function PapeleraDeVehiculos({
+  lotes,
+  origenes,
+  puedePurgar,
+  ahora,
+  limpieza,
+  ultimaLimpiezaAutomatica = null,
+}: Props) {
   const papelera = usePapelera()
   const [aPurgar, setAPurgar] = useState<Objetivo | null>(null)
   const porId = new Map(origenes.map((origen) => [origen.id, origen]))
@@ -50,6 +60,7 @@ export function PapeleraDeVehiculos({ lotes, origenes, puedePurgar, ahora, limpi
             : 'Lo que enviaste a la papelera. Puedes restaurarlo hasta que se purgue.'}
         </p>
       </header>
+      {ultimaLimpiezaAutomatica ? <Aviso>{ultimaLimpiezaAutomatica}</Aviso> : null}
       {limpieza ? (
         <Aviso tono="aviso">
           La limpieza de archivos está atrasada:{' '}

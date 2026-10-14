@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getAjustes, integracionActiva } from '@/modules/empresa'
+import { getAjustes, getPoliticaDeLimpieza, integracionActiva } from '@/modules/empresa'
 import { leerVistas, puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
@@ -10,6 +10,8 @@ import {
   editablesDe,
   eliminablesDe,
   esquemaDeFiltros,
+  hoyEnZona,
+  limiteDeAviso,
   origenElegido,
   origenesVisibles,
   permisoDeAlta,
@@ -41,7 +43,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
     )
   }
 
-  const [layout, fases, vistas, ajustes, vitrina, apibaraActiva] = await Promise.all([
+  const [layout, fases, vistas, ajustes, vitrina, apibaraActiva, politica] = await Promise.all([
     leerLayout(origen.id, { conUso: false }),
     leerFasesDeOrigen(origen.id),
     leerVistas('vehiculos'),
@@ -49,16 +51,25 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
     vitrinaDelOrigen(origen.id),
     // Sólo un origen de subasta trae fichas de apibara; el resto ni pregunta.
     origen.tipo === 'subasta' ? integracionActiva('apibara') : Promise.resolve(false),
+    getPoliticaDeLimpieza(),
   ])
   const { campos, categorias } = datosO(layout)
   const fuentes = { campos, categorias, fases: datosO(fases), vitrina }
-  const esquema = esquemaDeFiltros(fuentes)
+  // La limpieza automática sólo existe en un origen de subasta y con el interruptor encendido:
+  // apagada, no hay filtro ni insignias. «Hoy» es el de la zona de la empresa.
+  const limpiezaActiva = origen.tipo === 'subasta' && politica.activa
+  const hoy = hoyEnZona(ajustes.zonaHoraria)
+  const esquema = esquemaDeFiltros({
+    ...fuentes,
+    ...(limpiezaActiva ? { limpieza: { activa: true } } : {}),
+  })
   const [leida, enEdicion] = await Promise.all([
     buscarVehiculos({
       origenId: origen.id,
       condiciones: condicionesDe(campos, leerFiltros(esquema, parametros), {
         zona: ajustes.zonaHoraria,
         vitrina,
+        ...(limpiezaActiva ? { limpieza: { hasta: limiteDeAviso(hoy) } } : {}),
       }),
       cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR])),
       tamano: TAMANO_DE_PAGINA,
@@ -80,6 +91,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       origen={origen}
       {...fuentes}
       esquema={esquema}
+      limpiezaHoy={limpiezaActiva ? hoy : null}
       pagina={pagina}
       // Una vista de un origen que la persona ya no ve no se ofrece.
       vistas={datosO(vistas).filter((vista) => idsVisibles.has(vista.params['origen'] ?? ''))}

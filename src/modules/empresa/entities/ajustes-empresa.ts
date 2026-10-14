@@ -23,6 +23,10 @@ export type AjustesEmpresa = {
   // Retención: cuántos días se guarda lo que se manda a la papelera y el registro de actividad.
   papeleraDias: number
   actividadDias: number
+  // La limpieza automática de vehículos de subasta: el interruptor general y los días que pasan
+  // desde que terminó la subasta hasta que, sin ancla, el vehículo va a la papelera.
+  limpiezaAutomatica: boolean
+  limpiezaDiasGracia: number
   // ISO. La versión de los ajustes: la mandan de vuelta las ediciones.
   actualizadoEn: string
 }
@@ -47,6 +51,8 @@ export function ajustesEmpresaDesde(fila: Tables<'ajustes_empresa'>): AjustesEmp
     registroAbierto: fila.registro_abierto,
     papeleraDias: fila.papelera_dias,
     actividadDias: fila.actividad_dias,
+    limpiezaAutomatica: fila.limpieza_automatica,
+    limpiezaDiasGracia: fila.limpieza_dias_gracia,
     actualizadoEn: fila.actualizado_en,
   }
 }
@@ -74,6 +80,8 @@ const COLUMNA: Record<keyof CambiosDeAjustes, string> = {
   registroAbierto: 'registro_abierto',
   papeleraDias: 'papelera_dias',
   actividadDias: 'actividad_dias',
+  limpiezaAutomatica: 'limpieza_automatica',
+  limpiezaDiasGracia: 'limpieza_dias_gracia',
 }
 
 type Valor = string | number | boolean | Iconos | null
@@ -102,3 +110,23 @@ export function huellaDelFormulario(ajustes: AjustesEmpresa): string {
 // Lo mínimo y lo máximo de las dos retenciones (los mismos CHECK de la tabla).
 export const RETENCION_MINIMA_DIAS = 1
 export const RETENCION_MAXIMA_DIAS = 365
+
+// Los días de gracia de la limpieza automática (el mismo CHECK de la tabla).
+export const GRACIA_MINIMA_DIAS = 1
+export const GRACIA_MAXIMA_DIAS = 90
+export const GRACIA_POR_DEFECTO_DIAS = 7
+
+// Lo único que las otras pantallas necesitan de la limpieza: si está encendida y cuántos días.
+export type PoliticaDeLimpieza = { activa: boolean; diasGracia: number }
+
+export function politicaDeLimpiezaDesde(
+  fila: Pick<Tables<'ajustes_empresa'>, 'limpieza_automatica' | 'limpieza_dias_gracia'>,
+): PoliticaDeLimpieza {
+  return { activa: fila.limpieza_automatica, diasGracia: fila.limpieza_dias_gracia }
+}
+
+// Sin poder leerla, la limpieza se da por apagada: no se promete ninguna fecha que no se conoce.
+export const LIMPIEZA_APAGADA: PoliticaDeLimpieza = {
+  activa: false,
+  diasGracia: GRACIA_POR_DEFECTO_DIAS,
+}

@@ -170,3 +170,18 @@ describe('aplicarCursor', () => {
     ])
   })
 })
+
+describe('por limpiar', () => {
+  it('sí: importado y con fecha de limpieza hasta ese día (nulo, o con ancla, no entra)', () => {
+    expect(pedidosDe({ tipo: 'por_limpiar', valor: true, hasta: '2026-10-17' })).toEqual([
+      'importado_apibara=eq.true',
+      'limpieza_el=lte.2026-10-17',
+    ])
+  })
+
+  it('no: lo que no es importado, no tiene fecha o la tiene después', () => {
+    expect(pedidosDe({ tipo: 'por_limpiar', valor: false, hasta: '2026-10-17' })).toEqual([
+      'or=(importado_apibara.is.false,limpieza_el.is.null,limpieza_el.gt.2026-10-17)',
+    ])
+  })
+})

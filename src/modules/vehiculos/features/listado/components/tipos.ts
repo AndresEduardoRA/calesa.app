@@ -17,6 +17,9 @@ export type DatosDelOrigen = {
   categorias: readonly Categoria[]
   // Lo que hace falta para que algo de este origen se vea en la web: de acá sale la insignia.
   vitrina: VitrinaDelOrigen
+  // El día de hoy en la zona de la empresa, si la limpieza automática aplica a este origen y está
+  // encendida: con él cada fila dice «Se limpia el dd/mm». null = no hay nada que decir.
+  limpiezaHoy: string | null
 }
 
 export type FilaDeVehiculo = Vehiculo

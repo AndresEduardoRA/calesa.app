@@ -189,3 +189,45 @@ describe('condicionesDe: en vitrina', () => {
     ])
   })
 })
+
+describe('«Se limpiará pronto»', () => {
+  const conLimpieza = { ...FUENTES, limpieza: { activa: true } }
+
+  it('sólo existe con la limpieza automática encendida en el origen', () => {
+    const claves = (esquema: ReturnType<typeof esquemaDeFiltros>) =>
+      esquema.filtros.map((filtro) => filtro.clave)
+    expect(claves(esquemaDeFiltros(FUENTES))).not.toContain('limpieza')
+    expect(claves(esquemaDeFiltros({ ...FUENTES, limpieza: { activa: false } }))).not.toContain(
+      'limpieza',
+    )
+    const esquema = esquemaDeFiltros(conLimpieza)
+    expect(claves(esquema)).toContain('limpieza')
+    expect(esquema.filtros.find((filtro) => filtro.clave === 'limpieza')).toEqual({
+      tipo: 'booleano',
+      clave: 'limpieza',
+      etiqueta: 'Se limpiará pronto',
+    })
+  })
+
+  it('lleva hasta qué día cuenta como «pronto»', () => {
+    const filtros = leerFiltros(esquemaDeFiltros(conLimpieza), { limpieza: 'si' })
+    expect(condicionesDe(CAMPOS, filtros, { limpieza: { hasta: '2026-10-17' } })).toEqual([
+      { tipo: 'por_limpiar', valor: true, hasta: '2026-10-17' },
+    ])
+    expect(
+      condicionesDe(CAMPOS, leerFiltros(esquemaDeFiltros(conLimpieza), { limpieza: 'no' }), {
+        limpieza: { hasta: '2026-10-17' },
+      }),
+    ).toEqual([{ tipo: 'por_limpiar', valor: false, hasta: '2026-10-17' }])
+  })
+
+  it('una URL vieja con el filtro, sin la limpieza encendida, no filtra nada', () => {
+    // Fuera del esquema, `leerFiltros` lo descarta; y sin `limpieza` en las opciones tampoco.
+    expect(
+      condicionesDe(CAMPOS, leerFiltros(esquemaDeFiltros(FUENTES), { limpieza: 'si' })),
+    ).toEqual([])
+    expect(
+      condicionesDe(CAMPOS, leerFiltros(esquemaDeFiltros(conLimpieza), { limpieza: 'si' })),
+    ).toEqual([])
+  })
+})

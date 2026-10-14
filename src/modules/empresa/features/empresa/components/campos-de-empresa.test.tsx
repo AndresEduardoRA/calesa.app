@@ -26,6 +26,8 @@ const ajustes: AjustesEmpresa = {
   registroAbierto: false,
   papeleraDias: 30,
   actividadDias: 14,
+  limpiezaAutomatica: true,
+  limpiezaDiasGracia: 7,
   actualizadoEn: '2026-10-12T14:00:00+00:00',
 }
 
@@ -51,6 +53,8 @@ function campos(props: Partial<Parameters<typeof CamposDeEmpresa>[0]> = {}) {
       alCambiarLogo={vi.fn()}
       registroAbierto={false}
       alCambiarRegistro={vi.fn()}
+      limpiezaAutomatica
+      alCambiarLimpieza={vi.fn()}
       errores={undefined}
       {...props}
     />,

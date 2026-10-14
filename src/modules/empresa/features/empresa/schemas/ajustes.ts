@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { RETENCION_MAXIMA_DIAS, RETENCION_MINIMA_DIAS } from '../../../entities/ajustes-empresa'
+import {
+  GRACIA_MAXIMA_DIAS,
+  GRACIA_MINIMA_DIAS,
+  RETENCION_MAXIMA_DIAS,
+  RETENCION_MINIMA_DIAS,
+} from '../../../entities/ajustes-empresa'
 import { RUTA_DE_LOGO, validarColorDeMarca } from '../../../entities/marca'
 import { localeCanonico, zonaHorariaValida } from '../../../entities/regional'
 
@@ -17,6 +22,12 @@ const dias = z
   .int({ error: 'Escribe un número de días, sin decimales.' })
   .min(RETENCION_MINIMA_DIAS, { error: 'Como mínimo, 1 día.' })
   .max(RETENCION_MAXIMA_DIAS, { error: 'Como máximo, 365 días.' })
+
+const diasDeGracia = z
+  .number({ error: 'Escribe un número de días.' })
+  .int({ error: 'Escribe un número de días, sin decimales.' })
+  .min(GRACIA_MINIMA_DIAS, { error: 'Como mínimo, 1 día.' })
+  .max(GRACIA_MAXIMA_DIAS, { error: 'Como máximo, 90 días.' })
 
 export const esquemaAjustes = z.object({
   nombre: z
@@ -76,6 +87,8 @@ export const esquemaAjustes = z.object({
   registroAbierto: z.boolean(),
   papeleraDias: dias,
   actividadDias: dias,
+  limpiezaAutomatica: z.boolean(),
+  limpiezaDiasGracia: diasDeGracia,
   // El `actualizado_en` con el que se abrió el formulario: detecta un cambio ajeno.
   actualizadoEnEsperado: z.string().min(1),
 })

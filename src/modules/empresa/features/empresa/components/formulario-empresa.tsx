@@ -34,6 +34,7 @@ export function FormularioEmpresa(props: Props) {
   const formulario = useRef<HTMLFormElement>(null)
   const [logo, setLogo] = useState<LogoElegido>({ tipo: 'igual' })
   const [registroAbierto, setRegistroAbierto] = useState(ajustes.registroAbierto)
+  const [limpiezaAutomatica, setLimpiezaAutomatica] = useState(ajustes.limpiezaAutomatica)
   const enLinea = useEnLinea()
   const borrador = useBorrador('ajustes-empresa', formulario, CAMPOS_DE_AJUSTES, puedeEditar)
   const { guardar, enCurso, errores } = useGuardarAjustes({
@@ -51,7 +52,7 @@ export function FormularioEmpresa(props: Props) {
       className="grid gap-4"
       onSubmit={(evento) => {
         evento.preventDefault()
-        void guardar(logo, registroAbierto)
+        void guardar(logo, { registroAbierto, limpiezaAutomatica })
       }}
     >
       {enLinea ? null : (
@@ -65,6 +66,8 @@ export function FormularioEmpresa(props: Props) {
         alCambiarLogo={setLogo}
         registroAbierto={registroAbierto}
         alCambiarRegistro={setRegistroAbierto}
+        limpiezaAutomatica={limpiezaAutomatica}
+        alCambiarLimpieza={setLimpiezaAutomatica}
         errores={errores}
       />
       {puedeEditar ? (

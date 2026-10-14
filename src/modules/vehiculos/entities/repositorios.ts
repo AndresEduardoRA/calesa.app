@@ -12,6 +12,7 @@ import type {
   ResultadoDePurgar,
   ResultadoDeRestaurar,
 } from './papelera'
+import type { LimpiezaDeVehiculo, UltimaLimpieza } from './limpieza'
 import type { PermisoConAlcance } from './permisos'
 import type { SubastaDeVehiculo } from './subasta-vehiculo'
 import type { ColumnasDeSubasta, ValorDeAtributo } from './subasta'
@@ -83,6 +84,24 @@ export type RepetidoEncontrado = { posicion: number; vehiculoId: string | null }
 
 // La subasta de un vehículo: lo que dice la base y lo que trajo apibara. null = no se ve o no existe.
 export type LectorDeSubasta = (vehiculoId: string) => Promise<Resultado<SubastaDeVehiculo | null>>
+
+// Lo que dice la base de la limpieza automática de un vehículo. null = no existe, está en la
+// papelera o quien llama no lo ve.
+export type LectorDeLimpiezaAutomatica = (
+  vehiculoId: string,
+) => Promise<Resultado<LimpiezaDeVehiculo | null>>
+
+// La última noche de la limpieza, para quien puede vaciar la papelera. null = no hay, o no puede.
+export type LectorDeUltimaLimpieza = () => Promise<Resultado<UltimaLimpieza | null>>
+
+// «Conservar» se escribe sólo por RPC. Manda el estado deseado (no alterna): repetirlo no cambia
+// nada, así que no lleva la versión de la ficha ni la mueve.
+export type RepositorioDeLimpieza = {
+  conservar: (pedido: {
+    vehiculoId: string
+    conservar: boolean
+  }) => Promise<Resultado<{ conservado: boolean }>>
+}
 
 // El bruto de una consulta a apibara de quien pregunta (de las últimas 24 h): con él el servidor
 // compara el refresco con lo guardado. Viene de la base, no del navegador.

@@ -49,6 +49,13 @@ describe('cambiosComoColumnas', () => {
     })
   })
 
+  it('la limpieza automática viaja con los nombres de la base', () => {
+    expect(cambiosComoColumnas({ limpiezaAutomatica: false, limpiezaDiasGracia: 10 })).toEqual({
+      limpieza_automatica: false,
+      limpieza_dias_gracia: 10,
+    })
+  })
+
   it('un null viaja (vaciar); un undefined no (no tocar)', () => {
     expect(cambiosComoColumnas({ logoRuta: null, nit: undefined, registroAbierto: false })).toEqual(
       {

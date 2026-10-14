@@ -28,6 +28,8 @@ export type LoteDePapelera = {
   // Quién lo envió; null si esa persona ya no tiene nombre que mostrar.
   creadoPorNombre: string | null
   esMio: boolean
+  // Lo armó la limpieza automática: no tiene autor, y restaurar sus vehículos los deja conservados.
+  esLimpieza: boolean
   // Cuándo lo purga el job si nadie lo restaura: `creado_en + papelera_dias`.
   purgaEl: string
   // Cuántos se enviaron; los que quedan son `vehiculos`.
@@ -42,6 +44,7 @@ const esquemaLotes = z.array(
     creado_en: z.string(),
     creado_por_nombre: z.string().nullable(),
     es_mio: z.boolean(),
+    es_limpieza: z.boolean().catch(false),
     purga_el: z.string(),
     enviados: z.number(),
     vehiculos: z.array(
@@ -67,6 +70,7 @@ export function lotesDesde(dato: unknown): LoteDePapelera[] {
     creadoEn: lote.creado_en,
     creadoPorNombre: lote.creado_por_nombre,
     esMio: lote.es_mio,
+    esLimpieza: lote.es_limpieza,
     purgaEl: lote.purga_el,
     enviados: lote.enviados,
     vehiculos: lote.vehiculos.map((vehiculo) => ({

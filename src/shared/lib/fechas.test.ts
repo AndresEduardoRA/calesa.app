@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   diaEnZona,
   diaSiguiente,
+  formatearDiaYMes,
+  sumarDias,
   fechaRelativa,
   formatearFecha,
   formatearFechaHora,
@@ -93,5 +95,22 @@ describe('fecha con hora de un formulario', () => {
     expect(instanteDeLocal('mañana')).toBeNull()
     expect(instanteDeLocal('2026-13-45T99:99')).toBeNull()
     expect(localDeInstante('ayer')).toBe('')
+  })
+})
+
+describe('días del calendario', () => {
+  it('suma y resta días sin depender de la zona', () => {
+    expect(sumarDias('2026-10-13', 3)).toBe('2026-10-16')
+    expect(sumarDias('2026-10-30', 3)).toBe('2026-11-02')
+    expect(sumarDias('2026-12-30', 3)).toBe('2027-01-02')
+    expect(sumarDias('2026-03-01', -1)).toBe('2026-02-28')
+    expect(sumarDias('2026-10-13', 0)).toBe('2026-10-13')
+  })
+
+  it('dice día y mes: «15/10»', () => {
+    expect(formatearDiaYMes('2026-10-15')).toBe('15/10')
+    expect(formatearDiaYMes('2026-01-05')).toBe('05/01')
+    expect(formatearDiaYMes('no es una fecha')).toBe('')
+    expect(formatearDiaYMes('2026-10-15T10:00:00Z')).toBe('')
   })
 })

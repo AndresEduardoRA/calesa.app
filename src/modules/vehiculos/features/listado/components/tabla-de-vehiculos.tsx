@@ -9,6 +9,7 @@ import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
+import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpieza'
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
 import { BadgeDeFase } from './badge-de-fase'
 import { Miniatura } from './miniatura'
@@ -27,7 +28,10 @@ type Props = DatosDelOrigen & {
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
-type PropsDeFila = Pick<Props, 'origen' | 'fases' | 'vitrina' | 'editables' | 'seleccion'> & {
+type PropsDeFila = Pick<
+  Props,
+  'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'editables' | 'seleccion'
+> & {
   vehiculo: FilaDeVehiculo
   columnas: readonly CampoDeVehiculo[]
 }
@@ -40,6 +44,7 @@ function FilaDeTabla({
   origen,
   fases,
   vitrina,
+  limpiezaHoy,
   editables,
   seleccion,
 }: PropsDeFila) {
@@ -80,6 +85,7 @@ function FilaDeTabla({
         <div className="flex flex-wrap items-center gap-1.5">
           <BadgeDeFase fase={fase} />
           <InsigniaDeVitrina {...vitrinaDe(vehiculo, vitrina)} origen={origen} fase={fase} />
+          <InsigniaDeLimpieza fecha={vehiculo.limpiezaEl} hoy={limpiezaHoy} />
         </div>
       </TableCell>
       <TableCell className="text-right tabular-nums">{vehiculo.anio ?? VACIO}</TableCell>
