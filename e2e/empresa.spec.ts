@@ -212,7 +212,8 @@ test('guarda la clave de apibara sin volver a mostrarla, y recién entonces la a
   // La dirección no puede apuntar fuera de apibara.tech: ahí viaja la clave.
   await page.getByLabel('Dirección del servicio').fill('https://atacante.example')
   await page.getByRole('button', { name: 'Guardar configuración' }).click()
-  await expect(page.getByText('ser de apibara.tech')).toBeVisible()
+  // El error, no la ayuda: las dos dicen «ser de apibara.tech».
+  await expect(page.locator('#endpoint-error')).toContainText('ser de apibara.tech')
   expect(await estadoDeApibara()).toEqual({ activa: true, conSecreto: true })
 
   // Contra la base real: ni quien la guardó ni alguien sin sesión pueden pedir la clave.
@@ -345,7 +346,8 @@ test('la dueña abre el registro y otra persona crea su cuenta y entra, sin rol'
   await expect(suya.getByRole('link', { name: 'Crear cuenta' })).toBeHidden()
 
   await page.goto('/configuracion/empresa')
-  await page.getByText('Políticas', { exact: true }).click()
+  // Mientras la página llega en streaming el título puede estar dos veces: se toca el visible.
+  await page.getByText('Políticas', { exact: true }).filter({ visible: true }).click()
   await page.getByRole('switch', { name: 'Registro abierto' }).click()
   await page.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(page.getByText('Ajustes de la empresa guardados')).toBeVisible()

@@ -16,6 +16,8 @@ import {
   origenDeLaBase,
   origenPorClave,
 } from './soporte/origenes'
+import { apagarApibara } from './soporte/apibara'
+import { descartarAviso } from './soporte/inventario'
 import { ingresar } from './soporte/pasos'
 
 // Configuración › Orígenes contra la app compilada y el Supabase local. Una sola historia, en
@@ -35,8 +37,10 @@ let duena = ''
 let configuradora = ''
 let sinPermisos = ''
 let proyecto = ''
+let dejarApibara: () => Promise<void> = () => Promise.resolve()
 
 test.beforeAll(async ({}, info) => {
+  dejarApibara = await apagarApibara()
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
   await borrarOrigenes(CLAVES_DE_ORIGEN)
@@ -66,6 +70,7 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
+  await dejarApibara()
   await borrarOrigenes(CLAVES_DE_ORIGEN)
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
@@ -81,15 +86,6 @@ async function entrar(page: Page, correo: string) {
 async function otraPersona(browser: Browser, page: Page): Promise<Page> {
   const contexto = await browser.newContext({ baseURL: new URL(page.url()).origin })
   return contexto.newPage()
-}
-
-// Un aviso tapa lo que hay debajo en un celular, y el puntero que quedó encima de él lo mantiene
-// abierto: se lo descarta antes de seguir.
-async function descartarAviso(page: Page, texto: string) {
-  const aviso = page.locator('[data-sonner-toast]').filter({ hasText: texto })
-  await expect(aviso).toBeVisible()
-  await aviso.getByRole('button', { name: 'Close toast' }).click()
-  await expect(aviso).toBeHidden()
 }
 
 async function irADetalle(page: Page, nombre: string, seccion?: string) {

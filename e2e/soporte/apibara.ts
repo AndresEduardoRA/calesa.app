@@ -172,6 +172,14 @@ export async function fijarApibara(activa: boolean): Promise<void> {
   }
 }
 
+// Apaga apibara y devuelve cómo dejarla como estaba: quien usa la app local pudo haberla encendido y
+// «Activa apibara» sólo es un paso pendiente con la integración apagada.
+export async function apagarApibara(): Promise<() => Promise<void>> {
+  const antes = await leerApibara()
+  await fijarApibara(false)
+  return () => restaurarApibara(antes)
+}
+
 export async function restaurarApibara(antes: EstadoDeApibara): Promise<void> {
   const { error } = await admin().from('integraciones').update(antes).eq('clave', 'apibara')
   if (error) {
