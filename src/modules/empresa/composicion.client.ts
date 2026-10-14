@@ -7,3 +7,4 @@ export {
   type IconoDibujado,
 } from './infra/iconos.client'
 export { descartarLogo, prepararLogo, subirLogo, type LogoListo } from './infra/logo.client'
+export { consultarUso } from './infra/apibara.client'

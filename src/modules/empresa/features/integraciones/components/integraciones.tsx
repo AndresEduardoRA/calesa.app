@@ -8,6 +8,7 @@ import { MOTIVO_SIN_PERMISO_AJUSTES, MOTIVO_SIN_SECRETO } from '../../../entitie
 import { useApibara } from '../hooks/use-apibara'
 import { CampoSecreto } from './campo-secreto'
 import { ConfigApibara } from './config-apibara'
+import { UsoDeApibara } from './uso-de-apibara'
 
 type Props = {
   // La fila de apibara. Sus tres ediciones tocan la misma fila: la versión llega por props, y
@@ -54,6 +55,7 @@ export function Integraciones({ apibara, puedeEditar }: Props) {
           puedeEditar={puedeEditar}
           ediciones={ediciones}
         />
+        {puedeEditar && !sinClave ? <UsoDeApibara /> : null}
       </Bloque>
     </div>
   )

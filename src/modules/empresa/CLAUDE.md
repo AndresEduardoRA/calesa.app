@@ -9,7 +9,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
   - `getAjustes()` — lo mínimo de la empresa, una lectura por request, funciona sin sesión: nombre, logo, color, íconos, formato regional, zona horaria, moneda base, registro abierto, primer registro. Nunca tumba una pantalla. Lo consumen `app/` (marca, tokens de color, formato, zona horaria, pantallas de acceso) y `equipo` (registro).
   - `registroDisponible()`.
   - `getTiposCambio()` — los tipos de cambio vigentes, con el por defecto adelante. Tampoco tumba una pantalla (devuelve una lista vacía). Lo consume `app/` para la barra superior (`<TiposCambioVigentes>`); lo consumirá `cotizaciones`, que congela los que usa.
-  - `integracionActiva('apibara')` — si una integración está prendida; si la base no responde, no. La consumirá `vehiculos` antes de ofrecer el alta por enlace.
+  - `integracionActiva('apibara')` — si una integración está prendida; si la base no responde, no. La consulta `app/` para decirle a `vehiculos` si ofrece el alta por enlace y el refresco de la subasta.
   - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`, `<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`.
   - Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` para `app/manifest.ts` y `app/iconos/vigente/[tamano]`; `<IconosDeLaApp>` para la pantalla.
 - Depende de: ningún otro módulo. No tiene `client.ts`: ningún Client Component de afuera necesita nada de acá.
@@ -22,12 +22,13 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - `entities/regional.ts` — `localeCanonico()`, `zonaHorariaValida()`, `codigoDeMoneda()`: todo contra `Intl`.
 - `entities/iconos.ts` — tamaños, `encuadreDeIcono()`, `iconosDelManifest()`, `urlDeIcono()`.
 - `entities/tipos-cambio.ts`, `entities/integraciones.ts` — tipos y reglas puras de lo que viene.
+- `entities/uso-apibara.ts` — `UsoDeApibara`, `usoDesdeRespuesta()`, `resumenDeUso()` y los mensajes con que puede fallar pedirlo. `infra/apibara.client.ts` — `consultarUso()` (en el navegador, por `invocarFuncion()` de `shared`).
 - `entities/motivos.ts` — por qué algo aparece deshabilitado. `entities/repositorios.ts` — las interfaces.
 - `infra/queries/` — lecturas (`server-only`). `infra/{empresa,tipos-cambio,integraciones}.ts` — escrituras, todas por RPC. `infra/{logo,iconos}.client.ts` — preparar, subir y descartar en Storage desde el navegador.
 - `composicion.ts` (servidor) y `composicion.client.ts` (navegador): de ahí toman `features/` sus implementaciones.
 - `features/empresa/` — el formulario. `guardar-con-logo.ts` son los pasos del commit diferido, contra puertos.
 - `features/iconos/` — «Regenerar íconos»: dibuja, muestra y, al confirmar, sube y guarda. `regenerar-iconos.ts` son los pasos, contra puertos.
-- `features/integraciones/` — la pestaña «Integraciones»: apibara con su interruptor, su configuración no secreta y `<CampoSecreto>` (dice «guardada el …» y deja reemplazarla; nunca la muestra).
+- `features/integraciones/` — la pestaña «Integraciones»: apibara con su interruptor, su configuración no secreta y `<CampoSecreto>` (dice «guardada el …» y deja reemplazarla; nunca la muestra) y «Ver uso» (`<UsoDeApibara>`: pide `/usage` a la edge function `apibara` a mano, para saber cuánta cuota queda; sólo para quien gestiona los ajustes).
 - `features/tipos-cambio/` — la pestaña «Monedas»: listas, un panel por tipo de cambio (valor e historial) y por moneda, y `<TiposCambioVigentes>` para la barra superior.
 
 ## Tablas

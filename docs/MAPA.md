@@ -34,7 +34,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Depende de: ningún otro módulo
 
 ### `empresa`
-Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 74 archivos
+Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 79 archivos
 - API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `huellaDelFormulario`, `zonasHorarias`, `FormularioEmpresa`, `getTiposCambio`, `leerHistorial`, +11
 - Depende de: ningún otro módulo
 - Casos de uso: empresa, iconos, integraciones, tipos-cambio
