@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Page } from '@playwright/test'
-import { admin } from './base'
+import { admin, type PermisoDePrueba } from './base'
 import { borrarFotosDe, fotos } from './fotos'
 import { limpiarInventario, prepararInventario } from './inventario'
 import { PREFIJO_CLAVE_E2E, crearOrigenDePrueba } from './origenes'
@@ -260,9 +260,15 @@ export type TerrenoDeSubasta = {
 }
 
 // Un origen de subasta con apibara encendida (sin tocar su clave real: la función se intercepta).
-export async function prepararSubasta(proyecto: string): Promise<TerrenoDeSubasta> {
+export async function prepararSubasta(
+  proyecto: string,
+  ademas: PermisoDePrueba[] = [],
+): Promise<TerrenoDeSubasta> {
   await limpiarSubasta()
-  const { duena, sinPermisos } = await prepararInventario(proyecto, ['empresa.ajustes.gestionar'])
+  const { duena, sinPermisos } = await prepararInventario(proyecto, [
+    'empresa.ajustes.gestionar',
+    ...ademas,
+  ])
   const subasta = await crearOrigenDePrueba('Subasta de prueba', 'subasta_apibara', {
     tipo: 'subasta',
     plataformas: ['copart', 'iaai'],

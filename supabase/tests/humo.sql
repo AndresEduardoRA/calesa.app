@@ -2579,3 +2579,310 @@ do $$ declare usa uuid; n int; c record; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test limpieza automática: la regla, cada ancla, el borde de las 03:00 y que los manuales no se tocan
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Estado conocido: encendida, 7 días, zona de La Paz (UTC−4, sin horario de verano).
+update public.ajustes_empresa set limpieza_automatica = true, limpieza_dias_gracia = 7, zona_horaria = 'America/La_Paz' where id = 1;
+-- Una fase que no es la inicial, en el flujo de la subasta de EE. UU.
+insert into public.fases (flujo_id, nombre) select fl.id, 'Humo posterior' from public.flujos fl join public.origenes o on o.id = fl.origen_id where o.clave = 'subasta_usa';
+-- «ahora» de esta prueba: 2030-06-15 08:00 en La Paz. Subasta terminada hace 10 días = vence el 13.
+insert into public.vehiculos (id, origen_id, titulo, importado_apibara, subasta_en, subasta_fin_en, estado_subasta, apibara_sync_en,
+  creado_por, fase_id, lead_id, publicado_web)
+select x.id::uuid, o.id, x.titulo, x.importado, x.subasta_en::timestamptz, null, x.estado::public.estado_subasta, x.sync::timestamptz,
+  '00000000-0000-0000-0000-000000000009',
+  case x.fase when 'posterior' then (select f.id from public.fases f join public.flujos fl on fl.id = f.flujo_id where fl.origen_id = o.id and f.nombre = 'Humo posterior') end,
+  x.lead::uuid, x.publicado
+from public.origenes o,
+  (values
+    ('ffffffff-0000-4000-8000-000000000001', 'Limpieza vencida',           true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-000000000002', 'Limpieza reciente',          true,  '2030-06-12 12:00:00+00', 'terminada', '2030-06-12 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-000000000003', 'Limpieza con fecha futura',  true,  '2030-06-17 12:00:00+00', 'terminada', '2030-06-01 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-000000000004', 'Limpieza sin fecha, terminal', true, null,                     'vendida',   '2030-06-01 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-000000000005', 'Limpieza sin fecha ni estado terminal', true, null,             'abierta',   '2030-06-01 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-000000000006', 'Limpieza manual con fecha vieja', false, '2030-01-01 12:00:00+00', 'terminada', null,                  null, null, false),
+    ('ffffffff-0000-4000-8000-000000000007', 'Ancla vínculo',              true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', null, 'cccccccc-0000-4000-8000-000000000008', false),
+    ('ffffffff-0000-4000-8000-000000000008', 'Ancla fase posterior',       true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', 'posterior', null, false),
+    ('ffffffff-0000-4000-8000-000000000009', 'Ancla documentos',           true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-00000000000a', 'Ancla gastos',               true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-00000000000b', 'Ancla pagos',                true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-00000000000c', 'Ancla vitrina',              true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', null, null, true),
+    ('ffffffff-0000-4000-8000-00000000000d', 'Ancla conservar',            true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-00000000000e', 'Interesados no anclan',      true,  '2030-06-05 12:00:00+00', 'terminada', '2030-06-05 12:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-00000000000f', 'Borde 03:00 en punto',       true,  '2030-05-13 07:00:00+00', 'terminada', '2030-05-13 07:00:00+00', null, null, false),
+    ('ffffffff-0000-4000-8000-000000000010', 'Borde 03:00 y un segundo',   true,  '2030-05-13 07:00:01+00', 'terminada', '2030-05-13 07:00:01+00', null, null, false)
+  ) as x (id, titulo, importado, subasta_en, estado, sync, fase, lead, publicado)
+where o.clave = 'subasta_usa';
+insert into public.documentos (vehiculo_id, tipo_documento_id) select 'ffffffff-0000-4000-8000-000000000009', id from public.tipos_documento limit 1;
+insert into public.gastos (vehiculo_id, categoria_id, moneda, monto, monto_base)
+select 'ffffffff-0000-4000-8000-00000000000a', id, 'USD', 10, 10 from public.categorias_gasto limit 1;
+insert into public.pagos (vehiculo_id, concepto, moneda, monto, monto_base) values ('ffffffff-0000-4000-8000-00000000000b', 'Seña', 'USD', 100, 100);
+insert into public.vehiculos_conservados (vehiculo_id, conservado_por) values ('ffffffff-0000-4000-8000-00000000000d', '00000000-0000-0000-0000-000000000001');
+insert into public.vehiculos_interesados (vehiculo_id, lead_id) values ('ffffffff-0000-4000-8000-00000000000e', 'cccccccc-0000-4000-8000-000000000009');
+
+do $$
+declare ahora constant timestamptz := '2030-06-15 12:00:00+00'; hoy constant date := '2030-06-15';
+  v public.vehiculos; e record;
+begin
+  -- Cada ancla, por separado, retiene. Y sólo ella.
+  for e in
+    select * from (values
+      ('ffffffff-0000-4000-8000-000000000007'::uuid, 'vinculo'), ('ffffffff-0000-4000-8000-000000000008', 'fase'),
+      ('ffffffff-0000-4000-8000-000000000009', 'documentos'), ('ffffffff-0000-4000-8000-00000000000a', 'gastos'),
+      ('ffffffff-0000-4000-8000-00000000000b', 'pagos'), ('ffffffff-0000-4000-8000-00000000000c', 'vitrina'),
+      ('ffffffff-0000-4000-8000-00000000000d', 'conservar')) as t (id, ancla)
+  loop
+    select * into v from public.vehiculos where id = e.id;
+    if public._limpieza_ancla(v) is distinct from e.ancla then
+      raise exception '% debía estar retenido por «%» y dio «%»', v.titulo, e.ancla, public._limpieza_ancla(v); end if;
+    if public._limpieza_fecha(v, ahora, hoy) is not null then raise exception '% tiene ancla y aun así tiene fecha de limpieza', v.titulo; end if;
+  end loop;
+  -- Lo que no es ancla: los interesados, estar sin fase, y no tener nada.
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-00000000000e';
+  if public._limpieza_ancla(v) is not null then raise exception 'un interesado anclaba el vehículo'; end if;
+  if public._limpieza_fecha(v, ahora, hoy) is distinct from '2030-06-13'::date and public._limpieza_fecha(v, ahora, hoy) is distinct from hoy then
+    raise exception 'sin ancla debía tener fecha'; end if;
+
+  -- Vencida: terminó el 5, 7 días de gracia = el 12 a las 08:00 locales, pasadas las 03:00 → el 13.
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000001';
+  if public._limpieza_vence(v, ahora) <> '2030-06-13' then raise exception 'vencida: vence el %', public._limpieza_vence(v, ahora); end if;
+  -- Una fecha que ya pasó se dice como la próxima corrida: es cuando de verdad se va.
+  if public._limpieza_fecha(v, ahora, hoy) <> hoy then raise exception 'una fecha pasada debía decirse como la próxima corrida'; end if;
+  -- Reciente: aún en gracia.
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000002';
+  if public._limpieza_fecha(v, ahora, hoy) <> '2030-06-20' then raise exception 'reciente: vence el %', public._limpieza_fecha(v, ahora, hoy); end if;
+  -- Fecha en el futuro: no es basura aunque el estado diga «terminada».
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000003';
+  if public._limpieza_fecha(v, ahora, hoy) is not null or public._limpieza_termino(v, ahora) is not null then
+    raise exception 'una subasta con fecha futura no terminó'; end if;
+  -- Sin fecha y estado terminal: cuenta desde la última consulta (el 1 + 7 → el 9).
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000004';
+  if public._limpieza_vence(v, ahora) <> '2030-06-09' then raise exception 'terminal sin fecha: vence el %', public._limpieza_vence(v, ahora); end if;
+  -- Sin fecha y sin estado terminal: nunca.
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000005';
+  if public._limpieza_vence(v, ahora) is not null or public._limpieza_fecha(v, ahora, hoy) is not null then
+    raise exception 'sin fecha ni estado terminal se limpió'; end if;
+  -- Un manual con fecha vieja no se toca.
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000006';
+  if public._limpieza_aplica(v) or public._limpieza_fecha(v, ahora, hoy) is not null then raise exception 'se contó un vehículo manual'; end if;
+  -- El borde: lo que cumple a las 03:00 en punto va esa madrugada; un segundo después, a la siguiente.
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-00000000000f';
+  if public._limpieza_vence(v, ahora) <> '2030-05-20' then raise exception 'borde 03:00: vence el %', public._limpieza_vence(v, ahora); end if;
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000010';
+  if public._limpieza_vence(v, ahora) <> '2030-05-21' then raise exception 'borde 03:00:01: vence el %', public._limpieza_vence(v, ahora); end if;
+  -- Un origen que apibara ya no sirve cuenta igual: decide cómo nació, no la integración.
+  update public.integraciones set activa = false where clave = 'apibara';
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000001';
+  if public._limpieza_fecha(v, ahora, hoy) is null then raise exception 'apagar apibara dejó al vehículo fuera de la limpieza'; end if;
+  update public.integraciones set activa = true where clave = 'apibara';
+end $$;
+
+-- @test limpieza automática: el job, el interruptor, los días de gracia y que correr dos veces no duplica
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare ahora constant timestamptz := '2030-06-15 12:00:00+00'; hoy constant date := '2030-06-15'; r jsonb; v public.vehiculos;
+  el_lote uuid; n int; viejo int;
+begin
+  -- Cambiar los días de gracia mueve igual la fecha que dice el banner y la del job: el 2 pasa del 20 al 16.
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000002';
+  if public._limpieza_fecha(v, ahora, hoy) <> '2030-06-20' then raise exception 'con 7 días el 2 vence el 20'; end if;
+  update public.ajustes_empresa set limpieza_dias_gracia = 3 where id = 1;
+  if public._limpieza_fecha(v, ahora, hoy) <> '2030-06-16' then raise exception 'con 3 días el 2 vence el 16, dio %', public._limpieza_fecha(v, ahora, hoy); end if;
+
+  -- Madrugada de la empresa: a la 01:00 locales no hace nada ni deja corrida.
+  r := public.limpieza_automatica_correr('2030-06-15 05:00:00+00', null);
+  if r ->> 'estado' <> 'temprano' then raise exception 'a la 01:00 locales debía esperar: %', r; end if;
+  if exists (select 1 from public.limpieza_corridas where fecha = hoy) then raise exception 'dejó una corrida antes de hora'; end if;
+
+  -- Interruptor apagado: no se mueve nada, no hay fecha ni corrida.
+  update public.ajustes_empresa set limpieza_automatica = false where id = 1;
+  select * into v from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000001';
+  if public._limpieza_fecha(v, ahora, hoy) is not null or public.limpieza_el(v) is not null then raise exception 'apagada: sigue dando fecha'; end if;
+  r := public.limpieza_automatica_correr('2030-06-15 12:00:00+00', null);
+  if r ->> 'estado' <> 'apagada' then raise exception 'apagada: %', r; end if;
+  if exists (select 1 from public.vehiculos where lote_papelera_id is not null and eliminado_en is not null and id::text like 'ffffffff-%') then
+    raise exception 'apagada: movió algo'; end if;
+  if exists (select 1 from public.limpieza_corridas where fecha = hoy) then raise exception 'apagada: dejó corrida'; end if;
+  update public.ajustes_empresa set limpieza_automatica = true where id = 1;
+
+  -- La noche del 15 (08:00 locales).
+  r := public.limpieza_automatica_correr('2030-06-15 12:00:00+00', null);
+  if r ->> 'estado' <> 'corrida' then raise exception 'la corrida: %', r; end if;
+  el_lote := (r ->> 'lote')::uuid;
+  if el_lote is null then raise exception 'no armó el lote'; end if;
+  if not (select es_limpieza and creado_por is null and tipo = 'vehiculos' from public.lotes_papelera where id = el_lote) then
+    raise exception 'el lote no es de limpieza o tiene autor'; end if;
+  -- Se fueron los que debían (1, 4, 14, 15 y los dos del borde) y se quedaron los demás.
+  if (select count(*) from public.vehiculos where id::text like 'ffffffff-%' and eliminado_en is not null) <> 5 then
+    raise exception 'esperaba 5 vehículos en la papelera, hay %', (select count(*) from public.vehiculos where id::text like 'ffffffff-%' and eliminado_en is not null); end if;
+  if exists (select 1 from public.vehiculos where id in (
+      'ffffffff-0000-4000-8000-000000000001', 'ffffffff-0000-4000-8000-000000000004', 'ffffffff-0000-4000-8000-00000000000e',
+      'ffffffff-0000-4000-8000-00000000000f', 'ffffffff-0000-4000-8000-000000000010') and eliminado_en is null) then
+    raise exception 'un vehículo vencido y sin ancla no se fue'; end if;
+  if exists (select 1 from public.vehiculos where eliminado_en is not null and lote_papelera_id = el_lote and (
+      id::text not like 'ffffffff-%' and id <> 'cccccccc-0000-4000-8000-000000000001')) then
+    raise exception 'la limpieza movió algo que no era suyo'; end if;
+  -- Ninguno de los retenidos, el reciente, el de fecha futura, el sin estado ni el manual se movió.
+  if exists (select 1 from public.vehiculos where eliminado_en is not null and id in (
+      'ffffffff-0000-4000-8000-000000000002', 'ffffffff-0000-4000-8000-000000000003', 'ffffffff-0000-4000-8000-000000000005',
+      'ffffffff-0000-4000-8000-000000000006', 'ffffffff-0000-4000-8000-000000000007', 'ffffffff-0000-4000-8000-000000000008',
+      'ffffffff-0000-4000-8000-000000000009', 'ffffffff-0000-4000-8000-00000000000a', 'ffffffff-0000-4000-8000-00000000000b',
+      'ffffffff-0000-4000-8000-00000000000c', 'ffffffff-0000-4000-8000-00000000000d')) then
+    raise exception 'la limpieza movió un vehículo con ancla o que no le tocaba'; end if;
+  -- Lo que dejó dicho: cuántos movió, y por qué ancla se quedó cada uno.
+  if (r ->> 'movidos')::int <> (select count(*) from public.vehiculos where lote_papelera_id = el_lote) then raise exception 'movidos no cuadra con el lote'; end if;
+  if (select resumen ->> 'cantidad' from public.lotes_papelera where id = el_lote)::int <> (r ->> 'movidos')::int then raise exception 'el resumen del lote no cuadra'; end if;
+  if coalesce((r -> 'saltados' ->> 'documentos')::int, 0) < 1 or coalesce((r -> 'saltados' ->> 'gastos')::int, 0) < 1
+     or coalesce((r -> 'saltados' ->> 'pagos')::int, 0) < 1 or coalesce((r -> 'saltados' ->> 'vitrina')::int, 0) < 1
+     or coalesce((r -> 'saltados' ->> 'fase')::int, 0) < 1 or coalesce((r -> 'saltados' ->> 'vinculo')::int, 0) < 1
+     or coalesce((r -> 'saltados' ->> 'conservar')::int, 0) < 1 then
+    raise exception 'los saltados no dicen por qué ancla: %', r -> 'saltados'; end if;
+  if (select movidos from public.limpieza_corridas where fecha = hoy and not parcial) <> (r ->> 'movidos')::int then raise exception 'la corrida no quedó registrada'; end if;
+  if not exists (select 1 from public.actividad where accion = 'limpieza.corrida' and actor_id is null and registro_id = (r ->> 'corrida')) then
+    raise exception 'la corrida no quedó en la actividad, sin autor'; end if;
+
+  -- Correr otra vez la misma noche no duplica lotes ni movimientos.
+  select count(*) into n from public.lotes_papelera where es_limpieza;
+  viejo := (select count(*) from public.vehiculos where eliminado_en is not null);
+  r := public.limpieza_automatica_correr('2030-06-15 14:00:00+00', null);
+  if r ->> 'estado' <> 'ya_corrio' then raise exception 'la segunda corrida del día: %', r; end if;
+  if (select count(*) from public.lotes_papelera where es_limpieza) <> n or (select count(*) from public.vehiculos where eliminado_en is not null) <> viejo
+     or (select count(*) from public.limpieza_corridas where fecha = hoy and not parcial) <> 1 then
+    raise exception 'correr dos veces duplicó algo'; end if;
+
+  -- La noche del 16: el que la fecha del banner decía (el 2) se va, y sólo él de lo de esta prueba.
+  r := public.limpieza_automatica_correr('2030-06-16 12:00:00+00', null);
+  if r ->> 'estado' <> 'corrida' then raise exception 'la corrida del 16: %', r; end if;
+  if (select eliminado_en is null from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000002') then
+    raise exception 'el 2 no se fue el día que decía el banner'; end if;
+  if (r ->> 'lote')::uuid is not distinct from el_lote then raise exception 'el lote del 16 es el del 15'; end if;
+  if (select count(*) from public.lotes_papelera where es_limpieza) <> n + 1 then raise exception 'esperaba un lote por noche'; end if;
+end $$;
+
+-- @test limpieza automática: restaurar el lote lo devuelve y lo marca «Conservar»; sin permiso nadie conserva ni corre el job
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update public.ajustes_empresa set limpieza_dias_gracia = 7 where id = 1;
+-- La dueña restaura el primer lote de limpieza.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$
+declare el_lote uuid; r jsonb; ver timestamptz; v public.vehiculos; ya timestamptz;
+begin
+  -- Se busca por la RPC de la papelera, como la app: la RLS de vehiculos esconde lo eliminado.
+  select (x ->> 'id')::uuid, (x ->> 'actualizado_en')::timestamptz into el_lote, ver
+  from jsonb_array_elements(public.vehiculos_papelera_listar()) x
+  where (x ->> 'es_limpieza')::boolean
+    and exists (select 1 from jsonb_array_elements(x -> 'vehiculos') y where y ->> 'id' = 'ffffffff-0000-4000-8000-000000000001');
+  if el_lote is null then raise exception 'no encontré el lote del vehículo 1'; end if;
+  -- Un lote que armó el sistema lo ve y lo restaura quien puede vaciar la papelera; trae su marca y
+  -- no tiene autor.
+  if (select (x ->> 'creado_por_nombre') is not null from jsonb_array_elements(public.vehiculos_papelera_listar()) x where (x ->> 'id')::uuid = el_lote) then
+    raise exception 'el lote de la limpieza tiene autor'; end if;
+  r := public.vehiculos_papelera_restaurar(el_lote, ver);
+  if jsonb_array_length(r -> 'restaurados') < 1 then raise exception 'no restauró: %', r; end if;
+  if (select count(*) from public.vehiculos_conservados c join public.vehiculos x on x.id = c.vehiculo_id
+      where x.lote_papelera_id is null and x.eliminado_en is null and x.id::text like 'ffffffff-%' and c.conservado_por = (select auth.uid())) < 4 then
+    raise exception 'los restaurados no quedaron conservados'; end if;
+  if exists (select 1 from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000001' and (eliminado_en is not null or publicado_web)) then
+    raise exception 'restaurar no devolvió el vehículo sin publicar'; end if;
+  -- Conservar no mueve la versión de la ficha, es idempotente y se puede quitar.
+  select actualizado_en into ya from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000001';
+  r := public.vehiculo_conservar('ffffffff-0000-4000-8000-000000000001', true);
+  if not (r ->> 'conservado')::boolean then raise exception 'conservar'; end if;
+  if (select actualizado_en from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000001') <> ya then raise exception 'conservar movió la versión de la ficha'; end if;
+  r := public.vehiculo_limpieza('ffffffff-0000-4000-8000-000000000001');
+  if not (r ->> 'conservado')::boolean or r ->> 'fecha' is not null or not (r ->> 'conservado_por_mi')::boolean then raise exception 'la ficha no dice que se conserva: %', r; end if;
+  r := public.vehiculo_conservar('ffffffff-0000-4000-8000-000000000001', false);
+  if (r ->> 'conservado')::boolean then raise exception 'no quitó la marca'; end if;
+  -- Un manual (no importado) no se conserva: no se limpia nunca.
+  begin perform public.vehiculo_conservar('ffffffff-0000-4000-8000-000000000006', true); raise exception 'conservó un manual';
+  exception when invalid_parameter_value then null; end;
+  -- La ficha de un manual dice que no aplica.
+  if (public.vehiculo_limpieza('ffffffff-0000-4000-8000-000000000006') ->> 'aplica')::boolean then raise exception 'la limpieza aplicó a un manual'; end if;
+  -- La última noche, para quien puede vaciar la papelera.
+  if (public.limpieza_ultima() ->> 'fecha') <> '2030-06-16' then raise exception 'la última corrida: %', public.limpieza_ultima(); end if;
+  -- Los ajustes: rango de los días y encendido, con permiso.
+  select actualizado_en into ver from public.ajustes_empresa where id = 1;
+  begin perform public.empresa_guardar_ajustes('{"limpieza_dias_gracia": 0}', ver); raise exception 'aceptó 0 días';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.empresa_guardar_ajustes('{"limpieza_dias_gracia": 91}', ver); raise exception 'aceptó 91 días';
+  exception when invalid_parameter_value then null; end;
+  perform public.empresa_guardar_ajustes('{"limpieza_dias_gracia": 10, "limpieza_automatica": true}', ver);
+  if (select limpieza_dias_gracia from public.ajustes_empresa where id = 1) <> 10 then raise exception 'no guardó los días de gracia'; end if;
+  select actualizado_en into ver from public.ajustes_empresa where id = 1;
+  perform public.empresa_guardar_ajustes('{"limpieza_dias_gracia": 7}', ver);
+end $$;
+reset role;
+
+-- Bruno (un asesor): conserva lo suyo, no lo ajeno; no ve la corrida ni corre el job.
+-- Uno que creó la dueña: importado, sin vínculo y fuera de la cartera de Bruno.
+insert into public.vehiculos (id, origen_id, titulo, importado_apibara, subasta_en, estado_subasta, apibara_sync_en, creado_por)
+select 'ffffffff-0000-4000-8000-000000000011', o.id, 'Limpieza ajeno', true, '2030-06-14 12:00:00+00', 'terminada', '2030-06-14 12:00:00+00',
+  '00000000-0000-0000-0000-000000000001'
+from public.origenes o where o.clave = 'subasta_usa';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$
+begin
+  begin perform public.vehiculo_conservar('ffffffff-0000-4000-8000-000000000009', null); raise exception 'aceptó un estado nulo';
+  exception when invalid_parameter_value then null; end;
+  -- De Bruno (lo creó él): puede.
+  perform public.vehiculo_conservar('ffffffff-0000-4000-8000-000000000009', true);
+  perform public.vehiculo_conservar('ffffffff-0000-4000-8000-000000000009', false);
+  if public.limpieza_ultima() is not null then raise exception 'un asesor vio la última limpieza'; end if;
+  begin perform public.limpieza_automatica_correr(now(), null); raise exception 'un asesor corrió el job';
+  exception when insufficient_privilege then null; end;
+  begin perform 1 from public.limpieza_corridas limit 1; raise exception 'un asesor leyó las corridas';
+  exception when insufficient_privilege then null; end;
+  begin perform public.empresa_guardar_ajustes('{"limpieza_automatica": false}', now()); raise exception 'un asesor apagó la limpieza';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.vehiculos_conservados (vehiculo_id) values ('ffffffff-0000-4000-8000-000000000009'); raise exception 'un asesor escribió la marca directo';
+  exception when insufficient_privilege then null; end;
+  begin perform public._limpieza_ancla((select v from public.vehiculos v where v.id = 'ffffffff-0000-4000-8000-000000000009')); raise exception 'un asesor ejecutó la regla interna';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+-- Irene no tiene permisos sobre este origen: ni conserva ni quita la marca de lo ajeno.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000008', false);
+set role authenticated;
+do $$ begin
+  begin perform public.vehiculo_conservar('ffffffff-0000-4000-8000-000000000011', true); raise exception 'Irene conservó un vehículo que no puede editar';
+  exception when insufficient_privilege then null; end;
+  begin perform public.vehiculo_conservar('ffffffff-0000-4000-8000-000000000011', false); raise exception 'Irene quitó la marca de un vehículo que no puede editar';
+  exception when insufficient_privilege then null; end;
+  if public.vehiculo_limpieza('ffffffff-0000-4000-8000-000000000011') is not null then raise exception 'Irene vio la limpieza de un vehículo que no ve'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test limpieza automática: una corrida parcial no espera la hora ni tapa la de verdad; el job queda programado
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare r jsonb; oficina uuid; n int;
+begin
+  select id into oficina from public.origenes where clave = 'oficina';
+  -- Acotada a un origen manual: no hay nada que mover, y deja su propia fila parcial.
+  r := public.limpieza_automatica_correr('2030-06-18 05:00:00+00', array[oficina]);
+  if r ->> 'estado' <> 'corrida' or (r ->> 'movidos')::int <> 0 then raise exception 'la parcial: %', r; end if;
+  if not exists (select 1 from public.limpieza_corridas where fecha = '2030-06-18' and parcial) then raise exception 'la parcial no dejó su fila'; end if;
+  -- La de verdad de ese día sigue pudiendo correr.
+  r := public.limpieza_automatica_correr('2030-06-18 12:00:00+00', null);
+  if r ->> 'estado' <> 'corrida' then raise exception 'la parcial tapó la corrida del día: %', r; end if;
+  select count(*) into n from public.limpieza_corridas where fecha = '2030-06-18' and not parcial;
+  if n <> 1 then raise exception 'esperaba una corrida de verdad el 18, hay %', n; end if;
+  -- Lo que se restauró y quedó «Conservar» no vuelve a irse...
+  if exists (select 1 from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000004' and eliminado_en is not null) then
+    raise exception 'el restaurado volvió a irse'; end if;
+  -- ...y quien le quitó la marca a mano (el 1, en la prueba anterior) lo deja otra vez a la limpieza.
+  if not exists (select 1 from public.vehiculos where id = 'ffffffff-0000-4000-8000-000000000001' and eliminado_en is not null) then
+    raise exception 'quitar «Conservar» no lo devolvió a la limpieza'; end if;
+  -- El job está programado, cada hora (la madrugada es de la empresa, el cron es UTC).
+  if not exists (select 1 from cron.job where jobname = 'limpieza-automatica' and schedule = '7 * * * *' and command like '%limpieza_automatica_correr%') then
+    raise exception 'el job de la limpieza no está programado'; end if;
+end $$;
