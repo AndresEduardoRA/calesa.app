@@ -115,3 +115,9 @@ policy = "oneshot"
 # solo uso que la propia función canjea (supabase/functions/README.md).
 [functions.storage-gc]
 verify_jwt = false
+
+# La llama el navegador con la sesión de quien da de alta o refresca: el gateway verifica el JWT y
+# la propia función le pregunta a la base qué puede hacer esa persona en ese origen antes de leer
+# la clave de apibara de Vault (supabase/functions/README.md).
+[functions.apibara]
+verify_jwt = true

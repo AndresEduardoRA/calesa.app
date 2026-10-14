@@ -1,15 +1,66 @@
 # Edge functions
 
 Trabajo que no debe vivir en una Server Action que el usuario espera. Cada una se construye en la
-fase que la necesita (`docs/PLAN.md`); hasta entonces sólo existe este contrato. Deno, `supabase
+fase que la necesita (`docs/PLAN.md`); hasta entonces sólo existe su contrato. Deno, `supabase
 functions new <nombre>`, secretos con `supabase secrets set`, nunca en el código.
 
-| Función        | Fase        | La dispara                                                               | Hace                                                                                                                                                                                                                                                                                                                                                                                  | Secretos                                              |
-| -------------- | ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `apibara`      | 2           | Server Action de `vehiculos` (alta por link/lote)                        | `GET https://apibara.tech/api/v1/vehicle-auction/vehicles/urltodetails?url=` (o `/vehicles/{lote}`), header `X-API-Key`; normaliza al shape `{plataforma, lote, vin, titulo, anio, marca, modelo, subasta{estado, en}, precios, ubicacion, condicion, odometro, specs, documento_venta, media[]}`; devuelve `kind: ok                                                                 | not_found                                             | unauthorized | quota_exceeded | bad_request | provider_error` por status (404/401/429/400/5xx). Sin reintentos en 429. | la clave de apibara, leída de Vault con `integracion_secreto('apibara')` |
-| `push`         | 7           | Database Webhook en `notificaciones` (INSERT) con header `x-push-secret` | Lee `suscripciones_push` del destinatario con el cliente admin y envía con `web-push`; borra suscripciones 404/410.                                                                                                                                                                                                                                                                   | `VAPID_PRIVATE_KEY`, `PUSH_WEBHOOK_SECRET`            |
-| `storage-gc`   | 2 (parte 4) | `pg_cron` cada hora → `storage_gc_disparar(url)` → `pg_net`              | Canjea el pase que trae el pedido (`storage_gc_abrir`); si vale: `rpc('storage_gc_reclamar', { p_max })` → borra por la API de Storage lo que le devolvieron, agrupado por bucket → `rpc('storage_gc_confirmar', { p_bucket, p_rutas })` con lo reclamado, si el borrado no dio error. Nunca recuenta ni decide por su cuenta: reclamar ya lo hizo, con el candado del objeto tomado. | ninguno propio: la service key que inyecta el runtime |
-| `importar-csv` | 9           | Server Action de `datos` tras subir el archivo al bucket `importaciones` | Parsea, valida por fila contra la plantilla, llama `crear_lead` (misma regla de limbo/duplicados) o inserta vehículos; escribe el informe en `importaciones`.                                                                                                                                                                                                                         | ninguno                                               |
+| Función        | Fase        | La dispara                                                               | Hace                                                                                                                                                               | Secretos                                              |
+| -------------- | ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| `apibara`      | 2 (parte 5) | El navegador de quien da de alta o refresca un vehículo, con su sesión   | Consulta la API de Copart e IAAI: la ficha por enlace, VIN o lote, una foto y el uso de la cuenta. Ver «`apibara`» más abajo.                                      | la clave de apibara, de Vault (`integracion_secreto`) |
+| `push`         | 7           | Database Webhook en `notificaciones` (INSERT) con header `x-push-secret` | Lee `suscripciones_push` del destinatario con el cliente admin y envía con `web-push`; borra suscripciones 404/410.                                                | `VAPID_PRIVATE_KEY`, `PUSH_WEBHOOK_SECRET`            |
+| `storage-gc`   | 2 (parte 4) | `pg_cron` cada hora → `storage_gc_disparar(url)` → `pg_net`              | Canjea el pase que trae el pedido; si vale, reclama, borra por la API de Storage y confirma. Nunca recuenta ni decide por su cuenta. Ver «`storage-gc`» más abajo. | ninguno propio: la service key que inyecta el runtime |
+| `importar-csv` | 9           | Server Action de `datos` tras subir el archivo al bucket `importaciones` | Parsea, valida por fila contra la plantilla, llama `crear_lead` (misma regla de limbo/duplicados) o inserta vehículos; escribe el informe en `importaciones`.      | ninguno                                               |
+
+## `apibara`
+
+Existe para que la clave no salga de la base. No lee la clave la app de Next (el cliente admin está
+prohibido ahí: `.claude/rules/datos.md`) ni el navegador: la lee esta función con la service key que
+el runtime le inyecta. La llama el **navegador** con su sesión (`infra/apibara.client.ts` de
+`vehiculos`), no una Server Action: el alta de varias líneas son consultas cortas con resultado por
+línea, y guardar sigue siendo una Server Action con su RPC.
+
+**La API** (verificada contra la documentación y con llamadas reales, 2026-10-14):
+
+| Qué                  | Pedido                                                     | Notas                                                                               |
+| -------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Base                 | `https://apibara.tech/api/v1/vehicle-auction`              | Clave en la cabecera `X-API-Key`. Sólo desde el servidor.                           |
+| Ficha por enlace     | `GET /vehicles/urltodetails?url=<enlace de Copart o IAAI>` | Devuelve `{ ok, url, data }`.                                                       |
+| Ficha por VIN o lote | `GET /vehicles/{slugVin}`                                  | VIN de 17, lote, `slug_vin` o stock de IAAI `1110…`. Devuelve `{ data }`.           |
+| Subastas próximas    | `GET /vehicles?upcoming=only`                              | Más de 30 min en el futuro y sin marca de venta. La app no la usa (ver DECISIONES). |
+| Foto                 | `GET /image-proxy?url=<una URL de la respuesta>`           | Sólo por acá; la respuesta trae `media.items[].full` (Copart) o `.large` (IAAI).    |
+| Uso                  | `GET /usage`                                               | `data.quota {used, limit, left}`, `data.period.quota_to`, `data.plan.name`.         |
+| Errores              | 400 · 401 · 403 · 404 · 422 · 429 · 5xx                    | 429 = cuota del período agotada; reintentar sólo la gasta.                          |
+
+**Lo que recibe** (`POST`, JSON, `verify_jwt = true`):
+
+- `{ accion: 'ficha', origen, entrada }` → `{ ok: true, data: { data, url } }`, con `data` = la respuesta en bruto
+  (lo que se guarda en `vehiculos.apibara_raw`) y `url` la dirección consultada (la API devuelve
+  `url: true`, no la repite).
+- `{ accion: 'foto', origen, url }` → los bytes (`application/octet-stream`), sólo de `cs.copart.com` y
+  `vis.iaai.com`: con la lista libre, esta función sería un proxy abierto con nuestra clave.
+- `{ accion: 'uso' }` → `{ plan, usadas, limite, restantes, hasta }` (nada más de la cuenta). Exige
+  `empresa.ajustes.gestionar`.
+
+**Qué hace, en orden.** (1) Le pregunta a la base **como quien llama** `apibara_contexto(origen)`:
+si apibara aplica y está activa con clave, a qué dirección, qué plataformas y qué puede esa persona
+(crear o editar vehículos en ese origen). (2) Recién ahí lee la clave. La dirección sólo puede ser de
+`apibara.tech` (si no, no manda nada). (3) Consulta con tope de 15 s y un solo reintento ante un 5xx
+o un corte; nunca ante un 429.
+
+**Errores como valores** (siempre HTTP 200, `{ ok: false, error: { codigo } }`; el texto lo pone la
+app: `mensajeDeApibara()`): `apagada` · `sin_permiso` · `entrada` · `plataforma` · `no_soportado`
+(400/422 o un enlace de otro sitio) · `no_encontrado` (404) · `clave_invalida` (401/403) · `cuota`
+(429) · `tiempo` · `proveedor` (5xx o una respuesta que no se entiende). Sin datos personales en los logs.
+
+**Pruebas.** Corre en Deno y no entra a lint ni typecheck. `src/modules/vehiculos/infra/funcion-apibara*.test.ts`
+la carga en Node con un `Deno` mínimo y un `fetch` simulado que responde con lo grabado
+(`e2e/fixtures/apibara/`): ningún pedido sale a la red. Los e2e nunca llaman a la API real; el de la
+función real local sólo cubre los caminos que no llegan a apibara (sin sesión, sin permiso, apagada,
+host de foto no permitido).
+
+**En local:** `npx supabase functions serve` (o `supabase start` con el edge runtime arriba). Se la
+alcanza en `http://127.0.0.1:54621/functions/v1/apibara`. No hay nada que desplegar aparte del
+`supabase functions deploy apibara`: la clave ya está en Vault.
 
 ## `storage-gc`
 
