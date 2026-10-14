@@ -128,6 +128,8 @@ export type Database = {
           iconos: Json | null
           id: number
           lead_dormido_meses: number
+          limpieza_automatica: boolean
+          limpieza_dias_gracia: number
           locale: string
           logo_oscuro_ruta: string | null
           logo_ruta: string | null
@@ -155,6 +157,8 @@ export type Database = {
           iconos?: Json | null
           id?: number
           lead_dormido_meses?: number
+          limpieza_automatica?: boolean
+          limpieza_dias_gracia?: number
           locale?: string
           logo_oscuro_ruta?: string | null
           logo_ruta?: string | null
@@ -181,6 +185,8 @@ export type Database = {
           iconos?: Json | null
           id?: number
           lead_dormido_meses?: number
+          limpieza_automatica?: boolean
+          limpieza_dias_gracia?: number
           locale?: string
           logo_oscuro_ruta?: string | null
           logo_ruta?: string | null
@@ -2513,11 +2519,57 @@ export type Database = {
           },
         ]
       }
+      limpieza_corridas: {
+        Row: {
+          empezo_en: string
+          fecha: string
+          id: string
+          lote_id: string | null
+          movidos: number
+          parcial: boolean
+          pendientes: number
+          saltados: NonNullable<Json>
+          termino_en: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          empezo_en?: string
+          fecha: string
+          id?: string
+          lote_id?: string | null
+          movidos?: number
+          parcial?: boolean
+          pendientes?: number
+          saltados?: NonNullable<Json>
+          termino_en?: string | null
+        }
+        Update: {
+          empezo_en?: string
+          fecha?: string
+          id?: string
+          lote_id?: string | null
+          movidos?: number
+          parcial?: boolean
+          pendientes?: number
+          saltados?: NonNullable<Json>
+          termino_en?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'limpieza_corridas_lote_id_fkey'
+            columns: ['lote_id']
+            isOneToOne: false
+            referencedRelation: 'lotes_papelera'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       lotes_papelera: {
         Row: {
           actualizado_en: string
           creado_en: string
           creado_por: string | null
+          es_limpieza: boolean
           id: string
           purgado_en: string | null
           restaurado_en: string | null
@@ -2530,6 +2582,7 @@ export type Database = {
           actualizado_en?: string
           creado_en?: string
           creado_por?: string | null
+          es_limpieza?: boolean
           id?: string
           purgado_en?: string | null
           restaurado_en?: string | null
@@ -2541,6 +2594,7 @@ export type Database = {
           actualizado_en?: string
           creado_en?: string
           creado_por?: string | null
+          es_limpieza?: boolean
           id?: string
           purgado_en?: string | null
           restaurado_en?: string | null
@@ -5133,9 +5187,13 @@ export type Database = {
           titulo: string
           url_origen: string | null
           vin: string | null
+          _limpieza_ancla: string | null
+          _limpieza_aplica: boolean | null
           _vehiculo_sin_repetidos: undefined | null
+          limpieza_el: string | null
         }
-        ComputedFields: '_vehiculo_sin_repetidos'
+        ComputedFields:
+          '_limpieza_ancla' | '_limpieza_aplica' | '_vehiculo_sin_repetidos' | 'limpieza_el'
         Insert: {
           acepta_permuta?: boolean | null
           actualizado_en?: string
@@ -5273,6 +5331,40 @@ export type Database = {
             columns: ['origen_id']
             isOneToOne: false
             referencedRelation: 'origenes'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      vehiculos_conservados: {
+        Row: {
+          conservado_en: string
+          conservado_por: string | null
+          vehiculo_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          conservado_en?: string
+          conservado_por?: string | null
+          vehiculo_id: string
+        }
+        Update: {
+          conservado_en?: string
+          conservado_por?: string | null
+          vehiculo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'vehiculos_conservados_conservado_por_fkey'
+            columns: ['conservado_por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'vehiculos_conservados_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: true
+            referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
         ]
@@ -5946,6 +6038,57 @@ export type Database = {
       _gracia_de_storage: { Args: Record<PropertyKey, never>; Returns: string }
       _hace: { Args: { p_cuando: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
+      _limpieza_ancla: {
+        Args: {
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
+      _limpieza_aplica: {
+        Args: {
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: boolean
+      }
+      _limpieza_fecha: {
+        Args: {
+          p_ahora: string
+          p_proxima: string
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
+      _limpieza_hora: { Args: Record<PropertyKey, never>; Returns: number }
+      _limpieza_proxima: { Args: { p_ahora: string }; Returns: string }
+      _limpieza_termino: {
+        Args: {
+          p_ahora: string
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
+      _limpieza_vence: {
+        Args: {
+          p_ahora: string
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
       _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
       _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
       _origen_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
@@ -5971,6 +6114,16 @@ export type Database = {
       }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
       _rol_tocar: { Args: { p_rol: string }; Returns: string }
+      _vehiculo_a_lote: {
+        Args: {
+          p_lote: string
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: Json
+      }
       _vehiculo_a_papelera: {
         Args: { p_esperado: string; p_lote: string; p_vehiculo: string }
         Returns: Json
@@ -6235,6 +6388,20 @@ export type Database = {
       }
       integracion_secreto: { Args: { p_clave: string }; Returns: string }
       lead_en_limbo: { Args: { p_lead: string }; Returns: boolean }
+      limpieza_automatica_correr: {
+        Args: { p_ahora?: string; p_origenes?: string[] }
+        Returns: Json
+      }
+      limpieza_el: {
+        Args: {
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
+      limpieza_ultima: { Args: Record<PropertyKey, never>; Returns: Json }
       margen_vehiculo: { Args: { p_vehiculo: string }; Returns: Json }
       mi_sesion: { Args: { p_perspectiva?: string }; Returns: Json }
       mis_leads: { Args: Record<PropertyKey, never>; Returns: string[] }
@@ -6515,6 +6682,7 @@ export type Database = {
       }
       usuario_tiene_permiso: { Args: { p_clave: string; p_usuario: string }; Returns: boolean }
       validar_formula: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
+      vehiculo_conservar: { Args: { p_conservar: boolean; p_vehiculo: string }; Returns: Json }
       vehiculo_crear: {
         Args: { p_consulta?: string; p_datos: Json; p_id: string; p_origen: string }
         Returns: Json
@@ -6560,6 +6728,7 @@ export type Database = {
           por_nombre: string
         }[]
       }
+      vehiculo_limpieza: { Args: { p_vehiculo: string }; Returns: Json }
       vehiculo_subasta_refrescar: {
         Args: {
           p_actualizado_en_esperado: string

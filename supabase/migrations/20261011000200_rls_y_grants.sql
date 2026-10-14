@@ -281,6 +281,8 @@ select public._rls('vehiculos_vinculos', '(select public.puede_vehiculo(vehiculo
 select public._rls('cola_gc_storage', null, null, null, null);
 select public._rls('cola_gc_pases', null, null, null, null);
 select public._rls('apibara_consultas', null, null, null, null);
+select public._rls('vehiculos_conservados', '(select public.puede_vehiculo(vehiculo_id, ''vehiculos.ver''))', null, null, null);
+select public._rls('limpieza_corridas', null, null, null, null);
 
 -- ---------------------------------------------------------------------------
 -- cotizaciones

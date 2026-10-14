@@ -112,10 +112,14 @@ create table public.ajustes_empresa (
   actividad_dias     int not null default 14 check (actividad_dias between 1 and 365),
   demora_dias_default int not null default 7 check (demora_dias_default >= 0),
   lead_dormido_meses int not null default 3 check (lead_dormido_meses between 1 and 24),
+  limpieza_automatica boolean not null default true,  -- interruptor general de la limpieza de vehículos de subasta
+  limpieza_dias_gracia int not null default 7 check (limpieza_dias_gracia between 1 and 90),
   actualizado_en     timestamptz not null default now(),
   actualizado_por    uuid
 );
 comment on column public.ajustes_empresa.iconos is 'Objeto {"32","180","192","512","512m"} → ruta en el bucket marca. Lo escribe «Regenerar íconos»; lo lee manifest.ts.';
+comment on column public.ajustes_empresa.limpieza_automatica is 'Interruptor general de la limpieza automática de vehículos de subasta. Apagado: no hay job, filtro ni banner.';
+comment on column public.ajustes_empresa.limpieza_dias_gracia is 'Días que pasan desde que terminó la subasta hasta que un vehículo sin ancla va a la papelera (1 a 90).';
 comment on table public.ajustes_empresa is 'Fila única (id = 1). Marca, país, locale, zona horaria, moneda base y políticas globales. Nada de cotización vive acá: eso es formulas.';
 
 create table public.monedas (
@@ -501,6 +505,7 @@ create table public.lotes_papelera (
   restaurado_por uuid references public.perfiles (id),
   purgado_en  timestamptz,
   resumen     jsonb not null default '{}'::jsonb,    -- {cantidad, restaurados, purgados}
+  es_limpieza boolean not null default false,        -- lo armó la limpieza automática (creado_por nulo)
   actualizado_en timestamptz not null default now()  -- versión del lote: restaurar y purgar la mandan
 );
 comment on table public.lotes_papelera is 'Un «mandar a la papelera», de 1 o de 200. Unidad de restaurar y purgar, entero o por partes. Se cierra (restaurado_en o purgado_en) cuando no le queda nada; nunca se borra: sobrevive a la purga como constancia. actualizado_en es su versión y la sellan las RPC con la hora del reloj.';
@@ -818,6 +823,29 @@ create table public.cola_gc_pases (
   usado_en  timestamptz                         -- la función storage-gc lo canjeó: no vale otra vez
 );
 comment on table public.cola_gc_pases is 'Pases de un solo uso con los que el job le pide a la función storage-gc que limpie: storage_gc_disparar() crea uno y lo manda, storage_gc_abrir() lo quema (vale 10 minutos). Es la bitácora de las corridas. Sólo service_role.';
+
+create table public.vehiculos_conservados (
+  vehiculo_id    uuid primary key references public.vehiculos (id) on delete cascade,
+  conservado_por uuid references public.perfiles (id) on delete set null,
+  conservado_en  timestamptz not null default now()
+);
+create index vehiculos_conservados_por_idx on public.vehiculos_conservados (conservado_por) where conservado_por is not null;
+comment on table public.vehiculos_conservados is 'La marca «Conservar»: la limpieza automática no toca estos vehículos. Aparte de vehiculos para no mover la versión de la ficha. Se escribe sólo por vehiculo_conservar() y, al restaurar un lote de limpieza, por trigger.';
+
+create table public.limpieza_corridas (
+  id          uuid primary key default gen_random_uuid(),
+  fecha       date not null,
+  parcial     boolean not null default false,
+  lote_id     uuid references public.lotes_papelera (id) on delete set null,
+  movidos     int not null default 0,
+  saltados    jsonb not null default '{}'::jsonb,
+  pendientes  int not null default 0,
+  empezo_en   timestamptz not null default clock_timestamp(),
+  termino_en  timestamptz
+);
+create unique index limpieza_corridas_dia_unica on public.limpieza_corridas (fecha) where not parcial;
+create index limpieza_corridas_lote_idx on public.limpieza_corridas (lote_id) where lote_id is not null;
+comment on table public.limpieza_corridas is 'Una fila por noche (la de verdad; las parciales son de pruebas, acotadas a unos orígenes): cuántos vehículos movió la limpieza, cuántos dejó y por qué ancla, y cuántos quedaron para la noche siguiente. Sólo service_role y limpieza_ultima().';
 
 -- >>> schemas/07_cotizaciones/01_cotizaciones.sql
 -- Módulo cotizaciones: fórmula por origen como grafo de nodos versionado, tablas de

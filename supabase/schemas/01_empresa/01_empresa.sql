@@ -23,10 +23,14 @@ create table public.ajustes_empresa (
   actividad_dias     int not null default 14 check (actividad_dias between 1 and 365),
   demora_dias_default int not null default 7 check (demora_dias_default >= 0),
   lead_dormido_meses int not null default 3 check (lead_dormido_meses between 1 and 24),
+  limpieza_automatica boolean not null default true,  -- interruptor general de la limpieza de vehículos de subasta
+  limpieza_dias_gracia int not null default 7 check (limpieza_dias_gracia between 1 and 90),
   actualizado_en     timestamptz not null default now(),
   actualizado_por    uuid
 );
 comment on column public.ajustes_empresa.iconos is 'Objeto {"32","180","192","512","512m"} → ruta en el bucket marca. Lo escribe «Regenerar íconos»; lo lee manifest.ts.';
+comment on column public.ajustes_empresa.limpieza_automatica is 'Interruptor general de la limpieza automática de vehículos de subasta. Apagado: no hay job, filtro ni banner.';
+comment on column public.ajustes_empresa.limpieza_dias_gracia is 'Días que pasan desde que terminó la subasta hasta que un vehículo sin ancla va a la papelera (1 a 90).';
 comment on table public.ajustes_empresa is 'Fila única (id = 1). Marca, país, locale, zona horaria, moneda base y políticas globales. Nada de cotización vive acá: eso es formulas.';
 
 create table public.monedas (

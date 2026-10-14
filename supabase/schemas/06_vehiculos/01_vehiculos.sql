@@ -130,3 +130,26 @@ create table public.cola_gc_pases (
   usado_en  timestamptz                         -- la función storage-gc lo canjeó: no vale otra vez
 );
 comment on table public.cola_gc_pases is 'Pases de un solo uso con los que el job le pide a la función storage-gc que limpie: storage_gc_disparar() crea uno y lo manda, storage_gc_abrir() lo quema (vale 10 minutos). Es la bitácora de las corridas. Sólo service_role.';
+
+create table public.vehiculos_conservados (
+  vehiculo_id    uuid primary key references public.vehiculos (id) on delete cascade,
+  conservado_por uuid references public.perfiles (id) on delete set null,
+  conservado_en  timestamptz not null default now()
+);
+create index vehiculos_conservados_por_idx on public.vehiculos_conservados (conservado_por) where conservado_por is not null;
+comment on table public.vehiculos_conservados is 'La marca «Conservar»: la limpieza automática no toca estos vehículos. Aparte de vehiculos para no mover la versión de la ficha. Se escribe sólo por vehiculo_conservar() y, al restaurar un lote de limpieza, por trigger.';
+
+create table public.limpieza_corridas (
+  id          uuid primary key default gen_random_uuid(),
+  fecha       date not null,
+  parcial     boolean not null default false,
+  lote_id     uuid references public.lotes_papelera (id) on delete set null,
+  movidos     int not null default 0,
+  saltados    jsonb not null default '{}'::jsonb,
+  pendientes  int not null default 0,
+  empezo_en   timestamptz not null default clock_timestamp(),
+  termino_en  timestamptz
+);
+create unique index limpieza_corridas_dia_unica on public.limpieza_corridas (fecha) where not parcial;
+create index limpieza_corridas_lote_idx on public.limpieza_corridas (lote_id) where lote_id is not null;
+comment on table public.limpieza_corridas is 'Una fila por noche (la de verdad; las parciales son de pruebas, acotadas a unos orígenes): cuántos vehículos movió la limpieza, cuántos dejó y por qué ancla, y cuántos quedaron para la noche siguiente. Sólo service_role y limpieza_ultima().';

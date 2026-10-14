@@ -180,6 +180,8 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `vehiculos_vinculos` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
 - `cola_gc_storage` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
 - `cola_gc_pases` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
+- `vehiculos_conservados` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
+- `limpieza_corridas` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
 - `formulas` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`
 - `tablas_referencia` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`
 - `tablas_referencia_filas` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`

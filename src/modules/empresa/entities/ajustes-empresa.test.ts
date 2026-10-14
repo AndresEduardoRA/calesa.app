@@ -25,6 +25,8 @@ const fila: Tables<'ajustes_empresa'> = {
   actividad_dias: 14,
   demora_dias_default: 7,
   lead_dormido_meses: 3,
+  limpieza_automatica: true,
+  limpieza_dias_gracia: 7,
   actualizado_en: '2026-10-12T14:00:00.123456+00:00',
   actualizado_por: null,
 }
