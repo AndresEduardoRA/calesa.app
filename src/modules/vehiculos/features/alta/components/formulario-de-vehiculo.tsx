@@ -6,14 +6,13 @@ import { enfocarPrimerError } from '@/shared/lib/formularios'
 import { RUTAS } from '@/shared/lib/rutas'
 import { Aviso } from '@/shared/ui/aviso'
 import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
-import { Bloque } from '@/shared/ui/bloque'
 import { Button } from '@/shared/ui/button'
+import { BloqueDeCampos } from '@/shared/ui/campos'
 import { BLOQUES_COMUNES } from '../../../entities/comunes'
 import type { Fuentes } from '../../../entities/esquema'
 import type { Vehiculo } from '../../../entities/vehiculo'
-import { campoDeAtributo, camposDeComunes, type CampoDeFormulario as Campo } from '../controles'
+import { campoDeAtributo, camposDeComunes } from '../controles'
 import type { FormularioDeVehiculo as Estado } from '../hooks/use-formulario-de-vehiculo'
-import { CampoDeFormulario } from './campo-de-formulario'
 
 type Props = {
   id: string
@@ -24,45 +23,6 @@ type Props = {
   // null = un alta.
   vehiculo: Vehiculo | null
   alRecargar: () => void
-}
-
-type PropsDeBloque = {
-  titulo: string
-  campos: readonly Campo[]
-  estado: Estado
-  plegado: boolean
-  // El primer campo del formulario recibe el foco al abrir.
-  enfocarPrimero?: boolean
-}
-
-function BloqueDeCampos({ titulo, campos, estado, plegado, enfocarPrimero }: PropsDeBloque) {
-  if (campos.length === 0) {
-    return null
-  }
-  const conError = campos.some((campo) => estado.errores[campo.clave] !== undefined)
-  return (
-    <Bloque titulo={titulo} plegado={plegado} forzarAbierto={conError}>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {campos.map((campo, indice) => (
-          <div
-            key={campo.clave}
-            className={campo.control.tipo === 'texto_largo' ? 'sm:col-span-2' : undefined}
-          >
-            <CampoDeFormulario
-              campo={campo}
-              valor={estado.valores[campo.clave]}
-              error={estado.errores[campo.clave]}
-              alCambiar={(valor) => {
-                estado.cambiar(campo.clave, valor)
-              }}
-              deshabilitado={estado.enCurso}
-              enfocar={enfocarPrimero === true && indice === 0}
-            />
-          </div>
-        ))}
-      </div>
-    </Bloque>
-  )
 }
 
 // Lo que pasa con el guardado, dicho arriba del formulario: sin conexión, esperando para
@@ -145,7 +105,10 @@ export function FormularioDeVehiculo({ id, estado, fuentes, campos, vehiculo, al
           key={bloque.clave}
           titulo={bloque.titulo}
           campos={comunes.filter((campo) => campo.bloque === bloque.clave)}
-          estado={estado}
+          valores={estado.valores}
+          errores={estado.errores}
+          alCambiar={estado.cambiar}
+          deshabilitado={estado.enCurso}
           plegado={indice > 0}
           enfocarPrimero={indice === 0}
         />
@@ -155,7 +118,10 @@ export function FormularioDeVehiculo({ id, estado, fuentes, campos, vehiculo, al
           key={grupo.titulo}
           titulo={grupo.titulo}
           campos={grupo.campos}
-          estado={estado}
+          valores={estado.valores}
+          errores={estado.errores}
+          alCambiar={estado.cambiar}
+          deshabilitado={estado.enCurso}
           plegado={!grupo.campos.some((campo) => campo.requerido)}
         />
       ))}

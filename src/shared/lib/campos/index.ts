@@ -52,3 +52,29 @@ export {
   MOTIVO_PRIMERO_DE_SU_GRUPO,
   MOTIVO_ULTIMO_DE_SU_GRUPO,
 } from './motivos'
+export { deAtributo, vacioDe, type ValorDeFormulario, type ValoresDeFormulario } from './valor'
+export {
+  campoDeFormulario,
+  opcionesDeCampo,
+  type CampoConControl,
+  type CampoDeFormulario,
+  type Control,
+  type OpcionDeControl,
+} from './controles'
+export {
+  LARGO_DE_TEXTO,
+  NUMERO_MAXIMO,
+  OBLIGATORIO,
+  enlace,
+  esquemaDeValor,
+  motivosPorCampo,
+  numero,
+  requerir,
+  siONo,
+  texto,
+  unaDe,
+  vin,
+  type ContextoDeEsquema,
+  type Dato,
+  type Esquema,
+} from './esquema-de-valor'

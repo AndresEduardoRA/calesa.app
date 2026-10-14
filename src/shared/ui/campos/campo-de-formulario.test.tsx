@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ValorDeFormulario } from '../../../entities/formulario'
-import type { CampoDeFormulario as Campo, Control } from '../controles'
+import type { CampoDeFormulario as Campo, Control, ValorDeFormulario } from '@/shared/lib/campos'
 import { CampoDeFormulario } from './campo-de-formulario'
 
 afterEach(cleanup)

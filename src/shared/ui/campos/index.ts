@@ -1,5 +1,8 @@
-// El editor de campos configurables: la lista agrupada, la fila, el panel de un campo y el aviso de
-// impacto. El módulo que lo usa le pasa su configuración y sus operaciones (`tipos.ts`).
+// Los campos configurables: el editor (la lista agrupada, la fila, el panel de un campo y el aviso
+// de impacto; el módulo le pasa su configuración y sus operaciones, `tipos.ts`) y, para llenarlos, el
+// control de cada tipo y el bloque que los agrupa.
+export { BloqueDeCampos } from './bloque-de-campos'
+export { CampoDeFormulario } from './campo-de-formulario'
 export { cerrarConAviso } from './cerrar-con-aviso'
 export { EditorDeCampos } from './editor-de-campos'
 export { edicionesDeCampos } from './ediciones'

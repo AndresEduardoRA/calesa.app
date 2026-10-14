@@ -5,8 +5,7 @@ import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { Label } from '@/shared/ui/label'
 import { Textarea } from '@/shared/ui/textarea'
-import type { ValorDeFormulario } from '../../../entities/formulario'
-import type { CampoDeFormulario, Control } from '../controles'
+import type { CampoDeFormulario, Control, ValorDeFormulario } from '@/shared/lib/campos'
 
 type Props = {
   campo: CampoDeFormulario
@@ -44,8 +43,8 @@ function DeTexto({
     <Campo
       nombre={campo.clave}
       etiqueta={etiquetaDe(campo)}
-      type={control.modo === 'url' ? 'url' : 'text'}
-      inputMode={control.modo === 'url' ? 'url' : undefined}
+      type={control.modo ?? 'text'}
+      inputMode={control.modo === 'url' || control.modo === 'email' ? control.modo : undefined}
       autoComplete="off"
       autoCapitalize={control.mayusculas ? 'characters' : undefined}
       spellCheck={control.mayusculas ? false : undefined}
@@ -212,8 +211,8 @@ function DeVarias({ campo, control, valor, error, alCambiar, deshabilitado }: Pr
   )
 }
 
-// Un dato del formulario de un vehículo, con el control que le toca. Sirve igual para un dato
-// común y para un campo del layout: la etiqueta ya viene resuelta.
+// Un dato de un formulario de campos, con el control que le toca. Sirve igual para un dato propio
+// del módulo y para un campo del layout: la etiqueta ya viene resuelta.
 export function CampoDeFormulario(props: Props) {
   const { control } = props.campo
   switch (control.tipo) {
