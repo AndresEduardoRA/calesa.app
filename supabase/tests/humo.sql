@@ -107,17 +107,19 @@ reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
 -- @test crear lead, verificar teléfono, compartir, enmascarado para la dueña
+-- Sin origen de lead activo `crear_lead` no pide uno: los bloques viejos no lo eligen. El bloque
+-- «alta rápida» del final los vuelve a encender y prueba que sí se pide.
+update public.origenes_lead set activo = false;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', false);
 set role authenticated;
-select public.crear_lead('{"nombre": "Ana Quispe", "telefono_cc": "+591", "telefono_principal": "7 000 0001", "atributos": {"ciudad": "Santa Cruz"}}');
+select public.crear_lead(gen_random_uuid(), '{"nombre": "Ana Quispe", "telefono_cc": "+591", "telefono_principal": "7 000 0001", "atributos": {"ciudad": "Santa Cruz"}}');
 do $$ declare r jsonb; v_id uuid; begin
   r := public.verificar_telefono('+591', '70000001');
   if r ->> 'estado' <> 'existe' or (r ->> 'es_mio')::boolean is not true then raise exception 'verificar_telefono mío: %', r; end if;
   if (public.verificar_telefono('+591', '70000009') ->> 'estado') <> 'libre' then raise exception 'debía estar libre'; end if;
-  begin
-    perform public.crear_lead('{"nombre": "Otra", "telefono_cc": "+591", "telefono_principal": "70000001"}');
-    raise exception 'dejó duplicar el teléfono';
-  exception when unique_violation then null; end;
+  r := public.crear_lead(gen_random_uuid(), '{"nombre": "Otra", "telefono_cc": "+591", "telefono_principal": "70000001"}');
+  if r ->> 'resultado' <> 'existe' or (select count(*) from public.leads_vista where telefono_principal = '59170000001') <> 1 then
+    raise exception 'duplicar el teléfono debía dar «existe» sin crear nada: %', r; end if;
   select id into v_id from public.leads_vista where nombre = 'Ana Quispe';
   if (select telefono_principal from public.leads_vista where id = v_id) <> '59170000001' then raise exception 'la cartera debe ver el teléfono completo'; end if;
 end $$;
@@ -138,8 +140,9 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003
 set role authenticated;
 do $$ declare r jsonb; begin
   if (select count(*) from public.leads_vista) <> 0 then raise exception 'logística no debería ver leads'; end if;
-  r := public.verificar_telefono('+591', '70000001');
-  if r ->> 'estado' <> 'de_otro' or r ->> 'dueno' <> 'Sofía Ramos' then raise exception 'esperaba de_otro con el nombre de la dueña del lead: %', r; end if;
+  -- Sin leads.crear no hay oráculo de «de quién es este número».
+  begin perform public.verificar_telefono('+591', '70000001'); raise exception 'verificó un teléfono sin leads.crear';
+  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
 
@@ -159,8 +162,8 @@ reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 set role authenticated;
 do $$ declare v uuid; begin
-  v := public.crear_lead('{"nombre": "Ana Quispe", "telefono_cc": "+591", "telefono_principal": "70000001"}');
-  if not exists (select 1 from public.leads_asesores where lead_id = v and usuario_id = '00000000-0000-0000-0000-000000000004' and tipo_acceso = 'adoptado') then raise exception 'no adoptó'; end if;
+  v := (public.crear_lead(gen_random_uuid(), '{"nombre": "Ana Quispe", "telefono_cc": "+591", "telefono_principal": "70000001", "adoptar": true}') ->> 'id')::uuid;
+  if not exists (select 1 from public.leads_asesores where lead_id = v and usuario_id = '00000000-0000-0000-0000-000000000004' and tipo_acceso = 'dueno' and revocado_en is null) then raise exception 'no adoptó'; end if;
   if (select count(*) from public.leads_vista where nombre = 'Ana Quispe') <> 1 then raise exception 'el adoptado debe verlo'; end if;
 end $$;
 reset role;
@@ -604,8 +607,8 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004
 select set_config('request.jwt.claim.role', 'authenticated', false);
 set role authenticated;
 do $$ declare propio uuid; compartido uuid; begin
-  propio := public.crear_lead('{"nombre": "Luis Choque", "telefono_cc": "+591", "telefono_principal": "70000021"}');
-  compartido := public.crear_lead('{"nombre": "Marta Vaca", "telefono_cc": "+591", "telefono_principal": "70000022"}');
+  propio := (public.crear_lead(gen_random_uuid(), '{"nombre": "Luis Choque", "telefono_cc": "+591", "telefono_principal": "70000021"}') ->> 'id')::uuid;
+  compartido := (public.crear_lead(gen_random_uuid(), '{"nombre": "Marta Vaca", "telefono_cc": "+591", "telefono_principal": "70000022"}') ->> 'id')::uuid;
   perform public.compartir_lead(compartido, '00000000-0000-0000-0000-000000000005');
   -- Sin el permiso de gestionar personas, la vista previa no responde.
   begin perform public.equipo_vista_previa_baja('00000000-0000-0000-0000-000000000001'); raise exception 'un asesor vio la vista previa de una baja';
@@ -3032,34 +3035,34 @@ set role authenticated;
 do $$ declare v_id uuid; hint text;
 begin
   -- Una clave suelta se rechaza diciendo dónde va.
-  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "ciudad": "Cbba", "atributos": {"req_humo": "x"}}'); raise exception 'aceptó una clave suelta';
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "A", "telefono_principal": "70011001", "ciudad": "Cbba", "atributos": {"req_humo": "x"}}'); raise exception 'aceptó una clave suelta';
   exception when invalid_parameter_value then
     if sqlerrm not like '%atributos%' then raise exception 'no dijo dónde va: %', sqlerrm; end if; end;
   -- Un atributo que no existe.
-  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "no_existe": 1}}'); raise exception 'aceptó un atributo que no existe';
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "no_existe": 1}}'); raise exception 'aceptó un atributo que no existe';
   exception when invalid_parameter_value then
     get stacked diagnostics hint = pg_exception_hint;
     if hint <> 'atributos.no_existe' then raise exception 'el hint no nombra el campo: %', hint; end if; end;
   -- De tipo equivocado.
-  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "edad": "mucha"}}'); raise exception 'aceptó una edad que no es número';
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "edad": "mucha"}}'); raise exception 'aceptó una edad que no es número';
   exception when invalid_parameter_value then
     if sqlerrm not like '%Edad%' then raise exception 'no nombró el campo: %', sqlerrm; end if; end;
   -- Con una opción que no está.
-  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "genero": "marciano"}}'); raise exception 'aceptó una opción que no existe';
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "genero": "marciano"}}'); raise exception 'aceptó una opción que no existe';
   exception when invalid_parameter_value then
     if sqlerrm not like '%marciano%' then raise exception 'no dijo cuál: %', sqlerrm; end if; end;
   -- Con un formato que no es.
-  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "correo_humo": "sin-arroba"}}'); raise exception 'aceptó un correo sin arroba';
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "A", "telefono_principal": "70011001", "atributos": {"req_humo": "x", "correo_humo": "sin-arroba"}}'); raise exception 'aceptó un correo sin arroba';
   exception when invalid_parameter_value then null; end;
   -- Sin un requerido.
-  begin perform public.crear_lead('{"nombre": "A", "telefono_principal": "70011001", "atributos": {"edad": 30}}'); raise exception 'creó un lead sin su requerido';
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "A", "telefono_principal": "70011001", "atributos": {"edad": 30}}'); raise exception 'creó un lead sin su requerido';
   exception when not_null_violation then
     get stacked diagnostics hint = pg_exception_hint;
     if hint <> 'atributos.req_humo' then raise exception 'el hint no nombra el requerido: %', hint; end if; end;
   -- Ninguna de las rechazadas dejó un lead.
   if exists (select 1 from public.leads_vista where nombre = 'A') then raise exception 'un rechazo dejó el lead a medias'; end if;
   -- Lo válido entra, y vaciar un dato lo quita.
-  v_id := public.crear_lead('{"nombre": "Valida Humo", "telefono_principal": "70011002", "atributos": {"req_humo": "x", "edad": 31, "genero": "otro", "correo_humo": "ana@ejemplo.com", "ciudad": ""}}');
+  v_id := (public.crear_lead(gen_random_uuid(), '{"nombre": "Valida Humo", "telefono_principal": "70011002", "atributos": {"req_humo": "x", "edad": 31, "genero": "otro", "correo_humo": "ana@ejemplo.com", "ciudad": ""}}') ->> 'id')::uuid;
   if (select atributos from public.leads_vista v where v.id = v_id) is distinct from '{"edad": 31, "genero": "otro", "req_humo": "x", "correo_humo": "ana@ejemplo.com"}'::jsonb then
     raise exception 'los atributos guardados: %', (select atributos from public.leads_vista v where v.id = v_id); end if;
 end $$;
@@ -3091,7 +3094,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
 set role authenticated;
 do $$ declare a jsonb; begin
-  perform public.crear_lead('{"nombre": "Privado Humo", "telefono_principal": "70022001", "atributos": {"ciudad": "Santa Cruz", "direccion": "Calle 5 #12", "notas": "Pidió rojo", "ci_humo": "123456 SC", "hobby_humo": "Ajedrez"}}');
+  perform public.crear_lead(gen_random_uuid(), '{"nombre": "Privado Humo", "telefono_principal": "70022001", "atributos": {"ciudad": "Santa Cruz", "direccion": "Calle 5 #12", "notas": "Pidió rojo", "ci_humo": "123456 SC", "hobby_humo": "Ajedrez"}}');
   select atributos into a from public.leads_vista where nombre = 'Privado Humo';
   if a ->> 'direccion' is distinct from 'Calle 5 #12' or a ->> 'ci_humo' is distinct from '123456 SC' then raise exception 'la cartera debía recibir los privados: %', a; end if;
 end $$;
@@ -3206,7 +3209,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000031
 set role authenticated;
 do $$ declare v uuid; begin
   if exists (select 1 from public.leads_vista where nombre = 'Privado Humo') then raise exception 'un lead en limbo debía ser invisible'; end if;
-  v := public.crear_lead('{"nombre": "Privado Humo", "telefono_principal": "70022001"}');
+  v := (public.crear_lead(gen_random_uuid(), '{"nombre": "Privado Humo", "telefono_principal": "70022001", "adoptar": true}') ->> 'id')::uuid;
   if (select atributos ->> 'direccion' from public.leads_vista where id = v) is distinct from 'Calle 5 #12' then
     raise exception 'adoptar no le dio los privados'; end if;
 end $$;
@@ -3243,7 +3246,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030
 set role authenticated;
 do $$ declare rechazo boolean; begin
   rechazo := false;
-  begin perform public.crear_lead('{"nombre": "Apagado", "telefono_principal": "70033001", "atributos": {"hobby_humo": "x"}}');
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "Apagado", "telefono_principal": "70033001", "atributos": {"hobby_humo": "x"}}');
   exception when invalid_parameter_value then rechazo := true; end;
   if not rechazo then raise exception 'escribió en un campo desactivado'; end if;
 end $$;
@@ -3258,7 +3261,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
 set role authenticated;
 do $$ declare v uuid; begin
-  v := public.crear_lead('{"nombre": "Reactivado", "telefono_principal": "70033002", "atributos": {"hobby_humo": "Lectura"}}');
+  v := (public.crear_lead(gen_random_uuid(), '{"nombre": "Reactivado", "telefono_principal": "70033002", "atributos": {"hobby_humo": "Lectura"}}') ->> 'id')::uuid;
   if (select atributos ->> 'hobby_humo' from public.leads_vista where id = v) <> 'Lectura' then raise exception 'reactivar el campo no lo devolvió'; end if;
   -- Una asesora con alcance «propios» sólo ve el suyo: el lead de antes es de otra cartera.
   if (select count(*) from public.leads_vista where atributos ->> 'hobby_humo' is not null) <> 1 then raise exception 'sólo debía ver el suyo'; end if;
@@ -3302,6 +3305,298 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030
 set role authenticated;
 do $$ begin
   if (select count(*) from public.leads_vista where nombre = 'Reactivado') <> 1 then raise exception 'la vista no devolvió el lead'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test alta rápida: el lead, su primer seguimiento y el recordatorio entran juntos, y un reintento no duplica
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-000000000040', 'alta-a@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-000000000041', 'alta-b@ejemplo.com', '{"invitado": true}');
+-- Sin campo requerido (los de otros bloques) y con dos orígenes de lead activos.
+update public.leads_campos set requerido = false where requerido;
+update public.origenes_lead set activo = (clave in ('facebook', 'web'));
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ begin
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000040', (select id from public.roles where clave = 'asesor'), true);
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000041', (select id from public.roles where clave = 'asesor'), true);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$
+declare
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_otro uuid := (select id from public.origenes_lead where clave = 'otro');
+  v_wa uuid := (select id from public.tipos_seguimiento where clave = 'whatsapp');
+  v_intento uuid := gen_random_uuid();
+  v_manana timestamptz := now() + interval '1 day';
+  r jsonb; r2 jsonb; ctx jsonb; v_id uuid;
+begin
+  -- El contexto trae lo activo y el código de país de la empresa.
+  ctx := public.lead_alta_contexto();
+  if jsonb_array_length(ctx -> 'origenes') <> 2 or jsonb_array_length(ctx -> 'tipos_seguimiento') < 1 or ctx ->> 'telefono_cc' <> '+591' then
+    raise exception 'el contexto del alta: %', ctx; end if;
+  if ctx -> 'ultimo_origen_id' <> 'null'::jsonb then raise exception 'todavía no hay último origen: %', ctx; end if;
+  if (public.verificar_telefono(null, '710 000-01') ->> 'estado') <> 'libre' then raise exception 'debía estar libre'; end if;
+
+  -- Hay orígenes activos: sin elegir uno no entra, y uno desactivado tampoco; el campo va en el hint.
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "Sin origen", "telefono_principal": "71000001"}', null);
+    raise exception 'creó un lead sin origen';
+  exception when invalid_parameter_value then
+    declare h text; begin get stacked diagnostics h = pg_exception_hint; if h <> 'origen_lead_id' then raise exception 'hint: %', h; end if; end;
+  end;
+  begin perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Origen apagado', 'telefono_principal', '71000001', 'origen_lead_id', v_otro), null);
+    raise exception 'aceptó un origen desactivado';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', '  ', 'telefono_principal', '71000001', 'origen_lead_id', v_web), null);
+    raise exception 'aceptó un nombre en blanco';
+  exception when invalid_parameter_value then null; end;
+
+  -- Entra todo junto.
+  r := public.crear_lead(v_intento, jsonb_build_object('nombre', ' Lead Alta Humo ', 'telefono_principal', '(710) 000-01',
+        'origen_lead_id', v_web, 'atributos', '{"ciudad": "Santa Cruz"}'::jsonb),
+       jsonb_build_object('tipo_id', v_wa, 'titulo', 'Pidió precio del RAV4', 'detalle', 'Lo vio en Facebook.'),
+       jsonb_build_object('recordar_en', v_manana));
+  if r ->> 'resultado' <> 'creado' or (r ->> 'repetido')::boolean or r ->> 'numero' is null then raise exception 'alta: %', r; end if;
+  v_id := (r ->> 'id')::uuid;
+  if v_id <> v_intento then raise exception 'el lead debía nacer con el id del intento'; end if;
+  if (select telefono_principal from public.leads_vista where id = v_id) <> '59171000001' then raise exception 'teléfono normalizado'; end if;
+  if (select telefono_cc from public.leads_vista where id = v_id) <> '+591' then raise exception 'código de país del lead'; end if;
+  if (select nombre from public.leads_vista where id = v_id) <> 'Lead Alta Humo' then raise exception 'el nombre se guarda sin espacios sobrantes'; end if;
+  if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Pidió precio del RAV4' and detalle_texto = 'Lo vio en Facebook.' and detalle_html is null and visibilidad = 'privado') <> 1 then
+    raise exception 'el seguimiento'; end if;
+  if (select count(*) from public.recordatorios where lead_id = v_id and titulo = 'Pidió precio del RAV4' and recordar_en = v_manana and usuario_id = '00000000-0000-0000-0000-000000000040') <> 1 then
+    raise exception 'el recordatorio (sin título propio usa el del seguimiento)'; end if;
+  if (select ultimo_seguimiento_en from public.leads_vista where id = v_id) is null then raise exception 'ultimo_seguimiento_en'; end if;
+  if not exists (select 1 from public.leads_asesores where lead_id = v_id and usuario_id = '00000000-0000-0000-0000-000000000040' and tipo_acceso = 'dueno') then
+    raise exception 'quien crea queda de dueño'; end if;
+  -- El último origen usado se recuerda por persona.
+  if (public.lead_alta_contexto() ->> 'ultimo_origen_id')::uuid <> v_web then raise exception 'último origen'; end if;
+
+  -- Se perdió la respuesta y la persona reintenta con el mismo intento: lo mismo, sin duplicar.
+  r2 := public.crear_lead(v_intento, jsonb_build_object('nombre', 'Lead Alta Humo', 'telefono_principal', '71000001', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', 'Pidió precio del RAV4'), null);
+  if r2 ->> 'resultado' <> 'creado' or (r2 ->> 'repetido')::boolean is not true or r2 ->> 'id' <> r ->> 'id' then raise exception 'reintento: %', r2; end if;
+  if (select count(*) from public.leads_vista where telefono_principal = '59171000001') <> 1 or (select count(*) from public.seguimientos where lead_id = v_id) <> 1 then
+    raise exception 'el reintento duplicó'; end if;
+  -- Otro intento con el mismo teléfono: existe y es mío, no un error.
+  r2 := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Otra vez', 'telefono_principal', '+591 71000001', 'origen_lead_id', v_web), null);
+  if r2 ->> 'resultado' <> 'existe' or (r2 -> 'verificacion' ->> 'es_mio')::boolean is not true or (r2 -> 'verificacion' ->> 'numero') <> r ->> 'numero' then
+    raise exception 'duplicado propio: %', r2; end if;
+end $$;
+reset role;
+-- La constancia (actividad sólo la lee quien tiene actividad.ver).
+do $$ begin
+  if not exists (select 1 from public.actividad a join public.leads l on l.id::text = a.registro_id
+                  where a.accion = 'lead.creado' and l.telefono_principal = '59171000001'
+                    and a.actor_id = '00000000-0000-0000-0000-000000000040' and a.detalle ->> 'intento' = l.id::text) then
+    raise exception 'sin constancia de la alta'; end if;
+end $$;
+
+-- @test alta rápida: si algo falla a mitad no queda un lead sin seguimiento
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$
+declare
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_wa uuid := (select id from public.tipos_seguimiento where clave = 'whatsapp');
+  v_antes bigint := (select count(*) from public.leads);
+  v_seg_antes bigint := (select count(*) from public.seguimientos);
+  r jsonb;
+begin
+  -- Recordatorio con fecha pasada.
+  begin perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Pasado', 'telefono_principal', '71000002', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', 'x'), jsonb_build_object('recordar_en', now() - interval '1 hour'));
+    raise exception 'aceptó un recordatorio en el pasado';
+  exception when invalid_parameter_value then
+    declare h text; begin get stacked diagnostics h = pg_exception_hint; if h <> 'recordatorio.recordar_en' then raise exception 'hint: %', h; end if; end;
+  end;
+  -- Seguimiento sin resumen, y con un tipo que no existe.
+  begin perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Sin resumen', 'telefono_principal', '71000002', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', '  '));
+    raise exception 'aceptó un seguimiento sin resumen';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Tipo', 'telefono_principal', '71000002', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', gen_random_uuid(), 'titulo', 'x'));
+    raise exception 'aceptó un tipo de seguimiento que no existe';
+  exception when invalid_parameter_value then null; end;
+  -- Un atributo que no es de ningún campo rechaza todo.
+  begin perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Atributo', 'telefono_principal', '71000002', 'origen_lead_id', v_web,
+        'atributos', '{"no_existe": 1}'::jsonb), jsonb_build_object('tipo_id', v_wa, 'titulo', 'x'));
+    raise exception 'aceptó un atributo que no existe';
+  exception when invalid_parameter_value then null; end;
+  if (select count(*) from public.leads) <> v_antes or (select count(*) from public.seguimientos) <> v_seg_antes then
+    raise exception 'un rechazo dejó algo a medias'; end if;
+  -- Un fallo DESPUÉS de escribir el lead (el seguimiento viola una restricción) también lo revierte.
+  begin perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Falla tarde', 'telefono_principal', '71000003', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', repeat('x', 121)));
+    raise exception 'aceptó un resumen demasiado largo';
+  exception when invalid_parameter_value then null; end;
+  if (select count(*) from public.leads_vista where telefono_principal = '59171000003') <> 0 then raise exception 'quedó el lead'; end if;
+  -- Sin seguimiento (la importación lo permite): entra sólo el lead.
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Sin seguimiento', 'telefono_principal', '71000004', 'origen_lead_id', v_web), null);
+  if r ->> 'resultado' <> 'creado' then raise exception 'sin seguimiento: %', r; end if;
+end $$;
+-- Un tipo de seguimiento desactivado no se ofrece ni se acepta.
+reset role;
+update public.tipos_seguimiento set activo = false where clave = 'otro';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from jsonb_array_elements(public.lead_alta_contexto() -> 'tipos_seguimiento') t where t ->> 'clave' = 'otro') then
+    raise exception 'ofreció un tipo desactivado'; end if;
+  begin perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Apagado', 'telefono_principal', '71000005',
+        'origen_lead_id', (select id from public.origenes_lead where clave = 'web')),
+        jsonb_build_object('tipo_id', (select id from public.tipos_seguimiento where clave = 'otro'), 'titulo', 'x'));
+    raise exception 'aceptó un tipo desactivado';
+  exception when invalid_parameter_value then null; end;
+end $$;
+reset role;
+update public.tipos_seguimiento set activo = true where clave = 'otro';
+
+-- @test alta rápida: permisos y lo que se ve de un teléfono ajeno
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false);
+set role authenticated;
+do $$ begin
+  begin perform public.crear_lead(gen_random_uuid(), '{"nombre": "Sin permiso", "telefono_principal": "71000009"}');
+    raise exception 'creó un lead sin leads.crear';
+  exception when insufficient_privilege then null; end;
+  begin perform public.verificar_telefono(null, '71000001'); raise exception 'verificó sin leads.crear';
+  exception when insufficient_privilege then null; end;
+  begin perform public.lead_alta_contexto(); raise exception 'leyó el contexto sin leads.crear';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$
+declare
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  r jsonb; v_dueno text := (select nombre from public.perfiles where id = '00000000-0000-0000-0000-000000000040');
+begin
+  -- Es de otra persona: se sabe de quién y nada más (ni nombre, ni número, ni id del lead).
+  r := public.verificar_telefono(null, '71000001');
+  if r ->> 'estado' <> 'de_otro' or r ->> 'dueno' is distinct from v_dueno then raise exception 'de otro: %', r; end if;
+  if r ? 'lead_id' or r ? 'nombre' or r ? 'numero' or r ? 'tipo' then raise exception 'se filtró algo del lead: %', r; end if;
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Intruso', 'telefono_principal', '+591 710 00001', 'origen_lead_id', v_web), null);
+  if r ->> 'resultado' <> 'de_otro' or (r -> 'verificacion') ? 'nombre' then raise exception 'crear sobre un teléfono ajeno: %', r; end if;
+  -- Y no ve el lead.
+  if exists (select 1 from public.leads_vista where nombre = 'Lead Alta Humo') then raise exception 've el lead ajeno'; end if;
+end $$;
+reset role;
+do $$ begin
+  if (select count(*) from public.leads where telefono_principal = '59171000001') <> 1 then raise exception 'duplicó un teléfono ajeno'; end if;
+end $$;
+
+-- @test alta rápida: adoptar del limbo exige consentimiento, deja de dueño y no pisa lo que el lead ya tiene
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$
+declare
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_fb uuid := (select id from public.origenes_lead where clave = 'facebook');
+  v_wa uuid := (select id from public.tipos_seguimiento where clave = 'whatsapp');
+begin
+  perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Del Limbo Humo', 'telefono_principal', '71000010',
+    'origen_lead_id', v_web, 'atributos', '{"ciudad": "Santa Cruz"}'::jsonb), null);
+end $$;
+reset role;
+-- La baja de su dueño lo manda al limbo.
+update public.leads_asesores set revocado_en = now()
+ where lead_id = (select id from public.leads where telefono_principal = '59171000010') and revocado_en is null;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$
+declare
+  v_fb uuid := (select id from public.origenes_lead where clave = 'facebook');
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_wa uuid := (select id from public.tipos_seguimiento where clave = 'whatsapp');
+  v_intento uuid := gen_random_uuid();
+  r jsonb; v_id uuid;
+  v_datos jsonb;
+begin
+  r := public.verificar_telefono(null, '71000010');
+  if r <> '{"estado": "limbo"}'::jsonb then raise exception 'el limbo no dice nada del lead: %', r; end if;
+  v_datos := jsonb_build_object('nombre', 'Otro Nombre', 'telefono_principal', '71000010', 'origen_lead_id', v_fb,
+      'atributos', '{"ciudad": "La Paz", "direccion": "Calle 9"}'::jsonb);
+  -- Sin «Tomar lead» no se adopta.
+  r := public.crear_lead(gen_random_uuid(), v_datos, null);
+  if r ->> 'resultado' <> 'limbo' then raise exception 'adoptó sin consentimiento: %', r; end if;
+  if exists (select 1 from public.leads_asesores where usuario_id = '00000000-0000-0000-0000-000000000041') then
+    raise exception 'quedó en la cartera sin pedirlo'; end if;
+  -- Con él, sí: dueño, constancia, y lo que había no se pisa.
+  r := public.crear_lead(v_intento, v_datos || '{"adoptar": true}'::jsonb,
+       jsonb_build_object('tipo_id', v_wa, 'titulo', 'Retomado'), null);
+  if r ->> 'resultado' <> 'adoptado' then raise exception 'adopción: %', r; end if;
+  v_id := (r ->> 'id')::uuid;
+  if not exists (select 1 from public.leads_asesores where lead_id = v_id and usuario_id = '00000000-0000-0000-0000-000000000041' and tipo_acceso = 'dueno' and revocado_en is null) then
+    raise exception 'quien adopta queda de dueño'; end if;
+  if (select nombre from public.leads_vista where id = v_id) <> 'Del Limbo Humo' then raise exception 'pisó el nombre'; end if;
+  if (select origen_lead_id from public.leads_vista where id = v_id) <> v_web then raise exception 'pisó el origen'; end if;
+  if (select atributos from public.leads_vista where id = v_id) <> '{"ciudad": "Santa Cruz", "direccion": "Calle 9"}'::jsonb then
+    raise exception 'los atributos: %', (select atributos from public.leads_vista where id = v_id); end if;
+  if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Retomado') <> 1 then raise exception 'el seguimiento de la adopción'; end if;
+  -- Reintento del mismo intento: lo mismo, sin sumar nada.
+  r := public.crear_lead(v_intento, v_datos || '{"adoptar": true}'::jsonb, jsonb_build_object('tipo_id', v_wa, 'titulo', 'Retomado'), null);
+  if r ->> 'resultado' <> 'adoptado' or (r ->> 'repetido')::boolean is not true or (r ->> 'id')::uuid <> v_id then raise exception 'reintento de la adopción: %', r; end if;
+  if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Retomado') <> 1 then raise exception 'el reintento duplicó el seguimiento'; end if;
+end $$;
+reset role;
+do $$ begin
+  if (select count(*) from public.actividad a join public.leads l on l.id::text = a.registro_id
+       where a.accion = 'lead.adoptado_del_limbo' and l.telefono_principal = '59171000010'
+         and a.actor_id = '00000000-0000-0000-0000-000000000041') <> 1 then
+    raise exception 'sin constancia de la adopción (o dos: el reintento no suma)'; end if;
+end $$;
+-- Quien ya fue de la cartera y la perdió vuelve a adoptar (la fila de cartera existe, revocada).
+update public.leads_asesores set revocado_en = now()
+ where lead_id = (select id from public.leads where telefono_principal = '59171000010') and revocado_en is null;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'x', 'telefono_principal', '71000010', 'adoptar', true,
+        'origen_lead_id', (select id from public.origenes_lead where clave = 'web')), null);
+  if r ->> 'resultado' <> 'adoptado' then raise exception 'readopción: %', r; end if;
+  if (select count(*) from public.leads_asesores where usuario_id = '00000000-0000-0000-0000-000000000041' and lead_id = (r ->> 'id')::uuid) <> 1 then
+    raise exception 'duplicó su fila de cartera'; end if;
+end $$;
+reset role;
+
+-- @test alta rápida: el teléfono y el código de país de la empresa
+do $$ begin
+  if public.normalizar_telefono('+591', '70011002') <> '59170011002' then raise exception 'nacional'; end if;
+  if public.normalizar_telefono('+591', '0 70011002') <> '59170011002' then raise exception 'sin el 0 troncal'; end if;
+  if public.normalizar_telefono('+591', '(7) 001-1002') <> '59170011002' then raise exception 'con paréntesis y guiones'; end if;
+  if public.normalizar_telefono('+591', '+54 9 11 5555-0000') <> '5491155550000' then raise exception 'de otro país con +'; end if;
+  if public.normalizar_telefono('+591', '0054 9 11 5555-0000') <> '5491155550000' then raise exception 'de otro país con 00'; end if;
+  if public.normalizar_telefono(null, '+591 70011002') <> '59170011002' then raise exception 'internacional sin código de empresa'; end if;
+  begin perform public.normalizar_telefono('+591', '7001abcd'); raise exception 'aceptó letras';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.normalizar_telefono('+591', '700'); raise exception 'aceptó uno corto';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.normalizar_telefono('+591', '1234567890123456'); raise exception 'aceptó uno largo';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.normalizar_telefono('+591', '7001+1002'); raise exception 'aceptó un + en medio';
+  exception when invalid_parameter_value then null; end;
+  begin perform public.normalizar_telefono(null, '70011002'); raise exception 'aceptó un nacional sin código de empresa';
+  exception when invalid_parameter_value then null; end;
+end $$;
+-- El código de país se edita en Empresa, con su forma.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare v timestamptz; begin
+  v := (select actualizado_en from public.ajustes_empresa);
+  begin perform public.empresa_guardar_ajustes('{"telefono_cc": "591"}', v); raise exception 'aceptó un código sin +';
+  exception when invalid_parameter_value then null; end;
+  v := public.empresa_guardar_ajustes('{"telefono_cc": "+54"}', v);
+  if (select telefono_cc from public.ajustes_empresa) <> '+54' then raise exception 'no guardó el código'; end if;
+  if public.lead_alta_contexto() ->> 'telefono_cc' <> '+54' then raise exception 'el contexto no lo trae'; end if;
+  v := public.empresa_guardar_ajustes('{"telefono_cc": null}', v);
+  if (select telefono_cc from public.ajustes_empresa) is not null then raise exception 'no lo vació'; end if;
+  perform public.empresa_guardar_ajustes('{"telefono_cc": "+591"}', v);
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

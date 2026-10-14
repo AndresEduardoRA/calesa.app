@@ -28,7 +28,7 @@ create table public.leads (
   id                   uuid primary key default gen_random_uuid(),
   numero               bigint generated always as identity unique,
   nombre               text not null,
-  telefono_cc          text not null default '+591',
+  telefono_cc          text,                       -- el código de país del número, si es el de la empresa
   telefono_principal   text not null,                -- normalizado: dígitos con código de país
   tipo                 public.tipo_lead not null default 'prospecto',
   origen_lead_id       uuid references public.origenes_lead (id) on delete restrict,

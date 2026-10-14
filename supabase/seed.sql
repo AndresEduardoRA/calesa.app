@@ -5,7 +5,7 @@
 -- ---------------------------------------------------------------------------
 -- Empresa
 -- ---------------------------------------------------------------------------
-insert into public.ajustes_empresa (id) values (1) on conflict do nothing;
+insert into public.ajustes_empresa (id, telefono_cc) values (1, '+591') on conflict do nothing;
 insert into public.ajustes_web (id) values (1) on conflict do nothing;
 insert into public.monedas (codigo, nombre, simbolo, decimales, orden) values
   ('USD', 'Dólar estadounidense', '$', 2, 0),

@@ -141,6 +141,7 @@ export type Database = {
           razon_social: string | null
           registro_abierto: boolean
           telefono: string | null
+          telefono_cc: string | null
           whatsapp: string | null
           zona_horaria: string
         }
@@ -170,6 +171,7 @@ export type Database = {
           razon_social?: string | null
           registro_abierto?: boolean
           telefono?: string | null
+          telefono_cc?: string | null
           whatsapp?: string | null
           zona_horaria?: string
         }
@@ -198,6 +200,7 @@ export type Database = {
           razon_social?: string | null
           registro_abierto?: boolean
           telefono?: string | null
+          telefono_cc?: string | null
           whatsapp?: string | null
           zona_horaria?: string
         }
@@ -2209,7 +2212,7 @@ export type Database = {
           nombre: string
           numero: number
           origen_lead_id: string | null
-          telefono_cc: string
+          telefono_cc: string | null
           telefono_principal: string
           tipo: Database['public']['Enums']['tipo_lead']
           ultimo_seguimiento_en: string | null
@@ -2227,7 +2230,7 @@ export type Database = {
           nombre: string
           numero?: never
           origen_lead_id?: string | null
-          telefono_cc?: string
+          telefono_cc?: string | null
           telefono_principal: string
           tipo?: Database['public']['Enums']['tipo_lead']
           ultimo_seguimiento_en?: string | null
@@ -2244,7 +2247,7 @@ export type Database = {
           nombre?: string
           numero?: never
           origen_lead_id?: string | null
-          telefono_cc?: string
+          telefono_cc?: string | null
           telefono_principal?: string
           tipo?: Database['public']['Enums']['tipo_lead']
           ultimo_seguimiento_en?: string | null
@@ -6041,6 +6044,16 @@ export type Database = {
         }[]
       }
       _apibara_ruta_ignorada: { Args: { p_ruta: string }; Returns: boolean }
+      _atributos_completar: {
+        Args: {
+          p_activas: string[]
+          p_actuales: Json
+          p_msg_clave: string
+          p_msg_objeto: string
+          p_nuevos: Json
+        }
+        Returns: Json
+      }
       _atributos_fusionar: {
         Args: {
           p_activas: string[]
@@ -6122,6 +6135,7 @@ export type Database = {
         }
         Returns: string
       }
+      _lead_verificar: { Args: { p_tel: string }; Returns: Json }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_vista_crear: { Args: Record<PropertyKey, never>; Returns: undefined }
@@ -6408,7 +6422,10 @@ export type Database = {
         Args: { p_cotizacion: string; p_estado: Database['public']['Enums']['estado_cotizacion'] }
         Returns: undefined
       }
-      crear_lead: { Args: { p: Json }; Returns: string }
+      crear_lead: {
+        Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
+        Returns: Json
+      }
       empresa_con_datos_cargados: { Args: Record<PropertyKey, never>; Returns: boolean }
       empresa_guardar_ajustes: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json }
@@ -6475,6 +6492,7 @@ export type Database = {
         Returns: string
       }
       integracion_secreto: { Args: { p_clave: string }; Returns: string }
+      lead_alta_contexto: { Args: Record<PropertyKey, never>; Returns: Json }
       lead_campo_crear: {
         Args: {
           p_clave: string

@@ -9,6 +9,7 @@ create table public.ajustes_empresa (
   ciudad             text,
   pais               text not null default 'Bolivia',
   telefono           text,
+  telefono_cc        text check (telefono_cc ~ '^\+[1-9][0-9]{0,2}$'),  -- código de país de los teléfonos de los leads: «+» y 1 a 3 dígitos
   whatsapp           text,
   email              text,
   logo_ruta          text,                      -- bucket público `marca`

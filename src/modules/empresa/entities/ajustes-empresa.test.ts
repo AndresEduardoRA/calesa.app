@@ -11,6 +11,7 @@ const fila: Tables<'ajustes_empresa'> = {
   ciudad: 'Santa Cruz',
   pais: 'Bolivia',
   telefono: null,
+  telefono_cc: '+591',
   whatsapp: '+59170000000',
   email: null,
   logo_ruta: null,
