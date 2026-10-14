@@ -3601,3 +3601,129 @@ do $$ declare v timestamptz; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test listado de leads: «míos» es la cartera, «todos» ve lo ajeno enmascarado y sin privados, y el limbo y la papelera no aparecen
+-- Dos campos: una cédula (nace «solo la cartera») y un color (lo ve quien ve el lead).
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  perform public.lead_campo_crear('listado_ci', 'Cédula del listado', 'documento');
+  perform public.lead_campo_crear('listado_color', 'Color del listado', 'texto');
+  if not (select solo_cartera from public.leads_campos where clave = 'listado_ci') then raise exception 'la cédula debía nacer privada'; end if;
+end $$;
+reset role;
+-- Dos asesores («propios») crean uno cada uno; la dueña («todos») no está en ninguna cartera.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Listado Propio', 'telefono_principal', '72000001', 'origen_lead_id', v_web,
+        'atributos', '{"listado_ci": "CI-777", "listado_color": "rojo"}'::jsonb));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta A: %', r; end if;
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Listado Limbo', 'telefono_principal', '72000003', 'origen_lead_id', v_web));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta limbo: %', r; end if;
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Listado Papelera', 'telefono_principal', '72000004', 'origen_lead_id', v_web));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta papelera: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Listado Ajeno', 'telefono_principal', '72000002', 'origen_lead_id', v_web,
+        'atributos', '{"listado_ci": "CI-888", "listado_color": "azul"}'::jsonb));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta B: %', r; end if;
+end $$;
+reset role;
+-- Uno al limbo (sin cartera vigente) y uno a la papelera: ni «todos» los ve.
+update public.leads_asesores set revocado_en = now() where lead_id = (select id from public.leads where nombre = 'Listado Limbo');
+update public.leads set eliminado_en = now() where nombre = 'Listado Papelera';
+
+-- «Propios»: sólo lo suyo, y todo lo que ve está en su cartera.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare n int; begin
+  select count(*) into n from public.leads_vista where nombre like 'Listado %';
+  if n <> 1 then raise exception '«propios» debía ver 1 de los suyos, vio %', n; end if;
+  if exists (select 1 from public.leads_vista where en_cartera is not true) then raise exception '«propios» vio un lead que no es de su cartera'; end if;
+  if exists (select 1 from public.leads_vista v where v.en_cartera <> (v.id in (select public.mis_leads()))) then
+    raise exception 'en_cartera debía coincidir con mis_leads()'; end if;
+  if (select telefono_principal from public.leads_vista where nombre = 'Listado Propio') <> '59172000001' then raise exception 'su teléfono, completo'; end if;
+  if (select atributos ->> 'listado_ci' from public.leads_vista where nombre = 'Listado Propio') is distinct from 'CI-777' then raise exception 'su privado, completo'; end if;
+  -- Lo ajeno no se alcanza ni por número ni por nombre.
+  if exists (select 1 from public.leads_vista where numero = (select numero from public.leads where nombre = 'Listado Ajeno')) then raise exception 'vio lo ajeno por número'; end if;
+  if exists (select 1 from public.leads_vista where nombre = 'Listado Limbo' or nombre = 'Listado Papelera') then raise exception 'vio un lead en limbo o en la papelera'; end if;
+end $$;
+reset role;
+
+-- «Todos»: ve lo ajeno con el teléfono enmascarado, sin la cédula, y «míos» queda vacío.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare n int; a jsonb; t text; begin
+  select count(*) into n from public.leads_vista where nombre in ('Listado Propio', 'Listado Ajeno');
+  if n <> 2 then raise exception '«todos» debía ver los 2, vio %', n; end if;
+  if exists (select 1 from public.leads_vista where nombre like 'Listado %' and en_cartera) then raise exception 'la dueña no está en esas carteras'; end if;
+  if exists (select 1 from public.leads_vista v where v.en_cartera <> (v.id in (select public.mis_leads()))) then
+    raise exception 'en_cartera debía coincidir con mis_leads()'; end if;
+  select telefono_principal, atributos into t, a from public.leads_vista where nombre = 'Listado Ajeno';
+  if t = '59172000002' or t not like '%•%' or t not like '591%02' then raise exception 'el teléfono ajeno debía llegar enmascarado: %', t; end if;
+  if a ? 'listado_ci' then raise exception 'llegó la cédula ajena: %', a; end if;
+  if a ->> 'listado_color' is distinct from 'azul' then raise exception 'el color sí lo ve quien ve el lead: %', a; end if;
+  -- Filtrar también es leer: por la cédula ajena, ni exacta ni por contención ni por clave.
+  if exists (select 1 from public.leads_vista where atributos ->> 'listado_ci' = 'CI-888') then raise exception 'filtró por la cédula ajena (->>)'; end if;
+  if exists (select 1 from public.leads_vista where atributos @> '{"listado_ci": "CI-888"}') then raise exception 'filtró por la cédula ajena (@>)'; end if;
+  if exists (select 1 from public.leads_vista where atributos ? 'listado_ci' and nombre = 'Listado Ajeno') then raise exception 'filtró por la clave ajena (?)'; end if;
+  -- Y sí encuentra por lo que ve: el color.
+  if (select count(*) from public.leads_vista where atributos ->> 'listado_color' = 'azul') <> 1 then raise exception 'por el color'; end if;
+  -- Ni el limbo ni la papelera, tampoco para «todos» ni por número.
+  if exists (select 1 from public.leads_vista where nombre in ('Listado Limbo', 'Listado Papelera')) then raise exception '«todos» vio un lead en limbo o en la papelera'; end if;
+  if exists (select 1 from public.leads_vista where numero in (select numero from public.leads where nombre in ('Listado Limbo', 'Listado Papelera'))) then
+    raise exception 'los encontró por número'; end if;
+end $$;
+reset role;
+
+-- Sin leads.ver: nada, ni por número.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false);
+set role authenticated;
+do $$ begin
+  if (select count(*) from public.leads_vista) <> 0 then raise exception 'sin leads.ver no hay filas'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test alcance_de: la lectura barata dice lo mismo que mis_permisos() para cada permiso y origen
+do $$
+declare
+  u uuid; r record; esperado public.alcance_permiso; obtenido public.alcance_permiso; n int := 0;
+begin
+  for u in select id from public.perfiles where id in (
+      '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002',
+      '00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000030',
+      '00000000-0000-0000-0000-000000000040') loop
+    perform set_config('request.jwt.claim.sub', u::text, true);
+    set local role authenticated;
+    for r in
+      select p.clave, o.origen_id
+      from public.permisos p
+      cross join (select null::uuid as origen_id union all select id from public.origenes) o
+    loop
+      select case when bool_or(m.alcance = 'todos') then 'todos'::public.alcance_permiso
+                  when count(*) > 0 then 'propios'::public.alcance_permiso end
+        into esperado
+      from public.mis_permisos() m
+      where m.clave = r.clave and (m.origen_id is null or r.origen_id is null or m.origen_id = r.origen_id);
+      obtenido := public.alcance_de(r.clave, r.origen_id);
+      n := n + 1;
+      if obtenido is distinct from esperado then
+        reset role;
+        raise exception 'alcance_de(%, %) para %: % y mis_permisos dice %', r.clave, r.origen_id, u, obtenido, esperado;
+      end if;
+    end loop;
+    reset role;
+  end loop;
+  if n < 100 then raise exception 'la prueba casi no comparó nada: %', n; end if;
+  -- Una persona bloqueada o sin rol no tiene alcance.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000ff', true);
+  set local role authenticated;
+  if public.alcance_de('leads.ver') is not null then reset role; raise exception 'un desconocido tiene alcance'; end if;
+  reset role;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

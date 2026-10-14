@@ -5933,6 +5933,7 @@ export type Database = {
           creado_en: string | null
           creado_por: string | null
           dueno_id: string | null
+          en_cartera: boolean | null
           es_favorito: boolean | null
           esta_tachado: boolean | null
           id: string | null
@@ -5953,6 +5954,7 @@ export type Database = {
           creado_en?: string | null
           creado_por?: string | null
           dueno_id?: never
+          en_cartera?: never
           es_favorito?: never
           esta_tachado?: never
           id?: string | null
@@ -5972,6 +5974,7 @@ export type Database = {
           creado_en?: string | null
           creado_por?: string | null
           dueno_id?: never
+          en_cartera?: never
           es_favorito?: never
           esta_tachado?: never
           id?: string | null
