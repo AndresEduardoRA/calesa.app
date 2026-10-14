@@ -732,6 +732,8 @@ margen) llegan con logística, ya protegidos por `logistica.gastos.ver`, `.pagos
 viaja igual en `atributos`).
 **Consecuencia:** el día que haga falta ocultar un campo del layout, es esa columna **más** una vista
 o RPC que recorte `atributos` (como `leads_vista`), con su permiso sembrado en la misma migración.
+**Actualización (2026-10-14):** para los leads ese día llegó: ver «Los privados se recortan al leer».
+Vehículos sigue sin marca de sensible.
 
 ## 2026-10-13 — Un VIN repetido bloquea, y se dice junto al campo
 
@@ -1261,3 +1263,114 @@ layout, «Plataformas» al crear un origen y el paso «Activa apibara» de sus s
 «Actualizado en apibara»): son filas de `origenes_campos`, datos del origen que el dueño puede renombrar.
 Los mensajes con voseo que quedan están en tres RPC de leads, flujos y cotizaciones que ninguna pantalla
 llama todavía: se reescriben con su fase.
+
+## 2026-10-14 — El motor de campos es de `shared`, y los leads lo usan
+
+**Contexto:** cada empresa tiene que armar los campos de sus leads como arma los de un origen. El
+motor vivía repartido entre `origenes` (editor, valor por defecto, impacto) y `vehiculos` (esquema,
+control, filtro), con dos copias de `TipoDeCampo`; copiarlo a `leads` habría sido la tercera.
+**Decisión:** lo que no depende de qué se configura pasa a `shared/lib/campos` (puro: tipos, orden
+relativo, clave, valor por defecto, cambios, impacto con el sustantivo del módulo, piezas Zod) y
+`shared/ui/campos` (el editor entero, con la configuración y las operaciones del módulo por props y un
+hueco para lo propio). En la base, las mismas reglas son funciones `_campo_*`, `_campos_*` y
+`_atributos_*` que no leen tablas (reciben lo que tienen que mirar); las `_origen_*` y el trigger de
+vehículos delegan en ellas con los mismos mensajes. Cada módulo conserva su política: qué campos hay,
+claves reservadas, permiso, banderas. El refactor fue su propio commit y no cambió a vehículos: sus e2e
+quedaron en verde. Lo que sólo tiene un consumidor (el formulario por bloques, la ficha por grupos, el
+traductor de filtros) se queda en `vehiculos` hasta que leads lo use.
+**Alternativas:** un módulo `campos` (ningún `entities/` podría importarlo: habría que sacar la
+validación de `entities`); que `leads` importe de `origenes` (dependencia falsa y otra copia de los
+tipos); copiar el motor.
+**Consecuencia:** un tipo de campo nuevo es una sola lista y sus `Record` por tipo; el mismo editor
+sirve a un tercer módulo. `shared` sigue sin reglas de negocio: no sabe qué es un lead.
+
+## 2026-10-14 — Los leads suman `correo` y `documento`, y nacen «solo la cartera»
+
+**Decisión:** los tipos de un lead son los de un vehículo sin VIN ni lote, más `correo` y `documento`
+(validación propia: correo con forma de correo; documento con letras, números y separadores, hasta 30).
+No llevan valor por defecto y nacen «solo la cartera» si la persona no dice otra cosa. Cada layout
+limita sus tipos con un `check` (`leads_campos` sin vin y lote; `origenes_campos` sin correo y
+documento) y el editor ofrece sólo los suyos. Los teléfonos extra siguen en `leads_telefonos`.
+**Alternativas:** un tipo `telefono` (duplicaría `leads_telefonos`); dejar los sensibles como texto (la
+persona tendría que acordarse de marcarlos).
+**Consecuencia:** el enum se amplió en su propia migración (un valor nuevo no se usa en la transacción
+que lo crea) y un test compara la lista de TypeScript con el enum de la base.
+
+## 2026-10-14 — Configuración › Leads reusa `leads.configurar`
+
+**Contexto:** se pedía un permiso nuevo, pero `leads.configurar` ya existía (sembrado, tipado, en el
+menú, sólo del dueño) y ya gobierna los orígenes de lead y los tipos de seguimiento: las otras pestañas
+de la misma pantalla.
+**Decisión:** un solo permiso para toda la configuración de leads, como `origenes.gestionar` cubre
+campos y categorías. Se amplió su descripción y su `aplicado_en`. Sin él no se entra (no hay otro
+permiso que necesite leer esta configuración: el layout lo leen las pantallas de leads por su cuenta).
+**Alternativas:** `leads.campos.gestionar` (más fino: quien edita seguimientos no tocaría la privacidad
+de los campos; exige insertar un permiso por migración, algo que ninguna ha hecho). Si hace falta
+separar, es un permiso nuevo con su enforcement.
+**Consecuencia:** la dominancia de la matriz sale sola del catálogo.
+
+## 2026-10-14 — Las seis columnas de un lead pasan a atributos, sobre la base viva
+
+**Contexto:** edad, ciudad, país, dirección, género y notas eran columnas fijas; ahora son campos de
+fábrica de `leads_campos`. La base local tenía una cuenta real: nada de `db:reset`.
+**Decisión:** una migración idempotente copia lo que haya a `leads.atributos` (género «sin especificar»
+y un texto en blanco son «sin dato»), retira las columnas y el enum `genero_persona`, y recrea la vista
+y `crear_lead`. La copia es una función interna (`_leads_columnas_a_atributos()`) para que el humo vuelva
+a crear las columnas y la ejercite. Las migraciones antiguas dejaron de nombrar las seis columnas (una
+vista se valida al crearse) y la definición actual de `leads_vista` es `_leads_vista_crear()`. Las claves
+de fábrica son las de las columnas viejas, así que lo que ya está en `actividad` sigue la misma regla.
+`crear_lead` conserva su firma: los datos propios van en `atributos` y una clave suelta se rechaza
+diciendo dónde va. La base ya no pone el país por defecto: lo precarga el formulario, como en vehículos.
+**Alternativas:** dejar las columnas y sumar atributos (dos lugares para la misma cosa); una tabla EAV.
+**Consecuencia:** el campo «Edad» pierde el `between 1 and 120` de la columna: el motor no tiene topes
+por campo. Si hace falta, es una regla del motor para todos los campos.
+
+## 2026-10-14 — Los privados se recortan al leer, con la cartera de ese momento; filtrar es leer
+
+**Contexto:** RLS no esconde columnas ni claves de un `jsonb`, y un filtro sobre un campo privado
+revelaría su valor aunque la pantalla no lo muestre.
+**Decisión:** `leads.atributos` no tiene grant: se lee por `leads_vista.atributos`, que sale de
+`atributos_lead()` (definer, estable). La cartera recibe todo; quien sólo ve el lead recibe las claves
+que el layout conoce como no privadas, **activas o no** (falla cerrada: desactivar un privado no lo
+expone); quien no ve el lead, nada. PostgREST sólo filtra sobre la columna recortada, así que no hay
+oráculo. Como se decide al leer, compartir, transferir y adoptar del limbo dan los privados y revocar
+los quita sin mover datos. Un trigger valida el estado final contra el layout y no deja que quien está
+fuera de la cartera cambie un privado ni le exige uno que no ve. `actividad` deja de entregar `antes` y
+`despues` (la fila entera, con el teléfono): la pantalla de Actividad (Fase 9) leerá el diff por una
+función que recorta según la cartera. Los conteos del aviso de impacto son agregados, nunca valores.
+**Alternativas:** guardar los privados aparte (otra tabla por lead); recortar en la pantalla (el dato
+viaja igual); una función de búsqueda definer (todavía no hace falta).
+**Consecuencia:** filtrar por un campo evalúa `atributos_lead()` por fila y no usa índice (bajo RLS
+tampoco lo usaría un GIN, como en vehículos): **no está medido**. Se mira con datos reales (Fase 9) y,
+si pesa, el listado pasa a una función que recorta una vez por consulta. Un `select *` de `leads` o de
+`actividad` desde la API falla a propósito.
+**Lo que se encontró y no se cambió** (tocan el enmascarado, que esta parte deja fijo): `leads_telefonos`
+no se enmascara a quien ve el lead sin la cartera; `telefono_lead(id)` no comprueba acceso; quien tiene
+`leads.editar` «todos» puede compartirse un lead ajeno. Van con la parte de la cartera.
+
+## 2026-10-14 — «La de la empresa» es una columna, no una referencia dentro del valor
+
+**Contexto:** Ciudad trae por defecto la de la empresa (`docs/UX.md`, Flujo 1).
+**Decisión:** `leads_campos.valor_defecto_empresa` (`ciudad` o `pais`), excluyente con un valor fijo y
+sólo en un campo de texto. Se resuelve al leer el layout con los ajustes de la empresa, así que sigue a
+la empresa si cambia de ciudad. Sin dato de la empresa, el alta sale vacía y el editor lo dice.
+**Alternativas:** una referencia `{"empresa": "ciudad"}` dentro de `valor_defecto` (ensucia el motor,
+sus lectores y la comparación de cambios con una noción de empresa); copiar la ciudad al campo al
+sembrarlo (no sigue a la empresa).
+
+## 2026-10-14 — «De fábrica» reemplaza a «de sistema» para los campos
+
+**Decisión:** un campo que nació con la preconfiguración (de un origen o de los leads) se llama «de
+fábrica»: insignia, motivo del panel y mensajes de la base. «Sistema» ya nombra otra cosa (el rol
+dueño). La columna sigue siendo `es_sistema`. Un campo de fábrica se edita, se apaga y se renombra;
+no se elimina ni cambia de tipo ni de clave.
+
+## 2026-10-14 — El alta rápida pide los requeridos propios, y el panel lo dice
+
+**Decisión:** el drawer de «Nuevo lead» lleva los cuatro fijos y los campos activos requeridos; el
+resto va plegado en «Más datos», ya precargado, con un resumen en el encabezado. Volver requerido un
+campo avisa dentro del panel, con el número, cuántos datos pedirá el alta; desde el cuarto, que la meta
+de 25 segundos cuesta cumplirla. Sin un campo requerido, la base lo rechaza con el campo en el `hint`:
+vale también para el cliente de servicio, así que los e2e que cargan leads completan los requeridos.
+**Consecuencia:** el aviso es de la pantalla de configuración; el alta (parte siguiente) lo
+materializa.

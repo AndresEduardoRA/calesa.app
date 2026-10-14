@@ -134,6 +134,10 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
   `importar-csv`) + `pg_cron` (recordatorios, expirar turnos, alertas de demora, purgas).
 - **Realtime**: canales de Supabase para chat y notificaciones; la fila es señal, se rehidrata por fetch.
 - **Modo Live**: `useLive()` + `<Monto>`; clase en `<html>`; todo monto pasa por ahí.
+- **Campos configurables**: el motor es de `shared` (`lib/campos` puro, `ui/campos` el editor) y de la base
+  (`_campo_*`, `_campos_*`, `_atributos_*`). `origenes` (el layout de un vehículo) y `leads` ponen lo suyo:
+  qué campos hay, claves reservadas, permiso y banderas. Un campo con datos se desactiva, no se borra; lo
+  que se guarda se valida contra el layout en la base; lo privado se recorta al leer (`atributos_lead()`).
 - **Filtros en URL**: esquema declarativo por listado (`shared/lib/filtros`), `FilterShell` y `nuqs`. La página lee la URL con `leerFiltros()` (tolerante) y el módulo traduce los valores a condiciones para su consulta. Listas grandes: keyset con `shared/lib/paginacion`. Vistas guardadas: de `equipo` (`<MenuDeVistas>`), montadas por el listado.
 - **Tema**: tokens en `design/tokens.css` → `src/app/globals.css` (`@theme`), modo oscuro por
   clase `.dark`, preferencia por usuario.

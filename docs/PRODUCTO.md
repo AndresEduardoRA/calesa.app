@@ -40,7 +40,8 @@ permisos, no por nombre de rol.
 - **Vehículos**: inventario por origen, hasta 24 fotos optimizadas, filtros estilo Copart con
   estado en la URL, interesados y vínculo a lead, vitrina web, papelera 30 días, alta por link de
   Copart/IAAI vía apibara.
-- **Leads**: teléfono principal único y enmascarado salvo cartera, verificación mientras se tipea,
+- **Leads**: teléfono principal único y enmascarado salvo cartera, campos configurables por la empresa
+  (con «solo la cartera» para lo sensible), verificación mientras se tipea,
   compartir/transferir, favoritos, tachados y etiquetas por usuario, seguimientos con texto
   enriquecido y visibilidad pública/privada, recordatorios, oportunidades en embudos
   configurables por usuario, acceso al portal del cliente, papelera, exportar/importar CSV.

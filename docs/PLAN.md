@@ -59,7 +59,7 @@ sólo publica con permiso y por RPC; e2e del alta por link y de la papelera en v
 
 ## Fase 3 — Leads
 
-Módulo `leads`: listado con filtros, drawer rápido y ficha con pestañas; drawer «Nuevo lead» con
+Módulo `leads`: **campos configurables** (Configuración › Leads › Campos: crear, apagar, renombrar, ordenar, agrupar, requerido, filtrable, en la tabla, valor por defecto y «solo la cartera»; son el layout que leen el alta, la ficha, el listado y el CSV); listado con filtros, drawer rápido y ficha con pestañas; drawer «Nuevo lead» con
 verificación del teléfono al tipear (`verificar_telefono`: libre / existe y es mío / de otro con
 CTA al chat / en limbo → adopta); seguimientos con Tiptap saneado, tipos configurables,
 visibilidad pública/privada; recordatorios con atajos de fecha; favoritos, tachados (orden al
@@ -68,8 +68,10 @@ en embudos por usuario con kanban (`?vista=embudo`); portal del cliente (otorgar
 grande y texto para WhatsApp, revocar); papelera; exportar/importar CSV de lo propio (vista previa
 por fila, importa las válidas).
 
-**Terminado cuando:** registrar lead + seguimiento ≤ 25 s desde `N` con el duplicado detectado al
-terminar de tipear el teléfono (e2e lo mide); la dueña ve el lead ajeno con teléfono enmascarado;
+**Terminado cuando:** cada empresa arma los campos de sus leads sin tocar SQL (crea «Signo zodiacal»,
+apaga «Edad», marca uno «solo la cartera») y quien ve un lead sin estar en su cartera no recibe un
+privado, ni por la vista ni filtrando; registrar lead + seguimiento ≤ 25 s desde `N` con el duplicado
+detectado al terminar de tipear el teléfono (e2e lo mide); la dueña ve el lead ajeno con teléfono enmascarado;
 dar de baja a un asesor manda sus leads al limbo y otro los adopta al registrar el teléfono; el
 código del portal es dictable.
 
