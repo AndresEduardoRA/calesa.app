@@ -29,6 +29,7 @@ Orígenes de vehículos configurables (subasta/apibara o manual), su layout de c
 
 `origenes`, `origenes_campos`, `categorias`. Son de sólo lectura para la app: se escriben por RPC (`supabase/migrations/20261011001400_origenes.sql`).
 Las RPC de campos se rehicieron con el valor por defecto en `…20261013000300_origenes_valor_defecto.sql` (`origen_campo_crear` cambió de firma: `drop` + `create`).
+Las reglas que no dependen de qué se configura (nombre, opciones, valor por defecto, impacto, orden relativo, fusión y validación de atributos) viven en el motor común `_campo_*`, `_campos_*` y `_atributos_*` (`…20261014000600_campos_motor.sql`); las `_origen_*` y `vehiculo_validar_atributos` delegan en él con los mismos mensajes. Los leads usan el mismo motor para su layout.
 RPC: `origen_apibara_rutas_sin_campo`, `origen_apibara_agregar` (`…20261014000200_apibara.sql`; `origen_apibara_completar()` y `_apibara_catalogo()` son internas), `origen_crear`, `origen_guardar`, `origen_eliminar`, `origen_campo_crear`, `origen_campo_guardar`, `origen_campo_mover`, `origen_campo_eliminar`, `origen_campo_impacto`, `categoria_crear`, `categoria_guardar`, `categoria_mover`, `categoria_eliminar`, `origenes_resumen`, `categorias_con_uso`. Triggers: `origen_crear_flujo`, `origen_preconfigurar_campos`, `origen_tipo_inmutable`, `origen_campo_validar`, `origen_activo_requerido` (en `vehiculos` y `cotizaciones`).
 
 ## No se rompe
