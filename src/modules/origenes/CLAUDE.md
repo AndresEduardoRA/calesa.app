@@ -1,12 +1,13 @@
 # origenes
 
-Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías. Al crear uno nacen, por trigger y en la misma transacción, su flujo de logística (con sus reglas, sin fases) y los campos de su tipo. **No** nace una fórmula: «fórmula pendiente» es no tener una fila `publicada`.
+Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías. Al crear uno nacen, por trigger y en la misma transacción, su flujo de logística (con sus reglas, sin fases) y los campos de su tipo. Uno de subasta nace con **un campo por cada dato normalizado que devuelve apibara** (el catálogo), todos encendidos. **No** nace una fórmula: «fórmula pendiente» es no tener una fila `publicada`.
 
 ## Entra y sale
 
 - Entra: Configuración › Orígenes (`/configuracion/origenes` y `/configuracion/origenes/[id]` con pestañas `?seccion=datos|campos|categorias`): alta, datos, activar y desactivar, eliminar, layout de campos (orden, grupo, requerido, valor por defecto, en tarjeta, filtrable, público, `clave_apibara`) y categorías.
 - Sale por `index.ts` (servidor):
   - `getOrigenes(incluirInactivos?)` — los orígenes con lo mínimo para nombrarlos y elegirlos (`OrigenResumen`: id, nombre, color, activo, sustantivo, género y tipo). Lo consume `app/` para la matriz de roles (con inactivos: lo que se les otorgó no se esconde) y para las pestañas del inventario.
+  - `leerDatosNuevosDeApibara(origenId)` y `<DatosNuevosDeApibara>` — lo que la API trajo a los vehículos del origen y todavía no es un campo, con «Agregarlos» (sólo quien gestiona orígenes).
   - `leerLayout(origenId, { conUso })` — todos los campos del origen (también los desactivados: quien consume filtra `activo`) y sus categorías. Con sus tipos (`CampoDeLayout`, `GrupoDeCampos`, `OpcionDeCampo`, `TipoDeCampo`, `ValorDefecto`, `Categoria`, `LayoutDeOrigen`) y las reglas puras `agruparCampos()` y `tieneOpciones()`. Es lo que leen la ficha, los filtros y el alta de `vehiculos`.
   - Para la pantalla: `leerOrigenes()` (todos, con su uso), `<ListaDeOrigenes>`, `<DatosDelOrigen>`, `<EditorDeCampos>`, `<ArbolDeCategorias>`, `<SiguientesPasos>`, `pasosDe()`.
 - Sale por `client.ts` (Client Components de `app/` y de otros módulos): `pluralDe()`, `contados()`, `articulo()`, `ninguno()`, `concordar()`, `generoSugerido()`, `frasePorVacio()` y los tipos `Genero`, `TipoDeOrigen`, `OrigenResumen`: es lo que permite escribir «Ninguna unidad en Corea todavía» sin texto fijo. También `agruparCampos()`, `tieneOpciones()` y los tipos del layout, para dibujar un formulario o una ficha por grupos.
@@ -17,7 +18,7 @@ Orígenes de vehículos configurables (subasta/apibara o manual), su layout de c
 
 - `entities/origen.ts` — `Origen`, `OrigenConUso`, `UsoDeOrigen`, `motivoParaNoEliminar()` (espejo de `origen_eliminar()`), `huellaDelOrigen()` (la `key` del formulario).
 - `entities/nombre.ts` — `claveDeNombre()`, `generoSugerido()`, `pluralDe()`, `contados()`, `frasePorVacio()`: cómo se nombra un origen y lo que entra en él.
-- `entities/preconfiguraciones.ts` — espejo de `origen_preconfigurar_campos()` y de las reglas de `origen_crear_flujo()`; un test lo compara con el SQL del trigger.
+- `entities/preconfiguraciones.ts` — espejo de `origen_preconfigurar_campos()` y de las reglas de `origen_crear_flujo()`; un test lo compara con el SQL. `entities/catalogo-apibara.ts` (con sus datos en `catalogo-apibara-datos.ts`) — espejo de `_apibara_catalogo()`: cada dato de la respuesta con su ruta (`vehicle_specs.engine.raw`), su etiqueta, tipo y grupo; `rutaIgnorada()` dice qué no es campo (`details`, listas, lo que caduca, lo que ya es columna). Un test lo compara con el SQL y con las respuestas grabadas (`e2e/fixtures/apibara/`). `entities/datos-nuevos-de-apibara.ts` — lo que trajo la API y el origen no tiene.
 - `entities/campo.ts` — `CampoDeLayout`, `agruparCampos()`, `destinoDeMovimiento()` (subir y bajar → «después de X»), `claveDeCampo()`. `entities/cambios-de-campo.ts` — `cambiosRespectoDe()` (sólo viaja lo que cambió), `cambiosComoColumnas()`, `necesitaVistaPrevia()`. `entities/valor-defecto.ts` — `admiteValorDefecto()`, `valorDefectoPara()` (espejo de `_origen_valor_defecto()`). `entities/impacto.ts` — `resumenDeImpacto()` y `resumenDeEliminacion()`: lo que le pasa a lo ya cargado, dicho con números.
 - `entities/categoria.ts`, `entities/pasos.ts` (`pasosDe()` deriva lo pendiente), `entities/motivos.ts`, `entities/repositorios.ts`.
 - `infra/{origenes,campos,categorias}.ts` — escrituras, todas por RPC. `infra/queries/{origenes,layout}.ts` — lecturas. `composicion.ts` — de ahí toma `features/` sus implementaciones. Sin `composicion.client.ts`: no hay realtime ni lecturas desde el navegador.
@@ -28,7 +29,7 @@ Orígenes de vehículos configurables (subasta/apibara o manual), su layout de c
 
 `origenes`, `origenes_campos`, `categorias`. Son de sólo lectura para la app: se escriben por RPC (`supabase/migrations/20261011001400_origenes.sql`).
 Las RPC de campos se rehicieron con el valor por defecto en `…20261013000300_origenes_valor_defecto.sql` (`origen_campo_crear` cambió de firma: `drop` + `create`).
-RPC: `origen_crear`, `origen_guardar`, `origen_eliminar`, `origen_campo_crear`, `origen_campo_guardar`, `origen_campo_mover`, `origen_campo_eliminar`, `origen_campo_impacto`, `categoria_crear`, `categoria_guardar`, `categoria_mover`, `categoria_eliminar`, `origenes_resumen`, `categorias_con_uso`. Triggers: `origen_crear_flujo`, `origen_preconfigurar_campos`, `origen_tipo_inmutable`, `origen_campo_validar`, `origen_activo_requerido` (en `vehiculos` y `cotizaciones`).
+RPC: `origen_apibara_rutas_sin_campo`, `origen_apibara_agregar` (`…20261014000200_apibara.sql`; `origen_apibara_completar()` y `_apibara_catalogo()` son internas), `origen_crear`, `origen_guardar`, `origen_eliminar`, `origen_campo_crear`, `origen_campo_guardar`, `origen_campo_mover`, `origen_campo_eliminar`, `origen_campo_impacto`, `categoria_crear`, `categoria_guardar`, `categoria_mover`, `categoria_eliminar`, `origenes_resumen`, `categorias_con_uso`. Triggers: `origen_crear_flujo`, `origen_preconfigurar_campos`, `origen_tipo_inmutable`, `origen_campo_validar`, `origen_activo_requerido` (en `vehiculos` y `cotizaciones`).
 
 ## No se rompe
 
@@ -37,12 +38,15 @@ RPC: `origen_crear`, `origen_guardar`, `origen_eliminar`, `origen_campo_crear`, 
 - Un origen con vehículos, cotizaciones o fórmula publicada **no se elimina**: se desactiva (`activo = false`), reversible. No recibe vehículos ni cotizaciones nuevos (trigger); sus fichas se siguen viendo. La matriz de roles lo sigue listando, marcado «inactivo».
 - Un campo con datos no cambia de tipo ni se elimina: **quitar es desactivar** (el dato queda en `vehiculos.atributos`; reactivar lo devuelve). Un campo de sistema no cambia de tipo ni de clave y no se elimina. Volver requerido no toca vehículos: el trigger sólo valida al escribir uno.
 - Toda edición manda la versión que tenía en pantalla (`actualizado_en` de la fila: origen, campo o categoría) y un nulo se rechaza. El orden es relativo («después de X») y lo calcula `destinoDeMovimiento()`; ordenar renumera 10, 20, 30… tocando sólo las filas que cambian.
+- **`clave_apibara` es una ruta** de la respuesta, con puntos (`pricing.estimated_cost.median`), única por origen (índice parcial). Los 17 campos de siempre (`es_sistema`) se llenan con su ruta; los otros ~90 son datos extra, sin tarjeta, sin filtro y **no públicos** (la vitrina es segura por defecto). Cuatro del preset (`cilindros`, `enciende_y_anda`, `nota_subasta`, `banderas_subasta`) no tienen fuente en la API: son manuales. Los de opciones del preset (transmisión, combustible, tracción, carrocería, tipo) pasaron a texto: un valor de la API no calza con una lista vacía; con opciones, el alta busca la que coincide por clave o etiqueta.
+- **Un dato nuevo de la API no crea un campo solo:** queda en la respuesta guardada y la pestaña Campos avisa («apibara trae N datos que este origen no usa»). «Agregarlos» crea los campos con la ruta como nombre; los vehículos que ya estaban se llenan desde su próximo refresco.
 - Los campos comunes (marca, modelo, año, VIN, lote, precio) son columnas de `vehiculos`: no se crean como campo propio (`CLAVES_RESERVADAS`, espejo de `_origen_clave_reservada()`). Lo demás vive en `atributos` y lo valida `vehiculo_validar_atributos`.
 - El **valor por defecto** de un campo (`origenes_campos.valor_defecto`) sólo precarga el formulario de alta de un vehículo: la base nunca lo aplica sola. Lo llevan texto, número, monto, sí o no y las opciones; no la fecha, el enlace, el VIN ni el lote. Cambiar el tipo o sacar la opción que lo era lo limpia (la base y el formulario).
 - El aviso de impacto va **dentro** del panel del campo, no en un diálogo: un modal no abre otro modal. El conteo (`origen_campo_impacto`) incluye la papelera.
 - Una categoría tiene un solo nivel de anidado, un nombre por lugar (sin importar mayúsculas), y una con subcategorías activas no se desactiva; una con subcategorías o vehículos no se elimina.
 - Entra a la pantalla quien tiene `origenes.gestionar` y, de sólo lectura (todo deshabilitado con el motivo), quien configura el flujo o la fórmula (`flujos.configurar`, `cotizaciones.configurar`). No hay `origenes.ver`: la lectura es de todas las cuentas y no tendría qué proteger.
 - Los nombres de orígenes nunca aparecen fijos en la UI ni en el código: todo sale de la fila.
+- Las plataformas de apibara están en dos lugares: `integraciones.config.plataformas` (el techo) y `origenes.apibara_plataformas`. Se consulta una plataforma si está en las dos; un origen sin ninguna elegida acepta las de la integración.
 
 ## Ojo
 

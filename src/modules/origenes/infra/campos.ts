@@ -80,4 +80,23 @@ const impacto: RepositorioCampos['impacto'] = async (id) => {
   return ok(impactoDesde(data))
 }
 
-export const camposSupabase: RepositorioCampos = { crear, guardar, mover, eliminar, impacto }
+const agregarDeApibara: RepositorioCampos['agregarDeApibara'] = async ({ origenId, rutas }) => {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('origen_apibara_agregar', {
+    p_origen: origenId,
+    p_rutas: [...rutas],
+  })
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok({ agregados: data })
+}
+
+export const camposSupabase: RepositorioCampos = {
+  crear,
+  guardar,
+  mover,
+  eliminar,
+  impacto,
+  agregarDeApibara,
+}

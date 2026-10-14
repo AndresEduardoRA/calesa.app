@@ -8,7 +8,7 @@ export type { OrigenResumen } from './entities/origen'
 
 // El layout de un origen para quien lo consume: la ficha, los filtros y el alta de `vehiculos`.
 // `leerLayout()` trae todos los campos (también los desactivados) y las categorías.
-export { leerLayout } from './composicion'
+export { leerDatosNuevosDeApibara, leerLayout } from './composicion'
 export { agruparCampos, tieneOpciones } from './entities/campo'
 export type {
   CampoDeLayout,
@@ -26,6 +26,7 @@ export type { OrigenConUso } from './entities/origen'
 export { ListaDeOrigenes } from './features/origenes/components/lista-de-origenes'
 export { DatosDelOrigen } from './features/origenes/components/datos-del-origen'
 export { EditorDeCampos } from './features/campos/components/editor-de-campos'
+export { DatosNuevosDeApibara } from './features/campos/components/datos-nuevos-de-apibara'
 export { ArbolDeCategorias } from './features/categorias/components/arbol-de-categorias'
 
 // Qué le falta a un origen para funcionar

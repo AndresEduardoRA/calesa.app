@@ -3,6 +3,7 @@
 import type { Resultado } from '@/shared/lib/errores'
 import type { CambiosDeCampo } from './cambios-de-campo'
 import type { CampoDeLayout, OpcionDeCampo, TipoDeCampo, ValorDefecto } from './campo'
+import type { DatoNuevoDeApibara } from './datos-nuevos-de-apibara'
 import type { Categoria } from './categoria'
 import type { ImpactoDeCampo } from './impacto'
 import type { Genero, OrigenConUso, TipoDeOrigen } from './origen'
@@ -64,6 +65,11 @@ export type RepositorioCampos = {
   }) => Promise<Resultado<Editado>>
   eliminar: (pedido: { id: string; actualizadoEnEsperado: string }) => Promise<Resultado<null>>
   impacto: (id: string) => Promise<Resultado<ImpactoDeCampo>>
+  // Un campo por cada dato nuevo que trajo apibara (por su ruta). Devuelve cuántos nacieron.
+  agregarDeApibara: (pedido: {
+    origenId: string
+    rutas: readonly string[]
+  }) => Promise<Resultado<{ agregados: number }>>
 }
 
 export type RepositorioCategorias = {
@@ -95,3 +101,6 @@ export type LectorDeLayout = (
   origenId: string,
   opciones: { conUso: boolean },
 ) => Promise<Resultado<LayoutDeOrigen>>
+
+// Lo que apibara trajo para los vehículos de un origen de subasta y el origen no tiene como campo.
+export type LectorDeDatosNuevos = (origenId: string) => Promise<Resultado<DatoNuevoDeApibara[]>>
