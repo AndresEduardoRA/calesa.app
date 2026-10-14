@@ -190,7 +190,13 @@ export function PanelDeVehiculo({ puedeCrear, enEdicion, apibara, ...datos }: Pr
   const aLaVista = useUltimo(editando)
   const vehiculo = editando ?? (creando ? null : aLaVista)
 
-  useAtajo('nuevo', panel.abrirNuevo, puedeCrear && !abierto)
+  // `N` es de la pantalla: en el inventario abre «Nuevo» vehículo y, si no se puede (origen
+  // desactivado, sin permiso, otro panel abierto), no hace nada: no cae a «Nuevo lead».
+  useAtajo('nuevo', () => {
+    if (puedeCrear && !abierto) {
+      panel.abrirNuevo()
+    }
+  })
 
   const nuevo = `${concordar(origen.genero, { m: 'Nuevo', f: 'Nueva' })} ${origen.sustantivo}`
   return (

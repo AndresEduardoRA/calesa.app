@@ -259,6 +259,8 @@ begin
    where pu.usuario_id = (select auth.uid()) and pu.clave = 'leads.ultimo_origen_lead';
   return jsonb_build_object(
     'telefono_cc', (select e.telefono_cc from public.ajustes_empresa e where e.id = 1),
+    -- La ciudad y el país de la empresa: de ahí salen los valores por defecto «la de la empresa».
+    'empresa', (select jsonb_build_object('ciudad', e.ciudad, 'pais', e.pais) from public.ajustes_empresa e where e.id = 1),
     'origenes', coalesce((
       select jsonb_agg(jsonb_build_object('id', o.id, 'clave', o.clave, 'nombre', o.nombre) order by o.orden, o.nombre)
         from public.origenes_lead o where o.activo), '[]'::jsonb),

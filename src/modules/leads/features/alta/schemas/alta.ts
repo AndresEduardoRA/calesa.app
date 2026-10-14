@@ -1,0 +1,27 @@
+import { z } from 'zod'
+import { TIPOS_DEL_LEAD } from '../../../entities/alta'
+
+// Lo que cruza el límite del alta: ya validado y convertido por el formulario (la misma función que
+// usa la pantalla); el servidor revisa la forma y la base el resto, con el dato en el `hint`.
+const valorDeAtributo = z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])
+
+export const esquemaCrearLead = z.object({
+  // El del intento: reintentar con el mismo no duplica.
+  id: z.guid(),
+  telefono: z.string().trim().min(1).max(60),
+  nombre: z.string().trim().min(1).max(120),
+  origenId: z.guid().nullable(),
+  tipo: z.enum(TIPOS_DEL_LEAD),
+  adoptar: z.boolean(),
+  atributos: z.record(z.string(), valorDeAtributo),
+  seguimiento: z
+    .object({
+      tipoId: z.guid(),
+      titulo: z.string().trim().min(1).max(120),
+      detalle: z.string().max(5000).nullable(),
+    })
+    .nullable(),
+  recordatorio: z.object({ recordarEn: z.iso.datetime({ offset: true }) }).nullable(),
+})
+
+export const esquemaVerificarTelefono = z.object({ telefono: z.string().max(60) })

@@ -1,10 +1,12 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { OpcionDeCampo, TipoDeLead, ValorDefecto } from '@/shared/lib/campos'
-import type { Resultado } from '@/shared/lib/errores'
+import type { ErrorApp, Resultado } from '@/shared/lib/errores'
+import type { ContextoDeAlta, DatosDeAlta } from './alta'
 import type { CambiosDeCampoDeLead } from './cambios-de-campo'
 import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
 import type { ImpactoDeCampo } from './impacto'
+import type { Verificacion } from './verificacion'
 
 // Toda edición manda la versión que tenía en pantalla quien edita; la base responde `conflicto`
 // si otra persona lo cambió, y devuelve la versión nueva para seguir editando sin recargar.
@@ -42,3 +44,32 @@ export type RepositorioCamposDeLead = {
 
 // Todos los campos, también los desactivados: quien consume filtra `activo`.
 export type LectorDeLayoutDeLeads = () => Promise<Resultado<CampoDeLead[]>>
+
+// --- El alta rápida ---------------------------------------------------------------------------------
+
+export type PedidoDeAlta = {
+  // El del intento: lo genera el navegador al abrir el drawer y lo conserva en cada reintento.
+  id: string
+  datos: DatosDeAlta
+  // «Tomar lead»: la persona aceptó adoptar el lead sin dueño de ese teléfono.
+  adoptar: boolean
+}
+
+// Lo que pasó. Un duplicado no es un error: es un valor (`existe`, `de_otro`, `limbo`) y no se
+// creó nada. `repetido`: este mismo intento ya había entrado y se devuelve lo mismo.
+export type ResultadoDeAlta =
+  | { resultado: 'creado' | 'adoptado'; id: string; numero: number; repetido: boolean }
+  | { resultado: 'existe' | 'de_otro' | 'limbo'; verificacion: Verificacion }
+
+// Un error de la base con el dato que lo causó, si lo dice: la clave del formulario es el mismo
+// `hint` (`telefono_principal`, `atributos.signo`, `seguimiento.titulo`).
+export type FalloDeAlta = { ok: false; error: ErrorApp; campo?: string }
+
+export type RepositorioDeAlta = {
+  crear: (pedido: PedidoDeAlta) => Promise<{ ok: true; data: ResultadoDeAlta } | FalloDeAlta>
+  // `telefono` como se escribió: la base lo normaliza con el código de país de la empresa.
+  verificar: (telefono: string) => Promise<Resultado<Verificacion>>
+}
+
+// Lo que el drawer necesita de la base, en un viaje.
+export type LectorDeContextoDeAlta = () => Promise<Resultado<ContextoDeAlta>>

@@ -3340,6 +3340,7 @@ begin
   if jsonb_array_length(ctx -> 'origenes') <> 2 or jsonb_array_length(ctx -> 'tipos_seguimiento') < 1 or ctx ->> 'telefono_cc' <> '+591' then
     raise exception 'el contexto del alta: %', ctx; end if;
   if ctx -> 'ultimo_origen_id' <> 'null'::jsonb then raise exception 'todavía no hay último origen: %', ctx; end if;
+  if not (ctx -> 'empresa' ? 'ciudad' and ctx -> 'empresa' ? 'pais') then raise exception 'el contexto no trae la empresa: %', ctx; end if;
   if (public.verificar_telefono(null, '710 000-01') ->> 'estado') <> 'libre' then raise exception 'debía estar libre'; end if;
 
   -- Hay orígenes activos: sin elegir uno no entra, y uno desactivado tampoco; el campo va en el hint.

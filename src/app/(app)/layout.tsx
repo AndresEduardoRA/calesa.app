@@ -9,6 +9,7 @@ import {
   puede,
   requerirSesion,
 } from '@/modules/equipo'
+import { AltaDeLead, leerContextoDeAlta, leerLayoutDeLeads } from '@/modules/leads'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 import { EstiloDeMarca } from '@/shared/ui/estilo-de-marca'
 import { Marca } from '@/shared/ui/marca'
@@ -18,6 +19,17 @@ import { EsqueletoShell } from './_shell/esqueleto-shell'
 import { Marco } from './_shell/marco'
 import { MenuUsuario } from './_shell/menu-usuario'
 import { entradasVisibles } from './_shell/navegacion'
+
+// «Nuevo lead», con lo que el drawer necesita de la base. Va detrás de su propio <Suspense>: el marco
+// no espera por él, y si no se puede leer el botón no aparece (la pantalla no se cae).
+async function NuevoLead() {
+  const [contexto, layout] = await Promise.all([leerContextoDeAlta(), leerLayoutDeLeads()])
+  if (!contexto.ok || !layout.ok) {
+    console.error('«Nuevo lead» no pudo leer su contexto', contexto.ok ? layout : contexto)
+    return null
+  }
+  return <AltaDeLead contexto={contexto.data} campos={layout.data} />
+}
 
 // Todo lo que depende de quién entró: la sesión, sus permisos y los ajustes de la empresa. Acá se
 // leen una vez y se reparten por props a un marco que no sabe de dónde salen.
@@ -60,6 +72,14 @@ async function Shell({ children }: { children: ReactNode }) {
                   tipos={tiposCambio}
                   puedeGestionar={puede(sesion.permisos, 'empresa.tipos_cambio.gestionar')}
                 />
+              ) : undefined
+            }
+            // Sin `leads.crear` no se monta nada: ni botón, ni atajo, ni una URL que lo abra.
+            nuevoLead={
+              puede(sesion.permisos, 'leads.crear') ? (
+                <Suspense fallback={null}>
+                  <NuevoLead />
+                </Suspense>
               ) : undefined
             }
             aviso={<BannerPerspectiva />}

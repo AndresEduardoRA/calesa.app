@@ -6,6 +6,8 @@ import { CampoDeFormulario } from './campo-de-formulario'
 
 type Props = {
   titulo: string
+  // Una línea bajo el título: lo que el bloque ya trae cargado, para no tener que abrirlo.
+  descripcion?: string
   campos: readonly Campo[]
   valores: Readonly<Record<string, ValorDeFormulario>>
   errores: Readonly<Record<string, string | undefined>>
@@ -20,6 +22,7 @@ type Props = {
 // lo tenga), y un texto largo ocupa las dos columnas.
 export function BloqueDeCampos({
   titulo,
+  descripcion,
   campos,
   valores,
   errores,
@@ -33,7 +36,12 @@ export function BloqueDeCampos({
   }
   const conError = campos.some((campo) => errores[campo.clave] !== undefined)
   return (
-    <Bloque titulo={titulo} plegado={plegado} forzarAbierto={conError}>
+    <Bloque
+      titulo={titulo}
+      {...(descripcion ? { descripcion } : {})}
+      plegado={plegado}
+      forzarAbierto={conError}
+    >
       <div className="grid gap-3 sm:grid-cols-2">
         {campos.map((campo, indice) => (
           <div

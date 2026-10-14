@@ -12,6 +12,8 @@ type Props = {
   // El hueco de la barra superior para el tipo de cambio del día (`<TiposCambioVigentes>` de
   // `empresa`). Sin tipos de cambio vigentes no ocupa lugar.
   tipoCambio?: ReactNode
+  // «Nuevo lead» (el botón, la tecla N y el drawer): sólo para quien puede dar de alta leads.
+  nuevoLead?: ReactNode
   // Lo que tiene que quedar a la vista en toda pantalla, pegado bajo la barra superior (el banner
   // de la perspectiva «ver como»). Quien lo llena decide si se muestra.
   aviso?: ReactNode
@@ -26,6 +28,7 @@ export function Marco({
   navegacion,
   menuUsuario,
   tipoCambio,
+  nuevoLead,
   aviso,
   children,
 }: Props) {
@@ -50,6 +53,7 @@ export function Marco({
           <MenuMovil titulo={nombreEmpresa}>{navegacion}</MenuMovil>
           <BuscadorPendiente />
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            {nuevoLead}
             {tipoCambio ? <div data-hueco="tipo-cambio">{tipoCambio}</div> : null}
             <ConmutadorLive />
             {menuUsuario}

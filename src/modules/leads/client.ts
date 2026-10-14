@@ -9,3 +9,8 @@ export {
   type DatoDeLaEmpresa,
   type DatosDeLaEmpresa,
 } from './entities/campo'
+// El alta rápida: el drawer «Nuevo lead» (se monta una vez, en el shell) y lo puro que otro
+// Client Component puede querer: cómo se normaliza y se muestra un teléfono.
+export { AltaDeLead } from './features/alta/components/alta-de-lead'
+export type { ContextoDeAlta } from './entities/alta'
+export { normalizarTelefono, telefonoParaMostrar } from './entities/telefono'

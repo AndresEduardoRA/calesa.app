@@ -4,13 +4,20 @@
 
 // El layout de campos de los leads: lo que leen el alta, la ficha, el listado y los filtros.
 // Trae todos los campos (también los desactivados): quien consume filtra `activo`.
-export { leerLayoutDeLeads } from './composicion'
+export { leerContextoDeAlta, leerLayoutDeLeads } from './composicion'
 export {
   CLAVES_RESERVADAS_DE_LEAD,
   valorDefectoVigente,
   type CampoDeLead,
   type DatosDeLaEmpresa,
 } from './entities/campo'
+
+// «Nuevo lead»: el botón de la barra superior, la tecla N y el drawer, desde cualquier pantalla. Lo
+// monta el shell sólo con `leads.crear`. Trae lo que necesita (orígenes y tipos de seguimiento
+// activos, el último origen de la persona, el código de país y la ciudad de la empresa) de
+// `leerContextoDeAlta()`.
+export { AltaDeLead } from './features/alta/components/alta-de-lead'
+export type { ContextoDeAlta } from './entities/alta'
 
 // Configuración › Leads › Campos
 export { EditorDeCamposDeLead } from './features/campos/components/editor-de-campos-de-lead'
