@@ -2,10 +2,13 @@
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { OpcionDeCampo, TipoDeLead, ValorDefecto } from '@/shared/lib/campos'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
-import type { ContextoDeAlta, DatosDeAlta } from './alta'
+import type { Cursor, Pagina } from '@/shared/lib/paginacion'
+import type { ContextoDeAlta, DatosDeAlta, OrigenDeLead } from './alta'
 import type { CambiosDeCampoDeLead } from './cambios-de-campo'
 import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
+import type { CondicionDeLead } from './filtros'
 import type { ImpactoDeCampo } from './impacto'
+import type { FilaDeLead } from './listado'
 import type { Verificacion } from './verificacion'
 
 // Toda edición manda la versión que tenía en pantalla quien edita; la base responde `conflicto`
@@ -73,3 +76,23 @@ export type RepositorioDeAlta = {
 
 // Lo que el drawer necesita de la base, en un viaje.
 export type LectorDeContextoDeAlta = () => Promise<Resultado<ContextoDeAlta>>
+
+// --- El listado -------------------------------------------------------------------------------------
+
+export type PedidoDeListado = {
+  condiciones: readonly CondicionDeLead[]
+  cursor: Cursor | null
+  tamano: number
+  // Las claves de los campos «en tabla»: de `atributos` sólo se pide lo que se dibuja.
+  clavesDeTabla: readonly string[]
+}
+
+// Una página de leads de `leads_vista`. Lo que hay lo decide la RLS: acá no se filtra por permiso.
+export type BuscadorDeLeads = (pedido: PedidoDeListado) => Promise<Resultado<Pagina<FilaDeLead>>>
+
+// Todos los orígenes de lead, también los desactivados: un lead con uno apagado se sigue nombrando.
+export type LectorDeOrigenesDeLead = () => Promise<Resultado<OrigenDeLead[]>>
+
+// En el navegador: un lead por su id para el drawer. `null` = no existe o no lo ve (la papelera, el
+// limbo y lo ajeno son lo mismo para quien mira).
+export type LectorDeLeadRapido = (id: string) => Promise<Resultado<FilaDeLead | null>>

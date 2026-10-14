@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 // Los listados que guardan vistas, con su ruta. Uno nuevo se suma acá.
 export const RUTA_DE_PANTALLA = {
+  leads: '/leads',
   vehiculos: '/vehiculos',
 } as const
 

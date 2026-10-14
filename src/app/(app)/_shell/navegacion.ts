@@ -55,7 +55,7 @@ export const NAVEGACION = [
     Icono: UsersRoundIcon,
     zona: 'principal',
     permisos: ['leads.ver'],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'vehiculos',
