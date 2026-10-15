@@ -3,10 +3,8 @@ import { expect, test } from './soporte/prueba'
 import { formatearNumero } from '../src/shared/lib/formato'
 import { entrar } from './soporte/inventario'
 import { marcarInteres, vincular } from './soporte/leads'
-import { rpcComo } from './soporte/leads-cartera'
 import { irAFicha, tituloDeLaFicha } from './soporte/leads-ficha'
 import {
-  compartirCon,
   elegirVehiculo,
   interesados,
   irAVehiculos,
@@ -15,7 +13,6 @@ import {
   limpiarVehiculosDelLead,
   notaDelInteres,
   numeroDe,
-  panelAgregar,
   prepararVehiculosDelLead,
   seccionVehiculos,
   vehiculoDe,
@@ -24,8 +21,8 @@ import {
 } from './soporte/leads-vehiculos'
 
 // La sección «Vehículos» de la ficha del lead: vincular, reemplazar, desvincular y marcar o quitar
-// interés, lo que ve cada quien (sólo los vehículos que su alcance le deja ver) y lo que la ficha
-// adelanta (la papelera, el aviso al compartir). La base decide; acá se prueba lo que la pantalla dice.
+// interés, y lo que la ficha adelanta (la papelera, el aviso al compartir). Quién ve qué va en
+// `leads-vehiculos-acceso.spec.ts` y el vehículo de una nota en `leads-vehiculos-notas.spec.ts`.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDeVehiculos
@@ -210,69 +207,6 @@ test('compartir un lead con vehículos vinculados avisa que el vínculo se los d
         'Tiene un vehículo vinculado: quien lo reciba podrá verlo y, si su rol lo permite, editarlo.',
       ),
   ).toBeVisible()
-})
-
-// Un lead de Ada con un vehículo vinculado y otro de interés (los dos de Ada), compartido con Cora.
-let alcance: {
-  lead: { id: string; nombre: string }
-  vinculado: string
-  vinculadoId: string
-  interes: string
-  interesId: string
-}
-
-test('el compartido ve el vinculado (se lo da el vínculo) y no el interés en un vehículo que no ve', async ({
-  page,
-}) => {
-  const lead = await leadDe(t.ada, `Alcance ${p}`)
-  const vinculado = `Familiar ${p}`
-  const interes = `Deportivo ${p}`
-  const vinculadoId = await vehiculoDe(corea, vinculado, t.ada)
-  const interesId = await vehiculoDe(corea, interes, t.ada)
-  await vincular(vinculadoId, lead.id)
-  await marcarInteres({ vehiculoId: interesId, leadId: lead.id, quien: t.ada, nota: 'Solo de Ada' })
-  await compartirCon(lead.id, t.cora, t.ada)
-  alcance = { lead, vinculado, vinculadoId, interes, interesId }
-
-  await entrar(page, t.cora)
-  await irAVehiculos(page, lead.id)
-  await expect(vinculados(page).getByRole('link', { name: vinculado })).toBeVisible()
-  await expect(
-    page.getByText('Este lead no mostró interés en ningún vehículo que puedas ver.'),
-  ).toBeVisible()
-  await expect(page.getByText(interes)).toHaveCount(0)
-})
-
-test('la supervisión ve todo y no agrega (ni por la URL), pero desvincula con confirmación', async ({
-  page,
-}) => {
-  const { lead, vinculado, vinculadoId, interesId } = alcance
-  await entrar(page, t.sol)
-  await irAVehiculos(page, lead.id, '&panel=agregar-vehiculo')
-  await expect(panelAgregar(page)).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Agregar vehículo' })).toHaveCount(0)
-  await expect(interesados(page).getByText('Solo de Ada')).toBeVisible()
-  // La base tampoco la deja: vincular pide la cartera del lead.
-  const rechazo = await rpcComo(t.sol, 'vehiculo_vincular', {
-    p_vehiculo: interesId,
-    p_actualizado_en_esperado: new Date().toISOString(),
-    p_lead: lead.id,
-  })
-  expect(rechazo.error?.message).toBe('No encontramos este lead o no tienes acceso.')
-  await vinculados(page)
-    .getByRole('button', { name: `Desvincular ${vinculado}` })
-    .click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Desvincular' }).click()
-  await expect.poll(() => leadDelVehiculo(vinculadoId)).toBeNull()
-})
-
-test('sin permiso sobre vehículos no hay sección, ni por la URL', async ({ page }) => {
-  const lead = await leadDe(t.lia, `Sin vehículos ${p}`)
-  await entrar(page, t.lia)
-  await page.goto(`/leads/${lead.id}?seccion=vehiculos`)
-  await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Vehículos', exact: true })).toHaveCount(0)
-  await expect(page.getByRole('region', { name: 'Vehículos', exact: true })).toHaveCount(0)
 })
 
 test('lo que aporta la ficha con la sección «Vehículos»', async ({ page }, info) => {

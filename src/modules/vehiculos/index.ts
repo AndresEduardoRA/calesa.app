@@ -94,6 +94,7 @@ export { leerVehiculosDelLead } from './composicion'
 export { SeccionVehiculosDelLead } from './features/vinculo/components/seccion-vehiculos-del-lead'
 export { EsqueletoDeVehiculosDelLead } from './features/vinculo/components/esqueleto-de-vehiculos-del-lead'
 export type { VehiculosDelLead } from './entities/vehiculos-del-lead'
+export { opcionesDeVehiculoDelLead, type OpcionDeVehiculo } from './features/vinculo/lecturas'
 
 // La subasta de un vehículo de subasta: su fecha, su estado, cuándo se consultó y refrescarla.
 export { BloqueDeSubasta } from './features/subasta/components/bloque-de-subasta'

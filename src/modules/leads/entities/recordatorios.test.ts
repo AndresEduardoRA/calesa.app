@@ -100,12 +100,27 @@ describe('motivoDelTituloDeRecordatorio', () => {
   })
 })
 
+// Lo que manda agendar «Llamar» para mañana a las 9, sin vehículo.
+const ALTA = {
+  id: ID,
+  leadId: LEAD,
+  titulo: 'Llamar',
+  recordarEn: '2026-10-16T09:00:00Z',
+  vehiculoId: null,
+}
+
 describe('pedidoDeRecordatorio', () => {
   const futuro = (local: string) =>
     local === ''
       ? ({ ok: false, motivo: 'Elige cuándo recordarlo.' } as const)
       : ({ ok: true, recordarEn: `${local}:00Z` } as const)
-  const base = { intento: ID, leadId: LEAD, validarCuando: futuro, cuandoOriginal: '' }
+  const base = {
+    intento: ID,
+    leadId: LEAD,
+    validarCuando: futuro,
+    cuandoOriginal: '',
+    vehiculo: '',
+  }
   it('nuevo: con su id de intento; sin fecha o sin título, los motivos', () => {
     expect(
       pedidoDeRecordatorio({
@@ -116,7 +131,7 @@ describe('pedidoDeRecordatorio', () => {
       }),
     ).toEqual({
       tipo: 'crear',
-      pedido: { id: ID, leadId: LEAD, titulo: 'Llamar', recordarEn: '2026-10-16T09:00:00Z' },
+      pedido: ALTA,
     })
     expect(pedidoDeRecordatorio({ ...base, titulo: '', cuando: '', original: null })).toEqual({
       tipo: 'invalido',
@@ -167,5 +182,53 @@ describe('pedidoDeRecordatorio', () => {
       tipo: 'guardar',
       pedido: { cambios: { recordarEn: '2026-10-20T09:00:00Z' } },
     })
+  })
+})
+
+describe('el vehículo de un recordatorio', () => {
+  const AUTO = { id: '44444444-4444-4444-8444-444444444444', titulo: 'Kia Rio', numero: 13 }
+  const futuro = (local: string) => ({ ok: true, recordarEn: `${local}:00Z` }) as const
+  it('se lee de la vista (en columnas) y de la RPC (anidado)', () => {
+    const fila = recordatorioDesde({
+      id: ID,
+      titulo: 'Llamar',
+      recordar_en: '2026-10-16T13:00:00Z',
+      notificado_en: null,
+      completado_en: null,
+      actualizado_en: 'v1',
+      lead_id: LEAD,
+      lead_nombre: 'Ana',
+      lead_numero: 3,
+      vehiculo_id: AUTO.id,
+      vehiculo_titulo: AUTO.titulo,
+      vehiculo_numero: AUTO.numero,
+      vehiculo_oculto: false,
+    })
+    expect(fila?.vehiculo).toEqual(AUTO)
+  })
+  it('al agendar lo manda; al editar, sólo si cambió', () => {
+    const base = { intento: ID, leadId: LEAD, validarCuando: futuro, titulo: 'Llamar' }
+    expect(
+      pedidoDeRecordatorio({
+        ...base,
+        cuando: '2026-10-16T09:00',
+        cuandoOriginal: '',
+        original: null,
+        vehiculo: AUTO.id,
+      }),
+    ).toMatchObject({ tipo: 'crear', pedido: { vehiculoId: AUTO.id } })
+    const original = uno({ vehiculo: AUTO })
+    expect(
+      pedidoDeRecordatorio({
+        ...base,
+        cuando: 'x',
+        cuandoOriginal: 'x',
+        original,
+        vehiculo: AUTO.id,
+      }),
+    ).toEqual({ tipo: 'sin_cambios' })
+    expect(
+      pedidoDeRecordatorio({ ...base, cuando: 'x', cuandoOriginal: 'x', original, vehiculo: '' }),
+    ).toMatchObject({ tipo: 'guardar', pedido: { cambios: { vehiculoId: null } } })
   })
 })

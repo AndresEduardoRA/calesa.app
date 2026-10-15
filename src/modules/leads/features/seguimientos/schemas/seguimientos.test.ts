@@ -21,6 +21,7 @@ const nuevo = (cambios: Record<string, unknown> = {}) => ({
   visibilidad: 'privado',
   ocurridoEn: null,
   recordatorio: null,
+  vehiculoId: null,
   ...cambios,
 })
 

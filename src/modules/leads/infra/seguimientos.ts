@@ -52,6 +52,7 @@ function comoLaBase(cambios: CambiosDeSeguimiento): { [clave: string]: Json } {
     ...(cambios.detalle === undefined ? {} : { detalle: cambios.detalle as Json }),
     ...(cambios.visibilidad === undefined ? {} : { visibilidad: cambios.visibilidad }),
     ...(cambios.ocurridoEn === undefined ? {} : { ocurrido_en: cambios.ocurridoEn }),
+    ...(cambios.vehiculoId === undefined ? {} : { vehiculo_id: cambios.vehiculoId }),
   }
 }
 
@@ -66,6 +67,7 @@ const crear: RepositorioDeSeguimientos['crear'] = async (pedido) => {
       detalle: pedido.detalle as Json,
       visibilidad: pedido.visibilidad,
       ...(pedido.ocurridoEn === null ? {} : { ocurrido_en: pedido.ocurridoEn }),
+      ...(pedido.vehiculoId === null ? {} : { vehiculo_id: pedido.vehiculoId }),
     },
     ...(pedido.recordatorio
       ? { p_recordatorio: { recordar_en: pedido.recordatorio.recordarEn } }

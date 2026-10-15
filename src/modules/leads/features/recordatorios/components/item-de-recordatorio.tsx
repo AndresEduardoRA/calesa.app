@@ -5,6 +5,7 @@ import { fechaRelativa, formatearFechaHora } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import type { EstadoDelRecordatorio, Recordatorio } from '../../../entities/recordatorios'
+import { nombreDelVehiculoDeNota } from '../../../entities/vehiculo-de-nota'
 
 type Props = {
   recordatorio: Recordatorio
@@ -17,6 +18,23 @@ type Props = {
 }
 
 // Un recordatorio: de qué es, cuándo y su estado dicho con texto (no sólo con color).
+// Cuándo avisa y, si tiene uno, el vehículo (nombrado si todavía lo ve).
+function CuandoYVehiculo({ recordatorio, zona }: { recordatorio: Recordatorio; zona: string }) {
+  const vehiculo = nombreDelVehiculoDeNota(recordatorio)
+  return (
+    <p className="text-(length:--text-xs) text-(--color-ink-soft)">
+      <time
+        dateTime={recordatorio.recordarEn}
+        title={formatearFechaHora(recordatorio.recordarEn, { zona })}
+      >
+        {formatearFechaHora(recordatorio.recordarEn, { zona })} ·{' '}
+        {fechaRelativa(recordatorio.recordarEn, { zona })}
+      </time>
+      {vehiculo ? ` · ${vehiculo}` : null}
+    </p>
+  )
+}
+
 export function ItemDeRecordatorio({
   recordatorio,
   estado,
@@ -44,15 +62,7 @@ export function ItemDeRecordatorio({
           >
             {recordatorio.titulo}
           </p>
-          <p className="text-(length:--text-xs) text-(--color-ink-soft)">
-            <time
-              dateTime={recordatorio.recordarEn}
-              title={formatearFechaHora(recordatorio.recordarEn, { zona })}
-            >
-              {formatearFechaHora(recordatorio.recordarEn, { zona })} ·{' '}
-              {fechaRelativa(recordatorio.recordarEn, { zona })}
-            </time>
-          </p>
+          <CuandoYVehiculo recordatorio={recordatorio} zona={zona} />
         </div>
         {estado === 'vencido' ? <Badge variant="outline">Vencido</Badge> : null}
         {completado ? <Badge variant="secondary">Completado</Badge> : null}

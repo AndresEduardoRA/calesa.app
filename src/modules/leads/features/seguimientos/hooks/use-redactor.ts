@@ -1,5 +1,6 @@
 'use client'
 
+import { VALOR_SIN_VEHICULO, valorDeVehiculo } from '../../../entities/vehiculo-de-nota'
 import { useMemo, useState } from 'react'
 import { localDeInstante } from '@/shared/lib/fechas'
 import { useAtajo } from '@/shared/ui/atajos'
@@ -54,6 +55,7 @@ function valoresIniciales(
       visible: false,
       ocurridoEn: '',
       recordatorio: '',
+      vehiculo: VALOR_SIN_VEHICULO,
     }
   }
   return {
@@ -63,6 +65,7 @@ function valoresIniciales(
     visible: original.visibilidad === 'publico',
     ocurridoEn: localDeInstante(original.ocurridoEn, { zona }),
     recordatorio: '',
+    vehiculo: valorDeVehiculo(original),
   }
 }
 

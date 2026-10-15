@@ -16,6 +16,7 @@ const VALORES = {
   visible: false,
   ocurridoEn: '',
   recordatorio: '',
+  vehiculo: '',
 }
 
 describe('el estado del redactor', () => {
@@ -69,6 +70,8 @@ describe('pedidoDelRedactor', () => {
     autorId: 'yo',
     autorNombre: null,
     esMio: true,
+    vehiculo: null,
+    vehiculoOculto: false,
   }
   it('al anotar: el alta con su id de intento; lo inválido, con sus motivos', () => {
     expect(
@@ -84,6 +87,7 @@ describe('pedidoDelRedactor', () => {
         visibilidad: 'privado',
         ocurridoEn: null,
         recordatorio: null,
+        vehiculoId: null,
       },
     })
     expect(
@@ -98,6 +102,7 @@ describe('pedidoDelRedactor', () => {
       visible: false,
       ocurridoEn: '2026-10-15T10:00',
       recordatorio: '',
+      vehiculo: '',
     }
     expect(pedidoDelRedactor({ ...base, original, valores })).toEqual({ tipo: 'sin_cambios' })
     expect(

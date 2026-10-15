@@ -9,6 +9,7 @@ import { LARGO_MAXIMO_DEL_RECORDATORIO, type Recordatorio } from '../../../entit
 import type { ResultadoDeRecordatorio } from '../../../entities/repositorios'
 import { useFormularioDeRecordatorio } from '../hooks/use-formulario-de-recordatorio'
 import { CampoCuando } from './campo-cuando'
+import { CampoVehiculo } from './campo-vehiculo'
 
 type Props = {
   leadId: string
@@ -54,6 +55,13 @@ export function FormularioDeRecordatorio({ leadId, zona, original, alGuardar, al
         alCambiar={formulario.cambiarCuando}
         zona={zona}
         error={formulario.errores.recordarEn}
+        deshabilitado={formulario.enCurso}
+      />
+      <CampoVehiculo
+        nombre={`${id}-vehiculo`}
+        valor={formulario.vehiculo}
+        alCambiar={formulario.cambiarVehiculo}
+        actual={original}
         deshabilitado={formulario.enCurso}
       />
       <div className="flex flex-wrap justify-end gap-2">

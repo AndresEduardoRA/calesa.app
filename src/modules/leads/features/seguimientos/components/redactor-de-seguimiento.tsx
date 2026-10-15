@@ -12,6 +12,7 @@ import { Interruptor } from '@/shared/ui/interruptor'
 import type { TipoDeSeguimiento } from '../../../entities/alta'
 import type { Recordatorio } from '../../../entities/recordatorios'
 import { CampoCuando } from '../../recordatorios/components/campo-cuando'
+import { CampoVehiculo } from '../../recordatorios/components/campo-vehiculo'
 import {
   ETIQUETA_DE_VISIBLE,
   LARGO_MAXIMO_DEL_TITULO,
@@ -166,6 +167,47 @@ function Visible({ redactor }: { redactor: Redactor }) {
   )
 }
 
+// El vehículo del lead (opcional) y, sólo al anotar, el recordatorio que entra junto.
+function VehiculoYRecordatorio({
+  redactor,
+  id,
+  original,
+  zona,
+}: {
+  redactor: Redactor
+  id: string
+  original: Seguimiento | null
+  zona: string
+}) {
+  return (
+    <>
+      <CampoVehiculo
+        nombre={`${id}-vehiculo`}
+        valor={redactor.valores.vehiculo}
+        alCambiar={(valor) => {
+          redactor.cambiar('vehiculo', valor)
+        }}
+        actual={original}
+        deshabilitado={redactor.enCurso}
+      />
+      {original ? null : (
+        <CampoCuando
+          nombre={`${id}-recordatorio`}
+          etiqueta="Recordatorio (opcional)"
+          valor={redactor.valores.recordatorio}
+          alCambiar={(valor) => {
+            redactor.cambiar('recordatorio', valor)
+          }}
+          zona={zona}
+          error={redactor.errores.recordatorio}
+          deshabilitado={redactor.enCurso}
+          quitable
+        />
+      )}
+    </>
+  )
+}
+
 // «Guardar» espera a que «Recargar» traiga la versión de ahora: antes chocaría otra vez.
 function Pie({
   redactor,
@@ -261,20 +303,7 @@ export function RedactorDeSeguimiento({
       <TipoYResumen redactor={redactor} id={id} original={original} tipos={tipos} />
       <Detalle redactor={redactor} id={id} />
       <Visible redactor={redactor} />
-      {original ? null : (
-        <CampoCuando
-          nombre={`${id}-recordatorio`}
-          etiqueta="Recordatorio (opcional)"
-          valor={redactor.valores.recordatorio}
-          alCambiar={(valor) => {
-            redactor.cambiar('recordatorio', valor)
-          }}
-          zona={zona}
-          error={redactor.errores.recordatorio}
-          deshabilitado={redactor.enCurso}
-          quitable
-        />
-      )}
+      <VehiculoYRecordatorio redactor={redactor} id={id} original={original} zona={zona} />
       <Pie redactor={redactor} alCerrar={alCerrar} recargando={recargando} />
     </form>
   )

@@ -15,6 +15,7 @@ describe('los esquemas de los recordatorios', () => {
       leadId: LEAD,
       titulo: ' Llamar ',
       recordarEn: '2026-10-16T13:00:00.000Z',
+      vehiculoId: null,
     })
     expect(leido.data?.titulo).toBe('Llamar')
     expect(

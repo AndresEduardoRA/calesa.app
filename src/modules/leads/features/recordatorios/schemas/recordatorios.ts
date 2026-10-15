@@ -13,13 +13,20 @@ export const esquemaCrearRecordatorio = z.object({
   leadId: z.guid(),
   titulo,
   recordarEn: instante,
+  // Un vehículo del lead que quien agenda ve (la base lo vuelve a mirar); nulo = ninguno.
+  vehiculoId: z.guid().nullable(),
 })
 
 export const esquemaGuardarRecordatorio = z.object({
   id: z.guid(),
   actualizadoEnEsperado: version,
   cambios: z
-    .object({ titulo: titulo.optional(), recordarEn: instante.optional() })
+    .object({
+      titulo: titulo.optional(),
+      recordarEn: instante.optional(),
+      // Nulo lo quita.
+      vehiculoId: z.guid().nullable().optional(),
+    })
     .refine((c) => Object.keys(c).length > 0, { error: 'No hay nada que guardar.' }),
 })
 

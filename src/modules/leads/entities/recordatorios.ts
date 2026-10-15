@@ -2,6 +2,12 @@
 // las RPC `recordatorio_*`), cómo se lee y en qué orden se muestran. Son personales: sólo los ve y
 // los toca su dueño. Si pierde el lead, el recordatorio sigue y llega sin él.
 import { z } from 'zod'
+import {
+  cambioDeVehiculo,
+  vehiculoAlCrear,
+  vehiculoDeNotaDesde,
+  type VehiculoDeLaNota,
+} from './vehiculo-de-nota'
 
 export const LARGO_MAXIMO_DEL_RECORDATORIO = 120
 export const MENSAJE_DE_RECORDATORIO_NO_DISPONIBLE = 'No encontramos este recordatorio.'
@@ -19,7 +25,7 @@ export type Recordatorio = {
   leadId: string | null
   leadNombre: string | null
   leadNumero: number | null
-}
+} & VehiculoDeLaNota
 
 export type EstadoDelRecordatorio = 'vencido' | 'pendiente' | 'completado'
 
@@ -54,6 +60,7 @@ export function recordatorioDesde(crudo: unknown): (Recordatorio & { eliminado: 
     leadId: r.lead_id,
     leadNombre: r.lead_nombre,
     leadNumero: r.lead_numero,
+    ...vehiculoDeNotaDesde(crudo),
     eliminado: r.eliminado ?? false,
   }
 }
@@ -128,13 +135,22 @@ export type ErroresDelRecordatorio = Partial<Record<'titulo' | 'recordarEn', str
 export type PedidoDeRecordatorio =
   | { tipo: 'invalido'; errores: ErroresDelRecordatorio }
   | { tipo: 'sin_cambios' }
-  | { tipo: 'crear'; pedido: { id: string; leadId: string; titulo: string; recordarEn: string } }
+  | {
+      tipo: 'crear'
+      pedido: {
+        id: string
+        leadId: string
+        titulo: string
+        recordarEn: string
+        vehiculoId: string | null
+      }
+    }
   | {
       tipo: 'guardar'
       pedido: {
         id: string
         actualizadoEnEsperado: string
-        cambios: Partial<{ titulo: string; recordarEn: string }>
+        cambios: Partial<{ titulo: string; recordarEn: string; vehiculoId: string | null }>
       }
     }
 
@@ -149,9 +165,12 @@ export function pedidoDeRecordatorio(args: {
   original: Recordatorio | null
   intento: string
   leadId: string
+  // El valor del selector de vehículo (`valorDeVehiculo()`).
+  vehiculo: string
   validarCuando: (local: string) => { ok: true; recordarEn: string } | { ok: false; motivo: string }
 }): PedidoDeRecordatorio {
-  const { titulo, cuando, cuandoOriginal, original, intento, leadId, validarCuando } = args
+  const { titulo, cuando, cuandoOriginal, original, intento, leadId, vehiculo, validarCuando } =
+    args
   const limpio = titulo.trim()
   const motivo = motivoDelTituloDeRecordatorio(limpio)
   const mismaHora = original !== null && cuando === cuandoOriginal
@@ -170,12 +189,20 @@ export function pedidoDeRecordatorio(args: {
   if (!original) {
     return {
       tipo: 'crear',
-      pedido: { id: intento, leadId, titulo: limpio, recordarEn: momento.recordarEn },
+      pedido: {
+        id: intento,
+        leadId,
+        titulo: limpio,
+        recordarEn: momento.recordarEn,
+        vehiculoId: vehiculoAlCrear(vehiculo),
+      },
     }
   }
+  const cambioDelVehiculo = cambioDeVehiculo(vehiculo, original)
   const cambios = {
     ...(limpio === original.titulo ? {} : { titulo: limpio }),
     ...(mismaHora ? {} : { recordarEn: momento.recordarEn }),
+    ...(cambioDelVehiculo.cambia ? { vehiculoId: cambioDelVehiculo.vehiculoId } : {}),
   }
   return Object.keys(cambios).length === 0
     ? { tipo: 'sin_cambios' }

@@ -38,6 +38,7 @@ const crear: RepositorioDeRecordatorios['crear'] = async (pedido) => {
     p_lead: pedido.leadId as string,
     p_titulo: pedido.titulo,
     p_recordar_en: pedido.recordarEn,
+    ...(pedido.vehiculoId === null ? {} : { p_vehiculo: pedido.vehiculoId }),
   })
   return error ? fallo(error) : respuesta(data)
 }
@@ -52,6 +53,9 @@ const guardar: RepositorioDeRecordatorios['guardar'] = async (pedido) => {
       ...(pedido.cambios.recordarEn === undefined
         ? {}
         : { recordar_en: pedido.cambios.recordarEn }),
+      ...(pedido.cambios.vehiculoId === undefined
+        ? {}
+        : { vehiculo_id: pedido.cambios.vehiculoId }),
     },
   })
   return error ? fallo(error) : respuesta(data)

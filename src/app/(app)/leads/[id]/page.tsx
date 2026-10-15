@@ -16,7 +16,11 @@ import {
   SeccionSeguimientos,
   seccionDeLead,
 } from '@/modules/leads'
-import { EsqueletoDeVehiculosDelLead, SeccionVehiculosDelLead } from '@/modules/vehiculos'
+import {
+  EsqueletoDeVehiculosDelLead,
+  SeccionVehiculosDelLead,
+  opcionesDeVehiculoDelLead,
+} from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
@@ -66,7 +70,11 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
       seguimientos={
         seccion === 'seguimientos' ? (
           <Suspense fallback={<EsqueletoDeSeguimientos />}>
-            <SeccionSeguimientos leadId={datos.ficha.id} />
+            <SeccionSeguimientos
+              leadId={datos.ficha.id}
+              // Para elegir un vehículo en un seguimiento o un recordatorio (sólo con el permiso).
+              {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
+            />
           </Suspense>
         ) : null
       }

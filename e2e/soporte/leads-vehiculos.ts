@@ -179,3 +179,19 @@ export async function elegirVehiculo(page: Page, titulo: string): Promise<Locato
   await panel.getByRole('radio', { name: new RegExp(titulo) }).check()
   return panel
 }
+
+// El vehículo de los seguimientos o recordatorios de un lead con ese título.
+export async function vehiculoDeLaNota(
+  tabla: 'seguimientos' | 'recordatorios',
+  leadId: string,
+  titulo: string,
+): Promise<string | null> {
+  const { data, error } = await admin()
+    .from(tabla)
+    .select('vehiculo_id')
+    .eq('lead_id', leadId)
+    .eq('titulo', titulo)
+    .single<{ vehiculo_id: string | null }>()
+  exigir(error, `leer el vehículo de «${titulo}»`)
+  return data?.vehiculo_id ?? null
+}

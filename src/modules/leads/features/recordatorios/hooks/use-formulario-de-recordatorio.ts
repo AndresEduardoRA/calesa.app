@@ -6,6 +6,7 @@ import { enviarAccion, type Envio } from '@/shared/lib/enviar-accion'
 import { localDeInstante } from '@/shared/lib/fechas'
 import { useAtajo } from '@/shared/ui/atajos'
 import { validarRecordatorio } from '../../../entities/recordatorio'
+import { valorDeVehiculo } from '../../../entities/vehiculo-de-nota'
 import {
   pedidoDeRecordatorio,
   type ErroresDelRecordatorio,
@@ -30,6 +31,7 @@ export function useFormularioDeRecordatorio({ leadId, zona, original, alGuardar 
   const cuandoOriginal = original ? localDeInstante(original.recordarEn, { zona }) : ''
   const [titulo, setTitulo] = useState(original?.titulo ?? '')
   const [cuando, setCuando] = useState(cuandoOriginal)
+  const [vehiculo, setVehiculo] = useState(valorDeVehiculo(original))
   const [errores, setErrores] = useState<ErroresDelRecordatorio>({})
   const [aviso, setAviso] = useState<string | null>(null)
   const [intento] = useState(() => crypto.randomUUID())
@@ -58,6 +60,7 @@ export function useFormularioDeRecordatorio({ leadId, zona, original, alGuardar 
       original,
       intento,
       leadId,
+      vehiculo,
       validarCuando: (local) => validarRecordatorio(local, new Date().toISOString(), zona),
     })
     if (pedido.tipo === 'invalido') {
@@ -84,6 +87,7 @@ export function useFormularioDeRecordatorio({ leadId, zona, original, alGuardar 
   return {
     titulo,
     cuando,
+    vehiculo,
     errores,
     aviso,
     enCurso,
@@ -95,6 +99,7 @@ export function useFormularioDeRecordatorio({ leadId, zona, original, alGuardar 
       setCuando(valor)
       setErrores(({ recordarEn: _r, ...resto }) => resto)
     },
+    cambiarVehiculo: setVehiculo,
     enviar,
   }
 }

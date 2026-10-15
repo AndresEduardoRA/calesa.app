@@ -1,4 +1,5 @@
 import type { ErrorApp } from '@/shared/lib/errores'
+import { vehiculoAlCrear } from '../../../entities/vehiculo-de-nota'
 import type { Documento } from '../../../entities/documento'
 import {
   cambiosDelSeguimiento,
@@ -92,6 +93,7 @@ export type PedidoDelRedactor =
         visibilidad: Visibilidad
         ocurridoEn: string | null
         recordatorio: { recordarEn: string } | null
+        vehiculoId: string | null
       }
     }
   | {
@@ -116,7 +118,7 @@ export function pedidoDelRedactor(args: {
     return { tipo: 'invalido', errores: valido.errores }
   }
   if (!original) {
-    const { ok: _ok, recordarEn, ...datos } = valido
+    const { ok: _ok, recordarEn, vehiculo, ...datos } = valido
     return {
       tipo: 'crear',
       pedido: {
@@ -124,6 +126,7 @@ export function pedidoDelRedactor(args: {
         leadId,
         ...datos,
         recordatorio: recordarEn === null ? null : { recordarEn },
+        vehiculoId: vehiculoAlCrear(vehiculo),
       },
     }
   }

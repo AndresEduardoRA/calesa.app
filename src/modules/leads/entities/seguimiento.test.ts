@@ -108,6 +108,7 @@ describe('validarSeguimiento', () => {
     visible: false,
     ocurridoEn: '',
     recordatorio: '',
+    vehiculo: '',
     ...cambios,
   })
   it('recorta el resumen y deja «ahora» en nulo', () => {
@@ -119,6 +120,7 @@ describe('validarSeguimiento', () => {
       visibilidad: 'privado',
       ocurridoEn: null,
       recordarEn: null,
+      vehiculo: '',
     })
     expect(validarSeguimiento(valores({ visible: true }), contexto)).toMatchObject({
       visibilidad: 'publico',
@@ -163,7 +165,14 @@ describe('validarSeguimiento', () => {
 
 describe('el recordatorio que entra con el seguimiento', () => {
   const contexto = { ahora: '2026-10-15T15:00:00Z', zona: 'America/La_Paz', tiposActivos: [TIPO] }
-  const base = { tipoId: TIPO, titulo: 'Llamó', detalle: null, visible: false, ocurridoEn: '' }
+  const base = {
+    tipoId: TIPO,
+    titulo: 'Llamó',
+    detalle: null,
+    visible: false,
+    ocurridoEn: '',
+    vehiculo: '',
+  }
   it('a futuro viaja como instante; pasado se dice junto al campo; al editar no se ofrece', () => {
     expect(
       validarSeguimiento({ ...base, recordatorio: '2026-10-16T09:00' }, contexto),
@@ -195,6 +204,7 @@ describe('cambiosDelSeguimiento', () => {
         visible: false,
         ocurridoEn: '',
         recordatorio: '',
+        vehiculo: '',
       },
       contexto,
       original,
@@ -209,6 +219,7 @@ describe('cambiosDelSeguimiento', () => {
         visible: true,
         ocurridoEn: '',
         recordatorio: '',
+        vehiculo: '',
       },
       contexto,
       original,
@@ -229,5 +240,49 @@ describe('cambiosDelSeguimiento', () => {
       ],
     })
     expect(documentoInicial(uno({ detalleTexto: null }))).toBeNull()
+  })
+})
+
+describe('el vehículo de un seguimiento', () => {
+  const contexto = { ahora: '2026-10-15T15:00:00Z', zona: 'America/La_Paz', tiposActivos: [TIPO] }
+  const AUTO = { id: '33333333-3333-4333-8333-333333333333', titulo: 'Kia Rio', numero: 13 }
+  // Lo mismo que tiene el original, salvo el vehículo elegido.
+  const validoPara = (original: Seguimiento, vehiculo: string) => {
+    const v = validarSeguimiento(
+      {
+        tipoId: original.tipoId,
+        titulo: original.titulo,
+        detalle: documentoInicial(original),
+        visible: original.visibilidad === 'publico',
+        ocurridoEn: '',
+        recordatorio: '',
+        vehiculo,
+      },
+      contexto,
+      original,
+    )
+    if (!v.ok) {
+      throw new Error('debía ser válido')
+    }
+    return v
+  }
+  it('lee el que la base nombra, o que había uno que ya no ve', () => {
+    expect(
+      seguimientoDesde({ ...CRUDO, vehiculo: AUTO, vehiculo_oculto: false })?.vehiculo,
+    ).toEqual(AUTO)
+    expect(seguimientoDesde({ ...CRUDO, vehiculo: null, vehiculo_oculto: true })).toMatchObject({
+      vehiculo: null,
+      vehiculoOculto: true,
+    })
+  })
+  it('al editar sólo viaja si cambió; conservar el que ya no ve no es un cambio', () => {
+    const conAuto = uno({ vehiculo: AUTO })
+    expect(cambiosDelSeguimiento(conAuto, validoPara(conAuto, AUTO.id))).toEqual({})
+    expect(cambiosDelSeguimiento(conAuto, validoPara(conAuto, ''))).toEqual({ vehiculoId: null })
+    const oculto = uno({ vehiculo: null, vehiculoOculto: true })
+    expect(cambiosDelSeguimiento(oculto, validoPara(oculto, 'oculto'))).toEqual({})
+    expect(cambiosDelSeguimiento(oculto, validoPara(oculto, AUTO.id))).toEqual({
+      vehiculoId: AUTO.id,
+    })
   })
 })

@@ -32,6 +32,8 @@ export const esquemaCrearSeguimiento = z.object({
   ocurridoEn: instante.nullable(),
   // Un recordatorio que entra junto (en la misma transacción); nulo = ninguno.
   recordatorio: z.object({ recordarEn: instante }).nullable(),
+  // Un vehículo del lead que quien anota ve (la base lo vuelve a mirar); nulo = ninguno.
+  vehiculoId: z.guid().nullable(),
 })
 
 export const esquemaGuardarSeguimiento = z.object({
@@ -45,6 +47,8 @@ export const esquemaGuardarSeguimiento = z.object({
       detalle: detalle.optional(),
       visibilidad: z.enum(VISIBILIDADES).optional(),
       ocurridoEn: instante.optional(),
+      // Nulo lo quita.
+      vehiculoId: z.guid().nullable().optional(),
     })
     .refine((c) => Object.keys(c).length > 0, { error: 'No hay nada que guardar.' }),
 })

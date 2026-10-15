@@ -5,6 +5,7 @@ import { formatearFechaHora, fechaRelativa } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { autorDe, ETIQUETA_DE_VISIBLE, type Seguimiento } from '../../../entities/seguimiento'
+import { nombreDelVehiculoDeNota } from '../../../entities/vehiculo-de-nota'
 import { DocumentoDeSeguimiento } from './documento-de-seguimiento'
 
 type Props = {
@@ -27,6 +28,8 @@ export function ItemDeSeguimiento({
   alEditar,
   alEliminar,
 }: Props) {
+  // El vehículo de la nota: nombrado si se ve; a su autor se le dice que había uno.
+  const vehiculo = nombreDelVehiculoDeNota(seguimiento)
   return (
     <article
       aria-label={seguimiento.titulo}
@@ -55,6 +58,7 @@ export function ItemDeSeguimiento({
             </time>
             {' · '}
             {autorDe(seguimiento)}
+            {vehiculo ? ` · ${vehiculo}` : null}
           </p>
         </div>
         {editable ? (

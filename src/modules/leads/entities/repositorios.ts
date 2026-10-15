@@ -202,6 +202,8 @@ export type RepositorioDeSeguimientos = {
     ocurridoEn: string | null
     // Entra junto con el seguimiento, o nada entra.
     recordatorio: { recordarEn: string } | null
+    // Un vehículo del lead que quien anota ve; nulo = ninguno.
+    vehiculoId: string | null
   }) => Promise<{ ok: true; data: ResultadoDeSeguimiento } | FalloDeSeguimiento>
   guardar: (pedido: {
     id: string
@@ -256,11 +258,12 @@ export type RepositorioDeRecordatorios = {
     leadId: string | null
     titulo: string
     recordarEn: string
+    vehiculoId: string | null
   }) => RespuestaDeRecordatorio
   guardar: (pedido: {
     id: string
     actualizadoEnEsperado: string
-    cambios: Partial<{ titulo: string; recordarEn: string }>
+    cambios: Partial<{ titulo: string; recordarEn: string; vehiculoId: string | null }>
   }) => RespuestaDeRecordatorio
   // Poner, no alternar: `true` completa y `false` reabre.
   completar: (pedido: {

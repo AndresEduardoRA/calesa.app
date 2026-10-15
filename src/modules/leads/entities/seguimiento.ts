@@ -2,6 +2,7 @@
 // `seguimiento_*`), cómo se lee y las reglas puras del redactor. Lo que cada quien ve lo decide la
 // base: privado = sólo su autor; «Visible para el cliente» = también quienes ven el lead.
 import { z } from 'zod'
+import { cambioDeVehiculo, vehiculoDeNotaDesde, type VehiculoDeLaNota } from './vehiculo-de-nota'
 import { instanteDeLocal } from '@/shared/lib/fechas'
 import { validarDocumento, type Documento } from './documento'
 import { documentoDesdeTexto } from './documento-limpio'
@@ -36,7 +37,7 @@ export type Seguimiento = {
   autorId: string
   autorNombre: string | null
   esMio: boolean
-}
+} & VehiculoDeLaNota
 
 export type PaginaDeSeguimientos = {
   seguimientos: Seguimiento[]
@@ -63,7 +64,9 @@ const esquemaSeguimiento = z.object({
   es_mio: z.boolean(),
 })
 
-function comoSeguimiento(s: z.infer<typeof esquemaSeguimiento>): Seguimiento {
+function comoSeguimiento(
+  s: z.infer<typeof esquemaSeguimiento>,
+): Omit<Seguimiento, keyof VehiculoDeLaNota> {
   return {
     id: s.id,
     leadId: s.lead_id,
@@ -87,7 +90,7 @@ function comoSeguimiento(s: z.infer<typeof esquemaSeguimiento>): Seguimiento {
 // un error.
 export function seguimientoDesde(crudo: unknown): Seguimiento | null {
   const leido = esquemaSeguimiento.safeParse(crudo)
-  return leido.success ? comoSeguimiento(leido.data) : null
+  return leido.success ? { ...comoSeguimiento(leido.data), ...vehiculoDeNotaDesde(crudo) } : null
 }
 
 const esquemaPagina = z.object({
@@ -166,6 +169,8 @@ export type ValoresDelSeguimiento = {
   ocurridoEn: string
   // Un recordatorio que entra junto con el seguimiento (sólo al anotar); vacío = ninguno.
   recordatorio: string
+  // El valor del selector de vehículo (`valorDeVehiculo()`): vacío = ninguno.
+  vehiculo: string
 }
 
 export type CambiosDeSeguimiento = Partial<{
@@ -174,6 +179,7 @@ export type CambiosDeSeguimiento = Partial<{
   detalle: Documento | null
   visibilidad: Visibilidad
   ocurridoEn: string
+  vehiculoId: string | null
 }>
 
 export type ErroresDelSeguimiento = Partial<
@@ -190,6 +196,8 @@ export type SeguimientoValido =
       ocurridoEn: string | null
       // Nulo = sin recordatorio.
       recordarEn: string | null
+      // El valor del selector, tal cual: qué se manda lo decide quien arma el pedido.
+      vehiculo: string
     }
   | { ok: false; errores: ErroresDelSeguimiento }
 
@@ -294,6 +302,7 @@ export function validarSeguimiento(
     visibilidad: valores.visible ? 'publico' : 'privado',
     ocurridoEn: fecha.instante,
     recordarEn: recordar.instante,
+    vehiculo: valores.vehiculo,
   }
 }
 
@@ -324,6 +333,10 @@ export function cambiosDelSeguimiento(
     Date.parse(valido.ocurridoEn) !== Date.parse(original.ocurridoEn)
   ) {
     cambios.ocurridoEn = valido.ocurridoEn
+  }
+  const vehiculo = cambioDeVehiculo(valido.vehiculo, original)
+  if (vehiculo.cambia) {
+    cambios.vehiculoId = vehiculo.vehiculoId
   }
   return cambios
 }
