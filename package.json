@@ -20,6 +20,7 @@
     "db:base": "node scripts/esquema-base.mjs",
     "db:probar": "node scripts/probar-schema.mjs supabase",
     "db:medir": "node scripts/medir-listado.mjs",
+    "db:carreras": "node scripts/carreras.mjs",
     "db:lint": "supabase db lint --fail-on error",
     "mapa": "bash scripts/mapa.sh",
     "preinstall": "npx only-allow pnpm"
@@ -77,6 +78,7 @@
     "eslint-plugin-boundaries": "^7.2.0",
     "jsdom": "^30.1.2",
     "lefthook": "^2.2.1",
+    "pg": "8.23.1",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "supabase": "^2.120.0",

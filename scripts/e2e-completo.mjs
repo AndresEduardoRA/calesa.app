@@ -1,5 +1,5 @@
 // El e2e completo: comprueba que las funciones edge estén servidas, resetea la base local
-// (`supabase db reset`: migraciones y seed) y corre TODO con `E2E_COMPLETO=1`, que convierte en error
+// (`supabase db reset`: migraciones y seed), corre las carreras (`pnpm db:carreras`) y corre TODO con `E2E_COMPLETO=1`, que convierte en error
 // los tests que se saltarían porque la base tiene gente. Borra los datos de desarrollo de la base
 // local: para correr un spec suelto sobre una base con datos, `pnpm test:e2e <spec>`.
 // Uso: pnpm test:e2e:completo [argumentos de playwright, p. ej. --project=movil]
@@ -53,5 +53,8 @@ function correr(comando, args, env = {}) {
 await exigirFunciones('(antes de resetear)')
 console.log('\n[e2e completo] Reseteando la base local: se pierden sus datos de desarrollo.\n')
 correr('pnpm', ['db:reset'])
+// Las carreras (dos conexiones reales a la base) corren sobre la base recién reseteada y la dejan como
+// estaba: su terreno lleva un prefijo propio y se borra al terminar.
+correr('pnpm', ['db:carreras'])
 await exigirFunciones('(después de resetear)')
 correr('pnpm', ['test:e2e', ...process.argv.slice(2)], { E2E_COMPLETO: '1' })
