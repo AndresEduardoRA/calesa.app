@@ -100,7 +100,7 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 Infraestructura transversal sin reglas de negocio: clientes de Supabase, permisos, errores como valores, formato de números y fechas, configuración y los componentes de interfaz que usan todos los módulos.
 
 - `config/`: `app.ts`, `entorno.ts`
-- `lib/`: `almacen.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `color.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
+- `lib/`: `almacen.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `color.ts`, `enviar-accion.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
 - `lib/campos/`: `agrupar.ts`, `cambios.ts`, `clave.ts`, `controles.ts`, `esquema-de-valor.ts`, `esquemas.ts`, `impacto.ts`, `index.ts`, `mostrar.ts`, `motivos.ts`, `orden.ts`, `tipos.ts`, `valor-defecto.ts`, `valor.ts`
 - `lib/filtros/`: `campos.ts`, `chips.ts`, `esquema.ts`, `index.ts`, `opciones.ts`, `url.ts`
 - `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `consultas.ts`, `funciones.client.ts`, `proxy.ts`, `server.ts`
