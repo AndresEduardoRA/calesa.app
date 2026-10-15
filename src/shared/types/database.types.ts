@@ -2530,6 +2530,7 @@ export type Database = {
       }
       leads_telefonos: {
         Row: {
+          creado_en: string
           etiqueta: string | null
           id: string
           lead_id: string
@@ -2537,12 +2538,14 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          creado_en?: string
           etiqueta?: string | null
           id?: string
           lead_id: string
           telefono: string
         }
         Update: {
+          creado_en?: string
           etiqueta?: string | null
           id?: string
           lead_id?: string
@@ -6130,6 +6133,7 @@ export type Database = {
       _lead_campo_con_valor: { Args: { p_clave: string }; Returns: number }
       _lead_campos_renumerar: { Args: Record<PropertyKey, never>; Returns: undefined }
       _lead_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
+      _lead_conflicto: { Args: { p_cuando: string; p_lead: string }; Returns: undefined }
       _lead_defecto_empresa: {
         Args: {
           p_defecto: Json
@@ -6526,6 +6530,20 @@ export type Database = {
         Returns: string
       }
       lead_en_limbo: { Args: { p_lead: string }; Returns: boolean }
+      lead_ficha: { Args: { p_lead: string }; Returns: Json }
+      lead_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_lead: string }
+        Returns: Json
+      }
+      lead_telefonos: {
+        Args: { p_lead: string }
+        Returns: {
+          creado_en: string
+          etiqueta: string
+          id: string
+          telefono: string
+        }[]
+      }
       limpieza_automatica_correr: {
         Args: { p_ahora?: string; p_origenes?: string[] }
         Returns: Json

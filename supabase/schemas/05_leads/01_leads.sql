@@ -70,9 +70,14 @@ comment on table public.leads_campos is 'Layout de campos de los leads: uno por 
 create table public.leads_telefonos (
   id       uuid primary key default gen_random_uuid(),
   lead_id  uuid not null references public.leads (id) on delete cascade,
-  telefono text not null,
-  etiqueta text
+  telefono text not null,                              -- normalizado, como el principal
+  etiqueta text,
+  creado_en timestamptz not null default now(),
+  constraint leads_telefonos_formato check (telefono ~ '^[0-9]{7,15}$'),
+  constraint leads_telefonos_etiqueta_largo check (etiqueta is null or char_length(etiqueta) between 1 and 40),
+  constraint leads_telefonos_unico unique (lead_id, telefono)   -- sin duplicado dentro del lead; entre leads no hay unicidad
 );
+comment on table public.leads_telefonos is 'Teléfonos extra de un lead (alternos: sin unicidad entre leads). RLS no esconde columnas: la app no lee ni escribe esta tabla; los lee lead_telefonos(), que da el número completo a la cartera y enmascarado al resto, y los escriben las RPC de la parte 4b.';
 
 create table public.leads_asesores (
   lead_id       uuid not null references public.leads (id) on delete cascade,
