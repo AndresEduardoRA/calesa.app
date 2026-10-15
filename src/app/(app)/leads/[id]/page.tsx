@@ -5,12 +5,14 @@ import { puede, requerirSesion } from '@/modules/equipo'
 import {
   accionesDeCartera,
   CLAVE_DE_SECCION,
+  duenoDe,
   EsqueletoDeSeguimientos,
   FichaDeLead,
   LeadNoDisponible,
   leerFichaDeLead,
   puedeCambiarTelefonoDeLead,
   puedeEditarLead,
+  puedeEnviarLead,
   SeccionSeguimientos,
   seccionDeLead,
 } from '@/modules/leads'
@@ -51,6 +53,11 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
       etiquetas={datos.etiquetas}
       cartera={datos.cartera}
       accionesDeCartera={accionesDeCartera(sesion.permisos, datos.cartera)}
+      puedeEnviarAPapelera={puedeEnviarLead(
+        sesion.permisos,
+        duenoDe(datos.cartera)?.usuarioId ?? null,
+        sesion.usuarioId,
+      )}
       // Sólo se lee con la sección abierta: «Datos» no paga la línea de tiempo.
       seguimientos={
         seccion === 'seguimientos' ? (

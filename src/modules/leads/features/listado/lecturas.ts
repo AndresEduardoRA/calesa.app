@@ -24,6 +24,7 @@ import {
 } from '../../entities/filtros'
 import { FILTRO_TACHADOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { TAMANO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
+import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
 
 export type DatosDelListado = {
   esquema: EsquemaDeFiltros
@@ -39,6 +40,10 @@ export type DatosDelListado = {
   descartados: FiltroDescartado[]
   // Cuántos leads que cumplen los filtros quedaron afuera por estar tachados (0 si no se ocultan).
   ocultos: number
+  // Los de esta página que quien mira puede enviar a la papelera (`leads.eliminar` con su alcance).
+  eliminables: string[]
+  // Quien mira puede abrir la papelera de leads (envía, o puede vaciarla).
+  puedeAbrirPapelera: boolean
 }
 
 type Entrada = {
@@ -46,6 +51,8 @@ type Entrada = {
   permisos: Permisos
   parametros: ParametrosDeUrl
   zona: string
+  // Quien mira: con `leads.eliminar` «propios» sólo envía lo que es suyo como dueño.
+  usuarioId: string
 }
 
 // Los mismos filtros, pero sólo los tachados: lo que el aviso cuenta y «Mostrarlos» suma.
@@ -59,7 +66,7 @@ const soloTachados = (valores: ValoresDeFiltros): ValoresDeFiltros => ({
 // tachados— cuántos quedaron afuera con los mismos filtros. Lo que hay lo decide la RLS; «míos» se
 // traduce siempre en la condición `en_cartera` y «todos» no suma nada.
 export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<DatosDelListado>> {
-  const { permisos, parametros, zona } = entrada
+  const { permisos, parametros, zona, usuarioId } = entrada
   const [layout, origenes, etiquetas] = await Promise.all([
     leerLayoutDeLeads(),
     leerOrigenesDeLead(),
@@ -114,6 +121,10 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       descartados: filtrosDescartados(campos, parametros, etiquetas.data),
       // Si contar falla, el listado se dibuja igual: sin el aviso.
       ocultos: ocultos?.ok ? ocultos.data : 0,
+      eliminables: leida.data.filas
+        .filter((fila) => puedeEnviarLead(permisos, fila.duenoId, usuarioId))
+        .map((fila) => fila.id),
+      puedeAbrirPapelera: puedeAbrirLaPapelera(permisos),
     },
   }
 }

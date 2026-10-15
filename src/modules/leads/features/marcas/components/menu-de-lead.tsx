@@ -15,6 +15,7 @@ import {
   ETIQUETA_DE_TACHADO,
   type MarcasDeLead,
 } from '../../../entities/marcas'
+import { ItemEnviarAPapelera } from '../../papelera/components/item-enviar-a-papelera'
 import { SelectorDeEtiquetas } from '../../etiquetas/components/selector-de-etiquetas'
 import type { Etiquetas } from '../../etiquetas/hooks/use-etiquetas'
 import { useMarcas } from '../hooks/use-marcas'
@@ -28,12 +29,21 @@ type Props = {
   marcas: MarcasDeLead
   etiquetas: Etiquetas
   alGestionar: () => void
+  // Quien mira puede enviar este lead a la papelera.
+  puedeEnviar: boolean
 }
 
 // El «⋯» de una fila del listado: las marcas de quien mira sobre ese lead. «Etiquetas…» cierra el
 // menú y abre el selector contra el mismo botón. Nada de lo que pasa adentro abre el drawer de la
 // fila (los clics no suben).
-export function MenuDeLead({ leadId, nombre, marcas: inicial, etiquetas, alGestionar }: Props) {
+export function MenuDeLead({
+  leadId,
+  nombre,
+  marcas: inicial,
+  etiquetas,
+  alGestionar,
+  puedeEnviar,
+}: Props) {
   const marcas = useMarcas(leadId, inicial)
   const boton = useRef<HTMLButtonElement>(null)
   const [selector, setSelector] = useState(false)
@@ -89,6 +99,7 @@ export function MenuDeLead({ leadId, nombre, marcas: inicial, etiquetas, alGesti
           >
             Etiquetas…
           </DropdownMenuItem>
+          {puedeEnviar ? <ItemEnviarAPapelera leadId={leadId} renglon={RENGLON} /> : null}
         </DropdownMenuContent>
       </DropdownMenu>
       <SelectorDeEtiquetas

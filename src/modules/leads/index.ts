@@ -38,7 +38,11 @@ export { FichaDeLead } from './features/ficha/components/ficha-de-lead'
 export { LeadNoDisponible } from './features/ficha/components/lead-no-disponible'
 export { puedeEditarLead } from './entities/edicion'
 // Qué se ofrece para mover quién tiene el lead: lo decide la página con los permisos de quien mira.
-export { accionesDeCartera } from './entities/cartera'
+export { accionesDeCartera, duenoDe } from './entities/cartera'
+// La papelera de leads: `/leads/papelera` la compone `app/` con los lotes que lee la base.
+export { PapeleraDeLeads } from './features/papelera/components/papelera-de-leads'
+export { leerPapeleraDeLeads } from './composicion'
+export { puedeAbrirLaPapelera, puedeEnviarLead, puedePurgarLeads } from './entities/papelera'
 // Cambiar el principal y los extras: con el lead en la cartera, como editarlo.
 export { puedeCambiarTelefonoDeLead } from './entities/telefonos'
 export { CLAVE_DE_SECCION, seccionDeLead } from './entities/ficha'

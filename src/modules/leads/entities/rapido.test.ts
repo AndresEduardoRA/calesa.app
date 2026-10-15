@@ -65,6 +65,7 @@ describe('vistaDelRapido', () => {
     nombre: 'Ana',
     telefono: '591•••••01',
     enCartera: true,
+    duenoId: null,
     tipo: 'prospecto',
     origenId: null,
     creadoEn: '2026-10-14T00:00:00Z',

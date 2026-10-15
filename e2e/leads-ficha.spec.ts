@@ -224,8 +224,10 @@ test('abrir la ficha trae poco: lo que aporta sobre el resto de la pantalla y lo
   const resumen = `documento ${kb(ficha)} KB (otra pantalla: ${kb(base)} KB, aporta ${kb(ficha - base)} KB) · al navegar: ${kb(rsc)} KB`
   console.warn(`[ficha] ${info.project.name}: ${resumen}`)
   info.annotations.push({ type: 'KB de la ficha', description: resumen })
-  // Lo que la ficha suma al shell, y lo que viaja al abrirla desde el listado.
-  expect(ficha - base).toBeLessThan(40 * 1024)
+  // Lo que la ficha suma al shell, y lo que viaja al abrirla desde el listado. El documento pasó de
+  // 40 a 48 KB en la parte 6a: ahora trae quién lo tiene (con sus acciones y los dos paneles) y el
+  // «⋯» de la papelera. Navegar desde el listado sigue en 40 KB (docs/DECISIONES.md, 2026-10-15).
+  expect(ficha - base).toBeLessThan(48 * 1024)
   expect(rsc).toBeLessThan(40 * 1024)
   // Móvil: la cabecera cabe sin desplazar de costado.
   if (esMovil(page)) {

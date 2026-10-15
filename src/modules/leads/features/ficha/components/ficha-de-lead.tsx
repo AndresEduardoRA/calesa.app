@@ -16,6 +16,7 @@ import {
   type OrigenConEstado,
   type SeccionDeLead,
 } from '../../../entities/ficha'
+import { MenuDeFichaDeLead } from '../../papelera/components/menu-de-ficha-de-lead'
 import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
 import { useEtiquetas } from '../../etiquetas/hooks/use-etiquetas'
 import { usePanelDeEtiquetas } from '../../etiquetas/hooks/use-panel-de-etiquetas'
@@ -52,6 +53,8 @@ type Props = {
   // Quién lo tiene, y lo que quien mira puede hacer con eso (compartir, transferir, quitar, salir).
   cartera: readonly PersonaDeCartera[]
   accionesDeCartera: AccionesDeCartera
+  // Quien mira puede enviar este lead a la papelera (`leads.eliminar`: «todos», o «propios» siendo el dueño).
+  puedeEnviarAPapelera: boolean
 }
 
 type DatosDeSeccion = {
@@ -86,6 +89,7 @@ export function FichaDeLead({
   etiquetas: lista,
   cartera,
   accionesDeCartera,
+  puedeEnviarAPapelera,
 }: Props) {
   const { zonaHoraria } = useRegional()
   const panel = usePanelDeLead()
@@ -110,6 +114,9 @@ export function FichaDeLead({
           <>
             <AccionesDeMarcas marcas={marcas} etiquetas={etiquetas} alGestionar={gestionar.abrir} />
             {puedeEditar ? <BotonEditarLead /> : null}
+            {puedeEnviarAPapelera ? (
+              <MenuDeFichaDeLead leadId={ficha.id} nombre={ficha.nombre} />
+            ) : null}
           </>
         }
         marcas={

@@ -30,6 +30,8 @@ export type FilaDeLead = {
   telefono: string
   // El lead está en la cartera de quien mira: define «míos» y si los datos privados le llegan.
   enCartera: boolean
+  // Quién es su dueño (nulo si no tiene): con ello se sabe si quien mira puede enviarlo a la papelera.
+  duenoId: string | null
   tipo: TipoDelLead
   origenId: string | null
   creadoEn: string
@@ -45,6 +47,7 @@ const COLUMNAS_FIJAS = [
   'nombre',
   'telefono_principal',
   'en_cartera',
+  'dueno_id',
   'tipo',
   'origen_lead_id',
   'creado_en',
@@ -98,6 +101,7 @@ const esquemaFila = z
     nombre: z.string(),
     telefono_principal: z.string().nullable(),
     en_cartera: z.boolean().nullable(),
+    dueno_id: z.guid().nullable().optional(),
     tipo: z.enum(TIPOS_DEL_LEAD),
     origen_lead_id: z.guid().nullable(),
     creado_en: z.string(),
@@ -133,6 +137,7 @@ export function filasDeLeadDesde(data: unknown, claves: readonly string[]): Fila
         nombre: f.nombre,
         telefono: f.telefono_principal ?? '',
         enCartera: f.en_cartera === true,
+        duenoId: f.dueno_id ?? null,
         tipo: f.tipo,
         origenId: f.origen_lead_id,
         creadoEn: f.creado_en,
@@ -162,6 +167,7 @@ export function leadCompletoDesde(data: unknown): FilaDeLead | null {
     nombre: f.nombre,
     telefono: f.telefono_principal ?? '',
     enCartera: f.en_cartera === true,
+    duenoId: f.dueno_id ?? null,
     tipo: f.tipo,
     origenId: f.origen_lead_id,
     creadoEn: f.creado_en,

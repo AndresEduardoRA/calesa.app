@@ -38,7 +38,7 @@ describe('columnas del listado', () => {
     const campos = [campo('ciudad'), campo('Mala clave'), campo('x);drop'), campo('ok_2')]
     expect(clavesDeTabla(campos)).toEqual(['ciudad', 'ok_2'])
     expect(columnasDeLaConsulta(['ciudad', 'x,y', 'edad'])).toBe(
-      'id,numero,nombre,telefono_principal,en_cartera,tipo,origen_lead_id,creado_en,es_favorito,esta_tachado,etiquetas,a_ciudad:atributos->ciudad,a_edad:atributos->edad',
+      'id,numero,nombre,telefono_principal,en_cartera,dueno_id,tipo,origen_lead_id,creado_en,es_favorito,esta_tachado,etiquetas,a_ciudad:atributos->ciudad,a_edad:atributos->edad',
     )
   })
 })
@@ -86,6 +86,7 @@ describe('filasDeLeadDesde', () => {
       nombre: 'Ana',
       telefono: '591•••••01',
       enCartera: false,
+      duenoId: null,
       tipo: 'prospecto',
       origenId: FILA.origen_lead_id,
       creadoEn: FILA.creado_en,

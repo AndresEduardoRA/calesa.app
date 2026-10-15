@@ -92,6 +92,7 @@ export function TablaDeLeads(props: Props) {
                   marcas={lead.marcas}
                   etiquetas={marcar.etiquetas}
                   alGestionar={marcar.alGestionar}
+                  puedeEnviar={marcar.eliminables.includes(lead.id)}
                 />
               </TableCell>
             </TableRow>

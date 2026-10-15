@@ -14,6 +14,12 @@ import type { ImpactoDeCampo } from './impacto'
 import type { FilaDeLead } from './listado'
 import type { Documento } from './documento'
 import type { ColorDeEtiqueta, Etiqueta, EtiquetaConUso } from './etiqueta'
+import type {
+  LoteDePapelera,
+  ResultadoDeEnvio,
+  ResultadoDePurgar,
+  ResultadoDeRestaurar,
+} from './papelera'
 import type { ResultadoDeMarca } from './marcas'
 import type { Recordatorio } from './recordatorios'
 import type {
@@ -356,3 +362,28 @@ export type LectorDeCartera = (leadId: string) => Promise<Resultado<PersonaDeCar
 export type LectorDeCandidatosDeCartera = (
   leadId: string,
 ) => Promise<Resultado<CandidatoDeCartera[]>>
+
+// La papelera de leads (clase 3 de la auditoría). Enviar es todo o nada y lo manda el cliente con el
+// id del lote: un reintento no lo duplica. Restaurar y purgar mandan la versión del lote que estaba
+// en pantalla; sin `leads` es el lote entero.
+type RespuestaDePapelera<T> = Promise<{ ok: true; data: T } | { ok: false; error: ErrorApp }>
+
+export type RepositorioDePapeleraDeLeads = {
+  enviar: (pedido: {
+    loteId: string
+    leads: readonly string[]
+  }) => RespuestaDePapelera<ResultadoDeEnvio>
+  restaurar: (pedido: {
+    loteId: string
+    actualizadoEnEsperado: string
+    leads?: readonly string[] | undefined
+  }) => RespuestaDePapelera<ResultadoDeRestaurar>
+  purgar: (pedido: {
+    loteId: string
+    actualizadoEnEsperado: string
+    leads?: readonly string[] | undefined
+  }) => RespuestaDePapelera<ResultadoDePurgar>
+}
+
+// Los lotes que quien llama puede ver: los suyos o, si puede vaciarla, todos.
+export type LectorDePapeleraDeLeads = () => Promise<Resultado<LoteDePapelera[]>>

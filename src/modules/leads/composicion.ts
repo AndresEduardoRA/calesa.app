@@ -11,6 +11,7 @@ import type {
   LectorDeFicha,
   LectorDeLayoutDeLeads,
   LectorDeOrigenesDeLead,
+  LectorDePapeleraDeLeads,
   LectorDeRecordatoriosDelLead,
   LectorDeSeguimientos,
   LectorDeTiposDeSeguimiento,
@@ -20,6 +21,7 @@ import type {
   RepositorioDeEtiquetas,
   RepositorioDeFicha,
   RepositorioDeMarcas,
+  RepositorioDePapeleraDeLeads,
   RepositorioDeRecordatorios,
   RepositorioDeSeguimientos,
   RepositorioDeTelefonos,
@@ -40,6 +42,8 @@ import {
   contarLeads as contarEnBase,
 } from './infra/queries/listado'
 import { getOrigenesDeLead } from './infra/queries/origenes'
+import { getPapeleraDeLeads } from './infra/queries/papelera'
+import { papeleraDeLeadsSupabase } from './infra/papelera'
 import { getRecordatoriosDelLead } from './infra/queries/recordatorios'
 import { recordatoriosSupabase } from './infra/recordatorios'
 import { getSeguimientos, getTiposDeSeguimiento } from './infra/queries/seguimientos'
@@ -85,3 +89,7 @@ export const leerEtiquetas: LectorDeEtiquetas = getEtiquetas
 export const repositorioDeCartera: RepositorioDeCartera = carteraSupabase
 
 export const leerCartera: LectorDeCartera = getCartera
+
+export const repositorioDePapeleraDeLeads: RepositorioDePapeleraDeLeads = papeleraDeLeadsSupabase
+
+export const leerPapeleraDeLeads: LectorDePapeleraDeLeads = getPapeleraDeLeads

@@ -13,6 +13,7 @@ import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etique
 import { useEtiquetas } from '../../etiquetas/hooks/use-etiquetas'
 import { usePanelDeEtiquetas } from '../../etiquetas/hooks/use-panel-de-etiquetas'
 import { RefrescarAlVolver } from '../../ficha/components/refrescar-al-volver'
+import { EnlaceAPapeleraDeLeads } from '../../papelera/components/enlace-a-papelera'
 import { DrawerDeLead } from '../../rapido/components/drawer-de-lead'
 import { useDrawerDeLead } from '../../rapido/hooks/use-drawer-de-lead'
 import { AvisoDeFiltrosDescartados } from './aviso-de-filtros-descartados'
@@ -34,6 +35,8 @@ type Props = DatosDeLaLista & {
   puedeConfigurarCampos: boolean
   descartados: readonly FiltroDescartado[]
   ocultos: number
+  eliminables: readonly string[]
+  puedeAbrirPapelera: boolean
 }
 
 // Lo que va arriba de la lista: lo que la URL traía y ya no vale, y la aclaración de un filtro
@@ -70,6 +73,8 @@ export function ListadoDeLeads(props: Props) {
     puedeConfigurarCampos,
     descartados,
     ocultos,
+    eliminables,
+    puedeAbrirPapelera,
     ...delServidor
   } = props
   const drawer = useDrawerDeLead()
@@ -83,7 +88,14 @@ export function ListadoDeLeads(props: Props) {
       <FilterShell
         esquema={esquema}
         vistas={<VistasDeLeads esquema={esquema} vistas={vistas} modo={modo} />}
-        acciones={puedeVerTodos ? <SelectorDeAlcance modo={modo} /> : null}
+        acciones={
+          puedeVerTodos || puedeAbrirPapelera ? (
+            <>
+              {puedeVerTodos ? <SelectorDeAlcance modo={modo} /> : null}
+              {puedeAbrirPapelera ? <EnlaceAPapeleraDeLeads /> : null}
+            </>
+          ) : null
+        }
         accionesDeSeccion={{
           [SECCION_MARCAS]: (
             <Button
@@ -119,7 +131,7 @@ export function ListadoDeLeads(props: Props) {
             puedeCrear={puedeCrear}
             alAbrir={drawer.abrir}
             abierto={drawer.id}
-            marcar={{ etiquetas, alGestionar: gestionar.abrir }}
+            marcar={{ etiquetas, alGestionar: gestionar.abrir, eliminables }}
             ocultos={ocultos}
           />
         </div>

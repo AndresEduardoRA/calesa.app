@@ -73,6 +73,7 @@ export function TarjetasDeLeads(props: Props) {
                   marcas={lead.marcas}
                   etiquetas={marcar.etiquetas}
                   alGestionar={marcar.alGestionar}
+                  puedeEnviar={marcar.eliminables.includes(lead.id)}
                 />
               </div>
             </article>

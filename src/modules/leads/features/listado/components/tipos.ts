@@ -14,10 +14,13 @@ export type DatosDeLaLista = {
   etiquetas: readonly Etiqueta[]
 }
 
-// Lo que necesita el «⋯» de cada fila para marcar: la lista de etiquetas (con crear) y abrir «Gestionar».
+// Lo que necesita el «⋯» de cada fila: la lista de etiquetas (con crear), abrir «Gestionar» y qué
+// filas se pueden enviar a la papelera.
 export type ParaMarcar = {
   etiquetas: Etiquetas
   alGestionar: () => void
+  // Los de la página que quien mira puede enviar a la papelera.
+  eliminables: readonly string[]
 }
 
 export function nombreDelOrigen(
