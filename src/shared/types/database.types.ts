@@ -2204,6 +2204,9 @@ export type Database = {
         Row: {
           archivo_ruta: string | null
           creado_en: string
+          deshecha_en: string | null
+          deshecha_lote: string | null
+          deshecha_resultado: Json | null
           entidad: string
           errores: NonNullable<Json>
           estado: Database['public']['Enums']['estado_importacion']
@@ -2214,11 +2217,15 @@ export type Database = {
           mapeo: NonNullable<Json>
           terminada_en: string | null
           usuario_id: string
+          _importacion_vence_en: string | null
         }
-        ComputedFields: never
+        ComputedFields: '_importacion_vence_en'
         Insert: {
           archivo_ruta?: string | null
           creado_en?: string
+          deshecha_en?: string | null
+          deshecha_lote?: string | null
+          deshecha_resultado?: Json | null
           entidad: string
           errores?: NonNullable<Json>
           estado?: Database['public']['Enums']['estado_importacion']
@@ -2233,6 +2240,9 @@ export type Database = {
         Update: {
           archivo_ruta?: string | null
           creado_en?: string
+          deshecha_en?: string | null
+          deshecha_lote?: string | null
+          deshecha_resultado?: Json | null
           entidad?: string
           errores?: NonNullable<Json>
           estado?: Database['public']['Enums']['estado_importacion']
@@ -6609,6 +6619,15 @@ export type Database = {
       }
       _gracia_de_storage: { Args: Record<PropertyKey, never>; Returns: string }
       _hace: { Args: { p_cuando: string }; Returns: string }
+      _importacion_vence_en: {
+        Args: {
+          p: Omit<
+            Database['public']['Tables']['importaciones']['Row'],
+            Database['public']['Tables']['importaciones']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
       _lead_atributos_formato: {
         Args: { p_anteriores: Json; p_campos: Json; p_nuevos: Json }
         Returns: undefined
@@ -6684,6 +6703,7 @@ export type Database = {
         }
         Returns: string
       }
+      _lead_motivo_para_deshacer: { Args: { p_lead: string; p_yo: string }; Returns: string }
       _lead_para_mover: {
         Args: { p_lead: string }
         Returns: {
@@ -7269,6 +7289,7 @@ export type Database = {
           vehiculo_id: string
         }[]
       }
+      importaciones_vinculos_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       integracion_guardar: {
         Args: {
           p_activa?: boolean
@@ -7365,6 +7386,7 @@ export type Database = {
         Args: { p_filas: number; p_filtros?: string[] }
         Returns: Json
       }
+      leads_importacion_deshacer: { Args: { p_importacion: string }; Returns: Json }
       leads_importacion_terminar: {
         Args: {
           p_importacion: string
@@ -7374,6 +7396,7 @@ export type Database = {
         }
         Returns: Json
       }
+      leads_importaciones_recientes: { Args: Record<PropertyKey, never>; Returns: Json }
       leads_importar_lote: {
         Args: { p_filas: Json; p_importacion: string; p_total: number }
         Returns: Json

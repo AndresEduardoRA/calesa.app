@@ -53,4 +53,34 @@ create index actividad_intento_adopcion_idx on public.actividad ((detalle ->> 'i
 analyze public.actividad;
 select pg_temp.importar('con los índices', 1000);
 
+-- Deshacer (parte 8b) la importación de 500 recién hecha: la lista de recientes (que cuenta lo intacto),
+-- el deshacer en una transacción, la papelera con ese lote de 500 y restaurarlo entero.
+do $$
+declare
+  v_imp uuid := (select id from public.importaciones where usuario_id = '00000000-0000-0000-0000-0000000000d1'
+                  order by creado_en desc, id limit 1);
+  v_t timestamptz; v_r jsonb; v_lote uuid;
+begin
+  update public.importaciones set estado = 'terminada', terminada_en = now() where id = v_imp;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', true);
+  set local role authenticated;
+  v_t := clock_timestamp();
+  v_r := public.leads_importaciones_recientes();
+  raise notice 'medicion|recientes con 500 intactos|%', round(extract(epoch from clock_timestamp() - v_t)::numeric * 1000, 1);
+  if (v_r -> 0 ->> 'intactos')::int <> 500 then raise exception 'recientes: %', v_r -> 0; end if;
+  v_t := clock_timestamp();
+  v_r := public.leads_importacion_deshacer(v_imp);
+  raise notice 'medicion|deshacer 500|%', round(extract(epoch from clock_timestamp() - v_t)::numeric * 1000, 1);
+  if (v_r ->> 'movidos')::int <> 500 then raise exception 'deshacer: %', v_r; end if;
+  v_lote := (select deshecha_lote from public.importaciones where id = v_imp);
+  v_t := clock_timestamp();
+  v_r := public.leads_papelera_listar();
+  raise notice 'medicion|papelera con el lote de 500|%', round(extract(epoch from clock_timestamp() - v_t)::numeric * 1000, 1);
+  v_t := clock_timestamp();
+  v_r := public.leads_papelera_restaurar(v_lote, (select actualizado_en from public.lotes_papelera where id = v_lote));
+  raise notice 'medicion|restaurar el lote de 500|%', round(extract(epoch from clock_timestamp() - v_t)::numeric * 1000, 1);
+  if jsonb_array_length(v_r -> 'restaurados') <> 500 then raise exception 'restaurar: %', v_r -> 'pendientes'; end if;
+  reset role;
+end $$;
+
 rollback;

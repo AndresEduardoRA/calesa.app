@@ -73,6 +73,11 @@ declare
     ('leads_importar_lote(uuid,integer,jsonb)', 'X'),
     ('leads_importacion_terminar(uuid,integer,integer,uuid)', 'X'),
     ('leads_exportacion_registrar(integer,text[])', 'X'),
+    -- Deshacer una importación (parte 8b): no es de clase 3 porque no la autoriza el permiso de la papelera sino
+    -- haber hecho la importación, y sólo alcanza lo que sigue intacto (sólo suyo y sin tocar), en 24 h. La
+    -- lista de recientes devuelve sólo las propias, con números. Su matriz es «casos de deshacer».
+    ('leads_importacion_deshacer(uuid)', 'X'),
+    ('leads_importaciones_recientes()', 'X'),
     ('web_confirmar_contacto(uuid,uuid)', 'X'),
     ('cotizacion_marcar_final(uuid)', 'X'),
     ('equipo_dar_de_baja(uuid)', 'X'),
@@ -339,5 +344,60 @@ begin
   end loop;
   if v_fallas <> '' then
     raise exception 'El acceso del cliente tiene un hueco:%', v_fallas;
+  end if;
+end $$;
+
+-- @test auditoría de leads: «intacto» mira todo lo que cuelga de un lead, y la versión todo su contenido
+-- Deshacer una importación (parte 8b) manda a la papelera sólo lo que nadie tocó. Una tabla nueva con FK a
+-- `leads`, o una columna nueva de `leads`, rompe esto hasta decidir si cuenta como «tocado».
+do $$
+declare
+  -- cuenta: tener una fila ahí es haber hecho algo con el lead (`_lead_motivo_para_deshacer` la mira).
+  -- marca: lo de quien mira (no cuenta). vinculo: el propio vínculo de la importación.
+  v_fk constant jsonb := '{
+    "leads_asesores": "cuenta", "seguimientos": "cuenta", "recordatorios": "cuenta", "leads_telefonos": "cuenta",
+    "vehiculos": "cuenta", "vehiculos_interesados": "cuenta", "vehiculos_vinculos": "cuenta", "oportunidades": "cuenta",
+    "accesos_portal": "cuenta", "cotizaciones": "cuenta", "pagos": "cuenta", "eventos": "cuenta", "tareas": "cuenta",
+    "mensajes": "cuenta", "repuestos_proyectos": "cuenta", "web_testimonios": "cuenta", "solicitudes_contacto_web": "cuenta",
+    "leads_favoritos": "marca", "leads_tachados": "marca", "leads_etiquetas": "marca",
+    "importaciones_leads": "vinculo"}';
+  -- version: la mueve `lead_version()`. derivada: la escribe otra tabla que ya cuenta. fija: no cambia.
+  v_columnas constant jsonb := '{
+    "nombre": "version", "tipo": "version", "origen_lead_id": "version", "atributos": "version",
+    "telefono_principal": "version", "telefono_cc": "version", "eliminado_en": "version", "lote_papelera_id": "version",
+    "eliminado_por": "derivada", "ultimo_seguimiento_en": "derivada",
+    "id": "fija", "numero": "fija", "creado_por": "fija", "creado_en": "fija", "actualizado_en": "fija"}';
+  v_motivo text := pg_get_functiondef('public._lead_motivo_para_deshacer(uuid,uuid)'::regprocedure);
+  v_version text := (select p.prosrc from pg_proc p where p.oid = 'public.lead_version()'::regprocedure);
+  r record; v_fallas text := '';
+begin
+  for r in
+    select distinct c.conrelid::regclass::text as tabla from pg_constraint c
+    where c.contype = 'f' and c.confrelid = 'public.leads'::regclass
+  loop
+    if not v_fk ? r.tabla then
+      v_fallas := v_fallas || E'\n  tabla nueva con FK a leads, sin decidir si cuenta para deshacer una importación: ' || r.tabla;
+    elsif v_fk ->> r.tabla = 'cuenta' and position(('public.' || r.tabla || ' ') in v_motivo) = 0 then
+      v_fallas := v_fallas || E'\n  _lead_motivo_para_deshacer no mira ' || r.tabla;
+    end if;
+  end loop;
+  for r in select k from jsonb_object_keys(v_fk) k loop
+    if not exists (select 1 from pg_constraint c where c.contype = 'f' and c.confrelid = 'public.leads'::regclass
+                    and c.conrelid::regclass::text = r.k) then
+      v_fallas := v_fallas || E'\n  en la lista y ya sin FK a leads: ' || r.k;
+    end if;
+  end loop;
+  for r in
+    select a.attname::text as columna from pg_attribute a
+    where a.attrelid = 'public.leads'::regclass and a.attnum > 0 and not a.attisdropped
+  loop
+    if not v_columnas ? r.columna then
+      v_fallas := v_fallas || E'\n  columna nueva de leads, sin decidir si mueve la versión: ' || r.columna;
+    elsif v_columnas ->> r.columna = 'version' and position(('new.' || r.columna) in v_version) = 0 then
+      v_fallas := v_fallas || E'\n  lead_version() no mira ' || r.columna;
+    end if;
+  end loop;
+  if v_fallas <> '' then
+    raise exception 'Deshacer una importación no ve todo lo que cuelga de un lead:%', v_fallas;
   end if;
 end $$;

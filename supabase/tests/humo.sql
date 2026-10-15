@@ -5427,3 +5427,32 @@ do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Marca 
   update public.leads_asesores set tipo_acceso = 'dueno' where lead_id = v_lead and usuario_id = '00000000-0000-0000-0000-000000000040';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test importaciones: la app no las escribe directo (parte 8b); se crean, cierran y deshacen por RPC
+do $$ declare v_imp uuid := gen_random_uuid(); begin
+  insert into public.importaciones (id, usuario_id, entidad, estado, iniciada_en)
+  values (v_imp, '00000000-0000-0000-0000-000000000002', 'leads', 'procesando', now());
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000002', true);
+  set local role authenticated;
+  begin
+    insert into public.importaciones (usuario_id, entidad, estado, terminada_en)
+    values ('00000000-0000-0000-0000-000000000002', 'leads', 'terminada', now() + interval '1 year');
+    reset role;
+    raise exception 'authenticated creó una importación directo (con un plazo inventado)';
+  exception when insufficient_privilege then null; end;
+  begin
+    delete from public.importaciones where id = v_imp;
+    reset role;
+    raise exception 'authenticated borró su importación directo';
+  exception when insufficient_privilege then null; end;
+  begin
+    update public.importaciones set terminada_en = now() + interval '1 year' where id = v_imp;
+    reset role;
+    raise exception 'authenticated cambió el plazo de su importación';
+  exception when insufficient_privilege then null; end;
+  -- Leerla, sí: es suya.
+  if not exists (select 1 from public.importaciones where id = v_imp) then reset role; raise exception 'no lee su importación'; end if;
+  reset role;
+  delete from public.importaciones where id = v_imp;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

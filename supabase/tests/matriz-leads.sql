@@ -1669,3 +1669,195 @@ begin
   perform pg_temp.espero(r, '22023', 'Una exportación lleva hasta 5.000 leads.', 'más de 5.000 filas');
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de deshacer una importación: quién puede, el plazo, y que sea idempotente
+-- `leads_importacion_deshacer` es de clase X: la usa sólo quien importó (aunque ya no tenga `leads.crear`),
+-- dentro de 24 h. Ajena, inexistente o de otro tipo dicen lo mismo. Cada importación de prueba usa
+-- teléfonos 7722xxxx.
+create or replace function pg_temp.importar(p_persona text, p_desde int, p_n int, p_terminar boolean) returns uuid language plpgsql as $$
+declare v_imp uuid := gen_random_uuid(); v_origen uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb;
+begin
+  r := pg_temp.bien(pg_temp.como(p_persona, format('select public.leads_importar_lote(%L, %s, %L)', v_imp, p_n,
+    (select jsonb_agg(jsonb_build_object('id', gen_random_uuid(), 'fila', g + 1, 'lead',
+       jsonb_build_object('nombre', 'Deshacer ' || (p_desde + g), 'telefono_principal', '7722' || lpad((p_desde + g)::text, 4, '0'),
+                          'origen_lead_id', v_origen))) from generate_series(1, p_n) g))));
+  if p_terminar then
+    r := pg_temp.bien(pg_temp.como(p_persona, format('select public.leads_importacion_terminar(%L, 0, 0)', v_imp)));
+  end if;
+  return v_imp;
+end $$;
+do $$ declare
+  u50 constant text := '00000000-0000-0000-0000-000000000050'; u51 constant text := '00000000-0000-0000-0000-000000000051';
+  u52 constant text := '00000000-0000-0000-0000-000000000052'; u53 constant text := '00000000-0000-0000-0000-000000000053';
+  u54 constant text := '00000000-0000-0000-0000-000000000054'; u55 constant text := '00000000-0000-0000-0000-000000000055';
+  u56 constant text := '00000000-0000-0000-0000-000000000056'; u59 constant text := '00000000-0000-0000-0000-000000000059';
+  v_imp uuid; v_otra uuid := gen_random_uuid(); v_baja uuid; p text; r jsonb; v_lote uuid; v_lead uuid;
+begin
+  create temp table if not exists matriz_cubiertas (rpc text primary key);
+  insert into matriz_cubiertas values ('leads_importacion_deshacer') on conflict do nothing;
+  v_imp := pg_temp.importar(u50, 0, 2, true);
+  -- Nadie más, ni la supervisión ni quien comparte: el mismo mensaje que para lo que no existe.
+  for p in select * from unnest(array[u51, u52, u53, u54, u59]) loop
+    r := pg_temp.como(p, format('select public.leads_importacion_deshacer(%L)', v_imp));
+    perform pg_temp.espero(r, '42501', 'No encontramos esta importación.', 'deshacer la importación ajena como ' || p);
+  end loop;
+  for p in select * from unnest(array[u55, u56]) loop
+    r := pg_temp.como(p, format('select public.leads_importacion_deshacer(%L)', v_imp));
+    perform pg_temp.espero(r, '42501', 'Tu cuenta está bloqueada o dada de baja.', 'deshacer de baja o bloqueado ' || p);
+  end loop;
+  r := pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', gen_random_uuid()));
+  perform pg_temp.espero(r, '42501', 'No encontramos esta importación.', 'deshacer una que no existe');
+  insert into public.importaciones (id, usuario_id, entidad, archivo_ruta, estado, iniciada_en, terminada_en)
+  values (v_otra, u50::uuid, 'vehiculos', 'x/y.csv', 'terminada', now(), now());
+  r := pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', v_otra));
+  perform pg_temp.espero(r, '42501', 'No encontramos esta importación.', 'deshacer una de vehículos');
+  if exists (select 1 from public.leads l join public.importaciones_leads il on il.lead_id = l.id where il.importacion_id = v_imp and l.eliminado_en is not null) then
+    raise exception 'un intento ajeno movió algo';
+  end if;
+
+  -- El plazo: un segundo antes de las 24 h se puede; un segundo después, no, y no se toca nada.
+  update public.importaciones set terminada_en = now() - interval '24 hours' - interval '1 second' where id = v_imp;
+  r := pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', v_imp));
+  perform pg_temp.espero(r, '22023', 'Pasaron más de 24 horas desde esta importación: ya no se puede deshacer.', 'fuera de plazo');
+  if (select deshecha_en from public.importaciones where id = v_imp) is not null then raise exception 'fuera de plazo marcó la importación'; end if;
+  update public.importaciones set terminada_en = now() - interval '24 hours' + interval '1 second' where id = v_imp;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', v_imp)));
+  if (r -> 'valor' ->> 'movidos')::int <> 2 or r -> 'valor' -> 'quedaron' <> '[]'::jsonb or (r -> 'valor' ->> 'repetido')::boolean then
+    raise exception 'deshacer en plazo: %', r;
+  end if;
+  -- El lote es de quien importó: lo ve en la papelera y lo puede restaurar sin `leads.eliminar` extra.
+  select deshecha_lote into v_lote from public.importaciones where id = v_imp;
+  if (select creado_por from public.lotes_papelera where id = v_lote) is distinct from u50::uuid then raise exception 'el lote no es de quien importó'; end if;
+  if (select count(*) from public.leads where lote_papelera_id = v_lote and eliminado_en is not null) <> 2 then raise exception 'no fueron 2 a la papelera'; end if;
+
+  -- Dos veces: lo mismo, sin error, sin mover nada más y con una sola constancia.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', v_imp)));
+  if (r -> 'valor' ->> 'movidos')::int <> 2 or not (r -> 'valor' ->> 'repetido')::boolean then raise exception 'la segunda vez: %', r; end if;
+  if (select count(*) from public.actividad where accion = 'leads.importacion_deshecha' and registro_id = v_imp::text) <> 1 then
+    raise exception 'deshacer dos veces dejó dos constancias';
+  end if;
+  if (select count(*) from public.lotes_papelera where resumen ->> 'importacion' = v_imp::text) <> 1 then raise exception 'dos lotes'; end if;
+  -- Ya deshecha y vencida: sigue contestando lo mismo (un reintento tardío no da error).
+  update public.importaciones set terminada_en = now() - interval '3 days' where id = v_imp;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', v_imp)));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_papelera_restaurar(%L, %L)', v_lote,
+    (select actualizado_en from public.lotes_papelera where id = v_lote))));
+  if (r -> 'valor' -> 'restaurados') is null or jsonb_array_length(r -> 'valor' -> 'restaurados') <> 2 then raise exception 'restaurar el lote: %', r; end if;
+
+  -- Sin cerrar (la pestaña se cerró a medias): se deshace y queda cerrada; un lote tardío ya no crea.
+  v_imp := pg_temp.importar(u50, 10, 3, false);
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', v_imp)));
+  if (r -> 'valor' ->> 'movidos')::int <> 3 then raise exception 'deshacer la abierta: %', r; end if;
+  if (select estado from public.importaciones where id = v_imp) <> 'terminada' then raise exception 'la abierta no se cerró'; end if;
+  r := pg_temp.como(u50, format('select public.leads_importar_lote(%L, 3, %L)', v_imp, jsonb_build_array(jsonb_build_object(
+    'id', gen_random_uuid(), 'fila', 9, 'lead', jsonb_build_object('nombre', 'Tardío', 'telefono_principal', '77229999')))));
+  perform pg_temp.espero(r, '22023', 'Esta importación ya terminó.', 'un lote después de deshacer');
+
+  -- Con 0 creadas: sale bien, no mueve nada y no deja lote.
+  v_imp := gen_random_uuid();
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importar_lote(%L, 1, %L)', v_imp, jsonb_build_array(jsonb_build_object(
+    'id', gen_random_uuid(), 'fila', 2, 'lead', jsonb_build_object('nombre', '', 'telefono_principal', '77228888'))))));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_terminar(%L, 0, 1)', v_imp)));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', v_imp)));
+  if (r -> 'valor' ->> 'movidos')::int <> 0 or (select deshecha_lote from public.importaciones where id = v_imp) is not null then
+    raise exception 'deshacer con 0 creadas: %', r;
+  end if;
+
+  -- Quien importó y ya no tiene ningún permiso (sin rol), pero sigue activo: deshace lo suyo.
+  v_baja := gen_random_uuid(); v_lead := gen_random_uuid();
+  insert into public.importaciones (id, usuario_id, entidad, estado, filas_total, filas_ok, iniciada_en, terminada_en)
+  values (v_baja, u59::uuid, 'leads', 'terminada', 1, 1, now(), now());
+  insert into public.leads (id, nombre, telefono_principal, origen_lead_id, creado_por)
+  values (v_lead, 'Deshacer sin rol', '59177227777', (select id from public.origenes_lead where clave = 'web'), u59::uuid);
+  insert into public.importaciones_leads (importacion_id, lead_id, fila) values (v_baja, v_lead, 2);
+  r := pg_temp.bien(pg_temp.como(u59, format('select public.leads_importacion_deshacer(%L)', v_baja)));
+  if (r -> 'valor' ->> 'movidos')::int <> 1 then raise exception 'sin rol: %', r; end if;
+
+  -- «Tus importaciones recientes»: sólo las propias, con números y sin datos de los leads.
+  r := pg_temp.bien(pg_temp.como(u50, 'select public.leads_importaciones_recientes()'));
+  if jsonb_array_length(r -> 'valor') < 3 then raise exception 'recientes de 0050: %', r; end if;
+  if (r -> 'valor')::text ~ '5917722|Deshacer [0-9]' then raise exception 'recientes lleva datos de los leads: %', r; end if;
+  if exists (select 1 from jsonb_array_elements(r -> 'valor') e where (e ->> 'id')::uuid = v_otra) then raise exception 'recientes trae una de vehículos'; end if;
+  r := pg_temp.bien(pg_temp.como(u51, 'select public.leads_importaciones_recientes()'));
+  if exists (select 1 from jsonb_array_elements(r -> 'valor') e where (e ->> 'id')::uuid in (select id from public.importaciones where usuario_id = u50::uuid)) then
+    raise exception 'recientes de otra persona trae las de 0050';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de deshacer una importación: de diez, sale exacto lo intacto y lo demás se cuenta por motivo
+do $$ declare
+  u50 constant text := '00000000-0000-0000-0000-000000000050'; u51 constant text := '00000000-0000-0000-0000-000000000051';
+  u52 constant text := '00000000-0000-0000-0000-000000000052'; u53 constant text := '00000000-0000-0000-0000-000000000053';
+  v_imp uuid; l uuid[]; r jsonb; v_q jsonb; v_det jsonb; v_rec jsonb;
+begin
+  v_imp := pg_temp.importar(u50, 100, 10, true);
+  -- Por fila del archivo (2 a 11), en el orden en que entraron.
+  select array_agg(il.lead_id order by il.fila) into l from public.importaciones_leads il where il.importacion_id = v_imp;
+  update public.leads set nombre = nombre || ' editado' where id = l[1];                                            -- fila 2
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.seguimiento_crear(%L, %L, %L)', gen_random_uuid(), l[2],
+    jsonb_build_object('tipo_id', (select id from public.tipos_seguimiento where activo order by orden limit 1), 'titulo', 'Llamó'))));  -- fila 3
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_transferir(%L, %L, %L)', l[3], u53, u50)));          -- fila 4
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_compartir(%L, %L)', l[4], u51)));                     -- fila 5
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_papelera_enviar(%L, %L)', gen_random_uuid(), array[l[5]])));  -- fila 6
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), l[6], '{"titulo": "Mezcla"}')));  -- fila 7
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.otorgar_portal(%L, %L, null)', l[7], 'clave-de-mezcla-1')));  -- fila 8
+  -- Fila 9: marcas propias y de la supervisión. No cuentan.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_favorito_poner(%L, true)', l[8])));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_tachado_poner(%L, true)', l[8])));
+  r := pg_temp.bien(pg_temp.como(u52, format('select public.lead_favorito_poner(%L, true)', l[8])));
+  -- Las filas 10 y 11 quedan intactas.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importaciones_recientes()')));
+  if (select (e ->> 'intactos')::int from jsonb_array_elements(r -> 'valor') e where (e ->> 'id')::uuid = v_imp) <> 3 then
+    raise exception 'recientes no cuenta 3 intactos: %', r;
+  end if;
+
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_deshacer(%L)', v_imp)));
+  if (r -> 'valor' ->> 'movidos')::int <> 3 then raise exception 'debían salir 3: %', r; end if;
+  v_q := r -> 'valor' -> 'quedaron';
+  if v_q is distinct from '[
+    {"motivo": "papelera", "cantidad": 1, "filas": [6]}, {"motivo": "otra_persona", "cantidad": 1, "filas": [4]},
+    {"motivo": "compartido", "cantidad": 1, "filas": [5]}, {"motivo": "editado", "cantidad": 1, "filas": [2]},
+    {"motivo": "seguimientos", "cantidad": 1, "filas": [3]}, {"motivo": "oportunidades", "cantidad": 1, "filas": [7]},
+    {"motivo": "portal", "cantidad": 1, "filas": [8]}]'::jsonb then
+    raise exception 'los motivos no cuadran: %', v_q;
+  end if;
+  if (select count(*) from public.leads where id = any (l[8:10]) and eliminado_en is not null) <> 3 then raise exception 'no salieron 9, 10 y 11'; end if;
+  if (select count(*) from public.leads where id = any (l[1:4] || l[6:7]) and eliminado_en is not null) <> 0 then raise exception 'salió uno tocado'; end if;
+  -- Las marcas no se borraron: van con el lead a la papelera.
+  if (select count(*) from public.leads_favoritos where lead_id = l[8]) <> 2 or not exists (select 1 from public.leads_tachados where lead_id = l[8]) then
+    raise exception 'las marcas se borraron';
+  end if;
+  -- Ni la respuesta ni la constancia llevan nombres ni teléfonos.
+  select detalle into v_det from public.actividad where accion = 'leads.importacion_deshecha' and registro_id = v_imp::text;
+  if v_det is distinct from '{"movidos": 3, "quedaron": 7, "purgados": 0, "por_motivo": {"papelera": 1, "otra_persona": 1, "compartido": 1, "editado": 1, "seguimientos": 1, "oportunidades": 1, "portal": 1}}'::jsonb then
+    raise exception 'la constancia: %', v_det;
+  end if;
+  if (r::text || v_det::text) ~ '5917722|Deshacer|Mezcla|Matriz' then raise exception 'se filtran datos: % %', r, v_det; end if;
+  v_rec := pg_temp.bien(pg_temp.como(u50, 'select public.leads_importaciones_recientes()'));
+  if (select e ->> 'estado' from jsonb_array_elements(v_rec -> 'valor') e where (e ->> 'id')::uuid = v_imp) <> 'deshecha' then
+    raise exception 'recientes no la muestra deshecha: %', v_rec;
+  end if;
+  -- Lo deshecho no estorba volver a importar: el teléfono en la papelera no cuenta como «ya existe».
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importar_lote(%L, 1, %L)', gen_random_uuid(), jsonb_build_array(jsonb_build_object(
+    'id', gen_random_uuid(), 'fila', 10, 'lead', jsonb_build_object('nombre', 'Otra vez', 'telefono_principal', '77220109',
+    'origen_lead_id', (select id from public.origenes_lead where clave = 'web')))))));
+  if r -> 'valor' -> 'filas' -> 0 ->> 'resultado' <> 'creado' then raise exception 'reimportar lo deshecho: %', r; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de deshacer una importación: los vínculos se borran 7 días después del plazo
+do $$ declare v_vieja uuid; v_nueva uuid; v_n int; begin
+  v_vieja := pg_temp.importar('00000000-0000-0000-0000-000000000050', 200, 2, true);
+  v_nueva := pg_temp.importar('00000000-0000-0000-0000-000000000050', 210, 2, true);
+  update public.importaciones set terminada_en = now() - interval '8 days' - interval '1 second' where id = v_vieja;
+  v_n := public.importaciones_vinculos_purgar();
+  if exists (select 1 from public.importaciones_leads where importacion_id = v_vieja) then raise exception 'quedaron vínculos viejos'; end if;
+  if (select count(*) from public.importaciones_leads where importacion_id = v_nueva) <> 2 then raise exception 'se borraron vínculos en plazo'; end if;
+  if not exists (select 1 from public.importaciones where id = v_vieja) then raise exception 'se borró la importación'; end if;
+  -- La app no escribe importaciones directo.
+  if has_table_privilege('authenticated', 'public.importaciones', 'insert') or has_table_privilege('authenticated', 'public.importaciones', 'delete')
+     or has_table_privilege('authenticated', 'public.importaciones', 'update') then
+    raise exception 'authenticated escribe importaciones directo';
+  end if;
+end $$;

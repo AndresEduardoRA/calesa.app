@@ -14,7 +14,13 @@ create table public.importaciones (
   iniciada_en   timestamptz,
   terminada_en  timestamptz,
   creado_en     timestamptz not null default now(),
-  check (archivo_ruta is not null or entidad = 'leads')
+  -- Deshacer una importación de leads (24 h): cuándo, a qué lote de la papelera fueron los intactos y
+  -- qué contestó (conteos, motivos y números de fila; nunca datos del archivo). Lo escribe la RPC.
+  deshecha_en        timestamptz,
+  deshecha_lote      uuid,
+  deshecha_resultado jsonb,
+  check (archivo_ruta is not null or entidad = 'leads'),
+  check ((deshecha_en is null) = (deshecha_resultado is null))
 );
 comment on table public.importaciones is 'Importación con vista previa validada por fila; importa las válidas aunque fallen algunas. La procesa la edge function importar-csv.';
 

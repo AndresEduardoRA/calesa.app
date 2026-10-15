@@ -150,3 +150,232 @@ export async function carrerasDeImportacion({ orquesta, carrera, espero, conecta
     }
   }
 }
+
+// Deshacer una importación (parte 8b). La RPC toma la fila de `importaciones` (la misma que toma cada lote)
+// y después los leads por id, y con todo bloqueado vuelve a mirar cada lead. Teléfonos 7130xxxx.
+let siguiente = 0
+
+// Una importación de `n` leads de la dueña, confirmada; `abierta` no la cierra.
+async function importacionDeLaDuena({ db, conectar, web }, n, { abierta = false } = {}) {
+  const importacion = crypto.randomUUID()
+  const filas = Array.from({ length: n }, (_, i) => {
+    siguiente += 1
+    return fila(i + 2, `7130${String(siguiente).padStart(4, '0')}`, `deshacer ${siguiente}`, web)
+  })
+  const cliente = await conectar()
+  try {
+    const r = await importar(cliente, duena, importacion, filas)
+    if (!r.ok) throw new Error(`importar para deshacer: ${r.mensaje}`)
+    if (!abierta) {
+      await comoPersona(cliente, duena)
+      await cliente.query('select public.leads_importacion_terminar($1, 0, 0)', [importacion])
+      await cliente.query('reset role')
+    }
+  } finally {
+    await cliente.end()
+  }
+  const { rows } = await db.query(
+    `select il.lead_id from public.importaciones_leads il where il.importacion_id = $1 order by il.fila`,
+    [importacion],
+  )
+  return { importacion, leads: rows.map((x) => x.lead_id), filas }
+}
+
+const enPapelera = async (db, ids) =>
+  (
+    await db.query(
+      `select count(*)::int as n from public.leads where id = any ($1::uuid[]) and eliminado_en is not null`,
+      [ids],
+    )
+  ).rows[0].n
+
+const version = async (db, lead) =>
+  (await db.query(`select actualizado_en::text as v from public.leads where id = $1`, [lead]))
+    .rows[0].v
+
+const deshacer = (importacion) => ({
+  persona: duena,
+  sql: 'public.leads_importacion_deshacer($1)',
+  args: [importacion],
+})
+
+export async function carrerasDeDeshacer({ orquesta, carrera, espero, conectar }) {
+  const terreno = { db: orquesta, conectar, web: await origen(orquesta) }
+  const motivos = (r) =>
+    Object.fromEntries((r.valor?.quedaron ?? []).map((q) => [q.motivo, q.filas]))
+
+  console.log('Deshacer mientras otra pestaña edita uno de los leads')
+  {
+    const { importacion, leads } = await importacionDeLaDuena(terreno, 3)
+    const r = await carrera(orquesta, {
+      a: {
+        persona: duena,
+        sql: `public.lead_guardar($1, $2, '{"nombre": "Carreras editado al deshacer"}')`,
+        args: [leads[0], await version(orquesta, leads[0])],
+      },
+      b: deshacer(importacion),
+    })
+    espero(
+      'el editado se queda («editado», fila 2) y salen los otros dos',
+      r.a.ok &&
+        r.b.ok &&
+        r.b.valor.movidos === 2 &&
+        JSON.stringify(motivos(r.b)) === '{"editado":[2]}' &&
+        (await enPapelera(orquesta, leads)) === 2,
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Editar mientras se deshace: la edición llega tarde')
+  {
+    const { importacion, leads } = await importacionDeLaDuena(terreno, 2)
+    const v = await version(orquesta, leads[0])
+    const r = await carrera(orquesta, {
+      a: deshacer(importacion),
+      b: {
+        persona: duena,
+        sql: `public.lead_guardar($1, $2, '{"nombre": "Carreras tarde"}')`,
+        args: [leads[0], v],
+      },
+    })
+    espero(
+      'salen los dos y la edición no escribe sobre un lead que ya está en la papelera',
+      r.a.ok && r.a.valor.movidos === 2 && !r.b.ok && (await enPapelera(orquesta, leads)) === 2,
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Deshacer mientras se transfiere uno de los leads')
+  {
+    const { importacion, leads } = await importacionDeLaDuena(terreno, 2)
+    const r = await carrera(orquesta, {
+      a: {
+        persona: duena,
+        sql: 'public.lead_transferir($1, $2, $3)',
+        args: [leads[1], PERSONAS.destino, duena],
+      },
+      b: deshacer(importacion),
+    })
+    espero(
+      'el transferido se queda («otra_persona», fila 3) y el otro sale',
+      r.a.ok &&
+        r.b.ok &&
+        r.b.valor.movidos === 1 &&
+        JSON.stringify(motivos(r.b)) === '{"otra_persona":[3]}',
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Deshacer mientras el mismo lead va a la papelera a mano')
+  {
+    const { importacion, leads } = await importacionDeLaDuena(terreno, 2)
+    const r = await carrera(orquesta, {
+      a: {
+        persona: duena,
+        sql: 'public.leads_papelera_enviar($1, $2::uuid[])',
+        args: [crypto.randomUUID(), [leads[0]]],
+      },
+      b: deshacer(importacion),
+    })
+    const {
+      rows: [lotes],
+    } = await orquesta.query(
+      `select count(distinct lote_papelera_id)::int as n from public.leads where id = any ($1::uuid[])`,
+      [leads],
+    )
+    espero(
+      'el de la papelera manual se cuenta («papelera», fila 2), el otro sale en otro lote',
+      r.a.ok &&
+        r.b.ok &&
+        r.b.valor.movidos === 1 &&
+        JSON.stringify(motivos(r.b)) === '{"papelera":[2]}' &&
+        lotes.n === 2,
+      { a: r.a, b: r.b, lotes },
+    )
+  }
+
+  console.log('Deshacer mientras entra el último lote de la misma importación')
+  {
+    const { importacion, leads } = await importacionDeLaDuena(terreno, 2, { abierta: true })
+    siguiente += 1
+    const tardia = fila(
+      4,
+      `7130${String(siguiente).padStart(4, '0')}`,
+      `deshacer ${siguiente}`,
+      terreno.web,
+    )
+    const r = await carrera(orquesta, {
+      a: {
+        persona: duena,
+        sql: 'public.leads_importar_lote($1, 3, $2::jsonb)',
+        args: [importacion, JSON.stringify([tardia])],
+      },
+      b: deshacer(importacion),
+    })
+    espero(
+      'el deshacer espera al lote y se lleva también lo que entró en él',
+      r.a.ok &&
+        r.a.valor.filas[0].resultado === 'creado' &&
+        r.b.ok &&
+        r.b.valor.movidos === 3 &&
+        (await enPapelera(orquesta, [...leads, tardia.id])) === 3,
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Un lote que llega mientras se deshace')
+  {
+    const { importacion } = await importacionDeLaDuena(terreno, 2, { abierta: true })
+    siguiente += 1
+    const tardia = fila(
+      4,
+      `7130${String(siguiente).padStart(4, '0')}`,
+      `deshacer ${siguiente}`,
+      terreno.web,
+    )
+    const r = await carrera(orquesta, {
+      a: deshacer(importacion),
+      b: {
+        persona: duena,
+        sql: 'public.leads_importar_lote($1, 3, $2::jsonb)',
+        args: [importacion, JSON.stringify([tardia])],
+      },
+    })
+    const {
+      rows: [cuenta],
+    } = await orquesta.query(`select count(*)::int as n from public.leads where id = $1`, [
+      tardia.id,
+    ])
+    espero(
+      'el lote espera y ya no crea nada: «Esta importación ya terminó.»',
+      r.a.ok && r.a.valor.movidos === 2 && !r.b.ok && r.b.codigo === '22023' && cuenta.n === 0,
+      { a: r.a, b: r.b, cuenta },
+    )
+  }
+
+  console.log('Dos deshacer a la vez (doble clic, o dos pestañas)')
+  {
+    const { importacion, leads } = await importacionDeLaDuena(terreno, 3)
+    const r = await carrera(orquesta, { a: deshacer(importacion), b: deshacer(importacion) })
+    const {
+      rows: [cuenta],
+    } = await orquesta.query(
+      `select (select count(*)::int from public.lotes_papelera where resumen ->> 'importacion' = $1) as lotes,
+              (select count(*)::int from public.actividad where accion = 'leads.importacion_deshecha' and registro_id = $1) as constancias`,
+      [importacion],
+    )
+    espero(
+      'uno mueve los tres; el otro espera y devuelve lo mismo como repetido, sin otro lote',
+      r.a.ok &&
+        r.b.ok &&
+        r.a.valor.movidos === 3 &&
+        r.b.valor.movidos === 3 &&
+        r.a.valor.repetido === false &&
+        r.b.valor.repetido === true &&
+        cuenta.lotes === 1 &&
+        cuenta.constancias === 1 &&
+        (await enPapelera(orquesta, leads)) === 3,
+      { a: r.a, b: r.b, cuenta },
+    )
+  }
+}
