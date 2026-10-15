@@ -11,8 +11,8 @@ import {
 } from '@/modules/origenes/client'
 import { RUTAS } from '@/shared/lib/rutas'
 import { useAtajo } from '@/shared/ui/atajos'
-import { Button } from '@/shared/ui/button'
 import { Drawer } from '@/shared/ui/drawer'
+import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import { avisarExito } from '@/shared/ui/toasts'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import type { DisponibilidadDeApibara } from '../../../entities/apibara'
@@ -46,35 +46,6 @@ type PropsDeContenido = Datos & {
   vehiculo: Vehiculo | null
   alCerrar: () => void
   alCrear: () => void
-}
-
-type PropsDelPie = {
-  idFormulario: string
-  esAlta: boolean
-  enCurso: boolean
-  alCancelar: () => void
-  alGuardarYSeguir: () => void
-}
-
-// Los botones del panel, siempre a la vista al pie aunque el formulario sea largo. El panel
-// desplaza su contenido con un relleno de 1rem y «pegajoso» se mide contra el borde de adentro:
-// `-bottom-4` lo lleva hasta el borde de verdad, para que no se vea contenido por debajo.
-function PieDelPanel({ idFormulario, esAlta, enCurso, alCancelar, alGuardarYSeguir }: PropsDelPie) {
-  return (
-    <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-wrap justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) p-4">
-      <Button variant="ghost" onClick={alCancelar} disabled={enCurso}>
-        Cancelar
-      </Button>
-      {esAlta ? (
-        <Button variant="outline" onClick={alGuardarYSeguir} disabled={enCurso}>
-          Guardar y cargar otro
-        </Button>
-      ) : null}
-      <Button type="submit" form={idFormulario} disabled={enCurso}>
-        {enCurso ? 'Guardando…' : 'Guardar'}
-      </Button>
-    </div>
-  )
 }
 
 // «Vehículo #12 creado», con un atajo a su ficha.

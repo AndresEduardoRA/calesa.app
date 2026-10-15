@@ -4,9 +4,7 @@ import { useRef } from 'react'
 import { agruparCampos, type CampoDeLayout } from '@/modules/origenes/client'
 import { enfocarPrimerError } from '@/shared/lib/formularios'
 import { RUTAS } from '@/shared/lib/rutas'
-import { Aviso } from '@/shared/ui/aviso'
-import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
-import { Button } from '@/shared/ui/button'
+import { AvisosDelFormulario } from '@/shared/ui/avisos-del-formulario'
 import { BloqueDeCampos } from '@/shared/ui/campos'
 import { BLOQUES_COMUNES } from '../../../entities/comunes'
 import type { Fuentes } from '../../../entities/esquema'
@@ -23,48 +21,6 @@ type Props = {
   // null = un alta.
   vehiculo: Vehiculo | null
   alRecargar: () => void
-}
-
-// Lo que pasa con el guardado, dicho arriba del formulario: sin conexión, esperando para
-// reintentar, un conflicto con otra persona o un rechazo que no es de ningún campo.
-function AvisosDelFormulario({
-  estado,
-  vehiculo,
-  alRecargar,
-}: Omit<Props, 'id' | 'fuentes' | 'campos'>) {
-  return (
-    <>
-      {estado.enLinea ? null : (
-        <Aviso tono="aviso">
-          {estado.esperandoConexion
-            ? 'No hay conexión. Lo que escribiste sigue acá y se va a guardar solo cuando vuelva.'
-            : 'No hay conexión. Puedes seguir escribiendo: se guarda cuando vuelva.'}
-        </Aviso>
-      )}
-      {estado.enLinea && estado.esperandoConexion ? (
-        <Aviso tono="aviso">
-          <p>No pudimos llegar al servidor. Lo que escribiste sigue acá.</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 min-h-11 md:min-h-7"
-            onClick={() => void estado.enviar(false)}
-            disabled={estado.enCurso}
-          >
-            Reintentar
-          </Button>
-        </Aviso>
-      ) : null}
-      {estado.conflicto ? (
-        <AvisoDeConflicto
-          mensaje={estado.conflicto}
-          hrefVer={vehiculo ? `${RUTAS.vehiculos}/${vehiculo.id}` : undefined}
-          alRecargar={alRecargar}
-        />
-      ) : null}
-      {estado.aviso ? <Aviso tono="peligro">{estado.aviso}</Aviso> : null}
-    </>
-  )
 }
 
 // El formulario de un vehículo: los datos comunes en dos bloques y un bloque por cada grupo del
@@ -99,7 +55,16 @@ export function FormularioDeVehiculo({ id, estado, fuentes, campos, vehiculo, al
         void enviar()
       }}
     >
-      <AvisosDelFormulario estado={estado} vehiculo={vehiculo} alRecargar={alRecargar} />
+      <AvisosDelFormulario
+        enLinea={estado.enLinea}
+        esperandoConexion={estado.esperandoConexion}
+        enCurso={estado.enCurso}
+        conflicto={estado.conflicto}
+        aviso={estado.aviso}
+        hrefVer={vehiculo ? `${RUTAS.vehiculos}/${vehiculo.id}` : undefined}
+        alReintentar={() => void estado.enviar(false)}
+        alRecargar={alRecargar}
+      />
       {BLOQUES_COMUNES.map((bloque, indice) => (
         <BloqueDeCampos
           key={bloque.clave}

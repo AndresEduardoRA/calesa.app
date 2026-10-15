@@ -4,6 +4,7 @@
 export { BloqueDeCampos } from './bloque-de-campos'
 export { CampoDeFormulario } from './campo-de-formulario'
 export { cerrarConAviso } from './cerrar-con-aviso'
+export { Dato, DatosPorGrupo, RejillaDeDatos } from './datos-por-grupo'
 export { EditorDeCampos } from './editor-de-campos'
 export { edicionesDeCampos } from './ediciones'
 export { ValorMostrado } from './valor-mostrado'

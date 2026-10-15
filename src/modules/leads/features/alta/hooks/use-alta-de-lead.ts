@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ValorDeFormulario } from '@/shared/lib/campos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
-import { useEnLinea } from '@/shared/ui/use-en-linea'
+import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import { CLAVE_DEL_ALTA, valoresIniciales, type ContextoDeAlta } from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import { telefonoParaMostrar } from '../../../entities/telefono'
@@ -22,22 +22,6 @@ type Args = {
   // El drawer está abierto: sólo entonces se verifica el teléfono y se repone un borrador.
   abierto: boolean
   alGuardar: (guardado: Guardado) => void
-}
-
-// Al volver la conexión, el guardado que quedó esperando sale solo. Es seguro repetirlo: el intento
-// lleva su id y guardar lo ya guardado devuelve lo mismo.
-function useReintentoAlVolver(pendiente: boolean, enviar: () => Promise<boolean>): boolean {
-  const enLinea = useEnLinea()
-  const ultimo = useRef(enviar)
-  useEffect(() => {
-    ultimo.current = enviar
-  })
-  useEffect(() => {
-    if (enLinea && pendiente) {
-      void ultimo.current()
-    }
-  }, [enLinea, pendiente])
-  return enLinea
 }
 
 // El borrador se repone la primera vez que se abre el drawer (una recarga a mitad de tipear): volver
@@ -97,7 +81,9 @@ export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Ar
       alGuardar(guardado)
     },
   })
-  const enLinea = useReintentoAlVolver(estado.pendiente, enviar)
+  // Al volver la conexión sale solo lo que quedó esperando: el intento lleva su id y guardar lo ya
+  // guardado devuelve lo mismo.
+  const enLinea = useReintentoAlVolver(estado.pendiente ? true : null, () => enviar())
 
   return {
     paso: estado.paso,

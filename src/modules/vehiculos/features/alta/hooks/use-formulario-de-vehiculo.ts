@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ErrorApp } from '@/shared/lib/errores'
 import { useAtajo } from '@/shared/ui/atajos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
-import { useEnLinea } from '@/shared/ui/use-en-linea'
+import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import { validarVehiculo, type Fuentes } from '../../../entities/esquema'
 import type { DatosDeSubasta } from '../../../entities/subasta'
 import {
@@ -110,25 +110,6 @@ function useValoresIniciales(fuentes: Fuentes, vehiculo: Vehiculo | null): Valor
   )
 }
 
-// Al volver la conexión, el guardado que quedó esperando sale solo. Es seguro repetirlo: el alta
-// lleva su id y guardar lo ya guardado no es un conflicto.
-function useReintentoAlVolver(
-  pendiente: Estado['pendiente'],
-  enviar: (seguir: boolean) => Promise<boolean>,
-): boolean {
-  const enLinea = useEnLinea()
-  const ultimo = useRef(enviar)
-  useEffect(() => {
-    ultimo.current = enviar
-  })
-  useEffect(() => {
-    if (enLinea && pendiente) {
-      void ultimo.current(pendiente.seguir)
-    }
-  }, [enLinea, pendiente])
-  return enLinea
-}
-
 // El estado de dar de alta o editar un vehículo: valida con el esquema del layout antes de enviar,
 // pinta los motivos junto a cada campo, guarda un borrador de lo escrito, muestra el conflicto si
 // otra persona lo cambió y, si se cae la conexión, conserva todo y reintenta al volver.
@@ -202,7 +183,9 @@ export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, a
     return false
   }
 
-  const enLinea = useReintentoAlVolver(estado.pendiente, enviar)
+  // Al volver la conexión sale solo lo que quedó esperando: el alta lleva su id y guardar lo ya
+  // guardado no es un conflicto.
+  const enLinea = useReintentoAlVolver(estado.pendiente, ({ seguir }) => enviar(seguir))
   useAtajo('guardar', () => void enviar(false), activo)
   // «Guardar y seguir»: en un alta deja el formulario listo para el siguiente.
   useAtajo('guardarYSeguir', () => void enviar(vehiculo === null), activo)
