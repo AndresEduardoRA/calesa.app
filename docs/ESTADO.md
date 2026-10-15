@@ -24,8 +24,8 @@
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
 Queda la **8b)**: «Deshacer la importación» durante 24 h (RPC propia: manda a la papelera, como un solo lote, lo
-importado que sigue intacto y dice qué quedó fuera) y después el cierre de la fase. Abierto del CSV: lotes de 50
-(100 cabe: `FILAS_POR_LOTE`); `datos` (Fase 9) reutiliza `shared/lib/csv`.
+importado que sigue intacto y dice qué quedó fuera) y después el cierre de la fase. Abierto: lotes de 50 (100 cabe)
+y un fallo de e2e sin reproducir en `leads-alta-casos` (`docs/BITACORA.md`).
 
 ## Pendientes que se arrastran
 
