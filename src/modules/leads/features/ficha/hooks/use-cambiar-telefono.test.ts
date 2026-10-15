@@ -164,7 +164,7 @@ describe('useCambiarTelefono: lo que contesta la base', () => {
 })
 
 describe('useCambiarTelefono: conflicto, versión y conexión', () => {
-  it('un conflicto conserva lo tipeado y «Recargar» sólo vuelve a leer', async () => {
+  it('un conflicto conserva lo tipeado; «Recargar» vuelve a leer y se envía con la versión nueva', async () => {
     cambiar.mockResolvedValue(error('conflicto', 'Rosa cambió este lead hace 3 min.'))
     const hook = montar()
     escribir(hook, '71234567')
@@ -175,6 +175,10 @@ describe('useCambiarTelefono: conflicto, versión y conexión', () => {
       hook.result.current.recargar()
     })
     expect(refrescar).toHaveBeenCalledOnce()
+    // Hasta que llega la versión nueva el conflicto sigue y no se envía (chocaría otra vez).
+    expect(hook.result.current.conflicto).toBe('Rosa cambió este lead hace 3 min.')
+    expect(hook.result.current.puedeEnviar).toBe(false)
+    hook.rerender({ ...FICHA, actualizadoEn: '2026-10-14T12:10:00.000Z' })
     expect(hook.result.current.conflicto).toBeNull()
     expect(hook.result.current.valor).toBe('71234567')
   })

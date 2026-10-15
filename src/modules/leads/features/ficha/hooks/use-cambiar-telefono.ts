@@ -82,10 +82,24 @@ function comoSeGuarda(
 // El estado de «Cambiar teléfono principal»: el número verificado al tipear (sin contarse a sí
 // mismo), los motivos junto al campo, el conflicto con otra persona y, si se cae la conexión, lo
 // escrito conservado y el envío reintentado al volver (cambiar al mismo número no es un conflicto).
+// El conflicto se va cuando llega la versión (o el principal) nueva que trae «Recargar», no al pulsarlo:
+// enviar en ese instante mandaría la vieja y volvería a chocar.
+function useConflictoHastaLaVersionNueva<E extends { conflicto: string | null }>(
+  vigente: string,
+  setEstado: (cambio: (antes: E) => E) => void,
+) {
+  const [vista, setVista] = useState(vigente)
+  if (vista !== vigente) {
+    setVista(vigente)
+    setEstado((antes) => (antes.conflicto === null ? antes : { ...antes, conflicto: null }))
+  }
+}
+
 // Un número que ya existe vuelve como valor: se dice junto al campo y no cambia nada.
 export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }: Args) {
   const router = useRouter()
   const [estado, setEstado] = useState(() => limpio({ [CLAVE]: '' }))
+  useConflictoHastaLaVersionNueva(`${ficha.actualizadoEn}|${ficha.telefono}`, setEstado)
   const escrito = String(estado.valores[CLAVE] ?? '')
   const codigoDePais = ficha.telefonoCc
 
@@ -145,8 +159,8 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
     esperandoConexion: estado.pendiente !== null,
     enLinea,
     enCurso: cambio.isPending,
-    // Con un número que ya existe, es el mismo o no es un teléfono, no se envía.
-    puedeEnviar: normalizado.ok && !(aviso?.bloquea ?? false),
+    // Con un número que ya existe, es el mismo, no es un teléfono o un conflicto sin la versión nueva, no se envía.
+    puedeEnviar: normalizado.ok && !(aviso?.bloquea ?? false) && estado.conflicto === null,
     // Lo que se sabe del teléfono que se tipea, para el campo.
     telefono: {
       verificando: activo && !esElMismo && verificacion.verificando,
@@ -167,7 +181,6 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
     enviar,
     // «Recargar» trae la versión y el número vigentes y conserva lo que se tipeó.
     recargar: () => {
-      setEstado((antes) => ({ ...antes, conflicto: null }))
       router.refresh()
     },
   }

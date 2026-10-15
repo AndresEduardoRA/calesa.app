@@ -192,7 +192,9 @@ test('dos ventanas cambian a la vez: el conflicto conserva lo tipeado y «Recarg
   await expect(panel.getByLabel('Teléfono nuevo')).toHaveValue(mio)
   expect(await telefonoDeLead(lead.id)).toBe(completoCon(t, suyo))
 
-  // «Recargar» conserva lo tipeado; ahora sí cambia, desde el principal vigente.
+  // «Recargar» conserva lo tipeado; ahora sí cambia, desde el principal vigente. Hasta que llega la
+  // versión nueva no se envía (chocaría otra vez).
+  await expect(panel.getByRole('button', { name: 'Cambiar teléfono' })).toBeDisabled()
   await panel.getByRole('button', { name: 'Recargar' }).click()
   await expect(panel.getByText(/No se guardó nada/)).toBeHidden()
   await expect(panel.getByLabel('Teléfono nuevo')).toHaveValue(mio)
