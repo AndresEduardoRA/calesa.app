@@ -156,3 +156,48 @@ describe('limpiarFiltros y parametrosDeFiltros', () => {
     expect(leerFiltros(ESQUEMA, guardado)).toEqual(valores)
   })
 })
+
+describe('una elección con valor por defecto', () => {
+  const TACHADOS: DefFiltro = {
+    tipo: 'eleccion',
+    clave: 'tachados',
+    etiqueta: 'Tachados',
+    porDefecto: 'ocultar',
+    opciones: [
+      { valor: 'ocultar', etiqueta: 'Ocultarlos' },
+      { valor: 'incluir', etiqueta: 'Mostrarlos también' },
+      { valor: 'solo', etiqueta: 'Solo los tachados' },
+    ],
+  }
+  const conTachados: EsquemaDeFiltros = { busqueda: null, filtros: [TACHADOS] }
+
+  it('el valor por defecto, uno raro o ninguno no filtran ni cuentan', () => {
+    for (const url of [{}, { tachados: 'ocultar' }, { tachados: 'raro' }, { tachados: '' }]) {
+      const valores = leerFiltros(conTachados, url)
+      expect(valores.porClave).toEqual({})
+      expect(hayFiltros(valores)).toBe(false)
+    }
+  })
+
+  it('otra opción sí, y se escribe; el valor por defecto se borra de la URL', () => {
+    expect(leerFiltros(conTachados, { tachados: 'solo' }).porClave).toEqual({
+      tachados: { tipo: 'eleccion', valor: 'solo' },
+    })
+    expect(escribirFiltro(TACHADOS, { tipo: 'eleccion', valor: 'incluir' })).toEqual({
+      tachados: 'incluir',
+    })
+    expect(escribirFiltro(TACHADOS, { tipo: 'eleccion', valor: 'ocultar' })).toEqual({
+      tachados: null,
+    })
+    expect(clavesDeUrl(conTachados)).toEqual(['tachados'])
+  })
+
+  it('una vista guarda sólo lo que no es el valor por defecto', () => {
+    expect(
+      parametrosDeFiltros(conTachados, leerFiltros(conTachados, { tachados: 'incluir' })),
+    ).toEqual({
+      tachados: 'incluir',
+    })
+    expect(parametrosDeFiltros(conTachados, leerFiltros(conTachados, {}))).toEqual({})
+  })
+})

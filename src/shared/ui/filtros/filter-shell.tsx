@@ -40,6 +40,34 @@ function BotonDeFiltros(props: { cantidad: number; abierto: boolean; alPulsar: (
   )
 }
 
+// En el celular el panel va en una hoja inferior (`?panel=filtros`), con «Limpiar» y «Ver resultados».
+function HojaDeFiltros(props: {
+  abierta: boolean
+  hayFiltros: boolean
+  alLimpiar: () => void
+  alCerrar: () => void
+  children: ReactNode
+}) {
+  return (
+    <Drawer
+      lado="bottom"
+      titulo="Filtros"
+      abierto={props.abierta}
+      alCerrar={props.alCerrar}
+      pie={
+        <div className="flex w-full justify-between gap-2">
+          <Button variant="ghost" onClick={props.alLimpiar} disabled={!props.hayFiltros}>
+            Limpiar
+          </Button>
+          <Button onClick={props.alCerrar}>Ver resultados</Button>
+        </div>
+      }
+    >
+      {props.children}
+    </Drawer>
+  )
+}
+
 type Props = {
   esquema: EsquemaDeFiltros
   // El menú de vistas guardadas, si el listado las tiene.
@@ -48,6 +76,8 @@ type Props = {
   acciones?: ReactNode
   // Al pie del panel de filtros.
   pieDelPanel?: ReactNode
+  // Al pie de una sección del panel (por su clave).
+  accionesDeSeccion?: Readonly<Record<string, ReactNode>>
   // La lista. Adentro puede usar `useFiltrosDelListado()`.
   children: ReactNode
 }
@@ -55,12 +85,20 @@ type Props = {
 // El armazón de un listado con filtros: búsqueda, botón «Filtros», chips de lo que está activo y
 // «Limpiar»; el panel al costado en escritorio (plegable) y en una hoja inferior en el celular.
 // Todo el estado vive en la URL. No sabe de ningún módulo: cada listado le pasa su esquema.
-export function FilterShell({ esquema, vistas, acciones, pieDelPanel, children }: Props) {
+export function FilterShell(props: Props) {
+  const { esquema, vistas, acciones, pieDelPanel, accionesDeSeccion, children } = props
   const filtros = useFiltros(esquema)
   const esEscritorio = useEsEscritorio()
   const [plegado, setPlegado] = useState(false)
   const hayPanel = esquema.filtros.length > 0 || pieDelPanel !== undefined
-  const panel = <PanelDeFiltros filtros={esquema.filtros} pie={pieDelPanel} />
+  const panel = (
+    <PanelDeFiltros
+      filtros={esquema.filtros}
+      secciones={esquema.secciones}
+      accionesDeSeccion={accionesDeSeccion}
+      pie={pieDelPanel}
+    />
+  )
 
   return (
     <ContextoDeFiltros value={filtros}>
@@ -115,22 +153,14 @@ export function FilterShell({ esquema, vistas, acciones, pieDelPanel, children }
           </div>
         </div>
       </div>
-      <Drawer
-        lado="bottom"
-        titulo="Filtros"
-        abierto={filtros.panelAbierto && !esEscritorio}
+      <HojaDeFiltros
+        abierta={filtros.panelAbierto && !esEscritorio}
+        hayFiltros={filtros.hayFiltros}
+        alLimpiar={filtros.limpiar}
         alCerrar={filtros.cerrarPanel}
-        pie={
-          <div className="flex w-full justify-between gap-2">
-            <Button variant="ghost" onClick={filtros.limpiar} disabled={!filtros.hayFiltros}>
-              Limpiar
-            </Button>
-            <Button onClick={filtros.cerrarPanel}>Ver resultados</Button>
-          </div>
-        }
       >
         {panel}
-      </Drawer>
+      </HojaDeFiltros>
     </ContextoDeFiltros>
   )
 }

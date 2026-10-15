@@ -103,6 +103,12 @@ export type PedidoDeListado = {
 // Una página de leads de `leads_vista`. Lo que hay lo decide la RLS: acá no se filtra por permiso.
 export type BuscadorDeLeads = (pedido: PedidoDeListado) => Promise<Resultado<Pagina<FilaDeLead>>>
 
+// Cuántos leads cumplen esas condiciones, entre los que quien mira ve (todas las páginas): el
+// aviso de tachados ocultos.
+export type ContadorDeLeads = (
+  condiciones: readonly CondicionDeLead[],
+) => Promise<Resultado<number>>
+
 // Todos los orígenes de lead, también los desactivados: un lead con uno apagado se sigue nombrando.
 export type LectorDeOrigenesDeLead = () => Promise<Resultado<OrigenConEstado[]>>
 

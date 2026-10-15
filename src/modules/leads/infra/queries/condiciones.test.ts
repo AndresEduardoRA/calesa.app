@@ -19,6 +19,7 @@ function anotador(pedidos: string[] = []): Anotador {
     lt: (columna, valor) => con(`${columna}=lt.${String(valor)}`),
     ilike: (columna, patron) => con(`${columna}=ilike.${patron}`),
     contains: (columna, valor) => con(`${columna}=cs.${JSON.stringify(valor)}`),
+    overlaps: (columna, valores) => con(`${columna}=ov.{${valores.join(',')}}`),
     or: (filtros) => con(`or=(${filtros})`),
   }
 }
@@ -57,5 +58,15 @@ describe('aplicarCondicionesDeLeads', () => {
     expect(pedidosDe({ tipo: 'atributo_texto', clave: 'ciudad', texto: 'cruz' })).toEqual([
       'atributos->>ciudad=ilike.*cruz*',
     ])
+  })
+
+  it('las marcas de quien mira van sobre las columnas de la vista', () => {
+    expect(
+      pedidosDe(
+        { tipo: 'tachado', valor: false },
+        { tipo: 'favorito', valor: true },
+        { tipo: 'etiquetas', ids: ['a', 'b'] },
+      ),
+    ).toEqual(['esta_tachado=eq.false', 'es_favorito=eq.true', 'etiquetas=ov.{a,b}'])
   })
 })

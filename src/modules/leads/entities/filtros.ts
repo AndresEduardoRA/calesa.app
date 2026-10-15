@@ -1,7 +1,8 @@
-// Los filtros del listado de leads: dos fijos (tipo y origen del lead), la búsqueda por nombre o
-// número y uno por cada campo «filtrable» del layout. De acá salen el esquema que dibuja
-// `FilterShell` y las condiciones que `infra/` le pasa a la base. Lo que decide qué filas hay es la
-// RLS: filtrar por un privado ajeno no encuentra nada, y la pantalla lo dice.
+// Los filtros del listado de leads, en dos secciones: «Tus marcas» (tachados, favoritos y
+// etiquetas: `filtros-de-marcas.ts`) y «Datos del lead» (tipo y origen del lead, y uno por cada
+// campo «filtrable» del layout), más la búsqueda por nombre o número. De acá salen el esquema que
+// dibuja `FilterShell` y las condiciones que `infra/` le pasa a la base. Lo que decide qué filas hay
+// es la RLS: filtrar por un privado ajeno no encuentra nada, y la pantalla lo dice.
 import {
   camposFiltrables,
   condicionDeCampo,
@@ -13,6 +14,16 @@ import {
 } from '@/shared/lib/filtros'
 import type { OrigenDeLead } from './alta'
 import type { CampoDeLead } from './campo'
+import type { Etiqueta } from './etiqueta'
+import {
+  FILTRO_ETIQUETA,
+  SECCIONES_DEL_LISTADO,
+  SECCION_DATOS,
+  condicionesDeMarcas,
+  etiquetasDescartadas,
+  filtrosDeMarcas,
+  type CondicionDeMarca,
+} from './filtros-de-marcas'
 import { ETIQUETA_DEL_TIPO, TIPOS_DEL_LEAD } from './listado'
 
 export const FILTRO_TIPO = 'tipo'
@@ -31,14 +42,18 @@ type Fuentes = {
   origenes: readonly OrigenDeLead[]
   // Tiene el alcance «todos»: para él un filtro privado necesita su aclaración.
   verTodos: boolean
+  // Las de quien mira: las opciones del filtro de etiquetas.
+  etiquetas: readonly Etiqueta[]
 }
 
-export function esquemaDeFiltrosDeLeads({ campos, origenes, verTodos }: Fuentes): EsquemaDeFiltros {
+export function esquemaDeFiltrosDeLeads(fuentes: Fuentes): EsquemaDeFiltros {
+  const { campos, origenes, verTodos } = fuentes
   const fijos: EsquemaDeFiltros['filtros'][number][] = [
     {
       tipo: 'opciones',
       clave: FILTRO_TIPO,
       etiqueta: 'Tipo',
+      seccion: SECCION_DATOS,
       opciones: TIPOS_DEL_LEAD.map((tipo) => ({ valor: tipo, etiqueta: ETIQUETA_DEL_TIPO[tipo] })),
     },
   ]
@@ -47,18 +62,23 @@ export function esquemaDeFiltrosDeLeads({ campos, origenes, verTodos }: Fuentes)
       tipo: 'opciones',
       clave: FILTRO_ORIGEN,
       etiqueta: 'Origen del lead',
+      seccion: SECCION_DATOS,
       opciones: origenes.map((origen) => ({ valor: origen.id, etiqueta: origen.nombre })),
     })
   }
-  const delLayout = camposFiltrables(campos).flatMap(
-    (campo) =>
-      filtroDeCampo(
-        campo,
-        PREFIJO_DE_FILTRO,
-        campo.soloCartera && verTodos ? AYUDA_DE_PRIVADO : undefined,
-      ) ?? [],
-  )
-  return { busqueda: BUSQUEDA, filtros: [...fijos, ...delLayout] }
+  const delLayout = camposFiltrables(campos).flatMap((campo) => {
+    const filtro = filtroDeCampo(
+      campo,
+      PREFIJO_DE_FILTRO,
+      campo.soloCartera && verTodos ? AYUDA_DE_PRIVADO : undefined,
+    )
+    return filtro ? [{ ...filtro, seccion: SECCION_DATOS }] : []
+  })
+  return {
+    busqueda: BUSQUEDA,
+    secciones: SECCIONES_DEL_LISTADO,
+    filtros: [...filtrosDeMarcas(fuentes.etiquetas), ...fijos, ...delLayout],
+  }
 }
 
 // Lo que se le pide a la base, sin decir cómo: `infra/queries/condiciones.ts` lo traduce.
@@ -69,6 +89,7 @@ export type CondicionDeLead =
   // «Míos»: el lead está en la cartera de quien mira.
   | { tipo: 'en_cartera' }
   | CondicionDeAtributo
+  | CondicionDeMarca
 
 // Un número de lead son hasta 15 dígitos: cabe entero en un `number` sin perder nada.
 const NUMERO_DE_LEAD = /^\d{1,15}$/
@@ -121,21 +142,25 @@ export function condicionesDeLeads(
       condiciones.push({ tipo: 'columna_en', columna: 'origen_lead_id', valores: valor.valores })
     }
   }
-  return condiciones
+  return [...condiciones, ...condicionesDeMarcas(valores)]
 }
 
 // --- Lo que la URL traía y ya no vale ----------------------------------------------------------------
 
-export type MotivoDeFiltroDescartado = 'desactivado' | 'no_filtrable' | 'inexistente'
+export type MotivoDeFiltroDescartado = 'desactivado' | 'no_filtrable' | 'inexistente' | 'etiqueta'
 
 export type FiltroDescartado = {
-  // La clave del campo (sin el prefijo).
+  // La clave del campo (sin el prefijo), o la del filtro de etiquetas.
   clave: string
   // Su etiqueta, si el campo todavía existe.
   etiqueta: string | null
   motivo: MotivoDeFiltroDescartado
   // Los parámetros de la URL que lo componen (`a.edad.min`, `a.edad.max`): lo que se quita.
   parametros: string[]
+  // Con qué queda el parámetro en vez de quitarlo (las etiquetas que sí valen).
+  queda?: string | null
+  // Cuántas etiquetas ya no existen.
+  cuantas?: number
 }
 
 const SUFIJOS_DE_RANGO = /\.(min|max|desde|hasta)$/
@@ -166,6 +191,27 @@ function motivoDe(campo: CampoDeLead | undefined): MotivoDeFiltroDescartado {
 export function filtrosDescartados(
   campos: readonly CampoDeLead[],
   parametros: ParametrosDeUrl,
+  etiquetas: readonly Etiqueta[] = [],
+): FiltroDescartado[] {
+  const deEtiquetas = etiquetasDescartadas(parametros, etiquetas)
+  const descartadosDeEtiquetas: FiltroDescartado[] = deEtiquetas
+    ? [
+        {
+          clave: FILTRO_ETIQUETA,
+          etiqueta: null,
+          motivo: 'etiqueta',
+          parametros: [FILTRO_ETIQUETA],
+          queda: deEtiquetas.quedan,
+          cuantas: deEtiquetas.cuantas,
+        },
+      ]
+    : []
+  return [...descartadosDeCampos(campos, parametros), ...descartadosDeEtiquetas]
+}
+
+function descartadosDeCampos(
+  campos: readonly CampoDeLead[],
+  parametros: ParametrosDeUrl,
 ): FiltroDescartado[] {
   const porClave = new Map(campos.map((campo) => [campo.clave, campo]))
   const vigentes = new Set(camposFiltrables(campos).map((campo) => campo.clave))
@@ -193,6 +239,11 @@ export function filtrosDescartados(
 
 export function textoDeFiltroDescartado(descartado: FiltroDescartado): string {
   const { etiqueta, motivo } = descartado
+  if (motivo === 'etiqueta') {
+    return descartado.cuantas === 1 || descartado.cuantas === undefined
+      ? 'Se quitó del filtro una etiqueta que ya no existe.'
+      : `Se quitaron del filtro ${String(descartado.cuantas)} etiquetas que ya no existen.`
+  }
   if (motivo === 'inexistente' || etiqueta === null) {
     return 'Se quitó un filtro de un campo que ya no existe.'
   }

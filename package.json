@@ -19,6 +19,7 @@
     "db:diff": "supabase db diff -f",
     "db:base": "node scripts/esquema-base.mjs",
     "db:probar": "node scripts/probar-schema.mjs supabase",
+    "db:medir": "node scripts/medir-listado.mjs",
     "db:lint": "supabase db lint --fail-on error",
     "mapa": "bash scripts/mapa.sh",
     "preinstall": "npx only-allow pnpm"

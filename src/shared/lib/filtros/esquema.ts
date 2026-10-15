@@ -16,6 +16,8 @@ type Base = {
   etiqueta: string
   // Una línea bajo el control que aclara qué filtra («Solo busca en tus leads»).
   ayuda?: string
+  // La sección del panel donde va (la `clave` de una de `EsquemaDeFiltros.secciones`).
+  seccion?: string
 }
 
 export type DefFiltro =
@@ -35,11 +37,20 @@ export type DefFiltro =
       sinMiles?: boolean
     })
   | (Base & { tipo: 'rango_fecha' })
+  // Una de varias, con un valor por defecto que no se escribe en la URL (ni es un chip, ni cuenta
+  // como filtro): el listado se ve así sin pedir nada.
+  | (Base & { tipo: 'eleccion'; opciones: readonly OpcionDeFiltro[]; porDefecto: string })
+
+// Un grupo del panel con su título (y una línea que lo aclara). Sin secciones el panel es una
+// lista plana.
+export type SeccionDeFiltros = { clave: string; titulo: string; descripcion?: string }
 
 export type EsquemaDeFiltros = {
   // La búsqueda libre de la barra; null si el listado no la tiene.
   busqueda: { clave: string; etiqueta: string } | null
   filtros: readonly DefFiltro[]
+  // En el orden en que se dibujan; los filtros sin sección van después.
+  secciones?: readonly SeccionDeFiltros[]
 }
 
 export type ValorDeFiltro =
@@ -48,6 +59,8 @@ export type ValorDeFiltro =
   | { tipo: 'booleano'; valor: boolean }
   | { tipo: 'rango_numero'; min: number | null; max: number | null }
   | { tipo: 'rango_fecha'; desde: string | null; hasta: string | null }
+  // Sólo cuando no es el valor por defecto.
+  | { tipo: 'eleccion'; valor: string }
 
 // Sólo lo que está filtrando: un filtro sin valor no aparece en `porClave`.
 export type ValoresDeFiltros = {

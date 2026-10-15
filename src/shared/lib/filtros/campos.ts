@@ -132,5 +132,8 @@ export function condicionDeCampo(
       return rangoDeFecha(campo, valor, zona)
     case 'texto':
       return { tipo: 'atributo_texto', clave, texto: valor.texto }
+    case 'eleccion':
+      // Un campo del layout nunca se filtra así: es de los fijos de un listado.
+      return null
   }
 }

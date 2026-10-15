@@ -53,7 +53,7 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, compartir/transferir, oportunidades en embudos, portal del cliente, limbo y papelera. · 221 archivos
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, compartir/transferir, oportunidades en embudos, portal del cliente, limbo y papelera. · 224 archivos
 - API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `EditorDeCamposDeLead`, `leerListadoDeLeads`, +12
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
 - Depende de: equipo
@@ -110,7 +110,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `ui/campos/`: `aviso-de-impacto.tsx`, `bloque-de-campos.tsx`, `campo-de-formulario.tsx`, `campo-valor-defecto.tsx`, `campos-de-campo.tsx`, `campos-desactivados.tsx`, `cerrar-con-aviso.ts`, `datos-por-grupo.tsx`, `ediciones.ts`, `editor-de-campos.tsx`, `editor-de-opciones.tsx`, `fila-de-campo.tsx`, `formulario-de-campo.tsx`, `grupos-de-campos.tsx`, `index.ts`, `panel-de-campo.tsx`, `pie-del-formulario.tsx`, `tipos.ts`, `use-formulario-de-campo.ts`, `valor-mostrado.tsx`
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-listado.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-pagina-sin-filas.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
-- `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `use-filtros.ts`
+- `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `estilos.ts`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `radios.tsx`, `use-filtros.ts`
 
 ## Rutas
 

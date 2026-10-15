@@ -4,6 +4,7 @@
 import 'server-only'
 import type {
   BuscadorDeLeads,
+  ContadorDeLeads,
   LectorDeContextoDeAlta,
   LectorDeEtiquetas,
   LectorDeFicha,
@@ -30,7 +31,10 @@ import { getContextoDeAlta } from './infra/queries/alta'
 import { getLayoutDeLeads } from './infra/queries/campos'
 import { getEtiquetas } from './infra/queries/etiquetas'
 import { getFicha } from './infra/queries/ficha'
-import { buscarLeads as buscarLeadsEnBase } from './infra/queries/listado'
+import {
+  buscarLeads as buscarLeadsEnBase,
+  contarLeads as contarEnBase,
+} from './infra/queries/listado'
 import { getOrigenesDeLead } from './infra/queries/origenes'
 import { getRecordatoriosDelLead } from './infra/queries/recordatorios'
 import { recordatoriosSupabase } from './infra/recordatorios'
@@ -47,6 +51,8 @@ export const repositorioDeAlta: RepositorioDeAlta = altaSupabase
 export const leerContextoDeAlta: LectorDeContextoDeAlta = getContextoDeAlta
 
 export const buscarLeads: BuscadorDeLeads = buscarLeadsEnBase
+
+export const contarLeads: ContadorDeLeads = contarEnBase
 
 export const leerOrigenesDeLead: LectorDeOrigenesDeLead = getOrigenesDeLead
 

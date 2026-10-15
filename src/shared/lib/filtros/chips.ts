@@ -21,6 +21,25 @@ function rango(desde: string | null, hasta: string | null): string {
   return desde !== null ? `desde ${desde}` : `hasta ${hasta ?? ''}`
 }
 
+// Una opción elegida = un chip: se quita ésa y quedan las demás.
+function chipsDeOpciones(def: DefFiltro, valores: string[]): Chip[] {
+  const opciones = def.tipo === 'opciones' ? def.opciones : []
+  return valores.map((elegido) => ({
+    id: `${def.clave}:${elegido}`,
+    texto: `${def.etiqueta}: ${opciones.find((opcion) => opcion.valor === elegido)?.etiqueta ?? elegido}`,
+    alQuitar: escribirFiltro(def, {
+      tipo: 'opciones',
+      valores: valores.filter((otro) => otro !== elegido),
+    }),
+  }))
+}
+
+// El nombre de la opción elegida de una «elección» (o el valor tal cual, si ya no está).
+function etiquetaDeEleccion(def: DefFiltro, valor: string): string {
+  const opciones = def.tipo === 'eleccion' ? def.opciones : []
+  return opciones.find((opcion) => opcion.valor === valor)?.etiqueta ?? valor
+}
+
 function chipsDeUno(def: DefFiltro, valor: ValorDeFiltro, formato: Formato): Chip[] {
   const quitarTodo = escribirFiltro(def, null)
   const uno = (texto: string): Chip[] => [
@@ -31,18 +50,10 @@ function chipsDeUno(def: DefFiltro, valor: ValorDeFiltro, formato: Formato): Chi
       return uno(`«${valor.texto}»`)
     case 'booleano':
       return uno(valor.valor ? 'sí' : 'no')
-    case 'opciones': {
-      const opciones = def.tipo === 'opciones' ? def.opciones : []
-      // Una opción elegida = un chip: se quita ésa y quedan las demás.
-      return valor.valores.map((elegido) => ({
-        id: `${def.clave}:${elegido}`,
-        texto: `${def.etiqueta}: ${opciones.find((opcion) => opcion.valor === elegido)?.etiqueta ?? elegido}`,
-        alQuitar: escribirFiltro(def, {
-          tipo: 'opciones',
-          valores: valor.valores.filter((otro) => otro !== elegido),
-        }),
-      }))
-    }
+    case 'eleccion':
+      return uno(etiquetaDeEleccion(def, valor.valor))
+    case 'opciones':
+      return chipsDeOpciones(def, valor.valores)
     case 'rango_numero': {
       const sinMiles = def.tipo === 'rango_numero' && def.sinMiles === true
       const escribir = (numero: number | null) =>

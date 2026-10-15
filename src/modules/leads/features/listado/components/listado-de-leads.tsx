@@ -3,9 +3,11 @@
 import type { VistaGuardada } from '@/modules/equipo/client'
 import { camposFiltrables, type EsquemaDeFiltros } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
+import { Button } from '@/shared/ui/button'
 import { FilterShell, useFiltrosDelListado } from '@/shared/ui/filtros'
 import type { ModoDelListado } from '../../../entities/alcance'
 import { privadosFiltrando, type FiltroDescartado } from '../../../entities/filtros'
+import { SECCION_MARCAS } from '../../../entities/filtros-de-marcas'
 import type { FilaDeLead } from '../../../entities/listado'
 import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
 import { useEtiquetas } from '../../etiquetas/hooks/use-etiquetas'
@@ -15,6 +17,7 @@ import { DrawerDeLead } from '../../rapido/components/drawer-de-lead'
 import { useDrawerDeLead } from '../../rapido/hooks/use-drawer-de-lead'
 import { AvisoDeFiltrosDescartados } from './aviso-de-filtros-descartados'
 import { AvisoDePrivados } from './aviso-de-privados'
+import { AvisoDeTachadosOcultos } from './aviso-de-tachados-ocultos'
 import { PieDeFiltros } from './pie-de-filtros'
 import { ResultadoDelListado } from './resultado-del-listado'
 import { SelectorDeAlcance } from './selector-de-alcance'
@@ -30,6 +33,7 @@ type Props = DatosDeLaLista & {
   puedeCrear: boolean
   puedeConfigurarCampos: boolean
   descartados: readonly FiltroDescartado[]
+  ocultos: number
 }
 
 // Lo que va arriba de la lista: lo que la URL traía y ya no vale, y la aclaración de un filtro
@@ -38,13 +42,17 @@ function AvisosDelListado({
   campos,
   modo,
   descartados,
-}: Pick<Props, 'campos' | 'modo' | 'descartados'>) {
+  ocultos,
+  hayFilas,
+}: Pick<Props, 'campos' | 'modo' | 'descartados' | 'ocultos'> & { hayFilas: boolean }) {
   const filtros = useFiltrosDelListado()
   const privados = modo === 'todos' ? privadosFiltrando(campos, filtros.valores) : []
   return (
     <>
       <AvisoDeFiltrosDescartados descartados={descartados} />
       <AvisoDePrivados etiquetas={privados} />
+      {/* Sin filas lo dice el estado vacío, con el mismo «Mostrarlos». */}
+      {hayFilas ? <AvisoDeTachadosOcultos ocultos={ocultos} /> : null}
     </>
   )
 }
@@ -61,6 +69,7 @@ export function ListadoDeLeads(props: Props) {
     puedeCrear,
     puedeConfigurarCampos,
     descartados,
+    ocultos,
     ...delServidor
   } = props
   const drawer = useDrawerDeLead()
@@ -75,6 +84,18 @@ export function ListadoDeLeads(props: Props) {
         esquema={esquema}
         vistas={<VistasDeLeads esquema={esquema} vistas={vistas} modo={modo} />}
         acciones={puedeVerTodos ? <SelectorDeAlcance modo={modo} /> : null}
+        accionesDeSeccion={{
+          [SECCION_MARCAS]: (
+            <Button
+              type="button"
+              variant="link"
+              className="h-11 w-fit px-0 md:h-auto"
+              onClick={gestionar.abrir}
+            >
+              Gestionar etiquetas
+            </Button>
+          ),
+        }}
         pieDelPanel={
           <PieDeFiltros
             filtrables={camposFiltrables(datos.campos).length}
@@ -83,7 +104,13 @@ export function ListadoDeLeads(props: Props) {
         }
       >
         <div className="grid gap-3">
-          <AvisosDelListado campos={datos.campos} modo={modo} descartados={descartados} />
+          <AvisosDelListado
+            campos={datos.campos}
+            modo={modo}
+            descartados={descartados}
+            ocultos={ocultos}
+            hayFilas={pagina.filas.length > 0}
+          />
           <ResultadoDelListado
             {...datos}
             pagina={pagina}
@@ -93,6 +120,7 @@ export function ListadoDeLeads(props: Props) {
             alAbrir={drawer.abrir}
             abierto={drawer.id}
             marcar={{ etiquetas, alGestionar: gestionar.abrir }}
+            ocultos={ocultos}
           />
         </div>
       </FilterShell>

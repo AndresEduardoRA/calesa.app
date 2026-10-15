@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react'
 import { Input } from '../input'
+import { LEYENDA, OPCION } from './estilos'
 import {
   OPCIONES_PARA_BUSCAR,
   opcionesQueCoinciden,
@@ -32,10 +33,6 @@ function useTextoDeUrl(deLaUrl: string, normalizar: (texto: string) => string) {
   }
   return [texto, setTexto] as const
 }
-
-const LEYENDA = 'mb-1.5 text-(length:--text-sm) font-medium text-(--color-ink)'
-const OPCION =
-  'flex min-h-11 cursor-pointer items-center gap-2 text-(length:--text-sm) text-(--color-ink) md:min-h-8'
 
 export function FiltroDeOpciones({ def, valor, alCambiar }: Props<'opciones'>) {
   const elegidas = valor?.valores ?? []
@@ -86,38 +83,6 @@ export function FiltroDeOpciones({ def, valor, alCambiar }: Props<'opciones'>) {
               />
             ) : null}
             <span className="min-w-0 truncate">{opcion.etiqueta}</span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  )
-}
-
-const SI_O_NO = [
-  ['', 'Todos'],
-  ['si', 'Sí'],
-  ['no', 'No'],
-] as const
-
-export function FiltroBooleano({ def, valor, alCambiar }: Props<'booleano'>) {
-  const grupo = useId()
-  const elegido = valor === null ? '' : valor.valor ? 'si' : 'no'
-  return (
-    <fieldset>
-      <legend className={LEYENDA}>{def.etiqueta}</legend>
-      <div className="flex flex-wrap gap-x-4">
-        {SI_O_NO.map(([clave, etiqueta]) => (
-          <label key={clave} className={OPCION}>
-            <input
-              type="radio"
-              name={grupo}
-              className="size-4 accent-(--color-primario)"
-              checked={elegido === clave}
-              onChange={() => {
-                alCambiar(clave === '' ? null : { tipo: 'booleano', valor: clave === 'si' })
-              }}
-            />
-            {etiqueta}
           </label>
         ))}
       </div>

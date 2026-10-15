@@ -71,6 +71,73 @@ function montar(url: string) {
   return { ultima }
 }
 
+const CON_SECCIONES: EsquemaDeFiltros = {
+  busqueda: null,
+  secciones: [{ clave: 'marcas', titulo: 'Tus marcas', descripcion: 'Solo las ves tú.' }],
+  filtros: [
+    {
+      tipo: 'eleccion',
+      clave: 'tachados',
+      etiqueta: 'Tachados',
+      seccion: 'marcas',
+      porDefecto: 'ocultar',
+      opciones: [
+        { valor: 'ocultar', etiqueta: 'Ocultarlos' },
+        { valor: 'incluir', etiqueta: 'Mostrarlos también' },
+      ],
+    },
+    { tipo: 'booleano', clave: 'a.llave', etiqueta: 'Tiene llave' },
+  ],
+}
+
+describe('FilterShell con secciones y una elección', () => {
+  function montarConSecciones(url: string) {
+    const alCambiarUrl = vi.fn<(evento: UrlUpdateEvent) => void>()
+    render(
+      <NuqsTestingAdapter searchParams={url} onUrlUpdate={alCambiarUrl} hasMemory>
+        <FilterShell
+          esquema={CON_SECCIONES}
+          accionesDeSeccion={{ marcas: <button>Gestionar</button> }}
+        >
+          <Lista />
+        </FilterShell>
+      </NuqsTestingAdapter>,
+    )
+    return alCambiarUrl
+  }
+
+  it('cada sección lleva su título, su aclaración y su acción; lo suelto va aparte', () => {
+    montarConSecciones('')
+    const panel = within(screen.getByRole('complementary', { name: 'Filtros' }))
+    const seccion = within(panel.getByRole('region', { name: 'Tus marcas' }))
+    expect(seccion.getByText('Solo las ves tú.')).toBeTruthy()
+    expect(seccion.getByRole('radio', { name: 'Ocultarlos' })).toBeTruthy()
+    expect(seccion.getByRole('button', { name: 'Gestionar' })).toBeTruthy()
+    expect(seccion.queryByRole('radio', { name: 'Sí' })).toBeNull()
+    expect(panel.getByRole('radio', { name: 'Sí' })).toBeTruthy()
+  })
+
+  it('el valor por defecto está marcado sin estar en la URL, y no es un chip ni cuenta', () => {
+    montarConSecciones('')
+    const panel = within(screen.getByRole('complementary', { name: 'Filtros' }))
+    expect((panel.getByRole('radio', { name: 'Ocultarlos' }) as HTMLInputElement).checked).toBe(
+      true,
+    )
+    expect(screen.queryByRole('list', { name: 'Filtros activos' })).toBeNull()
+    expect(screen.getByText('todo')).toBeDefined()
+  })
+
+  it('elegir otra la escribe y vuelve al valor por defecto la borra', async () => {
+    const alCambiarUrl = montarConSecciones('?tachados=incluir')
+    expect(screen.getByText('Tachados: Mostrarlos también')).toBeDefined()
+    const panel = within(screen.getByRole('complementary', { name: 'Filtros' }))
+    fireEvent.click(panel.getByRole('radio', { name: 'Ocultarlos' }))
+    await waitFor(() => {
+      expect(alCambiarUrl.mock.lastCall?.[0].searchParams.has('tachados')).toBe(false)
+    })
+  })
+})
+
 describe('FilterShell', () => {
   it('sin filtros no hay chips y la lista lo sabe', () => {
     montar('')

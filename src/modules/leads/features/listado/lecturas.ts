@@ -1,12 +1,13 @@
 import 'server-only'
 import type { Resultado } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR, leerFiltros, type EsquemaDeFiltros } from '@/shared/lib/filtros'
-import type { ParametrosDeUrl } from '@/shared/lib/filtros'
+import type { ParametrosDeUrl, ValoresDeFiltros } from '@/shared/lib/filtros'
 import { leerCursor, type Pagina } from '@/shared/lib/paginacion'
 import type { Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import {
   buscarLeads,
+  contarLeads,
   leerEtiquetas,
   leerLayoutDeLeads,
   leerOrigenesDeLead,
@@ -21,6 +22,7 @@ import {
   filtrosDescartados,
   type FiltroDescartado,
 } from '../../entities/filtros'
+import { FILTRO_TACHADOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { TAMANO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
 
 export type DatosDelListado = {
@@ -35,6 +37,8 @@ export type DatosDelListado = {
   puedeVerTodos: boolean
   // De la URL, lo que ya no se puede filtrar (una vista vieja): se avisa y se quita.
   descartados: FiltroDescartado[]
+  // Cuántos leads que cumplen los filtros quedaron afuera por estar tachados (0 si no se ocultan).
+  ocultos: number
 }
 
 type Entrada = {
@@ -44,9 +48,16 @@ type Entrada = {
   zona: string
 }
 
-// Todo lo que el listado de `/leads` necesita, en un viaje: el layout, los orígenes y una página
-// de `leads_vista`. Lo que hay en ella lo decide la RLS; «míos» se traduce siempre en la condición
-// `en_cartera` (no es un adorno de la pantalla) y «todos» no suma nada.
+// Los mismos filtros, pero sólo los tachados: lo que el aviso cuenta y «Mostrarlos» suma.
+const soloTachados = (valores: ValoresDeFiltros): ValoresDeFiltros => ({
+  ...valores,
+  porClave: { ...valores.porClave, [FILTRO_TACHADOS]: { tipo: 'eleccion', valor: 'solo' } },
+})
+
+// Todo lo que el listado de `/leads` necesita: el layout, los orígenes y las etiquetas de quien
+// mira, y después, en paralelo, una página de `leads_vista` y —si se están ocultando los
+// tachados— cuántos quedaron afuera con los mismos filtros. Lo que hay lo decide la RLS; «míos» se
+// traduce siempre en la condición `en_cartera` y «todos» no suma nada.
 export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<DatosDelListado>> {
   const { permisos, parametros, zona } = entrada
   const [layout, origenes, etiquetas] = await Promise.all([
@@ -72,16 +83,21 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
     campos,
     origenes: origenes.data,
     verTodos: puedeVerTodos,
+    etiquetas: etiquetas.data,
   })
-  const leida = await buscarLeads({
-    condiciones: condicionesDeLeads(campos, leerFiltros(esquema, parametros), {
-      zona,
-      soloMios: modo === 'mios',
+  const valores = leerFiltros(esquema, parametros)
+  const opciones = { zona, soloMios: modo === 'mios' }
+  const [leida, ocultos] = await Promise.all([
+    buscarLeads({
+      condiciones: condicionesDeLeads(campos, valores, opciones),
+      cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR] as string | string[] | undefined)),
+      tamano: TAMANO_DE_PAGINA_DE_LEADS,
+      clavesDeTabla: clavesDeTabla(campos),
     }),
-    cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR] as string | string[] | undefined)),
-    tamano: TAMANO_DE_PAGINA_DE_LEADS,
-    clavesDeTabla: clavesDeTabla(campos),
-  })
+    ocultaTachados(valores)
+      ? contarLeads(condicionesDeLeads(campos, soloTachados(valores), opciones))
+      : null,
+  ])
   if (!leida.ok) {
     return leida
   }
@@ -95,7 +111,9 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       etiquetas: etiquetas.data,
       modo,
       puedeVerTodos,
-      descartados: filtrosDescartados(campos, parametros),
+      descartados: filtrosDescartados(campos, parametros, etiquetas.data),
+      // Si contar falla, el listado se dibuja igual: sin el aviso.
+      ocultos: ocultos?.ok ? ocultos.data : 0,
     },
   }
 }

@@ -4,7 +4,7 @@ import { armarPagina } from '@/shared/lib/paginacion'
 import { aplicarCursor } from '@/shared/lib/supabase/consultas'
 import { createClient } from '@/shared/lib/supabase/server'
 import { columnasDeLaConsulta, filasDeLeadDesde } from '../../entities/listado'
-import type { BuscadorDeLeads } from '../../entities/repositorios'
+import type { BuscadorDeLeads, ContadorDeLeads } from '../../entities/repositorios'
 import { aplicarCondicionesDeLeads } from './condiciones'
 
 // Una página de leads, de lo más nuevo a lo más viejo, con una fila de más para saber si hay otra.
@@ -25,4 +25,18 @@ export const buscarLeads: BuscadorDeLeads = async (pedido) => {
     return { ok: false, error: errorDePostgrest(error) }
   }
   return ok(armarPagina(filasDeLeadDesde(data, clavesDeTabla), tamano, cursor))
+}
+
+// Cuántos leads cumplen las condiciones, sin traer ninguno (`head`). Lo decide la misma RLS que la
+// página: cuenta sólo lo que quien mira ve.
+export const contarLeads: ContadorDeLeads = async (condiciones) => {
+  const supabase = await createClient()
+  const { count, error } = await aplicarCondicionesDeLeads(
+    supabase.from('leads_vista').select('id', { count: 'exact', head: true }),
+    condiciones,
+  )
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(count ?? 0)
 }

@@ -6,8 +6,9 @@ import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { textoDeFiltroDescartado, type FiltroDescartado } from '../../../entities/filtros'
 
-// Una vista guardada o un enlace viejo apuntaba a un campo desactivado o eliminado: el filtro no
-// se aplicó y acá se dice cuál (el listado ya sin él). «Entendido» quita esos parámetros de la URL.
+// Una vista guardada o un enlace viejo apuntaba a un campo desactivado o eliminado, o a una
+// etiqueta que ya no existe: el filtro no se aplicó y acá se dice cuál (el listado ya sin él).
+// «Entendido» quita esos parámetros de la URL (de las etiquetas, deja las que valen).
 export function AvisoDeFiltrosDescartados({
   descartados,
 }: {
@@ -36,9 +37,18 @@ export function AvisoDeFiltrosDescartados({
           variant="outline"
           size="sm"
           onClick={() => {
-            void setParametros(
-              Object.fromEntries([...Object.keys(quitar), CLAVE_DE_CURSOR].map((k) => [k, null])),
+            // Un filtro de etiquetas queda con las que sí valen; lo demás se quita.
+            const quedan = Object.fromEntries(
+              descartados.flatMap((uno) =>
+                uno.queda === undefined ? [] : uno.parametros.map((p) => [p, uno.queda ?? null]),
+              ),
             )
+            void setParametros({
+              ...Object.fromEntries(
+                [...Object.keys(quitar), CLAVE_DE_CURSOR].map((k) => [k, null]),
+              ),
+              ...quedan,
+            })
           }}
         >
           Entendido

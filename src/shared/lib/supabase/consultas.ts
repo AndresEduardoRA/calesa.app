@@ -26,6 +26,8 @@ export type Filtrable<Consulta> = {
   lt: (columna: string, valor: string | number) => Consulta
   ilike: (columna: string, patron: string) => Consulta
   contains: (columna: string, valor: Record<string, unknown>) => Consulta
+  // Un arreglo de la fila comparte algún elemento con estos (`&&`).
+  overlaps: (columna: string, valores: readonly string[]) => Consulta
   or: (filtros: string) => Consulta
 }
 

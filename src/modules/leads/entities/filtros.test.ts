@@ -52,12 +52,27 @@ const CAMPOS = [
 ]
 
 const esquema = (verTodos = false) =>
-  esquemaDeFiltrosDeLeads({ campos: CAMPOS, origenes: ORIGENES, verTodos })
+  esquemaDeFiltrosDeLeads({ campos: CAMPOS, origenes: ORIGENES, verTodos, etiquetas: [] })
 
 describe('esquemaDeFiltrosDeLeads', () => {
-  it('lleva tipo y origen y un filtro por cada campo filtrable activo, con su etiqueta de fila', () => {
+  it('lleva tus marcas, tipo y origen y un filtro por cada campo filtrable activo, con su etiqueta de fila', () => {
     const claves = esquema().filtros.map((f) => f.clave)
-    expect(claves).toEqual(['tipo', 'origen', 'a.ciudad', 'a.edad', 'a.ci', 'a.signo'])
+    expect(claves).toEqual([
+      'tachados',
+      'favoritos',
+      'tipo',
+      'origen',
+      'a.ciudad',
+      'a.edad',
+      'a.ci',
+      'a.signo',
+    ])
+    expect(esquema().secciones?.map((s) => s.titulo)).toEqual(['Tus marcas', 'Datos del lead'])
+    expect(
+      esquema()
+        .filtros.filter((f) => f.seccion === 'datos')
+        .map((f) => f.clave),
+    ).toEqual(['tipo', 'origen', 'a.ciudad', 'a.edad', 'a.ci', 'a.signo'])
     expect(esquema().busqueda?.etiqueta).toBe('Buscar por nombre o número')
     expect(esquema().filtros.find((f) => f.clave === 'a.edad')?.etiqueta).toBe('EDAD')
   })
@@ -67,8 +82,9 @@ describe('esquemaDeFiltrosDeLeads', () => {
       campos: [campo('signo', { tipo: 'opcion' })],
       origenes: [],
       verTodos: false,
+      etiquetas: [],
     })
-    expect(sin.filtros.map((f) => f.clave)).toEqual(['tipo'])
+    expect(sin.filtros.map((f) => f.clave)).toEqual(['tachados', 'favoritos', 'tipo'])
   })
 
   it('sólo quien ve «todos» recibe la aclaración en un filtro privado', () => {
@@ -106,10 +122,12 @@ describe('condicionesDeLeads', () => {
   const leer = (url: string) =>
     leerFiltros(esquema(true), Object.fromEntries(new URLSearchParams(url)))
 
-  it('sin filtros y en «todos» no pide nada; en «míos», sólo la cartera', () => {
-    expect(condicionesDeLeads(CAMPOS, leer(''), { soloMios: false })).toEqual([])
+  it('sin filtros y en «todos» sólo oculta los tachados; en «míos», también la cartera', () => {
+    const sinTachados = { tipo: 'tachado', valor: false }
+    expect(condicionesDeLeads(CAMPOS, leer(''), { soloMios: false })).toEqual([sinTachados])
     expect(condicionesDeLeads(CAMPOS, leer(''), { soloMios: true })).toEqual([
       { tipo: 'en_cartera' },
+      sinTachados,
     ])
   })
 
@@ -146,7 +164,7 @@ describe('condicionesDeLeads', () => {
   it('un origen o un tipo que no existe, o un campo apagado, no llegan a la base', () => {
     const condiciones = condicionesDeLeads(
       CAMPOS,
-      leer('tipo=otro&origen=ajeno&a.apagado=x&a.notas=y&a.fantasma=z'),
+      leer('tipo=otro&origen=ajeno&a.apagado=x&a.notas=y&a.fantasma=z&tachados=incluir'),
       { soloMios: false },
     )
     expect(condiciones).toEqual([])

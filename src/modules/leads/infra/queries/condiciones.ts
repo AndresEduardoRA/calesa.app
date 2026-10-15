@@ -26,6 +26,13 @@ function aplicarUna<Consulta extends Filtrable<Consulta>>(
       return consulta.in(condicion.columna, condicion.valores)
     case 'en_cartera':
       return consulta.eq('en_cartera', true)
+    // Las marcas de quien mira: columnas de `leads_vista` ya recortadas a sus marcas.
+    case 'tachado':
+      return consulta.eq('esta_tachado', condicion.valor)
+    case 'favorito':
+      return consulta.eq('es_favorito', condicion.valor)
+    case 'etiquetas':
+      return consulta.overlaps('etiquetas', condicion.ids)
     case 'atributos_contienen':
     case 'atributo_rango_numero':
     case 'atributo_rango_texto':

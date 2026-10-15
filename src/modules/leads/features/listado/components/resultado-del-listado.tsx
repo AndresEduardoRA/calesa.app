@@ -10,6 +10,7 @@ import { Paginacion } from '@/shared/ui/paginacion'
 import type { ModoDelListado } from '../../../entities/alcance'
 import type { FilaDeLead } from '../../../entities/listado'
 import { usePanelDeAlta } from '../../alta/hooks/use-panel-de-alta'
+import { textoDeOcultos, useMostrarTachados } from './aviso-de-tachados-ocultos'
 import { useAlcanceDelListado } from '../hooks/use-alcance-del-listado'
 import { TablaDeLeads } from './tabla-de-leads'
 import { TarjetasDeLeads } from './tarjetas-de-leads'
@@ -23,6 +24,24 @@ type Props = DatosDeLaLista & {
   alAbrir: (id: string) => void
   abierto: string | null
   marcar: ParaMarcar
+  // Los que cumplen los filtros y quedaron afuera por tachados.
+  ocultos: number
+}
+
+// No hay nada que mostrar, pero porque está tachado: decirlo y ofrecer verlos, no «Nada coincide».
+function TodoTachado({ ocultos }: { ocultos: number }) {
+  const mostrar = useMostrarTachados()
+  return (
+    <EstadoVacio
+      titulo="Lo que coincide está tachado"
+      descripcion={textoDeOcultos(ocultos)}
+      accion={
+        <Button type="button" onClick={mostrar}>
+          Mostrarlos
+        </Button>
+      }
+    />
+  )
 }
 
 // Sin leads, y sin filtros ni cursor que lo expliquen: la frase y la salida que corresponde.
@@ -69,11 +88,15 @@ function VacioDeLeads({
 // La lista de leads o el estado que corresponda: sin leads, sin resultados por filtro o una página
 // que se quedó sin filas. La tabla (escritorio) y las tarjetas (celular) están las dos en el DOM.
 export function ResultadoDelListado(props: Props) {
-  const { pagina, modo, puedeVerTodos, puedeCrear, alAbrir, abierto, marcar, ...datos } = props
+  const { pagina, modo, puedeVerTodos, puedeCrear, alAbrir, abierto, marcar, ocultos, ...datos } =
+    props
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
 
   if (pagina.filas.length === 0) {
+    if (ocultos > 0 && !hayCursor) {
+      return <TodoTachado ocultos={ocultos} />
+    }
     if (filtros.hayFiltros) {
       return <EstadoSinResultados alLimpiar={filtros.limpiar} />
     }

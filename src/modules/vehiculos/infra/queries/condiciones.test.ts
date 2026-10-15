@@ -23,6 +23,8 @@ function anotador(pedidos: string[] = []): Anotador {
     ilike: (columna: string, patron: string) => con(`${columna}=ilike.${patron}`),
     contains: (columna: string, valor: Record<string, unknown>) =>
       con(`${columna}=cs.${JSON.stringify(valor)}`),
+    overlaps: (columna: string, valores: readonly string[]) =>
+      con(`${columna}=ov.{${valores.join(',')}}`),
     or: (filtros: string) => con(`or=(${filtros})`),
   }
 }

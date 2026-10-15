@@ -5,6 +5,7 @@ export {
   type EsquemaDeFiltros,
   type OpcionDeFiltro,
   type ParametrosDeUrl,
+  type SeccionDeFiltros,
   type ValorDeFiltro,
   type ValoresDeFiltros,
 } from './esquema'

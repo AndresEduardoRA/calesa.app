@@ -31,6 +31,7 @@ export function clavesDeFiltro(def: DefFiltro): string[] {
     case 'texto':
     case 'opciones':
     case 'booleano':
+    case 'eleccion':
       return [def.clave]
   }
 }
@@ -98,6 +99,14 @@ function leerBooleano(def: De<'booleano'>, parametros: ParametrosDeUrl): ValorDe
   return texto === 'si' || texto === 'no' ? { tipo: 'booleano', valor: texto === 'si' } : null
 }
 
+// Una de las opciones del esquema. El valor por defecto, uno que no está o ninguno: sin filtrar
+// (se ve lo de siempre, sin decir nada).
+function leerEleccion(def: De<'eleccion'>, parametros: ParametrosDeUrl): ValorDeFiltro | null {
+  const texto = uno(parametros, def.clave)
+  const valida = def.opciones.some((opcion) => opcion.valor === texto)
+  return valida && texto !== def.porDefecto ? { tipo: 'eleccion', valor: texto } : null
+}
+
 function leerRangoNumero(
   def: De<'rango_numero'>,
   parametros: ParametrosDeUrl,
@@ -129,6 +138,8 @@ function leerUno(def: DefFiltro, parametros: ParametrosDeUrl): ValorDeFiltro | n
       return leerRangoNumero(def, parametros)
     case 'rango_fecha':
       return leerRangoFecha(def, parametros)
+    case 'eleccion':
+      return leerEleccion(def, parametros)
   }
 }
 
@@ -149,30 +160,42 @@ export function leerFiltros(
   return { busqueda, porClave }
 }
 
+// El texto de un filtro que ocupa una sola clave de la URL; `null` la quita.
+function textoDeUnaClave(def: DefFiltro, valor: ValorDeFiltro): string | null {
+  switch (valor.tipo) {
+    case 'texto':
+      return valor.texto.trim() === '' ? null : valor.texto
+    case 'opciones':
+      return valor.valores.length === 0 ? null : valor.valores.join(',')
+    case 'booleano':
+      return valor.valor ? 'si' : 'no'
+    case 'eleccion':
+      // El valor por defecto no se escribe: la URL sin la clave ya lo dice.
+      return def.tipo === 'eleccion' && valor.valor === def.porDefecto ? null : valor.valor
+    case 'rango_numero':
+    case 'rango_fecha':
+      return null
+  }
+}
+
 // Lo que hay que poner en la URL para que un filtro valga eso. `null` lo quita.
 export function escribirFiltro(
   def: DefFiltro,
   valor: ValorDeFiltro | null,
 ): Record<string, string | null> {
-  const vacio = Object.fromEntries(clavesDeFiltro(def).map((clave) => [clave, null]))
   if (valor === null) {
-    return vacio
+    return Object.fromEntries(clavesDeFiltro(def).map((clave) => [clave, null]))
   }
-  switch (valor.tipo) {
-    case 'texto':
-      return { [def.clave]: valor.texto.trim() === '' ? null : valor.texto }
-    case 'opciones':
-      return { [def.clave]: valor.valores.length === 0 ? null : valor.valores.join(',') }
-    case 'booleano':
-      return { [def.clave]: valor.valor ? 'si' : 'no' }
-    case 'rango_numero':
-      return {
-        [`${def.clave}.min`]: valor.min === null ? null : String(valor.min),
-        [`${def.clave}.max`]: valor.max === null ? null : String(valor.max),
-      }
-    case 'rango_fecha':
-      return { [`${def.clave}.desde`]: valor.desde, [`${def.clave}.hasta`]: valor.hasta }
+  if (valor.tipo === 'rango_numero') {
+    return {
+      [`${def.clave}.min`]: valor.min === null ? null : String(valor.min),
+      [`${def.clave}.max`]: valor.max === null ? null : String(valor.max),
+    }
   }
+  if (valor.tipo === 'rango_fecha') {
+    return { [`${def.clave}.desde`]: valor.desde, [`${def.clave}.hasta`]: valor.hasta }
+  }
+  return { [def.clave]: textoDeUnaClave(def, valor) }
 }
 
 // La URL sin ningún filtro ni búsqueda.
