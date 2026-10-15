@@ -12,9 +12,9 @@ import { ingresar } from './soporte/pasos'
 
 // Acceso y shell contra la app compilada y el Supabase local. Los cuatro tests cuentan una sola
 // historia, en orden: la primera persona se registra y queda dueña; después se prueba el ingreso
-// con esa cuenta. Al terminar se borra todo lo que se creó. Con cuentas reales en la base local,
-// el primero se salta con un aviso (y corre siempre en CI): la cuenta que prueba el ingreso se
-// crea entonces por la puerta de atrás, como invitada.
+// con esa cuenta. Al terminar se borra todo lo que se creó. El primero corre siempre en
+// `pnpm test:e2e:completo` y en CI; sólo un spec suelto sobre una base con cuentas lo salta con un
+// aviso: la cuenta que prueba el ingreso se crea entonces por la puerta de atrás, como invitada.
 test.describe.configure({ mode: 'serial' })
 
 const CLAVE = 'una-clave-de-prueba-9'

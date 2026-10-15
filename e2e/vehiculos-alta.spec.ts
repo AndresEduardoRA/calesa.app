@@ -47,9 +47,13 @@ test('dar de alta un vehículo en Corea, con los valores por defecto y los atajo
     await page.getByRole('button', { name: 'Nuevo vehículo' }).click()
     await expect(panel).toBeVisible()
   } else {
-    // El atajo existe recién cuando la página terminó de hidratar: se insiste hasta que abre.
+    // El atajo de esta pantalla existe recién cuando hidrató; antes, la «n» la toma el «Nuevo lead» del
+    // marco (de respaldo): se lo cierra y se insiste. Con el panel pedido (la URL lo dice) no se
+    // vuelve a pulsar: la segunda «n» caería en el campo.
     await expect(async () => {
-      await page.keyboard.press('n')
+      const url = page.url()
+      if (url.includes('panel=nuevo-lead')) await page.keyboard.press('Escape')
+      else if (!url.includes('panel=nuevo')) await page.keyboard.press('n')
       await expect(panel).toBeVisible({ timeout: 1000 })
     }).toPass()
   }
@@ -218,6 +222,7 @@ test('un origen desactivado se sigue viendo, y «Nuevo» sale apagado con el mot
   ).toBeVisible()
   // La tecla N no abre nada, y pedirlo por URL tampoco.
   await page.keyboard.press('n')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await page.goto(`/vehiculos?origen=${taiwan.id}&panel=nuevo`)
   await expect(vehiculo(page, 'Luxgen U6')).toBeVisible()
   await expect(page.getByRole('dialog')).toBeHidden()

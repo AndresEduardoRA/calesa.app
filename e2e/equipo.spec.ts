@@ -186,7 +186,8 @@ test('el guardián no deja al equipo sin quien lo administre, y lo dice en claro
   page,
 }) => {
   // El guardián protege a la última persona que administra: con la dueña real en la base, la de
-  // prueba no lo es. Se salta en local con un aviso y corre siempre en CI.
+  // prueba no lo es. Corre siempre en `test:e2e:completo` y en CI; un spec suelto sobre una base
+  // con cuentas lo salta con un aviso.
   const impide = await hayEquipoQueImpide()
   test.skip(impide.saltar, impide.motivo)
   await entrar(page, duena)

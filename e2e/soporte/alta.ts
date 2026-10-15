@@ -103,13 +103,17 @@ export async function entrar(page: Page, correo: string): Promise<void> {
 export const dialogo = (page: Page): Locator => page.getByRole('dialog', { name: 'Nuevo lead' })
 
 // La tecla N abre «Nuevo lead» recién cuando la página terminó de hidratar: se insiste hasta que
-// abre. Con `teclado`, cuenta sólo la pulsación que abrió y devuelve el instante en que se hizo.
+// abre. Con el panel ya pedido (la URL lo dice) no se vuelve a pulsar: la segunda «n» caería en el
+// teléfono, que toma el foco. Con `teclado`, cuenta sólo la pulsación que abrió y devuelve el
+// instante en que se hizo.
 export async function abrirConN(page: Page, teclado?: Teclado): Promise<{ inicio: number }> {
   let inicio = 0
   await expect(async () => {
-    teclado?.reiniciar()
-    inicio = performance.now()
-    await (teclado ? teclado.pulsar('n') : page.keyboard.press('n'))
+    if (!page.url().includes('panel=nuevo-lead')) {
+      teclado?.reiniciar()
+      inicio = performance.now()
+      await (teclado ? teclado.pulsar('n') : page.keyboard.press('n'))
+    }
     await expect(dialogo(page)).toBeVisible({ timeout: 1000 })
   }).toPass()
   return { inicio }

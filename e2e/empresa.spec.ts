@@ -15,7 +15,6 @@ import {
   estadoDeApibara,
   pedirSecreto,
   restaurarEmpresa,
-  restaurarSecretoDeApibara,
   tomarInstantaneaDeEmpresa,
   ultimoCambioDe,
   type InstantaneaDeEmpresa,
@@ -23,8 +22,8 @@ import {
 import { ingresar } from './soporte/pasos'
 
 // Configuración › Empresa contra la app compilada y el Supabase local. La empresa es una fila
-// única: antes de empezar se guarda cómo estaba (también la clave de apibara, que el test
-// reemplaza) y al terminar se deja exactamente así.
+// única: antes de empezar se guarda cómo estaba y al terminar se deja exactamente así, para el
+// spec que sigue en la misma corrida.
 test.describe.configure({ mode: 'serial' })
 
 const CLAVE = 'una-clave-de-prueba-9'
@@ -60,19 +59,9 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
-  // La clave real (si había) vuelve por la misma RPC que la guardó, con la sesión de la dueña de
-  // prueba, antes de que se la borre.
-  // En `finally`: si devolver la clave falla, la empresa se restaura igual (apibara no se queda
-  // apagada) y el error se ve igual.
-  try {
-    if (antes.secreto) {
-      await restaurarSecretoDeApibara(antes.secreto, { email: duena, contrasena: CLAVE })
-    }
-  } finally {
-    await restaurarEmpresa(antes)
-    await borrarPersonasDePrueba()
-    await borrarRolesDePrueba()
-  }
+  await restaurarEmpresa(antes)
+  await borrarPersonasDePrueba()
+  await borrarRolesDePrueba()
 })
 
 async function entrar(page: Page, correo: string) {

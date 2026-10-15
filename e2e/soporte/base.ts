@@ -71,7 +71,7 @@ export async function exigirEquipoSinAjenos(): Promise<void> {
   if (ajenas > 0) {
     throw new Error(
       `La base local tiene ${String(ajenas)} persona(s) que no son de prueba. ` +
-        'Este e2e necesita el equipo vacío: ejecuta `pnpm db:reset` y vuelve a intentar.',
+        'Este e2e necesita el equipo vacío: ejecuta `pnpm test:e2e:completo` (o `pnpm db:reset`).',
     )
   }
 }
@@ -266,20 +266,21 @@ export async function crearDuenaDePrueba(datos: {
 }
 
 // Los tests que sólo se pueden probar con el equipo vacío («la primera persona nace dueña», «el
-// guardián cuida a la última que administra») se saltan en local si hay cuentas reales, con un
-// aviso, y corren siempre en CI: ahí, que haya gente es un error del entorno, no algo que saltar.
+// guardián cuida a la última que administra»). `pnpm test:e2e:completo` resetea la base antes y pone
+// `E2E_COMPLETO=1`: ahí, que haya gente es un error del entorno, no algo que saltar. Un spec suelto
+// sobre una base con cuentas (`pnpm test:e2e <spec>`) se salta con un aviso. También es un error en CI.
 export async function hayEquipoQueImpide(): Promise<{ saltar: boolean; motivo: string }> {
   const ajenas = await personasAjenas()
   if (ajenas === 0) {
     return { saltar: false, motivo: '' }
   }
-  if (process.env['CI']) {
+  if (process.env['CI'] || process.env['E2E_COMPLETO']) {
     await exigirEquipoSinAjenos()
   }
   return {
     saltar: true,
     motivo:
-      `AVISO: la base local tiene ${String(ajenas)} persona(s) reales; este test necesita el ` +
-      'equipo vacío y corre siempre en CI. No se resetea la base: se salta.',
+      `AVISO: la base local tiene ${String(ajenas)} persona(s) que no son de prueba; este test ` +
+      'necesita el equipo vacío. Se salta: para correrlo, `pnpm test:e2e:completo` (resetea la base).',
   }
 }

@@ -64,15 +64,13 @@ function exigir(error: { message: string } | null, que: string): void {
 type Fila = Record<string, unknown>
 
 // Cómo estaba la empresa antes de que un e2e la tocara: sus ajustes, los tipos de cambio, dónde
-// terminaba el historial y la integración de apibara con su clave. Con ella, al terminar se deja
-// todo como estaba, también cuando hay datos reales en la base local.
+// terminaba el historial y la integración de apibara (sin su clave: no se lee nunca). Con ella, al
+// terminar se deja todo como estaba, para el spec que sigue en la misma corrida.
 export type InstantaneaDeEmpresa = {
   ajustes: Fila
   tiposDeCambio: Fila[]
   ultimoHistorial: number
   apibara: { activa: boolean; config: unknown; secretoGuardadoEn: string | null }
-  // La clave de apibara, si había una (sólo la lee la service role, vía `integracion_secreto`).
-  secreto: string | null
 }
 
 export async function tomarInstantaneaDeEmpresa(): Promise<InstantaneaDeEmpresa> {
@@ -93,7 +91,6 @@ export async function tomarInstantaneaDeEmpresa(): Promise<InstantaneaDeEmpresa>
     .eq('clave', 'apibara')
     .single<{ activa: boolean; config: unknown; secreto_guardado_en: string | null }>()
   exigir(integracion.error, 'la integración')
-  const secreto = await cliente.rpc('integracion_secreto', { p_clave: 'apibara' })
   return {
     ajustes: ajustes.data as Fila,
     tiposDeCambio: tipos.data ?? [],
@@ -103,7 +100,6 @@ export async function tomarInstantaneaDeEmpresa(): Promise<InstantaneaDeEmpresa>
       config: integracion.data?.config ?? {},
       secretoGuardadoEn: integracion.data?.secreto_guardado_en ?? null,
     },
-    secreto: typeof secreto.data === 'string' ? secreto.data : null,
   }
 }
 
@@ -219,38 +215,6 @@ async function restaurarTiposDeCambio(instantanea: InstantaneaDeEmpresa): Promis
     .delete()
     .gt('id', instantanea.ultimoHistorial)
   exigir(historial.error, 'el historial')
-}
-
-// Vuelve a guardar la clave real de apibara por la RPC (como lo haría la dueña desde la pantalla),
-// porque el test guardó una de prueba en su lugar. `persona` es quien la guarda: necesita
-// `empresa.ajustes.gestionar`. Se hace antes de `restaurarEmpresa(instantanea)`, que deja la fila
-// como estaba (la RPC sella su fecha).
-export async function restaurarSecretoDeApibara(
-  secreto: string,
-  persona: { email: string; contrasena: string },
-): Promise<void> {
-  const cliente = createClient(
-    entorno('NEXT_PUBLIC_SUPABASE_URL'),
-    entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  )
-  const sesion = await cliente.auth.signInWithPassword({
-    email: persona.email,
-    password: persona.contrasena,
-  })
-  exigir(sesion.error, `la sesión de ${persona.email}`)
-  const fila = await admin()
-    .from('integraciones')
-    .select('actualizado_en')
-    .eq('clave', 'apibara')
-    .single<{ actualizado_en: string }>()
-  exigir(fila.error, 'la versión de la integración')
-  const guardado = await cliente.rpc('integracion_guardar_secreto', {
-    p_clave: 'apibara',
-    p_secreto: secreto,
-    p_actualizado_en_esperado: fila.data?.actualizado_en ?? '',
-  })
-  exigir(guardado.error, 'la clave de apibara')
 }
 
 // Lo que responde la base cuando alguien que NO es el cliente de servicio pide el secreto de una
