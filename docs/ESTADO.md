@@ -6,40 +6,41 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-15
-**Fase actual:** 3 — Leads, **parte 4b de 8 hecha** (la ficha está completa: edición y teléfonos). Sigue la 5.
+**Fase actual:** 3 — Leads, **parte 5a hecha** (seguimientos con editor y recordatorios). Sigue la 5b.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar`, `mapa.sh`, build y el e2e completo (números en
-  `docs/BITACORA.md`). Fases 0 a 2 completas, y las partes 1 a 4b de la Fase 3.
-- **e2e:** `pnpm test:e2e:completo` resetea la base y corre las 280 sin saltar ninguna (pide
+  `docs/BITACORA.md`). Fases 0 a 2 completas, y las partes 1 a 5a de la Fase 3.
+- **e2e:** `pnpm test:e2e:completo` resetea la base y corre las 312 sin saltar ninguna (pide
   `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: se
   prueba con lo grabado. Tras un reset, ver el README.
-- **Leads (partes 1 a 4b):** alta rápida (botón o `N`), campos configurables, listado (`/leads`: «míos»
-  y «todos», filtros, vistas, drawer) y ficha (`/leads/[id]`: datos, edición con versión y teléfonos,
-  éstos sólo con el lead en la cartera). Teléfono y privados recortados en la base. **Orígenes y
-  vehículos** completos (apibara y limpieza incluidas). Qué hay en el código: `docs/MAPA.md`.
+- **Leads (1 a 5a):** alta rápida, campos configurables, listado y ficha (datos, teléfonos y
+  «Seguimientos» con editor y «Tus recordatorios», por RPC y con la cartera); lo privado se recorta en la
+  base. **Orígenes y vehículos** completos. Qué hay en el código: `docs/MAPA.md`.
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Una por sesión: **5)** seguimientos (Tiptap, RPC propias), recordatorios, favoritos, tachados («no
-tachados» en el listado) y etiquetas. **6)** cartera, papelera de leads y vínculo e interesados. **7)**
-embudos (`?vista=embudo`) y portal. **8)** CSV con las columnas del layout.
+Una por sesión: **5b)** favoritos, tachados y etiquetas con la medición del listado (diseño decidido en
+`docs/DECISIONES.md`, 2026-10-15). **6)** cartera, papelera de leads, vínculo e interesados. **7)**
+embudos y portal. **8)** CSV con las columnas del layout.
 
 ## Pendientes que se arrastran
 
-- **Parte 5:** las policies directas de `seguimientos` (no miran que el tipo esté activo) y de
-  `recordatorios` (no miran el acceso al lead) se cierran con RPC; el editor muestra `detalle_texto`. Lo
-  derivado que sume va **fuera** de `lead_version()`. La base ya tiene un campo propio `tachado`: no
-  choca en la URL (`a.tachado`) pero sí de nombre en pantalla (`docs/DECISIONES.md`).
+- **5b:** favoritos, tachados y etiquetas se escriben todavía directo (RLS que pide ver el lead); pasan
+  a RPC `poner(valor)`. Faltan índices de FK (`leads_favoritos`, `leads_tachados`, `leads_etiquetas`), y
+  `etiquetas` sin versión ni unicidad sin mayúsculas. El campo propio `tachado` va en otra sección del panel.
 - **Parte 6 (antes de invitar a un asesor con leads reales):** **la papelera de leads va acá.**
   **Auditar TODAS las RPC de leads por este hueco:** actuar sobre un lead ajeno con `leads.editar`
   «todos» sin la cartera (la `cambiar_telefono_lead` vieja lo permitía; `compartir_lead` también, y no
-  mira si el destino está activo).
+  mira si el destino está activo). Unificar `_lead_de_cartera()` (4b) con `_lead_mio()` (5a). Seguimientos
+  y recordatorios con `vehiculo_id` (la RPC todavía no lo recibe).
 - **Fase 4:** la cotización final como ancla de la limpieza; desvincular con cotización final; campos del
   lead en la tarjeta o el PDF. **Fase 6:** mover de fase y publicar sin mover la versión de la ficha; la
   papelera manual no mira `documentos`. **Fases 7 y 8:** el CTA «Escribirle por chat»; la notificación
-  de la limpieza; el buscador de leads, sin los privados; el atajo `?` sin lista.
+  de la limpieza; el buscador de leads, sin los privados; el atajo `?` sin lista. **Recordatorios a su
+  hora:** `recordatorios_notificar()` existe sin cron y su `ruta` nombra el lead aunque su dueño ya no lo
+  vea; el push. **Parte 7:** el portal lee sólo lo «Visible para el cliente» con `vehiculo_id`.
 - **Fase 9:** medir con 5 a 10 mil registros (filtrar leads por un atributo ~0,06 ms por fila; si pesa,
   una función que recorta una vez por consulta); Actividad leerá el diff recortado. Sin remoto,
   `.github/` no corrió: su job e2e no sirve las funciones edge ni usa `test:e2e:completo`.

@@ -62,8 +62,8 @@ sólo publica con permiso y por RPC; e2e del alta por link y de la papelera en v
 Módulo `leads`: **campos configurables** (Configuración › Leads › Campos: crear, apagar, renombrar, ordenar, agrupar, requerido, filtrable, en la tabla, valor por defecto y «solo la cartera»; son el layout que leen el alta, la ficha, el listado y el CSV); listado con filtros, drawer rápido y ficha con pestañas; drawer «Nuevo lead» con
 verificación del teléfono al tipear (`verificar_telefono`: libre / existe y es mío / de otro con
 CTA al chat / en limbo → adopta); seguimientos con Tiptap saneado, tipos configurables,
-visibilidad pública/privada; recordatorios con atajos de fecha; favoritos, tachados (orden al
-final, filtro de 3 estados) y etiquetas por usuario; compartir, transferir, revocar; oportunidades
+visibilidad pública/privada; recordatorios con atajos de fecha; favoritos, tachados (ocultos
+por defecto, filtro de 3 estados) y etiquetas por usuario; compartir, transferir, revocar; oportunidades
 en embudos por usuario con kanban (`?vista=embudo`); portal del cliente (otorgar con código en
 grande y texto para WhatsApp, revocar); papelera; exportar/importar CSV de lo propio (vista previa
 por fila, importa las válidas).

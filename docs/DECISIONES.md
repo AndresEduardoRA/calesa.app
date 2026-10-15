@@ -1771,3 +1771,137 @@ se agrega una migración nueva; las ya commiteadas no se editan; `pnpm db:probar
 cero; un permiso o catálogo nuevo lleva su `insert … on conflict` en la misma migración (la nube no
 vuelve a correr el seed); y el relleno de datos de una columna nueva sigue escrito para una base con
 filas, porque la nube las tendrá. Desde el primer `db push` ninguna se corrige: se agrega otra.
+
+**Aprobada (2026-10-15, en el pedido de la parte 5):** la política de migraciones de arriba queda vigente.
+
+## 2026-10-15 — Seguimientos y recordatorios se escriben sólo por RPC, y actuar exige la cartera
+
+**Contexto:** las policies directas tenían huecos que la ficha no decía. Con `leads.editar` «todos» se
+anotaba en un lead ajeno sin estar en la cartera; el UPDATE de un seguimiento sólo pedía ser su autor,
+así que dejaba moverlo a **cualquier** lead (también uno que no se ve), pasarlo a un tipo apagado o
+«borrarlo» a mano. El de un recordatorio no miraba el lead y dejaba escribir `notificado_en`. El SELECT
+de seguimientos dejaba a quien ve «todos» leer los privados de todos.
+**Decisión:** las dos tablas quedan de sólo lectura para la app. Las escriben `seguimiento_crear|guardar|
+eliminar|restaurar` y `recordatorio_crear|guardar|completar|eliminar|restaurar` (y `crear_lead`). Cada una
+es idempotente por `p_id` generado en el cliente y la de edición pide `p_actualizado_en_esperado`. La
+versión la sella la RPC con la hora del reloj (sin `trg_actualizado_en`). Actuar sobre un lead pasa por
+`_lead_mio()`: `leads.ver`, `leads.editar` **y** la cartera. Cualquiera que falte, el limbo, la papelera o
+un lead inexistente dan **el mismo** `42501` «No encontramos este lead o no tienes acceso.» (sin
+oráculo). `_lead_de_cartera()` de la 4b no se reutilizó: su mensaje habla de teléfonos y distingue «lo ves
+pero no es tuyo»; la parte 6 los unifica al auditar. Editar, eliminar y restaurar un seguimiento: sólo
+su autor, y sólo con el lead en la cartera (si se la revocan, deja de poder corregirlo). Un recordatorio
+es de su dueño: uno ajeno «no existe» (`No encontramos este recordatorio.`).
+**Alternativas:** cerrar las policies con más condiciones (la lógica de tipo activo, fecha y cartera en
+una `with check` no se lee ni se prueba bien); permitir editar a cualquiera de la cartera (un co-asesor
+corrigiendo la nota de otro, sin rastro de quién dijo qué).
+**Consecuencia:** el humo prueba las RPC sin cartera, con la dueña con «todos», en limbo, en la papelera e
+inexistente, y que la escritura directa da `permission denied`; el e2e, la RPC llamada a mano con la sesión.
+
+## 2026-10-15 — Privado es sólo de su autor; ni el co-asesor ni «todos» leen lo privado ajeno
+
+**Decisión:** un seguimiento nace privado. Privado = sólo lo ve su autor; público («Visible para el
+cliente», sin nombrar el portal) = lo ven quienes ven el lead y el portal. Se quitó el `or alcance =
+'todos'` del SELECT: quien ve «todos» sin la cartera lee lo mismo que un co-asesor, como pasa con el
+teléfono y los campos «solo la cartera». La pantalla no insinúa lo que no se ve: «Seguimientos» va sin
+número, `lead_seguimientos()` no cuenta y la ficha no muestra «último seguimiento» (la fecha derivada
+sigue en el lead, para la bandeja de «leads sin seguimiento»).
+**Alternativas:** que «todos» lea los privados para supervisar (si hace falta, será un permiso propio y
+explícito, no un efecto de `leads.ver`).
+
+## 2026-10-15 — El detalle viaja como documento del editor, nunca como HTML
+
+**Contexto:** una RPC es llamable sin pasar por la action: sanear sólo al escribir desde el servidor de
+Next se evade. Postgres no tiene un parser de HTML (plv8 y plpython no están en Supabase) y un saneador
+por expresiones regulares se esquiva (anidado, entidades, mutación del DOM).
+**Decisión:** el editor (Tiptap) manda su documento (JSON de ProseMirror). La base lo valida contra una
+lista blanca en plpgsql (`_seguimiento_detalle()`): nodos `doc`, `paragraph`, `text`, `hardBreak`,
+`bulletList`, `orderedList` (sólo `start`) y `listItem`; marcas `bold`, `italic` y `link` (sólo `href`,
+`http`, `https`, `mailto` o `tel`, sin espacios ni caracteres de control, ≤ 2000); profundidad ≤ 6 (dos
+niveles de lista), ≤ 20 KB medido como lo escribe la base y ≤ 5000 caracteres de texto. Lo que no está
+**se rechaza** (`22023`, hint `detalle`), no se recorta en silencio; un documento sin texto es «sin
+detalle». La base deriva `detalle_texto` (búsqueda, portal y respaldo). La pantalla dibuja con la misma
+lista y React (`DocumentoDeSeguimiento`), sin `innerHTML`; un enlace sale con `rel="noopener noreferrer
+nofollow"` y `target="_blank"` sólo si es web; un nodo desconocido se dibuja como su texto, y un
+documento que no pasa la lista cae al texto plano. `entities/documento.ts` es el espejo y un test corre
+la función SQL en PGlite sobre la misma tabla de casos (`documento.casos.ts`). Se quitaron
+`seguimientos.detalle_html`, `recordatorios.detalle_html` y la dependencia `sanitize-html`, que nadie
+usaba; entró `seguimientos.detalle_doc`.
+**Alternativas:** HTML saneado con `sanitize-html` en la action y otra vez al dibujar con DOMPurify (dos
+saneadores que mantener y la RPC directa sin defensa); HTML más un `check` por regex en la base.
+**Costo:** ~250 líneas de plpgsql, el espejo con su tabla de casos y el renderer. El alta sigue con su
+textarea (no carga Tiptap ni cambia la tarea de oro): sus seguimientos se dibujan como texto y, al
+editarlos, el editor arranca con un párrafo por línea.
+
+## 2026-10-15 — El editor: carga diferida, atajos del marco y borrador en la pestaña
+
+**Decisión:** Tiptap (`StarterKit` con encabezados, código, citas, tachado, subrayado y regla
+apagados, y `Link` con la lista de protocolos) se pide con `next/dynamic` recién al abrir el redactor:
+la ficha no lo paga para mostrar la línea de tiempo (medido: la ficha aporta 31,8 KB al documento, bajo el
+tope de 40). El editor es un solo chunk de 388 KB (122 KB con gzip) que se pide al abrir el redactor:
+**tope 130 KB con gzip**; si lo pasa, se cambia `StarterKit` por las extensiones sueltas. `Ctrl/Cmd+Enter` guarda (se le quitó a `hardBreak`; el salto es `Shift+Enter`) y `N` no se
+dispara adentro (`ProveedorAtajos` ignora `isContentEditable`). El borrador va en `sessionStorage`
+(`useBorradorDeEstado`), por lead al anotar y por seguimiento al editar: sobrevive a recargar y a
+cambiar de pantalla, no a cerrar la pestaña, como el resto de los formularios; una nota privada no
+queda en un equipo compartido. Con un borrador, el redactor arranca abierto (se mira una sola vez al
+montar: releerlo mientras se repone lo cerraba). Anotar y editar son en línea, sin `?panel=` (como los
+teléfonos extra): no chocan con el panel de edición de los datos.
+
+## 2026-10-15 — Recordatorios: crear exige la cartera; si se pierde el lead, sigue sin él
+
+**Decisión:** crear uno sobre un lead exige tenerlo en la cartera (`recordatorio_crear` acepta también
+uno sin lead, personal, para la agenda de la Fase 7). Si después se pierde el acceso, el recordatorio
+sigue siendo de su dueño y `recordatorios_vista` (invoker) lo entrega con el lead nulo; lo puede editar,
+completar y eliminar igual. Completar es «poner» (`p_completado`): repetirlo es `sin_cambios`, `false`
+lo reabre. Cambiar la hora exige que sea futura y le pone `notificado_en = null` para que vuelva a
+avisar; cambiar sólo el título de uno que ya pasó no pide otra hora. Eliminar es lógico
+(`recordatorios.eliminado_en`) con «Deshacer». La ficha lee los vencidos propios en `lead_ficha()`
+(`recordatorios_vencidos`, sin otra lectura) y los avisa arriba. Un seguimiento puede llevar su
+recordatorio en la misma transacción, como el alta.
+**Fuera de esta parte:** el disparo a su hora (`recordatorios_notificar()` existe y nunca se programó) y el
+push (Fase 7); que esa notificación no nombre un lead que su dueño ya no ve.
+
+## 2026-10-15 — Un seguimiento no mueve la versión del lead; la actividad deja constancia sin contenido
+
+**Decisión:** `ultimo_seguimiento_en` sigue fuera de `lead_version()`, y su trigger corre sólo si
+cambian `ocurrido_en`, `eliminado_en` o `lead_id` (antes reescribía la fila del lead al corregir un
+título). Es el máximo de los vivos: eliminar el último lo devuelve al anterior. Los seguimientos dejan
+`lead.seguimiento_creado|editado|eliminado|restaurado` con `{seguimiento, tipo, visibilidad}`, sin título
+ni detalle; pasar a «Visible para el cliente» queda en el `editado`. Recordatorios, favoritos, tachados y
+etiquetas no dejan nada. `ocurrido_en` puede ser pasado, no futuro (5 minutos de margen por los relojes;
+la pantalla no da margen). El humo y el e2e prueban que anotar con la edición abierta en otra pestaña
+no da conflicto.
+
+## 2026-10-15 — Parte 5 partida en 5a y 5b; el diseño de la 5b
+
+**Decisión:** la 5a (seguimientos y recordatorios) se hizo en esta sesión; la 5b (favoritos, tachados
+y etiquetas, con el listado y la medición) va en la siguiente, con lo ya decidido:
+
+- **Dónde:** cabecera de la ficha y un menú «⋯» por fila (en el celular la tarjeta separa la zona que
+  abre el drawer del botón del menú). El drawer muestra el estado, sin acciones.
+- **Filtros:** `DefFiltro` suma una `seccion` («Tus marcas», con «Solo las ves tú», arriba; «Datos del
+  lead» debajo, donde queda el campo propio `a.tachado` con su etiqueta) y un tipo `eleccion` con valor
+  por defecto que no se escribe en la URL: `?tachados=` `ocultar` (por defecto) · `incluir` · `solo`;
+  `?favoritos=si`; `?etiqueta=<id>,<id>` («cualquiera de»). Entran solos en las vistas guardadas; «ver
+  como» no los toca (son de quien mira de verdad).
+- **Orden:** ni favoritos ni tachados reordenan (el keyset `(creado_en, id)` no cambia); «el tachado va
+  al final» se reemplaza por «oculto por defecto».
+- **Etiquetas:** nombre 1 a 30, hasta 50 por persona y 20 por lead, `unique (usuario_id,
+lower(nombre))`, color de una paleta cerrada guardado como clave, `actualizado_en`, y borrar una con
+  leads pide confirmar diciendo a cuántos toca.
+- **RPC:** `poner(valor)`, no alternar; exigen **ver** el lead (no la cartera), y lo que no se ve
+  responde como inexistente.
+- **Medición:** `supabase/tests/medir-listado.sql` committeado, con 2.000 leads sintéticos.
+
+## 2026-10-15 — Un corte del runtime local de funciones se vuelve a pedir, con una sola regla
+
+**Contexto:** en una corrida completa, `vehiculos-apibara-funcion.spec.ts` falló en móvil porque la
+segunda de dos llamadas volvió con `data: null`. El registro del runtime dijo `connection aborted` a los
+35 ms y el gateway contestó 503 sin cuerpo: la función nunca respondió. La guardia ya toleraba ese
+corte con su propio bucle; el spec no.
+**Decisión:** `e2e/soporte/funciones.ts` (`pedirAFuncion`) es la única definición de «sin respuesta» (el
+pedido no llegó, o el gateway contestó 502, 503 o 504 **sin cuerpo**) y de la espera entre intentos (0,5
+s). La usan la guardia y el spec. Hasta 3 intentos (la guardia, 4), nunca ante una respuesta de la
+función (las nuestras contestan siempre con un cuerpo), una línea `[funciones] reintento: …` por cada
+reintento en la salida, y «la función no respondió» si se agotan. El spec llama con `fetch` y el token de
+la sesión en vez de `functions.invoke`, que escondía el corte como `data: null`.
+**Consecuencia:** la guardia ya no insiste ante un 404 (la función no está servida): falla al primero.
