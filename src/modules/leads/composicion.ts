@@ -28,6 +28,7 @@ import type {
 } from './entities/repositorios'
 import type {
   LectorDeEmbudos,
+  LectorDeOportunidadesDelLead,
   LectorDeTablero,
   RepositorioDeEmbudos,
   RepositorioDeOportunidades,
@@ -44,6 +45,7 @@ import { getContextoDeAlta } from './infra/queries/alta'
 import { getCartera } from './infra/queries/cartera'
 import { getLayoutDeLeads } from './infra/queries/campos'
 import { getEmbudos, getTablero } from './infra/queries/embudos'
+import { getOportunidadesDelLead } from './infra/queries/oportunidades'
 import { getEtiquetas } from './infra/queries/etiquetas'
 import { getFicha } from './infra/queries/ficha'
 import {
@@ -110,3 +112,5 @@ export const leerEmbudos: LectorDeEmbudos = getEmbudos
 export const leerTablero: LectorDeTablero = getTablero
 
 export const repositorioDeOportunidades: RepositorioDeOportunidades = oportunidadesSupabase
+
+export const leerOportunidadesDelLead: LectorDeOportunidadesDelLead = getOportunidadesDelLead

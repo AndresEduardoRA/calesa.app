@@ -6,6 +6,7 @@ import {
   accionesDeCartera,
   CLAVE_DE_SECCION,
   duenoDe,
+  EsqueletoDeOportunidades,
   EsqueletoDeSeguimientos,
   FichaDeLead,
   LeadNoDisponible,
@@ -13,6 +14,7 @@ import {
   puedeCambiarTelefonoDeLead,
   puedeEditarLead,
   puedeEnviarLead,
+  SeccionOportunidades,
   SeccionSeguimientos,
   seccionDeLead,
 } from '@/modules/leads'
@@ -44,9 +46,12 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
   if (!datos) {
     return <LeadNoDisponible />
   }
-  // «Vehículos» sólo para quien ve vehículos en algún origen. Lo que no es una sección que existe (o que
-  // la persona no ve) abre «Datos».
-  const ve = { vehiculos: puede(sesion.permisos, 'vehiculos.ver') }
+  // «Vehículos» sólo para quien ve vehículos en algún origen; «Oportunidades», con el lead en la cartera.
+  // Lo que no es una sección que existe (o que la persona no ve) abre «Datos».
+  const ve = {
+    vehiculos: puede(sesion.permisos, 'vehiculos.ver'),
+    oportunidades: datos.ficha.enCartera,
+  }
   const seccion = seccionDeLead(unParametro(parametros[CLAVE_DE_SECCION]), ve)
   return (
     <FichaDeLead
@@ -83,6 +88,16 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
         seccion === 'vehiculos' ? (
           <Suspense fallback={<EsqueletoDeVehiculosDelLead />}>
             <SeccionVehiculosDelLead leadId={datos.ficha.id} leadNombre={datos.ficha.nombre} />
+          </Suspense>
+        ) : null
+      }
+      oportunidades={
+        seccion === 'oportunidades' ? (
+          <Suspense fallback={<EsqueletoDeOportunidades />}>
+            <SeccionOportunidades
+              leadId={datos.ficha.id}
+              {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
+            />
           </Suspense>
         ) : null
       }

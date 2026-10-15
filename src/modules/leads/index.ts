@@ -58,3 +58,7 @@ export { CLAVE_DE_SECCION, seccionDeLead } from './entities/ficha'
 // la base; un co-asesor ve sólo lo «Visible para el cliente» de los demás.
 export { SeccionSeguimientos } from './features/seguimientos/components/seccion-seguimientos'
 export { EsqueletoDeSeguimientos } from './features/seguimientos/components/esqueleto-de-seguimientos'
+// La sección «Oportunidades»: las de quien mira sobre el lead (sólo con la cartera), leída en el servidor
+// detrás de `<Suspense>` (su esqueleto es `<EsqueletoDeOportunidades>`).
+export { SeccionOportunidades } from './features/oportunidades/components/seccion-oportunidades'
+export { EsqueletoDeOportunidades } from './features/oportunidades/components/esqueleto-de-oportunidades'

@@ -51,7 +51,9 @@ type Props = {
   seguimientos: ReactNode
   // La sección «Vehículos»: vive en `vehiculos` y la compone la página (`leads` no importa `vehiculos`).
   vehiculos: ReactNode
-  // Lo que quien mira ve fuera de los leads: decide qué secciones se dibujan.
+  // La sección «Oportunidades» (detrás de `<Suspense>`): la página la monta sólo con `?seccion=oportunidades`.
+  oportunidades: ReactNode
+  // Lo que quien mira ve: decide qué secciones se dibujan.
   ve: LoQueVe
   // Las etiquetas de quien mira (para nombrar las del lead y elegir otras).
   etiquetas: readonly Etiqueta[]
@@ -69,6 +71,7 @@ type DatosDeSeccion = {
   puedeCambiarTelefono: boolean
   seguimientos: ReactNode
   vehiculos: ReactNode
+  oportunidades: ReactNode
   cartera: readonly PersonaDeCartera[]
   accionesDeCartera: AccionesDeCartera
 }
@@ -79,6 +82,7 @@ const CONTENIDO_DE_SECCION: Record<SeccionDeLead, (datos: DatosDeSeccion) => Rea
   datos: (datos) => <SeccionDatos {...datos} />,
   seguimientos: (datos) => datos.seguimientos,
   vehiculos: (datos) => datos.vehiculos,
+  oportunidades: (datos) => datos.oportunidades,
 }
 
 // El enlace de vuelta al listado, arriba de la cabecera.
@@ -95,7 +99,7 @@ function VolverALeads() {
 }
 
 // La ficha de un lead: su cabecera, la barra de secciones y la sección de `?seccion=` («Datos»,
-// «Seguimientos» o «Vehículos»). Las demás (cotizaciones, portal, historial) llegan con su parte y no
+// «Seguimientos», «Vehículos» u «Oportunidades»). Las demás (cotizaciones, portal, historial) llegan con su parte y no
 // se dibujan hasta entonces.
 export function FichaDeLead({
   ficha,
@@ -107,6 +111,7 @@ export function FichaDeLead({
   seccion,
   seguimientos,
   vehiculos,
+  oportunidades,
   ve,
   etiquetas: lista,
   cartera,
@@ -156,6 +161,7 @@ export function FichaDeLead({
         puedeCambiarTelefono,
         seguimientos,
         vehiculos,
+        oportunidades,
         cartera,
         accionesDeCartera,
       })}

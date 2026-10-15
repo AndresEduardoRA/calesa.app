@@ -132,8 +132,9 @@ describe('teléfono de la ficha', () => {
 })
 
 describe('secciones', () => {
-  const conVehiculos = { vehiculos: true }
-  const sinVehiculos = { vehiculos: false }
+  const conVehiculos = { vehiculos: true, oportunidades: false }
+  const sinVehiculos = { vehiculos: false, oportunidades: false }
+  const todo = { vehiculos: true, oportunidades: true }
   it('«Datos», «Seguimientos» y «Vehículos»: hay barra de pestañas, sin números', () => {
     expect(hayBarraDeSecciones(conVehiculos)).toBe(true)
     expect(seccionesDisponibles(conVehiculos)).toEqual([
@@ -149,6 +150,16 @@ describe('secciones', () => {
     ])
     expect(seccionDeLead('vehiculos', sinVehiculos)).toBe('datos')
     expect(seccionDeLead('vehiculos', conVehiculos)).toBe('vehiculos')
+  })
+  it('«Oportunidades» sólo con el lead en la cartera, al final', () => {
+    expect(seccionesDisponibles(todo).map((s) => s.clave)).toEqual([
+      'datos',
+      'seguimientos',
+      'vehiculos',
+      'oportunidades',
+    ])
+    expect(seccionDeLead('oportunidades', todo)).toBe('oportunidades')
+    expect(seccionDeLead('oportunidades', conVehiculos)).toBe('datos')
   })
   it('lo que no es una sección que existe abre «Datos»', () => {
     expect(seccionDeLead(undefined, conVehiculos)).toBe('datos')
