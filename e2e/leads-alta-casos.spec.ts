@@ -82,11 +82,18 @@ test('la respuesta se perdió pero el lead entró: reintentar no duplica', async
   await llenarYSeguir(page, nacional, `E2E Respuesta perdida ${info.project.name}`)
   await panel.getByLabel('Resumen').fill('Pidió una cotización')
 
-  // El servidor recibe y guarda; el navegador nunca ve la respuesta (una vez).
+  // El servidor recibe y guarda; el navegador nunca ve la respuesta (una vez). Sólo el alta: la
+  // verificación del teléfono (con su espera de 400 ms) también es una action y puede salir después
+  // de instalar la ruta; el alta es la que lleva el resumen.
   let perdida = false
   await page.route('**/*', async (ruta) => {
     const pedido = ruta.request()
-    if (!perdida && pedido.method() === 'POST' && pedido.headers()['next-action']) {
+    if (
+      !perdida &&
+      pedido.method() === 'POST' &&
+      pedido.headers()['next-action'] &&
+      (pedido.postData() ?? '').includes('Pidió una cotización')
+    ) {
       perdida = true
       await ruta.fetch()
       await ruta.abort('failed')
