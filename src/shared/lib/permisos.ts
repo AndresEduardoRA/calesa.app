@@ -25,6 +25,7 @@ export const CLAVES_PERMISO = [
   'leads.compartir',
   'leads.transferir',
   'leads.eliminar',
+  'leads.papelera.purgar',
   'leads.portal.gestionar',
   'leads.configurar',
   'cotizaciones.ver',

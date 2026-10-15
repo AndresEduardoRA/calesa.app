@@ -24,9 +24,8 @@ export const PANEL_CAMBIAR_TELEFONO = 'cambiar-telefono'
 // Las claves del formulario son las que pone la base en el `hint` de un error.
 export const CLAVE_DE_TELEFONO = { telefono: 'telefono', etiqueta: 'etiqueta' } as const
 
-// El de «Cambiar» y los extras: sólo quien tiene el lead en su cartera y puede editarlo. Distinto de
-// `puedeEditarLead()`: con `leads.editar` «todos» se edita el nombre de un lead ajeno, pero sus
-// teléfonos (que llegan enmascarados) no. La base lo vuelve a decidir.
+// El de «Cambiar» y los extras: sólo quien tiene el lead en su cartera y puede editarlo (la misma
+// regla que `puedeEditarLead()`: contenido, clase 1). La base lo vuelve a decidir.
 export function puedeCambiarTelefonoDeLead(permisos: Permisos, enCartera: boolean): boolean {
   return enCartera && alcanceDe(permisos, 'leads.editar') !== null
 }

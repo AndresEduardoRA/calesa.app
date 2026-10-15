@@ -7,7 +7,6 @@ import {
   camposEditables,
   campoDeEdicion,
   hayCambios,
-  hayPrivadosFuera,
   origenesOfrecidos,
   primerCampoConErrorDeEdicion,
   puedeEditarLead,
@@ -105,9 +104,9 @@ function entrada(
 describe('quién puede editar', () => {
   const todos: Permisos = [{ clave: 'leads.editar', origenId: null, alcance: 'todos' }]
   const propios: Permisos = [{ clave: 'leads.editar', origenId: null, alcance: 'propios' }]
-  it('«todos» edita cualquiera', () => {
-    expect(puedeEditarLead(todos, false)).toBe(true)
+  it('«todos» edita lo de su cartera, no cualquiera', () => {
     expect(puedeEditarLead(todos, true)).toBe(true)
+    expect(puedeEditarLead(todos, false)).toBe(false)
   })
   it('«propios» sólo lo de su cartera', () => {
     expect(puedeEditarLead(propios, true)).toBe(true)
@@ -129,15 +128,8 @@ describe('qué campos se ofrecen', () => {
     const claves = camposEditables(LAYOUT, true).map((c) => c.clave)
     expect(claves).toEqual(['ciudad', 'edad', 'ci', 'signo'])
   })
-  it('sin la cartera no se ofrecen los privados, y se dice', () => {
+  it('sin la cartera no se ofrecen los privados', () => {
     expect(camposEditables(LAYOUT, false).map((c) => c.clave)).toEqual(['ciudad', 'edad', 'signo'])
-    expect(hayPrivadosFuera(LAYOUT, false)).toBe(true)
-    expect(hayPrivadosFuera(LAYOUT, true)).toBe(false)
-  })
-  it('un privado desactivado no cuenta como privado que falta', () => {
-    expect(hayPrivadosFuera([campo({ clave: 'x', soloCartera: true, activo: false })], false)).toBe(
-      false,
-    )
   })
 })
 

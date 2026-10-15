@@ -35,7 +35,7 @@ export async function abrirRedactor(page: Page): Promise<Locator> {
   return formulario
 }
 
-// Le da el lead a otra persona como co-asesora (lo que hará `compartir_lead` en la parte 6).
+// Le da el lead a otra persona como co-asesora, como lo haría `lead_compartir` (sin pasar por la pantalla).
 export async function compartirCon(leadId: string, personaId: string, deQuienId: string) {
   const { error } = await admin().from('leads_asesores').upsert({
     lead_id: leadId,

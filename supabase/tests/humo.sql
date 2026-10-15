@@ -603,13 +603,16 @@ select set_config('request.jwt.claim.sub', '', false);
 
 -- @test limbo: la vista previa cuenta lo mismo que manda la baja, y un lead compartido no se cuenta
 -- nuevo@ (4) tiene el lead que adoptó; suma uno propio y otro que además comparte con la invitada (5).
+-- Compartir exige que el destino vea leads: la invitada es asesora mientras dura este bloque.
+insert into public.usuarios_roles (usuario_id, rol_id)
+select '00000000-0000-0000-0000-000000000005', r.id from public.roles r where r.clave = 'asesor';
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 select set_config('request.jwt.claim.role', 'authenticated', false);
 set role authenticated;
 do $$ declare propio uuid; compartido uuid; begin
   propio := (public.crear_lead(gen_random_uuid(), '{"nombre": "Luis Choque", "telefono_cc": "+591", "telefono_principal": "70000021"}') ->> 'id')::uuid;
   compartido := (public.crear_lead(gen_random_uuid(), '{"nombre": "Marta Vaca", "telefono_cc": "+591", "telefono_principal": "70000022"}') ->> 'id')::uuid;
-  perform public.compartir_lead(compartido, '00000000-0000-0000-0000-000000000005');
+  perform public.lead_compartir(compartido, '00000000-0000-0000-0000-000000000005');
   -- Sin el permiso de gestionar personas, la vista previa no responde.
   begin perform public.equipo_vista_previa_baja('00000000-0000-0000-0000-000000000001'); raise exception 'un asesor vio la vista previa de una baja';
   exception when insufficient_privilege then null; end;
@@ -632,6 +635,7 @@ do $$ declare antes jsonb; mandados int; begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+delete from public.usuarios_roles where usuario_id = '00000000-0000-0000-0000-000000000005';
 
 -- @test perspectiva: los permisos efectivos nunca exceden los reales y RLS no se entera
 reset role;
@@ -3158,7 +3162,7 @@ end $$;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
 set role authenticated;
 do $$ begin
-  perform public.compartir_lead((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001');
+  perform public.lead_compartir((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001');
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
@@ -3172,10 +3176,10 @@ reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
 set role authenticated;
 do $$ declare rechazo boolean; begin
-  perform public.revocar_acceso_lead((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001');
+  perform public.lead_revocar_acceso((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001');
   -- Al dueño no se le revoca, y el mensaje habla de tú.
   rechazo := false;
-  begin perform public.revocar_acceso_lead((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000030');
+  begin perform public.lead_revocar_acceso((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000030');
   exception when check_violation then
     if sqlerrm not like '%transfiere%' then raise exception 'el mensaje no habla de tú: %', sqlerrm; end if; rechazo := true; end;
   if not rechazo then raise exception 'revocó al dueño'; end if;
@@ -3192,7 +3196,7 @@ reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000030', false);
 set role authenticated;
 do $$ begin
-  perform public.transferir_lead((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001');
+  perform public.lead_transferir((select id from public.leads where nombre = 'Privado Humo'), '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000030');
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
@@ -3872,7 +3876,7 @@ do $$ declare r uuid; v uuid; begin
   perform public.rbac_otorgar(r, 'leads.ver', (select actualizado_en from public.roles where id = r), p_alcance => 'todos');
   perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000042', r, true);
   -- La dueña lo comparte con otra persona: ahora la cartera de «Ficha Propia» son dos.
-  perform public.compartir_lead((select id from public.leads where nombre = 'Ficha Propia'), '00000000-0000-0000-0000-000000000041');
+  perform public.lead_compartir((select id from public.leads where nombre = 'Ficha Propia'), '00000000-0000-0000-0000-000000000041');
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000042', false);
@@ -3977,12 +3981,12 @@ begin
   -- Compartir (lo hace la dueña) y transferir (lo hace quien lo tiene).
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  perform public.compartir_lead(v_id, '00000000-0000-0000-0000-000000000040');
+  perform public.lead_compartir(v_id, '00000000-0000-0000-0000-000000000040');
   reset role;
   if (select actualizado_en from public.leads where id = v_id) <> v1 then raise exception 'compartir no debe mover la versión'; end if;
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
   set local role authenticated;
-  perform public.transferir_lead(v_id, '00000000-0000-0000-0000-000000000040');
+  perform public.lead_transferir(v_id, '00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000041');
   reset role;
   if (select actualizado_en from public.leads where id = v_id) <> v1 then raise exception 'transferir no debe mover la versión'; end if;
   -- 0040 tenía la ficha abierta con v0: choca, y el quién es 0041 (quien editó), no la dueña ni quien transfirió.
@@ -4056,7 +4060,7 @@ begin
     end;
   end loop;
   if n <> 5 then raise exception 'se probaron % de 5 casos', n; end if;
-  -- Ve pero no edita (leads.ver sin leads.editar): un mensaje propio, y sólo porque ya lo ve.
+  -- Ve pero no edita (leads.ver sin leads.editar): lo mismo que a quien no lo ve; no hay oráculo.
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000042', true);
   set local role authenticated;
   begin
@@ -4065,22 +4069,22 @@ begin
     raise exception 'quien sólo ve editó';
   exception when others then
     reset role;
-    if sqlerrm <> 'No tienes permiso para editar este lead.' or sqlstate <> '42501' then raise exception 'sin leads.editar: % (%)', sqlerrm, sqlstate; end if;
+    if sqlerrm <> v_ref or sqlstate <> '42501' then raise exception 'sin leads.editar: % (%)', sqlerrm, sqlstate; end if;
   end;
-  -- «Todos» edita lo ajeno (los no privados) y no toca los privados: sin ser de la cartera no ve la cédula.
+  -- «Todos» no edita lo ajeno: editar es contenido (clase 1) y exige la cartera. Ni lo no privado.
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  perform public.lead_guardar(v_ajeno, v, '{"nombre": "Ficha Propia 3", "atributos": {"ficha_color": "naranja"}}');
   begin
-    perform public.lead_guardar(v_ajeno, (select actualizado_en from public.leads where id = v_ajeno), '{"atributos": {"ficha_ci": "CI-999"}}');
+    perform public.lead_guardar(v_ajeno, v, '{"nombre": "Ficha Propia 3", "atributos": {"ficha_color": "naranja"}}');
     reset role;
-    raise exception 'cambió un privado sin ser de la cartera';
+    raise exception '«todos» sin cartera editó un lead ajeno';
   exception when others then
     reset role;
-    if sqlstate <> '42501' or sqlerrm not like '%Cédula de la ficha%' then raise exception 'privado ajeno: % (%)', sqlerrm, sqlstate; end if;
+    if sqlstate <> '42501' or sqlerrm <> v_ref then raise exception 'todos sin cartera: % (%)', sqlerrm, sqlstate; end if;
   end;
+  if (select nombre from public.leads where id = v_ajeno) <> 'Ficha Propia 2' then raise exception 'el nombre cambió'; end if;
   if (select atributos ->> 'ficha_ci' from public.leads where id = v_ajeno) <> 'CI-111' then raise exception 'la cédula cambió'; end if;
-  update public.leads set nombre = 'Ficha Propia 2' where id = v_ajeno;
+  if (select actualizado_en from public.leads where id = v_ajeno) <> v then raise exception 'un rechazo movió la versión'; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
 
@@ -4106,14 +4110,21 @@ begin
   set local role authenticated;
   perform public.lead_guardar(v_id, v, '{"tipo": "cliente", "atributos": {"ficha_ver": "ya"}}');
   reset role;
-  -- Una cédula requerida: quien está en la cartera la completa; la dueña, sin ser de la cartera, no la ve ni se le exige.
+  -- Una cédula requerida: quien está en la cartera la completa; la dueña, sin ser de la cartera, no edita nada.
   update public.leads_campos set requerido = false where clave = 'ficha_ver';
   update public.leads set atributos = atributos - 'ficha_ci' where id = v_id;
   update public.leads_campos set requerido = true where clave = 'ficha_ci';
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
-  perform public.lead_guardar(v_id, (select actualizado_en from public.leads where id = v_id), '{"nombre": "Ficha Ajena 4"}');
-  reset role;
+  begin
+    perform public.lead_guardar(v_id, (select actualizado_en from public.leads where id = v_id), '{"nombre": "Ficha Ajena 4"}');
+    reset role;
+    raise exception 'la dueña sin cartera editó';
+  exception when others then
+    reset role;
+    if sqlstate <> '42501' or sqlerrm <> 'No encontramos este lead o no tienes acceso.' then raise exception 'la dueña sin cartera: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  update public.leads set nombre = 'Ficha Ajena 4' where id = v_id;
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
   set local role authenticated;
   begin
@@ -4377,8 +4388,10 @@ do $$ declare
   v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Compartido');
   f text[]; r jsonb;
 begin
-  -- La dueña («todos», sin cartera) edita el nombre: la versión se mueve.
-  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  -- Quien lo tiene compartido está en la cartera: edita el nombre y la versión se mueve.
+  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por)
+  values (v_id, '00000000-0000-0000-0000-000000000043', 'compartido', '00000000-0000-0000-0000-000000000040');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000043', true);
   set local role authenticated;
   perform public.lead_guardar(v_id, v0, '{"nombre": "Tel Compartido 2"}');
   reset role;
@@ -4391,9 +4404,7 @@ begin
   reset role;
   if (select telefono_principal from public.leads where id = v_id) <> '59174100006' then raise exception 'un rechazo cambió el teléfono'; end if;
 
-  -- Quien lo tiene compartido está en la cartera: cambia.
-  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por)
-  values (v_id, '00000000-0000-0000-0000-000000000043', 'compartido', '00000000-0000-0000-0000-000000000040');
+  -- El compartido también cambia el teléfono.
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000043', true);
   set local role authenticated;
   r := public.cambiar_telefono_lead(v_id, (select actualizado_en from public.leads where id = v_id), '', '74140002');
@@ -4407,15 +4418,14 @@ do $$ declare
   v_id uuid := (select id from public.leads where nombre = 'Tel Extras');
   v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Extras');
   v_limbo uuid := (select id from public.leads where nombre = 'Tel Limbo');
-  v_sin text := 'Sólo quien tiene este lead en su cartera puede cambiar sus teléfonos.';
   v_nada text := 'No encontramos este lead o no tienes acceso.';
   u text; l uuid; esperado text; sql text; f text[]; n int := 0; antes jsonb; despues jsonb;
 begin
   select to_jsonb(x) into antes from (select telefono_principal, actualizado_en, (select jsonb_agg(t order by t.telefono) from public.leads_telefonos t where t.lead_id = v_id) extras from public.leads where id = v_id) x;
   for u, l, esperado in
     select * from (values
-      ('00000000-0000-0000-0000-000000000001'::text, v_id, v_sin),
-      ('00000000-0000-0000-0000-000000000042', v_id, v_sin),
+      ('00000000-0000-0000-0000-000000000001'::text, v_id, v_nada),
+      ('00000000-0000-0000-0000-000000000042', v_id, v_nada),
       ('00000000-0000-0000-0000-000000000041', v_id, v_nada),
       ('00000000-0000-0000-0000-000000000044', v_id, v_nada),
       ('00000000-0000-0000-0000-000000000040', gen_random_uuid(), v_nada),
@@ -5381,7 +5391,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040
 set role authenticated;
 select public.lead_favorito_poner((select id from public.leads where nombre = 'Marca Propio'), true);
 select public.lead_etiquetas_poner((select id from public.leads where nombre = 'Marca Propio'), array['00000000-0000-0000-0000-0000000e4003']::uuid[], true);
-select public.compartir_lead((select id from public.leads where nombre = 'Marca Propio'), '00000000-0000-0000-0000-000000000043');
+select public.lead_compartir((select id from public.leads where nombre = 'Marca Propio'), '00000000-0000-0000-0000-000000000043');
 reset role;
 do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Marca Propio'); v record; begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000043', true);
@@ -5393,7 +5403,7 @@ do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Marca 
   -- 40 se lo transfiere a 43: las marcas de 40 siguen en su lugar.
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
   set local role authenticated;
-  perform public.transferir_lead(v_lead, '00000000-0000-0000-0000-000000000043');
+  perform public.lead_transferir(v_lead, '00000000-0000-0000-0000-000000000043', '00000000-0000-0000-0000-000000000040');
   select * into v from public.leads_vista where id = v_lead;
   if not v.es_favorito or v.etiquetas <> array['00000000-0000-0000-0000-0000000e4003']::uuid[] then reset role; raise exception 'transferir movió marcas de 40: %', to_jsonb(v); end if;
   reset role;

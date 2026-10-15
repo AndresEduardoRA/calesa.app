@@ -1,9 +1,9 @@
 import { expect, test, type Locator, type Page } from './soporte/prueba'
-import { entrar } from './soporte/alta'
+import { CONTRASENA, entrar } from './soporte/alta'
 import { admin } from './soporte/base'
 import { bloque, esMovil, otraPersona } from './soporte/inventario'
 import { exigir } from './soporte/leads'
-import { idDePersona, telefonoAlAzar } from './soporte/leads-alta'
+import { idDePersona, sesionDe, telefonoAlAzar } from './soporte/leads-alta'
 import {
   activarCampo,
   limpiarListado,
@@ -11,10 +11,12 @@ import {
   prepararListado,
   type TerrenoDelListado,
 } from './soporte/leads-listado'
+import { compartirCon } from './soporte/leads-seguimientos'
 import {
   NO_DISPONIBLE,
   abrirEdicion,
   alGuardarFicha,
+  botonEditar,
   cuerpoDeAccion,
   edicionesRegistradas,
   irAFicha,
@@ -113,7 +115,12 @@ test('dos personas editan: la segunda ve de quién es el cambio y conserva lo qu
   const panel = await abrirEdicion(page)
   await panel.getByLabel('Nombre').fill(nombre(`Conflicto de Berta ${info.project.name}`))
 
-  // La dueña edita el mismo lead y guarda primero.
+  // La dueña lo tiene compartido (editar pide la cartera), lo edita y guarda primero.
+  await compartirCon(
+    lead.id,
+    await idDePersona(t.personas.duena),
+    await idDePersona(t.personas.berta),
+  )
   const otra = await otraPersona(browser, page)
   await entrar(otra, t.personas.duena)
   await irAFicha(otra, lead.id)
@@ -276,11 +283,11 @@ test('se revoca el acceso con la ficha abierta: guardar lo dice y la ficha deja 
   expect((await leadEnLaBase(lead.id)).nombre).toBe(lead.nombre)
 })
 
-test('la dueña edita lo ajeno sin ver ni cambiar los privados, y el panel lo dice', async ({
+test('la dueña con «todos» ve lo ajeno y no lo edita: sin botón, sin panel y la base lo rechaza', async ({
   page,
 }, info) => {
   const lead = await nuevoLead({
-    corto: `Ajeno editable ${info.project.name}`,
+    corto: `Ajeno no editable ${info.project.name}`,
     telefono: telefono(),
     deQuien: t.personas.carlos,
     atributos: { e2e_ci: 'CI-PRIVADA-5566', e2e_color: 'gris' },
@@ -288,16 +295,22 @@ test('la dueña edita lo ajeno sin ver ni cambiar los privados, y el panel lo di
   await entrar(page, t.personas.duena)
   await irAFicha(page, lead.id)
   await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
-  const panel = await abrirEdicion(page)
-  await expect(panel.getByText(/no está en tu cartera/)).toBeVisible()
-  await abrirOtros(panel)
-  await expect(panel.getByLabel(/Cédula E2E/)).toHaveCount(0)
+  // Editar es contenido: pide la cartera, y «todos» no basta. No hay botón y la URL no abre nada.
+  await expect(botonEditar(page)).toHaveCount(0)
+  await irAFicha(page, lead.id, '?panel=editar-lead')
+  await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(await page.content()).not.toContain('CI-PRIVADA-5566')
-  await panel.getByLabel('Color E2E').fill('negro')
-  const peticion = alGuardarFicha(page)
-  await panel.getByRole('button', { name: 'Guardar', exact: true }).click()
-  expect(Object.keys(cuerpoDeAccion((await peticion).postData()).cambios)).toEqual(['atributos'])
-  await expect(page.getByText('Cambios guardados')).toBeVisible()
+  // Y la base, llamada a mano con su sesión, responde lo mismo que a quien no ve el lead.
+  const sesion = await sesionDe(t.personas.duena, CONTRASENA)
+  const { error } = await sesion.rpc('lead_guardar', {
+    p_lead: lead.id,
+    p_actualizado_en_esperado: await versionDe(lead.id),
+    p_cambios: { nombre: 'Intruso' },
+  })
+  expect(error?.code).toBe('42501')
+  expect(error?.message).toBe('No encontramos este lead o no tienes acceso.')
   const guardado = await leadEnLaBase(lead.id)
-  expect(guardado.atributos).toMatchObject({ e2e_color: 'negro', e2e_ci: 'CI-PRIVADA-5566' })
+  expect(guardado.nombre).toBe(lead.nombre)
+  expect(guardado.atributos).toMatchObject({ e2e_color: 'gris', e2e_ci: 'CI-PRIVADA-5566' })
 })

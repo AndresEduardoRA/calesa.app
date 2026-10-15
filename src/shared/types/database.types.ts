@@ -2244,8 +2244,9 @@ export type Database = {
           telefono_principal: string
           tipo: Database['public']['Enums']['tipo_lead']
           ultimo_seguimiento_en: string | null
+          _lead_motivo_de_restaurar: string | null
         }
-        ComputedFields: never
+        ComputedFields: '_lead_motivo_de_restaurar'
         Insert: {
           actualizado_en?: string
           atributos?: NonNullable<Json>
@@ -6350,34 +6351,9 @@ export type Database = {
       }
       _lead_campo_con_valor: { Args: { p_clave: string }; Returns: number }
       _lead_campos_renumerar: { Args: Record<PropertyKey, never>; Returns: undefined }
+      _lead_cartera_json: { Args: { p_lead: string }; Returns: Json }
       _lead_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
       _lead_conflicto: { Args: { p_cuando: string; p_lead: string }; Returns: undefined }
-      _lead_de_cartera: {
-        Args: { p_lead: string }
-        Returns: {
-          actualizado_en: string
-          atributos: NonNullable<Json>
-          creado_en: string
-          creado_por: string | null
-          eliminado_en: string | null
-          eliminado_por: string | null
-          id: string
-          lote_papelera_id: string | null
-          nombre: string
-          numero: number
-          origen_lead_id: string | null
-          telefono_cc: string | null
-          telefono_principal: string
-          tipo: Database['public']['Enums']['tipo_lead']
-          ultimo_seguimiento_en: string | null
-        }
-        SetofOptions: {
-          from: '*'
-          to: 'leads'
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       _lead_defecto_empresa: {
         Args: {
           p_defecto: Json
@@ -6386,8 +6362,10 @@ export type Database = {
         }
         Returns: string
       }
+      _lead_destino_validar: { Args: { p_usuario: string }; Returns: undefined }
+      _lead_dueno: { Args: { p_lead: string }; Returns: string }
       _lead_mio: {
-        Args: { p_lead: string }
+        Args: { p_bloquear?: boolean; p_clave?: string; p_lead: string }
         Returns: {
           actualizado_en: string
           atributos: NonNullable<Json>
@@ -6413,6 +6391,51 @@ export type Database = {
         }
       }
       _lead_mis_etiquetas: { Args: { p_lead: string }; Returns: Json }
+      _lead_motivo_de_bloqueo: {
+        Args: {
+          l: Omit<
+            Database['public']['Tables']['leads']['Row'],
+            Database['public']['Tables']['leads']['ComputedFields']
+          >
+          p_al_enviar: boolean
+        }
+        Returns: string
+      }
+      _lead_motivo_de_restaurar: {
+        Args: {
+          l: Omit<
+            Database['public']['Tables']['leads']['Row'],
+            Database['public']['Tables']['leads']['ComputedFields']
+          >
+        }
+        Returns: string
+      }
+      _lead_para_mover: {
+        Args: { p_lead: string }
+        Returns: {
+          actualizado_en: string
+          atributos: NonNullable<Json>
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          eliminado_por: string | null
+          id: string
+          lote_papelera_id: string | null
+          nombre: string
+          numero: number
+          origen_lead_id: string | null
+          telefono_cc: string | null
+          telefono_principal: string
+          tipo: Database['public']['Enums']['tipo_lead']
+          ultimo_seguimiento_en: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'leads'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _lead_telefonos_estado: { Args: { p_lead: string; p_resultado: string }; Returns: Json }
       _lead_verificar: { Args: { p_excluir?: string; p_tel: string }; Returns: Json }
       _lead_visible: { Args: { p_lead: string }; Returns: string }
@@ -6483,8 +6506,9 @@ export type Database = {
         Returns: Json
       }
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
+      _papelera_purgar_leads: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
-      _papelera_sin_vehiculos: {
+      _papelera_solo_cotizaciones: {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: undefined
       }
@@ -6764,7 +6788,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      compartir_lead: { Args: { p_lead: string; p_usuario: string }; Returns: undefined }
       comprobante_anular: { Args: { p_comprobante: string; p_motivo: string }; Returns: undefined }
       comprobante_emitir: {
         Args: { p_cotizacion: string; p_datos: Json; p_serie: string }
@@ -6897,6 +6920,9 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_campo: string; p_despues_de?: string }
         Returns: string
       }
+      lead_cartera: { Args: { p_lead: string }; Returns: Json }
+      lead_cartera_candidatos: { Args: { p_lead: string }; Returns: Json }
+      lead_compartir: { Args: { p_lead: string; p_usuario: string }; Returns: Json }
       lead_en_limbo: { Args: { p_lead: string }; Returns: boolean }
       lead_etiquetas_poner: {
         Args: { p_etiquetas: string[]; p_lead: string; p_valor: boolean }
@@ -6908,6 +6934,8 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_lead: string }
         Returns: Json
       }
+      lead_revocar_acceso: { Args: { p_lead: string; p_usuario: string }; Returns: Json }
+      lead_salir: { Args: { p_lead: string }; Returns: Json }
       lead_seguimientos: {
         Args: { p_antes_en?: string; p_antes_id?: string; p_lead: string; p_tamano?: number }
         Returns: Json
@@ -6933,6 +6961,20 @@ export type Database = {
           id: string
           telefono: string
         }[]
+      }
+      lead_transferir: {
+        Args: { p_destino: string; p_dueno_esperado: string; p_lead: string }
+        Returns: Json
+      }
+      leads_papelera_enviar: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
+      leads_papelera_listar: { Args: Record<PropertyKey, never>; Returns: Json }
+      leads_papelera_purgar: {
+        Args: { p_actualizado_en_esperado: string; p_leads?: string[]; p_lote: string }
+        Returns: Json
+      }
+      leads_papelera_restaurar: {
+        Args: { p_actualizado_en_esperado: string; p_leads?: string[]; p_lote: string }
+        Returns: Json
       }
       limpieza_automatica_correr: {
         Args: { p_ahora?: string; p_origenes?: string[] }
@@ -7111,6 +7153,7 @@ export type Database = {
         Args: { p_fase_destino: string; p_repuesto: string; p_vehiculo: string }
         Returns: Json
       }
+      puede_actuar_lead: { Args: { p_clave: string; p_lead: string }; Returns: boolean }
       puede_configurar_flujo: { Args: { p_flujo: string }; Returns: boolean }
       puede_cotizacion: { Args: { p_clave: string; p_cot: string }; Returns: boolean }
       puede_evento: { Args: { p_evento: string }; Returns: boolean }
@@ -7196,7 +7239,6 @@ export type Database = {
           nivel: string
         }[]
       }
-      revocar_acceso_lead: { Args: { p_lead: string; p_usuario: string }; Returns: undefined }
       revocar_portal: { Args: { p_lead: string }; Returns: undefined }
       rol_dominado: { Args: { p_rol: string }; Returns: boolean }
       seguimiento_crear: {
@@ -7257,7 +7299,6 @@ export type Database = {
         }
         Returns: string
       }
-      transferir_lead: { Args: { p_destino: string; p_lead: string }; Returns: undefined }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
         Returns: boolean

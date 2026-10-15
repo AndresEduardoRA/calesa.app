@@ -148,7 +148,7 @@ export async function borrarEtiquetasDe(email: string): Promise<void> {
   exigir(error, 'borrar las etiquetas')
 }
 
-// Le pasa el lead a otra persona como lo haría `transferir_lead` (el saliente queda compartido):
+// Le pasa el lead a otra persona como lo haría `lead_transferir` (el saliente queda compartido):
 // las personas de prueba no tienen `leads.transferir`.
 export async function transferirA(leadId: string, deId: string, aId: string): Promise<void> {
   const saliente = await admin()

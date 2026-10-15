@@ -36,22 +36,17 @@ export const claveDeAtributoEnEdicion = claveDeAtributoDeAlta
 // El valor de `?panel=` que abre la edición de la ficha.
 export const PANEL_EDITAR_LEAD = 'editar-lead'
 
-// ¿Puede editar este lead? `leads.editar` «todos», o «propios» y en su cartera. La base lo vuelve a
-// decidir (`lead_guardar()`): esto sólo gobierna si se dibuja el botón y se abre el panel.
+// ¿Puede editar este lead? Editar es contenido (clase 1 de la auditoría): exige tenerlo en la cartera
+// **y** `leads.editar`, con cualquier alcance. «Todos» no basta: ve el lead pero no lo edita. La base
+// lo vuelve a decidir (`lead_guardar()`): esto sólo gobierna si se dibuja el botón y se abre el panel.
 export function puedeEditarLead(permisos: Permisos, enCartera: boolean): boolean {
-  const alcance = alcanceDe(permisos, 'leads.editar')
-  return alcance === 'todos' || (alcance === 'propios' && enCartera)
+  return enCartera && alcanceDe(permisos, 'leads.editar') !== null
 }
 
-// Los campos que se ofrecen: los activos. Quien edita sin tener el lead en su cartera no recibe los
-// privados (la base se los recorta) y la base tampoco le deja cambiarlos: no se ofrecen.
+// Los campos que se ofrecen: los activos. Sin la cartera no llegan los privados (la base los recorta):
+// no se ofrecen. Hoy sólo se edita con la cartera, así que es la red por si cambia la regla.
 export function camposEditables(layout: readonly CampoDeLead[], enCartera: boolean): CampoDeLead[] {
   return layout.filter((campo) => campo.activo && (enCartera || !campo.soloCartera))
-}
-
-// Cuántos privados quedan fuera para quien edita: sirve para decírselo.
-export function hayPrivadosFuera(layout: readonly CampoDeLead[], enCartera: boolean): boolean {
-  return !enCartera && layout.some((campo) => campo.activo && campo.soloCartera)
 }
 
 // El control de un campo del layout, con su valor guardado (una opción que ya se sacó del campo se

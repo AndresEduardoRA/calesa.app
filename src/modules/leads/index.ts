@@ -37,7 +37,7 @@ export { leerFichaDeLead, type DatosDeLaFicha } from './features/ficha/lecturas'
 export { FichaDeLead } from './features/ficha/components/ficha-de-lead'
 export { LeadNoDisponible } from './features/ficha/components/lead-no-disponible'
 export { puedeEditarLead } from './entities/edicion'
-// Cambiar el principal y los extras: sólo con el lead en la cartera (distinto de editarlo).
+// Cambiar el principal y los extras: con el lead en la cartera, como editarlo.
 export { puedeCambiarTelefonoDeLead } from './entities/telefonos'
 export { CLAVE_DE_SECCION, seccionDeLead } from './entities/ficha'
 // La sección «Seguimientos»: la lee el servidor con la sesión de quien mira y va detrás de

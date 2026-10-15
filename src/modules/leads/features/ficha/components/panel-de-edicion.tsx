@@ -5,7 +5,6 @@ import { useEffect, useId, useMemo, useRef } from 'react'
 import { agruparCampos } from '@/shared/lib/campos'
 import { enfocarPrimerError } from '@/shared/lib/formularios'
 import { RUTAS } from '@/shared/lib/rutas'
-import { Aviso } from '@/shared/ui/aviso'
 import { AvisosDelFormulario } from '@/shared/ui/avisos-del-formulario'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
@@ -20,7 +19,6 @@ import {
   CLAVE_DE_EDICION,
   campoDeEdicion,
   camposEditables,
-  hayPrivadosFuera,
   origenesOfrecidos,
 } from '../../../entities/edicion'
 import type { LeadDeFicha, OrigenConEstado } from '../../../entities/ficha'
@@ -197,12 +195,6 @@ function Contenido({ ficha, campos, origenes, zona, alCerrar }: Datos & { alCerr
             router.refresh()
           }}
         />
-        {hayPrivadosFuera(campos, ficha.enCartera) ? (
-          <Aviso tono="info">
-            Los datos «solo la cartera» no se muestran ni se editan: este lead no está en tu
-            cartera.
-          </Aviso>
-        ) : null}
         <DatosFijos ficha={ficha} origenes={origenes} estado={estado} />
         <GruposDeCampos ficha={ficha} campos={editables} estado={estado} />
       </form>

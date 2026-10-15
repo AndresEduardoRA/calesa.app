@@ -121,9 +121,11 @@ for (const f of lista) {
 }
 console.log(`✓ ${ok} archivos aplicados`)
 
-// pruebas de humo si existe tests.sql
-const t = path.join(base, 'tests', 'humo.sql')
-if (fs.existsSync(t)) {
+// Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
+// auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
+for (const archivo of ['humo.sql', 'matriz-leads.sql', 'auditoria-leads.sql']) {
+  const t = path.join(base, 'tests', archivo)
+  if (!fs.existsSync(t)) continue
   const bloques = fs
     .readFileSync(t, 'utf8')
     .split(/^-- @test\s+/m)
