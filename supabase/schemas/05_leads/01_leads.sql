@@ -77,7 +77,9 @@ create table public.leads_telefonos (
   constraint leads_telefonos_etiqueta_largo check (etiqueta is null or char_length(etiqueta) between 1 and 40),
   constraint leads_telefonos_unico unique (lead_id, telefono)   -- sin duplicado dentro del lead; entre leads no hay unicidad
 );
-comment on table public.leads_telefonos is 'Teléfonos extra de un lead (alternos: sin unicidad entre leads). RLS no esconde columnas: la app no lee ni escribe esta tabla; los lee lead_telefonos(), que da el número completo a la cartera y enmascarado al resto, y los escriben las RPC de la parte 4b.';
+-- Para avisar que un número figura como teléfono extra de otro lead (el índice único empieza por lead_id).
+create index leads_telefonos_telefono_idx on public.leads_telefonos (telefono);
+comment on table public.leads_telefonos is 'Teléfonos extra de un lead (alternos: sin unicidad entre leads, hasta 10 por lead). RLS no esconde columnas: la app no lee ni escribe esta tabla; los lee lead_telefonos(), que da el número completo a la cartera y enmascarado al resto, y los escriben sólo lead_telefono_guardar(), lead_telefono_quitar() y cambiar_telefono_lead() (el principal que se reemplaza queda aquí con la etiqueta «Anterior»).';
 
 create table public.leads_asesores (
   lead_id       uuid not null references public.leads (id) on delete cascade,

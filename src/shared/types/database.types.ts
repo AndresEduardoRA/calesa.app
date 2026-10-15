@@ -6134,6 +6134,32 @@ export type Database = {
       _lead_campos_renumerar: { Args: Record<PropertyKey, never>; Returns: undefined }
       _lead_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
       _lead_conflicto: { Args: { p_cuando: string; p_lead: string }; Returns: undefined }
+      _lead_de_cartera: {
+        Args: { p_lead: string }
+        Returns: {
+          actualizado_en: string
+          atributos: NonNullable<Json>
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          eliminado_por: string | null
+          id: string
+          lote_papelera_id: string | null
+          nombre: string
+          numero: number
+          origen_lead_id: string | null
+          telefono_cc: string | null
+          telefono_principal: string
+          tipo: Database['public']['Enums']['tipo_lead']
+          ultimo_seguimiento_en: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'leads'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _lead_defecto_empresa: {
         Args: {
           p_defecto: Json
@@ -6142,7 +6168,8 @@ export type Database = {
         }
         Returns: string
       }
-      _lead_verificar: { Args: { p_tel: string }; Returns: Json }
+      _lead_telefonos_estado: { Args: { p_lead: string; p_resultado: string }; Returns: Json }
+      _lead_verificar: { Args: { p_excluir?: string; p_tel: string }; Returns: Json }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_vista_crear: { Args: Record<PropertyKey, never>; Returns: undefined }
@@ -6364,8 +6391,8 @@ export type Database = {
         Returns: Json
       }
       cambiar_telefono_lead: {
-        Args: { p_cc: string; p_lead: string; p_tel: string }
-        Returns: undefined
+        Args: { p_actualizado_en_esperado: string; p_cc: string; p_lead: string; p_tel: string }
+        Returns: Json
       }
       categoria_crear: {
         Args: { p_nombre: string; p_origen: string; p_padre?: string }
@@ -6535,6 +6562,18 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_lead: string }
         Returns: Json
       }
+      lead_telefono_guardar: {
+        Args: {
+          p_cc: string
+          p_creado_en?: string
+          p_etiqueta?: string
+          p_id: string
+          p_lead: string
+          p_tel: string
+        }
+        Returns: Json
+      }
+      lead_telefono_quitar: { Args: { p_id: string; p_lead: string }; Returns: Json }
       lead_telefonos: {
         Args: { p_lead: string }
         Returns: {
@@ -6943,6 +6982,10 @@ export type Database = {
         }[]
       }
       verificar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: Json }
+      verificar_telefono_de_lead: {
+        Args: { p_cc: string; p_lead: string; p_tel: string }
+        Returns: Json
+      }
       vitrina_del_origen: { Args: { p_origen: string }; Returns: Json }
       web_confirmar_contacto: { Args: { p_lead?: string; p_solicitud: string }; Returns: undefined }
       web_expirar_solicitudes: { Args: { p_limite?: number }; Returns: number }
