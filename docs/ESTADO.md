@@ -6,46 +6,44 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-14
-**Fase actual:** 3 — Leads, **parte 3 de 8 hecha** (listado con filtros, vistas y drawer rápido). Sigue la 4.
+**Fase actual:** 3 — Leads, **parte 4a de 8 hecha** (ficha con edición, versión y enmascarado). Sigue la 4b.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar`, `mapa.sh`, build y `test:e2e` (números en
-  `docs/BITACORA.md`). Fases 0 a 2 completas, y las partes 1 a 3 de la Fase 3.
-- **Listado de leads** (`/leads`, `leads.ver`): «míos» por defecto; «todos» sólo con alcance «todos»
-  (teléfono enmascarado, sin los «solo la cartera» de lo ajeno; filtrar por uno no encuentra nada y lo
-  dice). Filtros del layout, tipo, origen, búsqueda por nombre o número, vistas guardadas y drawer de
-  sólo lectura en `?lead=`. Aún sin ficha.
-- **Alta rápida** (botón o `N`, con `leads.crear`): teléfono verificado al tipear y primer seguimiento
-  en una RPC. **Campos de los leads** configurables (Configuración › Leads). **Orígenes y vehículos**
-  completos (ficha, fotos, vitrina, papelera, apibara y limpieza automática).
+  `docs/BITACORA.md`). Fases 0 a 2 completas, y las partes 1 a 4a de la Fase 3.
+- **Ficha del lead** (`/leads/[id]`): cabecera, «Datos» (fijos, teléfonos, campos por grupo) y edición en
+  `?panel=editar-lead` por `lead_guardar` (versión, borrador, reintento, conflicto). Teléfonos y privados
+  recortados en la base; inexistente, ajeno, limbo y papelera se ven igual. Se llega por «Abrir», «Abrir
+  ficha» y el drawer del listado.
+- **Listado de leads** (`/leads`): «míos» por defecto; «todos» con alcance «todos» (teléfono enmascarado,
+  sin los privados ajenos; filtrar por uno no encuentra nada y lo dice). Filtros, búsqueda, vistas y drawer.
+- **Alta rápida** (botón o `N`): teléfono verificado al tipear y primer seguimiento en una RPC. **Campos
+  de los leads** configurables. **Orígenes y vehículos** completos (apibara y limpieza incluidas).
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Una por sesión: **4)** ficha con edición (`lead_guardar`) y teléfonos, con «Abrir» y «Abrir ficha» del
-alta. **5)** seguimientos (Tiptap, RPC propias), recordatorios, favoritos, tachados (y «no tachados» en
-el listado) y etiquetas. **6)** cartera, papelera de leads y vínculo e interesados. **7)** embudos
-(`?vista=embudo`) y portal. **8)** CSV con las columnas del layout y orígenes de lead.
+Una por sesión: **4b)** cambiar el teléfono principal (`cambiar_telefono_lead` v2; el anterior queda
+«Anterior») y agregar o quitar extras. **5)** seguimientos (Tiptap, RPC propias), recordatorios,
+favoritos, tachados («no tachados» en el listado) y etiquetas. **6)** cartera, papelera de leads y vínculo
+e interesados. **7)** embudos (`?vista=embudo`) y portal. **8)** CSV con las columnas del layout.
 
 ## Pendientes que se arrastran
 
-- **Parte 4:** `leads_telefonos` no se enmascara a quien ve el lead sin la cartera y `telefono_lead(id)`
-  no comprueba acceso (antes de que la ficha muestre teléfonos); «Abrir» y «Abrir ficha» sin enlace hoy.
-  El trigger de `ultimo_seguimiento_en` mueve la versión de edición del lead (`actualizado_en`): cada
-  seguimiento nuevo daría conflicto a quien edita la ficha; esa columna no debe moverla (como «Conservar»).
+- **Parte 4b:** reglas en `docs/DECISIONES.md` («Teléfonos extra y cambio del principal»);
+  `verificar_telefono` exige `leads.crear`: va `verificar_telefono_de_lead`. `leads_telefonos` sólo por RPC.
 - **Parte 5:** las policies directas de `seguimientos` (no miran que el tipo esté activo) y de
-  `recordatorios` (no miran el acceso al lead) se cierran con RPC; el editor muestra `detalle_texto`.
+  `recordatorios` (no miran el acceso al lead) se cierran con RPC; el editor muestra `detalle_texto`. Lo
+  derivado que sume va **fuera** de `lead_version()`. La base ya tiene un campo propio `tachado`: no
+  choca en la URL (`a.tachado`) pero sí de nombre en pantalla (`docs/DECISIONES.md`).
 - **Parte 6 (antes de invitar a un asesor con leads reales):** quien tiene `leads.editar` «todos» puede
-  compartirse un lead ajeno y no se mira si el destino está activo (`docs/DECISIONES.md`, 2026-10-14).
-  **La papelera de leads no estaba asignada a ninguna parte:** va acá.
+  compartirse un lead ajeno y no se mira si el destino está activo. **La papelera de leads va acá.**
 - **Fase 4:** la cotización final como ancla de la limpieza; desvincular con cotización final; campos del
   lead en la tarjeta o el PDF. **Fase 6:** mover de fase y publicar sin mover la versión de la ficha; la
-  papelera manual no mira `documentos`. **Fases 7 y 8:** el CTA «Escribirle por chat» (sin acción); la
-  notificación de la limpieza; el buscador de leads, sin los privados; la web llenando campos del lead;
-  el atajo `?` está en el catálogo y nada dibuja la lista.
-- **Fase 9:** medir con 5 a 10 mil registros (listados, filtros, papelera): filtrar leads por un atributo
-  cuesta ~0,08 ms por fila (si pesa, una función que recorta una vez por consulta); Actividad lee el
-  diff por una función que recorta según la cartera. Sin remoto de git: `.github/` no corrió.
+  papelera manual no mira `documentos`. **Fases 7 y 8:** el CTA «Escribirle por chat»; la notificación
+  de la limpieza; el buscador de leads, sin los privados; el atajo `?` sin lista.
+- **Fase 9:** medir con 5 a 10 mil registros (filtrar leads por un atributo ~0,06 ms por fila; si pesa,
+  una función que recorta una vez por consulta); Actividad leerá el diff recortado. Sin remoto: `.github/` no corrió.
 
 ## Lista para la nube (una persona)
 
@@ -61,19 +59,21 @@ el listado) y etiquetas. **6)** cartera, papelera de leads y vínculo e interesa
 ## Deuda aceptada y pendiente de decidir
 
 - **Por decidir:** dominancia sobre la persona; vencimiento de la invitación (`otp_expiry`); fotos de una
-  subasta en segundo plano (hoy en el navegador); rango de un campo numérico; separar `leads.campos.gestionar`.
+  subasta en segundo plano; rango de un campo numérico; separar `leads.campos.gestionar`.
 - `registrar_actividad()` y `storage_refcount()` tienen `execute` para `authenticated`; `marca` y
   `avatares` borran con `quitarSiHuerfano()`. `cambiar_fase` acepta `p_fase_esperada` nulo.
 - `vehiculos.papelera.purgar` gobierna también la papelera de leads y cotizaciones, sin versión ni
   purga automática. `web.solicitar_asesor` no valida el vehículo; `cotizacion_marcar_final` vincula sin
   mirar la papelera. `limpieza_el` corre con los derechos de la base. Despublicar no revoca la URL de una foto.
-- **Guardia de e2e:** respalda sólo la fila de apibara en `e2e/.estado/respaldo.json`. Tras un `kill -9`,
-  volver a correr (lo repone antes) o borrar el archivo si cambiaste apibara a mano: **un respaldo viejo
-  pisa un cambio hecho a mano entre corridas** (`docs/DECISIONES.md`, 2026-10-14). Exige
-  `npx supabase functions serve`. Con cuentas reales, «la primera persona nace dueña» y el guardián se saltan.
+- **Guardia de e2e:** respalda sólo la fila de apibara en `e2e/.estado/respaldo.json`; tras un `kill -9`,
+  volver a correr (lo repone antes): **un respaldo viejo pisa un cambio hecho a mano entre corridas**
+  (`docs/DECISIONES.md`). Exige `npx supabase functions serve`. Con cuentas reales se saltan «la primera
+  persona nace dueña» y el guardián. **Intermitente:** `vehiculos-fotos` en móvil falla 1 de cada 3
+  corridas, también en el commit base (la página anterior sigue un momento en el DOM).
 - «Ver como» acota la interfaz, no las filas que entrega la base (en leads fuerza «míos»). `storage-gc` y
   `apibara` (Deno) no entran en lint ni typecheck. Falta probar fotos en iPhone. Apibara está apagada en
-  la base local: se enciende en Integraciones. `tipo_acceso = 'adoptado'` quedó sin uso.
+  la base local. `tipo_acceso = 'adoptado'` quedó sin uso. La ficha de leads parte los números con el
+  código del lead: un extra de otro país se ve sin partir.
 - Dos mensajes de RPC hablan de vos: `cambiar_fase` y la fórmula. Sin interfaz: `demora_dias_default`,
   `lead_dormido_meses`, el logo oscuro, `push_web`, `web_publica`, `ajustes_web.origenes_visibles`,
   `fases.publica_web`, el `icono` y el orden de los orígenes. Sin enforcement: `equipo.usuarios.ver`,

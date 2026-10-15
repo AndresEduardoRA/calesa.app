@@ -1569,3 +1569,115 @@ corrida, que el teardown deshace. `secreto_guardado_en` vuelve con la fecha viej
 cambió en el medio, la fila queda con una marca que ya no es la de Vault; si se borró, dice que hay una
 que no hay. Mitigación posible (no hecha): comparar `actualizado_en` de la fila con `creadoEn` del
 respaldo y, si es posterior, no pisar y avisar.
+
+## 2026-10-14 — La versión de un lead la mueve lo que la ficha edita, y nada más
+
+**Contexto:** `leads.actualizado_en` es la versión con la que se edita la ficha, y la movía cualquier
+`update`, entre ellos el trigger de `seguimientos` que escribe `ultimo_seguimiento_en`: cada seguimiento
+nuevo le habría dado un conflicto a quien editaba. La auditoría genérica además guardaba la fila entera
+(con `telefono_principal`) y `_conflicto_de_edicion()` nombraba a quien hubiera dejado la última fila de
+`actividad` del lead, fuera compartir, transferir o un seguimiento.
+**Decisión:** `lead_version()` (BEFORE UPDATE) mueve la versión sólo si cambió nombre, tipo, origen,
+atributos, teléfono (principal o su código) o la papelera (`eliminado_en`, `lote_papelera_id`); si no,
+repone la anterior. **No la mueven:** `ultimo_seguimiento_en` (ni lo derivado que sume la parte 5), la
+cartera (compartir, transferir, revocar, baja) ni `creado_por`. Adoptar del limbo la mueve sólo si
+completa el origen o los atributos (entonces sí cambió la ficha). Se sella con
+`greatest(clock_timestamp(), anterior + 1 µs)`: dos ediciones en una transacción tienen versiones
+distintas. **Transferir mientras otra persona edita no le da conflicto:** no cambia nada de lo que edita;
+si por eso quien edita pierde el lead, `lead_guardar()` lo dice al guardar («No encontramos este lead o
+no tienes acceso.»); si entra a otra cartera, el trigger de privados decide qué puede cambiar.
+`lead_auditar()` reemplaza a `auditar()` en `leads`: nunca guarda `telefono_principal` y sólo escribe
+cuando la versión se movió (un seguimiento no deja fila). `_lead_conflicto()` nombra al actor de la última
+`leads.update`: lo que cambió la versión, no cualquier cosa del lead.
+**Alternativas:** una columna `version` aparte (otra cosa que mantener, y toda RPC existente ya habla
+de `actualizado_en`); que el trigger de seguimientos restaure la versión después (dos escrituras).
+**Consecuencia:** una columna derivada nueva se suma fuera de la lista de `lead_version()`. El humo
+prueba que un seguimiento, compartir y transferir no la mueven, que la papelera sí y a quién nombra el
+conflicto. `_leads_columnas_a_atributos()` (de una migración vieja) se recreó con los triggers nuevos.
+
+## 2026-10-14 — `lead_guardar` es la única puerta, y los atributos viajan como parche
+
+**Contexto:** `leads` tenía `grant update (nombre, tipo, origen_lead_id)` y una policy: un `.update()` del
+navegador saltaba la versión. Mandar los atributos enteros, como hace vehículos, habría pisado los
+privados de quien edita sin estar en la cartera (no los recibe).
+**Decisión:** `lead_guardar(p_lead, p_actualizado_en_esperado, p_cambios)`; `leads` queda sin UPDATE
+para la app. `p_cambios` lleva sólo `nombre`, `tipo`, `origen_lead_id` y `atributos`, que es un parche:
+`{clave: valor}` pone o cambia y `{clave: null}` quita; lo que no se nombra no se toca. La versión es
+obligatoria; lo que ya está guardado no es un conflicto (un reintento no choca consigo mismo).
+`atributos` va siempre en el `SET`: el trigger del layout se dispara por columna nombrada, así que un
+requerido que se sumó después falta aunque sólo cambie el tipo, que es lo que promete el aviso de
+impacto de Configuración («no podrán guardarse hasta completarlo»). El origen sólo se valida si
+cambia: uno apagado que el lead ya tiene se conserva; pasar a otro apagado se rechaza con el campo en el
+`hint`. Un campo desactivado con dato se conserva y no se cambia (el parche no lo nombra y el trigger
+acepta lo que no cambia). Inexistente, limbo, papelera y sin acceso responden el mismo mensaje y el mismo
+código (`42501`); sólo quien ya ve el lead recibe «No tienes permiso para editar este lead.».
+**Qué cubre y qué no:** el teléfono y los extras no pasan por acá (parte 4b), así que un requerido nuevo
+no frena cambiar un teléfono; frena guardar la ficha.
+**Alternativas:** mandar el estado entero de `atributos` (pisa lo que no se recibe); una RPC por campo.
+
+## 2026-10-14 — Los teléfonos de un lead se leen por función, y `telefono_lead()` da nulo a quien no ve
+
+**Contexto:** RLS no esconde columnas. `leads_telefonos` se leía directo con la policy de «ver el lead»,
+sin enmascarar, y `telefono_lead(id)` daba el número enmascarado de cualquier id, también de leads que
+la persona no ve.
+**Decisión:** la tabla queda sin grant ni policy para la app (RLS encendida): se lee por
+`lead_telefonos(p_lead)` (definer), que da el número completo a la cartera, enmascarado al resto y
+nada a quien no ve el lead. Una función y no una vista: una vista `security_invoker` necesitaría el grant
+sobre la tabla. `telefono_lead()` pasa a plpgsql con la forma de `atributos_lead()` (un `alcance_de` y una
+lectura) y devuelve nulo si no se ve el lead (sin `leads.ver`, «propios» fuera de la cartera, limbo,
+papelera o inexistente). La tabla suma `creado_en`, formato `^[0-9]{7,15}$`, etiqueta de 1 a 40 y
+`unique (lead_id, telefono)`; no suma `creado_por` (una FK más sin índice; la constancia en `actividad`
+lleva quién). Nadie leía la tabla: no hubo código que cambiar.
+**Lo que cierra a la vez:** `leads_asesores` la lee entera quien ve el lead; ahora, quien no está en la
+cartera sólo ve la fila del dueño («Lo tiene X»), no con quién está compartido.
+**Medido** con 2.000 leads sintéticos en una transacción revertida: página sin filtro 13,5 ms (antes
+~30), filtro por un atributo 119 ms (antes ~180), búsqueda por nombre 15 ms, «míos» 32 ms, `lead_ficha()`
+5,9 ms.
+
+## 2026-10-14 — Teléfonos extra y cambio del principal: las reglas (para la parte 4b)
+
+**Decisión (los extras):** no se verifican contra otros leads: son alternos y no tienen unicidad. Hasta
+10 por lead. Un duplicado dentro del mismo lead, o igual al principal, se rechaza junto al campo («Ese
+número ya está en este lead»). La etiqueta es opcional: vacía se guarda nula y la ficha muestra sólo el
+número. Agregar es idempotente por id; quitar lleva «Deshacer». Se normalizan con la función y el código
+de país del alta.
+**Decisión (el principal):** `cambiar_telefono_lead(p_lead, p_actualizado_en_esperado, p_cc, p_tel)`
+reemplaza a la de tres parámetros (que no llevaba versión, pedía `leads.editar` sin mirar la cartera,
+guardaba el código crudo, daba un duplicado como excepción y no dejaba constancia). Sólo la cartera. Un
+número que ya existe (mío, de otro o en limbo) es un **valor**, dicho como en el alta, sin cambiar nada y
+sin adoptar; el mismo número es «sin cambios» (también el reintento). El anterior queda como extra con
+la etiqueta «Anterior» (si ya era extra no se duplica; si el nuevo era extra, sale de los extras).
+Constancia `lead.telefono_cambiado` con los dos números enmascarados: la auditoría ya no deja el número en
+un diff legible. La verificación al tipear es `verificar_telefono_de_lead(p_lead, p_cc, p_tel)`: exige la
+cartera, se excluye a sí misma y reusa `_lead_verificar()`; el campo del alta se generaliza.
+
+## 2026-10-14 — La ficha: tres lecturas, el código de país del lead y el tope de KB
+
+**Decisión:** abrir la ficha son tres lecturas de datos, en paralelo y sin caché: `lead_ficha()` (la fila
+de `leads_vista`, quién lo tiene y los extras, todo recortado según quien mira; nulo si no se ve), el
+layout y los orígenes (también los apagados). No se lee `ajustes_empresa`: el número se parte con el
+código que guardó el lead (`leads.telefono_cc`, sólo cuando es el de la empresa), así que un extra de
+otro país se ve «+54…» sin partir, como en el listado. El layout **no** está cacheado (la lectura
+necesita la sesión: `anon` no tiene grant sobre `leads_campos` y el cliente admin está prohibido fuera
+de `conAdminDeAuth()`), y la ficha se dibuja por request: abrirla desde el drawer rápido no muestra
+datos viejos. Al volver a la pestaña con el panel cerrado se vuelve a leer; con el panel abierto no, para
+no reiniciar lo que se escribe. Un test cuenta las lecturas. Quien edita sin la cartera no recibe los
+privados, así que el panel no los ofrece y lo dice; la base tampoco le deja cambiarlos.
+**Medido (e2e, build de producción):** el documento de la ficha pesa ~104 KB, de los cuales ~29 KB son
+de la ficha (el shell de otra pantalla pesa ~75 KB), y navegar desde el listado transfiere ~33 KB de
+payload RSC (suma la precarga). El terreno tiene un campo de 60 opciones: un layout típico es más
+liviano. El tope del e2e es 40 KB para cada número, y no el de 60 KB del documento entero que se supuso
+antes de medir.
+
+## 2026-10-14 — Tachados y claves de campo en la URL: no hay choque y no se reserva la clave
+
+**Contexto:** el layout real de la base local ya tiene un campo propio con clave `tachado`, y la parte 5
+trae el estado «tachado» de cada persona y su filtro de 3 estados.
+**Revisado:** los campos van en la URL con el prefijo `a.` (`PREFIJO_DE_FILTRO`): el campo es
+`a.tachado`, y el filtro de tachados será `?tachados=` (o como se llame), sin superponerse. En la vista,
+la columna es `leads_vista.esta_tachado` y el alias de tabla de un campo es `a_tachado`.
+**Decisión:** no reservar la clave en `CLAVES_RESERVADAS_DE_LEAD` (rompería un campo que ya existe) y
+no prefijar más los filtros. El choque es de nombre en la pantalla: el campo privado «tachado» y el estado
+por persona «tachado» se leerían igual. La parte 5 le pone al estado un nombre que no se pise (el del
+glosario) y lo avisa; si hiciera falta, se renombra la **etiqueta** del campo, que es un dato de quien lo
+creó. ESTADO lo ubica en la parte 5 (donde llegan los tachados); el pedido lo pensaba en la 6.
