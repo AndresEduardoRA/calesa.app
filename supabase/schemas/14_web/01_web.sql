@@ -17,6 +17,9 @@ create table public.ajustes_web (
   max_intentos            int not null default 3 check (max_intentos between 1 and 10),
   legales                 jsonb not null default '{}'::jsonb,   -- {cookies_html, privacidad_html, accesibilidad_html, terminos_html}
   seo                     jsonb not null default '{}'::jsonb,
+  -- La dirección pública de la web (la arma el texto para WhatsApp del acceso al portal). Sin pantalla
+  -- hasta Configuración › Sitio web (Fase 8): nula, el texto sale sin enlace.
+  direccion_publica       text check (direccion_publica is null or direccion_publica ~ '^https://[^[:space:]]+$'),
   actualizado_en          timestamptz not null default now(),
   actualizado_por         uuid references public.perfiles (id)
 );

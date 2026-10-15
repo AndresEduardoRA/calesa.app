@@ -80,16 +80,18 @@ returns text language sql immutable set search_path = '' as $$
               else left(p, 3) || repeat('•', greatest(length(p) - 5, 2)) || right(p, 2) end;
 $$;
 
--- Código dictable por teléfono: alfabeto de 32 símbolos sin I, O, 0 ni 1.
+-- Código dictable por teléfono: alfabeto de 32 símbolos sin I, O, 0 ni 1. Con bytes de
+-- `gen_random_bytes` (criptográficos; `random()` no lo es): 256 = 8 × 32, así que `% 32` no sesga. Arma
+-- también la clave que genera `otorgar_portal` (10 símbolos, 50 bits).
 create or replace function public.codigo_dictable(p_largo int default 5)
 returns text language plpgsql volatile set search_path = '' as $$
 declare
   alfabeto constant text := '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  b bytea := extensions.gen_random_bytes(p_largo);
   r text := '';
-  i int;
 begin
-  for i in 1..p_largo loop
-    r := r || substr(alfabeto, 1 + floor(random() * 32)::int, 1);
+  for i in 0..p_largo - 1 loop
+    r := r || substr(alfabeto, 1 + get_byte(b, i) % 32, 1);
   end loop;
   return r;
 end;

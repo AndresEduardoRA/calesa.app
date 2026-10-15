@@ -151,8 +151,10 @@ begin
     ('verificar_telefono_de_lead', $q$select public.verificar_telefono_de_lead({lead}, '', '78999902')$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('lead_telefono_guardar', $q$select public.lead_telefono_guardar({lead}, gen_random_uuid(), '', '78999903', null)$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('lead_telefono_quitar', $q$select public.lead_telefono_quitar({lead}, gen_random_uuid())$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
-    ('otorgar_portal', $q$select public.otorgar_portal({lead}, 'clave-de-matriz-1')$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
+    ('otorgar_portal', $q$select public.otorgar_portal({lead}, 'clave-de-matriz-1', null)$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('revocar_portal', $q$select public.revocar_portal({lead})$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
+    ('portal_desbloquear', $q$select public.portal_desbloquear({lead})$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
+    ('portal_estado', $q$select public.portal_estado({lead})$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('recordatorio_crear', $q$select public.recordatorio_crear(gen_random_uuid(), {lead}, 'Llamar', now() + interval '1 day')$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('seguimiento_crear', $q$select public.seguimiento_crear(gen_random_uuid(), {lead}, jsonb_build_object('tipo_id', '{tipo}'::uuid, 'titulo', 'Matriz'))$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('vehiculo_vincular', $q$select public.vehiculo_vincular({veh}, (select actualizado_en from public.vehiculos where id = {veh}), {lead})$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
@@ -766,7 +768,7 @@ begin
   select id into x from public.leads where nombre = 'Lote 10';
   select id into y from public.leads where nombre = 'Lote 11';
   -- Portal vigente: se revoca al enviar y se dice.
-  r := pg_temp.como(u50, format('select public.otorgar_portal(%L, %L)', x, 'clave-larga-001'));
+  r := pg_temp.como(u50, format('select public.otorgar_portal(%L, %L, null)', x, 'clave-larga-001'));
   if not (r ->> 'ok')::boolean then raise exception 'otorgar el portal: %', r; end if;
   select actualizado_en into v0 from public.leads where id = x;
   r := pg_temp.como(u50, format('select public.leads_papelera_enviar(%L, array[%L]::uuid[])', v_lote, x));
@@ -896,15 +898,21 @@ begin
   perform pg_temp.espero(r, '22023', 'Los leads tienen su propia papelera%', 'la genérica aceptó leads');
   r := pg_temp.como(u52, 'select public.papelera_listar(''leads'')::text');
   perform pg_temp.espero(r, '22023', 'Los leads tienen su propia papelera%', 'la genérica listó leads');
-  -- El portal: lo ve quien lo gestiona con la cartera; la supervisión sin cartera no ve ni el código.
-  r := pg_temp.como(u50, format('select public.otorgar_portal(%L, %L)', lp, 'clave-larga-002'));
+  -- El portal: quien lo gestiona con la cartera lo ve por `portal_estado`; la tabla no la lee nadie
+  -- directo (7b: antes la cartera leía el código por la policy), y la supervisión sin cartera, nada.
+  r := pg_temp.como(u50, format('select public.otorgar_portal(%L, %L, null)', lp, 'clave-larga-002'));
   if (r ->> 'ok')::boolean is not true then raise exception 'otorgar: %', r; end if;
+  r := pg_temp.como(u50, format('select public.portal_estado(%L)', lp));
+  if r -> 'valor' ->> 'estado' <> 'activo' then raise exception 'el dueño no ve su acceso al portal: %', r; end if;
   r := pg_temp.como(u50, format('select count(*)::text::jsonb from public.accesos_portal where lead_id = %L', lp));
-  if (r ->> 'valor')::int <> 1 then raise exception 'el dueño no ve su acceso al portal: %', r; end if;
+  perform pg_temp.espero(r, '42501', 'permission denied%', 'el dueño lee accesos_portal directo');
   r := pg_temp.como(u52, format('select count(*)::text::jsonb from public.accesos_portal where lead_id = %L', lp));
-  if (r ->> 'valor')::int <> 0 then raise exception 'la supervisión sin cartera ve el acceso al portal: %', r; end if;
+  perform pg_temp.espero(r, '42501', 'permission denied%', 'la supervisión lee accesos_portal directo');
+  r := pg_temp.como(u52, format('select public.portal_estado(%L)', lp));
+  perform pg_temp.espero(r, '42501', 'No encontramos este lead o no tienes acceso.', 'la supervisión sin cartera ve el estado');
   -- Clave corta.
-  r := pg_temp.como(u50, format('select public.otorgar_portal(%L, %L)', lp, 'corta'));
+  r := pg_temp.como(u50, format('select public.otorgar_portal(%L, %L, %L::timestamptz)', lp, 'corta',
+    (select otorgado_en from public.accesos_portal where lead_id = lp)));
   perform pg_temp.espero(r, '22023', 'La clave necesita al menos 8 caracteres.', 'aceptó una clave corta');
   r := pg_temp.como(u50, format('select public.revocar_portal(%L)', lp));
 end $$;

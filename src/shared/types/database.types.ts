@@ -219,6 +219,7 @@ export type Database = {
           actualizado_por: string | null
           cola_activa: boolean
           dias_pegajoso: number
+          direccion_publica: string | null
           horario: string | null
           id: number
           legales: NonNullable<Json>
@@ -239,6 +240,7 @@ export type Database = {
           actualizado_por?: string | null
           cola_activa?: boolean
           dias_pegajoso?: number
+          direccion_publica?: string | null
           horario?: string | null
           id?: number
           legales?: NonNullable<Json>
@@ -258,6 +260,7 @@ export type Database = {
           actualizado_por?: string | null
           cola_activa?: boolean
           dias_pegajoso?: number
+          direccion_publica?: string | null
           horario?: string | null
           id?: number
           legales?: NonNullable<Json>
@@ -6774,6 +6777,33 @@ export type Database = {
         Args: { p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: undefined
       }
+      _portal_clave_validar: { Args: { p_clave: string }; Returns: undefined }
+      _portal_codigo_normal: { Args: { p_codigo: string }; Returns: string }
+      _portal_hash_falso: { Args: Record<PropertyKey, never>; Returns: string }
+      _portal_persona: { Args: { p_id: string }; Returns: Json }
+      _portal_vigente: {
+        Args: { p_lead: string; p_otorgado_en: string }
+        Returns: {
+          bloqueado_hasta: string | null
+          clave_hash: string
+          codigo: string
+          debe_cambiar_clave: boolean
+          habilitado: boolean
+          intentos_fallidos: number
+          lead_id: string
+          otorgado_en: string
+          otorgado_por: string | null
+          revocado_en: string | null
+          revocado_por: string | null
+          ultimo_ingreso_en: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'accesos_portal'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
       _recordatorio_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _recordatorio_cuando: { Args: { p_hint: string; p_valor: string }; Returns: string }
@@ -7437,7 +7467,10 @@ export type Database = {
           vehiculos: number
         }[]
       }
-      otorgar_portal: { Args: { p_clave: string; p_lead: string }; Returns: string }
+      otorgar_portal: {
+        Args: { p_clave: string; p_lead: string; p_otorgado_en_esperado: string }
+        Returns: Json
+      }
       papelera_enviar: {
         Args: { p_ids: string[]; p_tipo: Database['public']['Enums']['tipo_lote_papelera'] }
         Returns: string
@@ -7469,6 +7502,8 @@ export type Database = {
         Returns: string
       }
       plantilla_publicar: { Args: { p_nota: string; p_origen: string }; Returns: string }
+      portal_desbloquear: { Args: { p_lead: string }; Returns: undefined }
+      portal_estado: { Args: { p_lead: string }; Returns: Json }
       previsualizar_cambio_fase: {
         Args: { p_fase_destino: string; p_repuesto: string; p_vehiculo: string }
         Returns: Json
@@ -7944,19 +7979,23 @@ export type Database = {
         }[]
       }
       portal_cambiar_clave: {
-        Args: { p_actual: string; p_lead: string; p_nueva: string }
+        Args: { p_actual: string; p_lead: string; p_nueva: string; p_otorgado_en: string }
         Returns: boolean
       }
-      portal_documento_ruta: { Args: { p_documento: string; p_lead: string }; Returns: string }
+      portal_documento_ruta: {
+        Args: { p_documento: string; p_lead: string; p_otorgado_en: string }
+        Returns: string
+      }
       portal_login: {
         Args: { p_clave: string; p_codigo: string }
         Returns: {
           debe_cambiar_clave: boolean
           lead_id: string
           nombre: string
+          otorgado_en: string
         }[]
       }
-      portal_snapshot: { Args: { p_lead: string }; Returns: Json }
+      portal_snapshot: { Args: { p_lead: string; p_otorgado_en: string }; Returns: Json }
       registrar_evento: {
         Args: {
           p_evento: string

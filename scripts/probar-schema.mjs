@@ -17,8 +17,10 @@ create extension if not exists pg_trgm with schema extensions;
 create extension if not exists citext with schema extensions;
 -- stubs de pgcrypto (no disponible en PGlite)
 create or replace function extensions.gen_salt(t text) returns text language sql as $$ select '$stub$' $$;
+create or replace function extensions.gen_salt(t text, c int) returns text language sql as $$ select '$stub$' $$;
 create or replace function extensions.crypt(p text, s text) returns text language sql as $$ select '$stub$' || md5(p || '$stub$') $$;
-create or replace function extensions.gen_random_bytes(n int) returns bytea language sql as $$ select decode(md5(random()::text), 'hex') $$;
+create or replace function extensions.gen_random_bytes(n int) returns bytea language sql as $$
+  select substring(decode(string_agg(md5(random()::text), ''), 'hex') from 1 for n) from generate_series(1, (n + 15) / 16) $$;
 -- roles de Supabase
 do $$ begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
@@ -123,7 +125,12 @@ console.log(`✓ ${ok} archivos aplicados`)
 
 // Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
 // auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
-for (const archivo of ['humo.sql', 'matriz-leads.sql', 'auditoria-leads.sql']) {
+for (const archivo of [
+  'humo.sql',
+  'matriz-leads.sql',
+  'portal-cliente.sql',
+  'auditoria-leads.sql',
+]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue
   const bloques = fs

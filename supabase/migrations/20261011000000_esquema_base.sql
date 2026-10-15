@@ -122,16 +122,18 @@ returns text language sql immutable set search_path = '' as $$
               else left(p, 3) || repeat('•', greatest(length(p) - 5, 2)) || right(p, 2) end;
 $$;
 
--- Código dictable por teléfono: alfabeto de 32 símbolos sin I, O, 0 ni 1.
+-- Código dictable por teléfono: alfabeto de 32 símbolos sin I, O, 0 ni 1. Con bytes de
+-- `gen_random_bytes` (criptográficos; `random()` no lo es): 256 = 8 × 32, así que `% 32` no sesga. Arma
+-- también la clave que genera `otorgar_portal` (10 símbolos, 50 bits).
 create or replace function public.codigo_dictable(p_largo int default 5)
 returns text language plpgsql volatile set search_path = '' as $$
 declare
   alfabeto constant text := '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  b bytea := extensions.gen_random_bytes(p_largo);
   r text := '';
-  i int;
 begin
-  for i in 1..p_largo loop
-    r := r || substr(alfabeto, 1 + floor(random() * 32)::int, 1);
+  for i in 0..p_largo - 1 loop
+    r := r || substr(alfabeto, 1 + get_byte(b, i) % 32, 1);
   end loop;
   return r;
 end;
@@ -810,12 +812,14 @@ create table public.accesos_portal (
   intentos_fallidos   smallint not null default 0,
   bloqueado_hasta     timestamptz,
   ultimo_ingreso_en   timestamptz,
-  otorgado_por        uuid references public.perfiles (id),
+  otorgado_por        uuid references public.perfiles (id) on delete set null,
   otorgado_en         timestamptz not null default now(),
-  revocado_por        uuid references public.perfiles (id),
+  revocado_por        uuid references public.perfiles (id) on delete set null,
   revocado_en         timestamptz
 );
-comment on table public.accesos_portal is 'Acceso del cliente al portal de la web pública. Código dictable (sin I/O/0/1) + clave con bcrypt. 5 fallos → 15 min de bloqueo. Sólo lo lee la web vía RPC portal_* con service_role.';
+comment on table public.accesos_portal is 'Acceso del cliente al portal de la web pública. Código dictable (prefijo de la empresa + 5 sin I/O/0/1) + clave con bcrypt. 5 fallos → 15 min de bloqueo. `otorgado_en` es la versión del acceso: la sesión del portal la lleva y deja de valer al revocar o volver a otorgar. El equipo lo lee con `portal_estado`; la web, con las `web.portal_*` (service_role).';
+-- Lo que teclea el cliente se compara sin el guion (`web.portal_login`).
+create unique index accesos_portal_codigo_sin_guion_key on public.accesos_portal (replace(codigo, '-', ''));
 
 -- >>> schemas/06_vehiculos/01_vehiculos.sql
 -- Módulo vehículos: el dato central. Un vehículo pertenece a un origen, lleva los campos
@@ -1638,6 +1642,9 @@ create table public.ajustes_web (
   max_intentos            int not null default 3 check (max_intentos between 1 and 10),
   legales                 jsonb not null default '{}'::jsonb,   -- {cookies_html, privacidad_html, accesibilidad_html, terminos_html}
   seo                     jsonb not null default '{}'::jsonb,
+  -- La dirección pública de la web (la arma el texto para WhatsApp del acceso al portal). Sin pantalla
+  -- hasta Configuración › Sitio web (Fase 8): nula, el texto sale sin enlace.
+  direccion_publica       text check (direccion_publica is null or direccion_publica ~ '^https://[^[:space:]]+$'),
   actualizado_en          timestamptz not null default now(),
   actualizado_por         uuid references public.perfiles (id)
 );

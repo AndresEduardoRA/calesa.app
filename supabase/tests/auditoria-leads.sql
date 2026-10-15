@@ -20,8 +20,11 @@ declare
     ('seguimiento_eliminar(uuid,timestamp with time zone)', '1'),
     ('seguimiento_restaurar(uuid,timestamp with time zone)', '1'),
     ('recordatorio_crear(uuid,uuid,text,timestamp with time zone,uuid)', '1'),
-    ('otorgar_portal(uuid,text)', '1'),
+    -- El acceso del cliente (parte 7b): la cartera y `leads.portal.gestionar`; el estado también (lleva el código).
+    ('otorgar_portal(uuid,text,timestamp with time zone)', '1'),
     ('revocar_portal(uuid)', '1'),
+    ('portal_desbloquear(uuid)', '1'),
+    ('portal_estado(uuid)', '1'),
     ('vehiculo_vincular(uuid,timestamp with time zone,uuid)', '1'),
     ('vehiculo_interesado_marcar(uuid,uuid,text)', '1'),
     ('vehiculo_interesado_quitar(uuid,uuid)', '1'),
@@ -282,4 +285,53 @@ begin
     v_fallas := v_fallas || E'\n  se escribe lead_id sin mirar el lead en ' || r.tabla;
   end loop;
   if v_fallas <> '' then raise exception 'lead_id sin guardia:%', v_fallas; end if;
+end $$;
+
+-- @test auditoría de leads: lo del esquema web que recibe un lead es sólo de service_role, y el acceso del cliente se lee por RPC
+-- El portal del cliente (Fase 8) llama a `web.portal_*` con service_role desde sus route handlers. Una
+-- función de `web` que recibe un lead (o, «definer», nombra una tabla de leads) y que `anon` o
+-- `authenticated` pueden llamar le daría a cualquiera lo que ve el cliente (parte 7b).
+do $$
+declare r record; v_fallas text := '';
+begin
+  for r in
+    select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as firma,
+           has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'web' and p.prokind = 'f'
+      and (exists (select 1 from unnest(coalesce(p.proargnames, '{}')) a where a ~ '^p_leads?$|lead_id|^p_lead_')
+        or exists (select 1 from unnest(p.proargtypes::regtype[]) t where t::text in ('leads', 'leads[]'))
+        or (p.prosecdef and p.prosrc ~ 'public\.(leads\w*|accesos_portal|oportunidades\w*|seguimientos|recordatorios\w*|etiquetas\w*)\M'))
+  loop
+    if r.anon or r.auth then
+      v_fallas := v_fallas || E'\n  ' || r.firma || ' la puede llamar ' || case when r.anon then 'anon' else 'authenticated' end;
+    end if;
+  end loop;
+  -- Las cuatro del portal existen con su firma (el contrato con la Fase 8) y service_role las llama.
+  for r in select f from (values ('web.portal_login(text,text)'), ('web.portal_snapshot(uuid,timestamp with time zone)'),
+      ('web.portal_documento_ruta(uuid,timestamp with time zone,uuid)'), ('web.portal_cambiar_clave(uuid,timestamp with time zone,text,text)')) x (f)
+  loop
+    if to_regprocedure(r.f) is null then
+      v_fallas := v_fallas || E'\n  el contrato del portal cambió: no existe ' || r.f;
+    elsif not has_function_privilege('service_role', to_regprocedure(r.f), 'execute') then
+      v_fallas := v_fallas || E'\n  service_role no puede llamar ' || r.f;
+    end if;
+  end loop;
+  -- La tabla del acceso no la lee la app: el código sale por `portal_estado`, el hash por nada.
+  if has_table_privilege('authenticated', 'public.accesos_portal', 'select')
+     or has_any_column_privilege('authenticated', 'public.accesos_portal', 'select')
+     or has_any_column_privilege('anon', 'public.accesos_portal', 'select') then
+    v_fallas := v_fallas || E'\n  la app puede leer accesos_portal directo';
+  end if;
+  -- Los ayudantes del portal y el generador de códigos son sólo de las funciones «definer».
+  for r in
+    select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and (p.proname ~ '^_portal_' or p.proname = 'codigo_dictable')
+      and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+  loop
+    v_fallas := v_fallas || E'\n  la app puede llamar ' || r.proname;
+  end loop;
+  if v_fallas <> '' then
+    raise exception 'El acceso del cliente tiene un hueco:%', v_fallas;
+  end if;
 end $$;

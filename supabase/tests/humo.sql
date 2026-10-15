@@ -303,24 +303,22 @@ do $$ declare s uuid; begin
 end $$;
 reset role;
 
--- @test portal: otorgar, login con clave, bloqueo tras 5 fallos, snapshot sin costos
+-- @test portal: otorgar, login con clave, bloqueo tras 5 fallos, snapshot sin costos (lo demás: portal-cliente.sql)
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 set role authenticated;
-do $$ declare l uuid; cod text; begin
+do $$ declare l uuid; r jsonb; begin
   select id into l from public.leads_vista where nombre = 'Ana Quispe';
-  cod := public.otorgar_portal(l, 'clave-segura-123');
-  if cod !~ '^[A-Z]{2,4}-[2-9A-HJ-NP-Z]{5}$' then raise exception 'código mal: %', cod; end if;
+  r := public.otorgar_portal(l, 'clave-segura-123', null);
+  if r ->> 'codigo' !~ '^[A-Z]{2,4}-[2-9A-HJ-NP-Z]{5}$' then raise exception 'código mal: %', r; end if;
+  if r ? 'clave' then raise exception 'devolvió una clave que no generó: %', r; end if;
 end $$;
 reset role;
-do $$ declare l uuid; cod text; i int; snap jsonb; begin
-  select lead_id, codigo into l, cod from public.accesos_portal;
+do $$ declare l uuid; cod text; en timestamptz; i int; snap jsonb; begin
+  select lead_id, codigo, otorgado_en into l, cod, en from public.accesos_portal;
   if (select count(*) from web.portal_login(cod, 'clave-segura-123')) <> 1 then raise exception 'login válido falló'; end if;
   for i in 1..5 loop perform web.portal_login(cod, 'mala'); end loop;
-  begin
-    perform web.portal_login(cod, 'clave-segura-123');
-    raise exception 'debía estar bloqueado';
-  exception when insufficient_privilege then null; end;
-  snap := web.portal_snapshot(l);
+  if (select count(*) from web.portal_login(cod, 'clave-segura-123')) <> 0 then raise exception 'debía estar bloqueado'; end if;
+  snap := web.portal_snapshot(l, en);
   if jsonb_array_length(snap -> 'vehiculos') <> 1 then raise exception 'snapshot sin el vehículo: %', snap; end if;
   if snap::text like '%total_base%' or snap::text like '%"ruta"%' then raise exception 'el snapshot filtra datos internos'; end if;
 end $$;

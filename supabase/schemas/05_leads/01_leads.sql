@@ -270,9 +270,11 @@ create table public.accesos_portal (
   intentos_fallidos   smallint not null default 0,
   bloqueado_hasta     timestamptz,
   ultimo_ingreso_en   timestamptz,
-  otorgado_por        uuid references public.perfiles (id),
+  otorgado_por        uuid references public.perfiles (id) on delete set null,
   otorgado_en         timestamptz not null default now(),
-  revocado_por        uuid references public.perfiles (id),
+  revocado_por        uuid references public.perfiles (id) on delete set null,
   revocado_en         timestamptz
 );
-comment on table public.accesos_portal is 'Acceso del cliente al portal de la web pública. Código dictable (sin I/O/0/1) + clave con bcrypt. 5 fallos → 15 min de bloqueo. Sólo lo lee la web vía RPC portal_* con service_role.';
+comment on table public.accesos_portal is 'Acceso del cliente al portal de la web pública. Código dictable (prefijo de la empresa + 5 sin I/O/0/1) + clave con bcrypt. 5 fallos → 15 min de bloqueo. `otorgado_en` es la versión del acceso: la sesión del portal la lleva y deja de valer al revocar o volver a otorgar. El equipo lo lee con `portal_estado`; la web, con las `web.portal_*` (service_role).';
+-- Lo que teclea el cliente se compara sin el guion (`web.portal_login`).
+create unique index accesos_portal_codigo_sin_guion_key on public.accesos_portal (replace(codigo, '-', ''));
