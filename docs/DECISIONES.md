@@ -2002,3 +2002,190 @@ origen. «Ver como» no los toca: son de quien mira de verdad.
   la URL, no es chip ni cuenta); sin secciones el panel sigue plano, así vehículos no cambió.
 - **El listado se relee al volver a la pestaña** (como la ficha): lo marcado en otra pestaña aparece sin
   recargar a mano.
+
+## 2026-10-15 — Parte 6a: toda RPC que recibe un lead cae en una de tres clases
+
+**Contexto:** la 4b y la 5a cerraron el hueco «actuar sobre un lead ajeno con `leads.editar` “todos” sin la
+cartera» sólo en las RPC que tocaban esas partes; el resto seguía con `puede_lead(…, 'leads.editar')`, que
+con «todos» no pide cartera, y `leads.compartir` ni siquiera tenía alcance. Esta parte lee la definición
+**vigente** de cada función (`pg_get_functiondef`), cada policy y cada grant, y los clasifica.
+**Decisión:** tres clases, y toda RPC de leads cae en una (más dos que no mueven nada):
+
+1. **Contenido y datos privados** (editar, teléfonos, seguimientos, recordatorios con lead, portal, vínculo a
+   vehículos, interesados): exige la **cartera y** el permiso, con cualquier alcance. «Todos» ve y no actúa.
+2. **Quién lo tiene** (compartir, transferir, quitar acceso, salir): lo hace el dueño; con el permiso en
+   «todos», también quien lo ve (la supervisión). **Nadie se concede acceso a sí mismo** a un lead que no tiene:
+   ni como destino de transferir, ni de compartir. El destino es una persona activa, no bloqueada y con
+   `leads.ver`. Un compartido puede salirse y no más; al dueño no se le quita, se transfiere; nadie deja un
+   lead sin ninguna persona. Compartir y quitar son idempotentes; transferir lleva `p_dueno_esperado`.
+3. **Papelera** (enviar, restaurar, purgar): vale el permiso con su alcance y no abre datos privados.
+
+- **L, lecturas:** ver alcanza y la base recorta (privados, teléfono). **M, lo de quien mira:** marcas y
+  recordatorios propios; ver alcanza (5b).
+- **X, excepciones con nombre:** `crear_lead` con `adoptar` (la única autoconcesión válida: exige aceptarla
+  y deja de dueño), `web_confirmar_contacto` (sólo anota a qué lead corresponde una solicitud: ver alcanza),
+  `cotizacion_marcar_final` (Fase 4), y lo de administración o configuración que sólo cuenta
+  (`equipo_dar_de_baja`, `equipo_vista_previa_baja`, `lead_campo_impacto`, `empresa_con_datos_cargados`).
+
+**Una sola puerta por clase.** `puede_lead()` queda como estaba y sólo para **leer** (`leads.ver`: es lo
+que usan las policies de lectura). Para actuar: `puede_actuar_lead(p_lead, p_clave)` (lo ve, está en la
+cartera y la persona tiene el permiso con cualquier alcance) y `_lead_mio(p_lead, p_clave, p_bloquear)`
+(levanta el `42501` de siempre), que **reemplaza** a `_lead_de_cartera()` (4b) y a `_lead_mio(uuid)` (5a):
+un solo mensaje —«No encontramos este lead o no tienes acceso.»— para lo que no se ve, el limbo, la papelera,
+lo inexistente, lo ajeno y «lo veo pero no es mío». La clase 2 va por `_lead_para_mover()` (visible,
+`for update`, sin mover la versión).
+
+### La auditoría
+
+Leída contra la base viva, no contra los archivos. «Antes» es lo que exigía; «Ahora», lo que exige.
+
+| Objeto                                                                                                                                                                                                                                         | Clase   | Antes                                                                                                                         | Ahora                                                                                                       | ¿Cambió?             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------- |
+| `lead_guardar`                                                                                                                                                                                                                                 | 1       | ver + `editar` con alcance: «todos» sin cartera editaba lo no privado                                                         | cartera + `editar`                                                                                          | **sí**               |
+| `cambiar_telefono_lead`, `lead_telefono_guardar`, `lead_telefono_quitar`, `verificar_telefono_de_lead`                                                                                                                                         | 1       | cartera + `editar` (mensaje propio: «Sólo quien tiene este lead en su cartera…»)                                              | cartera + `editar`, mensaje de siempre                                                                      | mensaje              |
+| `seguimiento_crear                                                                                                                                                                                                                             | guardar | eliminar                                                                                                                      | restaurar`, `recordatorio_crear`(+`_seguimiento_mio`, `_lead_mio`)                                          | 1                    | `_lead_mio(uuid)` / `puede_lead` + `en_cartera`                                                                                                                                                                                                                   | `_lead_mio(…)` / `puede_actuar_lead`                                                                | no (misma regla, una puerta) |
+| `otorgar_portal`, `revocar_portal`                                                                                                                                                                                                             | 1       | `puede_lead(portal.gestionar)`: «todos» sin cartera; «Sin acceso al lead.»                                                    | cartera + `portal.gestionar`; mensaje de siempre; revocar lo que no está vigente no deja constancia         | **sí**               |
+| `vehiculo_vincular`                                                                                                                                                                                                                            | 1       | `vehiculos.editar` + `puede_lead(editar)`                                                                                     | + cartera del lead; desvincular sigue siendo del vehículo                                                   | **sí**               |
+| `vehiculo_interesado_marcar`                                                                                                                                                                                                                   | 1       | ver el vehículo + `puede_lead(editar)`                                                                                        | ver el vehículo + cartera + `editar`                                                                        | **sí**               |
+| `vehiculo_interesado_quitar`                                                                                                                                                                                                                   | 1       | `puede_lead(editar)`, ni miraba el vehículo                                                                                   | ver el vehículo + cartera + `editar`                                                                        | **sí**               |
+| `oportunidades` INSERT / UPDATE                                                                                                                                                                                                                | 1       | INSERT con `puede_lead(editar)`; UPDATE con `usuario_id = uid` **sin mirar el lead** (a cualquier lead)                       | sin grant: la parte 7 trae sus RPC                                                                          | **sí**               |
+| `compartir_lead` → `lead_compartir`                                                                                                                                                                                                            | 2       | `leads.compartir` (sin alcance) + cartera o `editar` «todos»; destino sin mirar; lead inexistente = `23503`; sacaba del limbo | dueño, o «todos»; destino válido; nunca a sí mismo; `sin_cambios`; sin oráculo                              | **sí** (firma nueva) |
+| `transferir_lead` → `lead_transferir`                                                                                                                                                                                                          | 2       | dueño o «todos»; sin mirar existencia, limbo, papelera ni el destino; adoptaba del limbo sin «Tomar lead»                     | dueño, o «todos»; `p_dueno_esperado` (`PT409`); nunca a sí mismo; saliente compartido                       | **sí** (firma nueva) |
+| `revocar_acceso_lead` → `lead_revocar_acceso`                                                                                                                                                                                                  | 2       | sólo `leads.compartir`: **cualquier asesor quitaba el acceso de cualquiera a cualquier lead**; sin constancia                 | dueño, o «todos»; al dueño no; no deja el lead sin nadie; constancia                                        | **sí** (firma nueva) |
+| `lead_salir`                                                                                                                                                                                                                                   | 2       | no existía                                                                                                                    | un compartido se quita a sí mismo                                                                           | nueva                |
+| `lead_cartera`, `lead_cartera_candidatos`                                                                                                                                                                                                      | L       | no existían (`leads_asesores` sólo mostraba al dueño a la supervisión)                                                        | nombres y tipo de acceso, sin contacto; candidatos sin quien mira                                           | nuevas               |
+| `leads_papelera_enviar                                                                                                                                                                                                                         | listar  | restaurar                                                                                                                     | purgar`                                                                                                     | 3                    | las genéricas `papelera_*('leads')`: sin versión, el uuid en el mensaje, restaurar con el teléfono tomado daba `23505` y abortaba el lote, enviar no revocaba el portal, purgar prestado de `vehiculos.papelera.purgar`, **los leads no se purgaban nunca solos** | propias; todo o nada; lote del cliente; versión del lote; `leads.papelera.purgar`; el job las purga | **sí**                       |
+| `papelera_enviar                                                                                                                                                                                                                               | listar  | restaurar                                                                                                                     | purgar`                                                                                                     | 3                    | vehículos, leads y cotizaciones                                                                                                                                                                                                                                   | sólo cotizaciones (rechazan `leads` y `vehiculos`)                                                  | **sí**                       |
+| `papelera_purgar_vencidos`                                                                                                                                                                                                                     | 3       | sólo vehículos                                                                                                                | vehículos y leads, la misma función que la manual                                                           | **sí**               |
+| policy `lotes_papelera: leer`                                                                                                                                                                                                                  | 3       | el creador o `vehiculos.papelera.purgar`                                                                                      | el creador o el permiso de su tipo (`leads.papelera.purgar` para leads)                                     | **sí**               |
+| `lead_ficha`, `lead_telefonos`, `telefono_lead`, `atributos_lead`, `lead_seguimientos`, `leads_vista`, `en_cartera`, `lead_en_limbo`, `puede_lead`, `mis_leads`, `vehiculo_vinculos`, `vehiculo_interesados`                                   | L       | ver; la base recorta                                                                                                          | igual (`lead_seguimientos` pregunta `editar` sólo para decir si «puede»; el cinturón lo tiene en una lista) | no                   |
+| `lead_favorito                                                                                                                                                                                                                                 | tachado | etiquetas_poner`, `etiqueta_*`, `recordatorio_guardar                                                                         | completar                                                                                                   | eliminar             | restaurar`                                                                                                                                                                                                                                                        | M                                                                                                   | ver / ser su dueño           | igual | no  |
+| `web_confirmar_contacto`                                                                                                                                                                                                                       | X       | `puede_lead(ver)`, «Sin acceso al lead.»                                                                                      | igual                                                                                                       | no                   |
+| `cotizacion_marcar_final`                                                                                                                                                                                                                      | X       | no mira el lead ni la papelera                                                                                                | igual (Fase 4)                                                                                              | no                   |
+| `crear_lead`                                                                                                                                                                                                                                   | X       | adopta del limbo con `adoptar: true`                                                                                          | igual                                                                                                       | no                   |
+| policy `accesos_portal: leer`                                                                                                                                                                                                                  | 1       | `puede_lead(portal.gestionar)`: «todos» leía el **código** de cualquiera (las columnas sí tenían grant)                       | `puede_actuar_lead(portal.gestionar)`                                                                       | **sí**               |
+| `cotizaciones` INSERT                                                                                                                                                                                                                          | ✗       | `lead_id` de cualquier lead                                                                                                   | `lead_id` nulo o un lead que se ve                                                                          | **sí**               |
+| `cotizaciones` UPDATE de `lead_id`                                                                                                                                                                                                             | ✗       | de cualquier lead: la cotización le aparecía a su cartera                                                                     | sin grant de columna: sólo al crearla; después, la RPC de la Fase 4                                         | **sí**               |
+| funciones de trigger de las tablas de leads (`lead_crear_dueno`, `lead_validar_atributos`, `lead_version`, `oportunidad_historial`, `seguimiento_actualizar_lead`, `vehiculo_vinculo_historial`, `auditar`, `set_actualizado_en`…)             | —       | `execute` para `authenticated` (por omisión)                                                                                  | sin `execute`                                                                                               | **sí**               |
+| `leads`, `leads_asesores`, `leads_telefonos`, `leads_favoritos`, `leads_tachados`, `etiquetas`, `leads_etiquetas`, `seguimientos`, `recordatorios`, `vehiculos_interesados`, `vehiculos_vinculos`, `lotes_papelera`, `oportunidades_historial` | —       | sólo SELECT para `authenticated`                                                                                              | igual                                                                                                       | no                   |
+| `web.portal_*`                                                                                                                                                                                                                                 | —       | sólo `service_role`                                                                                                           | igual (parte 7)                                                                                             | no                   |
+
+**Lo que resultó falso o más grave de lo que se creía:**
+
+- Los mensajes de `revocar_acceso_lead` ya no hablaban de vos (la migración de la 3 los había reemplazado).
+- `leads.compartir` **no tiene alcance** y el Asesor lo trae: el hueco no era «“todos” sin cartera» sino «cualquier
+  asesor». Por eso ahora lo tiene («propios» = los leads de los que soy dueño; «todos» = supervisión), y la
+  migración baja a «propios» a quien no ve «todos».
+- Un lead sin dueño y con un compartido (tras una baja) no se rescataba: lo transfiere la supervisión con
+  `p_dueno_esperado` nulo. `equipo_dar_de_baja` no cambia: el limbo sólo nace de una baja.
+- `mis_leads()` no filtra la papelera: un lead enviado con un vehículo vinculado le seguía dando el vehículo a su
+  cartera. Por eso un vehículo vinculado **impide** enviar el lead.
+- La policy `accesos_portal: leer` no estaba muerta: tenía grants de columnas.
+
+### Decisiones concretas y su porqué
+
+- **`leads.papelera.purgar`, propio.** `vehiculos.papelera.purgar` gobernaba también la papelera de leads: quien
+  vaciaba la de vehículos veía los nombres de todos los leads. La migración se lo da a quien ya tenía el otro,
+  y el dueño lo trae por el seed.
+- **Editar pide la cartera** (clase 1): la dueña con «todos» **deja de editar** el nombre, el tipo y el origen de
+  un lead ajeno. Es lo que se decidió para el contenido en 4b y 5a, ahora para todo. «Editar» desaparece para
+  ella, y con él el aviso «Los datos “solo la cartera” no se muestran…».
+- **Desvincular un vehículo no pide el lead** (`vehiculo_vincular(…, null)`): es una acción sobre el vehículo y no
+  entrega nada del lead; pedirle cartera dejaría a la supervisión de inventario sin poder corregir un vínculo
+  equivocado. Vincular sí lo pide: es darle el vehículo a esa cartera.
+- **`oportunidades` sin escritura directa y `cotizaciones.lead_id` sin UPDATE** en vez de endurecer policies: la
+  lógica de lead visible + cartera + tipo en un `with check` no se lee ni se prueba bien, y ninguna pantalla las
+  usa todavía; las RPC de la 7 y la Fase 4 las traen.
+- **Nombres:** `lead_compartir`, `lead_transferir`, `lead_revocar_acceso`, `lead_salir`, `lead_cartera`,
+  `lead_cartera_candidatos` (la convención desde la 4a). Las firmas viejas se `drop`ean: una que sobrevive con
+  otros parámetros sigue llamable como sobrecarga, y el cinturón la detecta.
+- **«Quién lo tiene» sale de `lead_cartera()` y no de abrir la policy de `leads_asesores`:** la policy sigue
+  siendo la red para lo demás, y la función entrega nombres y tipo de acceso y nada de contacto.
+
+### El cinturón y la matriz
+
+- **`supabase/tests/auditoria-leads.sql`** (corre en `pnpm db:probar`, después del humo y de la matriz) lee el
+  catálogo: toda función `security definer` que `authenticated` puede llamar y que recibe un lead (`p_lead`,
+  `p_leads`, `lead_id`… o de tipo `leads`) **o** que nombra una tabla de leads en su cuerpo, tiene que estar en
+  su lista con su clase. Falla además si: una de la lista no existe o tiene sobrecargas; una de clase 1, 2 o 3
+  con `p_lead` no pasó por la matriz; una función o policy pregunta `puede_lead()` con un permiso que no es
+  `leads.ver`; `authenticated` puede escribir una tabla de leads; una función de trigger de esas tablas, o una
+  función de leads, la llama `anon`; o una `security definer` no fija `search_path`.
+- **`supabase/tests/matriz-leads.sql`:** cada RPC × siete personas (dueño, compartido, supervisión sin cartera,
+  asesor ajeno, sólo ve, dada de baja, bloqueado) × cinco leads (propio, ajeno, limbo, papelera, inexistente),
+  805 celdas, cada una en su subtransacción. Prueba que lo que no se ve da el mismo mensaje.
+- **Se probó que atrapan:** con `otorgar_portal` vuelto a `puede_lead(…, 'leads.portal.gestionar')` la matriz
+  falló en 32 celdas; con una RPC `lead_dummy(p_lead)` el cinturón falló nombrándola.
+
+**Alternativas:** forzar las excepciones a una de las tres clases (cambiaba reglas ya decididas, como «marcar
+exige ver»); cambiar el significado de `puede_lead()` (lo usan las policies de lectura y el listado, medidos);
+un `db:lint` a mano de cada RPC nueva (no escala: una RPC que se olvida se vuelve a abrir).
+**Consecuencia:** una RPC de leads nueva rompe `db:probar` hasta que se audita y entra a la lista (y a la matriz).
+
+## 2026-10-15 — La papelera de leads: todo o nada, el lote lo genera el cliente, y lo vinculado no entra
+
+**Contexto:** `papelera_*('leads')` copiaba la de cotizaciones: sin versión, sin motivos legibles, restaurar
+con el teléfono ya tomado abortaba con `23505` crudo, enviar no tocaba el portal y la purga automática sólo
+miraba vehículos (un lead en la papelera guardaba su teléfono y sus privados para siempre).
+**Decisión:**
+
+- **Enviar** (`leads_papelera_enviar(p_lote, p_leads)`): de 1 a 200, **todo o nada** (un lead que no se ve o no
+  se puede deja todo como estaba y no deja lote huérfano; el mensaje no dice cuál falló: sería un oráculo),
+  **idempotente por `p_lote`**, que genera el cliente y conserva hasta que el envío termina. Sin versión por lead:
+  no pisa nada y la versión de cada uno rechazaría un lote entero porque alguien anotó un dato (vehículos sí la
+  lleva, por elemento: allí el resultado es parcial). Mueve la versión del lead (ya estaba decidido).
+- **Portal y oportunidades:** se revoca el portal vigente al enviar y se dice; las oportunidades quedan (son de
+  la 7). Restaurar **no** reabre el portal.
+- **Un vehículo vinculado impide enviar** (y purgar): con el lead en la papelera, `mis_leads()` seguiría dándole el
+  vehículo a su cartera. Hasta la 6b no hay botón para desvincular desde el lead; el rechazo lo dice y la
+  pantalla no lo adelanta (el patrón de la papelera es «hacer y deshacer», sin diálogo previo).
+- **Restaurar** (por lote o por lead, con la versión del lote): lo que choca con un teléfono vivo **queda
+  adentro con el motivo**, que usa la regla de `_lead_verificar` (a quien ve el otro lead, cuál es; a quien no,
+  de quién) y no ofrece cambiar el teléfono desde la papelera: sería editar un lead que nadie ve.
+- **Purgar** (`leads.papelera.purgar`): no se lleva un lead con vehículo vinculado, pagos o el portal vigente
+  (dinero y vínculo, como en vehículos); el resto se limpia por cascada (teléfonos, cartera, marcas,
+  seguimientos, recordatorios, oportunidades, interesados y el historial de vínculos). `actividad` queda, sin
+  datos. El job `papelera_purgar_vencidos()` llama a la misma `_papelera_purgar_leads()` a los `papelera_dias`.
+- **Quién la ve:** quien envió el lote, o quien tiene `leads.papelera.purgar`. El nombre y el número del lead sólo
+  salen por `leads_papelera_listar()` y sólo a esas personas; nunca teléfono ni privados.
+- **`leads.eliminar` «propios» es el dueño**, no cualquiera de la cartera: un compartido no debería poder tirar
+  el lead de otro; puede salir.
+  **Consecuencia:** la papelera de un lead con un vehículo vinculado pide desvincular antes (6b).
+
+## 2026-10-15 — El documento de la ficha pasa de 40 a 48 KB
+
+**Contexto:** el e2e que mide la ficha (`leads-ficha.spec.ts`) fijó en 40 KB lo que el documento suma al shell
+cuando la ficha pesaba ~29 KB. Con las marcas, los seguimientos, «Quién lo tiene» (con sus dos paneles y el
+diálogo de salir) y el «⋯» de la papelera, aporta ~42 KB.
+**Decisión:** el tope del documento pasa a 48 KB; el de lo que viaja al navegar desde el listado sigue en 40 KB
+(33 KB hoy). No se recortó nada: el crecimiento es de funciones nuevas, y el aporte de cada una es pequeño
+(el menú ~0,7 KB). Si vuelve a pasar, lo que cabe es sacar los paneles a una carga diferida (`next/dynamic`).
+
+## 2026-10-15 — Lo que dejó la revisión de la 6a: carreras, `lead_id` en otras tablas y un cinturón más ancho
+
+**Contexto:** una revisión adversarial de la parte (sin editar) encontró tres cosas que valía corregir.
+**Decisión:**
+
+- **Autorizar, bloquear y volver a autorizar.** `_lead_mio()`, `_lead_para_mover()` y `leads_papelera_enviar()`
+  miraban el permiso antes de tomar el `for update` y no volvían a mirar: quien esperaba el lock mientras le
+  quitaban la cartera (o le transferían el lead) escribía igual al despertar. Ahora, con el lead bloqueado, se
+  vuelve a preguntar `puede_actuar_lead()` / el dueño sobre lo confirmado (cada sentencia nueva ve el commit).
+  En `_lead_mio` la primera pregunta se conserva: no se regala un lock a quien no ve el lead. PGlite no tiene
+  concurrencia: lo cubre la lectura y el cinturón no puede probarlo; un e2e con dos sesiones queda como deuda.
+- **Un reintento con el mismo lote y otros leads se rechaza** (antes devolvía «repetido» sin enviar nada).
+- **`lead_id` en `pagos`, `tareas`, `eventos`, `mensajes`, `repuestos_proyectos` y `web_testimonios`** se
+  escribía con el de cualquier lead, lo viera o no: le impedía purgarse al lead (los pagos bloquean) y el error de
+  la FK decía si existía. Un trigger común (`lead_visible_al_escribir`) exige ver el lead, con el mensaje de
+  siempre, antes de la FK y de la RLS; sin sesión (job, servicio, web pública) no mira. Se eligió el trigger y
+  no una policy por tabla: son seis tablas de fases que todavía no tienen pantalla y una regla única se prueba
+  una vez. El cinturón exige que toda tabla con FK a `leads` que la app escribe lo tenga.
+- **El cinturón mira más:** también las funciones de invocador que reciben un lead, las tablas de pagos,
+  tareas, eventos, mensajes y cotizaciones en el cuerpo de una «definer», los permisos de acción de leads
+  preguntados con `alcance_de()` o `tiene_permiso()` en una policy, y la escritura directa sobre `leads`.
+- **Documentado, sin cambio:** purgar un lead desprende (`on delete set null`) sus cotizaciones, agenda, chat,
+  logística, repuestos y solicitudes web: quedan sin lead. Un lead en limbo no se envía a la papelera ni con
+  `leads.eliminar` «todos» (no se ve: se reasigna o se adopta primero). `leads_papelera_listar()` recorre todos
+  los lotes visibles; con miles, medirlo en la Fase 9 (`pnpm db:medir`).
+- **Rechazado de la revisión:** que `infra/cartera.client.ts` sea una excepción sin registrar. Leer desde el
+  navegador con la sesión de quien mira ya es el patrón de `lead-rapido.client.ts` y `etiquetas.client.ts`:
+  `*.client.ts` es para lecturas de navegador, no sólo para realtime.

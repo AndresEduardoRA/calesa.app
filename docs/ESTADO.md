@@ -6,33 +6,33 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-15
-**Fase actual:** 3 — Leads, **parte 5 hecha** (5a seguimientos y recordatorios; 5b favoritos, tachados y etiquetas). Sigue la 6.
+**Fase actual:** 3 — Leads, **parte 6a hecha** (auditoría de las RPC de leads, cartera y papelera de leads). Sigue la 6b.
 
 ## Funcionando
 
-- Verdes: lint, typecheck, test, `db:probar`, `mapa.sh`, build y el e2e completo (números en
-  `docs/BITACORA.md`). Fases 0 a 2 completas, y las partes 1 a 5 de la Fase 3.
-- **e2e:** `pnpm test:e2e:completo` resetea la base y corre las 346 sin saltar ninguna (pide
+- Verdes: lint, typecheck, test, `db:probar` (con la matriz de leads y el cinturón), `db:lint` (sin
+  errores), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas, y
+  las partes 1 a 6a de la Fase 3.
+- **e2e:** `pnpm test:e2e:completo` resetea la base y corre todo sin saltar ninguna (pide
   `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: se
   prueba con lo grabado. Tras un reset, ver el README.
-- **Leads (1 a 5):** alta rápida, campos configurables, listado y ficha (datos, teléfonos y
-  «Seguimientos» con editor y «Tus recordatorios», por RPC y con la cartera); lo privado se recorta en la
-  base. Las marcas de quien mira (favorito, tachado, etiquetas) por RPC «poner», en la ficha y en el «⋯»
-  de cada fila, con «Tus marcas» en los filtros y los tachados ocultos por defecto; medición del listado
-  en `pnpm db:medir`. **Orígenes y vehículos** completos. Qué hay en el código: `docs/MAPA.md`.
+- **Leads (1 a 6a):** alta, campos configurables, listado, ficha (datos, teléfonos, seguimientos,
+  recordatorios), marcas, **«Quién lo tiene»** y **papelera de leads**. Toda RPC que recibe un lead cae en
+  una de tres clases (`docs/DECISIONES.md`, 2026-10-15) y el cinturón de `db:probar` falla si una nueva no
+  está auditada. **Orígenes y vehículos** completos. Qué hay en el código: `docs/MAPA.md`.
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Una por sesión: **6)** cartera, papelera de leads, vínculo e interesados. **7)** embudos y portal. **8)** CSV
-con las columnas del layout.
+Una por sesión: **6b)** pestaña de vehículos de la ficha, interesados y `vehiculo_id` en seguimientos y
+recordatorios. **7)** embudos y portal. **8)** CSV con las columnas del layout.
 
 ## Pendientes que se arrastran
 
-- **Parte 6 (antes de invitar a un asesor con leads reales):** **la papelera de leads va acá.**
-  **Auditar TODAS las RPC de leads por este hueco:** actuar sobre un lead ajeno con `leads.editar`
-  «todos» sin la cartera (la `cambiar_telefono_lead` vieja lo permitía; `compartir_lead` también, y no
-  mira si el destino está activo). Unificar `_lead_de_cartera()` (4b) con `_lead_mio()` (5a). Seguimientos
-  y recordatorios con `vehiculo_id` (la RPC todavía no lo recibe).
+- **Parte 6b:** desde el lead no hay cómo desvincular un vehículo, y uno vinculado no va a la papelera (la
+  base lo dice al intentar). Seguimientos y recordatorios con `vehiculo_id` (la RPC aún no lo recibe).
+- **Lead sin dueño y con compartidos** (tras una baja): lo rescata la supervisión transfiriéndolo con
+  `p_dueno_esperado` nulo. **Fase 7:** la notificación al compartir o transferir. Las carreras de la
+  cartera no se prueban en `db:probar` (PGlite no tiene concurrencia): falta un e2e con dos sesiones.
 - **Fase 4:** la cotización final como ancla de la limpieza; desvincular con cotización final; campos del
   lead en la tarjeta o el PDF. **Fase 6:** mover de fase y publicar sin mover la versión de la ficha; la
   papelera manual no mira `documentos`. **Fases 7 y 8:** el CTA «Escribirle por chat»; la notificación
@@ -66,8 +66,8 @@ con las columnas del layout.
   subasta en segundo plano; rango de un campo numérico; separar `leads.campos.gestionar`.
 - `registrar_actividad()` y `storage_refcount()` tienen `execute` para `authenticated`; `marca` y
   `avatares` borran con `quitarSiHuerfano()`. `cambiar_fase` acepta `p_fase_esperada` nulo.
-- `vehiculos.papelera.purgar` gobierna también la papelera de leads y cotizaciones, sin versión ni
-  purga automática. `web.solicitar_asesor` no valida el vehículo; `cotizacion_marcar_final` vincula sin
+- `vehiculos.papelera.purgar` gobierna también la de cotizaciones, sin versión ni purga automática (Fase 4).
+  `web.solicitar_asesor` no valida el vehículo; `cotizacion_marcar_final` vincula sin
   mirar la papelera. `limpieza_el` corre con los derechos de la base. Despublicar no revoca la URL de una foto.
 - «Ver como» acota la interfaz, no las filas que entrega la base (en leads fuerza «míos»). `storage-gc` y
   `apibara` (Deno) no entran en lint ni typecheck. Falta probar fotos en iPhone. `tipo_acceso =

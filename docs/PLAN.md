@@ -69,8 +69,10 @@ grande y texto para WhatsApp, revocar); papelera; exportar/importar CSV de lo pr
 por fila, importa las válidas).
 
 **Avance (por partes, una por sesión):** hechas la 1 (campos configurables), 2 (alta rápida), 3
-(listado), 4 (ficha y teléfonos) y 5 (seguimientos, recordatorios, favoritos, tachados y etiquetas).
-Faltan la 6 (cartera, papelera, vínculo e interesados), la 7 (embudos y portal) y la 8 (CSV).
+(listado), 4 (ficha y teléfonos), 5 (seguimientos, recordatorios, favoritos, tachados y etiquetas) y
+**6a (auditoría de todas las RPC y policies de leads, cartera —compartir, transferir, quitar acceso y
+salir— y papelera de leads)**. Faltan la 6b (pestaña de vehículos de la ficha, interesados y
+`vehiculo_id` en seguimientos y recordatorios), la 7 (embudos y portal) y la 8 (CSV).
 
 **Terminado cuando:** cada empresa arma los campos de sus leads sin tocar SQL (crea «Signo zodiacal»,
 apaga «Edad», marca uno «solo la cartera») y quien ve un lead sin estar en su cartera no recibe un

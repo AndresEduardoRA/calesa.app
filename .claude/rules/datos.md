@@ -41,9 +41,10 @@ paths:
   versión es la de `vehiculos_imagenes_version`, no la del vehículo.
 - Lo que otorga permisos se escribe por RPC: `crear_lead`, `cambiar_fase`, `vehiculo_vitrina`,
   `vehiculo_vincular` (el vínculo da ver y editar con alcance «propios»),
-  `vehiculos_papelera_*` (las `papelera_*` genéricas son sólo de leads y cotizaciones: rechazan
-  vehículos), `formula_*`, `rbac_*`, `otorgar_portal`, `transferir_lead`, `compartir_lead`,
-  `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.
+  `vehiculos_papelera_*` y `leads_papelera_*` (las `papelera_*` genéricas son sólo de cotizaciones:
+  rechazan vehículos y leads), `formula_*`, `rbac_*`, `otorgar_portal`, `lead_transferir`, `lead_compartir`,
+  `lead_revocar_acceso`, `lead_salir` (actuar sobre el contenido de un lead exige la cartera: `puede_actuar_lead()`,
+  nunca `puede_lead(…, 'leads.editar')`; el cinturón de `db:probar` lo vigila), `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.
   Un `.update()` sobre `fase_id`, `lead_id`, `publicado_web`, `eliminado_en`, `creado_por` o `responsable_id`
   es un bug (la base lo rechaza).
 - Toda mutación de edición manda `p_actualizado_en_esperado` o `p_fase_esperada` (la RPC los exige: un
