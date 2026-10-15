@@ -88,6 +88,7 @@ export { SIN_APIBARA, type DisponibilidadDeApibara } from './entities/apibara'
 // El vínculo a un lead y los interesados: el bloque de la ficha del vehículo, y la sección «Vehículos»
 // de la ficha del lead (vive acá y la compone `app/`: `leads` no importa `vehiculos`)
 export { VinculoEInteresados } from './features/vinculo/components/vinculo-e-interesados'
+export { BotonDesvincular } from './features/vinculo/components/boton-desvincular'
 export type { Relaciones } from './entities/vinculo'
 export { leerVehiculosDelLead } from './composicion'
 export { SeccionVehiculosDelLead } from './features/vinculo/components/seccion-vehiculos-del-lead'

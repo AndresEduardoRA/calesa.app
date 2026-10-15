@@ -1,4 +1,9 @@
-import { VinculoEInteresados, leerRelaciones, type Vehiculo } from '@/modules/vehiculos'
+import {
+  BotonDesvincular,
+  VinculoEInteresados,
+  leerRelaciones,
+  type Vehiculo,
+} from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 
 type Props = { vehiculo: Vehiculo; editable: boolean }
@@ -10,15 +15,17 @@ export async function BloqueVinculo({ vehiculo, editable }: Props) {
   return (
     <VinculoEInteresados
       relaciones={relaciones}
-      editable={
-        editable
-          ? {
+      desvincular={
+        editable ? (
+          <BotonDesvincular
+            vehiculo={{
               id: vehiculo.id,
               titulo: vehiculo.titulo,
               numero: vehiculo.numero,
               actualizadoEn: vehiculo.actualizadoEn,
-            }
-          : null
+            }}
+          />
+        ) : null
       }
     />
   )

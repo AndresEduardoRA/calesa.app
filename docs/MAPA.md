@@ -86,7 +86,7 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 
 ### `vehiculos`
 Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), el vínculo a un lead con sus interesados (por ahora de sólo lectura) la vitrina (publicar en la web con precio público y vista previa de lo que verá el visitante) la papelera por lotes (enviar con «Deshacer», restaurar y purgar) y, en un origen de subasta con apibara encendida, el alta pegando un enlace de Copart o IAAI, un VIN o un lote (de a uno o varios), con sus fotos, y «Refrescar» la subasta desde la ficha; y la limpieza automática de lo importado de una subasta que nadie compró, con su aviso previo y «Conservar». · 212 archivos
-- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerSubasta`, `leerVehiculo`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, +54
+- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerSubasta`, `leerVehiculo`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, +55
 - API de cliente (`client.ts`): `TarjetaVehiculo`, `BadgeDeFase`, `Vehiculo`
 - Depende de: empresa, equipo, flujos, origenes
 - Casos de uso: alta, ficha, fotos, limpieza, listado, papelera, permisos, subasta, vinculo, vitrina

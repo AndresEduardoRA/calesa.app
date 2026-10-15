@@ -3,13 +3,13 @@
 import { formatearFecha } from '@/shared/lib/fechas'
 import { Bloque } from '@/shared/ui/bloque'
 import { useRegional } from '@/shared/ui/regional'
+import type { ReactNode } from 'react'
 import { nombreDeLead, type Relaciones, type Vinculo } from '../../../entities/vinculo'
-import { BotonDesvincular } from './boton-desvincular'
 
 type Props = {
   relaciones: Relaciones
-  // El vehículo, si quien mira lo puede editar: entonces puede desvincularlo.
-  editable?: { id: string; titulo: string; numero: number; actualizadoEn: string } | null
+  // «Desvincular» (`<BotonDesvincular>`), si quien mira puede editar el vehículo: lo arma la página.
+  desvincular?: ReactNode
 }
 
 const SUBTITULO = 'text-(length:--text-xs) font-medium text-(--color-ink-soft)'
@@ -43,7 +43,7 @@ function Periodo({ vinculo, zona }: { vinculo: Vinculo; zona: string }) {
 // A qué lead está vinculado un vehículo (con su historial) y qué leads mostraron interés. Se vincula y
 // se marca interés desde la ficha del lead; acá, quien edita el vehículo puede desvincularlo. El nombre
 // de un lead aparece únicamente si quien mira lo ve.
-export function VinculoEInteresados({ relaciones, editable = null }: Props) {
+export function VinculoEInteresados({ relaciones, desvincular = null }: Props) {
   const { zonaHoraria: zona } = useRegional()
   const { vinculo, historial, interesados } = relaciones
   return (
@@ -57,7 +57,7 @@ export function VinculoEInteresados({ relaciones, editable = null }: Props) {
               <Periodo vinculo={vinculo} zona={zona} />
             </p>
           ) : null}
-          {vinculo && editable ? <BotonDesvincular vehiculo={editable} /> : null}
+          {vinculo ? desvincular : null}
           {vinculo ? null : (
             <p className="text-(--color-ink-soft)">
               Sin vínculo: ningún lead es dueño ni comprador de este vehículo.
