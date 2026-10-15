@@ -2189,3 +2189,104 @@ diálogo de salir) y el «⋯» de la papelera, aporta ~42 KB.
 - **Rechazado de la revisión:** que `infra/cartera.client.ts` sea una excepción sin registrar. Leer desde el
   navegador con la sesión de quien mira ya es el patrón de `lead-rapido.client.ts` y `etiquetas.client.ts`:
   `*.client.ts` es para lecturas de navegador, no sólo para realtime.
+
+## 2026-10-15 — Parte 6b: vincular desde el lead, sin oráculo y con el lead bloqueado
+
+**Contexto:** leída la definición vigente, `vehiculo_vincular` distinguía un vehículo que no se ve de uno
+inexistente (`42501` «No tienes permiso…» contra `PT409` «ya no existe o está en la papelera»), tomaba el
+`for update` del vehículo antes de mirar el permiso, decía «ya está» antes de mirar la cartera y **no
+bloqueaba el lead**: si la papelera bloqueaba primero, vincular esperaba sólo el `KEY SHARE` de la FK y al
+despertar escribía igual, y el lead quedaba en la papelera con un vehículo vinculado (lo que la 6a prohibió).
+Marcar interés con otra nota la ignoraba en silencio, y marcar y quitar no decían qué pasó.
+**Decisión:**
+
+- **Vincular** mira primero sin bloquear (lo que no se ve, la papelera y lo inexistente dan «Ese vehículo no
+  existe o no tienes acceso.»; lo que se ve sin poder editarlo, «No tienes permiso para editar este
+  vehículo.»), después bloquea **el lead** (`_lead_mio(…, true)`, que vuelve a mirar) y **después el
+  vehículo** (y vuelve a mirar). Orden de los locks: lead → vehículo; desvincular sólo toma el vehículo y la
+  papelera sólo el lead, así que no hay ciclo. `cotizacion_marcar_final` actualiza `lead_id` con el vehículo
+  tomado (vehículo → `KEY SHARE` del lead): un deadlock posible con vincular, que se revisa en la Fase 4.
+- **Reemplazar** el lead de un vehículo exige tener también el actual en la cartera: quien se lo quita a una
+  cartera tiene que poder nombrarla, y la confirmación nombra a los dos leads. Si no, `23514` «Este vehículo ya
+  está vinculado a otro lead. Para cambiarlo, desvincúlalo desde la ficha del vehículo.», sin decir cuál. El
+  historial ya lo cuenta el trigger (cierra el anterior y abre el nuevo en la misma transacción).
+- **Marcar es «poner»:** la misma nota es `sin_cambios`, otra la reemplaza (`nota_cambiada`), sin versión (una
+  nota corta, la última escritura gana). Quitar devuelve la nota para que «Deshacer» la reponga. Las dos
+  bloquean el lead como el resto de la clase 1.
+- **Desvincular** sigue sin pedir el lead. En la pantalla se hace y ofrece «Deshacer» cuando quien desvincula
+  podría volver a vincularlo (tiene el lead); si no (la supervisión de inventario), pide confirmar, porque para
+  esa persona no hay vuelta atrás. Devuelve `limpieza_el`: desvincular le quita el ancla a un vehículo de
+  subasta que nadie compró, y el aviso dice cuándo se lo llevaría la limpieza.
+- Desvincular un vehículo con una cotización final no se frena todavía: ninguna pantalla crea una final; se
+  decide en la Fase 4 (la ficha de `vehiculos` decía «Fase 3»).
+
+**Matriz:** un bloque nuevo cruza las cuatro RPC de vínculo con seis personas (dueño, compartido, supervisión
+sin cartera, asesor ajeno, sin rol, de baja) y seis estados del vehículo (propio, ajeno con «propios», que
+sólo se ve, en la papelera, de un origen sin permiso e inexistente): 144 celdas. Con `vehiculo_vincular`
+vuelto al orden y a los mensajes viejos, caen **50 de 144**; con `puede_lead(…,'leads.editar')`, caen 2 celdas
+de la matriz por lead y el cinturón. `matriz_cubiertas` se creaba sólo en el primer bloque: si fallaba, los
+siguientes no corrían; ahora cada bloque la crea si falta.
+
+## 2026-10-15 — La sección «Vehículos» vive en `vehiculos`, y lo que no se ve no se cuenta
+
+**Decisión:**
+
+- La sección (y su selector, y el panel «Agregar vehículo») viven en `vehiculos` y las compone `app/`:
+  `leads` no importa `vehiculos` (lo decidido en la Fase 2). Se lee con `lead_vehiculos()` y se busca con
+  `vehiculos_para_lead()`, las dos de invocador: lo que la RLS del vehículo no deja ver no llega ni se cuenta.
+  La pestaña sólo aparece con `vehiculos.ver` en algún origen (sin eso estaría siempre vacía).
+- **Lo que ve cada quien:** un compartido con «propios» ve los vinculados (se los da el vínculo) y sólo los
+  interesados que su propio alcance le deja ver; transferir no toca los vínculos.
+- **Asimetría a propósito:** la ficha del vehículo dice que _hay_ un vínculo con un lead que no se ve («Un lead
+  que no está en tu cartera»), porque `lead_id` es un dato del propio vehículo; la ficha del lead no cuenta los
+  vehículos que no se ven, porque son otras entidades. El historial del lead no nombra personas (el del
+  vehículo nombra a quien vinculó).
+- **Lo que la ficha adelanta, sin oráculo:** `lead_ficha()` suma `vehiculos_vinculados` (los que quien mira ve).
+  Con alguno, «Enviar a la papelera» se ve apagado con el motivo y lleva a «Vehículos»; compartir y transferir
+  avisan que el vínculo le da los vehículos a quien recibe el lead. Si no ve ninguno no se dice nada: insinuar
+  los otros sería decir algo que no ve. Si lo que frena la papelera es uno que no ve, la base lo dice al
+  intentar («…que no ves: quien lo gestiona tiene que desvincularlo antes.»): que existe ya lo decía.
+- La ficha del vehículo suma «Desvincular» para quien lo edita (con confirmación): es la salida del rechazo de
+  reemplazar. El botón lo arma la página y el bloque lo recibe como hueco.
+
+## 2026-10-15 — `vehiculo_id` en seguimientos y recordatorios: uno que se ve, y si deja de verse sigue
+
+**Decisión:** las RPC lo reciben (`seguimiento_crear|guardar` en el json, `recordatorio_crear(…, p_vehiculo)`,
+`recordatorio_guardar` en los cambios) y sólo lo validan cuando cambia: editar el título de una nota cuyo
+vehículo ya no se ve lo conserva. La base sólo exige que se vea; la pantalla ofrece los vehículos del lead
+(vinculados e interesados) que la página lee desde `vehiculos` y la sección provee por contexto: así no hace
+falta una búsqueda global ni un ciclo entre módulos. Al leer, el vehículo se nombra sólo si se ve; a su autor
+se le dice que había uno («un vehículo que ya no ves», el valor `oculto` del selector), al resto nada. El
+recordatorio que nace con un seguimiento hereda su vehículo. **`recordatorios.vehiculo_id` pasó a
+`on delete set null`** (era `cascade`): purgar un vehículo borraba el recordatorio de otra persona. Lo
+«Visible para el cliente» con vehículo lo resuelve el portal de la parte 7.
+
+## 2026-10-15 — Las carreras se prueban con dos conexiones reales (`pnpm db:carreras`)
+
+**Contexto:** PGlite (el de `db:probar`) no tiene concurrencia: las carreras de la 6a quedaron sin prueba.
+**Decisión:** `scripts/carreras.mjs` abre dos conexiones con `pg` a la base local y un orquestador. A abre una
+transacción y actúa (retiene el lock), B lanza su llamada, el orquestador espera en `pg_stat_activity` a que B
+figure esperando un lock (sin `sleep`) y recién ahí A confirma. Si B no llega a esperar, la carrera no se probó
+y falla: no se reintenta. Doce carreras en los dos órdenes: dos transferencias, quitar el acceso mientras el
+compartido edita, anota, corrige su seguimiento o agenda, la papelera mientras otro comparte, el mismo vehículo
+a dos leads, y vincular mientras se envía el lead a la papelera (contra la RPC vieja, **roja**). Terreno propio
+con prefijo «Carreras», escrito como `postgres`, borrado al terminar y al empezar; con el equipo vacío crea
+primero una cuenta que nace dueña (sin alguien que gestione el equipo, el guardián no deja tocar a nadie).
+Dura menos de un segundo. No entra en `db:probar` (es el pre-commit y exigiría Supabase arriba): corre con
+`pnpm db:carreras` y dentro de `pnpm test:e2e:completo`, después del reset.
+**Lo que encontró:** un compartido al que le quitaban el acceso **mientras** anotaba dejaba su seguimiento
+igual: `seguimiento_crear` y `recordatorio_crear` llamaban a `_lead_mio(p_lead)` sin bloquear y
+`_seguimiento_mio` no miraba el lead con lock. `_lead_mio` bloquea ahora por omisión y `_seguimiento_mio`
+bloquea el lead y vuelve a mirar (`…20261015000700`).
+
+## 2026-10-15 — El tope del documento de la ficha vuelve a 44 KB; diferir los paneles no ahorra documento
+
+**Contexto:** la 6a subió el tope a 48 KB y anotó que, si hacía falta, se sacaran los paneles a una carga
+diferida. **Medido** (el e2e ahora dice de qué está hecho lo que aporta la ficha): 42,0 KB sobre el shell =
+25,8 de payload RSC (las props) + 16,1 de HTML de «Datos»; los scripts no suman. Los paneles cerrados (base-ui)
+no dibujan nada, así que diferir los de la cartera ahorró **0,0 KB** del documento (sí, su código del primer
+pedido). Con la sección «Vehículos» y lo que suma a la ficha, «Datos» aporta **43,0 KB** (26,7 de RSC); en el
+terreno del e2e de vehículos, «Datos» 37,3 KB y «Vehículos» 31,4 KB.
+**Decisión:** tope de 44 KB para «Datos» y para «Vehículos». Si se pasa, lo que pesa son las props: mandar a
+`FichaDeLead` sólo los campos activos y los que el lead tiene con dato, y los orígenes activos más el del lead
+(las opciones completas, al abrir «Editar»).
