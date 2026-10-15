@@ -182,8 +182,9 @@ test('la co-asesora ve sólo lo «Visible para el cliente» de la otra, sin cont
   await irASeguimientos(otra, lead.id)
   await expect(seguimiento(otra, 'Para el cliente')).toBeVisible()
   await expect(seguimiento(otra, 'Sólo para mí')).toHaveCount(0)
+  // Las pestañas sin números (con la cartera, también «Oportunidades», que muestra sólo las suyas).
   await expect(otra.getByRole('navigation', { name: 'Secciones del lead' })).toHaveText(
-    /^DatosSeguimientos$/,
+    /^DatosSeguimientosOportunidades$/,
   )
   // Lo de Berta no se edita desde acá; Carlos sí anota.
   await expect(
