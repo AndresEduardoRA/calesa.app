@@ -51,13 +51,13 @@ export async function leadsConTelefono(numero: string): Promise<LeadEnLaBase[]> 
 export async function seguimientosDe(leadId: string) {
   const { data, error } = await admin()
     .from('seguimientos')
-    .select('titulo, detalle_texto, detalle_html, visibilidad, usuario_id, tipo_id')
+    .select('titulo, detalle_texto, detalle_doc, visibilidad, usuario_id, tipo_id')
     .eq('lead_id', leadId)
     .returns<
       {
         titulo: string
         detalle_texto: string | null
-        detalle_html: string | null
+        detalle_doc: unknown
         visibilidad: string
         usuario_id: string
         tipo_id: string

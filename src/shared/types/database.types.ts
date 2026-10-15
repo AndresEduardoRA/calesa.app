@@ -63,6 +63,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'accesos_portal_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: true
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+          {
             foreignKeyName: 'accesos_portal_otorgado_por_fkey'
             columns: ['otorgado_por']
             isOneToOne: false
@@ -785,6 +792,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'cotizaciones_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+          {
             foreignKeyName: 'cotizaciones_lote_papelera_id_fkey'
             columns: ['lote_papelera_id']
             isOneToOne: false
@@ -1410,6 +1424,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'eventos_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'eventos_vehiculo_id_fkey'
@@ -2335,6 +2356,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'leads_asesores_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+          {
             foreignKeyName: 'leads_asesores_revocado_por_fkey'
             columns: ['revocado_por']
             isOneToOne: false
@@ -2444,6 +2472,13 @@ export type Database = {
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
           },
+          {
+            foreignKeyName: 'leads_etiquetas_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
         ]
       }
       leads_favoritos: {
@@ -2477,6 +2512,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_favoritos_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'leads_favoritos_usuario_id_fkey'
@@ -2518,6 +2560,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_tachados_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'leads_tachados_usuario_id_fkey'
@@ -2565,6 +2614,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_telefonos_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
         ]
       }
@@ -2760,6 +2816,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'mensajes_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'mensajes_responde_a_id_fkey'
@@ -3059,6 +3122,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'oportunidades_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'oportunidades_usuario_id_fkey'
@@ -3374,6 +3444,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'pagos_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+          {
             foreignKeyName: 'pagos_moneda_fkey'
             columns: ['moneda']
             isOneToOne: false
@@ -3648,7 +3725,7 @@ export type Database = {
           actualizado_en: string
           completado_en: string | null
           creado_en: string
-          detalle_html: string | null
+          eliminado_en: string | null
           id: string
           lead_id: string | null
           notificado_en: string | null
@@ -3656,13 +3733,14 @@ export type Database = {
           titulo: string
           usuario_id: string
           vehiculo_id: string | null
+          _recordatorio_json: Json | null
         }
-        ComputedFields: never
+        ComputedFields: '_recordatorio_json'
         Insert: {
           actualizado_en?: string
           completado_en?: string | null
           creado_en?: string
-          detalle_html?: string | null
+          eliminado_en?: string | null
           id?: string
           lead_id?: string | null
           notificado_en?: string | null
@@ -3675,7 +3753,7 @@ export type Database = {
           actualizado_en?: string
           completado_en?: string | null
           creado_en?: string
-          detalle_html?: string | null
+          eliminado_en?: string | null
           id?: string
           lead_id?: string | null
           notificado_en?: string | null
@@ -3698,6 +3776,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'recordatorios_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'recordatorios_usuario_id_fkey'
@@ -4278,6 +4363,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'repuestos_proyectos_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+          {
             foreignKeyName: 'repuestos_proyectos_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
@@ -4456,7 +4548,7 @@ export type Database = {
         Row: {
           actualizado_en: string
           creado_en: string
-          detalle_html: string | null
+          detalle_doc: Json | null
           detalle_texto: string | null
           eliminado_en: string | null
           id: string
@@ -4467,12 +4559,13 @@ export type Database = {
           usuario_id: string
           vehiculo_id: string | null
           visibilidad: Database['public']['Enums']['visibilidad_seguimiento']
+          _seguimiento_json: Json | null
         }
-        ComputedFields: never
+        ComputedFields: '_seguimiento_json'
         Insert: {
           actualizado_en?: string
           creado_en?: string
-          detalle_html?: string | null
+          detalle_doc?: Json | null
           detalle_texto?: string | null
           eliminado_en?: string | null
           id?: string
@@ -4487,7 +4580,7 @@ export type Database = {
         Update: {
           actualizado_en?: string
           creado_en?: string
-          detalle_html?: string | null
+          detalle_doc?: Json | null
           detalle_texto?: string | null
           eliminado_en?: string | null
           id?: string
@@ -4513,6 +4606,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'seguimientos_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'seguimientos_tipo_id_fkey'
@@ -4623,6 +4723,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'solicitudes_contacto_web_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'solicitudes_contacto_web_solicitud_previa_id_fkey'
@@ -4848,6 +4955,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tareas_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'tareas_responsable_id_fkey'
@@ -5369,6 +5483,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'vehiculos_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+          {
             foreignKeyName: 'vehiculos_lote_papelera_id_fkey'
             columns: ['lote_papelera_id']
             isOneToOne: false
@@ -5535,6 +5656,13 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'vehiculos_interesados_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+          {
             foreignKeyName: 'vehiculos_interesados_usuario_id_fkey'
             columns: ['usuario_id']
             isOneToOne: false
@@ -5590,6 +5718,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'vehiculos_vinculos_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
           {
             foreignKeyName: 'vehiculos_vinculos_usuario_id_fkey'
@@ -5896,6 +6031,13 @@ export type Database = {
             referencedRelation: 'leads_vista'
             referencedColumns: ['id']
           },
+          {
+            foreignKeyName: 'web_testimonios_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
         ]
       }
     }
@@ -6006,6 +6148,22 @@ export type Database = {
             referencedColumns: ['id']
           },
         ]
+      }
+      recordatorios_vista: {
+        Row: {
+          actualizado_en: string | null
+          completado_en: string | null
+          creado_en: string | null
+          id: string | null
+          lead_id: string | null
+          lead_nombre: string | null
+          lead_numero: number | null
+          notificado_en: string | null
+          recordar_en: string | null
+          titulo: string | null
+        }
+        ComputedFields: never
+        Relationships: []
       }
     }
     Functions: {
@@ -6168,6 +6326,32 @@ export type Database = {
         }
         Returns: string
       }
+      _lead_mio: {
+        Args: { p_lead: string }
+        Returns: {
+          actualizado_en: string
+          atributos: NonNullable<Json>
+          creado_en: string
+          creado_por: string | null
+          eliminado_en: string | null
+          eliminado_por: string | null
+          id: string
+          lote_papelera_id: string | null
+          nombre: string
+          numero: number
+          origen_lead_id: string | null
+          telefono_cc: string | null
+          telefono_principal: string
+          tipo: Database['public']['Enums']['tipo_lead']
+          ultimo_seguimiento_en: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'leads'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _lead_telefonos_estado: { Args: { p_lead: string; p_resultado: string }; Returns: Json }
       _lead_verificar: { Args: { p_excluir?: string; p_tel: string }; Returns: Json }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
@@ -6243,12 +6427,93 @@ export type Database = {
         Returns: undefined
       }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
+      _recordatorio_conflicto: { Args: { p_cuando: string }; Returns: undefined }
+      _recordatorio_cuando: { Args: { p_hint: string; p_valor: string }; Returns: string }
+      _recordatorio_json: {
+        Args: {
+          r: Omit<
+            Database['public']['Tables']['recordatorios']['Row'],
+            Database['public']['Tables']['recordatorios']['ComputedFields']
+          >
+        }
+        Returns: Json
+      }
+      _recordatorio_mio: {
+        Args: { p_id: string }
+        Returns: {
+          actualizado_en: string
+          completado_en: string | null
+          creado_en: string
+          eliminado_en: string | null
+          id: string
+          lead_id: string | null
+          notificado_en: string | null
+          recordar_en: string
+          titulo: string
+          usuario_id: string
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'recordatorios'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _recordatorio_titulo: { Args: { p_hint: string; p_valor: string }; Returns: string }
       _requisito_dato_cumplido: {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
       }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
       _rol_tocar: { Args: { p_rol: string }; Returns: string }
+      _seguimiento_conflicto: { Args: { p_cuando: string }; Returns: undefined }
+      _seguimiento_detalle: { Args: { p_doc: Json }; Returns: string }
+      _seguimiento_fecha: { Args: { p_valor: Json }; Returns: string }
+      _seguimiento_href_valido: { Args: { p_href: string }; Returns: boolean }
+      _seguimiento_json: {
+        Args: {
+          s: Omit<
+            Database['public']['Tables']['seguimientos']['Row'],
+            Database['public']['Tables']['seguimientos']['ComputedFields']
+          >
+        }
+        Returns: Json
+      }
+      _seguimiento_marcas: { Args: { p_marcas: Json }; Returns: undefined }
+      _seguimiento_mio: {
+        Args: { p_id: string }
+        Returns: {
+          actualizado_en: string
+          creado_en: string
+          detalle_doc: Json | null
+          detalle_texto: string | null
+          eliminado_en: string | null
+          id: string
+          lead_id: string
+          ocurrido_en: string
+          tipo_id: string
+          titulo: string
+          usuario_id: string
+          vehiculo_id: string | null
+          visibilidad: Database['public']['Enums']['visibilidad_seguimiento']
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'seguimientos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _seguimiento_nodo: {
+        Args: { p_nodo: Json; p_padre: string; p_profundidad: number }
+        Returns: string
+      }
+      _seguimiento_titulo: { Args: { p_hint: string; p_valor: Json }; Returns: string }
+      _seguimiento_visibilidad: {
+        Args: { p_valor: Json }
+        Returns: Database['public']['Enums']['visibilidad_seguimiento']
+      }
       _vehiculo_a_lote: {
         Args: {
           p_lote: string
@@ -6562,6 +6827,10 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_lead: string }
         Returns: Json
       }
+      lead_seguimientos: {
+        Args: { p_antes_en?: string; p_antes_id?: string; p_lead: string; p_tamano?: number }
+        Returns: Json
+      }
       lead_telefono_guardar: {
         Args: {
           p_cc: string
@@ -6804,6 +7073,26 @@ export type Database = {
         Returns: string
       }
       reasignar_tarea: { Args: { p_responsable: string; p_tarea: string }; Returns: undefined }
+      recordatorio_completar: {
+        Args: { p_actualizado_en_esperado: string; p_completado: boolean; p_id: string }
+        Returns: Json
+      }
+      recordatorio_crear: {
+        Args: { p_id: string; p_lead: string; p_recordar_en: string; p_titulo: string }
+        Returns: Json
+      }
+      recordatorio_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      recordatorio_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      recordatorio_restaurar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
       recordatorios_notificar: { Args: Record<PropertyKey, never>; Returns: number }
       registrar_actividad: {
         Args: {
@@ -6828,6 +7117,22 @@ export type Database = {
       revocar_acceso_lead: { Args: { p_lead: string; p_usuario: string }; Returns: undefined }
       revocar_portal: { Args: { p_lead: string }; Returns: undefined }
       rol_dominado: { Args: { p_rol: string }; Returns: boolean }
+      seguimiento_crear: {
+        Args: { p_id: string; p_lead: string; p_recordatorio?: Json; p_seguimiento: Json }
+        Returns: Json
+      }
+      seguimiento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      seguimiento_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      seguimiento_restaurar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
       slugificar: { Args: { p: string }; Returns: string }
       storage_gc_abrir: { Args: { p_pase: string }; Returns: boolean }
       storage_gc_confirmar: { Args: { p_bucket: string; p_rutas: string[] }; Returns: number }

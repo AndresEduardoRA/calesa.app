@@ -136,16 +136,22 @@ create table public.seguimientos (
   usuario_id      uuid not null references public.perfiles (id),
   tipo_id         uuid not null references public.tipos_seguimiento (id) on delete restrict,
   titulo          text not null,
-  detalle_html    text,                          -- saneado en servidor con allowlist del editor
-  detalle_texto   text,                          -- versión plana para buscar
-  visibilidad     public.visibilidad_seguimiento not null default 'privado',  -- publico = sale en el portal del cliente
+  detalle_doc     jsonb,                          -- el documento del editor (lista blanca de _seguimiento_detalle); nulo = sin detalle o sólo texto plano
+  detalle_texto   text,                           -- lo deriva la base del documento (o lo escribe el alta): buscar, portal y respaldo
+  visibilidad     public.visibilidad_seguimiento not null default 'privado',  -- publico = «Visible para el cliente» (portal)
   ocurrido_en     timestamptz not null default now(),
   vehiculo_id     uuid,                           -- FK en 06_vehiculos
   eliminado_en    timestamptz,
   creado_en       timestamptz not null default now(),
-  actualizado_en  timestamptz not null default now()
+  actualizado_en  timestamptz not null default now(),   -- versión: la sellan las RPC con la hora del reloj
+  constraint seguimientos_titulo_largo check (char_length(titulo) between 1 and 120),
+  constraint seguimientos_detalle_texto_largo check (detalle_texto is null or char_length(detalle_texto) <= 5000),
+  constraint seguimientos_detalle_doc_objeto check (detalle_doc is null or jsonb_typeof(detalle_doc) = 'object')
 );
-comment on table public.seguimientos is 'Contactos con el lead. Nacen privados; público = visible en el portal del cliente. Un co-asesor ve sólo los públicos del otro.';
+create index seguimientos_usuario_idx on public.seguimientos (usuario_id);
+create index seguimientos_tipo_idx on public.seguimientos (tipo_id);
+create index seguimientos_vehiculo_idx on public.seguimientos (vehiculo_id) where vehiculo_id is not null;
+comment on table public.seguimientos is 'Contactos con el lead. Se escriben sólo por RPC (crear_lead, seguimiento_*), y sólo su autor con el lead en su cartera. Nacen privados: privado = sólo lo ve su autor; público («Visible para el cliente») = lo ven también quienes ven el lead y el portal. El detalle viaja como documento del editor (detalle_doc), nunca como HTML; detalle_texto lo deriva la base. Un seguimiento no mueve la versión del lead.';
 
 create table public.recordatorios (
   id             uuid primary key default gen_random_uuid(),
@@ -153,14 +159,18 @@ create table public.recordatorios (
   lead_id        uuid references public.leads (id) on delete cascade,
   vehiculo_id    uuid,                            -- FK en 06_vehiculos
   titulo         text not null,
-  detalle_html   text,
   recordar_en    timestamptz not null,
   notificado_en  timestamptz,
   completado_en  timestamptz,
+  eliminado_en   timestamptz,
   creado_en      timestamptz not null default now(),
-  actualizado_en timestamptz not null default now()
+  actualizado_en timestamptz not null default now(),   -- versión: la sellan las RPC con la hora del reloj
+  constraint recordatorios_titulo_largo check (char_length(titulo) between 1 and 120)
 );
-comment on table public.recordatorios is 'Recordatorios personales con fecha y hora. Se muestran en la agenda y disparan una notificación (y push) a su hora.';
+create index recordatorios_usuario_idx on public.recordatorios (usuario_id, recordar_en) where completado_en is null and eliminado_en is null;
+create index recordatorios_lead_idx on public.recordatorios (lead_id) where lead_id is not null;
+create index recordatorios_vehiculo_idx on public.recordatorios (vehiculo_id) where vehiculo_id is not null;
+comment on table public.recordatorios is 'Recordatorios personales con fecha y hora: sólo los ve y los toca su dueño, y se escriben sólo por RPC (crear_lead, recordatorio_*). Con lead, crearlo exige tenerlo en la cartera; si después lo pierde, el recordatorio sigue siendo suyo y recordatorios_vista lo entrega sin el lead. Se muestran en la ficha (y en la agenda, Fase 7) y disparan una notificación a su hora.';
 
 create table public.embudos (
   id         uuid primary key default gen_random_uuid(),

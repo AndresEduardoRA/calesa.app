@@ -3367,7 +3367,7 @@ begin
   if (select telefono_principal from public.leads_vista where id = v_id) <> '59171000001' then raise exception 'teléfono normalizado'; end if;
   if (select telefono_cc from public.leads_vista where id = v_id) <> '+591' then raise exception 'código de país del lead'; end if;
   if (select nombre from public.leads_vista where id = v_id) <> 'Lead Alta Humo' then raise exception 'el nombre se guarda sin espacios sobrantes'; end if;
-  if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Pidió precio del RAV4' and detalle_texto = 'Lo vio en Facebook.' and detalle_html is null and visibilidad = 'privado') <> 1 then
+  if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Pidió precio del RAV4' and detalle_texto = 'Lo vio en Facebook.' and detalle_doc is null and visibilidad = 'privado') <> 1 then
     raise exception 'el seguimiento'; end if;
   if (select count(*) from public.recordatorios where lead_id = v_id and titulo = 'Pidió precio del RAV4' and recordar_en = v_manana and usuario_id = '00000000-0000-0000-0000-000000000040') <> 1 then
     raise exception 'el recordatorio (sin título propio usa el del seguimiento)'; end if;
@@ -4640,4 +4640,401 @@ do $$ declare r jsonb; begin
   if r <> '{"estado": "libre"}'::jsonb then raise exception 'un extra del limbo no se nombra: %', r; end if;
 end $$;
 reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ===========================================================================================
+-- Seguimientos y recordatorios (parte 5a). Mismos usuarios: 40 (asesor, «propios»), 41 (otro
+-- asesor), 42 (ve «todos», no edita), 43 (asesor sin leads) y 01 (dueña, «todos»). Números 7510….
+-- ===========================================================================================
+
+-- @test seguimientos: los leads de prueba (propio, compartido con 41, ajeno, en limbo y en la papelera)
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; n text; t text; begin
+  for n, t in select * from (values ('Seg Propio', '75100001'), ('Seg Compartido', '75100002'), ('Seg Papelera', '75100003')) x (n, t) loop
+    r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', n, 'telefono_principal', t, 'origen_lead_id', v_web));
+    if r ->> 'resultado' <> 'creado' then raise exception 'alta %: %', n, r; end if;
+  end loop;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; n text; t text; begin
+  for n, t in select * from (values ('Seg Ajeno', '75100004'), ('Seg Limbo', '75100005')) x (n, t) loop
+    r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', n, 'telefono_principal', t, 'origen_lead_id', v_web));
+    if r ->> 'resultado' <> 'creado' then raise exception 'alta %: %', n, r; end if;
+  end loop;
+end $$;
+reset role;
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por)
+select id, '00000000-0000-0000-0000-000000000041', 'compartido', '00000000-0000-0000-0000-000000000040'
+  from public.leads where nombre = 'Seg Compartido';
+update public.leads_asesores set revocado_en = now() where lead_id = (select id from public.leads where nombre = 'Seg Limbo');
+update public.leads set eliminado_en = now() where nombre = 'Seg Papelera';
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test seguimientos: crear es idempotente por id, valida tipo, resumen y fecha, no mueve la versión del lead y deja constancia sin contenido
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_lead uuid := (select id from public.leads where nombre = 'Seg Propio');
+  v_tipo uuid := (select id from public.tipos_seguimiento where clave = 'llamada');
+  v_id uuid := gen_random_uuid();
+  v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Seg Propio');
+  r jsonb; f text[]; v_doc jsonb;
+begin
+  v_doc := '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Quiere "},{"type":"text","text":"RAV4","marks":[{"type":"bold"}]}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"2019"}]}]}]}]}';
+  r := public.seguimiento_crear(v_id, v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', '  Llamó por el RAV4  ', 'detalle', v_doc));
+  if r ->> 'resultado' <> 'creado' then raise exception 'debía crearse: %', r; end if;
+  if r #>> '{seguimiento,titulo}' <> 'Llamó por el RAV4' or r #>> '{seguimiento,detalle_texto}' <> E'Quiere RAV4\n• 2019'
+     or r #>> '{seguimiento,visibilidad}' <> 'privado' or (r #>> '{seguimiento,es_mio}')::boolean is not true then
+    raise exception 'lo guardado: %', r;
+  end if;
+  -- El mismo intento, otra vez: lo mismo, sin duplicar.
+  r := public.seguimiento_crear(v_id, v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'Otra cosa'));
+  if r ->> 'resultado' <> 'repetido' or r #>> '{seguimiento,titulo}' <> 'Llamó por el RAV4' then raise exception 'el reintento: %', r; end if;
+  if (select count(*) from public.seguimientos where id = v_id) <> 1 then raise exception 'el reintento duplicó'; end if;
+  -- La versión de la ficha no se movió; el último seguimiento sí.
+  if (select actualizado_en from public.leads where id = v_lead) <> v0 then raise exception 'un seguimiento movió la versión del lead'; end if;
+  if (select ultimo_seguimiento_en from public.leads where id = v_lead) is distinct from (r #>> '{seguimiento,ocurrido_en}')::timestamptz then
+    raise exception 'ultimo_seguimiento_en';
+  end if;
+  -- Un documento sólo de párrafos y listas vacías es «sin detalle».
+  r := public.seguimiento_crear(gen_random_uuid(), v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'Sin detalle',
+    'detalle', '{"type":"doc","content":[{"type":"paragraph"},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph"}]}]}]}'::jsonb));
+  if r #> '{seguimiento,detalle_doc}' <> 'null'::jsonb or r #> '{seguimiento,detalle_texto}' <> 'null'::jsonb then raise exception 'sólo etiquetas: %', r; end if;
+  -- Lo que no pasa, junto a su campo.
+  f := pg_temp.falla(format('select public.seguimiento_crear(gen_random_uuid(), %L, %L)', v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', '   ')));
+  if f[3] <> 'titulo' then raise exception 'resumen vacío: %', f; end if;
+  f := pg_temp.falla(format('select public.seguimiento_crear(gen_random_uuid(), %L, %L)', v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', repeat('a', 121))));
+  if f[3] <> 'titulo' then raise exception 'resumen largo: %', f; end if;
+  f := pg_temp.falla(format('select public.seguimiento_crear(gen_random_uuid(), %L, %L)', v_lead, jsonb_build_object('tipo_id', gen_random_uuid(), 'titulo', 'x')));
+  if f[3] <> 'tipo_id' then raise exception 'tipo inexistente: %', f; end if;
+  f := pg_temp.falla(format('select public.seguimiento_crear(gen_random_uuid(), %L, %L)', v_lead,
+         jsonb_build_object('tipo_id', v_tipo, 'titulo', 'x', 'ocurrido_en', now() + interval '1 hour')));
+  if f[3] <> 'ocurrido_en' or f[2] not like 'Un seguimiento no puede ser en el futuro%' then raise exception 'fecha futura: %', f; end if;
+  -- Unos minutos de margen por los relojes, y el pasado vale.
+  r := public.seguimiento_crear(gen_random_uuid(), v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'Reloj adelantado', 'ocurrido_en', now() + interval '2 minutes'));
+  r := public.seguimiento_crear(gen_random_uuid(), v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'La semana pasada', 'ocurrido_en', now() - interval '7 days'));
+  f := pg_temp.falla(format('select public.seguimiento_crear(gen_random_uuid(), %L, %L)', v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'x', 'lead_id', gen_random_uuid())));
+  if f[3] <> 'lead_id' then raise exception 'una clave suelta: %', f; end if;
+  -- Con recordatorio: entra junto; uno pasado no deja nada.
+  r := public.seguimiento_crear(gen_random_uuid(), v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'Con recordatorio'),
+         jsonb_build_object('recordar_en', now() + interval '1 day'));
+  if r #>> '{recordatorio,titulo}' <> 'Con recordatorio' or r #>> '{recordatorio,lead_id}' <> v_lead::text then raise exception 'el recordatorio: %', r; end if;
+  f := pg_temp.falla(format('select public.seguimiento_crear(gen_random_uuid(), %L, %L, %L)', v_lead,
+         jsonb_build_object('tipo_id', v_tipo, 'titulo', 'Recordatorio pasado'), jsonb_build_object('recordar_en', now() - interval '1 minute')));
+  if f[3] <> 'recordatorio.recordar_en' then raise exception 'recordatorio pasado: %', f; end if;
+  if exists (select 1 from public.seguimientos where titulo = 'Recordatorio pasado') then raise exception 'un rechazo dejó el seguimiento'; end if;
+end $$;
+reset role;
+do $$ begin
+  -- La constancia no lleva el contenido.
+  if not exists (select 1 from public.actividad a where a.accion = 'lead.seguimiento_creado'
+                  and a.registro_id = (select id::text from public.leads where nombre = 'Seg Propio')
+                  and a.detalle ? 'seguimiento' and a.detalle ? 'tipo' and not (a.detalle::text like '%RAV4%')) then
+    raise exception 'la constancia del seguimiento';
+  end if;
+  if exists (select 1 from public.actividad a where a.accion = 'leads.update'
+              and a.registro_id = (select id::text from public.leads where nombre = 'Seg Propio')) then
+    raise exception 'un seguimiento dejó una edición del lead';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test seguimientos: un tipo apagado no se usa para crear ni para cambiar, pero el que ya tiene se conserva
+update public.tipos_seguimiento set activo = false where clave = 'visita';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_lead uuid := (select id from public.leads where nombre = 'Seg Propio');
+  v_visita uuid := (select id from public.tipos_seguimiento where clave = 'visita');
+  v_nota uuid := (select id from public.tipos_seguimiento where clave = 'nota');
+  v_id uuid := gen_random_uuid(); r jsonb; f text[];
+begin
+  f := pg_temp.falla(format('select public.seguimiento_crear(gen_random_uuid(), %L, %L)', v_lead, jsonb_build_object('tipo_id', v_visita, 'titulo', 'x')));
+  if f[3] <> 'tipo_id' then raise exception 'crear con un tipo apagado: %', f; end if;
+  r := public.seguimiento_crear(v_id, v_lead, jsonb_build_object('tipo_id', v_nota, 'titulo', 'Nota'));
+  reset role;
+  update public.seguimientos set tipo_id = v_visita where id = v_id;   -- como si se hubiera apagado después
+  set local role authenticated;
+  r := public.seguimiento_guardar(v_id, (select actualizado_en from public.seguimientos where id = v_id), jsonb_build_object('tipo_id', v_visita, 'titulo', 'Nota 2'));
+  if r ->> 'resultado' <> 'guardado' or r #>> '{seguimiento,tipo_id}' <> v_visita::text then raise exception 'conservar el apagado: %', r; end if;
+  f := pg_temp.falla(format('select public.seguimiento_guardar(%L, %L, %L)', v_id, r #>> '{seguimiento,actualizado_en}', jsonb_build_object('tipo_id', gen_random_uuid())));
+  if f[3] <> 'tipo_id' then raise exception 'pasar a otro inexistente: %', f; end if;
+end $$;
+reset role;
+update public.tipos_seguimiento set activo = true where clave = 'visita';
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test seguimientos: editar con versión (PT409 legible), lo guardado no choca, eliminar y restaurar son idempotentes y el último seguimiento es el máximo de los vivos
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_lead uuid := (select id from public.leads where nombre = 'Seg Compartido');
+  v_tipo uuid := (select id from public.tipos_seguimiento where clave = 'whatsapp');
+  v_viejo uuid := gen_random_uuid(); v_nuevo uuid := gen_random_uuid();
+  v0 timestamptz; v1 timestamptz; r jsonb; f text[];
+  vl timestamptz := (select actualizado_en from public.leads where nombre = 'Seg Compartido');
+begin
+  r := public.seguimiento_crear(v_viejo, v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'Viejo', 'ocurrido_en', now() - interval '3 days'));
+  r := public.seguimiento_crear(v_nuevo, v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'Nuevo', 'ocurrido_en', now() - interval '1 hour'));
+  v0 := (r #>> '{seguimiento,actualizado_en}')::timestamptz;
+  r := public.seguimiento_guardar(v_nuevo, v0, '{"titulo": "Nuevo 2", "visibilidad": "publico"}');
+  v1 := (r #>> '{seguimiento,actualizado_en}')::timestamptz;
+  if r ->> 'resultado' <> 'guardado' or v1 <= v0 or r #>> '{seguimiento,visibilidad}' <> 'publico' then raise exception 'editar: %', r; end if;
+  -- El reintento con la versión vieja y lo mismo: no choca.
+  r := public.seguimiento_guardar(v_nuevo, v0, '{"titulo": "Nuevo 2", "visibilidad": "publico"}');
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'lo guardado no choca: %', r; end if;
+  -- Otra cosa con la versión vieja: PT409 y nada cambia.
+  f := pg_temp.falla(format('select public.seguimiento_guardar(%L, %L, %L)', v_nuevo, v0, '{"titulo": "Pisado"}'));
+  if f[1] <> 'PT409' or f[2] not like 'Cambiaste este seguimiento % desde otra ventana.%' then raise exception 'conflicto: %', f; end if;
+  f := pg_temp.falla(format('select public.seguimiento_guardar(%L, null, %L)', v_nuevo, '{"titulo": "x"}'));
+  if f[2] not like 'Falta la versión%' then raise exception 'versión nula: %', f; end if;
+  -- Un detalle con formato que no se admite, por la RPC directa.
+  f := pg_temp.falla(format('select public.seguimiento_guardar(%L, %L, %L)', v_nuevo, v1,
+         '{"detalle": {"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"x","marks":[{"type":"link","attrs":{"href":"javascript:alert(1)"}}]}]}]}}'));
+  if f[3] <> 'detalle' or f[2] not like 'Ese enlace no se admite%' then raise exception 'javascript: %', f; end if;
+  -- Eliminar el más nuevo: el último seguimiento vuelve al viejo; repetirlo no cambia nada.
+  r := public.seguimiento_eliminar(v_nuevo, v1);
+  if r ->> 'resultado' <> 'eliminado' then raise exception 'eliminar: %', r; end if;
+  if (select ultimo_seguimiento_en from public.leads where id = v_lead) <> (select ocurrido_en from public.seguimientos where id = v_viejo) then
+    raise exception 'el último seguimiento debía ser el del vivo';
+  end if;
+  if public.seguimiento_eliminar(v_nuevo, v1) ->> 'resultado' <> 'sin_cambios' then raise exception 'eliminar dos veces'; end if;
+  if exists (select 1 from public.seguimientos where id = v_nuevo) then raise exception 'la RLS debía esconder el eliminado'; end if;
+  f := pg_temp.falla(format('select public.seguimiento_guardar(%L, %L, %L)', v_nuevo, r #>> '{seguimiento,actualizado_en}', '{"titulo": "x"}'));
+  if f[2] <> 'No encontramos este seguimiento o no tienes acceso.' then raise exception 'editar un eliminado: %', f; end if;
+  r := public.seguimiento_restaurar(v_nuevo, (r #>> '{seguimiento,actualizado_en}')::timestamptz);
+  if r ->> 'resultado' <> 'restaurado' or r #>> '{seguimiento,titulo}' <> 'Nuevo 2' then raise exception 'restaurar: %', r; end if;
+  if public.seguimiento_restaurar(v_nuevo, (r #>> '{seguimiento,actualizado_en}')::timestamptz) ->> 'resultado' <> 'sin_cambios' then raise exception 'restaurar dos veces'; end if;
+  if (select ultimo_seguimiento_en from public.leads where id = v_lead) <> (select ocurrido_en from public.seguimientos where id = v_nuevo) then
+    raise exception 'restaurar debía devolver el último seguimiento';
+  end if;
+  if (select actualizado_en from public.leads where id = v_lead) <> vl then raise exception 'editar o eliminar movió la versión del lead'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test seguimientos: privado = sólo su autor; el co-asesor y la dueña con «todos» ven sólo los públicos, y revocar la cartera los esconde
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Seg Compartido'); v_tipo uuid := (select id from public.tipos_seguimiento where clave = 'nota'); begin
+  perform public.seguimiento_crear(gen_random_uuid(), v_lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'Privado de 40'));
+end $$;
+reset role;
+do $$ declare
+  v_lead uuid := (select id from public.leads where nombre = 'Seg Compartido');
+  r jsonb; v_titulos text;
+begin
+  -- 41 (co-asesor): sólo los públicos de 40.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
+  set local role authenticated;
+  r := public.lead_seguimientos(v_lead);
+  select string_agg(x ->> 'titulo', ',' order by x ->> 'titulo') into v_titulos from jsonb_array_elements(r -> 'seguimientos') x;
+  if v_titulos is distinct from 'Nuevo 2' then raise exception 'el co-asesor ve: %', v_titulos; end if;
+  if (r ->> 'puedo_anotar')::boolean is not true then raise exception 'el co-asesor anota en su cartera'; end if;
+  if r ? 'total' or (select count(*) from public.seguimientos where lead_id = v_lead) <> 1 then raise exception 'ni un conteo'; end if;
+  -- 01 (dueña, «todos», sin la cartera): lo mismo, y no anota.
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  r := public.lead_seguimientos(v_lead);
+  if jsonb_array_length(r -> 'seguimientos') <> 1 or (r ->> 'puedo_anotar')::boolean then raise exception 'la dueña ve: %', r; end if;
+  -- 40 (autor): todos los suyos.
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  if jsonb_array_length(public.lead_seguimientos(v_lead) -> 'seguimientos') <> 3 then raise exception 'el autor ve los suyos'; end if;
+  -- Paginado: de a uno, con cursor.
+  r := public.lead_seguimientos(v_lead, null, null, 1);
+  if jsonb_array_length(r -> 'seguimientos') <> 1 or (r ->> 'hay_mas')::boolean is not true then raise exception 'paginar: %', r; end if;
+  r := public.lead_seguimientos(v_lead, (r #>> '{seguimientos,0,ocurrido_en}')::timestamptz, (r #>> '{seguimientos,0,id}')::uuid, 5);
+  if jsonb_array_length(r -> 'seguimientos') <> 2 or (r ->> 'hay_mas')::boolean then raise exception 'la segunda página: %', r; end if;
+  reset role;
+  -- Revocarle la cartera a 41: deja de ver todo, de inmediato.
+  update public.leads_asesores set revocado_en = now() where lead_id = v_lead and usuario_id = '00000000-0000-0000-0000-000000000041';
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
+  set local role authenticated;
+  if jsonb_array_length(public.lead_seguimientos(v_lead) -> 'seguimientos') <> 0 then raise exception 'revocado sigue viendo'; end if;
+  reset role;
+  update public.leads_asesores set revocado_en = null where lead_id = v_lead and usuario_id = '00000000-0000-0000-0000-000000000041';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test seguimientos: sin la cartera (también la dueña con «todos»), en limbo, en la papelera o inexistente, las cuatro RPC rechazan con el mismo mensaje y no cambian nada
+do $$ declare
+  v_nada constant text := 'No encontramos este lead o no tienes acceso.';
+  v_seg_nada constant text := 'No encontramos este seguimiento o no tienes acceso.';
+  v_tipo uuid := (select id from public.tipos_seguimiento where clave = 'nota');
+  v_ajeno uuid := (select id from public.leads where nombre = 'Seg Ajeno');
+  v_seg uuid := (select id from public.seguimientos where titulo = 'Nuevo 2');
+  v_ver timestamptz := (select actualizado_en from public.seguimientos where titulo = 'Nuevo 2');
+  c record; f text[]; n int := 0;
+  v_antes jsonb := (select jsonb_agg(to_jsonb(s) order by s.id) from public.seguimientos s);
+begin
+  for c in select * from (values
+      ('00000000-0000-0000-0000-000000000001', (select id from public.leads where nombre = 'Seg Ajeno')),      -- dueña, «todos», sin cartera
+      ('00000000-0000-0000-0000-000000000042', (select id from public.leads where nombre = 'Seg Ajeno')),      -- ve «todos», no edita
+      ('00000000-0000-0000-0000-000000000043', (select id from public.leads where nombre = 'Seg Propio')),     -- asesor sin acceso
+      ('00000000-0000-0000-0000-000000000041', (select id from public.leads where nombre = 'Seg Limbo')),      -- su lead, en limbo
+      ('00000000-0000-0000-0000-000000000040', (select id from public.leads where nombre = 'Seg Papelera')),   -- su lead, en la papelera
+      ('00000000-0000-0000-0000-000000000040', gen_random_uuid()),                                            -- inexistente
+      ('00000000-0000-0000-0000-000000000040', v_ajeno)) x (u, lead) loop                                     -- de otro asesor
+    perform set_config('request.jwt.claim.sub', c.u, true);
+    set local role authenticated;
+    f := pg_temp.falla(format('select public.seguimiento_crear(gen_random_uuid(), %L, %L)', c.lead, jsonb_build_object('tipo_id', v_tipo, 'titulo', 'x')));
+    if f[1] <> '42501' or f[2] <> v_nada then reset role; raise exception 'crear como % en %: %', c.u, c.lead, f; end if;
+    f := pg_temp.falla(format('select public.recordatorio_crear(gen_random_uuid(), %L, %L, %L)', c.lead, 'x', now() + interval '1 day'));
+    if f[1] <> '42501' or f[2] <> v_nada then reset role; raise exception 'recordatorio como % en %: %', c.u, c.lead, f; end if;
+    n := n + 2;
+    reset role;
+  end loop;
+  -- El seguimiento de 40 lo ve 41 (es público y comparten el lead), pero no lo edita, ni elimina, ni restaura; la dueña, tampoco.
+  for c in select * from (values ('00000000-0000-0000-0000-000000000041'), ('00000000-0000-0000-0000-000000000001'), ('00000000-0000-0000-0000-000000000043')) x (u) loop
+    perform set_config('request.jwt.claim.sub', c.u, true);
+    set local role authenticated;
+    f := pg_temp.falla(format('select public.seguimiento_guardar(%L, %L, %L)', v_seg, v_ver, '{"titulo": "x"}'));
+    if f[1] <> '42501' or f[2] <> v_seg_nada then reset role; raise exception 'guardar como %: %', c.u, f; end if;
+    f := pg_temp.falla(format('select public.seguimiento_eliminar(%L, %L)', v_seg, v_ver));
+    if f[1] <> '42501' or f[2] <> v_seg_nada then reset role; raise exception 'eliminar como %: %', c.u, f; end if;
+    f := pg_temp.falla(format('select public.seguimiento_restaurar(%L, %L)', v_seg, v_ver));
+    if f[1] <> '42501' or f[2] <> v_seg_nada then reset role; raise exception 'restaurar como %: %', c.u, f; end if;
+    n := n + 3;
+    reset role;
+  end loop;
+  if n <> 23 then raise exception 'casos: %', n; end if;
+  if (select jsonb_agg(to_jsonb(s) order by s.id) from public.seguimientos s) <> v_antes then raise exception 'un rechazo cambió algo'; end if;
+  -- El autor que pierde la cartera tampoco edita lo suyo.
+  update public.leads_asesores set revocado_en = now()
+   where lead_id = (select id from public.leads where nombre = 'Seg Compartido') and usuario_id = '00000000-0000-0000-0000-000000000040';
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  f := pg_temp.falla(format('select public.seguimiento_guardar(%L, %L, %L)', v_seg, v_ver, '{"titulo": "x"}'));
+  reset role;
+  if f[2] <> v_seg_nada then raise exception 'el autor sin cartera: %', f; end if;
+  update public.leads_asesores set revocado_en = null
+   where lead_id = (select id from public.leads where nombre = 'Seg Compartido') and usuario_id = '00000000-0000-0000-0000-000000000040';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test seguimientos y recordatorios: la tabla no se escribe directo, sólo se lee
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Seg Propio'); f text[]; begin
+  f := pg_temp.falla(format('insert into public.seguimientos (lead_id, usuario_id, tipo_id, titulo) values (%L, %L, %L, %L)',
+         v_lead, '00000000-0000-0000-0000-000000000040', (select id from public.tipos_seguimiento where clave = 'nota'), 'directo'));
+  if f[1] <> '42501' then raise exception 'insert directo: %', f; end if;
+  f := pg_temp.falla(format('update public.seguimientos set lead_id = %L where lead_id = %L', (select id from public.leads where nombre = 'Seg Ajeno'), v_lead));
+  if f[1] <> '42501' then raise exception 'update directo: %', f; end if;
+  f := pg_temp.falla(format('insert into public.recordatorios (usuario_id, lead_id, titulo, recordar_en) values (%L, %L, %L, now() + interval ''1 day'')',
+         '00000000-0000-0000-0000-000000000040', (select id from public.leads where nombre = 'Seg Ajeno'), 'directo'));
+  if f[1] <> '42501' then raise exception 'insert directo de un recordatorio: %', f; end if;
+  f := pg_temp.falla('update public.recordatorios set notificado_en = now()');
+  if f[1] <> '42501' then raise exception 'update directo de un recordatorio: %', f; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test recordatorios: idempotentes, a futuro, completar y reabrir son «poner», editar la hora vuelve a avisar, uno ajeno no existe
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_lead uuid := (select id from public.leads where nombre = 'Seg Propio');
+  v_id uuid := gen_random_uuid(); v_suelto uuid := gen_random_uuid();
+  r jsonb; f text[]; v timestamptz;
+begin
+  f := pg_temp.falla(format('select public.recordatorio_crear(gen_random_uuid(), %L, %L, %L)', v_lead, 'Pasado', now() - interval '1 minute'));
+  if f[3] <> 'recordar_en' or f[2] <> 'El recordatorio tiene que ser en el futuro.' then raise exception 'pasado: %', f; end if;
+  f := pg_temp.falla(format('select public.recordatorio_crear(gen_random_uuid(), %L, %L, %L)', v_lead, '  ', now() + interval '1 day'));
+  if f[3] <> 'titulo' then raise exception 'sin título: %', f; end if;
+  r := public.recordatorio_crear(v_id, v_lead, 'Llamar', now() + interval '1 day');
+  if r ->> 'resultado' <> 'creado' or r #>> '{recordatorio,lead_nombre}' <> 'Seg Propio' then raise exception 'crear: %', r; end if;
+  if public.recordatorio_crear(v_id, v_lead, 'Otra cosa', now() + interval '2 days') ->> 'resultado' <> 'repetido' then raise exception 'el reintento'; end if;
+  if (select count(*) from public.recordatorios where id = v_id) <> 1 then raise exception 'duplicado'; end if;
+  -- Sin lead: personal.
+  r := public.recordatorio_crear(v_suelto, null, 'Personal', now() + interval '1 hour');
+  if r #> '{recordatorio,lead_id}' <> 'null'::jsonb then raise exception 'personal: %', r; end if;
+  -- Completar dos veces: la segunda no cambia nada; reabrir.
+  v := (r #>> '{recordatorio,actualizado_en}')::timestamptz;
+  r := public.recordatorio_completar(v_suelto, v, true);
+  if r ->> 'resultado' <> 'completado' then raise exception 'completar: %', r; end if;
+  if public.recordatorio_completar(v_suelto, v, true) ->> 'resultado' <> 'sin_cambios' then raise exception 'completar dos veces'; end if;
+  r := public.recordatorio_completar(v_suelto, (r #>> '{recordatorio,actualizado_en}')::timestamptz, false);
+  if r ->> 'resultado' <> 'reabierto' or r #> '{recordatorio,completado_en}' <> 'null'::jsonb then raise exception 'reabrir: %', r; end if;
+  f := pg_temp.falla(format('select public.recordatorio_completar(%L, %L, true)', v_suelto, v));
+  if f[1] <> 'PT409' then raise exception 'completar con versión vieja: %', f; end if;
+  -- Eliminar y restaurar.
+  r := public.recordatorio_eliminar(v_suelto, (r #>> '{recordatorio,actualizado_en}')::timestamptz);
+  if exists (select 1 from public.recordatorios_vista where id = v_suelto) then raise exception 'la vista muestra el eliminado'; end if;
+  r := public.recordatorio_restaurar(v_suelto, (r #>> '{recordatorio,actualizado_en}')::timestamptz);
+  if r ->> 'resultado' <> 'restaurado' then raise exception 'restaurar: %', r; end if;
+end $$;
+reset role;
+-- Ya avisado: cambiar sólo el título lo deja avisado; cambiar la hora lo vuelve a dejar por avisar.
+update public.recordatorios set notificado_en = now() where titulo = 'Llamar';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_id uuid := (select id from public.recordatorios where titulo = 'Llamar'); r jsonb; f text[]; begin
+  r := public.recordatorio_guardar(v_id, (select actualizado_en from public.recordatorios where id = v_id), '{"titulo": "Llamar a las 9"}');
+  if r #> '{recordatorio,notificado_en}' = 'null'::jsonb then raise exception 'el título no vuelve a avisar'; end if;
+  f := pg_temp.falla(format('select public.recordatorio_guardar(%L, %L, %L)', v_id, r #>> '{recordatorio,actualizado_en}',
+         jsonb_build_object('recordar_en', now() - interval '1 hour')));
+  if f[3] <> 'recordar_en' then raise exception 'mover al pasado: %', f; end if;
+  r := public.recordatorio_guardar(v_id, (r #>> '{recordatorio,actualizado_en}')::timestamptz, jsonb_build_object('recordar_en', now() + interval '3 days'));
+  if r #> '{recordatorio,notificado_en}' <> 'null'::jsonb then raise exception 'la hora nueva vuelve a avisar: %', r; end if;
+  if r ->> 'resultado' <> 'guardado' then raise exception 'guardar: %', r; end if;
+end $$;
+reset role;
+-- El de 40 no existe para 41 ni para la dueña.
+do $$ declare v_id uuid := (select id from public.recordatorios where titulo = 'Llamar a las 9'); v timestamptz := (select actualizado_en from public.recordatorios where titulo = 'Llamar a las 9'); f text[]; u text; begin
+  foreach u in array array['00000000-0000-0000-0000-000000000041', '00000000-0000-0000-0000-000000000001'] loop
+    perform set_config('request.jwt.claim.sub', u, true);
+    set local role authenticated;
+    if exists (select 1 from public.recordatorios_vista where id = v_id) then reset role; raise exception '% lo ve', u; end if;
+    f := pg_temp.falla(format('select public.recordatorio_completar(%L, %L, true)', v_id, v));
+    if f[1] <> '42501' or f[2] <> 'No encontramos este recordatorio.' then reset role; raise exception 'completar ajeno como %: %', u, f; end if;
+    f := pg_temp.falla(format('select public.recordatorio_guardar(%L, %L, %L)', v_id, v, '{"titulo": "x"}'));
+    if f[2] <> 'No encontramos este recordatorio.' then reset role; raise exception 'guardar ajeno como %: %', u, f; end if;
+    f := pg_temp.falla(format('select public.recordatorio_eliminar(%L, %L)', v_id, v));
+    if f[2] <> 'No encontramos este recordatorio.' then reset role; raise exception 'eliminar ajeno como %: %', u, f; end if;
+    reset role;
+  end loop;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test recordatorios: los vencidos se cuentan en la ficha, y quien pierde el lead conserva el recordatorio sin el lead
+update public.recordatorios set recordar_en = now() - interval '1 hour' where titulo = 'Con recordatorio';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Seg Propio'); begin
+  if (public.lead_ficha(v_lead) ->> 'recordatorios_vencidos')::int <> 1 then raise exception 'vencidos: %', public.lead_ficha(v_lead); end if;
+  if (select lead_nombre from public.recordatorios_vista where titulo = 'Con recordatorio') <> 'Seg Propio' then raise exception 'la vista nombra el lead'; end if;
+end $$;
+reset role;
+-- 41 no ve vencidos ajenos en la ficha del lead compartido (cada cual los suyos).
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ begin
+  if (public.lead_ficha((select id from public.leads where nombre = 'Seg Compartido')) ->> 'recordatorios_vencidos')::int <> 0 then raise exception 'vencidos ajenos'; end if;
+end $$;
+reset role;
+-- 40 pierde «Seg Propio» (se lo transfieren a 43 y le revocan el acceso): el recordatorio sigue, sin el lead.
+update public.leads_asesores set revocado_en = now() where lead_id = (select id from public.leads where nombre = 'Seg Propio');
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) select id, '00000000-0000-0000-0000-000000000043', 'dueno' from public.leads where nombre = 'Seg Propio';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare r record; v jsonb; begin
+  select * into r from public.recordatorios_vista where titulo = 'Con recordatorio';
+  if not found then raise exception 'el recordatorio debía seguir'; end if;
+  if r.lead_id is not null or r.lead_nombre is not null or r.lead_numero is not null then raise exception 'nombra un lead que no ve: %', to_jsonb(r); end if;
+  -- Lo sigue tocando: es suyo.
+  v := public.recordatorio_completar(r.id, r.actualizado_en, true);
+  if v ->> 'resultado' <> 'completado' or v #> '{recordatorio,lead_id}' <> 'null'::jsonb or v #> '{recordatorio,lead_nombre}' <> 'null'::jsonb then
+    raise exception 'completar sin el lead: %', v;
+  end if;
+end $$;
+reset role;
+delete from public.leads_asesores where lead_id = (select id from public.leads where nombre = 'Seg Propio') and usuario_id = '00000000-0000-0000-0000-000000000043';
+update public.leads_asesores set revocado_en = null where lead_id = (select id from public.leads where nombre = 'Seg Propio');
 select set_config('request.jwt.claim.sub', '', false);

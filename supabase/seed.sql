@@ -40,7 +40,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('vehiculos.papelera.purgar', 'vehiculos', 'Vaciar la papelera', 'Ver toda la papelera, restaurar y purgar antes de tiempo', false, false, 'vehiculos_papelera_*, papelera_*, policy lotes_papelera', 130),
   ('leads.ver', 'leads', 'Ver leads', 'Ver leads (propios = mi cartera; todos = de todos, teléfono enmascarado)', false, true, 'puede_lead', 140),
   ('leads.crear', 'leads', 'Crear leads', 'Registrar leads', false, false, 'crear_lead', 150),
-  ('leads.editar', 'leads', 'Editar leads', 'Editar leads, seguimientos y oportunidades; marcar su interés en un vehículo', false, true, 'puede_lead, vehiculo_interesado_marcar, vehiculo_interesado_quitar, vehiculo_vincular', 160),
+  ('leads.editar', 'leads', 'Editar leads', 'Editar leads, seguimientos y oportunidades; marcar su interés en un vehículo', false, true, 'puede_lead, seguimiento_*, recordatorio_crear (con lead), vehiculo_interesado_marcar, vehiculo_interesado_quitar, vehiculo_vincular', 160),
   ('leads.compartir', 'leads', 'Compartir leads', 'Dar y revocar acceso compartido', false, false, 'compartir_lead', 170),
   ('leads.transferir', 'leads', 'Transferir leads', 'Cambiar el dueño de un lead (propios = sólo los míos)', false, true, 'transferir_lead', 180),
   ('leads.eliminar', 'leads', 'Enviar leads a la papelera', 'Enviar leads a la papelera', false, true, 'papelera_enviar', 190),
