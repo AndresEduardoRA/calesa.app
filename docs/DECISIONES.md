@@ -2290,3 +2290,117 @@ terreno del e2e de vehículos, «Datos» 37,3 KB y «Vehículos» 31,4 KB.
 **Decisión:** tope de 44 KB para «Datos» y para «Vehículos». Si se pasa, lo que pesa son las props: mandar a
 `FichaDeLead` sólo los campos activos y los que el lead tiene con dato, y los orígenes activos más el del lead
 (las opciones completas, al abrir «Editar»).
+
+## 2026-10-16 — Parte 7 partida en 7a y 7b; las quince preguntas se resolvieron con la recomendación
+
+**Contexto:** la parte 7 juntaba embudos, oportunidades, transferir, el acceso del cliente del lado del
+equipo y el endurecimiento de `web.portal_*`. El plan se aprobó sin respuestas una por una: se tomó la
+recomendación de cada pregunta.
+**Decisión:** 7a = embudos, oportunidades (kanban y sección de la ficha) y transferir; 7b = acceso del
+cliente y `web.portal_*`, con su verificación completa por separado. Permisos: `leads.editar` para crear,
+editar, mover y cerrar; `leads.ver` para ver las propias; sin permisos nuevos (el seed ya describía así
+`leads.editar`). Motivo de pérdida: texto libre hasta 200. Moneda: la de la empresa, guardada en cada
+oportunidad, sin conversión. Eliminar una oportunidad: lógico, con «Deshacer». Crear desde el kanban: no
+(pide el `<SelectorLead>` de la Fase 7).
+
+## 2026-10-16 — Los embudos son personales y se escriben sólo por RPC; las etapas se guardan como conjunto
+
+**Contexto:** leído contra la base viva, `embudos` y `embudos_etapas` tenían INSERT/UPDATE/DELETE para
+`authenticated` (con RLS de la dueña): nada garantizaba una sola etapa inicial, una ganada y una perdida,
+ni topes. El color era un hex libre, los nombres únicos distinguían mayúsculas, nada exigía que la etapa
+fuera del embudo ni que el embudo fuera de la dueña de la oportunidad, y el embudo no tenía versión.
+**Decisión:**
+
+- **Sólo por RPC** (`embudo_por_defecto`, `embudo_crear`, `embudo_guardar`, `embudo_eliminar`,
+  `embudo_etapas_guardar`), como las marcas: se leen las tablas (RLS de la dueña). Son de quien mira:
+  clase **M** en el cinturón, sin lead.
+- **Las etapas se guardan como conjunto**, de una vez y en su orden: nunca hay un estado intermedio
+  inválido (dos iniciales mientras se cambia cuál es). Exactamente una inicial, al menos una ganada y una
+  perdida, la inicial no es final, nombres sin repetir sin importar mayúsculas, la paleta cerrada de las
+  etiquetas (guardada como clave) y de 3 a 12. Una etapa con oportunidades vivas no se quita: `23514` que
+  la nombra; las eliminadas de esa etapa se van con ella. La versión es `embudos.actualizado_en`: dos
+  pestañas que reordenan dan `PT409`.
+- **El de por defecto** lo crea `embudo_por_defecto()` (idempotente, con un candado por persona) la primera
+  vez que hace falta: «Ventas» con Nuevo, Contactado, Cotizado, Negociación, Ganado y Perdido. Si la persona
+  ya tiene embudos, el más viejo pasa a ser el de por defecto. No se elimina; se renombra. Hasta 10.
+- **FK compuestas**: `(usuario_id, embudo_id) → embudos (usuario_id, id)` y `(embudo_id, etapa_id) →
+embudos_etapas (embudo_id, id)`. La base garantiza que la etapa es del embudo y el embudo de la dueña.
+- Una plantilla de etapas por empresa queda pendiente.
+
+## 2026-10-16 — Una oportunidad es de su dueña, con la cartera del lead; nadie más la ve
+
+**Decisión:**
+
+- Crear, editar, mover, eliminar y restaurar son **clase 1**: ser la dueña, la cartera del lead y
+  `leads.editar`. `_oportunidad_mia()` mira sin bloquear, bloquea el lead, comparte el embudo y bloquea la
+  oportunidad, y vuelve a mirar (orden de candados lead → embudo → oportunidad, el mismo que guardar las
+  etapas: embudo → oportunidades). Lo ajeno, lo inexistente y un lead que ya no se tiene dan el mismo
+  `42501`.
+- **La policy de lectura cambió**: antes quien tenía `leads.ver` «todos» leía las de todo el equipo (y su
+  historial). Ahora: la propia, viva, con `leads.ver` y sobre un lead vivo de su cartera
+  (`_mis_leads_vivos()`, un arreglo que se calcula una vez por consulta: InitPlan, comprobado con EXPLAIN).
+  Perder la cartera la oculta sin borrarla; recuperarla la devuelve. El tablero de equipo de la Fase 9
+  necesitará una función con `tablero.metricas.ver`.
+- **Mover** recibe la etapa que la persona cree que tiene: otra es `PT409` con el nombre de la actual; la
+  misma es `sin_cambios` (un reintento no choca). Una etapa de otro embudo o de otra persona: «Esa etapa no es
+  de este embudo.». El **estado lo deriva un trigger BEFORE** de la etapa (antes era un segundo UPDATE de la
+  fila en un AFTER) y otro AFTER escribe el historial. `cancelada` sólo la pone la baja.
+- Editar lleva versión (lo ya guardado no choca). El vehículo, como en las notas: uno que se ve, y si deja
+  de verse, se conserva al editar lo demás. Ninguna toca `leads` ni mueve su versión. `actividad` deja
+  `oportunidad.creada|ganada|perdida|transferida` sin montos ni notas.
+- **Una cuenta que se borra se lleva sus oportunidades** (y sus embudos); el historial queda sin autor. La
+  limpieza de los e2e lo encontró: la FK a `perfiles` no decía qué hacer. La baja (lo normal) no borra: cancela.
+
+## 2026-10-16 — Transferir lleva las abiertas al embudo del destino; la baja sigue cancelando
+
+**Decisión:** `lead_transferir` pasa las abiertas y vivas del saliente al embudo por defecto del destino
+(creado si no tiene), a la etapa **abierta** del mismo nombre sin importar mayúsculas o, si no hay, a su
+inicial (nunca a una final por coincidir el nombre), con fila de historial (quien transfiere) y constancia;
+devuelve cuántas. Las cerradas y las eliminadas se quedan con quien las tenía. El saliente queda compartido y
+deja de ver las que pasaron. Revocar, salirse y la papelera las ocultan (RLS); restaurar el lead las
+devuelve. **La baja sigue poniendo `cancelada`**, como ya decía la pantalla de la baja: la persona no vuelve
+y una «abierta» eterna inflaría el pipeline abierto.
+**Efecto en la Fase 9:** las ganadas cuentan para quien las tiene al cerrarlas; el historial guarda quién
+creó y quién movió, así que «creadas por» se mide aparte; las métricas por etapa son dentro de cada embudo.
+
+## 2026-10-16 — El kanban: 50 por columna, «Ver más», pestañas en el celular, y la sección de la ficha
+
+**Decisión:**
+
+- `/leads?vista=embudo&embudo=<id>`: una columna por etapa con hasta 50 tarjetas (las movidas más
+  recientemente) y «Ver más (N)» por keyset desde el navegador. En el celular, las etapas son pestañas
+  (`?etapa=`); el cambio de forma lo decide el CSS, no una media query en JS (que pintaría primero la del
+  celular). «Mover a…» es un menú (teclado y dedo); a una perdida pregunta el motivo. Un embudo vacío
+  muestra sus columnas y el aviso. Los filtros de la lista no aplican y la pantalla lo dice.
+- **Medido** (`pnpm db:medir`, 2.000 leads y 5.000 oportunidades propias en 6 etapas, más 5.000 de otra
+  persona): el tablero de 6 columnas de 50 en 44 ms, «Ver más» 16 ms, las de un lead 3,4 ms, la policy sola
+  3,3 ms. La medición encontró que `_tarjeta_json` recibía la fila entera de `leads` (con grants por
+  columna, `permission denied`): ahora recibe sólo nombre y número.
+- **La sección «Oportunidades» de la ficha** se mide aparte: con tres, 42,2 KB (cada tarjeta con dos botones
+  de shadcn pesaba ~5 KB; «Editar» y «Eliminar» pasaron al «⋯» y quedó en ~2,5 KB). «Datos» pasó de 43,0 a
+  43,3 KB por la pestaña nueva. El tope de 44 KB no se tocó.
+
+## 2026-10-16 — La auditoría ampliada de la 7a, y lo que encontraron las pruebas
+
+| Objeto                                                                                             | Clase | Antes                                                                | Ahora                                                                                 |
+| -------------------------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `embudos`, `embudos_etapas` INSERT/UPDATE/DELETE                                                   | M     | directo, con RLS de la dueña: sin invariantes ni topes               | sin grant: `embudo_*` (M)                                                             |
+| `oportunidad_crear`                                                                                | 1     | no existía (la 6a sacó la escritura directa)                         | cartera + `leads.editar`; matriz principal                                            |
+| `oportunidad_guardar\|mover\|eliminar\|restaurar`                                                  | 1     | no existían                                                          | dueña + cartera + `leads.editar`; bloque propio de la matriz (8 personas × 5 estados) |
+| policy `oportunidades: leer`, `oportunidades_historial: leer`                                      | L     | las propias **o** las de todos con `leads.ver` «todos»               | las propias, vivas, sobre leads vivos de la cartera                                   |
+| `lead_oportunidades`, `embudo_tablero`, `embudo_etapa_pagina`, `_tarjeta_json`, `_mis_leads_vivos` | L     | no existían                                                          | invocador (o un arreglo para la policy): la RLS decide                                |
+| `lead_transferir`                                                                                  | 2     | pasaba las abiertas cambiando sólo `usuario_id`                      | al embudo por defecto del destino, por nombre o a la inicial; cerradas se quedan      |
+| trigger `oportunidad_historial`                                                                    | —     | AFTER que escribía el historial y hacía un segundo UPDATE del estado | `oportunidad_estado` (BEFORE) + `oportunidad_historial` (AFTER)                       |
+
+- **El cinturón** suma una regla: toda función «definer» llamable `oportunidad_*` o `embudo_*` pasa por su
+  bloque de la matriz (reciben su id, no el lead).
+- **Roto a propósito:** `_oportunidad_mia` con `puede_lead(…,'leads.editar')` lo atrapa el cinturón y un caso
+  (la supervisión compartida que pierde la cartera edita la suya); la policy con el «todos» de antes no la
+  atrapaba nada —la condición de la cartera la tapaba— hasta que un caso miró a la supervisión **con** el lead
+  compartido. Los dos casos quedaron.
+- **Encontrado al probar:** `embudo_por_defecto()` devolvía el embudo nulo la primera vez (una función STABLE
+  lee con la foto de la sentencia que la llama: el insert y la lectura iban en la misma); mis casos
+  comparaban contra nulos y no lo veían: ahora toda llamada que debe salir bien pasa por `pg_temp.bien()`.
+- **Carreras** (`pnpm db:carreras`, 7 nuevas, todas en verde al primer intento): quitar el acceso mientras el
+  compartido mueve (dos órdenes), quitar una etapa mientras se mueve a ella (dos órdenes), transferir mientras
+  la dueña mueve (dos órdenes) y dos guardados de etapas a la vez.

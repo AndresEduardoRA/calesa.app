@@ -72,8 +72,9 @@ por fila, importa las válidas).
 (listado), 4 (ficha y teléfonos), 5 (seguimientos, recordatorios, favoritos, tachados y etiquetas) y
 6a (auditoría de todas las RPC y policies de leads, cartera —compartir, transferir, quitar acceso y
 salir— y papelera de leads) y **6b (sección «Vehículos» de la ficha: vincular, desvincular, interesados;
-`vehiculo_id` en seguimientos y recordatorios; la prueba de carreras con dos conexiones)**. Faltan la 7
-(embudos y portal) y la 8 (CSV).
+`vehiculo_id` en seguimientos y recordatorios; la prueba de carreras con dos conexiones)** y **7a (embudos
+personales, oportunidades con kanban y sección en la ficha, transferir con oportunidades)**. Faltan la 7b
+(el acceso del cliente del lado del equipo y el endurecimiento de `web.portal_*`) y la 8 (CSV).
 
 **Terminado cuando:** cada empresa arma los campos de sus leads sin tocar SQL (crea «Signo zodiacal»,
 apaga «Edad», marca uno «solo la cartera») y quien ve un lead sin estar en su cartera no recibe un

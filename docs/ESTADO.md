@@ -5,34 +5,34 @@
 > el siguiente prompt va a asumir cosas falsas. Máximo 80 líneas: lo que ya no es actual se mueve
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
-**Última actualización:** 2026-10-15
-**Fase actual:** 3 — Leads, **parte 6b hecha** (vehículos en la ficha del lead, `vehiculo_id` en las notas, carreras). Sigue la 7.
+**Última actualización:** 2026-10-16
+**Fase actual:** 3 — Leads, **parte 7a hecha** (embudos personales, oportunidades con kanban y sección en la ficha, transferir con oportunidades). Sigue la 7b.
 
 ## Funcionando
 
-- Verdes: lint, typecheck, test, `db:probar` (matriz de leads y de vínculo, y el cinturón), `db:lint` (sin
-  errores), `db:carreras`, `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2
-  completas, y las partes 1 a 6b de la Fase 3.
-- **Carreras:** `pnpm db:carreras` (dos conexiones reales, sin `sleep`; también en el e2e completo).
-- **e2e:** `pnpm test:e2e:completo` resetea la base y corre todo sin saltar ninguna (pide
-  `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: se
-  prueba con lo grabado. Tras un reset, ver el README.
-- **Leads (1 a 6b):** alta, campos configurables, listado, ficha (datos, teléfonos, seguimientos,
-  recordatorios, **vehículos**: vincular, desvincular e interesados), marcas, «Quién lo tiene» y papelera de
-  leads; el vehículo de un seguimiento o un recordatorio. Toda RPC que recibe un lead cae en
-  una de tres clases (`docs/DECISIONES.md`, 2026-10-15) y el cinturón de `db:probar` falla si una nueva no
-  está auditada. **Orígenes y vehículos** completos. Qué hay en el código: `docs/MAPA.md`.
+- Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
+  reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
+  y las partes 1 a 7a de la Fase 3. **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: lo grabado.
+- **Leads (1 a 7a):** alta, campos configurables, listado, ficha (datos, teléfonos, seguimientos,
+  recordatorios, vehículos y **oportunidades**), marcas, «Quién lo tiene» y papelera de leads; el vehículo de
+  una nota; **embudos personales** con su kanban (`/leads?vista=embudo`) y transferir con oportunidades. Toda
+  RPC que recibe un lead cae en una de tres clases (`docs/DECISIONES.md`, 2026-10-15) y el cinturón de
+  `db:probar` falla si una nueva no está auditada. **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Una por sesión: **7)** embudos y portal (lo «Visible para el cliente» con `vehiculo_id`: decidir qué ve el
-portal). **8)** CSV con las columnas del layout.
+Una por sesión: **7b)** el acceso del cliente del lado del equipo (otorgar, revocar, desbloquear, código
+dictable y texto para WhatsApp) y el endurecimiento de `web.portal_*` (las novedades sin vehículo, la sesión
+que se corta, el login sin oráculo): el plan aprobado está en `docs/DECISIONES.md` (2026-10-16). **8)** CSV
+con las columnas del layout.
 
 ## Pendientes que se arrastran
 
-- **Ficha:** «Datos» aporta 43,0 de 44 KB; si se pasa, se recortan las props, no se sube el tope.
-- **Lead sin dueño y con compartidos** (tras una baja): lo rescata la supervisión transfiriéndolo con
-  `p_dueno_esperado` nulo. **Fase 7:** la notificación al compartir o transferir.
+- **Ficha:** «Datos» aporta 43,3 de 44 KB y «Oportunidades» 42,2 con tres (cada una ~2,5 KB); si se pasa, se
+  recortan las props, no se sube el tope. **Embudos:** la plantilla de etapas por empresa; el tablero de
+  equipo sobre oportunidades (Fase 9, con una función y `tablero.metricas.ver`).
+- **Lead sin dueño y con compartidos** (tras una baja): lo rescata la supervisión transfiriéndolo con `p_dueno_esperado` nulo. **Fase 7:** la notificación al compartir o transferir.
 - **Fase 4:** la cotización final como ancla de la limpieza; desvincular con cotización final;
   `cotizacion_marcar_final` toma vehículo → lead (al revés que vincular: posible deadlock); campos del
   lead en la tarjeta o el PDF. **Fase 6:** mover de fase y publicar sin mover la versión de la ficha; la
