@@ -67,6 +67,12 @@ declare
     ('recordatorio_eliminar(uuid,timestamp with time zone)', 'M'),
     ('recordatorio_restaurar(uuid,timestamp with time zone)', 'M'),
     ('crear_lead(uuid,jsonb,jsonb,jsonb)', 'X'),
+    -- CSV (parte 8a): no reciben un lead sino filas. Importar es la clase de `crear_lead` (`leads.crear`, quien
+    -- importa queda de dueña, nada se adopta del limbo y en masa sólo se dice «ya existe»); exportar es
+    -- `leads.exportar` y lo que sale lo decide la consulta (`en_cartera`), no la RPC. Su matriz es «casos de CSV».
+    ('leads_importar_lote(uuid,integer,jsonb)', 'X'),
+    ('leads_importacion_terminar(uuid,integer,integer,uuid)', 'X'),
+    ('leads_exportacion_registrar(integer,text[])', 'X'),
     ('web_confirmar_contacto(uuid,uuid)', 'X'),
     ('cotizacion_marcar_final(uuid)', 'X'),
     ('equipo_dar_de_baja(uuid)', 'X'),

@@ -1622,6 +1622,11 @@ create table public.actividad (
 );
 comment on table public.actividad is 'Registro inmutable de acciones. Lo escriben triggers y RPC (registrar_actividad). Se purga por pg_cron pasados ajustes_empresa.actividad_dias. Sólo lo lee quien tiene actividad.ver.';
 
+-- El límite de exportaciones por hora y persona (`leads_exportacion_registrar`) cuenta por actor y acción.
+create index actividad_actor_accion_idx on public.actividad (actor_id, accion, creado_en desc);
+-- `crear_lead` pregunta si un intento ya adoptó un lead del limbo: sin este índice recorría la tabla entera.
+create index actividad_intento_adopcion_idx on public.actividad ((detalle ->> 'intento')) where accion = 'lead.adoptado_del_limbo';
+
 -- >>> schemas/14_web/01_web.sql
 -- Módulo web: contenido y política de la web pública (que vive en otro repo y consume el
 -- esquema `web`), cola de turnos, solicitudes de contacto y eventos anónimos.
@@ -1765,7 +1770,7 @@ create table public.importaciones (
   id            uuid primary key default gen_random_uuid(),
   usuario_id    uuid not null references public.perfiles (id) on delete cascade,
   entidad       text not null check (entidad in ('leads', 'vehiculos', 'seguimientos', 'repuestos_items')),
-  archivo_ruta  text not null,                 -- bucket privado `importaciones`
+  archivo_ruta  text,                          -- bucket privado `importaciones`; nulo sólo en la de leads (el navegador manda lotes)
   mapeo         jsonb not null default '{}'::jsonb,
   estado        public.estado_importacion not null default 'pendiente',
   filas_total   int,
@@ -1773,6 +1778,19 @@ create table public.importaciones (
   errores       jsonb not null default '[]'::jsonb,  -- [{fila, campo, motivo}]
   iniciada_en   timestamptz,
   terminada_en  timestamptz,
-  creado_en     timestamptz not null default now()
+  creado_en     timestamptz not null default now(),
+  check (archivo_ruta is not null or entidad = 'leads')
 );
 comment on table public.importaciones is 'Importación con vista previa validada por fila; importa las válidas aunque fallen algunas. La procesa la edge function importar-csv.';
+
+-- Los leads que creó una importación de leads, y de qué fila del archivo salió cada uno. Sólo la escriben
+-- las RPC (`leads_importar_lote`); el dueño de la importación la lee. No guarda ningún dato del archivo.
+create table public.importaciones_leads (
+  importacion_id uuid not null references public.importaciones (id) on delete cascade,
+  lead_id        uuid not null references public.leads (id) on delete cascade,
+  fila           integer not null check (fila > 0),
+  creado_en      timestamptz not null default now(),
+  primary key (importacion_id, lead_id)
+);
+create unique index importaciones_leads_lead_idx on public.importaciones_leads (lead_id);
+comment on table public.importaciones_leads is 'Lo que creó cada importación de leads (para deshacerla). Sin datos del archivo: sólo ids y el número de fila.';

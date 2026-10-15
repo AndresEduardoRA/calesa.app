@@ -1517,3 +1517,155 @@ begin
      or exists (select 1 from public.embudos where usuario_id = u57) then
     raise exception 'borrar la cuenta dejó oportunidades o embudos'; end if;
 end $$;
+
+-- @test casos de CSV: quién importa y quién exporta, por cada persona (parte 8a)
+-- Las tres RPC nuevas no reciben un lead: el cinturón las audita como excepciones («X») y esta es su
+-- matriz. Importar es `leads.crear` (clase de `crear_lead`); exportar es `leads.exportar`, sin «todos».
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare r_e uuid; begin
+  r_e := public.rbac_crear_rol('humo_matriz_exporta', 'Matriz exporta');
+  perform public.rbac_otorgar(r_e, 'leads.exportar', (select actualizado_en from public.roles where id = r_e));
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000051', r_e, true);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+do $$ declare
+  u50 constant text := '00000000-0000-0000-0000-000000000050'; u51 constant text := '00000000-0000-0000-0000-000000000051';
+  u52 constant text := '00000000-0000-0000-0000-000000000052'; u54 constant text := '00000000-0000-0000-0000-000000000054';
+  u55 constant text := '00000000-0000-0000-0000-000000000055'; u56 constant text := '00000000-0000-0000-0000-000000000056';
+  u59 constant text := '00000000-0000-0000-0000-000000000059';
+  v_origen uuid := (select id from public.origenes_lead where clave = 'web');
+  p text; r jsonb; v_ok boolean; v_n int := 0;
+begin
+  -- Importar: las que tienen `leads.crear` entran; sólo ver, sin rol, de baja y bloqueada no.
+  for p, v_ok in select * from (values (u50, true), (u51, true), (u52, true), (u54, false), (u59, false), (u55, false), (u56, false)) x (p, v_ok) loop
+    r := pg_temp.como(p, format('select public.leads_importar_lote(%L, 1, %L)', gen_random_uuid(),
+      jsonb_build_array(jsonb_build_object('id', gen_random_uuid(), 'fila', 2, 'lead',
+        jsonb_build_object('nombre', 'Matriz CSV', 'telefono_principal', '78' || lpad((9100 + v_n)::text, 6, '0'), 'origen_lead_id', v_origen)))));
+    v_n := v_n + 1;
+    if (r ->> 'ok')::boolean is distinct from v_ok then raise exception 'importar con %: % (esperaba ok = %)', p, r, v_ok; end if;
+    if not v_ok and r ->> 'estado' <> '42501' then raise exception 'importar con %: daba % y debía ser 42501', p, r ->> 'estado'; end if;
+    r := pg_temp.como(p, format('select public.leads_importacion_terminar(%L, 0, 0)', gen_random_uuid()));
+    if (r ->> 'ok')::boolean then raise exception 'terminar una importación que no existe: %', r; end if;
+    if r ->> 'estado' <> '42501' then raise exception 'terminar daba % y debía ser 42501', r ->> 'estado'; end if;
+  end loop;
+  -- Exportar: sólo con `leads.exportar` (0051 por el rol nuevo); la supervisión «todos» tampoco.
+  for p, v_ok in select * from (values (u51, true), (u50, false), (u52, false), (u54, false), (u59, false), (u55, false), (u56, false)) x (p, v_ok) loop
+    r := pg_temp.como(p, 'select public.leads_exportacion_registrar(3, array[''q''])');
+    if (r ->> 'ok')::boolean is distinct from v_ok then raise exception 'exportar con %: % (esperaba ok = %)', p, r, v_ok; end if;
+    if not v_ok and r ->> 'estado' <> '42501' then raise exception 'exportar con %: daba % y debía ser 42501', p, r ->> 'estado'; end if;
+  end loop;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de CSV: cada fila vale por sí misma, nada nombra a nadie y un reintento no duplica
+do $$ declare
+  u50 constant text := '00000000-0000-0000-0000-000000000050'; u51 constant text := '00000000-0000-0000-0000-000000000051';
+  v_origen uuid := (select id from public.origenes_lead where clave = 'web');
+  v_imp uuid := gen_random_uuid(); v_otro uuid := gen_random_uuid();
+  v_buena uuid := gen_random_uuid(); v_repe uuid := gen_random_uuid(); v_primera uuid := gen_random_uuid();
+  v_lote jsonb; r jsonb; f jsonb; v_antes int;
+begin
+  v_lote := jsonb_build_array(
+    jsonb_build_object('id', v_buena, 'fila', 2, 'lead', jsonb_build_object('nombre', 'Importada Uno', 'telefono_principal', '78 111-001', 'tipo', 'cliente', 'origen_lead_id', v_origen, 'atributos', '{"ciudad": "Sucre"}'::jsonb)),
+    jsonb_build_object('id', gen_random_uuid(), 'fila', 3, 'lead', jsonb_build_object('nombre', '', 'telefono_principal', '78111002', 'origen_lead_id', v_origen)),
+    jsonb_build_object('id', v_primera, 'fila', 4, 'lead', jsonb_build_object('nombre', 'Importada Repetida', 'telefono_principal', '78111003', 'origen_lead_id', v_origen)),
+    jsonb_build_object('id', v_repe, 'fila', 5, 'lead', jsonb_build_object('nombre', 'Importada Repetida 2', 'telefono_principal', '78111003', 'origen_lead_id', v_origen)),
+    jsonb_build_object('id', gen_random_uuid(), 'fila', 6, 'lead', jsonb_build_object('nombre', 'Del ajeno', 'telefono_principal', '78000004', 'origen_lead_id', v_origen)),
+    jsonb_build_object('id', gen_random_uuid(), 'fila', 7, 'lead', jsonb_build_object('nombre', 'Del limbo', 'telefono_principal', '78000002', 'origen_lead_id', v_origen)),
+    jsonb_build_object('id', gen_random_uuid(), 'fila', 8, 'lead', jsonb_build_object('nombre', 'Con letras', 'telefono_principal', '78abc', 'origen_lead_id', v_origen)),
+    jsonb_build_object('id', gen_random_uuid(), 'fila', 9, 'lead', jsonb_build_object('nombre', 'Adopta', 'telefono_principal', '78000002', 'adoptar', true, 'origen_lead_id', v_origen)),
+    jsonb_build_object('id', gen_random_uuid(), 'fila', 10, 'lead', jsonb_build_object('nombre', 'Sin origen', 'telefono_principal', '78111004')));
+  v_antes := (select count(*) from public.leads);
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importar_lote(%L, 9, %L)', v_imp, v_lote)));
+  f := r -> 'valor' -> 'filas';
+  if jsonb_array_length(f) <> 9 then raise exception 'volvieron % filas y eran 9: %', jsonb_array_length(f), f; end if;
+  -- Por fila: lo que le pasó a cada una, y nunca un nombre, un dueño ni un id de lead ajeno.
+  if (select count(*) from jsonb_array_elements(f) e where e ->> 'resultado' = 'creado') <> 2 then raise exception 'creadas: %', f; end if;
+  if (select count(*) from jsonb_array_elements(f) e where e ->> 'resultado' = 'ya_existe') <> 3 then raise exception 'ya existían: %', f; end if;
+  if (select count(*) from jsonb_array_elements(f) e where e ->> 'resultado' = 'error') <> 4 then raise exception 'errores: %', f; end if;
+  if (select e ->> 'campo' from jsonb_array_elements(f) e where (e ->> 'fila')::int = 3) is distinct from 'nombre' then raise exception 'el campo de la fila 3: %', f; end if;
+  if (select e ->> 'campo' from jsonb_array_elements(f) e where (e ->> 'fila')::int = 9) is distinct from 'adoptar' then raise exception 'adoptar se ignoró: %', f; end if;
+  if (select e ->> 'campo' from jsonb_array_elements(f) e where (e ->> 'fila')::int = 10) is distinct from 'origen_lead_id' then raise exception 'sin origen: %', f; end if;
+  if f::text ~* 'Matriz|Dueño|Ajeno|dueno' then raise exception 'la respuesta nombra a alguien: %', f; end if;
+  if (select resultado from (select e ->> 'resultado' as resultado from jsonb_array_elements(f) e where (e ->> 'fila')::int = 5) x) <> 'ya_existe' then
+    raise exception 'el repetido dentro del archivo no se marcó desde la segunda aparición: %', f; end if;
+  if (select count(*) from public.leads) <> v_antes + 2 then raise exception 'entraron % leads y debían ser 2', (select count(*) from public.leads) - v_antes; end if;
+  -- Quien importa queda de dueña; el limbo sigue en el limbo.
+  if (select usuario_id from public.leads_asesores where lead_id = v_buena and tipo_acceso = 'dueno' and revocado_en is null) is distinct from u50::uuid then
+    raise exception 'quien importó no quedó de dueña'; end if;
+  if (select (atributos ->> 'ciudad') from public.leads where id = v_buena) is distinct from 'Sucre' then raise exception 'el atributo no entró'; end if;
+  if exists (select 1 from public.leads_asesores where lead_id = (select id from public.leads where telefono_principal = '59178000002' or telefono_principal = '78000002' limit 1) and revocado_en is null) then
+    raise exception 'el limbo se adoptó desde la importación'; end if;
+  -- Un reintento del mismo lote (se perdió la respuesta): lo creado vuelve como repetido y no duplica.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importar_lote(%L, 9, %L)', v_imp, v_lote)));
+  if (select count(*) from jsonb_array_elements(r -> 'valor' -> 'filas') e where (e ->> 'repetido')::boolean) <> 2 then raise exception 'el reintento no marcó repetido: %', r; end if;
+  if (select count(*) from public.leads) <> v_antes + 2 then raise exception 'el reintento duplicó'; end if;
+  if (select count(*) from public.importaciones_leads where importacion_id = v_imp) <> 2 then raise exception 'importaciones_leads'; end if;
+  -- La importación es de quien la empezó: otra persona no la retoma ni la termina.
+  r := pg_temp.como(u51, format('select public.leads_importar_lote(%L, 9, %L)', v_imp, v_lote));
+  perform pg_temp.espero(r, '42501', 'No encontramos esta importación.', 'retomar la importación de otra persona');
+  r := pg_temp.como(u51, format('select public.leads_importacion_terminar(%L, 0, 0)', v_imp));
+  perform pg_temp.espero(r, '42501', 'No encontramos esta importación.', 'terminar la importación de otra persona');
+  -- Topes del lote.
+  r := pg_temp.como(u50, format('select public.leads_importar_lote(%L, 9, %L)', gen_random_uuid(), '[]'));
+  perform pg_temp.espero(r, '22023', 'Un lote lleva de 1 a 50 filas.', 'un lote vacío');
+  r := pg_temp.como(u50, format('select public.leads_importar_lote(%L, 501, %L)', gen_random_uuid(), v_lote));
+  perform pg_temp.espero(r, '22023', 'Una importación lleva de 1 a 500 filas.', 'más de 500 filas');
+  r := pg_temp.como(u50, format('select public.leads_importar_lote(%L, 60, (select jsonb_agg(%L::jsonb -> 0) from generate_series(1, 51)))', gen_random_uuid(), v_lote));
+  perform pg_temp.espero(r, '22023', 'Un lote lleva de 1 a 50 filas.', '51 filas en un lote');
+  r := pg_temp.como(u50, format('select public.leads_importar_lote(%L, 1, %L)', gen_random_uuid(), '[{"id": "x"}]'));
+  perform pg_temp.espero(r, '22023', 'Una fila del lote no tiene la forma esperada.', 'una fila sin la forma');
+  -- Terminar: sólo números en la constancia, el origen del archivo como último origen, e idempotente.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_terminar(%L, 3, 4, %L)', v_imp, v_origen)));
+  if (r -> 'valor' ->> 'creadas')::int <> 2 then raise exception 'terminar: %', r; end if;
+  if not exists (select 1 from public.actividad where accion = 'leads.importado' and registro_id = v_imp::text and actor_id = u50::uuid
+                   and detalle = '{"creadas": 2, "ya_existian": 3, "rechazadas": 4}'::jsonb and antes is null and despues is null) then
+    raise exception 'la constancia de la importación'; end if;
+  if (select valor #>> '{}' from public.preferencias_usuario where usuario_id = u50::uuid and clave = 'leads.ultimo_origen_lead') is distinct from v_origen::text then
+    raise exception 'el último origen'; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_importacion_terminar(%L, 3, 4, %L)', v_imp, v_origen)));
+  if (r -> 'valor' ->> 'repetido')::boolean is distinct from true then raise exception 'terminar dos veces: %', r; end if;
+  if (select count(*) from public.actividad where accion = 'leads.importado' and registro_id = v_imp::text) <> 1 then raise exception 'terminar dos veces dejó dos constancias'; end if;
+  r := pg_temp.como(u50, format('select public.leads_importar_lote(%L, 9, %L)', v_imp, v_lote));
+  perform pg_temp.espero(r, '22023', 'Esta importación ya terminó.', 'importar en una terminada');
+  -- Ningún dato del archivo quedó en la constancia ni en la importación.
+  if exists (select 1 from public.actividad a where a.accion = 'leads.importado' and a.detalle::text ~ '78111|Importada') then raise exception 'la constancia guarda datos'; end if;
+  if (select (mapeo::text || errores::text) from public.importaciones where id = v_imp) ~ '78111|Importada' then raise exception 'la importación guarda datos'; end if;
+  -- La lectura de lo importado: sólo de quien importó.
+  r := pg_temp.bien(pg_temp.como(u50, format('select count(*)::int from public.importaciones_leads where importacion_id = %L', v_imp)));
+  if (r -> 'valor')::int <> 2 then raise exception 'quien importó ve % y debía ver 2', r -> 'valor'; end if;
+  r := pg_temp.bien(pg_temp.como(u51, format('select count(*)::int from public.importaciones_leads where importacion_id = %L', v_imp)));
+  if (r -> 'valor')::int <> 0 then raise exception 'otra persona ve lo importado'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de CSV: el límite de exportaciones por hora, y la constancia lleva nombres, no valores
+do $$ declare
+  u51 constant text := '00000000-0000-0000-0000-000000000051';
+  r jsonb; i int; d jsonb;
+begin
+  delete from public.actividad where accion = 'leads.exportado' and actor_id = u51::uuid;
+  for i in 1..5 loop
+    r := pg_temp.bien(pg_temp.como(u51, 'select public.leads_exportacion_registrar(12, array[''q'', ''origen'', ''a.ciudad''])'));
+    if (r -> 'valor' ->> 'ok')::boolean is distinct from true then raise exception 'la exportación % no entró: %', i, r; end if;
+  end loop;
+  r := pg_temp.bien(pg_temp.como(u51, 'select public.leads_exportacion_registrar(12, array[''q''])'));
+  if (r -> 'valor' ->> 'ok')::boolean is distinct from false or (r -> 'valor' ->> 'libre_en') is null then raise exception 'la sexta: %', r; end if;
+  if (select count(*) from public.actividad where accion = 'leads.exportado' and actor_id = u51::uuid) <> 5 then
+    raise exception 'la rechazada dejó constancia'; end if;
+  -- Pasada la hora, vuelve a poder.
+  update public.actividad set creado_en = now() - interval '61 minutes' where accion = 'leads.exportado' and actor_id = u51::uuid;
+  r := pg_temp.bien(pg_temp.como(u51, 'select public.leads_exportacion_registrar(1, array[''q''])'));
+  if (r -> 'valor' ->> 'ok')::boolean is distinct from true then raise exception 'pasada la hora: %', r; end if;
+  select detalle into d from public.actividad where accion = 'leads.exportado' and actor_id = u51::uuid order by id desc limit 1;
+  if d is distinct from '{"filas": 1, "filtros": ["q"]}'::jsonb then raise exception 'la constancia: %', d; end if;
+  -- Un filtro con valor adentro, o más de 5.000 filas, se rechaza.
+  r := pg_temp.como(u51, 'select public.leads_exportacion_registrar(1, array[''q=Juan Perez''])');
+  perform pg_temp.espero(r, '22023', 'Un filtro no tiene un nombre válido.', 'un filtro con su valor');
+  r := pg_temp.como(u51, 'select public.leads_exportacion_registrar(5001, array[''q''])');
+  perform pg_temp.espero(r, '22023', 'Una exportación lleva hasta 5.000 leads.', 'más de 5.000 filas');
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

@@ -19,6 +19,10 @@ const MEDICIONES = [
     'supabase/tests/medir-embudo.sql',
     'Kanban de oportunidades, 2.000 leads y 10.000 oportunidades',
   ],
+  [
+    'supabase/tests/medir-importacion.sql',
+    'Importación de leads, 500 filas en lotes de 50 sobre 22.000 filas de actividad',
+  ],
 ]
 
 for (const [archivo, titulo] of MEDICIONES) {

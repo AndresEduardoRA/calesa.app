@@ -21,6 +21,7 @@ export async function limpiar(db) {
   const personas = [ADMINISTRA, ...Object.values(PERSONAS)]
   await db.query(`update public.vehiculos set lead_id = null where titulo like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.vehiculos where titulo like $1`, [`${PREFIJO}%`])
+  await db.query(`delete from public.importaciones where usuario_id = any ($1::uuid[])`, [personas])
   await db.query(`delete from public.seguimientos where usuario_id = any ($1::uuid[])`, [personas])
   await db.query(`delete from public.leads where nombre like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.lotes_papelera where creado_por = any ($1::uuid[])`, [

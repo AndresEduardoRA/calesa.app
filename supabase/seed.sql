@@ -46,6 +46,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('leads.eliminar', 'leads', 'Enviar leads a la papelera', 'Enviar leads a la papelera (propios = los míos como dueño)', false, true, 'leads_papelera_enviar', 190),
   ('leads.papelera.purgar', 'leads', 'Vaciar la papelera de leads', 'Ver toda la papelera de leads, restaurar y purgar antes de tiempo', false, false, 'leads_papelera_*, policy lotes_papelera', 195),
   ('leads.portal.gestionar', 'leads', 'Acceso al portal', 'Otorgar y revocar el acceso del cliente al portal', false, true, 'otorgar_portal, revocar_portal, policy accesos_portal', 200),
+  ('leads.exportar', 'leads', 'Exportar leads', 'Descargar en CSV los leads de mi cartera que muestra el listado', false, false, 'leads_exportacion_registrar', 205),
   ('leads.configurar', 'leads', 'Configurar leads', 'Los campos de los leads, los orígenes de lead y los tipos de seguimiento', false, false, 'lead_campo_*, policy origenes_lead, tipos_seguimiento', 210),
   ('cotizaciones.ver', 'cotizaciones', 'Ver cotizaciones', 'Ver cotizaciones (por origen; propios = mías o de mis leads)', true, true, 'puede_cotizacion', 220),
   ('cotizaciones.crear', 'cotizaciones', 'Cotizar', 'Crear cotizaciones preventa (por origen)', true, false, 'policy cotizaciones insert', 230),

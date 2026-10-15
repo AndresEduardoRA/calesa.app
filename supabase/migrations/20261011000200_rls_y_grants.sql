@@ -452,6 +452,7 @@ select public._rls('eventos_web', null, null, null, null);
 -- datos
 -- ---------------------------------------------------------------------------
 select public._rls('importaciones', 'usuario_id = (select auth.uid()) or (select public.tiene_permiso(''datos.importar.todo''))', 'usuario_id = (select auth.uid())', null, 'usuario_id = (select auth.uid())');
+select public._rls('importaciones_leads', 'exists (select 1 from public.importaciones i where i.id = importacion_id and i.usuario_id = (select auth.uid()))', null, null, null);
 
 -- Verificación: ninguna tabla de public sin RLS.
 do $$

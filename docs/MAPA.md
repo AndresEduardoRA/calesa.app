@@ -246,6 +246,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `solicitudes_contacto_web` — `supabase/schemas/14_web/01_web.sql`
 - `eventos_web` — `supabase/schemas/14_web/01_web.sql`
 - `importaciones` — `supabase/schemas/15_datos/01_datos.sql`
+- `importaciones_leads` — `supabase/schemas/15_datos/01_datos.sql`
 
 ## Reglas que se cargan solas (.claude/rules)
 

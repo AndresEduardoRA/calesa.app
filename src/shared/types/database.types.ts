@@ -2202,7 +2202,7 @@ export type Database = {
       }
       importaciones: {
         Row: {
-          archivo_ruta: string
+          archivo_ruta: string | null
           creado_en: string
           entidad: string
           errores: NonNullable<Json>
@@ -2217,7 +2217,7 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
-          archivo_ruta: string
+          archivo_ruta?: string | null
           creado_en?: string
           entidad: string
           errores?: NonNullable<Json>
@@ -2231,7 +2231,7 @@ export type Database = {
           usuario_id: string
         }
         Update: {
-          archivo_ruta?: string
+          archivo_ruta?: string | null
           creado_en?: string
           entidad?: string
           errores?: NonNullable<Json>
@@ -2251,6 +2251,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'perfiles'
             referencedColumns: ['id']
+          },
+        ]
+      }
+      importaciones_leads: {
+        Row: {
+          creado_en: string
+          fila: number
+          importacion_id: string
+          lead_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          creado_en?: string
+          fila: number
+          importacion_id: string
+          lead_id: string
+        }
+        Update: {
+          creado_en?: string
+          fila?: number
+          importacion_id?: string
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'importaciones_leads_importacion_id_fkey'
+            columns: ['importacion_id']
+            isOneToOne: false
+            referencedRelation: 'importaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'importaciones_leads_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'leads'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'importaciones_leads_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'leads_vista'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'importaciones_leads_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
         ]
       }
@@ -6567,6 +6618,16 @@ export type Database = {
       _lead_cartera_json: { Args: { p_lead: string }; Returns: Json }
       _lead_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
       _lead_conflicto: { Args: { p_cuando: string; p_lead: string }; Returns: undefined }
+      _lead_crear: {
+        Args: {
+          p_id: string
+          p_lead: Json
+          p_recordar_origen: boolean
+          p_recordatorio: Json
+          p_seguimiento: Json
+        }
+        Returns: Json
+      }
       _lead_defecto_empresa: {
         Args: {
           p_defecto: Json
@@ -6903,6 +6964,7 @@ export type Database = {
         }
         Returns: Json
       }
+      _telefono_o_nulo: { Args: { p_cc: string; p_tel: string }; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
         Args: {
@@ -7299,6 +7361,23 @@ export type Database = {
         Returns: Json
       }
       lead_vehiculos: { Args: { p_lead: string }; Returns: Json }
+      leads_exportacion_registrar: {
+        Args: { p_filas: number; p_filtros?: string[] }
+        Returns: Json
+      }
+      leads_importacion_terminar: {
+        Args: {
+          p_importacion: string
+          p_origen?: string
+          p_rechazadas: number
+          p_ya_existian: number
+        }
+        Returns: Json
+      }
+      leads_importar_lote: {
+        Args: { p_filas: Json; p_importacion: string; p_total: number }
+        Returns: Json
+      }
       leads_papelera_enviar: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       leads_papelera_listar: { Args: Record<PropertyKey, never>; Returns: Json }
       leads_papelera_purgar: {
