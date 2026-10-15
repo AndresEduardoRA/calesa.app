@@ -1489,3 +1489,83 @@ generoso y la estimación de una persona por KLM (0,28 s por tecla, 1,35 s por d
 reloj del robot **no** es la hora de una persona: tipea sin demora. La meta de 25 s se sostiene por la
 cuenta de pulsaciones y por el KLM; la detección del duplicado se mide aparte (≈ 0,8 s después de
 tipear: 400 ms de espera y un viaje).
+
+## 2026-10-14 — El listado de leads: orden, «míos», búsqueda, privados y drawer
+
+**Contexto:** `/leads` es la primera pantalla donde otra persona ve un lead que no es suyo, así que cada
+decisión es también una decisión de qué se entrega y qué se deduce.
+**Decisión:**
+
+- **Orden `creado_en desc, id desc`**, con el cursor y el índice del inventario (`leads_listado_idx`, sólo
+  vivos). «Actividad reciente» (`ultimo_seguimiento_en`) sirve más a un asesor, pero es nulo en todo lead
+  sin seguimientos (el keyset necesita una rama `nulls last` y un cursor de tres partes), las filas
+  cambian de página mientras se pagina, y cada seguimiento reescribe la fila. Entra como orden
+  alternativo cuando la parte 5 deje esa columna estable.
+- **«Míos» es `leads_vista.en_cartera`**, no `telefono_visible`: las dos son `en_cartera(id)` hoy, pero
+  una dice «de mi cartera» y la otra «veo el teléfono»; atarlas por casualidad rompería el listado el día
+  que el teléfono dependa de otra cosa. «Todos» no suma condición: lo que hay lo decide la RLS de `leads`.
+  Con «ver como», `sesion.permisos` son los efectivos del rol: un rol con «propios» fuerza «míos» (y el
+  drawer no muestra un lead ajeno). La RLS sigue con los permisos reales: es la UI, no la base, la que
+  simula (como en vehículos, donde las filas de una pestaña no se acotan).
+- **La búsqueda es por nombre y por número (`#124`), nunca por teléfono:** buscar dígitos sobre lo ajeno
+  sería un oráculo para saber si un número ya está cargado (lo que `verificar_telefono` ya acota). El
+  texto entra a `or()` por `citar(patronContiene())`; `%`, `_`, `*`, coma, paréntesis y comillas son
+  texto.
+- **Filtrar por un privado teniendo «todos» sólo encuentra lo propio, y se dice:** la ayuda bajo el filtro
+  («Solo busca en tus leads…») y una línea sobre el resultado, sólo para quien ve «todos». En la tabla,
+  la celda de un privado ajeno dice «Solo la cartera», no un guion que haría creer que no hay dato.
+- **Un filtro de la URL que ya no vale se dice** (campo desactivado, no filtrable o inexistente) y se
+  quita con «Entendido»; antes `leerFiltros()` lo tiraba en silencio y la vista parecía vieja sin
+  explicación.
+- **El drawer lee desde el navegador** (`leads_vista` con la sesión de quien mira) y relee al volver a la
+  pestaña: no pide una página entera al servidor para cada vistazo y puede decir «ya no está
+  disponible» si le quitaron el acceso mientras tanto, con el mismo texto para papelera, limbo y
+  revocación. Se dibuja primero con la fila de la página. No tiene enlace a la ficha: llega con ella.
+- **De `atributos` el listado sólo pide las claves `en_tabla`** (alias `a_<clave>`), validadas contra el
+  formato de clave de la base antes de armar la consulta; el drawer pide todos los que le llegan.
+- **El estado vacío por filtro usa el compartido** («Nada coincide con los filtros»), no un texto propio.
+  **Costo:** una pantalla más que depende de `equipo` (vistas) y de la composición de `app/`; el drawer
+  tiene una lectura propia en el navegador (`infra/lead-rapido.client.ts`).
+
+## 2026-10-14 — `alcance_de()` y `atributos_lead()` más baratas: lo que midió el listado
+
+**Contexto:** `DECISIONES` (2026-10-14, «filtrar es leer») dejaba sin medir el costo de filtrar por un
+atributo, que pasa por `atributos_lead()` en cada fila. Con 2.000 leads sintéticos, en una transacción
+revertida, tardaba **~850 ms** (0,43 ms por fila): la RLS ya era barata (InitPlan, 12 µs por fila); el
+costo estaba en `alcance_de()`, que materializaba los ~75 permisos de una dueña en cada llamada
+(`mis_permisos()`), dos veces por fila.
+**Decisión:** `alcance_de()` lee `usuarios_roles ⨝ roles_permisos ⨝ perfiles` con la clave en el WHERE y
+una pasada (8 veces más rápida) y `atributos_lead()` resuelve alcance, vida, limbo y cartera en una
+llamada y una lectura. **Misma semántica**, y un caso de `humo.sql` compara `alcance_de()` con
+`mis_permisos()` para cada permiso y origen y varias personas, porque la regla ahora está en dos
+lugares. Resultado: página sin filtro ~30 ms, con un atributo ~180 ms, búsqueda por nombre ~30 ms,
+«propios» con 50 de 2.000 ~10 ms (antes 47, 887, 45 y 64 ms).
+**Costo y lo que sigue:** sigue siendo 0,08 ms por fila en cada filtro por atributo (lineal: ~0,8 s con 10 mil
+leads «todos»). La medición con 5 a 10 mil queda para la Fase 9; si pesa, el listado pasa a una función
+`definer` que recorta una vez por consulta. El plan no usa `leads_listado_idx` para la página sin
+filtro con 2.000 filas (sort sobre un `Seq Scan`); sí lo usa por cursor. Con más filas hay que volver a
+mirar. La medición consume 2 ids de la identidad de `actividad` por corrida (los inserts de usuarios):
+huecos de numeración, sin filas.
+**Una migración sobre la base viva:** con cuentas reales en la base local, los cambios van con
+`supabase migration up` (aplica sólo lo pendiente), no con `db:reset`.
+
+## 2026-10-14 — La guardia de los e2e no respalda la base, y un respaldo viejo puede pisar un cambio
+
+**Contexto:** se revisó qué cubre exactamente la guardia (`e2e/soporte/guardia.ts`) antes de apoyarse en
+ella con cuentas reales en la base local.
+**Qué hace:** respalda **sólo** la fila de apibara de `integraciones` (`activa`, `config` y
+`secreto_guardado_en`, nunca la clave) en `e2e/.estado/respaldo.json` (ignorado por git); al terminar la
+repone, comprueba que la clave de Vault siga y borra los leads `E2E …`. No respalda leads, cuentas ni
+campos: esos los limpian los propios specs.
+**Tras un `kill -9`:** el archivo queda; la corrida siguiente lo repone **antes** de tomar uno nuevo y
+avisa. Los leads `E2E …` que quedaron se borran recién al final de esa corrida. Qué hacer: volver a
+correr `pnpm test:e2e` (o borrar `e2e/.estado/respaldo.json` si cambiaste apibara a mano y no querés
+que se reponga).
+**Riesgo anotado, sin construir nada:** **sí**, restaurar un respaldo viejo pisa un cambio hecho a mano
+entre corridas. La reposición no mira `creadoEn` ni compara con lo que hay: si encendés apibara o
+cambiás su configuración en Integraciones después de un `kill -9` y antes de la corrida siguiente, el
+setup lo pisa con el estado viejo (sólo un `console.warn`); pasa igual con un cambio hecho _durante_ una
+corrida, que el teardown deshace. `secreto_guardado_en` vuelve con la fecha vieja: si la clave se
+cambió en el medio, la fila queda con una marca que ya no es la de Vault; si se borró, dice que hay una
+que no hay. Mitigación posible (no hecha): comparar `actualizado_en` de la fila con `creadoEn` del
+respaldo y, si es posterior, no pisar y avisar.
