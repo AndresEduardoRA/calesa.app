@@ -7,6 +7,7 @@ import {
   type EstadoDeApibara,
 } from './soporte/apibara'
 import { entorno } from './soporte/base'
+import { pedirAFuncion } from './soporte/funciones'
 import { CLAVE } from './soporte/inventario'
 
 // La edge function `apibara` de verdad (la que sirve el runtime local), sólo en los caminos que no
@@ -26,52 +27,68 @@ test.afterAll(async () => {
 })
 
 const opciones = { auth: { persistSession: false, autoRefreshToken: false } }
+const URL_DE_LA_FUNCION = () => `${entorno('NEXT_PUBLIC_SUPABASE_URL')}/functions/v1/apibara`
+
+// Llama a la función con la sesión de quien entra (o sin sesión). Un corte del runtime local se
+// vuelve a pedir (`pedirAFuncion`); una respuesta de la función, nunca. Si no responde en ningún
+// intento, la prueba falla diciéndolo.
+async function llamar(cuerpo: unknown, sesion?: { email: string }) {
+  const encabezados: Record<string, string> = {
+    apikey: entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
+    'Content-Type': 'application/json',
+  }
+  if (sesion) {
+    const cliente = createClient(
+      entorno('NEXT_PUBLIC_SUPABASE_URL'),
+      entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
+      opciones,
+    )
+    const { data, error } = await cliente.auth.signInWithPassword({
+      email: sesion.email,
+      password: CLAVE,
+    })
+    if (error) throw error
+    encabezados['Authorization'] = `Bearer ${data.session.access_token}`
+  }
+  const respuesta = await pedirAFuncion(
+    URL_DE_LA_FUNCION(),
+    { method: 'POST', headers: encabezados, body: JSON.stringify(cuerpo) },
+    { etiqueta: 'apibara' },
+  )
+  if (!respuesta) {
+    throw new Error('la función no respondió')
+  }
+  return {
+    status: respuesta.status,
+    cuerpo: (await respuesta.json().catch(() => ({}))) as unknown,
+  }
+}
 
 test('sin sesión no responde nada que sirva', async () => {
-  const anonimo = await fetch(`${entorno('NEXT_PUBLIC_SUPABASE_URL')}/functions/v1/apibara`, {
-    method: 'POST',
-    headers: {
-      apikey: entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ accion: 'ficha', origen: subasta.id, entrada: '58540656' }),
-  })
-  const cuerpo = (await anonimo.json().catch(() => ({}))) as { error?: { codigo?: string } }
+  const anonimo = await llamar({ accion: 'ficha', origen: subasta.id, entrada: '58540656' })
+  const cuerpo = anonimo.cuerpo as { error?: { codigo?: string } }
   // El gateway la rechaza, o la función dice que no puede.
   expect(anonimo.status === 401 || cuerpo.error?.codigo === 'sin_permiso').toBe(true)
 })
 
 test('sin permiso sobre vehículos ni sobre los ajustes de la empresa, no consulta ni ve el uso', async () => {
-  const cliente = createClient(
-    entorno('NEXT_PUBLIC_SUPABASE_URL'),
-    entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
-    opciones,
-  )
-  await cliente.auth.signInWithPassword({ email: sinPermisos, password: CLAVE })
-  const ficha = await cliente.functions.invoke('apibara', {
-    body: { accion: 'ficha', origen: subasta.id, entrada: '58540656' },
-  })
-  expect(ficha.data).toEqual({ ok: false, error: { codigo: 'sin_permiso' } })
-  const uso = await cliente.functions.invoke('apibara', { body: { accion: 'uso' } })
-  expect(uso.data).toEqual({ ok: false, error: { codigo: 'sin_permiso' } })
+  const sesion = { email: sinPermisos }
+  const ficha = await llamar({ accion: 'ficha', origen: subasta.id, entrada: '58540656' }, sesion)
+  expect(ficha.cuerpo).toEqual({ ok: false, error: { codigo: 'sin_permiso' } })
+  const uso = await llamar({ accion: 'uso' }, sesion)
+  expect(uso.cuerpo).toEqual({ ok: false, error: { codigo: 'sin_permiso' } })
 })
 
 test('una foto de otro sitio no sale, y apagada no consulta nada', async () => {
-  const cliente = createClient(
-    entorno('NEXT_PUBLIC_SUPABASE_URL'),
-    entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
-    opciones,
-  )
-  await cliente.auth.signInWithPassword({ email: duena, password: CLAVE })
+  const sesion = { email: duena }
   // La clave no es un proxy abierto: sólo las dos plataformas.
-  const ajena = await cliente.functions.invoke('apibara', {
-    body: { accion: 'foto', origen: subasta.id, url: 'https://example.com/foto.jpg' },
-  })
-  expect(ajena.data).toEqual({ ok: false, error: { codigo: 'entrada' } })
+  const ajena = await llamar(
+    { accion: 'foto', origen: subasta.id, url: 'https://example.com/foto.jpg' },
+    sesion,
+  )
+  expect(ajena.cuerpo).toEqual({ ok: false, error: { codigo: 'entrada' } })
 
   await fijarApibara(false)
-  const apagada = await cliente.functions.invoke('apibara', {
-    body: { accion: 'ficha', origen: subasta.id, entrada: '58540656' },
-  })
-  expect(apagada.data).toEqual({ ok: false, error: { codigo: 'apagada' } })
+  const apagada = await llamar({ accion: 'ficha', origen: subasta.id, entrada: '58540656' }, sesion)
+  expect(apagada.cuerpo).toEqual({ ok: false, error: { codigo: 'apagada' } })
 })
