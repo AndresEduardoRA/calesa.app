@@ -40,6 +40,7 @@ const ACCIONES = [
   'leads.compartir',
   'leads.transferir',
   'leads.eliminar',
+  'leads.portal.gestionar',
 ]
 
 export async function sembrar(db) {

@@ -15,6 +15,7 @@ import {
   vehiculo,
 } from './carreras/terreno.mjs'
 import { carrerasDeOportunidades } from './carreras/oportunidades.mjs'
+import { carrerasDelPortal } from './carreras/portal.mjs'
 
 const toml = readFileSync('supabase/config.toml', 'utf8')
 const puerto = /^\[db\][^[]*?^port\s*=\s*(\d+)/ms.exec(toml)?.[1]
@@ -55,8 +56,14 @@ async function esperarBloqueo(orquesta, pid) {
 async function carrera(orquesta, { a, b }) {
   const [ca, cb] = [await conectar(), await conectar()]
   try {
-    await comoPersona(ca, a.persona)
-    await comoPersona(cb, b.persona)
+    // Una persona del equipo, o un rol de la base (el portal del cliente llama como `service_role`).
+    for (const [c, lado] of [
+      [ca, a],
+      [cb, b],
+    ]) {
+      if (lado.rol) await c.query(`set role ${lado.rol}`)
+      else await comoPersona(c, lado.persona)
+    }
     await ca.query('begin')
     const primero = await comoValor(ca.query(`select ${a.sql} as r`, a.args))
     if (!primero.ok) throw new Error(`A falló antes de la carrera: ${primero.mensaje}`)
@@ -302,6 +309,7 @@ try {
   }
 
   await carrerasDeOportunidades({ orquesta, carrera, espero })
+  await carrerasDelPortal({ orquesta, carrera, espero, conectar })
 } finally {
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))
   await orquesta.end()
