@@ -3,7 +3,7 @@
 // tres. Cada carrera parte de su propio lead y de una oportunidad recién creada por su dueña.
 import { PERSONAS, PREFIJO, comoPersona, leadDeLaDuena } from './terreno.mjs'
 
-const { duena, compartido } = PERSONAS
+const { duena, compartido, supervision, destino } = PERSONAS
 
 async function como(db, persona, sql, args = []) {
   await comoPersona(db, persona)
@@ -152,6 +152,58 @@ export async function carrerasDeOportunidades({ orquesta, carrera, espero }) {
     espero(
       'mueve primero: quitar la etapa lo rechaza porque ahora tiene una (23514)',
       r.b.codigo === '23514' && r.b.mensaje.startsWith('«Cotizado» tiene 1 oportunidad'),
+      r.b,
+    )
+  }
+
+  console.log('Transferir el lead mientras su dueña mueve una oportunidad')
+  {
+    const lead = await leadDeLaDuena(orquesta, 'oportunidad transferir 1')
+    const embudo = await embudoDe(orquesta, duena)
+    await embudoDe(orquesta, destino)
+    const op = await oportunidad(orquesta, duena, lead)
+    const r = await carrera(orquesta, {
+      a: {
+        persona: duena,
+        sql: 'public.oportunidad_mover($1, $2, $3)',
+        args: [op.id, op.etapa_id, embudo.etapa('Contactado')],
+      },
+      b: {
+        persona: supervision,
+        sql: 'public.lead_transferir($1, $2, $3)',
+        args: [lead, destino, duena],
+      },
+    })
+    const { rows } = await orquesta.query(
+      `select o.usuario_id, s.nombre from public.oportunidades o join public.embudos_etapas s on s.id = o.etapa_id where o.id = $1`,
+      [op.id],
+    )
+    espero(
+      'mueve primero: la transferencia la lleva al destino en la etapa a la que se movió',
+      r.b.ok && rows[0].usuario_id === destino && rows[0].nombre === 'Contactado',
+      { b: r.b, fila: rows[0] },
+    )
+  }
+  {
+    const lead = await leadDeLaDuena(orquesta, 'oportunidad transferir 2')
+    const embudo = await embudoDe(orquesta, duena)
+    const op = await oportunidad(orquesta, duena, lead)
+    const r = await carrera(orquesta, {
+      a: {
+        persona: supervision,
+        sql: 'public.lead_transferir($1, $2, $3)',
+        args: [lead, destino, duena],
+      },
+      b: {
+        persona: duena,
+        sql: 'public.oportunidad_mover($1, $2, $3)',
+        args: [op.id, op.etapa_id, embudo.etapa('Contactado')],
+      },
+    })
+    espero(
+      'transfiere primero: la saliente ya no la mueve (42501)',
+      r.b.codigo === '42501' &&
+        r.b.mensaje === 'No encontramos esta oportunidad o no tienes acceso.',
       r.b,
     )
   }

@@ -1427,3 +1427,73 @@ begin
   delete from public.oportunidades where id = v_id;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de oportunidades: transferir pasa las abiertas del saliente al embudo del destino, las cerradas se quedan
+do $$ declare
+  u50 constant text := '00000000-0000-0000-0000-000000000050'; u51 constant text := '00000000-0000-0000-0000-000000000051';
+  u52 constant text := '00000000-0000-0000-0000-000000000052'; u57 constant text := '00000000-0000-0000-0000-000000000057';
+  r jsonb; v_lead uuid; v_emb uuid; v_raro uuid; v_dest uuid; v_lead_ver timestamptz;
+  v_abierta uuid := gen_random_uuid(); v_otra uuid := gen_random_uuid(); v_trampa uuid := gen_random_uuid();
+  v_ganada uuid := gen_random_uuid(); v_borrada uuid := gen_random_uuid(); v_compartido uuid := gen_random_uuid();
+begin
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.crear_lead(%L, %L)', gen_random_uuid(),
+    jsonb_build_object('nombre', 'Matriz LQ', 'telefono_principal', '78000098', 'origen_lead_id', (select id from public.origenes_lead where clave = 'web')))));
+  v_lead := (r -> 'valor' ->> 'id')::uuid;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_compartir(%L, %L)', v_lead, u51)));
+  v_emb := (select id from public.embudos where usuario_id = u50::uuid and es_default);
+  -- Un embudo de la dueña con una etapa abierta que se llama como la ganada del destino («Ganado»).
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.embudo_crear(%L, %L)', gen_random_uuid(), 'Matriz raro')));
+  v_raro := (r -> 'valor' -> 'embudo' ->> 'id')::uuid;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_raro, pg_temp.version_embudo(v_raro),
+    pg_temp.etapas_de(v_raro) || '[{"nombre": "Ganado", "color": "azul"}]'::jsonb)));
+  -- Abierta en «Cotizado» (el destino la tiene), abierta en «Nueva» de otro embudo (el destino no: va a
+  -- su inicial), abierta en «Ganado» abierta (en el destino es ganada: va a su inicial), una ganada y una
+  -- abierta eliminada (se quedan), y la del compartido (no se toca).
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', v_abierta, v_lead,
+    jsonb_build_object('titulo', 'Abierta', 'monto_estimado', 100, 'etapa_id', (select id from public.embudos_etapas where embudo_id = v_emb and nombre = 'Cotizado')))));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', v_otra, v_lead,
+    jsonb_build_object('titulo', 'Otra', 'embudo_id', v_raro))));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', v_trampa, v_lead,
+    jsonb_build_object('titulo', 'Trampa', 'embudo_id', v_raro, 'etapa_id', (select id from public.embudos_etapas where embudo_id = v_raro and nombre = 'Ganado')))));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', v_ganada, v_lead,
+    jsonb_build_object('titulo', 'Ganada', 'etapa_id', (select id from public.embudos_etapas where embudo_id = v_emb and es_ganada)))));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', v_borrada, v_lead, '{"titulo": "Borrada"}')));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_eliminar(%L, (select actualizado_en from public.oportunidades where id = %L))', v_borrada, v_borrada)));
+  r := pg_temp.bien(pg_temp.como(u51, format('select public.oportunidad_crear(%L, %L, %L)', v_compartido, v_lead, '{"titulo": "Del compartido"}')));
+  v_lead_ver := (select actualizado_en from public.leads where id = v_lead);
+
+  -- La supervisión transfiere a 0057.
+  r := pg_temp.bien(pg_temp.como(u52, format('select public.lead_transferir(%L, %L, %L)', v_lead, u57, u50)));
+  if (r -> 'valor' ->> 'oportunidades')::int is distinct from 3 then raise exception 'transferir: %', r; end if;
+  v_dest := (select id from public.embudos where usuario_id = u57::uuid and es_default);
+  if (select (usuario_id, embudo_id, etapa_id, estado::text) from public.oportunidades where id = v_abierta) is distinct from
+     (u57::uuid, v_dest, (select id from public.embudos_etapas where embudo_id = v_dest and nombre = 'Cotizado'), 'abierta'::text) then
+    raise exception 'la abierta no fue a «Cotizado» del destino'; end if;
+  if (select (usuario_id, etapa_id) from public.oportunidades where id = v_otra) is distinct from
+     (u57::uuid, (select id from public.embudos_etapas where embudo_id = v_dest and es_inicial)) then
+    raise exception 'la de una etapa que el destino no tiene no fue a su inicial'; end if;
+  if (select (etapa_id, estado::text) from public.oportunidades where id = v_trampa) is distinct from
+     ((select id from public.embudos_etapas where embudo_id = v_dest and es_inicial), 'abierta'::text) then
+    raise exception 'una abierta cayó en una etapa final por el nombre'; end if;
+  if (select usuario_id from public.oportunidades where id = v_ganada) <> u50::uuid
+     or (select usuario_id from public.oportunidades where id = v_borrada) <> u50::uuid
+     or (select usuario_id from public.oportunidades where id = v_compartido) <> u51::uuid then
+    raise exception 'se llevó una cerrada, una eliminada o la del compartido'; end if;
+  -- El historial dice quién la movió; la constancia, cuántas; el lead no movió su versión.
+  if not exists (select 1 from public.oportunidades_historial where oportunidad_id = v_abierta and usuario_id = u52::uuid
+                   and a_etapa_id = (select etapa_id from public.oportunidades where id = v_abierta)) then
+    raise exception 'el historial de la transferencia'; end if;
+  if not exists (select 1 from public.actividad where accion = 'oportunidad.transferida' and registro_id = v_lead::text
+                   and (detalle ->> 'cantidad')::int = 3) then
+    raise exception 'la constancia de la transferencia'; end if;
+  if (select actualizado_en from public.leads where id = v_lead) <> v_lead_ver then raise exception 'transferir movió la versión del lead'; end if;
+  -- El saliente (ahora compartido) ya no ve las que pasaron; sí la que ganó. El destino las ve y las mueve.
+  r := pg_temp.bien(pg_temp.como(u50, format('select count(*)::int from public.oportunidades where lead_id = %L', v_lead)));
+  if (r -> 'valor')::int <> 1 then raise exception 'el saliente ve % y debía ver 1 (la ganada)', r -> 'valor'; end if;
+  r := pg_temp.bien(pg_temp.como(u57, format('select public.oportunidad_mover(%L, %L, %L)', v_abierta,
+    (select etapa_id from public.oportunidades where id = v_abierta), (select id from public.embudos_etapas where embudo_id = v_dest and es_ganada))));
+  -- Un reintento de la misma transferencia no mueve nada.
+  r := pg_temp.bien(pg_temp.como(u52, format('select public.lead_transferir(%L, %L, %L)', v_lead, u57, u57)));
+  if r -> 'valor' ->> 'resultado' <> 'sin_cambios' then raise exception 'transferir dos veces: %', r; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
