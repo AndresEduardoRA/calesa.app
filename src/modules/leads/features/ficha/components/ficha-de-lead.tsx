@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { RUTAS } from '@/shared/lib/rutas'
 import { useRegional } from '@/shared/ui/regional'
+import type { AccionesDeCartera, PersonaDeCartera } from '../../../entities/cartera'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { Etiqueta } from '../../../entities/etiqueta'
 import {
@@ -48,6 +49,9 @@ type Props = {
   seguimientos: ReactNode
   // Las etiquetas de quien mira (para nombrar las del lead y elegir otras).
   etiquetas: readonly Etiqueta[]
+  // Quién lo tiene, y lo que quien mira puede hacer con eso (compartir, transferir, quitar, salir).
+  cartera: readonly PersonaDeCartera[]
+  accionesDeCartera: AccionesDeCartera
 }
 
 type DatosDeSeccion = {
@@ -56,6 +60,8 @@ type DatosDeSeccion = {
   origen: { nombre: string; activo: boolean } | null
   puedeCambiarTelefono: boolean
   seguimientos: ReactNode
+  cartera: readonly PersonaDeCartera[]
+  accionesDeCartera: AccionesDeCartera
 }
 
 // Lo que va bajo la cabecera según `?seccion=`. Cada sección nueva suma su entrada acá (y su
@@ -78,6 +84,8 @@ export function FichaDeLead({
   seccion,
   seguimientos,
   etiquetas: lista,
+  cartera,
+  accionesDeCartera,
 }: Props) {
   const { zonaHoraria } = useRegional()
   const panel = usePanelDeLead()
@@ -114,7 +122,15 @@ export function FichaDeLead({
       />
       <AvisoDeVencidos leadId={ficha.id} vencidos={ficha.recordatoriosVencidos} seccion={seccion} />
       <BarraDeSecciones leadId={ficha.id} actual={seccion} />
-      {CONTENIDO_DE_SECCION[seccion]({ ficha, campos, origen, puedeCambiarTelefono, seguimientos })}
+      {CONTENIDO_DE_SECCION[seccion]({
+        ficha,
+        campos,
+        origen,
+        puedeCambiarTelefono,
+        seguimientos,
+        cartera,
+        accionesDeCartera,
+      })}
       <PanelDeEdicion
         ficha={ficha}
         campos={campos}

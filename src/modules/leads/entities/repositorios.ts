@@ -4,6 +4,7 @@ import type { OpcionDeCampo, TipoDeLead, ValorDefecto } from '@/shared/lib/campo
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { ContextoDeAlta, DatosDeAlta, TipoDeSeguimiento } from './alta'
+import type { CandidatoDeCartera, PersonaDeCartera, RespuestaDeCartera } from './cartera'
 import type { CambiosDeCampoDeLead } from './cambios-de-campo'
 import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
 import type { CondicionDeLead } from './filtros'
@@ -327,3 +328,31 @@ export type LectorDeEtiquetas = () => Promise<Resultado<Etiqueta[]>>
 
 // Con a cuántos de los leads que ve está puesta cada una («Gestionar»).
 export type LectorDeEtiquetasConUso = () => Promise<Resultado<EtiquetaConUso[]>>
+
+// Mover quién tiene el lead (clase 2 de la auditoría). Cada una devuelve cómo quedó la cartera; repetir
+// un pedido es `sin_cambios`. Lo que no se ve responde como un lead que no existe.
+export type FalloDeCartera = { ok: false; error: ErrorApp; campo?: string }
+
+type RespuestaDelRepositorioDeCartera = Promise<
+  { ok: true; data: RespuestaDeCartera } | FalloDeCartera
+>
+
+export type RepositorioDeCartera = {
+  compartir: (pedido: { leadId: string; usuarioId: string }) => RespuestaDelRepositorioDeCartera
+  // `duenoEsperadoId`: quién creía quien transfiere que era el dueño (nulo si no había).
+  transferir: (pedido: {
+    leadId: string
+    destinoId: string
+    duenoEsperadoId: string | null
+  }) => RespuestaDelRepositorioDeCartera
+  revocar: (pedido: { leadId: string; usuarioId: string }) => RespuestaDelRepositorioDeCartera
+  salir: (pedido: { leadId: string }) => RespuestaDelRepositorioDeCartera
+}
+
+// Quién lo tiene, para quien ve el lead: nulo si no se ve.
+export type LectorDeCartera = (leadId: string) => Promise<Resultado<PersonaDeCartera[]>>
+
+// A quién se le puede dar (lo lee el navegador al abrir el panel).
+export type LectorDeCandidatosDeCartera = (
+  leadId: string,
+) => Promise<Resultado<CandidatoDeCartera[]>>

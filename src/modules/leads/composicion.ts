@@ -5,6 +5,7 @@ import 'server-only'
 import type {
   BuscadorDeLeads,
   ContadorDeLeads,
+  LectorDeCartera,
   LectorDeContextoDeAlta,
   LectorDeEtiquetas,
   LectorDeFicha,
@@ -15,6 +16,7 @@ import type {
   LectorDeTiposDeSeguimiento,
   RepositorioCamposDeLead,
   RepositorioDeAlta,
+  RepositorioDeCartera,
   RepositorioDeEtiquetas,
   RepositorioDeFicha,
   RepositorioDeMarcas,
@@ -23,11 +25,13 @@ import type {
   RepositorioDeTelefonos,
 } from './entities/repositorios'
 import { altaSupabase } from './infra/alta'
+import { carteraSupabase } from './infra/cartera'
 import { camposDeLeadSupabase } from './infra/campos'
 import { etiquetasSupabase } from './infra/etiquetas'
 import { fichaSupabase } from './infra/ficha'
 import { marcasSupabase } from './infra/marcas'
 import { getContextoDeAlta } from './infra/queries/alta'
+import { getCartera } from './infra/queries/cartera'
 import { getLayoutDeLeads } from './infra/queries/campos'
 import { getEtiquetas } from './infra/queries/etiquetas'
 import { getFicha } from './infra/queries/ficha'
@@ -77,3 +81,7 @@ export const repositorioDeMarcas: RepositorioDeMarcas = marcasSupabase
 export const repositorioDeEtiquetas: RepositorioDeEtiquetas = etiquetasSupabase
 
 export const leerEtiquetas: LectorDeEtiquetas = getEtiquetas
+
+export const repositorioDeCartera: RepositorioDeCartera = carteraSupabase
+
+export const leerCartera: LectorDeCartera = getCartera

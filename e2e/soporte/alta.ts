@@ -34,6 +34,10 @@ const ASESORA = [
   'leads.crear',
   { clave: 'leads.ver', alcance: 'propios' as const },
   { clave: 'leads.editar', alcance: 'propios' as const },
+  // Mover quién tiene el lead (y enviarlo a la papelera): los de su cartera como dueña.
+  { clave: 'leads.compartir', alcance: 'propios' as const },
+  { clave: 'leads.transferir', alcance: 'propios' as const },
+  { clave: 'leads.eliminar', alcance: 'propios' as const },
 ]
 
 // Crea la dueña, dos asesoras y dos personas más, y deja los orígenes y tipos de seguimiento que el

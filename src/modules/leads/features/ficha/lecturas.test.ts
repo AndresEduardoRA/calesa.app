@@ -6,12 +6,14 @@ const leerFicha = vi.fn()
 const leerLayoutDeLeads = vi.fn()
 const leerOrigenesDeLead = vi.fn()
 const leerEtiquetas = vi.fn()
+const leerCartera = vi.fn()
 
 vi.mock('../../composicion', () => ({
   leerFicha,
   leerLayoutDeLeads,
   leerOrigenesDeLead,
   leerEtiquetas,
+  leerCartera,
 }))
 
 const { leerFichaDeLead } = await import('./lecturas')
@@ -26,9 +28,10 @@ describe('leerFichaDeLead', () => {
     leerLayoutDeLeads.mockResolvedValue(ok([]))
     leerOrigenesDeLead.mockResolvedValue(ok([]))
     leerEtiquetas.mockResolvedValue(ok([]))
+    leerCartera.mockResolvedValue(ok([]))
   })
 
-  it('abrir la ficha son exactamente cuatro lecturas, en paralelo', async () => {
+  it('abrir la ficha son exactamente cinco lecturas, en paralelo', async () => {
     leerFicha.mockResolvedValue(ok({ id: ID }))
     await leerFichaDeLead(ID)
     expect(leerFicha).toHaveBeenCalledTimes(1)
@@ -36,13 +39,15 @@ describe('leerFichaDeLead', () => {
     expect(leerLayoutDeLeads).toHaveBeenCalledTimes(1)
     expect(leerOrigenesDeLead).toHaveBeenCalledTimes(1)
     expect(leerEtiquetas).toHaveBeenCalledTimes(1)
+    expect(leerCartera).toHaveBeenCalledWith(ID)
   })
 
-  it('devuelve la ficha con el layout, los orígenes y las etiquetas de quien mira', async () => {
+  it('devuelve la ficha con el layout, los orígenes, las etiquetas de quien mira y quién lo tiene', async () => {
     leerFicha.mockResolvedValue(ok({ id: ID }))
     leerLayoutDeLeads.mockResolvedValue(ok([{ clave: 'ciudad' }]))
     leerOrigenesDeLead.mockResolvedValue(ok([{ id: 'o' }]))
     leerEtiquetas.mockResolvedValue(ok([{ id: 'e' }]))
+    leerCartera.mockResolvedValue(ok([{ usuarioId: 'u' }]))
     const resultado = await leerFichaDeLead(ID)
     expect(resultado).toEqual(
       ok({
@@ -50,6 +55,7 @@ describe('leerFichaDeLead', () => {
         campos: [{ clave: 'ciudad' }],
         origenes: [{ id: 'o' }],
         etiquetas: [{ id: 'e' }],
+        cartera: [{ usuarioId: 'u' }],
       }),
     )
   })

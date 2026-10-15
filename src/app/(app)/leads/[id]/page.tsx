@@ -3,6 +3,7 @@ import { Suspense } from 'react'
 import { z } from 'zod'
 import { puede, requerirSesion } from '@/modules/equipo'
 import {
+  accionesDeCartera,
   CLAVE_DE_SECCION,
   EsqueletoDeSeguimientos,
   FichaDeLead,
@@ -48,6 +49,8 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
       puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
       seccion={seccion}
       etiquetas={datos.etiquetas}
+      cartera={datos.cartera}
+      accionesDeCartera={accionesDeCartera(sesion.permisos, datos.cartera)}
       // Sólo se lee con la sección abierta: «Datos» no paga la línea de tiempo.
       seguimientos={
         seccion === 'seguimientos' ? (

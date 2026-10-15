@@ -4,9 +4,11 @@ import { Bloque } from '@/shared/ui/bloque'
 import { Dato, DatosPorGrupo, RejillaDeDatos } from '@/shared/ui/campos'
 import { formatearFechaHora } from '@/shared/lib/fechas'
 import { useRegional } from '@/shared/ui/regional'
+import type { AccionesDeCartera, PersonaDeCartera } from '../../../entities/cartera'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { LeadDeFicha } from '../../../entities/ficha'
 import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
+import { BloqueDeCartera } from '../../cartera/components/bloque-de-cartera'
 import { BloqueDeTelefonos } from './bloque-de-telefonos'
 
 type Props = {
@@ -16,12 +18,22 @@ type Props = {
   origen: { nombre: string; activo: boolean } | null
   // Quien mira puede cambiar los teléfonos de este lead (cartera y `leads.editar`).
   puedeCambiarTelefono: boolean
+  // Quién lo tiene y qué puede hacer quien mira con eso.
+  cartera: readonly PersonaDeCartera[]
+  accionesDeCartera: AccionesDeCartera
 }
 
 // La sección «Datos»: los cuatro fijos y los campos del layout agrupados como los definió la
 // empresa. Un «solo la cartera» de un lead que no es de la cartera de quien mira nunca llega: se
 // dice, en vez de un guion que haría creer que no hay dato (igual que en el listado).
-export function SeccionDatos({ ficha, campos, origen, puedeCambiarTelefono }: Props) {
+export function SeccionDatos({
+  ficha,
+  campos,
+  origen,
+  puedeCambiarTelefono,
+  cartera,
+  accionesDeCartera,
+}: Props) {
   const { zonaHoraria } = useRegional()
   return (
     <div className="grid gap-4">
@@ -49,6 +61,11 @@ export function SeccionDatos({ ficha, campos, origen, puedeCambiarTelefono }: Pr
         </RejillaDeDatos>
       </Bloque>
       <BloqueDeTelefonos ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
+      <BloqueDeCartera
+        lead={{ id: ficha.id, nombre: ficha.nombre, numero: ficha.numero }}
+        cartera={cartera}
+        acciones={accionesDeCartera}
+      />
       <DatosPorGrupo
         campos={campos}
         atributos={ficha.atributos}
