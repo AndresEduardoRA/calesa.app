@@ -4193,3 +4193,451 @@ end $$;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 update public.leads_campos set requerido = false where clave like 'ficha_%';
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ===========================================================================================
+-- Teléfonos de la ficha (parte 4b): cambiar el principal y administrar los extras.
+-- Usuarios del bloque anterior: 40 (asesor, «propios»), 41 (otro asesor), 42 (ve «todos», no edita),
+-- 43 (asesor sin leads), 44 (sin rol) y 01 (dueña, «todos»). Los números de este bloque empiezan en 7410.
+-- ===========================================================================================
+
+-- @test teléfonos de la ficha: los leads de prueba, uno de ellos en el limbo
+create or replace function pg_temp.falla(p_sql text) returns text[] language plpgsql as $$
+declare m text; h text;
+begin
+  begin
+    execute p_sql;
+    return null;
+  exception when others then
+    get stacked diagnostics m = message_text, h = pg_exception_hint;
+    return array[sqlstate, m, coalesce(h, '')];
+  end;
+end $$;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; n text; t text; begin
+  for n, t in select * from (values ('Tel Propio', '74100001'), ('Tel Mio Otro', '74100002'), ('Tel Extras', '74100005'),
+                                    ('Tel Compartido', '74100006'), ('Tel Limites', '74100007')) x (n, t) loop
+    r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', n, 'telefono_principal', t, 'origen_lead_id', v_web));
+    if r ->> 'resultado' <> 'creado' then raise exception 'alta %: %', n, r; end if;
+  end loop;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; n text; t text; begin
+  for n, t in select * from (values ('Tel Ajeno', '74100003'), ('Tel Limbo', '74100004')) x (n, t) loop
+    r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', n, 'telefono_principal', t, 'origen_lead_id', v_web));
+    if r ->> 'resultado' <> 'creado' then raise exception 'alta %: %', n, r; end if;
+  end loop;
+end $$;
+reset role;
+-- «Tel Limbo» se queda sin cartera: invisible para todos.
+update public.leads_asesores set revocado_en = now() where lead_id = (select id from public.leads where nombre = 'Tel Limbo');
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: cambiar el principal deja el anterior como «Anterior», mueve la versión y un reintento no duplica
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Propio');
+  v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Propio');
+  r jsonb; f jsonb; v1 timestamptz;
+begin
+  r := public.cambiar_telefono_lead(v_id, v0, '', '74110001');
+  if r ->> 'resultado' <> 'cambiado' then raise exception 'debía cambiar: %', r; end if;
+  if r ->> 'telefono' <> '59174110001' or r ->> 'telefono_cc' <> '+591' then raise exception 'el principal nuevo: %', r; end if;
+  v1 := (r ->> 'actualizado_en')::timestamptz;
+  if v1 <= v0 then raise exception 'cambiar el principal debía mover la versión'; end if;
+  if jsonb_array_length(r -> 'telefonos') <> 1 or r #>> '{telefonos,0,telefono}' <> '59174100001'
+     or r #>> '{telefonos,0,etiqueta}' <> 'Anterior' then
+    raise exception 'el anterior debía quedar como extra «Anterior»: %', r -> 'telefonos';
+  end if;
+  -- La ficha lo ve igual.
+  f := public.lead_ficha(v_id);
+  if f ->> 'telefono' <> '59174110001' or jsonb_array_length(f -> 'telefonos') <> 1 then raise exception 'lead_ficha: %', f; end if;
+
+  -- El reintento tras una respuesta perdida llega con la versión de antes: «sin cambios», un solo «Anterior».
+  r := public.cambiar_telefono_lead(v_id, v0, '', '74110001');
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'el reintento debía ser sin_cambios: %', r; end if;
+  if (r ->> 'actualizado_en')::timestamptz <> v1 or jsonb_array_length(r -> 'telefonos') <> 1 then
+    raise exception 'el reintento no debía mover nada: %', r;
+  end if;
+  -- Escrito de otra forma es el mismo número.
+  r := public.cambiar_telefono_lead(v_id, v1, '', '+591 741-10001');
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'el mismo número, con otro formato: %', r; end if;
+end $$;
+reset role;
+-- La constancia lleva los dos números enmascarados y la actividad del lead no deja ninguno legible.
+do $$ declare d jsonb; v_id text := (select id::text from public.leads where nombre = 'Tel Propio'); begin
+  select detalle into d from public.actividad where accion = 'lead.telefono_cambiado' and registro_id = v_id order by id desc limit 1;
+  if d is null then raise exception 'el cambio no dejó constancia'; end if;
+  if d ->> 'anterior' not like '%•%' or d ->> 'nuevo' not like '%•%' then raise exception 'la constancia, enmascarada: %', d; end if;
+  if exists (select 1 from public.actividad a where a.registro_id = v_id
+               and coalesce(a.antes::text, '') || coalesce(a.despues::text, '') || coalesce(a.detalle::text, '') ~ '591741[0-9]{5}') then
+    raise exception 'la actividad del lead dejó un número legible';
+  end if;
+  if (select count(*) from public.actividad where accion = 'lead.telefono_cambiado' and registro_id = v_id) <> 1 then
+    raise exception 'un reintento no debía dejar otra constancia';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: un número que ya existe es un valor (mío, de otro o en limbo); no cambia nada ni adopta
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Propio');
+  v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Propio');
+  v_limbo uuid := (select id from public.leads where nombre = 'Tel Limbo');
+  r jsonb;
+begin
+  r := public.cambiar_telefono_lead(v_id, v0, '', '74100002');
+  if r ->> 'resultado' <> 'existe' or (r #>> '{verificacion,es_mio}')::boolean is not true or r #>> '{verificacion,nombre}' <> 'Tel Mio Otro' then
+    raise exception 'uno mío: %', r;
+  end if;
+  r := public.cambiar_telefono_lead(v_id, v0, '', '74100003');
+  if r ->> 'resultado' <> 'de_otro' or r #>> '{verificacion,dueno}' is null or r #>> '{verificacion,nombre}' is not null then
+    raise exception 'uno de otro: sólo quién lo tiene: %', r;
+  end if;
+  r := public.cambiar_telefono_lead(v_id, v0, '', '74100004');
+  if r ->> 'resultado' <> 'limbo' then raise exception 'uno en limbo: %', r; end if;
+  -- Un valor, no una excepción, y nada cambió (se lee como dueño de la base: la app no lee la tabla).
+  reset role;
+  if (select telefono_principal from public.leads where id = v_id) <> '59174110001' then raise exception 'cambió el principal'; end if;
+  if (select actualizado_en from public.leads where id = v_id) <> v0 then raise exception 'movió la versión'; end if;
+  if (select count(*) from public.leads_telefonos where lead_id = v_id) <> 1 then raise exception 'tocó los extras'; end if;
+  if exists (select 1 from public.leads_asesores where lead_id = v_limbo and revocado_en is null) then raise exception 'adoptó el limbo'; end if;
+  if (select telefono_principal from public.leads where id = v_limbo) <> '59174100004' then raise exception 'cambió el del limbo'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: un número inválido se rechaza con su motivo; pegado con formato o de otro país entra
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Propio');
+  v timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Propio');
+  t text; f text[]; r jsonb;
+begin
+  foreach t in array array['123', '71abc', '7+1234567', '', '   ', '12345678901234567890'] loop
+    f := pg_temp.falla(format('select public.cambiar_telefono_lead(%L, %L, %L, %L)', v_id, v, '', t));
+    if f is null then raise exception 'aceptó «%»', t; end if;
+    if f[1] <> '22023' or f[3] <> 'telefono_principal' then raise exception '«%»: % %', t, f[1], f[3]; end if;
+  end loop;
+  if (select actualizado_en from public.leads where id = v_id) <> v then raise exception 'un rechazo movió la versión'; end if;
+
+  -- Pegado con paréntesis y guiones: es el mismo teléfono nacional.
+  r := public.cambiar_telefono_lead(v_id, v, '', '(7) 411-0002');
+  if r ->> 'resultado' <> 'cambiado' or r ->> 'telefono' <> '59174110002' then raise exception 'con formato: %', r; end if;
+  v := (r ->> 'actualizado_en')::timestamptz;
+  -- De otro país: no es el de la empresa, así que el lead no guarda código.
+  r := public.cambiar_telefono_lead(v_id, v, '', '+54 9 11 5555 1234');
+  if r ->> 'resultado' <> 'cambiado' or r ->> 'telefono' <> '5491155551234' or r ->> 'telefono_cc' is not null then
+    raise exception 'de otro país: %', r;
+  end if;
+  if jsonb_array_length(r -> 'telefonos') <> 3 then raise exception 'los anteriores: %', r -> 'telefonos'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: el nuevo era un extra del lead y el anterior ya lo era: nada se duplica
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Extras');
+  r jsonb; v timestamptz;
+begin
+  r := public.lead_telefono_guardar(v_id, gen_random_uuid(), '', '74120001', 'Trabajo');
+  v := (select actualizado_en from public.leads where id = v_id);
+  -- Pasa de extra a principal: sale de los extras y entra el anterior.
+  r := public.cambiar_telefono_lead(v_id, v, '', '74120001');
+  if r ->> 'resultado' <> 'cambiado' then raise exception 'debía cambiar: %', r; end if;
+  if jsonb_array_length(r -> 'telefonos') <> 1 or r #>> '{telefonos,0,telefono}' <> '59174100005' or r #>> '{telefonos,0,etiqueta}' <> 'Anterior' then
+    raise exception 'el que pasó a principal debía salir de los extras: %', r -> 'telefonos';
+  end if;
+  -- Dato anterior a la regla: el principal ya figura como extra, con su etiqueta.
+  reset role;
+  insert into public.leads_telefonos (lead_id, telefono, etiqueta) values (v_id, '59174120001', 'Casa legado');
+  set local role authenticated;
+  r := public.cambiar_telefono_lead(v_id, (r ->> 'actualizado_en')::timestamptz, '', '74120002');
+  if r ->> 'resultado' <> 'cambiado' then raise exception 'debía cambiar: %', r; end if;
+  if jsonb_array_length(r -> 'telefonos') <> 2 then raise exception 'sin duplicar: %', r -> 'telefonos'; end if;
+  if (select count(*) from jsonb_array_elements(r -> 'telefonos') e where e ->> 'telefono' = '59174120001' and e ->> 'etiqueta' = 'Casa legado') <> 1 then
+    raise exception 'conserva la etiqueta que ya tenía: %', r -> 'telefonos';
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: dos personas a la vez dan PT409, la versión es obligatoria y la cartera compartida también cambia
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Compartido');
+  v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Compartido');
+  f text[]; r jsonb;
+begin
+  -- La dueña («todos», sin cartera) edita el nombre: la versión se mueve.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  perform public.lead_guardar(v_id, v0, '{"nombre": "Tel Compartido 2"}');
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  f := pg_temp.falla(format('select public.cambiar_telefono_lead(%L, %L, %L, %L)', v_id, v0, '', '74140001'));
+  if f is null or f[1] <> 'PT409' or f[2] not like '% cambió este lead %' then raise exception 'conflicto: %', f; end if;
+  f := pg_temp.falla(format('select public.cambiar_telefono_lead(%L, null, %L, %L)', v_id, '', '74140001'));
+  if f is null or f[2] not like 'Falta la versión%' then raise exception 'la versión es obligatoria: %', f; end if;
+  reset role;
+  if (select telefono_principal from public.leads where id = v_id) <> '59174100006' then raise exception 'un rechazo cambió el teléfono'; end if;
+
+  -- Quien lo tiene compartido está en la cartera: cambia.
+  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por)
+  values (v_id, '00000000-0000-0000-0000-000000000043', 'compartido', '00000000-0000-0000-0000-000000000040');
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000043', true);
+  set local role authenticated;
+  r := public.cambiar_telefono_lead(v_id, (select actualizado_en from public.leads where id = v_id), '', '74140002');
+  reset role;
+  if r ->> 'resultado' <> 'cambiado' then raise exception 'el compartido debía poder: %', r; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: sin cartera (también la dueña con «todos») las cuatro RPC rechazan, y lo que no se ve da el mismo mensaje
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Extras');
+  v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Extras');
+  v_limbo uuid := (select id from public.leads where nombre = 'Tel Limbo');
+  v_sin text := 'Sólo quien tiene este lead en su cartera puede cambiar sus teléfonos.';
+  v_nada text := 'No encontramos este lead o no tienes acceso.';
+  u text; l uuid; esperado text; sql text; f text[]; n int := 0; antes jsonb; despues jsonb;
+begin
+  select to_jsonb(x) into antes from (select telefono_principal, actualizado_en, (select jsonb_agg(t order by t.telefono) from public.leads_telefonos t where t.lead_id = v_id) extras from public.leads where id = v_id) x;
+  for u, l, esperado in
+    select * from (values
+      ('00000000-0000-0000-0000-000000000001'::text, v_id, v_sin),
+      ('00000000-0000-0000-0000-000000000042', v_id, v_sin),
+      ('00000000-0000-0000-0000-000000000041', v_id, v_nada),
+      ('00000000-0000-0000-0000-000000000044', v_id, v_nada),
+      ('00000000-0000-0000-0000-000000000040', gen_random_uuid(), v_nada),
+      ('00000000-0000-0000-0000-000000000001', v_limbo, v_nada)) t (u, l, esperado)
+  loop
+    foreach sql in array array[
+      format('select public.cambiar_telefono_lead(%L, %L, %L, %L)', l, v0, '', '74199999'),
+      format('select public.verificar_telefono_de_lead(%L, %L, %L)', l, '', '74199999'),
+      format('select public.lead_telefono_guardar(%L, gen_random_uuid(), %L, %L, null)', l, '', '74199999'),
+      format('select public.lead_telefono_quitar(%L, gen_random_uuid())', l)] loop
+      perform set_config('request.jwt.claim.sub', u, true);
+      set local role authenticated;
+      f := pg_temp.falla(sql);
+      reset role;
+      if f is null then raise exception 'aceptó a % en %', u, sql; end if;
+      if f[1] <> '42501' or f[2] <> esperado then raise exception '% en %: % (%)', u, sql, f[2], f[1]; end if;
+      n := n + 1;
+    end loop;
+  end loop;
+  if n <> 24 then raise exception 'se probaron % de 24 casos', n; end if;
+  select to_jsonb(x) into despues from (select telefono_principal, actualizado_en, (select jsonb_agg(t order by t.telefono) from public.leads_telefonos t where t.lead_id = v_id) extras from public.leads where id = v_id) x;
+  if antes is distinct from despues then raise exception 'un rechazo cambió el lead'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: agregar es idempotente por id, la etiqueta es opcional y los duplicados se rechazan junto al campo
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Limites');
+  v_ajeno uuid;
+  id1 uuid := gen_random_uuid();
+  id2 uuid := gen_random_uuid();
+  v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Limites');
+  r jsonb; f text[]; t text;
+begin
+  r := public.lead_telefono_guardar(v_id, id1, '', '74130001', '  Casa ');
+  if r ->> 'resultado' <> 'agregado' or jsonb_array_length(r -> 'telefonos') <> 1 or r #>> '{telefonos,0,etiqueta}' <> 'Casa'
+     or r #>> '{telefonos,0,telefono}' <> '59174130001' then
+    raise exception 'agregar: %', r;
+  end if;
+  -- El mismo id otra vez (un reintento): no cambia nada.
+  r := public.lead_telefono_guardar(v_id, id1, '', '74130001', 'Casa');
+  if r ->> 'resultado' <> 'sin_cambios' or jsonb_array_length(r -> 'telefonos') <> 1 then raise exception 'el reintento: %', r; end if;
+  -- Rotular: otra etiqueta, y vacía queda nula.
+  r := public.lead_telefono_guardar(v_id, id1, '', '74130001', 'Trabajo');
+  if r ->> 'resultado' <> 'rotulado' or r #>> '{telefonos,0,etiqueta}' <> 'Trabajo' then raise exception 'rotular: %', r; end if;
+  r := public.lead_telefono_guardar(v_id, id1, '', '74130001', '   ');
+  if r ->> 'resultado' <> 'rotulado' or r #>> '{telefonos,0,etiqueta}' is not null then raise exception 'la etiqueta vacía es nula: %', r; end if;
+  -- Otro número con el mismo id: no se cambia el número de un extra.
+  f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, %L, %L, %L, null)', v_id, id1, '', '74130002'));
+  if f is null or f[1] <> '22023' or f[3] <> 'telefono' or f[2] not like 'Para cambiar el número%' then raise exception 'otro número, mismo id: %', f; end if;
+  -- Duplicado dentro del lead, escrito de otra forma, y el principal: junto al campo.
+  foreach t in array array['74130001', '+591 741-30001', '74100007', '074100007'] loop
+    f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, %L, %L, %L, null)', v_id, id2, '', t));
+    if f is null or f[1] <> '22023' or f[3] <> 'telefono' or f[2] <> 'Ese número ya está en este lead.' then raise exception 'duplicado: %', f; end if;
+  end loop;
+  -- Etiqueta: 40 entra, 41 no.
+  r := public.lead_telefono_guardar(v_id, id2, '', '74130002', repeat('x', 40));
+  if r ->> 'resultado' <> 'agregado' then raise exception 'etiqueta de 40: %', r; end if;
+  f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, %L, %L, %L, %L)', v_id, gen_random_uuid(), '', '74130003', repeat('x', 41)));
+  if f is null or f[3] <> 'etiqueta' then raise exception 'etiqueta de 41: %', f; end if;
+  -- Un teléfono que no lo es: el motivo viene con el campo del formulario de un extra.
+  f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, %L, %L, %L, null)', v_id, gen_random_uuid(), '', '123'));
+  if f is null or f[1] <> '22023' or f[3] <> 'telefono' then raise exception 'número corto: %', f; end if;
+  -- El id de un teléfono de otro lead no se toca.
+  reset role;
+  v_ajeno := (select t.id from public.leads_telefonos t join public.leads l on l.id = t.lead_id where l.nombre = 'Tel Extras' limit 1);
+  set local role authenticated;
+  f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, %L, %L, %L, %L)', v_id, v_ajeno, '', '74130009', 'Mío'));
+  if f is null or f[1] <> '22023' then raise exception 'tocó un teléfono ajeno: %', f; end if;
+  r := public.lead_telefono_quitar(v_id, v_ajeno);
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'quitar un teléfono ajeno: %', r; end if;
+  reset role;
+  if not exists (select 1 from public.leads_telefonos where id = v_ajeno and etiqueta is distinct from 'Mío') then raise exception 'se tocó el de otro lead'; end if;
+  -- Agregar y rotular no mueven la versión del lead.
+  if (select actualizado_en from public.leads where id = v_id) <> v0 then raise exception 'los extras movieron la versión'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: quitar devuelve lo quitado, deshacer lo restituye tal cual y no mueve la versión
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Limites');
+  v0 timestamptz := (select actualizado_en from public.leads where nombre = 'Tel Limites');
+  id2 uuid; q jsonb; r jsonb; f text[];
+begin
+  select t.id into id2 from public.lead_telefonos(v_id) t where t.telefono = '59174130002';
+  r := public.lead_telefono_quitar(v_id, id2);
+  q := r -> 'quitado';
+  if r ->> 'resultado' <> 'quitado' or (q ->> 'id')::uuid <> id2 or q ->> 'telefono' <> '59174130002' or q ->> 'etiqueta' <> repeat('x', 40) then
+    raise exception 'quitar: %', r;
+  end if;
+  if jsonb_array_length(r -> 'telefonos') <> 1 then raise exception 'la lista tras quitar: %', r -> 'telefonos'; end if;
+  -- Quitar lo que ya no está no es un error.
+  r := public.lead_telefono_quitar(v_id, id2);
+  if r ->> 'resultado' <> 'sin_cambios' or r -> 'quitado' <> 'null'::jsonb then raise exception 'quitar de nuevo: %', r; end if;
+  -- Deshacer: mismo id, etiqueta y lugar.
+  r := public.lead_telefono_guardar(v_id, id2, '', '+' || (q ->> 'telefono'), q ->> 'etiqueta', (q ->> 'creado_en')::timestamptz);
+  if r ->> 'resultado' <> 'agregado' or jsonb_array_length(r -> 'telefonos') <> 2 then raise exception 'restituir: %', r; end if;
+  if not exists (select 1 from jsonb_array_elements(r -> 'telefonos') e
+                  where (e ->> 'id')::uuid = id2 and (e ->> 'creado_en')::timestamptz = (q ->> 'creado_en')::timestamptz) then
+    raise exception 'no volvió a su lugar: %', r -> 'telefonos';
+  end if;
+  -- Quitado, y mientras tanto alguien agregó el mismo número con otro id: deshacer no duplica.
+  perform public.lead_telefono_quitar(v_id, id2);
+  perform public.lead_telefono_guardar(v_id, gen_random_uuid(), '', '74130002', null);
+  f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, %L, %L, %L, %L)', v_id, id2, '', '+59174130002', q ->> 'etiqueta'));
+  if f is null or f[2] <> 'Ese número ya está en este lead.' then raise exception 'deshacer con el número ya agregado: %', f; end if;
+  if (select count(*) from public.lead_telefonos(v_id) where telefono = '59174130002') <> 1 then raise exception 'se duplicó'; end if;
+  -- Quitar y restituir tampoco mueven la versión del lead.
+  reset role;
+  if (select actualizado_en from public.leads where id = v_id) <> v0 then raise exception 'quitar movió la versión'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: hasta 10 extras; el cambio del principal guarda el «Anterior» aunque haya 10; la actividad no deja números
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Tel Limites');
+  v0 timestamptz;
+  g int; r jsonb; f text[]; n int;
+begin
+  reset role;
+  v0 := (select actualizado_en from public.leads where id = v_id);
+  set local role authenticated;
+  n := (select count(*) from public.lead_telefonos(v_id));
+  for g in 1 .. 10 - n loop
+    r := public.lead_telefono_guardar(v_id, gen_random_uuid(), '', '7414000' || g, null);
+  end loop;
+  if (select count(*) from public.lead_telefonos(v_id)) <> 10 then raise exception 'debían ser 10'; end if;
+  f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, gen_random_uuid(), %L, %L, null)', v_id, '', '74149999'));
+  if f is null or f[1] <> '22023' or f[3] <> 'telefono' or f[2] not like 'Un lead admite hasta 10%' then raise exception 'el número 11: %', f; end if;
+  -- Ya con 10, cambiar el principal no se rechaza por el tope: el anterior siempre entra.
+  r := public.cambiar_telefono_lead(v_id, v0, '', '74150001');
+  if r ->> 'resultado' <> 'cambiado' or jsonb_array_length(r -> 'telefonos') <> 11 then raise exception 'cambiar con 10: %', r; end if;
+  if not exists (select 1 from jsonb_array_elements(r -> 'telefonos') e where e ->> 'telefono' = '59174100007' and e ->> 'etiqueta' = 'Anterior') then
+    raise exception 'faltó el «Anterior»';
+  end if;
+  -- Y no se puede agregar otro hasta quitar.
+  f := pg_temp.falla(format('select public.lead_telefono_guardar(%L, gen_random_uuid(), %L, %L, null)', v_id, '', '74149998'));
+  if f is null or f[2] not like 'Un lead admite hasta 10%' then raise exception 'con 11: %', f; end if;
+end $$;
+reset role;
+do $$ declare
+  v_ids text[] := (select array_agg(id::text) from public.leads where nombre like 'Tel %');
+begin
+  if not exists (select 1 from public.actividad where accion = 'lead.telefono_extra_agregado' and registro_id = any (v_ids)) then
+    raise exception 'agregar un extra debía dejar constancia';
+  end if;
+  if not exists (select 1 from public.actividad where accion = 'lead.telefono_extra_quitado' and registro_id = any (v_ids)) then
+    raise exception 'quitar un extra debía dejar constancia';
+  end if;
+  if not exists (select 1 from public.actividad where accion = 'lead.telefono_extra_rotulado' and registro_id = any (v_ids)) then
+    raise exception 'rotular un extra debía dejar constancia';
+  end if;
+  -- Ninguna constancia de un lead de este bloque deja un número legible (todos empiezan con 591741).
+  if exists (select 1 from public.actividad a where a.registro_id = any (v_ids)
+               and coalesce(a.antes::text, '') || coalesce(a.despues::text, '') || coalesce(a.detalle::text, '') ~ '591741[0-9]{5}') then
+    raise exception 'la actividad dejó un número legible';
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test teléfonos de la ficha: un número libre que es extra de otro lead avisa sin bloquear, con la misma regla de qué se dice
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare v_id uuid := (select id from public.leads where nombre = 'Tel Ajeno'); begin
+  perform public.lead_telefono_guardar(v_id, gen_random_uuid(), '', '74160001', 'Casa');
+end $$;
+-- Quien lo tiene lo ve como suyo.
+do $$ declare r jsonb; begin
+  r := public.verificar_telefono('', '74160001');
+  if r ->> 'estado' <> 'libre' or r #>> '{alterno,estado}' <> 'existe' or (r #>> '{alterno,es_mio}')::boolean is not true
+     or r #>> '{alterno,nombre}' <> 'Tel Ajeno' then
+    raise exception 'el dueño del lead: %', r;
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare r jsonb; v_id uuid; begin
+  -- Quien no ve ese lead sólo sabe de quién es.
+  r := public.verificar_telefono('', '74160001');
+  if r ->> 'estado' <> 'libre' or r #>> '{alterno,estado}' <> 'de_otro' or r #>> '{alterno,dueno}' is null or r #>> '{alterno,nombre}' is not null then
+    raise exception 'el de otra persona: sólo quién: %', r;
+  end if;
+  -- Un número que no es de ningún lead no trae alterno.
+  r := public.verificar_telefono('', '74169999');
+  if r <> '{"estado": "libre"}'::jsonb then raise exception 'libre sin alterno: %', r; end if;
+  -- No bloquea el alta: el lead nuevo entra.
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Tel Con Alterno', 'telefono_principal', '74160001',
+         'origen_lead_id', (select id from public.origenes_lead where clave = 'web')));
+  if r ->> 'resultado' <> 'creado' then raise exception 'el alterno no debía bloquear el alta: %', r; end if;
+  v_id := (select id from public.leads where nombre = 'Tel Extras');
+  -- Desde la ficha: el propio principal es «mismo»; un extra propio no avisa de sí mismo.
+  r := public.verificar_telefono_de_lead(v_id, '', '74120002');
+  if r ->> 'estado' <> 'mismo' then raise exception 'el principal: %', r; end if;
+  r := public.verificar_telefono_de_lead(v_id, '', '74100005');
+  if r ->> 'estado' <> 'libre' or (r ->> 'es_extra')::boolean is not true or r ? 'alterno' then raise exception 'un extra propio: %', r; end if;
+  r := public.verificar_telefono_de_lead(v_id, '', '74100002');
+  if r ->> 'estado' <> 'existe' or (r ->> 'es_mio')::boolean is not true then raise exception 'uno mío: %', r; end if;
+  r := public.verificar_telefono_de_lead(v_id, '', '74100003');
+  if r ->> 'estado' <> 'de_otro' then raise exception 'uno de otro: %', r; end if;
+  r := public.verificar_telefono_de_lead(v_id, '', '74100004');
+  if r ->> 'estado' <> 'limbo' then raise exception 'uno en limbo: %', r; end if;
+  -- Un teléfono extra de otro lead también avisa al cambiar.
+  r := public.verificar_telefono_de_lead(v_id, '', '74160001');
+  if r ->> 'estado' <> 'existe' then raise exception 'ya es principal de «Tel Con Alterno»: %', r; end if;
+end $$;
+reset role;
+-- Un extra de un lead sin cartera (limbo) no se nombra.
+insert into public.leads_telefonos (lead_id, telefono) values ((select id from public.leads where nombre = 'Tel Limbo'), '59174160009');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.verificar_telefono('', '74160009');
+  if r <> '{"estado": "libre"}'::jsonb then raise exception 'un extra del limbo no se nombra: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

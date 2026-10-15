@@ -64,7 +64,8 @@ export async function leadEnLaBase(leadId: string): Promise<FilaDeLeadEnLaBase> 
   return data
 }
 
-// Los teléfonos extra, escritos como los escribirá la parte 4b (la app todavía no los escribe).
+// Los teléfonos extra, escritos como dueño de la base: sirve para preparar un lead sin pasar por la
+// pantalla (la app los escribe por `lead_telefono_guardar`).
 export async function ponerExtras(
   leadId: string,
   extras: { telefono: string; etiqueta: string | null }[],
@@ -186,4 +187,57 @@ export async function telefonoDeLead(leadId: string): Promise<string> {
     .single<{ telefono_principal: string }>()
   exigir(error, 'leer el teléfono del lead')
   return data?.telefono_principal ?? ''
+}
+
+export type ExtraEnLaBase = { id: string; telefono: string; etiqueta: string | null }
+
+// Los teléfonos extra de un lead, en el orden en que la ficha los dibuja.
+export async function extrasDeLead(leadId: string): Promise<ExtraEnLaBase[]> {
+  const { data, error } = await admin()
+    .from('leads_telefonos')
+    .select('id, telefono, etiqueta')
+    .eq('lead_id', leadId)
+    .order('creado_en')
+    .order('id')
+    .returns<ExtraEnLaBase[]>()
+  exigir(error, 'leer los teléfonos extra')
+  return data ?? []
+}
+
+// Un lead creado por la app guarda el código de país cuando el número es el de la empresa; el que
+// inserta un e2e no. La ficha parte el número y completa un teléfono nacional con ese código.
+export async function fijarCodigoDePais(leadId: string, codigo: string): Promise<void> {
+  const { error } = await admin()
+    .from('leads')
+    .update({ telefono_cc: `+${codigo}` })
+    .eq('id', leadId)
+  exigir(error, 'fijar el código de país del lead')
+}
+
+// Cuántas constancias de este tipo dejó el lead.
+export async function constanciasDe(leadId: string, accion: string): Promise<number> {
+  const { count, error } = await admin()
+    .from('actividad')
+    .select('id', { count: 'exact', head: true })
+    .eq('tabla', 'leads')
+    .eq('registro_id', leadId)
+    .eq('accion', accion)
+  exigir(error, 'contar las constancias')
+  return count ?? 0
+}
+
+export const panelDeTelefono = (page: Page): Locator =>
+  page.getByRole('dialog', { name: 'Cambiar teléfono principal' })
+
+export const botonCambiar = (page: Page): Locator =>
+  aLaVista(page.getByRole('button', { name: 'Cambiar', exact: true }))
+
+// Abre el panel con «Cambiar» (la página hidrata antes de que el clic valga).
+export async function abrirCambioDeTelefono(page: Page): Promise<Locator> {
+  const panel = panelDeTelefono(page)
+  await expect(async () => {
+    await botonCambiar(page).click()
+    await expect(panel).toBeVisible({ timeout: 1000 })
+  }).toPass()
+  return panel
 }

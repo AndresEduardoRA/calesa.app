@@ -100,6 +100,21 @@ describe('useCambiarTelefono: lo que se valida antes de enviar', () => {
     expect(hook.result.current.errores['telefono']).toMatch(/sólo lleva números/)
   })
 
+  it('al salir del campo, lo que no es un teléfono dice por qué; vacío no dice nada', () => {
+    const hook = montar()
+    act(() => {
+      hook.result.current.revisar()
+    })
+    expect(hook.result.current.errores['telefono']).toBeUndefined()
+    escribir(hook, '71abc')
+    act(() => {
+      hook.result.current.revisar()
+    })
+    expect(hook.result.current.errores['telefono']).toMatch(/sólo lleva números/)
+    escribir(hook, '71234567')
+    expect(hook.result.current.errores['telefono']).toBeUndefined()
+  })
+
   it('un lead sin código de país no adivina uno: pide el «+»', async () => {
     const hook = montar({ ...FICHA, telefonoCc: null })
     escribir(hook, '71234567')

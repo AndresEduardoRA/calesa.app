@@ -58,6 +58,27 @@ function useVerificacionDelCambio({
   return { normalizado, esElMismo, verificacion, dicho, aviso }
 }
 
+const MOTIVO_DEL_MISMO = avisoDeVerificacion({ estado: 'mismo' }).texto
+
+// Lo que impide enviar sin preguntarle a la base: no es un teléfono, o es el que ya tiene.
+function motivoPrevio(
+  normalizado: ReturnType<typeof normalizarTelefono>,
+  esElMismo: boolean,
+): string | null {
+  if (!normalizado.ok) {
+    return normalizado.motivo
+  }
+  return esElMismo ? MOTIVO_DEL_MISMO : null
+}
+
+// «+591 70011002»: cómo va a quedar guardado lo que se escribió, si ya es un teléfono.
+function comoSeGuarda(
+  normalizado: ReturnType<typeof normalizarTelefono>,
+  codigoDePais: string | null,
+) {
+  return normalizado.ok ? telefonoParaMostrar(normalizado.numero, codigoDePais) : null
+}
+
 // El estado de «Cambiar teléfono principal»: el número verificado al tipear (sin contarse a sí
 // mismo), los motivos junto al campo, el conflicto con otra persona y, si se cae la conexión, lo
 // escrito conservado y el envío reintentado al volver (cambiar al mismo número no es un conflicto).
@@ -79,14 +100,9 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
     if (cambio.isPending) {
       return false
     }
-    if (!normalizado.ok) {
-      setEstado((antes) => conMotivos(antes, { [CLAVE]: normalizado.motivo }))
-      return false
-    }
-    if (esElMismo) {
-      setEstado((antes) =>
-        conMotivos(antes, { [CLAVE]: avisoDeVerificacion({ estado: 'mismo' }).texto }),
-      )
+    const motivo = motivoPrevio(normalizado, esElMismo)
+    if (motivo !== null || !normalizado.ok) {
+      setEstado((antes) => conMotivos(antes, { [CLAVE]: motivo ?? '' }))
       return false
     }
     const resultado = await enviarAccion<CambioDeTelefono>(
@@ -136,11 +152,17 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
       verificando: activo && !esElMismo && verificacion.verificando,
       verificacion: dicho,
       aviso,
-      comoSeGuarda: normalizado.ok ? telefonoParaMostrar(normalizado.numero, codigoDePais) : null,
+      comoSeGuarda: comoSeGuarda(normalizado, codigoDePais),
       adoptar: false,
     },
     cambiar: (valor: string) => {
       setEstado((antes) => conCambio(antes, CLAVE, valor))
+    },
+    // Al salir del campo: un número que no es un teléfono dice por qué (como en el alta).
+    revisar: () => {
+      if (escrito.trim() !== '' && !normalizado.ok) {
+        setEstado((antes) => conMotivos(antes, { [CLAVE]: normalizado.motivo }))
+      }
     },
     enviar,
     // «Recargar» trae la versión y el número vigentes y conserva lo que se tipeó.

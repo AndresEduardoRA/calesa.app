@@ -106,6 +106,7 @@ function Contenido({ ficha, alCerrar }: { ficha: LeadDeFicha; alCerrar: () => vo
           telefono={cambio.telefono}
           deshabilitado={cambio.enCurso}
           alCambiar={cambio.cambiar}
+          alSalir={cambio.revisar}
         />
         {ficha.telefonoCc === null ? (
           <p className="text-(length:--text-xs) text-(--color-ink-soft)">
