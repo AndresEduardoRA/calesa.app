@@ -15,6 +15,7 @@ import {
   type SeccionDeLead,
 } from '../../../entities/ficha'
 import { usePanelDeLead } from '../hooks/use-panel-de-lead'
+import { AvisoDeVencidos } from './aviso-de-vencidos'
 import { BarraDeSecciones } from './barra-de-secciones'
 import { BotonEditarLead } from './boton-editar-lead'
 import { CabeceraDeLead } from './cabecera-de-lead'
@@ -86,6 +87,7 @@ export function FichaDeLead({
         quien={quienLoTiene(ficha, usuarioId)}
         acciones={puedeEditar ? <BotonEditarLead /> : null}
       />
+      <AvisoDeVencidos leadId={ficha.id} vencidos={ficha.recordatoriosVencidos} seccion={seccion} />
       <BarraDeSecciones leadId={ficha.id} actual={seccion} />
       {CONTENIDO_DE_SECCION[seccion]({ ficha, campos, origen, puedeCambiarTelefono, seguimientos })}
       <PanelDeEdicion

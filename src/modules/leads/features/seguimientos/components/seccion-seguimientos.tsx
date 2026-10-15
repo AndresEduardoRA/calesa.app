@@ -9,5 +9,12 @@ import { SeguimientosDelLead } from './seguimientos-del-lead'
 export async function SeccionSeguimientos({ leadId }: { leadId: string }) {
   await connection()
   const datos = datosO(await leerSeguimientosDeLead(leadId))
-  return <SeguimientosDelLead leadId={leadId} inicial={datos.pagina} tipos={datos.tipos} />
+  return (
+    <SeguimientosDelLead
+      leadId={leadId}
+      inicial={datos.pagina}
+      tipos={datos.tipos}
+      recordatorios={datos.recordatorios}
+    />
+  )
 }

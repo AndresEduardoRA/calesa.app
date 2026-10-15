@@ -10,6 +10,8 @@ import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { Interruptor } from '@/shared/ui/interruptor'
 import type { TipoDeSeguimiento } from '../../../entities/alta'
+import type { Recordatorio } from '../../../entities/recordatorios'
+import { CampoCuando } from '../../recordatorios/components/campo-cuando'
 import {
   ETIQUETA_DE_VISIBLE,
   LARGO_MAXIMO_DEL_TITULO,
@@ -24,7 +26,8 @@ type Props = {
   tipos: readonly TipoDeSeguimiento[]
   zona: string
   original: Seguimiento | null
-  alGuardar: (seguimiento: Seguimiento) => void
+  // Con el recordatorio que entró junto, si se pidió uno.
+  alGuardar: (seguimiento: Seguimiento, recordatorio: Recordatorio | null) => void
   alCerrar: () => void
 }
 
@@ -258,6 +261,20 @@ export function RedactorDeSeguimiento({
       <TipoYResumen redactor={redactor} id={id} original={original} tipos={tipos} />
       <Detalle redactor={redactor} id={id} />
       <Visible redactor={redactor} />
+      {original ? null : (
+        <CampoCuando
+          nombre={`${id}-recordatorio`}
+          etiqueta="Recordatorio (opcional)"
+          valor={redactor.valores.recordatorio}
+          alCambiar={(valor) => {
+            redactor.cambiar('recordatorio', valor)
+          }}
+          zona={zona}
+          error={redactor.errores.recordatorio}
+          deshabilitado={redactor.enCurso}
+          quitable
+        />
+      )}
       <Pie redactor={redactor} alCerrar={alCerrar} recargando={recargando} />
     </form>
   )

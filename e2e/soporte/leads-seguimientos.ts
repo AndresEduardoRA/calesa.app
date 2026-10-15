@@ -19,8 +19,9 @@ export const edicion = (page: Page): Locator =>
   page.getByRole('form', { name: 'Editar seguimiento' })
 export const editorDe = (formulario: Locator): Locator =>
   formulario.getByRole('textbox', { name: 'Detalle (opcional)' })
+// Dentro de la línea de tiempo: un recordatorio puede llevar el mismo título.
 export const seguimiento = (page: Page, titulo: string): Locator =>
-  page.getByRole('article', { name: titulo })
+  page.getByRole('region', { name: 'Seguimientos' }).getByRole('article', { name: titulo })
 
 // Abre el redactor con el botón; antes de hidratar el clic no vale, así que se insiste.
 export async function abrirRedactor(page: Page): Promise<Locator> {
@@ -118,4 +119,58 @@ export async function meterSeguimientoMalicioso(leadId: string, quienId: string,
       },
     })
   exigir(error, 'insertar el seguimiento malicioso')
+}
+
+// --- Recordatorios ---------------------------------------------------------------------------------
+
+export const bloqueDeRecordatorios = (page: Page): Locator =>
+  page.getByRole('region', { name: 'Tus recordatorios' })
+export const recordatorio = (page: Page, titulo: string): Locator =>
+  bloqueDeRecordatorios(page).getByRole('article', { name: titulo })
+
+export type RecordatorioEnLaBase = {
+  id: string
+  titulo: string
+  recordar_en: string
+  notificado_en: string | null
+  completado_en: string | null
+  eliminado_en: string | null
+  usuario_id: string
+  actualizado_en: string
+}
+
+export async function recordatoriosEnLaBase(leadId: string): Promise<RecordatorioEnLaBase[]> {
+  const { data, error } = await admin()
+    .from('recordatorios')
+    .select(
+      'id, titulo, recordar_en, notificado_en, completado_en, eliminado_en, usuario_id, actualizado_en',
+    )
+    .eq('lead_id', leadId)
+    .order('recordar_en')
+    .returns<RecordatorioEnLaBase[]>()
+  exigir(error, 'leer los recordatorios')
+  return data ?? []
+}
+
+// Un recordatorio puesto como dueño de la base (uno vencido no se puede crear por la RPC).
+export async function meterRecordatorio(datos: {
+  leadId: string
+  usuarioId: string
+  titulo: string
+  recordarEn: string
+  notificadoEn?: string
+}): Promise<string> {
+  const { data, error } = await admin()
+    .from('recordatorios')
+    .insert({
+      lead_id: datos.leadId,
+      usuario_id: datos.usuarioId,
+      titulo: datos.titulo,
+      recordar_en: datos.recordarEn,
+      notificado_en: datos.notificadoEn ?? null,
+    })
+    .select('id')
+    .single<{ id: string }>()
+  exigir(error, 'insertar el recordatorio')
+  return data?.id ?? ''
 }

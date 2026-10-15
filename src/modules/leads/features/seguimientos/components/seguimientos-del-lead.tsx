@@ -7,6 +7,9 @@ import { Button } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { useRegional } from '@/shared/ui/regional'
 import type { TipoDeSeguimiento } from '../../../entities/alta'
+import type { Recordatorio } from '../../../entities/recordatorios'
+import { BloqueDeRecordatorios } from '../../recordatorios/components/bloque-de-recordatorios'
+import { useRecordatorios } from '../../recordatorios/hooks/use-recordatorios'
 import { puedeEditarSeguimiento, type PaginaDeSeguimientos } from '../../../entities/seguimiento'
 import { useEliminarSeguimiento } from '../hooks/use-eliminar-seguimiento'
 import { useSeguimientos, type Seguimientos } from '../hooks/use-seguimientos'
@@ -17,6 +20,7 @@ type Props = {
   leadId: string
   inicial: PaginaDeSeguimientos
   tipos: readonly TipoDeSeguimiento[]
+  recordatorios: readonly Recordatorio[]
 }
 
 // ¿Quedó algo escrito sin guardar? Entonces el redactor arranca abierto, con eso adentro.
@@ -114,11 +118,12 @@ function LineaDeTiempo({ leadId, tipos, zona, puedoAnotar, seguimientos }: Props
 }
 
 // La sección «Seguimientos» de la ficha: el redactor (sólo con el lead en la cartera y
-// `leads.editar`) y la línea de tiempo. Lo que cada quien ve lo decidió la base; acá no se cuenta
+// `leads.editar`), la línea de tiempo y, al costado (arriba en el celular), «Tus recordatorios». Lo que cada quien ve lo decidió la base; acá no se cuenta
 // nada, para no insinuar los privados de otros.
-export function SeguimientosDelLead({ leadId, inicial, tipos }: Props) {
+export function SeguimientosDelLead({ leadId, inicial, tipos, recordatorios }: Props) {
   const { zonaHoraria } = useRegional()
   const seguimientos = useSeguimientos(leadId, inicial)
+  const deQuienMira = useRecordatorios(recordatorios)
   const puedoAnotar = inicial.puedoAnotar
   // Con algo escrito sin guardar, el redactor arranca abierto. Se mira una sola vez: el borrador
   // se reescribe mientras el redactor lo repone, y releerlo en medio lo cerraría. El servidor no
@@ -132,48 +137,61 @@ export function SeguimientosDelLead({ leadId, inicial, tipos }: Props) {
   const [elegido, setAnotando] = useState<boolean | null>(null)
   const anotando = elegido ?? conBorrador
   return (
-    <section aria-label="Seguimientos" className="grid gap-3">
-      {puedoAnotar && anotando ? (
-        <RedactorDeSeguimiento
+    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="lg:order-2">
+        <BloqueDeRecordatorios
+          leadId={leadId}
+          zona={zonaHoraria}
+          recordatorios={deQuienMira}
+          puedeAgendar={puedoAnotar}
+        />
+      </div>
+      <section aria-label="Seguimientos" className="grid min-w-0 content-start gap-3 lg:order-1">
+        {puedoAnotar && anotando ? (
+          <RedactorDeSeguimiento
+            leadId={leadId}
+            tipos={tipos}
+            zona={zonaHoraria}
+            original={null}
+            alGuardar={(nuevo, recordatorio) => {
+              seguimientos.poner(nuevo)
+              if (recordatorio) {
+                deQuienMira.poner(recordatorio)
+              }
+              setAnotando(false)
+            }}
+            alCerrar={() => {
+              setAnotando(false)
+            }}
+          />
+        ) : null}
+        {puedoAnotar && !anotando ? (
+          <Anotar
+            tipos={tipos}
+            alAbrir={() => {
+              setAnotando(true)
+            }}
+          />
+        ) : null}
+        <LineaDeTiempo
           leadId={leadId}
           tipos={tipos}
           zona={zonaHoraria}
-          original={null}
-          alGuardar={(nuevo) => {
-            seguimientos.poner(nuevo)
-            setAnotando(false)
-          }}
-          alCerrar={() => {
-            setAnotando(false)
-          }}
+          puedoAnotar={puedoAnotar}
+          seguimientos={seguimientos}
         />
-      ) : null}
-      {puedoAnotar && !anotando ? (
-        <Anotar
-          tipos={tipos}
-          alAbrir={() => {
-            setAnotando(true)
-          }}
-        />
-      ) : null}
-      <LineaDeTiempo
-        leadId={leadId}
-        tipos={tipos}
-        zona={zonaHoraria}
-        puedoAnotar={puedoAnotar}
-        seguimientos={seguimientos}
-      />
-      {seguimientos.hayMas ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 w-fit md:min-h-9"
-          onClick={() => void seguimientos.cargarMas()}
-          disabled={seguimientos.cargando}
-        >
-          {seguimientos.cargando ? 'Cargando…' : 'Ver más'}
-        </Button>
-      ) : null}
-    </section>
+        {seguimientos.hayMas ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-fit md:min-h-9"
+            onClick={() => void seguimientos.cargarMas()}
+            disabled={seguimientos.cargando}
+          >
+            {seguimientos.cargando ? 'Cargando…' : 'Ver más'}
+          </Button>
+        ) : null}
+      </section>
+    </div>
   )
 }
