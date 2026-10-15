@@ -233,6 +233,7 @@ export default defineConfig([
     // Lo que deja Playwright cuando un e2e falla (el visor de trazas es JS minificado).
     'playwright-report/**',
     'test-results/**',
+    'e2e-fallos/**',
     'out/**',
     'build/**',
     'next-env.d.ts',

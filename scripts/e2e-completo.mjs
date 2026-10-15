@@ -4,6 +4,7 @@
 // local: para correr un spec suelto sobre una base con datos, `pnpm test:e2e <spec>`.
 // Uso: pnpm test:e2e:completo [argumentos de playwright, p. ej. --project=movil]
 import { spawnSync } from 'node:child_process'
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) process.loadEnvFile('.env.local')
 const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -42,12 +43,35 @@ async function exigirFunciones(cuando) {
   }
 }
 
-function correr(comando, args, env = {}) {
+function ejecutar(comando, args, env = {}) {
   const { status } = spawnSync(comando, args, {
     stdio: 'inherit',
     env: { ...process.env, ...env },
   })
-  if (status !== 0) process.exit(status ?? 1)
+  return status ?? 1
+}
+
+function correr(comando, args, env = {}) {
+  const status = ejecutar(comando, args, env)
+  if (status !== 0) process.exit(status)
+}
+
+// Playwright vacía `test-results/` al empezar: lo de un fallo (traza, video, captura) y el reporte se
+// copian a `e2e-fallos/<fecha>/` (ignorada por git) para que la corrida siguiente no lo borre. Quedan los
+// cinco últimos.
+const FALLOS = 'e2e-fallos'
+const GUARDADOS = 5
+
+function guardarArtefactos() {
+  const marca = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-')
+  const destino = `${FALLOS}/${marca}`
+  mkdirSync(destino, { recursive: true })
+  for (const carpeta of ['test-results', 'playwright-report']) {
+    if (existsSync(carpeta)) cpSync(carpeta, `${destino}/${carpeta}`, { recursive: true })
+  }
+  const viejos = readdirSync(FALLOS).sort().slice(0, -GUARDADOS)
+  for (const viejo of viejos) rmSync(`${FALLOS}/${viejo}`, { recursive: true, force: true })
+  console.error(`\n[e2e completo] Falló: los artefactos quedaron en ${destino}/.\n`)
 }
 
 await exigirFunciones('(antes de resetear)')
@@ -57,4 +81,8 @@ correr('pnpm', ['db:reset'])
 // estaba: su terreno lleva un prefijo propio y se borra al terminar.
 correr('pnpm', ['db:carreras'])
 await exigirFunciones('(después de resetear)')
-correr('pnpm', ['test:e2e', ...process.argv.slice(2)], { E2E_COMPLETO: '1' })
+const status = ejecutar('pnpm', ['test:e2e', ...process.argv.slice(2)], { E2E_COMPLETO: '1' })
+if (status !== 0) {
+  guardarArtefactos()
+  process.exit(status)
+}

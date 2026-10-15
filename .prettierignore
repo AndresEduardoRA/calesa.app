@@ -6,4 +6,6 @@ pnpm-lock.yaml
 .next-e2e
 coverage
 playwright-report
+test-results
+e2e-fallos
 public/sw.js

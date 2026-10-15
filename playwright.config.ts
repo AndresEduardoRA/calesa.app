@@ -15,7 +15,11 @@ export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL: `http://localhost:${puerto}`,
+    // Lo de un fallo queda para diagnosticarlo; `test:e2e:completo` lo copia a `e2e-fallos/` antes de la
+    // corrida siguiente, que vacía `test-results/`.
     trace: 'retain-on-failure',
+    video: 'retain-on-failure',
+    screenshot: 'only-on-failure',
     locale: 'es-BO',
     timezoneId: 'America/La_Paz',
   },
