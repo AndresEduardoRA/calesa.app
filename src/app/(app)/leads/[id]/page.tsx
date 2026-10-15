@@ -1,13 +1,16 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { z } from 'zod'
 import { puede, requerirSesion } from '@/modules/equipo'
 import {
   CLAVE_DE_SECCION,
+  EsqueletoDeSeguimientos,
   FichaDeLead,
   LeadNoDisponible,
   leerFichaDeLead,
   puedeCambiarTelefonoDeLead,
   puedeEditarLead,
+  SeccionSeguimientos,
   seccionDeLead,
 } from '@/modules/leads'
 import { datosO } from '@/shared/lib/errores'
@@ -33,6 +36,8 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
   if (!datos) {
     return <LeadNoDisponible />
   }
+  // Lo que no es una sección que existe abre «Datos».
+  const seccion = seccionDeLead(unParametro(parametros[CLAVE_DE_SECCION]))
   return (
     <FichaDeLead
       ficha={datos.ficha}
@@ -41,8 +46,15 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
       usuarioId={sesion.usuarioId}
       puedeEditar={puedeEditarLead(sesion.permisos, datos.ficha.enCartera)}
       puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
-      // Lo que no es una sección que existe abre «Datos».
-      seccion={seccionDeLead(unParametro(parametros[CLAVE_DE_SECCION]))}
+      seccion={seccion}
+      // Sólo se lee con la sección abierta: «Datos» no paga la línea de tiempo.
+      seguimientos={
+        seccion === 'seguimientos' ? (
+          <Suspense fallback={<EsqueletoDeSeguimientos />}>
+            <SeccionSeguimientos leadId={datos.ficha.id} />
+          </Suspense>
+        ) : null
+      }
     />
   )
 }

@@ -7,6 +7,7 @@ import {
   origenDeLaFicha,
   quienLoTiene,
   seccionDeLead,
+  seccionesDisponibles,
   telefonoDeFicha,
   type LeadDeFicha,
   type OrigenConEstado,
@@ -31,6 +32,7 @@ const CRUDA = {
   tiene_id: YO,
   tiene_nombre: 'Berta',
   telefonos: [{ id: OTRA, telefono: '59170011003', etiqueta: 'Casa' }],
+  recordatorios_vencidos: 2,
 }
 
 describe('fichaDesde', () => {
@@ -47,6 +49,7 @@ describe('fichaDesde', () => {
       origenId: OTRA,
       actualizadoEn: '2026-10-14T10:05:00.123456+00:00',
       tieneId: YO,
+      recordatoriosVencidos: 2,
     })
     expect(ficha?.telefonos).toEqual([{ id: OTRA, telefono: '59170011003', etiqueta: 'Casa' }])
   })
@@ -55,6 +58,7 @@ describe('fichaDesde', () => {
     expect(fichaDesde({ ...CRUDA, tipo: 'marciano' })).toBeNull()
     expect(fichaDesde({ ...CRUDA, id: 'no-es-un-guid' })).toBeNull()
     expect(fichaDesde(null)).toBeNull()
+    expect(fichaDesde({ ...CRUDA, recordatorios_vencidos: -1 })).toBeNull()
   })
 
   it('sin atributos ni teléfono llega vacío, no roto', () => {
@@ -112,12 +116,17 @@ describe('teléfono de la ficha', () => {
 })
 
 describe('secciones', () => {
-  it('por ahora sólo «Datos»: no hay barra de pestañas', () => {
-    expect(hayBarraDeSecciones()).toBe(false)
+  it('«Datos» y «Seguimientos»: hay barra de pestañas, sin números', () => {
+    expect(hayBarraDeSecciones()).toBe(true)
+    expect(seccionesDisponibles()).toEqual([
+      { clave: 'datos', titulo: 'Datos', disponible: true },
+      { clave: 'seguimientos', titulo: 'Seguimientos', disponible: true },
+    ])
   })
   it('lo que no es una sección que existe abre «Datos»', () => {
     expect(seccionDeLead(undefined)).toBe('datos')
-    expect(seccionDeLead('seguimientos')).toBe('datos')
+    expect(seccionDeLead('seguimientos')).toBe('seguimientos')
+    expect(seccionDeLead('cotizaciones')).toBe('datos')
     expect(seccionDeLead('datos')).toBe('datos')
   })
   it('el parámetro de la URL', () => {

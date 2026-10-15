@@ -38,6 +38,8 @@ export type LeadDeFicha = {
   tieneId: string | null
   tieneNombre: string | null
   telefonos: TelefonoExtra[]
+  // Los recordatorios de quien mira sobre este lead que ya pasaron y no completó.
+  recordatoriosVencidos: number
 }
 
 const esquemaFicha = z.object({
@@ -57,6 +59,7 @@ const esquemaFicha = z.object({
   telefonos: z.array(
     z.object({ id: z.guid(), telefono: z.string(), etiqueta: z.string().nullable() }),
   ),
+  recordatorios_vencidos: z.number().int().nonnegative(),
 })
 
 // El `jsonb` de `lead_ficha()`. Una respuesta que no cumple la forma es `null`: quien llama la
@@ -82,6 +85,7 @@ export function fichaDesde(crudo: unknown): LeadDeFicha | null {
     tieneId: f.tiene_id,
     tieneNombre: f.tiene_nombre,
     telefonos: f.telefonos,
+    recordatoriosVencidos: f.recordatorios_vencidos,
   }
 }
 
@@ -107,16 +111,20 @@ export function origenDeLaFicha(
 
 // --- Las secciones de la ficha (`?seccion=`) ----------------------------------------------------------
 
-// Una sección es `disponible` cuando existe su contenido. Las demás (seguimientos, recordatorios,
-// vehículos, cotizaciones, portal, historial) aparecen con su parte: ninguna pestaña lleva a la nada.
-// Cada sección que se suma agrega su clave a `SeccionDeLead` y su caso en `<FichaDeLead>`.
-export type SeccionDeLead = 'datos'
+// Una sección es `disponible` cuando existe su contenido. Las demás (vehículos, cotizaciones,
+// portal, historial) aparecen con su parte: ninguna pestaña lleva a la nada. Cada sección que se
+// suma agrega su clave a `SeccionDeLead` y su caso en `<FichaDeLead>`. Ninguna lleva un número: el
+// de «Seguimientos» insinuaría los privados de otros.
+export type SeccionDeLead = 'datos' | 'seguimientos'
 
 export const SECCIONES_DE_LEAD: readonly {
   clave: SeccionDeLead
   titulo: string
   disponible: boolean
-}[] = [{ clave: 'datos', titulo: 'Datos', disponible: true }]
+}[] = [
+  { clave: 'datos', titulo: 'Datos', disponible: true },
+  { clave: 'seguimientos', titulo: 'Seguimientos', disponible: true },
+]
 
 export const CLAVE_DE_SECCION = 'seccion'
 
@@ -125,6 +133,10 @@ const disponibles = () => SECCIONES_DE_LEAD.filter((seccion) => seccion.disponib
 // Con una sola sección no hay nada entre qué elegir: la barra no se dibuja.
 export function hayBarraDeSecciones(): boolean {
   return disponibles().length > 1
+}
+
+export function seccionesDisponibles(): readonly { clave: SeccionDeLead; titulo: string }[] {
+  return disponibles()
 }
 
 // Lo que viene en la URL lo puede escribir cualquiera: lo que no es una sección que existe abre

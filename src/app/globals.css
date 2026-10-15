@@ -113,6 +113,33 @@
 }
 
 /*
+ * El documento de un seguimiento (`DocumentoDeSeguimiento` y el editor): párrafos, listas y
+ * enlaces. Tailwind quita los estilos de las listas; acá vuelven, sólo adentro del documento.
+ */
+/* `.ProseMirror` trae su propio `word-wrap: break-word`, que no parte una palabra larga al medir el
+   ancho mínimo: en el celular, una dirección larga estiraba la página. */
+.documento-de-seguimiento,
+.ProseMirror.documento-de-seguimiento {
+  overflow-wrap: anywhere;
+}
+.documento-de-seguimiento p {
+  min-height: 1lh;
+}
+.documento-de-seguimiento ul {
+  list-style: disc;
+  padding-inline-start: 1.25rem;
+}
+.documento-de-seguimiento ol {
+  list-style: decimal;
+  padding-inline-start: 1.5rem;
+}
+.documento-de-seguimiento a {
+  color: var(--color-primario-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/*
  * Modo Live: con la clase `live` en <html>, toda cifra de dinero y su símbolo de moneda salen de
  * la vista y del árbol de accesibilidad. <Monto> siempre trae las dos versiones; acá se elige.
  */

@@ -3,7 +3,7 @@
 import type { OpcionDeCampo, TipoDeLead, ValorDefecto } from '@/shared/lib/campos'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
-import type { ContextoDeAlta, DatosDeAlta } from './alta'
+import type { ContextoDeAlta, DatosDeAlta, TipoDeSeguimiento } from './alta'
 import type { CambiosDeCampoDeLead } from './cambios-de-campo'
 import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
 import type { CondicionDeLead } from './filtros'
@@ -11,6 +11,14 @@ import type { CambiosDeLead } from './edicion'
 import type { LeadDeFicha, OrigenConEstado } from './ficha'
 import type { ImpactoDeCampo } from './impacto'
 import type { FilaDeLead } from './listado'
+import type { Documento } from './documento'
+import type { Recordatorio } from './recordatorios'
+import type {
+  CambiosDeSeguimiento,
+  PaginaDeSeguimientos,
+  Seguimiento,
+  Visibilidad,
+} from './seguimiento'
 import type { CambioDeExtras, CambioDeTelefono } from './telefonos'
 import type { Verificacion } from './verificacion'
 
@@ -151,3 +159,104 @@ export type RepositorioDeTelefonos = {
     id: string
   }) => Promise<{ ok: true; data: CambioDeExtras } | FalloDeTelefono>
 }
+
+// --- Los seguimientos de la ficha ---------------------------------------------------------------------
+
+// Un rechazo con el campo del redactor que lo causó (`titulo`, `tipoId`, `detalle`, `ocurridoEn`).
+export type FalloDeSeguimiento = { ok: false; error: ErrorApp; campo?: string }
+
+// `repetido`: el mismo intento ya había entrado (un reintento o un doble clic); `sin_cambios`: ya
+// estaba así. En los dos casos viene el seguimiento como quedó.
+export type ResultadoDeSeguimiento = {
+  resultado: 'creado' | 'repetido' | 'guardado' | 'eliminado' | 'restaurado' | 'sin_cambios'
+  seguimiento: Seguimiento
+  // El que entró al anotar, si se pidió.
+  recordatorio?: Recordatorio | null
+}
+
+export type RepositorioDeSeguimientos = {
+  crear: (pedido: {
+    // El del intento: lo genera el navegador al abrir el redactor y lo conserva en cada reintento.
+    id: string
+    leadId: string
+    tipoId: string
+    titulo: string
+    detalle: Documento | null
+    visibilidad: Visibilidad
+    // Nulo = ahora.
+    ocurridoEn: string | null
+    // Entra junto con el seguimiento, o nada entra.
+    recordatorio: { recordarEn: string } | null
+  }) => Promise<{ ok: true; data: ResultadoDeSeguimiento } | FalloDeSeguimiento>
+  guardar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    cambios: CambiosDeSeguimiento
+  }) => Promise<{ ok: true; data: ResultadoDeSeguimiento } | FalloDeSeguimiento>
+  eliminar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+  }) => Promise<{ ok: true; data: ResultadoDeSeguimiento } | FalloDeSeguimiento>
+  restaurar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+  }) => Promise<{ ok: true; data: ResultadoDeSeguimiento } | FalloDeSeguimiento>
+}
+
+// Una página de los seguimientos que quien mira ve de un lead (la RLS decide), desde el cursor.
+// Un lead que no ve: una página vacía.
+export type LectorDeSeguimientos = (pedido: {
+  leadId: string
+  antes: { antesEn: string; antesId: string } | null
+}) => Promise<Resultado<PaginaDeSeguimientos>>
+
+// Los tipos de seguimiento activos, en su orden: lo que ofrece el redactor.
+export type LectorDeTiposDeSeguimiento = () => Promise<Resultado<TipoDeSeguimiento[]>>
+
+// --- Los recordatorios de la ficha ------------------------------------------------------------------
+
+export type FalloDeRecordatorio = { ok: false; error: ErrorApp; campo?: string }
+
+export type ResultadoDeRecordatorio = {
+  resultado:
+    | 'creado'
+    | 'repetido'
+    | 'guardado'
+    | 'completado'
+    | 'reabierto'
+    | 'eliminado'
+    | 'restaurado'
+    | 'sin_cambios'
+  recordatorio: Recordatorio & { eliminado: boolean }
+}
+
+type RespuestaDeRecordatorio = Promise<
+  { ok: true; data: ResultadoDeRecordatorio } | FalloDeRecordatorio
+>
+
+export type RepositorioDeRecordatorios = {
+  // Con lead, exige tenerlo en la cartera. El intento lleva su id.
+  crear: (pedido: {
+    id: string
+    leadId: string | null
+    titulo: string
+    recordarEn: string
+  }) => RespuestaDeRecordatorio
+  guardar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    cambios: Partial<{ titulo: string; recordarEn: string }>
+  }) => RespuestaDeRecordatorio
+  // Poner, no alternar: `true` completa y `false` reabre.
+  completar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    completado: boolean
+  }) => RespuestaDeRecordatorio
+  eliminar: (pedido: { id: string; actualizadoEnEsperado: string }) => RespuestaDeRecordatorio
+  restaurar: (pedido: { id: string; actualizadoEnEsperado: string }) => RespuestaDeRecordatorio
+}
+
+// Los recordatorios de quien mira sobre un lead (vivos; también los completados). Un lead que ya no
+// ve: ninguno.
+export type LectorDeRecordatoriosDelLead = (leadId: string) => Promise<Resultado<Recordatorio[]>>

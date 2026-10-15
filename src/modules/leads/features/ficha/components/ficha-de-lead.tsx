@@ -15,6 +15,7 @@ import {
   type SeccionDeLead,
 } from '../../../entities/ficha'
 import { usePanelDeLead } from '../hooks/use-panel-de-lead'
+import { BarraDeSecciones } from './barra-de-secciones'
 import { BotonEditarLead } from './boton-editar-lead'
 import { CabeceraDeLead } from './cabecera-de-lead'
 import { PanelDeEdicion } from './panel-de-edicion'
@@ -33,8 +34,10 @@ type Props = {
   puedeEditar: boolean
   // Cartera y `leads.editar`: cambiar el principal y administrar los extras.
   puedeCambiarTelefono: boolean
-  // La sección de `?seccion=`: por ahora sólo «datos».
+  // La sección de `?seccion=`.
   seccion: SeccionDeLead
+  // Lo que la página lee en el servidor para la sección «Seguimientos» (detrás de `<Suspense>`).
+  seguimientos: ReactNode
 }
 
 type DatosDeSeccion = {
@@ -42,17 +45,19 @@ type DatosDeSeccion = {
   campos: readonly CampoDeLead[]
   origen: { nombre: string; activo: boolean } | null
   puedeCambiarTelefono: boolean
+  seguimientos: ReactNode
 }
 
 // Lo que va bajo la cabecera según `?seccion=`. Cada sección nueva suma su entrada acá (y su
 // pestaña en `SECCIONES_DE_LEAD`) cuando exista su contenido.
 const CONTENIDO_DE_SECCION: Record<SeccionDeLead, (datos: DatosDeSeccion) => ReactNode> = {
   datos: (datos) => <SeccionDatos {...datos} />,
+  seguimientos: (datos) => datos.seguimientos,
 }
 
-// La ficha de un lead: su cabecera y la sección «Datos». Por ahora es la única sección: las
-// demás (seguimientos, recordatorios, vehículos, cotizaciones, portal, historial) llegan con su
-// parte y no se dibujan hasta entonces.
+// La ficha de un lead: su cabecera, la barra de secciones y la sección de `?seccion=` («Datos» o
+// «Seguimientos»). Las demás (vehículos, cotizaciones, portal, historial) llegan con su parte y no
+// se dibujan hasta entonces.
 export function FichaDeLead({
   ficha,
   campos,
@@ -61,6 +66,7 @@ export function FichaDeLead({
   puedeEditar,
   puedeCambiarTelefono,
   seccion,
+  seguimientos,
 }: Props) {
   const { zonaHoraria } = useRegional()
   const panel = usePanelDeLead()
@@ -80,7 +86,8 @@ export function FichaDeLead({
         quien={quienLoTiene(ficha, usuarioId)}
         acciones={puedeEditar ? <BotonEditarLead /> : null}
       />
-      {CONTENIDO_DE_SECCION[seccion]({ ficha, campos, origen, puedeCambiarTelefono })}
+      <BarraDeSecciones leadId={ficha.id} actual={seccion} />
+      {CONTENIDO_DE_SECCION[seccion]({ ficha, campos, origen, puedeCambiarTelefono, seguimientos })}
       <PanelDeEdicion
         ficha={ficha}
         campos={campos}

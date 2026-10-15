@@ -80,6 +80,7 @@ const FICHA: LeadDeFicha = {
   tieneId: null,
   tieneNombre: null,
   telefonos: [],
+  recordatoriosVencidos: 0,
 }
 
 function entrada(
