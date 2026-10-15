@@ -217,7 +217,8 @@ test('se cae la conexión a mitad: lo escrito queda y al volver sale una sola ve
 
   await page.context().setOffline(true)
   await panel.getByRole('button', { name: 'Cambiar teléfono' }).click()
-  await expect(panel.getByText(/No hay conexión/).first()).toBeVisible()
+  // El aviso del envío que quedó esperando (no el de «sin conexión» que ya estaba antes del clic).
+  await expect(panel.getByText(/se va a guardar solo cuando vuelva/)).toBeVisible()
   await expect(panel.getByLabel('Teléfono nuevo')).toHaveValue(nuevo)
   expect(await telefonoDeLead(lead.id)).toBe(completoCon(t, lead.nac))
 

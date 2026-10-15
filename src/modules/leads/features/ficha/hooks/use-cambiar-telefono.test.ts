@@ -194,6 +194,25 @@ describe('useCambiarTelefono: conflicto, versión y conexión', () => {
     expect(hook.result.current.valor).toBe('71234567')
   })
 
+  it('un cambio a la vez: un segundo envío mientras el primero sigue no sale', async () => {
+    let terminar: (valor: unknown) => void = () => undefined
+    cambiar.mockReturnValue(
+      new Promise((listo) => {
+        terminar = listo
+      }),
+    )
+    const hook = montar()
+    escribir(hook, '71234567')
+    await act(async () => {
+      const primero = hook.result.current.enviar()
+      expect(await hook.result.current.enviar()).toBe(false)
+      terminar(ok(CAMBIADO))
+      await primero
+    })
+    expect(cambiar).toHaveBeenCalledOnce()
+    expect(alTerminar).toHaveBeenCalledOnce()
+  })
+
   it('si se cae la conexión queda esperando y no pierde lo escrito', async () => {
     cambiar.mockRejectedValue(new Error('sin red'))
     const hook = montar()

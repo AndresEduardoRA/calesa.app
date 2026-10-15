@@ -2,7 +2,7 @@
 
 import { useAction } from 'next-safe-action/hooks'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import { MENSAJE_DE_LEAD_NO_DISPONIBLE, type LeadDeFicha } from '../../../entities/ficha'
@@ -95,6 +95,28 @@ function useConflictoHastaLaVersionNueva<E extends { conflicto: string | null }>
   }
 }
 
+// Un cambio a la vez. Con una marca propia y no con `isPending`: el reintento al volver la conexión
+// puede dispararse justo cuando el envío fallido termina, con `isPending` todavía encendido, y se perdía.
+function useCambioUnaVez() {
+  const cambio = useAction(cambiarTelefono)
+  const enVuelo = useRef(false)
+  async function mandar(pedido: Parameters<typeof cambio.executeAsync>[0]) {
+    if (enVuelo.current) {
+      return null
+    }
+    enVuelo.current = true
+    try {
+      return await enviarAccion<CambioDeTelefono>(
+        cambio.executeAsync(pedido),
+        MENSAJE_DE_VALIDACION,
+      )
+    } finally {
+      enVuelo.current = false
+    }
+  }
+  return { mandar, enCurso: cambio.isPending }
+}
+
 // Un número que ya existe vuelve como valor: se dice junto al campo y no cambia nada.
 export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }: Args) {
   const router = useRouter()
@@ -103,7 +125,7 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
   const escrito = String(estado.valores[CLAVE] ?? '')
   const codigoDePais = ficha.telefonoCc
 
-  const cambio = useAction(cambiarTelefono)
+  const cambio = useCambioUnaVez()
   const { normalizado, esElMismo, verificacion, dicho, aviso } = useVerificacionDelCambio({
     ficha,
     activo,
@@ -111,23 +133,20 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
   })
 
   async function enviar(): Promise<boolean> {
-    if (cambio.isPending) {
-      return false
-    }
     const motivo = motivoPrevio(normalizado, esElMismo)
     if (motivo !== null || !normalizado.ok) {
       setEstado((antes) => conMotivos(antes, { [CLAVE]: motivo ?? '' }))
       return false
     }
-    const resultado = await enviarAccion<CambioDeTelefono>(
-      cambio.executeAsync({
-        id: ficha.id,
-        actualizadoEnEsperado: ficha.actualizadoEn,
-        codigoDePais,
-        telefono: escrito,
-      }),
-      MENSAJE_DE_VALIDACION,
-    )
+    const resultado = await cambio.mandar({
+      id: ficha.id,
+      actualizadoEnEsperado: ficha.actualizadoEn,
+      codigoDePais,
+      telefono: escrito,
+    })
+    if (resultado === null) {
+      return false
+    }
     if (resultado.ok) {
       const { data } = resultado
       if ('verificacion' in data) {
@@ -158,7 +177,7 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
     avisoGeneral: estado.aviso,
     esperandoConexion: estado.pendiente !== null,
     enLinea,
-    enCurso: cambio.isPending,
+    enCurso: cambio.enCurso,
     // Con un número que ya existe, es el mismo, no es un teléfono o un conflicto sin la versión nueva, no se envía.
     puedeEnviar: normalizado.ok && !(aviso?.bloquea ?? false) && estado.conflicto === null,
     // Lo que se sabe del teléfono que se tipea, para el campo.
