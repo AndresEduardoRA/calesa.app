@@ -179,6 +179,9 @@ export async function crearCampoDePrueba(datos: {
   tipo?: 'texto' | 'documento' | 'correo' | 'opcion'
   requerido?: boolean
   soloCartera?: boolean
+  // En la tabla del listado y en su panel de filtros.
+  enTabla?: boolean
+  filtrable?: boolean
   opciones?: { clave: string; etiqueta: string }[]
 }): Promise<void> {
   const { error } = await admin()
@@ -189,6 +192,8 @@ export async function crearCampoDePrueba(datos: {
       tipo: datos.tipo ?? 'texto',
       requerido: datos.requerido ?? false,
       solo_cartera: datos.soloCartera ?? false,
+      en_tabla: datos.enTabla ?? false,
+      filtrable: datos.filtrable ?? false,
       opciones: datos.opciones ?? [],
       orden: 900,
     })

@@ -59,7 +59,8 @@ async function otraPersona(browser: Browser, page: Page): Promise<Page> {
 test('los campos de fábrica están, uno es privado y ninguno se elimina', async ({ page }) => {
   await entrar(page, duena)
   await page.goto('/configuracion')
-  await page.getByRole('link', { name: /Leads/ }).click()
+  // La tarjeta del hub, no el ítem «Leads» del menú (que lleva al listado).
+  await page.locator('a[href="/configuracion/leads"]').click()
   await expect(page.getByRole('heading', { name: 'Leads', level: 1 })).toBeVisible()
   await expect(page.getByRole('tab', { name: 'Campos' })).toBeVisible()
 
@@ -103,16 +104,18 @@ test('se crea un campo de opciones, se ordena, se vuelve privado y se desactiva'
     activo: true,
   })
 
-  // Ordenar: el orden se cambia con botones; sube un lugar dentro de su grupo.
-  const antes = (await camposDeLead()).map((campo) => campo.clave)
-  expect(antes.indexOf(CLAVE_DEL_CAMPO)).toBeGreaterThan(antes.indexOf('genero'))
+  // Ordenar: el orden se cambia con botones; sube un lugar dentro de su grupo. La base local puede
+  // tener campos de quien la usa en el mismo grupo: se mira que suba un lugar entre los del grupo,
+  // no dónde queda en total.
+  const delGrupo = async () =>
+    (await camposDeLead())
+      .filter((campo) => campo.grupo === 'Datos personales')
+      .map((campo) => campo.clave)
+  const antes = await delGrupo()
+  const lugarAntes = antes.indexOf(CLAVE_DEL_CAMPO)
+  expect(lugarAntes).toBeGreaterThan(antes.indexOf('genero'))
   await page.getByRole('button', { name: `Subir ${ETIQUETA}` }).click()
-  await expect
-    .poll(async () => {
-      const claves = (await camposDeLead()).map((campo) => campo.clave)
-      return claves.indexOf(CLAVE_DEL_CAMPO) < claves.indexOf('genero')
-    })
-    .toBe(true)
+  await expect.poll(async () => (await delGrupo()).indexOf(CLAVE_DEL_CAMPO)).toBe(lugarAntes - 1)
 
   // Marcarlo «solo la cartera» guarda solo, como cualquier bandera.
   const privado = page.getByRole('switch', { name: `${ETIQUETA}: solo la cartera` })
@@ -182,7 +185,7 @@ test('sin el permiso no se entra y la tarjeta no aparece', async ({ page }) => {
   await page.goto('/configuracion/leads')
   await expect(page.getByText('No tienes permiso para ver esto')).toBeVisible()
   await page.goto('/configuracion')
-  await expect(page.getByRole('link', { name: /Leads/ })).toHaveCount(0)
+  await expect(page.locator('a[href="/configuracion/leads"]')).toHaveCount(0)
 })
 
 test('dos personas editando el mismo campo: la segunda ve el conflicto', async ({
