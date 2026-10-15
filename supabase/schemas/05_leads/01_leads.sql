@@ -223,7 +223,8 @@ create table public.oportunidades (
   id                 uuid primary key default gen_random_uuid(),
   lead_id            uuid not null references public.leads (id) on delete cascade,
   vehiculo_id        uuid,                        -- FK en 06_vehiculos
-  usuario_id         uuid not null references public.perfiles (id),
+  -- Una cuenta que se borra (no la baja, que las cancela) se lleva sus oportunidades, como sus embudos.
+  usuario_id         uuid not null references public.perfiles (id) on delete cascade,
   embudo_id          uuid not null,
   etapa_id           uuid not null,
   estado             public.estado_oportunidad not null default 'abierta',
@@ -256,7 +257,7 @@ create table public.oportunidades_historial (
   oportunidad_id uuid not null references public.oportunidades (id) on delete cascade,
   de_etapa_id    uuid references public.embudos_etapas (id) on delete set null,
   a_etapa_id     uuid references public.embudos_etapas (id) on delete set null,
-  usuario_id     uuid references public.perfiles (id),
+  usuario_id     uuid references public.perfiles (id) on delete set null,
   creado_en      timestamptz not null default now()
 );
 

@@ -1497,3 +1497,15 @@ begin
   if r -> 'valor' ->> 'resultado' <> 'sin_cambios' then raise exception 'transferir dos veces: %', r; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de oportunidades: borrar una cuenta se lleva sus oportunidades y sus embudos (la baja, no)
+do $$ declare
+  u57 constant uuid := '00000000-0000-0000-0000-000000000057'; n int;
+begin
+  select count(*) into n from public.oportunidades where usuario_id = u57;
+  if n = 0 then raise exception 'el caso necesita oportunidades de 0057'; end if;
+  delete from auth.users where id = u57;
+  if exists (select 1 from public.oportunidades where usuario_id = u57)
+     or exists (select 1 from public.embudos where usuario_id = u57) then
+    raise exception 'borrar la cuenta dejó oportunidades o embudos'; end if;
+end $$;
