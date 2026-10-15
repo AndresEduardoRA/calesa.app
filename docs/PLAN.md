@@ -68,6 +68,10 @@ en embudos por usuario con kanban (`?vista=embudo`); portal del cliente (otorgar
 grande y texto para WhatsApp, revocar); papelera; exportar/importar CSV de lo propio (vista previa
 por fila, importa las válidas).
 
+**Avance (por partes, una por sesión):** hechas la 1 (campos configurables), 2 (alta rápida), 3
+(listado), 4 (ficha y teléfonos) y 5 (seguimientos, recordatorios, favoritos, tachados y etiquetas).
+Faltan la 6 (cartera, papelera, vínculo e interesados), la 7 (embudos y portal) y la 8 (CSV).
+
 **Terminado cuando:** cada empresa arma los campos de sus leads sin tocar SQL (crea «Signo zodiacal»,
 apaga «Edad», marca uno «solo la cartera») y quien ve un lead sin estar en su cartera no recibe un
 privado, ni por la vista ni filtrando; registrar lead + seguimiento ≤ 25 s desde `N` con el duplicado

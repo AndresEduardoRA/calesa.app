@@ -1905,3 +1905,100 @@ función (las nuestras contestan siempre con un cuerpo), una línea `[funciones]
 reintento en la salida, y «la función no respondió» si se agotan. El spec llama con `fetch` y el token de
 la sesión en vez de `functions.invoke`, que escondía el corte como `data: null`.
 **Consecuencia:** la guardia ya no insiste ante un 404 (la función no está servida): falla al primero.
+
+## 2026-10-15 — Las marcas se escriben sólo por RPC, y marcar exige ver el lead (no la cartera)
+
+**Contexto:** favoritos, tachados y etiquetas se escribían directo con RLS: el UPDATE de `etiquetas` dejaba
+cualquier nombre o color (un hex libre), sin tope, sin versión y con un `unique (usuario_id, nombre)`
+que distinguía mayúsculas.
+**Decisión:** las cuatro tablas quedan de sólo lectura (cada quien las suyas) y las escriben seis RPC
+(`…20261015000200_marcas_de_leads.sql`). `lead_favorito_poner`, `lead_tachado_poner` y
+`lead_etiquetas_poner` son **«poner(valor)»**: repetir da `sin_cambios`, así un doble clic o un reintento
+no deja la marca al revés. Exigen **ver** el lead (`_lead_visible()`: `puede_lead(…, 'leads.ver')`), no la
+cartera ni `leads.editar`: una marca es una nota para uno mismo, no un cambio del lead, y quien ve
+«todos» también organiza lo ajeno. Lo que no se ve da el mismo `42501` que un lead inexistente,
+**también al quitar** (la marca sigue en la tabla, es suya, y el lead no aparece). Las marcas no llevan
+versión (operan por fila, como los teléfonos extra: una versión sólo daría conflictos falsos) y no
+tocan `leads` (ni versión, ni auditoría, ni `actividad`). Las etiquetas sí llevan versión al
+renombrar, recolorear y eliminar (`PT409` «Cambiaste esta etiqueta … desde otra ventana»); crear es
+idempotente por id (así «Deshacer» de un borrado la recrea con el mismo id) y eliminar una que ya no
+está responde `sin_cambios` (la otra pestaña no falla y lo ajeno no se distingue de lo borrado). Una
+etiqueta ajena o inexistente se rechaza igual: nunca se dice que existe. `lead_etiquetas_poner` pone o
+quita **esas**, nunca reemplaza el conjunto: dos pestañas no se pisan.
+**Topes:** 50 por persona y 20 suyas por lead, con un candado de transacción **por persona**
+(`pg_advisory_xact_lock(hashtextextended('etiquetas:' || uid, 0))`) que toman crear, eliminar y poner:
+no compite con nadie más. Bloquear `perfiles` frenaría la edición del perfil y bloquear el lead, a los
+otros asesores. La carrera la prueba un e2e (dos RPC a la vez a una del tope: entra exactamente una),
+porque PGlite no tiene concurrencia.
+**Índices:** no faltaba ninguno: el bucle de `…000900_indices.sql` ya había creado los de `usuario_id` y
+`etiqueta_id` (ESTADO decía lo contrario). Un `(usuario_id, lead_id)` compuesto se midió y no mejora.
+
+## 2026-10-15 — El listado lee las marcas como columnas de `leads_vista`; lo que midió
+
+**Contexto:** el listado necesita, por fila, si quien mira lo marcó, y filtrar por eso, sin degradarse.
+**Decisión:** columnas en la vista: `es_favorito` y `esta_tachado` ya existían (un `exists` por fila) y se
+suma `etiquetas uuid[]` (las de quien mira). Los filtros son condiciones sobre ellas (`eq`, y
+`overlaps` para «cualquiera de»). El plan las resuelve como _hashed SubPlan_: una lectura de las
+marcas de la persona por consulta, no una por fila. Los nombres y colores de las etiquetas no viajan
+por fila: la página lee una vez las de la persona (≤ 50).
+**Alternativas medidas:** la semiunión explícita (`id in (select lead_id …)`) dio 20,4 ms contra 19,2 de la
+columna y PostgREST no la expresa sobre la vista; una consulta aparte con los ids de la página sirve
+para dibujar pero no para filtrar (ocultar los tachados tiene que ser en la base); una función que
+recorte una vez por consulta es el cambio de la Fase 9, y estos números no lo piden.
+**Números** (`pnpm db:medir`, 2.000 leads, mediana de 5; «antes» sin marcas, «hoy» como lo pide el listado):
+
+| Consulta                                        | Antes  | Hoy         |
+| ----------------------------------------------- | ------ | ----------- |
+| Página sin filtro (hoy, tachados fuera)         | 19 ms  | 20 ms       |
+| Un atributo                                     | 126 ms | 127 ms      |
+| Búsqueda por nombre                             | 21 ms  | 22 ms       |
+| Página 2 por cursor                             | 31 ms  | 33 ms       |
+| Asesor «propios» (50 de 2.000)                  | 7 ms   | 8 ms        |
+| Etiqueta «cualquiera de» 2                      | —      | 14 ms       |
+| Conteo de ocultos sin filtros / con un atributo | —      | 12 / 119 ms |
+
+En una de tres corridas el planificador eligió recorrer `leads_listado_idx` en orden y cortar en 51 (8 ms
+la página, 22 ms con un atributo): depende de sus estimaciones y no se fuerza. La medición queda en
+`supabase/tests/medir-listado.sql`, en una transacción revertida (deja huecos en la numeración).
+
+## 2026-10-15 — Los tachados se ocultan, salvo mientras se busca; el aviso cuenta con los mismos filtros
+
+**Decisión:** `?tachados=` es una «elección» con `ocultar` por defecto (no se escribe en la URL), `incluir` y
+`solo`. **Con texto de búsqueda (nombre o `#número`) `ocultar` no se aplica:** buscar algo que sabes
+que existe y no encontrarlo es peor que verlo, y sale con la insignia «Tachado» y el nombre atenuado;
+`solo` explícito sí se respeta. Un aviso discreto cuenta los tachados **que cumplen los filtros
+activos** y que quien mira ve (la RLS), así «Mostrarlos» trae exactamente esa cantidad; contar sin
+filtros mentiría. Corre en paralelo con la página: sin un atributo suma 12 ms de trabajo y nada de
+espera; con uno, la base hace el doble de trabajo pero la espera es la misma. Si la página queda vacía
+sólo por los tachados, el vacío lo dice («Lo que coincide está tachado») en vez de «Nada coincide».
+**Vistas y URL:** los filtros de marcas entran solos en las vistas guardadas (`parametrosDeFiltros()`),
+que son personales (las cuatro policies de `vistas_guardadas` son `usuario_id = (select auth.uid())`):
+una etiqueta ajena en una vista no puede pasar, y aunque pasara no filtraría nada (la columna sólo
+trae las propias). Un id de `?etiqueta=` que ya no es de quien mira (borrado, ajeno o mal escrito) se
+quita y lo dice el aviso de filtros que ya no valen, con «Entendido», que deja las que sí valen. Un
+valor raro en `?tachados=` o `?favoritos=` vuelve al valor por defecto **sin decir nada**, como tipo y
+origen. «Ver como» no los toca: son de quien mira de verdad.
+
+## 2026-10-15 — Paleta de ocho claves en tokens; selector con cmdk; confirmar en la fila; sin atajo
+
+- **Paleta:** `gris`, `rojo`, `naranja`, `ambar`, `verde`, `turquesa`, `azul`, `violeta`, guardadas como clave
+  (check en la tabla, `_etiquetas_paleta()` y `CLAVES_DE_COLOR`: un test compara los tres). Cada una
+  tiene `--etiqueta-<clave>` (el punto), `-soft` (el fondo) e `-ink` (el texto) en `design/tokens.css`,
+  redefinidos en `.dark`; un test exige ≥ 4,5:1 de `-ink` sobre `-soft` en los dos temas. El nombre se ve
+  siempre: nunca sólo el color. Ocho se distinguen sin depender del color; más no aportan. Sin elegir,
+  toca la menos usada (la base lo decide, `colorSugerido()` es su espejo).
+- **Dónde:** el selector (Popover con cmdk: buscar, marcar y crear con Enter; las coincidencias primero y
+  «Crear «X»» al final, así Enter sobre lo que existe la marca y sobre algo nuevo la crea) está en la
+  cabecera de la ficha y lo abre «Etiquetas…» del «⋯» de cada fila, anclado al mismo botón
+  (`PopoverContent anchor`). «Gestionar etiquetas» es un diálogo con URL (`?panel=etiquetas`) que se abre
+  desde el selector y desde la sección «Tus marcas» del panel; en el celular reemplaza la hoja de
+  filtros (comparten `?panel=`). Eliminar una etiqueta con leads **confirma en la misma fila** diciendo a
+  cuántos toca: un `<Confirmar>` sería un modal sobre otro. Sin leads se elimina y se ofrece «Deshacer».
+- **Accesibilidad:** «Favorito» y «Tachado» son interruptores con `aria-pressed` y nombre fijo; el «⋯» es
+  el menú de base-ui (Enter, flechas, Esc), 44 px en el celular, y en la tarjeta es hermano de la zona
+  que abre el drawer. **Sin atajo para favorito:** no habría dónde descubrirlo (la lista `?` no se
+  dibuja) y la estrella está a un Tab; se reconsidera con esa lista. Nada roba la `N`.
+- **Filtros con secciones:** `DefFiltro` suma `seccion` y el tipo `eleccion` (con `porDefecto`, que no va a
+  la URL, no es chip ni cuenta); sin secciones el panel sigue plano, así vehículos no cambió.
+- **El listado se relee al volver a la pestaña** (como la ficha): lo marcado en otra pestaña aparece sin
+  recargar a mano.
