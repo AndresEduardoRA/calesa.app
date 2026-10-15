@@ -68,7 +68,26 @@ declare
     ('vehiculos_papelera_enviar(jsonb)', 'X'),
     ('vehiculos_papelera_listar()', 'X'),
     ('vehiculos_papelera_restaurar(uuid,timestamp with time zone,uuid[])', 'X'),
-    ('vehiculos_papelera_purgar(uuid,timestamp with time zone,uuid[])', 'X')
+    ('vehiculos_papelera_purgar(uuid,timestamp with time zone,uuid[])', 'X'),
+    ('lead_ficha(uuid)', 'L'),
+    ('lead_seguimientos(uuid,timestamp with time zone,uuid,integer)', 'L'),
+    ('vehiculo_vinculos(uuid)', 'L'),
+    ('vehiculo_interesados(uuid)', 'L'),
+    ('puede_evento(uuid)', 'L'),
+    ('etiqueta_crear(uuid,text,text)', 'M'),
+    ('etiqueta_guardar(uuid,timestamp with time zone,text,text)', 'M'),
+    ('lead_campo_crear(text,text,tipo_campo,jsonb,boolean,text,boolean,boolean,boolean,jsonb,text)', 'X'),
+    ('lead_campo_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
+    ('lead_campo_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('lead_campo_mover(uuid,timestamp with time zone,uuid)', 'X'),
+    ('origen_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('origenes_resumen()', 'X'),
+    ('comprobante_emitir(uuid,text,jsonb)', 'X'),
+    ('cotizacion_moderar(uuid,estado_cotizacion)', 'X'),
+    ('evaluar_requisitos(uuid,uuid,uuid)', 'X'),
+    ('margen_vehiculo(uuid)', 'X'),
+    ('reasignar_tarea(uuid,uuid)', 'X'),
+    ('storage_refcount(text,text)', 'X')
   ) t (f, c));
   r record; v_fallas text := '';
 begin
@@ -76,12 +95,14 @@ begin
   for r in
     select p.proname || '(' || array_to_string(p.proargtypes::regtype[], ',') || ')' as firma
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef and p.prorettype <> 'trigger'::regtype
+    where n.nspname = 'public' and p.prokind = 'f' and p.prorettype <> 'trigger'::regtype
       and has_function_privilege('authenticated', p.oid, 'execute')
       and (exists (select 1 from unnest(coalesce(p.proargnames, '{}')) a where a ~ '^p_leads?$|lead_id|^p_lead_')
         or exists (select 1 from unnest(p.proargtypes::regtype[]) t where t::text in ('leads', 'leads[]'))
-        or p.prosrc ~ 'public\.(leads|leads_asesores|leads_telefonos|accesos_portal|oportunidades|oportunidades_historial|lotes_papelera|vehiculos_interesados|vehiculos_vinculos|seguimientos|recordatorios)\M'
-        or p.prosrc ~ 'lead_id')
+        -- Una «definer» lee por encima de la RLS: también cuenta si nombra una tabla de leads (o con
+        -- `lead_id`) en su cuerpo. Una de invocador la limita la RLS: sólo si recibe un lead.
+        or (p.prosecdef and (p.prosrc ~ 'public\.(leads\w*|accesos_portal|oportunidades\w*|lotes_papelera|vehiculos_interesados|vehiculos_vinculos|seguimientos|recordatorios\w*|etiquetas\w*|pagos|tareas|eventos|mensajes|repuestos_proyectos|web_testimonios|cotizaciones)\M'
+                             or p.prosrc ~ 'lead_id')))
     order by 1
   loop
     if not v_auditadas ? r.firma then
@@ -141,7 +162,8 @@ begin
   for r in
     select c.tablename, c.policyname from pg_policies c
     where c.schemaname = 'public'
-      and exists (select 1 from regexp_matches(coalesce(c.qual, '') || ' ' || coalesce(c.with_check, ''), 'puede_lead\([^)]*''(leads\.[a-z_.]+)''', 'g') m where m[1] <> 'leads.ver')
+      and (exists (select 1 from regexp_matches(coalesce(c.qual, '') || ' ' || coalesce(c.with_check, ''), 'puede_lead\([^)]*''(leads\.[a-z_.]+)''', 'g') m where m[1] <> 'leads.ver')
+        or (coalesce(c.qual, '') || ' ' || coalesce(c.with_check, '')) ~ '(alcance_de|tiene_permiso)\(''leads\.(editar|compartir|transferir|eliminar|portal)')
   loop
     v_fallas := v_fallas || E'\n  puede_lead() con un permiso de acción en la policy «' || r.policyname || '»';
   end loop;
@@ -162,7 +184,7 @@ begin
   for r in
     select g.table_name, g.column_name, g.privilege_type from information_schema.column_privileges g
     where g.table_schema = 'public' and g.grantee in ('authenticated', 'anon') and g.privilege_type in ('INSERT', 'UPDATE')
-      and g.table_name = any (v_tablas) and g.table_name <> 'leads'
+      and g.table_name = any (v_tablas)
     union all
     select g.table_name, g.column_name, g.privilege_type from information_schema.column_privileges g
     where g.table_schema = 'public' and g.grantee in ('authenticated', 'anon') and g.privilege_type = 'UPDATE'
@@ -207,4 +229,27 @@ begin
   if v_fallas <> '' then
     raise exception 'La superficie de leads tiene un hueco:%', v_fallas;
   end if;
+end $$;
+
+-- @test auditoría de leads: lead_id en otras tablas sólo de un lead que se ve
+do $$
+declare r record; v_fallas text := '';
+begin
+  -- Toda tabla con una FK a `leads` que `authenticated` puede escribir tiene el trigger que exige ver el
+  -- lead (o es de las que una policy ya mira: cotizaciones, oportunidades sin grant).
+  for r in
+    select c.conrelid::regclass::text as tabla
+    from pg_constraint c
+    where c.contype = 'f' and c.confrelid = 'public.leads'::regclass
+      and c.conrelid::regclass::text not in ('leads_asesores', 'leads_telefonos', 'leads_favoritos', 'leads_tachados',
+          'leads_etiquetas', 'seguimientos', 'recordatorios', 'accesos_portal', 'oportunidades', 'vehiculos_interesados',
+          'vehiculos_vinculos', 'cotizaciones', 'vehiculos', 'solicitudes_contacto_web')
+      and exists (select 1 from information_schema.column_privileges g
+                  where g.table_schema = 'public' and g.table_name = c.conrelid::regclass::text and g.grantee = 'authenticated'
+                    and g.column_name = 'lead_id' and g.privilege_type in ('INSERT', 'UPDATE'))
+      and not exists (select 1 from pg_trigger t where t.tgrelid = c.conrelid and t.tgname = 'trg_lead_visible')
+  loop
+    v_fallas := v_fallas || E'\n  se escribe lead_id sin mirar el lead en ' || r.tabla;
+  end loop;
+  if v_fallas <> '' then raise exception 'lead_id sin guardia:%', v_fallas; end if;
 end $$;

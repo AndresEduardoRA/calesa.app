@@ -32,7 +32,8 @@ const TEXTOS = {
     titulo: 'Transferir lead',
     accion: 'Transferir lead',
     enCurso: 'Transfiriendo…',
-    ayuda: 'Elige a quién se lo pasas. Seguirás con acceso compartido.',
+    ayuda:
+      'Elige a quién se lo pasas. La persona que lo tiene ahora seguirá con acceso compartido.',
   },
 } as const
 

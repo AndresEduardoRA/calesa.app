@@ -590,6 +590,8 @@ begin
   if not exists (select 1 from public.leads where id = c and eliminado_en is not null) then raise exception 'el job purgó uno con el portal vigente'; end if;
   -- Un lead con pagos tampoco se va (dinero registrado).
   update public.accesos_portal set habilitado = false where lead_id = c;
+  -- Un pago con el lead de otra persona lo escribe el dueño de la base, sin sesión.
+  perform set_config('request.jwt.claim.sub', '', true);
   insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base)
   values (v_veh, c, 'Anticipo', 'USD', 100, 100);
   n := public.papelera_purgar_vencidos();
@@ -623,5 +625,27 @@ begin
   r := pg_temp.como(u50, format('select public.otorgar_portal(%L, %L)', lp, 'corta'));
   perform pg_temp.espero(r, '22023', 'La clave necesita al menos 8 caracteres.', 'aceptó una clave corta');
   r := pg_temp.como(u50, format('select public.revocar_portal(%L)', lp));
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de leads: lead_id en otras tablas sólo de un lead que se ve
+do $$ declare
+  lp uuid := current_setting('matriz.lp')::uuid; la uuid := current_setting('matriz.la')::uuid;
+  u50 constant text := '00000000-0000-0000-0000-000000000050';
+  v_veh uuid := (select id from public.vehiculos where eliminado_en is null order by numero limit 1);
+  r jsonb;
+begin
+  -- El lead propio entra; uno ajeno o inexistente da lo mismo, sin decir si existe.
+  r := pg_temp.como(u50, format('insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (%L, %L, %L, %L, 1, 1) returning to_jsonb(pagos)', v_veh, lp, 'Seña', 'USD'));
+  if r ->> 'ok' = 'true' then null;
+  elsif r ->> 'estado' <> '42501' or r ->> 'mensaje' like 'No encontramos%' then
+    raise exception 'el pago de un lead propio: %', r;
+  end if;
+  r := pg_temp.como(u50, format('insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (%L, %L, %L, %L, 1, 1)', v_veh, la, 'Seña', 'USD'));
+  if (r ->> 'ok')::boolean or r ->> 'mensaje' <> 'No encontramos este lead o no tienes acceso.' then
+    raise exception 'el pago de un lead ajeno no dio el mensaje de siempre: %', r; end if;
+  r := pg_temp.como(u50, format('insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (%L, %L, %L, %L, 1, 1)', v_veh, gen_random_uuid(), 'Seña', 'USD'));
+  if (r ->> 'ok')::boolean or r ->> 'mensaje' <> 'No encontramos este lead o no tienes acceso.' then
+    raise exception 'el pago de un lead inexistente dio otro mensaje: %', r; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
