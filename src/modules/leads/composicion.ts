@@ -11,6 +11,7 @@ import type {
   RepositorioCamposDeLead,
   RepositorioDeAlta,
   RepositorioDeFicha,
+  RepositorioDeTelefonos,
 } from './entities/repositorios'
 import { altaSupabase } from './infra/alta'
 import { camposDeLeadSupabase } from './infra/campos'
@@ -20,6 +21,7 @@ import { getLayoutDeLeads } from './infra/queries/campos'
 import { getFicha } from './infra/queries/ficha'
 import { buscarLeads as buscarLeadsEnBase } from './infra/queries/listado'
 import { getOrigenesDeLead } from './infra/queries/origenes'
+import { telefonosSupabase } from './infra/telefonos'
 
 export const repositorioCamposDeLead: RepositorioCamposDeLead = camposDeLeadSupabase
 
@@ -36,3 +38,5 @@ export const leerOrigenesDeLead: LectorDeOrigenesDeLead = getOrigenesDeLead
 export const leerFicha: LectorDeFicha = getFicha
 
 export const repositorioDeFicha: RepositorioDeFicha = fichaSupabase
+
+export const repositorioDeTelefonos: RepositorioDeTelefonos = telefonosSupabase

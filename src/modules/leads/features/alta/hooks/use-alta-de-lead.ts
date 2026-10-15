@@ -1,5 +1,6 @@
 'use client'
 
+import { useAction } from 'next-safe-action/hooks'
 import { useMemo, useState } from 'react'
 import type { ValorDeFormulario } from '@/shared/lib/campos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
@@ -8,9 +9,10 @@ import { CLAVE_DEL_ALTA, valoresIniciales, type ContextoDeAlta } from '../../../
 import type { CampoDeLead } from '../../../entities/campo'
 import { telefonoParaMostrar } from '../../../entities/telefono'
 import { avisoDeVerificacion } from '../../../entities/verificacion'
+import { useVerificarTelefono } from '../../telefono/hooks/use-verificar-telefono'
+import { verificarTelefono } from '../actions/verificar-telefono'
 import { conCambio, conTelefonoRevisado, limpio, nuevoId } from './estado-del-alta'
 import { useEnvioDelAlta, type Guardado } from './use-envio-del-alta'
-import { useVerificarTelefono } from './use-verificar-telefono'
 
 export type { Guardado } from './use-envio-del-alta'
 export type { Paso } from './estado-del-alta'
@@ -55,10 +57,15 @@ export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Ar
     activo: useAbiertoAlgunaVez(abierto),
   })
 
+  const { executeAsync: preguntar } = useAction(verificarTelefono)
   const verificacion = useVerificarTelefono({
     telefono: String(estado.valores[CLAVE_DEL_ALTA.telefono] ?? ''),
     codigoDePais: contexto.telefonoCc,
     activo: abierto && estado.paso === 'datos',
+    consultar: async (telefono) => {
+      const respuesta = await preguntar({ telefono })
+      return respuesta.data?.ok ? respuesta.data.data : null
+    },
   })
   // «Tomar lead» sólo vale mientras el teléfono siga sin dueño.
   const adoptar = estado.adoptar && verificacion.verificacion?.estado === 'limbo'

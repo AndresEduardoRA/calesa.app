@@ -10,6 +10,11 @@ type Props = {
   enCurso: boolean
   alCancelar: () => void
   alGuardarYSeguir?: () => void
+  // Un panel de una sola acción la nombra («Cambiar teléfono»). Con `sinPuedeEnviar` el botón no
+  // envía (hay algo que corregir antes), sin esconderlo.
+  etiquetaDeGuardar?: string
+  etiquetaEnCurso?: string
+  sinPuedeEnviar?: boolean
 }
 
 // Los botones de un panel de edición, siempre a la vista al pie aunque el formulario sea largo. El
@@ -21,6 +26,9 @@ export function PieDelPanel({
   enCurso,
   alCancelar,
   alGuardarYSeguir,
+  etiquetaDeGuardar = 'Guardar',
+  etiquetaEnCurso = 'Guardando…',
+  sinPuedeEnviar = false,
 }: Props) {
   return (
     <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-wrap justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) p-4">
@@ -32,8 +40,8 @@ export function PieDelPanel({
           Guardar y cargar otro
         </Button>
       ) : null}
-      <Button type="submit" form={idFormulario} disabled={enCurso}>
-        {enCurso ? 'Guardando…' : 'Guardar'}
+      <Button type="submit" form={idFormulario} disabled={enCurso || sinPuedeEnviar}>
+        {enCurso ? etiquetaEnCurso : etiquetaDeGuardar}
       </Button>
     </div>
   )

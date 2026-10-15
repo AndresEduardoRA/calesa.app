@@ -27,4 +27,23 @@ describe('AvisoDeConflicto', () => {
     expect(screen.queryByRole('link')).toBeNull()
     expect(screen.getByRole('button', { name: 'Recargar' }).hasAttribute('disabled')).toBe(true)
   })
+
+  it('dice lo que pasa al recargar cuando no descarta lo escrito', () => {
+    render(
+      <AvisoDeConflicto
+        mensaje="Rosa Mamani cambió este lead hace 3 min."
+        alRecargar={vi.fn()}
+        detalle="No se guardó nada. El número que escribiste se conserva."
+      />,
+    )
+    expect(
+      screen.getByText('No se guardó nada. El número que escribiste se conserva.'),
+    ).toBeDefined()
+    expect(screen.queryByText(/descarta lo que escribiste/)).toBeNull()
+  })
+
+  it('por defecto avisa que recargar descarta lo escrito', () => {
+    render(<AvisoDeConflicto mensaje="Otra persona cambió esto." alRecargar={vi.fn()} />)
+    expect(screen.getByText(/descarta lo que escribiste/)).toBeDefined()
+  })
 })

@@ -1,11 +1,12 @@
 'use client'
 
 import { SlidersHorizontalIcon } from 'lucide-react'
-import { useState, useSyncExternalStore, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { cn } from 'cn'
 import type { EsquemaDeFiltros } from '@/shared/lib/filtros'
 import { Button } from '../button'
 import { Drawer } from '../drawer'
+import { useConsultaDeMedios } from '../use-consulta-de-medios'
 import { ChipsDeFiltros } from './chips-de-filtros'
 import { ContextoDeFiltros } from './contexto'
 import { CampoDeBusqueda } from './controles'
@@ -15,20 +16,8 @@ import { useFiltros } from './use-filtros'
 // Desde acá el panel de filtros entra al costado; por debajo, en una hoja inferior.
 const ESCRITORIO = '(min-width: 1024px)'
 
-function suscribir(alCambiar: () => void): () => void {
-  const consulta = window.matchMedia(ESCRITORIO)
-  consulta.addEventListener('change', alCambiar)
-  return () => {
-    consulta.removeEventListener('change', alCambiar)
-  }
-}
-
 function useEsEscritorio(): boolean {
-  return useSyncExternalStore(
-    suscribir,
-    () => window.matchMedia(ESCRITORIO).matches,
-    () => false,
-  )
+  return useConsultaDeMedios(ESCRITORIO)
 }
 
 // Abre el panel (o lo pliega, en escritorio) y dice cuántos filtros hay puestos.

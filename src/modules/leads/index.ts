@@ -37,4 +37,6 @@ export { leerFichaDeLead, type DatosDeLaFicha } from './features/ficha/lecturas'
 export { FichaDeLead } from './features/ficha/components/ficha-de-lead'
 export { LeadNoDisponible } from './features/ficha/components/lead-no-disponible'
 export { puedeEditarLead } from './entities/edicion'
+// Cambiar el principal y los extras: sólo con el lead en la cartera (distinto de editarlo).
+export { puedeCambiarTelefonoDeLead } from './entities/telefonos'
 export { CLAVE_DE_SECCION, seccionDeLead } from './entities/ficha'

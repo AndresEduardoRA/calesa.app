@@ -11,6 +11,7 @@ import type { CambiosDeLead } from './edicion'
 import type { LeadDeFicha, OrigenConEstado } from './ficha'
 import type { ImpactoDeCampo } from './impacto'
 import type { FilaDeLead } from './listado'
+import type { CambioDeExtras, CambioDeTelefono } from './telefonos'
 import type { Verificacion } from './verificacion'
 
 // Toda edición manda la versión que tenía en pantalla quien edita; la base responde `conflicto`
@@ -117,4 +118,36 @@ export type RepositorioDeFicha = {
   guardar: (
     pedido: PedidoDeGuardado,
   ) => Promise<{ ok: true; data: Editado } | { ok: false; error: ErrorApp; campo?: string }>
+}
+
+// --- Los teléfonos de la ficha ------------------------------------------------------------------------
+
+export type FalloDeTelefono = { ok: false; error: ErrorApp; campo?: string }
+
+export type RepositorioDeTelefonos = {
+  // `codigoDePais`: el del lead; sin él la base usa el de la empresa. `telefono` como se escribió.
+  verificar: (pedido: {
+    id: string
+    codigoDePais: string | null
+    telefono: string
+  }) => Promise<Resultado<Verificacion>>
+  cambiar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    codigoDePais: string | null
+    telefono: string
+  }) => Promise<{ ok: true; data: CambioDeTelefono } | FalloDeTelefono>
+  // Agregar, rotular y restituir son lo mismo, por id (idempotente).
+  guardarExtra: (pedido: {
+    leadId: string
+    id: string
+    codigoDePais: string | null
+    telefono: string
+    etiqueta: string | null
+    creadoEn: string | null
+  }) => Promise<{ ok: true; data: CambioDeExtras } | FalloDeTelefono>
+  quitarExtra: (pedido: {
+    leadId: string
+    id: string
+  }) => Promise<{ ok: true; data: CambioDeExtras } | FalloDeTelefono>
 }

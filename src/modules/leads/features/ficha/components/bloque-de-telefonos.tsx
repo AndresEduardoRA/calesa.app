@@ -1,7 +1,14 @@
+'use client'
+
 import { Bloque } from '@/shared/ui/bloque'
 import { telefonoDeFicha, type LeadDeFicha } from '../../../entities/ficha'
+import { BotonCambiarTelefono } from './boton-cambiar-telefono'
 
-type Props = { ficha: LeadDeFicha }
+type Props = {
+  ficha: LeadDeFicha
+  // Quien mira tiene el lead en su cartera y puede editarlo: sin esto no hay acciones.
+  puedeCambiar: boolean
+}
 
 // El teléfono principal y los extras, cada uno con su etiqueta. La base ya entregó cada número como
 // corresponde: completo para la cartera y enmascarado para el resto; acá sólo se dice. Para la
@@ -29,7 +36,7 @@ function Numero({
   )
 }
 
-export function BloqueDeTelefonos({ ficha }: Props) {
+export function BloqueDeTelefonos({ ficha, puedeCambiar }: Props) {
   const { enCartera, telefonoCc } = ficha
   return (
     <Bloque titulo="Teléfonos">
@@ -37,6 +44,7 @@ export function BloqueDeTelefonos({ ficha }: Props) {
         <li className="flex flex-wrap items-baseline gap-x-2">
           <Numero numero={ficha.telefono} codigoDePais={telefonoCc} llamable={enCartera} />
           <span className="text-(length:--text-xs) text-(--color-ink-soft)">Principal</span>
+          {puedeCambiar ? <BotonCambiarTelefono /> : null}
         </li>
         {ficha.telefonos.map((extra) => (
           <li key={extra.id} className="flex flex-wrap items-baseline gap-x-2">

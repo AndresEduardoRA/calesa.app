@@ -14,12 +14,14 @@ type Props = {
   // Todo el layout: los desactivados no se muestran.
   campos: readonly CampoDeLead[]
   origen: { nombre: string; activo: boolean } | null
+  // Quien mira puede cambiar los teléfonos de este lead (cartera y `leads.editar`).
+  puedeCambiarTelefono: boolean
 }
 
 // La sección «Datos»: los cuatro fijos y los campos del layout agrupados como los definió la
 // empresa. Un «solo la cartera» de un lead que no es de la cartera de quien mira nunca llega: se
 // dice, en vez de un guion que haría creer que no hay dato (igual que en el listado).
-export function SeccionDatos({ ficha, campos, origen }: Props) {
+export function SeccionDatos({ ficha, campos, origen, puedeCambiarTelefono }: Props) {
   const { zonaHoraria } = useRegional()
   return (
     <div className="grid gap-4">
@@ -46,7 +48,7 @@ export function SeccionDatos({ ficha, campos, origen }: Props) {
           <Dato etiqueta="Creado">{formatearFechaHora(ficha.creadoEn, { zona: zonaHoraria })}</Dato>
         </RejillaDeDatos>
       </Bloque>
-      <BloqueDeTelefonos ficha={ficha} />
+      <BloqueDeTelefonos ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
       <DatosPorGrupo
         campos={campos}
         atributos={ficha.atributos}

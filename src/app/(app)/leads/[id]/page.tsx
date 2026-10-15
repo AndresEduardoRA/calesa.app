@@ -6,6 +6,7 @@ import {
   FichaDeLead,
   LeadNoDisponible,
   leerFichaDeLead,
+  puedeCambiarTelefonoDeLead,
   puedeEditarLead,
   seccionDeLead,
 } from '@/modules/leads'
@@ -39,6 +40,7 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
       origenes={datos.origenes}
       usuarioId={sesion.usuarioId}
       puedeEditar={puedeEditarLead(sesion.permisos, datos.ficha.enCartera)}
+      puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
       // Lo que no es una sección que existe abre «Datos».
       seccion={seccionDeLead(unParametro(parametros[CLAVE_DE_SECCION]))}
     />

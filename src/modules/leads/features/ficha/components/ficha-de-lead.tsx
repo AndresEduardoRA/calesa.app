@@ -18,6 +18,7 @@ import { usePanelDeLead } from '../hooks/use-panel-de-lead'
 import { BotonEditarLead } from './boton-editar-lead'
 import { CabeceraDeLead } from './cabecera-de-lead'
 import { PanelDeEdicion } from './panel-de-edicion'
+import { PanelDeTelefono } from './panel-de-telefono'
 import { RefrescarAlVolver } from './refrescar-al-volver'
 import { SeccionDatos } from './seccion-datos'
 
@@ -30,6 +31,8 @@ type Props = {
   // Quien mira: para decir «lo tienes tú».
   usuarioId: string
   puedeEditar: boolean
+  // Cartera y `leads.editar`: cambiar el principal y administrar los extras.
+  puedeCambiarTelefono: boolean
   // La sección de `?seccion=`: por ahora sólo «datos».
   seccion: SeccionDeLead
 }
@@ -38,6 +41,7 @@ type DatosDeSeccion = {
   ficha: LeadDeFicha
   campos: readonly CampoDeLead[]
   origen: { nombre: string; activo: boolean } | null
+  puedeCambiarTelefono: boolean
 }
 
 // Lo que va bajo la cabecera según `?seccion=`. Cada sección nueva suma su entrada acá (y su
@@ -49,7 +53,15 @@ const CONTENIDO_DE_SECCION: Record<SeccionDeLead, (datos: DatosDeSeccion) => Rea
 // La ficha de un lead: su cabecera y la sección «Datos». Por ahora es la única sección: las
 // demás (seguimientos, recordatorios, vehículos, cotizaciones, portal, historial) llegan con su
 // parte y no se dibujan hasta entonces.
-export function FichaDeLead({ ficha, campos, origenes, usuarioId, puedeEditar, seccion }: Props) {
+export function FichaDeLead({
+  ficha,
+  campos,
+  origenes,
+  usuarioId,
+  puedeEditar,
+  puedeCambiarTelefono,
+  seccion,
+}: Props) {
   const { zonaHoraria } = useRegional()
   const panel = usePanelDeLead()
   const origen = origenDeLaFicha(origenes, ficha.origenId)
@@ -68,7 +80,7 @@ export function FichaDeLead({ ficha, campos, origenes, usuarioId, puedeEditar, s
         quien={quienLoTiene(ficha, usuarioId)}
         acciones={puedeEditar ? <BotonEditarLead /> : null}
       />
-      {CONTENIDO_DE_SECCION[seccion]({ ficha, campos, origen })}
+      {CONTENIDO_DE_SECCION[seccion]({ ficha, campos, origen, puedeCambiarTelefono })}
       <PanelDeEdicion
         ficha={ficha}
         campos={campos}
@@ -76,7 +88,8 @@ export function FichaDeLead({ ficha, campos, origenes, usuarioId, puedeEditar, s
         zona={zonaHoraria}
         puedeEditar={puedeEditar}
       />
-      <RefrescarAlVolver activo={!panel.abierto} />
+      <PanelDeTelefono ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
+      <RefrescarAlVolver activo={!panel.hayPanel} />
     </div>
   )
 }

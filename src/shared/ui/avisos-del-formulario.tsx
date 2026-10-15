@@ -15,6 +15,8 @@ type Props = {
   aviso: string | null
   // Dónde ver cómo quedó lo de la otra persona.
   hrefVer?: string
+  // Qué pasa al recargar, si conserva lo escrito.
+  detalleDelConflicto?: string
   alReintentar: () => void
   alRecargar: () => void
 }
@@ -28,6 +30,7 @@ export function AvisosDelFormulario({
   conflicto,
   aviso,
   hrefVer,
+  detalleDelConflicto,
   alReintentar,
   alRecargar,
 }: Props) {
@@ -55,7 +58,12 @@ export function AvisosDelFormulario({
         </Aviso>
       ) : null}
       {conflicto ? (
-        <AvisoDeConflicto mensaje={conflicto} hrefVer={hrefVer} alRecargar={alRecargar} />
+        <AvisoDeConflicto
+          mensaje={conflicto}
+          hrefVer={hrefVer}
+          alRecargar={alRecargar}
+          detalle={detalleDelConflicto}
+        />
       ) : null}
       {aviso ? <Aviso tono="peligro">{aviso}</Aviso> : null}
     </>

@@ -16,7 +16,7 @@ import {
 } from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { AltaDeLead } from '../hooks/use-alta-de-lead'
-import { CampoTelefono } from './campo-telefono'
+import { CampoTelefono } from '../../telefono/components/campo-telefono'
 import { PasoSeguimiento } from './paso-seguimiento'
 
 type Props = {
