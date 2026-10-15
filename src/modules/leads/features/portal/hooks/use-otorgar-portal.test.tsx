@@ -74,11 +74,14 @@ describe('useOtorgarPortal: otorgar', () => {
     expect(hook.result.current.motivo).toBeNull()
   })
 
-  it('un conflicto conserva lo escrito y se puede olvidar para volver a intentar', async () => {
+  it('un conflicto conserva lo escrito y espera la versión nueva para volver a otorgar', async () => {
     otorgar.mockResolvedValue({
       data: { ok: false, error: { codigo: 'conflicto', mensaje: 'Ya lo otorgó Rosa hace 1 min.' } },
     })
-    const hook = montar()
+    const hook = renderHook(
+      (v: string) => useOtorgarPortal({ leadId: LEAD, version: v, abierto: true }),
+      { initialProps: VERSION },
+    )
     act(() => {
       hook.result.current.escribir('mi-clave-larga')
     })
@@ -87,11 +90,13 @@ describe('useOtorgarPortal: otorgar', () => {
       codigo: 'conflicto',
       mensaje: 'Ya lo otorgó Rosa hace 1 min.',
     })
+    expect(hook.result.current.esperaVersion).toBe(true)
     expect(hook.result.current.clave).toBe('mi-clave-larga')
-    act(() => {
-      hook.result.current.olvidarError()
-    })
+    // «Recargar» trae la versión de Rosa: recién ahí se puede volver a otorgar.
+    hook.rerender('2026-10-16T14:06:00.000+00:00')
     expect(hook.result.current.error).toBeNull()
+    expect(hook.result.current.esperaVersion).toBe(false)
+    expect(hook.result.current.clave).toBe('mi-clave-larga')
   })
 })
 

@@ -32,6 +32,15 @@ export function useOtorgarPortal({
   const accion = useAction(otorgarPortal)
   const [clave, setClave] = useState('')
   const [estado, setEstado] = useState<Estado>(INICIAL)
+  // Un conflicto se va cuando llega la versión nueva (la trae «Recargar»), no al pulsarlo: si se borrara
+  // antes, otorgar en ese instante mandaría la vieja y volvería a chocar.
+  const [versionVista, setVersionVista] = useState(version)
+  if (versionVista !== version) {
+    setVersionVista(version)
+    if (estado.error?.codigo === 'conflicto') {
+      setEstado((e) => ({ ...e, error: null }))
+    }
+  }
 
   useEffect(() => {
     if (!abierto) {
@@ -90,10 +99,8 @@ export function useOtorgarPortal({
     generar: () => otorgar(null),
     darConLaEscrita: () => otorgar(clave),
     enCurso: accion.isExecuting,
+    // Tras un conflicto no se otorga hasta tener la versión nueva; lo escrito queda.
+    esperaVersion: estado.error?.codigo === 'conflicto',
     ...estado,
-    // Tras un conflicto: se vuelve a pedir con la versión nueva, lo escrito queda.
-    olvidarError: () => {
-      setEstado((e) => ({ ...e, error: null }))
-    },
   }
 }

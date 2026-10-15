@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useId } from 'react'
+import { useId, useTransition } from 'react'
 import { Aviso } from '@/shared/ui/aviso'
 import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
 import { Input } from '@/shared/ui/input'
@@ -23,6 +23,7 @@ type Props = {
 // que el anterior deja de valer. Un conflicto se dice adentro, con «Recargar», y lo escrito queda.
 export function FormularioDeClave({ id, acceso, otorgar }: Props) {
   const router = useRouter()
+  const [recargando, recargar] = useTransition()
   const idClave = useId()
   const idAyuda = useId()
   const idMotivo = useId()
@@ -75,9 +76,11 @@ export function FormularioDeClave({ id, acceso, otorgar }: Props) {
         <AvisoDeConflicto
           mensaje={otorgar.error.mensaje}
           alRecargar={() => {
-            router.refresh()
-            otorgar.olvidarError()
+            recargar(() => {
+              router.refresh()
+            })
           }}
+          enCurso={recargando}
           detalle="No se otorgó nada. Recargar trae el acceso como quedó; la clave que escribiste se conserva."
         />
       ) : otorgar.error ? (

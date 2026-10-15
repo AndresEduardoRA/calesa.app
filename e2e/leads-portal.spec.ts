@@ -151,7 +151,12 @@ test('volver a otorgar con la versión: si otra persona otorgó antes, lo dice y
   await dialogo.getByRole('button', { name: 'Dar acceso', exact: true }).click()
   await expect(dialogo.getByText(/Ya lo otorgó Paco Portal hace un momento/)).toBeVisible()
   await expect(dialogo.getByLabel('Clave temporal')).toHaveValue('clave-de-pia-2')
+  // Hasta que llega la versión de Paco no se puede volver a otorgar (si no, chocaría otra vez).
+  await expect(dialogo.getByRole('button', { name: 'Dar acceso', exact: true })).toBeDisabled()
   await dialogo.getByRole('button', { name: 'Recargar' }).click()
+  await expect(dialogo.getByText(/Ya lo otorgó Paco Portal/)).toHaveCount(0)
+  await expect(dialogo.getByText(`El código ${primero.codigo} y su clave`)).toHaveCount(0)
+  await expect(dialogo.getByLabel('Clave temporal')).toHaveValue('clave-de-pia-2')
   await dialogo.getByRole('button', { name: 'Dar acceso', exact: true }).click()
   await expect(
     page.getByRole('dialog', { name: `${lead.nombre} ya tiene acceso al portal` }),

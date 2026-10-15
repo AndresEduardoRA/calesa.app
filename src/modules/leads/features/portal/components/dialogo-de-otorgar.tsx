@@ -33,6 +33,7 @@ export function DialogoDeOtorgar({
 }: Props) {
   const idForm = useId()
   const otorgar = useOtorgarPortal({ leadId, version: versionDelAcceso(acceso), abierto })
+  const ocupado = otorgar.enCurso || otorgar.esperaVersion
 
   if (otorgar.otorgado) {
     return (
@@ -65,14 +66,10 @@ export function DialogoDeOtorgar({
           <Button variant="ghost" onClick={alCerrar} disabled={otorgar.enCurso}>
             Cancelar
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => void otorgar.generar()}
-            disabled={otorgar.enCurso}
-          >
+          <Button variant="outline" onClick={() => void otorgar.generar()} disabled={ocupado}>
             Generar clave y dar acceso
           </Button>
-          <Button type="submit" form={idForm} disabled={otorgar.enCurso || otorgar.clave === ''}>
+          <Button type="submit" form={idForm} disabled={ocupado || otorgar.clave === ''}>
             {otorgar.enCurso ? 'Otorgando…' : 'Dar acceso'}
           </Button>
         </>
