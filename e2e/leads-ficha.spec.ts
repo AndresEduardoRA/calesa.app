@@ -194,11 +194,19 @@ test('abrir la ficha trae poco: lo que aporta sobre el resto de la pantalla y lo
   const id = await idDeLead(PROPIO_BERTA)
   await entrar(page, t.personas.berta)
   const kb = (bytes: number) => formatearNumero(bytes / 1024, { decimales: 1 })
-  const documento = async (ruta: string) =>
-    ((await (await page.goto(ruta))?.body())?.length ?? 0) as number
+  const html = async (ruta: string) => (await (await page.goto(ruta))?.body())?.toString() ?? ''
+  // De qué está hecho un documento: el payload RSC en línea (las props de la pantalla), las etiquetas
+  // `<script src>` (los chunks) y el resto (el HTML dibujado y los estilos).
+  const desglose = (texto: string) => {
+    const enLinea = [...texto.matchAll(/<script>self\.__next_f\.push[\s\S]*?<\/script>/g)]
+    const chunks = [...texto.matchAll(/<script src="[^"]*"[^>]*><\/script>/g)]
+    const suma = (partes: RegExpExecArray[]) => partes.reduce((total, m) => total + m[0].length, 0)
+    return { total: texto.length, rsc: suma(enLinea), scripts: suma(chunks) }
+  }
   // La marca de referencia: el documento de otra pantalla con el mismo shell (menú, barra, estilos).
-  const base = await documento('/perfil')
-  const ficha = await documento(`/leads/${id}`)
+  const base = desglose(await html('/perfil'))
+  const fichaHtml = desglose(await html(`/leads/${id}`))
+  const ficha = fichaHtml.total
 
   // Navegando desde el listado: el payload RSC de la ficha y nada más.
   await irALeads(page)
@@ -221,13 +229,16 @@ test('abrir la ficha trae poco: lo que aporta sobre el resto de la pantalla y lo
   await expect(tituloDeLaFicha(page, nombre(PROPIO_BERTA))).toBeVisible()
   await expect.poll(() => rsc).toBeGreaterThan(0)
 
-  const resumen = `documento ${kb(ficha)} KB (otra pantalla: ${kb(base)} KB, aporta ${kb(ficha - base)} KB) · al navegar: ${kb(rsc)} KB`
+  const resumen =
+    `documento ${kb(ficha)} KB (otra pantalla: ${kb(base.total)} KB, aporta ${kb(ficha - base.total)} KB: ` +
+    `RSC ${kb(fichaHtml.rsc - base.rsc)}, scripts ${kb(fichaHtml.scripts - base.scripts)}, ` +
+    `HTML ${kb(ficha - fichaHtml.rsc - fichaHtml.scripts - (base.total - base.rsc - base.scripts))}) · al navegar: ${kb(rsc)} KB`
   console.warn(`[ficha] ${info.project.name}: ${resumen}`)
   info.annotations.push({ type: 'KB de la ficha', description: resumen })
-  // Lo que la ficha suma al shell, y lo que viaja al abrirla desde el listado. El documento pasó de
-  // 40 a 48 KB en la parte 6a: ahora trae quién lo tiene (con sus acciones y los dos paneles) y el
-  // «⋯» de la papelera. Navegar desde el listado sigue en 40 KB (docs/DECISIONES.md, 2026-10-15).
-  expect(ficha - base).toBeLessThan(48 * 1024)
+  // Lo que la ficha suma al shell, y lo que viaja al abrirla desde el listado. El tope del documento
+  // volvió de 48 a 44 KB en la 6b. Lo que pesa son las props (RSC) y el HTML de «Datos»: los paneles
+  // cerrados no suman nada, diferidos o no (docs/DECISIONES.md, 2026-10-15).
+  expect(ficha - base.total).toBeLessThan(44 * 1024)
   expect(rsc).toBeLessThan(40 * 1024)
   // Móvil: la cabecera cabe sin desplazar de costado.
   if (esMovil(page)) {

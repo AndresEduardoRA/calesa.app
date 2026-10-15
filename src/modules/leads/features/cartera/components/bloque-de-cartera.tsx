@@ -7,6 +7,7 @@ import { Badge } from '@/shared/ui/badge'
 import { Bloque } from '@/shared/ui/bloque'
 import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
+import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import {
   ETIQUETA_DE_ACCESO,
   ETIQUETA_DE_SALIR,
@@ -17,8 +18,7 @@ import {
 } from '../../../entities/cartera'
 import { usePanelDeLead } from '../../ficha/hooks/use-panel-de-lead'
 import { useCartera } from '../hooks/use-cartera'
-import { DialogoDeSalir } from './dialogo-de-salir'
-import { PanelDeCartera } from './panel-de-cartera'
+import { DialogoDeSalirDiferido, PanelDeCarteraDiferido } from './diferidos'
 
 type Props = {
   lead: { id: string; nombre: string; numero: number }
@@ -126,6 +126,11 @@ export function BloqueDeCartera({ lead, cartera: inicial, acciones }: Props) {
   const cartera = useCartera(lead.id, inicial)
   const [saliendo, setSaliendo] = useState(false)
   const hayAcciones = acciones.compartir || acciones.transferir || acciones.salir
+  const compartiendo = acciones.compartir && panel.compartir.abierto
+  const transfiriendo = acciones.transferir && panel.transferir.abierto
+  const montarCompartir = useAbiertoAlgunaVez(compartiendo)
+  const montarTransferir = useAbiertoAlgunaVez(transfiriendo)
+  const montarSalir = useAbiertoAlgunaVez(saliendo)
 
   return (
     <Bloque titulo={TITULO_DE_CARTERA}>
@@ -151,28 +156,34 @@ export function BloqueDeCartera({ lead, cartera: inicial, acciones }: Props) {
           />
         ) : null}
       </div>
-      <PanelDeCartera
-        modo="compartir"
-        abierto={acciones.compartir && panel.compartir.abierto}
-        alCerrar={panel.compartir.cerrar}
-        lead={lead}
-        cartera={cartera}
-      />
-      <PanelDeCartera
-        modo="transferir"
-        abierto={acciones.transferir && panel.transferir.abierto}
-        alCerrar={panel.transferir.cerrar}
-        lead={lead}
-        cartera={cartera}
-      />
-      <DialogoDeSalir
-        abierto={saliendo}
-        alCerrar={() => {
-          setSaliendo(false)
-        }}
-        leadNombre={lead.nombre}
-        cartera={cartera}
-      />
+      {montarCompartir ? (
+        <PanelDeCarteraDiferido
+          modo="compartir"
+          abierto={compartiendo}
+          alCerrar={panel.compartir.cerrar}
+          lead={lead}
+          cartera={cartera}
+        />
+      ) : null}
+      {montarTransferir ? (
+        <PanelDeCarteraDiferido
+          modo="transferir"
+          abierto={transfiriendo}
+          alCerrar={panel.transferir.cerrar}
+          lead={lead}
+          cartera={cartera}
+        />
+      ) : null}
+      {montarSalir ? (
+        <DialogoDeSalirDiferido
+          abierto={saliendo}
+          alCerrar={() => {
+            setSaliendo(false)
+          }}
+          leadNombre={lead.nombre}
+          cartera={cartera}
+        />
+      ) : null}
     </Bloque>
   )
 }
