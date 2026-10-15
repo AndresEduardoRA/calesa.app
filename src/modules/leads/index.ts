@@ -27,3 +27,14 @@ export { EditorDeCamposDeLead } from './features/campos/components/editor-de-cam
 // decide la base; la página sólo agrega las vistas guardadas, que son de `equipo`.
 export { leerListadoDeLeads, type DatosDelListado } from './features/listado/lecturas'
 export { ListadoDeLeads } from './features/listado/components/listado-de-leads'
+
+// La ficha de `/leads/[id]`: la lee la página (`leerFichaDeLead`) y la dibuja `<FichaDeLead>` con su
+// panel de edición (`?panel=editar-lead`) adentro. Quién ve el lead, qué recibe de él y si puede
+// editarlo lo decide la base (`lead_ficha()` y `lead_guardar()`); `puedeEditarLead()` sólo gobierna
+// si se dibuja el botón. Un lead que no se ve es `null`: la página muestra `<LeadNoDisponible>`,
+// igual para lo que no existe, lo que está en la papelera y lo ajeno.
+export { leerFichaDeLead, type DatosDeLaFicha } from './features/ficha/lecturas'
+export { FichaDeLead } from './features/ficha/components/ficha-de-lead'
+export { LeadNoDisponible } from './features/ficha/components/lead-no-disponible'
+export { puedeEditarLead } from './entities/edicion'
+export { CLAVE_DE_SECCION, seccionDeLead } from './entities/ficha'

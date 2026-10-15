@@ -9,7 +9,7 @@ export const getOrigenesDeLead: LectorDeOrigenesDeLead = async () => {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('origenes_lead')
-    .select('id, clave, nombre')
+    .select('id, clave, nombre, activo')
     .order('orden')
     .order('nombre')
   if (error) {

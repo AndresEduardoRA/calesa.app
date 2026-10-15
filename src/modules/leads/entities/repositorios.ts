@@ -3,10 +3,12 @@
 import type { OpcionDeCampo, TipoDeLead, ValorDefecto } from '@/shared/lib/campos'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
-import type { ContextoDeAlta, DatosDeAlta, OrigenDeLead } from './alta'
+import type { ContextoDeAlta, DatosDeAlta } from './alta'
 import type { CambiosDeCampoDeLead } from './cambios-de-campo'
 import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
 import type { CondicionDeLead } from './filtros'
+import type { CambiosDeLead } from './edicion'
+import type { LeadDeFicha, OrigenConEstado } from './ficha'
 import type { ImpactoDeCampo } from './impacto'
 import type { FilaDeLead } from './listado'
 import type { Verificacion } from './verificacion'
@@ -91,8 +93,28 @@ export type PedidoDeListado = {
 export type BuscadorDeLeads = (pedido: PedidoDeListado) => Promise<Resultado<Pagina<FilaDeLead>>>
 
 // Todos los orígenes de lead, también los desactivados: un lead con uno apagado se sigue nombrando.
-export type LectorDeOrigenesDeLead = () => Promise<Resultado<OrigenDeLead[]>>
+export type LectorDeOrigenesDeLead = () => Promise<Resultado<OrigenConEstado[]>>
 
 // En el navegador: un lead por su id para el drawer. `null` = no existe o no lo ve (la papelera, el
 // limbo y lo ajeno son lo mismo para quien mira).
 export type LectorDeLeadRapido = (id: string) => Promise<Resultado<FilaDeLead | null>>
+
+// --- La ficha ---------------------------------------------------------------------------------------
+
+// La ficha de un lead, en un viaje (`lead_ficha()`). `null` = no existe o no lo ve: la papelera, el
+// limbo y lo ajeno son lo mismo para quien mira.
+export type LectorDeFicha = (id: string) => Promise<Resultado<LeadDeFicha | null>>
+
+export type PedidoDeGuardado = {
+  id: string
+  // La versión que tenía en pantalla quien edita.
+  actualizadoEnEsperado: string
+  // Sólo lo que cambió.
+  cambios: CambiosDeLead
+}
+
+export type RepositorioDeFicha = {
+  guardar: (
+    pedido: PedidoDeGuardado,
+  ) => Promise<{ ok: true; data: Editado } | { ok: false; error: ErrorApp; campo?: string }>
+}

@@ -1,7 +1,10 @@
 'use client'
 
 import { Loader2Icon } from 'lucide-react'
+import type { Route } from 'next'
+import Link from 'next/link'
 import { cn } from 'cn'
+import { RUTAS } from '@/shared/lib/rutas'
 import { Campo } from '@/shared/ui/campo'
 import { Button } from '@/shared/ui/button'
 import type { AltaDeLead } from '../hooks/use-alta-de-lead'
@@ -71,6 +74,31 @@ function TomarLead({
   )
 }
 
+type PropsDelAviso = {
+  aviso: NonNullable<AltaDeLead['telefono']['aviso']>
+  verificacion: AltaDeLead['telefono']['verificacion']
+}
+
+// Lo que se le dice a quien tipea. Si el número ya es de un lead que ve, lleva a su ficha.
+function AvisoDeTelefono({ aviso, verificacion }: PropsDelAviso) {
+  return (
+    <p className={cn(TONO[aviso.tono])}>
+      {aviso.texto}
+      {verificacion?.estado === 'existe' ? (
+        <>
+          {' · '}
+          <Link
+            href={`${RUTAS.leads}/${verificacion.leadId}` as Route}
+            className="font-medium underline underline-offset-2"
+          >
+            Abrir
+          </Link>
+        </>
+      ) : null}
+    </p>
+  )
+}
+
 // Lo que se sabe del teléfono: verificándose, nuevo, de quién es, sin dueño.
 function EstadoDelTelefono({ telefono, hayError, alTomar }: PropsDelEstado) {
   const { verificando, aviso, comoSeGuarda, adoptar, verificacion } = telefono
@@ -85,7 +113,7 @@ function EstadoDelTelefono({ telefono, hayError, alTomar }: PropsDelEstado) {
   const conTexto = aviso !== null && aviso.texto !== ''
   return (
     <>
-      {!hayError && conTexto ? <p className={cn(TONO[aviso.tono])}>{aviso.texto}</p> : null}
+      {!hayError && conTexto ? <AvisoDeTelefono aviso={aviso} verificacion={verificacion} /> : null}
       {!hayError && aviso !== null && !conTexto && comoSeGuarda ? (
         <p className="text-(--color-ink-soft)">Se guardará como {comoSeGuarda}.</p>
       ) : null}

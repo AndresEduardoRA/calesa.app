@@ -5,15 +5,19 @@ import 'server-only'
 import type {
   BuscadorDeLeads,
   LectorDeContextoDeAlta,
+  LectorDeFicha,
   LectorDeLayoutDeLeads,
   LectorDeOrigenesDeLead,
   RepositorioCamposDeLead,
   RepositorioDeAlta,
+  RepositorioDeFicha,
 } from './entities/repositorios'
 import { altaSupabase } from './infra/alta'
 import { camposDeLeadSupabase } from './infra/campos'
+import { fichaSupabase } from './infra/ficha'
 import { getContextoDeAlta } from './infra/queries/alta'
 import { getLayoutDeLeads } from './infra/queries/campos'
+import { getFicha } from './infra/queries/ficha'
 import { buscarLeads as buscarLeadsEnBase } from './infra/queries/listado'
 import { getOrigenesDeLead } from './infra/queries/origenes'
 
@@ -28,3 +32,7 @@ export const leerContextoDeAlta: LectorDeContextoDeAlta = getContextoDeAlta
 export const buscarLeads: BuscadorDeLeads = buscarLeadsEnBase
 
 export const leerOrigenesDeLead: LectorDeOrigenesDeLead = getOrigenesDeLead
+
+export const leerFicha: LectorDeFicha = getFicha
+
+export const repositorioDeFicha: RepositorioDeFicha = fichaSupabase

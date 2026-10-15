@@ -1,8 +1,11 @@
 'use client'
 
 import { PlusIcon } from 'lucide-react'
+import type { Route } from 'next'
+import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, type RefObject } from 'react'
 import { enfocarPrimerError } from '@/shared/lib/formularios'
+import { RUTAS } from '@/shared/lib/rutas'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Button } from '@/shared/ui/button'
 import { Drawer } from '@/shared/ui/drawer'
@@ -101,6 +104,7 @@ function PieDelAlta({ idFormulario, paso, enCurso, alVolver, alCancelar }: Props
 // abra nada. El estado vive acá y no en el drawer: cerrarlo no pierde lo escrito.
 export function AltaDeLead({ contexto, campos }: Props) {
   const idFormulario = useId()
+  const router = useRouter()
   const panel = usePanelDeAlta()
   const { zonaHoraria } = useRegional()
   // Tras guardar, el foco vuelve al teléfono cuando los campos dejan de estar deshabilitados.
@@ -111,8 +115,13 @@ export function AltaDeLead({ contexto, campos }: Props) {
     layout: campos,
     zona: zonaHoraria,
     abierto: panel.abierto,
-    alGuardar: ({ numero, adoptado }: Guardado) => {
-      avisarExito(`Lead #${String(numero)} ${adoptado ? 'tomado' : 'creado'}`)
+    alGuardar: ({ id, numero, adoptado }: Guardado) => {
+      avisarExito(`Lead #${String(numero)} ${adoptado ? 'tomado' : 'creado'}`, {
+        etiqueta: 'Abrir ficha',
+        alHacer: () => {
+          router.push(`${RUTAS.leads}/${id}` as Route)
+        },
+      })
       enfocarTelefono.current = true
     },
   })

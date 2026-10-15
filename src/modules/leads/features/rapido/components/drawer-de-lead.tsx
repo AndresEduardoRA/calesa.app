@@ -1,9 +1,12 @@
 'use client'
 
+import type { Route } from 'next'
+import Link from 'next/link'
 import { z } from 'zod'
 import { valorMostrado } from '@/shared/lib/campos'
 import { formatearFechaHora } from '@/shared/lib/fechas'
-import { Button } from '@/shared/ui/button'
+import { RUTAS } from '@/shared/lib/rutas'
+import { Button, buttonVariants } from '@/shared/ui/button'
 import { ValorMostrado } from '@/shared/ui/campos'
 import { Drawer } from '@/shared/ui/drawer'
 import { useRegional } from '@/shared/ui/regional'
@@ -91,14 +94,21 @@ function DatosDelLayout({ lead, campos }: PropsDeDatos) {
 
 type PropsDelCuerpo = PropsDeDatos & { completo: boolean; fallo: boolean; reintentar: () => void }
 
-// Lo que se sabe del lead. Sólo lectura: sin acciones, sin seguimientos y sin enlace a la ficha
-// (llegan con ella).
+// Lo que se sabe del lead. Sólo lectura: sin acciones ni seguimientos; la ficha es lo que sigue.
 function CuerpoDelRapido({ completo, fallo, reintentar, ...datos }: PropsDelCuerpo) {
   const { zonaHoraria } = useRegional()
   const { lead, origenes, codigoDePais } = datos
   return (
     <div className="grid gap-4">
-      <BadgeDeTipo tipo={lead.tipo} className="w-fit" />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <BadgeDeTipo tipo={lead.tipo} className="w-fit" />
+        <Link
+          href={`${RUTAS.leads}/${lead.id}` as Route}
+          className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-9' })}
+        >
+          Abrir ficha
+        </Link>
+      </div>
       <dl className="grid gap-3">
         <Dato etiqueta="Teléfono">
           <span className="tabular-nums">{telefonoDeLista(lead.telefono, codigoDePais)}</span>
