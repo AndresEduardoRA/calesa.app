@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 // Corre contra la app COMPILADA (NEXT_DIST_DIR=.next-e2e) y Supabase local (supabase start).
+// El e2e completo parte de un `db:reset`: `pnpm test:e2e:completo`. Un spec suelto: `pnpm test:e2e <spec>`.
 // Sin reintentos a propósito: un test flaky es un bug, no un número que subir.
 const puerto = Number(process.env['E2E_PORT'] ?? 3210)
 
@@ -10,10 +11,8 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
-  // La guardia: repone apibara y los leads de prueba si una corrida anterior murió a mitad, y falla
-  // rápido si las funciones edge no están servidas (e2e/soporte/guardia.ts).
+  // La guardia: falla en segundos si las funciones edge no están servidas (e2e/soporte/guardia.ts).
   globalSetup: './e2e/global-setup.ts',
-  globalTeardown: './e2e/global-teardown.ts',
   use: {
     baseURL: `http://localhost:${puerto}`,
     trace: 'retain-on-failure',

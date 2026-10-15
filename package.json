@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "NEXT_DIST_DIR=.next-e2e next build && E2E_PROD=1 playwright test",
+    "test:e2e:completo": "node scripts/e2e-completo.mjs",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local --schema public --schema web > src/shared/types/database.types.ts && prettier --ignore-path .gitignore --write src/shared/types/database.types.ts",
     "db:diff": "supabase db diff -f",

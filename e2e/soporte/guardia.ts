@@ -1,97 +1,13 @@
-// La guardia de los e2e: lo que una corrida que murió a mitad puede dejar en la base local (apibara
-// apagada, leads de prueba) se repone antes de empezar y al terminar, y las funciones edge que
-// necesitan los specs tienen que estar servidas antes de gastar minutos en una corrida que va a fallar.
+// La guardia de los e2e: antes de gastar minutos en una corrida, las funciones edge que los specs
+// llaman tienen que estar servidas. Si no lo están, falla en segundos diciendo qué correr.
 //
-// El respaldo vive en disco, no en una variable de cada spec: una corrida que no restauró lo deja
-// escrito y la siguiente lo restaura ANTES de tomar uno nuevo. Así el estado malo no se respalda a sí
-// mismo (pasó el 2026-10-14). La clave real de apibara nunca va a disco: sólo la marca de que había.
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { admin, entorno } from './base'
-import { PREFIJO_DE_LEAD_E2E } from './leads'
-
-const RESPALDO = join(process.cwd(), 'e2e/.estado/respaldo.json')
-
-type EstadoDeApibara = {
-  activa: boolean
-  config: unknown
-  secreto_guardado_en: string | null
-}
-
-type Respaldo = { creadoEn: string; apibara: EstadoDeApibara }
+// Antes había además un respaldo de la integración de apibara y un borrado de los leads «E2E …»,
+// para cuidar una base local con datos de quien la usa. Ya no: la corrida completa parte de un
+// `db:reset` (`pnpm test:e2e:completo`) y la base de desarrollo es descartable (docs/DECISIONES.md).
+import { entorno } from './base'
 
 // Las funciones que los specs llaman de verdad (el resto las intercepta el navegador).
 const FUNCIONES = ['apibara', 'storage-gc'] as const
-
-async function leerApibara(): Promise<EstadoDeApibara> {
-  const { data, error } = await admin()
-    .from('integraciones')
-    .select('activa, config, secreto_guardado_en')
-    .eq('clave', 'apibara')
-    .single<EstadoDeApibara>()
-  if (error) {
-    throw new Error(`La guardia no pudo leer la integración de apibara: ${error.message}`)
-  }
-  return data
-}
-
-async function escribirApibara(estado: EstadoDeApibara): Promise<void> {
-  const { error } = await admin().from('integraciones').update(estado).eq('clave', 'apibara')
-  if (error) {
-    throw new Error(`La guardia no pudo restaurar apibara: ${error.message}`)
-  }
-}
-
-function leerRespaldo(): Respaldo | null {
-  if (!existsSync(RESPALDO)) return null
-  return JSON.parse(readFileSync(RESPALDO, 'utf8')) as Respaldo
-}
-
-// Antes de la corrida: repone lo que una anterior dejó torcido y guarda cómo está la base ahora.
-export async function respaldarAntesDeCorrer(): Promise<void> {
-  const pendiente = leerRespaldo()
-  if (pendiente) {
-    // Una corrida anterior no llegó a restaurar: lo respaldado ES el estado bueno. Nunca se pisa
-    // con lo que hay en la base, que es lo que dejó el fallo.
-    await escribirApibara(pendiente.apibara)
-    rmSync(RESPALDO)
-    console.warn(
-      `[guardia] La corrida anterior (${pendiente.creadoEn}) no restauró la integración de apibara: ` +
-        `se repuso desde el respaldo (${pendiente.apibara.activa ? 'activa' : 'apagada'}).`,
-    )
-  }
-  mkdirSync(dirname(RESPALDO), { recursive: true })
-  const respaldo: Respaldo = { creadoEn: new Date().toISOString(), apibara: await leerApibara() }
-  writeFileSync(RESPALDO, JSON.stringify(respaldo, null, 2))
-}
-
-// Después de la corrida: restaura, comprueba que la clave sigue y que no quedó ningún lead de prueba.
-export async function restaurarAlTerminar(): Promise<void> {
-  const respaldo = leerRespaldo()
-  if (respaldo) {
-    await escribirApibara(respaldo.apibara)
-    const ahora = await leerApibara()
-    rmSync(RESPALDO)
-    if (respaldo.apibara.secreto_guardado_en && !ahora.secreto_guardado_en) {
-      throw new Error(
-        'La integración de apibara tenía una clave guardada y ya no la tiene: vuelve a ponerla en ' +
-          'Configuración › Empresa › Integraciones.',
-      )
-    }
-  }
-  const cliente = admin()
-  const { error } = await cliente.from('leads').delete().like('nombre', `${PREFIJO_DE_LEAD_E2E}%`)
-  if (error) {
-    throw new Error(`La guardia no pudo borrar los leads de prueba: ${error.message}`)
-  }
-  const { count } = await cliente
-    .from('leads')
-    .select('id', { count: 'exact', head: true })
-    .like('nombre', `${PREFIJO_DE_LEAD_E2E}%`)
-  if ((count ?? 0) > 0) {
-    throw new Error(`Quedaron ${String(count)} leads de prueba en la base.`)
-  }
-}
 
 // `OPTIONS` responde sin ejecutar nada (ni llama a apibara); una función que no está servida da 404
 // o corta la conexión. El runtime local recicla sus procesos entre pedidos y alguno puede cortarse
