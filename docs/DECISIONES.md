@@ -1125,6 +1125,8 @@ limpieza automática de la parte 6 sin tocar el bruto.
 
 ## 2026-10-14 — Migraciones sobre una base viva, y e2e que no exigen la base vacía
 
+_Relajada, en propuesta, más abajo (2026-10-15): con `db:reset` disponible ya no hace falta la idempotencia. Los e2e ya no se saltan «la primera persona nace dueña» ni el guardián._
+
 **Contexto:** la base local tenía una cuenta real y la clave real de apibara; `pnpm db:reset` las
 habría borrado, y cuatro specs exigían el equipo vacío.
 **Decisión:** el cambio de esquema va en `supabase/schemas/` (para la migración base) **y**, de forma
@@ -1467,6 +1469,8 @@ cambios de comportamiento: los e2e de vehículos y orígenes siguieron en verde.
 
 ## 2026-10-14 — La guardia de los e2e: respaldo en disco, funciones servidas y teardown
 
+_Reemplazada más abajo: «El e2e completo parte de un reset, la guardia sólo comprueba las funciones, y el atajo de la pantalla gana» (2026-10-15)._
+
 **Contexto:** un e2e que falló a mitad dejó apagada la integración de apibara y la corrida siguiente
 respaldó ese estado ya malo: el respaldo era una variable de cada spec, tomada de la base viva.
 **Decisión:** `globalSetup`/`globalTeardown` de Playwright. Antes de empezar: si existe
@@ -1550,6 +1554,8 @@ huecos de numeración, sin filas.
 `supabase migration up` (aplica sólo lo pendiente), no con `db:reset`.
 
 ## 2026-10-14 — La guardia de los e2e no respalda la base, y un respaldo viejo puede pisar un cambio
+
+_Reemplazada más abajo: «El e2e completo parte de un reset, la guardia sólo comprueba las funciones, y el atajo de la pantalla gana» (2026-10-15)._
 
 **Contexto:** se revisó qué cubre exactamente la guardia (`e2e/soporte/guardia.ts`) antes de apoyarse en
 ella con cuentas reales en la base local.
@@ -1712,3 +1718,56 @@ en su lugar; el estado local se vuelve a sembrar sólo si cambian las props.
 **Consecuencia:** una petición por acción. `puedeCambiarTelefonoDeLead()` (cartera y `leads.editar`) es
 distinto de `puedeEditarLead()`. El humo prueba las cuatro RPC sin cartera, incluida la dueña con «todos»;
 el e2e, la pantalla y la llamada a mano con su sesión.
+
+## 2026-10-15 — El e2e completo parte de un reset, la guardia sólo comprueba las funciones, y el atajo de la pantalla gana
+
+**Contexto:** la base local dejó de ser sagrada (decisión del dueño del proyecto: se pierden su cuenta,
+sus leads de prueba, su layout y sus ajustes de Empresa, y los vuelve a crear) y no va a cargar una clave
+real de apibara en desarrollo. Lo que la guardia de los e2e protegía (la clave y la fila de apibara, las
+cuentas reales, los leads `E2E …`) ya no existe, y `empresa.spec` y cuatro pruebas del equipo vacío
+quedaban fuera de lo que corría una persona con cuentas reales. **Reemplaza** a «La guardia de los e2e»
+y a «La guardia de los e2e no respalda la base» (2026-10-14).
+**Decisión (cómo se corre):** `pnpm test:e2e:completo` comprueba con `OPTIONS` que `apibara` y `storage-gc`
+estén servidas, hace `db:reset` y corre todo con `E2E_COMPLETO=1`, que convierte en error las pruebas que
+exigen el equipo vacío (antes se saltaban). Es lo que vale como «el e2e pasa». `pnpm test:e2e <spec>`
+sigue corriendo un spec suelto sobre la base como esté, con datos.
+**Decisión (la guardia):** queda una sola cosa: fallar en segundos, diciendo qué correr, si las funciones
+edge no están servidas (`e2e/soporte/guardia.ts`, ~40 líneas en vez de ~120). Se retiran el respaldo en
+disco de apibara, su reposición, el teardown que borraba los leads «E2E …» y el chequeo de la clave de
+Vault; con el respaldo desaparece el riesgo de que uno viejo pisara un cambio hecho a mano. Los specs
+siguen dejando limpio lo suyo (la empresa es una fila única y el spec que sigue la comparte).
+**Decisión (apibara y credenciales):** la integración queda apagada y sin clave; todo lo de apibara se
+prueba con `e2e/fixtures/apibara/` y la función interceptada. Ningún e2e lee ni guarda la clave real
+(`empresa.spec` ya no pasa por `integracion_secreto`). Probarla con una clave real es un pendiente de
+**antes de desplegar** (`docs/ESTADO.md`).
+**Decisión (la intermitencia de móvil):** no era la transición de página ni se arregla con
+`reducedMotion`: sin `ViewTransition` y con `reducedMotion: 'reduce'` seguía fallando. Un documento recién
+pedido trae, unos 300 ms (el respiro con que React revela un Suspense), el contenido de cada frontera dos
+veces: la copia visible y un `<div hidden id="S:n">`. Los locators de Playwright cuentan lo oculto y un
+`getByText` estricto que cae en esa ventana falla sin reintentar. Para una persona no hay nada que ver, y
+no hay código de la app que lo cause. La corrección es de las pruebas, una sola vez: `soporte/prueba.ts`
+exporta el `test` con `goto` y `reload` que esperan a que no queden contenedores `S:` (los `<template
+id="B:n">` no sirven: una frontera que se dibuja en el cliente deja el suyo para siempre). `retries`
+sigue en 0.
+**Decisión (un cambio de producto, el único):** esa espera dejó ver que, pasada la primera fracción de
+segundo, la tecla `N` en el inventario abría «Nuevo lead» y no «Nuevo vehículo». `ProveedorAtajos`
+responde el último registrado y el orden de registro es el de hidratación, no el del árbol: el alta de
+leads del marco vive detrás de su propio Suspense y hidrata después de la pantalla. Antes los e2e
+pulsaban demasiado pronto para verlo. `useAtajo` suma `{ respaldo }` (sólo responde si nadie más
+registró el atajo) y el alta de leads registra así su `nuevo` mientras está cerrada. Commit propio.
+**Costo de la opción elegida:** cada corrida completa borra los datos de desarrollo y la sesión de
+`next dev`, y dura ~11 minutos (build, reset y 280 pruebas). **Una base de pruebas aparte** (un segundo
+`supabase start` con otro `project_id` y otros puertos, y su `.env`) mantendría viva la de desarrollo a
+cambio de ~1,8 GB más de RAM (medido: los 12 contenedores del stack actual suman 1.781 MiB, 575 sólo
+`analytics`), unos seis puertos propios, ~1 minuto de arranque y una segunda configuración que mantener;
+las imágenes se comparten. Conviene si la corrida completa pasa a ser diaria o si alguien más
+desarrolla sobre la misma máquina. No hace falta todavía.
+
+**Propuesta, sin aprobar — política de migraciones** (relaja «Migraciones sobre una base viva», 2026-10-14):
+con `db:reset` disponible, una migración nueva **y sin commitear** se corrige en el archivo y se resetea;
+ya no hace falta que sea idempotente (`if not exists`, bloques `do`) ni usar `supabase migration up` /
+`migration repair`. **No cambia:** el esquema se edita en `supabase/schemas/`, se corre `pnpm db:base` y
+se agrega una migración nueva; las ya commiteadas no se editan; `pnpm db:probar` prueba el camino desde
+cero; un permiso o catálogo nuevo lleva su `insert … on conflict` en la misma migración (la nube no
+vuelve a correr el seed); y el relleno de datos de una columna nueva sigue escrito para una base con
+filas, porque la nube las tendrá. Desde el primer `db push` ninguna se corrige: se agrega otra.
