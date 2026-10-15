@@ -9,6 +9,7 @@ import type { ModoDelListado } from '../../../entities/alcance'
 import { privadosFiltrando, type FiltroDescartado } from '../../../entities/filtros'
 import { SECCION_MARCAS } from '../../../entities/filtros-de-marcas'
 import type { FilaDeLead } from '../../../entities/listado'
+import { ConmutadorDeVista } from '../../embudo/components/conmutador-de-vista'
 import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
 import { useEtiquetas } from '../../etiquetas/hooks/use-etiquetas'
 import { usePanelDeEtiquetas } from '../../etiquetas/hooks/use-panel-de-etiquetas'
@@ -89,12 +90,11 @@ export function ListadoDeLeads(props: Props) {
         esquema={esquema}
         vistas={<VistasDeLeads esquema={esquema} vistas={vistas} modo={modo} />}
         acciones={
-          puedeVerTodos || puedeAbrirPapelera ? (
-            <>
-              {puedeVerTodos ? <SelectorDeAlcance modo={modo} /> : null}
-              {puedeAbrirPapelera ? <EnlaceAPapeleraDeLeads /> : null}
-            </>
-          ) : null
+          <>
+            <ConmutadorDeVista actual="lista" />
+            {puedeVerTodos ? <SelectorDeAlcance modo={modo} /> : null}
+            {puedeAbrirPapelera ? <EnlaceAPapeleraDeLeads /> : null}
+          </>
         }
         accionesDeSeccion={{
           [SECCION_MARCAS]: (

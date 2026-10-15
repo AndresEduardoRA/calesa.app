@@ -26,15 +26,24 @@ import type {
   RepositorioDeSeguimientos,
   RepositorioDeTelefonos,
 } from './entities/repositorios'
+import type {
+  LectorDeEmbudos,
+  LectorDeTablero,
+  RepositorioDeEmbudos,
+  RepositorioDeOportunidades,
+} from './entities/repositorios-de-oportunidades'
 import { altaSupabase } from './infra/alta'
 import { carteraSupabase } from './infra/cartera'
 import { camposDeLeadSupabase } from './infra/campos'
+import { embudosSupabase } from './infra/embudos'
 import { etiquetasSupabase } from './infra/etiquetas'
 import { fichaSupabase } from './infra/ficha'
 import { marcasSupabase } from './infra/marcas'
+import { oportunidadesSupabase } from './infra/oportunidades'
 import { getContextoDeAlta } from './infra/queries/alta'
 import { getCartera } from './infra/queries/cartera'
 import { getLayoutDeLeads } from './infra/queries/campos'
+import { getEmbudos, getTablero } from './infra/queries/embudos'
 import { getEtiquetas } from './infra/queries/etiquetas'
 import { getFicha } from './infra/queries/ficha'
 import {
@@ -93,3 +102,11 @@ export const leerCartera: LectorDeCartera = getCartera
 export const repositorioDePapeleraDeLeads: RepositorioDePapeleraDeLeads = papeleraDeLeadsSupabase
 
 export const leerPapeleraDeLeads: LectorDePapeleraDeLeads = getPapeleraDeLeads
+
+export const repositorioDeEmbudos: RepositorioDeEmbudos = embudosSupabase
+
+export const leerEmbudos: LectorDeEmbudos = getEmbudos
+
+export const leerTablero: LectorDeTablero = getTablero
+
+export const repositorioDeOportunidades: RepositorioDeOportunidades = oportunidadesSupabase

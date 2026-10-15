@@ -1,9 +1,21 @@
 import type { Metadata } from 'next'
+import { connection } from 'next/server'
+import { Suspense } from 'react'
 import { leerAjustes } from '@/modules/empresa'
 import { leerVistas, puede, requerirSesion } from '@/modules/equipo'
-import { ListadoDeLeads, leerListadoDeLeads } from '@/modules/leads'
+import {
+  CLAVE_DE_VISTA,
+  EsqueletoDeTablero,
+  ListadoDeLeads,
+  VISTA_EMBUDO,
+  VistaDeEmbudo,
+  leerListadoDeLeads,
+  leerVistaDeEmbudo,
+} from '@/modules/leads'
 import { datosO } from '@/shared/lib/errores'
 import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
+import type { ParametrosDeUrl } from '@/shared/lib/filtros'
+import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 
 export const metadata: Metadata = { title: 'Leads' }
@@ -17,6 +29,14 @@ export default async function PaginaLeads({ searchParams }: PageProps<'/leads'>)
   if (!puede(sesion.permisos, 'leads.ver')) {
     return (
       <EstadoSinPermiso descripcion="No tienes permiso para ver leads. Pídeselo a quien administra los roles." />
+    )
+  }
+  // La vista de embudo: el kanban de las oportunidades propias. Los filtros de la lista no aplican.
+  if (unParametro(parametros[CLAVE_DE_VISTA] ?? undefined) === VISTA_EMBUDO) {
+    return (
+      <Suspense fallback={<EsqueletoDeTablero />}>
+        <Embudo parametros={parametros} />
+      </Suspense>
     )
   }
   const [ajustesLeidos, vistas] = await Promise.all([leerAjustes(), leerVistas('leads')])
@@ -39,4 +59,9 @@ export default async function PaginaLeads({ searchParams }: PageProps<'/leads'>)
       codigoDePais={ajustes?.telefonoCc ?? null}
     />
   )
+}
+
+async function Embudo({ parametros }: { parametros: ParametrosDeUrl }) {
+  await connection()
+  return <VistaDeEmbudo {...datosO(await leerVistaDeEmbudo(parametros))} />
 }

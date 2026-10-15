@@ -27,6 +27,13 @@ export { EditorDeCamposDeLead } from './features/campos/components/editor-de-cam
 // decide la base; la página sólo agrega las vistas guardadas, que son de `equipo`.
 export { leerListadoDeLeads, type DatosDelListado } from './features/listado/lecturas'
 export { ListadoDeLeads } from './features/listado/components/listado-de-leads'
+// La vista de embudo de `/leads` (`?vista=embudo`): los embudos de quien mira y el kanban del elegido
+// (`leerVistaDeEmbudo`), dibujados por `<VistaDeEmbudo>`; mientras llega, `<EsqueletoDeTablero>`. Sólo
+// las oportunidades propias sobre leads de la cartera: lo decide la base.
+export { leerVistaDeEmbudo, type DatosDelEmbudo } from './features/embudo/lecturas'
+export { VistaDeEmbudo } from './features/embudo/components/vista-de-embudo'
+export { EsqueletoDeTablero } from './features/embudo/components/esqueleto-de-tablero'
+export { CLAVE_DE_VISTA, VISTA_EMBUDO } from './entities/tablero'
 
 // La ficha de `/leads/[id]`: la lee la página (`leerFichaDeLead`) y la dibuja `<FichaDeLead>` con su
 // panel de edición (`?panel=editar-lead`) adentro. Quién ve el lead, qué recibe de él y si puede

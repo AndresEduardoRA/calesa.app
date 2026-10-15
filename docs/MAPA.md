@@ -53,11 +53,11 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 263 archivos
-- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `EditorDeCamposDeLead`, `leerListadoDeLeads`, +19
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 306 archivos
+- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `EditorDeCamposDeLead`, `leerListadoDeLeads`, +25
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
 - Depende de: equipo
-- Casos de uso: alta, campos, cartera, etiquetas, ficha, listado, marcas, papelera, rapido, recordatorios, seguimientos, telefono
+- Casos de uso: alta, campos, cartera, embudo, etiquetas, ficha, listado, marcas, oportunidades, papelera, rapido, recordatorios, seguimientos, telefono
 
 ### `logistica`
 Operación diaria sobre el flujo: cadena por fase, mover con vista previa, documentos con aprobación y vencimiento, transporte (embarques y contenedores como grupos), declaraciones aduaneras, gastos y pagos, notas, alertas por demora y margen contra la cotización final. · 1 archivos
