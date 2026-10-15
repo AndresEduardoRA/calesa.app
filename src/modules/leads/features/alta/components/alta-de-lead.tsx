@@ -99,6 +99,22 @@ function PieDelAlta({ idFormulario, paso, enCurso, alVolver, alCancelar }: Props
   )
 }
 
+// `N` abre «Nuevo lead» donde la pantalla no tiene un «nuevo» propio: de respaldo mientras está
+// cerrado, porque esta alta hidrata detrás de su propio Suspense y, sin eso, taparía al de la
+// pantalla. Con el drawer abierto responde de verdad, y no hace nada: ninguna otra `N` se cuela.
+function useTeclaNuevoLead(panel: ReturnType<typeof usePanelDeAlta>): void {
+  useAtajo(
+    'nuevo',
+    () => {
+      if (!panel.abierto) {
+        panel.abrir()
+      }
+    },
+    true,
+    { respaldo: !panel.abierto },
+  )
+}
+
 // «Nuevo lead»: el botón de la barra superior, la tecla N y el drawer (`?panel=nuevo-lead`), desde
 // cualquier pantalla. Sólo se monta con `leads.crear`: sin él no hay botón, ni atajo, ni URL que
 // abra nada. El estado vive acá y no en el drawer: cerrarlo no pierde lo escrito.
@@ -127,13 +143,7 @@ export function AltaDeLead({ contexto, campos }: Props) {
   })
   const { paso, enCurso, errores, enviar } = alta
 
-  // `N` abre «Nuevo lead» donde la pantalla no tiene un «nuevo» propio (la que lo tiene lo registra
-  // más adentro y gana). Con el drawer abierto no hace nada.
-  useAtajo('nuevo', () => {
-    if (!panel.abierto) {
-      panel.abrir()
-    }
-  })
+  useTeclaNuevoLead(panel)
   useAtajo('guardarYSeguir', () => void enviar(), panel.abierto)
   useAtajo('guardar', () => void enviar(), panel.abierto)
 

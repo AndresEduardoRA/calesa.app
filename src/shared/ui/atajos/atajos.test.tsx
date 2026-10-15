@@ -73,3 +73,36 @@ describe('atajos globales', () => {
     expect(evento.defaultPrevented).toBe(false)
   })
 })
+
+describe('atajos de respaldo', () => {
+  it('un atajo de respaldo cede ante el de la pantalla aunque se registre después', () => {
+    const pantalla = vi.fn()
+    const respaldo = vi.fn()
+    function Respaldo() {
+      useAtajo('nuevo', respaldo, true, { respaldo: true })
+      return null
+    }
+    function Pantalla() {
+      useAtajo('nuevo', pantalla)
+      return null
+    }
+    const { rerender } = render(
+      <ProveedorAtajos>
+        <Pantalla />
+        <Respaldo />
+      </ProveedorAtajos>,
+    )
+    fireEvent.keyDown(window, { key: 'n' })
+    expect(pantalla).toHaveBeenCalledTimes(1)
+    expect(respaldo).not.toHaveBeenCalled()
+
+    // Sin la pantalla, responde el de respaldo.
+    rerender(
+      <ProveedorAtajos>
+        <Respaldo />
+      </ProveedorAtajos>,
+    )
+    fireEvent.keyDown(window, { key: 'n' })
+    expect(respaldo).toHaveBeenCalledTimes(1)
+  })
+})
