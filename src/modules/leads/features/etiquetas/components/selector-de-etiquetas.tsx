@@ -9,7 +9,7 @@ import {
   filtrarEtiquetas,
 } from '../../../entities/etiqueta'
 import type { Etiquetas } from '../hooks/use-etiquetas'
-import { OpcionesDeEtiquetas } from './opciones-de-etiquetas'
+import { OpcionesDeEtiquetas, opcionResaltada } from './opciones-de-etiquetas'
 
 type Props = {
   etiquetas: Etiquetas
@@ -28,7 +28,8 @@ type Props = {
 
 // Elegir las etiquetas de quien mira para un lead: buscar, marcar y desmarcar, y crear una nueva
 // escribiendo su nombre y presionando Enter. Las coincidencias van primero y «Crear» al final, así
-// Enter sobre lo que ya existe la marca y sobre algo nuevo la crea. Solo las ve quien las pone.
+// Enter sobre lo que ya existe la marca y sobre algo nuevo la crea (la opción resaltada la decide
+// `opcionResaltada()`, no cmdk). Solo las ve quien las pone.
 export function SelectorDeEtiquetas(props: Props) {
   const { etiquetas, puestas, alCambiar, abierto, alCambiarAbierto } = props
   const [texto, setTexto] = useState('')
@@ -36,11 +37,13 @@ export function SelectorDeEtiquetas(props: Props) {
   const nueva =
     texto.trim() !== '' && !etiquetaConNombre(texto, etiquetas.lista) ? texto.trim() : null
   const lleno = puestas.length >= MAXIMO_DE_ETIQUETAS_POR_LEAD
+  const [resaltada, setResaltada] = useState('')
 
   function cambiarAbierto(valor: boolean) {
     if (!valor) {
       setTexto('')
       setMotivo(null)
+      setResaltada('')
     }
     alCambiarAbierto(valor)
   }
@@ -53,6 +56,7 @@ export function SelectorDeEtiquetas(props: Props) {
       return
     }
     setTexto('')
+    setResaltada('')
     if (!lleno) {
       alCambiar(creada.etiqueta.id, true)
     }
@@ -63,12 +67,18 @@ export function SelectorDeEtiquetas(props: Props) {
       {props.disparador ? <PopoverTrigger render={props.disparador} /> : null}
       <PopoverContent align="end" anchor={props.ancla} className="w-72 p-0">
         {/* cmdk nombra el campo con esta etiqueta (`aria-labelledby`). */}
-        <Command shouldFilter={false} label="Buscar o crear una etiqueta">
+        <Command
+          shouldFilter={false}
+          label="Buscar o crear una etiqueta"
+          value={resaltada || opcionResaltada(etiquetas.lista, texto)}
+          onValueChange={setResaltada}
+        >
           <CommandInput
             value={texto}
             onValueChange={(valor) => {
               setTexto(valor)
               setMotivo(null)
+              setResaltada(opcionResaltada(etiquetas.lista, valor))
             }}
             placeholder="Buscar o crear"
           />

@@ -2,12 +2,22 @@
 
 import { PlusIcon, Settings2Icon } from 'lucide-react'
 import { CommandGroup, CommandItem, CommandList, CommandSeparator } from '@/shared/ui/command'
-import type { Etiqueta } from '../../../entities/etiqueta'
+import { etiquetaConNombre, filtrarEtiquetas, type Etiqueta } from '../../../entities/etiqueta'
 import { InsigniaDeEtiqueta } from './insignia-de-etiqueta'
 
-const CREAR = '__crear'
-const GESTIONAR = '__gestionar'
+export const CREAR = '__crear'
+export const GESTIONAR = '__gestionar'
 const RENGLON = 'min-h-11 md:min-h-8'
+
+// La opción que toma Enter al tipear: la primera coincidencia, o «Crear» si el texto es nuevo. La
+// decide el selector, no el orden en que cmdk ve aparecer y desaparecer las opciones.
+export function opcionResaltada(lista: readonly Etiqueta[], texto: string): string {
+  const primera = filtrarEtiquetas(lista, texto)[0]
+  if (primera) {
+    return primera.id
+  }
+  return texto.trim() !== '' && !etiquetaConNombre(texto, lista) ? CREAR : GESTIONAR
+}
 
 type Props = {
   // Las que coinciden con lo tipeado.
@@ -42,9 +52,9 @@ export function OpcionesDeEtiquetas(props: Props) {
               <CommandItem
                 key={etiqueta.id}
                 value={etiqueta.id}
+                // Una opción de un listbox de varias: `aria-checked` dice si está puesta (ARIA 1.2).
                 data-checked={puesta}
                 aria-checked={puesta}
-                role="menuitemcheckbox"
                 disabled={enCurso || (!puesta && lleno)}
                 className={RENGLON}
                 onSelect={() => {

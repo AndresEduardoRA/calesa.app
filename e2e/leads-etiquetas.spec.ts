@@ -62,8 +62,16 @@ test('crear con Enter desde el selector la pone en el lead; Enter sobre una que 
     })
   const cabecera = page.locator('header').filter({ has: page.getByRole('heading', { level: 1 }) })
   await expect(cabecera.getByText('Llamar el lunes', { exact: true })).toBeVisible()
+  // En el selector, la opción dice que está puesta.
+  await expect(selector.getByRole('option', { name: 'Llamar el lunes' })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  )
 
-  // Con otras mayúsculas no se ofrece crear: es la misma, y Enter la quita del lead.
+  // Con otras mayúsculas no se ofrece crear: es la misma, y Enter la quita del lead. Mientras
+  // viaja el pedido anterior las opciones no aceptan otro: se espera a que vuelva.
+  const opcion = selector.getByRole('option', { name: 'Llamar el lunes' })
+  await expect(opcion).not.toHaveAttribute('aria-disabled', 'true')
   await campo.fill('LLAMAR EL LUNES')
   await expect(selector.getByText(/^Crear «/)).toHaveCount(0)
   await campo.press('Enter')
