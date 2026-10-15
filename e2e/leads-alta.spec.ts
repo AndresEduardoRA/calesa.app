@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './soporte/prueba'
 import { formatearNumero } from '../src/shared/lib/formato'
 import {
   Teclado,

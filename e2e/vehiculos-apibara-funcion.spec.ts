@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { expect, test } from '@playwright/test'
+import { expect, test } from './soporte/prueba'
 import {
   desmontarSubasta,
   fijarApibara,

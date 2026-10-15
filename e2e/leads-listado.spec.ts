@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
 import { aLaVista, cerrarPanelDeFiltros, esMovil, panelDeFiltros } from './soporte/inventario'
 import { crearLead } from './soporte/leads'

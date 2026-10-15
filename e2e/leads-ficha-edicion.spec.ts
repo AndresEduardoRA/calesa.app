@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from './soporte/prueba'
 import { entrar } from './soporte/alta'
 import { admin } from './soporte/base'
 import { bloque, esMovil, otraPersona } from './soporte/inventario'

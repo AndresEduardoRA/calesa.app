@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from './soporte/prueba'
 import { admin } from './soporte/base'
 import {
   COPART,

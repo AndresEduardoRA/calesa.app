@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './soporte/prueba'
 import { CONTRASENA, entrar } from './soporte/alta'
 import { descartarAviso, esMovil } from './soporte/inventario'
 import { sesionDe } from './soporte/leads-alta'

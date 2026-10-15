@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page } from './soporte/prueba'
 import { desmontarSubasta, prepararSubasta, type EstadoDeApibara } from './soporte/apibara'
 import { admin } from './soporte/base'
 import { aLaVista, cerrarPanelDeFiltros, entrar, panelDeFiltros } from './soporte/inventario'

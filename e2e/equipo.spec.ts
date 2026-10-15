@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Browser, type Page } from './soporte/prueba'
 import {
   PREFIJO_ROL_E2E,
   borrarPersonasDePrueba,
