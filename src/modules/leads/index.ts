@@ -62,3 +62,10 @@ export { EsqueletoDeSeguimientos } from './features/seguimientos/components/esqu
 // detrás de `<Suspense>` (su esqueleto es `<EsqueletoDeOportunidades>`).
 export { SeccionOportunidades } from './features/oportunidades/components/seccion-oportunidades'
 export { EsqueletoDeOportunidades } from './features/oportunidades/components/esqueleto-de-oportunidades'
+// La sección «Portal»: el acceso del cliente (otorgar, volver a otorgar, revocar, desbloquear), leída en el
+// servidor detrás de `<Suspense>` (su esqueleto es `<EsqueletoDePortal>`). La página la monta sólo si
+// `puedeGestionarPortal()` (la cartera y `leads.portal.gestionar`) y le pasa el nombre de la empresa y
+// la dirección de la web para el texto de WhatsApp.
+export { SeccionPortal } from './features/portal/components/seccion-portal'
+export { EsqueletoDePortal } from './features/portal/components/esqueleto-de-portal'
+export { puedeGestionarPortal } from './entities/portal'

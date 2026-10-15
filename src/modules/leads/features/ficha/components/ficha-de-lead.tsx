@@ -53,6 +53,8 @@ type Props = {
   vehiculos: ReactNode
   // La sección «Oportunidades» (detrás de `<Suspense>`): la página la monta sólo con `?seccion=oportunidades`.
   oportunidades: ReactNode
+  // La sección «Portal» (detrás de `<Suspense>`): la página la monta sólo con `?seccion=portal`.
+  portal: ReactNode
   // Lo que quien mira ve: decide qué secciones se dibujan.
   ve: LoQueVe
   // Las etiquetas de quien mira (para nombrar las del lead y elegir otras).
@@ -72,8 +74,11 @@ type DatosDeSeccion = {
   seguimientos: ReactNode
   vehiculos: ReactNode
   oportunidades: ReactNode
+  portal: ReactNode
   cartera: readonly PersonaDeCartera[]
   accionesDeCartera: AccionesDeCartera
+  // Quien mira gestiona el acceso del cliente: transferir avisa si está vigente.
+  vePortal: boolean
 }
 
 // Lo que va bajo la cabecera según `?seccion=`. Cada sección nueva suma su entrada acá (y su
@@ -83,6 +88,7 @@ const CONTENIDO_DE_SECCION: Record<SeccionDeLead, (datos: DatosDeSeccion) => Rea
   seguimientos: (datos) => datos.seguimientos,
   vehiculos: (datos) => datos.vehiculos,
   oportunidades: (datos) => datos.oportunidades,
+  portal: (datos) => datos.portal,
 }
 
 // El enlace de vuelta al listado, arriba de la cabecera.
@@ -99,8 +105,8 @@ function VolverALeads() {
 }
 
 // La ficha de un lead: su cabecera, la barra de secciones y la sección de `?seccion=` («Datos»,
-// «Seguimientos», «Vehículos» u «Oportunidades»). Las demás (cotizaciones, portal, historial) llegan con su parte y no
-// se dibujan hasta entonces.
+// «Seguimientos», «Vehículos», «Oportunidades» o «Portal»). Las demás (cotizaciones, historial) llegan
+// con su parte y no se dibujan hasta entonces.
 export function FichaDeLead({
   ficha,
   campos,
@@ -112,6 +118,7 @@ export function FichaDeLead({
   seguimientos,
   vehiculos,
   oportunidades,
+  portal,
   ve,
   etiquetas: lista,
   cartera,
@@ -162,8 +169,10 @@ export function FichaDeLead({
         seguimientos,
         vehiculos,
         oportunidades,
+        portal,
         cartera,
         accionesDeCartera,
+        vePortal: ve.portal,
       })}
       <PanelDeEdicion
         ficha={ficha}

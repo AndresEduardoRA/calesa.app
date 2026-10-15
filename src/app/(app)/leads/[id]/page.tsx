@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { z } from 'zod'
+import { getAjustes } from '@/modules/empresa'
 import { puede, requerirSesion } from '@/modules/equipo'
 import {
   accionesDeCartera,
   CLAVE_DE_SECCION,
   duenoDe,
   EsqueletoDeOportunidades,
+  EsqueletoDePortal,
   EsqueletoDeSeguimientos,
   FichaDeLead,
   LeadNoDisponible,
@@ -14,7 +16,9 @@ import {
   puedeCambiarTelefonoDeLead,
   puedeEditarLead,
   puedeEnviarLead,
+  puedeGestionarPortal,
   SeccionOportunidades,
+  SeccionPortal,
   SeccionSeguimientos,
   seccionDeLead,
 } from '@/modules/leads'
@@ -23,6 +27,7 @@ import {
   SeccionVehiculosDelLead,
   opcionesDeVehiculoDelLead,
 } from '@/modules/vehiculos'
+import { leerDireccionPublica } from '@/modules/web'
 import { datosO } from '@/shared/lib/errores'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
@@ -46,11 +51,13 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
   if (!datos) {
     return <LeadNoDisponible />
   }
-  // «Vehículos» sólo para quien ve vehículos en algún origen; «Oportunidades», con el lead en la cartera.
-  // Lo que no es una sección que existe (o que la persona no ve) abre «Datos».
+  // «Vehículos» sólo para quien ve vehículos en algún origen; «Oportunidades», con el lead en la cartera;
+  // «Portal», con la cartera y `leads.portal.gestionar`. Lo que no es una sección que existe (o que la
+  // persona no ve) abre «Datos».
   const ve = {
     vehiculos: puede(sesion.permisos, 'vehiculos.ver'),
     oportunidades: datos.ficha.enCartera,
+    portal: puedeGestionarPortal(sesion.permisos, datos.ficha.enCartera),
   }
   const seccion = seccionDeLead(unParametro(parametros[CLAVE_DE_SECCION]), ve)
   return (
@@ -97,6 +104,19 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
             <SeccionOportunidades
               leadId={datos.ficha.id}
               {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
+            />
+          </Suspense>
+        ) : null
+      }
+      // El nombre de la empresa y la dirección de la web los componen `empresa` y `web` (`leads` no los importa).
+      portal={
+        seccion === 'portal' ? (
+          <Suspense fallback={<EsqueletoDePortal />}>
+            <SeccionPortal
+              leadId={datos.ficha.id}
+              leadNombre={datos.ficha.nombre}
+              empresa={getAjustes().then((ajustes) => ajustes.nombre)}
+              direccion={leerDireccionPublica().then(datosO)}
             />
           </Suspense>
         ) : null

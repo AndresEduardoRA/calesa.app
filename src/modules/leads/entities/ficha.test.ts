@@ -132,9 +132,9 @@ describe('teléfono de la ficha', () => {
 })
 
 describe('secciones', () => {
-  const conVehiculos = { vehiculos: true, oportunidades: false }
-  const sinVehiculos = { vehiculos: false, oportunidades: false }
-  const todo = { vehiculos: true, oportunidades: true }
+  const conVehiculos = { vehiculos: true, oportunidades: false, portal: false }
+  const sinVehiculos = { vehiculos: false, oportunidades: false, portal: false }
+  const todo = { vehiculos: true, oportunidades: true, portal: true }
   it('«Datos», «Seguimientos» y «Vehículos»: hay barra de pestañas, sin números', () => {
     expect(hayBarraDeSecciones(conVehiculos)).toBe(true)
     expect(seccionesDisponibles(conVehiculos)).toEqual([
@@ -151,15 +151,18 @@ describe('secciones', () => {
     expect(seccionDeLead('vehiculos', sinVehiculos)).toBe('datos')
     expect(seccionDeLead('vehiculos', conVehiculos)).toBe('vehiculos')
   })
-  it('«Oportunidades» sólo con el lead en la cartera, al final', () => {
+  it('«Oportunidades» sólo con el lead en la cartera; «Portal» con la cartera y el permiso, al final', () => {
     expect(seccionesDisponibles(todo).map((s) => s.clave)).toEqual([
       'datos',
       'seguimientos',
       'vehiculos',
       'oportunidades',
+      'portal',
     ])
     expect(seccionDeLead('oportunidades', todo)).toBe('oportunidades')
     expect(seccionDeLead('oportunidades', conVehiculos)).toBe('datos')
+    expect(seccionDeLead('portal', todo)).toBe('portal')
+    expect(seccionDeLead('portal', { ...todo, portal: false })).toBe('datos')
   })
   it('lo que no es una sección que existe abre «Datos»', () => {
     expect(seccionDeLead(undefined, conVehiculos)).toBe('datos')

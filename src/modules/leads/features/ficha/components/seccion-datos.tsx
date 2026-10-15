@@ -21,6 +21,8 @@ type Props = {
   // Quién lo tiene y qué puede hacer quien mira con eso.
   cartera: readonly PersonaDeCartera[]
   accionesDeCartera: AccionesDeCartera
+  // Quien mira gestiona el acceso del cliente: transferir avisa si está vigente.
+  vePortal: boolean
 }
 
 // La sección «Datos»: los cuatro fijos y los campos del layout agrupados como los definió la
@@ -33,6 +35,7 @@ export function SeccionDatos({
   puedeCambiarTelefono,
   cartera,
   accionesDeCartera,
+  vePortal,
 }: Props) {
   const { zonaHoraria } = useRegional()
   return (
@@ -67,6 +70,7 @@ export function SeccionDatos({
           nombre: ficha.nombre,
           numero: ficha.numero,
           vehiculosVinculados: ficha.vehiculosVinculados,
+          vePortal,
         }}
         cartera={cartera}
         acciones={accionesDeCartera}

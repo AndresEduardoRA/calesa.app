@@ -12,6 +12,7 @@ import {
   textoDeTransferencia,
   type PersonaDeCartera,
 } from '../../../entities/cartera'
+import { AvisoDelPortal } from '../../portal/components/aviso-del-portal'
 import { useCandidatos } from '../hooks/use-candidatos'
 import type { CarteraDelLead } from '../hooks/use-cartera'
 import { useElegirPersona, type ModoDePanelDeCartera } from '../hooks/use-elegir-persona'
@@ -21,8 +22,15 @@ import { ListaDePersonas } from './lista-de-personas'
 const COSTADO = '(min-width: 640px)'
 
 // `vehiculosVinculados`: los que quien mira ve; con alguno, el panel avisa que el vínculo se los da a
-// quien recibe el lead.
-type LeadDelPanel = { id: string; nombre: string; numero: number; vehiculosVinculados: number }
+// quien recibe el lead. `vePortal`: quien mira gestiona el acceso del cliente; al transferir, el panel
+// lee si está vigente y avisa que el cliente verá a otra persona como su asesor.
+type LeadDelPanel = {
+  id: string
+  nombre: string
+  numero: number
+  vehiculosVinculados: number
+  vePortal: boolean
+}
 
 const TEXTOS = {
   compartir: {
@@ -108,6 +116,12 @@ function Contenido({ modo, alCerrar, lead, cartera }: Omit<Props, 'abierto'>) {
           alElegir={eleccion.elegir}
         />
       ) : null}
+      <AvisoDelPortal
+        leadId={lead.id}
+        leadNombre={lead.nombre}
+        activo={modo === 'transferir' && lead.vePortal}
+        destino={persona ? persona.nombre : null}
+      />
       {modo === 'transferir' && persona ? (
         <Aviso tono="aviso">
           {textoDeTransferencia(lead.nombre, cartera.cartera as PersonaDeCartera[], persona.nombre)}

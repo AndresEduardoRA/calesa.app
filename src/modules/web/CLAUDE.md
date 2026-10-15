@@ -5,11 +5,12 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 ## Entra y sale
 
 - Entra: Configuración › Sitio web, editor de guías (Tiptap saneado), «Contacté» desde la campana, disponibilidad desde el perfil; desde afuera, el repo del sitio llama `web.solicitar_asesor`, `web.portal_login`, `web.portal_snapshot`.
-- Sale: `estadoColaWeb()`, `confirmarContacto(ref)`, `<TarjetaTurno>`. Lo consumen `tablero`, `notificaciones`, `leads` (vincular turno a lead).
+- Sale: `leerDireccionPublica()` (`ajustes_web.direccion_publica`, nula si nadie la configuró: la compone la página del lead para el texto de WhatsApp del portal; la columna no tiene pantalla hasta Configuración › Sitio web). Pendiente: `estadoColaWeb()`, `confirmarContacto(ref)`, `<TarjetaTurno>`. Lo consumirán `tablero`, `notificaciones`, `leads` (vincular turno a lead).
 - Depende de: `vehiculos`, `leads`, `equipo`.
 
 ## Archivos clave
 
+- Existe: `entities/repositorios.ts`, `infra/queries/sitio.ts` (`getDireccionPublica`), `composicion.ts`. Lo demás llega con la Fase 8.
 - `entities/cola.ts` — reglas de la rueda (orden, cupo, pegajoso, prioridad) documentadas y testeadas como espejo de `web.solicitar_asesor` (la base decide).
 - `infra/revalidar.ts` — trigger → POST a `WEB_PUBLICA_REVALIDAR_URL` con secreto de Vault; `app/api/portal/*` firma la cookie del portal.
 - `features/sitio/`, `features/guias/`, `features/faqs/`, `features/testimonios/`, `features/cola/`.
@@ -33,4 +34,5 @@ RPC: `web.solicitar_asesor`, `web.registrar_evento`, `web.portal_login/snapshot/
 - El sitio es otro repo (`sitio-marketing`) sobre el mismo Supabase; cambiar una columna de `web.*` rompe su tipado a propósito: avisar en `docs/DECISIONES.md`.
 - El esquema `interno` no se expone en PostgREST y ningún rol de la app tiene `usage`: ahí vive lo que comparten la web y el CRM. Nada de `interno` se lee desde la app si no es por una función `definer` o una vista de `web`.
 - `web_expirar_solicitudes` está escrita para correr cada 5 minutos, pero su job no está programado todavía (se programa con este módulo, Fase 8).
+- **El contrato del portal** (firmas de `web.portal_*`, la cookie con `otorgado_en`, el límite por IP, las respuestas idénticas del login, lo que el cliente nunca ve) está en `docs/DECISIONES.md` («Contrato del portal para la Fase 8», 2026-10-16). Las cuatro reciben el `otorgado_en` que devolvió el login y no entregan nada si el acceso cambió; `portal_documento_ruta` devuelve una ruta privada: el handler la firma o la sirve, nunca la manda al navegador.
 - Un asesor entra a la rueda sólo con perfil público, WhatsApp cargado, activo, no bloqueado y disponible (`perfil_cola_web`).

@@ -33,6 +33,10 @@ import type {
   RepositorioDeEmbudos,
   RepositorioDeOportunidades,
 } from './entities/repositorios-de-oportunidades'
+import type {
+  LectorDeAccesoDelCliente,
+  RepositorioDelPortal,
+} from './entities/repositorios-de-portal'
 import { altaSupabase } from './infra/alta'
 import { carteraSupabase } from './infra/cartera'
 import { camposDeLeadSupabase } from './infra/campos'
@@ -54,6 +58,8 @@ import {
 } from './infra/queries/listado'
 import { getOrigenesDeLead } from './infra/queries/origenes'
 import { getPapeleraDeLeads } from './infra/queries/papelera'
+import { getAccesoDelCliente } from './infra/queries/portal'
+import { portalSupabase } from './infra/portal'
 import { papeleraDeLeadsSupabase } from './infra/papelera'
 import { getRecordatoriosDelLead } from './infra/queries/recordatorios'
 import { recordatoriosSupabase } from './infra/recordatorios'
@@ -114,3 +120,8 @@ export const leerTablero: LectorDeTablero = getTablero
 export const repositorioDeOportunidades: RepositorioDeOportunidades = oportunidadesSupabase
 
 export const leerOportunidadesDelLead: LectorDeOportunidadesDelLead = getOportunidadesDelLead
+
+// El acceso del cliente al portal (clase 1: la cartera y `leads.portal.gestionar`).
+export const leerAccesoDelCliente: LectorDeAccesoDelCliente = getAccesoDelCliente
+
+export const repositorioDelPortal: RepositorioDelPortal = portalSupabase
