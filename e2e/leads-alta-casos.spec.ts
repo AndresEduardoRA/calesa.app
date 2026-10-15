@@ -315,9 +315,14 @@ test('dos personas guardan el mismo teléfono a la vez: una lo crea y la otra ve
 
     // Una creó; la otra volvió a los datos diciendo que ya existe, con todo lo suyo intacto.
     await expect.poll(async () => (await leadsConTelefono(normalizado)).length).toBe(1)
-    const creoA = await page.getByText(/Lead #\d+ creado/).isVisible()
-    const perdedora = creoA ? paginaOtra : page
-    await expect(perdedora.getByText(/Ya existe: E2E Carrera|Lo tiene /)).toBeVisible()
+    // La fila entra antes de que la ganadora muestre su aviso: se espera a que alguna de las dos
+    // diga «ya existe» en vez de deducirlo de un aviso que puede no haber llegado todavía.
+    const existe = (p: Page) => p.getByText(/Ya existe: E2E Carrera|Lo tiene /)
+    const cualPerdio = async () =>
+      (await existe(page).isVisible()) ? 'a' : (await existe(paginaOtra).isVisible()) ? 'b' : null
+    await expect.poll(cualPerdio).not.toBeNull()
+    const perdedora = (await cualPerdio()) === 'a' ? page : paginaOtra
+    await expect(existe(perdedora)).toBeVisible()
     await expect(dialogo(perdedora).getByLabel('Nombre', { exact: true })).not.toHaveValue('')
     expect(await leadsConTelefono(normalizado)).toHaveLength(1)
   } finally {
