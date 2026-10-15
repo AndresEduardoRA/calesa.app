@@ -3727,3 +3727,469 @@ begin
   reset role;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test ficha del lead: lead_ficha, teléfonos y telefono_lead recortan según la cartera, y leads_telefonos no se lee directo
+-- Una cédula (privada por tipo) y un color; dos asesores («propios») con un lead cada uno; la dueña («todos»).
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  perform public.lead_campo_crear('ficha_ci', 'Cédula de la ficha', 'documento');
+  perform public.lead_campo_crear('ficha_color', 'Color de la ficha', 'texto');
+end $$;
+reset role;
+update public.perfiles set nombre = 'Berta Ficha' where id = '00000000-0000-0000-0000-000000000040';
+-- 42: sólo ve (leads.ver «todos»). 43: asesor («propios») sin ningún lead. 44: sin rol.
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-000000000042', 'lectora-ficha@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-000000000043', 'asesor-sin-leads-ficha@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-000000000044', 'sin-rol-ficha@ejemplo.com', '{"invitado": true}');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+select public.rbac_asignar_rol('00000000-0000-0000-0000-000000000043', (select id from public.roles where clave = 'asesor'), true);
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Ficha Propia', 'telefono_principal', '73000001', 'origen_lead_id', v_web,
+        'atributos', '{"ficha_ci": "CI-111", "ficha_color": "rojo"}'::jsonb));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta A: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Ficha Ajena', 'telefono_principal', '73000002', 'origen_lead_id', v_web,
+        'atributos', '{"ficha_ci": "CI-222", "ficha_color": "azul"}'::jsonb));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta B: %', r; end if;
+end $$;
+reset role;
+-- Dos extras de uno y diez del otro, escritos como dueño de la base: la app no los escribe todavía.
+insert into public.leads_telefonos (lead_id, telefono, etiqueta, creado_en)
+select (select id from public.leads where nombre = 'Ficha Propia'), '59173100001', 'Casa', now() - interval '2 minutes'
+union all select (select id from public.leads where nombre = 'Ficha Propia'), '59173100002', null, now() - interval '1 minute';
+insert into public.leads_telefonos (lead_id, telefono, etiqueta, creado_en)
+select (select id from public.leads where nombre = 'Ficha Ajena'), '5917320000' || g, 'Extra ' || g, now() - make_interval(mins => 20 - g) from generate_series(1, 9) g
+union all select (select id from public.leads where nombre = 'Ficha Ajena'), '59173200010', 'Extra 10', now() - interval '1 minute';
+
+-- La tabla no admite un duplicado dentro del lead, una etiqueta vacía ni un número mal formado; el
+-- mismo número en otro lead sí vale (son alternos: no hay unicidad entre leads).
+do $$ declare v uuid := (select id from public.leads where nombre = 'Ficha Propia'); o uuid := (select id from public.leads where nombre = 'Ficha Ajena'); begin
+  begin insert into public.leads_telefonos (lead_id, telefono) values (v, '59173100001'); raise exception 'aceptó un duplicado dentro del lead';
+  exception when unique_violation then null; end;
+  begin insert into public.leads_telefonos (lead_id, telefono, etiqueta) values (v, '59173100003', ''); raise exception 'aceptó una etiqueta vacía';
+  exception when check_violation then null; end;
+  begin insert into public.leads_telefonos (lead_id, telefono) values (v, 'no-es-un-numero'); raise exception 'aceptó un número mal formado';
+  exception when check_violation then null; end;
+  begin insert into public.leads_telefonos (lead_id, telefono, etiqueta) values (v, '59173100004', repeat('x', 41)); raise exception 'aceptó una etiqueta de 41';
+  exception when check_violation then null; end;
+  insert into public.leads_telefonos (lead_id, telefono) values (o, '59173100001');
+  delete from public.leads_telefonos where lead_id = o and telefono = '59173100001';
+end $$;
+
+-- La cartera recibe todo.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare f jsonb; begin
+  f := public.lead_ficha((select id from public.leads where nombre = 'Ficha Propia'));
+  if f is null then raise exception 'la cartera no vio su ficha'; end if;
+  if not (f ->> 'en_cartera')::boolean then raise exception 'en_cartera'; end if;
+  if f ->> 'telefono' <> '59173000001' then raise exception 'el principal, completo: %', f ->> 'telefono'; end if;
+  if jsonb_array_length(f -> 'telefonos') <> 2 or f #>> '{telefonos,0,telefono}' <> '59173100001' or f #>> '{telefonos,0,etiqueta}' <> 'Casa' then
+    raise exception 'los extras, completos y con su etiqueta: %', f -> 'telefonos'; end if;
+  if f #>> '{atributos,ficha_ci}' is distinct from 'CI-111' then raise exception 'su privado: %', f -> 'atributos'; end if;
+  if f ->> 'tiene_nombre' is distinct from 'Berta Ficha' then raise exception 'quién lo tiene: %', f ->> 'tiene_nombre'; end if;
+  if (select count(*) from public.lead_telefonos((select id from public.leads where nombre = 'Ficha Propia'))) <> 2 then raise exception 'lead_telefonos de la cartera'; end if;
+  if public.telefono_lead((select id from public.leads where nombre = 'Ficha Propia')) <> '59173000001' then raise exception 'telefono_lead de la cartera'; end if;
+  -- La tabla no se lee directo, tampoco la propia.
+  begin perform 1 from public.leads_telefonos limit 1; raise exception 'leyó leads_telefonos directo';
+  exception when insufficient_privilege then null; end;
+  begin insert into public.leads_telefonos (lead_id, telefono) values ((select id from public.leads where nombre = 'Ficha Propia'), '59173999999'); raise exception 'escribió leads_telefonos directo';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+
+-- La dueña («todos») ve el lead ajeno con todo enmascarado y sin la cédula.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare f jsonb; t record; n int; begin
+  f := public.lead_ficha((select id from public.leads where nombre = 'Ficha Ajena'));
+  if f is null then raise exception '«todos» no vio la ficha ajena'; end if;
+  if (f ->> 'en_cartera')::boolean then raise exception 'la dueña no está en esa cartera'; end if;
+  if f ->> 'telefono' = '59173000002' or f ->> 'telefono' not like '%•%' then raise exception 'el principal, enmascarado: %', f ->> 'telefono'; end if;
+  if f -> 'atributos' ? 'ficha_ci' then raise exception 'llegó la cédula ajena: %', f -> 'atributos'; end if;
+  if f #>> '{atributos,ficha_color}' is distinct from 'azul' then raise exception 'el color sí: %', f -> 'atributos'; end if;
+  if jsonb_array_length(f -> 'telefonos') <> 10 then raise exception 'los 10 extras: %', jsonb_array_length(f -> 'telefonos'); end if;
+  for t in select x ->> 'telefono' as telefono from jsonb_array_elements(f -> 'telefonos') x loop
+    if t.telefono not like '%•%' or t.telefono like '5917320000_' then raise exception 'un extra ajeno sin enmascarar: %', t.telefono; end if;
+  end loop;
+  if public.telefono_lead((select id from public.leads where nombre = 'Ficha Ajena')) not like '%•%' then raise exception 'telefono_lead de lo ajeno, enmascarado'; end if;
+  -- Lo que se entrega de una ficha con 10 extras sigue siendo chico.
+  if octet_length(f::text) > 8192 then raise exception 'la ficha pesa % bytes', octet_length(f::text); end if;
+  select count(*) into n from public.lead_telefonos((select id from public.leads where nombre = 'Ficha Ajena'));
+  if n <> 10 then raise exception 'lead_telefonos de «todos»: %', n; end if;
+end $$;
+reset role;
+
+-- Quien no ve el lead (propios fuera de su cartera, sin leads.ver, inexistente, limbo y papelera): nada, y nulo.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare v_propia uuid := (select id from public.leads where nombre = 'Ficha Propia'); begin
+  if public.lead_ficha(v_propia) is not null then raise exception '«propios» vio la ficha de otra cartera'; end if;
+  if public.telefono_lead(v_propia) is not null then raise exception 'telefono_lead dio el teléfono de otra cartera'; end if;
+  if (select count(*) from public.lead_telefonos(v_propia)) <> 0 then raise exception 'lead_telefonos dio los extras de otra cartera'; end if;
+  if public.lead_ficha(gen_random_uuid()) is not null then raise exception 'inventó una ficha'; end if;
+  if public.telefono_lead(gen_random_uuid()) is not null then raise exception 'telefono_lead de un id inventado'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000003', false);
+set role authenticated;
+do $$ declare v_propia uuid := (select id from public.leads where nombre = 'Ficha Propia'); begin
+  if public.lead_ficha(v_propia) is not null then raise exception 'sin leads.ver vio una ficha'; end if;
+  if public.telefono_lead(v_propia) is not null then raise exception 'sin leads.ver, telefono_lead dio un número'; end if;
+  if (select count(*) from public.lead_telefonos(v_propia)) <> 0 then raise exception 'sin leads.ver, lead_telefonos dio filas'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Limbo y papelera: ni la dueña los ve.
+insert into public.leads (id, nombre, telefono_principal, creado_por) values ('00000000-0000-0000-0000-00000000f001', 'Ficha Limbo', '59173000003', null);
+insert into public.leads (id, nombre, telefono_principal, creado_por, eliminado_en) values ('00000000-0000-0000-0000-00000000f002', 'Ficha Papelera', '59173000004', '00000000-0000-0000-0000-000000000040', now());
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  if public.lead_ficha('00000000-0000-0000-0000-00000000f001') is not null then raise exception 'vio la ficha de un lead en el limbo'; end if;
+  if public.lead_ficha('00000000-0000-0000-0000-00000000f002') is not null then raise exception 'vio la ficha de un lead en la papelera'; end if;
+  if public.telefono_lead('00000000-0000-0000-0000-00000000f001') is not null or public.telefono_lead('00000000-0000-0000-0000-00000000f002') is not null then
+    raise exception 'telefono_lead dio un número del limbo o de la papelera'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test ficha del lead: leads_asesores sólo muestra a quien lo tiene a quien ve el lead sin estar en la cartera
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare r uuid; v uuid; begin
+  r := public.rbac_crear_rol('humo_ficha_lectura', 'Humo ficha lectura');
+  perform public.rbac_otorgar(r, 'leads.ver', (select actualizado_en from public.roles where id = r), p_alcance => 'todos');
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000042', r, true);
+  -- La dueña lo comparte con otra persona: ahora la cartera de «Ficha Propia» son dos.
+  perform public.compartir_lead((select id from public.leads where nombre = 'Ficha Propia'), '00000000-0000-0000-0000-000000000041');
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000042', false);
+set role authenticated;
+do $$ declare v_id uuid := (select id from public.leads where nombre = 'Ficha Propia'); n int; begin
+  select count(*) into n from public.leads_asesores where lead_id = v_id;
+  if n <> 1 then raise exception 'quien ve sin estar en la cartera debía ver sólo al dueño, vio % filas', n; end if;
+  if (select tipo_acceso from public.leads_asesores where lead_id = v_id) <> 'dueno' then raise exception 'la fila visible es la del dueño'; end if;
+  if (public.lead_ficha(v_id) ->> 'tiene_nombre') is distinct from 'Berta Ficha' then raise exception 'quién lo tiene sigue a la vista'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_id uuid := (select id from public.leads where nombre = 'Ficha Propia'); begin
+  if (select count(*) from public.leads_asesores where lead_id = v_id) <> 2 then raise exception 'la cartera ve a las dos personas'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test ficha del lead: lead_guardar, la única puerta, con permiso, versión y los mismos mensajes
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Ficha Propia');
+  v0 timestamptz; v1 timestamptz; r jsonb; m text; s text;
+begin
+  v0 := (public.lead_ficha(v_id) ->> 'actualizado_en')::timestamptz;
+  -- El UPDATE directo ya no existe.
+  begin update public.leads set nombre = 'Directo' where id = v_id; raise exception 'actualizó directo';
+  exception when insufficient_privilege then null; end;
+  -- La versión es obligatoria.
+  begin perform public.lead_guardar(v_id, null, '{"nombre": "Sin versión"}'); raise exception 'guardó sin versión';
+  exception when raise_exception then
+    if sqlerrm not like 'Falta la versión%' then raise; end if;
+  end;
+  -- Una clave suelta se rechaza diciendo dónde va.
+  begin perform public.lead_guardar(v_id, v0, '{"ciudad": "La Paz"}'); raise exception 'aceptó una clave suelta';
+  exception when others then
+    if sqlstate <> '22023' or sqlerrm not like '%atributos%' then raise; end if;
+  end;
+  begin perform public.lead_guardar(v_id, v0, '{"telefono_principal": "59170000000"}'); raise exception 'cambió el teléfono por lead_guardar';
+  exception when others then
+    if sqlstate <> '22023' then raise; end if;
+  end;
+  -- El nombre, sin espacios ni vacío ni larguísimo.
+  begin perform public.lead_guardar(v_id, v0, '{"nombre": "   "}'); raise exception 'aceptó un nombre vacío';
+  exception when others then
+    if sqlstate <> '22023' then raise; end if;
+  end;
+  begin perform public.lead_guardar(v_id, v0, jsonb_build_object('nombre', repeat('x', 121))); raise exception 'aceptó un nombre largo';
+  exception when others then
+    if sqlstate <> '22023' then raise; end if;
+  end;
+  begin perform public.lead_guardar(v_id, v0, '{"tipo": "marciano"}'); raise exception 'aceptó un tipo inexistente';
+  exception when others then
+    if sqlstate <> '22023' then raise; end if;
+  end;
+  -- Un guardado real: nombre, tipo y un atributo; otro se quita con null.
+  r := public.lead_guardar(v_id, v0, '{"nombre": "  Ficha Propia 2 ", "tipo": "cliente", "atributos": {"ficha_color": "verde"}}');
+  v1 := (r ->> 'actualizado_en')::timestamptz;
+  if v1 <= v0 then raise exception 'guardar debía mover la versión'; end if;
+  r := public.lead_ficha(v_id);
+  if r ->> 'nombre' <> 'Ficha Propia 2' or r ->> 'tipo' <> 'cliente' or r #>> '{atributos,ficha_color}' <> 'verde' or r #>> '{atributos,ficha_ci}' <> 'CI-111' then
+    raise exception 'lo guardado: %', r; end if;
+  -- El mismo parche con la versión de antes: no choca consigo mismo.
+  r := public.lead_guardar(v_id, v0, '{"nombre": "Ficha Propia 2", "tipo": "cliente", "atributos": {"ficha_color": "verde"}}');
+  if (r ->> 'actualizado_en')::timestamptz <> v1 then raise exception 'el reintento debía devolver la versión vigente'; end if;
+  r := public.lead_guardar(v_id, v1, '{"atributos": {"ficha_color": null}}');
+  if public.lead_ficha(v_id) #> '{atributos,ficha_color}' is not null then raise exception 'null quita la clave'; end if;
+  -- Vaciarlo otra vez no cambia nada y no mueve la versión.
+  v1 := (r ->> 'actualizado_en')::timestamptz;
+  r := public.lead_guardar(v_id, v1, '{"atributos": {"ficha_color": null}}');
+  if (r ->> 'actualizado_en')::timestamptz <> v1 then raise exception 'sin cambios no se mueve la versión'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test ficha del lead: seguimientos, compartir y transferir no mueven la versión; la papelera sí; el conflicto nombra a quien editó
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ begin
+  perform public.lead_campo_crear('ficha_ver', 'Campo de la versión', 'texto');
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Ficha Ajena');
+  v0 timestamptz; v1 timestamptz; v2 timestamptz; m text;
+begin
+  v0 := (select actualizado_en from public.leads where id = v_id);
+  -- Ficha Ajena es de 0041. 0041 edita (v1), después la dueña la comparte y entra un seguimiento.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
+  set local role authenticated;
+  v1 := (public.lead_guardar(v_id, v0, '{"nombre": "Ficha Ajena 2"}') ->> 'actualizado_en')::timestamptz;
+  reset role;
+  if v1 <= v0 then raise exception 'editar mueve la versión'; end if;
+  -- Un seguimiento (lo hace el trigger sobre ultimo_seguimiento_en).
+  insert into public.seguimientos (lead_id, usuario_id, tipo_id, titulo)
+  values (v_id, '00000000-0000-0000-0000-000000000041', (select id from public.tipos_seguimiento where clave = 'whatsapp'), 'Llamó');
+  if (select ultimo_seguimiento_en from public.leads where id = v_id) is null then raise exception 'el seguimiento no marcó el lead'; end if;
+  if (select actualizado_en from public.leads where id = v_id) <> v1 then raise exception 'un seguimiento no debe mover la versión'; end if;
+  -- Compartir (lo hace la dueña) y transferir (lo hace quien lo tiene).
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  perform public.compartir_lead(v_id, '00000000-0000-0000-0000-000000000040');
+  reset role;
+  if (select actualizado_en from public.leads where id = v_id) <> v1 then raise exception 'compartir no debe mover la versión'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
+  set local role authenticated;
+  perform public.transferir_lead(v_id, '00000000-0000-0000-0000-000000000040');
+  reset role;
+  if (select actualizado_en from public.leads where id = v_id) <> v1 then raise exception 'transferir no debe mover la versión'; end if;
+  -- 0040 tenía la ficha abierta con v0: choca, y el quién es 0041 (quien editó), no la dueña ni quien transfirió.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  begin
+    perform public.lead_guardar(v_id, v0, '{"nombre": "Otra cosa"}');
+    raise exception 'no hubo conflicto';
+  exception when others then
+    m := sqlerrm;
+    if sqlstate <> 'PT409' then reset role; raise exception 'el conflicto debía ser PT409, fue % (%)', sqlstate, m; end if;
+  end;
+  reset role;
+  -- 0041 no tiene nombre cargado: «Otra persona»; lo que importa es que no nombra a quien transfirió.
+  if m not like '% cambió este lead %' then raise exception 'el mensaje del conflicto: %', m; end if;
+  if m like 'Berta Ficha%' then raise exception 'el conflicto nombró a quien transfirió, no a quien editó: %', m; end if;
+  -- Con la versión que tenía (v1), quien transfirió sí guarda: transferir no le dio un conflicto.
+  set local role authenticated;
+  v2 := (public.lead_guardar(v_id, v1, '{"nombre": "Ficha Ajena 3"}') ->> 'actualizado_en')::timestamptz;
+  reset role;
+  if v2 <= v1 then raise exception 'guardar con la versión vigente debía pasar'; end if;
+  -- Quien editó en el medio se nombra: 0041 vuelve con v1 y choca con 0040.
+  update public.perfiles set nombre = 'Berta Ficha' where id = '00000000-0000-0000-0000-000000000040';
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
+  set local role authenticated;
+  begin
+    perform public.lead_guardar(v_id, v1, '{"nombre": "Pisada"}');
+    raise exception 'no hubo conflicto';
+  exception when others then
+    m := sqlerrm;
+    if sqlstate <> 'PT409' then reset role; raise exception 'segundo conflicto: % (%)', sqlstate, m; end if;
+  end;
+  reset role;
+  if m not like 'Berta Ficha cambió este lead%' then raise exception 'debía nombrar a Berta Ficha: %', m; end if;
+  -- Lo derivado al revés: otro seguimiento y otro cambio de ultimo_seguimiento_en no la mueven.
+  update public.leads set ultimo_seguimiento_en = now() where id = v_id;
+  if (select actualizado_en from public.leads where id = v_id) <> v2 then raise exception 'ultimo_seguimiento_en no debe mover la versión'; end if;
+  -- La papelera sí.
+  update public.leads set eliminado_en = now(), eliminado_por = '00000000-0000-0000-0000-000000000040' where id = v_id;
+  if (select actualizado_en from public.leads where id = v_id) <= v2 then raise exception 'la papelera debía mover la versión'; end if;
+  update public.leads set eliminado_en = null, eliminado_por = null where id = v_id;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test ficha del lead: quién ve y quién edita, con el mismo mensaje para lo que no se ve
+do $$ declare
+  v_ajeno uuid := (select id from public.leads where nombre = 'Ficha Propia 2');
+  v timestamptz := (select actualizado_en from public.leads where nombre = 'Ficha Propia 2');
+  v_msg text; v_ref text; v_id uuid; u text; n int := 0;
+begin
+  v_ref := 'No encontramos este lead o no tienes acceso.';
+  -- Sin acceso (propios, sin leads.ver), inexistente, limbo y papelera: el mismo texto y el mismo código.
+  for u, v_id in
+    select * from (values
+      ('00000000-0000-0000-0000-000000000044'::text, v_ajeno),
+      ('00000000-0000-0000-0000-000000000043', v_ajeno),
+      ('00000000-0000-0000-0000-000000000001', gen_random_uuid()),
+      ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000f001'::uuid),
+      ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000f002'::uuid)) t (u, id)
+  loop
+    perform set_config('request.jwt.claim.sub', u, true);
+    set local role authenticated;
+    begin
+      perform public.lead_guardar(v_id, v, '{"nombre": "Intruso"}');
+      reset role;
+      raise exception 'guardó un lead que no ve (%)', u;
+    exception when others then
+      reset role;
+      if sqlerrm <> v_ref or sqlstate <> '42501' then raise exception 'mensaje distinto para %: % (%)', u, sqlerrm, sqlstate; end if;
+      n := n + 1;
+    end;
+  end loop;
+  if n <> 5 then raise exception 'se probaron % de 5 casos', n; end if;
+  -- Ve pero no edita (leads.ver sin leads.editar): un mensaje propio, y sólo porque ya lo ve.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000042', true);
+  set local role authenticated;
+  begin
+    perform public.lead_guardar(v_ajeno, v, '{"nombre": "Lectora"}');
+    reset role;
+    raise exception 'quien sólo ve editó';
+  exception when others then
+    reset role;
+    if sqlerrm <> 'No tienes permiso para editar este lead.' or sqlstate <> '42501' then raise exception 'sin leads.editar: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  -- «Todos» edita lo ajeno (los no privados) y no toca los privados: sin ser de la cartera no ve la cédula.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  perform public.lead_guardar(v_ajeno, v, '{"nombre": "Ficha Propia 3", "atributos": {"ficha_color": "naranja"}}');
+  begin
+    perform public.lead_guardar(v_ajeno, (select actualizado_en from public.leads where id = v_ajeno), '{"atributos": {"ficha_ci": "CI-999"}}');
+    reset role;
+    raise exception 'cambió un privado sin ser de la cartera';
+  exception when others then
+    reset role;
+    if sqlstate <> '42501' or sqlerrm not like '%Cédula de la ficha%' then raise exception 'privado ajeno: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  if (select atributos ->> 'ficha_ci' from public.leads where id = v_ajeno) <> 'CI-111' then raise exception 'la cédula cambió'; end if;
+  update public.leads set nombre = 'Ficha Propia 2' where id = v_ajeno;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test ficha del lead: un requerido nuevo falta aunque sólo cambie el tipo; el privado no se le exige a quien no lo ve
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Ficha Ajena 3');
+  v timestamptz := (select actualizado_en from public.leads where nombre = 'Ficha Ajena 3');
+  m text;
+begin
+  -- «Ficha Ajena 3» (de 0040 ahora) no tiene el campo nuevo: pasa a requerido en el layout.
+  update public.leads_campos set requerido = true where clave = 'ficha_ver';
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  begin
+    perform public.lead_guardar(v_id, v, '{"tipo": "cliente"}');
+    reset role;
+    raise exception 'guardó un lead al que le falta un requerido';
+  exception when others then
+    reset role;
+    if sqlstate <> '23502' or sqlerrm not like '%Campo de la versión%' then raise exception 'el requerido: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  -- Con el dato, guarda.
+  set local role authenticated;
+  perform public.lead_guardar(v_id, v, '{"tipo": "cliente", "atributos": {"ficha_ver": "ya"}}');
+  reset role;
+  -- Una cédula requerida: quien está en la cartera la completa; la dueña, sin ser de la cartera, no la ve ni se le exige.
+  update public.leads_campos set requerido = false where clave = 'ficha_ver';
+  update public.leads set atributos = atributos - 'ficha_ci' where id = v_id;
+  update public.leads_campos set requerido = true where clave = 'ficha_ci';
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  perform public.lead_guardar(v_id, (select actualizado_en from public.leads where id = v_id), '{"nombre": "Ficha Ajena 4"}');
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  begin
+    perform public.lead_guardar(v_id, (select actualizado_en from public.leads where id = v_id), '{"nombre": "Ficha Ajena 5"}');
+    reset role;
+    raise exception 'la cartera guardó sin la cédula requerida';
+  exception when others then
+    reset role;
+    if sqlstate <> '23502' or sqlerrm not like '%Cédula de la ficha%' then raise exception 'la cédula requerida: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  update public.leads_campos set requerido = false where clave = 'ficha_ci';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test ficha del lead: un origen o un campo desactivados con dato se conservan; no se pasa a otro desactivado
+do $$ declare
+  v_id uuid := (select id from public.leads where nombre = 'Ficha Ajena 4');
+  v timestamptz; v_off uuid; v_off2 uuid; v_web uuid := (select id from public.origenes_lead where clave = 'web');
+begin
+  insert into public.origenes_lead (clave, nombre, activo) values ('ficha_off', 'Ficha apagado', true) returning id into v_off;
+  insert into public.origenes_lead (clave, nombre, activo) values ('ficha_off2', 'Ficha apagado 2', false) returning id into v_off2;
+  update public.leads set origen_lead_id = v_off where id = v_id;
+  update public.origenes_lead set activo = false where id = v_off;
+  update public.leads set atributos = atributos || '{"ficha_color": "guardado"}' where id = v_id;
+  update public.leads_campos set activo = false where clave = 'ficha_color';
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  v := (public.lead_ficha(v_id) ->> 'actualizado_en')::timestamptz;
+  -- Conservar el origen apagado (no se nombra, o se manda el mismo) no estorba.
+  v := (public.lead_guardar(v_id, v, '{"nombre": "Con origen apagado"}') ->> 'actualizado_en')::timestamptz;
+  v := (public.lead_guardar(v_id, v, jsonb_build_object('origen_lead_id', v_off, 'nombre', 'Con origen apagado 2')) ->> 'actualizado_en')::timestamptz;
+  -- Pasar a otro apagado no.
+  begin
+    perform public.lead_guardar(v_id, v, jsonb_build_object('origen_lead_id', v_off2));
+    reset role;
+    raise exception 'pasó a un origen desactivado';
+  exception when others then
+    reset role;
+    if sqlstate <> '22023' then raise exception 'origen apagado: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  set local role authenticated;
+  -- Pasar a uno activo, sí.
+  v := (public.lead_guardar(v_id, v, jsonb_build_object('origen_lead_id', v_web)) ->> 'actualizado_en')::timestamptz;
+  -- El dato del campo apagado sigue ahí y no se cambia.
+  begin
+    perform public.lead_guardar(v_id, v, '{"atributos": {"ficha_color": "otro"}}');
+    reset role;
+    raise exception 'cambió un campo desactivado';
+  exception when others then
+    reset role;
+    if sqlstate <> '22023' then raise exception 'campo apagado: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  if (select atributos ->> 'ficha_color' from public.leads where id = v_id) <> 'guardado' then raise exception 'el dato del campo apagado se perdió'; end if;
+  update public.leads_campos set activo = true where clave = 'ficha_color';
+  delete from public.origenes_lead where id in (v_off, v_off2);
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test ficha del lead: la auditoría no guarda el teléfono y un seguimiento no deja constancia de edición
+do $$ begin
+  if exists (select 1 from public.actividad where tabla = 'leads' and (antes ? 'telefono_principal' or despues ? 'telefono_principal')) then
+    raise exception 'la auditoría de leads guardó un teléfono';
+  end if;
+  if not exists (select 1 from public.actividad where tabla = 'leads' and accion = 'leads.update' and despues ->> 'nombre' = 'Ficha Propia 2') then
+    raise exception 'la edición de la ficha debía dejar constancia';
+  end if;
+  -- Un update que sólo cambia lo derivado no deja fila: contamos antes y después.
+end $$;
+do $$ declare n0 int; n1 int; v_id uuid := (select id from public.leads where nombre = 'Ficha Ajena 5' or nombre = 'Con origen apagado 2' limit 1); begin
+  select count(*) into n0 from public.actividad where tabla = 'leads' and registro_id = v_id::text;
+  update public.leads set ultimo_seguimiento_en = now() where id = v_id;
+  select count(*) into n1 from public.actividad where tabla = 'leads' and registro_id = v_id::text;
+  if n1 <> n0 then raise exception 'lo derivado dejó constancia'; end if;
+end $$;
+
+-- Los campos de este bloque se van antes del siguiente: un requerido frenaría a los demás.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+update public.leads_campos set requerido = false where clave like 'ficha_%';
+select set_config('request.jwt.claim.sub', '', false);

@@ -145,9 +145,11 @@ test('el drawer rápido: se abre en la URL, es de sólo lectura y sobrevive a re
   await expect(drawer).not.toContainText(t.telefonoDeCarlos)
   await expect(drawer).toContainText('•')
   await expect(drawer.getByText('Algunos datos son solo de su cartera.')).toBeVisible()
-  // Sin ficha todavía: ningún enlace «Abrir ficha», ni a /leads/<id>.
-  await expect(drawer.getByRole('link')).toHaveCount(0)
-  await expect(page.getByRole('link', { name: /Abrir ficha/ })).toHaveCount(0)
+  // Sólo lectura: el único enlace es «Abrir ficha», a la ficha de ese lead.
+  const enlaces = drawer.getByRole('link')
+  await expect(enlaces).toHaveCount(1)
+  await expect(enlaces.first()).toHaveText('Abrir ficha')
+  await expect(enlaces.first()).toHaveAttribute('href', /\/leads\/[0-9a-f-]{36}$/)
 
   await page.reload()
   await expect(page.getByRole('dialog', { name: nombre(AJENO_CARLOS) })).toBeVisible()
