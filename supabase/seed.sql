@@ -38,7 +38,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('vehiculos.eliminar', 'vehiculos', 'Enviar vehículos a la papelera', 'Enviar a la papelera (por origen y alcance)', true, true, 'vehiculos_papelera_enviar, vehiculos_con_permiso', 110),
   ('vehiculos.vitrina', 'vehiculos', 'Publicar en la web', 'Poner vehículos en la vitrina del sitio público (por origen)', true, false, 'vehiculo_vitrina', 120),
   ('vehiculos.papelera.purgar', 'vehiculos', 'Vaciar la papelera', 'Ver toda la papelera, restaurar y purgar antes de tiempo', false, false, 'vehiculos_papelera_*, papelera_*, policy lotes_papelera', 130),
-  ('leads.ver', 'leads', 'Ver leads', 'Ver leads (propios = mi cartera; todos = de todos, teléfono enmascarado)', false, true, 'puede_lead', 140),
+  ('leads.ver', 'leads', 'Ver leads', 'Ver leads (propios = mi cartera; todos = de todos, teléfono enmascarado); marcar los que ve como favoritos, tachados o con etiquetas propias', false, true, 'puede_lead, lead_favorito_poner, lead_tachado_poner, lead_etiquetas_poner', 140),
   ('leads.crear', 'leads', 'Crear leads', 'Registrar leads', false, false, 'crear_lead', 150),
   ('leads.editar', 'leads', 'Editar leads', 'Editar leads, seguimientos y oportunidades; marcar su interés en un vehículo', false, true, 'puede_lead, seguimiento_*, recordatorio_crear (con lead), vehiculo_interesado_marcar, vehiculo_interesado_quitar, vehiculo_vincular', 160),
   ('leads.compartir', 'leads', 'Compartir leads', 'Dar y revocar acceso compartido', false, false, 'compartir_lead', 170),

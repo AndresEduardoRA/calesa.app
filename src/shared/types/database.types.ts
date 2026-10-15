@@ -1325,20 +1325,27 @@ export type Database = {
       }
       etiquetas: {
         Row: {
+          actualizado_en: string
           color: string
+          creado_en: string
           id: string
           nombre: string
           usuario_id: string
+          _etiqueta_json: Json | null
         }
-        ComputedFields: never
+        ComputedFields: '_etiqueta_json'
         Insert: {
+          actualizado_en?: string
           color?: string
+          creado_en?: string
           id?: string
           nombre: string
           usuario_id: string
         }
         Update: {
+          actualizado_en?: string
           color?: string
+          creado_en?: string
           id?: string
           nombre?: string
           usuario_id?: string
@@ -2456,6 +2463,13 @@ export type Database = {
             columns: ['etiqueta_id']
             isOneToOne: false
             referencedRelation: 'etiquetas'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_etiquetas_etiqueta_id_fkey'
+            columns: ['etiqueta_id']
+            isOneToOne: false
+            referencedRelation: 'etiquetas_vista'
             referencedColumns: ['id']
           },
           {
@@ -6070,6 +6084,34 @@ export type Database = {
           },
         ]
       }
+      etiquetas_vista: {
+        Row: {
+          actualizado_en: string | null
+          color: string | null
+          creado_en: string | null
+          id: string | null
+          leads: number | null
+          nombre: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          actualizado_en?: string | null
+          color?: string | null
+          creado_en?: string | null
+          id?: string | null
+          leads?: never
+          nombre?: string | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          color?: string | null
+          creado_en?: string | null
+          id?: string | null
+          leads?: never
+          nombre?: string | null
+        }
+        Relationships: []
+      }
       leads_vista: {
         Row: {
           actualizado_en: string | null
@@ -6081,6 +6123,7 @@ export type Database = {
           en_cartera: boolean | null
           es_favorito: boolean | null
           esta_tachado: boolean | null
+          etiquetas: string[] | null
           id: string | null
           nombre: string | null
           numero: number | null
@@ -6102,6 +6145,7 @@ export type Database = {
           en_cartera?: never
           es_favorito?: never
           esta_tachado?: never
+          etiquetas?: never
           id?: string | null
           nombre?: string | null
           numero?: number | null
@@ -6122,6 +6166,7 @@ export type Database = {
           en_cartera?: never
           es_favorito?: never
           esta_tachado?: never
+          etiquetas?: never
           id?: string | null
           nombre?: string | null
           numero?: number | null
@@ -6269,6 +6314,21 @@ export type Database = {
         Args: { p_bucket: string; p_rutas: string[]; p_ya: boolean }
         Returns: number
       }
+      _etiqueta_color: { Args: { p_color: string }; Returns: string }
+      _etiqueta_conflicto: { Args: { p_cuando: string }; Returns: undefined }
+      _etiqueta_json: {
+        Args: {
+          e: Omit<
+            Database['public']['Tables']['etiquetas']['Row'],
+            Database['public']['Tables']['etiquetas']['ComputedFields']
+          >
+        }
+        Returns: Json
+      }
+      _etiqueta_nombre: { Args: { p_nombre: string }; Returns: string }
+      _etiqueta_nombre_libre: { Args: { p_excepto: string; p_nombre: string }; Returns: undefined }
+      _etiquetas_candado: { Args: Record<PropertyKey, never>; Returns: undefined }
+      _etiquetas_paleta: { Args: Record<PropertyKey, never>; Returns: string[] }
       _exigir_version: {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
@@ -6352,8 +6412,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _lead_mis_etiquetas: { Args: { p_lead: string }; Returns: Json }
       _lead_telefonos_estado: { Args: { p_lead: string; p_resultado: string }; Returns: Json }
       _lead_verificar: { Args: { p_excluir?: string; p_tel: string }; Returns: Json }
+      _lead_visible: { Args: { p_lead: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_vista_crear: { Args: Record<PropertyKey, never>; Returns: undefined }
@@ -6741,6 +6803,20 @@ export type Database = {
       equipo_vista_previa_baja: { Args: { p_usuario: string }; Returns: Json }
       es_miembro: { Args: { p_conversacion: string }; Returns: boolean }
       es_usuario_activo: { Args: Record<PropertyKey, never>; Returns: boolean }
+      etiqueta_crear: { Args: { p_color?: string; p_id: string; p_nombre: string }; Returns: Json }
+      etiqueta_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      etiqueta_guardar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_color?: string
+          p_id: string
+          p_nombre?: string
+        }
+        Returns: Json
+      }
       evaluar_requisitos: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
         Returns: {
@@ -6822,6 +6898,11 @@ export type Database = {
         Returns: string
       }
       lead_en_limbo: { Args: { p_lead: string }; Returns: boolean }
+      lead_etiquetas_poner: {
+        Args: { p_etiquetas: string[]; p_lead: string; p_valor: boolean }
+        Returns: Json
+      }
+      lead_favorito_poner: { Args: { p_lead: string; p_valor: boolean }; Returns: Json }
       lead_ficha: { Args: { p_lead: string }; Returns: Json }
       lead_guardar: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_lead: string }
@@ -6831,6 +6912,7 @@ export type Database = {
         Args: { p_antes_en?: string; p_antes_id?: string; p_lead: string; p_tamano?: number }
         Returns: Json
       }
+      lead_tachado_poner: { Args: { p_lead: string; p_valor: boolean }; Returns: Json }
       lead_telefono_guardar: {
         Args: {
           p_cc: string

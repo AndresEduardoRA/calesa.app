@@ -100,26 +100,34 @@ create table public.leads_favoritos (
   creado_en  timestamptz not null default now(),
   primary key (lead_id, usuario_id)
 );
+comment on table public.leads_favoritos is 'Favorito POR PERSONA: marcar un lead compartido no lo marca para el otro asesor. Sólo se lee (la propia); lo escribe lead_favorito_poner(), que exige ver el lead. No mueve la versión del lead ni deja actividad.';
 create table public.leads_tachados (
   lead_id    uuid not null references public.leads (id) on delete cascade,
   usuario_id uuid not null references public.perfiles (id) on delete cascade,
   creado_en  timestamptz not null default now(),
   primary key (lead_id, usuario_id)
 );
-comment on table public.leads_tachados is 'Tachado POR USUARIO: tachar un lead compartido no lo tacha para el otro asesor. Privado incluso para el dueño del sistema.';
+comment on table public.leads_tachados is 'Tachado POR PERSONA: tachar un lead compartido no lo tacha para el otro asesor. Privado incluso para el dueño del sistema. El listado lo oculta por defecto. Sólo se lee (lo propio); lo escribe lead_tachado_poner().';
 
 create table public.etiquetas (
-  id         uuid primary key default gen_random_uuid(),
-  usuario_id uuid not null references public.perfiles (id) on delete cascade,
-  nombre     text not null,
-  color      text not null default '#465fff' check (color ~ '^#[0-9a-fA-F]{6}$'),
-  unique (usuario_id, nombre)
+  id             uuid primary key default gen_random_uuid(),
+  usuario_id     uuid not null references public.perfiles (id) on delete cascade,
+  nombre         text not null,
+  color          text not null default 'gris',     -- clave de la paleta cerrada (los tokens --etiqueta-<clave>), nunca un hex
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now(),  -- versión: la sellan las RPC con la hora del reloj
+  constraint etiquetas_nombre_largo check (nombre = btrim(nombre) and char_length(nombre) between 1 and 30),
+  constraint etiquetas_color_paleta check (color in ('gris', 'rojo', 'naranja', 'ambar', 'verde', 'turquesa', 'azul', 'violeta'))
 );
+-- Un nombre por persona, sin importar mayúsculas («VIP» y «vip» son la misma).
+create unique index etiquetas_nombre_unico on public.etiquetas (usuario_id, lower(nombre));
+comment on table public.etiquetas is 'Etiquetas PRIVADAS de cada persona (hasta 50), con color de una paleta cerrada guardado como clave. Sólo se leen (las propias); las escriben etiqueta_crear|guardar|eliminar. No es un campo de lead: ese es del despliegue.';
 create table public.leads_etiquetas (
   lead_id     uuid not null references public.leads (id) on delete cascade,
   etiqueta_id uuid not null references public.etiquetas (id) on delete cascade,
   primary key (lead_id, etiqueta_id)
 );
+comment on table public.leads_etiquetas is 'Qué etiquetas puso cada persona en un lead (hasta 20 suyas por lead). Sólo se leen las de etiquetas propias; las escribe lead_etiquetas_poner(), que exige ver el lead. Compartir el lead no las comparte.';
 
 create table public.tipos_seguimiento (
   id     uuid primary key default gen_random_uuid(),

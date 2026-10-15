@@ -5038,3 +5038,372 @@ reset role;
 delete from public.leads_asesores where lead_id = (select id from public.leads where nombre = 'Seg Propio') and usuario_id = '00000000-0000-0000-0000-000000000043';
 update public.leads_asesores set revocado_en = null where lead_id = (select id from public.leads where nombre = 'Seg Propio');
 select set_config('request.jwt.claim.sub', '', false);
+
+-- ===========================================================================================
+-- Marcas por persona (parte 5b): favoritos, tachados y etiquetas.
+-- Usuarios de los bloques anteriores: 40 (asesor, «propios»), 41 (otro asesor), 42 (ve «todos», no
+-- edita), 43 (asesor sin leads), 44 (sin rol) y 01 (dueña, «todos»). Los números empiezan en 7610.
+-- ===========================================================================================
+
+-- @test marcas: los leads de prueba (propio, compartido con 41, ajeno, en limbo y en la papelera)
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; n text; t text; begin
+  for n, t in select * from (values ('Marca Propio', '76100001'), ('Marca Compartido', '76100002'), ('Marca Papelera', '76100003'), ('Marca Topes', '76100006')) x (n, t) loop
+    r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', n, 'telefono_principal', t, 'origen_lead_id', v_web));
+    if r ->> 'resultado' <> 'creado' then raise exception 'alta %: %', n, r; end if;
+  end loop;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; n text; t text; begin
+  for n, t in select * from (values ('Marca Ajeno', '76100004'), ('Marca Limbo', '76100005')) x (n, t) loop
+    r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', n, 'telefono_principal', t, 'origen_lead_id', v_web));
+    if r ->> 'resultado' <> 'creado' then raise exception 'alta %: %', n, r; end if;
+  end loop;
+end $$;
+reset role;
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por)
+select id, '00000000-0000-0000-0000-000000000041', 'compartido', '00000000-0000-0000-0000-000000000040'
+  from public.leads where nombre = 'Marca Compartido';
+update public.leads_asesores set revocado_en = now() where lead_id = (select id from public.leads where nombre = 'Marca Limbo');
+update public.leads set eliminado_en = now() where nombre = 'Marca Papelera';
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test marcas: favorito y tachado son «poner» (idempotentes), privados de cada persona, sin versión ni actividad del lead
+do $$ declare
+  v_lead uuid := (select id from public.leads where nombre = 'Marca Compartido');
+  v_version timestamptz := (select actualizado_en from public.leads where nombre = 'Marca Compartido');
+  v_actividad bigint := (select count(*) from public.actividad where registro_id = (select id::text from public.leads where nombre = 'Marca Compartido'));
+  r jsonb; v record;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  r := public.lead_favorito_poner(v_lead, true);
+  if r ->> 'resultado' <> 'puesto' or (r ->> 'valor')::boolean is not true then raise exception 'poner favorito: %', r; end if;
+  r := public.lead_favorito_poner(v_lead, true);
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'repetir favorito: %', r; end if;
+  r := public.lead_tachado_poner(v_lead, true);
+  if r ->> 'resultado' <> 'puesto' then raise exception 'tachar: %', r; end if;
+  select * into v from public.leads_vista where id = v_lead;
+  if not v.es_favorito or not v.esta_tachado then raise exception 'la vista no ve las marcas propias'; end if;
+  r := public.lead_ficha(v_lead);
+  if (r ->> 'es_favorito')::boolean is not true or (r ->> 'esta_tachado')::boolean is not true or r -> 'etiquetas' <> '[]'::jsonb then
+    raise exception 'la ficha no trae las marcas: %', r;
+  end if;
+  -- 41 (co-asesor) no ve las de 40.
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
+  set local role authenticated;
+  select * into v from public.leads_vista where id = v_lead;
+  if v.es_favorito or v.esta_tachado then raise exception 'el co-asesor ve las marcas de otra persona'; end if;
+  if exists (select 1 from public.leads_favoritos) or exists (select 1 from public.leads_tachados) then raise exception 'la tabla deja leer marcas ajenas'; end if;
+  -- 42 (ve «todos», no edita) puede marcar: ver alcanza.
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000042', true);
+  set local role authenticated;
+  r := public.lead_favorito_poner(v_lead, true);
+  if r ->> 'resultado' <> 'puesto' then raise exception 'quien sólo ve no marca: %', r; end if;
+  r := public.lead_favorito_poner(v_lead, false);
+  if r ->> 'resultado' <> 'quitado' then raise exception 'quitar: %', r; end if;
+  r := public.lead_favorito_poner(v_lead, false);
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'quitar dos veces: %', r; end if;
+  reset role;
+  if (select actualizado_en from public.leads where id = v_lead) <> v_version then raise exception 'marcar movió la versión del lead'; end if;
+  if (select count(*) from public.actividad where registro_id = v_lead::text) <> v_actividad then raise exception 'marcar dejó actividad'; end if;
+  if (select count(*) from public.leads_favoritos where lead_id = v_lead) <> 1 then raise exception 'favoritos: %', (select count(*) from public.leads_favoritos where lead_id = v_lead); end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test marcas: lo que no se ve (ajeno, limbo, papelera, inexistente o sin rol) da el mismo mensaje en las seis RPC, también al quitar, y no cambia nada
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+select public.etiqueta_crear('00000000-0000-0000-0000-0000000e4001', 'De 40');
+reset role;
+do $$ declare
+  v_nada constant text := 'No encontramos este lead o no tienes acceso.';
+  v_etq uuid := '00000000-0000-0000-0000-0000000e4001';
+  v_antes jsonb := (select jsonb_build_array((select jsonb_agg(to_jsonb(x) order by x.lead_id, x.usuario_id) from public.leads_favoritos x),
+                                             (select jsonb_agg(to_jsonb(x) order by x.lead_id, x.usuario_id) from public.leads_tachados x),
+                                             (select jsonb_agg(to_jsonb(x) order by x.lead_id, x.etiqueta_id) from public.leads_etiquetas x)));
+  c record; f text[]; v_sql text;
+begin
+  for c in select * from (values
+      ('00000000-0000-0000-0000-000000000040', (select id from public.leads where nombre = 'Marca Ajeno')),
+      ('00000000-0000-0000-0000-000000000040', (select id from public.leads where nombre = 'Marca Limbo')),
+      ('00000000-0000-0000-0000-000000000040', (select id from public.leads where nombre = 'Marca Papelera')),
+      ('00000000-0000-0000-0000-000000000040', gen_random_uuid()),
+      ('00000000-0000-0000-0000-000000000044', (select id from public.leads where nombre = 'Marca Propio'))) x (u, lead) loop
+    perform set_config('request.jwt.claim.sub', c.u, true);
+    set local role authenticated;
+    foreach v_sql in array array[
+        format('select public.lead_favorito_poner(%L, true)', c.lead), format('select public.lead_favorito_poner(%L, false)', c.lead),
+        format('select public.lead_tachado_poner(%L, true)', c.lead), format('select public.lead_tachado_poner(%L, false)', c.lead),
+        format('select public.lead_etiquetas_poner(%L, array[%L]::uuid[], true)', c.lead, v_etq),
+        format('select public.lead_etiquetas_poner(%L, array[%L]::uuid[], false)', c.lead, v_etq)] loop
+      f := pg_temp.falla(v_sql);
+      if f is null or f[1] <> '42501' or f[2] <> v_nada then reset role; raise exception '% como %: %', v_sql, c.u, f; end if;
+    end loop;
+    reset role;
+  end loop;
+  if jsonb_build_array((select jsonb_agg(to_jsonb(x) order by x.lead_id, x.usuario_id) from public.leads_favoritos x),
+                       (select jsonb_agg(to_jsonb(x) order by x.lead_id, x.usuario_id) from public.leads_tachados x),
+                       (select jsonb_agg(to_jsonb(x) order by x.lead_id, x.etiqueta_id) from public.leads_etiquetas x)) <> v_antes then
+    raise exception 'un rechazo cambió algo';
+  end if;
+end $$;
+-- Quitar una marca de un lead que dejó de verse: el mismo mensaje; la marca sigue siendo suya.
+do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Marca Compartido'); f text[]; begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
+  set local role authenticated;
+  perform public.lead_tachado_poner(v_lead, true);
+  reset role;
+  update public.leads_asesores set revocado_en = now() where lead_id = v_lead and usuario_id = '00000000-0000-0000-0000-000000000041';
+  set local role authenticated;
+  f := pg_temp.falla(format('select public.lead_tachado_poner(%L, false)', v_lead));
+  if f is null or f[1] <> '42501' or f[2] <> 'No encontramos este lead o no tienes acceso.' then reset role; raise exception 'quitar sin ver: %', f; end if;
+  if exists (select 1 from public.leads_vista where id = v_lead) then reset role; raise exception 'el revocado sigue viendo el lead'; end if;
+  if not exists (select 1 from public.leads_tachados where lead_id = v_lead) then reset role; raise exception 'la marca dejó de ser suya'; end if;
+  reset role;
+  update public.leads_asesores set revocado_en = null where lead_id = v_lead and usuario_id = '00000000-0000-0000-0000-000000000041';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test marcas: las cuatro tablas no se escriben directo, sólo se leen
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Marca Propio'); f text[]; v_sql text; begin
+  foreach v_sql in array array[
+      format('insert into public.leads_favoritos (lead_id, usuario_id) values (%L, %L)', v_lead, '00000000-0000-0000-0000-000000000040'),
+      format('insert into public.leads_tachados (lead_id, usuario_id) values (%L, %L)', v_lead, '00000000-0000-0000-0000-000000000040'),
+      'delete from public.leads_tachados',
+      format('insert into public.etiquetas (usuario_id, nombre) values (%L, %L)', '00000000-0000-0000-0000-000000000040', 'directa'),
+      'update public.etiquetas set nombre = ''x''',
+      'delete from public.etiquetas',
+      format('insert into public.leads_etiquetas (lead_id, etiqueta_id) values (%L, %L)', v_lead, '00000000-0000-0000-0000-0000000e4001'),
+      'delete from public.leads_etiquetas'] loop
+    f := pg_temp.falla(v_sql);
+    if f is null or f[1] <> '42501' then raise exception '% : %', v_sql, f; end if;
+  end loop;
+  if (select count(*) from public.etiquetas) <> 1 then raise exception 'la propia se lee'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test etiquetas: crear es idempotente por id, recorta, rechaza el largo, el repetido sin importar mayúsculas y el color fuera de la paleta, y sugiere el color menos usado
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare r jsonb; f text[]; begin
+  -- «De 40» (del bloque anterior) tomó «gris»; la siguiente sin color toma «rojo».
+  r := public.etiqueta_crear('00000000-0000-0000-0000-0000000e4002', '  VIP  ');
+  if r ->> 'resultado' <> 'creada' or r #>> '{etiqueta,nombre}' <> 'VIP' or r #>> '{etiqueta,color}' <> 'rojo' then raise exception 'crear: %', r; end if;
+  r := public.etiqueta_crear('00000000-0000-0000-0000-0000000e4002', 'otra cosa');
+  if r ->> 'resultado' <> 'repetido' or r #>> '{etiqueta,nombre}' <> 'VIP' then raise exception 'reintento: %', r; end if;
+  f := pg_temp.falla('select public.etiqueta_crear(gen_random_uuid(), ''vip'')');
+  if f[1] <> '22023' or f[2] <> 'Ya tienes una etiqueta «VIP».' or f[3] <> 'nombre' then raise exception 'repetido: %', f; end if;
+  f := pg_temp.falla('select public.etiqueta_crear(gen_random_uuid(), ''   '')');
+  if f[1] <> '22023' or f[3] <> 'nombre' then raise exception 'vacío: %', f; end if;
+  f := pg_temp.falla(format('select public.etiqueta_crear(gen_random_uuid(), %L)', repeat('x', 31)));
+  if f[1] <> '22023' or f[3] <> 'nombre' then raise exception 'largo: %', f; end if;
+  f := pg_temp.falla('select public.etiqueta_crear(gen_random_uuid(), ''Hex'', ''#ff0000'')');
+  if f[1] <> '22023' or f[3] <> 'color' then raise exception 'color: %', f; end if;
+  r := public.etiqueta_crear('00000000-0000-0000-0000-0000000e4003', 'Urgente', 'verde');
+  if r #>> '{etiqueta,color}' <> 'verde' then raise exception 'color elegido: %', r; end if;
+end $$;
+reset role;
+-- El id de otra persona no se reutiliza ni se dice de quién es.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ declare f text[]; r jsonb; begin
+  f := pg_temp.falla('select public.etiqueta_crear(''00000000-0000-0000-0000-0000000e4002'', ''Mía'')');
+  if f[1] <> '22023' or f[2] <> 'No pudimos crear esta etiqueta. Vuelve a intentarlo.' then raise exception 'id ajeno: %', f; end if;
+  -- Otra persona puede tener una «VIP» propia.
+  r := public.etiqueta_crear('00000000-0000-0000-0000-0000000e4101', 'vip');
+  if r ->> 'resultado' <> 'creada' then raise exception 'cada quien sus nombres: %', r; end if;
+  if (select count(*) from public.etiquetas) <> 1 then raise exception '41 ve etiquetas ajenas'; end if;
+end $$;
+reset role;
+-- La paleta de la base es la del check.
+do $$ begin
+  if public._etiquetas_paleta() <> array['gris', 'rojo', 'naranja', 'ambar', 'verde', 'turquesa', 'azul', 'violeta'] then raise exception 'paleta'; end if;
+  if pg_get_constraintdef((select oid from pg_constraint where conname = 'etiquetas_color_paleta'))
+     not like '%''gris''%''rojo''%''naranja''%''ambar''%''verde''%''turquesa''%''azul''%''violeta''%' then
+    raise exception 'el check no es la paleta: %', pg_get_constraintdef((select oid from pg_constraint where conname = 'etiquetas_color_paleta'));
+  end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test etiquetas: renombrar y recolorear con versión (PT409 legible), lo guardado no choca, el repetido se rechaza y una ajena no existe
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := '00000000-0000-0000-0000-0000000e4002';
+  v_vieja timestamptz := (select actualizado_en from public.etiquetas where id = '00000000-0000-0000-0000-0000000e4002');
+  r jsonb; f text[];
+begin
+  r := public.etiqueta_guardar(v_id, v_vieja, 'Vip', null);
+  if r ->> 'resultado' <> 'guardada' or r #>> '{etiqueta,nombre}' <> 'Vip' or r #>> '{etiqueta,color}' <> 'rojo' then raise exception 'renombrar mayúsculas: %', r; end if;
+  -- Lo mismo otra vez, con la versión vieja: ya está, no choca.
+  r := public.etiqueta_guardar(v_id, v_vieja, 'Vip', 'rojo');
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'reintento: %', r; end if;
+  f := pg_temp.falla(format('select public.etiqueta_guardar(%L, %L, null, ''azul'')', v_id, v_vieja));
+  if f[1] <> 'PT409' or f[2] not like 'Cambiaste esta etiqueta % desde otra ventana. Recarga para seguir desde ahí.' then raise exception 'conflicto: %', f; end if;
+  f := pg_temp.falla(format('select public.etiqueta_guardar(%L, %L, ''URGENTE'')', v_id, (select actualizado_en from public.etiquetas where id = v_id)));
+  if f[1] <> '22023' or f[2] <> 'Ya tienes una etiqueta «Urgente».' or f[3] <> 'nombre' then raise exception 'renombrar a otra: %', f; end if;
+  f := pg_temp.falla(format('select public.etiqueta_guardar(%L, null, ''x'')', v_id));
+  if f is null or f[2] not like 'Falta la versión%' then raise exception 'sin versión: %', f; end if;
+  f := pg_temp.falla(format('select public.etiqueta_guardar(%L, now(), ''x'')', '00000000-0000-0000-0000-0000000e4101'));
+  if f[1] <> '42501' or f[2] <> 'No encontramos esta etiqueta. Recarga para ver las tuyas.' then raise exception 'ajena: %', f; end if;
+  if (select nombre from public.etiquetas where id = v_id) <> 'Vip' then raise exception 'quedó: %', (select nombre from public.etiquetas where id = v_id); end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test etiquetas: ponerlas en un lead es «poner» por id, una ajena o inexistente se rechaza igual, y cada quien ve las suyas
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+select public.lead_etiquetas_poner((select id from public.leads where nombre = 'Marca Compartido'), array['00000000-0000-0000-0000-0000000e4101']::uuid[], true);
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_lead uuid := (select id from public.leads where nombre = 'Marca Compartido');
+  v_mias uuid[] := array['00000000-0000-0000-0000-0000000e4002', '00000000-0000-0000-0000-0000000e4003']::uuid[];
+  r jsonb; f text[]; v_sql text;
+begin
+  r := public.lead_etiquetas_poner(v_lead, v_mias, true);
+  if r ->> 'resultado' <> 'puesto' or r -> 'etiquetas' <> to_jsonb(v_mias) then raise exception 'poner: %', r; end if;
+  r := public.lead_etiquetas_poner(v_lead, v_mias[1:1], true);
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'repetir: %', r; end if;
+  if (select etiquetas from public.leads_vista where id = v_lead) <> v_mias then raise exception 'la vista: %', (select etiquetas from public.leads_vista where id = v_lead); end if;
+  if (select count(*) from public.leads_etiquetas where lead_id = v_lead) <> 2 then raise exception '40 lee asignaciones de 41'; end if;
+  -- Ajena (de 41, puesta en este mismo lead) e inexistente: el mismo rechazo, y nada cambia.
+  foreach v_sql in array array[
+      format('select public.lead_etiquetas_poner(%L, array[%L]::uuid[], true)', v_lead, '00000000-0000-0000-0000-0000000e4101'),
+      format('select public.lead_etiquetas_poner(%L, array[%L]::uuid[], false)', v_lead, '00000000-0000-0000-0000-0000000e4101'),
+      format('select public.lead_etiquetas_poner(%L, array[%L, %L]::uuid[], true)', v_lead, v_mias[1], gen_random_uuid())] loop
+    f := pg_temp.falla(v_sql);
+    if f[1] <> '22023' or f[2] <> 'No encontramos esa etiqueta. Recarga para ver las tuyas.' or f[3] <> 'etiquetas' then raise exception '%: %', v_sql, f; end if;
+  end loop;
+  f := pg_temp.falla(format('select public.lead_etiquetas_poner(%L, %L::uuid[], true)', v_lead, '{}'));
+  if f[1] <> '22023' or f[3] <> 'etiquetas' then raise exception 'vacío: %', f; end if;
+  f := pg_temp.falla(format('select public.lead_etiquetas_poner(%L, array[null]::uuid[], true)', v_lead));
+  if f[1] <> '22023' or f[3] <> 'etiquetas' then raise exception 'nulo: %', f; end if;
+  r := public.lead_etiquetas_poner(v_lead, v_mias[2:2], false);
+  if r ->> 'resultado' <> 'quitado' or r -> 'etiquetas' <> to_jsonb(v_mias[1:1]) then raise exception 'quitar: %', r; end if;
+end $$;
+reset role;
+-- 41 ve sólo la suya en el mismo lead.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', false);
+set role authenticated;
+do $$ begin
+  if (select etiquetas from public.leads_vista where nombre = 'Marca Compartido') <> array['00000000-0000-0000-0000-0000000e4101']::uuid[] then
+    raise exception '41 ve: %', (select etiquetas from public.leads_vista where nombre = 'Marca Compartido');
+  end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test etiquetas: hasta 50 por persona y 20 suyas por lead, y lo rechazado no deja nada
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000043', false);
+set role authenticated;
+do $$ declare
+  v_lead uuid := (select id from public.leads where nombre = 'Marca Topes');
+  v_ids uuid[]; f text[]; r jsonb; i int;
+begin
+  for i in 1..50 loop
+    perform public.etiqueta_crear(gen_random_uuid(), 'Tope ' || i);
+  end loop;
+  f := pg_temp.falla('select public.etiqueta_crear(gen_random_uuid(), ''Tope 51'')');
+  if f[1] <> '22023' or f[2] <> 'Puedes tener hasta 50 etiquetas. Elimina una para crear otra.' then raise exception 'tope de 50: %', f; end if;
+  if (select count(*) from public.etiquetas) <> 50 then raise exception 'quedaron %', (select count(*) from public.etiquetas); end if;
+  -- La paleta se reparte: con 50, ningún color tiene más de 7.
+  if (select max(n) from (select count(*) n from public.etiquetas group by color) x) > 7 then raise exception 'colores repartidos'; end if;
+  -- 43 no ve «Marca Topes» (es de 40): no puede ponerlas.
+  f := pg_temp.falla(format('select public.lead_etiquetas_poner(%L, array[%L]::uuid[], true)', v_lead, (select id from public.etiquetas limit 1)));
+  if f[1] <> '42501' then raise exception 'sin ver: %', f; end if;
+end $$;
+reset role;
+-- La dueña («todos») sí lo ve: 20 entran, la 21 no, y el rechazo no deja ninguna.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Marca Topes'); v_ids uuid[] := '{}'; f text[]; i int; r jsonb; begin
+  for i in 1..21 loop
+    v_ids := v_ids || ((public.etiqueta_crear(gen_random_uuid(), 'Dueña ' || i)) #>> '{etiqueta,id}')::uuid;
+  end loop;
+  f := pg_temp.falla(format('select public.lead_etiquetas_poner(%L, %L::uuid[], true)', v_lead, v_ids));
+  if f[1] <> '22023' or f[3] <> 'etiquetas' then raise exception 'pedido de 21: %', f; end if;
+  r := public.lead_etiquetas_poner(v_lead, v_ids[1:20], true);
+  if jsonb_array_length(r -> 'etiquetas') <> 20 then raise exception 'veinte: %', r; end if;
+  f := pg_temp.falla(format('select public.lead_etiquetas_poner(%L, array[%L]::uuid[], true)', v_lead, v_ids[21]));
+  if f[1] <> '22023' or f[2] <> 'Un lead admite hasta 20 de tus etiquetas. Quita una para poner otra.' then raise exception 'la 21: %', f; end if;
+  if cardinality((select etiquetas from public.leads_vista where id = v_lead)) <> 20 then raise exception 'el rechazo dejó algo'; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test etiquetas: eliminar pide versión, dice a cuántos leads que ves tocaba, se lleva sus asignaciones y repetirlo no falla
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare
+  v_id uuid := '00000000-0000-0000-0000-0000000e4002';
+  v_lead uuid := (select id from public.leads where nombre = 'Marca Propio');
+  v_version timestamptz; r jsonb; f text[];
+begin
+  perform public.lead_etiquetas_poner(v_lead, array[v_id], true);
+  if (select leads from public.etiquetas_vista where id = v_id) <> 2 then raise exception 'la vista cuenta: %', (select leads from public.etiquetas_vista where id = v_id); end if;
+  v_version := (select actualizado_en from public.etiquetas where id = v_id);
+  f := pg_temp.falla(format('select public.etiqueta_eliminar(%L, %L)', v_id, v_version - interval '1 second'));
+  if f[1] <> 'PT409' then raise exception 'versión vieja: %', f; end if;
+  r := public.etiqueta_eliminar(v_id, v_version);
+  if r ->> 'resultado' <> 'eliminada' or (r ->> 'leads')::int <> 2 or r #>> '{etiqueta,nombre}' <> 'Vip' then raise exception 'eliminar: %', r; end if;
+  r := public.etiqueta_eliminar(v_id, v_version);
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'otra vez: %', r; end if;
+  -- Una ajena también es «sin cambios»: no se distingue.
+  r := public.etiqueta_eliminar('00000000-0000-0000-0000-0000000e4101', now());
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'ajena: %', r; end if;
+  if exists (select 1 from public.leads_etiquetas where etiqueta_id = v_id) then raise exception 'quedaron asignaciones'; end if;
+  if cardinality((select etiquetas from public.leads_vista where id = v_lead)) <> 0 then raise exception 'el lead la sigue mostrando'; end if;
+  -- «Deshacer»: crear con el mismo id la vuelve a traer.
+  r := public.etiqueta_crear(v_id, 'Vip', 'rojo');
+  if r ->> 'resultado' <> 'creada' then raise exception 'recrear: %', r; end if;
+end $$;
+reset role;
+-- La de 41 sigue.
+do $$ begin
+  if not exists (select 1 from public.etiquetas where id = '00000000-0000-0000-0000-0000000e4101') then raise exception 'se borró la de 41'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test marcas: compartir y transferir un lead no mueve ni muestra las marcas de nadie
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+select public.lead_favorito_poner((select id from public.leads where nombre = 'Marca Propio'), true);
+select public.lead_etiquetas_poner((select id from public.leads where nombre = 'Marca Propio'), array['00000000-0000-0000-0000-0000000e4003']::uuid[], true);
+select public.compartir_lead((select id from public.leads where nombre = 'Marca Propio'), '00000000-0000-0000-0000-000000000043');
+reset role;
+do $$ declare v_lead uuid := (select id from public.leads where nombre = 'Marca Propio'); v record; begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000043', true);
+  set local role authenticated;
+  select * into v from public.leads_vista where id = v_lead;
+  if not found then reset role; raise exception '43 no recibió el lead'; end if;
+  if v.es_favorito or v.esta_tachado or cardinality(v.etiquetas) <> 0 then reset role; raise exception 'compartir mostró marcas: %', to_jsonb(v); end if;
+  reset role;
+  -- 40 se lo transfiere a 43: las marcas de 40 siguen en su lugar.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  perform public.transferir_lead(v_lead, '00000000-0000-0000-0000-000000000043');
+  select * into v from public.leads_vista where id = v_lead;
+  if not v.es_favorito or v.etiquetas <> array['00000000-0000-0000-0000-0000000e4003']::uuid[] then reset role; raise exception 'transferir movió marcas de 40: %', to_jsonb(v); end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000043', true);
+  set local role authenticated;
+  select * into v from public.leads_vista where id = v_lead;
+  if v.es_favorito or cardinality(v.etiquetas) <> 0 then reset role; raise exception 'el nuevo dueño ve marcas ajenas'; end if;
+  reset role;
+  -- Vuelve a 40.
+  delete from public.leads_asesores where lead_id = v_lead and usuario_id = '00000000-0000-0000-0000-000000000043';
+  update public.leads_asesores set tipo_acceso = 'dueno' where lead_id = v_lead and usuario_id = '00000000-0000-0000-0000-000000000040';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
