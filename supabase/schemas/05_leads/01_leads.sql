@@ -180,46 +180,76 @@ create index recordatorios_lead_idx on public.recordatorios (lead_id) where lead
 create index recordatorios_vehiculo_idx on public.recordatorios (vehiculo_id) where vehiculo_id is not null;
 comment on table public.recordatorios is 'Recordatorios personales con fecha y hora: sólo los ve y los toca su dueño, y se escriben sólo por RPC (crear_lead, recordatorio_*). Con lead, crearlo exige tenerlo en la cartera; si después lo pierde, el recordatorio sigue siendo suyo y recordatorios_vista lo entrega sin el lead. Se muestran en la ficha (y en la agenda, Fase 7) y disparan una notificación a su hora.';
 
+-- Embudos personales: de cada persona, que no los ve nadie más (ni la supervisión). Se escriben sólo
+-- por RPC (`embudo_*`), que garantizan una sola etapa inicial, al menos una ganada y una perdida, y los
+-- topes. `actualizado_en` es la versión de la estructura (nombre y etapas): la sellan las RPC.
 create table public.embudos (
-  id         uuid primary key default gen_random_uuid(),
-  usuario_id uuid not null references public.perfiles (id) on delete cascade,
-  nombre     text not null,
-  es_default boolean not null default false,
-  creado_en  timestamptz not null default now(),
-  unique (usuario_id, nombre)
+  id             uuid primary key default gen_random_uuid(),
+  usuario_id     uuid not null references public.perfiles (id) on delete cascade,
+  nombre         text not null,
+  es_default     boolean not null default false,
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now(),
+  constraint embudos_nombre_largo check (char_length(nombre) between 1 and 40),
+  constraint embudos_usuario_id_id_key unique (usuario_id, id)
 );
 create unique index embudos_default_unico on public.embudos (usuario_id) where es_default;
+create unique index embudos_nombre_unico on public.embudos (usuario_id, lower(nombre));
+comment on table public.embudos is 'Embudos de oportunidades de cada persona: sólo los ve y los toca su dueña, y se escriben sólo por RPC (embudo_*). El de por defecto lo crea embudo_por_defecto() la primera vez que hace falta.';
 
+-- El color es una clave de la paleta cerrada de las etiquetas (espejo de `_etiquetas_paleta()`).
 create table public.embudos_etapas (
   id         uuid primary key default gen_random_uuid(),
   embudo_id  uuid not null references public.embudos (id) on delete cascade,
   nombre     text not null,
-  color      text not null default '#717c93' check (color ~ '^#[0-9a-fA-F]{6}$'),
+  color      text not null default 'gris',
   es_inicial boolean not null default false,
   es_ganada  boolean not null default false,
   es_perdida boolean not null default false,
   orden      smallint not null default 0,
-  unique (embudo_id, nombre),
-  check (not (es_ganada and es_perdida))
+  constraint embudos_etapas_nombre_largo check (char_length(nombre) between 1 and 30),
+  constraint embudos_etapas_color_paleta check (color in ('gris', 'rojo', 'naranja', 'ambar', 'verde', 'turquesa', 'azul', 'violeta')),
+  constraint embudos_etapas_final_unica check (not (es_ganada and es_perdida)),
+  constraint embudos_etapas_inicial_no_final check (not (es_inicial and (es_ganada or es_perdida))),
+  constraint embudos_etapas_embudo_id_id_key unique (embudo_id, id)
 );
+create unique index embudos_etapas_nombre_unico on public.embudos_etapas (embudo_id, lower(nombre));
+create unique index embudos_etapas_inicial_unica on public.embudos_etapas (embudo_id) where es_inicial;
 
+-- Las FK compuestas garantizan que la etapa es del embudo y que el embudo es de quien tiene la
+-- oportunidad: transferir mueve embudo y etapa juntos. `estado` lo deriva un trigger de la etapa
+-- (salvo `cancelada`, que pone la baja). `moneda` es la de la empresa al crearla (no se convierte).
 create table public.oportunidades (
   id                 uuid primary key default gen_random_uuid(),
   lead_id            uuid not null references public.leads (id) on delete cascade,
   vehiculo_id        uuid,                        -- FK en 06_vehiculos
   usuario_id         uuid not null references public.perfiles (id),
-  embudo_id          uuid not null references public.embudos (id) on delete restrict,
-  etapa_id           uuid not null references public.embudos_etapas (id) on delete restrict,
+  embudo_id          uuid not null,
+  etapa_id           uuid not null,
   estado             public.estado_oportunidad not null default 'abierta',
   titulo             text not null,
   notas              text,
   monto_estimado     numeric(18, 2),
+  moneda             char(3) not null,
+  motivo_perdida     text,
   ultima_actividad_en timestamptz not null default now(),
   eliminado_en       timestamptz,
   creado_en          timestamptz not null default now(),
-  actualizado_en     timestamptz not null default now()
+  actualizado_en     timestamptz not null default now(),   -- versión: la sellan las RPC con la hora del reloj
+  constraint oportunidades_embudo_de_la_persona foreign key (usuario_id, embudo_id)
+    references public.embudos (usuario_id, id) on delete restrict,
+  constraint oportunidades_etapa_del_embudo foreign key (embudo_id, etapa_id)
+    references public.embudos_etapas (embudo_id, id) on delete restrict,
+  constraint oportunidades_titulo_largo check (char_length(titulo) between 1 and 120),
+  constraint oportunidades_notas_largo check (notas is null or char_length(notas) <= 2000),
+  constraint oportunidades_monto_rango check (monto_estimado is null or (monto_estimado >= 0 and monto_estimado < 1000000000000)),
+  constraint oportunidades_moneda_iso check (moneda ~ '^[A-Z]{3}$'),
+  constraint oportunidades_motivo_largo check (motivo_perdida is null or char_length(motivo_perdida) <= 200)
 );
-comment on table public.oportunidades is 'Negocios de un lead dentro de un embudo del asesor. Un lead puede tener varias. Ganada/perdida no la saca del kanban: queda en su columna final.';
+create index oportunidades_tablero_idx on public.oportunidades (usuario_id, etapa_id, ultima_actividad_en desc, id desc) where eliminado_en is null;
+create index oportunidades_usuario_embudo_idx on public.oportunidades (usuario_id, embudo_id);
+create index oportunidades_embudo_etapa_idx on public.oportunidades (embudo_id, etapa_id);
+comment on table public.oportunidades is 'Negocios de un lead dentro de un embudo de una persona. Un lead puede tener varias. Ganada/perdida no la saca del kanban: queda en su columna final. Se escriben sólo por RPC (oportunidad_*): exigen ser su dueña, la cartera del lead y leads.editar. Sólo las ve su dueña, mientras tenga el lead en su cartera.';
 
 create table public.oportunidades_historial (
   id             bigint generated always as identity primary key,

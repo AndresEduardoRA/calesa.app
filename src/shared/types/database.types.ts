@@ -1278,6 +1278,7 @@ export type Database = {
       }
       embudos: {
         Row: {
+          actualizado_en: string
           creado_en: string
           es_default: boolean
           id: string
@@ -1286,6 +1287,7 @@ export type Database = {
         }
         ComputedFields: never
         Insert: {
+          actualizado_en?: string
           creado_en?: string
           es_default?: boolean
           id?: string
@@ -1293,6 +1295,7 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          actualizado_en?: string
           creado_en?: string
           es_default?: boolean
           id?: string
@@ -3132,14 +3135,17 @@ export type Database = {
           etapa_id: string
           id: string
           lead_id: string
+          moneda: string
           monto_estimado: number | null
+          motivo_perdida: string | null
           notas: string | null
           titulo: string
           ultima_actividad_en: string
           usuario_id: string
           vehiculo_id: string | null
+          _oportunidad_json: Json | null
         }
-        ComputedFields: never
+        ComputedFields: '_oportunidad_json'
         Insert: {
           actualizado_en?: string
           creado_en?: string
@@ -3149,7 +3155,9 @@ export type Database = {
           etapa_id: string
           id?: string
           lead_id: string
+          moneda: string
           monto_estimado?: number | null
+          motivo_perdida?: string | null
           notas?: string | null
           titulo: string
           ultima_actividad_en?: string
@@ -3165,7 +3173,9 @@ export type Database = {
           etapa_id?: string
           id?: string
           lead_id?: string
+          moneda?: string
           monto_estimado?: number | null
+          motivo_perdida?: string | null
           notas?: string | null
           titulo?: string
           ultima_actividad_en?: string
@@ -3174,18 +3184,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'oportunidades_embudo_id_fkey'
-            columns: ['embudo_id']
+            foreignKeyName: 'oportunidades_embudo_de_la_persona'
+            columns: ['usuario_id', 'embudo_id']
             isOneToOne: false
             referencedRelation: 'embudos'
-            referencedColumns: ['id']
+            referencedColumns: ['usuario_id', 'id']
           },
           {
-            foreignKeyName: 'oportunidades_etapa_id_fkey'
-            columns: ['etapa_id']
+            foreignKeyName: 'oportunidades_etapa_del_embudo'
+            columns: ['embudo_id', 'etapa_id']
             isOneToOne: false
             referencedRelation: 'embudos_etapas'
-            referencedColumns: ['id']
+            referencedColumns: ['embudo_id', 'id']
           },
           {
             foreignKeyName: 'oportunidades_lead_id_fkey'
@@ -6474,6 +6484,43 @@ export type Database = {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
         Returns: undefined
       }
+      _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
+      _embudo_defecto_de: { Args: { p_usuario: string }; Returns: string }
+      _embudo_insertar: {
+        Args: {
+          p_default: boolean
+          p_etapas: Json
+          p_id: string
+          p_nombre: string
+          p_usuario: string
+        }
+        Returns: string
+      }
+      _embudo_json: { Args: { p_embudo: string }; Returns: Json }
+      _embudo_mio: {
+        Args: { p_embudo: string }
+        Returns: {
+          actualizado_en: string
+          creado_en: string
+          es_default: boolean
+          id: string
+          nombre: string
+          usuario_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'embudos'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _embudo_nombre: { Args: { p_nombre: string }; Returns: string }
+      _embudo_nombre_libre: {
+        Args: { p_excepto: string; p_nombre: string; p_usuario: string }
+        Returns: undefined
+      }
+      _embudos_candado: { Args: { p_usuario: string }; Returns: undefined }
+      _embudos_puedo: { Args: Record<PropertyKey, never>; Returns: string }
       _encolar_para_limpiar: {
         Args: { p_bucket: string; p_rutas: string[]; p_ya: boolean }
         Returns: number
@@ -6657,6 +6704,58 @@ export type Database = {
         Returns: string
       }
       _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
+      _mis_leads_vivos: { Args: Record<PropertyKey, never>; Returns: string[] }
+      _oportunidad_conflicto: { Args: { p_cuando: string }; Returns: undefined }
+      _oportunidad_constancia: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['oportunidades']['Row'],
+            Database['public']['Tables']['oportunidades']['ComputedFields']
+          >
+          p_antes: Database['public']['Enums']['estado_oportunidad']
+        }
+        Returns: undefined
+      }
+      _oportunidad_json: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['oportunidades']['Row'],
+            Database['public']['Tables']['oportunidades']['ComputedFields']
+          >
+        }
+        Returns: Json
+      }
+      _oportunidad_mia: {
+        Args: { p_eliminada?: boolean; p_id: string }
+        Returns: {
+          actualizado_en: string
+          creado_en: string
+          eliminado_en: string | null
+          embudo_id: string
+          estado: Database['public']['Enums']['estado_oportunidad']
+          etapa_id: string
+          id: string
+          lead_id: string
+          moneda: string
+          monto_estimado: number | null
+          motivo_perdida: string | null
+          notas: string | null
+          titulo: string
+          ultima_actividad_en: string
+          usuario_id: string
+          vehiculo_id: string | null
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'oportunidades'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      _oportunidad_monto: { Args: { p_valor: Json }; Returns: number }
+      _oportunidad_motivo: { Args: { p_motivo: string }; Returns: string }
+      _oportunidad_notas: { Args: { p_valor: Json }; Returns: string }
+      _oportunidad_titulo: { Args: { p_valor: Json }; Returns: string }
       _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
       _origen_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
       _origen_nombre_valido: {
@@ -6762,6 +6861,17 @@ export type Database = {
       _seguimiento_visibilidad: {
         Args: { p_valor: Json }
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
+      }
+      _tarjeta_json: {
+        Args: {
+          o: Omit<
+            Database['public']['Tables']['oportunidades']['Row'],
+            Database['public']['Tables']['oportunidades']['ComputedFields']
+          >
+          p_lead: Json
+          p_vehiculo: Json
+        }
+        Returns: Json
       }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
@@ -6985,6 +7095,22 @@ export type Database = {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
       }
+      embudo_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
+      embudo_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      embudo_etapa_pagina: {
+        Args: { p_antes_en: string; p_antes_id: string; p_etapa: string; p_tope?: number }
+        Returns: Json
+      }
+      embudo_etapas_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_embudo: string; p_etapas: Json }
+        Returns: Json
+      }
+      embudo_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string; p_nombre: string }
+        Returns: Json
+      }
+      embudo_por_defecto: { Args: Record<PropertyKey, never>; Returns: Json }
+      embudo_tablero: { Args: { p_embudo: string; p_tope?: number }; Returns: Json }
       empresa_con_datos_cargados: { Args: Record<PropertyKey, never>; Returns: boolean }
       empresa_guardar_ajustes: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json }
@@ -7109,6 +7235,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_lead: string }
         Returns: Json
       }
+      lead_oportunidades: { Args: { p_lead: string }; Returns: Json }
       lead_revocar_acceso: { Args: { p_lead: string; p_usuario: string }; Returns: Json }
       lead_salir: { Args: { p_lead: string }; Returns: Json }
       lead_seguimientos: {
@@ -7205,6 +7332,23 @@ export type Database = {
           p_usuario: string
         }
         Returns: undefined
+      }
+      oportunidad_crear: { Args: { p_datos: Json; p_id: string; p_lead: string }; Returns: Json }
+      oportunidad_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      oportunidad_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      oportunidad_mover: {
+        Args: { p_etapa: string; p_etapa_esperada: string; p_id: string; p_motivo_perdida?: string }
+        Returns: Json
+      }
+      oportunidad_restaurar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
       }
       origen_apibara_agregar: { Args: { p_origen: string; p_rutas: string[] }; Returns: number }
       origen_apibara_completar: { Args: { p_origen: string }; Returns: number }

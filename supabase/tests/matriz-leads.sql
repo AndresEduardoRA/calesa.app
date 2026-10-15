@@ -158,6 +158,7 @@ begin
     ('vehiculo_vincular', $q$select public.vehiculo_vincular({veh}, (select actualizado_en from public.vehiculos where id = {veh}), {lead})$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('vehiculo_interesado_marcar', $q$select public.vehiculo_interesado_marcar({veh}, {lead}, null)$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     ('vehiculo_interesado_quitar', $q$select public.vehiculo_interesado_quitar({veh}, {lead})$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
+    ('oportunidad_crear', $q$select public.oportunidad_crear(gen_random_uuid(), {lead}, '{"titulo": "Matriz"}')$q$, 'ok', 'ok', 'nada', 'ok', 'nada', 'nada', 'nada', 'cuenta'),
     -- Clase 2: quién tiene el lead (el dueño; la supervisión con «todos»)
     ('lead_compartir', $q$select public.lead_compartir({lead}, '00000000-0000-0000-0000-000000000057')$q$, 'ok',
       '42501: Sólo quien es dueño del lead lo comparte.', 'ok', 'ok', '42501: No tienes permiso para compartir este lead.', 'nada', 'nada', 'cuenta'),
@@ -257,6 +258,146 @@ begin
   if v_fallas <> '' then raise exception 'La matriz de la papelera no cierra:%', v_fallas; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test matriz de oportunidades y embudos: cada RPC por cada persona y cada estado
+-- Las RPC de oportunidades reciben el id de la oportunidad, no el lead: la oportunidad es «mía» (sobre
+-- un lead que tengo), de otra persona (sobre un lead que también tengo), mía sobre un lead que perdí
+-- (en el limbo), mía sobre un lead en la papelera, o inexistente. Las de embudos: mío, ajeno, inexistente.
+-- Ocho personas: las siete de la matriz de leads y la sin rol (0059).
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000050', false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.oportunidad_crear(gen_random_uuid(), current_setting('matriz.lp')::uuid, '{"titulo": "Matriz OP"}');
+  perform set_config('matriz.op', r -> 'oportunidad' ->> 'id', false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000051', false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.oportunidad_crear(gen_random_uuid(), current_setting('matriz.lp')::uuid, '{"titulo": "Matriz OC"}');
+  perform set_config('matriz.oc', r -> 'oportunidad' ->> 'id', false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000053', false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.oportunidad_crear(gen_random_uuid(), current_setting('matriz.la')::uuid, '{"titulo": "Matriz OA"}');
+  perform set_config('matriz.oa', r -> 'oportunidad' ->> 'id', false);
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+-- Las de 0050 sobre el lead que perdió (limbo) y sobre el de la papelera: como quedan después.
+do $$ declare v_emb uuid := public._embudo_defecto_de('00000000-0000-0000-0000-000000000050'); v_et uuid; v_id uuid; begin
+  select id into v_et from public.embudos_etapas where embudo_id = v_emb and es_inicial;
+  insert into public.oportunidades (lead_id, usuario_id, embudo_id, etapa_id, titulo, moneda)
+  values (current_setting('matriz.ll')::uuid, '00000000-0000-0000-0000-000000000050', v_emb, v_et, 'Matriz OL', 'USD') returning id into v_id;
+  perform set_config('matriz.ol', v_id::text, false);
+  insert into public.oportunidades (lead_id, usuario_id, embudo_id, etapa_id, titulo, moneda)
+  values (current_setting('matriz.lt')::uuid, '00000000-0000-0000-0000-000000000050', v_emb, v_et, 'Matriz OT', 'USD') returning id into v_id;
+  perform set_config('matriz.ot', v_id::text, false);
+  -- Un segundo embudo (vacío, no el de por defecto) de cada persona que usa embudos.
+  for v_id in select unnest(array['00000000-0000-0000-0000-000000000050', '00000000-0000-0000-0000-000000000051',
+      '00000000-0000-0000-0000-000000000052', '00000000-0000-0000-0000-000000000053', '00000000-0000-0000-0000-000000000054']::uuid[]) loop
+    perform public._embudo_defecto_de(v_id);
+    perform public._embudo_insertar(v_id, null, 'Matriz B', false, jsonb_build_array(
+      jsonb_build_object('nombre', 'Nueva', 'color', 'gris', 'es_inicial', true),
+      jsonb_build_object('nombre', 'Ganada', 'color', 'verde', 'es_ganada', true),
+      jsonb_build_object('nombre', 'Perdida', 'color', 'rojo', 'es_perdida', true)));
+  end loop;
+end $$;
+
+do $$ declare
+  v_nada constant text := '42501: No encontramos esta oportunidad o no tienes acceso.';
+  v_sin_embudo constant text := '42501: No encontramos este embudo. Recarga para ver los tuyos.';
+  v_cuenta constant text := '42501: Tu cuenta está bloqueada o dada de baja.';
+  v_sin_ver constant text := '42501: No tienes permiso para ver leads.';
+  v_op uuid := current_setting('matriz.op')::uuid;  v_oc uuid := current_setting('matriz.oc')::uuid;
+  v_oa uuid := current_setting('matriz.oa')::uuid;  v_ol uuid := current_setting('matriz.ol')::uuid;
+  v_ot uuid := current_setting('matriz.ot')::uuid;  v_x uuid := gen_random_uuid();
+  v_personas constant text[] := array[
+    '00000000-0000-0000-0000-000000000050', '00000000-0000-0000-0000-000000000051', '00000000-0000-0000-0000-000000000052',
+    '00000000-0000-0000-0000-000000000053', '00000000-0000-0000-0000-000000000054', '00000000-0000-0000-0000-000000000055',
+    '00000000-0000-0000-0000-000000000056', '00000000-0000-0000-0000-000000000059'];
+  v_nombres constant text[] := array['dueño', 'compartido', 'supervisión', 'ajeno', 'sólo ve', 'baja', 'bloqueado', 'sin rol'];
+  v_tipos constant text[] := array['mía', 'de otra persona', 'lead perdido', 'lead en papelera', 'inexistente'];
+  v_tipos_e constant text[] := array['mío', 'ajeno', 'inexistente'];
+  -- Lo que da «mía» a cada persona (las demás celdas son «nada», o «cuenta» para baja y bloqueado).
+  v_mia constant text[] := array['ok', 'ok', 'nada', 'ok', 'nada', 'cuenta', 'cuenta', 'nada'];
+  r record; p int; k int; v_obj uuid; v_sql text; v_esp text; v_real text; v_tok text;
+  v_fallas text := ''; v_n int := 0; v_mal int := 0;
+begin
+  create temp table if not exists matriz_cubiertas (rpc text primary key);
+  for r in select * from (values
+    ('oportunidad_guardar', $q$select public.oportunidad_guardar({o}, coalesce((select actualizado_en from public.oportunidades where id = {o}), now()), '{"titulo": "Matriz 2"}')$q$),
+    ('oportunidad_mover', $q$select public.oportunidad_mover({o}, (select etapa_id from public.oportunidades where id = {o}), (select s.id from public.embudos_etapas s join public.oportunidades o on o.embudo_id = s.embudo_id where o.id = {o} and s.es_ganada limit 1), null)$q$),
+    ('oportunidad_eliminar', $q$select public.oportunidad_eliminar({o}, coalesce((select actualizado_en from public.oportunidades where id = {o}), now()))$q$),
+    ('oportunidad_restaurar', $q$select public.oportunidad_restaurar({o}, (public.oportunidad_eliminar({o}, coalesce((select actualizado_en from public.oportunidades where id = {o}), now())) -> 'oportunidad' ->> 'actualizado_en')::timestamptz)$q$)
+  ) t (rpc, plantilla)
+  loop
+    insert into matriz_cubiertas values (r.rpc) on conflict do nothing;
+    for p in 1..8 loop
+      for k in 1..5 loop
+        v_obj := case k
+          when 1 then case p when 2 then v_oc when 4 then v_oa else v_op end
+          when 2 then case p when 1 then v_oc else v_op end
+          when 3 then v_ol when 4 then v_ot else v_x end;
+        v_tok := case when p in (6, 7) then 'cuenta' when k = 1 then v_mia[p] else 'nada' end;
+        v_esp := case v_tok when 'ok' then 'ok' when 'nada' then v_nada when 'cuenta' then v_cuenta end;
+        v_sql := replace(r.plantilla, '{o}', quote_literal(v_obj::text) || '::uuid');
+        v_real := pg_temp.celda(v_personas[p], v_sql);
+        v_n := v_n + 1;
+        if v_real is distinct from v_esp then
+          v_mal := v_mal + 1;
+          if v_mal <= 12 then
+            v_fallas := v_fallas || format(E'\n  %s · %s · %s: esperaba «%s» y fue «%s»', r.rpc, v_nombres[p], v_tipos[k], v_esp, v_real);
+          end if;
+        end if;
+      end loop;
+    end loop;
+  end loop;
+
+  -- Embudos: de quien mira. Sin argumento, ver leads alcanza; con uno, mío o «no lo encontramos»
+  -- (eliminar uno que no es mío es `sin_cambios`, como una etiqueta).
+  for r in select * from (values
+    ('embudo_por_defecto', $q$select public.embudo_por_defecto()$q$, 'ok', 'ok', 'ok'),
+    ('embudo_crear', $q$select public.embudo_crear(gen_random_uuid(), 'Matriz nuevo')$q$, 'ok', 'ok', 'ok'),
+    ('embudo_guardar', $q$select public.embudo_guardar({e}, coalesce((select actualizado_en from public.embudos where id = {e}), now()), 'Matriz renombrado')$q$, 'ok', 'embudo', 'embudo'),
+    ('embudo_eliminar', $q$select public.embudo_eliminar({e}, coalesce((select actualizado_en from public.embudos where id = {e}), now()))$q$, 'ok', 'ok', 'ok'),
+    ('embudo_etapas_guardar', $q$select public.embudo_etapas_guardar({e}, coalesce((select actualizado_en from public.embudos where id = {e}), now()),
+       coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'nombre', s.nombre || ' 2', 'color', s.color, 'es_inicial', s.es_inicial,
+         'es_ganada', s.es_ganada, 'es_perdida', s.es_perdida) order by s.orden) from public.embudos_etapas s where s.embudo_id = {e}),
+         '[{"nombre": "A", "color": "gris", "es_inicial": true}, {"nombre": "B", "color": "verde", "es_ganada": true}, {"nombre": "C", "color": "rojo", "es_perdida": true}]'))$q$, 'ok', 'embudo', 'embudo')
+  ) t (rpc, plantilla, e1, e2, e3)
+  loop
+    insert into matriz_cubiertas values (r.rpc) on conflict do nothing;
+    for p in 1..8 loop
+      for k in 1..3 loop
+        v_obj := case k
+          when 1 then (select id from public.embudos where nombre = 'Matriz B' and usuario_id = v_personas[p]::uuid)
+          when 2 then (select id from public.embudos where nombre = 'Matriz B' and usuario_id =
+                        case when p = 4 then '00000000-0000-0000-0000-000000000050' else '00000000-0000-0000-0000-000000000053' end::uuid)
+          else v_x end;
+        v_tok := case when p in (6, 7) then 'cuenta' when p = 8 then 'sin_ver'
+                      when k = 1 then r.e1 when k = 2 then r.e2 else r.e3 end;
+        v_esp := case v_tok when 'ok' then 'ok' when 'embudo' then v_sin_embudo when 'cuenta' then v_cuenta when 'sin_ver' then v_sin_ver end;
+        v_sql := replace(r.plantilla, '{e}', coalesce(quote_literal(v_obj::text) || '::uuid', 'null::uuid'));
+        v_real := pg_temp.celda(v_personas[p], v_sql);
+        v_n := v_n + 1;
+        if v_real is distinct from v_esp then
+          v_mal := v_mal + 1;
+          if v_mal <= 12 then
+            v_fallas := v_fallas || format(E'\n  %s · %s · %s: esperaba «%s» y fue «%s»', r.rpc, v_nombres[p], v_tipos_e[k], v_esp, v_real);
+          end if;
+        end if;
+      end loop;
+    end loop;
+  end loop;
+  if v_n < 260 then raise exception 'la matriz de oportunidades se achicó: % celdas', v_n; end if;
+  if v_mal > 0 then raise exception '% de % celdas no dieron lo esperado:%', v_mal, v_n, v_fallas; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+-- Lo que sigue (los casos de cartera y papelera) parte de leads sin oportunidades.
+delete from public.oportunidades where titulo like 'Matriz O_';
 
 -- @test matriz de vínculo: personas, vehículos y leads de prueba
 -- Las cuatro RPC de vínculo e interés miran dos cosas: el lead (la matriz de arriba) y el vehículo. Esta
@@ -991,5 +1132,298 @@ begin
   if not (r ->> 'ok')::boolean then raise exception 'desvinculado, debía ir a la papelera: %', r; end if;
   r := pg_temp.como(u60, format('select public.leads_papelera_restaurar(%L, (select actualizado_en from public.lotes_papelera where id = %L), null)', v_lote, v_lote));
   if jsonb_array_length(r -> 'valor' -> 'restaurados') <> 1 then raise exception 'restaurar LV: %', r; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de embudos: el de por defecto, nombres, topes y las invariantes de las etapas
+create or replace function pg_temp.etapas_de(p_embudo uuid) returns jsonb language sql as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', s.id, 'nombre', s.nombre, 'color', s.color, 'es_inicial', s.es_inicial,
+           'es_ganada', s.es_ganada, 'es_perdida', s.es_perdida) order by s.orden, s.id), '[]'::jsonb)
+    from public.embudos_etapas s where s.embudo_id = p_embudo;
+$$;
+create or replace function pg_temp.version_embudo(p_embudo uuid) returns timestamptz language sql as $$
+  select actualizado_en from public.embudos where id = p_embudo;
+$$;
+-- Una llamada que tiene que salir bien: si falla, lo dice (comparar contra un nulo no avisaría).
+create or replace function pg_temp.bien(p_resultado jsonb) returns jsonb language plpgsql as $$
+begin
+  if not coalesce((p_resultado ->> 'ok')::boolean, false) then
+    raise exception 'tenía que salir bien: %', p_resultado;
+  end if;
+  return p_resultado;
+end $$;
+do $$ declare
+  u57 constant text := '00000000-0000-0000-0000-000000000057'; u50 constant text := '00000000-0000-0000-0000-000000000050';
+  r jsonb; v_emb uuid; v_otro uuid; v_et jsonb; v_ver timestamptz; i int; v_id uuid := gen_random_uuid();
+begin
+  -- El de por defecto nace una vez, con seis etapas genéricas; la segunda vez es el mismo.
+  r := pg_temp.bien(pg_temp.como(u57, 'select public.embudo_por_defecto()'));
+  if not (r ->> 'ok')::boolean or r -> 'valor' ->> 'resultado' <> 'creado' or jsonb_array_length(r -> 'valor' -> 'embudo' -> 'etapas') <> 6 then
+    raise exception 'el embudo por defecto: %', r; end if;
+  v_emb := (r -> 'valor' -> 'embudo' ->> 'id')::uuid;
+  r := pg_temp.bien(pg_temp.como(u57, 'select public.embudo_por_defecto()'));
+  if r -> 'valor' ->> 'resultado' is distinct from 'existente' or (r -> 'valor' -> 'embudo' ->> 'id')::uuid is distinct from v_emb then
+    raise exception 'el embudo por defecto dos veces: %', r; end if;
+  -- Nombre repetido sin importar mayúsculas; el mismo id es un reintento.
+  r := pg_temp.como(u57, format('select public.embudo_crear(%L, %L)', gen_random_uuid(), 'VENTAS'));
+  perform pg_temp.espero(r, '22023', 'Ya tienes un embudo «Ventas».', 'otro embudo «VENTAS»');
+  r := pg_temp.bien(pg_temp.como(u57, format('select public.embudo_crear(%L, %L)', v_id, 'Postventa')));
+  if r -> 'valor' ->> 'resultado' <> 'creado' then raise exception 'crear Postventa: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u57, format('select public.embudo_crear(%L, %L)', v_id, 'Postventa')));
+  if r -> 'valor' ->> 'resultado' <> 'repetido' then raise exception 'crear dos veces: %', r; end if;
+  r := pg_temp.como(u57, format('select public.embudo_crear(%L, %L)', gen_random_uuid(), repeat('x', 41)));
+  perform pg_temp.espero(r, '22023', 'El nombre de un embudo lleva entre 1 y 40 caracteres.', 'un nombre de 41');
+  -- Hasta 10.
+  for i in 3..10 loop
+    r := pg_temp.bien(pg_temp.como(u57, format('select public.embudo_crear(%L, %L)', gen_random_uuid(), 'Embudo ' || i)));
+    if not (r ->> 'ok')::boolean then raise exception 'crear el embudo %: %', i, r; end if;
+  end loop;
+  r := pg_temp.como(u57, format('select public.embudo_crear(%L, %L)', gen_random_uuid(), 'El once'));
+  perform pg_temp.espero(r, '22023', 'Puedes tener hasta 10 embudos.%', 'el embudo once');
+  -- El de por defecto no se elimina; uno vacío sí, y eliminarlo otra vez no hace nada.
+  r := pg_temp.como(u57, format('select public.embudo_eliminar(%L, %L)', v_emb, pg_temp.version_embudo(v_emb)));
+  perform pg_temp.espero(r, '23514', 'El embudo por defecto no se elimina: puedes renombrarlo.', 'eliminar el de por defecto');
+  v_otro := (select id from public.embudos where usuario_id = u57::uuid and nombre = 'Embudo 10');
+  r := pg_temp.bien(pg_temp.como(u57, format('select public.embudo_eliminar(%L, %L)', v_otro, pg_temp.version_embudo(v_otro))));
+  if r -> 'valor' ->> 'resultado' <> 'eliminado' then raise exception 'eliminar uno vacío: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u57, format('select public.embudo_eliminar(%L, %L)', v_otro, now())));
+  if r -> 'valor' ->> 'resultado' <> 'sin_cambios' then raise exception 'eliminar dos veces: %', r; end if;
+
+  -- Las invariantes de las etapas.
+  v_et := pg_temp.etapas_de(v_emb);
+  v_ver := pg_temp.version_embudo(v_emb);
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver,
+         jsonb_set(v_et, '{1,es_inicial}', 'true')));
+  perform pg_temp.espero(r, '22023', 'Marca una sola etapa como inicial.', 'dos iniciales');
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver, v_et - 4));
+  perform pg_temp.espero(r, '22023', 'Hace falta al menos una etapa ganada.', 'sin la única ganada');
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver, v_et - 5));
+  perform pg_temp.espero(r, '22023', 'Hace falta al menos una etapa perdida.', 'sin la única perdida');
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver,
+         jsonb_set(v_et, '{2,nombre}', '"CONTACTADO"')));
+  perform pg_temp.espero(r, '22023', 'Hay dos etapas «CONTACTADO».%', 'un nombre repetido con otras mayúsculas');
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver,
+         jsonb_set(v_et, '{1,color}', '"fucsia"')));
+  perform pg_temp.espero(r, '22023', 'Elige un color de la paleta para «Contactado».', 'un color fuera de la paleta');
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver,
+         jsonb_set(v_et, '{0,es_ganada}', 'true')));
+  perform pg_temp.espero(r, '22023', 'La etapa inicial no puede ser ganada ni perdida.', 'la inicial ganada');
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver,
+         v_et || (select jsonb_agg(jsonb_build_object('nombre', 'Extra ' || g, 'color', 'gris')) from generate_series(1, 7) g)));
+  perform pg_temp.espero(r, '22023', 'Un embudo lleva entre 3 y 12 etapas.', 'trece etapas');
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver,
+         jsonb_set(v_et, '{1,id}', to_jsonb((select id from public.embudos_etapas where embudo_id = v_id limit 1)))));
+  perform pg_temp.espero(r, '22023', 'Una de las etapas no es de este embudo.%', 'una etapa de otro embudo');
+  -- Lo mismo con una versión vieja es `sin_cambios`; intercambiar dos nombres y reordenar no choca.
+  r := pg_temp.bien(pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver - interval '1 day', v_et)));
+  if r -> 'valor' ->> 'resultado' <> 'sin_cambios' then raise exception 'lo mismo: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver,
+         jsonb_build_array(v_et -> 0, jsonb_set(v_et -> 2, '{nombre}', '"Contactado"'), jsonb_set(v_et -> 1, '{nombre}', '"Cotizado"'),
+                           v_et -> 3, v_et -> 4, v_et -> 5))));
+  if r -> 'valor' ->> 'resultado' <> 'guardado' then raise exception 'intercambiar nombres: %', r; end if;
+  -- Otra pestaña con la versión de antes: conflicto.
+  r := pg_temp.como(u57, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, v_ver, v_et - 3));
+  perform pg_temp.espero(r, 'PT409', 'Cambiaste este embudo % desde otra ventana.%', 'guardar las etapas con la versión vieja');
+  -- Renombrar con versión vieja también; uno ajeno no se encuentra.
+  r := pg_temp.como(u57, format('select public.embudo_guardar(%L, %L, %L)', v_emb, v_ver, 'Otro nombre'));
+  perform pg_temp.espero(r, 'PT409', 'Cambiaste este embudo %', 'renombrar con la versión vieja');
+  r := pg_temp.como(u50, format('select public.embudo_guardar(%L, %L, %L)', v_emb, pg_temp.version_embudo(v_emb), 'Mío'));
+  perform pg_temp.espero(r, '42501', 'No encontramos este embudo. Recarga para ver los tuyos.', 'renombrar uno ajeno');
+  -- Nadie lee los embudos de otra persona.
+  r := pg_temp.bien(pg_temp.como(u50, format('select count(*)::int from public.embudos where usuario_id = %L', u57)));
+  if (r -> 'valor')::int <> 0 then raise exception 'leyó embudos ajenos: %', r; end if;
+  -- Sin escritura directa.
+  r := pg_temp.como(u57, format('update public.embudos_etapas set es_inicial = true where embudo_id = %L', v_emb));
+  perform pg_temp.espero(r, '42501', 'permission denied%', 'escribió una etapa directo');
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de oportunidades: validaciones, mover, cerrar, reabrir, versión, y quién la ve
+do $$ declare
+  u50 constant text := '00000000-0000-0000-0000-000000000050'; u51 constant text := '00000000-0000-0000-0000-000000000051';
+  u52 constant text := '00000000-0000-0000-0000-000000000052'; u53 constant text := '00000000-0000-0000-0000-000000000053';
+  u58 constant text := '00000000-0000-0000-0000-000000000058';
+  r jsonb; v_lead uuid; v_emb uuid; v_b uuid; v_op uuid := gen_random_uuid(); v_oc uuid := gen_random_uuid(); v_os uuid := gen_random_uuid();
+  v_ini uuid; v_cont uuid; v_gan uuid; v_per uuid; v_ver timestamptz; v_lead_ver timestamptz; v_lote uuid := gen_random_uuid();
+begin
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.crear_lead(%L, %L)', gen_random_uuid(),
+    jsonb_build_object('nombre', 'Matriz LO', 'telefono_principal', '78000099', 'origen_lead_id', (select id from public.origenes_lead where clave = 'web')))));
+  v_lead := (r -> 'valor' ->> 'id')::uuid;
+  if v_lead is null then raise exception 'alta de LO: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_compartir(%L, %L)', v_lead, u51)));
+  v_emb := (select id from public.embudos where usuario_id = u50::uuid and es_default);
+  v_b := (select id from public.embudos where usuario_id = u50::uuid and nombre = 'Matriz B');
+  select id into v_ini from public.embudos_etapas where embudo_id = v_emb and nombre = 'Nuevo';
+  select id into v_cont from public.embudos_etapas where embudo_id = v_emb and nombre = 'Contactado';
+  select id into v_gan from public.embudos_etapas where embudo_id = v_emb and es_ganada;
+  select id into v_per from public.embudos_etapas where embudo_id = v_emb and es_perdida;
+  v_lead_ver := (select actualizado_en from public.leads where id = v_lead);
+
+  -- Validaciones, cada una con su campo.
+  r := pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), v_lead, '{"titulo": "  "}'));
+  perform pg_temp.espero(r, '22023', 'El título lleva entre 1 y 120 caracteres.', 'un título vacío');
+  r := pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), v_lead, jsonb_build_object('titulo', repeat('x', 500))));
+  perform pg_temp.espero(r, '22023', 'El título lleva entre 1 y 120 caracteres.', 'un título de 500');
+  r := pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), v_lead, '{"titulo": "x", "monto_estimado": -1}'));
+  perform pg_temp.espero(r, '22023', 'El monto no puede ser negativo.', 'un monto negativo');
+  r := pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), v_lead, '{"titulo": "x", "monto_estimado": 1000000000000}'));
+  perform pg_temp.espero(r, '22023', 'El monto es demasiado grande.', 'un monto gigante');
+  r := pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), v_lead, '{"titulo": "x", "monto_estimado": 1.234}'));
+  perform pg_temp.espero(r, '22023', 'El monto lleva hasta 2 decimales.', 'un monto con 3 decimales');
+  r := pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), v_lead, '{"titulo": "x", "estado": "ganada"}'));
+  perform pg_temp.espero(r, '22023', 'El dato «estado» no es de una oportunidad.', 'un dato que no es de ella');
+  r := pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), v_lead,
+         jsonb_build_object('titulo', 'x', 'etapa_id', (select id from public.embudos_etapas where embudo_id = v_b and es_inicial))));
+  perform pg_temp.espero(r, '22023', 'Esa etapa no es de este embudo.', 'una etapa de otro embudo al crear');
+  r := pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), v_lead,
+         jsonb_build_object('titulo', 'x', 'embudo_id', (select id from public.embudos where usuario_id = u53::uuid and es_default))));
+  perform pg_temp.espero(r, '22023', 'No encontramos ese embudo.%', 'el embudo de otra persona');
+
+  -- Crear: en la inicial, abierta, con la moneda de la empresa, historial y constancia sin monto. No mueve el lead.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', v_op, v_lead, '{"titulo": "Hilux 2020", "monto_estimado": 25000.5, "notas": "Quiere financiar"}')));
+  if r -> 'valor' ->> 'resultado' <> 'creada' or (r -> 'valor' -> 'oportunidad' ->> 'etapa_id')::uuid <> v_ini
+     or r -> 'valor' -> 'oportunidad' ->> 'estado' <> 'abierta'
+     or r -> 'valor' -> 'oportunidad' ->> 'moneda' <> (select moneda_base from public.ajustes_empresa) then
+    raise exception 'crear: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_crear(%L, %L, %L)', v_op, v_lead, '{"titulo": "Otra cosa"}')));
+  if r -> 'valor' ->> 'resultado' <> 'repetido' then raise exception 'crear dos veces: %', r; end if;
+  if (select count(*) from public.oportunidades_historial where oportunidad_id = v_op) <> 1 then raise exception 'el historial al crear'; end if;
+  if not exists (select 1 from public.actividad where accion = 'oportunidad.creada' and registro_id = v_op::text
+                 and not (coalesce(detalle, '{}') ?| array['monto_estimado', 'notas', 'titulo'])) then
+    raise exception 'la constancia de crear'; end if;
+  if (select actualizado_en from public.leads where id = v_lead) <> v_lead_ver then raise exception 'crear movió la versión del lead'; end if;
+
+  -- Mover: la misma etapa no hace nada; con la esperada vieja, conflicto; a otro embudo, no.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L)', v_op, v_cont, v_ini)));
+  if r -> 'valor' ->> 'resultado' <> 'sin_cambios' then raise exception 'mover a la misma: %', r; end if;
+  r := pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L)', v_op, v_cont, v_gan));
+  perform pg_temp.espero(r, 'PT409', 'Esta oportunidad ya está en «Nuevo». Recarga para verla donde está.', 'mover con la esperada vieja');
+  r := pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L)', v_op, v_ini,
+         (select id from public.embudos_etapas where embudo_id = v_b and es_ganada)));
+  perform pg_temp.espero(r, '22023', 'Esa etapa no es de este embudo.', 'mover a otro embudo');
+  r := pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L)', v_op, v_ini,
+         (select s.id from public.embudos_etapas s join public.embudos e on e.id = s.embudo_id where e.usuario_id = u53::uuid limit 1)));
+  perform pg_temp.espero(r, '22023', 'Esa etapa no es de este embudo.', 'mover a una etapa de otra persona');
+  -- Perdida, con motivo (hasta 200); la constancia; reabrir limpia el motivo; ganada.
+  r := pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L, %L)', v_op, v_ini, v_per, repeat('m', 201)));
+  perform pg_temp.espero(r, '22023', 'El motivo lleva hasta 200 caracteres.', 'un motivo de 201');
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L, %L)', v_op, v_ini, v_per, 'Compró en otra parte')));
+  if r -> 'valor' -> 'oportunidad' ->> 'estado' <> 'perdida' or r -> 'valor' -> 'oportunidad' ->> 'motivo_perdida' <> 'Compró en otra parte' then
+    raise exception 'perdida: %', r; end if;
+  if not exists (select 1 from public.actividad where accion = 'oportunidad.perdida' and registro_id = v_op::text) then
+    raise exception 'la constancia de perdida'; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L, %L)', v_op, v_per, v_cont, 'no se guarda')));
+  if r -> 'valor' -> 'oportunidad' ->> 'estado' <> 'abierta' or r -> 'valor' -> 'oportunidad' ->> 'motivo_perdida' is not null then
+    raise exception 'reabrir: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L)', v_op, v_cont, v_gan)));
+  if r -> 'valor' -> 'oportunidad' ->> 'estado' <> 'ganada' then raise exception 'ganada: %', r; end if;
+  if (select count(*) from public.oportunidades_historial where oportunidad_id = v_op) <> 4 then raise exception 'el historial al mover'; end if;
+  if (select actualizado_en from public.leads where id = v_lead) <> v_lead_ver then raise exception 'mover movió la versión del lead'; end if;
+  -- Editar: con la versión vieja, conflicto; lo mismo con la vieja no choca.
+  v_ver := (select actualizado_en from public.oportunidades where id = v_op);
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_guardar(%L, %L, %L)', v_op, v_ver, '{"titulo": "Hilux 2021"}')));
+  if r -> 'valor' ->> 'resultado' <> 'guardada' then raise exception 'guardar: %', r; end if;
+  r := pg_temp.como(u50, format('select public.oportunidad_guardar(%L, %L, %L)', v_op, v_ver, '{"titulo": "Hilux 2022"}'));
+  perform pg_temp.espero(r, 'PT409', 'Cambiaste esta oportunidad % desde otra ventana.%', 'guardar con la versión vieja');
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_guardar(%L, %L, %L)', v_op, v_ver, '{"titulo": "Hilux 2021"}')));
+  if r -> 'valor' ->> 'resultado' <> 'sin_cambios' then raise exception 'guardar lo mismo: %', r; end if;
+  -- Una etapa que pasa de abierta a ganada cierra lo que tiene; y vuelve.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_mover(%L, %L, %L)', v_op, v_gan, v_cont)));
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, pg_temp.version_embudo(v_emb),
+         jsonb_set(pg_temp.etapas_de(v_emb), '{1,es_ganada}', 'true'))));
+  if (select estado from public.oportunidades where id = v_op) <> 'ganada' then raise exception 'la etapa ganada no cerró la oportunidad'; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, pg_temp.version_embudo(v_emb),
+         jsonb_set(pg_temp.etapas_de(v_emb), '{1,es_ganada}', 'false'))));
+  if (select estado from public.oportunidades where id = v_op) <> 'abierta' then raise exception 'la etapa abierta no la reabrió'; end if;
+  -- Una etapa con oportunidades no se quita; un embudo con oportunidades no se elimina.
+  r := pg_temp.como(u50, format('select public.embudo_etapas_guardar(%L, %L, %L)', v_emb, pg_temp.version_embudo(v_emb), pg_temp.etapas_de(v_emb) - 1));
+  perform pg_temp.espero(r, '23514', '«Contactado» tiene 1 oportunidad: muévelas antes de quitarla.', 'quitar una etapa con oportunidades');
+
+  -- Quién la ve: sólo su dueña. El compartido y la supervisión no.
+  r := pg_temp.bien(pg_temp.como(u51, format('select count(*)::int from public.oportunidades where lead_id = %L', v_lead)));
+  if (r -> 'valor')::int <> 0 then raise exception 'el compartido vio la oportunidad de la dueña'; end if;
+  r := pg_temp.bien(pg_temp.como(u52, 'select count(*)::int from public.oportunidades'));
+  if (r -> 'valor')::int <> 0 then raise exception 'la supervisión vio oportunidades ajenas'; end if;
+  -- Tampoco la supervisión que tiene el lead compartido: «todos» no abre las oportunidades de nadie.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_compartir(%L, %L)', v_lead, u58)));
+  r := pg_temp.bien(pg_temp.como(u58, format('select count(*)::int from public.oportunidades where id = %L', v_op)));
+  if (r -> 'valor')::int <> 0 then raise exception 'la supervisión compartida vio la oportunidad de la dueña'; end if;
+  -- Y con «todos» y sin la cartera, su propia oportunidad no se toca (ver el lead no alcanza).
+  r := pg_temp.bien(pg_temp.como(u58, format('select public.oportunidad_crear(%L, %L, %L)', v_os, v_lead, '{"titulo": "La de la supervisión"}')));
+  if r -> 'valor' ->> 'resultado' <> 'creada' then raise exception 'crear de la supervisión: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_revocar_acceso(%L, %L)', v_lead, u58)));
+  r := pg_temp.como(u58, format('select public.oportunidad_guardar(%L, (select actualizado_en from public.oportunidades where id = %L), %L)', v_os, v_os, '{"titulo": "x"}'));
+  perform pg_temp.espero(r, '42501', 'No encontramos esta oportunidad o no tienes acceso.', 'la supervisión editó la suya sin la cartera');
+  r := pg_temp.bien(pg_temp.como(u58, format('select count(*)::int from public.oportunidades where id = %L', v_os)));
+  if (r -> 'valor')::int <> 0 then raise exception 'la supervisión sin la cartera siguió viendo la suya'; end if;
+  r := pg_temp.bien(pg_temp.como(u52, 'select count(*)::int from public.oportunidades_historial'));
+  if (r -> 'valor')::int <> 0 then raise exception 'la supervisión vio el historial ajeno'; end if;
+  -- El compartido tiene la suya; si pierde la cartera deja de verla (y de moverla); si vuelve, la ve.
+  r := pg_temp.bien(pg_temp.como(u51, format('select public.oportunidad_crear(%L, %L, %L)', v_oc, v_lead, '{"titulo": "La del compartido"}')));
+  if r -> 'valor' ->> 'resultado' <> 'creada' then raise exception 'crear del compartido: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_revocar_acceso(%L, %L)', v_lead, u51)));
+  r := pg_temp.bien(pg_temp.como(u51, format('select count(*)::int from public.oportunidades where id = %L', v_oc)));
+  if (r -> 'valor')::int <> 0 then raise exception 'sin la cartera, la siguió viendo'; end if;
+  r := pg_temp.como(u51, format('select public.oportunidad_guardar(%L, now(), %L)', v_oc, '{"titulo": "x"}'));
+  perform pg_temp.espero(r, '42501', 'No encontramos esta oportunidad o no tienes acceso.', 'editar sin la cartera');
+  if not exists (select 1 from public.oportunidades where id = v_oc and eliminado_en is null and estado = 'abierta') then
+    raise exception 'perder la cartera cerró o borró la oportunidad'; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_compartir(%L, %L)', v_lead, u51)));
+  r := pg_temp.bien(pg_temp.como(u51, format('select count(*)::int from public.oportunidades where id = %L', v_oc)));
+  if (r -> 'valor')::int <> 1 then raise exception 'con la cartera de vuelta, no la vio'; end if;
+  -- La papelera las oculta; restaurar las devuelve.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_papelera_enviar(%L, array[%L]::uuid[])', v_lote, v_lead)));
+  if not (r ->> 'ok')::boolean then raise exception 'enviar LO: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select count(*)::int from public.oportunidades where id = %L', v_op)));
+  if (r -> 'valor')::int <> 0 then raise exception 'con el lead en la papelera, la siguió viendo'; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.leads_papelera_restaurar(%L, (select actualizado_en from public.lotes_papelera where id = %L), null)', v_lote, v_lote)));
+  r := pg_temp.bien(pg_temp.como(u50, format('select count(*)::int from public.oportunidades where id = %L', v_op)));
+  if (r -> 'valor')::int <> 1 then raise exception 'restaurado el lead, no la vio'; end if;
+  -- Eliminar la oculta; restaurar con la versión que devolvió la trae.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_eliminar(%L, (select actualizado_en from public.oportunidades where id = %L))', v_op, v_op)));
+  if r -> 'valor' ->> 'resultado' <> 'eliminada' then raise exception 'eliminar: %', r; end if;
+  v_ver := (r -> 'valor' -> 'oportunidad' ->> 'actualizado_en')::timestamptz;
+  r := pg_temp.bien(pg_temp.como(u50, format('select count(*)::int from public.oportunidades where id = %L', v_op)));
+  if (r -> 'valor')::int <> 0 then raise exception 'eliminada, la siguió viendo'; end if;
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.oportunidad_restaurar(%L, %L)', v_op, v_ver)));
+  if r -> 'valor' ->> 'resultado' <> 'restaurada' then raise exception 'restaurar: %', r; end if;
+  -- Sin escritura directa.
+  r := pg_temp.como(u50, format('update public.oportunidades set etapa_id = %L where id = %L', v_gan, v_op));
+  perform pg_temp.espero(r, '42501', 'permission denied%', 'movió una oportunidad directo');
+  -- La sección de la ficha: las suyas y si puede crear.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.lead_oportunidades(%L)', v_lead)));
+  if not (r -> 'valor' ->> 'puedo_crear')::boolean or jsonb_array_length(r -> 'valor' -> 'oportunidades') <> 1 then
+    raise exception 'lead_oportunidades de la dueña: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u52, format('select public.lead_oportunidades(%L)', v_lead)));
+  if (r -> 'valor' ->> 'puedo_crear')::boolean or jsonb_array_length(r -> 'valor' -> 'oportunidades') <> 0 then
+    raise exception 'lead_oportunidades de la supervisión: %', r; end if;
+  -- El tablero: el total por etapa cuenta lo que se ve.
+  r := pg_temp.bien(pg_temp.como(u50, format('select public.embudo_tablero(%L, 50)', v_emb)));
+  if (select sum((c ->> 'total')::int) from jsonb_array_elements(r -> 'valor' -> 'columnas') c) <> 1 then
+    raise exception 'el tablero: %', r; end if;
+  r := pg_temp.bien(pg_temp.como(u53, format('select public.embudo_tablero(%L, 50)', v_emb)));
+  if r -> 'valor' is not null and r -> 'valor' <> 'null'::jsonb then raise exception 'el tablero de un embudo ajeno: %', r; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de oportunidades: un vehículo que no se ve no se elige, y si deja de verse se conserva
+do $$ declare
+  u60 constant text := '00000000-0000-0000-0000-000000000060';
+  lv uuid := (select id from public.leads where nombre = 'Matriz LV');
+  p60 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 60');
+  sin uuid := (select id from public.vehiculos where titulo = 'Matriz V sin permiso');
+  r jsonb; v_id uuid := gen_random_uuid();
+begin
+  r := pg_temp.como(u60, format('select public.oportunidad_crear(%L, %L, %L)', gen_random_uuid(), lv, jsonb_build_object('titulo', 'x', 'vehiculo_id', sin)));
+  perform pg_temp.espero(r, '42501', 'Ese vehículo no existe o no tienes acceso.', 'un vehículo que no ve');
+  r := pg_temp.bien(pg_temp.como(u60, format('select public.oportunidad_crear(%L, %L, %L)', v_id, lv, jsonb_build_object('titulo', 'Con vehículo', 'vehiculo_id', p60))));
+  if (r -> 'valor' -> 'oportunidad' -> 'vehiculo' ->> 'id')::uuid <> p60 then raise exception 'crear con vehículo: %', r; end if;
+  -- Deja de verlo (pasa a un origen sin permiso): editar otra cosa lo conserva y no lo nombra.
+  update public.oportunidades set vehiculo_id = sin where id = v_id;
+  r := pg_temp.bien(pg_temp.como(u60, format('select public.oportunidad_guardar(%L, (select actualizado_en from public.oportunidades where id = %L), %L)', v_id, v_id, '{"titulo": "Otro"}')));
+  if r -> 'valor' -> 'oportunidad' -> 'vehiculo' <> 'null'::jsonb or not (r -> 'valor' -> 'oportunidad' ->> 'vehiculo_oculto')::boolean
+     or (select vehiculo_id from public.oportunidades where id = v_id) <> sin then
+    raise exception 'el vehículo que dejó de ver: %', r; end if;
+  delete from public.oportunidades where id = v_id;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);

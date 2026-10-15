@@ -1,5 +1,5 @@
-// Corre `supabase/tests/medir-listado.sql` contra la base del Supabase LOCAL y resume la mediana de
-// cada consulta. No hay `psql` en el equipo ni un cliente de Postgres en las dependencias: se usa el
+// Corre `supabase/tests/medir-listado.sql` y `medir-embudo.sql` contra la base del Supabase LOCAL y
+// resume la mediana de cada consulta. No hay `psql` en el equipo ni un cliente de Postgres en las dependencias: se usa el
 // del contenedor de la base (`supabase_db_<project_id>`). La medición va en una transacción que se
 // revierte: no deja filas (sí huecos en la numeración de leads y actividad).
 // Uso: pnpm db:medir
@@ -13,34 +13,43 @@ if (!proyecto) {
   process.exit(1)
 }
 const contenedor = `supabase_db_${proyecto}`
-const sql = readFileSync('supabase/tests/medir-listado.sql', 'utf8')
+const MEDICIONES = [
+  ['supabase/tests/medir-listado.sql', 'Listado de leads, 2.000 leads sintéticos'],
+  [
+    'supabase/tests/medir-embudo.sql',
+    'Kanban de oportunidades, 2.000 leads y 10.000 oportunidades',
+  ],
+]
 
-const corrida = spawnSync(
-  'docker',
-  ['exec', '-i', contenedor, 'psql', '-U', 'postgres', '-q', '-X', '-v', 'ON_ERROR_STOP=1'],
-  { input: sql, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
-)
-if (corrida.error || corrida.status !== 0) {
-  console.error(corrida.error?.message ?? corrida.stderr)
-  console.error(
-    corrida.error
-      ? `No se pudo medir: ¿está arriba el Supabase local (${contenedor})?`
-      : 'No se pudo medir: la base rechazó la medición (arriba, el motivo).',
+for (const [archivo, titulo] of MEDICIONES) {
+  const sql = readFileSync(archivo, 'utf8')
+  const corrida = spawnSync(
+    'docker',
+    ['exec', '-i', contenedor, 'psql', '-U', 'postgres', '-q', '-X', '-v', 'ON_ERROR_STOP=1'],
+    { input: sql, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
   )
-  process.exit(1)
-}
+  if (corrida.error || corrida.status !== 0) {
+    console.error(corrida.error?.message ?? corrida.stderr)
+    console.error(
+      corrida.error
+        ? `No se pudo medir: ¿está arriba el Supabase local (${contenedor})?`
+        : `No se pudo medir ${archivo}: la base rechazó la medición (arriba, el motivo).`,
+    )
+    process.exit(1)
+  }
 
-const medidas = [...corrida.stderr.matchAll(/medicion\|([^|]+)\|([\d.]+)/g)].map((m) => ({
-  consulta: m[1],
-  ms: Number(m[2]),
-}))
-if (medidas.length === 0) {
-  console.error(corrida.stderr)
-  console.error('La medición no informó nada.')
-  process.exit(1)
-}
-const ancho = Math.max(...medidas.map((m) => m.consulta.length))
-console.log('Listado de leads, 2.000 leads sintéticos (mediana de 5 corridas, ms):')
-for (const { consulta, ms } of medidas) {
-  console.log(`  ${consulta.padEnd(ancho)}  ${ms.toFixed(1).padStart(7)}`)
+  const medidas = [...corrida.stderr.matchAll(/medicion\|([^|]+)\|([\d.]+)/g)].map((m) => ({
+    consulta: m[1],
+    ms: Number(m[2]),
+  }))
+  if (medidas.length === 0) {
+    console.error(corrida.stderr)
+    console.error(`La medición de ${archivo} no informó nada.`)
+    process.exit(1)
+  }
+  const ancho = Math.max(...medidas.map((m) => m.consulta.length))
+  console.log(`${titulo} (mediana de 5 corridas, ms):`)
+  for (const { consulta, ms } of medidas) {
+    console.log(`  ${consulta.padEnd(ancho)}  ${ms.toFixed(1).padStart(7)}`)
+  }
 }

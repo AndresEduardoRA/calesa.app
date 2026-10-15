@@ -1,4 +1,4 @@
-// Las carreras de la cartera y del vínculo, con dos conexiones reales a la base del Supabase LOCAL
+// Las carreras de la cartera, del vínculo y de las oportunidades, con dos conexiones reales a la base del Supabase LOCAL
 // (PGlite, el de `db:probar`, no tiene concurrencia). Sin `sleep`: A abre una transacción y actúa
 // (retiene el lock); B lanza su llamada; el orquestador espera en `pg_stat_activity` a que B esté
 // esperando un lock; A confirma y se mira cómo terminó B. Si B no llega a esperar, la carrera no se
@@ -14,6 +14,7 @@ import {
   sembrar,
   vehiculo,
 } from './carreras/terreno.mjs'
+import { carrerasDeOportunidades } from './carreras/oportunidades.mjs'
 
 const toml = readFileSync('supabase/config.toml', 'utf8')
 const puerto = /^\[db\][^[]*?^port\s*=\s*(\d+)/ms.exec(toml)?.[1]
@@ -299,6 +300,8 @@ try {
       { b: r.b, lead_id: rows[0].lead_id },
     )
   }
+
+  await carrerasDeOportunidades({ orquesta, carrera, espero })
 } finally {
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))
   await orquesta.end()

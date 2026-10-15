@@ -25,6 +25,12 @@ declare
     ('vehiculo_vincular(uuid,timestamp with time zone,uuid)', '1'),
     ('vehiculo_interesado_marcar(uuid,uuid,text)', '1'),
     ('vehiculo_interesado_quitar(uuid,uuid)', '1'),
+    -- Oportunidades (parte 7a): de su dueña, con la cartera del lead y `leads.editar`.
+    ('oportunidad_crear(uuid,uuid,jsonb)', '1'),
+    ('oportunidad_guardar(uuid,timestamp with time zone,jsonb)', '1'),
+    ('oportunidad_mover(uuid,uuid,uuid,text)', '1'),
+    ('oportunidad_eliminar(uuid,timestamp with time zone)', '1'),
+    ('oportunidad_restaurar(uuid,timestamp with time zone)', '1'),
     ('lead_compartir(uuid,uuid)', '2'),
     ('lead_transferir(uuid,uuid,uuid)', '2'),
     ('lead_revocar_acceso(uuid,uuid)', '2'),
@@ -77,6 +83,17 @@ declare
     ('vehiculos_para_lead(uuid,text)', 'L'),
     ('puede_evento(uuid)', 'L'),
     ('etiqueta_crear(uuid,text,text)', 'M'),
+    -- Los embudos son de cada persona (excepción como las marcas: no reciben un lead; eliminar y guardar
+    -- las etapas cuentan y borran sólo oportunidades propias ya eliminadas).
+    ('embudo_por_defecto()', 'M'),
+    ('embudo_crear(uuid,text)', 'M'),
+    ('embudo_guardar(uuid,timestamp with time zone,text)', 'M'),
+    ('embudo_eliminar(uuid,timestamp with time zone)', 'M'),
+    ('embudo_etapas_guardar(uuid,timestamp with time zone,jsonb)', 'M'),
+    -- Lecturas de oportunidades: la RLS da sólo las propias sobre leads vivos de la cartera.
+    ('_mis_leads_vivos()', 'L'),
+    ('_tarjeta_json(oportunidades,jsonb,jsonb)', 'L'),
+    ('lead_oportunidades(uuid)', 'L'),
     ('etiqueta_guardar(uuid,timestamp with time zone,text,text)', 'M'),
     ('lead_campo_crear(text,text,tipo_campo,jsonb,boolean,text,boolean,boolean,boolean,jsonb,text)', 'X'),
     ('lead_campo_guardar(uuid,timestamp with time zone,jsonb)', 'X'),
@@ -135,6 +152,17 @@ begin
       if (v_auditadas ->> r.firma) in ('1', '2', '3')
          and not exists (select 1 from pg_temp.matriz_cubiertas c where c.rpc = r.proname) then
         v_fallas := v_fallas || E'\n  sin fila en la matriz de leads: ' || r.proname;
+      end if;
+    end loop;
+    -- Las de oportunidades y embudos reciben su id, no el lead: igual pasan por su bloque de la matriz
+    -- (las que escriben; las lecturas son de invocador y las limita la RLS).
+    for r in
+      select distinct p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname ~ '^(oportunidad|embudo)_' and p.prosecdef
+        and has_function_privilege('authenticated', p.oid, 'execute')
+    loop
+      if not exists (select 1 from pg_temp.matriz_cubiertas c where c.rpc = r.proname) then
+        v_fallas := v_fallas || E'\n  sin fila en la matriz de oportunidades y embudos: ' || r.proname;
       end if;
     end loop;
   end if;
