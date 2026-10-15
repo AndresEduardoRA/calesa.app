@@ -1,19 +1,24 @@
 'use client'
 
 import { camposDeLaTarjeta, type FilaDeLead } from '../../../entities/listado'
+import { MenuDeLead } from '../../marcas/components/menu-de-lead'
 import { BadgeDeTipo } from './badge-de-tipo'
 import { CeldaDeCampo } from './celda-de-campo'
+import { NombreDeFila } from './nombre-de-fila'
 import { telefonoDeLista } from './telefono-de-lista'
-import { nombreDelOrigen, type DatosDeLaLista } from './tipos'
+import { nombreDelOrigen, type DatosDeLaLista, type ParaMarcar } from './tipos'
 
 type Props = DatosDeLaLista & {
   leads: readonly FilaDeLead[]
   alAbrir: (id: string) => void
+  marcar: ParaMarcar
 }
 
 // Los leads en el celular: una tarjeta por lead con lo mismo que la fila de la tabla y hasta dos
-// datos «en la tabla» que ese lead tenga. Toda la tarjeta abre el drawer (objetivo ≥ 44 px).
-export function TarjetasDeLeads({ leads, campos, origenes, codigoDePais, alAbrir }: Props) {
+// datos «en la tabla» que ese lead tenga. La tarjeta tiene dos objetivos hermanos (≥ 44 px): la
+// zona que abre el drawer y, en la esquina, el «⋯» de las marcas.
+export function TarjetasDeLeads(props: Props) {
+  const { leads, campos, origenes, codigoDePais, etiquetas, alAbrir, marcar } = props
   return (
     <ul className="grid gap-2 md:hidden">
       {leads.map((lead) => {
@@ -21,24 +26,23 @@ export function TarjetasDeLeads({ leads, campos, origenes, codigoDePais, alAbrir
         const datos = camposDeLaTarjeta(campos, lead)
         return (
           <li key={lead.id}>
-            <article className="rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
+            <article className="flex items-start rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
               <button
                 type="button"
                 aria-label={`Abrir ${lead.nombre}`}
-                className="grid min-h-11 w-full gap-2 p-3 text-left outline-none focus-visible:shadow-(--shadow-focus)"
+                className="grid min-h-11 min-w-0 flex-1 gap-2 p-3 text-left outline-none focus-visible:shadow-(--shadow-focus)"
                 onClick={() => {
                   alAbrir(lead.id)
                 }}
               >
                 <span className="flex items-start justify-between gap-2">
-                  <span className="grid min-w-0">
-                    <span className="truncate text-(length:--text-base) font-medium text-(--color-ink)">
-                      {lead.nombre}
-                    </span>
-                    <span className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
-                      #{lead.numero}
-                    </span>
-                  </span>
+                  <NombreDeFila
+                    lead={lead}
+                    etiquetas={etiquetas}
+                    nombre={(clases) => (
+                      <span className={`text-(length:--text-base) ${clases}`}>{lead.nombre}</span>
+                    )}
+                  />
                   <BadgeDeTipo tipo={lead.tipo} />
                 </span>
                 <span className="text-(length:--text-sm) text-(--color-ink) tabular-nums">
@@ -62,6 +66,15 @@ export function TarjetasDeLeads({ leads, campos, origenes, codigoDePais, alAbrir
                   </dl>
                 ) : null}
               </button>
+              <div className="p-1">
+                <MenuDeLead
+                  leadId={lead.id}
+                  nombre={lead.nombre}
+                  marcas={lead.marcas}
+                  etiquetas={marcar.etiquetas}
+                  alGestionar={marcar.alGestionar}
+                />
+              </div>
             </article>
           </li>
         )

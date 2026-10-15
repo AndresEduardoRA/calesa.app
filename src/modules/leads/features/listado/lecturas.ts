@@ -5,10 +5,16 @@ import type { ParametrosDeUrl } from '@/shared/lib/filtros'
 import { leerCursor, type Pagina } from '@/shared/lib/paginacion'
 import type { Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
-import { buscarLeads, leerLayoutDeLeads, leerOrigenesDeLead } from '../../composicion'
+import {
+  buscarLeads,
+  leerEtiquetas,
+  leerLayoutDeLeads,
+  leerOrigenesDeLead,
+} from '../../composicion'
 import type { OrigenDeLead } from '../../entities/alta'
 import { CLAVE_DE_ALCANCE, alcanceDelListado, type ModoDelListado } from '../../entities/alcance'
 import type { CampoDeLead } from '../../entities/campo'
+import type { Etiqueta } from '../../entities/etiqueta'
 import {
   condicionesDeLeads,
   esquemaDeFiltrosDeLeads,
@@ -23,6 +29,8 @@ export type DatosDelListado = {
   // Todo el layout: la tabla y el drawer filtran los activos.
   campos: CampoDeLead[]
   origenes: OrigenDeLead[]
+  // Las de quien mira: nombran las de cada fila y se ofrecen en el «⋯».
+  etiquetas: Etiqueta[]
   modo: ModoDelListado
   puedeVerTodos: boolean
   // De la URL, lo que ya no se puede filtrar (una vista vieja): se avisa y se quita.
@@ -41,12 +49,19 @@ type Entrada = {
 // `en_cartera` (no es un adorno de la pantalla) y «todos» no suma nada.
 export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<DatosDelListado>> {
   const { permisos, parametros, zona } = entrada
-  const [layout, origenes] = await Promise.all([leerLayoutDeLeads(), leerOrigenesDeLead()])
+  const [layout, origenes, etiquetas] = await Promise.all([
+    leerLayoutDeLeads(),
+    leerOrigenesDeLead(),
+    leerEtiquetas(),
+  ])
   if (!layout.ok) {
     return layout
   }
   if (!origenes.ok) {
     return origenes
+  }
+  if (!etiquetas.ok) {
+    return etiquetas
   }
   const campos = layout.data
   const { puedeVerTodos, modo } = alcanceDelListado(
@@ -77,6 +92,7 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       pagina: leida.data,
       campos,
       origenes: origenes.data,
+      etiquetas: etiquetas.data,
       modo,
       puedeVerTodos,
       descartados: filtrosDescartados(campos, parametros),

@@ -5,6 +5,7 @@ import 'server-only'
 import type {
   BuscadorDeLeads,
   LectorDeContextoDeAlta,
+  LectorDeEtiquetas,
   LectorDeFicha,
   LectorDeLayoutDeLeads,
   LectorDeOrigenesDeLead,
@@ -13,16 +14,21 @@ import type {
   LectorDeTiposDeSeguimiento,
   RepositorioCamposDeLead,
   RepositorioDeAlta,
+  RepositorioDeEtiquetas,
   RepositorioDeFicha,
+  RepositorioDeMarcas,
   RepositorioDeRecordatorios,
   RepositorioDeSeguimientos,
   RepositorioDeTelefonos,
 } from './entities/repositorios'
 import { altaSupabase } from './infra/alta'
 import { camposDeLeadSupabase } from './infra/campos'
+import { etiquetasSupabase } from './infra/etiquetas'
 import { fichaSupabase } from './infra/ficha'
+import { marcasSupabase } from './infra/marcas'
 import { getContextoDeAlta } from './infra/queries/alta'
 import { getLayoutDeLeads } from './infra/queries/campos'
+import { getEtiquetas } from './infra/queries/etiquetas'
 import { getFicha } from './infra/queries/ficha'
 import { buscarLeads as buscarLeadsEnBase } from './infra/queries/listado'
 import { getOrigenesDeLead } from './infra/queries/origenes'
@@ -59,3 +65,9 @@ export const leerTiposDeSeguimiento: LectorDeTiposDeSeguimiento = getTiposDeSegu
 export const repositorioDeRecordatorios: RepositorioDeRecordatorios = recordatoriosSupabase
 
 export const leerRecordatoriosDelLead: LectorDeRecordatoriosDelLead = getRecordatoriosDelLead
+
+export const repositorioDeMarcas: RepositorioDeMarcas = marcasSupabase
+
+export const repositorioDeEtiquetas: RepositorioDeEtiquetas = etiquetasSupabase
+
+export const leerEtiquetas: LectorDeEtiquetas = getEtiquetas

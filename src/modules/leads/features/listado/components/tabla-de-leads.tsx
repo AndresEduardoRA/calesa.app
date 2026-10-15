@@ -3,23 +3,28 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTabla } from '../../../entities/listado'
 import type { FilaDeLead } from '../../../entities/listado'
+import { MenuDeLead } from '../../marcas/components/menu-de-lead'
 import { BadgeDeTipo } from './badge-de-tipo'
 import { CeldaDeCampo } from './celda-de-campo'
+import { NombreDeFila } from './nombre-de-fila'
 import { telefonoDeLista } from './telefono-de-lista'
-import { nombreDelOrigen, type DatosDeLaLista } from './tipos'
+import { nombreDelOrigen, type DatosDeLaLista, type ParaMarcar } from './tipos'
 
 type Props = DatosDeLaLista & {
   leads: readonly FilaDeLead[]
   alAbrir: (id: string) => void
   // El lead abierto en el drawer, para marcarlo.
   abierto: string | null
+  marcar: ParaMarcar
 }
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
-// Los leads en escritorio: nombre, teléfono, tipo y origen, y una columna por cada campo «en la
-// tabla» del layout. Elegir una fila abre el drawer rápido (`?lead=`); no hay ficha todavía.
-export function TablaDeLeads({ leads, campos, origenes, codigoDePais, alAbrir, abierto }: Props) {
+// Los leads en escritorio: nombre (con las marcas de quien mira), teléfono, tipo y origen, una
+// columna por cada campo «en la tabla» del layout y el «⋯» de las marcas. Elegir una fila abre el
+// drawer rápido (`?lead=`).
+export function TablaDeLeads(props: Props) {
+  const { leads, campos, origenes, codigoDePais, etiquetas, alAbrir, abierto, marcar } = props
   const columnas = camposDeTabla(campos)
   return (
     <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
@@ -33,6 +38,9 @@ export function TablaDeLeads({ leads, campos, origenes, codigoDePais, alAbrir, a
             {columnas.map((campo) => (
               <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
             ))}
+            <TableHead className="w-12 pr-2">
+              <span className="sr-only">Marcas</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -46,21 +54,22 @@ export function TablaDeLeads({ leads, campos, origenes, codigoDePais, alAbrir, a
               }}
             >
               <TableCell className="py-1 pl-3">
-                <div className="grid min-w-0">
-                  <button
-                    type="button"
-                    className="max-w-72 truncate text-left font-medium text-(--color-ink) underline-offset-2 outline-none hover:underline focus-visible:shadow-(--shadow-focus)"
-                    onClick={(evento) => {
-                      evento.stopPropagation()
-                      alAbrir(lead.id)
-                    }}
-                  >
-                    {lead.nombre}
-                  </button>
-                  <span className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
-                    #{lead.numero}
-                  </span>
-                </div>
+                <NombreDeFila
+                  lead={lead}
+                  etiquetas={etiquetas}
+                  nombre={(clases) => (
+                    <button
+                      type="button"
+                      className={`max-w-72 text-left underline-offset-2 outline-none hover:underline focus-visible:shadow-(--shadow-focus) ${clases}`}
+                      onClick={(evento) => {
+                        evento.stopPropagation()
+                        alAbrir(lead.id)
+                      }}
+                    >
+                      {lead.nombre}
+                    </button>
+                  )}
+                />
               </TableCell>
               <TableCell className="whitespace-nowrap tabular-nums">
                 {telefonoDeLista(lead.telefono, codigoDePais)}
@@ -76,6 +85,15 @@ export function TablaDeLeads({ leads, campos, origenes, codigoDePais, alAbrir, a
                   <CeldaDeCampo campo={campo} fila={lead} />
                 </TableCell>
               ))}
+              <TableCell className="py-1 pr-2">
+                <MenuDeLead
+                  leadId={lead.id}
+                  nombre={lead.nombre}
+                  marcas={lead.marcas}
+                  etiquetas={marcar.etiquetas}
+                  alGestionar={marcar.alGestionar}
+                />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

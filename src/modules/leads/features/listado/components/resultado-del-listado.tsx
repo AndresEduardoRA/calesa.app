@@ -13,7 +13,7 @@ import { usePanelDeAlta } from '../../alta/hooks/use-panel-de-alta'
 import { useAlcanceDelListado } from '../hooks/use-alcance-del-listado'
 import { TablaDeLeads } from './tabla-de-leads'
 import { TarjetasDeLeads } from './tarjetas-de-leads'
-import type { DatosDeLaLista } from './tipos'
+import type { DatosDeLaLista, ParaMarcar } from './tipos'
 
 type Props = DatosDeLaLista & {
   pagina: Pagina<FilaDeLead>
@@ -22,6 +22,7 @@ type Props = DatosDeLaLista & {
   puedeCrear: boolean
   alAbrir: (id: string) => void
   abierto: string | null
+  marcar: ParaMarcar
 }
 
 // Sin leads, y sin filtros ni cursor que lo expliquen: la frase y la salida que corresponde.
@@ -68,7 +69,7 @@ function VacioDeLeads({
 // La lista de leads o el estado que corresponda: sin leads, sin resultados por filtro o una página
 // que se quedó sin filas. La tabla (escritorio) y las tarjetas (celular) están las dos en el DOM.
 export function ResultadoDelListado(props: Props) {
-  const { pagina, modo, puedeVerTodos, puedeCrear, alAbrir, abierto, ...datos } = props
+  const { pagina, modo, puedeVerTodos, puedeCrear, alAbrir, abierto, marcar, ...datos } = props
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
 
@@ -85,9 +86,15 @@ export function ResultadoDelListado(props: Props) {
   return (
     <div className="grid gap-3">
       <div className="hidden md:block">
-        <TablaDeLeads {...datos} leads={pagina.filas} alAbrir={alAbrir} abierto={abierto} />
+        <TablaDeLeads
+          {...datos}
+          leads={pagina.filas}
+          alAbrir={alAbrir}
+          abierto={abierto}
+          marcar={marcar}
+        />
       </div>
-      <TarjetasDeLeads {...datos} leads={pagina.filas} alAbrir={alAbrir} />
+      <TarjetasDeLeads {...datos} leads={pagina.filas} alAbrir={alAbrir} marcar={marcar} />
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
     </div>
   )

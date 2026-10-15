@@ -5,8 +5,14 @@ vi.mock('server-only', () => ({}))
 const leerFicha = vi.fn()
 const leerLayoutDeLeads = vi.fn()
 const leerOrigenesDeLead = vi.fn()
+const leerEtiquetas = vi.fn()
 
-vi.mock('../../composicion', () => ({ leerFicha, leerLayoutDeLeads, leerOrigenesDeLead }))
+vi.mock('../../composicion', () => ({
+  leerFicha,
+  leerLayoutDeLeads,
+  leerOrigenesDeLead,
+  leerEtiquetas,
+}))
 
 const { leerFichaDeLead } = await import('./lecturas')
 
@@ -19,24 +25,32 @@ describe('leerFichaDeLead', () => {
     vi.resetAllMocks()
     leerLayoutDeLeads.mockResolvedValue(ok([]))
     leerOrigenesDeLead.mockResolvedValue(ok([]))
+    leerEtiquetas.mockResolvedValue(ok([]))
   })
 
-  it('abrir la ficha son exactamente tres lecturas, las tres con el mismo viaje', async () => {
+  it('abrir la ficha son exactamente cuatro lecturas, en paralelo', async () => {
     leerFicha.mockResolvedValue(ok({ id: ID }))
     await leerFichaDeLead(ID)
     expect(leerFicha).toHaveBeenCalledTimes(1)
     expect(leerFicha).toHaveBeenCalledWith(ID)
     expect(leerLayoutDeLeads).toHaveBeenCalledTimes(1)
     expect(leerOrigenesDeLead).toHaveBeenCalledTimes(1)
+    expect(leerEtiquetas).toHaveBeenCalledTimes(1)
   })
 
-  it('devuelve la ficha con el layout y los orígenes', async () => {
+  it('devuelve la ficha con el layout, los orígenes y las etiquetas de quien mira', async () => {
     leerFicha.mockResolvedValue(ok({ id: ID }))
     leerLayoutDeLeads.mockResolvedValue(ok([{ clave: 'ciudad' }]))
     leerOrigenesDeLead.mockResolvedValue(ok([{ id: 'o' }]))
+    leerEtiquetas.mockResolvedValue(ok([{ id: 'e' }]))
     const resultado = await leerFichaDeLead(ID)
     expect(resultado).toEqual(
-      ok({ ficha: { id: ID }, campos: [{ clave: 'ciudad' }], origenes: [{ id: 'o' }] }),
+      ok({
+        ficha: { id: ID },
+        campos: [{ clave: 'ciudad' }],
+        origenes: [{ id: 'o' }],
+        etiquetas: [{ id: 'e' }],
+      }),
     )
   })
 
@@ -45,7 +59,7 @@ describe('leerFichaDeLead', () => {
     expect(await leerFichaDeLead(ID)).toEqual(ok(null))
   })
 
-  it('el error de cualquiera de las tres lecturas sube como error', async () => {
+  it('el error de cualquiera de las lecturas sube como error', async () => {
     leerFicha.mockResolvedValue(error)
     expect((await leerFichaDeLead(ID)).ok).toBe(false)
     leerFicha.mockResolvedValue(ok({ id: ID }))
@@ -53,6 +67,9 @@ describe('leerFichaDeLead', () => {
     expect((await leerFichaDeLead(ID)).ok).toBe(false)
     leerLayoutDeLeads.mockResolvedValue(ok([]))
     leerOrigenesDeLead.mockResolvedValue(error)
+    expect((await leerFichaDeLead(ID)).ok).toBe(false)
+    leerOrigenesDeLead.mockResolvedValue(ok([]))
+    leerEtiquetas.mockResolvedValue(error)
     expect((await leerFichaDeLead(ID)).ok).toBe(false)
   })
 })

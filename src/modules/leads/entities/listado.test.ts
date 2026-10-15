@@ -38,7 +38,7 @@ describe('columnas del listado', () => {
     const campos = [campo('ciudad'), campo('Mala clave'), campo('x);drop'), campo('ok_2')]
     expect(clavesDeTabla(campos)).toEqual(['ciudad', 'ok_2'])
     expect(columnasDeLaConsulta(['ciudad', 'x,y', 'edad'])).toBe(
-      'id,numero,nombre,telefono_principal,en_cartera,tipo,origen_lead_id,creado_en,a_ciudad:atributos->ciudad,a_edad:atributos->edad',
+      'id,numero,nombre,telefono_principal,en_cartera,tipo,origen_lead_id,creado_en,es_favorito,esta_tachado,etiquetas,a_ciudad:atributos->ciudad,a_edad:atributos->edad',
     )
   })
 })
@@ -90,7 +90,16 @@ describe('filasDeLeadDesde', () => {
       origenId: FILA.origen_lead_id,
       creadoEn: FILA.creado_en,
       atributos: { ciudad: 'Santa Cruz' },
+      marcas: { esFavorito: false, estaTachado: false, etiquetas: [] },
     })
+  })
+
+  it('trae las marcas de quien mira', () => {
+    const [fila] = filasDeLeadDesde(
+      [{ ...FILA, es_favorito: true, esta_tachado: true, etiquetas: [FILA.id] }],
+      [],
+    )
+    expect(fila?.marcas).toEqual({ esFavorito: true, estaTachado: true, etiquetas: [FILA.id] })
   })
 
   it('una fila que no cumple la forma se descarta sin tumbar la lista', () => {

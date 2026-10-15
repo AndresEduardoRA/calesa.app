@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 import { RUTAS } from '@/shared/lib/rutas'
 import { useRegional } from '@/shared/ui/regional'
 import type { CampoDeLead } from '../../../entities/campo'
+import type { Etiqueta } from '../../../entities/etiqueta'
 import {
   origenDeLaFicha,
   quienLoTiene,
@@ -14,6 +15,12 @@ import {
   type OrigenConEstado,
   type SeccionDeLead,
 } from '../../../entities/ficha'
+import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
+import { useEtiquetas } from '../../etiquetas/hooks/use-etiquetas'
+import { usePanelDeEtiquetas } from '../../etiquetas/hooks/use-panel-de-etiquetas'
+import { AccionesDeMarcas } from '../../marcas/components/acciones-de-marcas'
+import { InsigniasDeMarcas } from '../../marcas/components/insignias-de-marcas'
+import { useMarcas } from '../../marcas/hooks/use-marcas'
 import { usePanelDeLead } from '../hooks/use-panel-de-lead'
 import { AvisoDeVencidos } from './aviso-de-vencidos'
 import { BarraDeSecciones } from './barra-de-secciones'
@@ -39,6 +46,8 @@ type Props = {
   seccion: SeccionDeLead
   // Lo que la página lee en el servidor para la sección «Seguimientos» (detrás de `<Suspense>`).
   seguimientos: ReactNode
+  // Las etiquetas de quien mira (para nombrar las del lead y elegir otras).
+  etiquetas: readonly Etiqueta[]
 }
 
 type DatosDeSeccion = {
@@ -68,9 +77,13 @@ export function FichaDeLead({
   puedeCambiarTelefono,
   seccion,
   seguimientos,
+  etiquetas: lista,
 }: Props) {
   const { zonaHoraria } = useRegional()
   const panel = usePanelDeLead()
+  const marcas = useMarcas(ficha.id, ficha.marcas)
+  const etiquetas = useEtiquetas(lista)
+  const gestionar = usePanelDeEtiquetas()
   const origen = origenDeLaFicha(origenes, ficha.origenId)
   return (
     <div className="grid max-w-4xl gap-4">
@@ -85,7 +98,19 @@ export function FichaDeLead({
         ficha={ficha}
         origen={origen}
         quien={quienLoTiene(ficha, usuarioId)}
-        acciones={puedeEditar ? <BotonEditarLead /> : null}
+        acciones={
+          <>
+            <AccionesDeMarcas marcas={marcas} etiquetas={etiquetas} alGestionar={gestionar.abrir} />
+            {puedeEditar ? <BotonEditarLead /> : null}
+          </>
+        }
+        marcas={
+          <InsigniasDeMarcas
+            marcas={marcas.marcas}
+            etiquetas={etiquetas.lista}
+            conFavorito={false}
+          />
+        }
       />
       <AvisoDeVencidos leadId={ficha.id} vencidos={ficha.recordatoriosVencidos} seccion={seccion} />
       <BarraDeSecciones leadId={ficha.id} actual={seccion} />
@@ -98,7 +123,8 @@ export function FichaDeLead({
         puedeEditar={puedeEditar}
       />
       <PanelDeTelefono ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
-      <RefrescarAlVolver activo={!panel.hayPanel} />
+      <DialogoDeEtiquetas etiquetas={etiquetas} />
+      <RefrescarAlVolver activo={!panel.hayPanel && !gestionar.abierto} />
     </div>
   )
 }

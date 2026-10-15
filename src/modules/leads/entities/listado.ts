@@ -3,6 +3,7 @@
 // la cartera y los atributos ya vienen recortados, así que nada acá decide quién ve qué.
 import { z } from 'zod'
 import type { CampoDeLead } from './campo'
+import { marcasDesde, type MarcasDeLead } from './marcas'
 
 // Filas por página: una pantalla y media con la densidad compacta (como el inventario).
 export const TAMANO_DE_PAGINA_DE_LEADS = 50
@@ -34,6 +35,8 @@ export type FilaDeLead = {
   creadoEn: string
   // De la tabla: sólo los campos `en_tabla`. En el drawer, todos los que le llegan.
   atributos: Record<string, unknown>
+  // Las de quien mira: favorito, tachado y sus etiquetas (nunca las de otra persona).
+  marcas: MarcasDeLead
 }
 
 const COLUMNAS_FIJAS = [
@@ -45,6 +48,9 @@ const COLUMNAS_FIJAS = [
   'tipo',
   'origen_lead_id',
   'creado_en',
+  'es_favorito',
+  'esta_tachado',
+  'etiquetas',
 ] as const
 
 // Las columnas del listado: `en_tabla` y activas, en el orden del layout.
@@ -95,6 +101,9 @@ const esquemaFila = z
     tipo: z.enum(TIPOS_DEL_LEAD),
     origen_lead_id: z.guid().nullable(),
     creado_en: z.string(),
+    es_favorito: z.boolean().nullable().optional(),
+    esta_tachado: z.boolean().nullable().optional(),
+    etiquetas: z.array(z.guid()).nullable().optional(),
   })
   .catchall(z.unknown())
 
@@ -128,6 +137,7 @@ export function filasDeLeadDesde(data: unknown, claves: readonly string[]): Fila
         origenId: f.origen_lead_id,
         creadoEn: f.creado_en,
         atributos,
+        marcas: marcasDesde(f),
       },
     ]
   })
@@ -156,5 +166,6 @@ export function leadCompletoDesde(data: unknown): FilaDeLead | null {
     origenId: f.origen_lead_id,
     creadoEn: f.creado_en,
     atributos: f.atributos ?? {},
+    marcas: marcasDesde(f),
   }
 }

@@ -12,6 +12,8 @@ import type { LeadDeFicha, OrigenConEstado } from './ficha'
 import type { ImpactoDeCampo } from './impacto'
 import type { FilaDeLead } from './listado'
 import type { Documento } from './documento'
+import type { ColorDeEtiqueta, Etiqueta, EtiquetaConUso } from './etiqueta'
+import type { ResultadoDeMarca } from './marcas'
 import type { Recordatorio } from './recordatorios'
 import type {
   CambiosDeSeguimiento,
@@ -260,3 +262,62 @@ export type RepositorioDeRecordatorios = {
 // Los recordatorios de quien mira sobre un lead (vivos; también los completados). Un lead que ya no
 // ve: ninguno.
 export type LectorDeRecordatoriosDelLead = (leadId: string) => Promise<Resultado<Recordatorio[]>>
+
+// --- Las marcas de quien mira (parte 5b) -------------------------------------------------------------
+
+// Un rechazo con el campo del formulario que lo causó (el `hint` de la base), si lo hay.
+export type FalloDeMarca = { ok: false; error: ErrorApp; campo?: string }
+
+type RespuestaDeMarca<T> = Promise<{ ok: true; data: T } | FalloDeMarca>
+
+// Poner, no alternar: el valor que se pide. Exigen ver el lead; lo que no se ve, «no existe».
+export type RepositorioDeMarcas = {
+  favorito: (pedido: {
+    leadId: string
+    valor: boolean
+  }) => RespuestaDeMarca<{ resultado: ResultadoDeMarca; valor: boolean }>
+  tachado: (pedido: {
+    leadId: string
+    valor: boolean
+  }) => RespuestaDeMarca<{ resultado: ResultadoDeMarca; valor: boolean }>
+  // Pone o quita ESAS etiquetas (nunca reemplaza el conjunto); devuelve cómo quedaron las suyas.
+  etiquetas: (pedido: {
+    leadId: string
+    etiquetas: string[]
+    valor: boolean
+  }) => RespuestaDeMarca<{ resultado: ResultadoDeMarca; etiquetas: string[] }>
+}
+
+export type ResultadoDeEtiqueta = {
+  resultado: 'creada' | 'repetido' | 'guardada' | 'eliminada' | 'sin_cambios'
+  // Nula al eliminar una que ya no estaba.
+  etiqueta: Etiqueta | null
+  // Al eliminar: a cuántos de los leads que quien mira ve estaba puesta.
+  leads: number
+}
+
+export type RepositorioDeEtiquetas = {
+  // El intento lleva su id: un reintento (o «Deshacer» de un borrado) devuelve `repetido` o la recrea.
+  crear: (pedido: {
+    id: string
+    nombre: string
+    color: ColorDeEtiqueta | null
+  }) => RespuestaDeMarca<ResultadoDeEtiqueta>
+  // Renombrar o recolorear: lo que no viene no cambia.
+  guardar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+    nombre?: string | undefined
+    color?: ColorDeEtiqueta | undefined
+  }) => RespuestaDeMarca<ResultadoDeEtiqueta>
+  eliminar: (pedido: {
+    id: string
+    actualizadoEnEsperado: string
+  }) => RespuestaDeMarca<ResultadoDeEtiqueta>
+}
+
+// Las etiquetas de quien mira (la RLS da sólo las propias).
+export type LectorDeEtiquetas = () => Promise<Resultado<Etiqueta[]>>
+
+// Con a cuántos de los leads que ve está puesta cada una («Gestionar»).
+export type LectorDeEtiquetasConUso = () => Promise<Resultado<EtiquetaConUso[]>>

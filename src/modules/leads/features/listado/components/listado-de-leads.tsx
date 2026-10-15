@@ -7,6 +7,10 @@ import { FilterShell, useFiltrosDelListado } from '@/shared/ui/filtros'
 import type { ModoDelListado } from '../../../entities/alcance'
 import { privadosFiltrando, type FiltroDescartado } from '../../../entities/filtros'
 import type { FilaDeLead } from '../../../entities/listado'
+import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
+import { useEtiquetas } from '../../etiquetas/hooks/use-etiquetas'
+import { usePanelDeEtiquetas } from '../../etiquetas/hooks/use-panel-de-etiquetas'
+import { RefrescarAlVolver } from '../../ficha/components/refrescar-al-volver'
 import { DrawerDeLead } from '../../rapido/components/drawer-de-lead'
 import { useDrawerDeLead } from '../../rapido/hooks/use-drawer-de-lead'
 import { AvisoDeFiltrosDescartados } from './aviso-de-filtros-descartados'
@@ -57,9 +61,13 @@ export function ListadoDeLeads(props: Props) {
     puedeCrear,
     puedeConfigurarCampos,
     descartados,
-    ...datos
+    ...delServidor
   } = props
   const drawer = useDrawerDeLead()
+  const etiquetas = useEtiquetas(delServidor.etiquetas)
+  const gestionar = usePanelDeEtiquetas()
+  // La lista local: una etiqueta recién creada nombra la fila antes de que vuelva el servidor.
+  const datos = { ...delServidor, etiquetas: etiquetas.lista }
   return (
     <div className="grid gap-4">
       <h1 className="sr-only">Leads</h1>
@@ -84,10 +92,14 @@ export function ListadoDeLeads(props: Props) {
             puedeCrear={puedeCrear}
             alAbrir={drawer.abrir}
             abierto={drawer.id}
+            marcar={{ etiquetas, alGestionar: gestionar.abrir }}
           />
         </div>
       </FilterShell>
       <DrawerDeLead {...datos} filas={pagina.filas} soloMios={!puedeVerTodos} />
+      <DialogoDeEtiquetas etiquetas={etiquetas} />
+      {/* Lo que se marcó en otra pestaña (o la ficha) aparece al volver, sin recargar a mano. */}
+      <RefrescarAlVolver activo={!gestionar.abierto} />
     </div>
   )
 }

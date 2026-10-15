@@ -47,6 +47,7 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
       puedeEditar={puedeEditarLead(sesion.permisos, datos.ficha.enCartera)}
       puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
       seccion={seccion}
+      etiquetas={datos.etiquetas}
       // Sólo se lee con la sección abierta: «Datos» no paga la línea de tiempo.
       seguimientos={
         seccion === 'seguimientos' ? (

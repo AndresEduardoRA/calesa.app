@@ -7,6 +7,7 @@ import {
   vistaDelRapido,
   type LecturaDelRapido,
 } from './rapido'
+import { SIN_MARCAS } from './marcas'
 
 const campo = (clave: string, extra: Partial<CampoDeLead> = {}) =>
   ({
@@ -68,6 +69,7 @@ describe('vistaDelRapido', () => {
     origenId: null,
     creadoEn: '2026-10-14T00:00:00Z',
     atributos: {},
+    marcas: SIN_MARCAS,
     ...extra,
   })
   const base = { id: 'a', idValido: true, lectura: null, delListado: null, soloMios: false }

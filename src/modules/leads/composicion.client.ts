@@ -2,3 +2,4 @@
 // Separado de `composicion.ts` porque aquel importa `server-only`.
 export { leerLeadRapido } from './infra/lead-rapido.client'
 export { leerMasSeguimientos } from './infra/seguimientos.client'
+export { leerEtiquetasConUso } from './infra/etiquetas.client'

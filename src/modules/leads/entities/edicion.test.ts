@@ -15,6 +15,7 @@ import {
   valoresDeEdicion,
 } from './edicion'
 import type { LeadDeFicha, OrigenConEstado } from './ficha'
+import { SIN_MARCAS } from './marcas'
 
 const ZONA = 'America/La_Paz'
 const WEB = '11111111-1111-4111-8111-111111111111'
@@ -81,6 +82,7 @@ const FICHA: LeadDeFicha = {
   tieneNombre: null,
   telefonos: [],
   recordatoriosVencidos: 0,
+  marcas: SIN_MARCAS,
 }
 
 function entrada(

@@ -54,6 +54,21 @@ describe('fichaDesde', () => {
     expect(ficha?.telefonos).toEqual([{ id: OTRA, telefono: '59170011003', etiqueta: 'Casa' }])
   })
 
+  it('trae las marcas de quien mira, y sin ellas ninguna', () => {
+    expect(fichaDesde(CRUDA)?.marcas).toEqual({
+      esFavorito: false,
+      estaTachado: false,
+      etiquetas: [],
+    })
+    const marcada = fichaDesde({
+      ...CRUDA,
+      es_favorito: true,
+      esta_tachado: true,
+      etiquetas: [OTRA],
+    })
+    expect(marcada?.marcas).toEqual({ esFavorito: true, estaTachado: true, etiquetas: [OTRA] })
+  })
+
   it('una respuesta que no cumple la forma es null: no es lo mismo que un lead que no se ve', () => {
     expect(fichaDesde({ ...CRUDA, tipo: 'marciano' })).toBeNull()
     expect(fichaDesde({ ...CRUDA, id: 'no-es-un-guid' })).toBeNull()

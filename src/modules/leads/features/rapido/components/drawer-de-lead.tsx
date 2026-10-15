@@ -20,6 +20,7 @@ import {
   type VistaDelRapido,
 } from '../../../entities/rapido'
 import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
+import { InsigniasDeMarcas } from '../../marcas/components/insignias-de-marcas'
 import { telefonoDeLista } from '../../listado/components/telefono-de-lista'
 import { nombreDelOrigen, type DatosDeLaLista } from '../../listado/components/tipos'
 import { useDrawerDeLead } from '../hooks/use-drawer-de-lead'
@@ -97,11 +98,15 @@ type PropsDelCuerpo = PropsDeDatos & { completo: boolean; fallo: boolean; reinte
 // Lo que se sabe del lead. Sólo lectura: sin acciones ni seguimientos; la ficha es lo que sigue.
 function CuerpoDelRapido({ completo, fallo, reintentar, ...datos }: PropsDelCuerpo) {
   const { zonaHoraria } = useRegional()
-  const { lead, origenes, codigoDePais } = datos
+  const { lead, origenes, codigoDePais, etiquetas } = datos
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <BadgeDeTipo tipo={lead.tipo} className="w-fit" />
+        <span className="flex flex-wrap items-center gap-2">
+          <BadgeDeTipo tipo={lead.tipo} className="w-fit" />
+          {/* El estado de las marcas de quien mira; se cambian en la fila o en la ficha. */}
+          <InsigniasDeMarcas marcas={lead.marcas} etiquetas={etiquetas} />
+        </span>
         <Link
           href={`${RUTAS.leads}/${lead.id}` as Route}
           className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-9' })}

@@ -12,8 +12,11 @@
  * Reglas:
  *  - `-ink` es para texto e íconos (≥ 4.5:1 sobre su superficie); el hue base es para rellenos.
  *  - Los hues semánticos (positivo, aviso, peligro, info) NO conmutan con el tema; sus `-soft` e `-ink` sí.
- *  - Los colores de fases, orígenes y etiquetas NO son tokens: salen de la fila (`fases.color`) y
- *    pasan por `src/shared/lib/color.ts` para derivar texto legible en claro y oscuro.
+ *  - Los colores de fases y orígenes NO son tokens: salen de la fila (`fases.color`) y pasan por
+ *    `src/shared/lib/color.ts` para derivar texto legible en claro y oscuro.
+ *  - Las etiquetas de leads usan una paleta CERRADA: la fila guarda la clave (`etiquetas.color`) y
+ *    el color sale de `--etiqueta-<clave>` (el punto), `-soft` (el fondo) e `-ink` (el texto, ≥ 4.5:1
+ *    sobre su `-soft` en claro y en oscuro; lo vigila `src/modules/leads/entities/etiqueta.test.ts`).
  */
 
 :root {
@@ -164,4 +167,51 @@
     --dur-normal: 0ms;
     --dur-pagina: 0ms;
   }
+}
+
+/* --- Paleta de etiquetas (claves de `etiquetas.color`) ----------------- */
+:root {
+  --etiqueta-gris: #717c93;
+  --etiqueta-gris-soft: #eef0f4;
+  --etiqueta-gris-ink: #3f4859;
+  --etiqueta-rojo: #d93838;
+  --etiqueta-rojo-soft: #fdecec;
+  --etiqueta-rojo-ink: #a12626;
+  --etiqueta-naranja: #e0712e;
+  --etiqueta-naranja-soft: #fdf0e7;
+  --etiqueta-naranja-ink: #9a4512;
+  --etiqueta-ambar: #c9a227;
+  --etiqueta-ambar-soft: #fbf4dc;
+  --etiqueta-ambar-ink: #75590a;
+  --etiqueta-verde: #10a37f;
+  --etiqueta-verde-soft: #e3f6ef;
+  --etiqueta-verde-ink: #0b6650;
+  --etiqueta-turquesa: #0ea5b7;
+  --etiqueta-turquesa-soft: #e1f6f8;
+  --etiqueta-turquesa-ink: #0b6470;
+  --etiqueta-azul: #3b5bdb;
+  --etiqueta-azul-soft: #e8edfc;
+  --etiqueta-azul-ink: #2c45a8;
+  --etiqueta-violeta: #8b5cf6;
+  --etiqueta-violeta-soft: #f1ebfe;
+  --etiqueta-violeta-ink: #6237c8;
+}
+
+.dark {
+  --etiqueta-gris-soft: #2c3343;
+  --etiqueta-gris-ink: #c9d0dc;
+  --etiqueta-rojo-soft: #3d2228;
+  --etiqueta-rojo-ink: #ff9b9b;
+  --etiqueta-naranja-soft: #3d2a1f;
+  --etiqueta-naranja-ink: #ffb07a;
+  --etiqueta-ambar-soft: #3a3220;
+  --etiqueta-ambar-ink: #f0cf6a;
+  --etiqueta-verde-soft: #183a33;
+  --etiqueta-verde-ink: #6ee0bd;
+  --etiqueta-turquesa-soft: #173740;
+  --etiqueta-turquesa-ink: #6fd8e6;
+  --etiqueta-azul-soft: #222d4f;
+  --etiqueta-azul-ink: #a9bbff;
+  --etiqueta-violeta-soft: #2f2649;
+  --etiqueta-violeta-ink: #c7b0ff;
 }

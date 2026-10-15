@@ -4,6 +4,7 @@
 import { z } from 'zod'
 import { TIPOS_DEL_LEAD, type TipoDelLead } from './listado'
 import type { OrigenDeLead } from './alta'
+import { marcasDesde, type MarcasDeLead } from './marcas'
 import { telefonoParaMostrar } from './telefono'
 
 // Lo mismo se dice de un lead que no existe, que está en la papelera o en el limbo y de uno al que
@@ -40,6 +41,8 @@ export type LeadDeFicha = {
   telefonos: TelefonoExtra[]
   // Los recordatorios de quien mira sobre este lead que ya pasaron y no completó.
   recordatoriosVencidos: number
+  // Las de quien mira: favorito, tachado y sus etiquetas.
+  marcas: MarcasDeLead
 }
 
 const esquemaFicha = z.object({
@@ -60,6 +63,9 @@ const esquemaFicha = z.object({
     z.object({ id: z.guid(), telefono: z.string(), etiqueta: z.string().nullable() }),
   ),
   recordatorios_vencidos: z.number().int().nonnegative(),
+  es_favorito: z.boolean().optional(),
+  esta_tachado: z.boolean().optional(),
+  etiquetas: z.array(z.guid()).optional(),
 })
 
 // El `jsonb` de `lead_ficha()`. Una respuesta que no cumple la forma es `null`: quien llama la
@@ -86,6 +92,7 @@ export function fichaDesde(crudo: unknown): LeadDeFicha | null {
     tieneNombre: f.tiene_nombre,
     telefonos: f.telefonos,
     recordatoriosVencidos: f.recordatorios_vencidos,
+    marcas: marcasDesde(f),
   }
 }
 
