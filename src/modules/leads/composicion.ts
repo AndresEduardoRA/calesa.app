@@ -34,6 +34,7 @@ import type {
   RepositorioDeEmbudos,
   RepositorioDeOportunidades,
 } from './entities/repositorios-de-oportunidades'
+import type { RepositorioDeImportacion } from './entities/repositorios-de-importacion'
 import type {
   LectorDeAccesoDelCliente,
   RepositorioDelPortal,
@@ -45,6 +46,7 @@ import { embudosSupabase } from './infra/embudos'
 import { etiquetasSupabase } from './infra/etiquetas'
 import { exportacionSupabase } from './infra/exportacion'
 import { fichaSupabase } from './infra/ficha'
+import { importacionSupabase } from './infra/importacion'
 import { marcasSupabase } from './infra/marcas'
 import { oportunidadesSupabase } from './infra/oportunidades'
 import { getContextoDeAlta } from './infra/queries/alta'
@@ -130,3 +132,6 @@ export const repositorioDelPortal: RepositorioDelPortal = portalSupabase
 
 // Exportar a CSV (parte 8): la constancia y el límite por hora. Las filas salen de `buscarLeads`.
 export const repositorioDeExportacion: RepositorioDeExportacion = exportacionSupabase
+
+// Importar leads desde un CSV (parte 8): lotes por RPC, cada fila por su cuenta.
+export const repositorioDeImportacion: RepositorioDeImportacion = importacionSupabase

@@ -89,13 +89,31 @@ test.afterAll(async () => {
   await limpiarListado(t)
 })
 
+// «Exportar» es un botón (sólo con ese permiso) o un renglón del menú «CSV» (con importar también).
 const botonExportar = (page: Page) =>
-  aLaVista(page.getByRole('button', { name: 'Exportar', exact: true }))
+  aLaVista(page.getByRole('button', { name: /^Exportar$|^CSV$/ }))
 const dialogoDeExportar = (page: Page) => page.getByRole('dialog', { name: 'Exportar leads' })
+
+// Abre el diálogo de exportar. La pantalla recién cargada puede no haber terminado de hidratar: se
+// insiste hasta que el diálogo abre (el menú abierto se resuelve con su renglón, no con otro clic).
+async function abrirExportar(page: Page): Promise<void> {
+  const dialogo = dialogoDeExportar(page)
+  const renglon = page.getByRole('menuitem', { name: 'Exportar…' })
+  await expect(async () => {
+    if (!(await dialogo.isVisible())) {
+      if (await renglon.isVisible()) {
+        await renglon.click()
+      } else {
+        await botonExportar(page).click()
+      }
+    }
+    await expect(dialogo).toBeVisible({ timeout: 1500 })
+  }).toPass()
+}
 
 // Abre el diálogo, descarga y devuelve el archivo leído como texto (con su BOM, sin decodificar).
 async function descargar(page: Page): Promise<string> {
-  await botonExportar(page).click()
+  await abrirExportar(page)
   const dialogo = dialogoDeExportar(page)
   await expect(dialogo).toBeVisible()
   const [descarga] = await Promise.all([
@@ -237,7 +255,7 @@ test('el límite por hora: la sexta se dice con la hora y no se descarga', async
 
   await entrar(page, exporta)
   await irALeads(page)
-  await botonExportar(page).click()
+  await abrirExportar(page)
   const dialogo = dialogoDeExportar(page)
   await dialogo.getByRole('button', { name: 'Descargar' }).click()
   await expect(dialogo).toContainText('Ya exportaste 5 veces en la última hora')
@@ -263,7 +281,7 @@ test('más de 5.000 leads: no se exporta nada a medias y se dice cuántos hay', 
   }
   await entrar(page, masivo)
   await irALeads(page)
-  await botonExportar(page).click()
+  await abrirExportar(page)
   const dialogo = dialogoDeExportar(page)
   await dialogo.getByRole('button', { name: 'Descargar' }).click()
   await expect(dialogo).toContainText(/Hay 5\.001 leads con estos filtros/)

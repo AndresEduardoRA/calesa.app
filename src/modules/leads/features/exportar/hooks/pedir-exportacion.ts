@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { descargarArchivo } from '@/shared/lib/csv/descargar'
 import type { Delimitador } from '@/shared/lib/csv/escribir'
 
 // Lo que le pasó al pedido de una exportación, dicho para la pantalla.
@@ -47,21 +48,6 @@ export function nombreDelArchivo(disposicion: string | null): string {
   return encontrado?.[1] ?? 'leads.csv'
 }
 
-// Descarga lo que llegó como si fuera un archivo, sin dejar la URL del blob viva.
-function entregar(blob: Blob, nombre: string): void {
-  const url = URL.createObjectURL(blob)
-  const enlace = document.createElement('a')
-  enlace.href = url
-  enlace.download = nombre
-  enlace.rel = 'noopener'
-  document.body.append(enlace)
-  enlace.click()
-  enlace.remove()
-  setTimeout(() => {
-    URL.revokeObjectURL(url)
-  }, 0)
-}
-
 async function jsonODefecto(respuesta: Response): Promise<unknown> {
   try {
     return await respuesta.json()
@@ -86,7 +72,7 @@ async function estadoDeLaRespuesta(respuesta: Response): Promise<EstadoDeExporta
   try {
     const blob = await respuesta.blob()
     const nombre = nombreDelArchivo(respuesta.headers.get('content-disposition'))
-    entregar(blob, nombre)
+    descargarArchivo(blob, nombre)
     return { tipo: 'listo', filas: Number(respuesta.headers.get('x-total-de-filas') ?? 0), nombre }
   } catch {
     // El flujo se cortó a la mitad: no hay archivo.

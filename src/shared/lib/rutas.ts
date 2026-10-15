@@ -18,6 +18,7 @@ export const RUTAS = {
   configuracionDeLeads: '/configuracion/leads',
   leads: '/leads',
   papeleraDeLeads: '/leads/papelera',
+  importarLeads: '/leads/importar',
   vehiculos: '/vehiculos',
   papeleraDeVehiculos: '/vehiculos/papelera',
 } as const

@@ -10,7 +10,7 @@ import { privadosFiltrando, type FiltroDescartado } from '../../../entities/filt
 import { SECCION_MARCAS } from '../../../entities/filtros-de-marcas'
 import type { FilaDeLead } from '../../../entities/listado'
 import { ConmutadorDeVista } from '../../embudo/components/conmutador-de-vista'
-import { AccionDeExportar } from '../../exportar/components/accion-de-exportar'
+import { AccionesDeCsv } from '../../exportar/components/acciones-de-csv'
 import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
 import { useEtiquetas } from '../../etiquetas/hooks/use-etiquetas'
 import { usePanelDeEtiquetas } from '../../etiquetas/hooks/use-panel-de-etiquetas'
@@ -78,13 +78,14 @@ function AccionesDelListado({
   modo,
   puedeVerTodos,
   puedeExportar,
+  puedeCrear,
   puedeAbrirPapelera,
-}: Pick<Props, 'modo' | 'puedeVerTodos' | 'puedeExportar' | 'puedeAbrirPapelera'>) {
+}: Pick<Props, 'modo' | 'puedeVerTodos' | 'puedeExportar' | 'puedeCrear' | 'puedeAbrirPapelera'>) {
   return (
     <>
       <ConmutadorDeVista actual="lista" />
       {puedeVerTodos ? <SelectorDeAlcance modo={modo} /> : null}
-      {puedeExportar ? <AccionDeExportar /> : null}
+      <AccionesDeCsv puedeExportar={puedeExportar} puedeImportar={puedeCrear} />
       {puedeAbrirPapelera ? <EnlaceAPapeleraDeLeads /> : null}
     </>
   )
@@ -124,6 +125,7 @@ export function ListadoDeLeads(props: Props) {
             modo={modo}
             puedeVerTodos={puedeVerTodos}
             puedeExportar={puedeExportar}
+            puedeCrear={puedeCrear}
             puedeAbrirPapelera={puedeAbrirPapelera}
           />
         }

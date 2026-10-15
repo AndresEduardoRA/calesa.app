@@ -1,0 +1,45 @@
+import type { Metadata } from 'next'
+import { connection } from 'next/server'
+import { Suspense } from 'react'
+import { leerAjustes } from '@/modules/empresa'
+import { puede, requerirSesion } from '@/modules/equipo'
+import { AsistenteDeImportacion, leerDatosDeImportacion } from '@/modules/leads'
+import { datosO } from '@/shared/lib/errores'
+import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
+import { EstadoSinPermiso } from '@/shared/ui/estados'
+import { EsqueletoFormulario } from '@/shared/ui/esqueletos'
+
+export const metadata: Metadata = { title: 'Importar leads' }
+
+// Importar leads desde un CSV: subir el archivo, emparejar las columnas con las del layout, ver cada
+// fila y entrar las válidas. Quien importa queda de dueña de lo que crea: exige `leads.crear` (la base
+// lo vuelve a exigir en cada lote).
+export default function PaginaImportarLeads() {
+  return (
+    <div className="grid gap-4">
+      <h1 className="text-(length:--text-xl) font-semibold">Importar leads</h1>
+      <Suspense fallback={<EsqueletoFormulario bloques={1} campos={3} />}>
+        <Importar />
+      </Suspense>
+    </div>
+  )
+}
+
+async function Importar() {
+  await connection()
+  const sesion = await requerirSesion()
+  if (!puede(sesion.permisos, 'leads.crear')) {
+    return (
+      <EstadoSinPermiso descripcion="No tienes permiso para importar leads. Pídeselo a quien administra los roles." />
+    )
+  }
+  const [datos, ajustes] = await Promise.all([leerDatosDeImportacion(), leerAjustes()])
+  const listo = datosO(datos)
+  return (
+    <AsistenteDeImportacion
+      campos={listo.campos}
+      contexto={listo.contexto}
+      zona={ajustes.ok ? ajustes.data.ajustes.zonaHoraria : ZONA_POR_DEFECTO}
+    />
+  )
+}

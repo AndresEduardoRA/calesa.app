@@ -125,7 +125,9 @@ export function FilterShell(props: Props) {
             />
           ) : null}
           {vistas}
-          <div className="ml-auto flex items-center gap-2">{acciones}</div>
+          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+            {acciones}
+          </div>
         </div>
         <ChipsDeFiltros esquema={esquema} />
         <div
