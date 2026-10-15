@@ -2563,3 +2563,64 @@ falla si una función de `web` que recibe un lead la puede llamar `anon` o `auth
   encendido y se descartaba. «Un cambio a la vez» pasó a una marca propia (`useCambioUnaVez`), y el e2e
   espera el aviso del envío pendiente, no el de «sin conexión» que ya estaba antes del clic. Era el único
   formulario con ese guardia.
+
+## 2026-10-17 — CSV de leads (Fase 3, parte 8a): exportar la cartera e importar con las reglas del alta
+
+**Qué se decidió, y por qué**
+
+- **`leads.exportar` sin «todos» y la cartera forzada en la consulta.** El permiso no distingue alcance
+  (`con_alcance = false`): lo que sale lo decide `en_cartera = true`, que la consulta pone siempre. Así no hay
+  camino para un privado ajeno por el CSV ni para «probarlo» filtrando antes de exportar (filtrar sobre lo
+  ajeno ya no encuentra nada). «Ver como» sólo esconde el botón; la base manda con los permisos reales.
+- **El archivo se arma dentro del pedido, no en un flujo.** Un `ReadableStream` que lee páginas después de
+  responder pierde la sesión (`cookies()` fuera del ámbito del request) y no puede cambiar el estado HTTP si
+  falla a la mitad. Con 5.000 filas como tope pesa unos MB; una página que falla da un error, nunca un CSV
+  cortado. La constancia (y el cupo) se escriben **después** de armar el archivo: una exportación que falló no
+  gasta una de las cinco.
+- **Límite por hora contado en `actividad`, con un índice nuevo.** Sin tabla aparte. `registrar_actividad()`
+  la puede llamar cualquiera, pero falsear filas sólo bloquea a quien las falsea y nadie las borra. Un
+  `pg_advisory_xact_lock` por persona evita que dos exportaciones a la vez pasen por debajo del tope.
+- **Un solo `POST` con `Origin` comprobado.** Un `GET` se podría disparar desde otra página y gastaría el cupo.
+- **El teléfono sale nacional si es el de la empresa y con «+» si no.** El «+» dispara la regla de fórmulas
+  (apóstrofo); el nacional no, y vuelve a entrar igual. Un nacional que empezaría con 0 sale internacional
+  (el 0 se tomaría por el troncal). La importación quita **un** apóstrofo delante de un carácter de fórmula.
+- **Se parsea en el navegador, no en el servidor.** Las filas tienen que estar en el navegador para mandar
+  lotes con ids y reanudar; parsear en una action exigiría subir `bodySizeLimit` para **todas** las actions y
+  mandaría el archivo tres veces. La base vuelve a validar todo. Los encabezados nunca son claves de objeto y
+  `papaparse` (que sólo hace falta ahí) se pide al elegir el archivo.
+- **Cada fila pasa por `validarAlta()`.** El archivo no tiene reglas propias: nombre, teléfono, tipo y origen
+  más los requeridos activos, con los mismos motivos. El origen se busca por nombre entre los **activos** (uno
+  desconocido es un error de esa fila; no se crea uno al vuelo).
+- **Una RPC de lote y `_lead_crear`.** `crear_lead` hacía por fila un Seq Scan sobre `actividad` (la
+  búsqueda del intento de adopción) y escribía el «último origen»; el cuerpo pasó a `_lead_crear(…,
+p_recordar_origen)` (sin grant) y `crear_lead` es su envoltorio. El lote procesa cada fila en su propia
+  subtransacción (una mala no tumba a las demás), ordenado por teléfono (dos lotes que se cruzan toman los
+  candados en el mismo orden) y devuelve `creado` (con `repetido` en un reintento), `ya_existe` o `error`. En
+  masa **no se nombra a nadie** y **nada se adopta del limbo**.
+- **Lotes de 50 filas (no 100), y además por peso.** Medido: un lote de 50 tarda ~49 ms con los índices y
+  ~170 ms sin ellos; 500 filas, ~0,5 s de base (el tope es 8 s por consulta). 100 también cabría: queda como
+  la constante `FILAS_POR_LOTE` y el tope de la RPC. El lote se parte además a ~600 KB: el cuerpo de una
+  Server Action admite 1 MB y un rechazo por tamaño se tomaría por «sin red» y se reintentaría para siempre.
+- **«Sin red» y «el servidor no contesta» no se tratan igual.** Sólo la pausa que empezó sin conexión se
+  reanuda sola al volver la red; con la red presente, «Reintentar». Un servidor caído no se martilla.
+- **Excepción razonada a `.claude/rules/acciones.md`.** «Nada de trabajo largo en una action»: los lotes son
+  cortos (~50 ms) y los orquesta el navegador, como apibara; `importar-csv` (edge function) sigue siendo de la
+  Fase 9 para el «todo» del dueño.
+- **`importaciones` se reutiliza para leads** (`archivo_ruta` nulo sólo con `entidad = 'leads'`) con
+  `importaciones_leads` (id del lead y fila): es lo que la 8b usará para deshacer y lo que `datos` leerá.
+
+**Contrato para `datos` (Fase 9):** `shared/lib/csv` (escribir, leer, descargar), `_lead_crear` /
+`leads_importar_lote` para leads, `importaciones` con su constancia (`leads.importado`), y la regla de que el
+«ya existe» en masa no nombra a nadie.
+
+**Lo que encontraron las pruebas**
+
+- Probado y roto a propósito: sin la fila de `leads_importar_lote` en el cinturón, `db:probar` falla.
+- **Regresión mía, encontrada por el e2e en el celular:** el botón «CSV» desbordaba la fila de acciones del
+  listado; la página se ensanchaba y la hoja de filtros quedaba descolocada («Ver resultados» tapado). Las
+  acciones del `FilterShell` ahora envuelven. Pasó en las dos specs del listado sólo con el menú visible.
+- **Carreras** (`db:carreras`, 7 comprobaciones nuevas): dos personas importan el mismo teléfono (una lo crea,
+  la otra recibe «ya existe»), el mismo lote desde dos pestañas (todo `repetido`, sin duplicar) y cinco rondas
+  de dos lotes de 20 teléfonos en orden contrario, sin interbloqueo.
+- **Pendiente de 8b:** deshacer durante 24 horas con una RPC propia (la papelera exige `leads.eliminar` y es
+  todo o nada: no sirve para quien sólo importa).

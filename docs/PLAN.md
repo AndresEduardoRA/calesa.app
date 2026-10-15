@@ -66,7 +66,7 @@ visibilidad pública/privada; recordatorios con atajos de fecha; favoritos, tach
 por defecto, filtro de 3 estados) y etiquetas por usuario; compartir, transferir, revocar; oportunidades
 en embudos por usuario con kanban (`?vista=embudo`); portal del cliente (otorgar con código en
 grande y texto para WhatsApp, revocar); papelera; exportar/importar CSV de lo propio (vista previa
-por fila, importa las válidas).
+por fila, importa las válidas, con deshacer durante 24 horas).
 
 **Avance (por partes, una por sesión):** hechas la 1 (campos configurables), 2 (alta rápida), 3
 (listado), 4 (ficha y teléfonos), 5 (seguimientos, recordatorios, favoritos, tachados y etiquetas) y
@@ -74,7 +74,7 @@ por fila, importa las válidas).
 salir— y papelera de leads) y **6b (sección «Vehículos» de la ficha: vincular, desvincular, interesados;
 `vehiculo_id` en seguimientos y recordatorios; la prueba de carreras con dos conexiones)** y **7a (embudos
 personales, oportunidades con kanban y sección en la ficha, transferir con oportunidades)** y **7b (el acceso del
-cliente del lado del equipo —la sección «Portal»— y el endurecimiento de `web.portal_*`)**. Falta la 8 (CSV).
+cliente del lado del equipo —la sección «Portal»— y el endurecimiento de `web.portal_*`)**. **8a (exportar la cartera e importar con vista previa, por lotes)**. Falta la 8b (deshacer una importación) y el cierre de la fase.
 
 **Terminado cuando:** cada empresa arma los campos de sus leads sin tocar SQL (crea «Signo zodiacal»,
 apaga «Edad», marca uno «solo la cartera») y quien ve un lead sin estar en su cartera no recibe un

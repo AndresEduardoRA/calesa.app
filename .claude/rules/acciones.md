@@ -22,4 +22,6 @@ paths:
 - Nada de trabajo largo en una action (importación CSV, envío de push masivo): encolar y procesar en
   `supabase/functions/`. **apibara** es la excepción razonada: la llamada vive en la edge function
   `apibara` (tiene la clave) y la hace el navegador con su sesión (`functions.invoke`), de a pocas
-  y con resultado por línea; la action sólo guarda (`crearVehiculo`, `refrescarSubasta`).
+  y con resultado por línea; la action sólo guarda (`crearVehiculo`, `refrescarSubasta`). **La importación
+  de leads (parte 8) es la otra**: el navegador manda lotes de 50 filas (~50 ms cada uno), cada fila vale por
+  sí misma y es idempotente por su id; la edge function `importar-csv` es del «todo» del dueño (Fase 9).

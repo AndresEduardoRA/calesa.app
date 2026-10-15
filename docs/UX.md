@@ -119,6 +119,8 @@ sin pantalla todavía no se muestra.
 | Chat global, dar tareas, recibirlas             | ✔      | ✔         | ✔         | ✔     |
 | Equipo, roles, bloqueo, registro on/off         | –      | –         | –         | ✔     |
 | Exportar/importar todo                          | –      | –         | –         | ✔     |
+| Exportar mi cartera (`leads.exportar`)          | –      | –         | –         | ✔     |
+| Importar leads (`leads.crear`)                  | ✔      | –         | –         | ✔     |
 
 ## Reglas transversales
 

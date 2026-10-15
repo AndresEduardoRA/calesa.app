@@ -5,25 +5,27 @@
 > el siguiente prompt va a asumir cosas falsas. Máximo 80 líneas: lo que ya no es actual se mueve
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
-**Última actualización:** 2026-10-16
-**Fase actual:** 3 — Leads, **parte 7b hecha** (el acceso del cliente del lado del equipo —la sección «Portal»— y `web.portal_*` endurecidas, con su contrato para la Fase 8). Sigue la 8 (CSV), la última.
+**Última actualización:** 2026-10-17
+**Fase actual:** 3 — Leads, **parte 8a hecha** (exportar la cartera e importar con vista previa y lotes en CSV). Falta la **8b** (deshacer una importación, 24 h) y el cierre de la fase.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
   reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
-  y las partes 1 a 7b de la Fase 3. **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  y las partes 1 a 8a de la Fase 3. **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
   `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: lo grabado.
-- **Leads (1 a 7b):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
+- **Leads (1 a 8a):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
   oportunidades y **«Portal»**: el acceso del cliente), marcas, «Quién lo tiene», papelera, embudos con kanban;
   `web.portal_*` sin oráculo y con la sesión que se corta. Toda RPC que recibe un lead cae en una de tres
   clases (`docs/DECISIONES.md`, 2026-10-15) y el cinturón de `db:probar` falla si una nueva no está auditada.
+  **CSV:** exportar la cartera (≤ 5.000, 5 por hora) e importar (≤ 500 filas, lotes de 50, reglas del alta).
   **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Queda la **8)**: CSV con las columnas del layout (exportar e importar lo propio, vista previa por fila,
-importa las válidas). Con ella termina la Fase 3.
+Queda la **8b)**: «Deshacer la importación» durante 24 h (RPC propia: manda a la papelera, como un solo lote, lo
+importado que sigue intacto y dice qué quedó fuera) y después el cierre de la fase. Abierto del CSV: lotes de 50
+(100 cabe: `FILAS_POR_LOTE`); `datos` (Fase 9) reutiliza `shared/lib/csv`.
 
 ## Pendientes que se arrastran
 
@@ -37,9 +39,8 @@ importa las válidas). Con ella termina la Fase 3.
   `cotizacion_marcar_final` toma vehículo → lead (al revés que vincular: posible deadlock); campos del
   lead en la tarjeta o el PDF. **Fase 6:** mover de fase y publicar sin mover la versión de la ficha; la
   papelera manual no mira `documentos`. **Fases 7 y 8:** el CTA «Escribirle por chat»; la notificación
-  de la limpieza; el buscador de leads, sin los privados; el atajo `?` sin lista. **Recordatorios a su
-  hora:** `recordatorios_notificar()` existe sin cron y su `ruta` nombra el lead aunque su dueño ya no lo
-  vea; el push.
+  de la limpieza; el buscador de leads, sin los privados; el atajo `?` sin lista. **Recordatorios:**
+  `recordatorios_notificar()` existe sin cron y su `ruta` nombra el lead aunque su dueño ya no lo vea.
 - **Fase 9:** medir con 5 a 10 mil registros (`pnpm db:medir`; filtrar leads por un atributo ~0,06 ms por
   fila, y el aviso de tachados ocultos cuenta lo mismo otra vez; el plan a veces recorre el índice y corta;
   si pesa, una función que recorta una vez por consulta); Actividad leerá el diff recortado. Sin remoto,
@@ -71,9 +72,8 @@ importa las válidas). Con ella termina la Fase 3.
   `web.solicitar_asesor` no valida el vehículo; `cotizacion_marcar_final` vincula sin
   mirar la papelera. `limpieza_el` corre con los derechos de la base. Despublicar no revoca la URL de una foto.
 - «Ver como» acota la interfaz, no las filas que entrega la base (en leads fuerza «míos»). `storage-gc` y
-  `apibara` (Deno) no entran en lint ni typecheck. Falta probar fotos en iPhone. `tipo_acceso =
-'adoptado'` quedó sin uso. La ficha de leads parte los números con el
-  código del lead: un extra de otro país se ve sin partir.
+  `apibara` (Deno) no entran en lint ni typecheck. Falta probar fotos en iPhone. `tipo_acceso = 'adoptado'`
+  quedó sin uso. La ficha parte los números con el código del lead: un extra de otro país se ve sin partir.
 - Dos mensajes de RPC hablan de vos: `cambiar_fase` y la fórmula. Sin interfaz: `demora_dias_default`,
   `lead_dormido_meses`, el logo oscuro, `push_web`, `web_publica`, `ajustes_web.origenes_visibles`,
   `fases.publica_web`, el `icono` y el orden de los orígenes. Sin enforcement: `equipo.usuarios.ver`,
