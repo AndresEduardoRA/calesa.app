@@ -26,6 +26,8 @@ export { EditorDeCamposDeLead } from './features/campos/components/editor-de-cam
 // el drawer rápido (`?lead=`) adentro. El alcance («míos» y «todos») y lo que cada quien ve lo
 // decide la base; la página sólo agrega las vistas guardadas, que son de `equipo`.
 export { leerListadoDeLeads, type DatosDelListado } from './features/listado/lecturas'
+// Exportar a CSV (parte 8): lo llama el route handler de `src/app/(app)/leads/exportar`.
+export { exportarLeadsEnCsv, type SalidaDeExportacion } from './features/exportar/lecturas'
 export { ListadoDeLeads } from './features/listado/components/listado-de-leads'
 // La vista de embudo de `/leads` (`?vista=embudo`): los embudos de quien mira y el kanban del elegido
 // (`leerVistaDeEmbudo`), dibujados por `<VistaDeEmbudo>`; mientras llega, `<EsqueletoDeTablero>`. Sólo

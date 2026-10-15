@@ -10,6 +10,7 @@ import { privadosFiltrando, type FiltroDescartado } from '../../../entities/filt
 import { SECCION_MARCAS } from '../../../entities/filtros-de-marcas'
 import type { FilaDeLead } from '../../../entities/listado'
 import { ConmutadorDeVista } from '../../embudo/components/conmutador-de-vista'
+import { AccionDeExportar } from '../../exportar/components/accion-de-exportar'
 import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
 import { useEtiquetas } from '../../etiquetas/hooks/use-etiquetas'
 import { usePanelDeEtiquetas } from '../../etiquetas/hooks/use-panel-de-etiquetas'
@@ -33,6 +34,7 @@ type Props = DatosDeLaLista & {
   modo: ModoDelListado
   puedeVerTodos: boolean
   puedeCrear: boolean
+  puedeExportar: boolean
   puedeConfigurarCampos: boolean
   descartados: readonly FiltroDescartado[]
   ocultos: number
@@ -61,6 +63,33 @@ function AvisosDelListado({
   )
 }
 
+// El enlace de la sección «Tus marcas» del panel de filtros.
+function GestionarEtiquetas({ alAbrir }: { alAbrir: () => void }) {
+  return (
+    <Button type="button" variant="link" className="h-11 w-fit px-0 md:h-auto" onClick={alAbrir}>
+      Gestionar etiquetas
+    </Button>
+  )
+}
+
+// Lo que va a la derecha de la barra de filtros: la vista, el alcance, exportar y la papelera, cada
+// uno sólo para quien puede.
+function AccionesDelListado({
+  modo,
+  puedeVerTodos,
+  puedeExportar,
+  puedeAbrirPapelera,
+}: Pick<Props, 'modo' | 'puedeVerTodos' | 'puedeExportar' | 'puedeAbrirPapelera'>) {
+  return (
+    <>
+      <ConmutadorDeVista actual="lista" />
+      {puedeVerTodos ? <SelectorDeAlcance modo={modo} /> : null}
+      {puedeExportar ? <AccionDeExportar /> : null}
+      {puedeAbrirPapelera ? <EnlaceAPapeleraDeLeads /> : null}
+    </>
+  )
+}
+
 // Los leads: filtros del layout en la URL, vistas guardadas, la lista (tabla o tarjetas) y el
 // drawer rápido. Todo el estado (filtros, alcance, página, lead abierto) vive en la URL.
 export function ListadoDeLeads(props: Props) {
@@ -71,6 +100,7 @@ export function ListadoDeLeads(props: Props) {
     modo,
     puedeVerTodos,
     puedeCrear,
+    puedeExportar,
     puedeConfigurarCampos,
     descartados,
     ocultos,
@@ -90,24 +120,14 @@ export function ListadoDeLeads(props: Props) {
         esquema={esquema}
         vistas={<VistasDeLeads esquema={esquema} vistas={vistas} modo={modo} />}
         acciones={
-          <>
-            <ConmutadorDeVista actual="lista" />
-            {puedeVerTodos ? <SelectorDeAlcance modo={modo} /> : null}
-            {puedeAbrirPapelera ? <EnlaceAPapeleraDeLeads /> : null}
-          </>
+          <AccionesDelListado
+            modo={modo}
+            puedeVerTodos={puedeVerTodos}
+            puedeExportar={puedeExportar}
+            puedeAbrirPapelera={puedeAbrirPapelera}
+          />
         }
-        accionesDeSeccion={{
-          [SECCION_MARCAS]: (
-            <Button
-              type="button"
-              variant="link"
-              className="h-11 w-fit px-0 md:h-auto"
-              onClick={gestionar.abrir}
-            >
-              Gestionar etiquetas
-            </Button>
-          ),
-        }}
+        accionesDeSeccion={{ [SECCION_MARCAS]: <GestionarEtiquetas alAbrir={gestionar.abrir} /> }}
         pieDelPanel={
           <PieDeFiltros
             filtrables={camposFiltrables(datos.campos).length}

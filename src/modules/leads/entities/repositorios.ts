@@ -9,6 +9,7 @@ import type { CambiosDeCampoDeLead } from './cambios-de-campo'
 import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
 import type { CondicionDeLead } from './filtros'
 import type { CambiosDeLead } from './edicion'
+import type { RegistroDeExportacion } from './exportacion'
 import type { LeadDeFicha, OrigenConEstado } from './ficha'
 import type { ImpactoDeCampo } from './impacto'
 import type { FilaDeLead } from './listado'
@@ -390,3 +391,14 @@ export type RepositorioDePapeleraDeLeads = {
 
 // Los lotes que quien llama puede ver: los suyos o, si puede vaciarla, todos.
 export type LectorDePapeleraDeLeads = () => Promise<Resultado<LoteDePapelera[]>>
+
+// --- CSV (parte 8) ----------------------------------------------------------------------------------
+
+// Deja la constancia de una exportación y aplica el límite por hora (`leads_exportacion_registrar`). Un
+// límite pasado es un valor (`ok: false`), no un error. Los filtros van por nombre, nunca por valor.
+export type RepositorioDeExportacion = {
+  registrar: (pedido: {
+    filas: number
+    filtros: readonly string[]
+  }) => Promise<Resultado<RegistroDeExportacion>>
+}

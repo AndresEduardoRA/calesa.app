@@ -19,6 +19,7 @@ import type {
   RepositorioDeAlta,
   RepositorioDeCartera,
   RepositorioDeEtiquetas,
+  RepositorioDeExportacion,
   RepositorioDeFicha,
   RepositorioDeMarcas,
   RepositorioDePapeleraDeLeads,
@@ -42,6 +43,7 @@ import { carteraSupabase } from './infra/cartera'
 import { camposDeLeadSupabase } from './infra/campos'
 import { embudosSupabase } from './infra/embudos'
 import { etiquetasSupabase } from './infra/etiquetas'
+import { exportacionSupabase } from './infra/exportacion'
 import { fichaSupabase } from './infra/ficha'
 import { marcasSupabase } from './infra/marcas'
 import { oportunidadesSupabase } from './infra/oportunidades'
@@ -125,3 +127,6 @@ export const leerOportunidadesDelLead: LectorDeOportunidadesDelLead = getOportun
 export const leerAccesoDelCliente: LectorDeAccesoDelCliente = getAccesoDelCliente
 
 export const repositorioDelPortal: RepositorioDelPortal = portalSupabase
+
+// Exportar a CSV (parte 8): la constancia y el límite por hora. Las filas salen de `buscarLeads`.
+export const repositorioDeExportacion: RepositorioDeExportacion = exportacionSupabase

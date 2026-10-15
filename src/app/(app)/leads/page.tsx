@@ -55,6 +55,7 @@ export default async function PaginaLeads({ searchParams }: PageProps<'/leads'>)
       {...listado}
       vistas={datosO(vistas)}
       puedeCrear={puede(sesion.permisos, 'leads.crear')}
+      puedeExportar={puede(sesion.permisos, 'leads.exportar')}
       puedeConfigurarCampos={puede(sesion.permisos, 'leads.configurar')}
       codigoDePais={ajustes?.telefonoCc ?? null}
     />
