@@ -50,7 +50,7 @@ create index vehiculos_apibara_sync_idx on public.vehiculos (apibara_sync_en) wh
 
 alter table public.historial_fases add constraint historial_fases_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete cascade;
 alter table public.seguimientos add constraint seguimientos_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete set null;
-alter table public.recordatorios add constraint recordatorios_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete cascade;
+alter table public.recordatorios add constraint recordatorios_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete set null;
 alter table public.oportunidades add constraint oportunidades_vehiculo_fk foreign key (vehiculo_id) references public.vehiculos (id) on delete set null;
 
 comment on column public.vehiculos.importado_apibara is 'Nació de una consulta a apibara (vehiculo_crear con p_consulta). No cambia nunca: la limpieza automática sólo mira a estos.';

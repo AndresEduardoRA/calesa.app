@@ -176,6 +176,8 @@ begin
     ('lead_ficha', $q$do $x$ begin if public.lead_ficha({lead}) is null then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
     ('telefono_lead', $q$do $x$ begin if public.telefono_lead({lead}) is null then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
     ('atributos_lead', $q$do $x$ begin if public.atributos_lead({lead}) is null then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
+    ('lead_vehiculos', $q$do $x$ begin if not (public.lead_vehiculos({lead}) ->> 'puedo_actuar')::boolean then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'nulo', 'ok', 'nulo', 'nulo', 'nulo', 'nulo'),
+    ('vehiculos_para_lead', $q$do $x$ begin if public.vehiculos_para_lead({lead}, null) = '[]'::jsonb then raise exception 'nulo' using errcode = 'P0002'; end if; end $x$ $q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nulo', 'nulo', 'nulo'),
     -- Las marcas de quien mira: ver alcanza
     ('lead_favorito_poner', $q$select public.lead_favorito_poner({lead}, true)$q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nada', 'nada', 'cuenta'),
     ('lead_tachado_poner', $q$select public.lead_tachado_poner({lead}, true)$q$, 'ok', 'ok', 'ok', 'ok', 'ok', 'nada', 'nada', 'cuenta')
@@ -230,6 +232,8 @@ do $$ declare
   v_purgar constant text[] := array[v_purga, v_purga, 'ok', v_purga, v_purga, v_cuenta, v_cuenta];
   p int; v_real text; v_fallas text := '';
 begin
+  -- Cada bloque la crea si falta: si uno anterior falló, su tabla se deshizo con él y éste igual corre.
+  create temp table if not exists matriz_cubiertas (rpc text primary key);
   insert into matriz_cubiertas values ('leads_papelera_restaurar'), ('leads_papelera_purgar') on conflict do nothing;
   for p in 1..7 loop
     v_real := pg_temp.celda(v_personas[p], format(
@@ -251,6 +255,143 @@ begin
     end if;
   end loop;
   if v_fallas <> '' then raise exception 'La matriz de la papelera no cierra:%', v_fallas; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test matriz de vínculo: personas, vehículos y leads de prueba
+-- Las cuatro RPC de vínculo e interés miran dos cosas: el lead (la matriz de arriba) y el vehículo. Esta
+-- tiene sus propias personas, con alcance por origen: en «oficina» ven y editan (lo propio o todo), en
+-- «subasta_usa» sólo ven, y en «humo_sin_fases» nada.
+--   0060 dueño de LV («propios»)       0061 compartido en LV («propios»)
+--   0062 supervisión «todos»           0063 ajeno: dueño de LW («propios»)
+--   0059 sin rol (de arriba)           0055 dada de baja (de arriba)
+reset role;
+insert into public.origenes (clave, nombre, tipo) values ('matriz_sin_permiso', 'Matriz sin permiso', 'manual');
+select set_config('request.jwt.claim.sub', '', false);
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-000000000060', 'matriz-v-duena@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-000000000061', 'matriz-v-compartido@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-000000000062', 'matriz-v-supervision@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-000000000063', 'matriz-v-ajeno@ejemplo.com', '{"invitado": true}');
+insert into public.roles (clave, nombre) values ('humo_matriz_v_propios', 'Matriz vínculo propios'), ('humo_matriz_v_todos', 'Matriz vínculo todos');
+insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+select r.id, x.clave, o.id, x.alcance::public.alcance_permiso
+from public.roles r
+cross join lateral (values
+  ('leads.ver', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
+  ('leads.editar', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
+  ('leads.crear', null, 'todos'),
+  ('leads.eliminar', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
+  ('leads.transferir', null, case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
+  ('vehiculos.ver', 'oficina', case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
+  ('vehiculos.editar', 'oficina', case when r.clave = 'humo_matriz_v_todos' then 'todos' else 'propios' end),
+  ('vehiculos.ver', 'subasta_usa', 'todos')) as x (clave, origen, alcance)
+left join public.origenes o on o.clave = x.origen
+where r.clave in ('humo_matriz_v_propios', 'humo_matriz_v_todos');
+insert into public.usuarios_roles (usuario_id, rol_id)
+select u.id::uuid, r.id from (values
+  ('00000000-0000-0000-0000-000000000060', 'humo_matriz_v_propios'), ('00000000-0000-0000-0000-000000000061', 'humo_matriz_v_propios'),
+  ('00000000-0000-0000-0000-000000000062', 'humo_matriz_v_todos'), ('00000000-0000-0000-0000-000000000063', 'humo_matriz_v_propios')
+) u (id, rol) join public.roles r on r.clave = u.rol;
+update public.perfiles set invitacion_aceptada_en = now()
+where id in ('00000000-0000-0000-0000-000000000060', '00000000-0000-0000-0000-000000000061',
+             '00000000-0000-0000-0000-000000000062', '00000000-0000-0000-0000-000000000063');
+-- Un vehículo creado por cada persona en «oficina» (lo propio), uno en «subasta_usa» (lo ve y no lo
+-- edita), uno en la papelera y uno en un origen donde nadie tiene permiso.
+insert into public.vehiculos (origen_id, titulo, creado_por)
+select o.id, x.titulo, x.creador::uuid from public.origenes o join (values
+  ('oficina', 'Matriz V propio 60', '00000000-0000-0000-0000-000000000060'),
+  ('oficina', 'Matriz V propio 61', '00000000-0000-0000-0000-000000000061'),
+  ('oficina', 'Matriz V propio 62', '00000000-0000-0000-0000-000000000062'),
+  ('oficina', 'Matriz V propio 63', '00000000-0000-0000-0000-000000000063'),
+  ('subasta_usa', 'Matriz V solo ve', '00000000-0000-0000-0000-000000000060'),
+  ('oficina', 'Matriz V papelera', '00000000-0000-0000-0000-000000000060'),
+  ('matriz_sin_permiso', 'Matriz V sin permiso', '00000000-0000-0000-0000-000000000060')
+) as x (origen, titulo, creador) on x.origen = o.clave;
+update public.vehiculos set eliminado_en = now(), eliminado_por = '00000000-0000-0000-0000-000000000060' where titulo = 'Matriz V papelera';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000060', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Matriz LV', 'telefono_principal', '78000011', 'origen_lead_id', v_web));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta LV: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000063', false);
+set role authenticated;
+do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Matriz LW', 'telefono_principal', '78000012', 'origen_lead_id', v_web));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta LW: %', r; end if;
+end $$;
+reset role;
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por)
+select l.id, '00000000-0000-0000-0000-000000000061', 'compartido', '00000000-0000-0000-0000-000000000060'
+from public.leads l where l.nombre = 'Matriz LV';
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test matriz de vínculo: cada RPC por cada persona y cada estado del vehículo
+do $$ declare
+  v_veh_nada constant text := '42501: Ese vehículo no existe o no tienes acceso.';
+  v_edit constant text := '42501: No tienes permiso para editar este vehículo.';
+  v_nada constant text := '42501: No encontramos este lead o no tienes acceso.';
+  v_cuenta constant text := '42501: Tu cuenta está bloqueada o dada de baja.';
+  v_lv uuid := (select id from public.leads where nombre = 'Matriz LV');
+  v_lw uuid := (select id from public.leads where nombre = 'Matriz LW');
+  v_p60 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 60');
+  v_p61 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 61');
+  v_p62 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 62');
+  v_p63 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 63');
+  v_solo uuid := (select id from public.vehiculos where titulo = 'Matriz V solo ve');
+  v_tacho uuid := (select id from public.vehiculos where titulo = 'Matriz V papelera');
+  v_sin uuid := (select id from public.vehiculos where titulo = 'Matriz V sin permiso');
+  v_personas constant text[] := array[
+    '00000000-0000-0000-0000-000000000060', '00000000-0000-0000-0000-000000000061', '00000000-0000-0000-0000-000000000062',
+    '00000000-0000-0000-0000-000000000063', '00000000-0000-0000-0000-000000000059', '00000000-0000-0000-0000-000000000055'];
+  v_nombres constant text[] := array['dueño', 'compartido', 'supervisión', 'ajeno', 'sin rol', 'baja'];
+  v_estados constant text[] := array['propio', 'ajeno', 'sólo lo ve', 'papelera', 'sin permiso', 'inexistente'];
+  r record; p int; k int; v_veh uuid; v_lead uuid; v_esp text; v_real text; v_tok text; v_fila text[];
+  v_fallas text := ''; v_n int := 0; v_mal int := 0;
+begin
+  if v_lv is null or v_lw is null or v_p60 is null or v_sin is null then raise exception 'falta el terreno de la matriz de vínculo'; end if;
+  create temp table if not exists matriz_cubiertas (rpc text primary key);
+  -- Por cada RPC, lo esperado de cada persona en cada estado del vehículo (propio, ajeno, sólo lo ve,
+  -- papelera, sin permiso, inexistente), con el lead de esa persona: LV (LW para el ajeno).
+  -- «v» = el vehículo no se ve; «e» = se ve y no se edita; «n» = el lead no es de su cartera.
+  for r in select * from (values
+    ('vehiculo_vincular', $q$select public.vehiculo_vincular({veh}, coalesce((select actualizado_en from public.vehiculos where id = {veh}), now()), {lead})$q$,
+      'ok v e v v v', 'ok v e v v v', 'n n e v v v', 'ok v e v v v', 'v v v v v v', 'c c c c c c'),
+    ('vehiculo_vincular', $q$select public.vehiculo_vincular({veh}, coalesce((select actualizado_en from public.vehiculos where id = {veh}), now()), null)$q$,
+      'ok v e v v v', 'ok v e v v v', 'ok ok e v v v', 'ok v e v v v', 'v v v v v v', 'c c c c c c'),
+    ('vehiculo_interesado_marcar', $q$select public.vehiculo_interesado_marcar({veh}, {lead}, 'Matriz')$q$,
+      'ok v ok v v v', 'ok v ok v v v', 'n n n v v v', 'ok v ok v v v', 'v v v v v v', 'c c c c c c'),
+    ('vehiculo_interesado_quitar', $q$select public.vehiculo_interesado_quitar({veh}, {lead})$q$,
+      'ok v ok v v v', 'ok v ok v v v', 'n n n v v v', 'ok v ok v v v', 'v v v v v v', 'c c c c c c')
+  ) t (rpc, plantilla, e1, e2, e3, e4, e5, e6)
+  loop
+    insert into matriz_cubiertas values (r.rpc) on conflict do nothing;
+    for p in 1..6 loop
+      v_fila := string_to_array((array[r.e1, r.e2, r.e3, r.e4, r.e5, r.e6])[p], ' ');
+      v_lead := case when p = 4 then v_lw else v_lv end;
+      for k in 1..6 loop
+        v_veh := case k
+          when 1 then (array[v_p60, v_p61, v_p62, v_p63, v_p60, v_p60])[p]
+          when 2 then case when p = 4 then v_p60 else v_p63 end
+          when 3 then v_solo when 4 then v_tacho when 5 then v_sin else gen_random_uuid() end;
+        v_tok := v_fila[k];
+        v_esp := case v_tok when 'ok' then 'ok' when 'v' then v_veh_nada when 'e' then v_edit when 'n' then v_nada when 'c' then v_cuenta end;
+        v_real := pg_temp.celda(v_personas[p], replace(replace(r.plantilla, '{veh}', quote_literal(v_veh::text) || '::uuid'),
+                                                       '{lead}', quote_literal(v_lead::text) || '::uuid'));
+        v_n := v_n + 1;
+        if v_real is distinct from v_esp then
+          v_mal := v_mal + 1;
+          if v_mal <= 12 then
+            v_fallas := v_fallas || format(E'\n  %s · %s · %s: esperaba «%s» y fue «%s»', r.rpc, v_nombres[p], v_estados[k], v_esp, v_real);
+          end if;
+        end if;
+      end loop;
+    end loop;
+  end loop;
+  if v_n < 144 then raise exception 'la matriz de vínculo se achicó: % celdas', v_n; end if;
+  if v_mal > 0 then raise exception '% de % celdas no dieron lo esperado:%', v_mal, v_n, v_fallas; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
 
@@ -647,5 +788,208 @@ begin
   r := pg_temp.como(u50, format('insert into public.pagos (vehiculo_id, lead_id, concepto, moneda, monto, monto_base) values (%L, %L, %L, %L, 1, 1)', v_veh, gen_random_uuid(), 'Seña', 'USD'));
   if (r ->> 'ok')::boolean or r ->> 'mensaje' <> 'No encontramos este lead o no tienes acceso.' then
     raise exception 'el pago de un lead inexistente dio otro mensaje: %', r; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- ===========================================================================================
+-- Vínculo e interesados desde el lead (parte 6b), sobre el terreno de la matriz de vínculo
+-- ===========================================================================================
+-- @test casos de vínculo: vincular, reemplazar, el historial y lo que ve cada uno
+do $$ declare
+  u60 constant text := '00000000-0000-0000-0000-000000000060'; u61 constant text := '00000000-0000-0000-0000-000000000061';
+  u62 constant text := '00000000-0000-0000-0000-000000000062'; u63 constant text := '00000000-0000-0000-0000-000000000063';
+  lv uuid := (select id from public.leads where nombre = 'Matriz LV');
+  lw uuid := (select id from public.leads where nombre = 'Matriz LW');
+  p60 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 60');
+  p61 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 61');
+  version_lv timestamptz := (select actualizado_en from public.leads where nombre = 'Matriz LV');
+  vieja timestamptz; r jsonb; x jsonb;
+begin
+  -- Vincular, repetirlo, y una versión vieja.
+  vieja := (select actualizado_en from public.vehiculos where id = p60);
+  r := pg_temp.como(u60, format('select public.vehiculo_vincular(%L, %L, %L)', p60, vieja, lv));
+  if r -> 'valor' ->> 'resultado' <> 'vinculado' then raise exception 'vincular: %', r; end if;
+  r := pg_temp.como(u60, format('select public.vehiculo_vincular(%L, %L, %L)', p60, vieja, lv));
+  if r -> 'valor' ->> 'resultado' <> 'sin_cambios' then raise exception 'vincular dos veces no es sin_cambios: %', r; end if;
+  r := pg_temp.como(u60, format('select public.vehiculo_vincular(%L, %L, null)', p60, vieja));
+  if r ->> 'estado' <> 'PT409' then raise exception 'desvincular con la versión vieja no dio conflicto: %', r; end if;
+  -- Vincular no mueve la versión del lead.
+  if (select actualizado_en from public.leads where id = lv) <> version_lv then raise exception 'vincular movió la versión del lead'; end if;
+
+  -- Lo que ve cada uno. El compartido ve el vinculado (el vínculo se lo da) pero no el interés en un
+  -- vehículo que su alcance no le deja ver; la supervisión ve los dos.
+  r := pg_temp.como(u61, format('select public.vehiculo_interesado_marcar(%L, %L, %L)', p61, lv, 'Lo vio en la oficina'));
+  if r -> 'valor' ->> 'resultado' <> 'marcado' then raise exception 'el compartido marcó interés: %', r; end if;
+  r := pg_temp.como(u60, format('select public.lead_vehiculos(%L)', lv));
+  x := r -> 'valor';
+  if jsonb_array_length(x -> 'vinculados') <> 1 or x -> 'vinculados' -> 0 ->> 'id' <> p60::text then raise exception 'el dueño no ve su vinculado: %', x; end if;
+  if jsonb_array_length(x -> 'interesados') <> 0 then raise exception 'el dueño ve el interés en un vehículo que no ve: %', x; end if;
+  if not (x ->> 'puedo_actuar')::boolean then raise exception 'el dueño no puede actuar sobre su lead'; end if;
+  r := pg_temp.como(u61, format('select public.lead_vehiculos(%L)', lv));
+  x := r -> 'valor';
+  if jsonb_array_length(x -> 'vinculados') <> 1 or jsonb_array_length(x -> 'interesados') <> 1 then raise exception 'el compartido: %', x; end if;
+  if x -> 'interesados' -> 0 ->> 'nota' <> 'Lo vio en la oficina' then raise exception 'la nota del interés: %', x; end if;
+  r := pg_temp.como(u62, format('select public.lead_vehiculos(%L)', lv));
+  x := r -> 'valor';
+  if jsonb_array_length(x -> 'vinculados') <> 1 or jsonb_array_length(x -> 'interesados') <> 1 or (x ->> 'puedo_actuar')::boolean then
+    raise exception 'la supervisión: %', x; end if;
+  -- La ficha cuenta sólo los vinculados que quien mira ve.
+  r := pg_temp.como(u60, format('select public.lead_ficha(%L)', lv));
+  if (r -> 'valor' ->> 'vehiculos_vinculados')::int <> 1 then raise exception 'la ficha no cuenta el vinculado: %', r; end if;
+  -- Un lead que no se ve no entrega nada, ni la búsqueda.
+  r := pg_temp.como(u63, format('select public.lead_vehiculos(%L)', lv));
+  if jsonb_array_length(r -> 'valor' -> 'vinculados') <> 0 then raise exception 'el ajeno vio los vehículos de LV: %', r; end if;
+  r := pg_temp.como(u63, format('select public.vehiculos_para_lead(%L, null)', lv));
+  if r -> 'valor' <> '[]'::jsonb then raise exception 'el ajeno buscó en LV: %', r; end if;
+
+  -- La búsqueda: por número y por título, con el estado frente al lead.
+  r := pg_temp.como(u60, format('select public.vehiculos_para_lead(%L, %L)', lv, '#' || (select numero from public.vehiculos where id = p60)));
+  if jsonb_array_length(r -> 'valor') <> 1 or not (r -> 'valor' -> 0 ->> 'vinculado_aqui')::boolean then raise exception 'buscar por número: %', r; end if;
+  r := pg_temp.como(u60, format('select public.vehiculos_para_lead(%L, %L)', lv, 'propio 6'));
+  if exists (select 1 from jsonb_array_elements(r -> 'valor') e where e ->> 'id' = p61::text) then raise exception 'la búsqueda trajo un vehículo que no ve: %', r; end if;
+  r := pg_temp.como(u60, format('select public.vehiculos_para_lead(%L, %L)', lv, '50%_\'));
+  if not (r ->> 'ok')::boolean then raise exception 'un texto con comodines rompió la búsqueda: %', r; end if;
+
+  -- Reemplazar: con el lead actual en la cartera, se puede y la búsqueda lo nombra.
+  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por) values (lw, u60::uuid, 'compartido', u63::uuid);
+  r := pg_temp.como(u60, format('select public.vehiculos_para_lead(%L, %L)', lw, 'Matriz V propio 60'));
+  x := r -> 'valor' -> 0;
+  if not (x ->> 'vinculado_a_otro')::boolean or not (x ->> 'reemplazable')::boolean or x -> 'otro_lead' ->> 'nombre' <> 'Matriz LV' then
+    raise exception 'el estado frente a LW: %', x; end if;
+  r := pg_temp.como(u60, format('select public.vehiculo_vincular(%L, (select actualizado_en from public.vehiculos where id = %L), %L)', p60, p60, lw));
+  if r -> 'valor' ->> 'resultado' <> 'reemplazado' then raise exception 'reemplazar con la cartera de los dos: %', r; end if;
+  if (select count(*) from public.vehiculos_vinculos where vehiculo_id = p60 and hasta is null) <> 1
+     or not exists (select 1 from public.vehiculos_vinculos where vehiculo_id = p60 and lead_id = lv and hasta is not null) then
+    raise exception 'reemplazar no cerró el vínculo anterior'; end if;
+  -- Sin el lead actual en la cartera, no: ni lo nombra, ni lo reemplaza.
+  update public.leads_asesores set revocado_en = now() where lead_id = lw and usuario_id = u60::uuid;
+  r := pg_temp.como(u60, format('select public.vehiculos_para_lead(%L, %L)', lv, 'Matriz V propio 60'));
+  x := r -> 'valor' -> 0;
+  if x -> 'otro_lead' <> 'null'::jsonb or (x ->> 'reemplazable')::boolean then raise exception 'nombró o dejó reemplazar un lead que no ve: %', x; end if;
+  r := pg_temp.como(u60, format('select public.vehiculo_vincular(%L, (select actualizado_en from public.vehiculos where id = %L), %L)', p60, p60, lv));
+  perform pg_temp.espero(r, '23514', 'Este vehículo ya está vinculado a otro lead.%', 'reemplazó sin tener el lead actual');
+  -- El historial del lead: una línea por vínculo cerrado, sin personas.
+  r := pg_temp.como(u60, format('select public.lead_vehiculos(%L)', lv));
+  x := r -> 'valor' -> 'historial';
+  if jsonb_array_length(x) <> 1 or x -> 0 ->> 'vehiculo_id' <> p60::text or x -> 0 ->> 'hasta' is null or x -> 0 ? 'por_nombre' then
+    raise exception 'el historial de LV: %', x; end if;
+  -- Quien lo tiene ahora (LW) lo desvincula y vuelve a LV: queda como al principio.
+  r := pg_temp.como(u63, format('select public.vehiculo_vincular(%L, (select actualizado_en from public.vehiculos where id = %L), null)', p60, p60));
+  if r -> 'valor' ->> 'resultado' <> 'desvinculado' then raise exception 'el dueño de LW desvinculó: %', r; end if;
+  r := pg_temp.como(u60, format('select public.vehiculo_vincular(%L, (select actualizado_en from public.vehiculos where id = %L), %L)', p60, p60, lv));
+  if r -> 'valor' ->> 'resultado' <> 'vinculado' then raise exception 'volver a vincular: %', r; end if;
+
+  -- Interés: la nota de más de 500 y un vehículo que no ve.
+  r := pg_temp.como(u60, format('select public.vehiculo_interesado_marcar(%L, %L, %L)', p60, lv, repeat('x', 501)));
+  perform pg_temp.espero(r, '22023', 'La nota no puede pasar de 500 caracteres.', 'aceptó una nota de 501');
+  r := pg_temp.como(u60, format('select public.vehiculo_interesado_quitar(%L, %L)', p61, lv));
+  perform pg_temp.espero(r, '42501', 'Ese vehículo no existe o no tienes acceso.', 'quitó el interés en un vehículo que no ve');
+  r := pg_temp.como(u61, format('select public.vehiculo_interesado_quitar(%L, %L)', p61, lv));
+  if r -> 'valor' ->> 'resultado' <> 'quitado' or r -> 'valor' ->> 'nota' <> 'Lo vio en la oficina' then raise exception 'quitar devuelve la nota: %', r; end if;
+  r := pg_temp.como(u61, format('select public.vehiculo_interesado_quitar(%L, %L)', p61, lv));
+  if r -> 'valor' ->> 'resultado' <> 'sin_cambios' then raise exception 'quitar dos veces: %', r; end if;
+  if (select actualizado_en from public.leads where id = lv) <> version_lv then raise exception 'el vínculo o el interés movieron la versión del lead'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de vínculo: seguimientos y recordatorios con un vehículo que se ve, que se deja de ver y que se purga
+do $$ declare
+  u60 constant text := '00000000-0000-0000-0000-000000000060'; u61 constant text := '00000000-0000-0000-0000-000000000061';
+  lv uuid := (select id from public.leads where nombre = 'Matriz LV');
+  p61 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 61');
+  p63 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 63');
+  tipo uuid := (select id from public.tipos_seguimiento where activo order by orden limit 1);
+  s_id uuid := gen_random_uuid(); r_id uuid := gen_random_uuid(); r jsonb; x jsonb;
+begin
+  -- Uno que no ve se rechaza, con el campo.
+  r := pg_temp.como(u60, format('select public.seguimiento_crear(%L, %L, jsonb_build_object(%L, %L::uuid, %L, %L, %L, %L::uuid))',
+    gen_random_uuid(), lv, 'tipo_id', tipo, 'titulo', 'Con vehículo', 'vehiculo_id', p61));
+  perform pg_temp.espero(r, '42501', 'Ese vehículo no existe o no tienes acceso.', 'anotó con un vehículo que no ve');
+  r := pg_temp.como(u60, format('select public.recordatorio_crear(%L, %L, %L, now() + interval %L, %L)', gen_random_uuid(), lv, 'Llamar', '1 day', p61));
+  perform pg_temp.espero(r, '42501', 'Ese vehículo no existe o no tienes acceso.', 'agendó con un vehículo que no ve');
+  r := pg_temp.como(u60, format('select public.seguimiento_crear(%L, %L, jsonb_build_object(%L, %L::uuid, %L, %L, %L, 12))',
+    gen_random_uuid(), lv, 'tipo_id', tipo, 'titulo', 'Mal formado', 'vehiculo_id'));
+  perform pg_temp.espero(r, '22023', 'Ese dato no es válido.', 'aceptó un vehículo que no es un uuid');
+
+  -- P63 vinculado a LV: el dueño lo ve (el vínculo se lo da) y lo nombra en un seguimiento público y en
+  -- su recordatorio, que nace con el mismo vehículo.
+  update public.vehiculos set lead_id = null where lead_id = lv;
+  update public.vehiculos set lead_id = lv where id = p63;
+  r := pg_temp.como(u60, format('select public.seguimiento_crear(%L, %L, jsonb_build_object(%L, %L::uuid, %L, %L, %L, %L, %L, %L::uuid), jsonb_build_object(%L, now() + interval %L))',
+    s_id, lv, 'tipo_id', tipo, 'titulo', 'Le mostré el auto', 'visibilidad', 'publico', 'vehiculo_id', p63, 'recordar_en', '2 days'));
+  x := r -> 'valor';
+  if x -> 'seguimiento' -> 'vehiculo' ->> 'titulo' <> 'Matriz V propio 63' then raise exception 'el seguimiento no nombra el vehículo: %', r; end if;
+  if (select vehiculo_id from public.recordatorios where id = (x -> 'recordatorio' ->> 'id')::uuid) <> p63 then raise exception 'el recordatorio no heredó el vehículo'; end if;
+  r := pg_temp.como(u60, format('select public.recordatorio_crear(%L, %L, %L, now() + interval %L, %L)', r_id, lv, 'Mandar fotos', '1 day', p63));
+  if r -> 'valor' -> 'recordatorio' -> 'vehiculo' ->> 'titulo' <> 'Matriz V propio 63' then raise exception 'recordatorio con vehículo: %', r; end if;
+
+  -- Se desvincula: el dueño deja de ver P63. Todo sigue, sin el nombre; a su autor se le dice que había uno.
+  update public.vehiculos set lead_id = null where id = p63;
+  r := pg_temp.como(u60, format('select public.lead_seguimientos(%L)', lv));
+  x := (select e from jsonb_array_elements(r -> 'valor' -> 'seguimientos') e where e ->> 'id' = s_id::text);
+  if x -> 'vehiculo' <> 'null'::jsonb or not (x ->> 'vehiculo_oculto')::boolean then raise exception 'el autor tras dejar de verlo: %', x; end if;
+  r := pg_temp.como(u61, format('select public.lead_seguimientos(%L)', lv));
+  x := (select e from jsonb_array_elements(r -> 'valor' -> 'seguimientos') e where e ->> 'id' = s_id::text);
+  if x -> 'vehiculo' <> 'null'::jsonb or (x ->> 'vehiculo_oculto')::boolean then raise exception 'el compartido supo del vehículo ajeno: %', x; end if;
+  r := pg_temp.como(u60, format('select to_jsonb(v) from public.recordatorios_vista v where v.id = %L', r_id));
+  if r -> 'valor' ->> 'vehiculo_id' is not null or not (r -> 'valor' ->> 'vehiculo_oculto')::boolean then raise exception 'la vista del recordatorio: %', r; end if;
+  -- Editar lo demás conserva el vehículo que ya no ve; cambiarlo por otro que no ve, no.
+  r := pg_temp.como(u60, format('select public.seguimiento_guardar(%L, (select actualizado_en from public.seguimientos where id = %L), %L)', s_id, s_id, '{"titulo": "Le mostré el auto rojo"}'));
+  if r -> 'valor' ->> 'resultado' <> 'guardado' or (select vehiculo_id from public.seguimientos where id = s_id) <> p63 then raise exception 'editar perdió el vehículo: %', r; end if;
+  r := pg_temp.como(u60, format('select public.seguimiento_guardar(%L, (select actualizado_en from public.seguimientos where id = %L), jsonb_build_object(%L, %L::uuid))', s_id, s_id, 'vehiculo_id', p61));
+  perform pg_temp.espero(r, '42501', 'Ese vehículo no existe o no tienes acceso.', 'cambió a un vehículo que no ve');
+  r := pg_temp.como(u60, format('select public.recordatorio_guardar(%L, (select actualizado_en from public.recordatorios where id = %L), %L)', r_id, r_id, '{"titulo": "Mandar fotos ya"}'));
+  if not (r -> 'valor' -> 'recordatorio' ->> 'vehiculo_oculto')::boolean or (select vehiculo_id from public.recordatorios where id = r_id) <> p63 then
+    raise exception 'editar el recordatorio: %', r; end if;
+  -- Quitarlo (nulo) sí se puede.
+  r := pg_temp.como(u60, format('select public.recordatorio_guardar(%L, (select actualizado_en from public.recordatorios where id = %L), %L)', r_id, r_id, '{"vehiculo_id": null}'));
+  if (select vehiculo_id from public.recordatorios where id = r_id) is not null then raise exception 'no quitó el vehículo del recordatorio: %', r; end if;
+  update public.recordatorios set vehiculo_id = p63 where id = r_id;
+
+  -- En la papelera, igual que no verlo. Purgado, el seguimiento y el recordatorio siguen, sin vehículo.
+  update public.vehiculos set lead_id = lv where id = p63;
+  update public.vehiculos set eliminado_en = now(), eliminado_por = u60::uuid where id = p63;
+  r := pg_temp.como(u60, format('select public.lead_seguimientos(%L)', lv));
+  x := (select e from jsonb_array_elements(r -> 'valor' -> 'seguimientos') e where e ->> 'id' = s_id::text);
+  if x -> 'vehiculo' <> 'null'::jsonb then raise exception 'nombró un vehículo en la papelera: %', x; end if;
+  update public.vehiculos set lead_id = null where id = p63;
+  delete from public.vehiculos where id = p63;
+  if not exists (select 1 from public.seguimientos where id = s_id and vehiculo_id is null)
+     or not exists (select 1 from public.recordatorios where id = r_id and vehiculo_id is null and eliminado_en is null) then
+    raise exception 'purgar el vehículo se llevó el seguimiento o el recordatorio'; end if;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test casos de vínculo: la papelera del lead sabe si el vehículo que la frena se ve, y transferir no toca los vínculos
+do $$ declare
+  u60 constant text := '00000000-0000-0000-0000-000000000060'; u61 constant text := '00000000-0000-0000-0000-000000000061';
+  lv uuid := (select id from public.leads where nombre = 'Matriz LV');
+  p60 uuid := (select id from public.vehiculos where titulo = 'Matriz V propio 60');
+  sin uuid := (select id from public.vehiculos where titulo = 'Matriz V sin permiso');
+  r jsonb; v_lote uuid := gen_random_uuid();
+begin
+  update public.vehiculos set lead_id = null where lead_id = lv;
+  -- Dos vinculados: uno que ve y uno de un origen donde no tiene permiso. La ficha cuenta uno; la papelera
+  -- dice que hay uno que no ve.
+  update public.vehiculos set lead_id = lv where id in (p60, sin);
+  r := pg_temp.como(u60, format('select public.lead_ficha(%L)', lv));
+  if (r -> 'valor' ->> 'vehiculos_vinculados')::int <> 1 then raise exception 'la ficha contó uno que no ve: %', r; end if;
+  r := pg_temp.como(u60, format('select public.leads_papelera_enviar(%L, array[%L]::uuid[])', gen_random_uuid(), lv));
+  perform pg_temp.espero(r, '23514', '%Tiene un vehículo vinculado que no ves%', 'envió un lead con un vehículo que no ve');
+  update public.vehiculos set lead_id = null where id = sin;
+  r := pg_temp.como(u60, format('select public.leads_papelera_enviar(%L, array[%L]::uuid[])', gen_random_uuid(), lv));
+  perform pg_temp.espero(r, '23514', '%desvincúlalo en «Vehículos» antes de enviarlo.', 'envió un lead con un vehículo que ve');
+  -- Transferir no toca los vínculos.
+  r := pg_temp.como(u60, format('select public.lead_transferir(%L, %L, %L)', lv, u61, u60));
+  if not (r ->> 'ok')::boolean then raise exception 'transferir: %', r; end if;
+  if (select lead_id from public.vehiculos where id = p60) <> lv then raise exception 'transferir cambió el vínculo'; end if;
+  r := pg_temp.como(u61, format('select public.lead_transferir(%L, %L, %L)', lv, u60, u61));
+  -- Desvincular y ahora sí va a la papelera; vuelve con «Deshacer».
+  r := pg_temp.como(u60, format('select public.vehiculo_vincular(%L, (select actualizado_en from public.vehiculos where id = %L), null)', p60, p60));
+  if r -> 'valor' ->> 'resultado' <> 'desvinculado' then raise exception 'desvincular: %', r; end if;
+  r := pg_temp.como(u60, format('select public.leads_papelera_enviar(%L, array[%L]::uuid[])', v_lote, lv));
+  if not (r ->> 'ok')::boolean then raise exception 'desvinculado, debía ir a la papelera: %', r; end if;
+  r := pg_temp.como(u60, format('select public.leads_papelera_restaurar(%L, (select actualizado_en from public.lotes_papelera where id = %L), null)', v_lote, v_lote));
+  if jsonb_array_length(r -> 'valor' -> 'restaurados') <> 1 then raise exception 'restaurar LV: %', r; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);

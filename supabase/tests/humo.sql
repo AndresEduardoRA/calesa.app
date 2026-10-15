@@ -1803,10 +1803,15 @@ do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; suyo uuid := 'cc
   perform public.vehiculo_vincular(v, ver - interval '1 hour', suyo);
   if (select count(*) from public.vehiculo_vinculos(v) k where k.lead_nombre = 'Lead de Irene' and k.hasta is null and k.por_nombre = 'Irene Paz') <> 1 then raise exception 'la lectura del vínculo no trae al lead ni a quien lo vinculó'; end if;
 
-  -- Interesados: ver el vehículo y poder editar el lead. Marcar dos veces es marcar una.
-  perform public.vehiculo_interesado_marcar(ajeno, suyo, '  Lo quiere en blanco  ');
-  perform public.vehiculo_interesado_marcar(ajeno, suyo, 'otra nota');
-  if (select count(*) from public.vehiculo_interesados(ajeno) i where i.lead_nombre = 'Lead de Irene' and i.nota = 'Lo quiere en blanco' and i.por_nombre = 'Irene Paz') <> 1 then raise exception 'la lectura de interesados no trae lo marcado'; end if;
+  -- Interesados: ver el vehículo y poder editar el lead. Marcar es poner: la misma nota no cambia nada,
+  -- otra la reemplaza (nunca se ignora en silencio).
+  r := public.vehiculo_interesado_marcar(ajeno, suyo, '  Lo quiere en blanco  ');
+  if r ->> 'resultado' <> 'marcado' or r ->> 'nota' <> 'Lo quiere en blanco' then raise exception 'marcar: %', r; end if;
+  r := public.vehiculo_interesado_marcar(ajeno, suyo, 'Lo quiere en blanco');
+  if r ->> 'resultado' <> 'sin_cambios' then raise exception 'marcar dos veces lo mismo: %', r; end if;
+  r := public.vehiculo_interesado_marcar(ajeno, suyo, 'Lo quiere en rojo');
+  if r ->> 'resultado' <> 'nota_cambiada' then raise exception 'otra nota: %', r; end if;
+  if (select count(*) from public.vehiculo_interesados(ajeno) i where i.lead_nombre = 'Lead de Irene' and i.nota = 'Lo quiere en rojo' and i.por_nombre = 'Irene Paz') <> 1 then raise exception 'la lectura de interesados no trae lo marcado'; end if;
   begin perform public.vehiculo_interesado_marcar(ajeno, de_bruno); raise exception 'marcó el interés de un lead ajeno';
   exception when insufficient_privilege then null; end;
   begin perform public.vehiculo_interesado_marcar((select id from public.vehiculos_imagenes limit 0), suyo); raise exception 'marcó interés sin vehículo';
@@ -1820,8 +1825,15 @@ do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; suyo uuid := 'cc
 end $$;
 -- Bruno edita todo: lo pasa a su lead. El vínculo anterior se cierra y queda uno solo abierto.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000009', false);
-do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; de_bruno uuid := 'cccccccc-0000-4000-8000-000000000009'; usa uuid; begin
-  perform public.vehiculo_vincular(v, (select actualizado_en from public.vehiculos where id = v), de_bruno);
+do $$ declare v uuid := 'bbbbbbbb-0000-4000-8000-000000000001'; de_bruno uuid := 'cccccccc-0000-4000-8000-000000000009'; usa uuid; r jsonb; begin
+  -- Reemplazar le quita el vehículo a la cartera de Irene: Bruno no la tiene, así que no puede (y no se
+  -- le dice cuál lead es). Lo desvincula (es una acción sobre el vehículo) y recién ahí lo vincula.
+  begin perform public.vehiculo_vincular(v, (select actualizado_en from public.vehiculos where id = v), de_bruno); raise exception 'reemplazó el lead de un vehículo sin tener el actual';
+  exception when check_violation then null; end;
+  r := public.vehiculo_vincular(v, (select actualizado_en from public.vehiculos where id = v), null);
+  if r ->> 'resultado' <> 'desvinculado' then raise exception 'desvincular: %', r; end if;
+  r := public.vehiculo_vincular(v, (select actualizado_en from public.vehiculos where id = v), de_bruno);
+  if r ->> 'resultado' <> 'vinculado' then raise exception 'vincular: %', r; end if;
   if (select count(*) from public.vehiculos_vinculos where vehiculo_id = v) <> 2 or (select count(*) from public.vehiculos_vinculos where vehiculo_id = v and hasta is null) <> 1 then raise exception 'cambiar el vínculo no cerró el anterior'; end if;
   -- Ve el historial entero, pero el nombre sólo del lead que está en su cartera.
   if (select count(*) from public.vehiculo_vinculos(v)) <> 2 then raise exception 'no ve el historial del vínculo'; end if;

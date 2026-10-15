@@ -327,6 +327,13 @@ export type Database = {
             foreignKeyName: 'apibara_consultas_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'apibara_consultas_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -823,6 +830,13 @@ export type Database = {
             foreignKeyName: 'cotizaciones_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'cotizaciones_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -1124,6 +1138,13 @@ export type Database = {
             foreignKeyName: 'declaraciones_vehiculos_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'declaraciones_vehiculos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -1238,6 +1259,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'tipos_documento'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'documentos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'documentos_vehiculo_id_fkey'
@@ -1438,6 +1466,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'recordatorios_vista'
             referencedColumns: ['lead_id']
+          },
+          {
+            foreignKeyName: 'eventos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'eventos_vehiculo_id_fkey'
@@ -2060,6 +2095,13 @@ export type Database = {
             foreignKeyName: 'gastos_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'gastos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -2135,6 +2177,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'perfiles'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'historial_fases_vehiculo_fk'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'historial_fases_vehiculo_fk'
@@ -2857,6 +2906,13 @@ export type Database = {
             foreignKeyName: 'mensajes_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'mensajes_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -2995,6 +3051,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'repuestos_items'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notas_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'notas_vehiculo_id_fkey'
@@ -3151,6 +3214,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'perfiles'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'oportunidades_vehiculo_fk'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'oportunidades_vehiculo_fk'
@@ -3483,6 +3553,13 @@ export type Database = {
             foreignKeyName: 'pagos_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'pagos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -3805,6 +3882,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'perfiles'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'recordatorios_vehiculo_fk'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'recordatorios_vehiculo_fk'
@@ -4388,6 +4472,13 @@ export type Database = {
             foreignKeyName: 'repuestos_proyectos_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'repuestos_proyectos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -4647,6 +4738,13 @@ export type Database = {
             foreignKeyName: 'seguimientos_vehiculo_fk'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'seguimientos_vehiculo_fk'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -4759,6 +4857,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'perfiles'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'solicitudes_contacto_web_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'solicitudes_contacto_web_vehiculo_id_fkey'
@@ -4984,6 +5089,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'perfiles'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tareas_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'tareas_vehiculo_id_fkey'
@@ -5272,6 +5384,13 @@ export type Database = {
             foreignKeyName: 'transportes_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: true
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'transportes_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: true
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -5367,11 +5486,16 @@ export type Database = {
           vin: string | null
           _limpieza_ancla: string | null
           _limpieza_aplica: boolean | null
+          _vehiculo_resumen: Json | null
           _vehiculo_sin_repetidos: undefined | null
           limpieza_el: string | null
         }
         ComputedFields:
-          '_limpieza_ancla' | '_limpieza_aplica' | '_vehiculo_sin_repetidos' | 'limpieza_el'
+          | '_limpieza_ancla'
+          | '_limpieza_aplica'
+          | '_vehiculo_resumen'
+          | '_vehiculo_sin_repetidos'
+          | 'limpieza_el'
         Insert: {
           acepta_permuta?: boolean | null
           actualizado_en?: string
@@ -5549,6 +5673,13 @@ export type Database = {
             foreignKeyName: 'vehiculos_conservados_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: true
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'vehiculos_conservados_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: true
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -5603,6 +5734,13 @@ export type Database = {
             foreignKeyName: 'vehiculos_imagenes_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'vehiculos_imagenes_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -5623,6 +5761,13 @@ export type Database = {
           vehiculo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'vehiculos_imagenes_version_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: true
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
           {
             foreignKeyName: 'vehiculos_imagenes_version_vehiculo_id_fkey'
             columns: ['vehiculo_id']
@@ -5688,6 +5833,13 @@ export type Database = {
             foreignKeyName: 'vehiculos_interesados_vehiculo_id_fkey'
             columns: ['vehiculo_id']
             isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
+          },
+          {
+            foreignKeyName: 'vehiculos_interesados_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
             referencedRelation: 'vehiculos'
             referencedColumns: ['id']
           },
@@ -5747,6 +5899,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'perfiles'
             referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'vehiculos_vinculos_vehiculo_id_fkey'
+            columns: ['vehiculo_id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['vehiculo_id']
           },
           {
             foreignKeyName: 'vehiculos_vinculos_vehiculo_id_fkey'
@@ -6207,6 +6366,10 @@ export type Database = {
           notificado_en: string | null
           recordar_en: string | null
           titulo: string | null
+          vehiculo_id: string | null
+          vehiculo_numero: number | null
+          vehiculo_oculto: boolean | null
+          vehiculo_titulo: string | null
         }
         ComputedFields: never
         Relationships: []
@@ -6600,6 +6763,7 @@ export type Database = {
         Args: { p_valor: Json }
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
       }
+      _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
         Args: {
           p_lote: string
@@ -6671,6 +6835,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _vehiculo_de_nota_json: { Args: { p_es_mio: boolean; p_vehiculo: string }; Returns: Json }
       _vehiculo_fase_de_entrada: { Args: { p_origen: string; p_vehiculo: string }; Returns: string }
       _vehiculo_motivo_de_bloqueo: {
         Args: {
@@ -6692,6 +6857,16 @@ export type Database = {
           p_nombre: string
         }
         Returns: number
+      }
+      _vehiculo_para_nota: { Args: { p_hint?: string; p_vehiculo: string }; Returns: string }
+      _vehiculo_resumen: {
+        Args: {
+          v: Omit<
+            Database['public']['Tables']['vehiculos']['Row'],
+            Database['public']['Tables']['vehiculos']['ComputedFields']
+          >
+        }
+        Returns: Json
       }
       _vehiculo_si_no: {
         Args: { p_clave: string; p_datos: Json; p_nombre: string }
@@ -6966,6 +7141,7 @@ export type Database = {
         Args: { p_destino: string; p_dueno_esperado: string; p_lead: string }
         Returns: Json
       }
+      lead_vehiculos: { Args: { p_lead: string }; Returns: Json }
       leads_papelera_enviar: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       leads_papelera_listar: { Args: Record<PropertyKey, never>; Returns: Json }
       leads_papelera_purgar: {
@@ -7203,7 +7379,13 @@ export type Database = {
         Returns: Json
       }
       recordatorio_crear: {
-        Args: { p_id: string; p_lead: string; p_recordar_en: string; p_titulo: string }
+        Args: {
+          p_id: string
+          p_lead: string
+          p_recordar_en: string
+          p_titulo: string
+          p_vehiculo?: string
+        }
         Returns: Json
       }
       recordatorio_eliminar: {
@@ -7334,12 +7516,9 @@ export type Database = {
       }
       vehiculo_interesado_marcar: {
         Args: { p_lead: string; p_nota?: string; p_vehiculo: string }
-        Returns: undefined
+        Returns: Json
       }
-      vehiculo_interesado_quitar: {
-        Args: { p_lead: string; p_vehiculo: string }
-        Returns: undefined
-      }
+      vehiculo_interesado_quitar: { Args: { p_lead: string; p_vehiculo: string }; Returns: Json }
       vehiculo_interesados: {
         Args: { p_vehiculo: string }
         Returns: {
@@ -7401,6 +7580,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_lote: string; p_vehiculos?: string[] }
         Returns: Json
       }
+      vehiculos_para_lead: { Args: { p_lead: string; p_texto?: string }; Returns: Json }
       vehiculos_repetidos: {
         Args: { p_claves: Json; p_origen: string }
         Returns: {
