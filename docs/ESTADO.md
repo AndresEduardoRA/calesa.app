@@ -6,32 +6,30 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-14
-**Fase actual:** 3 — Leads, **parte 4a de 8 hecha** (ficha con edición, versión y enmascarado). Sigue la 4b.
+**Fase actual:** 3 — Leads, **parte 4b de 8 hecha** (la ficha está completa: edición y teléfonos). Sigue la 5.
 
 ## Funcionando
 
-- Verdes: lint, typecheck, test, `db:probar`, `mapa.sh`, build y `test:e2e` (números en
-  `docs/BITACORA.md`). Fases 0 a 2 completas, y las partes 1 a 4a de la Fase 3.
+- Verdes: lint, typecheck, test, `db:probar`, `mapa.sh`, build y `test:e2e` (números en `docs/BITACORA.md`).
+  Fases 0 a 2 completas, y las partes 1 a 4b de la Fase 3.
 - **Ficha del lead** (`/leads/[id]`): cabecera, «Datos» (fijos, teléfonos, campos por grupo) y edición en
   `?panel=editar-lead` por `lead_guardar` (versión, borrador, reintento, conflicto). Teléfonos y privados
   recortados en la base; inexistente, ajeno, limbo y papelera se ven igual. Se llega por «Abrir», «Abrir
-  ficha» y el drawer del listado.
+  ficha» y el drawer del listado. **Teléfonos** (sólo con el lead en la cartera): «Cambiar» el principal
+  (`?panel=cambiar-telefono`; el anterior queda «Anterior») y extras en línea con «Deshacer».
 - **Listado de leads** (`/leads`): «míos» por defecto; «todos» con alcance «todos» (teléfono enmascarado,
-  sin los privados ajenos; filtrar por uno no encuentra nada y lo dice). Filtros, búsqueda, vistas y drawer.
+  sin los privados ajenos; filtrar por uno no encuentra nada y lo dice). Filtros, búsqueda, vistas, drawer.
 - **Alta rápida** (botón o `N`): teléfono verificado al tipear y primer seguimiento en una RPC. **Campos
   de los leads** configurables. **Orígenes y vehículos** completos (apibara y limpieza incluidas).
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Una por sesión: **4b)** cambiar el teléfono principal (`cambiar_telefono_lead` v2; el anterior queda
-«Anterior») y agregar o quitar extras. **5)** seguimientos (Tiptap, RPC propias), recordatorios,
-favoritos, tachados («no tachados» en el listado) y etiquetas. **6)** cartera, papelera de leads y vínculo
-e interesados. **7)** embudos (`?vista=embudo`) y portal. **8)** CSV con las columnas del layout.
+Una por sesión: **5)** seguimientos (Tiptap, RPC propias), recordatorios, favoritos, tachados («no
+tachados» en el listado) y etiquetas. **6)** cartera, papelera de leads y vínculo e interesados. **7)**
+embudos (`?vista=embudo`) y portal. **8)** CSV con las columnas del layout.
 
 ## Pendientes que se arrastran
 
-- **Parte 4b:** reglas en `docs/DECISIONES.md` («Teléfonos extra y cambio del principal»);
-  `verificar_telefono` exige `leads.crear`: va `verificar_telefono_de_lead`. `leads_telefonos` sólo por RPC.
 - **Parte 5:** las policies directas de `seguimientos` (no miran que el tipo esté activo) y de
   `recordatorios` (no miran el acceso al lead) se cierran con RPC; el editor muestra `detalle_texto`. Lo
   derivado que sume va **fuera** de `lead_version()`. La base ya tiene un campo propio `tachado`: no
@@ -50,6 +48,8 @@ e interesados. **7)** embudos (`?vista=embudo`) y portal. **8)** CSV con las col
 - Proyecto y `supabase link`; primer `db push --include-seed`; plantillas de correo; `Site URL`; SMTP;
   Google; `supabase functions deploy storage-gc` y `apibara`, y `select public.storage_gc_programar(
 'https://<ref>.supabase.co/functions/v1/storage-gc');` (sin eso la purga deja los archivos).
+- **El día del primer `db push`** `db:base` se congela (la migración base ya estará aplicada) y los cambios
+  son sólo migraciones: cambia la regla de `docs/DECISIONES.md` (2026-10-11) y el chequeo de `db:probar`.
 - **Jobs** (`limpieza-automatica`, `apibara-consultas-purgar`, `papelera-purgar`): comprobar en `cron.job`
   (`pg_cron` corre en UTC) y que el runtime inyecta `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_ANON_KEY`.
 - **Siembra:** un permiso nuevo en una base viva lleva su `insert … on conflict` y la concesión al dueño
@@ -68,8 +68,8 @@ e interesados. **7)** embudos (`?vista=embudo`) y portal. **8)** CSV con las col
 - **Guardia de e2e:** respalda sólo la fila de apibara en `e2e/.estado/respaldo.json`; tras un `kill -9`,
   volver a correr (lo repone antes): **un respaldo viejo pisa un cambio hecho a mano entre corridas**
   (`docs/DECISIONES.md`). Exige `npx supabase functions serve`. Con cuentas reales se saltan «la primera
-  persona nace dueña» y el guardián. **Intermitente:** `vehiculos-fotos` en móvil falla 1 de cada 3
-  corridas, también en el commit base (la página anterior sigue un momento en el DOM).
+  persona nace dueña» y el guardián. **Intermitente:** `vehiculos-fotos` en móvil falla 1 de cada 3 (también
+  en el commit base: la página anterior sigue un momento en el DOM). La 4b no corrió `empresa.spec`: correrla.
 - «Ver como» acota la interfaz, no las filas que entrega la base (en leads fuerza «míos»). `storage-gc` y
   `apibara` (Deno) no entran en lint ni typecheck. Falta probar fotos en iPhone. Apibara está apagada en
   la base local. `tipo_acceso = 'adoptado'` quedó sin uso. La ficha de leads parte los números con el

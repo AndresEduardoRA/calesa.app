@@ -1681,3 +1681,34 @@ no prefijar más los filtros. El choque es de nombre en la pantalla: el campo pr
 por persona «tachado» se leerían igual. La parte 5 le pone al estado un nombre que no se pise (el del
 glosario) y lo avisa; si hiciera falta, se renombra la **etiqueta** del campo, que es un dato de quien lo
 creó. ESTADO lo ubica en la parte 5 (donde llegan los tachados); el pedido lo pensaba en la 6.
+
+## 2026-10-14 — Teléfonos de la ficha: cómo se aterrizó la 4b
+
+**Contexto:** las reglas ya estaban escritas («Teléfonos extra y cambio del principal»). Al
+contrastarlas con la base apareció que `cambiar_telefono_lead(uuid, text, text)` pedía `leads.editar`
+sin mirar la cartera: quien tiene «todos» podía cambiar el teléfono de un lead ajeno llamando a la RPC.
+**Decisión (el principal):** `cambiar_telefono_lead(p_lead, p_actualizado_en_esperado, p_cc, p_tel)`
+va en este orden: acceso, normalizar, igual al principal (`sin_cambios`, **antes** de mirar la versión,
+porque el reintento tras una respuesta perdida llega con la de antes), un número que ya existe como valor,
+versión (`PT409`), escribir. El «Anterior» siempre entra: **el tope de 10 lo aplica «agregar»**, no el
+cambio (rechazar un cambio de teléfono porque hay 10 extras no tiene explicación para quien lo pide). El
+código de país es el del lead (`leads.telefono_cc`); si es nulo —el número no era el de la empresa— **no se
+adivina** y se pide el número con «+», así la ficha no lee los ajustes de la empresa.
+**Decisión (los extras):** `lead_telefono_guardar` es un upsert por id (agrega, rotula y restituye) y
+`lead_telefono_quitar` devuelve lo quitado. **No llevan versión** (excepción a la regla de versión
+obligatoria): operan sobre una fila, son idempotentes por id y una versión sólo daría conflictos falsos
+entre dos personas que agregan números distintos; la integridad (único por lead, tope) la dan el índice y
+el bloqueo de la fila del lead, sin cambiarla. «Deshacer» restituye con el mismo id, etiqueta y
+`creado_en` (la base lo acota a ahora); si entretanto ese número ya está, se rechaza como duplicado.
+**Decisión (el aviso):** un número libre que es teléfono extra de otro lead avisa sin bloquear
+(`_lead_verificar(p_tel, p_excluir)` → `alterno`, con la misma regla de qué se dice que el principal; un
+lead en limbo no se nombra) y pide `leads_telefonos(telefono)`. La interfaz dice «teléfono extra», el
+nombre del glosario, no «alterno».
+**Decisión (la interfaz):** el cambio vive en `?panel=cambiar-telefono`, la misma clave que la edición:
+no pueden estar abiertos a la vez, y aun así «Cambiar» se deshabilita con el motivo. No hace falta releer
+la versión al abrir la edición: el cambio hace `revalidatePath` dentro de su action y la versión viaja en
+la misma respuesta. Los extras no revalidan: la respuesta trae la lista (≤ 10 filas) y la pantalla la pone
+en su lugar; el estado local se vuelve a sembrar sólo si cambian las props.
+**Consecuencia:** una petición por acción. `puedeCambiarTelefonoDeLead()` (cartera y `leads.editar`) es
+distinto de `puedeEditarLead()`. El humo prueba las cuatro RPC sin cartera, incluida la dueña con «todos»;
+el e2e, la pantalla y la llamada a mano con su sesión.

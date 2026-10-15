@@ -198,6 +198,15 @@ sin pantalla todavía no se muestra.
 - **Se revoca el acceso con la ficha abierta:** guardar lo dice («No encontramos este lead o no tienes acceso.») y la pantalla pasa a ese mismo estado; al volver a la pestaña con el panel cerrado, la ficha se vuelve a leer.
 - **Carga y error:** esqueleto de detalle (`loading.tsx`); el error de una lectura sube al `error.tsx` con «Reintentar».
 
+### Leads: teléfonos de la ficha (estados propios)
+
+Dentro de «Datos › Teléfonos». Todo es sólo para quien tiene el lead en su cartera y `leads.editar`: quien ve el lead sin estar en ella (la dueña con «todos») ve los números enmascarados y «Completo solo para su cartera.», sin ningún botón, y `?panel=cambiar-telefono` no abre nada.
+
+- **Cambiar el principal** (`?panel=cambiar-telefono`; hoja inferior bajo 640 px, panel al costado desde ahí; teclado de teléfono): dice el teléfono actual y que pasará a ser un extra «Anterior». El número nuevo se verifica al tipear (400 ms) sin contarse a sí mismo: «Ya existe: Ana Quispe (#12), y es tuyo», «Lo tiene Diego Vargas», «Ya existe, sin dueño. No se puede usar este número» o «Ese es el teléfono principal de este lead» deshabilitan «Cambiar teléfono»; un número libre dice «Se guardará como +591 70011002», y si figura como teléfono extra de otro lead avisa («Figura como teléfono extra de …») sin bloquear. Lo que no es un teléfono dice por qué al salir del campo. Un lead cuyo número no era el de la empresa pide el número con «+».
+- **Con la edición abierta**, «Cambiar» está deshabilitado y dice «Termina o cierra la edición para cambiarlo.»: son el mismo `?panel=` y el cambio mueve la versión.
+- **Conflicto:** dentro del panel («Rosa cambió este lead hace 3 min»), «No se guardó nada», «Ver cómo quedó» y «Recargar», que trae la versión y el número vigentes y **conserva lo que se tipeó**. **Sin conexión:** aviso arriba, lo escrito queda y sale solo al volver; si el primer intento ya había llegado, el reintento dice «Ese ya era el teléfono principal» y deja un solo «Anterior». **Sin acceso:** «No encontramos este lead o no tienes acceso.».
+- **Extras, en línea** (sin URL): «Agregar teléfono» abre el número y la etiqueta (opcional); Enter confirma y Esc cancela. «Rotular» cambia la etiqueta (vacía la quita). «Quitar» lo saca y el aviso ofrece «Deshacer» 10 s, que lo vuelve con su etiqueta y su lugar; si entretanto ese número ya está, lo dice. Las reglas se dicen junto al campo: «Ese número ya está en este lead» (repetido o igual al principal) y la etiqueta de hasta 40. Con 10 extras «Agregar teléfono» se deshabilita y lo explica. Ninguna de estas acciones mueve la versión del lead ni vuelve a leer la ficha.
+
 ### Equipo y roles (estados propios)
 
 - **Equipo:** sólo tú en el equipo (aviso con invitación a sumar a alguien); sin resultados por filtro; invitación pendiente con «Generar otro enlace»; sobre la cuenta propia el menú dice por qué no se puede bloquear ni dar de baja; el rechazo del guardián se muestra con su motivo. Bloquear se hace y ofrece «Deshacer»; dar de baja pide confirmar en un diálogo que nombra a la persona y dice cuántos leads van al limbo.
