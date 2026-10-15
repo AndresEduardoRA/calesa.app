@@ -16,6 +16,7 @@ import {
   SeccionSeguimientos,
   seccionDeLead,
 } from '@/modules/leads'
+import { EsqueletoDeVehiculosDelLead, SeccionVehiculosDelLead } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
@@ -39,8 +40,10 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
   if (!datos) {
     return <LeadNoDisponible />
   }
-  // Lo que no es una sección que existe abre «Datos».
-  const seccion = seccionDeLead(unParametro(parametros[CLAVE_DE_SECCION]))
+  // «Vehículos» sólo para quien ve vehículos en algún origen. Lo que no es una sección que existe (o que
+  // la persona no ve) abre «Datos».
+  const ve = { vehiculos: puede(sesion.permisos, 'vehiculos.ver') }
+  const seccion = seccionDeLead(unParametro(parametros[CLAVE_DE_SECCION]), ve)
   return (
     <FichaDeLead
       ficha={datos.ficha}
@@ -50,6 +53,7 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
       puedeEditar={puedeEditarLead(sesion.permisos, datos.ficha.enCartera)}
       puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
       seccion={seccion}
+      ve={ve}
       etiquetas={datos.etiquetas}
       cartera={datos.cartera}
       accionesDeCartera={accionesDeCartera(sesion.permisos, datos.cartera)}
@@ -63,6 +67,14 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
         seccion === 'seguimientos' ? (
           <Suspense fallback={<EsqueletoDeSeguimientos />}>
             <SeccionSeguimientos leadId={datos.ficha.id} />
+          </Suspense>
+        ) : null
+      }
+      // La sección vive en `vehiculos`: la página la compone (`leads` no importa `vehiculos`).
+      vehiculos={
+        seccion === 'vehiculos' ? (
+          <Suspense fallback={<EsqueletoDeVehiculosDelLead />}>
+            <SeccionVehiculosDelLead leadId={datos.ficha.id} leadNombre={datos.ficha.nombre} />
           </Suspense>
         ) : null
       }

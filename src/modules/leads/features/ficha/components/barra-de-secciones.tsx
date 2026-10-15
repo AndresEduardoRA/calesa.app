@@ -7,21 +7,22 @@ import {
   CLAVE_DE_SECCION,
   hayBarraDeSecciones,
   seccionesDisponibles,
+  type LoQueVe,
   type SeccionDeLead,
 } from '../../../entities/ficha'
 
-type Props = { leadId: string; actual: SeccionDeLead }
+type Props = { leadId: string; actual: SeccionDeLead; ve: LoQueVe }
 
 // Las secciones de la ficha (`?seccion=`), sin números: el de «Seguimientos» insinuaría los
 // privados de otros. Cambiar de sección va al servidor (cada una lee lo suyo).
-export function BarraDeSecciones({ leadId, actual }: Props) {
-  if (!hayBarraDeSecciones()) {
+export function BarraDeSecciones({ leadId, actual, ve }: Props) {
+  if (!hayBarraDeSecciones(ve)) {
     return null
   }
   return (
     <nav aria-label="Secciones del lead" className="border-b border-(--color-line)">
       <ul className="-mb-px flex gap-1 overflow-x-auto">
-        {seccionesDisponibles().map((seccion) => {
+        {seccionesDisponibles(ve).map((seccion) => {
           const activa = seccion.clave === actual
           const href = (
             seccion.clave === 'datos'

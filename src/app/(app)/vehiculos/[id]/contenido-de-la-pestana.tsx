@@ -51,7 +51,7 @@ export function ContenidoDeLaPestana({
       {/* A quién pertenece y a quién le interesa: sólo para quien ve leads. */}
       {verLeads ? (
         <Suspense fallback={null}>
-          <BloqueVinculo vehiculoId={vehiculo.id} />
+          <BloqueVinculo vehiculo={vehiculo} editable={editable} />
         </Suspense>
       ) : null}
     </>

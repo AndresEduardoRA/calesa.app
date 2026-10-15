@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Permisos } from '@/shared/lib/permisos'
 import {
   accionesDeCartera,
+  avisoDeVehiculos,
   candidatosDesde,
   carteraDesde,
   duenoDe,
@@ -204,5 +205,17 @@ describe('duenoDe y candidatos', () => {
     expect(filtrarCandidatos(lista, 'maria').map((c) => c.id)).toEqual([A])
     expect(filtrarCandidatos(lista, '  ')).toHaveLength(2)
     expect(filtrarCandidatos(lista, 'zzz')).toEqual([])
+  })
+})
+
+describe('avisoDeVehiculos', () => {
+  it('sólo con vinculados que quien mira ve', () => {
+    expect(avisoDeVehiculos(0)).toBeNull()
+    expect(avisoDeVehiculos(1)).toBe(
+      'Tiene un vehículo vinculado: quien lo reciba podrá verlo y, si su rol lo permite, editarlo.',
+    )
+    expect(avisoDeVehiculos(3)).toBe(
+      'Tiene 3 vehículos vinculados: quien lo reciba podrá verlos y, si su rol lo permite, editarlos.',
+    )
   })
 })

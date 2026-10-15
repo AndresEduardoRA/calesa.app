@@ -85,9 +85,14 @@ export { BotonEditarVehiculo } from './features/alta/components/botones'
 export { CLAVE_DE_EDICION } from './features/alta/claves'
 export { SIN_APIBARA, type DisponibilidadDeApibara } from './entities/apibara'
 
-// El vínculo a un lead y los interesados, de sólo lectura (se escriben desde la ficha del lead)
+// El vínculo a un lead y los interesados: el bloque de la ficha del vehículo, y la sección «Vehículos»
+// de la ficha del lead (vive acá y la compone `app/`: `leads` no importa `vehiculos`)
 export { VinculoEInteresados } from './features/vinculo/components/vinculo-e-interesados'
 export type { Relaciones } from './entities/vinculo'
+export { leerVehiculosDelLead } from './composicion'
+export { SeccionVehiculosDelLead } from './features/vinculo/components/seccion-vehiculos-del-lead'
+export { EsqueletoDeVehiculosDelLead } from './features/vinculo/components/esqueleto-de-vehiculos-del-lead'
+export type { VehiculosDelLead } from './entities/vehiculos-del-lead'
 
 // La subasta de un vehículo de subasta: su fecha, su estado, cuándo se consultó y refrescarla.
 export { BloqueDeSubasta } from './features/subasta/components/bloque-de-subasta'

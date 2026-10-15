@@ -33,6 +33,7 @@ const CRUDA = {
   tiene_nombre: 'Berta',
   telefonos: [{ id: OTRA, telefono: '59170011003', etiqueta: 'Casa' }],
   recordatorios_vencidos: 2,
+  vehiculos_vinculados: 1,
 }
 
 describe('fichaDesde', () => {
@@ -131,18 +132,29 @@ describe('teléfono de la ficha', () => {
 })
 
 describe('secciones', () => {
-  it('«Datos» y «Seguimientos»: hay barra de pestañas, sin números', () => {
-    expect(hayBarraDeSecciones()).toBe(true)
-    expect(seccionesDisponibles()).toEqual([
-      { clave: 'datos', titulo: 'Datos', disponible: true },
-      { clave: 'seguimientos', titulo: 'Seguimientos', disponible: true },
+  const conVehiculos = { vehiculos: true }
+  const sinVehiculos = { vehiculos: false }
+  it('«Datos», «Seguimientos» y «Vehículos»: hay barra de pestañas, sin números', () => {
+    expect(hayBarraDeSecciones(conVehiculos)).toBe(true)
+    expect(seccionesDisponibles(conVehiculos)).toEqual([
+      { clave: 'datos', titulo: 'Datos' },
+      { clave: 'seguimientos', titulo: 'Seguimientos' },
+      { clave: 'vehiculos', titulo: 'Vehículos' },
     ])
   })
+  it('sin ver vehículos, «Vehículos» no aparece ni se abre por la URL', () => {
+    expect(seccionesDisponibles(sinVehiculos).map((s) => s.clave)).toEqual([
+      'datos',
+      'seguimientos',
+    ])
+    expect(seccionDeLead('vehiculos', sinVehiculos)).toBe('datos')
+    expect(seccionDeLead('vehiculos', conVehiculos)).toBe('vehiculos')
+  })
   it('lo que no es una sección que existe abre «Datos»', () => {
-    expect(seccionDeLead(undefined)).toBe('datos')
-    expect(seccionDeLead('seguimientos')).toBe('seguimientos')
-    expect(seccionDeLead('cotizaciones')).toBe('datos')
-    expect(seccionDeLead('datos')).toBe('datos')
+    expect(seccionDeLead(undefined, conVehiculos)).toBe('datos')
+    expect(seccionDeLead('seguimientos', conVehiculos)).toBe('seguimientos')
+    expect(seccionDeLead('cotizaciones', conVehiculos)).toBe('datos')
+    expect(seccionDeLead('datos', conVehiculos)).toBe('datos')
   })
   it('el parámetro de la URL', () => {
     expect(CLAVE_DE_SECCION).toBe('seccion')

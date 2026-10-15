@@ -308,3 +308,14 @@ export function puedeAbrirLaPapelera(permisos: Permisos): boolean {
 export function puedePurgarLeads(permisos: Permisos): boolean {
   return puede(permisos, 'leads.papelera.purgar')
 }
+
+// Lo que la ficha ya sabe que la base va a rechazar: un vehículo vinculado que quien mira ve. Los que
+// no ve no se cuentan; si uno de esos lo frena, lo dice la base al intentar.
+export function motivoParaNoEnviar(vehiculosVinculados: number): string | null {
+  if (vehiculosVinculados <= 0) {
+    return null
+  }
+  return vehiculosVinculados === 1
+    ? 'Tiene un vehículo vinculado: desvincúlalo en «Vehículos» antes de enviarlo.'
+    : `Tiene ${String(vehiculosVinculados)} vehículos vinculados: desvincúlalos en «Vehículos» antes de enviarlo.`
+}

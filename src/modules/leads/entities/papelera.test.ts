@@ -4,6 +4,7 @@ import {
   diasParaLaPurga,
   envioDesde,
   lotesDesde,
+  motivoParaNoEnviar,
   palabraDePurga,
   puedeAbrirLaPapelera,
   puedeEnviarLead,
@@ -174,5 +175,17 @@ describe('quién envía y quién abre', () => {
     expect(puedeAbrirLaPapelera([])).toBe(false)
     expect(puedePurgarLeads(propios)).toBe(false)
     expect(puedePurgarLeads([permiso('leads.papelera.purgar', 'todos')])).toBe(true)
+  })
+})
+
+describe('motivoParaNoEnviar', () => {
+  it('sin vinculados que se vean, nada; con uno o varios, lo dice', () => {
+    expect(motivoParaNoEnviar(0)).toBeNull()
+    expect(motivoParaNoEnviar(1)).toBe(
+      'Tiene un vehículo vinculado: desvincúlalo en «Vehículos» antes de enviarlo.',
+    )
+    expect(motivoParaNoEnviar(2)).toBe(
+      'Tiene 2 vehículos vinculados: desvincúlalos en «Vehículos» antes de enviarlo.',
+    )
   })
 })

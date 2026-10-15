@@ -17,7 +17,9 @@ import type {
   LectorDeSubasta,
   LectorDeVehiculo,
   LectorDeVistaPrevia,
+  LectorDeVehiculosDelLead,
   LectorDeVitrinaDelOrigen,
+  RepositorioDeVinculo,
   RepositorioFotos,
   RepositorioPapelera,
   RepositorioVehiculos,
@@ -31,10 +33,12 @@ import { getEditables } from './infra/queries/editables'
 import { getGaleria } from './infra/queries/fotos'
 import { getConPermiso, getLimpiezaPendiente, getPapelera } from './infra/queries/papelera'
 import { getConsultaDeApibara, getSubasta } from './infra/queries/subasta'
+import { getVehiculosDelLead } from './infra/queries/vehiculos-del-lead'
 import { getRelaciones } from './infra/queries/vinculo'
 import { getVistaPrevia, getVitrinaDelOrigen } from './infra/queries/vitrina'
 import { buscarVehiculos as buscarEnSupabase, getVehiculo } from './infra/queries/listado'
 import { vehiculosSupabase } from './infra/vehiculos'
+import { vinculoSupabase } from './infra/vinculo'
 import { vitrinaSupabase } from './infra/vitrina'
 
 export const buscarVehiculos: BuscadorDeVehiculos = buscarEnSupabase
@@ -56,3 +60,5 @@ export const leerLimpiezaPendiente: LectorDeLimpiezaPendiente = getLimpiezaPendi
 export const leerLimpiezaAutomatica: LectorDeLimpiezaAutomatica = getLimpiezaAutomatica
 export const leerUltimaLimpieza: LectorDeUltimaLimpieza = getUltimaLimpieza
 export const repositorioDeLimpieza: RepositorioDeLimpieza = limpiezaSupabase
+export const leerVehiculosDelLead: LectorDeVehiculosDelLead = getVehiculosDelLead
+export const repositorioDeVinculo: RepositorioDeVinculo = vinculoSupabase

@@ -62,7 +62,12 @@ export function SeccionDatos({
       </Bloque>
       <BloqueDeTelefonos ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
       <BloqueDeCartera
-        lead={{ id: ficha.id, nombre: ficha.nombre, numero: ficha.numero }}
+        lead={{
+          id: ficha.id,
+          nombre: ficha.nombre,
+          numero: ficha.numero,
+          vehiculosVinculados: ficha.vehiculosVinculados,
+        }}
         cartera={cartera}
         acciones={accionesDeCartera}
       />

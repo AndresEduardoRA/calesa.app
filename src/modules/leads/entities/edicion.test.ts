@@ -81,6 +81,7 @@ const FICHA: LeadDeFicha = {
   tieneNombre: null,
   telefonos: [],
   recordatoriosVencidos: 0,
+  vehiculosVinculados: 0,
   marcas: SIN_MARCAS,
 }
 

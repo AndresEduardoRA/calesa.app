@@ -8,6 +8,7 @@ import { useConsultaDeMedios } from '@/shared/ui/use-consulta-de-medios'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import {
   MENSAJE_DE_SIN_CANDIDATOS,
+  avisoDeVehiculos,
   textoDeTransferencia,
   type PersonaDeCartera,
 } from '../../../entities/cartera'
@@ -19,7 +20,9 @@ import { ListaDePersonas } from './lista-de-personas'
 // Desde acá el panel entra al costado; por debajo es una hoja inferior.
 const COSTADO = '(min-width: 640px)'
 
-type LeadDelPanel = { id: string; nombre: string; numero: number }
+// `vehiculosVinculados`: los que quien mira ve; con alguno, el panel avisa que el vínculo se los da a
+// quien recibe el lead.
+type LeadDelPanel = { id: string; nombre: string; numero: number; vehiculosVinculados: number }
 
 const TEXTOS = {
   compartir: {
@@ -92,6 +95,9 @@ function Contenido({ modo, alCerrar, lead, cartera }: Omit<Props, 'abierto'>) {
   return (
     <div className="grid gap-4">
       <p className="text-(length:--text-sm) text-(--color-ink-soft)">{textos.ayuda}</p>
+      {avisoDeVehiculos(lead.vehiculosVinculados) ? (
+        <Aviso tono="info">{avisoDeVehiculos(lead.vehiculosVinculados)}</Aviso>
+      ) : null}
       <CandidatosOCarga estado={estado} reintentar={reintentar} vacio={candidatos.length === 0} />
       {candidatos.length > 0 ? (
         <ListaDePersonas

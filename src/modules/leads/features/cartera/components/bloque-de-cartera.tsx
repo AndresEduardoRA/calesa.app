@@ -21,7 +21,7 @@ import { useCartera } from '../hooks/use-cartera'
 import { DialogoDeSalirDiferido, PanelDeCarteraDiferido } from './diferidos'
 
 type Props = {
-  lead: { id: string; nombre: string; numero: number }
+  lead: { id: string; nombre: string; numero: number; vehiculosVinculados: number }
   // Como la leyó la página: quién lo tiene, con nombres y tipo de acceso (sin correo ni teléfono).
   cartera: readonly PersonaDeCartera[]
   // Lo que quien mira puede hacer: lo decide la página con sus permisos y la cartera.

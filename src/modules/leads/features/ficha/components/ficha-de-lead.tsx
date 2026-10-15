@@ -13,6 +13,7 @@ import {
   origenDeLaFicha,
   quienLoTiene,
   type LeadDeFicha,
+  type LoQueVe,
   type OrigenConEstado,
   type SeccionDeLead,
 } from '../../../entities/ficha'
@@ -48,6 +49,10 @@ type Props = {
   seccion: SeccionDeLead
   // Lo que la página lee en el servidor para la sección «Seguimientos» (detrás de `<Suspense>`).
   seguimientos: ReactNode
+  // La sección «Vehículos»: vive en `vehiculos` y la compone la página (`leads` no importa `vehiculos`).
+  vehiculos: ReactNode
+  // Lo que quien mira ve fuera de los leads: decide qué secciones se dibujan.
+  ve: LoQueVe
   // Las etiquetas de quien mira (para nombrar las del lead y elegir otras).
   etiquetas: readonly Etiqueta[]
   // Quién lo tiene, y lo que quien mira puede hacer con eso (compartir, transferir, quitar, salir).
@@ -63,6 +68,7 @@ type DatosDeSeccion = {
   origen: { nombre: string; activo: boolean } | null
   puedeCambiarTelefono: boolean
   seguimientos: ReactNode
+  vehiculos: ReactNode
   cartera: readonly PersonaDeCartera[]
   accionesDeCartera: AccionesDeCartera
 }
@@ -72,10 +78,24 @@ type DatosDeSeccion = {
 const CONTENIDO_DE_SECCION: Record<SeccionDeLead, (datos: DatosDeSeccion) => ReactNode> = {
   datos: (datos) => <SeccionDatos {...datos} />,
   seguimientos: (datos) => datos.seguimientos,
+  vehiculos: (datos) => datos.vehiculos,
 }
 
-// La ficha de un lead: su cabecera, la barra de secciones y la sección de `?seccion=` («Datos» o
-// «Seguimientos»). Las demás (vehículos, cotizaciones, portal, historial) llegan con su parte y no
+// El enlace de vuelta al listado, arriba de la cabecera.
+function VolverALeads() {
+  return (
+    <Link
+      href={RUTAS.leads as Route}
+      className="inline-flex min-h-11 w-fit items-center gap-1.5 text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:text-(--color-ink) hover:underline md:min-h-8"
+    >
+      <ArrowLeftIcon aria-hidden className="size-4" />
+      Leads
+    </Link>
+  )
+}
+
+// La ficha de un lead: su cabecera, la barra de secciones y la sección de `?seccion=` («Datos»,
+// «Seguimientos» o «Vehículos»). Las demás (cotizaciones, portal, historial) llegan con su parte y no
 // se dibujan hasta entonces.
 export function FichaDeLead({
   ficha,
@@ -86,6 +106,8 @@ export function FichaDeLead({
   puedeCambiarTelefono,
   seccion,
   seguimientos,
+  vehiculos,
+  ve,
   etiquetas: lista,
   cartera,
   accionesDeCartera,
@@ -99,13 +121,7 @@ export function FichaDeLead({
   const origen = origenDeLaFicha(origenes, ficha.origenId)
   return (
     <div className="grid max-w-4xl gap-4">
-      <Link
-        href={RUTAS.leads as Route}
-        className="inline-flex min-h-11 w-fit items-center gap-1.5 text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:text-(--color-ink) hover:underline md:min-h-8"
-      >
-        <ArrowLeftIcon aria-hidden className="size-4" />
-        Leads
-      </Link>
+      <VolverALeads />
       <CabeceraDeLead
         ficha={ficha}
         origen={origen}
@@ -115,7 +131,11 @@ export function FichaDeLead({
             <AccionesDeMarcas marcas={marcas} etiquetas={etiquetas} alGestionar={gestionar.abrir} />
             {puedeEditar ? <BotonEditarLead /> : null}
             {puedeEnviarAPapelera ? (
-              <MenuDeFichaDeLead leadId={ficha.id} nombre={ficha.nombre} />
+              <MenuDeFichaDeLead
+                leadId={ficha.id}
+                nombre={ficha.nombre}
+                vehiculosVinculados={ficha.vehiculosVinculados}
+              />
             ) : null}
           </>
         }
@@ -128,13 +148,14 @@ export function FichaDeLead({
         }
       />
       <AvisoDeVencidos leadId={ficha.id} vencidos={ficha.recordatoriosVencidos} seccion={seccion} />
-      <BarraDeSecciones leadId={ficha.id} actual={seccion} />
+      <BarraDeSecciones leadId={ficha.id} actual={seccion} ve={ve} />
       {CONTENIDO_DE_SECCION[seccion]({
         ficha,
         campos,
         origen,
         puedeCambiarTelefono,
         seguimientos,
+        vehiculos,
         cartera,
         accionesDeCartera,
       })}

@@ -41,6 +41,9 @@ export type LeadDeFicha = {
   telefonos: TelefonoExtra[]
   // Los recordatorios de quien mira sobre este lead que ya pasaron y no completó.
   recordatoriosVencidos: number
+  // Cuántos vehículos vinculados ve quien mira (los que no ve no se cuentan): con eso la ficha adelanta
+  // que no va a la papelera y avisa al compartir o transferir.
+  vehiculosVinculados: number
   // Las de quien mira: favorito, tachado y sus etiquetas.
   marcas: MarcasDeLead
 }
@@ -63,6 +66,7 @@ const esquemaFicha = z.object({
     z.object({ id: z.guid(), telefono: z.string(), etiqueta: z.string().nullable() }),
   ),
   recordatorios_vencidos: z.number().int().nonnegative(),
+  vehiculos_vinculados: z.number().int().nonnegative(),
   es_favorito: z.boolean().optional(),
   esta_tachado: z.boolean().optional(),
   etiquetas: z.array(z.guid()).optional(),
@@ -92,6 +96,7 @@ export function fichaDesde(crudo: unknown): LeadDeFicha | null {
     tieneNombre: f.tiene_nombre,
     telefonos: f.telefonos,
     recordatoriosVencidos: f.recordatorios_vencidos,
+    vehiculosVinculados: f.vehiculos_vinculados,
     marcas: marcasDesde(f),
   }
 }
@@ -122,34 +127,44 @@ export function origenDeLaFicha(
 // portal, historial) aparecen con su parte: ninguna pestaña lleva a la nada. Cada sección que se
 // suma agrega su clave a `SeccionDeLead` y su caso en `<FichaDeLead>`. Ninguna lleva un número: el
 // de «Seguimientos» insinuaría los privados de otros.
-export type SeccionDeLead = 'datos' | 'seguimientos'
+export type SeccionDeLead = 'datos' | 'seguimientos' | 'vehiculos'
+
+// Lo que la persona ve fuera de los leads y decide si una sección se dibuja: «Vehículos» sólo con
+// `vehiculos.ver` en algún origen (sin eso estaría siempre vacía).
+export type LoQueVe = { vehiculos: boolean }
 
 export const SECCIONES_DE_LEAD: readonly {
   clave: SeccionDeLead
   titulo: string
   disponible: boolean
+  // Qué tiene que ver la persona para que la sección aparezca.
+  pide?: keyof LoQueVe
 }[] = [
   { clave: 'datos', titulo: 'Datos', disponible: true },
   { clave: 'seguimientos', titulo: 'Seguimientos', disponible: true },
+  { clave: 'vehiculos', titulo: 'Vehículos', disponible: true, pide: 'vehiculos' },
 ]
 
 export const CLAVE_DE_SECCION = 'seccion'
 
-const disponibles = () => SECCIONES_DE_LEAD.filter((seccion) => seccion.disponible)
+const disponibles = (ve: LoQueVe) =>
+  SECCIONES_DE_LEAD.filter((seccion) => seccion.disponible && (!seccion.pide || ve[seccion.pide]))
 
 // Con una sola sección no hay nada entre qué elegir: la barra no se dibuja.
-export function hayBarraDeSecciones(): boolean {
-  return disponibles().length > 1
+export function hayBarraDeSecciones(ve: LoQueVe): boolean {
+  return disponibles(ve).length > 1
 }
 
-export function seccionesDisponibles(): readonly { clave: SeccionDeLead; titulo: string }[] {
-  return disponibles()
+export function seccionesDisponibles(
+  ve: LoQueVe,
+): readonly { clave: SeccionDeLead; titulo: string }[] {
+  return disponibles(ve).map(({ clave, titulo }) => ({ clave, titulo }))
 }
 
-// Lo que viene en la URL lo puede escribir cualquiera: lo que no es una sección que existe abre
-// «Datos».
-export function seccionDeLead(valor: string | undefined): SeccionDeLead {
-  return disponibles().find((seccion) => seccion.clave === valor)?.clave ?? 'datos'
+// Lo que viene en la URL lo puede escribir cualquiera: lo que no es una sección que existe (o que la
+// persona no ve) abre «Datos».
+export function seccionDeLead(valor: string | undefined, ve: LoQueVe): SeccionDeLead {
+  return disponibles(ve).find((seccion) => seccion.clave === valor)?.clave ?? 'datos'
 }
 
 // Un número normalizado como se lee: «+591 70011002» si es el del país de la empresa (el lead guarda

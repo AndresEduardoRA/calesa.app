@@ -17,6 +17,12 @@ import type { PermisoConAlcance } from './permisos'
 import type { SubastaDeVehiculo } from './subasta-vehiculo'
 import type { ColumnasDeSubasta, ValorDeAtributo } from './subasta'
 import type { Vehiculo } from './vehiculo'
+import type {
+  CandidatoDeVinculo,
+  RespuestaDeInteres,
+  RespuestaDeVinculo,
+  VehiculosDelLead,
+} from './vehiculos-del-lead'
 import type { Relaciones } from './vinculo'
 import type { DatosDeVitrina, VistaPreviaDeVitrina, VitrinaDelOrigen } from './vitrina'
 
@@ -200,3 +206,33 @@ export type LectorDePapelera = () => Promise<Resultado<LoteDePapelera[]>>
 
 // Lo que la limpieza de Storage tiene atrasado; null = nada, o no le corresponde saberlo.
 export type LectorDeLimpiezaPendiente = () => Promise<Resultado<LimpiezaPendiente | null>>
+
+// Los vehículos de un lead que quien mira ve (vinculados, interesados, historial). Un lead que no
+// ve da las listas vacías: la página ya decidió antes si lo muestra.
+export type LectorDeVehiculosDelLead = (leadId: string) => Promise<Resultado<VehiculosDelLead>>
+
+// Buscar entre los vehículos que quien mira ve, con su estado frente a un lead.
+export type BuscadorDeCandidatos = (pedido: {
+  leadId: string
+  texto: string
+}) => Promise<Resultado<CandidatoDeVinculo[]>>
+
+// El vínculo y el interés se escriben sólo por RPC. Un rechazo con `hint` dice el campo (`nota`).
+export type FalloDeVinculo = { ok: false; error: ErrorApp; campo?: string }
+export type RepositorioDeVinculo = {
+  // `leadId` nulo desvincula (una acción sobre el vehículo: no pide el lead).
+  vincular: (pedido: {
+    vehiculoId: string
+    actualizadoEnEsperado: string
+    leadId: string | null
+  }) => Promise<{ ok: true; data: RespuestaDeVinculo } | FalloDeVinculo>
+  marcarInteres: (pedido: {
+    vehiculoId: string
+    leadId: string
+    nota: string | null
+  }) => Promise<{ ok: true; data: RespuestaDeInteres } | FalloDeVinculo>
+  quitarInteres: (pedido: {
+    vehiculoId: string
+    leadId: string
+  }) => Promise<{ ok: true; data: RespuestaDeInteres } | FalloDeVinculo>
+}

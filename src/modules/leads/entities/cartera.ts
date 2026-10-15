@@ -173,3 +173,14 @@ export function filtrarCandidatos(
 }
 
 export const MENSAJE_DE_SIN_CANDIDATOS = 'No hay nadie más a quien dárselo.'
+
+// Al compartir o transferir: el vínculo le da los vehículos a quien recibe el lead. Sólo cuenta los que
+// quien mira ve; si no ve ninguno, no dice nada (insinuar los otros diría algo que no ve).
+export function avisoDeVehiculos(vehiculosVinculados: number): string | null {
+  if (vehiculosVinculados <= 0) {
+    return null
+  }
+  return vehiculosVinculados === 1
+    ? 'Tiene un vehículo vinculado: quien lo reciba podrá verlo y, si su rol lo permite, editarlo.'
+    : `Tiene ${String(vehiculosVinculados)} vehículos vinculados: quien lo reciba podrá verlos y, si su rol lo permite, editarlos.`
+}

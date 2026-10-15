@@ -1,9 +1,25 @@
-import { VinculoEInteresados, leerRelaciones } from '@/modules/vehiculos'
+import { VinculoEInteresados, leerRelaciones, type Vehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 
-// El vínculo y los interesados del vehículo, debajo de su ficha. Sólo lectura: se escriben desde
-// la ficha del lead (Fase 3).
-export async function BloqueVinculo({ vehiculoId }: { vehiculoId: string }) {
-  const relaciones = datosO(await leerRelaciones(vehiculoId))
-  return <VinculoEInteresados relaciones={relaciones} />
+type Props = { vehiculo: Vehiculo; editable: boolean }
+
+// El vínculo y los interesados del vehículo, debajo de su ficha. Se vinculan y se marcan desde la ficha
+// del lead; acá, quien edita el vehículo puede desvincularlo.
+export async function BloqueVinculo({ vehiculo, editable }: Props) {
+  const relaciones = datosO(await leerRelaciones(vehiculo.id))
+  return (
+    <VinculoEInteresados
+      relaciones={relaciones}
+      editable={
+        editable
+          ? {
+              id: vehiculo.id,
+              titulo: vehiculo.titulo,
+              numero: vehiculo.numero,
+              actualizadoEn: vehiculo.actualizadoEn,
+            }
+          : null
+      }
+    />
+  )
 }
