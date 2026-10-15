@@ -2404,3 +2404,162 @@ creó y quién movió, así que «creadas por» se mide aparte; las métricas po
 - **Carreras** (`pnpm db:carreras`, 7 nuevas, todas en verde al primer intento): quitar el acceso mientras el
   compartido mueve (dos órdenes), quitar una etapa mientras se mueve a ella (dos órdenes), transferir mientras
   la dueña mueve (dos órdenes) y dos guardados de etapas a la vez.
+
+## 2026-10-16 — Parte 7b: las dieciséis preguntas se resolvieron con la recomendación
+
+**Contexto:** el plan de la 7b dejó dieciséis preguntas numeradas (ocho del pedido y ocho que salieron al leer
+la base viva) y se aprobó sin responderlas una por una. Como en la 7a, se tomó la recomendación de cada una.
+**Decisión:** (1) las firmas de abajo son el contrato; (2) «Generar» lo hace Postgres y
+`logging.serverFunctions` se apaga; (3) la plantilla de WhatsApp vive en el código y se suma
+`ajustes_web.direccion_publica` sin pantalla; (4) «Portal» aparece con la cartera y el permiso, nunca vacía, y
+se mide aparte con su propio tope de 44 KB; (5) desbloquear no le avisa al cliente; (6) transferir no toca el
+acceso y el panel lo avisa; (7) la baja no toca el acceso y nombra a quien lo otorgó «(ya no está en el
+equipo)»; (8) cupo en una sesión; (9) el código tecleado lee 0→O y 1→I; (10) revocar se confirma, sin
+«Deshacer»; (11) las novedades llevan título y texto plano, también las de un vehículo no vinculado (sin
+nombrarlo), hasta 30; (12) bcrypt de costo 10 y la clave de 8 a 64 caracteres, ≤ 72 bytes, sin controles;
+(13) la sección vuelve a mostrar el código, nunca la clave; (14) fuera `trg_auditar` de `accesos_portal`;
+(15) la tabla no la lee la app; (16) cambiar la clave no corta la sesión.
+
+## 2026-10-16 — El acceso del cliente: clase 1, sólo por RPC, con la versión del acceso
+
+**Contexto:** leído contra la base viva: `otorgar_portal` reemplazaba sin versión, la policy
+`accesos_portal: leer` dejaba leer la tabla (con el **código**) a la cartera con el permiso —la 6a la acotó,
+no la cerró—, y `trg_auditar` escribía en `actividad` cada login del cliente (con `registro_id` nulo: la
+tabla no tiene `id`). Borrar una cuenta que había otorgado un acceso fallaba (FK sin `on delete`).
+**Decisión:**
+
+- **Cuatro RPC de clase 1** (cartera + `leads.portal.gestionar`, por `_lead_mio`): `portal_estado` (sin
+  bloquear; el estado, el código, quién y cuándo; nunca la clave ni el hash), `otorgar_portal(p_lead,
+p_clave, p_otorgado_en_esperado)`, `revocar_portal` (idempotente) y `portal_desbloquear` (idempotente). Lo
+  ajeno, el limbo, la papelera y lo inexistente dan el mismo `42501`.
+- **La versión es `otorgado_en`**, truncado a milisegundos y siempre mayor que el anterior (sobrevive a un
+  `Date` de JS en la cookie). `p_otorgado_en_esperado` nulo significa «creo que no hay acceso»: es la
+  excepción a `_exigir_version()`, como crear, porque el primer otorgamiento no tiene fila. Otro valor da
+  `PT409` «Ya lo otorgó Rosa hace 1 min.» (o «Ya lo otorgaste … desde otra ventana»). Revocar no mueve la
+  versión: volver a otorgar desde «revocado» no choca.
+- **Código nuevo siempre** al volver a otorgar; colisión: se comprueba y además se atrapa `unique_violation`,
+  hasta 20 intentos. Un índice único sobre el código sin guion.
+- **Sólo por RPC:** sin grant ni policy para `authenticated`; sin `trg_auditar`. `actividad` deja
+  `portal.otorgado|reotorgado|revocado|desbloqueado` con el código (y el anterior), nunca la clave; revocar o
+  desbloquear lo que no cambia no deja constancia. Los ingresos del cliente no van a `actividad`
+  (`ultimo_ingreso_en` alcanza).
+- **El código se vuelve a ver** en la sección: sin la clave no abre nada y sirve cuando el cliente lo pierde.
+  La clave se ve una vez.
+- **Revocar se confirma** (nombra el código): un «Deshacer» reabriría un código revocado. **Desbloquear** se
+  hace en el lugar y no le avisa al cliente: lo hace la persona por WhatsApp.
+- **Transferir y la baja no tocan el acceso** (es del lead). El panel de transferir lee `portal_estado` al
+  abrirse —sólo para quien lo gestiona: no suma bytes a «Datos»— y avisa que el cliente verá al nuevo dueño.
+  Con la baja, la sección dice «Rosa Mamani (ya no está en el equipo)»; si la cuenta se borra, la FK queda
+  en nulo (`on delete set null`) y dice «alguien que ya no está en el equipo».
+- **La sección «Portal»** (`?seccion=portal`) aparece con la cartera y el permiso (`puedeGestionarPortal()`),
+  nunca vacía (sin acceso: la explicación y «Dar acceso»). Medida aparte: 33,7 KB; «Datos», 42,9 KB en su
+  terreno (tope de 44 KB, sin tocar).
+  **Alternativas:** «Deshacer» al revocar (otra RPC con otra semántica); leer el estado en `lead_ficha` (suma
+  bytes a «Datos» para todos).
+
+## 2026-10-16 — La clave del cliente nunca queda en claro
+
+**Contexto:** la clave temporal es un secreto que la persona dicta. Al leer el runtime de Next 16 apareció que
+el servidor de desarrollo imprime cada Server Action **con sus argumentos** (`logging.serverFunctions`, activo
+por omisión).
+**Decisión:**
+
+- **«Generar» lo hace la base** (`codigo_dictable(10)`: 50 bits, sin I, O, 0 ni 1). Así la clave no viaja
+  como argumento, sólo en la respuesta. La escrita viaja como parámetro (PostgREST nunca la pone en el texto
+  de la consulta; `log_parameter_max_length_on_error = 0`), y ningún mensaje de error la repite.
+- **`logging: { serverFunctions: false }`** en `next.config.ts`, para todo el proyecto: no hay forma de
+  silenciar una sola action. Se pierde ese registro en desarrollo para todas.
+- **En el navegador** vive sólo en el estado del diálogo: nada en la URL (el panel es `?panel=otorgar-portal`
+  y nada más), en `console` ni en el almacenamiento. Se olvida al cerrar y cuando Next esconde la pantalla
+  (`<Activity>`: el efecto se limpia). Un test lo comprueba con un `<Activity mode="hidden">` real y falla si
+  se quita la limpieza. El campo va sin autocompletar ni corrector (el corrector mejorado de Chrome manda el
+  texto a un servicio).
+- **En la base:** bcrypt de costo 10 (antes `gen_salt('bf')`, costo 6). La regla: de 8 a 64 caracteres, hasta
+  72 bytes (bcrypt ignora lo que sigue: dos claves con los mismos 72 bytes valdrían lo mismo) y sin
+  caracteres de control; distingue mayúsculas y no se recorta. `codigo_dictable` pasa a `gen_random_bytes`
+  (`random()` no es criptográfico) y ya no la llama la app.
+
+## 2026-10-16 — El texto para WhatsApp: la plantilla en el código, la dirección en `ajustes_web`
+
+**Contexto:** no había ninguna dirección pública de la web: `ajustes_web` no tenía columna y
+`WEB_PUBLICA_REVALIDAR_URL` es el endpoint de revalidación, no el sitio.
+**Decisión:** la plantilla vive en `entities/portal-mensaje.ts` (español neutro, el nombre de
+`ajustes_empresa.nombre`, el código, la clave y que se le pedirá cambiarla). `ajustes_web.direccion_publica`
+(nula, `check ^https://`) sin pantalla hasta Configuración › Sitio web (Fase 8); sin ella el texto dice «la
+web de <empresa>» y la sección lo avisa a quien otorga. `leads` no importa `empresa` ni `web`: la página
+compone `getAjustes()` y `leerDireccionPublica()` (lo primero que exporta `web`). La plantilla editable por
+empresa queda pendiente.
+**Alternativas:** una variable de entorno (no se puede probar por e2e con y sin dirección); nada hasta la Fase 8.
+
+## 2026-10-16 — Contrato del portal para la Fase 8
+
+**Contexto:** las `web.portal_*` no tenían consumidores; la 7b las endureció y fija lo que la Fase 8 construye
+encima (route handlers `api/portal/*`, la cookie y las pantallas). Todas son sólo de `service_role` (el cinturón
+falla si una función de `web` que recibe un lead la puede llamar `anon` o `authenticated`).
+**Las firmas:**
+
+| Función                                                                                         | Devuelve                                                  | Contrato                                                                                                                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `web.portal_login(p_codigo text, p_clave text)`                                                 | `table(lead_id, nombre, debe_cambiar_clave, otorgado_en)` | Normaliza el código (mayúsculas, sin espacios ni signos, 0→O, 1→I). **Una sola respuesta, vacía,** para código inexistente, revocado, bloqueado, lead en la papelera o clave errónea, siempre con un `crypt` del mismo costo (un hash falso si no hay fila). Cinco fallos: 15 min de bloqueo, que no se alarga. |
+| `web.portal_snapshot(p_lead uuid, p_otorgado_en timestamptz)`                                   | `jsonb` o `null`                                          | `null` si la sesión no vale (revocado, vuelto a otorgar, otra versión, lead en la papelera). Claves: `cliente` (sólo `nombre`), `asesor`, `vehiculos`, `novedades`.                                                                                                                                             |
+| `web.portal_documento_ruta(p_lead uuid, p_otorgado_en timestamptz, p_documento uuid)`           | `text` o `null`                                           | La ruta privada de un documento visible: el handler la firma (URL corta) o la sirve; **nunca** la manda al navegador.                                                                                                                                                                                           |
+| `web.portal_cambiar_clave(p_lead uuid, p_otorgado_en timestamptz, p_actual text, p_nueva text)` | `boolean`                                                 | `false` si la sesión no vale, si está bloqueado o si la actual no es (cuenta como un fallo del login). La nueva sigue la regla de la clave (`22023` con el motivo). No corta la sesión.                                                                                                                         |
+
+- **La cookie:** firmada (HMAC con un secreto del servidor), `httpOnly`, `Secure`, `SameSite=Lax`, con
+  `lead_id` y `otorgado_en` **tal cual los devolvió el login**. Toda lectura los pasa; un `null` o `false`
+  borra la cookie y vuelve al ingreso. Así revocar, volver a otorgar o enviar el lead a la papelera cortan una
+  sesión abierta en la siguiente lectura.
+- **Límite por IP** en `api/portal/login` y en `cambiar-clave` (el bloqueo es por código: sin el límite, un
+  atacante prueba una clave común contra muchos códigos). El prefijo es de la empresa y la parte al azar tiene
+  32⁵ ≈ 33 millones de combinaciones.
+- **El mismo mensaje** para cualquier fallo de ingreso («El código o la clave no son correctos.»), sin decir
+  si el código existe o está bloqueado.
+- **Lo que el cliente nunca ve:** costos, proveedores, rutas de buckets privados, el VIN completo (sale
+  `vin_parcial`: 3 + 4), seguimientos privados ni eliminados, el documento del editor (sólo `detalle_texto`),
+  los campos del lead, oportunidades, etiquetas, marcas ni teléfonos. Las rutas que salen (fotos, avatar)
+  son de buckets públicos. Las **novedades** son lo «Visible para el cliente» sin vehículo o de un vehículo
+  que no está vinculado a ese lead (sin nombrarlo), las 30 más nuevas; lo de un vehículo vinculado sale con él.
+- Cambiar la clave no cambia `otorgado_en`: el corte de todas las sesiones es «Volver a otorgar».
+
+## 2026-10-16 — La auditoría ampliada de la 7b, y lo que encontraron las pruebas
+
+| Objeto                                                | Clase | Antes                                                                                  | Ahora                                                                                   |
+| ----------------------------------------------------- | ----- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `otorgar_portal`                                      | 1     | `(p_lead, p_clave) → text`, reemplazaba sin versión, bcrypt costo 6, sin tope de largo | `(p_lead, p_clave, p_otorgado_en_esperado) → jsonb`; genera la clave; versión y `PT409` |
+| `revocar_portal`                                      | 1     | igual                                                                                  | constancia con el código                                                                |
+| `portal_estado`, `portal_desbloquear`                 | 1     | no existían                                                                            | matriz principal (7 personas × 5 leads) y un caso de la cartera sin el permiso          |
+| policy `accesos_portal: leer` y su grant por columnas | —     | la cartera con el permiso leía la tabla, código incluido                               | sin policy ni grant: sólo `portal_estado`                                               |
+| `trg_auditar` en `accesos_portal`                     | —     | una fila de `actividad` por cada login del cliente                                     | quitado                                                                                 |
+| `codigo_dictable`                                     | —     | `random()`; la llamaban `anon` y `authenticated`                                       | `gen_random_bytes`; sólo las «definer»                                                  |
+| `web.portal_login`                                    | web   | el bloqueo lanzaba `42501`; lo inexistente no pagaba el hash; el bloqueo se alargaba   | una respuesta, siempre un `crypt`, `for update`, sin alargar                            |
+| `web.portal_snapshot`, `portal_documento_ruta`        | web   | sólo `p_lead`: revocar no cortaba; con el lead en la papelera daba los vehículos       | con `p_otorgado_en`; `null` si no vale; novedades                                       |
+| `web.portal_cambiar_clave`                            | web   | sin contar intentos ni mirar el bloqueo                                                | con `p_otorgado_en`, cuenta y bloquea como el login                                     |
+
+- **El cinturón** suma una regla: toda función del esquema `web` que recibe un lead (o, «definer», nombra una
+  tabla de leads) y que `anon` o `authenticated` pueden llamar hace fallar; además, que existan las cuatro
+  firmas del contrato con `service_role`, que la app no lea `accesos_portal` y que no llame a `_portal_*` ni a
+  `codigo_dictable`.
+- **Roto a propósito:** `otorgar_portal` con `puede_lead(…, 'leads.portal.gestionar')`: la matriz falló en 12
+  celdas (la supervisión sin cartera otorgaba en propio y ajeno; la baja y el bloqueado perdían su mensaje) y
+  el cinturón también.
+- **Carreras** (`pnpm db:carreras`, 7 nuevas y 3 comprobaciones de bcrypt, todas verdes al primer intento):
+  dos otorgan a la vez (los dos órdenes), revocar con el cliente entrando (los dos órdenes), desbloquear
+  mientras caen fallos (los dos órdenes) y seis fallos en paralelo bloquean justo al quinto; bcrypt real:
+  costo 10, la clave generada entra y el código anterior no, y el mismo tiempo para la clave errónea, el
+  código inexistente, el bloqueado y el revocado (~42 ms cada uno).
+- **Encontrado al probar:** el caso de «dos mil códigos sin repetir» tardaba ~50 s con `crear_lead` (el resto
+  de `db:probar`, ~6 s): los leads se escriben directo y los accesos por la RPC (3 s). En el caso del código
+  de colisión, un `$$` dentro de una función creada en el bloque cerraba el `do $$` (va con `$do$`).
+- **Encontrado por el e2e completo (celular):** «Recargar» tras un conflicto borraba el aviso al pulsarlo,
+  antes de que el refresh trajera la versión nueva; otorgar en ese instante mandaba la vieja y volvía a
+  chocar. No era una intermitencia del test sino una carrera de la pantalla: el conflicto se va cuando llega
+  la versión (`useOtorgarPortal` la compara en el render) y, mientras, los dos botones de otorgar están
+  apagados. El e2e lo afirma («Dar acceso» apagado hasta la versión nueva) y un caso unitario también. La
+  segunda corrida completa mostró **la misma carrera en el cambio del teléfono principal (parte 4b)**, que
+  hasta ahora pasaba por tiempo: mismo arreglo (`useConflictoHastaLaVersionNueva`, con la versión o el
+  principal). El redactor de seguimientos ya esperaba el refresh (`useTransition`); oportunidades y etapas
+  recargan la página entera. La tercera corrida mostró otra del mismo formulario: si la conexión volvía antes
+  de que la página procesara el envío fallido, el reintento automático salía con `isPending` todavía
+  encendido y se descartaba. «Un cambio a la vez» pasó a una marca propia (`useCambioUnaVez`), y el e2e
+  espera el aviso del envío pendiente, no el de «sin conexión» que ya estaba antes del clic. Era el único
+  formulario con ese guardia.

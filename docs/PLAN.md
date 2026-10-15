@@ -73,8 +73,8 @@ por fila, importa las válidas).
 6a (auditoría de todas las RPC y policies de leads, cartera —compartir, transferir, quitar acceso y
 salir— y papelera de leads) y **6b (sección «Vehículos» de la ficha: vincular, desvincular, interesados;
 `vehiculo_id` en seguimientos y recordatorios; la prueba de carreras con dos conexiones)** y **7a (embudos
-personales, oportunidades con kanban y sección en la ficha, transferir con oportunidades)**. Faltan la 7b
-(el acceso del cliente del lado del equipo y el endurecimiento de `web.portal_*`) y la 8 (CSV).
+personales, oportunidades con kanban y sección en la ficha, transferir con oportunidades)** y **7b (el acceso del
+cliente del lado del equipo —la sección «Portal»— y el endurecimiento de `web.portal_*`)**. Falta la 8 (CSV).
 
 **Terminado cuando:** cada empresa arma los campos de sus leads sin tocar SQL (crea «Signo zodiacal»,
 apaga «Edad», marca uno «solo la cartera») y quien ve un lead sin estar en su cartera no recibe un
@@ -150,7 +150,8 @@ la cola), guías con Tiptap y publicación por permiso, FAQs, testimonios con co
 tablero de la cola (`estado_cola_web`, `unassigned` destacado, prioridades y cupos), tarjeta de
 turno con «Contacté» y «Vincular a lead» en 2 toques, interruptor de disponibilidad en el perfil,
 revalidación de la web por trigger + `WEB_PUBLICA_REVALIDAR_URL`, route handlers del portal
-(`api/portal/*` con cookie firmada y `web.portal_*`). Módulo `repuestos`: proyectos e ítems,
+(`api/portal/*` con cookie firmada y `web.portal_*`: el contrato está en `docs/DECISIONES.md`, «Contrato del portal
+para la Fase 8», 2026-10-16). Módulo `repuestos`: proyectos e ítems,
 imágenes, stock y movimientos, compras (permiso de costos), flujo de repuestos con la misma cadena,
 esperas que destraban al vehículo, cotizador de repuestos (config append-only, tramos, cajas,
 líneas importado/local, aceptar), catálogos.
