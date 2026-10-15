@@ -41,6 +41,14 @@ test.afterAll(async () => {
 
 const exito = (page: Page, texto: string) => page.getByText(texto, { exact: true })
 
+// «Deshacer» del aviso que dice ese texto (sonner los apila: el anterior tarda en irse).
+const deshacerDe = (page: Page, texto: string) =>
+  page
+    .locator('[data-sonner-toast]')
+    .filter({ hasText: texto })
+    .getByRole('button', { name: 'Deshacer' })
+    .click()
+
 test('vincular y marcar interés con su nota desde el lead; la ficha del vehículo cuenta lo mismo', async ({
   page,
 }) => {
@@ -110,7 +118,8 @@ test('desvincular y quitar interés se hacen y se deshacen', async ({ page }) =>
     .click()
   await expect(page.getByText(new RegExp(`Se desvinculó «${auto}`))).toBeVisible()
   await expect.poll(() => leadDelVehiculo(autoId)).toBeNull()
-  await page.getByRole('button', { name: 'Deshacer' }).click()
+  // El «Deshacer» de ese aviso: el de otro puede seguir en pantalla mientras se va.
+  await deshacerDe(page, `Se desvinculó «${auto}`)
   await expect.poll(() => leadDelVehiculo(autoId)).toBe(lead.id)
 
   await interesados(page)
@@ -118,7 +127,7 @@ test('desvincular y quitar interés se hacen y se deshacen', async ({ page }) =>
     .click()
   await expect(page.getByText(new RegExp(`Se quitó el interés en «${otro}`))).toBeVisible()
   await expect.poll(() => notaDelInteres(otroId, lead.id)).toBeUndefined()
-  await page.getByRole('button', { name: 'Deshacer' }).click()
+  await deshacerDe(page, `Se quitó el interés en «${otro}`)
   await expect.poll(() => notaDelInteres(otroId, lead.id)).toBe('Para el trabajo')
 })
 
