@@ -88,7 +88,10 @@ export function useFormularioDeSeguimiento({
       envio.resolver(clave)
     },
     reintentar: () => void envio.enviar(),
-    // «Descartar» al cerrar con cambios: el borrador también se va.
-    descartarBorrador: borrador.limpiar,
+    // «Descartar» al cerrar con cambios: el borrador también se va (y el intento que esperaba la red).
+    descartarBorrador: () => {
+      borrador.limpiar()
+      envio.olvidarIntento()
+    },
   }
 }

@@ -19,6 +19,7 @@ import {
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
 import { crearSeguimiento } from '../actions/crear-seguimiento'
 import { guardarSeguimiento } from '../actions/guardar-seguimiento'
+import { useIntento } from './intento-pendiente'
 import { pedidoDelSeguimiento, type PedidoDelSeguimiento } from './pedido-del-seguimiento'
 
 type Args = {
@@ -99,16 +100,18 @@ export function useEnvioDeSeguimiento({
   const [noDisponible, setNoDisponible] = useState<string | null>(null)
   const [conflicto, setConflicto] = useConflictoHastaLaVersion(original?.actualizadoEn ?? null)
   const [pendiente, setPendiente] = useState<Pendiente | null>(null)
-  const [intento] = useState(() => crypto.randomUUID())
+  const { intento, quedoPendiente, resuelto } = useIntento(leadId, original === null)
   const acciones = useAcciones()
 
   function aplicar(envio: Envio<ResultadoDeSeguimiento>): boolean {
     if (envio.ok) {
       setPendiente(null)
+      resuelto()
       alGuardar(envio.data.seguimiento, envio.data.recordatorio ?? null)
       return true
     }
     if ('sinRed' in envio) {
+      quedoPendiente()
       setPendiente((antes) => antes ?? { desde: Date.now() })
       return false
     }
@@ -164,5 +167,7 @@ export function useEnvioDeSeguimiento({
     enLinea,
     esperandoConexion: pendiente !== null,
     enviar,
+    // «Descartar»: lo escrito se va, y con él el intento que esperaba la red.
+    olvidarIntento: resuelto,
   }
 }

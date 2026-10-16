@@ -82,6 +82,7 @@ const editado: Props = {
 
 afterEach(() => {
   cleanup()
+  window.sessionStorage.clear()
   crear.mockReset()
   guardar.mockReset()
 })
@@ -202,5 +203,26 @@ describe('useEnvioDeSeguimiento: sin red, doble envío y motivos', () => {
       result.current.resolver('titulo')
     })
     expect(result.current.errores.titulo).toBeUndefined()
+  })
+
+  it('sin red, cerrar y reabrir manda el mismo id de intento; guardar lo olvida', async () => {
+    crear.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const primero = montar(nuevo)
+    await act(() => primero.result.current.enviar())
+    primero.unmount()
+
+    crear.mockResolvedValueOnce(ok)
+    const segundo = montar(nuevo)
+    await act(() => segundo.result.current.enviar())
+    const [antes, despues] = crear.mock.calls
+    expect((despues?.[0] as { id: string }).id).toBe((antes?.[0] as { id: string }).id)
+    segundo.unmount()
+
+    crear.mockResolvedValueOnce(ok)
+    const tercero = montar(nuevo)
+    await act(() => tercero.result.current.enviar())
+    expect((crear.mock.calls[2]?.[0] as { id: string }).id).not.toBe(
+      (antes?.[0] as { id: string }).id,
+    )
   })
 })
