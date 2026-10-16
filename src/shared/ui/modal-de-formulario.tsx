@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, type ReactNode } from 'react'
+import { useRef, type ReactNode, type RefObject } from 'react'
 import { enfocarPrimerError } from '@/shared/lib/formularios'
 import { useAtajo } from './atajos'
 import { Aviso } from './aviso'
@@ -117,6 +117,31 @@ const sinPoderGuardar = (formulario: FormularioDelModal, noDisponible: string | 
   noDisponible !== null ||
   formulario.conflicto !== null
 
+// Lo que no deja guardar vale también para Enter dentro de un campo, no sólo para el botón. Y una vez
+// guardado no se vuelve a enviar: un segundo Enter antes de que el modal termine de cerrarse llamaría
+// otra vez a quien lo usa (dos avisos, dos veces la fila en la lista). Tras un intento que no guardó,
+// el foco va al primer motivo (no en cada tecla: con dos campos con motivo, escribir en uno no lleva
+// al otro).
+function useEnvio(
+  formulario: FormularioDelModal,
+  noDisponible: string | null,
+  elemento: RefObject<HTMLFormElement | null>,
+) {
+  const guardado = useRef(false)
+  const sinEnviar =
+    noDisponible !== null || formulario.conflicto !== null || formulario.recargando === true
+  return async () => {
+    if (guardado.current || sinEnviar) {
+      return
+    }
+    if (await formulario.enviar()) {
+      guardado.current = true
+    } else {
+      enfocarPrimerError(elemento.current)
+    }
+  }
+}
+
 // Un formulario en un modal, con el contrato de los que se abren por la URL (docs/DECISIONES.md,
 // 2026-10-18): los avisos arriba (sin conexión, conflicto con «Recargar», un rechazo), los campos en un
 // `<fieldset>` que se apaga mientras guarda, el modal que no se cierra mientras guarda, cerrar con algo
@@ -144,13 +169,7 @@ export function ModalDeFormulario({
     alDescartar: formulario.descartarBorrador,
   })
   const { enCurso } = formulario
-  // Tras un intento que no guardó, el foco va al primer motivo (no en cada tecla: con dos campos con
-  // motivo, escribir en uno no lleva al otro).
-  async function enviar() {
-    if ((await formulario.enviar()) === false) {
-      enfocarPrimerError(elemento.current)
-    }
-  }
+  const enviar = useEnvio(formulario, noDisponible, elemento)
   const conAtajos = abierto && !enCurso && !cierre.confirmando && noDisponible === null
   useAtajo('guardar', () => void enviar(), conAtajos)
   useAtajo('guardarYSeguir', () => void enviar(), conAtajos)

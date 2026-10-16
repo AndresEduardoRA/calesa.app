@@ -158,3 +158,26 @@ describe('ModalDeFormulario: guardar', () => {
     expect(screen.getByRole('form', { name: 'Anotar seguimiento' })).toBeTruthy()
   })
 })
+
+describe('ModalDeFormulario: no enviar de más', () => {
+  it('con un conflicto o lo que ya no está, Enter en un campo no envía', () => {
+    const formulario = base({ conflicto: 'Cambiaste esto hace 1 min.' })
+    render(<Prueba formulario={formulario} alCerrar={vi.fn()} />)
+    fireEvent.submit(screen.getByRole('form', { name: 'Anotar seguimiento' }))
+    expect(formulario.enviar).not.toHaveBeenCalled()
+  })
+
+  it('una vez guardado, un segundo Enter no vuelve a enviar', async () => {
+    const formulario = base()
+    render(<Prueba formulario={formulario} alCerrar={vi.fn()} />)
+    const elFormulario = screen.getByRole('form', { name: 'Anotar seguimiento' })
+    fireEvent.submit(elFormulario)
+    await waitFor(() => {
+      expect(formulario.enviar).toHaveBeenCalledOnce()
+    })
+    await Promise.resolve()
+    fireEvent.submit(elFormulario)
+    guardarConAtajo()
+    expect(formulario.enviar).toHaveBeenCalledOnce()
+  })
+})
