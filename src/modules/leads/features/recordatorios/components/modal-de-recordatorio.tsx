@@ -1,5 +1,6 @@
 'use client'
 
+import { useAtajo } from '@/shared/ui/atajos'
 import { Aviso } from '@/shared/ui/aviso'
 import { AvisosDelFormulario } from '@/shared/ui/avisos-del-formulario'
 import { Button } from '@/shared/ui/button'
@@ -76,6 +77,11 @@ export function ModalDeRecordatorio({
     alDescartar: formulario.descartarBorrador,
   })
   const { enCurso } = formulario
+  // `Ctrl/Cmd+S` y `Ctrl/Cmd+Enter`: sólo abierto, sin guardar en curso, sin estar preguntando por
+  // descartar y con algo que se pueda guardar.
+  const conAtajos = abierto && !enCurso && !cierre.confirmando && noDisponible === null
+  useAtajo('guardar', () => void formulario.enviar(), conAtajos)
+  useAtajo('guardarYSeguir', () => void formulario.enviar(), conAtajos)
   const titulo = original ? 'Editar recordatorio' : 'Agendar recordatorio'
 
   return (

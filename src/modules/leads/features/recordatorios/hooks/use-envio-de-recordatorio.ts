@@ -27,6 +27,8 @@ type Args = {
   // pasó no pide otra hora.
   cuandoOriginal: string
   valores: ValoresDelRecordatorio
+  // Cerrado (se descartó o se fue con «atrás»), lo que esperaba la red no sale.
+  abierto: boolean
   // Guardado (o sin nada que guardar): quien lo usa limpia el borrador y cierra.
   alGuardar: (recordatorio: ResultadoDeRecordatorio['recordatorio']) => void
 }
@@ -38,6 +40,11 @@ type PedidoQueViaja = Extract<
   ReturnType<typeof pedidoDeRecordatorio>,
   { tipo: 'crear' } | { tipo: 'guardar' }
 >
+
+// Ya no está (otra pestaña lo eliminó) o el lead dejó de verse: la página se vuelve a leer y el modal
+// lo dice; lo escrito sigue a la vista.
+const yaNoEsta = (mensaje: string) =>
+  mensaje === MENSAJE_DE_RECORDATORIO_NO_DISPONIBLE || mensaje === MENSAJE_DE_LEAD_NO_DISPONIBLE
 
 // El conflicto se va cuando llega la versión nueva que trae «Recargar», no al pulsarlo: enviar en ese
 // instante mandaría la vieja y volvería a chocar.
@@ -89,6 +96,7 @@ export function useEnvioDeRecordatorio({
   original,
   cuandoOriginal,
   valores,
+  abierto,
   alGuardar,
 }: Args) {
   const router = useRouter()
@@ -116,12 +124,7 @@ export function useEnvioDeRecordatorio({
     }
     setErrores((envio.porCampo ?? {}) as ErroresDelRecordatorio)
     setAviso(envio.porCampo ? null : envio.error.mensaje)
-    // Ya no está (otra pestaña lo eliminó) o el lead dejó de verse: la página se vuelve a leer y el
-    // modal lo dice; lo escrito sigue a la vista.
-    if (
-      envio.error.mensaje === MENSAJE_DE_RECORDATORIO_NO_DISPONIBLE ||
-      envio.error.mensaje === MENSAJE_DE_LEAD_NO_DISPONIBLE
-    ) {
+    if (yaNoEsta(envio.error.mensaje)) {
       router.refresh()
     }
     return false
@@ -154,7 +157,7 @@ export function useEnvioDeRecordatorio({
     return envio === null ? false : aplicar(envio)
   }
 
-  const enLinea = useReintentoAlVolver(pendiente, () => enviar())
+  const enLinea = useReintentoAlVolver(abierto ? pendiente : null, () => enviar())
 
   return {
     errores,

@@ -35,7 +35,7 @@ const IDS = {
 // leads (un extra no es único). Mientras guarda, nada se toca y el modal no se cierra. Quien lo monta
 // le da una `key` por apertura: cada una empieza vacía, con un id de intento nuevo.
 export function ModalDeExtra({ abierto, alCerrar, ficha, extras, guardar, boton }: Props) {
-  const formulario = useFormularioDeExtra({ ficha, extras, guardar, alCerrar })
+  const formulario = useFormularioDeExtra({ ficha, extras, guardar, alCerrar, abierto })
   const cierre = useCierreConCambios({ hayCambios: formulario.hayCambios, alCerrar })
   const { enCurso } = formulario
 

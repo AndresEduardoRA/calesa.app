@@ -15,6 +15,8 @@ type Args = {
   extras: readonly TelefonoExtra[]
   guardar: TelefonosExtra['guardar']
   alCerrar: () => void
+  // Cerrado (se descartó o se fue con «atrás»), lo que esperaba la red no sale.
+  abierto: boolean
 }
 
 type Entrada = Parameters<TelefonosExtra['guardar']>[0]
@@ -33,19 +35,39 @@ function comoSeGuarda(
   return telefonoParaMostrar(validado.numero, codigoDePais)
 }
 
+// Un envío a la vez, con una marca propia y no con `isPending`: el reintento al volver la conexión
+// puede llegar mientras el anterior todavía termina. Nulo = ya había uno en vuelo.
+function useUnaVez(guardar: TelefonosExtra['guardar']) {
+  const [enCurso, setEnCurso] = useState(false)
+  const enVuelo = useRef(false)
+  async function mandar(entrada: Entrada) {
+    if (enVuelo.current) {
+      return null
+    }
+    enVuelo.current = true
+    setEnCurso(true)
+    try {
+      return await guardar(entrada)
+    } finally {
+      enVuelo.current = false
+      setEnCurso(false)
+    }
+  }
+  return { mandar, enCurso }
+}
+
 // El estado de «Agregar teléfono»: lo escrito, los motivos junto a cada campo y el envío. El id del
 // teléfono nace al abrir y se conserva en cada reintento: guardar dos veces lo mismo no lo duplica.
 // Sin conexión, lo escrito queda y el envío sale solo al volver (una vez). Un envío a la vez: con una
 // marca propia, porque el reintento al volver puede llegar mientras el anterior todavía termina.
-export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar }: Args) {
+export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar, abierto }: Args) {
   const [id] = useState(() => crypto.randomUUID())
   const [telefono, setTelefono] = useState('')
   const [etiqueta, setEtiqueta] = useState('')
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [aviso, setAviso] = useState<string | null>(null)
-  const [enCurso, setEnCurso] = useState(false)
   const [pendiente, setPendiente] = useState<Entrada | null>(null)
-  const enVuelo = useRef(false)
+  const unaVez = useUnaVez(guardar)
 
   // El formulario sólo existe abierto: la tabla se pide al abrirlo.
   const tabla = usePaises(true)
@@ -60,15 +82,11 @@ export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar }: Args)
   })
 
   async function mandar(entrada: Entrada): Promise<boolean> {
-    if (enVuelo.current) {
+    setAviso(null)
+    const envio = await unaVez.mandar(entrada)
+    if (envio === null) {
       return false
     }
-    enVuelo.current = true
-    setEnCurso(true)
-    setAviso(null)
-    const envio = await guardar(entrada)
-    enVuelo.current = false
-    setEnCurso(false)
     if (envio.ok) {
       setPendiente(null)
       avisarExito('Teléfono agregado.')
@@ -93,7 +111,7 @@ export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar }: Args)
     return mandar({ id, telefono, etiqueta: validado.etiqueta })
   }
 
-  const enLinea = useReintentoAlVolver(pendiente, mandar)
+  const enLinea = useReintentoAlVolver(abierto ? pendiente : null, mandar)
 
   // Escribir en un campo resuelve su motivo.
   const sinMotivo = (clave: string) => {
@@ -105,7 +123,7 @@ export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar }: Args)
     etiqueta,
     errores,
     aviso,
-    enCurso,
+    enCurso: unaVez.enCurso,
     enLinea,
     // No llegó al servidor: lo escrito sigue y sale solo al volver la conexión (o con «Reintentar»).
     esperandoConexion: pendiente !== null,

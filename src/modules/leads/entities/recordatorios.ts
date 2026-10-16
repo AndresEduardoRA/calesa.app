@@ -268,3 +268,15 @@ export function hayCambiosEnRecordatorio(
     valores.vehiculo !== inicial.vehiculo
   )
 }
+
+// Llegó otra versión del recordatorio (tras «Recargar»): lo que la persona no tocó toma lo nuevo; lo
+// que cambió se queda. Así guardar no pisa con lo viejo un campo que cambió la otra ventana.
+export function conVersionNueva(
+  valores: ValoresDelRecordatorio,
+  antes: ValoresDelRecordatorio,
+  ahora: ValoresDelRecordatorio,
+): ValoresDelRecordatorio {
+  const campo = (clave: keyof ValoresDelRecordatorio) =>
+    valores[clave] === antes[clave] ? ahora[clave] : valores[clave]
+  return { titulo: campo('titulo'), cuando: campo('cuando'), vehiculo: campo('vehiculo') }
+}

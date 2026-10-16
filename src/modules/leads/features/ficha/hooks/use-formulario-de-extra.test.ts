@@ -12,7 +12,7 @@ const guardar = vi.fn<TelefonosExtra['guardar']>()
 const alCerrar = vi.fn()
 
 const montar = (extras: { id: string; telefono: string; etiqueta: string | null }[] = []) =>
-  renderHook(() => useFormularioDeExtra({ ficha: FICHA, extras, guardar, alCerrar }))
+  renderHook(() => useFormularioDeExtra({ ficha: FICHA, extras, guardar, alCerrar, abierto: true }))
 
 const envioOk = { ok: true, data: {} } as unknown as Awaited<ReturnType<TelefonosExtra['guardar']>>
 

@@ -40,12 +40,13 @@ const rechazo = (codigo: string, mensaje: string) => ({
   data: { ok: false, error: { codigo, mensaje } },
 })
 
-type Props = { original: Recordatorio | null; valores: ValoresDelRecordatorio }
+type Props = { original: Recordatorio | null; valores: ValoresDelRecordatorio; abierto?: boolean }
 
 const montar = (inicial: Props, alGuardar = vi.fn()) => {
   const hook = renderHook(
-    ({ original, valores }: Props) =>
+    ({ original, valores, abierto = true }: Props) =>
       useEnvioDeRecordatorio({
+        abierto,
         leadId: LEAD,
         zona: ZONA,
         original,
@@ -116,6 +117,31 @@ describe('useEnvioDeRecordatorio', () => {
     const [primero, segundo] = crear.mock.calls
     expect((primero?.[0] as { id: string }).id).toBe((segundo?.[0] as { id: string }).id)
     expect(alGuardar).toHaveBeenCalledOnce()
+  })
+})
+
+describe('useEnvioDeRecordatorio: sin red y lo que ya no está', () => {
+  it('cerrado (descartado o con «atrás»), lo que esperaba la red no sale al volver', async () => {
+    let conectado = true
+    vi.spyOn(window.navigator, 'onLine', 'get').mockImplementation(() => conectado)
+    const conexion = (valor: boolean) => {
+      conectado = valor
+      act(() => {
+        window.dispatchEvent(new Event(valor ? 'online' : 'offline'))
+      })
+    }
+    crear.mockRejectedValue(new TypeError('Failed to fetch'))
+    const { result, rerender } = montar(nuevo)
+    conexion(false)
+    await act(() => result.current.enviar())
+    expect(result.current.esperandoConexion).toBe(true)
+    rerender({ ...nuevo, abierto: false })
+    conexion(true)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(crear).toHaveBeenCalledOnce()
+    vi.restoreAllMocks()
   })
 
   it('uno que otra pestaña eliminó lo dice y vuelve a leer la página', async () => {

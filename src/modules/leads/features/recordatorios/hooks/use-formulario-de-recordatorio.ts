@@ -3,9 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useMemo, useState, useTransition } from 'react'
 import { localDeInstante } from '@/shared/lib/fechas'
-import { useAtajo } from '@/shared/ui/atajos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
 import {
+  conVersionNueva,
   hayCambiosEnRecordatorio,
   valoresDelRecordatorio,
   type ErroresDelRecordatorio,
@@ -21,14 +21,16 @@ type Args = {
   // Nulo = agendar uno nuevo. Al editar, la última versión que trajo la página: tras «Recargar» llega
   // la nueva y el conflicto se va, con lo escrito intacto.
   original: Recordatorio | null
-  // Sólo abierto responden `Ctrl/Cmd+S` y `Ctrl/Cmd+Enter`: cerrado, el modal sigue montado.
+  // Cerrado, el modal sigue montado: no escribe borrador ni reenvía al volver la red.
   abierto: boolean
   alGuardar: (recordatorio: ResultadoDeRecordatorio['recordatorio']) => void
 }
 
 // Agendar o cambiar un recordatorio: título, cuándo (a futuro, en la zona de la empresa) y el vehículo.
 // Lo escrito y no guardado queda como borrador de la pestaña, por recordatorio (o el nuevo de este
-// lead), y vuelve al reabrir con «Descartar». El envío es de `useEnvioDeRecordatorio`.
+// lead), y vuelve al reabrir con «Descartar»; sólo mientras está abierto (cerrado, lo descartado no
+// vuelve a escribirse). Si llega otra versión, lo no tocado la toma. El envío es de
+// `useEnvioDeRecordatorio`; los atajos de guardar, del modal (saben si está preguntando).
 export function useFormularioDeRecordatorio({ leadId, zona, original, abierto, alGuardar }: Args) {
   const router = useRouter()
   const [recargando, recargar] = useTransition()
@@ -38,7 +40,13 @@ export function useFormularioDeRecordatorio({ leadId, zona, original, abierto, a
     [original, cuandoOriginal],
   )
   const [valores, setValores] = useState<ValoresDelRecordatorio>(inicial)
+  const [inicialVisto, setInicialVisto] = useState(inicial)
+  if (inicialVisto !== inicial) {
+    setInicialVisto(inicial)
+    setValores((antes) => conVersionNueva(antes, inicialVisto, inicial))
+  }
   const borrador = useBorradorDeEstado({
+    activo: abierto,
     clave: original ? `recordatorio-${original.id}` : `recordatorio-nuevo-${leadId}`,
     valores,
     guardado: inicial,
@@ -52,13 +60,12 @@ export function useFormularioDeRecordatorio({ leadId, zona, original, abierto, a
     original,
     cuandoOriginal,
     valores,
+    abierto,
     alGuardar: (recordatorio) => {
       borrador.limpiar()
       alGuardar(recordatorio)
     },
   })
-  useAtajo('guardar', () => void envio.enviar(), abierto && !envio.enCurso)
-  useAtajo('guardarYSeguir', () => void envio.enviar(), abierto && !envio.enCurso)
 
   const escribir =
     (campo: keyof ValoresDelRecordatorio, error?: keyof ErroresDelRecordatorio) =>

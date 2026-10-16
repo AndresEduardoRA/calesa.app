@@ -108,7 +108,7 @@ export function BloqueDeRecordatorios({ leadId, zona, recordatorios, puedeAgenda
       ) : null}
       {montar ? (
         <ModalDeRecordatorioDiferido
-          key={modal.apertura}
+          key={modal.llave}
           abierto={modal.abierto}
           alCerrar={modal.cerrar}
           leadId={leadId}

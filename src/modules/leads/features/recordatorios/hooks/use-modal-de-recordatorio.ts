@@ -84,11 +84,15 @@ export function useModalDeRecordatorio({ lista, puedeAgendar }: Args) {
   const ultimo = useUltimo(recordatorioDe(objetivo))
   const modo = useUltimo(modoDe(panel.agendando, editando))
   const original = modo === 'editar' ? ultimo : null
+  // Pasar de editar uno a editar otro (o a agendar) sin cerrar —con el historial o la URL— también es
+  // una apertura nueva: no se mezcla lo escrito ni el borrador de uno con el otro.
+  const destino = useUltimo(panel.agendando ? 'agendar' : editando)
   const editandoAbierto = abierto && editando !== null
 
   return {
     abierto,
-    apertura,
+    // La `key` del modal: cada apertura y cada recordatorio empiezan de cero.
+    llave: `${String(apertura)}:${destino ?? ''}`,
     original,
     noDisponible: editandoAbierto ? motivo : null,
     abrirAgendar: panel.abrirAgendar,

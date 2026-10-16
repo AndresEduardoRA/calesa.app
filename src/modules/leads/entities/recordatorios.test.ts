@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   conRecordatorio,
+  conVersionNueva,
   estadoDelRecordatorio,
   hayCambiosEnRecordatorio,
   motivoDelTituloDeRecordatorio,
@@ -266,5 +267,18 @@ describe('hayCambiosEnRecordatorio', () => {
     expect(hayCambiosEnRecordatorio({ ...inicial, titulo: 'Llamar ' }, inicial)).toBe(false)
     expect(hayCambiosEnRecordatorio({ ...inicial, titulo: 'Escribir' }, inicial)).toBe(true)
     expect(hayCambiosEnRecordatorio({ ...inicial, cuando: '2026-10-17T09:00' }, inicial)).toBe(true)
+  })
+})
+
+describe('conVersionNueva', () => {
+  it('lo que no se tocó toma la versión nueva; lo escrito se queda', () => {
+    const antes = { titulo: 'Llamar', cuando: '2099-01-15T09:00', vehiculo: '' }
+    const ahora = { titulo: 'Llamar otra vez', cuando: '2099-01-20T09:00', vehiculo: '' }
+    const escrito = { ...antes, titulo: 'Escribirle' }
+    expect(conVersionNueva(escrito, antes, ahora)).toEqual({
+      titulo: 'Escribirle',
+      cuando: '2099-01-20T09:00',
+      vehiculo: '',
+    })
   })
 })
