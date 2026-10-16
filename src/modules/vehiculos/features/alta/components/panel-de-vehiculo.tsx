@@ -53,6 +53,7 @@ function avisarCreado(origen: OrigenResumen, { numero }: Guardado, abrirFicha: (
   const creado = concordar(origen.genero, { m: 'creado', f: 'creada' })
   avisarExito(`${mayuscula(origen.sustantivo)} #${String(numero ?? '')} ${creado}`, {
     etiqueta: 'Abrir ficha',
+    sale: true,
     alHacer: abrirFicha,
   })
 }

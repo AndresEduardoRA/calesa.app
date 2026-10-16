@@ -167,6 +167,7 @@ export function ModalDeFormulario({
     hayCambios: formulario.hayCambios,
     alCerrar,
     alDescartar: formulario.descartarBorrador,
+    abierto,
   })
   const { enCurso } = formulario
   const enviar = useEnvio(formulario, noDisponible, elemento)

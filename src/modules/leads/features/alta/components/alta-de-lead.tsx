@@ -173,6 +173,7 @@ export function AltaDeLead({ contexto, campos }: Props) {
       const seccion = conSeguimiento ? '' : `?${CLAVE_DE_SECCION}=seguimientos`
       avisarExito(textoDeLeadGuardado({ numero, adoptado, conSeguimiento }), {
         etiqueta: 'Abrir ficha',
+        sale: true,
         alHacer: () => {
           router.push(`${RUTAS.leads}/${id}${seccion}` as Route)
         },

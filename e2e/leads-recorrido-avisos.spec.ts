@@ -88,21 +88,20 @@ test('D · «Abrir ficha» del aviso de un lead nuevo con un modal sucio abierto
   await capturar(page, info, 'aviso-abrir-ficha-con-modal')
   const abrir = aviso.getByRole('button', { name: 'Abrir ficha' })
   await recibeElClic(abrir)
+  const antes = page.url()
   await abrir.click()
-  await page.waitForTimeout(1500)
-  await capturar(page, info, 'aviso-abrir-ficha-despues')
-  info.annotations.push({
-    type: 'D: «Abrir ficha» con un modal sucio',
-    description: `${page.url()} · modal ${String(await anotar.isVisible())}`,
-  })
-  // ¿Lo escrito vuelve al reabrir anotar sobre el mismo lead?
-  await page.goto(`/leads?panel=anotar-seguimiento&para=${r.uno.id}`)
-  await expect(modalDeSeguimiento(page, 'Anotar')).toBeVisible()
-  await capturar(page, info, 'aviso-abrir-ficha-reabrir')
-  info.annotations.push({
-    type: 'D: al reabrir',
-    description: await modalDeSeguimiento(page, 'Anotar').getByLabel('Resumen').inputValue(),
-  })
+  // El modal no se cierra sin preguntar: la pregunta va en su pie, con el foco en «Seguir editando».
+  await expect(anotar.getByText('Tienes cambios sin guardar.')).toBeVisible()
+  await expect(anotar.getByRole('button', { name: 'Seguir editando' })).toBeFocused()
+  await expect(anotar.getByLabel('Resumen')).toHaveValue('Lo que no quiero perder')
+  expect(page.url()).toBe(antes)
+  await capturar(page, info, 'aviso-abrir-ficha-pregunta')
+  // Descartar cierra el modal y recién ahí va a la ficha del lead nuevo.
+  await anotar.getByRole('button', { name: 'Descartar' }).click()
+  await expect(page).toHaveURL(/\/leads\/[0-9a-f-]{36}\?seccion=seguimientos$/)
+  await expect(
+    page.getByRole('heading', { name: nombre(`Nuevo del aviso ${info.project.name}`), level: 1 }),
+  ).toBeVisible()
 })
 
 test('E · sin red: lo escrito en el modal queda y sale una vez; «Ver más» dice que es la conexión', async ({

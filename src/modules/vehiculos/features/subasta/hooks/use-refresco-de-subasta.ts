@@ -56,6 +56,7 @@ export function useRefrescoDeSubasta({
         if (puedeConfigurar && pideRevisarIntegracion(codigo)) {
           avisar(mensaje, {
             etiqueta: 'Ir a Integraciones',
+            sale: true,
             alHacer: () => {
               router.push(RUTA_DE_INTEGRACIONES as Route)
             },

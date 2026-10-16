@@ -6,24 +6,39 @@
 import { toast } from 'sonner'
 import type { ErrorApp } from '@/shared/lib/errores'
 import { RUTAS } from '@/shared/lib/rutas'
+import { salirSinPerder } from './salida-con-cambios'
 
 const DESHACER_MS = 10_000
 
-type Accion = { etiqueta: string; alHacer: () => void }
+// `sale`: la acción deja la pantalla («Abrir ficha», ir a otra página). Con un formulario abierto y
+// algo escrito, antes pregunta en su pie si descartarlo (`salirSinPerder()`): el aviso está encima de
+// todo y su botón recibe el clic aunque haya un modal abierto.
+type Accion = { etiqueta: string; alHacer: () => void; sale?: boolean }
+
+function opcionesDe(accion: Accion | undefined) {
+  if (!accion) {
+    return undefined
+  }
+  const { etiqueta, alHacer, sale } = accion
+  return {
+    action: {
+      label: etiqueta,
+      onClick: sale
+        ? () => {
+            salirSinPerder(alHacer)
+          }
+        : alHacer,
+    },
+  }
+}
 
 export function avisarExito(mensaje: string, accion?: Accion): void {
-  toast.success(
-    mensaje,
-    accion ? { action: { label: accion.etiqueta, onClick: accion.alHacer } } : undefined,
-  )
+  toast.success(mensaje, opcionesDe(accion))
 }
 
 // Algo que la persona tiene que saber y no es ni un éxito ni un error.
 export function avisar(mensaje: string, accion?: Accion): void {
-  toast(
-    mensaje,
-    accion ? { action: { label: accion.etiqueta, onClick: accion.alHacer } } : undefined,
-  )
+  toast(mensaje, opcionesDe(accion))
 }
 
 export function avisarConDeshacer(mensaje: string, alDeshacer: () => void): void {
@@ -60,7 +75,9 @@ export function avisarError(error: ErrorApp): void {
       action: {
         label: 'Recargar',
         onClick: () => {
-          window.location.reload()
+          salirSinPerder(() => {
+            window.location.reload()
+          })
         },
       },
     })

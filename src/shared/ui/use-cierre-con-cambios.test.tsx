@@ -1,6 +1,9 @@
-import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, cleanup, renderHook } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { salirSinPerder } from './salida-con-cambios'
 import { useCierreConCambios } from './use-cierre-con-cambios'
+
+afterEach(cleanup)
 
 describe('useCierreConCambios', () => {
   it('sin cambios cierra directo', () => {
@@ -57,5 +60,61 @@ describe('useCierreConCambios', () => {
     })
     expect(orden).toEqual(['descartar', 'cerrar'])
     expect(result.current.confirmando).toBe(false)
+  })
+})
+
+describe('useCierreConCambios: una salida desde afuera', () => {
+  it('una salida desde afuera con cambios pregunta; «Descartar» tira lo escrito y sale sin cerrar', () => {
+    const orden: string[] = []
+    const { result } = renderHook(() =>
+      useCierreConCambios({
+        hayCambios: true,
+        alCerrar: () => orden.push('cerrar'),
+        alDescartar: () => orden.push('descartar'),
+        abierto: true,
+      }),
+    )
+    act(() => {
+      salirSinPerder(() => orden.push('salir'))
+    })
+    expect(result.current.confirmando).toBe(true)
+    expect(orden).toEqual([])
+    act(() => {
+      result.current.descartar()
+    })
+    expect(orden).toEqual(['descartar', 'salir'])
+  })
+
+  it('«Seguir editando» olvida la salida pedida', () => {
+    const salir = vi.fn()
+    const { result } = renderHook(() =>
+      useCierreConCambios({ hayCambios: true, alCerrar: vi.fn(), abierto: true }),
+    )
+    act(() => {
+      salirSinPerder(salir)
+    })
+    act(() => {
+      result.current.seguir()
+    })
+    act(() => {
+      result.current.intentarCerrar()
+    })
+    act(() => {
+      result.current.descartar()
+    })
+    expect(salir).not.toHaveBeenCalled()
+  })
+
+  it('cerrado o sin cambios no se anota: la salida sigue directo', () => {
+    const salir = vi.fn()
+    const { rerender, unmount } = renderHook(
+      ({ abierto, hayCambios }) => useCierreConCambios({ hayCambios, alCerrar: vi.fn(), abierto }),
+      { initialProps: { abierto: false, hayCambios: true } },
+    )
+    salirSinPerder(salir)
+    rerender({ abierto: true, hayCambios: false })
+    salirSinPerder(salir)
+    expect(salir).toHaveBeenCalledTimes(2)
+    unmount()
   })
 })
