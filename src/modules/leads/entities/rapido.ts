@@ -2,6 +2,8 @@
 // agrupados como el layout; en «Seguimientos», la línea de tiempo y «Tus recordatorios», con anotar y
 // agendar (`?pestana=seguimientos`). Editar el lead sigue siendo de la ficha.
 import { agruparCampos } from '@/shared/lib/campos'
+import { PANEL_ANOTAR_SEGUIMIENTO, PANEL_EDITAR_SEGUIMIENTO } from './edicion-de-seguimiento'
+import { PANEL_AGENDAR_RECORDATORIO, PANEL_EDITAR_RECORDATORIO } from './recordatorios'
 import type { CampoDeLead } from './campo'
 import type { FilaDeLead } from './listado'
 
@@ -91,6 +93,19 @@ export const PESTANAS_DEL_RAPIDO = [
   { clave: 'seguimientos', titulo: 'Seguimientos' },
 ] as const
 export type PestanaDelRapido = (typeof PESTANAS_DEL_RAPIDO)[number]['clave']
+
+// Los modales que se abren desde la pestaña «Seguimientos» (con sus ids en la URL): mientras uno está
+// abierto, el drawer no vuelve a leer su lead; al cambiar de pestaña o cerrar, se van con ella.
+const PANELES_DE_SEGUIMIENTOS: ReadonlySet<string> = new Set([
+  PANEL_ANOTAR_SEGUIMIENTO,
+  PANEL_EDITAR_SEGUIMIENTO,
+  PANEL_AGENDAR_RECORDATORIO,
+  PANEL_EDITAR_RECORDATORIO,
+])
+
+export function hayModalEnLaPestana(pestana: PestanaDelRapido, panel: string | null): boolean {
+  return pestana === 'seguimientos' && panel !== null && PANELES_DE_SEGUIMIENTOS.has(panel)
+}
 
 // La de la URL; lo que no es una pestaña que existe abre «Resumen».
 export function pestanaDelRapido(valor: string | null): PestanaDelRapido {

@@ -2,10 +2,8 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
-import { parseAsString, useQueryState } from 'nuqs'
 import { z } from 'zod'
 import { valorMostrado } from '@/shared/lib/campos'
-import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 import { formatearFechaHora } from '@/shared/lib/fechas'
 import { RUTAS } from '@/shared/lib/rutas'
 import { Button, buttonVariants } from '@/shared/ui/button'
@@ -157,6 +155,8 @@ function CuerpoDelRapido({ completo, fallo, reintentar, ...datos }: PropsDelCuer
 
 type PropsDelContenido = {
   vista: VistaDelRapido
+  // Hay un lead en la URL (el drawer no se está cerrando).
+  abierto: boolean
   pestana: PestanaDelRapido
   alElegir: (pestana: PestanaDelRapido) => void
   // El último lead que se mostró: el drawer que se cierra no se vacía.
@@ -168,6 +168,7 @@ type PropsDelContenido = {
 // Lo que va adentro del drawer según cómo esté la lectura.
 function ContenidoDelRapido({
   vista,
+  abierto,
   pestana,
   alElegir,
   ultimo,
@@ -191,7 +192,9 @@ function ContenidoDelRapido({
       </div>
     )
   }
-  const lead = vista.tipo === 'lead' ? vista.lead : ultimo
+  // El último que se mostró sólo mientras se cierra: con otro lead en la URL, se espera el suyo (con
+  // las pestañas del anterior, anotar escribiría en otro lead).
+  const lead = vista.tipo === 'lead' ? vista.lead : abierto ? null : ultimo
   if (lead === null) {
     return <EsqueletoDelRapido etiqueta="Cargando el lead" />
   }
@@ -222,10 +225,9 @@ function ContenidoDelRapido({
 // visible, mientras está abierto lo dice sin explicar por qué; con un modal abierto adentro no vuelve
 // a leer (lo dice el modal al guardar).
 export function DrawerDeLead({ filas, soloMios, ...datos }: Props) {
-  const { id, pestana, elegirPestana, cerrar } = useDrawerDeLead()
-  const [panel] = useQueryState(CLAVE_DE_PANEL, parseAsString)
+  const { id, pestana, conModal, elegirPestana, cerrar } = useDrawerDeLead()
   const idValido = id !== null && ES_GUID.safeParse(id).success
-  const { lectura, reintentar } = useLeadRapido(idValido ? id : null, panel !== null)
+  const { lectura, reintentar } = useLeadRapido(idValido ? id : null, conModal)
   const vista = vistaDelRapido({
     id,
     idValido,
@@ -247,6 +249,7 @@ export function DrawerDeLead({ filas, soloMios, ...datos }: Props) {
     >
       <ContenidoDelRapido
         vista={vista}
+        abierto={id !== null}
         pestana={pestana}
         alElegir={elegirPestana}
         ultimo={ultimo}

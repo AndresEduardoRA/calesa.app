@@ -21,7 +21,9 @@ export function useLeadRapido(id: string | null, pausado = false) {
       return
     }
     let vigente = true
-    const leer = async () => {
+    // `relectura`: la de volver a la pestaña. Si al llegar hay un modal abierto, se descarta (pudo
+    // salir justo antes de abrirlo): «no disponible» desmontaría el modal con lo escrito.
+    const leer = async (relectura: boolean) => {
       let nueva: LecturaDelRapido
       try {
         const leido = await leerLeadRapido(id)
@@ -33,14 +35,14 @@ export function useLeadRapido(id: string | null, pausado = false) {
       } catch {
         nueva = { id, estado: 'error' }
       }
-      if (vigente) {
+      if (vigente && !(relectura && enPausa.current)) {
         setLectura(nueva)
       }
     }
-    void leer()
+    void leer(false)
     const alVolver = () => {
       if (document.visibilityState === 'visible' && !enPausa.current) {
-        void leer()
+        void leer(true)
       }
     }
     document.addEventListener('visibilitychange', alVolver)

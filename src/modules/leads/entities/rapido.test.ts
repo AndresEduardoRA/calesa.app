@@ -4,6 +4,7 @@ import type { FilaDeLead } from './listado'
 import {
   gruposDelRapido,
   hayPrivadosSinRecibir,
+  hayModalEnLaPestana,
   pestanaDelRapido,
   vistaDelRapido,
   type LecturaDelRapido,
@@ -127,5 +128,15 @@ describe('pestanaDelRapido', () => {
     expect(pestanaDelRapido('seguimientos')).toBe('seguimientos')
     expect(pestanaDelRapido(null)).toBe('resumen')
     expect(pestanaDelRapido('portal')).toBe('resumen')
+  })
+})
+
+describe('hayModalEnLaPestana', () => {
+  it('sólo los modales de «Seguimientos», y sólo en esa pestaña', () => {
+    expect(hayModalEnLaPestana('seguimientos', 'anotar-seguimiento')).toBe(true)
+    expect(hayModalEnLaPestana('seguimientos', 'editar-recordatorio')).toBe(true)
+    expect(hayModalEnLaPestana('resumen', 'anotar-seguimiento')).toBe(false)
+    expect(hayModalEnLaPestana('seguimientos', 'filtros')).toBe(false)
+    expect(hayModalEnLaPestana('seguimientos', null)).toBe(false)
   })
 })
