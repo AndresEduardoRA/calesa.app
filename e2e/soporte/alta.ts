@@ -13,7 +13,7 @@ import {
 import { CLAVE } from './inventario'
 import { borrarCamposDeLeadDePrueba } from './leads'
 import { fijarCatalogosDeLead } from './leads-alta'
-import { ingresar } from './pasos'
+import { entrarConSesion } from './pasos'
 
 export const CONTRASENA = CLAVE
 
@@ -98,10 +98,13 @@ export async function limpiarAlta(restaurarCatalogos: () => Promise<void>): Prom
   await restaurarCatalogos()
 }
 
-export async function entrar(page: Page, correo: string): Promise<void> {
-  await page.goto('/ingreso')
-  await ingresar(page, correo, CONTRASENA)
-  await expect(page).toHaveURL('/')
+// Reusa la sesión de la cuenta dentro del spec (ver `entrarConSesion`).
+export async function entrar(
+  page: Page,
+  correo: string,
+  opciones?: { fresco?: boolean },
+): Promise<void> {
+  await entrarConSesion(page, correo, CONTRASENA, opciones)
 }
 
 export const dialogo = (page: Page): Locator => page.getByRole('dialog', { name: 'Nuevo lead' })

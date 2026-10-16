@@ -12,7 +12,7 @@ import {
   type PermisoDePrueba,
 } from './base'
 import { PREFIJO_CLAVE_E2E, borrarOrigenes, crearOrigenDePrueba } from './origenes'
-import { ingresar } from './pasos'
+import { entrarConSesion } from './pasos'
 import { agregarCampo, borrarVehiculosDe, cargarVehiculos, ponerOpciones } from './vehiculos'
 import { borrarLotesDePrueba } from './papelera'
 import { borrarFasesDe } from './vitrina'
@@ -147,10 +147,13 @@ export async function prepararInventario(
   return { duena, soloCorea, sinPermisos, corea, taiwan }
 }
 
-export async function entrar(page: Page, correo: string): Promise<void> {
-  await page.goto('/ingreso')
-  await ingresar(page, correo, CLAVE)
-  await expect(page).toHaveURL('/')
+// Reusa la sesión de la cuenta dentro del spec (ver `entrarConSesion`).
+export async function entrar(
+  page: Page,
+  correo: string,
+  opciones?: { fresco?: boolean },
+): Promise<void> {
+  await entrarConSesion(page, correo, CLAVE, opciones)
 }
 
 export const esMovil = (page: Page) => (page.viewportSize()?.width ?? 1280) < 768
