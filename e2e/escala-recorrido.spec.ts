@@ -39,18 +39,26 @@ const filasDelListado = (page: Page): Locator => aLaVista(page.locator('tbody tr
 async function paginar(page: Page, veces: number) {
   for (let i = 0; i < veces; i += 1) {
     const siguiente = page.getByRole('link', { name: 'Siguiente' })
-    if ((await siguiente.count()) === 0) {
+    // Los enlaces de página hidratan un momento después de las filas.
+    const hay = await siguiente.waitFor({ state: 'visible', timeout: 10_000 }).then(
+      () => true,
+      () => false,
+    )
+    if (!hay) {
       return i
     }
+    const antes = page.url()
     await siguiente.click()
+    await expect.poll(() => page.url()).not.toBe(antes)
     await expect(filasDelListado(page).first()).toBeVisible()
   }
   return veces
 }
 
-for (const [quien, correo] of [
-  ['la dueña', DUENA],
-  ['Ana', ANA],
+// Un nombre que sólo coincide con una fila de hace meses de cada una.
+for (const [quien, correo, antiguo] of [
+  ['la dueña', DUENA, 'Volumen 12345 '],
+  ['Ana', ANA, 'Volumen 21500 '],
 ] as const) {
   test(`listado de ${quien}: muchas páginas, «atrás» y llegar a lo antiguo`, async ({
     page,
@@ -58,10 +66,15 @@ for (const [quien, correo] of [
     test.setTimeout(180_000)
     await entrarComo(page, correo)
     await page.goto('/leads')
-    await expect(filasDelListado(page).first()).toBeVisible()
+    await expect(page).toHaveURL(/\/leads/)
+    await expect(filasDelListado(page).first()).toBeVisible({ timeout: 30_000 })
     await capturar(page, info, `${quien}-listado-inicio`)
     const hechas = await paginar(page, 10)
+    expect(hechas).toBe(10)
     await capturar(page, info, `${quien}-listado-pagina-${String(hechas + 1)}`)
+    // Lo que queda al pie de la página: dónde se pagina.
+    await page.getByRole('navigation', { name: 'Páginas' }).scrollIntoViewIfNeeded()
+    await capturar(page, info, `${quien}-listado-pie-de-pagina`)
     const enPantalla = await filasDelListado(page).count()
     notas(
       info,
@@ -76,6 +89,7 @@ for (const [quien, correo] of [
     // «Atrás» vuelve a la página anterior, no al principio.
     const url = page.url()
     await page.goBack()
+    notas(info, 'url tras atrás', `${url} → ${page.url()}`)
     await expect(filasDelListado(page).first()).toBeVisible()
     expect(page.url()).not.toBe(url)
     await capturar(page, info, `${quien}-listado-atras`)
@@ -92,7 +106,7 @@ for (const [quien, correo] of [
     notas(info, 'búsqueda sin resultados', `${quien}: ${String(Date.now() - inicio)} ms`)
     await capturar(page, info, `${quien}-sin-resultados`)
     // Un nombre que sólo coincide con una fila de hace meses.
-    await page.goto('/leads?q=Volumen%2012345%20')
+    await page.goto(`/leads?q=${encodeURIComponent(antiguo)}`)
     await expect(filasDelListado(page).first()).toBeVisible({ timeout: 60_000 })
     await capturar(page, info, `${quien}-busqueda-antigua`)
   })
@@ -112,19 +126,23 @@ test('el kanban de la dueña con una columna de 8.000: «Ver más» hasta el top
       .first()
       .click()
   }
-  const verMas = aLaVista(page.getByRole('button', { name: /^Ver más/ })).first()
+  const columna = aLaVista(page.locator('section[aria-label*="más de 500"]')).first()
+  await expect(columna).toBeVisible()
   for (let i = 0; i < 12; i += 1) {
+    const verMas = columna.getByRole('button', { name: /^Ver más/ })
     if ((await verMas.count()) === 0) {
       break
     }
+    const antes = await columna.getByRole('article').count()
     await verMas.click()
-    await page.waitForLoadState('networkidle')
+    await expect(columna.getByRole('article')).not.toHaveCount(antes)
   }
-  await expect(page.getByText(/Mostrando las 500 con actividad más reciente/)).toBeVisible()
+  await expect(columna.getByText(/Mostrando las 500 con actividad más reciente/)).toBeVisible()
   notas(info, 'nodos del kanban', `${String(await nodos(page))} nodos`)
   expect(await nodos(page)).toBeLessThan(
     NODOS_MAXIMOS[info.project.name as 'escritorio' | 'movil'] * 2,
   )
+  await columna.getByText(/Mostrando las 500 con actividad más reciente/).scrollIntoViewIfNeeded()
   await capturar(page, info, 'kanban-tope')
 })
 
@@ -141,7 +159,7 @@ test('las papeleras, vehículos e importación de la dueña', async ({ page }, i
   await expect(page.getByRole('heading', { name: 'Papelera de vehículos' })).toBeVisible()
   await capturar(page, info, 'papelera-vehiculos')
   await page.goto('/vehiculos')
-  await expect(page.getByRole('heading', { name: 'Inventario', level: 1 })).toBeVisible()
+  await expect(page.getByPlaceholder('Buscar por título, VIN o lote')).toBeVisible()
   await capturar(page, info, 'vehiculos')
   await paginar(page, 5)
   await capturar(page, info, 'vehiculos-pagina-6')
@@ -177,7 +195,8 @@ test('paginar el listado sin red', async ({ page }, info) => {
   await expect(filasDelListado(page).first()).toBeVisible()
   await page.context().setOffline(true)
   await page.getByRole('link', { name: 'Siguiente' }).click()
-  await page.waitForTimeout(1500)
+  await expect(page.getByText(/Sin conexión: no se puede cambiar de página/)).toBeVisible()
+  await expect(filasDelListado(page).first()).toBeVisible()
   await capturar(page, info, 'paginar-sin-red')
   notas(info, 'paginar sin red', `URL: ${page.url()}`)
   await page.context().setOffline(false)
