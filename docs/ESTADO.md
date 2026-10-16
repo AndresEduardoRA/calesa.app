@@ -6,13 +6,13 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-17
-**Fase actual:** 3 — Leads, **partes 8a y 8b hechas** (CSV: exportar, importar y deshacer una importación durante 24 h). Falta sólo el **cierre de la fase**.
+**Fase actual:** 3 — Leads, **partes 8a, 8b y 9a hechas** (CSV; y el país del teléfono: se dice al tipear, llena «País» y se ve en la ficha y el CSV). Falta sólo el **cierre de la fase**.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
   reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
-  y las partes 1 a 8b de la Fase 3. **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  y las partes 1 a 9a de la Fase 3 (e2e completo: 488 en verde). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
   `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: lo grabado.
 - **Leads (1 a 8b):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
   oportunidades y **«Portal»**: el acceso del cliente), marcas, «Quién lo tiene», papelera, embudos con kanban;
@@ -20,7 +20,7 @@
   clases (`docs/DECISIONES.md`, 2026-10-15) y el cinturón de `db:probar` falla si una nueva no está auditada.
   **CSV:** exportar la cartera (≤ 5.000, 5 por hora), importar (≤ 500 filas, lotes de 50, reglas del alta) y
   **deshacer** lo importado que sigue intacto durante 24 h (clase X; «Tus importaciones recientes» en `/leads/importar`).
-  **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
+  **País del teléfono (9a):** tabla estática de 242 países, sólo con `import()`, sin SQL. **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
@@ -29,7 +29,7 @@ Abierto: lotes de 50 (100 cabe). Un e2e que falla deja sus artefactos en `e2e-fa
 
 ## Pendientes que se arrastran
 
-- **Ficha:** «Datos» 43,3 de 44 KB, «Oportunidades» 42,2 con tres, «Portal» 33,7; si se pasa, se recortan las
+- **Ficha:** «Datos» 43,4 de 44 KB, «Oportunidades» 42,2 con tres, «Portal» 33,7; si se pasa, se recortan las
   props. **Embudos:** plantilla de etapas por empresa; tablero de equipo (Fase 9, `tablero.metricas.ver`).
   **Portal:** plantilla del texto por empresa; `ajustes_web.direccion_publica` sin pantalla; la Fase 8 hace
   `api/portal/*`, la cookie con `otorgado_en`, el límite por IP y el ingreso según el contrato de
@@ -73,7 +73,7 @@ Abierto: lotes de 50 (100 cabe). Un e2e que falla deja sus artefactos en `e2e-fa
   mirar la papelera. `limpieza_el` corre con los derechos de la base. Despublicar no revoca la URL de una foto.
 - «Ver como» acota la interfaz, no las filas que entrega la base (en leads fuerza «míos»). `storage-gc` y
   `apibara` (Deno) no entran en lint ni typecheck. Falta probar fotos en iPhone. `tipo_acceso = 'adoptado'`
-  quedó sin uso. La ficha parte los números con el código del lead: un extra de otro país se ve sin partir.
+  quedó sin uso.
 - Dos mensajes de RPC hablan de vos: `cambiar_fase` y la fórmula. Sin interfaz: `demora_dias_default`,
   `lead_dormido_meses`, el logo oscuro, `push_web`, `web_publica`, `ajustes_web.origenes_visibles`,
   `fases.publica_web`, el `icono` y el orden de los orígenes. Sin enforcement: `equipo.usuarios.ver`,

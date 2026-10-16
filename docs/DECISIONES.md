@@ -2699,3 +2699,58 @@ número: se tomó la recomendación de cada una.
   **Alternativas:** reutilizar `leads_papelera_enviar` (todo o nada y con `leads.eliminar`: no servía); borrar en vez
   de mandar a la papelera (irreversible); un trigger por tabla que marque «tocado» (más superficie que mirar al
   deshacer, y escribiría en cada operación de leads).
+
+## 2026-10-17 — El país del teléfono: una tabla estática en el cliente, y «País» sigue al número
+
+**Contexto:** quien tipeaba «+54 9 11…» no veía de qué país era el número; «País» sólo traía el de la empresa; la
+ficha partía únicamente los números de la empresa y un extra de otro país se veía «+5491155550000»; la importación
+dejaba «País» vacío (ni el CSV ni la base aplican `valor_defecto_empresa`: eso era sólo del formulario del alta).
+**Decisión:**
+
+- **Tabla propia, no librería.** 242 países y territorios con código de llamada propio (plan E.164): `nombres.ts`
+  (ISO → nombre en español, el de ICU salvo «Islas Åland» y «Costa de Marfil») y `prefijos.ts` (dígitos → ISO). El
+  chunk compilado pesa 6,3 KB (3,4 KB comprimido) y sólo se pide con `import()`. `libphonenumber-js` (no está en el
+  proyecto) pesa varias veces más, no trae los nombres en español y valida mucho más de lo que hace falta. La prueba
+  compara cada ISO y cada nombre con `Intl.DisplayNames('es')`, exige prefijos sin 0 y sin choques entre códigos.
+- **Sin SQL ni migración:** el país es texto dentro de `atributos.pais`; no hay nada que la base tenga que saber.
+  `normalizar_telefono()` no cambia (el espejo `telefono.ts` tampoco).
+- **Lo que no se adivina:** +1 (Estados Unidos y Canadá comparten plan y sus áreas se superponen y cambian) y +590
+  (Guadalupe, San Bartolomé y San Martín) dicen «Estados Unidos o Canadá» y, con «País» activo, ofrecen un botón por
+  país. El Caribe del +1 **sí** se sabe, por su área (809/829/849 → República Dominicana, 787/939 → Puerto Rico, 876
+  y 658 → Jamaica, 242 → Bahamas…: 27 áreas). +7 es Rusia salvo 76 y 77 (Kazajistán). Sub-prefijos deterministas:
+  +262 (Mayotte), +599 (Curazao y Caribe neerlandés), +358 18 (Åland), +39 06 698 (Vaticano), +47 79 (Svalbard),
+  +61 8916 (Christmas y Cocos) y +212 5288/5289 (Sáhara Occidental). Guernsey, Jersey y Man quedan como Reino Unido:
+  comparten el +44 y sus móviles no se distinguen. Un prefijo sin país dice «Código de país desconocido».
+- **Qué se guarda:** el nombre como **texto**, igual que hoy. Si el número cae en la **misma regla** que el código
+  de la empresa (o no trae «+» ni «00»), se guarda **el texto de la empresa**: no hay dos grafías de «Bolivia».
+  Con +1 la regla es la misma para toda la zona: una empresa de Estados Unidos que escribe un número +1 416 queda
+  con su texto («Estados Unidos»); con 809 es otra regla y queda República Dominicana. **Pendiente de revisar si
+  molesta en una empresa en +1:** es la única parte que adivina, y lo hace a favor de la empresa.
+- **«País» sigue al número** mientras esté vacío o tenga algo que puso el sistema: el de la empresa con el que nació
+  el alta, el último sugerido, el que se eligió con un botón o el país del número que había antes (así un borrador
+  repuesto sigue). Lo que la persona escribe no se pisa; si lo borra, vuelve a seguir **al próximo cambio del
+  número** (no se vuelve a llenar solo en el momento: no se le puede impedir dejarlo vacío). Un número a medio tipear
+  no toca nada. Sin tabla (todavía no llegó o falló la red), nada se llena.
+- **Se busca por clave:** `clave === 'pais'` y activo (es de fábrica: no cambia de clave ni de tipo), así que
+  renombrarlo («País de residencia») sigue andando y el aviso usa su etiqueta de hoy. Apagado: la línea con el país
+  se dice igual, pero no se llena nada ni se ofrecen botones.
+- **La línea sale al tipear**, no tras la verificación: es una cuenta local. Se esconde cuando la verificación dice
+  «existe», «de otro» o «limbo» (manda el aviso y no se muestra nada del otro lead). Va en la `ayuda` del campo
+  (enlazada por `aria-describedby`) y el cambio de país se anuncia aparte, una vez, en una región `sr-only`.
+- **Un lead que ya existe nunca cambia de país por cambiar un teléfono:** el cambio del principal y los extras de la
+  ficha sólo dicen el país del número, no tocan `atributos`. El lead del limbo que se toma completa «País» sólo si no
+  lo tenía (la regla de siempre, `_atributos_completar`).
+- **La ficha** pide la tabla ya hidratada: el documento (RSC y HTML) no cambia y el presupuesto de «Datos» no se
+  toca. Parte cada número por su código y dice el país; el enmascarado («•••») no lleva país: con tres dígitos no es
+  seguro (+1 809 queda «180») y no se revela más de lo que ya se ve. Como la ficha no lee `ajustes_empresa`, usa el
+  nombre de la tabla, no el texto de la empresa.
+- **El CSV** completa «País» en `prepararFilas()` con el mismo cálculo: sólo donde la celda viene vacía o el archivo
+  no trae la columna. La vista previa lo dice en esa fila y el archivo de errores conserva las celdas originales.
+  **Alternativas:** `libphonenumber-js` (peso y nombres); guardar el ISO en `atributos.pais` (el campo es de texto
+  libre y hoy guarda «Bolivia»: habría dos formas en la cartera); preguntar el país al servidor (una petición más por
+  dígito, y la tabla es estática); adivinar +1 (un lead de Canadá marcado como de Estados Unidos).
+  **Consecuencia:** la tabla vive en `leads/entities/paises/` con su prueba; un import estático de ella en el shell
+  rompe el e2e «la tabla de países no viaja con /leads».
+  **Medido:** el JS cliente total creció 5,6 KB con gzip (788,5 → 794,1) contra la parte 8b: 3,4 KB son el chunk de la tabla y
+  2,2 KB el pegamento que entra en el shell (el alta está en todas las rutas): `resolver`, `pais-del-telefono`, el estado del
+  alta y los hooks. Es más de lo previsto; se acepta porque la tabla, que es lo grande, no viaja. «Datos» 43,4 de 44 KB.
