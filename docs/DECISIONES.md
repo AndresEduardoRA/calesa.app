@@ -2993,3 +2993,63 @@ un campo que había cambiado la otra ventana. `Ctrl/Cmd+S` no guarda mientras el
 a la vez (un doble Enter otorgaba dos veces), otra generación también al reabrir, y si la clave llega con el diálogo ya cerrado se
 avisa que el acceso cambió («Vuelve a otorgarlo para dictarle una nueva»). **Queda aceptado:** «atrás» durante un guardado cierra el
 modal; si ese guardado falla, el motivo queda en el modal cerrado (al reabrir empieza de cero).
+
+## 2026-10-18 — Parte 9d: un solo modal de seguimiento, la pestaña del drawer y las acciones de la fila
+
+**Contexto.** Anotar y editar un seguimiento eran un redactor dentro de la ficha (sin URL; se abría solo si había un borrador;
+Esc lo plegaba; el conflicto se borraba al pulsar «Recargar»). El drawer del lead era de sólo lectura y el «⋯» de la fila sólo
+tenía marcas. La 9d los lleva al patrón «modal por URL» de la 9c.
+
+**Un solo contrato, en una pieza de `shared`.** El modal del recordatorio (9c) y el del seguimiento repetían casi todo: avisos,
+`<fieldset>` y `bloqueado` mientras guarda, el descarte en el mismo pie, atajos, la revisión al abrir, un envío a la vez y el
+conflicto que espera la versión nueva. Todo salía **genérico y sin banderas** (lo que cambia son datos: el título, el texto del
+conflicto, la etiqueta del botón), así que es `ModalDeFormulario` con tres hooks (`useUnEnvioALaVez`,
+`useConflictoHastaLaVersion`, `useRevisionAlAbrir`), archivos nuevos de `shared/ui` con un solo test de contrato. El recordatorio,
+el teléfono extra y el seguimiento son modales delgados encima. **Alternativa:** dos modales con el test de contrato copiado: la
+próxima diferencia entre ellos sería un defecto. El foco va al primer motivo **tras un intento que no guardó**, no cada vez que
+cambian los motivos: con dos campos con motivo, escribir en uno llevaba el foco al otro.
+
+**El borrador no abre el modal solo.** Con el modal, abrirse al cargar la sección sería un modal que aparece sin pedirlo. En su
+lugar, «Tienes un seguimiento sin guardar» con «Continuar» (las mismas claves de borrador que el redactor: lo viejo vuelve igual).
+
+**«Recargar» vuelve a leer lo cargado, no la página.** `router.refresh()` volvía a sembrar sólo la primera página: un seguimiento de
+«Ver más» desaparecía de la lista (y el conflicto, borrado al pulsar, volvía a chocar). `useSeguimientos.releer()` lee desde el
+principio tantas páginas como había, con la misma RPC; sirve igual a la ficha y al drawer (que lee en el navegador). Un
+`?seguimiento=<id>` que no está entre lo cargado se busca hasta 5 páginas antes de decir que no está. **Con el modal abierto, un lead
+que deja de verse no recarga la pantalla:** el modal lo dice y lo escrito queda (en el drawer y en la tabla, volver a
+leer no traería nada mejor).
+
+**El drawer, con pestañas y sin RPC nueva.** «Resumen» (lo de antes) y «Seguimientos» (`?pestana=`), que lee al elegirla, desde el
+navegador, las mismas tres consultas de la ficha (`lead_seguimientos`, `tipos_seguimiento`, `recordatorios_vista`). Cambiar de
+pestaña no suma al historial: «atrás» cierra el drawer. Los modales de la pestaña se dibujan dentro del drawer (Base UI los anida).
+**Con un `?panel=` abierto, el drawer no vuelve a leer al volver a la pestaña:** un «no disponible» reemplazaría el contenido y
+desmontaría el modal con lo escrito. Las pestañas son propias (`role="tablist"`, flechas, Inicio y Fin, como las del embudo): las
+de Base UI sumaban 4,3 KB con gzip a la carga del listado. El vehículo no se ofrece fuera de la ficha: `leads` no lee vehículos
+(la página se los pasa a la sección), y pasarlos al drawer o a la tabla sería un ciclo con `vehiculos` o una prop más en el
+listado; editar uno que ya tiene vehículo lo conserva.
+
+**La regla `para=`.** Anotar o agendar desde el «⋯» de una fila no abre el drawer, así que el lead no puede ir en `?lead=`: va en
+`?para=<id>`, con el mismo `?panel=` de la ficha. Los paneles de la ficha y del drawer no responden si hay `para`; los del listado
+no responden si hay `lead` (nunca un modal del listado sobre el drawer). `para` tiene que ser una fila de la página, de la cartera de
+quien mira, con `leads.editar`; si no, no abre y dice lo mismo que un lead que no existe. Ya abierto, el lead queda fijo (volver a
+leer la lista no lo cierra), y el listado no se relee al volver a la pestaña con un panel abierto. El modal se monta una vez en el
+listado y se pide al abrirse; los tipos se leen la primera vez. El listado suma una sola prop, `puedeAnotar` (un booleano):
+una lista de ids como `eliminables` pesaría hasta 2 KB para decir lo mismo. Al guardar, un aviso de éxito: la fila no muestra nada
+de seguimientos ni de recordatorios (privacidad), así que no hay nada que actualizar. El «⋯» pasa a llamarse «Más acciones de …».
+
+**Medido.** «Datos» 43,3–43,4 KB (sin cambio). `/leads`: el documento 65,9 → 66,0 KB sobre `/perfil`; el JS en frío 505,0 →
+508,9 KB con gzip (de 22 a 25 chunks): el código del menú, las acciones y el drawer, y un chunk compartido de entidades de leads
+que ahora trae también la línea de tiempo (Turbopack la agrupa con lo que el listado ya usaba). Con las pestañas de Base UI eran
+512,8. El presupuesto de `/leads` se fija en el cierre de la fase.
+
+**Lo que encontró la revisión adversarial (corregido en commits propios).** `buscar()` salía en silencio con otra lectura en vuelo
+(o si fallaba) y eso se leía como «no está»: ahora dice si buscó, espera a la lectura en vuelo y una falla no rechaza la URL. «Ver
+más» y buscar reinstalaban la foto de cuando se pidió (un seguimiento eliminado mientras tanto volvía): suman sólo lo nuevo sobre la
+lista de ahora. Lo que ya se abrió no se vuelve a decidir: perder el permiso o que el editado deje de estar no cierra el modal. El
+drawer pausaba la relectura con cualquier `?panel=` (también uno huérfano) y una lectura ya lanzada podía desmontar el modal; con otro
+lead en la URL mostraba las pestañas del anterior. Enter en un campo enviaba con un conflicto o lo editado ya no disponible, y un
+segundo Enter tras guardar volvía a avisar: lo frena `ModalDeFormulario`. Un alta que salió sin red guarda su id de intento en la
+pestaña hasta guardar o descartar: reabrir con el borrador no duplica. **Queda aceptado:** si ese primer envío había llegado y la
+persona cambió lo escrito antes del reintento, la base devuelve el que llegó (`repetido`) y lo nuevo no se guarda; el modal de la
+fila cambia de diálogo al llegar los tipos (un parpadeo); los tipos leídos quedan para la sesión del listado (uno que se apaga después
+lo rechaza la base junto al campo); el «Descartar» del aviso de borrador repuesto apunta al modal en que apareció (como en la 9c).
