@@ -7,6 +7,8 @@ import { cn } from 'cn'
 import { RUTAS } from '@/shared/lib/rutas'
 import { Campo } from '@/shared/ui/campo'
 import { Button } from '@/shared/ui/button'
+import { OpcionesDePais } from './opciones-de-pais'
+import type { OpcionDePais } from '../../../entities/paises/resolver'
 import {
   leadAbrible,
   type AvisoDeTelefono,
@@ -18,10 +20,21 @@ export type EstadoDelTelefono = {
   verificando: boolean
   verificacion: Verificacion | null
   aviso: AvisoDeTelefono | null
-  // «+591 70011002»: cómo va a quedar guardado lo que se escribió.
+  // «+54 91155550000 · Argentina»: cómo va a quedar guardado lo que se escribió y de qué país es,
+  // calculado al tipear (sin el servidor).
   comoSeGuarda: string | null
   // «Tomar lead» aceptado (sólo en el alta).
   adoptar: boolean
+}
+
+// Lo del país que sólo existe cuando «País» del lead está activo.
+export type PaisDelCampo = {
+  // Cuando el prefijo es de varios países (+1, +590): a quién se le pregunta.
+  opciones: readonly OpcionDePais[]
+  // Lo que tiene «País» ahora y cómo se llama ese campo hoy.
+  elegido: string
+  etiquetaDelCampo: string
+  alElegir: (nombre: string) => void
 }
 
 type Props = {
@@ -36,6 +49,9 @@ type Props = {
   alTomar?: (tomarlo: boolean) => void
   etiqueta?: string
   autoFocus?: boolean
+  pais?: PaisDelCampo | null
+  // Lo que se le dice al lector de pantalla cuando el país del número cambia.
+  anuncio?: string | null
 }
 
 const TONO = {
@@ -121,7 +137,7 @@ function AvisoDelTelefono({ aviso, verificacion }: PropsDelAviso) {
 
 // Lo que se sabe del teléfono: verificándose, nuevo, de quién es, sin dueño.
 function LoQueSeSabe({ telefono, hayError, alTomar }: PropsDelEstado) {
-  const { verificando, aviso, comoSeGuarda, adoptar, verificacion } = telefono
+  const { verificando, aviso, adoptar, verificacion } = telefono
   if (verificando) {
     return (
       <p className="flex items-center gap-1.5 text-(--color-ink-soft)">
@@ -136,15 +152,23 @@ function LoQueSeSabe({ telefono, hayError, alTomar }: PropsDelEstado) {
       {!hayError && conTexto ? (
         <AvisoDelTelefono aviso={aviso} verificacion={verificacion} />
       ) : null}
-      {!hayError && verificacion?.estado === 'libre' && comoSeGuarda ? (
-        <p className="text-(--color-ink-soft)">Se guardará como {comoSeGuarda}.</p>
-      ) : null}
       {verificacion?.estado === 'limbo' && alTomar ? (
         <div className="flex flex-wrap items-center gap-2">
           <TomarLead adoptar={adoptar} alTomar={alTomar} />
         </div>
       ) : null}
     </>
+  )
+}
+
+// La línea con el país se ve apenas el número es un teléfono, también mientras se verifica. Un número
+// que ya existe, es de otro o está sin dueño la cede al aviso: nada del otro lead se mezcla.
+function sePuedeDecirComoQueda(telefono: EstadoDelTelefono, error: string | undefined): boolean {
+  const estado = telefono.verificacion?.estado
+  return (
+    error === undefined &&
+    telefono.comoSeGuarda !== null &&
+    (estado === undefined || estado === 'libre')
   )
 }
 
@@ -161,7 +185,10 @@ export function CampoTelefono({
   alTomar,
   etiqueta = 'Teléfono principal',
   autoFocus = true,
+  pais = null,
+  anuncio = null,
 }: Props) {
+  const lineaVisible = sePuedeDecirComoQueda(telefono, error)
   return (
     <div className="grid gap-1.5">
       <Campo
@@ -177,8 +204,20 @@ export function CampoTelefono({
         }}
         onBlur={alSalir}
         error={error}
+        ayuda={lineaVisible ? `Se guardará como ${telefono.comoSeGuarda ?? ''}.` : undefined}
         disabled={deshabilitado}
       />
+      <p aria-live="polite" className="sr-only">
+        {lineaVisible ? anuncio : null}
+      </p>
+      {lineaVisible && pais && pais.opciones.length > 0 ? (
+        <OpcionesDePais
+          opciones={pais.opciones}
+          elegido={pais.elegido}
+          etiquetaDelCampo={pais.etiquetaDelCampo}
+          alElegir={pais.alElegir}
+        />
+      ) : null}
       <div aria-live="polite" className="grid gap-1.5 text-(length:--text-sm)">
         <LoQueSeSabe telefono={telefono} hayError={error !== undefined} alTomar={alTomar} />
       </div>

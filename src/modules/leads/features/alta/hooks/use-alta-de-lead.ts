@@ -2,7 +2,6 @@
 
 import { useAction } from 'next-safe-action/hooks'
 import { useMemo, useState } from 'react'
-import type { ValorDeFormulario } from '@/shared/lib/campos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import { CLAVE_DEL_ALTA, valoresIniciales, type ContextoDeAlta } from '../../../entities/alta'
@@ -11,8 +10,9 @@ import { telefonoParaMostrar } from '../../../entities/telefono'
 import { avisoDeVerificacion } from '../../../entities/verificacion'
 import { useVerificarTelefono } from '../../telefono/hooks/use-verificar-telefono'
 import { verificarTelefono } from '../actions/verificar-telefono'
-import { conCambio, conTelefonoRevisado, limpio, nuevoId } from './estado-del-alta'
+import { conTelefonoRevisado, limpio, nuevoId } from './estado-del-alta'
 import { useEnvioDelAlta, type Guardado } from './use-envio-del-alta'
+import { usePaisDelAlta } from './use-pais-del-alta'
 
 export type { Guardado } from './use-envio-del-alta'
 export type { Paso } from './estado-del-alta'
@@ -47,6 +47,8 @@ export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Ar
     [contexto, layout, zona, ultimoOrigen],
   )
   const [estado, setEstado] = useState(() => limpio(nuevoId(), iniciales))
+  const yaAbierto = useAbiertoAlgunaVez(abierto)
+  const pais = usePaisDelAlta({ contexto, layout, iniciales, estado, setEstado, activo: yaAbierto })
   const borrador = useBorradorDeEstado({
     clave: 'lead-nuevo',
     valores: estado.valores,
@@ -54,7 +56,7 @@ export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Ar
     alReponer: (cambios) => {
       setEstado((antes) => ({ ...antes, valores: { ...antes.valores, ...cambios } }))
     },
-    activo: useAbiertoAlgunaVez(abierto),
+    activo: yaAbierto,
   })
 
   const { executeAsync: preguntar } = useAction(verificarTelefono)
@@ -105,16 +107,16 @@ export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Ar
       verificando: verificacion.verificando,
       verificacion: verificacion.verificacion,
       aviso: verificacion.verificacion ? avisoDeVerificacion(verificacion.verificacion) : null,
-      // «+591 70011002»: cómo va a quedar guardado lo que se escribió.
+      // «+54 91155550000 · Argentina»: cómo va a quedar guardado lo que se escribió y de qué país es.
       comoSeGuarda:
         verificacion.numero === null
           ? null
-          : telefonoParaMostrar(verificacion.numero, contexto.telefonoCc),
+          : (pais.linea ?? telefonoParaMostrar(verificacion.numero, contexto.telefonoCc)),
       adoptar,
     },
-    cambiar: (clave: string, valor: ValorDeFormulario) => {
-      setEstado((antes) => conCambio(antes, clave, valor))
-    },
+    pais: pais.campo,
+    anuncioDelPais: pais.anuncio,
+    cambiar: pais.cambiar,
     tomar: (tomarlo: boolean) => {
       setEstado((antes) => ({ ...antes, adoptar: tomarlo }))
     },

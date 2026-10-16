@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { avisarExito } from '@/shared/ui/toasts'
 import type { LeadDeFicha, TelefonoExtra } from '../../../entities/ficha'
+import { lineaDelTelefono, paisDelEscrito } from '../../../entities/pais-del-telefono'
 import { telefonoParaMostrar } from '../../../entities/telefono'
 import { CLAVE_DE_TELEFONO, validarExtra } from '../../../entities/telefonos'
+import { usePaises } from '../../telefono/hooks/use-paises'
 import type { TelefonosExtra } from './use-telefonos-extra'
 
 type Args = {
@@ -12,6 +14,20 @@ type Args = {
   extras: readonly TelefonoExtra[]
   guardar: TelefonosExtra['guardar']
   alCerrar: () => void
+}
+
+function comoSeGuarda(
+  validado: ReturnType<typeof validarExtra>,
+  codigoDePais: string | null,
+  conPais: ReturnType<typeof paisDelEscrito>,
+): string | null {
+  if (!validado.ok) {
+    return null
+  }
+  if (conPais) {
+    return lineaDelTelefono(conPais.numero, conPais.resuelto)
+  }
+  return telefonoParaMostrar(validado.numero, codigoDePais)
 }
 
 // El estado de «Agregar teléfono»: lo escrito, los motivos junto a cada campo y el envío. El id del
@@ -23,6 +39,10 @@ export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar }: Args)
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [aviso, setAviso] = useState<string | null>(null)
   const [enCurso, setEnCurso] = useState(false)
+
+  // El formulario sólo existe abierto: la tabla se pide al abrirlo.
+  const tabla = usePaises(true)
+  const conPais = paisDelEscrito(tabla, telefono, { telefonoCc: ficha.telefonoCc, pais: null })
 
   const validado = validarExtra({
     codigoDePais: ficha.telefonoCc,
@@ -66,8 +86,8 @@ export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar }: Args)
     errores,
     aviso,
     enCurso,
-    // «+591 71234567»: cómo va a quedar guardado lo que se escribió.
-    comoSeGuarda: validado.ok ? telefonoParaMostrar(validado.numero, ficha.telefonoCc) : null,
+    // «+54 91155550000 · Argentina»: cómo va a quedar guardado lo que se escribió y de qué país es.
+    comoSeGuarda: comoSeGuarda(validado, ficha.telefonoCc, conPais),
     escribirTelefono: (valor: string) => {
       setTelefono(valor)
       sinMotivo(CLAVE_DE_TELEFONO.telefono)

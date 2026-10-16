@@ -7,8 +7,10 @@ import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import { MENSAJE_DE_LEAD_NO_DISPONIBLE, type LeadDeFicha } from '../../../entities/ficha'
 import { CLAVE_DE_TELEFONO, type CambioDeTelefono } from '../../../entities/telefonos'
+import { lineaDelTelefono, paisDelEscrito } from '../../../entities/pais-del-telefono'
 import { normalizarTelefono, telefonoParaMostrar } from '../../../entities/telefono'
 import { avisoDeVerificacion, type Verificacion } from '../../../entities/verificacion'
+import { usePaises } from '../../telefono/hooks/use-paises'
 import { useVerificarTelefono } from '../../telefono/hooks/use-verificar-telefono'
 import { cambiarTelefono } from '../actions/cambiar-telefono'
 import { verificarTelefonoDeLead } from '../actions/verificar-telefono-de-lead'
@@ -71,11 +73,16 @@ function motivoPrevio(
   return esElMismo ? MOTIVO_DEL_MISMO : null
 }
 
-// «+591 70011002»: cómo va a quedar guardado lo que se escribió, si ya es un teléfono.
+// «+54 91155550000 · Argentina»: cómo va a quedar guardado lo que se escribió y de qué país es, si ya
+// es un teléfono. Mientras la tabla no llega (o sin ella) se dice sin el país.
 function comoSeGuarda(
   normalizado: ReturnType<typeof normalizarTelefono>,
   codigoDePais: string | null,
+  conPais: ReturnType<typeof paisDelEscrito>,
 ) {
+  if (conPais) {
+    return lineaDelTelefono(conPais.numero, conPais.resuelto)
+  }
   return normalizado.ok ? telefonoParaMostrar(normalizado.numero, codigoDePais) : null
 }
 
@@ -124,6 +131,10 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
   useConflictoHastaLaVersionNueva(`${ficha.actualizadoEn}|${ficha.telefono}`, setEstado)
   const escrito = String(estado.valores[CLAVE] ?? '')
   const codigoDePais = ficha.telefonoCc
+
+  // La ficha no lee los ajustes de la empresa: el país sale de la tabla, no del texto de Región.
+  const tabla = usePaises(activo)
+  const conPais = paisDelEscrito(tabla, escrito, { telefonoCc: codigoDePais, pais: null })
 
   const cambio = useCambioUnaVez()
   const { normalizado, esElMismo, verificacion, dicho, aviso } = useVerificacionDelCambio({
@@ -185,7 +196,7 @@ export function useCambiarTelefono({ ficha, activo, alTerminar, alPerderElLead }
       verificando: activo && !esElMismo && verificacion.verificando,
       verificacion: dicho,
       aviso,
-      comoSeGuarda: comoSeGuarda(normalizado, codigoDePais),
+      comoSeGuarda: comoSeGuarda(normalizado, codigoDePais, conPais),
       adoptar: false,
     },
     cambiar: (valor: string) => {

@@ -80,6 +80,8 @@ function DatosFijos({ alta, contexto }: Pick<Props, 'alta' | 'contexto'>) {
         }}
         alSalir={alta.revisarTelefono}
         alTomar={alta.tomar}
+        pais={alta.pais}
+        anuncio={alta.anuncioDelPais}
       />
       <Campo
         nombre={idDe(CLAVE_DEL_ALTA.nombre)}

@@ -1,6 +1,11 @@
 import type { ValorDeFormulario, ValoresDeFormulario } from '@/shared/lib/campos'
 import type { ErrorApp } from '@/shared/lib/errores'
 import { CLAVE_DEL_ALTA } from '../../../entities/alta'
+import {
+  paisAlCambiarElTelefono,
+  paisParaGuardar,
+  type TelefonoResuelto,
+} from '../../../entities/pais-del-telefono'
 import { normalizarTelefono } from '../../../entities/telefono'
 import { avisoDeVerificacion, type Verificacion } from '../../../entities/verificacion'
 
@@ -19,6 +24,9 @@ export type Estado = {
   aviso: string | null
   // Se pidió guardar y no llegó al servidor: sale solo al volver la conexión.
   pendiente: boolean
+  // Los países que el sistema puso en «País» al tipear el teléfono, o que se eligieron con un botón:
+  // mientras «País» tenga uno de ésos (o esté vacío) sigue al número.
+  paisesPuestos: readonly string[]
 }
 
 export const nuevoId = () => crypto.randomUUID()
@@ -31,6 +39,7 @@ export const limpio = (id: string, valores: ValoresDeFormulario): Estado => ({
   adoptar: false,
   aviso: null,
   pendiente: false,
+  paisesPuestos: [],
 })
 
 // Un dato del primer seguimiento o del recordatorio (los demás son del lead).
@@ -44,6 +53,44 @@ function pasoDe(errores: Record<string, string>, actual: Paso): Paso {
 export function conCambio(antes: Estado, clave: string, valor: ValorDeFormulario): Estado {
   const { [clave]: _resuelto, ...errores } = antes.errores
   return { ...antes, valores: { ...antes.valores, [clave]: valor }, errores, aviso: null }
+}
+
+type EntradaDelPais = {
+  // La clave de «País» en el formulario («atributos.pais»).
+  clave: string
+  // Con lo que nació el alta (el país de la empresa): también lo puso el sistema.
+  inicial: string
+  // El teléfono antes y después del cambio (`null` = todavía no es un teléfono).
+  anterior: TelefonoResuelto | null
+  ahora: TelefonoResuelto | null
+}
+
+// Tipear el teléfono lleva «País» al país del número, sin pisar lo que la persona escribió. Lo que
+// vale como «puesto por el sistema» incluye el país del número anterior: un borrador repuesto, que no
+// recuerda qué puso el sistema, sigue al número igual.
+export function conPaisDelTelefono(antes: Estado, entrada: EntradaDelPais): Estado {
+  const delAnterior = entrada.anterior ? paisParaGuardar(entrada.anterior) : null
+  const sugeridos = [entrada.inicial, ...antes.paisesPuestos, delAnterior ?? ''].filter(
+    (valor) => valor !== '',
+  )
+  const actual = String(antes.valores[entrada.clave] ?? '')
+  const cambio = paisAlCambiarElTelefono({ actual, sugeridos, resuelto: entrada.ahora })
+  if (!cambio.cambia) {
+    return antes
+  }
+  const puestos = cambio.valor === '' ? antes.paisesPuestos : [...antes.paisesPuestos, cambio.valor]
+  return {
+    ...antes,
+    valores: { ...antes.valores, [entrada.clave]: cambio.valor },
+    paisesPuestos: puestos,
+  }
+}
+
+// Un botón «Es de Canadá»: «País» queda con ese país y, mientras no lo toque la persona, sigue al
+// número.
+export function conPaisElegido(antes: Estado, clave: string, nombre: string): Estado {
+  const conValor = conCambio(antes, clave, nombre)
+  return { ...conValor, paisesPuestos: [...antes.paisesPuestos, nombre] }
 }
 
 // Lo escrito no pasó la validación del formulario.

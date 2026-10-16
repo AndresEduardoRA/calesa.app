@@ -8,6 +8,7 @@
 //   grafías del mismo país.
 // - Un prefijo compartido (+1, +590) o desconocido no se adivina: no se guarda nada.
 import { paisDelNumero, type OpcionDePais, type TablaDePaises } from './paises/resolver'
+import { normalizarTelefono } from './telefono'
 
 // La clave del campo de fábrica «País» en `leads_campos`. No cambia de clave ni de tipo.
 export const CLAVE_DEL_PAIS = 'pais'
@@ -144,4 +145,58 @@ export function paisAlCambiarElTelefono(entrada: EntradaDelCambio): CambioDePais
   }
   const nuevo = paisParaGuardar(entrada.resuelto) ?? ''
   return nuevo === actual ? { cambia: false } : { cambia: true, valor: nuevo }
+}
+
+export type TelefonoEscrito = {
+  // El número como lo guarda la base (sólo dígitos, con su código de país).
+  numero: string
+  resuelto: TelefonoResuelto
+}
+
+// El país de lo que la persona tipea, sin ir al servidor: `null` si todavía no es un teléfono (a
+// medio tipear, con letras, corto: manda el motivo de `normalizarTelefono()`) o si la tabla todavía
+// no llegó. `paisDeLaEmpresa` es el texto de Empresa › Región; la ficha, que no lo lee, pasa nulo.
+export function paisDelEscrito(
+  tabla: TablaDePaises | null,
+  escrito: string,
+  empresa: EmpresaDelTelefono,
+): TelefonoEscrito | null {
+  if (tabla === null) {
+    return null
+  }
+  const normalizado = normalizarTelefono(empresa.telefonoCc, escrito)
+  if (!normalizado.ok) {
+    return null
+  }
+  const { numero, internacional } = normalizado
+  return { numero, resuelto: resolverTelefono(tabla, { numero, internacional, empresa }) }
+}
+
+export type VistaDelPais = {
+  // «+54 91155550000 · Argentina»: lo que sigue a «Se guardará como».
+  linea: string | null
+  // A quién se le pregunta cuando el prefijo es de varios países; vacío si no hace falta.
+  opciones: readonly OpcionDePais[]
+  // Lo que se le dice al lector de pantalla cuando el país del número cambia.
+  anuncio: string | null
+}
+
+// Lo que la pantalla dice del país de lo tipeado. `campo` es «País» del lead (`null` si está apagado:
+// la línea se dice igual, pero no se anuncia que se completó) con lo que tiene hoy.
+export function vistaDelPais(
+  escrito: TelefonoEscrito | null,
+  campo: { etiqueta: string; valor: string } | null,
+): VistaDelPais {
+  if (escrito === null) {
+    return { linea: null, opciones: [], anuncio: null }
+  }
+  const { pais } = escrito.resuelto
+  const linea = lineaDelTelefono(escrito.numero, escrito.resuelto)
+  const opciones = pais.tipo === 'varios' ? pais.opciones : []
+  if (pais.tipo === 'desconocido') {
+    return { linea, opciones, anuncio: null }
+  }
+  const completado = campo !== null && pais.tipo === 'pais' && campo.valor.trim() === pais.nombre
+  const completo = completado ? ` Se completó «${campo.etiqueta}».` : ''
+  return { linea, opciones, anuncio: `País del teléfono: ${textoDelPais(pais)}.${completo}` }
 }

@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   lineaDelTelefono,
   nombresDeOpciones,
+  paisDelEscrito,
   numeroConCodigo,
   paisAlCambiarElTelefono,
   paisParaGuardar,
   resolverTelefono,
   textoDelPais,
+  vistaDelPais,
   type EmpresaDelTelefono,
   type TelefonoResuelto,
 } from './pais-del-telefono'
@@ -174,6 +176,75 @@ describe('paisAlCambiarElTelefono', () => {
     })
     expect(paisAlCambiarElTelefono({ actual: 'Perú', sugeridos: [], resuelto: varios })).toEqual({
       cambia: false,
+    })
+  })
+})
+
+describe('paisDelEscrito', () => {
+  it('resuelve lo que se tipea con el código de la empresa', () => {
+    expect(paisDelEscrito(TABLA_DE_PAISES, '+54 9 11 5555-0000', BOLIVIA)).toEqual({
+      numero: '5491155550000',
+      resuelto: { codigo: '54', pais: { tipo: 'pais', nombre: 'Argentina' } },
+    })
+    expect(paisDelEscrito(TABLA_DE_PAISES, '700 11 002', BOLIVIA)?.resuelto.pais).toEqual({
+      tipo: 'pais',
+      nombre: 'Bolivia',
+    })
+  })
+
+  it('no dice nada de lo que todavía no es un teléfono ni sin la tabla', () => {
+    expect(paisDelEscrito(TABLA_DE_PAISES, '+59', BOLIVIA)).toBeNull()
+    expect(paisDelEscrito(TABLA_DE_PAISES, '7001abcd', BOLIVIA)).toBeNull()
+    expect(paisDelEscrito(TABLA_DE_PAISES, '', BOLIVIA)).toBeNull()
+    expect(paisDelEscrito(null, '+54 9 11 5555-0000', BOLIVIA)).toBeNull()
+  })
+
+  it('sin código de la empresa, un número nacional no es un teléfono', () => {
+    const sinCodigo = { telefonoCc: null, pais: 'Bolivia' }
+    expect(paisDelEscrito(TABLA_DE_PAISES, '70011002', sinCodigo)).toBeNull()
+    expect(paisDelEscrito(TABLA_DE_PAISES, '+591 70011002', sinCodigo)).not.toBeNull()
+  })
+
+  it('+999 existe como número y no tiene país', () => {
+    const r = paisDelEscrito(TABLA_DE_PAISES, '+999 1234 5678', BOLIVIA)
+    expect(r?.resuelto.pais).toEqual({ tipo: 'desconocido' })
+  })
+})
+
+describe('vistaDelPais', () => {
+  const de = (escrito: string) => paisDelEscrito(TABLA_DE_PAISES, escrito, BOLIVIA)
+  const campo = (valor: string) => ({ etiqueta: 'País', valor })
+
+  it('sin un teléfono no hay nada que decir', () => {
+    expect(vistaDelPais(null, campo(''))).toEqual({ linea: null, opciones: [], anuncio: null })
+  })
+
+  it('dice el país y, si «País» ya lo tiene, que se completó', () => {
+    expect(vistaDelPais(de('+54 9 11 5555-0000'), campo('Argentina'))).toEqual({
+      linea: '+54 91155550000 · Argentina',
+      opciones: [],
+      anuncio: 'País del teléfono: Argentina. Se completó «País».',
+    })
+    expect(vistaDelPais(de('+54 9 11 5555-0000'), campo('Perú')).anuncio).toBe(
+      'País del teléfono: Argentina.',
+    )
+    expect(vistaDelPais(de('+54 9 11 5555-0000'), null).anuncio).toBe(
+      'País del teléfono: Argentina.',
+    )
+  })
+
+  it('un prefijo compartido ofrece sus países y no anuncia que completó nada', () => {
+    const vista = vistaDelPais(de('+1 305 555 0100'), campo(''))
+    expect(vista.opciones.map((o) => o.nombre)).toEqual(['Estados Unidos', 'Canadá'])
+    expect(vista.linea).toBe('+1 3055550100 · Estados Unidos o Canadá')
+    expect(vista.anuncio).toBe('País del teléfono: Estados Unidos o Canadá.')
+  })
+
+  it('un código desconocido dice la línea y no anuncia', () => {
+    expect(vistaDelPais(de('+999 1234 5678'), campo(''))).toEqual({
+      linea: '+99912345678 · Código de país desconocido',
+      opciones: [],
+      anuncio: null,
     })
   })
 })

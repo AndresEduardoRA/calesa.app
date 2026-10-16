@@ -127,14 +127,14 @@ test('el teléfono pegado con espacios, guiones, paréntesis, «+» y «00» lle
   const { nacional } = nuevoNumero()
   for (const escrito of variantesDe(nacional, codigo)) {
     await telefono.fill(escrito)
-    // Dice cómo va a quedar recién cuando la base lo verificó.
-    await expect(panel.getByText(`Se guardará como +${codigo} ${nacional}.`)).toBeVisible()
+    // Dice cómo va a quedar, con su país, apenas es un teléfono.
+    await expect(panel.getByText(`Se guardará como +${codigo} ${nacional} · `)).toBeVisible()
   }
   // De otro país: «+» y «00» mantienen su código.
   await telefono.fill('+54 9 11 5555-0000')
-  await expect(panel.getByText('Se guardará como +5491155550000.')).toBeVisible()
+  await expect(panel.getByText('Se guardará como +54 91155550000 · Argentina.')).toBeVisible()
   await telefono.fill('0054 9 11 5555-0000')
-  await expect(panel.getByText('Se guardará como +5491155550000.')).toBeVisible()
+  await expect(panel.getByText('Se guardará como +54 91155550000 · Argentina.')).toBeVisible()
 })
 
 test('lo que no es un teléfono se dice junto al campo, al salir de él', async ({ page }) => {
