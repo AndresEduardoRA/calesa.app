@@ -275,5 +275,11 @@ describe('consultaDelListado', () => {
   it('sin nada, vacía', () => {
     expect(consultaDelListado('')).toBe('')
     expect(consultaDelListado('?panel=exportar')).toBe('')
+    expect(
+      consultaDelListado(
+        '?q=Ana&lead=l1&pestana=seguimientos&panel=editar-seguimiento&seguimiento=s1',
+      ),
+    ).toBe('q=Ana')
+    expect(consultaDelListado('?panel=editar-recordatorio&recordatorio=r1')).toBe('')
   })
 })

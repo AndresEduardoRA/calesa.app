@@ -128,7 +128,7 @@ test('una vista guardada vuelve a poner sus filtros, y si el campo se apagó lo 
   await expect(page.getByText('Se quitó un filtro de un campo que ya no existe.')).toBeVisible()
 })
 
-test('el drawer rápido: se abre en la URL, es de sólo lectura y sobrevive a recargar', async ({
+test('el drawer rápido: se abre en la URL en «Resumen», con sus dos pestañas, y sobrevive a recargar', async ({
   page,
 }) => {
   await entrar(page, t.personas.duena)
@@ -145,7 +145,13 @@ test('el drawer rápido: se abre en la URL, es de sólo lectura y sobrevive a re
   await expect(drawer).not.toContainText(t.telefonoDeCarlos)
   await expect(drawer).toContainText('•')
   await expect(drawer.getByText('Algunos datos son solo de su cartera.')).toBeVisible()
-  // Sólo lectura: el único enlace es «Abrir ficha», a la ficha de ese lead.
+  // Abre en «Resumen»; «Seguimientos» al lado, sin número. Los datos no se editan acá: el único
+  // enlace es «Abrir ficha», a la ficha de ese lead.
+  await expect(drawer.getByRole('tab', { name: 'Resumen' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(drawer.getByRole('tab', { name: 'Seguimientos', exact: true })).toBeVisible()
   const enlaces = drawer.getByRole('link')
   await expect(enlaces).toHaveCount(1)
   await expect(enlaces.first()).toHaveText('Abrir ficha')

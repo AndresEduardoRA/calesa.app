@@ -162,10 +162,21 @@ export function registroDeExportacionDesde(crudo: unknown): RegistroDeExportacio
 
 // El panel de la exportación en la URL (`?panel=exportar`) y lo que de la URL no es un filtro.
 export const PANEL_EXPORTAR = 'exportar'
-const NO_SON_FILTROS = new Set(['panel', 'cursor', 'lead', 'vista', 'embudo', 'etapa'])
+const NO_SON_FILTROS = new Set([
+  'panel',
+  'cursor',
+  'lead',
+  'pestana',
+  'seguimiento',
+  'recordatorio',
+  'vista',
+  'embudo',
+  'etapa',
+])
 
-// La consulta del listado que viaja con el pedido: sus filtros (y el modo), sin el panel abierto, la
-// página ni el lead del drawer. Con `+` o `%20`, tal como la dejó la URL.
+// La consulta del listado que viaja con el pedido: sus filtros (y el modo), sin el panel abierto (ni
+// el id que edita), la página ni el lead del drawer (ni su pestaña). Con `+` o `%20`, tal como la
+// dejó la URL.
 export function consultaDelListado(busqueda: string): string {
   const entrada = new URLSearchParams(busqueda.startsWith('?') ? busqueda.slice(1) : busqueda)
   const salida = new URLSearchParams()

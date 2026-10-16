@@ -4,6 +4,7 @@ import type { FilaDeLead } from './listado'
 import {
   gruposDelRapido,
   hayPrivadosSinRecibir,
+  pestanaDelRapido,
   vistaDelRapido,
   type LecturaDelRapido,
 } from './rapido'
@@ -118,5 +119,13 @@ describe('vistaDelRapido', () => {
       fallo: true,
     })
     expect(vistaDelRapido({ ...base, lectura: error })).toEqual({ tipo: 'error' })
+  })
+})
+
+describe('pestanaDelRapido', () => {
+  it('«seguimientos» la abre; cualquier otra cosa, «Resumen»', () => {
+    expect(pestanaDelRapido('seguimientos')).toBe('seguimientos')
+    expect(pestanaDelRapido(null)).toBe('resumen')
+    expect(pestanaDelRapido('portal')).toBe('resumen')
   })
 })

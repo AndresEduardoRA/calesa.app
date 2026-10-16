@@ -1,5 +1,6 @@
-// Qué muestra el drawer rápido de un lead: los datos que le llegaron a quien mira, agrupados como
-// el layout. Sólo lectura. Nada de seguimientos ni acciones: eso es de la ficha.
+// Qué muestra el drawer rápido de un lead: en «Resumen», los datos que le llegaron a quien mira,
+// agrupados como el layout; en «Seguimientos», la línea de tiempo y «Tus recordatorios», con anotar y
+// agendar (`?pestana=seguimientos`). Editar el lead sigue siendo de la ficha.
 import { agruparCampos } from '@/shared/lib/campos'
 import type { CampoDeLead } from './campo'
 import type { FilaDeLead } from './listado'
@@ -81,4 +82,17 @@ export function vistaDelRapido(entrada: EntradaDeVista): VistaDelRapido {
     return { tipo: 'lead', lead: delListado, completo: false, fallo }
   }
   return fallo ? { tipo: 'error' } : { tipo: 'cargando' }
+}
+
+// Las pestañas del drawer (`?pestana=`). «Resumen» no va a la URL: es la de siempre.
+export const CLAVE_DE_PESTANA = 'pestana'
+export const PESTANAS_DEL_RAPIDO = [
+  { clave: 'resumen', titulo: 'Resumen' },
+  { clave: 'seguimientos', titulo: 'Seguimientos' },
+] as const
+export type PestanaDelRapido = (typeof PESTANAS_DEL_RAPIDO)[number]['clave']
+
+// La de la URL; lo que no es una pestaña que existe abre «Resumen».
+export function pestanaDelRapido(valor: string | null): PestanaDelRapido {
+  return PESTANAS_DEL_RAPIDO.find((p) => p.clave === valor)?.clave ?? 'resumen'
 }

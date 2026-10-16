@@ -19,6 +19,8 @@ type Props = {
   recordatorios: Recordatorios
   // Lead en la cartera y `leads.editar`: agendar uno nuevo. Los que ya son suyos se tocan igual.
   puedeAgendar: boolean
+  // «Recargar» tras un conflicto en el modal: sin esto, se vuelve a leer la página (la ficha).
+  alRecargar?: () => void
 }
 
 function Lista({
@@ -58,7 +60,13 @@ function Lista({
 // «Tus recordatorios» de este lead: los vencidos primero y marcados, después los pendientes y, al
 // final y plegados, los completados. Son personales: nadie más los ve. Agendar y editar abren un modal
 // con su URL (`?panel=agendar-recordatorio`, `?panel=editar-recordatorio&recordatorio=<id>`).
-export function BloqueDeRecordatorios({ leadId, zona, recordatorios, puedeAgendar }: Props) {
+export function BloqueDeRecordatorios({
+  leadId,
+  zona,
+  recordatorios,
+  puedeAgendar,
+  alRecargar,
+}: Props) {
   const botonAgendar = useRef<HTMLButtonElement>(null)
   const modal = useModalDeRecordatorio({ lista: recordatorios.lista, puedeAgendar })
   const montar = useAbiertoAlgunaVez(modal.abierto)
@@ -120,6 +128,7 @@ export function BloqueDeRecordatorios({ leadId, zona, recordatorios, puedeAgenda
             modal.cerrar()
           }}
           focoAlCerrar={() => modal.focoAlCerrar() ?? botonAgendar.current ?? true}
+          alRecargar={alRecargar}
         />
       ) : null}
     </section>

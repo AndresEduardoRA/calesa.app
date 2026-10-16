@@ -24,6 +24,9 @@ type Args = {
   // Cerrado, el modal sigue montado: no escribe borrador ni reenvía al volver la red.
   abierto: boolean
   alGuardar: (recordatorio: ResultadoDeRecordatorio['recordatorio']) => void
+  // Cómo se trae la versión de ahora tras un conflicto. Sin esto, se vuelve a leer la página (la
+  // ficha); el drawer, que lee en el navegador, pasa su propia lectura.
+  alRecargar?: () => void
 }
 
 // Agendar o cambiar un recordatorio: título, cuándo (a futuro, en la zona de la empresa) y el vehículo.
@@ -31,7 +34,14 @@ type Args = {
 // lead), y vuelve al reabrir con «Descartar»; sólo mientras está abierto (cerrado, lo descartado no
 // vuelve a escribirse). Si llega otra versión, lo no tocado la toma. El envío es de
 // `useEnvioDeRecordatorio`; los atajos de guardar, del modal (saben si está preguntando).
-export function useFormularioDeRecordatorio({ leadId, zona, original, abierto, alGuardar }: Args) {
+export function useFormularioDeRecordatorio({
+  leadId,
+  zona,
+  original,
+  abierto,
+  alGuardar,
+  alRecargar,
+}: Args) {
   const router = useRouter()
   const [recargando, recargar] = useTransition()
   const cuandoOriginal = original ? localDeInstante(original.recordarEn, { zona }) : ''
@@ -89,7 +99,11 @@ export function useFormularioDeRecordatorio({ leadId, zona, original, abierto, a
     // Trae la versión de ahora; lo escrito queda.
     recargar: () => {
       recargar(() => {
-        router.refresh()
+        if (alRecargar) {
+          alRecargar()
+        } else {
+          router.refresh()
+        }
       })
     },
     // «Descartar» al cerrar con cambios: el borrador también se va.

@@ -1,8 +1,8 @@
-// «Ver más» de la línea de tiempo, en el navegador: la página siguiente con la sesión de quien
-// mira. La RLS decide qué llega; acá no se decide nada.
+// Lo que la línea de tiempo lee en el navegador, con la sesión de quien mira: «Ver más» (la página
+// siguiente), la primera página y los tipos del drawer. La RLS decide qué llega; acá no se decide nada.
 import { errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/browser'
-import type { LectorDeSeguimientos } from '../entities/repositorios'
+import type { LectorDeSeguimientos, LectorDeTiposDeSeguimiento } from '../entities/repositorios'
 import {
   paginaDeSeguimientosDesde,
   TAMANO_DE_PAGINA_DE_SEGUIMIENTOS,
@@ -19,4 +19,19 @@ export const leerMasSeguimientos: LectorDeSeguimientos = async ({ leadId, antes 
   }
   const pagina = paginaDeSeguimientosDesde(data)
   return pagina ? ok(pagina) : fallo('inesperado', 'No pudimos leer los seguimientos.')
+}
+
+// Los tipos activos, en su orden (la pestaña «Seguimientos» del drawer y anotar desde la tabla): la
+// misma consulta que lee la ficha en el servidor.
+export const leerTiposDeSeguimiento: LectorDeTiposDeSeguimiento = async () => {
+  const { data, error } = await createClient()
+    .from('tipos_seguimiento')
+    .select('id, clave, nombre, icono')
+    .eq('activo', true)
+    .order('orden')
+    .order('nombre')
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(data.map((t) => ({ ...t })))
 }

@@ -18,6 +18,8 @@ type Props = {
   alGuardar: (recordatorio: ResultadoDeRecordatorio['recordatorio']) => void
   // A dónde vuelve el foco al cerrar (el botón que lo abrió).
   focoAlCerrar: () => HTMLElement | boolean
+  // «Recargar» tras un conflicto, si quien lo monta no lee la página en el servidor (el drawer).
+  alRecargar?: () => void
 }
 
 const ID = 'recordatorio'
@@ -35,8 +37,16 @@ export function ModalDeRecordatorio({
   noDisponible,
   alGuardar,
   focoAlCerrar,
+  alRecargar,
 }: Props) {
-  const formulario = useFormularioDeRecordatorio({ leadId, zona, original, abierto, alGuardar })
+  const formulario = useFormularioDeRecordatorio({
+    leadId,
+    zona,
+    original,
+    abierto,
+    alGuardar,
+    alRecargar,
+  })
   return (
     <ModalDeFormulario
       id={ID}
