@@ -15,6 +15,12 @@ type Props = {
   deshabilitado: boolean
   // «Quitar» deja el campo vacío (un recordatorio opcional).
   quitable?: boolean
+  // «Quitar» también con el campo vacío (cuando el que lo pidió quiere poder plegarlo).
+  quitarVacio?: boolean
+  // Una línea que explica para qué sirve la fecha.
+  ayuda?: string
+  // Después de quitar (quien lo pliega devuelve el foco al botón que lo abre).
+  alQuitar?: () => void
 }
 
 // Cuándo recordarlo: los atajos («Mañana 09:00», «En 3 días 09:00») van antes del campo, porque un
@@ -28,14 +34,23 @@ export function CampoCuando({
   error,
   deshabilitado,
   quitable = false,
+  quitarVacio = false,
+  ayuda,
+  alQuitar,
 }: Props) {
   // Se calculan al mostrarse: «mañana» es el de hoy en la zona de la empresa.
   const atajos = atajosDeFecha(new Date().toISOString(), zona)
+  const idAyuda = ayuda ? `${nombre}-ayuda` : undefined
   return (
-    <fieldset className="grid gap-1.5">
+    <fieldset className="grid gap-1.5" aria-describedby={idAyuda}>
       <legend className="mb-1.5 text-(length:--text-sm) font-medium text-(--color-ink)">
         {etiqueta}
       </legend>
+      {ayuda ? (
+        <p id={idAyuda} className="text-(length:--text-sm) text-(--color-ink-faint)">
+          {ayuda}
+        </p>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         {atajos.map((atajo) => (
           <Button
@@ -52,7 +67,7 @@ export function CampoCuando({
             {atajo.etiqueta}
           </Button>
         ))}
-        {quitable && valor !== '' ? (
+        {quitable && (quitarVacio || valor !== '') ? (
           <Button
             type="button"
             size="sm"
@@ -60,6 +75,7 @@ export function CampoCuando({
             className="min-h-11 md:min-h-7"
             onClick={() => {
               alCambiar('')
+              alQuitar?.()
             }}
             disabled={deshabilitado}
           >

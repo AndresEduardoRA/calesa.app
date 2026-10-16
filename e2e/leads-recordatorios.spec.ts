@@ -70,6 +70,7 @@ test('anotar un seguimiento con recordatorio deja los dos, en una sola vez', asy
   await irASeguimientos(page, lead.id)
   const formulario = await abrirRedactor(page)
   await formulario.getByLabel('Resumen').fill('Quedó en pensarlo')
+  await formulario.getByRole('button', { name: 'Programar próximo contacto' }).click()
   await formulario.getByRole('button', { name: 'En 3 días 09:00' }).click()
   await formulario.getByRole('button', { name: 'Guardar' }).click()
   await expect(seguimiento(page, 'Quedó en pensarlo')).toBeVisible()

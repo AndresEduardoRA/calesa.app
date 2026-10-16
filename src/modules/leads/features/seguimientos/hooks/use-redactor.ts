@@ -1,13 +1,12 @@
 'use client'
 
-import { VALOR_SIN_VEHICULO, valorDeVehiculo } from '../../../entities/vehiculo-de-nota'
+import { valorDeVehiculo } from '../../../entities/vehiculo-de-nota'
 import { useMemo, useState } from 'react'
 import { localDeInstante } from '@/shared/lib/fechas'
 import { useAtajo } from '@/shared/ui/atajos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import type { TipoDeSeguimiento } from '../../../entities/alta'
-import { documentoLimpio } from '../../../entities/documento-limpio'
 import { MENSAJE_DE_LEAD_NO_DISPONIBLE } from '../../../entities/ficha'
 import type { Recordatorio } from '../../../entities/recordatorios'
 import {
@@ -16,6 +15,7 @@ import {
   type Seguimiento,
   type ValoresDelSeguimiento,
 } from '../../../entities/seguimiento'
+import { conValoresRepuestos, valoresDeSeguimientoNuevo } from '../../../entities/seguimiento-nuevo'
 import {
   conErrores,
   conValor,
@@ -48,15 +48,7 @@ function valoresIniciales(
   zona: string,
 ): ValoresDelSeguimiento {
   if (!original) {
-    return {
-      tipoId: tipos[0]?.id ?? '',
-      titulo: '',
-      detalle: null,
-      visible: false,
-      ocurridoEn: '',
-      recordatorio: '',
-      vehiculo: VALOR_SIN_VEHICULO,
-    }
+    return valoresDeSeguimientoNuevo(tipos)
   }
   return {
     tipoId: original.tipoId,
@@ -75,11 +67,7 @@ const perdioElAcceso = (mensaje: string) =>
 // Lo escrito, de vuelta del almacenamiento: el detalle pasa otra vez por la lista blanca.
 const reponer = (cambios: Partial<ValoresDelSeguimiento>) => (antes: EstadoDelRedactor) => ({
   ...antes,
-  valores: {
-    ...antes.valores,
-    ...cambios,
-    ...('detalle' in cambios ? { detalle: documentoLimpio(cambios.detalle) } : {}),
-  },
+  valores: conValoresRepuestos(antes.valores, cambios),
 })
 
 // Anotar o editar un seguimiento: valida con las reglas de la base antes de enviar y pinta los

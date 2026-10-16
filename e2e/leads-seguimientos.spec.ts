@@ -15,6 +15,7 @@ import {
   edicion,
   editorDe,
   irASeguimientos,
+  recordatoriosEnLaBase,
   redactor,
   seguimiento,
   seguimientosEnLaBase,
@@ -238,4 +239,39 @@ test('el editor no le roba la N ni los atajos al marco, y lo escrito sobrevive a
   await expect(seguimiento(page, 'Con atajos')).toBeVisible()
   const [guardado] = await seguimientosEnLaBase(lead.id)
   expect(guardado?.detalle_texto).toBe('Nunca nada')
+})
+
+test('«Próximo contacto» nace plegado, se explica y se guarda junto con el seguimiento', async ({
+  page,
+}, info) => {
+  const lead = await leadDeBerta(`Seg Proximo ${info.project.name}`)
+  await entrar(page, t.personas.berta)
+  await irASeguimientos(page, lead.id)
+
+  const formulario = await abrirRedactor(page)
+  // Plegado: ni fecha ni atajos, y ninguna palabra sobre un «recordatorio (opcional)».
+  await expect(formulario.getByRole('button', { name: 'Programar próximo contacto' })).toBeVisible()
+  await expect(formulario.getByLabel('Fecha y hora')).toHaveCount(0)
+  await expect(formulario.getByText('Recordatorio (opcional)')).toHaveCount(0)
+
+  await formulario.getByLabel('Resumen').fill('Quedó en confirmar el precio')
+  await formulario.getByRole('button', { name: 'Programar próximo contacto' }).click()
+  await expect(formulario.getByRole('group', { name: 'Próximo contacto' })).toBeVisible()
+  await expect(
+    formulario.getByText('Un recordatorio para ti: cuándo volver a contactar a este lead.'),
+  ).toBeVisible()
+  await expect(formulario.getByRole('button', { name: 'Mañana 09:00' })).toBeFocused()
+  await formulario.getByRole('button', { name: 'Mañana 09:00' }).click()
+  await formulario.getByRole('button', { name: 'Guardar' }).click()
+
+  await expect(seguimiento(page, 'Quedó en confirmar el precio')).toBeVisible()
+  const agendados = await recordatoriosEnLaBase(lead.id)
+  expect(agendados.map((r) => r.titulo)).toEqual(['Quedó en confirmar el precio'])
+  expect(Date.parse(agendados[0]?.recordar_en ?? '')).toBeGreaterThan(Date.now())
+
+  // «Quitar» lo vacía y lo pliega, y devuelve el foco al botón.
+  const otro = await abrirRedactor(page)
+  await otro.getByRole('button', { name: 'Programar próximo contacto' }).click()
+  await otro.getByRole('button', { name: 'Quitar' }).click()
+  await expect(otro.getByRole('button', { name: 'Programar próximo contacto' })).toBeFocused()
 })
