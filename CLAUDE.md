@@ -31,6 +31,8 @@ pnpm db:base             # regenera la migración base a partir de supabase/sche
 pnpm db:reset            # supabase db reset: migraciones (la base incluida) + seed en local
 pnpm db:types            # regenera src/shared/types/database.types.ts desde la base local
 pnpm db:probar           # aplica schema+migraciones+seed en Postgres embebido y corre supabase/tests/humo.sql
+pnpm db:sembrar-volumen  # 50.000 leads, 10.000 vehículos, 200.000 seguimientos… en la base local (después: db:reset)
+pnpm db:medir:volumen    # planes y tiempos de cada consulta del inventario, y los jobs, sobre ese volumen
 ```
 
 ## Arquitectura
@@ -46,7 +48,9 @@ Nivel 2, monolito modular: `src/modules/<dominio>/` con sus propias capas adentr
 | `src/shared/`               | `src/shared/`                                                                |
 
 Las entradas de un módulo son dos: `@/modules/<x>` (su `index.ts`, sólo desde Server Components) y
-`@/modules/<x>/client` (su `client.ts`, desde Client Components: hooks y componentes de cliente).
+`@/modules/<x>/client` (su `client.ts`, desde Client Components: hooks y componentes de cliente). Una
+tercera, `@/modules/<x>/shell` (`shell.ts`, y `shell.client.ts` en el navegador), es sólo del layout
+`(app)`: lleva lo que dibuja el marco de toda pantalla y nada más.
 
 `features` **no** importa `infra`: los casos de uso dependen de la interfaz que declara `entities`
 y la composición del módulo (`composicion.ts`) le da la implementación. Entre módulos sólo las dos
@@ -69,6 +73,8 @@ Dónde va cada cosa:
 
 ## Reglas del proyecto
 
+- El código que se pide al usarse (un modal, un panel, una pestaña) pasa por `diferido()` de `@/shared/ui/diferido`,
+  nunca por `next/dynamic`; un número que se muestra nunca es un total exacto (`.claude/rules/escala.md`).
 - Un archivo, una responsabilidad. Si pasa de 300 líneas, se parte por responsabilidad, no por tamaño.
 - Nada de I/O en `entities/`. Ahí viven tipos, reglas puras (permisos, transiciones, cálculo de la
   fórmula) e interfaces. Toda función exportada de `entities/` lleva test.

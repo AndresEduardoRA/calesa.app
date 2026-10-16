@@ -3142,3 +3142,65 @@ segundo (Node también tiene `navigator`, sin `onLine`). El código sigue siendo
 él. **Sin arreglar, a la lista del cierre:** paginar el listado sin red (el `<Link>` cae a la navegación completa del
 navegador) y abrir sin red un modal diferido que nunca se pidió (el `import()` falla y sube al `error.tsx`): son nueve
 `diferidos.tsx` y hay que decidir qué hace el panel cuando su código no llega.
+
+## 2026-10-17 — Parte 9e: la escala de toda la app, medida y con guardas
+
+**Contexto.** La regla `.claude/rules/escala.md` (9d-2) sólo se había cumplido y medido en las listas de un lead. La 9e
+midió **toda** la app con 50.000 leads (la dueña con «todos» y Ana, la asesora de la semilla, como `authenticated`: la RLS
+cuenta), 10.000 vehículos, 200.000 seguimientos y 100.000 filas por purgar en cada job, y dejó guardas que hacen fallar la
+próxima lista sin tope. Los números y el inventario: `docs/RENDIMIENTO.md`.
+
+**Un número que se muestra nunca es un total exacto.** Una forma única: la consulta pide `tope + 1` (o cuenta sobre un
+subselect con `limit tope + 1`), `conteoAcotado()` lo vuelve `{ n, hayMas }`, y se escribe «más de N» o «N+». Dos topes: el de
+lo que se dibuja (500, el de las listas) y 1.000 para los de configuración. El conteo previo de la exportación pasó de exacto (815 ms)
+a hasta 5.001 ids: no cabe en un pedido porque PostgREST corta en 1.000 (`max_rows`), así que `contarLeadsHasta` lee ids de a
+1.000 por cursor (seis pedidos como mucho). Se probó quitarlo y leer las páginas de a 500 hasta ver si hay otra, y es peor: el
+rechazo de un archivo de más de 5.000 tardaba más de lo que espera el diálogo. Lo que queda con `count(` sin tope en SQL son
+validaciones puntuales, topes de la base (50 etiquetas, 10 teléfonos, 200 por lote) y acciones de administración: cada una
+figura en `supabase/tests/escala.sql` con su motivo y su tope.
+
+**El filtro de la dueña no era un problema de índice sino de costo.** Filtrar 50.000 leads por un atributo que coincide con
+un cuarto tardaba 3,8 s; «sólo favoritos», 321 ms; una etiqueta, 667 ms. `atributos_lead()` (plpgsql `security definer`,
+~75 µs por llamada) llevaba el `COST` por defecto (100 = 0,25 unidades): Postgres la tomaba por barata, leía los 50.000
+leads, la calculaba en cada uno y ordenaba, en vez de caminar `leads_listado_idx` y cortar en 51. Con `COST 20000` camina el
+índice: 3,8 s → 25 ms, 321 → 45 ms, 667 → 95 ms. **Descartado:** reescribir `leads_vista` con `left join` a favoritos y
+tachados (la página 1 pasaba de 9 a 0,8 ms y «sólo favoritos» a 50 ms) y parametrizar `atributos_lead(p_lead, p_alcance,
+p_publicas)` para recortar una vez por consulta. La unión hace que un filtro de selectividad mal estimada elija un
+`Nested Loop` con un `Seq Scan` por fila (12 M comparaciones, 7 s), y el recorte por parámetro **no puede ser una
+función que `authenticated` ejecute**: quien la llamara a mano con `p_alcance = 'todos'` leería los atributos públicos de
+cualquier lead. Lo que no se evita, y queda **anotado como límite aceptado**: un filtro sobre un atributo que no coincide
+con nadie y una búsqueda por nombre recorren la cartera visible (~80 µs por lead bajo RLS: ~4 s para la dueña con 50.000, 30
+ms para una asesora con 2.000), y una página profunda del listado cuesta lo mismo que la primera cuando hay filtros (la
+política de `leads` llama dos funciones `security definer` por fila; ~270 ms con 50.000). El paso siguiente, si la cartera
+de «todos» pasa de unos 100.000 leads, es una columna con los atributos públicos mantenida por trigger (y la búsqueda por
+`pg_trgm` a través de una función `definer` con el predicado de visibilidad repetido); queda en `docs/PLAN.md`.
+
+**El shell importa una tercera entrada.** El layout `(app)` importaba `@/modules/leads`, `equipo` y `empresa`, y todo
+componente de cliente que reexportan sus `index.ts` viajaba en el JS de todas las pantallas. Cada módulo suma `shell.ts`
+(y `equipo`, `shell.client.ts` para `_shell/`) con lo que dibuja el marco; `eslint.config.mjs` las permite sólo desde el
+layout y `_shell/`, y `mapa.sh` las lista. «Nuevo lead» es ahora un botón y la tecla `N`; el drawer (`alta-cargada.tsx`)
+llega con `diferido()` la primera vez que se abre. **Resultado** (JS en frío con gzip, lo que el documento nombra): `/perfil`
+547,5 → 434,9 KB (lo que pesaba sin leads en el shell: 434,8), `/vehiculos` 598,7 → 504,9, `/leads` 547,5 → 543,7. Medir
+«lo que se pide hasta el `networkidle`» no sirve: Next prefetchea las otras rutas y las tres pantallas daban lo mismo; el
+método nuevo cuenta los `.js` que el documento nombra y queda commiteado (`e2e/presupuesto-js.spec.ts`). **Queda:** una
+pantalla paga todo lo que reexporta el `index.ts` del módulo que importa (`/perfil`, 25 KB por `ListaEquipo` y
+`MatrizDeRoles`); partirlo por pantalla o hacerlo `diferido()` con SSR queda en `docs/PLAN.md`.
+
+**`diferido()`: un solo lugar para el código que se pide al usarse.** Sin red, un `import()` que nunca se pidió falla al
+abrirlo y la pantalla entera caía a `error.tsx` (9d-3). El ayudante reintenta una vez y, si no llega, dice «Sin conexión» en
+su lugar con «Reintentar» y deja lo demás en pie. Los 9 `diferidos.tsx` y los dos `next/dynamic` sueltos pasan por él; el
+lint prohíbe `next/dynamic`. Dos cosas que se aprendieron: una instancia que ya pasó por el `lazy` **no cambia de camino**
+al terminar de cargar (cambiarlo desmontaba el modal y se perdía su estado: el resultado de «Dar acceso» volvía al
+formulario), y no dibuja en el servidor (igual que `ssr: false`).
+
+**Los jobs, con tope por lote y por corrida.** Medido con 100.000 filas por purgar: `papelera-purgar` 29 s en una corrida
+y `limpieza-automatica` 24 s revisando 100.800 candidatos para contarlos. Ahora la papelera purga a lo sumo 50 lotes por
+corrida (≈3 s) y **corre cada hora** (50 por hora son 240.000 leads por día), la limpieza revisa 1.000 más tras llenar el lote
+(0,4 s) con `vehiculos_limpieza_orden_idx`, y las purgas de consultas de apibara y de vínculos de importación van de a 10.000
+(hasta 10 por corrida). `storage-gc` encola a lo sumo 2.000 huérfanos por pasada. Lo que no entra queda para la siguiente.
+
+**Las papeleras se leen de a 5 lotes por cursor.** Un lote ya está acotado (de 1 a 200); lo que crece es la cantidad de
+lotes (60 lotes de 200 leads tardaban 597 ms y dibujaban 12.000 filas). `lotes_papelera_tipo_idx` sostiene el cursor.
+
+**Las migraciones comprometidas no se editaron:** `20261019000100` a `…000500` son nuevas (la vista, el kanban, las
+papeleras, los números acotados y los jobs).

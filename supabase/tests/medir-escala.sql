@@ -85,6 +85,8 @@ select set_config('medir.cursor_en', (select creado_en::text from public.leads w
   order by creado_en desc, id desc offset 5000 limit 1), true);
 select set_config('medir.cursor_id', (select id::text from public.leads where creado_por = '00000000-0000-0000-0000-0000000000d1' and eliminado_en is null
   order by creado_en desc, id desc offset 5000 limit 1), true);
+select set_config('medir.et_duena', (select id::text from public.etiquetas where nombre = 'Vol 1' and usuario_id = '00000000-0000-0000-0000-0000000000d1'), true);
+select set_config('medir.et_ana', (select id::text from public.etiquetas where nombre = 'Vol 1' and usuario_id = '00000000-0000-0000-0000-0000000000a1'), true);
 select set_config('medir.origen', (select id::text from public.origenes where tipo = 'subasta' order by orden limit 1), true);
 select set_config('medir.vcursor_en', (select creado_en::text from public.vehiculos where origen_id = current_setting('medir.origen')::uuid and eliminado_en is null
   order by creado_en desc, id desc offset 2000 limit 1), true);
@@ -108,9 +110,9 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('listado: un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'nada' and esta_tachado = false$w$), 12000);
     perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$), 1500);
     perform pg_temp.escala('listado: búsqueda sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$), 1500);
-    perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false'), 400);
-    perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true'), 300);
-    perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina($w$etiquetas && array[(select id from public.etiquetas where nombre = 'Vol 1' limit 1)] and esta_tachado = false$w$), 700);
+    perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false'), 500);
+    perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true'), 500);
+    perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina(format('etiquetas && array[%L::uuid] and esta_tachado = false', case q when 'duena' then current_setting('medir.et_duena') else current_setting('medir.et_ana') end)), 1500);
     -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
     perform pg_temp.escala('listado: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 100);
     perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$, 2500);
@@ -162,13 +164,11 @@ do $medir$ declare q text; begin
   perform pg_temp.escala('listado: ocultos hasta 51 de quien no tiene ninguno', 'berta', 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 30);
   perform pg_temp.escala('listado: sólo favoritos de quien no tiene ninguno', 'berta', pg_temp.pagina('es_favorito = true and esta_tachado = false'), 30);
 
-  -- Lo que usan los jobs y las papeleras, como lo corre la base (sin RLS: `security definer`).
+  -- Lo que usa la papelera, como lo corre la base (sin RLS: `security definer`). La cola de Storage, con 100.000
+  -- filas, la mide `medir-jobs.sql`.
   perform pg_temp.escala('papeleras: una página de lotes (la consulta)', 'duena',
     $w$select l.id from public.lotes_papelera l where l.tipo = 'leads' and l.purgado_en is null and l.restaurado_en is null order by l.creado_en desc, l.id desc limit 6$w$,
     50, 'lotes_papelera_tipo_idx', '{lotes_papelera}', 0, 'postgres');
-  perform pg_temp.escala('storage-gc: lo que espera la cola (la consulta)', 'duena',
-    $w$select c.encolado_en from public.cola_gc_storage c where c.encolado_en < now() - interval '3 hours' order by c.encolado_en limit 1001$w$,
-    50, 'cola_gc_storage_edad_idx', '{cola_gc_storage}', 0, 'postgres');
 end $medir$;
 
 rollback;

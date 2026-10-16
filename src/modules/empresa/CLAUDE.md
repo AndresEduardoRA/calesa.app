@@ -13,6 +13,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
   - `integracionActiva('apibara')` — si una integración está prendida; si la base no responde, no. La consulta `app/` para decirle a `vehiculos` si ofrece el alta por enlace y el refresco de la subasta.
   - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`, `<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`.
   - Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` para `app/manifest.ts` y `app/iconos/vigente/[tamano]`; `<IconosDeLaApp>` para la pantalla.
+- Sale por `shell.ts` (9e, sólo el layout `(app)`): `getAjustes()`, `getTiposCambio()` y `<TiposCambioVigentes>`: lo que dibuja el marco, sin los formularios de Configuración › Empresa que reexporta `index.ts`.
 - Depende de: ningún otro módulo. No tiene `client.ts`: ningún Client Component de afuera necesita nada de acá.
 
 ## Archivos clave

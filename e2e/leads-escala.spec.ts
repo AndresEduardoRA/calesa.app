@@ -133,7 +133,8 @@ test('sin red, abrir un modal cuyo código nunca se pidió lo dice en su lugar y
   await page.context().setOffline(true)
   await anotar.click()
   // El aviso en su lugar, con «Reintentar»; la pantalla sigue en pie (no cayó a «No se pudo cargar»).
-  const alerta = page.getByRole('alert').filter({ hasText: MENSAJE_SIN_CONEXION })
+  // La barra fija del modal (otras partes de la ficha que tampoco habían llegado pueden decir lo suyo en su lugar).
+  const alerta = page.locator('.fixed').getByRole('alert').filter({ hasText: MENSAJE_SIN_CONEXION })
   await expect(alerta).toBeVisible({ timeout: 10_000 })
   await expect(titulo).toBeVisible()
   await expect(page.getByText('No se pudo cargar')).toHaveCount(0)

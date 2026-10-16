@@ -14,6 +14,7 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
   - Perspectiva: `<ProveedorPerspectiva>`, `<BannerPerspectiva>`.
   - Vistas guardadas: `leerVistas(pantalla)` (las de quien llama).
 - Sale por `client.ts` (Client Components de `app/` y de otros módulos): `usePerspectiva()`, `<RoleBadge>`, tipos `Perspectiva` y `RolParaVerComo`; y `<MenuDeVistas pantalla vistas actuales puedeGuardar>` con los tipos `VistaGuardada` y `ParamsDeVista`: el menú que un listado monta en el hueco `vistas` de `<FilterShell>`.
+- Sale por `shell.ts` y `shell.client.ts` (9e, sólo el layout `(app)` y `_shell/`): `requerirSesion()`, `nombreVisible()`, `puede()`, `cerrarSesion`, `<ProveedorPreferencias>`, `<ProveedorPerspectiva>`, `<BannerPerspectiva>` y, en el navegador, `usePerspectiva()`. Lo que dibuja el marco y nada más: el `index.ts` reexporta la lista del equipo y la matriz de roles, y lo que el layout importa viaja en todas las pantallas.
 - Lo consumen `app/` y todos los módulos. Depende de: `empresa` (registro abierto, ajustes). **Nunca de `origenes`** (que depende de este): la página lee los orígenes y se los pasa a la matriz por props.
 
 ## Archivos clave

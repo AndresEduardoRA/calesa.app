@@ -253,6 +253,34 @@ Dentro de «Seguimientos» (`?seccion=seguimientos`): la línea de tiempo y, al 
 - **Tus recordatorios:** sólo los propios, leídos desde el navegador al abrir la sección o la pestaña (esqueleto; error con «Reintentar»). «Agendar recordatorio» arriba (con la cartera). Los pendientes, de a 20 con «Ver más» (hasta 500: «Mostrando los primeros 500.»): vencidos primero (marcados «Vencido»), el más viejo arriba, después los que vienen. Plegado y **sin número**, «Completados» (sólo si hay alguno): no lee nada hasta abrirse y también va de a 20 (el último completado arriba; error con «Reintentar»). «Completar» / «Reabrir», «Editar» y «Eliminar» con «Deshacer». Agendar y editar son un modal con su URL (`?panel=agendar-recordatorio`, `?panel=editar-recordatorio&recordatorio=<id>`) con «De qué es», «Cuándo» (los mismos atajos que el «Próximo contacto») y «Vehículo (opcional)»; `Ctrl/Cmd+S` o `Ctrl/Cmd+Enter` guardan. Recargar lo reabre con lo escrito (borrador por recordatorio, con «Descartar»); Esc con algo escrito pregunta en el mismo modal. Uno de la URL que no está cargado se lee por su id antes de decidir; un id que no está (ajeno, eliminado, inventado) o uno completado no abren: lo dice un aviso. Si otra pestaña lo cambió: «Cambiaste este recordatorio … desde otra ventana» con «Recargar», que trae sólo ése, por su id, y conserva lo escrito; si lo completó o lo eliminó, el modal lo dice y no guarda, con lo escrito a la vista. Sin conexión, sale solo al volver, una vez. Uno en el pasado se rechaza junto al campo; cambiar sólo el título de uno vencido no pide otra hora. Vacío: «Ningún recordatorio pendiente sobre este lead.».
 - **Vencidos en la ficha:** arriba de las secciones, «Tienes N recordatorios vencidos sobre este lead.» con «Verlos»; con más de 20, «Tienes más de 20 recordatorios vencidos sobre este lead.» (la base no cuenta más). Desaparece al completarlos.
 
+### Totales y topes (9e, `.claude/rules/escala.md`)
+
+Un número que se muestra nunca es el total exacto: se cuenta hasta un tope y de ahí se dice «más de N» (en una frase) o
+«N+» (en una cabecera o una pestaña). Si sólo adorna, no se muestra. Y toda lista que crece dibuja a lo sumo un tope y lo
+dice, con un camino a lo antiguo.
+
+- **Listado de leads:** el aviso de tachados ocultos cuenta hasta 50: «12 leads que coinciden están ocultos porque los
+  tachaste.» o «Más de 50 leads que coinciden están ocultos…». No hay total de leads ni «página 3 de 800»: Anterior y
+  Siguiente. Para llegar a lo antiguo, **filtrar** (origen, tipo, un campo, favoritos, etiqueta) o **buscar** por nombre o
+  número (`#124`). Con decenas de miles, un filtro que no coincide con nadie tarda unos segundos para quien ve «todos»
+  (recorre toda la cartera visible); el esqueleto aparece pasados 300 ms.
+- **Exportar:** sin número previo. Con más de 5.000 leads en los filtros no se exporta nada y se dice «Hay más de 5.000
+  leads con estos filtros y una exportación lleva hasta esa cantidad. Filtra un poco más y vuelve a intentarlo.». «Descargamos
+  N leads» sí es exacto (son las filas del archivo).
+- **Embudo (kanban):** la cabecera de cada columna y la pestaña del celular dicen «37» o «500+». «Ver más (N)» dice cuántas
+  faltan mientras se sabe; con «500+», sólo «Ver más». Una columna dibuja a lo sumo 500 tarjetas y ahí, en vez de «Ver más»:
+  «Mostrando las 500 con actividad más reciente. Las demás siguen en la ficha de cada lead.»
+- **Ficha:** «Tiene más de 100 vehículos vinculados…» (el aviso de la cartera y el motivo de la papelera). La sección
+  «Oportunidades» muestra las 100 más recientes (las abiertas primero) y lo dice: «Mostrando las 100 más recientes, las
+  abiertas primero.»
+- **Etiquetas, «Gestionar»:** «En 12 leads» o «En más de 1.000 leads».
+- **Papeleras (leads y vehículos):** de a 5 lotes por página (Anterior y Siguiente, `?cursor=`); un lote ya trae hasta 200.
+  El aviso de archivos por borrar dice «hay más de 1.000 archivos». «La papelera está vacía» sólo en la primera página; una
+  página sin filas por un cursor viejo ofrece «Volver al principio».
+- **Sin red:** abrir un modal, un panel o una pestaña cuyo código nunca se pidió dice «Sin conexión. No se pudo abrir esto.»
+  con «Reintentar» (abajo de la pantalla en un modal; en el lugar de la pestaña), y deja lo demás en pie. Paginar sin red (listado y
+  papeleras): no navega, deja lo que se ve y dice «Sin conexión: no se puede cambiar de página. Vuelve a intentar cuando tengas red.»
+
 ### Equipo y roles (estados propios)
 
 - **Equipo:** sólo tú en el equipo (aviso con invitación a sumar a alguien); sin resultados por filtro; invitación pendiente con «Generar otro enlace»; sobre la cuenta propia el menú dice por qué no se puede bloquear ni dar de baja; el rechazo del guardián se muestra con su motivo. Bloquear se hace y ofrece «Deshacer»; dar de baja pide confirmar en un diálogo que nombra a la persona y dice cuántos leads van al limbo.

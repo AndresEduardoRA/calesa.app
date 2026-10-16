@@ -9,6 +9,10 @@ paths:
   (`@/modules/<x>`, para Server Components: puede traer código de servidor) y, si expone algo al
   navegador, `client.ts` (`@/modules/<x>/client`, para Client Components). Dentro del módulo, rutas
   relativas. Antes de agregar un export, pregúntate quién lo necesita.
+- **La tercera, la del shell** (`shell.ts`, y `shell.client.ts` para un Client Component de `_shell/`):
+  sólo la importan `src/app/(app)/layout.tsx` y `src/app/(app)/_shell/` (lo cuida el lint). Lleva lo que
+  dibuja el marco de toda pantalla y nada más: lo que importa el layout viaja en el JS de **todas** las
+  pantallas, y el `index.ts` reexporta cada pantalla del módulo (`docs/DECISIONES.md`, 2026-10-17).
 - `client.ts` sólo reexporta hooks, componentes de cliente (o puros) y tipos de `entities/`. Nunca
   `./index`, `./composicion`, `infra/` de servidor ni nada con `server-only`: lo frena el lint y,
   lo transitivo, el build. Un componente puro puede salir por las dos entradas.
