@@ -12,7 +12,7 @@
 
 - Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
   reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
-  y las partes 1 a 9b de la Fase 3 (e2e completo: 517 en verde y 1 salto por diseño, ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  y las partes 1 a 9b de la Fase 3 (último e2e completo: 517 en verde y 1 salto por diseño, antes del arreglo del toast; ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
   `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: lo grabado.
 - **Leads (1 a 8b):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
   oportunidades y **«Portal»**: el acceso del cliente), marcas, «Quién lo tiene», papelera, embudos con kanban;
@@ -24,7 +24,7 @@
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Siguen la **9c** (teléfonos, recordatorios y portal a modales, con los campos compartidos) y la **9d** (tabla y drawer del lead), y el **cierre de la fase** (presupuestos, recorte de la ficha, índice de DECISIONES, tabla de criterios). Abierto: lotes de 50 (100 cabe); en `empresa.spec`, «edita un tipo de cambio» se cuelga a veces (un toast tapa «Cerrar»: 2 de 40 con la CPU ocupada; ver BITACORA). Un e2e que falla deja sus artefactos en `e2e-fallos/`.
+Siguen la **9c** (teléfonos, recordatorios y portal a modales, con los campos compartidos) y la **9d** (tabla y drawer del lead), y el **cierre de la fase** (presupuestos, recorte de la ficha, índice de DECISIONES, tabla de criterios). Abierto: lotes de 50 (100 cabe). Un e2e que falla deja sus artefactos en `e2e-fallos/`.
 
 ## Pendientes que se arrastran
 

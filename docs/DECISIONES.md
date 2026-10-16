@@ -2863,3 +2863,51 @@ tiene que pasar `controlado`; la prueba de carga limpia es la barandilla (falla 
 mide contra `guardado` por props. **Barandillas:** `use-borrador.test.tsx`, la carga limpia de los 17 campos de Empresa y de los formularios de
 campo de leads y de orígenes, y `e2e/empresa-guardado.spec.ts` (no se teclea mientras guarda; guardar con la CPU frenada, sólo escritorio:
 con el freno solo la prueba pasa también sin el arreglo, así que la determinista es la que cuenta).
+
+## 2026-10-18 — Los avisos no reciben el puntero; el freno de CPU se borra; lo del borrador no se reproduce
+
+**Contexto.** «edita un tipo de cambio» (`empresa.spec.ts:158`) se colgaba a veces 30 s en el clic de «Cerrar» (1 de 40 y 2 de 40
+con las 8 CPU ocupadas). Quedaban también el e2e del freno de CPU, que pasaba sin el arreglo del borrador, y un borrador que
+había reaparecido tras `limpiar()`.
+
+**Causa del toast (confirmada, no supuesta).** Tres medidas, la última aislada del test:
+
+1. El registro de Playwright: 52 reintentos con `<li class="cn-toast" data-front="true">` interceptando el clic. «Cerrar» es el
+   botón del **pie** (`.first()`: la ✕ de `SheetContent` va después de los hijos en el DOM).
+2. La captura del fallo: el aviso (arriba en y≈643) cubre el pie y el centro de «Cerrar» está en y≈648, 5 px dentro. Por eso el
+   fallo es de a ratos: depende de la fase de la animación de entrada. Con un aviso asentado en cualquier momento el centro
+   queda tapado: la prueba determinista nueva falló **40 de 40** sin el arreglo, siempre en el `elementFromPoint` de «Cerrar»
+   (escritorio y móvil).
+3. La pausa: sonner 2.0.8 marca la pila expandida con `onMouseEnter`/`onMouseMove` del `<ol>` y `expanded` pausa el
+   temporizador. Medido: sin puntero, el aviso se va antes de 6,5 s; con el puntero encima (aviso asentado) sigue a los 6,5 s con
+   `data-expanded=true` y se va al sacar el puntero. Playwright mueve el puntero al punto del clic antes de comprobar el blanco: queda
+   sobre el aviso, lo pausa y el clic no entra nunca.
+   Es de producto, no del test: una persona que acaba de guardar tiene el pie del panel tapado ~4 s, y más si deja el puntero ahí.
+
+**Decisión.** En `src/shared/ui/sonner.tsx`, `toast: 'cn-toast pointer-events-none [&_button]:pointer-events-auto'`: el aviso deja
+pasar el puntero y sólo sus botones lo reciben («Descartar», «Deshacer», «Recargar», «Ingresar» y la ✕). Sin puntero encima no hay
+pausa. **Alternativas:** mover el Toaster (arriba tapa la ✕ del panel y la barra superior; a la izquierda, la navegación; en móvil el
+aviso ocupa todo el ancho de todas formas); subir el `offset` (hay que adivinar la altura del pie); cerrar el aviso o mover el puntero
+en el test (taparía el fallo real; `descartarAviso()` de `e2e/soporte/inventario.ts` es ese parche y queda: sigue valiendo).
+**Consecuencia.** Se pierde el deslizar para descartar en táctil y el hover que expande la pila: el aviso se va solo y su ✕ queda. Un
+aviso con otro tipo de control tiene que ganarse su `pointer-events-auto`. La prueba (`empresa-guardado.spec.ts`) cubre dos avisos
+apilados, escritorio y móvil, Escape con avisos abiertos y un aviso con acción («Descartar»).
+
+**El freno de CPU se borra.** `guardar con la pantalla lenta…` (`Emulation.setCPUThrottlingRate`, rate 20) agrandaba la ventana
+entre el aviso y el remontaje pero no fija el orden de los eventos: pasó sobre el código viejo 0 de 33 veces (y 0 de 40 sobre el nuevo).
+Una prueba que pasa con y sin el arreglo no guarda nada. La barandilla es «mientras guarda no se puede teclear» (roja 33 de 33 sin el
+arreglo, con la respuesta de la action retenida por `page.route`).
+
+**Hallazgo de la medición (no se arregla acá).** El panel de un tipo de cambio tiene la misma ventana que Empresa: el aviso sale
+antes de que el panel se dibuje con lo guardado, y lo que se teclea ahí se pierde (el formulario se reemplaza). Apareció una vez en 40
+en mi prueba (el segundo valor tecleado desapareció del DOM y no hubo segundo guardado); la prueba ahora espera al historial. Otros
+formularios con `key` por versión pueden tenerla; la barandilla de Empresa es «sin teclear mientras `enCurso`».
+
+**Borrador tras `limpiar()`: no reproducido.** En el experimento con la respuesta retenida (Empresa, tecleando mientras guardaba) el
+borrador seguía en `sessionStorage` tras el guardado, con `{razonSocial, nit}` y la base vieja. Experimento de esta parte: prueba
+unitaria con `limpiar()`, desmontar y montar de nuevo con lo guardado ya cambiado → **no reproduce** (sin borrador y sin aviso;
+pasa sin tocar el hook), y la prueba se descartó por pasar sobre el código actual. **No explicado.** Hipótesis, **no verificada**: el
+formulario viejo salió del DOM con un campo enfocado, el navegador disparó `change` y el oyente viejo (todavía enganchado: su
+limpieza corre después) volvió a escribir con la base vieja. Con el formulario deshabilitado mientras guarda ya no se puede teclear en esa
+ventana; si reaparece un «Recuperamos» tras un guardado exitoso, esta es la pista (ignorar `change` tras `limpiar()` hasta el
+próximo `input`) y lo que falta es un e2e que lo provoque.
