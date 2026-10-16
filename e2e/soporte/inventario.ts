@@ -205,7 +205,7 @@ export async function otraPersona(browser: Browser, page: Page): Promise<Page> {
 export async function descartarAviso(page: Page, texto: string | RegExp) {
   const aviso = page.locator('[data-sonner-toast]').filter({ hasText: texto })
   await expect(aviso).toBeVisible()
-  await aviso.getByRole('button', { name: 'Close toast' }).click()
+  await aviso.getByRole('button', { name: 'Cerrar aviso' }).click()
   await expect(aviso).toBeHidden()
 }
 

@@ -41,6 +41,10 @@ test('D · un aviso con un modal sucio abierto: su botón recibe el clic y el mo
   await page.getByRole('button', { name: 'Quitar' }).click()
   const aviso = page.locator('[data-sonner-toast]').filter({ hasText: 'Teléfono quitado.' })
   await expect(aviso).toBeVisible()
+  // Lo que anuncia el lector de pantalla, en español (sonner lo trae en inglés).
+  await expect(page.getByRole('region', { name: /^Avisos/ })).toBeAttached()
+  await expect(aviso.getByRole('button', { name: 'Cerrar aviso' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Close toast' })).toHaveCount(0)
   const modal = await abrirAgregarTelefono(page)
   const escrito = nacional()
   await modal.getByLabel('Teléfono extra').fill(escrito)

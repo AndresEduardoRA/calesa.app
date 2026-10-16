@@ -17,6 +17,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps['theme']}
       className="toaster group"
+      // Lo que anuncia el lector de pantalla: sonner lo trae en inglés («Notifications alt+T», «Close
+      // toast»). El atajo para llegar a los avisos se dice en español.
+      customAriaLabel="Avisos (Alt+T para ir a ellos)"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
@@ -33,6 +36,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         } as React.CSSProperties
       }
       toastOptions={{
+        closeButtonAriaLabel: 'Cerrar aviso',
         classNames: {
           // El aviso sale abajo a la derecha, justo sobre el pie de un panel («Cerrar», «Guardar»), y
           // con el puntero encima sonner pausa su temporizador: tapaba el botón y no se iba. El aviso
