@@ -15,6 +15,7 @@ import {
   type EleccionParaTodoElArchivo,
   type FilaPreparada,
 } from '../../../entities/importacion/filas'
+import { usePaises } from '../../telefono/hooks/use-paises'
 
 // El archivo ya leído: sólo vive acá, en memoria. Cada fila trae su id de intento desde el principio:
 // reintentar un lote manda los mismos ids y la base no duplica.
@@ -43,6 +44,9 @@ export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
   const [avisos, setAvisos] = useState<readonly string[]>([])
   const [eleccion, setEleccion] = useState(() => eleccionInicial(contexto))
   const [ahora] = useState(() => new Date().toISOString())
+  // La tabla de países se pide al elegir el archivo, igual que papaparse: completa «País» con el del
+  // teléfono donde la celda viene vacía.
+  const paises = usePaises(archivo !== null)
 
   const preparadas = useMemo<FilaPreparada[]>(() => {
     if (!archivo) {
@@ -57,13 +61,14 @@ export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
       zona,
       ahora,
       eleccion,
+      paises,
       nuevoId: () => {
         const id = archivo.ids[siguiente] ?? crypto.randomUUID()
         siguiente += 1
         return id
       },
     })
-  }, [archivo, destinos, campos, contexto, zona, ahora, eleccion])
+  }, [archivo, destinos, campos, contexto, zona, ahora, eleccion, paises])
 
   const faltan = useMemo(() => objetivosSinColumna(destinos, objetivos), [destinos, objetivos])
 

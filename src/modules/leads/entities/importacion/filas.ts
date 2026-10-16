@@ -18,8 +18,10 @@ import {
   type TipoDelLead,
 } from '../alta'
 import type { CampoDeLead } from '../campo'
+import type { TablaDePaises } from '../paises/resolver'
 import { normalizarTelefono } from '../telefono'
 import { valorDeFormularioDesdeTexto } from './convertir'
+import { completarPaisDeLaFila } from './pais'
 import { comparable, esNotacionCientifica, sinApostrofoDeFormula } from './texto'
 
 export type MotivoDeFila = {
@@ -52,6 +54,8 @@ export type FilaPreparada = {
   motivos: readonly MotivoDeFila[]
   // Nulo si tiene motivos.
   pedido: PedidoDeFila | null
+  // El país que salió del teléfono porque «País» venía vacío; nulo si la celda traía uno o no se pudo.
+  paisDelTelefono: string | null
 }
 
 export type EleccionParaTodoElArchivo = {
@@ -69,6 +73,9 @@ export type EntradaDePreparacion = {
   zona: string
   ahora: string
   eleccion: EleccionParaTodoElArchivo
+  // La tabla de países, para completar «País» con el del teléfono. Sin ella (todavía no llegó) no se
+  // completa nada.
+  paises?: TablaDePaises | null
   // Para probarlo; en la app, `crypto.randomUUID`.
   nuevoId: () => string
 }
@@ -204,6 +211,13 @@ function prepararFila(
 ): FilaPreparada {
   const id = entrada.nuevoId()
   const { valores, propios } = valoresDeLaFila(celdas, entrada, campos)
+  const paisDelTelefono = completarPaisDeLaFila({
+    valores,
+    propios,
+    campos,
+    contexto: entrada.contexto,
+    tabla: entrada.paises ?? null,
+  })
   const validacion = validarAlta({
     valores,
     layout: entrada.campos,
@@ -221,7 +235,15 @@ function prepararFila(
   const nombre =
     typeof valores[CLAVE_DEL_ALTA.nombre] === 'string' ? valores[CLAVE_DEL_ALTA.nombre] : ''
   if (!validacion.ok || motivos.length > 0) {
-    return { id, fila: numero, celdas, nombre: String(nombre), motivos, pedido: null }
+    return {
+      id,
+      fila: numero,
+      celdas,
+      nombre: String(nombre),
+      motivos,
+      pedido: null,
+      paisDelTelefono,
+    }
   }
   const { datos } = validacion
   return {
@@ -230,6 +252,7 @@ function prepararFila(
     celdas,
     nombre: datos.nombre,
     motivos: [],
+    paisDelTelefono,
     pedido: {
       id,
       fila: numero,

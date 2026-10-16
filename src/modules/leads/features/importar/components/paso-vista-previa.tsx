@@ -8,6 +8,7 @@ import { useRegional } from '@/shared/ui/regional'
 import type { ObjetivoDeImportacion } from '../../../entities/importacion/emparejar'
 import type { FilaPreparada } from '../../../entities/importacion/filas'
 import { FILAS_POR_PAGINA_DE_PREVIA } from '../../../entities/importacion/limites'
+import { OBJETIVO_PAIS } from '../../../entities/importacion/pais'
 
 type Props = {
   preparadas: readonly FilaPreparada[]
@@ -24,7 +25,16 @@ function Motivos({
   etiquetas: ReadonlyMap<string, string>
 }) {
   if (fila.motivos.length === 0) {
-    return <span className="text-(--color-ink-faint)">Lista para importar</span>
+    // «País» completado con el del teléfono: se dice, para que no sorprenda al importar.
+    const pais = fila.paisDelTelefono
+    return (
+      <span className="text-(--color-ink-faint)">
+        Lista para importar
+        {pais === null
+          ? ''
+          : ` · ${etiquetas.get(OBJETIVO_PAIS) ?? 'País'}: ${pais} (del teléfono)`}
+      </span>
+    )
   }
   return (
     <ul className="grid gap-0.5 text-(--color-peligro-ink)">

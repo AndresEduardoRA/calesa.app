@@ -82,6 +82,7 @@ describe('filasRechazadas y tablaDeRechazadas', () => {
     nombre: 'Ana',
     motivos: [],
     pedido: null,
+    paisDelTelefono: null,
     ...extra,
   })
   const pedido = {
