@@ -56,6 +56,27 @@ async function pieUsable(page: Page, modal: Locator, principal: string) {
   await tactil(page, boton)
 }
 
+test('la ficha con sus cinco secciones cabe en el celular, y su modal también (la ✕ a la vista)', async ({
+  page,
+}) => {
+  await entrar(page, r.ana.email)
+  for (const seccion of ['', '?seccion=seguimientos', '?seccion=portal']) {
+    await irAFicha(page, r.uno.id, seccion)
+    await expect(tituloDeLaFicha(page, r.uno.nombre)).toBeVisible()
+    await sinScrollHorizontal(page)
+  }
+  await expect(
+    page.getByRole('navigation', { name: 'Secciones del lead' }).getByRole('link'),
+  ).toHaveCount(5)
+  await irAFicha(page, r.uno.id)
+  const modal = await abrirAgregarTelefono(page)
+  await quieto(modal)
+  await dentroDeLaPantalla(page, modal)
+  await recibeElClic(modal.getByRole('button', { name: 'Cerrar' }))
+  await page.keyboard.press('Escape')
+  await expect(modal).toHaveCount(0)
+})
+
 test('C · teléfono extra desde la ficha: validación, descarte y guardar una sola vez', async ({
   page,
 }, info) => {

@@ -132,7 +132,9 @@ export function FichaDeLead({
   const gestionar = usePanelDeEtiquetas()
   const origen = origenDeLaFicha(origenes, ficha.origenId)
   return (
-    <div className="grid max-w-4xl gap-4">
+    // Una sola columna que no crece con su contenido: sin `minmax(0, 1fr)`, la barra de secciones (con
+    // cinco, más ancha que un celular) ensanchaba toda la ficha y los modales quedaban cortados.
+    <div className="grid max-w-4xl grid-cols-[minmax(0,1fr)] gap-4">
       <VolverALeads />
       <CabeceraDeLead
         ficha={ficha}

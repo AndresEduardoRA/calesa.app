@@ -147,6 +147,7 @@ Deshacer (`…20261017000100_leads_importacion_deshacer.sql`, parte 8b): `leads_
 - **Las listas hijas tienen tope y no cuentan (9d-2, `.claude/rules/escala.md`):** 20 por página y hasta 500; «Completados» sin número; el aviso de vencidos hasta 21. Lo que vuelve de una RPC se pone sólo dentro de lo cargado (`ponerEnLaVentana()`, `ponerEnLasListas()`): fuera correría el cursor.
 - **Lo que se reexporta por `index.ts` viaja en el JS de todas las pantallas:** el layout `(app)` importa `@/modules/leads` (para «Nuevo lead»), así que un componente de cliente alcanzable desde la ficha suma al shell. Lo que es grande y no hace falta al pintar (el bloque de recordatorios de la ficha, «Ir a una fecha») va con `import()` diferido; medirlo en `docs/RENDIMIENTO.md`.
 
+- **La ficha es una sola columna `minmax(0, 1fr)`** (9d-3): un hijo de un grid sin eso crece hasta su ancho mínimo, y la barra con las cinco secciones (la asesora de la semilla las ve todas) ensanchaba la ficha en el celular y cortaba sus modales. Lo vigila `leads-recorrido-modales.spec.ts`.
 - `leads_vista` existe porque RLS no esconde columnas. Un `select *` sobre `leads` desde la app es un error de revisión (y falla: ni `telefono_principal` ni `atributos` tienen grant).
 - Una vista se valida al crearse: por eso las migraciones antiguas ya no nombran las seis columnas, y `_leads_vista_crear()` es la única definición actual de `leads_vista`.
 - `atributos` nunca guarda un nulo: vaciar quita la clave. Lo de un campo desactivado se conserva y no se cambia.
