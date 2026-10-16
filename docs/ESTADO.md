@@ -5,14 +5,14 @@
 > el siguiente prompt va a asumir cosas falsas. Máximo 80 líneas: lo que ya no es actual se mueve
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
-**Última actualización:** 2026-10-17
-**Fase actual:** 3 — Leads, **partes 8a, 8b y 9a hechas** (CSV; y el país del teléfono: se dice al tipear, llena «País» y se ve en la ficha y el CSV). Falta sólo el **cierre de la fase**.
+**Última actualización:** 2026-10-18
+**Fase actual:** 3 — Leads, **partes 8a, 8b, 9a y 9b hechas** (CSV; el país del teléfono; y el primer seguimiento del alta, opcional y con el mismo editor que la ficha). Falta sólo el **cierre de la fase**.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
   reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
-  y las partes 1 a 9a de la Fase 3 (e2e completo: 488 en verde). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  y las partes 1 a 9b de la Fase 3 (e2e completo: 511 en verde y 1 intermitente de `empresa`, ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
   `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: lo grabado.
 - **Leads (1 a 8b):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
   oportunidades y **«Portal»**: el acceso del cliente), marcas, «Quién lo tiene», papelera, embudos con kanban;
@@ -20,12 +20,11 @@
   clases (`docs/DECISIONES.md`, 2026-10-15) y el cinturón de `db:probar` falla si una nueva no está auditada.
   **CSV:** exportar la cartera (≤ 5.000, 5 por hora), importar (≤ 500 filas, lotes de 50, reglas del alta) y
   **deshacer** lo importado que sigue intacto durante 24 h (clase X; «Tus importaciones recientes» en `/leads/importar`).
-  **País del teléfono (9a):** tabla estática de 242 países, sólo con `import()`, sin SQL. **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
+  **País del teléfono (9a):** tabla estática de 242 países, sólo con `import()`, sin SQL. **Alta (9b):** el paso 2 es opcional (`Ctrl/Cmd+S` guarda siempre), con `CamposDelSeguimiento` compartido con la ficha, «Próximo contacto» plegado y `_lead_crear` con el detalle como documento. **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Queda el **cierre de la fase** (presupuestos de peso, recorte de la ficha, índice de DECISIONES, tabla de criterios).
-Abierto: lotes de 50 (100 cabe). Un e2e que falla deja sus artefactos en `e2e-fallos/`.
+Siguen la **9c** (teléfonos, recordatorios y portal a modales, con los campos compartidos) y la **9d** (tabla y drawer del lead), y el **cierre de la fase** (presupuestos, recorte de la ficha, índice de DECISIONES, tabla de criterios). Abierto: lotes de 50 (100 cabe); en `empresa`, «sin conexión, el formulario avisa» falló una vez en la suite completa y no repite solo (8/8): sin relación con la 9b, a vigilar. Un e2e que falla deja sus artefactos en `e2e-fallos/`.
 
 ## Pendientes que se arrastran
 

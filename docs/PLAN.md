@@ -74,7 +74,7 @@ por fila, importa las válidas, con deshacer durante 24 horas).
 salir— y papelera de leads) y **6b (sección «Vehículos» de la ficha: vincular, desvincular, interesados;
 `vehiculo_id` en seguimientos y recordatorios; la prueba de carreras con dos conexiones)** y **7a (embudos
 personales, oportunidades con kanban y sección en la ficha, transferir con oportunidades)** y **7b (el acceso del
-cliente del lado del equipo —la sección «Portal»— y el endurecimiento de `web.portal_*`)**. **8a (exportar la cartera e importar con vista previa, por lotes)** y **8b (deshacer una importación durante 24 h, con «Tus importaciones recientes»)** y **9a (el país del teléfono: se dice al tipear, llena «País» y se ve en la ficha y en la importación; tabla estática, sin SQL)**. Falta sólo el cierre de la fase.
+cliente del lado del equipo —la sección «Portal»— y el endurecimiento de `web.portal_*`)**. **8a (exportar la cartera e importar con vista previa, por lotes)** y **8b (deshacer una importación durante 24 h, con «Tus importaciones recientes»)** y **9a (el país del teléfono: se dice al tipear, llena «País» y se ve en la ficha y en la importación; tabla estática, sin SQL)** y **9b (el primer seguimiento del alta, opcional y enriquecido: el mismo editor y los mismos campos que la ficha, «Cuándo fue» y «Próximo contacto» plegado; una migración que amplía `_lead_crear`)**. Falta sólo el cierre de la fase.
 
 **Terminado cuando:** cada empresa arma los campos de sus leads sin tocar SQL (crea «Signo zodiacal»,
 apaga «Edad», marca uno «solo la cartera») y quien ve un lead sin estar en su cartera no recibe un

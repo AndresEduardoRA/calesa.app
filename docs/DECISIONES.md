@@ -2754,3 +2754,65 @@ dejaba «País» vacío (ni el CSV ni la base aplican `valor_defecto_empresa`: e
   **Medido:** el JS cliente total creció 5,6 KB con gzip (788,5 → 794,1) contra la parte 8b: 3,4 KB son el chunk de la tabla y
   2,2 KB el pegamento que entra en el shell (el alta está en todas las rutas): `resolver`, `pais-del-telefono`, el estado del
   alta y los hooks. Es más de lo previsto; se acepta porque la tabla, que es lo grande, no viaja. «Datos» 43,4 de 44 KB.
+
+## 2026-10-18 — El primer seguimiento del alta, opcional y enriquecido (Fase 3, parte 9b)
+
+**Contexto.** «Nuevo lead» obligaba a escribir un resumen para guardar (~30 altas al día, muchas sin nada que anotar), el
+detalle era un `Textarea` plano que `_lead_crear` guardaba sólo como `detalle_texto`, y «Recordatorio (opcional)» abierto
+siempre empujaba a agendar incluso al anotar algo que ya pasó.
+
+**Decidido**
+
+- **El paso 2 es opcional y la pantalla lo dice sin bloquear** (nada de diálogo de confirmación). `Ctrl/Cmd+Enter` sigue
+  avanzando (memoria muscular, y el e2e de los 25 s no cambia de forma); «Guardar lead» y `Ctrl/Cmd+S` guardan desde
+  cualquier paso. Una sola regla: **se guarda lo escrito y lo vacío no**; por eso «Guardar lead» desde el paso 1 nunca
+  tira lo que se escribió en el 2. El aviso va en el pie, unido por `aria-describedby` al botón: «Se creará sin primer
+  seguimiento. Podrás anotarlo después desde la ficha.» (o «Se guardará con el primer seguimiento que escribiste.»).
+- **`Ctrl/Cmd+S` en «Nuevo lead» guarda y deja el drawer listo para el siguiente; no lo cierra.** La regla global sólo
+  dice «guardar»; lo de «guardar y cerrar» es de vehículos. El drawer es una herramienta de ráfaga y el toast ya lleva a
+  la ficha.
+- **Qué cuenta como «escrito»:** el resumen, un detalle con texto, una fecha elegida y un próximo contacto. Cambiar sólo el
+  tipo, o abrir «Otra fecha» sin elegir, no cuenta. **Con un detalle o un próximo contacto sin resumen se exige el
+  resumen, no se deriva del detalle:** es lo que se lee en la línea de tiempo y el título del recordatorio, un recorte de
+  un documento con formato daría títulos rotos, y la ficha y la base ya lo exigen.
+- **El toast sin seguimiento** dice «Lead #124 creado sin seguimiento» (o «tomado …») y su «Abrir ficha» va a
+  `?seccion=seguimientos`, donde ya está «Anotar seguimiento»: cero componentes nuevos.
+- **Un solo conjunto de campos** (`CamposDelSeguimiento`) para la ficha y el alta, sin `<form>`, pie ni foco propio: los
+  modales de la 9c y la 9d lo montan tal cual. La ficha pone «Visible para el cliente» y el vehículo; el alta no
+  (**«Visible para el cliente» no entra al alta**: la base rechaza `visibilidad` y `vehiculo_id` en `p_seguimiento`).
+- **«Próximo contacto»** es el recordatorio que nace con un seguimiento, dicho por lo que hace: plegado detrás de
+  «Programar próximo contacto», con la línea «Un recordatorio para ti: cuándo volver a contactar a este lead.» y sus
+  atajos. En el código y en la base sigue siendo `recordatorio` (no hay entidad nueva). No promete un aviso: el disparo
+  es de la Fase 7.
+- **`ocurrido_en` pasado sí, futuro no** (`_seguimiento_fecha`: 5 minutos de margen por los relojes; la pantalla, ninguno).
+- **La base reusa las reglas, no las copia:** `_lead_crear` valida el resumen, el detalle y la fecha con
+  `_seguimiento_titulo`, `_seguimiento_detalle` y `_seguimiento_fecha` y vuelve a lanzar el mismo mensaje con el campo del
+  alta en el `hint` (`seguimiento.detalle`, `seguimiento.ocurrido_en`). `p_seguimiento.detalle` es un documento o nulo; un
+  texto se rechaza («formato que no se admite»). La forma de `crear_lead` (jsonb) no cambia, y la importación sigue sin
+  seguimiento. Sin cambio de schema: `db:base` no hace falta y `db:types` sale igual.
+- **Borrador:** uno solo (`lead-nuevo`), con los datos del lead y, bajo la clave `seguimiento`, los mismos valores que usa
+  el redactor de la ficha (el documento como JSON; al reponerlo pasa otra vez por `documentoLimpio()`). Un solo
+  «Recuperamos lo que habías escrito». **Sin tope de peso:** un documento válido pesa ≤ 20 000 octetos y uno que se pasa se
+  conserva para recortarlo (perder lo tipeado es el error que no puede pasar); si `sessionStorage` no alcanza, el
+  borrador ya lo calla. Los borradores viejos con `seguimiento.*` se ignoran solos.
+- **Sin tipos de seguimiento activos** no hay paso 2: «Guardar lead» es el principal y el pie lo dice. No se bloquea.
+- **La barra del editor tiene una sola parada de Tab** (patrón _toolbar_ de WAI-ARIA: flechas, Inicio y Fin). Antes eran
+  cinco paradas antes del texto, también en la ficha; con el próximo contacto plegado, llegar a él con el teclado es Tab ×3.
+- **La tarea de oro mide el seguimiento, no el próximo contacto:** `n`, Tab, `Ctrl+Enter`, resumen, `Ctrl+Enter`. El tope
+  de 8 teclas de control, el KLM ≤ 25 s y el robot < 15 s siguen; el próximo contacto con teclado tiene su propio e2e.
+
+**Un hallazgo de la verificación contra la base viva (arreglado en la misma migración).** Dos envíos del mismo intento
+sobre un lead sin dueño pasaban los dos la búsqueda del intento en `actividad` (aún sin confirmar); el segundo esperaba el
+`for update` y, al soltarse, **adoptaba otra vez e insertaba un segundo seguimiento y otro recordatorio**. Ahora vuelve a
+mirar el intento tras el candado. Lo prueba `pnpm db:carreras` (`scripts/carreras/alta.mjs`: falla con la función
+anterior, pasa con la nueva). Sigue abierto, y no es de esta parte, lo que pasa si _otra persona_ con _otro intento_
+adopta el mismo lead entre la verificación y el candado.
+
+**Alternativas.** Aceptar `detalle` como texto plano en `crear_lead` (compatibilidad que nadie usa: dos reglas para un
+mismo campo). Derivar el resumen del detalle. Un botón «Guardar lead sin seguimiento» y otro «con»: el botón no sabe qué
+se escribió. Tres botones con un diálogo de confirmación: son decenas de altas al día.
+
+**Consecuencia.** `entities/primer-seguimiento.ts` (el validador del documento y las fechas) se pide con `import()` al
+guardar con algo escrito, y los campos del paso 2 y Tiptap no viajan con el drawer (un e2e lo vigila: ningún chunk con
+ProseMirror hasta abrir el paso 2). **Medido:** la carga en frío de `/leads` creció 0,7 KB con gzip (570,8 → 571,5 KB en
+escritorio) contra el presupuesto de 1 KB del shell; el editor sigue siendo su chunk aparte. Lo que entra al shell es el estado del alta y `documento-limpio` (el borrador lo necesita para reponer el detalle por la lista blanca): moverlo a un `import()` ahorraría unos bytes pero, sin red, un borrador no se repondría y el siguiente `useEffect` lo borraría, y perder lo tipeado es el error que no puede pasar. Si el paso 2 no llega (sin red y sin caché) el drawer lo dice con «Recargar» en lugar de tumbar la pantalla; lo escrito queda en el borrador.
