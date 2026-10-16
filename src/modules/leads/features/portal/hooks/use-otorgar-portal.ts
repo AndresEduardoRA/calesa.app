@@ -3,6 +3,7 @@
 import { useAction } from 'next-safe-action/hooks'
 import { useEffect, useRef, useState } from 'react'
 import { enviarAccion, type Envio } from '@/shared/lib/enviar-accion'
+import { avisar } from '@/shared/ui/toasts'
 import type { ErrorApp } from '@/shared/lib/errores'
 import { motivoDeClave, type AccesoOtorgado } from '../../../entities/portal'
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
@@ -15,6 +16,9 @@ export type Otorgado = AccesoOtorgado & { clave: string; generada: boolean }
 type Estado = { otorgado: Otorgado | null; error: ErrorApp | null; motivo: string | null }
 
 const INICIAL: Estado = { otorgado: null, error: null, motivo: null }
+
+export const AVISO_DE_CLAVE_PERDIDA =
+  'Se dio el acceso, pero cerraste antes de ver la clave. Vuelve a otorgarlo para dictarle una nueva.'
 
 // Lo que queda tras la respuesta: el acceso con la clave a mostrar (la que generó la base o la escrita),
 // el motivo junto al campo, o el error.
@@ -58,6 +62,12 @@ function useOlvido(abierto: boolean, reiniciar: () => void) {
       reiniciar()
     }
   }
+  // Reabrir antes de que terminara de cerrarse (con «atrás» y «adelante») también es otra generación.
+  useEffect(() => {
+    if (abierto) {
+      generacion.current += 1
+    }
+  }, [abierto])
   useEffect(
     () => () => {
       generacion.current += 1
@@ -105,6 +115,9 @@ export function useOtorgarPortal({
     setClave('')
     setEstado(INICIAL)
   })
+  // Un pedido a la vez, con una marca propia: un doble Enter llega antes de que `isExecuting` cambie y
+  // otorgaría dos veces (la primera clave quedaría a la vista sin valer).
+  const enVuelo = useRef(false)
 
   // Un solo botón: con el campo vacío la base genera la clave; con algo escrito, se da esa (antes se
   // mira la regla, sin ir al servidor).
@@ -115,13 +128,23 @@ export function useOtorgarPortal({
       setEstado({ ...INICIAL, motivo })
       return
     }
+    if (enVuelo.current) {
+      return
+    }
+    enVuelo.current = true
     setEstado(INICIAL)
     const esta = generacion.current
     const envio = await enviarAccion(
       accion.executeAsync({ leadId, clave: escrita, otorgadoEnEsperado: version }),
       MENSAJE_DE_VALIDACION,
-    )
+    ).finally(() => {
+      enVuelo.current = false
+    })
     if (esta !== generacion.current) {
+      // Se cerró mientras otorgaba: la clave no se muestra fuera de su diálogo, pero el acceso cambió.
+      if (envio.ok) {
+        avisar(AVISO_DE_CLAVE_PERDIDA)
+      }
       return
     }
     const siguiente = estadoTras(envio, escrita)

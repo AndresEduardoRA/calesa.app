@@ -10,6 +10,8 @@ vi.mock('next-safe-action/hooks', () => ({
   useAction: () => ({ executeAsync: otorgar, isExecuting: false }),
 }))
 vi.mock('../actions/otorgar-portal', () => ({ otorgarPortal: 'otorgar' }))
+const avisar = vi.fn()
+vi.mock('@/shared/ui/toasts', () => ({ avisar: (texto: string) => avisar(texto) }))
 
 const LEAD = '4a1f5b0e-6f0a-4f6e-9a55-1b6e2a1f0c11'
 const VERSION = '2026-10-16T14:00:00.123+00:00'
@@ -24,6 +26,7 @@ const ok = (data: unknown) => ({ data: { ok: true, data } })
 afterEach(() => {
   cleanup()
   otorgar.mockReset()
+  avisar.mockReset()
 })
 
 describe('useOtorgarPortal: otorgar', () => {
@@ -160,6 +163,25 @@ describe('useOtorgarPortal: lo que llega tarde o con la pantalla escondida', () 
     expect(hook.result.current.otorgado).toBeNull()
     hook.rerender(true)
     expect(hook.result.current.otorgado).toBeNull()
+    // El acceso sí cambió: se dice, para que no quede un código sin clave conocida.
+    expect(avisar).toHaveBeenCalledWith(expect.stringMatching(/cerraste antes de ver la clave/))
+  })
+
+  it('un doble Enter otorga una sola vez', async () => {
+    let soltar: (valor: unknown) => void = () => undefined
+    otorgar.mockReturnValue(
+      new Promise((resolver) => {
+        soltar = resolver
+      }),
+    )
+    const hook = montar()
+    await act(async () => {
+      const primero = hook.result.current.otorgar()
+      const segundo = hook.result.current.otorgar()
+      soltar(ok({ codigo: 'MII-4F2K9', otorgadoEn: '2026-10-16T14:05:00Z', clave: 'K7M2P9QX3A' }))
+      await Promise.all([primero, segundo])
+    })
+    expect(otorgar).toHaveBeenCalledOnce()
   })
 
   it('al esconderse la pantalla (Next la guarda en un <Activity> oculto) también se olvida', async () => {
