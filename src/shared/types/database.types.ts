@@ -6350,7 +6350,6 @@ export type Database = {
         Row: {
           actualizado_en: string | null
           atributos: Json | null
-          cotizaciones_count: number | null
           creado_en: string | null
           creado_por: string | null
           dueno_id: string | null
@@ -6372,7 +6371,6 @@ export type Database = {
         Insert: {
           actualizado_en?: string | null
           atributos?: never
-          cotizaciones_count?: never
           creado_en?: string | null
           creado_por?: string | null
           dueno_id?: never
@@ -6393,7 +6391,6 @@ export type Database = {
         Update: {
           actualizado_en?: string | null
           atributos?: never
-          cotizaciones_count?: never
           creado_en?: string | null
           creado_por?: string | null
           dueno_id?: never
@@ -6735,6 +6732,17 @@ export type Database = {
       _lead_visible: { Args: { p_lead: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
+      _leads_papelera_lote_json: {
+        Args: {
+          p_dias: number
+          p_lote: Omit<
+            Database['public']['Tables']['lotes_papelera']['Row'],
+            Database['public']['Tables']['lotes_papelera']['ComputedFields']
+          >
+          p_yo: string
+        }
+        Returns: Json
+      }
       _leads_vista_crear: { Args: Record<PropertyKey, never>; Returns: undefined }
       _limpieza_ancla: {
         Args: {
@@ -7108,6 +7116,17 @@ export type Database = {
         Args: { p_clave: string; p_datos: Json; p_largo: number; p_nombre: string }
         Returns: string
       }
+      _vehiculos_papelera_lote_json: {
+        Args: {
+          p_dias: number
+          p_lote: Omit<
+            Database['public']['Tables']['lotes_papelera']['Row'],
+            Database['public']['Tables']['lotes_papelera']['ComputedFields']
+          >
+          p_yo: string
+        }
+        Returns: Json
+      }
       actividad_purgar: { Args: Record<PropertyKey, never>; Returns: number }
       alcance_de: {
         Args: { p_clave: string; p_origen?: string }
@@ -7222,7 +7241,10 @@ export type Database = {
         Returns: Json
       }
       embudo_por_defecto: { Args: Record<PropertyKey, never>; Returns: Json }
-      embudo_tablero: { Args: { p_embudo: string; p_tope?: number }; Returns: Json }
+      embudo_tablero: {
+        Args: { p_embudo: string; p_tope?: number; p_tope_total?: number }
+        Returns: Json
+      }
       empresa_con_datos_cargados: { Args: Record<PropertyKey, never>; Returns: boolean }
       empresa_guardar_ajustes: {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json }
@@ -7413,7 +7435,10 @@ export type Database = {
         Returns: Json
       }
       leads_papelera_enviar: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
-      leads_papelera_listar: { Args: Record<PropertyKey, never>; Returns: Json }
+      leads_papelera_listar: {
+        Args: { p_antes_en?: string; p_antes_id?: string; p_hacia_atras?: boolean; p_tope?: number }
+        Returns: Json
+      }
       leads_papelera_purgar: {
         Args: { p_actualizado_en_esperado: string; p_leads?: string[]; p_lote: string }
         Returns: Json
@@ -7863,7 +7888,10 @@ export type Database = {
       vehiculos_con_permiso: { Args: { p_clave: string; p_ids: string[] }; Returns: string[] }
       vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
       vehiculos_papelera_enviar: { Args: { p_vehiculos: Json }; Returns: Json }
-      vehiculos_papelera_listar: { Args: Record<PropertyKey, never>; Returns: Json }
+      vehiculos_papelera_listar: {
+        Args: { p_antes_en?: string; p_antes_id?: string; p_hacia_atras?: boolean; p_tope?: number }
+        Returns: Json
+      }
       vehiculos_papelera_purgar: {
         Args: { p_actualizado_en_esperado: string; p_lote: string; p_vehiculos?: string[] }
         Returns: Json

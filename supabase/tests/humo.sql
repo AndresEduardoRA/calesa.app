@@ -2331,7 +2331,7 @@ select set_config('request.jwt.claim.sub', '', false);
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$ declare n bigint; p uuid; direccion constant text := 'http://api.local:8000/functions/v1/storage-gc'; begin
-  if not exists (select 1 from cron.job j where j.jobname = 'papelera-purgar' and j.schedule = '30 3 * * *' and j.command like '%papelera_purgar_vencidos()%') then raise exception 'la purga automática no quedó programada'; end if;
+  if not exists (select 1 from cron.job j where j.jobname = 'papelera-purgar' and j.schedule = '30 * * * *' and j.command like '%papelera_purgar_vencidos()%') then raise exception 'la purga automática no quedó programada'; end if;
   begin perform public.storage_gc_disparar('http://otro.sitio/llevarse-el-pase'); raise exception 'mandó un pase a una dirección que no es la función';
   exception when invalid_parameter_value then null; end;
   begin perform public.storage_gc_programar(null); raise exception 'programó sin dirección';
