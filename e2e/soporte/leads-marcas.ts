@@ -105,19 +105,22 @@ export const interruptor = (page: Page, cual: 'Favorito' | 'Tachado'): Locator =
 export const botonEtiquetas = (page: Page): Locator =>
   aLaVista(page.getByRole('button', { name: /^Etiquetas/ }))
 
-// El «⋯» de una fila del listado (tabla o tarjeta).
-export const menuDeFila = (page: Page, corto: string): Locator =>
-  aLaVista(page.getByRole('button', { name: `Marcas de ${nombre(corto)}` }))
+// El «⋯» de una fila del listado (tabla o tarjeta), por el nombre completo del lead.
+export const menuDelLead = (page: Page, nombreDelLead: string): Locator =>
+  aLaVista(page.getByRole('button', { name: `Más acciones de ${nombreDelLead}`, exact: true }))
+export const menuDeFila = (page: Page, corto: string): Locator => menuDelLead(page, nombre(corto))
 
 // Abre el «⋯» y espera el menú (la página hidrata antes de que el clic valga).
-export async function abrirMenuDeFila(page: Page, corto: string): Promise<Locator> {
+export async function abrirMenuDelLead(page: Page, nombreDelLead: string): Promise<Locator> {
   const menu = page.getByRole('menu')
   await expect(async () => {
-    await menuDeFila(page, corto).click()
+    await menuDelLead(page, nombreDelLead).click()
     await expect(menu).toBeVisible({ timeout: 1000 })
   }).toPass()
   return menu
 }
+export const abrirMenuDeFila = (page: Page, corto: string): Promise<Locator> =>
+  abrirMenuDelLead(page, nombre(corto))
 
 // El selector de etiquetas abierto (un popover con el campo «Buscar o crear»).
 export const selectorDeEtiquetas = (page: Page): Locator =>

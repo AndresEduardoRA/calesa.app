@@ -2,20 +2,26 @@
 
 import { parseAsString, useQueryStates } from 'nuqs'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
+import { CLAVE_PARA } from '../../../entities/acciones-de-fila'
 import {
   CLAVE_DE_RECORDATORIO,
   PANEL_AGENDAR_RECORDATORIO,
   PANEL_EDITAR_RECORDATORIO,
 } from '../../../entities/recordatorios'
 
-const PARAMETROS = { [CLAVE_DE_PANEL]: parseAsString, [CLAVE_DE_RECORDATORIO]: parseAsString }
+const PARAMETROS = {
+  [CLAVE_DE_PANEL]: parseAsString,
+  [CLAVE_DE_RECORDATORIO]: parseAsString,
+  [CLAVE_PARA]: parseAsString,
+}
 
 // «Agendar recordatorio» (`?panel=agendar-recordatorio`) y «Editar» (`?panel=editar-recordatorio&
 // recordatorio=<id>`) en la URL de la ficha: recargar los vuelve a abrir. Comparten la clave con los
 // demás paneles: nunca se apilan. Abrir suma al historial («atrás» lo cierra).
 export function usePanelDeRecordatorio() {
   const [parametros, setParametros] = useQueryStates(PARAMETROS)
-  const panel = parametros[CLAVE_DE_PANEL]
+  // Con `?para=` el panel es del listado (el «⋯» de una fila), no de la ficha ni del drawer.
+  const panel = parametros[CLAVE_PARA] === null ? parametros[CLAVE_DE_PANEL] : null
   return {
     agendando: panel === PANEL_AGENDAR_RECORDATORIO,
     // El id tal como vino en la URL: puede no ser de nadie.

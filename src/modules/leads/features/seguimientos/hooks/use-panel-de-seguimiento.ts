@@ -2,20 +2,26 @@
 
 import { parseAsString, useQueryStates } from 'nuqs'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
+import { CLAVE_PARA } from '../../../entities/acciones-de-fila'
 import {
   CLAVE_DE_SEGUIMIENTO,
   PANEL_ANOTAR_SEGUIMIENTO,
   PANEL_EDITAR_SEGUIMIENTO,
 } from '../../../entities/edicion-de-seguimiento'
 
-const PARAMETROS = { [CLAVE_DE_PANEL]: parseAsString, [CLAVE_DE_SEGUIMIENTO]: parseAsString }
+const PARAMETROS = {
+  [CLAVE_DE_PANEL]: parseAsString,
+  [CLAVE_DE_SEGUIMIENTO]: parseAsString,
+  [CLAVE_PARA]: parseAsString,
+}
 
 // «Anotar seguimiento» (`?panel=anotar-seguimiento`) y «Editar» (`?panel=editar-seguimiento&
 // seguimiento=<id>`) en la URL: recargar los vuelve a abrir. Comparten la clave con los demás
 // paneles: nunca se apilan. Abrir suma al historial («atrás» lo cierra).
 export function usePanelDeSeguimiento() {
   const [parametros, setParametros] = useQueryStates(PARAMETROS)
-  const panel = parametros[CLAVE_DE_PANEL]
+  // Con `?para=` el panel es del listado (el «⋯» de una fila), no de la ficha ni del drawer.
+  const panel = parametros[CLAVE_PARA] === null ? parametros[CLAVE_DE_PANEL] : null
   return {
     anotando: panel === PANEL_ANOTAR_SEGUIMIENTO,
     // El id tal como vino en la URL: puede no ser de nadie.

@@ -24,6 +24,7 @@ import {
 } from '../../entities/filtros'
 import { FILTRO_TACHADOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { TAMANO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
+import { puedeEditarLead } from '../../entities/edicion'
 import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
 
 export type DatosDelListado = {
@@ -44,6 +45,8 @@ export type DatosDelListado = {
   eliminables: string[]
   // Quien mira puede abrir la papelera de leads (envía, o puede vaciarla).
   puedeAbrirPapelera: boolean
+  // `leads.editar`: con el lead en la cartera, anotar y agendar desde el «⋯» de su fila.
+  puedeAnotar: boolean
 }
 
 type Entrada = {
@@ -125,6 +128,8 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
         .filter((fila) => puedeEnviarLead(permisos, fila.duenoId, usuarioId))
         .map((fila) => fila.id),
       puedeAbrirPapelera: puedeAbrirLaPapelera(permisos),
+      // Como si estuviera en la cartera: cada fila lo combina con la suya.
+      puedeAnotar: puedeEditarLead(permisos, true),
     },
   }
 }

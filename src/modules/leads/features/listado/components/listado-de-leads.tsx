@@ -1,7 +1,8 @@
 'use client'
 
 import type { VistaGuardada } from '@/modules/equipo/client'
-import { camposFiltrables, type EsquemaDeFiltros } from '@/shared/lib/filtros'
+import { parseAsString, useQueryState } from 'nuqs'
+import { CLAVE_DE_PANEL, camposFiltrables, type EsquemaDeFiltros } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
 import { Button } from '@/shared/ui/button'
 import { FilterShell, useFiltrosDelListado } from '@/shared/ui/filtros'
@@ -18,6 +19,8 @@ import { RefrescarAlVolver } from '../../ficha/components/refrescar-al-volver'
 import { EnlaceAPapeleraDeLeads } from '../../papelera/components/enlace-a-papelera'
 import { DrawerDeLead } from '../../rapido/components/drawer-de-lead'
 import { useDrawerDeLead } from '../../rapido/hooks/use-drawer-de-lead'
+import { useAccionDeFila } from '../hooks/use-accion-de-fila'
+import { AccionesDeFila } from './acciones-de-fila'
 import { AvisoDeFiltrosDescartados } from './aviso-de-filtros-descartados'
 import { AvisoDePrivados } from './aviso-de-privados'
 import { AvisoDeTachadosOcultos } from './aviso-de-tachados-ocultos'
@@ -40,6 +43,7 @@ type Props = DatosDeLaLista & {
   ocultos: number
   eliminables: readonly string[]
   puedeAbrirPapelera: boolean
+  puedeAnotar: boolean
 }
 
 // Lo que va arriba de la lista: lo que la URL traía y ya no vale, y la aclaración de un filtro
@@ -107,9 +111,12 @@ export function ListadoDeLeads(props: Props) {
     ocultos,
     eliminables,
     puedeAbrirPapelera,
+    puedeAnotar,
     ...delServidor
   } = props
   const drawer = useDrawerDeLead()
+  const accionDeFila = useAccionDeFila()
+  const [panel] = useQueryState(CLAVE_DE_PANEL, parseAsString)
   const etiquetas = useEtiquetas(delServidor.etiquetas)
   const gestionar = usePanelDeEtiquetas()
   // La lista local: una etiqueta recién creada nombra la fila antes de que vuelva el servidor.
@@ -153,15 +160,21 @@ export function ListadoDeLeads(props: Props) {
             puedeCrear={puedeCrear}
             alAbrir={drawer.abrir}
             abierto={drawer.id}
-            marcar={{ etiquetas, alGestionar: gestionar.abrir, eliminables }}
+            marcar={{
+              etiquetas,
+              alGestionar: gestionar.abrir,
+              eliminables,
+              alAccion: puedeAnotar ? accionDeFila.abrir : null,
+            }}
             ocultos={ocultos}
           />
         </div>
       </FilterShell>
       <DrawerDeLead {...datos} filas={pagina.filas} soloMios={!puedeVerTodos} />
       <DialogoDeEtiquetas etiquetas={etiquetas} />
-      {/* Lo que se marcó en otra pestaña (o la ficha) aparece al volver, sin recargar a mano. */}
-      <RefrescarAlVolver activo={!gestionar.abierto} />
+      <AccionesDeFila filas={pagina.filas} puedeAnotar={puedeAnotar} />
+      {/* Lo de otra pestaña aparece al volver; con un panel abierto, no (relee la página). */}
+      <RefrescarAlVolver activo={panel === null} />
     </div>
   )
 }

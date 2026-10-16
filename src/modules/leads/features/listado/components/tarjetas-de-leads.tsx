@@ -6,7 +6,7 @@ import { BadgeDeTipo } from './badge-de-tipo'
 import { CeldaDeCampo } from './celda-de-campo'
 import { NombreDeFila } from './nombre-de-fila'
 import { telefonoDeLista } from './telefono-de-lista'
-import { nombreDelOrigen, type DatosDeLaLista, type ParaMarcar } from './tipos'
+import { accionesDelMenu, type DatosDeLaLista, nombreDelOrigen, type ParaMarcar } from './tipos'
 
 type Props = DatosDeLaLista & {
   leads: readonly FilaDeLead[]
@@ -74,6 +74,7 @@ export function TarjetasDeLeads(props: Props) {
                   etiquetas={marcar.etiquetas}
                   alGestionar={marcar.alGestionar}
                   puedeEnviar={marcar.eliminables.includes(lead.id)}
+                  acciones={accionesDelMenu(marcar, lead)}
                 />
               </div>
             </article>

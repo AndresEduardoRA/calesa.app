@@ -281,5 +281,6 @@ describe('consultaDelListado', () => {
       ),
     ).toBe('q=Ana')
     expect(consultaDelListado('?panel=editar-recordatorio&recordatorio=r1')).toBe('')
+    expect(consultaDelListado('?modo=x&panel=anotar-seguimiento&para=l1')).toBe('modo=x')
   })
 })

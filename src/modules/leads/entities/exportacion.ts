@@ -166,6 +166,7 @@ const NO_SON_FILTROS = new Set([
   'panel',
   'cursor',
   'lead',
+  'para',
   'pestana',
   'seguimiento',
   'recordatorio',

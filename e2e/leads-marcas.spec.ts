@@ -114,7 +114,7 @@ test('el «⋯» de la fila marca sin abrir el drawer, y el drawer muestra las m
   await expect(drawer).toBeVisible()
   await expect(drawer.getByText('Favorito', { exact: true })).toBeAttached()
   await expect(drawer.getByRole('button', { name: 'Favorito' })).toHaveCount(0)
-  await expect(drawer.getByRole('button', { name: /^Marcas de/ })).toHaveCount(0)
+  await expect(drawer.getByRole('button', { name: /^Más acciones de/ })).toHaveCount(0)
 })
 
 test('tachar desde el «⋯» ofrece «Deshacer», y una marca puesta en otra pestaña aparece al volver', async ({
