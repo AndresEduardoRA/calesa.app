@@ -96,7 +96,8 @@ test('«Seguimientos»: una página al abrir, «Ver más» hasta el tope, la red
   // Sin red al paginar: se avisa, lo cargado queda y el siguiente intento suma.
   await page.route('**/rpc/lead_seguimientos', (ruta) => ruta.abort(), { times: 1 })
   await linea.getByRole('button', { name: 'Ver más' }).click()
-  await expect(page.getByText(/Algo falló de nuestro lado/)).toBeVisible()
+  // Que no llegó: es la conexión, no «algo falló de nuestro lado» (9d-3).
+  await expect(page.getByText(/No pudimos llegar al servidor. Revisa tu conexión/)).toBeVisible()
   await expect(itemsDe(linea)).toHaveCount(20)
   await linea.getByRole('button', { name: 'Ver más' }).click()
   await expect(itemsDe(linea)).toHaveCount(40)

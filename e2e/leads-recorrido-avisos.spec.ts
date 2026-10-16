@@ -126,9 +126,12 @@ test('E · sin red: lo escrito en el modal queda y sale una vez; «Ver más» di
 
   await page.context().setOffline(true)
   await linea.getByRole('button', { name: 'Ver más' }).click()
-  const aviso = page.locator('[data-sonner-toast]').last()
-  await expect(aviso).toBeVisible()
-  info.annotations.push({ type: 'E: «Ver más» sin red', description: await aviso.innerText() })
+  // Dice que es la conexión, no «algo falló de nuestro lado»; lo cargado queda.
+  await expect(
+    page.locator('[data-sonner-toast]').filter({ hasText: 'No hay conexión. Vuelve a intentar' }),
+  ).toBeVisible()
+  await expect(page.getByText(/Algo falló de nuestro lado/)).toHaveCount(0)
+  await expect(linea.getByRole('article')).toHaveCount(20)
   await capturar(page, info, 'sin-red-ver-mas')
 
   await drawer.getByRole('button', { name: 'Anotar seguimiento' }).click()

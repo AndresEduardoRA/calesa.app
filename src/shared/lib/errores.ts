@@ -64,9 +64,31 @@ const POR_CODIGO: Record<string, { codigo: CodigoError; generico: string }> = {
   PGRST301: { codigo: 'no_autenticado', generico: MENSAJE_SESION_VENCIDA },
 }
 
+// Un pedido que no llegó (sin red, o el servidor no responde): supabase-js no lanza, devuelve un error
+// sin código con el texto del `fetch` que falló («TypeError: Failed to fetch» en Chrome, «NetworkError…»
+// en Firefox, «Load failed» en Safari, «fetch failed» en Node). No es «de nuestro lado»: es la conexión.
+const SIN_TRANSPORTE =
+  /failed to fetch|networkerror|load failed|fetch failed|network request failed/i
+
+export const MENSAJE_SIN_CONEXION = 'No hay conexión. Vuelve a intentar cuando vuelva.'
+export const MENSAJE_SIN_RESPUESTA =
+  'No pudimos llegar al servidor. Revisa tu conexión y vuelve a intentar.'
+
+function errorDeTransporte(): ErrorApp {
+  // En el navegador se sabe si hay red; en el servidor (Node también tiene `navigator`) no se dice.
+  const sinConexion = typeof window !== 'undefined' && !window.navigator.onLine
+  return {
+    codigo: 'inesperado',
+    mensaje: sinConexion ? MENSAJE_SIN_CONEXION : MENSAJE_SIN_RESPUESTA,
+  }
+}
+
 export function errorDePostgrest(error: ErrorPostgrest): ErrorApp {
   const conocido = error.code ? POR_CODIGO[error.code] : undefined
   if (!conocido) {
+    if (!error.code && SIN_TRANSPORTE.test(error.message)) {
+      return errorDeTransporte()
+    }
     return { codigo: 'inesperado', mensaje: MENSAJE_INESPERADO }
   }
   const legible = error.message.trim() !== '' && !MENSAJE_TECNICO.test(error.message)

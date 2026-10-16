@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   MENSAJE_CONFLICTO,
   MENSAJE_INESPERADO,
+  MENSAJE_SIN_CONEXION,
+  MENSAJE_SIN_RESPUESTA,
   conflicto,
   datosO,
   errorDePostgrest,
@@ -98,6 +100,44 @@ describe('errorDePostgrest', () => {
       codigo: 'inesperado',
       mensaje: MENSAJE_INESPERADO,
     })
-    expect(errorDePostgrest({ message: 'fetch failed' }).codigo).toBe('inesperado')
+    expect(errorDePostgrest({ code: 'XX000', message: 'Failed to fetch' }).mensaje).toBe(
+      MENSAJE_INESPERADO,
+    )
+  })
+})
+
+describe('errorDePostgrest: el pedido que no llegó', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  // Lo que devuelve supabase-js cuando el `fetch` falla: sin código y con el texto del navegador.
+  const SIN_CODIGO = [
+    'TypeError: Failed to fetch',
+    'NetworkError when attempting to fetch resource.',
+    'Load failed',
+    'TypeError: fetch failed',
+  ]
+
+  it.each(SIN_CODIGO)(
+    '«%s» con red dice que no llegó al servidor, no «de nuestro lado»',
+    (texto) => {
+      vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(true)
+      expect(errorDePostgrest({ code: '', message: texto })).toEqual({
+        codigo: 'inesperado',
+        mensaje: MENSAJE_SIN_RESPUESTA,
+      })
+    },
+  )
+
+  it('sin conexión lo dice así', () => {
+    vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false)
+    expect(errorDePostgrest({ message: 'TypeError: Failed to fetch' }).mensaje).toBe(
+      MENSAJE_SIN_CONEXION,
+    )
+  })
+
+  it('un error sin código que no es del transporte sigue siendo inesperado', () => {
+    expect(errorDePostgrest({ code: '', message: 'algo raro' }).mensaje).toBe(MENSAJE_INESPERADO)
   })
 })
