@@ -35,6 +35,9 @@ type Props = {
   // elemento que tenía el foco antes de abrir.
   focoInicial?: Popup['initialFocus']
   focoAlCerrar?: Popup['finalFocus']
+  // Cuando terminó de irse (la animación de cierre): lo que no debe quedar en memoria (una clave) se
+  // olvida acá y no al cerrar, así no cambia lo que se ve mientras se va.
+  alTerminarDeCerrar?: () => void
 }
 
 // Diálogo centrado para una decisión o un formulario corto. Nunca abre otro modal: si hace falta
@@ -51,6 +54,7 @@ export function Modal({
   bloqueado = false,
   focoInicial,
   focoAlCerrar,
+  alTerminarDeCerrar,
 }: Props) {
   // Esc lo atiende Base UI, que cierra sólo el diálogo de más arriba y detiene el evento: mientras
   // un diálogo está abierto, el atajo «cerrar» de la pila no lo ve (por eso el Modal no lo registra).
@@ -62,6 +66,11 @@ export function Modal({
           return
         }
         alCerrar()
+      }}
+      onOpenChangeComplete={(sigueAbierto) => {
+        if (!sigueAbierto) {
+          alTerminarDeCerrar?.()
+        }
       }}
     >
       <DialogContent

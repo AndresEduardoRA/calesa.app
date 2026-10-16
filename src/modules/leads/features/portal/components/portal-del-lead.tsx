@@ -4,13 +4,14 @@ import { useAction } from 'next-safe-action/hooks'
 import { KeyRoundIcon } from 'lucide-react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import { Button } from '@/shared/ui/button'
+import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { avisarError, avisarExito } from '@/shared/ui/toasts'
 import type { AccesoDelCliente } from '../../../entities/portal'
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
 import { desbloquearPortal } from '../actions/desbloquear-portal'
 import { usePanelDePortal } from '../hooks/use-panel-de-portal'
-import { DialogoDeOtorgar } from './dialogo-de-otorgar'
+import { DialogoDeOtorgarDiferido } from './diferidos'
 import { DialogoDeRevocar } from './dialogo-de-revocar'
 import { TarjetaDelAcceso } from './tarjeta-del-acceso'
 
@@ -30,6 +31,7 @@ export function PortalDelLead({ leadId, leadNombre, acceso, empresa, direccion }
   const panel = usePanelDePortal()
   const desbloqueo = useAction(desbloquearPortal)
   const vigente = acceso.estado === 'activo' || acceso.estado === 'bloqueado'
+  const montarOtorgar = useAbiertoAlgunaVez(panel.otorgando)
 
   async function desbloquear() {
     const envio = await enviarAccion(desbloqueo.executeAsync({ leadId }), MENSAJE_DE_VALIDACION)
@@ -70,15 +72,17 @@ export function PortalDelLead({ leadId, leadNombre, acceso, empresa, direccion }
           alDesbloquear={() => void desbloquear()}
         />
       )}
-      <DialogoDeOtorgar
-        abierto={panel.otorgando}
-        alCerrar={panel.cerrar}
-        leadId={leadId}
-        leadNombre={leadNombre}
-        acceso={acceso}
-        empresa={empresa}
-        direccion={direccion}
-      />
+      {montarOtorgar ? (
+        <DialogoDeOtorgarDiferido
+          abierto={panel.otorgando}
+          alCerrar={panel.cerrar}
+          leadId={leadId}
+          leadNombre={leadNombre}
+          acceso={acceso}
+          empresa={empresa}
+          direccion={direccion}
+        />
+      ) : null}
       {vigente ? (
         <DialogoDeRevocar
           abierto={panel.revocando}

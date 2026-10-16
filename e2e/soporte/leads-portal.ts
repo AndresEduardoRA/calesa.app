@@ -161,4 +161,11 @@ export const seccionPortal = (page: Page): Locator =>
 export const pestanaPortal = (page: Page): Locator =>
   aLaVista(page.getByRole('link', { name: 'Portal', exact: true }))
 
-export const dialogoDeOtorgar = (page: Page): Locator => page.getByRole('dialog')
+// «Dar acceso al portal» o «Volver a otorgar el acceso», antes de otorgar (después, el diálogo se
+// llama «<lead> ya tiene acceso al portal»).
+export const dialogoDeOtorgar = (page: Page): Locator =>
+  page.getByRole('dialog', { name: /^(Dar acceso al portal|Volver a otorgar el acceso)$/ })
+
+// El único botón principal: con el campo vacío genera la clave; con algo escrito, da esa.
+export const CON_ESTA_CLAVE = 'Dar acceso con esta clave'
+export const GENERAR = 'Generar clave y dar acceso'

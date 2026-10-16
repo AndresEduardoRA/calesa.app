@@ -21,10 +21,11 @@ type Props = {
 
 // La clave temporal que escribe la persona (o ninguna: la genera la base). Con un acceso vigente avisa
 // que el anterior deja de valer. Un conflicto se dice adentro, con «Recargar», y lo escrito queda.
+// Mientras otorga, el campo no se toca.
 export function FormularioDeClave({ id, acceso, otorgar }: Props) {
   const router = useRouter()
   const [recargando, recargar] = useTransition()
-  const idClave = useId()
+  const idClave = `${id}-clave`
   const idAyuda = useId()
   const idMotivo = useId()
   return (
@@ -33,7 +34,7 @@ export function FormularioDeClave({ id, acceso, otorgar }: Props) {
       className="grid gap-3"
       onSubmit={(evento) => {
         evento.preventDefault()
-        void otorgar.darConLaEscrita()
+        void otorgar.otorgar()
       }}
     >
       {acceso.estado === 'activo' || acceso.estado === 'bloqueado' ? (
@@ -47,6 +48,7 @@ export function FormularioDeClave({ id, acceso, otorgar }: Props) {
         {/* Sin autocompletar ni corrector (el corrector mejorado manda lo escrito a un servicio). */}
         <Input
           id={idClave}
+          disabled={otorgar.enCurso}
           value={otorgar.clave}
           onChange={(evento) => {
             otorgar.escribir(evento.target.value)
@@ -69,7 +71,7 @@ export function FormularioDeClave({ id, acceso, otorgar }: Props) {
         ) : null}
         <p id={idAyuda} className="text-(length:--text-xs) text-(--color-ink-soft)">
           De {LARGO_MINIMO_DE_CLAVE} a {LARGO_MAXIMO_DE_CLAVE} caracteres: se le pedirá cambiarla al
-          entrar. O genera una de 10 letras y números fáciles de dictar.
+          entrar. Si lo dejas vacío, se genera una de 10 letras y números fáciles de dictar.
         </p>
       </div>
       {otorgar.error?.codigo === 'conflicto' ? (

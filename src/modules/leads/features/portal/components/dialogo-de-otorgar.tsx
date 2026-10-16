@@ -18,10 +18,20 @@ type Props = {
   direccion: string | null
 }
 
-// «Dar acceso» o «Volver a otorgar» (`?panel=otorgar-portal`): una clave escrita (al menos 8) o una
-// generada por la base. Al terminar muestra el código en grande, la clave y el texto para WhatsApp, una
-// sola vez. Con un acceso que existe lleva su versión: si otra persona otorgó entre tanto, lo dice con
-// «Recargar» y lo escrito queda.
+// El texto del único botón principal: dice qué va a pasar con lo que hay en el campo.
+function etiquetaDeOtorgar(enCurso: boolean, clave: string): string {
+  if (enCurso) {
+    return 'Otorgando…'
+  }
+  return clave === '' ? 'Generar clave y dar acceso' : 'Dar acceso con esta clave'
+}
+
+// «Dar acceso» o «Volver a otorgar» (`?panel=otorgar-portal`): un solo botón principal, que con el
+// campo vacío genera la clave en la base y con algo escrito da esa (nunca se tira en silencio lo que se
+// escribió). Al terminar muestra el código en grande, la clave y el texto para WhatsApp, una sola vez.
+// Mientras otorga no se cierra. La clave se olvida cuando el diálogo termina de irse. Con un acceso que
+// existe lleva su versión: si otra persona otorgó entre tanto, lo dice con «Recargar» y lo escrito
+// queda.
 export function DialogoDeOtorgar({
   abierto,
   alCerrar,
@@ -33,18 +43,24 @@ export function DialogoDeOtorgar({
 }: Props) {
   const idForm = useId()
   const otorgar = useOtorgarPortal({ leadId, version: versionDelAcceso(acceso), abierto })
-  const ocupado = otorgar.enCurso || otorgar.esperaVersion
+  const { otorgado, enCurso } = otorgar
+  const comun = {
+    abierto,
+    alCerrar,
+    bloqueado: enCurso,
+    ancho: 'amplio' as const,
+    alTerminarDeCerrar: otorgar.olvidar,
+  }
 
-  if (otorgar.otorgado) {
+  if (otorgado) {
     return (
       <Modal
-        abierto={abierto}
-        alCerrar={alCerrar}
+        {...comun}
         titulo={`${leadNombre} ya tiene acceso al portal`}
         pie={<Button onClick={alCerrar}>Listo</Button>}
       >
         <AccesoOtorgado
-          otorgado={otorgar.otorgado}
+          otorgado={otorgado}
           leadNombre={leadNombre}
           empresa={empresa}
           direccion={direccion}
@@ -55,22 +71,21 @@ export function DialogoDeOtorgar({
 
   return (
     <Modal
-      abierto={abierto}
-      alCerrar={alCerrar}
+      {...comun}
       titulo={
         acceso.estado === 'sin_acceso' ? 'Dar acceso al portal' : 'Volver a otorgar el acceso'
       }
       descripcion={`${leadNombre} verá en la web cómo va su compra y lo que marques «Visible para el cliente».`}
+      // Con puntero, al campo; en una pantalla táctil, al diálogo: generar es el camino corto y el
+      // teclado no tiene por qué saltar.
+      focoInicial={(tipo) => (tipo === 'touch' ? true : document.getElementById(`${idForm}-clave`))}
       pie={
         <>
-          <Button variant="ghost" onClick={alCerrar} disabled={otorgar.enCurso}>
+          <Button variant="ghost" onClick={alCerrar} disabled={enCurso}>
             Cancelar
           </Button>
-          <Button variant="outline" onClick={() => void otorgar.generar()} disabled={ocupado}>
-            Generar clave y dar acceso
-          </Button>
-          <Button type="submit" form={idForm} disabled={ocupado || otorgar.clave === ''}>
-            {otorgar.enCurso ? 'Otorgando…' : 'Dar acceso'}
+          <Button type="submit" form={idForm} disabled={enCurso || otorgar.esperaVersion}>
+            {etiquetaDeOtorgar(enCurso, otorgar.clave)}
           </Button>
         </>
       }

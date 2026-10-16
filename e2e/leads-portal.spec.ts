@@ -3,9 +3,12 @@ import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
 import { idDe } from './soporte/leads'
 import { bloqueDeCartera, panelDeCartera, rpcComo } from './soporte/leads-cartera'
-import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
+import { esMovil } from './soporte/inventario'
+import { cabeEnLaPantalla, completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import { irAFicha, nuevoLead } from './soporte/leads-ficha'
 import {
+  CON_ESTA_CLAVE,
+  GENERAR,
   accesoEnLaBase,
   actividadDelPortal,
   dialogoDeOtorgar,
@@ -60,12 +63,18 @@ test('dar acceso con una clave escrita: el código en grande, el texto sin enlac
   await seccionPortal(page).getByRole('button', { name: 'Dar acceso' }).click()
   await expect(page).toHaveURL(/panel=otorgar-portal/)
   const dialogo = dialogoDeOtorgar(page)
+  // Un solo botón principal, que dice lo que va a hacer con lo que hay en el campo.
+  await expect(dialogo.getByRole('button')).toHaveText(['Cancelar', GENERAR, 'Cerrar'])
+  if (!esMovil(page)) {
+    await expect(dialogo.getByLabel('Clave temporal')).toBeFocused()
+  }
   await dialogo.getByLabel('Clave temporal').fill('corta')
-  await dialogo.getByRole('button', { name: 'Dar acceso', exact: true }).click()
+  await expect(dialogo.getByRole('button', { name: GENERAR })).toHaveCount(0)
+  await dialogo.getByRole('button', { name: CON_ESTA_CLAVE }).click()
   await expect(dialogo.getByText('La clave necesita al menos 8 caracteres.')).toBeVisible()
   const clave = `Escrita-${info.project.name}-9`
   await dialogo.getByLabel('Clave temporal').fill(clave)
-  await dialogo.getByRole('button', { name: 'Dar acceso', exact: true }).click()
+  await dialogo.getByRole('button', { name: CON_ESTA_CLAVE }).click()
 
   const listo = page.getByRole('dialog', { name: `${lead.nombre} ya tiene acceso al portal` })
   const codigo = (await listo.getByLabel(/^Código:/).textContent()) ?? ''
@@ -109,10 +118,15 @@ test('«Generar»: diez símbolos dictables, el enlace si la web tiene direcció
   await entrar(page, t.pia.email)
   await irAPortal(page, lead.id)
   await seccionPortal(page).getByRole('button', { name: 'Dar acceso' }).click()
-  await dialogoDeOtorgar(page).getByRole('button', { name: 'Generar clave y dar acceso' }).click()
+  await dialogoDeOtorgar(page).getByRole('button', { name: GENERAR }).click()
   const listo = page.getByRole('dialog', { name: `${lead.nombre} ya tiene acceso al portal` })
   const clave = (await listo.getByLabel('Clave temporal').textContent()) ?? ''
   expect(clave).toMatch(/^[2-9A-HJ-NP-Z]{10}$/)
+  // En el celular entra en la pantalla y «Listo» se alcanza desplazando el cuerpo.
+  if (esMovil(page)) {
+    await cabeEnLaPantalla(page, listo)
+    await expect(listo.getByRole('button', { name: 'Listo' })).toBeInViewport()
+  }
   await expect(listo.getByText(/^Se dice: /)).toHaveCount(2)
   await expect(listo.getByLabel('Texto para WhatsApp')).toContainText(
     'entra en https://sitio-de-prueba.example con estos datos:',
@@ -148,22 +162,54 @@ test('volver a otorgar con la versión: si otra persona otorgó antes, lo dice y
   // Paco lo vuelve a otorgar mientras tanto.
   await otorgarComo(t.paco.email, lead.id, 'clave-de-paco-1')
   await dialogo.getByLabel('Clave temporal').fill('clave-de-pia-2')
-  await dialogo.getByRole('button', { name: 'Dar acceso', exact: true }).click()
+  await dialogo.getByRole('button', { name: CON_ESTA_CLAVE }).click()
   await expect(dialogo.getByText(/Ya lo otorgó Paco Portal hace un momento/)).toBeVisible()
   await expect(dialogo.getByLabel('Clave temporal')).toHaveValue('clave-de-pia-2')
   // Hasta que llega la versión de Paco no se puede volver a otorgar (si no, chocaría otra vez).
-  await expect(dialogo.getByRole('button', { name: 'Dar acceso', exact: true })).toBeDisabled()
+  await expect(dialogo.getByRole('button', { name: CON_ESTA_CLAVE })).toBeDisabled()
   await dialogo.getByRole('button', { name: 'Recargar' }).click()
   await expect(dialogo.getByText(/Ya lo otorgó Paco Portal/)).toHaveCount(0)
   await expect(dialogo.getByText(`El código ${primero.codigo} y su clave`)).toHaveCount(0)
   await expect(dialogo.getByLabel('Clave temporal')).toHaveValue('clave-de-pia-2')
-  await dialogo.getByRole('button', { name: 'Dar acceso', exact: true }).click()
+  await dialogo.getByRole('button', { name: CON_ESTA_CLAVE }).click()
   await expect(
     page.getByRole('dialog', { name: `${lead.nombre} ya tiene acceso al portal` }),
   ).toBeVisible()
   expect(
     await loginDelCliente((await accesoEnLaBase(lead.id))?.codigo ?? '', 'clave-de-pia-2'),
   ).not.toBeNull()
+})
+
+test('mientras otorga no se cierra ni se toca el campo; al terminar muestra el acceso', async ({
+  page,
+}, info) => {
+  const lead = await leadDePia(`Portal En Curso ${info.project.name}`)
+  await entrar(page, t.pia.email)
+  await irAPortal(page, lead.id)
+  await seccionPortal(page).getByRole('button', { name: 'Dar acceso' }).click()
+  // La action se demora hasta que la prueba la suelta.
+  let soltar: () => void = () => undefined
+  const espera = new Promise<void>((resolver) => {
+    soltar = resolver
+  })
+  await page.route('**/leads/**', async (ruta) => {
+    if (ruta.request().method() === 'POST' && ruta.request().headers()['next-action']) {
+      await espera
+    }
+    await ruta.fallback()
+  })
+  const dialogo = dialogoDeOtorgar(page)
+  await dialogo.getByRole('button', { name: GENERAR }).click()
+  await expect(dialogo.getByRole('button', { name: 'Otorgando…' })).toBeDisabled()
+  await expect(dialogo.getByLabel('Clave temporal')).toBeDisabled()
+  await expect(dialogo.getByRole('button', { name: 'Cerrar' })).toBeDisabled()
+  await page.keyboard.press('Escape')
+  await expect(dialogo).toBeVisible()
+  soltar()
+  await expect(
+    page.getByRole('dialog', { name: `${lead.nombre} ya tiene acceso al portal` }),
+  ).toBeVisible()
+  await page.unrouteAll({ behavior: 'ignoreErrors' })
 })
 
 test('revocar pide confirmación, corta la sesión del cliente y deja volver a otorgar', async ({
@@ -240,7 +286,7 @@ test('en modo oscuro el código y el texto se leen igual', async ({ page }, info
   await entrar(page, t.pia.email)
   await irAPortal(page, lead.id)
   await seccionPortal(page).getByRole('button', { name: 'Dar acceso' }).click()
-  await dialogoDeOtorgar(page).getByRole('button', { name: 'Generar clave y dar acceso' }).click()
+  await dialogoDeOtorgar(page).getByRole('button', { name: GENERAR }).click()
   const listo = page.getByRole('dialog', { name: `${lead.nombre} ya tiene acceso al portal` })
   const codigo = listo.getByLabel(/^Código:/)
   await expect(codigo).toBeVisible()

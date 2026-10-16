@@ -27,12 +27,12 @@ afterEach(() => {
 })
 
 describe('useOtorgarPortal: otorgar', () => {
-  it('«Generar» manda la clave nula con la versión que se ve, y muestra la que vuelve', async () => {
+  it('con el campo vacío genera: manda la clave nula con la versión que se ve, y muestra la que vuelve', async () => {
     otorgar.mockResolvedValue(
       ok({ codigo: 'MII-4F2K9', otorgadoEn: '2026-10-16T14:05:00Z', clave: 'K7M2P9QX3A' }),
     )
     const hook = montar()
-    await act(() => hook.result.current.generar())
+    await act(() => hook.result.current.otorgar())
     expect(otorgar).toHaveBeenCalledWith({ leadId: LEAD, clave: null, otorgadoEnEsperado: VERSION })
     expect(hook.result.current.otorgado).toEqual({
       codigo: 'MII-4F2K9',
@@ -50,7 +50,7 @@ describe('useOtorgarPortal: otorgar', () => {
     act(() => {
       hook.result.current.escribir('mi-clave-larga')
     })
-    await act(() => hook.result.current.darConLaEscrita())
+    await act(() => hook.result.current.otorgar())
     expect(otorgar).toHaveBeenCalledWith({
       leadId: LEAD,
       clave: 'mi-clave-larga',
@@ -65,7 +65,7 @@ describe('useOtorgarPortal: otorgar', () => {
     act(() => {
       hook.result.current.escribir('corta')
     })
-    await act(() => hook.result.current.darConLaEscrita())
+    await act(() => hook.result.current.otorgar())
     expect(otorgar).not.toHaveBeenCalled()
     expect(hook.result.current.motivo).toBe('La clave necesita al menos 8 caracteres.')
     act(() => {
@@ -85,7 +85,7 @@ describe('useOtorgarPortal: otorgar', () => {
     act(() => {
       hook.result.current.escribir('mi-clave-larga')
     })
-    await act(() => hook.result.current.darConLaEscrita())
+    await act(() => hook.result.current.otorgar())
     expect(hook.result.current.error).toEqual({
       codigo: 'conflicto',
       mensaje: 'Ya lo otorgó Rosa hace 1 min.',
@@ -101,16 +101,65 @@ describe('useOtorgarPortal: otorgar', () => {
 })
 
 describe('useOtorgarPortal: la clave se olvida', () => {
-  it('al cerrar el diálogo se olvida la clave mostrada y la escrita', async () => {
+  it('mientras se cierra sigue igual; al terminar de cerrarse (`olvidar`) se olvida todo', async () => {
     otorgar.mockResolvedValue(
       ok({ codigo: 'MII-4F2K9', otorgadoEn: '2026-10-16T14:05:00Z', clave: 'K7M2P9QX3A' }),
     )
     const hook = montar()
-    await act(() => hook.result.current.generar())
+    await act(() => hook.result.current.otorgar())
     expect(hook.result.current.otorgado).not.toBeNull()
+    // Cerrando: lo mismo, para que el título no cambie mientras se va.
     hook.rerender(false)
+    expect(hook.result.current.otorgado).not.toBeNull()
+    act(() => {
+      hook.result.current.olvidar()
+    })
     expect(hook.result.current.otorgado).toBeNull()
     expect(hook.result.current.clave).toBe('')
+  })
+
+  it('al volver a abrir no queda nada, aunque no se haya terminado de cerrar', async () => {
+    otorgar.mockResolvedValue(
+      ok({ codigo: 'MII-4F2K9', otorgadoEn: '2026-10-16T14:05:00Z', clave: 'K7M2P9QX3A' }),
+    )
+    const hook = montar()
+    act(() => {
+      hook.result.current.escribir('escrita-a-medias')
+    })
+    hook.rerender(false)
+    hook.rerender(true)
+    expect(hook.result.current.clave).toBe('')
+    await act(() => hook.result.current.otorgar())
+    hook.rerender(false)
+    hook.rerender(true)
+    expect(hook.result.current.otorgado).toBeNull()
+  })
+})
+
+describe('useOtorgarPortal: lo que llega tarde o con la pantalla escondida', () => {
+  it('una respuesta que llega después de olvidar (se cerró con «atrás») no se muestra', async () => {
+    let soltar: (valor: unknown) => void = () => undefined
+    otorgar.mockReturnValue(
+      new Promise((resolver) => {
+        soltar = resolver
+      }),
+    )
+    const hook = montar()
+    let pedido: Promise<void> = Promise.resolve()
+    act(() => {
+      pedido = hook.result.current.otorgar()
+    })
+    hook.rerender(false)
+    act(() => {
+      hook.result.current.olvidar()
+    })
+    await act(async () => {
+      soltar(ok({ codigo: 'MII-4F2K9', otorgadoEn: '2026-10-16T14:05:00Z', clave: 'K7M2P9QX3A' }))
+      await pedido
+    })
+    expect(hook.result.current.otorgado).toBeNull()
+    hook.rerender(true)
+    expect(hook.result.current.otorgado).toBeNull()
   })
 
   it('al esconderse la pantalla (Next la guarda en un <Activity> oculto) también se olvida', async () => {
@@ -128,7 +177,7 @@ describe('useOtorgarPortal: la clave se olvida', () => {
     act(() => {
       hook.result.current.escribir('escrita-a-medias')
     })
-    await act(() => hook.result.current.generar())
+    await act(() => hook.result.current.otorgar())
     expect(hook.result.current.otorgado).not.toBeNull()
     modo = 'hidden'
     await act(async () => {
