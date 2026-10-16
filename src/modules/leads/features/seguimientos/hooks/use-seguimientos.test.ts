@@ -85,4 +85,31 @@ describe('useSeguimientos', () => {
     await act(() => result.current.buscar('no-esta'))
     expect(leer).toHaveBeenCalledTimes(5)
   })
+
+  it('lo eliminado mientras «Ver más» esperaba no vuelve, y un segundo clic no pide otra vez', async () => {
+    let soltar: (valor: unknown) => void = () => undefined
+    leer.mockReturnValueOnce(
+      new Promise((resolver) => {
+        soltar = resolver
+      }),
+    )
+    const { result } = renderHook(() => useSeguimientos('l', INICIAL))
+    let primera: Promise<unknown> = Promise.resolve()
+    let segunda: unknown
+    await act(async () => {
+      primera = result.current.cargarMas()
+      segunda = await result.current.cargarMas()
+    })
+    expect(segunda).toBe('ocupada')
+    act(() => {
+      result.current.poner({ ...de(3), eliminado: true })
+    })
+    await act(async () => {
+      soltar(pagina(20, 25, false))
+      await primera
+    })
+    expect(leer).toHaveBeenCalledOnce()
+    expect(result.current.lista).toHaveLength(24)
+    expect(result.current.lista.some((s) => s.id === de(3).id)).toBe(false)
+  })
 })

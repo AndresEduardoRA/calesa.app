@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { avisarError } from '@/shared/ui/toasts'
 import { leerMasSeguimientos } from '../../../composicion.client'
 import { PAGINAS_PARA_BUSCAR_UN_SEGUIMIENTO } from '../../../entities/edicion-de-seguimiento'
@@ -21,6 +21,8 @@ const firmaDe = (pagina: PaginaDeSeguimientos) =>
     .join(',')}`
 
 type Leido = { lista: Seguimiento[]; hayMas: boolean; puedoAnotar: boolean }
+
+export type ResultadoDeLectura = 'hecha' | 'ocupada' | 'fallo'
 
 // Páginas desde `desde` (con su cursor) hasta que `basta` diga que alcanza, no haya más o se lean
 // `tope`. Nulo si una lectura falló (ya se avisó).
@@ -51,6 +53,22 @@ async function leerPaginas(
   return actual
 }
 
+// «Ver más» y buscar suman sólo las páginas nuevas (lo que no estaba en `desde`) sobre lo de ahora: lo
+// que se anotó, editó o eliminó mientras se esperaba no vuelve a su versión vieja.
+const sumarLoNuevo =
+  (desde: Leido) =>
+  (antes: Leido, leido: Leido): Leido => {
+    const vistos = new Set(desde.lista.map((s) => s.id))
+    return {
+      lista: sumarPagina(
+        antes.lista,
+        leido.lista.filter((s) => !vistos.has(s.id)),
+      ),
+      hayMas: leido.hayMas,
+      puedoAnotar: leido.puedoAnotar,
+    }
+  }
+
 // La línea de tiempo de un lead: la primera página la trae quien la monta (el servidor en la ficha, el
 // navegador en el drawer); lo que se anota, edita o elimina se pone en su lugar con la respuesta (no
 // se vuelve a leer la ficha), y «Ver más» pide la siguiente desde el navegador. `releer` vuelve a
@@ -74,39 +92,53 @@ export function useSeguimientos(leadId: string, inicial: PaginaDeSeguimientos) {
     })
   }
 
+  // Una lectura a la vez (con una marca propia: dos clics en el mismo instante ven el mismo estado).
+  const enVuelo = useRef(false)
   async function leer(
     desde: Leido,
     basta: (lista: readonly Seguimiento[]) => boolean,
     tope: number,
-  ) {
-    if (cargando) {
-      return
+    aplicar: (antes: Leido, leido: Leido) => Leido,
+  ): Promise<ResultadoDeLectura> {
+    if (enVuelo.current) {
+      return 'ocupada'
     }
+    enVuelo.current = true
     setCargando(true)
     try {
       const nuevo = await leerPaginas(leadId, desde, basta, tope)
-      if (nuevo) {
-        setLeido(nuevo)
+      if (!nuevo) {
+        return 'fallo'
       }
+      setLeido((antes) => aplicar(antes, nuevo))
+      return 'hecha'
     } finally {
+      enVuelo.current = false
       setCargando(false)
     }
   }
-
   return {
     ...leido,
     cargando,
-    cargarMas: () => leer(leido, () => false, 1),
+    cargarMas: () => leer(leido, () => false, 1, sumarLoNuevo(leido)),
+    // Lo de ahora en la base, tanto como había: reemplaza la lista.
     releer: () => {
       const cuantos = Math.max(leido.lista.length, 1)
       return leer(
         { lista: [], hayMas: true, puedoAnotar: leido.puedoAnotar },
         (lista) => lista.length >= cuantos,
         Math.ceil(cuantos / TAMANO_DE_PAGINA_DE_SEGUIMIENTOS) + 1,
+        (_antes, leido) => leido,
       )
     },
+    // «hecha» = se buscó de verdad (lo haya encontrado o no); «ocupada» u «fallo», no se sabe.
     buscar: (id: string) =>
-      leer(leido, (lista) => lista.some((s) => s.id === id), PAGINAS_PARA_BUSCAR_UN_SEGUIMIENTO),
+      leer(
+        leido,
+        (lista) => lista.some((s) => s.id === id),
+        PAGINAS_PARA_BUSCAR_UN_SEGUIMIENTO,
+        sumarLoNuevo(leido),
+      ),
     // Lo que vuelve de una RPC: en su lugar, o fuera si quedó eliminado.
     poner: (uno: Seguimiento) => {
       setLeido((antes) => ({ ...antes, lista: conSeguimiento(antes.lista, uno) }))

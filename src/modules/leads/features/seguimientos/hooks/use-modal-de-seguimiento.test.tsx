@@ -41,9 +41,9 @@ const lineaDe = (cambios: Partial<Seguimientos> = {}): Seguimientos => ({
   hayMas: false,
   puedoAnotar: true,
   cargando: false,
-  cargarMas: vi.fn(() => Promise.resolve()),
-  releer: vi.fn(() => Promise.resolve()),
-  buscar: vi.fn(() => Promise.resolve()),
+  cargarMas: vi.fn(() => Promise.resolve('hecha' as const)),
+  releer: vi.fn(() => Promise.resolve('hecha' as const)),
+  buscar: vi.fn(() => Promise.resolve('hecha' as const)),
   poner: vi.fn(),
   ...cambios,
 })
@@ -132,7 +132,7 @@ describe('useModalDeSeguimiento: editar', () => {
   })
 
   it('uno más allá de lo cargado se busca antes de decidir', () => {
-    const buscar = vi.fn(() => Promise.resolve())
+    const buscar = vi.fn(() => Promise.resolve('hecha' as const))
     const { result, rerender } = montar(`?panel=editar-seguimiento&seguimiento=${ID}`, {
       seguimientos: lineaDe({ hayMas: true, buscar }),
       hayTipos: true,
@@ -167,5 +167,70 @@ describe('useModalDeSeguimiento: editar', () => {
     expect(result.current.abierto).toBe(true)
     expect(result.current.noDisponible).toBe(MENSAJE_DE_SEGUIMIENTO_NO_DISPONIBLE)
     expect(result.current.original?.id).toBe(ID)
+  })
+})
+
+describe('useModalDeSeguimiento: lo ya abierto y la búsqueda', () => {
+  it('perder el permiso con el modal de anotar abierto no lo cierra', () => {
+    const { result, rerender } = montar('?panel=anotar-seguimiento', {
+      seguimientos: lineaDe(),
+      hayTipos: true,
+    })
+    expect(result.current.abierto).toBe(true)
+    rerender({ seguimientos: lineaDe({ puedoAnotar: false }), hayTipos: true })
+    expect(result.current.abierto).toBe(true)
+  })
+
+  it('el editado que deja de estar, con más páginas, no sale a buscar ni cierra', () => {
+    const buscar = vi.fn(() => Promise.resolve('hecha' as const))
+    const { result, rerender } = montar(`?panel=editar-seguimiento&seguimiento=${ID}`, {
+      seguimientos: lineaDe({ lista: [uno()], hayMas: true, buscar }),
+      hayTipos: true,
+    })
+    expect(result.current.abierto).toBe(true)
+    rerender({ seguimientos: lineaDe({ lista: [], hayMas: true, buscar }), hayTipos: true })
+    expect(result.current.abierto).toBe(true)
+    expect(result.current.noDisponible).toBe(MENSAJE_DE_SEGUIMIENTO_NO_DISPONIBLE)
+    expect(buscar).not.toHaveBeenCalled()
+  })
+
+  it('si la búsqueda falla no dice que no está: no abre y deja la URL', async () => {
+    const buscar = vi.fn(() => Promise.resolve('fallo' as const))
+    const { result, alCambiarUrl } = montar(`?panel=editar-seguimiento&seguimiento=${ID}`, {
+      seguimientos: lineaDe({ hayMas: true, buscar }),
+      hayTipos: true,
+    })
+    await waitFor(() => {
+      expect(buscar).toHaveBeenCalledOnce()
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(result.current.abierto).toBe(false)
+    expect(avisarError).not.toHaveBeenCalled()
+    expect(alCambiarUrl).not.toHaveBeenCalled()
+  })
+
+  it('con otra lectura en vuelo espera a que termine para buscar', () => {
+    const buscar = vi.fn(() => Promise.resolve('hecha' as const))
+    const { rerender } = montar(`?panel=editar-seguimiento&seguimiento=${ID}`, {
+      seguimientos: lineaDe({ hayMas: true, cargando: true, buscar }),
+      hayTipos: true,
+    })
+    expect(buscar).not.toHaveBeenCalled()
+    rerender({ seguimientos: lineaDe({ hayMas: true, buscar }), hayTipos: true })
+    expect(buscar).toHaveBeenCalledWith(ID)
+  })
+
+  it('un id que no es un id no se busca', async () => {
+    const buscar = vi.fn(() => Promise.resolve('hecha' as const))
+    montar('?panel=editar-seguimiento&seguimiento=no-es-un-id', {
+      seguimientos: lineaDe({ hayMas: true, buscar }),
+      hayTipos: true,
+    })
+    await waitFor(() => {
+      expect(avisarError).toHaveBeenCalledOnce()
+    })
+    expect(buscar).not.toHaveBeenCalled()
   })
 })
