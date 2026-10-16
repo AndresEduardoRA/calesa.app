@@ -30,7 +30,8 @@ export const buscarLeads: BuscadorDeLeads = async (pedido) => {
 
 // Cuántos leads cumplen las condiciones, **hasta `tope`**: pide `tope + 1` ids por el índice del
 // listado y dice si había más (`.claude/rules/escala.md`: un número que se muestra no es un total).
-// Lo decide la misma RLS que la página: cuenta sólo lo que quien mira ve.
+// Lo decide la misma RLS que la página: cuenta sólo lo que quien mira ve. PostgREST corta un pedido en
+// 1.000 filas (`max_rows`): un tope mayor no cabe en uno y se lee por páginas (la exportación).
 export const contarLeadsHasta: ContadorDeLeads = async (condiciones, tope) => {
   const supabase = await createClient()
   const { data, error } = await aplicarCondicionesDeLeads(
