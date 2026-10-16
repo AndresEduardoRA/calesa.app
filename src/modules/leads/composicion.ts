@@ -57,7 +57,7 @@ import { getEtiquetas } from './infra/queries/etiquetas'
 import { getFicha } from './infra/queries/ficha'
 import {
   buscarLeads as buscarLeadsEnBase,
-  contarLeads as contarEnBase,
+  contarLeadsHasta as contarEnBase,
 } from './infra/queries/listado'
 import { getOrigenesDeLead } from './infra/queries/origenes'
 import { getPapeleraDeLeads } from './infra/queries/papelera'
@@ -79,7 +79,7 @@ export const leerContextoDeAlta: LectorDeContextoDeAlta = getContextoDeAlta
 
 export const buscarLeads: BuscadorDeLeads = buscarLeadsEnBase
 
-export const contarLeads: ContadorDeLeads = contarEnBase
+export const contarLeadsHasta: ContadorDeLeads = contarEnBase
 
 export const leerOrigenesDeLead: LectorDeOrigenesDeLead = getOrigenesDeLead
 

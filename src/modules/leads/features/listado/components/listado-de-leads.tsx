@@ -2,6 +2,7 @@
 
 import type { VistaGuardada } from '@/modules/equipo/client'
 import { parseAsString, useQueryState } from 'nuqs'
+import type { ConteoAcotado } from '@/shared/lib/conteo'
 import { CLAVE_DE_PANEL, camposFiltrables, type EsquemaDeFiltros } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
 import { Button } from '@/shared/ui/button'
@@ -40,7 +41,7 @@ type Props = DatosDeLaLista & {
   puedeExportar: boolean
   puedeConfigurarCampos: boolean
   descartados: readonly FiltroDescartado[]
-  ocultos: number
+  ocultos: ConteoAcotado
   eliminables: readonly string[]
   puedeAbrirPapelera: boolean
   puedeAnotar: boolean

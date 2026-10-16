@@ -10,7 +10,7 @@ import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
 // `exportarLeadsEnCsv`: la cartera de quien llama, con los filtros del listado.
 //
 //   POST { consulta: "q=…&origen=…", delimitador: ";" | "," }
-//   200 text/csv (con BOM) | 400 | 403 | 404 {vacia} | 409 {total} | 429 {libreEn} | 500
+//   200 text/csv (con BOM) | 400 | 403 | 404 {vacia} | 409 {demasiadas} | 429 {libreEn} | 500
 
 const SIN_GUARDAR = { 'Cache-Control': 'no-store' }
 
@@ -58,7 +58,7 @@ function respuestaDeLaSalida(salida: SalidaDeExportacion): Response {
         404,
       )
     case 'demasiadas':
-      return respuesta({ codigo: 'demasiadas', total: salida.total }, 409)
+      return respuesta({ codigo: 'demasiadas' }, 409)
     case 'limite':
       return respuesta({ codigo: 'limite', libreEn: salida.libreEn }, 429)
     case 'error':

@@ -2,6 +2,7 @@
 // con un nombre de 1 a 30 que no se repite sin importar mayúsculas y un color de una paleta
 // cerrada guardado como clave. Las reglas son el espejo de `etiqueta_crear|guardar` (la base
 // decide; esto deja decirlo junto al campo antes de enviar).
+import { TOPE_DEL_CONTEO, cantidadAcotada } from '@/shared/lib/conteo'
 import { z } from 'zod'
 
 // La paleta, en su orden. Espejo de `_etiquetas_paleta()` y del check `etiquetas_color_paleta`
@@ -185,8 +186,16 @@ export function sinEtiqueta<T extends Etiqueta>(lista: readonly T[], id: string)
 }
 
 // Qué dice la confirmación de eliminar: sin leads no se pide (se ofrece «Deshacer»).
-export function textoDeEliminar(etiqueta: EtiquetaConUso): string {
-  return etiqueta.leads === 1
-    ? 'Se quita de 1 lead. No se puede deshacer.'
-    : `Se quita de ${etiqueta.leads} leads. No se puede deshacer.`
+export function textoDeEliminar(etiqueta: EtiquetaConUso, locale?: string): string {
+  return `Se quita de ${usoDeEtiqueta(etiqueta, locale)}. No se puede deshacer.`
+}
+
+// A cuántos leads está puesta: la base cuenta hasta `TOPE_DEL_CONTEO + 1` (nunca el total exacto).
+export function usoDeEtiqueta(etiqueta: EtiquetaConUso, locale?: string): string {
+  return cantidadAcotada(
+    etiqueta.leads,
+    TOPE_DEL_CONTEO,
+    { singular: 'lead', plural: 'leads' },
+    { locale },
+  )
 }

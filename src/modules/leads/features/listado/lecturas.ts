@@ -1,4 +1,5 @@
 import 'server-only'
+import type { ConteoAcotado } from '@/shared/lib/conteo'
 import type { Resultado } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR, leerFiltros, type EsquemaDeFiltros } from '@/shared/lib/filtros'
 import type { ParametrosDeUrl, ValoresDeFiltros } from '@/shared/lib/filtros'
@@ -7,7 +8,7 @@ import type { Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import {
   buscarLeads,
-  contarLeads,
+  contarLeadsHasta,
   leerEtiquetas,
   leerLayoutDeLeads,
   leerOrigenesDeLead,
@@ -22,7 +23,7 @@ import {
   filtrosDescartados,
   type FiltroDescartado,
 } from '../../entities/filtros'
-import { FILTRO_TACHADOS, ocultaTachados } from '../../entities/filtros-de-marcas'
+import { FILTRO_TACHADOS, TOPE_DE_OCULTOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { TAMANO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
 import { puedeEditarLead } from '../../entities/edicion'
 import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
@@ -40,7 +41,8 @@ export type DatosDelListado = {
   // De la URL, lo que ya no se puede filtrar (una vista vieja): se avisa y se quita.
   descartados: FiltroDescartado[]
   // Cuántos leads que cumplen los filtros quedaron afuera por estar tachados (0 si no se ocultan).
-  ocultos: number
+  // Cuántos de los que cumplen los filtros quedan afuera por tachados: hasta 50, nunca el total.
+  ocultos: ConteoAcotado
   // Los de esta página que quien mira puede enviar a la papelera (`leads.eliminar` con su alcance).
   eliminables: string[]
   // Quien mira puede abrir la papelera de leads (envía, o puede vaciarla).
@@ -68,6 +70,8 @@ const soloTachados = (valores: ValoresDeFiltros): ValoresDeFiltros => ({
 // mira, y después, en paralelo, una página de `leads_vista` y —si se están ocultando los
 // tachados— cuántos quedaron afuera con los mismos filtros. Lo que hay lo decide la RLS; «míos» se
 // traduce siempre en la condición `en_cartera` y «todos» no suma nada.
+const SIN_OCULTOS: ConteoAcotado = { n: 0, hayMas: false }
+
 export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<DatosDelListado>> {
   const { permisos, parametros, zona, usuarioId } = entrada
   const [layout, origenes, etiquetas] = await Promise.all([
@@ -105,7 +109,10 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       clavesDeTabla: clavesDeTabla(campos),
     }),
     ocultaTachados(valores)
-      ? contarLeads(condicionesDeLeads(campos, soloTachados(valores), opciones))
+      ? contarLeadsHasta(
+          condicionesDeLeads(campos, soloTachados(valores), opciones),
+          TOPE_DE_OCULTOS,
+        )
       : null,
   ])
   if (!leida.ok) {
@@ -123,7 +130,7 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       puedeVerTodos,
       descartados: filtrosDescartados(campos, parametros, etiquetas.data),
       // Si contar falla, el listado se dibuja igual: sin el aviso.
-      ocultos: ocultos?.ok ? ocultos.data : 0,
+      ocultos: ocultos?.ok ? ocultos.data : SIN_OCULTOS,
       eliminables: leida.data.filas
         .filter((fila) => puedeEnviarLead(permisos, fila.duenoId, usuarioId))
         .map((fila) => fila.id),

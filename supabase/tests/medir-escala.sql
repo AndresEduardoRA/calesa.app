@@ -109,8 +109,10 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina($w$etiquetas && array[(select id from public.etiquetas where nombre = 'Vol 1' limit 1)] and esta_tachado = false$w$));
     perform pg_temp.escala('listado: contarLeads (ocultos, exacto)', q, 'select count(*) from public.leads_vista where esta_tachado = true');
     perform pg_temp.escala('listado: ocultos con un atributo (exacto)', q, $w$select count(*) from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp'$w$);
-    perform pg_temp.escala('listado: ocultos acotado a 51', q, 'select count(*) from (select 1 from public.leads_vista where esta_tachado = true limit 51) x');
+    perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$);
+    perform pg_temp.escala('listado: ocultos acotado a 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51');
     perform pg_temp.escala('exportar: conteo exacto', q, 'select count(*) from public.leads_vista where en_cartera = true');
+    perform pg_temp.escala('exportar: conteo hasta 5.001', q, 'select id from public.leads_vista where en_cartera = true order by creado_en desc, id desc limit 5001');
     perform pg_temp.escala('etiquetas_vista', q, 'select id, nombre, leads from public.etiquetas_vista order by nombre');
     perform pg_temp.escala('papelera de leads', q, 'select public.leads_papelera_listar()');
     perform pg_temp.escala('importaciones recientes', q, 'select public.leads_importaciones_recientes()');

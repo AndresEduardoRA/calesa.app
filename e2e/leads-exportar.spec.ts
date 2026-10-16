@@ -284,6 +284,6 @@ test('más de 5.000 leads: no se exporta nada a medias y se dice cuántos hay', 
   await abrirExportar(page)
   const dialogo = dialogoDeExportar(page)
   await dialogo.getByRole('button', { name: 'Descargar' }).click()
-  await expect(dialogo).toContainText(/Hay 5\.001 leads con estos filtros/)
+  await expect(dialogo).toContainText(/Hay más de 5\.000 leads con estos filtros/)
   await expect(dialogo).toContainText('Filtra un poco más')
 })

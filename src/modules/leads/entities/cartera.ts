@@ -5,7 +5,9 @@
 // `lead_revocar_acceso()`, `lead_salir()`): esto sólo gobierna qué se dibuja. Nada de React ni de
 // Supabase.
 import { z } from 'zod'
+import { cantidadAcotada } from '@/shared/lib/conteo'
 import { alcanceDe, type Permisos } from '@/shared/lib/permisos'
+import { TOPE_DE_VINCULADOS, VEHICULOS } from './ficha'
 
 export type TipoDeAcceso = 'dueno' | 'compartido'
 
@@ -182,5 +184,5 @@ export function avisoDeVehiculos(vehiculosVinculados: number): string | null {
   }
   return vehiculosVinculados === 1
     ? 'Tiene un vehículo vinculado: quien lo reciba podrá verlo y, si su rol lo permite, editarlo.'
-    : `Tiene ${String(vehiculosVinculados)} vehículos vinculados: quien lo reciba podrá verlos y, si su rol lo permite, editarlos.`
+    : `Tiene ${cantidadAcotada(vehiculosVinculados, TOPE_DE_VINCULADOS, VEHICULOS)} vinculados: quien lo reciba podrá verlos y, si su rol lo permite, editarlos.`
 }

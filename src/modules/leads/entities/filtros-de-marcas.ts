@@ -5,6 +5,9 @@
 import type { DefFiltro, ParametrosDeUrl, ValoresDeFiltros } from '@/shared/lib/filtros'
 import type { Etiqueta } from './etiqueta'
 
+// El aviso de tachados ocultos cuenta hasta acá: más allá dice «más de 50» (nunca el total exacto).
+export const TOPE_DE_OCULTOS = 50
+
 export const FILTRO_TACHADOS = 'tachados'
 export const FILTRO_FAVORITOS = 'favoritos'
 export const FILTRO_ETIQUETA = 'etiqueta'

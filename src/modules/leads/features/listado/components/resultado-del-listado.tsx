@@ -1,12 +1,14 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import type { ConteoAcotado } from '@/shared/lib/conteo'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
 import { Button } from '@/shared/ui/button'
 import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
 import { Paginacion } from '@/shared/ui/paginacion'
+import { useRegional } from '@/shared/ui/regional'
 import type { ModoDelListado } from '../../../entities/alcance'
 import type { FilaDeLead } from '../../../entities/listado'
 import { usePanelDeAlta } from '../../alta/hooks/use-panel-de-alta'
@@ -24,17 +26,18 @@ type Props = DatosDeLaLista & {
   alAbrir: (id: string) => void
   abierto: string | null
   marcar: ParaMarcar
-  // Los que cumplen los filtros y quedaron afuera por tachados.
-  ocultos: number
+  // Los que cumplen los filtros y quedaron afuera por tachados (hasta el tope del aviso).
+  ocultos: ConteoAcotado
 }
 
 // No hay nada que mostrar, pero porque está tachado: decirlo y ofrecer verlos, no «Nada coincide».
-function TodoTachado({ ocultos }: { ocultos: number }) {
+function TodoTachado({ ocultos }: { ocultos: ConteoAcotado }) {
   const mostrar = useMostrarTachados()
+  const { locale } = useRegional()
   return (
     <EstadoVacio
       titulo="Lo que coincide está tachado"
-      descripcion={textoDeOcultos(ocultos)}
+      descripcion={textoDeOcultos(ocultos, locale)}
       accion={
         <Button type="button" onClick={mostrar}>
           Mostrarlos
@@ -94,7 +97,7 @@ export function ResultadoDelListado(props: Props) {
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
 
   if (pagina.filas.length === 0) {
-    if (ocultos > 0 && !hayCursor) {
+    if (ocultos.n > 0 && !hayCursor) {
       return <TodoTachado ocultos={ocultos} />
     }
     if (filtros.hayFiltros) {

@@ -5,7 +5,7 @@ import { leerCursor, type Cursor } from '@/shared/lib/paginacion'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import {
   buscarLeads,
-  contarLeads,
+  contarLeadsHasta,
   leerEtiquetas,
   leerLayoutDeLeads,
   leerOrigenesDeLead,
@@ -64,7 +64,7 @@ export type SalidaDeExportacion =
   | { tipo: 'listo'; nombre: string; cuerpo: string; filas: number }
   | { tipo: 'sin_permiso' }
   | { tipo: 'vacia' }
-  | { tipo: 'demasiadas'; total: number }
+  | { tipo: 'demasiadas' }
   | { tipo: 'limite'; libreEn: string }
   | { tipo: 'error'; mensaje: string }
 
@@ -112,8 +112,8 @@ async function textoDeCsv({ condiciones, campos, delimitador, contexto }: Entrad
 }
 
 // El CSV de los leads que muestra el listado con sus filtros, **sólo los de la cartera de quien llama**
-// (`en_cartera = true` siempre, aunque tenga `leads.ver` «todos» o lo pida la URL). Primero se cuenta:
-// con más de 5.000 no se exporta nada y se dice. Después se lee, página a página, y recién con el
+// (`en_cartera = true` siempre, aunque tenga `leads.ver` «todos» o lo pida la URL). Primero se cuenta
+// hasta el tope (5.001 ids, no un total): con más de 5.000 no se exporta nada y se dice. Después se lee, página a página, y recién con el
 // archivo hecho se deja la constancia (con el límite por hora): sin ella no sale nada.
 export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExportacion> {
   const { permisos, consulta, delimitador, zona, codigoDePais, ahora } = entrada
@@ -139,16 +139,17 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
   // La cartera, siempre: no es un modo que se elija.
   const condiciones = condicionesDeLeads(campos, valores, { zona, soloMios: true })
 
-  const contadas = await contarLeads(condiciones)
+  // Hasta el tope y no más: cuenta pidiendo `tope + 1` ids, nunca el total exacto.
+  const contadas = await contarLeadsHasta(condiciones, TOPE_DE_EXPORTACION)
   if (!contadas.ok) {
     return { tipo: 'error', mensaje: NO_SE_PUDO }
   }
-  const total = contadas.data
+  const total = contadas.data.n
   if (total === 0) {
     return { tipo: 'vacia' }
   }
-  if (total > TOPE_DE_EXPORTACION) {
-    return { tipo: 'demasiadas', total }
+  if (contadas.data.hayMas) {
+    return { tipo: 'demasiadas' }
   }
   const cuerpo = await textoDeCsv({
     condiciones,

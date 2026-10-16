@@ -8,7 +8,7 @@ export type EstadoDeExportacion =
   | { tipo: 'descargando' }
   | { tipo: 'listo'; filas: number; nombre: string }
   | { tipo: 'vacia' }
-  | { tipo: 'demasiadas'; total: number }
+  | { tipo: 'demasiadas' }
   | { tipo: 'limite'; libreEn: string }
   | { tipo: 'sin_permiso' }
   | { tipo: 'sin_red' }
@@ -22,7 +22,6 @@ export const SESION_VENCIDA_AL_EXPORTAR =
 // Lo que dice el servidor cuando no entrega el archivo (`route.ts`).
 const esquemaDeRechazo = z.object({
   codigo: z.string().optional(),
-  total: z.number().optional(),
   libreEn: z.string().optional(),
   mensaje: z.string().optional(),
 })
@@ -30,7 +29,7 @@ const esquemaDeRechazo = z.object({
 type Rechazo = z.infer<typeof esquemaDeRechazo>
 
 const POR_CODIGO: Record<string, (rechazo: Rechazo) => EstadoDeExportacion | null> = {
-  demasiadas: ({ total }) => (total === undefined ? null : { tipo: 'demasiadas', total }),
+  demasiadas: () => ({ tipo: 'demasiadas' }),
   limite: ({ libreEn }) => (libreEn === undefined ? null : { tipo: 'limite', libreEn }),
   vacia: () => ({ tipo: 'vacia' }),
   sin_permiso: () => ({ tipo: 'sin_permiso' }),

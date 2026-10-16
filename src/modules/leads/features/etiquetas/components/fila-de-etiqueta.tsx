@@ -3,8 +3,10 @@
 import { Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/shared/ui/button'
+import { useRegional } from '@/shared/ui/regional'
 import {
   textoDeEliminar,
+  usoDeEtiqueta,
   type ColorDeEtiqueta,
   type EtiquetaConUso,
 } from '../../../entities/etiqueta'
@@ -24,6 +26,7 @@ type Props = {
 // eliminar. Con leads, eliminar pide confirmar en la misma fila diciendo a cuántos (sin abrir otro
 // diálogo); sin leads se elimina y se ofrece «Deshacer».
 export function FilaDeEtiqueta({ etiqueta, todas, enCurso, alGuardar, alEliminar }: Props) {
+  const { locale } = useRegional()
   const [motivo, setMotivo] = useState<string | null>(null)
   const [confirmando, setConfirmando] = useState(false)
 
@@ -69,7 +72,7 @@ export function FilaDeEtiqueta({ etiqueta, todas, enCurso, alGuardar, alEliminar
         </Button>
       </div>
       <p className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
-        {etiqueta.leads === 1 ? 'En 1 lead' : `En ${etiqueta.leads} leads`}
+        En {usoDeEtiqueta(etiqueta, locale)}
       </p>
       {confirmando ? (
         <div
@@ -77,7 +80,7 @@ export function FilaDeEtiqueta({ etiqueta, todas, enCurso, alGuardar, alEliminar
           className="flex flex-wrap items-center gap-2 rounded-(--radius-md) bg-(--color-peligro-soft) p-2"
         >
           <p className="flex-1 text-(length:--text-sm) text-(--color-peligro-ink)">
-            ¿Eliminar «{etiqueta.nombre}»? {textoDeEliminar(etiqueta)}
+            ¿Eliminar «{etiqueta.nombre}»? {textoDeEliminar(etiqueta, locale)}
           </p>
           <Button type="button" variant="outline" size="sm" onClick={() => setConfirmando(false)}>
             Cancelar

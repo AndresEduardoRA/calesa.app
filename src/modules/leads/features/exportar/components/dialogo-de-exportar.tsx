@@ -63,9 +63,8 @@ function MensajeDelEstado({
     case 'demasiadas':
       return (
         <Aviso tono="aviso">
-          Hay {formatearNumero(estado.total, { locale })} leads con estos filtros y una exportación
-          lleva hasta {formatearNumero(TOPE_DE_EXPORTACION, { locale })}. Filtra un poco más y
-          vuelve a intentarlo.
+          Hay más de {formatearNumero(TOPE_DE_EXPORTACION, { locale })} leads con estos filtros y
+          una exportación lleva hasta esa cantidad. Filtra un poco más y vuelve a intentarlo.
         </Aviso>
       )
     case 'vacia':

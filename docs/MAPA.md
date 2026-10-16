@@ -54,7 +54,7 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 
 ### `leads`
 Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 474 archivos
-- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `EditorDeCamposDeLead`, `leerListadoDeLeads`, +37
+- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `EditorDeCamposDeLead`, `leerListadoDeLeads`, +38
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
 - Depende de: equipo
 - Casos de uso: alta, campos, cartera, embudo, etiquetas, exportar, ficha, importar, listado, marcas, oportunidades, papelera, portal, rapido, recordatorios, seguimientos, telefono
@@ -86,7 +86,7 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 
 ### `vehiculos`
 Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), el vínculo a un lead con sus interesados (en la ficha del vehículo, con «Desvincular»; y la sección «Vehículos» de la ficha del lead, que vive acá), la vitrina (publicar en la web con precio público y vista previa de lo que verá el visitante) la papelera por lotes (enviar con «Deshacer», restaurar y purgar) y, en un origen de subasta con apibara encendida, el alta pegando un enlace de Copart o IAAI, un VIN o un lote (de a uno o varios), con sus fotos, y «Refrescar» la subasta desde la ficha; y la limpieza automática de lo importado de una subasta que nadie compró, con su aviso previo y «Conservar». · 213 archivos
-- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerSubasta`, `leerVehiculo`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, +57
+- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerSubasta`, `leerVehiculo`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, `permisoDeAlta`, +58
 - API de cliente (`client.ts`): `TarjetaVehiculo`, `BadgeDeFase`, `Vehiculo`
 - Depende de: empresa, equipo, flujos, origenes
 - Casos de uso: alta, ficha, fotos, limpieza, listado, papelera, permisos, subasta, vinculo, vitrina
@@ -101,7 +101,7 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 Infraestructura transversal sin reglas de negocio: clientes de Supabase, permisos, errores como valores, formato de números y fechas, configuración y los componentes de interfaz que usan todos los módulos.
 
 - `config/`: `app.ts`, `entorno.ts`
-- `lib/`: `almacen.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `color.ts`, `enviar-accion.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
+- `lib/`: `almacen.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `color.ts`, `conteo.ts`, `enviar-accion.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
 - `lib/campos/`: `agrupar.ts`, `cambios.ts`, `clave.ts`, `controles.ts`, `esquema-de-valor.ts`, `esquemas.ts`, `impacto.ts`, `index.ts`, `mostrar.ts`, `motivos.ts`, `orden.ts`, `tipos.ts`, `valor-defecto.ts`, `valor.ts`
 - `lib/csv/`: `descargar.ts`, `escribir.ts`, `leer.ts`
 - `lib/filtros/`: `campos.ts`, `chips.ts`, `esquema.ts`, `index.ts`, `opciones.ts`, `url.ts`

@@ -1,5 +1,6 @@
 import 'server-only'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
+import { conteoAcotado } from '@/shared/lib/conteo'
 import { armarPagina } from '@/shared/lib/paginacion'
 import { aplicarCursor } from '@/shared/lib/supabase/consultas'
 import { createClient } from '@/shared/lib/supabase/server'
@@ -27,16 +28,20 @@ export const buscarLeads: BuscadorDeLeads = async (pedido) => {
   return ok(armarPagina(filasDeLeadDesde(data, clavesDeTabla), tamano, cursor))
 }
 
-// Cuántos leads cumplen las condiciones, sin traer ninguno (`head`). Lo decide la misma RLS que la
-// página: cuenta sólo lo que quien mira ve.
-export const contarLeads: ContadorDeLeads = async (condiciones) => {
+// Cuántos leads cumplen las condiciones, **hasta `tope`**: pide `tope + 1` ids por el índice del
+// listado y dice si había más (`.claude/rules/escala.md`: un número que se muestra no es un total).
+// Lo decide la misma RLS que la página: cuenta sólo lo que quien mira ve.
+export const contarLeadsHasta: ContadorDeLeads = async (condiciones, tope) => {
   const supabase = await createClient()
-  const { count, error } = await aplicarCondicionesDeLeads(
-    supabase.from('leads_vista').select('id', { count: 'exact', head: true }),
+  const { data, error } = await aplicarCondicionesDeLeads(
+    supabase.from('leads_vista').select('id'),
     condiciones,
   )
+    .order('creado_en', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(tope + 1)
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }
-  return ok(count ?? 0)
+  return ok(conteoAcotado(data.length, tope))
 }

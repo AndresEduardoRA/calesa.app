@@ -51,6 +51,10 @@ export type LeadDeFicha = {
 
 // Cuántos vencidos se dicen con su número: la base cuenta hasta uno más (`lead_ficha()`, `limit 21`) y
 // la pantalla dice «más de 20». Espejo de esa consulta.
+// Los vehículos vinculados que cuenta `lead_ficha()`: hasta 101, y de ahí «más de 100» (nunca el total).
+export const TOPE_DE_VINCULADOS = 100
+export const VEHICULOS = { singular: 'vehículo', plural: 'vehículos' } as const
+
 export const TOPE_DE_VENCIDOS = 20
 
 const esquemaFicha = z.object({
@@ -75,7 +79,11 @@ const esquemaFicha = z.object({
     .int()
     .nonnegative()
     .max(TOPE_DE_VENCIDOS + 1),
-  vehiculos_vinculados: z.number().int().nonnegative(),
+  vehiculos_vinculados: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(TOPE_DE_VINCULADOS + 1),
   es_favorito: z.boolean().optional(),
   esta_tachado: z.boolean().optional(),
   etiquetas: z.array(z.guid()).optional(),
