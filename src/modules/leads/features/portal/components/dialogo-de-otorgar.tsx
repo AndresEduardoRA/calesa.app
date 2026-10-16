@@ -2,7 +2,9 @@
 
 import { useId } from 'react'
 import { Button } from '@/shared/ui/button'
+import { ConfirmarDescarte } from '@/shared/ui/confirmar-descarte'
 import { Modal } from '@/shared/ui/modal'
+import { useCierreConCambios } from '@/shared/ui/use-cierre-con-cambios'
 import { versionDelAcceso, type AccesoDelCliente } from '../../../entities/portal'
 import { useOtorgarPortal } from '../hooks/use-otorgar-portal'
 import { AccesoOtorgado } from './acceso-otorgado'
@@ -44,6 +46,12 @@ export function DialogoDeOtorgar({
   const idForm = useId()
   const otorgar = useOtorgarPortal({ leadId, version: versionDelAcceso(acceso), abierto })
   const { otorgado, enCurso } = otorgar
+  // Cerrar con una clave escrita pregunta en el pie, como todo formulario con algo escrito (9d-3).
+  const cierre = useCierreConCambios({
+    hayCambios: !otorgado && otorgar.clave !== '',
+    alCerrar,
+    abierto,
+  })
   const comun = {
     abierto,
     alCerrar,
@@ -72,6 +80,7 @@ export function DialogoDeOtorgar({
   return (
     <Modal
       {...comun}
+      alCerrar={cierre.intentarCerrar}
       titulo={
         acceso.estado === 'sin_acceso' ? 'Dar acceso al portal' : 'Volver a otorgar el acceso'
       }
@@ -80,14 +89,18 @@ export function DialogoDeOtorgar({
       // teclado no tiene por qué saltar.
       focoInicial={(tipo) => (tipo === 'touch' ? true : document.getElementById(`${idForm}-clave`))}
       pie={
-        <>
-          <Button variant="ghost" onClick={alCerrar} disabled={enCurso}>
-            Cancelar
-          </Button>
-          <Button type="submit" form={idForm} disabled={enCurso || otorgar.esperaVersion}>
-            {etiquetaDeOtorgar(enCurso, otorgar.clave)}
-          </Button>
-        </>
+        cierre.confirmando ? (
+          <ConfirmarDescarte alSeguir={cierre.seguir} alDescartar={cierre.descartar} />
+        ) : (
+          <>
+            <Button variant="ghost" onClick={cierre.intentarCerrar} disabled={enCurso}>
+              Cancelar
+            </Button>
+            <Button type="submit" form={idForm} disabled={enCurso || otorgar.esperaVersion}>
+              {etiquetaDeOtorgar(enCurso, otorgar.clave)}
+            </Button>
+          </>
+        )
       }
     >
       <FormularioDeClave id={idForm} acceso={acceso} otorgar={otorgar} />

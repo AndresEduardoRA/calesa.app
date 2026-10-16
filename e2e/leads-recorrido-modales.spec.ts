@@ -169,12 +169,15 @@ test('C · portal desde la ficha: la clave corta se dice junto al campo y cerrar
   await dialogo.getByRole('button', { name: 'Dar acceso con esta clave' }).click()
   await expect(dialogo.getByText('La clave necesita al menos 8 caracteres.')).toBeVisible()
   await capturar(page, info, 'portal-clave-corta')
+  // Con una clave escrita, Esc pregunta en el pie (como todo formulario); «Descartar» cierra.
   await page.keyboard.press('Escape')
-  await page.waitForTimeout(500)
-  info.annotations.push({
-    type: 'C: Esc en el portal con una clave escrita',
-    description: (await dialogo.isVisible()) ? 'queda abierto' : 'se cerró sin preguntar',
-  })
+  await expect(dialogo.getByText('Tienes cambios sin guardar.')).toBeVisible()
+  await expect(dialogo.getByRole('button', { name: 'Seguir editando' })).toBeFocused()
+  await dialogo.getByRole('button', { name: 'Seguir editando' }).click()
+  await expect(dialogo.getByLabel('Clave temporal')).toHaveValue('corta')
+  await dialogo.getByRole('button', { name: 'Cancelar' }).click()
+  await dialogo.getByRole('button', { name: 'Descartar' }).click()
+  await expect(dialogo).toHaveCount(0)
 })
 
 test('C · desde el drawer: anotar y agendar abren sobre el drawer y Esc cierra sólo el modal', async ({
