@@ -2,25 +2,14 @@
 
 import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
-import { BloqueDeRecordatorios } from '../../recordatorios/components/bloque-de-recordatorios'
-import { useRecordatorios } from '../../recordatorios/hooks/use-recordatorios'
 import { EsqueletoDeSeguimientos } from '../../seguimientos/components/esqueleto-de-seguimientos'
 import { LineaDeSeguimientos } from '../../seguimientos/components/linea-de-seguimientos'
 import { useSeguimientos } from '../../seguimientos/hooks/use-seguimientos'
 import { useSeguimientosDelRapido, type DatosDelRapido } from '../hooks/use-seguimientos-del-rapido'
 
-function Contenido({
-  leadId,
-  datos,
-  alRecargarRecordatorios,
-}: {
-  leadId: string
-  datos: DatosDelRapido
-  alRecargarRecordatorios: () => void
-}) {
+function Contenido({ leadId, datos }: { leadId: string; datos: DatosDelRapido }) {
   const { zonaHoraria } = useRegional()
   const seguimientos = useSeguimientos(leadId, datos.pagina)
-  const deQuienMira = useRecordatorios(datos.recordatorios)
   return (
     <div className="grid min-w-0 gap-6">
       <LineaDeSeguimientos
@@ -28,24 +17,17 @@ function Contenido({
         tipos={datos.tipos}
         zona={zonaHoraria}
         seguimientos={seguimientos}
-        alAgendar={deQuienMira.poner}
-      />
-      <BloqueDeRecordatorios
-        leadId={leadId}
-        zona={zonaHoraria}
-        recordatorios={deQuienMira}
-        puedeAgendar={seguimientos.puedoAnotar}
-        alRecargar={alRecargarRecordatorios}
       />
     </div>
   )
 }
 
 // La pestaña «Seguimientos» del drawer rápido: la línea de tiempo (anotar, editar y eliminar lo propio,
-// «Ver más») y, debajo, «Tus recordatorios». Se lee al elegir la pestaña, desde el navegador. Los
-// modales se dibujan dentro del drawer: Base UI los anida (Esc cierra sólo el de arriba).
+// «Ver más» hasta el tope, «Ir a una fecha»). Se lee al elegir la pestaña, desde el navegador; los
+// recordatorios son de su pestaña. Los modales se dibujan dentro del drawer: Base UI los anida (Esc
+// cierra sólo el de arriba).
 export function SeguimientosDelRapido({ leadId }: { leadId: string }) {
-  const { lectura, reintentar, releerRecordatorios } = useSeguimientosDelRapido(leadId)
+  const { lectura, reintentar } = useSeguimientosDelRapido(leadId)
   if (lectura === null) {
     return <EsqueletoDeSeguimientos />
   }
@@ -61,12 +43,5 @@ export function SeguimientosDelRapido({ leadId }: { leadId: string }) {
       </div>
     )
   }
-  return (
-    <Contenido
-      key={leadId}
-      leadId={leadId}
-      datos={lectura.datos}
-      alRecargarRecordatorios={() => void releerRecordatorios()}
-    />
-  )
+  return <Contenido key={leadId} leadId={leadId} datos={lectura.datos} />
 }

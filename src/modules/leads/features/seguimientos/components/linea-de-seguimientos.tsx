@@ -16,16 +16,18 @@ import { puedeEditarSeguimiento } from '../../../entities/seguimiento'
 import { useEliminarSeguimiento } from '../hooks/use-eliminar-seguimiento'
 import { useModalDeSeguimiento } from '../hooks/use-modal-de-seguimiento'
 import type { Seguimientos } from '../hooks/use-seguimientos'
-import { ModalDeSeguimientoDiferido } from './diferidos'
+import { DesdeUnaFechaDiferido, ModalDeSeguimientoDiferido } from './diferidos'
 import { ItemDeSeguimiento } from './item-de-seguimiento'
+import { PieDeLaLinea } from './pie-de-la-linea'
 
 type Props = {
   leadId: string
   tipos: readonly TipoDeSeguimiento[]
   zona: string
   seguimientos: Seguimientos
-  // El próximo contacto que entró con un seguimiento: va a «Tus recordatorios».
-  alAgendar: (recordatorio: Recordatorio) => void
+  // El próximo contacto que entró con un seguimiento: va a «Tus recordatorios» si están a la vista (en
+  // el drawer viven en su pestaña, que lo lee al abrirse).
+  alAgendar?: (recordatorio: Recordatorio) => void
 }
 
 const sinSuscripcion = () => () => undefined
@@ -110,6 +112,13 @@ function Lista({
   eliminacion: ReturnType<typeof useEliminarSeguimiento>
 }) {
   const { puedoAnotar } = seguimientos
+  if (seguimientos.lista.length === 0 && seguimientos.desde !== null) {
+    return (
+      <p className="text-(length:--text-sm) text-(--color-ink-faint)">
+        No hay seguimientos hasta esa fecha.
+      </p>
+    )
+  }
   if (seguimientos.lista.length === 0) {
     return (
       <EstadoVacio
@@ -127,7 +136,8 @@ function Lista({
   return (
     <ol className="grid gap-2">
       {seguimientos.lista.map((s) => (
-        <li key={s.id}>
+        // Fuera de la vista no se dibuja: cargar 500 no cuesta 500 dibujos.
+        <li key={s.id} className="[contain-intrinsic-size:auto_9rem] [content-visibility:auto]">
           <ItemDeSeguimiento
             seguimiento={s}
             zona={zona}
@@ -145,7 +155,7 @@ function Lista({
 }
 
 // La línea de tiempo de un lead, más recientes primero: «Anotar», los seguimientos (editar y eliminar
-// lo propio) y «Ver más». Anotar y editar abren el modal con su URL. Lo que cada quien ve lo decidió la
+// lo propio), «Ver más» hasta el tope e «Ir a una fecha». Anotar y editar abren el modal con su URL. Lo que cada quien ve lo decidió la
 // base; acá no se cuenta nada, para no insinuar los privados de otros. La usan la ficha y la pestaña
 // «Seguimientos» del drawer (el modal se dibuja adentro: Base UI lo anida).
 export function LineaDeSeguimientos({ leadId, tipos, zona, seguimientos, alAgendar }: Props) {
@@ -165,23 +175,16 @@ export function LineaDeSeguimientos({ leadId, tipos, zona, seguimientos, alAgend
           alAbrir={modal.abrirAnotar}
         />
       ) : null}
+      {seguimientos.desde !== null ? (
+        <DesdeUnaFechaDiferido seguimientos={seguimientos} zona={zona} />
+      ) : null}
       <Lista
         seguimientos={seguimientos}
         zona={zona}
         alEditar={modal.abrirEdicion}
         eliminacion={eliminacion}
       />
-      {seguimientos.hayMas ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 w-fit md:min-h-9"
-          onClick={() => void seguimientos.cargarMas()}
-          disabled={seguimientos.cargando}
-        >
-          {seguimientos.cargando ? 'Cargando…' : 'Ver más'}
-        </Button>
-      ) : null}
+      <PieDeLaLinea seguimientos={seguimientos} zona={zona} />
       {montar ? (
         <ModalDeSeguimientoDiferido
           key={modal.llave}
@@ -195,12 +198,13 @@ export function LineaDeSeguimientos({ leadId, tipos, zona, seguimientos, alAgend
           alGuardar={(guardado, recordatorio) => {
             seguimientos.poner(guardado)
             if (recordatorio) {
-              alAgendar(recordatorio)
+              alAgendar?.(recordatorio)
             }
             modal.cerrar()
           }}
           focoAlCerrar={() => modal.focoAlCerrar() ?? boton.current ?? true}
-          recargar={() => void seguimientos.releer()}
+          // «Recargar» tras un conflicto: la primera página y, si no vino ahí, el que se edita por su id.
+          recargar={() => void seguimientos.releer(modal.original?.id ?? null)}
           recargando={seguimientos.cargando}
         />
       ) : null}

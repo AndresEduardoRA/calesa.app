@@ -40,10 +40,16 @@ const lineaDe = (cambios: Partial<Seguimientos> = {}): Seguimientos => ({
   lista: [],
   hayMas: false,
   puedoAnotar: true,
+  desde: null,
+  inicio: null,
+  sueltos: [],
+  enElTope: false,
   cargando: false,
   cargarMas: vi.fn(() => Promise.resolve('hecha' as const)),
   releer: vi.fn(() => Promise.resolve('hecha' as const)),
   buscar: vi.fn(() => Promise.resolve('hecha' as const)),
+  irAUnaFecha: vi.fn(() => Promise.resolve('hecha' as const)),
+  volverAlPrincipio: vi.fn(() => Promise.resolve('hecha' as const)),
   poner: vi.fn(),
   ...cambios,
 })
@@ -115,6 +121,16 @@ describe('useModalDeSeguimiento: editar', () => {
     expect(result.current.abierto).toBe(true)
     expect(result.current.original).toBe(propio)
     expect(result.current.noDisponible).toBeNull()
+  })
+
+  it('tras «Recargar», el que quedó fuera de la lista (leído por su id) sigue abierto con lo nuevo', () => {
+    const suelto = uno({ titulo: 'Versión nueva' })
+    const { result } = montar(`?panel=editar-seguimiento&seguimiento=${ID}`, {
+      seguimientos: lineaDe({ lista: [], hayMas: true, sueltos: [suelto] }),
+      hayTipos: true,
+    })
+    expect(result.current.abierto).toBe(true)
+    expect(result.current.original).toBe(suelto)
   })
 
   it('lo ajeno no abre y dice lo mismo que lo que no existe', async () => {

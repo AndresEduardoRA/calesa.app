@@ -106,7 +106,35 @@ select set_config('medir.pendiente_id', (select id::text from public.recordatori
 select set_config('medir.completado_en', (select completado_en::text from public.recordatorios where lead_id = '00000000-0000-0000-0000-00000000f001' and completado_en is not null order by completado_en desc, id desc offset 2500 limit 1), true);
 select set_config('medir.completado_id', (select id::text from public.recordatorios where lead_id = '00000000-0000-0000-0000-00000000f001' and completado_en is not null order by completado_en desc, id desc offset 2500 limit 1), true);
 
+select set_config('medir.seguimiento_en', (select ocurrido_en::text from public.seguimientos where lead_id = '00000000-0000-0000-0000-00000000f001' order by ocurrido_en desc, id desc offset 10000 limit 1), true);
+select set_config('medir.seguimiento_id', (select id::text from public.seguimientos where lead_id = '00000000-0000-0000-0000-00000000f001' order by ocurrido_en desc, id desc offset 10000 limit 1), true);
+
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', true);
+
+-- Las dos ramas de `lead_seguimientos()` (los míos; los públicos), como las corre plpgsql.
+prepare mios_desde(uuid, timestamptz, uuid) as
+  select s.* from public.seguimientos s
+   where s.lead_id = $1 and s.usuario_id = (select auth.uid()) and s.eliminado_en is null
+     and (s.ocurrido_en, s.id) < ($2, $3)
+   order by s.ocurrido_en desc, s.id desc limit 21;
+prepare mios(uuid) as
+  select s.* from public.seguimientos s
+   where s.lead_id = $1 and s.usuario_id = (select auth.uid()) and s.eliminado_en is null
+   order by s.ocurrido_en desc, s.id desc limit 21;
+prepare publicos(uuid) as
+  select s.* from public.seguimientos s
+   where s.lead_id = $1 and s.visibilidad = 'publico' and s.eliminado_en is null
+   order by s.ocurrido_en desc, s.id desc limit 21;
+
+select pg_temp.forma('seguimientos míos, página 1', $$execute mios('00000000-0000-0000-0000-00000000f001')$$,
+  'seguimientos_lead_autor_idx', 0);
+select pg_temp.forma('seguimientos míos, página 501', format('execute mios_desde(%L, %L, %L)',
+  '00000000-0000-0000-0000-00000000f001', current_setting('medir.seguimiento_en'), current_setting('medir.seguimiento_id')),
+  'seguimientos_lead_autor_idx', 0);
+select pg_temp.forma('seguimientos públicos de un lead con 20.000 privados ajenos', $$execute publicos('00000000-0000-0000-0000-00000000f002')$$,
+  'seguimientos_lead_publicos_idx', 0);
+select pg_temp.forma('seguimientos míos de un lead con 20.000 privados ajenos', $$execute mios('00000000-0000-0000-0000-00000000f002')$$,
+  'seguimientos_lead_autor_idx', 0);
 
 -- Las consultas de `lead_recordatorios()` y del aviso de `lead_ficha()`, como las corre plpgsql.
 prepare pendientes(uuid) as
@@ -152,5 +180,10 @@ select pg_temp.medir('lead_seguimientos, página 1 (autora)',
   $$select public.lead_seguimientos('00000000-0000-0000-0000-00000000f001', null, null, 20)$$);
 select pg_temp.medir('lead_seguimientos, página 1 («todos», 20.000 privados ajenos)',
   $$select public.lead_seguimientos('00000000-0000-0000-0000-00000000f002', null, null, 20)$$);
+select pg_temp.medir('lead_seguimientos, página 501 (autora)', format(
+  'select public.lead_seguimientos(%L, %L, %L, 20)', '00000000-0000-0000-0000-00000000f001',
+  current_setting('medir.seguimiento_en'), current_setting('medir.seguimiento_id')));
+select pg_temp.medir('lead_seguimiento, uno por su id (Recargar)', format(
+  'select public.lead_seguimiento(%L, %L)', '00000000-0000-0000-0000-00000000f001', current_setting('medir.seguimiento_id')));
 
 rollback;

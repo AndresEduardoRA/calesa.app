@@ -7,7 +7,9 @@ import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import {
   abrirAgendar,
   abrirAnotar,
+  abrirPestanaDeRecordatorios,
   abrirPestanaDeSeguimientos,
+  modalDeRecordatorio,
   modalDeSeguimiento,
   recordatorio,
   recordatoriosEnLaBase,
@@ -15,9 +17,9 @@ import {
   seguimientosEnLaBase,
 } from './soporte/leads-seguimientos'
 
-// La pestaña «Seguimientos» del drawer rápido (`?lead=<id>&pestana=seguimientos`): se lee al elegirla,
-// vive en la URL, anota y agenda con los modales de la ficha dibujados dentro del drawer (Esc y
-// «atrás» cierran sólo el modal), y sin la cartera no ofrece nada.
+// Las pestañas «Seguimientos» y «Recordatorios» del drawer rápido (`?lead=<id>&pestana=`): cada una se
+// lee al elegirla, vive en la URL, anota o agenda con los modales de la ficha dibujados dentro del
+// drawer (Esc y «atrás» cierran sólo el modal), y sin la cartera no ofrece nada.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelListado
@@ -44,15 +46,19 @@ async function irAlDrawer(page: Pagina, consulta: string, nombre: string) {
   await expect(drawerDe(page, nombre)).toBeVisible()
 }
 
-test('la pestaña vive en la URL, se lee sólo al elegirla, no lleva número y sobrevive a recargar', async ({
+test('cada pestaña vive en la URL, se lee sólo al elegirla, no lleva número y sobrevive a recargar', async ({
   page,
 }, info) => {
   const lead = await leadDeBerta(`Rap Pestana ${info.project.name}`)
   await entrar(page, t.personas.berta)
   let lecturas = 0
+  let deRecordatorios = 0
   page.on('request', (pedido) => {
     if (pedido.url().includes('/rpc/lead_seguimientos')) {
       lecturas++
+    }
+    if (pedido.url().includes('/rpc/lead_recordatorios')) {
+      deRecordatorios++
     }
   })
   await irALeads(page)
@@ -70,7 +76,18 @@ test('la pestaña vive en la URL, se lee sólo al elegirla, no lleva número y s
     'Seguimientos',
   )
   await expect(drawer.getByText('Todavía no hay seguimientos')).toBeVisible()
-  await expect(drawer.getByRole('region', { name: 'Tus recordatorios' })).toBeVisible()
+  // Los recordatorios son de su pestaña: «Seguimientos» no los lee.
+  await expect(drawer.getByRole('region', { name: 'Tus recordatorios' })).toHaveCount(0)
+  expect(deRecordatorios).toBe(0)
+  await abrirPestanaDeRecordatorios(page, drawer)
+  await expect(drawer.getByText('Ningún recordatorio pendiente sobre este lead.')).toBeVisible()
+  expect(deRecordatorios).toBe(1)
+  await expect(drawer.getByRole('tab', { name: 'Recordatorios', exact: true })).toHaveText(
+    'Recordatorios',
+  )
+  // Sin completados no hay plegado.
+  await expect(drawer.getByText('Completados', { exact: true })).toHaveCount(0)
+  await abrirPestanaDeSeguimientos(page, drawer)
 
   await page.reload()
   await expect(drawerDe(page, lead.nombre)).toBeVisible()
@@ -95,6 +112,22 @@ test('la pestaña vive en la URL, se lee sólo al elegirla, no lleva número y s
   await expect(
     drawerDe(page, lead.nombre).getByRole('region', { name: 'Seguimientos' }),
   ).toBeVisible()
+  // Fin lleva a la última («Recordatorios») e Inicio vuelve a «Resumen».
+  await page.keyboard.press('End')
+  await expect(page).toHaveURL(/pestana=recordatorios/)
+  await expect(
+    drawerDe(page, lead.nombre).getByRole('tab', { name: 'Recordatorios', exact: true }),
+  ).toBeFocused()
+  await expect(
+    drawerDe(page, lead.nombre).getByRole('region', { name: 'Tus recordatorios' }),
+  ).toBeVisible()
+  await page.keyboard.press('ArrowRight')
+  await expect(drawerDe(page, lead.nombre).getByRole('tab', { name: 'Resumen' })).toBeFocused()
+  await page.keyboard.press('ArrowLeft')
+  await expect(page).toHaveURL(/pestana=recordatorios/)
+  await page.keyboard.press('Home')
+  await expect(page).not.toHaveURL(/pestana=/)
+  await expect(drawerDe(page, lead.nombre).getByText('Origen del lead')).toBeVisible()
   await page.goBack()
   await expect(page).not.toHaveURL(/lead=/)
   await expect(drawerDe(page, lead.nombre)).toHaveCount(0)
@@ -127,17 +160,32 @@ test('anotar desde el drawer: el modal va adentro, Esc y «atrás» cierran sól
   await modal.getByRole('button', { name: 'Mañana 09:00' }).click()
   await modal.getByRole('button', { name: 'Guardar' }).click()
   await expect(seguimiento(page, 'Anotado desde el drawer')).toBeVisible()
-  await expect(recordatorio(page, 'Anotado desde el drawer')).toBeVisible()
   await expect(drawer).toBeVisible()
   expect(await seguimientosEnLaBase(lead.id)).toHaveLength(1)
   expect(await recordatoriosEnLaBase(lead.id)).toHaveLength(1)
+  // El próximo contacto está en su pestaña, que lo lee al abrirse.
+  await abrirPestanaDeRecordatorios(page, drawer)
+  await expect(recordatorio(page, 'Anotado desde el drawer')).toBeVisible()
 })
 
-test('agendar y eliminar con «Deshacer», también desde el drawer', async ({ page }, info) => {
+test('agendar en «Recordatorios» (arriba, sin pasar por los seguimientos), Esc y «atrás», y eliminar con «Deshacer»', async ({
+  page,
+}, info) => {
   const lead = await leadDeBerta(`Rap Agendar ${info.project.name}`)
   await entrar(page, t.personas.berta)
-  await irAlDrawer(page, `?lead=${lead.id}&pestana=seguimientos`, lead.nombre)
+  await irAlDrawer(page, `?lead=${lead.id}&pestana=recordatorios`, lead.nombre)
   const drawer = drawerDe(page, lead.nombre)
+  await expect(drawer.getByRole('region', { name: 'Tus recordatorios' })).toBeVisible()
+  await expect(drawer.getByRole('region', { name: 'Seguimientos' })).toHaveCount(0)
+
+  await abrirAgendar(page)
+  await page.keyboard.press('Escape')
+  await expect(modalDeRecordatorio(page, 'Agendar')).toHaveCount(0)
+  await expect(drawer).toBeVisible()
+  await expect(page).toHaveURL(/pestana=recordatorios/)
+  await abrirAgendar(page)
+  await page.goBack()
+  await expect(modalDeRecordatorio(page, 'Agendar')).toHaveCount(0)
   await expect(drawer.getByRole('region', { name: 'Tus recordatorios' })).toBeVisible()
 
   const agenda = await abrirAgendar(page)
@@ -147,6 +195,7 @@ test('agendar y eliminar con «Deshacer», también desde el drawer', async ({ p
   await expect(recordatorio(page, 'Llamarlo desde el drawer')).toBeVisible()
   await expect(drawer).toBeVisible()
 
+  await abrirPestanaDeSeguimientos(page, drawer)
   const modal = await abrirAnotar(page)
   await modal.getByLabel('Resumen').fill('Para eliminar en el drawer')
   await modal.getByRole('button', { name: 'Guardar' }).click()
@@ -171,6 +220,46 @@ test('fuera de la cartera: ni «Anotar» ni «Agendar», y la URL no abre el mod
   const drawer = drawerDe(page, lead.nombre)
   await expect(drawer.getByRole('region', { name: 'Seguimientos' })).toBeVisible()
   await expect(drawer.getByRole('button', { name: 'Anotar seguimiento' })).toHaveCount(0)
-  await expect(drawer.getByRole('button', { name: 'Agendar recordatorio' })).toHaveCount(0)
   await expect(modalDeSeguimiento(page, 'Anotar')).toHaveCount(0)
+  // En «Recordatorios», tampoco «Agendar», ni por la URL.
+  await irAlDrawer(
+    page,
+    `?alcance=todos&lead=${lead.id}&pestana=recordatorios&panel=agendar-recordatorio`,
+    lead.nombre,
+  )
+  const otra = drawerDe(page, lead.nombre)
+  await expect(otra.getByText('Ningún recordatorio pendiente sobre este lead.')).toBeVisible()
+  await expect(otra.getByRole('button', { name: 'Agendar recordatorio' })).toHaveCount(0)
+  await expect(modalDeRecordatorio(page, 'Agendar')).toHaveCount(0)
+})
+
+test('una pestaña escrita a mano que no existe abre «Resumen»; la que existe, ésa', async ({
+  page,
+}, info) => {
+  const lead = await leadDeBerta(`Rap A Mano ${info.project.name}`)
+  await entrar(page, t.personas.berta)
+  await irAlDrawer(page, `?lead=${lead.id}&pestana=Recordatorios`, lead.nombre)
+  const drawer = drawerDe(page, lead.nombre)
+  await expect(drawer.getByRole('tab', { name: 'Resumen' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(drawer.getByText('Origen del lead')).toBeVisible()
+  await irAlDrawer(page, `?lead=${lead.id}&pestana=recordatorios`, lead.nombre)
+  await expect(
+    drawerDe(page, lead.nombre).getByRole('tab', { name: 'Recordatorios', exact: true }),
+  ).toHaveAttribute('aria-selected', 'true')
+  await expect(
+    drawerDe(page, lead.nombre).getByRole('region', { name: 'Tus recordatorios' }),
+  ).toBeVisible()
+  if (info.project.name === 'movil') {
+    // Tres pestañas a 390 px, sin desplazamiento horizontal y con objetivos de 44 px.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      await page.evaluate(() => window.innerWidth),
+    )
+    const caja = await drawerDe(page, lead.nombre)
+      .getByRole('tab', { name: 'Recordatorios', exact: true })
+      .boundingBox()
+    expect(caja?.height ?? 0).toBeGreaterThanOrEqual(43)
+  }
 })

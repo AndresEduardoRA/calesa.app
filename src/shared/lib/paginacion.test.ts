@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   armarPagina,
   codificarCursor,
+  enElTope,
   leerCursor,
   TAMANO_DE_PAGINA,
   TOPE_DE_LO_CARGADO,
@@ -84,5 +85,10 @@ describe('las listas con «Ver más»', () => {
     expect(TAMANO_DE_PAGINA).toBeGreaterThan(0)
     expect(TOPE_DE_LO_CARGADO % TAMANO_DE_PAGINA).toBe(0)
     expect(TOPE_DE_LO_CARGADO / TAMANO_DE_PAGINA).toBeLessThanOrEqual(25)
+  })
+
+  it('enElTope llega justo al tope', () => {
+    expect(enElTope(Array.from({ length: TOPE_DE_LO_CARGADO - 1 }))).toBe(false)
+    expect(enElTope(Array.from({ length: TOPE_DE_LO_CARGADO }))).toBe(true)
   })
 })

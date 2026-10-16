@@ -29,7 +29,7 @@ const uno = (cambios: Partial<Recordatorio>): Recordatorio => ({
 const PENDIENTE = uno({})
 const COMPLETADO = uno({ id: HECHO, completadoEn: '2026-10-15T15:00:00+00:00' })
 
-type Props = { lista: readonly Recordatorio[]; puedeAgendar: boolean }
+type Props = { lista: readonly Recordatorio[]; puedeAgendar: boolean; buscando?: boolean }
 
 function montar(url: string, inicial: Props) {
   const alCambiarUrl = vi.fn<(evento: UrlUpdateEvent) => void>()
@@ -129,5 +129,20 @@ describe('useModalDeRecordatorio', () => {
     expect(ultima?.searchParams.get('panel')).toBe('editar-recordatorio')
     expect(ultima?.searchParams.get('recordatorio')).toBe(ID)
     expect(ultima?.options.history).toBe('push')
+  })
+})
+
+describe('useModalDeRecordatorio: el de la URL que no estaba cargado', () => {
+  it('mientras se busca el de la URL no abre ni dice que no está; al encontrarlo, abre', () => {
+    const { result, rerender } = montar(`?panel=editar-recordatorio&recordatorio=${ID}`, {
+      lista: [],
+      puedeAgendar: true,
+      buscando: true,
+    })
+    expect(result.current.abierto).toBe(false)
+    expect(avisarError).not.toHaveBeenCalled()
+    rerender({ lista: [PENDIENTE], puedeAgendar: true, buscando: false })
+    expect(result.current.abierto).toBe(true)
+    expect(result.current.original).toBe(PENDIENTE)
   })
 })

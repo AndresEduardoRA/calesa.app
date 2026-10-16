@@ -2,7 +2,7 @@
 
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { PESTANAS_DEL_RAPIDO, type PestanaDelRapido } from '../../../entities/rapido'
-import { SeguimientosDelRapidoDiferido } from './diferidos'
+import { RecordatoriosDelRapidoDiferido, SeguimientosDelRapidoDiferido } from './diferidos'
 
 type Props = {
   leadId: string
@@ -26,9 +26,10 @@ function siguiente(actual: PestanaDelRapido, tecla: string): PestanaDelRapido | 
   return j === undefined ? null : (claves[j] ?? null)
 }
 
-// «Resumen» y «Seguimientos» (`?pestana=seguimientos`), sin números: el de «Seguimientos» insinuaría
-// los privados de otros. Sólo se dibuja la pestaña elegida: «Seguimientos» se lee al abrirla. Una
-// lista de pestañas propia (como la del embudo): la de Base UI sumaba su peso a la carga del listado.
+// «Resumen», «Seguimientos» y «Recordatorios» (`?pestana=`), sin números: el de «Seguimientos»
+// insinuaría los privados de otros, y contar crece con el total. Sólo se dibuja la pestaña elegida, y
+// cada una (salvo «Resumen») se pide y se lee al abrirla. Una lista de pestañas propia (como la del
+// embudo): la de Base UI sumaba su peso a la carga del listado.
 export function PestanasDelRapido({ leadId, pestana, alElegir, resumen }: Props) {
   const id = useId()
   const lista = useRef<HTMLDivElement>(null)
@@ -48,7 +49,7 @@ export function PestanasDelRapido({ leadId, pestana, alElegir, resumen }: Props)
         role="tablist"
         aria-label="Secciones del lead"
         onKeyDown={alPulsar}
-        className="bg-muted text-muted-foreground inline-flex h-11 w-full items-center rounded-lg p-[3px] md:h-8 md:w-fit"
+        className="bg-muted text-muted-foreground inline-flex w-full items-center rounded-lg p-[3px] md:h-8 md:w-fit"
       >
         {PESTANAS_DEL_RAPIDO.map((p) => {
           const activa = p.clave === pestana
@@ -65,7 +66,7 @@ export function PestanasDelRapido({ leadId, pestana, alElegir, resumen }: Props)
               onClick={() => {
                 alElegir(p.clave)
               }}
-              className={`inline-flex h-full flex-1 items-center justify-center rounded-md px-3 text-(length:--text-sm) font-medium outline-none focus-visible:shadow-(--shadow-focus) md:flex-none ${
+              className={`inline-flex min-h-11 flex-1 items-center justify-center rounded-md px-3 text-(length:--text-sm) font-medium outline-none focus-visible:shadow-(--shadow-focus) md:h-full md:min-h-0 md:flex-none ${
                 activa ? 'bg-background text-foreground shadow-sm' : 'hover:text-foreground'
               }`}
             >
@@ -75,7 +76,13 @@ export function PestanasDelRapido({ leadId, pestana, alElegir, resumen }: Props)
         })}
       </div>
       <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${pestana}`}>
-        {pestana === 'seguimientos' ? <SeguimientosDelRapidoDiferido leadId={leadId} /> : resumen}
+        {pestana === 'seguimientos' ? (
+          <SeguimientosDelRapidoDiferido key={leadId} leadId={leadId} />
+        ) : pestana === 'recordatorios' ? (
+          <RecordatoriosDelRapidoDiferido key={leadId} leadId={leadId} />
+        ) : (
+          resumen
+        )}
       </div>
     </div>
   )

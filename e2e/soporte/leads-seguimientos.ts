@@ -220,3 +220,12 @@ export async function abrirPestanaDeSeguimientos(page: Page, drawer: Locator): P
   }).toPass()
   await expect(drawer.getByRole('region', { name: 'Seguimientos' })).toBeVisible()
 }
+
+// La pestaña «Recordatorios» del drawer (9d-2): «Tus recordatorios», leída al elegirla.
+export async function abrirPestanaDeRecordatorios(page: Page, drawer: Locator): Promise<void> {
+  await expect(async () => {
+    await drawer.getByRole('tab', { name: 'Recordatorios', exact: true }).click()
+    await expect(page).toHaveURL(/pestana=recordatorios/, { timeout: 1000 })
+  }).toPass()
+  await expect(drawer.getByRole('region', { name: 'Tus recordatorios' })).toBeVisible()
+}

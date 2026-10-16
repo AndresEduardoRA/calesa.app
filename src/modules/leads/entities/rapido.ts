@@ -1,6 +1,7 @@
 // Qué muestra el drawer rápido de un lead: en «Resumen», los datos que le llegaron a quien mira,
-// agrupados como el layout; en «Seguimientos», la línea de tiempo y «Tus recordatorios», con anotar y
-// agendar (`?pestana=seguimientos`). Editar el lead sigue siendo de la ficha.
+// agrupados como el layout; en «Seguimientos», la línea de tiempo con anotar (`?pestana=seguimientos`);
+// en «Recordatorios», «Tus recordatorios» con agendar (`?pestana=recordatorios`, 9d-2). Cada pestaña lee
+// lo suyo al elegirse. Editar el lead sigue siendo de la ficha.
 import { agruparCampos } from '@/shared/lib/campos'
 import { PANEL_ANOTAR_SEGUIMIENTO, PANEL_EDITAR_SEGUIMIENTO } from './edicion-de-seguimiento'
 import { PANEL_AGENDAR_RECORDATORIO, PANEL_EDITAR_RECORDATORIO } from './recordatorios'
@@ -91,20 +92,20 @@ export const CLAVE_DE_PESTANA = 'pestana'
 export const PESTANAS_DEL_RAPIDO = [
   { clave: 'resumen', titulo: 'Resumen' },
   { clave: 'seguimientos', titulo: 'Seguimientos' },
+  { clave: 'recordatorios', titulo: 'Recordatorios' },
 ] as const
 export type PestanaDelRapido = (typeof PESTANAS_DEL_RAPIDO)[number]['clave']
 
-// Los modales que se abren desde la pestaña «Seguimientos» (con sus ids en la URL): mientras uno está
-// abierto, el drawer no vuelve a leer su lead; al cambiar de pestaña o cerrar, se van con ella.
-const PANELES_DE_SEGUIMIENTOS: ReadonlySet<string> = new Set([
-  PANEL_ANOTAR_SEGUIMIENTO,
-  PANEL_EDITAR_SEGUIMIENTO,
-  PANEL_AGENDAR_RECORDATORIO,
-  PANEL_EDITAR_RECORDATORIO,
-])
+// Los modales que se abren desde cada pestaña (con sus ids en la URL): mientras uno está abierto, el
+// drawer no vuelve a leer su lead; al cambiar de pestaña o cerrar, se van con ella.
+const PANELES_DE_LA_PESTANA: Readonly<Record<PestanaDelRapido, ReadonlySet<string>>> = {
+  resumen: new Set(),
+  seguimientos: new Set([PANEL_ANOTAR_SEGUIMIENTO, PANEL_EDITAR_SEGUIMIENTO]),
+  recordatorios: new Set([PANEL_AGENDAR_RECORDATORIO, PANEL_EDITAR_RECORDATORIO]),
+}
 
 export function hayModalEnLaPestana(pestana: PestanaDelRapido, panel: string | null): boolean {
-  return pestana === 'seguimientos' && panel !== null && PANELES_DE_SEGUIMIENTOS.has(panel)
+  return panel !== null && PANELES_DE_LA_PESTANA[pestana].has(panel)
 }
 
 // La de la URL; lo que no es una pestaña que existe abre «Resumen».

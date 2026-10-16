@@ -95,7 +95,7 @@ function DatosDelLayout({ lead, campos }: PropsDeDatos) {
   )
 }
 
-// Lo de arriba, en las dos pestañas: el tipo, las marcas de quien mira y «Abrir ficha».
+// Lo de arriba, en las tres pestañas: el tipo, las marcas de quien mira y «Abrir ficha».
 function CabeceraDelRapido({ lead, etiquetas }: Pick<PropsDeDatos, 'lead' | 'etiquetas'>) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -219,8 +219,9 @@ function ContenidoDelRapido({
   )
 }
 
-// El drawer rápido de un lead (`?lead=`) sin salir de la lista: «Resumen» (los datos) y «Seguimientos»
-// (`?pestana=seguimientos`: la línea de tiempo con anotar, y «Tus recordatorios»). Se dibuja enseguida
+// El drawer rápido de un lead (`?lead=`) sin salir de la lista: «Resumen» (los datos), «Seguimientos»
+// (`?pestana=seguimientos`: la línea de tiempo con anotar) y «Recordatorios» (`?pestana=recordatorios`:
+// «Tus recordatorios» con agendar); cada pestaña lee lo suyo al elegirse. Se dibuja enseguida
 // con lo que ya trajo la página y se completa con su lectura. Si el lead desaparece, o deja de ser
 // visible, mientras está abierto lo dice sin explicar por qué; con un modal abierto adentro no vuelve
 // a leer (lo dice el modal al guardar).

@@ -68,12 +68,17 @@ function motivoDe(anotando: boolean, hayTipos: boolean, noEsta: boolean): string
   return noEsta ? MENSAJE_DE_SEGUIMIENTO_NO_DISPONIBLE : null
 }
 
-// El de la URL entre los cargados: el que se puede editar (nulo si no) y si «no está».
+// El de la URL entre los cargados (también los leídos por su id tras «Recargar», que la lista no
+// dibuja): el que se puede editar (nulo si no) y si «no está».
 function objetivoDe(seguimientos: Seguimientos, editando: string | null) {
   if (editando === null) {
     return { editable: null, noEsta: false }
   }
-  const objetivo = seguimientoParaEditar(seguimientos.lista, editando, seguimientos.puedoAnotar)
+  const objetivo = seguimientoParaEditar(
+    [...seguimientos.lista, ...seguimientos.sueltos],
+    editando,
+    seguimientos.puedoAnotar,
+  )
   return objetivo.tipo === 'editable'
     ? { editable: objetivo.seguimiento, noEsta: false }
     : { editable: null, noEsta: true }

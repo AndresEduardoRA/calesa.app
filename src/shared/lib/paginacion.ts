@@ -9,6 +9,11 @@
 export const TAMANO_DE_PAGINA = 20
 export const TOPE_DE_LO_CARGADO = 500
 
+// Llegó al tope de lo cargado: «Ver más» deja su lugar al aviso.
+export function enElTope(lista: readonly unknown[]): boolean {
+  return lista.length >= TOPE_DE_LO_CARGADO
+}
+
 export type Sentido = 'siguiente' | 'anterior'
 
 export type Cursor = {

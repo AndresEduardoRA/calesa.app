@@ -5134,6 +5134,76 @@ do $$ declare p jsonb; u text; v_lead uuid := (select id from public.leads where
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
 
+-- @test seguimientos: la página es la unión de los míos y los públicos, sin repetir ni saltear, y uno se lee por su id con la misma forma
+-- Sobre «Seg Compartido» (de 40, compartido con 41): privados y públicos de las dos, entreverados.
+insert into public.seguimientos (lead_id, usuario_id, tipo_id, titulo, visibilidad, ocurrido_en)
+select l.id, case when g % 3 = 0 then '00000000-0000-0000-0000-000000000041'::uuid else '00000000-0000-0000-0000-000000000040'::uuid end,
+       (select id from public.tipos_seguimiento where activo order by orden limit 1), 'Union ' || g,
+       (case when g % 2 = 0 then 'publico' else 'privado' end)::public.visibilidad_seguimiento,
+       now() - make_interval(mins => g)
+  from public.leads l, generate_series(1, 60) g where l.nombre = 'Seg Compartido';
+-- Lo que cada una tiene que ver, según la regla (los suyos y los públicos), en el orden de la página.
+create temporary table seg_esperado as
+select u.usuario, array_agg(s.id order by s.ocurrido_en desc, s.id desc) as ids
+  from (values ('00000000-0000-0000-0000-000000000040'::uuid), ('00000000-0000-0000-0000-000000000041'::uuid)) u (usuario)
+  join public.seguimientos s on s.lead_id = (select id from public.leads where nombre = 'Seg Compartido')
+   and s.eliminado_en is null and (s.usuario_id = u.usuario or s.visibilidad = 'publico')
+ group by u.usuario;
+grant select on seg_esperado to authenticated;
+do $$
+declare
+  u text; p jsonb; v_ids uuid[]; v_ultimo jsonb; v_vueltas int; v_esperado uuid[]; v_uno jsonb;
+  v_lead uuid := (select id from public.leads where nombre = 'Seg Compartido');
+  v_privado_de_40 uuid := (select id from public.seguimientos where titulo = 'Union 1');
+begin
+  foreach u in array array['00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000041'] loop
+    perform set_config('request.jwt.claim.sub', u, true);
+    set local role authenticated;
+    v_esperado := (select ids from seg_esperado where usuario = u::uuid);
+    v_ids := '{}'; v_vueltas := 0; v_ultimo := null;
+    loop
+      v_vueltas := v_vueltas + 1;
+      p := case when v_ultimo is null then public.lead_seguimientos(v_lead, null, null, 7)
+                else public.lead_seguimientos(v_lead, (v_ultimo ->> 'ocurrido_en')::timestamptz, (v_ultimo ->> 'id')::uuid, 7) end;
+      v_ids := v_ids || array(select (x ->> 'id')::uuid from jsonb_array_elements(p -> 'seguimientos') x);
+      -- Cada fila de la página es la misma que la lectura por id.
+      for v_uno in select x from jsonb_array_elements(p -> 'seguimientos') x loop
+        if public.lead_seguimiento(v_lead, (v_uno ->> 'id')::uuid) is distinct from v_uno then
+          reset role; raise exception 'como %, por id no es igual: % vs %', u, public.lead_seguimiento(v_lead, (v_uno ->> 'id')::uuid), v_uno;
+        end if;
+      end loop;
+      exit when not (p ->> 'hay_mas')::boolean or v_vueltas > 40;
+      v_ultimo := p -> 'seguimientos' -> -1;
+    end loop;
+    if v_ids is distinct from v_esperado then reset role; raise exception 'como %: % en vez de %', u, v_ids, v_esperado; end if;
+    reset role;
+  end loop;
+  -- 41 no lee por id un privado de 40, ni con otro lead; nadie lee uno eliminado.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000041', true);
+  set local role authenticated;
+  if public.lead_seguimiento(v_lead, v_privado_de_40) is not null then reset role; raise exception '41 lee un privado de 40'; end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
+  set local role authenticated;
+  if public.lead_seguimiento(v_lead, v_privado_de_40) is null then reset role; raise exception '40 no lee el suyo'; end if;
+  if public.lead_seguimiento(gen_random_uuid(), v_privado_de_40) is not null then reset role; raise exception 'con otro lead'; end if;
+  reset role;
+end $$;
+select set_config('humo.union_1', (select id::text from public.seguimientos where titulo = 'Union 1'), false);
+select set_config('humo.union_lead', (select lead_id::text from public.seguimientos where titulo = 'Union 1'), false);
+update public.seguimientos set eliminado_en = now() where titulo = 'Union 1';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ begin
+  if public.lead_seguimiento(current_setting('humo.union_lead')::uuid, current_setting('humo.union_1')::uuid) is not null then
+    raise exception 'lee uno eliminado';
+  end if;
+end $$;
+reset role;
+delete from public.seguimientos where titulo like 'Union %';
+drop table seg_esperado;
+select set_config('request.jwt.claim.sub', '', false);
+
 -- ===========================================================================================
 -- Marcas por persona (parte 5b): favoritos, tachados y etiquetas.
 -- Usuarios de los bloques anteriores: 40 (asesor, «propios»), 41 (otro asesor), 42 (ve «todos», no

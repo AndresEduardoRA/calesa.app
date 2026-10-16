@@ -7361,6 +7361,7 @@ export type Database = {
       }
       lead_revocar_acceso: { Args: { p_lead: string; p_usuario: string }; Returns: Json }
       lead_salir: { Args: { p_lead: string }; Returns: Json }
+      lead_seguimiento: { Args: { p_id: string; p_lead: string }; Returns: Json }
       lead_seguimientos: {
         Args: { p_antes_en?: string; p_antes_id?: string; p_lead: string; p_tamano?: number }
         Returns: Json

@@ -92,6 +92,7 @@ declare
     ('lead_ficha(uuid)', 'L'),
     ('lead_seguimientos(uuid,timestamp with time zone,uuid,integer)', 'L'),
     ('lead_recordatorios(uuid,boolean,timestamp with time zone,uuid,integer)', 'L'),
+    ('lead_seguimiento(uuid,uuid)', 'L'),
     ('vehiculo_vinculos(uuid)', 'L'),
     ('vehiculo_interesados(uuid)', 'L'),
     ('lead_vehiculos(uuid)', 'L'),

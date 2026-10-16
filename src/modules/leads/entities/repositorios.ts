@@ -229,6 +229,13 @@ export type LectorDeSeguimientos = (pedido: {
   antes: { antesEn: string; antesId: string } | null
 }) => Promise<Resultado<PaginaDeSeguimientos>>
 
+// Uno por su id (9d-2: «Recargar» tras un conflicto cuando no está en la primera página). Lo que
+// quien mira no ve, eliminado o de otro lead: null.
+export type LectorDeSeguimiento = (pedido: {
+  leadId: string
+  id: string
+}) => Promise<Resultado<Seguimiento | null>>
+
 // Los tipos de seguimiento activos, en su orden: lo que ofrece el redactor.
 export type LectorDeTiposDeSeguimiento = () => Promise<Resultado<TipoDeSeguimiento[]>>
 
@@ -276,10 +283,6 @@ export type RepositorioDeRecordatorios = {
   eliminar: (pedido: { id: string; actualizadoEnEsperado: string }) => RespuestaDeRecordatorio
   restaurar: (pedido: { id: string; actualizadoEnEsperado: string }) => RespuestaDeRecordatorio
 }
-
-// Los recordatorios de quien mira sobre un lead (vivos; también los completados). Un lead que ya no
-// ve: ninguno.
-export type LectorDeRecordatoriosDelLead = (leadId: string) => Promise<Resultado<Recordatorio[]>>
 
 // Una página de los recordatorios de quien mira sobre un lead (9d-2): los pendientes o los completados,
 // desde el cursor. Un lead que no ve: una página vacía.

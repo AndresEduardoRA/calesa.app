@@ -12,7 +12,6 @@ import type {
   LectorDeLayoutDeLeads,
   LectorDeOrigenesDeLead,
   LectorDePapeleraDeLeads,
-  LectorDeRecordatoriosDelLead,
   LectorDeSeguimientos,
   LectorDeTiposDeSeguimiento,
   RepositorioCamposDeLead,
@@ -65,7 +64,6 @@ import { getPapeleraDeLeads } from './infra/queries/papelera'
 import { getAccesoDelCliente } from './infra/queries/portal'
 import { portalSupabase } from './infra/portal'
 import { papeleraDeLeadsSupabase } from './infra/papelera'
-import { getRecordatoriosDelLead } from './infra/queries/recordatorios'
 import { recordatoriosSupabase } from './infra/recordatorios'
 import { getSeguimientos, getTiposDeSeguimiento } from './infra/queries/seguimientos'
 import { seguimientosSupabase } from './infra/seguimientos'
@@ -98,8 +96,6 @@ export const leerSeguimientos: LectorDeSeguimientos = getSeguimientos
 export const leerTiposDeSeguimiento: LectorDeTiposDeSeguimiento = getTiposDeSeguimiento
 
 export const repositorioDeRecordatorios: RepositorioDeRecordatorios = recordatoriosSupabase
-
-export const leerRecordatoriosDelLead: LectorDeRecordatoriosDelLead = getRecordatoriosDelLead
 
 export const repositorioDeMarcas: RepositorioDeMarcas = marcasSupabase
 

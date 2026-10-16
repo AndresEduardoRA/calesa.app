@@ -124,17 +124,23 @@ describe('vistaDelRapido', () => {
 })
 
 describe('pestanaDelRapido', () => {
-  it('«seguimientos» la abre; cualquier otra cosa, «Resumen»', () => {
+  it('«seguimientos» y «recordatorios» la abren; cualquier otra cosa, «Resumen»', () => {
     expect(pestanaDelRapido('seguimientos')).toBe('seguimientos')
+    expect(pestanaDelRapido('recordatorios')).toBe('recordatorios')
     expect(pestanaDelRapido(null)).toBe('resumen')
     expect(pestanaDelRapido('portal')).toBe('resumen')
+    expect(pestanaDelRapido('Recordatorios')).toBe('resumen')
   })
 })
 
 describe('hayModalEnLaPestana', () => {
-  it('sólo los modales de «Seguimientos», y sólo en esa pestaña', () => {
+  it('cada pestaña, sólo sus modales', () => {
     expect(hayModalEnLaPestana('seguimientos', 'anotar-seguimiento')).toBe(true)
-    expect(hayModalEnLaPestana('seguimientos', 'editar-recordatorio')).toBe(true)
+    expect(hayModalEnLaPestana('seguimientos', 'editar-seguimiento')).toBe(true)
+    expect(hayModalEnLaPestana('recordatorios', 'agendar-recordatorio')).toBe(true)
+    expect(hayModalEnLaPestana('recordatorios', 'editar-recordatorio')).toBe(true)
+    expect(hayModalEnLaPestana('seguimientos', 'editar-recordatorio')).toBe(false)
+    expect(hayModalEnLaPestana('recordatorios', 'anotar-seguimiento')).toBe(false)
     expect(hayModalEnLaPestana('resumen', 'anotar-seguimiento')).toBe(false)
     expect(hayModalEnLaPestana('seguimientos', 'filtros')).toBe(false)
     expect(hayModalEnLaPestana('seguimientos', null)).toBe(false)

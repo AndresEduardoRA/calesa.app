@@ -49,13 +49,13 @@ begin
   end if;
   if coalesce(p_completados, false) then
     if p_desde_en is null then
-      select array_agg(x order by x.completado_en desc, x.id desc) into v_filas from (
-        select r.* from public.recordatorios r
+      select array_agg(x.r order by (x.r).completado_en desc, (x.r).id desc) into v_filas from (
+        select r from public.recordatorios r
          where r.usuario_id = v_yo and r.lead_id = p_lead and r.completado_en is not null and r.eliminado_en is null
          order by r.completado_en desc, r.id desc limit v_tamano + 1) x;
     else
-      select array_agg(x order by x.completado_en desc, x.id desc) into v_filas from (
-        select r.* from public.recordatorios r
+      select array_agg(x.r order by (x.r).completado_en desc, (x.r).id desc) into v_filas from (
+        select r from public.recordatorios r
          where r.usuario_id = v_yo and r.lead_id = p_lead and r.completado_en is not null and r.eliminado_en is null
            and (r.completado_en, r.id) < (p_desde_en, p_desde_id)
          order by r.completado_en desc, r.id desc limit v_tamano + 1) x;
@@ -63,13 +63,13 @@ begin
     v_hay_completados := true;
   else
     if p_desde_en is null then
-      select array_agg(x order by x.recordar_en, x.id) into v_filas from (
-        select r.* from public.recordatorios r
+      select array_agg(x.r order by (x.r).recordar_en, (x.r).id) into v_filas from (
+        select r from public.recordatorios r
          where r.usuario_id = v_yo and r.lead_id = p_lead and r.completado_en is null and r.eliminado_en is null
          order by r.recordar_en, r.id limit v_tamano + 1) x;
     else
-      select array_agg(x order by x.recordar_en, x.id) into v_filas from (
-        select r.* from public.recordatorios r
+      select array_agg(x.r order by (x.r).recordar_en, (x.r).id) into v_filas from (
+        select r from public.recordatorios r
          where r.usuario_id = v_yo and r.lead_id = p_lead and r.completado_en is null and r.eliminado_en is null
            and (r.recordar_en, r.id) > (p_desde_en, p_desde_id)
          order by r.recordar_en, r.id limit v_tamano + 1) x;

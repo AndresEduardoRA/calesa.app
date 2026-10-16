@@ -15,6 +15,9 @@ import { usePanelDeRecordatorio } from './use-panel-de-recordatorio'
 type Args = {
   lista: readonly Recordatorio[]
   puedeAgendar: boolean
+  // Se está leyendo la lista, o el de la URL por su id (no estaba entre lo cargado): todavía no se
+  // decide si «no está».
+  buscando?: boolean
 }
 
 // Por qué no se puede editar el de la URL (nulo si se puede, o si no se está editando).
@@ -39,21 +42,24 @@ function modoDe(agendando: boolean, editando: string | null): 'agendar' | 'edita
   return editando === null ? null : 'editar'
 }
 
+// Lo que se revisa al abrir: el de la URL, cuando ya no se está buscando (nulo = nada que revisar).
+function claveDeRevision(apertura: number, editando: string | null, buscando: boolean) {
+  return editando === null || buscando ? null : `${String(apertura)}:${editando}`
+}
+
 // Qué muestra el modal de recordatorios según la URL. Agendar sólo con `puedeAgendar`. Editar abre el
-// de `?recordatorio=<id>` entre los de quien mira (ajeno, eliminado o inventado «no está»).
-export function useModalDeRecordatorio({ lista, puedeAgendar }: Args) {
+// de `?recordatorio=<id>` entre los de quien mira (ajeno, eliminado o inventado «no está»); mientras
+// se busca, no abre ni dice nada.
+export function useModalDeRecordatorio({ lista, puedeAgendar, buscando = false }: Args) {
   const panel = usePanelDeRecordatorio()
   const editando = panel.editando
-  const objetivo = editando === null ? null : recordatorioParaEditar(lista, editando)
+  const objetivo = editando === null || buscando ? null : recordatorioParaEditar(lista, editando)
   const enLaUrl = panel.agendando || editando !== null
   const apertura = useApertura(enLaUrl)
   const motivo = motivoDe(objetivo)
-  const rechazada = useRevisionAlAbrir(
-    editando === null ? null : `${String(apertura)}:${editando}`,
-    motivo,
-    panel.cerrar,
-  )
-  const abierto = panel.agendando ? puedeAgendar : editando !== null && !rechazada
+  const revision = claveDeRevision(apertura, editando, buscando)
+  const rechazada = useRevisionAlAbrir(revision, motivo, panel.cerrar)
+  const abierto = panel.agendando ? puedeAgendar : revision !== null && !rechazada
   // Mientras se cierra (la URL ya no lo nombra) y si deja de estar, el último que se vio: el título y
   // los campos no cambian a «Agendar» en la animación.
   const ultimo = useUltimo(recordatorioDe(objetivo))

@@ -1,43 +1,31 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { avisarError } from '@/shared/ui/toasts'
-import {
-  leerMasSeguimientos,
-  leerRecordatoriosDelLead,
-  leerTiposDeSeguimiento,
-} from '../../../composicion.client'
+import { leerMasSeguimientos, leerTiposDeSeguimiento } from '../../../composicion.client'
 import type { TipoDeSeguimiento } from '../../../entities/alta'
-import type { Recordatorio } from '../../../entities/recordatorios'
 import type { PaginaDeSeguimientos } from '../../../entities/seguimiento'
 
 export type DatosDelRapido = {
   pagina: PaginaDeSeguimientos
   tipos: TipoDeSeguimiento[]
-  recordatorios: Recordatorio[]
 }
 
 type Lectura =
   { leadId: string; estado: 'listo'; datos: DatosDelRapido } | { leadId: string; estado: 'error' }
 
-// Lo mismo que lee la ficha para «Seguimientos» (la primera página, que dice si se puede anotar, los
-// tipos activos y los recordatorios de quien mira), pero desde el navegador y sólo al elegir la
-// pestaña: el listado no lo paga. Sin RPC nueva: las mismas consultas, con la sesión de quien mira.
+// Lo mismo que lee la ficha para «Seguimientos» (la primera página, que dice si se puede anotar, y los
+// tipos activos: una lista fija de configuración, que no crece con el lead), pero desde el navegador y
+// sólo al elegir la pestaña: el listado no lo paga. Los recordatorios son de su pestaña.
 async function leer(leadId: string): Promise<Lectura> {
   try {
-    const [pagina, tipos, recordatorios] = await Promise.all([
+    const [pagina, tipos] = await Promise.all([
       leerMasSeguimientos({ leadId, antes: null }),
       leerTiposDeSeguimiento(),
-      leerRecordatoriosDelLead(leadId),
     ])
-    if (!pagina.ok || !tipos.ok || !recordatorios.ok) {
+    if (!pagina.ok || !tipos.ok) {
       return { leadId, estado: 'error' }
     }
-    return {
-      leadId,
-      estado: 'listo',
-      datos: { pagina: pagina.data, tipos: tipos.data, recordatorios: recordatorios.data },
-    }
+    return { leadId, estado: 'listo', datos: { pagina: pagina.data, tipos: tipos.data } }
   } catch {
     return { leadId, estado: 'error' }
   }
@@ -63,21 +51,6 @@ export function useSeguimientosDelRapido(leadId: string) {
     lectura: lectura?.leadId === leadId ? lectura : null,
     reintentar: () => {
       setIntento((n) => n + 1)
-    },
-    // «Recargar» del modal de un recordatorio: sólo la lista de recordatorios, en su lugar.
-    releerRecordatorios: async () => {
-      const leidos = await leerRecordatoriosDelLead(leadId).catch(() => null)
-      if (!leidos?.ok) {
-        avisarError(
-          leidos?.error ?? { codigo: 'inesperado', mensaje: 'No pudimos llegar al servidor.' },
-        )
-        return
-      }
-      setLectura((antes) =>
-        antes?.estado === 'listo' && antes.leadId === leadId
-          ? { ...antes, datos: { ...antes.datos, recordatorios: leidos.data } }
-          : antes,
-      )
     },
   }
 }

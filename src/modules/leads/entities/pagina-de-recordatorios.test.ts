@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { cursorDeRecordatorios, paginaDeRecordatoriosDesde } from './pagina-de-recordatorios'
+import {
+  cursorDeRecordatorios,
+  paginaDeRecordatoriosDesde,
+  ponerEnLasListas,
+} from './pagina-de-recordatorios'
 import type { Recordatorio } from './recordatorios'
 
 const LEAD = '0b9c2f3e-1d4a-4c5b-8e6f-7a8b9c0d1e2f'
@@ -65,5 +69,61 @@ describe('cursorDeRecordatorios', () => {
   it('sin lista, o con un último que no es de esa lista, no hay cursor', () => {
     expect(cursorDeRecordatorios([], false)).toBeNull()
     expect(cursorDeRecordatorios(lista.slice(0, 1), true)).toBeNull()
+  })
+})
+
+describe('ponerEnLasListas', () => {
+  const r = (n: number, completado: string | null = null): Recordatorio => ({
+    ...(paginaDeRecordatoriosDesde({
+      recordatorios: [fila(`00000000-0000-4000-8000-${String(n).padStart(12, '0')}`, completado)],
+      hay_mas: false,
+      puedo_agendar: true,
+      hay_completados: false,
+    })?.recordatorios[0] as Recordatorio),
+    titulo: `#${String(n)}`,
+    recordarEn: new Date(Date.UTC(2026, 9, 20, 12, n)).toISOString(),
+  })
+  const hecho = (n: number) => r(n, new Date(Date.UTC(2026, 9, 10, 12, n)).toISOString())
+  const titulos = (cargada: { lista: readonly Recordatorio[] } | null) =>
+    cargada?.lista.map((x) => x.titulo)
+  const base = {
+    pendientes: { lista: [r(1), r(2), r(3)], hayMas: true },
+    completados: null,
+    hayCompletados: false,
+  }
+
+  it('uno nuevo entra en su lugar si cae dentro de lo cargado; más tarde que el último, no', () => {
+    expect(titulos(ponerEnLasListas(base, r(0)).pendientes)).toEqual(['#0', '#1', '#2', '#3'])
+    expect(titulos(ponerEnLasListas(base, r(9)).pendientes)).toEqual(['#1', '#2', '#3'])
+    const todo = { ...base, pendientes: { ...base.pendientes, hayMas: false } }
+    expect(titulos(ponerEnLasListas(todo, r(9)).pendientes)).toEqual(['#1', '#2', '#3', '#9'])
+  })
+
+  it('completar lo saca de pendientes y enciende «Completados» sin leerlos', () => {
+    const listas = ponerEnLasListas(base, { ...r(2), completadoEn: '2026-10-16T10:00:00Z' })
+    expect(titulos(listas.pendientes)).toEqual(['#1', '#3'])
+    expect(listas.completados).toBeNull()
+    expect(listas.hayCompletados).toBe(true)
+  })
+
+  it('con «Completados» abierto, el recién completado va arriba; reabrir lo devuelve a pendientes', () => {
+    const abiertas = { ...base, completados: { lista: [hecho(5), hecho(4)], hayMas: false } }
+    const completado = { ...r(2), titulo: '#2', completadoEn: '2026-10-16T10:00:00Z' }
+    const listas = ponerEnLasListas(abiertas, completado)
+    expect(titulos(listas.completados)).toEqual(['#2', '#5', '#4'])
+    const reabierto = ponerEnLasListas(listas, { ...completado, completadoEn: null })
+    expect(titulos(reabierto.pendientes)).toEqual(['#1', '#2', '#3'])
+    expect(titulos(reabierto.completados)).toEqual(['#5', '#4'])
+  })
+
+  it('eliminar lo saca de donde esté', () => {
+    const abiertas = { ...base, completados: { lista: [hecho(5)], hayMas: false } }
+    expect(
+      titulos(ponerEnLasListas(abiertas, { ...hecho(5), eliminado: true }).completados),
+    ).toEqual([])
+    expect(titulos(ponerEnLasListas(abiertas, { ...r(1), eliminado: true }).pendientes)).toEqual([
+      '#2',
+      '#3',
+    ])
   })
 })

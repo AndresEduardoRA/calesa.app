@@ -1,33 +1,14 @@
-// Los recordatorios de quien mira sobre un lead, leídos en el navegador (la pestaña «Seguimientos» del
-// drawer): la misma consulta que la ficha hace en el servidor. La RLS deja sólo los suyos y vivos.
+// Los recordatorios de quien mira sobre un lead, leídos en el navegador (la sección de la ficha y la
+// pestaña del drawer, 9d-2): por páginas y uno por su id. La RLS deja sólo los suyos y vivos.
 import { errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
 import { TAMANO_DE_PAGINA } from '@/shared/lib/paginacion'
 import { createClient } from '@/shared/lib/supabase/browser'
 import { paginaDeRecordatoriosDesde } from '../entities/pagina-de-recordatorios'
 import { recordatoriosDesde } from '../entities/recordatorios'
-import type {
-  LectorDePaginaDeRecordatorios,
-  LectorDeRecordatorio,
-  LectorDeRecordatoriosDelLead,
-} from '../entities/repositorios'
+import type { LectorDePaginaDeRecordatorios, LectorDeRecordatorio } from '../entities/repositorios'
 
 const COLUMNAS =
   'id, titulo, recordar_en, notificado_en, completado_en, actualizado_en, lead_id, lead_nombre, lead_numero, vehiculo_id, vehiculo_titulo, vehiculo_numero, vehiculo_oculto'
-
-export const leerRecordatoriosDelLead: LectorDeRecordatoriosDelLead = async (leadId) => {
-  const { data, error } = await createClient()
-    .from('recordatorios_vista')
-    .select(
-      'id, titulo, recordar_en, notificado_en, completado_en, actualizado_en, lead_id, lead_nombre, lead_numero',
-    )
-    .eq('lead_id', leadId)
-    .order('recordar_en')
-    .limit(100)
-  if (error) {
-    return { ok: false, error: errorDePostgrest(error) }
-  }
-  return ok(recordatoriosDesde(data))
-}
 
 // Una página de los pendientes o de los completados (9d-2), con `lead_recordatorios()`: un cursor que
 // la base usa como condición de índice (`recordatorios_lead_pendientes_idx` y `…_completados_idx`).

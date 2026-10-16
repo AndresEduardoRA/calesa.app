@@ -21,12 +21,7 @@ export async function SeccionSeguimientos({ leadId, vehiculos }: Props) {
   const datos = datosO(leido)
   return (
     <ProveedorDeVehiculos vehiculos={opciones}>
-      <SeguimientosDelLead
-        leadId={leadId}
-        inicial={datos.pagina}
-        tipos={datos.tipos}
-        recordatorios={datos.recordatorios}
-      />
+      <SeguimientosDelLead leadId={leadId} inicial={datos.pagina} tipos={datos.tipos} />
     </ProveedorDeVehiculos>
   )
 }
