@@ -91,6 +91,7 @@ declare
     ('vehiculos_papelera_purgar(uuid,timestamp with time zone,uuid[])', 'X'),
     ('lead_ficha(uuid)', 'L'),
     ('lead_seguimientos(uuid,timestamp with time zone,uuid,integer)', 'L'),
+    ('lead_recordatorios(uuid,boolean,timestamp with time zone,uuid,integer)', 'L'),
     ('vehiculo_vinculos(uuid)', 'L'),
     ('vehiculo_interesados(uuid)', 'L'),
     ('lead_vehiculos(uuid)', 'L'),
@@ -190,7 +191,7 @@ end $$;
 -- recorre los cuerpos de las funciones y las policies, y los grants de escritura de las tablas de leads.
 do $$
 declare
-  v_lecturas_con_accion constant text[] := array['lead_seguimientos'];  -- sólo dice si «puede» anotar; no escribe
+  v_lecturas_con_accion constant text[] := array['lead_seguimientos', 'lead_recordatorios'];  -- sólo dicen si «puede» anotar o agendar; no escriben
   v_tablas constant text[] := array['leads', 'leads_asesores', 'leads_telefonos', 'accesos_portal', 'oportunidades',
     'oportunidades_historial', 'lotes_papelera', 'vehiculos_interesados', 'vehiculos_vinculos', 'seguimientos',
     'recordatorios', 'leads_favoritos', 'leads_tachados', 'etiquetas', 'leads_etiquetas', 'leads_campos'];

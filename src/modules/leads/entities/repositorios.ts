@@ -22,6 +22,7 @@ import type {
   ResultadoDeRestaurar,
 } from './papelera'
 import type { ResultadoDeMarca } from './marcas'
+import type { CursorDeRecordatorios, PaginaDeRecordatorios } from './pagina-de-recordatorios'
 import type { Recordatorio } from './recordatorios'
 import type {
   CambiosDeSeguimiento,
@@ -279,6 +280,18 @@ export type RepositorioDeRecordatorios = {
 // Los recordatorios de quien mira sobre un lead (vivos; también los completados). Un lead que ya no
 // ve: ninguno.
 export type LectorDeRecordatoriosDelLead = (leadId: string) => Promise<Resultado<Recordatorio[]>>
+
+// Una página de los recordatorios de quien mira sobre un lead (9d-2): los pendientes o los completados,
+// desde el cursor. Un lead que no ve: una página vacía.
+export type LectorDePaginaDeRecordatorios = (pedido: {
+  leadId: string
+  completados: boolean
+  desde: CursorDeRecordatorios | null
+}) => Promise<Resultado<PaginaDeRecordatorios>>
+
+// Uno de quien mira, por su id: abrir el de la URL que no está entre los cargados, o «Recargar» tras un
+// conflicto. Ajeno, eliminado o inexistente: null (los tres igual).
+export type LectorDeRecordatorio = (id: string) => Promise<Resultado<Recordatorio | null>>
 
 // --- Las marcas de quien mira (parte 5b) -------------------------------------------------------------
 

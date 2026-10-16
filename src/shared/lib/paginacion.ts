@@ -2,6 +2,13 @@
 // siguiente es «lo que viene después de la última fila que viste», no un `offset`. El cursor viaja
 // en la URL, así que se valida antes de usarlo: uno ilegible es la primera página.
 
+// Las listas que crecen con «Ver más» (los seguimientos y los recordatorios de un lead): el tamaño de
+// la página y lo máximo que se carga y se dibuja, en un solo punto (`.claude/rules/escala.md`; la 9g los
+// hará configurables). Más allá del tope se avisa y a lo antiguo se llega por otro camino («Ir a una
+// fecha»), nunca sumando para siempre. El tope es un múltiplo de la página: se llega a él justo.
+export const TAMANO_DE_PAGINA = 20
+export const TOPE_DE_LO_CARGADO = 500
+
 export type Sentido = 'siguiente' | 'anterior'
 
 export type Cursor = {

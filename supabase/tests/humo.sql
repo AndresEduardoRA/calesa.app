@@ -5059,6 +5059,81 @@ delete from public.leads_asesores where lead_id = (select id from public.leads w
 update public.leads_asesores set revocado_en = null where lead_id = (select id from public.leads where nombre = 'Seg Propio');
 select set_config('request.jwt.claim.sub', '', false);
 
+-- @test recordatorios: se leen por páginas con su cursor (pendientes y completados), sin conteo, y el aviso de vencidos cuenta hasta 21
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Rec Paginas', 'telefono_principal', '76090001',
+         'origen_lead_id', (select id from public.origenes_lead where clave = 'web')));
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta: %', r; end if;
+end $$;
+reset role;
+-- 30 vencidos y 15 por venir; 25 completados; y 5 de 41 sobre el mismo lead (no los ve nadie más).
+insert into public.recordatorios (usuario_id, lead_id, titulo, recordar_en, completado_en)
+select '00000000-0000-0000-0000-000000000040', l.id, 'Pag ' || lpad(g::text, 2, '0'),
+       case when g <= 30 then now() - make_interval(hours => 31 - g) else now() + make_interval(hours => g) end,
+       null
+  from public.leads l, generate_series(1, 45) g where l.nombre = 'Rec Paginas';
+insert into public.recordatorios (usuario_id, lead_id, titulo, recordar_en, completado_en)
+select '00000000-0000-0000-0000-000000000040', l.id, 'Hecho ' || lpad(g::text, 2, '0'), now() - interval '1 day', now() - make_interval(mins => 26 - g)
+  from public.leads l, generate_series(1, 25) g where l.nombre = 'Rec Paginas';
+insert into public.recordatorios (usuario_id, lead_id, titulo, recordar_en)
+select '00000000-0000-0000-0000-000000000041', l.id, 'De 41', now() - interval '1 hour'
+  from public.leads l, generate_series(1, 5) g where l.nombre = 'Rec Paginas';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
+set role authenticated;
+do $$
+declare
+  v_lead uuid := (select id from public.leads where nombre = 'Rec Paginas');
+  p jsonb; v_ultimo jsonb; v_titulos text[] := '{}'; v_vueltas int := 0;
+begin
+  -- Pendientes: los vencidos primero (el más viejo arriba), de a 20, con su cursor, sin repetir.
+  p := public.lead_recordatorios(v_lead, false, null, null, 20);
+  if p -> 'recordatorios' -> 0 ->> 'titulo' <> 'Pag 01' then raise exception 'el más viejo primero: %', p -> 'recordatorios' -> 0; end if;
+  if not (p ->> 'puedo_agendar')::boolean or not (p ->> 'hay_completados')::boolean then raise exception 'banderas: %', p - 'recordatorios'; end if;
+  if p ? 'total' or p ? 'cuantos' then raise exception 'no cuenta: %', p - 'recordatorios'; end if;
+  loop
+    v_vueltas := v_vueltas + 1;
+    v_titulos := v_titulos || array(select x ->> 'titulo' from jsonb_array_elements(p -> 'recordatorios') x);
+    exit when not (p ->> 'hay_mas')::boolean or v_vueltas > 5;
+    v_ultimo := p -> 'recordatorios' -> -1;
+    p := public.lead_recordatorios(v_lead, false, (v_ultimo ->> 'recordar_en')::timestamptz, (v_ultimo ->> 'id')::uuid, 20);
+  end loop;
+  if v_vueltas <> 3 or cardinality(v_titulos) <> 45 or (select count(distinct t) from unnest(v_titulos) t) <> 45 then
+    raise exception 'pendientes por páginas: % vueltas, %', v_vueltas, v_titulos;
+  end if;
+  if v_titulos[45] <> 'Pag 45' or 'De 41' = any (v_titulos) or exists (select 1 from unnest(v_titulos) t where t like 'Hecho%') then
+    raise exception 'orden o mezcla: %', v_titulos;
+  end if;
+  -- Completados: el último completado arriba, de a 20.
+  p := public.lead_recordatorios(v_lead, true, null, null, 20);
+  if jsonb_array_length(p -> 'recordatorios') <> 20 or not (p ->> 'hay_mas')::boolean or p -> 'recordatorios' -> 0 ->> 'titulo' <> 'Hecho 25' then
+    raise exception 'completados, página 1: %', p;
+  end if;
+  v_ultimo := p -> 'recordatorios' -> -1;
+  p := public.lead_recordatorios(v_lead, true, (v_ultimo ->> 'completado_en')::timestamptz, (v_ultimo ->> 'id')::uuid, 20);
+  if jsonb_array_length(p -> 'recordatorios') <> 5 or (p ->> 'hay_mas')::boolean or p -> 'recordatorios' -> -1 ->> 'titulo' <> 'Hecho 01' then
+    raise exception 'completados, página 2: %', p;
+  end if;
+  -- El aviso de vencidos cuenta hasta 21 (son 30): la pantalla dice «más de 20».
+  if (public.lead_ficha(v_lead) ->> 'recordatorios_vencidos')::int <> 21 then raise exception 'vencidos con tope: %', public.lead_ficha(v_lead) ->> 'recordatorios_vencidos'; end if;
+end $$;
+reset role;
+-- 41 no ve el lead: ni los suyos sobre él llegan; 42 lo ve («todos») y no agenda.
+do $$ declare p jsonb; u text; v_lead uuid := (select id from public.leads where nombre = 'Rec Paginas'); begin
+  foreach u in array array['00000000-0000-0000-0000-000000000041', '00000000-0000-0000-0000-000000000042'] loop
+    perform set_config('request.jwt.claim.sub', u, true);
+    set local role authenticated;
+    p := public.lead_recordatorios(v_lead, false, null, null, 20);
+    if jsonb_array_length(p -> 'recordatorios') <> 0 or (p ->> 'puedo_agendar')::boolean or (p ->> 'hay_completados')::boolean then
+      reset role; raise exception 'como %: %', u, p;
+    end if;
+    if jsonb_array_length(public.lead_recordatorios(v_lead, true, null, null, 20) -> 'recordatorios') <> 0 then reset role; raise exception 'completados como %', u; end if;
+    reset role;
+  end loop;
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
 -- ===========================================================================================
 -- Marcas por persona (parte 5b): favoritos, tachados y etiquetas.
 -- Usuarios de los bloques anteriores: 40 (asesor, «propios»), 41 (otro asesor), 42 (ve «todos», no

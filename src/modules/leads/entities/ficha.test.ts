@@ -9,6 +9,7 @@ import {
   seccionDeLead,
   seccionesDisponibles,
   telefonoDeFicha,
+  TOPE_DE_VENCIDOS,
   type LeadDeFicha,
   type OrigenConEstado,
 } from './ficha'
@@ -75,6 +76,9 @@ describe('fichaDesde', () => {
     expect(fichaDesde({ ...CRUDA, id: 'no-es-un-guid' })).toBeNull()
     expect(fichaDesde(null)).toBeNull()
     expect(fichaDesde({ ...CRUDA, recordatorios_vencidos: -1 })).toBeNull()
+    // La base cuenta hasta 21 (`TOPE_DE_VENCIDOS + 1`): más que eso es una forma que no entrega.
+    expect(fichaDesde({ ...CRUDA, recordatorios_vencidos: TOPE_DE_VENCIDOS + 1 })).not.toBeNull()
+    expect(fichaDesde({ ...CRUDA, recordatorios_vencidos: TOPE_DE_VENCIDOS + 2 })).toBeNull()
   })
 
   it('sin atributos ni teléfono llega vacío, no roto', () => {

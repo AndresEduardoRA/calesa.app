@@ -39,7 +39,8 @@ export type LeadDeFicha = {
   tieneId: string | null
   tieneNombre: string | null
   telefonos: TelefonoExtra[]
-  // Los recordatorios de quien mira sobre este lead que ya pasaron y no completó.
+  // Los recordatorios de quien mira sobre este lead que ya pasaron y no completó, hasta
+  // `TOPE_DE_VENCIDOS + 1` (la base no cuenta más: el número exacto crecía con el total).
   recordatoriosVencidos: number
   // Cuántos vehículos vinculados ve quien mira (los que no ve no se cuentan): con eso la ficha adelanta
   // que no va a la papelera y avisa al compartir o transferir.
@@ -47,6 +48,10 @@ export type LeadDeFicha = {
   // Las de quien mira: favorito, tachado y sus etiquetas.
   marcas: MarcasDeLead
 }
+
+// Cuántos vencidos se dicen con su número: la base cuenta hasta uno más (`lead_ficha()`, `limit 21`) y
+// la pantalla dice «más de 20». Espejo de esa consulta.
+export const TOPE_DE_VENCIDOS = 20
 
 const esquemaFicha = z.object({
   id: z.guid(),
@@ -65,7 +70,11 @@ const esquemaFicha = z.object({
   telefonos: z.array(
     z.object({ id: z.guid(), telefono: z.string(), etiqueta: z.string().nullable() }),
   ),
-  recordatorios_vencidos: z.number().int().nonnegative(),
+  recordatorios_vencidos: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(TOPE_DE_VENCIDOS + 1),
   vehiculos_vinculados: z.number().int().nonnegative(),
   es_favorito: z.boolean().optional(),
   esta_tachado: z.boolean().optional(),

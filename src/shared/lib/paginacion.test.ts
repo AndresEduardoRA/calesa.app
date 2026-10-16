@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { armarPagina, codificarCursor, leerCursor, type Cursor } from './paginacion'
+import {
+  armarPagina,
+  codificarCursor,
+  leerCursor,
+  TAMANO_DE_PAGINA,
+  TOPE_DE_LO_CARGADO,
+  type Cursor,
+} from './paginacion'
 
 const fila = (n: number) => ({
   id: `00000000-0000-4000-8000-00000000000${String(n)}`,
@@ -69,5 +76,13 @@ describe('armarPagina', () => {
       siguiente: null,
       anterior: null,
     })
+  })
+})
+
+describe('las listas con «Ver más»', () => {
+  it('el tope cae justo en una página y no la deja crecer para siempre', () => {
+    expect(TAMANO_DE_PAGINA).toBeGreaterThan(0)
+    expect(TOPE_DE_LO_CARGADO % TAMANO_DE_PAGINA).toBe(0)
+    expect(TOPE_DE_LO_CARGADO / TAMANO_DE_PAGINA).toBeLessThanOrEqual(25)
   })
 })

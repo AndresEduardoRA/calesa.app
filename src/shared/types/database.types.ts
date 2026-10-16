@@ -7349,6 +7349,16 @@ export type Database = {
         Returns: Json
       }
       lead_oportunidades: { Args: { p_lead: string }; Returns: Json }
+      lead_recordatorios: {
+        Args: {
+          p_completados?: boolean
+          p_desde_en?: string
+          p_desde_id?: string
+          p_lead: string
+          p_tamano?: number
+        }
+        Returns: Json
+      }
       lead_revocar_acceso: { Args: { p_lead: string; p_usuario: string }; Returns: Json }
       lead_salir: { Args: { p_lead: string }; Returns: Json }
       lead_seguimientos: {

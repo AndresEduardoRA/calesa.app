@@ -1,4 +1,4 @@
-// Corre `supabase/tests/medir-listado.sql` y `medir-embudo.sql` contra la base del Supabase LOCAL y
+// Corre las mediciones de `supabase/tests/medir-*.sql` (las de `MEDICIONES`) contra la base del Supabase LOCAL y
 // resume la mediana de cada consulta. No hay `psql` en el equipo ni un cliente de Postgres en las dependencias: se usa el
 // del contenedor de la base (`supabase_db_<project_id>`). La medición va en una transacción que se
 // revierte: no deja filas (sí huecos en la numeración de leads y actividad).
@@ -22,6 +22,10 @@ const MEDICIONES = [
   [
     'supabase/tests/medir-importacion.sql',
     'Importación de leads, 500 filas en lotes de 50 sobre 22.000 filas de actividad',
+  ],
+  [
+    'supabase/tests/medir-volumen.sql',
+    'Listas de un lead, 20.000 seguimientos y 5.000 recordatorios (con la forma del plan asertada)',
   ],
 ]
 
