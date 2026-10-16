@@ -3373,7 +3373,7 @@ begin
   -- Entra todo junto.
   r := public.crear_lead(v_intento, jsonb_build_object('nombre', ' Lead Alta Humo ', 'telefono_principal', '(710) 000-01',
         'origen_lead_id', v_web, 'atributos', '{"ciudad": "Santa Cruz"}'::jsonb),
-       jsonb_build_object('tipo_id', v_wa, 'titulo', 'Pidió precio del RAV4', 'detalle', 'Lo vio en Facebook.'),
+       jsonb_build_object('tipo_id', v_wa, 'titulo', 'Pidió precio del RAV4', 'detalle', '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Lo vio en Facebook."}]}]}'::jsonb),
        jsonb_build_object('recordar_en', v_manana));
   if r ->> 'resultado' <> 'creado' or (r ->> 'repetido')::boolean or r ->> 'numero' is null then raise exception 'alta: %', r; end if;
   v_id := (r ->> 'id')::uuid;
@@ -3381,7 +3381,7 @@ begin
   if (select telefono_principal from public.leads_vista where id = v_id) <> '59171000001' then raise exception 'teléfono normalizado'; end if;
   if (select telefono_cc from public.leads_vista where id = v_id) <> '+591' then raise exception 'código de país del lead'; end if;
   if (select nombre from public.leads_vista where id = v_id) <> 'Lead Alta Humo' then raise exception 'el nombre se guarda sin espacios sobrantes'; end if;
-  if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Pidió precio del RAV4' and detalle_texto = 'Lo vio en Facebook.' and detalle_doc is null and visibilidad = 'privado') <> 1 then
+  if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Pidió precio del RAV4' and detalle_texto = 'Lo vio en Facebook.' and detalle_doc is not null and visibilidad = 'privado') <> 1 then
     raise exception 'el seguimiento'; end if;
   if (select count(*) from public.recordatorios where lead_id = v_id and titulo = 'Pidió precio del RAV4' and recordar_en = v_manana and usuario_id = '00000000-0000-0000-0000-000000000040') <> 1 then
     raise exception 'el recordatorio (sin título propio usa el del seguimiento)'; end if;

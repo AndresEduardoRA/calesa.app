@@ -1861,3 +1861,128 @@ do $$ declare v_vieja uuid; v_nueva uuid; v_n int; begin
     raise exception 'authenticated escribe importaciones directo';
   end if;
 end $$;
+
+-- @test casos de alta: el primer seguimiento enriquecido, con fecha pasada o sin él (parte 9b)
+-- `crear_lead` valida el detalle y la fecha con las funciones de `seguimiento_crear` (una sola regla) y
+-- los rechazos llevan el campo del formulario en el `hint`. Teléfonos 7733xxxx.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000050', false);
+set role authenticated;
+do $$ declare
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_wa uuid := (select id from public.tipos_seguimiento where clave = 'whatsapp');
+  v_doc jsonb := '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Lo vio","marks":[{"type":"bold"}]},{"type":"text","text":" en Facebook"}]},{"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"RAV4"}]}]}]}]}';
+  v_intento uuid := gen_random_uuid(); v_pasada timestamptz := now() - interval '2 days';
+  v_antes bigint := (select count(*) from public.leads); v_seg_antes bigint := (select count(*) from public.seguimientos);
+  r jsonb; v_id uuid; s public.seguimientos; h text; v_i int;
+  v_rechazos text[][] := array[
+    -- [detalle o dato que no pasa, hint esperado]
+    ['detalle_texto', 'seguimiento.detalle'], ['detalle_titulo', 'seguimiento.detalle'], ['detalle_largo', 'seguimiento.detalle'],
+    ['detalle_octetos', 'seguimiento.detalle'], ['futura', 'seguimiento.ocurrido_en'], ['ilegible', 'seguimiento.ocurrido_en'],
+    ['antigua', 'seguimiento.ocurrido_en'], ['visibilidad', 'seguimiento.visibilidad'],
+    ['vehiculo', 'seguimiento.vehiculo_id'], ['sin_resumen', 'seguimiento.titulo']];
+  v_seg jsonb;
+begin
+  -- Con el detalle enriquecido y una fecha pasada: se guarda el documento, su texto y la fecha.
+  r := public.crear_lead(v_intento, jsonb_build_object('nombre', 'Alta 9b', 'telefono_principal', '77330001', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', 'Lo vio ayer', 'detalle', v_doc, 'ocurrido_en', v_pasada), null);
+  if r ->> 'resultado' <> 'creado' then raise exception 'alta con detalle enriquecido: %', r; end if;
+  v_id := (r ->> 'id')::uuid;
+  select * into s from public.seguimientos where lead_id = v_id;
+  if not found or s.detalle_doc is distinct from v_doc then raise exception 'detalle_doc: %', s.detalle_doc; end if;
+  if s.detalle_texto is null or s.detalle_texto not like 'Lo vio en Facebook%RAV4%' then raise exception 'detalle_texto: %', s.detalle_texto; end if;
+  if abs(extract(epoch from s.ocurrido_en - v_pasada)) > 1 then raise exception 'ocurrido_en: %', s.ocurrido_en; end if;
+  if s.visibilidad <> 'privado' or s.usuario_id <> '00000000-0000-0000-0000-000000000050' then raise exception 'visibilidad o autor'; end if;
+  if (select ultimo_seguimiento_en from public.leads_vista where id = v_id) is distinct from s.ocurrido_en then
+    raise exception 'ultimo_seguimiento_en debía ser la fecha pasada'; end if;
+  -- Sin fecha: es ahora. Sin detalle: ninguno de los dos.
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Alta 9b ahora', 'telefono_principal', '77330002', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', 'Ahora', 'detalle', null, 'ocurrido_en', null), null);
+  select * into s from public.seguimientos where lead_id = (r ->> 'id')::uuid;
+  if s.detalle_doc is not null or s.detalle_texto is not null or s.ocurrido_en < now() - interval '1 minute' then raise exception 'sin detalle ni fecha: %', s; end if;
+  -- Un documento sin texto cuenta como sin detalle.
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Alta 9b vacío', 'telefono_principal', '77330003', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', 'Vacío', 'detalle', '{"type":"doc","content":[{"type":"paragraph"}]}'::jsonb), null);
+  select * into s from public.seguimientos where lead_id = (r ->> 'id')::uuid;
+  if s.detalle_doc is not null or s.detalle_texto is not null then raise exception 'un documento vacío debía quedar sin detalle: %', s; end if;
+  -- Sin seguimiento: el lead solo.
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Alta 9b sola', 'telefono_principal', '77330004', 'origen_lead_id', v_web));
+  if r ->> 'resultado' <> 'creado' or exists (select 1 from public.seguimientos where lead_id = (r ->> 'id')::uuid) then
+    raise exception 'sin seguimiento: %', r; end if;
+  -- Un reintento del mismo intento no duplica el seguimiento.
+  r := public.crear_lead(v_intento, jsonb_build_object('nombre', 'Alta 9b', 'telefono_principal', '77330001', 'origen_lead_id', v_web),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', 'Lo vio ayer', 'detalle', v_doc, 'ocurrido_en', v_pasada), null);
+  if (r ->> 'repetido')::boolean is not true or (select count(*) from public.seguimientos where lead_id = v_id) <> 1 then
+    raise exception 'el reintento duplicó el seguimiento: %', r; end if;
+
+  -- Lo que no pasa se rechaza con su campo, y no queda nada a medias.
+  v_antes := (select count(*) from public.leads); v_seg_antes := (select count(*) from public.seguimientos);
+  for v_i in 1..array_length(v_rechazos, 1) loop
+    v_seg := case v_rechazos[v_i][1]
+      when 'detalle_texto' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'detalle', 'Lo vio en Facebook.')
+      when 'detalle_titulo' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'detalle', '{"type":"doc","content":[{"type":"heading","content":[{"type":"text","text":"Hola"}]}]}'::jsonb)
+      when 'detalle_largo' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'detalle',
+        jsonb_build_object('type', 'doc', 'content', jsonb_build_array(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', repeat('a', 5001)))))))
+      when 'detalle_octetos' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'detalle',
+        jsonb_build_object('type', 'doc', 'content', (select jsonb_agg(jsonb_build_object('type', 'paragraph', 'content', jsonb_build_array(jsonb_build_object('type', 'text', 'text', 'x')))) from generate_series(1, 800))))
+      when 'futura' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'ocurrido_en', now() + interval '1 hour')
+      when 'ilegible' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'ocurrido_en', 'ayer')
+      when 'antigua' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'ocurrido_en', '1999-12-31T00:00:00Z'::text)
+      when 'visibilidad' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'visibilidad', 'publico')
+      when 'vehiculo' then jsonb_build_object('tipo_id', v_wa, 'titulo', 'x', 'vehiculo_id', gen_random_uuid())
+      else jsonb_build_object('tipo_id', v_wa, 'titulo', '  ') end;
+    begin
+      perform public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Rechazo 9b', 'telefono_principal', '77339999', 'origen_lead_id', v_web), v_seg, null);
+      raise exception 'aceptó «%»', v_rechazos[v_i][1];
+    exception when invalid_parameter_value then
+      get stacked diagnostics h = pg_exception_hint;
+      if h is distinct from v_rechazos[v_i][2] then raise exception '«%» daba el hint «%» y debía ser «%»', v_rechazos[v_i][1], h, v_rechazos[v_i][2]; end if;
+    end;
+  end loop;
+  if (select count(*) from public.leads) <> v_antes or (select count(*) from public.seguimientos) <> v_seg_antes then
+    raise exception 'un rechazo dejó algo escrito'; end if;
+end $$;
+reset role;
+
+-- «Tomar lead»: con y sin seguimiento, y el mismo intento dos veces no duplica nada.
+do $$ declare
+  v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; n text; t text;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000050', true);
+  set local role authenticated;
+  for n, t in select * from (values ('Limbo 9b A', '77340001'), ('Limbo 9b B', '77340002')) x (n, t) loop
+    r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', n, 'telefono_principal', t, 'origen_lead_id', v_web));
+  end loop;
+  reset role;
+  update public.leads_asesores set revocado_en = now() where lead_id in (select id from public.leads where nombre like 'Limbo 9b %');
+  perform set_config('matriz.limbo_a', (select id::text from public.leads where nombre = 'Limbo 9b A'), false);
+  perform set_config('matriz.limbo_b', (select id::text from public.leads where nombre = 'Limbo 9b B'), false);
+end $$;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000053', false);
+set role authenticated;
+do $$ declare
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_wa uuid := (select id from public.tipos_seguimiento where clave = 'whatsapp');
+  v_doc jsonb := '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Volvió a escribir"}]}]}';
+  v_a uuid := gen_random_uuid(); v_b uuid := gen_random_uuid(); r jsonb; r2 jsonb;
+  v_la uuid := current_setting('matriz.limbo_a')::uuid; v_lb uuid := current_setting('matriz.limbo_b')::uuid;
+begin
+  -- Con seguimiento enriquecido.
+  r := public.crear_lead(v_a, jsonb_build_object('nombre', 'x', 'telefono_principal', '77340001', 'origen_lead_id', v_web, 'adoptar', true),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', 'Lo tomé', 'detalle', v_doc, 'ocurrido_en', now() - interval '1 day'),
+        jsonb_build_object('recordar_en', now() + interval '1 day'));
+  if r ->> 'resultado' <> 'adoptado' or (r ->> 'id')::uuid <> v_la then raise exception 'adoptar con seguimiento: %', r; end if;
+  if (select count(*) from public.seguimientos where lead_id = v_la and detalle_doc = v_doc) <> 1 then raise exception 'el seguimiento del adoptado'; end if;
+  if (select count(*) from public.recordatorios where lead_id = v_la) <> 1 then raise exception 'el recordatorio del adoptado'; end if;
+  -- El mismo intento otra vez: lo mismo, sin otro seguimiento ni otro recordatorio. (La rama de después
+  -- del candado —dos envíos a la vez— la prueba `pnpm db:carreras`, que necesita dos conexiones.)
+  r2 := public.crear_lead(v_a, jsonb_build_object('nombre', 'x', 'telefono_principal', '77340001', 'origen_lead_id', v_web, 'adoptar', true),
+        jsonb_build_object('tipo_id', v_wa, 'titulo', 'Lo tomé', 'detalle', v_doc), jsonb_build_object('recordar_en', now() + interval '1 day'));
+  if r2 ->> 'resultado' <> 'adoptado' or (r2 ->> 'repetido')::boolean is not true or r2 ->> 'id' <> r ->> 'id' then raise exception 'reintento de adoptar: %', r2; end if;
+  if (select count(*) from public.seguimientos where lead_id = v_la) <> 1 or (select count(*) from public.recordatorios where lead_id = v_la) <> 1 then
+    raise exception 'el reintento de adoptar duplicó'; end if;
+  -- Sin seguimiento.
+  r := public.crear_lead(v_b, jsonb_build_object('nombre', 'x', 'telefono_principal', '77340002', 'origen_lead_id', v_web, 'adoptar', true));
+  if r ->> 'resultado' <> 'adoptado' or exists (select 1 from public.seguimientos where lead_id = v_lb) then raise exception 'adoptar sin seguimiento: %', r; end if;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import type { Json } from '@/shared/types/database.types'
+import { documentoDesdeTexto } from '../entities/documento-limpio'
 import type { PedidoDeAlta, RepositorioDeAlta, ResultadoDeAlta } from '../entities/repositorios'
 import { verificacionDesde } from '../entities/verificacion'
 
@@ -53,7 +54,8 @@ function comoJson({ datos, adoptar }: PedidoDeAlta): {
       ? {
           tipo_id: datos.seguimiento.tipoId,
           titulo: datos.seguimiento.titulo,
-          detalle: datos.seguimiento.detalle,
+          // La base espera un documento del editor (la misma regla que la ficha), no un texto.
+          detalle: documentoDesdeTexto(datos.seguimiento.detalle) as Json,
         }
       : undefined,
     recordatorio: datos.recordatorio ? { recordar_en: datos.recordatorio.recordarEn } : undefined,
