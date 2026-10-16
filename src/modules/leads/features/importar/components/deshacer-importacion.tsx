@@ -38,7 +38,8 @@ export function DeshacerImportacion(props: Props) {
   const ahora = useAhora(props.ahora)
   const enLinea = useEnLinea()
   const [abierto, setAbierto] = useState(false)
-  const { deshacer, enCurso, resultado, error, limpiarError } = useDeshacerImportacion()
+  const { deshacer, enCurso, resultado, error, limpiarError } =
+    useDeshacerImportacion(importacionId)
 
   const hecho = resultado ?? props.resultado ?? null
   if (hecho) {
@@ -83,7 +84,7 @@ export function DeshacerImportacion(props: Props) {
           setAbierto(false)
         }}
         alConfirmar={() => {
-          void deshacer(importacionId).then((listo) => {
+          void deshacer().then((listo) => {
             if (listo) {
               setAbierto(false)
             }

@@ -7,6 +7,7 @@ import type { ErrorApp } from '@/shared/lib/errores'
 import type { ResultadoDeDeshacer } from '../../../entities/importacion/deshacer'
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
 import { deshacerImportacionDeLeads } from '../actions/deshacer-importacion'
+import { anotarDeshecha, useDeshecha } from './deshechas'
 
 const SIN_RED: ErrorApp = {
   codigo: 'inesperado',
@@ -14,13 +15,14 @@ const SIN_RED: ErrorApp = {
 }
 
 // Deshacer una importación: el resultado (cuántos salieron, qué se quedó y por qué) o el error, que la
-// pantalla dice dentro de la confirmación. Repetirlo es seguro: la base devuelve lo mismo.
-export function useDeshacerImportacion() {
+// pantalla dice dentro de la confirmación. Repetirlo es seguro: la base devuelve lo mismo. El resultado
+// es de la importación, no de este botón: lo ven todos los «Deshacer» de la misma (`deshechas.ts`).
+export function useDeshacerImportacion(importacionId: string) {
   const accion = useAction(deshacerImportacionDeLeads)
-  const [resultado, setResultado] = useState<ResultadoDeDeshacer | null>(null)
+  const resultado = useDeshecha(importacionId)
   const [error, setError] = useState<ErrorApp | null>(null)
 
-  async function deshacer(importacionId: string): Promise<boolean> {
+  async function deshacer(): Promise<boolean> {
     setError(null)
     const envio = await enviarAccion<ResultadoDeDeshacer>(
       accion.executeAsync({ importacionId }),
@@ -30,7 +32,7 @@ export function useDeshacerImportacion() {
       setError('sinRed' in envio ? SIN_RED : envio.error)
       return false
     }
-    setResultado(envio.data)
+    anotarDeshecha(importacionId, envio.data)
     return true
   }
 

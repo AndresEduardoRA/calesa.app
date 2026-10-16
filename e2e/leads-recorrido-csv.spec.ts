@@ -139,7 +139,10 @@ async function importarYDeshacer(page: Page, info: TestInfo, cuenta: string, arc
   await expect(dialogo).toBeVisible()
   await capturar(page, info, 'deshacer-confirmar')
   await dialogo.getByRole('button', { name: 'Mover a la papelera' }).click()
-  await expect(aLaVista(page.getByText(/Se movieron \d+ leads a la papelera/))).toBeVisible()
+  await expect(recientes(page).getByText(/Se movieron \d+ leads a la papelera/)).toBeVisible()
+  // El «Deshacer» del resultado, arriba, también se enteró: no ofrece deshacer lo ya deshecho.
+  await expect(resultado(page).getByRole('button', { name: 'Deshacer importación' })).toHaveCount(0)
+  await expect(resultado(page).getByText(/Se movieron \d+ leads a la papelera/)).toBeVisible()
   await capturar(page, info, 'deshecha')
   expect(await vivosDe(cuenta)).toBe(antes)
 }
