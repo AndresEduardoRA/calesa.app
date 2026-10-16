@@ -52,7 +52,7 @@ export function FormularioDeCampo<Campo extends CampoBase, Cambios extends objec
     ediciones,
     alTerminar: alCerrar,
   })
-  useBorrador(
+  const borrador = useBorrador(
     `${configuracion.textos.borrador}-${campo?.id ?? 'nuevo'}`,
     formulario,
     ['etiqueta', 'grupo', ...configuracion.textosLibres],
@@ -63,7 +63,11 @@ export function FormularioDeCampo<Campo extends CampoBase, Cambios extends objec
 
   async function enviar() {
     const hecho = await estado.enviar()
-    if (!hecho) {
+    if (hecho) {
+      // Lo tipeado ya está en la base: un borrador que sobrevive reaparecería como «recuperado»
+      // si otra persona cambia el campo después.
+      borrador.limpiar()
+    } else {
       enfocarPrimerError(formulario.current)
     }
   }
