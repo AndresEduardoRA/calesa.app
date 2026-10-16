@@ -26,17 +26,19 @@ begin
     'role', 'authenticated')::text, true);
 end $$;
 
--- Mide `p_sql` como `authenticated`: la mediana de 5 corridas (de 7) y la forma del plan genérico.
--- Si `p_indice` no es nulo, asserta: usa ese índice, ningún recorrido secuencial sobre `p_tablas` y a
--- lo sumo `p_descartes` filas descartadas. Sin él sólo informa (la medición de antes de arreglar).
-create function pg_temp.escala(p_nombre text, p_quien text, p_sql text, p_indice text default null,
-                               p_tablas text[] default '{}', p_descartes int default 0, p_ms numeric default null)
+-- Mide `p_sql` como `authenticated` (o `p_rol`): la mediana de 5 corridas (de 7) y la forma del plan
+-- genérico. Asserta el **presupuesto de tiempo** (`p_ms`: unas 4 veces lo medido, para que lo atrape un
+-- cambio de forma y no el ruido de la máquina) y, si `p_indice` no es nulo, la forma del plan: usa ese
+-- índice, ningún recorrido secuencial sobre `p_tablas` y a lo sumo `p_descartes` filas descartadas. Una
+-- RPC de plpgsql es opaca para `explain`: su forma se asserta sobre la consulta de adentro.
+create function pg_temp.escala(p_nombre text, p_quien text, p_sql text, p_ms numeric default null, p_indice text default null,
+                               p_tablas text[] default '{}', p_descartes int default 0, p_rol text default 'authenticated')
 returns void language plpgsql as $$
 declare v_plan json; v_texto text; v_tiempos numeric[] := '{}'; v_mediana numeric; i int;
         v_indices text[]; v_secuenciales text[]; v_descartadas numeric; v_tabla text;
 begin
   perform pg_temp.quien(p_quien);
-  set local role authenticated;
+  execute format('set local role %I', p_rol);
   set local plan_cache_mode = force_generic_plan;
   for i in 1..7 loop
     execute 'explain (analyze, format json) ' || p_sql into v_plan;
@@ -96,56 +98,70 @@ $$;
 
 do $medir$ declare q text; begin
   foreach q in array array['duena', 'ana'] loop
-    -- El listado.
-    perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'));
+    -- El listado. La página 1 camina `leads_listado_idx` sin recorrer `leads` ni descartar de más.
+    perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'), 100, 'leads_listado_idx', '{leads}', 600);
     perform pg_temp.escala('listado: página 100 por cursor', q, pg_temp.pagina(format('esta_tachado = false and creado_en <= %L and (creado_en < %L or id < %L)',
-      current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'))));
-    perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'lp' and esta_tachado = false$w$));
-    perform pg_temp.escala('listado: un atributo sin resultados', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'nada' and esta_tachado = false$w$));
-    perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$));
-    perform pg_temp.escala('listado: búsqueda sin resultados', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$));
-    perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false'));
-    perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true'));
-    perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina($w$etiquetas && array[(select id from public.etiquetas where nombre = 'Vol 1' limit 1)] and esta_tachado = false$w$));
-    perform pg_temp.escala('listado: contarLeads (ocultos, exacto)', q, 'select count(*) from public.leads_vista where esta_tachado = true');
-    perform pg_temp.escala('listado: ocultos con un atributo (exacto)', q, $w$select count(*) from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp'$w$);
-    perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$);
-    perform pg_temp.escala('listado: ocultos acotado a 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51');
-    perform pg_temp.escala('exportar: conteo exacto', q, 'select count(*) from public.leads_vista where en_cartera = true');
-    perform pg_temp.escala('exportar: conteo hasta 5.001', q, 'select id from public.leads_vista where en_cartera = true order by creado_en desc, id desc limit 5001');
-    perform pg_temp.escala('etiquetas_vista', q, 'select id, nombre, leads from public.etiquetas_vista order by nombre');
-    perform pg_temp.escala('papelera de leads', q, 'select public.leads_papelera_listar()');
-    perform pg_temp.escala('importaciones recientes', q, 'select public.leads_importaciones_recientes()');
+      current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'))), 1200, 'leads_listado_idx', '{leads}', 2000);
+    perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'lp' and esta_tachado = false$w$), 300, 'leads_listado_idx', '{leads}', 2000);
+    -- Peor caso aceptado: un filtro que no coincide con nadie recorre la cartera visible (~80 µs por lead).
+    perform pg_temp.escala('listado: un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'nada' and esta_tachado = false$w$), 12000);
+    perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$), 1500);
+    perform pg_temp.escala('listado: búsqueda sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$), 1500);
+    perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false'), 400);
+    perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true'), 300);
+    perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina($w$etiquetas && array[(select id from public.etiquetas where nombre = 'Vol 1' limit 1)] and esta_tachado = false$w$), 700);
+    -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
+    perform pg_temp.escala('listado: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 200, 'leads_listado_idx', '{leads}', 600);
+    perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$, 2500);
+    perform pg_temp.escala('exportar: conteo hasta 5.001', q, 'select id from public.leads_vista where en_cartera = true order by creado_en desc, id desc limit 5001', 3000);
+    perform pg_temp.escala('etiquetas_vista', q, 'select id, nombre, leads from public.etiquetas_vista order by nombre', 300);
+    perform pg_temp.escala('papelera de leads, página 1 de 5 lotes', q, 'select public.leads_papelera_listar(null, null, false, 6)', 400);
+    perform pg_temp.escala('importaciones recientes', q, 'select public.leads_importaciones_recientes()', 300);
     -- Un lead.
-    perform pg_temp.escala('lead_ficha', q, format('select public.lead_ficha(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end));
-    perform pg_temp.escala('lead_cartera', q, format('select public.lead_cartera(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end));
-    perform pg_temp.escala('lead_cartera_candidatos', q, format('select public.lead_cartera_candidatos(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end));
-    perform pg_temp.escala('lead_oportunidades', q, format('select public.lead_oportunidades(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end));
-    perform pg_temp.escala('lead_vehiculos', q, format('select public.lead_vehiculos(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end));
+    perform pg_temp.escala('lead_ficha', q, format('select public.lead_ficha(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end), 80);
+    perform pg_temp.escala('lead_cartera', q, format('select public.lead_cartera(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end), 50);
+    perform pg_temp.escala('lead_cartera_candidatos', q, format('select public.lead_cartera_candidatos(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end), 50);
+    perform pg_temp.escala('lead_oportunidades', q, format('select public.lead_oportunidades(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end), 150);
+    perform pg_temp.escala('lead_vehiculos', q, format('select public.lead_vehiculos(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end), 50);
     -- El kanban.
     if q = 'duena' then
-      perform pg_temp.escala('kanban: tablero (50 por columna)', q, format('select public.embudo_tablero(%L, 50)', current_setting('medir.embudo')));
+      perform pg_temp.escala('kanban: tablero (50 por columna, total hasta 500)', q, format('select public.embudo_tablero(%L, 50, 500)', current_setting('medir.embudo')), 800);
       perform pg_temp.escala('kanban: «Ver más», página 10 de la columna de 8.000', q, format('select public.embudo_etapa_pagina(%L, %L, %L, 50)',
-        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id')));
+        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id')), 500);
+      -- La forma de lo de adentro: `oportunidades_tablero_idx`, con y sin cursor.
+      perform pg_temp.escala('kanban: primera página de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L order by o.ultima_actividad_en desc, o.id desc limit 51', current_setting('medir.etapa')),
+        50, 'oportunidades_tablero_idx', '{oportunidades}', 0);
+      perform pg_temp.escala('kanban: «Ver más» de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L and (o.ultima_actividad_en, o.id) < (%L, %L) order by o.ultima_actividad_en desc, o.id desc limit 51',
+        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id')), 50, 'oportunidades_tablero_idx', '{oportunidades}', 0);
+      perform pg_temp.escala('kanban: el total acotado de una columna', q, format('select count(*) from (select 1 from public.oportunidades o2 where o2.etapa_id = %L limit 501) q', current_setting('medir.etapa')),
+        50, 'oportunidades_tablero_idx', '{oportunidades}', 0);
     end if;
     -- Vehículos y configuración.
     perform pg_temp.escala('vehículos: página 1', q, format($w$select coalesce(json_agg(t), '[]') from (select id, titulo, creado_en from public.vehiculos
-      where origen_id = %L order by creado_en desc, id desc limit 51) t$w$, current_setting('medir.origen')));
+      where origen_id = %L order by creado_en desc, id desc limit 51) t$w$, current_setting('medir.origen')), 20, 'vehiculos_origen_listado_idx', '{vehiculos}', 0);
     perform pg_temp.escala('vehículos: página 40 por cursor', q, format($w$select coalesce(json_agg(t), '[]') from (select id, titulo, creado_en from public.vehiculos
       where origen_id = %L and (creado_en, id) < (%L, %L) order by creado_en desc, id desc limit 51) t$w$, current_setting('medir.origen'),
-      current_setting('medir.vcursor_en'), current_setting('medir.vcursor_id')));
+      current_setting('medir.vcursor_en'), current_setting('medir.vcursor_id')), 20, 'vehiculos_origen_listado_idx', '{vehiculos}', 0);
     perform pg_temp.escala('vehículos: búsqueda', q, format($w$select coalesce(json_agg(t), '[]') from (select id, titulo, creado_en from public.vehiculos
-      where origen_id = %L and (titulo ilike '%%Toyota 99%%' or vin ilike '%%99%%') order by creado_en desc, id desc limit 51) t$w$, current_setting('medir.origen')));
+      where origen_id = %L and (titulo ilike '%%Toyota 99%%' or vin ilike '%%99%%') order by creado_en desc, id desc limit 51) t$w$, current_setting('medir.origen')), 100, 'vehiculos_origen_listado_idx', '{vehiculos}', 20000);
     perform pg_temp.escala('vehículos: filtro de limpieza', q, format($w$select coalesce(json_agg(t), '[]') from (select v.id, v.titulo, v.creado_en, public.limpieza_el(v) from public.vehiculos v
-      where v.origen_id = %L and public.limpieza_el(v) <= now() + interval '30 days' order by v.creado_en desc, v.id desc limit 51) t$w$, current_setting('medir.origen')));
-    perform pg_temp.escala('papelera de vehículos', q, 'select public.vehiculos_papelera_listar()');
-    perform pg_temp.escala('storage_gc_pendiente', q, 'select public.storage_gc_pendiente()');
-    if q = 'duena' then perform pg_temp.escala('origenes_resumen', q, 'select public.origenes_resumen()'); end if;
-    if q = 'duena' then perform pg_temp.escala('categorias_con_uso', q, format('select public.categorias_con_uso(%L)', current_setting('medir.origen'))); end if;
+      where v.origen_id = %L and public.limpieza_el(v) <= now() + interval '30 days' order by v.creado_en desc, v.id desc limit 51) t$w$, current_setting('medir.origen')), 150, 'vehiculos_origen_listado_idx', '{vehiculos}', 5000);
+    perform pg_temp.escala('papelera de vehículos, página 1 de 5 lotes', q, 'select public.vehiculos_papelera_listar(null, null, false, 6)', 200);
+    perform pg_temp.escala('storage_gc_pendiente', q, 'select public.storage_gc_pendiente()', 50);
+    if q = 'duena' then perform pg_temp.escala('origenes_resumen', q, 'select public.origenes_resumen()', 100); end if;
+    if q = 'duena' then perform pg_temp.escala('categorias_con_uso', q, format('select public.categorias_con_uso(%L)', current_setting('medir.origen')), 50); end if;
     perform pg_temp.escala('vehiculos_para_lead', q, format('select public.vehiculos_para_lead(%L, %L)',
-      case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end, 'toyota'));
-    if q = 'duena' then perform pg_temp.escala('baja de una persona (vista previa)', q, $w$select public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000000a1')$w$); end if;
+      case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end, 'toyota'), 300);
+    if q = 'duena' then perform pg_temp.escala('baja de una persona (vista previa)', q, $w$select public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000000a1')$w$, 100); end if;
   end loop;
+
+  -- Lo que usan los jobs y las papeleras, como lo corre la base (sin RLS: `security definer`).
+  perform pg_temp.escala('papeleras: una página de lotes (la consulta)', 'duena',
+    $w$select l.id from public.lotes_papelera l where l.tipo = 'leads' and l.purgado_en is null and l.restaurado_en is null order by l.creado_en desc, l.id desc limit 6$w$,
+    50, 'lotes_papelera_tipo_idx', '{lotes_papelera}', 0, 'postgres');
+  perform pg_temp.escala('storage-gc: lo que espera la cola (la consulta)', 'duena',
+    $w$select c.encolado_en from public.cola_gc_storage c where c.encolado_en < now() - interval '3 hours' order by c.encolado_en limit 1001$w$,
+    50, 'cola_gc_storage_edad_idx', '{cola_gc_storage}', 0, 'postgres');
 end $medir$;
 
 rollback;

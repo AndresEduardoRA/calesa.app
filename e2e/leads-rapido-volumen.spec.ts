@@ -27,6 +27,8 @@ test.describe.configure({ mode: 'serial' })
 // medido en la 9d-2 más la mitad (16,3 KB y 9,4 KB; `docs/RENDIMIENTO.md`).
 const KB_DE_SEGUIMIENTOS = 24
 const KB_DE_RECORDATORIOS = 14
+const NODOS_TRAS_5_VER_MAS = 2_500
+const NODOS_EN_EL_TOPE = 9_000
 
 let t: TerrenoDelListado
 let lead: { id: string; nombre: string }
@@ -110,6 +112,7 @@ test('«Seguimientos»: una página al abrir, «Ver más» hasta el tope, la red
 
   // Hasta el tope: 500 y el aviso, nunca más.
   const nodos: string[] = []
+  let nodosTras5 = 0
   for (let clics = 3; clics <= 25; clics += 1) {
     const verMas = linea.getByRole('button', { name: 'Ver más' })
     if ((await verMas.count()) === 0) {
@@ -118,14 +121,19 @@ test('«Seguimientos»: una página al abrir, «Ver más» hasta el tope, la red
     const cuantos = await itemsDe(linea).count()
     await verMas.click()
     await expect(itemsDe(linea)).not.toHaveCount(cuantos)
-    if (clics === 5 || clics === 25) {
-      nodos.push(`${String(clics)}: ${String(await drawerDe(page).locator('*').count())}`)
+    if (clics === 5) {
+      nodosTras5 = await drawerDe(page).locator('*').count()
+      nodos.push(`5: ${String(nodosTras5)}`)
     }
   }
   await expect(linea.getByText('Mostrando los 500 más recientes.')).toBeVisible()
   await expect(itemsDe(linea)).toHaveCount(500)
   await expect(linea.getByRole('button', { name: 'Ver más' })).toHaveCount(0)
-  nodos.push(`tope: ${String(await drawerDe(page).locator('*').count())}`)
+  const nodosEnElTope = await drawerDe(page).locator('*').count()
+  nodos.push(`tope: ${String(nodosEnElTope)}`)
+  // Los nodos del drawer están acotados (9e): lo medido en la 9d-2 (~1.700 y ~7.000) con margen.
+  expect(nodosTras5).toBeLessThan(NODOS_TRAS_5_VER_MAS)
+  expect(nodosEnElTope).toBeLessThan(NODOS_EN_EL_TOPE)
   info.annotations.push({ type: 'nodos del drawer tras «Ver más»', description: nodos.join(', ') })
 })
 

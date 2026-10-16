@@ -22,6 +22,7 @@ import {
   snapshotDelCliente,
   type TerrenoDelPortal,
 } from './soporte/leads-portal'
+import { PRESUPUESTO_DE_LA_FICHA_EN_KB } from './soporte/presupuestos'
 
 // La sección «Portal» de la ficha (`?seccion=portal`): el acceso del cliente, del lado del equipo. Dar
 // acceso con una clave escrita o generada (el código en grande, la clave una sola vez y el texto para
@@ -318,6 +319,6 @@ test('lo que aporta la ficha con la sección «Portal»', async ({ page }, info)
   const resumen = `«Datos» aporta ${kb(datos - base)} KB · «Portal» aporta ${kb(portal - base)} KB`
   console.warn(`[ficha con portal] ${info.project.name}: ${resumen}`)
   info.annotations.push({ type: 'KB de la ficha con portal', description: resumen })
-  expect(datos - base).toBeLessThan(44 * 1024)
-  expect(portal - base).toBeLessThan(44 * 1024)
+  expect(datos - base).toBeLessThan(PRESUPUESTO_DE_LA_FICHA_EN_KB * 1024)
+  expect(portal - base).toBeLessThan(PRESUPUESTO_DE_LA_FICHA_EN_KB * 1024)
 })

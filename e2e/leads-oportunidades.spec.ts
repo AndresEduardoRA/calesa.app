@@ -8,6 +8,7 @@ import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import { irAFicha, nuevoLead } from './soporte/leads-ficha'
 import { limpiarListado, prepararListado, type TerrenoDelListado } from './soporte/leads-listado'
 import { embudoPorDefecto, enLaBase, etapa, oportunidad } from './soporte/leads-oportunidades'
+import { PRESUPUESTO_DE_LA_FICHA_EN_KB } from './soporte/presupuestos'
 
 // La sección «Oportunidades» de la ficha (`?seccion=oportunidades`): las de quien mira sobre el lead,
 // sólo con el lead en la cartera. «Nueva oportunidad» y «Editar» en un panel con su URL, «Mover a…» y
@@ -163,6 +164,6 @@ test('lo que aporta la ficha con la sección «Oportunidades»', async ({ page }
   const resumen = `«Datos» aporta ${kb(datos - base)} KB · «Oportunidades» aporta ${kb(oportunidades - base)} KB`
   console.warn(`[ficha con oportunidades] ${info.project.name}: ${resumen}`)
   info.annotations.push({ type: 'KB de la ficha con oportunidades', description: resumen })
-  expect(datos - base).toBeLessThan(44 * 1024)
-  expect(oportunidades - base).toBeLessThan(44 * 1024)
+  expect(datos - base).toBeLessThan(PRESUPUESTO_DE_LA_FICHA_EN_KB * 1024)
+  expect(oportunidades - base).toBeLessThan(PRESUPUESTO_DE_LA_FICHA_EN_KB * 1024)
 })

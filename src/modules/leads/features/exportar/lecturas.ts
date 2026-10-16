@@ -5,6 +5,7 @@ import { leerCursor, type Cursor } from '@/shared/lib/paginacion'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import {
   buscarLeads,
+  contarLeadsHasta,
   leerEtiquetas,
   leerLayoutDeLeads,
   leerOrigenesDeLead,
@@ -76,26 +77,17 @@ type EntradaDelArchivo = {
   contexto: ContextoDeExportacion
 }
 
-type Archivo =
-  { tipo: 'archivo'; cuerpo: string; filas: number } | { tipo: 'vacia' } | { tipo: 'demasiadas' }
-
-// El archivo entero: el BOM y los encabezados, y después una página de 500 por vez hasta el final. Se
-// arma **dentro del pedido** (las lecturas usan la sesión de la petición, que ya no existe cuando un
-// flujo tira de a poco) y con 5.000 filas como tope pesa unos pocos MB. No se cuenta antes (un conteo
-// exacto crece con el total, y uno acotado a 5.001 no cabe en un pedido: PostgREST corta en 1.000): si
-// después de 5.000 filas todavía hay otra página, no se exporta nada y se dice. Si una página falla, no
-// hay archivo: la respuesta es un error, nunca un CSV cortado.
-async function textoDeCsv({
-  condiciones,
-  campos,
-  delimitador,
-  contexto,
-}: EntradaDelArchivo): Promise<Archivo | null> {
+// El archivo entero: el BOM y los encabezados, y después una página de 500 por vez hasta el final.
+// Se arma **dentro del pedido** (las lecturas usan la sesión de la petición, que ya no existe cuando un
+// flujo tira de a poco) y con 5.000 filas como tope pesa unos pocos MB. Si una página falla, no hay
+// archivo: la respuesta es un error, nunca un CSV cortado.
+async function textoDeCsv({ condiciones, campos, delimitador, contexto }: EntradaDelArchivo) {
   const claves = camposDeExportacion(campos).map((campo) => campo.clave)
   const partes = [BOM_UTF8 + lineasDeCsv([encabezadosDeExportacion(campos)], delimitador)]
   let cursor: Cursor | null = null
   let enviadas = 0
-  for (;;) {
+  let hayMas = true
+  while (hayMas) {
     const pagina = await buscarLeads({
       condiciones,
       cursor,
@@ -105,30 +97,24 @@ async function textoDeCsv({
     if (!pagina.ok) {
       return null
     }
-    enviadas += pagina.data.filas.length
+    const filas = pagina.data.filas.slice(0, TOPE_DE_EXPORTACION - enviadas)
+    enviadas += filas.length
     cursor = leerCursor(pagina.data.siguiente)
-    if (enviadas > TOPE_DE_EXPORTACION || (enviadas === TOPE_DE_EXPORTACION && cursor !== null)) {
-      return { tipo: 'demasiadas' }
-    }
     partes.push(
       lineasDeCsv(
-        pagina.data.filas.map((fila) => filaDeExportacion(fila, campos, contexto)),
+        filas.map((fila) => filaDeExportacion(fila, campos, contexto)),
         delimitador,
       ),
     )
-    if (cursor === null || pagina.data.filas.length === 0) {
-      break
-    }
+    hayMas = cursor !== null && enviadas < TOPE_DE_EXPORTACION && filas.length > 0
   }
-  return enviadas === 0
-    ? { tipo: 'vacia' }
-    : { tipo: 'archivo', cuerpo: partes.join(''), filas: enviadas }
+  return partes.join('')
 }
 
 // El CSV de los leads que muestra el listado con sus filtros, **sólo los de la cartera de quien llama**
-// (`en_cartera = true` siempre, aunque tenga `leads.ver` «todos» o lo pida la URL). Se lee página a página:
-// con más de 5.000 no se exporta nada y se dice. Recién con el archivo hecho se deja la constancia (con el
-// límite por hora): sin ella no sale nada.
+// (`en_cartera = true` siempre, aunque tenga `leads.ver` «todos» o lo pida la URL). Primero se cuenta
+// hasta el tope (5.001 ids, no un total): con más de 5.000 no se exporta nada y se dice. Después se lee, página a página, y recién con el
+// archivo hecho se deja la constancia (con el límite por hora): sin ella no sale nada.
 export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExportacion> {
   const { permisos, consulta, delimitador, zona, codigoDePais, ahora } = entrada
   if (!puede(permisos, 'leads.exportar')) {
@@ -153,7 +139,19 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
   // La cartera, siempre: no es un modo que se elija.
   const condiciones = condicionesDeLeads(campos, valores, { zona, soloMios: true })
 
-  const archivo = await textoDeCsv({
+  // Hasta el tope y no más: cuenta pidiendo `tope + 1` ids, nunca el total exacto.
+  const contadas = await contarLeadsHasta(condiciones, TOPE_DE_EXPORTACION)
+  if (!contadas.ok) {
+    return { tipo: 'error', mensaje: NO_SE_PUDO }
+  }
+  const total = contadas.data.n
+  if (total === 0) {
+    return { tipo: 'vacia' }
+  }
+  if (contadas.data.hayMas) {
+    return { tipo: 'demasiadas' }
+  }
+  const cuerpo = await textoDeCsv({
     condiciones,
     campos,
     delimitador,
@@ -163,16 +161,13 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
       zona,
     },
   })
-  if (archivo === null) {
+  if (cuerpo === null) {
     return { tipo: 'error', mensaje: NO_SE_PUDO }
-  }
-  if (archivo.tipo !== 'archivo') {
-    return { tipo: archivo.tipo }
   }
   // La constancia y el límite, ya con el archivo hecho: una exportación que falló no gasta el cupo, y
   // sin constancia no sale ni un byte.
   const registro = await repositorioDeExportacion.registrar({
-    filas: archivo.filas,
+    filas: total,
     filtros: nombresDeFiltros(valores),
   })
   if (!registro.ok) {
@@ -186,7 +181,7 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
   return {
     tipo: 'listo',
     nombre: nombreDeArchivoDeExportacion(ahora, zona),
-    cuerpo: archivo.cuerpo,
-    filas: archivo.filas,
+    cuerpo,
+    filas: total,
   }
 }

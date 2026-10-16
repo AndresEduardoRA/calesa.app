@@ -130,6 +130,7 @@ for (const archivo of [
   'matriz-leads.sql',
   'portal-cliente.sql',
   'auditoria-leads.sql',
+  'escala.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue

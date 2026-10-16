@@ -25,6 +25,7 @@ import {
   telefonoDeLead,
   tituloDeLaFicha,
 } from './soporte/leads-ficha'
+import { PRESUPUESTO_DE_LA_FICHA_EN_KB } from './soporte/presupuestos'
 
 // La ficha de un lead (`/leads/[id]`) contra la app compilada y el Supabase local: a dónde llegan
 // «Ya existe · Abrir», «Abrir ficha» y el drawer del listado, qué ve cada quien (el teléfono
@@ -238,7 +239,7 @@ test('abrir la ficha trae poco: lo que aporta sobre el resto de la pantalla y lo
   // Lo que la ficha suma al shell, y lo que viaja al abrirla desde el listado. El tope del documento
   // volvió de 48 a 44 KB en la 6b. Lo que pesa son las props (RSC) y el HTML de «Datos»: los paneles
   // cerrados no suman nada, diferidos o no (docs/DECISIONES.md, 2026-10-15).
-  expect(ficha - base.total).toBeLessThan(44 * 1024)
+  expect(ficha - base.total).toBeLessThan(PRESUPUESTO_DE_LA_FICHA_EN_KB * 1024)
   expect(rsc).toBeLessThan(40 * 1024)
   // Móvil: la cabecera cabe sin desplazar de costado.
   if (esMovil(page)) {
