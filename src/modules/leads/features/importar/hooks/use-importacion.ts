@@ -63,8 +63,6 @@ export function useImportacion({ validas, rechazadasEnLaVistaPrevia, origenId }:
   const terminar = useAction(terminarImportacionDeLeads)
   const [fase, setFase] = useState<FaseDeImportacion>('reposo')
   const [error, setError] = useState<ErrorApp | null>(null)
-  // La pausa vino de no tener conexión (y no de un servidor que no contesta): sólo esa se reanuda sola.
-  const [sinConexion, setSinConexion] = useState(false)
   // Lo que ya tiene respuesta, por id de fila. `mapa` es el que va completando la pasada (sólo se toca
   // en eventos y efectos); `resultados` es su copia para dibujar.
   const [resultados, setResultados] = useState<ReadonlyMap<string, ResultadoDeFila>>(new Map())
@@ -73,6 +71,8 @@ export function useImportacion({ validas, rechazadasEnLaVistaPrevia, origenId }:
   const faltaCerrar = useRef<'terminada' | 'cancelada' | null>(null)
   // El id de la importación es de esta pasada entera: una reanudación retoma la misma.
   const importacionId = useRef<string | null>(null)
+  // La importación ya cerrada en la base, y cuándo: desde ahí corren las 24 h para deshacerla.
+  const [cierre, setCierre] = useState<{ importacionId: string; en: string } | null>(null)
   const { lotes, resumen, lotesHechos } = useAvance(validas, rechazadasEnLaVistaPrevia, resultados)
 
   async function cerrar(como: 'terminada' | 'cancelada') {
@@ -88,13 +88,11 @@ export function useImportacion({ validas, rechazadasEnLaVistaPrevia, origenId }:
     )
     const sinRed = !envio.ok && 'sinRed' in envio
     faltaCerrar.current = sinRed ? como : null
+    if (envio.ok && importacionId.current) {
+      setCierre({ importacionId: importacionId.current, en: new Date().toISOString() })
+    }
     setError(envio.ok || sinRed ? null : envio.error)
-    return sinRed ? pausar() : setFase(faseTrasCerrar(envio, como))
-  }
-
-  function pausar() {
-    setSinConexion(!navigator.onLine)
-    setFase('pausada')
+    setFase(faseTrasCerrar(envio, como))
   }
 
   async function correr(): Promise<boolean> {
@@ -121,7 +119,7 @@ export function useImportacion({ validas, rechazadasEnLaVistaPrevia, origenId }:
         ),
     })
     if (fin.tipo === 'sin_red') {
-      pausar()
+      setFase('pausada')
     } else if (fin.tipo === 'rechazada') {
       setError(fin.error)
       setFase('fallida')
@@ -132,8 +130,9 @@ export function useImportacion({ validas, rechazadasEnLaVistaPrevia, origenId }:
   }
 
   // Al volver la red, la pasada que quedó esperando sale sola, una vez. Si la red estaba y el servidor
-  // no contestó, no se insiste solo: «Reintentar» (un servidor caído no se martilla).
-  const pendiente = fase === 'pausada' && sinConexion ? 'reanudar' : null
+  // no contestó, no se insiste solo: «Reintentar» (un servidor caído no se martilla). Lo distingue
+  // `useReintentoAlVolver`, que sólo sale al pasar de sin conexión a con conexión.
+  const pendiente = fase === 'pausada' ? 'reanudar' : null
   const enLinea = useReintentoAlVolver(pendiente, correr)
 
   return {
@@ -144,6 +143,7 @@ export function useImportacion({ validas, rechazadasEnLaVistaPrevia, origenId }:
     lotesHechos,
     totalDeLotes: lotes.length,
     resultados,
+    cierre,
     empezar: () => void correr(),
     reanudar: () => void correr(),
     cancelar: () => void (cancelada.current = true),

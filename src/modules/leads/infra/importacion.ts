@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import type { Json } from '@/shared/types/database.types'
+import { deshacerDesde, recientesDesde } from '../entities/importacion/deshacer'
 import { loteImportadoDesde } from '../entities/importacion/lotes'
 import type { RepositorioDeImportacion } from '../entities/repositorios-de-importacion'
 
@@ -39,5 +40,33 @@ export const importacionSupabase: RepositorioDeImportacion = {
     }
     const leido = esquemaDeTerminar.safeParse(data)
     return leido.success ? ok({ creadas: leido.data.creadas }) : fallo('inesperado', NO_SE_LEYO)
+  },
+  // `…20261017000100_leads_importacion_deshacer.sql`.
+  deshacer: async (importacionId) => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('leads_importacion_deshacer', {
+      p_importacion: importacionId,
+    })
+    if (error) {
+      return { ok: false, error: errorDePostgrest(error) }
+    }
+    const resultado = deshacerDesde(data)
+    return resultado
+      ? ok(resultado)
+      : fallo(
+          'inesperado',
+          'No pudimos leer la respuesta. Vuelve a intentar: no se mueve nada dos veces.',
+        )
+  },
+  recientes: async () => {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('leads_importaciones_recientes')
+    if (error) {
+      return { ok: false, error: errorDePostgrest(error) }
+    }
+    const recientes = recientesDesde(data)
+    return recientes
+      ? ok(recientes)
+      : fallo('inesperado', 'No pudimos leer tus importaciones recientes.')
   },
 }

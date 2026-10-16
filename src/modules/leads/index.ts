@@ -27,8 +27,13 @@ export { EditorDeCamposDeLead } from './features/campos/components/editor-de-cam
 // decide la base; la página sólo agrega las vistas guardadas, que son de `equipo`.
 export { leerListadoDeLeads, type DatosDelListado } from './features/listado/lecturas'
 // Importar desde un CSV (parte 8): el asistente de `/leads/importar` y lo que lee del layout.
-export { leerDatosDeImportacion, type DatosDeImportacion } from './features/importar/lecturas'
+export {
+  leerDatosDeImportacion,
+  leerImportacionesRecientes,
+  type DatosDeImportacion,
+} from './features/importar/lecturas'
 export { AsistenteDeImportacion } from './features/importar/components/asistente-de-importacion'
+export { ImportacionesRecientes } from './features/importar/components/importaciones-recientes'
 // Exportar a CSV (parte 8): lo llama el route handler de `src/app/(app)/leads/exportar`.
 export { exportarLeadsEnCsv, type SalidaDeExportacion } from './features/exportar/lecturas'
 export { ListadoDeLeads } from './features/listado/components/listado-de-leads'

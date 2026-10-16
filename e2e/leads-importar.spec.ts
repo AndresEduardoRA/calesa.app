@@ -52,6 +52,9 @@ async function irAImportar(page: Page): Promise<void> {
 }
 
 const resumen = (page: Page, texto: string | RegExp) => aLaVista(page.getByText(texto))
+// Los conteos del resultado (abajo, «Tus importaciones recientes» repite los mismos números).
+const delResultado = (page: Page, texto: string) =>
+  page.getByRole('region', { name: 'Resultado de la importación' }).getByText(texto)
 
 test('sin leads.crear no se ofrece importar y la pantalla lo dice', async ({ page }) => {
   await entrar(page, t.personas.sinCrear)
@@ -124,9 +127,9 @@ test('filas buenas y malas: las válidas entran y las demás se explican; los er
 
   await page.getByRole('button', { name: 'Importar 3 leads' }).click()
   await expect(page.getByText('Entraron 2 leads a tu cartera.')).toBeVisible()
-  await expect(page.getByText('2 importados')).toBeVisible()
-  await expect(page.getByText('1 ya existían')).toBeVisible()
-  await expect(page.getByText('4 rechazados')).toBeVisible()
+  await expect(delResultado(page, '2 importados')).toBeVisible()
+  await expect(delResultado(page, '1 ya existían')).toBeVisible()
+  await expect(delResultado(page, '4 rechazados')).toBeVisible()
   expect((await leadsDeLaPrueba('E2E Importada %')).map((l) => l.nombre).sort()).toEqual([
     'E2E Importada Dos',
     'E2E Importada Uno',
@@ -176,7 +179,7 @@ test('los errores se corrigen y se vuelven a subir; el mismo archivo otra vez no
   await page.getByRole('button', { name: 'Ver la vista previa' }).click()
   await page.getByRole('button', { name: 'Importar 5 leads' }).click()
   await expect(page.getByText('No entró ningún lead.')).toBeVisible()
-  await expect(page.getByText('5 ya existían')).toBeVisible()
+  await expect(delResultado(page, '5 ya existían')).toBeVisible()
   expect(await leadsDeLaPrueba('E2E Corregida %')).toHaveLength(5)
 })
 

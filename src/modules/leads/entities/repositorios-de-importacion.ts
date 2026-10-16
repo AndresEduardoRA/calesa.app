@@ -1,6 +1,7 @@
 // La importación de leads (parte 8): lo que `features/importar` pide y `composicion.ts` le da. Importar
 // es la clase de `crear_lead` (`leads.crear`): quien importa queda de dueña de lo que crea.
 import type { Resultado } from '@/shared/lib/errores'
+import type { ImportacionReciente, ResultadoDeDeshacer } from './importacion/deshacer'
 import type { PedidoDeFila } from './importacion/filas'
 import type { ResultadoDeFila } from './importacion/lotes'
 
@@ -21,4 +22,9 @@ export type RepositorioDeImportacion = {
     rechazadas: number
     origenId: string | null
   }) => Promise<Resultado<{ creadas: number }>>
+  // Deshace una importación propia dentro de 24 h: manda a la papelera lo que sigue intacto y cuenta, por
+  // motivo y con la fila del archivo, lo que se queda. Idempotente. No pide permisos: sólo haberla hecho.
+  deshacer: (importacionId: string) => Promise<Resultado<ResultadoDeDeshacer>>
+  // Las importaciones propias de las últimas 24 h, con números y nada del archivo.
+  recientes: () => Promise<Resultado<ImportacionReciente[]>>
 }

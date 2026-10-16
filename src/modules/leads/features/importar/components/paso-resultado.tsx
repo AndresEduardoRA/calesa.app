@@ -9,12 +9,17 @@ import { Aviso } from '@/shared/ui/aviso'
 import { Button, buttonVariants } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
 import type { ResumenDeImportacion } from '../../../entities/importacion/lotes'
+import { DeshacerImportacion } from './deshacer-importacion'
+
+const UN_DIA = 24 * 60 * 60 * 1000
 
 type Props = {
   cancelada: boolean
   resumen: ResumenDeImportacion
   // Cuántas filas llevaría el archivo de errores (rechazadas y las que ya existían).
   paraCorregir: number
+  // La importación cerrada en la base y cuándo: desde ahí corren las 24 h para deshacerla.
+  cierre: { importacionId: string; en: string } | null
   alDescargarErrores: () => void
   alImportarOtro: () => void
 }
@@ -25,6 +30,7 @@ export function PasoResultado({
   cancelada,
   resumen,
   paraCorregir,
+  cierre,
   alDescargarErrores,
   alImportarOtro,
 }: Props) {
@@ -32,7 +38,7 @@ export function PasoResultado({
   const numero = (n: number) => formatearNumero(n, { locale })
   const leads = (n: number) => (n === 1 ? 'lead' : 'leads')
   return (
-    <div className="grid gap-4">
+    <section aria-label="Resultado de la importación" className="grid gap-4">
       <Aviso tono={resumen.creadas > 0 ? 'positivo' : 'info'}>
         <p className="font-medium">
           {cancelada ? 'Cancelaste la importación. ' : ''}
@@ -47,6 +53,15 @@ export function PasoResultado({
         <li>{numero(resumen.rechazadas)} rechazados</li>
         {cancelada ? <li>{numero(resumen.pendientes)} sin importar</li> : null}
       </ul>
+      {cierre && resumen.creadas > 0 ? (
+        <DeshacerImportacion
+          importacionId={cierre.importacionId}
+          intactos={resumen.creadas}
+          creadas={resumen.creadas}
+          venceEn={new Date(Date.parse(cierre.en) + UN_DIA).toISOString()}
+          ahora={cierre.en}
+        />
+      ) : null}
       <div className="flex flex-wrap justify-end gap-2">
         {paraCorregir > 0 ? (
           <Button
@@ -66,6 +81,6 @@ export function PasoResultado({
           Ver mis leads
         </Link>
       </div>
-    </div>
+    </section>
   )
 }

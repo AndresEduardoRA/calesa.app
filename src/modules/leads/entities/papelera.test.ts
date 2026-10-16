@@ -172,6 +172,8 @@ describe('quién envía y quién abre', () => {
   it('la abre quien envía o quien purga; purga sólo quien tiene el permiso', () => {
     expect(puedeAbrirLaPapelera(propios)).toBe(true)
     expect(puedeAbrirLaPapelera([permiso('leads.papelera.purgar', 'todos')])).toBe(true)
+    // Quien importa: el deshacer deja un lote suyo.
+    expect(puedeAbrirLaPapelera([permiso('leads.crear', 'todos')])).toBe(true)
     expect(puedeAbrirLaPapelera([])).toBe(false)
     expect(puedePurgarLeads(propios)).toBe(false)
     expect(puedePurgarLeads([permiso('leads.papelera.purgar', 'todos')])).toBe(true)

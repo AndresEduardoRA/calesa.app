@@ -125,6 +125,7 @@ function Asistente({ campos, contexto, zona, alReiniciar }: PropsDelAsistente) {
           cancelada={importacion.fase === 'cancelada'}
           resumen={importacion.resumen}
           paraCorregir={rechazadas.length}
+          cierre={importacion.cierre}
           alDescargarErrores={descargarErrores}
           alImportarOtro={alReiniciar}
         />

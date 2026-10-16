@@ -43,3 +43,5 @@ export const esquemaTerminarImportacion = z.object({
   rechazadas: z.number().int().min(0).max(LIMITES_DE_IMPORTACION.filas),
   origenId: z.guid().nullable(),
 })
+
+export const esquemaDeshacerImportacion = z.object({ importacionId: z.guid() })

@@ -300,9 +300,14 @@ export function puedeEnviarLead(
   return alcance === 'todos' || (alcance === 'propios' && duenoId === usuarioId)
 }
 
-// La papelera la abre quien envía (ve lo suyo) o quien puede vaciarla (ve todo).
+// La papelera la abre quien envía (ve lo suyo) o quien puede vaciarla (ve todo). También quien importa:
+// deshacer una importación deja un lote suyo, que puede restaurar aunque no tenga `leads.eliminar`.
 export function puedeAbrirLaPapelera(permisos: Permisos): boolean {
-  return puede(permisos, 'leads.eliminar') || puede(permisos, 'leads.papelera.purgar')
+  return (
+    puede(permisos, 'leads.eliminar') ||
+    puede(permisos, 'leads.papelera.purgar') ||
+    puede(permisos, 'leads.crear')
+  )
 }
 
 export function puedePurgarLeads(permisos: Permisos): boolean {

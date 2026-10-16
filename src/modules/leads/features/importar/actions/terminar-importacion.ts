@@ -20,6 +20,8 @@ export const terminarImportacionDeLeads = actionClient
     const resultado = await repositorioDeImportacion.terminar(parsedInput)
     if (resultado.ok) {
       revalidatePath(RUTAS.leads)
+      // Aparece en «Tus importaciones recientes».
+      revalidatePath(RUTAS.importarLeads)
     }
     return resultado
   })
