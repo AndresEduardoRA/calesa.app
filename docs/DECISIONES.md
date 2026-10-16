@@ -2816,3 +2816,50 @@ se escribió. Tres botones con un diálogo de confirmación: son decenas de alta
 guardar con algo escrito, y los campos del paso 2 y Tiptap no viajan con el drawer (un e2e lo vigila: ningún chunk con
 ProseMirror hasta abrir el paso 2). **Medido:** la carga en frío de `/leads` creció 0,7 KB con gzip (570,8 → 571,5 KB en
 escritorio) contra el presupuesto de 1 KB del shell; el editor sigue siendo su chunk aparte. Lo que entra al shell es el estado del alta y `documento-limpio` (el borrador lo necesita para reponer el detalle por la lista blanca): moverlo a un `import()` ahorraría unos bytes pero, sin red, un borrador no se repondría y el siguiente `useEffect` lo borraría, y perder lo tipeado es el error que no puede pasar. Si el paso 2 no llega (sin red y sin caché) el drawer lo dice con «Recargar» en lugar de tumbar la pantalla; lo escrito queda en el borrador.
+
+## 2026-10-18 — Guardar en Empresa: el formulario espera a lo guardado, y el borrador mide contra lo que mandó el servidor
+
+**Contexto.** En la suite completa, «sin conexión, el formulario avisa y conserva lo tipeado» falló una vez: tras guardar,
+el NIT tipeado y la recarga no repusieron nada. La traza lo explica. `guardarAjustes` hace `revalidatePath('/', 'layout')`:
+la respuesta de la action trae el resultado y el árbol nuevo. `useGuardarAjustes` muestra «guardados» y llama a `limpiar()`
+apenas se resuelve la promesa, pero `enCurso` (el `isPending` de la transición de next-safe-action) sigue activo hasta que React
+dibuja el árbol, y ahí `key={huellaDelFormulario()}` reemplaza el formulario. En esa ventana (~130 ms con las 8 CPU ocupadas,
+más en un celular) el campo con foco sale del DOM y lo que se teclea cae en ningún campo (Playwright parte `fill` en
+`select()+focus()` y un `insertText` por CDP que no se vuelve a comprobar; una persona pierde cada tecla que cae después del
+reemplazo). Se descartó que `activo` o `campos` cambiaran en Empresa (son constantes) y que el aviso no se viera (el NIT quedó vacío).
+
+**Decisión.**
+
+- **Bloquear hasta el remontaje, y por qué con `enCurso`.** El `<fieldset>` de Empresa se deshabilita con `!puedeEditar || enCurso`.
+  `enCurso` es `subiendo || isPending` y `isPending` es el de la transición: no termina cuando llega la respuesta sino cuando se
+  dibuja, que es justo el intervalo que hay que cubrir (una bandera propia, apagada al resolver la promesa, lo dejaría abierto).
+  Si no cambió nada, la huella no cambia, no hay remontaje y la transición igual termina y desbloquea. Se deshabilita el
+  formulario entero, no el botón: es el único lugar donde la persona puede estar tecleando.
+- **La base del borrador es lo que mandó el servidor.** `useBorrador` ya no lee «lo guardado» del DOM al enganchar el efecto:
+  usa `valoresGuardadosDe()` (junto a `valoresDe()` en `shared/lib/formularios.ts`): el `defaultValue` de cada campo y la opción
+  marcada de un `<select>`, normalizados como los muestra el navegador (una entrada nueva, no un `cloneNode`: clonar copia lo
+  escrito) y con lo deshabilitado vacío, igual que `FormData`. Así lo tipeado antes de enganchar (antes de hidratar, o entre el
+  commit y el efecto pasivo) cuenta como cambio; al enganchar se guarda en el acto y no lo pisa un borrador viejo.
+- **`controlado: true` para los formularios de React.** React sincroniza el atributo `value` de un `<input>` controlado pero no
+  marca `defaultSelected` en un `<select>` controlado: sin `defaultValue` que leer, el valor inicial se vería como un cambio
+  y saldría un «Recuperamos» falso en cada carga (lo cazó la prueba de carga limpia del formulario de campo de leads). Esos
+  formularios (`FormularioDeCampo`) lo declaran y miden contra lo que se ve al enganchar, como antes. No hay forma de detectarlo
+  desde el DOM sin mirar internos de React.
+- **`campos` se compara por contenido.** `FormularioDeCampo` arma la lista en cada render; el efecto se reenganchaba en cada
+  tecla y tomaba lo ya tipeado como guardado: escribir en un segundo campo borraba del borrador lo del primero (la hipótesis 1
+  del diagnóstico era cierta, pero en el formulario de campo, no en Empresa).
+- **`enfocarPrimerError` insiste** hasta 30 cuadros hasta que el campo con error exista y acepte el foco: los `aria-invalid` se
+  pintan cuando React dibuja la respuesta y un fieldset deshabilitado no deja enfocar. Ya fallaba sin el bloqueo: 6 de 40 con la CPU ocupada.
+- **`FormularioDeCampo` llama a `limpiar()`** al guardar o crear (lo ignoraba y el borrador sobrevivía).
+
+**Alternativas.** Dejar el `key=huella` y no remontar tras el guardado propio (revierte la decisión que hace que el guardado de
+otra persona reinicie el formulario). Sólo esperar «Guardar» habilitado en la prueba (esconde el defecto y deja la brecha
+commit → efecto). `defaultValue`/`defaultSelected` por llamador (`guardado` por props, como `useBorradorDeEstado`): cada formulario
+armaría strings que tienen que coincidir con lo que pinta el input.
+
+**Consecuencia.** Quien guarda Empresa no puede teclear en el formulario hasta que se dibuja lo guardado (decenas de ms; un
+celular lento, más): se ve «Guardando…» y los campos apagados. Un formulario con un `<select>` controlado que use `useBorrador`
+tiene que pasar `controlado`; la prueba de carga limpia es la barandilla (falla si no). `useBorradorDeEstado` no tiene este problema:
+mide contra `guardado` por props. **Barandillas:** `use-borrador.test.tsx`, la carga limpia de los 17 campos de Empresa y de los formularios de
+campo de leads y de orígenes, y `e2e/empresa-guardado.spec.ts` (no se teclea mientras guarda; guardar con la CPU frenada, sólo escritorio:
+con el freno solo la prueba pasa también sin el arreglo, así que la determinista es la que cuenta).
