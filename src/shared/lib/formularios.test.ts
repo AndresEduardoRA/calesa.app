@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import { conRed, errorDeAccion, errorDeCampo, resultadoDeAccion, valoresDe } from './formularios'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  conRed,
+  enfocarPrimerError,
+  errorDeAccion,
+  errorDeCampo,
+  resultadoDeAccion,
+  valoresDe,
+} from './formularios'
 
 describe('valoresDe', () => {
   it('lee los campos pedidos por nombre', () => {
@@ -76,5 +83,86 @@ describe('resultadoDeAccion', () => {
   it('si no ejecutó por validación, queda un error de validación', () => {
     const resultado = resultadoDeAccion({})
     expect(!resultado.ok && resultado.error.codigo).toBe('validacion')
+  })
+})
+
+describe('enfocarPrimerError', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame'] })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    document.body.innerHTML = ''
+  })
+
+  function formularioConErrores(): HTMLFormElement {
+    const formulario = document.createElement('form')
+    formulario.innerHTML =
+      '<input id="uno" name="uno"><input id="dos" name="dos" aria-invalid="true"><input id="tres" name="tres" aria-invalid="true">'
+    document.body.append(formulario)
+    return formulario
+  }
+
+  it('enfoca el primer campo con error, un cuadro después', () => {
+    const formulario = formularioConErrores()
+    enfocarPrimerError(formulario)
+    expect(document.activeElement).toBe(document.body)
+    vi.advanceTimersByTime(20)
+    expect(document.activeElement?.id).toBe('dos')
+  })
+
+  it('sin errores, o sin formulario, no hace nada', () => {
+    const formulario = document.createElement('form')
+    document.body.append(formulario)
+    enfocarPrimerError(formulario)
+    enfocarPrimerError(null)
+    vi.advanceTimersByTime(500)
+    expect(document.activeElement).toBe(document.body)
+  })
+
+  it('si los errores se pintan unos cuadros después, enfoca cuando aparecen', () => {
+    const formulario = document.createElement('form')
+    formulario.innerHTML = '<input id="uno" name="uno"><input id="dos" name="dos">'
+    document.body.append(formulario)
+    enfocarPrimerError(formulario)
+    vi.advanceTimersByTime(48)
+    expect(document.activeElement).toBe(document.body)
+    formulario.querySelector('#dos')?.setAttribute('aria-invalid', 'true')
+    vi.advanceTimersByTime(20)
+    expect(document.activeElement?.id).toBe('dos')
+  })
+
+  it('sin errores deja de insistir', () => {
+    const formulario = document.createElement('form')
+    formulario.innerHTML = '<input name="uno">'
+    document.body.append(formulario)
+    enfocarPrimerError(formulario)
+    vi.advanceTimersByTime(5_000)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('si el formulario sigue deshabilitado, espera a que vuelva a editarse', () => {
+    // Guardando, el formulario se deshabilita; un envío que falla lo habilita unos cuadros después.
+    const formulario = formularioConErrores()
+    const bloqueado = document.createElement('fieldset')
+    bloqueado.disabled = true
+    bloqueado.append(...Array.from(formulario.children))
+    formulario.append(bloqueado)
+    enfocarPrimerError(formulario)
+    vi.advanceTimersByTime(48)
+    expect(document.activeElement).toBe(document.body)
+    bloqueado.disabled = false
+    vi.advanceTimersByTime(20)
+    expect(document.activeElement?.id).toBe('dos')
+  })
+
+  it('no insiste para siempre con un campo que no se puede enfocar', () => {
+    const formulario = formularioConErrores()
+    for (const campo of formulario.querySelectorAll('input')) {
+      campo.disabled = true
+    }
+    enfocarPrimerError(formulario)
+    vi.advanceTimersByTime(5_000)
+    expect(vi.getTimerCount()).toBe(0)
   })
 })

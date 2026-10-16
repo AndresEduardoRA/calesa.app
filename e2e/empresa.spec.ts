@@ -126,6 +126,8 @@ test('la dueña cambia el nombre y la zona horaria y se ven en el shell', async 
   await page.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(page.getByText('Esa zona horaria no existe')).toBeVisible()
   await expect(page.getByLabel('Zona horaria')).toHaveValue('Marte/Olympus')
+  // Y el foco va al campo con error: guardando el formulario estaba deshabilitado.
+  await expect(page.getByLabel('Zona horaria')).toBeFocused()
   expect((await ajustesGuardados()).zona_horaria).toBe('Asia/Tokyo')
 })
 
@@ -248,6 +250,9 @@ test('sin conexión, el formulario avisa y conserva lo tipeado', async ({ page, 
 
   // Lo tipeado y no guardado sobrevive a recargar la pantalla, y se puede descartar.
   await page.getByLabel('NIT').fill('1020304050')
+  // Lo primero: que lo tipeado haya llegado a un campo que siga ahí (no al formulario que se estaba
+  // reemplazando con lo guardado).
+  await expect(page.getByLabel('NIT')).toHaveValue('1020304050')
   await page.reload()
   await expect(page.getByText('Recuperamos lo que habías escrito')).toBeVisible()
   await expect(page.getByLabel('NIT')).toHaveValue('1020304050')

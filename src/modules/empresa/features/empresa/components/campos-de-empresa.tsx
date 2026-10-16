@@ -21,6 +21,9 @@ type Props = {
   conDatosCargados: boolean
   // Quien no puede editar ve todo, deshabilitado y con el motivo.
   puedeEditar: boolean
+  // Mientras guarda no se edita: el formulario se reemplaza con lo guardado cuando llega la
+  // respuesta, y lo que se escribiera entre medio caería en un campo que desaparece.
+  enCurso: boolean
   logo: LogoElegido
   alCambiarLogo: (logo: LogoElegido) => void
   registroAbierto: boolean
@@ -32,10 +35,11 @@ type Props = {
 
 // Los bloques del formulario de la empresa. Sin estado propio: lo que cambia llega por props.
 export function CamposDeEmpresa(props: Props) {
-  const { ajustes, puedeEditar, errores } = props
+  const { ajustes, puedeEditar, enCurso, errores } = props
+  const bloqueado = !puedeEditar || enCurso
   return (
     // Un <fieldset> deshabilitado apaga todos los campos de adentro, también para el teclado.
-    <fieldset disabled={!puedeEditar} className="grid min-w-0 gap-4">
+    <fieldset disabled={bloqueado} className="grid min-w-0 gap-4">
       <legend className="sr-only">Ajustes de la empresa</legend>
       {puedeEditar ? null : <Aviso>{MOTIVO_SIN_PERMISO_AJUSTES}</Aviso>}
       <BloqueMarca
@@ -43,7 +47,7 @@ export function CamposDeEmpresa(props: Props) {
         logoUrl={props.logoUrl}
         logo={props.logo}
         alCambiarLogo={props.alCambiarLogo}
-        deshabilitado={!puedeEditar}
+        deshabilitado={bloqueado}
         errores={errores}
       />
       <BloqueLegales ajustes={ajustes} errores={errores} />
@@ -60,7 +64,7 @@ export function CamposDeEmpresa(props: Props) {
         alCambiarRegistro={props.alCambiarRegistro}
         limpiezaAutomatica={props.limpiezaAutomatica}
         alCambiarLimpieza={props.alCambiarLimpieza}
-        deshabilitado={!puedeEditar}
+        deshabilitado={bloqueado}
         errores={errores}
       />
     </fieldset>

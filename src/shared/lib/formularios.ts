@@ -3,11 +3,26 @@ import { fallo, type ErrorApp, type Resultado } from './errores'
 // Ningún formulario pierde lo tipeado: si el envío falla, los valores quedan y el foco va al
 // primer campo con error (.claude/rules/ui.md).
 
+// Cuántos cuadros espera (≈ medio segundo) a que haya un campo con error y se pueda enfocar.
+const CUADROS_PARA_ENFOCAR = 30
+
 export function enfocarPrimerError(formulario: HTMLFormElement | null): void {
-  // Un cuadro después: los `aria-invalid` de este intento todavía no están pintados.
-  requestAnimationFrame(() => {
-    formulario?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
-  })
+  if (!formulario) {
+    return
+  }
+  let espera = 0
+  const intentar = () => {
+    const campo = formulario.querySelector<HTMLElement>('[aria-invalid="true"]')
+    campo?.focus()
+    // Hay que insistir: los `aria-invalid` de este intento se pintan cuando React termina de
+    // dibujar la respuesta, y un formulario que se deshabilita mientras guarda (un <fieldset
+    // disabled>) no deja enfocar hasta que vuelve a editarse. Con la CPU ocupada eso tarda más de
+    // un cuadro. Se insiste un rato, no para siempre: sin errores (un fallo de red) no hay a qué.
+    if (document.activeElement !== campo && espera++ < CUADROS_PARA_ENFOCAR) {
+      requestAnimationFrame(intentar)
+    }
+  }
+  requestAnimationFrame(intentar)
 }
 
 // Lee los campos de texto de un formulario por nombre. Lo que no es texto (un archivo) se ignora.

@@ -50,6 +50,7 @@ function campos(props: Partial<Parameters<typeof CamposDeEmpresa>[0]> = {}) {
       zonas={['America/La_Paz']}
       conDatosCargados={false}
       puedeEditar
+      enCurso={false}
       logo={{ tipo: 'igual' }}
       alCambiarLogo={vi.fn()}
       registroAbierto={false}
@@ -84,6 +85,27 @@ describe('CamposDeEmpresa', () => {
     )
     expect(screen.getByLabelText('Nombre de la empresa').matches(':disabled')).toBe(true)
     expect(screen.getByRole('button', { name: 'Subir logo' }).matches(':disabled')).toBe(true)
+  })
+
+  it('mientras guarda, todo queda deshabilitado, sin el aviso de permiso', () => {
+    campos({ enCurso: true })
+    expect(screen.getByRole('group', { name: 'Ajustes de la empresa' }).matches(':disabled')).toBe(
+      true,
+    )
+    expect(screen.getByLabelText('Nombre de la empresa').matches(':disabled')).toBe(true)
+    expect(screen.getByRole('button', { name: 'Subir logo' }).matches(':disabled')).toBe(true)
+    // No es un problema de permisos: no se les dice que no pueden.
+    expect(screen.queryByText(MOTIVO_SIN_PERMISO_AJUSTES)).toBeNull()
+  })
+
+  it('al terminar de guardar vuelve a editarse, con lo que había', () => {
+    campos({ enCurso: true })
+    cleanup()
+    campos({ enCurso: false })
+    expect(screen.getByLabelText<HTMLInputElement>('Nombre de la empresa').value).toBe(
+      'Importadora Andina',
+    )
+    expect(screen.getByLabelText('Nombre de la empresa').matches(':disabled')).toBe(false)
   })
 
   it('con datos cargados la moneda base queda deshabilitada y dice por qué', () => {

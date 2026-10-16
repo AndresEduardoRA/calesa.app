@@ -62,6 +62,7 @@ export function FormularioEmpresa(props: Props) {
       )}
       <CamposDeEmpresa
         {...props}
+        enCurso={enCurso}
         logo={logo}
         alCambiarLogo={setLogo}
         registroAbierto={registroAbierto}
