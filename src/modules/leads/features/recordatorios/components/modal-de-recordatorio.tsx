@@ -1,12 +1,6 @@
 'use client'
 
-import { useAtajo } from '@/shared/ui/atajos'
-import { Aviso } from '@/shared/ui/aviso'
-import { AvisosDelFormulario } from '@/shared/ui/avisos-del-formulario'
-import { Button } from '@/shared/ui/button'
-import { ConfirmarDescarte } from '@/shared/ui/confirmar-descarte'
-import { Modal } from '@/shared/ui/modal'
-import { useCierreConCambios } from '@/shared/ui/use-cierre-con-cambios'
+import { ModalDeFormulario } from '@/shared/ui/modal-de-formulario'
 import type { Recordatorio } from '../../../entities/recordatorios'
 import type { ResultadoDeRecordatorio } from '../../../entities/repositorios'
 import { useFormularioDeRecordatorio } from '../hooks/use-formulario-de-recordatorio'
@@ -28,38 +22,10 @@ type Props = {
 
 const ID = 'recordatorio'
 
-type Formulario = ReturnType<typeof useFormularioDeRecordatorio>
-
-// Lo que pasa con el guardado, arriba de los campos. Si el recordatorio ya no se puede guardar (otra
-// pestaña lo completó o lo eliminó), sólo eso.
-function Avisos({
-  noDisponible,
-  formulario,
-}: {
-  noDisponible: string | null
-  formulario: Formulario
-}) {
-  if (noDisponible) {
-    return <Aviso tono="peligro">{noDisponible} Lo que escribiste no se guardó.</Aviso>
-  }
-  return (
-    <AvisosDelFormulario
-      enLinea={formulario.enLinea}
-      esperandoConexion={formulario.esperandoConexion}
-      enCurso={formulario.enCurso || formulario.recargando}
-      conflicto={formulario.conflicto}
-      aviso={formulario.aviso}
-      detalleDelConflicto="No se guardó nada. Recargar trae su versión de ahora y conserva lo que escribiste."
-      alReintentar={formulario.reintentar}
-      alRecargar={formulario.recargar}
-    />
-  )
-}
-
 // Agendar o editar un recordatorio (`?panel=agendar-recordatorio` y `?panel=editar-recordatorio&
-// recordatorio=<id>`): de qué es, cuándo y el vehículo. `Ctrl/Cmd+Enter` o `Ctrl/Cmd+S` guarda; Esc o
-// «Cancelar» cierran y, con algo escrito, preguntan antes en el pie. Mientras guarda, nada se toca y
-// el modal no se cierra. Quien lo monta le da una `key` por apertura: cada una empieza de nuevo.
+// recordatorio=<id>`): de qué es, cuándo y el vehículo. El contrato del modal (guardar con los atajos,
+// preguntar antes de cerrar con algo escrito, no cerrarse mientras guarda) es de `ModalDeFormulario`.
+// Quien lo monta le da una `key` por apertura: cada una empieza de nuevo.
 export function ModalDeRecordatorio({
   abierto,
   alCerrar,
@@ -71,70 +37,29 @@ export function ModalDeRecordatorio({
   focoAlCerrar,
 }: Props) {
   const formulario = useFormularioDeRecordatorio({ leadId, zona, original, abierto, alGuardar })
-  const cierre = useCierreConCambios({
-    hayCambios: formulario.hayCambios,
-    alCerrar,
-    alDescartar: formulario.descartarBorrador,
-  })
-  const { enCurso } = formulario
-  // `Ctrl/Cmd+S` y `Ctrl/Cmd+Enter`: sólo abierto, sin guardar en curso, sin estar preguntando por
-  // descartar y con algo que se pueda guardar.
-  const conAtajos = abierto && !enCurso && !cierre.confirmando && noDisponible === null
-  useAtajo('guardar', () => void formulario.enviar(), conAtajos)
-  useAtajo('guardarYSeguir', () => void formulario.enviar(), conAtajos)
-  const titulo = original ? 'Editar recordatorio' : 'Agendar recordatorio'
-
   return (
-    <Modal
+    <ModalDeFormulario
+      id={ID}
       abierto={abierto}
-      alCerrar={cierre.intentarCerrar}
-      titulo={titulo}
+      alCerrar={alCerrar}
+      titulo={original ? 'Editar recordatorio' : 'Agendar recordatorio'}
       descripcion="Sólo lo ves tú: un aviso para volver a este lead."
-      bloqueado={enCurso}
       focoInicial={() => document.getElementById(`${ID}-titulo`)}
       focoAlCerrar={focoAlCerrar}
-      pie={
-        cierre.confirmando ? (
-          <ConfirmarDescarte alSeguir={cierre.seguir} alDescartar={cierre.descartar} />
-        ) : (
-          <>
-            <Button variant="ghost" onClick={cierre.intentarCerrar} disabled={enCurso}>
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              form={ID}
-              disabled={enCurso || noDisponible !== null || formulario.conflicto !== null}
-            >
-              {enCurso ? 'Guardando…' : 'Guardar'}
-            </Button>
-          </>
-        )
-      }
+      formulario={formulario}
+      noDisponible={noDisponible}
+      detalleDelConflicto="No se guardó nada. Recargar trae su versión de ahora y conserva lo que escribiste."
     >
-      <Avisos noDisponible={noDisponible} formulario={formulario} />
-      <form
+      <CamposDelRecordatorio
         id={ID}
-        noValidate
-        aria-label={titulo}
-        onSubmit={(evento) => {
-          evento.preventDefault()
-          void formulario.enviar()
-        }}
-      >
-        <fieldset disabled={enCurso} className="grid min-w-0 gap-3">
-          <CamposDelRecordatorio
-            id={ID}
-            zona={zona}
-            valores={formulario}
-            errores={formulario.errores}
-            original={original}
-            alCambiarTitulo={formulario.cambiarTitulo}
-            alCambiarCuando={formulario.cambiarCuando}
-            alCambiarVehiculo={formulario.cambiarVehiculo}
-          />
-        </fieldset>
-      </form>
-    </Modal>
+        zona={zona}
+        valores={formulario}
+        errores={formulario.errores}
+        original={original}
+        alCambiarTitulo={formulario.cambiarTitulo}
+        alCambiarCuando={formulario.cambiarCuando}
+        alCambiarVehiculo={formulario.cambiarVehiculo}
+      />
+    </ModalDeFormulario>
   )
 }

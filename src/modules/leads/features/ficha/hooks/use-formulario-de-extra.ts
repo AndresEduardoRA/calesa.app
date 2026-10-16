@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
+import { useUnEnvioALaVez } from '@/shared/ui/use-un-envio-a-la-vez'
 import { avisarExito } from '@/shared/ui/toasts'
 import type { LeadDeFicha, TelefonoExtra } from '../../../entities/ficha'
 import { lineaDelTelefono, paisDelEscrito } from '../../../entities/pais-del-telefono'
@@ -35,27 +36,6 @@ function comoSeGuarda(
   return telefonoParaMostrar(validado.numero, codigoDePais)
 }
 
-// Un envío a la vez, con una marca propia y no con `isPending`: el reintento al volver la conexión
-// puede llegar mientras el anterior todavía termina. Nulo = ya había uno en vuelo.
-function useUnaVez(guardar: TelefonosExtra['guardar']) {
-  const [enCurso, setEnCurso] = useState(false)
-  const enVuelo = useRef(false)
-  async function mandar(entrada: Entrada) {
-    if (enVuelo.current) {
-      return null
-    }
-    enVuelo.current = true
-    setEnCurso(true)
-    try {
-      return await guardar(entrada)
-    } finally {
-      enVuelo.current = false
-      setEnCurso(false)
-    }
-  }
-  return { mandar, enCurso }
-}
-
 // El estado de «Agregar teléfono»: lo escrito, los motivos junto a cada campo y el envío. El id del
 // teléfono nace al abrir y se conserva en cada reintento: guardar dos veces lo mismo no lo duplica.
 // Sin conexión, lo escrito queda y el envío sale solo al volver (una vez). Un envío a la vez: con una
@@ -67,7 +47,7 @@ export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar, abierto
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [aviso, setAviso] = useState<string | null>(null)
   const [pendiente, setPendiente] = useState<Entrada | null>(null)
-  const unaVez = useUnaVez(guardar)
+  const unaVez = useUnEnvioALaVez()
 
   // El formulario sólo existe abierto: la tabla se pide al abrirlo.
   const tabla = usePaises(true)
@@ -83,7 +63,7 @@ export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar, abierto
 
   async function mandar(entrada: Entrada): Promise<boolean> {
     setAviso(null)
-    const envio = await unaVez.mandar(entrada)
+    const envio = await unaVez.mandar(() => guardar(entrada))
     if (envio === null) {
       return false
     }
@@ -123,6 +103,8 @@ export function useFormularioDeExtra({ ficha, extras, guardar, alCerrar, abierto
     etiqueta,
     errores,
     aviso,
+    // Un extra no lleva versión: nunca choca.
+    conflicto: null,
     enCurso: unaVez.enCurso,
     enLinea,
     // No llegó al servidor: lo escrito sigue y sale solo al volver la conexión (o con «Reintentar»).

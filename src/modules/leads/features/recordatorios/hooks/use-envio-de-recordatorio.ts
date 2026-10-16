@@ -2,9 +2,11 @@
 
 import { useAction } from 'next-safe-action/hooks'
 import { useRouter } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { enviarAccion, type Envio } from '@/shared/lib/enviar-accion'
+import { useConflictoHastaLaVersion } from '@/shared/ui/use-conflicto-hasta-la-version'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
+import { useUnEnvioALaVez } from '@/shared/ui/use-un-envio-a-la-vez'
 import { MENSAJE_DE_LEAD_NO_DISPONIBLE } from '../../../entities/ficha'
 import { validarRecordatorio } from '../../../entities/recordatorio'
 import {
@@ -46,44 +48,24 @@ type PedidoQueViaja = Extract<
 const yaNoEsta = (mensaje: string) =>
   mensaje === MENSAJE_DE_RECORDATORIO_NO_DISPONIBLE || mensaje === MENSAJE_DE_LEAD_NO_DISPONIBLE
 
-// El conflicto se va cuando llega la versión nueva que trae «Recargar», no al pulsarlo: enviar en ese
-// instante mandaría la vieja y volvería a chocar.
-function useConflictoHastaLaVersionNueva(version: string | null) {
-  const [conflicto, setConflicto] = useState<string | null>(null)
-  const [vista, setVista] = useState(version)
-  if (vista !== version) {
-    setVista(version)
-    setConflicto(null)
-  }
-  return [conflicto, setConflicto] as const
-}
-
-// Un envío a la vez, con una marca propia y no con `isPending`: el reintento al volver la conexión
-// puede llegar mientras el anterior todavía termina. Nulo = ya había uno en vuelo.
-function useUnEnvioALaVez() {
+// Las dos acciones detrás de un envío a la vez (una marca propia: el reintento al volver la conexión
+// puede llegar mientras el anterior todavía termina). Nulo = ya había uno en vuelo.
+function useUnEnvioALaVezDeRecordatorio() {
   const crear = useAction(crearRecordatorio)
   const guardar = useAction(guardarRecordatorio)
-  const [enCurso, setEnCurso] = useState(false)
-  const enVuelo = useRef(false)
-  async function mandar(pedido: PedidoQueViaja): Promise<Envio<ResultadoDeRecordatorio> | null> {
-    if (enVuelo.current) {
-      return null
-    }
-    enVuelo.current = true
-    setEnCurso(true)
-    try {
-      return await enviarAccion<ResultadoDeRecordatorio>(
-        pedido.tipo === 'crear'
-          ? crear.executeAsync(pedido.pedido)
-          : guardar.executeAsync(pedido.pedido),
-        MENSAJE_DE_VALIDACION,
-      )
-    } finally {
-      enVuelo.current = false
-      setEnCurso(false)
-    }
+  const unaVez = useUnEnvioALaVez()
+  return {
+    enCurso: unaVez.enCurso,
+    mandar: (pedido: PedidoQueViaja) =>
+      unaVez.mandar(() =>
+        enviarAccion<ResultadoDeRecordatorio>(
+          pedido.tipo === 'crear'
+            ? crear.executeAsync(pedido.pedido)
+            : guardar.executeAsync(pedido.pedido),
+          MENSAJE_DE_VALIDACION,
+        ),
+      ),
   }
-  return { mandar, enCurso }
 }
 
 // El envío de un recordatorio: el alta lleva su id de intento; editar, la versión. Un rechazo deja lo
@@ -102,10 +84,10 @@ export function useEnvioDeRecordatorio({
   const router = useRouter()
   const [errores, setErrores] = useState<ErroresDelRecordatorio>({})
   const [aviso, setAviso] = useState<string | null>(null)
-  const [conflicto, setConflicto] = useConflictoHastaLaVersionNueva(original?.actualizadoEn ?? null)
+  const [conflicto, setConflicto] = useConflictoHastaLaVersion(original?.actualizadoEn ?? null)
   const [pendiente, setPendiente] = useState<Pendiente | null>(null)
   const [intento] = useState(() => crypto.randomUUID())
-  const unaVez = useUnEnvioALaVez()
+  const unaVez = useUnEnvioALaVezDeRecordatorio()
 
   function aplicar(envio: Envio<ResultadoDeRecordatorio>): boolean {
     if (envio.ok) {
