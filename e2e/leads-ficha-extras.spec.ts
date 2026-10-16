@@ -15,10 +15,19 @@ import {
   tituloDeLaFicha,
   versionDe,
 } from './soporte/leads-ficha'
-import { completoCon, fichaDeBerta, nacional } from './soporte/leads-ficha-telefonos'
+import {
+  abrirAgregarTelefono,
+  botonAgregarTelefono,
+  cabeEnLaPantalla,
+  completoCon,
+  fichaDeBerta,
+  modalDeExtra,
+  nacional,
+} from './soporte/leads-ficha-telefonos'
 
-// Los teléfonos extra de la ficha, en línea: agregar, rotular, quitar y «Deshacer», sus reglas junto
-// al campo, el tope de 10 y lo que ve (y no puede) quien no tiene el lead en su cartera.
+// Los teléfonos extra de la ficha: agregar (un modal con su URL, `?panel=agregar-telefono`), rotular
+// y quitar en la fila, «Deshacer», sus reglas junto al campo, el tope de 10 y lo que ve (y no puede)
+// quien no tiene el lead en su cartera.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelListado
@@ -36,19 +45,37 @@ test('agrega, rotula, quita y deshace un extra, sin mover la versión', async ({
   const version = await versionDe(lead.id)
   const casa = nacional()
 
-  // Esc cancela, sin dejar nada.
-  await page.getByRole('button', { name: 'Agregar teléfono' }).click()
-  await page.getByLabel('Teléfono extra').fill(casa)
+  // Esc sin nada escrito cierra; con algo escrito pregunta en el mismo modal, y un segundo Esc vuelve.
+  let modal = await abrirAgregarTelefono(page)
+  await expect(page).toHaveURL(/panel=agregar-telefono/)
   await page.keyboard.press('Escape')
-  await expect(page.getByLabel('Teléfono extra')).toHaveCount(0)
+  await expect(modal).toHaveCount(0)
+  await expect(botonAgregarTelefono(page)).toBeFocused()
+  modal = await abrirAgregarTelefono(page)
+  await modal.getByLabel('Teléfono extra').fill(casa)
+  await page.keyboard.press('Escape')
+  await expect(modal.getByText('Tienes cambios sin guardar.')).toBeVisible()
+  await expect(modal.getByRole('button', { name: 'Seguir editando' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(modal.getByLabel('Teléfono extra')).toHaveValue(casa)
+  await modal.getByRole('button', { name: 'Cancelar' }).click()
+  await modal.getByRole('button', { name: 'Descartar' }).click()
+  await expect(modal).toHaveCount(0)
+  await expect(page).not.toHaveURL(/panel=/)
   expect(await extrasDeLead(lead.id)).toEqual([])
 
-  // Enter confirma.
-  await page.getByRole('button', { name: 'Agregar teléfono' }).click()
-  await page.getByLabel('Teléfono extra').fill(casa)
-  await page.getByLabel('Etiqueta (opcional)').fill('Casa')
+  // Cada apertura empieza vacía; Enter confirma, cierra y devuelve el foco al botón.
+  modal = await abrirAgregarTelefono(page)
+  await expect(modal.getByLabel('Teléfono extra')).toHaveValue('')
+  if (esMovil(page)) {
+    await cabeEnLaPantalla(page, modal)
+  }
+  await modal.getByLabel('Teléfono extra').fill(casa)
+  await modal.getByLabel('Etiqueta (opcional)').fill('Casa')
   await page.keyboard.press('Enter')
   await expect(page.getByText('Teléfono agregado.')).toBeVisible()
+  await expect(modal).toHaveCount(0)
+  await expect(botonAgregarTelefono(page)).toBeFocused()
   await expect(page.getByText('Casa', { exact: true })).toBeVisible()
   const [agregado] = await extrasDeLead(lead.id)
   expect(agregado).toMatchObject({ telefono: completoCon(t, casa), etiqueta: 'Casa' })
@@ -81,18 +108,20 @@ test('un extra repetido, igual al principal o con una etiqueta larga se dice jun
   const repetido = nacional()
   await ponerExtras(lead.id, [{ telefono: completoCon(t, repetido), etiqueta: null }])
   await irAFicha(page, lead.id)
-  await page.getByRole('button', { name: 'Agregar teléfono' }).click()
-  const telefono = page.getByLabel('Teléfono extra')
+  const modal = await abrirAgregarTelefono(page)
+  const telefono = modal.getByLabel('Teléfono extra')
   await telefono.fill(repetido)
   await page.keyboard.press('Enter')
-  await expect(page.getByText('Ese número ya está en este lead.')).toBeVisible()
+  await expect(modal.getByText('Ese número ya está en este lead.')).toBeVisible()
+  // El motivo no cierra ni borra: lo escrito sigue ahí.
+  await expect(telefono).toHaveValue(repetido)
   await telefono.fill(lead.nac)
   await page.keyboard.press('Enter')
-  await expect(page.getByText('Ese número ya está en este lead.')).toBeVisible()
+  await expect(modal.getByText('Ese número ya está en este lead.')).toBeVisible()
   await telefono.fill(nacional())
-  await page.getByLabel('Etiqueta (opcional)').fill('x'.repeat(41))
+  await modal.getByLabel('Etiqueta (opcional)').fill('x'.repeat(41))
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/La etiqueta admite hasta 40 caracteres/)).toBeVisible()
+  await expect(modal.getByText(/La etiqueta admite hasta 40 caracteres/)).toBeVisible()
   expect(await extrasDeLead(lead.id)).toHaveLength(1)
 })
 
@@ -103,8 +132,46 @@ test('con 10 extras no se agrega otro, y la ficha lo dice', async ({ page }, inf
     Array.from({ length: 10 }, () => ({ telefono: completoCon(t, nacional()), etiqueta: null })),
   )
   await irAFicha(page, lead.id)
-  await expect(page.getByRole('button', { name: 'Agregar teléfono' })).toBeDisabled()
+  await expect(botonAgregarTelefono(page)).toBeDisabled()
   await expect(page.getByText(/hasta 10 teléfonos extra/)).toBeVisible()
+  // Escribir la URL a mano tampoco lo abre.
+  await irAFicha(page, lead.id, '?panel=agregar-telefono')
+  await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
+  await expect(modalDeExtra(page)).toHaveCount(0)
+})
+
+test('el modal vive en la URL: recargar lo reabre y «atrás» lo cierra', async ({ page }, info) => {
+  const lead = await fichaDeBerta(t, page, `URL ${info.project.name}`)
+  await abrirAgregarTelefono(page)
+  await page.reload()
+  await expect(modalDeExtra(page).getByLabel('Teléfono extra')).toBeVisible()
+  await page.goBack()
+  await expect(modalDeExtra(page)).toHaveCount(0)
+  await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
+})
+
+test('sin conexión lo escrito queda y se agrega solo al volver, una vez; un doble clic agrega uno', async ({
+  page,
+}, info) => {
+  const lead = await fichaDeBerta(t, page, `Sin red ${info.project.name}`)
+  const numero = nacional()
+  let modal = await abrirAgregarTelefono(page)
+  await modal.getByLabel('Teléfono extra').fill(numero)
+  await page.context().setOffline(true)
+  await modal.getByRole('button', { name: 'Agregar', exact: true }).click()
+  await expect(modal.getByText(/se va a guardar solo cuando vuelva/)).toBeVisible()
+  await expect(modal.getByLabel('Teléfono extra')).toHaveValue(numero)
+  expect(await extrasDeLead(lead.id)).toEqual([])
+  await page.context().setOffline(false)
+  await expect(page.getByText('Teléfono agregado.')).toBeVisible()
+  await expect(modal).toHaveCount(0)
+  expect(await extrasDeLead(lead.id)).toHaveLength(1)
+
+  modal = await abrirAgregarTelefono(page)
+  await modal.getByLabel('Teléfono extra').fill(nacional())
+  await modal.getByRole('button', { name: 'Agregar', exact: true }).dblclick()
+  await expect(modal).toHaveCount(0)
+  expect(await extrasDeLead(lead.id)).toHaveLength(2)
 })
 
 test('la dueña con «todos» y sin cartera no ve ninguna acción y la base la rechaza', async ({
@@ -121,13 +188,16 @@ test('la dueña con «todos» y sin cartera no ve ninguna acción y la base la r
   await expect(tituloDeLaFicha(page, ajeno.nombre)).toBeVisible()
   await expect(page.getByText('Completo solo para su cartera.')).toBeVisible()
   await expect(botonCambiar(page)).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Agregar teléfono' })).toHaveCount(0)
+  await expect(botonAgregarTelefono(page)).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Quitar' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Rotular' })).toHaveCount(0)
   // La URL del panel no abre nada.
   await irAFicha(page, ajeno.id, '?panel=cambiar-telefono')
   await expect(tituloDeLaFicha(page, ajeno.nombre)).toBeVisible()
   await expect(panelDeTelefono(page)).toHaveCount(0)
+  await irAFicha(page, ajeno.id, '?panel=agregar-telefono')
+  await expect(tituloDeLaFicha(page, ajeno.nombre)).toBeVisible()
+  await expect(modalDeExtra(page)).toHaveCount(0)
 
   // Llamada a mano con su sesión: la RPC la rechaza.
   const sesion = await sesionDe(t.personas.duena, CONTRASENA)

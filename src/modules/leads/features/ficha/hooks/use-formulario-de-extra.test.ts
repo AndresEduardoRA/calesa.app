@@ -54,6 +54,17 @@ describe('useFormularioDeExtra', () => {
   })
 })
 
+describe('useFormularioDeExtra: cerrar con algo escrito', () => {
+  it('vacío no tiene cambios; un número o una etiqueta sí', () => {
+    const { result } = montar()
+    expect(result.current.hayCambios).toBe(false)
+    act(() => {
+      result.current.escribirEtiqueta('Casa')
+    })
+    expect(result.current.hayCambios).toBe(true)
+  })
+})
+
 describe('useFormularioDeExtra: el envío', () => {
   it('envía con una etiqueta nula si queda vacía y cierra al guardar', async () => {
     guardar.mockResolvedValue(envioOk)
@@ -85,13 +96,36 @@ describe('useFormularioDeExtra: el envío', () => {
     await act(async () => {
       await result.current.enviar()
     })
-    expect(result.current.aviso).toMatch(/sigue acá/)
+    expect(result.current.esperandoConexion).toBe(true)
+    expect(result.current.telefono).toBe('71234567')
     expect(alCerrar).not.toHaveBeenCalled()
     await act(async () => {
       await result.current.enviar()
     })
+    expect(result.current.esperandoConexion).toBe(false)
     const [primero, segundo] = guardar.mock.calls
     expect(primero?.[0].id).toBe(segundo?.[0].id)
+    expect(alCerrar).toHaveBeenCalledOnce()
+  })
+
+  it('un doble envío manda una sola vez', async () => {
+    let soltar: (envio: typeof envioOk) => void = () => undefined
+    guardar.mockReturnValue(
+      new Promise((resolver) => {
+        soltar = resolver
+      }),
+    )
+    const { result } = montar()
+    act(() => {
+      result.current.escribirTelefono('71234567')
+    })
+    await act(async () => {
+      const primero = result.current.enviar()
+      const segundo = result.current.enviar()
+      soltar(envioOk)
+      await Promise.all([primero, segundo])
+    })
+    expect(guardar).toHaveBeenCalledOnce()
     expect(alCerrar).toHaveBeenCalledOnce()
   })
 

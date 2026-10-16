@@ -10,6 +10,7 @@ import {
 import { admin } from './soporte/base'
 import { exigir } from './soporte/leads'
 import { codigoDePaisDeLaEmpresa, leadsConTelefono, telefonoAlAzar } from './soporte/leads-alta'
+import { abrirAgregarTelefono } from './soporte/leads-ficha-telefonos'
 
 // El país del teléfono, contra la app compilada y el Supabase local: se dice al tipear (sin pedir
 // nada), «País» lo sigue mientras la persona no lo toque, la ficha lo muestra y la tabla no viaja
@@ -140,9 +141,9 @@ test('lo guardado lleva el país, y la ficha lo muestra en cada teléfono, tambi
 
   await page.goto(`/leads/${lead?.id ?? ''}`)
   await expect(page.getByText('· Argentina', { exact: false }).first()).toBeVisible()
-  await page.getByRole('button', { name: 'Agregar teléfono' }).click()
-  await page.getByLabel('Teléfono extra').fill('+1 809 555 1234')
-  await expect(page.getByText(COMO('+1 8095551234 · República Dominicana'))).toBeVisible()
+  const extra = await abrirAgregarTelefono(page)
+  await extra.getByLabel('Teléfono extra').fill('+1 809 555 1234')
+  await expect(extra.getByText(COMO('+1 8095551234 · República Dominicana'))).toBeVisible()
   await page.keyboard.press('Enter')
   await expect(page.getByText('Teléfono agregado.')).toBeVisible()
   await expect(page.getByText('· República Dominicana')).toBeVisible()

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Permisos } from '@/shared/lib/permisos'
 import {
+  hayCambiosEnExtra,
   MAXIMO_DE_TELEFONOS_EXTRA,
   MOTIVO_DE_ETIQUETA_LARGA,
   MOTIVO_DE_TELEFONO_REPETIDO,
@@ -49,6 +50,18 @@ describe('puedeCambiarTelefonoDeLead', () => {
 
   it('sin leads.editar no hay nada que hacer, ni con la cartera', () => {
     expect(puedeCambiarTelefonoDeLead([], true)).toBe(false)
+  })
+})
+
+describe('hayCambiosEnExtra', () => {
+  it('vacío o sólo espacios no son cambios', () => {
+    expect(hayCambiosEnExtra({ telefono: '', etiqueta: '' })).toBe(false)
+    expect(hayCambiosEnExtra({ telefono: '  ', etiqueta: ' ' })).toBe(false)
+  })
+
+  it('un número o una etiqueta escritos sí', () => {
+    expect(hayCambiosEnExtra({ telefono: '7001', etiqueta: '' })).toBe(true)
+    expect(hayCambiosEnExtra({ telefono: '', etiqueta: 'Casa' })).toBe(true)
   })
 })
 

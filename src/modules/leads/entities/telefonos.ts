@@ -21,6 +21,9 @@ export const ETIQUETA_DEL_ANTERIOR = 'Anterior'
 // ficha: no pueden estar abiertos a la vez.
 export const PANEL_CAMBIAR_TELEFONO = 'cambiar-telefono'
 
+// El de «Agregar teléfono»: un modal con su URL, también compartida con los demás paneles de la ficha.
+export const PANEL_AGREGAR_TELEFONO = 'agregar-telefono'
+
 // Las claves del formulario son las que pone la base en el `hint` de un error.
 export const CLAVE_DE_TELEFONO = { telefono: 'telefono', etiqueta: 'etiqueta' } as const
 
@@ -28,6 +31,11 @@ export const CLAVE_DE_TELEFONO = { telefono: 'telefono', etiqueta: 'etiqueta' } 
 // regla que `puedeEditarLead()`: contenido, clase 1). La base lo vuelve a decidir.
 export function puedeCambiarTelefonoDeLead(permisos: Permisos, enCartera: boolean): boolean {
   return enCartera && alcanceDe(permisos, 'leads.editar') !== null
+}
+
+// Cerrar «Agregar teléfono» con esto escrito lo perdería: se pregunta antes. Sólo espacios no cuenta.
+export function hayCambiosEnExtra({ telefono, etiqueta }: { telefono: string; etiqueta: string }) {
+  return telefono.trim() !== '' || etiqueta.trim() !== ''
 }
 
 export const MOTIVO_DE_TELEFONO_REPETIDO = 'Ese número ya está en este lead.'

@@ -33,3 +33,29 @@ export async function fichaDeBerta(
   await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
   return { ...lead, nac }
 }
+
+// «Agregar teléfono» es un modal con su URL (`?panel=agregar-telefono`).
+export const modalDeExtra = (page: Page) => page.getByRole('dialog', { name: 'Agregar teléfono' })
+
+export const botonAgregarTelefono = (page: Page) =>
+  page.getByRole('button', { name: 'Agregar teléfono' })
+
+export async function abrirAgregarTelefono(page: Page) {
+  await botonAgregarTelefono(page).click()
+  await expect(modalDeExtra(page).getByLabel('Teléfono extra')).toBeFocused()
+  return modalDeExtra(page)
+}
+
+// En el celular el modal entra entero en la pantalla (va arriba y su cuerpo se desplaza).
+export async function cabeEnLaPantalla(page: Page, dialogo: ReturnType<Page['getByRole']>) {
+  const caja = await dialogo.boundingBox()
+  const pantalla = page.viewportSize()
+  expect(caja).not.toBeNull()
+  expect(pantalla).not.toBeNull()
+  if (caja && pantalla) {
+    expect(caja.y).toBeGreaterThanOrEqual(0)
+    expect(caja.x).toBeGreaterThanOrEqual(0)
+    expect(caja.y + caja.height).toBeLessThanOrEqual(pantalla.height + 1)
+    expect(caja.x + caja.width).toBeLessThanOrEqual(pantalla.width + 1)
+  }
+}
