@@ -201,8 +201,12 @@ export type RepositorioPapelera = {
   purgar: (pedido: SobreUnLote) => Promise<Resultado<ResultadoDePurgar>>
 }
 
-// Los lotes abiertos: los propios o, con `vehiculos.papelera.purgar`, todos.
-export type LectorDePapelera = () => Promise<Resultado<LoteDePapelera[]>>
+// Una página de lotes abiertos (los propios o, con `vehiculos.papelera.purgar`, todos), del más nuevo al
+// más viejo, por cursor.
+export type LectorDePapelera = (pedido: {
+  cursor: Cursor | null
+  tamano: number
+}) => Promise<Resultado<Pagina<LoteDePapelera>>>
 
 // Lo que la limpieza de Storage tiene atrasado; null = nada, o no le corresponde saberlo.
 export type LectorDeLimpiezaPendiente = () => Promise<Resultado<LimpiezaPendiente | null>>

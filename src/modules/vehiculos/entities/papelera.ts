@@ -323,6 +323,10 @@ export function permisoDePapelera(
 }
 
 // La papelera la abre quien envía en algún origen (ve lo suyo) o quien puede vaciarla (ve todo).
+// Cuántos lotes dibuja cada página de la papelera (un lote ya trae hasta 200 vehículos): lo que crece es la
+// cantidad de lotes, y se lee de a páginas por cursor (`.claude/rules/escala.md`).
+export const LOTES_POR_PAGINA = 5
+
 export function puedeAbrirLaPapelera(permisos: Permisos): boolean {
   return puede(permisos, 'vehiculos.eliminar') || puede(permisos, 'vehiculos.papelera.purgar')
 }
@@ -332,14 +336,21 @@ export function puedePurgar(permisos: Permisos): boolean {
 }
 
 // Lo que ya debía haberse borrado de Storage y sigue ahí: señal de que la limpieza no corre.
-export type LimpiezaPendiente = { objetos: number; desde: string }
+// `objetos` llega acotado (la base cuenta hasta 1.000): `hayMas` dice que son más.
+export type LimpiezaPendiente = { objetos: number; hayMas: boolean; desde: string }
 
-const esquemaPendiente = z.object({ objetos: z.number(), desde: z.string().nullable() })
+const esquemaPendiente = z.object({
+  objetos: z.number(),
+  hay_mas: z.boolean().default(false),
+  desde: z.string().nullable(),
+})
 
 export function limpiezaPendienteDesde(dato: unknown): LimpiezaPendiente | null {
   if (dato === null || dato === undefined) {
     return null
   }
   const fila = esquemaPendiente.parse(dato)
-  return fila.objetos > 0 && fila.desde ? { objetos: fila.objetos, desde: fila.desde } : null
+  return fila.objetos > 0 && fila.desde
+    ? { objetos: fila.objetos, hayMas: fila.hay_mas, desde: fila.desde }
+    : null
 }

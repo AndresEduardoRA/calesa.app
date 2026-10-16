@@ -3,20 +3,26 @@
 import { ArrowLeftIcon, Trash2Icon } from 'lucide-react'
 import type { Route } from 'next'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 import type { OrigenResumen } from '@/modules/origenes/client'
 import { fechaRelativa } from '@/shared/lib/fechas'
+import { cantidadAcotada } from '@/shared/lib/conteo'
+import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
+import type { Pagina } from '@/shared/lib/paginacion'
 import { RUTAS } from '@/shared/lib/rutas'
 import { Aviso } from '@/shared/ui/aviso'
-import { EstadoVacio } from '@/shared/ui/estados'
+import { EstadoPaginaSinFilas, EstadoVacio } from '@/shared/ui/estados'
+import { Paginacion } from '@/shared/ui/paginacion'
+import { useRegional } from '@/shared/ui/regional'
 import type { LimpiezaPendiente, LoteDePapelera as Lote } from '../../../entities/papelera'
 import { usePapelera, type Objetivo } from '../hooks/use-papelera'
 import { ConfirmarPurga } from './confirmar-purga'
 import { LoteDePapelera } from './lote-de-papelera'
 
 type Props = {
-  // Los lotes que todavía tienen algo adentro: los propios o, para quien puede vaciarla, todos.
-  lotes: readonly Lote[]
+  // Una página de los lotes que todavía tienen algo adentro: los propios o, para quien puede vaciarla, todos.
+  pagina: Pagina<Lote>
   origenes: readonly OrigenResumen[]
   puedePurgar: boolean
   // El instante en que el servidor armó la página (ISO): contra él se cuentan los días.
@@ -28,13 +34,37 @@ type Props = {
   ultimaLimpiezaAutomatica?: string | null
 }
 
+// La cola de Storage cuenta hasta 1.000: más que eso se dice «más de», nunca el total.
+function AvisoDeLimpiezaAtrasada({
+  limpieza,
+  ahora,
+}: {
+  limpieza: LimpiezaPendiente
+  ahora: string
+}) {
+  const { locale } = useRegional()
+  const archivos = cantidadAcotada(
+    limpieza.hayMas ? limpieza.objetos + 1 : limpieza.objetos,
+    limpieza.objetos,
+    { singular: 'archivo', plural: 'archivos' },
+    { locale },
+  )
+  return (
+    <Aviso tono="aviso">
+      La limpieza de archivos está atrasada: hay {archivos} de lo ya purgado que debían haberse
+      borrado {fechaRelativa(limpieza.desde, { ahora: new Date(ahora) })}. Avisa a quien administra
+      el sistema.
+    </Aviso>
+  )
+}
+
 const VOLVER =
   'inline-flex min-h-11 w-fit items-center gap-1.5 text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:text-(--color-ink) hover:underline md:min-h-8'
 
 // La papelera de vehículos, por lote: quién envió qué, cuándo, y cuánto falta para que se purgue
 // solo. Restaurar se hace y lo dice; purgar pide confirmar nombrando lo que se borra.
 export function PapeleraDeVehiculos({
-  lotes,
+  pagina,
   origenes,
   puedePurgar,
   ahora,
@@ -42,6 +72,8 @@ export function PapeleraDeVehiculos({
   ultimaLimpiezaAutomatica = null,
 }: Props) {
   const papelera = usePapelera()
+  const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
+  const lotes = pagina.filas
   const [aPurgar, setAPurgar] = useState<Objetivo | null>(null)
   const porId = new Map(origenes.map((origen) => [origen.id, origen]))
   return (
@@ -61,16 +93,10 @@ export function PapeleraDeVehiculos({
         </p>
       </header>
       {ultimaLimpiezaAutomatica ? <Aviso>{ultimaLimpiezaAutomatica}</Aviso> : null}
-      {limpieza ? (
-        <Aviso tono="aviso">
-          La limpieza de archivos está atrasada:{' '}
-          {limpieza.objetos === 1 ? 'hay 1 archivo' : `hay ${String(limpieza.objetos)} archivos`} de
-          lo ya purgado que debían haberse borrado{' '}
-          {fechaRelativa(limpieza.desde, { ahora: new Date(ahora) })}. Avisa a quien administra el
-          sistema.
-        </Aviso>
-      ) : null}
-      {lotes.length === 0 ? (
+      {limpieza ? <AvisoDeLimpiezaAtrasada limpieza={limpieza} ahora={ahora} /> : null}
+      {lotes.length === 0 && hayCursor ? (
+        <EstadoPaginaSinFilas />
+      ) : lotes.length === 0 ? (
         <EstadoVacio
           Icono={Trash2Icon}
           titulo="La papelera está vacía"
@@ -94,6 +120,7 @@ export function PapeleraDeVehiculos({
           ))}
         </ul>
       )}
+      <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
       <ConfirmarPurga
         objetivo={aPurgar}
         papelera={papelera}

@@ -1,6 +1,7 @@
 import 'server-only'
 import { z } from 'zod'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
+import { armarPagina } from '@/shared/lib/paginacion'
 import { createClient } from '@/shared/lib/supabase/server'
 import { limpiezaPendienteDesde, lotesDesde } from '../../entities/papelera'
 import type {
@@ -11,13 +12,18 @@ import type {
 
 // Los lotes que todavía tienen algo adentro. La RLS esconde lo eliminado a todos: la papelera
 // sólo se lee por esta RPC, que da lo propio o, con `vehiculos.papelera.purgar`, todo.
-export const getPapelera: LectorDePapelera = async () => {
+export const getPapelera: LectorDePapelera = async ({ cursor, tamano }) => {
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('vehiculos_papelera_listar')
+  // Por keyset `(creado_en, id)` con `lotes_papelera_tipo_idx`; `tamano + 1` para saber si hay otra.
+  const { data, error } = await supabase.rpc('vehiculos_papelera_listar', {
+    ...(cursor ? { p_antes_en: cursor.creadoEn, p_antes_id: cursor.id } : {}),
+    p_hacia_atras: cursor?.sentido === 'anterior',
+    p_tope: tamano + 1,
+  })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }
-  return ok(lotesDesde(data))
+  return ok(armarPagina(lotesDesde(data), tamano, cursor))
 }
 
 // De estos vehículos, sobre cuáles tiene quien llama este permiso. Lo responde la base con la

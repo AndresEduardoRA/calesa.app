@@ -58,6 +58,7 @@ export { AvisoDeLimpieza } from './features/limpieza/components/aviso-de-limpiez
 export { leerPapelera } from './composicion'
 export { limpiezaPendiente } from './features/papelera/lecturas'
 export {
+  LOTES_POR_PAGINA,
   motivoParaNoEnviar,
   permisoDePapelera,
   puedeAbrirLaPapelera,

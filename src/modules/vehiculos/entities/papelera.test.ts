@@ -282,7 +282,13 @@ describe('limpiezaPendienteDesde', () => {
     expect(limpiezaPendienteDesde({ objetos: 0, desde: null })).toBeNull()
     expect(limpiezaPendienteDesde({ objetos: 4, desde: '2026-10-13T06:00:00+00:00' })).toEqual({
       objetos: 4,
+      hayMas: false,
       desde: '2026-10-13T06:00:00+00:00',
     })
+  })
+  it('la cola se cuenta hasta 1.000: más es «hay más»', () => {
+    expect(
+      limpiezaPendienteDesde({ objetos: 1000, hay_mas: true, desde: '2026-10-13T06:00:00+00:00' }),
+    ).toMatchObject({ objetos: 1000, hayMas: true })
   })
 })

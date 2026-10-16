@@ -1,6 +1,7 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { OpcionDeCampo, TipoDeLead, ValorDefecto } from '@/shared/lib/campos'
+import type { ConteoAcotado } from '@/shared/lib/conteo'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { ContextoDeAlta, DatosDeAlta, TipoDeSeguimiento } from './alta'
@@ -112,11 +113,12 @@ export type PedidoDeListado = {
 // Una página de leads de `leads_vista`. Lo que hay lo decide la RLS: acá no se filtra por permiso.
 export type BuscadorDeLeads = (pedido: PedidoDeListado) => Promise<Resultado<Pagina<FilaDeLead>>>
 
-// Cuántos leads cumplen esas condiciones, entre los que quien mira ve (todas las páginas): el
-// aviso de tachados ocultos.
+// Cuántos leads cumplen esas condiciones, entre los que quien mira ve, **hasta `tope`** (el aviso de
+// tachados ocultos, el tope de una exportación). Nunca el total exacto.
 export type ContadorDeLeads = (
   condiciones: readonly CondicionDeLead[],
-) => Promise<Resultado<number>>
+  tope: number,
+) => Promise<Resultado<ConteoAcotado>>
 
 // Todos los orígenes de lead, también los desactivados: un lead con uno apagado se sigue nombrando.
 export type LectorDeOrigenesDeLead = () => Promise<Resultado<OrigenConEstado[]>>
@@ -405,8 +407,12 @@ export type RepositorioDePapeleraDeLeads = {
   }) => RespuestaDePapelera<ResultadoDePurgar>
 }
 
-// Los lotes que quien llama puede ver: los suyos o, si puede vaciarla, todos.
-export type LectorDePapeleraDeLeads = () => Promise<Resultado<LoteDePapelera[]>>
+// Una página de lotes que quien llama puede ver (los suyos o, si puede vaciarla, todos), del más nuevo
+// al más viejo, por cursor.
+export type LectorDePapeleraDeLeads = (pedido: {
+  cursor: Cursor | null
+  tamano: number
+}) => Promise<Resultado<Pagina<LoteDePapelera>>>
 
 // --- CSV (parte 8) ----------------------------------------------------------------------------------
 

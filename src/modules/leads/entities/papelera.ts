@@ -5,9 +5,14 @@
 // permiso con su alcance y no abre datos privados (el nombre y nada más). Nada de React ni de
 // Supabase.
 import { z } from 'zod'
+import { cantidadAcotada } from '@/shared/lib/conteo'
 import { alcanceDe, puede, type Permisos } from '@/shared/lib/permisos'
+import { TOPE_DE_VINCULADOS, VEHICULOS } from './ficha'
 
 export const MAXIMO_POR_LOTE = 200
+// Cuántos lotes dibuja cada página de la papelera (un lote ya trae hasta 200 leads): lo que crece es la
+// cantidad de lotes, y se lee de a páginas por cursor (`.claude/rules/escala.md`).
+export const LOTES_POR_PAGINA = 5
 
 // El valor de los textos que dice la pantalla de la papelera.
 export const TITULO_DE_LA_PAPELERA = 'Papelera de leads'
@@ -322,5 +327,5 @@ export function motivoParaNoEnviar(vehiculosVinculados: number): string | null {
   }
   return vehiculosVinculados === 1
     ? 'Tiene un vehículo vinculado: desvincúlalo en «Vehículos» antes de enviarlo.'
-    : `Tiene ${String(vehiculosVinculados)} vehículos vinculados: desvincúlalos en «Vehículos» antes de enviarlo.`
+    : `Tiene ${cantidadAcotada(vehiculosVinculados, TOPE_DE_VINCULADOS, VEHICULOS)} vinculados: desvincúlalos en «Vehículos» antes de enviarlo.`
 }
