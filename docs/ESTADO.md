@@ -6,13 +6,13 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-18
-**Fase actual:** 3 — Leads, **partes 8a, 8b, 9a y 9b hechas** (CSV; el país del teléfono; y el primer seguimiento del alta, opcional y con el mismo editor que la ficha). Falta sólo el **cierre de la fase**.
+**Fase actual:** 3 — Leads, **partes 8a, 8b, 9a, 9b y 9c hechas** (CSV; el país del teléfono; el primer seguimiento del alta; y los formularios que aparecían en la ficha, a modales con su URL). Faltan la **9d** y el **cierre de la fase**.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
   reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
-  y las partes 1 a 9b de la Fase 3 (último e2e completo: 518 en verde, 0 saltos, 20,5 min; ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  y las partes 1 a 9c de la Fase 3 (último e2e completo: 518 en verde, 0 saltos, 20,5 min; ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
   `npx supabase functions serve`); nivel 1: `pnpm test:e2e --project=escritorio <spec>`. Los specs reusan la sesión (`entrarConSesion`, `{ fresco: true }` si el test cambia a la persona). Apibara sin clave: lo grabado.
 - **Leads (1 a 8b):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
   oportunidades y **«Portal»**: el acceso del cliente), marcas, «Quién lo tiene», papelera, embudos con kanban;
@@ -20,15 +20,15 @@
   clases (`docs/DECISIONES.md`, 2026-10-15) y el cinturón de `db:probar` falla si una nueva no está auditada.
   **CSV:** exportar la cartera (≤ 5.000, 5 por hora), importar (≤ 500 filas, lotes de 50, reglas del alta) y
   **deshacer** lo importado que sigue intacto durante 24 h (clase X; «Tus importaciones recientes» en `/leads/importar`).
-  **País del teléfono (9a):** tabla estática de 242 países, sólo con `import()`, sin SQL. **Alta (9b):** el paso 2 es opcional (`Ctrl/Cmd+S` guarda siempre), con `CamposDelSeguimiento` compartido con la ficha, «Próximo contacto» plegado y `_lead_crear` con el detalle como documento. **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
+  **País del teléfono (9a):** tabla estática de 242 países, sólo con `import()`, sin SQL. **Alta (9b):** el paso 2 es opcional (`Ctrl/Cmd+S` guarda siempre), con `CamposDelSeguimiento` compartido con la ficha, «Próximo contacto» plegado y `_lead_crear` con el detalle como documento. **Modales (9c):** «Agregar teléfono», «Agendar / Editar recordatorio» y «Dar acceso al portal» son `<Modal>` con su `?panel=` (un id que no está no abre y lo dice; cerrar con algo escrito pregunta en el mismo modal; mientras guarda no se cierra; diferidos), y el Modal compartido se desplaza en el celular. **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Siguen la **9c** (teléfonos, recordatorios y portal a modales, con los campos compartidos) y la **9d** (tabla y drawer del lead), y el **cierre de la fase** (presupuestos, recorte de la ficha, índice de DECISIONES, tabla de criterios). Abierto: lotes de 50 (100 cabe). Un e2e que falla deja sus artefactos en `e2e-fallos/`.
+Sigue la **9d** (tabla y drawer del lead; de la 9c le quedan: «Anotar» y «Editar seguimiento» —Drawer o en línea—, «Mover a…» con motivo sin URL, y un Modal abierto desde el drawer se dibuja dentro de él) y el **cierre de la fase** (además: los `Confirmar` sin URL —salir, desvincular, purgar, deshacer importación, eliminar embudo—) (presupuestos, recorte de la ficha, índice de DECISIONES, tabla de criterios). Abierto: lotes de 50 (100 cabe). Un e2e que falla deja sus artefactos en `e2e-fallos/`.
 
 ## Pendientes que se arrastran
 
-- **Ficha:** «Datos» 43,4 de 44 KB, «Oportunidades» 42,2 con tres, «Portal» 33,7; si se pasa, se recortan las
+- **Ficha:** «Datos» 43,4 de 44 KB, «Oportunidades» 42,1–42,3 con tres, «Portal» 33,7 (9c: los modales diferidos no los movieron); si se pasa, se recortan las
   props. **Embudos:** plantilla de etapas por empresa; tablero de equipo (Fase 9, `tablero.metricas.ver`).
   **Portal:** plantilla del texto por empresa; `ajustes_web.direccion_publica` sin pantalla; la Fase 8 hace
   `api/portal/*`, la cookie con `otorgado_en`, el límite por IP y el ingreso según el contrato de

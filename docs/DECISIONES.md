@@ -2934,3 +2934,62 @@ así que no hay lista que aprobar. Reusar `.next-e2e` por una huella del código
 umbral; si algún día pesa, la huella debe incluir HEAD, el diff, `next.config.ts`, el lockfile y las `NEXT_PUBLIC_*` que se hornean en el
 build (un `.next-e2e` viejo con código nuevo es peor que reconstruir). `tsc` ya era incremental. Video y traza (`retain-on-failure`) no
 cuestan nada medible (A/B ×3: 77,3 s con ellos, 76,9 s sin ellos) y fueron los que permitieron diagnosticar el intermitente de Empresa.
+
+## 2026-10-18 — Parte 9c: los formularios que aparecen al pulsar algo van en un modal con su URL
+
+**Contexto.** «Agregar teléfono» y «Agendar / Editar recordatorio» se abrían dentro de la página, con estado local: recargar los
+perdía, no tenían borrador ni «Recargar», y un Esc los cerraba sin preguntar. El diálogo «Dar acceso al portal» tenía tres
+acciones en el pie, se salía de la pantalla en el celular y en 1280 (los tres botones empujaban el contenido fuera del borde), y la
+clave podía reaparecer al reabrirlo.
+
+**El patrón «modal por URL».** Un formulario que aparece al pulsar algo (y no es parte natural de la pantalla, como un campo en su
+fila) es un `<Modal>` con su `?panel=` (y el id en otra clave: `?panel=editar-recordatorio&recordatorio=<id>`). Abrir suma al
+historial («atrás» lo cierra) y recargar lo reabre. Sin permiso, la URL escrita a mano no abre nada. **Un id que no está** (ajeno,
+eliminado, inventado o mal escrito: la lista sólo trae lo propio) o un estado que no se edita (completado) se revisa **una vez, al
+abrir**: no se abre, lo dice un aviso y la URL se limpia. Si deja de estar **con el modal abierto**, el modal no se cierra: dice por
+qué ya no se guarda y lo escrito queda a la vista. Quien monta el modal le da una `key` por apertura (`useApertura`): cada apertura
+empieza de cero (un id de intento nuevo) sin cortar la animación de cierre. Se cargan con `next/dynamic` + `useAbiertoAlgunaVez`
+(no cambia el documento —«Datos» sigue en 43,4 KB—: sólo el JS que se pide al abrir). `hayPanel` de la ficha pasa a ser «hay
+un `?panel=`»: la lista de paneles se quedaba atrás (las oportunidades nunca estuvieron) y la ficha se releía con un modal abierto.
+**Alternativa:** Drawer, sólo para lo que no cabe en una pantalla de celular (el redactor de seguimientos, a decidir en la 9d).
+
+**Cerrar con cambios pregunta en el mismo modal, no en otro.** `Confirmar` es un `<Modal>`: abrirlo encima rompería «un modal
+nunca abre otro modal». `useCierreConCambios` + `ConfirmarDescarte` cambian el pie a «Tienes cambios sin guardar.» con «Seguir
+editando» (con el foco: un Enter de más no tira nada) y «Descartar». Esc durante la pregunta vuelve al formulario. Sin cambios, cierra
+directo. «Atrás» del navegador no se puede interceptar y cierra sin preguntar: el recordatorio no pierde nada (su borrador lo repone
+al reabrir); el teléfono extra (dos campos) sí, aceptado.
+
+**Mientras guarda, el formulario no se toca y el modal no se cierra.** La regla de Empresa (2026-10-18: `<fieldset disabled>` con
+`enCurso`) vale para todo formulario que se redibuja con la respuesta. El modal suma `bloqueado`: Esc, la ✕ y el clic afuera no lo
+cierran mientras el pedido está en vuelo, porque la respuesta llegaría con el modal cerrado (en el portal, con la clave). Un envío a
+la vez con una marca propia (`useRef`), no con `isPending`: el reintento al volver la conexión puede llegar mientras el anterior
+termina (lo mismo que encontró la 7b en el cambio del teléfono).
+
+**Esc tiene una sola fuente, y es Base UI.** El plan suponía que Esc llamaba dos veces a `alCerrar` (Base UI y el atajo «cerrar»).
+Medido en un test: Base UI atiende Esc en el `document` y **detiene el evento**, así que el atajo de `window` nunca lo veía con un
+diálogo abierto. El Modal deja de registrar el atajo (era código muerto). Para abrir un Modal desde un Drawer (9d), se dibuja dentro
+de los hijos del Drawer: Base UI lo anida y Esc cierra sólo el de arriba.
+
+**El portal: un solo botón principal.** El texto dice lo que hará con lo que hay en el campo: vacío, «Generar clave y dar acceso»;
+con algo escrito, «Dar acceso con esta clave». Nunca queda deshabilitado sin motivo (sólo mientras otorga, o tras un conflicto, que
+se explica adentro) y nunca tira en silencio una clave escrita (antes, «Generar» la ignoraba). **Alternativa:** «Generar una clave»
+como enlace bajo el campo y «Dar acceso» como principal: dos caminos que hay que explicar. La clave se olvida **cuando el diálogo
+termina de cerrarse** (`alTerminarDeCerrar`, el `onOpenChangeComplete` de Base UI) y no al cerrar: si se borraba al cerrar, el diálogo
+volvía al formulario mientras se desvanecía. También se olvida al reabrir y al esconderse la pantalla; una respuesta que llega
+después de olvidar (se cerró con «atrás» mientras otorgaba) se descarta por generación. En el celular el Modal va arriba, desplaza
+su cuerpo y deja el pie a la vista, con botones de 44 px; el portal usa `ancho="amplio"` (512 px) por el texto de WhatsApp.
+
+**Los campos del recordatorio son los del alta.** El «Próximo contacto» del alta y del redactor y el modal del recordatorio ya usaban
+el mismo `CampoCuando` (con `atajosDeFecha()`) y el mismo `CampoVehiculo`: no había nada duplicado. `CamposDelRecordatorio` (sin
+`<form>` ni pie) es lo que monta el modal. El teléfono extra reutiliza `CampoTelefono` con un estado sin verificación: un extra no es
+único entre leads y no se pregunta a la base al tipear.
+
+**Lo que encontró la revisión adversarial (corregido en commits propios).** El modal cerrado sigue montado (`useAbiertoAlgunaVez`):
+un guardado que esperaba la red salía solo al volver aunque la persona lo hubiera descartado, y el borrador del recordatorio se
+volvía a escribir con lo descartado si llegaba otra versión. Ahora `abierto` frena el reintento y el borrador (`activo`). La `key`
+del modal de recordatorios lleva el destino (`agendar` o el id): pasar de uno a otro con el historial no mezcla lo escrito. Tras
+«Recargar», lo que la persona no tocó toma la versión nueva (`conVersionNueva()`): antes se reenviaba entero y pisaba con lo viejo
+un campo que había cambiado la otra ventana. `Ctrl/Cmd+S` no guarda mientras el pie pregunta por descartar. En el portal, un pedido
+a la vez (un doble Enter otorgaba dos veces), otra generación también al reabrir, y si la clave llega con el diálogo ya cerrado se
+avisa que el acceso cambió («Vuelve a otorgarlo para dictarle una nueva»). **Queda aceptado:** «atrás» durante un guardado cierra el
+modal; si ese guardado falla, el motivo queda en el modal cerrado (al reabrir empieza de cero).
