@@ -72,7 +72,7 @@ describe('tableroDesde', () => {
   it('lee las columnas y descarta una tarjeta rota', () => {
     const t = leido()
     expect(t.columnas.map((c) => c.tarjetas.length)).toEqual([2, 0, 1])
-    expect(t.columnas[2]).toMatchObject({ total: 60, hayMas: true })
+    expect(t.columnas[2]).toMatchObject({ total: { n: 60, hayMas: false }, hayMas: true })
     expect(totalDelTablero(t)).toBe(62)
   })
   it('null (embudo ajeno) o roto: null', () => {
@@ -85,13 +85,13 @@ describe('mover', () => {
   it('a otra columna: sale, entra primera, cambia el estado y los totales', () => {
     const t = conMovida(leido(), id(102), id(11))
     expect(t.columnas[0]?.tarjetas.map((x) => x.id)).toEqual([id(101)])
-    expect(t.columnas[0]?.total).toBe(1)
+    expect(t.columnas[0]?.total).toEqual({ n: 1, hayMas: false })
     expect(t.columnas[1]?.tarjetas[0]).toMatchObject({
       id: id(102),
       estado: 'ganada',
       etapaId: id(11),
     })
-    expect(t.columnas[1]?.total).toBe(1)
+    expect(t.columnas[1]?.total).toEqual({ n: 1, hayMas: false })
   })
   it('a una perdida conserva el motivo que se le pase; a una abierta lo limpia', () => {
     const perdida = conMovida(leido(), id(101), id(12), { motivoPerdida: 'Precio' })

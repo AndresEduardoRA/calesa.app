@@ -1,5 +1,7 @@
 'use client'
 
+import { conteoCorto } from '@/shared/lib/conteo'
+import { useRegional } from '@/shared/ui/regional'
 import { etapaElegida } from '../../../entities/tablero'
 import { PuntoDeColor } from '../../etiquetas/components/insignia-de-etiqueta'
 import type { EstadoDelTablero } from '../hooks/use-tablero'
@@ -16,6 +18,7 @@ type Props = {
 // Cuál se ve lo decide el CSS (no hay una primera pintura con la forma equivocada).
 export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa }: Props) {
   const { tablero, moviendo, cargando, moverA, verMas, anuncio } = estado
+  const { locale } = useRegional()
   const etapas = tablero.columnas.map((c) => c.etapa)
   const elegida = etapaElegida(tablero, etapaDeLaUrl)
 
@@ -73,7 +76,7 @@ export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa }: Props) 
               >
                 <PuntoDeColor color={c.etapa.color} className="size-2.5" />
                 {c.etapa.nombre}
-                <span className="tabular-nums">{c.total}</span>
+                <span className="tabular-nums">{conteoCorto(c.total, { locale })}</span>
               </button>
             )
           })}

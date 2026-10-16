@@ -6,6 +6,8 @@ import type { OportunidadDelLead } from '../../entities/oportunidad'
 
 export type DatosDeOportunidades = {
   puedoCrear: boolean
+  // Tiene más de las que se muestran.
+  hayMas: boolean
   oportunidades: OportunidadDelLead[]
   // Los de quien mira, con sus etapas: «Mover a…» ofrece las del embudo de cada una.
   embudos: Embudo[]

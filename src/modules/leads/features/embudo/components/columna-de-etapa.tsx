@@ -1,8 +1,15 @@
 'use client'
 
+import { conteoCorto, conteoEnFrase } from '@/shared/lib/conteo'
 import { Button } from '@/shared/ui/button'
+import { useRegional } from '@/shared/ui/regional'
 import type { EtapaGuardada } from '../../../entities/embudo'
-import type { Columna, Tarjeta } from '../../../entities/tablero'
+import {
+  TOPE_DE_COLUMNA,
+  columnaEnElTope,
+  type Columna,
+  type Tarjeta,
+} from '../../../entities/tablero'
 import { PuntoDeColor } from '../../etiquetas/components/insignia-de-etiqueta'
 import { TarjetaDeOportunidad } from './tarjeta-de-oportunidad'
 
@@ -28,17 +35,22 @@ export function ColumnaDeEtapa({
   alVerMas,
 }: Props) {
   const { etapa, total, tarjetas, hayMas } = columna
-  const faltan = total - tarjetas.length
+  const { locale } = useRegional()
+  const enElTope = columnaEnElTope(columna)
+  // Cuántas faltan sólo se sabe mientras el total no pasó el tope.
+  const faltan = total.hayMas ? null : total.n - tarjetas.length
   return (
     <section
-      aria-label={`${etapa.nombre}: ${String(total)}`}
+      aria-label={`${etapa.nombre}: ${conteoEnFrase(total, { locale })}`}
       className="grid content-start gap-2 rounded-(--radius-card) bg-(--color-surface-2) p-2"
     >
       {conEncabezado ? (
         <h2 className="flex items-center gap-2 px-1 py-1 text-(length:--text-sm) font-medium text-(--color-ink)">
           <PuntoDeColor color={etapa.color} className="size-2.5" />
           <span className="truncate">{etapa.nombre}</span>
-          <span className="ml-auto text-(--color-ink-soft) tabular-nums">{total}</span>
+          <span className="ml-auto text-(--color-ink-soft) tabular-nums">
+            {conteoCorto(total, { locale })}
+          </span>
         </h2>
       ) : null}
       {tarjetas.length === 0 ? (
@@ -59,15 +71,21 @@ export function ColumnaDeEtapa({
           ))}
         </ul>
       )}
-      {hayMas && faltan > 0 ? (
+      {hayMas && !enElTope && (faltan === null || faltan > 0) ? (
         <Button
           variant="outline"
           className="min-h-11 md:min-h-8"
           disabled={cargando}
           onClick={alVerMas}
         >
-          {cargando ? 'Cargando…' : `Ver más (${String(faltan)})`}
+          {cargando ? 'Cargando…' : faltan === null ? 'Ver más' : `Ver más (${String(faltan)})`}
         </Button>
+      ) : null}
+      {hayMas && enElTope ? (
+        <p role="status" className="px-1 py-2 text-(length:--text-sm) text-(--color-ink-soft)">
+          Mostrando las {TOPE_DE_COLUMNA} con actividad más reciente. Las demás siguen en la ficha
+          de cada lead.
+        </p>
       ) : null}
     </section>
   )

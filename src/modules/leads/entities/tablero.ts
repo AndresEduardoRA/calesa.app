@@ -3,10 +3,15 @@
 // final). Cada columna trae hasta `TOPE_POR_COLUMNA` y «Ver más» pide las siguientes. Sin arrastrar:
 // se mueve con «Mover a…» (docs/UX.md).
 import { z } from 'zod'
+import { conteoConCambio, type ConteoAcotado } from '@/shared/lib/conteo'
+import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import { esquemaEtapa, etapaDesde, type EtapaGuardada } from './embudo'
 import { ESTADOS_DE_OPORTUNIDAD, type EstadoDeOportunidad } from './oportunidad'
 
+// Cuántas trae cada pedido («Ver más» suma otras tantas) y hasta cuántas se dibujan en una columna: más
+// allá se avisa y las demás siguen en la ficha de cada lead (`.claude/rules/escala.md`).
 export const TOPE_POR_COLUMNA = 50
+export const TOPE_DE_COLUMNA = TOPE_DE_LO_CARGADO
 
 // La vista y lo elegido en ella, en la URL de `/leads`.
 export const CLAVE_DE_VISTA = 'vista'
@@ -33,7 +38,9 @@ export type Tarjeta = {
 
 export type Columna = {
   etapa: EtapaGuardada
-  total: number
+  // Cuántas hay en la etapa, hasta `TOPE_DE_COLUMNA`: nunca el total exacto (una columna puede tener miles).
+  total: ConteoAcotado
+  // Hay más que las cargadas.
   hayMas: boolean
   tarjetas: Tarjeta[]
 }
@@ -96,6 +103,7 @@ const esquemaTablero = z.object({
     z.object({
       etapa: esquemaEtapa,
       total: z.number().int().nonnegative(),
+      total_hay_mas: z.boolean().default(false),
       hay_mas: z.boolean(),
       tarjetas: z.array(z.unknown()),
     }),
@@ -118,7 +126,7 @@ export function tableroDesde(crudo: unknown): Tablero | null {
     },
     columnas: columnas.map((c) => ({
       etapa: etapaDesde(c.etapa),
-      total: c.total,
+      total: { n: c.total, hayMas: c.total_hay_mas },
       hayMas: c.hay_mas,
       tarjetas: tarjetasDesde(c.tarjetas),
     })),
@@ -133,6 +141,11 @@ export function paginaDeEtapaDesde(
   return leida.success
     ? { tarjetas: tarjetasDesde(leida.data.tarjetas), hayMas: leida.data.hay_mas }
     : null
+}
+
+// La columna dibuja ya todo lo que dibuja: «Ver más» deja su lugar al aviso del tope.
+export function columnaEnElTope(columna: Pick<Columna, 'tarjetas'>): boolean {
+  return columna.tarjetas.length >= TOPE_DE_COLUMNA
 }
 
 // Desde dónde sigue una columna: la última que trae.
@@ -157,7 +170,10 @@ export function conPagina(
       return {
         ...c,
         hayMas: pagina.hayMas,
-        tarjetas: [...c.tarjetas, ...pagina.tarjetas.filter((t) => !ya.has(t.id))],
+        tarjetas: [...c.tarjetas, ...pagina.tarjetas.filter((t) => !ya.has(t.id))].slice(
+          0,
+          TOPE_DE_COLUMNA,
+        ),
       }
     }),
   }
@@ -209,12 +225,17 @@ export function conMovida(
       if (c === origen) {
         return {
           ...c,
-          total: Math.max(0, c.total - 1),
+          total: conteoConCambio(c.total, -1, TOPE_DE_COLUMNA),
           tarjetas: c.tarjetas.filter((t) => t.id !== tarjetaId),
         }
       }
       if (c === destino) {
-        return { ...c, total: c.total + 1, tarjetas: [nueva, ...c.tarjetas] }
+        // Entra primera; si la columna ya dibuja el tope, la última sale (sigue en su ficha).
+        return {
+          ...c,
+          total: conteoConCambio(c.total, 1, TOPE_DE_COLUMNA),
+          tarjetas: [nueva, ...c.tarjetas].slice(0, TOPE_DE_COLUMNA),
+        }
       }
       return c
     }),
@@ -227,7 +248,8 @@ export function firmaDelTablero(tablero: Tablero): string {
     tablero.embudo.id,
     tablero.embudo.actualizadoEn,
     ...tablero.columnas.map(
-      (c) => `${c.etapa.id}:${String(c.total)}:${c.tarjetas.map((t) => t.actualizadoEn).join(',')}`,
+      (c) =>
+        `${c.etapa.id}:${String(c.total.n)}${c.total.hayMas ? '+' : ''}:${c.tarjetas.map((t) => t.actualizadoEn).join(',')}`,
     ),
   ].join('|')
 }
@@ -243,5 +265,5 @@ export function etapaElegida(tablero: Tablero, deLaUrl: string | null): string |
 
 // Cuántas hay en todo el embudo (para decir «Todavía no tienes oportunidades en este embudo»).
 export function totalDelTablero(tablero: Tablero): number {
-  return tablero.columnas.reduce((suma, c) => suma + c.total, 0)
+  return tablero.columnas.reduce((suma, c) => suma + c.total.n, 0)
 }

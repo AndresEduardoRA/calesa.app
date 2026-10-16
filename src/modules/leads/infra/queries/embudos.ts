@@ -3,7 +3,7 @@ import { errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import { embudosDesde } from '../../entities/embudo'
 import type { LectorDeEmbudos, LectorDeTablero } from '../../entities/repositorios-de-oportunidades'
-import { tableroDesde } from '../../entities/tablero'
+import { TOPE_DE_COLUMNA, tableroDesde } from '../../entities/tablero'
 
 type FilaDeEtapa = { orden: number }
 
@@ -29,7 +29,11 @@ export const getEmbudos: LectorDeEmbudos = async () => {
 // El kanban: una RPC de invocador (la RLS decide qué tarjetas llegan y qué se cuenta).
 export const getTablero: LectorDeTablero = async ({ embudoId, tope }) => {
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('embudo_tablero', { p_embudo: embudoId, p_tope: tope })
+  const { data, error } = await supabase.rpc('embudo_tablero', {
+    p_embudo: embudoId,
+    p_tope: tope,
+    p_tope_total: TOPE_DE_COLUMNA,
+  })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }

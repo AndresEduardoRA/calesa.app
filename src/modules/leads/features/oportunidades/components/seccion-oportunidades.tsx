@@ -25,6 +25,7 @@ export async function SeccionOportunidades({ leadId, vehiculos }: Props) {
         inicial={datos.oportunidades}
         embudos={datos.embudos}
         puedoCrear={datos.puedoCrear}
+        hayMas={datos.hayMas}
       />
     </ProveedorDeVehiculos>
   )

@@ -4,12 +4,24 @@ import { PlusIcon, TargetIcon } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import type { Embudo } from '../../../entities/embudo'
-import type { OportunidadDelLead } from '../../../entities/oportunidad'
+import {
+  TOPE_DE_OPORTUNIDADES_DEL_LEAD,
+  type OportunidadDelLead,
+} from '../../../entities/oportunidad'
 import { RefrescarAlVolver } from '../../ficha/components/refrescar-al-volver'
 import { useOportunidades } from '../hooks/use-oportunidades'
 import { usePanelDeOportunidad } from '../hooks/use-panel-de-oportunidad'
 import { ItemDeOportunidad } from './item-de-oportunidad'
 import { PanelDeOportunidad } from './panel-de-oportunidad'
+
+// Con más de 100 oportunidades en un lead, se dice que lo que se ve es lo más reciente.
+function AvisoDelTope({ hayMas }: { hayMas: boolean }) {
+  return hayMas ? (
+    <p role="status" className="text-(length:--text-sm) text-(--color-ink-soft)">
+      Mostrando las {TOPE_DE_OPORTUNIDADES_DEL_LEAD} más recientes, las abiertas primero.
+    </p>
+  ) : null
+}
 
 type Props = {
   leadId: string
@@ -17,10 +29,12 @@ type Props = {
   embudos: readonly Embudo[]
   // Cartera y `leads.editar` (lo dice la base).
   puedoCrear: boolean
+  // Tiene más de las 100 que se muestran.
+  hayMas: boolean
 }
 
 // La sección «Oportunidades»: las de quien mira sobre el lead (abiertas primero) y «Nueva oportunidad».
-export function OportunidadesDelLead({ leadId, inicial, embudos, puedoCrear }: Props) {
+export function OportunidadesDelLead({ leadId, inicial, embudos, puedoCrear, hayMas }: Props) {
   const panel = usePanelDeOportunidad()
   const { lista, moverA, quitar, ocupada } = useOportunidades(inicial)
   const editando = panel.editando ? (lista.find((o) => o.id === panel.editando) ?? null) : null
@@ -65,6 +79,7 @@ export function OportunidadesDelLead({ leadId, inicial, embudos, puedoCrear }: P
           ))}
         </ul>
       )}
+      <AvisoDelTope hayMas={hayMas} />
       {puedoCrear && (panel.nueva || editando) ? (
         <PanelDeOportunidad
           key={editando?.actualizadoEn ?? 'nueva'}

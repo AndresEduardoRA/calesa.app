@@ -87,4 +87,6 @@ export type RepositorioDeOportunidades = {
 // Las de quien mira sobre un lead, con su etapa y su embudo, y si puede crear (cartera + editar).
 export type LectorDeOportunidadesDelLead = (
   leadId: string,
-) => Promise<Resultado<{ puedoCrear: boolean; oportunidades: OportunidadDelLead[] }>>
+) => Promise<
+  Resultado<{ puedoCrear: boolean; hayMas: boolean; oportunidades: OportunidadDelLead[] }>
+>

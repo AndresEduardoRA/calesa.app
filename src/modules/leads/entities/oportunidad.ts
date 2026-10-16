@@ -106,12 +106,19 @@ const esquemaDelLead = esquemaOportunidad.extend({
   embudo: z.object({ id: z.guid(), nombre: z.string().min(1) }),
 })
 
+// Cuántas oportunidades de un lead trae `lead_oportunidades()` (espejo de su `limit 100`): más allá se avisa.
+export const TOPE_DE_OPORTUNIDADES_DEL_LEAD = 100
+
 // Lo que entrega `lead_oportunidades()`: las mías sobre ese lead y si puedo crear.
 export function oportunidadesDelLeadDesde(
   crudo: unknown,
-): { puedoCrear: boolean; oportunidades: OportunidadDelLead[] } | null {
+): { puedoCrear: boolean; hayMas: boolean; oportunidades: OportunidadDelLead[] } | null {
   const leido = z
-    .object({ puedo_crear: z.boolean(), oportunidades: z.array(z.unknown()) })
+    .object({
+      puedo_crear: z.boolean(),
+      hay_mas: z.boolean().default(false),
+      oportunidades: z.array(z.unknown()),
+    })
     .safeParse(crudo)
   if (!leido.success) {
     return null
@@ -137,7 +144,7 @@ export function oportunidadesDelLeadDesde(
       },
     ]
   })
-  return { puedoCrear: leido.data.puedo_crear, oportunidades }
+  return { puedoCrear: leido.data.puedo_crear, hayMas: leido.data.hay_mas, oportunidades }
 }
 
 // Lo que se escribe en el formulario de una oportunidad: texto, como en los campos.
