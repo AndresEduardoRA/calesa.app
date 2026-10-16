@@ -2624,3 +2624,78 @@ p_recordar_origen)` (sin grant) y `crear_lead` es su envoltorio. El lote procesa
   de dos lotes de 20 teléfonos en orden contrario, sin interbloqueo.
 - **Pendiente de 8b:** deshacer durante 24 horas con una RPC propia (la papelera exige `leads.eliminar` y es
   todo o nada: no sirve para quien sólo importa).
+
+## 2026-10-17 — El reintento al volver la conexión sólo sale al volver: la causa del fallo de `leads-alta-casos`
+
+**Contexto:** en la primera corrida completa de la 8a, «la respuesta se perdió pero el lead entró…» no vio el aviso
+«No pudimos llegar al servidor» en 5 s, y Playwright borró los artefactos. La hipótesis del plan (que `route.fetch()`
+esperara el re-render de `/` bajo carga) resultó **falsa**: medido, `route.fetch()` tarda ~40 ms.
+**Causa:** `useReintentoAlVolver` reenviaba en cuanto aparecía algo pendiente con la red presente, no sólo al volver
+la conexión (lo contrario de lo que decía `shared/CLAUDE.md`). Que saliera dependía de una carrera con `isPending` de
+`useAction`: si ya se había apagado cuando corría el efecto, el alta se reenviaba sola, la base devolvía `repetido`
+y el formulario se limpiaba antes de que se viera el aviso (la captura lo mostró: el paso de datos, vacío). Se
+reprodujo **3 de 15** sin carga.
+**Decisión:** el hook sale sólo en la transición sin conexión → con conexión. Si el envío falló con la red presente,
+la pantalla ofrece «Reintentar» (un servidor caído no se martilla, como ya decidió la 8a para la importación).
+`use-importacion` deja de distinguir la pausa sin conexión a mano (`sinConexion`): lo hace el hook para todos.
+Después del arreglo: 40 de 40 sin carga y 270 de 270 (el spec entero, ambos proyectos, ×15) con las 8 CPU ocupadas.
+**Instrumentación:** `video` y `screenshot` en los fallos (la traza ya estaba) y `test:e2e:completo` copia
+`test-results/` y el reporte a `e2e-fallos/<fecha>/` (ignorada por git, los cinco últimos) cuando algo falla.
+**Alternativas:** alargar el timeout (sin causa, escondía el bug: también pasaba en la ficha, el redactor y el alta de
+vehículos, que usan el mismo hook); esperar `isPending` dentro del hook (seguía siendo un reenvío que nadie pidió).
+
+## 2026-10-17 — Deshacer una importación (Fase 3, parte 8b): clase X, sólo lo intacto, 24 horas
+
+**Contexto:** la 8a dejó `importaciones_leads` para esto. El plan se aprobó sin responder las once preguntas por
+número: se tomó la recomendación de cada una.
+**Decisión:**
+
+- **`leads_importacion_deshacer(p_importacion)` es de clase X**, no de clase 3: no la autoriza el permiso de la
+  papelera sino **haber hecho la importación**, y sólo alcanza a lo que sigue siendo exclusivamente suyo y sin tocar.
+  Por eso no pide `leads.crear` ni `leads.eliminar`, sólo estar activa; la supervisión tampoco puede. Ajena,
+  inexistente o de otro tipo dan el mismo `42501` «No encontramos esta importación.». Entra al cinturón con su fila
+  (probado: sin ella `db:probar` falla nombrándola) y tiene su bloque en la matriz («casos de deshacer»).
+  `leads_importaciones_recientes()` también es X: sólo lo propio, con números.
+- **«Intacto»** (`_lead_motivo_para_deshacer`, con el lead bloqueado): sigue fuera de la papelera; su única fila en
+  `leads_asesores` es la de dueña de quien importó (cualquier otra, **aunque esté revocada**, cuenta: alguien lo tuvo);
+  `actualizado_en = creado_en` (la versión de `lead_version()`); y ninguna fila en seguimientos (también eliminados),
+  recordatorios, teléfonos extra, vehículos (vinculado, interesado o su historial), oportunidades, portal (también
+  revocado), cotizaciones, pagos, eventos, tareas, mensajes, repuestos, testimonios ni solicitudes web. El motivo es el
+  primero en ese orden: un lead cuenta una vez. **Las marcas no cuentan, de nadie**, y no se borran: viajan con el lead
+  a la papelera (como en la papelera manual) — «descartarlas» habría sido borrar algo para siempre.
+- **El futuro no se escapa:** el cinturón fija la lista de toda FK a `leads(id)` (cuenta / marca / vínculo) y exige que
+  cada tabla que cuenta aparezca en el cuerpo de la función; fija también las columnas de `leads` y cuáles mueve
+  `lead_version()`. Una tabla o columna nueva rompe `db:probar` hasta decidir (probado: sin mirar `pagos`, falla).
+- **Plazo:** 24 h desde `terminada_en`, o desde su último lote si quedó abierta (la pestaña se cerró a medias): se
+  deshace desde la lista y queda cerrada (un lote tardío recibe «Esta importación ya terminó.»). Fuera de plazo:
+  `22023` sin tocar nada; ya deshecha, devuelve lo mismo aunque haya vencido.
+- **Una transacción, todo o nada por lead:** candado de la importación (el mismo que toma cada lote: deshacer espera
+  al lote en curso y se lleva lo que entró en él), después los leads por id (el orden de la papelera manual) y, con
+  todo bloqueado, se vuelve a mirar cada uno. Un solo lote de papelera, de quien importó, que así lo puede restaurar.
+  Idempotente: el resultado (conteos, motivos y números de fila) queda en `importaciones.deshecha_resultado`.
+- **El tope de 200 no se toca:** el deshacer no pasa por `leads_papelera_enviar`; su tope es el de la importación
+  (500). Medido (`pnpm db:medir`): deshacer 500, 102 ms; recientes con 500 intactos, 83 ms; la papelera con ese lote,
+  30 ms; restaurarlo entero, 144 ms.
+- **Los vínculos se borran 7 días después del plazo** (o de deshacerla) con `importaciones_vinculos_purgar()` en su
+  propio cron (`importaciones-vinculos-purgar`, 03:35 UTC): sólo sirven para deshacer. La fila de `importaciones`
+  queda, con números. No hizo falta el índice de `importaciones_leads (creado_en)` que decía el plan: la purga
+  elige por importación.
+- **`authenticated` ya no escribe `importaciones` directo** (se borraron las policies «crear» y «borrar»): con un
+  INSERT se fabricaba un `terminada_en` futuro (una ventana sin fin) o se borraba la propia con sus vínculos.
+- **Datos:** la respuesta, `leads.importacion_deshecha` (`movidos`, `quedaron`, `por_motivo`, `purgados`) y la lista
+  llevan sólo números, claves de motivo y números de fila. El trigger `lead_auditar` sigue dejando en `actividad`,
+  por cada lead que va a la papelera, el antes/después con nombre y atributos (sin teléfono), como en la papelera
+  manual: cambiarlo es de la fase de Actividad, que ya tiene pendiente leer el diff recortado.
+- **Reimportar lo deshecho:** sin cambios. `_lead_verificar` y el índice único ignoran la papelera, así que el mismo
+  archivo vuelve a entrar como leads nuevos; si después se restaura el lote, esos quedan adentro con «ya tiene este
+  teléfono», la regla de siempre.
+- **Interfaz:** el botón en el resultado del asistente (con «Quedan N h») y «Tus importaciones recientes» en
+  `/leads/importar`, que se ve aunque ya no se tenga `leads.crear`. La confirmación del asistente cuenta lo que entró
+  (la pantalla no sabe qué cambió después); el resultado dice lo que decidió la base. La importación recién hecha
+  aparece en los dos lugares: los dos botones son el mismo pedido idempotente.
+- **No estaba en el plan:** `/leads/papelera` sólo abría con `leads.eliminar` o `leads.papelera.purgar`, así que quien
+  importa sin ellos no podía restaurar su lote desde la pantalla. Ahora abre también con `leads.crear`; la base sigue
+  mostrando sólo los lotes propios.
+  **Alternativas:** reutilizar `leads_papelera_enviar` (todo o nada y con `leads.eliminar`: no servía); borrar en vez
+  de mandar a la papelera (irreversible); un trigger por tabla que marque «tocado» (más superficie que mirar al
+  deshacer, y escribiría en cada operación de leads).

@@ -106,21 +106,22 @@ sin pantalla todavía no se muestra.
 
 ## Permisos (matriz de referencia; el catálogo real vive en `permisos.ts` y se siembra en SQL)
 
-| Acción                                          | Asesor | Logística | Repuestos | Dueño |
-| ----------------------------------------------- | ------ | --------- | --------- | ----- |
-| Crear lead / ver mis leads                      | ✔      | –         | –         | ✔     |
-| Ver leads de otros (teléfono enmascarado)       | –      | –         | –         | ✔     |
-| Cotizar / configurar fórmulas                   | ✔ / –  | –         | –         | ✔ / ✔ |
-| Crear vehículo / ver vehículos (por origen)     | ✔      | ✔         | –         | ✔     |
-| Mover de fase / aprobar documentos (por origen) | –      | ✔         | –         | ✔     |
-| Ver costos y margen                             | –      | –         | –         | ✔     |
-| Vitrina web / publicar guías                    | – / –  | –         | –         | ✔     |
-| Repuestos (proyectos, costos, cotizador)        | –      | –         | ✔         | ✔     |
-| Chat global, dar tareas, recibirlas             | ✔      | ✔         | ✔         | ✔     |
-| Equipo, roles, bloqueo, registro on/off         | –      | –         | –         | ✔     |
-| Exportar/importar todo                          | –      | –         | –         | ✔     |
-| Exportar mi cartera (`leads.exportar`)          | –      | –         | –         | ✔     |
-| Importar leads (`leads.crear`)                  | ✔      | –         | –         | ✔     |
+| Acción                                           | Asesor | Logística | Repuestos | Dueño |
+| ------------------------------------------------ | ------ | --------- | --------- | ----- |
+| Crear lead / ver mis leads                       | ✔      | –         | –         | ✔     |
+| Ver leads de otros (teléfono enmascarado)        | –      | –         | –         | ✔     |
+| Cotizar / configurar fórmulas                    | ✔ / –  | –         | –         | ✔ / ✔ |
+| Crear vehículo / ver vehículos (por origen)      | ✔      | ✔         | –         | ✔     |
+| Mover de fase / aprobar documentos (por origen)  | –      | ✔         | –         | ✔     |
+| Ver costos y margen                              | –      | –         | –         | ✔     |
+| Vitrina web / publicar guías                     | – / –  | –         | –         | ✔     |
+| Repuestos (proyectos, costos, cotizador)         | –      | –         | ✔         | ✔     |
+| Chat global, dar tareas, recibirlas              | ✔      | ✔         | ✔         | ✔     |
+| Equipo, roles, bloqueo, registro on/off          | –      | –         | –         | ✔     |
+| Exportar/importar todo                           | –      | –         | –         | ✔     |
+| Exportar mi cartera (`leads.exportar`)           | –      | –         | –         | ✔     |
+| Importar leads (`leads.crear`)                   | ✔      | –         | –         | ✔     |
+| Deshacer mi importación (24 h, sin otro permiso) | ✔      | –         | –         | ✔     |
 
 ## Reglas transversales
 
@@ -216,10 +217,16 @@ sin pantalla todavía no se muestra.
 
 ### Leads: papelera (estados propios)
 
-- **Entrar:** `/leads/papelera`, con el botón «Papelera» del listado, para quien tiene `leads.eliminar` (ve lo que envió) o `leads.papelera.purgar` (ve todo). Sin ninguno: «No tienes permiso para enviar leads a la papelera ni para vaciarla…». Sin esos permisos tampoco hay botón.
+- **Entrar:** `/leads/papelera`, con el botón «Papelera» del listado, para quien tiene `leads.eliminar` o `leads.crear` (ve lo que envió, también el lote de una importación deshecha) o `leads.papelera.purgar` (ve todo). Sin ninguno: «No tienes permiso para enviar leads a la papelera ni para vaciarla…». Sin esos permisos tampoco hay botón.
 - **Enviar:** desde el «⋯» de la ficha y el «⋯» de cada fila del listado («Enviar a la papelera», sólo en las filas que puede enviar). Se hace y ofrece «Deshacer» 10 s; el resultado se dice entero: ««Ana Rojas» se envió a la papelera.», y si cerró un acceso al portal, «Se cerró su acceso al portal.». Es todo o nada (hasta 200): si uno no se puede, no entra ninguno.
 - **Pantalla:** por lote («Lote de 12 · quedan 11», «Enviado por Rosa Mamani el 15/10 · Se purga en 27 días»). Cada lead con su nombre y #número; **nunca el teléfono ni los datos privados**. Restaurar (uno o el lote) se hace y lo dice; lo que ya no puede volver porque su teléfono lo tomó otro lead queda adentro, con el botón apagado y el motivo («No puede volver: «Ana Rojas» (#124) ya tiene este teléfono.»; si ese lead no se ve, «Ese teléfono ya lo tiene un lead de Juan Pérez.»). Purgar (sólo con `leads.papelera.purgar`) abre un diálogo que nombra lo que se borra y, en un lote de varios, pide tipear «purgar N». Lo que no se puede purgar (un vehículo vinculado, pagos, el portal vigente) lo dice en su fila: «No se purga: …». Vacía: «La papelera está vacía». El mismo mensaje para la sin conexión y el conflicto («Recargar») que en la de vehículos.
 - **Restaurar el lote:** lo hace quien lo envió o quien puede vaciar la papelera; lo devuelve entero al listado, sin reabrir el portal.
+
+### Leads: importar y deshacer (estados propios)
+
+- **Deshacer en el resultado:** «Deshacer importación» con «Quedan N h para deshacerla.» (en la última hora, minutos). Confirma con un diálogo: «Se moverán N leads a la papelera, donde puedes restaurarlos.» y, si ya se sabe que algo cambió, cuántos se quedan; «Mover a la papelera». Hecho, dice cuántos se movieron y cuántos se quedaron en la cartera, y por motivo con sus filas del archivo («Ya lo editaste: 1 (fila 2)»), nunca nombres ni teléfonos; «Ver la papelera». Sin conexión: el aviso dentro del diálogo y nada se mueve. Fuera de plazo o cualquier rechazo: dentro del diálogo, sin cerrarlo.
+- **Tus importaciones recientes** (debajo del asistente, también sin `leads.crear`): las propias de las últimas 24 h, cada una con fecha y hora, «Terminada», «Sin terminar» o «Deshecha», «N importados · N ya existían · N rechazados» y su botón (o lo que hizo, si ya se deshizo; «No queda nada para deshacer…» si todo cambió). Vacía: «No importaste nada en las últimas 24 horas». Carga: esqueleto de lista; error: el `error.tsx` de la ruta.
+- Repetirlo (doble clic, otra pestaña, el botón del resultado y el de la lista) devuelve lo mismo y no mueve nada más.
 
 ### Leads: teléfonos de la ficha (estados propios)
 

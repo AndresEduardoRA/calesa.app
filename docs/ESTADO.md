@@ -6,26 +6,26 @@
 > a `docs/BITACORA.md`. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-17
-**Fase actual:** 3 — Leads, **parte 8a hecha** (exportar la cartera e importar con vista previa y lotes en CSV). Falta la **8b** (deshacer una importación, 24 h) y el cierre de la fase.
+**Fase actual:** 3 — Leads, **partes 8a y 8b hechas** (CSV: exportar, importar y deshacer una importación durante 24 h). Falta sólo el **cierre de la fase**.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
   reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
-  y las partes 1 a 8a de la Fase 3. **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  y las partes 1 a 8b de la Fase 3. **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
   `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: lo grabado.
-- **Leads (1 a 8a):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
+- **Leads (1 a 8b):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
   oportunidades y **«Portal»**: el acceso del cliente), marcas, «Quién lo tiene», papelera, embudos con kanban;
   `web.portal_*` sin oráculo y con la sesión que se corta. Toda RPC que recibe un lead cae en una de tres
   clases (`docs/DECISIONES.md`, 2026-10-15) y el cinturón de `db:probar` falla si una nueva no está auditada.
-  **CSV:** exportar la cartera (≤ 5.000, 5 por hora) e importar (≤ 500 filas, lotes de 50, reglas del alta).
+  **CSV:** exportar la cartera (≤ 5.000, 5 por hora), importar (≤ 500 filas, lotes de 50, reglas del alta) y
+  **deshacer** lo importado que sigue intacto durante 24 h (clase X; «Tus importaciones recientes» en `/leads/importar`).
   **Orígenes y vehículos** completos. Código: `docs/MAPA.md`.
 
 ## Siguiente: Fase 3 — Leads (`docs/PLAN.md`), lo que falta
 
-Queda la **8b)**: «Deshacer la importación» durante 24 h (RPC propia: manda a la papelera, como un solo lote, lo
-importado que sigue intacto y dice qué quedó fuera) y después el cierre de la fase. Abierto: lotes de 50 (100 cabe)
-y un fallo de e2e sin reproducir en `leads-alta-casos` (`docs/BITACORA.md`).
+Queda el **cierre de la fase** (presupuestos de peso, recorte de la ficha, índice de DECISIONES, tabla de criterios).
+Abierto: lotes de 50 (100 cabe). Un e2e que falla deja sus artefactos en `e2e-fallos/`.
 
 ## Pendientes que se arrastran
 
@@ -53,7 +53,7 @@ y un fallo de e2e sin reproducir en `leads-alta-casos` (`docs/BITACORA.md`).
 'https://<ref>.supabase.co/functions/v1/storage-gc');` (sin eso la purga deja los archivos).
 - **El día del primer `db push`** `db:base` se congela (la migración base ya estará aplicada) y los cambios
   son sólo migraciones: cambia la regla de `docs/DECISIONES.md` (2026-10-11) y el chequeo de `db:probar`.
-- **Jobs** (`limpieza-automatica`, `apibara-consultas-purgar`, `papelera-purgar`): comprobar en `cron.job`
+- **Jobs** (`limpieza-automatica`, `apibara-consultas-purgar`, `papelera-purgar`, `importaciones-vinculos-purgar`): comprobar en `cron.job`
   (`pg_cron` corre en UTC) y que el runtime inyecta `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_ANON_KEY`.
 - **Antes de desplegar, probar apibara con una clave real (plan de pago):** alta por enlace (Copart e
   IAAI), VIN y lote; Refrescar; fotos (hasta 24); cuota agotada (429) y clave rechazada (401); y comparar
