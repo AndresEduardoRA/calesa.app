@@ -3109,3 +3109,36 @@ pantallas. El layout `(app)` importa `@/modules/leads` y el `index.ts` reexporta
 cliente alcanzable por ahí viaja en el shell (por eso `/perfil` pesa lo mismo que `/leads`). Sin tocar esa arquitectura
 (queda para la 9e), el bloque de recordatorios de la ficha y lo de una línea larga («Ir a una fecha», «Desde el …», el aviso
 del tope) van con `import()` diferido.
+
+## 2026-10-16 — Parte 9d-3: el recorrido de la IA con dos cuentas
+
+**Contexto.** Nadie prueba a mano: el recorrido lo hace la IA, con la app compilada, la dueña y una asesora, en
+escritorio y celular, mirando cada captura. Dos preguntas quedaron abiertas en la 9d-2 y el cierre: qué pasa con un
+clic en un aviso con un panel abierto (D) y cómo distinguir la red caída al paginar (E).
+
+**La asesora es la de la semilla, no un rol «E2E …».** Los e2e de antes armaban asesoras con permisos a medida (tres
+secciones en la ficha). Con el rol `asesor` de `seed.sql` la ficha tiene cinco y en el celular se salía de la pantalla.
+Un recorrido se hace con lo que tiene una persona de verdad.
+
+**Lo que se afirma y lo que se mira.** Al spec va lo determinista: quién recibe el clic (`elementFromPoint`), cajas
+dentro de la pantalla (medidas cuando el panel terminó de animar), sin scroll horizontal, 44 px en el celular, foco,
+URL y pedidos. Lo que sólo se juzga mirando (solapamientos, redacción, idioma) va a la bitácora, sin comparar píxeles.
+Las capturas salen sólo con `E2E_CAPTURAS`: el spec permanente no deja archivos.
+
+**D: el botón de un aviso recibe el clic con un modal abierto, y lo que sale de la pantalla pregunta.** El clic no
+cierra el modal (el `outsidePress` de Base UI sólo cierra con el velo) y «Deshacer» actúa en el lugar. Lo que dejaba
+la pantalla («Abrir ficha», «Recargar») se iba con el modal sucio. **Elegida (a):** un registro en `shared`
+(`salida-con-cambios.ts`) donde se anota todo formulario abierto con algo escrito; las acciones con `sale: true` y
+«Recargar» pasan por `salirSinPerder()`, que pregunta en el pie del de más arriba. Al descartar **no se cierra** el
+modal: cerrar escribe la URL (sin `?panel=`) un instante después y pisaba la navegación; irse lo desmonta igual.
+«Seguir editando» recibe el foco un cuadro después, porque sonner devuelve el foco al campo cuando el foco sale de los
+avisos. **Alternativas:** (b) no mostrar acciones de navegación con un panel abierto (esconde la salida); (c) dejarlo
+(el borrador repone lo escrito, pero se iba sin avisar).
+
+**E: un fallo de transporte se dice como conexión, en un solo punto.** supabase-js no lanza cuando el `fetch` falla:
+devuelve un error sin código con el texto del navegador. `errorDePostgrest()` lo reconoce por ese texto y, en el
+navegador, dice «No hay conexión…» o «No pudimos llegar al servidor…» según `navigator.onLine`; en el servidor, lo
+segundo (Node también tiene `navigator`, sin `onLine`). El código sigue siendo `inesperado`: nadie decide distinto por
+él. **Sin arreglar, a la lista del cierre:** paginar el listado sin red (el `<Link>` cae a la navegación completa del
+navegador) y abrir sin red un modal diferido que nunca se pidió (el `import()` falla y sube al `error.tsx`): son nueve
+`diferidos.tsx` y hay que decidir qué hace el panel cuando su código no llega.
