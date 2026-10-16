@@ -23,7 +23,9 @@
     "db:carreras": "node scripts/carreras.mjs",
     "db:lint": "supabase db lint --fail-on error",
     "mapa": "bash scripts/mapa.sh",
-    "preinstall": "npx only-allow pnpm"
+    "preinstall": "npx only-allow pnpm",
+    "db:sembrar-volumen": "node scripts/sembrar-volumen.mjs",
+    "db:medir:volumen": "node scripts/medir-listado.mjs --volumen"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

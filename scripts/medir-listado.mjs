@@ -2,7 +2,8 @@
 // resume la mediana de cada consulta. No hay `psql` en el equipo ni un cliente de Postgres en las dependencias: se usa el
 // del contenedor de la base (`supabase_db_<project_id>`). La medición va en una transacción que se
 // revierte: no deja filas (sí huecos en la numeración de leads y actividad).
-// Uso: pnpm db:medir
+// Uso: pnpm db:medir          (la base de la semilla)
+//      pnpm db:medir:volumen  (tras pnpm db:sembrar-volumen; después pnpm db:reset)
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
@@ -13,7 +14,8 @@ if (!proyecto) {
   process.exit(1)
 }
 const contenedor = `supabase_db_${proyecto}`
-const MEDICIONES = [
+const CON_VOLUMEN = process.argv.includes('--volumen')
+const MEDICIONES_BASE = [
   ['supabase/tests/medir-listado.sql', 'Listado de leads, 2.000 leads sintéticos'],
   [
     'supabase/tests/medir-embudo.sql',
@@ -28,6 +30,15 @@ const MEDICIONES = [
     'Listas de un lead, 20.000 seguimientos y 5.000 recordatorios (con la forma del plan asertada)',
   ],
 ]
+// Las que necesitan el volumen de `pnpm db:sembrar-volumen` (50.000 leads…): aparte, porque la base de
+// la semilla no lo tiene. `pnpm db:medir:volumen`; después, `pnpm db:reset`.
+const MEDICIONES_CON_VOLUMEN = [
+  [
+    'supabase/tests/medir-escala.sql',
+    'Escala de toda la app, 50.000 leads (dueña «todos» y Ana «propios»)',
+  ],
+]
+const MEDICIONES = CON_VOLUMEN ? MEDICIONES_CON_VOLUMEN : MEDICIONES_BASE
 
 for (const [archivo, titulo] of MEDICIONES) {
   const sql = readFileSync(archivo, 'utf8')

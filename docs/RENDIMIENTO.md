@@ -65,3 +65,36 @@ Lo que hace falta para no subirlo:
 - Las pestañas del drawer, el bloque de recordatorios de la ficha y lo de una línea de tiempo larga
   («Ir a una fecha», «Desde el …», el aviso del tope) van con `import()` diferido.
 - Sin eso, el código nuevo sumaba 5,1 KB a todas las pantallas por el camino del shell.
+
+## Auditoría de escala (9e): lo medido antes de arreglar
+
+`pnpm db:sembrar-volumen` llena la base local con 50.000 leads vivos (dueña 20.000, Ana 2.000, cuatro
+asesores 7.000 cada uno) y 12.000 más en 60 lotes de papelera, 10.000 vehículos (y 3.000 en 60 lotes),
+200.000 seguimientos, 20.000 recordatorios, ~5.000 asignaciones de etiquetas, 8.000 oportunidades de la
+dueña en una sola etapa y 15 importaciones; no corre en la suite ni en `db:reset`.
+`pnpm db:medir:volumen` corre `supabase/tests/medir-escala.sql` como `authenticated`, con los claims de
+la dueña («todos») y de Ana («propios», la asesora de la semilla): la RLS cuenta. Mediana de 5 corridas.
+Después de medir, `pnpm db:reset`.
+
+| Consulta (ms, antes)                             |           Dueña |   Ana |
+| ------------------------------------------------ | --------------: | ----: |
+| Listado, página 1 (tachados ocultos)             |             9,5 |  10,3 |
+| Listado, página 100 por cursor                   |           264,4 |  30,0 |
+| Listado, filtrar por un atributo                 |           3.774 |   165 |
+| Listado, búsqueda por nombre (sin coincidencias) |           391,6 |  30,9 |
+| Listado, sólo favoritos                          |           321,4 |  34,1 |
+| Listado, filtrar por una etiqueta                |           666,6 |  42,0 |
+| `contarLeads()` (el aviso de tachados ocultos)   |           325,4 |  25,7 |
+| Exportar, el conteo exacto previo                |           810,9 |  48,5 |
+| Papelera de leads (60 lotes de 200)              |           596,9 |   0,3 |
+| Kanban, `embudo_tablero` (una columna de 8.000)  |           210,2 |     — |
+| Kanban, «Ver más» de esa columna                 |            92,5 |     — |
+| Papelera de vehículos (60 lotes de 50)           |           115,0 |   0,3 |
+| `lead_oportunidades` (sin tope)                  |            15,7 |   7,1 |
+| `vehiculos_para_lead`                            |            30,2 |  64,4 |
+| Vehículos: página 1 / por cursor / búsqueda      | 0,4 / 0,4 / 9,3 | igual |
+
+Lo que se ve: el costo de la dueña con «todos» es el de la política de `leads` por fila (~6 µs:
+`lead_en_limbo()` y `mis_leads()` son `security definer`, así que cada fila los llama) más lo que cada
+columna de la vista cueste; el de Ana (sus 2.000) es una décima parte. Los filtros sobre `ilike` y
+`atributos` no usan un índice propio bajo RLS: caminan la cartera visible.
