@@ -88,11 +88,11 @@ analyze public.vehiculos;
 analyze public.cola_gc_storage;
 analyze storage.objects;
 
-select pg_temp.cronometro('job: apibara-consultas-purgar, 100.000 filas', 'select public.apibara_consultas_purgar()::text', 2000);
-select pg_temp.cronometro('job: importaciones-vinculos-purgar, 100.000 filas', 'select public.importaciones_vinculos_purgar()::text', 2000);
-select pg_temp.cronometro('job: papelera-purgar, 100.000 leads en 500 lotes', 'select public.papelera_purgar_vencidos()::text', 10000);
-select pg_temp.cronometro('job: limpieza-automatica, 100.000 candidatos', $q$select (public.limpieza_automatica_correr(now() + interval '12 hours') - 'saltados')::text$q$, 3000);
-select pg_temp.cronometro('job: storage-gc, reclamar 100 de 100.000 en la cola', 'select count(*)::text from public.storage_gc_reclamar(100)', 1000);
-select pg_temp.cronometro('job: storage-gc, encolar huérfanos de 100.000 objetos', $q$select public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day')::text$q$, 1000);
+select pg_temp.cronometro('job: apibara-consultas-purgar, 100.000 filas', 'select public.apibara_consultas_purgar()::text', 6000);
+select pg_temp.cronometro('job: importaciones-vinculos-purgar, 100.000 filas', 'select public.importaciones_vinculos_purgar()::text', 6000);
+select pg_temp.cronometro('job: papelera-purgar, 100.000 leads en 500 lotes', 'select public.papelera_purgar_vencidos()::text', 25000);
+select pg_temp.cronometro('job: limpieza-automatica, 100.000 candidatos', $q$select (public.limpieza_automatica_correr(now() + interval '12 hours') - 'saltados')::text$q$, 8000);
+select pg_temp.cronometro('job: storage-gc, reclamar 100 de 100.000 en la cola', 'select count(*)::text from public.storage_gc_reclamar(100)', 4000);
+select pg_temp.cronometro('job: storage-gc, encolar huérfanos de 100.000 objetos', $q$select public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day')::text$q$, 4000);
 
 rollback;

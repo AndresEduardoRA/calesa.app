@@ -6368,46 +6368,6 @@ export type Database = {
           ultimo_seguimiento_en: string | null
         }
         ComputedFields: never
-        Insert: {
-          actualizado_en?: string | null
-          atributos?: never
-          creado_en?: string | null
-          creado_por?: string | null
-          dueno_id?: never
-          en_cartera?: never
-          es_favorito?: never
-          esta_tachado?: never
-          etiquetas?: never
-          id?: string | null
-          nombre?: string | null
-          numero?: number | null
-          origen_lead_id?: string | null
-          telefono_cc?: string | null
-          telefono_principal?: never
-          telefono_visible?: never
-          tipo?: Database['public']['Enums']['tipo_lead'] | null
-          ultimo_seguimiento_en?: string | null
-        }
-        Update: {
-          actualizado_en?: string | null
-          atributos?: never
-          creado_en?: string | null
-          creado_por?: string | null
-          dueno_id?: never
-          en_cartera?: never
-          es_favorito?: never
-          esta_tachado?: never
-          etiquetas?: never
-          id?: string | null
-          nombre?: string | null
-          numero?: number | null
-          origen_lead_id?: string | null
-          telefono_cc?: string | null
-          telefono_principal?: never
-          telefono_visible?: never
-          tipo?: Database['public']['Enums']['tipo_lead'] | null
-          ultimo_seguimiento_en?: string | null
-        }
         Relationships: [
           {
             foreignKeyName: 'leads_creado_por_fkey'

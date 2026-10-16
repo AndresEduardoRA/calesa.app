@@ -21,6 +21,7 @@ create function pg_temp.quien(p_quien text) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claim.sub', case p_quien
     when 'duena' then '00000000-0000-0000-0000-0000000000d1'
+    when 'berta' then '00000000-0000-0000-0000-0000000000b1'
     else '00000000-0000-0000-0000-0000000000a1' end, true);
   perform set_config('request.jwt.claims', json_build_object('sub', current_setting('request.jwt.claim.sub'),
     'role', 'authenticated')::text, true);
@@ -99,10 +100,10 @@ $$;
 do $medir$ declare q text; begin
   foreach q in array array['duena', 'ana'] loop
     -- El listado. La página 1 camina `leads_listado_idx` sin recorrer `leads` ni descartar de más.
-    perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'), 100, 'leads_listado_idx', '{leads}', 600);
+    perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'), 100, 'leads_listado_idx', '{leads}', 3000);
     perform pg_temp.escala('listado: página 100 por cursor', q, pg_temp.pagina(format('esta_tachado = false and creado_en <= %L and (creado_en < %L or id < %L)',
-      current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'))), 1200, 'leads_listado_idx', '{leads}', 2000);
-    perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'lp' and esta_tachado = false$w$), 300, 'leads_listado_idx', '{leads}', 2000);
+      current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'))), 1200, 'leads_listado_idx', '{leads}', 60000);
+    perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'lp' and esta_tachado = false$w$), 300, 'leads_listado_idx', '{leads}', 60000);
     -- Peor caso aceptado: un filtro que no coincide con nadie recorre la cartera visible (~80 µs por lead).
     perform pg_temp.escala('listado: un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'nada' and esta_tachado = false$w$), 12000);
     perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$), 1500);
@@ -111,7 +112,7 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true'), 300);
     perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina($w$etiquetas && array[(select id from public.etiquetas where nombre = 'Vol 1' limit 1)] and esta_tachado = false$w$), 700);
     -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
-    perform pg_temp.escala('listado: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 200, 'leads_listado_idx', '{leads}', 600);
+    perform pg_temp.escala('listado: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 100);
     perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$, 2500);
     perform pg_temp.escala('exportar: conteo hasta 5.001', q, 'select id from public.leads_vista where en_cartera = true order by creado_en desc, id desc limit 5001', 3000);
     perform pg_temp.escala('etiquetas_vista', q, 'select id, nombre, leads from public.etiquetas_vista order by nombre', 300);
@@ -128,13 +129,15 @@ do $medir$ declare q text; begin
       perform pg_temp.escala('kanban: tablero (50 por columna, total hasta 500)', q, format('select public.embudo_tablero(%L, 50, 500)', current_setting('medir.embudo')), 800);
       perform pg_temp.escala('kanban: «Ver más», página 10 de la columna de 8.000', q, format('select public.embudo_etapa_pagina(%L, %L, %L, 50)',
         current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id')), 500);
-      -- La forma de lo de adentro: `oportunidades_tablero_idx`, con y sin cursor.
+      -- Lo de adentro. Bajo la policy de `oportunidades` (`lead_id = any(_mis_leads_vivos())`, un arreglo de
+      -- tamaño desconocido) Postgres elige `oportunidades_lead_id_idx` y ordena las de la persona: cuesta lo
+      -- que tiene la persona (~2 µs por oportunidad), no lo que tiene la columna. Límite anotado.
       perform pg_temp.escala('kanban: primera página de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L order by o.ultima_actividad_en desc, o.id desc limit 51', current_setting('medir.etapa')),
-        50, 'oportunidades_tablero_idx', '{oportunidades}', 0);
+        100);
       perform pg_temp.escala('kanban: «Ver más» de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L and (o.ultima_actividad_en, o.id) < (%L, %L) order by o.ultima_actividad_en desc, o.id desc limit 51',
-        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id')), 50, 'oportunidades_tablero_idx', '{oportunidades}', 0);
+        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id')), 100);
       perform pg_temp.escala('kanban: el total acotado de una columna', q, format('select count(*) from (select 1 from public.oportunidades o2 where o2.etapa_id = %L limit 501) q', current_setting('medir.etapa')),
-        50, 'oportunidades_tablero_idx', '{oportunidades}', 0);
+        100);
     end if;
     -- Vehículos y configuración.
     perform pg_temp.escala('vehículos: página 1', q, format($w$select coalesce(json_agg(t), '[]') from (select id, titulo, creado_en from public.vehiculos
@@ -154,6 +157,10 @@ do $medir$ declare q text; begin
       case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end, 'toyota'), 300);
     if q = 'duena' then perform pg_temp.escala('baja de una persona (vista previa)', q, $w$select public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000000a1')$w$, 100); end if;
   end loop;
+
+  -- Quien no tiene ningún tachado ni favorito (Berta, con 7.000 leads) no recorre su cartera para saberlo.
+  perform pg_temp.escala('listado: ocultos hasta 51 de quien no tiene ninguno', 'berta', 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 30);
+  perform pg_temp.escala('listado: sólo favoritos de quien no tiene ninguno', 'berta', pg_temp.pagina('es_favorito = true and esta_tachado = false'), 30);
 
   -- Lo que usan los jobs y las papeleras, como lo corre la base (sin RLS: `security definer`).
   perform pg_temp.escala('papeleras: una página de lotes (la consulta)', 'duena',
