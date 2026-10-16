@@ -56,7 +56,7 @@ export function FormularioDeCampo<Campo extends CampoBase, Cambios extends objec
     `${configuracion.textos.borrador}-${campo?.id ?? 'nuevo'}`,
     formulario,
     ['etiqueta', 'grupo', ...configuracion.textosLibres],
-    puedeGestionar,
+    { activo: puedeGestionar, controlado: true },
   )
   const erroresDeValidacion = ediciones.errores.crear
   const puedeEliminar = puedeGestionar && campo !== null && !campo.esSistema

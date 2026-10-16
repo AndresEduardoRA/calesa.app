@@ -36,7 +36,9 @@ export function FormularioEmpresa(props: Props) {
   const [registroAbierto, setRegistroAbierto] = useState(ajustes.registroAbierto)
   const [limpiezaAutomatica, setLimpiezaAutomatica] = useState(ajustes.limpiezaAutomatica)
   const enLinea = useEnLinea()
-  const borrador = useBorrador('ajustes-empresa', formulario, CAMPOS_DE_AJUSTES, puedeEditar)
+  const borrador = useBorrador('ajustes-empresa', formulario, CAMPOS_DE_AJUSTES, {
+    activo: puedeEditar,
+  })
   const { guardar, enCurso, errores } = useGuardarAjustes({
     logoRuta: ajustes.logoRuta,
     actualizadoEn: ajustes.actualizadoEn,

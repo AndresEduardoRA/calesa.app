@@ -39,6 +39,71 @@ export function valoresDe<Clave extends string>(
   return valores
 }
 
+// Los tipos de <input> que no son texto: `valoresDe()` no los lee, y acá tampoco.
+const ENTRADAS_QUE_NO_SON_TEXTO = new Set([
+  'button',
+  'checkbox',
+  'file',
+  'image',
+  'radio',
+  'reset',
+  'submit',
+])
+
+// Los atributos que cambian cómo el navegador normaliza el valor de un <input> de ese tipo.
+const ATRIBUTOS_DE_NORMALIZACION = ['min', 'max', 'step', 'multiple']
+
+// El valor por defecto de un <input> como lo mostraría el navegador: un color sin valor es
+// «#000000», un número inválido queda vacío, un correo pierde los espacios de los bordes. Se
+// arma una entrada nueva porque clonar una existente copia también lo que se escribió.
+function valorPorDefectoNormalizado(campo: HTMLInputElement): string {
+  const nueva = campo.ownerDocument.createElement('input')
+  nueva.type = campo.type
+  for (const atributo of ATRIBUTOS_DE_NORMALIZACION) {
+    const valor = campo.getAttribute(atributo)
+    if (valor !== null) {
+      nueva.setAttribute(atributo, valor)
+    }
+  }
+  nueva.setAttribute('value', campo.defaultValue)
+  return nueva.value
+}
+
+// Lo que el servidor mandó a un campo: su valor por defecto (`defaultValue`, y la opción marcada de
+// un `<select>`), no lo que la persona lleva escrito. Se lee igual que `valoresDe()` para que los
+// dos sean comparables: un campo deshabilitado no se envía, así que acá también queda vacío.
+function guardadoDe(campo: Element | RadioNodeList | null): string {
+  if (!(campo instanceof Element) || campo.matches(':disabled')) {
+    return ''
+  }
+  if (campo instanceof HTMLTextAreaElement) {
+    return campo.defaultValue
+  }
+  if (campo instanceof HTMLSelectElement) {
+    const opciones = Array.from(campo.options).filter((opcion) => !opcion.disabled)
+    // Sin ninguna marcada, el navegador muestra la primera.
+    return (opciones.find((opcion) => opcion.defaultSelected) ?? opciones[0])?.value ?? ''
+  }
+  if (campo instanceof HTMLInputElement && !ENTRADAS_QUE_NO_SON_TEXTO.has(campo.type)) {
+    return valorPorDefectoNormalizado(campo)
+  }
+  return ''
+}
+
+// Lo guardado en los campos de texto de un formulario, tal como llegó del servidor y por nombre.
+// Sirve de base para medir qué cambió la persona, incluso si ya había escrito antes de que quien
+// lo pide pudiera enterarse (antes de hidratar, o entre dibujar y enganchar).
+export function valoresGuardadosDe<Clave extends string>(
+  formulario: HTMLFormElement,
+  claves: readonly Clave[],
+): Record<Clave, string> {
+  const valores = {} as Record<Clave, string>
+  for (const clave of claves) {
+    valores[clave] = guardadoDe(formulario.elements.namedItem(clave))
+  }
+  return valores
+}
+
 // Lo que devuelve una action de next-safe-action, visto desde el formulario: o falló antes de
 // ejecutar (`serverError`: sin sesión, algo inesperado) o ejecutó y devolvió un `Resultado`.
 type ResultadoDeAccion = { serverError?: ErrorApp; data?: Resultado<unknown> }

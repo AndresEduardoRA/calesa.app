@@ -6,6 +6,7 @@ import {
   errorDeCampo,
   resultadoDeAccion,
   valoresDe,
+  valoresGuardadosDe,
 } from './formularios'
 
 describe('valoresDe', () => {
@@ -19,6 +20,65 @@ describe('valoresDe', () => {
   it('un campo ausente queda vacío', () => {
     const formulario = document.createElement('form')
     expect(valoresDe(formulario, ['nombre'])).toEqual({ nombre: '' })
+  })
+})
+
+describe('valoresGuardadosDe', () => {
+  function formulario(html: string): HTMLFormElement {
+    const nuevo = document.createElement('form')
+    nuevo.innerHTML = html
+    return nuevo
+  }
+
+  it('lee lo que mandó el servidor, no lo que se escribió después', () => {
+    const f = formulario('<input name="nit" value="123"><textarea name="nota">Hola</textarea>')
+    const nit = f.elements.namedItem('nit')
+    const nota = f.elements.namedItem('nota')
+    if (!(nit instanceof HTMLInputElement) || !(nota instanceof HTMLTextAreaElement)) {
+      throw new Error('Faltan campos')
+    }
+    nit.value = 'tipeado'
+    nota.value = 'tipeado'
+    expect(valoresGuardadosDe(f, ['nit', 'nota'])).toEqual({ nit: '123', nota: 'Hola' })
+    expect(valoresDe(f, ['nit', 'nota'])).toEqual({ nit: 'tipeado', nota: 'tipeado' })
+  })
+
+  it('un select: la opción marcada, o la primera si ninguna lo está', () => {
+    const f = formulario(
+      '<select name="a"><option value="x">X</option><option value="y" selected>Y</option></select>' +
+        '<select name="b"><option value="p">P</option><option value="q">Q</option></select>',
+    )
+    const b = f.elements.namedItem('b')
+    if (b instanceof HTMLSelectElement) {
+      b.value = 'q'
+    }
+    expect(valoresGuardadosDe(f, ['a', 'b'])).toEqual({ a: 'y', b: 'p' })
+  })
+
+  it('normaliza como el navegador: un número válido queda, un correo pierde los espacios', () => {
+    const f = formulario(
+      '<input name="dias" type="number" value="30"><input name="malo" type="number" value="abc">' +
+        '<input name="correo" type="email" value="  a@b.co  ">',
+    )
+    expect(valoresGuardadosDe(f, ['dias', 'malo', 'correo'])).toEqual({
+      dias: '30',
+      malo: '',
+      correo: 'a@b.co',
+    })
+  })
+
+  it('un campo deshabilitado (o dentro de un fieldset deshabilitado) se lee vacío, como en valoresDe', () => {
+    const f = formulario(
+      '<input name="uno" value="x" disabled><fieldset disabled><input name="dos" value="y"></fieldset>' +
+        '<select name="tres" disabled><option value="z" selected>Z</option></select>',
+    )
+    expect(valoresGuardadosDe(f, ['uno', 'dos', 'tres'])).toEqual({ uno: '', dos: '', tres: '' })
+    expect(valoresDe(f, ['uno', 'dos', 'tres'])).toEqual({ uno: '', dos: '', tres: '' })
+  })
+
+  it('un campo ausente, o que no es de texto, queda vacío', () => {
+    const f = formulario('<input name="ok" type="checkbox" value="on" checked>')
+    expect(valoresGuardadosDe(f, ['ok', 'nada'])).toEqual({ ok: '', nada: '' })
   })
 })
 

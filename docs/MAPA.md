@@ -34,7 +34,7 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Depende de: ningún otro módulo
 
 ### `empresa`
-Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 79 archivos
+Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 80 archivos
 - API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `huellaDelFormulario`, `PoliticaDeLimpieza`, `getPoliticaDeLimpieza`, `zonasHorarias`, `FormularioEmpresa`, +13
 - Depende de: ningún otro módulo
 - Casos de uso: empresa, iconos, integraciones, tipos-cambio
@@ -53,7 +53,7 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 428 archivos
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 429 archivos
 - API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `EditorDeCamposDeLead`, `leerListadoDeLeads`, +37
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
 - Depende de: equipo
@@ -68,7 +68,7 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 - Depende de: ningún otro módulo
 
 ### `origenes`
-Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías. Al crear uno nacen, por trigger y en la misma transacción, su flujo de logística (con sus reglas, sin fases) y los campos de su tipo. Uno de subasta nace con **un campo por cada dato normalizado que devuelve apibara** (el catálogo), todos encendidos. **No** nace una fórmula: «fórmula pendiente» es no tener una fila `publicada`. · 73 archivos
+Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías. Al crear uno nacen, por trigger y en la misma transacción, su flujo de logística (con sus reglas, sin fases) y los campos de su tipo. Uno de subasta nace con **un campo por cada dato normalizado que devuelve apibara** (el catálogo), todos encendidos. **No** nace una fórmula: «fórmula pendiente» es no tener una fila `publicada`. · 74 archivos
 - API: `getOrigenes`, `OrigenResumen`, `leerDatosNuevosDeApibara`, `leerLayout`, `agruparCampos`, `tieneOpciones`, `CampoDeLayout`, `GrupoDeCampos`, `OpcionDeCampo`, `TipoDeCampo`, +15
 - API de cliente (`client.ts`): `articulo`, `concordar`, `contados`, `frasePorVacio`, `generoSugerido`, `ninguno`, `pluralDe`, `Genero`, `OrigenResumen`, `TipoDeOrigen`, +9
 - Depende de: ningún otro módulo
