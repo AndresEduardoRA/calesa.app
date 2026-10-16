@@ -255,6 +255,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 
 - `acciones.md` → `'src/modules/*/features/**/actions/**'`, `'src/app/api/**'`
 - `datos.md` → `'src/modules/*/infra/**'`, `'src/shared/lib/supabase/**'`
+- `escala.md` → `'src/**'`, `'supabase/**'`, `'e2e/**'`, `'scripts/**'`
 - `migraciones.md` → `'supabase/**/*.sql'`, `'supabase/config.toml'`
 - `modulos.md` → `'src/modules/**'`
 - `ui.md` → `'src/app/**/*.tsx'`, `'src/modules/**/features/**/*.tsx'`, `'src/shared/ui/**'`

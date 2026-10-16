@@ -3053,3 +3053,59 @@ pestaña hasta guardar o descartar: reabrir con el borrador no duplica. **Queda 
 persona cambió lo escrito antes del reintento, la base devuelve el que llegó (`repetido`) y lo nuevo no se guarda; el modal de la
 fila cambia de diálogo al llegar los tipos (un parpadeo); los tipos leídos quedan para la sesión del listado (uno que se apaga después
 lo rechaza la base junto al campo); el «Descartar» del aviso de borrador repuesto apunta al modal en que apareció (como en la 9c).
+
+## 2026-10-16 — Parte 9d-2: el drawer con tres pestañas y las listas de un lead a escala
+
+**Contexto.** «Tus recordatorios» estaba debajo de la línea de tiempo del drawer, así que para agendar había que pasar por
+todos los seguimientos. Las dos listas hijas de un lead no aguantaban volumen. «Recargar» releía todo lo cargado: con 1.000
+seguimientos eran 51 pedidos. Lo dibujado crecía sin tope con cada «Ver más». Los recordatorios se leían con
+`order by recordar_en limit 100`: los 100 más viejos, completados incluidos, así que con 3.000 completados no se veía ningún
+pendiente. El aviso de vencidos contaba con `count(*)`. La regla que queda es `.claude/rules/escala.md`.
+
+**Tres pestañas, cada una con su `import()` y su lectura.** «Resumen», «Seguimientos» y «Recordatorios» (`?pestana=`), con la
+lista de pestañas propia de la 9d. «Tus recordatorios» es el mismo bloque en la ficha y en el drawer. En los dos casos se lee
+desde el navegador al abrirse. La ficha ya no lo lee en el servidor: así hay una sola ruta de datos y su código no viaja con la
+ficha. Las listas tienen `key={leadId}` y descartan la respuesta de otro lead.
+
+**El tope y «Ir a una fecha».** Cada lista carga y dibuja hasta 500 (`TOPE_DE_LO_CARGADO`, de a `TAMANO_DE_PAGINA` = 20, en un
+solo punto de `shared/lib/paginacion.ts`; la 9g los hará configurables). Al llegar se dice «Mostrando los 500 más recientes» y
+«Ver más» desaparece. A lo antiguo se llega con «Ir a una fecha», que siembra el cursor de «Ver más» con el inicio del día
+siguiente (en la zona de la empresa) y el id más alto: no hace falta una RPC nueva. Está disponible siempre que haya más, no
+sólo en el tope: a una fecha de hace un año no se llega con 25 clics. **No va a la URL:** es una posición, como «Ver más».
+Lo cargado es una «ventana» (`entities/pagina-de-seguimientos.ts`), y lo que vuelve de una RPC se pone sólo si cae dentro de
+ella: ponerlo fuera correría el cursor y «Ver más» saltearía filas. Fuera de la vista, cada ítem no se dibuja
+(`content-visibility: auto`). **Alternativas:** una lista virtual pesaba más que el problema que resuelve; sumar para siempre
+crece con el uso.
+
+**«Recargar» de costo fijo.** Tras un conflicto se relee sólo la primera página de la ventana. Si el seguimiento en conflicto
+no vino en ella, se trae por su id con `lead_seguimiento(p_lead, p_id)`: invoker, la misma forma que una fila de la página,
+clase L. Como mucho son dos pedidos. Lo traído queda en `sueltos`: lo ve el modal, la lista no. Lo cargado más allá de la
+primera página vuelve a «Ver más». Se conserva la regla de la 9d: lo anotado, editado o eliminado mientras se esperaba se
+vuelve a aplicar sobre lo que llega (`conLoPuestoMientras()`). Un recordatorio se recarga sólo él, por su id
+(`recordatorios_vista` por la clave primaria): un pedido. `buscar` sigue acotado a 5 páginas; un recordatorio de la URL que no
+está cargado se lee por su id.
+
+**Los recordatorios, por RPC y no por la vista.** Con PostgREST el cursor sólo se escribe como `or()`, y un `or()` no es
+condición de índice. Por eso es `lead_recordatorios()` (clase L, en `v_lecturas_con_accion` por `puedo_agendar`), sobre la
+tabla: la vista unía `leads` y el planificador tomaba el índice por persona y filtraba el lead. Medido con plan genérico, en
+plpgsql también rompen el índice `p_x is null or (…)` y `coalesce` en el cursor. Por eso con cursor y sin cursor son dos
+consultas, y la fila se arma con su tipo (`select r from …`), sin avisos de `db:lint`. «Completados» va sin número (contarlos
+crece con el total). Se muestra sólo si hay alguno, cosa que dice un `exists`, y se lee recién al abrirse.
+
+**`lead_seguimientos` en dos ramas.** Quien ve el lead sin ser autor (la co-asesora, la dueña con «todos») recorría todos los
+privados ajenos para no encontrar ninguno: la policy era un filtro sobre `(lead_id, ocurrido_en)`. Con 20.000 privados
+ajenos, descartaba 20.000 filas en 4,6 ms. Ahora la página es la unión de los míos y los públicos, cada rama con su índice:
+0,1 ms. La página 501 cuesta lo mismo que la 1.
+
+**El aviso de vencidos cuenta hasta 21** («más de 20», `TOPE_DE_VENCIDOS`). La subconsulta lleva `order by recordar_en`: sin
+él, el planificador tomaba el índice de la FK y recorría los completados del lead. Los demás conteos que se muestran
+(`contarLeads()`, `vehiculos_vinculados`) quedan para la 9e.
+
+**Los tipos de seguimiento no cuentan como pedido de la lista.** Abrir «Seguimientos» pide la página (uno) y los tipos activos,
+que son una lista fija de configuración y no crecen con el lead. El e2e cuenta los pedidos de la lista.
+
+**El JS en frío de `/leads` no sube: 509,6 KB, 25 chunks.** Medido sin cambios, el código nuevo sumaba 5,1 KB a **todas** las
+pantallas. El layout `(app)` importa `@/modules/leads` y el `index.ts` reexporta la sección de la ficha: todo componente de
+cliente alcanzable por ahí viaja en el shell (por eso `/perfil` pesa lo mismo que `/leads`). Sin tocar esa arquitectura
+(queda para la 9e), el bloque de recordatorios de la ficha y lo de una línea larga («Ir a una fecha», «Desde el …», el aviso
+del tope) van con `import()` diferido.

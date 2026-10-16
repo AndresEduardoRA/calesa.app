@@ -74,7 +74,23 @@ por fila, importa las válidas, con deshacer durante 24 horas).
 salir— y papelera de leads) y **6b (sección «Vehículos» de la ficha: vincular, desvincular, interesados;
 `vehiculo_id` en seguimientos y recordatorios; la prueba de carreras con dos conexiones)** y **7a (embudos
 personales, oportunidades con kanban y sección en la ficha, transferir con oportunidades)** y **7b (el acceso del
-cliente del lado del equipo —la sección «Portal»— y el endurecimiento de `web.portal_*`)**. **8a (exportar la cartera e importar con vista previa, por lotes)** y **8b (deshacer una importación durante 24 h, con «Tus importaciones recientes»)** y **9a (el país del teléfono: se dice al tipear, llena «País» y se ve en la ficha y en la importación; tabla estática, sin SQL)** y **9b (el primer seguimiento del alta, opcional y enriquecido: el mismo editor y los mismos campos que la ficha, «Cuándo fue» y «Próximo contacto» plegado; una migración que amplía `_lead_crear`)**. Falta sólo el cierre de la fase.
+cliente del lado del equipo —la sección «Portal»— y el endurecimiento de `web.portal_*`)**. **8a (exportar la cartera e importar con vista previa, por lotes)** y **8b (deshacer una importación durante 24 h, con «Tus importaciones recientes»)** y **9a (el país del teléfono: se dice al tipear, llena «País» y se ve en la ficha y en la importación; tabla estática, sin SQL)** y **9b (el primer seguimiento del alta, opcional y enriquecido: el mismo editor y los mismos campos que la ficha, «Cuándo fue» y «Próximo contacto» plegado; una migración que amplía `_lead_crear`)** y **9c (los formularios que aparecían al pulsar algo, en modales con su URL)** y **9d (un solo modal de seguimiento en la ficha, el drawer y la tabla; la pestaña «Seguimientos» del drawer; anotar o agendar desde el «⋯» de una fila)** y **9d-2 (el drawer con tres pestañas, «Resumen», «Seguimientos» y «Recordatorios»; las listas de un lead por páginas, con tope, «Ir a una fecha» y «Recargar» de costo fijo; la regla de escala, `.claude/rules/escala.md`)**.
+
+**Lo que queda de la Fase 3, en este orden** (una parte por sesión, cada una se detiene a reportar):
+
+1. **El recorrido de la IA con dos cuentas** (dueño y asesor) por las tareas de oro de leads: reemplaza la prueba manual (nadie prueba a mano; toda verificación es un test o un recorrido de la IA).
+2. **9e — auditoría de escala de toda la app**, con guardas mecánicas que hagan cumplir `.claude/rules/escala.md`. Entran los conteos que se muestran (`contarLeads()` del aviso de tachados ocultos, `lead_ficha().vehiculos_vinculados`) y el JS que el shell carga por la entrada `@/modules/leads`.
+3. **9f — orígenes configurables y numeración**: por creador y global, con visibilidad configurable del número global.
+4. **9g — ítems por página configurables en toda la app** (hoy `TAMANO_DE_PAGINA` y `TOPE_DE_LO_CARGADO` en `src/shared/lib/paginacion.ts`, 50 en el listado y en el kanban).
+5. **El cierre de la fase**, con estos pendientes:
+   - «Mover a…» con motivo y los `Confirmar` sin URL (salir, desvincular, purgar, deshacer importación, eliminar embudo);
+   - fijar el presupuesto de `/leads` (`docs/RENDIMIENTO.md`);
+   - la ventana de pérdida de lo tecleado en el panel de tipos de cambio;
+   - decidir qué pasa con un clic sobre un aviso con un panel abierto;
+   - fechar las entradas del repo con la fecha del sistema;
+   - el Nivel 2 solo en escritorio, con `--project` en `test:e2e:completo`;
+   - los 105 s de `beforeAll`/`afterAll`;
+   - y lo de siempre: presupuestos, recorte de la ficha, índice de DECISIONES, tabla de criterios.
 
 **Terminado cuando:** cada empresa arma los campos de sus leads sin tocar SQL (crea «Signo zodiacal»,
 apaga «Edad», marca uno «solo la cartera») y quien ve un lead sin estar en su cartera no recibe un

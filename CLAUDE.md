@@ -12,7 +12,8 @@ chat, agenda y el contenido de la web pública. Una empresa por despliegue. Sól
 3. El `CLAUDE.md` de cada módulo se carga solo cuando tocas sus archivos. Es su ficha.
 4. Bajo demanda: `docs/GLOSARIO.md` (términos del negocio ↔ nombres en el código),
    `docs/UX.md` (roles, tareas de oro y estados de cada pantalla), `docs/ARQUITECTURA.md`,
-   `docs/COTIZADOR.md` (el grafo de la fórmula), `docs/DECISIONES.md`, `docs/PLAN.md`.
+   `docs/COTIZADOR.md` (el grafo de la fórmula), `docs/DECISIONES.md`, `docs/PLAN.md`,
+   `docs/RENDIMIENTO.md` (cada lista que crece: su tope, su índice y su presupuesto).
 
 Si tuviste que explorar mucho para encontrar algo, el mapa o una ficha están incompletos:
 arréglalos en la misma tarea.
@@ -83,6 +84,8 @@ Dónde va cada cosa:
 - `docs/MAPA.md` no se edita a mano: `bash scripts/mapa.sh` lo regenera (el hook Stop lo corre).
 - Los nombres de orígenes, fases, tipos de documento, categorías y monedas salen de la base: ningún
   texto fijo de la UI los nombra.
+- Toda lista se diseña para miles de filas y se prueba con volumen: `.claude/rules/escala.md`.
+- Nadie prueba a mano: toda verificación es un test o un recorrido de la IA.
 
 ## Gotchas de este stack
 
