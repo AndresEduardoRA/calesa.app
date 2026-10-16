@@ -7,9 +7,9 @@ import {
 } from './soporte/empresa'
 import { ingresar } from './soporte/pasos'
 
-// Guardar los ajustes de la empresa sin perder lo que se teclea alrededor: la pantalla se vuelve a
-// dibujar con lo guardado (el formulario se reemplaza) y lo tipeado tiene que sobrevivir. La empresa
-// es una fila única: se deja exactamente como estaba, para el spec que sigue en la misma corrida.
+// Guardar sin perder lo que se teclea alrededor, y que el aviso de guardado no tape lo de abajo: la
+// pantalla se vuelve a dibujar con lo guardado (el formulario se reemplaza) y lo tipeado tiene que
+// sobrevivir. La empresa es una fila única: se deja exactamente como estaba, para el spec que sigue.
 test.describe.configure({ mode: 'serial' })
 
 const CLAVE = 'una-clave-de-prueba-9'
@@ -36,37 +36,7 @@ async function entrar(page: Page, correo: string) {
   await expect(page).toHaveURL('/')
 }
 
-// Tras «Guardar» la pantalla se vuelve a dibujar con lo guardado (el formulario se reemplaza), y el
-// aviso «guardados» sale antes. Con la CPU frenada esa ventana se agranda: lo que se teclea justo
-// al aparecer el aviso tiene que quedar en el formulario que se ve, y sobrevivir a recargar.
-test('guardar con la pantalla lenta no pierde lo que se teclea apenas aparece el aviso', async ({
-  page,
-  context,
-}, info) => {
-  test.skip(
-    info.project.name !== 'escritorio',
-    'El freno de CPU va por CDP: sólo Chromium de escritorio.',
-  )
-  await entrar(page, duena)
-  await page.goto('/configuracion/empresa')
-  await page.getByLabel('Razón social').fill(`Lenta ${Date.now()} SRL`)
-
-  const cdp = await context.newCDPSession(page)
-  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 20 })
-  try {
-    await page.getByRole('button', { name: 'Guardar', exact: true }).click()
-    await expect(page.getByText('Ajustes de la empresa guardados')).toBeVisible()
-    await page.getByLabel('NIT').fill('5060708090')
-  } finally {
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 })
-  }
-  await expect(page.getByLabel('NIT')).toHaveValue('5060708090')
-  await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toBeEnabled()
-
-  await page.reload()
-  await expect(page.getByText('Recuperamos lo que habías escrito')).toBeVisible()
-  await expect(page.getByLabel('NIT')).toHaveValue('5060708090')
-})
+// Sin prueba con el freno de CPU: pasaba también sin el arreglo (0 de 33), no discriminaba; la barandilla es la determinista de abajo.
 
 // El orden de los eventos, fijo: el servidor responde cuando la prueba quiere. Mientras guarda, el
 // formulario que se ve es el viejo y está a punto de reemplazarse con lo guardado: no se puede teclear
@@ -147,6 +117,8 @@ test('los avisos no tapan los botones del panel, y su acción se pulsa', async (
     await panel.getByLabel(/^Valor/).fill(valor)
     await panel.getByLabel(/^Valor/).press('Enter')
     await expect(avisos.filter({ hasText: 'Oficial' })).toHaveCount(valor === '7,50' ? 1 : 2)
+    // El aviso sale antes de que el panel se dibuje con lo guardado: el historial dice cuándo.
+    await expect(panel.getByRole('listitem').filter({ hasText: valor })).toBeVisible()
   }
   for (const aviso of await avisos.all()) {
     await quieto(aviso)
