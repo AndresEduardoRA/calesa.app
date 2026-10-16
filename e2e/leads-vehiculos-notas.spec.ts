@@ -2,8 +2,8 @@ import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/inventario'
 import { vincular } from './soporte/leads'
 import {
+  abrirAgendar,
   abrirRedactor,
-  bloqueDeRecordatorios,
   edicion,
   irASeguimientos,
   recordatorio,
@@ -56,8 +56,7 @@ test('un seguimiento y un recordatorio llevan un vehículo del lead, y se ve nom
   await expect(seguimiento(page, 'Le mostré el coupé')).toContainText(rotulo)
   expect(await vehiculoDeLaNota('seguimientos', lead.id, 'Le mostré el coupé')).toBe(autoId)
 
-  await bloqueDeRecordatorios(page).getByRole('button', { name: 'Agendar recordatorio' }).click()
-  const agenda = page.getByRole('form', { name: 'Agendar recordatorio' })
+  const agenda = await abrirAgendar(page)
   await agenda.getByLabel('De qué es').fill('Mandarle fotos del coupé')
   await agenda.getByRole('button', { name: 'Mañana 09:00' }).click()
   await agenda.getByLabel('Vehículo (opcional)').selectOption({ label: rotulo })

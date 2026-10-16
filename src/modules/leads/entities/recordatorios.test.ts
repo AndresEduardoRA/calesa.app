@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 import {
   conRecordatorio,
   estadoDelRecordatorio,
+  hayCambiosEnRecordatorio,
   motivoDelTituloDeRecordatorio,
   ordenarRecordatorios,
   pedidoDeRecordatorio,
   recordatorioDesde,
+  recordatorioParaEditar,
   recordatoriosDesde,
+  valoresDelRecordatorio,
   type Recordatorio,
 } from './recordatorios'
 
@@ -230,5 +233,38 @@ describe('el vehículo de un recordatorio', () => {
     expect(
       pedidoDeRecordatorio({ ...base, cuando: 'x', cuandoOriginal: 'x', original, vehiculo: '' }),
     ).toMatchObject({ tipo: 'guardar', pedido: { cambios: { vehiculoId: null } } })
+  })
+})
+
+describe('recordatorioParaEditar', () => {
+  it('el propio y pendiente se edita; completado no; uno que no está, tampoco', () => {
+    const pendiente = uno({})
+    const hecho = uno({ id: LEAD, completadoEn: AHORA })
+    expect(recordatorioParaEditar([pendiente, hecho], ID)).toEqual({
+      tipo: 'editable',
+      recordatorio: pendiente,
+    })
+    expect(recordatorioParaEditar([pendiente, hecho], LEAD).tipo).toBe('completado')
+    expect(recordatorioParaEditar([pendiente], 'no-es-un-id').tipo).toBe('no_esta')
+    expect(recordatorioParaEditar([], ID).tipo).toBe('no_esta')
+  })
+})
+
+describe('hayCambiosEnRecordatorio', () => {
+  it('nuevo: vacío no tiene cambios; un título, una fecha o un vehículo sí', () => {
+    const inicial = valoresDelRecordatorio(null, '')
+    expect(inicial).toEqual({ titulo: '', cuando: '', vehiculo: '' })
+    expect(hayCambiosEnRecordatorio({ ...inicial, titulo: '   ' }, inicial)).toBe(false)
+    expect(hayCambiosEnRecordatorio({ ...inicial, titulo: 'Llamar' }, inicial)).toBe(true)
+    expect(hayCambiosEnRecordatorio({ ...inicial, cuando: '2026-10-16T09:00' }, inicial)).toBe(true)
+    expect(hayCambiosEnRecordatorio({ ...inicial, vehiculo: ID }, inicial)).toBe(true)
+  })
+
+  it('editado: lo mismo que estaba no es un cambio', () => {
+    const inicial = valoresDelRecordatorio(uno({}), '2026-10-16T09:00')
+    expect(inicial.titulo).toBe('Llamar')
+    expect(hayCambiosEnRecordatorio({ ...inicial, titulo: 'Llamar ' }, inicial)).toBe(false)
+    expect(hayCambiosEnRecordatorio({ ...inicial, titulo: 'Escribir' }, inicial)).toBe(true)
+    expect(hayCambiosEnRecordatorio({ ...inicial, cuando: '2026-10-17T09:00' }, inicial)).toBe(true)
   })
 })

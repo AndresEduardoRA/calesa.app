@@ -88,6 +88,7 @@ export function ItemDeRecordatorio({
             className="min-h-11 md:min-h-7"
             onClick={alEditar}
             disabled={enCurso}
+            data-recordatorio-editar={recordatorio.id}
           >
             Editar
           </Button>

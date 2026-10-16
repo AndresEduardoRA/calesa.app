@@ -8,8 +8,9 @@ import { irAFicha } from './leads-ficha'
 
 export const SECCION = '?seccion=seguimientos'
 
-export async function irASeguimientos(page: Page, leadId: string): Promise<void> {
-  await irAFicha(page, leadId, SECCION)
+// `mas`: el resto de la URL (`&panel=…`).
+export async function irASeguimientos(page: Page, leadId: string, mas = ''): Promise<void> {
+  await irAFicha(page, leadId, `${SECCION}${mas}`)
   await expect(page.getByRole('region', { name: 'Seguimientos' })).toBeVisible()
 }
 
@@ -173,4 +174,23 @@ export async function meterRecordatorio(datos: {
     .single<{ id: string }>()
   exigir(error, 'insertar el recordatorio')
   return data?.id ?? ''
+}
+
+// «Agendar recordatorio» y «Editar» son un modal con su URL (`?panel=agendar-recordatorio`,
+// `?panel=editar-recordatorio&recordatorio=<id>`).
+export const modalDeRecordatorio = (page: Page, modo: 'Agendar' | 'Editar'): Locator =>
+  page.getByRole('dialog', { name: `${modo} recordatorio` })
+
+export async function abrirAgendar(page: Page): Promise<Locator> {
+  await bloqueDeRecordatorios(page).getByRole('button', { name: 'Agendar recordatorio' }).click()
+  const modal = modalDeRecordatorio(page, 'Agendar')
+  await expect(modal.getByLabel('De qué es')).toBeFocused()
+  return modal
+}
+
+export async function abrirEdicionDeRecordatorio(page: Page, titulo: string): Promise<Locator> {
+  await recordatorio(page, titulo).getByRole('button', { name: 'Editar' }).click()
+  const modal = modalDeRecordatorio(page, 'Editar')
+  await expect(modal.getByLabel('De qué es')).toBeFocused()
+  return modal
 }

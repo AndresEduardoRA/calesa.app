@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef } from 'react'
 import { Button } from '@/shared/ui/button'
+import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import {
   estadoDelRecordatorio,
   ordenarRecordatorios,
   type Recordatorio,
 } from '../../../entities/recordatorios'
+import { useModalDeRecordatorio } from '../hooks/use-modal-de-recordatorio'
 import type { Recordatorios } from '../hooks/use-recordatorios'
-import { FormularioDeRecordatorio } from './formulario-de-recordatorio'
+import { ModalDeRecordatorioDiferido } from './diferidos'
 import { ItemDeRecordatorio } from './item-de-recordatorio'
 
 type Props = {
@@ -23,88 +25,68 @@ function Lista({
   lista,
   ahora,
   zona,
-  leadId,
   recordatorios,
+  alEditar,
 }: {
   lista: readonly Recordatorio[]
   ahora: string
   zona: string
-  leadId: string
   recordatorios: Recordatorios
+  alEditar: (id: string) => void
 }) {
-  const [editando, setEditando] = useState<string | null>(null)
   return (
     <ul className="grid gap-2">
-      {lista.map((r) =>
-        editando === r.id ? (
-          <li key={r.id}>
-            <FormularioDeRecordatorio
-              leadId={leadId}
-              zona={zona}
-              original={r}
-              alGuardar={(guardado) => {
-                recordatorios.poner(guardado)
-                setEditando(null)
-              }}
-              alCerrar={() => {
-                setEditando(null)
-              }}
-            />
-          </li>
-        ) : (
-          <li key={r.id}>
-            <ItemDeRecordatorio
-              recordatorio={r}
-              estado={estadoDelRecordatorio(r, ahora)}
-              zona={zona}
-              enCurso={recordatorios.enCurso}
-              alCompletar={(completado) => void recordatorios.completar(r, completado)}
-              alEditar={() => {
-                setEditando(r.id)
-              }}
-              alEliminar={() => void recordatorios.eliminar(r)}
-            />
-          </li>
-        ),
-      )}
+      {lista.map((r) => (
+        <li key={r.id}>
+          <ItemDeRecordatorio
+            recordatorio={r}
+            estado={estadoDelRecordatorio(r, ahora)}
+            zona={zona}
+            enCurso={recordatorios.enCurso}
+            alCompletar={(completado) => void recordatorios.completar(r, completado)}
+            alEditar={() => {
+              alEditar(r.id)
+            }}
+            alEliminar={() => void recordatorios.eliminar(r)}
+          />
+        </li>
+      ))}
     </ul>
   )
 }
 
 // «Tus recordatorios» de este lead: los vencidos primero y marcados, después los pendientes y, al
-// final y plegados, los completados. Son personales: nadie más los ve.
+// final y plegados, los completados. Son personales: nadie más los ve. Agendar y editar abren un modal
+// con su URL (`?panel=agendar-recordatorio`, `?panel=editar-recordatorio&recordatorio=<id>`).
 export function BloqueDeRecordatorios({ leadId, zona, recordatorios, puedeAgendar }: Props) {
-  const [agendando, setAgendando] = useState(false)
+  const botonAgendar = useRef<HTMLButtonElement>(null)
+  const modal = useModalDeRecordatorio({ lista: recordatorios.lista, puedeAgendar })
+  const montar = useAbiertoAlgunaVez(modal.abierto)
   const ahora = new Date().toISOString()
   const ordenados = ordenarRecordatorios(recordatorios.lista, ahora)
   const abiertos = ordenados.filter((r) => r.completadoEn === null)
   const completados = ordenados.filter((r) => r.completadoEn !== null)
+  const lista = (de: readonly Recordatorio[]) => (
+    <Lista
+      lista={de}
+      ahora={ahora}
+      zona={zona}
+      recordatorios={recordatorios}
+      alEditar={modal.abrirEdicion}
+    />
+  )
   return (
     <section aria-label="Tus recordatorios" className="grid content-start gap-2">
       <h2 className="text-(length:--text-sm) font-semibold text-(--color-ink)">
         Tus recordatorios
       </h2>
-      {agendando ? (
-        <FormularioDeRecordatorio
-          leadId={leadId}
-          zona={zona}
-          original={null}
-          alGuardar={(nuevo) => {
-            recordatorios.poner(nuevo)
-            setAgendando(false)
-          }}
-          alCerrar={() => {
-            setAgendando(false)
-          }}
-        />
-      ) : puedeAgendar ? (
+      {puedeAgendar ? (
         <Button
+          ref={botonAgendar}
           type="button"
           variant="outline"
           className="min-h-11 w-fit md:min-h-8"
-          onClick={() => {
-            setAgendando(true)
-          }}
+          onClick={modal.abrirAgendar}
         >
           Agendar recordatorio
         </Button>
@@ -114,27 +96,31 @@ export function BloqueDeRecordatorios({ leadId, zona, recordatorios, puedeAgenda
           Ningún recordatorio pendiente sobre este lead.
         </p>
       ) : (
-        <Lista
-          lista={abiertos}
-          ahora={ahora}
-          zona={zona}
-          leadId={leadId}
-          recordatorios={recordatorios}
-        />
+        lista(abiertos)
       )}
       {completados.length > 0 ? (
         <details className="grid gap-2">
           <summary className="min-h-11 cursor-pointer text-(length:--text-sm) text-(--color-ink-soft) md:min-h-8">
             Completados ({completados.length})
           </summary>
-          <Lista
-            lista={completados}
-            ahora={ahora}
-            zona={zona}
-            leadId={leadId}
-            recordatorios={recordatorios}
-          />
+          {lista(completados)}
         </details>
+      ) : null}
+      {montar ? (
+        <ModalDeRecordatorioDiferido
+          key={modal.apertura}
+          abierto={modal.abierto}
+          alCerrar={modal.cerrar}
+          leadId={leadId}
+          zona={zona}
+          original={modal.original}
+          noDisponible={modal.noDisponible}
+          alGuardar={(guardado) => {
+            recordatorios.poner(guardado)
+            modal.cerrar()
+          }}
+          focoAlCerrar={() => modal.focoAlCerrar() ?? botonAgendar.current ?? true}
+        />
       ) : null}
     </section>
   )

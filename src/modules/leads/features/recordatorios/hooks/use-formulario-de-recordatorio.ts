@@ -1,105 +1,91 @@
 'use client'
 
-import { useAction } from 'next-safe-action/hooks'
-import { useState } from 'react'
-import { enviarAccion, type Envio } from '@/shared/lib/enviar-accion'
+import { useRouter } from 'next/navigation'
+import { useMemo, useState, useTransition } from 'react'
 import { localDeInstante } from '@/shared/lib/fechas'
 import { useAtajo } from '@/shared/ui/atajos'
-import { validarRecordatorio } from '../../../entities/recordatorio'
-import { valorDeVehiculo } from '../../../entities/vehiculo-de-nota'
+import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
 import {
-  pedidoDeRecordatorio,
+  hayCambiosEnRecordatorio,
+  valoresDelRecordatorio,
   type ErroresDelRecordatorio,
   type Recordatorio,
+  type ValoresDelRecordatorio,
 } from '../../../entities/recordatorios'
 import type { ResultadoDeRecordatorio } from '../../../entities/repositorios'
-import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
-import { crearRecordatorio } from '../actions/crear-recordatorio'
-import { guardarRecordatorio } from '../actions/guardar-recordatorio'
+import { useEnvioDeRecordatorio } from './use-envio-de-recordatorio'
 
 type Args = {
   leadId: string
   zona: string
-  // Nulo = agendar uno nuevo.
+  // Nulo = agendar uno nuevo. Al editar, la última versión que trajo la página: tras «Recargar» llega
+  // la nueva y el conflicto se va, con lo escrito intacto.
   original: Recordatorio | null
+  // Sólo abierto responden `Ctrl/Cmd+S` y `Ctrl/Cmd+Enter`: cerrado, el modal sigue montado.
+  abierto: boolean
   alGuardar: (recordatorio: ResultadoDeRecordatorio['recordatorio']) => void
 }
 
-// Agendar o cambiar un recordatorio: título y cuándo (a futuro, en la zona de la empresa). El alta
-// lleva su id de intento; editar, la versión. Un rechazo deja lo escrito.
-export function useFormularioDeRecordatorio({ leadId, zona, original, alGuardar }: Args) {
+// Agendar o cambiar un recordatorio: título, cuándo (a futuro, en la zona de la empresa) y el vehículo.
+// Lo escrito y no guardado queda como borrador de la pestaña, por recordatorio (o el nuevo de este
+// lead), y vuelve al reabrir con «Descartar». El envío es de `useEnvioDeRecordatorio`.
+export function useFormularioDeRecordatorio({ leadId, zona, original, abierto, alGuardar }: Args) {
+  const router = useRouter()
+  const [recargando, recargar] = useTransition()
   const cuandoOriginal = original ? localDeInstante(original.recordarEn, { zona }) : ''
-  const [titulo, setTitulo] = useState(original?.titulo ?? '')
-  const [cuando, setCuando] = useState(cuandoOriginal)
-  const [vehiculo, setVehiculo] = useState(valorDeVehiculo(original))
-  const [errores, setErrores] = useState<ErroresDelRecordatorio>({})
-  const [aviso, setAviso] = useState<string | null>(null)
-  const [intento] = useState(() => crypto.randomUUID())
-  const crear = useAction(crearRecordatorio)
-  const guardar = useAction(guardarRecordatorio)
-  const enCurso = crear.isPending || guardar.isPending
+  const inicial = useMemo(
+    () => valoresDelRecordatorio(original, cuandoOriginal),
+    [original, cuandoOriginal],
+  )
+  const [valores, setValores] = useState<ValoresDelRecordatorio>(inicial)
+  const borrador = useBorradorDeEstado({
+    clave: original ? `recordatorio-${original.id}` : `recordatorio-nuevo-${leadId}`,
+    valores,
+    guardado: inicial,
+    alReponer: (cambios) => {
+      setValores((antes) => ({ ...antes, ...cambios }))
+    },
+  })
+  const envio = useEnvioDeRecordatorio({
+    leadId,
+    zona,
+    original,
+    cuandoOriginal,
+    valores,
+    alGuardar: (recordatorio) => {
+      borrador.limpiar()
+      alGuardar(recordatorio)
+    },
+  })
+  useAtajo('guardar', () => void envio.enviar(), abierto && !envio.enCurso)
+  useAtajo('guardarYSeguir', () => void envio.enviar(), abierto && !envio.enCurso)
 
-  function aplicar(envio: Envio<ResultadoDeRecordatorio>) {
-    if (envio.ok) {
-      alGuardar(envio.data.recordatorio)
-      return
-    }
-    const porCampo = 'porCampo' in envio ? envio.porCampo : undefined
-    setErrores((porCampo ?? {}) as ErroresDelRecordatorio)
-    setAviso(porCampo ? null : envio.error.mensaje)
-  }
-
-  async function enviar() {
-    if (enCurso) {
-      return
-    }
-    const pedido = pedidoDeRecordatorio({
-      titulo,
-      cuando,
-      cuandoOriginal,
-      original,
-      intento,
-      leadId,
-      vehiculo,
-      validarCuando: (local) => validarRecordatorio(local, new Date().toISOString(), zona),
-    })
-    if (pedido.tipo === 'invalido') {
-      setErrores(pedido.errores)
-    } else if (pedido.tipo === 'sin_cambios') {
-      if (original) {
-        alGuardar({ ...original, eliminado: false })
+  const escribir =
+    (campo: keyof ValoresDelRecordatorio, error?: keyof ErroresDelRecordatorio) =>
+    (valor: string) => {
+      setValores((antes) => ({ ...antes, [campo]: valor }))
+      if (error) {
+        envio.resolver(error)
       }
-    } else {
-      aplicar(
-        await enviarAccion<ResultadoDeRecordatorio>(
-          pedido.tipo === 'crear'
-            ? crear.executeAsync(pedido.pedido)
-            : guardar.executeAsync(pedido.pedido),
-          MENSAJE_DE_VALIDACION,
-        ),
-      )
     }
-  }
-
-  useAtajo('guardar', () => void enviar())
-  useAtajo('guardarYSeguir', () => void enviar())
 
   return {
-    titulo,
-    cuando,
-    vehiculo,
-    errores,
-    aviso,
-    enCurso,
-    cambiarTitulo: (valor: string) => {
-      setTitulo(valor)
-      setErrores(({ titulo: _t, ...resto }) => resto)
+    ...valores,
+    ...envio,
+    recargando,
+    // Cerrar ahora perdería lo escrito: el modal pregunta antes.
+    hayCambios: hayCambiosEnRecordatorio(valores, inicial),
+    cambiarTitulo: escribir('titulo', 'titulo'),
+    cambiarCuando: escribir('cuando', 'recordarEn'),
+    cambiarVehiculo: escribir('vehiculo'),
+    reintentar: () => void envio.enviar(),
+    // Trae la versión de ahora; lo escrito queda.
+    recargar: () => {
+      recargar(() => {
+        router.refresh()
+      })
     },
-    cambiarCuando: (valor: string) => {
-      setCuando(valor)
-      setErrores(({ recordarEn: _r, ...resto }) => resto)
-    },
-    cambiarVehiculo: setVehiculo,
-    enviar,
+    // «Descartar» al cerrar con cambios: el borrador también se va.
+    descartarBorrador: borrador.limpiar,
   }
 }

@@ -4,6 +4,7 @@
 import { z } from 'zod'
 import {
   cambioDeVehiculo,
+  valorDeVehiculo,
   vehiculoAlCrear,
   vehiculoDeNotaDesde,
   type VehiculoDeLaNota,
@@ -11,6 +12,14 @@ import {
 
 export const LARGO_MAXIMO_DEL_RECORDATORIO = 120
 export const MENSAJE_DE_RECORDATORIO_NO_DISPONIBLE = 'No encontramos este recordatorio.'
+export const MENSAJE_DE_RECORDATORIO_COMPLETADO =
+  'Ese recordatorio está completado: reábrelo para editarlo.'
+
+// Agendar y editar son un modal con su URL: `?panel=agendar-recordatorio` y
+// `?panel=editar-recordatorio&recordatorio=<id>`. Comparten `?panel=` con los demás paneles de la ficha.
+export const PANEL_AGENDAR_RECORDATORIO = 'agendar-recordatorio'
+export const PANEL_EDITAR_RECORDATORIO = 'editar-recordatorio'
+export const CLAVE_DE_RECORDATORIO = 'recordatorio'
 
 export type Recordatorio = {
   id: string
@@ -210,4 +219,52 @@ export function pedidoDeRecordatorio(args: {
         tipo: 'guardar',
         pedido: { id: original.id, actualizadoEnEsperado: original.actualizadoEn, cambios },
       }
+}
+
+export type RecordatorioParaEditar =
+  | { tipo: 'editable'; recordatorio: Recordatorio }
+  | { tipo: 'completado'; recordatorio: Recordatorio }
+  | { tipo: 'no_esta' }
+
+// El de `?recordatorio=<id>` entre los de quien mira. La lista sólo trae los suyos y vivos: uno
+// ajeno, eliminado, inventado o mal escrito «no está», todos igual. Uno completado no se edita.
+export function recordatorioParaEditar(
+  lista: readonly Recordatorio[],
+  id: string,
+): RecordatorioParaEditar {
+  const recordatorio = lista.find((r) => r.id === id)
+  if (!recordatorio) {
+    return { tipo: 'no_esta' }
+  }
+  return recordatorio.completadoEn === null
+    ? { tipo: 'editable', recordatorio }
+    : { tipo: 'completado', recordatorio }
+}
+
+// Lo escrito en el modal de un recordatorio.
+export type ValoresDelRecordatorio = { titulo: string; cuando: string; vehiculo: string }
+
+// Con qué arranca: vacío al agendar; lo guardado al editar (`cuando` en la zona de la empresa).
+export function valoresDelRecordatorio(
+  original: Recordatorio | null,
+  cuandoOriginal: string,
+): ValoresDelRecordatorio {
+  return {
+    titulo: original?.titulo ?? '',
+    cuando: cuandoOriginal,
+    vehiculo: valorDeVehiculo(original),
+  }
+}
+
+// Cerrar ahora perdería algo: se pregunta antes. Los espacios alrededor del título no cuentan (no se
+// guardan).
+export function hayCambiosEnRecordatorio(
+  valores: ValoresDelRecordatorio,
+  inicial: ValoresDelRecordatorio,
+): boolean {
+  return (
+    valores.titulo.trim() !== inicial.titulo.trim() ||
+    valores.cuando !== inicial.cuando ||
+    valores.vehiculo !== inicial.vehiculo
+  )
 }

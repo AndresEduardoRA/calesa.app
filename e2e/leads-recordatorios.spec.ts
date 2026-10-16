@@ -3,8 +3,11 @@ import { CONTRASENA, entrar } from './soporte/alta'
 import { idDePersona, sesionDe } from './soporte/leads-alta'
 import { limpiarListado, prepararListado, type TerrenoDelListado } from './soporte/leads-listado'
 import { nuevoLead } from './soporte/leads-ficha'
-import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
+import { esMovil } from './soporte/inventario'
+import { cabeEnLaPantalla, completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import {
+  abrirAgendar,
+  abrirEdicionDeRecordatorio,
   abrirRedactor,
   bloqueDeRecordatorios,
   compartirCon,
@@ -15,9 +18,10 @@ import {
   seguimiento,
 } from './soporte/leads-seguimientos'
 
-// «Tus recordatorios» en la ficha: agendar con los atajos, uno pasado se rechaza, completar es
-// «poner» (dos veces no cambia nada), reabrir, editar la hora de uno ya avisado, eliminar con
-// «Deshacer», el aviso de vencidos arriba de la ficha y que el de otra persona no existe.
+// «Tus recordatorios» en la ficha: agendar con los atajos en un modal con su URL, uno pasado se
+// rechaza, completar es «poner» (dos veces no cambia nada), reabrir, editar la hora de uno ya avisado,
+// eliminar con «Deshacer», el aviso de vencidos arriba de la ficha y que el de otra persona no existe.
+// Lo propio del modal está en `leads-recordatorios-modal.spec.ts`.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelListado
@@ -45,8 +49,11 @@ test('agenda con «Mañana 09:00»; uno en el pasado se rechaza junto al campo',
   const bloque = bloqueDeRecordatorios(page)
   await expect(bloque.getByText('Ningún recordatorio pendiente sobre este lead.')).toBeVisible()
 
-  await bloque.getByRole('button', { name: 'Agendar recordatorio' }).click()
-  const formulario = page.getByRole('form', { name: 'Agendar recordatorio' })
+  const formulario = await abrirAgendar(page)
+  await expect(page).toHaveURL(/panel=agendar-recordatorio/)
+  if (esMovil(page)) {
+    await cabeEnLaPantalla(page, formulario)
+  }
   await formulario.getByLabel('De qué es').fill('Llamar por el RAV4')
   await formulario.getByLabel('Fecha y hora').fill('2020-01-01T09:00')
   await formulario.getByRole('button', { name: 'Guardar' }).click()
@@ -56,6 +63,8 @@ test('agenda con «Mañana 09:00»; uno en el pasado se rechaza junto al campo',
   await formulario.getByRole('button', { name: 'Mañana 09:00' }).click()
   await formulario.getByRole('button', { name: 'Guardar' }).dblclick()
   await expect(recordatorio(page, 'Llamar por el RAV4')).toBeVisible()
+  await expect(formulario).toHaveCount(0)
+  await expect(bloque.getByRole('button', { name: 'Agendar recordatorio' })).toBeFocused()
   const guardados = await recordatoriosEnLaBase(lead.id)
   expect(guardados).toHaveLength(1)
   // 09:00 en la zona de la empresa (La Paz, UTC-4).
@@ -154,26 +163,23 @@ test('cambiar la hora de uno ya avisado lo vuelve a dejar por avisar; eliminar o
   })
   await entrar(page, t.personas.berta)
   await irASeguimientos(page, lead.id)
-  await recordatorio(page, 'Ya avisó').getByRole('button', { name: 'Editar' }).click()
-  const formulario = page.getByRole('form', { name: 'Editar recordatorio' })
+  const formulario = await abrirEdicionDeRecordatorio(page, 'Ya avisó')
+  await expect(page).toHaveURL(/panel=editar-recordatorio&recordatorio=/)
   // Sólo el título: la hora pasada se conserva y no se pide otra.
   await formulario.getByLabel('De qué es').fill('Ya avisó, renombrado')
   await formulario.getByRole('button', { name: 'Guardar' }).click()
   await expect(formulario).toHaveCount(0)
   await expect(recordatorio(page, 'Ya avisó, renombrado')).toBeVisible()
+  // El foco vuelve al «Editar» de ese recordatorio.
+  await expect(
+    recordatorio(page, 'Ya avisó, renombrado').getByRole('button', { name: 'Editar' }),
+  ).toBeFocused()
   expect((await recordatoriosEnLaBase(lead.id))[0]?.notificado_en).not.toBeNull()
 
-  await recordatorio(page, 'Ya avisó, renombrado').getByRole('button', { name: 'Editar' }).click()
-  await page
-    .getByRole('form', { name: 'Editar recordatorio' })
-    .getByRole('button', { name: 'Mañana 09:00' })
-    .click()
-  await page
-    .getByRole('form', { name: 'Editar recordatorio' })
-    .getByRole('button', { name: 'Guardar' })
-    .click()
-  // Mientras se edita, el ítem es el formulario: se espera a que vuelva.
-  await expect(page.getByRole('form', { name: 'Editar recordatorio' })).toHaveCount(0)
+  const otraVez = await abrirEdicionDeRecordatorio(page, 'Ya avisó, renombrado')
+  await otraVez.getByRole('button', { name: 'Mañana 09:00' }).click()
+  await otraVez.getByRole('button', { name: 'Guardar' }).click()
+  await expect(otraVez).toHaveCount(0)
   await expect(recordatorio(page, 'Ya avisó, renombrado').getByText('Vencido')).toHaveCount(0)
   await expect.poll(async () => (await recordatoriosEnLaBase(lead.id))[0]?.notificado_en).toBeNull()
 
