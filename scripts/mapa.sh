@@ -80,6 +80,15 @@ exports_cliente_de() {
   exports_del_archivo "$1/client.ts"
 }
 
+# La tercera entrada de un módulo: la del SHELL (`shell.ts`), sólo para el layout `(app)`.
+exports_shell_de() {
+  [ "$STACK" = next ] || return 0
+  for f in "$1/shell.ts" "$1/shell.client.ts"; do
+    [ -f "$f" ] && exports_del_archivo "$f"
+  done
+  return 0
+}
+
 lista_corta() {
   awk -v max="$MAX_EXPORTS" '{ if (NR<=max) out = out (NR>1?", ":"") "`" $0 "`" } END { if (NR>max) out = out ", +" (NR-max); print out }'
 }
@@ -97,7 +106,7 @@ dependencias() {
     [ -z "$imp" ] && continue
     mod="${imp%%/*}"; resto="${imp#"$mod"}"
     [ "$mod" = "$yo" ] && continue
-    if [ "$STACK" = next ] && [ -n "$resto" ] && [ "$resto" != "/client" ]; then
+    if [ "$STACK" = next ] && [ -n "$resto" ] && [ "$resto" != "/client" ] && [ "$resto" != "/shell" ] && [ "$resto" != "/shell.client" ]; then
       avisar "\`$yo\` importa las tripas de \`$mod\` (\`$imp\`): usa \`@/modules/$mod\` o \`@/modules/$mod/client\`"
     elif [ "$STACK" = flutter ] && [ "$resto" != "/$mod.dart" ]; then
       avisar "\`$yo\` importa las tripas de \`$mod\` (\`$imp\`): usa \`modules/$mod/$mod.dart\`"
@@ -114,6 +123,8 @@ unidad() {
   [ -n "$exps" ] && echo "- API: $exps"
   exps=$(exports_cliente_de "$dir" | lista_corta)
   [ -n "$exps" ] && echo "- API de cliente (\`client.ts\`): $exps"
+  exps=$(exports_shell_de "$dir" | lista_corta)
+  [ -n "$exps" ] && echo "- API del shell (\`shell.ts\`, sólo el layout \`(app)\`): $exps"
   if [ "$NIVEL" = 2 ]; then
     deps=$(dependencias "$dir")
     echo "- Depende de: ${deps:-ningún otro módulo}"

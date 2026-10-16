@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from 'react'
-import { TiposCambioVigentes, getAjustes, getTiposCambio } from '@/modules/empresa'
+import { TiposCambioVigentes, getAjustes, getTiposCambio } from '@/modules/empresa/shell'
 import {
   BannerPerspectiva,
   ProveedorPerspectiva,
@@ -8,8 +8,8 @@ import {
   nombreVisible,
   puede,
   requerirSesion,
-} from '@/modules/equipo'
-import { AltaDeLead, leerContextoDeAlta, leerLayoutDeLeads } from '@/modules/leads'
+} from '@/modules/equipo/shell'
+import { AltaDeLead, leerContextoDeAlta, leerLayoutDeLeads } from '@/modules/leads/shell'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 import { EstiloDeMarca } from '@/shared/ui/estilo-de-marca'
 import { Marca } from '@/shared/ui/marca'

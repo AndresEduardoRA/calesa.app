@@ -1,6 +1,6 @@
 'use client'
 
-import { usePerspectiva } from '@/modules/equipo/client'
+import { usePerspectiva } from '@/modules/equipo/shell.client'
 import {
   DropdownMenuGroup,
   DropdownMenuLabel,

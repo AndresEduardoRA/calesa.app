@@ -34,15 +34,17 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Depende de: ningún otro módulo
 
 ### `empresa`
-Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 80 archivos
+Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 81 archivos
 - API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `huellaDelFormulario`, `PoliticaDeLimpieza`, `getPoliticaDeLimpieza`, `zonasHorarias`, `FormularioEmpresa`, +13
+- API del shell (`shell.ts`, sólo el layout `(app)`): `getAjustes`, `getTiposCambio`, `TiposCambioVigentes`
 - Depende de: ningún otro módulo
 - Casos de uso: empresa, iconos, integraciones, tipos-cambio
 
 ### `equipo`
-Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 131 archivos
+Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 133 archivos
 - API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +25
 - API de cliente (`client.ts`): `RoleBadge`, `usePerspectiva`, `Perspectiva`, `RolParaVerComo`, `MenuDeVistas`, `ParamsDeVista`, `VistaGuardada`
+- API del shell (`shell.ts`, sólo el layout `(app)`): `requerirSesion`, `nombreVisible`, `puede`, `cerrarSesion`, `ProveedorPreferencias`, `BannerPerspectiva`, `ProveedorPerspectiva`, `usePerspectiva`
 - Depende de: empresa
 - Casos de uso: auth, equipo, perfil, perspectiva, roles, vistas
 
@@ -53,9 +55,10 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 474 archivos
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 476 archivos
 - API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `EditorDeCamposDeLead`, `leerListadoDeLeads`, +38
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
+- API del shell (`shell.ts`, sólo el layout `(app)`): `leerContextoDeAlta`, `leerLayoutDeLeads`, `AltaDeLead`
 - Depende de: equipo
 - Casos de uso: alta, campos, cartera, embudo, etiquetas, exportar, ficha, importar, listado, marcas, oportunidades, papelera, portal, rapido, recordatorios, seguimientos, telefono
 
@@ -107,7 +110,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `lib/filtros/`: `campos.ts`, `chips.ts`, `esquema.ts`, `index.ts`, `opciones.ts`, `url.ts`
 - `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `consultas.ts`, `funciones.client.ts`, `proxy.ts`, `server.ts`
 - `types/`: `database.types.ts`
-- `ui/`: `avatar.tsx`, `aviso-de-conflicto.tsx`, `aviso.tsx`, `avisos-del-formulario.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo-seleccion.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar-descarte.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `estilo-de-marca.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `interruptor.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal-de-formulario.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `paginacion.tsx`, `pie-del-panel.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `salida-con-cambios.ts`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`, `use-abierto-alguna-vez.ts`, `use-apertura.ts`, `use-borrador-de-estado.ts`, `use-borrador.ts`, `use-cierre-con-cambios.ts`, `use-conflicto-hasta-la-version.ts`, `use-consulta-de-medios.ts`, `use-en-linea.ts`, `use-reintento-al-volver.ts`, `use-revision-al-abrir.ts`, `use-ultimo.ts`, `use-un-envio-a-la-vez.ts`, `zona-de-archivos.tsx`
+- `ui/`: `avatar.tsx`, `aviso-de-conflicto.tsx`, `aviso.tsx`, `avisos-del-formulario.tsx`, `badge.tsx`, `bloque.tsx`, `button.tsx`, `campo-seleccion.tsx`, `campo.tsx`, `checkbox.tsx`, `command.tsx`, `confirmar-descarte.tsx`, `confirmar.tsx`, `conmutador-tema.tsx`, `densidad.tsx`, `dialog.tsx`, `diferido.tsx`, `drawer.tsx`, `dropdown-menu.tsx`, `estilo-de-marca.tsx`, `guion-live.tsx`, `input-group.tsx`, `input.tsx`, `interruptor.tsx`, `label.tsx`, `live.ts`, `marca.tsx`, `modal-de-formulario.tsx`, `modal.tsx`, `monto.tsx`, `opciones.tsx`, `paginacion.tsx`, `pie-del-panel.tsx`, `popover.tsx`, `regional.tsx`, `registrar-service-worker.tsx`, `salida-con-cambios.ts`, `select.tsx`, `separator.tsx`, `sheet.tsx`, `skeleton.tsx`, `sonner.tsx`, `switch.tsx`, `table.tsx`, `tabs.tsx`, `textarea.tsx`, `toasts.ts`, `tooltip.tsx`, `transicion-pagina.tsx`, `use-abierto-alguna-vez.ts`, `use-apertura.ts`, `use-borrador-de-estado.ts`, `use-borrador.ts`, `use-cierre-con-cambios.ts`, `use-conflicto-hasta-la-version.ts`, `use-consulta-de-medios.ts`, `use-en-linea.ts`, `use-reintento-al-volver.ts`, `use-revision-al-abrir.ts`, `use-ultimo.ts`, `use-un-envio-a-la-vez.ts`, `zona-de-archivos.tsx`
 - `ui/atajos/`: `index.ts`, `proveedor-atajos.tsx`, `use-atajo.ts`
 - `ui/campos/`: `aviso-de-impacto.tsx`, `bloque-de-campos.tsx`, `campo-de-formulario.tsx`, `campo-valor-defecto.tsx`, `campos-de-campo.tsx`, `campos-desactivados.tsx`, `cerrar-con-aviso.ts`, `datos-por-grupo.tsx`, `ediciones.ts`, `editor-de-campos.tsx`, `editor-de-opciones.tsx`, `fila-de-campo.tsx`, `formulario-de-campo.tsx`, `grupos-de-campos.tsx`, `index.ts`, `panel-de-campo.tsx`, `pie-del-formulario.tsx`, `tipos.ts`, `use-formulario-de-campo.ts`, `valor-mostrado.tsx`
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-listado.tsx`, `esqueleto-tabla.tsx`, `index.ts`

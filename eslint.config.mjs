@@ -19,6 +19,29 @@ const SOLO_LAS_ENTRADAS = {
     'Entre módulos sólo se importa @/modules/<otro> (desde el servidor) o @/modules/<otro>/client (desde un Client Component).',
 }
 
+// La tercera entrada, la del SHELL (`@/modules/<x>/shell`): sólo el layout `(app)` y su carpeta `_shell/`.
+// Todo lo que el layout importa viaja en el JS de todas las pantallas, así que no puede ser el barril
+// de `index.ts` (`docs/RENDIMIENTO.md`). Las demás rutas siguen con las dos entradas de siempre.
+const LAS_ENTRADAS_Y_LA_DEL_SHELL = {
+  group: [
+    '@/modules/*/*',
+    '!@/modules/*/client',
+    '!@/modules/*/shell',
+    '!@/modules/*/shell.client',
+  ],
+  message:
+    'Entre módulos sólo se importa @/modules/<otro>, @/modules/<otro>/client o, en el layout del shell, @/modules/<otro>/shell (y shell.client en sus Client Components).',
+}
+
+// El código diferido (`import()` de un modal, un panel o una pestaña) pasa siempre por `diferido()` de
+// `src/shared/ui/diferido.tsx`: sin red, un `next/dynamic` suelto que nunca se pidió tumba la pantalla al
+// `error.tsx`. El ayudante carga con reintento y avisa en el lugar (`.claude/rules/escala.md`).
+const SOLO_EL_AYUDANTE_DE_DIFERIDOS = {
+  name: 'next/dynamic',
+  message:
+    'El código diferido pasa por diferido() de @/shared/ui/diferido: carga con reintento y, sin red, avisa en su lugar en vez de tumbar la pantalla.',
+}
+
 // El cliente admin salta la RLS. Fuera de `src/shared/lib/supabase` lo crea un solo archivo, que
 // comprueba el permiso antes y no expone más que `auth.admin` (.claude/rules/datos.md). Los route
 // handlers del portal, los webhooks y los crons se suman a esa lista cuando existan.
@@ -182,7 +205,7 @@ export default defineConfig([
       'no-restricted-imports': [
         'error',
         {
-          paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN],
+          paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS],
           patterns: [SOLO_CLIENTES_DE_SHARED, SOLO_LAS_ENTRADAS],
         },
       ],
@@ -196,6 +219,7 @@ export default defineConfig([
       'no-restricted-imports': [
         'error',
         {
+          paths: [SOLO_EL_AYUDANTE_DE_DIFERIDOS],
           patterns: [
             SOLO_CLIENTES_DE_SHARED,
             SOLO_LAS_ENTRADAS,
@@ -219,11 +243,30 @@ export default defineConfig([
   // infra/ sí importa los clientes de Supabase; lo único que le sigue vedado es el cliente admin.
   {
     files: ['src/modules/*/infra/**/*.ts'],
-    rules: { 'no-restricted-imports': ['error', { paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN] }] },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS] },
+      ],
+    },
   },
   {
     files: ['src/shared/lib/supabase/**/*.ts', ...DONDE_SE_PERMITE_EL_ADMIN],
     rules: { 'no-restricted-imports': 'off' },
+  },
+
+  // El layout del shell y su carpeta importan la entrada delgada de cada módulo.
+  {
+    files: ['src/app/(app)/layout.tsx', 'src/app/(app)/_shell/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS],
+          patterns: [SOLO_CLIENTES_DE_SHARED, LAS_ENTRADAS_Y_LA_DEL_SHELL],
+        },
+      ],
+    },
   },
 
   prettier,
