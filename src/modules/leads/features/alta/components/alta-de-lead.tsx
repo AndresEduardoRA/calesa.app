@@ -11,8 +11,14 @@ import { Button } from '@/shared/ui/button'
 import { Drawer } from '@/shared/ui/drawer'
 import { useRegional } from '@/shared/ui/regional'
 import { avisarExito } from '@/shared/ui/toasts'
-import type { ContextoDeAlta } from '../../../entities/alta'
+import {
+  ID_DEL_SEGUIMIENTO_DEL_ALTA,
+  avisoDelPieDelAlta,
+  textoDeLeadGuardado,
+  type ContextoDeAlta,
+} from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
+import { CLAVE_DE_SECCION } from '../../../entities/ficha'
 import { useAltaDeLead, type Guardado, type Paso } from '../hooks/use-alta-de-lead'
 import { usePanelDeAlta } from '../hooks/use-panel-de-alta'
 import { PanelDeAlta } from './panel-de-alta'
@@ -24,13 +30,17 @@ type Props = {
 }
 
 const ID_DEL_TELEFONO = 'lead-telefono_principal'
-const ID_DEL_RESUMEN = 'lead-seguimiento.titulo'
+const ID_DEL_RESUMEN = `${ID_DEL_SEGUIMIENTO_DEL_ALTA}-titulo`
+const ID_DEL_AVISO = 'aviso-del-alta'
 
 type FocoDelAlta = {
   abierto: boolean
   paso: Paso
   enCurso: boolean
+  // Los motivos, de los datos del lead y del primer seguimiento: cada rechazo nuevo lleva el foco al
+  // primero, aunque ya hubiera otros.
   errores: Record<string, string>
+  erroresDelSeguimiento: Record<string, string>
   idFormulario: string
   // Se pidió llevar el foco al teléfono apenas los campos dejen de estar deshabilitados.
   enfocarTelefonoRef: RefObject<boolean>
@@ -43,6 +53,7 @@ function useFocoDelAlta({
   paso,
   enCurso,
   errores,
+  erroresDelSeguimiento,
   idFormulario,
   enfocarTelefonoRef,
 }: FocoDelAlta) {
@@ -57,44 +68,70 @@ function useFocoDelAlta({
       document.getElementById(ID_DEL_RESUMEN)?.focus()
     }
   }, [abierto, paso])
-  const hayErrores = Object.keys(errores).length > 0
+  const hayErrores = Object.keys(errores).length + Object.keys(erroresDelSeguimiento).length > 0
   useEffect(() => {
     if (abierto && hayErrores) {
       enfocarPrimerError(document.getElementById(idFormulario) as HTMLFormElement | null)
     }
-  }, [abierto, hayErrores, errores, idFormulario])
+  }, [abierto, hayErrores, errores, erroresDelSeguimiento, idFormulario])
 }
 
 type PropsDelPie = {
   idFormulario: string
   paso: Paso
   enCurso: boolean
+  // Hay un primer seguimiento que ofrecer (tipos activos) y si ya se escribió algo.
+  conPasoDeSeguimiento: boolean
+  hayAlgoEscrito: boolean
   alVolver: () => void
   alCancelar: () => void
+  alGuardar: () => void
 }
 
-// Los botones del drawer: «Volver a los datos» o «Cancelar», y el que avanza o guarda (el mismo que
-// Ctrl/Cmd+Enter).
-function PieDelAlta({ idFormulario, paso, enCurso, alVolver, alCancelar }: PropsDelPie) {
-  const etiqueta =
-    paso === 'datos' ? 'Seguir con el seguimiento' : enCurso ? 'Guardando…' : 'Guardar lead'
+// Los botones del drawer. En los datos: «Guardar lead» (el lead solo, `Ctrl/Cmd+S`) y «Seguir con el
+// seguimiento» (`Ctrl/Cmd+Enter`, el principal: es lo que se hace casi siempre). En el seguimiento:
+// «Volver a los datos» y «Guardar lead» (las dos combinaciones guardan). Sin tipos de seguimiento activos
+// no hay segundo paso: sólo «Guardar lead». Encima, lo que va a pasar, dicho sin pedir confirmación.
+function PieDelAlta(props: PropsDelPie) {
+  const { idFormulario, paso, enCurso, conPasoDeSeguimiento, hayAlgoEscrito } = props
+  const enLosDatos = paso === 'datos'
+  const guardarEsElPrincipal = !enLosDatos || !conPasoDeSeguimiento
   return (
-    <div className="flex flex-wrap justify-end gap-2">
-      <Button
-        variant="ghost"
-        onClick={paso === 'seguimiento' ? alVolver : alCancelar}
-        disabled={enCurso}
-      >
-        {paso === 'seguimiento' ? 'Volver a los datos' : 'Cancelar'}
-      </Button>
-      <Button
-        type="submit"
-        form={idFormulario}
-        disabled={enCurso}
-        aria-keyshortcuts="Control+Enter Meta+Enter"
-      >
-        {etiqueta}
-      </Button>
+    <div className="grid gap-2">
+      <p id={ID_DEL_AVISO} className="text-(length:--text-sm) text-(--color-ink-soft)">
+        {avisoDelPieDelAlta({ hayTipos: conPasoDeSeguimiento, hayAlgoEscrito })}
+      </p>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          variant="ghost"
+          onClick={enLosDatos ? props.alCancelar : props.alVolver}
+          disabled={enCurso}
+        >
+          {enLosDatos ? 'Cancelar' : 'Volver a los datos'}
+        </Button>
+        <Button
+          type="button"
+          variant={guardarEsElPrincipal ? 'default' : 'outline'}
+          onClick={props.alGuardar}
+          disabled={enCurso}
+          aria-describedby={ID_DEL_AVISO}
+          aria-keyshortcuts={
+            guardarEsElPrincipal ? 'Control+Enter Meta+Enter Control+S Meta+S' : 'Control+S Meta+S'
+          }
+        >
+          {enCurso ? 'Guardando…' : 'Guardar lead'}
+        </Button>
+        {enLosDatos && conPasoDeSeguimiento ? (
+          <Button
+            type="submit"
+            form={idFormulario}
+            disabled={enCurso}
+            aria-keyshortcuts="Control+Enter Meta+Enter"
+          >
+            Seguir con el seguimiento
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -131,27 +168,30 @@ export function AltaDeLead({ contexto, campos }: Props) {
     layout: campos,
     zona: zonaHoraria,
     abierto: panel.abierto,
-    alGuardar: ({ id, numero, adoptado }: Guardado) => {
-      avisarExito(`Lead #${String(numero)} ${adoptado ? 'tomado' : 'creado'}`, {
+    alGuardar: ({ id, numero, adoptado, conSeguimiento }: Guardado) => {
+      // Sin primer seguimiento, «Abrir ficha» lleva a donde se anota después.
+      const seccion = conSeguimiento ? '' : `?${CLAVE_DE_SECCION}=seguimientos`
+      avisarExito(textoDeLeadGuardado({ numero, adoptado, conSeguimiento }), {
         etiqueta: 'Abrir ficha',
         alHacer: () => {
-          router.push(`${RUTAS.leads}/${id}` as Route)
+          router.push(`${RUTAS.leads}/${id}${seccion}` as Route)
         },
       })
       enfocarTelefono.current = true
     },
   })
-  const { paso, enCurso, errores, enviar } = alta
+  const { paso, enCurso, enviar, guardar } = alta
 
   useTeclaNuevoLead(panel)
   useAtajo('guardarYSeguir', () => void enviar(), panel.abierto)
-  useAtajo('guardar', () => void enviar(), panel.abierto)
+  useAtajo('guardar', () => void guardar(), panel.abierto)
 
   useFocoDelAlta({
     abierto: panel.abierto,
     paso,
     enCurso,
-    errores,
+    errores: alta.errores,
+    erroresDelSeguimiento: alta.erroresDelSeguimiento,
     idFormulario,
     enfocarTelefonoRef: enfocarTelefono,
   })
@@ -175,15 +215,18 @@ export function AltaDeLead({ contexto, campos }: Props) {
         abierto={panel.abierto}
         alCerrar={cerrar}
         titulo="Nuevo lead"
-        descripcion={paso === 'datos' ? 'Datos del lead' : 'Primer seguimiento'}
+        descripcion={paso === 'datos' ? 'Datos del lead' : 'Primer seguimiento (opcional)'}
         ancho="amplio"
         pie={
           <PieDelAlta
             idFormulario={idFormulario}
             paso={paso}
             enCurso={enCurso}
+            conPasoDeSeguimiento={alta.conPasoDeSeguimiento}
+            hayAlgoEscrito={alta.hayAlgoEscrito}
             alVolver={alta.volver}
             alCancelar={panel.cerrar}
+            alGuardar={() => void guardar()}
           />
         }
       >

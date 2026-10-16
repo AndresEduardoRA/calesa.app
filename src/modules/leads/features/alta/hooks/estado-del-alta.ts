@@ -7,6 +7,7 @@ import {
   type TelefonoResuelto,
 } from '../../../entities/pais-del-telefono'
 import { normalizarTelefono } from '../../../entities/telefono'
+import type { ErroresDelSeguimiento, ValoresDelSeguimiento } from '../../../entities/seguimiento'
 import { avisoDeVerificacion, type Verificacion } from '../../../entities/verificacion'
 
 // El estado del drawer «Nuevo lead» y cómo cambia. Todo puro: el hook sólo lo guarda.
@@ -18,7 +19,11 @@ export type Estado = {
   id: string
   paso: Paso
   valores: ValoresDeFormulario
+  // Lo escrito del primer seguimiento: los mismos valores que el redactor de la ficha.
+  seguimiento: ValoresDelSeguimiento
   errores: Record<string, string>
+  // Los motivos del primer seguimiento, junto a su campo (la ficha los dice igual).
+  erroresDelSeguimiento: ErroresDelSeguimiento
   // La persona aceptó «Tomar lead» (sólo vale mientras el teléfono siga sin dueño).
   adoptar: boolean
   aviso: string | null
@@ -31,28 +36,97 @@ export type Estado = {
 
 export const nuevoId = () => crypto.randomUUID()
 
-export const limpio = (id: string, valores: ValoresDeFormulario): Estado => ({
+export const limpio = (
+  id: string,
+  valores: ValoresDeFormulario,
+  seguimiento: ValoresDelSeguimiento,
+): Estado => ({
   id,
   paso: 'datos',
   valores,
+  seguimiento,
   errores: {},
+  erroresDelSeguimiento: {},
   adoptar: false,
   aviso: null,
   pendiente: false,
   paisesPuestos: [],
 })
 
-// Un dato del primer seguimiento o del recordatorio (los demás son del lead).
-const ES_DEL_SEGUIMIENTO = /^(seguimiento|recordatorio)\./
+// Los motivos que la base da para el primer seguimiento vienen con la clave del formulario del alta
+// (`hint`); el redactor los dice con la de sus campos.
+const CAMPO_DEL_SEGUIMIENTO: Record<string, keyof ErroresDelSeguimiento> = {
+  'seguimiento.tipo_id': 'tipoId',
+  'seguimiento.titulo': 'titulo',
+  'seguimiento.detalle': 'detalle',
+  'seguimiento.ocurrido_en': 'ocurridoEn',
+  'recordatorio.recordar_en': 'recordatorio',
+}
 
-// Si hay un error en algún dato del lead, el paso que lo muestra es el de los datos.
-function pasoDe(errores: Record<string, string>, actual: Paso): Paso {
-  return Object.keys(errores).some((clave) => !ES_DEL_SEGUIMIENTO.test(clave)) ? 'datos' : actual
+// Separa lo que dijo la base: los motivos del primer seguimiento y los de los datos del lead (cualquier
+// otra clave, también una que no conocemos).
+export function repartirMotivos(porCampo: Record<string, string>): {
+  lead: Record<string, string>
+  seguimiento: ErroresDelSeguimiento
+} {
+  const lead: Record<string, string> = {}
+  const seguimiento: ErroresDelSeguimiento = {}
+  for (const [clave, motivo] of Object.entries(porCampo)) {
+    const campo = CAMPO_DEL_SEGUIMIENTO[clave]
+    if (campo) {
+      seguimiento[campo] = motivo
+    } else {
+      lead[clave] = motivo
+    }
+  }
+  return { lead, seguimiento }
+}
+
+// Si hay un error en algún dato del lead, el paso que lo muestra es el de los datos; si sólo los hay
+// en el primer seguimiento, el del seguimiento.
+function pasoDe(
+  errores: Record<string, string>,
+  delSeguimiento: ErroresDelSeguimiento,
+  actual: Paso,
+): Paso {
+  if (Object.keys(errores).length > 0) {
+    return 'datos'
+  }
+  return Object.keys(delSeguimiento).length > 0 ? 'seguimiento' : actual
 }
 
 export function conCambio(antes: Estado, clave: string, valor: ValorDeFormulario): Estado {
   const { [clave]: _resuelto, ...errores } = antes.errores
   return { ...antes, valores: { ...antes.valores, [clave]: valor }, errores, aviso: null }
+}
+
+// Lo escrito en un campo del primer seguimiento: su motivo ya no vale y el aviso general tampoco.
+export function conSeguimientoCambiado<K extends keyof ValoresDelSeguimiento>(
+  antes: Estado,
+  clave: K,
+  valor: ValoresDelSeguimiento[K],
+): Estado {
+  const erroresDelSeguimiento = { ...antes.erroresDelSeguimiento }
+  delete erroresDelSeguimiento[clave as keyof ErroresDelSeguimiento]
+  return {
+    ...antes,
+    seguimiento: { ...antes.seguimiento, [clave]: valor },
+    erroresDelSeguimiento,
+    aviso: null,
+  }
+}
+
+// Lo que vuelve de un borrador: los valores de los datos y los del seguimiento, cada uno sobre lo suyo.
+export function conBorradorRepuesto(
+  antes: Estado,
+  valores: ValoresDeFormulario,
+  seguimiento: ValoresDelSeguimiento | null,
+): Estado {
+  return {
+    ...antes,
+    valores: { ...antes.valores, ...valores },
+    seguimiento: seguimiento ?? antes.seguimiento,
+  }
 }
 
 type EntradaDelPais = {
@@ -95,7 +169,18 @@ export function conPaisElegido(antes: Estado, clave: string, nombre: string): Es
 
 // Lo escrito no pasó la validación del formulario.
 export function trasValidacion(antes: Estado, errores: Record<string, string>): Estado {
-  return { ...antes, errores, aviso: null, paso: pasoDe(errores, antes.paso) }
+  return {
+    ...antes,
+    errores,
+    erroresDelSeguimiento: {},
+    aviso: null,
+    paso: pasoDe(errores, {}, antes.paso),
+  }
+}
+
+// El primer seguimiento no pasó la validación (los datos del lead sí): se vuelve a él, con sus motivos.
+export function trasSeguimientoInvalido(antes: Estado, errores: ErroresDelSeguimiento): Estado {
+  return { ...antes, errores: {}, erroresDelSeguimiento: errores, aviso: null, paso: 'seguimiento' }
 }
 
 // El servidor rechazó el guardado. Lo que ya se dice junto a un campo no se repite arriba.
@@ -104,13 +189,15 @@ export function trasRechazo(
   error: ErrorApp,
   porCampo?: Record<string, string>,
 ): Estado {
-  const errores = porCampo ?? {}
+  const { lead, seguimiento } = repartirMotivos(porCampo ?? {})
+  const hayMotivos = Object.keys(lead).length + Object.keys(seguimiento).length > 0
   return {
     ...antes,
     pendiente: false,
-    errores,
-    paso: pasoDe(errores, antes.paso),
-    aviso: Object.keys(errores).length > 0 ? null : error.mensaje,
+    errores: lead,
+    erroresDelSeguimiento: seguimiento,
+    paso: pasoDe(lead, seguimiento, antes.paso),
+    aviso: hayMotivos ? null : error.mensaje,
   }
 }
 

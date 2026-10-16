@@ -71,7 +71,6 @@ export type EntradaDePreparacion = {
   campos: readonly CampoDeLead[]
   contexto: ContextoDeAlta
   zona: string
-  ahora: string
   eleccion: EleccionParaTodoElArchivo
   // La tabla de países, para completar «País» con el del teléfono. Sin ella (todavía no llegó) no se
   // completa nada.
@@ -223,8 +222,6 @@ function prepararFila(
     layout: entrada.campos,
     contexto: entrada.contexto,
     zona: entrada.zona,
-    ahora: entrada.ahora,
-    conSeguimiento: false,
   })
   const porCampo = new Map(validacion.ok ? [] : Object.entries(validacion.porCampo))
   // Un dato que no se pudo leer ya dice por qué: no se repite con «es obligatorio».

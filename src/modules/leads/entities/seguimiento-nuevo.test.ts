@@ -39,6 +39,15 @@ describe('los valores de un seguimiento nuevo y los de un borrador', () => {
     expect(JSON.stringify(repuesto.detalle)).not.toContain('heading')
   })
 
+  it('un tipo que ya no está activo no se repone; uno activo sí', () => {
+    const antes = valoresDeSeguimientoNuevo([{ id: TIPO }])
+    expect(conValoresRepuestos(antes, { tipoId: OTRO_TIPO }, [TIPO]).tipoId).toBe(TIPO)
+    expect(conValoresRepuestos(antes, { tipoId: OTRO_TIPO }, [TIPO, OTRO_TIPO]).tipoId).toBe(
+      OTRO_TIPO,
+    )
+    expect(conValoresRepuestos(antes, { tipoId: OTRO_TIPO }).tipoId).toBe(OTRO_TIPO)
+  })
+
   it('un detalle sin texto repuesto queda en nada; sin la clave no se toca', () => {
     const antes = { ...valoresDeSeguimientoNuevo([{ id: TIPO }]), detalle: null }
     expect(

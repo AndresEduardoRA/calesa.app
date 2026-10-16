@@ -4,7 +4,7 @@ import { LARGO_MAXIMO_DEL_TITULO, VISIBILIDADES } from '../../../entities/seguim
 
 // Lo que cruza el límite de los seguimientos. El documento pasa por la misma lista blanca que la
 // base (`validarDocumento()`): lo que no pasa no sale del servidor. La base lo vuelve a validar.
-const detalle = z
+export const detalle = z
   .unknown()
   .superRefine((valor, ctx) => {
     const validado = validarDocumento(valor)

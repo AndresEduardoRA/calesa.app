@@ -101,7 +101,6 @@ function preparar(filas: string[][], extra: Partial<EntradaDePreparacion> = {}):
     campos: CAMPOS,
     contexto: CONTEXTO,
     zona: 'America/La_Paz',
-    ahora: '2026-10-15T15:00:00Z',
     eleccion: { origenId: WEB, tipo: 'prospecto' },
     nuevoId: () => `id-${String((contador += 1))}`,
     ...extra,

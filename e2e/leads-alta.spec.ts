@@ -49,7 +49,7 @@ const nuevoNumero = () => {
   return { nacional, normalizado: `${codigo}${nacional}` }
 }
 
-test('tarea de oro 1: de N al lead guardado con seguimiento y recordatorio, sólo con el teclado', async ({
+test('tarea de oro 1: de N al lead guardado con seguimiento, sólo con el teclado', async ({
   page,
 }, info) => {
   const { nacional, normalizado } = nuevoNumero()
@@ -70,23 +70,18 @@ test('tarea de oro 1: de N al lead guardado con seguimiento y recordatorio, sól
   await teclado.pulsar('Control+Enter')
   await expect(panel.getByLabel('Resumen')).toBeFocused()
   await teclado.escribir(resumen)
-  // Detalle → el atajo «Mañana» del recordatorio.
-  await teclado.pulsar('Tab')
-  await teclado.pulsar('Tab')
-  await teclado.pulsar('Enter')
-  await expect(panel.getByLabel('Fecha y hora')).not.toHaveValue('')
+  // El próximo contacto está plegado: anotar un seguimiento no lo pide.
+  await expect(panel.getByLabel('Fecha y hora')).toHaveCount(0)
   await teclado.pulsar('Control+Enter')
   await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
   const fin = performance.now()
 
-  // Lo que quedó: el lead, su seguimiento y su recordatorio, y la persona es la dueña.
+  // Lo que quedó: el lead y su seguimiento (sin recordatorio), y la persona es la dueña.
   const [lead] = await leadsConTelefono(normalizado)
   expect(lead).toMatchObject({ nombre, tipo: 'prospecto', telefono_cc: `+${codigo}` })
   expect(lead?.origen_lead_id).not.toBeNull()
   expect((await seguimientosDe(lead?.id ?? '')).map((s) => s.titulo)).toEqual([resumen])
-  const [recordatorio] = await recordatoriosDe(lead?.id ?? '')
-  expect(recordatorio?.titulo).toBe(resumen)
-  expect(Date.parse(recordatorio?.recordar_en ?? '')).toBeGreaterThan(Date.now())
+  expect(await recordatoriosDe(lead?.id ?? '')).toEqual([])
   expect((await carteraDe(lead?.id ?? '')).find((c) => c.tipo_acceso === 'dueno')?.usuario_id).toBe(
     await idDePersona(personas.duena),
   )

@@ -51,7 +51,7 @@ export async function leadsConTelefono(numero: string): Promise<LeadEnLaBase[]> 
 export async function seguimientosDe(leadId: string) {
   const { data, error } = await admin()
     .from('seguimientos')
-    .select('titulo, detalle_texto, detalle_doc, visibilidad, usuario_id, tipo_id')
+    .select('titulo, detalle_texto, detalle_doc, visibilidad, usuario_id, tipo_id, ocurrido_en')
     .eq('lead_id', leadId)
     .returns<
       {
@@ -61,6 +61,7 @@ export async function seguimientosDe(leadId: string) {
         visibilidad: string
         usuario_id: string
         tipo_id: string
+        ocurrido_en: string
       }[]
     >()
   exigir(error, 'leer los seguimientos')
@@ -141,6 +142,27 @@ export async function fijarCatalogosDeLead(): Promise<() => Promise<void>> {
       await cliente.from('origenes_lead').update({ activo: fila.activo }).eq('id', fila.id)
     }
     for (const fila of antesTipos) {
+      await cliente.from('tipos_seguimiento').update({ activo: fila.activo }).eq('id', fila.id)
+    }
+  }
+}
+
+// Apaga todos los tipos de seguimiento y devuelve cómo dejarlos como estaban.
+export async function apagarTodosLosTipos(): Promise<() => Promise<void>> {
+  const cliente = admin()
+  const { data, error } = await cliente
+    .from('tipos_seguimiento')
+    .select('id, activo')
+    .returns<{ id: string; activo: boolean }[]>()
+  exigir(error, 'leer los tipos de seguimiento')
+  const antes = data ?? []
+  const { error: fallo } = await cliente
+    .from('tipos_seguimiento')
+    .update({ activo: false })
+    .not('id', 'is', null)
+  exigir(fallo, 'apagar los tipos de seguimiento')
+  return async () => {
+    for (const fila of antes) {
       await cliente.from('tipos_seguimiento').update({ activo: fila.activo }).eq('id', fila.id)
     }
   }

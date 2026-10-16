@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button'
 import { BloqueDeCampos, CampoDeFormulario } from '@/shared/ui/campos'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
+import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import {
   CLAVE_DEL_ALTA,
   ETIQUETA_DE_TIPO_DEL_LEAD,
@@ -17,6 +18,7 @@ import {
 import type { CampoDeLead } from '../../../entities/campo'
 import type { AltaDeLead } from '../hooks/use-alta-de-lead'
 import { CampoTelefono } from '../../telefono/components/campo-telefono'
+import { LimiteDelPasoDeSeguimiento } from './limite-del-paso'
 import { PasoSeguimiento } from './paso-seguimiento'
 
 type Props = {
@@ -51,7 +53,7 @@ function Avisos({ alta }: { alta: AltaDeLead }) {
             variant="outline"
             size="sm"
             className="mt-2 min-h-11 md:min-h-7"
-            onClick={() => void alta.enviar()}
+            onClick={() => void alta.guardar()}
             disabled={alta.enCurso}
           >
             Reintentar
@@ -166,9 +168,12 @@ function PasoDeDatos({ alta, contexto, campos }: Omit<Props, 'id' | 'zona'>) {
   )
 }
 
-// El contenido del drawer: dos pasos en un solo formulario. Los dos quedan montados (el que no se ve
-// va oculto): lo escrito y lo plegado no se pierde al ir y volver.
+// El contenido del drawer: dos pasos en un solo formulario. El de los datos está siempre; el del primer
+// seguimiento (opcional) se monta la primera vez que se abre y desde ahí queda (oculto cuando no se ve):
+// lo escrito y lo plegado no se pierde al ir y volver, y los campos del seguimiento y el editor no se
+// piden hasta entonces.
 export function PanelDeAlta({ id, alta, contexto, campos, zona }: Props) {
+  const seguimientoAbierto = useAbiertoAlgunaVez(alta.paso === 'seguimiento')
   return (
     <form
       id={id}
@@ -184,7 +189,11 @@ export function PanelDeAlta({ id, alta, contexto, campos, zona }: Props) {
         <PasoDeDatos alta={alta} contexto={contexto} campos={campos} />
       </div>
       <div hidden={alta.paso !== 'seguimiento'}>
-        <PasoSeguimiento alta={alta} contexto={contexto} zona={zona} />
+        {seguimientoAbierto ? (
+          <LimiteDelPasoDeSeguimiento>
+            <PasoSeguimiento alta={alta} contexto={contexto} zona={zona} />
+          </LimiteDelPasoDeSeguimiento>
+        ) : null}
       </div>
     </form>
   )

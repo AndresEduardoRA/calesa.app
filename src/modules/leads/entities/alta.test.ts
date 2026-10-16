@@ -2,18 +2,19 @@ import { describe, expect, it } from 'vitest'
 import type { CampoDeLead } from './campo'
 import {
   CLAVE_DEL_ALTA,
+  avisoDelPieDelAlta,
   camposDelAlta,
   campoDelAlta,
   contextoDeAltaDesde,
   primerCampoConError,
   resumenDePrecargados,
+  textoDeLeadGuardado,
   valoresIniciales,
   validarAlta,
   type ContextoDeAlta,
 } from './alta'
 
 const ZONA = 'America/La_Paz'
-const AHORA = '2026-10-14T19:30:00.000Z'
 
 const ORIGEN_WEB = '11111111-1111-4111-8111-111111111111'
 const ORIGEN_FB = '22222222-2222-4222-8222-222222222222'
@@ -125,11 +126,11 @@ describe('campoDelAlta', () => {
 })
 
 describe('valoresIniciales', () => {
-  it('arranca con el primer origen, prospecto, el primer tipo de seguimiento y la ciudad de la empresa', () => {
+  it('arranca con el primer origen, prospecto y la ciudad de la empresa', () => {
     const v = valoresIniciales(CONTEXTO, LAYOUT, ZONA)
     expect(v[CLAVE_DEL_ALTA.origen]).toBe(ORIGEN_FB)
     expect(v[CLAVE_DEL_ALTA.tipo]).toBe('prospecto')
-    expect(v[CLAVE_DEL_ALTA.tipoDeSeguimiento]).toBe(TIPO_WA)
+    expect(Object.keys(v).some((clave) => clave.startsWith('seguimiento'))).toBe(false)
     expect(v['atributos.ciudad']).toBe('Santa Cruz')
     expect(v['atributos.pais']).toBe('Bolivia')
     expect(v['atributos.edad']).toBe('')
@@ -181,16 +182,11 @@ const base = () => ({
   [CLAVE_DEL_ALTA.nombre]: ' Ana Quispe ',
   'atributos.signo': 'leo',
 })
-const entrada = (
-  valores: Record<string, string | boolean | null | string[]>,
-  conSeguimiento = false,
-) => ({
+const entrada = (valores: Record<string, string | boolean | null | string[]>) => ({
   valores,
   layout: LAYOUT,
   contexto: CONTEXTO,
   zona: ZONA,
-  ahora: AHORA,
-  conSeguimiento,
 })
 
 describe('validarAlta: lo que pasa', () => {
@@ -208,29 +204,6 @@ describe('validarAlta: lo que pasa', () => {
         recordatorio: null,
       },
     })
-  })
-
-  it('con el seguimiento y un recordatorio', () => {
-    const r = validarAlta(
-      entrada(
-        {
-          ...base(),
-          [CLAVE_DEL_ALTA.resumen]: ' Pidió precio ',
-          [CLAVE_DEL_ALTA.detalle]: 'Lo vio en Facebook',
-          [CLAVE_DEL_ALTA.recordatorio]: '2026-10-15T09:00',
-        },
-        true,
-      ),
-    )
-    expect(r.ok).toBe(true)
-    if (r.ok) {
-      expect(r.datos.seguimiento).toEqual({
-        tipoId: TIPO_WA,
-        titulo: 'Pidió precio',
-        detalle: 'Lo vio en Facebook',
-      })
-      expect(r.datos.recordatorio).toEqual({ recordarEn: '2026-10-15T13:00:00.000Z' })
-    }
   })
 })
 
@@ -264,22 +237,9 @@ describe('validarAlta: lo que no pasa', () => {
     }
   })
 
-  it('un recordatorio en el pasado y un resumen vacío se dicen junto a su campo', () => {
-    const r = validarAlta(
-      entrada({ ...base(), [CLAVE_DEL_ALTA.recordatorio]: '2026-10-14T08:00' }, true),
-    )
-    expect(r.ok).toBe(false)
-    if (!r.ok) {
-      expect(r.porCampo[CLAVE_DEL_ALTA.recordatorio]).toBe(
-        'El recordatorio tiene que ser en el futuro.',
-      )
-      expect(r.porCampo[CLAVE_DEL_ALTA.resumen]).toBe('Escribe un resumen del seguimiento.')
-    }
-  })
-
-  it('el seguimiento no se mira en el primer paso', () => {
-    const r = validarAlta(entrada({ ...base(), [CLAVE_DEL_ALTA.resumen]: '' }))
-    expect(r.ok).toBe(true)
+  it('el primer seguimiento no es de esta validación: viaja vacío', () => {
+    const r = validarAlta(entrada(base()))
+    expect(r).toMatchObject({ ok: true, datos: { seguimiento: null, recordatorio: null } })
   })
 
   it('sin origen activo se guarda sin origen; sin código de país el teléfono pide «+»', () => {
@@ -310,15 +270,42 @@ describe('validarAlta: lo que no pasa', () => {
 })
 
 describe('primerCampoConError', () => {
-  it('el primero en el orden del formulario: fijos, requeridos propios, el resto, seguimiento', () => {
-    const errores = {
-      'atributos.edad': 'x',
-      'atributos.signo': 'x',
-      'seguimiento.titulo': 'x',
-    }
+  it('el primero en el orden del formulario: fijos, requeridos propios y el resto', () => {
+    const errores = { 'atributos.edad': 'x', 'atributos.signo': 'x' }
     expect(primerCampoConError(errores, LAYOUT)).toBe('atributos.signo')
     expect(primerCampoConError({ 'atributos.edad': 'x', nombre: 'x' }, LAYOUT)).toBe('nombre')
-    expect(primerCampoConError({ 'seguimiento.titulo': 'x' }, LAYOUT)).toBe('seguimiento.titulo')
     expect(primerCampoConError({}, LAYOUT)).toBeNull()
+  })
+})
+
+describe('el pie del drawer y el aviso de un lead guardado', () => {
+  it('sin nada escrito dice que se crea sin seguimiento y que se anota después desde la ficha', () => {
+    expect(avisoDelPieDelAlta({ hayTipos: true, hayAlgoEscrito: false })).toBe(
+      'Se creará sin primer seguimiento. Podrás anotarlo después desde la ficha.',
+    )
+  })
+
+  it('con algo escrito dice que se guarda con él', () => {
+    expect(avisoDelPieDelAlta({ hayTipos: true, hayAlgoEscrito: true })).toBe(
+      'Se guardará con el primer seguimiento que escribiste.',
+    )
+  })
+
+  it('sin tipos activos lo dice y no bloquea', () => {
+    expect(avisoDelPieDelAlta({ hayTipos: false, hayAlgoEscrito: false })).toBe(
+      'No hay tipos de seguimiento activos: se creará sin primer seguimiento. Podrás anotarlo después desde la ficha.',
+    )
+  })
+
+  it('el lead guardado dice si entró sin seguimiento y si se tomó', () => {
+    const base = { numero: 124, adoptado: false, conSeguimiento: true }
+    expect(textoDeLeadGuardado(base)).toBe('Lead #124 creado')
+    expect(textoDeLeadGuardado({ ...base, adoptado: true })).toBe('Lead #124 tomado')
+    expect(textoDeLeadGuardado({ ...base, conSeguimiento: false })).toBe(
+      'Lead #124 creado sin seguimiento',
+    )
+    expect(textoDeLeadGuardado({ ...base, adoptado: true, conSeguimiento: false })).toBe(
+      'Lead #124 tomado sin seguimiento',
+    )
   })
 })

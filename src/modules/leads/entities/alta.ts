@@ -14,7 +14,7 @@ import {
   type ValoresDeFormulario,
 } from '@/shared/lib/campos'
 import { valorDefectoVigente, type CampoDeLead, type DatosDeLaEmpresa } from './campo'
-import { validarRecordatorio } from './recordatorio'
+import type { Documento } from './documento'
 import { normalizarTelefono } from './telefono'
 
 // --- Lo que el drawer necesita de la base, en un viaje --------------------------------------------
@@ -63,10 +63,6 @@ export const CLAVE_DEL_ALTA = {
   nombre: 'nombre',
   origen: 'origen_lead_id',
   tipo: 'tipo',
-  tipoDeSeguimiento: 'seguimiento.tipo_id',
-  resumen: 'seguimiento.titulo',
-  detalle: 'seguimiento.detalle',
-  recordatorio: 'recordatorio.recordar_en',
 } as const
 
 export const claveDeAtributoDeAlta = (clave: string) => `atributos.${clave}`
@@ -86,8 +82,6 @@ export const ETIQUETA_DE_TIPO_DEL_LEAD: Record<TipoDelLead, string> = {
 // --- Qué va arriba y qué va en «Más datos» ----------------------------------------------------------
 
 export const LARGO_MAXIMO_DEL_NOMBRE = 120
-export const LARGO_MAXIMO_DEL_RESUMEN = 120
-export const LARGO_MAXIMO_DEL_DETALLE = 5000
 
 // Los campos activos que se piden de entrada (los requeridos, aunque sean propios) y los que quedan
 // plegados, cada grupo en el orden del layout.
@@ -117,9 +111,9 @@ export function campoDelAlta(campo: CampoDeLead): CampoDeFormulario {
   )
 }
 
-// Con qué arranca el formulario: el último origen (o el primero activo), «prospecto», el primer
-// tipo de seguimiento por orden, y el valor por defecto de cada campo activo (la ciudad de la
-// empresa incluida).
+// Con qué arranca el formulario de los datos: el último origen (o el primero activo), «prospecto» y el
+// valor por defecto de cada campo activo (la ciudad de la empresa incluida). El primer seguimiento
+// tiene sus propios valores (`valoresDeSeguimientoNuevo`).
 export function valoresIniciales(
   contexto: ContextoDeAlta,
   layout: readonly CampoDeLead[],
@@ -130,10 +124,6 @@ export function valoresIniciales(
     [CLAVE_DEL_ALTA.nombre]: '',
     [CLAVE_DEL_ALTA.origen]: contexto.ultimoOrigenId ?? contexto.origenes[0]?.id ?? '',
     [CLAVE_DEL_ALTA.tipo]: TIPO_DEL_LEAD_POR_DEFECTO,
-    [CLAVE_DEL_ALTA.tipoDeSeguimiento]: contexto.tiposDeSeguimiento[0]?.id ?? '',
-    [CLAVE_DEL_ALTA.resumen]: '',
-    [CLAVE_DEL_ALTA.detalle]: '',
-    [CLAVE_DEL_ALTA.recordatorio]: '',
   }
   for (const campo of layout) {
     if (campo.activo) {
@@ -194,9 +184,20 @@ export type DatosDeAlta = {
   tipo: TipoDelLead
   // Sólo lo que tiene valor, ya convertido a lo que guarda la base.
   atributos: Record<string, Exclude<Dato, null>>
-  seguimiento: { tipoId: string; titulo: string; detalle: string | null } | null
+  // Lo arma `primerSeguimiento()` (otra pieza, que se carga al guardar): la validación de los datos
+  // del lead no lo mira y lo deja en nulo.
+  seguimiento: PrimerSeguimientoDeAlta | null
   // El instante, en UTC.
   recordatorio: { recordarEn: string } | null
+}
+
+export type PrimerSeguimientoDeAlta = {
+  tipoId: string
+  titulo: string
+  // El documento del editor (la lista blanca de la ficha), nulo = sin detalle.
+  detalle: Documento | null
+  // El instante, en UTC; nulo = ahora.
+  ocurridoEn: string | null
 }
 
 export type ValidacionDeAlta =
@@ -210,10 +211,6 @@ type Entrada = {
   layout: readonly CampoDeLead[]
   contexto: ContextoDeAlta
   zona: string
-  // «Ahora», ISO: se pasa para poder probarlo.
-  ahora: string
-  // Falso = sólo el paso de los datos del lead; verdadero = también el primer seguimiento.
-  conSeguimiento: boolean
 }
 
 type Motivos = Record<string, string>
@@ -277,58 +274,17 @@ function validarAtributos(
   return atributos
 }
 
-function validarSeguimiento(
-  { valores, contexto }: Pick<Entrada, 'valores' | 'contexto'>,
-  motivos: Motivos,
-): NonNullable<DatosDeAlta['seguimiento']> {
-  const tipoId = texto(valores[CLAVE_DEL_ALTA.tipoDeSeguimiento])
-  if (!contexto.tiposDeSeguimiento.some((t) => t.id === tipoId)) {
-    motivos[CLAVE_DEL_ALTA.tipoDeSeguimiento] = 'Elige un tipo de seguimiento.'
-  }
-  const titulo = texto(valores[CLAVE_DEL_ALTA.resumen])
-  if (titulo === '') {
-    motivos[CLAVE_DEL_ALTA.resumen] = 'Escribe un resumen del seguimiento.'
-  } else if (titulo.length > LARGO_MAXIMO_DEL_RESUMEN) {
-    motivos[CLAVE_DEL_ALTA.resumen] =
-      `El resumen admite hasta ${String(LARGO_MAXIMO_DEL_RESUMEN)} caracteres.`
-  }
-  const detalle = texto(valores[CLAVE_DEL_ALTA.detalle])
-  if (detalle.length > LARGO_MAXIMO_DEL_DETALLE) {
-    motivos[CLAVE_DEL_ALTA.detalle] =
-      `El detalle admite hasta ${String(LARGO_MAXIMO_DEL_DETALLE)} caracteres.`
-  }
-  return { tipoId, titulo, detalle: detalle === '' ? null : detalle }
-}
-
-function validarRecordatorioDelAlta(
-  { valores, ahora, zona }: Pick<Entrada, 'valores' | 'ahora' | 'zona'>,
-  motivos: Motivos,
-): DatosDeAlta['recordatorio'] {
-  const cuando = texto(valores[CLAVE_DEL_ALTA.recordatorio])
-  if (cuando === '') {
-    return null
-  }
-  const valido = validarRecordatorio(cuando, ahora, zona)
-  if (!valido.ok) {
-    motivos[CLAVE_DEL_ALTA.recordatorio] = valido.motivo
-    return null
-  }
-  return { recordarEn: valido.recordarEn }
-}
-
 export function validarAlta(entrada: Entrada): ValidacionDeAlta {
   const porCampo: Motivos = {}
   const fijos = validarFijos(entrada, porCampo)
   const atributos = validarAtributos(entrada, porCampo)
-  const seguimiento = entrada.conSeguimiento ? validarSeguimiento(entrada, porCampo) : null
-  const recordatorio = entrada.conSeguimiento ? validarRecordatorioDelAlta(entrada, porCampo) : null
   if (Object.keys(porCampo).length > 0 || !fijos.tipo) {
     return { ok: false, porCampo }
   }
   const { telefono, nombre, origenId, tipo } = fijos
   return {
     ok: true,
-    datos: { telefono, nombre, origenId, tipo, atributos, seguimiento, recordatorio },
+    datos: { telefono, nombre, origenId, tipo, atributos, seguimiento: null, recordatorio: null },
   }
 }
 
@@ -344,10 +300,34 @@ export function primerCampoConError(
     CLAVE_DEL_ALTA.tipo,
     ...layout.filter((c) => c.activo && c.requerido).map((c) => claveDeAtributoDeAlta(c.clave)),
     ...layout.filter((c) => c.activo && !c.requerido).map((c) => claveDeAtributoDeAlta(c.clave)),
-    CLAVE_DEL_ALTA.tipoDeSeguimiento,
-    CLAVE_DEL_ALTA.resumen,
-    CLAVE_DEL_ALTA.detalle,
-    CLAVE_DEL_ALTA.recordatorio,
   ]
   return orden.find((clave) => porCampo[clave] !== undefined) ?? null
+}
+
+// --- Lo que dice el pie del drawer y el aviso de un lead guardado ---------------------------------------
+
+export const ID_DEL_SEGUIMIENTO_DEL_ALTA = 'alta-seguimiento'
+
+export const AVISO_SIN_SEGUIMIENTO =
+  'Se creará sin primer seguimiento. Podrás anotarlo después desde la ficha.'
+
+// El primer seguimiento es opcional y la pantalla lo dice sin bloquear nada: ni un diálogo de
+// confirmación (son decenas de altas al día) ni un botón que castigue no escribirlo.
+export function avisoDelPieDelAlta(args: { hayTipos: boolean; hayAlgoEscrito: boolean }): string {
+  if (!args.hayTipos) {
+    return 'No hay tipos de seguimiento activos: se creará sin primer seguimiento. Podrás anotarlo después desde la ficha.'
+  }
+  return args.hayAlgoEscrito
+    ? 'Se guardará con el primer seguimiento que escribiste.'
+    : AVISO_SIN_SEGUIMIENTO
+}
+
+// «Lead #124 creado», «Lead #124 tomado» y, sin primer seguimiento, «… sin seguimiento».
+export function textoDeLeadGuardado(args: {
+  numero: number
+  adoptado: boolean
+  conSeguimiento: boolean
+}): string {
+  const hecho = args.adoptado ? 'tomado' : 'creado'
+  return `Lead #${String(args.numero)} ${hecho}${args.conSeguimiento ? '' : ' sin seguimiento'}`
 }

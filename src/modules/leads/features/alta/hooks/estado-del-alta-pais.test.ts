@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { valoresDeSeguimientoNuevo } from '../../../entities/seguimiento-nuevo'
 import { conPaisDelTelefono, conPaisElegido, limpio } from './estado-del-alta'
 
 const ID = '4a1f5b0e-6f0a-4f6e-9a55-1b6e2a1f0c11'
@@ -10,7 +11,8 @@ const compartido = {
   codigo: '1',
   pais: { tipo: 'varios' as const, opciones: [{ iso: 'US', nombre: 'Estados Unidos' }] },
 }
-const con = (pais: string) => limpio(ID, { telefono_principal: '', [PAIS]: pais })
+const con = (pais: string) =>
+  limpio(ID, { telefono_principal: '', [PAIS]: pais }, valoresDeSeguimientoNuevo([]))
 
 describe('«País» sigue al número', () => {
   it('reemplaza el de la empresa y lo recuerda como puesto por el sistema', () => {

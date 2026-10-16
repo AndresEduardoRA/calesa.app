@@ -1,21 +1,30 @@
 'use client'
 
-import type { Dispatch, SetStateAction } from 'react'
+import { useRef, type Dispatch, type SetStateAction } from 'react'
 import { validarAlta, type ContextoDeAlta, type DatosDeAlta } from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { ResultadoDeAlta } from '../../../entities/repositorios'
+import type * as ElPrimerSeguimiento from '../../../entities/primer-seguimiento'
+import { hayAlgoEscrito } from '../../../entities/seguimiento-nuevo'
 import type { Verificacion } from '../../../entities/verificacion'
 import {
   conTelefonoFrenado,
   frenadoPorElTelefono,
   trasDuplicado,
   trasRechazo,
+  trasSeguimientoInvalido,
   trasValidacion,
   type Estado,
 } from './estado-del-alta'
 import { useCrearLead } from './use-crear-lead'
 
-export type Guardado = { id: string; numero: number; adoptado: boolean }
+export type Guardado = {
+  id: string
+  numero: number
+  adoptado: boolean
+  // Entró con su primer seguimiento: el aviso y la ficha a la que lleva dependen de eso.
+  conSeguimiento: boolean
+}
 
 type Args = {
   estado: Estado
@@ -34,17 +43,81 @@ type Args = {
   alGuardado: (guardado: Guardado, origenId: string | null) => void
 }
 
-// Avanzar del paso de los datos al del seguimiento y, desde ahí, guardar: el lead, su primer
-// seguimiento y el recordatorio entran juntos. Un duplicado no es un error: se dice junto al
-// teléfono. Sin red, el intento queda esperando (con su id) y sale solo al volver.
+type Preparado =
+  | { ok: true; datos: DatosDeAlta }
+  // La validación ya dejó dicho en el estado qué no pasó, o por qué se espera.
+  | { ok: false }
+
+type Contexto = Pick<Args, 'estado' | 'setEstado' | 'contexto' | 'zona'>
+
+// Los datos del lead y el teléfono: lo que no pasa queda dicho en el estado y no se sigue.
+function validarLosDatos(args: Contexto & Pick<Args, 'layout' | 'telefono'>): DatosDeAlta | null {
+  const { estado, setEstado, layout, contexto, zona, telefono } = args
+  const validacion = validarAlta({ valores: estado.valores, layout, contexto, zona })
+  if (!validacion.ok) {
+    setEstado((antes) => trasValidacion(antes, validacion.porCampo))
+    return null
+  }
+  const frenado = frenadoPorElTelefono(telefono.verificacion, estado.adoptar)
+  if (frenado) {
+    setEstado((antes) => conTelefonoFrenado(antes, frenado))
+    return null
+  }
+  return validacion.datos
+}
+
+// El primer seguimiento: lo escrito, o nada. La validación (el documento, las fechas) se pide recién
+// ahora y sólo si hay algo escrito, para que no viaje con el resto del alta.
+async function preparaElSeguimiento(args: Contexto, datos: DatosDeAlta): Promise<Preparado> {
+  const { estado, setEstado, contexto, zona } = args
+  if (contexto.tiposDeSeguimiento.length === 0 || !hayAlgoEscrito(estado.seguimiento)) {
+    return { ok: true, datos }
+  }
+  let modulo: typeof ElPrimerSeguimiento
+  try {
+    modulo = await import('../../../entities/primer-seguimiento')
+  } catch {
+    // El código de la validación no llegó (sin red): se espera como cualquier envío.
+    setEstado((antes) => ({ ...antes, pendiente: true, aviso: null }))
+    return { ok: false }
+  }
+  const resultado = modulo.primerSeguimiento(estado.seguimiento, {
+    ahora: new Date().toISOString(),
+    zona,
+    tiposActivos: contexto.tiposDeSeguimiento.map((t) => t.id),
+  })
+  if (resultado.tipo === 'invalido') {
+    setEstado((antes) => trasSeguimientoInvalido(antes, resultado.errores))
+    return { ok: false }
+  }
+  if (resultado.tipo === 'sin') {
+    return { ok: true, datos }
+  }
+  return {
+    ok: true,
+    datos: { ...datos, seguimiento: resultado.seguimiento, recordatorio: resultado.recordatorio },
+  }
+}
+
+// Avanzar del paso de los datos al del seguimiento, y guardar: el lead y, si se escribió algo, su primer
+// seguimiento y el próximo contacto entran juntos en una transacción. El segundo paso es opcional: sin
+// nada escrito se crea el lead solo. Un duplicado no es un error: se dice junto al teléfono. Sin red,
+// el intento queda esperando (con su id) y sale solo al volver.
 export function useEnvioDelAlta(args: Args) {
   const { estado, setEstado, layout, contexto, zona, telefono, alGuardado } = args
   const envio = useCrearLead()
+  const preparando = useRef(false)
+  const hayTipos = contexto.tiposDeSeguimiento.length > 0
 
   function resolver(dato: ResultadoDeAlta, datos: DatosDeAlta): boolean {
     if (!('verificacion' in dato)) {
       alGuardado(
-        { id: dato.id, numero: dato.numero, adoptado: dato.resultado === 'adoptado' },
+        {
+          id: dato.id,
+          numero: dato.numero,
+          adoptado: dato.resultado === 'adoptado',
+          conSeguimiento: datos.seguimiento !== null,
+        },
         datos.origenId,
       )
       return true
@@ -56,7 +129,7 @@ export function useEnvioDelAlta(args: Args) {
     return false
   }
 
-  async function guardar(datos: DatosDeAlta): Promise<boolean> {
+  async function enviarDatos(datos: DatosDeAlta): Promise<boolean> {
     const hecho = await envio.crear({ id: estado.id, datos, adoptar: telefono.adoptar })
     if (hecho.ok) {
       return resolver(hecho.data, datos)
@@ -69,34 +142,51 @@ export function useEnvioDelAlta(args: Args) {
     return false
   }
 
-  async function enviar(): Promise<boolean> {
-    if (envio.enCurso) {
-      return false
-    }
-    const enElSeguimiento = estado.paso === 'seguimiento'
-    const validacion = validarAlta({
-      valores: estado.valores,
-      layout,
-      contexto,
-      zona,
-      ahora: new Date().toISOString(),
-      conSeguimiento: enElSeguimiento,
-    })
-    if (!validacion.ok) {
-      setEstado((antes) => trasValidacion(antes, validacion.porCampo))
-      return false
-    }
-    const frenado = frenadoPorElTelefono(telefono.verificacion, estado.adoptar)
-    if (frenado) {
-      setEstado((antes) => conTelefonoFrenado(antes, frenado))
-      return false
-    }
-    if (!enElSeguimiento) {
-      setEstado((antes) => ({ ...antes, paso: 'seguimiento', errores: {}, aviso: null }))
-      return true
-    }
-    return guardar(validacion.datos)
+  // Los datos del lead y del teléfono, antes de pasar a nada más.
+  function validarElLead(): DatosDeAlta | null {
+    return validarLosDatos({ estado, setEstado, layout, contexto, zona, telefono })
   }
 
-  return { enviar, enCurso: envio.enCurso }
+  async function conElSeguimiento(datos: DatosDeAlta): Promise<Preparado> {
+    return preparaElSeguimiento({ estado, setEstado, contexto, zona }, datos)
+  }
+
+  // Guarda el lead tal como está: con el primer seguimiento si se escribió, y solo si no. Es «Guardar
+  // lead» de cualquiera de los dos pasos y `Ctrl/Cmd+S`.
+  async function guardar(): Promise<boolean> {
+    // Una sola a la vez: `envio.enCurso` recién se prende al enviar, después de pedir la validación del
+    // seguimiento, y un segundo `Ctrl/Cmd+S` o un clic en esa ventana saldría dos veces.
+    if (envio.enCurso || preparando.current) {
+      return false
+    }
+    const datos = validarElLead()
+    if (!datos) {
+      return false
+    }
+    preparando.current = true
+    try {
+      const completo = await conElSeguimiento(datos)
+      if (!completo.ok) {
+        return false
+      }
+      return await enviarDatos(completo.datos)
+    } finally {
+      preparando.current = false
+    }
+  }
+
+  // `Ctrl/Cmd+Enter`: en los datos avanza al seguimiento (valida lo del lead antes); en el seguimiento
+  // guarda. Sin tipos de seguimiento activos no hay a dónde avanzar: guarda.
+  async function enviar(): Promise<boolean> {
+    if (estado.paso === 'seguimiento' || !hayTipos) {
+      return guardar()
+    }
+    if (envio.enCurso || !validarElLead()) {
+      return false
+    }
+    setEstado((antes) => ({ ...antes, paso: 'seguimiento', errores: {}, aviso: null }))
+    return true
+  }
+
+  return { enviar, guardar, enCurso: envio.enCurso }
 }

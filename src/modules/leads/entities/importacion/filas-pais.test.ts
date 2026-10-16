@@ -48,7 +48,6 @@ function preparar(
     campos: CON_PAIS,
     contexto: CONTEXTO,
     zona: 'America/La_Paz',
-    ahora: '2026-10-15T15:00:00Z',
     eleccion: { origenId: WEB, tipo: 'prospecto' },
     paises: TABLA_DE_PAISES,
     nuevoId: () => `id-${String((n += 1))}`,

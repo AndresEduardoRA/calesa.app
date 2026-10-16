@@ -43,7 +43,6 @@ export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
   const [destinos, setDestinos] = useState<(string | null)[]>([])
   const [avisos, setAvisos] = useState<readonly string[]>([])
   const [eleccion, setEleccion] = useState(() => eleccionInicial(contexto))
-  const [ahora] = useState(() => new Date().toISOString())
   // La tabla de países se pide al elegir el archivo, igual que papaparse: completa «País» con el del
   // teléfono donde la celda viene vacía.
   const paises = usePaises(archivo !== null)
@@ -59,7 +58,6 @@ export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
       campos,
       contexto,
       zona,
-      ahora,
       eleccion,
       paises,
       nuevoId: () => {
@@ -68,7 +66,7 @@ export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
         return id
       },
     })
-  }, [archivo, destinos, campos, contexto, zona, ahora, eleccion, paises])
+  }, [archivo, destinos, campos, contexto, zona, eleccion, paises])
 
   const faltan = useMemo(() => objetivosSinColumna(destinos, objetivos), [destinos, objetivos])
 

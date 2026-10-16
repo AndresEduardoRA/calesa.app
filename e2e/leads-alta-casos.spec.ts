@@ -233,6 +233,7 @@ test('un recordatorio con fecha pasada se rechaza junto al campo y no guarda nad
   const panel = dialogo(page)
   await llenarYSeguir(page, nacional, `E2E Pasado ${info.project.name}`)
   await panel.getByLabel('Resumen').fill('Recordar ayer')
+  await panel.getByRole('button', { name: 'Programar próximo contacto' }).click()
   await panel.getByLabel('Fecha y hora').fill('2020-01-01T09:00')
   await page.keyboard.press('Control+Enter')
   await expect(panel.getByText('El recordatorio tiene que ser en el futuro.')).toBeVisible()
