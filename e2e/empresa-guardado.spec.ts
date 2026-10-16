@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './soporte/prueba'
+import { expect, test, type Locator, type Page } from './soporte/prueba'
 import { borrarPersonasDePrueba, correoDePrueba, crearDuenaDePrueba } from './soporte/base'
 import {
   restaurarEmpresa,
@@ -107,4 +107,68 @@ test('mientras guarda no se puede teclear, y al llegar lo guardado sí', async (
   await page.reload()
   await expect(page.getByText('Recuperamos lo que habías escrito')).toBeVisible()
   await expect(page.getByLabel('NIT')).toHaveValue('7070707070')
+})
+
+// Un aviso es de paso: no puede tapar lo que la persona acaba de usar. Tras guardar, el pie del panel
+// («Cerrar», «Guardar») queda justo donde sale el aviso. Se mide con el navegador, sin depender de la
+// carga: en el centro de cada botón, quién recibe el clic (`elementFromPoint`).
+async function quieto(aviso: Locator) {
+  let anterior = ''
+  await expect
+    .poll(async () => {
+      const ahora = JSON.stringify(await aviso.boundingBox())
+      const igual = ahora === anterior
+      anterior = ahora
+      return igual
+    })
+    .toBe(true)
+}
+
+async function recibeElClic(boton: Locator): Promise<boolean> {
+  await boton.scrollIntoViewIfNeeded()
+  return boton.evaluate((el) => {
+    const caja = el.getBoundingClientRect()
+    const arriba = document.elementFromPoint(caja.x + caja.width / 2, caja.y + caja.height / 2)
+    return arriba !== null && el.contains(arriba)
+  })
+}
+
+test('los avisos no tapan los botones del panel, y su acción se pulsa', async ({ page }) => {
+  await entrar(page, duena)
+  await page.goto('/configuracion/empresa?seccion=monedas')
+  await page.getByRole('button', { name: /^Oficial/ }).click()
+  const panel = page.getByRole('dialog')
+  await expect(panel.getByRole('heading', { name: 'Oficial' })).toBeVisible()
+
+  // Dos avisos apilados, con la animación de entrada terminada.
+  const avisos = page.locator('[data-sonner-toast]')
+  for (const valor of ['7,50', '7,51']) {
+    // Con Enter, no con el puntero: el primer aviso ya está sobre el botón.
+    await panel.getByLabel(/^Valor/).fill(valor)
+    await panel.getByLabel(/^Valor/).press('Enter')
+    await expect(avisos.filter({ hasText: 'Oficial' })).toHaveCount(valor === '7,50' ? 1 : 2)
+  }
+  for (const aviso of await avisos.all()) {
+    await quieto(aviso)
+  }
+
+  // Lo de abajo del panel recibe el clic, no el aviso.
+  expect(await recibeElClic(panel.getByRole('button', { name: 'Cerrar' }).first())).toBe(true)
+  expect(await recibeElClic(panel.getByRole('button', { name: 'Guardar' }))).toBe(true)
+
+  // Y con el teclado: Escape cierra el panel con los avisos abiertos.
+  await page.keyboard.press('Escape')
+  await expect(panel).toBeHidden()
+
+  // Un aviso con acción sigue pulsable: lo tipeado y sin guardar se recupera, y se puede descartar.
+  await page.goto('/configuracion/empresa')
+  await page.getByLabel('NIT').fill('9090909090')
+  await page.reload()
+  const recuperado = page.locator('[data-sonner-toast]').filter({ hasText: 'Recuperamos' })
+  await expect(recuperado).toBeVisible()
+  await quieto(recuperado)
+  const descartar = recuperado.getByRole('button', { name: 'Descartar' })
+  expect(await recibeElClic(descartar)).toBe(true)
+  await descartar.click()
+  await expect(page.getByLabel('NIT')).toHaveValue('')
 })

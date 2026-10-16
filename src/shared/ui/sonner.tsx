@@ -34,7 +34,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: 'cn-toast',
+          // El aviso sale abajo a la derecha, justo sobre el pie de un panel («Cerrar», «Guardar»), y
+          // con el puntero encima sonner pausa su temporizador: tapaba el botón y no se iba. El aviso
+          // deja pasar el puntero; sólo sus botones («Descartar», «Deshacer», la ✕) lo reciben.
+          toast: 'cn-toast pointer-events-none [&_button]:pointer-events-auto',
         },
       }}
       {...props}
