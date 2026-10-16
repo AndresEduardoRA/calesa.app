@@ -14,26 +14,42 @@ export async function irASeguimientos(page: Page, leadId: string, mas = ''): Pro
   await expect(page.getByRole('region', { name: 'Seguimientos' })).toBeVisible()
 }
 
-export const redactor = (page: Page): Locator =>
-  page.getByRole('form', { name: 'Anotar seguimiento' })
-export const edicion = (page: Page): Locator =>
-  page.getByRole('form', { name: 'Editar seguimiento' })
+// El modal de anotar o editar (`?panel=anotar-seguimiento`, `?panel=editar-seguimiento&seguimiento=`):
+// adentro están los campos y el pie con «Cancelar» y «Guardar».
+export const modalDeSeguimiento = (page: Page, modo: 'Anotar' | 'Editar'): Locator =>
+  page.getByRole('dialog', { name: `${modo} seguimiento` })
 export const editorDe = (formulario: Locator): Locator =>
   formulario.getByRole('textbox', { name: 'Detalle (opcional)' })
 // Dentro de la línea de tiempo: un recordatorio puede llevar el mismo título.
 export const seguimiento = (page: Page, titulo: string): Locator =>
   page.getByRole('region', { name: 'Seguimientos' }).getByRole('article', { name: titulo })
 
-// Abre el redactor con el botón; antes de hidratar el clic no vale, así que se insiste.
-export async function abrirRedactor(page: Page): Promise<Locator> {
-  const formulario = redactor(page)
+// Abre el modal con «Anotar seguimiento»; antes de hidratar el clic no vale, así que se insiste. El
+// foco queda en el resumen y el editor llega aparte (carga diferida).
+export async function abrirAnotar(page: Page): Promise<Locator> {
+  const modal = modalDeSeguimiento(page, 'Anotar')
   await expect(async () => {
-    await page.getByRole('button', { name: 'Anotar seguimiento' }).click()
-    await expect(formulario).toBeVisible({ timeout: 1000 })
+    if (!page.url().includes('panel=anotar-seguimiento')) {
+      await page.getByRole('button', { name: 'Anotar seguimiento' }).click()
+    }
+    await expect(modal).toBeVisible({ timeout: 1000 })
   }).toPass()
-  // El editor llega aparte (carga diferida).
-  await expect(editorDe(formulario)).toBeVisible()
-  return formulario
+  await expect(editorDe(modal)).toBeVisible()
+  await expect(modal.getByLabel('Resumen')).toBeFocused()
+  return modal
+}
+
+// Abre el modal de edición de un seguimiento de la línea de tiempo.
+export async function abrirEdicionDeSeguimiento(page: Page, titulo: string): Promise<Locator> {
+  const modal = modalDeSeguimiento(page, 'Editar')
+  await expect(async () => {
+    if (!page.url().includes('panel=editar-seguimiento')) {
+      await seguimiento(page, titulo).getByRole('button', { name: 'Editar' }).click()
+    }
+    await expect(modal).toBeVisible({ timeout: 1000 })
+  }).toPass()
+  await expect(editorDe(modal)).toBeVisible()
+  return modal
 }
 
 // Le da el lead a otra persona como co-asesora, como lo haría `lead_compartir` (sin pasar por la pantalla).

@@ -10,13 +10,13 @@ import {
 } from './soporte/leads-ficha'
 import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import {
-  abrirRedactor,
+  abrirAnotar,
+  abrirEdicionDeSeguimiento,
   apagarTipo,
-  edicion,
   editorDe,
   irASeguimientos,
+  modalDeSeguimiento,
   recordatoriosEnLaBase,
-  redactor,
   seguimiento,
   seguimientosEnLaBase,
   tipoDeSeguimiento,
@@ -50,7 +50,7 @@ test('anota un seguimiento con formato, se dibuja igual y no mueve la versión d
   await irASeguimientos(page, lead.id)
   await expect(page.getByText('Todavía no hay seguimientos')).toBeVisible()
 
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   await formulario.getByLabel('Resumen').fill('Pidió el precio del RAV4')
   const editor = editorDe(formulario)
   await editor.click()
@@ -78,7 +78,7 @@ test('anota un seguimiento con formato, se dibuja igual y no mueve la versión d
   await expect(enlace).toHaveAttribute('href', 'https://ejemplo.com/rav4')
   await expect(enlace).toHaveAttribute('rel', 'noopener noreferrer nofollow')
   await expect(anotado.getByText('Tú', { exact: false })).toBeVisible()
-  await expect(redactor(page)).toHaveCount(0)
+  await expect(modalDeSeguimiento(page, 'Anotar')).toBeHidden()
 
   const guardados = await seguimientosEnLaBase(lead.id)
   expect(guardados).toHaveLength(1)
@@ -111,7 +111,7 @@ test('un seguimiento anotado en otra pestaña no le da conflicto a quien edita l
 
   const otra = await context.newPage()
   await irASeguimientos(otra, lead.id)
-  const formulario = await abrirRedactor(otra)
+  const formulario = await abrirAnotar(otra)
   await formulario.getByLabel('Resumen').fill('Llamó mientras editaban')
   await formulario.getByRole('button', { name: 'Guardar' }).click()
   await expect(seguimiento(otra, 'Llamó mientras editaban')).toBeVisible()
@@ -130,7 +130,7 @@ test('editar con una versión vieja da el conflicto sin perder lo escrito; recar
   const lead = await leadDeBerta(`Seg Version ${info.project.name}`)
   await entrar(page, t.personas.berta)
   await irASeguimientos(page, lead.id)
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   await formulario.getByLabel('Resumen').fill('Primera versión')
   await formulario.getByRole('button', { name: 'Guardar' }).click()
   await expect(seguimiento(page, 'Primera versión')).toBeVisible()
@@ -138,14 +138,13 @@ test('editar con una versión vieja da el conflicto sin perder lo escrito; recar
   // La misma persona lo edita en otra ventana.
   const otra = await context.newPage()
   await irASeguimientos(otra, lead.id)
-  await seguimiento(otra, 'Primera versión').getByRole('button', { name: 'Editar' }).click()
-  await edicion(otra).getByLabel('Resumen').fill('Desde la otra ventana')
-  await edicion(otra).getByRole('button', { name: 'Guardar' }).click()
+  const enLaOtra = await abrirEdicionDeSeguimiento(otra, 'Primera versión')
+  await enLaOtra.getByLabel('Resumen').fill('Desde la otra ventana')
+  await enLaOtra.getByRole('button', { name: 'Guardar' }).click()
   await expect(seguimiento(otra, 'Desde la otra ventana')).toBeVisible()
   await otra.close()
 
-  await seguimiento(page, 'Primera versión').getByRole('button', { name: 'Editar' }).click()
-  const editando = edicion(page)
+  const editando = await abrirEdicionDeSeguimiento(page, 'Primera versión')
   await editando.getByLabel('Resumen').fill('Lo que escribí acá')
   await editando.getByRole('button', { name: 'Guardar' }).click()
   await expect(editando.getByText(/Cambiaste este seguimiento .* desde otra ventana/)).toBeVisible()
@@ -168,7 +167,7 @@ test('un tipo apagado no se ofrece, y una fecha futura se dice junto al campo', 
   try {
     await entrar(page, t.personas.berta)
     await irASeguimientos(page, lead.id)
-    const formulario = await abrirRedactor(page)
+    const formulario = await abrirAnotar(page)
     const tipos = formulario.getByLabel('Tipo de seguimiento')
     await expect(tipos.locator('option', { hasText: visita.nombre })).toHaveCount(0)
 
@@ -193,7 +192,7 @@ test('eliminar se hace al instante y «Deshacer» lo devuelve', async ({ page },
   const lead = await leadDeBerta(`Seg Eliminar ${info.project.name}`)
   await entrar(page, t.personas.berta)
   await irASeguimientos(page, lead.id)
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   await formulario.getByLabel('Resumen').fill('Para eliminar')
   await formulario.getByRole('button', { name: 'Guardar' }).click()
   await expect(seguimiento(page, 'Para eliminar')).toBeVisible()
@@ -208,13 +207,13 @@ test('eliminar se hace al instante y «Deshacer» lo devuelve', async ({ page },
   expect((await seguimientosEnLaBase(lead.id))[0]?.eliminado_en).toBeNull()
 })
 
-test('el editor no le roba la N ni los atajos al marco, y lo escrito sobrevive a recargar', async ({
+test('el editor no le roba la N ni los atajos al marco, y lo escrito sobrevive a recargar y a «atrás»', async ({
   page,
 }, info) => {
   const lead = await leadDeBerta(`Seg Atajos ${info.project.name}`)
   await entrar(page, t.personas.berta)
   await irASeguimientos(page, lead.id)
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   await formulario.getByLabel('Resumen').fill('Con atajos')
   const editor = editorDe(formulario)
   await editor.click()
@@ -222,21 +221,32 @@ test('el editor no le roba la N ni los atajos al marco, y lo escrito sobrevive a
   await expect(editor).toHaveText('Nunca nada')
   await expect(page.getByRole('dialog', { name: 'Nuevo lead' })).toHaveCount(0)
 
-  // Recargar: el redactor vuelve abierto, con lo escrito.
+  // Recargar: el modal vuelve abierto (está en la URL), con lo escrito.
   await page.reload()
-  const repuesto = redactor(page)
+  const repuesto = modalDeSeguimiento(page, 'Anotar')
   await expect(repuesto.getByLabel('Resumen')).toHaveValue('Con atajos')
   await expect(editorDe(repuesto)).toHaveText('Nunca nada')
 
-  // Esc lo pliega y el borrador queda; Ctrl/Cmd+Enter guarda (y no mete un salto).
+  // Esc con algo escrito pregunta en el mismo modal; «Seguir editando» vuelve sin perder nada.
   await editorDe(repuesto).click()
   await page.keyboard.press('Escape')
-  await expect(redactor(page)).toHaveCount(0)
-  const deVuelta = await abrirRedactor(page)
+  await expect(repuesto.getByText('Tienes cambios sin guardar.')).toBeVisible()
+  await expect(repuesto.getByRole('button', { name: 'Seguir editando' })).toBeFocused()
+  await repuesto.getByRole('button', { name: 'Seguir editando' }).click()
+
+  // «Atrás» cierra sin preguntar; el borrador queda y no se abre solo: se ofrece «Continuar».
+  await page.goBack()
+  await expect(repuesto).toBeHidden()
+  await expect(page.getByText('Tienes un seguimiento sin guardar.')).toBeVisible()
+  await page.getByRole('button', { name: 'Continuar' }).click()
+  const deVuelta = modalDeSeguimiento(page, 'Anotar')
   await expect(editorDe(deVuelta)).toHaveText('Nunca nada')
+  // Ctrl/Cmd+Enter guarda (y no mete un salto).
   await editorDe(deVuelta).click()
   await page.keyboard.press('ControlOrMeta+Enter')
   await expect(seguimiento(page, 'Con atajos')).toBeVisible()
+  await expect(page.getByText('Tienes un seguimiento sin guardar.')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Anotar seguimiento' })).toBeFocused()
   const [guardado] = await seguimientosEnLaBase(lead.id)
   expect(guardado?.detalle_texto).toBe('Nunca nada')
 })
@@ -248,7 +258,7 @@ test('«Próximo contacto» nace plegado, se explica y se guarda junto con el se
   await entrar(page, t.personas.berta)
   await irASeguimientos(page, lead.id)
 
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   // Plegado: ni fecha ni atajos, y ninguna palabra sobre un «recordatorio (opcional)».
   await expect(formulario.getByRole('button', { name: 'Programar próximo contacto' })).toBeVisible()
   await expect(formulario.getByLabel('Fecha y hora')).toHaveCount(0)
@@ -270,7 +280,7 @@ test('«Próximo contacto» nace plegado, se explica y se guarda junto con el se
   expect(Date.parse(agendados[0]?.recordar_en ?? '')).toBeGreaterThan(Date.now())
 
   // «Quitar» lo vacía y lo pliega, y devuelve el foco al botón.
-  const otro = await abrirRedactor(page)
+  const otro = await abrirAnotar(page)
   await otro.getByRole('button', { name: 'Programar próximo contacto' }).click()
   await otro.getByRole('button', { name: 'Quitar' }).click()
   await expect(otro.getByRole('button', { name: 'Programar próximo contacto' })).toBeFocused()

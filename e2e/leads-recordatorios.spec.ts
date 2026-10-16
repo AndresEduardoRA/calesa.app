@@ -8,7 +8,7 @@ import { cabeEnLaPantalla, completoCon, nacional } from './soporte/leads-ficha-t
 import {
   abrirAgendar,
   abrirEdicionDeRecordatorio,
-  abrirRedactor,
+  abrirAnotar,
   bloqueDeRecordatorios,
   compartirCon,
   irASeguimientos,
@@ -77,7 +77,7 @@ test('anotar un seguimiento con recordatorio deja los dos, en una sola vez', asy
   const lead = await leadDeBerta(`Rec Con Seguimiento ${info.project.name}`)
   await entrar(page, t.personas.berta)
   await irASeguimientos(page, lead.id)
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   await formulario.getByLabel('Resumen').fill('Quedó en pensarlo')
   await formulario.getByRole('button', { name: 'Programar próximo contacto' }).click()
   await formulario.getByRole('button', { name: 'En 3 días 09:00' }).click()

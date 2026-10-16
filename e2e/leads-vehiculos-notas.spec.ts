@@ -3,8 +3,8 @@ import { entrar } from './soporte/inventario'
 import { vincular } from './soporte/leads'
 import {
   abrirAgendar,
-  abrirRedactor,
-  edicion,
+  abrirAnotar,
+  abrirEdicionDeSeguimiento,
   irASeguimientos,
   recordatorio,
   seguimiento,
@@ -49,7 +49,7 @@ test('un seguimiento y un recordatorio llevan un vehículo del lead, y se ve nom
   await entrar(page, t.ada)
   await irASeguimientos(page, lead.id)
 
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   await formulario.getByLabel('Resumen').fill('Le mostré el coupé')
   await formulario.getByLabel('Vehículo (opcional)').selectOption({ label: rotulo })
   await formulario.getByRole('button', { name: 'Guardar' }).click()
@@ -74,7 +74,7 @@ test('uno que deja de verse sigue sin nombre, y editar lo demás no lo pierde', 
   const rotulo = `${ajeno} · #${String(await numeroDe(ajenoId))}`
   await entrar(page, t.ada)
   await irASeguimientos(page, lead.id)
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   await formulario.getByLabel('Resumen').fill('Probó el sedán')
   await formulario.getByLabel('Vehículo (opcional)').selectOption({ label: rotulo })
   await formulario.getByRole('button', { name: 'Guardar' }).click()
@@ -84,10 +84,10 @@ test('uno que deja de verse sigue sin nombre, y editar lo demás no lo pierde', 
   await page.reload()
   await expect(seguimiento(page, 'Probó el sedán')).toContainText('un vehículo que ya no ves')
   await expect(page.getByText(ajeno)).toHaveCount(0)
-  await seguimiento(page, 'Probó el sedán').getByRole('button', { name: 'Editar' }).click()
-  await expect(edicion(page).getByLabel('Vehículo (opcional)')).toHaveValue('oculto')
-  await edicion(page).getByLabel('Resumen').fill('Probó el sedán y le gustó')
-  await edicion(page).getByRole('button', { name: 'Guardar' }).click()
+  const edicion = await abrirEdicionDeSeguimiento(page, 'Probó el sedán')
+  await expect(edicion.getByLabel('Vehículo (opcional)')).toHaveValue('oculto')
+  await edicion.getByLabel('Resumen').fill('Probó el sedán y le gustó')
+  await edicion.getByRole('button', { name: 'Guardar' }).click()
   await expect(seguimiento(page, 'Probó el sedán y le gustó')).toBeVisible()
   expect(await vehiculoDeLaNota('seguimientos', lead.id, 'Probó el sedán y le gustó')).toBe(ajenoId)
 })

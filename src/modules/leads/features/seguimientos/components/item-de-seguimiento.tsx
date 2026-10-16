@@ -68,6 +68,7 @@ export function ItemDeSeguimiento({
               size="sm"
               variant="ghost"
               className="min-h-11 md:min-h-7"
+              data-seguimiento-editar={seguimiento.id}
               onClick={alEditar}
               disabled={enCurso}
             >

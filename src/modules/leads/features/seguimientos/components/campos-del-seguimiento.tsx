@@ -36,8 +36,6 @@ type Props = {
   // «Visible para el cliente» y el vehículo del lead son de la ficha: el alta no los ofrece.
   conVisible?: boolean
   conVehiculo?: boolean
-  // El resumen toma el foco al montarse (el contenedor puede preferir llevarlo él).
-  enfocarResumen?: boolean
 }
 
 // Los tipos que se ofrecen: los activos y, al editar, el que ya tiene aunque esté apagado.
@@ -102,7 +100,7 @@ function Visible({ valores, cambiar, deshabilitado }: Parte) {
 // pone el `<form>`, los avisos y los botones.
 export function CamposDelSeguimiento(props: Props) {
   const { id, valores, errores, cambiar, tipos, zona, deshabilitado, original } = props
-  const { conVisible = false, conVehiculo = false, enfocarResumen = false } = props
+  const { conVisible = false, conVehiculo = false } = props
   const parte = { id, valores, errores, cambiar, deshabilitado }
   return (
     <>
@@ -134,7 +132,6 @@ export function CamposDelSeguimiento(props: Props) {
         nombre={`${id}-titulo`}
         etiqueta="Resumen"
         autoComplete="off"
-        autoFocus={enfocarResumen}
         maxLength={LARGO_MAXIMO_DEL_TITULO}
         value={valores.titulo}
         onChange={(evento) => {

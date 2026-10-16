@@ -1,12 +1,12 @@
 import { expect, test } from './soporte/prueba'
 import { CONTRASENA, entrar } from './soporte/alta'
-import { esMovil, otraPersona } from './soporte/inventario'
+import { otraPersona } from './soporte/inventario'
 import { idDePersona, sesionDe } from './soporte/leads-alta'
 import { limpiarListado, prepararListado, type TerrenoDelListado } from './soporte/leads-listado'
 import { NO_DISPONIBLE, nuevoLead, revocarCartera } from './soporte/leads-ficha'
 import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import {
-  abrirRedactor,
+  abrirAnotar,
   compartirCon,
   editorDe,
   irASeguimientos,
@@ -40,7 +40,7 @@ test('la lista blanca: un enlace javascript no entra por la pantalla ni por la R
   const lead = await leadDeBerta(`Seg XSS ${info.project.name}`)
   await entrar(page, t.personas.berta)
   await irASeguimientos(page, lead.id)
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   await formulario.getByRole('button', { name: 'Enlace' }).click()
   await formulario.getByLabel('Dirección del enlace').fill('javascript:alert(1)')
   await formulario.getByRole('button', { name: 'Aplicar' }).click()
@@ -91,7 +91,8 @@ test('la lista blanca: un enlace javascript no entra por la pantalla ni por la R
     dialogos++
     void dialogo.dismiss()
   })
-  await page.reload()
+  // Sin el modal (que la URL reabriría): la línea de tiempo, leída de nuevo.
+  await irASeguimientos(page, lead.id)
   const malicioso = seguimiento(page, 'Escrito por fuera')
   await expect(malicioso).toBeVisible()
   await expect(
@@ -109,7 +110,7 @@ test('pegar contenido con imágenes y encabezados deja sólo lo admitido, y el d
   const lead = await leadDeBerta(`Seg Pegar ${info.project.name}`)
   await entrar(page, t.personas.berta)
   await irASeguimientos(page, lead.id)
-  const formulario = await abrirRedactor(page)
+  const formulario = await abrirAnotar(page)
   const editor = editorDe(formulario)
   await editor.click()
   await editor.evaluate((nodo) => {
@@ -132,7 +133,7 @@ test('pegar contenido con imágenes y encabezados deja sólo lo admitido, y el d
   expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined()
 
   // Más de 5000 caracteres: se dice junto al detalle y no se guarda nada.
-  const otro = await abrirRedactor(page)
+  const otro = await abrirAnotar(page)
   await otro.getByLabel('Resumen').fill('Muy largo')
   await editorDe(otro).fill('a'.repeat(5001))
   // Una palabra larguísima se parte: la página no se ensancha (en el celular, ni un píxel).
@@ -162,16 +163,13 @@ test('la co-asesora ve sólo lo «Visible para el cliente» de la otra, sin cont
     ['Sólo para mí', false],
     ['Para el cliente', true],
   ] as const) {
-    const formulario = await abrirRedactor(page)
+    const formulario = await abrirAnotar(page)
     await formulario.getByLabel('Resumen').fill(titulo)
     if (visible) {
       await formulario.getByRole('switch', { name: 'Visible para el cliente' }).click()
     }
     await formulario.getByRole('button', { name: 'Guardar' }).click()
     await expect(seguimiento(page, titulo)).toBeVisible()
-    if (esMovil(page)) {
-      await page.keyboard.press('Escape')
-    }
   }
   await expect(
     seguimiento(page, 'Para el cliente').getByText('Visible para el cliente'),
@@ -209,7 +207,7 @@ test('la dueña con «todos» ve sólo lo visible, sin acciones, y la RPC le res
     ['Nota privada', false],
     ['Nota visible', true],
   ] as const) {
-    const formulario = await abrirRedactor(page)
+    const formulario = await abrirAnotar(page)
     await formulario.getByLabel('Resumen').fill(titulo)
     if (visible) {
       await formulario.getByRole('switch', { name: 'Visible para el cliente' }).click()
