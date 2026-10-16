@@ -12,8 +12,8 @@
 
 - Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
   reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
-  y las partes 1 a 9b de la Fase 3 (último e2e completo: 517 en verde y 1 salto por diseño, antes del arreglo del toast; ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
-  `npx supabase functions serve`); un spec suelto: `pnpm test:e2e <spec>`. Apibara sin clave: lo grabado.
+  y las partes 1 a 9b de la Fase 3 (último e2e completo: 518 en verde, 0 saltos, 20,5 min; ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  `npx supabase functions serve`); nivel 1: `pnpm test:e2e --project=escritorio <spec>`. Los specs reusan la sesión (`entrarConSesion`, `{ fresco: true }` si el test cambia a la persona). Apibara sin clave: lo grabado.
 - **Leads (1 a 8b):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
   oportunidades y **«Portal»**: el acceso del cliente), marcas, «Quién lo tiene», papelera, embudos con kanban;
   `web.portal_*` sin oráculo y con la sesión que se corta. Toda RPC que recibe un lead cae en una de tres
@@ -43,7 +43,7 @@ Siguen la **9c** (teléfonos, recordatorios y portal a modales, con los campos c
 - **Fase 9:** medir con 5 a 10 mil registros (`pnpm db:medir`; filtrar leads por un atributo ~0,06 ms por
   fila, y el aviso de tachados ocultos cuenta lo mismo otra vez; el plan a veces recorre el índice y corta;
   si pesa, una función que recorta una vez por consulta); Actividad leerá el diff recortado. Sin remoto,
-  `.github/` no corrió: su job e2e no sirve las funciones edge ni usa `test:e2e:completo`.
+  `.github/` no corrió: su job e2e no sirve las funciones edge ni usa `test:e2e:completo`. **Shards del completo** (con remoto): cada uno con su pila Supabase, `db:reset`, `E2E_PORT`, `NEXT_DIST_DIR`, funciones edge y `--shard=i/n`; una base por shard, no `workers` (filas únicas de empresa y «equipo vacío»).
 
 ## Lista para la nube (una persona)
 

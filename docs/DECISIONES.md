@@ -2911,3 +2911,26 @@ formulario viejo salió del DOM con un campo enfocado, el navegador disparó `ch
 limpieza corre después) volvió a escribir con la base vieja. Con el formulario deshabilitado mientras guarda ya no se puede teclear en esa
 ventana; si reaparece un «Recuperamos» tras un guardado exitoso, esta es la pista (ignorar `change` tras `limpiar()` hasta el
 próximo `input`) y lo que falta es un e2e que lo provoque.
+
+## 2026-10-18 — Los e2e reusan la sesión de cada cuenta dentro del proceso, y sólo eso
+
+**Decisión.** `entrar` (`e2e/soporte/alta.ts` e `inventario.ts`) llama a `entrarConSesion` (`e2e/soporte/pasos.ts`): la primera vez que
+se entra con una cuenta es por la pantalla de ingreso; las siguientes, en el mismo proceso de Playwright, se inyectan las cookies de esa
+sesión en el contexto nuevo del test y se pide `/`. Si `/` manda al ingreso (la sesión caducó, la cuenta se borró o se bloqueó), se
+descarta la sesión y se entra por interfaz: nunca se sigue con una sesión rota. La caché vale 30 minutos (el token de acceso dura una hora).
+
+**Por qué.** Era el único candidato que superaba el umbral: el ingreso eran 125 s de 577 s en escritorio, ~19 % del completo, y el
+completo bajó de 22,1 a 20,5 min (la mitad de lo esperado: pedir `/` con la sesión puesta también cuesta). Los permisos se leen de la base en
+cada pedido, no del token (no hay hook de JWT en `config.toml`), así que una sesión guardada no deja permisos viejos; y ningún e2e cierra sesión.
+
+**Qué sigue cubriendo el ingreso real.** `acceso.spec.ts` ingresa sin caché (contraseña mala, ruta protegida que vuelve a donde iba,
+la primera persona nace dueña); los specs de equipo, empresa, orígenes y configuración de leads tienen su propio `entrar` por interfaz
+(bloquean a alguien, cambian de rol, abren el registro); y el primer `entrar` de cada cuenta de cada spec sigue siendo por interfaz.
+Rompiendo `ingresar` a propósito, fallaron `acceso.spec` y el primer `entrar` de `leads-vehiculos-acceso`. Un test que cambie a la
+persona o su acceso a mitad de camino pide `{ fresco: true }`.
+
+**Lo que no se hizo, con su número.** «Solo escritorio»: los tests sin `page` son 5 (~12 s de móvil, 0,9 %) y el resto navega por interfaz,
+así que no hay lista que aprobar. Reusar `.next-e2e` por una huella del código: el build son 8 s por `test:e2e` (3 s de TypeScript), bajo el
+umbral; si algún día pesa, la huella debe incluir HEAD, el diff, `next.config.ts`, el lockfile y las `NEXT_PUBLIC_*` que se hornean en el
+build (un `.next-e2e` viejo con código nuevo es peor que reconstruir). `tsc` ya era incremental. Video y traza (`retain-on-failure`) no
+cuestan nada medible (A/B ×3: 77,3 s con ellos, 76,9 s sin ellos) y fueron los que permitieron diagnosticar el intermitente de Empresa.
