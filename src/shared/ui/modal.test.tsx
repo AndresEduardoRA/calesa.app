@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProveedorAtajos } from './atajos'
+import { Drawer } from './drawer'
 import { Modal } from './modal'
 
 function Prueba({
@@ -63,5 +64,26 @@ describe('Modal', () => {
   it('el título nombra al diálogo', () => {
     render(<Prueba alCerrar={vi.fn()} />)
     expect(screen.getByRole('dialog', { name: 'Agregar teléfono' })).toBeInTheDocument()
+  })
+})
+
+describe('Modal dentro de un Drawer', () => {
+  it('Esc cierra sólo el Modal: Base UI lo anida y el atajo del Drawer no lo ve', () => {
+    const cerrarDrawer = vi.fn()
+    const cerrarModal = vi.fn()
+    render(
+      <ProveedorAtajos>
+        <Drawer abierto alCerrar={cerrarDrawer} titulo="Etapas">
+          <Modal abierto alCerrar={cerrarModal} titulo="Eliminar el embudo">
+            <input aria-label="Nombre" />
+          </Modal>
+        </Drawer>
+      </ProveedorAtajos>,
+    )
+    const campo = screen.getByLabelText('Nombre')
+    campo.focus()
+    fireEvent.keyDown(campo, { key: 'Escape' })
+    expect(cerrarModal).toHaveBeenCalledTimes(1)
+    expect(cerrarDrawer).not.toHaveBeenCalled()
   })
 })
