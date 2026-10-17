@@ -33,6 +33,8 @@ const VALOR_INVALIDO = 'Escribe un valor mayor que cero, con hasta 6 decimales.'
 type PropsDeCampos = {
   tipo: TipoCambio
   puedeGestionar: boolean
+  // Sin permiso, o guardando: los campos se apagan hasta que llega lo guardado.
+  bloqueado: boolean
   errores: EdicionesDeTiposCambio['errores']['guardar']
   valorInvalido: boolean
   activo: boolean
@@ -42,7 +44,7 @@ type PropsDeCampos = {
 }
 
 function Campos(props: PropsDeCampos) {
-  const { tipo, puedeGestionar, errores, valorInvalido } = props
+  const { tipo, puedeGestionar, bloqueado, errores, valorInvalido } = props
   const { activo, alCambiarActivo, esDefault, alCambiarDefault } = props
   return (
     <>
@@ -74,7 +76,7 @@ function Campos(props: PropsDeCampos) {
         }
         valor={esDefault}
         alCambiar={alCambiarDefault}
-        deshabilitado={!puedeGestionar || tipo.esDefault || !activo}
+        deshabilitado={bloqueado || tipo.esDefault || !activo}
       />
       <Interruptor
         titulo="Activo"
@@ -85,7 +87,7 @@ function Campos(props: PropsDeCampos) {
         }
         valor={activo}
         alCambiar={alCambiarActivo}
-        deshabilitado={!puedeGestionar || esDefault}
+        deshabilitado={bloqueado || esDefault}
       />
     </>
   )
@@ -97,6 +99,9 @@ function Formulario({ tipo, puedeGestionar, ediciones, idFormulario }: PropsDelF
   const [esDefault, setEsDefault] = useState(tipo.esDefault)
   const [valorInvalido, setValorInvalido] = useState(false)
   const errores = ediciones.errores.guardar
+  // Guardando, el formulario que se ve es el viejo y está por reemplazarse con lo guardado (`key` con la versión): lo que se
+  // tecleara ahí caería en un campo que desaparece. `enCurso` dura hasta que se dibuja lo guardado, no sólo hasta que llega.
+  const bloqueado = !puedeGestionar || ediciones.enCurso
 
   async function guardar(elemento: HTMLFormElement) {
     const { nombre, valor: tipeado } = valoresDe(elemento, ['nombre', 'valor'])
@@ -133,12 +138,13 @@ function Formulario({ tipo, puedeGestionar, ediciones, idFormulario }: PropsDelF
         void guardar(evento.currentTarget)
       }}
     >
-      <fieldset disabled={!puedeGestionar} className="grid min-w-0 gap-4">
+      <fieldset disabled={bloqueado} className="grid min-w-0 gap-4">
         <legend className="sr-only">Tipo de cambio {tipo.nombre}</legend>
         {puedeGestionar ? null : <Aviso>{MOTIVO_SIN_PERMISO_TIPOS_CAMBIO}</Aviso>}
         <Campos
           tipo={tipo}
           puedeGestionar={puedeGestionar}
+          bloqueado={bloqueado}
           errores={errores}
           valorInvalido={valorInvalido}
           activo={activo}

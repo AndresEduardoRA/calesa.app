@@ -57,7 +57,7 @@ function Formulario(props: PropsDelFormulario) {
         void guardar(evento.currentTarget)
       }}
     >
-      <fieldset disabled={!puedeGestionar} className="grid min-w-0 gap-4">
+      <fieldset disabled={!puedeGestionar || ediciones.enCurso} className="grid min-w-0 gap-4">
         <legend className="sr-only">{moneda ? `Moneda ${moneda.codigo}` : 'Moneda nueva'}</legend>
         {puedeGestionar ? null : <Aviso>{MOTIVO_SIN_PERMISO_TIPOS_CAMBIO}</Aviso>}
         <CamposMoneda
@@ -66,7 +66,7 @@ function Formulario(props: PropsDelFormulario) {
           errores={moneda ? ediciones.errores.guardarMoneda : ediciones.errores.crearMoneda}
           activa={activa}
           alCambiarActiva={setActiva}
-          deshabilitado={!puedeGestionar}
+          deshabilitado={!puedeGestionar || ediciones.enCurso}
         />
       </fieldset>
     </form>
