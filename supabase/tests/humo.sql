@@ -5601,3 +5601,196 @@ do $$ declare v_imp uuid := gen_random_uuid(); begin
   delete from public.importaciones where id = v_imp;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test orígenes del lead (9f-1): sólo por RPC, con permiso, versión, tope y sin que un alta guarde uno apagado
+create or replace function pg_temp.falla(p_sql text, p_estado text, p_texto text) returns void language plpgsql as $$
+begin
+  execute p_sql;
+  raise exception 'no falló: %', p_sql;
+exception when others then
+  if sqlstate <> p_estado or position(p_texto in sqlerrm) = 0 then
+    raise exception '% debía fallar con % y «%», falló con % y «%»', p_sql, p_estado, p_texto, sqlstate, sqlerrm;
+  end if;
+end $$;
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-0000000000b1', 'origenes-asesora@ejemplo.com', '{"invitado": true}');
+update public.leads_campos set requerido = false where requerido;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ begin
+  perform public.rbac_asignar_rol('00000000-0000-0000-0000-0000000000b1', (select id from public.roles where clave = 'asesor'), true);
+end $$;
+reset role;
+
+-- Quien tiene leads.configurar: nombre normalizado, clave que sale del nombre, repetir el id no duplica.
+set role authenticated;
+do $$
+declare
+  r jsonb; v_id uuid := gen_random_uuid(); v_ver timestamptz; v_n int; v_clave text;
+  v_a uuid := gen_random_uuid(); v_b uuid := gen_random_uuid(); v_c uuid := gen_random_uuid();
+  v_va timestamptz; v_vb timestamptz; v_vc timestamptz;
+begin
+  r := public.origen_lead_crear(v_id, '   Redes   sociales ');
+  v_ver := (r ->> 'actualizado_en')::timestamptz;
+  select o.clave into v_clave from public.origenes_lead o where o.id = v_id;
+  if v_clave <> 'redes_sociales' or (select nombre from public.origenes_lead where id = v_id) <> 'Redes sociales' then
+    raise exception 'el nombre o la clave: %', v_clave; end if;
+  if (r ->> 'repetido')::boolean then raise exception 'la primera vez no es un reintento'; end if;
+  if (select orden from public.origenes_lead where id = v_id) <> (select max(orden) from public.origenes_lead) then
+    raise exception 'el nuevo no quedó al final'; end if;
+  -- Un reintento con el mismo id no duplica.
+  r := public.origen_lead_crear(v_id, 'Redes sociales');
+  if not (r ->> 'repetido')::boolean or (select count(*) from public.origenes_lead where id = v_id) <> 1 then
+    raise exception 'el reintento duplicó: %', r; end if;
+  -- La lista que vuelve trae el origen, su versión y si tiene leads.
+  if not exists (select 1 from jsonb_array_elements(r -> 'origenes') x where x ->> 'id' = v_id::text and (x ->> 'con_leads')::boolean = false) then
+    raise exception 'la lista de vuelta: %', r; end if;
+  -- Acentos, signos y empezar con un número.
+  perform public.origen_lead_crear(v_a, 'Ándale ¡ya!');
+  perform public.origen_lead_crear(v_b, '2x1');
+  if (select clave from public.origenes_lead where id = v_a) <> 'andale_ya' or (select clave from public.origenes_lead where id = v_b) <> 'o_2x1' then
+    raise exception 'claves: % %', (select clave from public.origenes_lead where id = v_a), (select clave from public.origenes_lead where id = v_b); end if;
+
+  -- Nombre vacío, en blanco, largo o repetido (sin importar mayúsculas ni espacios): el hint es «nombre».
+  perform pg_temp.falla($f$select public.origen_lead_crear(gen_random_uuid(), '')$f$, '22023', 'Escribe el nombre');
+  perform pg_temp.falla($f$select public.origen_lead_crear(gen_random_uuid(), '    ')$f$, '22023', 'Escribe el nombre');
+  perform pg_temp.falla(format($f$select public.origen_lead_crear(gen_random_uuid(), %L)$f$, repeat('x', 41)), '22023', 'hasta 40 caracteres');
+  perform pg_temp.falla($f$select public.origen_lead_crear(gen_random_uuid(), '  REDES    sociales ')$f$, '23505', 'Ya hay un origen');
+  perform pg_temp.falla($f$select public.origen_lead_crear(gen_random_uuid(), 'facebook')$f$, '23505', 'Ya hay un origen');
+
+  -- Renombrar: pide versión, una vieja es PT409 y repetir el nombre de otro no se puede.
+  perform pg_temp.falla(format($f$select public.origen_lead_guardar(%L, null, '{"nombre": "Otro nombre"}')$f$, v_id), 'P0001', 'Falta la versión');
+  r := public.origen_lead_guardar(v_id, v_ver, '{"nombre": "  Redes  "}');
+  if (select nombre from public.origenes_lead where id = v_id) <> 'Redes' or (r ->> 'actualizado_en')::timestamptz = v_ver then
+    raise exception 'el renombre no movió la versión: %', r; end if;
+  perform pg_temp.falla(format($f$select public.origen_lead_guardar(%L, %L, '{"nombre": "Redes 2"}')$f$, v_id, v_ver), 'PT409', 'Otra persona cambió este origen');
+  v_ver := (r ->> 'actualizado_en')::timestamptz;
+  perform pg_temp.falla(format($f$select public.origen_lead_guardar(%L, %L, '{"nombre": "Web"}')$f$, v_id, v_ver), '23505', 'Ya hay un origen');
+  perform pg_temp.falla(format($f$select public.origen_lead_guardar(%L, %L, '{"clave": "x"}')$f$, v_id, v_ver), '22023', 'no se cambia');
+  perform pg_temp.falla(format($f$select public.origen_lead_guardar(%L, %L, '{"activo": "no"}')$f$, v_id, v_ver), '22023', 'sí o no');
+  -- Lo que ya está guardado no es un conflicto: un reintento no choca consigo mismo.
+  r := public.origen_lead_guardar(v_id, v_ver - interval '1 second', '{"nombre": "Redes"}');
+  if not (r ->> 'sin_cambios')::boolean then raise exception 'el reintento chocó consigo mismo: %', r; end if;
+
+  -- Ordenar: «después de». Mover no cambia la versión de nadie, así que la de pantalla sigue sirviendo.
+  select actualizado_en into v_va from public.origenes_lead where id = v_a;
+  select actualizado_en into v_vb from public.origenes_lead where id = v_b;
+  select actualizado_en into v_vc from public.origenes_lead where id = v_id;
+  r := public.origen_lead_mover(v_id, v_vc, null);
+  if (select (array_agg(t.x ->> 'id' order by t.n))[1] from jsonb_array_elements(r -> 'origenes') with ordinality as t (x, n)) <> v_id::text then
+    raise exception 'no quedó primero: %', r; end if;
+  r := public.origen_lead_mover(v_id, v_vc, v_a);
+  if (select orden from public.origenes_lead where id = v_id) <= (select orden from public.origenes_lead where id = v_a)
+     or (select orden from public.origenes_lead where id = v_id) >= (select orden from public.origenes_lead where id = v_b) then
+    raise exception 'no quedó entre medio: %', r; end if;
+  if (select count(distinct orden) from public.origenes_lead) <> (select count(*) from public.origenes_lead) then
+    raise exception 'quedaron dos con el mismo lugar'; end if;
+  if (select actualizado_en from public.origenes_lead where id = v_a) <> v_va then raise exception 'mover movió la versión de otro'; end if;
+  perform pg_temp.falla(format($f$select public.origen_lead_mover(%L, %L, %L)$f$, v_id, v_vc, v_id), '22023', 'después de sí mismo');
+  perform pg_temp.falla(format($f$select public.origen_lead_mover(%L, %L, %L)$f$, v_id, v_vc, gen_random_uuid()), 'PT409', 'ya no existe');
+  perform pg_temp.falla(format($f$select public.origen_lead_mover(%L, null, null)$f$, v_id), 'P0001', 'Falta la versión');
+
+  -- Eliminar uno sin leads: sí (pide versión); uno que ya no está: PT409.
+  perform pg_temp.falla(format($f$select public.origen_lead_eliminar(%L, %L)$f$, v_b, v_vb - interval '1 second'), 'PT409', 'Otra persona cambió este origen');
+  r := public.origen_lead_eliminar(v_b, v_vb);
+  if exists (select 1 from public.origenes_lead where id = v_b) then raise exception 'no se eliminó'; end if;
+  perform pg_temp.falla(format($f$select public.origen_lead_eliminar(%L, %L)$f$, v_b, v_vb), 'PT409', 'ya no existe');
+
+  -- La lectura de la pantalla.
+  if jsonb_array_length(public.origenes_lead_con_uso()) <> (select count(*) from public.origenes_lead) then raise exception 'con_uso incompleto'; end if;
+end $$;
+reset role;
+
+-- Un origen con leads no se elimina, ni siquiera con el lead en la papelera; se desactiva y deja de ofrecerse.
+do $$
+declare
+  v_o uuid := (select id from public.origenes_lead where clave = 'redes_sociales');
+  v_ver timestamptz; v_lead uuid := gen_random_uuid(); r jsonb; v_inactivo uuid;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  r := public.crear_lead(v_lead, jsonb_build_object('nombre', 'Lead Redes 9f', 'telefono_principal', '71909001', 'origen_lead_id', v_o), null);
+  if r ->> 'resultado' <> 'creado' then raise exception 'no creó el lead: %', r; end if;
+  select actualizado_en into v_ver from public.origenes_lead where id = v_o;
+  perform pg_temp.falla(format($f$select public.origen_lead_eliminar(%L, %L)$f$, v_o, v_ver), '23503', 'ya tiene leads');
+  if not exists (select 1 from jsonb_array_elements(public.origenes_lead_con_uso()) x where x ->> 'id' = v_o::text and (x ->> 'con_leads')::boolean) then
+    raise exception 'con_uso no marca que tiene leads'; end if;
+  -- Desactivarlo: el alta ya no lo ofrece ni lo acepta; el lead que lo tiene lo conserva.
+  r := public.origen_lead_guardar(v_o, v_ver, '{"activo": false}');
+  if exists (select 1 from jsonb_array_elements(public.lead_alta_contexto() -> 'origenes') x where x ->> 'id' = v_o::text) then
+    raise exception 'el alta sigue ofreciendo uno desactivado'; end if;
+  perform pg_temp.falla(format($f$select public.crear_lead(gen_random_uuid(), '{"nombre": "Apagado", "telefono_principal": "71909002", "origen_lead_id": "%s"}', null)$f$, v_o), '22023', 'desactivado');
+  if (select origen_lead_id from public.leads where id = v_lead) is distinct from v_o then raise exception 'el lead perdió su origen'; end if;
+  reset role;
+  -- El último recurso de la base: pasar un lead a un origen apagado, aunque lo haga quien salta la RLS, no se guarda.
+  v_inactivo := v_o;
+  begin
+    update public.leads set origen_lead_id = v_inactivo where id = (select id from public.leads where origen_lead_id is distinct from v_inactivo limit 1);
+    raise exception 'guardó un origen desactivado';
+  exception when others then
+    if sqlstate <> '22023' or position('se desactivó' in sqlerrm) = 0 then raise exception 'el trigger: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  -- En la papelera también cuenta (la FK es restrict).
+  update public.leads set eliminado_en = now(), eliminado_por = '00000000-0000-0000-0000-000000000001' where id = v_lead;
+  set local role authenticated;
+  perform pg_temp.falla(format($f$select public.origen_lead_eliminar(%L, %L)$f$, v_o, (select actualizado_en from public.origenes_lead where id = v_o)), '23503', 'ya tiene leads');
+  reset role;
+  delete from public.leads where id = v_lead;
+  -- Sin leads, ahora sí.
+  set local role authenticated;
+  perform public.origen_lead_eliminar(v_o, (select actualizado_en from public.origenes_lead where id = v_o));
+  reset role;
+  if exists (select 1 from public.origenes_lead where id = v_o) then raise exception 'no se eliminó'; end if;
+end $$;
+
+-- El tope de 100: se dice con el máximo, no se pasa y eliminar uno deja crear otro.
+do $$
+declare v_n int := (select count(*) from public.origenes_lead); v_id uuid := gen_random_uuid(); r jsonb;
+begin
+  insert into public.origenes_lead (clave, nombre, activo, orden)
+  select 'relleno_' || g, 'Relleno ' || g, false, 500 + g from generate_series(1, 100 - v_n) g;
+  if (select count(*) from public.origenes_lead) <> 100 then raise exception 'no quedaron 100'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  perform pg_temp.falla($f$select public.origen_lead_crear(gen_random_uuid(), 'El ciento uno')$f$, '22023', 'máximo');
+  r := public.origen_lead_eliminar((select id from public.origenes_lead where clave = 'relleno_1'),
+         (select actualizado_en from public.origenes_lead where clave = 'relleno_1'));
+  r := public.origen_lead_crear(v_id, 'El ciento');
+  reset role;
+  delete from public.origenes_lead where clave like 'relleno\_%' or id = v_id;
+end $$;
+
+-- Sin el permiso: nada de esto. Leer, sí (el alta y los filtros lo necesitan); escribir directo, no.
+do $$
+declare v_o uuid := (select id from public.origenes_lead where clave = 'web'); v_ver timestamptz := (select actualizado_en from public.origenes_lead where clave = 'web');
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
+  set local role authenticated;
+  perform pg_temp.falla($f$select public.origen_lead_crear(gen_random_uuid(), 'Intruso')$f$, '42501', 'leads.configurar');
+  perform pg_temp.falla(format($f$select public.origen_lead_guardar(%L, %L, '{"activo": false}')$f$, v_o, v_ver), '42501', 'leads.configurar');
+  perform pg_temp.falla(format($f$select public.origen_lead_mover(%L, %L, null)$f$, v_o, v_ver), '42501', 'leads.configurar');
+  perform pg_temp.falla(format($f$select public.origen_lead_eliminar(%L, %L)$f$, v_o, v_ver), '42501', 'leads.configurar');
+  perform pg_temp.falla($f$select public.origenes_lead_con_uso()$f$, '42501', 'leads.configurar');
+  perform pg_temp.falla($f$insert into public.origenes_lead (clave, nombre) values ('directo', 'Directo')$f$, '42501', 'permission denied');
+  perform pg_temp.falla(format($f$update public.origenes_lead set activo = false where id = %L$f$, v_o), '42501', 'permission denied');
+  perform pg_temp.falla(format($f$delete from public.origenes_lead where id = %L$f$, v_o), '42501', 'permission denied');
+  if (select count(*) from public.origenes_lead) = 0 then raise exception 'no lee los orígenes'; end if;
+  reset role;
+end $$;
+
+-- Con cero orígenes activos el alta sigue andando, sin origen.
+do $$
+declare r jsonb;
+begin
+  update public.origenes_lead set activo = false;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  if jsonb_array_length(public.lead_alta_contexto() -> 'origenes') <> 0 then raise exception 'ofrece orígenes apagados'; end if;
+  r := public.crear_lead(gen_random_uuid(), '{"nombre": "Sin origen alguno", "telefono_principal": "71909003"}', null);
+  if r ->> 'resultado' <> 'creado' then raise exception 'sin orígenes activos no creó: %', r; end if;
+  reset role;
+  delete from public.leads where nombre = 'Sin origen alguno';
+  update public.origenes_lead set activo = (clave in ('facebook', 'web'));
+end $$;
+select set_config('request.jwt.claim.sub', '', false);

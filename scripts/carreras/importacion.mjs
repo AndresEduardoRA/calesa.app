@@ -5,7 +5,7 @@ import { PERSONAS, PREFIJO, comoPersona } from './terreno.mjs'
 
 const { duena, compartido } = PERSONAS
 
-const ORIGEN = `(select id from public.origenes_lead where clave = 'web')`
+const ORIGEN = `(select id from public.origenes_lead where activo order by orden, id limit 1)`
 
 async function origen(db) {
   return (await db.query(`select ${ORIGEN} as id`)).rows[0].id

@@ -87,6 +87,10 @@ select set_config('medir.cursor_id', (select id::text from public.leads where cr
   order by creado_en desc, id desc offset 5000 limit 1), true);
 select set_config('medir.et_duena', (select id::text from public.etiquetas where nombre = 'Vol 1' and usuario_id = '00000000-0000-0000-0000-0000000000d1'), true);
 select set_config('medir.et_ana', (select id::text from public.etiquetas where nombre = 'Vol 1' and usuario_id = '00000000-0000-0000-0000-0000000000a1'), true);
+-- El origen del lead: el primero (el volumen reparte los leads entre los cinco primeros) y el último, que no tiene ninguno.
+select set_config('medir.origen_lead', (select id::text from public.origenes_lead order by orden, id limit 1), true);
+select set_config('medir.origen_lead_dos', (select id::text from public.origenes_lead order by orden, id offset 1 limit 1), true);
+select set_config('medir.origen_lead_sin', (select id::text from public.origenes_lead order by orden desc, id limit 1), true);
 select set_config('medir.origen', (select id::text from public.origenes where tipo = 'subasta' order by orden limit 1), true);
 select set_config('medir.vcursor_en', (select creado_en::text from public.vehiculos where origen_id = current_setting('medir.origen')::uuid and eliminado_en is null
   order by creado_en desc, id desc offset 2000 limit 1), true);
@@ -113,6 +117,15 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false'), 500);
     perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true'), 500);
     perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina(format('etiquetas && array[%L::uuid] and esta_tachado = false', case q when 'duena' then current_setting('medir.et_duena') else current_setting('medir.et_ana') end)), 1500);
+    -- El filtro por origen del lead (`?origen=`): uno de cinco (un quinto de la cartera) y uno sin leads.
+    -- El filtro por origen del lead (`?origen=`), sostenido por `leads_origen_lead_id_idx` (el de la FK). Cuesta lo
+    -- que suman los leads de ese origen (~10 µs cada uno: un bitmap y un top-N), no la página: el planificador
+    -- estima mal lo que deja pasar la policy de `leads` y no camina un índice compuesto en el orden del listado
+    -- (con `(origen_lead_id, creado_en desc, id desc)` forzado la página cuesta 3 ms, pero no lo elige). Un
+    -- origen sin leads no recorre nada. Límite anotado en `docs/RENDIMIENTO.md`.
+    perform pg_temp.escala('listado: un origen del lead (cuesta lo que suma ese origen)', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead'))), 450, 'leads_origen_lead_id_idx', '{leads}', 15000);
+    perform pg_temp.escala('listado: un origen del lead sin leads', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead_sin'))), 100, 'leads_origen_lead_id_idx', '{leads}', 0);
+    perform pg_temp.escala('listado: dos orígenes del lead (suma sus leads)', q, pg_temp.pagina(format('origen_lead_id = any (array[%L, %L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead'), current_setting('medir.origen_lead_dos'))), 800, 'leads_origen_lead_id_idx', '{leads}', 30000);
     -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
     perform pg_temp.escala('listado: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 100);
     perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$, 2500);
@@ -153,6 +166,7 @@ do $medir$ declare q text; begin
       where v.origen_id = %L and public.limpieza_el(v) <= now() + interval '30 days' order by v.creado_en desc, v.id desc limit 51) t$w$, current_setting('medir.origen')), 150, 'vehiculos_origen_listado_idx', '{vehiculos}', 5000);
     perform pg_temp.escala('papelera de vehículos, página 1 de 5 lotes', q, 'select public.vehiculos_papelera_listar(null, null, false, 6)', 200);
     perform pg_temp.escala('storage_gc_pendiente', q, 'select public.storage_gc_pendiente()', 50);
+    if q = 'duena' then perform pg_temp.escala('origenes_lead_con_uso (hasta 100 orígenes)', q, 'select public.origenes_lead_con_uso()', 100); end if;
     if q = 'duena' then perform pg_temp.escala('origenes_resumen', q, 'select public.origenes_resumen()', 100); end if;
     if q = 'duena' then perform pg_temp.escala('categorias_con_uso', q, format('select public.categorias_con_uso(%L)', current_setting('medir.origen')), 50); end if;
     perform pg_temp.escala('vehiculos_para_lead', q, format('select public.vehiculos_para_lead(%L, %L)',

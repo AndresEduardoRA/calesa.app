@@ -548,9 +548,13 @@ create table public.origenes_lead (
   clave  text not null unique,
   nombre text not null,
   activo boolean not null default true,
-  orden  smallint not null default 0
+  orden  smallint not null default 0,
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()   -- versión: guardar, mover y eliminar la mandan
 );
-comment on table public.origenes_lead is 'Por dónde llegó el lead (Facebook, web, referido…). Configurable.';
+-- Un nombre por origen, sin importar mayúsculas ni espacios de los bordes.
+create unique index origenes_lead_nombre_unico on public.origenes_lead (lower(btrim(nombre)));
+comment on table public.origenes_lead is 'De dónde llegó el lead. Configurable (Configuración › Leads › Orígenes): sólo de lectura para la app, se escribe por origen_lead_*(). Uno con leads no se elimina, se desactiva: sigue nombrando a los leads que ya lo tienen pero no se ofrece para uno nuevo. Distinto de origenes, que son los de los vehículos.';
 
 create table public.lotes_papelera (
   id          uuid primary key default gen_random_uuid(),

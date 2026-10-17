@@ -3483,7 +3483,9 @@ export type Database = {
       origenes_lead: {
         Row: {
           activo: boolean
+          actualizado_en: string
           clave: string
+          creado_en: string
           id: string
           nombre: string
           orden: number
@@ -3491,14 +3493,18 @@ export type Database = {
         ComputedFields: never
         Insert: {
           activo?: boolean
+          actualizado_en?: string
           clave: string
+          creado_en?: string
           id?: string
           nombre: string
           orden?: number
         }
         Update: {
           activo?: boolean
+          actualizado_en?: string
           clave?: string
+          creado_en?: string
           id?: string
           nombre?: string
           orden?: number
@@ -6810,6 +6816,8 @@ export type Database = {
       _oportunidad_titulo: { Args: { p_valor: Json }; Returns: string }
       _origen_campos_renumerar: { Args: { p_origen: string }; Returns: undefined }
       _origen_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
+      _origen_lead_clave: { Args: { p_nombre: string }; Returns: string }
+      _origen_lead_nombre: { Args: { p_texto: string }; Returns: string }
       _origen_nombre_valido: {
         Args: { p_largo: number; p_que: string; p_texto: string }
         Returns: string
@@ -6820,6 +6828,7 @@ export type Database = {
         Returns: Json
       }
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
+      _origenes_lead_json: { Args: Record<PropertyKey, never>; Returns: Json }
       _papelera_purgar_leads: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
       _papelera_solo_cotizaciones: {
@@ -7547,11 +7556,25 @@ export type Database = {
         }
         Returns: string
       }
+      origen_lead_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
+      origen_lead_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      origen_lead_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      origen_lead_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
+        Returns: Json
+      }
       origenes_con_alcance: {
         Args: { p_clave: string; p_minimo: Database['public']['Enums']['alcance_permiso'] }
         Returns: string[]
       }
       origenes_con_permiso: { Args: { p_clave: string }; Returns: string[] }
+      origenes_lead_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       origenes_resumen: {
         Args: Record<PropertyKey, never>
         Returns: {

@@ -23,8 +23,11 @@ const seguimiento = (tipoId) => ({
 })
 
 export async function carrerasDeAlta({ orquesta, carrera, espero }) {
-  const web = (await orquesta.query(`select id from public.origenes_lead where clave = 'web'`))
-    .rows[0].id
+  const web = (
+    await orquesta.query(
+      `select id from public.origenes_lead where activo order by orden, id limit 1`,
+    )
+  ).rows[0].id
   const tipo = (
     await orquesta.query(
       `select id from public.tipos_seguimiento where activo order by orden limit 1`,

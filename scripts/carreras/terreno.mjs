@@ -15,6 +15,8 @@ export const PERSONAS = {
   compartido: '00000000-0000-4000-8000-0000000c0002',
   supervision: '00000000-0000-4000-8000-0000000c0003',
   destino: '00000000-0000-4000-8000-0000000c0004',
+  // Quien configura los leads (los orígenes): leads.configurar, y crea y edita los suyos.
+  configura: '00000000-0000-4000-8000-0000000c0005',
 }
 
 export async function limpiar(db) {
@@ -24,6 +26,8 @@ export async function limpiar(db) {
   await db.query(`delete from public.importaciones where usuario_id = any ($1::uuid[])`, [personas])
   await db.query(`delete from public.seguimientos where usuario_id = any ($1::uuid[])`, [personas])
   await db.query(`delete from public.leads where nombre like $1`, [`${PREFIJO}%`])
+  // Los orígenes del lead que crearon las carreras (después de los leads: la FK es restrict).
+  await db.query(`delete from public.origenes_lead where nombre like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.lotes_papelera where creado_por = any ($1::uuid[])`, [
     personas,
   ])
@@ -83,12 +87,30 @@ export async function sembrar(db) {
       )
     }
   }
+  const {
+    rows: [configura],
+  } = await db.query(
+    `insert into public.roles (clave, nombre) values ('carreras_configura', $1) returning id`,
+    [`${PREFIJO} configura`],
+  )
+  for (const clave of ['leads.configurar', 'leads.ver', 'leads.crear', 'leads.editar']) {
+    await db.query(
+      `insert into public.roles_permisos (rol_id, permiso_clave, alcance) values ($1, $2, 'todos')`,
+      [configura.id, clave],
+    )
+  }
   await db.query(
     `insert into public.usuarios_roles (usuario_id, rol_id)
      select p.id, r.id from (values ($1::uuid, 'carreras_propios'), ($2::uuid, 'carreras_propios'),
-       ($3::uuid, 'carreras_todos'), ($4::uuid, 'carreras_propios')) p (id, clave)
+       ($3::uuid, 'carreras_todos'), ($4::uuid, 'carreras_propios'), ($5::uuid, 'carreras_configura')) p (id, clave)
      join public.roles r on r.clave = p.clave`,
-    [PERSONAS.duena, PERSONAS.compartido, PERSONAS.supervision, PERSONAS.destino],
+    [
+      PERSONAS.duena,
+      PERSONAS.compartido,
+      PERSONAS.supervision,
+      PERSONAS.destino,
+      PERSONAS.configura,
+    ],
   )
 }
 
@@ -101,7 +123,7 @@ export async function leadDeLaDuena(db, nombre, { compartidoCon } = {}) {
     rows: [fila],
   } = await db.query(
     `select public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', $1::text, 'telefono_principal', $2::text,
-       'origen_lead_id', (select id from public.origenes_lead where clave = 'web'))) as r`,
+       'origen_lead_id', (select id from public.origenes_lead where activo order by orden, id limit 1))) as r`,
     [`${PREFIJO} ${nombre}`, String(telefono)],
   )
   await db.query('reset role')
