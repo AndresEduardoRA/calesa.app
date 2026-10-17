@@ -63,6 +63,7 @@ RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_pe
 - `perfiles.rol` no existe a propósito: ningún `if (rol === …)` en componentes.
 - `index.ts` mezcla servidor y cliente: lo importan Server Components. Un Client Component de afuera importa `client.ts`.
 - Una etiqueta de menú de Base UI (`DropdownMenuLabel`) sólo vale dentro de un grupo: suelta, tumba la pantalla al abrir el menú.
+- **`_bajas_en_curso()` sólo habla a una cuenta activa o a los jobs** (cierre 2, `…002600`): sin `auth.uid()` (jobs, `service_role`) ve todo; una cuenta apagada o bloqueada con su JWT vigente recibe `{}`, así la función es siempre un subconjunto de lo que `perfiles` le entrega. Lo que ve quien comparte un lead con alguien en baja es el estado final: `dueno_id`, la cabecera de `lead_ficha()` y el portal ya no nombran a quien está en baja (`…002500`).
 - Una persona bloqueada no puede leer `perfiles`: su estado sale de `mi_sesion()`, que es DEFINER.
 - Los correos de Auth usan `token_hash` (plantillas en `supabase/templates/`, tres: confirmar, recuperar, invitar). En la nube se cargan a mano.
 - Una action que escribe cookies (ingresar, `verComo`) hace que la página se vuelva a dibujar.

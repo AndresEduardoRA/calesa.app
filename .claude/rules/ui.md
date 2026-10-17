@@ -20,6 +20,29 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   Nunca doble envío.
 - Destructivas: reversible → hacer + toast con «Deshacer» (sonner); irreversible → `<Confirmar>` que
   nombra el objeto; masiva irreversible → confirmación tipeada. Nunca `window.confirm`.
+- **Todo `<Confirmar>` tiene su URL** (`?panel=`, con `usePanelPorUrl()` de `shared/ui`; un diálogo dentro de un panel que ya
+  ocupa `?panel=` usa otra clave, `?eliminar=`): se abre y se cierra con su URL, «atrás» lo cierra, la recarga lo reabre, Esc
+  devuelve el foco a quien lo abrió, y lo que la URL nombra se revisa una vez al abrir (`useRevisionAlAbrir()`: si no se puede,
+  avisa y limpia la URL). Se monta una vez por pantalla, no una por fila, y una clave nueva no puede ser la del tablero ni la
+  del filtro (`?etapa=`, `?q=`). `<Confirmar>` no se cierra mientras actúa, ignora el segundo clic y dice sin conexión por sí
+  solo; `scripts/guardas/confirmar-con-url.test.ts` falla si aparece uno sin registrar.
+- Un formulario que se reemplaza al llegar lo guardado (`key` con la versión) **apaga sus campos** (también los de Base UI, que
+  no obedecen al `<fieldset>`) mientras guarda: el aviso sale antes de que se dibuje lo guardado y lo que se tecleara ahí caería
+  en un campo que desaparece. `enCurso` de `useAction` dura hasta que se dibuja la respuesta.
+- La acción de un aviso que sale de la pantalla («Abrir ficha», `sale: true`) con algo escrito en un panel pregunta en su pie
+  (`useCierreConCambios()` y `salida` de `<PieDelPanel>`); cerrar un panel que tiene borrador no pregunta.
+- Una tabla ancha lleva un ancho mínimo (`w-max min-w-full`), la columna del nombre pegada a la izquierda (y la de acciones, el «⋯», a la derecha: una acción por fila nunca queda fuera de la vista) y se desplaza dentro de
+  su tarjeta: nunca se achica un nombre para que quepan las demás ni se mueve la página de costado.
+- Una barra que se desplaza de costado (las secciones de la ficha, las etapas del celular) dice que hay más (`useDesborde()` y
+  `<PistaDeDesborde>`: un degradado en el borde por donde sigue) y deja a la vista la sección activa. Su contenedor, si es hijo
+  de una grilla, lleva `min-w-0`.
+- La barra superior del celular cabe con el texto al 200 %: los blancos táctiles miden 44 px siempre (no `size-11`, que es rem) y
+  lo opcional (el tipo de cambio) se dibuja sólo si la barra mide 24 rem o más (`@container`); si no, está en el menú.
+- El cambio de estado de un `<Badge>` es de golpe: sólo se anima el anillo de foco (con `transition-all` el texto nuevo se veía
+  con el color del viejo). Un componente de terceros hereda la tipografía de la app (el `<Toaster>` la fija en línea: sonner
+  inyecta la del sistema).
+- El texto al 200 % se verifica con un e2e (`document.documentElement.style.fontSize = '200%'`) y, para lo que se juzga mirando,
+  con capturas (`E2E_CAPTURAS`).
 - Montos, números y fechas con `src/shared/lib/formato.ts` (Intl, locale y moneda de la empresa).
   Números a la derecha con `tabular-nums`. Nunca `toFixed` ni formateo a mano.
 - Modo Live: todo monto pasa por `<Monto>`; ese componente respeta `useLive()` (oculta cifras y

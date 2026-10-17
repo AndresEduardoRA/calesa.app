@@ -59,3 +59,4 @@ RPC: `origen_apibara_rutas_sin_campo`, `origen_apibara_agregar` (`…20261014000
 - Promover un atributo a columna (porque necesita índice o UNIQUE) es migración + fila en `origenes_campos` apuntando a la columna; no se hace desde la UI.
 - **No es el origen del lead.** Este módulo es el de los vehículos. De dónde llegó un lead (`origenes_lead`) vive en `leads` (Configuración › Leads › Orígenes del lead); no se mezclan ni comparten tabla.
 - Queda sin hacer: arrastrar para reordenar (exige una dependencia a verificar; `origen_campo_mover` ya lo admite), ordenar los orígenes entre sí (la columna `orden` existe), `icono` del origen.
+- **Eliminar un origen vive en `?panel=eliminar-origen&…`** (cierre 2, `PANEL_ELIMINAR_ORIGEN` de `entities/origen.ts`), con `<Confirmar>` y su revisión al abrir; está en el registro de `scripts/guardas/confirmar-con-url.ts`.

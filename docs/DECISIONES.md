@@ -3473,3 +3473,118 @@ el trigger genérico y sellaba `perfiles.actualizado_en`: quien tenía el perfil
 nadie lo hubiera editado. `perfil_avatar_coherente()` restituye la versión cuando lo único que cambió es la miniatura o su
 fallo (`…20261019002300`). Se eligió eso y no un `set_config` en las dos funciones del relleno porque la regla queda en un solo
 lugar y vale también para cualquier escritura futura de esas columnas.
+
+## 2026-10-17 — Cierre 2 (0a): quien está en una baja en curso no figura como dueño para los demás
+
+**Contexto:** el cierre 1 dijo «los demás ven el estado final» de una baja a medias. Medido con una baja en curso sin lotes (P en
+baja, Q asesora con el lead compartido), no era cierto en tres puntos: `leads_vista.dueno_id` (Q leía el id de P), la cabecera de
+`lead_ficha()` («Lo tiene Pía Baja», mientras «Quién lo tiene» ya la había quitado) y `web.portal_snapshot()` (nombraba como
+asesor a P, con su WhatsApp). El kanban y «Quién lo tiene» ya estaban bien.
+
+**Decisión:** la migración `…002500` filtra con `la.usuario_id <> all ((select public._bajas_en_curso())::uuid[])` en las tres
+(`_leads_vista_crear()`, `lead_ficha()`, `web.portal_snapshot()`) y suma la policy `"leads_asesores: leer"` sobre `leads_asesores`, de
+modo que la fila de quien está en baja no se lea por otro camino. El filtro es un InitPlan sobre una tabla casi vacía: el plan
+del listado no cambió (`docs/RENDIMIENTO.md`). `humo.sql` afirma que, como Q, `dueno_id` es nulo y la ficha dice «lo tienes tú»,
+y que para todo lead que ve la dueña `dueno_id` es igual a `_lead_dueno(id)`; un **inventario** falla si aparece una función o vista
+de `public` o `web` que lee `leads_asesores … revocado_en is null` sin `_bajas_en_curso()` y no está en la lista cerrada de sus
+motivos («desde quien llama», «aplica la baja antes de decidir», «interna de la baja»).
+
+**Alternativas:** dejarlo como un hecho documentado (la ficha de Q se contradiría a sí misma); filtrar sólo `dueno_id` (deja la
+cabecera y el portal).
+
+## 2026-10-17 — Cierre 2 (0a): `_bajas_en_curso()` no le dice nada a una cuenta que no está activa
+
+**Contexto:** el cierre 1 dio por hecho que `_bajas_en_curso()` devolvía un subconjunto de lo que `perfiles` entrega a quien
+llama. Para una cuenta activa es cierto (la policy de `perfiles` entrega todas las filas). Para una cuenta **apagada o bloqueada
+con su JWT todavía vigente** no: la función devolvía los ids y `perfiles`, 0 filas.
+
+**Decisión:** `…002600` agrega `and ((select auth.uid()) is null or exists (select 1 from public.perfiles p where p.id = (select
+auth.uid()) and p.activo and not p.bloqueado))`: los jobs y `service_role` (sin `auth.uid()`) siguen viendo todo; una cuenta
+que no está activa recibe `{}`. `humo.sql` afirma, como asesora activa, `_bajas_en_curso() <@ array(select id from perfiles)`, y
+`{}` para la apagada y la bloqueada.
+
+**Alternativas:** aceptar que una cuenta apagada pueda saber, mientras viva su JWT, quién más está en baja (es un oráculo
+chico, pero la prueba de subconjunto quedaba falsa).
+
+## 2026-10-17 — Cierre 2 (0b): la carrera real de `…002400` es de dos corridas de la misma baja, no la del commit
+
+**Contexto:** el commit de `…002400` describía un camino (otra transacción con `_lead_aplicar_bajas` entre leer los ids y
+bloquear) que, verificado, no cuenta dos veces: quien llama a esa función deja al lead fuera del limbo (adoptar suma a quien
+adopta) o se revierte (salir y quitar acceso rechazan dejarlo vacío).
+
+**Decisión:** el doble conteo real es el de **dos lotes de la misma baja a la vez** (una corrida manual de
+`equipo_bajas_continuar()` mientras corre la de `pg_cron`). `scripts/carreras/cartera.mjs` lo provoca sin `sleep`: A toma
+`lock table public.leads in exclusive mode`, B llama a `equipo_bajas_continuar()` y espera el candado (se ve en
+`pg_stat_activity`), A corre la suya y confirma, B sigue; se espera `leads_al_limbo = 1`. Con la versión de `_baja_lote_desde` de
+`…001700` la carrera falla con `leads_al_limbo = 2` (salida mostrada en el informe del cierre); con la vigente pasa.
+
+## 2026-10-17 — Cierre 2 (1): todo `<Confirmar>` tiene su URL, y una guarda lo exige
+
+**Contexto:** «Mover a…» con motivo y seis `<Confirmar>` (salir, desvincular, purgar en las dos papeleras, deshacer importación,
+eliminar embudo, y los dos de eliminar origen) no sobrevivían a «atrás» ni a recargar, y no tenían la misma defensa contra el
+doble envío ni contra la falta de red.
+
+**Decisión:** `<Confirmar>` es un `Modal` que no se cierra mientras actúa, ignora el segundo clic (un solo vuelo), dice sin
+conexión por sí solo («No hay conexión. No se hizo nada: vuelve a intentar cuando vuelva.») y devuelve el foco a quien lo abrió.
+Cada uno vive en su URL con `usePanelPorUrl()` (`?panel=`; dentro de un panel que ya ocupa `?panel=`, otra clave: `?eliminar=`)
+y lo que la URL nombra se revisa una vez al abrir (`useRevisionAlAbrir()`). «Mover a…» con motivo es un `ModalDeFormulario` en
+`?panel=mover-oportunidad&oportunidad=<id>&destino=<id>`, el mismo en el kanban y en la ficha; la clave es `destino` y no `etapa`
+porque `?etapa=` es la pestaña del kanban en el celular (el choque se encontró con un e2e). Se monta una vez por pantalla. La
+guarda `scripts/guardas/confirmar-con-url.test.ts` tiene el registro de los once con su abridor y su señal, y falla si aparece
+uno sin registrar. Los orígenes (de vehículo y de lead) y «Purgar» de vehículos entraron aunque no estaban en la lista: con la
+guarda, la regla vale para todos y no nace con excepciones. «Salir» no cierra tras el éxito (la persona ya no ve el lead).
+`useUltimo` necesita un valor estable: un valor que cambia en cada render lo vuelve un bucle (React #301); `useUltima` compara
+por firma, con su test.
+
+**Alternativas:** una URL por cada Confirmar sin guarda (el siguiente la olvida); `window.confirm` (prohibido).
+
+## 2026-10-17 — Cierre 2 (2, 4): «Mover a…» no se parte, y la tabla del listado se desplaza dentro de su tarjeta
+
+**Decisión:** el botón de «Mover a…» lleva `shrink-0 whitespace-nowrap` y la fecha de la tarjeta puede partirse: la columna del
+kanban sigue en 288 px. La tabla del listado pasa a `w-max min-w-full`; la columna del nombre queda pegada a la izquierda
+(`sticky`, con fondo propio en reposo, hover y foco, y un borde que se ve al desplazar) con 16 rem como mínimo (unos 32
+caracteres), el resto cortado con «…» y el nombre entero en `title`. El desplazamiento horizontal ocurre dentro de la tarjeta; la
+página no tiene scroll horizontal (`min-w-0` en el contenedor que es hijo de una grilla: sin él se ensanchaba la página). Con 100
+filas queda dentro de los 3.500 nodos. **Corrección (el e2e completo):** con la tabla más ancha que su tarjeta, el «⋯» de cada fila quedaba
+fuera de la vista y el recorrido de la asesora no podía pulsarlo (`recibeElClic`); la columna de las marcas también queda pegada, a la
+derecha. El e2e de la tabla ancha lo exige sin desplazar y desplazada.
+
+**Alternativas:** que el nombre nunca se corte (un nombre de 80 caracteres ensancharía toda la tabla).
+
+## 2026-10-17 — Cierre 2 (3): un formulario que se reemplaza al llegar lo guardado apaga sus campos hasta entonces
+
+**Contexto:** la ventana de pérdida de lo tecleado en el panel de tipos de cambio tenía dos tiempos: durante el envío (lo que se
+teclea mientras guarda se borra cuando llega la versión nueva) y, sobre todo, entre el aviso de éxito (sale al resolverse la
+promesa) y el remontaje por `key={id-actualizadoEn}`: unos 130 ms con «Guardar» ya activo.
+
+**Decisión:** los campos de `panel-tipo-cambio.tsx` y `panel-moneda.tsx` se apagan mientras `enCurso` (que de `useAction` dura hasta
+que se dibuja la respuesta) y el `<fieldset>` no basta porque los campos de Base UI no lo obedecen: se apagan uno a uno. La regla
+es de `.claude/rules/ui.md`. Prueba con la action retenida (`page.route`): falló antes del arreglo y pasa después.
+
+## 2026-10-17 — Cierre 2 (5): los avisos con un modal abierto sí se anuncian; lo que faltaba era preguntar al salir
+
+**Contexto:** la bitácora de la 9d-3 decía que un aviso nuevo con un modal abierto «no se oye» porque Base UI deja todo bajo
+`aria-hidden`. Con el árbol de accesibilidad real (CDP `Accessibility.getFullAXTree`) no se reproduce: Base UI 1.9 deja fuera del
+`aria-hidden` lo que lleva `[aria-live]` y la región de sonner lo lleva siempre. Queda como guarda (`avisos-con-panel.spec.ts`,
+`vehiculos-aviso-con-panel.spec.ts`).
+
+**Decisión:** el clic en un aviso que sale de la pantalla («Abrir ficha», `sale: true`) con algo escrito en un panel **pregunta en
+el pie del panel** (`useCierreConCambios()` y `salida` de `<PieDelPanel>`); «Deshacer» actúa en el lugar. Se extendió a los dos
+`Drawer` donde un aviso así coexiste con un borrador (el alta de lead y el panel de vehículo). **Limitación:** los demás `Drawer`
+con formulario (editar el lead, teléfono, etapas, oportunidad, tipos de cambio, moneda, cartera) no están registrados; queda en
+`docs/PLAN.md`. En el alta de lead, el aviso con «Abrir ficha» se dibuja encima del pie del panel (lo vimos en las capturas).
+
+## 2026-10-17 — Cierre 2 (6, 7, 8): la barra que se desplaza lo dice, la barra superior cabe al 200 %, y los avisos y la insignia heredan la app
+
+**Decisión:** (6a) la barra de secciones de la ficha y las pestañas de etapas del celular muestran un degradado donde sigue la
+barra (`useDesborde()` y `<PistaDeDesborde>`, que lleva `data-desborde` y `data-visible` para los tests) y dejan a la vista la
+sección activa. (6b) La barra superior del celular usa 44 px en `px` para los blancos táctiles (con `size-11` en rem se duplicaban
+al 200 %: la fila sumaba unos 456 px contra 412) y el tipo de cambio se dibuja en la barra sólo si ésta mide 24 rem o más
+(`@container`); si no, está también en el menú. (7) El `<Toaster>` fija `fontFamily: 'var(--font-sans)'` en línea: sonner inyecta
+`[data-sonner-toaster]{font-family: ui-sans-serif…}` sin capa y pisaba a Geist. (8) «Deshecha» tenía un solo lugar y un solo
+estilo; lo que se veía era la transición de `transition-all` de `<Badge>` entre dos estados (el texto nuevo con el color del
+viejo). Ahora sólo se anima el anillo de foco (`transition-shadow`); la prueba compara el estilo calculado recién deshecho con el
+de después de recargar.
+
+**Hallazgo fuera del alcance (en `docs/PLAN.md`):** con el texto al 200 % las tarjetas del listado en el celular se salen de la
+página (los «⋯»).

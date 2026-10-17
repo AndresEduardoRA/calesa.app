@@ -153,6 +153,14 @@ y 5 ms el candado. La vista previa cuenta hasta 1.001: 313 ms → 44–73 ms con
 se evaluaba por fila; envuelta en `(select …)::uuid[]` es un InitPlan). El InitPlan nuevo de la regla no cambió ningún plan del
 listado (`medir-escala.sql`; con 512.000 leads, la página 1 de la dueña sigue en 1,6 ms por `leads_listado_idx`).
 
+**El cierre 2 midió la página como la pide la app** (`pg_temp.pagina` no incluía `dueno_id`, que la app sí lee: ahora trae las
+columnas de `columnasDeLaConsulta()`). Página 1 de la dueña con 50.000 leads: 30,3 ms con las columnas reales antes de la
+migración `…002500` (pasaba el presupuesto de 30 ms por 0,3) y 14,0 ms después (14,2 y 14,0 en las dos mediciones finales);
+con el máximo de la lista, 24,1 ms. El filtro de la baja en curso (`la.usuario_id <> all ((select _bajas_en_curso())::uuid[])`)
+es un InitPlan sobre una tabla casi vacía y no cambió el índice de ningún plan. La baja de 200.000 leads sigue terminando con la
+cartera igual a su fuente; sus tiempos varían entre corridas con la carga de la máquina (no son una meta). Nodos del DOM: la
+tabla con el nombre pegado (`w-max min-w-full`) y 100 filas sigue dentro de los 3.500 de `listadoDe100` (`leads-tabla-ancha.spec.ts`).
+
 **«¿Algún lead usa este origen?» (corrección de la 9f-1, `…20261019000800`).** El índice de la FK existía (lo crea el bucle de
 `…000900_indices.sql`), pero `_origenes_lead_json()` y `origen_lead_eliminar()` no lo usaban: con `l.origen_lead_id = o.id` el plan
 genérico estima 1/`n_distinct` de la tabla (un quinto) y elige Seq Scan; para un origen con un lead, o sin ninguno, recorría
