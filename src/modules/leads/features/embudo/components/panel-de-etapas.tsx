@@ -3,6 +3,7 @@
 import { useId } from 'react'
 import { Aviso } from '@/shared/ui/aviso'
 import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
+import { CambiosSinGuardar } from '@/shared/ui/cambios-sin-guardar'
 import { Drawer } from '@/shared/ui/drawer'
 import { Input } from '@/shared/ui/input'
 import { Label } from '@/shared/ui/label'
@@ -35,6 +36,7 @@ export function PanelDeEtapas({ embudo, embudos, alCerrar }: Props) {
         <PieDelPanel idFormulario={idFormulario} enCurso={panel.enCurso} alCancelar={alCerrar} />
       }
     >
+      <CambiosSinGuardar hayCambios={panel.hayCambios} />
       <form
         id={idFormulario}
         className="grid gap-4"

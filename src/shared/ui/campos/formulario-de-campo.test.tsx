@@ -1,8 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CampoBase } from '@/shared/lib/campos'
 import { fallo, ok } from '@/shared/lib/errores'
 import { Campo } from '@/shared/ui/campo'
+import { Drawer } from '@/shared/ui/drawer'
+import { salirSinPerder } from '@/shared/ui/salida-con-cambios'
 import { avisar } from '@/shared/ui/toasts'
 import { FormularioDeCampo } from './formulario-de-campo'
 import type { ConfiguracionDeCampos, EdicionesDeCampos } from './tipos'
@@ -207,5 +209,55 @@ describe('FormularioDeCampo: al terminar', () => {
     expect(await screen.findByText('Cambia 3 registros.')).toBeTruthy()
     expect(edicion.guardar).not.toHaveBeenCalled()
     expect(almacen('prueba-campo-c1')).not.toBeNull()
+  })
+})
+
+// Dentro de un panel (`<Drawer>`): la acción de un aviso que sale de la pantalla («Abrir ficha») pregunta en el pie si algo se escribió.
+describe('FormularioDeCampo en un panel: salir desde un aviso', () => {
+  function enUnPanel(campo: CampoBase | null) {
+    render(
+      <Drawer abierto alCerrar={vi.fn()} titulo="Campo">
+        <FormularioDeCampo
+          campo={campo}
+          todos={campo ? [campo] : []}
+          puedeGestionar
+          configuracion={configuracion}
+          ediciones={ediciones()}
+          alCerrar={vi.fn()}
+        />
+      </Drawer>,
+    )
+  }
+  const pulsarAviso = () => {
+    const salir = vi.fn()
+    act(() => {
+      salirSinPerder(salir)
+    })
+    return salir
+  }
+
+  it('sin escribir nada, el aviso sale directo', () => {
+    enUnPanel(CAMPO)
+    expect(pulsarAviso()).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('Tienes cambios sin guardar.')).not.toBeInTheDocument()
+  })
+
+  it('con la etiqueta cambiada, pregunta en el pie y «Descartar» tira el borrador y sigue', () => {
+    enUnPanel(CAMPO)
+    escribir('Nombre', 'Otro color')
+    expect(almacen('prueba-campo-c1')).not.toBeNull()
+    const salir = pulsarAviso()
+    expect(salir).not.toHaveBeenCalled()
+    expect(screen.getByText('Tienes cambios sin guardar.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar' }))
+    expect(salir).toHaveBeenCalledTimes(1)
+  })
+
+  it('con el texto del hueco cambiado también pregunta; un campo nuevo vacío no', () => {
+    enUnPanel(null)
+    expect(pulsarAviso()).toHaveBeenCalledTimes(1)
+    escribir('Nota', 'Otra nota')
+    pulsarAviso()
+    expect(screen.getByText('Tienes cambios sin guardar.')).toBeInTheDocument()
   })
 })

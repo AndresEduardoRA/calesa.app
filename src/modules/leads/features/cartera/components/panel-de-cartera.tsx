@@ -3,7 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Drawer } from '@/shared/ui/drawer'
+import { PieConSalida } from '@/shared/ui/pie-con-salida'
 import { useConsultaDeMedios } from '@/shared/ui/use-consulta-de-medios'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import {
@@ -101,6 +103,8 @@ function Contenido({ modo, alCerrar, lead, cartera }: Omit<Props, 'abierto'>) {
   })
   const textos = TEXTOS[modo]
   const { persona, error } = eleccion
+  // Una persona elegida y todavía sin dar: un aviso que sale de la pantalla («Abrir ficha») pregunta antes de irse.
+  useCambiosSinGuardar(persona !== null)
 
   return (
     <div className="grid gap-4">
@@ -147,7 +151,7 @@ function Contenido({ modo, alCerrar, lead, cartera }: Omit<Props, 'abierto'>) {
           ) : null}
         </Aviso>
       ) : null}
-      <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-wrap justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) p-4">
+      <PieConSalida className="sticky -bottom-4 -mx-4 -mb-4 flex flex-wrap justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) p-4">
         <Button variant="ghost" onClick={alCerrar} disabled={cartera.enCurso}>
           Cancelar
         </Button>
@@ -157,7 +161,7 @@ function Contenido({ modo, alCerrar, lead, cartera }: Omit<Props, 'abierto'>) {
         >
           {cartera.enCurso ? textos.enCurso : textos.accion}
         </Button>
-      </div>
+      </PieConSalida>
     </div>
   )
 }

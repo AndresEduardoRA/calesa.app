@@ -2,6 +2,7 @@
 
 import { useId } from 'react'
 import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
+import { CambiosSinGuardar } from '@/shared/ui/cambios-sin-guardar'
 import { Drawer } from '@/shared/ui/drawer'
 import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import type { Embudo } from '../../../entities/embudo'
@@ -40,6 +41,7 @@ export function PanelDeOportunidad({ leadId, oportunidad, embudos, alCerrar }: P
         />
       }
     >
+      <CambiosSinGuardar hayCambios={formulario.hayCambios} />
       <form
         id={idFormulario}
         className="grid gap-4"

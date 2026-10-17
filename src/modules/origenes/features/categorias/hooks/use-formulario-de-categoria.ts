@@ -78,5 +78,10 @@ export function useFormularioDeCategoria({
     guardar,
     eliminar,
     motivoNoEliminar: categoria ? motivoParaNoEliminarCategoria(categoria, hijas) : null,
+    // Algo escrito que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
+    hayCambios:
+      nombre !== (categoria?.nombre ?? '') ||
+      padreId !== '' ||
+      activa !== (categoria?.activa ?? true),
   }
 }

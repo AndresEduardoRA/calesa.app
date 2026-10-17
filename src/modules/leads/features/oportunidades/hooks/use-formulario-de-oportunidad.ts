@@ -103,6 +103,11 @@ export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: 
     // Al editar sin cambios no hay nada que mandar.
     sinCambios:
       oportunidad !== null && Object.keys(cambiosDeOportunidad(oportunidad, valores)).length === 0,
+    // Algo escrito que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
+    hayCambios:
+      oportunidad === null
+        ? embudo !== '' || JSON.stringify(valores) !== JSON.stringify(valoresDeOportunidad(null))
+        : Object.keys(cambiosDeOportunidad(oportunidad, valores)).length > 0,
     errores,
     conflicto,
     enCurso: crear.isPending || guardar.isPending,

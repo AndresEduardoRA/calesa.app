@@ -5,6 +5,7 @@ import { useEffect, useId, useRef } from 'react'
 import { enfocarPrimerError } from '@/shared/lib/formularios'
 import { RUTAS } from '@/shared/lib/rutas'
 import { AvisosDelFormulario } from '@/shared/ui/avisos-del-formulario'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Drawer } from '@/shared/ui/drawer'
 import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import { avisar, avisarExito } from '@/shared/ui/toasts'
@@ -69,6 +70,8 @@ function Contenido({ ficha, alCerrar }: { ficha: LeadDeFicha; alCerrar: () => vo
     },
   })
 
+  // Un número escrito y todavía sin guardar: un aviso que sale de la pantalla («Abrir ficha») pregunta antes de irse.
+  useCambiosSinGuardar(cambio.valor.trim() !== '')
   const hayErrores = Object.keys(cambio.errores).length > 0
   useEffect(() => {
     if (hayErrores) {

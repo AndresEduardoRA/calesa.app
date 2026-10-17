@@ -117,4 +117,16 @@ describe('useCierreConCambios: una salida desde afuera', () => {
     expect(salir).toHaveBeenCalledTimes(2)
     unmount()
   })
+  it('si lo escrito se guarda o se deshace mientras pregunta, ya no pregunta', () => {
+    const { result, rerender } = renderHook(
+      ({ hayCambios }) => useCierreConCambios({ hayCambios, alCerrar: vi.fn() }),
+      { initialProps: { hayCambios: true } },
+    )
+    act(() => {
+      result.current.intentarCerrar()
+    })
+    expect(result.current.confirmando).toBe(true)
+    rerender({ hayCambios: false })
+    expect(result.current.confirmando).toBe(false)
+  })
 })

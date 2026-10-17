@@ -100,6 +100,8 @@ export function useFormularioDeCampo<Campo extends CampoBase, Cambios extends ob
   const { valores, aviso, errores, setAviso, setErrores, ...cambios } = useEstadoDelFormulario(
     configuracion.valoresIniciales(campo),
   )
+  // Lo que había al abrir: contra eso se mide si algo se escribió.
+  const [inicial] = useState(() => JSON.stringify(valores))
 
   const clave =
     campo?.clave ??
@@ -159,6 +161,8 @@ export function useFormularioDeCampo<Campo extends CampoBase, Cambios extends ob
 
   return {
     valores: { ...valores, clave },
+    // Algo escrito que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
+    hayCambios: JSON.stringify(valores) !== inicial,
     ...cambios,
     aviso,
     errores,

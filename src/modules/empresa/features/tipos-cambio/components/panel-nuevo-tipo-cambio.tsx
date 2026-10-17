@@ -4,9 +4,11 @@ import { useId, useState } from 'react'
 import { enfocarPrimerError, errorDeCampo, valoresDe } from '@/shared/lib/formularios'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { Drawer } from '@/shared/ui/drawer'
+import { useHayCambiosEnFormulario } from '@/shared/ui/use-hay-cambios-en-formulario'
 import { valorTipeado, type Moneda } from '../../../entities/tipos-cambio'
 import type { EdicionesDeTiposCambio } from '../hooks/use-tipos-cambio'
 
@@ -68,15 +70,30 @@ function Campos({ opciones, monedaBase, otra, errores, valorInvalido }: PropsDeC
   )
 }
 
-export function PanelNuevoTipoCambio({ abierto, monedas, monedaBase, ediciones, alCerrar }: Props) {
-  const idFormulario = useId()
+type PropsDelFormulario = Pick<Props, 'monedaBase' | 'ediciones' | 'alCerrar'> & {
+  idFormulario: string
+  opciones: readonly { valor: string; etiqueta: string }[]
+  otra: string
+}
+
+function Formulario({
+  idFormulario,
+  opciones,
+  monedaBase,
+  otra,
+  ediciones,
+  alCerrar,
+}: PropsDelFormulario) {
   const [valorInvalido, setValorInvalido] = useState(false)
   const errores = ediciones.errores.crear
-  const opciones = monedas.map((moneda) => ({
-    valor: moneda.codigo,
-    etiqueta: `${moneda.codigo} · ${moneda.nombre}`,
-  }))
-  const otra = monedas.find((moneda) => moneda.codigo !== monedaBase)?.codigo
+  const { formulario, hayCambios } = useHayCambiosEnFormulario([
+    'nombre',
+    'monedaDe',
+    'monedaA',
+    'valor',
+  ])
+  // Un aviso que sale de la pantalla («Abrir ficha») con algo escrito pregunta en el pie.
+  useCambiosSinGuardar(hayCambios)
 
   async function crear(elemento: HTMLFormElement) {
     const campos = valoresDe(elemento, ['nombre', 'monedaDe', 'monedaA', 'valor'])
@@ -93,6 +110,36 @@ export function PanelNuevoTipoCambio({ abierto, monedas, monedaBase, ediciones, 
       enfocarPrimerError(elemento)
     }
   }
+
+  return (
+    <form
+      id={idFormulario}
+      ref={formulario}
+      noValidate
+      className="grid gap-4"
+      onSubmit={(evento) => {
+        evento.preventDefault()
+        void crear(evento.currentTarget)
+      }}
+    >
+      <Campos
+        opciones={opciones}
+        monedaBase={monedaBase}
+        otra={otra}
+        errores={errores}
+        valorInvalido={valorInvalido}
+      />
+    </form>
+  )
+}
+
+export function PanelNuevoTipoCambio({ abierto, monedas, monedaBase, ediciones, alCerrar }: Props) {
+  const idFormulario = useId()
+  const opciones = monedas.map((moneda) => ({
+    valor: moneda.codigo,
+    etiqueta: `${moneda.codigo} · ${moneda.nombre}`,
+  }))
+  const otra = monedas.find((moneda) => moneda.codigo !== monedaBase)?.codigo
 
   return (
     <Drawer
@@ -112,23 +159,14 @@ export function PanelNuevoTipoCambio({ abierto, monedas, monedaBase, ediciones, 
       }
     >
       {otra ? (
-        <form
-          id={idFormulario}
-          noValidate
-          className="grid gap-4"
-          onSubmit={(evento) => {
-            evento.preventDefault()
-            void crear(evento.currentTarget)
-          }}
-        >
-          <Campos
-            opciones={opciones}
-            monedaBase={monedaBase}
-            otra={otra}
-            errores={errores}
-            valorInvalido={valorInvalido}
-          />
-        </form>
+        <Formulario
+          idFormulario={idFormulario}
+          opciones={opciones}
+          monedaBase={monedaBase}
+          otra={otra}
+          ediciones={ediciones}
+          alCerrar={alCerrar}
+        />
       ) : (
         <Aviso>
           Hacen falta dos monedas activas para crear un tipo de cambio. Agrega la que falta en

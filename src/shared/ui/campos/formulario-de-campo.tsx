@@ -4,6 +4,7 @@ import { useRef } from 'react'
 import { nombresDeGrupo, type CampoBase } from '@/shared/lib/campos'
 import { enfocarPrimerError, errorDeCampo } from '@/shared/lib/formularios'
 import { Aviso } from '@/shared/ui/aviso'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { useBorrador } from '@/shared/ui/use-borrador'
 import { AvisoDeImpacto } from './aviso-de-impacto'
 import { CamposDeCampo } from './campos-de-campo'
@@ -58,6 +59,10 @@ export function FormularioDeCampo<Campo extends CampoBase, Cambios extends objec
     ['etiqueta', 'grupo', ...configuracion.textosLibres],
     { activo: puedeGestionar, controlado: true },
   )
+  // Un aviso que sale de la pantalla («Abrir ficha») con algo escrito pregunta en el pie; descartar tira el borrador.
+  useCambiosSinGuardar(puedeGestionar && estado.hayCambios, () => {
+    borrador.limpiar()
+  })
   const erroresDeValidacion = ediciones.errores.crear
   const puedeEliminar = puedeGestionar && campo !== null && !campo.esSistema
 

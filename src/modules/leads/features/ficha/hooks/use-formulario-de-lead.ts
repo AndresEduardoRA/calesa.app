@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import type { ValorDeFormulario } from '@/shared/lib/campos'
+import { cambiosDeEstado } from '@/shared/lib/borrador'
 import { useAtajo } from '@/shared/ui/atajos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
@@ -104,6 +105,8 @@ export function useFormularioDeLead({
     esperandoConexion: estado.pendiente !== null,
     enLinea,
     enCurso: guardando.enCurso,
+    // Algo escrito que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
+    hayCambios: Object.keys(cambiosDeEstado(estado.valores, iniciales)).length > 0,
     cambiar: (clave: string, valor: ValorDeFormulario) => {
       setEstado((antes) => conCambio(antes, clave, valor))
     },

@@ -2,6 +2,7 @@
 
 import { enfocarPrimerError, errorDeCampo } from '@/shared/lib/formularios'
 import { Aviso } from '@/shared/ui/aviso'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { Drawer } from '@/shared/ui/drawer'
@@ -87,6 +88,7 @@ function Formulario(props: PropsDelFormulario) {
     ediciones,
     alTerminar: alCerrar,
   })
+  useCambiosSinGuardar(puedeGestionar && formulario.hayCambios)
 
   async function enviar(elemento: HTMLFormElement) {
     if (!(await formulario.guardar())) {

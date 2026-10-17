@@ -1,11 +1,13 @@
 'use client'
 
-import { useId, useRef, useState } from 'react'
+import { useId, useState } from 'react'
 import { enfocarPrimerError, errorDeCampo, valoresDe } from '@/shared/lib/formularios'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Campo } from '@/shared/ui/campo'
 import { Drawer } from '@/shared/ui/drawer'
+import { useHayCambiosEnFormulario } from '@/shared/ui/use-hay-cambios-en-formulario'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import { Interruptor } from '@/shared/ui/interruptor'
 import { MOTIVO_SIN_PERMISO_TIPOS_CAMBIO } from '../../../entities/motivos'
@@ -94,7 +96,7 @@ function Campos(props: PropsDeCampos) {
 }
 
 function Formulario({ tipo, puedeGestionar, ediciones, idFormulario }: PropsDelFormulario) {
-  const formulario = useRef<HTMLFormElement>(null)
+  const { formulario, hayCambios } = useHayCambiosEnFormulario(['nombre', 'valor'])
   const [activo, setActivo] = useState(tipo.activo)
   const [esDefault, setEsDefault] = useState(tipo.esDefault)
   const [valorInvalido, setValorInvalido] = useState(false)
@@ -102,6 +104,10 @@ function Formulario({ tipo, puedeGestionar, ediciones, idFormulario }: PropsDelF
   // Guardando, el formulario que se ve es el viejo y está por reemplazarse con lo guardado (`key` con la versión): lo que se
   // tecleara ahí caería en un campo que desaparece. `enCurso` dura hasta que se dibuja lo guardado, no sólo hasta que llega.
   const bloqueado = !puedeGestionar || ediciones.enCurso
+  // Un aviso que sale de la pantalla («Abrir ficha») con algo escrito pregunta en el pie; sin permiso no hay nada que escribir.
+  useCambiosSinGuardar(
+    puedeGestionar && (hayCambios || activo !== tipo.activo || esDefault !== tipo.esDefault),
+  )
 
   async function guardar(elemento: HTMLFormElement) {
     const { nombre, valor: tipeado } = valoresDe(elemento, ['nombre', 'valor'])

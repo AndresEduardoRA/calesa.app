@@ -34,6 +34,12 @@ export function useCierreConCambios({
   // La salida que pidió alguien de afuera mientras se pregunta: sigue si se descarta.
   const [salida, setSalida] = useState<(() => void) | null>(null)
 
+  // Si lo escrito se guardó o se deshizo mientras se preguntaba, ya no hay nada que preguntar (se ajusta al dibujar, no en un efecto).
+  if (!hayCambios && (confirmando || salida !== null)) {
+    setConfirmando(false)
+    setSalida(null)
+  }
+
   const anotado = abierto && hayCambios
   useEffect(() => {
     if (!anotado) {

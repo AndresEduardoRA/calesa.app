@@ -29,8 +29,13 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
 - Un formulario que se reemplaza al llegar lo guardado (`key` con la versión) **apaga sus campos** (también los de Base UI, que
   no obedecen al `<fieldset>`) mientras guarda: el aviso sale antes de que se dibuje lo guardado y lo que se tecleara ahí caería
   en un campo que desaparece. `enCurso` de `useAction` dura hasta que se dibuja la respuesta.
-- La acción de un aviso que sale de la pantalla («Abrir ficha», `sale: true`) con algo escrito en un panel pregunta en su pie
-  (`useCierreConCambios()` y `salida` de `<PieDelPanel>`); cerrar un panel que tiene borrador no pregunta.
+- La acción de un aviso que sale de la pantalla («Abrir ficha», `sale: true`) con algo escrito en un panel pregunta en su pie; cerrar un
+  panel que tiene borrador no pregunta. **Todo `<Drawer>` lo hace:** el formulario de adentro dice que tiene algo escrito con
+  `useCambiosSinGuardar(hayCambios, alDescartar?)` (o `<CambiosSinGuardar>` si su estado vive en el mismo componente que el `<Drawer>`:
+  el contexto sólo llega a lo de adentro; `useHayCambiosEnFormulario()` mide uno sin estado, con `defaultValue`) y el `<Drawer>`
+  dibuja la pregunta en su ranura `pie`; un pie dentro del cuerpo es `<PieDelPanel>` (toma la pregunta del `<Drawer>`) o `<PieConSalida>`.
+  El alta de lead y el panel de vehículo lo hacen por su cuenta (`useCierreConCambios()` y `salida`). `scripts/guardas/drawers-con-salida.ts`
+  registra cada `<Drawer>` (con su formulario, o con el motivo de no tenerlo) y su test falla si aparece uno sin registrar.
 - Una tabla ancha lleva un ancho mínimo (`w-max min-w-full`), la columna del nombre pegada a la izquierda (y la de acciones, el «⋯», a la derecha: una acción por fila nunca queda fuera de la vista) y se desplaza dentro de
   su tarjeta: nunca se achica un nombre para que quepan las demás ni se mueve la página de costado.
 - Una lista de tarjetas no ensancha la página con el texto al 200 % (reflujo, WCAG 1.4.10): su `<ul>` es `grid-cols-[minmax(0,1fr)]` y su

@@ -5,8 +5,10 @@ import { Aviso } from '@/shared/ui/aviso'
 import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
 import { Bloque } from '@/shared/ui/bloque'
 import { Button } from '@/shared/ui/button'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Campo } from '@/shared/ui/campo'
 import { Interruptor } from '@/shared/ui/interruptor'
+import { PieConSalida } from '@/shared/ui/pie-con-salida'
 import type { CampoDeVehiculo } from '../../../entities/campo'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import {
@@ -156,6 +158,7 @@ function precioALaVista(estado: Estado, vehiculo: Vehiculo) {
 export function FormularioDeVitrina({ vehiculo, origen, fase, campos, previa, alCerrar }: Props) {
   const estado = useVitrina(vehiculo, alCerrar)
   const { valores } = estado
+  useCambiosSinGuardar(estado.hayCambios)
   return (
     <form
       noValidate
@@ -204,14 +207,14 @@ export function FormularioDeVitrina({ vehiculo, origen, fase, campos, previa, al
       ) : (
         <Aviso>No se pudo cargar la vista previa. Puedes guardar igual.</Aviso>
       )}
-      <div className="sticky -bottom-4 -mx-4 -mb-4 flex justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) px-4 py-3">
+      <PieConSalida className="sticky -bottom-4 -mx-4 -mb-4 flex justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) px-4 py-3">
         <Button type="button" variant="outline" className="h-11 md:h-9" onClick={alCerrar}>
           Cancelar
         </Button>
         <Button type="submit" className="h-11 md:h-9" disabled={estado.enCurso || !estado.enLinea}>
           Guardar
         </Button>
-      </div>
+      </PieConSalida>
     </form>
   )
 }

@@ -1,4 +1,5 @@
 import { Button } from '@/shared/ui/button'
+import { PieConSalida } from '@/shared/ui/pie-con-salida'
 
 type Props = {
   esNueva: boolean
@@ -14,7 +15,7 @@ type Props = {
 export function PieDeCategoria(props: Props) {
   const { esNueva, puedeEliminar, eliminando, enCurso } = props
   return (
-    <div className="flex flex-wrap justify-end gap-2">
+    <PieConSalida className="flex flex-wrap justify-end gap-2">
       {puedeEliminar && !eliminando ? (
         <Button
           variant="outline"
@@ -47,6 +48,6 @@ export function PieDeCategoria(props: Props) {
           {enCurso ? 'Guardando…' : esNueva ? 'Crear categoría' : 'Guardar'}
         </Button>
       )}
-    </div>
+    </PieConSalida>
   )
 }

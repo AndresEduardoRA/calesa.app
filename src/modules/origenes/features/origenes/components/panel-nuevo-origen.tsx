@@ -4,6 +4,7 @@ import { useId, useState } from 'react'
 import { enfocarPrimerError, errorDeCampo } from '@/shared/lib/formularios'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Drawer } from '@/shared/ui/drawer'
 import { Opciones } from '@/shared/ui/opciones'
 import { resumenDePreconfiguracion } from '../../../entities/preconfiguraciones'
@@ -32,6 +33,15 @@ function Formulario({ ediciones, alCrear, idFormulario }: PropsDelFormulario) {
   const { valores, cambiar } = useValoresDeOrigen(
     { nombre: '', sustantivo: 'vehículo', genero: 'm', color: COLOR_INICIAL, plataformas: [] },
     false,
+  )
+  // Algo escrito (o elegido) que todavía no se guardó: un aviso que sale de la pantalla pregunta antes de irse.
+  useCambiosSinGuardar(
+    tipo !== 'manual' ||
+      valores.nombre !== '' ||
+      valores.sustantivo !== 'vehículo' ||
+      valores.genero !== 'm' ||
+      valores.color !== COLOR_INICIAL ||
+      valores.plataformas.length > 0,
   )
   const errores = ediciones.errores.crear
 

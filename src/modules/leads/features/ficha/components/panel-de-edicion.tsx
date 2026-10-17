@@ -6,6 +6,7 @@ import { agruparCampos } from '@/shared/lib/campos'
 import { enfocarPrimerError } from '@/shared/lib/formularios'
 import { RUTAS } from '@/shared/lib/rutas'
 import { AvisosDelFormulario } from '@/shared/ui/avisos-del-formulario'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { BloqueDeCampos } from '@/shared/ui/campos'
@@ -162,6 +163,9 @@ function Contenido({ ficha, campos, origenes, zona, alCerrar }: Datos & { alCerr
       router.refresh()
     },
   })
+
+  // Con algo escrito, la acción de un aviso que sale de la pantalla («Abrir ficha») pregunta en el pie; descartar tira el borrador.
+  useCambiosSinGuardar(estado.hayCambios, estado.descartarBorrador)
 
   // El foco va al primer campo con un motivo, también cuando se guarda con Ctrl/Cmd+S.
   const hayErrores = Object.keys(estado.errores).length > 0

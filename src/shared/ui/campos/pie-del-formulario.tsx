@@ -1,5 +1,6 @@
 import type { ResumenDeImpacto } from '@/shared/lib/campos'
 import { Button } from '@/shared/ui/button'
+import { PieConSalida } from '@/shared/ui/pie-con-salida'
 
 type Props = {
   esNuevo: boolean
@@ -36,7 +37,7 @@ export function PieDelFormulario(props: Props) {
   const eliminando = aviso?.modo === 'eliminar'
   const bloqueado = enCurso || aviso?.resumen.bloquea === true
   return (
-    <div className="flex flex-wrap justify-end gap-2">
+    <PieConSalida className="flex flex-wrap justify-end gap-2">
       {puedeEliminar && !eliminando ? (
         <Button
           variant="outline"
@@ -64,6 +65,6 @@ export function PieDelFormulario(props: Props) {
           {etiquetaDeGuardar(esNuevo, enCurso, aviso !== null)}
         </Button>
       )}
-    </div>
+    </PieConSalida>
   )
 }

@@ -80,6 +80,8 @@ export function useVitrina(vehiculo: Vehiculo, alGuardar: () => void) {
 
   return {
     valores,
+    // Algo escrito que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
+    hayCambios: JSON.stringify(valores) !== JSON.stringify(valoresDeVitrina(vehiculo)),
     cambiar,
     guardar,
     porCampo,

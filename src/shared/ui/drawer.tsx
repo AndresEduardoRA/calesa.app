@@ -1,8 +1,10 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
 import { cn } from 'cn'
 import { useAtajo } from './atajos'
+import { ContextoDeCambios } from './cambios-del-panel'
+import { ConfirmarDescarte } from './confirmar-descarte'
 import {
   Sheet,
   SheetContent,
@@ -11,6 +13,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from './sheet'
+import { useCierreConCambios } from './use-cierre-con-cambios'
 
 type Props = {
   // Controlado siempre: quién lo abre guarda el estado en la URL (`?panel=`, `?id=`), para que
@@ -29,6 +32,9 @@ type Props = {
 
 // Panel lateral: el segundo nivel de cualquier pantalla (crear, editar, ver una ficha sin salir
 // de la lista). Un modal nunca abre otro modal; un drawer sí puede abrirse desde uno.
+// Cerrarlo no pregunta (lo escrito queda en el borrador del formulario). Lo que sí pregunta es la acción de un aviso que sale de la
+// pantalla («Abrir ficha», `sale: true`) con algo escrito: el formulario de adentro lo dice con `useCambiosSinGuardar()` y la pregunta
+// va en el pie (`pie`) o, si el pie va dentro del cuerpo, en `<PieDelPanel>`.
 export function Drawer({
   abierto,
   alCerrar,
@@ -40,35 +46,62 @@ export function Drawer({
   children,
 }: Props) {
   useAtajo('cerrar', alCerrar, abierto)
+  const [hayCambios, setHayCambios] = useState(false)
+  const alDescartar = useRef<(() => void) | undefined>(undefined)
+  const anotar = useCallback((hay: boolean, descartar?: () => void) => {
+    setHayCambios(hay)
+    if (descartar) {
+      alDescartar.current = descartar
+    }
+  }, [])
+  const cierre = useCierreConCambios({
+    hayCambios,
+    alCerrar,
+    abierto,
+    alDescartar: () => {
+      alDescartar.current?.()
+    },
+  })
+  const { confirmando, seguir, descartar } = cierre
+  const registro = useMemo(
+    () => ({ anotar, salida: { confirmando, seguir, descartar } }),
+    [anotar, confirmando, seguir, descartar],
+  )
+  const pieAMostrar =
+    confirmando && pie ? <ConfirmarDescarte alSeguir={seguir} alDescartar={descartar} /> : pie
 
   return (
-    <Sheet
-      open={abierto}
-      onOpenChange={(sigueAbierto) => {
-        if (!sigueAbierto) {
-          alCerrar()
-        }
-      }}
-    >
-      <SheetContent
-        side={lado}
-        // La hoja inferior no pasa del alto de la pantalla: lo de adentro se desplaza.
-        className={cn(
-          'gap-0',
-          lado === 'bottom'
-            ? 'max-h-[85dvh] rounded-t-(--radius-card)'
-            : ancho === 'amplio'
-              ? 'data-[side=left]:w-full data-[side=right]:w-full sm:max-w-xl data-[side=left]:sm:max-w-xl data-[side=right]:sm:max-w-xl'
-              : 'sm:max-w-md',
-        )}
+    <ContextoDeCambios value={registro}>
+      <Sheet
+        open={abierto}
+        onOpenChange={(sigueAbierto) => {
+          if (!sigueAbierto) {
+            alCerrar()
+          }
+        }}
       >
-        <SheetHeader className="border-b border-(--color-line)">
-          <SheetTitle>{titulo}</SheetTitle>
-          {descripcion ? <SheetDescription>{descripcion}</SheetDescription> : null}
-        </SheetHeader>
-        <div className="flex-1 overflow-y-auto p-4">{children}</div>
-        {pie ? <SheetFooter className="border-t border-(--color-line)">{pie}</SheetFooter> : null}
-      </SheetContent>
-    </Sheet>
+        <SheetContent
+          side={lado}
+          // La hoja inferior no pasa del alto de la pantalla: lo de adentro se desplaza.
+          className={cn(
+            'gap-0',
+            lado === 'bottom'
+              ? 'max-h-[85dvh] rounded-t-(--radius-card)'
+              : ancho === 'amplio'
+                ? 'data-[side=left]:w-full data-[side=right]:w-full sm:max-w-xl data-[side=left]:sm:max-w-xl data-[side=right]:sm:max-w-xl'
+                : 'sm:max-w-md',
+          )}
+        >
+          <SheetHeader className="border-b border-(--color-line)">
+            <SheetTitle>{titulo}</SheetTitle>
+            {descripcion ? <SheetDescription>{descripcion}</SheetDescription> : null}
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto p-4">{children}</div>
+          {pieAMostrar ? (
+            <SheetFooter className="border-t border-(--color-line)">{pieAMostrar}</SheetFooter>
+          ) : null}
+        </SheetContent>
+      </Sheet>
+    </ContextoDeCambios>
   )
 }

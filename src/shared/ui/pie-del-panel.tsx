@@ -1,11 +1,10 @@
 'use client'
 
 import { Button } from './button'
+import { useSalidaDelDrawer, type SalidaPendiente } from './cambios-del-panel'
 import { ConfirmarDescarte } from './confirmar-descarte'
 
-// Una salida pendiente (la acción de un aviso, «Abrir ficha»): con algo escrito se pregunta en el mismo pie, como en un modal.
-// Es lo que devuelve `useCierreConCambios()`.
-export type SalidaPendiente = { confirmando: boolean; seguir: () => void; descartar: () => void }
+export type { SalidaPendiente }
 
 type Props = {
   // El `id` del <form> que envía el botón «Guardar».
@@ -20,6 +19,7 @@ type Props = {
   etiquetaDeGuardar?: string
   etiquetaEnCurso?: string
   sinPuedeEnviar?: boolean
+  // Con algo escrito, la acción de un aviso que sale de la pantalla pregunta acá. Sin esto lo toma el `<Drawer>` que lo contiene.
   salida?: SalidaPendiente
 }
 
@@ -35,8 +35,10 @@ export function PieDelPanel({
   etiquetaDeGuardar = 'Guardar',
   etiquetaEnCurso = 'Guardando…',
   sinPuedeEnviar = false,
-  salida,
+  salida: salidaPropia,
 }: Props) {
+  const delDrawer = useSalidaDelDrawer()
+  const salida = salidaPropia ?? delDrawer
   return (
     <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-wrap justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) p-4">
       {salida?.confirmando ? (

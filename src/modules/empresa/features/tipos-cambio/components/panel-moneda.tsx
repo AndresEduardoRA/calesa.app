@@ -4,7 +4,9 @@ import { useId, useState } from 'react'
 import { enfocarPrimerError, valoresDe } from '@/shared/lib/formularios'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Drawer } from '@/shared/ui/drawer'
+import { useHayCambiosEnFormulario } from '@/shared/ui/use-hay-cambios-en-formulario'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import { MOTIVO_SIN_PERMISO_TIPOS_CAMBIO } from '../../../entities/motivos'
 import type { Moneda } from '../../../entities/tipos-cambio'
@@ -24,7 +26,16 @@ type PropsDelFormulario = Omit<Props, 'moneda'> & { moneda: Moneda | null; idFor
 
 function Formulario(props: PropsDelFormulario) {
   const { moneda, monedaBase, puedeGestionar, ediciones, idFormulario, alCerrar } = props
-  const [activa, setActiva] = useState(moneda?.activa ?? true)
+  const activaAlAbrir = moneda?.activa ?? true
+  const [activa, setActiva] = useState(activaAlAbrir)
+  const { formulario, hayCambios } = useHayCambiosEnFormulario([
+    'codigo',
+    'nombre',
+    'simbolo',
+    'decimales',
+  ])
+  // Un aviso que sale de la pantalla («Abrir ficha») con algo escrito pregunta en el pie; sin permiso no hay nada que escribir.
+  useCambiosSinGuardar(puedeGestionar && (hayCambios || activa !== activaAlAbrir))
 
   async function guardar(elemento: HTMLFormElement) {
     const campos = valoresDe(elemento, ['codigo', 'nombre', 'simbolo', 'decimales'])
@@ -51,6 +62,7 @@ function Formulario(props: PropsDelFormulario) {
   return (
     <form
       id={idFormulario}
+      ref={formulario}
       noValidate
       onSubmit={(evento) => {
         evento.preventDefault()

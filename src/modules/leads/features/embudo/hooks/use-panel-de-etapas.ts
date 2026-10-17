@@ -90,6 +90,8 @@ export function usePanelDeEtapas(embudo: Embudo, otros: readonly Embudo[], alTer
       setNombre(valor)
       setError(null)
     },
+    // Algo cambiado que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
+    hayCambios: nombre.trim() !== embudo.nombre || !etapasIguales(edicion.etapas, embudo.etapas),
     error,
     conflicto,
     enCurso: renombrar.isPending || guardar.isPending,
