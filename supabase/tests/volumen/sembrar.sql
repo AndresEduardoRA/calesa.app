@@ -196,8 +196,17 @@ select i.id, l.id, j
        cross join generate_series(1, 100) j
   join volumen_leads l on l.n = 18000 + (i.k - 1) * 100 + j;
 
--- La cartera y los atributos públicos (9h) los mantienen triggers, apagados acá: se calculan como el relleno.
-update public.leads l set cartera = public._lead_cartera_calcular(l.id), atributos_publicos = public._lead_atributos_publicos(l.atributos)
+-- La cartera y los atributos públicos (9h) los mantienen triggers, apagados acá: se calculan por conjunto (una función por
+-- fila, sobre tablas recién cargadas y sin estadísticas, tardaba más de 10 minutos con 200.000). La misma regla que
+-- `_lead_cartera_calcular()` y `_lead_atributos_publicos()`; `derivados-leads.sql` compara las dos con su fuente.
+update public.leads l set cartera = c.cartera
+  from (select la.lead_id, array_agg(la.usuario_id order by la.usuario_id) as cartera
+          from public.leads_asesores la where la.revocado_en is null group by la.lead_id) c
+ where c.lead_id = l.id and l.nombre like 'Volumen %';
+update public.leads l
+   set atributos_publicos = coalesce((select jsonb_object_agg(e.key, e.value) from jsonb_each(l.atributos) e
+                                       join public.leads_campos k on k.clave = e.key
+                                      where not k.solo_cartera and k.solo_cartera_pendiente is not true), '{}'::jsonb)
  where l.nombre like 'Volumen %';
 
 set local session_replication_role = origin;
