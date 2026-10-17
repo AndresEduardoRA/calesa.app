@@ -34,12 +34,13 @@ export function TarjetaVehiculo(props: Props) {
     return valor !== undefined && valor !== null && valor !== ''
   })
   return (
-    <article className="grid gap-3 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3">
-      <div className="flex items-start gap-3">
+    <article className="@container grid grid-cols-[minmax(0,1fr)] gap-3 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3">
+      {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: la miniatura (rem), el título y «Editar» no caben en una fila y se apilan. */}
+      <div className="flex items-start gap-3 @max-[16rem]:flex-col">
         {seleccion}
         <Miniatura ruta={vehiculo.portadaRuta} className="w-20" />
-        <div className="grid min-w-0 flex-1 gap-1">
-          <h3 className="text-(length:--text-base) font-medium text-(--color-ink)">
+        <div className="grid min-w-0 flex-1 gap-1 @max-[16rem]:flex-none">
+          <h3 className="text-(length:--text-base) font-medium [overflow-wrap:anywhere] text-(--color-ink)">
             {href ? (
               <Link
                 href={href as Route}

@@ -13,7 +13,7 @@ type Props = {
 // La casilla de una fila (o la de «todas»). El hueco alrededor la hace cómoda para el dedo.
 export function CasillaDeSeleccion({ elegida, alCambiar, etiqueta, deshabilitada }: Props) {
   return (
-    <span className="flex size-11 shrink-0 items-center justify-center md:size-7">
+    <span className="flex size-[44px] shrink-0 items-center justify-center md:size-7">
       <Checkbox
         aria-label={etiqueta}
         checked={elegida}
