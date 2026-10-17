@@ -314,3 +314,19 @@ export function textoDeInteres(
       return `Se marcó el interés en ${rotulo}.`
   }
 }
+
+// Desvincular con confirmación, en la URL (`?panel=desvincular&vinculado=<id>` en la ficha del lead; `?panel=desvincular` en la
+// del vehículo, donde el vehículo es el de la página). Sólo lo pide quien no podría volver a vincular (no tiene el lead en su
+// cartera): quien sí desvincula con «Deshacer».
+export const PANEL_DESVINCULAR = 'desvincular'
+export const CLAVE_DE_VINCULADO = 'vinculado'
+export const MENSAJE_DE_VINCULADO_NO_DISPONIBLE = 'Ese vehículo ya no está vinculado a este lead.'
+
+// Por qué `?panel=desvincular&vinculado=<id>` no abre en la ficha del lead (nulo = se puede): el vehículo no está entre los
+// vinculados que se ven (lo desvinculó otra persona, o la URL es de otro lead). Se revisa una vez, al llegar.
+export function motivoParaNoDesvincular(
+  vinculados: readonly { id: string }[],
+  vehiculoId: string | null,
+): string | null {
+  return vinculados.some((v) => v.id === vehiculoId) ? null : MENSAJE_DE_VINCULADO_NO_DISPONIBLE
+}

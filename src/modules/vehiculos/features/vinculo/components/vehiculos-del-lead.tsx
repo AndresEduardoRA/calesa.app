@@ -1,7 +1,6 @@
 'use client'
 
 import { CarFrontIcon, PlusIcon } from 'lucide-react'
-import { useState } from 'react'
 import { Button } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
@@ -10,6 +9,7 @@ import type {
   VehiculoVinculado,
 } from '../../../entities/vehiculos-del-lead'
 import { usePanelAgregarVehiculo } from '../hooks/use-panel-agregar-vehiculo'
+import { useDesvincularPorUrl } from '../hooks/use-desvincular-por-url'
 import { useVinculo } from '../hooks/use-vinculo'
 import { ConfirmarDesvincularDiferido, PanelAgregarVehiculoDiferido } from './diferidos'
 import { HistorialDeVinculos } from './historial-de-vinculos'
@@ -60,8 +60,8 @@ export function VehiculosDelLead({ leadId, leadNombre, datos }: Props) {
   // Sin la cartera, la URL no abre nada.
   const agregando = datos.puedoActuar && panel.abierto
   const montarPanel = useAbiertoAlgunaVez(agregando)
-  const [porConfirmar, setPorConfirmar] = useState<VehiculoVinculado | null>(null)
-  const montarConfirmar = useAbiertoAlgunaVez(porConfirmar !== null)
+  const confirmacion = useDesvincularPorUrl(datos.vinculados, !datos.puedoActuar)
+  const montarConfirmar = useAbiertoAlgunaVez(confirmacion.abierto)
   const vacio = !hayAlgo(datos)
 
   // Quien puede volver a vincularlo desvincula con «Deshacer»; quien no, confirma antes.
@@ -69,7 +69,7 @@ export function VehiculosDelLead({ leadId, leadNombre, datos }: Props) {
     if (datos.puedoActuar) {
       void acciones.desvincular(vehiculo, { deshacer: true })
     } else {
-      setPorConfirmar(vehiculo)
+      confirmacion.abrir(vehiculo.id)
     }
   }
 
@@ -115,15 +115,15 @@ export function VehiculosDelLead({ leadId, leadNombre, datos }: Props) {
       ) : null}
       {montarConfirmar ? (
         <ConfirmarDesvincularDiferido
-          vehiculo={porConfirmar}
+          abierto={confirmacion.abierto}
+          vehiculo={confirmacion.vehiculo}
           enCurso={acciones.enCurso}
-          alCerrar={() => setPorConfirmar(null)}
-          alConfirmar={() => {
-            if (porConfirmar) {
-              void acciones.desvincular(porConfirmar, { deshacer: false }).then(() => {
-                setPorConfirmar(null)
-              })
+          alCerrar={confirmacion.cerrar}
+          alConfirmar={async () => {
+            if (confirmacion.vehiculo) {
+              await acciones.desvincular(confirmacion.vehiculo, { deshacer: false })
             }
+            confirmacion.cerrar()
           }}
         />
       ) : null}

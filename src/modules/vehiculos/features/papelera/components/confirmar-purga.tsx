@@ -6,7 +6,6 @@ import type { ErrorApp } from '@/shared/lib/errores'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { Confirmar } from '@/shared/ui/confirmar'
-import { useEnLinea } from '@/shared/ui/use-en-linea'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import { palabraDePurga } from '../../../entities/papelera'
 import type { Objetivo, usePapelera } from '../hooks/use-papelera'
@@ -59,22 +58,13 @@ function textosDe({ lote, vehiculoId }: Objetivo): Textos {
   }
 }
 
-// Lo que pasó con el intento, dicho dentro del diálogo: sin conexión, o lo que respondió la base.
+// Lo que pasó con el intento, dicho dentro del diálogo: lo que respondió la base (sin conexión lo dice `Confirmar`).
 // Un conflicto ofrece recargar; en ningún caso se purgó nada.
-function AvisosDePurga(props: {
-  enLinea: boolean
-  error: ErrorApp | null
-  alRecargar: () => void
-}) {
-  const { enLinea, error, alRecargar } = props
+function AvisosDePurga(props: { error: ErrorApp | null; alRecargar: () => void }) {
+  const { error, alRecargar } = props
   const esConflicto = error?.codigo === 'conflicto'
   return (
     <>
-      {enLinea ? null : (
-        <Aviso tono="aviso">
-          No hay conexión. No se purgó nada: vuelve a intentar cuando vuelva.
-        </Aviso>
-      )}
       {error ? (
         <Aviso tono={esConflicto ? 'aviso' : 'peligro'}>
           <p>{error.mensaje}</p>
@@ -102,7 +92,6 @@ function AvisosDePurga(props: {
 // lote, lo dice y ofrece recargar; nada se purgó en ninguno de los dos casos.
 export function ConfirmarPurga({ objetivo, papelera, alCerrar }: Props) {
   const router = useRouter()
-  const enLinea = useEnLinea()
   const [error, setError] = useState<ErrorApp | null>(null)
   // Mientras se cierra, el diálogo sigue mostrando lo último que tuvo.
   const mostrado = useUltimo(objetivo)
@@ -130,18 +119,15 @@ export function ConfirmarPurga({ objetivo, papelera, alCerrar }: Props) {
     <Confirmar
       abierto={objetivo !== null}
       alCerrar={cerrar}
-      alConfirmar={() => {
-        void confirmar()
-      }}
+      alConfirmar={confirmar}
       titulo={textos.titulo}
       descripcion={textos.descripcion}
       etiquetaConfirmar={textos.etiqueta}
       palabraClave={textos.palabra}
       enCurso={papelera.enCurso}
-      deshabilitado={!enLinea || error?.codigo === 'conflicto'}
+      deshabilitado={error?.codigo === 'conflicto'}
     >
       <AvisosDePurga
-        enLinea={enLinea}
         error={error}
         alRecargar={() => {
           router.refresh()

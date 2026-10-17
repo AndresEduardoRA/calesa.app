@@ -4,7 +4,6 @@ import { ArrowLeftIcon, Trash2Icon } from 'lucide-react'
 import type { Route } from 'next'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
 import type { OrigenResumen } from '@/modules/origenes/client'
 import { fechaRelativa } from '@/shared/lib/fechas'
 import { cantidadAcotada } from '@/shared/lib/conteo'
@@ -16,7 +15,8 @@ import { EstadoPaginaSinFilas, EstadoVacio } from '@/shared/ui/estados'
 import { Paginacion } from '@/shared/ui/paginacion'
 import { useRegional } from '@/shared/ui/regional'
 import type { LimpiezaPendiente, LoteDePapelera as Lote } from '../../../entities/papelera'
-import { usePapelera, type Objetivo } from '../hooks/use-papelera'
+import { usePapelera } from '../hooks/use-papelera'
+import { usePurgaPorUrl } from '../hooks/use-purga-por-url'
 import { ConfirmarPurga } from './confirmar-purga'
 import { LoteDePapelera } from './lote-de-papelera'
 
@@ -74,7 +74,7 @@ export function PapeleraDeVehiculos({
   const papelera = usePapelera()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
   const lotes = pagina.filas
-  const [aPurgar, setAPurgar] = useState<Objetivo | null>(null)
+  const purga = usePurgaPorUrl(lotes)
   const porId = new Map(origenes.map((origen) => [origen.id, origen]))
   return (
     <div className="grid max-w-4xl gap-4">
@@ -115,19 +115,13 @@ export function PapeleraDeVehiculos({
               alRestaurar={(objetivo) => {
                 void papelera.restaurar(objetivo)
               }}
-              alPurgar={setAPurgar}
+              alPurgar={purga.abrir}
             />
           ))}
         </ul>
       )}
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
-      <ConfirmarPurga
-        objetivo={aPurgar}
-        papelera={papelera}
-        alCerrar={() => {
-          setAPurgar(null)
-        }}
-      />
+      <ConfirmarPurga objetivo={purga.objetivo} papelera={papelera} alCerrar={purga.cerrar} />
     </div>
   )
 }

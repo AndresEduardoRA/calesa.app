@@ -254,7 +254,7 @@ test('purgar uno pide confirmar nombrándolo, y sus fotos salen de Storage con s
   await expect(dialogo.getByText(/Se borra para siempre con sus 2 fotos/)).toBeVisible()
   // Sin conexión el diálogo sigue abierto, lo dice y no deja confirmar.
   await context.setOffline(true)
-  await expect(dialogo.getByText('No hay conexión. No se purgó nada')).toBeVisible()
+  await expect(dialogo.getByText(/No hay conexión/)).toBeVisible()
   await expect(dialogo.getByRole('button', { name: 'Purgar' })).toBeDisabled()
   await context.setOffline(false)
   await dialogo.getByRole('button', { name: 'Purgar' }).click()

@@ -1,4 +1,10 @@
 import { expect, test } from './soporte/prueba'
+import {
+  cicloDeUnaConfirmacion,
+  dobleClicManda,
+  noAbre,
+  sinRedNoConfirma,
+} from './soporte/confirmar-por-url'
 import { entrar } from './soporte/inventario'
 import { marcarInteres, vincular } from './soporte/leads'
 import { rpcComo } from './soporte/leads-cartera'
@@ -69,6 +75,7 @@ test('el compartido ve el vinculado (se lo da el vínculo) y no el interés en u
 
 test('la supervisión ve todo y no agrega (ni por la URL), pero desvincula con confirmación', async ({
   page,
+  context,
 }) => {
   const { lead, vinculado, vinculadoId, interesId } = alcance
   await entrar(page, t.sol)
@@ -83,11 +90,27 @@ test('la supervisión ve todo y no agrega (ni por la URL), pero desvincula con c
     p_lead: lead.id,
   })
   expect(rechazo.error?.message).toBe('No encontramos este lead o no tienes acceso.')
-  await vinculados(page)
-    .getByRole('button', { name: `Desvincular ${vinculado}` })
-    .click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Desvincular' }).click()
+  // La confirmación tiene su URL: Esc, «atrás», recarga, sin red y un solo pedido.
+  const disparador = vinculados(page).getByRole('button', { name: `Desvincular ${vinculado}` })
+  const dialogo = page.getByRole('dialog', { name: /^Desvincular/ })
+  await cicloDeUnaConfirmacion(page, {
+    abrir: () => disparador.click(),
+    dialogo,
+    disparador,
+    url: /panel=desvincular&vinculado=/,
+  })
+  const confirmar = dialogo.getByRole('button', { name: 'Desvincular', exact: true })
+  await sinRedNoConfirma(context, dialogo, confirmar)
+  expect(await dobleClicManda(page, confirmar)).toBe(1)
   await expect.poll(() => leadDelVehiculo(vinculadoId)).toBeNull()
+  await expect(dialogo).toBeHidden()
+  // Un vehículo que ya no está vinculado no abre la confirmación.
+  await noAbre(
+    page,
+    `/leads/${lead.id}?seccion=vehiculos&panel=desvincular&vinculado=${vinculadoId}`,
+    'Ese vehículo ya no está vinculado a este lead.',
+    /panel=desvincular/,
+  )
 })
 
 test('sin permiso sobre vehículos no hay sección, ni por la URL', async ({ page }) => {

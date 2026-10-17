@@ -15,6 +15,8 @@ import {
   vehiculosDelLeadDesde,
   vinculoPosible,
   type CandidatoDeVinculo,
+  motivoParaNoDesvincular,
+  MENSAJE_DE_VINCULADO_NO_DISPONIBLE,
 } from './vehiculos-del-lead'
 
 const ID = '11111111-1111-4111-8111-111111111111'
@@ -265,5 +267,18 @@ describe('textos de cada resultado', () => {
     expect(textoDeInteres({ resultado: 'sin_cambios', nota: null }, auto)).toBe(
       'El interés en «Toyota Corolla · #12» ya estaba así.',
     )
+  })
+})
+
+describe('motivoParaNoDesvincular', () => {
+  const vinculados = [{ id: 'a' }, { id: 'b' }]
+
+  it('abre un vehículo que está entre los vinculados', () => {
+    expect(motivoParaNoDesvincular(vinculados, 'b')).toBeNull()
+  })
+
+  it('no abre uno que ya no está, o sin id', () => {
+    expect(motivoParaNoDesvincular(vinculados, 'zzz')).toBe(MENSAJE_DE_VINCULADO_NO_DISPONIBLE)
+    expect(motivoParaNoDesvincular(vinculados, null)).toBe(MENSAJE_DE_VINCULADO_NO_DISPONIBLE)
   })
 })

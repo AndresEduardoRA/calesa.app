@@ -1,5 +1,10 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from './soporte/prueba'
+import {
+  cicloDeUnaConfirmacion,
+  dobleClicManda,
+  sinRedNoConfirma,
+} from './soporte/confirmar-por-url'
 import { formatearNumero } from '../src/shared/lib/formato'
 import { entrar } from './soporte/inventario'
 import { marcarInteres, vincular } from './soporte/leads'
@@ -161,6 +166,7 @@ test('con un vehículo vinculado, la papelera se apaga con el motivo; desvincula
 
 test('reemplazar nombra al lead que lo pierde; uno de otra cartera no se reemplaza', async ({
   page,
+  context,
 }) => {
   const mio = await leadDe(t.ada, `Recibe ${p}`)
   const otroMio = await leadDe(t.ada, `Pierde ${p}`)
@@ -194,8 +200,17 @@ test('reemplazar nombra al lead que lo pierde; uno de otra cartera no se reempla
   await expect(panel.getByText(deCora.nombre)).toHaveCount(0)
   // Desde la ficha del vehículo, quien lo edita lo desvincula (con confirmación: desde ahí no hay «Deshacer»).
   await page.goto(`/vehiculos/${ajenoId}`)
-  await page.getByRole('button', { name: 'Desvincular' }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Desvincular' }).click()
+  const disparador = page.getByRole('button', { name: 'Desvincular' })
+  const dialogo = page.getByRole('dialog', { name: /^Desvincular/ })
+  await cicloDeUnaConfirmacion(page, {
+    abrir: () => disparador.click(),
+    dialogo,
+    disparador,
+    url: /panel=desvincular/,
+  })
+  const confirmar = dialogo.getByRole('button', { name: 'Desvincular', exact: true })
+  await sinRedNoConfirma(context, dialogo, confirmar)
+  expect(await dobleClicManda(page, confirmar)).toBe(1)
   await expect.poll(() => leadDelVehiculo(ajenoId)).toBeNull()
   await expect(page.getByText(/^Sin vínculo/)).toBeVisible()
 })
