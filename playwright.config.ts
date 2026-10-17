@@ -9,7 +9,9 @@ export default defineConfig({
   testDir: './e2e',
   // El recorrido con volumen (50.000 leads, `pnpm db:sembrar-volumen`) sólo con `E2E_VOLUMEN=1`: no es un salto (el
   // completo los vuelve error), no corre.
-  testIgnore: process.env['E2E_VOLUMEN'] ? [] : ['**/escala-recorrido.spec.ts'],
+  testIgnore: process.env['E2E_VOLUMEN']
+    ? []
+    : ['**/escala-recorrido.spec.ts', '**/listas-por-pagina-volumen.spec.ts'],
   timeout: 30_000,
   retries: 0,
   workers: 1,

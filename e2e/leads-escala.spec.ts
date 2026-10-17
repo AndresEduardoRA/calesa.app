@@ -20,6 +20,7 @@ import {
   verEtapa,
 } from './soporte/leads-oportunidades'
 import { esMovil } from './soporte/inventario'
+import { TAMANO_DE_COLUMNA, TAMANO_DE_PAGINA_POR_DEFECTO } from '../src/shared/lib/paginacion'
 
 // La escala de lo que se dibuja (9e, `.claude/rules/escala.md`): el listado y una columna del kanban tienen
 // un tope de nodos aunque haya miles detrás, el tope se dice, y abrir un modal cuyo código nunca se pidió sin
@@ -65,10 +66,10 @@ test('el listado dibuja una página de 50 filas y los nodos no crecen con las p�
   expect(error).toBeNull()
   await entrar(page, t.personas.berta)
   await irALeads(page, '?q=Escala')
-  await expect(filas(page)).toHaveCount(50)
+  await expect(filas(page)).toHaveCount(TAMANO_DE_PAGINA_POR_DEFECTO)
   const primera = await nodos(page)
   await page.getByRole('link', { name: 'Siguiente' }).click()
-  await expect(filas(page)).toHaveCount(50)
+  await expect(filas(page)).toHaveCount(TAMANO_DE_PAGINA_POR_DEFECTO)
   const segunda = await nodos(page)
   info.annotations.push({
     type: 'nodos del listado',
@@ -102,7 +103,7 @@ test('una columna del kanban con más de 500: «500+», «Ver más» hasta el to
   await irAlEmbudo(page)
   const columna = await verEtapa(page, 'Ganado')
   await expect(columna.getByRole('heading', { name: /Ganado/ })).toContainText('500+')
-  await expect(columna.getByRole('article')).toHaveCount(50)
+  await expect(columna.getByRole('article')).toHaveCount(TAMANO_DE_COLUMNA)
   // De 50 en 50 hasta 500 (nueve veces): sin número, porque pasó el tope.
   for (let i = 1; i < 10; i += 1) {
     await columna.getByRole('button', { name: 'Ver más' }).click()

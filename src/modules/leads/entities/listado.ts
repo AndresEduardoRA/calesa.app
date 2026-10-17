@@ -6,9 +6,13 @@ import { z } from 'zod'
 import type { CampoDeLead } from './campo'
 import { marcasDesde, type MarcasDeLead } from './marcas'
 
-// El máximo de filas por página de este listado (el selector ofrece hasta acá): lo que cabe dentro del presupuesto de
-// `docs/RENDIMIENTO.md` con 50.000 leads. El tamaño que se lee sale de `tamanoDePagina()` de `shared/lib/paginacion`.
-export const MAXIMO_DE_PAGINA_DE_LEADS = 100
+// El máximo de filas por página de este listado (el selector «Ítems por página» ofrece hasta acá). **50, no 100**: con
+// 62.000 leads, a 100 filas el planificador deja de caminar `leads_listado_idx` y lee los 50.000 leads de la dueña («todos»)
+// para ordenarlos (518 ms la página 1, contra 13 ms a 50 y 18 ms a 75; Ana descarta 47.603 filas). Es la estimación de la
+// política de `leads` que ya limita la cartera de «todos» (`docs/RENDIMIENTO.md`); la 9h la arregla y entonces este número
+// sube a 100 y se vuelve a medir (`pnpm db:medir:volumen` lo asserta con el máximo). El tamaño que se lee sale de
+// `tamanoDePagina()` de `shared/lib/paginacion`.
+export const MAXIMO_DE_PAGINA_DE_LEADS = 50
 
 // El tipo de un lead es un enum de la base (`tipo_lead`), no un campo configurable.
 export const TIPOS_DEL_LEAD = ['prospecto', 'cliente'] as const

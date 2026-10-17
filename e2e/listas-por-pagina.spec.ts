@@ -18,6 +18,8 @@ import {
   selectorDeTamano,
 } from './soporte/listas-por-pagina'
 import { tactil } from './soporte/recorrido'
+import { MAXIMO_DE_PAGINA_DE_LEADS } from '../src/modules/leads/entities/listado'
+import { tamanosHasta } from '../src/shared/lib/paginacion'
 
 // «Ítems por página» (9g) en el listado de leads, con la asesora Berta y la dueña, en escritorio y celular: el selector,
 // cada valor, lo que se recuerda entre sesiones y dispositivos, y los casos que no son el feliz (un valor manipulado, la
@@ -70,8 +72,12 @@ test('sin haber elegido, la lista trae 50 y el selector lo dice; elegir cambia, 
   expect(parametrosDe(page).has('por')).toBe(false)
   await tactil(page, selectorDeTamano(page))
 
-  // Cada valor: la página trae esa cantidad (con 130 leads, 100 llena la página) y la URL lo pide.
-  for (const tamano of [10, 25, 100, 50]) {
+  // El selector ofrece hasta el máximo de ESTA lista (50: a 100 el plan del listado de la dueña deja el índice).
+  expect(await selectorDeTamano(page).locator('option').allTextContents()).toEqual(
+    tamanosHasta(MAXIMO_DE_PAGINA_DE_LEADS).map(String),
+  )
+  // Cada valor: la página trae esa cantidad y la URL lo pide.
+  for (const tamano of [10, 25, 50]) {
     await elegirTamano(page, tamano)
     await expect(filasDelListado(page)).toHaveCount(tamano)
     await expect(selectorDeTamano(page)).toHaveValue(String(tamano))
@@ -127,9 +133,12 @@ test('un valor manipulado en la URL se ignora y manda la preferencia; uno válid
     await expect(filasDelListado(page)).toHaveCount(25)
     await expect(selectorDeTamano(page)).toHaveValue('25')
   }
+  // Un tamaño del selector pero más alto que el máximo de la lista se acota a ese máximo: 100 se ve como 50.
   await irALeads(page, consulta('&por=100'))
-  await expect(filasDelListado(page)).toHaveCount(100)
-  await expect(selectorDeTamano(page)).toHaveValue('100')
+  await expect(filasDelListado(page)).toHaveCount(MAXIMO_DE_PAGINA_DE_LEADS)
+  await expect(selectorDeTamano(page)).toHaveValue(String(MAXIMO_DE_PAGINA_DE_LEADS))
+  await irALeads(page, consulta('&por=10'))
+  await expect(filasDelListado(page)).toHaveCount(10)
   // Pedirlo por la URL no cambia lo que recuerda la cuenta: eso sólo lo hace elegir en el selector.
   expect(await preferenciaDe(t.personas.berta)).toBe(25)
 })
@@ -154,9 +163,9 @@ test('dos pestañas con valores distintos se mantienen; al recargar sin `?por=` 
   await entrar(page, t.personas.berta)
   const otra = await page.context().newPage()
   await irALeads(page, consulta('&por=10'))
-  await otra.goto(`/leads${consulta('&por=100')}`)
+  await otra.goto(`/leads${consulta('&por=50')}`)
   await expect(filasDelListado(page)).toHaveCount(10)
-  await expect(filasDelListado(otra)).toHaveCount(100)
+  await expect(filasDelListado(otra)).toHaveCount(50)
   // Elegir en una pestaña lo guarda; la otra sigue como estaba hasta que se recarga.
   await elegirTamano(otra, 25)
   await expect(filasDelListado(otra)).toHaveCount(25)
@@ -221,8 +230,8 @@ test('con el teclado las flechas recorren sin ir al servidor y Enter confirma; E
   const selector = selectorDeTamano(page)
   await esperarHidratado(page)
   await selector.focus()
-  await page.keyboard.press('ArrowDown')
-  await expect(selector).toHaveValue('100')
+  await page.keyboard.press('ArrowUp')
+  await expect(selector).toHaveValue('25')
   // Todavía no se pidió nada: ni la URL ni la lista cambiaron.
   expect(parametrosDe(page).has('por')).toBe(false)
   await expect(filasDelListado(page)).toHaveCount(50)
@@ -254,4 +263,16 @@ test('«Ver como»: manda la preferencia de quien mira, no la de la persona vist
   await irALeads(page, `?q=${BUSCAR}D`)
   await expect(filasDelListado(page)).toHaveCount(25)
   await expect(selectorDeTamano(page)).toHaveValue('25')
+})
+
+test('una preferencia de 100 (la de otra lista) se ve como el máximo de ésta, sin cambiarla', async ({
+  page,
+}) => {
+  await fijarPreferencia(t.personas.berta, 100)
+  await entrar(page, t.personas.berta)
+  await irALeads(page, consulta())
+  await expect(filasDelListado(page)).toHaveCount(MAXIMO_DE_PAGINA_DE_LEADS)
+  await expect(selectorDeTamano(page)).toHaveValue(String(MAXIMO_DE_PAGINA_DE_LEADS))
+  // Mirar la lista no toca lo que recuerda la cuenta: en el inventario, que admite 100, sigue siendo 100.
+  expect(await preferenciaDe(t.personas.berta)).toBe(100)
 })

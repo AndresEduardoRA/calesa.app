@@ -15,6 +15,46 @@ if (!proyecto) {
 }
 const contenedor = `supabase_db_${proyecto}`
 const CON_VOLUMEN = process.argv.includes('--volumen')
+
+// Los tamaños de página salen del código, no del SQL (9g): `medir-escala.sql` los recibe como variables de psql. Si una
+// constante cambia de nombre o de forma, esto falla en vez de medir con un número viejo.
+function constante(archivo, nombre) {
+  const fuente = readFileSync(archivo, 'utf8')
+  const coincide = new RegExp(`export const ${nombre}(?::[^=]+)? = (\\d+)\\b`).exec(fuente)
+  if (!coincide) {
+    console.error(`No encontré «export const ${nombre} = <número>» en ${archivo}.`)
+    process.exit(1)
+  }
+  return Number(coincide[1])
+}
+function tamanosDelSelector() {
+  const fuente = readFileSync('src/shared/lib/paginacion.ts', 'utf8')
+  const lista = /export const TAMANOS_DE_PAGINA = \[([\d,\s]+)\]/.exec(fuente)?.[1]
+  if (!lista) {
+    console.error('No encontré TAMANOS_DE_PAGINA en src/shared/lib/paginacion.ts.')
+    process.exit(1)
+  }
+  return lista.split(',').map((n) => Number(n.trim()))
+}
+// El máximo de cada lista con selector es lo que declara su módulo, acotado a lo que el selector ofrece.
+const TAMANOS = tamanosDelSelector()
+const maximoDe = (declarado) => Math.max(...TAMANOS.filter((t) => t <= declarado))
+const VARIABLES_DE_PAGINA = {
+  max_leads: maximoDe(
+    constante('src/modules/leads/entities/listado.ts', 'MAXIMO_DE_PAGINA_DE_LEADS'),
+  ),
+  max_vehiculos: maximoDe(
+    constante('src/modules/vehiculos/entities/vehiculo.ts', 'MAXIMO_DE_PAGINA_DE_VEHICULOS'),
+  ),
+  tam_columna: constante('src/shared/lib/paginacion.ts', 'TAMANO_DE_COLUMNA'),
+  tope_cargado: constante('src/shared/lib/paginacion.ts', 'TOPE_DE_LO_CARGADO'),
+  lotes: constante('src/shared/lib/paginacion.ts', 'LOTES_POR_PAGINA'),
+  ver_mas: constante('src/shared/lib/paginacion.ts', 'TAMANO_DE_VER_MAS'),
+}
+const ARGUMENTOS_DE_PSQL = Object.entries(VARIABLES_DE_PAGINA).flatMap(([nombre, valor]) => [
+  '-v',
+  `${nombre}=${String(valor)}`,
+])
 const MEDICIONES_BASE = [
   ['supabase/tests/medir-listado.sql', 'Listado de leads, 2.000 leads sintéticos'],
   [
@@ -41,11 +81,24 @@ const MEDICIONES_CON_VOLUMEN = [
 ]
 const MEDICIONES = CON_VOLUMEN ? MEDICIONES_CON_VOLUMEN : MEDICIONES_BASE
 
+console.log(`Tamaños de página (del código): ${JSON.stringify(VARIABLES_DE_PAGINA)}`)
 for (const [archivo, titulo] of MEDICIONES) {
   const sql = readFileSync(archivo, 'utf8')
   const corrida = spawnSync(
     'docker',
-    ['exec', '-i', contenedor, 'psql', '-U', 'postgres', '-q', '-X', '-v', 'ON_ERROR_STOP=1'],
+    [
+      'exec',
+      '-i',
+      contenedor,
+      'psql',
+      '-U',
+      'postgres',
+      '-q',
+      '-X',
+      '-v',
+      'ON_ERROR_STOP=1',
+      ...ARGUMENTOS_DE_PSQL,
+    ],
     { input: sql, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
   )
   if (corrida.error || corrida.status !== 0) {

@@ -17,6 +17,7 @@ import {
   primeroHasta,
   sembrarVolumen,
 } from './soporte/leads-volumen'
+import { TAMANO_DE_VER_MAS, TOPE_DE_LO_CARGADO } from '../src/shared/lib/paginacion'
 
 // El drawer de un lead con 20.000 seguimientos y 5.000 recordatorios (3.000 completados), 9d-2: ninguna
 // pestaña trae ni dibuja todo, y ninguna acción crece con el total ni con lo cargado. Aserciones
@@ -89,7 +90,7 @@ test('«Seguimientos»: una página al abrir, «Ver más» hasta el tope, la red
   expect(pedidos).toHaveLength(0)
   await abrirPestanaDeSeguimientos(page, drawerDe(page))
   const linea = drawerDe(page).getByRole('region', { name: 'Seguimientos' })
-  await expect(itemsDe(linea)).toHaveCount(20)
+  await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
   expect(pedidos).toHaveLength(1)
   const bytes = await bytesDe(pedidos[0])
   info.annotations.push({ type: 'bytes, primera página', description: String(bytes) })
@@ -100,7 +101,7 @@ test('«Seguimientos»: una página al abrir, «Ver más» hasta el tope, la red
   await linea.getByRole('button', { name: 'Ver más' }).click()
   // Que no llegó: es la conexión, no «algo falló de nuestro lado» (9d-3).
   await expect(page.getByText(/No pudimos llegar al servidor. Revisa tu conexión/)).toBeVisible()
-  await expect(itemsDe(linea)).toHaveCount(20)
+  await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
   await linea.getByRole('button', { name: 'Ver más' }).click()
   await expect(itemsDe(linea)).toHaveCount(40)
 
@@ -127,7 +128,7 @@ test('«Seguimientos»: una página al abrir, «Ver más» hasta el tope, la red
     }
   }
   await expect(linea.getByText('Mostrando los 500 más recientes.')).toBeVisible()
-  await expect(itemsDe(linea)).toHaveCount(500)
+  await expect(itemsDe(linea)).toHaveCount(TOPE_DE_LO_CARGADO)
   await expect(linea.getByRole('button', { name: 'Ver más' })).toHaveCount(0)
   const nodosEnElTope = await drawerDe(page).locator('*').count()
   nodos.push(`tope: ${String(nodosEnElTope)}`)
@@ -143,14 +144,14 @@ test('«Ir a una fecha» siembra el cursor de ese día y «Volver» trae lo más
   await entrar(page, t.personas.berta)
   await irAlDrawer(page, '&pestana=seguimientos')
   const linea = drawerDe(page).getByRole('region', { name: 'Seguimientos' })
-  await expect(itemsDe(linea)).toHaveCount(20)
+  await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
   const dia = new Date(Date.now() - 200 * 86_400_000).toISOString().slice(0, 10)
   const pedidos = contarPedidos(page, 'lead_seguimientos')
   await linea.getByLabel('Ir a una fecha').fill(dia)
   await linea.getByRole('button', { name: 'Ir', exact: true }).click()
   await expect(linea.getByText(/^Desde el /)).toBeVisible()
   await expect(itemsDe(linea).first()).toContainText(primeroHasta(lead.id, dia))
-  await expect(itemsDe(linea)).toHaveCount(20)
+  await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
   expect(pedidos).toHaveLength(1)
   await linea.getByRole('button', { name: 'Volver a los más recientes' }).click()
   await expect(linea.getByText(/^Desde el /)).toHaveCount(0)
@@ -164,13 +165,13 @@ test('«Recargar» tras un conflicto con 500 cargados: dos pedidos, lo escrito q
   await entrar(page, t.personas.berta)
   await irAlDrawer(page, '&pestana=seguimientos')
   const linea = drawerDe(page).getByRole('region', { name: 'Seguimientos' })
-  await expect(itemsDe(linea)).toHaveCount(20)
+  await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
   while ((await linea.getByRole('button', { name: 'Ver más' }).count()) > 0) {
     const cuantos = await itemsDe(linea).count()
     await linea.getByRole('button', { name: 'Ver más' }).click()
     await expect(itemsDe(linea)).not.toHaveCount(cuantos)
   }
-  await expect(itemsDe(linea)).toHaveCount(500)
+  await expect(itemsDe(linea)).toHaveCount(TOPE_DE_LO_CARGADO)
 
   // Uno lejano, fuera de la primera página: lo edita y otra ventana lo cambia mientras tanto.
   const lejano = 'Volumen 480'
@@ -193,7 +194,7 @@ test('«Recargar» tras un conflicto con 500 cargados: dos pedidos, lo escrito q
   await modal.getByRole('button', { name: 'Guardar' }).click()
   await expect(modal).toHaveCount(0)
   // Lo cargado más allá de la primera página volvió a «Ver más».
-  await expect(itemsDe(linea)).toHaveCount(20)
+  await expect(itemsDe(linea)).toHaveCount(TAMANO_DE_VER_MAS)
 })
 
 test('«Recordatorios»: una página de pendientes, los completados sólo al abrirlos, y el aviso de la ficha', async ({
@@ -207,7 +208,7 @@ test('«Recordatorios»: una página de pendientes, los completados sólo al abr
   await abrirPestanaDeRecordatorios(page, drawerDe(page))
   const bloque = drawerDe(page).getByRole('region', { name: 'Tus recordatorios' })
   const pendientes = bloque.locator(':scope > ul > li')
-  await expect(pendientes).toHaveCount(20)
+  await expect(pendientes).toHaveCount(TAMANO_DE_VER_MAS)
   expect(pedidos).toHaveLength(1)
   const bytes = await bytesDe(pedidos[0])
   info.annotations.push({
@@ -224,7 +225,7 @@ test('«Recordatorios»: una página de pendientes, los completados sólo al abr
   expect(pedidos).toHaveLength(1)
   await bloque.getByText('Completados', { exact: true }).click()
   const completados = bloque.locator('details ul > li')
-  await expect(completados).toHaveCount(20)
+  await expect(completados).toHaveCount(TAMANO_DE_VER_MAS)
   expect(pedidos).toHaveLength(2)
   await bloque.locator('details').getByRole('button', { name: 'Ver más' }).click()
   await expect(completados).toHaveCount(40)

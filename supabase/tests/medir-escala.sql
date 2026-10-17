@@ -16,6 +16,12 @@ do $$ begin
   end if;
 end $$;
 
+-- Los tamaños de página, de `paginacion.ts` y de lo que declara cada lista (los pasa `scripts/medir-listado.mjs` como
+-- variables de psql: acá no se escribe ningún tamaño a mano). `max_*` es el máximo del selector de esa lista.
+select set_config('medir.max_leads', :'max_leads', true), set_config('medir.max_vehiculos', :'max_vehiculos', true),
+       set_config('medir.tam_columna', :'tam_columna', true), set_config('medir.tope_cargado', :'tope_cargado', true),
+       set_config('medir.lotes', :'lotes', true);
+
 -- Los claims de la persona que mide: `request.jwt.claim.sub` (lo que lee `auth.uid()`) y `request.jwt.claims`.
 create function pg_temp.quien(p_quien text) returns void language plpgsql as $$
 begin
@@ -129,9 +135,9 @@ begin
 end $$;
 
 -- La página del listado de leads, como la arma PostgREST sobre `leads_vista`.
-create function pg_temp.pagina(p_donde text) returns text language sql as $$
+create function pg_temp.pagina(p_donde text, p_n int default 50) returns text language sql as $$
   select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, numero_propio, numero_visible, nombre, telefono_principal, en_cartera, tipo, origen_lead_id, creado_en,
-    atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista where %s order by creado_en desc, id desc limit 51) t', p_donde);
+    atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista where %s order by creado_en desc, id desc limit %s) t', p_donde, p_n + 1);
 $$;
 
 do $medir$ declare q text; begin
@@ -140,6 +146,11 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'), 100, 'leads_listado_idx', '{leads}', 3000);
     perform pg_temp.escala('listado: página 100 por cursor', q, pg_temp.pagina(format('esta_tachado = false and creado_en <= %L and (creado_en < %L or id < %L)',
       current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'))), 1200, 'leads_listado_idx', '{leads}', 60000);
+    -- Con el máximo que ofrece el selector (9g): la misma consulta con una página más larga. La página 1 y una profunda
+    -- siguen por `leads_listado_idx`, sin recorrer `leads` ni descartar de más.
+    perform pg_temp.escala('listado: página 1 con el máximo de la lista', q, pg_temp.pagina('esta_tachado = false', current_setting('medir.max_leads')::int), 100, 'leads_listado_idx', '{leads}', 3000);
+    perform pg_temp.escala('listado: página 100 por cursor con el máximo de la lista', q, pg_temp.pagina(format('esta_tachado = false and creado_en <= %L and (creado_en < %L or id < %L)',
+      current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id')), current_setting('medir.max_leads')::int), 1200, 'leads_listado_idx', '{leads}', 60000);
     perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'lp' and esta_tachado = false$w$), 300, 'leads_listado_idx', '{leads}', 60000);
     -- Peor caso aceptado: un filtro que no coincide con nadie recorre la cartera visible (~80 µs por lead).
     perform pg_temp.escala('listado: un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'nada' and esta_tachado = false$w$), 12000);
@@ -175,7 +186,7 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$, 2500);
     perform pg_temp.escala('exportar: conteo hasta 5.001', q, 'select id from public.leads_vista where en_cartera = true order by creado_en desc, id desc limit 5001', 3000);
     perform pg_temp.escala('etiquetas_vista', q, 'select id, nombre, leads from public.etiquetas_vista order by nombre', 300);
-    perform pg_temp.escala('papelera de leads, página 1 de 5 lotes', q, 'select public.leads_papelera_listar(null, null, false, 6)', 400);
+    perform pg_temp.escala('papelera de leads, página 1 de 5 lotes', q, format('select public.leads_papelera_listar(null, null, false, %s)', current_setting('medir.lotes')::int + 1), 400);
     perform pg_temp.escala('importaciones recientes', q, 'select public.leads_importaciones_recientes()', 300);
     -- Un lead.
     perform pg_temp.escala('lead_ficha', q, format('select public.lead_ficha(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end), 80);
@@ -185,20 +196,26 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('lead_vehiculos', q, format('select public.lead_vehiculos(%L)', case q when 'duena' then current_setting('medir.lead_duena') else current_setting('medir.lead_ana') end), 50);
     -- El kanban.
     if q = 'duena' then
-      perform pg_temp.escala('kanban: tablero (50 por columna, total hasta 500)', q, format('select public.embudo_tablero(%L, 50, 500)', current_setting('medir.embudo')), 800);
-      perform pg_temp.escala('kanban: «Ver más», página 10 de la columna de 8.000', q, format('select public.embudo_etapa_pagina(%L, %L, %L, 50)',
-        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id')), 500);
+      perform pg_temp.escala('kanban: tablero (50 por columna, total hasta 500)', q, format('select public.embudo_tablero(%L, %s, %s)', current_setting('medir.embudo'), current_setting('medir.tam_columna'), current_setting('medir.tope_cargado')), 800);
+      perform pg_temp.escala('kanban: «Ver más», página 10 de la columna de 8.000', q, format('select public.embudo_etapa_pagina(%L, %L, %L, %s)',
+        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id'), current_setting('medir.tam_columna')), 500);
       -- Lo de adentro. Bajo la policy de `oportunidades` (`lead_id = any(_mis_leads_vivos())`, un arreglo de
       -- tamaño desconocido) Postgres elige `oportunidades_lead_id_idx` y ordena las de la persona: cuesta lo
       -- que tiene la persona (~2 µs por oportunidad), no lo que tiene la columna. Límite anotado.
-      perform pg_temp.escala('kanban: primera página de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L order by o.ultima_actividad_en desc, o.id desc limit 51', current_setting('medir.etapa')),
+      perform pg_temp.escala('kanban: primera página de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L order by o.ultima_actividad_en desc, o.id desc limit %s', current_setting('medir.etapa'), current_setting('medir.tam_columna')::int + 1),
         100);
-      perform pg_temp.escala('kanban: «Ver más» de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L and (o.ultima_actividad_en, o.id) < (%L, %L) order by o.ultima_actividad_en desc, o.id desc limit 51',
-        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id')), 100);
-      perform pg_temp.escala('kanban: el total acotado de una columna', q, format('select count(*) from (select 1 from public.oportunidades o2 where o2.etapa_id = %L limit 501) q', current_setting('medir.etapa')),
+      perform pg_temp.escala('kanban: «Ver más» de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L and (o.ultima_actividad_en, o.id) < (%L, %L) order by o.ultima_actividad_en desc, o.id desc limit %s',
+        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id'), current_setting('medir.tam_columna')::int + 1), 100);
+      perform pg_temp.escala('kanban: el total acotado de una columna', q, format('select count(*) from (select 1 from public.oportunidades o2 where o2.etapa_id = %L limit %s) q', current_setting('medir.etapa'), current_setting('medir.tope_cargado')::int + 1),
         100);
     end if;
     -- Vehículos y configuración.
+    -- Con el máximo que ofrece el selector (9g): página 1 y una profunda, por el mismo índice y sin descartar.
+    perform pg_temp.escala('vehículos: página 1 con el máximo de la lista', q, format($w$select coalesce(json_agg(t), '[]') from (select id, titulo, creado_en from public.vehiculos
+      where origen_id = %L order by creado_en desc, id desc limit %s) t$w$, current_setting('medir.origen'), current_setting('medir.max_vehiculos')::int + 1), 20, 'vehiculos_origen_listado_idx', '{vehiculos}', 0);
+    perform pg_temp.escala('vehículos: página 20 por cursor con el máximo de la lista', q, format($w$select coalesce(json_agg(t), '[]') from (select id, titulo, creado_en from public.vehiculos
+      where origen_id = %L and (creado_en, id) < (%L, %L) order by creado_en desc, id desc limit %s) t$w$, current_setting('medir.origen'),
+      current_setting('medir.vcursor_en'), current_setting('medir.vcursor_id'), current_setting('medir.max_vehiculos')::int + 1), 20, 'vehiculos_origen_listado_idx', '{vehiculos}', 0);
     perform pg_temp.escala('vehículos: página 1', q, format($w$select coalesce(json_agg(t), '[]') from (select id, titulo, creado_en from public.vehiculos
       where origen_id = %L order by creado_en desc, id desc limit 51) t$w$, current_setting('medir.origen')), 20, 'vehiculos_origen_listado_idx', '{vehiculos}', 0);
     perform pg_temp.escala('vehículos: página 40 por cursor', q, format($w$select coalesce(json_agg(t), '[]') from (select id, titulo, creado_en from public.vehiculos
@@ -208,7 +225,7 @@ do $medir$ declare q text; begin
       where origen_id = %L and (titulo ilike '%%Toyota 99%%' or vin ilike '%%99%%') order by creado_en desc, id desc limit 51) t$w$, current_setting('medir.origen')), 100, 'vehiculos_origen_listado_idx', '{vehiculos}', 20000);
     perform pg_temp.escala('vehículos: filtro de limpieza', q, format($w$select coalesce(json_agg(t), '[]') from (select v.id, v.titulo, v.creado_en, public.limpieza_el(v) from public.vehiculos v
       where v.origen_id = %L and public.limpieza_el(v) <= now() + interval '30 days' order by v.creado_en desc, v.id desc limit 51) t$w$, current_setting('medir.origen')), 150, 'vehiculos_origen_listado_idx', '{vehiculos}', 5000);
-    perform pg_temp.escala('papelera de vehículos, página 1 de 5 lotes', q, 'select public.vehiculos_papelera_listar(null, null, false, 6)', 200);
+    perform pg_temp.escala('papelera de vehículos, página 1 de 5 lotes', q, format('select public.vehiculos_papelera_listar(null, null, false, %s)', current_setting('medir.lotes')::int + 1), 200);
     perform pg_temp.escala('storage_gc_pendiente', q, 'select public.storage_gc_pendiente()', 50);
     -- El alta con el contador: un upsert por la clave primaria, lo mismo con 20 leads que con 62.000.
     perform pg_temp.escala('alta de un lead (trigger del número propio incluido)', q, $w$select public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Medir alta',
