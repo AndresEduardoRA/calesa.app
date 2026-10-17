@@ -3,6 +3,8 @@ import type { Permisos } from '@/shared/lib/permisos'
 import {
   diasParaLaPurga,
   envioDesde,
+  faltanPorMostrar,
+  loteDesde,
   lotesDesde,
   motivoParaNoEnviar,
   palabraDePurga,
@@ -38,6 +40,7 @@ describe('lotesDesde', () => {
         es_mio: false,
         purga_el: '2026-11-14T09:00:00+00:00',
         enviados: 2,
+        en_papelera: 2,
         leads: [
           {
             id: A,
@@ -61,6 +64,7 @@ describe('lotesDesde', () => {
       actualizadoEn: '2026-10-15T10:00:00.123456+00:00',
       creadoPorNombre: 'Rosa',
       enviados: 2,
+      enPapelera: 2,
     })
     expect(lotes?.[0]?.leads[0]?.motivoDeBloqueo).toBe('Tiene pagos registrados.')
     expect(lotes?.[0]?.leads[1]?.motivoDeRestaurar).toBe(
@@ -189,5 +193,25 @@ describe('motivoParaNoEnviar', () => {
     expect(motivoParaNoEnviar(2)).toBe(
       'Tiene 2 vehículos vinculados: desvincúlalos en «Vehículos» antes de enviarlo.',
     )
+  })
+})
+
+describe('loteDesde y faltanPorMostrar (cierre 1)', () => {
+  it('un lote entero de la RPC, o null si ya no está o la forma vino rota', () => {
+    expect(loteDesde(null)).toBeNull()
+    expect(loteDesde({ id: 'no-es-un-lote' })).toBeNull()
+  })
+
+  it('cuántos del lote todavía no se ven', () => {
+    expect(
+      faltanPorMostrar({ enPapelera: 200, leads: Array.from({ length: 20 }, () => ({})) as never }),
+    ).toBe(180)
+    expect(
+      faltanPorMostrar({ enPapelera: 12, leads: Array.from({ length: 12 }, () => ({})) as never }),
+    ).toBe(0)
+    // Si mientras tanto se restauró algo, nunca da negativo.
+    expect(
+      faltanPorMostrar({ enPapelera: 3, leads: Array.from({ length: 5 }, () => ({})) as never }),
+    ).toBe(0)
   })
 })

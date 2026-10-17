@@ -415,6 +415,10 @@ export type LectorDePapeleraDeLeads = (pedido: {
   tamano: number
 }) => Promise<Resultado<Pagina<LoteDePapelera>>>
 
+// Un lote entero (hasta 200) para «Mostrar los N», desde el navegador. `no_encontrado` si ya no está en la papelera (se
+// purgó o se restauró mientras se miraba) o no se ve.
+export type LectorDeLoteDePapelera = (loteId: string) => Promise<Resultado<LoteDePapelera>>
+
 // --- CSV (parte 8) ----------------------------------------------------------------------------------
 
 // Deja la constancia de una exportación y aplica el límite por hora (`leads_exportacion_registrar`). Un

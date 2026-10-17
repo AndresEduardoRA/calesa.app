@@ -2,7 +2,7 @@
 
 // Los parámetros que son un tamaño de página: lo que una RPC recibe y no puede dejarle al cliente.
 export const PARAMETROS_DE_TAMANO =
-  /\bp_(?:tamano|tope|tope_total|limite|cantidad|limit|max|por_pagina)\b/
+  /\bp_(?:tamano|tope|tope_total|limite|cantidad|limit|max|por_pagina|primeros)\b/
 
 export type CotaDeLaBase = { defecto: number; maximo: number }
 

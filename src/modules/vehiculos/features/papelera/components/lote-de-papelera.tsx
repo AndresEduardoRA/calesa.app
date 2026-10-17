@@ -1,11 +1,16 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { diaEnZona, formatearDiaYMes, formatearFechaHora } from '@/shared/lib/fechas'
 import { Button } from '@/shared/ui/button'
+import { MostrarTodos } from '@/shared/ui/mostrar-todos'
 import { useRegional } from '@/shared/ui/regional'
+import { useLecturaAPedido } from '@/shared/ui/use-lectura-a-pedido'
+import { leerLoteDePapelera } from '../../../composicion.client'
 import {
   diasParaLaPurga,
+  faltanPorMostrar,
   textoDePurga,
   type LoteDePapelera as Lote,
   type VehiculoEnPapelera,
@@ -120,8 +125,7 @@ const DE_UNO = { restaurar: 'Restaurar', purgar: 'Purgar' }
 // Qué lote es: cuántos se enviaron y cuántos quedan. El de la limpieza automática se dice por su
 // origen y su día (el día es del calendario de la empresa).
 function tituloDe(lote: Lote, zona: string): string {
-  const quedan =
-    lote.vehiculos.length < lote.enviados ? ` · quedan ${String(lote.vehiculos.length)}` : ''
+  const quedan = lote.enPapelera < lote.enviados ? ` · quedan ${String(lote.enPapelera)}` : ''
   if (lote.esLimpieza) {
     const dia = formatearDiaYMes(diaEnZona(lote.creadoEn, { zona }))
     return `Limpieza automática del ${dia} · ${String(lote.enviados)}${quedan}`
@@ -134,9 +138,16 @@ function tituloDe(lote: Lote, zona: string): string {
 
 // Un lote de la papelera: quién lo envió, cuándo y cuánto falta para que se purgue solo; y sus
 // vehículos, cada uno con lo que se puede hacer. Las acciones del lote entero aparecen cuando
-// tiene más de uno.
+// tiene más de uno. Se ven los primeros (cierre 1) y «Mostrar los N» trae el lote entero; si la página se vuelve a leer
+// (restaurar, purgar), vuelve a los primeros.
 export function LoteDePapelera(props: Props) {
-  const { lote, origenes, ahora, puedePurgar, enCurso, alRestaurar, alPurgar } = props
+  const { origenes, ahora, puedePurgar, enCurso, alRestaurar, alPurgar } = props
+  const router = useRouter()
+  const { lectura, pedir } = useLecturaAPedido(
+    () => leerLoteDePapelera(props.lote.id),
+    props.lote.actualizadoEn,
+  )
+  const lote = lectura.estado === 'leido' ? lectura.dato : props.lote
   const { zonaHoraria } = useRegional()
   const quien = lote.esLimpieza
     ? 'la limpieza automática'
@@ -172,7 +183,7 @@ export function LoteDePapelera(props: Props) {
               </p>
             ) : null}
           </div>
-          {lote.vehiculos.length > 1 ? (
+          {lote.enPapelera > 1 ? (
             <Acciones {...comunes} objetivo={{ lote }} etiquetas={DEL_LOTE} />
           ) : null}
         </header>
@@ -194,6 +205,15 @@ export function LoteDePapelera(props: Props) {
             />
           ))}
         </ul>
+        <MostrarTodos
+          total={lote.enPapelera}
+          faltan={faltanPorMostrar(lote)}
+          lectura={lectura}
+          alPedir={() => void pedir()}
+          alRecargar={() => {
+            router.refresh()
+          }}
+        />
       </section>
     </li>
   )

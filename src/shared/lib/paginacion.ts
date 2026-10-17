@@ -25,6 +25,8 @@ export const TAMANO_DE_VER_MAS = 20
 export const TOPE_DE_LO_CARGADO = 500
 export const TAMANO_DE_COLUMNA = 50
 export const LOTES_POR_PAGINA = 5
+// De cada lote de la papelera (hasta 200) se ven los primeros; «Mostrar los N» trae el lote entero (cierre 1).
+export const PRIMEROS_DEL_LOTE = 20
 
 // Un número de la lista de tamaños, o `null`: lo que no lo es (7, 100000, -5, «abc», 25.5) no se pide.
 export function esTamanoDePagina(valor: unknown): valor is TamanoDePagina {

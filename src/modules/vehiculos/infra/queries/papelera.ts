@@ -1,7 +1,7 @@
 import 'server-only'
 import { z } from 'zod'
 import { errorDePostgrest, ok } from '@/shared/lib/errores'
-import { armarPagina } from '@/shared/lib/paginacion'
+import { PRIMEROS_DEL_LOTE, armarPagina } from '@/shared/lib/paginacion'
 import { createClient } from '@/shared/lib/supabase/server'
 import { limpiezaPendienteDesde, lotesDesde } from '../../entities/papelera'
 import type {
@@ -14,11 +14,13 @@ import type {
 // sólo se lee por esta RPC, que da lo propio o, con `vehiculos.papelera.purgar`, todo.
 export const getPapelera: LectorDePapelera = async ({ cursor, tamano }) => {
   const supabase = await createClient()
-  // Por keyset `(creado_en, id)` con `lotes_papelera_tipo_idx`; `tamano + 1` para saber si hay otra.
+  // Por keyset `(creado_en, id)` con `lotes_papelera_tipo_idx`; `tamano + 1` para saber si hay otra. De cada lote, los
+  // primeros `PRIMEROS_DEL_LOTE` y cuántos quedan (cierre 1).
   const { data, error } = await supabase.rpc('vehiculos_papelera_listar', {
     ...(cursor ? { p_antes_en: cursor.creadoEn, p_antes_id: cursor.id } : {}),
     p_hacia_atras: cursor?.sentido === 'anterior',
     p_tope: tamano + 1,
+    p_primeros: PRIMEROS_DEL_LOTE,
   })
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }

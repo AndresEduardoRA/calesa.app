@@ -67,6 +67,8 @@ insert into sondas (nombre, plantilla, control) values
       jsonb_build_object('id', gen_random_uuid(), 'fila', 2, 'lead', jsonb_build_object('nombre', 'NG imp uno', 'telefono_principal', '79190200', 'origen_lead_id', (select id from public.origenes_lead where clave = 'web'))),
       jsonb_build_object('id', gen_random_uuid(), 'fila', 3, 'lead', jsonb_build_object('nombre', 'NG imp dos', 'telefono_principal', '79190201', 'origen_lead_id', (select id from public.origenes_lead where clave = 'web')))))$q$, true),
   ('leads_papelera_listar', $q$select public.leads_papelera_listar(null, null, false, 6)$q$, true),
+  -- Un lote entero (cierre 1): el primero que la misma persona ve en la lista.
+  ('leads_papelera_lote', $q$select public.leads_papelera_lote((public.leads_papelera_listar(null, null, false, 2) -> 0 ->> 'id')::uuid)$q$, true),
   ('embudo_tablero', $q$select public.embudo_tablero((select id from public.embudos where es_default and usuario_id = (select auth.uid())), 50, 500)$q$, false),
   ('embudo_etapa_pagina', $q$select public.embudo_etapa_pagina((select o.etapa_id from public.oportunidades o where o.usuario_id = (select auth.uid()) limit 1), null, null, 50)$q$, false),
   ('lead_oportunidades', $q$select public.lead_oportunidades('{lp}')$q$, false),

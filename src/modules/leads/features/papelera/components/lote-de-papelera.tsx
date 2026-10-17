@@ -1,11 +1,16 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { formatearFechaHora } from '@/shared/lib/fechas'
 import { Button } from '@/shared/ui/button'
+import { MostrarTodos } from '@/shared/ui/mostrar-todos'
 import { useRegional } from '@/shared/ui/regional'
+import { useLecturaAPedido } from '@/shared/ui/use-lectura-a-pedido'
+import { leerLoteDePapelera } from '../../../composicion.client'
 import {
   diasParaLaPurga,
+  faltanPorMostrar,
   textoDePurga,
   type LeadEnPapelera,
   type LoteDePapelera as Lote,
@@ -102,14 +107,21 @@ const DE_UNO = { restaurar: 'Restaurar', purgar: 'Purgar' }
 
 // Qué lote es: cuántos se enviaron y cuántos quedan.
 function tituloDe(lote: Lote): string {
-  const quedan = lote.leads.length < lote.enviados ? ` · quedan ${String(lote.leads.length)}` : ''
+  const quedan = lote.enPapelera < lote.enviados ? ` · quedan ${String(lote.enPapelera)}` : ''
   return lote.enviados <= 1 ? 'Envío de uno' : `Lote de ${String(lote.enviados)}${quedan}`
 }
 
 // Un lote de la papelera: quién lo envió, cuándo y cuánto falta para que se purgue solo; y sus leads,
-// cada uno con lo que se puede hacer. Las acciones del lote entero aparecen cuando tiene más de uno.
+// cada uno con lo que se puede hacer. Las acciones del lote entero aparecen cuando tiene más de uno. Se ven los primeros
+// (cierre 1) y «Mostrar los N» trae el lote entero; si la página se vuelve a leer (restaurar, purgar), vuelve a los primeros.
 export function LoteDePapelera(props: Props) {
-  const { lote, ahora, puedePurgar, enCurso, alRestaurar, alPurgar } = props
+  const { ahora, puedePurgar, enCurso, alRestaurar, alPurgar } = props
+  const router = useRouter()
+  const { lectura, pedir } = useLecturaAPedido(
+    () => leerLoteDePapelera(props.lote.id),
+    props.lote.actualizadoEn,
+  )
+  const lote = lectura.estado === 'leido' ? lectura.dato : props.lote
   const { zonaHoraria } = useRegional()
   const quien = lote.esMio ? 'ti' : (lote.creadoPorNombre ?? 'alguien que ya no está')
   const comunes = {
@@ -135,7 +147,7 @@ export function LoteDePapelera(props: Props) {
               {textoDePurga(diasParaLaPurga(lote.purgaEl, ahora))}
             </p>
           </div>
-          {lote.leads.length > 1 ? (
+          {lote.enPapelera > 1 ? (
             <Acciones {...comunes} objetivo={{ lote }} etiquetas={DEL_LOTE} />
           ) : null}
         </header>
@@ -157,6 +169,15 @@ export function LoteDePapelera(props: Props) {
             />
           ))}
         </ul>
+        <MostrarTodos
+          total={lote.enPapelera}
+          faltan={faltanPorMostrar(lote)}
+          lectura={lectura}
+          alPedir={() => void pedir()}
+          alRecargar={() => {
+            router.refresh()
+          }}
+        />
       </section>
     </li>
   )

@@ -1,6 +1,6 @@
 import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
-import { borrarLeadsDePrueba } from './soporte/leads'
+import { borrarLeadsDePrueba, idDe } from './soporte/leads'
 import { telefonoAlAzar } from './soporte/leads-alta'
 import { irAFicha, nuevoLead, tituloDeLaFicha, NO_DISPONIBLE } from './soporte/leads-ficha'
 import {
@@ -21,6 +21,8 @@ import {
   menuDeFicha,
 } from './soporte/leads-papelera'
 import { borrarLotesDePrueba } from './soporte/papelera'
+import { capturar } from './soporte/recorrido'
+import { literal, sql } from './soporte/sql'
 
 // La papelera de leads: enviar desde la ficha y desde el «⋯» de la fila con «Deshacer», restaurar
 // (también con el teléfono tomado), purgar con confirmación y quién ve qué.
@@ -179,4 +181,82 @@ test('sin permiso: la papelera no abre, no hay enlace y la ficha no ofrece envia
   await irAFicha(page, lead.id)
   await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
   await expect(menuDeFicha(page, lead.nombre)).toHaveCount(0)
+})
+
+const PREFIJOS_DE_LOTE: Record<string, string> = { Lote200: '1', Lote30: '2', Lote25: '3' }
+
+// Un lote de `n` leads de Berta, sembrado por SQL (el trigger arma su cartera) y enviado a la papelera con su sesión.
+async function loteDeBerta(
+  n: number,
+  marca: string,
+  proyecto: string,
+): Promise<{ lote: string; nombres: string[] }> {
+  const dueno = await idDe(t.personas.berta)
+  // Un prefijo por lote y por proyecto: los teléfonos no chocan con los de otro lote ni con los del otro proyecto.
+  const prefijoTel = `5917${PREFIJOS_DE_LOTE[marca] ?? '0'}${proyecto === 'movil' ? '9' : '8'}`
+  const ids = sql(`insert into public.leads (nombre, telefono_principal, creado_por)
+                   select 'E2E ' || ${literal(marca)} || ' ' || lpad(g::text, 3, '0') || ' ' || ${literal(proyecto)},
+                          ${literal(prefijoTel)} || lpad(g::text, 5, '0'), ${literal(dueno)}
+                     from generate_series(1, ${String(n)}) g returning id`).split('\n')
+  const lote = crypto.randomUUID()
+  const envio = await rpcComo(t.personas.berta, 'leads_papelera_enviar', {
+    p_lote: lote,
+    p_leads: ids,
+  })
+  expect(envio.error).toBeNull()
+  const nombres = Array.from(
+    { length: n },
+    (_, i) => `E2E ${marca} ${String(i + 1).padStart(3, '0')} ${proyecto}`,
+  )
+  return { lote, nombres }
+}
+
+// Cierre 1: un lote muestra sus primeros 20; «Mostrar los N» trae el resto desde el navegador.
+test('un lote de 200 muestra los primeros 20 y «Mostrar los 200»; restaurar uno de abajo vuelve a los primeros', async ({
+  page,
+}, info) => {
+  const { nombres } = await loteDeBerta(200, 'Lote200', info.project.name)
+  await entrar(page, t.personas.berta)
+  await page.goto('/leads/papelera')
+  const lote = loteDe(page, nombres[0] ?? '')
+  await expect(lote).toContainText('Lote de 200')
+  await expect(lote.locator('li')).toHaveCount(20)
+  await capturar(page, info, 'papelera-lote-de-200')
+  await lote.getByRole('button', { name: 'Mostrar los 200' }).click()
+  await expect(lote.locator('li')).toHaveCount(200)
+  const ultimo = nombres[199] ?? ''
+  await page.getByRole('button', { name: `Restaurar ${ultimo}` }).click()
+  await expect(page.getByText(`«${ultimo}» volvió a tus leads.`)).toBeVisible()
+  // La página se volvió a leer: el lote vuelve a sus primeros 20 y ahora son 199.
+  await expect(lote).toContainText('quedan 199')
+  await expect(lote.locator('li')).toHaveCount(20)
+  await expect(lote.getByRole('button', { name: 'Mostrar los 199' })).toBeVisible()
+})
+
+test('«Mostrar los N» sin red lo dice y reintenta; si el lote se purgó mientras se miraba, lo dice y recarga', async ({
+  page,
+  context,
+}, info) => {
+  const { lote: id, nombres } = await loteDeBerta(30, 'Lote30', info.project.name)
+  await entrar(page, t.personas.berta)
+  await page.goto('/leads/papelera')
+  const lote = loteDe(page, nombres[0] ?? '')
+  await expect(lote.locator('li')).toHaveCount(20)
+  await context.setOffline(true)
+  await lote.getByRole('button', { name: 'Mostrar los 30' }).click()
+  await expect(lote.getByText(/conexión|servidor/)).toBeVisible()
+  await context.setOffline(false)
+  await lote.getByRole('button', { name: 'Reintentar' }).click()
+  await expect(lote.locator('li')).toHaveCount(30)
+  // Otro lote igual, y lo purgan mientras se mira (el lote queda sellado como lo deja una purga).
+  const otro = await loteDeBerta(25, 'Lote25', info.project.name)
+  await page.reload()
+  const segundo = loteDe(page, otro.nombres[0] ?? '')
+  await expect(segundo.locator('li')).toHaveCount(20)
+  sql(`update public.lotes_papelera set purgado_en = now() where id = ${literal(otro.lote)}`)
+  await segundo.getByRole('button', { name: 'Mostrar los 25' }).click()
+  await expect(segundo.getByText('Ese lote ya no está en la papelera.')).toBeVisible()
+  await segundo.getByRole('button', { name: 'Recargar' }).click()
+  await expect(page.getByText(otro.nombres[0] ?? '')).toHaveCount(0)
+  expect(id).not.toBe(otro.lote)
 })

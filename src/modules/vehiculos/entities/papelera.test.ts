@@ -5,6 +5,8 @@ import {
   envioDesde,
   errorDeEnvio,
   limpiezaPendienteDesde,
+  faltanPorMostrar,
+  loteDesde,
   lotesDesde,
   motivoParaNoEnviar,
   palabraDePurga,
@@ -42,6 +44,7 @@ describe('lotesDesde', () => {
         es_limpieza: true,
         purga_el: '2026-11-12T12:00:00+00:00',
         enviados: 2,
+        en_papelera: 1,
         vehiculos: [
           {
             id: ID(1),
@@ -60,6 +63,7 @@ describe('lotesDesde', () => {
       creadoPorNombre: 'Rosa Mamani',
       esLimpieza: true,
       enviados: 2,
+      enPapelera: 1,
       vehiculos: [{ numero: 7, fotos: 3, motivoDeBloqueo: 'Tiene pagos o gastos registrados.' }],
     })
   })
@@ -290,5 +294,19 @@ describe('limpiezaPendienteDesde', () => {
     expect(
       limpiezaPendienteDesde({ objetos: 1000, hay_mas: true, desde: '2026-10-13T06:00:00+00:00' }),
     ).toMatchObject({ objetos: 1000, hayMas: true })
+  })
+})
+
+describe('loteDesde y faltanPorMostrar (cierre 1)', () => {
+  it('un lote entero de la RPC, o null si ya no está o la forma vino rota', () => {
+    expect(loteDesde(null)).toBeNull()
+    expect(loteDesde({ id: 'no-es-un-lote' })).toBeNull()
+  })
+
+  it('cuántos del lote todavía no se ven', () => {
+    const de = (n: number) => Array.from({ length: n }, () => ({})) as never
+    expect(faltanPorMostrar({ enPapelera: 200, vehiculos: de(20) })).toBe(180)
+    expect(faltanPorMostrar({ enPapelera: 12, vehiculos: de(12) })).toBe(0)
+    expect(faltanPorMostrar({ enPapelera: 3, vehiculos: de(5) })).toBe(0)
   })
 })

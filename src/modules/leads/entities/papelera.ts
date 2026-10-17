@@ -36,8 +36,10 @@ export type LoteDePapelera = {
   esMio: boolean
   // Cuándo lo purga el job si nadie lo restaura: `creado_en + papelera_dias`.
   purgaEl: string
-  // Cuántos se enviaron; los que quedan son `leads`.
+  // Cuántos se enviaron y cuántos siguen en la papelera (exacto: un lote tiene a lo sumo 200).
   enviados: number
+  enPapelera: number
+  // Los que se ven: los primeros `PRIMEROS_DEL_LOTE` en la lista, o el lote entero tras «Mostrar los N» (cierre 1).
   leads: LeadEnPapelera[]
 }
 
@@ -50,6 +52,7 @@ const esquemaLotes = z.array(
     es_mio: z.boolean(),
     purga_el: z.string(),
     enviados: z.number(),
+    en_papelera: z.number().int().nonnegative(),
     leads: z
       .array(
         z.object({
@@ -64,14 +67,31 @@ const esquemaLotes = z.array(
   }),
 )
 
+type LoteCrudo = z.infer<typeof esquemaLotes>[number]
+
 // La respuesta de `leads_papelera_listar()`: los lotes que todavía tienen algo adentro, del más
 // nuevo al más viejo. Una forma rota es null (no una papelera vacía).
 export function lotesDesde(crudo: unknown): LoteDePapelera[] | null {
   const leidos = esquemaLotes.safeParse(crudo)
-  if (!leidos.success) {
+  return leidos.success ? leidos.data.map(deLoteCrudo) : null
+}
+
+// La de `leads_papelera_lote()`: el lote entero, o null si ya no está (se purgó o se restauró) o la forma vino rota.
+export function loteDesde(crudo: unknown): LoteDePapelera | null {
+  if (crudo === null) {
     return null
   }
-  return leidos.data.map((lote) => ({
+  const leido = esquemaLotes.safeParse([crudo])
+  return leido.success && leido.data[0] ? deLoteCrudo(leido.data[0]) : null
+}
+
+// Cuántos del lote todavía no se ven (los que trae «Mostrar los N»).
+export function faltanPorMostrar(lote: Pick<LoteDePapelera, 'enPapelera' | 'leads'>): number {
+  return Math.max(0, lote.enPapelera - lote.leads.length)
+}
+
+function deLoteCrudo(lote: LoteCrudo): LoteDePapelera {
+  return {
     id: lote.id,
     actualizadoEn: lote.actualizado_en,
     creadoEn: lote.creado_en,
@@ -79,6 +99,7 @@ export function lotesDesde(crudo: unknown): LoteDePapelera[] | null {
     esMio: lote.es_mio,
     purgaEl: lote.purga_el,
     enviados: lote.enviados,
+    enPapelera: lote.en_papelera,
     leads: (lote.leads ?? []).map((lead) => ({
       id: lead.id,
       numeros: numerosDesde(lead),
@@ -86,7 +107,7 @@ export function lotesDesde(crudo: unknown): LoteDePapelera[] | null {
       motivoDeBloqueo: lead.motivo_de_bloqueo,
       motivoDeRestaurar: lead.motivo_de_restaurar,
     })),
-  }))
+  }
 }
 
 // ---------------------------------------------------------------------------

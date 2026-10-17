@@ -292,7 +292,11 @@ dice, con un camino a lo antiguo.
   «Oportunidades» muestra las 100 más recientes (las abiertas primero) y lo dice: «Mostrando las 100 más recientes, las
   abiertas primero.»
 - **Etiquetas, «Gestionar»:** «En 12 leads» o «En más de 1.000 leads».
-- **Papeleras (leads y vehículos):** de a 5 lotes por página (Anterior y Siguiente, `?cursor=`); un lote ya trae hasta 200.
+- **Papeleras (leads y vehículos):** de a 5 lotes por página (Anterior y Siguiente, `?cursor=`); un lote trae hasta 200 y
+  muestra sus primeros 20 con «Mostrar los 200» al pie (cierre 1): mientras llega, «Trayendo los 200…»; sin red, el motivo y
+  «Reintentar»; si el lote ya no está (lo purgaron o restauraron mientras se miraba), «Ese lote ya no está en la papelera.»
+  con «Recargar». Restaurar o purgar algo vuelve a leer la página y el lote vuelve a sus primeros 20. La papelera no tiene
+  «Ítems por página»: su unidad es el lote. Purgar el lote entero dice cuántos son de verdad, aunque se vean 20.
   El aviso de archivos por borrar dice «hay más de 1.000 archivos». «La papelera está vacía» sólo en la primera página; una
   página sin filas por un cursor viejo ofrece «Volver al principio».
 - **Sin red:** abrir un modal, un panel o una pestaña cuyo código nunca se pidió dice «Sin conexión. No se pudo abrir esto.»

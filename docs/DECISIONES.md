@@ -3375,3 +3375,24 @@ nueva a la más vieja) y «Volver al principio», que quita el cursor y conserva
 **Alternativas:** un contador en la URL (miente, ver arriba); contar hasta un tope («página 3 de más de 20», que exige leer las
 filas anteriores y sigue sin saber dónde se está pasado el tope); el rango «del 2 sep al 14 ago» (más largo, y la última fecha ya
 se ve al pie).
+
+## 2026-10-17 — Cierre 1 (C): un lote de la papelera muestra sus primeros 20, y la papelera no entra al selector
+
+**Contexto:** una página de papelera son 5 lotes y un lote, hasta 200 filas: 1.000 filas, ~8.200 nodos, y para cada lead la
+base calculaba si puede volver (verifica su teléfono). La 9g dejó pendiente decidir si las papeleras entran a «Ítems por página».
+
+**Decisión:**
+
+- `leads_papelera_listar` y `vehiculos_papelera_listar` reciben `p_primeros` (acotado con `_acotar_pagina(p_primeros, 20, 200)`,
+  `PRIMEROS_DEL_LOTE` en `paginacion.ts` y al registro de la guarda) y devuelven de cada lote los primeros 20 por número y
+  `en_papelera` (cuántos quedan, exacto: a lo sumo 200, contado sobre 201). «Mostrar los N» pide **ese lote entero** desde el
+  navegador (`leads_papelera_lote`, `vehiculos_papelera_lote`: el mismo filtro que la lista; nulo si el lote ya no está).
+- **Sin selector:** la unidad es el lote, y 5 lotes de 20 ya son 100 filas, el máximo de una página. 10, 25, 50 o 100 lotes
+  multiplicarían el DOM sin acercar lo antiguo, que está en Anterior y Siguiente.
+- Lo leído vale para la versión del lote: restaurar o purgar vuelve a leer la página y el lote vuelve a sus primeros 20 (no se
+  vuelve a pedir solo: hacerlo desde un efecto choca con la regla de hooks y no se desactivan reglas). Purgar el lote entero
+  dice cuántos son de verdad y nombra a los primeros cinco de los que se ven.
+
+**Alternativas:** las papeleras al selector con lotes de 20 (lo que proponía la 9g: no acorta nada y suma un control); traer los
+200 y dibujar 20 (los bytes y el costo de la base siguen); un «Ver más» de a 20 dentro del lote (más clics para lo mismo que
+«Mostrar los N», con un tope de 200 por la base).

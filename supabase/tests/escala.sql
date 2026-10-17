@@ -35,7 +35,6 @@ declare
     ('vehiculo_fotos_agregar', 'hasta 24 fotos por vehículo'),
     ('vehiculo_imagenes_tope', 'trigger: hasta 24 fotos por vehículo'),
     ('vehiculo_imagen_integridad', 'trigger: los dos objetos de una foto'),
-    ('_vehiculos_papelera_lote_json', 'las fotos de un vehículo (hasta 24) dentro de un lote de hasta 200'),
     ('_papelera_purgar_leads', 'un lote tiene a lo sumo 200 leads'),
     ('_papelera_purgar_vehiculos', 'un lote tiene a lo sumo 200 vehículos'),
     ('leads_papelera_enviar', 'un envío son a lo sumo 200 leads'),
@@ -88,7 +87,7 @@ end $$;
 
 -- @test escala (9g): toda función que un cliente puede llamar con un tamaño de página lo acota con _acotar_pagina
 -- Lo que la app (o quien le hable a PostgREST con una sesión) puede ejecutar y recibe un parámetro de tamaño
--- (`p_tamano`, `p_tope`, `p_tope_total`, `p_limite`, `p_cantidad`…) acota **ese** parámetro con
+-- (`p_tamano`, `p_tope`, `p_tope_total`, `p_limite`, `p_cantidad`, `p_primeros`…) acota **ese** parámetro con
 -- `_acotar_pagina(<parámetro>, por_defecto, máximo)`: el máximo queda declarado en la base y a la vista, y nunca lo
 -- decide el cliente. Un `least(greatest(coalesce(p_x, …)))` escrito a mano también falla: es lo que había antes, con un
 -- literal distinto en cada una. Las funciones de los jobs (`storage_gc_reclamar`, `web_expirar_solicitudes`) no las
@@ -104,7 +103,7 @@ begin
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace, unnest(p.proargnames) a
    where n.nspname in ('public', 'web') and p.prokind = 'f'
      and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))
-     and a ~ '^p_(tamano|tope|tope_total|limite|cantidad|limit|max|por_pagina)$'
+     and a ~ '^p_(tamano|tope|tope_total|limite|cantidad|limit|max|por_pagina|primeros)$'
      and p.prosrc !~* ('_acotar_pagina\(\s*' || a || '\s*,');
   if v_malas is not null then
     raise exception 'escala: estas funciones reciben un tamaño de página y no lo acotan con _acotar_pagina(parámetro, por_defecto, máximo): %', v_malas;
@@ -121,7 +120,7 @@ begin
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace, unnest(p.proargnames) a
    where n.nspname in ('public', 'web') and p.prokind = 'f'
      and has_function_privilege('authenticated', p.oid, 'execute')
-     and a ~ '^p_(tamano|tope|tope_total|limite|cantidad|limit|max|por_pagina)$';
+     and a ~ '^p_(tamano|tope|tope_total|limite|cantidad|limit|max|por_pagina|primeros)$';
   if v_vistas < 7 then
     raise exception 'escala: la guarda de páginas vio sólo % parámetros de tamaño (hoy hay 7: dos de Ver más, dos de papelera, tres del kanban)', v_vistas;
   end if;

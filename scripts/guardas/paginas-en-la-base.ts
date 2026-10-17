@@ -4,6 +4,7 @@
 // tamaño que no figura acá rompe `pnpm test`; una que figura y ya nadie llama, también.
 import {
   LOTES_POR_PAGINA,
+  PRIMEROS_DEL_LOTE,
   TAMANO_DE_COLUMNA,
   TAMANO_DE_VER_MAS,
   TOPE_DE_LO_CARGADO,
@@ -43,6 +44,19 @@ export const RPC_PAGINADAS: readonly RpcPaginada[] = [
     parametro: 'p_tope',
     pideElCodigo: LOTES_POR_PAGINA + 1,
     lista: 'papelera de vehículos',
+  },
+  // Y de cada lote, los primeros (cierre 1): el resto llega con «Mostrar los N».
+  {
+    rpc: 'leads_papelera_listar',
+    parametro: 'p_primeros',
+    pideElCodigo: PRIMEROS_DEL_LOTE,
+    lista: 'papelera de leads, los primeros de un lote',
+  },
+  {
+    rpc: 'vehiculos_papelera_listar',
+    parametro: 'p_primeros',
+    pideElCodigo: PRIMEROS_DEL_LOTE,
+    lista: 'papelera de vehículos, los primeros de un lote',
   },
   {
     rpc: 'embudo_tablero',

@@ -6914,6 +6914,7 @@ export type Database = {
             Database['public']['Tables']['lotes_papelera']['Row'],
             Database['public']['Tables']['lotes_papelera']['ComputedFields']
           >
+          p_primeros: number
           p_yo: string
         }
         Returns: Json
@@ -7301,6 +7302,7 @@ export type Database = {
             Database['public']['Tables']['lotes_papelera']['Row'],
             Database['public']['Tables']['lotes_papelera']['ComputedFields']
           >
+          p_primeros: number
           p_yo: string
         }
         Returns: Json
@@ -7616,9 +7618,16 @@ export type Database = {
       }
       leads_papelera_enviar: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       leads_papelera_listar: {
-        Args: { p_antes_en?: string; p_antes_id?: string; p_hacia_atras?: boolean; p_tope?: number }
+        Args: {
+          p_antes_en?: string
+          p_antes_id?: string
+          p_hacia_atras?: boolean
+          p_primeros?: number
+          p_tope?: number
+        }
         Returns: Json
       }
+      leads_papelera_lote: { Args: { p_lote: string }; Returns: Json }
       leads_papelera_purgar: {
         Args: { p_actualizado_en_esperado: string; p_leads?: string[]; p_lote: string }
         Returns: Json
@@ -8085,9 +8094,16 @@ export type Database = {
       vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
       vehiculos_papelera_enviar: { Args: { p_vehiculos: Json }; Returns: Json }
       vehiculos_papelera_listar: {
-        Args: { p_antes_en?: string; p_antes_id?: string; p_hacia_atras?: boolean; p_tope?: number }
+        Args: {
+          p_antes_en?: string
+          p_antes_id?: string
+          p_hacia_atras?: boolean
+          p_primeros?: number
+          p_tope?: number
+        }
         Returns: Json
       }
+      vehiculos_papelera_lote: { Args: { p_lote: string }; Returns: Json }
       vehiculos_papelera_purgar: {
         Args: { p_actualizado_en_esperado: string; p_lote: string; p_vehiculos?: string[] }
         Returns: Json

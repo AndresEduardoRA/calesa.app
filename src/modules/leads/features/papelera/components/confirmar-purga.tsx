@@ -34,8 +34,10 @@ const NOMBRES_A_LA_VISTA = 5
 function textosDe({ lote, leadId }: Objetivo): Textos {
   const uno = leadId ? lote.leads.find((lead) => lead.id === leadId) : null
   const cuales = uno ? [uno] : lote.leads
+  // Un lote de varios se cuenta entero aunque se vean sus primeros (cierre 1): los nombres, de los que se ven.
+  const cuantos = uno ? 1 : lote.enPapelera
   const [primero] = cuales
-  if (cuales.length === 1 && primero) {
+  if (cuantos === 1 && primero) {
     return {
       titulo: `Purgar «${primero.nombre}»`,
       descripcion:
@@ -45,12 +47,12 @@ function textosDe({ lote, leadId }: Objetivo): Textos {
     }
   }
   const nombres = cuales.slice(0, NOMBRES_A_LA_VISTA).map((lead) => `«${lead.nombre}»`)
-  const resto = cuales.length - nombres.length
+  const resto = cuantos - nombres.length
   return {
-    titulo: `Purgar el lote de ${String(cuales.length)}`,
+    titulo: `Purgar el lote de ${String(cuantos)}`,
     descripcion: `Se borran para siempre, con sus teléfonos, seguimientos y recordatorios: ${nombres.join(', ')}${resto > 0 ? ` y ${String(resto)} más` : ''}. No se puede deshacer ni restaurar.`,
-    etiqueta: `Purgar los ${String(cuales.length)}`,
-    palabra: palabraDePurga(cuales.length),
+    etiqueta: `Purgar los ${String(cuantos)}`,
+    palabra: palabraDePurga(cuantos),
   }
 }
 

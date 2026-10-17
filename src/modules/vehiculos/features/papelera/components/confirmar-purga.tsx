@@ -34,8 +34,10 @@ const TITULOS_A_LA_VISTA = 5
 function textosDe({ lote, vehiculoId }: Objetivo): Textos {
   const uno = vehiculoId ? lote.vehiculos.find((vehiculo) => vehiculo.id === vehiculoId) : null
   const cuales = uno ? [uno] : lote.vehiculos
+  // Un lote de varios se cuenta entero aunque se vean sus primeros (cierre 1): los nombres, de los que se ven.
+  const cuantos = uno ? 1 : lote.enPapelera
   const [primero] = cuales
-  if (cuales.length === 1 && primero) {
+  if (cuantos === 1 && primero) {
     const fotos =
       primero.fotos === 0
         ? ''
@@ -48,12 +50,12 @@ function textosDe({ lote, vehiculoId }: Objetivo): Textos {
     }
   }
   const nombres = cuales.slice(0, TITULOS_A_LA_VISTA).map((vehiculo) => `«${vehiculo.titulo}»`)
-  const resto = cuales.length - nombres.length
+  const resto = cuantos - nombres.length
   return {
-    titulo: `Purgar el lote de ${String(cuales.length)}`,
+    titulo: `Purgar el lote de ${String(cuantos)}`,
     descripcion: `Se borran para siempre, con sus fotos y todo lo que tengan cargado: ${nombres.join(', ')}${resto > 0 ? ` y ${String(resto)} más` : ''}. No se puede deshacer ni restaurar.`,
-    etiqueta: `Purgar los ${String(cuales.length)}`,
-    palabra: palabraDePurga(cuales.length),
+    etiqueta: `Purgar los ${String(cuantos)}`,
+    palabra: palabraDePurga(cuantos),
   }
 }
 

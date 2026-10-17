@@ -17,6 +17,8 @@ const DUENA = 'duena-volumen@ejemplo.com'
 const ANA = 'ana-volumen@ejemplo.com'
 
 // Cuántos nodos del DOM aguanta cada pantalla en el celular (menos que en el escritorio).
+// Una página de papelera (5 lotes, 20 filas de cada uno a la vista): lo medido con margen.
+const NODOS_DE_LA_PAPELERA = 3_000
 const NODOS_MAXIMOS = { escritorio: 12_000, movil: 9_000 }
 
 const nodos = (page: Page) => page.evaluate(() => document.querySelectorAll('*').length)
@@ -152,7 +154,10 @@ test('las papeleras, vehículos e importación de la dueña', async ({ page }, i
   await page.goto('/leads/papelera')
   await expect(page.getByRole('heading', { name: 'Papelera de leads' })).toBeVisible()
   await capturar(page, info, 'papelera-leads')
-  notas(info, 'nodos de la papelera de leads', String(await nodos(page)))
+  // Cinco lotes de 200 de la siembra: cada uno muestra sus primeros 20 (cierre 1). Antes, 1.000 filas y ~8.200 nodos.
+  const enLaPapelera = await nodos(page)
+  notas(info, 'nodos de la papelera de leads', String(enLaPapelera))
+  expect(enLaPapelera).toBeLessThan(NODOS_DE_LA_PAPELERA)
   await page.getByRole('link', { name: 'Siguiente' }).click()
   await capturar(page, info, 'papelera-leads-2')
   await page.goto('/vehiculos/papelera')
