@@ -46,6 +46,11 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   se borran por la cola (`cola_gc_storage`): un trigger `before insert` llama
   `storage_gc_rescatar(bucket, ruta)` (toma el candado del objeto y se niega si la limpieza ya lo
   reclamó), y quien borra la fila encola la ruta. Nunca `delete` sobre `storage.objects`.
+- Un dato que sólo algunas personas pueden leer **por fila** (no por columna: un grant de columna no mira la fila) va en una
+  tabla de lectura cuya policy es la regla (`leads_numeros_globales`), y la columna original pierde su grant
+  (`revoke select (numero)`). Lo que la lee con los derechos de la base (`definer`) calcula el permiso una vez por consulta; lo
+  que la lee como quien mira se apoya en la policy, con subconsultas en la lista de columnas y no uniones. `numero-global.sql`
+  falla si `authenticated`, `anon` o PUBLIC pueden leer la columna, o si la tabla entra a una publicación de Realtime.
 - Tabla nueva en `schemas/` = su `_rls(...)` en `…000200_rls_y_grants.sql`: ese archivo termina
   comprobando que ninguna tabla de `public` quede sin RLS.
 - Después de cualquier cambio: `pnpm db:base` (si tocaste `schemas/`), `pnpm db:reset`, `pnpm db:types`,
