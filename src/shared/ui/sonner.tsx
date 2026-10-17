@@ -2,6 +2,7 @@
 
 import { useTheme } from 'next-themes'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
+import { useAvisosSobreElPie, VARIABLE_DE_AVISOS } from './avisos-sobre-el-pie'
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -10,8 +11,14 @@ import {
   Loader2Icon,
 } from 'lucide-react'
 
+// Los avisos salen abajo a la derecha: con un panel abierto suben sobre su pie (`useAvisosSobreElPie()` pone la variable; sin panel, el
+// margen de siempre: 24 px en escritorio y 16 en el celular).
+const ABAJO = `var(${VARIABLE_DE_AVISOS}, 24px)`
+const ABAJO_EN_EL_CELULAR = `var(${VARIABLE_DE_AVISOS}, 16px)`
+
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
+  useAvisosSobreElPie()
 
   return (
     <Sonner
@@ -19,6 +26,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       // Lo que anuncia el lector de pantalla: sonner lo trae en inglés («Notifications alt+T», «Close
       // toast»). El atajo para llegar a los avisos se dice en español.
+      offset={{ bottom: ABAJO }}
+      mobileOffset={{ bottom: ABAJO_EN_EL_CELULAR }}
       customAriaLabel="Avisos (Alt+T para ir a ellos)"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

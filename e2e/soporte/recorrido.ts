@@ -77,6 +77,37 @@ export async function dentroDeLaPantalla(page: Page, lugar: Locator): Promise<vo
   expect(caja.y + caja.height).toBeLessThanOrEqual(pantalla.height + 1)
 }
 
+// Un aviso no tapa el pie de un panel (`.claude/rules/ui.md`): sus cajas no se solapan y cada botón del pie recibe el clic (el elemento
+// que está en su centro es el botón, no el aviso). Con el pie pegado abajo el aviso queda por encima; con uno a media altura (un panel
+// corto) no hace falta moverlo. Se mide con el aviso ya quieto: entra deslizándose.
+export async function avisoNoTapaElPie(aviso: Locator, pie: Locator): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        const [a, p] = await Promise.all([aviso.boundingBox(), pie.boundingBox()])
+        if (!a || !p) {
+          return 'sin caja'
+        }
+        const separados =
+          a.y + a.height <= p.y + 1 ||
+          a.y >= p.y + p.height - 1 ||
+          a.x + a.width <= p.x + 1 ||
+          a.x >= p.x + p.width - 1
+        return separados
+          ? 'separados'
+          : `se solapan: aviso y ${String(Math.round(a.y))}-${String(Math.round(a.y + a.height))}, pie y ${String(Math.round(p.y))}-${String(Math.round(p.y + p.height))}`
+      },
+      { message: 'el aviso no se solapa con el pie' },
+    )
+    .toBe('separados')
+  const botones = pie.getByRole('button')
+  const cuantos = await botones.count()
+  expect(cuantos, 'el pie tiene botones').toBeGreaterThan(0)
+  for (let i = 0; i < cuantos; i++) {
+    await recibeElClic(botones.nth(i))
+  }
+}
+
 export async function sinScrollHorizontal(page: Page): Promise<void> {
   const { ancho, visible, culpables } = await page.evaluate(() => {
     const visible = document.documentElement.clientWidth

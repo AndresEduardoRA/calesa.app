@@ -56,6 +56,11 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   inyecta la del sistema).
 - El texto al 200 % se verifica con un e2e (`document.documentElement.style.fontSize = '200%'`) y, para lo que se juzga mirando,
   con capturas (`E2E_CAPTURAS`).
+- **Un aviso no tapa el pie de un panel ni sus botones.** Los avisos salen abajo a la derecha, justo donde un panel tiene «Cancelar» y
+  «Guardar»: `<Toaster>` los sube sobre el pie mientras haya un panel abierto (`useAvisosSobreElPie()` mide el pie y pone `--avisos-abajo`;
+  sólo cuenta un pie que cae en el lugar de los avisos, no un modal centrado). El pie se marca como tal: el de `<Drawer>` y el de
+  `<Modal>` ya lo son; el que va dentro del cuerpo es `<PieDelPanel>` o `<PieConSalida>` (`data-pie-de-panel`); un pie nuevo con botones
+  propios usa uno de los dos. `avisoNoTapaElPie()` de `e2e/soporte/recorrido.ts` lo comprueba (cajas sin solaparse y el clic llega a cada botón).
 - Montos, números y fechas con `src/shared/lib/formato.ts` (Intl, locale y moneda de la empresa).
   Números a la derecha con `tabular-nums`. Nunca `toFixed` ni formateo a mano.
 - Modo Live: todo monto pasa por `<Monto>`; ese componente respeta `useLive()` (oculta cifras y

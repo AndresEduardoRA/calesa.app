@@ -40,7 +40,10 @@ export function PieDelPanel({
   const delDrawer = useSalidaDelDrawer()
   const salida = salidaPropia ?? delDrawer
   return (
-    <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-wrap justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) p-4">
+    <div
+      data-pie-de-panel=""
+      className="sticky -bottom-4 -mx-4 -mb-4 flex flex-wrap justify-end gap-2 border-t border-(--color-line) bg-(--color-surface) p-4"
+    >
       {salida?.confirmando ? (
         <ConfirmarDescarte alSeguir={salida.seguir} alDescartar={salida.descartar} />
       ) : (

@@ -10,7 +10,7 @@ import { ConfirmarDescarte } from './confirmar-descarte'
 export function PieConSalida({ className, children }: { className?: string; children: ReactNode }) {
   const salida = useSalidaDelDrawer()
   return (
-    <div className={className}>
+    <div className={className} data-pie-de-panel="">
       {salida?.confirmando ? (
         <ConfirmarDescarte alSeguir={salida.seguir} alDescartar={salida.descartar} />
       ) : (
