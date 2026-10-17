@@ -16,6 +16,7 @@ import {
   llenarHasta,
   origenEnLaBase,
   origenesEnLaBase,
+  sembrarOrigen,
   type OrigenEnLaBase,
 } from './soporte/origenes-de-lead'
 import {
@@ -27,10 +28,9 @@ import {
   volcarArbol,
 } from './soporte/recorrido'
 
-// El recorrido de la IA de la pantalla de orígenes del lead (9f-1) con dos cuentas, la dueña y una
-// asesora con el rol `asesor` de la semilla, en escritorio y en el celular, con 0 orígenes, con 12 y con
-// el máximo (100). Lo que se afirma sin mirar (qué cabe, quién recibe el clic, el tamaño táctil) queda
-// acá; lo que se juzga mirando, en las capturas (`E2E_CAPTURAS=e2e-capturas/9f-1`).
+// El recorrido de la IA de los orígenes del lead (9f-1) con la dueña y una asesora del rol `asesor`, en
+// escritorio y celular: con 0, 12 y 100 orígenes (A a C), el alta con el origen que se apagó y la
+// importación sin orígenes activos (D, E). Lo que se juzga mirando, en `E2E_CAPTURAS=e2e-capturas/9f-1`.
 test.describe.configure({ mode: 'serial' })
 
 let duena = ''
@@ -57,6 +57,14 @@ async function reponer() {
   }
 }
 
+// Lo que un caso apagó vuelve a como estaba (los ids del respaldo que estaban activos).
+async function reponerActivos() {
+  const ids = respaldo.filter((origen) => origen.activo).map((origen) => origen.id)
+  if (ids.length > 0) {
+    await admin().from('origenes_lead').update({ activo: true }).in('id', ids)
+  }
+}
+
 test.beforeAll(async ({}, info) => {
   proyecto = info.project.name
   await borrarLeadsDePrueba()
@@ -73,6 +81,7 @@ test.afterAll(async () => {
   await borrarLeadsDePrueba()
   await borrarOrigenesDePrueba()
   await reponer()
+  await reponerActivos()
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
 })
@@ -232,4 +241,60 @@ test('C · con el máximo (100): lo dice, «Nuevo origen» se apaga y la lista s
 
   const nombres = await origenEnLaBase(`${PREFIJO_DE_ORIGEN_E2E} relleno 001`)
   expect(nombres).toBeDefined()
+})
+
+test('D · el alta con el origen que se apagó mientras se escribía: el campo pide elegir otro y lo escrito queda', async ({
+  page,
+}, info) => {
+  await reponer()
+  const apagable = await sembrarOrigen(`${PREFIJO_DE_ORIGEN_E2E} apagable ${proyecto}`)
+  const nombre = `E2E Recorrido apagado ${proyecto}`
+  await entrar(page, duena, { fresco: true })
+  await abrirConN(page)
+  const panel = dialogo(page)
+  await panel.getByLabel('Origen del lead').selectOption(apagable.id)
+  await panel.getByLabel('Nombre').fill(nombre)
+  await panel.getByLabel('Teléfono').first().fill(telefonoAlAzar())
+  await capturar(page, info, 'duena-apagable-antes')
+
+  await admin().from('origenes_lead').update({ activo: false }).eq('id', apagable.id)
+  await panel.getByRole('button', { name: 'Guardar lead' }).click()
+  await expect(panel.getByText(/desactivado|se desactivó/).first()).toBeVisible()
+  const select = panel.getByLabel('Origen del lead')
+  await expect(select).toHaveValue('')
+  await expect(select.locator('option').first()).toHaveText('Elige un origen')
+  await expect(panel.getByLabel('Nombre')).toHaveValue(nombre)
+  await expect(panel.getByText('Verificando el teléfono')).toBeHidden()
+  await sinScrollHorizontal(page)
+  await capturar(page, info, 'duena-apagable-despues')
+  await select.selectOption({ index: 1 })
+  await panel.getByRole('button', { name: 'Guardar lead' }).click()
+  await expect(page.getByText(/Lead #\d+ creado sin seguimiento/)).toBeVisible()
+})
+
+test('E · importar sin orígenes activos: el archivo lo dice y los leads entran sin origen', async ({
+  page,
+}, info) => {
+  await reponer()
+  await admin().from('origenes_lead').update({ activo: false }).not('id', 'is', null)
+  try {
+    await entrar(page, duena, { fresco: true })
+    await page.goto('/leads/importar')
+    await page.locator('input[type=file]').setInputFiles({
+      name: 'sin-origenes.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        `\uFEFFNombre;Teléfono\r\nE2E Recorrido sin origen ${proyecto};${telefonoAlAzar()}\r\n`,
+        'utf8',
+      ),
+    })
+    await expect(
+      page.getByText('No hay un origen de lead activo: los leads se importan sin origen.'),
+    ).toBeVisible()
+    await expect(page.getByLabel('Origen para las filas sin origen')).toHaveCount(0)
+    await sinScrollHorizontal(page)
+    await capturar(page, info, 'duena-importar-sin-origenes')
+  } finally {
+    await reponerActivos()
+  }
 })
