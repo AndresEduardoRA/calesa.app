@@ -6473,6 +6473,7 @@ export type Database = {
           nombre: string | null
           numero: number | null
           numero_propio: number | null
+          numero_propio_creador: string | null
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
