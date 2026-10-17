@@ -98,6 +98,13 @@ select pg_temp.cronometro('job: storage-gc, encolar huérfanos de 100.000 objeto
 -- una al principio (antes, cada pasada recorría el bucket entero: 208 ms con 301.000 objetos ya encolados).
 delete from public.cola_gc_barrido;
 select pg_temp.cronometro('job: storage-gc, una pasada al principio del bucket (10.000 examinados)', $q$select public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day')::text$q$, 1000);
+-- Cerca del final hay dos costos distintos: la primera vez la ventana son 10.000 huérfanos sin encolar (escribirlos en la cola
+-- cuesta ~1 s, lo mismo que el paso de 100.000 de arriba, que también encola 10.000) y la segunda vez la misma ventana ya está
+-- encolada, que es lo comparable con la del principio: examinar 10.000 sin escribir nada.
+update public.cola_gc_barrido
+   set ultimo_nombre = (select o.name from storage.objects o where o.bucket_id = 'vehiculos' order by o.name desc limit 1 offset 15000)
+ where bucket = 'vehiculos';
+select pg_temp.cronometro('job: storage-gc, una pasada cerca del final que encola 10.000', $q$select public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day')::text$q$, 4000);
 update public.cola_gc_barrido
    set ultimo_nombre = (select o.name from storage.objects o where o.bucket_id = 'vehiculos' order by o.name desc limit 1 offset 15000)
  where bucket = 'vehiculos';
