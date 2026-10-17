@@ -20,6 +20,8 @@ import {
   verEtapa,
 } from './soporte/leads-oportunidades'
 import { esMovil } from './soporte/inventario'
+import { vistasDelHtml } from './soporte/listas-por-pagina'
+import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import { TAMANO_DE_COLUMNA, TAMANO_DE_PAGINA_POR_DEFECTO } from '../src/shared/lib/paginacion'
 
 // La escala de lo que se dibuja (9e, `.claude/rules/escala.md`): el listado y una columna del kanban tienen
@@ -43,11 +45,15 @@ const MENSAJE_SIN_CONEXION = 'Sin conexión. No se pudo abrir esto.'
 
 const nodos = (page: Page) => page.evaluate(() => document.querySelectorAll('*').length)
 
-// Cuántos nodos del DOM aguanta cada pantalla: lo medido en la 9e más un margen. En el celular hay menos.
+// Cuántos nodos del DOM aguanta cada pantalla: lo medido más un margen. Desde el cierre 1 el listado dibuja una sola vista
+// (la tabla o las tarjetas): 50 filas, ~1.500 nodos (eran ~2.700); 100 filas, ~2.600 en escritorio y ~2.800 en el celular
+// (eran ~5.000: la tabla y las tarjetas estaban las dos en el DOM). `?por=100` entra a la corrida normal.
 const PRESUPUESTO_DE_NODOS = {
-  listado: { escritorio: 3_500, movil: 3_500 },
+  listado: { escritorio: 2_200, movil: 2_200 },
+  listadoDe100: { escritorio: 3_500, movil: 3_500 },
   kanban: { escritorio: 9_000, movil: 6_000 },
 }
+type Proyecto = 'escritorio' | 'movil'
 
 test('el listado dibuja una página de 50 filas y los nodos no crecen con las páginas', async ({
   page,
@@ -75,11 +81,92 @@ test('el listado dibuja una página de 50 filas y los nodos no crecen con las p�
     type: 'nodos del listado',
     description: `página 1: ${String(primera)}, página 2: ${String(segunda)}`,
   })
-  const tope = PRESUPUESTO_DE_NODOS.listado[info.project.name as 'escritorio' | 'movil']
+  const tope = PRESUPUESTO_DE_NODOS.listado[info.project.name as Proyecto]
   expect(primera).toBeLessThan(tope)
   expect(segunda).toBeLessThan(tope)
   // La segunda no pesa más que la primera: una página reemplaza a la otra, no se suma.
   expect(segunda).toBeLessThan(primera * 1.15)
+})
+
+test('con 100 por página el listado cabe en su presupuesto de nodos y el HTML lleva una sola vista', async ({
+  page,
+}, info) => {
+  await entrar(page, t.personas.berta)
+  const respuesta = await page.goto('/leads?q=Escala&por=100')
+  await expect(filas(page)).toHaveCount(100)
+  const movil = esMovil(page)
+  // La vista que toca a este ancho, y sólo ella, ya en el HTML del servidor.
+  expect(vistasDelHtml((await respuesta?.text()) ?? '')).toEqual({ tabla: !movil, tarjetas: movil })
+  const n = await nodos(page)
+  info.annotations.push({ type: 'nodos con 100 filas', description: String(n) })
+  expect(n).toBeLessThan(PRESUPUESTO_DE_NODOS.listadoDe100[info.project.name as Proyecto])
+  // El selector a la vista sin bajar (en el celular, arriba de la lista), en claro, en oscuro y con el texto al 200 %.
+  await expect(page.getByLabel('Ítems por página')).toBeInViewport()
+  await sinScrollHorizontal(page)
+  await capturar(page, info, 'listado-100-claro')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await capturar(page, info, 'listado-100-oscuro')
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  await expect(page.getByLabel('Ítems por página')).toBeVisible()
+  await capturar(page, info, 'listado-100-texto-grande')
+})
+
+test('sin la cookie del ancho, el user-agent elige la vista y el HTML trae sólo ésa', async ({
+  page,
+  context,
+}) => {
+  await entrar(page, t.personas.berta)
+  await context.clearCookies({ name: 'ancho' })
+  const respuesta = await page.goto('/leads?q=Escala')
+  const movil = esMovil(page)
+  expect(vistasDelHtml((await respuesta?.text()) ?? '')).toEqual({ tabla: !movil, tarjetas: movil })
+  await expect(filas(page)).toHaveCount(TAMANO_DE_PAGINA_POR_DEFECTO)
+  // Ya hidratada, la página deja el ancho para la próxima.
+  await expect
+    .poll(async () => (await context.cookies()).find((c) => c.name === 'ancho')?.value)
+    .toBe(String(page.viewportSize()?.width))
+})
+
+test('girar el celular o redimensionar cambia de vista sin red, sin recargar y con el ancho al día', async ({
+  page,
+  context,
+}) => {
+  await entrar(page, t.personas.berta)
+  await irALeads(page, '?q=Escala')
+  await expect(filas(page)).toHaveCount(TAMANO_DE_PAGINA_POR_DEFECTO)
+  const inicial = page.viewportSize() ?? { width: 1280, height: 720 }
+  // El celular girado (915 de ancho) ya es tabla; el escritorio a 600, tarjetas.
+  const otro = esMovil(page)
+    ? { width: inicial.height, height: inicial.width }
+    : { width: 600, height: inicial.height }
+  const tabla = page.locator('tbody tr')
+  const tarjetas = page.locator('li article')
+  const vista = (ancho: number) =>
+    ancho >= 768 ? { si: tabla, no: tarjetas } : { si: tarjetas, no: tabla }
+  const documentos: string[] = []
+  page.on('request', (pedido) => {
+    if (pedido.resourceType() === 'document' || /:54621\//.test(pedido.url())) {
+      documentos.push(pedido.url())
+    }
+  })
+  // Sin red: las filas ya están en la página, cambiar de vista no pide nada.
+  await context.setOffline(true)
+  await page.setViewportSize(otro)
+  await expect(vista(otro.width).si).toHaveCount(TAMANO_DE_PAGINA_POR_DEFECTO)
+  await expect(vista(otro.width).no).toHaveCount(0)
+  await page.setViewportSize(inicial)
+  await expect(vista(inicial.width).si).toHaveCount(TAMANO_DE_PAGINA_POR_DEFECTO)
+  await expect(vista(inicial.width).no).toHaveCount(0)
+  await context.setOffline(false)
+  expect(documentos).toEqual([])
+  await page.setViewportSize(otro)
+  await expect
+    .poll(async () => (await context.cookies()).find((c) => c.name === 'ancho')?.value)
+    .toBe(String(otro.width))
+  await page.setViewportSize(inicial)
 })
 
 test('una columna del kanban con más de 500: «500+», «Ver más» hasta el tope y el aviso', async ({

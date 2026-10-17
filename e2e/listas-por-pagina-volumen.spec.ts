@@ -8,7 +8,9 @@ import {
   fijarPreferencia,
   parametrosDe,
   selectorDeTamano,
+  vistasDelHtml,
 } from './soporte/listas-por-pagina'
+import { esMovil } from './soporte/inventario'
 import { entrarConSesion } from './soporte/pasos'
 import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import { sql } from './soporte/sql'
@@ -28,14 +30,15 @@ const CLAVE = 'Volumen-9e-clave'
 const DUENA = 'duena-volumen@ejemplo.com'
 const ANA = 'ana-volumen@ejemplo.com'
 
-// Cuántos nodos del DOM aguanta cada lista con su máximo: lo medido (leads a 100 filas, 9h: 5.020 en escritorio y 5.015 en
-// el celular; inventario 7.894; la tabla y las tarjetas están las dos en el DOM) con un margen. El presupuesto del celular
-// de la 9e es 9.000: las dos caben con 100.
-const NODOS_MAXIMOS = { leads: 6_500, vehiculos: 9_000 }
+// Cuántos nodos del DOM aguanta cada lista con su máximo: lo medido con un margen. Desde el cierre 1 se dibuja una sola vista
+// (la tabla o las tarjetas): leads a 100 filas, 5.020 → 2.594 en escritorio y 5.015 → 2.781 en el celular; inventario
+// 7.894 → 4.916 y 7.888 → 3.295. Antes las dos vistas estaban en el DOM.
+const NODOS_MAXIMOS = { leads: 3_500, vehiculos: 6_000 }
 // Lo que pesa, comprimido, el documento de la primera respuesta (el HTML y el flujo de React) con el máximo de la lista:
-// lo medido (leads a 100, 46,6 KB —705 KB crudos—; inventario 57 KB) con un margen. Un peso que de pronto se duplica es
-// una columna que nadie pensó.
-const BYTES_MAXIMOS_DEL_DOCUMENTO = { leads: 60_000, vehiculos: 75_000 }
+// lo medido con un margen. Cierre 1: leads a 100, 46,5 → 37,6 KB (705 → 465 KB crudos en escritorio, 427 en el celular);
+// inventario 57,2 → 47,3 KB (1,39 MB → 920 KB crudos; 740 en el celular). Un peso que de pronto se duplica es una columna
+// que nadie pensó, o la otra vista que volvió al HTML.
+const BYTES_MAXIMOS_DEL_DOCUMENTO = { leads: 48_000, vehiculos: 60_000 }
 
 const nodos = (page: Page) => page.evaluate(() => document.querySelectorAll('*').length)
 
@@ -69,9 +72,12 @@ function observar(page: Page) {
 }
 
 // Lo que pesa el documento que respondió el servidor para esa URL: tal cual y comprimido (lo que viaja de verdad).
+// Y que traiga una sola vista, la que toca a ese ancho (cierre 1): la tabla en escritorio, las tarjetas en el celular.
 async function pesoDelDocumento(page: Page, url: string): Promise<{ crudo: number; gzip: number }> {
   const respuesta = await page.goto(url, { waitUntil: 'load' })
   const cuerpo = (await respuesta?.body()) ?? Buffer.alloc(0)
+  const movil = esMovil(page)
+  expect(vistasDelHtml(cuerpo.toString('utf8'))).toEqual({ tabla: !movil, tarjetas: movil })
   return { crudo: cuerpo.length, gzip: gzipSync(cuerpo).length }
 }
 

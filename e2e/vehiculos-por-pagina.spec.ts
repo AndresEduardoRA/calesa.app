@@ -14,6 +14,7 @@ import {
   parametrosDe,
   preferenciaDe,
   selectorDeTamano,
+  vistasDelHtml,
 } from './soporte/listas-por-pagina'
 import { tactil } from './soporte/recorrido'
 import { cargarVehiculos } from './soporte/vehiculos'
@@ -69,6 +70,24 @@ test('cada tamaño trae esa cantidad de filas, vuelve a la primera y se recuerda
   await irAlInventario(page)
   await expect(filasDelListado(page)).toHaveCount(25)
   expect(parametrosDe(page).has('por')).toBe(false)
+})
+
+// Con 100 filas el inventario dibuja una sola vista (cierre 1): la tabla en escritorio, las tarjetas en el celular, ya en el
+// HTML del servidor. Con volumen, ~4.900 nodos en escritorio y ~3.300 en el celular (eran ~7.900: las dos vistas).
+const NODOS_CON_100 = 6_000
+
+test('con 100 por página dibuja una sola vista y cabe en su presupuesto de nodos', async ({
+  page,
+}, info) => {
+  await fijarPreferencia(terreno.duena, null)
+  await entrar(page, terreno.duena)
+  const respuesta = await page.goto(`/vehiculos${consulta(`&origen=${terreno.corea.id}&por=100`)}`)
+  await expect(filasDelListado(page)).toHaveCount(100)
+  const movil = esMovil(page)
+  expect(vistasDelHtml((await respuesta?.text()) ?? '')).toEqual({ tabla: !movil, tarjetas: movil })
+  const nodos = await page.evaluate(() => document.querySelectorAll('*').length)
+  info.annotations.push({ type: 'nodos con 100 filas', description: String(nodos) })
+  expect(nodos).toBeLessThan(NODOS_CON_100)
 })
 
 test('un valor manipulado se ignora; cambiar en la página 3 vuelve a la primera y conserva la búsqueda', async ({

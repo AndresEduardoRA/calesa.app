@@ -1,26 +1,13 @@
 'use client'
 
-import { useSyncExternalStore } from 'react'
+import { CORTE_DEL_TABLERO } from '@/shared/lib/ancho'
 import { conteoCorto } from '@/shared/lib/conteo'
+import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
 import { useRegional } from '@/shared/ui/regional'
-import { useConsultaDeMedios } from '@/shared/ui/use-consulta-de-medios'
 import { etapaElegida } from '../../../entities/tablero'
 import { PuntoDeColor } from '../../etiquetas/components/insignia-de-etiqueta'
 import type { EstadoDelTablero } from '../hooks/use-tablero'
 import { ColumnaDeEtapa } from './columna-de-etapa'
-
-// Escritorio (columnas) o celular (una etapa por pestaña) lo decide el CSS: el servidor y la hidratación
-// dibujan las dos, sin una primera pintura con la forma equivocada. Ya hidratado, se deja sólo la que se ve:
-// con 500 tarjetas en una columna, la copia escondida duplicaba los nodos del DOM (26.000 en el celular).
-function useDistribucion() {
-  const desdeElCliente = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  )
-  const esEscritorio = useConsultaDeMedios('(min-width: 640px)')
-  return { desdeElCliente, esEscritorio }
-}
 
 type Props = {
   estado: EstadoDelTablero
@@ -30,11 +17,13 @@ type Props = {
 
 // Las columnas del embudo. En escritorio, una al lado de la otra, con desplazamiento lateral dentro
 // del tablero (la página no se corre de costado). En el celular, una por vez: las etapas son pestañas.
-// Cuál se ve lo decide el CSS (no hay una primera pintura con la forma equivocada).
+// Se dibuja una sola de las dos (cierre 1): la elige el servidor con el ancho de la petición, así el HTML no las lleva
+// ambas y la hidratación no cambia nada; girar o redimensionar la cambia en el cliente. Con 500 tarjetas en una columna,
+// la copia escondida duplicaba los nodos (26.000 en el celular) y el HTML.
 export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa }: Props) {
   const { tablero, moviendo, cargando, moverA, verMas, anuncio } = estado
   const { locale } = useRegional()
-  const { desdeElCliente, esEscritorio } = useDistribucion()
+  const esEscritorio = useAlMenos(CORTE_DEL_TABLERO)
   const etapas = tablero.columnas.map((c) => c.etapa)
   const elegida = etapaElegida(tablero, etapaDeLaUrl)
 
@@ -58,8 +47,8 @@ export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa }: Props) 
       <p aria-live="polite" className="sr-only">
         {anuncio}
       </p>
-      {!desdeElCliente || esEscritorio ? (
-        <div className="-mx-1 hidden overflow-x-auto px-1 pb-2 sm:block">
+      {esEscritorio ? (
+        <div className="-mx-1 overflow-x-auto px-1 pb-2">
           <div className="flex items-start gap-3">
             {tablero.columnas.map((c) => (
               <div key={c.etapa.id} className="w-72 shrink-0">
@@ -69,8 +58,8 @@ export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa }: Props) 
           </div>
         </div>
       ) : null}
-      {!desdeElCliente || !esEscritorio ? (
-        <div className="grid gap-3 sm:hidden">
+      {!esEscritorio ? (
+        <div className="grid gap-3">
           <div
             role="tablist"
             aria-label="Etapas"

@@ -20,7 +20,7 @@ type Props = DatosDelOrigen & {
 export function TarjetasDeVehiculos(props: Props) {
   const { vehiculos, origen, campos, fases, vitrina, limpiezaHoy, editables, seleccion } = props
   return (
-    <ul className="grid gap-2 md:hidden">
+    <ul className="grid gap-2">
       {vehiculos.map((vehiculo) => {
         const fase = faseDe(fases, vehiculo.faseId)
         return (

@@ -20,7 +20,7 @@ type Props = DatosDeLaLista & {
 export function TarjetasDeLeads(props: Props) {
   const { leads, campos, origenes, codigoDePais, etiquetas, alAbrir, marcar } = props
   return (
-    <ul className="grid gap-2 md:hidden">
+    <ul className="grid gap-2">
       {leads.map((lead) => {
         const origen = nombreDelOrigen(origenes, lead.origenId)
         const datos = camposDeLaTarjeta(campos, lead)

@@ -17,8 +17,8 @@ type Props = {
 
 export type PorPaginaDeLaLista = { valor: number; opciones: readonly number[] }
 
-// El selector de un listado, con su estado: nada si el listado no lo ofrece. Va dos veces en `FilterShell` (la barra y el
-// pie de la lista): sólo se ve uno de los dos, por CSS, y el que se usa lleva su estado (esperar la red, no guardado).
+// El selector de un listado, con su estado: nada si el listado no lo ofrece. Va una vez en `FilterShell`: en la barra desde
+// `md` y arriba de la lista por debajo (cierre 1; antes iba dos veces y el CSS escondía una).
 export function SelectorDelListado(props: {
   porPagina: PorPaginaDeLaLista | undefined
   aplicar: (tamano: number) => void

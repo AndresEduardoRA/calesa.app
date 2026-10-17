@@ -3,10 +3,11 @@
 import { SlidersHorizontalIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { cn } from 'cn'
+import { CORTE_DEL_PANEL, CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
 import type { EsquemaDeFiltros } from '@/shared/lib/filtros'
+import { useAlMenos } from '../ancho-de-pantalla'
 import { Button } from '../button'
 import { Drawer } from '../drawer'
-import { useConsultaDeMedios } from '../use-consulta-de-medios'
 import { ChipsDeFiltros } from './chips-de-filtros'
 import { ContextoDeFiltros } from './contexto'
 import { CampoDeBusqueda } from './controles'
@@ -14,11 +15,10 @@ import { PanelDeFiltros } from './panel-de-filtros'
 import { SelectorDelListado, type PorPaginaDeLaLista } from './selector-de-por-pagina'
 import { useFiltros } from './use-filtros'
 
-// Desde acá el panel de filtros entra al costado; por debajo, en una hoja inferior.
-const ESCRITORIO = '(min-width: 1024px)'
-
+// Desde `lg` el panel de filtros entra al costado; por debajo, en una hoja inferior. Lo decide el ancho de la petición en
+// el servidor y al hidratar (antes, una pintura de escritorio podía abrir la hoja un instante), y la pantalla después.
 function useEsEscritorio(): boolean {
-  return useConsultaDeMedios(ESCRITORIO)
+  return useAlMenos(CORTE_DEL_PANEL)
 }
 
 // Abre el panel (o lo pliega, en escritorio) y dice cuántos filtros hay puestos.
@@ -116,7 +116,8 @@ type Props = {
   // Al pie de una sección del panel (por su clave).
   accionesDeSeccion?: Readonly<Record<string, ReactNode>>
   // «Ítems por página» de este listado: lo que dibuja la página y los tamaños que ofrece (hasta su máximo). Sin esto, el
-  // listado no lo ofrece. Vive en la barra desde `md` y, por debajo, al pie de la lista, junto a las páginas.
+  // listado no lo ofrece. Va una sola vez: en la barra desde `md` y, por debajo, arriba de la lista (con 100 tarjetas, al
+  // pie quedaba a ~40.000 px).
   porPagina?: PorPaginaDeLaLista
   // La lista. Adentro puede usar `useFiltrosDelListado()`.
   children: ReactNode
@@ -129,6 +130,8 @@ export function FilterShell(props: Props) {
   const { esquema, vistas, acciones, pieDelPanel, accionesDeSeccion, porPagina, children } = props
   const filtros = useFiltros(esquema)
   const esEscritorio = useEsEscritorio()
+  const selectorEnLaBarra = useAlMenos(CORTE_DE_LA_TABLA)
+  const selector = <SelectorDelListado porPagina={porPagina} aplicar={filtros.aplicarPorPagina} />
   const [plegado, setPlegado] = useState(false)
   const hayPanel = esquema.filtros.length > 0 || pieDelPanel !== undefined
   const panel = (
@@ -166,15 +169,12 @@ export function FilterShell(props: Props) {
           ) : null}
           {vistas}
           <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
-            <SelectorDelListado
-              porPagina={porPagina}
-              aplicar={filtros.aplicarPorPagina}
-              className="hidden md:grid"
-            />
+            {selectorEnLaBarra ? selector : null}
             {acciones}
           </div>
         </div>
         <ChipsDeFiltros esquema={esquema} />
+        {selectorEnLaBarra ? null : selector}
         <CuerpoDeLaLista
           conPanel={hayPanel && !plegado}
           panel={panel}
@@ -182,11 +182,6 @@ export function FilterShell(props: Props) {
         >
           {children}
         </CuerpoDeLaLista>
-        <SelectorDelListado
-          porPagina={porPagina}
-          aplicar={filtros.aplicarPorPagina}
-          className="md:hidden"
-        />
       </div>
       <HojaDeFiltros
         abierta={filtros.panelAbierto && !esEscritorio}

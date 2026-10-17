@@ -3328,3 +3328,33 @@ un lote y después, dos bajas con un lead común, un lote cortado) y `medir-baja
 revierte: ahí nada de lo revocado se puede descartar entre lotes y la medición mentía (6 s un lote); confirma como la base viva
 y borra lo que crea. Un hallazgo en el camino: empezar cada lote desde el principio recorría, dentro de la misma corrida, lo que
 los anteriores ya habían revocado (5,6 s una corrida); cada lote sigue ahora desde el último lead del anterior.
+
+## 2026-10-17 — Cierre 1 (B): una sola vista por lista, elegida en el servidor con el ancho de la petición
+
+**Contexto:** el listado de leads, el inventario y el kanban dibujaban sus dos vistas (tabla y tarjetas; columnas y pestañas) y
+el CSS escondía una. Con 100 filas el HTML del inventario pesaba 1,39 MB crudos y había 7.900 nodos también en el celular. El
+kanban ya dejaba una sola al hidratar, pero el HTML traía las dos. Y en el celular el selector «Ítems por página» quedaba al pie
+de ~40.000 px de tarjetas.
+
+**Decisión:**
+
+- **El servidor sabe el ancho.** El navegador deja su ancho en una cookie (`ancho`, en px) al hidratar y cada vez que cruza un
+  corte (640, 768, 1024); sin cookie, el `user-agent` decide (un celular, 400; lo demás, 1280). El layout `(app)` lo lee
+  (`anchoDeEstaPeticion()`) y lo reparte con `<ProveedorDeAncho>`; `useAlMenos(corte)` es un `useSyncExternalStore` cuyo snapshot
+  del servidor es ese ancho: el HTML trae una sola vista y la hidratación no la cambia. Girar el celular (girado mide más de 768)
+  o redimensionar cambia de vista en el cliente, con las mismas filas, sin red. La única vez que la vista cambia al hidratar es
+  una primera visita con un ancho que el `user-agent` no anticipa (una ventana de escritorio angosta); desde ahí manda la cookie.
+- **Un proveedor en el layout y no una prop por pantalla:** las tres listas y el `FilterShell` lo usan sin que cada página
+  tenga que leer cookies; una navegación del cliente no hidrata y usa la pantalla de verdad.
+- **El selector va una sola vez:** en la barra desde `md`; por debajo, arriba de la lista, a la derecha. Sin «volver arriba»:
+  Anterior y Siguiente quedan al pie, donde se llega leyendo. El panel de filtros también usa el ancho de la petición (una
+  pintura de escritorio ya no abre la hoja un instante).
+
+**Medido (100 filas, con volumen):** listado de leads 704.768 → 465.393 B crudos en escritorio y 427.052 en el celular (46,5 →
+37,6 / 37,3 KB comprimidos), 5.020 → 2.594 nodos y 5.015 → 2.781; inventario 1.387.796 → 919.569 / 740.210 B (57,2 → 47,3 / 45,2
+KB), 7.894 → 4.916 y 7.888 → 3.295 nodos. Lo que queda crudo es el flujo de React con las filas (una vez, no dos).
+
+**Alternativas:** una sola marca que el CSS acomoda como tabla o como tarjeta (rompe la semántica de la tabla para el lector y
+todos los localizadores); las dos en el HTML y una al hidratar (lo que hacía el kanban: el HTML sigue doble); Client Hints
+(`Sec-CH-Viewport-Width` no llega en la primera visita y sólo en Chromium); una cookie de vista («tabla»/«tarjetas») en vez del
+ancho (cada lista tiene su corte: el kanban, 640).

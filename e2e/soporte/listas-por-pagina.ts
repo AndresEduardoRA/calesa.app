@@ -50,3 +50,10 @@ export async function elegirTamano(page: Page, tamano: number): Promise<void> {
   await esperarHidratado(page)
   await selectorDeTamano(page).selectOption(String(tamano))
 }
+
+// Qué vista trae el HTML del servidor (cierre 1: una sola, según el ancho de la petición). La tabla es un `<table>`; cada
+// tarjeta, un `<article>` dentro de su `<li>` (`tbody tr, li article` son las filas de toda lista).
+export const vistasDelHtml = (html: string): { tabla: boolean; tarjetas: boolean } => ({
+  tabla: html.includes('<table'),
+  tarjetas: html.includes('<article'),
+})

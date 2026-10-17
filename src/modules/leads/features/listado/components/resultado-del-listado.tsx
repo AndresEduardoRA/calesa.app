@@ -1,9 +1,11 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
 import type { ConteoAcotado } from '@/shared/lib/conteo'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
+import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
 import { Button } from '@/shared/ui/button'
 import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
@@ -89,12 +91,15 @@ function VacioDeLeads({
 }
 
 // La lista de leads o el estado que corresponda: sin leads, sin resultados por filtro o una página
-// que se quedó sin filas. La tabla (escritorio) y las tarjetas (celular) están las dos en el DOM.
+// que se quedó sin filas. Se dibuja una sola vista: la tabla desde `md`, las tarjetas por debajo. El servidor la elige con
+// el ancho de la petición (`<ProveedorDeAncho>`), así el HTML lleva una y la hidratación no la cambia; girar el celular o
+// redimensionar la cambia en el cliente, con las mismas filas.
 export function ResultadoDelListado(props: Props) {
   const { pagina, modo, puedeVerTodos, puedeCrear, alAbrir, abierto, marcar, ocultos, ...datos } =
     props
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
+  const conTabla = useAlMenos(CORTE_DE_LA_TABLA)
 
   if (pagina.filas.length === 0) {
     if (ocultos.n > 0 && !hayCursor) {
@@ -111,7 +116,7 @@ export function ResultadoDelListado(props: Props) {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
-      <div className="hidden md:block">
+      {conTabla ? (
         <TablaDeLeads
           {...datos}
           leads={pagina.filas}
@@ -119,8 +124,9 @@ export function ResultadoDelListado(props: Props) {
           abierto={abierto}
           marcar={marcar}
         />
-      </div>
-      <TarjetasDeLeads {...datos} leads={pagina.filas} alAbrir={alAbrir} marcar={marcar} />
+      ) : (
+        <TarjetasDeLeads {...datos} leads={pagina.filas} alAbrir={alAbrir} marcar={marcar} />
+      )}
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
     </div>
   )

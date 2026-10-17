@@ -11,6 +11,8 @@ import {
 } from '@/modules/equipo/shell'
 import { AltaDeLead, leerContextoDeAlta, leerLayoutDeLeads } from '@/modules/leads/shell'
 import { urlPublicaONull } from '@/shared/lib/almacen'
+import { anchoDeEstaPeticion } from '@/shared/lib/ancho.server'
+import { ProveedorDeAncho } from '@/shared/ui/ancho-de-pantalla'
 import { EstiloDeMarca } from '@/shared/ui/estilo-de-marca'
 import { Marca } from '@/shared/ui/marca'
 import { ProveedorRegional } from '@/shared/ui/regional'
@@ -34,10 +36,11 @@ async function NuevoLead() {
 // Todo lo que depende de quién entró: la sesión, sus permisos y los ajustes de la empresa. Acá se
 // leen una vez y se reparten por props a un marco que no sabe de dónde salen.
 async function Shell({ children }: { children: ReactNode }) {
-  const [sesion, ajustes, tiposCambio] = await Promise.all([
+  const [sesion, ajustes, tiposCambio, ancho] = await Promise.all([
     requerirSesion(),
     getAjustes(),
     getTiposCambio(),
+    anchoDeEstaPeticion(),
   ])
   const nombre = nombreVisible(sesion)
   const delUsuario = entradasVisibles(sesion.permisos, 'usuario').map(
@@ -54,52 +57,58 @@ async function Shell({ children }: { children: ReactNode }) {
       monedaBase={ajustes.monedaBase}
       zonaHoraria={ajustes.zonaHoraria}
     >
-      {/* El color de la empresa pisa los tokens neutros de design/tokens.css. */}
-      <EstiloDeMarca color={ajustes.colorAcento} />
-      <ProveedorPreferencias {...sesion.preferencias}>
-        {/* La perspectiva «ver como» de esta sesión, para el menú, el banner y quien la pida. */}
-        <ProveedorPerspectiva perspectiva={sesion.perspectiva}>
-          <Marco
-            nombreEmpresa={ajustes.nombre}
-            marca={
-              <Marca nombre={ajustes.nombre} logoUrl={urlPublicaONull('marca', ajustes.logoRuta)} />
-            }
-            navegacion={<BarraLateral permisos={sesion.permisos} />}
-            // Sin tipos de cambio vigentes el hueco no ocupa lugar.
-            tipoCambio={
-              tiposCambio.length > 0 ? (
-                <TiposCambioVigentes
-                  tipos={tiposCambio}
-                  puedeGestionar={puede(sesion.permisos, 'empresa.tipos_cambio.gestionar')}
+      {/* El ancho de quien pide: cada lista dibuja una sola de sus vistas, ya desde el servidor (cierre 1). */}
+      <ProveedorDeAncho inicial={ancho}>
+        {/* El color de la empresa pisa los tokens neutros de design/tokens.css. */}
+        <EstiloDeMarca color={ajustes.colorAcento} />
+        <ProveedorPreferencias {...sesion.preferencias}>
+          {/* La perspectiva «ver como» de esta sesión, para el menú, el banner y quien la pida. */}
+          <ProveedorPerspectiva perspectiva={sesion.perspectiva}>
+            <Marco
+              nombreEmpresa={ajustes.nombre}
+              marca={
+                <Marca
+                  nombre={ajustes.nombre}
+                  logoUrl={urlPublicaONull('marca', ajustes.logoRuta)}
                 />
-              ) : undefined
-            }
-            // Sin `leads.crear` no se monta nada: ni botón, ni atajo, ni una URL que lo abra.
-            nuevoLead={
-              puede(sesion.permisos, 'leads.crear') ? (
-                <Suspense fallback={null}>
-                  <NuevoLead />
-                </Suspense>
-              ) : undefined
-            }
-            aviso={<BannerPerspectiva />}
-            menuUsuario={
-              <MenuUsuario
-                persona={{
-                  nombre,
-                  email: sesion.email,
-                  avatarUrl: urlPublicaONull('avatares', sesion.avatarRuta),
-                  rol: sesion.roles[0]?.nombre ?? null,
-                }}
-                entradas={delUsuario}
-                alCerrarSesion={cerrarSesion}
-              />
-            }
-          >
-            {children}
-          </Marco>
-        </ProveedorPerspectiva>
-      </ProveedorPreferencias>
+              }
+              navegacion={<BarraLateral permisos={sesion.permisos} />}
+              // Sin tipos de cambio vigentes el hueco no ocupa lugar.
+              tipoCambio={
+                tiposCambio.length > 0 ? (
+                  <TiposCambioVigentes
+                    tipos={tiposCambio}
+                    puedeGestionar={puede(sesion.permisos, 'empresa.tipos_cambio.gestionar')}
+                  />
+                ) : undefined
+              }
+              // Sin `leads.crear` no se monta nada: ni botón, ni atajo, ni una URL que lo abra.
+              nuevoLead={
+                puede(sesion.permisos, 'leads.crear') ? (
+                  <Suspense fallback={null}>
+                    <NuevoLead />
+                  </Suspense>
+                ) : undefined
+              }
+              aviso={<BannerPerspectiva />}
+              menuUsuario={
+                <MenuUsuario
+                  persona={{
+                    nombre,
+                    email: sesion.email,
+                    avatarUrl: urlPublicaONull('avatares', sesion.avatarRuta),
+                    rol: sesion.roles[0]?.nombre ?? null,
+                  }}
+                  entradas={delUsuario}
+                  alCerrarSesion={cerrarSesion}
+                />
+              }
+            >
+              {children}
+            </Marco>
+          </ProveedorPerspectiva>
+        </ProveedorPreferencias>
+      </ProveedorDeAncho>
     </ProveedorRegional>
   )
 }
