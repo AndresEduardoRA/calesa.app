@@ -44,7 +44,10 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
 - La barra superior del celular cabe con el texto al 200 %: los blancos táctiles miden 44 px siempre (no `size-11`, que es rem) y
   lo opcional (el tipo de cambio) se dibuja sólo si la barra mide 24 rem o más (`@container`); si no, está en el menú.
 - El cambio de estado de un `<Badge>` es de golpe: sólo se anima el anillo de foco (con `transition-all` el texto nuevo se veía
-  con el color del viejo). Un componente de terceros hereda la tipografía de la app (el `<Toaster>` la fija en línea: sonner
+  con el color del viejo).
+  Ningún componente usa `transition-all` (`scripts/guardas/sin-transition-all.test.ts`; sólo el `<Switch>`, que no lleva texto): anima
+  también `font-size` y el alto, y con el texto al 200 % un botón crecía a medio camino (una medición enseguida lo veía a 13 px, no a
+  26). Un botón o una pestaña usa `transition` (colores, sombra y transformaciones). Un componente de terceros hereda la tipografía de la app (el `<Toaster>` la fija en línea: sonner
   inyecta la del sistema).
 - El texto al 200 % se verifica con un e2e (`document.documentElement.style.fontSize = '200%'`) y, para lo que se juzga mirando,
   con capturas (`E2E_CAPTURAS`).
