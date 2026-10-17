@@ -37,6 +37,16 @@ insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde)
 select id, '00000000-0000-0000-0000-0000000000e9', 'dueno', now() from public.leads where nombre like 'Medir baja %';
 commit;
 vacuum analyze public.leads, public.leads_asesores;
+-- Lo que dejó la medición anterior (`medir-jobs.sql` revierte 100.000 filas) dispara el autovacuum de estas tablas: medir
+-- mientras corre da ruido (una corrida de 5 s contra 1,7–2,1 s). Se espera a que no haya ninguno en curso.
+do $$
+begin
+  for i in 1..240 loop
+    exit when not exists (select 1 from pg_stat_progress_vacuum p join pg_class c on c.oid = p.relid
+                           where c.relname in ('leads', 'leads_asesores', 'oportunidades', 'equipo_bajas', 'actividad'));
+    perform pg_sleep(0.5);
+  end loop;
+end $$;
 
 -- La vista previa y la llamada, como la dueña de volumen y con el corte de 8 s de `authenticated`.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', false),
