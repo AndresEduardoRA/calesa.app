@@ -28,6 +28,7 @@ begin
   perform set_config('request.jwt.claim.sub', case p_quien
     when 'duena' then '00000000-0000-0000-0000-0000000000d1'
     when 'berta' then '00000000-0000-0000-0000-0000000000b1'
+    when 'chica' then '00000000-0000-0000-0000-0000000000c9'
     else '00000000-0000-0000-0000-0000000000a1' end, true);
   perform set_config('request.jwt.claims', json_build_object('sub', current_setting('request.jwt.claim.sub'),
     'role', 'authenticated')::text, true);
@@ -35,7 +36,7 @@ end $$;
 
 -- Mide `p_sql` como `authenticated` (o `p_rol`): la mediana de 5 corridas (de 7) y la forma del plan
 -- genérico. Asserta el **presupuesto de tiempo** (`p_ms`: unas 4 veces lo medido, para que lo atrape un
--- cambio de forma y no el ruido de la máquina) y, si `p_indice` no es nulo, la forma del plan: usa ese
+-- cambio de forma y no el ruido de la máquina; en el listado, las metas de la 9h) y, si `p_indice` no es nulo, la forma del plan: usa ese
 -- índice, ningún recorrido secuencial sobre `p_tablas` y a lo sumo `p_descartes` filas descartadas. Una
 -- RPC de plpgsql es opaca para `explain`: su forma se asserta sobre la consulta de adentro.
 create function pg_temp.escala(p_nombre text, p_quien text, p_sql text, p_ms numeric default null, p_indice text default null,
@@ -107,6 +108,13 @@ set local session_replication_role = replica;
 update public.leads set origen_lead_id = current_setting('medir.origen_lead_uno')::uuid
   where id = (select id from public.leads where nombre like 'Volumen %' and eliminado_en is null order by ctid desc limit 1);
 set local session_replication_role = origin;
+-- Una asesora con 3 leads (9h): el peor caso de «propios», que camina el índice entero para no juntar una página.
+insert into auth.users (id, email, raw_app_meta_data) values ('00000000-0000-0000-0000-0000000000c9', 'chica-medir@ejemplo.com', '{"invitado": true}');
+insert into public.usuarios_roles (usuario_id, rol_id, es_principal)
+select '00000000-0000-0000-0000-0000000000c9', id, true from public.roles where clave = 'asesor' on conflict do nothing;
+update public.leads_asesores set usuario_id = '00000000-0000-0000-0000-0000000000c9'
+ where tipo_acceso = 'dueno' and revocado_en is null
+   and lead_id in (select id from public.leads where nombre in ('Volumen 49000 Pérez', 'Volumen 30001 Gómez', 'Volumen 25003 Suárez'));
 analyze public.leads;
 select set_config('medir.origen', (select id::text from public.origenes where tipo = 'subasta' order by orden limit 1), true);
 select set_config('medir.vcursor_en', (select creado_en::text from public.vehiculos where origen_id = current_setting('medir.origen')::uuid and eliminado_en is null
@@ -140,34 +148,49 @@ create function pg_temp.pagina(p_donde text, p_n int default 50) returns text la
     atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista where %s order by creado_en desc, id desc limit %s) t', p_donde, p_n + 1);
 $$;
 
+-- Un atributo como lo filtra la app: una opción es `@>` sobre la columna de los atributos.
+create function pg_temp.atributo(p_valor text) returns text language sql as $$
+  select format('atributos @> %L', jsonb_build_object('ciudad_vol', p_valor));
+$$;
+
+-- El listado de leads (9h): las metas, con 50.000 leads, de la dueña («todos») y de Ana («propios»), y de Berta (7.000) y
+-- de una asesora con 3 leads (el peor caso de «propios»: recorre el índice para juntar una página que no existe). Página 1
+-- a 30 ms y una profunda a 150 (con el máximo de la lista), un filtro sin resultados, una etiqueta, los tachados y un
+-- origen a 100. «Míos» (`en_cartera`, lo que ve cada persona por defecto) igual que «todos». La página 1 y la profunda
+-- caminan `leads_listado_idx`, sin recorrer `leads` y descartando a lo sumo lo que mide una página.
+create function pg_temp.listado(q text) returns void language plpgsql as $$
+declare
+  v_max int := current_setting('medir.max_leads')::int;
+  v_cursor text := format('creado_en <= %L and (creado_en < %L or id < %L)',
+    current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'));
+  v_etiqueta text := case q when 'duena' then current_setting('medir.et_duena') when 'ana' then current_setting('medir.et_ana') end;
+  v_descartes int := case q when 'chica' then 70000 else 3000 end;
+begin
+  perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'), 30, 'leads_listado_idx', '{leads}', v_descartes);
+  perform pg_temp.escala('listado: página 1 con el máximo de la lista', q, pg_temp.pagina('esta_tachado = false', v_max), 30, 'leads_listado_idx', '{leads}', v_descartes);
+  perform pg_temp.escala('listado «míos»: página 1 con el máximo de la lista', q, pg_temp.pagina('en_cartera = true and esta_tachado = false', v_max), 30, 'leads_listado_idx', '{leads}', v_descartes * 2);
+  perform pg_temp.escala('listado: página 100 por cursor', q, pg_temp.pagina('esta_tachado = false and ' || v_cursor), 150, 'leads_listado_idx', '{leads}', v_descartes);
+  perform pg_temp.escala('listado: página 100 por cursor con el máximo de la lista', q, pg_temp.pagina('esta_tachado = false and ' || v_cursor, v_max), 150, 'leads_listado_idx', '{leads}', v_descartes);
+  perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina(pg_temp.atributo('lp') || ' and esta_tachado = false', v_max), 100);
+  perform pg_temp.escala('listado: un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina(pg_temp.atributo('nada') || ' and esta_tachado = false', v_max), 100);
+  perform pg_temp.escala('listado «míos»: un atributo sin resultados', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada') || ' and esta_tachado = false', v_max), 100);
+  perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$, v_max), 200);
+  perform pg_temp.escala('listado: búsqueda sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$, v_max), 200);
+  perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false', v_max), 100);
+  perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true', v_max), 100);
+  if v_etiqueta is not null then
+    perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina(format('etiquetas && array[%L::uuid] and esta_tachado = false', v_etiqueta), v_max), 100);
+  end if;
+  -- El filtro por origen del lead (`?origen=`): uno de cinco (un quinto de la cartera), dos, y uno sin leads (que no
+  -- recorre nada: lo resuelve el índice de la FK).
+  perform pg_temp.escala('listado: un origen del lead', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead')), v_max), 100);
+  perform pg_temp.escala('listado: dos orígenes del lead', q, pg_temp.pagina(format('origen_lead_id = any (array[%L, %L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead'), current_setting('medir.origen_lead_dos')), v_max), 100);
+  perform pg_temp.escala('listado: un origen del lead sin leads', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead_sin')), v_max), 100, 'leads_origen_lead_id_idx', '{leads}', 0);
+end $$;
+
 do $medir$ declare q text; begin
   foreach q in array array['duena', 'ana'] loop
-    -- El listado. La página 1 camina `leads_listado_idx` sin recorrer `leads` ni descartar de más.
-    perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'), 100, 'leads_listado_idx', '{leads}', 3000);
-    perform pg_temp.escala('listado: página 100 por cursor', q, pg_temp.pagina(format('esta_tachado = false and creado_en <= %L and (creado_en < %L or id < %L)',
-      current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'))), 1200, 'leads_listado_idx', '{leads}', 60000);
-    -- Con el máximo que ofrece el selector (9g): la misma consulta con una página más larga. La página 1 y una profunda
-    -- siguen por `leads_listado_idx`, sin recorrer `leads` ni descartar de más.
-    perform pg_temp.escala('listado: página 1 con el máximo de la lista', q, pg_temp.pagina('esta_tachado = false', current_setting('medir.max_leads')::int), 100, 'leads_listado_idx', '{leads}', 3000);
-    perform pg_temp.escala('listado: página 100 por cursor con el máximo de la lista', q, pg_temp.pagina(format('esta_tachado = false and creado_en <= %L and (creado_en < %L or id < %L)',
-      current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id')), current_setting('medir.max_leads')::int), 1200, 'leads_listado_idx', '{leads}', 60000);
-    perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'lp' and esta_tachado = false$w$), 300, 'leads_listado_idx', '{leads}', 60000);
-    -- Peor caso aceptado: un filtro que no coincide con nadie recorre la cartera visible (~80 µs por lead).
-    perform pg_temp.escala('listado: un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$atributos ->> 'ciudad_vol' = 'nada' and esta_tachado = false$w$), 12000);
-    perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$), 1500);
-    perform pg_temp.escala('listado: búsqueda sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$), 1500);
-    perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false'), 500);
-    perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true'), 500);
-    perform pg_temp.escala('listado: etiqueta', q, pg_temp.pagina(format('etiquetas && array[%L::uuid] and esta_tachado = false', case q when 'duena' then current_setting('medir.et_duena') else current_setting('medir.et_ana') end)), 1500);
-    -- El filtro por origen del lead (`?origen=`): uno de cinco (un quinto de la cartera) y uno sin leads.
-    -- El filtro por origen del lead (`?origen=`), sostenido por `leads_origen_lead_id_idx` (el de la FK). Cuesta lo
-    -- que suman los leads de ese origen (~10 µs cada uno: un bitmap y un top-N), no la página: el planificador
-    -- estima mal lo que deja pasar la policy de `leads` y no camina un índice compuesto en el orden del listado
-    -- (con `(origen_lead_id, creado_en desc, id desc)` forzado la página cuesta 3 ms, pero no lo elige). Un
-    -- origen sin leads no recorre nada. Límite anotado en `docs/RENDIMIENTO.md`.
-    perform pg_temp.escala('listado: un origen del lead (cuesta lo que suma ese origen)', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead'))), 450, 'leads_origen_lead_id_idx', '{leads}', 15000);
-    perform pg_temp.escala('listado: un origen del lead sin leads', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead_sin'))), 100, 'leads_origen_lead_id_idx', '{leads}', 0);
-    perform pg_temp.escala('listado: dos orígenes del lead (suma sus leads)', q, pg_temp.pagina(format('origen_lead_id = any (array[%L, %L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead'), current_setting('medir.origen_lead_dos'))), 800, 'leads_origen_lead_id_idx', '{leads}', 30000);
+    perform pg_temp.listado(q);
     -- La numeración (9f-2). Los números salen de dos copias bajo su policy, como subconsultas de la lista de columnas
     -- (se evalúan sólo para las filas que salen, no para las que la consulta recorre): el permiso se pregunta una vez
     -- por consulta (`llamadas`) y la página profunda cuesta lo mismo que sin pedirlos. Buscar `#n` resuelve el número a un
@@ -184,7 +207,7 @@ do $medir$ declare q text; begin
     -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
     perform pg_temp.escala('listado: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 100);
     perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$, 2500);
-    perform pg_temp.escala('exportar: conteo hasta 5.001', q, 'select id from public.leads_vista where en_cartera = true order by creado_en desc, id desc limit 5001', 3000);
+    perform pg_temp.escala('exportar: conteo hasta 5.001', q, 'select id from public.leads_vista where en_cartera = true order by creado_en desc, id desc limit 5001', 100);
     perform pg_temp.escala('etiquetas_vista', q, 'select id, nombre, leads from public.etiquetas_vista order by nombre', 300);
     perform pg_temp.escala('papelera de leads, página 1 de 5 lotes', q, format('select public.leads_papelera_listar(null, null, false, %s)', current_setting('medir.lotes')::int + 1), 400);
     perform pg_temp.escala('importaciones recientes', q, 'select public.leads_importaciones_recientes()', 300);
@@ -258,6 +281,9 @@ do $medir$ declare q text; begin
     if q = 'duena' then perform pg_temp.escala('baja de una persona (vista previa)', q, $w$select public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000000a1')$w$, 100); end if;
   end loop;
 
+  -- Berta (7.000 leads) y una asesora con 3: el listado entero.
+  perform pg_temp.listado('berta');
+  perform pg_temp.listado('chica');
   -- Quien no tiene ningún tachado ni favorito (Berta, con 7.000 leads) no recorre su cartera para saberlo.
   perform pg_temp.escala('listado: ocultos hasta 51 de quien no tiene ninguno', 'berta', 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 30);
   perform pg_temp.escala('listado: sólo favoritos de quien no tiene ninguno', 'berta', pg_temp.pagina('es_favorito = true and esta_tachado = false'), 30);
