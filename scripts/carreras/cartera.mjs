@@ -17,6 +17,7 @@ const BAJAS = {
   primeraDeDos: ['00000000-0000-4000-8000-0000000c0016', '79300007'],
   segundaDeDos: ['00000000-0000-4000-8000-0000000c0017', '79300008'],
   cortada: ['00000000-0000-4000-8000-0000000c0018', '79300009'],
+  dosCorridas: ['00000000-0000-4000-8000-0000000c0019', '79300010'],
 }
 
 const carteraDe = async (db, lead) => {
@@ -55,7 +56,7 @@ async function personaConLead(db, id, nombre, telefono = id === BAJA ? '79300001
   return fila.r.id
 }
 
-export async function carrerasDeLaCartera({ orquesta, carrera, espero, conectar }) {
+export async function carrerasDeLaCartera({ orquesta, carrera, espero, conectar, esperarBloqueo }) {
   // La supervisión da de baja: suma `equipo.usuarios.gestionar` con un rol propio de las carreras.
   const {
     rows: [rol],
@@ -115,7 +116,7 @@ export async function carrerasDeLaCartera({ orquesta, carrera, espero, conectar 
     }
   }
 
-  await carrerasDeLaBajaPorLotes({ orquesta, carrera, espero, conectar })
+  await carrerasDeLaBajaPorLotes({ orquesta, carrera, espero, conectar, esperarBloqueo })
 
   console.log('La cartera en la fila: transferir mientras otra persona comparte el mismo lead')
   {
@@ -197,7 +198,7 @@ const bajaDe = async (db, persona) =>
 
 // La baja por lotes (cierre 1): el primer tiempo toma el perfil `for update`; los lotes toman los leads `skip locked` y
 // nunca esperan; lo que escribe la cartera aplica la baja al lead que bloqueó.
-async function carrerasDeLaBajaPorLotes({ orquesta, carrera, espero, conectar }) {
+async function carrerasDeLaBajaPorLotes({ orquesta, carrera, espero, conectar, esperarBloqueo }) {
   console.log('La baja por lotes: compartir con la persona mientras se la da de baja')
   {
     const [persona, telefono] = BAJAS.destinoEnBaja
@@ -371,6 +372,63 @@ async function carrerasDeLaBajaPorLotes({ orquesta, carrera, espero, conectar })
     } finally {
       await ca.end()
       await cb.end()
+    }
+  }
+
+  console.log(
+    'La baja por lotes: dos corridas del job sobre la misma baja cuentan cada lead una vez',
+  )
+  {
+    // Lo que encontró la revisión del cierre 1 (`…002400`): un lote leía los ids de la persona y, antes de bloquear los leads,
+    // otra corrida los revocaba y los contaba; el lote contaba los mismos leads otra vez (los que tenían la cartera vacía).
+    // Acá se provoca sin esperas: A toma un candado de tabla sobre `leads`, corre su corrida (revoca y cuenta, sin confirmar) y
+    // B —otra corrida— lee los ids (ve al lead todavía vigente) y espera el candado de `leads` justo antes de bloquearlo; al
+    // confirmar A, B bloquea el lead ya revocado y su sentencia no revoca nada. Cuenta el lead una vez: con el arreglo B suma 0
+    // (cuenta lo que revocó su sentencia); sin él sumaba 1 (cuenta los del lote con la cartera vacía): la baja decía 2 leads.
+    const [persona, telefono] = BAJAS.dosCorridas
+    const lead = await personaConLead(orquesta, persona, 'dos-corridas', telefono)
+    const [ca, cb, retiene] = [await conectar(), await conectar(), await conectar()]
+    try {
+      // La baja en curso con el lead pendiente: un lead retenido hace que el primer lote lo salte.
+      await retiene.query('begin')
+      await retiene.query('select 1 from public.leads where id = $1 for update', [lead])
+      await comoPersona(cb, supervision)
+      const baja = (await cb.query('select public.equipo_dar_de_baja($1) as r', [persona])).rows[0]
+        .r
+      await retiene.query('commit')
+      await cb.query('reset role')
+      const pendientes = await vigentesDe(orquesta, persona)
+
+      await ca.query('begin')
+      await ca.query('lock table public.leads in exclusive mode')
+      const a = (await ca.query('select public.equipo_bajas_continuar() as r')).rows[0].r
+      const pidB = (await cb.query('select pg_backend_pid() as pid')).rows[0].pid
+      const b = cb.query('select public.equipo_bajas_continuar() as r').then(
+        (r) => ({ ok: true, valor: r.rows[0].r }),
+        (e) => ({ ok: false, mensaje: e.message }),
+      )
+      await esperarBloqueo(orquesta, pidB)
+      await ca.query('commit')
+      const resultadoB = await b
+      const c = await carteraDe(orquesta, lead)
+      const fin = await bajaDe(orquesta, persona)
+      espero(
+        'dos corridas a la vez: el lead se cuenta una sola vez y la baja termina',
+        baja.terminada === false &&
+          pendientes === 1 &&
+          a.terminadas === 1 &&
+          resultadoB.ok &&
+          fin.terminada &&
+          fin.leads_al_limbo === 1 &&
+          (await vigentesDe(orquesta, persona)) === 0 &&
+          c.guardada === '{}' &&
+          c.guardada === c.fuente,
+        { baja, pendientes, a, b: resultadoB, fin, c },
+      )
+    } finally {
+      await ca.end()
+      await cb.end()
+      await retiene.end()
     }
   }
 }

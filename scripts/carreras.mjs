@@ -323,7 +323,7 @@ try {
   await carrerasDeAlta({ orquesta, carrera, espero, conectar })
   await carrerasDeOrigenes({ orquesta, carrera, espero })
   await carrerasDeNumeros({ orquesta, carrera, espero, conectar, esperarBloqueo })
-  await carrerasDeLaCartera({ orquesta, carrera, espero, conectar })
+  await carrerasDeLaCartera({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDePrivacidad({ orquesta, carrera, espero })
 } finally {
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))
