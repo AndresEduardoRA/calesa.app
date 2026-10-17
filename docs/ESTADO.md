@@ -12,7 +12,7 @@
 
 - Verdes: lint, typecheck, test, `db:probar` (matrices y cinturón), `db:lint`, `db:carreras` (dos conexiones
   reales, sin `sleep`), `mapa.sh`, build y el e2e completo (números en `docs/BITACORA.md`). Fases 0 a 2 completas
-  y las partes 1 a 9e de la Fase 3 (último e2e completo, el de la 9e: 614 en verde, 0 fallos, 10 saltos, 25,7 min; ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
+  y las partes 1 a 9f-2 de la Fase 3 (último e2e completo, el de la 9f-2: 668 en verde, 0 fallos, 10 saltos, 27,4 min; ver BITACORA). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide
   `npx supabase functions serve`); nivel 1: `pnpm test:e2e --project=escritorio <spec>`. Los specs reusan la sesión (`entrarConSesion`, `{ fresco: true }` si el test cambia a la persona). Apibara sin clave: lo grabado.
 - **Leads (1 a 8b):** alta, campos, listado, ficha (datos, teléfonos, seguimientos, recordatorios, vehículos,
   oportunidades y **«Portal»**: el acceso del cliente), marcas, «Quién lo tiene», papelera, embudos con kanban;
