@@ -112,3 +112,31 @@ test('editar el lead, con el pie dentro del cuerpo: el aviso no tapa «Cancelar�
   await avisoNoTapaElPie(aviso, pie)
   await capturar(page, info, 'editar-aviso-claro')
 })
+
+test('con el texto al 200 % el aviso crece con él y su icono no tapa el texto', async ({
+  page,
+}, info) => {
+  await entrar(page, r.ana.email)
+  await irALeads(page)
+  await alDoscientos(page)
+  const { aviso } = await altaConAviso(page, `Alta texto ${info.project.name}`)
+  const medidas = await aviso.evaluate((el) => {
+    const titulo = el.querySelector('[data-title]')
+    const icono = el.querySelector('[data-icon] svg')
+    const boton = el.querySelector('[data-button]')
+    const caja = (e: Element | null) => e?.getBoundingClientRect()
+    return {
+      texto: titulo ? Number.parseFloat(getComputedStyle(titulo).fontSize) : 0,
+      boton: boton ? Number.parseFloat(getComputedStyle(boton).fontSize) : 0,
+      iconoDerecha: caja(icono)?.right ?? Number.POSITIVE_INFINITY,
+      textoIzquierda: caja(titulo)?.left ?? 0,
+    }
+  })
+  // 13 px y 12 px al 100 %: al 200 %, el doble.
+  expect(medidas.texto, 'el texto del aviso crece con la raíz').toBeGreaterThanOrEqual(25)
+  expect(medidas.boton, 'el botón del aviso crece con la raíz').toBeGreaterThanOrEqual(22)
+  expect(medidas.iconoDerecha, 'el icono no pisa el texto').toBeLessThanOrEqual(
+    medidas.textoIzquierda + 1,
+  )
+  await capturar(page, info, 'aviso-texto-200')
+})

@@ -30,11 +30,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       mobileOffset={{ bottom: ABAJO_EN_EL_CELULAR }}
       customAriaLabel="Avisos (Alt+T para ir a ellos)"
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        success: <CircleCheckIcon className="size-[16px]" />,
+        info: <InfoIcon className="size-[16px]" />,
+        warning: <TriangleAlertIcon className="size-[16px]" />,
+        error: <OctagonXIcon className="size-[16px]" />,
+        loading: <Loader2Icon className="size-[16px] animate-spin" />,
       }}
       style={
         {
@@ -49,6 +49,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         closeButtonAriaLabel: 'Cerrar aviso',
+        // Sonner fija 13 px al aviso y 12 al botón, y 16 px a la caja del icono: con el texto al 200 % el texto se quedaba chico y el
+        // icono (en rem) se comía su primera letra. El texto sigue a la raíz (inline: le gana al CSS de sonner) y el icono mide lo que su caja.
+        style: { fontSize: 'var(--text-sm)' },
+        actionButtonStyle: { fontSize: 'var(--text-xs)', height: 'auto', minHeight: '1.5rem' },
+        cancelButtonStyle: { fontSize: 'var(--text-xs)', height: 'auto', minHeight: '1.5rem' },
         classNames: {
           // El aviso sale abajo a la derecha, justo sobre el pie de un panel («Cerrar», «Guardar»), y
           // con el puntero encima sonner pausa su temporizador: tapaba el botón y no se iba. El aviso
