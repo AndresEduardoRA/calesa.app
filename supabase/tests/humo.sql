@@ -5956,7 +5956,7 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 do $$
-declare yo constant uuid := '00000000-0000-0000-0000-000000000001'; a text; m text; n int;
+declare yo constant uuid := '00000000-0000-0000-0000-000000000001'; a text; m text; n int; v timestamptz;
 begin
   a := yo || '/' || repeat('a', 64) || '.webp';
   m := yo || '/' || repeat('b', 64) || '.webp';
@@ -5979,10 +5979,23 @@ begin
   -- El relleno: está pendiente; con el avatar viejo no guarda, con el vigente sí; un fallo lo saca de los pendientes.
   if not exists (select 1 from public.avatares_miniaturas_pendientes(100) p where p.usuario_id = yo) then raise exception 'no aparece entre los pendientes'; end if;
   if public.avatar_miniatura_guardar(yo, a, m) then raise exception 'guardó la miniatura de un avatar que ya cambió'; end if;
+  -- En una sola transacción `now()` no cambia: se lleva la versión hacia atrás (sin el trigger que la sella) para ver si el
+  -- relleno la mueve.
+  alter table public.perfiles disable trigger trg_actualizado_en;
+  update public.perfiles set actualizado_en = actualizado_en - interval '1 minute' where id = yo;
+  alter table public.perfiles enable trigger trg_actualizado_en;
+  v := (select actualizado_en from public.perfiles where id = yo);
   if not public.avatar_miniatura_guardar(yo, yo || '/' || repeat('c', 64) || '.webp', m) then raise exception 'no guardó la miniatura del avatar vigente'; end if;
+  -- El relleno no es una edición: la versión del perfil no se mueve (si no, quien lo tiene abierto recibe un conflicto falso).
+  if (select actualizado_en from public.perfiles where id = yo) <> v then raise exception 'guardar la miniatura movió la versión del perfil'; end if;
   if exists (select 1 from public.avatares_miniaturas_pendientes(100) p where p.usuario_id = yo) then raise exception 'con miniatura sigue pendiente'; end if;
   update public.perfiles set avatar_ruta = yo || '/' || repeat('e', 64) || '.webp' where id = yo;
+  alter table public.perfiles disable trigger trg_actualizado_en;
+  update public.perfiles set actualizado_en = actualizado_en - interval '1 minute' where id = yo;
+  alter table public.perfiles enable trigger trg_actualizado_en;
+  v := (select actualizado_en from public.perfiles where id = yo);
   if not public.avatar_miniatura_fallo(yo, yo || '/' || repeat('e', 64) || '.webp') then raise exception 'no anotó el fallo'; end if;
+  if (select actualizado_en from public.perfiles where id = yo) <> v then raise exception 'anotar el fallo movió la versión del perfil'; end if;
   if exists (select 1 from public.avatares_miniaturas_pendientes(100) p where p.usuario_id = yo) then raise exception 'un fallo anotado se reintenta cada hora'; end if;
   -- Cambiar el avatar borra el fallo: la imagen nueva se intenta.
   update public.perfiles set avatar_ruta = a where id = yo;
