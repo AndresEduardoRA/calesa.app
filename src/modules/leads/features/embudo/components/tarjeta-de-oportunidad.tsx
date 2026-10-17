@@ -72,7 +72,7 @@ export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover, alPedi
         </p>
       ) : null}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-(length:--text-xs) text-(--color-ink-faint)">
+        <span className="min-w-0 text-(length:--text-xs) text-(--color-ink-faint)">
           En esta etapa desde {fechaRelativa(tarjeta.enEtapaDesde, { zona: zonaHoraria })}
         </span>
         <MenuMoverA

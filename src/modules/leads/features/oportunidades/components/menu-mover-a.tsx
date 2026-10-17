@@ -45,7 +45,7 @@ export function MenuMoverA({ id, titulo, etapas, actual, enCurso, alMover, alPed
           disabled={enCurso}
           data-mover-a={id}
           aria-label={`Mover «${titulo}» a otra etapa`}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-(--radius-md) border border-(--color-line) px-2.5 text-(length:--text-sm) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) disabled:opacity-50 md:min-h-8"
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-(--radius-md) border border-(--color-line) px-2.5 text-(length:--text-sm) whitespace-nowrap outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) disabled:opacity-50 md:min-h-8"
         >
           <ArrowRightLeftIcon aria-hidden className="size-3.5" />
           Mover a…
