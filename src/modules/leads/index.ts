@@ -22,6 +22,12 @@ export type { ContextoDeAlta } from './entities/alta'
 // Configuración › Leads › Campos
 export { EditorDeCamposDeLead } from './features/campos/components/editor-de-campos-de-lead'
 
+// Configuración › Leads › Orígenes (parte 9f-1): de dónde llegan los leads. `leerOrigenesDeLeadConUso()` trae
+// los orígenes con si algún lead los usa; `<OrigenesDeLead>` los crea, ordena, renombra y desactiva.
+export { leerOrigenesDeLeadConUso } from './composicion'
+export { OrigenesDeLead } from './features/origenes/components/origenes-de-lead'
+export { EsqueletoDeOrigenes } from './features/origenes/components/esqueleto-de-origenes'
+
 // El listado de `/leads`: lo lee la página (`leerListadoDeLeads`) y lo dibuja `<ListadoDeLeads>` con
 // el drawer rápido (`?lead=`) adentro. El alcance («míos» y «todos») y lo que cada quien ve lo
 // decide la base; la página sólo agrega las vistas guardadas, que son de `equipo`.

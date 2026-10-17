@@ -1,7 +1,10 @@
-// Las pestañas de Configuración › Leads. Cuál está abierta vive en la URL (`?seccion=`). Hoy sólo
-// están los campos; los orígenes del lead y los tipos de seguimiento llegan con su parte.
+// Las pestañas de Configuración › Leads. Cuál está abierta vive en la URL (`?seccion=`). Los tipos de
+// seguimiento llegan con su parte (docs/PLAN.md).
 
-export const PESTANAS = [{ clave: 'campos', titulo: 'Campos' }] as const
+export const PESTANAS = [
+  { clave: 'campos', titulo: 'Campos' },
+  { clave: 'origenes', titulo: 'Orígenes del lead' },
+] as const
 
 export type Pestana = (typeof PESTANAS)[number]['clave']
 

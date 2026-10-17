@@ -8,6 +8,8 @@ const PARAMETROS = {
   seccion: parseAsStringLiteral(CLAVES_DE_PESTANA).withDefault('campos'),
   // El panel de una pestaña no sobrevive al cambiar a otra.
   campo: parseAsString,
+  panel: parseAsString,
+  origen: parseAsString,
 }
 
 // La pestaña abierta vive en la URL: se puede recargar y compartir el enlace.
@@ -17,7 +19,12 @@ export function PestanasDeLeads() {
     <Tabs
       value={seccion}
       onValueChange={(elegida) => {
-        void setParametros({ seccion: pestanaDe(String(elegida)), campo: null })
+        void setParametros({
+          seccion: pestanaDe(String(elegida)),
+          campo: null,
+          panel: null,
+          origen: null,
+        })
       }}
     >
       <TabsList className="h-11 w-full max-w-full justify-start overflow-x-auto md:h-8 md:w-fit">

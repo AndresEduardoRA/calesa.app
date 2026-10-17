@@ -35,6 +35,10 @@ import type {
 } from './entities/repositorios-de-oportunidades'
 import type { RepositorioDeImportacion } from './entities/repositorios-de-importacion'
 import type {
+  LectorDeOrigenesDeLeadConUso,
+  RepositorioDeOrigenesDeLead,
+} from './entities/repositorios-de-origenes'
+import type {
   LectorDeAccesoDelCliente,
   RepositorioDelPortal,
 } from './entities/repositorios-de-portal'
@@ -48,6 +52,7 @@ import { fichaSupabase } from './infra/ficha'
 import { importacionSupabase } from './infra/importacion'
 import { marcasSupabase } from './infra/marcas'
 import { oportunidadesSupabase } from './infra/oportunidades'
+import { origenesDeLeadSupabase } from './infra/origenes'
 import { getContextoDeAlta } from './infra/queries/alta'
 import { getCartera } from './infra/queries/cartera'
 import { getLayoutDeLeads } from './infra/queries/campos'
@@ -59,7 +64,7 @@ import {
   buscarLeads as buscarLeadsEnBase,
   contarLeadsHasta as contarEnBase,
 } from './infra/queries/listado'
-import { getOrigenesDeLead } from './infra/queries/origenes'
+import { getOrigenesDeLead, getOrigenesDeLeadConUso } from './infra/queries/origenes'
 import { getPapeleraDeLeads } from './infra/queries/papelera'
 import { getAccesoDelCliente } from './infra/queries/portal'
 import { portalSupabase } from './infra/portal'
@@ -82,6 +87,10 @@ export const buscarLeads: BuscadorDeLeads = buscarLeadsEnBase
 export const contarLeadsHasta: ContadorDeLeads = contarEnBase
 
 export const leerOrigenesDeLead: LectorDeOrigenesDeLead = getOrigenesDeLead
+
+export const leerOrigenesDeLeadConUso: LectorDeOrigenesDeLeadConUso = getOrigenesDeLeadConUso
+
+export const repositorioDeOrigenesDeLead: RepositorioDeOrigenesDeLead = origenesDeLeadSupabase
 
 export const leerFicha: LectorDeFicha = getFicha
 
