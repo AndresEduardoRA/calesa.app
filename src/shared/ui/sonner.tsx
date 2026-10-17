@@ -33,6 +33,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           '--normal-text': 'var(--popover-foreground)',
           '--normal-border': 'var(--border)',
           '--border-radius': 'var(--radius)',
+          // Sonner inyecta su propio `font-family` (el del sistema) en su contenedor y le gana al que hereda de `<html>`: en línea
+          // le gana a ese. La tipografía de la app es una sola (`design/tokens.css`).
+          fontFamily: 'var(--font-sans)',
         } as React.CSSProperties
       }
       toastOptions={{
