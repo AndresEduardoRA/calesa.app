@@ -192,6 +192,12 @@ select i.id, l.id, j
   join volumen_leads l on l.n = 18000 + (i.k - 1) * 100 + j;
 
 set local session_replication_role = origin;
+
+-- Se insertó con los triggers apagados: la numeración (9f-2) se hace como la migración para lo que ya existía.
+-- Es el backfill con 62.000 leads: se dice cuánto tarda.
+select clock_timestamp() as t0 \gset
+select public._leads_numerar_existentes();
+select 'sembrado|numerar_existentes_ms|' || round(extract(epoch from clock_timestamp() - :'t0'::timestamptz) * 1000);
 commit;
 
 analyze public.leads;

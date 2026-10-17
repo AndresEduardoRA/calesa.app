@@ -20,6 +20,7 @@ export const CLAVES_PERMISO = [
   'vehiculos.vitrina',
   'vehiculos.papelera.purgar',
   'leads.ver',
+  'leads.numero_global.ver',
   'leads.crear',
   'leads.editar',
   'leads.compartir',

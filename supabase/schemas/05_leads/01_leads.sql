@@ -38,16 +38,49 @@ create table public.leads (
   origen_lead_id       uuid references public.origenes_lead (id) on delete restrict,
   atributos            jsonb not null default '{}'::jsonb check (jsonb_typeof(atributos) = 'object'),  -- los campos de leads_campos; no es legible: se lee por leads_vista
   creado_por           uuid references public.perfiles (id),   -- NULL = sin creador vivo (limbo se decide por cartera)
+  numero_propio        integer check (numero_propio > 0),      -- consecutivo de quien lo creó (leads_contadores); NULL = sin creador. No se lee de aquí: leads_numeros_propios
   ultimo_seguimiento_en timestamptz,
   eliminado_en         timestamptz,
   eliminado_por        uuid references public.perfiles (id),
   lote_papelera_id     uuid references public.lotes_papelera (id) on delete restrict,
   creado_en            timestamptz not null default now(),
   actualizado_en       timestamptz not null default now(),
-  check (telefono_principal ~ '^[0-9]{7,15}$')
+  check (telefono_principal ~ '^[0-9]{7,15}$'),
+  -- Diferible: renumerar por fila un lote de la importación intercambia números dentro de un solo UPDATE.
+  constraint leads_numero_propio_unico unique (creado_por, numero_propio) deferrable initially immediate
 );
 create unique index leads_telefono_unico on public.leads (telefono_principal) where eliminado_en is null;
 comment on table public.leads is 'Prospectos y clientes. El teléfono principal es único entre leads vivos y sólo lo ve completo quien está en la cartera (leads_asesores): la app lee leads_vista, no esta tabla. Un lead sin asesores vigentes está en el LIMBO: invisible hasta que alguien lo adopta registrando su teléfono. Fijos: nombre, teléfono, tipo y origen; el resto son campos configurables (leads_campos) y viven en atributos, que sólo lee quien está en la cartera completos.';
+
+-- La numeración (9f-2). Cada lead lleva dos números: el global (`leads.numero`, identity) y el propio de quien lo
+-- creó (`leads.numero_propio`, consecutivo por creador). Ninguno de los dos se lee de `leads`: sin el permiso
+-- `leads.numero_global.ver` el global no debe llegar a nadie, y una columna no puede ser legible según quién mira.
+-- Se leen de estas dos tablas, cuya policy ES la regla (una fila existe para quien puede ver ese número). RLS se
+-- enciende acá porque `…000200_rls_y_grants.sql` termina comprobando que ninguna tabla de `public` quede sin ella;
+-- las policies y los grants van en `…20261019000900_numeros_de_leads.sql`.
+create table public.leads_contadores (
+  usuario_id uuid primary key references public.perfiles (id) on delete cascade,
+  ultimo     integer not null default 0 check (ultimo >= 0)
+);
+alter table public.leads_contadores enable row level security;
+comment on table public.leads_contadores is 'Último número propio asignado a cada creador. Tabla y no sequence: un rollback deshace el incremento y no deja un hueco, y el candado del renglón ordena a quienes crean a la vez. Nadie la lee ni la escribe más que el trigger de leads.';
+
+create table public.leads_numeros_globales (
+  lead_id uuid primary key references public.leads (id) on delete cascade,
+  numero  bigint not null unique
+);
+alter table public.leads_numeros_globales enable row level security;
+comment on table public.leads_numeros_globales is 'El número global de cada lead (copia de leads.numero), visible sólo con leads.numero_global.ver y sólo de leads que se ven. Es lo que lee leads_vista: leads.numero no tiene grant. La escribe el trigger de leads; nunca cambia.';
+
+create table public.leads_numeros_propios (
+  lead_id        uuid primary key references public.leads (id) on delete cascade,
+  creado_por     uuid not null,   -- quien lo creó, sin FK: se conserva aunque leads.creado_por quede nulo
+  numero         integer not null check (numero > 0)
+);
+-- Buscar «#12» sin el permiso es (creado_por = yo, numero = 12). La unicidad es de leads (diferible).
+create index leads_numeros_propios_creador_idx on public.leads_numeros_propios (creado_por, numero);
+alter table public.leads_numeros_propios enable row level security;
+comment on table public.leads_numeros_propios is 'El número propio de cada lead (copia de leads.numero_propio) con su creador: lo ve quien lo creó y, con leads.numero_global.ver, todos, sólo de leads que se ven. La escribe el trigger de leads; nunca cambia.';
 
 create table public.leads_campos (
   id            uuid primary key default gen_random_uuid(),

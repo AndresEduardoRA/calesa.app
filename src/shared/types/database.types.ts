@@ -2355,6 +2355,7 @@ export type Database = {
           lote_papelera_id: string | null
           nombre: string
           numero: number
+          numero_propio: number | null
           origen_lead_id: string | null
           telefono_cc: string | null
           telefono_principal: string
@@ -2374,6 +2375,7 @@ export type Database = {
           lote_papelera_id?: string | null
           nombre: string
           numero?: never
+          numero_propio?: number | null
           origen_lead_id?: string | null
           telefono_cc?: string | null
           telefono_principal: string
@@ -2391,6 +2393,7 @@ export type Database = {
           lote_papelera_id?: string | null
           nombre?: string
           numero?: never
+          numero_propio?: number | null
           origen_lead_id?: string | null
           telefono_cc?: string | null
           telefono_principal?: string
@@ -2560,6 +2563,30 @@ export type Database = {
         }
         Relationships: []
       }
+      leads_contadores: {
+        Row: {
+          ultimo: number
+          usuario_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          ultimo?: number
+          usuario_id: string
+        }
+        Update: {
+          ultimo?: number
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'leads_contadores_usuario_id_fkey'
+            columns: ['usuario_id']
+            isOneToOne: true
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       leads_etiquetas: {
         Row: {
           etiqueta_id: string
@@ -2657,6 +2684,85 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'perfiles'
             referencedColumns: ['id']
+          },
+        ]
+      }
+      leads_numeros_globales: {
+        Row: {
+          lead_id: string
+          numero: number
+        }
+        ComputedFields: never
+        Insert: {
+          lead_id: string
+          numero: number
+        }
+        Update: {
+          lead_id?: string
+          numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'leads_numeros_globales_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: true
+            referencedRelation: 'leads'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_numeros_globales_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: true
+            referencedRelation: 'leads_vista'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_numeros_globales_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: true
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+        ]
+      }
+      leads_numeros_propios: {
+        Row: {
+          creado_por: string
+          lead_id: string
+          numero: number
+        }
+        ComputedFields: never
+        Insert: {
+          creado_por: string
+          lead_id: string
+          numero: number
+        }
+        Update: {
+          creado_por?: string
+          lead_id?: string
+          numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'leads_numeros_propios_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: true
+            referencedRelation: 'leads'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_numeros_propios_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: true
+            referencedRelation: 'leads_vista'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_numeros_propios_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: true
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
           },
         ]
       }
@@ -6633,6 +6739,7 @@ export type Database = {
           lote_papelera_id: string | null
           nombre: string
           numero: number
+          numero_propio: number | null
           origen_lead_id: string | null
           telefono_cc: string | null
           telefono_principal: string
@@ -6680,6 +6787,7 @@ export type Database = {
           lote_papelera_id: string | null
           nombre: string
           numero: number
+          numero_propio: number | null
           origen_lead_id: string | null
           telefono_cc: string | null
           telefono_principal: string
@@ -6698,6 +6806,7 @@ export type Database = {
       _lead_visible: { Args: { p_lead: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
+      _leads_numerar_existentes: { Args: Record<PropertyKey, never>; Returns: undefined }
       _leads_papelera_lote_json: {
         Args: {
           p_dias: number

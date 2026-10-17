@@ -129,6 +129,7 @@ for (const archivo of [
   'humo.sql',
   'matriz-leads.sql',
   'portal-cliente.sql',
+  'numeracion.sql',
   'auditoria-leads.sql',
   'escala.sql',
 ]) {
