@@ -132,7 +132,7 @@ export async function carrerasDeLaCartera({ orquesta, carrera, espero, conectar 
     )
   }
 
-  console.log('La cartera en la fila: el relleno y una transferencia a la vez')
+  console.log('La cartera en la fila: el relleno y otra escritura a la vez')
   // Una base viva antes de `…001600`: la columna admite nulos (sin calcular). En una base nueva nace `not null`: se le quita
   // mientras duran estas dos carreras y se le vuelve a poner al final, con todo lleno.
   await orquesta.query('alter table public.leads alter column cartera drop not null')
@@ -146,35 +146,41 @@ export async function carrerasDeLaCartera({ orquesta, carrera, espero, conectar 
   }
 }
 
+// Antes de `…001600` la visibilidad no mira la cartera: una escritura de `leads_asesores` llega por cualquier camino mientras
+// el relleno corre. Acá va directo a la tabla (como postgres), que es lo que dispara el trigger, sin pasar por `puede_lead()`
+// (que desde `…001600` ya lee la cartera, y con una cartera nula a mano rechazaría sin esperar).
+const compartirDirecto = (lead) => ({
+  rol: 'postgres',
+  consulta: `with x as (insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por)
+             values ($1, $2, 'compartido', $3) returning 1) select count(*)::int as r from x`,
+  args: [lead, compartido, duena],
+})
+
 async function carrerasDelRelleno({ orquesta, carrera, espero, conectar }) {
   {
-    // El relleno toma primero el lead (sin calcular) y la transferencia espera.
+    // El relleno toma primero el lead (sin calcular) y el trigger de la otra escritura espera.
     const lead = await leadDeLaDuena(orquesta, 'relleno primero')
     await orquesta.query('update public.leads set cartera = null where id = $1', [lead])
     const r = await carrera(orquesta, {
       a: { rol: 'postgres', sql: 'public._leads_derivados_rellenar(5000)', args: [] },
-      b: {
-        persona: duena,
-        sql: 'public.lead_transferir($1, $2, $3)',
-        args: [lead, destino, duena],
-      },
+      b: compartirDirecto(lead),
     })
     const c = await carteraDe(orquesta, lead)
     espero(
-      'el relleno primero: la transferencia espera y la cartera queda con los dos',
-      r.a.ok && r.b.ok && c.guardada === ordenada(duena, destino) && c.guardada === c.fuente,
+      'el relleno primero: la otra escritura espera y la cartera queda con los dos',
+      r.a.ok && r.b.ok && c.guardada === ordenada(duena, compartido) && c.guardada === c.fuente,
       { r, c },
     )
   }
   {
-    // La transferencia toma primero el lead: el relleno lo salta (no espera) y la transferencia lo deja calculado.
+    // La otra escritura toma primero el lead: el relleno lo salta (no espera) y el trigger lo deja calculado.
     const lead = await leadDeLaDuena(orquesta, 'relleno después')
     await orquesta.query('update public.leads set cartera = null where id = $1', [lead])
     const [ca, cb] = [await conectar(), await conectar()]
     try {
-      await comoPersona(ca, duena)
+      const escritura = compartirDirecto(lead)
       await ca.query('begin')
-      await ca.query('select public.lead_transferir($1, $2, $3)', [lead, destino, duena])
+      await ca.query(escritura.consulta, escritura.args)
       const {
         rows: [hecho],
       } = await cb.query('select public._leads_derivados_rellenar(5000) as n')
@@ -182,8 +188,8 @@ async function carrerasDelRelleno({ orquesta, carrera, espero, conectar }) {
       await ca.query('commit')
       const c = await carteraDe(orquesta, lead)
       espero(
-        `la transferencia primero: el relleno no espera ni lo pisa (llenó ${String(hecho.n)}) y queda calculado`,
-        saltado && c.guardada === ordenada(duena, destino) && c.guardada === c.fuente,
+        `la otra escritura primero: el relleno no espera ni lo pisa (llenó ${String(hecho.n)}) y queda calculado`,
+        saltado && c.guardada === ordenada(duena, compartido) && c.guardada === c.fuente,
         { hecho, c },
       )
     } finally {

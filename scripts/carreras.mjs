@@ -57,6 +57,9 @@ async function esperarBloqueo(orquesta, pid) {
   throw new Error('B nunca esperó el lock de A: la carrera no se probó')
 }
 
+// Lo que corre cada lado: una llamada (`sql`, dentro de un `select`) o una consulta entera (`consulta`, que devuelve `r`).
+const consultaDe = (lado) => lado.consulta ?? `select ${lado.sql} as r`
+
 // Una carrera: A actúa dentro de una transacción; B intenta mientras A no confirma.
 async function carrera(orquesta, { a, b }) {
   const [ca, cb] = [await conectar(), await conectar()]
@@ -70,10 +73,10 @@ async function carrera(orquesta, { a, b }) {
       else await comoPersona(c, lado.persona)
     }
     await ca.query('begin')
-    const primero = await comoValor(ca.query(`select ${a.sql} as r`, a.args))
+    const primero = await comoValor(ca.query(consultaDe(a), a.args))
     if (!primero.ok) throw new Error(`A falló antes de la carrera: ${primero.mensaje}`)
     const pidB = (await cb.query('select pg_backend_pid() as pid')).rows[0].pid
-    const segundo = comoValor(cb.query(`select ${b.sql} as r`, b.args))
+    const segundo = comoValor(cb.query(consultaDe(b), b.args))
     await esperarBloqueo(orquesta, pidB)
     await ca.query('commit')
     return { a: primero, b: await segundo }
