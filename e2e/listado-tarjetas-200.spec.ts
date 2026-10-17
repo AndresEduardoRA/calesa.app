@@ -11,7 +11,7 @@ import {
   prepararListado,
   type TerrenoDelListado,
 } from './soporte/leads-listado'
-import { sinScrollHorizontal } from './soporte/recorrido'
+import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 
 // Con el texto al 200 % las tarjetas del listado del celular no ensanchan la página (cierre 3, reflujo de WCAG 1.4.10): la columna
 // de la lista mide lo que la pantalla y el nombre se corta con «…» en vez de empujar el «⋯» fuera de la vista. Va con 100 filas, un
@@ -63,7 +63,7 @@ async function dentroPorLaDerecha(page: Page, lugar: Locator) {
 for (const esquema of ['light', 'dark'] as const) {
   test(`las 100 tarjetas de leads caben al 200 % con el nombre largo, en ${esquema === 'light' ? 'claro' : 'oscuro'}`, async ({
     page,
-  }) => {
+  }, info) => {
     test.skip(!esMovil(page), 'Las tarjetas son del celular: el escritorio dibuja la tabla.')
     await page.emulateMedia({ colorScheme: esquema })
     await entrar(page, t.personas.berta)
@@ -76,6 +76,13 @@ for (const esquema of ['light', 'dark'] as const) {
     )
     await dentroPorLaDerecha(page, largo)
     await sinScrollHorizontal(page)
+    // El nombre se lee entero (se parte en líneas): no se corta con «…».
+    const nombreEnLaTarjeta = page
+      .getByRole('button', { name: `Abrir ${NOMBRE_LARGO}`, exact: true })
+      .getByText(NOMBRE_LARGO)
+    const corte = await nombreEnLaTarjeta.evaluate((el) => el.scrollWidth - el.clientWidth)
+    expect(corte, 'el nombre de la tarjeta no se corta con «…»').toBeLessThanOrEqual(1)
+    await capturar(page, info, `tarjetas-de-leads-200-${esquema === 'light' ? 'claro' : 'oscuro'}`)
     // La última también: el ancho no depende de la fila que se mira.
     const ultima = aLaVista(
       page.getByRole('button', { name: /^Más acciones de E2E Tarjeta200 \d{3}/ }),
@@ -86,7 +93,7 @@ for (const esquema of ['light', 'dark'] as const) {
 
 test('con el teclado el «⋯» de una tarjeta llega al foco y queda a la vista al 200 %', async ({
   page,
-}) => {
+}, info) => {
   test.skip(!esMovil(page), 'Las tarjetas son del celular: el escritorio dibuja la tabla.')
   await entrar(page, t.personas.berta)
   await irALeads(page, `?q=${MARCA}`)
@@ -99,4 +106,5 @@ test('con el teclado el «⋯» de una tarjeta llega al foco y queda a la vista 
   await expect(menu).toBeFocused()
   await dentroPorLaDerecha(page, menu)
   await sinScrollHorizontal(page)
+  await capturar(page, info, 'tarjeta-con-foco-200')
 })

@@ -28,7 +28,7 @@ export function TarjetasDeLeads(props: Props) {
         const datos = camposDeLaTarjeta(campos, lead)
         return (
           <li key={lead.id} className="min-w-0">
-            <article className="flex items-start rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
+            <article className="@container flex items-start rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
               <button
                 type="button"
                 aria-label={`Abrir ${lead.nombre}`}
@@ -37,12 +37,17 @@ export function TarjetasDeLeads(props: Props) {
                   alAbrir(lead.id)
                 }}
               >
-                <span className="flex items-start justify-between gap-2">
+                {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: el tipo pasa debajo y el nombre se parte en líneas, no se corta. */}
+                <span className="flex items-start justify-between gap-2 @max-[16rem]:flex-col">
                   <NombreDeFila
                     lead={lead}
                     etiquetas={etiquetas}
                     nombre={(clases) => (
-                      <span className={`text-(length:--text-base) ${clases}`}>{lead.nombre}</span>
+                      <span
+                        className={`text-(length:--text-base) ${clases} @max-[16rem]:[overflow-wrap:anywhere] @max-[16rem]:whitespace-normal`}
+                      >
+                        {lead.nombre}
+                      </span>
                     )}
                   />
                   <BadgeDeTipo tipo={lead.tipo} />
