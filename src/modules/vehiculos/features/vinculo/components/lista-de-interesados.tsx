@@ -3,10 +3,15 @@
 import { XIcon } from 'lucide-react'
 import { formatearFecha } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
+import { textoDelTope } from '@/shared/lib/conteo'
+import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Bloque } from '@/shared/ui/bloque'
 import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
-import type { VehiculoInteresado } from '../../../entities/vehiculos-del-lead'
+import {
+  TOPE_DE_INTERESADOS_DEL_LEAD,
+  type VehiculoInteresado,
+} from '../../../entities/vehiculos-del-lead'
 import { FilaDeVehiculoDelLead } from './fila-de-vehiculo-del-lead'
 
 type Props = {
@@ -14,11 +19,19 @@ type Props = {
   puedoActuar: boolean
   enCurso: boolean
   alQuitar: (vehiculo: VehiculoInteresado) => void
+  // Llegó a su tope (`TOPE_DE_INTERESADOS_DEL_LEAD`) y hay más que no se ven: se dice al pie.
+  hayMas?: boolean
 }
 
 // Los vehículos en los que el lead mostró interés, con su nota. No anclan nada: son una lista de
 // trabajo. Quitar se hace y ofrece «Deshacer».
-export function ListaDeInteresados({ interesados, puedoActuar, enCurso, alQuitar }: Props) {
+export function ListaDeInteresados({
+  interesados,
+  puedoActuar,
+  enCurso,
+  alQuitar,
+  hayMas = false,
+}: Props) {
   const { zonaHoraria: zona } = useRegional()
   return (
     <Bloque titulo="Interesados">
@@ -64,6 +77,7 @@ export function ListaDeInteresados({ interesados, puedoActuar, enCurso, alQuitar
           ))}
         </ul>
       )}
+      {hayMas ? <AvisoDeTope texto={textoDelTope(TOPE_DE_INTERESADOS_DEL_LEAD)} /> : null}
     </Bloque>
   )
 }

@@ -1,12 +1,20 @@
 'use client'
 
+import { textoDelTope } from '@/shared/lib/conteo'
 import { formatearFecha } from '@/shared/lib/fechas'
 import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
+import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Bloque } from '@/shared/ui/bloque'
 import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
 import { useRegional } from '@/shared/ui/regional'
 import type { ReactNode } from 'react'
-import { nombreDeLead, type Relaciones, type Vinculo } from '../../../entities/vinculo'
+import {
+  TOPE_DE_INTERESADOS,
+  TOPE_DE_VINCULOS,
+  nombreDeLead,
+  type Relaciones,
+  type Vinculo,
+} from '../../../entities/vinculo'
 
 type Props = {
   relaciones: Relaciones
@@ -79,6 +87,9 @@ export function VinculoEInteresados({ relaciones, desvincular = null }: Props) {
               ))}
             </ul>
           ) : null}
+          {relaciones.historialHayMas ? (
+            <AvisoDeTope texto={textoDelTope(TOPE_DE_VINCULOS, { sustantivo: 'vínculos' })} />
+          ) : null}
         </section>
         <section aria-label="Interesados" className="grid gap-1.5">
           <h3 className={SUBTITULO}>Interesados</h3>
@@ -100,6 +111,9 @@ export function VinculoEInteresados({ relaciones, desvincular = null }: Props) {
               ))}
             </ul>
           )}
+          {relaciones.interesadosHayMas ? (
+            <AvisoDeTope texto={textoDelTope(TOPE_DE_INTERESADOS, { sustantivo: 'interesados' })} />
+          ) : null}
         </section>
       </div>
     </Bloque>

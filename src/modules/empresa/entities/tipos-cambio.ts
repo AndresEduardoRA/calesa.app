@@ -69,6 +69,9 @@ type FilaDeHistorial = Pick<
   'id' | 'valor_anterior' | 'valor_nuevo' | 'cambiado_por' | 'cambiado_en'
 >
 
+// Cuántos cambios del historial se ven: la lectura pide uno de más y, si lo hay, el historial lo dice (cierre 1).
+export const CAMBIOS_A_LA_VISTA = 30
+
 // El historial de un tipo de cambio, con el nombre de quien hizo cada cambio (`nombres`: id de la
 // persona → cómo se la muestra).
 export function historialDesde(

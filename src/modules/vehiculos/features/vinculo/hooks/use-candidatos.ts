@@ -9,7 +9,7 @@ const ESPERA_MS = 250
 
 export type Busqueda =
   | { estado: 'cargando' }
-  | { estado: 'lista'; candidatos: CandidatoDeVinculo[] }
+  | { estado: 'lista'; candidatos: CandidatoDeVinculo[]; hayMas: boolean }
   | { estado: 'error'; error: ErrorApp }
 
 // Los vehículos que quien mira ve, buscados por título, VIN, lote o #número mientras escribe (sin
@@ -21,7 +21,7 @@ export function useCandidatos(leadId: string, texto: string) {
   const clave = `${leadId}|${texto.trim()}|${String(intento)}`
   const [respuesta, setRespuesta] = useState<{
     clave: string
-    resultado: Resultado<CandidatoDeVinculo[]>
+    resultado: Resultado<{ candidatos: CandidatoDeVinculo[]; hayMas: boolean }>
   } | null>(null)
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function useCandidatos(leadId: string, texto: string) {
     respuesta?.clave !== clave
       ? { estado: 'cargando' }
       : respuesta.resultado.ok
-        ? { estado: 'lista', candidatos: respuesta.resultado.data }
+        ? { estado: 'lista', ...respuesta.resultado.data }
         : { estado: 'error', error: respuesta.resultado.error }
 
   return {

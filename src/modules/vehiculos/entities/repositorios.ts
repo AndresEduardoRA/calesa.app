@@ -223,7 +223,7 @@ export type LectorDeVehiculosDelLead = (leadId: string) => Promise<Resultado<Veh
 export type BuscadorDeCandidatos = (pedido: {
   leadId: string
   texto: string
-}) => Promise<Resultado<CandidatoDeVinculo[]>>
+}) => Promise<Resultado<{ candidatos: CandidatoDeVinculo[]; hayMas: boolean }>>
 
 // El vínculo y el interés se escriben sólo por RPC. Un rechazo con `hint` dice el campo (`nota`).
 export type FalloDeVinculo = { ok: false; error: ErrorApp; campo?: string }

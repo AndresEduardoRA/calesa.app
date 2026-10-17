@@ -3396,3 +3396,20 @@ base calculaba si puede volver (verifica su teléfono). La 9g dejó pendiente de
 **Alternativas:** las papeleras al selector con lotes de 20 (lo que proponía la 9g: no acorta nada y suma un control); traer los
 200 y dibujar 20 (los bytes y el costo de la base siguen); un «Ver más» de a 20 dentro del lote (más clics para lo mismo que
 «Mostrar los N», con un tope de 200 por la base).
+
+## 2026-10-17 — Cierre 1 (D): los topes se dicen, con un solo aviso y sin inventar un camino que no existe
+
+**Contexto:** cuatro lecturas cortaban en silencio: los vínculos (50) y los interesados (100) de un vehículo, los tres bloques
+de «Vehículos» del lead (100 / 100 / 50) y el selector «Agregar vehículo» (20), más el historial de un tipo de cambio (30).
+Cada lista que sí avisaba tenía su propio párrafo.
+
+**Decisión:** cada lectura pide uno de más (`limit tope + 1`, mismas firmas: `…20261019001900_topes_que_se_dicen.sql`; el
+historial de tipos de cambio desde la app) y `cortarAlTope()` de `shared/lib/conteo` corta y dice si había más. El aviso es uno,
+`<AvisoDeTope>` de `shared/ui`: al pie, `role="status"`, «Mostrando los N … más recientes.» (`textoDelTope()`). Donde hay un
+camino a lo que no se ve, se nombra (el selector: «Escribe más para afinar la búsqueda.»); donde no lo hay (cien interesados
+de un vehículo, treinta cambios de un tipo de cambio), el aviso dice lo que se ve y nada más: inventarle un «Ver más» a una
+lista que nadie va a recorrer sería código sin uso. «Vehículo (opcional)» de una nota lo dice como ayuda bajo el campo (un
+`<select>` no tiene pie). `oportunidades-del-lead` dejó su copia local y usa el compartido.
+
+**Alternativas:** un «Ver más» en cada una (más código y pedidos para listas que en la práctica no llegan al tope); contar el
+total (la regla no admite un número que crece con la tabla).

@@ -2,6 +2,7 @@
 // tiene un solo lead), los interesados (con su nota) y los vínculos que ya se cerraron. Todo llega ya
 // recortado por la base: lo que quien mira no ve no llega ni se cuenta (`lead_vehiculos()`).
 import { z } from 'zod'
+import { cortarAlTope } from '@/shared/lib/conteo'
 import { formatearDiaYMes } from '@/shared/lib/fechas'
 import {
   CAMPOS_DE_NUMEROS,
@@ -43,10 +44,19 @@ export type VinculoCerrado = {
   hasta: string
 }
 
+// Lo que se lee de un lead (cierre 1): `lead_vehiculos()` trae uno de más en cada lista para saber si hay otros.
+export const TOPE_DE_VINCULADOS_DEL_LEAD = 100
+export const TOPE_DE_INTERESADOS_DEL_LEAD = 100
+export const TOPE_DEL_HISTORIAL_DEL_LEAD = 50
+// Y la búsqueda de «Agregar vehículo» (`vehiculos_para_lead()`).
+export const TOPE_DE_CANDIDATOS = 20
+
 export type VehiculosDelLead = {
   vinculados: VehiculoVinculado[]
   interesados: VehiculoInteresado[]
   historial: VinculoCerrado[]
+  // Cada lista llegó a su tope y hay más que no se ven.
+  hayMas: { vinculados: boolean; interesados: boolean; historial: boolean }
   // Cartera y `leads.editar`: vincular y marcar interés. Desvincular pide sólo editar el vehículo.
   puedoActuar: boolean
 }
@@ -107,23 +117,30 @@ export function vehiculosDelLeadDesde(datos: unknown): VehiculosDelLead | null {
   if (!leido.success) {
     return null
   }
-  const { vinculados, interesados, historial, puedo_actuar } = leido.data
+  const vinculados = cortarAlTope(leido.data.vinculados, TOPE_DE_VINCULADOS_DEL_LEAD)
+  const interesados = cortarAlTope(leido.data.interesados, TOPE_DE_INTERESADOS_DEL_LEAD)
+  const historial = cortarAlTope(leido.data.historial, TOPE_DEL_HISTORIAL_DEL_LEAD)
   return {
-    vinculados: vinculados.map((fila) => ({ ...comoVehiculo(fila), desde: fila.desde })),
-    interesados: interesados.map((fila) => ({
+    hayMas: {
+      vinculados: vinculados.hayMas,
+      interesados: interesados.hayMas,
+      historial: historial.hayMas,
+    },
+    vinculados: vinculados.filas.map((fila) => ({ ...comoVehiculo(fila), desde: fila.desde })),
+    interesados: interesados.filas.map((fila) => ({
       ...comoVehiculo(fila),
       nota: fila.nota,
       marcadoEn: fila.marcado_en,
       vinculadoAqui: fila.vinculado_aqui,
     })),
-    historial: historial.map((fila) => ({
+    historial: historial.filas.map((fila) => ({
       vehiculoId: fila.vehiculo_id,
       titulo: fila.titulo,
       numero: fila.numero,
       desde: fila.desde,
       hasta: fila.hasta,
     })),
-    puedoActuar: puedo_actuar,
+    puedoActuar: leido.data.puedo_actuar,
   }
 }
 
@@ -149,22 +166,30 @@ const esquemaDeCandidatos = z.array(
   }),
 )
 
-// Lo que devuelve `vehiculos_para_lead()`. Una fila que no cumple se descarta.
-export function candidatosDesde(datos: unknown): CandidatoDeVinculo[] {
+// Lo que devuelve `vehiculos_para_lead()` (hasta `TOPE_DE_CANDIDATOS` + 1): los candidatos y si había más que no se ven.
+// Una forma rota es ninguno.
+export function candidatosDesde(datos: unknown): {
+  candidatos: CandidatoDeVinculo[]
+  hayMas: boolean
+} {
   const leido = esquemaDeCandidatos.safeParse(datos)
   if (!leido.success) {
-    return []
+    return { candidatos: [], hayMas: false }
   }
-  return leido.data.map((fila) => ({
-    ...comoVehiculo(fila),
-    vinculadoAqui: fila.vinculado_aqui,
-    vinculadoAOtro: fila.vinculado_a_otro,
-    otroLead: fila.otro_lead
-      ? { nombre: fila.otro_lead.nombre, numeros: numerosDesde(fila.otro_lead) }
-      : null,
-    reemplazable: fila.reemplazable,
-    interesado: fila.interesado,
-  }))
+  const { filas, hayMas } = cortarAlTope(leido.data, TOPE_DE_CANDIDATOS)
+  return {
+    hayMas,
+    candidatos: filas.map((fila) => ({
+      ...comoVehiculo(fila),
+      vinculadoAqui: fila.vinculado_aqui,
+      vinculadoAOtro: fila.vinculado_a_otro,
+      otroLead: fila.otro_lead
+        ? { nombre: fila.otro_lead.nombre, numeros: numerosDesde(fila.otro_lead) }
+        : null,
+      reemplazable: fila.reemplazable,
+      interesado: fila.interesado,
+    })),
+  }
 }
 
 // Lo que se puede hacer con un vehículo encontrado: vincular (o reemplazar al lead que tiene), y si

@@ -31,7 +31,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - `features/empresa/` — el formulario. `guardar-con-logo.ts` son los pasos del commit diferido, contra puertos.
 - `features/iconos/` — «Regenerar íconos»: dibuja, muestra y, al confirmar, sube y guarda. `regenerar-iconos.ts` son los pasos, contra puertos.
 - `features/integraciones/` — la pestaña «Integraciones»: apibara con su interruptor, su configuración no secreta y `<CampoSecreto>` (dice «guardada el …» y deja reemplazarla; nunca la muestra) y «Ver uso» (`<UsoDeApibara>`: pide `/usage` a la edge function `apibara` a mano, para saber cuánta cuota queda; sólo para quien gestiona los ajustes).
-- `features/tipos-cambio/` — la pestaña «Monedas»: listas, un panel por tipo de cambio (valor e historial) y por moneda, y `<TiposCambioVigentes>` para la barra superior.
+- `features/tipos-cambio/` — la pestaña «Monedas»: listas, un panel por tipo de cambio (valor e historial) y por moneda, y `<TiposCambioVigentes>` para la barra superior. El historial muestra `CAMBIOS_A_LA_VISTA` (30, de `entities/tipos-cambio.ts`) y, si hay más, lo dice con `<AvisoDeTope>` (la lectura pide 31, cierre 1).
 
 ## Tablas
 

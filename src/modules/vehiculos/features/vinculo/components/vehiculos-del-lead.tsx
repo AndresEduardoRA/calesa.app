@@ -18,6 +18,36 @@ import { ListaDeVinculados } from './lista-de-vinculados'
 
 type Props = { leadId: string; leadNombre: string; datos: Datos }
 
+// Las tres listas, cada una con su tope dicho al pie (cierre 1).
+function ListasDelLead(props: {
+  datos: Datos
+  enCurso: boolean
+  alDesvincular: (vehiculo: VehiculoVinculado) => void
+  alQuitar: (vehiculo: Datos['interesados'][number]) => void
+}) {
+  const { datos, enCurso } = props
+  return (
+    <>
+      <ListaDeVinculados
+        vinculados={datos.vinculados}
+        hayMas={datos.hayMas.vinculados}
+        enCurso={enCurso}
+        alDesvincular={props.alDesvincular}
+      />
+      <ListaDeInteresados
+        interesados={datos.interesados}
+        hayMas={datos.hayMas.interesados}
+        puedoActuar={datos.puedoActuar}
+        enCurso={enCurso}
+        alQuitar={props.alQuitar}
+      />
+      {datos.historial.length > 0 ? (
+        <HistorialDeVinculos historial={datos.historial} hayMas={datos.hayMas.historial} />
+      ) : null}
+    </>
+  )
+}
+
 const hayAlgo = (datos: Datos) =>
   datos.vinculados.length + datos.interesados.length + datos.historial.length > 0
 
@@ -66,18 +96,12 @@ export function VehiculosDelLead({ leadId, leadNombre, datos }: Props) {
       ) : (
         <>
           {agregar}
-          <ListaDeVinculados
-            vinculados={datos.vinculados}
+          <ListasDelLead
+            datos={datos}
             enCurso={acciones.enCurso}
             alDesvincular={desvincular}
-          />
-          <ListaDeInteresados
-            interesados={datos.interesados}
-            puedoActuar={datos.puedoActuar}
-            enCurso={acciones.enCurso}
             alQuitar={(vehiculo) => void acciones.quitar(vehiculo)}
           />
-          {datos.historial.length > 0 ? <HistorialDeVinculos historial={datos.historial} /> : null}
         </>
       )}
       {montarPanel ? (

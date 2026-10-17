@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  cortarAlTope,
+  textoDelTope,
   cantidadAcotada,
   conteoAcotado,
   conteoConCambio,
@@ -61,5 +63,21 @@ describe('cantidadAcotada', () => {
     expect(cantidadAcotada(1, 1000, lead)).toBe('1 lead')
     expect(cantidadAcotada(12, 1000, lead)).toBe('12 leads')
     expect(cantidadAcotada(1001, 1000, lead, { locale: 'es-BO' })).toBe('más de 1.000 leads')
+  })
+})
+
+describe('cortarAlTope y textoDelTope (cierre 1)', () => {
+  it('corta en el tope y dice si había más', () => {
+    expect(cortarAlTope([1, 2, 3], 2)).toEqual({ filas: [1, 2], hayMas: true })
+    expect(cortarAlTope([1, 2], 2)).toEqual({ filas: [1, 2], hayMas: false })
+    expect(cortarAlTope([], 2)).toEqual({ filas: [], hayMas: false })
+  })
+
+  it('el texto de siempre', () => {
+    expect(textoDelTope(50)).toBe('Mostrando los 50 más recientes.')
+    expect(textoDelTope(1000, { sustantivo: 'cambios' })).toBe(
+      'Mostrando los 1.000 cambios más recientes.',
+    )
+    expect(textoDelTope(20, { orden: 'primeros' })).toBe('Mostrando los 20 primeros.')
   })
 })

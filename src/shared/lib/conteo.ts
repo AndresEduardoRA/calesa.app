@@ -56,3 +56,20 @@ export function cantidadAcotada(
   }
   return `${conteoEnFrase(conteo, opciones)} ${sustantivo.plural}`
 }
+
+// Una lista leída con `tope + 1` filas, cortada en el tope: lo que se dibuja y si había más (para decirlo con `<AvisoDeTope>`).
+export function cortarAlTope<T>(
+  leidas: readonly T[],
+  tope: number,
+): { filas: T[]; hayMas: boolean } {
+  return { filas: leidas.slice(0, tope), hayMas: leidas.length > tope }
+}
+
+// «Mostrando los 50 más recientes.»: el texto de siempre de un tope (el sustantivo va cuando aclara qué se cuenta).
+export function textoDelTope(
+  tope: number,
+  opciones: { sustantivo?: string; orden?: string } = {},
+): string {
+  const que = opciones.sustantivo ? ` ${opciones.sustantivo}` : ''
+  return `Mostrando los ${formatearNumero(tope, { locale: LOCALE_POR_DEFECTO })}${que} ${opciones.orden ?? 'más recientes'}.`
+}

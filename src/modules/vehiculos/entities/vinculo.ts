@@ -2,7 +2,12 @@
 // interesados (los leads que mostraron interés). Acá sólo se leen: se escriben desde la ficha del
 // lead. El nombre de un lead sólo llega si quien mira lo ve; si no, es nulo.
 import { z } from 'zod'
+import { cortarAlTope } from '@/shared/lib/conteo'
 import { numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
+
+// Lo que se lee de un vehículo (cierre 1): las RPC traen uno de más para saber si hay otros y decirlo.
+export const TOPE_DE_VINCULOS = 50
+export const TOPE_DE_INTERESADOS = 100
 
 export type Vinculo = {
   leadId: string
@@ -29,9 +34,12 @@ export type Interesado = {
 export type Relaciones = {
   // El vínculo activo; null = el vehículo no es de ningún lead.
   vinculo: Vinculo | null
-  // Los anteriores, del más reciente al más viejo.
+  // Los anteriores, del más reciente al más viejo; `historialHayMas`: había más que el tope (`TOPE_DE_VINCULOS`, el vigente
+  // incluido) y no se ven.
   historial: Vinculo[]
+  historialHayMas: boolean
   interesados: Interesado[]
+  interesadosHayMas: boolean
 }
 
 const filasDeVinculo = z.array(
@@ -60,7 +68,9 @@ const filasDeInteresado = z.array(
 
 // Lo que devuelven `vehiculo_vinculos()` y `vehiculo_interesados()`.
 export function relacionesDesde(vinculos: unknown, interesados: unknown): Relaciones {
-  const todos = filasDeVinculo.parse(vinculos).map((fila) => ({
+  const leidos = cortarAlTope(filasDeVinculo.parse(vinculos), TOPE_DE_VINCULOS)
+  const deInteres = cortarAlTope(filasDeInteresado.parse(interesados), TOPE_DE_INTERESADOS)
+  const todos = leidos.filas.map((fila) => ({
     leadId: fila.lead_id,
     leadNombre: fila.lead_nombre,
     leadNumeros: numerosDesde({ numero: fila.lead_numero, numero_propio: fila.lead_numero_propio }),
@@ -71,7 +81,9 @@ export function relacionesDesde(vinculos: unknown, interesados: unknown): Relaci
   return {
     vinculo: todos.find((uno) => uno.hasta === null) ?? null,
     historial: todos.filter((uno) => uno.hasta !== null),
-    interesados: filasDeInteresado.parse(interesados).map((fila) => ({
+    historialHayMas: leidos.hayMas,
+    interesadosHayMas: deInteres.hayMas,
+    interesados: deInteres.filas.map((fila) => ({
       leadId: fila.lead_id,
       leadNombre: fila.lead_nombre,
       leadNumeros: numerosDesde({

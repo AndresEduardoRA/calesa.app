@@ -15,7 +15,13 @@ const vinculo = (leadNombre: string | null, hasta: string | null = null) => ({
   hasta,
   porNombre: 'Rosa Mamani',
 })
-const VACIO: Relaciones = { vinculo: null, historial: [], interesados: [] }
+const VACIO: Relaciones = {
+  vinculo: null,
+  historial: [],
+  historialHayMas: false,
+  interesados: [],
+  interesadosHayMas: false,
+}
 
 describe('VinculoEInteresados', () => {
   it('sin vínculo ni interesados, lo dice', () => {
@@ -44,6 +50,21 @@ describe('VinculoEInteresados', () => {
     const anteriores = within(screen.getByRole('list', { name: 'Vínculos anteriores' }))
     expect(anteriores.getByText('Luis Rojas')).toBeInTheDocument()
     expect(anteriores.getByText(/^Del .* al .*/)).toBeInTheDocument()
+  })
+
+  it('con más vínculos o interesados que el tope, lo dice al pie de cada uno (cierre 1)', () => {
+    render(
+      <VinculoEInteresados
+        relaciones={{ ...VACIO, historialHayMas: true, interesadosHayMas: true }}
+      />,
+    )
+    expect(screen.getByText('Mostrando los 50 vínculos más recientes.')).toBeInTheDocument()
+    expect(screen.getByText('Mostrando los 100 interesados más recientes.')).toBeInTheDocument()
+  })
+
+  it('sin pasar el tope, no dice nada', () => {
+    render(<VinculoEInteresados relaciones={VACIO} />)
+    expect(screen.queryByText(/^Mostrando los/)).toBeNull()
   })
 
   it('lista los interesados con su nota', () => {

@@ -288,6 +288,12 @@ dice, con un camino a lo antiguo.
 - **Embudo (kanban):** la cabecera de cada columna y la pestaña del celular dicen «37» o «500+». «Ver más (N)» dice cuántas
   faltan mientras se sabe; con «500+», sólo «Ver más». Una columna dibuja a lo sumo 500 tarjetas y ahí, en vez de «Ver más»:
   «Mostrando las 500 con actividad más reciente. Las demás siguen en la ficha de cada lead.»
+- **Vehículos (cierre 1):** el bloque «Vínculo e interesados» de un vehículo dice «Mostrando los 50 vínculos más recientes.» o
+  «Mostrando los 100 interesados más recientes.» al pie cuando hay más; la sección «Vehículos» del lead, lo mismo en
+  «Vinculados» (100), «Interesados» (100) y «Vínculos anteriores» (50); «Agregar vehículo» dice «Mostrando los primeros 20.
+  Escribe más para afinar la búsqueda.»; «Vehículo (opcional)» lleva bajo el campo «Se ofrecen los más recientes: el lead
+  tiene más vehículos.». El historial de un tipo de cambio: «Mostrando los 30 cambios más recientes.». Siempre `<AvisoDeTope>`:
+  el mismo texto, al pie.
 - **Ficha:** «Tiene más de 100 vehículos vinculados…» (el aviso de la cartera y el motivo de la papelera). La sección
   «Oportunidades» muestra las 100 más recientes (las abiertas primero) y lo dice: «Mostrando las 100 más recientes, las
   abiertas primero.»

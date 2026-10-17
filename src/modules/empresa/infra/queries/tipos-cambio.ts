@@ -10,6 +10,7 @@ import {
   tiposCambioDesde,
   vigentes,
   type TipoCambio,
+  CAMBIOS_A_LA_VISTA,
 } from '../../entities/tipos-cambio'
 
 // Todos los tipos de cambio, una vez por request: los pide la barra superior en toda pantalla y,
@@ -54,8 +55,6 @@ export const getMonedasYTiposCambio: LectorDeMonedasYTiposCambio = cache(async (
   return ok({ monedas: monedasDesde(monedas.data), tipos: tipos.data })
 })
 
-const CAMBIOS_A_LA_VISTA = 30
-
 // Los últimos cambios de valor de un tipo de cambio. Sin `empresa.tipos_cambio.gestionar` la RLS
 // no devuelve filas: la pantalla dice por qué en vez de mostrar una lista vacía.
 export const getHistorial: LectorDeHistorial = async (tipoCambioId) => {
@@ -65,7 +64,8 @@ export const getHistorial: LectorDeHistorial = async (tipoCambioId) => {
     .select('id, valor_anterior, valor_nuevo, cambiado_por, cambiado_en')
     .eq('tipo_cambio_id', tipoCambioId)
     .order('id', { ascending: false })
-    .limit(CAMBIOS_A_LA_VISTA)
+    // Uno de más: la pantalla dice «Mostrando los 30 cambios más recientes» si los hay.
+    .limit(CAMBIOS_A_LA_VISTA + 1)
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }

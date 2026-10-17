@@ -1,6 +1,7 @@
 'use client'
 
 import { PlusIcon, TargetIcon } from 'lucide-react'
+import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Button } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import type { Embudo } from '../../../entities/embudo'
@@ -14,12 +15,12 @@ import { usePanelDeOportunidad } from '../hooks/use-panel-de-oportunidad'
 import { ItemDeOportunidad } from './item-de-oportunidad'
 import { PanelDeOportunidad } from './panel-de-oportunidad'
 
-// Con más de 100 oportunidades en un lead, se dice que lo que se ve es lo más reciente.
-function AvisoDelTope({ hayMas }: { hayMas: boolean }) {
+// Con más de 100 oportunidades en un lead, se dice que lo que se ve es lo más reciente (el aviso de siempre).
+function TopeDeOportunidades({ hayMas }: { hayMas: boolean }) {
   return hayMas ? (
-    <p role="status" className="text-(length:--text-sm) text-(--color-ink-soft)">
-      Mostrando las {TOPE_DE_OPORTUNIDADES_DEL_LEAD} más recientes, las abiertas primero.
-    </p>
+    <AvisoDeTope
+      texto={`Mostrando las ${String(TOPE_DE_OPORTUNIDADES_DEL_LEAD)} más recientes, las abiertas primero.`}
+    />
   ) : null
 }
 
@@ -79,7 +80,7 @@ export function OportunidadesDelLead({ leadId, inicial, embudos, puedoCrear, hay
           ))}
         </ul>
       )}
-      <AvisoDelTope hayMas={hayMas} />
+      <TopeDeOportunidades hayMas={hayMas} />
       {puedoCrear && (panel.nueva || editando) ? (
         <PanelDeOportunidad
           key={editando?.actualizadoEn ?? 'nueva'}

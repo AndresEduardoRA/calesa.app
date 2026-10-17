@@ -29,7 +29,8 @@ con 50.000 leads: `pnpm db:sembrar-volumen` y `pnpm db:medir:volumen`).
   una lectura por PostgREST (el listado, el inventario) tiene su tope en `max_rows` de `config.toml`. Una RPC nueva con
   tamaño entra al registro de `scripts/guardas/paginas-en-la-base.ts` con lo que le pide el código, y su máximo no puede
   ser menor.
-- Lo que se dibuja tiene tope. Al llegar, se dice («Mostrando los 500 más recientes») y se ofrece un
+- Lo que se dibuja tiene tope. Al llegar, se dice con `<AvisoDeTope>` de `shared/ui` (al pie, «Mostrando los 500 más recientes»;
+  la lectura pide uno de más y `cortarAlTope()` de `shared/lib/conteo` corta y dice si había más) y se ofrece un
   camino a lo antiguo («Ir a una fecha», un filtro). «Ver más» no suma para siempre. Lo que crece es la
   cantidad de lotes, de columnas o de páginas, no el alto de una página: la papelera lee 5 lotes por vez.
 - Un número que se muestra sale de `limit n + 1` («más de 20») o no se muestra. Nunca de `count(*)`

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  TOPE_DE_CANDIDATOS,
   MOTIVO_DE_OTRO_LEAD,
   MOTIVO_SIN_EDICION,
   MOTIVO_YA_VINCULADO,
@@ -84,7 +85,10 @@ const candidato = (cambios: Partial<CandidatoDeVinculo> = {}): CandidatoDeVincul
 
 describe('candidatosDesde', () => {
   it('lee el estado de cada uno frente al lead', () => {
-    const [uno] = candidatosDesde([
+    const {
+      candidatos: [uno],
+      hayMas,
+    } = candidatosDesde([
       {
         ...fila,
         vinculado_aqui: false,
@@ -100,10 +104,26 @@ describe('candidatosDesde', () => {
       reemplazable: true,
       interesado: true,
     })
+    expect(hayMas).toBe(false)
+  })
+
+  it('lee uno de más para saber si hay otros: corta en el tope y lo dice', () => {
+    const veintiuno = Array.from({ length: TOPE_DE_CANDIDATOS + 1 }, (_, i) => ({
+      ...fila,
+      id: `00000000-0000-0000-0000-${String(i).padStart(12, '0')}`,
+      vinculado_aqui: false,
+      vinculado_a_otro: false,
+      otro_lead: null,
+      reemplazable: false,
+      interesado: false,
+    }))
+    const leido = candidatosDesde(veintiuno)
+    expect(leido.candidatos).toHaveLength(TOPE_DE_CANDIDATOS)
+    expect(leido.hayMas).toBe(true)
   })
 
   it('lo que no cumple da una lista vacía', () => {
-    expect(candidatosDesde([{ id: 'no' }])).toEqual([])
+    expect(candidatosDesde([{ id: 'no' }])).toEqual({ candidatos: [], hayMas: false })
   })
 })
 

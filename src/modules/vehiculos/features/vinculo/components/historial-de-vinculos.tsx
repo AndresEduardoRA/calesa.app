@@ -2,15 +2,28 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
+import { textoDelTope } from '@/shared/lib/conteo'
 import { formatearFecha } from '@/shared/lib/fechas'
 import { RUTAS } from '@/shared/lib/rutas'
+import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Bloque } from '@/shared/ui/bloque'
 import { useRegional } from '@/shared/ui/regional'
-import { rotuloDeVehiculo, type VinculoCerrado } from '../../../entities/vehiculos-del-lead'
+import {
+  TOPE_DEL_HISTORIAL_DEL_LEAD,
+  rotuloDeVehiculo,
+  type VinculoCerrado,
+} from '../../../entities/vehiculos-del-lead'
 
 // Los vínculos de este lead que ya se cerraron: una línea por vínculo, sin personas. Sólo los de
 // vehículos que quien mira ve (la base no entrega los otros).
-export function HistorialDeVinculos({ historial }: { historial: readonly VinculoCerrado[] }) {
+// `hayMas`: llegó a su tope (`TOPE_DEL_HISTORIAL_DEL_LEAD`) y hay más que no se ven; se dice al pie.
+export function HistorialDeVinculos({
+  historial,
+  hayMas = false,
+}: {
+  historial: readonly VinculoCerrado[]
+  hayMas?: boolean
+}) {
   const { zonaHoraria: zona } = useRegional()
   return (
     <Bloque titulo="Vínculos anteriores" plegado>
@@ -30,6 +43,7 @@ export function HistorialDeVinculos({ historial }: { historial: readonly Vinculo
           </li>
         ))}
       </ul>
+      {hayMas ? <AvisoDeTope texto={textoDelTope(TOPE_DEL_HISTORIAL_DEL_LEAD)} /> : null}
     </Bloque>
   )
 }

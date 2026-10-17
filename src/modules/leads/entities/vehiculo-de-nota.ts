@@ -5,6 +5,13 @@ import { z } from 'zod'
 
 export type VehiculoDeNota = { id: string; titulo: string; numero: number }
 
+// Lo que la página trae para elegir el vehículo de una nota: los vehículos y si se recortaron (cierre 1: la lectura de un
+// lead tiene tope, y entonces el campo lo dice).
+export type VehiculosParaNotas = { opciones: readonly VehiculoDeNota[]; recortado: boolean }
+export const SIN_VEHICULOS_PARA_NOTAS: VehiculosParaNotas = { opciones: [], recortado: false }
+export const AYUDA_DE_VEHICULOS_RECORTADOS =
+  'Se ofrecen los más recientes: el lead tiene más vehículos.'
+
 export type VehiculoDeLaNota = {
   vehiculo: VehiculoDeNota | null
   // Tenía uno que quien mira ya no ve (sólo se le dice a su autor).

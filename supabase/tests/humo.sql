@@ -5890,3 +5890,37 @@ begin
   update public.origenes_lead set activo = (clave in ('facebook', 'web'));
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test topes que se dicen (cierre 1): las listas de vehículos que cortaban en silencio leen uno de más
+-- Un vehículo con 120 interesados y 60 vínculos cerrados con un mismo lead: la pantalla corta en 100, 50 y 50 y dice que
+-- hay más. Como la dueña, que ve todo.
+do $$
+declare v uuid := (select id from public.vehiculos where eliminado_en is null order by creado_en limit 1);
+        duena constant uuid := '00000000-0000-0000-0000-000000000001'; lead uuid; n int;
+begin
+  if v is null then raise exception 'el terreno no tiene un vehículo'; end if;
+  insert into public.leads (nombre, telefono_principal, creado_por)
+  select 'Topes ' || g, (75500000 + g)::text, duena from generate_series(1, 120) g;
+  insert into public.vehiculos_interesados (vehiculo_id, lead_id, usuario_id, nota)
+  select v, l.id, duena, 'tope' from public.leads l where l.nombre like 'Topes %';
+  lead := (select id from public.leads where nombre = 'Topes 1');
+  insert into public.vehiculos_vinculos (vehiculo_id, lead_id, desde, hasta, usuario_id)
+  select v, lead, now() - make_interval(days => 200 - g), now() - make_interval(days => 199 - g), duena from generate_series(1, 60) g;
+  perform set_config('request.jwt.claim.sub', duena::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', duena, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  select count(*) into n from public.vehiculo_interesados(v);
+  if n <> 101 then raise exception 'vehiculo_interesados trajo %, se esperaban 101 (100 y uno de más)', n; end if;
+  select count(*) into n from public.vehiculo_vinculos(v);
+  if n <> 51 then raise exception 'vehiculo_vinculos trajo %, se esperaban 51 (50 y uno de más)', n; end if;
+  n := jsonb_array_length(public.lead_vehiculos(lead) -> 'historial');
+  if n <> 51 then raise exception 'lead_vehiculos trajo % vínculos anteriores, se esperaban 51', n; end if;
+  n := jsonb_array_length(public.vehiculos_para_lead(lead, null));
+  if n <> least(21, (select count(*) from public.vehiculos where eliminado_en is null)) then
+    raise exception 'vehiculos_para_lead trajo %, se esperaban hasta 21 (20 y uno de más)', n;
+  end if;
+  execute 'reset role';
+  delete from public.vehiculos_vinculos where vehiculo_id = v and lead_id = lead and hasta is not null;
+  delete from public.leads where nombre like 'Topes %';
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
