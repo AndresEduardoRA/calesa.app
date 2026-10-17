@@ -226,6 +226,11 @@ do $medir$ declare q text; begin
       perform pg_temp.escala('kanban: tablero (50 por columna, total hasta 500)', q, format('select public.embudo_tablero(%L, %s, %s)', current_setting('medir.embudo'), current_setting('medir.tam_columna'), current_setting('medir.tope_cargado')), 800);
       perform pg_temp.escala('kanban: «Ver más», página 10 de la columna de 8.000', q, format('select public.embudo_etapa_pagina(%L, %L, %L, %s)',
         current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id'), current_setting('medir.tam_columna')), 500);
+      -- Buscar en el embudo (cierre 1): sin resultados recorre la columna entera de la persona (lo peor); con resultados corta.
+      perform pg_temp.escala('kanban: buscar sin resultados (todas las columnas)', q, format('select public.embudo_tablero(%L, %s, %s, %L)', current_setting('medir.embudo'), current_setting('medir.tam_columna'), current_setting('medir.tope_cargado'), 'zzzz nada'), 700);
+      perform pg_temp.escala('kanban: buscar con resultados (todas las columnas)', q, format('select public.embudo_tablero(%L, %s, %s, %L)', current_setting('medir.embudo'), current_setting('medir.tam_columna'), current_setting('medir.tope_cargado'), 'Volumen 1'), 700);
+      perform pg_temp.escala('kanban: «Ver más» buscando, sin resultados', q, format('select public.embudo_etapa_pagina(%L, %L, %L, %s, %L)',
+        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id'), current_setting('medir.tam_columna'), 'zzzz nada'), 200);
       -- Lo de adentro. Bajo la policy de `oportunidades` (`lead_id = any(_mis_leads_vivos())`, un arreglo de
       -- tamaño desconocido) Postgres elige `oportunidades_lead_id_idx` y ordena las de la persona: cuesta lo
       -- que tiene la persona (~2 µs por oportunidad), no lo que tiene la columna. Límite anotado.

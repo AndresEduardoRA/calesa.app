@@ -218,6 +218,39 @@ test('una columna del kanban con más de 500: «500+», «Ver más» hasta el to
   const total = await nodos(page)
   info.annotations.push({ type: 'nodos de una columna en el tope', description: String(total) })
   expect(total).toBeLessThan(PRESUPUESTO_DE_NODOS.kanban.escritorio)
+  await expect(columna.getByText('Busca para llegar a las demás.')).toBeVisible()
+
+  // Cierre 1: el camino a las demás es buscar. Una que no está entre las 500 aparece al buscarla.
+  const vistos = new Set(
+    (await columna.getByRole('article').allInnerTexts()).map(
+      (texto) => /E2E Muchas (\d+)\b/.exec(texto)?.[1],
+    ),
+  )
+  // Una cuya búsqueda quepa en la primera página de la columna: «E2E Muchas 1» también encuentra 10–19 y 100–199.
+  const numeros = Array.from({ length: 560 }, (_, i) => String(i + 1))
+  const coincidencias = (n: string) => numeros.filter((m) => m.startsWith(n)).length
+  const oculta = numeros.find((n) => !vistos.has(n) && coincidencias(n) <= TAMANO_DE_COLUMNA) ?? ''
+  expect(oculta).not.toBe('')
+  await columna.getByRole('button', { name: 'Buscar en el embudo' }).click()
+  const busqueda = page.getByRole('searchbox', { name: 'Buscar en el embudo' })
+  await expect(busqueda).toBeFocused()
+  await busqueda.fill(`E2E Muchas ${oculta}`)
+  await expect(page).toHaveURL(/[?&]q=/)
+  const buscada = await verEtapa(page, 'Ganado')
+  await expect(buscada.getByText(`E2E Muchas ${oculta}`, { exact: true })).toBeVisible()
+  await expect(page.getByText('Nada coincide en esta etapa.').first()).toBeVisible()
+  await expect(page.getByText(/^Buscando «E2E Muchas/)).toBeVisible()
+  await capturar(page, info, 'kanban-buscando')
+
+  // Sin red no navega: lo dice y se aplica solo al volver la conexión.
+  await page.context().setOffline(true)
+  await busqueda.fill('Escala kanban')
+  await expect(
+    page.getByText('Sin conexión: la búsqueda se aplica cuando vuelva la red.'),
+  ).toBeVisible()
+  await page.context().setOffline(false)
+  await expect(page).toHaveURL(/q=Escala\+kanban|q=Escala%20kanban/)
+  await expect(page.getByText(/^Buscando «Escala kanban»/)).toBeVisible()
 })
 
 test('sin red, abrir un modal cuyo código nunca se pidió lo dice en su lugar y se reintenta', async ({

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  busquedaDelEmbudo,
   conMovida,
   conPagina,
   cursorDeColumna,
@@ -146,5 +147,15 @@ describe('en el celular', () => {
   })
   it('la firma cambia con lo que trae el servidor', () => {
     expect(firmaDelTablero(leido())).not.toBe(firmaDelTablero(conMovida(leido(), id(101), id(11))))
+  })
+})
+
+describe('busquedaDelEmbudo (cierre 1)', () => {
+  it('como la aplica la base: sin espacios de los costados, hasta 60 y nada con menos de 2', () => {
+    expect(busquedaDelEmbudo('  Ana  ')).toBe('Ana')
+    expect(busquedaDelEmbudo('A')).toBeNull()
+    expect(busquedaDelEmbudo('   ')).toBeNull()
+    expect(busquedaDelEmbudo(null)).toBeNull()
+    expect(busquedaDelEmbudo('x'.repeat(80))).toHaveLength(60)
   })
 })

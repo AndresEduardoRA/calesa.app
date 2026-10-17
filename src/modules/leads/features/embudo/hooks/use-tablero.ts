@@ -84,13 +84,23 @@ export function useTablero(inicial: Tablero) {
       return
     }
     setCargando(etapaId)
-    const pagina = await leerPaginaDeEtapa({ etapaId, antes, tope: TAMANO_DE_COLUMNA })
+    const { busqueda } = tablero
+    const embudoId = tablero.embudo.id
+    const pagina = await leerPaginaDeEtapa({
+      etapaId,
+      antes,
+      tope: TAMANO_DE_COLUMNA,
+      buscar: busqueda,
+    })
     setCargando(null)
     if (!pagina.ok) {
       avisarError(pagina.error)
       return
     }
-    setTablero((t) => conPagina(t, etapaId, pagina.data))
+    // Si mientras tanto cambió la búsqueda o el embudo, esta página es de otro tablero: se descarta.
+    setTablero((t) =>
+      t.busqueda === busqueda && t.embudo.id === embudoId ? conPagina(t, etapaId, pagina.data) : t,
+    )
   }
 
   return { tablero, moverA, verMas, moviendo, cargando, anuncio }

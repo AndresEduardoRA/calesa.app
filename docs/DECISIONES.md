@@ -3413,3 +3413,21 @@ lista que nadie va a recorrer sería código sin uso. «Vehículo (opcional)» d
 
 **Alternativas:** un «Ver más» en cada una (más código y pedidos para listas que en la práctica no llegan al tope); contar el
 total (la regla no admite un número que crece con la tabla).
+
+## 2026-10-17 — Cierre 1 (E): para llegar a lo antiguo de una columna del kanban, buscar
+
+**Contexto:** una columna dibuja a lo sumo 500 tarjetas (las de actividad más reciente) y el aviso decía «Las demás siguen en la
+ficha de cada lead»: con 8.000 en una etapa, una oportunidad vieja no tenía camino desde el tablero.
+
+**Decisión:** «Buscar en el embudo» (`?q=`): el título de la oportunidad o el nombre del lead, desde 2 caracteres, en **todas**
+las columnas; el conteo de cada una cuenta lo que coincide. `embudo_tablero` y `embudo_etapa_pagina` reciben `p_buscar`
+(`…20261019002000_embudo_busqueda.sql`, `_embudo_patron()` escapa los comodines); siguen siendo de invocador. Camina
+`oportunidades_tablero_idx` y filtra: sin resultados recorre la columna de la persona, medido con 8.000 en una etapa en 175 ms (el
+tablero sin buscar, 147). El aviso del tope pasa a «Busca para llegar a las demás.» con un botón que lleva el foco a la búsqueda.
+«Ver más» conserva la búsqueda; una página que llega después de cambiar la búsqueda o el embudo se descarta; sin red no navega,
+lo dice y se aplica sola al volver. La búsqueda es de esta vista: «Lista | Embudo» no lleva parámetros de una a la otra (como
+hasta ahora con los filtros del listado).
+
+**Alternativas:** «Ir a una fecha» por columna (el orden del índice, sin recorrer; se dejó como plan B si buscar no cabía en su
+presupuesto, y cupo con margen: no se dejan los dos); filtros por monto o vehículo (no los pidió nadie y la búsqueda ya llega);
+trigramas (bajo RLS un `ilike` no usa el índice: no es `leakproof`).

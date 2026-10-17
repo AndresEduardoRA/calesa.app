@@ -9,6 +9,7 @@ import { totalDelTablero, type Tablero } from '../../../entities/tablero'
 import { RefrescarAlVolver } from '../../ficha/components/refrescar-al-volver'
 import { useTablero } from '../hooks/use-tablero'
 import { useVistaDeEmbudo } from '../hooks/use-vista-de-embudo'
+import { BusquedaDelEmbudo, ID_DE_LA_BUSQUEDA_DEL_EMBUDO } from './busqueda-del-embudo'
 import { ConmutadorDeVista } from './conmutador-de-vista'
 import { NuevoEmbudo } from './nuevo-embudo'
 import { PanelDeEtapas } from './panel-de-etapas'
@@ -48,6 +49,7 @@ function ConTablero({ embudos, inicial }: { embudos: Embudo[]; inicial: Tablero 
           actual={inicial.embudo.id}
           alElegir={vista.elegirEmbudo}
         />
+        <BusquedaDelEmbudo />
         <div className="ml-auto flex flex-wrap gap-2">
           <Button variant="outline" className="min-h-11 md:min-h-8" onClick={vista.abrirEtapas}>
             <Settings2Icon aria-hidden className="size-4" />
@@ -60,7 +62,11 @@ function ConTablero({ embudos, inicial }: { embudos: Embudo[]; inicial: Tablero 
         </div>
       </div>
       <Aviso tono="info">
-        <p>Aquí ves tus oportunidades. Los filtros de la lista no se aplican en esta vista.</p>
+        <p>
+          {estado.tablero.busqueda
+            ? `Buscando «${estado.tablero.busqueda}» en tus oportunidades: el título o el nombre del lead, en todas las etapas.`
+            : 'Aquí ves tus oportunidades. Los filtros de la lista no se aplican en esta vista; para llegar a una, búscala.'}
+        </p>
       </Aviso>
       {/* Sin oportunidades se dice, y las columnas se ven igual: muestran las etapas del embudo. */}
       {vacio ? (
@@ -74,6 +80,9 @@ function ConTablero({ embudos, inicial }: { embudos: Embudo[]; inicial: Tablero 
         estado={estado}
         etapaDeLaUrl={vista.etapa}
         alElegirEtapa={vista.elegirEtapa}
+        alIrABuscar={() => {
+          document.getElementById(ID_DE_LA_BUSQUEDA_DEL_EMBUDO)?.focus()
+        }}
       />
       {vista.etapasAbierto && embudo ? (
         <PanelDeEtapas

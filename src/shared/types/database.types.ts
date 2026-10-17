@@ -6721,6 +6721,7 @@ export type Database = {
         Args: { p_excepto: string; p_nombre: string; p_usuario: string }
         Returns: undefined
       }
+      _embudo_patron: { Args: { p_texto: string }; Returns: string }
       _embudos_candado: { Args: { p_usuario: string }; Returns: undefined }
       _embudos_puedo: { Args: Record<PropertyKey, never>; Returns: string }
       _encolar_para_limpiar: {
@@ -7409,7 +7410,13 @@ export type Database = {
       embudo_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
       embudo_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       embudo_etapa_pagina: {
-        Args: { p_antes_en: string; p_antes_id: string; p_etapa: string; p_tope?: number }
+        Args: {
+          p_antes_en: string
+          p_antes_id: string
+          p_buscar?: string
+          p_etapa: string
+          p_tope?: number
+        }
         Returns: Json
       }
       embudo_etapas_guardar: {
@@ -7422,7 +7429,7 @@ export type Database = {
       }
       embudo_por_defecto: { Args: Record<PropertyKey, never>; Returns: Json }
       embudo_tablero: {
-        Args: { p_embudo: string; p_tope?: number; p_tope_total?: number }
+        Args: { p_buscar?: string; p_embudo: string; p_tope?: number; p_tope_total?: number }
         Returns: Json
       }
       empresa_con_datos_cargados: { Args: Record<PropertyKey, never>; Returns: boolean }

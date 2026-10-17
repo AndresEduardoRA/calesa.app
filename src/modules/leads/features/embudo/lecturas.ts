@@ -5,7 +5,12 @@ import { TAMANO_DE_COLUMNA } from '@/shared/lib/paginacion'
 import { unParametro } from '@/shared/lib/rutas'
 import { leerEmbudos, leerTablero } from '../../composicion'
 import type { Embudo } from '../../entities/embudo'
-import { CLAVE_DE_EMBUDO, type Tablero } from '../../entities/tablero'
+import {
+  CLAVE_DE_BUSQUEDA_DEL_EMBUDO,
+  CLAVE_DE_EMBUDO,
+  busquedaDelEmbudo,
+  type Tablero,
+} from '../../entities/tablero'
 
 export type DatosDelEmbudo = {
   // Los de quien mira (vacío la primera vez: la vista crea el de por defecto).
@@ -14,8 +19,8 @@ export type DatosDelEmbudo = {
   tablero: Tablero | null
 }
 
-// `/leads?vista=embudo`: los embudos de quien mira y el kanban del elegido. Los filtros del listado no
-// aplican acá. Sólo las oportunidades propias sobre leads vivos de la cartera (lo decide la RLS).
+// `/leads?vista=embudo`: los embudos de quien mira y el kanban del elegido, con la búsqueda de `?q=` (cierre 1). Los
+// filtros del listado no aplican acá. Sólo las oportunidades propias sobre leads vivos de la cartera (lo decide la RLS).
 export async function leerVistaDeEmbudo(
   parametros: ParametrosDeUrl,
 ): Promise<Resultado<DatosDelEmbudo>> {
@@ -28,7 +33,10 @@ export async function leerVistaDeEmbudo(
   if (!elegido) {
     return ok({ embudos: [], tablero: null })
   }
-  const tablero = await leerTablero({ embudoId: elegido.id, tope: TAMANO_DE_COLUMNA })
+  const buscar = busquedaDelEmbudo(
+    unParametro(parametros[CLAVE_DE_BUSQUEDA_DEL_EMBUDO] ?? undefined),
+  )
+  const tablero = await leerTablero({ embudoId: elegido.id, tope: TAMANO_DE_COLUMNA, buscar })
   if (!tablero.ok) {
     return tablero
   }

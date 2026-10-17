@@ -20,6 +20,16 @@ export const VISTA_EMBUDO = 'embudo'
 export const CLAVE_DE_EMBUDO = 'embudo'
 // La etapa que se ve en el celular (una por vez, como pestañas).
 export const CLAVE_DE_ETAPA = 'etapa'
+// La búsqueda dentro del embudo (cierre 1): el título de la oportunidad o el nombre del lead, en todas las columnas.
+export const CLAVE_DE_BUSQUEDA_DEL_EMBUDO = 'q'
+export const MINIMO_DE_LA_BUSQUEDA = 2
+
+// Lo que se busca, tal como lo aplica la base (`_embudo_patron`): sin espacios de los costados, hasta 60 caracteres, y
+// nada con menos de 2.
+export function busquedaDelEmbudo(texto: string | null | undefined): string | null {
+  const limpio = (texto ?? '').trim().slice(0, 60)
+  return limpio.length < MINIMO_DE_LA_BUSQUEDA ? null : limpio
+}
 
 export type LeadDeTarjeta = { id: string; numeros: NumerosDeLead; nombre: string }
 
@@ -49,6 +59,8 @@ export type Columna = {
 export type Tablero = {
   embudo: { id: string; nombre: string; esDefault: boolean; actualizadoEn: string }
   columnas: Columna[]
+  // La búsqueda con la que se leyó (null = todas); «Ver más» la conserva.
+  busqueda: string | null
 }
 
 const numero = z.union([z.number(), z.string()]).transform((v) => Number(v))
@@ -112,7 +124,7 @@ const esquemaTablero = z.object({
 })
 
 // Lo que entrega `embudo_tablero()`. Nulo (un embudo que no es de quien mira) o roto: `null`.
-export function tableroDesde(crudo: unknown): Tablero | null {
+export function tableroDesde(crudo: unknown, busqueda: string | null = null): Tablero | null {
   const leido = esquemaTablero.safeParse(crudo)
   if (!leido.success) {
     return null
@@ -131,6 +143,7 @@ export function tableroDesde(crudo: unknown): Tablero | null {
       hayMas: c.hay_mas,
       tarjetas: tarjetasDesde(c.tarjetas),
     })),
+    busqueda,
   }
 }
 
@@ -248,6 +261,7 @@ export function firmaDelTablero(tablero: Tablero): string {
   return [
     tablero.embudo.id,
     tablero.embudo.actualizadoEn,
+    tablero.busqueda ?? '',
     ...tablero.columnas.map(
       (c) =>
         `${c.etapa.id}:${String(c.total.n)}${c.total.hayMas ? '+' : ''}:${c.tarjetas.map((t) => t.actualizadoEn).join(',')}`,

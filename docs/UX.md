@@ -287,7 +287,12 @@ dice, con un camino a lo antiguo.
   N leads» sí es exacto (son las filas del archivo).
 - **Embudo (kanban):** la cabecera de cada columna y la pestaña del celular dicen «37» o «500+». «Ver más (N)» dice cuántas
   faltan mientras se sabe; con «500+», sólo «Ver más». Una columna dibuja a lo sumo 500 tarjetas y ahí, en vez de «Ver más»:
-  «Mostrando las 500 con actividad más reciente. Las demás siguen en la ficha de cada lead.»
+  «Mostrando las 500 con actividad más reciente. Busca para llegar a las demás.» con «Buscar en el embudo», que lleva el foco a
+  la búsqueda (cierre 1). «Buscar en el embudo» (arriba, junto al selector; `?q=`, desde 2 caracteres y un momento después de
+  dejar de tipear) busca en el título de la oportunidad y en el nombre del lead, en todas las columnas; el aviso de arriba dice
+  «Buscando «x» en tus oportunidades…», una columna sin coincidencias dice «Nada coincide en esta etapa.», «Ver más» conserva la
+  búsqueda y mover una tarjeta la lleva a su columna. Sin red no navega: «Sin conexión: la búsqueda se aplica cuando vuelva la
+  red.» y se aplica sola al volver. La búsqueda es de la vista de embudo: «Lista | Embudo» no la lleva a la otra.
 - **Vehículos (cierre 1):** el bloque «Vínculo e interesados» de un vehículo dice «Mostrando los 50 vínculos más recientes.» o
   «Mostrando los 100 interesados más recientes.» al pie cuando hay más; la sección «Vehículos» del lead, lo mismo en
   «Vinculados» (100), «Interesados» (100) y «Vínculos anteriores» (50); «Agregar vehículo» dice «Mostrando los primeros 20.

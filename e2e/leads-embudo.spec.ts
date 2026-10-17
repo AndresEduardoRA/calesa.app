@@ -45,7 +45,7 @@ test('la primera vez prepara el embudo por defecto, con sus etapas, y dice que l
   await expect(page.getByText('Todavía no tienes oportunidades en este embudo')).toBeVisible()
   await expect(
     page.getByText(
-      'Aquí ves tus oportunidades. Los filtros de la lista no se aplican en esta vista.',
+      'Aquí ves tus oportunidades. Los filtros de la lista no se aplican en esta vista; para llegar a una, búscala.',
     ),
   ).toBeVisible()
   await expect(page.getByRole('link', { name: 'Embudo' })).toHaveAttribute('aria-current', 'page')

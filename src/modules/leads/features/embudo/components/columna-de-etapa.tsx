@@ -1,6 +1,7 @@
 'use client'
 
 import { conteoCorto, conteoEnFrase } from '@/shared/lib/conteo'
+import { AvisoDeTope } from '@/shared/ui/aviso-de-tope'
 import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
 import type { EtapaGuardada } from '../../../entities/embudo'
@@ -22,6 +23,56 @@ type Props = {
   conEncabezado: boolean
   alMover: (tarjeta: Tarjeta, etapaId: string, motivo: string | null) => Promise<boolean>
   alVerMas: () => void
+  // Hay una búsqueda puesta (cierre 1): el vacío dice que nada coincide.
+  buscando?: boolean
+  // Lleva el foco a la búsqueda: el camino a lo que pasa del tope.
+  alIrABuscar?: () => void
+}
+
+// Al pie de una columna: «Ver más» mientras haya y no se llegue al tope; en el tope, el aviso de siempre y el camino a las
+// demás, que es buscar (cierre 1: antes era «las demás siguen en la ficha de cada lead»).
+function PieDeLaColumna(props: {
+  columna: Columna
+  faltan: number | null
+  cargando: boolean
+  buscando: boolean
+  alVerMas: () => void
+  alIrABuscar: (() => void) | undefined
+}) {
+  const { columna, faltan, cargando, alVerMas } = props
+  const enElTope = columnaEnElTope(columna)
+  if (columna.hayMas && !enElTope && (faltan === null || faltan > 0)) {
+    return (
+      <Button
+        variant="outline"
+        className="min-h-11 md:min-h-8"
+        disabled={cargando}
+        onClick={alVerMas}
+      >
+        {cargando ? 'Cargando…' : faltan === null ? 'Ver más' : `Ver más (${String(faltan)})`}
+      </Button>
+    )
+  }
+  if (!columna.hayMas || !enElTope) {
+    return null
+  }
+  return (
+    <div className="grid gap-1 px-1 py-2">
+      <AvisoDeTope
+        texto={`Mostrando las ${String(TOPE_DE_COLUMNA)} con actividad más reciente.`}
+        camino={
+          props.buscando
+            ? 'Afina la búsqueda para llegar a las demás.'
+            : 'Busca para llegar a las demás.'
+        }
+      />
+      {props.alIrABuscar && !props.buscando ? (
+        <Button variant="outline" className="min-h-11 w-fit md:min-h-8" onClick={props.alIrABuscar}>
+          Buscar en el embudo
+        </Button>
+      ) : null}
+    </div>
+  )
 }
 
 // Una etapa del embudo: su nombre (sobre su color), cuántas hay, las tarjetas y «Ver más».
@@ -33,10 +84,11 @@ export function ColumnaDeEtapa({
   conEncabezado,
   alMover,
   alVerMas,
+  buscando = false,
+  alIrABuscar,
 }: Props) {
-  const { etapa, total, tarjetas, hayMas } = columna
+  const { etapa, total, tarjetas } = columna
   const { locale } = useRegional()
-  const enElTope = columnaEnElTope(columna)
   // Cuántas faltan sólo se sabe mientras el total no pasó el tope.
   const faltan = total.hayMas ? null : total.n - tarjetas.length
   return (
@@ -55,7 +107,7 @@ export function ColumnaDeEtapa({
       ) : null}
       {tarjetas.length === 0 ? (
         <p className="px-1 py-4 text-center text-(length:--text-sm) text-(--color-ink-soft)">
-          Sin oportunidades en esta etapa.
+          {buscando ? 'Nada coincide en esta etapa.' : 'Sin oportunidades en esta etapa.'}
         </p>
       ) : (
         <ul className="grid gap-2">
@@ -71,22 +123,14 @@ export function ColumnaDeEtapa({
           ))}
         </ul>
       )}
-      {hayMas && !enElTope && (faltan === null || faltan > 0) ? (
-        <Button
-          variant="outline"
-          className="min-h-11 md:min-h-8"
-          disabled={cargando}
-          onClick={alVerMas}
-        >
-          {cargando ? 'Cargando…' : faltan === null ? 'Ver más' : `Ver más (${String(faltan)})`}
-        </Button>
-      ) : null}
-      {hayMas && enElTope ? (
-        <p role="status" className="px-1 py-2 text-(length:--text-sm) text-(--color-ink-soft)">
-          Mostrando las {TOPE_DE_COLUMNA} con actividad más reciente. Las demás siguen en la ficha
-          de cada lead.
-        </p>
-      ) : null}
+      <PieDeLaColumna
+        columna={columna}
+        faltan={faltan}
+        cargando={cargando}
+        buscando={buscando}
+        alVerMas={alVerMas}
+        alIrABuscar={alIrABuscar}
+      />
     </section>
   )
 }

@@ -40,6 +40,8 @@ export type LectorDeEmbudos = () => Promise<Resultado<Embudo[]>>
 export type LectorDeTablero = (pedido: {
   embudoId: string
   tope: number
+  // Lo que se busca en el embudo (`busquedaDelEmbudo()`); null = todas.
+  buscar: string | null
 }) => Promise<Resultado<Tablero | null>>
 
 // «Ver más» de una columna, desde la última que se ve.
@@ -47,6 +49,7 @@ export type LectorDePaginaDeEtapa = (pedido: {
   etapaId: string
   antes: { antesEn: string; antesId: string }
   tope: number
+  buscar: string | null
 }) => Promise<Resultado<{ tarjetas: Tarjeta[]; hayMas: boolean }>>
 
 export type ResultadoDeOportunidad = {

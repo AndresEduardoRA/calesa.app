@@ -13,6 +13,8 @@ type Props = {
   estado: EstadoDelTablero
   etapaDeLaUrl: string | null
   alElegirEtapa: (id: string) => void
+  // Lleva el foco a «Buscar en el embudo»: el camino a lo que pasa del tope de una columna.
+  alIrABuscar?: () => void
 }
 
 // Las columnas del embudo. En escritorio, una al lado de la otra, con desplazamiento lateral dentro
@@ -20,7 +22,7 @@ type Props = {
 // Se dibuja una sola de las dos (cierre 1): la elige el servidor con el ancho de la petición, así el HTML no las lleva
 // ambas y la hidratación no cambia nada; girar o redimensionar la cambia en el cliente. Con 500 tarjetas en una columna,
 // la copia escondida duplicaba los nodos (26.000 en el celular) y el HTML.
-export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa }: Props) {
+export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa, alIrABuscar }: Props) {
   const { tablero, moviendo, cargando, moverA, verMas, anuncio } = estado
   const { locale } = useRegional()
   const esEscritorio = useAlMenos(CORTE_DEL_TABLERO)
@@ -38,6 +40,8 @@ export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa }: Props) 
         conEncabezado={conEncabezado}
         alMover={moverA}
         alVerMas={() => void verMas(id)}
+        buscando={tablero.busqueda !== null}
+        {...(alIrABuscar ? { alIrABuscar } : {})}
       />
     ) : null
   }
