@@ -705,6 +705,23 @@ do $$ declare l3 uuid; f jsonb; begin
   if public._bajas_en_curso() <> array['00000000-0000-0000-0000-0000000001b6']::uuid[] then raise exception 'una cuenta activa no ve la baja en curso: %', public._bajas_en_curso(); end if;
 end $$;
 reset role;
+-- Una cuenta que ya no está activa (la de quien se va, con su sesión todavía abierta, y una bloqueada) no se entera de quién más
+-- está en baja: lo que devuelve `_bajas_en_curso()` es siempre un subconjunto de lo que `perfiles` le entrega.
+insert into auth.users (id, email, raw_app_meta_data) values ('00000000-0000-0000-0000-0000000001b9', 'baja-bloqueada@ejemplo.com', '{"invitado": true}');
+update public.perfiles set bloqueado = true, bloqueado_en = now(), bloqueo_motivo = 'prueba' where id = '00000000-0000-0000-0000-0000000001b9';
+do $$ declare u text; begin
+  foreach u in array array['00000000-0000-0000-0000-0000000001b6', '00000000-0000-0000-0000-0000000001b9'] loop
+    perform set_config('request.jwt.claim.sub', u, true);
+    set local role authenticated;
+    if public._bajas_en_curso() <> '{}'::uuid[] then raise exception 'una cuenta que no está activa (%) ve las bajas en curso: %', u, public._bajas_en_curso(); end if;
+    if exists (select 1 from public.perfiles) then raise exception 'una cuenta que no está activa lee perfiles'; end if;
+    if exists (select 1 from public.leads_vista) then raise exception 'una cuenta que no está activa lee leads'; end if;
+    reset role;
+  end loop;
+  perform set_config('request.jwt.claim.sub', '', true);
+  -- Sin sesión (los jobs, service_role) sigue viendo la lista entera.
+  if public._bajas_en_curso() <> array['00000000-0000-0000-0000-0000000001b6']::uuid[] then raise exception 'sin sesión no ve la baja en curso: %', public._bajas_en_curso(); end if;
+end $$;
 -- Como la base: la vista y la fuente (`_lead_dueno`) dicen lo mismo para todo lead mientras dura la baja.
 do $$ begin
   if exists (select 1 from public.leads_vista v where v.dueno_id is distinct from public._lead_dueno(v.id)) then raise exception 'leads_vista.dueno_id y _lead_dueno() no coinciden con una baja en curso'; end if;
