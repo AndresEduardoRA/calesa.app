@@ -14,10 +14,15 @@ import { useAtajo } from '@/shared/ui/atajos'
 import { Drawer } from '@/shared/ui/drawer'
 import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import { avisarExito } from '@/shared/ui/toasts'
+import { useCierreConCambios } from '@/shared/ui/use-cierre-con-cambios'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import type { DisponibilidadDeApibara } from '../../../entities/apibara'
 import type { Vehiculo } from '../../../entities/vehiculo'
-import { useFormularioDeVehiculo, type Guardado } from '../hooks/use-formulario-de-vehiculo'
+import {
+  useFormularioDeVehiculo,
+  type FormularioDeVehiculo as EstadoDelFormulario,
+  type Guardado,
+} from '../hooks/use-formulario-de-vehiculo'
 import { useFuentesDelPanel } from '../hooks/use-fuentes-del-panel'
 import { usePanelDeVehiculo } from '../hooks/use-panel-de-vehiculo'
 import { useGuardadoDeSubasta } from '../../subasta/hooks/use-guardado-de-subasta'
@@ -55,6 +60,16 @@ function avisarCreado(origen: OrigenResumen, { numero }: Guardado, abrirFicha: (
     etiqueta: 'Abrir ficha',
     sale: true,
     alHacer: abrirFicha,
+  })
+}
+
+// Cerrar el panel no pregunta (el borrador guarda lo escrito): sólo una salida desde un aviso («Abrir ficha»), que lo dejaría
+// atrás, pregunta en el pie.
+function useSalidaDelPanel(estado: EstadoDelFormulario, alCerrar: () => void) {
+  return useCierreConCambios({
+    hayCambios: estado.hayCambios,
+    alCerrar,
+    alDescartar: estado.descartarBorrador,
   })
 }
 
@@ -105,13 +120,13 @@ function Contenido({
     alGuardar,
   })
 
-  const { enCurso } = estado
+  const salida = useSalidaDelPanel(estado, alCerrar)
   useEffect(() => {
-    if (!enCurso && volverAlTitulo.current) {
+    if (!estado.enCurso && volverAlTitulo.current) {
       volverAlTitulo.current = false
       document.getElementById('titulo')?.focus()
     }
-  }, [enCurso, volverAlTitulo])
+  }, [estado.enCurso, volverAlTitulo])
 
   return (
     <div className="grid gap-4">
@@ -139,9 +154,10 @@ function Contenido({
         }}
       />
       <PieDelPanel
+        salida={salida}
         idFormulario={idFormulario}
         esAlta={vehiculo === null}
-        enCurso={enCurso}
+        enCurso={estado.enCurso}
         alCancelar={alCerrar}
         alGuardarYSeguir={() => void estado.enviar(true)}
       />

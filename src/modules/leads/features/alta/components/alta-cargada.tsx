@@ -7,9 +7,11 @@ import { enfocarPrimerError } from '@/shared/lib/formularios'
 import { RUTAS } from '@/shared/lib/rutas'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Button } from '@/shared/ui/button'
+import { ConfirmarDescarte } from '@/shared/ui/confirmar-descarte'
 import { Drawer } from '@/shared/ui/drawer'
 import { useRegional } from '@/shared/ui/regional'
 import { avisarExito } from '@/shared/ui/toasts'
+import { useCierreConCambios, type CierreConCambios } from '@/shared/ui/use-cierre-con-cambios'
 import {
   ID_DEL_SEGUIMIENTO_DEL_ALTA,
   avisoDelPieDelAlta,
@@ -18,7 +20,7 @@ import {
 } from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import { CLAVE_DE_SECCION } from '../../../entities/ficha'
-import { useAltaDeLead, type Guardado, type Paso } from '../hooks/use-alta-de-lead'
+import { useAltaDeLead, type AltaDeLead, type Guardado, type Paso } from '../hooks/use-alta-de-lead'
 import { usePanelDeAlta } from '../hooks/use-panel-de-alta'
 import { PanelDeAlta } from './panel-de-alta'
 
@@ -85,6 +87,8 @@ type PropsDelPie = {
   alVolver: () => void
   alCancelar: () => void
   alGuardar: () => void
+  // Una salida pendiente (un aviso con «Abrir ficha») con algo escrito: se pregunta en el mismo pie.
+  salida: CierreConCambios
 }
 
 // Los botones del drawer. En los datos: «Guardar lead» (el lead solo, `Ctrl/Cmd+S`) y «Seguir con el
@@ -95,6 +99,9 @@ function PieDelAlta(props: PropsDelPie) {
   const { idFormulario, paso, enCurso, conPasoDeSeguimiento, hayAlgoEscrito } = props
   const enLosDatos = paso === 'datos'
   const guardarEsElPrincipal = !enLosDatos || !conPasoDeSeguimiento
+  if (props.salida.confirmando) {
+    return <ConfirmarDescarte alSeguir={props.salida.seguir} alDescartar={props.salida.descartar} />
+  }
   return (
     <div className="grid gap-2">
       <p id={ID_DEL_AVISO} className="text-(length:--text-sm) text-(--color-ink-soft)">
@@ -135,6 +142,17 @@ function PieDelAlta(props: PropsDelPie) {
   )
 }
 
+// Cerrar el drawer no pregunta (el borrador guarda lo escrito): sólo una salida desde un aviso («Abrir ficha»), que lo dejaría
+// atrás, pregunta en su pie.
+function useSalidaDelAlta(alta: AltaDeLead, panel: ReturnType<typeof usePanelDeAlta>) {
+  return useCierreConCambios({
+    hayCambios: alta.hayCambios,
+    alCerrar: panel.cerrar,
+    alDescartar: alta.descartar,
+    abierto: panel.abierto,
+  })
+}
+
 // El drawer «Nuevo lead» con todo lo suyo (el estado del alta, los atajos de guardar, el foco, el
 // borrador y el panel). Se pide con `import()` la primera vez que se abre (`alta-de-lead.tsx`): el shell
 // sólo trae el botón y la tecla `N`, y esto no viaja en el JS de ninguna otra pantalla. El estado vive
@@ -166,6 +184,7 @@ export function AltaCargada({ contexto, campos }: Props) {
     },
   })
   const { paso, enCurso, enviar, guardar } = alta
+  const salida = useSalidaDelAlta(alta, panel)
 
   useAtajo('guardarYSeguir', () => void enviar(), panel.abierto)
   useAtajo('guardar', () => void guardar(), panel.abierto)
@@ -207,6 +226,7 @@ export function AltaCargada({ contexto, campos }: Props) {
             alVolver={alta.volver}
             alCancelar={panel.cerrar}
             alGuardar={() => void guardar()}
+            salida={salida}
           />
         }
       >

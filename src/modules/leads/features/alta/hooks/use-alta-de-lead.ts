@@ -3,11 +3,14 @@
 import { useMemo, useState } from 'react'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
-import { valoresIniciales, type ContextoDeAlta } from '../../../entities/alta'
+import {
+  hayAlgoEscritoEnElAlta,
+  valoresIniciales,
+  type ContextoDeAlta,
+} from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import { hayAlgoEscrito, valoresDeSeguimientoNuevo } from '../../../entities/seguimiento-nuevo'
-import type { ValoresDelSeguimiento } from '../../../entities/seguimiento'
-import { conSeguimientoCambiado, conTelefonoRevisado, limpio, nuevoId } from './estado-del-alta'
+import { accionesDelEstado, limpio, nuevoId } from './estado-del-alta'
 import { useBorradorDelAlta } from './use-borrador-del-alta'
 import { useVerificacionDelAlta, vistaDelTelefono } from './use-verificacion-del-alta'
 import { useEnvioDelAlta, type Guardado } from './use-envio-del-alta'
@@ -89,6 +92,13 @@ export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Ar
     // Hay un primer seguimiento que ofrecer: con tipos activos. El paso 2 es opcional.
     conPasoDeSeguimiento: contexto.tiposDeSeguimiento.length > 0,
     hayAlgoEscrito: hayAlgoEscrito(estado.seguimiento),
+    // Algo que se perdería al irse a otra pantalla: la pregunta de una salida desde un aviso («Abrir ficha»).
+    hayCambios: hayAlgoEscritoEnElAlta(estado.valores, estado.seguimiento),
+    // Tira lo escrito y deja el formulario listo para otro lead.
+    descartar: () => {
+      borrador.limpiar()
+      setEstado(limpio(nuevoId(), iniciales, seguimientoInicial))
+    },
     aviso: estado.aviso,
     enCurso,
     enLinea,
@@ -98,21 +108,7 @@ export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Ar
     pais: pais.campo,
     anuncioDelPais: pais.anuncio,
     cambiar: pais.cambiar,
-    cambiarSeguimiento: <K extends keyof ValoresDelSeguimiento>(
-      clave: K,
-      valor: ValoresDelSeguimiento[K],
-    ) => {
-      setEstado((antes) => conSeguimientoCambiado(antes, clave, valor))
-    },
-    tomar: (tomarlo: boolean) => {
-      setEstado((antes) => ({ ...antes, adoptar: tomarlo }))
-    },
-    revisarTelefono: () => {
-      setEstado((antes) => conTelefonoRevisado(antes, contexto.telefonoCc))
-    },
-    volver: () => {
-      setEstado((antes) => ({ ...antes, paso: 'datos' }))
-    },
+    ...accionesDelEstado(setEstado, contexto.telefonoCc),
     enviar,
     guardar,
   }

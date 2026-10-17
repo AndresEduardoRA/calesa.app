@@ -260,3 +260,28 @@ export function conTelefonoRevisado(antes: Estado, codigoDePais: string | null):
 export function sinElOrigen(antes: Estado): Estado {
   return { ...antes, valores: { ...antes.valores, [CLAVE_DEL_ALTA.origen]: '' } }
 }
+
+// Lo que el formulario del alta cambia en su estado sin pasar por el servidor: lo escrito del primer seguimiento, tomar o no el
+// lead del limbo, revisar el teléfono al salir del campo y volver al paso de los datos.
+export function accionesDelEstado(
+  setEstado: (cambio: (antes: Estado) => Estado) => void,
+  codigoDePais: string | null,
+) {
+  return {
+    cambiarSeguimiento: <K extends keyof ValoresDelSeguimiento>(
+      clave: K,
+      valor: ValoresDelSeguimiento[K],
+    ) => {
+      setEstado((antes) => conSeguimientoCambiado(antes, clave, valor))
+    },
+    tomar: (tomarlo: boolean) => {
+      setEstado((antes) => ({ ...antes, adoptar: tomarlo }))
+    },
+    revisarTelefono: () => {
+      setEstado((antes) => conTelefonoRevisado(antes, codigoDePais))
+    },
+    volver: () => {
+      setEstado((antes) => ({ ...antes, paso: 'datos' }))
+    },
+  }
+}

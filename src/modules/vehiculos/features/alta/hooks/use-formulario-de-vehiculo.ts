@@ -204,6 +204,8 @@ export function useFormularioDeVehiculo({ origenId, vehiculo, fuentes, activo, a
     enviar,
     // Antes de recargar la versión de otra persona: lo escrito se descarta a propósito.
     descartarBorrador: borrador.limpiar,
+    // Lo escrito difiere de lo guardado (o de los valores por defecto de un alta): una salida desde un aviso lo perdería.
+    hayCambios: JSON.stringify(estado.valores) !== JSON.stringify(iniciales),
   }
 }
 

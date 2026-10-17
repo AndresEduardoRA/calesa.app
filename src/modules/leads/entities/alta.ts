@@ -16,6 +16,8 @@ import {
 } from '@/shared/lib/campos'
 import { valorDefectoVigente, type CampoDeLead, type DatosDeLaEmpresa } from './campo'
 import type { Documento } from './documento'
+import { hayAlgoEscrito } from './seguimiento-nuevo'
+import type { ValoresDelSeguimiento } from './seguimiento'
 import { normalizarTelefono } from './telefono'
 
 // --- Lo que el drawer necesita de la base, en un viaje --------------------------------------------
@@ -333,4 +335,22 @@ export function textoDeLeadGuardado(args: {
   const hecho = args.adoptado ? 'tomado' : 'creado'
   const numero = numeroEnFrase(args.numeros)
   return `Lead ${hecho}${args.conSeguimiento ? '' : ' sin seguimiento'}${numero === null ? '' : ` · ${numero}`}`
+}
+
+// Si el alta tiene algo escrito que se perdería al irse a otra pantalla (la acción «Abrir ficha» de un aviso): el teléfono, el
+// nombre o algo del primer seguimiento. Lo demás (el origen, el tipo, un campo con su valor por defecto) lo trae el formulario
+// solo, y escribir en un campo del layout sin teléfono ni nombre no es un lead a medio hacer.
+export function hayAlgoEscritoEnElAlta(
+  valores: ValoresDeFormulario,
+  seguimiento: ValoresDelSeguimiento,
+): boolean {
+  const texto = (clave: string) => {
+    const valor = valores[clave]
+    return typeof valor === 'string' ? valor.trim() : ''
+  }
+  return (
+    texto(CLAVE_DEL_ALTA.telefono) !== '' ||
+    texto(CLAVE_DEL_ALTA.nombre) !== '' ||
+    hayAlgoEscrito(seguimiento)
+  )
 }
