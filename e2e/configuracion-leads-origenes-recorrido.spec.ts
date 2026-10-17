@@ -196,13 +196,13 @@ test('B · con 12 orígenes, uno desactivado y uno con leads: la lista, el alta 
 
   // El filtro del listado: ofrece todos (también el apagado, con el lead que lo tenga).
   await page.goto('/leads?panel=filtros')
-  await expect(
-    page.getByRole('group', { name: 'Origen del lead' }).filter({ visible: true }),
-  ).toBeVisible()
-  await page
+  // `.first()`: antes de saber que es escritorio el panel también abre como hoja y por un instante hay dos grupos.
+  const delFiltro = page
     .getByRole('group', { name: 'Origen del lead' })
     .filter({ visible: true })
-    .scrollIntoViewIfNeeded()
+    .first()
+  await expect(delFiltro).toBeVisible()
+  await delFiltro.scrollIntoViewIfNeeded()
   await sinScrollHorizontal(page)
   await capturar(page, info, 'duena-doce-filtro')
 
@@ -230,10 +230,11 @@ test('C · con el máximo (100): lo dice, «Nuevo origen» se apaga y la lista s
   await page.getByText('100 de 100 orígenes posibles.').scrollIntoViewIfNeeded()
   await capturar(page, info, 'duena-cien-fondo')
   await page.goto('/leads?panel=filtros')
-  await expect(
-    page.getByRole('group', { name: 'Origen del lead' }).filter({ visible: true }),
-  ).toBeVisible()
-  const grupo = page.getByRole('group', { name: 'Origen del lead' }).filter({ visible: true })
+  const grupo = page
+    .getByRole('group', { name: 'Origen del lead' })
+    .filter({ visible: true })
+    .first()
+  await expect(grupo).toBeVisible()
   await grupo.scrollIntoViewIfNeeded()
   await grupo.getByLabel('Buscar en Origen del lead').fill('relleno 07')
   await sinScrollHorizontal(page)

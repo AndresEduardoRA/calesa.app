@@ -169,7 +169,9 @@ test('un teléfono que ya es mío: se dice al terminar de tipear y no deja crear
 
   await panel.getByLabel('Teléfono principal').fill(nacional)
   const tipeado = performance.now()
-  await expect(panel.getByText(/Ya existe: E2E Existe .* \(#\d+\), y es tuyo\./)).toBeVisible()
+  await expect(
+    panel.getByText(/Ya existe: E2E Existe .* \((?:N\.º|Tu n\.º) [\d.]+\), y es tuyo\./),
+  ).toBeVisible()
   const tardo = performance.now() - tipeado
   console.warn(
     `[duplicado] avisado ${formatearNumero(tardo, { decimales: 0 })} ms después de tipear (debounce 400 ms)`,
