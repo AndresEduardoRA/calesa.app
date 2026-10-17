@@ -323,10 +323,6 @@ export function permisoDePapelera(
 }
 
 // La papelera la abre quien envía en algún origen (ve lo suyo) o quien puede vaciarla (ve todo).
-// Cuántos lotes dibuja cada página de la papelera (un lote ya trae hasta 200 vehículos): lo que crece es la
-// cantidad de lotes, y se lee de a páginas por cursor (`.claude/rules/escala.md`).
-export const LOTES_POR_PAGINA = 5
-
 export function puedeAbrirLaPapelera(permisos: Permisos): boolean {
   return puede(permisos, 'vehiculos.eliminar') || puede(permisos, 'vehiculos.papelera.purgar')
 }

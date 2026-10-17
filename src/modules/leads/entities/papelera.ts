@@ -11,9 +11,6 @@ import { alcanceDe, puede, type Permisos } from '@/shared/lib/permisos'
 import { TOPE_DE_VINCULADOS, VEHICULOS } from './ficha'
 
 export const MAXIMO_POR_LOTE = 200
-// Cuántos lotes dibuja cada página de la papelera (un lote ya trae hasta 200 leads): lo que crece es la
-// cantidad de lotes, y se lee de a páginas por cursor (`.claude/rules/escala.md`).
-export const LOTES_POR_PAGINA = 5
 
 // El valor de los textos que dice la pantalla de la papelera.
 export const TITULO_DE_LA_PAPELERA = 'Papelera de leads'

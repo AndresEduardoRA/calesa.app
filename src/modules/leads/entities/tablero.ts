@@ -1,6 +1,6 @@
 // El kanban de un embudo (`/leads?vista=embudo&embudo=<id>`): una columna por etapa con sus tarjetas
 // (las oportunidades de quien mira, abiertas y cerradas: una ganada o perdida se queda en su columna
-// final). Cada columna trae hasta `TOPE_POR_COLUMNA` y «Ver más» pide las siguientes. Sin arrastrar:
+// final). Cada columna trae hasta `TAMANO_DE_COLUMNA` y «Ver más» pide las siguientes. Sin arrastrar:
 // se mueve con «Mover a…» (docs/UX.md).
 import { CAMPOS_DE_NUMEROS, numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { z } from 'zod'
@@ -9,9 +9,9 @@ import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import { esquemaEtapa, etapaDesde, type EtapaGuardada } from './embudo'
 import { ESTADOS_DE_OPORTUNIDAD, type EstadoDeOportunidad } from './oportunidad'
 
-// Cuántas trae cada pedido («Ver más» suma otras tantas) y hasta cuántas se dibujan en una columna: más
-// allá se avisa y las demás siguen en la ficha de cada lead (`.claude/rules/escala.md`).
-export const TOPE_POR_COLUMNA = 50
+// Cuántas trae cada pedido («Ver más» suma otras tantas: `TAMANO_DE_COLUMNA`, de `shared/lib/paginacion`) y hasta
+// cuántas se dibujan en una columna: más allá se avisa y las demás siguen en la ficha de cada lead
+// (`.claude/rules/escala.md`).
 export const TOPE_DE_COLUMNA = TOPE_DE_LO_CARGADO
 
 // La vista y lo elegido en ella, en la URL de `/leads`.

@@ -24,6 +24,8 @@ type Props = DatosDelOrigen & {
   origenes: readonly OrigenResumen[]
   esquema: EsquemaDeFiltros
   pagina: Pagina<FilaDeVehiculo>
+  // «Ítems por página»: lo que dibuja esta página y hasta cuánto ofrece el selector.
+  porPagina: { valor: number; opciones: readonly number[] }
   vistas: readonly VistaGuardada[]
   puedeConfigurarCampos: boolean
   // Si puede dar de alta en este origen, y por qué no cuando el origen está desactivado.
@@ -41,8 +43,16 @@ type Props = DatosDelOrigen & {
 // El inventario: una pestaña por origen y, adentro, los filtros de ese origen, su lista y el
 // panel de alta y edición. Todo el estado (origen, filtros, página, panel) vive en la URL.
 export function ListadoDeVehiculos(props: Props) {
-  const { origenes, esquema, vistas, puedeConfigurarCampos, permisoDeAlta, enEdicion, ...demas } =
-    props
+  const {
+    origenes,
+    esquema,
+    vistas,
+    puedeConfigurarCampos,
+    permisoDeAlta,
+    enEdicion,
+    porPagina,
+    ...demas
+  } = props
   const { verPapelera, apibara, ...resto } = demas
   const { origen, campos, categorias } = resto
   const nuevo = <BotonNuevoVehiculo origen={origen} permiso={permisoDeAlta} />
@@ -58,6 +68,7 @@ export function ListadoDeVehiculos(props: Props) {
       <FilterShell
         key={origen.id}
         esquema={esquema}
+        porPagina={porPagina}
         vistas={<VistasDeVehiculos esquema={esquema} origenId={origen.id} vistas={vistas} />}
         acciones={
           <>

@@ -195,6 +195,7 @@ export const PANEL_EXPORTAR = 'exportar'
 const NO_SON_FILTROS = new Set([
   'panel',
   'cursor',
+  'por',
   'lead',
   'para',
   'pestana',

@@ -17,6 +17,8 @@ export const LARGO_MAXIMO_DE_TEXTO = 100
 // abra el listado: «nuevo», un registro).
 export const CLAVE_DE_CURSOR = 'cursor'
 export const CLAVE_DE_PANEL = 'panel'
+// De a cuántos ítems se ve la página (`?por=10|25|50|100`): no es un filtro, y cambiarla vuelve a la primera página.
+export const CLAVE_DE_POR_PAGINA = 'por'
 export const PANEL_DE_FILTROS = 'filtros'
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/

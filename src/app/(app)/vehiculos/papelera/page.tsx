@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { requerirSesion } from '@/modules/equipo'
 import { getOrigenes } from '@/modules/origenes'
 import {
-  LOTES_POR_PAGINA,
   PapeleraDeVehiculos,
   leerPapelera,
   limpiezaPendiente,
@@ -13,7 +12,7 @@ import {
 } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
-import { leerCursor } from '@/shared/lib/paginacion'
+import { LOTES_POR_PAGINA, leerCursor } from '@/shared/lib/paginacion'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 

@@ -48,6 +48,7 @@ export default async function PaginaLeads({ searchParams }: PageProps<'/leads'>)
       parametros,
       zona: ajustes?.zonaHoraria ?? ZONA_POR_DEFECTO,
       usuarioId: sesion.usuarioId,
+      preferenciaDePagina: sesion.preferencias.porPagina,
     }),
   )
   return (

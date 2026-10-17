@@ -11,6 +11,7 @@ import { ChipsDeFiltros } from './chips-de-filtros'
 import { ContextoDeFiltros } from './contexto'
 import { CampoDeBusqueda } from './controles'
 import { PanelDeFiltros } from './panel-de-filtros'
+import { SelectorDelListado, type PorPaginaDeLaLista } from './selector-de-por-pagina'
 import { useFiltros } from './use-filtros'
 
 // Desde acá el panel de filtros entra al costado; por debajo, en una hoja inferior.
@@ -68,6 +69,42 @@ function HojaDeFiltros(props: {
   )
 }
 
+// La lista y, a su lado desde `lg`, el panel de filtros (el panel de la hoja del celular es otro, aparte). Mientras llega
+// una lista filtrada, la anterior se atenúa.
+function CuerpoDeLaLista(props: {
+  conPanel: boolean
+  panel: ReactNode
+  pendiente: boolean
+  children: ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        'grid items-start gap-4',
+        props.conPanel && 'lg:grid-cols-[15rem_minmax(0,1fr)]',
+      )}
+    >
+      {props.conPanel ? (
+        <aside
+          aria-label="Filtros"
+          className="hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-4 lg:block"
+        >
+          {props.panel}
+        </aside>
+      ) : null}
+      <div
+        aria-busy={props.pendiente}
+        className={cn(
+          'min-w-0 transition-opacity duration-(--dur-rapida)',
+          props.pendiente && 'opacity-60',
+        )}
+      >
+        {props.children}
+      </div>
+    </div>
+  )
+}
+
 type Props = {
   esquema: EsquemaDeFiltros
   // El menú de vistas guardadas, si el listado las tiene.
@@ -78,6 +115,9 @@ type Props = {
   pieDelPanel?: ReactNode
   // Al pie de una sección del panel (por su clave).
   accionesDeSeccion?: Readonly<Record<string, ReactNode>>
+  // «Ítems por página» de este listado: lo que dibuja la página y los tamaños que ofrece (hasta su máximo). Sin esto, el
+  // listado no lo ofrece. Vive en la barra desde `md` y, por debajo, al pie de la lista, junto a las páginas.
+  porPagina?: PorPaginaDeLaLista
   // La lista. Adentro puede usar `useFiltrosDelListado()`.
   children: ReactNode
 }
@@ -86,7 +126,7 @@ type Props = {
 // «Limpiar»; el panel al costado en escritorio (plegable) y en una hoja inferior en el celular.
 // Todo el estado vive en la URL. No sabe de ningún módulo: cada listado le pasa su esquema.
 export function FilterShell(props: Props) {
-  const { esquema, vistas, acciones, pieDelPanel, accionesDeSeccion, children } = props
+  const { esquema, vistas, acciones, pieDelPanel, accionesDeSeccion, porPagina, children } = props
   const filtros = useFiltros(esquema)
   const esEscritorio = useEsEscritorio()
   const [plegado, setPlegado] = useState(false)
@@ -126,34 +166,27 @@ export function FilterShell(props: Props) {
           ) : null}
           {vistas}
           <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+            <SelectorDelListado
+              porPagina={porPagina}
+              aplicar={filtros.aplicarPorPagina}
+              className="hidden md:grid"
+            />
             {acciones}
           </div>
         </div>
         <ChipsDeFiltros esquema={esquema} />
-        <div
-          className={cn(
-            'grid items-start gap-4',
-            hayPanel && !plegado && 'lg:grid-cols-[15rem_minmax(0,1fr)]',
-          )}
+        <CuerpoDeLaLista
+          conPanel={hayPanel && !plegado}
+          panel={panel}
+          pendiente={filtros.pendiente}
         >
-          {hayPanel && !plegado ? (
-            <aside
-              aria-label="Filtros"
-              className="hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-4 lg:block"
-            >
-              {panel}
-            </aside>
-          ) : null}
-          <div
-            aria-busy={filtros.pendiente}
-            className={cn(
-              'min-w-0 transition-opacity duration-(--dur-rapida)',
-              filtros.pendiente && 'opacity-60',
-            )}
-          >
-            {children}
-          </div>
-        </div>
+          {children}
+        </CuerpoDeLaLista>
+        <SelectorDelListado
+          porPagina={porPagina}
+          aplicar={filtros.aplicarPorPagina}
+          className="md:hidden"
+        />
       </div>
       <HojaDeFiltros
         abierta={filtros.panelAbierto && !esEscritorio}

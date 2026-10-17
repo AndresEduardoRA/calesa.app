@@ -5,6 +5,7 @@ import { useMemo, useTransition } from 'react'
 import {
   CLAVE_DE_CURSOR,
   CLAVE_DE_PANEL,
+  CLAVE_DE_POR_PAGINA,
   PANEL_DE_FILTROS,
   clavesDeUrl,
   escribirFiltro,
@@ -29,6 +30,8 @@ export type Filtros = {
   // Un cambio ya armado (quitar un chip).
   aplicar: (cambio: Record<string, string | null>) => void
   limpiar: () => void
+  // De a cuántos ítems se ve la página: `?por=`. Vuelve a la primera y conserva filtros y búsqueda.
+  aplicarPorPagina: (tamano: number) => void
   panelAbierto: boolean
   abrirPanel: () => void
   cerrarPanel: () => void
@@ -41,10 +44,9 @@ export function useFiltros(esquema: EsquemaDeFiltros): Filtros {
   const parsers = useMemo(
     () =>
       Object.fromEntries(
-        [...clavesDeUrl(esquema), CLAVE_DE_CURSOR, CLAVE_DE_PANEL].map((clave) => [
-          clave,
-          parseAsString,
-        ]),
+        [...clavesDeUrl(esquema), CLAVE_DE_CURSOR, CLAVE_DE_PANEL, CLAVE_DE_POR_PAGINA].map(
+          (clave) => [clave, parseAsString],
+        ),
       ),
     [esquema],
   )
@@ -76,6 +78,9 @@ export function useFiltros(esquema: EsquemaDeFiltros): Filtros {
     },
     limpiar: () => {
       aplicar(limpiarFiltros(esquema))
+    },
+    aplicarPorPagina: (tamano) => {
+      aplicar({ [CLAVE_DE_POR_PAGINA]: String(tamano) })
     },
     panelAbierto: parametros[CLAVE_DE_PANEL] === PANEL_DE_FILTROS,
     // Abrir un panel suma al historial: «atrás» lo cierra.

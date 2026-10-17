@@ -12,6 +12,7 @@ export {
 export {
   CLAVE_DE_CURSOR,
   CLAVE_DE_PANEL,
+  CLAVE_DE_POR_PAGINA,
   LARGO_MAXIMO_DE_TEXTO,
   PANEL_DE_FILTROS,
   clavesDeFiltro,

@@ -1,9 +1,20 @@
 import 'server-only'
 import type { ConteoAcotado } from '@/shared/lib/conteo'
 import type { Resultado } from '@/shared/lib/errores'
-import { CLAVE_DE_CURSOR, leerFiltros, type EsquemaDeFiltros } from '@/shared/lib/filtros'
+import {
+  CLAVE_DE_CURSOR,
+  CLAVE_DE_POR_PAGINA,
+  leerFiltros,
+  type EsquemaDeFiltros,
+} from '@/shared/lib/filtros'
 import type { ParametrosDeUrl, ValoresDeFiltros } from '@/shared/lib/filtros'
-import { leerCursor, type Pagina } from '@/shared/lib/paginacion'
+import {
+  leerCursor,
+  leerPorPagina,
+  tamanoDePagina,
+  tamanosHasta,
+  type Pagina,
+} from '@/shared/lib/paginacion'
 import type { Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import {
@@ -24,7 +35,7 @@ import {
   type FiltroDescartado,
 } from '../../entities/filtros'
 import { FILTRO_TACHADOS, TOPE_DE_OCULTOS, ocultaTachados } from '../../entities/filtros-de-marcas'
-import { TAMANO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
+import { MAXIMO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
 import { puedeEditarLead } from '../../entities/edicion'
 import { idsDelNumeroBuscado } from './ids-del-numero'
 import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
@@ -32,6 +43,8 @@ import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
 export type DatosDelListado = {
   esquema: EsquemaDeFiltros
   pagina: Pagina<FilaDeLead>
+  // «Ítems por página»: lo que dibuja esta página (la URL, si no la preferencia de quien mira) y los que ofrece el selector.
+  porPagina: { valor: number; opciones: number[] }
   // Todo el layout: la tabla y el drawer filtran los activos.
   campos: CampoDeLead[]
   origenes: OrigenDeLead[]
@@ -59,6 +72,8 @@ type Entrada = {
   zona: string
   // Quien mira: con `leads.eliminar` «propios» sólo envía lo que es suyo como dueño.
   usuarioId: string
+  // De a cuántos eligió quien mira (`sesion.preferencias.porPagina`): siempre la de quien mira, también con «ver como».
+  preferenciaDePagina: number | null
 }
 
 // Los mismos filtros, pero sólo los tachados: lo que el aviso cuenta y «Mostrarlos» suma.
@@ -74,7 +89,7 @@ const soloTachados = (valores: ValoresDeFiltros): ValoresDeFiltros => ({
 const SIN_OCULTOS: ConteoAcotado = { n: 0, hayMas: false }
 
 export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<DatosDelListado>> {
-  const { permisos, parametros, zona, usuarioId } = entrada
+  const { permisos, parametros, zona, usuarioId, preferenciaDePagina } = entrada
   const [layout, origenes, etiquetas] = await Promise.all([
     leerLayoutDeLeads(),
     leerOrigenesDeLead(),
@@ -106,11 +121,18 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
     return ids
   }
   const opciones = { zona, soloMios: modo === 'mios', idsDelNumero: ids.data }
+  const tamano = tamanoDePagina({
+    pedido: leerPorPagina(
+      unParametro(parametros[CLAVE_DE_POR_PAGINA] as string | string[] | undefined),
+    ),
+    preferencia: preferenciaDePagina,
+    maximo: MAXIMO_DE_PAGINA_DE_LEADS,
+  })
   const [leida, ocultos] = await Promise.all([
     buscarLeads({
       condiciones: condicionesDeLeads(campos, valores, opciones),
       cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR] as string | string[] | undefined)),
-      tamano: TAMANO_DE_PAGINA_DE_LEADS,
+      tamano,
       clavesDeTabla: clavesDeTabla(campos),
     }),
     ocultaTachados(valores)
@@ -128,6 +150,7 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
     data: {
       esquema,
       pagina: leida.data,
+      porPagina: { valor: tamano, opciones: tamanosHasta(MAXIMO_DE_PAGINA_DE_LEADS) },
       campos,
       origenes: origenes.data,
       etiquetas: etiquetas.data,

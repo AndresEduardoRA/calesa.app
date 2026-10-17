@@ -65,12 +65,7 @@ export { accionesDeCartera, duenoDe } from './entities/cartera'
 // La papelera de leads: `/leads/papelera` la compone `app/` con los lotes que lee la base.
 export { PapeleraDeLeads } from './features/papelera/components/papelera-de-leads'
 export { leerPapeleraDeLeads } from './composicion'
-export {
-  LOTES_POR_PAGINA,
-  puedeAbrirLaPapelera,
-  puedeEnviarLead,
-  puedePurgarLeads,
-} from './entities/papelera'
+export { puedeAbrirLaPapelera, puedeEnviarLead, puedePurgarLeads } from './entities/papelera'
 // Cambiar el principal y los extras: con el lead en la cartera, como editarlo.
 export { puedeCambiarTelefonoDeLead } from './entities/telefonos'
 export { CLAVE_DE_SECCION, seccionDeLead } from './entities/ficha'

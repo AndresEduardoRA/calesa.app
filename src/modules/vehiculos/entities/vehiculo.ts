@@ -47,6 +47,10 @@ export type Vehiculo = {
   actualizadoEn: string
 }
 
+// El máximo de filas por página del inventario (el selector ofrece hasta acá): lo que cabe dentro del presupuesto de
+// `docs/RENDIMIENTO.md`. El tamaño que se lee sale de `tamanoDePagina()` de `shared/lib/paginacion`.
+export const MAXIMO_DE_PAGINA_DE_VEHICULOS = 100
+
 // Las columnas que pide `vehiculosDesde()`. Sin `apibara_raw`. Las fotos
 // vienen embebidas en la misma consulta; quien consulta las acota a la portada con
 // `FILTRO_DE_PORTADA` (sin ese filtro vendrían las 24).

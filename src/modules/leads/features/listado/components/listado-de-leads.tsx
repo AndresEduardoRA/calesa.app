@@ -8,6 +8,7 @@ import type { Pagina } from '@/shared/lib/paginacion'
 import { Button } from '@/shared/ui/button'
 import { FilterShell, useFiltrosDelListado } from '@/shared/ui/filtros'
 import type { ModoDelListado } from '../../../entities/alcance'
+import type { CampoDeLead } from '../../../entities/campo'
 import { privadosFiltrando, type FiltroDescartado } from '../../../entities/filtros'
 import { SECCION_MARCAS } from '../../../entities/filtros-de-marcas'
 import type { FilaDeLead } from '../../../entities/listado'
@@ -34,6 +35,7 @@ import { VistasDeLeads } from './vistas-de-leads'
 type Props = DatosDeLaLista & {
   esquema: EsquemaDeFiltros
   pagina: Pagina<FilaDeLead>
+  porPagina: { valor: number; opciones: readonly number[] }
   vistas: readonly VistaGuardada[]
   modo: ModoDelListado
   puedeVerTodos: boolean
@@ -77,6 +79,16 @@ function GestionarEtiquetas({ alAbrir }: { alAbrir: () => void }) {
   )
 }
 
+// Al pie del panel de filtros: cuántos campos se pueden filtrar y el camino a configurarlos.
+function PieDelPanel(props: { campos: readonly CampoDeLead[]; puedeConfigurar: boolean }) {
+  return (
+    <PieDeFiltros
+      filtrables={camposFiltrables(props.campos).length}
+      puedeConfigurar={props.puedeConfigurar}
+    />
+  )
+}
+
 // Lo que va a la derecha de la barra de filtros: la vista, el alcance, exportar y la papelera, cada
 // uno sólo para quien puede.
 function AccionesDelListado({
@@ -102,6 +114,7 @@ export function ListadoDeLeads(props: Props) {
   const {
     esquema,
     pagina,
+    porPagina,
     vistas,
     modo,
     puedeVerTodos,
@@ -127,6 +140,7 @@ export function ListadoDeLeads(props: Props) {
       <h1 className="sr-only">Leads</h1>
       <FilterShell
         esquema={esquema}
+        porPagina={porPagina}
         vistas={<VistasDeLeads esquema={esquema} vistas={vistas} modo={modo} />}
         acciones={
           <AccionesDelListado
@@ -138,12 +152,7 @@ export function ListadoDeLeads(props: Props) {
           />
         }
         accionesDeSeccion={{ [SECCION_MARCAS]: <GestionarEtiquetas alAbrir={gestionar.abrir} /> }}
-        pieDelPanel={
-          <PieDeFiltros
-            filtrables={camposFiltrables(datos.campos).length}
-            puedeConfigurar={puedeConfigurarCampos}
-          />
-        }
+        pieDelPanel={<PieDelPanel campos={datos.campos} puedeConfigurar={puedeConfigurarCampos} />}
       >
         <div className="grid gap-3">
           <AvisosDelListado

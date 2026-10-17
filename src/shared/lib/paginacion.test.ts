@@ -4,7 +4,15 @@ import {
   codificarCursor,
   enElTope,
   leerCursor,
-  TAMANO_DE_PAGINA,
+  CLAVE_DE_PREFERENCIA_POR_PAGINA,
+  TAMANOS_DE_PAGINA,
+  TAMANO_DE_COLUMNA,
+  TAMANO_DE_PAGINA_POR_DEFECTO,
+  TAMANO_DE_VER_MAS,
+  esTamanoDePagina,
+  leerPorPagina,
+  tamanoDePagina,
+  tamanosHasta,
   TOPE_DE_LO_CARGADO,
   type Cursor,
 } from './paginacion'
@@ -82,13 +90,78 @@ describe('armarPagina', () => {
 
 describe('las listas con «Ver más»', () => {
   it('el tope cae justo en una página y no la deja crecer para siempre', () => {
-    expect(TAMANO_DE_PAGINA).toBeGreaterThan(0)
-    expect(TOPE_DE_LO_CARGADO % TAMANO_DE_PAGINA).toBe(0)
-    expect(TOPE_DE_LO_CARGADO / TAMANO_DE_PAGINA).toBeLessThanOrEqual(25)
+    expect(TAMANO_DE_VER_MAS).toBeGreaterThan(0)
+    expect(TOPE_DE_LO_CARGADO % TAMANO_DE_VER_MAS).toBe(0)
+    expect(TOPE_DE_LO_CARGADO / TAMANO_DE_VER_MAS).toBeLessThanOrEqual(25)
   })
 
   it('enElTope llega justo al tope', () => {
     expect(enElTope(Array.from({ length: TOPE_DE_LO_CARGADO - 1 }))).toBe(false)
     expect(enElTope(Array.from({ length: TOPE_DE_LO_CARGADO }))).toBe(true)
+  })
+})
+
+describe('el tamaño de página que elige la persona', () => {
+  it('los tamaños son los cuatro del selector, de menor a mayor, y el de fábrica es uno de ellos', () => {
+    expect([...TAMANOS_DE_PAGINA]).toEqual([10, 25, 50, 100])
+    expect(esTamanoDePagina(TAMANO_DE_PAGINA_POR_DEFECTO)).toBe(true)
+    expect(CLAVE_DE_PREFERENCIA_POR_PAGINA).toBe('listas.por_pagina')
+  })
+
+  it('el tamaño de una columna del kanban cabe en una página del selector', () => {
+    expect(esTamanoDePagina(TAMANO_DE_COLUMNA)).toBe(true)
+  })
+
+  it('esTamanoDePagina sólo acepta un número de la lista', () => {
+    for (const bueno of [10, 25, 50, 100]) expect(esTamanoDePagina(bueno)).toBe(true)
+    for (const malo of [7, 0, -10, 101, 1000, 25.5, '50', null, undefined, NaN, Infinity]) {
+      expect(esTamanoDePagina(malo)).toBe(false)
+    }
+  })
+
+  it('?por= sólo vale con uno de los cuatro tamaños, escrito como entero', () => {
+    expect(leerPorPagina('25')).toBe(25)
+    expect(leerPorPagina('100')).toBe(100)
+    for (const malo of [
+      '7',
+      '100000',
+      '-5',
+      'abc',
+      '',
+      ' 25',
+      '25 ',
+      '025',
+      '2.5',
+      '25;10',
+      '1e2',
+      '0x19',
+      null,
+      undefined,
+    ]) {
+      expect(leerPorPagina(malo)).toBeNull()
+    }
+  })
+
+  it('manda lo que pide la URL; si no sirve, lo que eligió la persona; si no, el de fábrica', () => {
+    expect(tamanoDePagina({ pedido: 25, preferencia: 100, maximo: 100 })).toBe(25)
+    expect(tamanoDePagina({ pedido: null, preferencia: 100, maximo: 100 })).toBe(100)
+    expect(tamanoDePagina({ pedido: 7, preferencia: 10, maximo: 100 })).toBe(10)
+    expect(tamanoDePagina({ pedido: null, preferencia: null, maximo: 100 })).toBe(50)
+    expect(tamanoDePagina({ preferencia: 33, maximo: 100 })).toBe(50)
+    expect(tamanoDePagina({ maximo: 100 })).toBe(50)
+  })
+
+  it('nunca pasa del máximo de la lista', () => {
+    expect(tamanoDePagina({ pedido: 100, maximo: 50 })).toBe(50)
+    expect(tamanoDePagina({ preferencia: 100, maximo: 25 })).toBe(25)
+    expect(tamanoDePagina({ maximo: 25 })).toBe(25)
+    expect(tamanoDePagina({ pedido: 10, maximo: 25 })).toBe(10)
+  })
+
+  it('ofrece los tamaños hasta el máximo de la lista', () => {
+    expect(tamanosHasta(100)).toEqual([10, 25, 50, 100])
+    expect(tamanosHasta(50)).toEqual([10, 25, 50])
+    expect(tamanosHasta(30)).toEqual([10, 25])
+    expect(tamanosHasta(5)).toEqual([])
   })
 })

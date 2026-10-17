@@ -4,14 +4,14 @@
 import { z } from 'zod'
 import { cambioDeVehiculo, vehiculoDeNotaDesde, type VehiculoDeLaNota } from './vehiculo-de-nota'
 import { instanteDeLocal } from '@/shared/lib/fechas'
-import { TAMANO_DE_PAGINA } from '@/shared/lib/paginacion'
+import { TAMANO_DE_VER_MAS } from '@/shared/lib/paginacion'
 import { validarDocumento, type Documento } from './documento'
 import { documentoDesdeTexto } from './documento-limpio'
 import { validarRecordatorio } from './recordatorio'
 
 export const LARGO_MAXIMO_DEL_TITULO = 120
 // La página de «Ver más»: la de todas las listas que crecen (`@/shared/lib/paginacion`).
-export const TAMANO_DE_PAGINA_DE_SEGUIMIENTOS = TAMANO_DE_PAGINA
+export const TAMANO_DE_PAGINA_DE_SEGUIMIENTOS = TAMANO_DE_VER_MAS
 export const VISIBILIDADES = ['privado', 'publico'] as const
 export type Visibilidad = (typeof VISIBILIDADES)[number]
 

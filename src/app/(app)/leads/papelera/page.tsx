@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { requerirSesion } from '@/modules/equipo'
 import {
-  LOTES_POR_PAGINA,
   PapeleraDeLeads,
   leerPapeleraDeLeads,
   puedeAbrirLaPapelera,
@@ -9,7 +8,7 @@ import {
 } from '@/modules/leads'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
-import { leerCursor } from '@/shared/lib/paginacion'
+import { LOTES_POR_PAGINA, leerCursor } from '@/shared/lib/paginacion'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 

@@ -19,7 +19,7 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
 
 ## Archivos clave
 
-- `entities/sesion.ts` — `Sesion` a partir de `mi_sesion()`: estado de la cuenta, perfil, roles reales, permisos **efectivos**, perspectiva y preferencias.
+- `entities/sesion.ts` — `Sesion` a partir de `mi_sesion()`: estado de la cuenta, perfil, roles reales, permisos **efectivos**, perspectiva y preferencias. `entities/preferencias.ts` — `Preferencias` (`densidad`, `tema` y, 9g, `porPagina`: «Ítems por página», 10, 25, 50 o 100, `listas.por_pagina`), `preferenciasDesde()` (tolerante: un valor que no es de la lista queda sin elegir) y `esquemaPreferencia`. La sesión de quien mira trae la suya también con «Ver como» (la persona vista es un rol, no otra cuenta): cada página la lee de ahí, sin otra consulta. Se guarda como las demás: `guardarPreferencia`, la última escritura gana (es de una sola persona; sin versión), y la base rechaza otro tamaño (`preferencias_por_pagina_valida`).
 - `entities/dominancia.ts` — espejo de `concesion_dominada()` y `rol_dominado()`, y los motivos que se muestran. `entities/matriz.ts` — catálogo agrupado por módulo, lugares donde se da un permiso, resumen de una celda. `entities/rol.ts` — `Rol`, `claveDeRol()`, `versionMasNueva()`, `motivoDeNoEliminar()`.
 - `entities/persona.ts` — `PersonaDelEquipo`, `EstadoPersona`, `accionesSobre()`, filtros, `VistaPreviaDeBaja`, `descripcionDeBaja()`. `entities/invitacion.ts` — `enlaceDeInvitacion()`. `entities/perspectiva.ts` — `Perspectiva`, `COOKIE_PERSPECTIVA`, `leerPerspectiva()`.
 - `entities/repositorios.ts` (acceso, perfil, sesión) y `entities/repositorios-equipo.ts` (roles, equipo, `CuentasInvitadas`, lectores). `composicion.ts` (servidor) y `composicion.client.ts` (navegador) les dan la implementación de `infra/`: `features/` importa de ahí, nunca de `infra/`.
@@ -34,7 +34,7 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
 
 ## Tablas
 
-`perfiles` (con `invitado_en` e `invitacion_aceptada_en`), `roles`, `permisos` (catálogo fijo), `roles_permisos`, `usuarios_roles`, `preferencias_usuario` (además de `tema` y `densidad`, `leads.ultimo_origen_lead`: la escribe `crear_lead()` y la lee `lead_alta_contexto()`; `mi_sesion()` la ignora), `vistas_guardadas`, `visitados`.
+`perfiles` (con `invitado_en` e `invitacion_aceptada_en`), `roles`, `permisos` (catálogo fijo), `roles_permisos`, `usuarios_roles`, `preferencias_usuario` (además de `tema`, `densidad` y `listas.por_pagina` (sólo 10, 25, 50 o 100: un `check`), `leads.ultimo_origen_lead`: la escribe `crear_lead()` y la lee `lead_alta_contexto()`; `mi_sesion()` la ignora), `vistas_guardadas`, `visitados`.
 RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_permiso`, `alcance_de`, `origenes_con_permiso`, `origenes_con_alcance`, `rol_dominado`, `concesion_dominada`, `rbac_crear_rol`, `rbac_eliminar_rol`, `rbac_otorgar`, `rbac_revocar`, `rbac_asignar_rol`, `rbac_quitar_rol`, `equipo_bloquear`, `equipo_dar_de_baja`, `equipo_vista_previa_baja`, `equipo_aceptar_invitacion`.
 
 ## No se rompe

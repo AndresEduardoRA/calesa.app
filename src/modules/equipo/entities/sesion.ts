@@ -98,7 +98,7 @@ export function sesionSinPerfil(usuarioId: string, email: string): Sesion {
     roles: [],
     permisos: [],
     perspectiva: SIN_PERSPECTIVA,
-    preferencias: { densidad: null, tema: null },
+    preferencias: { densidad: null, tema: null, porPagina: null },
   }
 }
 

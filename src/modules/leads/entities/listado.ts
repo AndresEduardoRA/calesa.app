@@ -6,8 +6,9 @@ import { z } from 'zod'
 import type { CampoDeLead } from './campo'
 import { marcasDesde, type MarcasDeLead } from './marcas'
 
-// Filas por página: una pantalla y media con la densidad compacta (como el inventario).
-export const TAMANO_DE_PAGINA_DE_LEADS = 50
+// El máximo de filas por página de este listado (el selector ofrece hasta acá): lo que cabe dentro del presupuesto de
+// `docs/RENDIMIENTO.md` con 50.000 leads. El tamaño que se lee sale de `tamanoDePagina()` de `shared/lib/paginacion`.
+export const MAXIMO_DE_PAGINA_DE_LEADS = 100
 
 // El tipo de un lead es un enum de la base (`tipo_lead`), no un campo configurable.
 export const TIPOS_DEL_LEAD = ['prospecto', 'cliente'] as const

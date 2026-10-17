@@ -1,7 +1,7 @@
 // Los recordatorios de quien mira sobre un lead, leídos en el navegador (la sección de la ficha y la
 // pestaña del drawer, 9d-2): por páginas y uno por su id. La RLS deja sólo los suyos y vivos.
 import { errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
-import { TAMANO_DE_PAGINA } from '@/shared/lib/paginacion'
+import { TAMANO_DE_VER_MAS } from '@/shared/lib/paginacion'
 import { createClient } from '@/shared/lib/supabase/browser'
 import { paginaDeRecordatoriosDesde } from '../entities/pagina-de-recordatorios'
 import { recordatoriosDesde } from '../entities/recordatorios'
@@ -20,7 +20,7 @@ export const leerPaginaDeRecordatorios: LectorDePaginaDeRecordatorios = async ({
   const { data, error } = await createClient().rpc('lead_recordatorios', {
     p_lead: leadId,
     p_completados: completados,
-    p_tamano: TAMANO_DE_PAGINA,
+    p_tamano: TAMANO_DE_VER_MAS,
     ...(desde ? { p_desde_en: desde.desdeEn, p_desde_id: desde.desdeId } : {}),
   })
   if (error) {

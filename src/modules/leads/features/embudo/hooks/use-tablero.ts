@@ -3,6 +3,7 @@
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
+import { TAMANO_DE_COLUMNA } from '@/shared/lib/paginacion'
 import { avisarError } from '@/shared/ui/toasts'
 import { leerPaginaDeEtapa } from '../../../composicion.client'
 import {
@@ -10,7 +11,6 @@ import {
   conPagina,
   cursorDeColumna,
   firmaDelTablero,
-  TOPE_POR_COLUMNA,
   type Tablero,
   type Tarjeta,
 } from '../../../entities/tablero'
@@ -84,7 +84,7 @@ export function useTablero(inicial: Tablero) {
       return
     }
     setCargando(etapaId)
-    const pagina = await leerPaginaDeEtapa({ etapaId, antes, tope: TOPE_POR_COLUMNA })
+    const pagina = await leerPaginaDeEtapa({ etapaId, antes, tope: TAMANO_DE_COLUMNA })
     setCargando(null)
     if (!pagina.ok) {
       avisarError(pagina.error)
