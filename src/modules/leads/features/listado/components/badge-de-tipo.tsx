@@ -6,7 +6,7 @@ export function BadgeDeTipo({ tipo, className }: { tipo: TipoDelLead; className?
   return (
     <span
       className={cn(
-        'inline-flex h-5 items-center rounded-(--radius-pill) border border-(--color-line) bg-(--color-surface) px-2 text-(length:--text-xs) font-medium whitespace-nowrap text-(--color-ink)',
+        'inline-flex h-5 shrink-0 items-center rounded-(--radius-pill) border border-(--color-line) bg-(--color-surface) px-2 text-(length:--text-xs) font-medium whitespace-nowrap text-(--color-ink)',
         tipo === 'cliente' && 'border-(--color-primario) text-(--color-primario-ink)',
         className,
       )}

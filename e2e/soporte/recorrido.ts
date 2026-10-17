@@ -83,12 +83,28 @@ export async function sinScrollHorizontal(page: Page): Promise<void> {
     // Los elementos más profundos que se salen por la derecha: dicen qué ensancha la página.
     const culpables = [...document.querySelectorAll('body *')]
       .filter((e) => e.getBoundingClientRect().right > visible + 1)
+      // Lo que un ancestro que se desplaza por dentro recorta (la barra de pestañas) no ensancha la página.
+      .filter((e) => {
+        for (let a = e.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+          if (
+            getComputedStyle(a).overflowX !== 'visible' &&
+            a.getBoundingClientRect().right <= visible + 1
+          )
+            return false
+        }
+        return true
+      })
       .filter((e) => ![...e.children].some((h) => h.getBoundingClientRect().right > visible + 1))
       .slice(0, 5)
-      .map(
-        (e) =>
-          `${e.tagName.toLowerCase()}.${String(e.className).slice(0, 60)} «${e.textContent.trim().slice(0, 30)}»`,
-      )
+      .map((e) => {
+        // La clase de un SVG no es un texto: se lee del atributo. Dos ancestros dicen de qué parte de la pantalla es.
+        const cual = (n: Element) =>
+          `${n.tagName.toLowerCase()}.${(n.getAttribute('class') ?? '').slice(0, 40)}`
+        const dentro = [e.parentElement, e.parentElement?.parentElement].flatMap((n) =>
+          n ? [cual(n)] : [],
+        )
+        return `${cual(e)} «${e.textContent.trim().slice(0, 30)}» en ${dentro.join(' < ')}`
+      })
     return { ancho: document.documentElement.scrollWidth, visible, culpables }
   })
   expect(ancho, `la página se desplaza de costado: ${culpables.join(' | ')}`).toBeLessThanOrEqual(

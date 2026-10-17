@@ -132,7 +132,7 @@ export function MenuDeLead({
           ref={boton}
           aria-label={`Más acciones de ${nombre}`}
           data-menu-de-lead={leadId}
-          className="flex size-11 items-center justify-center rounded-(--radius-md) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:size-8"
+          className="flex size-[44px] items-center justify-center rounded-(--radius-md) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:size-8"
         >
           <MoreHorizontalIcon aria-hidden className="size-4" />
         </DropdownMenuTrigger>

@@ -33,6 +33,11 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   (`useCierreConCambios()` y `salida` de `<PieDelPanel>`); cerrar un panel que tiene borrador no pregunta.
 - Una tabla ancha lleva un ancho mínimo (`w-max min-w-full`), la columna del nombre pegada a la izquierda (y la de acciones, el «⋯», a la derecha: una acción por fila nunca queda fuera de la vista) y se desplaza dentro de
   su tarjeta: nunca se achica un nombre para que quepan las demás ni se mueve la página de costado.
+- Una lista de tarjetas no ensancha la página con el texto al 200 % (reflujo, WCAG 1.4.10): su `<ul>` es `grid-cols-[minmax(0,1fr)]` y su
+  `<li>`, `min-w-0` (una columna `auto` toma el ancho mínimo de lo que no se parte y empuja el «⋯» fuera de la vista); el nombre se corta
+  con «…», lo de la esquina no se achica (`shrink-0`) y una tarjeta con varias piezas de ancho fijo en rem (miniatura, título, acción) se
+  apila con un `@container` (`@max-[16rem]:flex-col`); una barra de botones que se parte (Anterior y Siguiente) lleva `flex-wrap`.
+  `sinScrollHorizontal()` de `e2e/soporte/recorrido.ts` lo comprueba y nombra al elemento que se sale.
 - Una barra que se desplaza de costado (las secciones de la ficha, las etapas del celular) dice que hay más (`useDesborde()` y
   `<PistaDeDesborde>`: un degradado en el borde por donde sigue) y deja a la vista la sección activa. Su contenedor, si es hijo
   de una grilla, lleva `min-w-0`.

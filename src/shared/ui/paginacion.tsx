@@ -45,7 +45,7 @@ export function Paginacion({ siguiente, anterior }: Props) {
   const apagado = `${clases} pointer-events-none opacity-50`
   return (
     <div className="grid justify-items-end gap-2">
-      <nav aria-label="Páginas" className="flex justify-end gap-2">
+      <nav aria-label="Páginas" className="flex flex-wrap justify-end gap-2">
         {anterior === null ? (
           <span aria-disabled="true" className={apagado}>
             <ChevronLeftIcon aria-hidden />
