@@ -93,7 +93,8 @@ o `supabase/tests/escala.sql`).
 | Exportar                                     | lotes de 500, hasta 5.000, 5 por hora     | hasta 5.001 ids (de a 1.000); «Descargamos N» exacto | `leads_listado_idx`                                         | 3.000 ms (5.001 ids)    | 210 ms (51); antes 815 ms exacto | **arreglado** (conteo exacto)                                                                                                                           |
 | Alta, selectores                             | orígenes y tipos activos                  | —                                                    | —                                                           | —                       | —                                | exento                                                                                                                                                  |
 | Listado, filtro por un origen del lead       | 50                                        | ninguno                                              | `leads_origen_lead_id_idx` (bitmap y top-N)                 | 450 ms                  | 100 ms (20,5); 0,1 ms sin leads  | **límite**: cuesta lo que suma ese origen (~10 µs por lead); dos orígenes a la vez, 198 ms (26,8)                                                       |
-| Orígenes del lead, pantalla de configuración | 100 (se dice al llegar)                   | «N de 100»                                           | `leads_origen_lead_id_idx` (un `exists` por fila)           | 100 ms                  | 4,2 ms (con 6 orígenes)          | ok                                                                                                                                                      |
+| Orígenes del lead, pantalla de configuración | 100 (se dice al llegar)                   | «N de 100»                                           | `leads_origen_lead_id_idx` (un `exists` por rango por fila) | 100 ms                  | 0,03 ms la lista; antes 5 ms     | **arreglado** (era Seq Scan sobre `leads`, ver abajo)                                                                                                   |
+| Eliminar un origen del lead                  | uno                                       | —                                                    | `leads_origen_lead_id_idx` (el mismo `exists`)              | 5 ms                    | 0,03 ms; antes 5 ms              | **arreglado**                                                                                                                                           |
 
 **El filtro por origen del lead (9f-1).** `leads.origen_lead_id` tiene el índice de su FK (`leads_origen_lead_id_idx`) y
 `db:medir:volumen` asserta que el filtro lo use, también el origen sin leads (0,1 ms: no recorre nada). Un origen con un quinto
@@ -102,6 +103,14 @@ compuesto `(origen_lead_id, creado_en desc, id desc) where eliminado_en is null`
 3 ms, pero el planificador **no lo elige**: estima que la policy de `leads` deja pasar ~24 de 8.000 filas y prefiere el bitmap.
 No se dejó un índice que no se usa. Sale con lo mismo que el filtro sin resultados (9h, `docs/PLAN.md`): una columna que la
 policy no tenga que adivinar.
+
+**«¿Algún lead usa este origen?» (corrección de la 9f-1, `…20261019000800`).** El índice de la FK existía (lo crea el bucle de
+`…000900_indices.sql`), pero `_origenes_lead_json()` y `origen_lead_eliminar()` no lo usaban: con `l.origen_lead_id = o.id` el plan
+genérico estima 1/`n_distinct` de la tabla (un quinto) y elige Seq Scan; para un origen con un lead, o sin ninguno, recorría
+`leads` entera (62.000 filas, 5 ms) y crece con la tabla. `order by … limit 1` y `min()` no lo arreglan (`min(uuid)` ni existe). La
+sonda por rango, `>= x and <= x`, se estima en un 0,5 % de la tabla sea cual sea el dato: camina el índice (0,03 ms). Lo asserta
+`medir-escala.sql` con el origen como columna (que es lo que ve el plan genérico; con un literal el planificador usa el dato real y
+no se entera) y con un origen de un solo lead; con la forma vieja la medición falla.
 
 ### Vehículos, orígenes, equipo y empresa
 

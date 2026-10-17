@@ -91,6 +91,14 @@ select set_config('medir.et_ana', (select id::text from public.etiquetas where n
 select set_config('medir.origen_lead', (select id::text from public.origenes_lead order by orden, id limit 1), true);
 select set_config('medir.origen_lead_dos', (select id::text from public.origenes_lead order by orden, id offset 1 limit 1), true);
 select set_config('medir.origen_lead_sin', (select id::text from public.origenes_lead order by orden desc, id limit 1), true);
+-- Un origen con un solo lead (el peor caso de la sonda «¿lo usa algún lead?»): se crea aquí y se revierte con la transacción.
+insert into public.origenes_lead (clave, nombre, orden) values ('medir_uno', 'Medir uno', 9990);
+select set_config('medir.origen_lead_uno', (select id::text from public.origenes_lead where clave = 'medir_uno'), true);
+set local session_replication_role = replica;
+update public.leads set origen_lead_id = current_setting('medir.origen_lead_uno')::uuid
+  where id = (select id from public.leads where nombre like 'Volumen %' and eliminado_en is null order by ctid desc limit 1);
+set local session_replication_role = origin;
+analyze public.leads;
 select set_config('medir.origen', (select id::text from public.origenes where tipo = 'subasta' order by orden limit 1), true);
 select set_config('medir.vcursor_en', (select creado_en::text from public.vehiculos where origen_id = current_setting('medir.origen')::uuid and eliminado_en is null
   order by creado_en desc, id desc offset 2000 limit 1), true);
@@ -167,6 +175,22 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('papelera de vehículos, página 1 de 5 lotes', q, 'select public.vehiculos_papelera_listar(null, null, false, 6)', 200);
     perform pg_temp.escala('storage_gc_pendiente', q, 'select public.storage_gc_pendiente()', 50);
     if q = 'duena' then perform pg_temp.escala('origenes_lead_con_uso (hasta 100 orígenes)', q, 'select public.origenes_lead_con_uso()', 100); end if;
+    -- Lo de adentro de `_origenes_lead_json()` y de `origen_lead_eliminar()`: «¿algún lead usa este origen?». Con
+    -- `= o.id` el plan genérico estima un quinto de la tabla y recorre `leads` (5 ms con 62.000, creciendo con la
+    -- tabla); la sonda por rango camina `leads_origen_lead_id_idx`. Se mide con el origen como columna (no como
+    -- literal), que es lo que ve el plan genérico, y con uno que tiene un solo lead y uno que no tiene ninguno. Los
+    -- 100 descartes son las filas de `origenes_lead` (a lo sumo 100), no de `leads`.
+    if q = 'duena' then
+      perform pg_temp.escala('origen del lead: con_leads de todos (la lista)', q,
+        'select o.id, exists (select 1 from public.leads l where l.origen_lead_id >= o.id and l.origen_lead_id <= o.id) from public.origenes_lead o',
+        20, 'leads_origen_lead_id_idx', '{leads}', 0, 'postgres');
+      perform pg_temp.escala('origen del lead: eliminar, uno sin leads', q, format(
+        'select exists (select 1 from public.leads l where l.origen_lead_id >= o.id and l.origen_lead_id <= o.id) from public.origenes_lead o where o.id = %L',
+        current_setting('medir.origen_lead_sin')), 5, 'leads_origen_lead_id_idx', '{leads}', 100, 'postgres');
+      perform pg_temp.escala('origen del lead: eliminar, uno con un solo lead', q, format(
+        'select exists (select 1 from public.leads l where l.origen_lead_id >= o.id and l.origen_lead_id <= o.id) from public.origenes_lead o where o.id = %L',
+        current_setting('medir.origen_lead_uno')), 5, 'leads_origen_lead_id_idx', '{leads}', 100, 'postgres');
+    end if;
     if q = 'duena' then perform pg_temp.escala('origenes_resumen', q, 'select public.origenes_resumen()', 100); end if;
     if q = 'duena' then perform pg_temp.escala('categorias_con_uso', q, format('select public.categorias_con_uso(%L)', current_setting('medir.origen')), 50); end if;
     perform pg_temp.escala('vehiculos_para_lead', q, format('select public.vehiculos_para_lead(%L, %L)',
@@ -178,7 +202,7 @@ do $medir$ declare q text; begin
   perform pg_temp.escala('listado: ocultos hasta 51 de quien no tiene ninguno', 'berta', 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 30);
   perform pg_temp.escala('listado: sólo favoritos de quien no tiene ninguno', 'berta', pg_temp.pagina('es_favorito = true and esta_tachado = false'), 30);
 
-  -- Lo que usa la papelera, como lo corre la base (sin RLS: `security definer`). La cola de Storage, con 100.000
+  -- Lo que usa la papelera, como lo corre la base (sin RLS: con los derechos de la dueña de la función). La cola de Storage, con 100.000
   -- filas, la mide `medir-jobs.sql`.
   perform pg_temp.escala('papeleras: una página de lotes (la consulta)', 'duena',
     $w$select l.id from public.lotes_papelera l where l.tipo = 'leads' and l.purgado_en is null and l.restaurado_en is null order by l.creado_en desc, l.id desc limit 6$w$,
