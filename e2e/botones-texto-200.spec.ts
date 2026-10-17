@@ -9,6 +9,7 @@ import {
   type TerrenoDelListado,
 } from './soporte/leads-listado'
 import { irAlEmbudo } from './soporte/leads-oportunidades'
+import { capturar } from './soporte/recorrido'
 
 // Las etiquetas de los botones chicos («Nuevo lead», «Filtros», «Vistas», «Importar», «Papelera», «Etapas») crecen con el texto
 // (cierre 3, hallazgo 4). El botón base animaba todo con `transition-all`, también `font-size` y el alto: al cambiar la raíz el
@@ -62,7 +63,7 @@ function exigirElDoble(medidas: { antes: number[]; despues: number[] }, nombres:
 
 test('Filtros, Vistas, Importar y Papelera doblan su texto con la raíz al 200 %', async ({
   page,
-}) => {
+}, info) => {
   await entrar(page, t.personas.berta)
   await irALeads(page)
   const nombres = ['Filtros', 'Vistas', 'Importar', 'Papelera']
@@ -75,6 +76,11 @@ test('Filtros, Vistas, Importar y Papelera doblan su texto con la raíz al 200 %
   )
   for (const boton of botones) await expect(boton).toBeVisible()
   exigirElDoble(await tamanos(page, botones), nombres)
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  // Se mira con los botones ya quietos: el cambio de tamaño ya no se anima.
+  await capturar(page, info, 'botones-200')
 })
 
 test('«Etapas» dobla su texto con la raíz al 200 %', async ({ page }) => {

@@ -6,7 +6,7 @@ import {
   prepararInventario,
   type Terreno,
 } from './soporte/inventario'
-import { sinScrollHorizontal } from './soporte/recorrido'
+import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import { cargarVehiculos } from './soporte/vehiculos'
 
 // Las tarjetas del inventario de vehículos en el celular con el texto al 200 % (cierre 3): la lista comparte la forma de la de
@@ -30,7 +30,7 @@ test.afterAll(async () => {
 
 test('las tarjetas del inventario no ensanchan la página con el texto al 200 %', async ({
   page,
-}) => {
+}, info) => {
   test.skip(!esMovil(page), 'Las tarjetas son del celular: el escritorio dibuja la tabla.')
   await entrar(page, terreno.duena)
   await page.goto(`/vehiculos?q=${MARCA}&origen=${terreno.corea.id}`)
@@ -40,4 +40,8 @@ test('las tarjetas del inventario no ensanchan la página con el texto al 200 %'
     document.documentElement.style.fontSize = '200%'
   })
   await sinScrollHorizontal(page)
+  await page.getByRole('link', { name: `${MARCA} V9` }).scrollIntoViewIfNeeded()
+  await capturar(page, info, 'tarjetas-de-vehiculos-200')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await capturar(page, info, 'tarjetas-de-vehiculos-200-oscuro')
 })

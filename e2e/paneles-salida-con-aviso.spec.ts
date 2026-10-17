@@ -5,7 +5,12 @@ import { abrirEdicion, irAFicha } from './soporte/leads-ficha'
 import { nacional } from './soporte/leads-ficha-telefonos'
 import { nombre } from './soporte/leads-listado'
 import { irAlEmbudo } from './soporte/leads-oportunidades'
-import { limpiarRecorrido, prepararRecorrido, type TerrenoDelRecorrido } from './soporte/recorrido'
+import {
+  capturar,
+  limpiarRecorrido,
+  prepararRecorrido,
+  type TerrenoDelRecorrido,
+} from './soporte/recorrido'
 
 // Los paneles con formulario preguntan al salir desde un aviso (cierre 3, hallazgo 2): con algo escrito en el panel, pulsar «Abrir ficha»
 // de un aviso (`sale: true`) pregunta en su pie («Tienes cambios sin guardar.»), «Seguir editando» no tira nada y «Descartar» sigue.
@@ -118,6 +123,11 @@ for (const panel of PANELES) {
     await aviso.getByRole('button', { name: 'Abrir ficha' }).click()
     await expect(abierto.getByText('Tienes cambios sin guardar.')).toBeVisible()
     await expect(abierto.getByRole('button', { name: 'Seguir editando' })).toBeFocused()
+    await capturar(
+      page,
+      info,
+      `pregunta-${panel.nombre.slice(0, 8).trim().toLowerCase().replaceAll(' ', '-')}`,
+    )
     expect(page.url()).toBe(antes)
     await abierto.getByRole('button', { name: 'Seguir editando' }).click()
     await expect(abierto.getByText('Tienes cambios sin guardar.')).toHaveCount(0)
