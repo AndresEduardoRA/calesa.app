@@ -57,4 +57,5 @@ RPC: `origen_apibara_rutas_sin_campo`, `origen_apibara_agregar` (`…20261014000
 - Un `<fieldset disabled>` no apaga el `Switch` de Base UI: cada uno lleva `disabled` a mano.
 - `router.push` tras crear no se combina con cerrar el panel (`?panel=`): el cambio de URL de nuqs y la navegación se pisan.
 - Promover un atributo a columna (porque necesita índice o UNIQUE) es migración + fila en `origenes_campos` apuntando a la columna; no se hace desde la UI.
+- **No es el origen del lead.** Este módulo es el de los vehículos. De dónde llegó un lead (`origenes_lead`) vive en `leads` (Configuración › Leads › Orígenes del lead); no se mezclan ni comparten tabla.
 - Queda sin hacer: arrastrar para reordenar (exige una dependencia a verificar; `origen_campo_mover` ya lo admite), ordenar los orígenes entre sí (la columna `orden` existe), `icono` del origen.
