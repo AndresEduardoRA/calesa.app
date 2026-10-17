@@ -21,7 +21,7 @@ con 50.000 leads: `pnpm db:sembrar-volumen` y `pnpm db:medir:volumen`).
   máximo, y el selector ofrece hasta ahí. **Un máximo se gana midiendo**: con el valor más alto la lista tiene que seguir
   dentro de presupuesto (bytes de la primera respuesta, nodos del DOM, plan con su índice y sin descartar de más, costo de una
   página profunda; `pnpm db:medir:volumen` y el e2e con volumen). Una lista que no cabe con 100 declara uno menor y el motivo
-  va a `docs/RENDIMIENTO.md` (el listado de leads: 50, hasta la 9h). Las que crecen con «Ver más» (`TAMANO_DE_VER_MAS` y
+  va a `docs/RENDIMIENTO.md` (el listado de leads fue 50 hasta la 9h; hoy las dos listas llegan a 100). Las que crecen con «Ver más» (`TAMANO_DE_VER_MAS` y
   `TOPE_DE_LO_CARGADO`), una columna del kanban (`TAMANO_DE_COLUMNA`) y las papeleras (`LOTES_POR_PAGINA`) tienen su unidad y
   no llevan selector: más ítems por clic empeora el DOM sin acortar el camino a lo antiguo.
 - **La base acota todo tamaño y nunca confía en el cliente.** Toda RPC con un parámetro de tamaño (`p_tamano`, `p_tope`…)

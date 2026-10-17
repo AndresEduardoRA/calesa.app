@@ -28,12 +28,14 @@ const CLAVE = 'Volumen-9e-clave'
 const DUENA = 'duena-volumen@ejemplo.com'
 const ANA = 'ana-volumen@ejemplo.com'
 
-// Cuántos nodos del DOM aguanta cada lista con su máximo: lo medido (leads 2.704, inventario 7.894; la tabla y las
-// tarjetas están las dos en el DOM) con un margen. El presupuesto del celular de la 9e es 9.000: el inventario a 100 cabe.
-const NODOS_MAXIMOS = { leads: 3_500, vehiculos: 9_000 }
+// Cuántos nodos del DOM aguanta cada lista con su máximo: lo medido (leads a 100 filas, 9h: 5.020 en escritorio y 5.015 en
+// el celular; inventario 7.894; la tabla y las tarjetas están las dos en el DOM) con un margen. El presupuesto del celular
+// de la 9e es 9.000: las dos caben con 100.
+const NODOS_MAXIMOS = { leads: 6_500, vehiculos: 9_000 }
 // Lo que pesa, comprimido, el documento de la primera respuesta (el HTML y el flujo de React) con el máximo de la lista:
-// lo medido (leads 34 KB, inventario 57 KB) con un margen. Un peso que de pronto se duplica es una columna que nadie pensó.
-const BYTES_MAXIMOS_DEL_DOCUMENTO = { leads: 45_000, vehiculos: 75_000 }
+// lo medido (leads a 100, 46,6 KB —705 KB crudos—; inventario 57 KB) con un margen. Un peso que de pronto se duplica es
+// una columna que nadie pensó.
+const BYTES_MAXIMOS_DEL_DOCUMENTO = { leads: 60_000, vehiculos: 75_000 }
 
 const nodos = (page: Page) => page.evaluate(() => document.querySelectorAll('*').length)
 
