@@ -65,6 +65,9 @@ update public.perfiles set nombre = n.nombre from (values
   ('00000000-0000-0000-0000-000000000057', 'Destino Matriz'), ('00000000-0000-0000-0000-000000000058', 'Supervisión Dos')) n (id, nombre)
 where perfiles.id = n.id;
 
+-- Desde acá todo número global es de la forma 9182xxxxx: inconfundible con un número propio, un id o un lugar. La
+-- celda de abajo falla si una persona sin `leads.numero_global.ver` recibe uno en lo que devolvió una RPC.
+alter table public.leads alter column numero restart with 918273000;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000050', false);
 set role authenticated;
 do $$ declare v_web uuid := (select id from public.origenes_lead where clave = 'web'); r jsonb; n text; t text; begin
@@ -100,17 +103,28 @@ select set_config('matriz.ll', (select id::text from public.leads where nombre =
 select set_config('matriz.lt', (select id::text from public.leads where nombre = 'Matriz LT'), false);
 select set_config('request.jwt.claim.sub', '', false);
 
--- La celda: corre una sentencia como una persona y devuelve cómo terminó. Todo lo que hizo se deshace.
+-- La celda: corre una sentencia como una persona y devuelve cómo terminó. Todo lo que hizo se deshace. Además
+-- mira lo que devolvió: sin `leads.numero_global.ver`, ningún número global (9182xxxxx) en ninguna respuesta, ni en
+-- una columna ni dentro de un JSON. Es el recorrido de «todo lo que devuelve leads» (el cinturón de
+-- `numero-global.sql` exige que cada función que lo hace esté acá o tenga su sonda).
 -- @test matriz de leads: la celda
 create or replace function pg_temp.celda(p_persona text, p_sql text) returns text language plpgsql as $$
-declare v text;
+declare v text; v_salida text;
 begin
   begin
     perform set_config('request.jwt.claim.sub', p_persona, true);
     set local role authenticated;
     begin
-      execute p_sql;
+      if p_sql ~* '^\s*select\M' then
+        execute 'select coalesce(jsonb_agg(to_jsonb(t))::text, '''') from (' || p_sql || ') t' into v_salida;
+      else
+        execute p_sql;
+        v_salida := '';
+      end if;
       v := 'ok';
+      if v_salida ~ '\m9182[0-9]{5}\M' and not public.tiene_permiso('leads.numero_global.ver') then
+        v := 'FUGA del número global: ' || left(v_salida, 300);
+      end if;
     exception when others then
       v := sqlstate || ': ' || sqlerrm;
     end;
@@ -556,6 +570,10 @@ begin
       execute p_sql;
       v := null;
     end;
+    -- Sin `leads.numero_global.ver`, ningún número global en lo que devolvió (ver `celda`).
+    if v::text ~ '\m9182[0-9]{5}\M' and not public.tiene_permiso('leads.numero_global.ver') then
+      raise exception 'FUGA del número global: %', left(v::text, 300);
+    end if;
     reset role;
     return jsonb_build_object('ok', true, 'valor', v);
   exception when others then
@@ -801,7 +819,7 @@ begin
   r := pg_temp.como(u50, format('select public.leads_papelera_restaurar(%L, (select actualizado_en from public.lotes_papelera where id = %L), null)', v_lote, v_lote));
   if jsonb_array_length(r -> 'valor' -> 'restaurados') <> 0 or jsonb_array_length(r -> 'valor' -> 'pendientes') <> 1 then
     raise exception 'restaurar con el teléfono tomado: %', left(r::text, 400); end if;
-  if r -> 'valor' -> 'pendientes' -> 0 ->> 'motivo' not like '«Quien lo tomó» (#%) ya tiene este teléfono.' then
+  if r -> 'valor' -> 'pendientes' -> 0 ->> 'motivo' not like '«Quien lo tomó» (tu n.º %) ya tiene este teléfono.' then  -- u50 no tiene el permiso del global y lo creó: ve el suyo
     raise exception 'el motivo dice otra cosa: %', r -> 'valor' -> 'pendientes' -> 0; end if;
   if (r -> 'valor' ->> 'quedan')::int <> 1 or exists (select 1 from public.leads where id = z and eliminado_en is null) then
     raise exception 'el lead debía quedar en la papelera'; end if;

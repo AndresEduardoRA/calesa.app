@@ -131,6 +131,7 @@ for (const archivo of [
   'portal-cliente.sql',
   'numeracion.sql',
   'auditoria-leads.sql',
+  'numero-global.sql',
   'escala.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)

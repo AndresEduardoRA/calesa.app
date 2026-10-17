@@ -200,7 +200,11 @@ select public._leads_numerar_existentes();
 select 'sembrado|numerar_existentes_ms|' || round(extract(epoch from clock_timestamp() - :'t0'::timestamptz) * 1000);
 commit;
 
-analyze public.leads;
+-- `vacuum` y no sólo `analyze`: la numeración reescribe los 62.000 leads y deja el mapa de visibilidad vacío, y sin él
+-- los index-only scans van a la tabla (el conteo de exportar pasaba de 206 a 818 ms). Es el estado de una base en uso.
+vacuum analyze public.leads;
+vacuum analyze public.leads_numeros_globales;
+vacuum analyze public.leads_numeros_propios;
 analyze public.leads_asesores;
 analyze public.leads_tachados;
 analyze public.leads_favoritos;

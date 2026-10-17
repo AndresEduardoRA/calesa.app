@@ -3375,7 +3375,7 @@ begin
         'origen_lead_id', v_web, 'atributos', '{"ciudad": "Santa Cruz"}'::jsonb),
        jsonb_build_object('tipo_id', v_wa, 'titulo', 'Pidió precio del RAV4', 'detalle', '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Lo vio en Facebook."}]}]}'::jsonb),
        jsonb_build_object('recordar_en', v_manana));
-  if r ->> 'resultado' <> 'creado' or (r ->> 'repetido')::boolean or r ->> 'numero' is null then raise exception 'alta: %', r; end if;
+  if r ->> 'resultado' <> 'creado' or (r ->> 'repetido')::boolean or r ->> 'numero_propio' is null or r ->> 'numero' is not null then raise exception 'alta: %', r; end if;
   v_id := (r ->> 'id')::uuid;
   if v_id <> v_intento then raise exception 'el lead debía nacer con el id del intento'; end if;
   if (select telefono_principal from public.leads_vista where id = v_id) <> '59171000001' then raise exception 'teléfono normalizado'; end if;
@@ -3399,7 +3399,7 @@ begin
     raise exception 'el reintento duplicó'; end if;
   -- Otro intento con el mismo teléfono: existe y es mío, no un error.
   r2 := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Otra vez', 'telefono_principal', '+591 71000001', 'origen_lead_id', v_web), null);
-  if r2 ->> 'resultado' <> 'existe' or (r2 -> 'verificacion' ->> 'es_mio')::boolean is not true or (r2 -> 'verificacion' ->> 'numero') <> r ->> 'numero' then
+  if r2 ->> 'resultado' <> 'existe' or (r2 -> 'verificacion' ->> 'es_mio')::boolean is not true or (r2 -> 'verificacion' ->> 'numero_propio') <> r ->> 'numero_propio' or r2 -> 'verificacion' ->> 'numero' is not null then
     raise exception 'duplicado propio: %', r2; end if;
 end $$;
 reset role;
@@ -3650,6 +3650,10 @@ reset role;
 -- Uno al limbo (sin cartera vigente) y uno a la papelera: ni «todos» los ve.
 update public.leads_asesores set revocado_en = now() where lead_id = (select id from public.leads where nombre = 'Listado Limbo');
 update public.leads set eliminado_en = now() where nombre = 'Listado Papelera';
+-- Los números globales, tomados como la base: la app ya no los lee de `leads`.
+select set_config('humo.num_ajeno', (select numero::text from public.leads where nombre = 'Listado Ajeno'), false),
+       set_config('humo.num_limbo', (select numero::text from public.leads where nombre = 'Listado Limbo'), false),
+       set_config('humo.num_papelera', (select numero::text from public.leads where nombre = 'Listado Papelera'), false);
 
 -- «Propios»: sólo lo suyo, y todo lo que ve está en su cartera.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', false);
@@ -3663,7 +3667,10 @@ do $$ declare n int; begin
   if (select telefono_principal from public.leads_vista where nombre = 'Listado Propio') <> '59172000001' then raise exception 'su teléfono, completo'; end if;
   if (select atributos ->> 'listado_ci' from public.leads_vista where nombre = 'Listado Propio') is distinct from 'CI-777' then raise exception 'su privado, completo'; end if;
   -- Lo ajeno no se alcanza ni por número ni por nombre.
-  if exists (select 1 from public.leads_vista where numero = (select numero from public.leads where nombre = 'Listado Ajeno')) then raise exception 'vio lo ajeno por número'; end if;
+  if exists (select 1 from public.leads_vista where numero = current_setting('humo.num_ajeno')::bigint or numero_visible = current_setting('humo.num_ajeno')::bigint) then raise exception 'vio lo ajeno por número'; end if;
+  -- Sin leads.numero_global.ver nunca llega un global; el propio, sólo del que creó.
+  if exists (select 1 from public.leads_vista where numero is not null) then raise exception '«propios» vio un número global'; end if;
+  if (select numero_propio from public.leads_vista where nombre = 'Listado Propio') is null then raise exception 'no vio su propio número'; end if;
   if exists (select 1 from public.leads_vista where nombre = 'Listado Limbo' or nombre = 'Listado Papelera') then raise exception 'vio un lead en limbo o en la papelera'; end if;
 end $$;
 reset role;
@@ -3689,8 +3696,11 @@ do $$ declare n int; a jsonb; t text; begin
   if (select count(*) from public.leads_vista where atributos ->> 'listado_color' = 'azul') <> 1 then raise exception 'por el color'; end if;
   -- Ni el limbo ni la papelera, tampoco para «todos» ni por número.
   if exists (select 1 from public.leads_vista where nombre in ('Listado Limbo', 'Listado Papelera')) then raise exception '«todos» vio un lead en limbo o en la papelera'; end if;
-  if exists (select 1 from public.leads_vista where numero in (select numero from public.leads where nombre in ('Listado Limbo', 'Listado Papelera'))) then
+  if exists (select 1 from public.leads_vista where numero in (current_setting('humo.num_limbo')::bigint, current_setting('humo.num_papelera')::bigint)) then
     raise exception 'los encontró por número'; end if;
+  -- Con el permiso (el dueño lo tiene) ve el global y el propio de lo ajeno.
+  if (select numero from public.leads_vista where nombre = 'Listado Ajeno') is distinct from current_setting('humo.num_ajeno')::bigint then raise exception '«todos» con el permiso no vio el global'; end if;
+  if (select numero_propio from public.leads_vista where nombre = 'Listado Ajeno') is null then raise exception '«todos» con el permiso no vio el propio ajeno'; end if;
 end $$;
 reset role;
 

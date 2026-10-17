@@ -91,6 +91,9 @@ select set_config('medir.et_ana', (select id::text from public.etiquetas where n
 select set_config('medir.origen_lead', (select id::text from public.origenes_lead order by orden, id limit 1), true);
 select set_config('medir.origen_lead_dos', (select id::text from public.origenes_lead order by orden, id offset 1 limit 1), true);
 select set_config('medir.origen_lead_sin', (select id::text from public.origenes_lead order by orden desc, id limit 1), true);
+-- Los números de la numeración (9f-2): un global de la dueña, y un número propio de Ana con su id (Ana lo busca como `#n`).
+select set_config('medir.num_global', (select numero::text from public.leads where nombre like 'Volumen 20 %'), true);
+select set_config('medir.num_propio_ana', (select numero_propio::text from public.leads where nombre like 'Volumen 20001 %'), true);
 -- Un origen con un solo lead (el peor caso de la sonda «¿lo usa algún lead?»): se crea aquí y se revierte con la transacción.
 insert into public.origenes_lead (clave, nombre, orden) values ('medir_uno', 'Medir uno', 9990);
 select set_config('medir.origen_lead_uno', (select id::text from public.origenes_lead where clave = 'medir_uno'), true);
@@ -105,9 +108,29 @@ select set_config('medir.vcursor_en', (select creado_en::text from public.vehicu
 select set_config('medir.vcursor_id', (select id::text from public.vehiculos where origen_id = current_setting('medir.origen')::uuid and eliminado_en is null
   order by creado_en desc, id desc offset 2000 limit 1), true);
 
+-- Cuántas veces se llama a una función mientras corre una consulta como `p_quien` (`track_functions` es de superusuario:
+-- se enciende antes de cambiar de rol). Sirve para probar que el permiso se calcula una vez por consulta y no por fila.
+create function pg_temp.llamadas(p_nombre text, p_quien text, p_sql text, p_funcion regprocedure, p_tope int) returns void language plpgsql as $$
+declare v bigint; v_antes bigint;
+begin
+  perform pg_temp.quien(p_quien);
+  set local track_functions = 'all';
+  -- El contador de la transacción acumula todo lo que corrió antes: se mide la diferencia.
+  select coalesce(max(calls), 0) into v_antes from pg_stat_xact_user_functions where funcid = p_funcion::oid;
+  set local role authenticated;
+  execute p_sql;
+  reset role;
+  perform pg_stat_clear_snapshot();
+  select coalesce(max(calls), 0) - v_antes into v from pg_stat_xact_user_functions where funcid = p_funcion::oid;
+  raise notice 'medicion|% [%] llamadas a %|%', p_nombre, p_quien, p_funcion, v;
+  if v > p_tope then
+    raise exception '% [%]: % se llamó % veces para una página, el tope es % (se está calculando por fila)', p_nombre, p_quien, p_funcion, v, p_tope;
+  end if;
+end $$;
+
 -- La página del listado de leads, como la arma PostgREST sobre `leads_vista`.
 create function pg_temp.pagina(p_donde text) returns text language sql as $$
-  select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, nombre, telefono_principal, en_cartera, tipo, origen_lead_id, creado_en,
+  select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, numero_propio, numero_visible, nombre, telefono_principal, en_cartera, tipo, origen_lead_id, creado_en,
     atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista where %s order by creado_en desc, id desc limit 51) t', p_donde);
 $$;
 
@@ -134,6 +157,19 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('listado: un origen del lead (cuesta lo que suma ese origen)', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead'))), 450, 'leads_origen_lead_id_idx', '{leads}', 15000);
     perform pg_temp.escala('listado: un origen del lead sin leads', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead_sin'))), 100, 'leads_origen_lead_id_idx', '{leads}', 0);
     perform pg_temp.escala('listado: dos orígenes del lead (suma sus leads)', q, pg_temp.pagina(format('origen_lead_id = any (array[%L, %L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead'), current_setting('medir.origen_lead_dos'))), 800, 'leads_origen_lead_id_idx', '{leads}', 30000);
+    -- La numeración (9f-2). Los números salen de dos copias bajo su policy, como subconsultas de la lista de columnas
+    -- (se evalúan sólo para las filas que salen, no para las que la consulta recorre): el permiso se pregunta una vez
+    -- por consulta (`llamadas`) y la página profunda cuesta lo mismo que sin pedirlos. Buscar `#n` resuelve el número a un
+    -- id leyendo la copia que corresponde por su índice único, sin recorrer `leads`.
+    perform pg_temp.llamadas('listado: página 1, el permiso del número', q, pg_temp.pagina('esta_tachado = false'), 'public.tiene_permiso(text,uuid)'::regprocedure, 6);
+    if q = 'duena' then
+      perform pg_temp.escala('buscar #n con el permiso (el global)', q, format('select lead_id from public.leads_numeros_globales where numero = %s', current_setting('medir.num_global')),
+        20, 'leads_numeros_globales_numero_key', '{leads,leads_numeros_globales}', 5);
+    else
+      perform pg_temp.escala('buscar #n sin el permiso (el propio)', q, format('select lead_id from public.leads_numeros_propios where creado_por = %L and numero = %s',
+        '00000000-0000-0000-0000-0000000000a1', current_setting('medir.num_propio_ana')),
+        20, 'leads_numeros_propios_creador_idx', '{leads,leads_numeros_propios}', 5);
+    end if;
     -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
     perform pg_temp.escala('listado: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 100);
     perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$, 2500);
@@ -174,6 +210,13 @@ do $medir$ declare q text; begin
       where v.origen_id = %L and public.limpieza_el(v) <= now() + interval '30 days' order by v.creado_en desc, v.id desc limit 51) t$w$, current_setting('medir.origen')), 150, 'vehiculos_origen_listado_idx', '{vehiculos}', 5000);
     perform pg_temp.escala('papelera de vehículos, página 1 de 5 lotes', q, 'select public.vehiculos_papelera_listar(null, null, false, 6)', 200);
     perform pg_temp.escala('storage_gc_pendiente', q, 'select public.storage_gc_pendiente()', 50);
+    -- El alta con el contador: un upsert por la clave primaria, lo mismo con 20 leads que con 62.000.
+    perform pg_temp.escala('alta de un lead (trigger del número propio incluido)', q, $w$select public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Medir alta',
+      'telefono_principal', '7' || lpad(floor(random() * 9999999)::text, 7, '0'), 'origen_lead_id', (select id from public.origenes_lead order by orden limit 1)))$w$, 80);
+    if q = 'duena' then
+      perform pg_temp.escala('contador del número propio (upsert)', q, $w$insert into public.leads_contadores as c (usuario_id, ultimo) values ('00000000-0000-0000-0000-0000000000a1', 1)
+        on conflict (usuario_id) do update set ultimo = c.ultimo + 1 returning c.ultimo$w$, 5, null, '{}', 0, 'postgres');  -- el arbitro es leads_contadores_pkey (no figura como «Index Name»)
+    end if;
     if q = 'duena' then perform pg_temp.escala('origenes_lead_con_uso (hasta 100 orígenes)', q, 'select public.origenes_lead_con_uso()', 100); end if;
     -- Lo de adentro de `_origenes_lead_json()` y de `origen_lead_eliminar()`: «¿algún lead usa este origen?». Con
     -- `= o.id` el plan genérico estima un quinto de la tabla y recorre `leads` (5 ms con 62.000, creciendo con la

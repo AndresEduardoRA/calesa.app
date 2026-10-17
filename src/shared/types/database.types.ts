@@ -6472,6 +6472,9 @@ export type Database = {
           id: string | null
           nombre: string | null
           numero: number | null
+          numero_propio: number | null
+          numero_propio_de: string | null
+          numero_visible: number | null
           origen_lead_id: string | null
           telefono_cc: string | null
           telefono_principal: string | null
@@ -6506,6 +6509,7 @@ export type Database = {
           lead_id: string | null
           lead_nombre: string | null
           lead_numero: number | null
+          lead_numero_propio: number | null
           notificado_en: string | null
           recordar_en: string | null
           titulo: string | null
@@ -6774,6 +6778,17 @@ export type Database = {
         Returns: string
       }
       _lead_motivo_para_deshacer: { Args: { p_lead: string; p_yo: string }; Returns: string }
+      _lead_numeros: {
+        Args: {
+          p_lead: Omit<
+            Database['public']['Tables']['leads']['Row'],
+            Database['public']['Tables']['leads']['ComputedFields']
+          >
+          p_ve: boolean
+        }
+        Returns: Json
+      }
+      _lead_numeros_de: { Args: { p_lead: string }; Returns: Json }
       _lead_para_mover: {
         Args: { p_lead: string }
         Returns: {
@@ -7935,6 +7950,7 @@ export type Database = {
           lead_id: string
           lead_nombre: string
           lead_numero: number
+          lead_numero_propio: number
           nota: string
           por_nombre: string
         }[]
@@ -7961,6 +7977,7 @@ export type Database = {
           lead_id: string
           lead_nombre: string
           lead_numero: number
+          lead_numero_propio: number
           por_nombre: string
         }[]
       }
