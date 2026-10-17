@@ -12,7 +12,7 @@ type Props = {
   children: ReactNode
 }
 
-// En pantallas angostas la barra lateral vive detrás de este botón. `Esc` la cierra por el
+// En pantallas angostas la barra lateral vive detrás de este botón (de 44 px siempre: un blanco táctil no crece con el texto). `Esc` la cierra por el
 // registro de atajos (lo hace <Drawer>).
 export function MenuMovil({ titulo, children }: Props) {
   const [abierto, setAbierto] = useState(false)
@@ -22,7 +22,7 @@ export function MenuMovil({ titulo, children }: Props) {
       <Button
         variant="ghost"
         size="icon-lg"
-        className="size-11"
+        className="size-[44px]"
         aria-label="Abrir el menú"
         aria-expanded={abierto}
         onClick={() => {

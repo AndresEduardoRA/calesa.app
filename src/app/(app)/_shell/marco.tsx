@@ -49,12 +49,28 @@ export function Marco({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-(--topbar) shrink-0 items-center gap-2 border-b border-(--color-line) bg-(--color-surface) px-2 md:px-5">
-          <MenuMovil titulo={nombreEmpresa}>{navegacion}</MenuMovil>
+        <header className="@container sticky top-0 z-30 flex h-(--topbar) shrink-0 items-center gap-2 border-b border-(--color-line) bg-(--color-surface) px-2 md:px-5">
+          <MenuMovil titulo={nombreEmpresa}>
+            {navegacion}
+            {tipoCambio ? (
+              // Con el texto grande la barra no tiene lugar para el tipo de cambio: acá se sigue viendo.
+              <div className="mt-4 grid gap-1 border-t border-(--color-line) pt-3">
+                <p className="px-2 text-(length:--text-xs) text-(--color-ink-soft)">
+                  Tipo de cambio del día
+                </p>
+                {tipoCambio}
+              </div>
+            ) : null}
+          </MenuMovil>
           <BuscadorPendiente />
           <div className="ml-auto flex shrink-0 items-center gap-1">
             {nuevoLead}
-            {tipoCambio ? <div data-hueco="tipo-cambio">{tipoCambio}</div> : null}
+            {tipoCambio ? (
+              // Sólo si entra: con el texto al 200 % la barra mide menos de 24 rem y el tipo de cambio queda en el menú.
+              <div data-hueco="tipo-cambio" className="hidden @min-[24rem]:block">
+                {tipoCambio}
+              </div>
+            ) : null}
             <ConmutadorLive />
             {menuUsuario}
           </div>

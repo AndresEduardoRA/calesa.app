@@ -13,7 +13,7 @@ export function ConmutadorLive() {
     <Button
       variant={live ? 'secondary' : 'ghost'}
       size="icon-lg"
-      className="size-11 md:size-9"
+      className="size-[44px] md:size-9"
       aria-pressed={live}
       aria-label="Modo Live: ocultar los montos"
       title={

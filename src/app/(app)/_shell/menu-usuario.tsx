@@ -113,7 +113,7 @@ export function MenuUsuario({ persona, entradas, alCerrarSesion }: Props) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`Menú de ${persona.nombre}`}
-        className="flex size-11 items-center justify-center rounded-(--radius-pill) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:size-9"
+        className="flex size-[44px] items-center justify-center rounded-(--radius-pill) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:size-9"
       >
         <Avatar nombre={persona.nombre} url={persona.avatarUrl} lado={30} />
       </DropdownMenuTrigger>
