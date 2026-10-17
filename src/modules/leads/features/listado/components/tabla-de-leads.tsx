@@ -20,46 +20,61 @@ type Props = DatosDeLaLista & {
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
+// La columna del nombre queda pegada a la izquierda mientras el resto se desplaza dentro de la tarjeta (cierre 2). Opaca, para que lo
+// que pasa por debajo no se transparente, y con el color de la fila al pasar el puntero o al estar abierta en el drawer.
+const NOMBRE_PEGADO =
+  'sticky left-0 z-10 min-w-64 bg-(--color-surface) shadow-[inset_-1px_0_0_var(--color-line)]'
+const NOMBRE_DE_FILA =
+  'group-hover:bg-[color-mix(in_oklab,var(--color-surface-2)_50%,var(--color-surface))] group-data-[state=selected]:bg-(--color-surface-2)'
+
+function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposDeTabla> }) {
+  return (
+    <TableHeader>
+      <TableRow>
+        <TableHead className={`pl-3 ${NOMBRE_PEGADO}`}>Nombre</TableHead>
+        <TableHead>Teléfono</TableHead>
+        <TableHead>Tipo</TableHead>
+        <TableHead>Origen del lead</TableHead>
+        {columnas.map((campo) => (
+          <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
+        ))}
+        <TableHead className="w-12 pr-2">
+          <span className="sr-only">Marcas</span>
+        </TableHead>
+      </TableRow>
+    </TableHeader>
+  )
+}
+
 // Los leads en escritorio: nombre (con las marcas de quien mira), teléfono, tipo y origen, una
 // columna por cada campo «en la tabla» del layout y el «⋯» de las marcas. Elegir una fila abre el
-// drawer rápido (`?lead=`).
+// drawer rápido (`?lead=`). La tabla es tan ancha como lo pidan sus columnas (el nombre nunca se achica para que quepan) y se
+// desplaza dentro de la tarjeta, con la columna del nombre a la vista.
 export function TablaDeLeads(props: Props) {
   const { leads, campos, origenes, codigoDePais, etiquetas, alAbrir, abierto, marcar } = props
   const columnas = camposDeTabla(campos)
   return (
     <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="pl-3">Nombre</TableHead>
-            <TableHead>Teléfono</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Origen del lead</TableHead>
-            {columnas.map((campo) => (
-              <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
-            ))}
-            <TableHead className="w-12 pr-2">
-              <span className="sr-only">Marcas</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
+      <Table className="w-max min-w-full">
+        <EncabezadoDeLaTabla columnas={columnas} />
         <TableBody>
           {leads.map((lead) => (
             <TableRow
               key={lead.id}
               data-state={abierto === lead.id ? 'selected' : undefined}
-              className="h-(--fila) cursor-pointer"
+              className="group h-(--fila) cursor-pointer"
               onClick={() => {
                 alAbrir(lead.id)
               }}
             >
-              <TableCell className="py-1 pl-3">
+              <TableCell className={`py-1 pl-3 ${NOMBRE_PEGADO} ${NOMBRE_DE_FILA}`}>
                 <NombreDeFila
                   lead={lead}
                   etiquetas={etiquetas}
                   nombre={(clases) => (
                     <button
                       type="button"
+                      title={lead.nombre}
                       className={`max-w-72 text-left underline-offset-2 outline-none hover:underline focus-visible:shadow-(--shadow-focus) ${clases}`}
                       onClick={(evento) => {
                         evento.stopPropagation()
