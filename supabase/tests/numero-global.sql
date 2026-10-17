@@ -184,6 +184,32 @@ begin
     raise exception 'con el permiso, el visible debía ser el global'; end if;
 end $$;
 
+-- @test número global (9g): el nombre de quien creó el lead nunca llega nulo si el propio no es de quien mira
+-- Nulo quiere decir «el propio es mío»; la pantalla escribe «Tu n.º» con él. Un creador con el nombre en blanco no puede
+-- hacerse pasar por quien mira (leads_vista y lead_ficha), y quien creó el lead lo ve nulo.
+do $$
+declare
+  p01 constant text := '00000000-0000-0000-0000-000000000001'; p50 constant text := '00000000-0000-0000-0000-000000000050';
+  v_antes text := (select nombre from public.perfiles where id = p50::uuid);
+  v_lp text := current_setting('matriz.lp');
+begin
+  update public.perfiles set nombre = '   ' where id = p50::uuid;
+  -- La dueña (con el permiso) ve el propio de 0050 con un nombre de respaldo, en la vista y en la ficha.
+  if pg_temp.salida(p01, format($q$select numero_propio_creador as c from public.leads_vista where id = %L$q$, v_lp)) not like '%"c": "Otra persona"%' then
+    raise exception 'leads_vista: un creador sin nombre debía llegar como «Otra persona»: %',
+      pg_temp.salida(p01, format($q$select numero_propio_creador as c from public.leads_vista where id = %L$q$, v_lp)); end if;
+  if pg_temp.salida(p01, format($q$select public.lead_ficha(%L) ->> 'numero_propio_creador' as c$q$, v_lp)) not like '%"c": "Otra persona"%' then
+    raise exception 'lead_ficha: un creador sin nombre debía llegar como «Otra persona»'; end if;
+  -- Quien lo creó lo ve nulo: es suyo.
+  if pg_temp.salida(p50, format($q$select numero_propio_creador as c from public.leads_vista where id = %L$q$, v_lp)) not like '%"c": null%' then
+    raise exception 'el creador debía ver su propio número sin nombre de creador'; end if;
+  -- Un creador con nombre sigue llegando con su nombre.
+  update public.perfiles set nombre = 'Cora Prueba' where id = p50::uuid;
+  if pg_temp.salida(p01, format($q$select numero_propio_creador as c from public.leads_vista where id = %L$q$, v_lp)) not like '%"c": "Cora Prueba"%' then
+    raise exception 'un creador con nombre debía llegar con su nombre'; end if;
+  update public.perfiles set nombre = v_antes where id = p50::uuid;
+end $$;
+
 -- @test número global (9f-2): conceder o quitar el permiso con la sesión abierta se ve en la siguiente consulta
 do $$
 declare

@@ -54,6 +54,14 @@ describe('escribirNumeros', () => {
       secundario: 'Tu n.º 12',
     })
   })
+  it('un propio sin nombre del creador es de quien mira: la base nunca lo manda nulo para el de otra persona', () => {
+    // Contrato con `leads_vista` y `lead_ficha` (…001200): nulo = «es mío». Un creador sin nombre o sin perfil llega
+    // con el nombre de respaldo, así que nunca se lee como «Tu n.º».
+    expect(
+      escribirNumeros({ numero: 40, numeroPropio: 12, creadorDelPropio: 'Otra persona' }, formatear)
+        .secundario,
+    ).toBe('N.º 12 · Otra persona')
+  })
   it('el propio de otra persona lleva su nombre', () => {
     expect(
       escribirNumeros({ numero: 40, numeroPropio: 12, creadorDelPropio: 'Berta' }, formatear),

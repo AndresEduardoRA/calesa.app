@@ -144,13 +144,14 @@ describe('emparejarColumnas: el número de un lead', () => {
 
   it('una columna con el número de un lead no se importa y dice que lo pone el sistema', () => {
     const { destinos, avisos } = emparejarColumnas(
-      ['N.º', 'Nombre', 'Teléfono', 'N.º propio', 'Tu n.º'],
+      ['N.º', 'Nombre', 'Teléfono', 'N.º propio', 'N.º propio de', 'Tu n.º'],
       objetivos,
     )
-    expect(destinos).toEqual([null, 'nombre', 'telefono_principal', null, null])
+    expect(destinos).toEqual([null, 'nombre', 'telefono_principal', null, null, null])
     expect(avisos).toEqual([
       'La columna «N.º» no se importa: el número de un lead lo pone el sistema.',
       'La columna «N.º propio» no se importa: el número de un lead lo pone el sistema.',
+      'La columna «N.º propio de» no se importa: el número de un lead lo pone el sistema.',
       'La columna «Tu n.º» no se importa: el número de un lead lo pone el sistema.',
     ])
   })

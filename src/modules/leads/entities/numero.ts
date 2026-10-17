@@ -12,7 +12,7 @@ export function numeroQueSeBusca(puedeVerElGlobal: boolean): 'global' | 'propio'
 // Una columna de un archivo CSV que parece traer el número de un lead («N.º», «Número», «#», «Tu n.º»).
 // Los números los pone el sistema: no se importan ni se pueden fijar desde un archivo.
 const ENCABEZADO_DE_NUMERO =
-  /^(?:#|n\.?\s?[º°]|no\.|nro\.?|num\.?|número|numero)(?:\s+(?:propio|global))?$|^tu\s+n\.?\s?[º°]$/i
+  /^(?:#|n\.?\s?[º°]|no\.|nro\.?|num\.?|número|numero)(?:\s+(?:propio|global))?$|^n\.?\s?[º°]\s+propio\s+de$|^tu\s+n\.?\s?[º°]$/i
 
 export function esEncabezadoDeNumero(encabezado: string): boolean {
   return ENCABEZADO_DE_NUMERO.test(encabezado.trim())

@@ -171,8 +171,11 @@ test('«todos» exporta sólo su cartera: ni los leads ajenos ni sus privados sa
   await expect(aLaVista(page.getByText(`E2E ${AJENO_CARLOS}`, { exact: true }))).toBeVisible()
   const csv = await descargar(page)
   // …pero el archivo es de la cartera: UTF-8 con BOM, las columnas del layout en su orden.
-  // Los números van primero: el global sólo con `leads.numero_global.ver`, y el propio siempre.
-  expect(csv).toMatch(/^\uFEFF(?:N\.º;)?N\.º propio;Nombre;Teléfono;Tipo;Origen;/)
+  // Los números van primero: el global sólo con `leads.numero_global.ver`, y el propio siempre; con el global, también de
+  // quién es el propio («Tú» si es de quien exporta).
+  expect(csv).toMatch(
+    /^\uFEFF(?:N\.º;N\.º propio;N\.º propio de|N\.º propio);Nombre;Teléfono;Tipo;Origen;/,
+  )
   // Las columnas fijas y después los campos activos del layout, con su etiqueta y en su orden (los
   // que comparten orden salen como los muestra la app).
   const encabezado = (csv.split('\r\n')[0] ?? '').replace('\uFEFF', '').split(';')

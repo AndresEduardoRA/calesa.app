@@ -104,7 +104,11 @@ describe('columnas', () => {
   })
 
   it('con el permiso del número global, el archivo lleva también «N.º»', () => {
-    expect(encabezadosDeExportacion([], true).slice(0, 2)).toEqual(['N.º', 'N.º propio'])
+    expect(encabezadosDeExportacion([], true).slice(0, 3)).toEqual([
+      'N.º',
+      'N.º propio',
+      'N.º propio de',
+    ])
     expect(encabezadosDeExportacion([], false).slice(0, 2)).toEqual(['N.º propio', 'Nombre'])
   })
 
@@ -179,16 +183,24 @@ describe('filaDeExportacion', () => {
         fila({ numeros: { numero: 40, numeroPropio: 3, creadorDelPropio: null } }),
         [],
         conGlobal,
-      ).slice(0, 3),
-    ).toEqual([40, 3, 'Ana Pérez'])
+      ).slice(0, 4),
+    ).toEqual([40, 3, 'Tú', 'Ana Pérez'])
+    // El propio de otra persona dice de quién es: nunca queda como si fuera de quien exporta.
+    expect(
+      filaDeExportacion(
+        fila({ numeros: { numero: 40, numeroPropio: 3, creadorDelPropio: 'Berta Rojas' } }),
+        [],
+        conGlobal,
+      ).slice(0, 4),
+    ).toEqual([40, 3, 'Berta Rojas', 'Ana Pérez'])
     // Un número que la base no entregó sale vacío, no «null».
     expect(
       filaDeExportacion(
         fila({ numeros: { numero: null, numeroPropio: null, creadorDelPropio: null } }),
         [],
         conGlobal,
-      ).slice(0, 2),
-    ).toEqual(['', ''])
+      ).slice(0, 3),
+    ).toEqual(['', '', ''])
   })
 
   it('un origen que ya no está en la lista sale vacío, no «undefined»', () => {

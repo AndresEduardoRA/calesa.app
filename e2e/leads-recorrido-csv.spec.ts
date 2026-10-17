@@ -175,10 +175,10 @@ test('F · la dueña exporta su cartera: UTF-8 con BOM, las columnas del layout 
   if (process.env['E2E_CAPTURAS']) {
     writeFileSync(`${process.env['E2E_CAPTURAS']}/${info.project.name}/exportado.csv`, texto)
   }
-  // La dueña tiene `leads.numero_global.ver`: el global y el propio van antes del nombre.
-  expect(texto.startsWith('﻿N.º;N.º propio;Nombre;Teléfono;Tipo;Origen;')).toBe(true)
+  // La dueña tiene `leads.numero_global.ver`: el global, el propio y de quién es el propio van antes del nombre.
+  expect(texto.startsWith('﻿N.º;N.º propio;N.º propio de;Nombre;Teléfono;Tipo;Origen;')).toBe(true)
   const lineas = texto.split('\r\n')
-  const celdas = lineas.map((l) => l.split(';').slice(2))
+  const celdas = lineas.map((l) => l.split(';').slice(3))
   expect(celdas.some(([nombre]) => nombre === "'=SUMA(1+1) Recorrido")).toBe(true)
   expect(celdas.some(([nombre]) => nombre === "'@Recorrido Arroba")).toBe(true)
   expect(celdas.flat().some((c) => c.startsWith('=') || c.startsWith('@'))).toBe(false)
