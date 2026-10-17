@@ -49,7 +49,11 @@ function SelectoresDelArchivo({ asistente, contexto }: Pick<Props, 'asistente' |
             asistente.elegirOrigen(evento.target.value)
           }}
         />
-      ) : null}
+      ) : (
+        <p className="self-end pb-2 text-(length:--text-sm) text-(--color-ink-faint)">
+          No hay un origen de lead activo: los leads se importan sin origen.
+        </p>
+      )}
       <CampoSeleccion
         nombre="tipo-del-archivo"
         etiqueta="Tipo para las filas sin tipo"

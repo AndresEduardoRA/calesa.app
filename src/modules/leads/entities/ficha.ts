@@ -129,7 +129,7 @@ export function quienLoTiene(ficha: LeadDeFicha, yoId: string): string | null {
   return ficha.tieneNombre ? `Lo tiene ${ficha.tieneNombre}` : 'Lo tiene otra persona'
 }
 
-// El nombre de un origen con su estado: «Facebook», o «Facebook (inactivo)» si ya no se ofrece.
+// El nombre de un origen con su estado: el nombre del origen, o «<nombre> (inactivo)» si ya no se ofrece.
 export function origenDeLaFicha(
   origenes: readonly OrigenConEstado[],
   origenId: string | null,

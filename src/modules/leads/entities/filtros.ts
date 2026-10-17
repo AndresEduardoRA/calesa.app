@@ -39,11 +39,25 @@ const AYUDA_DE_PRIVADO = 'Solo busca en tus leads: de los demás no recibes este
 
 type Fuentes = {
   campos: readonly CampoDeLead[]
-  origenes: readonly OrigenDeLead[]
+  // Todos, también los desactivados (un lead puede conservar uno apagado); sin `activo` cuenta como activo.
+  origenes: readonly (OrigenDeLead & { activo?: boolean })[]
   // Tiene el alcance «todos»: para él un filtro privado necesita su aclaración.
   verTodos: boolean
   // Las de quien mira: las opciones del filtro de etiquetas.
   etiquetas: readonly Etiqueta[]
+}
+
+// Las opciones del filtro de origen: primero los activos, en el orden de la configuración, y después
+// los desactivados marcados «(inactivo)» (hay leads que todavía los tienen, y se filtran igual).
+export function opcionesDeOrigen(
+  origenes: readonly (OrigenDeLead & { activo?: boolean })[],
+): { valor: string; etiqueta: string }[] {
+  const activos = origenes.filter((origen) => origen.activo !== false)
+  const apagados = origenes.filter((origen) => origen.activo === false)
+  return [
+    ...activos.map((origen) => ({ valor: origen.id, etiqueta: origen.nombre })),
+    ...apagados.map((origen) => ({ valor: origen.id, etiqueta: `${origen.nombre} (inactivo)` })),
+  ]
 }
 
 export function esquemaDeFiltrosDeLeads(fuentes: Fuentes): EsquemaDeFiltros {
@@ -63,7 +77,7 @@ export function esquemaDeFiltrosDeLeads(fuentes: Fuentes): EsquemaDeFiltros {
       clave: FILTRO_ORIGEN,
       etiqueta: 'Origen del lead',
       seccion: SECCION_DATOS,
-      opciones: origenes.map((origen) => ({ valor: origen.id, etiqueta: origen.nombre })),
+      opciones: opcionesDeOrigen(origenes),
     })
   }
   const delLayout = camposFiltrables(campos).flatMap((campo) => {

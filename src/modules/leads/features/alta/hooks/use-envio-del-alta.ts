@@ -1,7 +1,13 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useRef, type Dispatch, type SetStateAction } from 'react'
-import { validarAlta, type ContextoDeAlta, type DatosDeAlta } from '../../../entities/alta'
+import {
+  CLAVE_DEL_ALTA,
+  validarAlta,
+  type ContextoDeAlta,
+  type DatosDeAlta,
+} from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { ResultadoDeAlta } from '../../../entities/repositorios'
 import type * as ElPrimerSeguimiento from '../../../entities/primer-seguimiento'
@@ -13,6 +19,7 @@ import {
   trasDuplicado,
   trasRechazo,
   trasSeguimientoInvalido,
+  sinElOrigen,
   trasValidacion,
   type Estado,
 } from './estado-del-alta'
@@ -105,6 +112,7 @@ async function preparaElSeguimiento(args: Contexto, datos: DatosDeAlta): Promise
 // el intento queda esperando (con su id) y sale solo al volver.
 export function useEnvioDelAlta(args: Args) {
   const { estado, setEstado, layout, contexto, zona, telefono, alGuardado } = args
+  const router = useRouter()
   const envio = useCrearLead()
   const preparando = useRef(false)
   const hayTipos = contexto.tiposDeSeguimiento.length > 0
@@ -139,6 +147,11 @@ export function useEnvioDelAlta(args: Args) {
       return false
     }
     setEstado((antes) => trasRechazo(antes, hecho.error, hecho.porCampo))
+    if (hecho.porCampo?.[CLAVE_DEL_ALTA.origen]) {
+      // El origen se desactivó (o se eliminó) mientras se escribía: se vuelve a leer lo que el alta ofrece.
+      setEstado(sinElOrigen)
+      router.refresh()
+    }
     return false
   }
 

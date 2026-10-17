@@ -74,6 +74,11 @@ test('un alta con el origen que se apagó mientras tanto falla con un mensaje le
     .eq('nombre', `E2E Alta apagada ${proyecto}`)
   expect(data ?? []).toHaveLength(0)
   await expect(panel.getByLabel('Nombre')).toHaveValue(`E2E Alta apagada ${proyecto}`)
+  // El alta vuelve a leer lo que ofrece: el apagado ya no está y el campo pide elegir otro.
+  const select = panel.getByLabel('Origen del lead')
+  await expect(select).toHaveValue('')
+  await expect.poll(async () => select.locator('option').allTextContents()).not.toContain(tres)
+  await expect(select.locator('option').first()).toHaveText('Elige un origen')
   await admin()
     .from('origenes_lead')
     .update({ activo: true })

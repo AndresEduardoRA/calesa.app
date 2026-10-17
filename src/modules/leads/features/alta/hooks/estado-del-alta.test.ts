@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { CLAVE_DEL_ALTA } from '../../../entities/alta'
 import { valoresDeSeguimientoNuevo } from '../../../entities/seguimiento-nuevo'
 import {
   conBorradorRepuesto,
@@ -9,6 +10,7 @@ import {
   frenadoPorElTelefono,
   limpio,
   repartirMotivos,
+  sinElOrigen,
   trasDuplicado,
   trasRechazo,
   trasSeguimientoInvalido,
@@ -144,5 +146,15 @@ describe('estado del alta: el teléfono', () => {
     expect(conTelefonoRevisado(con('70011002'), null).errores['telefono_principal']).toContain(
       '«+»',
     )
+  })
+})
+
+describe('estado del alta: el origen que se apagó', () => {
+  it('deja el origen sin elegir y no toca lo demás', () => {
+    const antes = limpio(ID, { nombre: 'Ana', [CLAVE_DEL_ALTA.origen]: 'o1' }, SEGUIMIENTO)
+    const despues = sinElOrigen(antes)
+    expect(despues.valores[CLAVE_DEL_ALTA.origen]).toBe('')
+    expect(despues.valores['nombre']).toBe('Ana')
+    expect(despues.id).toBe(ID)
   })
 })

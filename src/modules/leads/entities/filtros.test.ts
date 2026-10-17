@@ -6,6 +6,7 @@ import {
   esquemaDeFiltrosDeLeads,
   filtrosDescartados,
   interpretarBusqueda,
+  opcionesDeOrigen,
   privadosFiltrando,
   textoDeFiltroDescartado,
 } from './filtros'
@@ -233,5 +234,25 @@ describe('privadosFiltrando', () => {
     expect(privadosFiltrando(CAMPOS, leerFiltros(esquema(true), { 'a.ciudad': 'cruz' }))).toEqual(
       [],
     )
+  })
+})
+
+describe('opcionesDeOrigen', () => {
+  it('primero los activos en su orden y después los desactivados, marcados', () => {
+    expect(
+      opcionesDeOrigen([
+        { id: 'a', clave: 'a', nombre: 'Apagado', activo: false },
+        { id: 'b', clave: 'b', nombre: 'Bueno', activo: true },
+        { id: 'c', clave: 'c', nombre: 'Corriente' },
+      ]),
+    ).toEqual([
+      { valor: 'b', etiqueta: 'Bueno' },
+      { valor: 'c', etiqueta: 'Corriente' },
+      { valor: 'a', etiqueta: 'Apagado (inactivo)' },
+    ])
+  })
+
+  it('sin orígenes no hay opciones', () => {
+    expect(opcionesDeOrigen([])).toEqual([])
   })
 })

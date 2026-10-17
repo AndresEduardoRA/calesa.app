@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { ContextoDeAlta } from '../alta'
 import { camposDeLeadDesde, type CampoDeLead } from '../campo'
-import { prepararFilas, type EntradaDePreparacion, type FilaPreparada } from './filas'
+import {
+  motivoDeOrigenDesconocido,
+  prepararFilas,
+  type EntradaDePreparacion,
+  type FilaPreparada,
+} from './filas'
 
 const WEB = '11111111-1111-4111-8111-111111111111'
 const REFERIDO = '22222222-2222-4222-8222-222222222222'
@@ -150,7 +155,10 @@ describe('prepararFilas: el origen y el tipo', () => {
     const [fila] = preparar([['Ana', '70011002', '', 'Radio', '', '', '', 'CI-1']])
     expect(fila?.pedido).toBeNull()
     expect(fila?.motivos).toEqual([
-      { campo: 'origen_lead_id', motivo: 'El origen «Radio» no existe o está apagado.' },
+      {
+        campo: 'origen_lead_id',
+        motivo: 'El origen «Radio» no existe o está desactivado. Los activos: Web, Referido.',
+      },
     ])
   })
 
@@ -159,7 +167,36 @@ describe('prepararFilas: el origen y el tipo', () => {
     const [fila] = preparar([['Ana', '70011002', '', 'Referido', '', '', '', 'CI-1']], {
       contexto: sinReferido,
     })
-    expect(fila?.motivos[0]?.campo).toBe('origen_lead_id')
+    expect(fila?.motivos[0]).toEqual({
+      campo: 'origen_lead_id',
+      motivo: 'El origen «Referido» no existe o está desactivado. Los activos: Web.',
+    })
+    expect(fila?.pedido).toBeNull()
+  })
+
+  it('sin ningún origen activo, un origen escrito se rechaza y dice que se deje vacío', () => {
+    const [fila] = preparar([['Ana', '70011002', '', 'Web', '', '', '', 'CI-1']], {
+      contexto: { ...CONTEXTO, origenes: [] },
+      eleccion: { origenId: null, tipo: 'prospecto' },
+    })
+    expect(fila?.motivos[0]?.motivo).toBe(
+      'El origen «Web» no existe o está desactivado. No hay orígenes activos: deja la celda vacía.',
+    )
+  })
+
+  it('con más de diez activos nombra diez y cuenta el resto', () => {
+    expect(
+      motivoDeOrigenDesconocido('X', {
+        ...CONTEXTO,
+        origenes: Array.from({ length: 13 }, (_, n) => ({
+          id: `id-${String(n)}`,
+          clave: `o${String(n)}`,
+          nombre: `O${String(n)}`,
+        })),
+      }),
+    ).toBe(
+      'El origen «X» no existe o está desactivado. Los activos: O0, O1, O2, O3, O4, O5, O6, O7, O8, O9 y 3 más.',
+    )
   })
 
   it('un tipo inválido es un error', () => {

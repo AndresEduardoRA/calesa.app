@@ -65,6 +65,19 @@ function Avisos({ alta }: { alta: AltaDeLead }) {
   )
 }
 
+// Lo que ofrece el select de origen: los activos. Sin ninguno, una sola opción que lo dice; y si lo
+// elegido ya no está entre ellos (se desactivó mientras se escribía) arranca «Elige un origen», para
+// que el campo no muestre uno que no es el que se enviará.
+function opcionesDeOrigen(contexto: ContextoDeAlta, elegido: string) {
+  if (contexto.origenes.length === 0) {
+    return [{ valor: '', etiqueta: 'Sin orígenes activos' }]
+  }
+  const activos = contexto.origenes.map((o) => ({ valor: o.id, etiqueta: o.nombre }))
+  return contexto.origenes.some((o) => o.id === elegido)
+    ? activos
+    : [{ valor: '', etiqueta: 'Elige un origen' }, ...activos]
+}
+
 // Los cuatro fijos: teléfono (con su verificación), nombre, origen (el último usado) y tipo.
 function DatosFijos({ alta, contexto }: Pick<Props, 'alta' | 'contexto'>) {
   const { valores, errores, enCurso, cambiar } = alta
@@ -96,15 +109,11 @@ function DatosFijos({ alta, contexto }: Pick<Props, 'alta' | 'contexto'>) {
         error={errores[CLAVE_DEL_ALTA.nombre]}
         disabled={enCurso}
       />
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid items-start gap-3 sm:grid-cols-2">
         <CampoSeleccion
           nombre={idDe(CLAVE_DEL_ALTA.origen)}
           etiqueta="Origen del lead"
-          opciones={
-            sinOrigenes
-              ? [{ valor: '', etiqueta: 'Sin orígenes activos' }]
-              : contexto.origenes.map((o) => ({ valor: o.id, etiqueta: o.nombre }))
-          }
+          opciones={opcionesDeOrigen(contexto, texto(valores[CLAVE_DEL_ALTA.origen]))}
           value={texto(valores[CLAVE_DEL_ALTA.origen])}
           onChange={(evento) => {
             cambiar(CLAVE_DEL_ALTA.origen, evento.target.value)

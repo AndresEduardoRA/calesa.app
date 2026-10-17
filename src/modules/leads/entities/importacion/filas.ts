@@ -90,6 +90,21 @@ function tipoDeLaCelda(texto: string): TipoDelLead | null {
   )
 }
 
+const ORIGENES_QUE_SE_NOMBRAN = 10
+
+// Un origen que no existe o está desactivado nunca se crea por una errata: la fila se rechaza y el
+// motivo lista los activos, para corregir la celda sin ir a otra pantalla.
+export function motivoDeOrigenDesconocido(texto: string, contexto: ContextoDeAlta): string {
+  const activos = contexto.origenes.map((origen) => origen.nombre)
+  const principio = `El origen «${texto}» no existe o está desactivado.`
+  if (activos.length === 0) {
+    return `${principio} No hay orígenes activos: deja la celda vacía.`
+  }
+  const nombrados = activos.slice(0, ORIGENES_QUE_SE_NOMBRAN).join(', ')
+  const resto = activos.length - ORIGENES_QUE_SE_NOMBRAN
+  return `${principio} Los activos: ${nombrados}${resto > 0 ? ` y ${String(resto)} más` : ''}.`
+}
+
 function origenDeLaCelda(contexto: ContextoDeAlta, texto: string): string | null {
   const buscado = comparable(texto)
   return (
@@ -138,7 +153,7 @@ function leerOrigen(
 ): void {
   const origen = texto === '' ? entrada.eleccion.origenId : origenDeLaCelda(entrada.contexto, texto)
   if (origen === null && texto !== '') {
-    propios.set(CLAVE_DEL_ALTA.origen, `El origen «${texto}» no existe o está apagado.`)
+    propios.set(CLAVE_DEL_ALTA.origen, motivoDeOrigenDesconocido(texto, entrada.contexto))
   }
   valores[CLAVE_DEL_ALTA.origen] = origen ?? ''
 }

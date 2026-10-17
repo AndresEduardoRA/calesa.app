@@ -254,3 +254,9 @@ export function conTelefonoRevisado(antes: Estado, codigoDePais: string | null):
   }
   return { ...antes, errores: { ...antes.errores, [CLAVE_DEL_ALTA.telefono]: normalizado.motivo } }
 }
+
+// El origen elegido ya no se ofrece (se desactivó mientras se escribía): el campo queda sin elegir y
+// lo demás escrito sigue donde estaba.
+export function sinElOrigen(antes: Estado): Estado {
+  return { ...antes, valores: { ...antes.valores, [CLAVE_DEL_ALTA.origen]: '' } }
+}
