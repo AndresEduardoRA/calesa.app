@@ -4,8 +4,9 @@
 --
 -- Cuentas (con contraseña, para entrar por la pantalla): la dueña, Ana (la asesora de la semilla) y
 -- cuatro asesores más. Todo lo sembrado lleva el prefijo «Volumen » en el nombre o el título.
---   leads         50.000 vivos: dueña 20.000, Ana 2.000, cuatro asesores 7.000 cada uno; 12.000 más en 60
---                 lotes de la papelera (dueña)
+--   leads         :n vivos (50.000 por defecto; `pnpm db:sembrar-volumen -- --leads 200000`): dueña 2/5, Ana 1/25 y
+--                 el resto entre cuatro asesores (con 50.000: 20.000, 2.000 y 7.000 cada uno); 12.000 más en 60 lotes
+--                 de la papelera (dueña)
 --   vehiculos     10.000 vivos repartidos entre los orígenes (2.000 de subasta importados sin comprador,
 --                 para la limpieza) y 3.000 más en 60 lotes de la papelera
 --   seguimientos  200.000, recordatorios 20.000, etiquetas 5.000 asignaciones
@@ -16,6 +17,10 @@
 -- crearían (la cartera) se insertan a mano. Se niega a correr dos veces.
 \set ON_ERROR_STOP 1
 \timing off
+\if :{?n}
+\else
+  \set n 50000
+\endif
 begin;
 
 do $$ begin
@@ -61,22 +66,22 @@ on conflict (clave) do nothing;
 set local session_replication_role = replica;
 
 -- --- Leads ------------------------------------------------------------------------------------------
--- n global 1..50.000: la dueña 20.000, Ana 2.000 y cuatro asesores 7.000 cada uno. creado_en repartido
--- hacia atrás, un lead cada 7 minutos (el más viejo, de hace ~243 días).
+-- n global 1..:n: la dueña 2/5, Ana 1/25 y cuatro asesores el resto (con 50.000: 20.000, 2.000 y 7.000 cada uno).
+-- creado_en repartido hacia atrás, un lead cada 7 minutos en orden revuelto (con 50.000, el más viejo de hace ~243 días).
 create temporary table volumen_leads (n int primary key, id uuid not null, dueno uuid not null) on commit drop;
 insert into volumen_leads (n, id, dueno)
 select g, gen_random_uuid(),
-       case when g <= 20000 then '00000000-0000-0000-0000-0000000000d1'::uuid
-            when g <= 22000 then '00000000-0000-0000-0000-0000000000a1'::uuid
+       case when g <= :n * 2 / 5 then '00000000-0000-0000-0000-0000000000d1'::uuid
+            when g <= :n * 2 / 5 + :n / 25 then '00000000-0000-0000-0000-0000000000a1'::uuid
             else (array['00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000b2',
                         '00000000-0000-0000-0000-0000000000b3', '00000000-0000-0000-0000-0000000000b4'])[1 + g % 4]::uuid end
-  from generate_series(1, 50000) g;
+  from generate_series(1, :n) g;
 -- Los leads de Ana y de la dueña entreverados en el tiempo: el que se mezcla de verdad no es una ráfaga.
 insert into public.leads (id, nombre, telefono_principal, creado_por, atributos, creado_en, actualizado_en, origen_lead_id)
 select v.id, 'Volumen ' || v.n || ' ' || (array['Pérez', 'Gómez', 'Rojas', 'Suárez', 'Vargas', 'Flores', 'Mamani', 'Quispe'])[1 + v.n % 8],
        (80000000 + v.n)::text, v.dueno,
        jsonb_build_object('ciudad_vol', (array['scz', 'lp', 'cbba', 'suc'])[1 + v.n % 4]),
-       now() - make_interval(mins => ((v.n * 7919) % 50000) * 7), now() - make_interval(mins => ((v.n * 7919) % 50000) * 7),
+       now() - make_interval(mins => (((v.n::bigint * 7919) % :n) * 7)::int), now() - make_interval(mins => (((v.n::bigint * 7919) % :n) * 7)::int),
        (select id from public.origenes_lead order by orden, id offset v.n % 5 limit 1)
   from volumen_leads v;
 insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde)
@@ -84,7 +89,7 @@ select id, dueno, 'dueno', now() from volumen_leads;
 -- Compartidos: el 2 % de los de la dueña, con Ana.
 insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde)
 select id, '00000000-0000-0000-0000-0000000000a1', 'compartido', '00000000-0000-0000-0000-0000000000d1', now()
-  from volumen_leads where n <= 20000 and n % 50 = 0;
+  from volumen_leads where n <= :n * 2 / 5 and n % 50 = 0;
 
 -- Marcas: tachados 5 %, favoritos 3 % de la dueña; los de Ana, sus propias.
 insert into public.leads_tachados (lead_id, usuario_id)
@@ -103,7 +108,7 @@ insert into public.leads_etiquetas (lead_id, etiqueta_id)
 select l.id, e.id
   from volumen_leads l join volumen_etiquetas e on e.usuario_id = l.dueno and e.k = 1 + l.n % 12
  where l.dueno in ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000a1') and l.n % 5 in (1, 2)
-   and l.n <= 12500
+   and l.n <= :n / 4
 on conflict do nothing;
 
 -- --- Seguimientos (200.000) y recordatorios (20.000) -----------------------------------------------------
@@ -114,7 +119,7 @@ select l.id, l.dueno, (select id from public.tipos_seguimiento order by orden, i
        case when g % 5 = 0 then 'publico'::public.visibilidad_seguimiento else 'privado' end,
        now() - make_interval(mins => g * 3), now() - make_interval(mins => g * 3), now() - make_interval(mins => g * 3)
   from generate_series(1, 200000) g
-  join volumen_leads l on l.n = 1 + (g * 7) % 22000;
+  join volumen_leads l on l.n = 1 + (g * 7) % (:n * 2 / 5 + :n / 25);
 update public.leads l set ultimo_seguimiento_en = s.ultimo
   from (select lead_id, max(ocurrido_en) ultimo from public.seguimientos where titulo like 'Volumen seguimiento %' group by lead_id) s
  where s.lead_id = l.id;
@@ -123,7 +128,7 @@ select l.dueno, l.id, 'Volumen recordatorio ' || g,
        case when g % 3 = 0 then now() - make_interval(hours => g % 700) else now() + make_interval(hours => 1 + g % 900) end,
        case when g % 3 = 1 then now() - make_interval(hours => g % 900) end
   from generate_series(1, 20000) g
-  join volumen_leads l on l.n = 1 + (g * 11) % 22000;
+  join volumen_leads l on l.n = 1 + (g * 11) % (:n * 2 / 5 + :n / 25);
 
 -- --- Embudo: 8.000 oportunidades de la dueña en una sola etapa ------------------------------------------
 do $$ declare v_u uuid; v_emb uuid; v_etapas uuid[]; begin
