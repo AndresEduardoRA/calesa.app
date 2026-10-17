@@ -24,6 +24,9 @@ const VACIO = <span className="text-(--color-ink-faint)">—</span>
 // que pasa por debajo no se transparente, y con el color de la fila al pasar el puntero o al estar abierta en el drawer.
 const NOMBRE_PEGADO =
   'sticky left-0 z-10 min-w-64 bg-(--color-surface) shadow-[inset_-1px_0_0_var(--color-line)]'
+// El «⋯» de las marcas queda pegado a la derecha por lo mismo: con la tabla desplazada, la acción de cada fila no se va de la vista.
+const ACCIONES_PEGADAS =
+  'sticky right-0 z-10 bg-(--color-surface) shadow-[inset_1px_0_0_var(--color-line)]'
 const NOMBRE_DE_FILA =
   'group-hover:bg-[color-mix(in_oklab,var(--color-surface-2)_50%,var(--color-surface))] group-data-[state=selected]:bg-(--color-surface-2)'
 
@@ -38,7 +41,7 @@ function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposD
         {columnas.map((campo) => (
           <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
         ))}
-        <TableHead className="w-12 pr-2">
+        <TableHead className={`w-12 pr-2 ${ACCIONES_PEGADAS}`}>
           <span className="sr-only">Marcas</span>
         </TableHead>
       </TableRow>
@@ -100,7 +103,7 @@ export function TablaDeLeads(props: Props) {
                   <CeldaDeCampo campo={campo} fila={lead} />
                 </TableCell>
               ))}
-              <TableCell className="py-1 pr-2">
+              <TableCell className={`py-1 pr-2 ${ACCIONES_PEGADAS} ${NOMBRE_DE_FILA}`}>
                 <MenuDeLead
                   leadId={lead.id}
                   nombre={lead.nombre}

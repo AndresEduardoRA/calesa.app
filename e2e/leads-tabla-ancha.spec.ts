@@ -9,7 +9,8 @@ import {
   prepararListado,
   type TerrenoDelListado,
 } from './soporte/leads-listado'
-import { sinScrollHorizontal } from './soporte/recorrido'
+import { recibeElClic, sinScrollHorizontal } from './soporte/recorrido'
+import { menuDelLead } from './soporte/leads-marcas'
 
 // El nombre del listado de escritorio no se corta a ~15 caracteres con el panel de filtros abierto (cierre 2): la tabla tiene un ancho
 // mínimo, la columna del nombre queda pegada a la izquierda y lo que sobra se desplaza dentro de la tarjeta, nunca en la página.
@@ -67,6 +68,8 @@ test('con poco ancho la tabla se desplaza por dentro y el nombre se queda pegado
   expect(medidas.ancho, 'la tabla debería ser más ancha que su lugar').toBeGreaterThan(
     medidas.visible,
   )
+  // El «⋯» de cada fila se alcanza sin desplazar la tabla (queda pegado a la derecha) y desplazada tampoco se va.
+  await recibeElClic(menuDelLead(page, NOMBRE_LARGO))
   const antes = (await nombre.boundingBox())?.x ?? 0
   await contenedor.evaluate((el) => {
     el.scrollLeft = el.scrollWidth
@@ -74,5 +77,6 @@ test('con poco ancho la tabla se desplaza por dentro y el nombre se queda pegado
   await expect.poll(() => contenedor.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0)
   const despues = (await nombre.boundingBox())?.x ?? 0
   expect(Math.abs(despues - antes), 'el nombre no se movió al desplazar').toBeLessThanOrEqual(1)
+  await recibeElClic(menuDelLead(page, NOMBRE_LARGO))
   await sinScrollHorizontal(page)
 })
