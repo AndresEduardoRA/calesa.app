@@ -2347,6 +2347,8 @@ export type Database = {
         Row: {
           actualizado_en: string
           atributos: NonNullable<Json>
+          atributos_publicos: NonNullable<Json>
+          cartera: string[]
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -2367,6 +2369,8 @@ export type Database = {
         Insert: {
           actualizado_en?: string
           atributos?: NonNullable<Json>
+          atributos_publicos?: NonNullable<Json>
+          cartera?: string[]
           creado_en?: string
           creado_por?: string | null
           eliminado_en?: string | null
@@ -2385,6 +2389,8 @@ export type Database = {
         Update: {
           actualizado_en?: string
           atributos?: NonNullable<Json>
+          atributos_publicos?: NonNullable<Json>
+          cartera?: string[]
           creado_en?: string
           creado_por?: string | null
           eliminado_en?: string | null
@@ -6710,8 +6716,10 @@ export type Database = {
         Args: { p_anteriores: Json; p_campos: Json; p_nuevos: Json }
         Returns: undefined
       }
+      _lead_atributos_publicos: { Args: { p_atributos: Json }; Returns: Json }
       _lead_campo_con_valor: { Args: { p_clave: string }; Returns: number }
       _lead_campos_renumerar: { Args: Record<PropertyKey, never>; Returns: undefined }
+      _lead_cartera_calcular: { Args: { p_lead: string }; Returns: string[] }
       _lead_cartera_json: { Args: { p_lead: string }; Returns: Json }
       _lead_clave_reservada: { Args: { p_clave: string }; Returns: boolean }
       _lead_conflicto: { Args: { p_cuando: string; p_lead: string }; Returns: undefined }
@@ -6740,6 +6748,8 @@ export type Database = {
         Returns: {
           actualizado_en: string
           atributos: NonNullable<Json>
+          atributos_publicos: NonNullable<Json>
+          cartera: string[]
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -6799,6 +6809,8 @@ export type Database = {
         Returns: {
           actualizado_en: string
           atributos: NonNullable<Json>
+          atributos_publicos: NonNullable<Json>
+          cartera: string[]
           creado_en: string
           creado_por: string | null
           eliminado_en: string | null
@@ -6825,7 +6837,9 @@ export type Database = {
       _lead_verificar: { Args: { p_excluir?: string; p_tel: string }; Returns: Json }
       _lead_visible: { Args: { p_lead: string }; Returns: string }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
+      _leads_cartera_recalcular: { Args: { p_leads: string[] }; Returns: undefined }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
+      _leads_derivados_rellenar: { Args: { p_lote: number }; Returns: number }
       _leads_numerar_existentes: { Args: Record<PropertyKey, never>; Returns: undefined }
       _leads_papelera_lote_json: {
         Args: {

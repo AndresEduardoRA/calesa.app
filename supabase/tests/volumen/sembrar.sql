@@ -196,6 +196,10 @@ select i.id, l.id, j
        cross join generate_series(1, 100) j
   join volumen_leads l on l.n = 18000 + (i.k - 1) * 100 + j;
 
+-- La cartera y los atributos públicos (9h) los mantienen triggers, apagados acá: se calculan como el relleno.
+update public.leads l set cartera = public._lead_cartera_calcular(l.id), atributos_publicos = public._lead_atributos_publicos(l.atributos)
+ where l.nombre like 'Volumen %';
+
 set local session_replication_role = origin;
 
 -- Se insertó con los triggers apagados: la numeración (9f-2) se hace como la migración para lo que ya existía.

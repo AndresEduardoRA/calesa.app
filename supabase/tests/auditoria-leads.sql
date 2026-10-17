@@ -365,11 +365,12 @@ declare
     "mensajes": "cuenta", "repuestos_proyectos": "cuenta", "web_testimonios": "cuenta", "solicitudes_contacto_web": "cuenta",
     "leads_favoritos": "marca", "leads_tachados": "marca", "leads_etiquetas": "marca",
     "importaciones_leads": "vinculo", "leads_numeros_globales": "copia", "leads_numeros_propios": "copia"}';
-  -- version: la mueve `lead_version()`. derivada: la escribe otra tabla que ya cuenta. fija: no cambia.
+  -- version: la mueve `lead_version()`. derivada: la escribe otra tabla o un trigger a partir de algo que ya cuenta (la
+  -- cartera, de `leads_asesores`; los atributos públicos, de `atributos`: 9h). fija: no cambia.
   v_columnas constant jsonb := '{
     "nombre": "version", "tipo": "version", "origen_lead_id": "version", "atributos": "version",
     "telefono_principal": "version", "telefono_cc": "version", "eliminado_en": "version", "lote_papelera_id": "version",
-    "eliminado_por": "derivada", "ultimo_seguimiento_en": "derivada",
+    "eliminado_por": "derivada", "ultimo_seguimiento_en": "derivada", "cartera": "derivada", "atributos_publicos": "derivada",
     "id": "fija", "numero": "fija", "numero_propio": "fija", "creado_por": "fija", "creado_en": "fija", "actualizado_en": "fija"}';
   v_motivo text := pg_get_functiondef('public._lead_motivo_para_deshacer(uuid,uuid)'::regprocedure);
   v_version text := (select p.prosrc from pg_proc p where p.oid = 'public.lead_version()'::regprocedure);

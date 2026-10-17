@@ -586,6 +586,10 @@ create table public.leads (
   creado_por           uuid references public.perfiles (id),   -- NULL = sin creador vivo (limbo se decide por cartera)
   numero_propio        integer check (numero_propio > 0),      -- consecutivo de quien lo creó (leads_contadores); NULL = sin creador. No se lee de aquí: leads_numeros_propios
   ultimo_seguimiento_en timestamptz,
+  -- Derivadas (9h): las mantienen triggers, nadie las escribe. La policy de `leads` y `leads_vista` las leen para que el
+  -- planificador estime la cartera visible (`docs/DECISIONES.md`, 9h).
+  cartera              uuid[] not null default '{}',              -- quiénes tienen el lead: los usuario_id vigentes de leads_asesores, ordenados; vacía = limbo
+  atributos_publicos   jsonb not null default '{}'::jsonb,        -- atributos sin los campos solo_cartera (ni los que van a serlo): lo que recibe quien ve el lead sin la cartera
   eliminado_en         timestamptz,
   eliminado_por        uuid references public.perfiles (id),
   lote_papelera_id     uuid references public.lotes_papelera (id) on delete restrict,
