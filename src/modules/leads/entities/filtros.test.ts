@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { leerFiltros } from '@/shared/lib/filtros'
-import type { CampoDeLead } from './campo'
+import { columnaParaFiltrar, type CampoDeLead } from './campo'
 import {
   condicionesDeLeads,
   esquemaDeFiltrosDeLeads,
-  filtrosDescartados,
   interpretarBusqueda,
   opcionesDeOrigen,
   privadosFiltrando,
-  textoDeFiltroDescartado,
 } from './filtros'
 
 function campo(clave: string, extra: Partial<CampoDeLead> = {}): CampoDeLead {
@@ -170,17 +168,65 @@ describe('condicionesDeLeads', () => {
       columna: 'origen_lead_id',
       valores: ['o1'],
     })
-    expect(condiciones).toContainEqual({ tipo: 'atributo_texto', clave: 'ciudad', texto: 'cruz' })
+    expect(condiciones).toContainEqual({
+      tipo: 'atributo_texto',
+      clave: 'ciudad',
+      texto: 'cruz',
+      columna: 'atributos_publicos',
+    })
     expect(condiciones).toContainEqual({
       tipo: 'atributo_rango_numero',
       clave: 'edad',
       min: 30,
       max: null,
+      columna: 'atributos_publicos',
     })
     expect(condiciones).toContainEqual({
       tipo: 'atributos_contienen',
       alternativas: [{ signo: 'leo' }],
+      columna: 'atributos_publicos',
     })
+    // Sólo campos públicos: no hace falta acotar a la cartera.
+    expect(condiciones).not.toContainEqual({ tipo: 'en_cartera' })
+  })
+})
+
+describe('condicionesDeLeads: la columna de cada campo (9h)', () => {
+  const leer = (url: string) =>
+    leerFiltros(esquema(true), Object.fromEntries(new URLSearchParams(url)))
+
+  it('un campo público se filtra por la copia de lo público; uno privado, por lo recortado y sólo en la cartera', () => {
+    const condiciones = condicionesDeLeads(CAMPOS, leer('a.ciudad=cruz&a.ci=123'), {
+      soloMios: false,
+    })
+    expect(condiciones).toContainEqual({
+      tipo: 'atributo_texto',
+      clave: 'ciudad',
+      texto: 'cruz',
+      columna: 'atributos_publicos',
+    })
+    expect(condiciones).toContainEqual({
+      tipo: 'atributo_texto',
+      clave: 'ci',
+      texto: '123',
+      columna: 'atributos',
+    })
+    expect(condiciones.filter((c) => c.tipo === 'en_cartera')).toHaveLength(1)
+    // En «míos» la cartera ya está: no se repite.
+    const mios = condicionesDeLeads(CAMPOS, leer('a.ci=123'), { soloMios: true })
+    expect(mios.filter((c) => c.tipo === 'en_cartera')).toHaveLength(1)
+  })
+
+  it('un campo con un cambio de privacidad a medias se filtra por lo recortado (la copia está incompleta)', () => {
+    for (const privacidadPendiente of ['a_privado', 'a_publico'] as const) {
+      const ciudad = campo('ciudad', {
+        soloCartera: privacidadPendiente === 'a_privado',
+        privacidadPendiente,
+      })
+      expect(columnaParaFiltrar(ciudad)).toBe('atributos')
+    }
+    expect(columnaParaFiltrar(campo('ciudad'))).toBe('atributos_publicos')
+    expect(columnaParaFiltrar(campo('ci', { soloCartera: true }))).toBe('atributos')
   })
 
   it('un origen o un tipo que no existe, o un campo apagado, no llegan a la base', () => {
@@ -190,61 +236,6 @@ describe('condicionesDeLeads', () => {
       { soloMios: false },
     )
     expect(condiciones).toEqual([])
-  })
-})
-
-describe('filtrosDescartados', () => {
-  it('dice cuáles de la URL ya no valen y por qué, una vez por campo', () => {
-    const descartados = filtrosDescartados(CAMPOS, {
-      'a.edad.min': '30', // vigente
-      'a.apagado': 'x',
-      'a.notas': 'y',
-      'a.fantasma.min': '1',
-      'a.fantasma.max': '5',
-      tipo: 'cliente',
-      'a.ciudad': '',
-    })
-    expect(descartados).toEqual([
-      { clave: 'apagado', etiqueta: 'APAGADO', motivo: 'desactivado', parametros: ['a.apagado'] },
-      { clave: 'notas', etiqueta: 'NOTAS', motivo: 'no_filtrable', parametros: ['a.notas'] },
-      {
-        clave: 'fantasma',
-        etiqueta: null,
-        motivo: 'inexistente',
-        parametros: ['a.fantasma.min', 'a.fantasma.max'],
-      },
-    ])
-  })
-
-  it('sin nada descartado, vacío', () => {
-    expect(filtrosDescartados(CAMPOS, { 'a.ciudad': 'cruz', q: 'ana' })).toEqual([])
-  })
-
-  it('cada motivo tiene su texto, con la etiqueta de la fila', () => {
-    expect(
-      textoDeFiltroDescartado({
-        clave: 'x',
-        etiqueta: 'Edad',
-        motivo: 'desactivado',
-        parametros: [],
-      }),
-    ).toBe('Se quitó el filtro «Edad»: ese campo está desactivado.')
-    expect(
-      textoDeFiltroDescartado({
-        clave: 'x',
-        etiqueta: 'Edad',
-        motivo: 'no_filtrable',
-        parametros: [],
-      }),
-    ).toBe('Se quitó el filtro «Edad»: ese campo ya no se puede filtrar.')
-    expect(
-      textoDeFiltroDescartado({
-        clave: 'x',
-        etiqueta: null,
-        motivo: 'inexistente',
-        parametros: [],
-      }),
-    ).toBe('Se quitó un filtro de un campo que ya no existe.')
   })
 })
 

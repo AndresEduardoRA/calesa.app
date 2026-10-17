@@ -54,6 +54,7 @@ export function aplicarRango<Consulta extends Filtrable<Consulta>>(
 
 function atributosContienen<Consulta extends Filtrable<Consulta>>(
   consulta: Consulta,
+  columna: string,
   alternativas: readonly Record<string, unknown>[],
 ): Consulta {
   const [unica, ...resto] = alternativas
@@ -61,34 +62,38 @@ function atributosContienen<Consulta extends Filtrable<Consulta>>(
     return consulta
   }
   return resto.length === 0
-    ? consulta.contains('atributos', unica)
-    : consulta.or(alternativas.map((una) => `atributos.cs.${citar(JSON.stringify(una))}`).join(','))
+    ? consulta.contains(columna, unica)
+    : consulta.or(
+        alternativas.map((una) => `${columna}.cs.${citar(JSON.stringify(una))}`).join(','),
+      )
 }
 
-// Una condición sobre `atributos`. La clave del atributo viene del layout, nunca de la URL.
+// Una condición sobre los atributos. La clave del atributo viene del layout, nunca de la URL. `columna` es la columna
+// jsonb (`atributos` por omisión; los leads filtran un campo público por `atributos_publicos`, 9h), nunca de la URL.
 export function aplicarCondicionDeAtributo<Consulta extends Filtrable<Consulta>>(
   consulta: Consulta,
   condicion: CondicionDeAtributo,
+  columna = 'atributos',
 ): Consulta {
   switch (condicion.tipo) {
     case 'atributos_contienen':
-      return atributosContienen(consulta, condicion.alternativas)
+      return atributosContienen(consulta, columna, condicion.alternativas)
     case 'atributo_rango_numero':
       // `->`: compara como jsonb, que entre números es numérico.
       return aplicarRango(consulta, {
-        columna: `atributos->${condicion.clave}`,
+        columna: `${columna}->${condicion.clave}`,
         desde: condicion.min,
         hasta: condicion.max,
       })
     case 'atributo_rango_texto':
       return aplicarRango(consulta, {
-        columna: `atributos->>${condicion.clave}`,
+        columna: `${columna}->>${condicion.clave}`,
         desde: condicion.desde,
         hasta: condicion.antesDe,
         hastaExclusivo: true,
       })
     case 'atributo_texto':
-      return consulta.ilike(`atributos->>${condicion.clave}`, patronContiene(condicion.texto))
+      return consulta.ilike(`${columna}->>${condicion.clave}`, patronContiene(condicion.texto))
   }
 }
 

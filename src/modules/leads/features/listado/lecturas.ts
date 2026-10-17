@@ -28,12 +28,8 @@ import type { OrigenDeLead } from '../../entities/alta'
 import { CLAVE_DE_ALCANCE, alcanceDelListado, type ModoDelListado } from '../../entities/alcance'
 import type { CampoDeLead } from '../../entities/campo'
 import type { Etiqueta } from '../../entities/etiqueta'
-import {
-  condicionesDeLeads,
-  esquemaDeFiltrosDeLeads,
-  filtrosDescartados,
-  type FiltroDescartado,
-} from '../../entities/filtros'
+import { condicionesDeLeads, esquemaDeFiltrosDeLeads } from '../../entities/filtros'
+import { filtrosDescartados, type FiltroDescartado } from '../../entities/filtros-descartados'
 import { FILTRO_TACHADOS, TOPE_DE_OCULTOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { MAXIMO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
 import { puedeEditarLead } from '../../entities/edicion'

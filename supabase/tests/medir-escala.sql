@@ -148,9 +148,10 @@ create function pg_temp.pagina(p_donde text, p_n int default 50) returns text la
     atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista where %s order by creado_en desc, id desc limit %s) t', p_donde, p_n + 1);
 $$;
 
--- Un atributo como lo filtra la app: una opción es `@>` sobre la columna de los atributos.
-create function pg_temp.atributo(p_valor text) returns text language sql as $$
-  select format('atributos @> %L', jsonb_build_object('ciudad_vol', p_valor));
+-- Un atributo como lo filtra la app: una opción es `@>`; un campo público, sobre la copia de lo público (9h,
+-- `columnaParaFiltrar()`), y uno privado sobre lo recortado y sólo en la cartera (`p_columna = 'atributos'`).
+create function pg_temp.atributo(p_valor text, p_columna text default 'atributos_publicos') returns text language sql as $$
+  select format('%I @> %L', p_columna, jsonb_build_object('ciudad_vol', p_valor));
 $$;
 
 -- El listado de leads (9h): las metas, con 50.000 leads, de la dueña («todos») y de Ana («propios»), y de Berta (7.000) y
@@ -174,6 +175,9 @@ begin
   perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina(pg_temp.atributo('lp') || ' and esta_tachado = false', v_max), 100);
   perform pg_temp.escala('listado: un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina(pg_temp.atributo('nada') || ' and esta_tachado = false', v_max), 100);
   perform pg_temp.escala('listado «míos»: un atributo sin resultados', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada') || ' and esta_tachado = false', v_max), 100);
+  -- Límite aceptado: un campo privado se filtra por lo recortado, con `atributos_lead()` en cada lead de la cartera
+  -- (~66 µs): cuesta lo que suma la cartera de quien filtra (la dueña, 20.000).
+  perform pg_temp.escala('listado: un campo privado sin resultados (recorre la cartera)', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada', 'atributos') || ' and esta_tachado = false', v_max), 6000);
   perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$, v_max), 200);
   perform pg_temp.escala('listado: búsqueda sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$, v_max), 200);
   perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false', v_max), 100);
@@ -206,7 +210,7 @@ do $medir$ declare q text; begin
     end if;
     -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
     perform pg_temp.escala('listado: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 100);
-    perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, $w$select id from public.leads_vista where esta_tachado = true and atributos ->> 'ciudad_vol' = 'lp' order by creado_en desc, id desc limit 51$w$, 2500);
+    perform pg_temp.escala('listado: ocultos con un atributo, hasta 51', q, 'select id from public.leads_vista where esta_tachado = true and ' || pg_temp.atributo('lp') || ' order by creado_en desc, id desc limit 51', 100);
     perform pg_temp.escala('exportar: conteo hasta 5.001', q, 'select id from public.leads_vista where en_cartera = true order by creado_en desc, id desc limit 5001', 100);
     perform pg_temp.escala('etiquetas_vista', q, 'select id, nombre, leads from public.etiquetas_vista order by nombre', 300);
     perform pg_temp.escala('papelera de leads, página 1 de 5 lotes', q, format('select public.leads_papelera_listar(null, null, false, %s)', current_setting('medir.lotes')::int + 1), 400);

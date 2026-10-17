@@ -88,11 +88,29 @@ describe('aplicarCondicionesDeLeads', () => {
       ),
     ).toEqual(['tipo=in.(cliente)', 'origen_lead_id=in.(o1,o2)', 'en_cartera=eq.true'])
   })
+})
 
-  it('los atributos pasan por la traducción compartida', () => {
-    expect(pedidosDe({ tipo: 'atributo_texto', clave: 'ciudad', texto: 'cruz' })).toEqual([
-      'atributos->>ciudad=ilike.*cruz*',
-    ])
+describe('aplicarCondicionesDeLeads: atributos y marcas', () => {
+  it('los atributos pasan por la traducción compartida, sobre la columna que eligió el layout (9h)', () => {
+    expect(
+      pedidosDe({ tipo: 'atributo_texto', clave: 'ciudad', texto: 'cruz', columna: 'atributos' }),
+    ).toEqual(['atributos->>ciudad=ilike.*cruz*'])
+    expect(
+      pedidosDe(
+        {
+          tipo: 'atributos_contienen',
+          alternativas: [{ ciudad: 'lp' }],
+          columna: 'atributos_publicos',
+        },
+        {
+          tipo: 'atributo_rango_numero',
+          clave: 'edad',
+          min: 30,
+          max: null,
+          columna: 'atributos_publicos',
+        },
+      ),
+    ).toEqual(['atributos_publicos=cs.{"ciudad":"lp"}', 'atributos_publicos->edad=gte.30'])
   })
 
   it('las marcas de quien mira van sobre las columnas de la vista', () => {

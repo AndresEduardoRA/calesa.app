@@ -106,6 +106,18 @@ export const AVISO_DE_PRIVACIDAD: Record<PrivacidadPendiente, string> = {
     'Ya lo recibe quien ve el lead. Los filtros lo encuentran en todos los leads en unos minutos.',
 }
 
+// La columna de `leads_vista` por la que se filtra un campo (9h). `atributos_publicos` es la copia de lo público, una
+// columna de la fila: filtrar no pasa por `atributos_lead()` en cada lead (con 50.000, un filtro sin resultados baja de
+// ~4 s a ~20 ms). Un privado, o uno con un cambio de privacidad a medias, va por `atributos` (lo recortado según la
+// cartera), que es lo único que lo tiene completo.
+export type ColumnaDeAtributos = 'atributos' | 'atributos_publicos'
+
+export function columnaParaFiltrar(campo: CampoDeLead): ColumnaDeAtributos {
+  return !campo.soloCartera && campo.privacidadPendiente === null
+    ? 'atributos_publicos'
+    : 'atributos'
+}
+
 // En el orden del layout: `orden`, y a igualdad la clave (como la base).
 export function camposDeLeadDesde(filas: unknown): CampoDeLead[] {
   return esquemaCampos

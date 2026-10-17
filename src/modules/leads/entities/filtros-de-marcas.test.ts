@@ -9,7 +9,7 @@ import {
   modoDeTachados,
   ocultaTachados,
 } from './filtros-de-marcas'
-import { filtrosDescartados, textoDeFiltroDescartado } from './filtros'
+import { filtrosDescartados, textoDeFiltroDescartado } from './filtros-descartados'
 
 const VIP: Etiqueta = {
   id: '9b2c7d1e-1f3a-4b6c-8d4e-2a5f6b7c8d90',

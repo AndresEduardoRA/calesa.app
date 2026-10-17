@@ -50,7 +50,7 @@ function aplicarUna<Consulta extends Filtrable<Consulta>>(
     case 'atributo_rango_numero':
     case 'atributo_rango_texto':
     case 'atributo_texto':
-      return aplicarCondicionDeAtributo(consulta, condicion)
+      return aplicarCondicionDeAtributo(consulta, condicion, condicion.columna)
   }
 }
 

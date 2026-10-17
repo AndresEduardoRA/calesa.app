@@ -4,7 +4,10 @@ import { parseAsString, useQueryStates } from 'nuqs'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
-import { textoDeFiltroDescartado, type FiltroDescartado } from '../../../entities/filtros'
+import {
+  textoDeFiltroDescartado,
+  type FiltroDescartado,
+} from '../../../entities/filtros-descartados'
 
 // Una vista guardada o un enlace viejo apuntaba a un campo desactivado o eliminado, o a una
 // etiqueta que ya no existe: el filtro no se aplicó y acá se dice cuál (el listado ya sin él).

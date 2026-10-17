@@ -108,6 +108,19 @@ describe('aplicarCondicionDeAtributo', () => {
       'atributos->>color=ilike.*50\\%*',
     ])
   })
+  it('la columna de los atributos se puede elegir (los leads filtran lo público por su copia, 9h)', () => {
+    const sobre = (condicion: Parameters<typeof aplicarCondicionDeAtributo>[1]) =>
+      aplicarCondicionDeAtributo(anotador(), condicion, 'atributos_publicos').pedidos
+    expect(sobre({ tipo: 'atributos_contienen', alternativas: [{ a: 'x' }, { a: 'y' }] })).toEqual([
+      'or=(atributos_publicos.cs."{\\"a\\":\\"x\\"}",atributos_publicos.cs."{\\"a\\":\\"y\\"}")',
+    ])
+    expect(sobre({ tipo: 'atributo_rango_numero', clave: 'km', min: 1, max: null })).toEqual([
+      'atributos_publicos->km=gte.1',
+    ])
+    expect(sobre({ tipo: 'atributo_texto', clave: 'color', texto: 'gris' })).toEqual([
+      'atributos_publicos->>color=ilike.*gris*',
+    ])
+  })
 })
 
 describe('aplicarCursor', () => {
