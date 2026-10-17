@@ -1,9 +1,11 @@
 import { expect, test } from './soporte/prueba'
-import { entrar } from './soporte/alta'
+import { CONTRASENA, entrar } from './soporte/alta'
 import { admin } from './soporte/base'
 import { exigir } from './soporte/leads'
+import { sesionDe } from './soporte/leads-alta'
 import { irAFicha } from './soporte/leads-ficha'
-import { delLead, fila, irALeads } from './soporte/leads-listado'
+import { AJENO_CARLOS, delLead, fila, irALeads } from './soporte/leads-listado'
+import { compartirCon } from './soporte/leads-vehiculos'
 import {
   capturar,
   csvDe,
@@ -202,4 +204,55 @@ test('D · importar un archivo con una columna de número: no se importa y lo di
   ).toBeVisible()
   await sinScrollHorizontal(page)
   await capturar(page, info, 'duena-importar-con-numero')
+})
+
+test('E · por la API, pedir leads.numero o leads.numero_propio se rechaza (no devuelve filas con nulo), también a la dueña', async () => {
+  for (const email of [r.ana.email, r.t.personas.duena]) {
+    const sesion = await sesionDe(email, CONTRASENA)
+    for (const columna of ['numero', 'numero_propio']) {
+      // Es el pedido `/rest/v1/leads?select=<columna>`: la columna no tiene grant, así que no hay respuesta.
+      const { data, error } = await sesion.from('leads').select(columna)
+      expect(error?.code).toBe('42501')
+      expect(data).toBeNull()
+    }
+    // El control: pedir una columna con grant sí responde (si no, el rechazo de arriba no diría nada).
+    const control = await sesion.from('leads').select('id').limit(1)
+    expect(control.error).toBeNull()
+    expect(control.data?.length).toBe(1)
+  }
+})
+
+test('F · un lead que Ana ve y no creó: «#<su número global>» no lo encuentra y no se le muestra ningún número', async ({
+  page,
+}) => {
+  // El lead de Carlos, compartido con Ana: lo ve, no lo creó y no tiene el permiso.
+  await compartirCon(r.deCarlos, r.ana.email, r.t.personas.carlos)
+  const { data, error } = await admin()
+    .from('leads')
+    .select('numero')
+    .eq('id', r.deCarlos)
+    .single<{ numero: number }>()
+  exigir(error, 'leer el número de un lead de Carlos')
+  const global = data?.numero ?? 0
+  expect(global).toBeGreaterThan(0)
+
+  // El control: con el permiso, la dueña lo encuentra por ese número.
+  await entrar(page, r.t.personas.duena)
+  await irALeads(page, todos(busqueda(`#${String(global)}`)))
+  await expect(fila(page, AJENO_CARLOS)).toBeVisible()
+
+  await page.context().clearCookies()
+  await entrar(page, r.ana.email)
+  // Lo ve (por el nombre) y no muestra ningún número…
+  await irALeads(page, busqueda(AJENO_CARLOS))
+  await expect(fila(page, AJENO_CARLOS)).toBeVisible()
+  await expect(delLead(page, AJENO_CARLOS)).not.toContainText(/n\.º/i)
+  // …y buscar su número global no lo encuentra: sería un oráculo.
+  await irALeads(page, busqueda(`#${String(global)}`))
+  await expect(fila(page, AJENO_CARLOS)).toHaveCount(0)
+  // La ficha tampoco lo dice: ni el global ni el propio de Carlos.
+  await irAFicha(page, r.deCarlos)
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(AJENO_CARLOS)
+  await expect(page.getByText(/n\.º/i)).toHaveCount(0)
+  expect(await page.content()).not.toContain(String(global))
 })

@@ -293,3 +293,83 @@ begin
     raise exception 'El número global tiene una ruta sin probar:%', v_fallas;
   end if;
 end $$;
+
+-- @test número global (9f-2): ni `authenticated` ni `anon` ni nadie por PUBLIC pueden leer leads.numero ni leads.numero_propio
+-- Una policy no esconde columnas y un grant de columna no mira la fila: el número se esconde porque la tabla no se lee
+-- directo (el enmascarado va por las copias). Un `grant select on public.leads` (de tabla, o de esas dos columnas) lo
+-- abriría de golpe para toda persona con sesión, así que se lee el catálogo de privilegios, no la conducta.
+do $$
+declare
+  v_roles constant text[] := array['authenticated', 'anon'];
+  r text; v_columna text; v_fugas text := '';
+begin
+  -- Lo que dice information_schema (PUBLIC incluido: los grants a PUBLIC llegan a toda persona).
+  select string_agg(format('%s sobre %s (%s)', cp.grantee, cp.column_name, cp.privilege_type), ', ') into v_fugas
+    from information_schema.column_privileges cp
+   where cp.table_schema = 'public' and cp.table_name = 'leads' and cp.column_name in ('numero', 'numero_propio')
+     and cp.privilege_type = 'SELECT' and cp.grantee in ('authenticated', 'anon', 'PUBLIC');
+  if v_fugas is not null then raise exception 'se puede leer un número de leads por grant de columna: %', v_fugas; end if;
+  select string_agg(format('%s sobre toda la tabla', tp.grantee), ', ') into v_fugas
+    from information_schema.table_privileges tp
+   where tp.table_schema = 'public' and tp.table_name = 'leads' and tp.privilege_type = 'SELECT' and tp.grantee in ('authenticated', 'anon', 'PUBLIC');
+  if v_fugas is not null then raise exception 'alguien tiene select de tabla sobre leads: %', v_fugas; end if;
+  -- Lo que dice el catálogo crudo (por si information_schema no muestra al dueño de otro grant).
+  select string_agg(format('%s %s', coalesce(case when x.grantee = 0 then 'PUBLIC' end, x.grantee::regrole::text), coalesce(a.attname, 'toda la tabla')), ', ') into v_fugas
+    from pg_class c
+    left join pg_attribute a on a.attrelid = c.oid and a.attname in ('numero', 'numero_propio') and a.attacl is not null
+    cross join lateral aclexplode(case when a.attname is null then c.relacl else a.attacl end) x
+   where c.oid = 'public.leads'::regclass and x.privilege_type = 'SELECT'
+     and (x.grantee = 0 or x.grantee::regrole::text in ('authenticated', 'anon'));
+  if v_fugas is not null then raise exception 'el catálogo da select de leads.numero o de toda la tabla: %', v_fugas; end if;
+  -- Lo que resulta de todo junto, con herencia de roles: la sonda de `has_*_privilege`.
+  foreach r in array v_roles loop
+    foreach v_columna in array array['numero', 'numero_propio'] loop
+      if has_column_privilege(r, 'public.leads', v_columna, 'select') then
+        raise exception '% puede leer leads.%', r, v_columna; end if;
+    end loop;
+    if has_table_privilege(r, 'public.leads', 'select') then raise exception '% tiene select de tabla sobre leads', r; end if;
+  end loop;
+end $$;
+
+-- @test número global (9f-2): ni leads ni sus copias están en una publicación de Realtime
+-- Realtime reparte las filas que cambian a quien se suscribe; con una tabla de números publicada, el global saldría por un
+-- canal que ninguna policy de columna cubre. Hoy `supabase_realtime` no lleva ninguna tabla; si una migración publica
+-- una de éstas, esto falla. La misma consulta va en `docs/DECISIONES.md`.
+do $$
+declare v text;
+begin
+  select string_agg(pt.pubname || '.' || pt.tablename, ', ') into v from pg_publication_tables pt
+   where pt.schemaname = 'public' and pt.tablename in ('leads', 'leads_numeros_globales', 'leads_numeros_propios');
+  if v is not null then raise exception 'una tabla con números de leads está en una publicación: %', v; end if;
+end $$;
+
+-- @test número global (9f-2): el oráculo. Sin el permiso, el global de un lead que se ve y no se creó no lo encuentra
+-- 0051 está compartido en LP (de 0050) y no tiene el permiso: ve el lead, no su global, y buscar ese global (como lo hace
+-- el listado: la copia por su número) no devuelve nada. La dueña, con el permiso, sí lo encuentra por él.
+do $$
+declare
+  p51 constant text := '00000000-0000-0000-0000-000000000051'; p01 constant text := '00000000-0000-0000-0000-000000000001';
+  v_lp uuid := current_setting('matriz.lp')::uuid;
+  v_global bigint := (select numero from public.leads where id = v_lp);
+  v text;
+begin
+  if v_global is null then raise exception 'terreno: LP no tiene número global'; end if;
+  if not exists (select 1 from public.leads_asesores where lead_id = v_lp and usuario_id = p51::uuid and revocado_en is null)
+     or (select creado_por from public.leads where id = v_lp) = p51::uuid then
+    raise exception 'terreno: 0051 debía tener LP compartido y no haberlo creado'; end if;
+  if exists (select 1 from public.usuarios_roles ur join public.roles_permisos rp on rp.rol_id = ur.rol_id
+              where ur.usuario_id = p51::uuid and rp.permiso_clave = 'leads.numero_global.ver') then
+    raise exception 'terreno: 0051 tiene el permiso'; end if;
+  -- Ve el lead…
+  v := pg_temp.salida(p51, format('select numero, numero_propio, numero_visible from public.leads_vista where id = %L', v_lp));
+  if v not like '%"numero": null%' or v not like '%"numero_visible": null%' then
+    raise exception '0051 ve LP pero debía ver el lead sin ningún número (no lo creó): %', v; end if;
+  -- …y buscar su global no lo encuentra, ni por la copia ni por la vista.
+  if pg_temp.salida(p51, format('select count(*) as n from public.leads_numeros_globales where numero = %s', v_global)) not like '%"n": 0%' then
+    raise exception '0051 encontró un lead por su número global (oráculo)'; end if;
+  if pg_temp.salida(p51, format('select count(*) as n from public.leads_vista where numero = %s', v_global)) not like '%"n": 0%' then
+    raise exception '0051 encontró un lead por leads_vista.numero (oráculo)'; end if;
+  -- El control: la dueña, con el permiso, lo encuentra por el mismo número.
+  if pg_temp.salida(p01, format('select lead_id from public.leads_numeros_globales where numero = %s', v_global)) not like '%' || v_lp::text || '%' then
+    raise exception 'la dueña no encontró LP por su número global: la prueba no mide nada'; end if;
+end $$;
