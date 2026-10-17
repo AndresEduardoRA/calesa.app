@@ -144,7 +144,7 @@ end $$;
 
 -- La página del listado de leads, como la arma PostgREST sobre `leads_vista`.
 create function pg_temp.pagina(p_donde text, p_n int default 50) returns text language sql as $$
-  select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, numero_propio, numero_visible, nombre, telefono_principal, en_cartera, tipo, origen_lead_id, creado_en,
+  select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, numero_propio, numero_propio_creador, numero_visible, nombre, telefono_principal, en_cartera, dueno_id, tipo, origen_lead_id, creado_en,
     atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista where %s order by creado_en desc, id desc limit %s) t', p_donde, p_n + 1);
 $$;
 

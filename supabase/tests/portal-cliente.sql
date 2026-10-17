@@ -258,6 +258,13 @@ begin
   end loop;
   r := pg_temp.con_rol('service_role', format('select web.portal_snapshot(%L, %L::timestamptz)', p1, v_en));
   if not (r ->> 'ok')::boolean or r -> 'valor' -> 'cliente' ->> 'nombre' <> 'Portal P1' then raise exception 'service_role: %', r; end if;
+  -- Con la baja de quien lo tiene en curso, el portal ya no nombra a esa persona como asesor (el estado final: sin dueño).
+  if jsonb_typeof(r -> 'valor' -> 'asesor') <> 'object' then raise exception 'el portal no nombra a quien tiene el lead: %', r -> 'valor' -> 'asesor'; end if;
+  insert into public.equipo_bajas (usuario_id)
+  select la.usuario_id from public.leads_asesores la where la.lead_id = p1 and la.tipo_acceso = 'dueno' and la.revocado_en is null;
+  r := pg_temp.con_rol('service_role', format('select web.portal_snapshot(%L, %L::timestamptz)', p1, v_en));
+  delete from public.equipo_bajas where terminada_en is null;
+  if jsonb_typeof(r -> 'valor' -> 'asesor') <> 'null' then raise exception 'el portal nombra a quien está en baja: %', r -> 'valor' -> 'asesor'; end if;
 end $$;
 
 -- @test portal del cliente: el login sin oráculo, lo que teclea el cliente y el bloqueo que no se alarga

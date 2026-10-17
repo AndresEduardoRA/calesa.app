@@ -689,7 +689,26 @@ do $$ declare l2 uuid; l3 uuid; c jsonb; begin
   begin perform public.lead_revocar_acceso(l3, '00000000-0000-0000-0000-0000000001b7'); raise exception 'quitar acceso creó un limbo';
   exception when sqlstate '23514' then null; end;
 end $$;
+-- Una asesora, con la baja a medias, ve el estado final también en el dueño: la vista, la cabecera de la ficha («Lo tiene …»)
+-- y el «Quién lo tiene» dicen lo mismo, y lo que `_bajas_en_curso()` le deja saber lo entrega `perfiles` a toda cuenta activa.
 reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000001b7', false);
+set role authenticated;
+do $$ declare l3 uuid; f jsonb; begin
+  select id into l3 from public.leads_vista where nombre = 'Baja Otro';
+  if l3 is null then raise exception 'Q no ve el lead que comparte con quien está en baja'; end if;
+  if (select dueno_id from public.leads_vista where id = l3) is not null then raise exception 'leads_vista.dueno_id nombra a quien está en baja'; end if;
+  f := public.lead_ficha(l3);
+  if f ->> 'tiene_id' is distinct from '00000000-0000-0000-0000-0000000001b7' then raise exception 'la ficha dice que lo tiene quien está en baja, no Q: %', f ->> 'tiene_nombre'; end if;
+  if (select count(*) from jsonb_array_elements(public.lead_cartera(l3)) c where c ->> 'usuario_id' = '00000000-0000-0000-0000-0000000001b6') <> 0 then raise exception 'Quién lo tiene nombra a quien está en baja'; end if;
+  if not (public._bajas_en_curso() <@ array(select p.id from public.perfiles p)) then raise exception '_bajas_en_curso() dice más de lo que perfiles entrega'; end if;
+  if public._bajas_en_curso() <> array['00000000-0000-0000-0000-0000000001b6']::uuid[] then raise exception 'una cuenta activa no ve la baja en curso: %', public._bajas_en_curso(); end if;
+end $$;
+reset role;
+-- Como la base: la vista y la fuente (`_lead_dueno`) dicen lo mismo para todo lead mientras dura la baja.
+do $$ begin
+  if exists (select 1 from public.leads_vista v where v.dueno_id is distinct from public._lead_dueno(v.id)) then raise exception 'leads_vista.dueno_id y _lead_dueno() no coinciden con una baja en curso'; end if;
+end $$;
 -- R adopta el lead sólo de P al registrar su teléfono: no choca con el dueño único y se cuenta en la baja.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000001b8', false);
 set role authenticated;
@@ -720,6 +739,36 @@ do $$ begin
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test baja en curso: toda lectura de la cartera que nombra a una persona dice quién se queda (inventario)
+-- Una función o vista de `public`/`web` que lee las filas vigentes de `leads_asesores` y no mira `_bajas_en_curso()` tiene que
+-- estar acá con su motivo: o decide desde quien llama, o escribe después de aplicar la baja al lead que bloqueó, o es de la baja.
+-- Una nueva que nombra a alguien sin el filtro hace fallar esta prueba (cierre 2: `dueno_id`, la ficha y el portal lo hacían).
+do $$ declare r record; v_faltan text[] := '{}'; v_listadas constant text[] := array[
+  -- desde quien llama (su propia fila de la cartera)
+  '_mis_leads_vivos', 'en_cartera', 'mis_leads', 'telefono_lead',
+  -- escriben la cartera tras `_lead_aplicar_bajas` sobre el lead que bloquearon, o la revocan ellas mismas
+  'lead_compartir', 'lead_revocar_acceso', 'lead_salir', 'lead_transferir', 'lead_cartera_candidatos',
+  -- la propia baja y el cálculo de la cartera (la fuente, con todos los vigentes)
+  '_baja_lote_desde', '_baja_terminar', '_lead_aplicar_bajas', '_lead_cartera_calcular', '_leads_cartera_recalcular',
+  -- decide por permisos propios, sin nombrar a nadie
+  '_lead_motivo_para_deshacer', '_leads_vista_crear'];
+begin
+  for r in select n.nspname, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname in ('public', 'web') and p.prokind = 'f'
+              and p.prosrc ~* 'leads_asesores' and p.prosrc ~* 'revocado_en is null' and p.prosrc !~ '_bajas_en_curso'
+              and p.proname <> all (v_listadas) loop
+    v_faltan := v_faltan || (r.nspname || '.' || r.proname);
+  end loop;
+  for r in select n.nspname, c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname in ('public', 'web') and c.relkind = 'v'
+              and pg_get_viewdef(c.oid) ~* 'leads_asesores' and pg_get_viewdef(c.oid) !~ '_bajas_en_curso' loop
+    v_faltan := v_faltan || ('vista ' || r.nspname || '.' || r.relname);
+  end loop;
+  if cardinality(v_faltan) > 0 then
+    raise exception 'leen la cartera vigente sin mirar _bajas_en_curso() ni figurar en el inventario: %', v_faltan;
+  end if;
+end $$;
 
 -- @test perspectiva: los permisos efectivos nunca exceden los reales y RLS no se entera
 reset role;
