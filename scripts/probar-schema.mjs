@@ -134,6 +134,7 @@ for (const archivo of [
   'numero-global.sql',
   'escala.sql',
   'derivados-leads.sql',
+  'cartera-policy.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue
