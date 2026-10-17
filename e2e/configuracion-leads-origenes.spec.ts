@@ -16,6 +16,7 @@ import {
   abrirOrigenes,
   borrarOrigenesDePrueba,
   filaDeOrigen,
+  grupoDelFiltro,
   modalDeOrigen,
   nombresEnPantalla,
   origenEnLaBase,
@@ -217,10 +218,7 @@ test('desactivar: el alta no lo ofrece, la ficha lo conserva y se puede editar; 
 
   // El filtro del listado lo sigue ofreciendo, al final y marcado: hay leads que lo tienen.
   await page.goto('/leads?panel=filtros')
-  const opcionesDelFiltro = page
-    .getByRole('group', { name: 'Origen del lead' })
-    .filter({ visible: true })
-    .locator('label')
+  const opcionesDelFiltro = grupoDelFiltro(page, 'Origen del lead').locator('label')
   await expect(opcionesDelFiltro.last()).toContainText(`${uno} (inactivo)`)
 
   // «Deshacer» lo activa otra vez.

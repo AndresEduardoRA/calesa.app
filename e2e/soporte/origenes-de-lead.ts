@@ -3,6 +3,7 @@
 import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { admin } from './base'
+import { esMovil } from './inventario'
 import { exigir } from './leads'
 
 export const PREFIJO_DE_ORIGEN_E2E = 'E2E 9f'
@@ -25,6 +26,16 @@ export async function origenesEnLaBase(): Promise<OrigenEnLaBase[]> {
     .returns<OrigenEnLaBase[]>()
   exigir(error, 'leer los orígenes del lead')
   return data ?? []
+}
+
+// Un grupo del panel de filtros del listado, en el contenedor que esa pantalla usa: el panel del costado en escritorio
+// y la hoja en el celular. En escritorio la hoja también existe un cuadro (~7 ms, con opacidad 0: nunca se pinta, ver
+// `docs/BITACORA.md`, 9g) y un localizador por rol que no distinga el contenedor contaría dos grupos «visibles».
+export function grupoDelFiltro(page: Page, nombre: string): Locator {
+  const panel = esMovil(page)
+    ? page.getByRole('dialog', { name: 'Filtros' })
+    : page.getByRole('complementary', { name: 'Filtros' })
+  return panel.getByRole('group', { name: nombre })
 }
 
 export async function origenEnLaBase(nombre: string): Promise<OrigenEnLaBase | undefined> {
