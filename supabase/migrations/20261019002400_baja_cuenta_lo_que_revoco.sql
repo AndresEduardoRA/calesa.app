@@ -1,6 +1,9 @@
--- Un lote de la baja contaba al limbo los leads del lote con la cartera vacía, también uno que otra transacción ya había
--- aplicado (y contado, `_lead_aplicar_bajas`) entre leer los ids y bloquear: el número se inflaba (lo encontró la revisión
--- del cierre 1). Cuenta sólo los leads cuya fila revocó su sentencia.
+-- Un lote de la baja contaba al limbo los leads del lote con la cartera vacía, también uno que otra corrida de la misma baja ya
+-- había aplicado (y contado) entre leer los ids y bloquear: el número se inflaba. La carrera es de dos corridas de la misma baja
+-- a la vez (una llamada manual de `equipo_bajas_continuar()` mientras corre la de `pg_cron`), no la de otra RPC: quien llama a
+-- `_lead_aplicar_bajas` deja al lead fuera del limbo (adoptar suma a quien adopta) o se revierte (salir y quitar acceso rechazan
+-- dejarlo vacío), así que esas no cuentan dos veces (cierre 2, 0b; `scripts/carreras/cartera.mjs` la provoca sin `sleep`).
+-- Cuenta sólo los leads cuya fila revocó su sentencia.
 
 create or replace function public._baja_lote_desde(p_usuario uuid, p_lote int, p_desde uuid)
 returns uuid language plpgsql security definer set search_path = '' as $$
@@ -34,8 +37,8 @@ begin
   v_leads := array(select l.id from public.leads l where l.id = any (v_ids) order by l.id for update skip locked);
   if cardinality(v_leads) > 0 then
     -- La sentencia dispara el recálculo de la cartera de esos leads (ya bloqueados: el trigger no espera).
-    -- Se cuentan sólo los leads cuya fila revocó esta sentencia: uno que otra transacción ya aplicó (`_lead_aplicar_bajas`, que
-    -- lo cuenta ella) entre leer los ids y bloquear no se cuenta dos veces.
+    -- Se cuentan sólo los leads cuya fila revocó esta sentencia: uno que otra corrida de esta misma baja ya aplicó (y contó)
+    -- entre leer los ids y bloquear no se cuenta dos veces.
     with hechas as (
       update public.leads_asesores la set revocado_en = now(), revocado_por = v_baja.por
        where la.lead_id = any (v_leads) and la.usuario_id = p_usuario and la.revocado_en is null
