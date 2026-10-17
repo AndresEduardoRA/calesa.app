@@ -119,7 +119,9 @@ test('con el texto al 200 % el aviso crece con él y su icono no tapa el texto',
   await entrar(page, r.ana.email)
   await irALeads(page)
   await alDoscientos(page)
-  const { aviso } = await altaConAviso(page, `Alta texto ${info.project.name}`)
+  const { alta, aviso } = await altaConAviso(page, `Alta texto ${info.project.name}`)
+  // Con el aviso ya quieto (entra deslizándose y translúcido): se mide y se mira en reposo.
+  await avisoNoTapaElPie(aviso, pieDelAlta(alta))
   const medidas = await aviso.evaluate((el) => {
     const titulo = el.querySelector('[data-title]')
     const icono = el.querySelector('[data-icon] svg')
