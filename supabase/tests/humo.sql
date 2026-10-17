@@ -698,6 +698,9 @@ do $$ declare l3 uuid; f jsonb; begin
   select id into l3 from public.leads_vista where nombre = 'Baja Otro';
   if l3 is null then raise exception 'Q no ve el lead que comparte con quien está en baja'; end if;
   if (select dueno_id from public.leads_vista where id = l3) is not null then raise exception 'leads_vista.dueno_id nombra a quien está en baja'; end if;
+  -- La tabla misma (PostgREST la lee con `authenticated`): tampoco entrega la fila de quien está en baja (cierre 3, 0a).
+  if exists (select 1 from public.leads_asesores where lead_id = l3 and usuario_id = '00000000-0000-0000-0000-0000000001b6') then raise exception 'leads_asesores entrega la fila de quien está en baja'; end if;
+  if (select count(*) from public.leads_asesores where lead_id = l3 and revocado_en is null) <> 1 then raise exception 'Q debería leer sólo su propia fila vigente del lead'; end if;
   f := public.lead_ficha(l3);
   if f ->> 'tiene_id' is distinct from '00000000-0000-0000-0000-0000000001b7' then raise exception 'la ficha dice que lo tiene quien está en baja, no Q: %', f ->> 'tiene_nombre'; end if;
   if (select count(*) from jsonb_array_elements(public.lead_cartera(l3)) c where c ->> 'usuario_id' = '00000000-0000-0000-0000-0000000001b6') <> 0 then raise exception 'Quién lo tiene nombra a quien está en baja'; end if;
@@ -784,6 +787,28 @@ begin
   end loop;
   if cardinality(v_faltan) > 0 then
     raise exception 'leen la cartera vigente sin mirar _bajas_en_curso() ni figurar en el inventario: %', v_faltan;
+  end if;
+end $$;
+
+-- @test baja en curso: toda policy que lee la cartera filtra a quien está en baja (inventario de pg_policies, cierre 3)
+-- Lo mismo que el inventario de arriba, para las policies: una que lee `leads_asesores` (la tabla, o a través de una subconsulta
+-- de otra) y no mira `_bajas_en_curso()` tiene que figurar acá con su motivo. La de la propia tabla lo hacía mal desde la 4b y
+-- el inventario de funciones y vistas no la veía.
+do $$ declare r record; v_faltan text[] := '{}'; v_listadas constant text[] := array[
+  -- «leads: leer» no nombra la tabla: usa `leads.cartera` (la copia de la fila), que ya cuenta a quien está en baja como fuera
+  ]::text[];
+begin
+  for r in select p.schemaname, p.tablename, p.policyname from pg_policies p
+            where (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) ~* 'leads_asesores'
+              and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) !~ '_bajas_en_curso'
+              and p.schemaname || '.' || p.tablename || ': ' || p.policyname <> all (v_listadas) loop
+    v_faltan := v_faltan || (r.schemaname || '.' || r.tablename || ': ' || r.policyname);
+  end loop;
+  if cardinality(v_faltan) > 0 then
+    raise exception 'policies que leen leads_asesores sin mirar _bajas_en_curso() ni figurar en el inventario: %', v_faltan;
+  end if;
+  if not exists (select 1 from pg_policies p where p.tablename = 'leads_asesores' and p.qual ~ '_bajas_en_curso') then
+    raise exception 'la policy de leads_asesores dejó de filtrar a quien está en baja';
   end if;
 end $$;
 
