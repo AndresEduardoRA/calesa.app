@@ -212,7 +212,10 @@ update public.leads l
 set local session_replication_role = origin;
 
 -- Se insertó con los triggers apagados: la numeración (9f-2) se hace como la migración para lo que ya existía.
--- Es el backfill con 62.000 leads: se dice cuánto tarda.
+-- Es el backfill con 62.000 leads: se dice cuánto tarda. Antes, las estadísticas de lo recién insertado: con las de una tabla
+-- casi vacía (una base que ya se usó después del reset) el planificador numeraba con un bucle anidado y tardaba más de 20
+-- minutos; sin estadísticas (una base recién reseteada), segundos.
+analyze public.leads;
 select clock_timestamp() as t0 \gset
 select public._leads_numerar_existentes();
 select 'sembrado|numerar_existentes_ms|' || round(extract(epoch from clock_timestamp() - :'t0'::timestamptz) * 1000);

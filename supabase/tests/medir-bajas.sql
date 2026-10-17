@@ -67,7 +67,9 @@ begin
   v_ms := extract(epoch from clock_timestamp() - t0) * 1000;
   raise notice 'medicion|baja de 200.000: la llamada (primer lote) [duena]|%', round(v_ms, 1);
   if (r ->> 'terminada')::boolean then raise exception 'la baja de 200.000 no debería terminar en la llamada: %', r; end if;
-  if v_ms > 2500 then raise exception 'baja de 200.000: la llamada tarda % ms, el presupuesto es 2500 ms', round(v_ms, 1); end if;
+  -- 0,4–0,6 s casi siempre; justo después de cargar los 200.000, a veces ~3 s (las primeras escrituras sobre páginas recién
+  -- cargadas pagan su imagen completa en el WAL). El presupuesto es la mitad del corte de 8 s de `authenticated`.
+  if v_ms > 4000 then raise exception 'baja de 200.000: la llamada tarda % ms, el presupuesto es 4000 ms', round(v_ms, 1); end if;
 end $$;
 reset role;
 reset statement_timeout;
