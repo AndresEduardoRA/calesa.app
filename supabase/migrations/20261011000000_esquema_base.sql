@@ -646,6 +646,7 @@ create table public.leads_campos (
   en_tabla      boolean not null default false,          -- columna del listado
   filtrable     boolean not null default false,          -- entra al panel de filtros
   solo_cartera  boolean not null default false,          -- sólo lo recibe quien está en la cartera (como el teléfono)
+  solo_cartera_pendiente boolean,                        -- 9h: a dónde va un cambio de privacidad que se aplica por lotes (true: a privado; false: a público); NULL = nada pendiente
   es_sistema    boolean not null default false,          -- de fábrica: no se borra, ni cambia de tipo ni de clave
   activo        boolean not null default true,
   actualizado_en timestamptz not null default now(),     -- versión de la fila: toda edición la manda

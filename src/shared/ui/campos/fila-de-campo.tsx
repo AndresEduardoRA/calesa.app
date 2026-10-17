@@ -2,21 +2,22 @@
 
 import { ArrowDownIcon, ArrowUpIcon, PencilIcon } from 'lucide-react'
 import {
-  ETIQUETA_DE_TIPO_DE_CAMPO,
   MOTIVO_PRIMERO_DE_SU_GRUPO,
   MOTIVO_ULTIMO_DE_SU_GRUPO,
   type CampoBase,
   type Sentido,
 } from '@/shared/lib/campos'
-import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { Switch } from '@/shared/ui/switch'
+import { NombreDeCampo } from './nombre-de-campo'
 import { banderaDe, type BanderaDeCampo } from './tipos'
 
 type Props = {
   campo: CampoBase
   // Las que se guardan solas desde la fila.
   banderas: readonly BanderaDeCampo[]
+  // Lo propio del módulo que dice la fila (un cambio que todavía se está aplicando).
+  insignias?: readonly string[]
   puedeGestionar: boolean
   // Mientras algo se guarda no se toca nada: cada edición manda la versión que vio.
   ocupado: boolean
@@ -29,7 +30,7 @@ type Props = {
 
 // Un campo del layout: su orden, sus banderas y el panel para el resto.
 export function FilaDeCampo(props: Props) {
-  const { campo, banderas, puedeGestionar, ocupado, puedeSubir, puedeBajar } = props
+  const { campo, banderas, insignias = [], puedeGestionar, ocupado, puedeSubir, puedeBajar } = props
   const { alAbrir, alMover, alCambiarBandera } = props
   const sinEditar = !puedeGestionar || ocupado
   return (
@@ -62,18 +63,7 @@ export function FilaDeCampo(props: Props) {
           <ArrowDownIcon aria-hidden />
         </Button>
       </div>
-      <div className="order-2 grid min-w-40 flex-1 gap-0.5">
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="text-(length:--text-base) font-medium text-(--color-ink)">
-            {campo.etiqueta}
-          </span>
-          {campo.requerido ? <Badge variant="secondary">Requerido</Badge> : null}
-          {campo.esSistema ? <Badge variant="outline">De fábrica</Badge> : null}
-        </span>
-        <span className="text-(length:--text-sm) text-(--color-ink-faint)">
-          {ETIQUETA_DE_TIPO_DE_CAMPO[campo.tipo]} · <span className="font-mono">{campo.clave}</span>
-        </span>
-      </div>
+      <NombreDeCampo campo={campo} insignias={insignias} />
       <div className="order-4 flex w-full flex-wrap items-center gap-x-4 gap-y-1 md:order-3 md:w-auto">
         {banderas.map(({ clave, etiqueta }) => (
           <label

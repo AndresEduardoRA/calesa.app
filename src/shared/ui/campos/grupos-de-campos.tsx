@@ -12,6 +12,7 @@ type Props<Campo extends CampoBase> = {
   // Todos, también los desactivados: el orden se mide sobre el layout entero.
   campos: readonly Campo[]
   banderas: readonly BanderaDeCampo[]
+  insignias?: ((campo: Campo) => readonly string[]) | undefined
   puedeGestionar: boolean
   ocupado: boolean
   alAbrir: (id: string) => void
@@ -21,7 +22,7 @@ type Props<Campo extends CampoBase> = {
 
 // Los campos activos, un bloque por grupo, en el orden del layout.
 export function GruposDeCampos<Campo extends CampoBase>(props: Props<Campo>) {
-  const { grupos, campos, banderas, puedeGestionar, ocupado } = props
+  const { grupos, campos, banderas, insignias, puedeGestionar, ocupado } = props
   const { alAbrir, alMover, alCambiarBandera } = props
   return (
     <>
@@ -36,6 +37,7 @@ export function GruposDeCampos<Campo extends CampoBase>(props: Props<Campo>) {
                 key={campo.id}
                 campo={campo}
                 banderas={banderas}
+                insignias={insignias?.(campo) ?? []}
                 puedeGestionar={puedeGestionar}
                 ocupado={ocupado}
                 puedeSubir={destinoDeMovimiento(campos, campo.id, 'subir') !== null}

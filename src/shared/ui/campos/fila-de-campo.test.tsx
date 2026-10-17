@@ -93,4 +93,9 @@ describe('FilaDeCampo', () => {
     expect(screen.getByText('De fábrica')).toBeTruthy()
     expect(screen.getByText('Requerido')).toBeTruthy()
   })
+
+  it('lo que el módulo dice de un campo sale como insignia de texto', () => {
+    fila({ insignias: ['Pasando a privado'] })
+    expect(screen.getByText('Pasando a privado')).toBeTruthy()
+  })
 })

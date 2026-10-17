@@ -107,6 +107,7 @@ export function EditorDeCampos<Campo extends CampoBase, Cambios extends object, 
           grupos={grupos}
           campos={campos}
           banderas={banderasDeFila}
+          insignias={configuracion.insignias}
           puedeGestionar={puedeGestionar}
           ocupado={ocupado || ediciones.enCurso}
           alAbrir={(id) => void setParametros({ campo: id })}

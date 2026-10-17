@@ -19,6 +19,7 @@ const CAMPO: CampoDeLead = {
   enTabla: false,
   filtrable: false,
   soloCartera: false,
+  privacidadPendiente: null,
   esSistema: false,
   activo: true,
   actualizadoEn: '2026-10-14T20:00:00+00:00',

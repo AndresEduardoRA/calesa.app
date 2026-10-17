@@ -29,6 +29,34 @@ function fila(n: number, extra: Record<string, unknown> = {}) {
   }
 }
 
+describe('camposDeLeadDesde: un cambio de privacidad por lotes (9h)', () => {
+  it('pasando a privado dice lo pedido (privado) y que falta aplicarlo', () => {
+    const [campo] = camposDeLeadDesde([
+      fila(1, { solo_cartera: false, solo_cartera_pendiente: true }),
+    ])
+    expect(campo?.soloCartera).toBe(true)
+    expect(campo?.privacidadPendiente).toBe('a_privado')
+  })
+
+  it('pasando a público ya es público y completa los filtros', () => {
+    const [campo] = camposDeLeadDesde([
+      fila(1, { solo_cartera: false, solo_cartera_pendiente: false }),
+    ])
+    expect(campo?.soloCartera).toBe(false)
+    expect(campo?.privacidadPendiente).toBe('a_publico')
+  })
+
+  it('sin nada pendiente (o sin la columna) no dice nada', () => {
+    expect(
+      camposDeLeadDesde([fila(1, { solo_cartera: true, solo_cartera_pendiente: null })])[0],
+    ).toMatchObject({
+      soloCartera: true,
+      privacidadPendiente: null,
+    })
+    expect(camposDeLeadDesde([fila(1)])[0]?.privacidadPendiente).toBeNull()
+  })
+})
+
 describe('camposDeLeadDesde', () => {
   it('los deja en el orden del layout y trae lo propio de un lead', () => {
     const campos = camposDeLeadDesde([

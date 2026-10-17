@@ -28,6 +28,7 @@ function campo(clave: string, extra: Partial<CampoDeLead> = {}): CampoDeLead {
     enTabla: false,
     filtrable: true,
     soloCartera: false,
+    privacidadPendiente: null,
     valorDefectoEmpresa: null,
     ...extra,
   }

@@ -41,6 +41,7 @@ const CAMPO: CampoDeLead = {
   enTabla: false,
   filtrable: false,
   soloCartera: false,
+  privacidadPendiente: null,
   valorDefectoEmpresa: 'pais',
 }
 

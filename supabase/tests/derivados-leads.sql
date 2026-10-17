@@ -21,14 +21,51 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 --
+-- Las claves de un campo con un cambio de privacidad pendiente.
+create or replace function pg_temp.claves_en_transicion() returns text[] language sql as $$
+  select coalesce(array_agg(c.clave), '{}') from public.leads_campos c where c.solo_cartera_pendiente is not null;
+$$;
+
+-- La sesión de una persona, para una sentencia (como PostgREST).
+create or replace function pg_temp.como_d(p_quien uuid, p_sql text) returns jsonb language plpgsql as $$
+declare r jsonb;
+begin
+  perform set_config('request.jwt.claim.sub', p_quien::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claims', json_build_object('sub', p_quien, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  execute p_sql into r;
+  reset role;
+  return r;
+exception when others then
+  reset role;
+  raise;
+end $$;
+
+-- Cambiar la privacidad de un campo como la pantalla (la dueña de la semilla, con `leads.configurar`).
+create or replace function pg_temp.privacidad(p_clave text, p_privado boolean) returns void language sql as $$
+  select pg_temp.como_d('00000000-0000-0000-0000-000000000001', format(
+    'select to_jsonb(public.lead_campo_guardar(%L, %L, %L::jsonb))',
+    (select id from public.leads_campos where clave = p_clave), (select actualizado_en from public.leads_campos where clave = p_clave),
+    jsonb_build_object('solo_cartera', p_privado)));
+$$;
+
 -- La primera discrepancia de las copias, o nulo.
 create or replace function pg_temp.derivados_discrepancia() returns text language sql as $$
   select coalesce(
     (select format('cartera de %s (%s): %s, y en leads_asesores %s', l.id, l.nombre, l.cartera, public._lead_cartera_calcular(l.id))
        from public.leads l where l.cartera is distinct from public._lead_cartera_calcular(l.id) order by l.id limit 1),
+    -- Un campo con un cambio de privacidad a medias (`solo_cartera_pendiente`) puede estar o no según el lote: se compara lo demás.
     (select format('atributos_publicos de %s (%s): %s, y recalculados %s', l.id, l.nombre, l.atributos_publicos,
                    public._lead_atributos_publicos(l.atributos))
-       from public.leads l where l.atributos_publicos is distinct from public._lead_atributos_publicos(l.atributos) order by l.id limit 1),
+       from public.leads l
+      where (l.atributos_publicos - pg_temp.claves_en_transicion())
+            is distinct from (public._lead_atributos_publicos(l.atributos) - pg_temp.claves_en_transicion())
+      order by l.id limit 1),
+    (select format('atributos_publicos de %s (%s) trae «%s» con un valor que no es el de atributos', l.id, l.nombre, k.key)
+       from public.leads l cross join lateral jsonb_each(l.atributos_publicos) k
+      where l.atributos -> k.key is distinct from k.value
+      order by l.id limit 1),
     (select format('atributos_publicos de %s (%s) trae «%s», que no es un campo público', l.id, l.nombre, k.key)
        from public.leads l cross join lateral jsonb_each(l.atributos_publicos) k
       where not exists (select 1 from public.leads_campos c where c.clave = k.key and not c.solo_cartera)
@@ -128,7 +165,7 @@ begin
     perform set_config('request.jwt.claims', '', true);
     v_lead := v_leads[1 + floor(random() * 30)::int];
     v_persona := v_personas[1 + floor(random() * 5)::int];
-    v_op := floor(random() * 9)::int;
+    v_op := floor(random() * 13)::int;
     case v_op
       when 0 then  -- compartir (o volver a compartir un acceso revocado)
         insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) values (v_lead, v_persona, 'compartido')
@@ -156,6 +193,12 @@ begin
         delete from public.leads_asesores
          where (lead_id, usuario_id) = (select la.lead_id, la.usuario_id from public.leads_asesores la
                                          where la.lead_id = v_lead order by la.usuario_id desc limit 1);
+      when 9 then  -- cambiar la privacidad de «ciudad» por la RPC (con pocos leads, termina en la llamada)
+        perform pg_temp.privacidad('ciudad', not (select solo_cartera or coalesce(solo_cartera_pendiente, false) from public.leads_campos where clave = 'ciudad'));
+      when 10 then  -- empezar a pasarla a privado sin el primer lote (lo que deja la RPC con una base grande)
+        update public.leads_campos set solo_cartera_pendiente = true where clave = 'ciudad' and not solo_cartera;
+      when 11 then  -- un lote chico del job
+        perform public._lead_campo_privacidad_lote((select id from public.leads_campos where clave = 'ciudad'), 4);
       else  -- tomar del limbo: un lead sin nadie recibe dueño
         if public._lead_cartera_calcular(v_lead) = '{}' then
           insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) values (v_lead, v_persona, 'dueno')
@@ -169,23 +212,13 @@ begin
   if (select count(*) from public.leads where id = any (v_leads) and cartera = '{}') = 0 then
     raise exception 'los cambios al azar no dejaron ningún lead en el limbo: la prueba no cubre ese caso';
   end if;
+  -- Lo que quede a medias se termina, y «ciudad» vuelve a ser pública para lo que sigue.
+  while not public._lead_campo_privacidad_lote((select id from public.leads_campos where clave = 'ciudad'), 5000) loop end loop;
+  if (select solo_cartera from public.leads_campos where clave = 'ciudad') then perform pg_temp.privacidad('ciudad', false); end if;
+  perform pg_temp.derivados_comprobar('al terminar los cambios al azar');
 end $$;
 
 -- @test derivados (9h): por las RPC, con sus nombres: alta, compartir, transferir, salir, revocar, papelera y restaurar, importar y deshacer, la baja y tomar del limbo
-create or replace function pg_temp.como_d(p_quien uuid, p_sql text) returns jsonb language plpgsql as $$
-declare r jsonb;
-begin
-  perform set_config('request.jwt.claim.sub', p_quien::text, true);
-  perform set_config('request.jwt.claim.role', 'authenticated', true);
-  perform set_config('request.jwt.claims', json_build_object('sub', p_quien, 'role', 'authenticated')::text, true);
-  set local role authenticated;
-  execute p_sql into r;
-  reset role;
-  return r;
-exception when others then
-  reset role;
-  raise;
-end $$;
 do $$
 declare
   a constant uuid := '00000000-0000-0000-0000-0000000009d1'; b constant uuid := '00000000-0000-0000-0000-0000000009d2';
@@ -237,4 +270,53 @@ begin
   r := pg_temp.como_d(b, format('select public.crear_lead(%L, %L::jsonb, null, null)', gen_random_uuid(), jsonb_build_object('nombre', 'RPC dos otra vez', 'telefono_principal', '78910002', 'origen_lead_id', v_web, 'adoptar', true)));
   if (select cartera from public.leads where id = v_2) <> array[b] then raise exception 'tomar del limbo: % (%)', (select cartera from public.leads where id = v_2), r; end if;
   perform pg_temp.derivados_comprobar('tras tomar del limbo');
+end $$;
+
+-- @test derivados (9h): pasar un campo a privado y a público por lotes, sin que la clave quede legible a medias
+do $$
+declare
+  v_campo uuid := (select id from public.leads_campos where clave = 'ciudad');
+  a constant uuid := '00000000-0000-0000-0000-0000000009d1'; todos constant uuid := '00000000-0000-0000-0000-0000000009d4';
+  v_lead uuid := (select id from public.leads where nombre = 'RPC uno'); v_lotes int := 0;
+begin
+  -- RPC uno es de b (la baja le dejó la cartera) y lo ve «todos» (09d4) sin estar en ella: recibe «ciudad» mientras sea pública.
+  if pg_temp.como_d(todos, format('select public.atributos_lead(%L)', v_lead)) ->> 'ciudad' is null then
+    raise exception 'el terreno: «todos» no ve la ciudad de RPC uno'; end if;
+  -- Con la RPC y pocos leads, el primer lote termina en la misma llamada.
+  perform pg_temp.privacidad('ciudad', true);
+  if (select (solo_cartera, solo_cartera_pendiente) from public.leads_campos where id = v_campo) is distinct from (true, null::boolean) then
+    raise exception 'a privado, en la llamada: %', (select row(solo_cartera, solo_cartera_pendiente) from public.leads_campos where id = v_campo); end if;
+  if exists (select 1 from public.leads where atributos_publicos ? 'ciudad') then raise exception 'quedó la ciudad en atributos_publicos'; end if;
+  if pg_temp.como_d(todos, format('select public.atributos_lead(%L)', v_lead)) ? 'ciudad' then raise exception 'a privado: «todos» sigue recibiendo la ciudad'; end if;
+  perform pg_temp.derivados_comprobar('tras pasar «ciudad» a privado');
+  -- A público: inmediato, y la copia se completa.
+  perform pg_temp.privacidad('ciudad', false);
+  if (select (solo_cartera, solo_cartera_pendiente) from public.leads_campos where id = v_campo) is distinct from (false, null::boolean) then
+    raise exception 'a público: %', (select row(solo_cartera, solo_cartera_pendiente) from public.leads_campos where id = v_campo); end if;
+  if (select atributos_publicos ->> 'ciudad' from public.leads where id = v_lead) <> 'Sucre' then raise exception 'a público: la copia no se completó'; end if;
+  perform pg_temp.derivados_comprobar('tras volver «ciudad» a público');
+  -- Por lotes, como con una base grande: mientras quede algún lead con la clave, el campo sigue público (lo enmascarado
+  -- lo da a «todos») y ningún lead nuevo la lleva en la copia.
+  update public.leads_campos set solo_cartera_pendiente = true where id = v_campo;
+  perform public._lead_campo_privacidad_lote(v_campo, 2);
+  if (select solo_cartera from public.leads_campos where id = v_campo) then raise exception 'a medias ya era privado'; end if;
+  if not exists (select 1 from public.leads where atributos_publicos ? 'ciudad') then raise exception 'el terreno: un lote de 2 lo terminó todo'; end if;
+  if pg_temp.como_d(todos, format('select public.atributos_lead(%L)', v_lead)) ->> 'ciudad' is null and
+     (select atributos_publicos ? 'ciudad' from public.leads where id = v_lead) then
+    raise exception 'a medias, «todos» dejó de ver un dato que todavía es público'; end if;
+  perform pg_temp.como_d(a, format('select public.crear_lead(%L, %L::jsonb, null, null)', gen_random_uuid(), jsonb_build_object(
+    'nombre', 'RPC a medias', 'telefono_principal', '78910021', 'origen_lead_id', (select id from public.origenes_lead where clave = 'web'),
+    'atributos', jsonb_build_object('ciudad', 'Oruro'))));
+  if (select atributos_publicos ? 'ciudad' from public.leads where nombre = 'RPC a medias') then raise exception 'un alta a medias llevó la clave'; end if;
+  perform pg_temp.derivados_comprobar('a medias');
+  while not public._lead_campo_privacidad_lote(v_campo, 2) loop
+    v_lotes := v_lotes + 1;
+    if v_lotes > 500 then raise exception 'la transición no termina'; end if;
+  end loop;
+  if not (select solo_cartera from public.leads_campos where id = v_campo) or exists (select 1 from public.leads where atributos_publicos ? 'ciudad') then
+    raise exception 'al terminar los lotes'; end if;
+  -- El job no hace nada si no hay nada pendiente, y vuelve a dejar «ciudad» pública para lo que sigue.
+  if (public.leads_campos_privacidad_aplicar() ->> 'lotes')::int <> 0 then raise exception 'el job corrió sin nada pendiente'; end if;
+  perform pg_temp.privacidad('ciudad', false);
+  perform pg_temp.derivados_comprobar('al final');
 end $$;

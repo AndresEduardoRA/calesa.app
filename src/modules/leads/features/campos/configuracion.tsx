@@ -16,8 +16,10 @@ import {
   type CambiosDeCampoDeLead,
 } from '../../entities/cambios-de-campo'
 import {
+  AVISO_DE_PRIVACIDAD,
   CLAVES_RESERVADAS_DE_LEAD,
   DATOS_DE_LA_EMPRESA,
+  INSIGNIA_DE_PRIVACIDAD,
   soloCarteraPorTipo,
   type CampoDeLead,
   type DatoDeLaEmpresa,
@@ -181,6 +183,19 @@ function HuecoDeLaEmpresa({ contexto, empresa }: PropsDelHueco) {
   )
 }
 
+// Un cambio de privacidad que la base todavía aplica por lotes (9h): se dice en el panel, junto a «Solo la cartera».
+function AvisoDePrivacidad({ campo }: { campo: CampoDeLead | undefined }) {
+  if (campo?.privacidadPendiente == null) {
+    return null
+  }
+  return (
+    <p role="status" className="text-(length:--text-sm) text-(--color-ink-soft)">
+      <span className="font-medium">{INSIGNIA_DE_PRIVACIDAD[campo.privacidadPendiente]}.</span>{' '}
+      {AVISO_DE_PRIVACIDAD[campo.privacidadPendiente]}
+    </p>
+  )
+}
+
 type Contexto = { campos: readonly CampoDeLead[]; empresa: DatosDeLaEmpresa }
 
 // Cómo el editor compartido arma, guarda y dice el layout de campos de los leads.
@@ -228,6 +243,13 @@ export function configuracionDeLeads({
         campos.filter((otro) => otro.activo && otro.requerido && otro.id !== campo.id).length,
       ),
     resumenDeEliminacion,
-    hueco: (contexto) => <HuecoDeLaEmpresa contexto={contexto} empresa={empresa} />,
+    hueco: (contexto) => (
+      <>
+        <AvisoDePrivacidad campo={campos.find((campo) => campo.clave === contexto.valores.clave)} />
+        <HuecoDeLaEmpresa contexto={contexto} empresa={empresa} />
+      </>
+    ),
+    insignias: (campo) =>
+      campo.privacidadPendiente === null ? [] : [INSIGNIA_DE_PRIVACIDAD[campo.privacidadPendiente]],
   }
 }

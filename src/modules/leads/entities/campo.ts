@@ -39,13 +39,20 @@ export const CLAVES_RESERVADAS_DE_LEAD: readonly string[] = [
 export const DATOS_DE_LA_EMPRESA = ['ciudad', 'pais'] as const
 export type DatoDeLaEmpresa = (typeof DATOS_DE_LA_EMPRESA)[number]
 
+export type PrivacidadPendiente = 'a_privado' | 'a_publico'
+
 export type CampoDeLead = CampoBase<TipoDeLead> & {
   // Es una columna del listado de leads.
   enTabla: boolean
   // Entra al panel de filtros del listado.
   filtrable: boolean
-  // Sólo lo recibe quien tiene el lead en su cartera (como el teléfono): se recorta en la base.
+  // Sólo lo recibe quien tiene el lead en su cartera (como el teléfono): se recorta en la base. Es lo **pedido**: un campo
+  // que está pasando a privado ya dice `true`, aunque la base lo siga entregando hasta terminar (`privacidadPendiente`).
   soloCartera: boolean
+  // Un cambio de privacidad que la base todavía aplica por lotes (9h): `a_privado` mientras quita la clave de los atributos
+  // públicos de cada lead (hasta terminar el campo sigue llegando a quien ve el lead), `a_publico` mientras los completa
+  // (ya llega, y los filtros lo encuentran en todos al terminar). `null`: nada pendiente.
+  privacidadPendiente: PrivacidadPendiente | null
   // «La de la empresa»: en vez de un valor fijo, trae la ciudad o el país de Configuración › Empresa.
   valorDefectoEmpresa: DatoDeLaEmpresa | null
 }
@@ -72,11 +79,32 @@ const esquemaCampos = z.array(
     en_tabla: z.boolean(),
     filtrable: z.boolean(),
     solo_cartera: z.boolean(),
+    solo_cartera_pendiente: z.boolean().nullable().catch(null),
     es_sistema: z.boolean(),
     activo: z.boolean(),
     actualizado_en: z.string(),
   }),
 )
+
+// `leads_campos.solo_cartera_pendiente`: true va a privado, false va a público, nulo no hay nada.
+function privacidadPendienteDe(pendiente: boolean | null): PrivacidadPendiente | null {
+  if (pendiente === null) return null
+  return pendiente ? 'a_privado' : 'a_publico'
+}
+
+// Lo que la fila del campo dice mientras su privacidad se aplica.
+export const INSIGNIA_DE_PRIVACIDAD: Record<PrivacidadPendiente, string> = {
+  a_privado: 'Pasando a privado',
+  a_publico: 'Pasando a público',
+}
+
+// Lo que explica el panel del campo.
+export const AVISO_DE_PRIVACIDAD: Record<PrivacidadPendiente, string> = {
+  a_privado:
+    'Se está quitando de los leads, en unos minutos. Mientras tanto, quien ve el lead sin tenerlo en su cartera todavía lo recibe.',
+  a_publico:
+    'Ya lo recibe quien ve el lead. Los filtros lo encuentran en todos los leads en unos minutos.',
+}
 
 // En el orden del layout: `orden`, y a igualdad la clave (como la base).
 export function camposDeLeadDesde(filas: unknown): CampoDeLead[] {
@@ -95,7 +123,8 @@ export function camposDeLeadDesde(filas: unknown): CampoDeLead[] {
       orden: fila.orden,
       enTabla: fila.en_tabla,
       filtrable: fila.filtrable,
-      soloCartera: fila.solo_cartera,
+      soloCartera: fila.solo_cartera || fila.solo_cartera_pendiente === true,
+      privacidadPendiente: privacidadPendienteDe(fila.solo_cartera_pendiente),
       esSistema: fila.es_sistema,
       activo: fila.activo,
       actualizadoEn: fila.actualizado_en,

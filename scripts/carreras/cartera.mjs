@@ -4,7 +4,7 @@
 // `leads_asesores`. El relleno con `skip locked` no espera: esa se prueba aparte, con las dos transacciones abiertas.
 import { PERSONAS, PREFIJO, comoPersona, leadDeLaDuena } from './terreno.mjs'
 
-const { duena, compartido, supervision, destino } = PERSONAS
+const { duena, compartido, supervision, destino, configura } = PERSONAS
 // Alguien a quien dar de baja, con un rol que puede hacerlo (las borra `limpiar()` por el correo).
 const BAJA = '00000000-0000-4000-8000-0000000c0010'
 const OTRA_BAJA = '00000000-0000-4000-8000-0000000c0011'
@@ -190,5 +190,87 @@ async function carrerasDelRelleno({ orquesta, carrera, espero, conectar }) {
       await ca.end()
       await cb.end()
     }
+  }
+}
+
+// Pasar un campo a privado mientras otra persona crea un lead con ese dato (9h): ningún lead puede quedar con la clave en
+// `atributos_publicos` cuando el campo ya es privado.
+let campos = 0
+async function campoNuevo(db) {
+  campos += 1
+  const clave = `carreras_priv_${String(campos)}`
+  await db.query(
+    `insert into public.leads_campos (clave, etiqueta, tipo, orden) values ($1, $2, 'texto', 900 + $3)`,
+    [clave, `${PREFIJO} privado ${String(campos)}`, campos],
+  )
+  return clave
+}
+const altaConDato = (clave, telefono, origen) => ({
+  persona: duena,
+  sql: 'public.crear_lead($1, $2::jsonb, null)',
+  args: [
+    crypto.randomUUID(),
+    JSON.stringify({
+      nombre: `${PREFIJO} con ${clave}`,
+      telefono_principal: telefono,
+      origen_lead_id: origen,
+      atributos: { [clave]: 'dato' },
+    }),
+  ],
+})
+const privatizar = async (db, clave) => ({
+  persona: configura,
+  sql: `public.lead_campo_guardar((select id from public.leads_campos where clave = $1), $2, '{"solo_cartera": true}')`,
+  args: [
+    clave,
+    (
+      await db.query(`select actualizado_en::text as v from public.leads_campos where clave = $1`, [
+        clave,
+      ])
+    ).rows[0].v,
+  ],
+})
+const estadoDe = async (db, clave) =>
+  (
+    await db.query(
+      `select (select solo_cartera from public.leads_campos where clave = $1) as privado,
+              (select count(*)::int from public.leads where atributos_publicos ? $1) as con_la_clave,
+              (select count(*)::int from public.leads where atributos ? $1) as con_el_dato`,
+      [clave],
+    )
+  ).rows[0]
+
+export async function carrerasDePrivacidad({ orquesta, carrera, espero }) {
+  const origen = (
+    await orquesta.query(
+      'select id from public.origenes_lead where activo order by orden, id limit 1',
+    )
+  ).rows[0].id
+  console.log('Pasar un campo a privado mientras se crea un lead con ese dato')
+  {
+    const clave = await campoNuevo(orquesta)
+    const r = await carrera(orquesta, {
+      a: altaConDato(clave, '79300011', origen),
+      b: await privatizar(orquesta, clave),
+    })
+    const e = await estadoDe(orquesta, clave)
+    espero(
+      'el alta primero: privatizar espera, quita la clave del lead nuevo y el campo queda privado',
+      r.a.ok && r.b.ok && e.privado && e.con_el_dato === 1 && e.con_la_clave === 0,
+      { r, e },
+    )
+  }
+  {
+    const clave = await campoNuevo(orquesta)
+    const r = await carrera(orquesta, {
+      a: await privatizar(orquesta, clave),
+      b: altaConDato(clave, '79300012', origen),
+    })
+    const e = await estadoDe(orquesta, clave)
+    espero(
+      'privatizar primero: el alta espera y el lead nace sin la clave en los atributos públicos',
+      r.a.ok && r.b.ok && e.privado && e.con_el_dato === 1 && e.con_la_clave === 0,
+      { r, e },
+    )
   }
 }

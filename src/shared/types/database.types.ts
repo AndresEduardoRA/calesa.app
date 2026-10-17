@@ -2526,6 +2526,7 @@ export type Database = {
           orden: number
           requerido: boolean
           solo_cartera: boolean
+          solo_cartera_pendiente: boolean | null
           tipo: Database['public']['Enums']['tipo_campo']
           valor_defecto: Json | null
           valor_defecto_empresa: string | null
@@ -2545,6 +2546,7 @@ export type Database = {
           orden?: number
           requerido?: boolean
           solo_cartera?: boolean
+          solo_cartera_pendiente?: boolean | null
           tipo: Database['public']['Enums']['tipo_campo']
           valor_defecto?: Json | null
           valor_defecto_empresa?: string | null
@@ -2563,6 +2565,7 @@ export type Database = {
           orden?: number
           requerido?: boolean
           solo_cartera?: boolean
+          solo_cartera_pendiente?: boolean | null
           tipo?: Database['public']['Enums']['tipo_campo']
           valor_defecto?: Json | null
           valor_defecto_empresa?: string | null
@@ -6718,6 +6721,7 @@ export type Database = {
       }
       _lead_atributos_publicos: { Args: { p_atributos: Json }; Returns: Json }
       _lead_campo_con_valor: { Args: { p_clave: string }; Returns: number }
+      _lead_campo_privacidad_lote: { Args: { p_campo: string; p_lote: number }; Returns: boolean }
       _lead_campos_renumerar: { Args: Record<PropertyKey, never>; Returns: undefined }
       _lead_cartera_calcular: { Args: { p_lead: string }; Returns: string[] }
       _lead_cartera_json: { Args: { p_lead: string }; Returns: Json }
@@ -7527,6 +7531,7 @@ export type Database = {
         Returns: Json
       }
       lead_vehiculos: { Args: { p_lead: string }; Returns: Json }
+      leads_campos_privacidad_aplicar: { Args: Record<PropertyKey, never>; Returns: Json }
       leads_exportacion_registrar: {
         Args: { p_filas: number; p_filtros?: string[] }
         Returns: Json

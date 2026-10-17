@@ -104,4 +104,6 @@ export type ConfiguracionDeCampos<Campo extends CampoBase, Cambios extends objec
   resumenDeEliminacion: (campo: Campo, impacto: ImpactoDeCampo) => ResumenDeImpacto
   // Un hueco del formulario para lo propio del módulo (el bloque de apibara).
   hueco?: (contexto: ContextoDelHueco) => ReactNode
+  // Lo que la fila dice además de «Requerido» y «De fábrica» (un cambio que todavía se está aplicando).
+  insignias?: (campo: Campo) => readonly string[]
 }
