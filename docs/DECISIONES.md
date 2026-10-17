@@ -3467,3 +3467,9 @@ iniciales si la imagen no carga.
 apagado: el relleno quedaría probado sólo en la nube); `sharp` en un route handler de Next (otra URL que el cron tiene que
 conocer, y el cliente admin fuera de su único lugar); hacerla en el navegador de cada persona al entrar (quien se dio de baja
 nunca entra).
+
+**Corrección (revisión del cierre 1):** el relleno no mueve la versión del perfil. Escribir la miniatura o su fallo pasaba por
+el trigger genérico y sellaba `perfiles.actualizado_en`: quien tenía el perfil abierto recibía «Tu perfil cambió» sin que
+nadie lo hubiera editado. `perfil_avatar_coherente()` restituye la versión cuando lo único que cambió es la miniatura o su
+fallo (`…20261019002300`). Se eligió eso y no un `set_config` en las dos funciones del relleno porque la regla queda en un solo
+lugar y vale también para cualquier escritura futura de esas columnas.
