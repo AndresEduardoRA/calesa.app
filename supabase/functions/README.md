@@ -77,7 +77,9 @@ El protocolo vive en SQL y está probado en humo (`supabase/migrations/202610130
 `…000900_papelera_purga.sql`, `…001000_storage_gc_funcion.sql`); la función sólo borra y confirma.
 
 - **Reclamar** (`storage_gc_reclamar`): encola los huérfanos del bucket `vehiculos` (objetos sin
-  fila, con más de 24 h) y, de lo que ya cumplió su espera en la cola, recuenta con
+  fila, con más de 24 h) —de a una ventana de 10.000 objetos por nombre, siguiendo el cursor de `cola_gc_barrido`: cada
+  pasada sigue donde quedó la anterior y al llegar al final empieza otra vuelta, así un bucket de cientos de miles no se
+  recorre entero cada vez; un objeto de menos de 24 h que la ventana pasa lo encuentra la vuelta siguiente (cierre 1)— y, de lo que ya cumplió su espera en la cola, recuenta con
   `storage_refcount` teniendo tomado el candado del objeto. Con referencias, lo saca de la cola;
   sin ellas, lo marca `reclamado_en` y lo devuelve. Un reclamo sin confirmar se vuelve a ofrecer
   pasada una hora.

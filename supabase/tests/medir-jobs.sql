@@ -94,5 +94,13 @@ select pg_temp.cronometro('job: papelera-purgar, 100.000 leads en 500 lotes', 's
 select pg_temp.cronometro('job: limpieza-automatica, 100.000 candidatos', $q$select (public.limpieza_automatica_correr(now() + interval '12 hours') - 'saltados')::text$q$, 8000);
 select pg_temp.cronometro('job: storage-gc, reclamar 100 de 100.000 en la cola', 'select count(*)::text from public.storage_gc_reclamar(100)', 4000);
 select pg_temp.cronometro('job: storage-gc, encolar huérfanos de 100.000 objetos', $q$select public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day')::text$q$, 4000);
+-- Con el cursor (cierre 1): cada pasada examina los 10.000 siguientes por nombre. Una al final del bucket cuesta lo mismo que
+-- una al principio (antes, cada pasada recorría el bucket entero: 208 ms con 301.000 objetos ya encolados).
+delete from public.cola_gc_barrido;
+select pg_temp.cronometro('job: storage-gc, una pasada al principio del bucket (10.000 examinados)', $q$select public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day')::text$q$, 1000);
+update public.cola_gc_barrido
+   set ultimo_nombre = (select o.name from storage.objects o where o.bucket_id = 'vehiculos' order by o.name desc limit 1 offset 15000)
+ where bucket = 'vehiculos';
+select pg_temp.cronometro('job: storage-gc, una pasada cerca del final del bucket (10.000 examinados)', $q$select public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day')::text$q$, 1000);
 
 rollback;

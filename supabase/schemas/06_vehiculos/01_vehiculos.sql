@@ -124,6 +124,17 @@ create table public.cola_gc_storage (
 );
 comment on table public.cola_gc_storage is 'Objetos de Storage que quizá ya nadie referencia: los encolan la purga de la papelera, el borrado de una foto y el barrido de huérfanos. encolado_en es desde cuándo corre la espera de 24 h (la purga y el barrido lo retro-fechan). storage_gc_reclamar() recuenta bajo candado y marca reclamado_en; sólo lo reclamado se borra por la API, y storage_gc_confirmar() lo saca. Sólo service_role.';
 
+-- Por dónde va el barrido de huérfanos de cada bucket (cierre 1): cada pasada examina la ventana siguiente por nombre y
+-- deja acá el último; al llegar al final vuelve a empezar. Un bucket de cientos de miles no se reprocesa entero cada vez.
+create table public.cola_gc_barrido (
+  bucket         text primary key,
+  ultimo_nombre  text not null default '',
+  vuelta_desde   timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()
+);
+alter table public.cola_gc_barrido enable row level security;
+comment on table public.cola_gc_barrido is 'El cursor del barrido de huérfanos de storage-gc por bucket: el último nombre examinado y desde cuándo corre la vuelta. Sólo la escribe storage_gc_encolar_huerfanos (service_role).';
+
 create table public.cola_gc_pases (
   pase      uuid primary key default gen_random_uuid(),
   creado_en timestamptz not null default now(),

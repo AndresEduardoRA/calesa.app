@@ -5924,3 +5924,30 @@ begin
   delete from public.leads where nombre like 'Topes %';
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
+
+-- @test storage-gc (cierre 1): el barrido de huérfanos sigue un cursor por bucket, vuelve a empezar al final y no se salta nada
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ declare n int; begin
+  delete from public.cola_gc_barrido;
+  insert into storage.objects (bucket_id, name, created_at) values
+    ('vehiculos', 'cursor/a.webp', now() - interval '3 days'),
+    ('vehiculos', 'cursor/b.webp', now() - interval '3 days');
+  -- Con el cursor después de los dos, esta pasada no los ve; la ventana no se llena, así que la vuelta termina y reinicia.
+  insert into public.cola_gc_barrido (bucket, ultimo_nombre) values ('vehiculos', 'cursor/zzz');
+  n := public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day');
+  if exists (select 1 from public.cola_gc_storage where ruta like 'cursor/%') then raise exception 'encoló lo que estaba antes del cursor'; end if;
+  if (select ultimo_nombre from public.cola_gc_barrido where bucket = 'vehiculos') <> '' then raise exception 'al llegar al final la vuelta no reinició'; end if;
+  -- La vuelta siguiente los encuentra.
+  n := public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day');
+  if (select count(*) from public.cola_gc_storage where ruta like 'cursor/%') <> 2 then raise exception 'la vuelta siguiente no encoló los dos huérfanos'; end if;
+  -- Repetirla no duplica.
+  n := public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day');
+  if n <> 0 then raise exception 'volvió a encolar lo ya encolado: %', n; end if;
+  delete from public.cola_gc_storage where ruta like 'cursor/%';
+  delete from storage.objects where name like 'cursor/%';
+  -- Nadie de la app lee ni escribe el cursor.
+  if has_table_privilege('authenticated', 'public.cola_gc_barrido', 'select') or has_table_privilege('anon', 'public.cola_gc_barrido', 'select') then
+    raise exception 'la app lee el cursor del barrido';
+  end if;
+end $$;

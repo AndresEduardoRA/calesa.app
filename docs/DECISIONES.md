@@ -3431,3 +3431,20 @@ hasta ahora con los filtros del listado).
 **Alternativas:** «Ir a una fecha» por columna (el orden del índice, sin recorrer; se dejó como plan B si buscar no cabía en su
 presupuesto, y cupo con margen: no se dejan los dos); filtros por monto o vehículo (no los pidió nadie y la búsqueda ya llega);
 trigramas (bajo RLS un `ilike` no usa el índice: no es `leakproof`).
+
+## 2026-10-17 — Cierre 1 (F, d): el barrido de huérfanos de storage-gc sigue un cursor por bucket
+
+**Contexto:** `storage_gc_encolar_huerfanos` hacía un anti-join sobre el bucket entero en cada pasada (hasta 5 por corrida):
+con 301.000 objetos ya encolados tardaba 208 ms aunque no quedara nada por encolar, y crece con el bucket.
+
+**Decisión:** una tabla `cola_gc_barrido` (bucket, último nombre examinado, desde cuándo corre la vuelta) y una ventana de
+**10.000 objetos examinados** por pasada en orden de nombre (el índice único `bucketid_objname` de `storage.objects`): se encolan
+los huérfanos de esa ventana, el cursor avanza y, cuando la ventana no se llena, la próxima pasada empieza otra vuelta. El tope
+pasa a ser lo examinado y no lo encolado. Medido: 82–175 ms por pasada al principio o al final del bucket; una vuelta por
+301.000 son 31 pasadas (con 5 por corrida cada hora, unas 6 horas): los huérfanos son basura y pueden esperar. La fila del
+cursor se toma `for update`: dos corridas que se cruzan no examinan la misma ventana. Lo de menos de 24 h que la ventana pasa
+lo encuentra la vuelta siguiente.
+
+**Alternativas:** un `created_at` como cursor (un objeto viejo que queda huérfano después no se volvería a ver); ventanas más
+chicas (más pasadas para la misma vuelta, sin bajar mucho el costo fijo de cada una); recorrer todo con un hash anti-join una vez
+por corrida (sigue creciendo con el bucket).

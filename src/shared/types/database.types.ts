@@ -413,6 +413,28 @@ export type Database = {
         }
         Relationships: []
       }
+      cola_gc_barrido: {
+        Row: {
+          actualizado_en: string
+          bucket: string
+          ultimo_nombre: string
+          vuelta_desde: string
+        }
+        ComputedFields: never
+        Insert: {
+          actualizado_en?: string
+          bucket: string
+          ultimo_nombre?: string
+          vuelta_desde?: string
+        }
+        Update: {
+          actualizado_en?: string
+          bucket?: string
+          ultimo_nombre?: string
+          vuelta_desde?: string
+        }
+        Relationships: []
+      }
       cola_gc_pases: {
         Row: {
           creado_en: string
