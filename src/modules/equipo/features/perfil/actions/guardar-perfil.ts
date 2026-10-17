@@ -12,14 +12,17 @@ import { esAvatarDe, esquemaPerfil } from '../schemas/perfil'
 export const guardarPerfil = actionClient
   .inputSchema(esquemaPerfil)
   .action(async ({ parsedInput, ctx }) => {
-    const { nombre, avatarRuta, actualizadoEnEsperado } = parsedInput
-    if (avatarRuta && !esAvatarDe(ctx.usuarioId, avatarRuta)) {
-      return fallo('sin_permiso', 'Esa foto no es tuya.')
+    const { nombre, avatarRuta, avatarMiniaturaRuta, actualizadoEnEsperado } = parsedInput
+    for (const ruta of [avatarRuta, avatarMiniaturaRuta]) {
+      if (ruta && !esAvatarDe(ctx.usuarioId, ruta)) {
+        return fallo('sin_permiso', 'Esa foto no es tuya.')
+      }
     }
     const guardado = await repositorioPerfil.actualizar({
       usuarioId: ctx.usuarioId,
       nombre,
       avatarRuta,
+      avatarMiniaturaRuta: avatarRuta ? (avatarMiniaturaRuta ?? null) : null,
       actualizadoEnEsperado,
     })
     if (guardado.ok) {

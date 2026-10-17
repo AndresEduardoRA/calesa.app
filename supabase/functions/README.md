@@ -4,12 +4,13 @@ Trabajo que no debe vivir en una Server Action que el usuario espera. Cada una s
 fase que la necesita (`docs/PLAN.md`); hasta entonces sólo existe su contrato. Deno, `supabase
 functions new <nombre>`, secretos con `supabase secrets set`, nunca en el código.
 
-| Función        | Fase        | La dispara                                                               | Hace                                                                                                                                                               | Secretos                                              |
-| -------------- | ----------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `apibara`      | 2 (parte 5) | El navegador de quien da de alta o refresca un vehículo, con su sesión   | Consulta la API de Copart e IAAI: la ficha por enlace, VIN o lote, una foto y el uso de la cuenta. Ver «`apibara`» más abajo.                                      | la clave de apibara, de Vault (`integracion_secreto`) |
-| `push`         | 7           | Database Webhook en `notificaciones` (INSERT) con header `x-push-secret` | Lee `suscripciones_push` del destinatario con el cliente admin y envía con `web-push`; borra suscripciones 404/410.                                                | `VAPID_PRIVATE_KEY`, `PUSH_WEBHOOK_SECRET`            |
-| `storage-gc`   | 2 (parte 4) | `pg_cron` cada hora → `storage_gc_disparar(url)` → `pg_net`              | Canjea el pase que trae el pedido; si vale, reclama, borra por la API de Storage y confirma. Nunca recuenta ni decide por su cuenta. Ver «`storage-gc`» más abajo. | ninguno propio: la service key que inyecta el runtime |
-| `importar-csv` | 9           | Server Action de `datos` tras subir el archivo al bucket `importaciones` | Parsea, valida por fila contra la plantilla, llama `crear_lead` (misma regla de limbo/duplicados) o inserta vehículos; escribe el informe en `importaciones`.      | ninguno                                               |
+| Función               | Fase         | La dispara                                                               | Hace                                                                                                                                                                                                                   | Secretos                                              |
+| --------------------- | ------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `apibara`             | 2 (parte 5)  | El navegador de quien da de alta o refresca un vehículo, con su sesión   | Consulta la API de Copart e IAAI: la ficha por enlace, VIN o lote, una foto y el uso de la cuenta. Ver «`apibara`» más abajo.                                                                                          | la clave de apibara, de Vault (`integracion_secreto`) |
+| `push`                | 7            | Database Webhook en `notificaciones` (INSERT) con header `x-push-secret` | Lee `suscripciones_push` del destinatario con el cliente admin y envía con `web-push`; borra suscripciones 404/410.                                                                                                    | `VAPID_PRIVATE_KEY`, `PUSH_WEBHOOK_SECRET`            |
+| `storage-gc`          | 2 (parte 4)  | `pg_cron` cada hora → `storage_gc_disparar(url)` → `pg_net`              | Canjea el pase que trae el pedido; si vale, reclama, borra por la API de Storage y confirma. Nunca recuenta ni decide por su cuenta. Ver «`storage-gc`» más abajo.                                                     | ninguno propio: la service key que inyecta el runtime |
+| `avatares-miniaturas` | 3 (cierre 1) | `pg_cron` cada hora → `avatares_miniaturas_disparar(url)` → `pg_net`     | Canjea el pase (los de `storage-gc`); hace la miniatura de 96 px de hasta 20 avatares que no la tienen y la guarda si el avatar no cambió; una imagen que no lee queda marcada. Ver «`avatares-miniaturas`» más abajo. | ninguno propio: la service key que inyecta el runtime |
+| `importar-csv`        | 9            | Server Action de `datos` tras subir el archivo al bucket `importaciones` | Parsea, valida por fila contra la plantilla, llama `crear_lead` (misma regla de limbo/duplicados) o inserta vehículos; escribe el informe en `importaciones`.                                                          | ninguno                                               |
 
 ## `apibara`
 
@@ -117,3 +118,23 @@ que purga, la llama con un pase y comprueba que los objetos salieron de Storage.
 
 Reglas: una función = un `index.ts` + `deno.json`; CORS sólo si la llama el navegador (`apibara` sí
 lo usa: la llama el navegador; `storage-gc` y `push` no); errores como valores `{ ok, error }` en JSON; logs sin datos personales.
+
+## `avatares-miniaturas`
+
+Rellena la miniatura de 96 px (`perfiles.avatar_miniatura_ruta`) de los avatares que ya existían: lo nuevo nace con la suya
+(la saca el navegador al subir). Cada hora `pg_cron` llama `avatares_miniaturas_disparar(url)`, que emite un pase de un uso
+en `cola_gc_pases` (el mismo mecanismo de `storage-gc`) y lo manda por `pg_net`; la función lo canjea con
+`storage_gc_abrir` y, si vale:
+
+- pide a la base hasta 20 pendientes (`avatares_miniaturas_pendientes`: con avatar, sin miniatura y sin un fallo anotado);
+- baja cada avatar con la service key, lo decodifica por sus primeros bytes (WebP, JPEG o PNG, con `@jsquash` en wasm: las
+  versiones fijadas en `deno.json`), lo achica con el lado mayor en 96 sin agrandar y lo codifica en WebP;
+- lo sube a `avatares/<persona>/<sha-256>.webp` y lo guarda con `avatar_miniatura_guardar`, que no escribe nada si la
+  persona cambió el avatar mientras tanto;
+- si no puede (un objeto que no está, uno que no es una imagen, uno corrupto), `avatar_miniatura_fallo` lo marca y no se
+  reintenta cada hora: cambiar el avatar borra la marca.
+
+Una miniatura que se reemplaza o se quita la encola un trigger de `perfiles` y la borra `storage-gc` recontando. `verify_jwt =
+false` (la llama la base). En la nube: `supabase functions deploy avatares-miniaturas` y `select
+public.avatares_miniaturas_programar('https://<ref>.supabase.co/functions/v1/avatares-miniaturas');`. La cubre
+`e2e/perfil-avatar.spec.ts` (con `npx supabase functions serve`).

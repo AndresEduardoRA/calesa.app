@@ -116,6 +116,11 @@ policy = "oneshot"
 [functions.storage-gc]
 verify_jwt = false
 
+# Igual que storage-gc: la llama la base (pg_net) con un pase de un solo uso; hace las miniaturas de los avatares que no la
+# tienen (cierre 1).
+[functions.avatares-miniaturas]
+verify_jwt = false
+
 # La llama el navegador con la sesión de quien da de alta o refresca: el gateway verifica el JWT y
 # la propia función le pregunta a la base qué puede hacer esa persona en ese origen antes de leer
 # la clave de apibara de Vault (supabase/functions/README.md).

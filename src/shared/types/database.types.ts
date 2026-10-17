@@ -3829,6 +3829,8 @@ export type Database = {
         Row: {
           activo: boolean
           actualizado_en: string
+          avatar_miniatura_fallo_en: string | null
+          avatar_miniatura_ruta: string | null
           avatar_ruta: string | null
           baja_en: string | null
           baja_por: string | null
@@ -3857,6 +3859,8 @@ export type Database = {
         Insert: {
           activo?: boolean
           actualizado_en?: string
+          avatar_miniatura_fallo_en?: string | null
+          avatar_miniatura_ruta?: string | null
           avatar_ruta?: string | null
           baja_en?: string | null
           baja_por?: string | null
@@ -3884,6 +3888,8 @@ export type Database = {
         Update: {
           activo?: boolean
           actualizado_en?: string
+          avatar_miniatura_fallo_en?: string | null
+          avatar_miniatura_ruta?: string | null
           avatar_ruta?: string | null
           baja_en?: string | null
           baja_por?: string | null
@@ -7346,6 +7352,23 @@ export type Database = {
       assert_activo: { Args: Record<PropertyKey, never>; Returns: undefined }
       assert_permiso: { Args: { p_clave: string; p_origen?: string }; Returns: undefined }
       atributos_lead: { Args: { p_lead: string }; Returns: Json }
+      avatar_miniatura_fallo: {
+        Args: { p_avatar_ruta: string; p_usuario: string }
+        Returns: boolean
+      }
+      avatar_miniatura_guardar: {
+        Args: { p_avatar_ruta: string; p_miniatura: string; p_usuario: string }
+        Returns: boolean
+      }
+      avatares_miniaturas_disparar: { Args: { p_url: string }; Returns: number }
+      avatares_miniaturas_pendientes: {
+        Args: { p_max: number }
+        Returns: {
+          avatar_ruta: string
+          usuario_id: string
+        }[]
+      }
+      avatares_miniaturas_programar: { Args: { p_url: string }; Returns: undefined }
       cambiar_fase: {
         Args: {
           p_fase_destino: string

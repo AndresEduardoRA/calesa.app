@@ -18,14 +18,31 @@ type Entrada = {
   formulario: RefObject<HTMLFormElement | null>
 }
 
+// La fila no se guardó: la foto recién subida (y su miniatura) no quedó en ningún perfil.
+function descartarSubida(nueva: { ruta: string; miniatura: string } | null | undefined): void {
+  if (nueva) {
+    void descartarAvatar(nueva.ruta)
+    void descartarAvatar(nueva.miniatura)
+  }
+}
+
+// La foto que había, si se cambió o se quitó. Su miniatura no: la encola un trigger y la borra storage-gc (cierre 1).
+function descartarAnterior(anterior: string | null, nueva: string | null | undefined): void {
+  if (nueva !== undefined && anterior && anterior !== nueva) {
+    void descartarAvatar(anterior)
+  }
+}
+
 export function useGuardarPerfil({ usuarioId, avatarRuta, actualizadoEn, formulario }: Entrada) {
   const { executeAsync, result, isPending } = useAction(guardarPerfil)
   const [subiendo, setSubiendo] = useState(false)
   // Después de guardar, la próxima edición compara contra lo que acaba de quedar.
   const [guardado, setGuardado] = useState({ avatarRuta, actualizadoEn })
 
-  // Sube la foto (si hay una nueva) y devuelve la ruta a guardar: undefined = no tocarla.
-  async function resolverFoto(foto: CambioDeFoto): Promise<string | null | undefined | 'fallo'> {
+  // Sube la foto (si hay una nueva, con su miniatura) y devuelve qué guardar: undefined = no tocarla; null = quitarla.
+  async function resolverFoto(
+    foto: CambioDeFoto,
+  ): Promise<{ ruta: string; miniatura: string } | null | undefined | 'fallo'> {
     if (foto.tipo === 'igual') {
       return undefined
     }
@@ -37,27 +54,26 @@ export function useGuardarPerfil({ usuarioId, avatarRuta, actualizadoEn, formula
       avisarError(subida.error)
       return 'fallo'
     }
-    return subida.data.ruta
+    return subida.data
   }
 
   // Devuelve true si quedó guardado.
   async function guardar(nombre: string, foto: CambioDeFoto): Promise<boolean> {
     setSubiendo(true)
-    const nuevaRuta = await resolverFoto(foto)
+    const nueva = await resolverFoto(foto)
     setSubiendo(false)
-    if (nuevaRuta === 'fallo') {
+    if (nueva === 'fallo') {
       return false
     }
+    const nuevaRuta = nueva === undefined ? undefined : (nueva?.ruta ?? null)
     const resultado = await executeAsync({
       nombre,
       avatarRuta: nuevaRuta,
+      ...(nueva ? { avatarMiniaturaRuta: nueva.miniatura } : {}),
       actualizadoEnEsperado: guardado.actualizadoEn,
     })
     if (!resultado.data?.ok) {
-      // La fila no se guardó: la foto recién subida no quedó en ningún perfil.
-      if (nuevaRuta) {
-        void descartarAvatar(nuevaRuta)
-      }
+      descartarSubida(nueva)
       const error = errorDeAccion(resultado)
       if (error) {
         avisarError(error)
@@ -65,9 +81,7 @@ export function useGuardarPerfil({ usuarioId, avatarRuta, actualizadoEn, formula
       enfocarPrimerError(formulario.current)
       return false
     }
-    if (nuevaRuta !== undefined && guardado.avatarRuta && guardado.avatarRuta !== nuevaRuta) {
-      void descartarAvatar(guardado.avatarRuta)
-    }
+    descartarAnterior(guardado.avatarRuta, nuevaRuta)
     setGuardado({
       avatarRuta: nuevaRuta === undefined ? guardado.avatarRuta : nuevaRuta,
       actualizadoEn: resultado.data.data.actualizadoEn,

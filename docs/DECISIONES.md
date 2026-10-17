@@ -3448,3 +3448,22 @@ lo encuentra la vuelta siguiente.
 **Alternativas:** un `created_at` como cursor (un objeto viejo que queda huérfano después no se volvería a ver); ventanas más
 chicas (más pasadas para la misma vuelta, sin bajar mucho el costo fijo de cada una); recorrer todo con un hash anti-join una vez
 por corrida (sigue creciendo con el bucket).
+
+## 2026-10-17 — Cierre 1 (F, c): el avatar chico, con el relleno en una edge function
+
+**Contexto:** la lista del equipo dibujaba a 32 px el avatar de 512.
+
+**Decisión:** `perfiles.avatar_miniatura_ruta` (96 px, WebP) y `avatar_miniatura_fallo_en`. Al subir, el navegador saca los dos
+tamaños de una sola decodificación (`comprimirEnTamanos`) y el perfil guarda las dos rutas; la lista dibuja la miniatura (o el
+avatar mientras falte). **La miniatura es siempre del avatar vigente:** un trigger la deja nula si cambia el avatar sin una
+nueva, y la que se reemplaza o se quita va a `cola_gc_storage` (la borra `storage-gc` recontando: `storage_refcount` la
+cuenta); una que vuelve a usarse se rescata. **El relleno de lo que existía** es la edge function `avatares-miniaturas`, con el
+mismo mecanismo que `storage-gc` (cron cada hora, pase de un uso): de a 20, decodifica con `@jsquash` (wasm; WebP, JPEG y PNG,
+versiones verificadas hoy y fijadas en su `deno.json`), guarda sólo si el avatar sigue siendo el mismo y marca la imagen que no
+puede leer para no reintentarla cada hora; también la de alguien dado de baja (la lista lo muestra). `<Avatar>` cae a las
+iniciales si la imagen no carga.
+
+**Alternativas:** las transformaciones de imágenes de Storage (dependen del plan y en local del servicio `imgproxy`, que está
+apagado: el relleno quedaría probado sólo en la nube); `sharp` en un route handler de Next (otra URL que el cron tiene que
+conocer, y el cliente admin fuera de su único lugar); hacerla en el navegador de cada persona al entrar (quien se dio de baja
+nunca entra).

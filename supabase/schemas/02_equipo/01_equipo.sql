@@ -7,6 +7,8 @@ create table public.perfiles (
   handle            extensions.citext unique,
   email             extensions.citext,
   avatar_ruta       text,
+  avatar_miniatura_ruta text,                         -- 96 px, del avatar vigente (cierre 1); nula hasta que la hace el relleno
+  avatar_miniatura_fallo_en timestamptz,               -- el relleno no pudo leer el avatar: no se reintenta cada hora
   telefono          text,
   cargo             text,
   bio               text,

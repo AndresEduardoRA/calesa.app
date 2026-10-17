@@ -8,7 +8,7 @@ import { entorno } from './base'
 import { pedirAFuncion } from './funciones'
 
 // Las funciones que los specs llaman de verdad (el resto las intercepta el navegador).
-const FUNCIONES = ['apibara', 'storage-gc'] as const
+const FUNCIONES = ['apibara', 'storage-gc', 'avatares-miniaturas'] as const
 
 // `OPTIONS` responde sin ejecutar nada (ni llama a apibara). Un corte del runtime local se vuelve a
 // pedir (`pedirAFuncion`, la misma regla que los specs); un 404 o un error de verdad es una función

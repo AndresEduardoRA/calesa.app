@@ -35,7 +35,12 @@ export function FilaPersona({ persona, esPropia, acciones }: Props) {
     <TableRow>
       <TableCell className="whitespace-normal">
         <div className="flex items-center gap-3 py-1">
-          <Avatar nombre={nombre} url={urlPublicaONull('avatares', persona.avatarRuta)} lado={32} />
+          {/* La miniatura de 96 px (cierre 1); mientras el relleno no la hizo, el avatar entero. */}
+          <Avatar
+            nombre={nombre}
+            url={urlPublicaONull('avatares', persona.avatarMiniaturaRuta ?? persona.avatarRuta)}
+            lado={32}
+          />
           <div className="grid min-w-0 gap-0.5">
             <span className="truncate text-(length:--text-sm) font-medium text-(--color-ink)">
               {nombre}

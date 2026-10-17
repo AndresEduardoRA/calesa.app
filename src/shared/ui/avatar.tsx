@@ -1,4 +1,7 @@
+'use client'
+
 import Image from 'next/image'
+import { useState } from 'react'
 import { cn } from 'cn'
 
 // Hasta dos iniciales: «Ana María Quispe» → «AQ»; sin nombre, un signo neutro.
@@ -21,12 +24,17 @@ type Props = {
   className?: string
 }
 
-// La foto de una persona o, sin foto, sus iniciales. El nombre va en el texto alternativo.
+// La foto de una persona o, sin foto, sus iniciales. El nombre va en el texto alternativo. Una foto que no carga (un
+// archivo roto, uno que ya no está) también cae a las iniciales, en vez de dejar el ícono roto del navegador (cierre 1).
 export function Avatar({ nombre, url, lado = 32, className }: Props) {
   const estilo = { width: lado, height: lado }
-  if (url) {
+  const [rota, setRota] = useState<string | null>(null)
+  if (url && rota !== url) {
     return (
       <Image
+        onError={() => {
+          setRota(url)
+        }}
         src={url}
         alt={nombre}
         width={lado}

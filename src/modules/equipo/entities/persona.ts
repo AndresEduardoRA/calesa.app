@@ -25,8 +25,10 @@ export type PersonaDelEquipo = {
   id: string
   nombre: string
   email: string
-  // Ruta dentro del bucket público `avatares`.
+  // Ruta dentro del bucket público `avatares`, y su miniatura de 96 px (cierre 1: la que dibuja la lista; nula hasta que
+  // la hace el relleno).
   avatarRuta: string | null
+  avatarMiniaturaRuta: string | null
   estado: EstadoPersona
   bloqueoMotivo: string | null
   // Dada de baja y con sus leads todavía pasándose por lotes (`equipo_bajas.terminada_en` nulo).
@@ -61,6 +63,7 @@ const esquemaPersonas = z.array(
     nombre: z.string(),
     email: z.string().nullable(),
     avatar_ruta: z.string().nullable(),
+    avatar_miniatura_ruta: z.string().nullable().optional(),
     activo: z.boolean(),
     bloqueado: z.boolean(),
     bloqueo_motivo: z.string().nullable(),
@@ -92,6 +95,7 @@ export function personasDesde(filas: unknown): PersonaDelEquipo[] {
     nombre: fila.nombre,
     email: fila.email ?? '',
     avatarRuta: fila.avatar_ruta,
+    avatarMiniaturaRuta: fila.avatar_miniatura_ruta ?? null,
     estado: estadoDePersona({
       activo: fila.activo,
       bloqueado: fila.bloqueado,

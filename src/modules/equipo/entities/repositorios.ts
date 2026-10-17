@@ -38,6 +38,8 @@ export type RepositorioPerfil = {
     usuarioId: string
     nombre: string
     avatarRuta?: string | null
+    // La miniatura de esa foto; va sólo cuando cambia la foto (si no, el trigger la deja nula y la rellena el job).
+    avatarMiniaturaRuta?: string | null
     actualizadoEnEsperado: string
   }) => Promise<Resultado<{ actualizadoEn: string }>>
   guardarPreferencia: (usuarioId: string, preferencia: Preferencia) => Promise<Resultado<null>>

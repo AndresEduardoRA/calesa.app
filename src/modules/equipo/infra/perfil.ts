@@ -4,11 +4,15 @@ import { createClient } from '@/shared/lib/supabase/server'
 import type { RepositorioPerfil } from '../entities/repositorios'
 
 const actualizar: RepositorioPerfil['actualizar'] = async (pedido) => {
-  const { usuarioId, nombre, avatarRuta, actualizadoEnEsperado } = pedido
+  const { usuarioId, nombre, avatarRuta, avatarMiniaturaRuta, actualizadoEnEsperado } = pedido
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('perfiles')
-    .update(avatarRuta === undefined ? { nombre } : { nombre, avatar_ruta: avatarRuta })
+    .update(
+      avatarRuta === undefined
+        ? { nombre }
+        : { nombre, avatar_ruta: avatarRuta, avatar_miniatura_ruta: avatarMiniaturaRuta ?? null },
+    )
     .eq('id', usuarioId)
     // Si alguien (otra pestaña, quien administra el equipo) lo cambió después de abrir el
     // formulario, ninguna fila coincide y no se pisa nada.

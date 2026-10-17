@@ -12,6 +12,11 @@ export const esquemaPerfil = z.object({
     .max(120, { error: 'El nombre no puede pasar de 120 caracteres.' }),
   // Sin la clave = no tocar la foto; null = quitarla; una ruta = la que se acaba de subir.
   avatarRuta: z.string().regex(RUTA_AVATAR, { error: 'La foto no se subió bien.' }).nullish(),
+  // La miniatura de 96 px que sale de la misma foto (cierre 1): va junto con una ruta nueva.
+  avatarMiniaturaRuta: z
+    .string()
+    .regex(RUTA_AVATAR, { error: 'La foto no se subió bien.' })
+    .nullish(),
   // El `actualizado_en` con el que se abrió el formulario: detecta un cambio ajeno.
   actualizadoEnEsperado: z.string().min(1),
 })

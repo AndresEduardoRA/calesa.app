@@ -5951,3 +5951,50 @@ do $$ declare n int; begin
     raise exception 'la app lee el cursor del barrido';
   end if;
 end $$;
+
+-- @test avatar chico (cierre 1): la miniatura es del avatar vigente, la vieja va a la cola y el relleno no pisa un cambio
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+do $$
+declare yo constant uuid := '00000000-0000-0000-0000-000000000001'; a text; m text; n int;
+begin
+  a := yo || '/' || repeat('a', 64) || '.webp';
+  m := yo || '/' || repeat('b', 64) || '.webp';
+  delete from public.cola_gc_storage where bucket = 'avatares';
+  update public.perfiles set avatar_ruta = a, avatar_miniatura_ruta = m where id = yo;
+  if public.storage_refcount('avatares', m) <> 1 then raise exception 'storage_refcount no cuenta la miniatura'; end if;
+  -- Otro avatar sin miniatura nueva: la del anterior se va (nula) y a la cola.
+  update public.perfiles set avatar_ruta = yo || '/' || repeat('c', 64) || '.webp' where id = yo;
+  if (select avatar_miniatura_ruta from public.perfiles where id = yo) is not null then raise exception 'la miniatura del avatar anterior quedó'; end if;
+  if not exists (select 1 from public.cola_gc_storage where bucket = 'avatares' and ruta = m) then raise exception 'la miniatura vieja no se encoló'; end if;
+  -- Volver a usarla la rescata de la cola.
+  update public.perfiles set avatar_miniatura_ruta = m where id = yo;
+  if exists (select 1 from public.cola_gc_storage where bucket = 'avatares' and ruta = m) then raise exception 'la miniatura en uso siguió en la cola'; end if;
+  update public.perfiles set avatar_miniatura_ruta = null where id = yo;
+  -- La carpeta es la persona.
+  begin
+    update public.perfiles set avatar_miniatura_ruta = '00000000-0000-0000-0000-000000000002/' || repeat('d', 64) || '.webp' where id = yo;
+    raise exception 'aceptó una miniatura de otra carpeta';
+  exception when sqlstate '22023' then null; end;
+  -- El relleno: está pendiente; con el avatar viejo no guarda, con el vigente sí; un fallo lo saca de los pendientes.
+  if not exists (select 1 from public.avatares_miniaturas_pendientes(100) p where p.usuario_id = yo) then raise exception 'no aparece entre los pendientes'; end if;
+  if public.avatar_miniatura_guardar(yo, a, m) then raise exception 'guardó la miniatura de un avatar que ya cambió'; end if;
+  if not public.avatar_miniatura_guardar(yo, yo || '/' || repeat('c', 64) || '.webp', m) then raise exception 'no guardó la miniatura del avatar vigente'; end if;
+  if exists (select 1 from public.avatares_miniaturas_pendientes(100) p where p.usuario_id = yo) then raise exception 'con miniatura sigue pendiente'; end if;
+  update public.perfiles set avatar_ruta = yo || '/' || repeat('e', 64) || '.webp' where id = yo;
+  if not public.avatar_miniatura_fallo(yo, yo || '/' || repeat('e', 64) || '.webp') then raise exception 'no anotó el fallo'; end if;
+  if exists (select 1 from public.avatares_miniaturas_pendientes(100) p where p.usuario_id = yo) then raise exception 'un fallo anotado se reintenta cada hora'; end if;
+  -- Cambiar el avatar borra el fallo: la imagen nueva se intenta.
+  update public.perfiles set avatar_ruta = a where id = yo;
+  if not exists (select 1 from public.avatares_miniaturas_pendientes(100) p where p.usuario_id = yo) then raise exception 'un avatar nuevo no volvió a pendientes'; end if;
+  update public.perfiles set avatar_ruta = null where id = yo;
+  delete from public.cola_gc_storage where bucket = 'avatares';
+  -- Nadie de la app llama al relleno ni lo dispara.
+  if has_function_privilege('authenticated', 'public.avatares_miniaturas_pendientes(int)', 'execute')
+     or has_function_privilege('authenticated', 'public.avatar_miniatura_guardar(uuid, text, text)', 'execute')
+     or has_function_privilege('authenticated', 'public.avatares_miniaturas_disparar(text)', 'execute') then
+    raise exception 'la app puede llamar al relleno de miniaturas';
+  end if;
+  begin perform public.avatares_miniaturas_disparar('http://otro.sitio/llevarse-el-pase'); raise exception 'mandó un pase a una dirección que no es la función';
+  exception when sqlstate '22023' then null; end;
+end $$;
