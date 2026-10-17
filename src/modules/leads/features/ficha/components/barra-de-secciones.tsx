@@ -2,7 +2,10 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
+import { useEffect, useRef } from 'react'
 import { RUTAS } from '@/shared/lib/rutas'
+import { PistaDeDesborde } from '@/shared/ui/pista-de-desborde'
+import { useDesborde } from '@/shared/ui/use-desborde'
 import {
   CLAVE_DE_SECCION,
   hayBarraDeSecciones,
@@ -16,12 +19,20 @@ type Props = { leadId: string; actual: SeccionDeLead; ve: LoQueVe }
 // Las secciones de la ficha (`?seccion=`), sin números: el de «Seguimientos» insinuaría los
 // privados de otros. Cambiar de sección va al servidor (cada una lee lo suyo).
 export function BarraDeSecciones({ leadId, actual, ve }: Props) {
+  const lista = useRef<HTMLUListElement>(null)
+  const desborde = useDesborde(lista)
+  // En el celular no entran todas: la activa se ve al llegar (si no, «Portal» quedaría afuera aunque esté abierta).
+  useEffect(() => {
+    lista.current
+      ?.querySelector('[aria-current=page]')
+      ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+  }, [actual])
   if (!hayBarraDeSecciones(ve)) {
     return null
   }
   return (
-    <nav aria-label="Secciones del lead" className="border-b border-(--color-line)">
-      <ul className="-mb-px flex gap-1 overflow-x-auto">
+    <nav aria-label="Secciones del lead" className="relative border-b border-(--color-line)">
+      <ul ref={lista} className="-mb-px flex gap-1 overflow-x-auto">
         {seccionesDisponibles(ve).map((seccion) => {
           const activa = seccion.clave === actual
           const href = (
@@ -46,6 +57,7 @@ export function BarraDeSecciones({ leadId, actual, ve }: Props) {
           )
         })}
       </ul>
+      <PistaDeDesborde {...desborde} />
     </nav>
   )
 }
