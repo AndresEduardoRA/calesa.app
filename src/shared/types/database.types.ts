@@ -6471,6 +6471,7 @@ export type Database = {
         Row: {
           actualizado_en: string | null
           atributos: Json | null
+          atributos_publicos: Json | null
           creado_en: string | null
           creado_por: string | null
           dueno_id: string | null
@@ -6840,6 +6841,15 @@ export type Database = {
       _lead_telefonos_estado: { Args: { p_lead: string; p_resultado: string }; Returns: Json }
       _lead_verificar: { Args: { p_excluir?: string; p_tel: string }; Returns: Json }
       _lead_visible: { Args: { p_lead: string }; Returns: string }
+      _lead_visible_para: {
+        Args: {
+          p_alcance: Database['public']['Enums']['alcance_permiso']
+          p_cartera: string[]
+          p_eliminado_en: string
+          p_yo: string
+        }
+        Returns: boolean
+      }
       _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
       _leads_cartera_recalcular: { Args: { p_leads: string[] }; Returns: undefined }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }

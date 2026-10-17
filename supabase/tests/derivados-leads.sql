@@ -320,3 +320,112 @@ begin
   perform pg_temp.privacidad('ciudad', false);
   perform pg_temp.derivados_comprobar('al final');
 end $$;
+
+-- @test derivados (9h): lo que se lee de la fila: la cartera y los atributos públicos sí; atributos, teléfono y números, no
+-- `leads_vista` (security_invoker) necesita leer `cartera` y `atributos_publicos` de `leads`; no son una ruta a nada que la
+-- persona no vea ya: un privado no está en la copia y el resto sigue sin grant.
+do $$
+declare v_col text; v_lead uuid := (select id from public.leads where nombre = 'RPC uno'); r jsonb;
+begin
+  foreach v_col in array array['cartera', 'atributos_publicos'] loop
+    if not has_column_privilege('authenticated', 'public.leads', v_col, 'select') then raise exception 'authenticated no lee leads.%', v_col; end if;
+  end loop;
+  foreach v_col in array array['atributos', 'telefono_principal', 'numero', 'numero_propio'] loop
+    if has_column_privilege('authenticated', 'public.leads', v_col, 'select') or has_column_privilege('anon', 'public.leads', v_col, 'select') then
+      raise exception 'leads.% se puede leer directo', v_col; end if;
+  end loop;
+  -- «Todos» sin la cartera: la copia no trae el privado, y leer `atributos` directo se rechaza.
+  r := pg_temp.como_d('00000000-0000-0000-0000-0000000009d4', format('select atributos_publicos from public.leads where id = %L', v_lead));
+  if r ? 'direccion' or not r ? 'ciudad' then raise exception 'la copia de lo público para «todos»: %', r; end if;
+  begin
+    perform pg_temp.como_d('00000000-0000-0000-0000-0000000009d4', format('select to_jsonb(atributos) from public.leads where id = %L', v_lead));
+    raise exception 'leer leads.atributos directo no se rechazó';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+
+-- @test derivados (9h): el cursor con la visibilidad cambiando: no repite filas, no trae una que ya no se ve y trae la que se compartió
+-- La página 2 por cursor, después de que a la persona le quitaron un lead de esa página y le compartieron otro que cae ahí.
+do $$
+declare
+  a constant uuid := '00000000-0000-0000-0000-0000000009d1'; b constant uuid := '00000000-0000-0000-0000-0000000009d2';
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_orden uuid[]; v_l uuid; i int; v_p1 jsonb; v_p2 jsonb; v_ultimo uuid; v_en timestamptz;
+begin
+  for i in 1..7 loop
+    perform pg_temp.como_d(a, format('select public.crear_lead(gen_random_uuid(), %L::jsonb, null, null)', jsonb_build_object(
+      'nombre', 'Cursor ' || i, 'telefono_principal', (78920000 + i)::text, 'origen_lead_id', v_web)));
+  end loop;
+  -- En el orden del listado (todas nacen en la misma transacción: decide el id).
+  select array_agg(id order by creado_en desc, id desc) into v_orden from public.leads where nombre like 'Cursor %';
+  for i in 1..7 loop
+    if i <> 4 then perform pg_temp.como_d(a, format('select public.lead_compartir(%L, %L)', v_orden[i], b)); end if;
+  end loop;
+  -- b, con «propios», ve 1, 2, 3, 5, 6 y 7. La página 1 de a 2 (entre los «Cursor»).
+  v_p1 := pg_temp.como_d(b, $q$select jsonb_agg(id) from (select id from public.leads_vista where nombre like 'Cursor %' order by creado_en desc, id desc limit 2) t$q$);
+  if v_p1 <> to_jsonb(v_orden[1:2]) then raise exception 'la página 1: %', v_p1; end if;
+  v_ultimo := v_orden[2];
+  v_en := (select creado_en from public.leads where id = v_ultimo);
+  -- Mientras tiene la página abierta: le quitan el 3 y le comparten el 4.
+  perform pg_temp.como_d(a, format('select public.lead_revocar_acceso(%L, %L)', v_orden[3], b));
+  perform pg_temp.como_d(a, format('select public.lead_compartir(%L, %L)', v_orden[4], b));
+  v_p2 := pg_temp.como_d(b, format($q$select jsonb_agg(id) from (select id from public.leads_vista where nombre like 'Cursor %%'
+    and creado_en <= %L and (creado_en < %L or id < %L) order by creado_en desc, id desc limit 2) t$q$, v_en, v_en, v_ultimo));
+  if v_p2 <> to_jsonb(array[v_orden[4], v_orden[5]]) then
+    raise exception 'la página 2: % (esperaba el 4 y el 5; el 3 ya no se ve)', v_p2; end if;
+end $$;
+
+-- @test derivados (9h): un lead sin dueño, uno con un privado, uno en la papelera y uno tachado, en el listado, la búsqueda, el CSV, la ficha y el kanban
+do $$
+declare
+  b constant uuid := '00000000-0000-0000-0000-0000000009d2'; todos constant uuid := '00000000-0000-0000-0000-0000000009d4';
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_sin uuid := (select id from public.leads where nombre = 'RPC uno');  -- sin dueño desde la baja; b es su compartida y tiene un privado
+  v_pap uuid := gen_random_uuid(); v_emb uuid; v_total_antes int; v_total int; r jsonb;
+begin
+  -- El de la papelera, con una oportunidad de b.
+  perform pg_temp.como_d(b, format('select public.crear_lead(%L, %L::jsonb, null, null)', v_pap, jsonb_build_object(
+    'nombre', 'RPC papelera', 'telefono_principal', '78930001', 'origen_lead_id', v_web)));
+  perform pg_temp.como_d(b, format($q$select public.oportunidad_crear(gen_random_uuid(), %L, '{"titulo": "RPC oportunidad"}')$q$, v_pap));
+  v_emb := (select id from public.embudos where usuario_id = b and es_default);
+  v_total_antes := (select sum((c ->> 'total')::int) from jsonb_array_elements(pg_temp.como_d(b, format('select public.embudo_tablero(%L, 50, 500)', v_emb)) -> 'columnas') c);
+  perform pg_temp.como_d(b, format('select public.leads_papelera_enviar(%L, array[%L]::uuid[])', gen_random_uuid(), v_pap));
+  -- Tachado por b.
+  perform pg_temp.como_d(b, format('select public.lead_tachado_poner(%L, true)', v_sin));
+
+  -- El listado (como lo pide la app) y la búsqueda.
+  r := pg_temp.como_d(todos, format('select to_jsonb(v) from public.leads_vista v where v.id = %L', v_sin));
+  if r is null or r ->> 'dueno_id' is not null or (r ->> 'en_cartera')::boolean or (r ->> 'esta_tachado')::boolean
+     or r -> 'atributos' ? 'direccion' or r -> 'atributos_publicos' ? 'direccion' or r ->> 'telefono_principal' ~ '^[0-9]+$' then
+    raise exception 'el sin dueño para «todos»: %', r; end if;
+  r := pg_temp.como_d(b, format('select to_jsonb(v) from public.leads_vista v where v.id = %L', v_sin));
+  if r is null or not (r ->> 'en_cartera')::boolean or not (r ->> 'esta_tachado')::boolean or r -> 'atributos' ->> 'direccion' <> 'Privada 1' then
+    raise exception 'el sin dueño para su compartida: %', r; end if;
+  if pg_temp.como_d(todos, $q$select jsonb_agg(id) from public.leads_vista where nombre ilike '%RPC uno%'$q$) <> to_jsonb(array[v_sin]) then
+    raise exception 'la búsqueda de «todos» no encuentra al sin dueño'; end if;
+  -- Filtrar por el privado: «todos» no lo encuentra; la cartera sí. Por lo público (la copia), los dos.
+  if pg_temp.como_d(todos, format($q$select jsonb_agg(id) from public.leads_vista where atributos @> '{"direccion": "Privada 1"}' and id = %L$q$, v_sin)) is not null then
+    raise exception 'un privado ajeno se encontró filtrando'; end if;
+  if pg_temp.como_d(todos, format($q$select jsonb_agg(id) from public.leads_vista where atributos_publicos @> '{"direccion": "Privada 1"}' and id = %L$q$, v_sin)) is not null then
+    raise exception 'un privado ajeno se encontró filtrando la copia de lo público'; end if;
+  if pg_temp.como_d(b, format($q$select jsonb_agg(id) from public.leads_vista where atributos @> '{"direccion": "Privada 1"}' and id = %L$q$, v_sin)) is null then
+    raise exception 'la cartera no encuentra su privado'; end if;
+  if pg_temp.como_d(todos, format($q$select jsonb_agg(id) from public.leads_vista where atributos_publicos @> '{"ciudad": "Sucre"}' and id = %L$q$, v_sin)) is null then
+    raise exception '«todos» no encuentra un público por la copia'; end if;
+  -- El de la papelera no está para nadie: listado, búsqueda, CSV (`en_cartera`) ni ficha; y su oportunidad deja el kanban.
+  foreach r in array array[to_jsonb(todos::text), to_jsonb(b::text)] loop
+    if pg_temp.como_d((r #>> '{}')::uuid, format('select jsonb_agg(id) from public.leads_vista where id = %L or nombre ilike %L', v_pap, '%RPC papelera%')) is not null then
+      raise exception 'el de la papelera se ve en el listado o la búsqueda de %', r; end if;
+    if pg_temp.como_d((r #>> '{}')::uuid, format('select public.lead_ficha(%L)', v_pap)) is not null then
+      raise exception 'la ficha del de la papelera se lee para %', r; end if;
+  end loop;
+  if pg_temp.como_d(b, format('select jsonb_agg(id) from public.leads_vista where en_cartera and id = %L', v_pap)) is not null then
+    raise exception 'el CSV de b llevaría el de la papelera'; end if;
+  v_total := (select sum((c ->> 'total')::int) from jsonb_array_elements(pg_temp.como_d(b, format('select public.embudo_tablero(%L, 50, 500)', v_emb)) -> 'columnas') c);
+  if v_total <> v_total_antes - 1 then raise exception 'el kanban: % antes, % después', v_total_antes, v_total; end if;
+  -- La ficha del sin dueño: «todos» la lee sin el privado; la cartera, con él.
+  r := pg_temp.como_d(todos, format('select public.lead_ficha(%L)', v_sin));
+  if r is null or r -> 'atributos' ? 'direccion' then raise exception 'la ficha para «todos»: %', r; end if;
+  r := pg_temp.como_d(b, format('select public.lead_ficha(%L)', v_sin));
+  if r -> 'atributos' ->> 'direccion' <> 'Privada 1' then raise exception 'la ficha para la cartera: %', r; end if;
+end $$;
