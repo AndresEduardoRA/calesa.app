@@ -183,8 +183,12 @@ test('eliminar una en uso pide confirmar diciendo a cuántos toca; sin leads se 
   // Sin leads: se elimina enseguida y «Deshacer» la trae con el mismo id.
   const antes = (await etiquetasDe(t.personas.berta)).find((e) => e.nombre === suelta)
   await dialogo.getByRole('button', { name: `Eliminar la etiqueta ${suelta}` }).click()
-  await expect(aLaVista(page.getByText('Etiqueta eliminada.'))).toBeVisible()
-  await aLaVista(page.getByRole('button', { name: 'Deshacer', exact: true })).click()
+  // El aviso de la anterior («Etiqueta eliminada.», sin «Deshacer») puede seguir a la vista unos segundos: es el de «Deshacer» el que se espera.
+  const aviso = page.locator('[data-sonner-toast]').filter({
+    has: page.getByRole('button', { name: 'Deshacer', exact: true }),
+  })
+  await expect(aviso.getByText('Etiqueta eliminada.')).toBeVisible()
+  await aLaVista(aviso.getByRole('button', { name: 'Deshacer', exact: true })).click()
   await expect
     .poll(async () => (await etiquetasDe(t.personas.berta)).find((e) => e.nombre === suelta)?.id)
     .toBe(antes?.id)
