@@ -13,7 +13,7 @@ type Props = {
   alActivar: (activo: boolean) => void
   alMover: (direccion: Direccion) => void
   alEditar: () => void
-  alEliminar: () => Promise<boolean>
+  alPedirEliminar: () => void
 }
 
 // Un origen del lead: su orden, su nombre, «Activo» (guarda solo) y editar o eliminar. Uno apagado se
@@ -26,7 +26,7 @@ export function FilaDeOrigen({
   alActivar,
   alMover,
   alEditar,
-  alEliminar,
+  alPedirEliminar,
 }: Props) {
   const colorDelNombre = origen.activo ? 'text-(--color-ink)' : 'text-(--color-ink-soft)'
   return (
@@ -59,7 +59,7 @@ export function FilaDeOrigen({
         />
         Activo
       </label>
-      <AccionesDeOrigen origen={origen} alEditar={alEditar} alEliminar={alEliminar} />
+      <AccionesDeOrigen origen={origen} alEditar={alEditar} alPedirEliminar={alPedirEliminar} />
     </li>
   )
 }

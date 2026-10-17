@@ -60,6 +60,7 @@ export function PasoResultado({
           creadas={resumen.creadas}
           venceEn={new Date(Date.parse(cierre.en) + UN_DIA).toISOString()}
           ahora={cierre.en}
+          superficie="resultado"
         />
       ) : null}
       <div className="flex flex-wrap justify-end gap-2">

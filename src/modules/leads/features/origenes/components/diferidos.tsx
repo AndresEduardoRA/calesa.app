@@ -7,3 +7,8 @@ import { diferido } from '@/shared/ui/diferido'
 export const ModalDeOrigenDiferido = diferido(() =>
   import('./modal-de-origen').then((modulo) => modulo.ModalDeOrigen),
 )
+
+// La confirmación de eliminar un origen se pide al abrirse (`useAbiertoAlgunaVez()`).
+export const EliminarOrigenDiferido = diferido(() =>
+  import('./eliminar-origen').then((modulo) => modulo.EliminarOrigen),
+)

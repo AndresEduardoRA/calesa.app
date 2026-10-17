@@ -4,6 +4,7 @@ import {
   TEXTO_DEL_MOTIVO,
   deshacerDesde,
   filasDichas,
+  motivoParaNoDeshacer,
   recientesDesde,
   sePuedeDeshacer,
   textoDeConfirmacion,
@@ -178,5 +179,36 @@ describe('TEXTO_DEL_MOTIVO', () => {
     for (const motivo of MOTIVOS_PARA_QUEDARSE) {
       expect(TEXTO_DEL_MOTIVO[motivo]).toMatch(/^Ya /)
     }
+  })
+})
+
+describe('motivoParaNoDeshacer', () => {
+  const ahora = new Date('2026-10-17T12:00:00.000Z')
+  const recientes = [reciente({ intactos: 10 })]
+
+  it('abre una importación reciente, en plazo y con algo intacto', () => {
+    expect(motivoParaNoDeshacer(recientes, ID, ahora)).toBeNull()
+  })
+
+  it('no abre una que no está entre las recientes', () => {
+    expect(motivoParaNoDeshacer(recientes, 'otra', ahora)).toBe(
+      'Esa importación ya no está entre tus recientes.',
+    )
+    expect(motivoParaNoDeshacer(recientes, null, ahora)).toBe(
+      'Esa importación ya no está entre tus recientes.',
+    )
+  })
+
+  it('no abre una ya deshecha, una vencida ni una sin nada intacto', () => {
+    expect(
+      motivoParaNoDeshacer([reciente({ estado: 'deshecha', intactos: null })], ID, ahora),
+    ).toBe('Esa importación ya se deshizo.')
+    const despues = new Date('2026-10-18T10:00:01.000Z')
+    expect(motivoParaNoDeshacer(recientes, ID, despues)).toBe(
+      'Esa importación ya no se puede deshacer.',
+    )
+    expect(motivoParaNoDeshacer([reciente({ intactos: 0 })], ID, ahora)).toBe(
+      'Esa importación ya no se puede deshacer.',
+    )
   })
 })

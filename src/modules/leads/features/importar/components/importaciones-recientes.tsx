@@ -3,6 +3,7 @@
 import { HistoryIcon } from 'lucide-react'
 import { EstadoVacio } from '@/shared/ui/estados'
 import type { ImportacionReciente } from '../../../entities/importacion/deshacer'
+import { useRevisionDelDeshacer } from '../hooks/use-revision-del-deshacer'
 import { FilaDeImportacionReciente } from './fila-de-importacion-reciente'
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 // «Tus importaciones recientes» (`/leads/importar`): las propias de las últimas 24 h, cada una con su
 // «Deshacer». Sirve aunque se haya cerrado la pestaña a mitad de una importación.
 export function ImportacionesRecientes({ recientes, ahora, zona }: Props) {
+  useRevisionDelDeshacer(recientes, ahora)
   return (
     <section aria-labelledby="importaciones-recientes" className="grid max-w-3xl gap-2">
       <h2 id="importaciones-recientes" className="text-(length:--text-lg) font-semibold">

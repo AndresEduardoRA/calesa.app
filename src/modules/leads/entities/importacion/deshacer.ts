@@ -182,3 +182,29 @@ export function titularDelDeshacer(
     ? movidos
     : `${movidos} ${numero(quedan)} ${quedan === 1 ? 'se quedó' : 'se quedaron'} en tu cartera.`
 }
+
+// «Deshacer importación» en la URL de `/leads/importar` (`?panel=deshacer-importacion&importacion=<id>&desde=<superficie>`):
+// dos lugares lo ofrecen, el resultado del asistente (la importación que acaba de terminar) y «Tus importaciones recientes»; si
+// una importación está en los dos, `desde` dice cuál abre el diálogo (si no, se abrirían los dos).
+export const PANEL_DESHACER_IMPORTACION = 'deshacer-importacion'
+export const CLAVE_DE_IMPORTACION = 'importacion'
+export const CLAVE_DE_SUPERFICIE = 'desde'
+export const SUPERFICIE_DEL_RESULTADO = 'resultado'
+export const SUPERFICIE_DE_LAS_RECIENTES = 'recientes'
+
+// Por qué `?panel=deshacer-importacion` no abre desde «Tus importaciones recientes» (nulo = se puede): la importación no está
+// entre las recientes, ya se deshizo, venció el plazo o no queda nada intacto. Se revisa una vez, al llegar.
+export function motivoParaNoDeshacer(
+  recientes: readonly ImportacionReciente[],
+  importacionId: string | null,
+  ahora: Date,
+): string | null {
+  const reciente = recientes.find((r) => r.id === importacionId)
+  if (!reciente) {
+    return 'Esa importación ya no está entre tus recientes.'
+  }
+  if (reciente.estado === 'deshecha') {
+    return 'Esa importación ya se deshizo.'
+  }
+  return sePuedeDeshacer(reciente, ahora) ? null : 'Esa importación ya no se puede deshacer.'
+}

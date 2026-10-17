@@ -4,14 +4,14 @@ import { ArrowLeftIcon, Trash2Icon } from 'lucide-react'
 import type { Route } from 'next'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
 import { RUTAS } from '@/shared/lib/rutas'
 import { EstadoPaginaSinFilas, EstadoVacio } from '@/shared/ui/estados'
 import { Paginacion } from '@/shared/ui/paginacion'
 import { TITULO_DE_LA_PAPELERA, type LoteDePapelera as Lote } from '../../../entities/papelera'
-import { usePapelera, type Objetivo } from '../hooks/use-papelera'
+import { usePapelera } from '../hooks/use-papelera'
+import { usePurgaPorUrl } from '../hooks/use-purga-por-url'
 import { ConfirmarPurga } from './confirmar-purga'
 import { LoteDePapelera } from './lote-de-papelera'
 
@@ -33,7 +33,7 @@ export function PapeleraDeLeads({ pagina, puedePurgar, ahora }: Props) {
   const papelera = usePapelera()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
   const lotes = pagina.filas
-  const [aPurgar, setAPurgar] = useState<Objetivo | null>(null)
+  const purga = usePurgaPorUrl(lotes)
   return (
     <div className="grid max-w-4xl gap-4">
       <Link href={RUTAS.leads as Route} className={VOLVER}>
@@ -70,19 +70,13 @@ export function PapeleraDeLeads({ pagina, puedePurgar, ahora }: Props) {
               alRestaurar={(objetivo) => {
                 void papelera.restaurar(objetivo)
               }}
-              alPurgar={setAPurgar}
+              alPurgar={purga.abrir}
             />
           ))}
         </ul>
       )}
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
-      <ConfirmarPurga
-        objetivo={aPurgar}
-        papelera={papelera}
-        alCerrar={() => {
-          setAPurgar(null)
-        }}
-      />
+      <ConfirmarPurga objetivo={purga.objetivo} papelera={papelera} alCerrar={purga.cerrar} />
     </div>
   )
 }

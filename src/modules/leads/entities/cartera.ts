@@ -35,6 +35,8 @@ export const ETIQUETA_DE_SALIR = 'Salir de este lead'
 // El valor de `?panel=` de cada panel.
 export const PANEL_COMPARTIR = 'compartir-lead'
 export const PANEL_TRANSFERIR = 'transferir-lead'
+// «Salir de este lead» (`?panel=salir-lead`): la confirmación, en la ficha.
+export const PANEL_SALIR = 'salir-lead'
 
 // `adoptado` es un valor del enum que quedó sin uso: quien adopta entra como dueño. Se lee como
 // dueño si alguna vez aparece.

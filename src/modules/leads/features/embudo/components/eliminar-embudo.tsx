@@ -8,16 +8,17 @@ import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { Confirmar } from '@/shared/ui/confirmar'
 import { avisarExito } from '@/shared/ui/toasts'
-import type { Embudo } from '../../../entities/embudo'
+import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
+import { CLAVE_DE_ELIMINAR, VALOR_ELIMINAR_EMBUDO, type Embudo } from '../../../entities/embudo'
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
 import { eliminarEmbudo } from '../actions/eliminar-embudo'
 
-// «Eliminar embudo» (irreversible: pide confirmar y nombra el embudo). Sólo sin oportunidades; si las
+// «Eliminar embudo» (`?panel=etapas&eliminar=embudo`; irreversible: pide confirmar y nombra el embudo). Sólo sin oportunidades; si las
 // tiene, la base lo dice dentro del diálogo. El de por defecto no se elimina: lo dice en su lugar.
 export function EliminarEmbudo({ embudo, alTerminar }: { embudo: Embudo; alTerminar: () => void }) {
   const router = useRouter()
   const eliminar = useAction(eliminarEmbudo)
-  const [abierto, setAbierto] = useState(false)
+  const url = usePanelPorUrl(VALOR_ELIMINAR_EMBUDO, [], { clave: CLAVE_DE_ELIMINAR })
   const [error, setError] = useState<string | null>(null)
   if (embudo.esDefault) {
     return (
@@ -36,7 +37,7 @@ export function EliminarEmbudo({ embudo, alTerminar }: { embudo: Embudo; alTermi
       setError(envio.error.mensaje)
       return
     }
-    setAbierto(false)
+    url.cerrar()
     avisarExito(`Se eliminó el embudo «${embudo.nombre}».`)
     alTerminar()
     router.refresh()
@@ -49,17 +50,15 @@ export function EliminarEmbudo({ embudo, alTerminar }: { embudo: Embudo; alTermi
         className="min-h-11 w-fit text-(--color-peligro-ink) md:min-h-8"
         onClick={() => {
           setError(null)
-          setAbierto(true)
+          url.abrir()
         }}
       >
         Eliminar embudo
       </Button>
       <Confirmar
-        abierto={abierto}
-        alCerrar={() => {
-          setAbierto(false)
-        }}
-        alConfirmar={() => void confirmar()}
+        abierto={url.abierto}
+        alCerrar={url.cerrar}
+        alConfirmar={confirmar}
         titulo={`Eliminar el embudo «${embudo.nombre}»`}
         descripcion="Sólo se elimina si no tiene oportunidades. No se puede deshacer."
         etiquetaConfirmar="Eliminar embudo"

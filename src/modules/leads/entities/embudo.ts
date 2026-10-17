@@ -13,6 +13,9 @@ export const LARGO_MAXIMO_DE_ETAPA = 30
 
 // «Etapas» del embudo abierto, en la URL de la vista (`?panel=etapas`).
 export const PANEL_ETAPAS = 'etapas'
+// «Eliminar embudo» (`?panel=etapas&eliminar=embudo`): la confirmación va dentro del panel de etapas, con otra clave.
+export const CLAVE_DE_ELIMINAR = 'eliminar'
+export const VALOR_ELIMINAR_EMBUDO = 'embudo'
 
 export type Etapa = {
   // Una etapa nueva (todavía sin guardar) no tiene id: la base se lo pone.

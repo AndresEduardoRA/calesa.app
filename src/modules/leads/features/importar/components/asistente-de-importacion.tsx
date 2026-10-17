@@ -12,6 +12,7 @@ import {
 } from '../../../entities/importacion/plantilla'
 import { useAsistenteDeImportacion } from '../hooks/use-asistente-de-importacion'
 import { useImportacion } from '../hooks/use-importacion'
+import { useLimpiarDeshacerHuerfano } from '../hooks/use-revision-del-deshacer'
 import { PasoArchivo } from './paso-archivo'
 import { PasoEmparejar } from './paso-emparejar'
 import { PasoImportando } from './paso-importando'
@@ -76,6 +77,7 @@ function Asistente({ campos, contexto, zona, alReiniciar }: PropsDelAsistente) {
   const importando = paso === 'importando' || paso === 'resultado'
   const terminado = importacion.fase === 'terminada' || importacion.fase === 'cancelada'
   const pasoVisible: Paso = importando && terminado ? 'resultado' : paso
+  useLimpiarDeshacerHuerfano(pasoVisible === 'resultado')
 
   return (
     <div className="grid max-w-3xl gap-5">

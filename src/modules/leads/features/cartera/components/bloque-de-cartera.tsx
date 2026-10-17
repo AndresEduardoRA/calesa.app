@@ -1,7 +1,6 @@
 'use client'
 
 import { LogOutIcon, SendIcon, UserMinusIcon, UserPlusIcon } from 'lucide-react'
-import { useState } from 'react'
 import { formatearFecha } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
 import { Bloque } from '@/shared/ui/bloque'
@@ -132,12 +131,12 @@ function BotonesDeCartera({
 export function BloqueDeCartera({ lead, cartera: inicial, acciones }: Props) {
   const panel = usePanelDeLead()
   const cartera = useCartera(lead.id, inicial)
-  const [saliendo, setSaliendo] = useState(false)
   const hayAcciones = acciones.compartir || acciones.transferir || acciones.salir
   const compartiendo = acciones.compartir && panel.compartir.abierto
   const transfiriendo = acciones.transferir && panel.transferir.abierto
   const montarCompartir = useAbiertoAlgunaVez(compartiendo)
   const montarTransferir = useAbiertoAlgunaVez(transfiriendo)
+  const saliendo = acciones.salir && panel.salir.abierto
   const montarSalir = useAbiertoAlgunaVez(saliendo)
 
   return (
@@ -158,9 +157,7 @@ export function BloqueDeCartera({ lead, cartera: inicial, acciones }: Props) {
           <BotonesDeCartera
             acciones={acciones}
             enCurso={cartera.enCurso}
-            alSalir={() => {
-              setSaliendo(true)
-            }}
+            alSalir={panel.salir.abrir}
           />
         ) : null}
       </div>
@@ -185,9 +182,7 @@ export function BloqueDeCartera({ lead, cartera: inicial, acciones }: Props) {
       {montarSalir ? (
         <DialogoDeSalirDiferido
           abierto={saliendo}
-          alCerrar={() => {
-            setSaliendo(false)
-          }}
+          alCerrar={panel.salir.cerrar}
           leadNombre={lead.nombre}
           cartera={cartera}
         />

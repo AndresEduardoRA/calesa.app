@@ -17,6 +17,9 @@ import {
   resumenDePurga,
   resumenDeRestauracion,
   textoDePurga,
+  motivoParaNoPurgar,
+  MENSAJE_DE_LOTE_NO_DISPONIBLE,
+  type LoteDePapelera,
 } from './papelera'
 
 const A = '11111111-1111-4111-8111-111111111111'
@@ -213,5 +216,27 @@ describe('loteDesde y faltanPorMostrar (cierre 1)', () => {
     expect(
       faltanPorMostrar({ enPapelera: 3, leads: Array.from({ length: 5 }, () => ({})) as never }),
     ).toBe(0)
+  })
+})
+
+describe('motivoParaNoPurgar', () => {
+  const lead = (id: string) =>
+    ({ id, nombre: id, numeros: {} }) as unknown as LoteDePapelera['leads'][number]
+  const lote = (id: string, leads: string[]) =>
+    ({ id, leads: leads.map(lead) }) as unknown as LoteDePapelera
+  const lotes = [lote('l1', ['a', 'b']), lote('l2', ['c'])]
+
+  it('abre un lote de la página, entero o con uno de sus leads', () => {
+    expect(motivoParaNoPurgar(lotes, 'l1', null)).toBeNull()
+    expect(motivoParaNoPurgar(lotes, 'l1', 'b')).toBeNull()
+  })
+
+  it('no abre un lote que no está en la página, o sin lote', () => {
+    expect(motivoParaNoPurgar(lotes, 'zzz', null)).toBe(MENSAJE_DE_LOTE_NO_DISPONIBLE)
+    expect(motivoParaNoPurgar(lotes, null, null)).toBe(MENSAJE_DE_LOTE_NO_DISPONIBLE)
+  })
+
+  it('no abre un lead que no es de ese lote', () => {
+    expect(motivoParaNoPurgar(lotes, 'l1', 'c')).toBe('Ese lead ya no está en el lote.')
   })
 })

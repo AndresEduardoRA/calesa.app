@@ -13,10 +13,11 @@ import { FilaDeOrigen } from './fila-de-origen'
 type Props = {
   lista: OrigenesDeLead
   alEditar: (id: string) => void
+  alPedirEliminar: (id: string) => void
 }
 
 // Las filas de los orígenes, en su orden. Sin ninguno activo lo dice: el alta sigue andando.
-export function ListaDeOrigenes({ lista, alEditar }: Props) {
+export function ListaDeOrigenes({ lista, alEditar, alPedirEliminar }: Props) {
   const { origenes } = lista
   return (
     <>
@@ -35,7 +36,9 @@ export function ListaDeOrigenes({ lista, alEditar }: Props) {
             alEditar={() => {
               alEditar(origen.id)
             }}
-            alEliminar={() => lista.eliminar(origen)}
+            alPedirEliminar={() => {
+              alPedirEliminar(origen.id)
+            }}
           />
         ))}
       </ul>

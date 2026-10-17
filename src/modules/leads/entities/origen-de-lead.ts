@@ -10,6 +10,8 @@ export const LARGO_MAXIMO_DE_ORIGEN = 40
 
 export const PANEL_NUEVO_ORIGEN = 'nuevo-origen'
 export const PANEL_EDITAR_ORIGEN = 'editar-origen'
+// La confirmación de eliminar uno (`?panel=eliminar-origen&origen=<id>`).
+export const PANEL_ELIMINAR_ORIGEN = 'eliminar-origen'
 // El id del origen que se edita, en la URL: `?panel=editar-origen&origen=<id>`.
 export const CLAVE_DE_ORIGEN = 'origen'
 
@@ -125,6 +127,16 @@ export function motivoParaNoEliminar(origen: OrigenDeLeadConUso): string | null 
   return origen.conLeads
     ? `«${origen.nombre}» ya tiene leads: no se elimina. Desactívalo para que no se ofrezca a los nuevos.`
     : null
+}
+
+// Por qué `?panel=eliminar-origen&origen=<id>` no abre: el id no está, o ya tiene leads y no se elimina (se desactiva).
+// Se revisa una vez, al llegar.
+export function motivoParaNoEliminarPorUrl(
+  origenes: readonly OrigenDeLeadConUso[],
+  id: string | null,
+): string | null {
+  const origen = origenes.find((o) => o.id === id)
+  return origen ? motivoParaNoEliminar(origen) : 'Ese origen ya no existe.'
 }
 
 export function sinOrigenesActivos(origenes: readonly OrigenDeLeadConUso[]): boolean {

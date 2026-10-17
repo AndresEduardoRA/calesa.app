@@ -1,12 +1,10 @@
 'use client'
 
 import { Undo2Icon } from 'lucide-react'
-import { useState } from 'react'
 import { formatearNumero } from '@/shared/lib/formato'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { Confirmar } from '@/shared/ui/confirmar'
-import { useEnLinea } from '@/shared/ui/use-en-linea'
 import { useRegional } from '@/shared/ui/regional'
 import {
   textoDeConfirmacion,
@@ -14,6 +12,7 @@ import {
   type ResultadoDeDeshacer,
 } from '../../../entities/importacion/deshacer'
 import { useAhora } from '../hooks/use-ahora'
+import { usePanelDeDeshacer } from '../hooks/use-panel-de-deshacer'
 import { useDeshacerImportacion } from '../hooks/use-deshacer-importacion'
 import { ResultadoDelDeshacer } from './resultado-del-deshacer'
 
@@ -25,19 +24,22 @@ type Props = {
   venceEn: string
   // Contra qué instante se cuenta el plazo al dibujar (ISO).
   ahora: string
+  // Dónde se ofrece: el resultado del asistente o «Tus importaciones recientes» (la URL dice cuál abre el diálogo).
+  superficie: 'resultado' | 'recientes'
   // Lo que ya contestó la base, si esta importación ya se deshizo.
   resultado?: Omit<ResultadoDeDeshacer, 'repetido'> | null
 }
 
-// «Deshacer importación» con el tiempo que queda: confirma cuántos van a la papelera y, hecho, dice qué
+// «Deshacer importación» (`?panel=deshacer-importacion`) con el tiempo que queda: confirma cuántos van a la papelera y, hecho, dice qué
 // salió y qué se quedó. Lo dice la base: entre la confirmación y el envío pudo cambiar algo.
 export function DeshacerImportacion(props: Props) {
   const { importacionId, intactos, creadas, venceEn } = props
   const { locale } = useRegional()
   const numero = (n: number) => formatearNumero(n, { locale })
   const ahora = useAhora(props.ahora)
-  const enLinea = useEnLinea()
-  const [abierto, setAbierto] = useState(false)
+  const panel = usePanelDeDeshacer()
+  const abierto =
+    panel.abierto && panel.importacion === importacionId && panel.superficie === props.superficie
   const { deshacer, enCurso, resultado, error, limpiarError } =
     useDeshacerImportacion(importacionId)
 
@@ -69,7 +71,7 @@ export function DeshacerImportacion(props: Props) {
         className="h-11 md:h-9"
         onClick={() => {
           limpiarError()
-          setAbierto(true)
+          panel.abrir(importacionId, props.superficie)
         }}
       >
         <Undo2Icon aria-hidden />
@@ -80,27 +82,19 @@ export function DeshacerImportacion(props: Props) {
       </span>
       <Confirmar
         abierto={abierto}
-        alCerrar={() => {
-          setAbierto(false)
-        }}
-        alConfirmar={() => {
-          void deshacer().then((listo) => {
+        alCerrar={panel.cerrar}
+        alConfirmar={() =>
+          deshacer().then((listo) => {
             if (listo) {
-              setAbierto(false)
+              panel.cerrar()
             }
           })
-        }}
+        }
         titulo="Deshacer la importación"
         descripcion={textoDeConfirmacion(intactos, creadas, numero)}
         etiquetaConfirmar="Mover a la papelera"
         enCurso={enCurso}
-        deshabilitado={!enLinea}
       >
-        {enLinea ? null : (
-          <Aviso tono="aviso">
-            No hay conexión. No se movió nada: vuelve a intentar cuando vuelva.
-          </Aviso>
-        )}
         {error ? <Aviso tono="peligro">{error.mensaje}</Aviso> : null}
       </Confirmar>
     </div>

@@ -348,3 +348,26 @@ export function motivoParaNoEnviar(vehiculosVinculados: number): string | null {
     ? 'Tiene un vehículo vinculado: desvincúlalo en «Vehículos» antes de enviarlo.'
     : `Tiene ${cantidadAcotada(vehiculosVinculados, TOPE_DE_VINCULADOS, VEHICULOS)} vinculados: desvincúlalos en «Vehículos» antes de enviarlo.`
 }
+
+// Purgar un lote o uno de sus leads, en la URL de la papelera (`?panel=purgar&lote=<id>` y, para uno, `&lead=<id>`).
+export const PANEL_PURGAR = 'purgar'
+export const CLAVE_DE_LOTE = 'lote'
+export const CLAVE_DE_LEAD_A_PURGAR = 'lead'
+export const MENSAJE_DE_LOTE_NO_DISPONIBLE = 'Ese lote ya no está en esta página de la papelera.'
+
+// Por qué `?panel=purgar` no abre (nulo = se puede): el lote no está entre los de esta página (se purgó, se restauró, o
+// la URL es de otra página) o el lead que nombra no es de ese lote. Se revisa una vez, al llegar.
+export function motivoParaNoPurgar(
+  lotes: readonly LoteDePapelera[],
+  loteId: string | null,
+  leadId: string | null,
+): string | null {
+  const lote = lotes.find((l) => l.id === loteId)
+  if (!lote) {
+    return MENSAJE_DE_LOTE_NO_DISPONIBLE
+  }
+  if (leadId !== null && !lote.leads.some((lead) => lead.id === leadId)) {
+    return 'Ese lead ya no está en el lote.'
+  }
+  return null
+}

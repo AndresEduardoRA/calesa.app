@@ -2,12 +2,12 @@
 
 import { parseAsString, useQueryState } from 'nuqs'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
-import { PANEL_COMPARTIR, PANEL_TRANSFERIR } from '../../../entities/cartera'
+import { PANEL_COMPARTIR, PANEL_SALIR, PANEL_TRANSFERIR } from '../../../entities/cartera'
 import { PANEL_EDITAR_LEAD } from '../../../entities/edicion'
 import { PANEL_AGREGAR_TELEFONO, PANEL_CAMBIAR_TELEFONO } from '../../../entities/telefonos'
 
 // Qué panel de la ficha está abierto, en la URL (`?panel=editar-lead`, `cambiar-telefono`,
-// `agregar-telefono`, `compartir-lead` o `transferir-lead`). Comparten la clave: no pueden estar
+// `agregar-telefono`, `compartir-lead`, `transferir-lead` o `salir-lead`). Comparten la clave: no pueden estar
 // abiertos a la vez. Abrir suma al historial («atrás» lo cierra).
 // Sin `shallow: false`: abrirlo no necesita al servidor, la ficha ya está.
 export function usePanelDeLead() {
@@ -42,6 +42,8 @@ export function usePanelDeLead() {
       abrir: abre(PANEL_TRANSFERIR),
       cerrar: cierra,
     },
+    // «Salir de este lead»: la confirmación.
+    salir: { abierto: panel === PANEL_SALIR, abrir: abre(PANEL_SALIR), cerrar: cierra },
     // Alguno abierto: con uno la ficha no se vuelve a leer sola (reiniciaría lo escrito). Cualquier
     // `?panel=` cuenta, también los de otras secciones (un recordatorio, una oportunidad).
     hayPanel: panel !== null,

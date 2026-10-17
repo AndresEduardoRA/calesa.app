@@ -1,34 +1,21 @@
 'use client'
 
 import { PencilIcon, Trash2Icon } from 'lucide-react'
-import { useState } from 'react'
 import { Button } from '@/shared/ui/button'
-import { Confirmar } from '@/shared/ui/confirmar'
 import { motivoParaNoEliminar, type OrigenDeLeadConUso } from '../../../entities/origen-de-lead'
 
 type Props = {
   origen: OrigenDeLeadConUso
   alEditar: () => void
-  // Confirmado: elimina y dice si pudo.
-  alEliminar: () => Promise<boolean>
+  // Pide confirmar la eliminación (`?panel=eliminar-origen`).
+  alPedirEliminar: () => void
 }
 
 // «Editar» y «Eliminar» de un origen. Eliminar está apagado y dice por qué si algún lead lo usa: ahí
-// sólo se desactiva. Lo irreversible pide confirmar nombrando el origen.
-export function AccionesDeOrigen({ origen, alEditar, alEliminar }: Props) {
-  const [eliminando, setEliminando] = useState(false)
-  const [enCurso, setEnCurso] = useState(false)
+// sólo se desactiva. Lo irreversible pide confirmar nombrando el origen, en un diálogo con su URL.
+export function AccionesDeOrigen({ origen, alEditar, alPedirEliminar }: Props) {
   const motivo = motivoParaNoEliminar(origen)
   const idMotivo = `origen-${origen.id}-motivo`
-
-  async function confirmar() {
-    setEnCurso(true)
-    const eliminado = await alEliminar()
-    setEnCurso(false)
-    if (!eliminado) {
-      setEliminando(false)
-    }
-  }
 
   return (
     <div className="order-3 ml-auto flex md:order-4 md:ml-0">
@@ -46,12 +33,11 @@ export function AccionesDeOrigen({ origen, alEditar, alEliminar }: Props) {
         size="icon"
         className="size-11 md:size-8"
         aria-label={`Eliminar ${origen.nombre}`}
+        data-eliminar-origen={origen.id}
         aria-describedby={motivo ? idMotivo : undefined}
         disabled={motivo !== null}
         title={motivo ?? undefined}
-        onClick={() => {
-          setEliminando(true)
-        }}
+        onClick={alPedirEliminar}
       >
         <Trash2Icon aria-hidden />
       </Button>
@@ -60,17 +46,6 @@ export function AccionesDeOrigen({ origen, alEditar, alEliminar }: Props) {
           {motivo}
         </span>
       ) : null}
-      <Confirmar
-        abierto={eliminando}
-        alCerrar={() => {
-          setEliminando(false)
-        }}
-        alConfirmar={() => void confirmar()}
-        titulo={`Eliminar el origen «${origen.nombre}»`}
-        descripcion="Ningún lead lo usa. Se elimina para siempre y no se puede deshacer."
-        etiquetaConfirmar="Eliminar origen"
-        enCurso={enCurso}
-      />
     </div>
   )
 }

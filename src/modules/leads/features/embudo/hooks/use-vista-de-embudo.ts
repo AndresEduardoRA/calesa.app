@@ -2,7 +2,7 @@
 
 import { parseAsString, useQueryState } from 'nuqs'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
-import { PANEL_ETAPAS } from '../../../entities/embudo'
+import { CLAVE_DE_ELIMINAR, PANEL_ETAPAS } from '../../../entities/embudo'
 import { CLAVE_DE_EMBUDO, CLAVE_DE_ETAPA } from '../../../entities/tablero'
 
 // «Nuevo embudo» en la URL de la vista (`?panel=nuevo-embudo`).
@@ -18,6 +18,7 @@ export function useVistaDeEmbudo() {
   )
   const [etapa, setEtapa] = useQueryState(CLAVE_DE_ETAPA, parseAsString)
   const [panel, setPanel] = useQueryState(CLAVE_DE_PANEL, parseAsString)
+  const [, setEliminar] = useQueryState(CLAVE_DE_ELIMINAR, parseAsString)
   return {
     elegirEmbudo: (id: string) => {
       void setEmbudo(id)
@@ -35,8 +36,10 @@ export function useVistaDeEmbudo() {
     abrirNuevo: () => {
       void setPanel(PANEL_NUEVO_EMBUDO, { history: 'push' })
     },
+    // Cerrar el panel de etapas también cierra su «Eliminar embudo» (`?eliminar=`).
     cerrarPanel: () => {
       void setPanel(null)
+      void setEliminar(null)
     },
   }
 }

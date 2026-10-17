@@ -7,6 +7,7 @@ import {
   motivoDeUrlDeOrigen,
   motivoParaNoAbrir,
   motivoParaNoEliminar,
+  motivoParaNoEliminarPorUrl,
   normalizarNombreDeOrigen,
   origenPorId,
   respuestaDeOrigenesDesde,
@@ -160,6 +161,15 @@ describe('textos y estados', () => {
   it('con leads no se elimina, y dice por qué', () => {
     expect(motivoParaNoEliminar(origen(1))).toBeNull()
     expect(motivoParaNoEliminar(origen(1, { conLeads: true }))).toBe(
+      '«Origen 1» ya tiene leads: no se elimina. Desactívalo para que no se ofrezca a los nuevos.',
+    )
+  })
+
+  it('la URL de eliminar abre un origen sin leads, y no uno que no está o que ya tiene leads', () => {
+    expect(motivoParaNoEliminarPorUrl(lista, id(2))).toBeNull()
+    expect(motivoParaNoEliminarPorUrl(lista, id(99))).toBe('Ese origen ya no existe.')
+    expect(motivoParaNoEliminarPorUrl(lista, null)).toBe('Ese origen ya no existe.')
+    expect(motivoParaNoEliminarPorUrl([origen(1, { conLeads: true })], id(1))).toBe(
       '«Origen 1» ya tiene leads: no se elimina. Desactívalo para que no se ofrezca a los nuevos.',
     )
   })

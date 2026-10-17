@@ -75,7 +75,9 @@ describe('usePanelPorUrl', () => {
     expect(ultimo?.searchParams.get('lote')).toBeNull()
     expect(ultimo?.searchParams.get('q')).toBe('ana')
   })
+})
 
+describe('usePanelPorUrl: escribir la URL', () => {
   it('abrir dos veces con la misma URL no escribe de más', async () => {
     const alCambiar = vi.fn()
     const { result } = renderHook(() => usePanelPorUrl('purgar'), {
@@ -88,5 +90,29 @@ describe('usePanelPorUrl', () => {
       expect(result.current.abierto).toBe(true)
     })
     expect(alCambiar).toHaveBeenCalledTimes(1)
+  })
+
+  it('con otra clave vive junto a un ?panel= que ya está y no lo toca', async () => {
+    const eventos: UrlUpdateEvent[] = []
+    const { result } = renderHook(() => usePanelPorUrl('embudo', [], { clave: 'eliminar' }), {
+      wrapper: envoltura('?panel=etapas', (e) => eventos.push(e)),
+    })
+    expect(result.current.abierto).toBe(false)
+    act(() => {
+      result.current.abrir()
+    })
+    await waitFor(() => {
+      expect(result.current.abierto).toBe(true)
+    })
+    expect(eventos.at(-1)?.searchParams.get('panel')).toBe('etapas')
+    expect(eventos.at(-1)?.searchParams.get('eliminar')).toBe('embudo')
+    act(() => {
+      result.current.cerrar()
+    })
+    await waitFor(() => {
+      expect(result.current.abierto).toBe(false)
+    })
+    expect(eventos.at(-1)?.searchParams.get('panel')).toBe('etapas')
+    expect(eventos.at(-1)?.searchParams.get('eliminar')).toBeNull()
   })
 })

@@ -44,6 +44,7 @@ export function FilaDeImportacionReciente({ importacion, ahora, zona }: Props) {
         venceEn={importacion.venceEn}
         ahora={ahora}
         resultado={importacion.resultado}
+        superficie="recientes"
       />
     </li>
   )

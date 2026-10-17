@@ -4,6 +4,12 @@ import { entrar, limpiarAlta, prepararAlta, type PersonasDelAlta } from './sopor
 import { admin } from './soporte/base'
 import { aLaVista } from './soporte/inventario'
 import { borrarLeadsDePrueba, exigir } from './soporte/leads'
+import {
+  cicloDeUnaConfirmacion,
+  dobleClicManda,
+  noAbre,
+  sinRedNoConfirma,
+} from './soporte/confirmar-por-url'
 import { telefonoAlAzar } from './soporte/leads-alta'
 import { borrarLotesDePrueba } from './soporte/papelera'
 
@@ -190,4 +196,65 @@ test('fuera de plazo: la base lo rechaza sin tocar nada y la lista ya no la ofre
   await expect(
     recientes(page).getByText('No importaste nada en las últimas 24 horas'),
   ).toBeVisible()
+})
+
+test('«Deshacer importación» en las recientes: su URL, Esc, atrás, recarga, sin red y un solo pedido', async ({
+  page,
+  context,
+}, info) => {
+  const nombre = `E2E Deshacer Url ${info.project.name}`
+  await entrar(page, personas.duena)
+  await importar(
+    page,
+    [1, 2, 3, 4].map((n) => `${nombre} ${String(n)}`),
+  )
+  await page.goto('/leads/importar')
+  const fila = recientes(page).getByRole('listitem').filter({ hasText: '4 importados' })
+  const disparador = fila.getByRole('button', { name: 'Deshacer importación' })
+  await cicloDeUnaConfirmacion(page, {
+    abrir: () => disparador.click(),
+    dialogo: confirmacion(page),
+    disparador,
+    url: /panel=deshacer-importacion&importacion=[^&]+&desde=recientes/,
+  })
+  const confirmar = confirmacion(page).getByRole('button', { name: 'Mover a la papelera' })
+  await sinRedNoConfirma(context, confirmacion(page), confirmar)
+  expect(await dobleClicManda(page, confirmar)).toBe(1)
+  await expect(fila.getByText('Deshecha')).toBeVisible()
+  await expect(page).not.toHaveURL(/panel=/)
+  expect((await leadsDe(`${nombre}%`)).every((l) => l.eliminado_en !== null)).toBe(true)
+})
+
+test('«Deshacer importación» en el resultado: su URL; al recargar el resultado se va y la URL se limpia', async ({
+  page,
+}, info) => {
+  const nombre = `E2E Deshacer Resultado ${info.project.name}`
+  await entrar(page, personas.carlos)
+  await importar(page, [`${nombre} 1`, `${nombre} 2`])
+  await resultado(page).getByRole('button', { name: 'Deshacer importación' }).click()
+  await expect(confirmacion(page)).toBeVisible()
+  await expect(page).toHaveURL(/panel=deshacer-importacion&importacion=[^&]+&desde=resultado/)
+  // El resultado vive sólo en la memoria de la pantalla: al recargar no hay de dónde abrirlo.
+  await page.reload()
+  await expect(
+    page
+      .getByRole('button', { name: 'Elegir archivo' })
+      .or(page.locator('input[type=file]'))
+      .first(),
+  ).toBeAttached()
+  await expect(confirmacion(page)).toHaveCount(0)
+  await expect(page).not.toHaveURL(/panel=/)
+  expect((await leadsDe(`${nombre}%`)).every((l) => l.eliminado_en === null)).toBe(true)
+})
+
+test('una importación que no está entre las recientes no abre nada, avisa y limpia la URL', async ({
+  page,
+}) => {
+  await entrar(page, personas.duena)
+  await noAbre(
+    page,
+    '/leads/importar?panel=deshacer-importacion&importacion=00000000-0000-4000-8000-000000000999&desde=recientes',
+    'Esa importación ya no está entre tus recientes.',
+    /panel=deshacer-importacion/,
+  )
 })

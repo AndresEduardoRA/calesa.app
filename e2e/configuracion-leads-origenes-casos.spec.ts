@@ -18,6 +18,12 @@ import {
   origenEnLaBase,
   sembrarOrigen,
 } from './soporte/origenes-de-lead'
+import {
+  cicloDeUnaConfirmacion,
+  dobleClicManda,
+  noAbre,
+  sinRedNoConfirma,
+} from './soporte/confirmar-por-url'
 import { crearAsesoraDeLaSemilla } from './soporte/recorrido'
 
 // Los casos no felices de Configuración › Leads › Orígenes del lead (9f-1): un alta con un origen que se
@@ -157,4 +163,34 @@ test('la asesora no entra a la pantalla ni puede llamar la RPC', async ({ page }
   expect(directo.error).not.toBeNull()
   expect(await origenEnLaBase(nombre('Intruso'))).toBeUndefined()
   expect(await origenEnLaBase(nombre('Directo'))).toBeUndefined()
+})
+
+test('eliminar un origen: su URL, Esc, atrás, recarga, sin red y un solo pedido; uno que no existe no abre', async ({
+  page,
+  context,
+}) => {
+  const url = nombre('Url')
+  await sembrarOrigen(url)
+  await entrar(page, duena, { fresco: true })
+  await abrirOrigenes(page)
+  const disparador = page.getByRole('button', { name: `Eliminar ${url}` })
+  const dialogo = page.getByRole('dialog', { name: `Eliminar el origen «${url}»` })
+  await cicloDeUnaConfirmacion(page, {
+    abrir: () => disparador.click(),
+    dialogo,
+    disparador,
+    url: /panel=eliminar-origen&origen=/,
+  })
+  const confirmar = dialogo.getByRole('button', { name: 'Eliminar origen' })
+  await sinRedNoConfirma(context, dialogo, confirmar)
+  expect(await dobleClicManda(page, confirmar)).toBe(1)
+  await expect(dialogo).toBeHidden()
+  expect(await origenEnLaBase(url)).toBeUndefined()
+
+  await noAbre(
+    page,
+    '/configuracion/leads?seccion=origenes&panel=eliminar-origen&origen=00000000-0000-4000-8000-000000000999',
+    'Ese origen ya no existe.',
+    /panel=eliminar-origen/,
+  )
 })

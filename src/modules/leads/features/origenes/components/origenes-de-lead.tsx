@@ -11,9 +11,10 @@ import {
   type OrigenDeLeadConUso,
 } from '../../../entities/origen-de-lead'
 import { useFocoTrasMover } from '../hooks/use-foco-tras-mover'
+import { useEliminarOrigenPorUrl } from '../hooks/use-eliminar-origen-por-url'
 import { useModalDeOrigen } from '../hooks/use-modal-de-origen'
 import { useOrigenesDeLead } from '../hooks/use-origenes-de-lead'
-import { ModalDeOrigenDiferido } from './diferidos'
+import { EliminarOrigenDiferido, ModalDeOrigenDiferido } from './diferidos'
 import { ListaDeOrigenes } from './lista-de-origenes'
 
 type Props = {
@@ -62,6 +63,8 @@ export function OrigenesDeLead({ origenes: inicial }: Props) {
   const { origenes } = lista
   const modal = useModalDeOrigen(origenes)
   const montar = useAbiertoAlgunaVez(modal.abierto)
+  const eliminacion = useEliminarOrigenPorUrl(origenes)
+  const montarEliminar = useAbiertoAlgunaVez(eliminacion.abierto)
   const alTope = alTopeDeOrigenes(origenes)
   useFocoTrasMover(lista.movimiento)
 
@@ -86,7 +89,11 @@ export function OrigenesDeLead({ origenes: inicial }: Props) {
           }
         />
       ) : (
-        <ListaDeOrigenes lista={lista} alEditar={modal.abrirEdicion} />
+        <ListaDeOrigenes
+          lista={lista}
+          alEditar={modal.abrirEdicion}
+          alPedirEliminar={eliminacion.abrir}
+        />
       )}
       <p role="status" aria-live="polite" className="sr-only">
         {lista.anuncio}
@@ -99,6 +106,20 @@ export function OrigenesDeLead({ origenes: inicial }: Props) {
           origenes={lista}
           original={modal.original}
           noDisponible={modal.noDisponible}
+        />
+      ) : null}
+      {montarEliminar ? (
+        <EliminarOrigenDiferido
+          abierto={eliminacion.abierto}
+          alCerrar={eliminacion.cerrar}
+          origen={eliminacion.origen}
+          enCurso={lista.enCurso}
+          alEliminar={lista.eliminar}
+          focoAlCerrar={() =>
+            document.querySelector<HTMLElement>(
+              `[data-eliminar-origen="${eliminacion.origen?.id ?? ''}"]`,
+            ) ?? true
+          }
         />
       ) : null}
     </section>

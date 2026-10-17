@@ -72,6 +72,8 @@ test('en el kanban: abre con su URL, foco en el motivo, Esc vuelve el foco al bo
   // «Atrás» cierra el modal que se abrió (abrir suma al historial) y «adelante» lo reabre.
   await moverA(page, titulo, 'Perdido')
   await expect(dialogo).toBeVisible()
+  // nuqs escribe la URL un instante después de abrir: «atrás» sólo vale cuando ya está escrita.
+  await expect(page).toHaveURL(/panel=mover-oportunidad/)
   await page.goBack()
   await expect(dialogo).toBeHidden()
   await page.goForward()
