@@ -144,3 +144,21 @@ export function armarPagina<Fila extends Paginable>(
     anterior: hayAnterior ? hacia(primera, 'anterior') : null,
   }
 }
+
+// Lo que se dice arriba de una lista por cursor sobre dónde se está (cierre 1). No hay «página N»: con cursor no se sabe sin
+// contar las filas de antes (crece con la profundidad), y un contador en la URL mentiría al llegar por un enlace, una vista
+// guardada o «atrás», o cuando entran filas nuevas. Lo que sí es verdad: si no hay página anterior, son las más recientes;
+// si la hay, la fecha de la primera fila que se ve (las listas van de la más nueva a la más vieja).
+export type UbicacionDeLaPagina = { tipo: 'principio' } | { tipo: 'hasta'; creadoEn: string }
+
+export function ubicacionDeLaPagina<Fila extends Paginable>(
+  pagina: Pagina<Fila>,
+): UbicacionDeLaPagina | null {
+  const primera = pagina.filas[0]
+  if (!primera) {
+    return null
+  }
+  return pagina.anterior === null
+    ? { tipo: 'principio' }
+    : { tipo: 'hasta', creadoEn: primera.creadoEn }
+}

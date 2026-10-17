@@ -88,6 +88,23 @@ test('el listado dibuja una página de 50 filas y los nodos no crecen con las p�
   expect(segunda).toBeLessThan(primera * 1.15)
 })
 
+// Cierre 1: no hay «página N» (con cursor no se sabe sin contar); arriba se dice lo que sí es verdad.
+test('arriba dice «Los más recientes» o hasta qué fecha llega la página, y vuelve al principio con la búsqueda', async ({
+  page,
+}) => {
+  await entrar(page, t.personas.berta)
+  await irALeads(page, '?q=Escala')
+  await expect(page.getByText('Los más recientes', { exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Siguiente' }).click()
+  await expect(page.getByText(/^Creados hasta el \d{1,2} \S+ \d{4}$/)).toBeVisible()
+  await expect(page.getByText('Los más recientes', { exact: true })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Volver al principio' }).click()
+  await expect(page.getByText('Los más recientes', { exact: true })).toBeVisible()
+  const url = new URL(page.url())
+  expect(url.searchParams.has('cursor')).toBe(false)
+  expect(url.searchParams.get('q')).toBe('Escala')
+})
+
 test('con 100 por página el listado cabe en su presupuesto de nodos y el HTML lleva una sola vista', async ({
   page,
 }, info) => {

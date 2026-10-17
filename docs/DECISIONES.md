@@ -3358,3 +3358,20 @@ KB), 7.894 → 4.916 y 7.888 → 3.295 nodos. Lo que queda crudo es el flujo de 
 todos los localizadores); las dos en el HTML y una al hidratar (lo que hacía el kanban: el HTML sigue doble); Client Hints
 (`Sec-CH-Viewport-Width` no llega en la primera visita y sólo en Chromium); una cookie de vista («tabla»/«tarjetas») en vez del
 ancho (cada lista tiene su corte: el kanban, 640).
+
+## 2026-10-17 — Cierre 1 (G): «página N» se descarta; arriba se dice lo que sí es verdad
+
+**Contexto:** la 9e anotó que en el listado no se sabe en qué página se está. Con paginación por cursor no hay un número
+verdadero: saberlo exige contar las filas anteriores al cursor (un costo que crece con la profundidad, y la regla de escala no
+admite un número que crece con la tabla). Un contador en la URL (`?p=`) mentiría al llegar por un enlace o una vista guardada, al
+volver con «atrás» a un cursor y cuando entran leads nuevos (la página «3» deja de ser la tercera); y no se puede comprobar
+contra la base.
+
+**Decisión:** no se muestra «página N». Arriba de la lista (leads e inventario) va lo que sí se sabe: sin página anterior, «Los
+más recientes»; con ella, «Creados hasta el 2 sep 2026» (la fecha de la primera fila que se ve: las dos listas van de la más
+nueva a la más vieja) y «Volver al principio», que quita el cursor y conserva filtros, búsqueda y tamaño
+(`ubicacionDeLaPagina()` en `shared/lib/paginacion.ts`, `<UbicacionDeLaPagina>` en `shared/ui/paginacion.tsx`).
+
+**Alternativas:** un contador en la URL (miente, ver arriba); contar hasta un tope («página 3 de más de 20», que exige leer las
+filas anteriores y sigue sin saber dónde se está pasado el tope); el rango «del 2 sep al 14 ago» (más largo, y la última fecha ya
+se ve al pie).

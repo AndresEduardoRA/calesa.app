@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ubicacionDeLaPagina,
   armarPagina,
   codificarCursor,
   enElTope,
@@ -163,5 +164,32 @@ describe('el tamaño de página que elige la persona', () => {
     expect(tamanosHasta(50)).toEqual([10, 25, 50])
     expect(tamanosHasta(30)).toEqual([10, 25])
     expect(tamanosHasta(5)).toEqual([])
+  })
+})
+
+describe('ubicacionDeLaPagina', () => {
+  const fila = (creadoEn: string) => ({ id: creadoEn, creadoEn })
+  it('sin página anterior, la lista está en lo más reciente', () => {
+    expect(
+      ubicacionDeLaPagina({
+        filas: [fila('2026-10-17T10:00:00Z')],
+        siguiente: 'x',
+        anterior: null,
+      }),
+    ).toEqual({ tipo: 'principio' })
+  })
+
+  it('con página anterior, la fecha de la primera fila que se ve', () => {
+    expect(
+      ubicacionDeLaPagina({
+        filas: [fila('2026-09-02T10:00:00Z'), fila('2026-09-01T10:00:00Z')],
+        siguiente: null,
+        anterior: 'y',
+      }),
+    ).toEqual({ tipo: 'hasta', creadoEn: '2026-09-02T10:00:00Z' })
+  })
+
+  it('sin filas no dice nada', () => {
+    expect(ubicacionDeLaPagina({ filas: [], siguiente: null, anterior: 'y' })).toBeNull()
   })
 })

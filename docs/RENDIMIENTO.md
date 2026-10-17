@@ -249,7 +249,8 @@ Escritorio y celular, la dueña y Ana. Se leyeron las capturas, y de ahí salier
   hidratados son los mismos (15.965 en escritorio con la columna en el tope, 10.689 en el celular). El listado de 50 filas: 2.712 → 1.489.
 - **Se entiende que hay más** en el listado sólo al pie: arriba no dice en qué página se está ni que sigue; Anterior y
   Siguiente están debajo de las 50 filas. Con filtros y búsqueda como camino a lo antiguo alcanza (buscar «Volumen 12345»
-  llega a una fila de hace meses al instante), pero sin un «página N» queda dudoso: PLAN.
+  llega a una fila de hace meses al instante), pero sin un «página N» queda dudoso: PLAN. **Cierre 1:** «página N» se descartó (con cursor no hay número verdadero sin
+  contar las filas de antes); arriba se dice «Los más recientes» o «Creados hasta el …» con «Volver al principio».
 - **El tope se dice** («Mostrando las 500 con actividad más reciente…») pero queda al pie de una columna de 500, y el camino
   a lo antiguo del kanban es la ficha de cada lead (no tiene filtros todavía): PLAN.
 - **Una página de papelera con lotes de 200** son 1.000 filas de ~60 px, cada una con «Restaurar» y «Purgar»: usable pero

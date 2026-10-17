@@ -4,9 +4,12 @@ import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { formatearFecha } from '@/shared/lib/fechas'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
+import type { UbicacionDeLaPagina } from '@/shared/lib/paginacion'
 import { useState } from 'react'
 import { buttonVariants } from '@/shared/ui/button'
+import { useRegional } from './regional'
 import { useEnLinea } from './use-en-linea'
 
 type Props = {
@@ -72,5 +75,34 @@ export function Paginacion({ siguiente, anterior }: Props) {
         </p>
       ) : null}
     </div>
+  )
+}
+
+// Arriba de la lista, dónde se está (cierre 1): «Los más recientes» al principio; más adelante, «Creados hasta el 2 sep 2026»
+// (la primera fila que se ve) y «Volver al principio», que quita el cursor y conserva filtros, búsqueda y tamaño. Nunca
+// «página N»: con cursor no se sabe sin contar (`ubicacionDeLaPagina()`).
+export function UbicacionDeLaPagina({ ubicacion }: { ubicacion: UbicacionDeLaPagina | null }) {
+  const ruta = usePathname()
+  const parametros = useSearchParams()
+  const { zonaHoraria } = useRegional()
+  if (ubicacion === null) {
+    return null
+  }
+  if (ubicacion.tipo === 'principio') {
+    return <p className="text-(length:--text-sm) text-(--color-ink-soft)">Los más recientes</p>
+  }
+  const sinCursor = new URLSearchParams(parametros)
+  sinCursor.delete(CLAVE_DE_CURSOR)
+  const texto = sinCursor.toString()
+  return (
+    <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-(length:--text-sm) text-(--color-ink-soft)">
+      <span>Creados hasta el {formatearFecha(ubicacion.creadoEn, { zona: zonaHoraria })}</span>
+      <Link
+        href={(texto === '' ? ruta : `${ruta}?${texto}`) as Route}
+        className="inline-flex min-h-11 items-center font-medium text-(--color-primario) underline-offset-4 hover:underline md:min-h-0"
+      >
+        Volver al principio
+      </Link>
+    </p>
   )
 }

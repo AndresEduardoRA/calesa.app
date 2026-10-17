@@ -277,7 +277,9 @@ dice, con un camino a lo antiguo.
 
 - **Listado de leads:** el aviso de tachados ocultos cuenta hasta 50: «12 leads que coinciden están ocultos porque los
   tachaste.» o «Más de 50 leads que coinciden están ocultos…». No hay total de leads ni «página 3 de 800»: Anterior y
-  Siguiente. Para llegar a lo antiguo, **filtrar** (origen, tipo, un campo, favoritos, etiqueta) o **buscar** por nombre o
+  Siguiente, y arriba de la lista lo que sí es verdad (cierre 1): «Los más recientes» en la primera página y, más adelante,
+  «Creados hasta el 2 sep 2026» (la primera fila que se ve) con «Volver al principio», que conserva filtros, búsqueda y
+  tamaño. Lo mismo en el inventario de vehículos. Para llegar a lo antiguo, **filtrar** (origen, tipo, un campo, favoritos, etiqueta) o **buscar** por nombre o
   número (`#124`). Con decenas de miles, un filtro que no coincide con nadie tarda unos segundos para quien ve «todos»
   (recorre toda la cartera visible); el esqueleto aparece pasados 300 ms.
 - **Exportar:** sin número previo. Con más de 5.000 leads en los filtros no se exporta nada y se dice «Hay más de 5.000

@@ -4,12 +4,12 @@ import { useSearchParams } from 'next/navigation'
 import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
 import type { ConteoAcotado } from '@/shared/lib/conteo'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
-import type { Pagina } from '@/shared/lib/paginacion'
+import { ubicacionDeLaPagina, type Pagina } from '@/shared/lib/paginacion'
 import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
 import { Button } from '@/shared/ui/button'
 import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
-import { Paginacion } from '@/shared/ui/paginacion'
+import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
 import { useRegional } from '@/shared/ui/regional'
 import type { ModoDelListado } from '../../../entities/alcance'
 import type { FilaDeLead } from '../../../entities/listado'
@@ -116,6 +116,7 @@ export function ResultadoDelListado(props: Props) {
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
+      <UbicacionDeLaPagina ubicacion={ubicacionDeLaPagina(pagina)} />
       {conTabla ? (
         <TablaDeLeads
           {...datos}
