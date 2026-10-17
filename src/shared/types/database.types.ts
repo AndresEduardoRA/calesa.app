@@ -6524,6 +6524,10 @@ export type Database = {
       }
     }
     Functions: {
+      _acotar_pagina: {
+        Args: { p_defecto: number; p_maximo: number; p_pedido: number }
+        Returns: number
+      }
       _apibara_catalogo: {
         Args: Record<PropertyKey, never>
         Returns: {

@@ -77,10 +77,14 @@ create table public.usuarios_roles (
 
 create table public.preferencias_usuario (
   usuario_id   uuid not null references public.perfiles (id) on delete cascade,
-  clave        text not null,                 -- 'tema', 'densidad', 'tablero', 'notificaciones'
+  clave        text not null,                 -- 'tema', 'densidad', 'listas.por_pagina', 'tablero', 'notificaciones'
   valor        jsonb not null default '{}'::jsonb,
   actualizado_en timestamptz not null default now(),
-  primary key (usuario_id, clave)
+  primary key (usuario_id, clave),
+  -- «Ítems por página» (9g): sólo uno de los cuatro tamaños que ofrece el selector (`TAMANOS_DE_PAGINA` de
+  -- `src/shared/lib/paginacion.ts`; `scripts/guardas/paginas.test.ts` los compara). Un número (no un texto), ni 7 ni 1000.
+  constraint preferencias_por_pagina_valida check (
+    clave <> 'listas.por_pagina' or valor in ('10'::jsonb, '25'::jsonb, '50'::jsonb, '100'::jsonb))
 );
 comment on table public.preferencias_usuario is 'Preferencias de interfaz por usuario (tema, densidad, widgets del tablero, canales de notificación). Privadas: nadie más las lee.';
 
