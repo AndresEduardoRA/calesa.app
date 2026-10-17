@@ -1,13 +1,13 @@
 'use client'
 
 import { CORTE_DEL_TABLERO } from '@/shared/lib/ancho'
-import { conteoCorto } from '@/shared/lib/conteo'
 import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
-import { useRegional } from '@/shared/ui/regional'
 import { etapaElegida } from '../../../entities/tablero'
-import { PuntoDeColor } from '../../etiquetas/components/insignia-de-etiqueta'
+import { usePanelDeMovida } from '../../oportunidades/hooks/use-panel-de-movida'
 import type { EstadoDelTablero } from '../hooks/use-tablero'
 import { ColumnaDeEtapa } from './columna-de-etapa'
+import { MovidaDelTablero } from './movida-del-tablero'
+import { PestanasDeEtapas } from './pestanas-de-etapas'
 
 type Props = {
   estado: EstadoDelTablero
@@ -24,10 +24,10 @@ type Props = {
 // la copia escondida duplicaba los nodos (26.000 en el celular) y el HTML.
 export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa, alIrABuscar }: Props) {
   const { tablero, moviendo, cargando, moverA, verMas, anuncio } = estado
-  const { locale } = useRegional()
   const esEscritorio = useAlMenos(CORTE_DEL_TABLERO)
   const etapas = tablero.columnas.map((c) => c.etapa)
   const elegida = etapaElegida(tablero, etapaDeLaUrl)
+  const movida = usePanelDeMovida()
 
   const columna = (id: string, conEncabezado: boolean) => {
     const c = tablero.columnas.find((x) => x.etapa.id === id)
@@ -39,6 +39,7 @@ export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa, alIrABusc
         cargando={cargando === id}
         conEncabezado={conEncabezado}
         alMover={moverA}
+        alPedirMotivo={movida.pedir}
         alVerMas={() => void verMas(id)}
         buscando={tablero.busqueda !== null}
         {...(alIrABuscar ? { alIrABuscar } : {})}
@@ -51,6 +52,7 @@ export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa, alIrABusc
       <p aria-live="polite" className="sr-only">
         {anuncio}
       </p>
+      <MovidaDelTablero panel={movida} estado={estado} />
       {esEscritorio ? (
         <div className="-mx-1 overflow-x-auto px-1 pb-2">
           <div className="flex items-start gap-3">
@@ -64,35 +66,11 @@ export function TableroDeEmbudo({ estado, etapaDeLaUrl, alElegirEtapa, alIrABusc
       ) : null}
       {!esEscritorio ? (
         <div className="grid gap-3">
-          <div
-            role="tablist"
-            aria-label="Etapas"
-            className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1"
-          >
-            {tablero.columnas.map((c) => {
-              const activa = c.etapa.id === elegida
-              return (
-                <button
-                  key={c.etapa.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={activa}
-                  onClick={() => {
-                    alElegirEtapa(c.etapa.id)
-                  }}
-                  className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-(--radius-pill) border px-3 text-(length:--text-sm) ${
-                    activa
-                      ? 'border-(--color-primario) bg-(--color-primario-soft) text-(--color-primario-ink)'
-                      : 'border-(--color-line) text-(--color-ink-soft)'
-                  }`}
-                >
-                  <PuntoDeColor color={c.etapa.color} className="size-2.5" />
-                  {c.etapa.nombre}
-                  <span className="tabular-nums">{conteoCorto(c.total, { locale })}</span>
-                </button>
-              )
-            })}
-          </div>
+          <PestanasDeEtapas
+            columnas={tablero.columnas}
+            elegida={elegida}
+            alElegir={alElegirEtapa}
+          />
           <div
             role="tabpanel"
             aria-label={tablero.columnas.find((c) => c.etapa.id === elegida)?.etapa.nombre}

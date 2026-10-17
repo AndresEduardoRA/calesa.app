@@ -11,11 +11,13 @@ import type { EtapaGuardada } from '../../../entities/embudo'
 import { MenuMoverA } from './menu-mover-a'
 
 type Props = {
+  id: string
   titulo: string
   etapas: readonly EtapaGuardada[]
   actual: string
   ocupada: boolean
   alMover: (etapa: EtapaGuardada, motivo: string | null) => Promise<boolean>
+  alPedirMotivo: (etapa: EtapaGuardada) => void
   alEditar: () => void
   alEliminar: () => void
 }
@@ -25,17 +27,20 @@ const RENGLON = 'min-h-11 md:min-h-8'
 // «Mover a…» a la vista, y «Editar» y «Eliminar» (con «Deshacer») en el «⋯»: sólo con la cartera y
 // `leads.editar`. Un solo menú por tarjeta mantiene liviana la sección.
 export function AccionesDeOportunidad({
+  id,
   titulo,
   etapas,
   actual,
   ocupada,
   alMover,
+  alPedirMotivo,
   alEditar,
   alEliminar,
 }: Props) {
   return (
     <>
       <MenuMoverA
+        id={id}
         titulo={titulo}
         etapas={etapas}
         actual={actual}
@@ -44,6 +49,7 @@ export function AccionesDeOportunidad({
           const etapa = etapas.find((e) => e.id === etapaId)
           return etapa ? alMover(etapa, motivo) : Promise.resolve(false)
         }}
+        alPedirMotivo={alPedirMotivo}
       />
       <DropdownMenu>
         <DropdownMenuTrigger

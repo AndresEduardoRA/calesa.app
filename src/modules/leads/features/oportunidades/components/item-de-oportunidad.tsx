@@ -17,6 +17,7 @@ type Props = {
   puedeEditar: boolean
   ocupada: boolean
   alMover: (etapa: EtapaGuardada, motivo: string | null) => Promise<boolean>
+  alPedirMotivo: (etapa: EtapaGuardada) => void
   alEditar: () => void
   alEliminar: () => void
 }
@@ -55,6 +56,7 @@ export function ItemDeOportunidad({
         </span>
         {puedeEditar ? (
           <AccionesDeOportunidad
+            id={o.id}
             titulo={o.titulo}
             etapas={etapas}
             actual={o.etapaId}

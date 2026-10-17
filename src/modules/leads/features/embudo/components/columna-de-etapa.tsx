@@ -22,6 +22,7 @@ type Props = {
   // En el celular la columna no repite su encabezado (lo dice la pestaña).
   conEncabezado: boolean
   alMover: (tarjeta: Tarjeta, etapaId: string, motivo: string | null) => Promise<boolean>
+  alPedirMotivo: (tarjeta: Tarjeta, etapa: EtapaGuardada) => void
   alVerMas: () => void
   // Hay una búsqueda puesta (cierre 1): el vacío dice que nada coincide.
   buscando?: boolean
@@ -83,6 +84,7 @@ export function ColumnaDeEtapa({
   cargando,
   conEncabezado,
   alMover,
+  alPedirMotivo,
   alVerMas,
   buscando = false,
   alIrABuscar,
@@ -118,6 +120,9 @@ export function ColumnaDeEtapa({
                 etapas={etapas}
                 enCurso={moviendo === tarjeta.id}
                 alMover={(etapaId, motivo) => alMover(tarjeta, etapaId, motivo)}
+                alPedirMotivo={(etapa) => {
+                  alPedirMotivo(tarjeta, etapa)
+                }}
               />
             </li>
           ))}

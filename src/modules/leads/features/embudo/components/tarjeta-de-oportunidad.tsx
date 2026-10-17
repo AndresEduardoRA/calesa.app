@@ -19,11 +19,12 @@ type Props = {
   etapas: readonly EtapaGuardada[]
   enCurso: boolean
   alMover: (etapaId: string, motivo: string | null) => Promise<boolean>
+  alPedirMotivo: (etapa: EtapaGuardada) => void
 }
 
 // Una oportunidad en el kanban: título, de qué lead (lleva a su sección en la ficha), monto, vehículo,
 // desde cuándo está en la etapa y «Mover a…». Ganada o perdida lo dice con texto.
-export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover }: Props) {
+export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover, alPedirMotivo }: Props) {
   const { zonaHoraria } = useRegional()
   const href = `${RUTAS.leads}/${tarjeta.lead.id}?${CLAVE_DE_SECCION}=oportunidades` as Route
   return (
@@ -75,11 +76,13 @@ export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover }: Prop
           En esta etapa desde {fechaRelativa(tarjeta.enEtapaDesde, { zona: zonaHoraria })}
         </span>
         <MenuMoverA
+          id={tarjeta.id}
           titulo={tarjeta.titulo}
           etapas={etapas}
           actual={tarjeta.etapaId}
           enCurso={enCurso}
           alMover={alMover}
+          alPedirMotivo={alPedirMotivo}
         />
       </div>
     </article>

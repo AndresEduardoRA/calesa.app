@@ -11,8 +11,10 @@ import {
 } from '../../../entities/oportunidad'
 import { RefrescarAlVolver } from '../../ficha/components/refrescar-al-volver'
 import { useOportunidades } from '../hooks/use-oportunidades'
+import { usePanelDeMovida } from '../hooks/use-panel-de-movida'
 import { usePanelDeOportunidad } from '../hooks/use-panel-de-oportunidad'
 import { ItemDeOportunidad } from './item-de-oportunidad'
+import { MovidaDeLaFicha } from './movida-de-la-ficha'
 import { PanelDeOportunidad } from './panel-de-oportunidad'
 
 // Con más de 100 oportunidades en un lead, se dice que lo que se ve es lo más reciente (el aviso de siempre).
@@ -23,6 +25,10 @@ function TopeDeOportunidades({ hayMas }: { hayMas: boolean }) {
     />
   ) : null
 }
+
+// Con un panel o un modal abierto la sección no se vuelve a leer sola (reiniciaría lo escrito).
+const hayPanelAbierto = (nueva: boolean, editando: unknown, movida: boolean) =>
+  nueva || editando !== null || movida
 
 type Props = {
   leadId: string
@@ -37,6 +43,7 @@ type Props = {
 // La sección «Oportunidades»: las de quien mira sobre el lead (abiertas primero) y «Nueva oportunidad».
 export function OportunidadesDelLead({ leadId, inicial, embudos, puedoCrear, hayMas }: Props) {
   const panel = usePanelDeOportunidad()
+  const movida = usePanelDeMovida()
   const { lista, moverA, quitar, ocupada } = useOportunidades(inicial)
   const editando = panel.editando ? (lista.find((o) => o.id === panel.editando) ?? null) : null
   const nueva = puedoCrear ? (
@@ -71,6 +78,9 @@ export function OportunidadesDelLead({ leadId, inicial, embudos, puedoCrear, hay
                 puedeEditar={puedoCrear}
                 ocupada={ocupada === o.id}
                 alMover={(etapa, motivo) => moverA(o, etapa, motivo)}
+                alPedirMotivo={(etapa) => {
+                  movida.pedir(o, etapa)
+                }}
                 alEditar={() => {
                   panel.abrirEdicion(o.id)
                 }}
@@ -90,7 +100,14 @@ export function OportunidadesDelLead({ leadId, inicial, embudos, puedoCrear, hay
           alCerrar={panel.cerrar}
         />
       ) : null}
-      <RefrescarAlVolver activo={!panel.nueva && !editando} />
+      <MovidaDeLaFicha
+        activa={puedoCrear}
+        panel={movida}
+        lista={lista}
+        embudos={embudos}
+        moverA={moverA}
+      />
+      <RefrescarAlVolver activo={!hayPanelAbierto(panel.nueva, editando, movida.abierto)} />
     </section>
   )
 }

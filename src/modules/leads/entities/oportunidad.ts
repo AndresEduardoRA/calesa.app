@@ -258,3 +258,34 @@ export function validarMotivo(motivo: string): string | null {
 export const PANEL_NUEVA_OPORTUNIDAD = 'nueva-oportunidad'
 export const PANEL_EDITAR_OPORTUNIDAD = 'editar-oportunidad'
 export const CLAVE_DE_OPORTUNIDAD = 'oportunidad'
+
+// «Mover a …» una etapa perdida, que pregunta el motivo, en la URL (`?panel=mover-oportunidad&oportunidad=<id>&destino=<id>`).
+// Se abre desde el menú «Mover a…» del kanban y de la ficha; la oportunidad es la misma clave que usa «Editar».
+export const PANEL_MOVER_OPORTUNIDAD = 'mover-oportunidad'
+// No `etapa`: en el celular `?etapa=` es la pestaña elegida del tablero (`CLAVE_DE_ETAPA`) y el modal la pisaría.
+export const CLAVE_DE_ETAPA_A_MOVER = 'destino'
+export const MENSAJE_DE_OPORTUNIDAD_A_MOVER_NO_DISPONIBLE =
+  'Esa oportunidad ya no está en la lista.'
+
+// Por qué `?panel=mover-oportunidad` no abre: la oportunidad no está entre las cargadas (otra persona la eliminó,
+// o no se cargó), la etapa no existe en su embudo, ya está en ella o no pide un motivo (sólo las perdidas lo piden;
+// las demás se mueven con un clic). Nulo = se puede abrir. Se revisa una vez, al llegar.
+export function motivoParaNoMover(
+  oportunidad: { etapaId: string } | null,
+  etapas: readonly EtapaGuardada[],
+  etapaId: string | null,
+): string | null {
+  if (oportunidad === null) {
+    return MENSAJE_DE_OPORTUNIDAD_A_MOVER_NO_DISPONIBLE
+  }
+  const destino = etapaId === null ? undefined : etapas.find((e) => e.id === etapaId)
+  if (!destino) {
+    return 'Esa etapa ya no existe en este embudo.'
+  }
+  if (destino.id === oportunidad.etapaId) {
+    return `La oportunidad ya está en «${destino.nombre}».`
+  }
+  return destino.esPerdida
+    ? null
+    : `Pasar a «${destino.nombre}» no pide un motivo: se mueve desde «Mover a…».`
+}

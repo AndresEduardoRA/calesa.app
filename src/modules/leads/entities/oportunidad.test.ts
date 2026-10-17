@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { EtapaGuardada } from './embudo'
 import {
   cambiosDeOportunidad,
   datosDeOportunidad,
@@ -6,6 +7,8 @@ import {
   oportunidadDesde,
   oportunidadesDelLeadDesde,
   validarMotivo,
+  motivoParaNoMover,
+  MENSAJE_DE_OPORTUNIDAD_A_MOVER_NO_DISPONIBLE,
   validarOportunidad,
   valoresDeOportunidad,
   type Oportunidad,
@@ -146,5 +149,40 @@ describe('lo que viaja', () => {
   })
   it('una nueva arranca vacía', () => {
     expect(valoresDeOportunidad(null)).toEqual({ titulo: '', monto: '', notas: '', vehiculo: '' })
+  })
+})
+
+describe('motivoParaNoMover', () => {
+  const etapa = (id: string, nombre: string, esPerdida = false) =>
+    ({ id, nombre, esPerdida }) as unknown as EtapaGuardada
+  const etapas = [etapa('a', 'Nuevo'), etapa('b', 'Cotizado'), etapa('c', 'Perdido', true)]
+
+  it('abre cuando la oportunidad está, la etapa es otra y es una perdida', () => {
+    expect(motivoParaNoMover({ etapaId: 'a' }, etapas, 'c')).toBeNull()
+  })
+
+  it('no abre si la oportunidad no está entre las cargadas', () => {
+    expect(motivoParaNoMover(null, etapas, 'c')).toBe(MENSAJE_DE_OPORTUNIDAD_A_MOVER_NO_DISPONIBLE)
+  })
+
+  it('no abre si la etapa no existe o falta en la URL', () => {
+    expect(motivoParaNoMover({ etapaId: 'a' }, etapas, 'zzz')).toBe(
+      'Esa etapa ya no existe en este embudo.',
+    )
+    expect(motivoParaNoMover({ etapaId: 'a' }, etapas, null)).toBe(
+      'Esa etapa ya no existe en este embudo.',
+    )
+  })
+
+  it('no abre si ya está en esa etapa', () => {
+    expect(motivoParaNoMover({ etapaId: 'c' }, etapas, 'c')).toBe(
+      'La oportunidad ya está en «Perdido».',
+    )
+  })
+
+  it('no abre para una etapa que no pide motivo', () => {
+    expect(motivoParaNoMover({ etapaId: 'a' }, etapas, 'b')).toBe(
+      'Pasar a «Cotizado» no pide un motivo: se mueve desde «Mover a…».',
+    )
   })
 })
