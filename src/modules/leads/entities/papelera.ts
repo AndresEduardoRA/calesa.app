@@ -4,6 +4,7 @@
 // acá se lee lo que responde y se lo pone en palabras. Es la clase 3 de la auditoría: vale el
 // permiso con su alcance y no abre datos privados (el nombre y nada más). Nada de React ni de
 // Supabase.
+import { CAMPOS_DE_NUMEROS, numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { z } from 'zod'
 import { cantidadAcotada } from '@/shared/lib/conteo'
 import { alcanceDe, puede, type Permisos } from '@/shared/lib/permisos'
@@ -20,7 +21,7 @@ export const ETIQUETA_DE_ENVIAR = 'Enviar a la papelera'
 
 export type LeadEnPapelera = {
   id: string
-  numero: number
+  numeros: NumerosDeLead
   nombre: string
   // Por qué no se purga (un vehículo vinculado, pagos, el portal vigente); null = se puede.
   motivoDeBloqueo: string | null
@@ -56,7 +57,7 @@ const esquemaLotes = z.array(
       .array(
         z.object({
           id: z.guid(),
-          numero: z.number(),
+          ...CAMPOS_DE_NUMEROS,
           nombre: z.string(),
           motivo_de_bloqueo: z.string().nullable(),
           motivo_de_restaurar: z.string().nullable(),
@@ -83,7 +84,7 @@ export function lotesDesde(crudo: unknown): LoteDePapelera[] | null {
     enviados: lote.enviados,
     leads: (lote.leads ?? []).map((lead) => ({
       id: lead.id,
-      numero: lead.numero,
+      numeros: numerosDesde(lead),
       nombre: lead.nombre,
       motivoDeBloqueo: lead.motivo_de_bloqueo,
       motivoDeRestaurar: lead.motivo_de_restaurar,
@@ -95,7 +96,7 @@ export function lotesDesde(crudo: unknown): LoteDePapelera[] | null {
 // Lo que responde cada operación
 // ---------------------------------------------------------------------------
 
-type Hecho = { id: string; numero: number; nombre: string }
+type Hecho = { id: string; nombre: string }
 type NoHecho = Hecho & { motivo: string }
 
 export type ResultadoDeEnvio = {
@@ -109,7 +110,7 @@ export type ResultadoDeEnvio = {
   enviados: Hecho[]
 }
 
-const hecho = z.object({ id: z.guid(), numero: z.number(), nombre: z.string() })
+const hecho = z.object({ id: z.guid(), nombre: z.string() })
 const noHecho = hecho.extend({ motivo: z.string() })
 
 const esquemaEnvio = z.object({

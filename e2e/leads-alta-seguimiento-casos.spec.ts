@@ -131,12 +131,12 @@ test('«Tomar lead» con seguimiento enriquecido y sin seguimiento', async ({ pa
       await editorDelAlta(page).click()
       await editorDelAlta(page).pressSequentially('Volvió a escribir')
       await page.keyboard.press('Control+Enter')
-      await expect(page.getByText(/Lead #\d+ tomado$/)).toBeVisible()
+      await expect(page.getByText(/^Lead tomado(?! sin seguimiento)/)).toBeVisible()
       const [seguimiento] = await seguimientosDe(leadId)
       expect(seguimiento?.detalle_texto).toBe('Volvió a escribir')
     } else {
       await page.keyboard.press('Control+s')
-      await expect(page.getByText(/Lead #\d+ tomado sin seguimiento/)).toBeVisible()
+      await expect(page.getByText(/Lead tomado sin seguimiento/)).toBeVisible()
       expect(await seguimientosDe(leadId)).toEqual([])
     }
   }
@@ -160,7 +160,7 @@ test('sin tipos de seguimiento activos se guarda sin seguimiento y no se bloquea
     ).toBeVisible()
     await expect(panel.getByRole('button', { name: 'Seguir con el seguimiento' })).toHaveCount(0)
     await page.keyboard.press('Control+Enter')
-    await expect(page.getByText(/Lead #\d+ creado sin seguimiento/)).toBeVisible()
+    await expect(page.getByText(/Lead creado sin seguimiento/)).toBeVisible()
     const [lead] = await leadsConTelefono(normalizado)
     expect(await seguimientosDe(lead?.id ?? '')).toEqual([])
   } finally {
@@ -236,7 +236,7 @@ test('sin red, guardar desde el paso 1 con un seguimiento escrito sale solo al v
   expect(await leadsConTelefono(normalizado)).toHaveLength(0)
 
   await context.setOffline(false)
-  await expect(page.getByText(/Lead #\d+ creado$/)).toBeVisible()
+  await expect(page.getByText(/^Lead creado(?! sin seguimiento)/)).toBeVisible()
   const [lead] = await leadsConTelefono(normalizado)
   const guardados = await seguimientosDe(lead?.id ?? '')
   expect(guardados.map((s) => s.titulo)).toEqual(['Escribió sin señal'])

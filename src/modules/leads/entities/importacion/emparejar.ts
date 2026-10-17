@@ -7,6 +7,7 @@
 // sólo un texto que no se empareja).
 import { CLAVE_DEL_ALTA, claveDeAtributoDeAlta } from '../alta'
 import type { CampoDeLead } from '../campo'
+import { esEncabezadoDeNumero } from '../numero'
 import { comparable } from './texto'
 
 export type ObjetivoDeImportacion = {
@@ -93,7 +94,12 @@ export function emparejarColumnas(
     }
     const id = porNombre.get(comparable(encabezado))
     if (id === undefined) {
-      avisos.push(`La columna «${encabezado}» no corresponde a ningún dato: se ignora.`)
+      // Los números de un lead (el global y el propio) los pone el sistema: no se pueden fijar desde un archivo.
+      avisos.push(
+        esEncabezadoDeNumero(encabezado)
+          ? `La columna «${encabezado}» no se importa: el número de un lead lo pone el sistema.`
+          : `La columna «${encabezado}» no corresponde a ningún dato: se ignora.`,
+      )
       return null
     }
     const primera = usados.get(id)

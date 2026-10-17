@@ -19,7 +19,13 @@ import {
 
 const ID = '4a1f5b0e-6f0a-4f6e-9a55-1b6e2a1f0c11'
 const SEGUIMIENTO = valoresDeSeguimientoNuevo([{ id: '1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f' }])
-const EXISTE = { estado: 'existe', leadId: ID, numero: 12, nombre: 'Ana', esMio: true } as const
+const EXISTE = {
+  estado: 'existe',
+  leadId: ID,
+  numeros: { numero: 12, numeroPropio: null, creadorDelPropio: null },
+  nombre: 'Ana',
+  esMio: true,
+} as const
 
 describe('estado del alta', () => {
   const inicio = { ...limpio(ID, { nombre: '' }, SEGUIMIENTO), paso: 'seguimiento' as const }
@@ -115,7 +121,7 @@ describe('estado del alta: el teléfono', () => {
   it('un teléfono con dueño frena; uno sin dueño frena hasta tomarlo', () => {
     expect(frenadoPorElTelefono(null, false)).toBeNull()
     expect(frenadoPorElTelefono({ estado: 'libre' }, false)).toBeNull()
-    expect(frenadoPorElTelefono(EXISTE, false)).toContain('Ya existe: Ana (#12)')
+    expect(frenadoPorElTelefono(EXISTE, false)).toContain('Ya existe: Ana (N.º 12)')
     expect(frenadoPorElTelefono({ estado: 'de_otro', dueno: 'Diego' }, false)).toContain(
       'Lo tiene Diego',
     )
@@ -129,7 +135,7 @@ describe('estado del alta: el teléfono', () => {
     const duplicado = trasDuplicado({ ...inicio, adoptar: true, pendiente: true }, EXISTE)
     expect(duplicado).toMatchObject({ paso: 'datos', adoptar: false, pendiente: false })
     expect(duplicado.errores['telefono_principal']).toBe(
-      'Ya existe: Ana (#12), y es tuyo. No se creó nada.',
+      'Ya existe: Ana (N.º 12), y es tuyo. No se creó nada.',
     )
     expect(trasDuplicado(inicio, { estado: 'limbo' }).errores['telefono_principal']).toContain(
       'sin dueño',

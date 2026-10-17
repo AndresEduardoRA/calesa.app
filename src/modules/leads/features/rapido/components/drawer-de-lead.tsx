@@ -24,6 +24,7 @@ import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
 import { InsigniasDeMarcas } from '../../marcas/components/insignias-de-marcas'
 import { telefonoDeLista } from '../../listado/components/telefono-de-lista'
 import { nombreDelOrigen, type DatosDeLaLista } from '../../listado/components/tipos'
+import { useNumerosEnTexto } from '@/shared/ui/numero-de-lead'
 import { useDrawerDeLead } from '../hooks/use-drawer-de-lead'
 import { useLeadRapido } from '../hooks/use-lead-rapido'
 import { PestanasDelRapido } from './pestanas-del-rapido'
@@ -240,13 +241,14 @@ export function DrawerDeLead({ filas, soloMios, ...datos }: Props) {
   const ultimo = useUltimo(vista.tipo === 'lead' ? vista.lead : null)
   const mostrado = vista.tipo === 'lead' ? vista.lead : ultimo
   const sinLead = vista.tipo === 'no_disponible'
+  const numeros = useNumerosEnTexto(mostrado)
   return (
     <Drawer
       abierto={id !== null}
       ancho="amplio"
       alCerrar={cerrar}
       titulo={sinLead ? 'Lead no disponible' : (mostrado?.nombre ?? 'Lead')}
-      {...(mostrado && !sinLead ? { descripcion: `Lead #${String(mostrado.numero)}` } : {})}
+      descripcion={sinLead || numeros === '' ? undefined : numeros}
     >
       <ContenidoDelRapido
         vista={vista}

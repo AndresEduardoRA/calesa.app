@@ -4,6 +4,7 @@ import { errorDePostgrest, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
 import type { Json } from '@/shared/types/database.types'
 import type { PedidoDeAlta, RepositorioDeAlta, ResultadoDeAlta } from '../entities/repositorios'
+import { CAMPOS_DE_NUMEROS, numerosDesde } from '@/shared/lib/numeros-de-lead'
 import { verificacionDesde } from '../entities/verificacion'
 
 // El alta se escribe sólo por `crear_lead()` (`…20261014001000_lead_alta.sql`): el lead, su primer
@@ -13,7 +14,7 @@ const respuesta = z.discriminatedUnion('resultado', [
   z.object({
     resultado: z.enum(['creado', 'adoptado']),
     id: z.guid(),
-    numero: z.number(),
+    ...CAMPOS_DE_NUMEROS,
     repetido: z.boolean(),
   }),
   z.object({
@@ -27,7 +28,12 @@ function resultadoDesde(crudo: unknown): ResultadoDeAlta {
   if ('verificacion' in leido) {
     return { resultado: leido.resultado, verificacion: verificacionDesde(leido.verificacion) }
   }
-  return leido
+  return {
+    resultado: leido.resultado,
+    id: leido.id,
+    numeros: numerosDesde(leido),
+    repetido: leido.repetido,
+  }
 }
 
 function comoJson({ datos, adoptar }: PedidoDeAlta): {

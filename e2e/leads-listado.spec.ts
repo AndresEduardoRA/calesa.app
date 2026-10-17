@@ -191,12 +191,20 @@ test('la búsqueda trata %, _, comas y comillas como texto y no rompe', async ({
   await expect(fila(page, PROPIO_BERTA)).toHaveCount(0)
 })
 
-test('se busca por número de lead, nunca por teléfono', async ({ page }) => {
+test('se busca por el número que se ve, nunca por teléfono ni por el global ajeno', async ({
+  page,
+}) => {
+  // Berta no tiene el permiso del número global: busca el propio, el que ve.
   await entrar(page, t.personas.berta)
-  await irALeads(page, buscar(`#${String(t.numeroDeBerta)}`))
+  await irALeads(page, buscar(`#${String(t.numeroPropioDeBerta)}`))
   await expect(fila(page, PROPIO_BERTA)).toBeVisible()
-  await irALeads(page, buscar(String(t.numeroDeBerta)))
+  await irALeads(page, buscar(String(t.numeroPropioDeBerta)))
   await expect(fila(page, PROPIO_BERTA)).toBeVisible()
+  // El número global de un lead que ve no se encuentra: sería un oráculo para saber cuál es.
+  if (t.numeroDeBerta !== t.numeroPropioDeBerta) {
+    await irALeads(page, buscar(`#${String(t.numeroDeBerta)}`))
+    await expect(fila(page, PROPIO_BERTA)).toHaveCount(0)
+  }
   // El teléfono de un lead no es un criterio de búsqueda: ni el ajeno ni, por lo mismo, el propio.
   await irALeads(page, buscar(t.telefonoDeCarlos))
   await expect(sinResultados(page)).toBeVisible()

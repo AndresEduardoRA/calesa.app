@@ -89,7 +89,7 @@ describe('candidatosDesde', () => {
         ...fila,
         vinculado_aqui: false,
         vinculado_a_otro: true,
-        otro_lead: { nombre: 'Ana Rojas', numero: 7 },
+        otro_lead: { nombre: 'Ana Rojas', numero: 7, numero_propio: null },
         reemplazable: true,
         interesado: true,
       },
@@ -129,12 +129,23 @@ describe('vinculoPosible', () => {
         candidato({
           vinculadoAOtro: true,
           reemplazable: true,
-          otroLead: { nombre: 'Ana', numero: 7 },
+          otroLead: {
+            nombre: 'Ana',
+            numeros: { numero: 7, numeroPropio: null, creadorDelPropio: null },
+          },
         }),
       ),
-    ).toEqual({ tipo: 'reemplazar', anterior: '«Ana» (#7)' })
+    ).toEqual({ tipo: 'reemplazar', anterior: '«Ana» (N.º 7)' })
     expect(
-      vinculoPosible(candidato({ vinculadoAOtro: true, otroLead: { nombre: 'Ana', numero: 7 } })),
+      vinculoPosible(
+        candidato({
+          vinculadoAOtro: true,
+          otroLead: {
+            nombre: 'Ana',
+            numeros: { numero: 7, numeroPropio: null, creadorDelPropio: null },
+          },
+        }),
+      ),
     ).toEqual({
       tipo: 'no',
       motivo: MOTIVO_DE_OTRO_LEAD,
@@ -149,7 +160,12 @@ describe('vinculoPosible', () => {
 
 describe('rótulos', () => {
   it('nombra un lead y un vehículo con su número', () => {
-    expect(nombreConNumero({ nombre: 'Ana', numero: 7 })).toBe('«Ana» (#7)')
+    expect(
+      nombreConNumero({
+        nombre: 'Ana',
+        numeros: { numero: 7, numeroPropio: null, creadorDelPropio: null },
+      }),
+    ).toBe('«Ana» (N.º 7)')
     expect(rotuloDeVehiculo({ titulo: 'Toyota Corolla', numero: 12 })).toBe('Toyota Corolla · #12')
   })
 })
@@ -199,8 +215,8 @@ describe('textos de cada resultado', () => {
     expect(textoDeVinculo(vinculo('vinculado'), auto)).toBe(
       'Se vinculó «Toyota Corolla · #12» a este lead.',
     )
-    expect(textoDeVinculo(vinculo('reemplazado'), auto, '«Ana» (#7)')).toBe(
-      'Se vinculó «Toyota Corolla · #12» a este lead; ya no está vinculado a «Ana» (#7).',
+    expect(textoDeVinculo(vinculo('reemplazado'), auto, '«Ana» (N.º 7)')).toBe(
+      'Se vinculó «Toyota Corolla · #12» a este lead; ya no está vinculado a «Ana» (N.º 7).',
     )
     expect(textoDeVinculo(vinculo('sin_cambios'), auto)).toBe(
       '«Toyota Corolla · #12» ya estaba así.',

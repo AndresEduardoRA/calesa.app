@@ -1,6 +1,7 @@
 // La ficha de un lead (`/leads/[id]`): lo que `lead_ficha()` entrega en un viaje y cómo se lee. La
 // base ya recortó todo según quien mira: el teléfono llega completo sólo a la cartera, los extras
 // igual, y los atributos «solo la cartera» sólo si quien mira la tiene. Nada acá decide quién ve qué.
+import { CAMPOS_DE_NUMEROS, numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { z } from 'zod'
 import { TIPOS_DEL_LEAD, type TipoDelLead } from './listado'
 import type { OrigenDeLead } from './alta'
@@ -19,7 +20,8 @@ export type TelefonoExtra = { id: string; telefono: string; etiqueta: string | n
 
 export type LeadDeFicha = {
   id: string
-  numero: number
+  // Los números que se ven (el global sólo con el permiso; el propio, con quién lo creó si no es quien mira).
+  numeros: NumerosDeLead
   nombre: string
   // El código de país guardado, si el número es el de la empresa.
   telefonoCc: string | null
@@ -59,7 +61,7 @@ export const TOPE_DE_VENCIDOS = 20
 
 const esquemaFicha = z.object({
   id: z.guid(),
-  numero: z.number(),
+  ...CAMPOS_DE_NUMEROS,
   nombre: z.string(),
   telefono_cc: z.string().nullable(),
   telefono: z.string().nullable(),
@@ -99,7 +101,7 @@ export function fichaDesde(crudo: unknown): LeadDeFicha | null {
   const f = leido.data
   return {
     id: f.id,
-    numero: f.numero,
+    numeros: numerosDesde(f),
     nombre: f.nombre,
     telefonoCc: f.telefono_cc,
     telefono: f.telefono ?? '',

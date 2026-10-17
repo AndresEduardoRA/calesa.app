@@ -42,7 +42,7 @@ describe('fichaDesde', () => {
     const ficha = fichaDesde(CRUDA)
     expect(ficha).toMatchObject({
       id: ID,
-      numero: 124,
+      numeros: { numero: 124, numeroPropio: null, creadorDelPropio: null },
       nombre: 'Ana Rojas',
       telefonoCc: '+591',
       telefono: '59170011002',

@@ -2,12 +2,14 @@
 // interesados (los leads que mostraron interés). Acá sólo se leen: se escriben desde la ficha del
 // lead. El nombre de un lead sólo llega si quien mira lo ve; si no, es nulo.
 import { z } from 'zod'
+import { numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 
 export type Vinculo = {
   leadId: string
   // null = un lead que quien mira no ve (no está en su cartera, o ya no existe).
   leadNombre: string | null
-  leadNumero: number | null
+  // Los números del lead que quien mira ve (el global sólo con el permiso; el propio, el suyo).
+  leadNumeros: NumerosDeLead
   desde: string
   // null = el vigente.
   hasta: string | null
@@ -18,7 +20,7 @@ export type Vinculo = {
 export type Interesado = {
   leadId: string
   leadNombre: string
-  leadNumero: number
+  leadNumeros: NumerosDeLead
   nota: string | null
   creadoEn: string
   porNombre: string | null
@@ -37,6 +39,7 @@ const filasDeVinculo = z.array(
     lead_id: z.guid(),
     lead_nombre: z.string().nullable(),
     lead_numero: z.number().nullable(),
+    lead_numero_propio: z.number().nullable(),
     desde: z.string(),
     hasta: z.string().nullable(),
     por_nombre: z.string().nullable(),
@@ -47,7 +50,8 @@ const filasDeInteresado = z.array(
   z.object({
     lead_id: z.guid(),
     lead_nombre: z.string(),
-    lead_numero: z.number(),
+    lead_numero: z.number().nullable(),
+    lead_numero_propio: z.number().nullable(),
     nota: z.string().nullable(),
     creado_en: z.string(),
     por_nombre: z.string().nullable(),
@@ -59,7 +63,7 @@ export function relacionesDesde(vinculos: unknown, interesados: unknown): Relaci
   const todos = filasDeVinculo.parse(vinculos).map((fila) => ({
     leadId: fila.lead_id,
     leadNombre: fila.lead_nombre,
-    leadNumero: fila.lead_numero,
+    leadNumeros: numerosDesde({ numero: fila.lead_numero, numero_propio: fila.lead_numero_propio }),
     desde: fila.desde,
     hasta: fila.hasta,
     porNombre: fila.por_nombre,
@@ -70,7 +74,10 @@ export function relacionesDesde(vinculos: unknown, interesados: unknown): Relaci
     interesados: filasDeInteresado.parse(interesados).map((fila) => ({
       leadId: fila.lead_id,
       leadNombre: fila.lead_nombre,
-      leadNumero: fila.lead_numero,
+      leadNumeros: numerosDesde({
+        numero: fila.lead_numero,
+        numero_propio: fila.lead_numero_propio,
+      }),
       nota: fila.nota,
       creadoEn: fila.creado_en,
       porNombre: fila.por_nombre,

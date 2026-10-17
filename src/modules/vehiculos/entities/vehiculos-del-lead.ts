@@ -3,6 +3,12 @@
 // recortado por la base: lo que quien mira no ve no llega ni se cuenta (`lead_vehiculos()`).
 import { z } from 'zod'
 import { formatearDiaYMes } from '@/shared/lib/fechas'
+import {
+  CAMPOS_DE_NUMEROS,
+  numeroEnFrase,
+  numerosDesde,
+  type NumerosDeLead,
+} from '@/shared/lib/numeros-de-lead'
 
 export const TOPE_DE_NOTA = 500
 
@@ -126,7 +132,7 @@ export type CandidatoDeVinculo = VehiculoDelLead & {
   vinculadoAqui: boolean
   vinculadoAOtro: boolean
   // El lead al que está vinculado, sólo si quien mira lo ve.
-  otroLead: { nombre: string; numero: number } | null
+  otroLead: { nombre: string; numeros: NumerosDeLead } | null
   // Quien mira tiene también el lead actual en su cartera: puede pasarlo a este.
   reemplazable: boolean
   interesado: boolean
@@ -137,7 +143,7 @@ const esquemaDeCandidatos = z.array(
     ...base,
     vinculado_aqui: z.boolean(),
     vinculado_a_otro: z.boolean(),
-    otro_lead: z.object({ nombre: z.string(), numero: z.number() }).nullable(),
+    otro_lead: z.object({ nombre: z.string(), ...CAMPOS_DE_NUMEROS }).nullable(),
     reemplazable: z.boolean(),
     interesado: z.boolean(),
   }),
@@ -153,7 +159,9 @@ export function candidatosDesde(datos: unknown): CandidatoDeVinculo[] {
     ...comoVehiculo(fila),
     vinculadoAqui: fila.vinculado_aqui,
     vinculadoAOtro: fila.vinculado_a_otro,
-    otroLead: fila.otro_lead,
+    otroLead: fila.otro_lead
+      ? { nombre: fila.otro_lead.nombre, numeros: numerosDesde(fila.otro_lead) }
+      : null,
     reemplazable: fila.reemplazable,
     interesado: fila.interesado,
   }))
@@ -187,8 +195,9 @@ export function vinculoPosible(candidato: CandidatoDeVinculo): VinculoPosible {
 export const AVISO_DE_VINCULO =
   'Quien tenga este lead en su cartera podrá ver este vehículo y, si su rol lo permite, editarlo.'
 
-export function nombreConNumero(lead: { nombre: string; numero: number }): string {
-  return `«${lead.nombre}» (#${String(lead.numero)})`
+export function nombreConNumero(lead: { nombre: string; numeros: NumerosDeLead }): string {
+  const numero = numeroEnFrase(lead.numeros)
+  return `«${lead.nombre}»${numero === null ? '' : ` (${numero})`}`
 }
 
 // «Toyota Corolla · #12»: cómo se nombra un vehículo en una línea.

@@ -68,7 +68,7 @@ export function SeccionDatos({
         lead={{
           id: ficha.id,
           nombre: ficha.nombre,
-          numero: ficha.numero,
+          numeros: ficha.numeros,
           vehiculosVinculados: ficha.vehiculosVinculados,
           vePortal,
         }}

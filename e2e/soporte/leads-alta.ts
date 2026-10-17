@@ -27,6 +27,8 @@ export async function codigoDePaisDeLaEmpresa(): Promise<string> {
 export type LeadEnLaBase = {
   id: string
   numero: number
+  // El consecutivo de quien lo creó (nulo si no tiene creador).
+  numero_propio: number | null
   nombre: string
   telefono_principal: string
   telefono_cc: string | null

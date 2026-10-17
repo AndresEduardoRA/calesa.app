@@ -73,7 +73,7 @@ test('tarea de oro 1: de N al lead guardado con seguimiento, sólo con el teclad
   // El próximo contacto está plegado: anotar un seguimiento no lo pide.
   await expect(panel.getByLabel('Fecha y hora')).toHaveCount(0)
   await teclado.pulsar('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+  await expect(page.getByText(/Lead creado/)).toBeVisible()
   const fin = performance.now()
 
   // Lo que quedó: el lead y su seguimiento (sin recordatorio), y la persona es la dueña.
@@ -240,7 +240,7 @@ test('un lead sin dueño se toma al guardar, no pisa lo que tiene y deja constan
   await page.keyboard.press('Control+Enter')
   await panel.getByLabel('Resumen').fill('Retomé el contacto')
   await page.keyboard.press('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ tomado/)).toBeVisible()
+  await expect(page.getByText(/Lead tomado/)).toBeVisible()
 
   const [lead] = await leadsConTelefono(normalizado)
   expect(lead?.id).toBe(leadId)
@@ -268,7 +268,7 @@ test('el último origen que la persona usó queda elegido para el siguiente lead
   await page.keyboard.press('Control+Enter')
   await panel.getByLabel('Resumen').fill('Vino de Facebook')
   await page.keyboard.press('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+  await expect(page.getByText(/Lead creado/)).toBeVisible()
   expect((await leadsConTelefono(normalizado))[0]?.origen_lead_id).toBe(facebook.id)
 
   // Otra carga de la pantalla: el origen que la persona usó por última vez.

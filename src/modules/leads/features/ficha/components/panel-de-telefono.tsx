@@ -15,6 +15,8 @@ import type { LeadDeFicha } from '../../../entities/ficha'
 import { telefonoDeFicha } from '../../../entities/ficha'
 import { CampoTelefono } from '../../telefono/components/campo-telefono'
 import { useCambiarTelefono } from '../hooks/use-cambiar-telefono'
+import { SIN_NUMEROS } from '@/shared/lib/numeros-de-lead'
+import { useNumeroEscrito } from '@/shared/ui/numero-de-lead'
 import { usePanelDeLead } from '../hooks/use-panel-de-lead'
 
 // Desde acá el panel entra al costado; por debajo es una hoja inferior (con el teclado a la vista).
@@ -136,12 +138,15 @@ export function PanelDeTelefono({ ficha, puedeCambiar }: Props) {
   // Mientras se cierra, el panel sigue mostrando lo que tenía.
   const aLaVista = useUltimo(abierto ? ficha : null)
   const mostrado = abierto ? ficha : aLaVista
+  const numero = useNumeroEscrito(mostrado?.numeros ?? SIN_NUMEROS)
   return (
     <Drawer
       abierto={abierto}
       alCerrar={panel.telefono.cerrar}
       titulo="Cambiar teléfono principal"
-      descripcion={mostrado ? `${mostrado.nombre} · Lead #${String(mostrado.numero)}` : undefined}
+      descripcion={
+        mostrado ? [mostrado.nombre, numero.principal].filter(Boolean).join(' · ') : undefined
+      }
       lado={alCostado ? 'right' : 'bottom'}
     >
       {mostrado ? <Contenido ficha={mostrado} alCerrar={panel.telefono.cerrar} /> : null}

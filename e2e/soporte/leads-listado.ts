@@ -26,6 +26,8 @@ export type TerrenoDelListado = {
   codigo: string
   telefonoDeCarlos: string
   numeroDeBerta: number
+  // El número propio de ese lead (Berta no tiene el permiso del global: sólo ve éste).
+  numeroPropioDeBerta: number
   restaurar: () => Promise<void>
 }
 
@@ -50,6 +52,11 @@ export async function irALeads(page: Page, consulta = ''): Promise<void> {
 export async function numeroDe(telefono: string): Promise<number> {
   const [lead] = await leadsConTelefono(telefono)
   return lead?.numero ?? 0
+}
+
+export async function numeroPropioDe(telefono: string): Promise<number> {
+  const [lead] = await leadsConTelefono(telefono)
+  return lead?.numero_propio ?? 0
 }
 
 // Las personas del alta (la dueña, dos asesoras que ven lo suyo, una que ve «todos»), una más sin
@@ -125,6 +132,7 @@ export async function prepararListado(proyecto: string): Promise<TerrenoDelLista
     codigo,
     telefonoDeCarlos,
     numeroDeBerta: await numeroDe(telefonoDeBerta),
+    numeroPropioDeBerta: await numeroPropioDe(telefonoDeBerta),
     restaurar: terreno.restaurarCatalogos,
   }
 }

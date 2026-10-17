@@ -2,6 +2,7 @@
 // (las oportunidades de quien mira, abiertas y cerradas: una ganada o perdida se queda en su columna
 // final). Cada columna trae hasta `TOPE_POR_COLUMNA` y «Ver más» pide las siguientes. Sin arrastrar:
 // se mueve con «Mover a…» (docs/UX.md).
+import { CAMPOS_DE_NUMEROS, numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { z } from 'zod'
 import { conteoConCambio, type ConteoAcotado } from '@/shared/lib/conteo'
 import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
@@ -20,7 +21,7 @@ export const CLAVE_DE_EMBUDO = 'embudo'
 // La etapa que se ve en el celular (una por vez, como pestañas).
 export const CLAVE_DE_ETAPA = 'etapa'
 
-export type LeadDeTarjeta = { id: string; numero: number; nombre: string }
+export type LeadDeTarjeta = { id: string; numeros: NumerosDeLead; nombre: string }
 
 export type Tarjeta = {
   id: string
@@ -62,7 +63,7 @@ const esquemaTarjeta = z.object({
   motivo_perdida: z.string().nullable(),
   ultima_actividad_en: z.string().min(1),
   actualizado_en: z.string().min(1),
-  lead: z.object({ id: z.guid(), numero: z.number(), nombre: z.string() }),
+  lead: z.object({ id: z.guid(), ...CAMPOS_DE_NUMEROS, nombre: z.string() }),
   vehiculo: z.object({ id: z.guid(), titulo: z.string(), numero: z.number() }).nullable(),
 })
 
@@ -77,7 +78,7 @@ function tarjetaDesdeFila(f: z.infer<typeof esquemaTarjeta>): Tarjeta {
     motivoPerdida: f.motivo_perdida,
     enEtapaDesde: f.ultima_actividad_en,
     actualizadoEn: f.actualizado_en,
-    lead: f.lead,
+    lead: { id: f.lead.id, numeros: numerosDesde(f.lead), nombre: f.lead.nombre },
     vehiculo: f.vehiculo,
   }
 }

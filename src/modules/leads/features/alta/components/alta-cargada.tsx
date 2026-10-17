@@ -152,10 +152,10 @@ export function AltaCargada({ contexto, campos }: Props) {
     layout: campos,
     zona: zonaHoraria,
     abierto: panel.abierto,
-    alGuardar: ({ id, numero, adoptado, conSeguimiento }: Guardado) => {
+    alGuardar: ({ id, numeros, adoptado, conSeguimiento }: Guardado) => {
       // Sin primer seguimiento, «Abrir ficha» lleva a donde se anota después.
       const seccion = conSeguimiento ? '' : `?${CLAVE_DE_SECCION}=seguimientos`
-      avisarExito(textoDeLeadGuardado({ numero, adoptado, conSeguimiento }), {
+      avisarExito(textoDeLeadGuardado({ numeros, adoptado, conSeguimiento }), {
         etiqueta: 'Abrir ficha',
         sale: true,
         alHacer: () => {

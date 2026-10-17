@@ -175,11 +175,13 @@ test('F · la dueña exporta su cartera: UTF-8 con BOM, las columnas del layout 
   if (process.env['E2E_CAPTURAS']) {
     writeFileSync(`${process.env['E2E_CAPTURAS']}/${info.project.name}/exportado.csv`, texto)
   }
-  expect(texto.startsWith('﻿Nombre;Teléfono;Tipo;Origen;')).toBe(true)
+  // La dueña tiene `leads.numero_global.ver`: el global y el propio van antes del nombre.
+  expect(texto.startsWith('﻿N.º;N.º propio;Nombre;Teléfono;Tipo;Origen;')).toBe(true)
   const lineas = texto.split('\r\n')
-  expect(lineas.some((l) => l.startsWith("'=SUMA(1+1) Recorrido;"))).toBe(true)
-  expect(lineas.some((l) => l.startsWith("'@Recorrido Arroba;"))).toBe(true)
-  expect(lineas.some((l) => l.startsWith('=') || l.startsWith('@'))).toBe(false)
+  const celdas = lineas.map((l) => l.split(';').slice(2))
+  expect(celdas.some(([nombre]) => nombre === "'=SUMA(1+1) Recorrido")).toBe(true)
+  expect(celdas.some(([nombre]) => nombre === "'@Recorrido Arroba")).toBe(true)
+  expect(celdas.flat().some((c) => c.startsWith('=') || c.startsWith('@'))).toBe(false)
 })
 
 test('F · la asesora importa 20 filas (coma, sin BOM): el informe suma 20 y deshacer lo deja como estaba', async ({

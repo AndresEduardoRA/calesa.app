@@ -171,10 +171,12 @@ test('«todos» exporta sólo su cartera: ni los leads ajenos ni sus privados sa
   await expect(aLaVista(page.getByText(`E2E ${AJENO_CARLOS}`, { exact: true }))).toBeVisible()
   const csv = await descargar(page)
   // …pero el archivo es de la cartera: UTF-8 con BOM, las columnas del layout en su orden.
-  expect(csv.startsWith('﻿Nombre;Teléfono;Tipo;Origen;')).toBe(true)
+  // Los números van primero: el global sólo con `leads.numero_global.ver`, y el propio siempre.
+  expect(csv).toMatch(/^\uFEFF(?:N\.º;)?N\.º propio;Nombre;Teléfono;Tipo;Origen;/)
   // Las columnas fijas y después los campos activos del layout, con su etiqueta y en su orden (los
   // que comparten orden salen como los muestra la app).
-  const columnas = (csv.split('\r\n')[0] ?? '').replace('\uFEFF', '').split(';')
+  const encabezado = (csv.split('\r\n')[0] ?? '').replace('\uFEFF', '').split(';')
+  const columnas = encabezado.slice(encabezado.indexOf('Nombre'))
   expect(columnas.slice(0, 4)).toEqual(['Nombre', 'Teléfono', 'Tipo', 'Origen'])
   const activos = (await camposDeLead()).filter((campo) => campo.activo)
   const ordenes = columnas
@@ -185,7 +187,7 @@ test('«todos» exporta sólo su cartera: ni los leads ajenos ni sus privados sa
   expect(columnas).toContain('Cédula E2E')
   expect(csv).toContain(`E2E ${PROPIO_DALIA};`)
   // El teléfono de la empresa sale nacional (sin «+» ni código) y el tipo con su nombre.
-  expect(csv).toMatch(new RegExp(`^E2E ${PROPIO_DALIA};\\d{7,9};Prospecto;`, 'm'))
+  expect(csv).toMatch(new RegExp(`;E2E ${PROPIO_DALIA};\\d{7,9};Prospecto;`))
   expect(csv).not.toContain(`E2E ${AJENO_CARLOS}`)
   expect(csv).not.toContain(CI_DE_CARLOS)
   expect(csv).not.toContain(`E2E ${PROPIO_BERTA}`)

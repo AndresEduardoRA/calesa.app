@@ -1,7 +1,9 @@
 'use client'
 
 import { formatearFecha } from '@/shared/lib/fechas'
+import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { Bloque } from '@/shared/ui/bloque'
+import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
 import { useRegional } from '@/shared/ui/regional'
 import type { ReactNode } from 'react'
 import { nombreDeLead, type Relaciones, type Vinculo } from '../../../entities/vinculo'
@@ -15,14 +17,18 @@ type Props = {
 const SUBTITULO = 'text-(length:--text-xs) font-medium text-(--color-ink-soft)'
 const DETALLE = 'text-(length:--text-xs) text-(--color-ink-soft)'
 
-// «Ana Quispe · lead #12», o cómo se dice un lead que quien mira no ve.
-function Lead({ nombre, numero }: { nombre: string; numero: number | null }) {
+// «Ana Quispe · N.º 1.234» (o «· Tu n.º 12»): el número que quien mira ve, y nada si no ve ninguno.
+function Lead({ nombre, numeros }: { nombre: string; numeros: NumerosDeLead }) {
+  const hayNumero = numeros.numero !== null || numeros.numeroPropio !== null
   return (
     <span className="font-medium text-(--color-ink)">
       {nombre}
-      {numero === null ? null : (
-        <span className="font-normal text-(--color-ink-soft) tabular-nums"> · lead #{numero}</span>
-      )}
+      {hayNumero ? (
+        <span className="font-normal text-(--color-ink-soft) tabular-nums">
+          {' · '}
+          <NumeroDeLead numeros={numeros} className="" />
+        </span>
+      ) : null}
     </span>
   )
 }
@@ -53,7 +59,7 @@ export function VinculoEInteresados({ relaciones, desvincular = null }: Props) {
           <h3 className={SUBTITULO}>Vínculo</h3>
           {vinculo ? (
             <p className="grid gap-0.5">
-              <Lead nombre={nombreDeLead(vinculo)} numero={vinculo.leadNumero} />
+              <Lead nombre={nombreDeLead(vinculo)} numeros={vinculo.leadNumeros} />
               <Periodo vinculo={vinculo} zona={zona} />
             </p>
           ) : null}
@@ -67,7 +73,7 @@ export function VinculoEInteresados({ relaciones, desvincular = null }: Props) {
             <ul aria-label="Vínculos anteriores" className="grid gap-1.5 pt-1">
               {historial.map((anterior) => (
                 <li key={`${anterior.leadId}-${anterior.desde}`} className="grid gap-0.5">
-                  <Lead nombre={nombreDeLead(anterior)} numero={anterior.leadNumero} />
+                  <Lead nombre={nombreDeLead(anterior)} numeros={anterior.leadNumeros} />
                   <Periodo vinculo={anterior} zona={zona} />
                 </li>
               ))}
@@ -84,7 +90,7 @@ export function VinculoEInteresados({ relaciones, desvincular = null }: Props) {
             <ul className="grid gap-2">
               {interesados.map((interesado) => (
                 <li key={interesado.leadId} className="grid gap-0.5">
-                  <Lead nombre={interesado.leadNombre} numero={interesado.leadNumero} />
+                  <Lead nombre={interesado.leadNombre} numeros={interesado.leadNumeros} />
                   {interesado.nota ? <span>{interesado.nota}</span> : null}
                   <span className={DETALLE}>
                     {formatearFecha(interesado.creadoEn, { zona })}

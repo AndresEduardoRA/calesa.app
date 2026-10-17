@@ -1,5 +1,6 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
+import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import type { OpcionDeCampo, TipoDeLead, ValorDefecto } from '@/shared/lib/campos'
 import type { ConteoAcotado } from '@/shared/lib/conteo'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
@@ -84,7 +85,7 @@ export type PedidoDeAlta = {
 // Lo que pasó. Un duplicado no es un error: es un valor (`existe`, `de_otro`, `limbo`) y no se
 // creó nada. `repetido`: este mismo intento ya había entrado y se devuelve lo mismo.
 export type ResultadoDeAlta =
-  | { resultado: 'creado' | 'adoptado'; id: string; numero: number; repetido: boolean }
+  | { resultado: 'creado' | 'adoptado'; id: string; numeros: NumerosDeLead; repetido: boolean }
   | { resultado: 'existe' | 'de_otro' | 'limbo'; verificacion: Verificacion }
 
 // Un error de la base con el dato que lo causó, si lo dice: la clave del formulario es el mismo

@@ -2,6 +2,7 @@ import { cn } from 'cn'
 import type { Etiqueta } from '../../../entities/etiqueta'
 import type { FilaDeLead } from '../../../entities/listado'
 import { InsigniasDeMarcas } from '../../marcas/components/insignias-de-marcas'
+import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
 
 // El nombre de un lead en la lista, atenuado y tachado si quien mira lo tachó (la insignia
 // «Tachado» lo dice con texto), con su número y sus marcas debajo.
@@ -25,9 +26,10 @@ export function NombreDeFila({
         ),
       )}
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
-          #{lead.numero}
-        </span>
+        <NumeroDeLead
+          numeros={lead.numeros}
+          className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums"
+        />
         <InsigniasDeMarcas marcas={lead.marcas} etiquetas={etiquetas} />
       </span>
     </span>

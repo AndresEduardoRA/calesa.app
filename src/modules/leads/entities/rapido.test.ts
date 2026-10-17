@@ -63,7 +63,7 @@ describe('hayPrivadosSinRecibir', () => {
 describe('vistaDelRapido', () => {
   const lead = (extra: Partial<FilaDeLead> = {}): FilaDeLead => ({
     id: 'a',
-    numero: 1,
+    numeros: { numero: 1, numeroPropio: null, creadorDelPropio: null },
     nombre: 'Ana',
     telefono: '591•••••01',
     enCartera: true,

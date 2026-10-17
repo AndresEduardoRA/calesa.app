@@ -50,7 +50,10 @@ test('la cartera ve su ficha: teléfono completo, quién lo tiene y sus datos', 
   await entrar(page, t.personas.berta)
   await irAFicha(page, id)
   await expect(tituloDeLaFicha(page, nombre(PROPIO_BERTA))).toBeVisible()
-  await expect(page.getByText(`#${String(t.numeroDeBerta)}`).first()).toBeVisible()
+  // Sin el permiso del número global, la cabecera dice el propio.
+  await expect(
+    page.getByText(`Tu n.º ${formatearNumero(t.numeroPropioDeBerta, { decimales: 0 })}`).first(),
+  ).toBeVisible()
   await expect(page.getByText('Lo tienes tú')).toBeVisible()
   // Un dato propio con valor y los cuatro fijos en «Datos principales».
   await expect(aLaVista(page.getByText('rojo', { exact: true }))).toBeVisible()
@@ -104,7 +107,7 @@ test('el toast «Abrir ficha» del alta lleva al lead recién creado', async ({ 
   await page.keyboard.press('Control+Enter')
   await panel.getByLabel('Resumen').fill('Primer contacto')
   await page.keyboard.press('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+  await expect(page.getByText(/Lead creado/)).toBeVisible()
   await page.getByRole('button', { name: 'Abrir ficha' }).click()
   await expect(tituloDeLaFicha(page, nombre(corto))).toBeVisible()
   await expect(page).toHaveURL(/\/leads\/[0-9a-f-]{36}$/)

@@ -2,12 +2,18 @@
 // resultado «no se hizo» de `crear_lead()` y `cambiar_telefono_lead()`): libre, de alguien (y de
 // quién) o sin dueño. Nunca trae más del lead que lo mínimo para decirlo.
 import { z } from 'zod'
+import {
+  CAMPOS_DE_NUMEROS,
+  numeroEnFrase,
+  numerosDesde,
+  type NumerosDeLead,
+} from '@/shared/lib/numeros-de-lead'
 
 // Un número libre como principal que figura como teléfono extra de otro lead: se avisa, no
 // bloquea (un extra no tiene unicidad). Dice de él lo mismo que el principal: nombre y número si
 // se ve, y si no, sólo quién lo tiene.
 export type Alterno =
-  | { estado: 'existe'; leadId: string; numero: number; nombre: string; esMio: boolean }
+  | { estado: 'existe'; leadId: string; numeros: NumerosDeLead; nombre: string; esMio: boolean }
   | { estado: 'de_otro'; dueno: string | null }
 
 export type Verificacion =
@@ -17,7 +23,7 @@ export type Verificacion =
   // Sin dueño: invisible hasta que alguien lo toma al registrar el teléfono.
   | { estado: 'limbo' }
   // Es un lead que esta persona puede ver.
-  | { estado: 'existe'; leadId: string; numero: number; nombre: string; esMio: boolean }
+  | { estado: 'existe'; leadId: string; numeros: NumerosDeLead; nombre: string; esMio: boolean }
   // Lo tiene otra persona: sólo se sabe de quién, nada más del lead.
   | { estado: 'de_otro'; dueno: string | null }
   // Es el principal de este mismo lead (sólo al cambiarlo): no hay nada que cambiar.
@@ -27,7 +33,7 @@ const esquemaAlterno = z.discriminatedUnion('estado', [
   z.object({
     estado: z.literal('existe'),
     lead_id: z.guid(),
-    numero: z.number(),
+    ...CAMPOS_DE_NUMEROS,
     nombre: z.string(),
     es_mio: z.boolean(),
   }),
@@ -44,7 +50,7 @@ const esquema = z.discriminatedUnion('estado', [
   z.object({
     estado: z.literal('existe'),
     lead_id: z.guid(),
-    numero: z.number(),
+    ...CAMPOS_DE_NUMEROS,
     nombre: z.string(),
     es_mio: z.boolean(),
   }),
@@ -57,7 +63,7 @@ function alternoDesde(lectura: z.infer<typeof esquemaAlterno>): Alterno {
     return {
       estado: 'existe',
       leadId: lectura.lead_id,
-      numero: lectura.numero,
+      numeros: numerosDesde(lectura),
       nombre: lectura.nombre,
       esMio: lectura.es_mio,
     }
@@ -83,7 +89,7 @@ export function verificacionDesde(crudo: unknown): Verificacion {
       return {
         estado: 'existe',
         leadId: lectura.lead_id,
-        numero: lectura.numero,
+        numeros: numerosDesde(lectura),
         nombre: lectura.nombre,
         esMio: lectura.es_mio,
       }
@@ -106,9 +112,15 @@ export type AvisoDeTelefono = {
 // En el alta un número sin dueño se puede tomar; al cambiar el principal de un lead, no: sólo se dice.
 export type ContextoDeVerificacion = 'alta' | 'cambio'
 
+// « (N.º 1.234)» si se ve alguno de los números del lead; nada si no.
+function conNumero(numeros: NumerosDeLead): string {
+  const escrito = numeroEnFrase(numeros)
+  return escrito === null ? '' : ` (${escrito})`
+}
+
 function textoDeAlterno(alterno: Alterno): string {
   if (alterno.estado === 'existe') {
-    return `Figura como teléfono extra de ${alterno.nombre} (#${String(alterno.numero)}).`
+    return `Figura como teléfono extra de ${alterno.nombre}${conNumero(alterno.numeros)}.`
   }
   return `Figura como teléfono extra de un lead de ${alterno.dueno ?? 'otra persona'}.`
 }
@@ -155,8 +167,8 @@ export function avisoDeVerificacion(
       return {
         tono: 'peligro',
         texto: verificacion.esMio
-          ? `Ya existe: ${verificacion.nombre} (#${String(verificacion.numero)}), y es tuyo.`
-          : `Ya existe: ${verificacion.nombre} (#${String(verificacion.numero)}).`,
+          ? `Ya existe: ${verificacion.nombre}${conNumero(verificacion.numeros)}, y es tuyo.`
+          : `Ya existe: ${verificacion.nombre}${conNumero(verificacion.numeros)}.`,
         bloquea: true,
         ofreceTomar: false,
       }

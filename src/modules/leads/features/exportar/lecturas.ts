@@ -1,6 +1,6 @@
 import 'server-only'
 import { BOM_UTF8, lineasDeCsv, type Delimitador } from '@/shared/lib/csv/escribir'
-import { leerFiltros, type ParametrosDeUrl } from '@/shared/lib/filtros'
+import { leerFiltros, type ParametrosDeUrl, type ValoresDeFiltros } from '@/shared/lib/filtros'
 import { leerCursor, type Cursor } from '@/shared/lib/paginacion'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import {
@@ -12,6 +12,7 @@ import {
   repositorioDeExportacion,
 } from '../../composicion'
 import type { CampoDeLead } from '../../entities/campo'
+import { idsDelNumeroBuscado } from '../listado/ids-del-numero'
 import {
   condicionesDeLeads,
   esquemaDeFiltrosDeLeads,
@@ -83,7 +84,10 @@ type EntradaDelArchivo = {
 // archivo: la respuesta es un error, nunca un CSV cortado.
 async function textoDeCsv({ condiciones, campos, delimitador, contexto }: EntradaDelArchivo) {
   const claves = camposDeExportacion(campos).map((campo) => campo.clave)
-  const partes = [BOM_UTF8 + lineasDeCsv([encabezadosDeExportacion(campos)], delimitador)]
+  const partes = [
+    BOM_UTF8 +
+      lineasDeCsv([encabezadosDeExportacion(campos, contexto.conNumeroGlobal)], delimitador),
+  ]
   let cursor: Cursor | null = null
   let enviadas = 0
   let hayMas = true
@@ -111,6 +115,24 @@ async function textoDeCsv({ condiciones, campos, delimitador, contexto }: Entrad
   return partes.join('')
 }
 
+// La constancia y el límite, ya con el archivo hecho: una exportación que falló no gasta el cupo, y sin
+// constancia no sale ni un byte. Nulo si quedó anotada; si no, lo que hay que contestar en su lugar.
+async function dejarConstancia(
+  filas: number,
+  valores: ValoresDeFiltros,
+): Promise<SalidaDeExportacion | null> {
+  const registro = await repositorioDeExportacion.registrar({
+    filas,
+    filtros: nombresDeFiltros(valores),
+  })
+  if (!registro.ok) {
+    return registro.error.codigo === 'sin_permiso'
+      ? { tipo: 'sin_permiso' }
+      : { tipo: 'error', mensaje: registro.error.mensaje }
+  }
+  return registro.data.ok ? null : { tipo: 'limite', libreEn: registro.data.libreEn }
+}
+
 // El CSV de los leads que muestra el listado con sus filtros, **sólo los de la cartera de quien llama**
 // (`en_cartera = true` siempre, aunque tenga `leads.ver` «todos» o lo pida la URL). Primero se cuenta
 // hasta el tope (5.001 ids, no un total): con más de 5.000 no se exporta nada y se dice. Después se lee, página a página, y recién con el
@@ -136,8 +158,17 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
     etiquetas: etiquetas.data,
   })
   const valores = leerFiltros(esquema, parametrosDeConsulta(consulta))
+  const ids = await idsDelNumeroBuscado(valores, permisos)
+  if (!ids.ok) {
+    return { tipo: 'error', mensaje: NO_SE_PUDO }
+  }
+  const conNumeroGlobal = puede(permisos, 'leads.numero_global.ver')
   // La cartera, siempre: no es un modo que se elija.
-  const condiciones = condicionesDeLeads(campos, valores, { zona, soloMios: true })
+  const condiciones = condicionesDeLeads(campos, valores, {
+    zona,
+    soloMios: true,
+    idsDelNumero: ids.data,
+  })
 
   // Hasta el tope y no más: cuenta pidiendo `tope + 1` ids, nunca el total exacto.
   const contadas = await contarLeadsHasta(condiciones, TOPE_DE_EXPORTACION)
@@ -159,24 +190,15 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
       origenes: new Map(origenes.data.map((origen) => [origen.id, origen.nombre])),
       codigoDePais,
       zona,
+      conNumeroGlobal,
     },
   })
   if (cuerpo === null) {
     return { tipo: 'error', mensaje: NO_SE_PUDO }
   }
-  // La constancia y el límite, ya con el archivo hecho: una exportación que falló no gasta el cupo, y
-  // sin constancia no sale ni un byte.
-  const registro = await repositorioDeExportacion.registrar({
-    filas: total,
-    filtros: nombresDeFiltros(valores),
-  })
-  if (!registro.ok) {
-    return registro.error.codigo === 'sin_permiso'
-      ? { tipo: 'sin_permiso' }
-      : { tipo: 'error', mensaje: registro.error.mensaje }
-  }
-  if (!registro.data.ok) {
-    return { tipo: 'limite', libreEn: registro.data.libreEn }
+  const sinConstancia = await dejarConstancia(total, valores)
+  if (sinConstancia !== null) {
+    return sinConstancia
   }
   return {
     tipo: 'listo',

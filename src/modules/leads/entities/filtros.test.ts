@@ -99,13 +99,23 @@ describe('esquemaDeFiltrosDeLeads', () => {
 
 describe('interpretarBusqueda', () => {
   it('un número, con o sin #, busca el número y el texto; el resto, sólo el nombre', () => {
-    expect(interpretarBusqueda('#124')).toEqual({ texto: '124', numero: 124 })
-    expect(interpretarBusqueda(' 124 ')).toEqual({ texto: '124', numero: 124 })
-    expect(interpretarBusqueda('Ana 124')).toEqual({ texto: 'Ana 124', numero: null })
+    expect(interpretarBusqueda(' 124 ')).toEqual({ texto: '124', numero: 124, soloNumero: false })
+    expect(interpretarBusqueda('Ana 124')).toEqual({
+      texto: 'Ana 124',
+      numero: null,
+      soloNumero: false,
+    })
     expect(interpretarBusqueda('59170000001')).toEqual({
       texto: '59170000001',
       numero: 59170000001,
+      soloNumero: false,
     })
+  })
+
+  it('«#124» busca sólo el número; un # delante de un texto no', () => {
+    expect(interpretarBusqueda('#124')).toEqual({ texto: '124', numero: 124, soloNumero: true })
+    expect(interpretarBusqueda('  #124 ')?.soloNumero).toBe(true)
+    expect(interpretarBusqueda('#Ana')).toEqual({ texto: 'Ana', numero: null, soloNumero: false })
   })
 
   it('vacío no busca; un número demasiado largo no se trata como número', () => {
@@ -115,7 +125,11 @@ describe('interpretarBusqueda', () => {
   })
 
   it('lo que escribió la persona viaja como texto, sin tocar (el saneado es de infra)', () => {
-    expect(interpretarBusqueda('50%_, "x"')).toEqual({ texto: '50%_, "x"', numero: null })
+    expect(interpretarBusqueda('50%_, "x"')).toEqual({
+      texto: '50%_, "x"',
+      numero: null,
+      soloNumero: false,
+    })
   })
 })
 
@@ -138,7 +152,13 @@ describe('condicionesDeLeads', () => {
       leer('q=%23124&tipo=cliente&origen=o1&a.ciudad=cruz&a.edad.min=30&a.signo=leo'),
       { soloMios: false },
     )
-    expect(condiciones).toContainEqual({ tipo: 'busqueda', texto: '124', numero: 124 })
+    expect(condiciones).toContainEqual({
+      tipo: 'busqueda',
+      texto: '124',
+      numero: 124,
+      soloNumero: true,
+      idsDelNumero: [],
+    })
     expect(condiciones).toContainEqual({
       tipo: 'columna_en',
       columna: 'tipo',

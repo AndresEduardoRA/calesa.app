@@ -269,7 +269,7 @@ test('D · el alta con el origen que se apagó mientras se escribía: el campo p
   await capturar(page, info, 'duena-apagable-despues')
   await select.selectOption({ index: 1 })
   await panel.getByRole('button', { name: 'Guardar lead' }).click()
-  await expect(page.getByText(/Lead #\d+ creado sin seguimiento/)).toBeVisible()
+  await expect(page.getByText(/Lead creado sin seguimiento/)).toBeVisible()
 })
 
 test('E · importar sin orígenes activos: el archivo lo dice y los leads entran sin origen', async ({

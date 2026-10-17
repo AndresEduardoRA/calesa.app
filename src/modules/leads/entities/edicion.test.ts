@@ -67,7 +67,7 @@ const LAYOUT: CampoDeLead[] = [
 
 const FICHA: LeadDeFicha = {
   id: '4a1f5b0e-6f0a-4f6e-9a55-1b6e2a1f0c11',
-  numero: 12,
+  numeros: { numero: 12, numeroPropio: null, creadorDelPropio: null },
   nombre: 'Ana Rojas',
   telefonoCc: '+591',
   telefono: '59170011002',

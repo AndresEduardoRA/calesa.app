@@ -1,5 +1,6 @@
 'use client'
 
+import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { useRouter } from 'next/navigation'
 import { useRef, type Dispatch, type SetStateAction } from 'react'
 import {
@@ -27,7 +28,7 @@ import { useCrearLead } from './use-crear-lead'
 
 export type Guardado = {
   id: string
-  numero: number
+  numeros: NumerosDeLead
   adoptado: boolean
   // Entró con su primer seguimiento: el aviso y la ficha a la que lleva dependen de eso.
   conSeguimiento: boolean
@@ -122,7 +123,7 @@ export function useEnvioDelAlta(args: Args) {
       alGuardado(
         {
           id: dato.id,
-          numero: dato.numero,
+          numeros: dato.numeros,
           adoptado: dato.resultado === 'adoptado',
           conSeguimiento: datos.seguimiento !== null,
         },

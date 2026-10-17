@@ -23,6 +23,8 @@ import {
 } from '../../../entities/edicion'
 import type { LeadDeFicha, OrigenConEstado } from '../../../entities/ficha'
 import { useFormularioDeLead, type FormularioDeLead } from '../hooks/use-formulario-de-lead'
+import { SIN_NUMEROS } from '@/shared/lib/numeros-de-lead'
+import { useNumeroEscrito } from '@/shared/ui/numero-de-lead'
 import { usePanelDeLead } from '../hooks/use-panel-de-lead'
 
 type Datos = {
@@ -212,12 +214,13 @@ export function PanelDeEdicion({ puedeEditar, ...datos }: Props) {
   // Mientras se cierra, el panel sigue mostrando lo que tenía.
   const aLaVista = useUltimo(abierto ? datos.ficha : null)
   const ficha = abierto ? datos.ficha : aLaVista
+  const numero = useNumeroEscrito(ficha?.numeros ?? SIN_NUMEROS)
   return (
     <Drawer
       abierto={abierto}
       alCerrar={panel.cerrar}
       titulo={ficha ? `Editar ${ficha.nombre}` : 'Editar lead'}
-      descripcion={ficha ? `Lead #${String(ficha.numero)}` : undefined}
+      descripcion={ficha ? (numero.principal ?? undefined) : undefined}
       ancho="amplio"
     >
       {ficha ? (

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { telefonoDeFicha, type LeadDeFicha } from '../../../entities/ficha'
 import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
+import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
 
 type Props = {
   ficha: LeadDeFicha
@@ -17,15 +18,16 @@ type Props = {
 // Lo que se ve de un lead arriba de todas sus secciones: su nombre, su número, su tipo, de dónde
 // vino, su teléfono principal tal como lo entrega la base (completo sólo para la cartera) y quién
 // lo tiene. En el celular son dos líneas: nombre y número, y el resto debajo.
+// En el celular las acciones bajan debajo del título: lado a lado, con cuatro botones, lo aplastaban y lo tapaban.
 export function CabeceraDeLead({ ficha, origen, quien, acciones, marcas }: Props) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-3">
+    <header className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
       <div className="grid min-w-0 flex-1 gap-1.5">
         <h1 className="text-(length:--text-xl) font-semibold break-words text-(--color-ink)">
           {ficha.nombre}
         </h1>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-(length:--text-sm) text-(--color-ink-soft)">
-          <span className="tabular-nums">#{ficha.numero}</span>
+          <NumeroDeLead numeros={ficha.numeros} conSecundario />
           <BadgeDeTipo tipo={ficha.tipo} />
           {origen ? (
             <span>

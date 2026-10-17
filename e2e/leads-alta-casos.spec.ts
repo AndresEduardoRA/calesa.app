@@ -70,7 +70,7 @@ test('se cae la conexión al guardar: el drawer lo conserva todo y guarda una so
   expect(await leadsConTelefono(normalizado)).toHaveLength(0)
 
   await context.setOffline(false)
-  await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+  await expect(page.getByText(/Lead creado/)).toBeVisible()
   expect(await leadsConTelefono(normalizado)).toHaveLength(1)
 })
 
@@ -107,7 +107,7 @@ test('la respuesta se perdió pero el lead entró: reintentar no duplica', async
   await expect(panel.getByLabel('Resumen')).toHaveValue('Pidió una cotización')
 
   await panel.getByRole('button', { name: 'Reintentar' }).click()
-  await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+  await expect(page.getByText(/Lead creado/)).toBeVisible()
   const leads = await leadsConTelefono(normalizado)
   expect(leads).toHaveLength(1)
   expect(await seguimientosDe(leads[0]?.id ?? '')).toHaveLength(1)
@@ -170,7 +170,7 @@ test('un campo requerido propio vacío se dice junto al campo y lleva el foco', 
     await page.keyboard.press('Control+Enter')
     await panel.getByLabel('Resumen').fill('Ya tiene signo')
     await page.keyboard.press('Control+Enter')
-    await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+    await expect(page.getByText(/Lead creado/)).toBeVisible()
   } finally {
     await borrarCamposDeLeadDePrueba()
   }
@@ -217,7 +217,7 @@ test('con orígenes de lead apagados el drawer no ofrece el apagado, y sin ningu
     await llenarYSeguir(page, nacional, `E2E Sin origen ${info.project.name}`)
     await panel.getByLabel('Resumen').fill('Sin origen todavía')
     await page.keyboard.press('Control+Enter')
-    await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+    await expect(page.getByText(/Lead creado/)).toBeVisible()
     expect((await leadsConTelefono(normalizado))[0]?.origen_lead_id).toBeNull()
   } finally {
     await dejarActivosLosOrigenes(['facebook', 'web'])
@@ -242,7 +242,7 @@ test('un recordatorio con fecha pasada se rechaza junto al campo y no guarda nad
 
   await panel.getByRole('button', { name: 'Quitar' }).click()
   await page.keyboard.press('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+  await expect(page.getByText(/Lead creado/)).toBeVisible()
 })
 
 test('un privado lo llena y lo ve quien queda en la cartera, y no quien sólo ve el lead', async ({
@@ -268,7 +268,7 @@ test('un privado lo llena y lo ve quien queda en la cartera, y no quien sólo ve
     await page.keyboard.press('Control+Enter')
     await panel.getByLabel('Resumen').fill('Dejó su documento')
     await page.keyboard.press('Control+Enter')
-    await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+    await expect(page.getByText(/Lead creado/)).toBeVisible()
 
     const [lead] = await leadsConTelefono(normalizado)
     const delDueno = await sesionDe(personas.duena, CONTRASENA)

@@ -1,6 +1,7 @@
 // Los recordatorios de quien mira sobre un lead: lo que entrega la base (`recordatorios_vista` y
 // las RPC `recordatorio_*`), cómo se lee y en qué orden se muestran. Son personales: sólo los ve y
 // los toca su dueño. Si pierde el lead, el recordatorio sigue y llega sin él.
+import { numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { z } from 'zod'
 import {
   cambioDeVehiculo,
@@ -33,7 +34,8 @@ export type Recordatorio = {
   // Nulos si ya no ve el lead (o si es personal).
   leadId: string | null
   leadNombre: string | null
-  leadNumero: number | null
+  // Los números del lead que se ven (vacíos si ya no lo ve).
+  leadNumeros: NumerosDeLead
 } & VehiculoDeLaNota
 
 export type EstadoDelRecordatorio = 'vencido' | 'pendiente' | 'completado'
@@ -49,7 +51,8 @@ const esquema = z.object({
   actualizado_en: z.string(),
   lead_id: z.guid().nullable(),
   lead_nombre: z.string().nullable(),
-  lead_numero: z.number().nullable(),
+  lead_numero: z.number().nullable().optional(),
+  lead_numero_propio: z.number().nullable().optional(),
   eliminado: z.boolean().optional(),
 })
 
@@ -68,7 +71,7 @@ export function recordatorioDesde(crudo: unknown): (Recordatorio & { eliminado: 
     actualizadoEn: r.actualizado_en,
     leadId: r.lead_id,
     leadNombre: r.lead_nombre,
-    leadNumero: r.lead_numero,
+    leadNumeros: numerosDesde({ numero: r.lead_numero, numero_propio: r.lead_numero_propio }),
     ...vehiculoDeNotaDesde(crudo),
     eliminado: r.eliminado ?? false,
   }

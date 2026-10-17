@@ -2,6 +2,7 @@
 // datos», con qué arranca cada dato, y cómo se valida lo escrito. Es lo mismo en el navegador (para
 // avisar antes de enviar) y lo que la base vuelve a comprobar (`crear_lead()`): los mismos motivos
 // con el campo en el mismo lugar. Nada de esto sabe de React ni de Supabase.
+import { numeroEnFrase, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { z } from 'zod'
 import {
   campoDeFormulario,
@@ -322,12 +323,14 @@ export function avisoDelPieDelAlta(args: { hayTipos: boolean; hayAlgoEscrito: bo
     : AVISO_SIN_SEGUIMIENTO
 }
 
-// «Lead #124 creado», «Lead #124 tomado» y, sin primer seguimiento, «… sin seguimiento».
+// «Lead creado · Tu n.º 12», «Lead tomado · N.º 1.234» y, sin primer seguimiento, «Lead creado sin seguimiento · …».
+// El número es el que la persona ve; si no ve ninguno, la frase no lo nombra.
 export function textoDeLeadGuardado(args: {
-  numero: number
+  numeros: NumerosDeLead
   adoptado: boolean
   conSeguimiento: boolean
 }): string {
   const hecho = args.adoptado ? 'tomado' : 'creado'
-  return `Lead #${String(args.numero)} ${hecho}${args.conSeguimiento ? '' : ' sin seguimiento'}`
+  const numero = numeroEnFrase(args.numeros)
+  return `Lead ${hecho}${args.conSeguimiento ? '' : ' sin seguimiento'}${numero === null ? '' : ` · ${numero}`}`
 }

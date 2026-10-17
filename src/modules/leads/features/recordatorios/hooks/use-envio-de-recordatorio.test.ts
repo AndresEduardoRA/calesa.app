@@ -29,7 +29,7 @@ const ORIGINAL: Recordatorio = {
   actualizadoEn: '2026-10-15T14:00:00.123456+00:00',
   leadId: LEAD,
   leadNombre: 'Ana',
-  leadNumero: 12,
+  leadNumeros: { numero: 12, numeroPropio: null, creadorDelPropio: null },
   vehiculo: null,
   vehiculoOculto: false,
 }

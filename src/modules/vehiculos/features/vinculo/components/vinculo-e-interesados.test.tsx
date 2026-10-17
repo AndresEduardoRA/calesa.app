@@ -8,7 +8,9 @@ afterEach(cleanup)
 const vinculo = (leadNombre: string | null, hasta: string | null = null) => ({
   leadId: leadNombre ?? 'oculto',
   leadNombre,
-  leadNumero: leadNombre ? 12 : null,
+  leadNumeros: leadNombre
+    ? { numero: 12, numeroPropio: null, creadorDelPropio: null }
+    : { numero: null, numeroPropio: null, creadorDelPropio: null },
   desde: '2026-10-01T16:00:00+00:00',
   hasta,
   porNombre: 'Rosa Mamani',
@@ -26,7 +28,7 @@ describe('VinculoEInteresados', () => {
     render(<VinculoEInteresados relaciones={{ ...VACIO, vinculo: vinculo('Ana Quispe') }} />)
     const region = within(screen.getByRole('region', { name: 'Vínculo' }))
     expect(region.getByText('Ana Quispe')).toBeInTheDocument()
-    expect(region.getByText(/lead #12/)).toBeInTheDocument()
+    expect(region.getByText(/N\.º 12/)).toBeInTheDocument()
     expect(region.getByText(/^Desde el .* · lo vinculó Rosa Mamani$/)).toBeInTheDocument()
   })
 
@@ -48,7 +50,7 @@ describe('VinculoEInteresados', () => {
     const interesado = {
       leadId: 'a',
       leadNombre: 'Ana Quispe',
-      leadNumero: 12,
+      leadNumeros: { numero: 12, numeroPropio: null, creadorDelPropio: null },
       nota: 'Lo quiere en blanco',
       creadoEn: '2026-10-05T16:00:00+00:00',
       porNombre: null,

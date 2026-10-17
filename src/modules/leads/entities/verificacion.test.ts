@@ -3,13 +3,21 @@ import { avisoDeVerificacion, leadAbrible, verificacionDesde } from './verificac
 
 const ID = '4a1f5b0e-6f0a-4f6e-9a55-1b6e2a1f0c11'
 
+const DOCE = { numero: 12, numeroPropio: null, creadorDelPropio: null }
+
 describe('verificacionDesde', () => {
   it('lee los cuatro estados', () => {
     expect(verificacionDesde({ estado: 'libre' })).toEqual({ estado: 'libre' })
     expect(verificacionDesde({ estado: 'limbo' })).toEqual({ estado: 'limbo' })
     expect(
       verificacionDesde({ estado: 'existe', lead_id: ID, numero: 12, nombre: 'Ana', es_mio: true }),
-    ).toEqual({ estado: 'existe', leadId: ID, numero: 12, nombre: 'Ana', esMio: true })
+    ).toEqual({
+      estado: 'existe',
+      leadId: ID,
+      numeros: DOCE,
+      nombre: 'Ana',
+      esMio: true,
+    })
     expect(verificacionDesde({ estado: 'de_otro', dueno: 'Diego', dueno_id: ID })).toEqual({
       estado: 'de_otro',
       dueno: 'Diego',
@@ -36,20 +44,20 @@ describe('avisoDeVerificacion', () => {
     const mio = avisoDeVerificacion({
       estado: 'existe',
       leadId: ID,
-      numero: 12,
+      numeros: DOCE,
       nombre: 'Ana Quispe',
       esMio: true,
     })
     expect(mio).toMatchObject({ bloquea: true, ofreceTomar: false, tono: 'peligro' })
-    expect(mio.texto).toBe('Ya existe: Ana Quispe (#12), y es tuyo.')
+    expect(mio.texto).toBe('Ya existe: Ana Quispe (N.º 12), y es tuyo.')
     const visto = avisoDeVerificacion({
       estado: 'existe',
       leadId: ID,
-      numero: 12,
+      numeros: DOCE,
       nombre: 'Ana Quispe',
       esMio: false,
     })
-    expect(visto.texto).toBe('Ya existe: Ana Quispe (#12).')
+    expect(visto.texto).toBe('Ya existe: Ana Quispe (N.º 12).')
   })
 
   it('el de otra persona dice de quién y nada más', () => {
@@ -86,22 +94,6 @@ describe('avisoDeVerificacion', () => {
     })
   })
 
-  it('un número que es extra de otro lead avisa, con la misma regla de qué se dice, y no bloquea', () => {
-    const visto = avisoDeVerificacion({
-      estado: 'libre',
-      alterno: { estado: 'existe', leadId: ID, numero: 12, nombre: 'Ana Quispe', esMio: false },
-    })
-    expect(visto).toMatchObject({ tono: 'aviso', bloquea: false, ofreceTomar: false })
-    expect(visto.texto).toBe('Figura como teléfono extra de Ana Quispe (#12).')
-    expect(
-      avisoDeVerificacion({ estado: 'libre', alterno: { estado: 'de_otro', dueno: 'Diego' } })
-        .texto,
-    ).toBe('Figura como teléfono extra de un lead de Diego.')
-    expect(
-      avisoDeVerificacion({ estado: 'libre', alterno: { estado: 'de_otro', dueno: null } }).texto,
-    ).toBe('Figura como teléfono extra de un lead de otra persona.')
-  })
-
   it('un extra de este lead dice que pasará a ser el principal', () => {
     const aviso = avisoDeVerificacion({ estado: 'libre', esExtra: true }, 'cambio')
     expect(aviso.bloquea).toBe(false)
@@ -118,7 +110,13 @@ describe('verificacionDesde: alterno y mismo', () => {
       }),
     ).toEqual({
       estado: 'libre',
-      alterno: { estado: 'existe', leadId: ID, numero: 7, nombre: 'Ana', esMio: true },
+      alterno: {
+        estado: 'existe',
+        leadId: ID,
+        numeros: { ...DOCE, numero: 7 },
+        nombre: 'Ana',
+        esMio: true,
+      },
     })
     expect(
       verificacionDesde({ estado: 'libre', alterno: { estado: 'de_otro', dueno: 'Diego' } }),
@@ -137,12 +135,24 @@ describe('verificacionDesde: alterno y mismo', () => {
 describe('leadAbrible', () => {
   it('lleva al lead que se ve, sea por el principal o por un extra', () => {
     expect(
-      leadAbrible({ estado: 'existe', leadId: ID, numero: 1, nombre: 'Ana', esMio: false }),
+      leadAbrible({
+        estado: 'existe',
+        leadId: ID,
+        numeros: { ...DOCE, numero: 1 },
+        nombre: 'Ana',
+        esMio: false,
+      }),
     ).toBe(ID)
     expect(
       leadAbrible({
         estado: 'libre',
-        alterno: { estado: 'existe', leadId: ID, numero: 1, nombre: 'Ana', esMio: false },
+        alterno: {
+          estado: 'existe',
+          leadId: ID,
+          numeros: { ...DOCE, numero: 1 },
+          nombre: 'Ana',
+          esMio: false,
+        },
       }),
     ).toBe(ID)
   })
@@ -151,5 +161,29 @@ describe('leadAbrible', () => {
     expect(leadAbrible({ estado: 'libre' })).toBeNull()
     expect(leadAbrible({ estado: 'de_otro', dueno: 'Diego' })).toBeNull()
     expect(leadAbrible({ estado: 'libre', alterno: { estado: 'de_otro', dueno: null } })).toBeNull()
+  })
+})
+
+describe('avisoDeVerificacion: un teléfono que figura como extra de otro lead', () => {
+  it('un número que es extra de otro lead avisa, con la misma regla de qué se dice, y no bloquea', () => {
+    const visto = avisoDeVerificacion({
+      estado: 'libre',
+      alterno: {
+        estado: 'existe',
+        leadId: ID,
+        numeros: DOCE,
+        nombre: 'Ana Quispe',
+        esMio: false,
+      },
+    })
+    expect(visto).toMatchObject({ tono: 'aviso', bloquea: false, ofreceTomar: false })
+    expect(visto.texto).toBe('Figura como teléfono extra de Ana Quispe (N.º 12).')
+    expect(
+      avisoDeVerificacion({ estado: 'libre', alterno: { estado: 'de_otro', dueno: 'Diego' } })
+        .texto,
+    ).toBe('Figura como teléfono extra de un lead de Diego.')
+    expect(
+      avisoDeVerificacion({ estado: 'libre', alterno: { estado: 'de_otro', dueno: null } }).texto,
+    ).toBe('Figura como teléfono extra de un lead de otra persona.')
   })
 })

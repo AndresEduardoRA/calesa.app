@@ -209,7 +209,7 @@ test('el lead que crea el alta aparece en la lista', async ({ page }) => {
   await teclado.pulsar('Control+Enter')
   await panel.getByLabel('Resumen').fill('Primer contacto')
   await teclado.pulsar('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+  await expect(page.getByText(/Lead creado/)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(dialogo(page)).toBeHidden()
   await expect(fila(page, corto)).toBeVisible()

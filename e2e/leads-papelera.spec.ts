@@ -158,7 +158,7 @@ test('restaurar con el teléfono tomado: queda adentro y dice por qué', async (
   await expect(page.getByText(original.nombre)).toBeVisible()
   await expect(
     page.getByText(
-      `No puede volver: «${tomador.nombre}» (#${String(tomador.numero)}) ya tiene este teléfono.`,
+      `No puede volver: «${tomador.nombre}» (tu n.º ${String(tomador.numeroPropio)}) ya tiene este teléfono.`,
     ),
   ).toBeVisible()
   await expect(page.getByRole('button', { name: `Restaurar ${original.nombre}` })).toBeDisabled()

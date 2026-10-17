@@ -26,6 +26,7 @@ import {
 import { FILTRO_TACHADOS, TOPE_DE_OCULTOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { TAMANO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
 import { puedeEditarLead } from '../../entities/edicion'
+import { idsDelNumeroBuscado } from './ids-del-numero'
 import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
 
 export type DatosDelListado = {
@@ -100,7 +101,11 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
     etiquetas: etiquetas.data,
   })
   const valores = leerFiltros(esquema, parametros)
-  const opciones = { zona, soloMios: modo === 'mios' }
+  const ids = await idsDelNumeroBuscado(valores, permisos)
+  if (!ids.ok) {
+    return ids
+  }
+  const opciones = { zona, soloMios: modo === 'mios', idsDelNumero: ids.data }
   const [leida, ocultos] = await Promise.all([
     buscarLeads({
       condiciones: condicionesDeLeads(campos, valores, opciones),

@@ -16,6 +16,7 @@ import {
   type AccionesDeCartera,
   type PersonaDeCartera,
 } from '../../../entities/cartera'
+import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { usePanelDeLead } from '../../ficha/hooks/use-panel-de-lead'
 import { useCartera } from '../hooks/use-cartera'
 import { DialogoDeSalirDiferido, PanelDeCarteraDiferido } from './diferidos'
@@ -25,7 +26,7 @@ type Props = {
   lead: {
     id: string
     nombre: string
-    numero: number
+    numeros: NumerosDeLead
     vehiculosVinculados: number
     vePortal: boolean
   }

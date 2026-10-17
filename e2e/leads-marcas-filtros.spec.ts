@@ -97,7 +97,7 @@ test('buscar encuentra un tachado (marcado), y si todo lo que coincide está tac
   await expect(delLead(page, corto).getByText('Tachado', { exact: true })).toBeVisible()
   await expect(page.getByText(/oculto porque lo tachaste/)).toHaveCount(0)
   // Por número también.
-  await irALeads(page, `?q=%23${String(lead.numero)}`)
+  await irALeads(page, `?q=%23${String(lead.numeroPropio)}`)
   await expect(fila(page, corto)).toBeVisible()
 
   // Sin búsqueda, el único violeta está tachado: no es «Nada coincide», es «está tachado».

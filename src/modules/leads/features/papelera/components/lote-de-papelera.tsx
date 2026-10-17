@@ -10,6 +10,7 @@ import {
   type LeadEnPapelera,
   type LoteDePapelera as Lote,
 } from '../../../entities/papelera'
+import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
 import type { Objetivo } from '../hooks/use-papelera'
 
 type Props = {
@@ -30,8 +31,8 @@ function Lead({ lead, acciones }: { lead: LeadEnPapelera; acciones: ReactNode })
     <li className="flex flex-wrap items-center gap-3 px-3 py-2">
       <div className="grid min-w-0 flex-1 gap-0.5">
         <p className="truncate font-medium text-(--color-ink)">{lead.nombre}</p>
-        <p className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
-          #{lead.numero}
+        <p className="flex flex-wrap gap-x-2 text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
+          <NumeroDeLead numeros={lead.numeros} className="tabular-nums" />
         </p>
         {lead.motivoDeRestaurar ? (
           <p className="text-(length:--text-xs) text-(--color-aviso-ink)">

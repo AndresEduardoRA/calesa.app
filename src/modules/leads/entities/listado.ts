@@ -1,6 +1,7 @@
 // El listado de leads: qué trae cada fila, qué columnas pide la tabla y cómo se valida lo que
 // vuelve de la base. Las filas salen de `leads_vista`: el teléfono ya viene enmascarado salvo para
 // la cartera y los atributos ya vienen recortados, así que nada acá decide quién ve qué.
+import { CAMPOS_DE_NUMEROS, numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { z } from 'zod'
 import type { CampoDeLead } from './campo'
 import { marcasDesde, type MarcasDeLead } from './marcas'
@@ -24,7 +25,8 @@ const PREFIJO_DE_ALIAS = 'a_'
 
 export type FilaDeLead = {
   id: string
-  numero: number
+  // Los números que se ven: la base ya resolvió cuál llega (el global, sólo con el permiso).
+  numeros: NumerosDeLead
   nombre: string
   // Como lo entrega la vista: completo para la cartera, enmascarado para el resto.
   telefono: string
@@ -44,6 +46,8 @@ export type FilaDeLead = {
 const COLUMNAS_FIJAS = [
   'id',
   'numero',
+  'numero_propio',
+  'numero_propio_creador',
   'nombre',
   'telefono_principal',
   'en_cartera',
@@ -97,7 +101,7 @@ export function columnasDeLaConsulta(claves: readonly string[]): string {
 const esquemaFila = z
   .object({
     id: z.guid(),
-    numero: z.number(),
+    ...CAMPOS_DE_NUMEROS,
     nombre: z.string(),
     telefono_principal: z.string().nullable(),
     en_cartera: z.boolean().nullable(),
@@ -133,7 +137,7 @@ export function filasDeLeadDesde(data: unknown, claves: readonly string[]): Fila
     return [
       {
         id: f.id,
-        numero: f.numero,
+        numeros: numerosDesde(f),
         nombre: f.nombre,
         telefono: f.telefono_principal ?? '',
         enCartera: f.en_cartera === true,
@@ -163,7 +167,7 @@ export function leadCompletoDesde(data: unknown): FilaDeLead | null {
   const f = fila.data
   return {
     id: f.id,
-    numero: f.numero,
+    numeros: numerosDesde(f),
     nombre: f.nombre,
     telefono: f.telefono_principal ?? '',
     enCartera: f.en_cartera === true,

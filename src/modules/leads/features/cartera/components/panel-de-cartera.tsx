@@ -16,6 +16,8 @@ import { AvisoDelPortal } from '../../portal/components/aviso-del-portal'
 import { useCandidatos } from '../hooks/use-candidatos'
 import type { CarteraDelLead } from '../hooks/use-cartera'
 import { useElegirPersona, type ModoDePanelDeCartera } from '../hooks/use-elegir-persona'
+import { SIN_NUMEROS, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
+import { useNumeroEscrito } from '@/shared/ui/numero-de-lead'
 import { ListaDePersonas } from './lista-de-personas'
 
 // Desde acá el panel entra al costado; por debajo es una hoja inferior.
@@ -27,7 +29,7 @@ const COSTADO = '(min-width: 640px)'
 type LeadDelPanel = {
   id: string
   nombre: string
-  numero: number
+  numeros: NumerosDeLead
   vehiculosVinculados: number
   vePortal: boolean
 }
@@ -166,12 +168,15 @@ export function PanelDeCartera({ modo, abierto, alCerrar, lead, cartera }: Props
   const alCostado = useConsultaDeMedios(COSTADO)
   const aLaVista = useUltimo(abierto ? lead : null)
   const mostrado = abierto ? lead : aLaVista
+  const numero = useNumeroEscrito(mostrado?.numeros ?? SIN_NUMEROS)
   return (
     <Drawer
       abierto={abierto}
       alCerrar={alCerrar}
       titulo={TEXTOS[modo].titulo}
-      descripcion={mostrado ? `${mostrado.nombre} · Lead #${String(mostrado.numero)}` : undefined}
+      descripcion={
+        mostrado ? [mostrado.nombre, numero.principal].filter(Boolean).join(' · ') : undefined
+      }
       lado={alCostado ? 'right' : 'bottom'}
     >
       {mostrado ? (

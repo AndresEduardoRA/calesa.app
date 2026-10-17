@@ -8,7 +8,7 @@ const OTRO = '0b9c2f3e-1d4a-4c5b-8e6f-7a8b9c0d1e2f'
 
 const fila = (cambios: Partial<FilaDeLead> = {}): FilaDeLead => ({
   id: ID,
-  numero: 12,
+  numeros: { numero: 12, numeroPropio: null, creadorDelPropio: null },
   nombre: 'Ana Rojas',
   telefono: '+59170011002',
   enCartera: true,

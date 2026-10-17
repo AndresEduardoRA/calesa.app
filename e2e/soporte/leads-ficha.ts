@@ -7,7 +7,14 @@ import { aLaVista } from './inventario'
 import { crearLead, exigir } from './leads'
 import { nombre } from './leads-listado'
 
-export type LeadDePrueba = { id: string; numero: number; telefono: string; nombre: string }
+export type LeadDePrueba = {
+  id: string
+  // El global y el propio (el de quien lo creó): quien no tiene el permiso sólo ve el propio.
+  numero: number
+  numeroPropio: number
+  telefono: string
+  nombre: string
+}
 
 // Un lead de esa persona con un teléfono que no se repite. El nombre lleva el prefijo «E2E » (lo
 // borra la limpieza) y se usa tal cual en las pantallas.
@@ -25,11 +32,17 @@ export async function nuevoLead(datos: {
   })
   const { data, error } = await admin()
     .from('leads')
-    .select('numero, nombre')
+    .select('numero, numero_propio, nombre')
     .eq('id', id)
-    .single<{ numero: number; nombre: string }>()
+    .single<{ numero: number; numero_propio: number | null; nombre: string }>()
   exigir(error, `leer el lead ${datos.corto}`)
-  return { id, numero: data?.numero ?? 0, telefono: datos.telefono, nombre: data?.nombre ?? '' }
+  return {
+    id,
+    numero: data?.numero ?? 0,
+    numeroPropio: data?.numero_propio ?? 0,
+    telefono: datos.telefono,
+    nombre: data?.nombre ?? '',
+  }
 }
 
 // La versión con la que está guardado (lo que la pantalla manda de vuelta al guardar).

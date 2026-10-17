@@ -46,12 +46,13 @@ const CONTEXTO: ContextoDeExportacion = {
   ]),
   codigoDePais: '+591',
   zona: 'America/La_Paz',
+  conNumeroGlobal: false,
 }
 
 function fila(extra: Partial<FilaDeLead> = {}): FilaDeLead {
   return {
     id: 'l1',
-    numero: 1,
+    numeros: { numero: 1, numeroPropio: 3, creadorDelPropio: null },
     nombre: 'Ana Pérez',
     telefono: '59170011002',
     enCartera: true,
@@ -88,9 +89,10 @@ describe('telefonoDeExportacion', () => {
 })
 
 describe('columnas', () => {
-  it('Nombre, Teléfono, Tipo y Origen, y después los activos con su etiqueta y en su orden', () => {
+  it('el número propio, Nombre, Teléfono, Tipo y Origen, y después los activos con su etiqueta y en su orden', () => {
     const campos = [campo(1), campo(2, { activo: false }), campo(3, { etiqueta: 'Ciudad' })]
     expect(encabezadosDeExportacion(campos)).toEqual([
+      'N.º propio',
       'Nombre',
       'Teléfono',
       'Tipo',
@@ -99,6 +101,11 @@ describe('columnas', () => {
       'Ciudad',
     ])
     expect(camposDeExportacion(campos).map((c) => c.clave)).toEqual(['campo_1', 'campo_3'])
+  })
+
+  it('con el permiso del número global, el archivo lleva también «N.º»', () => {
+    expect(encabezadosDeExportacion([], true).slice(0, 2)).toEqual(['N.º', 'N.º propio'])
+    expect(encabezadosDeExportacion([], false).slice(0, 2)).toEqual(['N.º propio', 'Nombre'])
   })
 
   it('un privado de la cartera sale; uno apagado no', () => {
@@ -161,12 +168,32 @@ describe('filaDeExportacion', () => {
       campos,
       CONTEXTO,
     )
-    expect(celdas).toEqual(['Ana Pérez', '70011002', 'Cliente', 'Web', 35, 'La Paz'])
+    expect(celdas).toEqual([3, 'Ana Pérez', '70011002', 'Cliente', 'Web', 35, 'La Paz'])
+  })
+
+  it('sin el permiso, sólo el número propio; con él, el global primero', () => {
+    expect(filaDeExportacion(fila({}), [], CONTEXTO).slice(0, 2)).toEqual([3, 'Ana Pérez'])
+    const conGlobal = { ...CONTEXTO, conNumeroGlobal: true }
+    expect(
+      filaDeExportacion(
+        fila({ numeros: { numero: 40, numeroPropio: 3, creadorDelPropio: null } }),
+        [],
+        conGlobal,
+      ).slice(0, 3),
+    ).toEqual([40, 3, 'Ana Pérez'])
+    // Un número que la base no entregó sale vacío, no «null».
+    expect(
+      filaDeExportacion(
+        fila({ numeros: { numero: null, numeroPropio: null, creadorDelPropio: null } }),
+        [],
+        conGlobal,
+      ).slice(0, 2),
+    ).toEqual(['', ''])
   })
 
   it('un origen que ya no está en la lista sale vacío, no «undefined»', () => {
-    expect(filaDeExportacion(fila({ origenId: 'viejo' }), [], CONTEXTO)[3]).toBe('')
-    expect(filaDeExportacion(fila({ origenId: null }), [], CONTEXTO)[3]).toBe('')
+    expect(filaDeExportacion(fila({ origenId: 'viejo' }), [], CONTEXTO)[4]).toBe('')
+    expect(filaDeExportacion(fila({ origenId: null }), [], CONTEXTO)[4]).toBe('')
   })
 
   it('escrita como CSV, una celda de fórmula sale con apóstrofo y el resto intacto', () => {
@@ -181,7 +208,7 @@ describe('filaDeExportacion', () => {
       CONTEXTO,
     )
     expect(lineaDeCsv(celdas, ';')).toBe(
-      "'=cmd|' /C calc'!A0;'+5491122334455;Prospecto;Web;'+591 700;'@usuario",
+      "3;'=cmd|' /C calc'!A0;'+5491122334455;Prospecto;Web;'+591 700;'@usuario",
     )
   })
 
@@ -193,7 +220,7 @@ describe('filaDeExportacion', () => {
       CONTEXTO,
     )
     expect(lineaDeCsv(celdas, ',')).toBe(
-      'Ana Pérez,70011002,Prospecto,Web,"Dijo ""ok"", luego\nvolvió 🚗"',
+      '3,Ana Pérez,70011002,Prospecto,Web,"Dijo ""ok"", luego\nvolvió 🚗"',
     )
   })
 })

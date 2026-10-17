@@ -2,8 +2,10 @@
 // `leads_vista` (los privados sólo le llegan a la cartera) y la consulta fuerza `en_cartera`: acá no se
 // decide quién ve qué, sólo cómo se escribe lo que llegó.
 //
-// - Las columnas son Nombre, Teléfono, Tipo y Origen, y después los campos activos del layout, con su
-//   etiqueta y en su orden. Un campo apagado no sale; los privados de la cartera sí.
+// - Las columnas son «N.º» (el global, sólo si quien exporta tiene `leads.numero_global.ver`), «N.º propio», Nombre,
+//   Teléfono, Tipo y Origen, y después los campos activos del layout, con su etiqueta y en su orden. Un campo apagado
+//   no sale; los privados de la cartera sí. Los números son los que la fila trae (la base ya resolvió cuáles ve la
+//   persona); la importación no los lee: los pone el sistema.
 // - Una opción sale con su texto (si ya no existe, con la clave guardada); un sí o no, «Sí» o «No»; una
 //   fecha, en ISO; una fecha con hora, en la zona de la empresa. Es lo que la importación vuelve a leer.
 import { z } from 'zod'
@@ -24,6 +26,8 @@ export const EXPORTACIONES_POR_HORA = 5
 export const SEPARADOR_DE_OPCIONES = ' | '
 
 export const ENCABEZADOS_FIJOS = ['Nombre', 'Teléfono', 'Tipo', 'Origen'] as const
+export const ENCABEZADO_DEL_NUMERO_GLOBAL = 'N.º'
+export const ENCABEZADO_DEL_NUMERO_PROPIO = 'N.º propio'
 
 export type ContextoDeExportacion = {
   // Nombre de cada origen por id (todos, también los apagados: un lead con uno apagado se nombra).
@@ -31,6 +35,8 @@ export type ContextoDeExportacion = {
   // El código de país de la empresa, con «+»; nulo si no hay.
   codigoDePais: string | null
   zona: string
+  // Quien exporta tiene `leads.numero_global.ver`: el archivo lleva la columna del global.
+  conNumeroGlobal: boolean
 }
 
 // Los campos que salen: activos, en el orden del layout.
@@ -38,8 +44,16 @@ export function camposDeExportacion<Campo extends CampoDeLead>(campos: readonly 
   return campos.filter((campo) => campo.activo)
 }
 
-export function encabezadosDeExportacion(campos: readonly CampoDeLead[]): string[] {
-  return [...ENCABEZADOS_FIJOS, ...camposDeExportacion(campos).map((campo) => campo.etiqueta)]
+export function encabezadosDeExportacion(
+  campos: readonly CampoDeLead[],
+  conNumeroGlobal = false,
+): string[] {
+  return [
+    ...(conNumeroGlobal ? [ENCABEZADO_DEL_NUMERO_GLOBAL] : []),
+    ENCABEZADO_DEL_NUMERO_PROPIO,
+    ...ENCABEZADOS_FIJOS,
+    ...camposDeExportacion(campos).map((campo) => campo.etiqueta),
+  ]
 }
 
 // El número completo de la cartera. Si es el de la empresa sale nacional (`70011002`): sin «+» no
@@ -114,6 +128,8 @@ export function filaDeExportacion(
   contexto: ContextoDeExportacion,
 ): Celda[] {
   return [
+    ...(contexto.conNumeroGlobal ? [fila.numeros.numero ?? ''] : []),
+    fila.numeros.numeroPropio ?? '',
     fila.nombre,
     telefonoDeExportacion(fila.telefono, contexto.codigoDePais),
     ETIQUETA_DEL_TIPO[fila.tipo],

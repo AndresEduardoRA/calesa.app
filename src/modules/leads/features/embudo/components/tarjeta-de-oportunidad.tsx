@@ -10,6 +10,7 @@ import type { EtapaGuardada } from '../../../entities/embudo'
 import { CLAVE_DE_SECCION } from '../../../entities/ficha'
 import type { Tarjeta } from '../../../entities/tablero'
 import { rotuloDeVehiculoDeNota } from '../../../entities/vehiculo-de-nota'
+import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
 import { InsigniaDeEstado } from '../../oportunidades/components/insignia-de-estado'
 import { MenuMoverA } from '../../oportunidades/components/menu-mover-a'
 
@@ -40,7 +41,7 @@ export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover }: Prop
         href={href}
         className="w-fit text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:underline"
       >
-        {tarjeta.lead.nombre} <span className="tabular-nums">#{tarjeta.lead.numero}</span>
+        {tarjeta.lead.nombre} <NumeroDeLead numeros={tarjeta.lead.numeros} />
       </Link>
       {tarjeta.monto === null && !tarjeta.vehiculo ? null : (
         <dl className="grid gap-0.5 text-(length:--text-xs) text-(--color-ink-soft)">

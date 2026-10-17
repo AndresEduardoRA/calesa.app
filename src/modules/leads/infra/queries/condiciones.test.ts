@@ -33,15 +33,50 @@ describe('aplicarCondicionesDeLeads', () => {
   })
 
   it('la búsqueda mira el nombre, con el texto literal y citado', () => {
-    expect(pedidosDe({ tipo: 'busqueda', texto: 'a, b (c) "d" 50%_', numero: null })).toEqual([
-      'or=(nombre.ilike."*a, b (c) \\"d\\" 50\\\\%\\\\_*")',
+    expect(
+      pedidosDe({
+        tipo: 'busqueda',
+        texto: 'a, b (c) "d" 50%_',
+        numero: null,
+        soloNumero: false,
+        idsDelNumero: [],
+      }),
+    ).toEqual(['or=(nombre.ilike."*a, b (c) \\"d\\" 50\\\\%\\\\_*")'])
+  })
+
+  const ID = '5a1f5b0e-6f0a-4f6e-9a55-1b6e2a1f0c11'
+
+  it('un número suma el lead con ese número (ya resuelto a su id), y nunca el teléfono', () => {
+    const pedidos = pedidosDe({
+      tipo: 'busqueda',
+      texto: '124',
+      numero: 124,
+      soloNumero: false,
+      idsDelNumero: [ID],
+    })
+    expect(pedidos).toEqual([`or=(nombre.ilike."*124*",id.in.(${ID}))`])
+    expect(pedidos.join()).not.toMatch(/telefono|numero/)
+  })
+
+  it('«#124» busca sólo el número: el lead con ese id, o ninguno', () => {
+    const base = { tipo: 'busqueda', texto: '124', numero: 124, soloNumero: true } as const
+    expect(pedidosDe({ ...base, idsDelNumero: [ID] })).toEqual([`or=(id.in.(${ID}))`])
+    // Sin lead con ese número (o que no se ve): un id que ninguna fila tiene.
+    expect(pedidosDe({ ...base, idsDelNumero: [] })).toEqual([
+      'id=in.(00000000-0000-0000-0000-000000000000)',
     ])
   })
 
-  it('un número suma el número de lead, y nunca el teléfono', () => {
-    const pedidos = pedidosDe({ tipo: 'busqueda', texto: '124', numero: 124 })
-    expect(pedidos).toEqual(['or=(nombre.ilike."*124*",numero.eq.124)'])
-    expect(pedidos.join()).not.toMatch(/telefono/)
+  it('un número sin lead visible sigue buscando el nombre', () => {
+    expect(
+      pedidosDe({
+        tipo: 'busqueda',
+        texto: '124',
+        numero: 124,
+        soloNumero: false,
+        idsDelNumero: [],
+      }),
+    ).toEqual(['or=(nombre.ilike."*124*")'])
   })
 
   it('tipo y origen del lead son columnas; «míos» es la cartera', () => {

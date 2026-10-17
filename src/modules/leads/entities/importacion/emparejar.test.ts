@@ -139,6 +139,49 @@ describe('emparejarColumnas', () => {
   })
 })
 
+describe('emparejarColumnas: el número de un lead', () => {
+  const objetivos = objetivosDeImportacion(campos())
+
+  it('una columna con el número de un lead no se importa y dice que lo pone el sistema', () => {
+    const { destinos, avisos } = emparejarColumnas(
+      ['N.º', 'Nombre', 'Teléfono', 'N.º propio', 'Tu n.º'],
+      objetivos,
+    )
+    expect(destinos).toEqual([null, 'nombre', 'telefono_principal', null, null])
+    expect(avisos).toEqual([
+      'La columna «N.º» no se importa: el número de un lead lo pone el sistema.',
+      'La columna «N.º propio» no se importa: el número de un lead lo pone el sistema.',
+      'La columna «Tu n.º» no se importa: el número de un lead lo pone el sistema.',
+    ])
+  })
+
+  it('un campo del layout que se llama «Número» sigue siendo un campo, no el número del lead', () => {
+    const conNumero = camposDeLeadDesde([
+      {
+        opciones: [],
+        requerido: false,
+        valor_defecto: null,
+        valor_defecto_empresa: null,
+        grupo: null,
+        en_tabla: false,
+        filtrable: false,
+        solo_cartera: false,
+        es_sistema: false,
+        activo: true,
+        actualizado_en: '2026-10-14T20:00:00+00:00',
+        id: '00000000-0000-0000-0000-000000000009',
+        clave: 'licencia',
+        etiqueta: 'Número',
+        tipo: 'texto',
+        orden: 10,
+      },
+    ])
+    const { destinos, avisos } = emparejarColumnas(['Número'], objetivosDeImportacion(conNumero))
+    expect(destinos).toEqual(['atributos.licencia'])
+    expect(avisos).toEqual([])
+  })
+})
+
 describe('conDestino', () => {
   it('un dato lo lleva una sola columna: la anterior se ignora', () => {
     expect(conDestino(['nombre', 'telefono_principal', null], 2, 'nombre')).toEqual([

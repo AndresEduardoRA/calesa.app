@@ -134,7 +134,7 @@ test('lo guardado lleva el país, y la ficha lo muestra en cada teléfono, tambi
   await page.keyboard.press('Control+Enter')
   await panel.getByLabel('Resumen').fill('Escribió desde Argentina')
   await page.keyboard.press('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ creado/)).toBeVisible()
+  await expect(page.getByText(/Lead creado/)).toBeVisible()
 
   const [lead] = await leadsConTelefono(normalizado)
   expect(lead?.atributos).toMatchObject({ pais: 'Argentina' })

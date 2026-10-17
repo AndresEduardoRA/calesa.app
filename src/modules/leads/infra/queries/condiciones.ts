@@ -9,19 +9,32 @@ import {
 } from '@/shared/lib/supabase/consultas'
 import type { CondicionDeLead } from '../../entities/filtros'
 
+// Un id que ninguna fila tiene: con él un filtro no devuelve nada.
+const ID_QUE_NO_EXISTE = '00000000-0000-0000-0000-000000000000'
+
+// Por nombre y por número de lead. Nunca por teléfono: buscar dígitos sobre lo ajeno sería un oráculo. El número ya
+// viene resuelto a ids (de la copia que corresponde, con su índice): acá es un `id in`.
+function aplicarBusqueda<Consulta extends Filtrable<Consulta>>(
+  consulta: Consulta,
+  condicion: Extract<CondicionDeLead, { tipo: 'busqueda' }>,
+): Consulta {
+  const porId =
+    condicion.idsDelNumero.length > 0 ? `id.in.(${condicion.idsDelNumero.join(',')})` : null
+  if (condicion.soloNumero) {
+    // «#124»: sólo ese lead; si no hay, ninguno.
+    return porId === null ? consulta.in('id', [ID_QUE_NO_EXISTE]) : consulta.or(porId)
+  }
+  const porNombre = `nombre.ilike.${citar(patronContiene(condicion.texto))}`
+  return consulta.or(porId === null ? porNombre : `${porNombre},${porId}`)
+}
+
 function aplicarUna<Consulta extends Filtrable<Consulta>>(
   consulta: Consulta,
   condicion: CondicionDeLead,
 ): Consulta {
   switch (condicion.tipo) {
-    case 'busqueda': {
-      // Por nombre y por número de lead. Nunca por teléfono: buscar dígitos sobre lo ajeno sería
-      // un oráculo.
-      const porNombre = `nombre.ilike.${citar(patronContiene(condicion.texto))}`
-      return consulta.or(
-        condicion.numero === null ? porNombre : `${porNombre},numero.eq.${condicion.numero}`,
-      )
-    }
+    case 'busqueda':
+      return aplicarBusqueda(consulta, condicion)
     case 'columna_en':
       return consulta.in(condicion.columna, condicion.valores)
     case 'en_cartera':

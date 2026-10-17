@@ -85,7 +85,7 @@ test('se guarda el lead desde el paso 1, sin diálogo, y el aviso lo dice', asyn
 
   // `Ctrl/Cmd+S`: guarda y deja el drawer listo para el siguiente, sin preguntar nada.
   await page.keyboard.press('Control+s')
-  await expect(page.getByText(/Lead #\d+ creado sin seguimiento/)).toBeVisible()
+  await expect(page.getByText(/Lead creado sin seguimiento/)).toBeVisible()
   await expect(panel.getByLabel('Teléfono principal')).toHaveValue('')
   await expect(panel.getByLabel('Teléfono principal')).toBeFocused()
 
@@ -115,7 +115,7 @@ test('con el paso 2 abierto y vacío también se guarda sin seguimiento, con el 
   await expect(panel.getByText(AVISO_SIN)).toBeVisible()
 
   await panel.getByRole('button', { name: 'Guardar lead' }).click()
-  await expect(page.getByText(/Lead #\d+ creado sin seguimiento/)).toBeVisible()
+  await expect(page.getByText(/Lead creado sin seguimiento/)).toBeVisible()
   const [lead] = await leadsConTelefono(normalizado)
   expect(await seguimientosDe(lead?.id ?? '')).toEqual([])
 })
@@ -146,7 +146,7 @@ test('un seguimiento enriquecido con fecha pasada se guarda como documento y se 
     panel.getByText('Se guardará con el primer seguimiento que escribiste.'),
   ).toBeVisible()
   await panel.getByRole('button', { name: 'Guardar lead' }).click()
-  await expect(page.getByText(/Lead #\d+ creado$/)).toBeVisible()
+  await expect(page.getByText(/^Lead creado(?! sin seguimiento)/)).toBeVisible()
 
   const [lead] = await leadsConTelefono(normalizado)
   const [seguimiento] = await seguimientosDe(lead?.id ?? '')
@@ -203,7 +203,7 @@ test('«Próximo contacto» nace plegado y se programa con el teclado; uno en el
 
   await panel.getByRole('button', { name: 'Mañana 09:00' }).click()
   await page.keyboard.press('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ creado$/)).toBeVisible()
+  await expect(page.getByText(/^Lead creado(?! sin seguimiento)/)).toBeVisible()
   const [lead] = await leadsConTelefono(normalizado)
   const [recordatorio] = await recordatoriosDe(lead?.id ?? '')
   expect(recordatorio?.titulo).toBe('Quedó en confirmar')
@@ -233,7 +233,7 @@ test('un detalle o un próximo contacto sin resumen pide el resumen: no lo deriv
 
   await panel.getByLabel('Resumen').fill('Ahora sí')
   await page.keyboard.press('Control+Enter')
-  await expect(page.getByText(/Lead #\d+ creado$/)).toBeVisible()
+  await expect(page.getByText(/^Lead creado(?! sin seguimiento)/)).toBeVisible()
 })
 
 test('lo pegado conserva sólo lo admitido y un detalle demasiado largo se dice junto al campo', async ({

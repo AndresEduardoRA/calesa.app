@@ -64,6 +64,8 @@ import {
   buscarLeads as buscarLeadsEnBase,
   contarLeadsHasta as contarEnBase,
 } from './infra/queries/listado'
+import type { LectorDeIdsDelNumero } from './entities/numero'
+import { getIdsDelNumero } from './infra/queries/numeros'
 import { getOrigenesDeLead, getOrigenesDeLeadConUso } from './infra/queries/origenes'
 import { getPapeleraDeLeads } from './infra/queries/papelera'
 import { getAccesoDelCliente } from './infra/queries/portal'
@@ -85,6 +87,8 @@ export const leerContextoDeAlta: LectorDeContextoDeAlta = getContextoDeAlta
 export const buscarLeads: BuscadorDeLeads = buscarLeadsEnBase
 
 export const contarLeadsHasta: ContadorDeLeads = contarEnBase
+
+export const leerIdsDelNumero: LectorDeIdsDelNumero = getIdsDelNumero
 
 export const leerOrigenesDeLead: LectorDeOrigenesDeLead = getOrigenesDeLead
 

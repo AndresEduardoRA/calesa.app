@@ -298,14 +298,18 @@ describe('el pie del drawer y el aviso de un lead guardado', () => {
   })
 
   it('el lead guardado dice si entró sin seguimiento y si se tomó', () => {
-    const base = { numero: 124, adoptado: false, conSeguimiento: true }
-    expect(textoDeLeadGuardado(base)).toBe('Lead #124 creado')
-    expect(textoDeLeadGuardado({ ...base, adoptado: true })).toBe('Lead #124 tomado')
+    const base = {
+      numeros: { numero: 124, numeroPropio: 12, creadorDelPropio: null },
+      adoptado: false,
+      conSeguimiento: true,
+    }
+    expect(textoDeLeadGuardado(base)).toBe('Lead creado · N.º 124')
+    expect(textoDeLeadGuardado({ ...base, adoptado: true })).toBe('Lead tomado · N.º 124')
     expect(textoDeLeadGuardado({ ...base, conSeguimiento: false })).toBe(
-      'Lead #124 creado sin seguimiento',
+      'Lead creado sin seguimiento · N.º 124',
     )
     expect(textoDeLeadGuardado({ ...base, adoptado: true, conSeguimiento: false })).toBe(
-      'Lead #124 tomado sin seguimiento',
+      'Lead tomado sin seguimiento · N.º 124',
     )
   })
 })

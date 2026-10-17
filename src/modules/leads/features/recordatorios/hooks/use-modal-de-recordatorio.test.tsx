@@ -20,7 +20,7 @@ const uno = (cambios: Partial<Recordatorio>): Recordatorio => ({
   actualizadoEn: '2026-10-15T14:00:00+00:00',
   leadId: null,
   leadNombre: null,
-  leadNumero: null,
+  leadNumeros: { numero: null, numeroPropio: null, creadorDelPropio: null },
   vehiculo: null,
   vehiculoOculto: false,
   ...cambios,

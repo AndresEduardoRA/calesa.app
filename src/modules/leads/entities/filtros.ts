@@ -97,8 +97,16 @@ export function esquemaDeFiltrosDeLeads(fuentes: Fuentes): EsquemaDeFiltros {
 
 // Lo que se le pide a la base, sin decir cómo: `infra/queries/condiciones.ts` lo traduce.
 export type CondicionDeLead =
-  // Contiene el texto en el nombre o, si el texto es un número, es el número del lead.
-  | { tipo: 'busqueda'; texto: string; numero: number | null }
+  // Contiene el texto en el nombre o, si el texto es un número, es el lead con ese número. `idsDelNumero`: los leads con
+  // ese número que la persona ve, que resolvió quien arma la consulta (vacío si ninguno). `soloNumero`: se escribió «#124»,
+  // que busca únicamente por número.
+  | {
+      tipo: 'busqueda'
+      texto: string
+      numero: number | null
+      soloNumero: boolean
+      idsDelNumero: readonly string[]
+    }
   | { tipo: 'columna_en'; columna: 'tipo' | 'origen_lead_id'; valores: string[] }
   // «Míos»: el lead está en la cartera de quien mira.
   | { tipo: 'en_cartera' }
@@ -108,16 +116,19 @@ export type CondicionDeLead =
 // Un número de lead son hasta 15 dígitos: cabe entero en un `number` sin perder nada.
 const NUMERO_DE_LEAD = /^\d{1,15}$/
 
-// «#124» o «124» busca el lead 124 y también los nombres que contienen «124». Nunca el teléfono:
+// «124» busca el lead con ese número y también los nombres que contienen «124»; «#124» busca sólo el número. El número
+// es el que la persona ve primero (el global con el permiso, el propio sin él: lo resuelve la base). Nunca el teléfono:
 // buscar dígitos sobre lo ajeno sería un oráculo para saber si un número ya está cargado.
 export function interpretarBusqueda(
   texto: string,
-): { texto: string; numero: number | null } | null {
-  const limpio = texto.trim().replace(/^#/, '').trim()
+): { texto: string; numero: number | null; soloNumero: boolean } | null {
+  const recortado = texto.trim()
+  const limpio = recortado.replace(/^#/, '').trim()
   if (limpio === '') {
     return null
   }
-  return { texto: limpio, numero: NUMERO_DE_LEAD.test(limpio) ? Number(limpio) : null }
+  const numero = NUMERO_DE_LEAD.test(limpio) ? Number(limpio) : null
+  return { texto: limpio, numero, soloNumero: numero !== null && recortado.startsWith('#') }
 }
 
 // Las condiciones de lo que la persona filtró. La clave de un atributo sale siempre del layout
@@ -125,12 +136,13 @@ export function interpretarBusqueda(
 export function condicionesDeLeads(
   campos: readonly CampoDeLead[],
   valores: ValoresDeFiltros,
-  opciones: { zona?: string; soloMios: boolean },
+  // `idsDelNumero`: lo que resolvió la base para el número buscado (ver `leerIdsDelNumero`); sin él, ninguno.
+  opciones: { zona?: string; soloMios: boolean; idsDelNumero?: readonly string[] },
 ): CondicionDeLead[] {
   const condiciones: CondicionDeLead[] = []
   const busqueda = interpretarBusqueda(valores.busqueda)
   if (busqueda) {
-    condiciones.push({ tipo: 'busqueda', ...busqueda })
+    condiciones.push({ tipo: 'busqueda', ...busqueda, idsDelNumero: opciones.idsDelNumero ?? [] })
   }
   if (opciones.soloMios) {
     condiciones.push({ tipo: 'en_cartera' })

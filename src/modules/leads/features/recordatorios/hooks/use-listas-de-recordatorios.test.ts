@@ -22,7 +22,7 @@ const de = (n: number, completado: string | null = null): Recordatorio => ({
   actualizadoEn: '2026-10-15T14:00:00+00:00',
   leadId: 'l',
   leadNombre: 'Ana',
-  leadNumero: 1,
+  leadNumeros: { numero: 1, numeroPropio: null, creadorDelPropio: null },
   vehiculo: null,
   vehiculoOculto: false,
 })
