@@ -9,8 +9,6 @@ do $$
 declare
   v_excepciones constant jsonb := (select jsonb_object_agg(f, m) from (values
     -- Acciones de administración puntuales: cuestan lo que cuesta la acción, no se abren en cada pantalla.
-    ('_leads_al_limbo_de', 'la baja de una persona mueve esos leads: el número es lo que se mueve (tope: los leads de una persona)'),
-    ('equipo_vista_previa_baja', 'vista previa de una baja puntual (tope: los leads y oportunidades de una persona)'),
     ('origen_eliminar', 'eliminar un origen cuenta lo que lo ata (tope: lo del origen), una acción de administración'),
     ('origenes_resumen', 'Configuración › Orígenes: un conteo por origen, 1,8 ms con 10.000 vehículos'),
     ('categorias_con_uso', 'Configuración › Orígenes: uso por categoría, 0,3 ms con 10.000 vehículos'),

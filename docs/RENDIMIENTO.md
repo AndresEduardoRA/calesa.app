@@ -132,11 +132,25 @@ lead, y la asesora con 3 leads, que camina el índice entero). `medir-escala.sql
 
 **Lo que cuesta escribir (9h, 50.000):** los triggers de la cartera y de los atributos públicos suman 0,4 ms a un alta (1,9 →
 2,3), 208 ms a importar 500 filas en 10 lotes (809 → 1.017; el lote más lento 89 → 110 ms, contra 8 s de tope), 2,3 s a
-transferir 5.000 leads de a uno (6,3 → 8,6 s) y 0,4 s a la baja de Berta, con 7.000 (113 → 510 ms). **Límite:** la baja de alguien
-con 80.000 leads tarda 6,7 s (era 0,75): se reescribe la fila de cada lead (~70 µs); pasados ~100.000 de una sola persona, la baja
-tiene que ir por lotes (`docs/PLAN.md`). **El relleno** de una base viva (`_leads_derivados_rellenar(5000)`, reanudable, `skip
+transferir 5.000 leads de a uno (6,3 → 8,6 s) y 0,4 s a la baja de Berta, con 7.000 (113 → 510 ms). La baja de alguien con 80.000 leads tardaba 6,7 s (era 0,75: se
+reescribe la fila de cada lead, ~70 µs) y con 200.000, **17,9 s**: `authenticated` la cortaba a los 8 s. **Desde el cierre 1 va por
+lotes** (ver abajo). **El relleno** de una base viva (`_leads_derivados_rellenar(5000)`, reanudable, `skip
 locked`): 212.000 leads en 43 lotes de ~450 ms. **Cambiar la privacidad de un campo** que tienen 200.000 leads no cabe en una
 sentencia (9 a 21 s, contra 8 s de `statement_timeout`): va por lotes de 5.000 (`leads-campos-privacidad`, cada minuto, hasta 10).
+
+**La baja por lotes (cierre 1, `medir-bajas.sql`, con transacciones de verdad).** Con 200.000 leads de una sola persona:
+antes, una sentencia de 17,9 s que `authenticated` cortaba a los 8 s (y retenía los 200.000 leads mientras tanto). Ahora la
+llamada hace el primer lote de 5.000 (**0,4–0,6 s**, presupuesto 2,5 s; una vez, tras cargar los 200.000, 3 s) y el job
+`equipo-bajas` el resto: cada corrida corta pasados 1,5 s (**1,7–2,4 s**, y 3,5 s una vez con la máquina ocupada; presupuesto
+4 s) y la baja termina en 5 a 8 corridas, ~40 lotes, ~10 s de trabajo repartidos en minutos. Lotes medidos: 2.000 ≈ 250 ms,
+5.000 ≈ 550 ms, 10.000 ≈ 0,9–1,4 s. Dos cosas que se aprendieron midiendo: (1) **cada lote sigue desde el último lead del
+anterior** (cursor): empezando desde el principio, dentro de la misma corrida recorría las entradas del índice parcial que los
+lotes anteriores ya revocaron (no se pueden descartar hasta que la corrida confirma) y una corrida de 10 lotes crecía con lo
+hecho, 5,6 s; (2) **los ids salen solos del índice y los leads se bloquean después por su clave**: unidos, para la dueña (20.000
+de 62.000) el planificador recorría las dos tablas y ordenaba (26 ms hoy, pero crece con la tabla); separados, 0,7 ms los ids
+y 5 ms el candado. La vista previa cuenta hasta 1.001: 313 ms → 44–73 ms con 200.000 (al principio 2,2 s: `_bajas_en_curso()`
+se evaluaba por fila; envuelta en `(select …)::uuid[]` es un InitPlan). El InitPlan nuevo de la regla no cambió ningún plan del
+listado (`medir-escala.sql`; con 512.000 leads, la página 1 de la dueña sigue en 1,6 ms por `leads_listado_idx`).
 
 **«¿Algún lead usa este origen?» (corrección de la 9f-1, `…20261019000800`).** El índice de la FK existía (lo crea el bucle de
 `…000900_indices.sql`), pero `_origenes_lead_json()` y `origen_lead_eliminar()` no lo usaban: con `l.origen_lead_id = o.id` el plan
@@ -161,20 +175,21 @@ exportación use un index-only scan.
 
 ### Vehículos, orígenes, equipo y empresa
 
-| Superficie                             | Tope                        | Número             | Índice                            | Presupuesto  | A 50.000 / 10.000 | Estado                          |
-| -------------------------------------- | --------------------------- | ------------------ | --------------------------------- | ------------ | ----------------- | ------------------------------- |
-| Inventario, página                     | 50 por cursor               | ninguno            | `vehiculos_origen_listado_idx`    | 20 ms        | 0,4 ms            | ok                              |
-| Inventario, búsqueda / limpieza        | 50                          | ninguno            | `vehiculos_origen_listado_idx`    | 100 / 150 ms | 9 / 19 ms         | ok                              |
-| Papelera de vehículos                  | 5 lotes por cursor          | ninguno            | `lotes_papelera_tipo_idx`         | 200 ms       | 13 ms             | **arreglado** (115 ms, todo)    |
-| Aviso de archivos por borrar           | cola de Storage hasta 1.000 | «más de 1.000»     | `cola_gc_storage_edad_idx`        | 50 ms        | 0,3 ms            | **arreglado** (`count(*)`)      |
-| Galería de fotos                       | 24 por vehículo             | «N de 24»          | `vehiculos_imagenes_hash_unico`   | —            | —                 | exento                          |
-| Vínculos e interesados de un vehículo  | 50 / 100                    | ninguno            | `vehiculos_vinculos_vehiculo_idx` | —            | —                 | ok (sin aviso al llegar: PLAN)  |
-| Selector «agregar vehículo»            | 20                          | ninguno            | —                                 | 300 ms       | 31 ms (64)        | ok                              |
-| Orígenes, resumen y categorías con uso | decenas de orígenes         | conteos del origen | —                                 | 100 / 50 ms  | 1,8 / 0,3 ms      | exento (administración)         |
-| Equipo, lista                          | el equipo                   | ninguno            | —                                 | —            | —                 | exento                          |
-| Baja de una persona, vista previa      | los leads de una persona    | exacto             | —                                 | 100 ms       | 10 ms             | exento (administración puntual) |
-| Tipos de cambio, historial             | 30                          | ninguno            | FK del cambio                     | —            | —                 | ok (sin aviso al llegar: PLAN)  |
-| Bandeja / buscador / campana           | sin consulta todavía        | —                  | —                                 | —            | —                 | —                               |
+| Superficie                             | Tope                        | Número             | Índice                                              | Presupuesto                               | A 50.000 / 10.000                                                             | Estado                                      |
+| -------------------------------------- | --------------------------- | ------------------ | --------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- |
+| Inventario, página                     | 50 por cursor               | ninguno            | `vehiculos_origen_listado_idx`                      | 20 ms                                     | 0,4 ms                                                                        | ok                                          |
+| Inventario, búsqueda / limpieza        | 50                          | ninguno            | `vehiculos_origen_listado_idx`                      | 100 / 150 ms                              | 9 / 19 ms                                                                     | ok                                          |
+| Papelera de vehículos                  | 5 lotes por cursor          | ninguno            | `lotes_papelera_tipo_idx`                           | 200 ms                                    | 13 ms                                                                         | **arreglado** (115 ms, todo)                |
+| Aviso de archivos por borrar           | cola de Storage hasta 1.000 | «más de 1.000»     | `cola_gc_storage_edad_idx`                          | 50 ms                                     | 0,3 ms                                                                        | **arreglado** (`count(*)`)                  |
+| Galería de fotos                       | 24 por vehículo             | «N de 24»          | `vehiculos_imagenes_hash_unico`                     | —                                         | —                                                                             | exento                                      |
+| Vínculos e interesados de un vehículo  | 50 / 100                    | ninguno            | `vehiculos_vinculos_vehiculo_idx`                   | —                                         | —                                                                             | ok (sin aviso al llegar: PLAN)              |
+| Selector «agregar vehículo»            | 20                          | ninguno            | —                                                   | 300 ms                                    | 31 ms (64)                                                                    | ok                                          |
+| Orígenes, resumen y categorías con uso | decenas de orígenes         | conteos del origen | —                                                   | 100 / 50 ms                               | 1,8 / 0,3 ms                                                                  | exento (administración)                     |
+| Equipo, lista                          | el equipo                   | ninguno            | —                                                   | —                                         | —                                                                             | exento                                      |
+| Baja de una persona, vista previa      | hasta 1.001                 | «más de 1.000»     | `leads_asesores_usuario_vigente_idx`                | 100 / 300 ms                              | 12 ms; 200.000: 313 → 44–73 ms                                                | **arreglado** (cierre 1; era exacto)        |
+| Baja de una persona                    | lotes de 5.000              | exacto (lo hecho)  | `leads_asesores_usuario_vigente_idx` + `leads_pkey` | 2.500 ms la llamada, 4.000 ms una corrida | 200.000: 17,9 s (y el corte de 8 s) → 0,5 s la llamada, 1,7–3,5 s una corrida | **arreglado** (cierre 1, `medir-bajas.sql`) |
+| Tipos de cambio, historial             | 30                          | ninguno            | FK del cambio                                       | —                                         | —                                                                             | ok (sin aviso al llegar: PLAN)              |
+| Bandeja / buscador / campana           | sin consulta todavía        | —                  | —                                                   | —                                         | —                                                                             | —                                           |
 
 ### Jobs (100.000 filas por purgar)
 

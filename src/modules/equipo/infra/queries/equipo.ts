@@ -13,7 +13,7 @@ export const getEquipo: LectorDeEquipo = cache(async () => {
     .from('perfiles')
     .select(
       // `usuarios_roles` apunta dos veces a `perfiles` (la persona y quien le asignó el rol).
-      'id, nombre, email, avatar_ruta, activo, bloqueado, bloqueo_motivo, invitado_en, invitacion_aceptada_en, usuarios_roles!usuarios_roles_usuario_id_fkey(es_principal, roles(id, clave, nombre, color, orden))',
+      'id, nombre, email, avatar_ruta, activo, bloqueado, bloqueo_motivo, invitado_en, invitacion_aceptada_en, equipo_bajas!equipo_bajas_usuario_id_fkey(terminada_en), usuarios_roles!usuarios_roles_usuario_id_fkey(es_principal, roles(id, clave, nombre, color, orden))',
     )
     .order('nombre')
     .order('email')

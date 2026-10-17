@@ -11,6 +11,8 @@ import {
 } from './soporte/base'
 import { borrarOrigenes, crearOrigenDePrueba } from './soporte/origenes'
 import { ingresar } from './soporte/pasos'
+import { capturar } from './soporte/recorrido'
+import { literal, sql } from './soporte/sql'
 
 // Equipo y roles contra la app compilada y el Supabase local. Una sola historia, en orden: la
 // dueña crea un rol y le da permisos acotados a un origen; invita a una persona con ese rol, que
@@ -43,6 +45,7 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
+  sql(`delete from public.leads where nombre like 'E2E Baja %'`)
   await borrarPersonasDePrueba()
   await borrarRolesDePrueba()
   await borrarOrigenes([])
@@ -180,6 +183,49 @@ test('la dueña bloquea a alguien y esa persona queda afuera', async ({ page, br
   await expect(suya).toHaveURL('/ingreso?aviso=bloqueada')
   await expect(suya.getByText('Tu cuenta está bloqueada')).toBeVisible()
   await suya.context().close()
+})
+
+// Cierre 1: la baja dice cuántos leads van al limbo antes de confirmar, y mientras sus leads se pasan por lotes la lista lo
+// dice («Pasando sus leads…»). La baja en curso se deja a mano (con 5.000 leads o menos termina en la llamada).
+test('la dueña da de baja a alguien con leads, y una baja en curso se dice en la lista', async ({
+  page,
+}, info) => {
+  const sufijo = info.project.name === 'escritorio' ? '1' : '2'
+  sql(`with p as (select id from public.perfiles where email = ${literal(invitada)}),
+            l as (insert into public.leads (nombre, telefono_principal, creado_por)
+                  select 'E2E Baja ' || g, '7990' || ${literal(sufijo)} || lpad(g::text, 3, '0'), p.id from p, generate_series(1, 2) g returning id, creado_por)
+       insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) select id, creado_por, 'dueno' from l`)
+  await entrar(page, duena)
+  await page.goto('/configuracion/equipo')
+  await page.getByRole('button', { name: `Acciones sobre ${INVITADA}` }).click()
+  await page.getByRole('menuitem', { name: 'Dar de baja' }).click()
+  const dialogo = page.getByRole('dialog')
+  await expect(dialogo.getByText('2 leads irán al limbo')).toBeVisible()
+  await capturar(page, info, 'equipo-baja-01-confirmar')
+  await dialogo.getByRole('button', { name: 'Dar de baja' }).click()
+  await expect(
+    page.getByText(`${INVITADA} ya no forma parte del equipo. 2 leads quedaron en el limbo.`),
+  ).toBeVisible()
+  expect(
+    sql(`select count(*) from public.leads where nombre like 'E2E Baja %' and cartera = '{}'`),
+  ).toBe('2')
+
+  // Una baja en curso: la fila de equipo_bajas sin terminar (lo que queda entre el primer lote y el último).
+  sql(`update public.equipo_bajas set terminada_en = null
+        where usuario_id = (select id from public.perfiles where email = ${literal(invitada)})`)
+  await page.goto('/configuracion/equipo')
+  await page.getByLabel('Estado').selectOption('baja')
+  const fila = page.getByRole('row').filter({ hasText: INVITADA })
+  await expect(fila.getByText('Dada de baja', { exact: true })).toBeVisible()
+  await expect(fila.getByText('Pasando sus leads…')).toBeVisible()
+  await capturar(page, info, 'equipo-baja-02-en-curso')
+
+  // El job la termina y la lista deja de decirlo.
+  sql('select public.equipo_bajas_continuar()')
+  await page.reload()
+  await page.getByLabel('Estado').selectOption('baja')
+  await expect(fila.getByText('Dada de baja', { exact: true })).toBeVisible()
+  await expect(fila.getByText('Pasando sus leads…')).toHaveCount(0)
 })
 
 test('el guardián no deja al equipo sin quien lo administre, y lo dice en claro', async ({

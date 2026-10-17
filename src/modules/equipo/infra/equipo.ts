@@ -1,6 +1,7 @@
 import 'server-only'
-import { errorDePostgrest, ok } from '@/shared/lib/errores'
+import { errorDePostgrest, fallo, ok } from '@/shared/lib/errores'
 import { createClient } from '@/shared/lib/supabase/server'
+import { bajaHechaDesde } from '../entities/persona'
 import type { RepositorioEquipo } from '../entities/repositorios-equipo'
 
 // Roles de una persona, bloqueo y baja: todo por RPC (`rbac_*`, `equipo_*`). El permiso, la
@@ -47,7 +48,10 @@ const darDeBaja: RepositorioEquipo['darDeBaja'] = async (personaId) => {
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }
-  return ok({ leadsAlLimbo: data })
+  const hecha = bajaHechaDesde(data)
+  return hecha
+    ? ok(hecha)
+    : fallo('inesperado', 'La baja respondió algo que no entendimos. Recarga para ver cómo quedó.')
 }
 
 const aceptarInvitacion: RepositorioEquipo['aceptarInvitacion'] = async () => {

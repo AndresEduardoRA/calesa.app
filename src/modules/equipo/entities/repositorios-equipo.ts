@@ -5,7 +5,7 @@ import type { Resultado } from '@/shared/lib/errores'
 import type { Alcance, ClavePermiso } from '@/shared/lib/permisos'
 import type { TipoDeEnlace } from './invitacion'
 import type { PermisoDelCatalogo } from './matriz'
-import type { PersonaDelEquipo, VistaPreviaDeBaja } from './persona'
+import type { BajaHecha, PersonaDelEquipo, VistaPreviaDeBaja } from './persona'
 import type { RolConConcesiones } from './rol'
 
 // Toda edición de un rol manda la versión que tenía en pantalla; la base responde `conflicto` si
@@ -42,7 +42,8 @@ export type RepositorioEquipo = {
     bloquear: boolean
     motivo?: string
   }) => Promise<Resultado<null>>
-  darDeBaja: (personaId: string) => Promise<Resultado<{ leadsAlLimbo: number }>>
+  // Termina en la llamada con una cartera chica; con una grande sigue el job `equipo-bajas` (`terminada: false`).
+  darDeBaja: (personaId: string) => Promise<Resultado<BajaHecha>>
   // Sobre la cuenta propia: la persona invitada eligió su contraseña.
   aceptarInvitacion: () => Promise<Resultado<null>>
 }

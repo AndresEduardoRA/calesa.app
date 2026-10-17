@@ -1357,6 +1357,49 @@ export type Database = {
           },
         ]
       }
+      equipo_bajas: {
+        Row: {
+          empezada_en: string
+          leads_al_limbo: number
+          oportunidades_canceladas: number
+          por: string | null
+          terminada_en: string | null
+          usuario_id: string
+        }
+        ComputedFields: never
+        Insert: {
+          empezada_en?: string
+          leads_al_limbo?: number
+          oportunidades_canceladas?: number
+          por?: string | null
+          terminada_en?: string | null
+          usuario_id: string
+        }
+        Update: {
+          empezada_en?: string
+          leads_al_limbo?: number
+          oportunidades_canceladas?: number
+          por?: string | null
+          terminada_en?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'equipo_bajas_por_fkey'
+            columns: ['por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'equipo_bajas_usuario_id_fkey'
+            columns: ['usuario_id']
+            isOneToOne: true
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       etiquetas: {
         Row: {
           actualizado_en: string
@@ -6603,6 +6646,13 @@ export type Database = {
         Args: { p_atributos: Json; p_campos: Json; p_msg_objeto: string }
         Returns: undefined
       }
+      _baja_lote: { Args: { p_lote: number; p_usuario: string }; Returns: boolean }
+      _baja_lote_desde: {
+        Args: { p_desde: string; p_lote: number; p_usuario: string }
+        Returns: string
+      }
+      _baja_terminar: { Args: { p_usuario: string }; Returns: boolean }
+      _bajas_en_curso: { Args: Record<PropertyKey, never>; Returns: string[] }
       _campo_impacto: {
         Args: { p_tipo: Database['public']['Enums']['tipo_campo']; p_valores: Json[] }
         Returns: Json
@@ -6716,6 +6766,7 @@ export type Database = {
         }
         Returns: string
       }
+      _lead_aplicar_bajas: { Args: { p_lead: string }; Returns: undefined }
       _lead_atributos_formato: {
         Args: { p_anteriores: Json; p_campos: Json; p_nuevos: Json }
         Returns: undefined
@@ -6846,11 +6897,12 @@ export type Database = {
           p_alcance: Database['public']['Enums']['alcance_permiso']
           p_cartera: string[]
           p_eliminado_en: string
+          p_fuera: string[]
           p_yo: string
         }
         Returns: boolean
       }
-      _leads_al_limbo_de: { Args: { p_usuario: string }; Returns: number }
+      _leads_al_limbo_de: { Args: { p_tope: number; p_usuario: string }; Returns: number }
       _leads_cartera_recalcular: { Args: { p_leads: string[] }; Returns: undefined }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_derivados_rellenar: { Args: { p_lote: number }; Returns: number }
@@ -7379,11 +7431,12 @@ export type Database = {
       en_cartera: { Args: { p_lead: string }; Returns: boolean }
       enmascarar_telefono: { Args: { p: string }; Returns: string }
       equipo_aceptar_invitacion: { Args: Record<PropertyKey, never>; Returns: undefined }
+      equipo_bajas_continuar: { Args: Record<PropertyKey, never>; Returns: Json }
       equipo_bloquear: {
         Args: { p_bloquear: boolean; p_motivo?: string; p_usuario: string }
         Returns: undefined
       }
-      equipo_dar_de_baja: { Args: { p_usuario: string }; Returns: number }
+      equipo_dar_de_baja: { Args: { p_usuario: string }; Returns: Json }
       equipo_vista_previa_baja: { Args: { p_usuario: string }; Returns: Json }
       es_miembro: { Args: { p_conversacion: string }; Returns: boolean }
       es_usuario_activo: { Args: Record<PropertyKey, never>; Returns: boolean }

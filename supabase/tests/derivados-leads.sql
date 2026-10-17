@@ -149,7 +149,7 @@ declare
   v_personas constant uuid[] := array['00000000-0000-0000-0000-0000000009d1', '00000000-0000-0000-0000-0000000009d2',
     '00000000-0000-0000-0000-0000000009d3', '00000000-0000-0000-0000-0000000009d4', '00000000-0000-0000-0000-000000000051']::uuid[];
   v_web uuid := (select id from public.origenes_lead where clave = 'web');
-  v_leads uuid[]; v_lead uuid; v_persona uuid; v_op int; i int;
+  v_leads uuid[]; v_lead uuid; v_persona uuid; v_op int; i int; v_baja uuid; v_bajas int := 0;
 begin
   perform setseed(0.42);
   -- 30 leads propios de esta prueba: el dueño lo pone el trigger de `leads` (como el alta).
@@ -165,7 +165,7 @@ begin
     perform set_config('request.jwt.claims', '', true);
     v_lead := v_leads[1 + floor(random() * 30)::int];
     v_persona := v_personas[1 + floor(random() * 5)::int];
-    v_op := floor(random() * 13)::int;
+    v_op := floor(random() * 15)::int;
     case v_op
       when 0 then  -- compartir (o volver a compartir un acceso revocado)
         insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) values (v_lead, v_persona, 'compartido')
@@ -199,12 +199,30 @@ begin
         update public.leads_campos set solo_cartera_pendiente = true where clave = 'ciudad' and not solo_cartera;
       when 11 then  -- un lote chico del job
         perform public._lead_campo_privacidad_lote((select id from public.leads_campos where clave = 'ciudad'), 4);
+      when 12 then  -- una baja en curso (cierre 1): empieza si no hay otra; si la hay, termina y la persona vuelve (sólo acá)
+        v_baja := (select b.usuario_id from public.equipo_bajas b where b.terminada_en is null and b.usuario_id = any (v_personas) limit 1);
+        if v_baja is null then
+          update public.perfiles set activo = false where id = v_persona;
+          insert into public.equipo_bajas (usuario_id) values (v_persona)
+          on conflict (usuario_id) do update set terminada_en = null, leads_al_limbo = 0, oportunidades_canceladas = 0;
+        else
+          while not public._baja_lote(v_baja, 1000) loop end loop;
+          update public.perfiles set activo = true where id = v_baja;
+          delete from public.equipo_bajas where usuario_id = v_baja;
+        end if;
+      when 13, 14 then  -- un lote chico de la baja en curso
+        v_baja := (select b.usuario_id from public.equipo_bajas b where b.terminada_en is null and b.usuario_id = any (v_personas) limit 1);
+        if v_baja is not null then perform public._baja_lote(v_baja, 3); end if;
       else  -- tomar del limbo: un lead sin nadie recibe dueño
         if public._lead_cartera_calcular(v_lead) = '{}' then
           insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) values (v_lead, v_persona, 'dueno')
           on conflict (lead_id, usuario_id) do update set tipo_acceso = 'dueno', revocado_en = null, revocado_por = null;
         end if;
     end case;
+    if exists (select 1 from public.equipo_bajas b where b.terminada_en is null and b.usuario_id = any (v_personas)
+                and exists (select 1 from public.leads_asesores la where la.usuario_id = b.usuario_id and la.revocado_en is null)) then
+      v_bajas := v_bajas + 1;
+    end if;
     if i % 25 = 0 then
       perform pg_temp.derivados_comprobar(format('tras %s cambios', i));
     end if;
@@ -212,7 +230,16 @@ begin
   if (select count(*) from public.leads where id = any (v_leads) and cartera = '{}') = 0 then
     raise exception 'los cambios al azar no dejaron ningún lead en el limbo: la prueba no cubre ese caso';
   end if;
-  -- Lo que quede a medias se termina, y «ciudad» vuelve a ser pública para lo que sigue.
+  if v_bajas = 0 then
+    raise exception 'los cambios al azar nunca dejaron una baja a medias: la prueba no cubre ese caso';
+  end if;
+  -- Lo que quede a medias se termina (la baja también, y la persona vuelve), y «ciudad» vuelve a ser pública para lo que sigue.
+  for v_baja in select b.usuario_id from public.equipo_bajas b where b.terminada_en is null and b.usuario_id = any (v_personas) loop
+    while not public._baja_lote(v_baja, 1000) loop end loop;
+  end loop;
+  -- Una baja que un lote chico terminó solo también deja a su persona apagada: todas vuelven para lo que sigue.
+  update public.perfiles set activo = true where id = any (v_personas) and not activo;
+  delete from public.equipo_bajas where usuario_id = any (v_personas);
   while not public._lead_campo_privacidad_lote((select id from public.leads_campos where clave = 'ciudad'), 5000) loop end loop;
   if (select solo_cartera from public.leads_campos where clave = 'ciudad') then perform pg_temp.privacidad('ciudad', false); end if;
   perform pg_temp.derivados_comprobar('al terminar los cambios al azar');

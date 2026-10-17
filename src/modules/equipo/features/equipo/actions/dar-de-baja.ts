@@ -8,7 +8,8 @@ import { actionClient } from '@/shared/lib/safe-action'
 import { repositorioEquipo } from '../../../composicion'
 import { esquemaPersona } from '../schemas/equipo'
 
-// Dar de baja: la persona sale del equipo y sus leads van al limbo. Devuelve cuántos fueron.
+// Dar de baja: la persona sale del equipo y sus leads van al limbo (por lotes si son muchos). Devuelve si terminó y
+// cuántos fueron hasta ahí.
 export const darDeBaja = actionClient
   .inputSchema(esquemaPersona)
   .action(async ({ parsedInput, ctx }) => {

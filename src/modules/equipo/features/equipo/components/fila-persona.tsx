@@ -57,7 +57,11 @@ export function FilaPersona({ persona, esPropia, acciones }: Props) {
         <Roles persona={persona} />
       </TableCell>
       <TableCell>
-        <EstadoDePersona estado={persona.estado} motivoDeBloqueo={persona.bloqueoMotivo} />
+        <EstadoDePersona
+          estado={persona.estado}
+          motivoDeBloqueo={persona.bloqueoMotivo}
+          bajaEnCurso={persona.bajaEnCurso}
+        />
       </TableCell>
       <TableCell className="w-px text-right">{acciones}</TableCell>
     </TableRow>

@@ -1,6 +1,12 @@
 // Una persona del equipo vista por quien lo administra: su estado, sus roles y lo que pasa si
 // se la da de baja. La lista sale de `perfiles`; acá sólo se le da forma.
 import { z } from 'zod'
+import {
+  TOPE_DEL_CONTEO,
+  conteoAcotado,
+  conteoEnFrase,
+  type ConteoAcotado,
+} from '@/shared/lib/conteo'
 import type { RolDeLaPersona } from './sesion'
 
 // Una persona puede estar en un solo estado. El orden importa: una cuenta dada de baja ya no
@@ -23,6 +29,8 @@ export type PersonaDelEquipo = {
   avatarRuta: string | null
   estado: EstadoPersona
   bloqueoMotivo: string | null
+  // Dada de baja y con sus leads todavía pasándose por lotes (`equipo_bajas.terminada_en` nulo).
+  bajaEnCurso: boolean
   roles: RolDeLaPersona[]
 }
 
@@ -58,6 +66,8 @@ const esquemaPersonas = z.array(
     bloqueo_motivo: z.string().nullable(),
     invitado_en: z.string().nullable(),
     invitacion_aceptada_en: z.string().nullable(),
+    // Sólo la ve quien tiene `equipo.usuarios.ver`; sin fila (o sin el permiso), nula.
+    equipo_bajas: z.object({ terminada_en: z.string().nullable() }).nullable().optional(),
     usuarios_roles: z.array(
       z.object({
         es_principal: z.boolean(),
@@ -89,6 +99,8 @@ export function personasDesde(filas: unknown): PersonaDelEquipo[] {
       invitacionAceptadaEn: fila.invitacion_aceptada_en,
     }),
     bloqueoMotivo: fila.bloqueo_motivo,
+    bajaEnCurso:
+      !fila.activo && fila.equipo_bajas != null && fila.equipo_bajas.terminada_en === null,
     roles: fila.usuarios_roles
       .flatMap(({ es_principal, roles }) =>
         roles ? [{ ...roles, esPrincipal: es_principal }] : [],
@@ -139,8 +151,12 @@ export function filtrarPersonas(
   })
 }
 
-// Lo que hay que saber antes de dar de baja a alguien (`equipo_vista_previa_baja()`).
-export type VistaPreviaDeBaja = { leadsAlLimbo: number; oportunidadesAbiertas: number }
+// Lo que hay que saber antes de dar de baja a alguien (`equipo_vista_previa_baja()`): la base cuenta hasta 1.001,
+// así que con más se dice «más de 1.000».
+export type VistaPreviaDeBaja = {
+  leadsAlLimbo: ConteoAcotado
+  oportunidadesAbiertas: ConteoAcotado
+}
 
 const esquemaVistaPrevia = z.object({
   leads_al_limbo: z.number().int().nonnegative(),
@@ -149,25 +165,32 @@ const esquemaVistaPrevia = z.object({
 
 export function vistaPreviaDesde(json: unknown): VistaPreviaDeBaja {
   const { leads_al_limbo, oportunidades_abiertas } = esquemaVistaPrevia.parse(json)
-  return { leadsAlLimbo: leads_al_limbo, oportunidadesAbiertas: oportunidades_abiertas }
+  return {
+    leadsAlLimbo: conteoAcotado(leads_al_limbo, TOPE_DEL_CONTEO),
+    oportunidadesAbiertas: conteoAcotado(oportunidades_abiertas, TOPE_DEL_CONTEO),
+  }
 }
 
-function fraseDeLeads(cantidad: number): string {
-  if (cantidad === 0) {
+function esUno(conteo: ConteoAcotado): boolean {
+  return !conteo.hayMas && conteo.n === 1
+}
+
+function fraseDeLeads(conteo: ConteoAcotado): string {
+  if (conteo.n === 0) {
     return 'No tiene leads a su cargo.'
   }
-  return cantidad === 1
+  return esUno(conteo)
     ? '1 lead irá al limbo: queda sin dueño y nadie lo ve hasta que alguien registre su teléfono.'
-    : `${String(cantidad)} leads irán al limbo: quedan sin dueño y nadie los ve hasta que alguien registre su teléfono.`
+    : `${conteoEnFrase(conteo)} leads irán al limbo: quedan sin dueño y nadie los ve hasta que alguien registre su teléfono.`
 }
 
-function fraseDeOportunidades(cantidad: number): string | null {
-  if (cantidad === 0) {
+function fraseDeOportunidades(conteo: ConteoAcotado): string | null {
+  if (conteo.n === 0) {
     return null
   }
-  return cantidad === 1
+  return esUno(conteo)
     ? 'Su oportunidad abierta se cancela.'
-    : `Sus ${String(cantidad)} oportunidades abiertas se cancelan.`
+    : `Sus ${conteoEnFrase(conteo)} oportunidades abiertas se cancelan.`
 }
 
 // El texto del diálogo de baja: qué se pierde, y que no se puede deshacer.
@@ -218,8 +241,29 @@ export function accionesSobre(
   }
 }
 
-// Lo que se le dice a quien dio de baja a alguien, con el número que devolvió la base.
-export function resultadoDeBaja(nombre: string, leadsAlLimbo: number): string {
+// Lo que devuelve `equipo_dar_de_baja`: si terminó en la llamada y cuántos leads quedaron sin nadie hasta ahí (exacto:
+// son los que pasó). Una cartera grande termina en el job `equipo-bajas`, a lo sumo en unos minutos.
+export type BajaHecha = { terminada: boolean; leadsAlLimbo: number }
+
+const esquemaBajaHecha = z.object({
+  terminada: z.boolean(),
+  leads_al_limbo: z.number().int().nonnegative(),
+})
+
+export function bajaHechaDesde(json: unknown): BajaHecha | null {
+  const leida = esquemaBajaHecha.safeParse(json)
+  return leida.success
+    ? { terminada: leida.data.terminada, leadsAlLimbo: leida.data.leads_al_limbo }
+    : null
+}
+
+export const AVISO_DE_BAJA_EN_CURSO = 'Pasando sus leads'
+
+// Lo que se le dice a quien dio de baja a alguien, con lo que devolvió la base.
+export function resultadoDeBaja(nombre: string, { terminada, leadsAlLimbo }: BajaHecha): string {
+  if (!terminada) {
+    return `${nombre} ya no forma parte del equipo. Tenía muchos leads: terminamos de pasarlos en unos minutos. Mientras tanto, los que quedan sin nadie ya están en el limbo y nadie más los ve como suyos.`
+  }
   if (leadsAlLimbo === 0) {
     return `${nombre} ya no forma parte del equipo.`
   }

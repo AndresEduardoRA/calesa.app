@@ -299,4 +299,28 @@ do $medir$ declare q text; begin
     50, 'lotes_papelera_tipo_idx', '{lotes_papelera}', 0, 'postgres');
 end $medir$;
 
+
+-- La baja por lotes (cierre 1): un lote toma los ids de la persona por leads_asesores_usuario_vigente_idx, en orden y sin
+-- recorrer leads_asesores, y bloquea esos leads por su clave (la dueña, con 20.000). La baja de 200.000, con sus tiempos, en `medir-bajas.sql`.
+select pg_temp.escala('baja: los ids de un lote (la consulta)', 'duena',
+  $w$select la.lead_id from public.leads_asesores la
+      where la.usuario_id = '00000000-0000-0000-0000-0000000000d1' and la.revocado_en is null
+      order by la.lead_id limit 5000$w$,
+  50, 'leads_asesores_usuario_vigente_idx', array['leads_asesores'], 0, 'postgres');
+select pg_temp.escala('baja: los ids de un lote con el cursor (la consulta)', 'duena',
+  $w$select la.lead_id from public.leads_asesores la
+      where la.usuario_id = '00000000-0000-0000-0000-0000000000d1' and la.revocado_en is null
+        and la.lead_id > '80000000-0000-0000-0000-000000000000'
+      order by la.lead_id limit 5000$w$,
+  50, 'leads_asesores_usuario_vigente_idx', array['leads_asesores'], 0, 'postgres');
+select pg_temp.escala('baja: el candado de los leads de un lote (la consulta)', 'duena',
+  $w$select l.id from public.leads l
+      where l.id = any (array(select la.lead_id from public.leads_asesores la
+                               where la.usuario_id = '00000000-0000-0000-0000-0000000000d1' and la.revocado_en is null
+                               order by la.lead_id limit 5000))
+      order by l.id for update skip locked$w$,
+  200, 'leads_pkey', array['leads'], 0, 'postgres');
+select pg_temp.escala('baja de la dueña (vista previa, hasta 1.001)', 'duena',
+  $w$select public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000000d1')$w$, 100);
+
 rollback;

@@ -54,7 +54,7 @@ export function useAccionesEquipo() {
     if (!hecho) {
       return false
     }
-    avisarExito(resultadoDeBaja(nombreDePersona(persona), hecho.dato.leadsAlLimbo))
+    avisarExito(resultadoDeBaja(nombreDePersona(persona), hecho.dato))
     return true
   }
 

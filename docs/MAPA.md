@@ -159,6 +159,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `preferencias_usuario` — `supabase/schemas/02_equipo/01_equipo.sql`
 - `vistas_guardadas` — `supabase/schemas/02_equipo/01_equipo.sql`
 - `visitados` — `supabase/schemas/02_equipo/01_equipo.sql`
+- `equipo_bajas` — `supabase/schemas/02_equipo/01_equipo.sql`
 - `origenes` — `supabase/schemas/03_origenes/01_origenes.sql`
 - `origenes_campos` — `supabase/schemas/03_origenes/01_origenes.sql`
 - `categorias` — `supabase/schemas/03_origenes/01_origenes.sql`

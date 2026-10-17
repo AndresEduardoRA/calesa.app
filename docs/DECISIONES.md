@@ -3287,3 +3287,44 @@ papeleras, los números acotados y los jobs).
 **Alternativas descartadas:** (c) una función `definer` que recorte una vez por consulta (repite la regla y, como mostró la 9e, si `authenticated` la llama con el alcance como parámetro filtra datos); (d) estadísticas extendidas o un índice parcial (no ven un InitPlan, y no hicieron falta: el origen camina `leads_listado_idx` en 10 ms); sólo reescribir la policy con `case`, sin columnas (arreglaba la página y la profundidad, no el filtro sin resultados: 4 s); una tabla aparte para la cartera (con su RLS abierta dejaría contar todos los leads de la empresa); `pg_trgm` para la búsqueda (bajo RLS `ilike` no es `leakproof`: necesitaría una `definer` con la regla repetida; con la cartera en la fila la búsqueda bajó a 51 ms con 50.000 y 185 con 200.000); una `atributos_lead()` en SQL (18,8 s: una función SQL que no se inlinea se vuelve a planificar en cada llamada; por la misma razón `alcance_de()` se llama fuera de su consulta, 265 → 66 µs).
 
 **Consecuencia:** migraciones `…20261019001400_leads_derivados.sql`, `…001500_campos_privacidad_por_lotes.sql` y `…001600_leads_visibilidad_estimable.sql`; `supabase/tests/derivados-leads.sql` (en `db:probar`), `scripts/carreras/cartera.mjs`, `medir-escala.sql` con las metas, «míos», Berta y la asesora de 3 leads, y `pnpm db:sembrar-volumen -- --leads N`.
+
+## 2026-10-17 — Cierre 1 (A): la baja de una persona va en dos tiempos, y la regla ya sabe que hay una baja en curso
+
+**Contexto:** la 9h dejó la baja de una persona reescribiendo la fila de cada uno de sus leads en una sola sentencia: 6,7 s con
+80.000 y, medido hoy, 17,9 s con 200.000, que `authenticated` corta a los 8 s. Además, mientras dura, esa transacción retiene
+todos esos leads.
+
+**Decisión:**
+
+- **Dos tiempos.** `equipo_dar_de_baja` hace lo instantáneo (la cuenta, la cola de la web), anota la baja en `equipo_bajas`
+  (tabla nueva: persona, quién, cuándo empezó y terminó, cuántos leads al limbo y oportunidades canceladas) y corre el primer
+  lote de 5.000 en la misma llamada: una cartera chica termina ahí, como antes. Devuelve `{ terminada, leads_al_limbo }`. El
+  resto lo hace el job `equipo-bajas` (cada minuto), que corta cada corrida pasados 1,5 s.
+- **El lote nunca espera y no se interbloquea.** Toma los ids de la persona por `leads_asesores_usuario_vigente_idx` y después
+  bloquea esos leads por su clave con `skip locked` (el mismo orden que compartir y transferir: `leads` y después
+  `leads_asesores`). Un lead que otra RPC tiene bloqueado lo toma la corrida siguiente. Lo pendiente lo dicen los datos (filas
+  vigentes de la persona): una corrida cortada se revierte entera y la siguiente sigue, sin duplicar ni perder.
+- **Lo que ven los demás mientras dura es el estado final.** `_bajas_en_curso()` (un InitPlan sobre una tabla casi siempre
+  vacía) entra a `_lead_visible_para(…, fuera)`, que pasa de «cartera no vacía» a «alguien de la cartera que no está en baja»
+  (`not (cartera <@ fuera)`), y a `lead_en_limbo`, «Quién lo tiene», el dueño, la verificación del teléfono y la vista previa.
+  Un lead que sólo tenía esa persona ya es limbo para todos y se adopta al registrar el teléfono; uno compartido lo sigue
+  viendo quien lo comparte, sin dueño. Las RPC que escriben la cartera aplican la baja al lead que bloquearon
+  (`_lead_aplicar_bajas`) y deciden sobre el estado final: adoptar no choca con el dueño único, transferir con el dueño viejo
+  dice que cambió de dueño, quitar acceso no deja crear un limbo. Compartir o transferir **a** quien se da de baja toma su
+  perfil `for share`: espera y ve la cuenta apagada (antes nada lo impedía y la fila nueva quedaba vigente).
+- **La vista previa cuenta hasta 1.001** («más de 1.000 leads irán al limbo»): era exacta y crecía con la cartera. El aviso del
+  final sí es exacto: son las filas que la baja pasó.
+
+**Alternativas:** una transacción larga en un job sin `statement_timeout` (no se reanuda, retiene 200.000 leads ~18 s);
+recalcular la cartera por conjunto o con `fillfactor` (la 9h: no bajó de 5,3 s con 80.000); dejar la regla como estaba y aceptar
+que los leads sin nadie se vean un rato como de quien se fue (es justo lo que el encargo descarta); un procedimiento con
+`commit` entre lotes (pg_cron lo admite, pero no se puede llamar dentro de una transacción de prueba y los demás jobs son
+funciones).
+
+**Consecuencia:** migración `…20261019001700_bajas_por_lotes.sql` y `equipo_bajas` en `schemas/02_equipo`. `humo.sql` (la baja en
+curso: quién ve qué, adoptar, transferir, compartir, quitar acceso y el job), `derivados-leads.sql` (bajas a medias entre los
+cambios al azar), `scripts/carreras/cartera.mjs` (siete carreras: compartir con la persona en los dos órdenes, transferir durante
+un lote y después, dos bajas con un lead común, un lote cortado) y `medir-bajas.sql`, que **no** va en una transacción que se
+revierte: ahí nada de lo revocado se puede descartar entre lotes y la medición mentía (6 s un lote); confirma como la base viva
+y borra lo que crea. Un hallazgo en el camino: empezar cada lote desde el principio recorría, dentro de la misma corrida, lo que
+los anteriores ya habían revocado (5,6 s una corrida); cada lote sigue ahora desde el último lead del anterior.

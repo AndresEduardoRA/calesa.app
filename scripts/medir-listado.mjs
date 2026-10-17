@@ -78,6 +78,10 @@ const MEDICIONES_CON_VOLUMEN = [
     'Escala de toda la app, 50.000 leads (dueña «todos» y Ana «propios»)',
   ],
   ['supabase/tests/medir-jobs.sql', 'Los jobs con 100.000 filas por purgar (ms por corrida)'],
+  [
+    'supabase/tests/medir-bajas.sql',
+    'La baja de una persona con 200.000 leads (con transacciones de verdad: confirma y borra lo que crea)',
+  ],
 ]
 const MEDICIONES = CON_VOLUMEN ? MEDICIONES_CON_VOLUMEN : MEDICIONES_BASE
 

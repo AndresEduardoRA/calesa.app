@@ -290,6 +290,8 @@ create table public.oportunidades (
   constraint oportunidades_motivo_largo check (motivo_perdida is null or char_length(motivo_perdida) <= 200)
 );
 create index oportunidades_tablero_idx on public.oportunidades (usuario_id, etapa_id, ultima_actividad_en desc, id desc) where eliminado_en is null;
+-- La baja cancela de a lotes las abiertas de una persona (`_baja_lote`, cierre 1).
+create index oportunidades_abiertas_usuario_idx on public.oportunidades (usuario_id, id) where estado = 'abierta';
 create index oportunidades_usuario_embudo_idx on public.oportunidades (usuario_id, embudo_id);
 create index oportunidades_embudo_etapa_idx on public.oportunidades (embudo_id, etapa_id);
 comment on table public.oportunidades is 'Negocios de un lead dentro de un embudo de una persona. Un lead puede tener varias. Ganada/perdida no la saca del kanban: queda en su columna final. Se escriben sólo por RPC (oportunidad_*): exigen ser su dueña, la cartera del lead y leads.editar. Sólo las ve su dueña, mientras tenga el lead en su cartera.';

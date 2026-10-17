@@ -108,3 +108,19 @@ create table public.visitados (
   primary key (usuario_id, tipo, referencia_id)
 );
 comment on table public.visitados is 'Últimos abiertos por usuario para el buscador y los enlaces «visitado». Sin FK: una entidad borrada deja una fila huérfana inofensiva que muere por TTL.';
+
+-- La baja de una persona, en dos tiempos (cierre 1 de la Fase 3): `equipo_dar_de_baja` la apaga y anota acá; sus leads
+-- y sus oportunidades se pasan por lotes (`_baja_lote`, el job `equipo-bajas`). Mientras `terminada_en` es nulo la
+-- persona está en «baja en curso» y la regla de visibilidad ya la cuenta fuera de toda cartera (`_bajas_en_curso()`).
+create table public.equipo_bajas (
+  usuario_id               uuid primary key references public.perfiles (id) on delete cascade,
+  por                      uuid references public.perfiles (id) on delete set null,
+  empezada_en              timestamptz not null default now(),
+  terminada_en             timestamptz,
+  leads_al_limbo           integer not null default 0 check (leads_al_limbo >= 0),
+  oportunidades_canceladas integer not null default 0 check (oportunidades_canceladas >= 0)
+);
+create index equipo_bajas_en_curso_idx on public.equipo_bajas (usuario_id) where terminada_en is null;
+create index equipo_bajas_por_idx on public.equipo_bajas (por);
+alter table public.equipo_bajas enable row level security;
+comment on table public.equipo_bajas is 'Una fila por baja. terminada_en nulo = baja en curso: la persona ya no está activa y sus filas de leads_asesores y sus oportunidades abiertas se pasan por lotes. leads_al_limbo cuenta lo hecho (exacto: son las filas que pasó). Sólo la escriben equipo_dar_de_baja y el job.';

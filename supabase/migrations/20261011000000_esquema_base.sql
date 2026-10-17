@@ -336,6 +336,22 @@ create table public.visitados (
 );
 comment on table public.visitados is 'Últimos abiertos por usuario para el buscador y los enlaces «visitado». Sin FK: una entidad borrada deja una fila huérfana inofensiva que muere por TTL.';
 
+-- La baja de una persona, en dos tiempos (cierre 1 de la Fase 3): `equipo_dar_de_baja` la apaga y anota acá; sus leads
+-- y sus oportunidades se pasan por lotes (`_baja_lote`, el job `equipo-bajas`). Mientras `terminada_en` es nulo la
+-- persona está en «baja en curso» y la regla de visibilidad ya la cuenta fuera de toda cartera (`_bajas_en_curso()`).
+create table public.equipo_bajas (
+  usuario_id               uuid primary key references public.perfiles (id) on delete cascade,
+  por                      uuid references public.perfiles (id) on delete set null,
+  empezada_en              timestamptz not null default now(),
+  terminada_en             timestamptz,
+  leads_al_limbo           integer not null default 0 check (leads_al_limbo >= 0),
+  oportunidades_canceladas integer not null default 0 check (oportunidades_canceladas >= 0)
+);
+create index equipo_bajas_en_curso_idx on public.equipo_bajas (usuario_id) where terminada_en is null;
+create index equipo_bajas_por_idx on public.equipo_bajas (por);
+alter table public.equipo_bajas enable row level security;
+comment on table public.equipo_bajas is 'Una fila por baja. terminada_en nulo = baja en curso: la persona ya no está activa y sus filas de leads_asesores y sus oportunidades abiertas se pasan por lotes. leads_al_limbo cuenta lo hecho (exacto: son las filas que pasó). Sólo la escriben equipo_dar_de_baja y el job.';
+
 -- >>> schemas/03_origenes/01_origenes.sql
 -- Módulo orígenes: de dónde vienen los vehículos (subasta USA, China, oficina, Corea…),
 -- el layout de campos de cada origen y sus categorías.
@@ -836,6 +852,8 @@ create table public.oportunidades (
   constraint oportunidades_motivo_largo check (motivo_perdida is null or char_length(motivo_perdida) <= 200)
 );
 create index oportunidades_tablero_idx on public.oportunidades (usuario_id, etapa_id, ultima_actividad_en desc, id desc) where eliminado_en is null;
+-- La baja cancela de a lotes las abiertas de una persona (`_baja_lote`, cierre 1).
+create index oportunidades_abiertas_usuario_idx on public.oportunidades (usuario_id, id) where estado = 'abierta';
 create index oportunidades_usuario_embudo_idx on public.oportunidades (usuario_id, embudo_id);
 create index oportunidades_embudo_etapa_idx on public.oportunidades (embudo_id, etapa_id);
 comment on table public.oportunidades is 'Negocios de un lead dentro de un embudo de una persona. Un lead puede tener varias. Ganada/perdida no la saca del kanban: queda en su columna final. Se escriben sólo por RPC (oportunidad_*): exigen ser su dueña, la cartera del lead y leads.editar. Sólo las ve su dueña, mientras tenga el lead en su cartera.';

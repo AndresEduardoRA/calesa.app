@@ -152,7 +152,7 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001
 set role authenticated;
 do $$ declare n int; r jsonb; v uuid; begin
   perform public.rbac_asignar_rol('00000000-0000-0000-0000-000000000004', (select id from public.roles where clave = 'asesor'), true);
-  n := public.equipo_dar_de_baja('00000000-0000-0000-0000-000000000002');
+  n := (public.equipo_dar_de_baja('00000000-0000-0000-0000-000000000002') ->> 'leads_al_limbo')::int;
   if n <> 1 then raise exception 'esperaba 1 lead al limbo, hubo %', n; end if;
   if (select count(*) from public.leads_vista where nombre = 'Ana Quispe') <> 0 then raise exception 'un lead en limbo no se ve ni para la dueña'; end if;
   r := public.verificar_telefono('+591', '70000001');
@@ -621,7 +621,7 @@ set role authenticated;
 do $$ declare antes jsonb; mandados int; begin
   antes := public.equipo_vista_previa_baja('00000000-0000-0000-0000-000000000004');
   if (antes ->> 'leads_al_limbo')::int <> 2 then raise exception 'esperaba 2 leads al limbo (el adoptado y el propio; el compartido no): %', antes; end if;
-  mandados := public.equipo_dar_de_baja('00000000-0000-0000-0000-000000000004');
+  mandados := (public.equipo_dar_de_baja('00000000-0000-0000-0000-000000000004') ->> 'leads_al_limbo')::int;
   if mandados <> (antes ->> 'leads_al_limbo')::int then raise exception 'la baja mandó % y la vista previa dijo %', mandados, antes; end if;
   if (public.verificar_telefono('+591', '70000021') ->> 'estado') <> 'limbo' then raise exception 'el lead propio no quedó en el limbo'; end if;
   if (public.verificar_telefono('+591', '70000022') ->> 'estado') = 'limbo' then raise exception 'el lead compartido cayó al limbo'; end if;
@@ -634,6 +634,92 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 delete from public.usuarios_roles where usuario_id = '00000000-0000-0000-0000-000000000005';
+
+-- @test baja en curso (cierre 1): mientras sus leads se pasan por lotes, todos ven el estado final
+-- P (6) tiene tres leads: uno sólo suyo, uno compartido con Q (7) y otro también compartido con Q. R (8) es otra asesora.
+-- La baja se deja «en curso» a mano (la cuenta apagada y la fila de equipo_bajas sin lotes): es lo que ve el resto entre el
+-- primer lote y el último.
+insert into auth.users (id, email, raw_app_meta_data) values
+  ('00000000-0000-0000-0000-0000000001b6', 'baja-p@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-0000000001b7', 'baja-q@ejemplo.com', '{"invitado": true}'),
+  ('00000000-0000-0000-0000-0000000001b8', 'baja-r@ejemplo.com', '{"invitado": true}');
+update public.perfiles set nombre = 'Pía Baja' where id = '00000000-0000-0000-0000-0000000001b6';
+update public.perfiles set nombre = 'Quique Comparte' where id = '00000000-0000-0000-0000-0000000001b7';
+update public.perfiles set nombre = 'Raquel Toma' where id = '00000000-0000-0000-0000-0000000001b8';
+insert into public.usuarios_roles (usuario_id, rol_id, es_principal)
+select u, r.id, true from public.roles r,
+  unnest(array['00000000-0000-0000-0000-0000000001b6', '00000000-0000-0000-0000-0000000001b7', '00000000-0000-0000-0000-0000000001b8']::uuid[]) u
+ where r.clave = 'asesor';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000001b6', false);
+select set_config('request.jwt.claim.role', 'authenticated', false);
+set role authenticated;
+do $$ declare l2 uuid; l3 uuid; begin
+  perform public.crear_lead(gen_random_uuid(), '{"nombre": "Baja Solo", "telefono_cc": "+591", "telefono_principal": "70000031"}');
+  l2 := (public.crear_lead(gen_random_uuid(), '{"nombre": "Baja Compartido", "telefono_cc": "+591", "telefono_principal": "70000032"}') ->> 'id')::uuid;
+  l3 := (public.crear_lead(gen_random_uuid(), '{"nombre": "Baja Otro", "telefono_cc": "+591", "telefono_principal": "70000033"}') ->> 'id')::uuid;
+  perform public.lead_compartir(l2, '00000000-0000-0000-0000-0000000001b7');
+  perform public.lead_compartir(l3, '00000000-0000-0000-0000-0000000001b7');
+end $$;
+reset role;
+update public.perfiles set activo = false, baja_en = now(), baja_por = '00000000-0000-0000-0000-000000000001' where id = '00000000-0000-0000-0000-0000000001b6';
+insert into public.equipo_bajas (usuario_id, por) values ('00000000-0000-0000-0000-0000000001b6', '00000000-0000-0000-0000-000000000001');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+set role authenticated;
+do $$ declare l2 uuid; l3 uuid; c jsonb; begin
+  -- La dueña ve «todos»: el lead sólo de P ya es limbo; los compartidos siguen, sin P en «Quién lo tiene».
+  if (select count(*) from public.leads_vista where nombre = 'Baja Solo') <> 0 then raise exception 'un lead sólo de quien está en baja se ve: ya es limbo'; end if;
+  select id into l2 from public.leads_vista where nombre = 'Baja Compartido';
+  select id into l3 from public.leads_vista where nombre = 'Baja Otro';
+  if l2 is null or l3 is null then raise exception 'los compartidos con alguien que se queda se siguen viendo'; end if;
+  if public.puede_lead((select id from public.leads where nombre = 'Baja Solo'), 'leads.ver') then raise exception 'puede_lead ve el limbo en curso'; end if;
+  if (public.verificar_telefono('+591', '70000031') ->> 'estado') <> 'limbo' then raise exception 'el teléfono del lead sólo de P no dice limbo'; end if;
+  c := public.lead_cartera(l2);
+  if jsonb_array_length(c) <> 1 or (c -> 0 ->> 'usuario_id') <> '00000000-0000-0000-0000-0000000001b7' then raise exception 'quien está en baja sigue en «Quién lo tiene»: %', c; end if;
+  if (public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000001b7') ->> 'leads_al_limbo')::int <> 2 then raise exception 'para la vista previa de Q, P ya no cuenta: sus dos compartidos irían al limbo'; end if;
+  -- Compartir con quien está en baja: no está activa.
+  begin perform public.lead_compartir(l2, '00000000-0000-0000-0000-0000000001b6'); raise exception 'compartió con alguien en baja';
+  exception when sqlstate '22023' then null; end;
+  -- Transferir con el dueño viejo choca; sin dueño (el estado final), pasa y aplica la baja a ese lead.
+  begin perform public.lead_transferir(l2, '00000000-0000-0000-0000-0000000001b8', '00000000-0000-0000-0000-0000000001b6'); raise exception 'transfirió con un dueño que ya no está';
+  exception when sqlstate 'PT409' then null; end;
+  perform public.lead_transferir(l2, '00000000-0000-0000-0000-0000000001b8', null);
+  if exists (select 1 from public.leads_asesores where lead_id = l2 and usuario_id = '00000000-0000-0000-0000-0000000001b6' and revocado_en is null) then raise exception 'transferir no aplicó la baja al lead'; end if;
+  if (select cartera from public.leads where id = l2) <> array['00000000-0000-0000-0000-0000000001b7', '00000000-0000-0000-0000-0000000001b8']::uuid[] then raise exception 'la cartera de l2 no quedó con Q y R'; end if;
+  -- Quitar a Q de l3 lo dejaría sin nadie (P ya no cuenta): se rechaza.
+  begin perform public.lead_revocar_acceso(l3, '00000000-0000-0000-0000-0000000001b7'); raise exception 'quitar acceso creó un limbo';
+  exception when sqlstate '23514' then null; end;
+end $$;
+reset role;
+-- R adopta el lead sólo de P al registrar su teléfono: no choca con el dueño único y se cuenta en la baja.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000001b8', false);
+set role authenticated;
+do $$ declare r jsonb; begin
+  r := public.crear_lead(gen_random_uuid(), '{"nombre": "Baja Solo", "telefono_cc": "+591", "telefono_principal": "70000031", "adoptar": true}');
+  if r ->> 'resultado' <> 'adoptado' then raise exception 'esperaba adoptado: %', r; end if;
+end $$;
+reset role;
+do $$ declare b public.equipo_bajas; begin
+  if (select leads_al_limbo from public.equipo_bajas where usuario_id = '00000000-0000-0000-0000-0000000001b6') <> 1 then raise exception 'el lead que pasó por el limbo al adoptarlo no se contó'; end if;
+  -- El job termina lo que queda (l3: Q se queda con él).
+  perform public.equipo_bajas_continuar();
+  select * into b from public.equipo_bajas where usuario_id = '00000000-0000-0000-0000-0000000001b6';
+  if b.terminada_en is null then raise exception 'el job no terminó la baja'; end if;
+  if b.leads_al_limbo <> 1 then raise exception 'esperaba 1 lead al limbo en total, hubo %', b.leads_al_limbo; end if;
+  if exists (select 1 from public.leads_asesores where usuario_id = '00000000-0000-0000-0000-0000000001b6' and revocado_en is null) then raise exception 'quedaron filas vigentes de quien se dio de baja'; end if;
+  if exists (select 1 from public.leads l where l.cartera is distinct from public._lead_cartera_calcular(l.id)) then raise exception 'una cartera no coincide con su fuente'; end if;
+  if not exists (select 1 from public.actividad where accion = 'usuario.baja_terminada' and registro_id = '00000000-0000-0000-0000-0000000001b6') then raise exception 'sin constancia del final de la baja'; end if;
+  if public.equipo_bajas_continuar() <> '{"lotes": 0, "terminadas": 0}'::jsonb then raise exception 'sin bajas en curso el job no hace nada'; end if;
+end $$;
+-- Quien gestiona el equipo lee la baja; una asesora, no.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000001b7', false);
+set role authenticated;
+do $$ begin
+  if exists (select 1 from public.equipo_bajas) then raise exception 'una asesora lee las bajas'; end if;
+  begin insert into public.equipo_bajas (usuario_id) values ('00000000-0000-0000-0000-0000000001b7'); raise exception 'una asesora escribió una baja';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
 
 -- @test perspectiva: los permisos efectivos nunca exceden los reales y RLS no se entera
 reset role;
