@@ -24,6 +24,12 @@ type Props = {
   alTerminar: () => void
 }
 
+type PropsDelInteres = Props & {
+  // La nota vive en el panel: cambiar de vehículo no la pierde y el panel sabe si hay una sin mandar.
+  nota: string
+  alEscribirNota: (nota: string) => void
+}
+
 // Vincularlo (o pasarlo a este lead, nombrando a quien lo pierde); si no se puede, el motivo.
 function Vincular({ candidato, acciones, alTerminar }: Props) {
   const posible = vinculoPosible(candidato)
@@ -60,9 +66,8 @@ function Vincular({ candidato, acciones, alTerminar }: Props) {
 }
 
 // Marcar el interés con una nota (hasta 500), o cambiarle la nota si ya estaba marcado.
-function Interes({ candidato, acciones, alTerminar }: Props) {
+function Interes({ candidato, acciones, alTerminar, nota, alEscribirNota }: PropsDelInteres) {
   const idNota = useId()
-  const [nota, setNota] = useState('')
   const [errorDeNota, setErrorDeNota] = useState<string | null>(null)
   async function marcar() {
     const validada = validarNota(nota)
@@ -89,7 +94,7 @@ function Interes({ candidato, acciones, alTerminar }: Props) {
         aria-invalid={errorDeNota ? true : undefined}
         aria-describedby={`${idNota}-cuenta`}
         onChange={(evento) => {
-          setNota(evento.target.value)
+          alEscribirNota(evento.target.value)
           setErrorDeNota(null)
         }}
       />
@@ -116,11 +121,12 @@ function Interes({ candidato, acciones, alTerminar }: Props) {
 }
 
 // Lo que se hace con el vehículo elegido: vincularlo, o marcar el interés con una nota.
-export function AccionesDelCandidato(props: Props) {
+export function AccionesDelCandidato(props: PropsDelInteres) {
+  const { nota: _nota, alEscribirNota: _alEscribirNota, ...paraVincular } = props
   return (
     <div className="grid gap-4 border-t border-(--color-line) pt-4">
       <p className="font-medium break-words">{rotuloDeVehiculo(props.candidato)}</p>
-      <Vincular {...props} />
+      <Vincular {...paraVincular} />
       <Interes {...props} />
     </div>
   )

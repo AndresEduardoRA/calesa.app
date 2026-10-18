@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useCambiosSinGuardar } from '@/shared/ui/cambios-del-panel'
 import { Drawer } from '@/shared/ui/drawer'
 import { useConsultaDeMedios } from '@/shared/ui/use-consulta-de-medios'
 import { useCandidatos } from '../hooks/use-candidatos'
@@ -21,6 +22,16 @@ type Props = {
 function Contenido({ leadId, acciones, alCerrar }: Omit<Props, 'abierto' | 'leadNombre'>) {
   const [texto, setTexto] = useState('')
   const [elegidoId, setElegidoId] = useState<string | null>(null)
+  // La nota de cada vehículo que se tipeó y no se mandó: cambiar de candidato o de búsqueda no la pierde, y cerrar el panel con
+  // alguna escrita pregunta (no tiene borrador: se perdería).
+  const [notas, setNotas] = useState<Record<string, string>>({})
+  useCambiosSinGuardar(
+    Object.values(notas).some((nota) => nota.trim() !== ''),
+    () => {
+      setNotas({})
+    },
+    { preguntaAlCerrar: true },
+  )
   const { busqueda, reintentar } = useCandidatos(leadId, texto)
   const elegido =
     busqueda.estado === 'lista'
@@ -43,6 +54,10 @@ function Contenido({ leadId, acciones, alCerrar }: Omit<Props, 'abierto' | 'lead
         <AccionesDelCandidato
           key={elegido.id}
           candidato={elegido}
+          nota={notas[elegido.id] ?? ''}
+          alEscribirNota={(nota) => {
+            setNotas((antes) => ({ ...antes, [elegido.id]: nota }))
+          }}
           acciones={acciones}
           alTerminar={alCerrar}
         />

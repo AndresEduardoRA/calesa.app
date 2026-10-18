@@ -7,8 +7,9 @@ import { createContext, useContext, useEffect, useRef } from 'react'
 export type SalidaPendiente = { confirmando: boolean; seguir: () => void; descartar: () => void }
 
 export type RegistroDeCambios = {
-  // El formulario de adentro dice si tiene algo escrito y qué se tira al descartar (su borrador).
-  anotar: (hayCambios: boolean, alDescartar?: () => void) => void
+  // El formulario de adentro dice si tiene algo escrito y qué se tira al descartar (su borrador). `preguntaAlCerrar`: lo escrito no
+  // tiene borrador, así que cerrar el panel (Esc, la ✕, el clic afuera) también pregunta.
+  anotar: (hayCambios: boolean, alDescartar?: () => void, preguntaAlCerrar?: boolean) => void
   salida: SalidaPendiente
 }
 
@@ -19,8 +20,13 @@ export const ContextoDeCambios = createContext<RegistroDeCambios | null>(null)
 
 // Lo que llama un formulario dentro de un `<Drawer>`: con algo escrito, la acción de un aviso que sale de la pantalla (`sale: true`)
 // pregunta en el pie del panel antes de irse. Cerrar el panel no pregunta: lo escrito queda en su borrador. Fuera de un `<Drawer>`
-// no hace nada. `alDescartar` tira el borrador cuando la persona elige descartar.
-export function useCambiosSinGuardar(hayCambios: boolean, alDescartar?: () => void): void {
+// no hace nada. `alDescartar` tira el borrador cuando la persona elige descartar. Lo que no tiene borrador (la nota de un interés,
+// que se pierde al cerrar) pide `{ preguntaAlCerrar: true }`: cerrar el panel con eso escrito también pregunta, en el pie.
+export function useCambiosSinGuardar(
+  hayCambios: boolean,
+  alDescartar?: () => void,
+  { preguntaAlCerrar = false }: { preguntaAlCerrar?: boolean } = {},
+): void {
   const registro = useContext(ContextoDeCambios)
   const anotar = registro?.anotar
   const descartar = useRef(alDescartar)
@@ -31,13 +37,17 @@ export function useCambiosSinGuardar(hayCambios: boolean, alDescartar?: () => vo
     if (!anotar) {
       return
     }
-    anotar(hayCambios, () => {
-      descartar.current?.()
-    })
+    anotar(
+      hayCambios,
+      () => {
+        descartar.current?.()
+      },
+      preguntaAlCerrar,
+    )
     return () => {
       anotar(false)
     }
-  }, [anotar, hayCambios])
+  }, [anotar, hayCambios, preguntaAlCerrar])
 }
 
 // La pregunta que el `<Drawer>` de este panel tiene pendiente, si la hay.

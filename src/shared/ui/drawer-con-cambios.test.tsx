@@ -9,9 +9,15 @@ import { salirSinPerder } from './salida-con-cambios'
 afterEach(cleanup)
 
 // Un formulario que dice si tiene algo escrito, como los de cada panel.
-function Formulario({ alDescartar }: { alDescartar?: () => void }) {
+function Formulario({
+  alDescartar,
+  preguntaAlCerrar = false,
+}: {
+  alDescartar?: () => void
+  preguntaAlCerrar?: boolean
+}) {
   const [texto, setTexto] = useState('')
-  useCambiosSinGuardar(texto !== '', alDescartar)
+  useCambiosSinGuardar(texto !== '', alDescartar, { preguntaAlCerrar })
   return (
     <input
       aria-label="Valor"
@@ -158,5 +164,56 @@ describe('un Drawer con el pie en otro lugar o con el formulario que se va', () 
       salirSinPerder(salir)
     })
     expect(salir).toHaveBeenCalledTimes(1)
+  })
+})
+
+// Lo escrito que no tiene borrador (la nota de un interés) pide que cerrar el panel también pregunte.
+describe('un Drawer con algo escrito que no tiene borrador (preguntaAlCerrar)', () => {
+  const sinPie = (alCerrar = vi.fn(), alDescartar = vi.fn()) => {
+    render(
+      <Drawer abierto alCerrar={alCerrar} titulo="Panel">
+        <Formulario alDescartar={alDescartar} preguntaAlCerrar />
+      </Drawer>,
+    )
+    return { alCerrar, alDescartar }
+  }
+
+  it('sin nada escrito, Esc cierra directo', () => {
+    const { alCerrar } = sinPie()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(alCerrar).toHaveBeenCalledTimes(1)
+  })
+
+  it('con algo escrito, Esc pregunta en el pie aunque el panel no tenga pie, y no cierra', () => {
+    const { alCerrar } = sinPie()
+    escribir('una nota')
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(alCerrar).not.toHaveBeenCalled()
+    expect(screen.getByText('Tienes cambios sin guardar.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Seguir editando' })).toBeInTheDocument()
+  })
+
+  it('«Seguir editando» conserva lo escrito; «Descartar» lo tira y cierra el panel', () => {
+    const { alCerrar, alDescartar } = sinPie()
+    escribir('una nota')
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir editando' }))
+    expect(screen.getByLabelText('Valor')).toHaveValue('una nota')
+    expect(alCerrar).not.toHaveBeenCalled()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar' }))
+    expect(alDescartar).toHaveBeenCalledTimes(1)
+    expect(alCerrar).toHaveBeenCalledTimes(1)
+  })
+
+  it('la salida de un aviso pregunta lo mismo', () => {
+    sinPie()
+    escribir('una nota')
+    const salir = vi.fn()
+    act(() => {
+      salirSinPerder(salir)
+    })
+    expect(salir).not.toHaveBeenCalled()
+    expect(screen.getByText('Tienes cambios sin guardar.')).toBeInTheDocument()
   })
 })

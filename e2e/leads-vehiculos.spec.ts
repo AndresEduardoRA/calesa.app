@@ -102,6 +102,58 @@ test('vincular y marcar interés con su nota desde el lead; la ficha del vehícu
   ).toBeVisible()
 })
 
+test('la nota de un interés que se tipea y no se manda pregunta antes de perderse, y no se pierde al cambiar de vehículo', async ({
+  page,
+}) => {
+  const lead = await leadDe(t.ada, `Pregunta ${p}`)
+  const uno = `Furgoneta de la nota ${p}`
+  const dos = `Todoterreno de la nota ${p}`
+  const unoId = await vehiculoDe(corea, uno, t.ada)
+  await vehiculoDe(corea, dos, t.ada)
+  await entrar(page, t.ada)
+  await irAVehiculos(page, lead.id)
+
+  // Sin nota, Esc cierra directo.
+  let panel = await elegirVehiculo(page, uno)
+  await page.keyboard.press('Escape')
+  await expect(panel).toHaveCount(0)
+
+  // Con una nota escrita, Esc pregunta en el pie; seguir editando la conserva.
+  panel = await elegirVehiculo(page, uno)
+  const nota = panel.getByLabel('Nota del interés (opcional)')
+  await nota.fill('Quiere verlo el sábado')
+  await page.keyboard.press('Escape')
+  await expect(panel.getByText('Tienes cambios sin guardar.')).toBeVisible()
+  const seguir = panel.getByRole('button', { name: 'Seguir editando' })
+  await expect(seguir).toBeFocused()
+  await seguir.click()
+  await expect(panel.getByText('Tienes cambios sin guardar.')).toBeHidden()
+  await expect(nota).toHaveValue('Quiere verlo el sábado')
+
+  // Cambiar de vehículo no tira la nota del primero: al volver está donde se dejó.
+  const buscador = panel.getByLabel('Buscar por título, VIN, lote o número')
+  await buscador.fill(dos)
+  await panel.getByRole('radio', { name: new RegExp(dos) }).check()
+  await expect(panel.getByLabel('Nota del interés (opcional)')).toHaveValue('')
+  await buscador.fill(uno)
+  await panel.getByRole('radio', { name: new RegExp(uno) }).check()
+  await expect(panel.getByLabel('Nota del interés (opcional)')).toHaveValue(
+    'Quiere verlo el sábado',
+  )
+
+  // La ✕ pregunta lo mismo; descartar la tira y cierra, sin marcar ningún interés.
+  await panel.getByRole('button', { name: 'Cerrar' }).click()
+  await expect(panel.getByText('Tienes cambios sin guardar.')).toBeVisible()
+  await panel.getByRole('button', { name: 'Descartar' }).click()
+  await expect(panel).toHaveCount(0)
+  await expect(page).not.toHaveURL(/panel=agregar-vehiculo/)
+  expect(await notaDelInteres(unoId, lead.id)).toBeUndefined()
+
+  // La apertura siguiente empieza sin nota.
+  panel = await elegirVehiculo(page, uno)
+  await expect(panel.getByLabel('Nota del interés (opcional)')).toHaveValue('')
+})
+
 test('desvincular y quitar interés se hacen y se deshacen', async ({ page }) => {
   const lead = await leadDe(t.ada, `Deshace ${p}`)
   const auto = `Hatchback ${p}`

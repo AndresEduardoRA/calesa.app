@@ -34,7 +34,8 @@ type Props = {
 // de la lista). Un modal nunca abre otro modal; un drawer sí puede abrirse desde uno.
 // Cerrarlo no pregunta (lo escrito queda en el borrador del formulario). Lo que sí pregunta es la acción de un aviso que sale de la
 // pantalla («Abrir ficha», `sale: true`) con algo escrito: el formulario de adentro lo dice con `useCambiosSinGuardar()` y la pregunta
-// va en el pie (`pie`) o, si el pie va dentro del cuerpo, en `<PieDelPanel>`.
+// va en el pie (`pie`) o, si el pie va dentro del cuerpo, en `<PieDelPanel>`. Lo escrito que no tiene borrador (la nota de «Agregar
+// vehículo») pide `preguntaAlCerrar`: ahí cerrar también pregunta, y sin `pie` la pregunta ocupa el pie.
 export function Drawer({
   abierto,
   alCerrar,
@@ -45,11 +46,12 @@ export function Drawer({
   pie,
   children,
 }: Props) {
-  useAtajo('cerrar', alCerrar, abierto)
   const [hayCambios, setHayCambios] = useState(false)
+  const [preguntaAlCerrar, setPreguntaAlCerrar] = useState(false)
   const alDescartar = useRef<(() => void) | undefined>(undefined)
-  const anotar = useCallback((hay: boolean, descartar?: () => void) => {
+  const anotar = useCallback((hay: boolean, descartar?: () => void, pregunta = false) => {
     setHayCambios(hay)
+    setPreguntaAlCerrar(hay && pregunta)
     if (descartar) {
       alDescartar.current = descartar
     }
@@ -62,13 +64,20 @@ export function Drawer({
       alDescartar.current?.()
     },
   })
+  // Cerrar el panel (Esc, la ✕, el clic afuera) pregunta sólo si lo escrito no tiene borrador; si no, cierra y queda el borrador.
+  const pedirCierre = preguntaAlCerrar ? cierre.intentarCerrar : alCerrar
+  useAtajo('cerrar', pedirCierre, abierto)
   const { confirmando, seguir, descartar } = cierre
   const registro = useMemo(
     () => ({ anotar, salida: { confirmando, seguir, descartar } }),
     [anotar, confirmando, seguir, descartar],
   )
   const pieAMostrar =
-    confirmando && pie ? <ConfirmarDescarte alSeguir={seguir} alDescartar={descartar} /> : pie
+    confirmando && (pie || preguntaAlCerrar) ? (
+      <ConfirmarDescarte alSeguir={seguir} alDescartar={descartar} />
+    ) : (
+      pie
+    )
 
   return (
     <ContextoDeCambios value={registro}>
@@ -76,7 +85,7 @@ export function Drawer({
         open={abierto}
         onOpenChange={(sigueAbierto) => {
           if (!sigueAbierto) {
-            alCerrar()
+            pedirCierre()
           }
         }}
       >

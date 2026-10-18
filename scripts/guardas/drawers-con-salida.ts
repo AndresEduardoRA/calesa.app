@@ -48,9 +48,11 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/vehiculos/features/vitrina/components/formulario-de-vitrina.tsx',
     mecanismo: 'contexto',
   },
+  // La nota de un interés que se tipea y no se manda no tiene borrador: el panel pide `preguntaAlCerrar` (cierre 4) y pregunta
+  // también al cerrar, con la pregunta en el pie del `<Drawer>`.
   'src/modules/vehiculos/features/vinculo/components/panel-agregar-vehiculo.tsx': {
-    sinFormulario:
-      'una búsqueda; lo único tipeado es la nota de un interés (≤ 500), una acción de un clic por candidato que se manda ahí mismo (queda en docs/PLAN.md)',
+    formulario: 'src/modules/vehiculos/features/vinculo/components/panel-agregar-vehiculo.tsx',
+    mecanismo: 'contexto',
   },
   // --- origenes
   'src/modules/origenes/features/categorias/components/panel-de-categoria.tsx': {

@@ -73,7 +73,7 @@ describe('los paneles (Drawer) preguntan al salir desde un aviso', () => {
     }
   })
 
-  it('el pie de un panel con botones propios lleva la pregunta: PieDelPanel, PieConSalida o la ranura del Drawer', () => {
+  it('el pie de un panel con botones propios lleva la pregunta: PieDelPanel, PieConSalida, la ranura del Drawer o, sin pie, `preguntaAlCerrar`', () => {
     // Un panel con `mecanismo: 'contexto'` con su pie dentro del cuerpo (sin la ranura `pie=`) y sin ninguno de los dos pies no
     // dibujaría la pregunta: el aviso se pulsaría y no pasaría nada.
     for (const [archivo, registro] of Object.entries(DRAWERS)) {
@@ -82,7 +82,7 @@ describe('los paneles (Drawer) preguntan al salir desde un aviso', () => {
       }
       const unidos = [archivo, registro.formulario].map(leer).join('\n')
       expect(unidos, `${archivo}: no dibuja la pregunta`).toMatch(
-        /pie=\{|<PieDelPanel[\s>]|<PieConSalida[\s>]|<PieDelFormulario[\s>]|<PieDeCategoria[\s>]/,
+        /pie=\{|<PieDelPanel[\s>]|<PieConSalida[\s>]|<PieDelFormulario[\s>]|<PieDeCategoria[\s>]|preguntaAlCerrar/,
       )
     }
   })
