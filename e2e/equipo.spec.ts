@@ -121,11 +121,13 @@ test('una persona invitada entra con su rol y ve sólo lo que sus permisos permi
   await page.goto('/configuracion/equipo')
 
   await page.getByRole('button', { name: 'Invitar' }).click()
-  const dialogo = page.getByRole('dialog')
-  await dialogo.getByLabel('Correo', { exact: true }).fill(invitada)
-  await dialogo.getByLabel('Nombre y apellido').fill(INVITADA)
-  await dialogo.getByLabel('Rol con el que entra').selectOption({ label: rol })
-  await dialogo.getByRole('button', { name: 'Invitar' }).click()
+  const formulario = page.getByRole('dialog', { name: 'Invitar a una persona' })
+  await formulario.getByLabel('Correo', { exact: true }).fill(invitada)
+  await formulario.getByLabel('Nombre y apellido').fill(INVITADA)
+  await formulario.getByLabel('Rol con el que entra').selectOption({ label: rol })
+  await formulario.getByRole('button', { name: 'Invitar' }).click()
+  // Hecha la invitación, otro modal dice qué pasó con ella (el del formulario se va).
+  const dialogo = page.getByRole('dialog', { name: 'Invitación creada' })
   await expect(dialogo.getByText('Le enviamos la invitación')).toBeVisible()
 
   // El enlace para pasárselo a mano. Generarlo deja sin efecto al del correo.
