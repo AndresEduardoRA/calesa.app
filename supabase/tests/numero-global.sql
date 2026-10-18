@@ -55,6 +55,7 @@ create temp table sondas (nombre text not null, plantilla text not null, control
 insert into sondas (nombre, plantilla, control) values
   ('leads_vista', $q$select * from public.leads_vista$q$, true),
   ('leads_cartera_vista', $q$select * from public.leads_cartera_vista$q$, true),
+  ('leads_vista_por_ids', $q$select * from public.leads_vista_por_ids(array(select id from public.leads))$q$, true),
   ('recordatorios_vista', $q$select * from public.recordatorios_vista$q$, true),
   ('lead_ficha', $q$select public.lead_ficha('{lp}')$q$, true),
   ('lead_ficha', $q$select public.lead_ficha('{la}')$q$, true),
@@ -268,7 +269,8 @@ declare
     '_oportunidad_json', 'recibe una oportunidad y devuelve el número del vehículo, nunca el de un lead',
     'lead_seguimiento', 'devuelve un seguimiento: sólo el número del vehículo que nombra',
     'leads_exportacion_registrar', 'deja la constancia (cuántas filas y qué filtros): ningún lead',
-    'lead_campo_crear', 'devuelve el campo creado: nada de leads');
+    'lead_campo_crear', 'devuelve el campo creado: nada de leads',
+    'leads_candidatos', 'devuelve ids de leads (los que quien llama ve), si hay más y hasta dónde llegó: nunca un número; la página la lee leads_vista_por_ids, que tiene su sonda');
   r record; v_fallas text := '';
 begin
   if to_regclass('pg_temp.matriz_cubiertas') is null then

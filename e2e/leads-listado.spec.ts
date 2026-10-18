@@ -155,6 +155,9 @@ test('la búsqueda trata %, _, comas y comillas como texto y no rompe', async ({
     guion: 'Guion_bajo',
     sinGuion: 'GuionXbajo',
     raro: 'Ana, "la" Pérez (cliente)',
+    // Tildes, ñ y mayúsculas (5a-fix-1b): la búsqueda por candidatos y la página tienen que coincidir.
+    ene: 'Ñandú Gómez Suárez',
+    barra: 'Barra \\ invertida',
   }
   for (const corto of Object.values(nombres)) {
     await crearLead({ nombre: corto, telefono: telefonoNuevo(), deQuien: t.personas.berta })
@@ -181,6 +184,23 @@ test('la búsqueda trata %, _, comas y comillas como texto y no rompe', async ({
   await irALeads(page, buscar('(cliente)'))
   await expect(fila(page, nombres.raro)).toBeVisible()
   await irALeads(page, buscar(`o'brien \\ * ,)`))
+  await expect(sinResultados(page)).toBeVisible()
+
+  // Tildes, ñ, mayúsculas y una barra: lo escrito es literal y se encuentra igual escrito de cualquier forma.
+  await irALeads(page, buscar('ñandú'))
+  await expect(fila(page, nombres.ene)).toBeVisible()
+  await irALeads(page, buscar('GÓMEZ'))
+  await expect(fila(page, nombres.ene)).toBeVisible()
+  await irALeads(page, buscar('gómez suárez'))
+  await expect(fila(page, nombres.ene)).toBeVisible()
+  await irALeads(page, buscar('\\ inv'))
+  await expect(fila(page, nombres.barra)).toBeVisible()
+  await irALeads(page, buscar('Pérez (cliente)'))
+  await expect(fila(page, nombres.ene)).toHaveCount(0)
+  // Dos y un carácter: sin trigramas, el resultado es el mismo.
+  await irALeads(page, buscar('ñ'))
+  await expect(fila(page, nombres.ene)).toBeVisible()
+  await irALeads(page, buscar('zq'))
   await expect(sinResultados(page)).toBeVisible()
 
   // Escrita en la barra, no sólo en la URL.

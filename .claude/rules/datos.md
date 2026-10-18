@@ -24,7 +24,11 @@ paths:
 - Leads: se leen de `leads_vista` (teléfono enmascarado salvo cartera). Nunca `from('leads')`
   para leer el teléfono. «Míos» de quien tiene `leads.ver` «propios» se lee de `leads_cartera_vista`
   (las mismas columnas y la misma RLS, por la cartera de quien mira: cuesta lo que pesa, no el total de
-  la tabla): la elige `fuenteDelListado()` de `modules/leads/entities`, nunca cada pantalla.
+  la tabla): la elige `fuenteDelListado()` de `modules/leads/entities`, nunca cada pantalla. **Una búsqueda por nombre o un campo público**
+  (`ilike` y `@>` no son _leakproof_: bajo RLS ningún índice los sostiene) no se pide a la vista: primero `leads_candidatos()` y
+  después `leads_vista_por_ids()` con lo demás (`leerPorCandidatos()`; `docs/RENDIMIENTO.md` › «Cierre 5a-fix-1b»). Una función
+  `returns setof leads_vista` nace dentro de `_leads_vista_crear()` y no lleva `strict`, `set`, `security definer` ni `volatile`:
+  si no, Postgres no la inlinea y calcula las columnas caras de todos los ids.
 - Los orígenes, su layout de campos y sus categorías se escriben sólo por RPC (`origen_*`,
   `categoria_*`): sus tablas son de sólo lectura, y un campo con datos no cambia de tipo ni se elimina.
 - Los vehículos se escriben sólo por RPC: `vehiculo_crear` (con el `id` que genera el navegador:

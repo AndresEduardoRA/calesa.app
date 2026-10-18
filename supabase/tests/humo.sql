@@ -775,7 +775,9 @@ do $$ declare r record; v_faltan text[] := '{}'; v_listadas constant text[] := a
   '_lead_motivo_para_deshacer', '_leads_vista_crear',
   -- desde quien llama: sólo SUS filas vigentes de la cartera (`usuario_id = auth.uid()`), unidas a `leads_vista` (que cuenta la baja) y
   -- bajo las policies de `leads` y de `leads_asesores` (invoker), que filtran a quien está en una baja en curso (5a-fix-1a)
-  'leads_cartera_vista'];
+  'leads_cartera_vista',
+  -- arma la consulta de los candidatos con `p_fuera` (= `_bajas_en_curso()`, lo calcula `leads_candidatos`) dentro de `_lead_visible_para()` y recorre la cartera de quien llama (5a-fix-1b)
+  '_leads_candidatos_sql'];
 begin
   for r in select n.nspname, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname in ('public', 'web') and p.prokind = 'f'
@@ -3479,8 +3481,9 @@ begin
   insert into public.leads (nombre, telefono_principal, creado_por) values ('Sin datos Humo', '59170044002', '00000000-0000-0000-0000-000000000030');
   insert into public.leads (nombre, telefono_principal, creado_por, genero, ciudad) values ('Vacío Humo', '59170044003', '00000000-0000-0000-0000-000000000030', 'sin_especificar', '   ');
 
-  -- La función de una migración vieja recrea `leads_vista` con `drop view`: `leads_cartera_vista` (5a-fix-1a) depende de ella y se rehace
-  -- junto con ella más abajo, con `_leads_vista_crear()`.
+  -- La función de una migración vieja recrea `leads_vista` con `drop view`: `leads_cartera_vista` (5a-fix-1a) y `leads_vista_por_ids` (5a-fix-1b)
+  -- dependen de ella y se rehacen junto con ella más abajo, con `_leads_vista_crear()`.
+  drop function if exists public.leads_vista_por_ids(uuid[]);  -- devuelve el tipo de `leads_vista` (5a-fix-1b): también la rehace `_leads_vista_crear()`
   drop view if exists public.leads_cartera_vista;
   select public._leads_columnas_a_atributos() into n;
   if n < 3 then raise exception 'tocó % leads, esperaba al menos 3', n; end if;

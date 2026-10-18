@@ -6924,6 +6924,7 @@ export type Database = {
         Returns: undefined
       }
       _lead_atributos_publicos: { Args: { p_atributos: Json }; Returns: Json }
+      _lead_busqueda_patron: { Args: { p_texto: string }; Returns: string }
       _lead_campo_con_valor: { Args: { p_clave: string }; Returns: number }
       _lead_campo_privacidad_lote: { Args: { p_campo: string; p_lote: number }; Returns: boolean }
       _lead_campos_renumerar: { Args: Record<PropertyKey, never>; Returns: undefined }
@@ -7055,6 +7056,19 @@ export type Database = {
         Returns: boolean
       }
       _leads_al_limbo_de: { Args: { p_tope: number; p_usuario: string }; Returns: number }
+      _leads_candidatos_indexable: { Args: { p_filtros: Json }; Returns: boolean }
+      _leads_candidatos_recorrido: { Args: Record<PropertyKey, never>; Returns: number }
+      _leads_candidatos_sql: {
+        Args: {
+          p_alcance: Database['public']['Enums']['alcance_permiso']
+          p_etapa: string
+          p_filtros: Json
+          p_fuera: string[]
+          p_yo: string
+        }
+        Returns: string
+      }
+      _leads_candidatos_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_cartera_recalcular: { Args: { p_leads: string[] }; Returns: undefined }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_derivados_rellenar: { Args: { p_lote: number }; Returns: number }
@@ -7778,6 +7792,7 @@ export type Database = {
       }
       lead_vehiculos: { Args: { p_lead: string }; Returns: Json }
       leads_campos_privacidad_aplicar: { Args: Record<PropertyKey, never>; Returns: Json }
+      leads_candidatos: { Args: { p_filtros: Json }; Returns: Json }
       leads_catalogos: { Args: Record<PropertyKey, never>; Returns: Json }
       leads_exportacion_registrar: {
         Args: { p_filas: number; p_filtros?: string[] }
@@ -7817,6 +7832,40 @@ export type Database = {
       leads_papelera_restaurar: {
         Args: { p_actualizado_en_esperado: string; p_leads?: string[]; p_lote: string }
         Returns: Json
+      }
+      leads_vista_por_ids: {
+        Args: { p_leads: string[] }
+        Returns: {
+          actualizado_en: string | null
+          atributos: Json | null
+          atributos_publicos: Json | null
+          creado_en: string | null
+          creado_por: string | null
+          dueno_id: string | null
+          en_cartera: boolean | null
+          es_favorito: boolean | null
+          esta_tachado: boolean | null
+          etiquetas: string[] | null
+          id: string | null
+          nombre: string | null
+          numero: number | null
+          numero_propio: number | null
+          numero_propio_creador: string | null
+          numero_propio_de: string | null
+          numero_visible: number | null
+          origen_lead_id: string | null
+          telefono_cc: string | null
+          telefono_principal: string | null
+          telefono_visible: boolean | null
+          tipo_lead_id: string | null
+          ultimo_seguimiento_en: string | null
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'leads_vista'
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       limpieza_automatica_correr: {
         Args: { p_ahora?: string; p_origenes?: string[] }
