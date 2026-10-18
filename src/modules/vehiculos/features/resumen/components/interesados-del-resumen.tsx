@@ -2,9 +2,9 @@
 
 import { Button } from '@/shared/ui/button'
 import { Skeleton } from '@/shared/ui/skeleton'
+import { useLecturaAlMontar } from '@/shared/ui/use-lectura-al-montar'
 import { leerRelacionesDelResumen } from '../../../composicion.client'
 import { VinculoEInteresados } from '../../vinculo/components/vinculo-e-interesados'
-import { useLecturaDeLaPestana } from '../hooks/use-lectura-de-la-pestana'
 
 function Esqueleto() {
   return (
@@ -20,7 +20,7 @@ function Esqueleto() {
 // la pestaña (dos RPC a la vez, con la RLS de quien mira: el nombre de un lead sólo llega si lo ve). Vincular, desvincular y marcar
 // interés son de la ficha del lead y de la del vehículo.
 export function InteresadosDelResumen({ vehiculoId }: { vehiculoId: string }) {
-  const { lectura, reintentar } = useLecturaDeLaPestana(
+  const { lectura, reintentar } = useLecturaAlMontar(
     () => leerRelacionesDelResumen(vehiculoId),
     vehiculoId,
   )

@@ -14,3 +14,8 @@ export const RecordatoriosDelRapidoDiferido = diferido(
   () => import('./recordatorios-del-rapido').then((modulo) => modulo.RecordatoriosDelRapido),
   { esqueleto: <EsqueletoDeSeguimientos />, aviso: 'aqui' },
 )
+
+// El panel de edición del resumen: se pide al pulsar «Editar», no al abrir el resumen. Sin red, el aviso va en una barra fija.
+export const EdicionDelResumenDiferido = diferido(() =>
+  import('./edicion-del-resumen').then((modulo) => modulo.EdicionDelResumen),
+)

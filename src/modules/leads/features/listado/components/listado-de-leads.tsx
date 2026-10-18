@@ -136,6 +136,7 @@ export function ListadoDeLeads(props: Props) {
   const gestionar = usePanelDeEtiquetas()
   // La lista local: una etiqueta recién creada nombra la fila antes de que vuelva el servidor.
   const datos = { ...delServidor, etiquetas: etiquetas.lista }
+  const delDrawer = { filas: pagina.filas, soloMios: !puedeVerTodos, puedeEditar: puedeAnotar }
   return (
     <div className="grid gap-4">
       <h1 className="sr-only">Leads</h1>
@@ -181,7 +182,7 @@ export function ListadoDeLeads(props: Props) {
           />
         </div>
       </FilterShell>
-      <DrawerDeLead {...datos} filas={pagina.filas} soloMios={!puedeVerTodos} />
+      <DrawerDeLead {...datos} {...delDrawer} />
       <DialogoDeEtiquetas etiquetas={etiquetas} />
       <AccionesDeFila filas={pagina.filas} puedeAnotar={puedeAnotar} />
       {/* Lo de otra pestaña aparece al volver; con un panel abierto, no (relee la página). */}

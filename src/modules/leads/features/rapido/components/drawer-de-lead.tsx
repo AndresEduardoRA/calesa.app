@@ -6,11 +6,13 @@ import { z } from 'zod'
 import { valorMostrado } from '@/shared/lib/campos'
 import { formatearFechaHora } from '@/shared/lib/fechas'
 import { RUTAS } from '@/shared/lib/rutas'
+import { PencilIcon } from 'lucide-react'
 import { Button, buttonVariants } from '@/shared/ui/button'
 import { ValorMostrado } from '@/shared/ui/campos'
 import { Drawer } from '@/shared/ui/drawer'
 import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
+import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import type { FilaDeLead } from '../../../entities/listado'
 import {
@@ -27,6 +29,7 @@ import { nombreDelOrigen, type DatosDeLaLista } from '../../listado/components/t
 import { useNumerosEnTexto } from '@/shared/ui/numero-de-lead'
 import { useDrawerDeLead } from '../hooks/use-drawer-de-lead'
 import { useLeadRapido } from '../hooks/use-lead-rapido'
+import { EdicionDelResumenDiferido } from './diferidos'
 import { PestanasDelRapido } from './pestanas-del-rapido'
 
 type Props = DatosDeLaLista & {
@@ -35,6 +38,8 @@ type Props = DatosDeLaLista & {
   // Quien mira sólo ve su cartera (alcance «propios», o «ver como» un rol con él): un lead que no
   // es de su cartera no se muestra aunque la base lo entregue.
   soloMios: boolean
+  // Quien mira tiene `leads.editar`: con el lead en su cartera, el resumen ofrece «Editar».
+  puedeEditar: boolean
 }
 
 const ES_GUID = z.guid()
@@ -96,8 +101,13 @@ function DatosDelLayout({ lead, campos }: PropsDeDatos) {
   )
 }
 
-// Lo de arriba, en las tres pestañas: el tipo, las marcas de quien mira y «Abrir ficha».
-function CabeceraDelRapido({ lead, etiquetas }: Pick<PropsDeDatos, 'lead' | 'etiquetas'>) {
+type PropsDeLaCabecera = Pick<PropsDeDatos, 'lead' | 'etiquetas'> & {
+  // «Editar»: sólo con permiso y con el lead en la cartera.
+  alEditar: (() => void) | null
+}
+
+// Lo de arriba, en las tres pestañas: el tipo, las marcas de quien mira, «Editar» y «Abrir ficha».
+function CabeceraDelRapido({ lead, etiquetas, alEditar }: PropsDeLaCabecera) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="flex flex-wrap items-center gap-2">
@@ -105,12 +115,20 @@ function CabeceraDelRapido({ lead, etiquetas }: Pick<PropsDeDatos, 'lead' | 'eti
         {/* El estado de las marcas de quien mira; se cambian en la fila o en la ficha. */}
         <InsigniasDeMarcas marcas={lead.marcas} etiquetas={etiquetas} />
       </span>
-      <Link
-        href={`${RUTAS.leads}/${lead.id}` as Route}
-        className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-9' })}
-      >
-        Abrir ficha
-      </Link>
+      <span className="flex flex-wrap items-center gap-2">
+        {alEditar ? (
+          <Button type="button" variant="outline" className="h-11 md:h-9" onClick={alEditar}>
+            <PencilIcon aria-hidden />
+            Editar
+          </Button>
+        ) : null}
+        <Link
+          href={`${RUTAS.leads}/${lead.id}` as Route}
+          className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-9' })}
+        >
+          Abrir ficha
+        </Link>
+      </span>
     </div>
   )
 }
@@ -164,6 +182,8 @@ type PropsDelContenido = {
   ultimo: FilaDeLead | null
   reintentar: () => void
   datos: DatosDeLaLista
+  // Abre el panel de edición, o nulo si quien mira no puede editar.
+  alEditar: (() => void) | null
 }
 
 // Lo que va adentro del drawer según cómo esté la lectura.
@@ -175,6 +195,7 @@ function ContenidoDelRapido({
   ultimo,
   reintentar,
   datos,
+  alEditar,
 }: PropsDelContenido) {
   if (vista.tipo === 'no_disponible') {
     return (
@@ -201,7 +222,11 @@ function ContenidoDelRapido({
   }
   return (
     <div className="grid gap-4">
-      <CabeceraDelRapido lead={lead} etiquetas={datos.etiquetas} />
+      <CabeceraDelRapido
+        lead={lead}
+        etiquetas={datos.etiquetas}
+        alEditar={lead.enCartera ? alEditar : null}
+      />
       <PestanasDelRapido
         leadId={lead.id}
         pestana={pestana}
@@ -220,14 +245,45 @@ function ContenidoDelRapido({
   )
 }
 
+type PropsDeLaEdicion = {
+  // `?panel=editar-lead` está en la URL.
+  pedida: boolean
+  // El lead que se muestra; sólo se edita si quien mira puede.
+  lead: FilaDeLead | null
+  puedeEditar: boolean
+  campos: DatosDeLaLista['campos']
+  origenes: DatosDeLaLista['origenes']
+  alGuardado: () => void
+}
+
+// El panel de edición va dentro del resumen (Base UI anida los diálogos por el árbol de React, así Esc y «Cancelar» cierran sólo el panel)
+// y llega al pulsar «Editar», no al abrir el resumen.
+function EdicionDelDrawer(props: PropsDeLaEdicion) {
+  const { pedida, lead, puedeEditar, campos, origenes, alGuardado } = props
+  const pedidaAlgunaVez = useAbiertoAlgunaVez(pedida)
+  if (lead === null || !puedeEditar || !pedidaAlgunaVez) {
+    return null
+  }
+  return (
+    <EdicionDelResumenDiferido
+      leadId={lead.id}
+      nombre={lead.nombre}
+      campos={campos}
+      origenes={origenes}
+      alGuardado={alGuardado}
+      alPerderElLead={alGuardado}
+    />
+  )
+}
+
 // El drawer rápido de un lead (`?lead=`) sin salir de la lista: «Resumen» (los datos), «Seguimientos»
 // (`?pestana=seguimientos`: la línea de tiempo con anotar) y «Recordatorios» (`?pestana=recordatorios`:
 // «Tus recordatorios» con agendar); cada pestaña lee lo suyo al elegirse. Se dibuja enseguida
 // con lo que ya trajo la página y se completa con su lectura. Si el lead desaparece, o deja de ser
 // visible, mientras está abierto lo dice sin explicar por qué; con un modal abierto adentro no vuelve
 // a leer (lo dice el modal al guardar).
-export function DrawerDeLead({ filas, soloMios, ...datos }: Props) {
-  const { id, pestana, conModal, elegirPestana, cerrar } = useDrawerDeLead()
+export function DrawerDeLead({ filas, soloMios, puedeEditar, ...datos }: Props) {
+  const { id, pestana, conModal, elegirPestana, cerrar, editar, editando } = useDrawerDeLead()
   const idValido = id !== null && ES_GUID.safeParse(id).success
   const { lectura, reintentar } = useLeadRapido(idValido ? id : null, conModal)
   const vista = vistaDelRapido({
@@ -258,6 +314,15 @@ export function DrawerDeLead({ filas, soloMios, ...datos }: Props) {
         ultimo={ultimo}
         reintentar={reintentar}
         datos={datos}
+        alEditar={puedeEditar ? editar : null}
+      />
+      <EdicionDelDrawer
+        pedida={editando}
+        lead={mostrado}
+        puedeEditar={puedeEditar}
+        campos={datos.campos}
+        origenes={datos.origenes}
+        alGuardado={reintentar}
       />
     </Drawer>
   )

@@ -2,6 +2,8 @@
 
 import { parseAsString, useQueryStates } from 'nuqs'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
+import { recordarQuienAbre } from '@/shared/ui/foco-de-quien-abre'
+import { PANEL_EDITAR_LEAD } from '../../../entities/edicion'
 import { CLAVE_DE_SEGUIMIENTO } from '../../../entities/edicion-de-seguimiento'
 import {
   CLAVE_DE_PESTANA,
@@ -40,6 +42,12 @@ export function useDrawerDeLead() {
     pestana,
     // Un modal de la pestaña abierto: el drawer no vuelve a leer su lead.
     conModal: hayModalEnLaPestana(pestana, parametros[CLAVE_DE_PANEL]),
+    // El panel de edición está encima del resumen (`?panel=editar-lead`).
+    editando: parametros[CLAVE_DE_PANEL] === PANEL_EDITAR_LEAD,
+    editar: () => {
+      recordarQuienAbre()
+      void setParametros({ [CLAVE_DE_PANEL]: PANEL_EDITAR_LEAD }, { history: 'push' })
+    },
     abrir: (leadId: string) => {
       void setParametros({ [CLAVE_DE_LEAD]: leadId, [CLAVE_DE_PESTANA]: null }, { history: 'push' })
     },

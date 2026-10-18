@@ -11,6 +11,7 @@ import { Campo } from '@/shared/ui/campo'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { BloqueDeCampos } from '@/shared/ui/campos'
 import { Drawer } from '@/shared/ui/drawer'
+import { focoDeQuienAbrio } from '@/shared/ui/foco-de-quien-abre'
 import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import { avisarExito } from '@/shared/ui/toasts'
 import { useUltimo } from '@/shared/ui/use-ultimo'
@@ -36,9 +37,21 @@ type Datos = {
   zona: string
 }
 
+// Lo que cambia cuando el panel se abre desde el resumen de la lista y no desde la ficha: nada se vuelve a leer con `router.refresh()`
+// (la ficha no está debajo), así que el resumen dice qué hacer con cada cosa.
+export type EdicionEnElResumen = {
+  // Otra persona cambió el lead: traer su versión (el panel descarta lo escrito).
+  alRecargar: () => void
+  // Se guardó (o no había nada que guardar): el resumen vuelve a leer el lead.
+  alGuardado: () => void
+  // Quien edita ya no ve el lead: el resumen vuelve a leer y lo dice.
+  alPerderElLead: () => void
+}
+
 type Props = Datos & {
   // Quien mira puede editar este lead: sin esto el panel no se abre aunque la URL lo pida.
   puedeEditar: boolean
+  enResumen?: EdicionEnElResumen
 }
 
 const idDe = (clave: string) => `lead-editar-${clave}`
@@ -138,7 +151,14 @@ function GruposDeCampos({ ficha, campos, estado }: PropsDeGrupos) {
 
 // Lo de adentro del panel. Se monta al abrirlo (y de nuevo si cambia la versión de lo que se
 // edita, por ejemplo tras «Recargar»): así cada apertura arranca de lo guardado.
-function Contenido({ ficha, campos, origenes, zona, alCerrar }: Datos & { alCerrar: () => void }) {
+function Contenido({
+  ficha,
+  campos,
+  origenes,
+  zona,
+  alCerrar,
+  enResumen,
+}: Datos & { alCerrar: () => void; enResumen: EdicionEnElResumen | undefined }) {
   const idFormulario = useId()
   const router = useRouter()
   const formulario = useRef<HTMLFormElement>(null)
@@ -155,12 +175,18 @@ function Contenido({ ficha, campos, origenes, zona, alCerrar }: Datos & { alCerr
       if (!sinCambios) {
         avisarExito('Cambios guardados')
       }
+      enResumen?.alGuardado()
       alCerrar()
     },
     // Sin acceso ya no hay nada que editar: el servidor vuelve a leer y muestra la pantalla de lo
     // que no se ve.
     alPerderElLead: () => {
-      router.refresh()
+      if (enResumen) {
+        alCerrar()
+        enResumen.alPerderElLead()
+      } else {
+        router.refresh()
+      }
     },
   })
 
@@ -198,7 +224,11 @@ function Contenido({ ficha, campos, origenes, zona, alCerrar }: Datos & { alCerr
           alRecargar={() => {
             // Trae la versión de la otra persona: lo escrito acá se descarta a propósito.
             estado.descartarBorrador()
-            router.refresh()
+            if (enResumen) {
+              enResumen.alRecargar()
+            } else {
+              router.refresh()
+            }
           }}
         />
         <DatosFijos ficha={ficha} origenes={origenes} estado={estado} />
@@ -212,7 +242,7 @@ function Contenido({ ficha, campos, origenes, zona, alCerrar }: Datos & { alCerr
 // El panel de edición de la ficha (`?panel=editar-lead`). Sólo se abre si quien mira puede editar
 // este lead: sin permiso no hay botón y la URL no abre nada. Se queda a pantalla completa en el
 // celular y con «Guardar» siempre a la vista.
-export function PanelDeEdicion({ puedeEditar, ...datos }: Props) {
+export function PanelDeEdicion({ puedeEditar, enResumen, ...datos }: Props) {
   const panel = usePanelDeLead()
   const abierto = puedeEditar && panel.abierto
   // Mientras se cierra, el panel sigue mostrando lo que tenía.
@@ -226,6 +256,7 @@ export function PanelDeEdicion({ puedeEditar, ...datos }: Props) {
       titulo={ficha ? `Editar ${ficha.nombre}` : 'Editar lead'}
       descripcion={ficha ? (numero.principal ?? undefined) : undefined}
       ancho="amplio"
+      focoAlCerrar={focoDeQuienAbrio}
     >
       {ficha ? (
         <Contenido
@@ -234,6 +265,7 @@ export function PanelDeEdicion({ puedeEditar, ...datos }: Props) {
           {...datos}
           ficha={ficha}
           alCerrar={panel.cerrar}
+          enResumen={enResumen}
         />
       ) : null}
     </Drawer>

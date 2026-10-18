@@ -12,6 +12,7 @@ import {
 import { RUTAS } from '@/shared/lib/rutas'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Drawer } from '@/shared/ui/drawer'
+import { focoDeQuienAbrio } from '@/shared/ui/foco-de-quien-abre'
 import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import { avisarExito } from '@/shared/ui/toasts'
 import { useCierreConCambios } from '@/shared/ui/use-cierre-con-cambios'
@@ -24,7 +25,7 @@ import {
   type Guardado,
 } from '../hooks/use-formulario-de-vehiculo'
 import { useFuentesDelPanel } from '../hooks/use-fuentes-del-panel'
-import { focoAlCerrarElPanel, usePanelDeVehiculo } from '../hooks/use-panel-de-vehiculo'
+import { usePanelDeVehiculo } from '../hooks/use-panel-de-vehiculo'
 import { useGuardadoDeSubasta } from '../../subasta/hooks/use-guardado-de-subasta'
 import { AltaPorSubasta } from '../../subasta/components/alta-por-subasta'
 import { FormularioDeVehiculo } from './formulario-de-vehiculo'
@@ -194,7 +195,7 @@ export function PanelDeVehiculo({ puedeCrear, enEdicion, apibara, ...datos }: Pr
       titulo={vehiculo ? `Editar ${vehiculo.titulo}` : nuevo}
       descripcion={`${origen.nombre}${vehiculo ? ` · #${String(vehiculo.numero)}` : ''}`}
       ancho="amplio"
-      focoAlCerrar={focoAlCerrarElPanel}
+      focoAlCerrar={focoDeQuienAbrio}
     >
       <Contenido
         // Otra versión de lo que se edita (se recargó tras un conflicto) arranca de nuevo.

@@ -3,6 +3,7 @@
 // en «Recordatorios», «Tus recordatorios» con agendar (`?pestana=recordatorios`, 9d-2). Cada pestaña lee
 // lo suyo al elegirse. Editar el lead sigue siendo de la ficha.
 import { agruparCampos } from '@/shared/lib/campos'
+import { PANEL_EDITAR_LEAD } from './edicion'
 import { PANEL_ANOTAR_SEGUIMIENTO, PANEL_EDITAR_SEGUIMIENTO } from './edicion-de-seguimiento'
 import { PANEL_AGENDAR_RECORDATORIO, PANEL_EDITAR_RECORDATORIO } from './recordatorios'
 import type { CampoDeLead } from './campo'
@@ -96,10 +97,10 @@ export const PESTANAS_DEL_RAPIDO = [
 ] as const
 export type PestanaDelRapido = (typeof PESTANAS_DEL_RAPIDO)[number]['clave']
 
-// Los modales que se abren desde cada pestaña (con sus ids en la URL): mientras uno está abierto, el
+// Lo que se abre desde cada pestaña (con sus ids en la URL: modales y, en «Resumen», el panel de edición): mientras uno está abierto, el
 // drawer no vuelve a leer su lead; al cambiar de pestaña o cerrar, se van con ella.
 const PANELES_DE_LA_PESTANA: Readonly<Record<PestanaDelRapido, ReadonlySet<string>>> = {
-  resumen: new Set(),
+  resumen: new Set([PANEL_EDITAR_LEAD]),
   seguimientos: new Set([PANEL_ANOTAR_SEGUIMIENTO, PANEL_EDITAR_SEGUIMIENTO]),
   recordatorios: new Set([PANEL_AGENDAR_RECORDATORIO, PANEL_EDITAR_RECORDATORIO]),
 }

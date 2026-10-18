@@ -1,5 +1,6 @@
 import type { AccionDeFila } from '../../../entities/acciones-de-fila'
 import type { OrigenDeLead } from '../../../entities/alta'
+import type { OrigenConEstado } from '../../../entities/ficha'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { Etiqueta } from '../../../entities/etiqueta'
 import type { FilaDeLead } from '../../../entities/listado'
@@ -9,7 +10,7 @@ import type { Etiquetas } from '../../etiquetas/hooks/use-etiquetas'
 export type DatosDeLaLista = {
   // Todo el layout: la tabla usa los de la tabla; el drawer, los activos.
   campos: readonly CampoDeLead[]
-  origenes: readonly OrigenDeLead[]
+  origenes: readonly OrigenConEstado[]
   // El código de país de la empresa, para mostrar un teléfono («+591 70011002»).
   codigoDePais: string | null
   // Las etiquetas de quien mira: nombran las de cada lead.

@@ -24,7 +24,7 @@ import {
   leerLayoutDeLeads,
   leerOrigenesDeLead,
 } from '../../composicion'
-import type { OrigenDeLead } from '../../entities/alta'
+import type { OrigenConEstado } from '../../entities/ficha'
 import { CLAVE_DE_ALCANCE, alcanceDelListado, type ModoDelListado } from '../../entities/alcance'
 import type { CampoDeLead } from '../../entities/campo'
 import type { Etiqueta } from '../../entities/etiqueta'
@@ -43,7 +43,7 @@ export type DatosDelListado = {
   porPagina: { valor: number; opciones: number[] }
   // Todo el layout: la tabla y el drawer filtran los activos.
   campos: CampoDeLead[]
-  origenes: OrigenDeLead[]
+  origenes: OrigenConEstado[]
   // Las de quien mira: nombran las de cada fila y se ofrecen en el «⋯».
   etiquetas: Etiqueta[]
   modo: ModoDelListado

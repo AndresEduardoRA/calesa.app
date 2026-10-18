@@ -2,6 +2,7 @@
 
 import { parseAsString, useQueryState } from 'nuqs'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
+import { recordarQuienAbre } from '@/shared/ui/foco-de-quien-abre'
 import { PANEL_COMPARTIR, PANEL_SALIR, PANEL_TRANSFERIR } from '../../../entities/cartera'
 import { PANEL_EDITAR_LEAD } from '../../../entities/edicion'
 import { PANEL_AGREGAR_TELEFONO, PANEL_CAMBIAR_TELEFONO } from '../../../entities/telefonos'
@@ -13,6 +14,7 @@ import { PANEL_AGREGAR_TELEFONO, PANEL_CAMBIAR_TELEFONO } from '../../../entitie
 export function usePanelDeLead() {
   const [panel, setPanel] = useQueryState(CLAVE_DE_PANEL, parseAsString)
   const abre = (valor: string) => () => {
+    recordarQuienAbre()
     void setPanel(valor, { history: 'push' })
   }
   const cierra = () => {

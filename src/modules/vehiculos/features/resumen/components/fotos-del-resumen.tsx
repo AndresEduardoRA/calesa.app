@@ -4,8 +4,8 @@ import Image from 'next/image'
 import { urlPublica } from '@/shared/lib/almacen'
 import { Button } from '@/shared/ui/button'
 import { Skeleton } from '@/shared/ui/skeleton'
+import { useLecturaAlMontar } from '@/shared/ui/use-lectura-al-montar'
 import { leerFotosDelResumen } from '../../../composicion.client'
-import { useLecturaDeLaPestana } from '../hooks/use-lectura-de-la-pestana'
 
 function Esqueleto() {
   return (
@@ -24,7 +24,7 @@ function Esqueleto() {
 // «Fotos» del resumen: las del vehículo en su orden, de sólo lectura (subirlas, ordenarlas y quitarlas es de la ficha). Se lee al
 // elegir la pestaña (a lo sumo 24) y llega con su código por `diferido()`; cada miniatura abre la completa en otra pestaña.
 export function FotosDelResumen({ vehiculoId }: { vehiculoId: string }) {
-  const { lectura, reintentar } = useLecturaDeLaPestana(
+  const { lectura, reintentar } = useLecturaAlMontar(
     () => leerFotosDelResumen(vehiculoId),
     vehiculoId,
   )
