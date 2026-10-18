@@ -1,12 +1,9 @@
 'use client'
 
-import { useId } from 'react'
-import { Button } from '@/shared/ui/button'
-import { Input } from '@/shared/ui/input'
-import { Label } from '@/shared/ui/label'
-import { Modal } from '@/shared/ui/modal'
+import { Campo } from '@/shared/ui/campo'
+import { ModalDeFormulario } from '@/shared/ui/modal-de-formulario'
 import { LARGO_MAXIMO_DE_EMBUDO, MAXIMO_DE_EMBUDOS, type Embudo } from '../../../entities/embudo'
-import { useNuevoEmbudo } from '../hooks/use-nuevo-embudo'
+import { CLAVE_DEL_NOMBRE_DE_EMBUDO, useNuevoEmbudo } from '../hooks/use-nuevo-embudo'
 
 type Props = {
   embudos: readonly Embudo[]
@@ -14,64 +11,37 @@ type Props = {
   alCrear: (id: string) => void
 }
 
-// «Nuevo embudo» (`?panel=nuevo-embudo`): el nombre y listo. Nace con tres etapas (Nueva, Ganada y
-// Perdida) que se editan después en «Etapas».
+// «Nuevo embudo» (`?panel=nuevo-embudo`): el nombre y listo. Nace con tres etapas (Nueva, Ganada y Perdida) que se editan
+// después en «Etapas». El contrato del modal (preguntar antes de descartar, no cerrarse mientras guarda, sin conexión,
+// Ctrl/Cmd+S) es de `ModalDeFormulario`. Quien lo monta lo dibuja sólo mientras la URL lo pide: cada apertura empieza de cero.
 export function NuevoEmbudo({ embudos, alCerrar, alCrear }: Props) {
-  const id = useId()
-  const nuevo = useNuevoEmbudo(embudos, alCrear)
-  const lleno = embudos.length >= MAXIMO_DE_EMBUDOS
+  const formulario = useNuevoEmbudo({ embudos, alCrear })
   return (
-    <Modal
+    <ModalDeFormulario
+      id="nuevo-embudo"
       abierto
       alCerrar={alCerrar}
       titulo="Nuevo embudo"
       descripcion={
-        lleno
+        formulario.lleno
           ? `Puedes tener hasta ${String(MAXIMO_DE_EMBUDOS)} embudos. Elimina uno para crear otro.`
           : 'Nace con tres etapas: Nueva, Ganada y Perdida. Las cambias después en «Etapas».'
       }
-      pie={
-        <>
-          <Button variant="ghost" onClick={alCerrar} disabled={nuevo.enCurso}>
-            Cancelar
-          </Button>
-          <Button type="submit" form={id} disabled={nuevo.enCurso || lleno}>
-            {nuevo.enCurso ? 'Creando…' : 'Crear embudo'}
-          </Button>
-        </>
-      }
+      focoInicial={() => document.getElementById(CLAVE_DEL_NOMBRE_DE_EMBUDO)}
+      formulario={formulario}
+      guardar={{ etiqueta: 'Crear embudo', enCurso: 'Creando…' }}
     >
-      <form
-        id={id}
-        className="grid gap-1.5"
-        onSubmit={(evento) => {
-          evento.preventDefault()
-          void nuevo.enviar()
+      <Campo
+        nombre={CLAVE_DEL_NOMBRE_DE_EMBUDO}
+        etiqueta="Nombre"
+        autoComplete="off"
+        maxLength={LARGO_MAXIMO_DE_EMBUDO + 10}
+        value={formulario.nombre}
+        onChange={(evento) => {
+          formulario.escribir(evento.target.value)
         }}
-      >
-        <Label htmlFor={`${id}-nombre`}>Nombre</Label>
-        <Input
-          id={`${id}-nombre`}
-          value={nuevo.nombre}
-          maxLength={LARGO_MAXIMO_DE_EMBUDO + 10}
-          disabled={lleno}
-          aria-invalid={nuevo.motivo ? true : undefined}
-          aria-describedby={nuevo.motivo ? `${id}-motivo` : undefined}
-          className="h-11 md:h-9"
-          onChange={(evento) => {
-            nuevo.setNombre(evento.target.value)
-          }}
-        />
-        {nuevo.motivo ? (
-          <p
-            id={`${id}-motivo`}
-            role="alert"
-            className="text-(length:--text-xs) text-(--color-peligro-ink)"
-          >
-            {nuevo.motivo}
-          </p>
-        ) : null}
-      </form>
-    </Modal>
+        error={formulario.errores[CLAVE_DEL_NOMBRE_DE_EMBUDO]}
+      />
+    </ModalDeFormulario>
   )
 }

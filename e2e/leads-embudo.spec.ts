@@ -198,7 +198,8 @@ test('un embudo nuevo se elige enseguida; nadie más ve los embudos ni las oport
   const dialogo = page.getByRole('dialog', { name: 'Nuevo embudo' })
   await dialogo.getByLabel('Nombre').fill('ventas')
   await dialogo.getByRole('button', { name: 'Crear embudo' }).click()
-  await expect(dialogo.getByRole('alert')).toHaveText('Ya tienes un embudo «Ventas».')
+  await expect(dialogo.getByText('Ya tienes un embudo «Ventas».')).toBeVisible()
+  await expect(dialogo.getByLabel('Nombre')).toHaveAttribute('aria-invalid', 'true')
   await dialogo.getByLabel('Nombre').fill(`Postventa ${info.project.name}`)
   await dialogo.getByRole('button', { name: 'Crear embudo' }).click()
   await expect(
