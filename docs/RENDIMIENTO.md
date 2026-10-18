@@ -161,6 +161,12 @@ es un InitPlan sobre una tabla casi vacía y no cambió el índice de ningún pl
 cartera igual a su fuente; sus tiempos varían entre corridas con la carga de la máquina (no son una meta). Nodos del DOM: la
 tabla con el nombre pegado (`w-max min-w-full`) y 100 filas sigue dentro de los 3.500 de `listadoDe100` (`leads-tabla-ancha.spec.ts`).
 
+**El cierre 3 filtró también la policy de `leads_asesores`** (`…002700`: `usuario_id <> all ((select _bajas_en_curso())::uuid[])`, un InitPlan
+sobre una tabla casi vacía). Medido con 62.000 leads (`db:medir:volumen`, la corrida entera sin una aserción fallida): página 1 de la dueña
+14,8 ms (14,0–14,2 antes de la migración; presupuesto 30), con el máximo de la lista 24,6 ms (24,1), «míos» con el máximo 21,4 ms,
+página 100 por cursor 14,7 ms; ningún plan cambió de índice. `db:carreras` en verde. Nodos del DOM: las tarjetas con el nombre partido en
+líneas (`@container`) no suman nodos.
+
 **«¿Algún lead usa este origen?» (corrección de la 9f-1, `…20261019000800`).** El índice de la FK existía (lo crea el bucle de
 `…000900_indices.sql`), pero `_origenes_lead_json()` y `origen_lead_eliminar()` no lo usaban: con `l.origen_lead_id = o.id` el plan
 genérico estima 1/`n_distinct` de la tabla (un quinto) y elige Seq Scan; para un origen con un lead, o sin ninguno, recorría

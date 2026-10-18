@@ -3482,9 +3482,13 @@ baja, Q asesora con el lead compartido), no era cierto en tres puntos: `leads_vi
 asesor a P, con su WhatsApp). El kanban y «Quién lo tiene» ya estaban bien.
 
 **Decisión:** la migración `…002500` filtra con `la.usuario_id <> all ((select public._bajas_en_curso())::uuid[])` en las tres
-(`_leads_vista_crear()`, `lead_ficha()`, `web.portal_snapshot()`) y suma la policy `"leads_asesores: leer"` sobre `leads_asesores`, de
-modo que la fila de quien está en baja no se lea por otro camino. El filtro es un InitPlan sobre una tabla casi vacía: el plan
-del listado no cambió (`docs/RENDIMIENTO.md`). `humo.sql` afirma que, como Q, `dueno_id` es nulo y la ficha dice «lo tienes tú»,
+(`_leads_vista_crear()`, `lead_ficha()`, `web.portal_snapshot()`) y reescribe la policy `"leads_asesores: leer"` sobre `leads_asesores`
+(sólo por rendimiento: una subconsulta a `leads` en lugar de `puede_lead()` y `en_cartera()` por fila). **Corrección (cierre 3, 0a):**
+esta entrada decía que esa policy hacía que la fila de quien está en baja no se leyera por otro camino. **No lo hacía**, ni la de
+`…001300` ni la de `…002500`: ninguna miraba `_bajas_en_curso()`, y con una baja a medias una asesora que comparte el lead leía en
+`leads_asesores` (que `authenticated` puede leer por PostgREST) la fila de dueño vigente de quien se iba. Lo cerró la migración
+`…002700` (ver «Cierre 3 (0a)»). El filtro es un InitPlan sobre una tabla casi vacía: el plan del listado no cambió
+(`docs/RENDIMIENTO.md`). `humo.sql` afirma que, como Q, `dueno_id` es nulo y la ficha dice «lo tienes tú»,
 y que para todo lead que ve la dueña `dueno_id` es igual a `_lead_dueno(id)`; un **inventario** falla si aparece una función o vista
 de `public` o `web` que lee `leads_asesores … revocado_en is null` sin `_bajas_en_curso()` y no está en la lista cerrada de sus
 motivos («desde quien llama», «aplica la baja antes de decidir», «interna de la baja»).
@@ -3570,9 +3574,9 @@ es de `.claude/rules/ui.md`. Prueba con la action retenida (`page.route`): fall�
 
 **Decisión:** el clic en un aviso que sale de la pantalla («Abrir ficha», `sale: true`) con algo escrito en un panel **pregunta en
 el pie del panel** (`useCierreConCambios()` y `salida` de `<PieDelPanel>`); «Deshacer» actúa en el lugar. Se extendió a los dos
-`Drawer` donde un aviso así coexiste con un borrador (el alta de lead y el panel de vehículo). **Limitación:** los demás `Drawer`
-con formulario (editar el lead, teléfono, etapas, oportunidad, tipos de cambio, moneda, cartera) no están registrados; queda en
-`docs/PLAN.md`. En el alta de lead, el aviso con «Abrir ficha» se dibuja encima del pie del panel (lo vimos en las capturas).
+`Drawer` donde un aviso así coexiste con un borrador (el alta de lead y el panel de vehículo). **Limitación (resuelta en el cierre 3, ver «Cierre 3 (2)» y «Cierre 3 (3)»):** los demás `Drawer`
+con formulario no estaban registrados; en el alta de lead, el aviso con «Abrir ficha» se dibujaba encima del pie del panel (lo vimos en
+las capturas).
 
 ## 2026-10-17 — Cierre 2 (6, 7, 8): la barra que se desplaza lo dice, la barra superior cabe al 200 %, y los avisos y la insignia heredan la app
 
@@ -3588,3 +3592,95 @@ de después de recargar.
 
 **Hallazgo fuera del alcance (en `docs/PLAN.md`):** con el texto al 200 % las tarjetas del listado en el celular se salen de la
 página (los «⋯»).
+
+## 2026-10-17 — Cierre 3 (0a): la policy de `leads_asesores` no entrega la fila de quien está en una baja en curso
+
+**Contexto:** `DECISIONES` (cierre 2, 0a) afirmaba que la policy de `leads_asesores` evitaba leer la fila de quien está en baja por otro
+camino. Se comprobó con una consulta real (`begin … rollback`, P en baja en curso y Q asesora con el lead compartido): como Q,
+`select usuario_id, tipo_acceso from leads_asesores where lead_id = …` devolvía a **P como dueña vigente**, mientras `leads_vista.dueno_id`
+era nulo. `authenticated` tiene `SELECT` sobre la tabla (PostgREST la expone) y ninguna versión de la policy miraba `_bajas_en_curso()`.
+
+**Decisión:** la migración `…002700_cartera_sin_la_baja_en_curso.sql` suma a la policy
+`leads_asesores.usuario_id <> all ((select public._bajas_en_curso())::uuid[])`: un InitPlan, se evalúa una vez por sentencia. Medido con
+62.000 leads (`db:medir:volumen`): la página 1 de la dueña 14,8 ms (14,0–14,2 antes), con el máximo de la lista 24,6 ms (24,1); ningún
+plan cambió. Las funciones `definer` que leen la tabla (`lead_cartera`, `_lead_dueno`) ya filtraban. Se prefirió filtrar a «declararlo con su
+número»: es una comparación contra una tabla casi vacía y deja a `DECISIONES` diciendo lo que hace el código.
+
+**Lo que lo vigila:** el humo afirma que, como la asesora, la tabla no devuelve la fila de quien se va; el inventario de `humo.sql` suma
+las **policies** de `pg_policies` que leen `leads_asesores` (sólo miraba funciones y vistas: por eso no vio ésta); y
+`supabase/tests/cartera-policy.sql` compara, para la dueña, dos asesoras y una con «todos», la huella md5 de lo que la policy entrega como
+`authenticated` con la regla escrita aparte desde `leads_asesores` y `equipo_bajas`, en siete casos (solo, compartido, papelera, ajeno,
+limbo, baja en curso y sólo de quien se va), con filas concretas para que una huella igual por error no pase. Falla sin la migración.
+
+## 2026-10-17 — Cierre 3 (0b): el comentario de `…002400` dice la carrera que existe
+
+**Decisión:** el encabezado de `…002400` y un comentario dentro del cuerpo de `_baja_lote_desde` (que Postgres guarda en `prosrc`)
+describían un camino que no existe; ahora dicen la carrera real, de dos corridas de la misma baja. Sólo comentarios: el `pg_dump -s`
+del esquema tras `db:reset` difiere únicamente en esas dos líneas. (Aún no hubo primer `db push`: la migración se puede corregir.)
+
+## 2026-10-17 — Cierre 3 (1): las tarjetas del listado no ensanchan la página con el texto al 200 %
+
+**Contexto:** el hallazgo decía que podía ser una regresión del defecto 4 del cierre 2 (`w-max min-w-full`). Se reprodujo el mismo spec en
+un worktree del commit de docs del cierre 1: **falla igual, ya estaba** (también el inventario de vehículos). Las tarjetas no comparten
+contenedor con la tabla.
+
+**Decisión:** la causa: `<ul class="grid gap-2">` sin `grid-cols`, cuya columna `auto` tomaba el ancho mínimo de la tarjeta (nombre sin
+partir, número, tipo y un «⋯» de `size-11`: 88 px al 200 %). Lista y tarjeta miden lo que la pantalla (`grid-cols-[minmax(0,1fr)]`,
+`min-w-0`), el «⋯» mide 44 px y no se achica, `Anterior`/`Siguiente` se parten (`flex-wrap`: también se salían), y con una tarjeta de menos
+de 16 rem (container query, que cambia sólo con el texto grande) el tipo pasa debajo del nombre y éste se parte en líneas (al verlo en
+las capturas quedaba en «E2E…»). En vehículos la miniatura (`w-20`, rem), el título y «Editar» no cabían en una fila: el encabezado se
+apila. Un título largo se parte; la casilla de selección mide 44 px. `sinScrollHorizontal()` nombra al elemento que se sale y a sus
+ancestros e ignora lo que recorta una barra que se desplaza.
+
+## 2026-10-17 — Cierre 3 (2): todo `<Drawer>` pregunta al salir desde un aviso; el `<Drawer>` lo hace, el formulario sólo dice que tiene algo escrito
+
+**Contexto:** de los `Drawer` con formulario sólo el alta de lead y el panel de vehículo preguntaban cuando un aviso `sale: true`
+(«Abrir ficha») se pulsaba con algo escrito. Eran **doce** los demás, no siete: además de editar el lead, teléfono, etapas, oportunidad,
+tipos de cambio, moneda y cartera, también «Nuevo tipo de cambio», categoría, nuevo origen, vitrina y campo.
+
+**Decisión:** el `<Drawer>` abre un contexto (`cambios-del-panel.ts`), anota la pregunta con `useCierreConCambios()` y la dibuja en su
+ranura `pie`; un pie dentro del cuerpo la toma si es `<PieDelPanel>` o el nuevo `<PieConSalida>`. Cada formulario sólo llama
+`useCambiosSinGuardar(hayCambios, alDescartar?)`, o `<CambiosSinGuardar>` si su estado vive en el mismo componente que el `<Drawer>` (el
+contexto llega sólo a lo de adentro), y `useHayCambiosEnFormulario()` mide los de campos sin estado (`defaultValue` contra lo que mandó el
+servidor, como el borrador). Por qué así y no un hook en cada panel con su pie: son doce pies distintos (ranura, dentro del cuerpo,
+propios) y la pregunta tenía que verse igual. `useCierreConCambios()` deja de preguntar si lo escrito se guarda o se deshace mientras
+pregunta. El alta de lead y el panel de vehículo conservan su mecanismo.
+
+**La guarda:** `scripts/guardas/drawers-con-salida.ts` registra **todo** `<Drawer>` (no sólo los que tienen un `<form>`: «cartera» no lo
+tiene) con su formulario o con el motivo de no tenerlo, y su test falla si aparece uno sin registrar, si un registrado deja de serlo o si un
+formulario no dice que tiene cambios. Se comprobó que muerde (quitar el hook de un panel y quitar un registro la rompen).
+
+**Pruebas:** e2e con el aviso del alta de lead (el único `sale: true` cotidiano) y cuatro paneles reales, con las dos formas de pie
+(dentro del cuerpo: editar el lead y teléfono; en la ranura: oportunidad y etapas), en escritorio y celular; falla sin el hook. Los demás
+(tipos de cambio, moneda, categoría, nuevo origen, vitrina, campo, cartera): pruebas de componente. **Límite declarado:** «Agregar
+vehículo» (`panel-agregar-vehiculo`) queda sin formulario registrado: lo único tipeado es la nota de un interés (≤ 500) de una acción de un
+clic por candidato; con varias notas escritas a la vez el contexto (un solo «hay cambios» por panel) no las distinguiría. Y tres modales con
+formulario fuera de `ModalDeFormulario` (nuevo embudo, nuevo rol, invitar persona) no preguntan al descartar: en `docs/PLAN.md`.
+
+## 2026-10-17 — Cierre 3 (3): el aviso sube sobre el pie de un panel, y crece con el texto
+
+**Contexto:** en el alta de lead el aviso con «Abrir ficha» se dibujaba encima de «Cancelar» y «Guardar lead» (abajo a la derecha, donde un
+panel tiene sus botones).
+
+**Decisión:** `<Toaster>` pasa `offset`/`mobileOffset` `var(--avisos-abajo, 24px|16px)` y `useAvisosSobreElPie()` mide los pies abiertos
+(`sheet-footer`, `dialog-footer` y `data-pie-de-panel`: `<PieDelPanel>` y `<PieConSalida>`) con un `MutationObserver` y un
+`ResizeObserver` y pone la variable en `<html>`. Sólo cuenta un pie que cae en la columna de los avisos y en la franja de abajo: un modal
+centrado en escritorio, o a media altura en el celular, no los mueve (`avisosAbajo()` es el cálculo puro, con su test). Con el panel
+cerrado vuelven a su lugar. Alternativa descartada: mover los avisos a la izquierda con un drawer abierto en escritorio (dos reglas).
+Al mirar las capturas del alta al 200 % apareció otro defecto del aviso: el icono (`size-4`, rem: 32 px) desbordaba la caja de 16 px
+fija de sonner y se comía la primera letra, y el texto del aviso y del botón (13 y 12 px) no crecía. El texto y el botón siguen a la raíz
+(`style`, `actionButtonStyle`, `cancelButtonStyle` en línea: le ganan al CSS de sonner, que va sin capa) y los iconos miden 16 px.
+`avisoNoTapaElPie()` comprueba que las cajas no se solapan y que cada botón recibe el clic.
+
+## 2026-10-17 — Cierre 3 (4): las etiquetas de los botones sí crecían; lo que las hacía parecer quietas era `transition-all`
+
+**Contexto:** el hallazgo decía que las etiquetas de «Nuevo lead», «Filtros», «Vistas», «Importar», «Papelera» y «Etapas» no crecían con el
+texto al 200 %. Todo `--text-*` es rem y la densidad sólo toca `--fila`; con el CSS compilado la etiqueta pasa de 13 a 26 px, igual que
+los campos. Pero medido en la app enseguida de cambiar la raíz daba 13,4 px: el botón base llevaba `transition-all`, que anima también
+`font-size` y el alto. Las capturas del cierre 1 y del cierre 2 miraron el mismo botón en dos instantes de esa animación (15 px y 13 px).
+
+**Decisión:** el botón y las pestañas usan `transition` (colores, sombra, opacidad, transformaciones), como la insignia desde el cierre 2.
+La guarda `scripts/guardas/sin-transition-all.test.ts` impide que vuelva (sólo el interruptor la conserva: no lleva texto). El e2e lee el
+tamaño en el mismo instante del cambio y falla con el botón anterior («Filtros: 13 px → 13 px»). **«Nuevo lead» de la barra superior en el
+celular es sólo un icono por diseño** (`hidden sm:inline`: un media query no sigue a la raíz); su etiqueta es la del lector. El texto del
+botón (13 px) contra el del cuerpo (15 px) no es un defecto: es `--text-sm` contra `--text-base`.
