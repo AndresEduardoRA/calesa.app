@@ -135,12 +135,15 @@ begin
   -- Insertados sin triggers (como estaban antes de la 9f-2): sin número y con las fechas al revés del orden de inserción;
   -- uno en la papelera cuenta (su número no se reutiliza) y uno sin creador no lleva.
   set local session_replication_role = replica;
-  insert into public.leads (id, nombre, telefono_principal, creado_por, creado_en, eliminado_en) values
-    ('00000000-0000-4000-8000-0000000fa001', 'Rel 3', '59179100003', c, now() - interval '1 day', null),
+  -- Sin triggers tampoco llega el tipo por defecto (`trg_lead_tipo_por_defecto`): se lo da la fila.
+  insert into public.leads (id, nombre, telefono_principal, creado_por, creado_en, eliminado_en, tipo_lead_id)
+  select x.id::uuid, x.nombre, x.telefono, x.creador, x.creado, x.eliminado, public._tipo_lead_por_defecto() from (values
+    ('00000000-0000-4000-8000-0000000fa001', 'Rel 3', '59179100003', c, now() - interval '1 day', null::timestamptz),
     ('00000000-0000-4000-8000-0000000fa002', 'Rel 1', '59179100001', c, now() - interval '3 days', null),
     ('00000000-0000-4000-8000-0000000fa003', 'Rel 4 papelera', '59179100004', c, now() - interval '5 hours', now()),
     ('00000000-0000-4000-8000-0000000fa004', 'Rel 2', '59179100002', c, now() - interval '2 days', null),
-    ('00000000-0000-4000-8000-0000000fa005', 'Rel sin creador', '59179100005', null, now() - interval '4 days', null);
+    ('00000000-0000-4000-8000-0000000fa005', 'Rel sin creador', '59179100005', null, now() - interval '4 days', null)
+  ) as x (id, nombre, telefono, creador, creado, eliminado);
   set local session_replication_role = origin;
   if (select count(*) from public.leads where nombre like 'Rel %' and numero_propio is not null) <> 0 then raise exception 'ya traían número'; end if;
   if exists (select 1 from public.leads_numeros_globales where lead_id::text like '00000000-0000-4000-8000-0000000fa00%') then raise exception 'ya traían copia'; end if;

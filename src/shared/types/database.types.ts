@@ -2427,6 +2427,7 @@ export type Database = {
           telefono_cc: string | null
           telefono_principal: string
           tipo: Database['public']['Enums']['tipo_lead']
+          tipo_lead_id: string
           ultimo_seguimiento_en: string | null
           _lead_motivo_de_restaurar: string | null
         }
@@ -2449,6 +2450,7 @@ export type Database = {
           telefono_cc?: string | null
           telefono_principal: string
           tipo?: Database['public']['Enums']['tipo_lead']
+          tipo_lead_id: string
           ultimo_seguimiento_en?: string | null
         }
         Update: {
@@ -2469,6 +2471,7 @@ export type Database = {
           telefono_cc?: string | null
           telefono_principal?: string
           tipo?: Database['public']['Enums']['tipo_lead']
+          tipo_lead_id?: string
           ultimo_seguimiento_en?: string | null
         }
         Relationships: [
@@ -2498,6 +2501,13 @@ export type Database = {
             columns: ['origen_lead_id']
             isOneToOne: false
             referencedRelation: 'origenes_lead'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_tipo_lead_id_fkey'
+            columns: ['tipo_lead_id']
+            isOneToOne: false
+            referencedRelation: 'tipos_lead'
             referencedColumns: ['id']
           },
         ]
@@ -5526,6 +5536,40 @@ export type Database = {
           },
         ]
       }
+      tipos_lead: {
+        Row: {
+          activo: boolean
+          actualizado_en: string
+          clase: Database['public']['Enums']['clase_tipo_lead']
+          clave: string
+          creado_en: string
+          id: string
+          nombre: string
+          orden: number
+        }
+        ComputedFields: never
+        Insert: {
+          activo?: boolean
+          actualizado_en?: string
+          clase: Database['public']['Enums']['clase_tipo_lead']
+          clave: string
+          creado_en?: string
+          id?: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          actualizado_en?: string
+          clase?: Database['public']['Enums']['clase_tipo_lead']
+          clave?: string
+          creado_en?: string
+          id?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
       tipos_seguimiento: {
         Row: {
           activo: boolean
@@ -6562,6 +6606,7 @@ export type Database = {
           telefono_principal: string | null
           telefono_visible: boolean | null
           tipo: Database['public']['Enums']['tipo_lead'] | null
+          tipo_lead_id: string | null
           ultimo_seguimiento_en: string | null
         }
         ComputedFields: never
@@ -6578,6 +6623,13 @@ export type Database = {
             columns: ['origen_lead_id']
             isOneToOne: false
             referencedRelation: 'origenes_lead'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_tipo_lead_id_fkey'
+            columns: ['tipo_lead_id']
+            isOneToOne: false
+            referencedRelation: 'tipos_lead'
             referencedColumns: ['id']
           },
         ]
@@ -6848,6 +6900,7 @@ export type Database = {
           telefono_cc: string | null
           telefono_principal: string
           tipo: Database['public']['Enums']['tipo_lead']
+          tipo_lead_id: string
           ultimo_seguimiento_en: string | null
         }
         SetofOptions: {
@@ -6909,6 +6962,7 @@ export type Database = {
           telefono_cc: string | null
           telefono_principal: string
           tipo: Database['public']['Enums']['tipo_lead']
+          tipo_lead_id: string
           ultimo_seguimiento_en: string | null
         }
         SetofOptions: {
@@ -7201,6 +7255,7 @@ export type Database = {
         Returns: Json
       }
       _telefono_o_nulo: { Args: { p_cc: string; p_tel: string }; Returns: string }
+      _tipo_lead_por_defecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
         Args: {
@@ -8188,6 +8243,7 @@ export type Database = {
       ambito_flujo: 'vehiculos' | 'repuestos'
       canal_aforo: 'verde' | 'amarillo' | 'rojo'
       clase_cotizacion: 'preventa' | 'final'
+      clase_tipo_lead: 'prospecto' | 'cliente'
       estado_agenda: 'pendiente' | 'completado' | 'cancelado'
       estado_cotizacion: 'activa' | 'reportada' | 'invalida'
       estado_cotizacion_repuestos: 'borrador' | 'aceptada' | 'anulada'
@@ -8541,6 +8597,7 @@ export const Constants = {
       ambito_flujo: ['vehiculos', 'repuestos'],
       canal_aforo: ['verde', 'amarillo', 'rojo'],
       clase_cotizacion: ['preventa', 'final'],
+      clase_tipo_lead: ['prospecto', 'cliente'],
       estado_agenda: ['pendiente', 'completado', 'cancelado'],
       estado_cotizacion: ['activa', 'reportada', 'invalida'],
       estado_cotizacion_repuestos: ['borrador', 'aceptada', 'anulada'],

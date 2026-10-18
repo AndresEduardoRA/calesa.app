@@ -14,6 +14,25 @@ create table public.origenes_lead (
 create unique index origenes_lead_nombre_unico on public.origenes_lead (lower(btrim(nombre)));
 comment on table public.origenes_lead is 'De dónde llegó el lead. Configurable (Configuración › Leads › Orígenes): sólo de lectura para la app, se escribe por origen_lead_*(). Uno con leads no se elimina, se desactiva: sigue nombrando a los leads que ya lo tienen pero no se ofrece para uno nuevo. Distinto de origenes, que son los de los vehículos.';
 
+-- Los tipos de lead (9j): configurables como los orígenes. Cada tipo pertenece a una CLASE fija —«prospecto» o «cliente»— que se
+-- elige al crearlo y no cambia; siempre queda al menos un tipo activo de cada clase (lo impone un trigger, `…002900`). El sistema
+-- razona por la clase, nunca por el nombre ni por la clave. RLS se enciende acá porque `…000200_rls_y_grants.sql` termina
+-- comprobando que ninguna tabla de `public` quede sin ella; las policies, los grants y las RPC van en `…002800` y `…002900`.
+create table public.tipos_lead (
+  id     uuid primary key default gen_random_uuid(),
+  clave  text not null unique,
+  nombre text not null,
+  clase  public.clase_tipo_lead not null,
+  activo boolean not null default true,
+  orden  smallint not null default 0,
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()   -- versión: guardar, mover y eliminar la mandan
+);
+-- Un nombre por tipo, sin importar mayúsculas ni espacios de los bordes.
+create unique index tipos_lead_nombre_unico on public.tipos_lead (lower(btrim(nombre)));
+alter table public.tipos_lead enable row level security;
+comment on table public.tipos_lead is 'Los tipos de lead (Prospecto, Cliente, y los que la empresa agregue). Configurable (Configuración › Leads › Tipos de lead): sólo de lectura para la app, se escribe por tipo_lead_*(). Cada uno es de una clase fija (prospecto o cliente) y siempre queda uno activo de cada clase. Uno con leads no se elimina, se desactiva.';
+
 create table public.lotes_papelera (
   id          uuid primary key default gen_random_uuid(),
   tipo        public.tipo_lote_papelera not null,
@@ -34,7 +53,7 @@ create table public.leads (
   nombre               text not null,
   telefono_cc          text,                       -- el código de país del número, si es el de la empresa
   telefono_principal   text not null,                -- normalizado: dígitos con código de país
-  tipo                 public.tipo_lead not null default 'prospecto',
+  tipo_lead_id         uuid not null references public.tipos_lead (id) on delete restrict,   -- vacío al insertar = el primer tipo activo de la clase «prospecto» (trigger)
   origen_lead_id       uuid references public.origenes_lead (id) on delete restrict,
   atributos            jsonb not null default '{}'::jsonb check (jsonb_typeof(atributos) = 'object'),  -- los campos de leads_campos; no es legible: se lee por leads_vista
   creado_por           uuid references public.perfiles (id),   -- NULL = sin creador vivo (limbo se decide por cartera)
@@ -54,7 +73,7 @@ create table public.leads (
   constraint leads_numero_propio_unico unique (creado_por, numero_propio) deferrable initially immediate
 );
 create unique index leads_telefono_unico on public.leads (telefono_principal) where eliminado_en is null;
-comment on table public.leads is 'Prospectos y clientes. El teléfono principal es único entre leads vivos y sólo lo ve completo quien está en la cartera (leads_asesores): la app lee leads_vista, no esta tabla. Un lead sin asesores vigentes está en el LIMBO: invisible hasta que alguien lo adopta registrando su teléfono. Fijos: nombre, teléfono, tipo y origen; el resto son campos configurables (leads_campos) y viven en atributos, que sólo lee quien está en la cartera completos.';
+comment on table public.leads is 'Prospectos y clientes. El teléfono principal es único entre leads vivos y sólo lo ve completo quien está en la cartera (leads_asesores): la app lee leads_vista, no esta tabla. Un lead sin asesores vigentes está en el LIMBO: invisible hasta que alguien lo adopta registrando su teléfono. Fijos: nombre, teléfono, tipo (de `tipos_lead`) y origen; el resto son campos configurables (leads_campos) y viven en atributos, que sólo lee quien está en la cartera completos.';
 
 -- La numeración (9f-2). Cada lead lleva dos números: el global (`leads.numero`, identity) y el propio de quien lo
 -- creó (`leads.numero_propio`, consecutivo por creador). Ninguno de los dos se lee de `leads`: sin el permiso

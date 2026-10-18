@@ -10,7 +10,9 @@ create type public.tipo_requisito as enum ('documento', 'dato', 'espera');
 create type public.ambito_espera as enum ('padre', 'hijos');
 create type public.estado_documento as enum ('pendiente', 'subido', 'aprobado', 'rechazado');
 create type public.modo_vencimiento as enum ('ninguno', 'renovar', 'solicitar');
-create type public.tipo_lead as enum ('prospecto', 'cliente');
+-- La clase de un tipo de lead (9j): lo único fijo. Los tipos (nombre, orden, activo) son configurables (`tipos_lead`); el sistema
+-- razona por la clase —un lead «cliente» es uno que ya compró—, nunca por el nombre ni la clave de un tipo.
+create type public.clase_tipo_lead as enum ('prospecto', 'cliente');
 create type public.tipo_acceso_lead as enum ('dueno', 'compartido', 'adoptado');
 create type public.visibilidad_seguimiento as enum ('privado', 'publico');
 create type public.estado_oportunidad as enum ('abierta', 'ganada', 'perdida', 'cancelada');

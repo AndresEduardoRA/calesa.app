@@ -174,6 +174,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `fases_requisitos` — `supabase/schemas/04_flujos/01_flujos.sql`
 - `historial_fases` — `supabase/schemas/04_flujos/01_flujos.sql`
 - `origenes_lead` — `supabase/schemas/05_leads/01_leads.sql`
+- `tipos_lead` — `supabase/schemas/05_leads/01_leads.sql`
 - `lotes_papelera` — `supabase/schemas/05_leads/01_leads.sql`
 - `leads` — `supabase/schemas/05_leads/01_leads.sql`
 - `leads_contadores` — `supabase/schemas/05_leads/01_leads.sql`

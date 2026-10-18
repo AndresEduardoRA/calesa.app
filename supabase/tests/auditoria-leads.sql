@@ -370,7 +370,7 @@ declare
   -- version: la mueve `lead_version()`. derivada: la escribe otra tabla o un trigger a partir de algo que ya cuenta (la
   -- cartera, de `leads_asesores`; los atributos públicos, de `atributos`: 9h). fija: no cambia.
   v_columnas constant jsonb := '{
-    "nombre": "version", "tipo": "version", "origen_lead_id": "version", "atributos": "version",
+    "nombre": "version", "tipo": "version", "tipo_lead_id": "version", "origen_lead_id": "version", "atributos": "version",
     "telefono_principal": "version", "telefono_cc": "version", "eliminado_en": "version", "lote_papelera_id": "version",
     "eliminado_por": "derivada", "ultimo_seguimiento_en": "derivada", "cartera": "derivada", "atributos_publicos": "derivada",
     "id": "fija", "numero": "fija", "numero_propio": "fija", "creado_por": "fija", "creado_en": "fija", "actualizado_en": "fija"}';
