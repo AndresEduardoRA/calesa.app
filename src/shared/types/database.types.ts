@@ -2513,6 +2513,7 @@ export type Database = {
         Row: {
           compartido_por: string | null
           desde: string
+          lead_creado_en: string
           lead_id: string
           revocado_en: string | null
           revocado_por: string | null
@@ -2523,6 +2524,7 @@ export type Database = {
         Insert: {
           compartido_por?: string | null
           desde?: string
+          lead_creado_en: string
           lead_id: string
           revocado_en?: string | null
           revocado_por?: string | null
@@ -2532,6 +2534,7 @@ export type Database = {
         Update: {
           compartido_por?: string | null
           desde?: string
+          lead_creado_en?: string
           lead_id?: string
           revocado_en?: string | null
           revocado_por?: string | null
@@ -6578,6 +6581,78 @@ export type Database = {
           nombre?: string | null
         }
         Relationships: []
+      }
+      leads_cartera_vista: {
+        Row: {
+          actualizado_en: string | null
+          atributos: Json | null
+          atributos_publicos: Json | null
+          creado_en: string | null
+          creado_por: string | null
+          dueno_id: string | null
+          en_cartera: boolean | null
+          es_favorito: boolean | null
+          esta_tachado: boolean | null
+          etiquetas: string[] | null
+          id: string | null
+          nombre: string | null
+          numero: number | null
+          numero_propio: number | null
+          numero_propio_creador: string | null
+          numero_propio_de: string | null
+          numero_visible: number | null
+          origen_lead_id: string | null
+          telefono_cc: string | null
+          telefono_principal: string | null
+          telefono_visible: boolean | null
+          tipo_lead_id: string | null
+          ultimo_seguimiento_en: string | null
+        }
+        ComputedFields: never
+        Relationships: [
+          {
+            foreignKeyName: 'leads_asesores_lead_id_fkey'
+            columns: ['id']
+            isOneToOne: false
+            referencedRelation: 'leads'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_asesores_lead_id_fkey'
+            columns: ['id']
+            isOneToOne: false
+            referencedRelation: 'leads_vista'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_asesores_lead_id_fkey'
+            columns: ['id']
+            isOneToOne: false
+            referencedRelation: 'recordatorios_vista'
+            referencedColumns: ['lead_id']
+          },
+          {
+            foreignKeyName: 'leads_creado_por_fkey'
+            columns: ['creado_por']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_origen_lead_id_fkey'
+            columns: ['origen_lead_id']
+            isOneToOne: false
+            referencedRelation: 'origenes_lead'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'leads_tipo_lead_id_fkey'
+            columns: ['tipo_lead_id']
+            isOneToOne: false
+            referencedRelation: 'tipos_lead'
+            referencedColumns: ['id']
+          },
+        ]
       }
       leads_vista: {
         Row: {

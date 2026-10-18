@@ -54,6 +54,7 @@ select set_config('request.jwt.claim.sub', '', false);
 create temp table sondas (nombre text not null, plantilla text not null, control boolean not null default false);
 insert into sondas (nombre, plantilla, control) values
   ('leads_vista', $q$select * from public.leads_vista$q$, true),
+  ('leads_cartera_vista', $q$select * from public.leads_cartera_vista$q$, true),
   ('recordatorios_vista', $q$select * from public.recordatorios_vista$q$, true),
   ('lead_ficha', $q$select public.lead_ficha('{lp}')$q$, true),
   ('lead_ficha', $q$select public.lead_ficha('{la}')$q$, true),
@@ -301,7 +302,7 @@ begin
   end loop;
   -- Las que figuran y ya no existen.
   for r in select k as nombre from jsonb_object_keys(v_sin_numero) k
-            union select distinct nombre from sondas where nombre not in ('leads_vista', 'recordatorios_vista')
+            union select distinct nombre from sondas where nombre not in ('leads_vista', 'leads_cartera_vista', 'recordatorios_vista')
   loop
     if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname in ('public', 'web') and p.proname = r.nombre) then
       v_fallas := v_fallas || E'\n  figura y ya no existe: ' || r.nombre;

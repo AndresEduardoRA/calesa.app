@@ -108,8 +108,11 @@ export type CondicionDeLead =
       idsDelNumero: readonly string[]
     }
   | { tipo: 'columna_en'; columna: 'tipo_lead_id' | 'origen_lead_id'; valores: string[] }
-  // «Míos»: el lead está en la cartera de quien mira.
-  | { tipo: 'en_cartera' }
+  // «Míos»: el lead está en la cartera de quien mira. `desdeLaCartera`: se lee de `leads_cartera_vista` (5a-fix-1a). Lo pide
+  // sólo quien tiene `leads.ver` «propios»: su cartera es lo único que ve, así que la base la camina en el orden del listado y
+  // cuesta lo que pesa. Quien ve «todos» sigue leyendo `leads_vista`: su cartera es grande y la vista por la cartera no la mejora
+  // (medido con 212.000 leads: su campo privado sin resultados pasaba de 5.318 a 5.871 ms de un techo de 6.000).
+  | { tipo: 'en_cartera'; desdeLaCartera: boolean }
   | (CondicionDeAtributo & { columna: ColumnaDeAtributos })
   | CondicionDeMarca
 
@@ -180,6 +183,8 @@ export function condicionesDeLeads(
   opciones: {
     zona?: string
     soloMios: boolean
+    // Quien mira tiene `leads.ver` «propios»: «míos» se lee de su cartera (`fuenteDelListado`). Sin él, de `leads_vista`.
+    desdeLaCartera?: boolean
     idsDelNumero?: readonly string[]
     // El catálogo de tipos: traduce las claves de `?tipo=` a ids.
     tipos?: readonly TipoDeLeadEnCatalogo[]
@@ -195,7 +200,7 @@ export function condicionesDeLeads(
   // base recorrer sólo la cartera. No cambia qué se encuentra.
   const porUnPrivado = deCampos.some((c) => 'columna' in c && c.columna === 'atributos')
   if (opciones.soloMios || porUnPrivado) {
-    condiciones.push({ tipo: 'en_cartera' })
+    condiciones.push({ tipo: 'en_cartera', desdeLaCartera: opciones.desdeLaCartera === true })
   }
   return [
     ...condiciones,

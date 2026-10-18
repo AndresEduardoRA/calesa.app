@@ -94,12 +94,13 @@ select v.id, 'Volumen ' || v.n || ' ' || (array['Pérez', 'Gómez', 'Rojas', 'Su
        (select t.id from public.tipos_lead t
          where t.clave = case when v.n % 100 = 0 then 'volumen_mayorista' when v.n % 100 <= 14 then 'cliente' else 'prospecto' end)
   from volumen_leads v;
-insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde)
-select id, dueno, 'dueno', now() from volumen_leads;
+-- `lead_creado_en` (5a-fix-1a) lo llena un trigger al insertar; con los triggers apagados se copia del lead a mano.
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde, lead_creado_en)
+select v.id, v.dueno, 'dueno', now(), l.creado_en from volumen_leads v join public.leads l on l.id = v.id;
 -- Compartidos: el 2 % de los de la dueña, con Ana.
-insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde)
-select id, '00000000-0000-0000-0000-0000000000a1', 'compartido', '00000000-0000-0000-0000-0000000000d1', now()
-  from volumen_leads where n <= :n * 2 / 5 and n % 50 = 0;
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en)
+select v.id, '00000000-0000-0000-0000-0000000000a1', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en
+  from volumen_leads v join public.leads l on l.id = v.id where v.n <= :n * 2 / 5 and v.n % 50 = 0;
 
 -- Marcas: tachados 5 %, favoritos 3 % de la dueña; los de Ana, sus propias.
 insert into public.leads_tachados (lead_id, usuario_id)
@@ -237,7 +238,8 @@ commit;
 vacuum analyze public.leads;
 vacuum analyze public.leads_numeros_globales;
 vacuum analyze public.leads_numeros_propios;
-analyze public.leads_asesores;
+-- `vacuum` también: `leads_asesores_listado_idx` es un recorrido sólo por el índice (5a-fix-1a) y necesita el mapa de visibilidad.
+vacuum analyze public.leads_asesores;
 analyze public.leads_tachados;
 analyze public.leads_favoritos;
 analyze public.leads_etiquetas;

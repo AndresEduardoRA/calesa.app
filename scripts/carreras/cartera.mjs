@@ -160,6 +160,8 @@ export async function carrerasDeLaCartera({ orquesta, carrera, espero, conectar,
     )
   }
 
+  await carrerasDeLaFecha({ orquesta, carrera, espero })
+
   console.log('La cartera en la fila: el relleno y otra escritura a la vez')
   // Una base viva antes de `…001600`: la columna admite nulos (sin calcular). En una base nueva nace `not null`: se le quita
   // mientras duran estas dos carreras y se le vuelve a poner al final, con todo lleno.
@@ -442,6 +444,51 @@ const compartirDirecto = (lead) => ({
              values ($1, $2, 'compartido', $3) returning 1) select count(*)::int as r from x`,
   args: [lead, compartido, duena],
 })
+
+// La fecha de creación del lead en cada fila de su cartera (5a-fix-1a): `leads_asesores.lead_creado_en` la llena un trigger al insertar
+// y otro la sigue si el lead cambia. Nada cambia `leads.creado_en` en la app, pero la copia es la que ordena «míos»: tiene que ser la
+// del lead aunque las dos cosas pasen a la vez. Con el candado de la inserción (`for no key update`) una espera a la otra.
+const FECHA_NUEVA = '2001-02-03T04:05:06Z'
+const cambiarFecha = (lead) => ({
+  rol: 'postgres',
+  consulta: `with x as (update public.leads set creado_en = $2::timestamptz where id = $1 returning 1) select count(*)::int as r from x`,
+  args: [lead, FECHA_NUEVA],
+})
+const fechasDe = async (db, lead) =>
+  (
+    await db.query(
+      `select count(*)::int as filas, coalesce(bool_and(la.lead_creado_en = l.creado_en), false) as iguales,
+              l.creado_en = $2::timestamptz as es_la_nueva
+         from public.leads_asesores la join public.leads l on l.id = la.lead_id where l.id = $1 group by l.creado_en`,
+      [lead, FECHA_NUEVA],
+    )
+  ).rows[0]
+
+async function carrerasDeLaFecha({ orquesta, carrera, espero }) {
+  console.log(
+    'La fecha de creación en la cartera: cambiar la del lead mientras otra transacción inserta una fila',
+  )
+  {
+    const lead = await leadDeLaDuena(orquesta, 'fecha primero')
+    const r = await carrera(orquesta, { a: cambiarFecha(lead), b: compartirDirecto(lead) })
+    const f = await fechasDe(orquesta, lead)
+    espero(
+      'cambiar la fecha primero: la inserción espera y la fila nueva nace con la fecha nueva',
+      r.a.ok && r.b.ok && f.filas === 2 && f.iguales && f.es_la_nueva,
+      { r, f },
+    )
+  }
+  {
+    const lead = await leadDeLaDuena(orquesta, 'fila primero')
+    const r = await carrera(orquesta, { a: compartirDirecto(lead), b: cambiarFecha(lead) })
+    const f = await fechasDe(orquesta, lead)
+    espero(
+      'insertar primero: cambiar la fecha espera y la fila nueva la sigue',
+      r.a.ok && r.b.ok && f.filas === 2 && f.iguales && f.es_la_nueva,
+      { r, f },
+    )
+  }
+}
 
 async function carrerasDelRelleno({ orquesta, carrera, espero, conectar }) {
   {

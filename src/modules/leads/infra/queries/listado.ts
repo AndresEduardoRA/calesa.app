@@ -4,6 +4,7 @@ import { conteoAcotado } from '@/shared/lib/conteo'
 import { armarPagina, type Cursor } from '@/shared/lib/paginacion'
 import { aplicarCursor } from '@/shared/lib/supabase/consultas'
 import { createClient } from '@/shared/lib/supabase/server'
+import { fuenteDelListado } from '../../entities/fuente-del-listado'
 import { columnasDeLaConsulta, filasDeLeadDesde } from '../../entities/listado'
 import type { BuscadorDeLeads, ContadorDeLeads } from '../../entities/repositorios'
 import { aplicarCondicionesDeLeads } from './condiciones'
@@ -12,10 +13,16 @@ import { aplicarCondicionesDeLeads } from './condiciones'
 // Se lee de `leads_vista` (teléfono enmascarado y atributos recortados según la cartera) y lo que
 // hay lo decide la RLS de `leads`. Bajo RLS un filtro sobre `atributos` o `nombre` no usa un índice
 // propio: la base camina `leads_listado_idx` en orden, filtra y corta en `tamano + 1`.
+// «Míos» (`en_cartera`) se lee de `leads_cartera_vista`: las mismas columnas y la misma RLS, pero la base camina la cartera de
+// quien mira por `leads_asesores_listado_idx` (cuesta lo que pesa, no cuántos leads hay en la tabla; 5a-fix-1a).
 export const buscarLeads: BuscadorDeLeads = async (pedido) => {
   const { condiciones, cursor, tamano, clavesDeTabla } = pedido
   const supabase = await createClient()
-  const base = supabase.from('leads_vista').select(columnasDeLaConsulta(clavesDeTabla))
+  const columnas = columnasDeLaConsulta(clavesDeTabla)
+  const base =
+    fuenteDelListado(condiciones) === 'leads_cartera_vista'
+      ? supabase.from('leads_cartera_vista').select(columnas)
+      : supabase.from('leads_vista').select(columnas)
   // Hacia atrás se camina al revés (lo más viejo primero) y `armarPagina` lo da vuelta.
   const haciaAtras = cursor?.sentido === 'anterior'
   const { data, error } = await aplicarCursor(aplicarCondicionesDeLeads(base, condiciones), cursor)
@@ -36,12 +43,18 @@ const FILAS_POR_PEDIDO = 1000
 // un total). Lo decide la misma RLS que la página: cuenta sólo lo que quien mira ve. Con 50 es un solo pedido.
 export const contarLeadsHasta: ContadorDeLeads = async (condiciones, tope) => {
   const supabase = await createClient()
+  const fuente = fuenteDelListado(condiciones)
   let cursor: Cursor | null = null
   let leidos = 0
   while (leidos <= tope) {
     const pedir = Math.min(FILAS_POR_PEDIDO, tope + 1 - leidos)
     const { data, error } = await aplicarCursor(
-      aplicarCondicionesDeLeads(supabase.from('leads_vista').select('id, creado_en'), condiciones),
+      aplicarCondicionesDeLeads(
+        fuente === 'leads_cartera_vista'
+          ? supabase.from('leads_cartera_vista').select('id, creado_en')
+          : supabase.from('leads_vista').select('id, creado_en'),
+        condiciones,
+      ),
       cursor,
     )
       .order('creado_en', { ascending: false })

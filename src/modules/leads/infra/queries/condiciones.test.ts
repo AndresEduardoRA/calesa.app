@@ -84,7 +84,7 @@ describe('aplicarCondicionesDeLeads', () => {
       pedidosDe(
         { tipo: 'columna_en', columna: 'tipo_lead_id', valores: ['t1'] },
         { tipo: 'columna_en', columna: 'origen_lead_id', valores: ['o1', 'o2'] },
-        { tipo: 'en_cartera' },
+        { tipo: 'en_cartera', desdeLaCartera: false },
       ),
     ).toEqual(['tipo_lead_id=in.(t1)', 'origen_lead_id=in.(o1,o2)', 'en_cartera=eq.true'])
   })

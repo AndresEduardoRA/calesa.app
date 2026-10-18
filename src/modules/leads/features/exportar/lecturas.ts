@@ -2,7 +2,7 @@ import 'server-only'
 import { BOM_UTF8, lineasDeCsv, type Delimitador } from '@/shared/lib/csv/escribir'
 import { leerFiltros, type ParametrosDeUrl, type ValoresDeFiltros } from '@/shared/lib/filtros'
 import { leerCursor, type Cursor } from '@/shared/lib/paginacion'
-import { puede, type Permisos } from '@/shared/lib/permisos'
+import { alcanceDe, puede, type Permisos } from '@/shared/lib/permisos'
 import {
   buscarLeads,
   contarLeadsHasta,
@@ -168,6 +168,8 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
   const condiciones = condicionesDeLeads(campos, valores, {
     zona,
     soloMios: true,
+    // Quien ve sólo lo propio lee su cartera (`fuenteDelListado`), como el listado.
+    desdeLaCartera: alcanceDe(permisos, 'leads.ver') !== 'todos',
     idsDelNumero: ids.data,
     tipos: catalogos.data.tipos,
   })

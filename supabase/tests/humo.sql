@@ -772,7 +772,10 @@ do $$ declare r record; v_faltan text[] := '{}'; v_listadas constant text[] := a
   -- la propia baja y el cálculo de la cartera (la fuente, con todos los vigentes)
   '_baja_lote_desde', '_baja_terminar', '_lead_aplicar_bajas', '_lead_cartera_calcular', '_leads_cartera_recalcular',
   -- decide por permisos propios, sin nombrar a nadie
-  '_lead_motivo_para_deshacer', '_leads_vista_crear'];
+  '_lead_motivo_para_deshacer', '_leads_vista_crear',
+  -- desde quien llama: sólo SUS filas vigentes de la cartera (`usuario_id = auth.uid()`), unidas a `leads_vista` (que cuenta la baja) y
+  -- bajo las policies de `leads` y de `leads_asesores` (invoker), que filtran a quien está en una baja en curso (5a-fix-1a)
+  'leads_cartera_vista'];
 begin
   for r in select n.nspname, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname in ('public', 'web') and p.prokind = 'f'
@@ -782,7 +785,8 @@ begin
   end loop;
   for r in select n.nspname, c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
             where n.nspname in ('public', 'web') and c.relkind = 'v'
-              and pg_get_viewdef(c.oid) ~* 'leads_asesores' and pg_get_viewdef(c.oid) !~ '_bajas_en_curso' loop
+              and pg_get_viewdef(c.oid) ~* 'leads_asesores' and pg_get_viewdef(c.oid) !~ '_bajas_en_curso'
+              and c.relname <> all (v_listadas) loop
     v_faltan := v_faltan || ('vista ' || r.nspname || '.' || r.relname);
   end loop;
   if cardinality(v_faltan) > 0 then
@@ -3475,6 +3479,9 @@ begin
   insert into public.leads (nombre, telefono_principal, creado_por) values ('Sin datos Humo', '59170044002', '00000000-0000-0000-0000-000000000030');
   insert into public.leads (nombre, telefono_principal, creado_por, genero, ciudad) values ('Vacío Humo', '59170044003', '00000000-0000-0000-0000-000000000030', 'sin_especificar', '   ');
 
+  -- La función de una migración vieja recrea `leads_vista` con `drop view`: `leads_cartera_vista` (5a-fix-1a) depende de ella y se rehace
+  -- junto con ella más abajo, con `_leads_vista_crear()`.
+  drop view if exists public.leads_cartera_vista;
   select public._leads_columnas_a_atributos() into n;
   if n < 3 then raise exception 'tocó % leads, esperaba al menos 3', n; end if;
   select atributos into a from public.leads where id = v;

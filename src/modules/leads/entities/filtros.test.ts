@@ -177,7 +177,7 @@ describe('condicionesDeLeads', () => {
     const sinTachados = { tipo: 'tachado', valor: false }
     expect(condicionesDeLeads(CAMPOS, leer(''), { soloMios: false })).toEqual([sinTachados])
     expect(condicionesDeLeads(CAMPOS, leer(''), { soloMios: true })).toEqual([
-      { tipo: 'en_cartera' },
+      { tipo: 'en_cartera', desdeLaCartera: false },
       sinTachados,
     ])
   })

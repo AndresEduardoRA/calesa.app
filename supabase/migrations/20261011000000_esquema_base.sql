@@ -716,9 +716,12 @@ create table public.leads_asesores (
   desde         timestamptz not null default now(),
   revocado_en   timestamptz,
   revocado_por  uuid references public.perfiles (id),
+  -- Copia de `leads.creado_en` (5a-fix-1a): la llena un trigger al insertar y otro la sigue si el lead cambia. Existe para que el
+  -- listado «míos» camine un índice por persona en el orden del listado (`leads_asesores_listado_idx`) en vez de `leads_listado_idx`.
+  lead_creado_en timestamptz not null,
   primary key (lead_id, usuario_id)
 );
-comment on table public.leads_asesores is 'Cartera: quién tiene acceso a qué lead y cómo (dueño, compartido, adoptado del limbo). Un lead tiene a lo sumo un dueño vigente.';
+comment on table public.leads_asesores is 'Cartera: quién tiene acceso a qué lead y cómo (dueño, compartido, adoptado del limbo). Un lead tiene a lo sumo un dueño vigente. lead_creado_en es una copia de leads.creado_en para ordenar la cartera de una persona sin recorrer leads (la mantienen triggers; nadie la escribe).';
 create unique index leads_asesores_dueno_unico on public.leads_asesores (lead_id) where tipo_acceso = 'dueno' and revocado_en is null;
 
 create table public.leads_favoritos (

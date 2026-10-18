@@ -134,6 +134,8 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
   const opciones = {
     zona,
     soloMios: modo === 'mios',
+    // Quien ve sólo lo propio lee su cartera (`fuenteDelListado`): cuesta lo que pesa, no cuántos leads hay.
+    desdeLaCartera: !puedeVerTodos,
     idsDelNumero: ids.data,
     tipos: catalogos.data.tipos,
   }

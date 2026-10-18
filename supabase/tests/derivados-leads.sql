@@ -55,6 +55,10 @@ create or replace function pg_temp.derivados_discrepancia() returns text languag
   select coalesce(
     (select format('cartera de %s (%s): %s, y en leads_asesores %s', l.id, l.nombre, l.cartera, public._lead_cartera_calcular(l.id))
        from public.leads l where l.cartera is distinct from public._lead_cartera_calcular(l.id) order by l.id limit 1),
+    -- La fecha de creación del lead en cada fila de su cartera (5a-fix-1a): `leads_cartera_vista` ordena por ella.
+    (select format('lead_creado_en de %s / %s: %s, y el lead dice %s', la.lead_id, la.usuario_id, la.lead_creado_en, l.creado_en)
+       from public.leads_asesores la join public.leads l on l.id = la.lead_id
+      where la.lead_creado_en is distinct from l.creado_en order by la.lead_id, la.usuario_id limit 1),
     -- Un campo con un cambio de privacidad a medias (`solo_cartera_pendiente`) puede estar o no según el lote: se compara lo demás.
     (select format('atributos_publicos de %s (%s): %s, y recalculados %s', l.id, l.nombre, l.atributos_publicos,
                    public._lead_atributos_publicos(l.atributos))
@@ -75,7 +79,7 @@ $$;
 -- Lo que `p_quien` ve de `leads` (la policy, como `authenticated`) contra la regla de siempre, de `leads_asesores`: vivo,
 -- fuera del limbo y con «todos», o con «propios» y en su cartera. Y «míos» de `leads_vista` contra `en_cartera()`.
 create or replace function pg_temp.visibilidad_discrepancia(p_quien uuid) returns text language plpgsql as $$
-declare v_esperado uuid[]; v_visto uuid[]; v_mios uuid[]; v_mios_vista uuid[]; v_x uuid;
+declare v_esperado uuid[]; v_visto uuid[]; v_mios uuid[]; v_mios_vista uuid[]; v_x uuid; v_huella_vista text; v_huella_cartera text;
 begin
   perform set_config('request.jwt.claim.sub', p_quien::text, true);
   perform set_config('request.jwt.claim.role', 'authenticated', true);
@@ -88,6 +92,11 @@ begin
   set local role authenticated;
   select coalesce(array_agg(l.id order by l.id), '{}') into v_visto from public.leads l;
   select coalesce(array_agg(v.id order by v.id), '{}') into v_mios_vista from public.leads_vista v where v.en_cartera;
+  -- «Míos» por la cartera de quien mira (5a-fix-1a): las mismas filas, enteras y en el mismo orden, que `leads_vista` donde `en_cartera`.
+  select md5(coalesce(string_agg(to_jsonb(v)::text, ',' order by v.creado_en desc, v.id desc), '')) into v_huella_vista
+    from public.leads_vista v where v.en_cartera;
+  select md5(coalesce(string_agg(to_jsonb(v)::text, ',' order by v.creado_en desc, v.id desc), '')) into v_huella_cartera
+    from public.leads_cartera_vista v;
   reset role;
   select x into v_x from unnest(v_esperado) x except select y from unnest(v_visto) y limit 1;
   if v_x is not null then return format('%s no ve %s y debería', p_quien, v_x); end if;
@@ -95,6 +104,9 @@ begin
   if v_x is not null then return format('%s ve %s y no debería', p_quien, v_x); end if;
   if v_mios is distinct from v_mios_vista then
     return format('«míos» de %s: la vista dice %s y en_cartera() %s', p_quien, v_mios_vista, v_mios);
+  end if;
+  if v_huella_vista is distinct from v_huella_cartera then
+    return format('«míos» de %s: leads_cartera_vista no devuelve las filas de leads_vista donde en_cartera', p_quien);
   end if;
   return null;
 exception when others then

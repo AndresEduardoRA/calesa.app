@@ -34,8 +34,9 @@ select gen_random_uuid(), 'Medir baja ' || g, (690000000 + g)::text, '00000000-0
        now() - make_interval(secs => g), now() - make_interval(secs => g), array['00000000-0000-0000-0000-0000000000e9']::uuid[],
        (select id from public.tipos_lead where clave = 'prospecto')
   from generate_series(1, 200000) g;
-insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde)
-select id, '00000000-0000-0000-0000-0000000000e9', 'dueno', now() from public.leads where nombre like 'Medir baja %';
+-- Sin triggers tampoco llega `lead_creado_en` (5a-fix-1a): se copia del lead a mano.
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde, lead_creado_en)
+select id, '00000000-0000-0000-0000-0000000000e9', 'dueno', now(), creado_en from public.leads where nombre like 'Medir baja %';
 commit;
 vacuum analyze public.leads, public.leads_asesores;
 -- Lo que dejó la medición anterior (`medir-jobs.sql` revierte 100.000 filas) dispara el autovacuum de estas tablas: medir
