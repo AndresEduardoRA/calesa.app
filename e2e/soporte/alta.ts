@@ -72,22 +72,26 @@ export async function prepararAlta(proyecto: string) {
       permisos: ['leads.crear', { clave: 'leads.ver', alcance: 'todos' as const }],
     },
   ]
-  for (const persona of otras) {
-    await crearPersona({
-      email: persona.email,
-      contrasena: CONTRASENA,
-      nombre: persona.nombre,
-      invitada: true,
-    })
-    await darRolDePrueba({
-      email: persona.email,
-      rol: {
-        nombre: `${PREFIJO_ROL_E2E}Alta ${persona.rol} ${proyecto}`,
-        clave: `e2e_alta_${persona.rol}_${proyecto.replaceAll(/[^a-z0-9]/g, '_')}`,
-      },
-      permisos: persona.permisos,
-    })
-  }
+  // La dueña va primero y sola (la primera persona nace dueña); las demás, a la vez: cada `createUser` tarda ~80 ms (bcrypt) y eran
+  // cuatro en fila en cada `beforeAll`. `docs/RENDIMIENTO.md`, «Preparar y limpiar un spec».
+  await Promise.all(
+    otras.map(async (persona) => {
+      await crearPersona({
+        email: persona.email,
+        contrasena: CONTRASENA,
+        nombre: persona.nombre,
+        invitada: true,
+      })
+      await darRolDePrueba({
+        email: persona.email,
+        rol: {
+          nombre: `${PREFIJO_ROL_E2E}Alta ${persona.rol} ${proyecto}`,
+          clave: `e2e_alta_${persona.rol}_${proyecto.replaceAll(/[^a-z0-9]/g, '_')}`,
+        },
+        permisos: persona.permisos,
+      })
+    }),
+  )
   return { personas, restaurarCatalogos: await fijarCatalogosDeLead() }
 }
 
