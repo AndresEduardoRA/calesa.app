@@ -22,6 +22,13 @@ select set_config('medir.max_leads', :'max_leads', true), set_config('medir.max_
        set_config('medir.tam_columna', :'tam_columna', true), set_config('medir.tope_cargado', :'tope_cargado', true),
        set_config('medir.lotes', :'lotes', true);
 
+-- El total de leads de la base medida (cierre 5a). Hay presupuestos que crecen con él, porque la consulta recorre la tabla por
+-- construcción (la búsqueda por nombre, la persona con pocos leads): se escriben como «coeficiente por lead × N» en `listado()`, no
+-- como un número calibrado a un volumen. Y las aserciones que fallan se juntan y se dicen todas al final (`violaciones`): una
+-- corrida con otro volumen enseña todo lo que no cumple, no sólo lo primero.
+select set_config('medir.n_leads', (select count(*)::text from public.leads), true);
+create temp table violaciones (texto text);
+
 -- Los claims de la persona que mide: `request.jwt.claim.sub` (lo que lee `auth.uid()`) y `request.jwt.claims`.
 create function pg_temp.quien(p_quien text) returns void language plpgsql as $$
 begin
@@ -38,7 +45,8 @@ end $$;
 -- genérico. Asserta el **presupuesto de tiempo** (`p_ms`: unas 4 veces lo medido, para que lo atrape un
 -- cambio de forma y no el ruido de la máquina; en el listado, las metas de la 9h) y, si `p_indice` no es nulo, la forma del plan: usa ese
 -- índice, ningún recorrido secuencial sobre `p_tablas` y a lo sumo `p_descartes` filas descartadas. Una
--- RPC de plpgsql es opaca para `explain`: su forma se asserta sobre la consulta de adentro.
+-- RPC de plpgsql es opaca para `explain`: su forma se asserta sobre la consulta de adentro. Lo que no cumple no corta la corrida: se
+-- anota en `violaciones` y el final de este archivo las levanta todas juntas.
 create function pg_temp.escala(p_nombre text, p_quien text, p_sql text, p_ms numeric default null, p_indice text default null,
                                p_tablas text[] default '{}', p_descartes int default 0, p_rol text default 'authenticated')
 returns void language plpgsql as $$
@@ -62,19 +70,19 @@ begin
   raise notice 'plan|% [%]|indices=%|seq=%|descartadas=%', p_nombre, p_quien, v_indices, v_secuenciales, v_descartadas;
   if p_indice is not null then
     if not p_indice = any (v_indices) then
-      raise exception '% [%]: no usa %, usa % (plan: %)', p_nombre, p_quien, p_indice, v_indices, v_plan;
+      insert into pg_temp.violaciones values (format('%s [%s]: no usa %s, usa %s', p_nombre, p_quien, p_indice, v_indices));
     end if;
     foreach v_tabla in array p_tablas loop
       if v_tabla = any (v_secuenciales) then
-        raise exception '% [%]: recorre % entera (plan: %)', p_nombre, p_quien, v_tabla, v_plan;
+        insert into pg_temp.violaciones values (format('%s [%s]: recorre %s entera', p_nombre, p_quien, v_tabla));
       end if;
     end loop;
     if v_descartadas > p_descartes then
-      raise exception '% [%]: descarta % filas, el tope es % (plan: %)', p_nombre, p_quien, v_descartadas, p_descartes, v_plan;
+      insert into pg_temp.violaciones values (format('%s [%s]: descarta %s filas, el tope es %s (índices %s)', p_nombre, p_quien, v_descartadas, p_descartes, v_indices));
     end if;
   end if;
   if p_ms is not null and v_mediana > p_ms then
-    raise exception '% [%]: tarda % ms, el presupuesto es % ms', p_nombre, p_quien, round(v_mediana, 1), p_ms;
+    insert into pg_temp.violaciones values (format('%s [%s]: tarda %s ms, el presupuesto es %s ms', p_nombre, p_quien, round(v_mediana, 1), p_ms));
   end if;
 end $$;
 
@@ -170,11 +178,22 @@ declare
   v_cursor text := format('creado_en <= %L and (creado_en < %L or id < %L)',
     current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'));
   v_etiqueta text := case q when 'duena' then current_setting('medir.et_duena') when 'ana' then current_setting('medir.et_ana') end;
-  v_descartes int := case q when 'chica' then 70000 else 3000 end;
+  v_n numeric := current_setting('medir.n_leads')::numeric;
+  -- Presupuestos que crecen con el total de leads (N), medidos en 62.000 y en 212.000 (cierre 5a, `docs/RENDIMIENTO.md`):
+  --  · la asesora con pocos leads («chica») camina `leads_listado_idx` entero para no juntar una página: descarta ~N filas
+  --    (50.026 con 62.000; 200.026 con 212.000) a ~0,30 µs por lead (18,5 ms y 62,8 ms). Tope de descartes: 1,1 × N, la forma
+  --    del peor caso (todo el índice). Tiempo de la página 1: 0,48 µs × N (el 30 ms de la meta con 62.000), nunca menos de 30.
+  --  · la búsqueda por nombre de la dueña es un `Seq Scan` de `leads` con `ilike` sobre todo lo que ve: ~0,95 µs por lead con 62.000
+  --    (58,8 ms) y ~1,0 con 212.000 (214 ms con la caché de la base; 231 ms con 128 MB de `shared_buffers`, que no entran). Presupuesto:
+  --    3,2 µs × N (los 200 ms con 62.000), nunca menos de 200: ~3 veces lo medido, como en el resto del archivo.
+  -- Son el techo mientras el arreglo no llegue: lo que se espera después de él está en `docs/PLAN.md` (5a-1 y 5a-2).
+  v_descartes int := case q when 'chica' then ceil(v_n * 1.1)::int else 3000 end;
+  v_ms_pagina numeric := case q when 'chica' then greatest(30, ceil(v_n * 0.48 / 1000)) else 30 end;
+  v_ms_busqueda numeric := greatest(200, ceil(v_n * 3.2 / 1000));
 begin
-  perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'), 30, 'leads_listado_idx', '{leads}', v_descartes);
-  perform pg_temp.escala('listado: página 1 con el máximo de la lista', q, pg_temp.pagina('esta_tachado = false', v_max), 30, 'leads_listado_idx', '{leads}', v_descartes);
-  perform pg_temp.escala('listado «míos»: página 1 con el máximo de la lista', q, pg_temp.pagina('en_cartera = true and esta_tachado = false', v_max), 30, 'leads_listado_idx', '{leads}', v_descartes * 2);
+  perform pg_temp.escala('listado: página 1 (tachados ocultos)', q, pg_temp.pagina('esta_tachado = false'), v_ms_pagina, 'leads_listado_idx', '{leads}', v_descartes);
+  perform pg_temp.escala('listado: página 1 con el máximo de la lista', q, pg_temp.pagina('esta_tachado = false', v_max), v_ms_pagina, 'leads_listado_idx', '{leads}', v_descartes);
+  perform pg_temp.escala('listado «míos»: página 1 con el máximo de la lista', q, pg_temp.pagina('en_cartera = true and esta_tachado = false', v_max), v_ms_pagina, 'leads_listado_idx', '{leads}', v_descartes * 2);
   perform pg_temp.escala('listado: página 100 por cursor', q, pg_temp.pagina('esta_tachado = false and ' || v_cursor), 150, 'leads_listado_idx', '{leads}', v_descartes);
   perform pg_temp.escala('listado: página 100 por cursor con el máximo de la lista', q, pg_temp.pagina('esta_tachado = false and ' || v_cursor, v_max), 150, 'leads_listado_idx', '{leads}', v_descartes);
   perform pg_temp.escala('listado: un atributo', q, pg_temp.pagina(pg_temp.atributo('lp') || ' and esta_tachado = false', v_max), 100);
@@ -183,8 +202,8 @@ begin
   -- Límite aceptado: un campo privado se filtra por lo recortado, con `atributos_lead()` en cada lead de la cartera
   -- (~66 µs): cuesta lo que suma la cartera de quien filtra (la dueña, 20.000).
   perform pg_temp.escala('listado: un campo privado sin resultados (recorre la cartera)', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada', 'atributos') || ' and esta_tachado = false', v_max), 6000);
-  perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$, v_max), 200);
-  perform pg_temp.escala('listado: búsqueda sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$, v_max), 200);
+  perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$, v_max), v_ms_busqueda);
+  perform pg_temp.escala('listado: búsqueda sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$, v_max), v_ms_busqueda);
   perform pg_temp.escala('listado: sólo favoritos', q, pg_temp.pagina('es_favorito = true and esta_tachado = false', v_max), 100);
   perform pg_temp.escala('listado: sólo tachados', q, pg_temp.pagina('esta_tachado = true', v_max), 100);
   if v_etiqueta is not null then
@@ -354,5 +373,14 @@ select pg_temp.escala('baja: el candado de los leads de un lote (la consulta)', 
   200, 'leads_pkey', array['leads'], 0, 'postgres');
 select pg_temp.escala('baja de la dueña (vista previa, hasta 1.001)', 'duena',
   $w$select public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000000d1')$w$, 100);
+
+-- Las aserciones que no se cumplieron, todas juntas.
+do $violaciones$ declare v_texto text; v_n int;
+begin
+  select count(*), string_agg(texto, E'\n  ') into v_n, v_texto from pg_temp.violaciones;
+  if v_n > 0 then
+    raise exception E'% aserciones de escala no se cumplen (N = % leads):\n  %', v_n, current_setting('medir.n_leads'), v_texto;
+  end if;
+end $violaciones$;
 
 rollback;
