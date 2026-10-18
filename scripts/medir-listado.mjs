@@ -89,6 +89,11 @@ const MEDICIONES_CON_VOLUMEN = [
     MEDIANA,
   ],
   [
+    'supabase/tests/busqueda-volumen.sql',
+    'La búsqueda por candidatos contra la consulta de siempre: la huella md5 de las filas enteras, en la base real con volumen (ñ, tildes y comodines)',
+    UNA,
+  ],
+  [
     'supabase/tests/medir-importacion-volumen.sql',
     'Importar 500 filas en lotes de 50, con 23.000 y con 124.000 filas de actividad (con transacciones de verdad: confirma y borra lo que crea)',
     UNA,

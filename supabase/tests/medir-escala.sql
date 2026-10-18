@@ -22,13 +22,13 @@ select set_config('medir.max_leads', :'max_leads', true), set_config('medir.max_
        set_config('medir.tam_columna', :'tam_columna', true), set_config('medir.tope_cargado', :'tope_cargado', true),
        set_config('medir.lotes', :'lotes', true);
 
--- El total de leads de la base medida (cierre 5a). Hay un presupuesto que crece con él, porque la consulta recorre la tabla por
--- construcción (la búsqueda por nombre, 5a-1): se escribe como «coeficiente por lead × N» en `busqueda()`, no como un número
--- calibrado a un volumen. (La persona con pocos leads lo tuvo hasta 5a-fix-1a: «míos» se lee ahora de su cartera y ya no.) Y las
--- aserciones que fallan se juntan y se dicen todas al final (`violaciones`): una corrida con otro volumen enseña todo lo que no
--- cumple, no sólo lo primero.
+-- El total de leads de la base medida: sólo para decirlo al final. Ningún presupuesto de este archivo depende de él (la persona con pocos
+-- leads lo tuvo hasta 5a-fix-1a y la búsqueda por nombre hasta 5a-fix-1b: las dos fórmulas por N se borraron). Las aserciones que fallan se
+-- juntan y se dicen todas al final (`violaciones`): una corrida con otro volumen enseña todo lo que no cumple, no sólo lo primero.
 select set_config('medir.n_leads', (select count(*)::text from public.leads), true);
 create temp table violaciones (texto text);
+-- Lo que midió cada `escala()` (la mediana), para sumar los dos pasos de una búsqueda.
+create temp table medidas (nombre text, quien text, ms numeric);
 
 -- De dónde lee «míos» cada persona (`fuenteDelListado()` de `entities/filtros.ts`): quien tiene `leads.ver` «propios» lee su cartera
 -- (`leads_cartera_vista`, 5a-fix-1a); quien ve «todos» (la dueña), `leads_vista`: su cartera es grande y por la cartera no mejora.
@@ -74,6 +74,7 @@ begin
   v_secuenciales := array(select distinct m[1] from regexp_matches(v_texto, '"Node Type": "Seq Scan"[^{}]*?"Relation Name": "([a-z_]+)"', 'g') m);
   select coalesce(sum(m[1]::numeric), 0) into v_descartadas from regexp_matches(v_texto, '"Rows Removed by Filter": (\d+)', 'g') m;
   raise notice 'medicion|% [%]|%', p_nombre, p_quien, round(v_mediana, 1);
+  insert into pg_temp.medidas values (p_nombre, p_quien, v_mediana);
   raise notice 'plan|% [%]|indices=%|seq=%|descartadas=%', p_nombre, p_quien, v_indices, v_secuenciales, v_descartadas;
   if p_indice is not null then
     if not p_indice = any (v_indices) then
@@ -216,11 +217,10 @@ declare
   v_desc int := case when p_mios and v_rel = 'leads_vista' then 6000 else 3000 end;
 begin
   -- La dueña en «míos» sigue leyendo `leads_vista` (su cartera es grande: por la cartera no mejora, `docs/RENDIMIENTO.md`): se asserta lo
-  -- que ya se asertaba de esa lectura y nada más. Lo demás de «míos» para ella nunca se midió y no cambió en 5a-fix-1a: un atributo
-  -- común (105,6 ms con 212.000 leads) y una etiqueta propia (112 ms con 62.000) pasan de su presupuesto de 100 ms; van a `docs/PLAN.md`.
+  -- que ya se asertaba de esa lectura y nada más. Su etiqueta propia (112 ms con 62.000 leads, presupuesto 100) es de `docs/PLAN.md` 5a-7; un campo
+  -- público (el atributo común, 105,6 ms con 212.000) se lee ahora por los candidatos y lo mide `busqueda()`.
   if p_mios and v_rel = 'leads_vista' then
     perform pg_temp.escala(v_modo || ': página 1 con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false', v_max, v_rel), 30, v_idx, v_tablas, v_desc);
-    perform pg_temp.escala(v_modo || ': un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina(v_m || pg_temp.atributo('nada') || ' and esta_tachado = false', v_max, v_rel), 100);
     perform pg_temp.escala(v_modo || ': un campo privado sin resultados (recorre la cartera)', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada', 'atributos') || ' and esta_tachado = false', v_max, v_rel), 6000);
     return;
   end if;
@@ -228,8 +228,7 @@ begin
   perform pg_temp.escala(v_modo || ': página 1 con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false', v_max, v_rel), 30, v_idx, v_tablas, v_desc);
   perform pg_temp.escala(v_modo || ': página 100 por cursor', q, pg_temp.pagina(v_m || 'esta_tachado = false and ' || v_cursor, 50, v_rel), 150, v_idx, v_tablas, v_desc);
   perform pg_temp.escala(v_modo || ': página 100 por cursor con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false and ' || v_cursor, v_max, v_rel), 150, v_idx, v_tablas, v_desc);
-  perform pg_temp.escala(v_modo || ': un atributo', q, pg_temp.pagina(v_m || pg_temp.atributo('lp') || ' and esta_tachado = false', v_max, v_rel), 100);
-  perform pg_temp.escala(v_modo || ': un atributo sin resultados (recorre la cartera visible)', q, pg_temp.pagina(v_m || pg_temp.atributo('nada') || ' and esta_tachado = false', v_max, v_rel), 100);
+  -- Un campo público (`atributos_publicos @>`) y un nombre se leen por los candidatos: `busqueda()`.
   -- Límite aceptado: un campo privado se filtra por lo recortado, con `atributos_lead()` en cada lead de la cartera
   -- (~66 µs): cuesta lo que suma la cartera de quien filtra (la dueña, 20.000). Sólo se filtra en «míos»: sólo la cartera lo tiene.
   if p_mios then
@@ -256,19 +255,109 @@ begin
   perform pg_temp.escala(v_modo || ': un tipo sin leads', q, pg_temp.pagina(v_m || format('tipo_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.tipo_sin')), v_max, v_rel), 100, 'leads_tipo_lead_id_idx', '{leads}', 0);
 end $$;
 
--- La búsqueda por nombre (5a-1, no se toca en 5a-fix-1a): sin `en_cartera`, sobre `leads_vista`, como estaba. Crece con el total de leads
--- (N) porque es un `Seq Scan` de `leads` con `ilike` (que no es _leakproof_: bajo RLS ningún índice lo sostiene).
---  · la búsqueda por nombre de la dueña: ~0,95 µs por lead con 62.000 (58,8 ms) y ~1,0 con 212.000 (214 ms con la caché de la base;
---    231 ms con 128 MB de `shared_buffers`, que no entran). Presupuesto: 3,2 µs × N (los 200 ms con 62.000), nunca menos de 200: ~3
---    veces lo medido, como en el resto del archivo. Es el techo mientras el arreglo de 5a-1 no llegue (`docs/PLAN.md`).
-create function pg_temp.busqueda(q text) returns void language plpgsql as $$
+-- La búsqueda por nombre y un campo público (5a-1, cierre 5a-fix-1b): lo que manda la app, en sus dos pasos. `leads_candidatos()` saca de `leads_busqueda_idx`
+-- los primeros que coinciden (en el orden del listado, sólo de lo que quien mira ve) y `leads_vista_por_ids()` lee la página de esos ids con lo que queda
+-- (tachados ocultos, «míos»). Cada paso tiene su presupuesto (25 y 40 ms: el paso 2 son las 101 filas con sus columnas, ~21–25 ms, lo que ya cuesta cualquier página) y los dos
+-- juntos, 50 ms, **con 62.000 y con 212.000 leads**: sin fórmula por N. La dueña
+-- mide «míos» y «todos»; Ana, Berta y la «chica» («propios»), «míos». Se asserta además la forma: el paso 2 lee `leads` por su clave, sin recorrerla
+-- entera, y la vista por ids se inlinea (sin `Function Scan`, que calcularía las columnas caras de todos los ids), y que lo ajeno no se lee: un término
+-- que otras personas tienen y quien busca no, no lleva al heap ninguna fila (el tiempo no cuenta los leads de los demás).
+-- Los términos sin un tramo de 3 letras o dígitos (`x`, `zq`, `%`, `a_b`) no tienen trigramas que buscar en el índice: recorren la cartera de quien mira
+-- (la dueña, casi todo). Se miden y no se asertan: es `docs/PLAN.md` 5a-8.
+create function pg_temp.pagina_por_ids(p_ids uuid[], p_mios boolean, p_n int) returns text language sql as $$
+  select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, numero_propio, numero_propio_creador, numero_visible, nombre, telefono_principal, en_cartera, dueno_id, tipo_lead_id, origen_lead_id, creado_en,
+    atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista_por_ids(%L::uuid[]) where %s esta_tachado = false order by creado_en desc, id desc limit %s) t',
+    p_ids, case when p_mios then 'en_cartera = true and' else '' end, p_n + 1)
+$$;
+
+-- Los ids que `leads_candidatos()` le da a `p_quien` para esos filtros (como authenticated, con su sesión).
+create function pg_temp.candidatos(p_quien text, p_filtros jsonb) returns jsonb language plpgsql as $$
+declare r jsonb;
+begin
+  perform pg_temp.quien(p_quien);
+  set local role authenticated;
+  r := public.leads_candidatos(p_filtros);
+  reset role;
+  return r;
+end $$;
+
+-- Cuántos bloques del heap lee una consulta (como postgres: es la consulta de la definer, sin RLS).
+create function pg_temp.bloques_del_heap(p_sql text) returns numeric language plpgsql as $$
+declare v_plan json;
+begin
+  execute 'explain (analyze, buffers, format json) ' || p_sql into v_plan;
+  return (select coalesce(sum(m[1]::numeric), 0) from regexp_matches(v_plan::text, '"(?:Exact|Lossy) Heap Blocks": (\d+)', 'g') m);
+end $$;
+
+create function pg_temp.busqueda_de(q text, p_modo text, p_nombre text, p_filtros jsonb, p_ms1 numeric, p_ms2 numeric, p_ms numeric) returns void language plpgsql as $$
 declare
   v_max int := current_setting('medir.max_leads')::int;
-  v_n numeric := current_setting('medir.n_leads')::numeric;
-  v_ms_busqueda numeric := greatest(200, ceil(v_n * 3.2 / 1000));
+  v_mios boolean := p_modo = 'mios';
+  v_filtros jsonb := p_filtros || jsonb_build_object('mios', v_mios, 'sentido', 'siguiente');
+  v_r jsonb; v_ids uuid[]; v_sql2 text; v_plan text; v_suma numeric; v_nombre text := 'búsqueda ' || p_modo || ': ' || p_nombre;
 begin
-  perform pg_temp.escala('listado: búsqueda que coincide con pocos', q, pg_temp.pagina($w$nombre ilike '%Volumen 4999% Gómez%'$w$, v_max), v_ms_busqueda);
-  perform pg_temp.escala('listado: búsqueda sin resultados (recorre la cartera visible)', q, pg_temp.pagina($w$nombre ilike '%zzzzqx%'$w$, v_max), v_ms_busqueda);
+  perform pg_temp.escala(v_nombre || ' (paso 1: candidatos)', q, format('select public.leads_candidatos(%L::jsonb)', v_filtros), p_ms1);
+  v_r := pg_temp.candidatos(q, v_filtros);
+  v_ids := array(select jsonb_array_elements_text(v_r -> 'ids'))::uuid[];
+  v_sql2 := pg_temp.pagina_por_ids(v_ids, v_mios, v_max);
+  -- El paso 2 lee por clave: sin recorrer `leads` y sin descartar más que los ids que llegan.
+  -- «Descartadas» suma también el filtro de los subplanes por fila de la vista (los números de un lead, ~64 por fila de salida): escala con la página, nunca con los leads.
+  perform pg_temp.escala(v_nombre || ' (paso 2: la página)', q, v_sql2, p_ms2, 'leads_pkey', '{leads}', (v_max + 1) * 100);
+  -- Sin `Function Scan`: si la vista por ids no se inlinea, calcula las columnas caras de TODOS los ids antes de ordenar y cortar.
+  perform pg_temp.quien(q);
+  set local role authenticated;
+  execute 'explain (format json) ' || v_sql2 into v_plan;
+  reset role;
+  if v_plan ~ '"Node Type": "Function Scan"' then
+    insert into pg_temp.violaciones values (format('%s [%s]: leads_vista_por_ids se lee como un Function Scan (no se inlinea)', v_nombre, q));
+  end if;
+  select sum(ms) into v_suma from pg_temp.medidas where quien = q and nombre in (v_nombre || ' (paso 1: candidatos)', v_nombre || ' (paso 2: la página)');
+  raise notice 'medicion|% (los dos pasos, % candidatos) [%]|%', v_nombre, cardinality(v_ids), q, round(v_suma, 1);
+  if p_ms is not null and v_suma > p_ms then
+    insert into pg_temp.violaciones values (format('%s [%s]: los dos pasos tardan %s ms, el presupuesto es %s ms', v_nombre, q, round(v_suma, 1), p_ms));
+  end if;
+end $$;
+
+create function pg_temp.busqueda(q text) returns void language plpgsql as $$
+declare
+  v_modo text; t text; r record;
+begin
+  foreach v_modo in array case when q = 'duena' then array['mios', 'todos'] else array['mios'] end loop
+    -- Con tramo de 3 letras: un término selectivo, uno sin resultados, un apellido común (12,5 % de los leads), el mismo con otra tilde o mayúscula, y los que
+    -- coinciden con casi todo (el índice de trigramas no corta en K: los resuelve la ventana, `leads_candidatos()` etapa W).
+    foreach t in array array['Volumen 4999', 'zzzzqx', 'Gómez', 'GÓMEZ', 'Mamani', 'Vol', 'Volumen'] loop
+      perform pg_temp.busqueda_de(q, v_modo, '«' || t || '»', jsonb_build_object('texto', t), 25, 40, 50);
+    end loop;
+    -- Densos de 1 y 2 caracteres: los resuelve la ventana. Escasos (`x`, `zq`), sin tramo y con comodines: se miden, no se asertan (5a-8).
+    foreach t in array array['v', 'ol'] loop
+      perform pg_temp.busqueda_de(q, v_modo, '«' || t || '» (denso)', jsonb_build_object('texto', t), 25, 40, 50);
+    end loop;
+    foreach t in array array['x', 'zq', 'a_b', '%'] loop
+      perform pg_temp.busqueda_de(q, v_modo, '«' || t || '» (sin tramo de 3, 5a-8)', jsonb_build_object('texto', t), null, null, null);
+    end loop;
+    -- Un campo público (5a-fix-1a/1b): uno común, otro sin resultados, y combinado con un nombre.
+    perform pg_temp.busqueda_de(q, v_modo, 'un atributo común', '{"atributos": [[{"ciudad_vol": "lp"}]]}', 25, 40, 50);
+    perform pg_temp.busqueda_de(q, v_modo, 'un atributo sin resultados', '{"atributos": [[{"ciudad_vol": "nada"}]]}', 25, 40, 50);
+    perform pg_temp.busqueda_de(q, v_modo, 'un atributo y un nombre', '{"atributos": [[{"ciudad_vol": "lp"}]], "texto": "Gómez"}', 25, 40, 50);
+    perform pg_temp.busqueda_de(q, v_modo, 'un tipo y un nombre', jsonb_build_object('texto', 'Gómez', 'tipos', jsonb_build_array(current_setting('medir.tipo_comun'))), 25, 40, 50);
+  end loop;
+  -- Lo ajeno no se lee: Berta busca un apellido que otras personas tienen y ella no, y uno que nadie tiene; el índice cruza la cartera con el trigrama, así que
+  -- ninguna fila de los demás llega al heap (y el tiempo no cuenta los leads de otras personas). La etapa de índice como la ejecuta la definer.
+  if q = 'berta' then
+    for r in select * from (values ('Mamani'), ('Quispe'), ('Gómez'), ('zzzzqx')) x (termino) loop
+      perform pg_temp.quien(q);
+      declare v_bloques numeric;
+      begin
+        v_bloques := pg_temp.bloques_del_heap(public._leads_candidatos_sql('indice', jsonb_build_object('texto', r.termino, 'mios', true, 'sentido', 'siguiente'),
+            '00000000-0000-0000-0000-0000000000b1', 'propios', '{}'));
+        raise notice 'medicion|búsqueda: bloques del heap de Berta con «%» (el índice)|%', r.termino, v_bloques;
+        -- Lo que lee es lo que va a devolver (y a lo sumo sus filas): no un bloque por cada lead ajeno que coincide.
+        if v_bloques > 40 then
+          insert into pg_temp.violaciones values (format('«%s» [berta]: lee %s bloques del heap con el índice: llegan filas de otras personas', r.termino, v_bloques));
+        end if;
+      end;
+    end loop;
+  end if;
 end $$;
 
 do $medir$ declare q text; begin
