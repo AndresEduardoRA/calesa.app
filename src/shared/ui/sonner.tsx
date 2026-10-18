@@ -16,6 +16,9 @@ import {
 const ABAJO = `var(${VARIABLE_DE_AVISOS}, 24px)`
 const ABAJO_EN_EL_CELULAR = `var(${VARIABLE_DE_AVISOS}, 16px)`
 
+// 356 px (lo de sonner) en rem, y nunca más que la pantalla menos un margen de 1 rem por lado.
+const ANCHO_DEL_AVISO = 'min(22.25rem, calc(100vw - 2rem))'
+
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
   useAvisosSobreElPie()
@@ -42,6 +45,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           '--normal-text': 'var(--popover-foreground)',
           '--normal-border': 'var(--border)',
           '--border-radius': 'var(--radius)',
+          // Sonner fija el ancho en 356 px: con el texto al 200 % un aviso con descripción quedaba en una columna angosta (título en tres
+          // líneas, la descripción en siete y «Ingresar» apretado). El ancho sigue a la raíz, sin salirse de la pantalla.
+          '--width': ANCHO_DEL_AVISO,
           // Sonner inyecta su propio `font-family` (el del sistema) en su contenedor y le gana al que hereda de `<html>`: en línea
           // le gana a ese. La tipografía de la app es una sola (`design/tokens.css`).
           fontFamily: 'var(--font-sans)',

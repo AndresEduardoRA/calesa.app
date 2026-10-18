@@ -43,6 +43,21 @@ describe('avisosAbajo', () => {
     expect(avisosAbajo(CELULAR, [modal])).toBeNull()
   })
 
+  it('con el texto al 200 % el aviso es más ancho: un pie que antes quedaba fuera de su columna ahora la toca', () => {
+    // A 1280 px la columna es de 356 px (de 900 a 1256); al 200 % (1 rem = 32 px) es de 712 px (de 544 a 1256).
+    const pieAlCentro = { top: 700, bottom: 800, left: 400, right: 760 }
+    expect(avisosAbajo(ESCRITORIO, [pieAlCentro])).toBeNull()
+    expect(avisosAbajo({ ...ESCRITORIO, rem: 32 }, [pieAlCentro])).toBe(116)
+  })
+
+  it('el aviso no pasa de la pantalla menos 1 rem por lado', () => {
+    const ancha = { ancho: 700, alto: 800, rem: 32 }
+    // 700 − 64 = 636 de ancho: de 40 a 676.
+    const pie = { top: 700, bottom: 800, left: 20, right: 60 }
+    expect(avisosAbajo(ancha, [pie])).toBe(116)
+    expect(avisosAbajo(ancha, [{ ...pie, left: 5, right: 39 }])).toBeNull()
+  })
+
   it('un pie fuera de la pantalla (el panel se desplaza) no cuenta', () => {
     const afuera = { top: 900, bottom: 972, left: 832, right: 1280 }
     expect(avisosAbajo(ESCRITORIO, [afuera])).toBeNull()

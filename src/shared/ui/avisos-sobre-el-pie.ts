@@ -12,9 +12,11 @@ export const VARIABLE_DE_AVISOS = '--avisos-abajo'
 
 // Lo que se deja entre el aviso y el pie.
 const MARGEN = 16
-// Dónde salen los avisos (los valores de sonner): una columna de 356 px a 24 px del borde derecho y, en el celular (hasta 600 px), de lado
-// a lado a 16 px. Un aviso suele medir menos de 160 px de alto: lo que está más arriba que eso no se solapa con el primero.
-const ANCHO_DEL_AVISO = 356
+// Dónde salen los avisos: una columna de 22,25 rem (356 px con el texto al 100 %: `ANCHO_DEL_AVISO` de `sonner.tsx`, que crece con el texto
+// y no pasa de la pantalla menos 1 rem por lado) a 24 px del borde derecho y, en el celular (hasta 600 px), de lado a lado a 16 px.
+// Un aviso suele medir menos de 160 px de alto: lo que está más arriba que eso no se solapa con el primero.
+const ANCHO_DEL_AVISO_EN_REM = 22.25
+const PX_POR_REM = 16
 const MARGEN_DE_ESCRITORIO = 24
 const MARGEN_DEL_CELULAR = 16
 const ANCHO_DEL_CELULAR = 600
@@ -22,23 +24,24 @@ const FRANJA_DE_ABAJO = 160
 
 export type CajaDeUnPie = { top: number; bottom: number; left: number; right: number }
 
-// Por dónde ocupan la pantalla los avisos: de izquierda a derecha.
-function columnaDeAvisos(anchoDeLaVentana: number): { left: number; right: number } {
+// Por dónde ocupan la pantalla los avisos: de izquierda a derecha. `rem`: cuántos píxeles mide 1 rem (el texto al 200 % lo duplica).
+function columnaDeAvisos(anchoDeLaVentana: number, rem: number): { left: number; right: number } {
   if (anchoDeLaVentana <= ANCHO_DEL_CELULAR) {
     return { left: MARGEN_DEL_CELULAR, right: anchoDeLaVentana - MARGEN_DEL_CELULAR }
   }
   const right = anchoDeLaVentana - MARGEN_DE_ESCRITORIO
-  return { left: right - ANCHO_DEL_AVISO, right }
+  const ancho = Math.min(ANCHO_DEL_AVISO_EN_REM * rem, anchoDeLaVentana - 2 * rem)
+  return { left: right - ancho, right }
 }
 
 // A cuántos píxeles del borde de abajo van los avisos para no tapar ningún pie. Sólo cuenta un pie que cae en su lugar (por la derecha
 // de la pantalla y en la franja de abajo): un modal centrado en escritorio, o a media altura en el celular, no se solapa y los avisos
 // no se mueven. De los que sí, manda el que está más arriba. Nulo = ninguno: los avisos van donde siempre.
 export function avisosAbajo(
-  ventana: { ancho: number; alto: number },
+  ventana: { ancho: number; alto: number; rem?: number },
   pies: readonly CajaDeUnPie[],
 ): number | null {
-  const columna = columnaDeAvisos(ventana.ancho)
+  const columna = columnaDeAvisos(ventana.ancho, ventana.rem ?? PX_POR_REM)
   const tapan = pies.filter(
     (pie) =>
       [pie.top, pie.bottom, pie.left, pie.right].every(Number.isFinite) &&
@@ -72,7 +75,11 @@ export function useAvisosSobreElPie(): void {
     const medir = () => {
       cuadro = 0
       const abajo = avisosAbajo(
-        { ancho: window.innerWidth, alto: window.innerHeight },
+        {
+          ancho: window.innerWidth,
+          alto: window.innerHeight,
+          rem: Number.parseFloat(getComputedStyle(raiz).fontSize) || PX_POR_REM,
+        },
         cajasDeLosPies(),
       )
       if (abajo === null) {
