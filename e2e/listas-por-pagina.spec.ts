@@ -17,7 +17,7 @@ import {
   preferenciaDe,
   selectorDeTamano,
 } from './soporte/listas-por-pagina'
-import { tactil } from './soporte/recorrido'
+import { capturar, tactil } from './soporte/recorrido'
 import { MAXIMO_DE_PAGINA_DE_LEADS } from '../src/modules/leads/entities/listado'
 import { tamanosHasta } from '../src/shared/lib/paginacion'
 
@@ -92,9 +92,7 @@ test('sin haber elegido, la lista trae 50 y el selector lo dice; elegir cambia, 
   await expect(filasDelListado(page)).toHaveCount(25)
   await expect(selectorDeTamano(page)).toHaveValue('25')
   expect(parametrosDe(page).has('por')).toBe(false)
-  await page.screenshot({
-    path: `${process.env['E2E_CAPTURAS'] ?? 'test-results'}/${info.project.name}/9g-leads-25.png`,
-  })
+  await capturar(page, info, 'leads-25')
 })
 
 test('cambiar el tamaño en la página 3 con filtros y búsqueda vuelve a la primera y los conserva', async ({

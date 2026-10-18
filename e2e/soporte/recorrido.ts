@@ -17,12 +17,13 @@ import {
 } from './leads-listado'
 import { borrarLotesDePrueba } from './papelera'
 import { esMovil } from './inventario'
+import { capturarEn } from './capturas'
 
 // --- Capturas ----------------------------------------------------------------------------------------
 
 // Una captura numerada por spec en `$E2E_CAPTURAS/<proyecto>/`, sólo si la variable está puesta: el
 // spec permanente no deja archivos. No es una comparación de píxeles: es lo que la IA lee para juzgar
-// lo que no se puede afirmar (solapamientos, redacción, jerarquía).
+// lo que no se puede afirmar (solapamientos, redacción, jerarquía). Se toma con la pantalla quieta (`capturas.ts`).
 const contadores = new Map<string, number>()
 
 export async function capturar(page: Page, info: TestInfo, nombre: string): Promise<void> {
@@ -33,9 +34,7 @@ export async function capturar(page: Page, info: TestInfo, nombre: string): Prom
   contadores.set(spec, n)
   const carpeta = join(raiz, info.project.name)
   mkdirSync(carpeta, { recursive: true })
-  await page.screenshot({
-    path: join(carpeta, `${spec}-${String(n).padStart(2, '0')}-${nombre}.png`),
-  })
+  await capturarEn(page, join(carpeta, `${spec}-${String(n).padStart(2, '0')}-${nombre}.png`))
 }
 
 // --- Lo que se afirma sin mirar ----------------------------------------------------------------------
