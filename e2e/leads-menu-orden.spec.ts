@@ -269,3 +269,41 @@ test('sin red al abrir el «⋯» de una tarjeta del kanban lo dice, y al volver
   const menu = await menuDeLaTarjeta(page, titulo, corto)
   await expect.poll(() => opciones(menu)).toEqual(COMPLETO)
 })
+
+test('la dueña sobre un lead ajeno: marca y envía, pero no anota ni agenda (no es de su cartera)', async ({
+  page,
+}, info) => {
+  const corto = `Ajeno dueña ${info.project.name}`
+  const lead = await leadDeBerta(corto)
+  await entrar(page, t.personas.duena)
+  await irALeads(page, '?alcance=todos')
+  const deLaFila = await abrirMenuDelLead(page, nombre(corto))
+  expect(await opciones(deLaFila)).toEqual([
+    'Etiquetas…',
+    'Favorito',
+    'Tachado',
+    'Enviar a la papelera',
+  ])
+  await expect(separadores(deLaFila)).toHaveCount(1)
+  await capturar(page, info, 'menu-del-lead-duena-fila')
+  await cerrar(page, deLaFila)
+  await fila(page, corto).click()
+  const delResumen = await menuDelResumen(page, corto)
+  expect(await opciones(delResumen)).toEqual([
+    'Etiquetas…',
+    'Favorito',
+    'Tachado',
+    'Enviar a la papelera',
+  ])
+  await capturar(page, info, 'menu-del-lead-duena-resumen')
+  await cerrar(page, delResumen)
+  await irAFicha(page, lead.id)
+  const deLaFicha = await abrirMenuDeLaFicha(page)
+  expect(await opciones(deLaFicha)).toEqual([
+    'Etiquetas…',
+    'Favorito',
+    'Tachado',
+    'Enviar a la papelera',
+  ])
+  await cerrar(page, deLaFicha)
+})

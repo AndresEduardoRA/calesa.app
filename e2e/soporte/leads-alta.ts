@@ -200,7 +200,7 @@ export async function origenDeLead(clave: string): Promise<{ id: string; nombre:
 export async function crearCampoDePrueba(datos: {
   clave: string
   etiqueta: string
-  tipo?: 'texto' | 'documento' | 'correo' | 'opcion'
+  tipo?: 'texto' | 'documento' | 'correo' | 'opcion' | 'url'
   requerido?: boolean
   soloCartera?: boolean
   // En la tabla del listado y en su panel de filtros.
