@@ -10,6 +10,7 @@ const PARAMETROS = {
   campo: parseAsString,
   panel: parseAsString,
   origen: parseAsString,
+  tipo: parseAsString,
 }
 
 // La pestaña abierta vive en la URL: se puede recargar y compartir el enlace.
@@ -24,6 +25,7 @@ export function PestanasDeLeads() {
           campo: null,
           panel: null,
           origen: null,
+          tipo: null,
         })
       }}
     >

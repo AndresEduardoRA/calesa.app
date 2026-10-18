@@ -39,6 +39,10 @@ import type {
   RepositorioDeOrigenesDeLead,
 } from './entities/repositorios-de-origenes'
 import type {
+  LectorDeTiposDeLeadConUso,
+  RepositorioDeTiposDeLead,
+} from './entities/repositorios-de-tipos'
+import type {
   LectorDeAccesoDelCliente,
   RepositorioDelPortal,
 } from './entities/repositorios-de-portal'
@@ -53,6 +57,7 @@ import { importacionSupabase } from './infra/importacion'
 import { marcasSupabase } from './infra/marcas'
 import { oportunidadesSupabase } from './infra/oportunidades'
 import { origenesDeLeadSupabase } from './infra/origenes'
+import { tiposDeLeadSupabase } from './infra/tipos'
 import { getContextoDeAlta } from './infra/queries/alta'
 import { getCartera } from './infra/queries/cartera'
 import { getLayoutDeLeads } from './infra/queries/campos'
@@ -68,6 +73,7 @@ import type { LectorDeIdsDelNumero } from './entities/numero'
 import { getIdsDelNumero } from './infra/queries/numeros'
 import { getOrigenesDeLead, getOrigenesDeLeadConUso } from './infra/queries/origenes'
 import { getPapeleraDeLeads } from './infra/queries/papelera'
+import { getTiposDeLeadConUso } from './infra/queries/tipos'
 import { getAccesoDelCliente } from './infra/queries/portal'
 import { portalSupabase } from './infra/portal'
 import { papeleraDeLeadsSupabase } from './infra/papelera'
@@ -95,6 +101,10 @@ export const leerOrigenesDeLead: LectorDeOrigenesDeLead = getOrigenesDeLead
 export const leerOrigenesDeLeadConUso: LectorDeOrigenesDeLeadConUso = getOrigenesDeLeadConUso
 
 export const repositorioDeOrigenesDeLead: RepositorioDeOrigenesDeLead = origenesDeLeadSupabase
+
+export const leerTiposDeLeadConUso: LectorDeTiposDeLeadConUso = getTiposDeLeadConUso
+
+export const repositorioDeTiposDeLead: RepositorioDeTiposDeLead = tiposDeLeadSupabase
 
 export const leerFicha: LectorDeFicha = getFicha
 

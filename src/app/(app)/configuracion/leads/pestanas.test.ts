@@ -5,6 +5,7 @@ describe('pestanaDe', () => {
   it('abre la que dice la URL', () => {
     expect(pestanaDe('campos')).toBe('campos')
     expect(pestanaDe('origenes')).toBe('origenes')
+    expect(pestanaDe('tipos')).toBe('tipos')
   })
 
   it('lo que no es una pestaña abre la primera', () => {

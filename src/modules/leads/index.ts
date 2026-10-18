@@ -28,6 +28,13 @@ export { leerOrigenesDeLeadConUso } from './composicion'
 export { OrigenesDeLead } from './features/origenes/components/origenes-de-lead'
 export { EsqueletoDeOrigenes } from './features/origenes/components/esqueleto-de-origenes'
 
+// Configuración › Leads › Tipos de lead (parte 9j): qué es cada lead, con su clase fija (prospecto o cliente).
+// `leerTiposDeLeadConUso()` trae los tipos con su clase y si algún lead los usa; `<TiposDeLead>` los crea, ordena,
+// renombra y desactiva (siempre queda un tipo activo de cada clase).
+export { leerTiposDeLeadConUso } from './composicion'
+export { TiposDeLead } from './features/tipos/components/tipos-de-lead'
+export { EsqueletoDeTipos } from './features/tipos/components/esqueleto-de-tipos'
+
 // El listado de `/leads`: lo lee la página (`leerListadoDeLeads`) y lo dibuja `<ListadoDeLeads>` con
 // el drawer rápido (`?lead=`) adentro. El alcance («míos» y «todos») y lo que cada quien ve lo
 // decide la base; la página sólo agrega las vistas guardadas, que son de `equipo`.

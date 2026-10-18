@@ -29,6 +29,10 @@ export const CONFIRMAR_CON_URL: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/leads/features/origenes/hooks/use-eliminar-origen-por-url.ts',
     senal: 'PANEL_ELIMINAR_ORIGEN',
   },
+  'src/modules/leads/features/tipos/components/eliminar-tipo.tsx': {
+    abre: 'src/modules/leads/features/tipos/hooks/use-eliminar-tipo-por-url.ts',
+    senal: 'PANEL_ELIMINAR_TIPO',
+  },
   'src/modules/leads/features/portal/components/dialogo-de-revocar.tsx': {
     abre: 'src/modules/leads/features/portal/hooks/use-panel-de-portal.ts',
     senal: 'PANEL_REVOCAR_PORTAL',
