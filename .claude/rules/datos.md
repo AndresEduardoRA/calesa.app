@@ -22,7 +22,9 @@ paths:
 - Los tipos vienen de `@/shared/types/database.types` (`Tables<'leads'>`, `Enums<'clase_tipo_lead'>`).
   Si un tipo contradice el código, el código está mal.
 - Leads: se leen de `leads_vista` (teléfono enmascarado salvo cartera). Nunca `from('leads')`
-  para leer el teléfono.
+  para leer el teléfono. «Míos» de quien tiene `leads.ver` «propios» se lee de `leads_cartera_vista`
+  (las mismas columnas y la misma RLS, por la cartera de quien mira: cuesta lo que pesa, no el total de
+  la tabla): la elige `fuenteDelListado()` de `modules/leads/entities`, nunca cada pantalla.
 - Los orígenes, su layout de campos y sus categorías se escriben sólo por RPC (`origen_*`,
   `categoria_*`): sus tablas son de sólo lectura, y un campo con datos no cambia de tipo ni se elimina.
 - Los vehículos se escriben sólo por RPC: `vehiculo_crear` (con el `id` que genera el navegador:
