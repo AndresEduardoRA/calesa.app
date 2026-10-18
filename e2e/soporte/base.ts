@@ -48,18 +48,23 @@ export async function personasAjenas(): Promise<number> {
   return (await cuentas()).filter((cuenta) => !cuenta.email?.endsWith(`@${DOMINIO_E2E}`)).length
 }
 
-// Borra las cuentas de prueba, de la más nueva a la más vieja: la primera que se creó es la
-// dueña y el guardián de la base no deja que el equipo quede sin quien lo administre mientras
-// haya más gente.
+// Borra las cuentas de prueba. La más vieja es la dueña (la primera que se creó) y el guardián de la base no deja que el equipo quede
+// sin quien lo administre mientras haya más gente: las demás se borran a la vez (cada `deleteUser` tarda ~55 ms y eran seis o siete en
+// fila en cada `afterAll`) y la dueña, al final. `docs/RENDIMIENTO.md`, «Preparar y limpiar un spec».
 export async function borrarPersonasDePrueba(): Promise<void> {
   const dePrueba = (await cuentas())
     .filter((cuenta) => cuenta.email?.endsWith(`@${DOMINIO_E2E}`))
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
-  for (const cuenta of dePrueba) {
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+  const [masVieja, ...otras] = dePrueba
+  const borrar = async (cuenta: { id: string; email?: string }) => {
     const { error } = await admin().auth.admin.deleteUser(cuenta.id)
     if (error) {
       throw new Error(`No se pudo borrar ${cuenta.email ?? cuenta.id}: ${error.message}`)
     }
+  }
+  await Promise.all(otras.map(borrar))
+  if (masVieja) {
+    await borrar(masVieja)
   }
 }
 
