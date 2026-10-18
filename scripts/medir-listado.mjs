@@ -51,6 +51,8 @@ const VARIABLES_DE_PAGINA = {
   tope_cargado: constante('src/shared/lib/paginacion.ts', 'TOPE_DE_LO_CARGADO'),
   lotes: constante('src/shared/lib/paginacion.ts', 'LOTES_POR_PAGINA'),
   ver_mas: constante('src/shared/lib/paginacion.ts', 'TAMANO_DE_VER_MAS'),
+  // El lote de la importación de leads (`medir-importacion.sql`): su tope vive en un solo punto del código.
+  lote: constante('src/modules/leads/entities/importacion/limites.ts', 'FILAS_POR_LOTE'),
 }
 const ARGUMENTOS_DE_PSQL = Object.entries(VARIABLES_DE_PAGINA).flatMap(([nombre, valor]) => [
   '-v',

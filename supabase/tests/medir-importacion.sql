@@ -2,7 +2,7 @@
 --
 -- Todo pasa en una transacción que se revierte. El terreno: una dueña con la base de `actividad` ya
 -- llena (22.000 filas, 2.000 de ellas adopciones del limbo: lo que hace pesada la búsqueda del intento de
--- `crear_lead`). Se importan 500 filas en 10 lotes de 50 como `authenticated` y se informa el lote más lento y el total.
+-- `crear_lead`). Se importan 500 filas en lotes de `FILAS_POR_LOTE` (la variable `:lote` de psql, que `scripts/medir-listado.mjs` lee del código: ningún tamaño escrito acá) como `authenticated` y se informa el lote más lento y el total.
 -- El tope que no se puede pasar es el `statement_timeout` de `authenticated`: 8 s por lote.
 --
 -- Tres pasadas (cierre 4):
@@ -27,18 +27,18 @@ select case when g % 11 = 0 then 'lead.adoptado_del_limbo' else 'medir.relleno' 
 from generate_series(1, 22000) g;
 analyze public.actividad;
 
-create function pg_temp.importar(p_etiqueta text, p_inicio int, p_lote_max_ms numeric default null, p_total_max_ms numeric default null) returns void language plpgsql as $$
+create function pg_temp.importar(p_etiqueta text, p_inicio int, p_lote int, p_lote_max_ms numeric default null, p_total_max_ms numeric default null) returns void language plpgsql as $$
 declare
   v_imp uuid := gen_random_uuid(); v_origen uuid := (select id from public.origenes_lead where activo order by orden limit 1);
   v_filas jsonb; v_t timestamptz; v_ms numeric[] := '{}'; v_total numeric := 0; i int; v_r jsonb; v_creadas int := 0;
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000d1', true);
   set local role authenticated;
-  for i in 0..9 loop
-    select jsonb_agg(jsonb_build_object('id', gen_random_uuid(), 'fila', i * 50 + j, 'lead', jsonb_build_object(
-             'nombre', 'Importada ' || (p_inicio + i * 50 + j), 'telefono_principal', (60000000 + p_inicio + i * 50 + j)::text,
+  for i in 0..(500 / p_lote - 1) loop
+    select jsonb_agg(jsonb_build_object('id', gen_random_uuid(), 'fila', i * p_lote + j, 'lead', jsonb_build_object(
+             'nombre', 'Importada ' || (p_inicio + i * p_lote + j), 'telefono_principal', (60000000 + p_inicio + i * p_lote + j)::text,
              'origen_lead_id', v_origen, 'atributos', jsonb_build_object('ciudad', 'La Paz', 'notas', 'fila ' || j))))
-      into v_filas from generate_series(1, 50) j;
+      into v_filas from generate_series(1, p_lote) j;
     v_t := clock_timestamp();
     v_r := public.leads_importar_lote(v_imp, 500, v_filas);
     v_ms := v_ms || (extract(epoch from clock_timestamp() - v_t) * 1000);
@@ -47,8 +47,8 @@ begin
   end loop;
   reset role;
   if v_creadas <> 500 then raise exception 'entraron % de 500', v_creadas; end if;
-  raise notice 'medicion|%, lote de 50 más lento|%', p_etiqueta, round((select max(x) from unnest(v_ms) x), 1);
-  raise notice 'medicion|%, 500 filas en 10 lotes|%', p_etiqueta, round(v_total, 1);
+  raise notice 'medicion|%, lote de % más lento|%', p_etiqueta, p_lote, round((select max(x) from unnest(v_ms) x), 1);
+  raise notice 'medicion|%, 500 filas en % lotes|%', p_etiqueta, 500 / p_lote, round(v_total, 1);
   if p_lote_max_ms is not null and (select max(x) from unnest(v_ms) x) > p_lote_max_ms then
     raise exception '%: un lote tarda % ms, el presupuesto es % ms', p_etiqueta, round((select max(x) from unnest(v_ms) x), 0), p_lote_max_ms;
   end if;
@@ -57,16 +57,16 @@ begin
   end if;
 end $$;
 
-select pg_temp.importar('tal como queda tras el reset', 0, 2000, 8000);
+select pg_temp.importar('tal como queda tras el reset', 0, :lote, 2000, 8000);
 
 analyze;
 drop index public.actividad_actor_accion_idx;
 drop index public.actividad_intento_adopcion_idx;
-select pg_temp.importar('sin los índices de actividad', 1000);
+select pg_temp.importar('sin los índices de actividad', 1000, :lote);
 create index actividad_actor_accion_idx on public.actividad (actor_id, accion, creado_en desc);
 create index actividad_intento_adopcion_idx on public.actividad ((detalle ->> 'intento')) where accion = 'lead.adoptado_del_limbo';
 analyze public.actividad;
-select pg_temp.importar('con los índices', 2000);
+select pg_temp.importar('con los índices', 2000, :lote);
 
 -- Deshacer (parte 8b) la importación de 500 recién hecha: la lista de recientes (que cuenta lo intacto),
 -- el deshacer en una transacción, la papelera con ese lote de 500 y restaurarlo entero.
