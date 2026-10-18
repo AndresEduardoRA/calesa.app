@@ -22,7 +22,11 @@ import {
 import { esMovil } from './soporte/inventario'
 import { vistasDelHtml } from './soporte/listas-por-pagina'
 import { capturar, sinScrollHorizontal } from './soporte/recorrido'
-import { TAMANO_DE_COLUMNA, TAMANO_DE_PAGINA_POR_DEFECTO } from '../src/shared/lib/paginacion'
+import {
+  TAMANO_DE_COLUMNA,
+  TAMANO_DE_PAGINA_POR_DEFECTO,
+  TOPE_DE_LO_CARGADO,
+} from '../src/shared/lib/paginacion'
 
 // La escala de lo que se dibuja (9e, `.claude/rules/escala.md`): el listado y una columna del kanban tienen
 // un tope de nodos aunque haya miles detrás, el tope se dice, y abrir un modal cuyo código nunca se pidió sin
@@ -51,9 +55,12 @@ const nodos = (page: Page) => page.evaluate(() => document.querySelectorAll('*')
 const PRESUPUESTO_DE_NODOS = {
   listado: { escritorio: 2_200, movil: 2_200 },
   listadoDe100: { escritorio: 3_500, movil: 3_500 },
-  // 9i: el «⋯» de cada tarjeta suma 6 nodos (3.000 en 500 tarjetas): 8.200 → 11.200 medidos, más un 5 %.
-  kanban: { escritorio: 11_800, movil: 6_000 },
+  // 9i: el «⋯» de cada tarjeta sumaba 6 nodos (3.000 en 500 tarjetas): 8.212 → 11.212 y el presupuesto, 11.800. 9j: el «⋯» es un
+  // `<svg>` con un `<use>` (3 nodos con el botón): 9.718 medidos, más un 5 %.
+  kanban: { escritorio: 10_250, movil: 6_000 },
 }
+// El «⋯» de cada tarjeta cuesta 3 nodos (`src/shared/ui/lista/simbolos-de-lista.tsx`) y una columna llega a `TOPE_DE_LO_CARGADO` (500) tarjetas.
+const NODOS_DEL_MENU = 3
 type Proyecto = 'escritorio' | 'movil'
 
 test('el listado dibuja una página de 50 filas y los nodos no crecen con las páginas', async ({
@@ -218,14 +225,15 @@ test('una columna del kanban con más de 500: «500+», «Ver más» hasta el to
   await expect(columna.getByText(/Mostrando las 500 con actividad más reciente/)).toBeVisible()
   const total = await nodos(page)
   info.annotations.push({ type: 'nodos de una columna en el tope', description: String(total) })
-  // Lo que suma el «⋯» de cada tarjeta (9i): su envoltorio, el botón y el icono.
+  // Lo que suma el «⋯» de cada tarjeta: el botón, su <svg> y el <use> del símbolo (9j; eran 6 con el icono de lucide).
   const delMenu = await page.evaluate(() =>
     [...document.querySelectorAll('[data-mas-acciones]')].reduce(
-      (n, boton) => n + 1 + (boton.parentElement?.querySelectorAll('*').length ?? 0),
+      (n, boton) => n + 1 + boton.querySelectorAll('*').length,
       0,
     ),
   )
   info.annotations.push({ type: 'nodos de los «⋯» de la columna', description: String(delMenu) })
+  expect(delMenu).toBe(NODOS_DEL_MENU * TOPE_DE_LO_CARGADO)
   expect(total).toBeLessThan(PRESUPUESTO_DE_NODOS.kanban.escritorio)
   await expect(columna.getByText('Busca para llegar a las demás.')).toBeVisible()
 
