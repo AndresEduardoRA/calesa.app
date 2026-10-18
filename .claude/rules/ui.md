@@ -36,8 +36,17 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   dibuja la pregunta en su ranura `pie`; un pie dentro del cuerpo es `<PieDelPanel>` (toma la pregunta del `<Drawer>`) o `<PieConSalida>`.
   El alta de lead y el panel de vehículo lo hacen por su cuenta (`useCierreConCambios()` y `salida`). `scripts/guardas/drawers-con-salida.ts`
   registra cada `<Drawer>` (con su formulario, o con el motivo de no tenerlo) y su test falla si aparece uno sin registrar.
-- Una tabla ancha lleva un ancho mínimo (`w-max min-w-full`), la columna del nombre pegada a la izquierda (y la de acciones, el «⋯», a la derecha: una acción por fila nunca queda fuera de la vista) y se desplaza dentro de
-  su tarjeta: nunca se achica un nombre para que quepan las demás ni se mueve la página de costado.
+- **Toda lista de registros usa el patrón de lista** (`@/shared/ui/lista`, 9i; el listado de leads y el inventario de vehículos son
+  los modelos): **una sola vista**, la tabla desde 768 px y las tarjetas por debajo, elegida en el servidor con el ancho de la petición
+  (`<UnaSolaVista>`); la tabla ancha lleva un ancho mínimo (`w-max min-w-full`), **el nombre pegado a la izquierda y el «⋯»
+  («Más acciones de …», `<MasAcciones>`) pegado a la derecha** —una acción por fila nunca queda fuera de la vista— y se desplaza dentro
+  de su tarjeta: nunca se achica un nombre para que quepan las demás ni se mueve la página de costado. **Un clic en cualquier parte de
+  la fila o la tarjeta abre su resumen** (`?lead=`, `?vehiculo=`), salvo el de la casilla, el del «⋯» y el de un enlace o un botón propio
+  de la fila (`esClicPropio`, `src/shared/lib/clic-de-fila.ts`; algo que no debe abrir y no es un enlace ni un botón lleva
+  `data-no-abre`). **Con el teclado** se alcanza el nombre (`<AbrirResumen nombre>`, un botón «Abrir {nombre}»: una parada de Tab por
+  fila) y Enter o Espacio abren el resumen; la fila entera toma el color de abierta mientras ese botón tiene el foco. Nada de esto se
+  repite a mano en un módulo: `scripts/guardas/listas-con-patron.ts` falla si un archivo de `src/modules` dibuja una tabla o usa
+  `CORTE_DE_LA_TABLA` sin importar el patrón y sin figurar en la guarda con su motivo (hoy, sólo la lista del equipo y la matriz de roles).
 - Una lista de tarjetas no ensancha la página con el texto al 200 % (reflujo, WCAG 1.4.10): su `<ul>` es `grid-cols-[minmax(0,1fr)]` y su
   `<li>`, `min-w-0` (una columna `auto` toma el ancho mínimo de lo que no se parte y empuja el «⋯» fuera de la vista); el nombre se corta
   con «…», lo de la esquina no se achica (`shrink-0`) y una tarjeta con varias piezas de ancho fijo en rem (miniatura, título, acción) se
