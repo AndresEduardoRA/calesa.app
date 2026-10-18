@@ -1,6 +1,13 @@
 'use client'
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
+import {
+  AbrirResumen,
+  CabeceraPegada,
+  CeldaPegada,
+  FilaDeLista,
+  TablaDeLista,
+} from '@/shared/ui/lista'
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTabla } from '../../../entities/listado'
 import type { FilaDeLead } from '../../../entities/listado'
 import { MenuDeLead } from '../../marcas/components/menu-de-lead'
@@ -20,104 +27,83 @@ type Props = DatosDeLaLista & {
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
-// La columna del nombre queda pegada a la izquierda mientras el resto se desplaza dentro de la tarjeta (cierre 2). Opaca, para que lo
-// que pasa por debajo no se transparente, y con el color de la fila al pasar el puntero o al estar abierta en el drawer.
-const NOMBRE_PEGADO =
-  'sticky left-0 z-10 min-w-64 bg-(--color-surface) shadow-[inset_-1px_0_0_var(--color-line)]'
-// El «⋯» de las marcas queda pegado a la derecha por lo mismo: con la tabla desplazada, la acción de cada fila no se va de la vista.
-const ACCIONES_PEGADAS =
-  'sticky right-0 z-10 bg-(--color-surface) shadow-[inset_1px_0_0_var(--color-line)]'
-const NOMBRE_DE_FILA =
-  'group-hover:bg-[color-mix(in_oklab,var(--color-surface-2)_50%,var(--color-surface))] group-data-[state=selected]:bg-(--color-surface-2)'
-
 function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposDeTabla> }) {
   return (
     <TableHeader>
       <TableRow>
-        <TableHead className={`pl-3 ${NOMBRE_PEGADO}`}>Nombre</TableHead>
+        <CabeceraPegada lado="nombre">Nombre</CabeceraPegada>
         <TableHead>Teléfono</TableHead>
         <TableHead>Tipo</TableHead>
         <TableHead>Origen del lead</TableHead>
         {columnas.map((campo) => (
           <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
         ))}
-        <TableHead className={`w-12 pr-2 ${ACCIONES_PEGADAS}`}>
-          <span className="sr-only">Marcas</span>
-        </TableHead>
+        <CabeceraPegada lado="acciones">
+          <span className="sr-only">Acciones</span>
+        </CabeceraPegada>
       </TableRow>
     </TableHeader>
   )
 }
 
-// Los leads en escritorio: nombre (con las marcas de quien mira), teléfono, tipo y origen, una
-// columna por cada campo «en la tabla» del layout y el «⋯» de las marcas. Elegir una fila abre el
-// drawer rápido (`?lead=`). La tabla es tan ancha como lo pidan sus columnas (el nombre nunca se achica para que quepan) y se
-// desplaza dentro de la tarjeta, con la columna del nombre a la vista.
+// Los leads en escritorio, con el patrón de lista (`@/shared/ui/lista`): nombre (con las marcas de quien mira), teléfono, tipo y
+// origen, una columna por cada campo «en la tabla» del layout y el «⋯». Un clic en cualquier parte de la fila abre el drawer
+// rápido (`?lead=`), salvo el del «⋯» y el de un enlace de la fila. La tabla es tan ancha como lo pidan sus columnas (el nombre nunca
+// se achica para que quepan) y se desplaza dentro de la tarjeta, con el nombre y el «⋯» a la vista.
 export function TablaDeLeads(props: Props) {
   const { leads, campos, origenes, codigoDePais, etiquetas, alAbrir, abierto, marcar } = props
   const columnas = camposDeTabla(campos)
   return (
-    <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
-      <Table className="w-max min-w-full">
-        <EncabezadoDeLaTabla columnas={columnas} />
-        <TableBody>
-          {leads.map((lead) => (
-            <TableRow
-              key={lead.id}
-              data-state={abierto === lead.id ? 'selected' : undefined}
-              className="group h-(--fila) cursor-pointer"
-              onClick={() => {
-                alAbrir(lead.id)
-              }}
-            >
-              <TableCell className={`py-1 pl-3 ${NOMBRE_PEGADO} ${NOMBRE_DE_FILA}`}>
-                <NombreDeFila
-                  lead={lead}
-                  etiquetas={etiquetas}
-                  nombre={(clases) => (
-                    <button
-                      type="button"
-                      title={lead.nombre}
-                      className={`max-w-72 text-left underline-offset-2 outline-none hover:underline focus-visible:shadow-(--shadow-focus) ${clases}`}
-                      onClick={(evento) => {
-                        evento.stopPropagation()
-                        alAbrir(lead.id)
-                      }}
-                    >
-                      {lead.nombre}
-                    </button>
-                  )}
-                />
+    <TablaDeLista>
+      <EncabezadoDeLaTabla columnas={columnas} />
+      <TableBody>
+        {leads.map((lead) => (
+          <FilaDeLista
+            key={lead.id}
+            abierta={abierto === lead.id}
+            alAbrir={() => {
+              alAbrir(lead.id)
+            }}
+          >
+            <CeldaPegada lado="nombre">
+              <NombreDeFila
+                lead={lead}
+                etiquetas={etiquetas}
+                nombre={(clases) => (
+                  <AbrirResumen nombre={lead.nombre} className={`max-w-72 ${clases}`}>
+                    {lead.nombre}
+                  </AbrirResumen>
+                )}
+              />
+            </CeldaPegada>
+            <TableCell className="whitespace-nowrap tabular-nums">
+              {telefonoDeLista(lead.telefono, codigoDePais)}
+            </TableCell>
+            <TableCell>
+              <BadgeDeTipo tipo={lead.tipo} />
+            </TableCell>
+            <TableCell className="max-w-48 truncate">
+              {nombreDelOrigen(origenes, lead.origenId) ?? VACIO}
+            </TableCell>
+            {columnas.map((campo) => (
+              <TableCell key={campo.clave} className="max-w-48 truncate">
+                <CeldaDeCampo campo={campo} fila={lead} />
               </TableCell>
-              <TableCell className="whitespace-nowrap tabular-nums">
-                {telefonoDeLista(lead.telefono, codigoDePais)}
-              </TableCell>
-              <TableCell>
-                <BadgeDeTipo tipo={lead.tipo} />
-              </TableCell>
-              <TableCell className="max-w-48 truncate">
-                {nombreDelOrigen(origenes, lead.origenId) ?? VACIO}
-              </TableCell>
-              {columnas.map((campo) => (
-                <TableCell key={campo.clave} className="max-w-48 truncate">
-                  <CeldaDeCampo campo={campo} fila={lead} />
-                </TableCell>
-              ))}
-              <TableCell className={`py-1 pr-2 ${ACCIONES_PEGADAS} ${NOMBRE_DE_FILA}`}>
-                <MenuDeLead
-                  leadId={lead.id}
-                  nombre={lead.nombre}
-                  marcas={lead.marcas}
-                  etiquetas={marcar.etiquetas}
-                  alGestionar={marcar.alGestionar}
-                  puedeEnviar={marcar.eliminables.includes(lead.id)}
-                  acciones={accionesDelMenu(marcar, lead)}
-                />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+            ))}
+            <CeldaPegada lado="acciones">
+              <MenuDeLead
+                leadId={lead.id}
+                nombre={lead.nombre}
+                marcas={lead.marcas}
+                etiquetas={marcar.etiquetas}
+                alGestionar={marcar.alGestionar}
+                puedeEnviar={marcar.eliminables.includes(lead.id)}
+                acciones={accionesDelMenu(marcar, lead)}
+              />
+            </CeldaPegada>
+          </FilaDeLista>
+        ))}
+      </TableBody>
+    </TablaDeLista>
   )
 }

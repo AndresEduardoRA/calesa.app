@@ -1,27 +1,18 @@
 'use client'
 
-import { MoreHorizontalIcon } from 'lucide-react'
+import { Trash2Icon } from 'lucide-react'
 import { useRef, useState } from 'react'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/shared/ui/dropdown-menu'
+import { MasAcciones, type AccionDeMenu } from '@/shared/ui/lista'
 import {
   ETIQUETA_DE_FAVORITO,
   ETIQUETA_DE_TACHADO,
   type MarcasDeLead,
 } from '../../../entities/marcas'
-import { ItemEnviarAPapelera } from '../../papelera/components/item-enviar-a-papelera'
+import { ETIQUETA_DE_ENVIAR } from '../../../entities/papelera'
 import { SelectorDeEtiquetas } from '../../etiquetas/components/selector-de-etiquetas'
 import type { Etiquetas } from '../../etiquetas/hooks/use-etiquetas'
+import { useEnvioAPapelera } from '../../papelera/hooks/use-envio-a-papelera'
 import { useMarcas } from '../hooks/use-marcas'
-
-// Alto de un renglón del menú: cómodo para el dedo en el celular, compacto con mouse.
-const RENGLON = 'min-h-11 md:min-h-8'
 
 type Props = {
   leadId: string
@@ -36,63 +27,81 @@ type Props = {
   acciones?: { alAnotar: () => void; alAgendar: () => void } | undefined
 }
 
-// Lo que se abre cuando el menú terminó de cerrarse (si no, el foco que vuelve al botón lo cierra).
-type Pendiente = 'etiquetas' | 'anotar' | 'agendar' | null
-
-function AccionesDelLead({ alElegir }: { alElegir: (pendiente: Pendiente) => void }) {
-  return (
-    <>
-      <DropdownMenuSeparator />
-      <DropdownMenuItem
-        className={RENGLON}
-        onClick={() => {
-          alElegir('anotar')
-        }}
-      >
-        Anotar seguimiento…
-      </DropdownMenuItem>
-      <DropdownMenuItem
-        className={RENGLON}
-        onClick={() => {
-          alElegir('agendar')
-        }}
-      >
-        Agendar recordatorio…
-      </DropdownMenuItem>
-    </>
-  )
+type Lineas = {
+  marcas: ReturnType<typeof useMarcas>
+  abrirEtiquetas: () => void
+  acciones: Props['acciones']
+  envio: { enCurso: boolean; enviar: () => void } | null
 }
 
-// «Favorito» y «Tachado»: se marcan sin cerrar el menú (tachar sí lo cierra: ofrece «Deshacer»).
-function CasillasDeMarcas({ marcas }: { marcas: ReturnType<typeof useMarcas> }) {
-  const { esFavorito, estaTachado } = marcas.marcas
-  return (
-    <>
-      <DropdownMenuCheckboxItem
-        className={RENGLON}
-        checked={esFavorito}
-        disabled={marcas.enCurso.favorito}
-        onCheckedChange={(valor) => void marcas.favorito(valor)}
-      >
-        {ETIQUETA_DE_FAVORITO}
-      </DropdownMenuCheckboxItem>
-      <DropdownMenuCheckboxItem
-        className={RENGLON}
-        checked={estaTachado}
-        disabled={marcas.enCurso.tachado}
-        closeOnClick
-        onCheckedChange={(valor) => void marcas.tachado(valor)}
-      >
-        {ETIQUETA_DE_TACHADO}
-      </DropdownMenuCheckboxItem>
-    </>
-  )
+// Las líneas del «⋯» de una fila, en su orden de hoy.
+function lineasDelMenu({ marcas, abrirEtiquetas, acciones, envio }: Lineas): AccionDeMenu[] {
+  const lista: AccionDeMenu[] = [
+    {
+      tipo: 'casilla',
+      clave: 'favorito',
+      etiqueta: ETIQUETA_DE_FAVORITO,
+      marcada: marcas.marcas.esFavorito,
+      deshabilitada: marcas.enCurso.favorito,
+      alCambiar: (valor) => void marcas.favorito(valor),
+    },
+    {
+      tipo: 'casilla',
+      clave: 'tachado',
+      etiqueta: ETIQUETA_DE_TACHADO,
+      marcada: marcas.marcas.estaTachado,
+      deshabilitada: marcas.enCurso.tachado,
+      cierra: true,
+      alCambiar: (valor) => void marcas.tachado(valor),
+    },
+    { tipo: 'separador', clave: 'separador-etiquetas' },
+    {
+      tipo: 'accion',
+      clave: 'etiquetas',
+      etiqueta: 'Etiquetas…',
+      despuesDeCerrar: true,
+      alElegir: abrirEtiquetas,
+    },
+  ]
+  if (acciones) {
+    lista.push(
+      { tipo: 'separador', clave: 'separador-seguimiento' },
+      {
+        tipo: 'accion',
+        clave: 'anotar',
+        etiqueta: 'Anotar seguimiento…',
+        despuesDeCerrar: true,
+        alElegir: acciones.alAnotar,
+      },
+      {
+        tipo: 'accion',
+        clave: 'agendar',
+        etiqueta: 'Agendar recordatorio…',
+        despuesDeCerrar: true,
+        alElegir: acciones.alAgendar,
+      },
+    )
+  }
+  if (envio) {
+    lista.push(
+      { tipo: 'separador', clave: 'separador-papelera' },
+      {
+        tipo: 'accion',
+        clave: 'papelera',
+        etiqueta: ETIQUETA_DE_ENVIAR,
+        icono: <Trash2Icon aria-hidden />,
+        deshabilitada: envio.enCurso,
+        alElegir: envio.enviar,
+      },
+    )
+  }
+  return lista
 }
 
 // El «⋯» de una fila del listado: las marcas de quien mira sobre ese lead y, con la cartera, anotar un
 // seguimiento y agendar un recordatorio. «Etiquetas…» cierra el menú y abre el selector contra el
 // mismo botón; anotar y agendar abren su modal, y el foco vuelve a este botón. Nada de lo que pasa
-// adentro abre el drawer de la fila (los clics no suben).
+// adentro abre el drawer de la fila (`<MasAcciones>` frena los clics).
 export function MenuDeLead({
   leadId,
   nombre,
@@ -103,54 +112,28 @@ export function MenuDeLead({
   acciones,
 }: Props) {
   const marcas = useMarcas(leadId, inicial)
+  const envio = useEnvioAPapelera()
   const boton = useRef<HTMLButtonElement>(null)
   const [selector, setSelector] = useState(false)
-  const [pendiente, setPendiente] = useState<Pendiente>(null)
+
+  const lista = lineasDelMenu({
+    marcas,
+    abrirEtiquetas: () => {
+      setSelector(true)
+    },
+    acciones,
+    envio: puedeEnviar
+      ? {
+          enCurso: envio.enCurso,
+          enviar: () => {
+            void envio.enviar([leadId])
+          },
+        }
+      : null,
+  })
+
   return (
-    <div
-      className="flex justify-end"
-      onClick={(evento) => {
-        evento.stopPropagation()
-      }}
-    >
-      <DropdownMenu
-        onOpenChangeComplete={(abierto) => {
-          if (abierto || pendiente === null) {
-            return
-          }
-          setPendiente(null)
-          if (pendiente === 'etiquetas') {
-            setSelector(true)
-          } else if (pendiente === 'anotar') {
-            acciones?.alAnotar()
-          } else {
-            acciones?.alAgendar()
-          }
-        }}
-      >
-        <DropdownMenuTrigger
-          ref={boton}
-          aria-label={`Más acciones de ${nombre}`}
-          data-menu-de-lead={leadId}
-          className="flex size-[44px] items-center justify-center rounded-(--radius-md) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:size-8"
-        >
-          <MoreHorizontalIcon aria-hidden className="size-4" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <CasillasDeMarcas marcas={marcas} />
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className={RENGLON}
-            onClick={() => {
-              setPendiente('etiquetas')
-            }}
-          >
-            Etiquetas…
-          </DropdownMenuItem>
-          {acciones ? <AccionesDelLead alElegir={setPendiente} /> : null}
-          {puedeEnviar ? <ItemEnviarAPapelera leadId={leadId} renglon={RENGLON} /> : null}
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <MasAcciones nombre={nombre} id={leadId} acciones={lista} botonRef={boton}>
       <SelectorDeEtiquetas
         etiquetas={etiquetas}
         puestas={marcas.marcas.etiquetas}
@@ -161,6 +144,6 @@ export function MenuDeLead({
         alCambiarAbierto={setSelector}
         ancla={boton}
       />
-    </div>
+    </MasAcciones>
   )
 }

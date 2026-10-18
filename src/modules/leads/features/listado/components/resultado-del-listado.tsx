@@ -1,14 +1,13 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
 import type { ConteoAcotado } from '@/shared/lib/conteo'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import { ubicacionDeLaPagina, type Pagina } from '@/shared/lib/paginacion'
-import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
 import { Button } from '@/shared/ui/button'
 import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
+import { UnaSolaVista } from '@/shared/ui/lista'
 import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
 import { useRegional } from '@/shared/ui/regional'
 import type { ModoDelListado } from '../../../entities/alcance'
@@ -91,15 +90,12 @@ function VacioDeLeads({
 }
 
 // La lista de leads o el estado que corresponda: sin leads, sin resultados por filtro o una página
-// que se quedó sin filas. Se dibuja una sola vista: la tabla desde `md`, las tarjetas por debajo. El servidor la elige con
-// el ancho de la petición (`<ProveedorDeAncho>`), así el HTML lleva una y la hidratación no la cambia; girar el celular o
-// redimensionar la cambia en el cliente, con las mismas filas.
+// que se quedó sin filas. Se dibuja una sola vista (`<UnaSolaVista>`): la tabla desde `md`, las tarjetas por debajo.
 export function ResultadoDelListado(props: Props) {
   const { pagina, modo, puedeVerTodos, puedeCrear, alAbrir, abierto, marcar, ocultos, ...datos } =
     props
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
-  const conTabla = useAlMenos(CORTE_DE_LA_TABLA)
 
   if (pagina.filas.length === 0) {
     if (ocultos.n > 0 && !hayCursor) {
@@ -117,17 +113,26 @@ export function ResultadoDelListado(props: Props) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <UbicacionDeLaPagina ubicacion={ubicacionDeLaPagina(pagina)} />
-      {conTabla ? (
-        <TablaDeLeads
-          {...datos}
-          leads={pagina.filas}
-          alAbrir={alAbrir}
-          abierto={abierto}
-          marcar={marcar}
-        />
-      ) : (
-        <TarjetasDeLeads {...datos} leads={pagina.filas} alAbrir={alAbrir} marcar={marcar} />
-      )}
+      <UnaSolaVista
+        tabla={() => (
+          <TablaDeLeads
+            {...datos}
+            leads={pagina.filas}
+            alAbrir={alAbrir}
+            abierto={abierto}
+            marcar={marcar}
+          />
+        )}
+        tarjetas={() => (
+          <TarjetasDeLeads
+            {...datos}
+            leads={pagina.filas}
+            alAbrir={alAbrir}
+            abierto={abierto}
+            marcar={marcar}
+          />
+        )}
+      />
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
     </div>
   )

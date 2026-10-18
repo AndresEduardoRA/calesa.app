@@ -41,7 +41,7 @@ test('un nombre de 31 caracteres se ve entero con el panel de filtros abierto', 
   await entrar(page, t.personas.berta)
   await page.setViewportSize({ width: 1280, height: 800 })
   await irALeads(page)
-  const texto = page.getByRole('button', { name: NOMBRE_LARGO, exact: true }).first()
+  const texto = page.getByRole('button', { name: `Abrir ${NOMBRE_LARGO}`, exact: true }).first()
   await expect(texto).toBeVisible()
   const cortado = await texto.evaluate((boton) => {
     const interno = boton.querySelector('.truncate') ?? boton
@@ -58,7 +58,7 @@ test('con poco ancho la tabla se desplaza por dentro y el nombre se queda pegado
   await entrar(page, t.personas.berta)
   await page.setViewportSize({ width: 1100, height: 800 })
   await irALeads(page)
-  const nombre = page.getByRole('button', { name: NOMBRE_LARGO, exact: true }).first()
+  const nombre = page.getByRole('button', { name: `Abrir ${NOMBRE_LARGO}`, exact: true }).first()
   await expect(nombre).toBeVisible()
   const contenedor = page.locator('[data-slot="table-container"]').first()
   const medidas = await contenedor.evaluate((el) => ({

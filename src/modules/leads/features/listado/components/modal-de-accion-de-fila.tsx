@@ -27,7 +27,7 @@ type Props = {
 
 // El «⋯» de la fila que se abrió (la tabla y las tarjetas lo dibujan las dos; se busca el que se ve).
 function menuDeLaFila(leadId: string): HTMLElement | boolean {
-  const menus = document.querySelectorAll<HTMLElement>(`[data-menu-de-lead="${leadId}"]`)
+  const menus = document.querySelectorAll<HTMLElement>(`[data-mas-acciones="${leadId}"]`)
   return Array.from(menus).find((menu) => menu.offsetParent !== null) ?? true
 }
 

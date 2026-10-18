@@ -107,7 +107,6 @@ test('el «⋯» de la fila marca sin abrir el drawer, y el drawer muestra las m
 
   // El drawer: lo dice, y no ofrece nada para cambiarlo.
   await aLaVista(page.getByRole('button', { name: `Abrir ${nombre(corto)}` }))
-    .or(aLaVista(page.getByRole('button', { name: nombre(corto), exact: true })))
     .first()
     .click()
   const drawer = page.getByRole('dialog', { name: nombre(corto) })
