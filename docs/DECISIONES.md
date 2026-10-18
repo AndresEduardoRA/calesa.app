@@ -3684,3 +3684,135 @@ La guarda `scripts/guardas/sin-transition-all.test.ts` impide que vuelva (sólo 
 tamaño en el mismo instante del cambio y falla con el botón anterior («Filtros: 13 px → 13 px»). **«Nuevo lead» de la barra superior en el
 celular es sólo un icono por diseño** (`hidden sm:inline`: un media query no sigue a la raíz); su etiqueta es la del lector. El texto del
 botón (13 px) contra el del cuerpo (15 px) no es un defecto: es `--text-sm` contra `--text-base`.
+
+## 2026-10-17 — Cierre 4 (1): todo modal con algo escrito pregunta al descartar; un hook compartido y una guarda
+
+**Contexto:** tres modales con formulario fuera de `ModalDeFormulario` (nuevo embudo, nuevo rol, invitar persona) no preguntaban al
+descartar, y se cerraban con Esc a mitad de un guardado. Al buscarlos apareció un cuarto, «Etiquetas» (el nombre de la etiqueta nueva), y
+un defecto vecino: `?panel=nuevo-rol` abría el modal a quien sólo veía la matriz (`abierto` no miraba `puedeGestionar`).
+
+**Decisión:** los tres pasan a `ModalDeFormulario` (ganan `bloqueado`, `<fieldset disabled>`, Ctrl/Cmd+S, el foco al primer error y el
+guardado sin red que sale solo al volver). Lo que comparten —validar, un pedido a la vez, el rechazo junto al campo o arriba, el pedido
+que no llegó— está una vez en `useEnvioDeModal()` (`shared/ui`); cada modal sólo pone su validación, su pedido y qué rechazos van junto a
+qué campo (`useFormularioDeRol`, `useFormularioDeInvitacion`, `useNuevoEmbudo`). «Invitar» deja el formulario y, hecha la invitación,
+abre otro modal («Invitación creada») en vez de cambiar el contenido del mismo: el pie del contrato no tiene otro estado. «Etiquetas» no es
+un formulario sino una lista que se administra: pregunta por su cuenta (`useCierreConCambios` sobre el nombre sin crear). Un nombre repetido
+o sin letras se dice ahora junto al campo (antes, un aviso arriba o un `alert` bajo el campo). El correo se recorta antes de validar (con un
+espacio al final el esquema decía «correo inválido»).
+**La guarda:** `scripts/guardas/modales-con-salida.ts` registra todo `<Modal>` que no es `ModalDeFormulario`: o `propio` (pregunta él:
+`useCierreConCambios()`, `<ConfirmarDescarte>` y `bloqueado`) o `sinFormulario` con su motivo, y prohíbe un `<form>` en el archivo y en lo
+local que dibuja. Se comprobó que muerde (sin registrar, sin `bloqueado`, un `<form>` en un registrado). **No registra nada de los
+`ModalDeFormulario`:** cumplen por construcción.
+**Alternativa descartada:** ponerles sólo el hook de cambios: no daba `bloqueado` ni el guardado sin red, que tampoco tenían.
+**Límite declarado:** crear un rol o invitar no es idempotente (no llevan id de intento): si un pedido que «no llegó» sí llegó, el reintento
+dice que ya existe. Lo que el servidor rechaza con «duplicado» se dice junto al campo, que es lo cierto.
+
+## 2026-10-17 — Cierre 4 (2): la nota de un interés sin mandar cuenta como «hay cambios» y no se pierde al cambiar de vehículo
+
+**Contexto:** «Agregar vehículo» no registraba nada: descartar el panel perdía la nota tipeada sin preguntar. La decisión del cierre 3
+(«un solo "hay cambios" por panel») suponía varias notas a la vez; en realidad cada vehículo elegido monta la suya (`key`) y cambiar de
+candidato o de búsqueda la tiraba.
+**Decisión:** las notas viven en el panel (`{ id → nota }`): cambiar de vehículo o de búsqueda no tira ninguna, «hay cambios» es que alguna
+tenga texto, y el panel lo dice con `useCambiosSinGuardar(hay, descartar, { preguntaAlCerrar: true })`. A diferencia del resto de los
+paneles (cerrar no pregunta: lo escrito queda en su borrador), una nota sin borrador se pierde al cerrar, así que con esa opción el
+`<Drawer>` pasa Esc, la ✕ y el clic afuera por `intentarCerrar` y, si el panel no tiene `pie`, la pregunta ocupa el pie. Marcar el interés
+o vincular cierra sin preguntar. **Alternativa descartada:** un borrador en `sessionStorage` por lead y vehículo: más piezas para una nota
+de 500 caracteres.
+
+## 2026-10-17 — Cierre 4 (3): el aviso con descripción crece con el texto; la letra ya crecía, el ancho no
+
+**Contexto:** el pendiente decía que los avisos con `description` «siguen con el tamaño de sonner». Medido, la descripción **sí** hereda el
+`fontSize` en línea del aviso (sonner no le fija tamaño); lo que seguía siendo de sonner era el **ancho**: 356 px fijos, así que al 200 %
+el aviso quedaba en una columna angosta (el título en tres líneas, la descripción en siete). Un e2e con el aviso de «sesión vencida» (el
+único con descripción, provocado perdiendo la sesión con el panel de «Etapas» abierto) pasaba a 100 % y a 200 % en claro y en oscuro con
+todo lo que se le preguntó (letra, que no corte su contenido, que no pase de la pantalla, contraste AA, que no tape el pie): salvo el
+ancho.
+**Decisión:** `--width` del `<Toaster>` es `min(22.25rem, 100vw − 2rem)` (356 px al 100 %, crece con la raíz y no pasa de la pantalla) y
+`avisosAbajo()` toma el ancho de la columna con el `rem` de la raíz. Vale para todos los avisos, no sólo los de descripción. El color de
+la descripción (`#3f3f3f`/`#e8e8e8` de sonner) pasa AA en los dos temas: no se cambió. El alto que sonner mide al montarse tampoco
+quedó cortado (el e2e lo asserta con `scrollHeight`).
+
+## 2026-10-17 — Cierre 4 (4): una captura se toma con la pantalla quieta
+
+**Contexto:** las dos lecturas equivocadas de los botones (cierres 1 y 2) fueron capturas tomadas a media transición. Al abrir las 115 del
+cierre 3 con las hojas, unas 15 de las que muestran un panel, un modal o un aviso estaban a medias (el panel entrando, un aviso
+translúcido, un modal con su fondo a medio desenfocar).
+**Decisión:** `capturar()` pasa por `capturarEn()` (`e2e/soporte/capturas.ts`): dos cuadros (lo que arranca en el cuadro siguiente a
+montarse, como la entrada de un aviso, no existe aún en `document.getAnimations()`), todas las animaciones y transiciones **con fin**
+terminadas (con tope de 2 s que dice cuáles seguían) y `animations: 'disabled'` + `caret: 'hide'` de respaldo. **Las dos cosas:** sólo
+`disabled` no adelanta una transición que todavía no empezó; sólo esperar se cuelga con un spinner (infinito) o un esqueleto. Probado sin
+la app (`e2e/capturas-quietas.spec.ts`): una captura cruda ve la transición a medias (rojo 40+) y la del ayudante el estado final; con un
+spinner no se cuelga; si algo no termina dentro del tope lo dice.
+
+## 2026-10-17 — Cierre 4 (5): hojas de contacto, y mirar es abrir todas
+
+`scripts/hoja-de-contacto.mjs <carpeta>` monta las capturas de cada proyecto en hojas rotuladas (escritorio 2×2, celular 3×1, ≤ 2.000 px de
+lado y a tamaño real o al 60–77 %, con Playwright, sin dependencias nuevas) más `hojas/indice.txt`. Se comprobó abriendo la primera de cada
+proyecto: el texto de 12–13 px se lee. Con 115 capturas son 34 hojas. La regla (`.claude/rules/e2e.md`): «mirar las capturas» es abrir
+**todas** las hojas y el informe las lista; una captura suelta sólo amplía un detalle. No se probó con otra disposición: por cuenta, 3×2 en el
+celular da una escala de 0,43 y las letras de 12 px quedarían en ~5 px (no se leerían).
+
+## 2026-10-17 — Cierre 4 (6): `importaciones-vinculos-purgar` no es lento; la importación recién creada sí, por falta de estadísticas
+
+**Contexto:** `importaciones-vinculos-purgar` tardó 6.365 ms en una corrida y 199 ms en la siguiente; el cierre 1 lo atribuyó a una pestaña
+del navegador sin medir, y el comentario de `medir-bajas.sql` documenta que las primeras escrituras tras una carga pagan su imagen
+completa en el WAL. Se reprodujo con `db:medir:volumen` en nueve condiciones, con la carga de la máquina (`/proc/pressure`, loadavg) y los
+contadores de WAL y checkpoints antes y después de cada corrida:
+recién cargado 223 ms · `CHECKPOINT` antes 322 · segunda seguida 187 y 503 (con el IDE al 90 % de CPU) · 33 checkpoints forzados encima 191
+· 7 checkpoints después de la carga 615 · un autovacuum de `seguimientos` activo 233. **No se reprodujo el 6,4 s.** La hipótesis de las
+imágenes completas se refuta con números: 11 MB de imágenes completas cuestan 212 ms contra 241 con ninguna, y forzar 33 checkpoints
+(24 MB de imágenes completas en la papelera contra 3,5) deja la papelera en 4.030 ms contra 4.044. El único caso lento (storage-gc 4.254 ms
+contra 160, la papelera 6,6 s contra 4,0) tuvo +13,3 s de `sync` del checkpointer contra +0,3 s en las corridas rápidas: un `fsync`
+lento del disco, una vez, sin poder repetirlo.
+**Decisión:** (1) el estado estable **no** es «`CHECKPOINT` antes de cronometrar»: no mueve nada y `postgres` ni puede hacerlo; los
+presupuestos de los jobs quedan como estaban (10 a 30 veces lo típico: atrapan una regresión de orden de magnitud, no una vuelta de disco).
+(2) El runner (`scripts/medir-listado.mjs`) dice, al final de cada medición y en voz alta si falla, qué pasaba: carga, presión de disco y de
+CPU, megabytes de WAL, imágenes completas, checkpoints (con el tiempo de escribir y de `sync`) y autovacuums activos: el próximo valor
+fuera de lugar se explica con eso o no se explica. (3) El título de cada medición dice si es la mediana de 5 corridas o **una** (los jobs,
+la baja y la importación gastan lo que miden: decía «mediana de 5» de todo).
+
+## 2026-10-17 — Cierre 4 (7): una base recién creada tarda 20 s en su primera importación; la semilla analiza
+
+**Contexto:** midiendo lo de arriba apareció lo que de verdad era «recién cargado»: tras un `db:reset` la primera importación de 500 filas
+tardaba **20 s** (lotes de 3,8 s con 50 filas y de 7,3 s con 100, contra el corte de 8 s de `authenticated`) y la segunda ~1 s, todas las
+veces (20,4 · 20,4 · 20,2 · 19,9 s). Con sólo un `CHECKPOINT` tras el reset, 19,9 s; con un `analyze` de todo, 1,2 s: **la causa son las
+estadísticas que faltan**, no el WAL. Una empresa nueva (un despliegue por empresa) paga lo mismo en su primera importación, y el autovacuum
+tarda minutos en analizar.
+**Decisión:** `seed.sql` termina con un `analyze` de las tablas de `public` y `web` (aunque estén casi vacías ya basta: 1,25 s la primera
+importación tras el reset). `medir-importacion.sql` tiene tres pasadas: «tal como queda tras el reset» con presupuesto (lote más lento ≤ 2 s,
+500 filas ≤ 8 s; hoy ~0,15 y ~1,2 s; sin el `analyze` de la semilla falla con 3,7 s, comprobado), y las dos estables (sin y con los índices de
+`actividad`) tras un `analyze`. Sobre una base que ya tiene estadísticas, la primera mide lo mismo que las otras y pasa. El e2e completo,
+que parte de un `db:reset`, también deja de pagar los 20 s.
+
+## 2026-10-17 — Cierre 4 (8): el lote de la importación se queda en 50, y tiene su guarda
+
+**Contexto:** «100 también cabría» (DECISIONES, 8a). Se midió importar 500 filas con 50 y con 100 (la RPC con el tope cambiado dentro de un
+`begin … rollback`, tres corridas alternadas), con la regla de pasar a 100 sólo si se cumplían las tres: el lote más lento ≤ 500 ms con
+50.000 leads, 500 filas ≥ 20 % más rápido y la carrera de lotes cruzados sin cambios.
+**Números:** base de la semilla, 500 filas: 50 → 1.116 · 1.377 · 981 · 1.209 ms (lote más lento 106–404); 100 → 974 · 1.024 · 1.042 · 1.009
+(203–223): **13 % de mejora, no 20**. Con 62.000 leads: 50 → 2.990–3.151 (lote más lento ~310 ms); 100 → 2.903–3.026 (**~610 ms**, el doble:
+el costo es por fila, no por lote). Recién creada sin estadísticas: el lote de 100 llegó a 7,3 s, a 0,7 s del corte (el de 50, 3,8 s).
+**Decisión:** queda en 50 (falla el criterio de tiempo, y el margen contra el corte se come con una base fría). La carrera con 100 no se
+midió: la regla pedía las tres y las dos primeras fallan. **La guarda:** el 50 estaba en cuatro lugares que no podían importarlo (el tope y
+el mensaje de la última migración de `leads_importar_lote`, la prueba de la matriz que manda 51, el motivo de `escala.sql` y la medición);
+`scripts/guardas/lote-de-importacion.test.ts` los compara con `FILAS_POR_LOTE` (cambiarlo a 100 rompe tres de las cinco pruebas, comprobado)
+y la medición recibe el lote del código como variable de psql, sin ningún tamaño escrito.
+
+## 2026-10-17 — Cierre 4 (9): los `beforeAll`/`afterAll` son 1,15 s por spec y proyecto; las cuentas se crean y se borran a la vez
+
+**Contexto:** «los 105 s de `beforeAll`/`afterAll`» salió de un reporter descartable sobre 518 tests; en la corrida completa del cierre 3
+(874 tests, 170 bloques spec × proyecto) son **197 s**: 126,6 de `beforeAll` y 70,6 de `afterAll`, ~1,15 s por bloque, ninguno de más de
+3,5 s (los diez peores, de 1,4 a 3,5 s, están en `docs/RENDIMIENTO.md`). Con `fetch` envuelto: `createUser` ≈ 80 ms cada uno (bcrypt) y
+`deleteUser` ≈ 55 ms, **todos en fila**: 65–73 % del `beforeAll` y 80 % del `afterAll`.
+**Decisión (una mejora por commit, la regla era ahorrar ≥ 20 s):** `borrarPersonasDePrueba()` borra a todas a la vez salvo la más vieja (la
+dueña: el guardián no deja al equipo sin quien lo administre mientras haya más gente) y a ella después (`afterAll` 430 → 220–240 ms);
+`prepararAlta()` crea a la dueña primero y a las demás a la vez (`beforeAll` 710 → 400–460 ms). ~0,45 s por bloque; medido en la corrida completa: 197 → 119,6 s de hooks. Lo que
+no se tocó: crear las cuentas por SQL con un hash precalculado (ahorraría más y cambia lo que prueba cada spec).
+
+## 2026-10-17 — Cierre 4 (10): al 200 % los campos de un modal caben en él
+
+Al mirar las capturas del cierre 4 en el celular al 200 %: el `<select>` del rol de «Invitar» (una opción larga) ensanchaba la columna del
+formulario y el campo se salía del modal; el campo de «Nueva etiqueta» se achicaba hasta 112 px. `<fieldset>` de `ModalDeFormulario` es una
+columna `minmax(0, 1fr)`, el select va `w-full min-w-0` y el campo de la etiqueta pasa a una fila que se parte (`flex-wrap`, mínimo 8 rem).
+Lo asserta `e2e/modales-con-salida.spec.ts` (falla sin el arreglo: «el campo no se achica hasta no leerse», «no se sale del modal por la derecha»).
+Se mide **sin desplazar** el cuerpo: desplazarlo de costado acomoda el campo a la vista y el desborde desaparece de la medida.
