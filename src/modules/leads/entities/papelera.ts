@@ -320,7 +320,16 @@ export function puedeEnviarLead(
   duenoId: string | null,
   usuarioId: string,
 ): boolean {
-  const alcance = alcanceDe(permisos, 'leads.eliminar')
+  return puedeEnviarConAlcance(alcanceDe(permisos, 'leads.eliminar'), duenoId, usuarioId)
+}
+
+// Lo mismo con el alcance ya resuelto: el kanban lo recibe del servidor (no lleva los permisos al navegador) y decide por cada lead que
+// lee al abrir su «⋯».
+export function puedeEnviarConAlcance(
+  alcance: 'todos' | 'propios' | null,
+  duenoId: string | null,
+  usuarioId: string,
+): boolean {
   return alcance === 'todos' || (alcance === 'propios' && duenoId === usuarioId)
 }
 

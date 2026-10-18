@@ -13,6 +13,7 @@ import { rotuloDeVehiculoDeNota } from '../../../entities/vehiculo-de-nota'
 import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
 import { InsigniaDeEstado } from '../../oportunidades/components/insignia-de-estado'
 import { MenuMoverA } from '../../oportunidades/components/menu-mover-a'
+import { MenuDeLeadDeLaTarjeta } from './menu-de-lead-del-embudo'
 
 type Props = {
   tarjeta: Tarjeta
@@ -75,15 +76,18 @@ export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover, alPedi
         <span className="min-w-0 text-(length:--text-xs) text-(--color-ink-faint)">
           En esta etapa desde {fechaRelativa(tarjeta.enEtapaDesde, { zona: zonaHoraria })}
         </span>
-        <MenuMoverA
-          id={tarjeta.id}
-          titulo={tarjeta.titulo}
-          etapas={etapas}
-          actual={tarjeta.etapaId}
-          enCurso={enCurso}
-          alMover={alMover}
-          alPedirMotivo={alPedirMotivo}
-        />
+        <span className="flex shrink-0 items-center gap-1">
+          <MenuMoverA
+            id={tarjeta.id}
+            titulo={tarjeta.titulo}
+            etapas={etapas}
+            actual={tarjeta.etapaId}
+            enCurso={enCurso}
+            alMover={alMover}
+            alPedirMotivo={alPedirMotivo}
+          />
+          <MenuDeLeadDeLaTarjeta lead={tarjeta.lead} />
+        </span>
       </div>
     </article>
   )

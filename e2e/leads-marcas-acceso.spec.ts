@@ -14,7 +14,8 @@ import {
 import {
   borrarEtiquetasDe,
   crearEtiquetaDe,
-  interruptor,
+  esperarMarcaEnLaFicha,
+  marcarEnLaFicha,
   marcasEnLaBase,
   menuDeFila,
   ponerEtiquetaDe,
@@ -151,8 +152,8 @@ test('compartir y transferir no mueven ni muestran las marcas; revocar saca el l
   // Carlos lo ve, sin las marcas de Berta, y pone las suyas.
   await entrar(page, t.personas.carlos)
   await irAFicha(page, lead.id)
-  await expect(interruptor(page, 'Favorito')).toHaveAttribute('aria-pressed', 'false')
-  await interruptor(page, 'Tachado').click()
+  await esperarMarcaEnLaFicha(page, 'Favorito', false)
+  await marcarEnLaFicha(page, 'Tachado')
   await expect
     .poll(async () => (await marcasEnLaBase(lead.id, t.personas.carlos)).tachado)
     .toBe(true)

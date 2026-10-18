@@ -48,6 +48,18 @@ export function useDrawerDeLead() {
       recordarQuienAbre()
       void setParametros({ [CLAVE_DE_PANEL]: PANEL_EDITAR_LEAD }, { history: 'push' })
     },
+    // Elegir una pestaña y abrir su modal a la vez (el «⋯» del resumen: anotar o agendar), con el id de lo que se edita vacío.
+    abrirModal: (pestana: PestanaDelRapido, panel: string) => {
+      void setParametros(
+        {
+          [CLAVE_DE_PESTANA]: pestana === 'resumen' ? null : pestana,
+          [CLAVE_DE_PANEL]: panel,
+          [CLAVE_DE_SEGUIMIENTO]: null,
+          [CLAVE_DE_RECORDATORIO]: null,
+        },
+        { history: 'push' },
+      )
+    },
     abrir: (leadId: string) => {
       void setParametros({ [CLAVE_DE_LEAD]: leadId, [CLAVE_DE_PESTANA]: null }, { history: 'push' })
     },

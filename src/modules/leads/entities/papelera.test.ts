@@ -9,6 +9,7 @@ import {
   motivoParaNoEnviar,
   palabraDePurga,
   puedeAbrirLaPapelera,
+  puedeEnviarConAlcance,
   puedeEnviarLead,
   puedePurgarLeads,
   purgaDesde,
@@ -175,6 +176,11 @@ describe('quién envía y quién abre', () => {
     expect(puedeEnviarLead(propios, B, A)).toBe(false)
     expect(puedeEnviarLead(propios, null, A)).toBe(false)
     expect(puedeEnviarLead([], A, A)).toBe(false)
+    // Con el alcance ya resuelto (lo que recibe el kanban).
+    expect(puedeEnviarConAlcance('todos', B, A)).toBe(true)
+    expect(puedeEnviarConAlcance('propios', A, A)).toBe(true)
+    expect(puedeEnviarConAlcance('propios', B, A)).toBe(false)
+    expect(puedeEnviarConAlcance(null, A, A)).toBe(false)
   })
   it('la abre quien envía o quien purga; purga sólo quien tiene el permiso', () => {
     expect(puedeAbrirLaPapelera(propios)).toBe(true)

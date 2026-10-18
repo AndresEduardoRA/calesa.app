@@ -98,12 +98,56 @@ export async function ponerMarcaDe(
   exigir(error, `poner ${marca}`)
 }
 
-// Los interruptores de la cabecera de la ficha.
-export const interruptor = (page: Page, cual: 'Favorito' | 'Tachado'): Locator =>
-  aLaVista(page.getByRole('button', { name: cual, exact: true }))
+// El «⋯» de la cabecera de la ficha (9i): Favorito, Tachado, Etiquetas… y lo demás, en la lista de siempre. Es el único de la página.
+export const menuDeLaFicha = (page: Page): Locator =>
+  aLaVista(page.getByRole('button', { name: /^Más acciones de / }))
 
-export const botonEtiquetas = (page: Page): Locator =>
-  aLaVista(page.getByRole('button', { name: /^Etiquetas/ }))
+// Abre el menú de la ficha y lo espera (la página hidrata antes de que el clic valga); si ya está abierto, lo deja.
+export async function abrirMenuDeLaFicha(page: Page): Promise<Locator> {
+  const menu = page.getByRole('menu')
+  await expect(async () => {
+    if (!(await menu.isVisible())) {
+      await menuDeLaFicha(page).click()
+    }
+    await expect(menu).toBeVisible({ timeout: 1000 })
+  }).toPass()
+  return menu
+}
+
+type Marca = 'Favorito' | 'Tachado'
+
+// Pone o quita una marca desde el menú de la ficha, y lo deja cerrado. `doble`: dos clics seguidos (el segundo llega mientras viaja el primero).
+export async function marcarEnLaFicha(
+  page: Page,
+  cual: Marca,
+  { doble = false }: { doble?: boolean } = {},
+): Promise<void> {
+  const menu = await abrirMenuDeLaFicha(page)
+  const item = menu.getByRole('menuitemcheckbox', { name: cual, exact: true })
+  await (doble ? item.dblclick() : item.click())
+  if (await menu.isVisible()) {
+    await page.keyboard.press('Escape')
+  }
+  await expect(menu).toBeHidden()
+}
+
+// Espera que la marca esté (o no) en el menú de la ficha, y lo deja cerrado.
+export async function esperarMarcaEnLaFicha(
+  page: Page,
+  cual: Marca,
+  puesta: boolean,
+): Promise<void> {
+  await expect(async () => {
+    const menu = await abrirMenuDeLaFicha(page)
+    await expect(menu.getByRole('menuitemcheckbox', { name: cual, exact: true })).toHaveAttribute(
+      'aria-checked',
+      String(puesta),
+      { timeout: 1000 },
+    )
+    await page.keyboard.press('Escape')
+    await expect(menu).toBeHidden()
+  }).toPass()
+}
 
 // El «⋯» de una fila del listado (tabla o tarjeta), por el nombre completo del lead.
 export const menuDelLead = (page: Page, nombreDelLead: string): Locator =>
@@ -129,7 +173,8 @@ export const selectorDeEtiquetas = (page: Page): Locator =>
 export async function abrirSelectorEnLaFicha(page: Page): Promise<Locator> {
   const selector = selectorDeEtiquetas(page)
   await expect(async () => {
-    await botonEtiquetas(page).click()
+    const menu = await abrirMenuDeLaFicha(page)
+    await menu.getByRole('menuitem', { name: 'Etiquetas…' }).click()
     await expect(selector).toBeVisible({ timeout: 1000 })
   }).toPass()
   return selector

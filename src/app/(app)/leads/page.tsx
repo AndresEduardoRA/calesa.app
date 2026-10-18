@@ -35,7 +35,10 @@ export default async function PaginaLeads({ searchParams }: PageProps<'/leads'>)
   if (unParametro(parametros[CLAVE_DE_VISTA] ?? undefined) === VISTA_EMBUDO) {
     return (
       <Suspense fallback={<EsqueletoDeTablero />}>
-        <Embudo parametros={parametros} />
+        <Embudo
+          parametros={parametros}
+          quien={{ permisos: sesion.permisos, usuarioId: sesion.usuarioId }}
+        />
       </Suspense>
     )
   }
@@ -63,7 +66,13 @@ export default async function PaginaLeads({ searchParams }: PageProps<'/leads'>)
   )
 }
 
-async function Embudo({ parametros }: { parametros: ParametrosDeUrl }) {
+async function Embudo({
+  parametros,
+  quien,
+}: {
+  parametros: ParametrosDeUrl
+  quien: Parameters<typeof leerVistaDeEmbudo>[1]
+}) {
   await connection()
-  return <VistaDeEmbudo {...datosO(await leerVistaDeEmbudo(parametros))} />
+  return <VistaDeEmbudo {...datosO(await leerVistaDeEmbudo(parametros, quien))} />
 }

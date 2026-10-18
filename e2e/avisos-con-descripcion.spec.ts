@@ -39,7 +39,7 @@ const haceHex = (rgb: string): string => {
 // Con el panel de «Etapas» abierto y un cambio hecho, se pierde la sesión (otra pestaña la cerró) y se guarda: el aviso de «sesión
 // vencida» sale con su descripción, encima del pie del panel, sin cerrarlo ni perder lo hecho.
 async function sesionVencida(page: Page) {
-  await page.getByRole('button', { name: 'Etapas' }).click()
+  await page.getByRole('button', { name: 'Etapas', exact: true }).click()
   const panel = page.getByRole('dialog', { name: /Etapas de/ })
   await expect(panel).toBeVisible()
   await panel.getByRole('button', { name: 'Bajar Nuevo' }).click()

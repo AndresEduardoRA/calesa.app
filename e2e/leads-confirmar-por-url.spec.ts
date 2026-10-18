@@ -140,7 +140,7 @@ test('eliminar un embudo: su URL junto al panel de etapas, Esc, atrás, recarga,
   expect(creado.error).toBeNull()
   await entrar(page, t.personas.berta)
   await irAlEmbudo(page, `&embudo=${id}`)
-  await page.getByRole('button', { name: 'Etapas' }).click()
+  await page.getByRole('button', { name: 'Etapas', exact: true }).click()
   const panel = page.getByRole('dialog', { name: /Etapas de/ })
   await expect(panel).toBeVisible()
   const disparador = panel.getByRole('button', { name: 'Eliminar embudo' })

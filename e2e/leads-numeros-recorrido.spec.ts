@@ -115,7 +115,7 @@ test('A · la dueña, con el permiso: el global y, aparte, el propio de quien lo
   await sinScrollHorizontal(page)
   // El título y las acciones no se montan (en el celular, con cuatro botones, se tapaban).
   const titulo = await page.getByRole('heading', { level: 1 }).boundingBox()
-  const favorito = await page.getByRole('button', { name: 'Favorito' }).boundingBox()
+  const favorito = await page.getByRole('button', { name: /^Más acciones de / }).boundingBox()
   expect(titulo).not.toBeNull()
   expect(favorito).not.toBeNull()
   if (titulo && favorito) {

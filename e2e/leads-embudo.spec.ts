@@ -159,7 +159,7 @@ test('las etapas: las reglas se dicen, se reordenan y una con oportunidades no s
   })
   await entrar(page, t.personas.berta)
   await irAlEmbudo(page)
-  await page.getByRole('button', { name: 'Etapas' }).click()
+  await page.getByRole('button', { name: 'Etapas', exact: true }).click()
   const panel = page.getByRole('dialog', { name: /Etapas de/ })
   await expect(panel).toBeVisible()
 
@@ -170,7 +170,7 @@ test('las etapas: las reglas se dicen, se reordenan y una con oportunidades no s
   await page.keyboard.press('Escape')
 
   // Reordenar con las flechas y guardar.
-  await page.getByRole('button', { name: 'Etapas' }).click()
+  await page.getByRole('button', { name: 'Etapas', exact: true }).click()
   await panel.getByRole('button', { name: 'Bajar Nuevo' }).click()
   await panel.getByRole('button', { name: 'Guardar' }).click()
   await expect(page.getByText('Embudo guardado.')).toBeVisible()
@@ -179,7 +179,7 @@ test('las etapas: las reglas se dicen, se reordenan y una con oportunidades no s
     .toEqual(['Contactado', 'Nuevo', 'Cotizado', 'Negociación', 'Ganado', 'Perdido'])
 
   // Quitar «Cotizado», que tiene una: la base lo rechaza nombrándola.
-  await page.getByRole('button', { name: 'Etapas' }).click()
+  await page.getByRole('button', { name: 'Etapas', exact: true }).click()
   await panel.getByRole('button', { name: 'Quitar Cotizado' }).click()
   await panel.getByRole('button', { name: 'Guardar' }).click()
   // El embudo de Berta lo comparten los tests de este proyecto: cuántas tiene «Cotizado» depende de ellos.

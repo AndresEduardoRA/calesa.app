@@ -64,11 +64,11 @@ test('A · el «⋯» de la asesora: sus acciones, cada modal y su descarte, y n
   await tactil(page, boton)
   const menu = await abrirMenuDelLead(page, r.uno.nombre)
   expect(await opcionesDelMenu(menu)).toEqual([
+    'Agendar recordatorio…',
+    'Anotar seguimiento…',
+    'Etiquetas…',
     'Favorito',
     'Tachado',
-    'Etiquetas…',
-    'Anotar seguimiento…',
-    'Agendar recordatorio…',
     'Enviar a la papelera',
   ])
   for (const item of await menu.locator('[role=menuitem], [role=menuitemcheckbox]').all()) {
@@ -162,9 +162,9 @@ test('A · el «⋯» de la dueña: sobre lo suyo anota; sobre lo ajeno (en «to
   await sinScrollHorizontal(page)
   const menu = await abrirMenuDelLead(page, r.uno.nombre)
   expect(await opcionesDelMenu(menu)).toEqual([
+    'Etiquetas…',
     'Favorito',
     'Tachado',
-    'Etiquetas…',
     'Enviar a la papelera',
   ])
   await capturar(page, info, 'duena-menu-ajeno')

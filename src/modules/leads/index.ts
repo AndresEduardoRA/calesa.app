@@ -46,7 +46,11 @@ export { ListadoDeLeads } from './features/listado/components/listado-de-leads'
 // La vista de embudo de `/leads` (`?vista=embudo`): los embudos de quien mira y el kanban del elegido
 // (`leerVistaDeEmbudo`), dibujados por `<VistaDeEmbudo>`; mientras llega, `<EsqueletoDeTablero>`. Sólo
 // las oportunidades propias sobre leads de la cartera: lo decide la base.
-export { leerVistaDeEmbudo, type DatosDelEmbudo } from './features/embudo/lecturas'
+export {
+  leerVistaDeEmbudo,
+  type DatosDelEmbudo,
+  type ParaElMenuDelEmbudo,
+} from './features/embudo/lecturas'
 export { VistaDeEmbudo } from './features/embudo/components/vista-de-embudo'
 export { EsqueletoDeTablero } from './features/embudo/components/esqueleto-de-tablero'
 export { CLAVE_DE_VISTA, VISTA_EMBUDO } from './entities/tablero'

@@ -167,7 +167,7 @@ test('restaurar con el teléfono tomado: queda adentro y dice por qué', async (
   expect((await estadoDeLead(original.id))?.eliminado_en).not.toBeNull()
 })
 
-test('sin permiso: la papelera no abre, no hay enlace y la ficha no ofrece enviar', async ({
+test('sin permiso: la papelera no abre, no hay enlace y el «⋯» de la ficha no ofrece enviar', async ({
   page,
 }, info) => {
   const lead = await deBerta(`Sin permiso papelera ${info.project.name}`)
@@ -180,7 +180,10 @@ test('sin permiso: la papelera no abre, no hay enlace y la ficha no ofrece envia
   await expect(page.getByRole('link', { name: 'Papelera' })).toHaveCount(0)
   await irAFicha(page, lead.id)
   await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
-  await expect(menuDeFicha(page, lead.nombre)).toHaveCount(0)
+  // El «⋯» de la ficha tiene las marcas (basta con ver el lead), pero no «Enviar a la papelera».
+  await menuDeFicha(page, lead.nombre).click()
+  await expect(page.getByRole('menuitem', { name: 'Etiquetas…' })).toBeVisible()
+  await expect(page.getByRole('menuitem', { name: 'Enviar a la papelera' })).toHaveCount(0)
 })
 
 const PREFIJOS_DE_LOTE: Record<string, string> = { Lote200: '1', Lote30: '2', Lote25: '3' }

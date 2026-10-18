@@ -13,13 +13,14 @@ import {
 } from './soporte/leads-listado'
 import {
   abrirMenuDeFila,
-  interruptor,
+  esperarMarcaEnLaFicha,
+  marcarEnLaFicha,
   marcasEnLaBase,
   menuDeFila,
   ponerMarcaDe,
 } from './soporte/leads-marcas'
 
-// Favorito y tachado: en la cabecera de la ficha (interruptores con `aria-pressed`) y en el «⋯» de
+// Favorito y tachado: en el «⋯» de la cabecera de la ficha (casillas con `aria-checked`) y en el «⋯» de
 // cada fila del listado. Son de quien mira: otra persona que ve el mismo lead no los ve. No mueven
 // la versión del lead. El drawer los muestra sin acciones.
 test.describe.configure({ mode: 'serial' })
@@ -38,7 +39,7 @@ async function leadDeBerta(corto: string) {
   return nuevoLead({ corto, telefono: completoCon(t, nacional()), deQuien: t.personas.berta })
 }
 
-test('favorito y tachado desde la ficha: aria-pressed, siguen al recargar y no mueven la versión', async ({
+test('favorito y tachado desde el «⋯» de la ficha: siguen al recargar y no mueven la versión', async ({
   page,
   browser,
 }, info) => {
@@ -48,12 +49,12 @@ test('favorito y tachado desde la ficha: aria-pressed, siguen al recargar y no m
   await irAFicha(page, lead.id)
   await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
 
-  await expect(interruptor(page, 'Favorito')).toHaveAttribute('aria-pressed', 'false')
+  await esperarMarcaEnLaFicha(page, 'Favorito', false)
   // Doble clic: el segundo llega mientras viaja el primero y no lo deja al revés.
-  await interruptor(page, 'Favorito').dblclick()
-  await expect(interruptor(page, 'Favorito')).toHaveAttribute('aria-pressed', 'true')
-  await interruptor(page, 'Tachado').click()
-  await expect(interruptor(page, 'Tachado')).toHaveAttribute('aria-pressed', 'true')
+  await marcarEnLaFicha(page, 'Favorito', { doble: true })
+  await esperarMarcaEnLaFicha(page, 'Favorito', true)
+  await marcarEnLaFicha(page, 'Tachado')
+  await esperarMarcaEnLaFicha(page, 'Tachado', true)
   await expect(aLaVista(page.getByText('Lead tachado.'))).toBeVisible()
   await expect
     .poll(() => marcasEnLaBase(lead.id, t.personas.berta))
@@ -64,27 +65,27 @@ test('favorito y tachado desde la ficha: aria-pressed, siguen al recargar y no m
     })
 
   await page.reload()
-  await expect(interruptor(page, 'Favorito')).toHaveAttribute('aria-pressed', 'true')
-  await expect(interruptor(page, 'Tachado')).toHaveAttribute('aria-pressed', 'true')
+  await esperarMarcaEnLaFicha(page, 'Favorito', true)
+  await esperarMarcaEnLaFicha(page, 'Tachado', true)
   expect(await versionDe(lead.id)).toBe(version)
 
   // La dueña ve el mismo lead («todos») sin las marcas de Berta.
   const otra = await otraPersona(browser, page)
   await entrar(otra, t.personas.duena)
   await irAFicha(otra, lead.id)
-  await expect(interruptor(otra, 'Favorito')).toHaveAttribute('aria-pressed', 'false')
-  await expect(interruptor(otra, 'Tachado')).toHaveAttribute('aria-pressed', 'false')
+  await esperarMarcaEnLaFicha(otra, 'Favorito', false)
+  await esperarMarcaEnLaFicha(otra, 'Tachado', false)
   await otra.context().close()
 
   // Quitar: lo mismo con el valor contrario.
-  await interruptor(page, 'Tachado').click()
-  await expect(interruptor(page, 'Tachado')).toHaveAttribute('aria-pressed', 'false')
+  await marcarEnLaFicha(page, 'Tachado')
+  await esperarMarcaEnLaFicha(page, 'Tachado', false)
   await expect
     .poll(async () => (await marcasEnLaBase(lead.id, t.personas.berta)).tachado)
     .toBe(false)
 })
 
-test('el «⋯» de la fila marca sin abrir el drawer, y el drawer muestra las marcas sin acciones', async ({
+test('el «⋯» de la fila marca sin abrir el drawer, y el drawer muestra las marcas (se cambian en su «⋯»)', async ({
   page,
 }, info) => {
   const corto = `Marca Fila ${info.project.name}`
@@ -105,7 +106,7 @@ test('el «⋯» de la fila marca sin abrir el drawer, y el drawer muestra las m
     .toBe(true)
   await expect(delLead(page, corto).getByText('Favorito', { exact: true })).toBeAttached()
 
-  // El drawer: lo dice, y no ofrece nada para cambiarlo.
+  // El drawer: lo dice (las insignias son de lectura; se cambian en su «⋯»).
   await aLaVista(page.getByRole('button', { name: `Abrir ${nombre(corto)}` }))
     .first()
     .click()
@@ -113,7 +114,6 @@ test('el «⋯» de la fila marca sin abrir el drawer, y el drawer muestra las m
   await expect(drawer).toBeVisible()
   await expect(drawer.getByText('Favorito', { exact: true })).toBeAttached()
   await expect(drawer.getByRole('button', { name: 'Favorito' })).toHaveCount(0)
-  await expect(drawer.getByRole('button', { name: /^Más acciones de/ })).toHaveCount(0)
 })
 
 test('tachar desde el «⋯» ofrece «Deshacer», y una marca puesta en otra pestaña aparece al volver', async ({

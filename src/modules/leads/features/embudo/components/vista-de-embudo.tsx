@@ -6,22 +6,26 @@ import { Button } from '@/shared/ui/button'
 import { EstadoVacio } from '@/shared/ui/estados'
 import type { Embudo } from '../../../entities/embudo'
 import { totalDelTablero, type Tablero } from '../../../entities/tablero'
+import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
 import { RefrescarAlVolver } from '../../ficha/components/refrescar-al-volver'
+import { AccionesDeFila } from '../../listado/components/acciones-de-fila'
+import type { ParaElMenuDelEmbudo } from '../lecturas'
 import { useTablero } from '../hooks/use-tablero'
 import { useVistaDeEmbudo } from '../hooks/use-vista-de-embudo'
 import { BusquedaDelEmbudo, ID_DE_LA_BUSQUEDA_DEL_EMBUDO } from './busqueda-del-embudo'
 import { ConmutadorDeVista } from './conmutador-de-vista'
+import { ProveedorDelMenuDelEmbudo, useMenuDelEmbudo } from './menu-de-lead-del-embudo'
 import { NuevoEmbudo } from './nuevo-embudo'
 import { PanelDeEtapas } from './panel-de-etapas'
 import { PrimerEmbudo } from './primer-embudo'
 import { SelectorDeEmbudo } from './selector-de-embudo'
 import { TableroDeEmbudo } from './tablero-de-embudo'
 
-type Props = { embudos: Embudo[]; tablero: Tablero | null }
+type Props = { embudos: Embudo[]; tablero: Tablero | null; paraElMenu: ParaElMenuDelEmbudo }
 
 // `/leads?vista=embudo`: el kanban de las oportunidades propias en el embudo elegido. La primera vez
 // prepara el embudo por defecto. Los filtros de la lista no se aplican aquí, y la pantalla lo dice.
-export function VistaDeEmbudo({ embudos, tablero }: Props) {
+export function VistaDeEmbudo({ embudos, tablero, paraElMenu }: Props) {
   if (!tablero || embudos.length === 0) {
     return (
       <div className="grid gap-4">
@@ -31,36 +35,66 @@ export function VistaDeEmbudo({ embudos, tablero }: Props) {
       </div>
     )
   }
-  return <ConTablero embudos={embudos} inicial={tablero} />
+  return <ConTablero embudos={embudos} inicial={tablero} paraElMenu={paraElMenu} />
 }
 
-function ConTablero({ embudos, inicial }: { embudos: Embudo[]; inicial: Tablero }) {
+type PropsDeLaBarra = {
+  embudos: Embudo[]
+  actual: string
+  alElegirEmbudo: (id: string) => void
+  alAbrirEtapas: () => void
+  alAbrirNuevo: () => void
+}
+
+// Arriba del kanban: el conmutador «Lista | Embudo», el selector de embudo, la búsqueda y «Etapas» y «Nuevo embudo».
+function BarraDelEmbudo({
+  embudos,
+  actual,
+  alElegirEmbudo,
+  alAbrirEtapas,
+  alAbrirNuevo,
+}: PropsDeLaBarra) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <ConmutadorDeVista actual="embudo" />
+      <SelectorDeEmbudo embudos={embudos} actual={actual} alElegir={alElegirEmbudo} />
+      <BusquedaDelEmbudo />
+      <div className="ml-auto flex flex-wrap gap-2">
+        <Button variant="outline" className="min-h-11 md:min-h-8" onClick={alAbrirEtapas}>
+          <Settings2Icon aria-hidden className="size-4" />
+          Etapas
+        </Button>
+        <Button variant="outline" className="min-h-11 md:min-h-8" onClick={alAbrirNuevo}>
+          <PlusIcon aria-hidden className="size-4" />
+          Nuevo embudo
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function ConTablero(props: {
+  embudos: Embudo[]
+  inicial: Tablero
+  paraElMenu: ParaElMenuDelEmbudo
+}) {
+  const { embudos, inicial, paraElMenu } = props
   const vista = useVistaDeEmbudo()
   const estado = useTablero(inicial)
   const embudo = embudos.find((e) => e.id === inicial.embudo.id)
   const vacio = totalDelTablero(estado.tablero) === 0
+  // El «⋯» de cada tarjeta es el del lead (`MenuDeLead`): sus etiquetas, «Gestionar» y los modales de anotar y agendar viven acá, una vez.
+  const menu = useMenuDelEmbudo(paraElMenu)
   return (
     <div className="grid gap-4">
       <h1 className="sr-only">Embudo</h1>
-      <div className="flex flex-wrap items-center gap-2">
-        <ConmutadorDeVista actual="embudo" />
-        <SelectorDeEmbudo
-          embudos={embudos}
-          actual={inicial.embudo.id}
-          alElegir={vista.elegirEmbudo}
-        />
-        <BusquedaDelEmbudo />
-        <div className="ml-auto flex flex-wrap gap-2">
-          <Button variant="outline" className="min-h-11 md:min-h-8" onClick={vista.abrirEtapas}>
-            <Settings2Icon aria-hidden className="size-4" />
-            Etapas
-          </Button>
-          <Button variant="outline" className="min-h-11 md:min-h-8" onClick={vista.abrirNuevo}>
-            <PlusIcon aria-hidden className="size-4" />
-            Nuevo embudo
-          </Button>
-        </div>
-      </div>
+      <BarraDelEmbudo
+        embudos={embudos}
+        actual={inicial.embudo.id}
+        alElegirEmbudo={vista.elegirEmbudo}
+        alAbrirEtapas={vista.abrirEtapas}
+        alAbrirNuevo={vista.abrirNuevo}
+      />
       <Aviso tono="info">
         <p>
           {estado.tablero.busqueda
@@ -76,14 +110,16 @@ function ConTablero({ embudos, inicial }: { embudos: Embudo[]; inicial: Tablero 
           descripcion="Crea una desde la ficha de un lead, en «Oportunidades»."
         />
       ) : null}
-      <TableroDeEmbudo
-        estado={estado}
-        etapaDeLaUrl={vista.etapa}
-        alElegirEtapa={vista.elegirEtapa}
-        alIrABuscar={() => {
-          document.getElementById(ID_DE_LA_BUSQUEDA_DEL_EMBUDO)?.focus()
-        }}
-      />
+      <ProveedorDelMenuDelEmbudo valor={menu.valor}>
+        <TableroDeEmbudo
+          estado={estado}
+          etapaDeLaUrl={vista.etapa}
+          alElegirEtapa={vista.elegirEtapa}
+          alIrABuscar={() => {
+            document.getElementById(ID_DE_LA_BUSQUEDA_DEL_EMBUDO)?.focus()
+          }}
+        />
+      </ProveedorDelMenuDelEmbudo>
       {vista.etapasAbierto && embudo ? (
         <PanelDeEtapas
           key={embudo.actualizadoEn}
@@ -102,8 +138,10 @@ function ConTablero({ embudos, inicial }: { embudos: Embudo[]; inicial: Tablero 
           }}
         />
       ) : null}
+      <DialogoDeEtiquetas etiquetas={menu.etiquetas} />
+      <AccionesDeFila filas={menu.leidos} puedeAnotar={paraElMenu.editar} />
       {/* Lo que se movió en otra pestaña (o en la ficha) aparece al volver. */}
-      <RefrescarAlVolver activo={!vista.etapasAbierto && !vista.nuevoAbierto} />
+      <RefrescarAlVolver activo={!vista.etapasAbierto && !vista.nuevoAbierto && !menu.hayPanel} />
     </div>
   )
 }

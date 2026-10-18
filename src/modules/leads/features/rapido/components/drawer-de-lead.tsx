@@ -2,34 +2,29 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { z } from 'zod'
-import { valorMostrado } from '@/shared/lib/campos'
-import { formatearFechaHora } from '@/shared/lib/fechas'
 import { RUTAS } from '@/shared/lib/rutas'
 import { PencilIcon } from 'lucide-react'
 import { Button, buttonVariants } from '@/shared/ui/button'
-import { ValorMostrado } from '@/shared/ui/campos'
 import { Drawer } from '@/shared/ui/drawer'
-import { useRegional } from '@/shared/ui/regional'
-import { Skeleton } from '@/shared/ui/skeleton'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import type { FilaDeLead } from '../../../entities/listado'
 import {
-  gruposDelRapido,
-  hayPrivadosSinRecibir,
   vistaDelRapido,
   type PestanaDelRapido,
   type VistaDelRapido,
 } from '../../../entities/rapido'
 import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
 import { InsigniasDeMarcas } from '../../marcas/components/insignias-de-marcas'
-import { telefonoDeLista } from '../../listado/components/telefono-de-lista'
-import { nombreDelOrigen, type DatosDeLaLista } from '../../listado/components/tipos'
+import type { DatosDeLaLista, ParaMarcar } from '../../listado/components/tipos'
 import { useNumerosEnTexto } from '@/shared/ui/numero-de-lead'
 import { useDrawerDeLead } from '../hooks/use-drawer-de-lead'
 import { useLeadRapido } from '../hooks/use-lead-rapido'
 import { EdicionDelResumenDiferido } from './diferidos'
+import { CuerpoDelRapido, EsqueletoDelRapido, type PropsDeDatos } from './cuerpo-del-rapido'
+import { MenuDelResumen } from './menu-del-resumen'
 import { PestanasDelRapido } from './pestanas-del-rapido'
 
 type Props = DatosDeLaLista & {
@@ -40,74 +35,21 @@ type Props = DatosDeLaLista & {
   soloMios: boolean
   // Quien mira tiene `leads.editar`: con el lead en su cartera, el resumen ofrece «Editar».
   puedeEditar: boolean
+  // Lo que necesita el «⋯»: las etiquetas de quien mira, «Gestionar» y qué leads se pueden enviar a la papelera.
+  marcar: ParaMarcar
 }
 
 const ES_GUID = z.guid()
 
-function Dato({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-0.5">
-      <dt className="text-(length:--text-xs) text-(--color-ink-soft)">{etiqueta}</dt>
-      <dd className="text-(length:--text-sm) text-(--color-ink)">{children}</dd>
-    </div>
-  )
-}
-
-function EsqueletoDelRapido({ etiqueta }: { etiqueta: string }) {
-  return (
-    <div aria-busy="true" aria-label={etiqueta} className="grid gap-2">
-      <Skeleton className="h-4 w-1/3" />
-      <Skeleton className="h-4 w-2/3" />
-      <Skeleton className="h-4 w-1/2" />
-    </div>
-  )
-}
-
-type PropsDeDatos = DatosDeLaLista & { lead: FilaDeLead }
-
-// Los datos propios del lead que le llegaron a quien mira, agrupados como el layout.
-function DatosDelLayout({ lead, campos }: PropsDeDatos) {
-  const { locale, zonaHoraria } = useRegional()
-  const grupos = gruposDelRapido(campos, lead.atributos)
-  return (
-    <>
-      {grupos.map((grupo) => (
-        <section key={grupo.nombre ?? '__sin_grupo'} className="grid gap-2">
-          {grupo.nombre ? (
-            <h3 className="text-(length:--text-sm) font-semibold text-(--color-ink)">
-              {grupo.nombre}
-            </h3>
-          ) : null}
-          <dl className="grid gap-3 sm:grid-cols-2">
-            {grupo.datos.map(({ campo, valor }) => (
-              <Dato key={campo.clave} etiqueta={campo.etiqueta}>
-                <ValorMostrado valor={valorMostrado(campo, valor, { locale, zona: zonaHoraria })} />
-              </Dato>
-            ))}
-          </dl>
-        </section>
-      ))}
-      {grupos.length === 0 ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-          Todavía no tiene más datos cargados.
-        </p>
-      ) : null}
-      {hayPrivadosSinRecibir(campos, lead.enCartera) ? (
-        <p className="text-(length:--text-xs) text-(--color-ink-soft)">
-          Algunos datos son solo de su cartera.
-        </p>
-      ) : null}
-    </>
-  )
-}
-
 type PropsDeLaCabecera = Pick<PropsDeDatos, 'lead' | 'etiquetas'> & {
   // «Editar»: sólo con permiso y con el lead en la cartera.
   alEditar: (() => void) | null
+  // El «⋯» del lead.
+  menu: ReactNode
 }
 
-// Lo de arriba, en las tres pestañas: el tipo, las marcas de quien mira, «Editar» y «Abrir ficha».
-function CabeceraDelRapido({ lead, etiquetas, alEditar }: PropsDeLaCabecera) {
+// Lo de arriba, en las tres pestañas: el tipo, las marcas de quien mira, «Editar», «Abrir ficha» y el «⋯».
+function CabeceraDelRapido({ lead, etiquetas, alEditar, menu }: PropsDeLaCabecera) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="flex flex-wrap items-center gap-2">
@@ -128,46 +70,8 @@ function CabeceraDelRapido({ lead, etiquetas, alEditar }: PropsDeLaCabecera) {
         >
           Abrir ficha
         </Link>
+        {menu}
       </span>
-    </div>
-  )
-}
-
-type PropsDelCuerpo = PropsDeDatos & { completo: boolean; fallo: boolean; reintentar: () => void }
-
-// «Resumen»: lo que se sabe del lead. Editarlo es de la ficha.
-function CuerpoDelRapido({ completo, fallo, reintentar, ...datos }: PropsDelCuerpo) {
-  const { zonaHoraria } = useRegional()
-  const { lead, origenes, codigoDePais } = datos
-  return (
-    <div className="grid gap-4">
-      <dl className="grid gap-3">
-        <Dato etiqueta="Teléfono">
-          <span className="tabular-nums">{telefonoDeLista(lead.telefono, codigoDePais)}</span>
-          {lead.enCartera ? null : (
-            <span className="mt-0.5 block text-(length:--text-xs) text-(--color-ink-soft)">
-              Completo solo para su cartera.
-            </span>
-          )}
-        </Dato>
-        <Dato etiqueta="Origen del lead">{nombreDelOrigen(origenes, lead.origenId) ?? '—'}</Dato>
-        <Dato etiqueta="Creado">{formatearFechaHora(lead.creadoEn, { zona: zonaHoraria })}</Dato>
-      </dl>
-      {completo ? (
-        <DatosDelLayout {...datos} />
-      ) : (
-        <EsqueletoDelRapido etiqueta="Cargando los datos" />
-      )}
-      {fallo ? (
-        <div role="alert" className="flex flex-wrap items-center gap-2">
-          <p className="text-(length:--text-sm) text-(--color-ink)">
-            No se pudieron actualizar los datos.
-          </p>
-          <Button type="button" variant="outline" size="sm" onClick={reintentar}>
-            Reintentar
-          </Button>
-        </div>
-      ) : null}
     </div>
   )
 }
@@ -184,6 +88,8 @@ type PropsDelContenido = {
   datos: DatosDeLaLista
   // Abre el panel de edición, o nulo si quien mira no puede editar.
   alEditar: (() => void) | null
+  // El «⋯» de un lead.
+  menu: (lead: FilaDeLead) => ReactNode
 }
 
 // Lo que va adentro del drawer según cómo esté la lectura.
@@ -196,6 +102,7 @@ function ContenidoDelRapido({
   reintentar,
   datos,
   alEditar,
+  menu,
 }: PropsDelContenido) {
   if (vista.tipo === 'no_disponible') {
     return (
@@ -226,6 +133,7 @@ function ContenidoDelRapido({
         lead={lead}
         etiquetas={datos.etiquetas}
         alEditar={lead.enCartera ? alEditar : null}
+        menu={menu(lead)}
       />
       <PestanasDelRapido
         leadId={lead.id}
@@ -282,7 +190,7 @@ function EdicionDelDrawer(props: PropsDeLaEdicion) {
 // con lo que ya trajo la página y se completa con su lectura. Si el lead desaparece, o deja de ser
 // visible, mientras está abierto lo dice sin explicar por qué; con un modal abierto adentro no vuelve
 // a leer (lo dice el modal al guardar).
-export function DrawerDeLead({ filas, soloMios, puedeEditar, ...datos }: Props) {
+export function DrawerDeLead({ filas, soloMios, puedeEditar, marcar, ...datos }: Props) {
   const { id, pestana, conModal, elegirPestana, cerrar, editar, editando } = useDrawerDeLead()
   const idValido = id !== null && ES_GUID.safeParse(id).success
   const { lectura, reintentar } = useLeadRapido(idValido ? id : null, conModal)
@@ -315,6 +223,15 @@ export function DrawerDeLead({ filas, soloMios, puedeEditar, ...datos }: Props) 
         reintentar={reintentar}
         datos={datos}
         alEditar={puedeEditar ? editar : null}
+        menu={(lead) => (
+          <MenuDelResumen
+            lead={lead}
+            marcar={marcar}
+            puedeEditar={puedeEditar}
+            alMarcar={reintentar}
+            alEnviado={cerrar}
+          />
+        )}
       />
       <EdicionDelDrawer
         pedida={editando}
