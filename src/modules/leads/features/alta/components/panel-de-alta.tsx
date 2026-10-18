@@ -8,8 +8,6 @@ import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import {
   CLAVE_DEL_ALTA,
-  ETIQUETA_DE_TIPO_DEL_LEAD,
-  TIPOS_DEL_LEAD,
   campoDelAlta,
   camposDelAlta,
   resumenDePrecargados,
@@ -78,6 +76,15 @@ function opcionesDeOrigen(contexto: ContextoDeAlta, elegido: string) {
     : [{ valor: '', etiqueta: 'Elige un origen' }, ...activos]
 }
 
+// Lo que ofrece el select de tipo: los activos. Si el elegido ya no está entre ellos (se desactivó mientras se escribía)
+// arranca «Elige un tipo». Los nombres salen de la base.
+function opcionesDeTipo(contexto: ContextoDeAlta, elegido: string) {
+  const activos = contexto.tipos.map((t) => ({ valor: t.id, etiqueta: t.nombre }))
+  return contexto.tipos.some((t) => t.id === elegido)
+    ? activos
+    : [{ valor: '', etiqueta: 'Elige un tipo' }, ...activos]
+}
+
 // Los cuatro fijos: teléfono (con su verificación), nombre, origen (el último usado) y tipo.
 function DatosFijos({ alta, contexto }: Pick<Props, 'alta' | 'contexto'>) {
   const { valores, errores, enCurso, cambiar } = alta
@@ -125,10 +132,7 @@ function DatosFijos({ alta, contexto }: Pick<Props, 'alta' | 'contexto'>) {
         <CampoSeleccion
           nombre={idDe(CLAVE_DEL_ALTA.tipo)}
           etiqueta="Tipo"
-          opciones={TIPOS_DEL_LEAD.map((t) => ({
-            valor: t,
-            etiqueta: ETIQUETA_DE_TIPO_DEL_LEAD[t],
-          }))}
+          opciones={opcionesDeTipo(contexto, texto(valores[CLAVE_DEL_ALTA.tipo]))}
           value={texto(valores[CLAVE_DEL_ALTA.tipo])}
           onChange={(evento) => {
             cambiar(CLAVE_DEL_ALTA.tipo, evento.target.value)

@@ -5,10 +5,13 @@ import { TABLA_DE_PAISES } from '../paises/tabla'
 import { prepararFilas, type EntradaDePreparacion, type FilaPreparada } from './filas'
 
 const WEB = '11111111-1111-4111-8111-111111111111'
+const TIPO_PRO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 
 const CONTEXTO: ContextoDeAlta = {
   telefonoCc: '+591',
   origenes: [{ id: WEB, clave: 'web', nombre: 'Web' }],
+  tipos: [{ id: TIPO_PRO, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto' }],
+  tipoPorDefectoId: TIPO_PRO,
   tiposDeSeguimiento: [],
   ultimoOrigenId: null,
   empresa: { ciudad: null, pais: 'Bolivia' },
@@ -48,7 +51,7 @@ function preparar(
     campos: CON_PAIS,
     contexto: CONTEXTO,
     zona: 'America/La_Paz',
-    eleccion: { origenId: WEB, tipo: 'prospecto' },
+    eleccion: { origenId: WEB, tipoLeadId: TIPO_PRO },
     paises: TABLA_DE_PAISES,
     nuevoId: () => `id-${String((n += 1))}`,
     ...extra,

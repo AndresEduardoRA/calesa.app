@@ -8,7 +8,7 @@ import {
   contarLeadsHasta,
   leerEtiquetas,
   leerLayoutDeLeads,
-  leerOrigenesDeLead,
+  leerCatalogosDeLead,
   repositorioDeExportacion,
 } from '../../composicion'
 import type { CampoDeLead } from '../../entities/campo'
@@ -142,18 +142,19 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
   if (!puede(permisos, 'leads.exportar')) {
     return { tipo: 'sin_permiso' }
   }
-  const [layout, origenes, etiquetas] = await Promise.all([
+  const [layout, catalogos, etiquetas] = await Promise.all([
     leerLayoutDeLeads(),
-    leerOrigenesDeLead(),
+    leerCatalogosDeLead(),
     leerEtiquetas(),
   ])
-  if (!layout.ok || !origenes.ok || !etiquetas.ok) {
+  if (!layout.ok || !catalogos.ok || !etiquetas.ok) {
     return { tipo: 'error', mensaje: NO_SE_PUDO }
   }
   const campos = layout.data
   const esquema = esquemaDeFiltrosDeLeads({
     campos,
-    origenes: origenes.data,
+    origenes: catalogos.data.origenes,
+    tipos: catalogos.data.tipos,
     verTodos: false,
     etiquetas: etiquetas.data,
   })
@@ -168,6 +169,7 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
     zona,
     soloMios: true,
     idsDelNumero: ids.data,
+    tipos: catalogos.data.tipos,
   })
 
   // Hasta el tope y no más: cuenta pidiendo `tope + 1` ids, nunca el total exacto.
@@ -187,7 +189,8 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
     campos,
     delimitador,
     contexto: {
-      origenes: new Map(origenes.data.map((origen) => [origen.id, origen.nombre])),
+      origenes: new Map(catalogos.data.origenes.map((origen) => [origen.id, origen.nombre])),
+      tipos: new Map(catalogos.data.tipos.map((tipo) => [tipo.id, tipo.nombre])),
       codigoDePais,
       zona,
       conNumeroGlobal,

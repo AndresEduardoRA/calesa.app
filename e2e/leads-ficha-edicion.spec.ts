@@ -12,6 +12,7 @@ import {
   type TerrenoDelListado,
 } from './soporte/leads-listado'
 import { compartirCon } from './soporte/leads-seguimientos'
+import { tipoDeFabrica } from './soporte/tipos-de-lead'
 import {
   NO_DISPONIBLE,
   abrirEdicion,
@@ -79,7 +80,7 @@ test('edita los fijos y un dato propio, y sólo viaja lo que cambió', async ({ 
   }
   const nuevoNombre = nombre(`${corto} editado`)
   await panel.getByLabel('Nombre').fill(nuevoNombre)
-  await panel.getByLabel('Tipo').selectOption('cliente')
+  await panel.getByLabel('Tipo').selectOption({ label: 'Cliente' })
   await abrirOtros(panel)
   await panel.getByLabel('Color E2E').fill('verde')
 
@@ -87,14 +88,17 @@ test('edita los fijos y un dato propio, y sólo viaja lo que cambió', async ({ 
   await page.keyboard.press('Control+s')
   const cuerpo = cuerpoDeAccion((await peticion).postData())
   expect(cuerpo.id).toBe(lead.id)
-  expect(Object.keys(cuerpo.cambios).sort()).toEqual(['atributos', 'nombre', 'tipo'])
+  expect(Object.keys(cuerpo.cambios).sort()).toEqual(['atributos', 'nombre', 'tipoLeadId'])
   expect(cuerpo.cambios['atributos']).toEqual({ e2e_color: 'verde' })
 
   await expect(page.getByText('Cambios guardados')).toBeVisible()
   await expect(panel).toBeHidden()
   await expect(tituloDeLaFicha(page, nuevoNombre)).toBeVisible()
   const guardado = await leadEnLaBase(lead.id)
-  expect(guardado).toMatchObject({ nombre: nuevoNombre, tipo: 'cliente' })
+  expect(guardado).toMatchObject({
+    nombre: nuevoNombre,
+    tipo_lead_id: (await tipoDeFabrica('cliente')).id,
+  })
   expect(guardado.atributos['e2e_color']).toBe('verde')
 })
 
@@ -177,17 +181,19 @@ test('un requerido nuevo vacío en un lead viejo se marca antes de guardar, con 
     await irAFicha(page, lead.id)
     const panel = await abrirEdicion(page)
     // Lo único que se cambia es el tipo.
-    await panel.getByLabel('Tipo').selectOption('cliente')
+    await panel.getByLabel('Tipo').selectOption({ label: 'Cliente' })
     await page.getByRole('button', { name: 'Guardar', exact: true }).click()
     const campo = panel.getByLabel('Color E2E')
     await expect(campo).toBeVisible()
     await expect(campo).toBeFocused()
     await expect(campo).toHaveAttribute('aria-invalid', 'true')
-    expect((await leadEnLaBase(lead.id)).tipo).toBe('prospecto')
+    expect((await leadEnLaBase(lead.id)).tipo_lead_id).toBe((await tipoDeFabrica('prospecto')).id)
     await campo.fill('amarillo')
     await page.getByRole('button', { name: 'Guardar', exact: true }).click()
     await expect(page.getByText('Cambios guardados')).toBeVisible()
-    expect(await leadEnLaBase(lead.id)).toMatchObject({ tipo: 'cliente' })
+    expect(await leadEnLaBase(lead.id)).toMatchObject({
+      tipo_lead_id: (await tipoDeFabrica('cliente')).id,
+    })
   } finally {
     await admin().from('leads_campos').update({ requerido: false }).eq('clave', 'e2e_color')
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
+import { tipoDelCatalogo } from '../../../entities/catalogos'
 import { camposDeLaTarjeta, type FilaDeLead } from '../../../entities/listado'
 import { MenuDeLead } from '../../marcas/components/menu-de-lead'
 import { BadgeDeTipo } from './badge-de-tipo'
@@ -23,7 +24,8 @@ type Props = DatosDeLaLista & {
 // (`minmax(0, 1fr)` y `min-w-0`): sin eso la columna `auto` toma el ancho mínimo de la tarjeta y, con el texto al 200 %, un nombre que
 // no se parte ensancha la página y deja el «⋯» fuera de la vista; el «⋯» no se achica (`shrink-0`).
 export function TarjetasDeLeads(props: Props) {
-  const { leads, campos, origenes, codigoDePais, etiquetas, alAbrir, abierto, marcar } = props
+  const { leads, campos, origenes, tipos, codigoDePais, etiquetas, alAbrir, abierto, marcar } =
+    props
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
       {leads.map((lead) => {
@@ -62,7 +64,7 @@ export function TarjetasDeLeads(props: Props) {
                   </AbrirResumen>
                 )}
               />
-              <BadgeDeTipo tipo={lead.tipo} />
+              <BadgeDeTipo tipo={tipoDelCatalogo(tipos, lead.tipoLeadId)} />
             </div>
             <span className="text-(length:--text-sm) text-(--color-ink) tabular-nums">
               {telefonoDeLista(lead.telefono, codigoDePais)}

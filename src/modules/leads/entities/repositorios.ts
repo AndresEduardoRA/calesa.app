@@ -12,7 +12,8 @@ import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
 import type { CondicionDeLead } from './filtros'
 import type { CambiosDeLead } from './edicion'
 import type { RegistroDeExportacion } from './exportacion'
-import type { LeadDeFicha, OrigenConEstado } from './ficha'
+import type { CatalogosDeLead } from './catalogos'
+import type { LeadDeFicha } from './ficha'
 import type { ImpactoDeCampo } from './impacto'
 import type { FilaDeLead } from './listado'
 import type { Documento } from './documento'
@@ -122,7 +123,8 @@ export type ContadorDeLeads = (
 ) => Promise<Resultado<ConteoAcotado>>
 
 // Todos los orígenes de lead, también los desactivados: un lead con uno apagado se sigue nombrando.
-export type LectorDeOrigenesDeLead = () => Promise<Resultado<OrigenConEstado[]>>
+// Los orígenes y los tipos con que se nombra a un lead (también los apagados), en un solo pedido (`leads_catalogos()`).
+export type LectorDeCatalogosDeLead = () => Promise<Resultado<CatalogosDeLead>>
 
 // En el navegador: un lead por su id para el drawer. `null` = no existe o no lo ve (la papelera, el
 // limbo y lo ajeno son lo mismo para quien mira).

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { ValorDeFormulario } from '@/shared/lib/campos'
+import type { ValorDeFormulario, ValoresDeFormulario } from '@/shared/lib/campos'
 import { cambiosDeEstado } from '@/shared/lib/borrador'
 import { useAtajo } from '@/shared/ui/atajos'
 import { useBorradorDeEstado } from '@/shared/ui/use-borrador-de-estado'
@@ -9,6 +9,7 @@ import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import type { CampoDeLead } from '../../../entities/campo'
 import { hayCambios, validarEdicion, valoresDeEdicion } from '../../../entities/edicion'
 import { MENSAJE_DE_LEAD_NO_DISPONIBLE } from '../../../entities/ficha'
+import type { TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import type { LeadDeFicha, OrigenConEstado } from '../../../entities/ficha'
 import { conCambio, conMotivos, enEspera, limpio, trasRechazo } from './estado-del-formulario'
 import { useGuardarLead } from './use-guardar-lead'
@@ -18,6 +19,8 @@ type Args = {
   // Los campos que se ofrecen (`camposEditables`).
   campos: readonly CampoDeLead[]
   origenes: readonly OrigenConEstado[]
+  // Los tipos de lead, también los apagados (uno apagado que el lead ya tiene se conserva).
+  tipos: readonly TipoDeLeadEnCatalogo[]
   zona: string
   // Cierra el panel: lo guardado (o lo que no tenía cambios) ya está.
   alGuardar: (sinCambios: boolean) => void
@@ -28,18 +31,14 @@ type Args = {
 // El estado de editar la ficha de un lead: valida con el layout antes de enviar y pinta los motivos
 // junto a cada campo, guarda un borrador de lo escrito, muestra el conflicto si otra persona lo
 // cambió y, si se cae la conexión, conserva todo y reintenta al volver. Sólo viaja lo que cambió.
-export function useFormularioDeLead({
-  ficha,
-  campos,
-  origenes,
-  zona,
-  alGuardar,
-  alPerderElLead,
-}: Args) {
-  const iniciales = useMemo(() => valoresDeEdicion(ficha, campos, zona), [ficha, campos, zona])
-  const [estado, setEstado] = useState(() => limpio(iniciales))
-  const guardando = useGuardarLead()
-  const borrador = useBorradorDeEstado({
+// El borrador de lo escrito (por lead): al volver a abrir el panel lo escrito reaparece, hasta que se guarda o se descarta.
+function useBorradorDeLaFicha(
+  ficha: LeadDeFicha,
+  estado: ReturnType<typeof limpio>,
+  iniciales: ValoresDeFormulario,
+  setEstado: (cambio: (antes: ReturnType<typeof limpio>) => ReturnType<typeof limpio>) => void,
+) {
+  return useBorradorDeEstado({
     clave: `lead-${ficha.id}`,
     valores: estado.valores,
     guardado: iniciales,
@@ -48,6 +47,21 @@ export function useFormularioDeLead({
     },
     activo: true,
   })
+}
+
+export function useFormularioDeLead({
+  ficha,
+  campos,
+  origenes,
+  tipos,
+  zona,
+  alGuardar,
+  alPerderElLead,
+}: Args) {
+  const iniciales = useMemo(() => valoresDeEdicion(ficha, campos, zona), [ficha, campos, zona])
+  const [estado, setEstado] = useState(() => limpio(iniciales))
+  const guardando = useGuardarLead()
+  const borrador = useBorradorDeLaFicha(ficha, estado, iniciales, setEstado)
 
   async function enviar(): Promise<boolean> {
     if (guardando.enCurso) {
@@ -59,6 +73,7 @@ export function useFormularioDeLead({
       iniciales,
       campos,
       origenes,
+      tipos,
       zona,
     })
     if (!validacion.ok) {

@@ -10,6 +10,15 @@ import {
 
 const WEB = '11111111-1111-4111-8111-111111111111'
 const REFERIDO = '22222222-2222-4222-8222-222222222222'
+const TIPO_PRO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const TIPO_CLI = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+const TIPO_VIP = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+// Sólo los activos, en su orden (como los entrega el alta): los nombres salen de la base.
+const TIPOS = [
+  { id: TIPO_PRO, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto' as const },
+  { id: TIPO_CLI, clave: 'cliente', nombre: 'Cliente', clase: 'cliente' as const },
+  { id: TIPO_VIP, clave: 'vip', nombre: 'Cliente VIP', clase: 'cliente' as const },
+]
 
 const CONTEXTO: ContextoDeAlta = {
   telefonoCc: '+591',
@@ -17,6 +26,8 @@ const CONTEXTO: ContextoDeAlta = {
     { id: WEB, clave: 'web', nombre: 'Web' },
     { id: REFERIDO, clave: 'referido', nombre: 'Referido' },
   ],
+  tipos: TIPOS,
+  tipoPorDefectoId: TIPO_PRO,
   tiposDeSeguimiento: [],
   ultimoOrigenId: null,
   empresa: { ciudad: null, pais: null },
@@ -89,7 +100,7 @@ const CAMPOS: CampoDeLead[] = camposDeLeadDesde([
 const DESTINOS = [
   'nombre',
   'telefono_principal',
-  'tipo',
+  'tipo_lead_id',
   'origen_lead_id',
   'atributos.ciudad',
   'atributos.edad',
@@ -106,7 +117,7 @@ function preparar(filas: string[][], extra: Partial<EntradaDePreparacion> = {}):
     campos: CAMPOS,
     contexto: CONTEXTO,
     zona: 'America/La_Paz',
-    eleccion: { origenId: WEB, tipo: 'prospecto' },
+    eleccion: { origenId: WEB, tipoLeadId: TIPO_PRO },
     nuevoId: () => `id-${String((contador += 1))}`,
     ...extra,
   })
@@ -124,7 +135,7 @@ describe('prepararFilas: una fila buena', () => {
       lead: {
         nombre: 'Ana Pérez',
         telefono_principal: '70011002',
-        tipo: 'cliente',
+        tipo_lead_id: TIPO_CLI,
         origen_lead_id: REFERIDO,
         atributos: { ciudad: 'La Paz', edad: 35, vehiculo: 'sedan', cedula: 'CI-1234' },
       },
@@ -146,9 +157,9 @@ describe('prepararFilas: una fila buena', () => {
 describe('prepararFilas: el origen y el tipo', () => {
   it('sin celda usa el de todo el archivo', () => {
     const [fila] = preparar([['Ana', '70011002', '', '', '', '', '', 'CI-1']], {
-      eleccion: { origenId: REFERIDO, tipo: 'cliente' },
+      eleccion: { origenId: REFERIDO, tipoLeadId: TIPO_CLI },
     })
-    expect(fila?.pedido?.lead).toMatchObject({ origen_lead_id: REFERIDO, tipo: 'cliente' })
+    expect(fila?.pedido?.lead).toMatchObject({ origen_lead_id: REFERIDO, tipo_lead_id: TIPO_CLI })
   })
 
   it('un origen que no existe es un error de esa fila y no se crea uno', () => {
@@ -177,7 +188,7 @@ describe('prepararFilas: el origen y el tipo', () => {
   it('sin ningún origen activo, un origen escrito se rechaza y dice que se deje vacío', () => {
     const [fila] = preparar([['Ana', '70011002', '', 'Web', '', '', '', 'CI-1']], {
       contexto: { ...CONTEXTO, origenes: [] },
-      eleccion: { origenId: null, tipo: 'prospecto' },
+      eleccion: { origenId: null, tipoLeadId: TIPO_PRO },
     })
     expect(fila?.motivos[0]?.motivo).toBe(
       'El origen «Web» no existe o está desactivado. No hay orígenes activos: deja la celda vacía.',
@@ -199,15 +210,9 @@ describe('prepararFilas: el origen y el tipo', () => {
     )
   })
 
-  it('un tipo inválido es un error', () => {
-    const [fila] = preparar([['Ana', '70011002', 'VIP', '', '', '', '', 'CI-1']])
-    expect(fila?.motivos[0]?.campo).toBe('tipo')
-    expect(fila?.pedido).toBeNull()
-  })
-
   it('sin origen elegido y con orígenes activos, la fila pide uno', () => {
     const [fila] = preparar([['Ana', '70011002', '', '', '', '', '', 'CI-1']], {
-      eleccion: { origenId: null, tipo: 'prospecto' },
+      eleccion: { origenId: null, tipoLeadId: TIPO_PRO },
     })
     expect(fila?.motivos[0]).toMatchObject({ campo: 'origen_lead_id' })
   })

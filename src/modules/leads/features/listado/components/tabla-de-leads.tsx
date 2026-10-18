@@ -8,6 +8,7 @@ import {
   TablaDeLista,
 } from '@/shared/ui/lista'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
+import { tipoDelCatalogo } from '../../../entities/catalogos'
 import { camposDeTabla } from '../../../entities/listado'
 import type { FilaDeLead } from '../../../entities/listado'
 import { MenuDeLead } from '../../marcas/components/menu-de-lead'
@@ -51,7 +52,8 @@ function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposD
 // rápido (`?lead=`), salvo el del «⋯» y el de un enlace de la fila. La tabla es tan ancha como lo pidan sus columnas (el nombre nunca
 // se achica para que quepan) y se desplaza dentro de la tarjeta, con el nombre y el «⋯» a la vista.
 export function TablaDeLeads(props: Props) {
-  const { leads, campos, origenes, codigoDePais, etiquetas, alAbrir, abierto, marcar } = props
+  const { leads, campos, origenes, tipos, codigoDePais, etiquetas, alAbrir, abierto, marcar } =
+    props
   const columnas = camposDeTabla(campos)
   return (
     <TablaDeLista>
@@ -80,7 +82,7 @@ export function TablaDeLeads(props: Props) {
               {telefonoDeLista(lead.telefono, codigoDePais)}
             </TableCell>
             <TableCell>
-              <BadgeDeTipo tipo={lead.tipo} />
+              <BadgeDeTipo tipo={tipoDelCatalogo(tipos, lead.tipoLeadId)} />
             </TableCell>
             <TableCell className="max-w-48 truncate">
               {nombreDelOrigen(origenes, lead.origenId) ?? VACIO}

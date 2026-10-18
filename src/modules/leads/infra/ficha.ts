@@ -17,8 +17,8 @@ function comoJson(cambios: CambiosDeLead): Json {
   if (cambios.nombre !== undefined) {
     json['nombre'] = cambios.nombre
   }
-  if (cambios.tipo !== undefined) {
-    json['tipo'] = cambios.tipo
+  if (cambios.tipoLeadId !== undefined) {
+    json['tipo_lead_id'] = cambios.tipoLeadId
   }
   if (cambios.origenId !== undefined) {
     json['origen_lead_id'] = cambios.origenId

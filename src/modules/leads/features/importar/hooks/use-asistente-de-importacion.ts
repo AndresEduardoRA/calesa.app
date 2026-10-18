@@ -31,7 +31,8 @@ type Entrada = { campos: readonly CampoDeLead[]; contexto: ContextoDeAlta; zona:
 function eleccionInicial(contexto: ContextoDeAlta): EleccionParaTodoElArchivo {
   return {
     origenId: contexto.ultimoOrigenId ?? contexto.origenes[0]?.id ?? null,
-    tipo: 'prospecto',
+    // El que propone el alta (el primero activo de la clase prospecto: lo calcula la base).
+    tipoLeadId: contexto.tipoPorDefectoId ?? contexto.tipos[0]?.id ?? '',
   }
 }
 
@@ -101,8 +102,8 @@ export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
     elegirOrigen: (origenId: string | null) => {
       setEleccion((actual) => ({ ...actual, origenId }))
     },
-    elegirTipo: (tipo: EleccionParaTodoElArchivo['tipo']) => {
-      setEleccion((actual) => ({ ...actual, tipo }))
+    elegirTipo: (tipoLeadId: string) => {
+      setEleccion((actual) => ({ ...actual, tipoLeadId }))
     },
   }
 }

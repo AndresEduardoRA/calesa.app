@@ -12,6 +12,7 @@ import {
   type ValoresDeFiltros,
 } from '@/shared/lib/filtros'
 import type { OrigenDeLead } from './alta'
+import { idsDeLasClaves, opcionesDeTipo, type TipoDeLeadEnCatalogo } from './catalogos'
 import { columnaParaFiltrar, type CampoDeLead, type ColumnaDeAtributos } from './campo'
 import type { Etiqueta } from './etiqueta'
 import {
@@ -21,7 +22,6 @@ import {
   filtrosDeMarcas,
   type CondicionDeMarca,
 } from './filtros-de-marcas'
-import { ETIQUETA_DEL_TIPO, TIPOS_DEL_LEAD } from './listado'
 
 export const FILTRO_TIPO = 'tipo'
 export const FILTRO_ORIGEN = 'origen'
@@ -38,6 +38,8 @@ type Fuentes = {
   campos: readonly CampoDeLead[]
   // Todos, también los desactivados (un lead puede conservar uno apagado); sin `activo` cuenta como activo.
   origenes: readonly (OrigenDeLead & { activo?: boolean })[]
+  // Los tipos de lead, también los desactivados: son las opciones del filtro de tipo (sus nombres salen de la base).
+  tipos: readonly TipoDeLeadEnCatalogo[]
   // Tiene el alcance «todos»: para él un filtro privado necesita su aclaración.
   verTodos: boolean
   // Las de quien mira: las opciones del filtro de etiquetas.
@@ -58,16 +60,17 @@ export function opcionesDeOrigen(
 }
 
 export function esquemaDeFiltrosDeLeads(fuentes: Fuentes): EsquemaDeFiltros {
-  const { campos, origenes, verTodos } = fuentes
-  const fijos: EsquemaDeFiltros['filtros'][number][] = [
-    {
+  const { campos, origenes, tipos, verTodos } = fuentes
+  const fijos: EsquemaDeFiltros['filtros'][number][] = []
+  if (tipos.length > 0) {
+    fijos.push({
       tipo: 'opciones',
       clave: FILTRO_TIPO,
       etiqueta: 'Tipo',
       seccion: SECCION_DATOS,
-      opciones: TIPOS_DEL_LEAD.map((tipo) => ({ valor: tipo, etiqueta: ETIQUETA_DEL_TIPO[tipo] })),
-    },
-  ]
+      opciones: opcionesDeTipo(tipos),
+    })
+  }
   if (origenes.length > 0) {
     fijos.push({
       tipo: 'opciones',
@@ -104,7 +107,7 @@ export type CondicionDeLead =
       soloNumero: boolean
       idsDelNumero: readonly string[]
     }
-  | { tipo: 'columna_en'; columna: 'tipo' | 'origen_lead_id'; valores: string[] }
+  | { tipo: 'columna_en'; columna: 'tipo_lead_id' | 'origen_lead_id'; valores: string[] }
   // «Míos»: el lead está en la cartera de quien mira.
   | { tipo: 'en_cartera' }
   | (CondicionDeAtributo & { columna: ColumnaDeAtributos })
@@ -145,12 +148,23 @@ function condicionesDeCampos(
   })
 }
 
-// Tipo y origen del lead: columnas de la fila.
-function condicionesDeColumnas(valores: ValoresDeFiltros): CondicionDeLead[] {
+// Tipo y origen del lead: columnas de la fila. El filtro de tipo lleva claves en la URL (`?tipo=cliente`: no cambian nunca) y la
+// base filtra por el id: se traducen con el catálogo.
+function condicionesDeColumnas(
+  valores: ValoresDeFiltros,
+  tipos: readonly TipoDeLeadEnCatalogo[],
+): CondicionDeLead[] {
   return Object.entries(valores.porClave).flatMap(([clave, valor]): CondicionDeLead[] => {
     if (valor.tipo !== 'opciones') return []
-    if (clave === FILTRO_TIPO)
-      return [{ tipo: 'columna_en', columna: 'tipo', valores: valor.valores }]
+    if (clave === FILTRO_TIPO) {
+      return [
+        {
+          tipo: 'columna_en',
+          columna: 'tipo_lead_id',
+          valores: idsDeLasClaves(tipos, valor.valores),
+        },
+      ]
+    }
     if (clave === FILTRO_ORIGEN) {
       return [{ tipo: 'columna_en', columna: 'origen_lead_id', valores: valor.valores }]
     }
@@ -163,7 +177,13 @@ export function condicionesDeLeads(
   campos: readonly CampoDeLead[],
   valores: ValoresDeFiltros,
   // `idsDelNumero`: lo que resolvió la base para el número buscado (ver `leerIdsDelNumero`); sin él, ninguno.
-  opciones: { zona?: string; soloMios: boolean; idsDelNumero?: readonly string[] },
+  opciones: {
+    zona?: string
+    soloMios: boolean
+    idsDelNumero?: readonly string[]
+    // El catálogo de tipos: traduce las claves de `?tipo=` a ids.
+    tipos?: readonly TipoDeLeadEnCatalogo[]
+  },
 ): CondicionDeLead[] {
   const condiciones: CondicionDeLead[] = []
   const busqueda = interpretarBusqueda(valores.busqueda)
@@ -180,7 +200,7 @@ export function condicionesDeLeads(
   return [
     ...condiciones,
     ...deCampos,
-    ...condicionesDeColumnas(valores),
+    ...condicionesDeColumnas(valores, opciones.tipos ?? []),
     ...condicionesDeMarcas(valores),
   ]
 }

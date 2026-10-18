@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { TIPOS_DEL_LEAD } from '../../../entities/alta'
 import { FILAS_POR_LOTE, LIMITES_DE_IMPORTACION } from '../../../entities/importacion/limites'
 
 // Lo que cruza el límite desde el navegador: se valida acá y la base lo vuelve a validar. Las claves de
@@ -25,7 +24,7 @@ const filaDelLote = z.object({
   lead: z.object({
     nombre: z.string().max(120),
     telefono_principal: z.string().max(40),
-    tipo: z.enum(TIPOS_DEL_LEAD),
+    tipo_lead_id: z.guid(),
     origen_lead_id: z.guid().nullable(),
     atributos: z.record(z.string().regex(CLAVE_DE_CAMPO), valorDeAtributo),
   }),

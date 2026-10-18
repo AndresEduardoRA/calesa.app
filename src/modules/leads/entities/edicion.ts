@@ -14,13 +14,8 @@ import {
   type ValoresDeFormulario,
 } from '@/shared/lib/campos'
 import { alcanceDe, type Permisos } from '@/shared/lib/permisos'
-import {
-  CLAVE_DEL_ALTA,
-  LARGO_MAXIMO_DEL_NOMBRE,
-  TIPOS_DEL_LEAD,
-  claveDeAtributoDeAlta,
-  type TipoDelLead,
-} from './alta'
+import { CLAVE_DEL_ALTA, LARGO_MAXIMO_DEL_NOMBRE, claveDeAtributoDeAlta } from './alta'
+import type { TipoDeLeadEnCatalogo } from './catalogos'
 import type { CampoDeLead } from './campo'
 import type { LeadDeFicha, OrigenConEstado } from './ficha'
 
@@ -73,7 +68,7 @@ export function valoresDeEdicion(
   const valores: ValoresDeFormulario = {
     [CLAVE_DE_EDICION.nombre]: ficha.nombre,
     [CLAVE_DE_EDICION.origen]: ficha.origenId ?? '',
-    [CLAVE_DE_EDICION.tipo]: ficha.tipo,
+    [CLAVE_DE_EDICION.tipo]: ficha.tipoLeadId,
   }
   for (const campo of campos) {
     valores[claveDeAtributoEnEdicion(campo.clave)] = deAtributo(
@@ -99,7 +94,7 @@ export function origenesOfrecidos(
 // Lo que viaja: sólo lo que cambió. `atributos` es un parche: un valor pone o cambia, `null` quita.
 export type CambiosDeLead = {
   nombre?: string
-  tipo?: TipoDelLead
+  tipoLeadId?: string
   origenId?: string | null
   atributos?: Record<string, Exclude<Dato, null> | null>
 }
@@ -117,6 +112,8 @@ type Entrada = {
   // Los campos que se ofrecieron (`camposEditables`).
   campos: readonly CampoDeLead[]
   origenes: readonly OrigenConEstado[]
+  // Los tipos de lead, también los apagados (uno apagado que el lead ya tiene se conserva).
+  tipos: readonly TipoDeLeadEnCatalogo[]
   zona: string
 }
 
@@ -141,12 +138,21 @@ function nombreDeEdicion({ ficha, valores }: Entrada, motivos: Motivos): Cambios
   return {}
 }
 
-function tipoDeEdicion({ ficha, valores }: Entrada, motivos: Motivos): CambiosDeLead {
-  const tipo = TIPOS_DEL_LEAD.find((uno) => uno === texto(valores[CLAVE_DE_EDICION.tipo]))
-  if (!tipo) {
+// El tipo sólo se mira si cambió: uno apagado que el lead ya tiene se conserva, y pasar a otro apagado no se puede.
+function tipoDeEdicion({ ficha, valores, tipos }: Entrada, motivos: Motivos): CambiosDeLead {
+  const elegido = texto(valores[CLAVE_DE_EDICION.tipo])
+  if (elegido === ficha.tipoLeadId) {
+    return {}
+  }
+  const tipo = tipos.find((uno) => uno.id === elegido)
+  if (elegido === '') {
     motivos[CLAVE_DE_EDICION.tipo] = 'Elige el tipo de lead.'
-  } else if (tipo !== ficha.tipo) {
-    return { tipo }
+  } else if (!tipo) {
+    motivos[CLAVE_DE_EDICION.tipo] = 'Ese tipo de lead ya no existe: elige otro.'
+  } else if (!tipo.activo) {
+    motivos[CLAVE_DE_EDICION.tipo] = 'Ese tipo de lead se desactivó: elige otro.'
+  } else {
+    return { tipoLeadId: tipo.id }
   }
   return {}
 }

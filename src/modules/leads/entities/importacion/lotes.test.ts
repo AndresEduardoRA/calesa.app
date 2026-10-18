@@ -15,7 +15,7 @@ const pedido = (id: string): PedidoDeFila => ({
   lead: {
     nombre: 'Ana',
     telefono_principal: '7',
-    tipo: 'prospecto',
+    tipo_lead_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     origen_lead_id: null,
     atributos: {},
   },

@@ -261,6 +261,27 @@ export function sinElOrigen(antes: Estado): Estado {
   return { ...antes, valores: { ...antes.valores, [CLAVE_DEL_ALTA.origen]: '' } }
 }
 
+// Lo mismo con el tipo: el elegido ya no se ofrece (se desactivó mientras se escribía) y el campo pide elegir otro.
+export function sinElTipo(antes: Estado): Estado {
+  return { ...antes, valores: { ...antes.valores, [CLAVE_DEL_ALTA.tipo]: '' } }
+}
+
+// Si el rechazo es de un origen o de un tipo que se desactivó (o se eliminó) mientras se escribía: cómo deja el campo (sin
+// elegir, con lo demás intacto). Nulo si no es de eso: la página no tiene por qué volver a leer lo que ofrece.
+export function sinLoQueSeDesactivo(
+  porCampo: Record<string, string> | undefined,
+): ((antes: Estado) => Estado) | null {
+  const origen = Boolean(porCampo?.[CLAVE_DEL_ALTA.origen])
+  const tipo = Boolean(porCampo?.[CLAVE_DEL_ALTA.tipo])
+  if (!origen && !tipo) {
+    return null
+  }
+  return (antes) => {
+    const sinOrigen = origen ? sinElOrigen(antes) : antes
+    return tipo ? sinElTipo(sinOrigen) : sinOrigen
+  }
+}
+
 // Lo que el formulario del alta cambia en su estado sin pasar por el servidor: lo escrito del primer seguimiento, tomar o no el
 // lead del limbo, revisar el teléfono al salir del campo y volver al paso de los datos.
 export function accionesDelEstado(

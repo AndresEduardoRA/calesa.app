@@ -13,7 +13,7 @@ const fila = (cambios: Partial<FilaDeLead> = {}): FilaDeLead => ({
   telefono: '+59170011002',
   enCartera: true,
   duenoId: 'yo',
-  tipo: 'prospecto',
+  tipoLeadId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   origenId: null,
   creadoEn: '2026-10-15T14:00:00+00:00',
   atributos: {},

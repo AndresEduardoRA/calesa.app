@@ -20,6 +20,8 @@ const ORIGEN_WEB = '11111111-1111-4111-8111-111111111111'
 const ORIGEN_FB = '22222222-2222-4222-8222-222222222222'
 const TIPO_WA = '33333333-3333-4333-8333-333333333333'
 const TIPO_LLAMADA = '44444444-4444-4444-8444-444444444444'
+const TIPO_PRO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const TIPO_CLI = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 
 const CONTEXTO: ContextoDeAlta = {
   telefonoCc: '+591',
@@ -27,6 +29,11 @@ const CONTEXTO: ContextoDeAlta = {
     { id: ORIGEN_FB, clave: 'facebook', nombre: 'Facebook' },
     { id: ORIGEN_WEB, clave: 'web', nombre: 'Web' },
   ],
+  tipos: [
+    { id: TIPO_PRO, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto' },
+    { id: TIPO_CLI, clave: 'cliente', nombre: 'Cliente', clase: 'cliente' },
+  ],
+  tipoPorDefectoId: TIPO_PRO,
   tiposDeSeguimiento: [
     { id: TIPO_WA, clave: 'whatsapp', nombre: 'WhatsApp', icono: null },
     { id: TIPO_LLAMADA, clave: 'llamada', nombre: 'Llamada', icono: null },
@@ -87,6 +94,8 @@ describe('contextoDeAltaDesde', () => {
     const contexto = contextoDeAltaDesde({
       telefono_cc: '+591',
       origenes: [{ id: ORIGEN_WEB, clave: 'web', nombre: 'Web' }],
+      tipos: [{ id: TIPO_PRO, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto' }],
+      tipo_por_defecto_id: TIPO_PRO,
       tipos_seguimiento: [{ id: TIPO_WA, clave: 'whatsapp', nombre: 'WhatsApp', icono: 'm' }],
       ultimo_origen_id: ORIGEN_WEB,
       empresa: { ciudad: null, pais: 'Bolivia' },
@@ -94,6 +103,8 @@ describe('contextoDeAltaDesde', () => {
     expect(contexto).toMatchObject({
       telefonoCc: '+591',
       ultimoOrigenId: ORIGEN_WEB,
+      tipos: [{ id: TIPO_PRO, nombre: 'Prospecto', clase: 'prospecto' }],
+      tipoPorDefectoId: TIPO_PRO,
       empresa: { ciudad: null, pais: 'Bolivia' },
     })
     expect(contexto.tiposDeSeguimiento[0]?.nombre).toBe('WhatsApp')
@@ -127,10 +138,10 @@ describe('campoDelAlta', () => {
 })
 
 describe('valoresIniciales', () => {
-  it('arranca con el primer origen, prospecto y la ciudad de la empresa', () => {
+  it('arranca con el primer origen, el tipo que propone la base y la ciudad de la empresa', () => {
     const v = valoresIniciales(CONTEXTO, LAYOUT, ZONA)
     expect(v[CLAVE_DEL_ALTA.origen]).toBe(ORIGEN_FB)
-    expect(v[CLAVE_DEL_ALTA.tipo]).toBe('prospecto')
+    expect(v[CLAVE_DEL_ALTA.tipo]).toBe(TIPO_PRO)
     expect(Object.keys(v).some((clave) => clave.startsWith('seguimiento'))).toBe(false)
     expect(v['atributos.ciudad']).toBe('Santa Cruz')
     expect(v['atributos.pais']).toBe('Bolivia')
@@ -199,7 +210,7 @@ describe('validarAlta: lo que pasa', () => {
         telefono: '700 11 002',
         nombre: 'Ana Quispe',
         origenId: ORIGEN_FB,
-        tipo: 'prospecto',
+        tipoLeadId: TIPO_PRO,
         atributos: { ciudad: 'Santa Cruz', pais: 'Bolivia', signo: 'leo' },
         seguimiento: null,
         recordatorio: null,

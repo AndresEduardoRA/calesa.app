@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { TIPOS_DEL_LEAD } from '../../../entities/alta'
 import { detalle } from '../../seguimientos/schemas/seguimientos'
 
 // Lo que cruza el límite del alta: ya validado y convertido por el formulario (la misma función que
@@ -12,7 +11,8 @@ export const esquemaCrearLead = z.object({
   telefono: z.string().trim().min(1).max(60),
   nombre: z.string().trim().min(1).max(120),
   origenId: z.guid().nullable(),
-  tipo: z.enum(TIPOS_DEL_LEAD),
+  // El id del tipo (uno de los que la base ofrece activos); la base mira que siga activo.
+  tipoLeadId: z.guid(),
   adoptar: z.boolean(),
   atributos: z.record(z.string(), valorDeAtributo),
   seguimiento: z

@@ -4,19 +4,14 @@
 // - Nombre, teléfono, tipo y origen, más los campos activos requeridos, como en el alta.
 // - El teléfono lo normaliza la base con el código de país de la empresa; acá se avisa con el mismo
 //   espejo. Un número en notación científica (Excel lo hizo) se rechaza diciendo cómo arreglarlo.
+// - Tipo: por nombre o clave entre los tipos de lead **activos** (uno desconocido o apagado es un error de esa fila: no se crea
+//   uno al vuelo y el motivo lista los activos) o, si no hay columna o la celda está vacía, el elegido para todo el archivo.
 // - Origen: por nombre entre los orígenes **activos** (uno desconocido es un error de esa fila: no se
 //   crea uno al vuelo) o, si no hay columna o la celda está vacía, el elegido para todo el archivo.
 // - Un teléfono repetido dentro del archivo se marca desde su segunda aparición. Si ya existe en la
 //   base no se sabe acá: se dice al importar, fila por fila, sin nombrar a nadie.
 import type { Dato, ValoresDeFormulario } from '@/shared/lib/campos'
-import {
-  CLAVE_DEL_ALTA,
-  ETIQUETA_DE_TIPO_DEL_LEAD,
-  TIPOS_DEL_LEAD,
-  validarAlta,
-  type ContextoDeAlta,
-  type TipoDelLead,
-} from '../alta'
+import { CLAVE_DEL_ALTA, validarAlta, type ContextoDeAlta } from '../alta'
 import type { CampoDeLead } from '../campo'
 import type { TablaDePaises } from '../paises/resolver'
 import { normalizarTelefono } from '../telefono'
@@ -38,7 +33,7 @@ export type PedidoDeFila = {
   lead: {
     nombre: string
     telefono_principal: string
-    tipo: TipoDelLead
+    tipo_lead_id: string
     origen_lead_id: string | null
     atributos: Record<string, Exclude<Dato, null>>
   }
@@ -61,7 +56,8 @@ export type FilaPreparada = {
 export type EleccionParaTodoElArchivo = {
   // Lo que se usa si el archivo no trae columna de origen o la celda viene vacía.
   origenId: string | null
-  tipo: TipoDelLead
+  // El tipo para las filas sin tipo: uno de los activos (el que propone el alta, por defecto).
+  tipoLeadId: string
 }
 
 export type EntradaDePreparacion = {
@@ -81,12 +77,28 @@ export type EntradaDePreparacion = {
 
 const PREFIJO_DE_ATRIBUTO = 'atributos.'
 
-function tipoDeLaCelda(texto: string): TipoDelLead | null {
+const TIPOS_QUE_SE_NOMBRAN = 10
+
+// Un tipo que no existe o está desactivado nunca se crea por una errata: la fila se rechaza y el motivo lista los activos, para
+// corregir la celda sin ir a otra pantalla. Los nombres salen de la base.
+export function motivoDeTipoDesconocido(texto: string, contexto: ContextoDeAlta): string {
+  const activos = contexto.tipos.map((tipo) => tipo.nombre)
+  const principio = `El tipo «${texto}» no existe o está desactivado.`
+  if (activos.length === 0) {
+    return `${principio} No hay tipos activos: no se puede importar.`
+  }
+  const nombrados = activos.slice(0, TIPOS_QUE_SE_NOMBRAN).join(', ')
+  const resto = activos.length - TIPOS_QUE_SE_NOMBRAN
+  return `${principio} Los activos: ${nombrados}${resto > 0 ? ` y ${String(resto)} más` : ''}.`
+}
+
+// El tipo (su id) que una celda nombra: por nombre o por clave, entre los activos, sin tildes ni mayúsculas.
+function tipoDeLaCelda(contexto: ContextoDeAlta, texto: string): string | null {
   const buscado = comparable(texto)
   return (
-    TIPOS_DEL_LEAD.find(
-      (tipo) => tipo === buscado || comparable(ETIQUETA_DE_TIPO_DEL_LEAD[tipo]) === buscado,
-    ) ?? null
+    contexto.tipos.find(
+      (tipo) => comparable(tipo.nombre) === buscado || comparable(tipo.clave) === buscado,
+    )?.id ?? null
   )
 }
 
@@ -136,12 +148,9 @@ function leerTipo(
   { entrada }: ContextoDeLectura,
   { valores, propios }: Lectura,
 ): void {
-  const tipo = texto === '' ? entrada.eleccion.tipo : tipoDeLaCelda(texto)
+  const tipo = texto === '' ? entrada.eleccion.tipoLeadId : tipoDeLaCelda(entrada.contexto, texto)
   if (tipo === null) {
-    propios.set(
-      CLAVE_DEL_ALTA.tipo,
-      `«${texto}» no es un tipo de lead: usa «Prospecto» o «Cliente».`,
-    )
+    propios.set(CLAVE_DEL_ALTA.tipo, motivoDeTipoDesconocido(texto, entrada.contexto))
   }
   valores[CLAVE_DEL_ALTA.tipo] = tipo ?? ''
 }
@@ -204,7 +213,7 @@ function valoresDeLaFila(
 ): Lectura {
   const lectura: Lectura = {
     valores: {
-      [CLAVE_DEL_ALTA.tipo]: entrada.eleccion.tipo,
+      [CLAVE_DEL_ALTA.tipo]: entrada.eleccion.tipoLeadId,
       [CLAVE_DEL_ALTA.origen]: entrada.eleccion.origenId ?? '',
     },
     propios: new Map(),
@@ -271,7 +280,7 @@ function prepararFila(
       lead: {
         nombre: datos.nombre,
         telefono_principal: datos.telefono,
-        tipo: datos.tipo,
+        tipo_lead_id: datos.tipoLeadId,
         origen_lead_id: datos.origenId,
         atributos: datos.atributos,
       },

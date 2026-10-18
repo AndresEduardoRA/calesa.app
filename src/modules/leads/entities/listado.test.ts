@@ -18,7 +18,7 @@ const FILA = {
   nombre: 'Ana',
   telefono_principal: '591•••••01',
   en_cartera: false,
-  tipo: 'prospecto',
+  tipo_lead_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   origen_lead_id: '0a747082-37b1-4e4b-b884-1456b9664aec',
   creado_en: '2026-10-14T23:03:49.221199+00:00',
 }
@@ -38,7 +38,7 @@ describe('columnas del listado', () => {
     const campos = [campo('ciudad'), campo('Mala clave'), campo('x);drop'), campo('ok_2')]
     expect(clavesDeTabla(campos)).toEqual(['ciudad', 'ok_2'])
     expect(columnasDeLaConsulta(['ciudad', 'x,y', 'edad'])).toBe(
-      'id,numero,numero_propio,numero_propio_creador,nombre,telefono_principal,en_cartera,dueno_id,tipo,origen_lead_id,creado_en,es_favorito,esta_tachado,etiquetas,a_ciudad:atributos->ciudad,a_edad:atributos->edad',
+      'id,numero,numero_propio,numero_propio_creador,nombre,telefono_principal,en_cartera,dueno_id,tipo_lead_id,origen_lead_id,creado_en,es_favorito,esta_tachado,etiquetas,a_ciudad:atributos->ciudad,a_edad:atributos->edad',
     )
   })
 })
@@ -87,7 +87,7 @@ describe('filasDeLeadDesde', () => {
       telefono: '591•••••01',
       enCartera: false,
       duenoId: null,
-      tipo: 'prospecto',
+      tipoLeadId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       origenId: FILA.origen_lead_id,
       creadoEn: FILA.creado_en,
       atributos: { ciudad: 'Santa Cruz' },
@@ -105,7 +105,7 @@ describe('filasDeLeadDesde', () => {
 
   it('una fila que no cumple la forma se descarta sin tumbar la lista', () => {
     const filas = filasDeLeadDesde(
-      [FILA, { ...FILA, id: 'no-es-un-id' }, { ...FILA, tipo: 'raro' }, 5],
+      [FILA, { ...FILA, id: 'no-es-un-id' }, { ...FILA, tipo_lead_id: 'raro' }, 5],
       [],
     )
     expect(filas).toHaveLength(1)

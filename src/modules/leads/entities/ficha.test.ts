@@ -25,7 +25,7 @@ const CRUDA = {
   telefono_cc: '+591',
   telefono: '59170011002',
   en_cartera: true,
-  tipo: 'prospecto',
+  tipo_lead_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   origen_lead_id: OTRA,
   atributos: { ciudad: 'La Paz' },
   creado_en: '2026-10-14T10:00:00+00:00',
@@ -47,7 +47,7 @@ describe('fichaDesde', () => {
       telefonoCc: '+591',
       telefono: '59170011002',
       enCartera: true,
-      tipo: 'prospecto',
+      tipoLeadId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       origenId: OTRA,
       actualizadoEn: '2026-10-14T10:05:00.123456+00:00',
       tieneId: YO,
@@ -72,7 +72,7 @@ describe('fichaDesde', () => {
   })
 
   it('una respuesta que no cumple la forma es null: no es lo mismo que un lead que no se ve', () => {
-    expect(fichaDesde({ ...CRUDA, tipo: 'marciano' })).toBeNull()
+    expect(fichaDesde({ ...CRUDA, tipo_lead_id: 'marciano' })).toBeNull()
     expect(fichaDesde({ ...CRUDA, id: 'no-es-un-guid' })).toBeNull()
     expect(fichaDesde(null)).toBeNull()
     expect(fichaDesde({ ...CRUDA, recordatorios_vencidos: -1 })).toBeNull()

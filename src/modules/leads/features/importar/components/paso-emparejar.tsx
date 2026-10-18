@@ -3,11 +3,7 @@
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
-import {
-  ETIQUETA_DE_TIPO_DEL_LEAD,
-  TIPOS_DEL_LEAD,
-  type ContextoDeAlta,
-} from '../../../entities/alta'
+import type { ContextoDeAlta } from '../../../entities/alta'
 import type { ObjetivoDeImportacion } from '../../../entities/importacion/emparejar'
 import type { EleccionParaTodoElArchivo } from '../../../entities/importacion/filas'
 import type { ArchivoCargado } from '../hooks/use-asistente-de-importacion'
@@ -24,7 +20,7 @@ type Props = {
     eleccion: EleccionParaTodoElArchivo
     elegirDestino: (columna: number, objetivo: string | null) => void
     elegirOrigen: (origenId: string | null) => void
-    elegirTipo: (tipo: EleccionParaTodoElArchivo['tipo']) => void
+    elegirTipo: (tipoLeadId: string) => void
   }
   contexto: ContextoDeAlta
   alVolver: () => void
@@ -57,16 +53,10 @@ function SelectoresDelArchivo({ asistente, contexto }: Pick<Props, 'asistente' |
       <CampoSeleccion
         nombre="tipo-del-archivo"
         etiqueta="Tipo para las filas sin tipo"
-        opciones={TIPOS_DEL_LEAD.map((tipo) => ({
-          valor: tipo,
-          etiqueta: ETIQUETA_DE_TIPO_DEL_LEAD[tipo],
-        }))}
-        value={eleccion.tipo}
+        opciones={contexto.tipos.map((tipo) => ({ valor: tipo.id, etiqueta: tipo.nombre }))}
+        value={eleccion.tipoLeadId}
         onChange={(evento) => {
-          const tipo = TIPOS_DEL_LEAD.find((uno) => uno === evento.target.value)
-          if (tipo) {
-            asistente.elegirTipo(tipo)
-          }
+          asistente.elegirTipo(evento.target.value)
         }}
       />
     </div>

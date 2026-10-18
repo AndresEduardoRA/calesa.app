@@ -3,12 +3,7 @@
 import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { useRouter } from 'next/navigation'
 import { useRef, type Dispatch, type SetStateAction } from 'react'
-import {
-  CLAVE_DEL_ALTA,
-  validarAlta,
-  type ContextoDeAlta,
-  type DatosDeAlta,
-} from '../../../entities/alta'
+import { validarAlta, type ContextoDeAlta, type DatosDeAlta } from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { ResultadoDeAlta } from '../../../entities/repositorios'
 import type * as ElPrimerSeguimiento from '../../../entities/primer-seguimiento'
@@ -20,7 +15,7 @@ import {
   trasDuplicado,
   trasRechazo,
   trasSeguimientoInvalido,
-  sinElOrigen,
+  sinLoQueSeDesactivo,
   trasValidacion,
   type Estado,
 } from './estado-del-alta'
@@ -148,9 +143,10 @@ export function useEnvioDelAlta(args: Args) {
       return false
     }
     setEstado((antes) => trasRechazo(antes, hecho.error, hecho.porCampo))
-    if (hecho.porCampo?.[CLAVE_DEL_ALTA.origen]) {
-      // El origen se desactivó (o se eliminó) mientras se escribía: se vuelve a leer lo que el alta ofrece.
-      setEstado(sinElOrigen)
+    const sinElegir = sinLoQueSeDesactivo(hecho.porCampo)
+    if (sinElegir) {
+      // El origen o el tipo se desactivó (o se eliminó) mientras se escribía: se vuelve a leer lo que el alta ofrece.
+      setEstado(sinElegir)
       router.refresh()
     }
     return false

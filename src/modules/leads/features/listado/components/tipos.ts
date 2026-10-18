@@ -1,4 +1,5 @@
 import type { AccionDeFila } from '../../../entities/acciones-de-fila'
+import type { TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import type { OrigenDeLead } from '../../../entities/alta'
 import type { OrigenConEstado } from '../../../entities/ficha'
 import type { CampoDeLead } from '../../../entities/campo'
@@ -11,6 +12,8 @@ export type DatosDeLaLista = {
   // Todo el layout: la tabla usa los de la tabla; el drawer, los activos.
   campos: readonly CampoDeLead[]
   origenes: readonly OrigenConEstado[]
+  // Los tipos de lead, también los apagados: nombran la columna «Tipo» y el resumen.
+  tipos: readonly TipoDeLeadEnCatalogo[]
   // El código de país de la empresa, para mostrar un teléfono («+591 70011002»).
   codigoDePais: string | null
   // Las etiquetas de quien mira: nombran las de cada lead.

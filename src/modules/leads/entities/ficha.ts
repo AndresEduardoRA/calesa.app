@@ -3,7 +3,6 @@
 // igual, y los atributos «solo la cartera» sólo si quien mira la tiene. Nada acá decide quién ve qué.
 import { CAMPOS_DE_NUMEROS, numerosDesde, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { z } from 'zod'
-import { TIPOS_DEL_LEAD, type TipoDelLead } from './listado'
 import type { OrigenDeLead } from './alta'
 import { marcasDesde, type MarcasDeLead } from './marcas'
 import { telefonoParaMostrar } from './telefono'
@@ -30,7 +29,8 @@ export type LeadDeFicha = {
   // El lead está en la cartera de quien mira: define si los datos privados y los teléfonos llegan
   // completos y si puede cambiarlos.
   enCartera: boolean
-  tipo: TipoDelLead
+  // El tipo del lead (de `tipos_lead`): se nombra con el catálogo, nunca con un texto fijo.
+  tipoLeadId: string
   origenId: string | null
   // Los que le llegan a quien mira.
   atributos: Record<string, unknown>
@@ -66,7 +66,7 @@ const esquemaFicha = z.object({
   telefono_cc: z.string().nullable(),
   telefono: z.string().nullable(),
   en_cartera: z.boolean(),
-  tipo: z.enum(TIPOS_DEL_LEAD),
+  tipo_lead_id: z.guid(),
   origen_lead_id: z.guid().nullable(),
   atributos: z.record(z.string(), z.unknown()).nullable(),
   creado_en: z.string(),
@@ -106,7 +106,7 @@ export function fichaDesde(crudo: unknown): LeadDeFicha | null {
     telefonoCc: f.telefono_cc,
     telefono: f.telefono ?? '',
     enCartera: f.en_cartera,
-    tipo: f.tipo,
+    tipoLeadId: f.tipo_lead_id,
     origenId: f.origen_lead_id,
     atributos: f.atributos ?? {},
     creadoEn: f.creado_en,

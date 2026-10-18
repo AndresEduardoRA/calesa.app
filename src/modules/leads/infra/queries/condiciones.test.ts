@@ -82,11 +82,11 @@ describe('aplicarCondicionesDeLeads', () => {
   it('tipo y origen del lead son columnas; «míos» es la cartera', () => {
     expect(
       pedidosDe(
-        { tipo: 'columna_en', columna: 'tipo', valores: ['cliente'] },
+        { tipo: 'columna_en', columna: 'tipo_lead_id', valores: ['t1'] },
         { tipo: 'columna_en', columna: 'origen_lead_id', valores: ['o1', 'o2'] },
         { tipo: 'en_cartera' },
       ),
-    ).toEqual(['tipo=in.(cliente)', 'origen_lead_id=in.(o1,o2)', 'en_cartera=eq.true'])
+    ).toEqual(['tipo_lead_id=in.(t1)', 'origen_lead_id=in.(o1,o2)', 'en_cartera=eq.true'])
   })
 })
 

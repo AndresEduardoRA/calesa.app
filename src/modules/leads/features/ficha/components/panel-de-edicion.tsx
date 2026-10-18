@@ -15,7 +15,11 @@ import { focoDeQuienAbrio } from '@/shared/ui/foco-de-quien-abre'
 import { PieDelPanel } from '@/shared/ui/pie-del-panel'
 import { avisarExito } from '@/shared/ui/toasts'
 import { useUltimo } from '@/shared/ui/use-ultimo'
-import { ETIQUETA_DE_TIPO_DEL_LEAD, TIPOS_DEL_LEAD } from '../../../entities/alta'
+import {
+  SUFIJO_DE_INACTIVO,
+  tiposOfrecidos,
+  type TipoDeLeadEnCatalogo,
+} from '../../../entities/catalogos'
 import type { CampoDeLead } from '../../../entities/campo'
 import {
   CLAVE_DE_EDICION,
@@ -34,6 +38,8 @@ type Datos = {
   // Todo el layout: acá se ofrecen los activos que quien edita recibe.
   campos: readonly CampoDeLead[]
   origenes: readonly OrigenConEstado[]
+  // Los tipos de lead, también los apagados: se ofrecen los activos y el apagado que el lead ya tiene, marcado.
+  tipos: readonly TipoDeLeadEnCatalogo[]
   zona: string
 }
 
@@ -61,12 +67,13 @@ const texto = (valor: unknown) => (typeof valor === 'string' ? valor : '')
 type PropsDeFijos = {
   ficha: LeadDeFicha
   origenes: readonly OrigenConEstado[]
+  tipos: readonly TipoDeLeadEnCatalogo[]
   estado: FormularioDeLead
 }
 
 // Los cuatro fijos que se editan acá: nombre, tipo y origen (el teléfono se cambia aparte). Un
 // origen apagado que el lead ya tiene se ofrece marcado, para poder conservarlo.
-function DatosFijos({ ficha, origenes, estado }: PropsDeFijos) {
+function DatosFijos({ ficha, origenes, tipos, estado }: PropsDeFijos) {
   const ofrecidos = origenesOfrecidos(origenes, ficha.origenId)
   const sinOrigenes = ofrecidos.length === 0
   return (
@@ -87,9 +94,9 @@ function DatosFijos({ ficha, origenes, estado }: PropsDeFijos) {
         <CampoSeleccion
           nombre={idDe(CLAVE_DE_EDICION.tipo)}
           etiqueta="Tipo"
-          opciones={TIPOS_DEL_LEAD.map((tipo) => ({
-            valor: tipo,
-            etiqueta: ETIQUETA_DE_TIPO_DEL_LEAD[tipo],
+          opciones={tiposOfrecidos(tipos, ficha.tipoLeadId).map((tipo) => ({
+            valor: tipo.id,
+            etiqueta: tipo.activo ? tipo.nombre : `${tipo.nombre} ${SUFIJO_DE_INACTIVO}`,
           }))}
           value={texto(estado.valores[CLAVE_DE_EDICION.tipo])}
           onChange={(evento) => {
@@ -149,12 +156,40 @@ function GruposDeCampos({ ficha, campos, estado }: PropsDeGrupos) {
   )
 }
 
+// Lo que pasa cuando el panel termina: se guardó (o no había nada) o quien edita ya no ve el lead. Desde el resumen de la lista
+// no hay ficha debajo que volver a leer: el resumen dice qué hacer.
+function salidasDelPanel(
+  alCerrar: () => void,
+  enResumen: EdicionEnElResumen | undefined,
+  recargar: () => void,
+) {
+  return {
+    alGuardar: (sinCambios: boolean) => {
+      if (!sinCambios) {
+        avisarExito('Cambios guardados')
+      }
+      enResumen?.alGuardado()
+      alCerrar()
+    },
+    // Sin acceso ya no hay nada que editar: el servidor vuelve a leer y muestra la pantalla de lo que no se ve.
+    alPerderElLead: () => {
+      if (enResumen) {
+        alCerrar()
+        enResumen.alPerderElLead()
+      } else {
+        recargar()
+      }
+    },
+  }
+}
+
 // Lo de adentro del panel. Se monta al abrirlo (y de nuevo si cambia la versión de lo que se
 // edita, por ejemplo tras «Recargar»): así cada apertura arranca de lo guardado.
 function Contenido({
   ficha,
   campos,
   origenes,
+  tipos,
   zona,
   alCerrar,
   enResumen,
@@ -170,24 +205,11 @@ function Contenido({
     ficha,
     campos: editables,
     origenes,
+    tipos,
     zona,
-    alGuardar: (sinCambios) => {
-      if (!sinCambios) {
-        avisarExito('Cambios guardados')
-      }
-      enResumen?.alGuardado()
-      alCerrar()
-    },
-    // Sin acceso ya no hay nada que editar: el servidor vuelve a leer y muestra la pantalla de lo
-    // que no se ve.
-    alPerderElLead: () => {
-      if (enResumen) {
-        alCerrar()
-        enResumen.alPerderElLead()
-      } else {
-        router.refresh()
-      }
-    },
+    ...salidasDelPanel(alCerrar, enResumen, () => {
+      router.refresh()
+    }),
   })
 
   // Con algo escrito, la acción de un aviso que sale de la pantalla («Abrir ficha») pregunta en el pie; descartar tira el borrador.
@@ -231,7 +253,7 @@ function Contenido({
             }
           }}
         />
-        <DatosFijos ficha={ficha} origenes={origenes} estado={estado} />
+        <DatosFijos ficha={ficha} origenes={origenes} tipos={tipos} estado={estado} />
         <GruposDeCampos ficha={ficha} campos={editables} estado={estado} />
       </form>
       <PieDelPanel idFormulario={idFormulario} enCurso={estado.enCurso} alCancelar={alCerrar} />

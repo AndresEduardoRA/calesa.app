@@ -32,7 +32,8 @@ export type LeadEnLaBase = {
   nombre: string
   telefono_principal: string
   telefono_cc: string | null
-  tipo: string
+  // El tipo (de `tipos_lead`).
+  tipo_lead_id: string
   origen_lead_id: string | null
   atributos: Record<string, unknown>
   creado_por: string | null

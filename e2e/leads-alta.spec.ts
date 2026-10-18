@@ -11,6 +11,7 @@ import {
   type PersonasDelAlta,
 } from './soporte/alta'
 import { crearLead } from './soporte/leads'
+import { tipoDeFabrica } from './soporte/tipos-de-lead'
 import {
   carteraDe,
   codigoDePaisDeLaEmpresa,
@@ -78,7 +79,12 @@ test('tarea de oro 1: de N al lead guardado con seguimiento, sólo con el teclad
 
   // Lo que quedó: el lead y su seguimiento (sin recordatorio), y la persona es la dueña.
   const [lead] = await leadsConTelefono(normalizado)
-  expect(lead).toMatchObject({ nombre, tipo: 'prospecto', telefono_cc: `+${codigo}` })
+  // Sin tocar el tipo, el alta propone el de la clase prospecto (el primero activo por orden).
+  expect(lead).toMatchObject({
+    nombre,
+    tipo_lead_id: (await tipoDeFabrica('prospecto')).id,
+    telefono_cc: `+${codigo}`,
+  })
   expect(lead?.origen_lead_id).not.toBeNull()
   expect((await seguimientosDe(lead?.id ?? '')).map((s) => s.titulo)).toEqual([resumen])
   expect(await recordatoriosDe(lead?.id ?? '')).toEqual([])

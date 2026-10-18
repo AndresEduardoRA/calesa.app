@@ -5,6 +5,7 @@ import { Dato, DatosPorGrupo, RejillaDeDatos } from '@/shared/ui/campos'
 import { formatearFechaHora } from '@/shared/lib/fechas'
 import { useRegional } from '@/shared/ui/regional'
 import type { AccionesDeCartera, PersonaDeCartera } from '../../../entities/cartera'
+import type { TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { LeadDeFicha } from '../../../entities/ficha'
 import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
@@ -16,6 +17,7 @@ type Props = {
   // Todo el layout: los desactivados no se muestran.
   campos: readonly CampoDeLead[]
   origen: { nombre: string; activo: boolean } | null
+  tipo: TipoDeLeadEnCatalogo | null
   // Quien mira puede cambiar los teléfonos de este lead (cartera y `leads.editar`).
   puedeCambiarTelefono: boolean
   // Quién lo tiene y qué puede hacer quien mira con eso.
@@ -32,6 +34,7 @@ export function SeccionDatos({
   ficha,
   campos,
   origen,
+  tipo,
   puedeCambiarTelefono,
   cartera,
   accionesDeCartera,
@@ -44,7 +47,7 @@ export function SeccionDatos({
         <RejillaDeDatos>
           <Dato etiqueta="Nombre">{ficha.nombre}</Dato>
           <Dato etiqueta="Tipo">
-            <BadgeDeTipo tipo={ficha.tipo} />
+            <BadgeDeTipo tipo={tipo} />
           </Dato>
           <Dato etiqueta="Origen del lead">
             {origen ? (

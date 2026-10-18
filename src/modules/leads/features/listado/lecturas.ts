@@ -20,10 +20,11 @@ import { unParametro } from '@/shared/lib/rutas'
 import {
   buscarLeads,
   contarLeadsHasta,
+  leerCatalogosDeLead,
   leerEtiquetas,
   leerLayoutDeLeads,
-  leerOrigenesDeLead,
 } from '../../composicion'
+import type { TipoDeLeadEnCatalogo } from '../../entities/catalogos'
 import type { OrigenConEstado } from '../../entities/ficha'
 import { CLAVE_DE_ALCANCE, alcanceDelListado, type ModoDelListado } from '../../entities/alcance'
 import type { CampoDeLead } from '../../entities/campo'
@@ -44,6 +45,8 @@ export type DatosDelListado = {
   // Todo el layout: la tabla y el drawer filtran los activos.
   campos: CampoDeLead[]
   origenes: OrigenConEstado[]
+  // Los tipos de lead (también los apagados): nombran la columna «Tipo» y son las opciones del filtro.
+  tipos: TipoDeLeadEnCatalogo[]
   // Las de quien mira: nombran las de cada fila y se ofrecen en el «⋯».
   etiquetas: Etiqueta[]
   modo: ModoDelListado
@@ -84,18 +87,29 @@ const soloTachados = (valores: ValoresDeFiltros): ValoresDeFiltros => ({
 // traduce siempre en la condición `en_cartera` y «todos» no suma nada.
 const SIN_OCULTOS: ConteoAcotado = { n: 0, hayMas: false }
 
+// De a cuántos se lee esta página: `?por=`, si no la preferencia de quien mira, nunca más que el máximo de la lista.
+function tamanoDeEstaPagina(parametros: ParametrosDeUrl, preferencia: number | null): number {
+  return tamanoDePagina({
+    pedido: leerPorPagina(
+      unParametro(parametros[CLAVE_DE_POR_PAGINA] as string | string[] | undefined),
+    ),
+    preferencia,
+    maximo: MAXIMO_DE_PAGINA_DE_LEADS,
+  })
+}
+
 export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<DatosDelListado>> {
   const { permisos, parametros, zona, usuarioId, preferenciaDePagina } = entrada
-  const [layout, origenes, etiquetas] = await Promise.all([
+  const [layout, catalogos, etiquetas] = await Promise.all([
     leerLayoutDeLeads(),
-    leerOrigenesDeLead(),
+    leerCatalogosDeLead(),
     leerEtiquetas(),
   ])
   if (!layout.ok) {
     return layout
   }
-  if (!origenes.ok) {
-    return origenes
+  if (!catalogos.ok) {
+    return catalogos
   }
   if (!etiquetas.ok) {
     return etiquetas
@@ -107,7 +121,8 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
   )
   const esquema = esquemaDeFiltrosDeLeads({
     campos,
-    origenes: origenes.data,
+    origenes: catalogos.data.origenes,
+    tipos: catalogos.data.tipos,
     verTodos: puedeVerTodos,
     etiquetas: etiquetas.data,
   })
@@ -116,14 +131,13 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
   if (!ids.ok) {
     return ids
   }
-  const opciones = { zona, soloMios: modo === 'mios', idsDelNumero: ids.data }
-  const tamano = tamanoDePagina({
-    pedido: leerPorPagina(
-      unParametro(parametros[CLAVE_DE_POR_PAGINA] as string | string[] | undefined),
-    ),
-    preferencia: preferenciaDePagina,
-    maximo: MAXIMO_DE_PAGINA_DE_LEADS,
-  })
+  const opciones = {
+    zona,
+    soloMios: modo === 'mios',
+    idsDelNumero: ids.data,
+    tipos: catalogos.data.tipos,
+  }
+  const tamano = tamanoDeEstaPagina(parametros, preferenciaDePagina)
   const [leida, ocultos] = await Promise.all([
     buscarLeads({
       condiciones: condicionesDeLeads(campos, valores, opciones),
@@ -148,7 +162,8 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       pagina: leida.data,
       porPagina: { valor: tamano, opciones: tamanosHasta(MAXIMO_DE_PAGINA_DE_LEADS) },
       campos,
-      origenes: origenes.data,
+      origenes: catalogos.data.origenes,
+      tipos: catalogos.data.tipos,
       etiquetas: etiquetas.data,
       modo,
       puedeVerTodos,

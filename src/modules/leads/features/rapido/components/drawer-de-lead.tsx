@@ -16,6 +16,7 @@ import {
   type PestanaDelRapido,
   type VistaDelRapido,
 } from '../../../entities/rapido'
+import { tipoDelCatalogo } from '../../../entities/catalogos'
 import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
 import { InsigniasDeMarcas } from '../../marcas/components/insignias-de-marcas'
 import type { DatosDeLaLista, ParaMarcar } from '../../listado/components/tipos'
@@ -41,7 +42,7 @@ type Props = DatosDeLaLista & {
 
 const ES_GUID = z.guid()
 
-type PropsDeLaCabecera = Pick<PropsDeDatos, 'lead' | 'etiquetas'> & {
+type PropsDeLaCabecera = Pick<PropsDeDatos, 'lead' | 'etiquetas' | 'tipos'> & {
   // «Editar»: sólo con permiso y con el lead en la cartera.
   alEditar: (() => void) | null
   // El «⋯» del lead.
@@ -49,11 +50,11 @@ type PropsDeLaCabecera = Pick<PropsDeDatos, 'lead' | 'etiquetas'> & {
 }
 
 // Lo de arriba, en las tres pestañas: el tipo, las marcas de quien mira, «Editar», «Abrir ficha» y el «⋯».
-function CabeceraDelRapido({ lead, etiquetas, alEditar, menu }: PropsDeLaCabecera) {
+function CabeceraDelRapido({ lead, etiquetas, tipos, alEditar, menu }: PropsDeLaCabecera) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <span className="flex flex-wrap items-center gap-2">
-        <BadgeDeTipo tipo={lead.tipo} className="w-fit" />
+        <BadgeDeTipo tipo={tipoDelCatalogo(tipos, lead.tipoLeadId)} className="w-fit" />
         {/* El estado de las marcas de quien mira; se cambian en la fila o en la ficha. */}
         <InsigniasDeMarcas marcas={lead.marcas} etiquetas={etiquetas} />
       </span>
@@ -132,6 +133,7 @@ function ContenidoDelRapido({
       <CabeceraDelRapido
         lead={lead}
         etiquetas={datos.etiquetas}
+        tipos={datos.tipos}
         alEditar={lead.enCartera ? alEditar : null}
         menu={menu(lead)}
       />
@@ -161,13 +163,14 @@ type PropsDeLaEdicion = {
   puedeEditar: boolean
   campos: DatosDeLaLista['campos']
   origenes: DatosDeLaLista['origenes']
+  tipos: DatosDeLaLista['tipos']
   alGuardado: () => void
 }
 
 // El panel de edición va dentro del resumen (Base UI anida los diálogos por el árbol de React, así Esc y «Cancelar» cierran sólo el panel)
 // y llega al pulsar «Editar», no al abrir el resumen.
 function EdicionDelDrawer(props: PropsDeLaEdicion) {
-  const { pedida, lead, puedeEditar, campos, origenes, alGuardado } = props
+  const { pedida, lead, puedeEditar, campos, origenes, tipos, alGuardado } = props
   const pedidaAlgunaVez = useAbiertoAlgunaVez(pedida)
   if (lead === null || !puedeEditar || !pedidaAlgunaVez) {
     return null
@@ -178,6 +181,7 @@ function EdicionDelDrawer(props: PropsDeLaEdicion) {
       nombre={lead.nombre}
       campos={campos}
       origenes={origenes}
+      tipos={tipos}
       alGuardado={alGuardado}
       alPerderElLead={alGuardado}
     />
@@ -239,6 +243,7 @@ export function DrawerDeLead({ filas, soloMios, puedeEditar, marcar, ...datos }:
         puedeEditar={puedeEditar}
         campos={datos.campos}
         origenes={datos.origenes}
+        tipos={datos.tipos}
         alGuardado={reintentar}
       />
     </Drawer>

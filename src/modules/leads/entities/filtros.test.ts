@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { leerFiltros } from '@/shared/lib/filtros'
+import type { TipoDeLeadEnCatalogo } from './catalogos'
 import { columnaParaFiltrar, type CampoDeLead } from './campo'
 import {
   condicionesDeLeads,
@@ -51,8 +52,22 @@ const CAMPOS = [
   }),
 ]
 
+// Los tipos de lead de la base: dos de fábrica, uno que agregó la empresa y uno apagado.
+const TIPOS: TipoDeLeadEnCatalogo[] = [
+  { id: 't-pro', clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto', activo: true },
+  { id: 't-cli', clave: 'cliente', nombre: 'Cliente', clase: 'cliente', activo: true },
+  { id: 't-vip', clave: 'vip', nombre: 'Cliente VIP', clase: 'cliente', activo: true },
+  { id: 't-may', clave: 'mayorista', nombre: 'Mayorista', clase: 'cliente', activo: false },
+]
+
 const esquema = (verTodos = false) =>
-  esquemaDeFiltrosDeLeads({ campos: CAMPOS, origenes: ORIGENES, verTodos, etiquetas: [] })
+  esquemaDeFiltrosDeLeads({
+    campos: CAMPOS,
+    origenes: ORIGENES,
+    tipos: TIPOS,
+    verTodos,
+    etiquetas: [],
+  })
 
 describe('esquemaDeFiltrosDeLeads', () => {
   it('lleva tus marcas, tipo y origen y un filtro por cada campo filtrable activo, con su etiqueta de fila', () => {
@@ -81,10 +96,32 @@ describe('esquemaDeFiltrosDeLeads', () => {
     const sin = esquemaDeFiltrosDeLeads({
       campos: [campo('signo', { tipo: 'opcion' })],
       origenes: [],
+      tipos: TIPOS,
       verTodos: false,
       etiquetas: [],
     })
     expect(sin.filtros.map((f) => f.clave)).toEqual(['tachados', 'favoritos', 'tipo'])
+  })
+
+  it('las opciones del filtro de tipo salen de la base: primero los activos y después los apagados «(inactivo)», con la clave en la URL', () => {
+    const tipo = esquema().filtros.find((f) => f.clave === 'tipo')
+    expect(tipo && 'opciones' in tipo ? tipo.opciones : null).toEqual([
+      { valor: 'prospecto', etiqueta: 'Prospecto' },
+      { valor: 'cliente', etiqueta: 'Cliente' },
+      { valor: 'vip', etiqueta: 'Cliente VIP' },
+      { valor: 'mayorista', etiqueta: 'Mayorista (inactivo)' },
+    ])
+  })
+
+  it('sin ningún tipo en la base no hay filtro de tipo', () => {
+    const sin = esquemaDeFiltrosDeLeads({
+      campos: [],
+      origenes: [],
+      tipos: [],
+      verTodos: false,
+      etiquetas: [],
+    })
+    expect(sin.filtros.map((f) => f.clave)).toEqual(['tachados', 'favoritos'])
   })
 
   it('sólo quien ve «todos» recibe la aclaración en un filtro privado', () => {
@@ -149,7 +186,7 @@ describe('condicionesDeLeads', () => {
     const condiciones = condicionesDeLeads(
       CAMPOS,
       leer('q=%23124&tipo=cliente&origen=o1&a.ciudad=cruz&a.edad.min=30&a.signo=leo'),
-      { soloMios: false },
+      { soloMios: false, tipos: TIPOS },
     )
     expect(condiciones).toContainEqual({
       tipo: 'busqueda',
@@ -160,8 +197,9 @@ describe('condicionesDeLeads', () => {
     })
     expect(condiciones).toContainEqual({
       tipo: 'columna_en',
-      columna: 'tipo',
-      valores: ['cliente'],
+      // La URL lleva la clave; la base filtra por el id.
+      columna: 'tipo_lead_id',
+      valores: ['t-cli'],
     })
     expect(condiciones).toContainEqual({
       tipo: 'columna_en',
@@ -233,7 +271,7 @@ describe('condicionesDeLeads: la columna de cada campo (9h)', () => {
     const condiciones = condicionesDeLeads(
       CAMPOS,
       leer('tipo=otro&origen=ajeno&a.apagado=x&a.notas=y&a.fantasma=z&tachados=incluir'),
-      { soloMios: false },
+      { soloMios: false, tipos: TIPOS },
     )
     expect(condiciones).toEqual([])
   })

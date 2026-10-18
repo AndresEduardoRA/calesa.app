@@ -4,14 +4,14 @@ vi.mock('server-only', () => ({}))
 
 const leerFicha = vi.fn()
 const leerLayoutDeLeads = vi.fn()
-const leerOrigenesDeLead = vi.fn()
+const leerCatalogosDeLead = vi.fn()
 const leerEtiquetas = vi.fn()
 const leerCartera = vi.fn()
 
 vi.mock('../../composicion', () => ({
   leerFicha,
   leerLayoutDeLeads,
-  leerOrigenesDeLead,
+  leerCatalogosDeLead,
   leerEtiquetas,
   leerCartera,
 }))
@@ -26,7 +26,7 @@ describe('leerFichaDeLead', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     leerLayoutDeLeads.mockResolvedValue(ok([]))
-    leerOrigenesDeLead.mockResolvedValue(ok([]))
+    leerCatalogosDeLead.mockResolvedValue(ok({ origenes: [], tipos: [] }))
     leerEtiquetas.mockResolvedValue(ok([]))
     leerCartera.mockResolvedValue(ok([]))
   })
@@ -37,7 +37,8 @@ describe('leerFichaDeLead', () => {
     expect(leerFicha).toHaveBeenCalledTimes(1)
     expect(leerFicha).toHaveBeenCalledWith(ID)
     expect(leerLayoutDeLeads).toHaveBeenCalledTimes(1)
-    expect(leerOrigenesDeLead).toHaveBeenCalledTimes(1)
+    // Los orígenes y los tipos de lead, en UN solo pedido: nombrarlos no suma lecturas a la ficha.
+    expect(leerCatalogosDeLead).toHaveBeenCalledTimes(1)
     expect(leerEtiquetas).toHaveBeenCalledTimes(1)
     expect(leerCartera).toHaveBeenCalledWith(ID)
   })
@@ -45,7 +46,7 @@ describe('leerFichaDeLead', () => {
   it('devuelve la ficha con el layout, los orígenes, las etiquetas de quien mira y quién lo tiene', async () => {
     leerFicha.mockResolvedValue(ok({ id: ID }))
     leerLayoutDeLeads.mockResolvedValue(ok([{ clave: 'ciudad' }]))
-    leerOrigenesDeLead.mockResolvedValue(ok([{ id: 'o' }]))
+    leerCatalogosDeLead.mockResolvedValue(ok({ origenes: [{ id: 'o' }], tipos: [{ id: 't' }] }))
     leerEtiquetas.mockResolvedValue(ok([{ id: 'e' }]))
     leerCartera.mockResolvedValue(ok([{ usuarioId: 'u' }]))
     const resultado = await leerFichaDeLead(ID)
@@ -54,6 +55,7 @@ describe('leerFichaDeLead', () => {
         ficha: { id: ID },
         campos: [{ clave: 'ciudad' }],
         origenes: [{ id: 'o' }],
+        tipos: [{ id: 't' }],
         etiquetas: [{ id: 'e' }],
         cartera: [{ usuarioId: 'u' }],
       }),
@@ -72,9 +74,9 @@ describe('leerFichaDeLead', () => {
     leerLayoutDeLeads.mockResolvedValue(error)
     expect((await leerFichaDeLead(ID)).ok).toBe(false)
     leerLayoutDeLeads.mockResolvedValue(ok([]))
-    leerOrigenesDeLead.mockResolvedValue(error)
+    leerCatalogosDeLead.mockResolvedValue(error)
     expect((await leerFichaDeLead(ID)).ok).toBe(false)
-    leerOrigenesDeLead.mockResolvedValue(ok([]))
+    leerCatalogosDeLead.mockResolvedValue(ok({ origenes: [], tipos: [] }))
     leerEtiquetas.mockResolvedValue(error)
     expect((await leerFichaDeLead(ID)).ok).toBe(false)
   })

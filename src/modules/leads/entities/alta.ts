@@ -19,10 +19,19 @@ import type { Documento } from './documento'
 import { hayAlgoEscrito } from './seguimiento-nuevo'
 import type { ValoresDelSeguimiento } from './seguimiento'
 import { normalizarTelefono } from './telefono'
+import { CLASES_DE_TIPO, type ClaseDeTipoDeLead } from './tipo-de-lead'
 
 // --- Lo que el drawer necesita de la base, en un viaje --------------------------------------------
 
 export type OrigenDeLead = { id: string; clave: string; nombre: string }
+
+// Un tipo de lead que el alta ofrece: sólo los activos. La clase es lo que el sistema entiende; el nombre, lo que se lee.
+export type TipoDeLeadEnAlta = {
+  id: string
+  clave: string
+  nombre: string
+  clase: ClaseDeTipoDeLead
+}
 
 export type TipoDeSeguimiento = { id: string; clave: string; nombre: string; icono: string | null }
 
@@ -31,6 +40,9 @@ export type ContextoDeAlta = {
   telefonoCc: string | null
   // Sólo los activos, en su orden.
   origenes: OrigenDeLead[]
+  // Sólo los activos, en su orden, y el que el alta propone (el primero activo de la clase prospecto: lo calcula la base).
+  tipos: TipoDeLeadEnAlta[]
+  tipoPorDefectoId: string | null
   tiposDeSeguimiento: TipoDeSeguimiento[]
   // El origen que esta persona usó la última vez, si sigue activo.
   ultimoOrigenId: string | null
@@ -40,6 +52,15 @@ export type ContextoDeAlta = {
 const esquemaContexto = z.object({
   telefono_cc: z.string().nullable(),
   origenes: z.array(z.object({ id: z.guid(), clave: z.string(), nombre: z.string() })),
+  tipos: z.array(
+    z.object({
+      id: z.guid(),
+      clave: z.string(),
+      nombre: z.string(),
+      clase: z.enum(CLASES_DE_TIPO),
+    }),
+  ),
+  tipo_por_defecto_id: z.guid().nullable(),
   tipos_seguimiento: z.array(
     z.object({ id: z.guid(), clave: z.string(), nombre: z.string(), icono: z.string().nullable() }),
   ),
@@ -53,6 +74,8 @@ export function contextoDeAltaDesde(crudo: unknown): ContextoDeAlta {
   return {
     telefonoCc: c.telefono_cc,
     origenes: c.origenes,
+    tipos: c.tipos,
+    tipoPorDefectoId: c.tipo_por_defecto_id,
     tiposDeSeguimiento: c.tipos_seguimiento.map((t) => ({ ...t })),
     ultimoOrigenId: c.ultimo_origen_id,
     empresa: c.empresa,
@@ -65,22 +88,11 @@ export const CLAVE_DEL_ALTA = {
   telefono: 'telefono_principal',
   nombre: 'nombre',
   origen: 'origen_lead_id',
-  tipo: 'tipo',
+  // El `hint` de la base y la clave del formulario: el id del tipo.
+  tipo: 'tipo_lead_id',
 } as const
 
 export const claveDeAtributoDeAlta = (clave: string) => `atributos.${clave}`
-
-// --- Los dos tipos de un lead (el enum `tipo_lead`) ------------------------------------------------
-
-export const TIPOS_DEL_LEAD = ['prospecto', 'cliente'] as const
-export type TipoDelLead = (typeof TIPOS_DEL_LEAD)[number]
-
-export const TIPO_DEL_LEAD_POR_DEFECTO: TipoDelLead = 'prospecto'
-
-export const ETIQUETA_DE_TIPO_DEL_LEAD: Record<TipoDelLead, string> = {
-  prospecto: 'Prospecto',
-  cliente: 'Cliente',
-}
 
 // --- Qué va arriba y qué va en «Más datos» ----------------------------------------------------------
 
@@ -114,8 +126,8 @@ export function campoDelAlta(campo: CampoDeLead): CampoDeFormulario {
   )
 }
 
-// Con qué arranca el formulario de los datos: el último origen (o el primero activo), «prospecto» y el
-// valor por defecto de cada campo activo (la ciudad de la empresa incluida). El primer seguimiento
+// Con qué arranca el formulario de los datos: el último origen (o el primero activo), el tipo que propone la base (el primero
+// activo de la clase prospecto) y el valor por defecto de cada campo activo (la ciudad de la empresa incluida). El primer seguimiento
 // tiene sus propios valores (`valoresDeSeguimientoNuevo`).
 export function valoresIniciales(
   contexto: ContextoDeAlta,
@@ -126,7 +138,7 @@ export function valoresIniciales(
     [CLAVE_DEL_ALTA.telefono]: '',
     [CLAVE_DEL_ALTA.nombre]: '',
     [CLAVE_DEL_ALTA.origen]: contexto.ultimoOrigenId ?? contexto.origenes[0]?.id ?? '',
-    [CLAVE_DEL_ALTA.tipo]: TIPO_DEL_LEAD_POR_DEFECTO,
+    [CLAVE_DEL_ALTA.tipo]: contexto.tipoPorDefectoId ?? contexto.tipos[0]?.id ?? '',
   }
   for (const campo of layout) {
     if (campo.activo) {
@@ -184,7 +196,8 @@ export type DatosDeAlta = {
   telefono: string
   nombre: string
   origenId: string | null
-  tipo: TipoDelLead
+  // El tipo elegido, uno de los activos que ofreció la base.
+  tipoLeadId: string
   // Sólo lo que tiene valor, ya convertido a lo que guarda la base.
   atributos: Record<string, Exclude<Dato, null>>
   // Lo arma `primerSeguimiento()` (otra pieza, que se carga al guardar): la validación de los datos
@@ -227,7 +240,7 @@ const texto = (valor: ValoresDeFormulario[string] | undefined) =>
 function validarFijos(
   { valores, contexto }: Pick<Entrada, 'valores' | 'contexto'>,
   motivos: Motivos,
-): { telefono: string; nombre: string; origenId: string | null; tipo: TipoDelLead | null } {
+): { telefono: string; nombre: string; origenId: string | null; tipoLeadId: string | null } {
   const telefono = texto(valores[CLAVE_DEL_ALTA.telefono])
   const normalizado = normalizarTelefono(contexto.telefonoCc, telefono)
   if (!normalizado.ok) {
@@ -247,11 +260,11 @@ function validarFijos(
     motivos[CLAVE_DEL_ALTA.origen] = 'Elige de dónde viene el lead.'
   }
   const tipoEscrito = texto(valores[CLAVE_DEL_ALTA.tipo])
-  const tipo = TIPOS_DEL_LEAD.find((uno) => uno === tipoEscrito) ?? null
-  if (!tipo) {
+  const tipoLeadId = contexto.tipos.find((uno) => uno.id === tipoEscrito)?.id ?? null
+  if (!tipoLeadId) {
     motivos[CLAVE_DEL_ALTA.tipo] = 'Elige el tipo de lead.'
   }
-  return { telefono, nombre, origenId: hayOrigenes && origenValido ? origen : null, tipo }
+  return { telefono, nombre, origenId: hayOrigenes && origenValido ? origen : null, tipoLeadId }
 }
 
 function validarAtributos(
@@ -281,13 +294,21 @@ export function validarAlta(entrada: Entrada): ValidacionDeAlta {
   const porCampo: Motivos = {}
   const fijos = validarFijos(entrada, porCampo)
   const atributos = validarAtributos(entrada, porCampo)
-  if (Object.keys(porCampo).length > 0 || !fijos.tipo) {
+  if (Object.keys(porCampo).length > 0 || !fijos.tipoLeadId) {
     return { ok: false, porCampo }
   }
-  const { telefono, nombre, origenId, tipo } = fijos
+  const { telefono, nombre, origenId, tipoLeadId } = fijos
   return {
     ok: true,
-    datos: { telefono, nombre, origenId, tipo, atributos, seguimiento: null, recordatorio: null },
+    datos: {
+      telefono,
+      nombre,
+      origenId,
+      tipoLeadId,
+      atributos,
+      seguimiento: null,
+      recordatorio: null,
+    },
   }
 }
 

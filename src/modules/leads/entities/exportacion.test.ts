@@ -44,6 +44,12 @@ const CONTEXTO: ContextoDeExportacion = {
     ['o1', 'Web'],
     ['o2', 'Referido'],
   ]),
+  // Los nombres salen de la base: un tipo agregado por la empresa se nombra igual que los de fábrica.
+  tipos: new Map([
+    ['t-pro', 'Prospecto'],
+    ['t-cli', 'Cliente'],
+    ['t-vip', 'Cliente VIP'],
+  ]),
   codigoDePais: '+591',
   zona: 'America/La_Paz',
   conNumeroGlobal: false,
@@ -57,7 +63,7 @@ function fila(extra: Partial<FilaDeLead> = {}): FilaDeLead {
     telefono: '59170011002',
     enCartera: true,
     duenoId: 'u1',
-    tipo: 'prospecto',
+    tipoLeadId: 't-pro',
     origenId: 'o1',
     creadoEn: '2026-10-14T20:00:00+00:00',
     atributos: {},
@@ -168,11 +174,11 @@ describe('filaDeExportacion', () => {
   it('arma la fila con el tipo, el origen por nombre y los campos del layout', () => {
     const campos = [campo(1, { tipo: 'numero' }), campo(2)]
     const celdas = filaDeExportacion(
-      fila({ tipo: 'cliente', atributos: { campo_1: 35, campo_2: 'La Paz' } }),
+      fila({ tipoLeadId: 't-vip', atributos: { campo_1: 35, campo_2: 'La Paz' } }),
       campos,
       CONTEXTO,
     )
-    expect(celdas).toEqual([3, 'Ana Pérez', '70011002', 'Cliente', 'Web', 35, 'La Paz'])
+    expect(celdas).toEqual([3, 'Ana Pérez', '70011002', 'Cliente VIP', 'Web', 35, 'La Paz'])
   })
 
   it('sin el permiso, sólo el número propio; con él, el global primero', () => {

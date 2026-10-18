@@ -44,7 +44,7 @@ function comoJson({ datos, adoptar }: PedidoDeAlta): {
   const lead: Record<string, Json> = {
     nombre: datos.nombre,
     telefono_principal: datos.telefono,
-    tipo: datos.tipo,
+    tipo_lead_id: datos.tipoLeadId,
     atributos: datos.atributos,
   }
   if (datos.origenId) {

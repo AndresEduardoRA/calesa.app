@@ -9,6 +9,7 @@ import { useApertura } from '@/shared/ui/use-apertura'
 import { useLecturaAlMontar } from '@/shared/ui/use-lectura-al-montar'
 import { leerFichaDelLead } from '../../../composicion.client'
 import type { CampoDeLead } from '../../../entities/campo'
+import type { TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import { MENSAJE_DE_LEAD_NO_DISPONIBLE, type OrigenConEstado } from '../../../entities/ficha'
 import { PanelDeEdicion } from '../../ficha/components/panel-de-edicion'
 import { usePanelDeLead } from '../../ficha/hooks/use-panel-de-lead'
@@ -18,6 +19,7 @@ type Props = {
   nombre: string
   campos: readonly CampoDeLead[]
   origenes: readonly OrigenConEstado[]
+  tipos: readonly TipoDeLeadEnCatalogo[]
   // Se guardó: el resumen vuelve a leer el lead. Y si quien edita ya no lo ve, también (y lo dice).
   alGuardado: () => void
   alPerderElLead: () => void
@@ -46,6 +48,7 @@ function LectorDeLaFicha({
   nombre,
   campos,
   origenes,
+  tipos,
   alGuardado,
   alPerderElLead,
   ...panel
@@ -86,6 +89,7 @@ function LectorDeLaFicha({
       ficha={lectura.dato}
       campos={campos}
       origenes={origenes}
+      tipos={tipos}
       zona={zonaHoraria}
       puedeEditar
       enResumen={{ alRecargar: reintentar, alGuardado, alPerderElLead }}

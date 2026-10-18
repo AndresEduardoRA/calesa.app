@@ -10,7 +10,7 @@ import type {
   LectorDeEtiquetas,
   LectorDeFicha,
   LectorDeLayoutDeLeads,
-  LectorDeOrigenesDeLead,
+  LectorDeCatalogosDeLead,
   LectorDePapeleraDeLeads,
   LectorDeSeguimientos,
   LectorDeTiposDeSeguimiento,
@@ -71,7 +71,8 @@ import {
 } from './infra/queries/listado'
 import type { LectorDeIdsDelNumero } from './entities/numero'
 import { getIdsDelNumero } from './infra/queries/numeros'
-import { getOrigenesDeLead, getOrigenesDeLeadConUso } from './infra/queries/origenes'
+import { getCatalogosDeLead } from './infra/queries/catalogos'
+import { getOrigenesDeLeadConUso } from './infra/queries/origenes'
 import { getPapeleraDeLeads } from './infra/queries/papelera'
 import { getTiposDeLeadConUso } from './infra/queries/tipos'
 import { getAccesoDelCliente } from './infra/queries/portal'
@@ -96,7 +97,8 @@ export const contarLeadsHasta: ContadorDeLeads = contarEnBase
 
 export const leerIdsDelNumero: LectorDeIdsDelNumero = getIdsDelNumero
 
-export const leerOrigenesDeLead: LectorDeOrigenesDeLead = getOrigenesDeLead
+// Los orígenes y los tipos con que se nombra a un lead, en un solo pedido.
+export const leerCatalogosDeLead: LectorDeCatalogosDeLead = getCatalogosDeLead
 
 export const leerOrigenesDeLeadConUso: LectorDeOrigenesDeLeadConUso = getOrigenesDeLeadConUso
 

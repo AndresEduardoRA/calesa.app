@@ -7,6 +7,7 @@ import type { ReactNode } from 'react'
 import { RUTAS } from '@/shared/lib/rutas'
 import { useRegional } from '@/shared/ui/regional'
 import type { AccionesDeCartera, PersonaDeCartera } from '../../../entities/cartera'
+import { tipoDelCatalogo, type TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { Etiqueta } from '../../../entities/etiqueta'
 import {
@@ -38,6 +39,8 @@ type Props = {
   campos: readonly CampoDeLead[]
   // Todos, también los desactivados.
   origenes: readonly OrigenConEstado[]
+  // Los tipos de lead, también los apagados: nombran el del lead y se ofrecen en el panel de edición.
+  tipos: readonly TipoDeLeadEnCatalogo[]
   // Quien mira: para decir «lo tienes tú».
   usuarioId: string
   puedeEditar: boolean
@@ -68,6 +71,7 @@ type DatosDeSeccion = {
   ficha: LeadDeFicha
   campos: readonly CampoDeLead[]
   origen: { nombre: string; activo: boolean } | null
+  tipo: TipoDeLeadEnCatalogo | null
   puedeCambiarTelefono: boolean
   seguimientos: ReactNode
   vehiculos: ReactNode
@@ -102,6 +106,40 @@ function VolverALeads() {
   )
 }
 
+type PropsDeLosPaneles = {
+  ficha: LeadDeFicha
+  campos: readonly CampoDeLead[]
+  origenes: readonly OrigenConEstado[]
+  tipos: readonly TipoDeLeadEnCatalogo[]
+  zona: string
+  puedeEditar: boolean
+  puedeCambiarTelefono: boolean
+  etiquetas: ReturnType<typeof useEtiquetas>
+  // Ningún panel abierto: la ficha vuelve a leer al volver a la pestaña.
+  refrescaAlVolver: boolean
+}
+
+// Lo que se abre encima de la ficha: editar el lead, cambiar el teléfono, gestionar etiquetas. Cada uno vive en su `?panel=`.
+function PanelesDeLaFicha(props: PropsDeLosPaneles) {
+  const { ficha, campos, origenes, tipos, zona, puedeEditar, puedeCambiarTelefono, etiquetas } =
+    props
+  return (
+    <>
+      <PanelDeEdicion
+        ficha={ficha}
+        campos={campos}
+        origenes={origenes}
+        tipos={tipos}
+        zona={zona}
+        puedeEditar={puedeEditar}
+      />
+      <PanelDeTelefono ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
+      <DialogoDeEtiquetas etiquetas={etiquetas} />
+      <RefrescarAlVolver activo={props.refrescaAlVolver} />
+    </>
+  )
+}
+
 // La ficha de un lead: su cabecera, la barra de secciones y la sección de `?seccion=` («Datos»,
 // «Seguimientos», «Vehículos», «Oportunidades» o «Portal»). Las demás (cotizaciones, historial) llegan
 // con su parte y no se dibujan hasta entonces.
@@ -109,6 +147,7 @@ export function FichaDeLead({
   ficha,
   campos,
   origenes,
+  tipos,
   usuarioId,
   puedeEditar,
   puedeCambiarTelefono,
@@ -129,6 +168,7 @@ export function FichaDeLead({
   const etiquetas = useEtiquetas(lista)
   const gestionar = usePanelDeEtiquetas()
   const origen = origenDeLaFicha(origenes, ficha.origenId)
+  const tipo = tipoDelCatalogo(tipos, ficha.tipoLeadId)
   return (
     // Una sola columna que no crece con su contenido: sin `minmax(0, 1fr)`, la barra de secciones (con
     // cinco, más ancha que un celular) ensanchaba toda la ficha y los modales quedaban cortados.
@@ -137,6 +177,7 @@ export function FichaDeLead({
       <CabeceraDeLead
         ficha={ficha}
         origen={origen}
+        tipo={tipo}
         quien={quienLoTiene(ficha, usuarioId)}
         acciones={
           <>
@@ -164,6 +205,7 @@ export function FichaDeLead({
         ficha,
         campos,
         origen,
+        tipo,
         puedeCambiarTelefono,
         seguimientos,
         vehiculos,
@@ -173,16 +215,11 @@ export function FichaDeLead({
         accionesDeCartera,
         vePortal: ve.portal,
       })}
-      <PanelDeEdicion
-        ficha={ficha}
-        campos={campos}
-        origenes={origenes}
+      <PanelesDeLaFicha
+        {...{ ficha, campos, origenes, tipos, puedeEditar, puedeCambiarTelefono, etiquetas }}
         zona={zonaHoraria}
-        puedeEditar={puedeEditar}
+        refrescaAlVolver={!panel.hayPanel && !gestionar.abierto}
       />
-      <PanelDeTelefono ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
-      <DialogoDeEtiquetas etiquetas={etiquetas} />
-      <RefrescarAlVolver activo={!panel.hayPanel && !gestionar.abierto} />
     </div>
   )
 }

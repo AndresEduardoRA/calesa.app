@@ -14,14 +14,6 @@ import { marcasDesde, type MarcasDeLead } from './marcas'
 // `tamanoDePagina()` de `shared/lib/paginacion`.
 export const MAXIMO_DE_PAGINA_DE_LEADS = 100
 
-// El tipo de un lead es un enum de la base (`tipo_lead`), no un campo configurable.
-export const TIPOS_DEL_LEAD = ['prospecto', 'cliente'] as const
-export type TipoDelLead = (typeof TIPOS_DEL_LEAD)[number]
-export const ETIQUETA_DEL_TIPO: Record<TipoDelLead, string> = {
-  prospecto: 'Prospecto',
-  cliente: 'Cliente',
-}
-
 // Una clave de campo que va a una consulta: lo que la base admite como clave (`leads_campos`). Si
 // una no cumple, no se pide: falla cerrada.
 const CLAVE_DE_ATRIBUTO = /^[a-z][a-z0-9_]{1,40}$/
@@ -39,7 +31,8 @@ export type FilaDeLead = {
   enCartera: boolean
   // Quién es su dueño (nulo si no tiene): con ello se sabe si quien mira puede enviarlo a la papelera.
   duenoId: string | null
-  tipo: TipoDelLead
+  // El tipo (de `tipos_lead`): lo nombra el catálogo que trae la página.
+  tipoLeadId: string
   origenId: string | null
   creadoEn: string
   // De la tabla: sólo los campos `en_tabla`. En el drawer, todos los que le llegan.
@@ -57,7 +50,7 @@ const COLUMNAS_FIJAS = [
   'telefono_principal',
   'en_cartera',
   'dueno_id',
-  'tipo',
+  'tipo_lead_id',
   'origen_lead_id',
   'creado_en',
   'es_favorito',
@@ -111,7 +104,7 @@ const esquemaFila = z
     telefono_principal: z.string().nullable(),
     en_cartera: z.boolean().nullable(),
     dueno_id: z.guid().nullable().optional(),
-    tipo: z.enum(TIPOS_DEL_LEAD),
+    tipo_lead_id: z.guid(),
     origen_lead_id: z.guid().nullable(),
     creado_en: z.string(),
     es_favorito: z.boolean().nullable().optional(),
@@ -147,7 +140,7 @@ export function filasDeLeadDesde(data: unknown, claves: readonly string[]): Fila
         telefono: f.telefono_principal ?? '',
         enCartera: f.en_cartera === true,
         duenoId: f.dueno_id ?? null,
-        tipo: f.tipo,
+        tipoLeadId: f.tipo_lead_id,
         origenId: f.origen_lead_id,
         creadoEn: f.creado_en,
         atributos,
@@ -177,7 +170,7 @@ export function leadCompletoDesde(data: unknown): FilaDeLead | null {
     telefono: f.telefono_principal ?? '',
     enCartera: f.en_cartera === true,
     duenoId: f.dueno_id ?? null,
-    tipo: f.tipo,
+    tipoLeadId: f.tipo_lead_id,
     origenId: f.origen_lead_id,
     creadoEn: f.creado_en,
     atributos: f.atributos ?? {},

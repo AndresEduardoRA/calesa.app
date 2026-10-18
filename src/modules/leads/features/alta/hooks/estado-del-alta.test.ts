@@ -11,6 +11,8 @@ import {
   limpio,
   repartirMotivos,
   sinElOrigen,
+  sinElTipo,
+  sinLoQueSeDesactivo,
   trasDuplicado,
   trasRechazo,
   trasSeguimientoInvalido,
@@ -152,6 +154,42 @@ describe('estado del alta: el teléfono', () => {
     expect(conTelefonoRevisado(con('70011002'), null).errores['telefono_principal']).toContain(
       '«+»',
     )
+  })
+})
+
+describe('estado del alta: lo que se apagó mientras se escribía', () => {
+  const escrito = () =>
+    limpio(
+      ID,
+      { nombre: 'Ana', [CLAVE_DEL_ALTA.origen]: 'o1', [CLAVE_DEL_ALTA.tipo]: 't1' },
+      SEGUIMIENTO,
+    )
+
+  it('el tipo se deja sin elegir y no se toca lo demás', () => {
+    const despues = sinElTipo(escrito())
+    expect(despues.valores[CLAVE_DEL_ALTA.tipo]).toBe('')
+    expect(despues.valores[CLAVE_DEL_ALTA.origen]).toBe('o1')
+    expect(despues.valores['nombre']).toBe('Ana')
+  })
+
+  it('según el campo del rechazo: el origen, el tipo, los dos, o ninguno', () => {
+    const rechazo = (clave: string) => sinLoQueSeDesactivo({ [clave]: 'se desactivó' })?.(escrito())
+    expect(rechazo(CLAVE_DEL_ALTA.origen)?.valores).toMatchObject({
+      [CLAVE_DEL_ALTA.origen]: '',
+      [CLAVE_DEL_ALTA.tipo]: 't1',
+    })
+    expect(rechazo(CLAVE_DEL_ALTA.tipo)?.valores).toMatchObject({
+      [CLAVE_DEL_ALTA.origen]: 'o1',
+      [CLAVE_DEL_ALTA.tipo]: '',
+    })
+    const los2 = sinLoQueSeDesactivo({
+      [CLAVE_DEL_ALTA.origen]: 'x',
+      [CLAVE_DEL_ALTA.tipo]: 'y',
+    })?.(escrito())
+    expect(los2?.valores).toMatchObject({ [CLAVE_DEL_ALTA.origen]: '', [CLAVE_DEL_ALTA.tipo]: '' })
+    // Un rechazo de otro dato no vuelve a leer ni borra nada.
+    expect(sinLoQueSeDesactivo({ [CLAVE_DEL_ALTA.nombre]: 'Escribe el nombre.' })).toBeNull()
+    expect(sinLoQueSeDesactivo(undefined)).toBeNull()
   })
 })
 

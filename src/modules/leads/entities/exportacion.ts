@@ -14,7 +14,7 @@ import { diaEnZona, localDeInstante } from '@/shared/lib/fechas'
 import type { ValoresDeFiltros } from '@/shared/lib/filtros'
 import type { OpcionDeCampo, TipoDeCampoDeLead } from '@/shared/lib/campos/tipos'
 import type { CampoDeLead } from './campo'
-import { ETIQUETA_DEL_TIPO, type FilaDeLead } from './listado'
+import type { FilaDeLead } from './listado'
 
 // Cuántos leads lleva como mucho una exportación: si hay más, se dice y no se corta en silencio.
 export const TOPE_DE_EXPORTACION = 5000
@@ -36,6 +36,8 @@ export const CREADOR_SOY_YO = 'Tú'
 export type ContextoDeExportacion = {
   // Nombre de cada origen por id (todos, también los apagados: un lead con uno apagado se nombra).
   origenes: ReadonlyMap<string, string>
+  // El nombre de cada tipo de lead por su id, también los apagados: el archivo dice el nombre, no la clave.
+  tipos: ReadonlyMap<string, string>
   // El código de país de la empresa, con «+»; nulo si no hay.
   codigoDePais: string | null
   zona: string
@@ -146,7 +148,7 @@ export function filaDeExportacion(
     ...(contexto.conNumeroGlobal ? [creadorDelPropio(fila)] : []),
     fila.nombre,
     telefonoDeExportacion(fila.telefono, contexto.codigoDePais),
-    ETIQUETA_DEL_TIPO[fila.tipo],
+    contexto.tipos.get(fila.tipoLeadId) ?? '',
     fila.origenId ? (contexto.origenes.get(fila.origenId) ?? '') : '',
     ...camposDeExportacion(campos).map((campo) =>
       valorDeExportacion(campo, fila.atributos[campo.clave], contexto.zona),

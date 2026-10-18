@@ -88,6 +88,8 @@ export async function crearLead(datos: {
   telefono: string
   deQuien: string
   atributos?: Record<string, unknown>
+  // Sin él, la base pone el tipo por defecto (el primero activo de la clase prospecto).
+  tipoLeadId?: string
 }): Promise<string> {
   const requeridos = (await camposDeLead()).filter((campo) => campo.activo && campo.requerido)
   const atributos: Record<string, unknown> = {}
@@ -101,6 +103,7 @@ export async function crearLead(datos: {
       telefono_principal: datos.telefono,
       creado_por: await idDe(datos.deQuien),
       atributos: { ...atributos, ...datos.atributos } as never,
+      ...(datos.tipoLeadId ? { tipo_lead_id: datos.tipoLeadId } : {}),
     })
     .select('id')
     .single<{ id: string }>()

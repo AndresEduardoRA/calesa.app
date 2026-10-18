@@ -23,12 +23,14 @@ export async function nuevoLead(datos: {
   telefono: string
   deQuien: string
   atributos?: Record<string, unknown>
+  tipoLeadId?: string
 }): Promise<LeadDePrueba> {
   const id = await crearLead({
     nombre: datos.corto,
     telefono: datos.telefono,
     deQuien: datos.deQuien,
     ...(datos.atributos ? { atributos: datos.atributos } : {}),
+    ...(datos.tipoLeadId ? { tipoLeadId: datos.tipoLeadId } : {}),
   })
   const { data, error } = await admin()
     .from('leads')
@@ -58,7 +60,7 @@ export async function versionDe(leadId: string): Promise<string> {
 
 export type FilaDeLeadEnLaBase = {
   nombre: string
-  tipo: string
+  tipo_lead_id: string
   origen_lead_id: string | null
   atributos: Record<string, unknown>
   actualizado_en: string
@@ -67,7 +69,7 @@ export type FilaDeLeadEnLaBase = {
 export async function leadEnLaBase(leadId: string): Promise<FilaDeLeadEnLaBase> {
   const { data, error } = await admin()
     .from('leads')
-    .select('nombre, tipo, origen_lead_id, atributos, actualizado_en')
+    .select('nombre, tipo_lead_id, origen_lead_id, atributos, actualizado_en')
     .eq('id', leadId)
     .single<FilaDeLeadEnLaBase>()
   exigir(error, 'leer el lead')

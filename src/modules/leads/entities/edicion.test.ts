@@ -13,6 +13,7 @@ import {
   validarEdicion,
   valoresDeEdicion,
 } from './edicion'
+import type { TipoDeLeadEnCatalogo } from './catalogos'
 import type { LeadDeFicha, OrigenConEstado } from './ficha'
 import { SIN_MARCAS } from './marcas'
 
@@ -20,11 +21,23 @@ const ZONA = 'America/La_Paz'
 const WEB = '11111111-1111-4111-8111-111111111111'
 const FB = '22222222-2222-4222-8222-222222222222'
 const APAGADO = '33333333-3333-4333-8333-333333333333'
+const TIPO_PROSPECTO = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const TIPO_CLIENTE = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+const TIPO_VIP = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+const TIPO_APAGADO = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
 
 const ORIGENES: OrigenConEstado[] = [
   { id: WEB, clave: 'web', nombre: 'Web', activo: true },
   { id: FB, clave: 'fb', nombre: 'Facebook', activo: true },
   { id: APAGADO, clave: 'ref', nombre: 'Referido', activo: false },
+]
+
+// Los tipos de lead que trae la base: dos de fábrica, uno agregado por la empresa y uno apagado.
+const TIPOS: TipoDeLeadEnCatalogo[] = [
+  { id: TIPO_PROSPECTO, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto', activo: true },
+  { id: TIPO_CLIENTE, clave: 'cliente', nombre: 'Cliente', clase: 'cliente', activo: true },
+  { id: TIPO_VIP, clave: 'vip', nombre: 'Cliente VIP', clase: 'cliente', activo: true },
+  { id: TIPO_APAGADO, clave: 'viejo', nombre: 'Mayorista', clase: 'cliente', activo: false },
 ]
 
 function campo(cambios: Partial<CampoDeLead> & Pick<CampoDeLead, 'clave'>): CampoDeLead {
@@ -73,7 +86,7 @@ const FICHA: LeadDeFicha = {
   telefonoCc: '+591',
   telefono: '59170011002',
   enCartera: true,
-  tipo: 'prospecto',
+  tipoLeadId: TIPO_PROSPECTO,
   origenId: WEB,
   atributos: { ciudad: 'La Paz', edad: 31, ci: 'CI-1', viejo: 'dato guardado' },
   creadoEn: '2026-10-14T10:00:00Z',
@@ -99,6 +112,7 @@ function entrada(
     iniciales,
     campos,
     origenes: ORIGENES,
+    tipos: TIPOS,
     zona: ZONA,
   }
 }
@@ -140,7 +154,7 @@ describe('con qué arranca el formulario', () => {
     const campos = camposEditables(LAYOUT, true)
     const valores = valoresDeEdicion(FICHA, campos, ZONA)
     expect(valores[CLAVE_DE_EDICION.nombre]).toBe('Ana Rojas')
-    expect(valores[CLAVE_DE_EDICION.tipo]).toBe('prospecto')
+    expect(valores[CLAVE_DE_EDICION.tipo]).toBe(TIPO_PROSPECTO)
     expect(valores[CLAVE_DE_EDICION.origen]).toBe(WEB)
     expect(valores['atributos.ciudad']).toBe('La Paz')
     expect(valores['atributos.edad']).toBe('31')
@@ -204,9 +218,11 @@ describe('qué viaja', () => {
   })
 
   it('el tipo y el origen', () => {
-    const validacion = validarEdicion(entrada({ tipo: 'cliente', origen_lead_id: FB }))
-    expect(validacion).toEqual({ ok: true, cambios: { tipo: 'cliente', origenId: FB } })
-    expect(hayCambios({ tipo: 'cliente' })).toBe(true)
+    const validacion = validarEdicion(
+      entrada({ [CLAVE_DE_EDICION.tipo]: TIPO_VIP, origen_lead_id: FB }),
+    )
+    expect(validacion).toEqual({ ok: true, cambios: { tipoLeadId: TIPO_VIP, origenId: FB } })
+    expect(hayCambios({ tipoLeadId: TIPO_VIP })).toBe(true)
   })
 
   it('no manda lo que el formulario no ofreció (un privado ajeno, un campo apagado)', () => {
@@ -237,7 +253,9 @@ describe('qué no pasa', () => {
       ...LAYOUT,
       campo({ clave: 'ocupacion', etiqueta: 'Ocupación', requerido: true }),
     ]
-    const validacion = validarEdicion(entrada({ tipo: 'cliente' }, FICHA, layout))
+    const validacion = validarEdicion(
+      entrada({ [CLAVE_DE_EDICION.tipo]: TIPO_CLIENTE }, FICHA, layout),
+    )
     expect(validacion.ok).toBe(false)
     if (!validacion.ok) {
       expect(Object.keys(validacion.porCampo)).toEqual(['atributos.ocupacion'])
@@ -272,11 +290,6 @@ describe('qué no pasa', () => {
       ok: false,
       porCampo: { origen_lead_id: 'Elige de dónde viene el lead.' },
     })
-  })
-
-  it('un tipo que no existe', () => {
-    const validacion = validarEdicion(entrada({ tipo: 'marciano' }))
-    expect(validacion).toEqual({ ok: false, porCampo: { tipo: 'Elige el tipo de lead.' } })
   })
 
   it('el foco va al primero en el orden de la pantalla', () => {

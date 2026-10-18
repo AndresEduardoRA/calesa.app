@@ -10,6 +10,17 @@ import { filasRechazadas, plantillaDeImportacion, tablaDeRechazadas } from './pl
 const CONTEXTO: ContextoDeAlta = {
   telefonoCc: '+591',
   origenes: [{ id: 'o1', clave: 'web', nombre: 'Web' }],
+  // El alta propone el primero activo de la clase prospecto; el ejemplo lleva ese nombre, el que sea.
+  tipos: [
+    { id: 't-cli', clave: 'cliente', nombre: 'Cliente', clase: 'cliente' },
+    {
+      id: 't-pro',
+      clave: 'comprador_potencial',
+      nombre: 'Comprador potencial',
+      clase: 'prospecto',
+    },
+  ],
+  tipoPorDefectoId: 't-pro',
   tiposDeSeguimiento: [],
   ultimoOrigenId: null,
   empresa: { ciudad: null, pais: null },
@@ -67,7 +78,7 @@ describe('plantillaDeImportacion', () => {
     )
     expect(encabezados).toEqual(['Nombre', 'Teléfono', 'Tipo', 'Origen', 'Ciudad', 'Edad'])
     expect(muestra).toHaveLength(encabezados.length)
-    expect(muestra[2]).toBe('Prospecto')
+    expect(muestra[2]).toBe('Comprador potencial')
     expect(muestra[3]).toBe('Web')
     expect(muestra[5]).toBe(10)
   })
@@ -91,7 +102,7 @@ describe('filasRechazadas y tablaDeRechazadas', () => {
     lead: {
       nombre: 'Ana',
       telefono_principal: '7',
-      tipo: 'prospecto' as const,
+      tipo_lead_id: 't-pro',
       origen_lead_id: null,
       atributos: {},
     },

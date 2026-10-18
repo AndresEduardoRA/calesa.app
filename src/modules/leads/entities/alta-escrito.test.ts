@@ -3,7 +3,11 @@ import { CLAVE_DEL_ALTA, hayAlgoEscritoEnElAlta } from './alta'
 import { valoresDeSeguimientoNuevo } from './seguimiento-nuevo'
 
 describe('hayAlgoEscritoEnElAlta', () => {
-  const vacio = { [CLAVE_DEL_ALTA.telefono]: '', [CLAVE_DEL_ALTA.nombre]: '', tipo: 'prospecto' }
+  const vacio = {
+    [CLAVE_DEL_ALTA.telefono]: '',
+    [CLAVE_DEL_ALTA.nombre]: '',
+    [CLAVE_DEL_ALTA.tipo]: 'p',
+  }
   const seguimiento = valoresDeSeguimientoNuevo([{ id: 't1' }])
 
   it('un alta recién abierta no tiene nada escrito', () => {
@@ -27,6 +31,8 @@ describe('hayAlgoEscritoEnElAlta', () => {
   })
 
   it('cambiar el origen o el tipo solos no es un lead a medio hacer', () => {
-    expect(hayAlgoEscritoEnElAlta({ ...vacio, tipo: 'cliente' }, seguimiento)).toBe(false)
+    expect(hayAlgoEscritoEnElAlta({ ...vacio, [CLAVE_DEL_ALTA.tipo]: 'c' }, seguimiento)).toBe(
+      false,
+    )
   })
 })

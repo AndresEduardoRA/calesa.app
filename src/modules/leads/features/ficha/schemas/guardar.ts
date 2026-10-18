@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { LARGO_MAXIMO_DEL_NOMBRE, TIPOS_DEL_LEAD } from '../../../entities/alta'
+import { LARGO_MAXIMO_DEL_NOMBRE } from '../../../entities/alta'
 
 // Lo que cruza el límite al guardar la ficha: ya validado y reducido a lo que cambió por el mismo
 // código que usa la pantalla (`validarEdicion()`); el servidor revisa la forma y la base el resto
@@ -14,7 +14,7 @@ const valorDeAtributo = z.union([
 const cambios = z
   .object({
     nombre: z.string().trim().min(1).max(LARGO_MAXIMO_DEL_NOMBRE).optional(),
-    tipo: z.enum(TIPOS_DEL_LEAD).optional(),
+    tipoLeadId: z.guid().optional(),
     origenId: z.guid().nullable().optional(),
     // Un valor pone o cambia; `null` quita la clave.
     atributos: z

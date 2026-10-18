@@ -74,7 +74,7 @@ describe('objetivosDeImportacion', () => {
     expect(ids).toEqual([
       'nombre',
       'telefono_principal',
-      'tipo',
+      'tipo_lead_id',
       'origen_lead_id',
       'atributos.ciudad',
       'atributos.cedula',
@@ -98,7 +98,7 @@ describe('emparejarColumnas', () => {
       'atributos.cedula',
       'atributos.ciudad',
       'atributos.notas',
-      'tipo',
+      'tipo_lead_id',
       'origen_lead_id',
     ])
     expect(avisos).toEqual([])

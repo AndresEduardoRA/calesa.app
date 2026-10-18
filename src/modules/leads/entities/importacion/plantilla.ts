@@ -2,7 +2,7 @@
 // se exporta se puede volver a importar. Sin I/O.
 import type { Celda } from '@/shared/lib/csv/escribir'
 import { diaEnZona } from '@/shared/lib/fechas'
-import { ETIQUETA_DE_TIPO_DEL_LEAD, type ContextoDeAlta } from '../alta'
+import type { ContextoDeAlta } from '../alta'
 import type { CampoDeLead } from '../campo'
 import { ENCABEZADOS_FIJOS, camposDeExportacion } from '../exportacion'
 import type { FilaPreparada } from './filas'
@@ -49,7 +49,9 @@ export function plantillaDeImportacion(
     muestra: [
       'Nombre de ejemplo',
       '70011002',
-      ETIQUETA_DE_TIPO_DEL_LEAD.prospecto,
+      // El tipo que propone el alta (el primero activo de la clase prospecto): el nombre sale de la base.
+      (contexto.tipos.find((tipo) => tipo.id === contexto.tipoPorDefectoId) ?? contexto.tipos[0])
+        ?.nombre ?? '',
       contexto.origenes[0]?.nombre ?? '',
       ...activos.map((campo) => muestraDe(campo, hoy)),
     ],
