@@ -9,6 +9,7 @@ import { formatearNumero } from '../src/shared/lib/formato'
 import { entrar } from './soporte/inventario'
 import { marcarInteres, vincular } from './soporte/leads'
 import { irAFicha, tituloDeLaFicha } from './soporte/leads-ficha'
+import { capturar } from './soporte/recorrido'
 import {
   elegirVehiculo,
   interesados,
@@ -104,7 +105,7 @@ test('vincular y marcar interés con su nota desde el lead; la ficha del vehícu
 
 test('la nota de un interés que se tipea y no se manda pregunta antes de perderse, y no se pierde al cambiar de vehículo', async ({
   page,
-}) => {
+}, info) => {
   const lead = await leadDe(t.ada, `Pregunta ${p}`)
   const uno = `Furgoneta de la nota ${p}`
   const dos = `Todoterreno de la nota ${p}`
@@ -124,6 +125,7 @@ test('la nota de un interés que se tipea y no se manda pregunta antes de perder
   await nota.fill('Quiere verlo el sábado')
   await page.keyboard.press('Escape')
   await expect(panel.getByText('Tienes cambios sin guardar.')).toBeVisible()
+  await capturar(page, info, 'agregar-vehiculo-nota-pregunta')
   const seguir = panel.getByRole('button', { name: 'Seguir editando' })
   await expect(seguir).toBeFocused()
   await seguir.click()
