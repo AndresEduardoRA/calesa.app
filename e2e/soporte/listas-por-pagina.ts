@@ -1,6 +1,6 @@
 // Lo que usan los e2e de «ítems por página» (9g): la preferencia de la persona en la base, el selector de un listado y
 // la URL. Todo en el Supabase LOCAL; la preferencia es la fila `listas.por_pagina` de `preferencias_usuario`.
-import { expect, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page, type Request } from '@playwright/test'
 import { admin } from './base'
 import { aLaVista } from './inventario'
 import { exigir, idDe } from './leads'
@@ -57,3 +57,48 @@ export const vistasDelHtml = (html: string): { tabla: boolean; tarjetas: boolean
   tabla: html.includes('<table'),
   tarjetas: html.includes('<article'),
 })
+
+// La línea de tiempo de los pedidos de una prueba, para leerla cuando falla (la 9i perdió un fallo de «página 3» sin poder
+// decir si la acción que guarda la preferencia o la navegación a `?por=` tardó, se cruzó o no salió). Cada línea: cuándo
+// empezó el pedido (ms desde que se registró), cuánto tardó, su método, si es una Server Action (`next-action`) o una
+// lectura de la pantalla (`RSC`), y su ruta.
+export type LineaDeRed = { adjuntar: (info: { attach: AdjuntarFn }) => Promise<void> }
+type AdjuntarFn = (nombre: string, opciones: { body: string; contentType: string }) => Promise<void>
+
+export function registrarRed(page: Page): LineaDeRed {
+  const inicio = Date.now()
+  const lineas: string[] = []
+  const empezo = new Map<Request, number>()
+  const etiqueta = (pedido: Request): string => {
+    const cabeceras = pedido.headers()
+    const clase = cabeceras['next-action'] ? 'ACCIÓN' : cabeceras['rsc'] ? 'RSC' : 'otro'
+    const url = new URL(pedido.url())
+    return `${pedido.method()} ${clase} ${url.pathname}${url.search}`
+  }
+  const anotar = (pedido: Request, como: string) => {
+    const desde = empezo.get(pedido) ?? Date.now()
+    lineas.push(
+      `${String(desde - inicio).padStart(6)} ms  +${String(Date.now() - desde).padStart(5)} ms  ${como}  ${etiqueta(pedido)}`,
+    )
+  }
+  page.on('request', (pedido) => {
+    if (new URL(pedido.url()).origin === new URL(page.url() || pedido.url()).origin) {
+      empezo.set(pedido, Date.now())
+    }
+  })
+  page.on('requestfinished', (pedido) => {
+    if (empezo.has(pedido)) anotar(pedido, 'listo ')
+  })
+  page.on('requestfailed', (pedido) => {
+    if (empezo.has(pedido)) anotar(pedido, 'FALLÓ ')
+  })
+  return {
+    adjuntar: async (info) => {
+      lineas.sort()
+      await info.attach('red.txt', {
+        body: `${lineas.length} pedidos al mismo origen\n${lineas.join('\n')}\n`,
+        contentType: 'text/plain',
+      })
+    },
+  }
+}

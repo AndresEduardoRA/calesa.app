@@ -15,6 +15,8 @@ import {
   fijarPreferencia,
   parametrosDe,
   preferenciaDe,
+  registrarRed,
+  type LineaDeRed,
   selectorDeTamano,
 } from './soporte/listas-por-pagina'
 import { capturar, tactil } from './soporte/recorrido'
@@ -53,6 +55,17 @@ test.beforeAll(async ({}, info) => {
   }
   await insertar(t.personas.berta, 130, '', 84)
   await insertar(t.personas.duena, 30, 'D', 86)
+})
+
+let red: LineaDeRed | null = null
+test.beforeEach(({ page }) => {
+  red = registrarRed(page)
+})
+// Si una prueba falla, queda la línea de tiempo de sus pedidos junto a la traza (`red.txt`).
+test.afterEach(async ({}, info) => {
+  if (info.status !== info.expectedStatus) {
+    await red?.adjuntar(info)
+  }
 })
 
 test.afterAll(async () => {

@@ -4,7 +4,6 @@
 // local: para correr un spec suelto sobre una base con datos, `pnpm test:e2e <spec>`.
 // Uso: pnpm test:e2e:completo [argumentos de playwright, p. ej. --project=movil]
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) process.loadEnvFile('.env.local')
 const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -56,24 +55,6 @@ function correr(comando, args, env = {}) {
   if (status !== 0) process.exit(status)
 }
 
-// Playwright vacía `test-results/` al empezar: lo de un fallo (traza, video, captura) y el reporte se
-// copian a `e2e-fallos/<fecha>/` (ignorada por git) para que la corrida siguiente no lo borre. Quedan los
-// cinco últimos.
-const FALLOS = 'e2e-fallos'
-const GUARDADOS = 5
-
-function guardarArtefactos() {
-  const marca = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-')
-  const destino = `${FALLOS}/${marca}`
-  mkdirSync(destino, { recursive: true })
-  for (const carpeta of ['test-results', 'playwright-report']) {
-    if (existsSync(carpeta)) cpSync(carpeta, `${destino}/${carpeta}`, { recursive: true })
-  }
-  const viejos = readdirSync(FALLOS).sort().slice(0, -GUARDADOS)
-  for (const viejo of viejos) rmSync(`${FALLOS}/${viejo}`, { recursive: true, force: true })
-  console.error(`\n[e2e completo] Falló: los artefactos quedaron en ${destino}/.\n`)
-}
-
 await exigirFunciones('(antes de resetear)')
 console.log('\n[e2e completo] Reseteando la base local: se pierden sus datos de desarrollo.\n')
 correr('pnpm', ['db:reset'])
@@ -82,7 +63,7 @@ correr('pnpm', ['db:reset'])
 correr('pnpm', ['db:carreras'])
 await exigirFunciones('(después de resetear)')
 const status = ejecutar('pnpm', ['test:e2e', ...process.argv.slice(2)], { E2E_COMPLETO: '1' })
+// Si falló, el reporter de Playwright ya dejó los artefactos en `e2e-fallos/` (`e2e/soporte/reporter-de-fallos.ts`).
 if (status !== 0) {
-  guardarArtefactos()
   process.exit(status)
 }

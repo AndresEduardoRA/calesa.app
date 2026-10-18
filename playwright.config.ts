@@ -15,12 +15,13 @@ export default defineConfig({
   timeout: 30_000,
   retries: 0,
   workers: 1,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  // El último guarda los artefactos de toda corrida que falla (`e2e/soporte/reporter-de-fallos.ts`).
+  reporter: [['list'], ['html', { open: 'never' }], ['./e2e/soporte/reporter-de-fallos.ts']],
   // La guardia: falla en segundos si las funciones edge no están servidas (e2e/soporte/guardia.ts).
   globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL: `http://localhost:${puerto}`,
-    // Lo de un fallo queda para diagnosticarlo; `test:e2e:completo` lo copia a `e2e-fallos/` antes de la
+    // Lo de un fallo queda para diagnosticarlo; el reporter de fallos lo copia a `e2e-fallos/` antes de la
     // corrida siguiente, que vacía `test-results/`.
     trace: 'retain-on-failure',
     video: 'retain-on-failure',
