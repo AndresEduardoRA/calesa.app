@@ -51,7 +51,8 @@ const nodos = (page: Page) => page.evaluate(() => document.querySelectorAll('*')
 const PRESUPUESTO_DE_NODOS = {
   listado: { escritorio: 2_200, movil: 2_200 },
   listadoDe100: { escritorio: 3_500, movil: 3_500 },
-  kanban: { escritorio: 9_000, movil: 6_000 },
+  // 9i: el «⋯» de cada tarjeta suma 6 nodos (3.000 en 500 tarjetas): 8.200 → 11.200 medidos, más un 5 %.
+  kanban: { escritorio: 11_800, movil: 6_000 },
 }
 type Proyecto = 'escritorio' | 'movil'
 
@@ -217,6 +218,14 @@ test('una columna del kanban con más de 500: «500+», «Ver más» hasta el to
   await expect(columna.getByText(/Mostrando las 500 con actividad más reciente/)).toBeVisible()
   const total = await nodos(page)
   info.annotations.push({ type: 'nodos de una columna en el tope', description: String(total) })
+  // Lo que suma el «⋯» de cada tarjeta (9i): su envoltorio, el botón y el icono.
+  const delMenu = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-mas-acciones]')].reduce(
+      (n, boton) => n + 1 + (boton.parentElement?.querySelectorAll('*').length ?? 0),
+      0,
+    ),
+  )
+  info.annotations.push({ type: 'nodos de los «⋯» de la columna', description: String(delMenu) })
   expect(total).toBeLessThan(PRESUPUESTO_DE_NODOS.kanban.escritorio)
   await expect(columna.getByText('Busca para llegar a las demás.')).toBeVisible()
 
