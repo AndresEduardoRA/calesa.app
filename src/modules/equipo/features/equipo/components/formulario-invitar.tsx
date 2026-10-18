@@ -42,7 +42,7 @@ export function FormularioInvitar({ formulario, roles, misPermisos }: Props) {
         }}
         error={formulario.errores['nombre']}
       />
-      <div className="grid gap-1.5">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
         <Label htmlFor="rolId">Rol con el que entra</Label>
         <select
           id="rolId"
@@ -50,7 +50,7 @@ export function FormularioInvitar({ formulario, roles, misPermisos }: Props) {
           value={formulario.rolId}
           aria-invalid={errorDeRol ? true : undefined}
           aria-describedby={errorDeRol ? 'rolId-error' : undefined}
-          className="h-11 rounded-(--radius-md) border border-(--color-line) bg-(--color-surface) px-2.5 text-(length:--text-sm) text-(--color-ink) md:h-9"
+          className="h-11 w-full min-w-0 rounded-(--radius-md) border border-(--color-line) bg-(--color-surface) px-2.5 text-(length:--text-sm) text-(--color-ink) md:h-9"
           onChange={(evento) => {
             formulario.escribir('rolId', evento.target.value)
           }}

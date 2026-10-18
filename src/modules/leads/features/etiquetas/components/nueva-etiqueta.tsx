@@ -46,7 +46,7 @@ export function NuevaEtiqueta({ etiquetas, alCrear, alEscribir }: Props) {
         void crear()
       }}
     >
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Input
           value={nombre}
           aria-label="Nombre de la etiqueta nueva"
@@ -54,7 +54,7 @@ export function NuevaEtiqueta({ etiquetas, alCrear, alEscribir }: Props) {
           aria-describedby={motivo ? 'motivo-nueva-etiqueta' : undefined}
           placeholder="Nueva etiqueta"
           maxLength={40}
-          className="h-11 min-w-0 flex-1 md:h-9"
+          className="h-11 min-w-[8rem] flex-1 md:h-9"
           onChange={(evento) => {
             setNombre(evento.target.value)
             setMotivo(null)

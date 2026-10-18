@@ -210,7 +210,9 @@ export function ModalDeFormulario({
           void enviar()
         }}
       >
-        <fieldset disabled={enCurso} className="grid min-w-0 gap-3">
+        {/* Una sola columna que no crece con lo que lleva adentro (`minmax(0, 1fr)`): un `<select>` con una opción larga (el rol de «Invitar») o
+            un campo con su ancho natural ensanchaba la columna y, con el texto al 200 %, se salía del modal y quedaba cortado. */}
+        <fieldset disabled={enCurso} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
           {children}
         </fieldset>
       </form>

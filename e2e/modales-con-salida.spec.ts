@@ -102,6 +102,53 @@ test('nuevo rol: un nombre sin letras se dice junto al campo y el foco va ahí',
   await expect(dialogo.getByLabel('Nombre del rol')).toHaveAttribute('aria-invalid', 'true')
 })
 
+// Con el texto al 200 %, ningún campo de un modal se sale de él ni queda cortado (se mide sin desplazar: desplazar el cuerpo de costado
+// lo acomoda a la vista y el desborde desaparece de la medida): el `<select>` del rol de «Invitar» tiene una opción larga que
+// ensanchaba la columna del formulario, y el campo de «Nueva etiqueta» se achicaba hasta no leerse.
+async function cabeEnElModal(dialogo: Locator, campo: Locator, anchoMinimo = 0) {
+  const [d, c] = await Promise.all([dialogo.boundingBox(), campo.boundingBox()])
+  expect(d, 'el modal tiene caja').not.toBeNull()
+  expect(c, 'el campo tiene caja').not.toBeNull()
+  if (!d || !c) return
+  expect(c.x + c.width, 'el campo no se sale del modal por la derecha').toBeLessThanOrEqual(
+    d.x + d.width + 1,
+  )
+  expect(c.x, 'el campo no se sale del modal por la izquierda').toBeGreaterThanOrEqual(d.x - 1)
+  expect(c.width, 'el campo no se achica hasta no leerse').toBeGreaterThanOrEqual(anchoMinimo)
+}
+
+test('al 200 % los campos de invitar caben en su modal', async ({ page }) => {
+  await entrar(page, terreno.personas.duena)
+  await page.goto('/configuracion/equipo')
+  await page.getByRole('button', { name: 'Invitar' }).click()
+  const invitar = page.getByRole('dialog', { name: 'Invitar a una persona' })
+  await invitar.getByLabel('Correo', { exact: true }).fill('invitada.del.recorrido@ejemplo.com')
+  await invitar.getByRole('button', { name: 'Invitar' }).click()
+  await expect(invitar.getByText('Elige el rol con el que entra.')).toBeVisible()
+  // El texto crece con el modal ya abierto, con el motivo a la vista (como lo pide quien lo agranda a mitad de una tarea).
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  for (const campo of [
+    invitar.getByLabel('Correo', { exact: true }),
+    invitar.getByLabel('Nombre y apellido'),
+    invitar.getByLabel('Rol con el que entra'),
+  ]) {
+    await cabeEnElModal(invitar, campo)
+  }
+})
+
+test('al 200 % el campo de una etiqueta nueva cabe en su modal y se lee', async ({ page }) => {
+  await entrar(page, terreno.personas.berta)
+  await page.goto('/leads?panel=etiquetas')
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  const etiquetas = page.getByRole('dialog', { name: 'Tus etiquetas' })
+  await expect(etiquetas).toBeVisible()
+  await cabeEnElModal(etiquetas, etiquetas.getByLabel('Nombre de la etiqueta nueva'), 200)
+})
+
 test('invitar: con algo escrito pregunta; sin rol dice el motivo junto al campo', async ({
   page,
 }) => {
