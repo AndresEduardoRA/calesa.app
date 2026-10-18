@@ -151,23 +151,39 @@ const numero = (valor, decimales = 0) =>
       })
     : '?'
 
-// Una línea con lo que cambió entre antes y después, y con qué carga.
+const cargaEscrita = (foto) => foto.carga.map((c) => numero(c, 2)).join(' / ')
+const presionEscrita = (recurso) =>
+  recurso ? `${numero(recurso.avg10, 1)} % (60 s: ${numero(recurso.avg60, 1)} %)` : '?'
+
+// Cómo estaba la máquina antes de medir nada (5a-fix-1b): una guarda que falla con la máquina ya cargada deja la evidencia en la
+// salida, y no se «arregla» corriéndola otra vez.
+function lineaAlEmpezar(foto) {
+  return (
+    `Máquina al empezar: carga ${cargaEscrita(foto)} (1 / 5 / 15 min)` +
+    (foto.io ? ` · disco ${presionEscrita(foto.io)}` : '') +
+    (foto.cpu ? ` · CPU ${presionEscrita(foto.cpu)}` : '') +
+    ` · autovacuum activos: ${numero(foto.autovacuum)}`
+  )
+}
+
+// Una línea con lo que cambió entre antes y después, y con qué carga: la de al empezar y la de al terminar.
 function lineaDeLaMaquina(antes, despues) {
-  const presion = (recurso, nombre) =>
-    recurso
-      ? ` · ${nombre} ${numero(recurso.avg10, 1)} % (60 s: ${numero(recurso.avg60, 1)} %)`
+  const presion = (nombre, recurso) =>
+    despues[recurso]
+      ? ` · ${nombre} ${presionEscrita(antes[recurso])} → ${presionEscrita(despues[recurso])}`
       : ''
   return (
-    `  máquina: carga ${despues.carga.map((c) => numero(c, 2)).join(' / ')}` +
-    presion(despues.io, 'disco') +
-    presion(despues.cpu, 'CPU') +
+    `  máquina: carga al empezar ${cargaEscrita(antes)} → al terminar ${cargaEscrita(despues)}` +
+    presion('disco', 'io') +
+    presion('CPU', 'cpu') +
     ` · WAL +${numero((despues.bytes - antes.bytes) / 1048576)} MB (imágenes completas +${numero(despues.fpi - antes.fpi)})` +
     ` · checkpoints +${numero(despues.checkpoints - antes.checkpoints)} (escribir +${numero(despues.escritura - antes.escritura)} ms, sync +${numero(despues.sincronizacion - antes.sincronizacion)} ms)` +
-    ` · autovacuum activos: ${numero(despues.autovacuum)}`
+    ` · autovacuum activos: ${numero(antes.autovacuum)} → ${numero(despues.autovacuum)}`
   )
 }
 
 console.log(`Tamaños de página (del código): ${JSON.stringify(VARIABLES_DE_PAGINA)}`)
+console.log(lineaAlEmpezar(fotoDeLaMaquina()))
 for (const [archivo, titulo, corridas] of MEDICIONES) {
   const sql = readFileSync(archivo, 'utf8')
   const antes = fotoDeLaMaquina()
