@@ -19,7 +19,7 @@ paths:
   `.rpc()`); y no asigna el rol (eso lo hace `rbac_asignar_rol` con la sesión de quien invita).
   El lint prohíbe importar `@/shared/lib/supabase/admin` desde cualquier otro archivo. En ningún
   caso el cliente admin lee `leads`, `vehiculos` ni `cotizaciones` (saltaría la papelera).
-- Los tipos vienen de `@/shared/types/database.types` (`Tables<'leads'>`, `Enums<'tipo_lead'>`).
+- Los tipos vienen de `@/shared/types/database.types` (`Tables<'leads'>`, `Enums<'clase_tipo_lead'>`).
   Si un tipo contradice el código, el código está mal.
 - Leads: se leen de `leads_vista` (teléfono enmascarado salvo cartera). Nunca `from('leads')`
   para leer el teléfono.

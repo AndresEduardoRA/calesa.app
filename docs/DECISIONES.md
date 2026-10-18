@@ -3890,3 +3890,74 @@ y la lectura al abrir cuesta un pedido que casi nadie paga); una bandera `princi
 **Consecuencia:** una lista nueva sale con clic, teclado, nombre y «⋯» pegados sólo con importar el patrón, y la guarda lo exige; el «⋯» de un
 módulo se cambia en un solo archivo. Cuesta: 3.000 nodos en una columna llena del kanban, ~6 por fila en las listas, y que un resumen sin su
 fila en la página no ofrezca «Editar».
+
+## 2026-10-18 — Parte 9j (0a): `listas-por-pagina` en la página 3 no se reprodujo; qué se probó y qué quedó instrumentado
+
+**Contexto:** en la 9i falló una vez `listas-por-pagina` («la preferencia elegida vale en la página 3»): `toHaveCount(25)` recibió 10 durante 5 s, con el selector en
+25 y la lista en 10. Fue la prueba n.º 2 de una corrida dirigida (`pnpm test:e2e`, 128 pruebas), con el servidor recién levantado, y no quedó ningún artefacto:
+sólo `test:e2e:completo` copiaba a `e2e-fallos/`. Repetir hasta que pase no es un método.
+**Qué se probó (con evidencia):**
+
+- **E1, la condición real:** 20 invocaciones separadas de `playwright test e2e/listas-por-pagina.spec.ts --project=escritorio -g "sin haber elegido|página 3"`, cada
+  una con su servidor frío y la prueba de la página 3 corriendo segunda: 20 de 20 en verde (~7 s cada una).
+- **E1b, con la máquina cargada:** lo mismo con diez procesos ocupando los núcleos: 20 de 20 en verde (13 a 16 s cada una).
+- **E2, el orden forzado con `page.route`** (dos pruebas nuevas, `e2e/listas-por-pagina.spec.ts`): el guardado de la preferencia demorado 1 s y 6 s, y la lectura de
+  la página nueva (RSC de `?por=25`) demorada 5 s. En los tres casos la lista termina con 25 filas, la URL dice `por=25`, la cuenta guardó 25 y **el guardado va antes
+  que la navegación** (la navegación sólo sale cuando la acción respondió). Con eso, las hipótesis de un cruce (H2: la respuesta de la acción, con el árbol viejo, pisa la
+  navegación; H3: la navegación de nuqs se pierde) **no tienen dónde ocurrir con el orden actual**, y ninguna de las demoras las produjo.
+  La de 6 s sí reproduce la firma del fallo con el `expect` de 5 s: **lo que pasó fue un guardado que tardó más de 5 s**, no un cruce.
+- Estado compartido (H4) descartado por la evidencia: la prueba fija su preferencia, los contextos son nuevos y las cuentas llevan una marca por archivo.
+
+**Decisión:** no hay un defecto de la app que reproducir (no hay prueba roja que volver verde) y no se alargó el `expect`: un guardado de más de 5 s es un hecho
+que se quiere ver, no esconder. Quedó **instrumentado**: un reporter de Playwright (`e2e/soporte/reporter-de-fallos.ts`) copia `test-results/` y el reporte a
+`e2e-fallos/<fecha>/` en **toda** corrida que falla (también la de un spec suelto; quedan los cinco últimos), y `listas-por-pagina` adjunta la línea de tiempo de red
+(cada POST de la acción y cada pedido RSC con su URL, cuándo empezó y cuándo terminó) cuando falla. **No se explicó por qué ese guardado tardó más de 5 s**: la
+próxima vez dejará la línea de tiempo y se mide con ella (`.claude/rules/e2e.md`).
+**Consecuencia:** si vuelve a aparecer, hay traza, video, captura y la línea de tiempo del guardado; si el guardado resulta lento sin carga, el defecto es del guardado
+(`listas.por_pagina` por RPC) y no de la navegación.
+
+## 2026-10-18 — Parte 9j (0b): el «⋯» cuesta 3 nodos con un símbolo SVG compartido
+
+**Contexto:** el «⋯» de la 9i costaba 6 nodos por fila o tarjeta (envoltorio, botón, `<svg>` y tres círculos) y subió el presupuesto del kanban de 9.000 a 11.800.
+**Decisión:** un sprite en línea. `<SimbolosDeLista>` monta una vez en el layout `(app)` un `<svg>` oculto con `<defs><g id="…">` y el botón lleva
+`<svg><use href="#…"/></svg>` sin envoltorio: el botón, el `<svg>` y el `<use>`, **3 nodos**. Con `currentColor` sigue al tema, a los colores forzados de Windows y al 200 %, y
+el nombre accesible no cambia («Más acciones de …»). El presupuesto del kanban vuelve a lo medido más 5 %: 9.718 nodos → **10.250** (la prueba exige además 3 por tarjeta).
+**Alternativas:** una máscara CSS (2 nodos): en colores forzados el fondo se reemplaza y el icono desaparece. `<symbol>` en vez de `<g>`: su viewport propio hizo que la
+comparación de píxeles diera 117 de 255 en el celular (posiciones fraccionarias); con `<g>` dentro de `<defs>` y las copias de la prueba a múltiplos de 8 px sobre fondo plano
+la diferencia es de 8 como mucho (`e2e/mas-acciones-icono.spec.ts`).
+**Consecuencia:** el «⋯» no se dibuja si los símbolos no están montados (un test mira que el `use` apunte a un `id` que existe); un «⋯» fuera del layout `(app)` tendría que montarlos.
+
+## 2026-10-18 — Parte 9j: los tipos de lead son una tabla con una clase fija, y el sistema razona por la clase
+
+**Contexto:** el tipo de un lead era el enum `tipo_lead` ('prospecto' | 'cliente') y sus nombres estaban escritos en `entities/alta.ts` y `entities/listado.ts`. La empresa tiene que
+poder configurarlos como los orígenes (crear, renombrar, ordenar, desactivar), sin que el sistema pierda lo que necesita saber de ellos: si un lead ya compró o no.
+**Decisión:**
+
+1. **`tipos_lead`** (id, clave inmutable, nombre único sin importar mayúsculas, **clase** `clase_tipo_lead` — «prospecto» o «cliente» —, activo, orden) y `leads.tipo_lead_id` con FK
+   `on delete restrict`. La clase se elige al crear y no cambia. **El sistema razona por la clase, nunca por el nombre ni la clave** (la cotización final pasa al lead a la clase
+   cliente; las métricas de conversión cuentan por clase: `docs/PLAN.md`, Fases 4 y 9). Los dos nombres de las clases son los únicos textos fijos.
+2. **Siempre queda un tipo activo de cada clase, y lo impone la base** para quien sea que escriba: `tipo_lead_clase_vigente()` (before update or delete) toma un `pg_advisory_xact_lock` por clase
+   antes de mirar si queda otro; las RPC toman además `lock table … in share row exclusive mode`. Dos personas que apagan a la vez los dos últimos terminan con un solo apagado y el mensaje
+   «Es el único tipo activo de la clase …» (`scripts/carreras/tipos.mjs`, sin `sleep`). La pantalla lo dice antes: el interruptor y «Eliminar» del último de su clase salen apagados con el motivo.
+3. **Un lead no guarda un tipo apagado, aunque la desactivación llegue a la vez que el alta:** `lead_tipo_vigente()` mira el tipo con `for share` (que choca con el `update` de desactivar). Un lead
+   que llega sin tipo recibe `_tipo_lead_por_defecto()`: **el primer activo de la clase prospecto por orden** (lo propone también el alta); para cambiarlo basta ordenar la lista.
+4. **Se escribe sólo por RPC** (`tipo_lead_crear|guardar|mover|eliminar`, con `leads.configurar`, versión y PT409); uno con leads (la papelera cuenta) no se elimina, se desactiva. El **tope de 100 vive en la base**
+   (`_tipos_lead_tope()`), `tipos_lead_con_uso()` lo devuelve y el TypeScript no lo escribe.
+5. **Una sola lectura para los nombres:** `leads_catalogos()` devuelve `{ origenes, tipos }` y reemplaza a la de orígenes en el listado, la ficha y la exportación; el alta y la importación los reciben en
+   `lead_alta_contexto()`. Ni el listado ni el kanban suman pedidos por los nombres. El kanban no muestra el tipo.
+6. **El filtro de la URL lleva la clave** (`?tipo=prospecto`): las URL, las vistas guardadas y los e2e anteriores siguen valiendo; la base filtra por `tipo_lead_id`. El CSV acepta el nombre o la clave de un tipo **activo**; uno que
+   no existe o está apagado rechaza la fila y lista los activos (nunca crea uno).
+7. **Cómo se fue el enum sin editar migraciones comprometidas** (aún no hubo `db push`): `schemas/` describe sólo el estado final; `20261011000050_tipo_lead_legado.sql` recrea el enum y la columna con una fecha anterior a
+   todas las que los nombran, y `…20261019003000_tipo_lead_sin_enum.sql` los quita al final (junto con `leads_vista.tipo` y la versión del lead, que miraba las dos columnas).
+8. **Los tipos de campo de un lead pasaron a `TipoDeCampoDeLead`/`TIPOS_DE_CAMPO_DE_LEAD`** (`refactor(shared)`) para que «tipo de lead» sea un solo concepto, como pide el glosario.
+
+**Alternativas:** reusar la columna `tipo` como uuid y el enum como clase (sin deriva de nombres, pero los nombres mentirían y se rompería la convención `_id`); dos listas agrupadas por clase (se prefirió una sola, porque ese orden es el
+del select del alta y el del filtro); el último tipo que usó la persona, o una marca «por defecto», para proponer en el alta (candidato en `docs/PLAN.md`); el tipo dentro de `mi_sesion()` (es de `equipo` y corre en cada pantalla:
+un concepto de leads viviría en otro módulo); un índice compuesto `(tipo_lead_id, creado_en desc, id desc)` (ver abajo).
+**Medido (`docs/RENDIMIENTO.md`):** filtrar por tipo cuesta 20 a 27 ms para la dueña, Ana y Berta, con 50.000 y con 212.000 leads; uno sin leads, 0,2 ms por `leads_tipo_lead_id_idx`; uno raro también la usa. Lo que se descarta
+es la visibilidad (a Ana con el 14 %, ~19.100 filas, igual con 50.000 que con 212.000; con el raro, 7.551 con 212.000) y un índice por tipo no lo evita: no se agregó. `db:medir:volumen` con 212.000 leads **falla en dos presupuestos que no
+son de tipos** y son de los 50.000: la búsqueda por nombre (234 ms contra 200) y la persona «chica» (descarta 200.040 contra 70.000); no se tocaron.
+**Lo que el pedido suponía y el repo no tenía:** el kanban no lee ni muestra el tipo; el portal tampoco (el `cliente` de `web.portal_snapshot` es el nombre del lead); «200.000 leads» eran seguimientos (la siembra trae 50.000 leads: la medición con 212.000 se hizo una vez con
+`-- --leads 200000`); `leads` no tenía índice sobre el tipo.
+**Consecuencia:** agregar un tipo es un dato; el alta, la ficha, el filtro y el CSV no se tocan. Quien escriba una regla de negocio por tipo tiene que preguntar por `clase`. La migración legado se puede borrar el día que se haga el primer
+`db push` y se aplane la historia.
