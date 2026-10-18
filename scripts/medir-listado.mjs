@@ -5,7 +5,8 @@
 // Uso: pnpm db:medir          (la base de la semilla)
 //      pnpm db:medir:volumen  (tras pnpm db:sembrar-volumen; después pnpm db:reset)
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { loadavg } from 'node:os'
 
 const toml = readFileSync('supabase/config.toml', 'utf8')
 const proyecto = /^project_id\s*=\s*"([^"]+)"/m.exec(toml)?.[1]
@@ -55,19 +56,26 @@ const ARGUMENTOS_DE_PSQL = Object.entries(VARIABLES_DE_PAGINA).flatMap(([nombre,
   '-v',
   `${nombre}=${String(valor)}`,
 ])
+// Cada medición dice cuántas corridas hay detrás de su número: la mediana de 5 (las consultas) o una sola (la importación, los jobs y la
+// baja: gastan lo que miden, no se repiten).
+const MEDIANA = 'mediana de 5 corridas'
+const UNA = 'una corrida'
 const MEDICIONES_BASE = [
-  ['supabase/tests/medir-listado.sql', 'Listado de leads, 2.000 leads sintéticos'],
+  ['supabase/tests/medir-listado.sql', 'Listado de leads, 2.000 leads sintéticos', MEDIANA],
   [
     'supabase/tests/medir-embudo.sql',
     'Kanban de oportunidades, 2.000 leads y 10.000 oportunidades',
+    MEDIANA,
   ],
   [
     'supabase/tests/medir-importacion.sql',
     'Importación de leads, 500 filas en lotes de 50 sobre 22.000 filas de actividad',
+    UNA,
   ],
   [
     'supabase/tests/medir-volumen.sql',
     'Listas de un lead, 20.000 seguimientos y 5.000 recordatorios (con la forma del plan asertada)',
+    MEDIANA,
   ],
 ]
 // Las que necesitan el volumen de `pnpm db:sembrar-volumen` (50.000 leads…): aparte, porque la base de
@@ -76,18 +84,86 @@ const MEDICIONES_CON_VOLUMEN = [
   [
     'supabase/tests/medir-escala.sql',
     'Escala de toda la app, 50.000 leads (dueña «todos» y Ana «propios»)',
+    MEDIANA,
   ],
-  ['supabase/tests/medir-jobs.sql', 'Los jobs con 100.000 filas por purgar (ms por corrida)'],
+  ['supabase/tests/medir-jobs.sql', 'Los jobs con 100.000 filas por purgar (ms por corrida)', UNA],
   [
     'supabase/tests/medir-bajas.sql',
     'La baja de una persona con 200.000 leads (con transacciones de verdad: confirma y borra lo que crea)',
+    UNA,
   ],
 ]
 const MEDICIONES = CON_VOLUMEN ? MEDICIONES_CON_VOLUMEN : MEDICIONES_BASE
 
+// Lo que pasaba en la máquina y en la base mientras corría una medición (cierre 4): un tiempo fuera de lo normal se explica con estos
+// números o no se explica (un job tardó 6,4 s una vez y 0,2 s la siguiente; «la máquina estaba ocupada» no es una causa). La carga y
+// la presión de disco y de CPU (`/proc/pressure`) son de quien corre esto; los contadores de WAL, de checkpoints y los autovacuums
+// activos, de la base. Nueve corridas de los jobs (db:reset, CHECKPOINT antes, 33 checkpoints encima, un autovacuum activo) no
+// reprodujeron el 6,4 s: el único caso lento tuvo +13 s de `sync` del checkpointer, un fsync lento del disco.
+const lecturaDePresion = (recurso) => {
+  const ruta = `/proc/pressure/${recurso}`
+  if (!existsSync(ruta)) {
+    return null
+  }
+  const algo = /^some avg10=([\d.]+) avg60=([\d.]+)/m.exec(readFileSync(ruta, 'utf8'))
+  return algo ? { avg10: Number(algo[1]), avg60: Number(algo[2]) } : null
+}
+
+function fotoDeLaMaquina() {
+  const consulta =
+    'select wal_records, wal_fpi, wal_bytes from pg_stat_wal; ' +
+    'select num_timed + num_requested, write_time, sync_time from pg_stat_checkpointer; ' +
+    "select count(*) from pg_stat_activity where backend_type = 'autovacuum worker'"
+  const lectura = spawnSync(
+    'docker',
+    ['exec', contenedor, 'psql', '-U', 'postgres', '-At', '-F', '|', '-c', consulta],
+    { encoding: 'utf8' },
+  )
+  const [wal, checkpoints, autovacuum] = lectura.stdout.trim().split('\n')
+  const [registros, fpi, bytes] = (wal ?? '').split('|').map(Number)
+  const [cuantos, escritura, sincronizacion] = (checkpoints ?? '').split('|').map(Number)
+  return {
+    carga: loadavg(),
+    io: lecturaDePresion('io'),
+    cpu: lecturaDePresion('cpu'),
+    registros,
+    fpi,
+    bytes,
+    checkpoints: cuantos,
+    escritura,
+    sincronizacion,
+    autovacuum: Number(autovacuum),
+  }
+}
+
+const numero = (valor, decimales = 0) =>
+  Number.isFinite(valor)
+    ? valor.toLocaleString('es-BO', {
+        maximumFractionDigits: decimales,
+        minimumFractionDigits: decimales,
+      })
+    : '?'
+
+// Una línea con lo que cambió entre antes y después, y con qué carga.
+function lineaDeLaMaquina(antes, despues) {
+  const presion = (recurso, nombre) =>
+    recurso
+      ? ` · ${nombre} ${numero(recurso.avg10, 1)} % (60 s: ${numero(recurso.avg60, 1)} %)`
+      : ''
+  return (
+    `  máquina: carga ${despues.carga.map((c) => numero(c, 2)).join(' / ')}` +
+    presion(despues.io, 'disco') +
+    presion(despues.cpu, 'CPU') +
+    ` · WAL +${numero((despues.bytes - antes.bytes) / 1048576)} MB (imágenes completas +${numero(despues.fpi - antes.fpi)})` +
+    ` · checkpoints +${numero(despues.checkpoints - antes.checkpoints)} (escribir +${numero(despues.escritura - antes.escritura)} ms, sync +${numero(despues.sincronizacion - antes.sincronizacion)} ms)` +
+    ` · autovacuum activos: ${numero(despues.autovacuum)}`
+  )
+}
+
 console.log(`Tamaños de página (del código): ${JSON.stringify(VARIABLES_DE_PAGINA)}`)
-for (const [archivo, titulo] of MEDICIONES) {
+for (const [archivo, titulo, corridas] of MEDICIONES) {
   const sql = readFileSync(archivo, 'utf8')
+  const antes = fotoDeLaMaquina()
   const corrida = spawnSync(
     'docker',
     [
@@ -105,8 +181,10 @@ for (const [archivo, titulo] of MEDICIONES) {
     ],
     { input: sql, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
   )
+  const despues = fotoDeLaMaquina()
   if (corrida.error || corrida.status !== 0) {
     console.error(corrida.error?.message ?? corrida.stderr)
+    console.error(`Lo que pasaba durante ${archivo}:\n${lineaDeLaMaquina(antes, despues)}`)
     console.error(
       corrida.error
         ? `No se pudo medir: ¿está arriba el Supabase local (${contenedor})?`
@@ -125,8 +203,9 @@ for (const [archivo, titulo] of MEDICIONES) {
     process.exit(1)
   }
   const ancho = Math.max(...medidas.map((m) => m.consulta.length))
-  console.log(`${titulo} (mediana de 5 corridas, ms):`)
+  console.log(`${titulo} (${corridas}, ms):`)
   for (const { consulta, ms } of medidas) {
     console.log(`  ${consulta.padEnd(ancho)}  ${ms.toFixed(1).padStart(7)}`)
   }
+  console.log(lineaDeLaMaquina(antes, despues))
 }
