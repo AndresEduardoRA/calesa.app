@@ -24,7 +24,7 @@ import {
   type Guardado,
 } from '../hooks/use-formulario-de-vehiculo'
 import { useFuentesDelPanel } from '../hooks/use-fuentes-del-panel'
-import { usePanelDeVehiculo } from '../hooks/use-panel-de-vehiculo'
+import { focoAlCerrarElPanel, usePanelDeVehiculo } from '../hooks/use-panel-de-vehiculo'
 import { useGuardadoDeSubasta } from '../../subasta/hooks/use-guardado-de-subasta'
 import { AltaPorSubasta } from '../../subasta/components/alta-por-subasta'
 import { FormularioDeVehiculo } from './formulario-de-vehiculo'
@@ -194,6 +194,7 @@ export function PanelDeVehiculo({ puedeCrear, enEdicion, apibara, ...datos }: Pr
       titulo={vehiculo ? `Editar ${vehiculo.titulo}` : nuevo}
       descripcion={`${origen.nombre}${vehiculo ? ` · #${String(vehiculo.numero)}` : ''}`}
       ancho="amplio"
+      focoAlCerrar={focoAlCerrarElPanel}
     >
       <Contenido
         // Otra versión de lo que se edita (se recargó tras un conflicto) arranca de nuevo.

@@ -11,7 +11,6 @@ import { UnaSolaVista } from '@/shared/ui/lista'
 import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
 import { BarraDeSeleccion } from '../../papelera/components/barra-de-seleccion'
 import { usePapeleraDelListado } from '../../papelera/hooks/use-papelera-del-listado'
-import { useAbrirVehiculo } from '../hooks/use-abrir-vehiculo'
 import { TablaDeVehiculos } from './tabla-de-vehiculos'
 import { TarjetasDeVehiculos } from './tarjetas-de-vehiculos'
 import type { DatosDelOrigen, FilaDeVehiculo } from './tipos'
@@ -24,6 +23,9 @@ type Props = DatosDelOrigen & {
   editables: readonly string[]
   // Y los que puede enviar a la papelera: son los que se pueden elegir.
   eliminables: readonly string[]
+  // Abre el resumen de un vehículo, y cuál está abierto (para marcarlo).
+  alAbrir: (id: string) => void
+  abierto: string | null
 }
 
 const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1)
@@ -32,13 +34,12 @@ const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice
 // origen), vacío por filtro (con «Limpiar») o una página que se quedó sin filas. Una sola vista (`<UnaSolaVista>`, como el listado de
 // leads): la tabla desde `md` y las tarjetas por debajo.
 export function ResultadoDelListado(props: Props) {
-  const { pagina, accionDeVacio, editables, eliminables, ...datos } = props
+  const { pagina, accionDeVacio, editables, eliminables, alAbrir, abierto, ...datos } = props
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
   const { origen } = datos
   const puedeEditar = new Set(editables)
   const papelera = usePapeleraDelListado(pagina.filas, eliminables)
-  const abrir = useAbrirVehiculo()
 
   if (pagina.filas.length === 0) {
     if (filtros.hayFiltros) {
@@ -71,7 +72,8 @@ export function ResultadoDelListado(props: Props) {
             encabezado={mayuscula(origen.sustantivo)}
             editables={puedeEditar}
             seleccion={papelera.seleccion}
-            alAbrir={abrir}
+            alAbrir={alAbrir}
+            abierto={abierto}
           />
         )}
         tarjetas={() => (
@@ -80,7 +82,8 @@ export function ResultadoDelListado(props: Props) {
             vehiculos={pagina.filas}
             editables={puedeEditar}
             seleccion={papelera.seleccion}
-            alAbrir={abrir}
+            alAbrir={alAbrir}
+            abierto={abierto}
           />
         )}
       />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { cn } from 'cn'
 import { useAtajo } from './atajos'
 import { ContextoDeCambios } from './cambios-del-panel'
@@ -15,6 +15,8 @@ import {
 } from './sheet'
 import { useCierreConCambios } from './use-cierre-con-cambios'
 
+type Popup = ComponentProps<typeof SheetContent>
+
 type Props = {
   // Controlado siempre: quién lo abre guarda el estado en la URL (`?panel=`, `?id=`), para que
   // el panel sobreviva a recargar y a compartir el enlace.
@@ -27,6 +29,9 @@ type Props = {
   // Un formulario con muchos campos pide más lugar que una ficha corta.
   ancho?: 'normal' | 'amplio'
   pie?: ReactNode
+  // A dónde va el foco al cerrar (el de Base UI). Sin esto: el elemento que tenía el foco antes de abrir, que un panel abierto por la
+  // URL (con `shallow: false`) a veces ya no tiene: un panel que se apila sobre otro devuelve el foco a quien lo abrió.
+  focoAlCerrar?: Popup['finalFocus']
   children: ReactNode
 }
 
@@ -44,6 +49,7 @@ export function Drawer({
   lado = 'right',
   ancho = 'normal',
   pie,
+  focoAlCerrar,
   children,
 }: Props) {
   const [hayCambios, setHayCambios] = useState(false)
@@ -91,6 +97,7 @@ export function Drawer({
       >
         <SheetContent
           side={lado}
+          finalFocus={focoAlCerrar}
           // La hoja inferior no pasa del alto de la pantalla: lo de adentro se desplaza.
           className={cn(
             'gap-0',

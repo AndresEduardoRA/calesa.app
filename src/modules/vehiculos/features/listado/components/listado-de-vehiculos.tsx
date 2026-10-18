@@ -6,6 +6,7 @@ import type { EsquemaDeFiltros } from '@/shared/lib/filtros'
 import type { Pagina } from '@/shared/lib/paginacion'
 import { Aviso } from '@/shared/ui/aviso'
 import { FilterShell } from '@/shared/ui/filtros'
+import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { camposFiltrables } from '../../../entities/filtros'
 import type { PermisoDeAlta } from '../../../entities/permisos'
 import type { Vehiculo } from '../../../entities/vehiculo'
@@ -13,6 +14,8 @@ import { BotonNuevoVehiculo, ID_DEL_MOTIVO_DE_ALTA } from '../../alta/components
 import type { DisponibilidadDeApibara } from '../../../entities/apibara'
 import { PanelDeVehiculo } from '../../alta/components/panel-de-vehiculo'
 import { EnlaceAPapelera } from '../../papelera/components/enlace-a-papelera'
+import { ResumenDeVehiculoDiferido } from '../../resumen/components/diferidos'
+import { useResumenDeVehiculo } from '../../resumen/hooks/use-resumen-de-vehiculo'
 import { PestanasDeOrigen } from './pestanas-de-origen'
 import { PieDeFiltros } from './pie-de-filtros'
 import { ResultadoDelListado } from './resultado-del-listado'
@@ -38,6 +41,8 @@ type Props = DatosDelOrigen & {
   verPapelera: boolean
   // Si el alta de este origen puede traer la ficha de apibara.
   apibara: DisponibilidadDeApibara
+  // «Interesados» del resumen: sólo con `leads.ver`.
+  verInteresados: boolean
 }
 
 // El inventario: una pestaña por origen y, adentro, los filtros de ese origen, su lista y el
@@ -53,9 +58,24 @@ export function ListadoDeVehiculos(props: Props) {
     porPagina,
     ...demas
   } = props
-  const { verPapelera, apibara, ...resto } = demas
-  const { origen, campos, categorias } = resto
+  const { verPapelera, apibara, verInteresados, ...resto } = demas
+  const { origen, campos, categorias, fases, vitrina, limpiezaHoy, pagina, editables } = resto
   const nuevo = <BotonNuevoVehiculo origen={origen} permiso={permisoDeAlta} />
+  const resumen = useResumenDeVehiculo({ verInteresados })
+  // El resumen llega recién al abrirse (`diferido()`) y, una vez visto, queda montado para irse con su animación.
+  const resumenMontado = useAbiertoAlgunaVez(resumen.id !== null)
+  // El panel de edición va una vez por pantalla: con el resumen abierto se dibuja adentro (se apila encima: Esc, «Cancelar» y guardar
+  // cierran sólo el panel y el resumen queda debajo); sin él, solo.
+  const panel = (
+    <PanelDeVehiculo
+      origen={origen}
+      campos={campos}
+      categorias={categorias}
+      puedeCrear={permisoDeAlta.estado === 'habilitado'}
+      enEdicion={enEdicion}
+      apibara={apibara}
+    />
+  )
   return (
     <div className="grid gap-4">
       <PestanasDeOrigen origenes={origenes} actual={origen.id} />
@@ -86,17 +106,27 @@ export function ListadoDeVehiculos(props: Props) {
       >
         <ResultadoDelListado
           {...resto}
+          alAbrir={resumen.abrir}
+          abierto={resumen.id}
           accionDeVacio={permisoDeAlta.estado === 'habilitado' ? nuevo : undefined}
         />
       </FilterShell>
-      <PanelDeVehiculo
-        origen={origen}
-        campos={campos}
-        categorias={categorias}
-        puedeCrear={permisoDeAlta.estado === 'habilitado'}
-        enEdicion={enEdicion}
-        apibara={apibara}
-      />
+      {resumenMontado ? (
+        <ResumenDeVehiculoDiferido
+          origen={origen}
+          campos={campos}
+          fases={fases}
+          categorias={categorias}
+          vitrina={vitrina}
+          limpiezaHoy={limpiezaHoy}
+          filas={pagina.filas}
+          editables={new Set(editables)}
+          verInteresados={verInteresados}
+        >
+          {panel}
+        </ResumenDeVehiculoDiferido>
+      ) : null}
+      {resumen.id === null ? panel : null}
     </div>
   )
 }

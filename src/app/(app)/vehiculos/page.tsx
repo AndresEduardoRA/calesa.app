@@ -105,6 +105,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       editables={[...editables]}
       eliminables={[...eliminables]}
       verPapelera={puedeAbrirLaPapelera(sesion.permisos)}
+      verInteresados={puede(sesion.permisos, 'leads.ver')}
       enEdicion={enEdicion}
       apibara={{
         activa: apibaraActiva,

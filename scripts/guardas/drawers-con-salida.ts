@@ -54,6 +54,11 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/vehiculos/features/vinculo/components/panel-agregar-vehiculo.tsx',
     mecanismo: 'contexto',
   },
+  // El resumen de un vehículo sólo muestra: su edición es el panel de arriba (`panel-de-vehiculo.tsx`), que pregunta por su cuenta.
+  'src/modules/vehiculos/features/resumen/components/resumen-de-vehiculo.tsx': {
+    sinFormulario:
+      'el resumen sólo muestra; editar abre el panel de edición encima, que pregunta por su cuenta (useCierreConCambios)',
+  },
   // --- origenes
   'src/modules/origenes/features/categorias/components/panel-de-categoria.tsx': {
     formulario: 'src/modules/origenes/features/categorias/components/panel-de-categoria.tsx',

@@ -13,13 +13,25 @@ type Props = DatosDelOrigen & {
   editables: ReadonlySet<string>
   seleccion: SeleccionDelListado
   alAbrir: (id: string) => void
+  // El vehículo abierto en el resumen, para marcarlo.
+  abierto: string | null
 }
 
 // El inventario de un origen en el celular: una tarjeta por vehículo, con lo mismo que la fila
 // de la tabla (la fase, si está en la vitrina, editar y la casilla para elegirlo).
 export function TarjetasDeVehiculos(props: Props) {
-  const { vehiculos, origen, campos, fases, vitrina, limpiezaHoy, editables, seleccion, alAbrir } =
-    props
+  const {
+    vehiculos,
+    origen,
+    campos,
+    fases,
+    vitrina,
+    limpiezaHoy,
+    editables,
+    seleccion,
+    alAbrir,
+    abierto,
+  } = props
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
       {vehiculos.map((vehiculo) => {
@@ -30,6 +42,7 @@ export function TarjetasDeVehiculos(props: Props) {
             vehiculo={vehiculo}
             campos={campos}
             fase={fase}
+            abierta={abierto === vehiculo.id}
             alAbrir={() => {
               alAbrir(vehiculo.id)
             }}

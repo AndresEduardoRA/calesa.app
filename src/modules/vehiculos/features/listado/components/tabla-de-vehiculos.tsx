@@ -29,6 +29,8 @@ type Props = DatosDelOrigen & {
   // Las filas que se pueden elegir (para enviarlas juntas a la papelera) y las elegidas.
   seleccion: SeleccionDelListado
   alAbrir: (id: string) => void
+  // El vehículo abierto en el resumen, para marcarlo.
+  abierto: string | null
 }
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
@@ -38,7 +40,7 @@ const HUECO_DE_CASILLA = <span aria-hidden className="size-[44px] shrink-0 md:si
 
 type PropsDeFila = Pick<
   Props,
-  'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'editables' | 'seleccion' | 'alAbrir'
+  'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'editables' | 'seleccion' | 'alAbrir' | 'abierto'
 > & {
   vehiculo: FilaDeVehiculo
   columnas: readonly CampoDeVehiculo[]
@@ -56,10 +58,12 @@ function FilaDeTabla({
   editables,
   seleccion,
   alAbrir,
+  abierto,
 }: PropsDeFila) {
   const fase = faseDe(fases, vehiculo.faseId)
   return (
     <FilaDeLista
+      abierta={abierto === vehiculo.id}
       alAbrir={() => {
         alAbrir(vehiculo.id)
       }}

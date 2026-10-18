@@ -4,3 +4,8 @@ export { prepararFoto, subirFoto, type FotoPreparada } from './infra/fotos.clien
 export { consultarFicha, descargarFoto } from './infra/apibara.client'
 export { buscarCandidatos } from './infra/vehiculos-para-lead.client'
 export { leerLoteDePapelera } from './infra/papelera.client'
+export {
+  leerFotosDelResumen,
+  leerRelacionesDelResumen,
+  leerVehiculoDelResumen,
+} from './infra/resumen.client'
