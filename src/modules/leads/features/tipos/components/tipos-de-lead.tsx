@@ -29,8 +29,8 @@ function Encabezado({ alNuevo, alTope }: { alNuevo: () => void; alTope: boolean 
           Tipos de lead
         </h2>
         <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-          Qué es cada lead para la empresa. Cada tipo es de una clase, prospecto o cliente, que se
-          elige al crearlo y no cambia. El orden de acá es el del alta y el del filtro del listado.
+          Cada tipo es de una clase, prospecto o cliente, que se elige al crearlo y no cambia. El
+          orden de acá es el del alta y el del filtro del listado.
         </p>
       </div>
       <Button
