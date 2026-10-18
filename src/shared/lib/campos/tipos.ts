@@ -20,7 +20,7 @@ export const TIPOS_DE_VEHICULO = [
 export type TipoDeVehiculo = (typeof TIPOS_DE_VEHICULO)[number]
 
 // Los de un lead: los de un vehículo sin VIN ni lote, y con el correo y el documento (sensibles).
-export const TIPOS_DE_LEAD = [
+export const TIPOS_DE_CAMPO_DE_LEAD = [
   'texto',
   'texto_largo',
   'numero',
@@ -34,7 +34,7 @@ export const TIPOS_DE_LEAD = [
   'correo',
   'documento',
 ] as const
-export type TipoDeLead = (typeof TIPOS_DE_LEAD)[number]
+export type TipoDeCampoDeLead = (typeof TIPOS_DE_CAMPO_DE_LEAD)[number]
 
 // Todos: lo que sabe el motor. Cada layout ofrece sólo los suyos; la base lo cuida con un `check`
 // y un test lo compara con el enum `tipo_campo`.

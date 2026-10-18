@@ -3,7 +3,7 @@ import { Constants } from '@/shared/types/database.types'
 import {
   ETIQUETA_DE_TIPO_DE_CAMPO,
   TIPOS_DE_CAMPO,
-  TIPOS_DE_LEAD,
+  TIPOS_DE_CAMPO_DE_LEAD,
   TIPOS_DE_VEHICULO,
   tieneOpciones,
   tipoEntre,
@@ -36,14 +36,14 @@ describe('los tipos contra la base', () => {
     expect(TIPOS_DE_VEHICULO).toContain('lote')
     expect(TIPOS_DE_VEHICULO).not.toContain('correo')
     expect(TIPOS_DE_VEHICULO).not.toContain('documento')
-    expect(TIPOS_DE_LEAD).toContain('correo')
-    expect(TIPOS_DE_LEAD).toContain('documento')
-    expect(TIPOS_DE_LEAD).not.toContain('vin')
-    expect(TIPOS_DE_LEAD).not.toContain('lote')
+    expect(TIPOS_DE_CAMPO_DE_LEAD).toContain('correo')
+    expect(TIPOS_DE_CAMPO_DE_LEAD).toContain('documento')
+    expect(TIPOS_DE_CAMPO_DE_LEAD).not.toContain('vin')
+    expect(TIPOS_DE_CAMPO_DE_LEAD).not.toContain('lote')
   })
 
   it('todo tipo de un layout es un tipo del motor', () => {
-    for (const tipo of [...TIPOS_DE_VEHICULO, ...TIPOS_DE_LEAD]) {
+    for (const tipo of [...TIPOS_DE_VEHICULO, ...TIPOS_DE_CAMPO_DE_LEAD]) {
       expect(TIPOS_DE_CAMPO).toContain(tipo)
     }
   })
@@ -51,8 +51,8 @@ describe('los tipos contra la base', () => {
 
 describe('tipoEntre', () => {
   it('devuelve el tipo si el layout lo ofrece y, si no, el de respaldo', () => {
-    expect(tipoEntre(TIPOS_DE_LEAD, 'correo', 'texto')).toBe('correo')
-    expect(tipoEntre(TIPOS_DE_LEAD, 'vin', 'texto')).toBe('texto')
+    expect(tipoEntre(TIPOS_DE_CAMPO_DE_LEAD, 'correo', 'texto')).toBe('correo')
+    expect(tipoEntre(TIPOS_DE_CAMPO_DE_LEAD, 'vin', 'texto')).toBe('texto')
     expect(tipoEntre(TIPOS_DE_VEHICULO, 'documento', 'texto')).toBe('texto')
   })
 })

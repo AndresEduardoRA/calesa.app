@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import {
-  TIPOS_DE_LEAD,
+  TIPOS_DE_CAMPO_DE_LEAD,
   conReglasDeCampo,
   esquemaClave,
   esquemaEtiqueta,
@@ -17,7 +17,7 @@ export const esquemaCrearCampo = conReglasDeCampo(
   z.object({
     clave: esquemaClave(CLAVES_RESERVADAS_DE_LEAD, 'Ese ya es un dato fijo de todos los leads.'),
     etiqueta: esquemaEtiqueta,
-    tipo: z.enum(TIPOS_DE_LEAD),
+    tipo: z.enum(TIPOS_DE_CAMPO_DE_LEAD),
     opciones: esquemaOpciones,
     requerido: z.boolean(),
     grupo: esquemaGrupo,
@@ -45,7 +45,7 @@ export const esquemaGuardarCampo = z.object({
   cambios: z
     .object({
       etiqueta: esquemaEtiqueta.optional(),
-      tipo: z.enum(TIPOS_DE_LEAD).optional(),
+      tipo: z.enum(TIPOS_DE_CAMPO_DE_LEAD).optional(),
       opciones: esquemaOpciones.optional(),
       requerido: z.boolean().optional(),
       grupo: esquemaGrupo.optional(),

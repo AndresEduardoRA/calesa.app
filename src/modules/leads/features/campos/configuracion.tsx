@@ -1,6 +1,11 @@
 import type { Route } from 'next'
 import Link from 'next/link'
-import { TIPOS_DE_LEAD, claveDeCampo, tipoEntre, type ImpactoDeCampo } from '@/shared/lib/campos'
+import {
+  TIPOS_DE_CAMPO_DE_LEAD,
+  claveDeCampo,
+  tipoEntre,
+  type ImpactoDeCampo,
+} from '@/shared/lib/campos'
 import { RUTAS } from '@/shared/lib/rutas'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
 import type {
@@ -125,7 +130,7 @@ function cambiosDe(campo: CampoDeLead, valores: ValoresDeCampo): CambiosDeCampoD
   const empresa = datoDeLaEmpresa(valores)
   return cambiosRespectoDe(campo, {
     etiqueta: valores.etiqueta.trim(),
-    tipo: tipoEntre(TIPOS_DE_LEAD, valores.tipo, 'texto'),
+    tipo: tipoEntre(TIPOS_DE_CAMPO_DE_LEAD, valores.tipo, 'texto'),
     opciones: valores.opciones,
     requerido: banderas['requerido'] ?? false,
     grupo: vacioANulo(valores.grupo),
@@ -206,7 +211,7 @@ export function configuracionDeLeads({
   return {
     textos: TEXTOS,
     banderas: BANDERAS,
-    tipos: TIPOS_DE_LEAD,
+    tipos: TIPOS_DE_CAMPO_DE_LEAD,
     textosLibres: [EMPRESA],
     valoresIniciales,
     claveDe: (etiqueta, existentes) =>
@@ -215,7 +220,7 @@ export function configuracionDeLeads({
         vacio: 'campo',
       }),
     paraCrear: (valores) => {
-      const tipo = tipoEntre(TIPOS_DE_LEAD, valores.tipo, 'texto')
+      const tipo = tipoEntre(TIPOS_DE_CAMPO_DE_LEAD, valores.tipo, 'texto')
       const dato = datoDeLaEmpresa(valores)
       return {
         clave: valores.clave,

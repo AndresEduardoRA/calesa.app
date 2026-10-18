@@ -5,7 +5,7 @@ import {
   mismoValorDefecto,
   necesitaVistaPrevia as necesitaVistaPreviaDelMotor,
   type CambiosComunes,
-  type TipoDeLead,
+  type TipoDeCampoDeLead,
 } from '@/shared/lib/campos'
 import type { Json } from '@/shared/types/database.types'
 import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
@@ -13,7 +13,7 @@ import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
 export type CambiosDeCampoDeLead = Omit<CambiosComunes, 'tipo'> &
   Partial<{
     // Un lead no lleva VIN ni lote.
-    tipo: TipoDeLead
+    tipo: TipoDeCampoDeLead
     enTabla: boolean
     filtrable: boolean
     soloCartera: boolean

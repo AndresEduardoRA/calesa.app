@@ -3,10 +3,10 @@
 // `leads.atributos` y se describe acá. Un solo layout para todos los leads, prospectos y clientes.
 import { z } from 'zod'
 import {
-  TIPOS_DE_LEAD,
+  TIPOS_DE_CAMPO_DE_LEAD,
   claveDeCampo,
   type CampoBase,
-  type TipoDeLead,
+  type TipoDeCampoDeLead,
   type ValorDefecto,
 } from '@/shared/lib/campos'
 
@@ -41,7 +41,7 @@ export type DatoDeLaEmpresa = (typeof DATOS_DE_LA_EMPRESA)[number]
 
 export type PrivacidadPendiente = 'a_privado' | 'a_publico'
 
-export type CampoDeLead = CampoBase<TipoDeLead> & {
+export type CampoDeLead = CampoBase<TipoDeCampoDeLead> & {
   // Es una columna del listado de leads.
   enTabla: boolean
   // Entra al panel de filtros del listado.
@@ -69,7 +69,7 @@ const esquemaCampos = z.array(
     id: z.guid(),
     clave: z.string(),
     etiqueta: z.string(),
-    tipo: z.enum(TIPOS_DE_LEAD),
+    tipo: z.enum(TIPOS_DE_CAMPO_DE_LEAD),
     opciones: esquemaOpciones,
     requerido: z.boolean(),
     valor_defecto: esquemaValorDefecto,
@@ -153,7 +153,7 @@ export function claveDeCampoDeLead(etiqueta: string, existentes: readonly string
 }
 
 // Los tipos que suelen ser sensibles nacen «solo la cartera»; el resto, visibles para quien ve el lead.
-export function soloCarteraPorTipo(tipo: TipoDeLead): boolean {
+export function soloCarteraPorTipo(tipo: TipoDeCampoDeLead): boolean {
   return tipo === 'correo' || tipo === 'documento'
 }
 

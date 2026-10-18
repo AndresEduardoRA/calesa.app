@@ -12,7 +12,7 @@ import { z } from 'zod'
 import type { Celda } from '@/shared/lib/csv/escribir'
 import { diaEnZona, localDeInstante } from '@/shared/lib/fechas'
 import type { ValoresDeFiltros } from '@/shared/lib/filtros'
-import type { OpcionDeCampo, TipoDeLead } from '@/shared/lib/campos/tipos'
+import type { OpcionDeCampo, TipoDeCampoDeLead } from '@/shared/lib/campos/tipos'
 import type { CampoDeLead } from './campo'
 import { ETIQUETA_DEL_TIPO, type FilaDeLead } from './listado'
 
@@ -104,7 +104,7 @@ const comoOpciones: Lector = (campo, valor) =>
     : ''
 
 // Cómo se dice cada tipo de campo del layout de leads.
-const LECTOR_POR_TIPO: Record<TipoDeLead, Lector> = {
+const LECTOR_POR_TIPO: Record<TipoDeCampoDeLead, Lector> = {
   texto: comoTexto,
   texto_largo: comoTexto,
   url: comoTexto,

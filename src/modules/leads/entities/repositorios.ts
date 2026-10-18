@@ -1,7 +1,7 @@
 // Lo que los casos de uso de `features/` necesitan de afuera, dicho como interfaces. La
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
-import type { OpcionDeCampo, TipoDeLead, ValorDefecto } from '@/shared/lib/campos'
+import type { OpcionDeCampo, TipoDeCampoDeLead, ValorDefecto } from '@/shared/lib/campos'
 import type { ConteoAcotado } from '@/shared/lib/conteo'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
@@ -44,7 +44,7 @@ export type RepositorioCamposDeLead = {
   crear: (nuevo: {
     clave: string
     etiqueta: string
-    tipo: TipoDeLead
+    tipo: TipoDeCampoDeLead
     opciones: OpcionDeCampo[]
     requerido: boolean
     grupo: string | null

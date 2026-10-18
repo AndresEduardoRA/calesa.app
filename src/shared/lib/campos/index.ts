@@ -3,14 +3,14 @@
 export {
   ETIQUETA_DE_TIPO_DE_CAMPO,
   TIPOS_DE_CAMPO,
-  TIPOS_DE_LEAD,
+  TIPOS_DE_CAMPO_DE_LEAD,
   TIPOS_DE_VEHICULO,
   tieneOpciones,
   tipoEntre,
   type CampoBase,
   type OpcionDeCampo,
   type TipoDeCampo,
-  type TipoDeLead,
+  type TipoDeCampoDeLead,
   type TipoDeVehiculo,
   type ValorDefecto,
 } from './tipos'
