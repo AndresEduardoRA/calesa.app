@@ -345,7 +345,7 @@ sigue al tema claro y oscuro, a los colores forzados y al 200 %; `e2e/mas-accion
 
 El presupuesto del kanban vuelve a ser lo medido más 5 %, y la prueba exige además que el «⋯» de cada tarjeta cueste exactamente 3 nodos (500 tarjetas, 1.500).
 
-## Cierre 5a: lo que crece con N y la importación, medido y sin arreglar (2026-10-18)
+## Cierre 5a: lo que crece con N y la importación, medido y sin arreglar (2026-10-18; la importación se arregló en el cierre 5a-fix-2, B2)
 
 Mismo método de `db:medir:volumen` (como `authenticated`, plan genérico, mediana de 5 corridas), con `EXPLAIN (ANALYZE, BUFFERS)`, en la siembra por defecto (50.000 → **62.000 leads**)
 y en `-- --leads 200000` (→ **212.000**); «50.000» y «200.000» son el parámetro de la siembra, que suma ~12.000 leads más. Sobre una base local con `shared_buffers = 128MB`: la tabla `leads`
@@ -421,6 +421,37 @@ Un lote de 50 llega al corte de 8 s de `authenticated` con ~960.000 filas de `ac
 **Camino sin aplicar:** la consulta sólo importa cuando el alta trae `adoptar` (el intento de una adopción reenviada): saltarla si no lo trae, o resolverla desde el índice parcial (`materialized` o `registro_id::uuid`), y llevar la medición a `db:medir:volumen` con presupuesto
 de ~2 s las 500 filas; lo que se espera después del arreglo está en `docs/PLAN.md` (5a-3).
 `supabase/tests/medir-importacion-etapas.sql` (no cableado) repite estas cifras: una transacción por lote, el tiempo de cada lote, el tiempo propio por función y los triggers de 50 altas.
+
+### B2. El arreglo (cierre 5a-fix-2, 2026-10-18): la consulta sólo corre con `adoptar`
+
+`_lead_crear` busca «¿este intento ya entró por una adopción?» únicamente si el alta trae `adoptar`, y la importación lo rechaza (migración `…20261019003100`; `docs/DECISIONES.md`, «Cierre 5a-fix-2»). Medido con `supabase/tests/medir-importacion-volumen.sql`
+(`db:medir:volumen`: una transacción por lote, `authenticated`, la dueña de la siembra, `actividad` rellena con una adopción del limbo de cada cuatro filas, 500 filas en lotes de 50):
+
+| 500 filas, con 62.000 leads                          | Antes (dos corridas)                  | Después (tres corridas + la de `db:medir:volumen`) |
+| ---------------------------------------------------- | ------------------------------------- | -------------------------------------------------- |
+| `actividad` ≈ 23.000                                 | 3.501 y 4.297 ms (lote 365–659)       | 1.002 a 1.135 ms (lote 114–125)                    |
+| `actividad` ≈ 124.000                                | 12.229 y 13.144 ms (lote 1.231–1.352) | 987 a 1.178 ms (lote 101–140)                      |
+| Tiempo por fila, mediana de lotes (124.000 / 23.000) | 3,31 y 3,51 veces                     | 0,88 a 1,10 veces (assert: 0,8 a 1,2)              |
+| Con 212.000 leads                                    |                                       | 1.119 ms y 1.086 ms; 1,0 veces                     |
+
+La primera versión de la medición (relleno sin adopciones: el índice parcial queda vacío y el planificador elige otro camino) salió «verde» con el código viejo; el relleno de una adopción de cada cuatro es lo que la hace roja. Cuesta ~2 ms por fila (el costo plano de B) y ya no crece con `actividad`.
+
+**El plan de la consulta, antes** (62.000 leads, `actividad` 27.313 filas, 10 % de adopciones de la dueña, `EXPLAIN (ANALYZE, BUFFERS)`): `Limit → Nested Loop → Index Scan Backward using actividad_pkey` con `Filter` de los tres predicados,
+`Rows Removed by Filter: 27.313`, `Buffers: shared hit=5.360`, **11,6 ms** por llamada, una vez por fila importada. **Después:** la importación no la ejecuta (0 ms con cualquier `actividad`); sólo la ejecuta una adopción.
+
+**La forma depende de las estadísticas de `leads` y de `actividad`, no sólo de su tamaño** (consulta aislada, plan personalizado y genérico, ms de ejecución; «A» = la forma actual, «B» = con `with … as materialized` y `registro_id::uuid`):
+
+| Relleno de `actividad` (actor: la dueña)  | `leads` ≈ 0                                          | `leads` 62.000 (A / B)                                           | `leads` 212.000 (A / B)                                          |
+| ----------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------- |
+| 0 % de adopciones, 23.000 y 123.000 filas | índice parcial, 0,02–0,08                            | índice parcial, 0,03 / 0,02–0,03                                 | **`actividad_pkey`: 3,2 y 18,5** / índice parcial                |
+| 10 %, 23.000                              | índice parcial (bitmap), 0,03                        | **`actividad_pkey`: 14,9–18,6** / índice parcial                 | **`actividad_pkey`: 13,4–14,8** / índice parcial                 |
+| 10 %, 123.000                             | índice parcial (bitmap), 0,03                        | **`actividad_pkey`: 22,7–31,2** / índice parcial (bitmap)        | **`actividad_pkey`: 20,4–27,2** / índice parcial                 |
+| 25 %, 23.000                              | índice parcial (bitmap), 0,03                        | **`actividad_pkey`: 16,2–17,5** / índice parcial (bitmap)        | **`actividad_pkey`: 14,4–15,7** / índice parcial                 |
+| 25 %, 123.000                             | índice parcial (bitmap), 0,03                        | **`actividad_pkey`: 31,5–55,6** / **`actividad_pkey`: 28,9–316** | **`actividad_pkey`: 23,5–41,2** / **`actividad_pkey`: 31,2–101** |
+| 10 % de otros actores (123.000)           | índice parcial / `actividad_actor_accion_idx`: 0,4–8 | índice parcial, 0,03                                             | `actividad_actor_accion_idx`: 0,5–30 / ídem 0,5–12               |
+
+Con la base vacía de leads la forma actual usa el índice parcial siempre (por eso `medir-importacion.sql` sobre la semilla no ve nada); con 62.000 leads la usa sólo si el relleno no tiene adopciones o no son de un mismo actor; con 212.000 recorre `actividad_pkey` en todos los casos.
+La forma B arregla casi todo con 62.000 pero **no con 25 % de adopciones y 123.000 filas** (`actividad_pkey`, hasta 316 ms), ni con 212.000 en ese caso (101 ms): no es una respuesta. **Lo que queda:** la consulta de la rama de adopción (una por adopción, a ritmo humano; `actividad` se purga a los 14 días) cuesta 14–56 ms con 23.000–123.000 filas y adopciones presentes: es el costo conocido, no se mide en el presupuesto.
 
 ### C. La suite completa con los dos proyectos (`5a-4`): medición, no Nivel 3
 
