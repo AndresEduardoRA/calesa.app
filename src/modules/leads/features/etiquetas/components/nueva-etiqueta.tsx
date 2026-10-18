@@ -1,7 +1,7 @@
 'use client'
 
 import { PlusIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import type { Etiqueta } from '../../../entities/etiqueta'
@@ -10,13 +10,23 @@ import type { Etiquetas } from '../hooks/use-etiquetas'
 type Props = {
   etiquetas: Etiquetas
   alCrear: (etiqueta: Etiqueta) => void
+  // Si hay algo escrito sin crear: el diálogo pregunta antes de cerrarse.
+  alEscribir: (hayTexto: boolean) => void
 }
 
 // Crear una etiqueta desde «Gestionar»: el nombre y Enter. El color lo elige la base (el menos
 // usado); se cambia después en su fila.
-export function NuevaEtiqueta({ etiquetas, alCrear }: Props) {
+export function NuevaEtiqueta({ etiquetas, alCrear, alEscribir }: Props) {
   const [nombre, setNombre] = useState('')
   const [motivo, setMotivo] = useState<string | null>(null)
+  const hayTexto = nombre.trim() !== ''
+
+  useEffect(() => {
+    alEscribir(hayTexto)
+    return () => {
+      alEscribir(false)
+    }
+  }, [alEscribir, hayTexto])
 
   async function crear() {
     const creada = await etiquetas.crear(nombre)

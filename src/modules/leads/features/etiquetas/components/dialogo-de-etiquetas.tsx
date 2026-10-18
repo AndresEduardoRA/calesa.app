@@ -1,6 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+import { ConfirmarDescarte } from '@/shared/ui/confirmar-descarte'
 import { Modal } from '@/shared/ui/modal'
+import { useCierreConCambios } from '@/shared/ui/use-cierre-con-cambios'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { EstadoError } from '@/shared/ui/estados'
 import type { Etiquetas } from '../hooks/use-etiquetas'
@@ -10,12 +13,22 @@ import { FilaDeEtiqueta } from './fila-de-etiqueta'
 import { NuevaEtiqueta } from './nueva-etiqueta'
 
 // Lo de adentro se monta al abrir: así la lista (con a cuántos leads toca cada una) es la de ahora.
-function ContenidoDeEtiquetas({ etiquetas }: { etiquetas: Etiquetas }) {
+function ContenidoDeEtiquetas({
+  etiquetas,
+  alEscribir,
+}: {
+  etiquetas: Etiquetas
+  alEscribir: (hayTexto: boolean) => void
+}) {
   const gestion = useGestionDeEtiquetas(etiquetas)
   const { estado } = gestion
   return (
     <div className="grid gap-3">
-      <NuevaEtiqueta etiquetas={etiquetas} alCrear={(una) => gestion.sumar({ ...una, leads: 0 })} />
+      <NuevaEtiqueta
+        etiquetas={etiquetas}
+        alCrear={(una) => gestion.sumar({ ...una, leads: 0 })}
+        alEscribir={alEscribir}
+      />
       {estado.tipo === 'cargando' ? (
         <div aria-busy="true" aria-label="Cargando tus etiquetas" className="grid gap-2">
           <Skeleton className="h-8 w-full" />
@@ -50,17 +63,33 @@ function ContenidoDeEtiquetas({ etiquetas }: { etiquetas: Etiquetas }) {
 }
 
 // «Gestionar etiquetas» (`?panel=etiquetas`): crear, renombrar, recolorear y eliminar las
-// etiquetas propias. Se abre desde el selector de un lead y desde los filtros del listado.
+// etiquetas propias. Se abre desde el selector de un lead y desde los filtros del listado. Renombrar, recolorear y
+// eliminar guardan en la fila; lo único sin guardar es el nombre de la etiqueta nueva: con algo escrito ahí, cerrar
+// pregunta en el mismo modal, como en todo formulario, y no se cierra mientras se crea.
 export function DialogoDeEtiquetas({ etiquetas }: { etiquetas: Etiquetas }) {
   const panel = usePanelDeEtiquetas()
+  const [hayTexto, setHayTexto] = useState(false)
+  const cierre = useCierreConCambios({
+    hayCambios: hayTexto,
+    alCerrar: panel.cerrar,
+    abierto: panel.abierto,
+  })
   return (
     <Modal
       abierto={panel.abierto}
-      alCerrar={panel.cerrar}
+      alCerrar={cierre.intentarCerrar}
+      bloqueado={etiquetas.creando}
       titulo="Tus etiquetas"
       descripcion="Solo las ves tú. Un cambio de nombre o de color se ve en todos los leads donde la pusiste."
+      pie={
+        cierre.confirmando ? (
+          <ConfirmarDescarte alSeguir={cierre.seguir} alDescartar={cierre.descartar} />
+        ) : undefined
+      }
     >
-      {panel.abierto ? <ContenidoDeEtiquetas etiquetas={etiquetas} /> : null}
+      {panel.abierto ? (
+        <ContenidoDeEtiquetas etiquetas={etiquetas} alEscribir={setHayTexto} />
+      ) : null}
     </Modal>
   )
 }
