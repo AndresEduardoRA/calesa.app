@@ -1,6 +1,5 @@
 'use client'
 
-import { MoreHorizontalIcon } from 'lucide-react'
 import { useState, type ReactNode, type Ref } from 'react'
 import {
   DropdownMenu,
@@ -11,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '../dropdown-menu'
 import type { AccionDeMenu } from './acciones'
+import { ID_DEL_ICONO_MAS_ACCIONES, IconoDeLista } from './simbolos-de-lista'
 
 // Alto de un renglón del menú: cómodo para el dedo en el celular, compacto con mouse.
 const RENGLON = 'min-h-11 md:min-h-8'
@@ -72,7 +72,8 @@ function Linea({ accion, alElegir }: { accion: AccionDeMenu; alElegir: (clave: s
   }
 }
 
-// El «⋯» de una fila, una tarjeta, un resumen o una ficha: un botón de 44 px en el celular (32 desde `md`) y sus líneas en el
+// El «⋯» de una fila, una tarjeta, un resumen o una ficha (3 nodos: el botón, su `<svg>` y el `<use>` del símbolo que monta el layout,
+// `simbolos-de-lista.tsx`; sin envoltorio: el botón se pega a la derecha con `ml-auto`): un botón de 44 px en el celular (32 desde `md`) y sus líneas en el
 // orden que dice el módulo. Nada de lo que pasa adentro abre la fila de la lista (los clics no suben: `esClicPropio` ve el botón, y
 // el menú se dibuja en un portal). Lo que abre algo encima (`despuesDeCerrar`) espera a que el menú termine de cerrarse: si no, el
 // foco que vuelve al botón lo cierra.
@@ -100,7 +101,7 @@ export function MasAcciones({
   }
 
   return (
-    <div className="flex justify-end">
+    <>
       <DropdownMenu
         onOpenChange={(abierto) => {
           if (abierto) {
@@ -122,9 +123,9 @@ export function MasAcciones({
           ref={botonRef}
           aria-label={`Más acciones de ${nombre}`}
           data-mas-acciones={id}
-          className={`flex size-[44px] items-center justify-center rounded-(--radius-md) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) ${conBorde ? 'border border-(--color-line) md:size-9' : 'md:size-8'}`}
+          className={`flex size-[44px] items-center justify-center rounded-(--radius-md) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) ${conBorde ? 'border border-(--color-line) md:size-9' : 'ml-auto md:size-8'}`}
         >
-          <MoreHorizontalIcon aria-hidden className="size-4" />
+          <IconoDeLista id={ID_DEL_ICONO_MAS_ACCIONES} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
           {acciones.map((accion) => (
@@ -133,6 +134,6 @@ export function MasAcciones({
         </DropdownMenuContent>
       </DropdownMenu>
       {children}
-    </div>
+    </>
   )
 }

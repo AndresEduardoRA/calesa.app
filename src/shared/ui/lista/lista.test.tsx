@@ -20,6 +20,7 @@ import {
   UnaSolaVista,
   type AccionDeMenu,
 } from '.'
+import { ID_DEL_ICONO_MAS_ACCIONES, SimbolosDeLista } from './simbolos-de-lista'
 
 afterEach(() => {
   cleanup()
@@ -188,6 +189,60 @@ describe('MasAcciones', () => {
     expect(
       screen.getByRole('menuitemcheckbox', { name: 'Segunda' }).getAttribute('aria-checked'),
     ).toBe('true')
+  })
+})
+
+describe('el «⋯» de 3 nodos', () => {
+  // Una columna del kanban llega a 500 tarjetas, cada una con su «⋯»: lo que cuesta cada uno se multiplica (6 nodos eran
+  // 3.000; 3 son 1.500). El símbolo se dibuja una vez, en el layout.
+  const acciones: AccionDeMenu[] = [
+    { tipo: 'accion', clave: 'a', etiqueta: 'Primera', alElegir: vi.fn() },
+  ]
+
+  function Pagina({ conSimbolos = true }: { conSimbolos?: boolean }) {
+    return (
+      <div data-testid="pagina">
+        {conSimbolos ? <SimbolosDeLista /> : null}
+        <div data-testid="fila">
+          <MasAcciones nombre="Ana Rojas" id="lead-1" acciones={acciones} />
+        </div>
+      </div>
+    )
+  }
+
+  it('el botón, su <svg> y el <use>: nada más, y sin envoltorio', () => {
+    render(<Pagina />)
+    const boton = screen.getByRole('button', { name: 'Más acciones de Ana Rojas' })
+    expect(boton.parentElement?.getAttribute('data-testid')).toBe('fila')
+    expect(1 + boton.querySelectorAll('*').length).toBe(3)
+  })
+
+  it('el <use> apunta a un símbolo que existe (si no, el botón se vería vacío)', () => {
+    render(<Pagina />)
+    const boton = screen.getByRole('button', { name: 'Más acciones de Ana Rojas' })
+    const destino = boton.querySelector('use')?.getAttribute('href')
+    expect(destino).toBe(`#${ID_DEL_ICONO_MAS_ACCIONES}`)
+    const simbolo = document.getElementById(ID_DEL_ICONO_MAS_ACCIONES)
+    expect(simbolo?.tagName.toLowerCase()).toBe('g')
+    expect(simbolo?.querySelectorAll('circle')).toHaveLength(3)
+  })
+
+  it('el icono sigue el color del botón y no lo anuncia el lector', () => {
+    render(<Pagina />)
+    const svg = screen
+      .getByRole('button', { name: 'Más acciones de Ana Rojas' })
+      .querySelector('svg')
+    expect(svg?.getAttribute('stroke')).toBe('currentColor')
+    expect(svg?.getAttribute('aria-hidden')).toBe('true')
+    // El sprite tampoco se lee.
+    expect(document.querySelector('defs')?.closest('svg')?.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('el botón se pega a la derecha sin envoltorio salvo el de una cabecera, que va junto a otros', () => {
+    const { rerender } = render(<Pagina />)
+    expect(screen.getByRole('button').className).toContain('ml-auto')
+    rerender(<MasAcciones nombre="Ana Rojas" id="lead-1" acciones={acciones} conBorde />)
+    expect(screen.getByRole('button').className).not.toContain('ml-auto')
   })
 })
 

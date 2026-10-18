@@ -14,6 +14,7 @@ import { urlPublicaONull } from '@/shared/lib/almacen'
 import { anchoDeEstaPeticion } from '@/shared/lib/ancho.server'
 import { ProveedorDeAncho } from '@/shared/ui/ancho-de-pantalla'
 import { EstiloDeMarca } from '@/shared/ui/estilo-de-marca'
+import { SimbolosDeLista } from '@/shared/ui/lista/simbolos-de-lista'
 import { Marca } from '@/shared/ui/marca'
 import { ProveedorRegional } from '@/shared/ui/regional'
 import { BarraLateral } from './_shell/barra-lateral'
@@ -61,6 +62,8 @@ async function Shell({ children }: { children: ReactNode }) {
       <ProveedorDeAncho inicial={ancho}>
         {/* El color de la empresa pisa los tokens neutros de design/tokens.css. */}
         <EstiloDeMarca color={ajustes.colorAcento} />
+        {/* Los iconos que se repiten en cada fila de una lista, dibujados una vez (`<use>`): el «⋯» cuesta 3 nodos, no 6. */}
+        <SimbolosDeLista />
         <ProveedorPreferencias {...sesion.preferencias}>
           {/* La perspectiva «ver como» de esta sesión, para el menú, el banner y quien la pida. */}
           <ProveedorPerspectiva perspectiva={sesion.perspectiva}>
