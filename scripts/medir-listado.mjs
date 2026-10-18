@@ -88,6 +88,11 @@ const MEDICIONES_CON_VOLUMEN = [
     'Escala de toda la app, 50.000 leads (dueña «todos» y Ana «propios»)',
     MEDIANA,
   ],
+  [
+    'supabase/tests/medir-importacion-volumen.sql',
+    'Importar 500 filas en lotes de 50, con 23.000 y con 124.000 filas de actividad (con transacciones de verdad: confirma y borra lo que crea)',
+    UNA,
+  ],
   ['supabase/tests/medir-jobs.sql', 'Los jobs con 100.000 filas por purgar (ms por corrida)', UNA],
   [
     'supabase/tests/medir-bajas.sql',
