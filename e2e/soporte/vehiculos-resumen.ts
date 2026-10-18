@@ -23,8 +23,12 @@ export type TerrenoDelResumen = {
   id: string
 }
 
-export async function prepararResumen(proyecto: string): Promise<TerrenoDelResumen> {
-  const terreno = await prepararInventario(proyecto)
+// `ademas`: los permisos que la dueña de prueba suma (vitrina, papelera) para ver todo el «⋯».
+export async function prepararResumen(
+  proyecto: string,
+  ademas: Parameters<typeof prepararInventario>[1] = [],
+): Promise<TerrenoDelResumen> {
+  const terreno = await prepararInventario(proyecto, ademas)
   const lector = correoDePrueba(`lector-resumen-${proyecto}`)
   await crearPersona({ email: lector, contrasena: CLAVE, nombre: 'Lola Lectora', invitada: true })
   await darRolDePrueba({

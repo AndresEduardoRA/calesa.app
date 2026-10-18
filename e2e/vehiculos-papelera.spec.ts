@@ -94,7 +94,7 @@ const fila = (page: Page, titulo: string) =>
   aLaVista(page.locator('tbody tr, li article').filter({ hasText: titulo }))
 
 const menu = (page: Page, titulo: string) =>
-  page.getByRole('button', { name: `Más acciones sobre ${titulo}` })
+  page.getByRole('button', { name: `Más acciones de ${titulo}` })
 
 async function enviarDesdeLaFicha(page: Page, titulo: string) {
   await abrirFicha(page, titulo)
@@ -115,14 +115,15 @@ async function abrirPapelera(page: Page) {
 const loteDe = (page: Page, titulo: string) =>
   page.getByRole('region', { name: /^Lote enviado por/ }).filter({ hasText: titulo })
 
-test('sin el permiso no hay casillas, ni menú, ni papelera', async ({ page }) => {
+test('sin el permiso no hay casillas, ni envío en el «⋯», ni papelera', async ({ page }) => {
   await entrar(page, soloCorea)
   await irAlOrigen(page, corea)
   await expect(fila(page, T.uno)).toBeVisible()
   await expect(aLaVista(page.getByRole('checkbox', { name: /^Seleccionar / }))).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Papelera', exact: true })).toBeHidden()
   await abrirFicha(page, T.uno)
-  await expect(menu(page, T.uno)).toBeHidden()
+  await menu(page, T.uno).click() // el «⋯» de la ficha existe (publicar), sin «Enviar a la papelera»
+  await expect(page.getByRole('menuitem', { name: 'Enviar a la papelera' })).toHaveCount(0)
   await page.goto('/vehiculos/papelera')
   await expect(
     page.getByText('No tienes permiso para enviar vehículos a la papelera'),

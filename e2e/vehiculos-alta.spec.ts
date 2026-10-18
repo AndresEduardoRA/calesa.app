@@ -4,6 +4,7 @@ import {
   aLaVista,
   bloque,
   descartarAviso,
+  editarDesdeLaLista,
   entrar,
   esMovil,
   irAlOrigen,
@@ -100,8 +101,12 @@ test('dar de alta un vehículo en Corea, con los valores por defecto y los atajo
   await expect(panel).toBeHidden()
   await expect(vehiculo(page, 'Kia Seltos 2022')).toBeVisible()
 
-  // Su ficha: los datos por los grupos del layout y la fase de sólo lectura.
+  // Su resumen (un clic en la fila) y, con «Abrir ficha», su ficha: los datos por los grupos del layout y la fase de sólo lectura.
   await aLaVista(page.getByRole('button', { name: 'Abrir Kia Seltos 2022' })).click()
+  await page
+    .getByRole('dialog', { name: 'Kia Seltos 2022', exact: true })
+    .getByRole('link', { name: 'Abrir ficha' })
+    .click()
   await expect(page.getByRole('heading', { name: 'Kia Seltos 2022', level: 1 })).toBeVisible()
   await expect(aLaVista(page.getByText('Sin fase'))).toBeVisible()
   await expect(aLaVista(page.getByText('KNDEU2AA5N7123456'))).toBeVisible()
@@ -129,7 +134,7 @@ test('dos personas editan el mismo vehículo: la segunda se entera de quién lo 
 }) => {
   await entrar(page, duena)
   await irAlOrigen(page, corea)
-  await aLaVista(page.getByRole('button', { name: 'Editar Kia Seltos 2022' })).click()
+  await editarDesdeLaLista(page, 'Kia Seltos 2022')
   const panel = page.getByRole('dialog', { name: 'Editar Kia Seltos 2022' })
   await expect(panel.getByLabel('Marca')).toHaveValue('Kia')
 
@@ -227,7 +232,7 @@ test('un origen desactivado se sigue viendo, y «Nuevo» sale apagado con el mot
   await expect(vehiculo(page, 'Luxgen U6')).toBeVisible()
   await expect(page.getByRole('dialog')).toBeHidden()
   // Lo que ya tiene se sigue editando.
-  await aLaVista(page.getByRole('button', { name: 'Editar Luxgen U6' })).click()
+  await editarDesdeLaLista(page, 'Luxgen U6')
   await expect(page.getByRole('dialog', { name: 'Editar Luxgen U6' })).toBeVisible()
   await cambiarOrigen(taiwan.id, { activo: true })
 })

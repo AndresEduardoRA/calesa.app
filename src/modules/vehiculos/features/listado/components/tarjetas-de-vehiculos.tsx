@@ -1,16 +1,22 @@
 'use client'
 
-import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
 import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpieza'
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
+import { MenuDeFila } from './menu-de-fila'
 import { TarjetaVehiculo } from './tarjeta-vehiculo'
-import { faseDe, vitrinaDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
+import {
+  faseDe,
+  vitrinaDe,
+  type DatosDelOrigen,
+  type FilaDeVehiculo,
+  type ParaElMenuDeLaLista,
+} from './tipos'
 
 type Props = DatosDelOrigen & {
   vehiculos: readonly FilaDeVehiculo[]
-  editables: ReadonlySet<string>
+  menu: ParaElMenuDeLaLista
   seleccion: SeleccionDelListado
   alAbrir: (id: string) => void
   // El vehículo abierto en el resumen, para marcarlo.
@@ -27,7 +33,7 @@ export function TarjetasDeVehiculos(props: Props) {
     fases,
     vitrina,
     limpiezaHoy,
-    editables,
+    menu,
     seleccion,
     alAbrir,
     abierto,
@@ -63,11 +69,7 @@ export function TarjetasDeVehiculos(props: Props) {
                 <InsigniaDeLimpieza fecha={vehiculo.limpiezaEl} hoy={limpiezaHoy} />
               </>
             }
-            acciones={
-              editables.has(vehiculo.id) ? (
-                <BotonEditarVehiculo vehiculo={vehiculo} compacto />
-              ) : null
-            }
+            acciones={<MenuDeFila vehiculo={vehiculo} fases={fases} para={menu} />}
           />
         )
       })}

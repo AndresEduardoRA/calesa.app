@@ -5,6 +5,7 @@ import {
   aLaVista,
   entrar,
   irAlOrigen,
+  menuDeVehiculo,
   limpiarInventario,
   prepararInventario,
   type Terreno,
@@ -107,10 +108,12 @@ test('quien tiene al lead en su cartera ve el vínculo y edita el vehículo que 
   await page.goto(`/vehiculos/${vinculado}?seccion=fotos`)
   await expect(page.getByRole('button', { name: 'Elegir fotos' })).toBeVisible()
 
-  // En el inventario, «Editar» sólo en el vinculado.
+  // En el inventario, «Editar» (en el «⋯») sólo en el vinculado: del otro no hay menú, no tiene nada que ofrecerle.
   await irAlOrigen(page, corea)
-  await expect(aLaVista(page.getByRole('button', { name: `Editar ${VINCULADO}` }))).toHaveCount(1)
-  await expect(aLaVista(page.getByRole('button', { name: `Editar ${SUELTO}` }))).toHaveCount(0)
+  await menuDeVehiculo(page, VINCULADO).click()
+  await expect(page.getByRole('menuitem', { name: 'Editar', exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(menuDeVehiculo(page, SUELTO)).toHaveCount(0)
 })
 
 test('el interés de su lead se ve en el otro vehículo, que no puede editar', async ({ page }) => {

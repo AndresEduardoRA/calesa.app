@@ -1,11 +1,10 @@
 import type { FaseResumen } from '@/modules/flujos'
 import type { OrigenResumen } from '@/modules/origenes'
 import {
-  BotonDeVitrina,
   BotonEditarVehiculo,
   CabeceraDeVehiculo,
   InsigniaDeVitrina,
-  MenuDeVehiculo,
+  MenuDeVehiculoDeLaFicha,
   type PermisoDePapelera,
   type PermisoDeVitrina,
   type Vehiculo,
@@ -23,8 +22,8 @@ type Props = {
   papelera: PermisoDePapelera
 }
 
-// La cabecera de la ficha con lo que la persona puede hacer desde ahí: publicar (apagado y con el
-// motivo si no tiene el permiso), editar y, en el menú, enviar a la papelera.
+// La cabecera de la ficha con lo que la persona puede hacer desde ahí: «Editar» y el «⋯» con la lista de siempre (publicar en la web,
+// apagado y con el motivo si no tiene el permiso, y, separada, enviar a la papelera).
 export function Encabezado(props: Props) {
   const { vehiculo, origen, fase, previa, publicar, editable, papelera } = props
   return (
@@ -44,9 +43,8 @@ export function Encabezado(props: Props) {
       }
       acciones={
         <>
-          <BotonDeVitrina permiso={publicar} />
           {editable ? <BotonEditarVehiculo vehiculo={vehiculo} /> : null}
-          <MenuDeVehiculo vehiculo={vehiculo} permiso={papelera} />
+          <MenuDeVehiculoDeLaFicha vehiculo={vehiculo} publicar={publicar} papelera={papelera} />
         </>
       }
     />

@@ -7,6 +7,7 @@ import {
   motivosDeNoVisible,
   type EstadoDeVitrina,
   type MotivoDeNoVisible,
+  type PermisoDeVitrina,
   type VitrinaDelOrigen,
 } from '../../../entities/vitrina'
 
@@ -23,6 +24,22 @@ export type DatosDelOrigen = {
 }
 
 export type FilaDeVehiculo = Vehiculo
+
+// Lo que decide qué ofrece el «⋯» de cada fila, resuelto por la página: quién edita (los de esta página), a quién se puede enviar a la
+// papelera y si se puede publicar en este origen.
+export type ParaElMenuDeLaLista = {
+  editables: ReadonlySet<string>
+  eliminables: ReadonlySet<string>
+  publicar: PermisoDeVitrina
+}
+
+// ¿Alguna fila de la página tiene algo en su «⋯»? Si no, la columna de acciones no se dibuja.
+export function hayMenuEnLaPagina(filas: readonly Vehiculo[], para: ParaElMenuDeLaLista): boolean {
+  return (
+    para.publicar.estado === 'habilitado' ||
+    filas.some((fila) => para.editables.has(fila.id) || para.eliminables.has(fila.id))
+  )
+}
 
 // La fase de un vehículo entre las de su origen; null = sin fase (o una que ya no existe).
 export function faseDe(fases: readonly FaseResumen[], faseId: string | null): FaseResumen | null {

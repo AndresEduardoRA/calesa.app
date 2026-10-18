@@ -13,6 +13,7 @@ import {
   type VistaDelResumen,
 } from '../../../entities/resumen'
 import type { Vehiculo } from '../../../entities/vehiculo'
+import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { FichaDeVehiculo } from '../../ficha/components/ficha-de-vehiculo'
 import type { DatosDelOrigen } from '../../listado/components/tipos'
 import { useResumenDeVehiculo } from '../hooks/use-resumen-de-vehiculo'
@@ -25,6 +26,9 @@ type Props = DatosDelOrigen & {
   filas: readonly Vehiculo[]
   // Los ids de la página que la persona puede editar. Un vehículo que no está en la página no ofrece «Editar»: está en su ficha.
   editables: ReadonlySet<string>
+  // A quién se puede enviar a la papelera y si se puede publicar en este origen: lo que el «⋯» ofrece.
+  eliminables: ReadonlySet<string>
+  publicar: PermisoDeVitrina
   // «Interesados» existe sólo con `leads.ver`.
   verInteresados: boolean
   // El panel de edición: se dibuja dentro del resumen para que Esc, «Cancelar» y guardar cierren sólo el de arriba y el resumen quede
@@ -45,6 +49,8 @@ function EsqueletoDelResumen({ etiqueta }: { etiqueta: string }) {
 }
 
 type PropsDelContenido = DatosDelOrigen & {
+  eliminables: ReadonlySet<string>
+  publicar: PermisoDeVitrina
   vista: VistaDelResumen
   // Hay un vehículo en la URL (el resumen no se está cerrando).
   abierto: boolean
@@ -59,11 +65,17 @@ type PropsDelContenido = DatosDelOrigen & {
 function ConVehiculo(
   props: PropsDelContenido & { vehiculo: Vehiculo; completo: boolean; fallo: boolean },
 ) {
-  const { vehiculo, completo, fallo, reintentar, editables, resumen, ...datos } = props
+  const { vehiculo, completo, fallo, reintentar, editables, eliminables, resumen, ...datos } = props
   const { origen, campos, categorias } = datos
   return (
     <div className="grid gap-4">
-      <CabeceraDelResumen {...datos} vehiculo={vehiculo} editable={editables.has(vehiculo.id)} />
+      <CabeceraDelResumen
+        {...datos}
+        vehiculo={vehiculo}
+        editable={editables.has(vehiculo.id)}
+        eliminable={eliminables.has(vehiculo.id)}
+        alEnviado={resumen.cerrar}
+      />
       <PestanasDelResumen
         etiqueta="Secciones del vehículo"
         pestanas={resumen.pestanas}

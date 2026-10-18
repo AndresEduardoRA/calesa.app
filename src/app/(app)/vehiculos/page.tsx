@@ -16,6 +16,7 @@ import {
   origenElegido,
   origenesVisibles,
   permisoDeAlta,
+  permisoDeVitrina,
   puedeAbrirLaPapelera,
   vitrinaDelOrigen,
 } from '@/modules/vehiculos'
@@ -106,6 +107,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       eliminables={[...eliminables]}
       verPapelera={puedeAbrirLaPapelera(sesion.permisos)}
       verInteresados={puede(sesion.permisos, 'leads.ver')}
+      publicar={permisoDeVitrina(sesion.permisos, origen)}
       enEdicion={enEdicion}
       apibara={{
         activa: apibaraActiva,

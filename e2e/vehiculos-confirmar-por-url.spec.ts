@@ -45,7 +45,7 @@ test('purgar de la papelera: su URL, Esc, atrás, recarga, sin red y un solo ped
   for (const titulo of [A, B]) {
     await page.goto(`/vehiculos/${ids[titulo] ?? ''}`)
     await expect(page.getByRole('heading', { name: titulo, level: 1 })).toBeVisible()
-    await page.getByRole('button', { name: `Más acciones sobre ${titulo}` }).click()
+    await page.getByRole('button', { name: `Más acciones de ${titulo}` }).click()
     await page.getByRole('menuitem', { name: 'Enviar a la papelera' }).click()
     await expect(page).toHaveURL(new RegExp(`/vehiculos\\?origen=${corea.id}`))
   }

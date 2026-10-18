@@ -10,6 +10,7 @@ import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { camposFiltrables } from '../../../entities/filtros'
 import type { PermisoDeAlta } from '../../../entities/permisos'
 import type { Vehiculo } from '../../../entities/vehiculo'
+import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { BotonNuevoVehiculo, ID_DEL_MOTIVO_DE_ALTA } from '../../alta/components/botones'
 import type { DisponibilidadDeApibara } from '../../../entities/apibara'
 import { PanelDeVehiculo } from '../../alta/components/panel-de-vehiculo'
@@ -41,8 +42,22 @@ type Props = DatosDelOrigen & {
   verPapelera: boolean
   // Si el alta de este origen puede traer la ficha de apibara.
   apibara: DisponibilidadDeApibara
+  // Si puede publicar en la web lo de este origen.
+  publicar: PermisoDeVitrina
   // «Interesados» del resumen: sólo con `leads.ver`.
   verInteresados: boolean
+}
+
+// Por qué «Nuevo» está apagado (el origen está desactivado), arriba de la lista.
+function MotivoDeAlta({ permiso }: { permiso: PermisoDeAlta }) {
+  if (permiso.estado !== 'deshabilitado') {
+    return null
+  }
+  return (
+    <div id={ID_DEL_MOTIVO_DE_ALTA}>
+      <Aviso>{permiso.motivo}</Aviso>
+    </div>
+  )
 }
 
 // El inventario: una pestaña por origen y, adentro, los filtros de ese origen, su lista y el
@@ -79,11 +94,7 @@ export function ListadoDeVehiculos(props: Props) {
   return (
     <div className="grid gap-4">
       <PestanasDeOrigen origenes={origenes} actual={origen.id} />
-      {permisoDeAlta.estado === 'deshabilitado' ? (
-        <div id={ID_DEL_MOTIVO_DE_ALTA}>
-          <Aviso>{permisoDeAlta.motivo}</Aviso>
-        </div>
-      ) : null}
+      <MotivoDeAlta permiso={permisoDeAlta} />
       {/* Los filtros salen del layout de cada origen: al cambiar de pestaña se arma otro. */}
       <FilterShell
         key={origen.id}
@@ -121,6 +132,8 @@ export function ListadoDeVehiculos(props: Props) {
           limpiezaHoy={limpiezaHoy}
           filas={pagina.filas}
           editables={new Set(editables)}
+          eliminables={new Set(resto.eliminables)}
+          publicar={resto.publicar}
           verInteresados={verInteresados}
         >
           {panel}

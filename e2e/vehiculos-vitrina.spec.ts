@@ -85,7 +85,14 @@ test.afterAll(async () => {
   await limpiarInventario()
 })
 
-const boton = (page: Page) => page.getByRole('button', { name: 'Publicar en la web' })
+const menu = (page: Page, titulo: string) =>
+  page.getByRole('button', { name: `Más acciones de ${titulo}` })
+const publicar = (page: Page) => page.getByRole('menuitem', { name: 'Publicar en la web…' })
+// «Publicar en la web…» es un ítem del «⋯» de la ficha (9i): se abre el menú y se elige.
+async function publicarEnLaWeb(page: Page, titulo: string) {
+  await menu(page, titulo).click()
+  await publicar(page).click()
+}
 const panel = (page: Page) => page.getByRole('dialog', { name: 'Publicar en la web' })
 
 async function abrirFicha(page: Page, id: string, titulo: string) {
@@ -93,15 +100,19 @@ async function abrirFicha(page: Page, id: string, titulo: string) {
   await expect(page.getByRole('heading', { name: titulo, level: 1 })).toBeVisible()
 }
 
-test('sin el permiso, «Publicar en la web» se ve apagado y dice por qué', async ({ page }) => {
+test('sin el permiso, «Publicar en la web…» se ve apagado en el «⋯» y dice por qué', async ({
+  page,
+}) => {
   await entrar(page, soloCorea)
   await abrirFicha(page, sedan, SEDAN)
-  await expect(boton(page)).toBeDisabled()
+  await menu(page, SEDAN).click()
+  await expect(publicar(page)).toBeDisabled()
   await expect(
     page.getByText(`No tienes permiso para publicar en la web lo de ${corea.nombre}.`, {
       exact: false,
     }),
   ).toBeVisible()
+  await page.keyboard.press('Escape')
   // La dirección del panel tampoco lo abre.
   await page.goto(`/vehiculos/${sedan}?panel=vitrina`)
   await expect(page.getByRole('heading', { name: SEDAN, level: 1 })).toBeVisible()
@@ -125,7 +136,7 @@ test('con el permiso se publica con su precio, mirando lo que verá el visitante
   await descartarAviso(page, 'Foto guardada')
 
   await abrirFicha(page, sedan, SEDAN)
-  await boton(page).click()
+  await publicarEnLaWeb(page, SEDAN)
   await expect(panel(page)).toBeVisible()
   await expect(page).toHaveURL(/panel=vitrina/)
   const previa = panel(page).getByRole('region', { name: 'Así lo verá el visitante' })
@@ -220,7 +231,7 @@ test('el inventario dice cuál está en vitrina y deja filtrarlo', async ({ page
 test('despublicar lo saca de la vitrina y conserva el precio', async ({ page }) => {
   await entrar(page, duena)
   await abrirFicha(page, sedan, SEDAN)
-  await boton(page).click()
+  await publicarEnLaWeb(page, SEDAN)
   await expect(panel(page).getByText('Al guardar, se ve en el sitio.')).toBeVisible()
   await panel(page).getByRole('switch', { name: 'Publicado en la web' }).click()
   await panel(page).getByRole('button', { name: 'Guardar' }).click()
@@ -228,20 +239,20 @@ test('despublicar lo saca de la vitrina y conserva el precio', async ({ page }) 
   await expect(aLaVista(page.getByText('En vitrina', { exact: true }))).toBeHidden()
   expect(await vitrinaPublica(CLAVE_DE_COREA)).toEqual([])
   // El precio quedó para la próxima vez.
-  await boton(page).click()
+  await publicarEnLaWeb(page, SEDAN)
   await expect(panel(page).getByLabel('Precio público')).toHaveValue('21500')
 })
 
 test('lo que va a la papelera sale de la vitrina, y vuelve sin publicar', async ({ page }) => {
   await entrar(page, duena)
   await abrirFicha(page, sedan, SEDAN)
-  await boton(page).click()
+  await publicarEnLaWeb(page, SEDAN)
   await panel(page).getByRole('switch', { name: 'Publicado en la web' }).click()
   await panel(page).getByRole('button', { name: 'Guardar' }).click()
   await descartarAviso(page, 'Publicado en la web')
   expect((await vitrinaPublica(CLAVE_DE_COREA)).map((fila) => fila.titulo)).toEqual([SEDAN])
 
-  await page.getByRole('button', { name: `Más acciones sobre ${SEDAN}` }).click()
+  await page.getByRole('button', { name: `Más acciones de ${SEDAN}` }).click()
   await page.getByRole('menuitem', { name: 'Enviar a la papelera' }).click()
   const enviado = page
     .locator('[data-sonner-toast]')

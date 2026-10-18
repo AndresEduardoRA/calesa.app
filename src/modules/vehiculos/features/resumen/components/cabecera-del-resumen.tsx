@@ -6,6 +6,9 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { buttonVariants } from '@/shared/ui/button'
 import { Dato } from '@/shared/ui/campos'
 import { camposDeTarjeta } from '../../../entities/campo'
+import { motivoParaNoEnviar, permisoDePapelera } from '../../../entities/papelera'
+import type { PermisoDeVitrina } from '../../../entities/vitrina'
+import { MenuDeVehiculo } from '../../acciones/components/menu-de-vehiculo'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { BadgeDeFase } from '../../listado/components/badge-de-fase'
 import { Miniatura } from '../../listado/components/miniatura'
@@ -23,6 +26,11 @@ type Props = DatosDelOrigen & {
   vehiculo: FilaDeVehiculo
   // La persona puede editarlo (`editablesDe()`): sin esto no hay «Editar».
   editable: boolean
+  // Puede enviarlo a la papelera, y si puede publicar en este origen: lo que el «⋯» ofrece.
+  eliminable: boolean
+  publicar: PermisoDeVitrina
+  // Se envió a la papelera: el resumen se cierra.
+  alEnviado: () => void
 }
 
 function tieneValor(valor: unknown) {
@@ -34,6 +42,7 @@ function tieneValor(valor: unknown) {
 // que se puede hacer: «Editar» (sólo con permiso) y «Abrir ficha».
 export function CabeceraDelResumen(props: Props) {
   const { vehiculo, campos, fases, origen, vitrina, limpiezaHoy, editable } = props
+  const { eliminable, publicar, alEnviado } = props
   const fase = faseDe(fases, vehiculo.faseId)
   const datos = camposDeTarjeta(campos).filter((campo) =>
     tieneValor(vehiculo.atributos[campo.clave]),
@@ -78,6 +87,13 @@ export function CabeceraDelResumen(props: Props) {
         >
           Abrir ficha
         </Link>
+        <MenuDeVehiculo
+          vehiculo={vehiculo}
+          editar={false}
+          publicar={publicar.estado === 'habilitado' ? publicar : null}
+          papelera={permisoDePapelera(eliminable, motivoParaNoEnviar(vehiculo, fase))}
+          alEnviado={alEnviado}
+        />
       </div>
     </div>
   )

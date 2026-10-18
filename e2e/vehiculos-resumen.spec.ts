@@ -1,5 +1,5 @@
 import { expect, test } from './soporte/prueba'
-import { aLaVista, entrar, esMovil } from './soporte/inventario'
+import { aLaVista, editarDesdeLaLista, entrar } from './soporte/inventario'
 import { crearLead, marcarInteres } from './soporte/leads'
 import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import {
@@ -78,11 +78,10 @@ test('con el teclado se alcanza el nombre, Enter abre el resumen y al cerrarlo e
   await expect(nombre).toBeFocused()
 })
 
-test('«Editar» de la fila abre el panel de edición, no el resumen', async ({ page }) => {
-  test.skip(esMovil(page), '«Editar» de la fila se prueba en la tabla; la tarjeta lo comparte.')
+test('«Editar» del «⋯» de la fila abre el panel de edición, no el resumen', async ({ page }) => {
   await entrar(page, t.terreno.duena)
   await alInventario(page, t.terreno.corea.id)
-  await aLaVista(page.getByRole('button', { name: `Editar ${TITULO}` })).click()
+  await editarDesdeLaLista(page, TITULO)
   const panel = page.getByRole('dialog', { name: `Editar ${TITULO}` })
   await expect(panel).toBeVisible()
   await expect(page).not.toHaveURL(/vehiculo=/)

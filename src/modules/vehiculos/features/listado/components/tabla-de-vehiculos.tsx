@@ -10,22 +10,29 @@ import {
 import { Monto } from '@/shared/ui/monto'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
-import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
 import type { SeleccionDelListado } from '../../papelera/hooks/use-papelera-del-listado'
 import { InsigniaDeLimpieza } from '../../limpieza/components/insignia-de-limpieza'
 import { InsigniaDeVitrina } from '../../vitrina/components/insignia-de-vitrina'
 import { BadgeDeFase } from './badge-de-fase'
 import { Miniatura } from './miniatura'
-import { faseDe, vitrinaDe, type DatosDelOrigen, type FilaDeVehiculo } from './tipos'
+import { MenuDeFila } from './menu-de-fila'
+import {
+  faseDe,
+  hayMenuEnLaPagina,
+  vitrinaDe,
+  type DatosDelOrigen,
+  type FilaDeVehiculo,
+  type ParaElMenuDeLaLista,
+} from './tipos'
 import { ValorDeCampo } from './valor-de-campo'
 
 type Props = DatosDelOrigen & {
   vehiculos: readonly FilaDeVehiculo[]
   // Cómo se llama lo que entra por este origen («Unidad», «Lote»): encabeza la primera columna.
   encabezado: string
-  // Los que la persona puede editar: llevan su botón al final de la fila.
-  editables: ReadonlySet<string>
+  // Qué ofrece el «⋯» de cada fila.
+  menu: ParaElMenuDeLaLista
   // Las filas que se pueden elegir (para enviarlas juntas a la papelera) y las elegidas.
   seleccion: SeleccionDelListado
   alAbrir: (id: string) => void
@@ -40,10 +47,12 @@ const HUECO_DE_CASILLA = <span aria-hidden className="size-[44px] shrink-0 md:si
 
 type PropsDeFila = Pick<
   Props,
-  'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'editables' | 'seleccion' | 'alAbrir' | 'abierto'
+  'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'menu' | 'seleccion' | 'alAbrir' | 'abierto'
 > & {
   vehiculo: FilaDeVehiculo
   columnas: readonly CampoDeVehiculo[]
+  // Alguna fila de la página tiene algo en su «⋯»: la columna existe.
+  conMenu: boolean
 }
 
 // La fila de un vehículo. La casilla va delante del nombre y «Editar» pegado a la derecha; esa columna sólo existe si alguna fila de
@@ -55,10 +64,11 @@ function FilaDeTabla({
   fases,
   vitrina,
   limpiezaHoy,
-  editables,
+  menu,
   seleccion,
   alAbrir,
   abierto,
+  conMenu,
 }: PropsDeFila) {
   const fase = faseDe(fases, vehiculo.faseId)
   return (
@@ -114,9 +124,9 @@ function FilaDeTabla({
           <ValorDeCampo campo={campo} valor={vehiculo.atributos[campo.clave]} />
         </TableCell>
       ))}
-      {editables.size > 0 ? (
+      {conMenu ? (
         <CeldaPegada lado="acciones" className="text-right">
-          {editables.has(vehiculo.id) ? <BotonEditarVehiculo vehiculo={vehiculo} compacto /> : null}
+          <MenuDeFila vehiculo={vehiculo} fases={fases} para={menu} />
         </CeldaPegada>
       ) : null}
     </FilaDeLista>
@@ -127,7 +137,8 @@ function FilaDeTabla({
 // por cada campo «en tarjeta» del layout. Un clic en cualquier parte de la fila abre el vehículo, salvo el de la casilla y el de
 // «Editar». La tabla es tan ancha como lo pidan sus columnas y se desplaza dentro de su tarjeta, con el nombre a la vista.
 export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Props) {
-  const { editables, seleccion } = resto
+  const { menu, seleccion, vehiculos: filas } = { ...resto, vehiculos }
+  const conMenu = hayMenuEnLaPagina(filas, menu)
   const columnas = camposDeTarjeta(campos)
   return (
     <TablaDeLista>
@@ -151,7 +162,7 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
           {columnas.map((campo) => (
             <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
           ))}
-          {editables.size > 0 ? (
+          {conMenu ? (
             <CabeceraPegada lado="acciones">
               <span className="sr-only">Acciones</span>
             </CabeceraPegada>
@@ -160,7 +171,13 @@ export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Pr
       </TableHeader>
       <TableBody>
         {vehiculos.map((vehiculo) => (
-          <FilaDeTabla key={vehiculo.id} vehiculo={vehiculo} columnas={columnas} {...resto} />
+          <FilaDeTabla
+            key={vehiculo.id}
+            vehiculo={vehiculo}
+            columnas={columnas}
+            conMenu={conMenu}
+            {...resto}
+          />
         ))}
       </TableBody>
     </TablaDeLista>

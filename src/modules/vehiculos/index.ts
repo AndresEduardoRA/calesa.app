@@ -36,7 +36,6 @@ export {
   type PermisoDeVitrina,
   type VistaPreviaDeVitrina,
 } from './entities/vitrina'
-export { BotonDeVitrina } from './features/vitrina/components/boton-de-vitrina'
 export { InsigniaDeVitrina } from './features/vitrina/components/insignia-de-vitrina'
 export { PanelDeVitrina } from './features/vitrina/components/panel-de-vitrina'
 
@@ -67,7 +66,7 @@ export {
   type LoteDePapelera,
   type PermisoDePapelera,
 } from './entities/papelera'
-export { MenuDeVehiculo } from './features/papelera/components/menu-de-vehiculo'
+export { MenuDeVehiculoDeLaFicha } from './features/acciones/components/menu-de-vehiculo-de-la-ficha'
 export { PapeleraDeVehiculos } from './features/papelera/components/papelera-de-vehiculos'
 
 // Pantallas

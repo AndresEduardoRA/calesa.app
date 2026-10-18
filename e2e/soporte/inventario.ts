@@ -162,6 +162,15 @@ export const esMovil = (page: Page) => (page.viewportSize()?.width ?? 1280) < 76
 // oculta la pantalla anterior: se mira sólo lo visible.
 export const aLaVista = (lugar: Locator) => lugar.filter({ visible: true })
 
+// El «⋯» de un vehículo en la lista (9i): «Editar» ya no es un lápiz, es el primer ítem de ese menú.
+export const menuDeVehiculo = (page: Page, titulo: string): Locator =>
+  aLaVista(page.getByRole('button', { name: `Más acciones de ${titulo}` }))
+
+export async function editarDesdeLaLista(page: Page, titulo: string): Promise<void> {
+  await menuDeVehiculo(page, titulo).click()
+  await page.getByRole('menuitem', { name: 'Editar', exact: true }).click()
+}
+
 export function vehiculo(page: Page, titulo: string): Locator {
   return aLaVista(page.getByText(titulo, { exact: true }))
 }
