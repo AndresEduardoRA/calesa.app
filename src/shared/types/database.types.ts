@@ -2426,7 +2426,6 @@ export type Database = {
           origen_lead_id: string | null
           telefono_cc: string | null
           telefono_principal: string
-          tipo: Database['public']['Enums']['tipo_lead']
           tipo_lead_id: string
           ultimo_seguimiento_en: string | null
           _lead_motivo_de_restaurar: string | null
@@ -2449,7 +2448,6 @@ export type Database = {
           origen_lead_id?: string | null
           telefono_cc?: string | null
           telefono_principal: string
-          tipo?: Database['public']['Enums']['tipo_lead']
           tipo_lead_id: string
           ultimo_seguimiento_en?: string | null
         }
@@ -2470,7 +2468,6 @@ export type Database = {
           origen_lead_id?: string | null
           telefono_cc?: string | null
           telefono_principal?: string
-          tipo?: Database['public']['Enums']['tipo_lead']
           tipo_lead_id?: string
           ultimo_seguimiento_en?: string | null
         }
@@ -6605,7 +6602,6 @@ export type Database = {
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
-          tipo: Database['public']['Enums']['tipo_lead'] | null
           tipo_lead_id: string | null
           ultimo_seguimiento_en: string | null
         }
@@ -6899,7 +6895,6 @@ export type Database = {
           origen_lead_id: string | null
           telefono_cc: string | null
           telefono_principal: string
-          tipo: Database['public']['Enums']['tipo_lead']
           tipo_lead_id: string
           ultimo_seguimiento_en: string | null
         }
@@ -6961,7 +6956,6 @@ export type Database = {
           origen_lead_id: string | null
           telefono_cc: string | null
           telefono_principal: string
-          tipo: Database['public']['Enums']['tipo_lead']
           tipo_lead_id: string
           ultimo_seguimiento_en: string | null
         }
@@ -8292,7 +8286,6 @@ export type Database = {
         | 'correo'
         | 'documento'
       tipo_conversacion: 'directa' | 'grupo'
-      tipo_lead: 'prospecto' | 'cliente'
       tipo_lote_papelera: 'vehiculos' | 'leads' | 'cotizaciones'
       tipo_mensaje: 'texto' | 'evento' | 'tarea' | 'vehiculo' | 'lead' | 'cotizacion'
       tipo_origen: 'subasta' | 'manual'
@@ -8647,7 +8640,6 @@ export const Constants = {
         'documento',
       ],
       tipo_conversacion: ['directa', 'grupo'],
-      tipo_lead: ['prospecto', 'cliente'],
       tipo_lote_papelera: ['vehiculos', 'leads', 'cotizaciones'],
       tipo_mensaje: ['texto', 'evento', 'tarea', 'vehiculo', 'lead', 'cotizacion'],
       tipo_origen: ['subasta', 'manual'],
