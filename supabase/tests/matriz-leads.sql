@@ -1587,7 +1587,7 @@ do $$ declare
   v_lote jsonb; r jsonb; f jsonb; v_antes int;
 begin
   v_lote := jsonb_build_array(
-    jsonb_build_object('id', v_buena, 'fila', 2, 'lead', jsonb_build_object('nombre', 'Importada Uno', 'telefono_principal', '78 111-001', 'tipo', 'cliente', 'origen_lead_id', v_origen, 'atributos', '{"ciudad": "Sucre"}'::jsonb)),
+    jsonb_build_object('id', v_buena, 'fila', 2, 'lead', jsonb_build_object('nombre', 'Importada Uno', 'telefono_principal', '78 111-001', 'tipo_lead_id', (select id from public.tipos_lead where clave = 'cliente'), 'origen_lead_id', v_origen, 'atributos', '{"ciudad": "Sucre"}'::jsonb)),
     jsonb_build_object('id', gen_random_uuid(), 'fila', 3, 'lead', jsonb_build_object('nombre', '', 'telefono_principal', '78111002', 'origen_lead_id', v_origen)),
     jsonb_build_object('id', v_primera, 'fila', 4, 'lead', jsonb_build_object('nombre', 'Importada Repetida', 'telefono_principal', '78111003', 'origen_lead_id', v_origen)),
     jsonb_build_object('id', v_repe, 'fila', 5, 'lead', jsonb_build_object('nombre', 'Importada Repetida 2', 'telefono_principal', '78111003', 'origen_lead_id', v_origen)),

@@ -30,6 +30,12 @@ export async function limpiar(db) {
   await db.query(`delete from public.leads_campos where clave like 'carreras_%'`)
   // Los orígenes del lead que crearon las carreras (después de los leads: la FK es restrict).
   await db.query(`delete from public.origenes_lead where nombre like $1`, [`${PREFIJO}%`])
+  // Los tipos de lead (9j): los de fábrica se vuelven a encender (una corrida rota pudo dejarlos apagados) antes de borrar los
+  // nuestros, para que el trigger de «siempre uno activo por clase» no frene el borrado.
+  await db.query(
+    `update public.tipos_lead set activo = true where clave in ('prospecto', 'cliente')`,
+  )
+  await db.query(`delete from public.tipos_lead where nombre like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.lotes_papelera where creado_por = any ($1::uuid[])`, [
     personas,
   ])

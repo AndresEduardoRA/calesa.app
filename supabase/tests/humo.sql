@@ -4127,19 +4127,23 @@ begin
   exception when others then
     if sqlstate <> '22023' then raise; end if;
   end;
-  begin perform public.lead_guardar(v_id, v0, '{"tipo": "marciano"}'); raise exception 'aceptó un tipo inexistente';
+  begin perform public.lead_guardar(v_id, v0, '{"tipo_lead_id": "marciano"}'); raise exception 'aceptó un tipo que no es un identificador';
   exception when others then
     if sqlstate <> '22023' then raise; end if;
   end;
+  begin perform public.lead_guardar(v_id, v0, '{"tipo_lead_id": "00000000-0000-4000-8000-00000000ffff"}'); raise exception 'aceptó un tipo inexistente';
+  exception when others then
+    if sqlstate <> '22023' or sqlerrm not like '%ya no existe%' then raise; end if;
+  end;
   -- Un guardado real: nombre, tipo y un atributo; otro se quita con null.
-  r := public.lead_guardar(v_id, v0, '{"nombre": "  Ficha Propia 2 ", "tipo": "cliente", "atributos": {"ficha_color": "verde"}}');
+  r := public.lead_guardar(v_id, v0, jsonb_build_object('nombre', '  Ficha Propia 2 ', 'tipo_lead_id', (select id from public.tipos_lead where clave = 'cliente'), 'atributos', '{"ficha_color": "verde"}'::jsonb));
   v1 := (r ->> 'actualizado_en')::timestamptz;
   if v1 <= v0 then raise exception 'guardar debía mover la versión'; end if;
   r := public.lead_ficha(v_id);
-  if r ->> 'nombre' <> 'Ficha Propia 2' or r ->> 'tipo' <> 'cliente' or r #>> '{atributos,ficha_color}' <> 'verde' or r #>> '{atributos,ficha_ci}' <> 'CI-111' then
+  if r ->> 'nombre' <> 'Ficha Propia 2' or r ->> 'tipo_lead_id' <> (select id from public.tipos_lead where clave = 'cliente')::text or r #>> '{atributos,ficha_color}' <> 'verde' or r #>> '{atributos,ficha_ci}' <> 'CI-111' then
     raise exception 'lo guardado: %', r; end if;
   -- El mismo parche con la versión de antes: no choca consigo mismo.
-  r := public.lead_guardar(v_id, v0, '{"nombre": "Ficha Propia 2", "tipo": "cliente", "atributos": {"ficha_color": "verde"}}');
+  r := public.lead_guardar(v_id, v0, jsonb_build_object('nombre', 'Ficha Propia 2', 'tipo_lead_id', (select id from public.tipos_lead where clave = 'cliente'), 'atributos', '{"ficha_color": "verde"}'::jsonb));
   if (r ->> 'actualizado_en')::timestamptz <> v1 then raise exception 'el reintento debía devolver la versión vigente'; end if;
   r := public.lead_guardar(v_id, v1, '{"atributos": {"ficha_color": null}}');
   if public.lead_ficha(v_id) #> '{atributos,ficha_color}' is not null then raise exception 'null quita la clave'; end if;
@@ -4296,7 +4300,7 @@ begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000040', true);
   set local role authenticated;
   begin
-    perform public.lead_guardar(v_id, v, '{"tipo": "cliente"}');
+    perform public.lead_guardar(v_id, v, jsonb_build_object('tipo_lead_id', (select id from public.tipos_lead where clave = 'cliente')));
     reset role;
     raise exception 'guardó un lead al que le falta un requerido';
   exception when others then
@@ -4305,7 +4309,7 @@ begin
   end;
   -- Con el dato, guarda.
   set local role authenticated;
-  perform public.lead_guardar(v_id, v, '{"tipo": "cliente", "atributos": {"ficha_ver": "ya"}}');
+  perform public.lead_guardar(v_id, v, jsonb_build_object('tipo_lead_id', (select id from public.tipos_lead where clave = 'cliente'), 'atributos', '{"ficha_ver": "ya"}'::jsonb));
   reset role;
   -- Una cédula requerida: quien está en la cartera la completa; la dueña, sin ser de la cartera, no edita nada.
   update public.leads_campos set requerido = false where clave = 'ficha_ver';
@@ -5979,6 +5983,291 @@ begin
   reset role;
   delete from public.leads where nombre = 'Sin origen alguno';
   update public.origenes_lead set activo = (clave in ('facebook', 'web'));
+end $$;
+select set_config('request.jwt.claim.sub', '', false);
+
+-- @test tipos de lead (9j): sólo por RPC, con permiso, versión, tope y clase; siempre uno activo de cada clase; un lead no guarda uno apagado
+create or replace function pg_temp.falla(p_sql text, p_estado text, p_texto text) returns void language plpgsql as $$
+begin
+  execute p_sql;
+  raise exception 'no falló: %', p_sql;
+exception when others then
+  if sqlstate <> p_estado or position(p_texto in sqlerrm) = 0 then
+    raise exception '% debía fallar con % y «%», falló con % y «%»', p_sql, p_estado, p_texto, sqlstate, sqlerrm;
+  end if;
+end $$;
+
+-- Lo que la migración deja: los dos tipos de siempre, con las claves del enum, cada uno de su clase, y el de por defecto.
+do $$
+begin
+  if (select string_agg(clave || ':' || nombre || ':' || clase || ':' || activo, ',' order by orden) from public.tipos_lead)
+       <> 'prospecto:Prospecto:prospecto:true,cliente:Cliente:cliente:true' then
+    raise exception 'los tipos de fábrica: %', (select string_agg(clave, ',') from public.tipos_lead); end if;
+  if public._tipo_lead_por_defecto() is distinct from (select id from public.tipos_lead where clave = 'prospecto') then
+    raise exception 'el tipo por defecto no es el primero activo de la clase prospecto'; end if;
+end $$;
+
+-- Quien tiene leads.configurar: nombre normalizado, clave que sale del nombre, repetir el id no duplica, y la clase se elige y no cambia.
+set role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
+do $$
+declare
+  r jsonb; v_id uuid := gen_random_uuid(); v_ver timestamptz; v_clave text;
+  v_a uuid := gen_random_uuid(); v_b uuid := gen_random_uuid(); v_c uuid := gen_random_uuid();
+  v_va timestamptz; v_vc timestamptz;
+begin
+  r := public.tipo_lead_crear(v_id, '   Cliente   VIP ', 'cliente');
+  v_ver := (r ->> 'actualizado_en')::timestamptz;
+  select t.clave into v_clave from public.tipos_lead t where t.id = v_id;
+  if v_clave <> 'cliente_vip' or (select nombre from public.tipos_lead where id = v_id) <> 'Cliente VIP'
+     or (select clase from public.tipos_lead where id = v_id) <> 'cliente' then
+    raise exception 'el nombre, la clave o la clase: %', v_clave; end if;
+  if (r ->> 'repetido')::boolean then raise exception 'la primera vez no es un reintento'; end if;
+  if (select orden from public.tipos_lead where id = v_id) <> (select max(orden) from public.tipos_lead) then
+    raise exception 'el nuevo no quedó al final'; end if;
+  -- Un reintento con el mismo id no duplica.
+  r := public.tipo_lead_crear(v_id, 'Cliente VIP', 'cliente');
+  if not (r ->> 'repetido')::boolean or (select count(*) from public.tipos_lead where id = v_id) <> 1 then
+    raise exception 'el reintento duplicó: %', r; end if;
+  -- La lista que vuelve trae el tope (de la base), la clase, la versión y si tiene leads.
+  if (r -> 'lista' ->> 'tope')::int <> 100 then raise exception 'el tope: %', r -> 'lista' ->> 'tope'; end if;
+  if not exists (select 1 from jsonb_array_elements(r -> 'lista' -> 'tipos') x
+                  where x ->> 'id' = v_id::text and x ->> 'clase' = 'cliente' and (x ->> 'con_leads')::boolean = false) then
+    raise exception 'la lista de vuelta: %', r; end if;
+  -- Acentos, signos y empezar con un número.
+  perform public.tipo_lead_crear(v_a, 'Ándale ¡ya!', 'prospecto');
+  perform public.tipo_lead_crear(v_b, '2x1', 'prospecto');
+  if (select clave from public.tipos_lead where id = v_a) <> 'andale_ya' or (select clave from public.tipos_lead where id = v_b) <> 't_2x1' then
+    raise exception 'claves: % %', (select clave from public.tipos_lead where id = v_a), (select clave from public.tipos_lead where id = v_b); end if;
+
+  -- Nombre vacío, en blanco, largo o repetido (sin importar mayúsculas ni espacios), y una clase que no es una de las dos.
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), '', 'cliente')$f$, '22023', 'Escribe el nombre');
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), '    ', 'cliente')$f$, '22023', 'Escribe el nombre');
+  perform pg_temp.falla(format($f$select public.tipo_lead_crear(gen_random_uuid(), %L, 'cliente')$f$, repeat('x', 41)), '22023', 'hasta 40 caracteres');
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), '  CLIENTE    vip ', 'cliente')$f$, '23505', 'Ya hay un tipo');
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), 'prospecto', 'prospecto')$f$, '23505', 'Ya hay un tipo');
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), 'Sin clase', null)$f$, '22023', 'Elige la clase');
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), 'Otra clase', 'proveedor')$f$, '22023', 'Elige la clase');
+
+  -- Renombrar: pide versión, una vieja es PT409 y repetir el nombre de otro no se puede. La clase no se cambia.
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, null, '{"nombre": "Otro nombre"}')$f$, v_id), 'P0001', 'Falta la versión');
+  r := public.tipo_lead_guardar(v_id, v_ver, '{"nombre": "  VIP  "}');
+  if (select nombre from public.tipos_lead where id = v_id) <> 'VIP' or (r ->> 'actualizado_en')::timestamptz = v_ver then
+    raise exception 'el renombre no movió la versión: %', r; end if;
+  if (select clave from public.tipos_lead where id = v_id) <> 'cliente_vip' then raise exception 'renombrar cambió la clave'; end if;
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"nombre": "VIP 2"}')$f$, v_id, v_ver), 'PT409', 'Otra persona cambió este tipo');
+  v_ver := (r ->> 'actualizado_en')::timestamptz;
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"nombre": "Cliente"}')$f$, v_id, v_ver), '23505', 'Ya hay un tipo');
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"clave": "x"}')$f$, v_id, v_ver), '22023', 'no se cambia');
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"clase": "prospecto"}')$f$, v_id, v_ver), '22023', 'La clase de un tipo no cambia');
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"activo": "no"}')$f$, v_id, v_ver), '22023', 'sí o no');
+  -- Lo que ya está guardado no es un conflicto: un reintento no choca consigo mismo.
+  r := public.tipo_lead_guardar(v_id, v_ver - interval '1 second', '{"nombre": "VIP"}');
+  if not (r ->> 'sin_cambios')::boolean then raise exception 'el reintento chocó consigo mismo: %', r; end if;
+
+  -- Ordenar: «después de». Mover no cambia la versión de nadie.
+  select actualizado_en into v_va from public.tipos_lead where id = v_a;
+  select actualizado_en into v_vc from public.tipos_lead where id = v_id;
+  r := public.tipo_lead_mover(v_id, v_vc, null);
+  if (select (array_agg(t.x ->> 'id' order by t.n))[1] from jsonb_array_elements(r -> 'lista' -> 'tipos') with ordinality as t (x, n)) <> v_id::text then
+    raise exception 'no quedó primero: %', r; end if;
+  r := public.tipo_lead_mover(v_id, v_vc, v_a);
+  if (select orden from public.tipos_lead where id = v_id) <= (select orden from public.tipos_lead where id = v_a)
+     or (select orden from public.tipos_lead where id = v_id) >= (select orden from public.tipos_lead where id = v_b) then
+    raise exception 'no quedó entre medio: %', r; end if;
+  if (select count(distinct orden) from public.tipos_lead) <> (select count(*) from public.tipos_lead) then
+    raise exception 'quedaron dos con el mismo lugar'; end if;
+  if (select actualizado_en from public.tipos_lead where id = v_a) <> v_va then raise exception 'mover movió la versión de otro'; end if;
+  perform pg_temp.falla(format($f$select public.tipo_lead_mover(%L, %L, %L)$f$, v_id, v_vc, v_id), '22023', 'después de sí mismo');
+  perform pg_temp.falla(format($f$select public.tipo_lead_mover(%L, %L, %L)$f$, v_id, v_vc, gen_random_uuid()), 'PT409', 'ya no existe');
+  perform pg_temp.falla(format($f$select public.tipo_lead_mover(%L, null, null)$f$, v_id), 'P0001', 'Falta la versión');
+
+  -- Eliminar uno sin leads: sí (pide versión); uno que ya no está: PT409.
+  perform pg_temp.falla(format($f$select public.tipo_lead_eliminar(%L, %L)$f$, v_b, (select actualizado_en from public.tipos_lead where id = v_b) - interval '1 second'), 'PT409', 'Otra persona cambió este tipo');
+  perform public.tipo_lead_eliminar(v_b, (select actualizado_en from public.tipos_lead where id = v_b));
+  if exists (select 1 from public.tipos_lead where id = v_b) then raise exception 'no se eliminó'; end if;
+  perform pg_temp.falla(format($f$select public.tipo_lead_eliminar(%L, %L)$f$, v_b, now()), 'PT409', 'ya no existe');
+
+  -- La lectura de la pantalla: el tope y todos los tipos.
+  r := public.tipos_lead_con_uso();
+  if jsonb_array_length(r -> 'tipos') <> (select count(*) from public.tipos_lead) or (r ->> 'tope')::int <> 100 then raise exception 'con_uso incompleto'; end if;
+end $$;
+reset role;
+
+-- Siempre queda un tipo activo de cada clase: lo dicen las RPC y lo impone la base aunque se escriba sin ellas.
+do $$
+declare
+  v_pro uuid := (select id from public.tipos_lead where clave = 'prospecto');
+  v_cli uuid := (select id from public.tipos_lead where clave = 'cliente');
+  v_vip uuid := (select id from public.tipos_lead where clave = 'cliente_vip');
+  v_andale uuid := (select id from public.tipos_lead where clave = 'andale_ya'); v_solo uuid := gen_random_uuid();
+  v_ver timestamptz; r jsonb;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  -- «Prospecto» y «Ándale ya!» son los dos de la clase prospecto: apagar uno, sí; el otro, no.
+  r := public.tipo_lead_guardar(v_andale, (select actualizado_en from public.tipos_lead where id = v_andale), '{"activo": false}');
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"activo": false}')$f$, v_pro, (select actualizado_en from public.tipos_lead where id = v_pro)),
+    '22023', 'Es el único tipo activo de la clase «prospecto»');
+  -- Con la clase cliente igual: apagado «VIP», «Cliente» es el último.
+  perform public.tipo_lead_guardar(v_vip, (select actualizado_en from public.tipos_lead where id = v_vip), '{"activo": false}');
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"activo": false}')$f$, v_cli, (select actualizado_en from public.tipos_lead where id = v_cli)),
+    '22023', 'Es el único tipo activo de la clase «cliente»');
+  -- Volver a encender uno apagado siempre se puede; con dos activos, apagar uno vuelve a poderse.
+  perform public.tipo_lead_guardar(v_vip, (select actualizado_en from public.tipos_lead where id = v_vip), '{"activo": true}');
+  perform public.tipo_lead_guardar(v_cli, (select actualizado_en from public.tipos_lead where id = v_cli), '{"activo": false}');
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"activo": false}')$f$, v_vip, (select actualizado_en from public.tipos_lead where id = v_vip)),
+    '22023', 'Es el único tipo activo de la clase «cliente»');
+  perform public.tipo_lead_guardar(v_cli, (select actualizado_en from public.tipos_lead where id = v_cli), '{"activo": true}');
+  -- Eliminar el último activo de su clase tampoco (uno sin leads: con leads se desactiva): «Solo» es el único activo cuando «Prospecto» se apaga.
+  perform public.tipo_lead_eliminar(v_andale, (select actualizado_en from public.tipos_lead where id = v_andale));
+  perform public.tipo_lead_crear(v_solo, 'Solo', 'prospecto');
+  perform public.tipo_lead_guardar(v_pro, (select actualizado_en from public.tipos_lead where id = v_pro), '{"activo": false}');
+  perform pg_temp.falla(format($f$select public.tipo_lead_eliminar(%L, %L)$f$, v_solo, (select actualizado_en from public.tipos_lead where id = v_solo)),
+    '22023', 'Es el único tipo activo de la clase «prospecto»');
+  perform public.tipo_lead_guardar(v_pro, (select actualizado_en from public.tipos_lead where id = v_pro), '{"activo": true}');
+  perform public.tipo_lead_eliminar(v_solo, (select actualizado_en from public.tipos_lead where id = v_solo));
+  reset role;
+
+  -- La base lo impone sin pasar por la RPC (quien salta la RLS): apagar, eliminar y cambiar la clase.
+  perform pg_temp.falla(format($f$update public.tipos_lead set activo = false where id = %L$f$, v_pro), '22023', 'Es el único tipo activo');
+  perform pg_temp.falla(format($f$delete from public.tipos_lead where id = %L$f$, v_pro), '22023', 'Es el único tipo activo');
+  perform pg_temp.falla(format($f$update public.tipos_lead set clase = 'cliente' where id = %L$f$, v_pro), '22023', 'La clase de un tipo no cambia');
+  perform pg_temp.falla(format($f$update public.tipos_lead set clase = 'prospecto' where id = %L$f$, v_vip), '22023', 'La clase de un tipo no cambia');
+  if (select count(*) from public.tipos_lead where activo and clase = 'prospecto') < 1 or (select count(*) from public.tipos_lead where activo and clase = 'cliente') < 1 then
+    raise exception 'quedó una clase sin activos'; end if;
+end $$;
+
+-- Un tipo con leads no se elimina, ni siquiera con el lead en la papelera; se desactiva y deja de ofrecerse; el lead que lo tiene lo conserva.
+do $$
+declare
+  v_vip uuid := (select id from public.tipos_lead where clave = 'cliente_vip');
+  v_web uuid := (select id from public.origenes_lead where clave = 'web');
+  v_lead uuid := gen_random_uuid(); v_ver timestamptz; r jsonb;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  r := public.crear_lead(v_lead, jsonb_build_object('nombre', 'Lead VIP 9j', 'telefono_principal', '71909101', 'origen_lead_id', v_web, 'tipo_lead_id', v_vip), null);
+  if r ->> 'resultado' <> 'creado' then raise exception 'no creó el lead: %', r; end if;
+  if (select tipo_lead_id from public.leads where id = v_lead) <> v_vip then raise exception 'el lead no quedó con su tipo'; end if;
+  if public.lead_ficha(v_lead) ->> 'tipo_lead_id' <> v_vip::text then raise exception 'la ficha no dice el tipo'; end if;
+  select actualizado_en into v_ver from public.tipos_lead where id = v_vip;
+  perform pg_temp.falla(format($f$select public.tipo_lead_eliminar(%L, %L)$f$, v_vip, v_ver), '23503', 'ya tiene leads');
+  if not exists (select 1 from jsonb_array_elements(public.tipos_lead_con_uso() -> 'tipos') x where x ->> 'id' = v_vip::text and (x ->> 'con_leads')::boolean) then
+    raise exception 'con_uso no marca que tiene leads'; end if;
+  -- Desactivarlo (queda «Cliente»): el alta ya no lo ofrece ni lo acepta; el lead que lo tiene lo conserva y se puede editar.
+  perform public.tipo_lead_guardar(v_vip, v_ver, '{"activo": false}');
+  if exists (select 1 from jsonb_array_elements(public.lead_alta_contexto() -> 'tipos') x where x ->> 'id' = v_vip::text) then
+    raise exception 'el alta sigue ofreciendo uno desactivado'; end if;
+  perform pg_temp.falla(format($f$select public.crear_lead(gen_random_uuid(), '{"nombre": "Apagado", "telefono_principal": "71909102", "origen_lead_id": "%s", "tipo_lead_id": "%s"}', null)$f$, v_web, v_vip),
+    '22023', 'se desactivó');
+  perform pg_temp.falla(format($f$select public.crear_lead(gen_random_uuid(), '{"nombre": "Inexistente", "telefono_principal": "71909103", "origen_lead_id": "%s", "tipo_lead_id": "00000000-0000-4000-8000-00000000ffff"}', null)$f$, v_web),
+    '22023', 'ya no existe');
+  perform pg_temp.falla(format($f$select public.crear_lead(gen_random_uuid(), '{"nombre": "Mal", "telefono_principal": "71909104", "origen_lead_id": "%s", "tipo_lead_id": "marciano"}', null)$f$, v_web),
+    '22023', 'no existe');
+  if (select tipo_lead_id from public.leads where id = v_lead) is distinct from v_vip then raise exception 'el lead perdió su tipo'; end if;
+  r := public.lead_guardar(v_lead, (select actualizado_en from public.leads where id = v_lead), '{"nombre": "Lead VIP 9j editado"}');
+  if (select nombre from public.leads where id = v_lead) <> 'Lead VIP 9j editado' then raise exception 'no se pudo editar un lead con un tipo apagado'; end if;
+  -- Pasarlo a otro tipo apagado, no; a uno que no está, no; a uno activo, sí.
+  perform pg_temp.falla(format($f$select public.lead_guardar(%L, %L, '{"tipo_lead_id": "00000000-0000-4000-8000-00000000ffff"}')$f$, v_lead, (select actualizado_en from public.leads where id = v_lead)),
+    '22023', 'ya no existe');
+  reset role;
+  -- El último recurso de la base: pasar un lead a un tipo apagado, aunque lo haga quien salta la RLS, no se guarda.
+  begin
+    update public.leads set tipo_lead_id = v_vip where id = (select id from public.leads where tipo_lead_id is distinct from v_vip limit 1);
+    raise exception 'guardó un tipo desactivado';
+  exception when others then
+    if sqlstate <> '22023' or position('se desactivó' in sqlerrm) = 0 then raise exception 'el trigger: % (%)', sqlerrm, sqlstate; end if;
+  end;
+  -- En la papelera también cuenta (la FK es restrict).
+  update public.leads set eliminado_en = now(), eliminado_por = '00000000-0000-0000-0000-000000000001' where id = v_lead;
+  set local role authenticated;
+  perform pg_temp.falla(format($f$select public.tipo_lead_eliminar(%L, %L)$f$, v_vip, (select actualizado_en from public.tipos_lead where id = v_vip)), '23503', 'ya tiene leads');
+  reset role;
+  delete from public.leads where id = v_lead;
+  -- Sin leads, ahora sí.
+  set local role authenticated;
+  perform public.tipo_lead_eliminar(v_vip, (select actualizado_en from public.tipos_lead where id = v_vip));
+  reset role;
+  if exists (select 1 from public.tipos_lead where id = v_vip) then raise exception 'no se eliminó'; end if;
+end $$;
+
+-- El tipo por defecto: el primero activo de la clase prospecto por orden. Un lead sin tipo, de donde sea, lo recibe; ordenar lo cambia.
+do $$
+declare
+  v_pro uuid := (select id from public.tipos_lead where clave = 'prospecto'); v_b uuid := gen_random_uuid(); v_l uuid := gen_random_uuid(); r jsonb;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  if public.lead_alta_contexto() ->> 'tipo_por_defecto_id' <> v_pro::text then raise exception 'el alta no propone el tipo por defecto'; end if;
+  r := public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Sin tipo 9j', 'telefono_principal', '71909105',
+         'origen_lead_id', (select id from public.origenes_lead where clave = 'web')), null);
+  if (select tipo_lead_id from public.leads where nombre = 'Sin tipo 9j') <> v_pro then raise exception 'un lead sin tipo no recibió el de por defecto'; end if;
+  -- Un segundo tipo de la clase prospecto, puesto primero: pasa a ser el de por defecto.
+  perform public.tipo_lead_crear(v_b, 'Prospecto B', 'prospecto');
+  perform public.tipo_lead_mover(v_b, (select actualizado_en from public.tipos_lead where id = v_b), null);
+  if public.lead_alta_contexto() ->> 'tipo_por_defecto_id' <> v_b::text then
+    raise exception 'ordenar no cambió el tipo por defecto'; end if;
+  reset role;
+  -- Sin pasar por una RPC (como las pruebas y la semilla) también.
+  insert into public.leads (id, nombre, telefono_principal) values (v_l, 'Sin tipo directo 9j', '71909106');
+  if (select tipo_lead_id from public.leads where id = v_l) <> v_b then raise exception 'el insert sin tipo no recibió el de por defecto'; end if;
+  delete from public.leads where nombre in ('Sin tipo 9j', 'Sin tipo directo 9j');
+  set local role authenticated;
+  perform public.tipo_lead_guardar(v_b, (select actualizado_en from public.tipos_lead where id = v_b), '{"activo": false}');
+  if public.lead_alta_contexto() ->> 'tipo_por_defecto_id' <> v_pro::text then raise exception 'apagado «B», el de por defecto vuelve a «Prospecto»'; end if;
+  perform public.tipo_lead_eliminar(v_b, (select actualizado_en from public.tipos_lead where id = v_b));
+  reset role;
+end $$;
+
+-- El tope de 100: se dice con el máximo (que pone la base), no se pasa y eliminar uno deja crear otro.
+do $$
+declare v_n int := (select count(*) from public.tipos_lead); v_id uuid := gen_random_uuid(); r jsonb;
+begin
+  insert into public.tipos_lead (clave, nombre, clase, activo, orden)
+  select 'relleno_' || g, 'Relleno ' || g, 'cliente', false, 500 + g from generate_series(1, 100 - v_n) g;
+  if (select count(*) from public.tipos_lead) <> 100 then raise exception 'no quedaron 100'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), 'El ciento uno', 'cliente')$f$, '22023', 'máximo');
+  r := public.tipo_lead_eliminar((select id from public.tipos_lead where clave = 'relleno_1'),
+         (select actualizado_en from public.tipos_lead where clave = 'relleno_1'));
+  r := public.tipo_lead_crear(v_id, 'El ciento', 'cliente');
+  reset role;
+  delete from public.tipos_lead where clave like 'relleno\_%' or id = v_id;
+end $$;
+
+-- Sin el permiso: nada de esto. Leer, sí (el alta, la ficha y los filtros lo necesitan); escribir directo, no.
+do $$
+declare v_t uuid := (select id from public.tipos_lead where clave = 'cliente'); v_ver timestamptz := (select actualizado_en from public.tipos_lead where clave = 'cliente');
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
+  set local role authenticated;
+  perform pg_temp.falla($f$select public.tipo_lead_crear(gen_random_uuid(), 'Intruso', 'cliente')$f$, '42501', 'leads.configurar');
+  perform pg_temp.falla(format($f$select public.tipo_lead_guardar(%L, %L, '{"activo": false}')$f$, v_t, v_ver), '42501', 'leads.configurar');
+  perform pg_temp.falla(format($f$select public.tipo_lead_mover(%L, %L, null)$f$, v_t, v_ver), '42501', 'leads.configurar');
+  perform pg_temp.falla(format($f$select public.tipo_lead_eliminar(%L, %L)$f$, v_t, v_ver), '42501', 'leads.configurar');
+  perform pg_temp.falla($f$select public.tipos_lead_con_uso()$f$, '42501', 'leads.configurar');
+  perform pg_temp.falla($f$insert into public.tipos_lead (clave, nombre, clase) values ('directo', 'Directo', 'cliente')$f$, '42501', 'permission denied');
+  perform pg_temp.falla(format($f$update public.tipos_lead set activo = false where id = %L$f$, v_t), '42501', 'permission denied');
+  perform pg_temp.falla(format($f$delete from public.tipos_lead where id = %L$f$, v_t), '42501', 'permission denied');
+  if (select count(*) from public.tipos_lead) = 0 then raise exception 'no lee los tipos'; end if;
+  -- Los catálogos del listado, la ficha y la exportación: orígenes y tipos (también los apagados) en un solo pedido.
+  if jsonb_array_length(public.leads_catalogos() -> 'tipos') <> (select count(*) from public.tipos_lead)
+     or jsonb_array_length(public.leads_catalogos() -> 'origenes') <> (select count(*) from public.origenes_lead) then
+    raise exception 'leads_catalogos no trae todo'; end if;
+  if not exists (select 1 from jsonb_array_elements(public.leads_catalogos() -> 'tipos') x where x ->> 'clave' = 'cliente' and x ->> 'clase' = 'cliente' and (x ->> 'activo')::boolean) then
+    raise exception 'leads_catalogos no dice la clase y el estado'; end if;
+  reset role;
+end $$;
+
+-- La base queda como estaba: los dos tipos de fábrica, activos y en su orden.
+do $$
+begin
+  delete from public.tipos_lead where clave not in ('prospecto', 'cliente');
+  update public.tipos_lead set activo = true, orden = case clave when 'prospecto' then 10 else 20 end where clave in ('prospecto', 'cliente');
+  if (select string_agg(clave || ':' || activo, ',' order by orden) from public.tipos_lead) <> 'prospecto:true,cliente:true' then
+    raise exception 'los tipos no quedaron como estaban'; end if;
 end $$;
 select set_config('request.jwt.claim.sub', '', false);
 

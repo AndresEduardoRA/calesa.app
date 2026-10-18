@@ -7255,7 +7255,12 @@ export type Database = {
         Returns: Json
       }
       _telefono_o_nulo: { Args: { p_cc: string; p_tel: string }; Returns: string }
+      _tipo_lead_clave: { Args: { p_nombre: string }; Returns: string }
+      _tipo_lead_exigir_activo: { Args: { p_id: string }; Returns: undefined }
+      _tipo_lead_nombre: { Args: { p_texto: string }; Returns: string }
       _tipo_lead_por_defecto: { Args: Record<PropertyKey, never>; Returns: string }
+      _tipos_lead_lista: { Args: Record<PropertyKey, never>; Returns: Json }
+      _tipos_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
         Args: {
@@ -7704,6 +7709,7 @@ export type Database = {
       }
       lead_vehiculos: { Args: { p_lead: string }; Returns: Json }
       leads_campos_privacidad_aplicar: { Args: Record<PropertyKey, never>; Returns: Json }
+      leads_catalogos: { Args: Record<PropertyKey, never>; Returns: Json }
       leads_exportacion_registrar: {
         Args: { p_filas: number; p_filtros?: string[] }
         Returns: Json
@@ -8108,6 +8114,20 @@ export type Database = {
         }
         Returns: string
       }
+      tipo_lead_crear: { Args: { p_clase: string; p_id: string; p_nombre: string }; Returns: Json }
+      tipo_lead_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      tipo_lead_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      tipo_lead_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
+        Returns: Json
+      }
+      tipos_lead_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
