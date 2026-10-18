@@ -3735,6 +3735,11 @@ begin
   r := public.crear_lead(v_intento, v_datos || '{"adoptar": true}'::jsonb, jsonb_build_object('tipo_id', v_wa, 'titulo', 'Retomado'), null);
   if r ->> 'resultado' <> 'adoptado' or (r ->> 'repetido')::boolean is not true or (r ->> 'id')::uuid <> v_id then raise exception 'reintento de la adopción: %', r; end if;
   if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Retomado') <> 1 then raise exception 'el reintento duplicó el seguimiento'; end if;
+  -- Cierre 5a-fix-2: el intento adoptado sólo se busca si el alta trae `adoptar`. El mismo intento SIN la bandera ya no dice «adoptado,
+  -- repetido»: es un alta normal de un teléfono que ya es suyo («existe»), y no adopta, ni crea, ni suma nada.
+  r := public.crear_lead(v_intento, v_datos, jsonb_build_object('tipo_id', v_wa, 'titulo', 'Retomado'), null);
+  if r ->> 'resultado' <> 'existe' or r ? 'id' then raise exception 'el mismo intento sin adoptar: %', r; end if;
+  if (select count(*) from public.seguimientos where lead_id = v_id and titulo = 'Retomado') <> 1 then raise exception 'sin adoptar sumó un seguimiento'; end if;
 end $$;
 reset role;
 do $$ begin
