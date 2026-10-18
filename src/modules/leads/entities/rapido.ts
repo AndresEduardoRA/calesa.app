@@ -1,7 +1,7 @@
 // Qué muestra el drawer rápido de un lead: en «Resumen», los datos que le llegaron a quien mira,
 // agrupados como el layout; en «Seguimientos», la línea de tiempo con anotar (`?pestana=seguimientos`);
 // en «Recordatorios», «Tus recordatorios» con agendar (`?pestana=recordatorios`, 9d-2). Cada pestaña lee
-// lo suyo al elegirse. Editar el lead sigue siendo de la ficha.
+// lo suyo al elegirse. «Editar» abre el panel de la ficha encima (9i) y vuelve al resumen.
 import { agruparCampos } from '@/shared/lib/campos'
 import { PANEL_EDITAR_LEAD } from './edicion'
 import { PANEL_ANOTAR_SEGUIMIENTO, PANEL_EDITAR_SEGUIMIENTO } from './edicion-de-seguimiento'

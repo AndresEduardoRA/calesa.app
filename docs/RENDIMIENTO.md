@@ -274,6 +274,10 @@ dibuja una sola vista (el HTML crudo del inventario con 100 filas, 1,4 MB → 92
 | `/perfil`    | 547,5 KB                       | 434,9 KB (sin leads en el shell: 434,8) | 460 KB      |
 | `/vehiculos` | 598,7 KB                       | 504,9 KB                                | 530 KB      |
 
+**Tras la 9i** (medido en la misma máquina): `/leads` 562,1 KB, `/perfil` 443,4 KB y `/vehiculos` 519,2 KB, sin tocar ningún presupuesto. Antes de empezar,
+en `master`, ya se medían 560,6 y 515,5 en `/leads` y `/vehiculos` (lo anotado arriba había subido con el cierre 1 al 4): la 9i suma **1,5 y 3,7 KB**
+(el patrón de lista compartido, el «⋯» y el menú del lead; el resumen de vehículos y el panel de edición del resumen van por `diferido()` y no entran).
+
 ### Lo que se vio al mirar (con volumen cargado; `e2e/escala-recorrido.spec.ts`, `E2E_CAPTURAS`)
 
 Escritorio y celular, la dueña y Ana. Se leyeron las capturas, y de ahí salieron dos arreglos y cuatro notas:
@@ -294,3 +298,20 @@ Escritorio y celular, la dueña y Ana. Se leyeron las capturas, y de ahí salier
   larga; lo siguiente es un lote que muestra los primeros 20 y «Mostrar los 200» (PLAN).
 - **Volver con «atrás»** vuelve a la página anterior del listado, no al principio (la URL lleva el cursor).
 - «Mover a…» se parte en dos líneas en una columna de 288 px. Cosmético.
+
+### El patrón de lista y el resumen de vehículos (9i)
+
+Medido con 62.000 leads y 10.000 vehículos (`E2E_VOLUMEN=1`, escritorio). Cada fila suma su «⋯» (envoltorio, botón, icono y tres círculos: 6 nodos) y
+el inventario pierde su lápiz de «Editar»; el resumen de un vehículo no se pide hasta abrirlo (el drawer entero va por `diferido()`).
+
+| Superficie                                         | Antes (cierre 1)        | 9i                               | Presupuesto           |
+| -------------------------------------------------- | ----------------------- | -------------------------------- | --------------------- |
+| Listado de leads, 100 filas, la dueña («todos»)    | 2.594 nodos; 37,6 KB gz | 2.597 nodos; 39,5 KB gz (537 KB) | 3.500 nodos; 48 KB gz |
+| Listado de leads, 100 filas, Ana («propios»)       | —                       | 2.472 nodos; 37,3 KB gz          | igual                 |
+| Inventario, 100 filas                              | 4.916 nodos; 47,3 KB gz | 5.020 nodos; 49,6 KB gz (927 KB) | 6.000 nodos; 60 KB gz |
+| Columna del kanban en el tope (500 tarjetas)       | 8.212 nodos             | **11.212 nodos** (3.000 del «⋯») | 9.000 → **11.800**    |
+| Resumen de vehículos: pedidos a la base al abrirlo | —                       | 1 (a lo sumo 2 con una pestaña)  | 2                     |
+
+**El kanban pasó su presupuesto de nodos** y se subió con la razón escrita (`docs/DECISIONES.md`, 2026-10-18): 6 nodos por tarjeta es lo que cuesta un
+«⋯» con icono, y se prefirió un «⋯» igual en las cuatro superficies a un glifo de texto que dependería de la fuente. Una columna en el tope es el
+peor caso (500 tarjetas); una de 50 suma 300 nodos.

@@ -10,8 +10,13 @@ paths:
   número que sólo se explica con «la máquina estaba ocupada» no se explicó: se mide (carga, contadores, qué más corría).
 - `pnpm test:e2e <spec>` corre un spec sobre la base como esté (pide `npx supabase functions serve`); `--project=escritorio` o
   `--project=movil` elige el proyecto. **`pnpm test:e2e:completo`** resetea la base, corre las carreras y TODO, y pasa los argumentos a
-  Playwright: `pnpm test:e2e:completo --project=escritorio` sirve para iterar sobre un proyecto; **la verificación de un cierre va con
-  los dos proyectos**, sin la bandera.
+  Playwright: `pnpm test:e2e:completo --project=escritorio` sirve para iterar sobre un proyecto.
+- **Los tres niveles de verificación** (desde la 9i):
+  - **Nivel 1 — toda tarea:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y los e2e **dirigidos** a lo tocado, en `escritorio` y en `movil`.
+  - **Nivel 2 — si la tarea toca `src/shared`:** además `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve`
+    en otra terminal), sólo en escritorio. Un componente o hook de `shared` lo usan todas las pantallas: lo dirigido no alcanza para verlo.
+  - **Nivel 3 — un cierre de fase:** `pnpm test:e2e:completo` con los dos proyectos, sin la bandera.
+    La BITACORA dice cuál se corrió: `e2e completo: sí|no (<tarea>)`. Un nivel que no se corrió se dice, no se da por pasado.
 - **Una captura para mirar se toma con `capturar()` de `e2e/soporte/recorrido.ts`** (o `capturarEn()` de `e2e/soporte/capturas.ts`), nunca
   con un `page.screenshot` suelto: espera a que la pantalla esté quieta (dos cuadros y todas las animaciones y transiciones con fin, con
   tope de 2 s que dice cuáles seguían) y deja `animations: 'disabled'` como respaldo para las infinitas (un spinner, el pulso de un

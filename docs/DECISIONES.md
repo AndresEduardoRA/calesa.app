@@ -3816,3 +3816,77 @@ formulario y el campo se salía del modal; el campo de «Nueva etiqueta» se ach
 columna `minmax(0, 1fr)`, el select va `w-full min-w-0` y el campo de la etiqueta pasa a una fila que se parte (`flex-wrap`, mínimo 8 rem).
 Lo asserta `e2e/modales-con-salida.spec.ts` (falla sin el arreglo: «el campo no se achica hasta no leerse», «no se sale del modal por la derecha»).
 Se mide **sin desplazar** el cuerpo: desplazarlo de costado acomoda el campo a la vista y el desborde desaparece de la medida.
+
+## 2026-10-18 — Parte 9i: un patrón de lista para toda tabla, el resumen de vehículos y el «⋯» del lead desde una sola lista
+
+**Contexto:** el listado de leads y el inventario de vehículos resolvían lo mismo de dos maneras (leads abría un resumen y tenía el nombre y el
+«⋯» pegados; vehículos sólo navegaba desde el título y tenía un lápiz), y el «⋯» del lead existía en dos superficies con ítems escritos por
+separado (en el kanban y en el resumen no existía). El pedido traía diez cosas sin decidir; se tomaron las recomendaciones del plan.
+**Decisión:**
+
+1. **Teclado en la fila:** la parada de Tab es el botón del nombre («Abrir Ana Rojas», `<AbrirResumen>`, sin `onClick`: su clic sube a la fila);
+   Enter o Espacio abren; la fila toma el color de abierta con `has-[:focus-visible]`. Un `<tr>` con `tabIndex` daría dos paradas por fila y
+   los lectores lo leen mal.
+2. **Ir y volver entre resumen y edición:** el panel de edición se dibuja **como hijo** del drawer del resumen (Base UI anida los diálogos por el
+   árbol de React: Esc, «Cancelar» y Guardar cierran sólo el de arriba) y el foco vuelve a «Editar». Leads: `?lead=<id>&panel=editar-lead`
+   (`EdicionDelResumen`, `diferido()`, lee `lead_ficha` **al pulsar**: el resumen no paga la ficha antes); vehículos: `?vehiculo=<id>&editar=<id>`
+   (el `<PanelDeVehiculo>` de siempre). Con cambios sin guardar pregunta como todo panel (`useCambiosSinGuardar`).
+3. **«Editar»** es un botón a la vista en las cabeceras (resumen y ficha) y el primer ítem del «⋯» sólo en la fila y la tarjeta de vehículos,
+   donde no hay cabecera; el lápiz de la fila desaparece (queda una sola columna pegada a la derecha).
+4. **«Principal» del layout:** el layout no tiene esa bandera (las banderas son `en_tarjeta`, `filtrable`, `publico_web`, `clave_apibara`,
+   `activo`). La identidad de un vehículo en el resumen es título, «#número» y los campos `en_tarjeta`, los mismos de la lista. Una bandera
+   `principal` pide migración, RPC y pantalla: otra parte (candidato en `docs/PLAN.md`).
+5. **Marcas en la ficha del lead:** Favorito, Tachado y Etiquetas pasan al «⋯» de la cabecera; ésta conserva las insignias y «Editar».
+   «Una sola lista» no sería cierta con otra fila de botones con lo mismo.
+6. **«⋯» del kanban:** la tarjeta no trae marcas ni dueño; al **abrir el menú** se lee ese lead (un pedido a `leads_vista`), sin tocar la base
+   (`_tarjeta_json` no cambió). Mientras llega, «Cargando…»; si no se pudo o ya no se ve, lo dice el menú.
+7. **«⋯» del vehículo:** Editar (sólo fila, tarjeta y resumen) · Publicar en la web… · ─ · Enviar a la papelera, de `entities/acciones-de-vehiculo.ts`
+   (`BLOQUES_DEL_MENU_DE_VEHICULO`, `accionesDeVehiculo(ofertas)` con `oculta | apagada | habilitada`). En la fila y el resumen «Publicar» lleva a
+   `/vehiculos/<id>?panel=vitrina` (el panel y su vista previa viven en la ficha: montarlos en el inventario sumaría JS y una lectura) y **sin
+   el permiso no aparece**; en la ficha abre el panel y sin el permiso se ve apagado con el motivo, como estaba el botón. La papelera se apaga con
+   su motivo en las tres superficies. El nombre accesible es «Más acciones de …» en todas.
+8. **«⋯» del lead:** Agendar recordatorio… · Anotar seguimiento… · ─ · Etiquetas… · Favorito · Tachado · ─ · Enviar a la papelera, de
+   `entities/acciones-de-lead.ts` (`BLOQUES_DEL_MENU_DE_LEAD`, `accionesDeLead({ actuar, enviar })`); lo que no se puede no aparece y los permisos
+   no cambiaron (`puedeEditarLead`, `puedeEnviarLead`; el kanban suma `puedeEnviarConAlcance`).
+9. **La guarda** (`scripts/guardas/listas-con-patron.ts`) mira todo archivo de `src/modules` que dibuja `<Table>` o usa `CORTE_DE_LA_TABLA`: o
+   importa `@/shared/ui/lista` o figura con su motivo (la tabla, la fila y la matriz del equipo). Las listas de `<li>` (seguimientos,
+   papeleras) no entran: decenas de registros y poco valor. Su regex confundía `<TableroDeEmbudo` con `<Table` y se ajustó.
+10. **Pestañas del resumen de vehículos:** «Resumen» (los datos de la ficha, sin pedir nada más), «Fotos» e «Interesados» (sólo con `leads.ver`),
+    cada una con su `import()` y su lectura al elegirse; `?pestana=` sin sumar al historial.
+
+**Desviaciones del plan, con su razón:**
+
+- El nombre del vehículo **conserva `max-w-72 truncate`** (18 rem) como el del lead, con el nombre completo en `title` (`<AbrirResumen>`): el
+  plan lo quitaba por ir contra `ui.md`, pero la columna pegada lleva además la casilla y la miniatura y, sin tope, un título largo la
+  ensancharía hasta ocupar la pantalla y lo pegado dejaría de ser una ayuda.
+- **El resumen no relee tras editar:** al guardar, la página revalida y trae la fila nueva; `vistaDelResumen()` elige la más nueva entre la
+  lectura del navegador y la de la página por `actualizadoEn`. Es un pedido menos de lo planeado. «Editar» sólo se ofrece con el vehículo en
+  la página (`editables`): uno que sólo llegó por la URL (de otra página) se abre sin él.
+- Un vehículo de **otro origen** que llega por `?vehiculo=` dice «no disponible» (no se mezcla con la pestaña abierta).
+- `useLecturaAlMontar`, `foco-de-quien-abre.ts` y `<Drawer focoAlCerrar>` nacieron en `shared` (leer al elegir una pestaña; devolver el
+  foco al botón del nombre al cerrar un resumen).
+- **El kanban pasa su presupuesto de nodos**: una columna de 500 tarjetas, de 8.212 a 11.212 nodos (el «⋯» suma 6 por tarjeta: envoltorio, botón,
+  icono y tres círculos = 3.000). No se pudo evitar sin dejar el icono (con un solo glifo de texto y sin envoltorio quedaba en ~8.700, pero el
+  «⋯» de las otras cuatro superficies es un icono y el glifo depende de la fuente). Se subió de 9.000 a 11.800 (lo medido más un 5 %) y el spec
+  anota cuántos nodos son del menú. A 100 filas: leads 2.597 nodos y 39,5 KB comprimidos (presupuestos 3.500 y 48), inventario 5.020 y 49,6 (6.000 y 60).
+- **JS en frío:** `/leads` 562,1 KB, `/perfil` 443,4, `/vehiculos` 519,2 (presupuestos 570, 460, 530). Medido en `master` antes de empezar: 560,6 y
+  515,5 en `/leads` y `/vehiculos` (ya habían subido desde los 543,7 y 504,9 documentados); la 9i suma 1,5 y 3,7 KB. Ningún presupuesto cambió.
+
+**Defecto que vieron las capturas y se arregló:** el resumen del vehículo al 200 % en el celular se cortaba (la cabecera con portada, datos y
+tres botones; las pestañas fuera del panel). La cabecera se apila con un `@container`, las pestañas se desplazan con su pista, y el «⋯» de una
+cabecera lleva borde (se confundía con texto). `nadaSeSaleDelPanel()` (`e2e/soporte/panel.ts`) mide que ningún elemento pase del borde del panel;
+se verificó que muerde (con la cabecera vieja, falla) y hubo que reescribirla una vez porque la primera versión no mordía.
+
+**Lo que se aprendió de las pruebas:** `supabase-js` en el navegador reintenta sin red ~7,4 s antes de fallar, así que un e2e de «sin red» espera
+hasta 20 s; `listas-por-pagina` (página 3) falló una vez en una corrida larga y 0 de 35 aislada: sin explicar, se vigila en el Nivel 2.
+
+**Niveles de verificación** (ahora en `.claude/rules/e2e.md` y `docs/ESTADO.md`): **Nivel 1** (toda tarea): lint, typecheck, `pnpm test` y los e2e
+dirigidos en los dos proyectos; **Nivel 2** (si toca `shared`): `pnpm test:e2e:completo --project=escritorio` con `npx supabase functions serve`;
+**Nivel 3** (un cierre): el completo con los dos proyectos.
+
+**Alternativas:** el `<tr>` enfocable (dos paradas por fila); cambiar el contenido del mismo drawer en vez de apilar el panel (obligaba a
+meter un panel que pregunta por su cuenta dentro de otro drawer); sumar las marcas al JSON de `embudo_tablero` (migración, medir 8.000 tarjetas,
+y la lectura al abrir cuesta un pedido que casi nadie paga); una bandera `principal` (otra parte).
+**Consecuencia:** una lista nueva sale con clic, teclado, nombre y «⋯» pegados sólo con importar el patrón, y la guarda lo exige; el «⋯» de un
+módulo se cambia en un solo archivo. Cuesta: 3.000 nodos en una columna llena del kanban, ~6 por fila en las listas, y que un resumen sin su
+fila en la página no ofrezca «Editar».
