@@ -19,7 +19,7 @@ import {
   type LineaDeRed,
   selectorDeTamano,
 } from './soporte/listas-por-pagina'
-import { capturar, tactil } from './soporte/recorrido'
+import { capturar, demorarAcciones, tactil } from './soporte/recorrido'
 import { MAXIMO_DE_PAGINA_DE_LEADS } from '../src/modules/leads/entities/listado'
 import { tamanosHasta } from '../src/shared/lib/paginacion'
 
@@ -132,6 +132,61 @@ test('cambiar el tamaño en la página 3 con filtros y búsqueda vuelve a la pri
   await page.getByRole('link', { name: 'Siguiente' }).click()
   await expect(filasDelListado(page)).toHaveCount(25)
   expect(parametrosDe(page).get('por')).toBe('25')
+})
+
+// 0a de la 9j. `cambiar el tamaño en la página 3` falló una vez en la 9i: el selector decía 25 y la lista seguía con 10 pasados 5 s.
+// Sin reproducirse (E1: 20 de 20 con el servidor frío; E1b: 20 de 20 con los 8 núcleos ocupados), las dos formas de que un cambio
+// llegue tarde se fuerzan acá: guardar la preferencia lento (1 y 6 s: con 6 s el `expect` de 5 s del fallo original habría visto lo mismo) y la lectura de la página nueva lenta. Lo que se asserta es
+// el orden y el final, que no dependen del reloj: la lista no cambia hasta que el guardado terminó (la URL sigue en la página de
+// antes), y cuando todo llegó la lista tiene el tamaño nuevo, la URL lo dice y la cuenta lo guardó.
+for (const ms of [1_000, 6_000]) {
+  test(`si guardar la preferencia tarda ${String(ms / 1000)} s, la lista espera el guardado y termina con el tamaño nuevo`, async ({
+    page,
+  }) => {
+    test.setTimeout(60_000)
+    await fijarPreferencia(t.personas.berta, 10)
+    await entrar(page, t.personas.berta)
+    await irALeads(page, consulta('&tipo=prospecto'))
+    await expect(filasDelListado(page)).toHaveCount(10)
+    await page.getByRole('link', { name: 'Siguiente' }).click()
+    await expect(page).toHaveURL(/cursor=/)
+    const acciones = await demorarAcciones(page, ms)
+    await elegirTamano(page, 25)
+    await expect(selectorDeTamano(page)).toHaveValue('25')
+    // Mientras el guardado no termina, la página es la de antes.
+    expect(parametrosDe(page).has('por')).toBe(false)
+    expect(parametrosDe(page).has('cursor')).toBe(true)
+    await expect(filasDelListado(page)).toHaveCount(25, { timeout: ms + 15_000 })
+    const url = parametrosDe(page)
+    expect(url.get('por')).toBe('25')
+    expect(url.has('cursor')).toBe(false)
+    expect(url.get('q')).toBe(BUSCAR)
+    await expect.poll(() => preferenciaDe(t.personas.berta)).toBe(25)
+    // Un solo guardado: ni se repitió ni quedó otro en vuelo.
+    expect(acciones).toHaveLength(1)
+    await expect(selectorDeTamano(page)).toHaveValue('25')
+  })
+}
+
+test('si la lectura de la página nueva tarda, el selector sigue en lo elegido y la lista llega después, sin volver atrás', async ({
+  page,
+}) => {
+  test.setTimeout(60_000)
+  await fijarPreferencia(t.personas.berta, 10)
+  await entrar(page, t.personas.berta)
+  await irALeads(page, consulta('&tipo=prospecto'))
+  await expect(filasDelListado(page)).toHaveCount(10)
+  // La lectura de `?por=25` (la navegación del servidor) sale 5 s tarde.
+  await page.route(/[?&]por=25/, async (ruta) => {
+    await new Promise((listo) => setTimeout(listo, 5_000))
+    await ruta.fallback()
+  })
+  await elegirTamano(page, 25)
+  await expect(selectorDeTamano(page)).toHaveValue('25')
+  await expect(filasDelListado(page)).toHaveCount(25, { timeout: 20_000 })
+  expect(parametrosDe(page).get('por')).toBe('25')
+  await expect(selectorDeTamano(page)).toHaveValue('25')
+  await expect.poll(() => preferenciaDe(t.personas.berta)).toBe(25)
 })
 
 test('un valor manipulado en la URL se ignora y manda la preferencia; uno válido manda a esa página', async ({
