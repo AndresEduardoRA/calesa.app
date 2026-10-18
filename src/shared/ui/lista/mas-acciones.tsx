@@ -24,6 +24,8 @@ type Props = {
   id?: string
   // Para anclar contra el botón lo que se abre después (el selector de etiquetas).
   botonRef?: Ref<HTMLButtonElement>
+  // El «⋯» de una cabecera (el resumen, la ficha), al lado de botones con borde: con borde y de 44 px en el celular, como ellos.
+  conBorde?: boolean
   // Se abrió el menú: el kanban lee el lead a pedido, no una vez por tarjeta.
   alAbrir?: () => void
   // Lo que se abre desde el menú, junto al botón (un selector que se ancla a él).
@@ -74,7 +76,15 @@ function Linea({ accion, alElegir }: { accion: AccionDeMenu; alElegir: (clave: s
 // orden que dice el módulo. Nada de lo que pasa adentro abre la fila de la lista (los clics no suben: `esClicPropio` ve el botón, y
 // el menú se dibuja en un portal). Lo que abre algo encima (`despuesDeCerrar`) espera a que el menú termine de cerrarse: si no, el
 // foco que vuelve al botón lo cierra.
-export function MasAcciones({ nombre, acciones, id, botonRef, alAbrir, children }: Props) {
+export function MasAcciones({
+  nombre,
+  acciones,
+  id,
+  botonRef,
+  alAbrir,
+  conBorde = false,
+  children,
+}: Props) {
   const [pendiente, setPendiente] = useState<string | null>(null)
 
   function elegir(clave: string) {
@@ -112,7 +122,7 @@ export function MasAcciones({ nombre, acciones, id, botonRef, alAbrir, children 
           ref={botonRef}
           aria-label={`Más acciones de ${nombre}`}
           data-mas-acciones={id}
-          className="flex size-[44px] items-center justify-center rounded-(--radius-md) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:size-8"
+          className={`flex size-[44px] items-center justify-center rounded-(--radius-md) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) ${conBorde ? 'border border-(--color-line) md:size-9' : 'md:size-8'}`}
         >
           <MoreHorizontalIcon aria-hidden className="size-4" />
         </DropdownMenuTrigger>

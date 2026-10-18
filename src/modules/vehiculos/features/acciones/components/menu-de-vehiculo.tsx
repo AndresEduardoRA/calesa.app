@@ -26,6 +26,8 @@ type Props = {
   alPublicar?: () => void
   // Se envió: el vehículo ya no está donde se miraba (la ficha vuelve al inventario y el resumen se cierra).
   alEnviado?: () => void
+  // En una cabecera (el resumen, la ficha): con borde, como los botones de al lado.
+  conBorde?: boolean
 }
 
 const oferta = (
@@ -44,7 +46,7 @@ const aLaVitrina = (id: string) => `${RUTAS.vehiculos}/${id}?panel=vitrina`
 // papelera» se hace sin preguntar y ofrece «Deshacer»; lo que ya se sabe que la base va a rechazar (vinculado, fuera de su fase inicial)
 // se ve apagado con el motivo. Sin nada que ofrecer no se dibuja.
 export function MenuDeVehiculo(props: Props) {
-  const { vehiculo, editar, publicar, papelera, alPublicar, alEnviado } = props
+  const { vehiculo, editar, publicar, papelera, alPublicar, alEnviado, conBorde } = props
   const router = useRouter()
   const panel = usePanelDeVehiculo()
   const envio = useEnvioAPapelera()
@@ -109,7 +111,14 @@ export function MenuDeVehiculo(props: Props) {
     ...(indice > 0 ? [{ tipo: 'separador' as const, clave: `separador-${String(indice)}` }] : []),
     ...bloque.flatMap((clave) => lineas[clave]?.() ?? []),
   ])
-  return <MasAcciones nombre={vehiculo.titulo} id={vehiculo.id} acciones={acciones} />
+  return (
+    <MasAcciones
+      nombre={vehiculo.titulo}
+      id={vehiculo.id}
+      acciones={acciones}
+      conBorde={conBorde}
+    />
+  )
 }
 
 function notaDe(motivo: string | null, clave: string): AccionDeMenu[] {

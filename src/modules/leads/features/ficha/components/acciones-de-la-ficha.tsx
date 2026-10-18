@@ -46,6 +46,7 @@ export function AccionesDeLaFicha(props: Props) {
         etiquetas={etiquetas}
         alGestionar={alGestionar}
         puedeEnviar={puedeEnviarAPapelera}
+        conBorde
         acciones={
           puedeEditar
             ? {

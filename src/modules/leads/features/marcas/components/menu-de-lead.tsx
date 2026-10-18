@@ -31,6 +31,8 @@ type PropsComunes = {
   papelera?: { alEnviado?: () => void; motivo?: string | null; alIrAVehiculos?: () => void }
   // Después de cambiar una marca: el resumen vuelve a leer el lead.
   alMarcar?: () => void
+  // En una cabecera (el resumen, la ficha): con borde, como los botones de al lado.
+  conBorde?: boolean
   // El kanban no trae las marcas ni la cartera del lead: se leen al abrir el menú (`alAbrir`) y mientras tanto, o si no llegan, el menú
   // lo dice (`carga`).
   alAbrir?: () => void

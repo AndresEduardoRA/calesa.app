@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProveedorDeAncho } from '../ancho-de-pantalla'
 import {
   AbrirResumen,
@@ -192,6 +192,18 @@ describe('MasAcciones', () => {
 })
 
 describe('PestanasDelResumen', () => {
+  // La lista se desplaza con pista (`useDesborde`) y deja a la vista la elegida: jsdom no trae ni lo uno ni lo otro.
+  beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    )
+    Element.prototype.scrollIntoView = () => {}
+  })
+
   const pestanas = [
     { clave: 'resumen', titulo: 'Resumen' },
     { clave: 'fotos', titulo: 'Fotos' },

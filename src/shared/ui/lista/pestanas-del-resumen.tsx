@@ -1,6 +1,8 @@
 'use client'
 
-import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { PistaDeDesborde } from '../pista-de-desborde'
+import { useDesborde } from '../use-desborde'
 
 type Pestana<C extends string> = { clave: C; titulo: string }
 
@@ -34,7 +36,8 @@ function destinoDe<C extends string>(
 }
 
 // Las pestañas de un resumen (`?pestana=`), sin números: contar crece con el total. Una lista de pestañas propia: la de Base UI sumaba
-// su peso a la carga del listado. 44 px de alto en el celular.
+// su peso a la carga del listado. 44 px de alto en el celular. Con el texto al 200 % no caben: la lista se desplaza de costado, dice que
+// sigue (`<PistaDeDesborde>`) y deja a la vista la elegida.
 export function PestanasDelResumen<C extends string>({
   etiqueta,
   pestanas,
@@ -44,6 +47,12 @@ export function PestanasDelResumen<C extends string>({
 }: Props<C>) {
   const id = useId()
   const lista = useRef<HTMLDivElement>(null)
+  const desborde = useDesborde(lista)
+  useEffect(() => {
+    lista.current
+      ?.querySelector('[aria-selected=true]')
+      ?.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+  }, [activa])
   const alPulsar = (evento: KeyboardEvent) => {
     const destino = destinoDe(pestanas, activa, evento.key)
     if (destino === null) {
@@ -54,37 +63,40 @@ export function PestanasDelResumen<C extends string>({
     lista.current?.querySelector<HTMLElement>(`[data-pestana="${destino}"]`)?.focus()
   }
   return (
-    <div className="grid gap-4">
-      <div
-        ref={lista}
-        role="tablist"
-        aria-label={etiqueta}
-        onKeyDown={alPulsar}
-        className="bg-muted text-muted-foreground inline-flex w-full items-center rounded-lg p-[3px] md:h-8 md:w-fit"
-      >
-        {pestanas.map((p) => {
-          const elegida = p.clave === activa
-          return (
-            <button
-              key={p.clave}
-              type="button"
-              role="tab"
-              id={`${id}-${p.clave}`}
-              data-pestana={p.clave}
-              aria-selected={elegida}
-              aria-controls={`${id}-panel`}
-              tabIndex={elegida ? 0 : -1}
-              onClick={() => {
-                alElegir(p.clave)
-              }}
-              className={`inline-flex min-h-11 flex-1 items-center justify-center rounded-md px-3 text-(length:--text-sm) font-medium outline-none focus-visible:shadow-(--shadow-focus) md:h-full md:min-h-0 md:flex-none ${
-                elegida ? 'bg-background text-foreground shadow-sm' : 'hover:text-foreground'
-              }`}
-            >
-              {p.titulo}
-            </button>
-          )
-        })}
+    <div className="grid min-w-0 gap-4">
+      <div className="relative min-w-0 md:w-fit">
+        <div
+          ref={lista}
+          role="tablist"
+          aria-label={etiqueta}
+          onKeyDown={alPulsar}
+          className="bg-muted text-muted-foreground flex w-full items-center overflow-x-auto rounded-lg p-[3px] md:h-8"
+        >
+          {pestanas.map((p) => {
+            const elegida = p.clave === activa
+            return (
+              <button
+                key={p.clave}
+                type="button"
+                role="tab"
+                id={`${id}-${p.clave}`}
+                data-pestana={p.clave}
+                aria-selected={elegida}
+                aria-controls={`${id}-panel`}
+                tabIndex={elegida ? 0 : -1}
+                onClick={() => {
+                  alElegir(p.clave)
+                }}
+                className={`inline-flex min-h-11 flex-1 shrink-0 items-center justify-center rounded-md px-3 text-(length:--text-sm) font-medium whitespace-nowrap outline-none focus-visible:shadow-(--shadow-focus) md:h-full md:min-h-0 md:flex-none ${
+                  elegida ? 'bg-background text-foreground shadow-sm' : 'hover:text-foreground'
+                }`}
+              >
+                {p.titulo}
+              </button>
+            )
+          })}
+        </div>
+        <PistaDeDesborde {...desborde} />
       </div>
       <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${activa}`}>
         {children}

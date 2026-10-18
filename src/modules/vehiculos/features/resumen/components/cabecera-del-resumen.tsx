@@ -48,8 +48,9 @@ export function CabeceraDelResumen(props: Props) {
     tieneValor(vehiculo.atributos[campo.clave]),
   )
   return (
-    <div className="grid gap-3">
-      <div className="flex flex-wrap items-start gap-4">
+    <div className="@container grid min-w-0 gap-3">
+      {/* Con el texto al 200 % la cabecera mide menos de 20 rem: la miniatura (rem) pasa arriba de los datos en vez de empujarlos fuera. */}
+      <div className="flex items-start gap-4 @max-[20rem]:flex-col">
         <Miniatura ruta={vehiculo.portadaRuta} className="w-28" />
         <div className="grid min-w-0 flex-1 gap-2">
           <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
@@ -93,6 +94,7 @@ export function CabeceraDelResumen(props: Props) {
           publicar={publicar.estado === 'habilitado' ? publicar : null}
           papelera={permisoDePapelera(eliminable, motivoParaNoEnviar(vehiculo, fase))}
           alEnviado={alEnviado}
+          conBorde
         />
       </div>
     </div>

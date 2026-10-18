@@ -1,6 +1,7 @@
 import { expect, test } from './soporte/prueba'
 import { aLaVista, editarDesdeLaLista, entrar } from './soporte/inventario'
 import { crearLead, marcarInteres } from './soporte/leads'
+import { nadaSeSaleDelPanel } from './soporte/panel'
 import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import {
   OTRO,
@@ -170,6 +171,7 @@ test('con el texto al 200 % el resumen no ensancha la página', async ({ page },
   const resumen = await abrirConUnClic(page, TITULO)
   await expect(resumen.getByRole('link', { name: 'Abrir ficha' })).toBeVisible()
   await sinScrollHorizontal(page)
+  await nadaSeSaleDelPanel(resumen)
   await capturar(page, info, 'resumen-200')
   await page.emulateMedia({ colorScheme: 'dark' })
   await capturar(page, info, 'resumen-200-oscuro')

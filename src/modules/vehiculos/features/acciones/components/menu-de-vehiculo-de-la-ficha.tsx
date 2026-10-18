@@ -26,6 +26,7 @@ export function MenuDeVehiculoDeLaFicha({ vehiculo, publicar, papelera }: Props)
       editar={false}
       publicar={publicar}
       papelera={papelera}
+      conBorde
       alPublicar={vitrina.abrir}
       alEnviado={() => {
         router.push(`${RUTAS.vehiculos}?origen=${vehiculo.origenId}` as Route)

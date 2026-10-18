@@ -45,6 +45,7 @@ export function MenuDelResumen({ lead, marcar, puedeEditar, alMarcar, alEnviado 
       acciones={acciones}
       papelera={{ alEnviado }}
       alMarcar={alMarcar}
+      conBorde
     />
   )
 }
