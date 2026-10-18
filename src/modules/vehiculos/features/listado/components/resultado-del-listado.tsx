@@ -3,15 +3,15 @@
 import { useSearchParams } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { frasePorVacio } from '@/modules/origenes/client'
-import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import { ubicacionDeLaPagina, type Pagina } from '@/shared/lib/paginacion'
-import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
 import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
+import { UnaSolaVista } from '@/shared/ui/lista'
 import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
 import { BarraDeSeleccion } from '../../papelera/components/barra-de-seleccion'
 import { usePapeleraDelListado } from '../../papelera/hooks/use-papelera-del-listado'
+import { useAbrirVehiculo } from '../hooks/use-abrir-vehiculo'
 import { TablaDeVehiculos } from './tabla-de-vehiculos'
 import { TarjetasDeVehiculos } from './tarjetas-de-vehiculos'
 import type { DatosDelOrigen, FilaDeVehiculo } from './tipos'
@@ -29,8 +29,8 @@ type Props = DatosDelOrigen & {
 const mayuscula = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1)
 
 // La lista de un origen o el estado que corresponda: vacío de primera vez (con la frase del
-// origen), vacío por filtro (con «Limpiar») o una página que se quedó sin filas. Una sola vista: la tabla desde `md` y las
-// tarjetas por debajo, elegida en el servidor con el ancho de la petición (como el listado de leads).
+// origen), vacío por filtro (con «Limpiar») o una página que se quedó sin filas. Una sola vista (`<UnaSolaVista>`, como el listado de
+// leads): la tabla desde `md` y las tarjetas por debajo.
 export function ResultadoDelListado(props: Props) {
   const { pagina, accionDeVacio, editables, eliminables, ...datos } = props
   const filtros = useFiltrosDelListado()
@@ -38,7 +38,7 @@ export function ResultadoDelListado(props: Props) {
   const { origen } = datos
   const puedeEditar = new Set(editables)
   const papelera = usePapeleraDelListado(pagina.filas, eliminables)
-  const conTabla = useAlMenos(CORTE_DE_LA_TABLA)
+  const abrir = useAbrirVehiculo()
 
   if (pagina.filas.length === 0) {
     if (filtros.hayFiltros) {
@@ -63,22 +63,27 @@ export function ResultadoDelListado(props: Props) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <UbicacionDeLaPagina ubicacion={ubicacionDeLaPagina(pagina)} />
-      {conTabla ? (
-        <TablaDeVehiculos
-          {...datos}
-          vehiculos={pagina.filas}
-          encabezado={mayuscula(origen.sustantivo)}
-          editables={puedeEditar}
-          seleccion={papelera.seleccion}
-        />
-      ) : (
-        <TarjetasDeVehiculos
-          {...datos}
-          vehiculos={pagina.filas}
-          editables={puedeEditar}
-          seleccion={papelera.seleccion}
-        />
-      )}
+      <UnaSolaVista
+        tabla={() => (
+          <TablaDeVehiculos
+            {...datos}
+            vehiculos={pagina.filas}
+            encabezado={mayuscula(origen.sustantivo)}
+            editables={puedeEditar}
+            seleccion={papelera.seleccion}
+            alAbrir={abrir}
+          />
+        )}
+        tarjetas={() => (
+          <TarjetasDeVehiculos
+            {...datos}
+            vehiculos={pagina.filas}
+            editables={puedeEditar}
+            seleccion={papelera.seleccion}
+            alAbrir={abrir}
+          />
+        )}
+      />
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
       {papelera.cantidad > 0 ? (
         <BarraDeSeleccion

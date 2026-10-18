@@ -1,10 +1,14 @@
 'use client'
 
-import type { Route } from 'next'
-import Link from 'next/link'
-import { RUTAS } from '@/shared/lib/rutas'
+import {
+  AbrirResumen,
+  CabeceraPegada,
+  CeldaPegada,
+  FilaDeLista,
+  TablaDeLista,
+} from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
 import { CasillaDeSeleccion } from '../../papelera/components/casilla-de-seleccion'
@@ -24,20 +28,24 @@ type Props = DatosDelOrigen & {
   editables: ReadonlySet<string>
   // Las filas que se pueden elegir (para enviarlas juntas a la papelera) y las elegidas.
   seleccion: SeleccionDelListado
+  alAbrir: (id: string) => void
 }
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
+// El hueco de la casilla en una fila que no se puede elegir: los nombres quedan alineados.
+const HUECO_DE_CASILLA = <span aria-hidden className="size-[44px] shrink-0 md:size-7" />
+
 type PropsDeFila = Pick<
   Props,
-  'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'editables' | 'seleccion'
+  'origen' | 'fases' | 'vitrina' | 'limpiezaHoy' | 'editables' | 'seleccion' | 'alAbrir'
 > & {
   vehiculo: FilaDeVehiculo
   columnas: readonly CampoDeVehiculo[]
 }
 
-// La fila de un vehículo. Las columnas de los extremos (la casilla y «Editar») sólo existen si
-// alguna fila de la página las usa.
+// La fila de un vehículo. La casilla va delante del nombre y «Editar» pegado a la derecha; esa columna sólo existe si alguna fila de
+// la página la usa.
 function FilaDeTabla({
   vehiculo,
   columnas,
@@ -47,40 +55,45 @@ function FilaDeTabla({
   limpiezaHoy,
   editables,
   seleccion,
+  alAbrir,
 }: PropsDeFila) {
   const fase = faseDe(fases, vehiculo.faseId)
   return (
-    <TableRow className="h-(--fila)">
-      {seleccion.seleccionables.size > 0 ? (
-        <TableCell className="w-px py-0 pr-0 pl-2">
-          {seleccion.seleccionables.has(vehiculo.id) ? (
-            <CasillaDeSeleccion
-              etiqueta={`Seleccionar ${vehiculo.titulo}`}
-              elegida={seleccion.elegidas.has(vehiculo.id)}
-              alCambiar={() => {
-                seleccion.alternar(vehiculo.id)
-              }}
-            />
-          ) : null}
-        </TableCell>
-      ) : null}
-      <TableCell className="py-1 pl-3">
+    <FilaDeLista
+      alAbrir={() => {
+        alAbrir(vehiculo.id)
+      }}
+    >
+      <CeldaPegada lado="nombre">
         <div className="flex items-center gap-3">
+          {seleccion.seleccionables.size > 0 ? (
+            seleccion.seleccionables.has(vehiculo.id) ? (
+              <CasillaDeSeleccion
+                etiqueta={`Seleccionar ${vehiculo.titulo}`}
+                elegida={seleccion.elegidas.has(vehiculo.id)}
+                alCambiar={() => {
+                  seleccion.alternar(vehiculo.id)
+                }}
+              />
+            ) : (
+              HUECO_DE_CASILLA
+            )
+          ) : null}
           <Miniatura ruta={vehiculo.portadaRuta} />
           <div className="grid min-w-0">
-            <Link
-              href={`${RUTAS.vehiculos}/${vehiculo.id}` as Route}
-              className="max-w-72 truncate font-medium text-(--color-ink) underline-offset-2 outline-none hover:underline focus-visible:shadow-(--shadow-focus)"
+            <AbrirResumen
+              nombre={vehiculo.titulo}
+              className="max-w-72 truncate font-medium text-(--color-ink)"
             >
               {vehiculo.titulo}
-            </Link>
+            </AbrirResumen>
             <span className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
               #{vehiculo.numero}
               {vehiculo.vin ? ` · ${vehiculo.vin}` : ''}
             </span>
           </div>
         </div>
-      </TableCell>
+      </CeldaPegada>
       <TableCell>
         <div className="flex flex-wrap items-center gap-1.5">
           <BadgeDeFase fase={fase} />
@@ -98,53 +111,54 @@ function FilaDeTabla({
         </TableCell>
       ))}
       {editables.size > 0 ? (
-        <TableCell className="w-px py-0 pr-2 text-right">
+        <CeldaPegada lado="acciones" className="text-right">
           {editables.has(vehiculo.id) ? <BotonEditarVehiculo vehiculo={vehiculo} compacto /> : null}
-        </TableCell>
+        </CeldaPegada>
       ) : null}
-    </TableRow>
+    </FilaDeLista>
   )
 }
 
-// El inventario de un origen en escritorio: lo común adelante y, después, una columna por cada
-// campo «en tarjeta» del layout. Las filas tienen la altura de la densidad elegida.
+// El inventario de un origen en escritorio, con el patrón de lista (`@/shared/ui/lista`): lo común adelante y, después, una columna
+// por cada campo «en tarjeta» del layout. Un clic en cualquier parte de la fila abre el vehículo, salvo el de la casilla y el de
+// «Editar». La tabla es tan ancha como lo pidan sus columnas y se desplaza dentro de su tarjeta, con el nombre a la vista.
 export function TablaDeVehiculos({ vehiculos, campos, encabezado, ...resto }: Props) {
   const { editables, seleccion } = resto
   const columnas = camposDeTarjeta(campos)
   return (
-    <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {seleccion.seleccionables.size > 0 ? (
-              <TableHead className="w-px py-0 pr-0 pl-2">
+    <TablaDeLista>
+      <TableHeader>
+        <TableRow>
+          <CabeceraPegada lado="nombre">
+            <div className="flex items-center gap-3">
+              {seleccion.seleccionables.size > 0 ? (
                 <CasillaDeSeleccion
                   etiqueta="Seleccionar todos"
                   elegida={seleccion.elegidas.size === seleccion.seleccionables.size}
                   alCambiar={seleccion.alternarTodas}
                 />
-              </TableHead>
-            ) : null}
-            <TableHead className="pl-3">{encabezado}</TableHead>
-            <TableHead>Fase</TableHead>
-            <TableHead className="text-right">Año</TableHead>
-            <TableHead className="text-right">Precio</TableHead>
-            {columnas.map((campo) => (
-              <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
-            ))}
-            {editables.size > 0 ? (
-              <TableHead>
-                <span className="sr-only">Acciones</span>
-              </TableHead>
-            ) : null}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {vehiculos.map((vehiculo) => (
-            <FilaDeTabla key={vehiculo.id} vehiculo={vehiculo} columnas={columnas} {...resto} />
+              ) : null}
+              {encabezado}
+            </div>
+          </CabeceraPegada>
+          <TableHead>Fase</TableHead>
+          <TableHead className="text-right">Año</TableHead>
+          <TableHead className="text-right">Precio</TableHead>
+          {columnas.map((campo) => (
+            <TableHead key={campo.clave}>{campo.etiqueta}</TableHead>
           ))}
-        </TableBody>
-      </Table>
-    </div>
+          {editables.size > 0 ? (
+            <CabeceraPegada lado="acciones">
+              <span className="sr-only">Acciones</span>
+            </CabeceraPegada>
+          ) : null}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {vehiculos.map((vehiculo) => (
+          <FilaDeTabla key={vehiculo.id} vehiculo={vehiculo} columnas={columnas} {...resto} />
+        ))}
+      </TableBody>
+    </TablaDeLista>
   )
 }

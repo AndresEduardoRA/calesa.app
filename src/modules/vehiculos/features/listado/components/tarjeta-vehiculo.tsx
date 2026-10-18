@@ -1,8 +1,7 @@
 'use client'
 
-import type { Route } from 'next'
-import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { AbrirResumen, TarjetaDeLista } from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { camposDeTarjeta, type CampoDeVehiculo } from '../../../entities/campo'
 import type { Vehiculo } from '../../../entities/vehiculo'
@@ -15,9 +14,11 @@ type Props = {
   // El layout del origen del vehículo: de ahí salen los datos «en tarjeta».
   campos: readonly CampoDeVehiculo[]
   fase: { nombre: string; color: string } | null
-  // A dónde lleva el título (la ficha); sin esto es sólo texto.
-  href?: string
-  // Lo que se puede hacer con él (editar), arriba a la derecha.
+  // Abre el vehículo (un clic en cualquier parte de la tarjeta, o Enter sobre su título).
+  alAbrir: () => void
+  // Su resumen está abierto: la tarjeta se marca.
+  abierta?: boolean
+  // Lo que se puede hacer con él (editar), en la esquina.
   acciones?: ReactNode
   // Lo que va al lado de la fase (si está en la vitrina).
   insignias?: ReactNode
@@ -25,32 +26,22 @@ type Props = {
   seleccion?: ReactNode
 }
 
-// Un vehículo en una tarjeta: lo que se ve en el celular en vez de la fila de la tabla, y lo que
-// otros módulos usan para mostrar un vehículo.
+// Un vehículo en una tarjeta de la lista (`@/shared/ui/lista`): lo que se ve en el celular en vez de la fila de la tabla.
 export function TarjetaVehiculo(props: Props) {
-  const { vehiculo, campos, fase, href, acciones, insignias, seleccion } = props
+  const { vehiculo, campos, fase, alAbrir, abierta, acciones, insignias, seleccion } = props
   const datos = camposDeTarjeta(campos).filter((campo) => {
     const valor = vehiculo.atributos[campo.clave]
     return valor !== undefined && valor !== null && valor !== ''
   })
   return (
-    <article className="@container grid grid-cols-[minmax(0,1fr)] gap-3 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3">
-      {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: la miniatura (rem), el título y «Editar» no caben en una fila y se apilan. */}
+    <TarjetaDeLista alAbrir={alAbrir} abierta={abierta ?? false} acciones={acciones}>
+      {/* Con el texto al 200 % la tarjeta mide menos de 16 rem: la miniatura (rem) y el título no caben en una fila y se apilan. */}
       <div className="flex items-start gap-3 @max-[16rem]:flex-col">
         {seleccion}
         <Miniatura ruta={vehiculo.portadaRuta} className="w-20" />
         <div className="grid min-w-0 flex-1 gap-1 @max-[16rem]:flex-none">
           <h3 className="text-(length:--text-base) font-medium [overflow-wrap:anywhere] text-(--color-ink)">
-            {href ? (
-              <Link
-                href={href as Route}
-                className="underline-offset-2 outline-none hover:underline focus-visible:shadow-(--shadow-focus)"
-              >
-                {vehiculo.titulo}
-              </Link>
-            ) : (
-              vehiculo.titulo
-            )}
+            <AbrirResumen nombre={vehiculo.titulo}>{vehiculo.titulo}</AbrirResumen>
           </h3>
           <p className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums">
             #{vehiculo.numero}
@@ -65,7 +56,6 @@ export function TarjetaVehiculo(props: Props) {
             )}
           </div>
         </div>
-        {acciones}
       </div>
       {datos.length > 0 ? (
         <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-(--color-line) pt-3">
@@ -81,6 +71,6 @@ export function TarjetaVehiculo(props: Props) {
           ))}
         </dl>
       ) : null}
-    </article>
+    </TarjetaDeLista>
   )
 }

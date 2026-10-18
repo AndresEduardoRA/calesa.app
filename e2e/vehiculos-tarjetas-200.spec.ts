@@ -40,7 +40,7 @@ test('las tarjetas del inventario no ensanchan la página con el texto al 200 %'
     document.documentElement.style.fontSize = '200%'
   })
   await sinScrollHorizontal(page)
-  await page.getByRole('link', { name: `${MARCA} V9` }).scrollIntoViewIfNeeded()
+  await page.getByRole('button', { name: `Abrir ${MARCA} V9` }).scrollIntoViewIfNeeded()
   await capturar(page, info, 'tarjetas-de-vehiculos-200')
   await page.emulateMedia({ colorScheme: 'dark' })
   await capturar(page, info, 'tarjetas-de-vehiculos-200-oscuro')
