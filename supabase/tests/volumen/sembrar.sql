@@ -63,6 +63,14 @@ values ('ciudad_vol', 'Ciudad', 'opcion',
         true, true, 90, 'Datos')
 on conflict (clave) do nothing;
 
+-- --- Tipos de lead (9j) ---------------------------------------------------------------------------------
+-- Cuatro tipos que reparten los leads como en una empresa: uno común («Prospecto», 85 %), «Cliente» (14 %), uno raro (1 %) y
+-- uno que ningún lead usa. Se miden las tres formas de filtrar: la mayoría, un grupo chico y una punta.
+insert into public.tipos_lead (clave, nombre, clase, orden)
+values ('volumen_mayorista', 'Mayorista volumen', 'cliente', 30),
+       ('volumen_sin_leads', 'Sin leads volumen', 'prospecto', 40)
+on conflict (clave) do nothing;
+
 set local session_replication_role = replica;
 
 -- --- Leads ------------------------------------------------------------------------------------------
@@ -77,12 +85,14 @@ select g, gen_random_uuid(),
                         '00000000-0000-0000-0000-0000000000b3', '00000000-0000-0000-0000-0000000000b4'])[1 + g % 4]::uuid end
   from generate_series(1, :n) g;
 -- Los leads de Ana y de la dueña entreverados en el tiempo: el que se mezcla de verdad no es una ráfaga.
-insert into public.leads (id, nombre, telefono_principal, creado_por, atributos, creado_en, actualizado_en, origen_lead_id)
+insert into public.leads (id, nombre, telefono_principal, creado_por, atributos, creado_en, actualizado_en, origen_lead_id, tipo_lead_id)
 select v.id, 'Volumen ' || v.n || ' ' || (array['Pérez', 'Gómez', 'Rojas', 'Suárez', 'Vargas', 'Flores', 'Mamani', 'Quispe'])[1 + v.n % 8],
        (80000000 + v.n)::text, v.dueno,
        jsonb_build_object('ciudad_vol', (array['scz', 'lp', 'cbba', 'suc'])[1 + v.n % 4]),
        now() - make_interval(mins => (((v.n::bigint * 7919) % :n) * 7)::int), now() - make_interval(mins => (((v.n::bigint * 7919) % :n) * 7)::int),
-       (select id from public.origenes_lead order by orden, id offset v.n % 5 limit 1)
+       (select id from public.origenes_lead order by orden, id offset v.n % 5 limit 1),
+       (select t.id from public.tipos_lead t
+         where t.clave = case when v.n % 100 = 0 then 'volumen_mayorista' when v.n % 100 <= 14 then 'cliente' else 'prospecto' end)
   from volumen_leads v;
 insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde)
 select id, dueno, 'dueno', now() from volumen_leads;
@@ -153,9 +163,10 @@ insert into public.lotes_papelera (id, tipo, creado_por, creado_en, resumen, act
 select id, 'leads', '00000000-0000-0000-0000-0000000000d1', now() - make_interval(hours => k * 6),
        jsonb_build_object('cantidad', 200, 'restaurados', 0, 'purgados', 0), now() - make_interval(hours => k * 6)
   from volumen_lotes;
-insert into public.leads (nombre, telefono_principal, creado_por, creado_en, eliminado_en, eliminado_por, lote_papelera_id)
+insert into public.leads (nombre, telefono_principal, creado_por, creado_en, eliminado_en, eliminado_por, lote_papelera_id, tipo_lead_id)
 select 'Volumen borrado ' || (lo.k * 1000 + j), (90000000 + lo.k * 1000 + j)::text, '00000000-0000-0000-0000-0000000000d1',
-       now() - make_interval(days => 60), now() - make_interval(hours => lo.k * 6), '00000000-0000-0000-0000-0000000000d1', lo.id
+       now() - make_interval(days => 60), now() - make_interval(hours => lo.k * 6), '00000000-0000-0000-0000-0000000000d1', lo.id,
+       (select id from public.tipos_lead where clave = 'prospecto')
   from volumen_lotes lo cross join generate_series(1, 200) j;
 
 -- --- Vehículos: 10.000 vivos y 3.000 en 60 lotes ---------------------------------------------------------

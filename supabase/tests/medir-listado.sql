@@ -80,7 +80,7 @@ $$;
 
 -- Las columnas que pide el listado (`COLUMNAS_FIJAS` y un atributo de la tabla).
 create function pg_temp.antes() returns text language sql as $$
-  select 'id, numero, nombre, telefono_principal, en_cartera, tipo, origen_lead_id, creado_en, atributos -> ''ciudad'' as a_ciudad';
+  select 'id, numero, nombre, telefono_principal, en_cartera, tipo_lead_id, origen_lead_id, creado_en, atributos -> ''ciudad'' as a_ciudad';
 $$;
 create function pg_temp.hoy() returns text language sql as $$
   select pg_temp.antes() || ', es_favorito, esta_tachado, etiquetas';

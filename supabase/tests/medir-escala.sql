@@ -97,6 +97,11 @@ select set_config('medir.et_ana', (select id::text from public.etiquetas where n
 -- El origen del lead: el primero (el volumen reparte los leads entre los cinco primeros) y el último, que no tiene ninguno.
 select set_config('medir.origen_lead', (select id::text from public.origenes_lead order by orden, id limit 1), true);
 select set_config('medir.origen_lead_dos', (select id::text from public.origenes_lead order by orden, id offset 1 limit 1), true);
+-- El tipo de lead (9j): el común (85 %), «Cliente» (14 %), el raro (1 %) y el que ningún lead usa.
+select set_config('medir.tipo_comun', (select id::text from public.tipos_lead where clave = 'prospecto'), true);
+select set_config('medir.tipo_cliente', (select id::text from public.tipos_lead where clave = 'cliente'), true);
+select set_config('medir.tipo_raro', (select id::text from public.tipos_lead where clave = 'volumen_mayorista'), true);
+select set_config('medir.tipo_sin', (select id::text from public.tipos_lead where clave = 'volumen_sin_leads'), true);
 select set_config('medir.origen_lead_sin', (select id::text from public.origenes_lead order by orden desc, id limit 1), true);
 -- Los números de la numeración (9f-2): un global de la dueña, y un número propio de Ana con su id (Ana lo busca como `#n`).
 select set_config('medir.num_global', (select numero::text from public.leads where nombre like 'Volumen 20 %'), true);
@@ -144,7 +149,7 @@ end $$;
 
 -- La página del listado de leads, como la arma PostgREST sobre `leads_vista`.
 create function pg_temp.pagina(p_donde text, p_n int default 50) returns text language sql as $$
-  select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, numero_propio, numero_propio_creador, numero_visible, nombre, telefono_principal, en_cartera, dueno_id, tipo, origen_lead_id, creado_en,
+  select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, numero_propio, numero_propio_creador, numero_visible, nombre, telefono_principal, en_cartera, dueno_id, tipo_lead_id, origen_lead_id, creado_en,
     atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista where %s order by creado_en desc, id desc limit %s) t', p_donde, p_n + 1);
 $$;
 
@@ -190,6 +195,16 @@ begin
   perform pg_temp.escala('listado: un origen del lead', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead')), v_max), 100);
   perform pg_temp.escala('listado: dos orígenes del lead', q, pg_temp.pagina(format('origen_lead_id = any (array[%L, %L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead'), current_setting('medir.origen_lead_dos')), v_max), 100);
   perform pg_temp.escala('listado: un origen del lead sin leads', q, pg_temp.pagina(format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead_sin')), v_max), 100, 'leads_origen_lead_id_idx', '{leads}', 0);
+  -- El filtro por tipo de lead (`?tipo=`, 9j): la misma forma que el de origen, con la columna `tipo_lead_id` y su índice. Uno
+  -- común o intermedio recorre `leads_listado_idx` y descarta lo que no es de quien mira (a Ana, con el 14 %, ~19.000 filas con
+  -- 50.000 leads: ~27 ms), así que se mide el tiempo y no se afirma una forma; uno raro y uno vacío van por la FK. Lo que se
+  -- descarta es lo que otras personas tienen de ese tipo (la visibilidad), no la profundidad: a Ana con el raro, 7.551 con
+  -- 212.000 leads y 21 ms; un índice parcial por tipo no lo evita, así que no se agregó.
+  perform pg_temp.escala('listado: el tipo más común (85 %)', q, pg_temp.pagina(format('tipo_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.tipo_comun')), v_max), 100);
+  perform pg_temp.escala('listado: un tipo del 14 %', q, pg_temp.pagina(format('tipo_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.tipo_cliente')), v_max), 100);
+  perform pg_temp.escala('listado: un tipo raro (1 %)', q, pg_temp.pagina(format('tipo_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.tipo_raro')), v_max), 100, 'leads_tipo_lead_id_idx', '{leads}', 10000);
+  perform pg_temp.escala('listado: dos tipos', q, pg_temp.pagina(format('tipo_lead_id = any (array[%L, %L]::uuid[]) and esta_tachado = false', current_setting('medir.tipo_cliente'), current_setting('medir.tipo_raro')), v_max), 100);
+  perform pg_temp.escala('listado: un tipo sin leads', q, pg_temp.pagina(format('tipo_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.tipo_sin')), v_max), 100, 'leads_tipo_lead_id_idx', '{leads}', 0);
 end $$;
 
 do $medir$ declare q text; begin
@@ -283,6 +298,18 @@ do $medir$ declare q text; begin
         'select exists (select 1 from public.leads l where l.origen_lead_id >= o.id and l.origen_lead_id <= o.id) from public.origenes_lead o where o.id = %L',
         current_setting('medir.origen_lead_uno')), 5, 'leads_origen_lead_id_idx', '{leads}', 100, 'postgres');
     end if;
+    -- Los tipos de lead (9j), con la misma sonda por rango que el origen: «¿algún lead usa este tipo?» camina
+    -- `leads_tipo_lead_id_idx`. El catálogo que leen el listado, la ficha y la exportación es una sola llamada.
+    if q = 'duena' then
+      perform pg_temp.escala('tipos_lead_con_uso (hasta 100 tipos)', q, 'select public.tipos_lead_con_uso()', 100);
+      perform pg_temp.escala('tipo de lead: con_leads de todos (la lista)', q,
+        'select t.id, exists (select 1 from public.leads l where l.tipo_lead_id >= t.id and l.tipo_lead_id <= t.id) from public.tipos_lead t',
+        20, 'leads_tipo_lead_id_idx', '{leads}', 0, 'postgres');
+      perform pg_temp.escala('tipo de lead: eliminar, uno sin leads', q, format(
+        'select exists (select 1 from public.leads l where l.tipo_lead_id >= t.id and l.tipo_lead_id <= t.id) from public.tipos_lead t where t.id = %L',
+        current_setting('medir.tipo_sin')), 5, 'leads_tipo_lead_id_idx', '{leads}', 100, 'postgres');
+    end if;
+    perform pg_temp.escala('leads_catalogos (orígenes y tipos)', q, 'select public.leads_catalogos()', 30);
     if q = 'duena' then perform pg_temp.escala('origenes_resumen', q, 'select public.origenes_resumen()', 100); end if;
     if q = 'duena' then perform pg_temp.escala('categorias_con_uso', q, format('select public.categorias_con_uso(%L)', current_setting('medir.origen')), 50); end if;
     perform pg_temp.escala('vehiculos_para_lead', q, format('select public.vehiculos_para_lead(%L, %L)',

@@ -55,9 +55,10 @@ insert into public.lotes_papelera (id, tipo, creado_por, creado_en, resumen, act
 select id, 'leads', '00000000-0000-0000-0000-0000000000e1', now() - interval '400 days' - make_interval(mins => k),
        jsonb_build_object('cantidad', 200, 'restaurados', 0, 'purgados', 0), now() - interval '400 days'
   from jobs_lotes;
-insert into public.leads (nombre, telefono_principal, creado_por, creado_en, eliminado_en, eliminado_por, lote_papelera_id)
+insert into public.leads (nombre, telefono_principal, creado_por, creado_en, eliminado_en, eliminado_por, lote_papelera_id, tipo_lead_id)
 select 'Job borrado ' || (lo.k * 1000 + j), (70000000 + lo.k * 1000 + j)::text, '00000000-0000-0000-0000-0000000000e1',
-       now() - interval '401 days', now() - interval '400 days', '00000000-0000-0000-0000-0000000000e1', lo.id
+       now() - interval '401 days', now() - interval '400 days', '00000000-0000-0000-0000-0000000000e1', lo.id,
+       (select id from public.tipos_lead where clave = 'prospecto')
   from jobs_lotes lo cross join generate_series(1, 200) j;
 
 -- limpieza-automatica: 100.000 vehículos importados, de una subasta terminada hace meses

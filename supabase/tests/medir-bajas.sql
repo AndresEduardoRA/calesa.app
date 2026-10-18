@@ -29,9 +29,10 @@ insert into auth.users (id, email, raw_app_meta_data) values ('00000000-0000-000
 insert into public.usuarios_roles (usuario_id, rol_id, es_principal)
 select '00000000-0000-0000-0000-0000000000e9', id, true from public.roles where clave = 'asesor';
 set local session_replication_role = replica;
-insert into public.leads (id, nombre, telefono_principal, creado_por, creado_en, actualizado_en, cartera)
+insert into public.leads (id, nombre, telefono_principal, creado_por, creado_en, actualizado_en, cartera, tipo_lead_id)
 select gen_random_uuid(), 'Medir baja ' || g, (690000000 + g)::text, '00000000-0000-0000-0000-0000000000e9',
-       now() - make_interval(secs => g), now() - make_interval(secs => g), array['00000000-0000-0000-0000-0000000000e9']::uuid[]
+       now() - make_interval(secs => g), now() - make_interval(secs => g), array['00000000-0000-0000-0000-0000000000e9']::uuid[],
+       (select id from public.tipos_lead where clave = 'prospecto')
   from generate_series(1, 200000) g;
 insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde)
 select id, '00000000-0000-0000-0000-0000000000e9', 'dueno', now() from public.leads where nombre like 'Medir baja %';
