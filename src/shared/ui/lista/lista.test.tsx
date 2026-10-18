@@ -7,6 +7,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProveedorDeAncho } from '../ancho-de-pantalla'
@@ -14,6 +15,7 @@ import {
   AbrirResumen,
   FilaDeLista,
   MasAcciones,
+  PestanasDelResumen,
   TarjetaDeLista,
   UnaSolaVista,
   type AccionDeMenu,
@@ -186,5 +188,55 @@ describe('MasAcciones', () => {
     expect(
       screen.getByRole('menuitemcheckbox', { name: 'Segunda' }).getAttribute('aria-checked'),
     ).toBe('true')
+  })
+})
+
+describe('PestanasDelResumen', () => {
+  const pestanas = [
+    { clave: 'resumen', titulo: 'Resumen' },
+    { clave: 'fotos', titulo: 'Fotos' },
+    { clave: 'interesados', titulo: 'Interesados' },
+  ] as const
+
+  function Pestanas({ inicial }: { inicial: (typeof pestanas)[number]['clave'] }) {
+    const [activa, setActiva] = useState(inicial)
+    return (
+      <PestanasDelResumen
+        etiqueta="Secciones del vehículo"
+        pestanas={pestanas}
+        activa={activa}
+        alElegir={setActiva}
+      >
+        <p>{`contenido de ${activa}`}</p>
+      </PestanasDelResumen>
+    )
+  }
+
+  it('sólo la elegida es parada de Tab, y las flechas, Inicio y Fin la mueven y la eligen', () => {
+    render(<Pestanas inicial="resumen" />)
+    const lista = screen.getByRole('tablist', { name: 'Secciones del vehículo' })
+    const tab = (nombre: string) => screen.getByRole('tab', { name: nombre })
+    expect(tab('Resumen').getAttribute('tabindex')).toBe('0')
+    expect(tab('Fotos').getAttribute('tabindex')).toBe('-1')
+    fireEvent.keyDown(lista, { key: 'ArrowRight' })
+    expect(tab('Fotos').getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByText('contenido de fotos')).toBeTruthy()
+    fireEvent.keyDown(lista, { key: 'End' })
+    expect(tab('Interesados').getAttribute('aria-selected')).toBe('true')
+    fireEvent.keyDown(lista, { key: 'ArrowRight' })
+    expect(tab('Resumen').getAttribute('aria-selected')).toBe('true')
+    fireEvent.keyDown(lista, { key: 'ArrowLeft' })
+    expect(tab('Interesados').getAttribute('aria-selected')).toBe('true')
+    fireEvent.keyDown(lista, { key: 'Home' })
+    expect(tab('Resumen').getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('un clic elige la pestaña y el panel dice cuál lo nombra', () => {
+    render(<Pestanas inicial="resumen" />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Fotos' }))
+    const panel = screen.getByRole('tabpanel')
+    expect(panel.getAttribute('aria-labelledby')).toBe(
+      screen.getByRole('tab', { name: 'Fotos' }).getAttribute('id'),
+    )
   })
 })

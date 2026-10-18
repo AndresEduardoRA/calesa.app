@@ -116,7 +116,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-listado.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-pagina-sin-filas.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
 - `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `estilos.ts`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `radios.tsx`, `selector-de-por-pagina.tsx`, `use-filtros.ts`, `use-por-pagina-del-listado.ts`
-- `ui/lista/`: `abrir-resumen.tsx`, `acciones.ts`, `fila-de-lista.tsx`, `index.ts`, `mas-acciones.tsx`, `tabla-de-lista.tsx`, `tarjeta-de-lista.tsx`, `una-sola-vista.tsx`
+- `ui/lista/`: `abrir-resumen.tsx`, `acciones.ts`, `fila-de-lista.tsx`, `index.ts`, `mas-acciones.tsx`, `pestanas-del-resumen.tsx`, `tabla-de-lista.tsx`, `tarjeta-de-lista.tsx`, `una-sola-vista.tsx`
 
 ## Rutas
 
