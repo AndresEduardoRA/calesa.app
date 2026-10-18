@@ -94,7 +94,7 @@ export function MatrizDeRoles({ roles, grupos, origenes, misPermisos, puedeGesti
         </Table>
       </div>
       <NuevoRol
-        abierto={panel === 'nuevo-rol'}
+        abierto={puedeGestionar && panel === 'nuevo-rol'}
         alCerrar={() => void setParametros({ panel: null })}
         alCrear={(rol) => void setParametros({ panel: null, rol })}
       />

@@ -1,20 +1,10 @@
 'use client'
 
-import { useAction } from 'next-safe-action/hooks'
-import { useId, useRef, useState } from 'react'
-import {
-  enfocarPrimerError,
-  errorDeAccion,
-  errorDeCampo,
-  valoresDe,
-} from '@/shared/lib/formularios'
-import { Button } from '@/shared/ui/button'
 import { Campo } from '@/shared/ui/campo'
-import { Modal } from '@/shared/ui/modal'
-import { avisarError, avisarExito } from '@/shared/ui/toasts'
-import { COLORES_DE_ROL } from '../../../entities/rol'
-import { crearRol } from '../actions/crear-rol'
-import { SelectorDeColor, type ColorDeRol } from './selector-de-color'
+import { ModalDeFormulario } from '@/shared/ui/modal-de-formulario'
+import { useApertura } from '@/shared/ui/use-apertura'
+import { useFormularioDeRol } from '../hooks/use-formulario-de-rol'
+import { SelectorDeColor } from './selector-de-color'
 
 type Props = {
   abierto: boolean
@@ -23,63 +13,40 @@ type Props = {
   alCrear: (rolId: string) => void
 }
 
-// Un rol nace con nombre y color, sin permisos: se le dan después en la matriz.
-export function NuevoRol({ abierto, alCerrar, alCrear }: Props) {
-  const formulario = useRef<HTMLFormElement>(null)
-  const idFormulario = useId()
-  const [color, setColor] = useState<ColorDeRol>(COLORES_DE_ROL[0].valor)
-  const { executeAsync, result, isPending } = useAction(crearRol)
+const ID_DEL_NOMBRE = 'nombre'
 
-  async function crear(nombre: string) {
-    const resultado = await executeAsync({ nombre, color })
-    if (resultado.data?.ok) {
-      avisarExito(`Rol «${nombre.trim()}» creado`)
-      alCrear(resultado.data.data.id)
-      return
-    }
-    const error = errorDeAccion(resultado)
-    if (error) {
-      avisarError(error)
-    }
-    enfocarPrimerError(formulario.current)
-  }
-
+function FormularioDeRol({ abierto, alCerrar, alCrear }: Props) {
+  const formulario = useFormularioDeRol({ abierto, alCrear })
   return (
-    <Modal
+    <ModalDeFormulario
+      id="nuevo-rol"
       abierto={abierto}
       alCerrar={alCerrar}
       titulo="Nuevo rol"
       descripcion="Nace sin permisos: se los das después, en la matriz."
-      pie={
-        <>
-          <Button variant="outline" onClick={alCerrar} disabled={isPending}>
-            Cancelar
-          </Button>
-          <Button type="submit" form={idFormulario} disabled={isPending}>
-            {isPending ? 'Creando…' : 'Crear rol'}
-          </Button>
-        </>
-      }
+      focoInicial={() => document.getElementById(ID_DEL_NOMBRE)}
+      formulario={formulario}
+      guardar={{ etiqueta: 'Crear rol', enCurso: 'Creando…' }}
     >
-      <form
-        id={idFormulario}
-        ref={formulario}
-        noValidate
-        className="grid gap-4"
-        onSubmit={(evento) => {
-          evento.preventDefault()
-          void crear(valoresDe(evento.currentTarget, ['nombre']).nombre)
+      <Campo
+        nombre={ID_DEL_NOMBRE}
+        etiqueta="Nombre del rol"
+        autoComplete="off"
+        maxLength={40}
+        value={formulario.nombre}
+        onChange={(evento) => {
+          formulario.escribir(evento.target.value)
         }}
-      >
-        <Campo
-          nombre="nombre"
-          etiqueta="Nombre del rol"
-          autoComplete="off"
-          maxLength={40}
-          error={errorDeCampo(result.validationErrors?.fieldErrors, 'nombre')}
-        />
-        <SelectorDeColor valor={color} alCambiar={setColor} />
-      </form>
-    </Modal>
+        error={formulario.errores[ID_DEL_NOMBRE]}
+      />
+      <SelectorDeColor valor={formulario.color} alCambiar={formulario.elegirColor} />
+    </ModalDeFormulario>
   )
+}
+
+// Un rol nace con nombre y color, sin permisos: se le dan después en la matriz. El contrato del modal (preguntar antes de
+// descartar, no cerrarse mientras guarda, sin conexión) es de `ModalDeFormulario`; cada apertura empieza de cero.
+export function NuevoRol(props: Props) {
+  const apertura = useApertura(props.abierto)
+  return <FormularioDeRol key={apertura} {...props} />
 }
