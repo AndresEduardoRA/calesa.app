@@ -10,6 +10,7 @@ import {
   rolesDe,
 } from './soporte/base'
 import { borrarOrigenes, crearOrigenDePrueba } from './soporte/origenes'
+import { esMovil } from './soporte/inventario'
 import { ingresar } from './soporte/pasos'
 import { capturar } from './soporte/recorrido'
 import { literal, sql } from './soporte/sql'
@@ -253,4 +254,60 @@ test('el guardián no deja al equipo sin quien lo administre, y lo dice en claro
   ).toBeVisible()
   await expect(suRol).toBeChecked()
   expect(await rolesDe(duena)).toEqual(['dueno'])
+})
+
+// 5a-13: bajo 768 px la matriz muestra un rol a la vista y «Rol a la vista» (un <select>, `?rol=`) elige cuál; desde 768 px están todas las
+// columnas y el selector no se dibuja. El rol B no tiene ningún permiso: lo que se ve de B es «No» y un interruptor sin marcar, nunca lo de A.
+test('«Rol a la vista»: en el celular cada rol muestra sus permisos, y en escritorio están todos', async ({
+  page,
+}, info) => {
+  const proyecto = info.project.name
+  const a = `${PREFIJO_ROL_E2E}Vista A ${proyecto}`
+  const b = `${PREFIJO_ROL_E2E}Vista B ${proyecto}`
+  sql(`
+    with rol_a as (
+      insert into public.roles (nombre, clave) values (${literal(a)}, ${literal(`e2e_vista_a_${proyecto}`)}) returning id
+    ), rol_b as (
+      insert into public.roles (nombre, clave) values (${literal(b)}, ${literal(`e2e_vista_b_${proyecto}`)}) returning id
+    )
+    insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+      select id, 'agenda.tareas.recibir', null, 'todos' from rol_a;
+  `)
+  await entrar(page, duena)
+  await page.goto('/configuracion/roles')
+  await expect(page.getByRole('heading', { name: 'Roles y permisos' })).toBeVisible()
+  const tareas = (rolNombre: string) =>
+    page.getByRole('switch', { name: `Recibir tareas para ${rolNombre}` })
+  const vehiculos = (rolNombre: string) =>
+    page.getByRole('button', { name: `Ver vehículos para ${rolNombre}: No. Cambiar` })
+  const selector = page.getByLabel('Rol a la vista')
+
+  if (!esMovil(page)) {
+    await expect(selector).toBeHidden()
+    await expect(tareas(a)).toBeChecked()
+    await expect(tareas(b)).not.toBeChecked()
+    return
+  }
+
+  await selector.selectOption({ label: a })
+  await expect(page).toHaveURL(/[?&]rol=/)
+  await expect(tareas(a)).toBeChecked()
+  await expect(tareas(b)).toHaveCount(0)
+  await expect(tareas('Dueño')).toHaveCount(0)
+  await tareas(a).scrollIntoViewIfNeeded()
+  await capturar(page, info, 'rol-a-la-vista-a')
+
+  await selector.selectOption({ label: b })
+  const valorDeB = await selector.inputValue()
+  await expect(tareas(b)).not.toBeChecked()
+  await expect(vehiculos(b)).toBeVisible()
+  await expect(tareas(a)).toHaveCount(0)
+  await tareas(b).scrollIntoViewIfNeeded()
+  await capturar(page, info, 'rol-a-la-vista-b')
+
+  // El rol a la vista vive en la URL: recargar no vuelve al primero.
+  await page.reload()
+  await expect(selector).toHaveValue(valorDeB)
+  await expect(tareas(b)).toBeVisible()
+  await expect(tareas(a)).toHaveCount(0)
 })
