@@ -11,13 +11,11 @@ export type RegistroDeDrawer =
 
 export const DRAWERS: Record<string, RegistroDeDrawer> = {
   // --- leads
-  'src/modules/leads/features/alta/components/alta-cargada.tsx': {
+  // El único `<Drawer>` de «Nuevo lead»: monta el marco (siempre cerrado hasta que se abre) y el formulario, que tiene su estado afuera
+  // para no perderlo al cerrar, dibuja adentro; la pregunta de descartar la hace él mismo (`useCierreConCambios`).
+  'src/modules/leads/features/alta/components/marco-del-alta.tsx': {
     formulario: 'src/modules/leads/features/alta/components/alta-cargada.tsx',
     mecanismo: 'propio',
-  },
-  'src/modules/leads/features/alta/components/espera-del-alta.tsx': {
-    sinFormulario:
-      '«Nuevo lead» mientras lee lo que necesita o si no pudo: todavía no hay formulario, y cuando llega ocupa su lugar `alta-cargada.tsx`',
   },
   'src/modules/leads/features/ficha/components/panel-de-edicion.tsx': {
     formulario: 'src/modules/leads/features/ficha/components/panel-de-edicion.tsx',

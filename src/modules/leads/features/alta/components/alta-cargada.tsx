@@ -8,7 +8,6 @@ import { RUTAS } from '@/shared/lib/rutas'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Button } from '@/shared/ui/button'
 import { ConfirmarDescarte } from '@/shared/ui/confirmar-descarte'
-import { Drawer } from '@/shared/ui/drawer'
 import { useRegional } from '@/shared/ui/regional'
 import { avisarExito } from '@/shared/ui/toasts'
 import { useCierreConCambios, type CierreConCambios } from '@/shared/ui/use-cierre-con-cambios'
@@ -22,6 +21,7 @@ import type { CampoDeLead } from '../../../entities/campo'
 import { CLAVE_DE_SECCION } from '../../../entities/ficha'
 import { useAltaDeLead, type AltaDeLead, type Guardado, type Paso } from '../hooks/use-alta-de-lead'
 import { usePanelDeAlta } from '../hooks/use-panel-de-alta'
+import { EnElMarco, useAjustesDelMarco } from './marco-del-alta'
 import { PanelDeAlta } from './panel-de-alta'
 
 type Props = {
@@ -183,10 +183,10 @@ function useSalidaDelAlta(alta: AltaDeLead, panel: ReturnType<typeof usePanelDeA
   })
 }
 
-// El drawer «Nuevo lead» con todo lo suyo (el estado del alta, los atajos de guardar, el foco, el
-// borrador y el panel). Se pide con `import()` la primera vez que se abre (`alta-de-lead.tsx`): el shell
-// sólo trae el botón y la tecla `N`, y esto no viaja en el JS de ninguna otra pantalla. El estado vive
-// acá y no en el drawer: una vez montado, cerrarlo no pierde lo escrito.
+// «Nuevo lead» con todo lo suyo (el estado del alta, los atajos de guardar, el foco, el borrador y el panel). Se pide con `import()` la
+// primera vez que se abre (`diferidos.tsx`): el shell sólo trae el botón y la tecla `N`, y esto no viaja en el JS de ninguna otra pantalla.
+// El estado vive acá y no en el drawer: una vez montado, cerrarlo no pierde lo escrito. El drawer es uno solo y no es de este componente
+// (`marco-del-alta.tsx`): acá se dibuja el cuerpo y el pie en sus dos ranuras, y se le dice la descripción del paso y qué cierra Esc.
 export function AltaCargada({ contexto, campos }: Props) {
   const idFormulario = useId()
   const router = useRouter()
@@ -238,29 +238,11 @@ export function AltaCargada({ contexto, campos }: Props) {
       panel.cerrar()
     }
   }
+  useAjustesDelMarco(paso === 'datos' ? 'Datos del lead' : 'Primer seguimiento (opcional)', cerrar)
 
   return (
     <>
-      <Drawer
-        abierto={panel.abierto}
-        alCerrar={cerrar}
-        titulo="Nuevo lead"
-        descripcion={paso === 'datos' ? 'Datos del lead' : 'Primer seguimiento (opcional)'}
-        ancho="amplio"
-        pie={
-          <PieDelAlta
-            idFormulario={idFormulario}
-            paso={paso}
-            enCurso={enCurso}
-            conPasoDeSeguimiento={alta.conPasoDeSeguimiento}
-            hayAlgoEscrito={alta.hayAlgoEscrito}
-            alVolver={alta.volver}
-            alCancelar={panel.cerrar}
-            alGuardar={() => void guardar()}
-            salida={salida}
-          />
-        }
-      >
+      <EnElMarco donde="cuerpo">
         <PanelDeAlta
           id={idFormulario}
           alta={alta}
@@ -268,7 +250,20 @@ export function AltaCargada({ contexto, campos }: Props) {
           campos={campos}
           zona={zonaHoraria}
         />
-      </Drawer>
+      </EnElMarco>
+      <EnElMarco donde="pie">
+        <PieDelAlta
+          idFormulario={idFormulario}
+          paso={paso}
+          enCurso={enCurso}
+          conPasoDeSeguimiento={alta.conPasoDeSeguimiento}
+          hayAlgoEscrito={alta.hayAlgoEscrito}
+          alVolver={alta.volver}
+          alCancelar={panel.cerrar}
+          alGuardar={() => void guardar()}
+          salida={salida}
+        />
+      </EnElMarco>
     </>
   )
 }
