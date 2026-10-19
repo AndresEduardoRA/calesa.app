@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
-import { FormularioRecuperar, avisoDe } from '@/modules/equipo'
+import { avisoDe } from '@/modules/equipo'
+import { FormularioRecuperar } from '@/modules/equipo/pantallas/recuperar'
 import { unParametro } from '@/shared/lib/rutas'
 import { EsqueletoAcceso, TituloAcceso } from '../esqueleto-acceso'
 

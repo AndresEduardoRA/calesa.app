@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import {
-  ListaEquipo,
   idDePersona,
   leerEquipo,
   leerMatriz,
@@ -8,6 +7,7 @@ import {
   puede,
   requerirSesion,
 } from '@/modules/equipo'
+import { ListaEquipo } from '@/modules/equipo/pantallas/equipo'
 import { datosO } from '@/shared/lib/errores'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'

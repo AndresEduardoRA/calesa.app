@@ -43,10 +43,18 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - Casos de uso: empresa, iconos, integraciones, tipos-cambio
 
 ### `equipo`
-Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 137 archivos
-- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +25
+Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 144 archivos
+- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +12
 - API de cliente (`client.ts`): `RoleBadge`, `usePerspectiva`, `Perspectiva`, `RolParaVerComo`, `MenuDeVistas`, `ParamsDeVista`, `VistaGuardada`
 - API del shell (`shell.ts`, sólo el layout `(app)`): `requerirSesion`, `nombreVisible`, `puede`, `cerrarSesion`, `ProveedorPreferencias`, `BannerPerspectiva`, `ProveedorPerspectiva`, `usePerspectiva`
+- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
+  - `equipo`: `ListaEquipo`
+  - `ingreso`: `FormularioIngreso`
+  - `nueva-contrasena`: `FormularioNuevaContrasena`
+  - `perfil`: `FormularioPerfil`, `PreferenciasPerfil`
+  - `recuperar`: `FormularioRecuperar`
+  - `registro`: `FormularioRegistro`, `RegistroCerrado`
+  - `roles`: `MatrizDeRoles`
 - Depende de: empresa
 - Casos de uso: auth, equipo, perfil, perspectiva, roles, vistas
 

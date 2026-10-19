@@ -1,11 +1,6 @@
 import type { Metadata } from 'next'
-import {
-  MatrizDeRoles,
-  agruparPorModulo,
-  leerMatriz,
-  puede,
-  requerirSesion,
-} from '@/modules/equipo'
+import { agruparPorModulo, leerMatriz, puede, requerirSesion } from '@/modules/equipo'
+import { MatrizDeRoles } from '@/modules/equipo/pantallas/roles'
 import { getOrigenes } from '@/modules/origenes'
 import { datosO } from '@/shared/lib/errores'
 import { EstadoSinPermiso } from '@/shared/ui/estados'

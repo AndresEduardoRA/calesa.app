@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { getAjustes, registroDisponible } from '@/modules/empresa'
-import { FormularioIngreso, avisoDe, googleHabilitado } from '@/modules/equipo'
+import { avisoDe, googleHabilitado } from '@/modules/equipo'
+import { FormularioIngreso } from '@/modules/equipo/pantallas/ingreso'
 import { returnToSeguro, unParametro } from '@/shared/lib/rutas'
 import { EsqueletoAcceso, TituloAcceso } from '../esqueleto-acceso'
 

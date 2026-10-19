@@ -7,14 +7,13 @@ Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, b
 - Entra: sesión de Supabase Auth (email+contraseña, Google), enlaces de los correos de Auth (confirmar, recuperar, invitar), acciones de quien gestiona el equipo y los roles, la cookie `perspectiva`.
 - Sale por `index.ts` (servidor):
   - Sesión: `requerirSesion()`, `getPermisos()`, `puede()`, `sinRol()`, `nombreVisible()`.
-  - Acceso: `FormularioIngreso`, `FormularioRegistro`, `RegistroCerrado`, `FormularioRecuperar`, `FormularioNuevaContrasena`, `canjearAcceso()`, `cerrarSiInactiva()`, `requerirSesionDeEnlace()`, `googleHabilitado()`, `avisoDe()`, action `cerrarSesion`.
-  - Perfil: `FormularioPerfil`, `PreferenciasPerfil`, `ProveedorPreferencias`.
-  - Equipo: `leerEquipo()`, `leerVistaPreviaDeBaja()`, `idDePersona()`, `<ListaEquipo>`.
-  - Roles: `leerMatriz()`, `agruparPorModulo()`, `<MatrizDeRoles>`, `<RoleBadge>`.
-  - Perspectiva: `<ProveedorPerspectiva>`, `<BannerPerspectiva>`.
+  - Acceso: `canjearAcceso()`, `cerrarSiInactiva()`, `requerirSesionDeEnlace()`, `googleHabilitado()`, `avisoDe()`, action `cerrarSesion`.
+  - Equipo: `leerEquipo()`, `leerVistaPreviaDeBaja()`, `idDePersona()`.
+  - Roles: `leerMatriz()`, `agruparPorModulo()`.
   - Vistas guardadas: `leerVistas(pantalla)` (las de quien llama).
+  - **Ningún componente** (cierre 5b): una pantalla paga en JS todo lo que reexporta lo que importa, y el `index.ts` lo importa casi toda. Los componentes salen por `pantallas/<pantalla>.ts` (sólo `src/app`): `ingreso` (`<FormularioIngreso>`), `registro` (`<FormularioRegistro>`, `<RegistroCerrado>`), `recuperar` (`<FormularioRecuperar>`), `nueva-contrasena` (`<FormularioNuevaContrasena>`), `perfil` (`<FormularioPerfil>`, `<PreferenciasPerfil>`), `roles` (`<MatrizDeRoles>`) y `equipo` (`<ListaEquipo>`). Una pantalla nueva = su archivo.
 - Sale por `client.ts` (Client Components de `app/` y de otros módulos): `usePerspectiva()`, `<RoleBadge>`, tipos `Perspectiva` y `RolParaVerComo`; y `<MenuDeVistas pantalla vistas actuales puedeGuardar>` con los tipos `VistaGuardada` y `ParamsDeVista`: el menú que un listado monta en el hueco `vistas` de `<FilterShell>`.
-- Sale por `shell.ts` y `shell.client.ts` (9e, sólo el layout `(app)` y `_shell/`): `requerirSesion()`, `nombreVisible()`, `puede()`, `cerrarSesion`, `<ProveedorPreferencias>`, `<ProveedorPerspectiva>`, `<BannerPerspectiva>` y, en el navegador, `usePerspectiva()`. Lo que dibuja el marco y nada más: el `index.ts` reexporta la lista del equipo y la matriz de roles, y lo que el layout importa viaja en todas las pantallas.
+- Sale por `shell.ts` y `shell.client.ts` (9e, sólo el layout `(app)` y `_shell/`): `requerirSesion()`, `nombreVisible()`, `puede()`, `cerrarSesion`, `<ProveedorPreferencias>`, `<ProveedorPerspectiva>`, `<BannerPerspectiva>` y, en el navegador, `usePerspectiva()`. Lo que dibuja el marco y nada más: lo que el layout importa viaja en todas las pantallas.
 - Lo consumen `app/` y todos los módulos. Depende de: `empresa` (registro abierto, ajustes). **Nunca de `origenes`** (que depende de este): la página lee los orígenes y se los pasa a la matriz por props.
 
 ## Archivos clave
@@ -62,7 +61,7 @@ RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_pe
 - Bloquear y dar de baja **no** exigen dominar los roles de la persona (deuda anotada en docs/ESTADO.md).
 - Las policies llaman `(select tiene_permiso('…'))` como InitPlan: nunca cambiar la firma sin tocar `20261011000200_rls_y_grants.sql`. Sólo es InitPlan si la llamada **no nombra una columna de la fila**: `(select alcance_de('x', origen_id))` corre por fila. Para acotar por origen, `origen_id = any ((select origenes_con_alcance('x', 'todos'))::uuid[])` (así está `vehiculos`).
 - `perfiles.rol` no existe a propósito: ningún `if (rol === …)` en componentes.
-- `index.ts` mezcla servidor y cliente: lo importan Server Components. Un Client Component de afuera importa `client.ts`.
+- `index.ts` es de servidor y no exporta componentes: lo importan Server Components. Un Client Component de afuera importa `client.ts`.
 - Una etiqueta de menú de Base UI (`DropdownMenuLabel`) sólo vale dentro de un grupo: suelta, tumba la pantalla al abrir el menú.
 - **`_bajas_en_curso()` sólo habla a una cuenta activa o a los jobs** (cierre 2, `…002600`): sin `auth.uid()` (jobs, `service_role`) ve todo; una cuenta apagada o bloqueada con su JWT vigente recibe `{}`, así la función es siempre un subconjunto de lo que `perfiles` le entrega. Lo que ve quien comparte un lead con alguien en baja es el estado final: `dueno_id`, la cabecera de `lead_ficha()` y el portal ya no nombran a quien está en baja (`…002500`).
 - Una persona bloqueada no puede leer `perfiles`: su estado sale de `mi_sesion()`, que es DEFINER.

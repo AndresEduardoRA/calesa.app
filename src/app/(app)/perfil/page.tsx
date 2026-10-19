@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { FormularioPerfil, PreferenciasPerfil, requerirSesion } from '@/modules/equipo'
+import { requerirSesion } from '@/modules/equipo'
+import { FormularioPerfil, PreferenciasPerfil } from '@/modules/equipo/pantallas/perfil'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 
 export const metadata: Metadata = { title: 'Mi perfil' }

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { getAjustes, registroDisponible } from '@/modules/empresa'
-import { FormularioRegistro, RegistroCerrado } from '@/modules/equipo'
+import { FormularioRegistro, RegistroCerrado } from '@/modules/equipo/pantallas/registro'
 import { EsqueletoAcceso, TituloAcceso } from '../esqueleto-acceso'
 
 export const metadata: Metadata = { title: 'Crear cuenta' }
