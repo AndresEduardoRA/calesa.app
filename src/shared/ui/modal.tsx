@@ -41,8 +41,9 @@ type Props = {
 }
 
 // Diálogo centrado para una decisión o un formulario corto. Nunca abre otro modal: si hace falta
-// un segundo nivel, es un <Drawer> o una página. El cuerpo se desplaza y el pie queda a la vista; en
-// el celular va arriba, para que el teclado no tape el campo.
+// un segundo nivel, es un <Drawer> o una página. El cuerpo (con la descripción) se desplaza y el pie queda a la
+// vista; en el celular va arriba, para que el teclado no tape el campo, y sus botones, de 44 px, van en una fila si
+// caben y, si no, apilados con el principal arriba (`flex-wrap-reverse`: el principal es el último del DOM).
 export function Modal({
   abierto,
   alCerrar,
@@ -82,17 +83,19 @@ export function Modal({
           ancho === 'amplio' && 'sm:max-w-lg',
         )}
       >
-        <DialogHeader className="shrink-0 p-4 pr-12">
+        <DialogHeader className={cn('shrink-0 p-4 pr-12', descripcion || children ? 'pb-2' : '')}>
           <DialogTitle className="leading-snug">{titulo}</DialogTitle>
-          {descripcion ? <DialogDescription>{descripcion}</DialogDescription> : null}
         </DialogHeader>
-        {children ? (
+        {/* La descripción se desplaza con el cuerpo: con el texto al 200 % en el celular ocupaba hasta seis líneas fijas arriba y el cuerpo quedaba en
+            una cuarta parte de la pantalla (cierre 5b, defecto 4.4). */}
+        {descripcion || children ? (
           <div className="grid min-h-0 min-w-0 flex-1 gap-4 overflow-y-auto px-4 pt-0.5 pb-4">
+            {descripcion ? <DialogDescription>{descripcion}</DialogDescription> : null}
             {children}
           </div>
         ) : null}
         {pie ? (
-          <DialogFooter className="m-0 shrink-0 sm:flex-wrap [&_button]:min-h-11 sm:[&_button]:min-h-8">
+          <DialogFooter className="m-0 shrink-0 max-sm:flex-row max-sm:flex-wrap-reverse max-sm:p-3 sm:flex-wrap [&_button]:min-h-[44px] sm:[&_button]:min-h-8 max-sm:[&>button]:min-w-fit max-sm:[&>button]:flex-1">
             {pie}
           </DialogFooter>
         ) : null}

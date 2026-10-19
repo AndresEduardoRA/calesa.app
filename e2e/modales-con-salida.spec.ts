@@ -106,15 +106,28 @@ test('nuevo rol: un nombre sin letras se dice junto al campo y el foco va ahí',
 // lo acomoda a la vista y el desborde desaparece de la medida): el `<select>` del rol de «Invitar» tiene una opción larga que
 // ensanchaba la columna del formulario, y el campo de «Nueva etiqueta» se achicaba hasta no leerse.
 async function cabeEnElModal(dialogo: Locator, campo: Locator, anchoMinimo = 0) {
-  const [d, c] = await Promise.all([dialogo.boundingBox(), campo.boundingBox()])
-  expect(d, 'el modal tiene caja').not.toBeNull()
-  expect(c, 'el campo tiene caja').not.toBeNull()
-  if (!d || !c) return
-  expect(c.x + c.width, 'el campo no se sale del modal por la derecha').toBeLessThanOrEqual(
-    d.x + d.width + 1,
+  // Las dos cajas se leen en la misma evaluación (el mismo cuadro): el modal tiene una transición de 100 ms (`duration-100`, y la propiedad por
+  // defecto es `all`), así que al cambiar la raíz su ancho crece durante unos cuadros y dos lecturas sueltas podían caer a un lado y otro de uno.
+  const medida = await campo.evaluate((el) => {
+    const modal = el.closest('[role=dialog]')?.getBoundingClientRect()
+    const caja = el.getBoundingClientRect()
+    return modal ? { dx: modal.x, dw: modal.width, cx: caja.x, cw: caja.width } : null
+  })
+  expect(medida, 'el campo está dentro de un modal').not.toBeNull()
+  expect(await dialogo.count(), 'el modal está').toBeGreaterThan(0)
+  if (!medida) return
+  const detalle = `modal x ${String(Math.round(medida.dx))} ancho ${String(Math.round(medida.dw))}, campo x ${String(Math.round(medida.cx))} ancho ${String(Math.round(medida.cw))}`
+  expect(
+    medida.cx + medida.cw,
+    `el campo no se sale del modal por la derecha (${detalle})`,
+  ).toBeLessThanOrEqual(medida.dx + medida.dw + 1)
+  expect(
+    medida.cx,
+    `el campo no se sale del modal por la izquierda (${detalle})`,
+  ).toBeGreaterThanOrEqual(medida.dx - 1)
+  expect(medida.cw, `el campo no se achica hasta no leerse (${detalle})`).toBeGreaterThanOrEqual(
+    anchoMinimo,
   )
-  expect(c.x, 'el campo no se sale del modal por la izquierda').toBeGreaterThanOrEqual(d.x - 1)
-  expect(c.width, 'el campo no se achica hasta no leerse').toBeGreaterThanOrEqual(anchoMinimo)
 }
 
 test('al 200 % los campos de invitar caben en su modal', async ({ page }) => {

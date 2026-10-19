@@ -23,14 +23,18 @@ export function ConfirmarDescarte({ alSeguir, alDescartar }: Props) {
     }
   }, [])
   return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-      <p role="alert" className="text-sm sm:mr-auto">
+    <div className="flex w-full flex-wrap gap-2 sm:items-center">
+      <p role="alert" className="basis-full text-sm sm:mr-auto sm:basis-auto">
         Tienes cambios sin guardar.
       </p>
-      <Button variant="destructive" className="order-last sm:order-none" onClick={alDescartar}>
+      <Button
+        variant="destructive"
+        className="order-last max-sm:min-w-fit max-sm:flex-1 sm:order-none"
+        onClick={alDescartar}
+      >
         Descartar
       </Button>
-      <Button ref={seguir} autoFocus onClick={alSeguir}>
+      <Button ref={seguir} autoFocus className="max-sm:min-w-fit max-sm:flex-1" onClick={alSeguir}>
         Seguir editando
       </Button>
     </div>
