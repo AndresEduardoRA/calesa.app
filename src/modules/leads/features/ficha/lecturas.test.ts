@@ -43,19 +43,37 @@ describe('leerFichaDeLead', () => {
     expect(leerCartera).toHaveBeenCalledWith(ID)
   })
 
-  it('devuelve la ficha con el layout, los orígenes, las etiquetas de quien mira y quién lo tiene', async () => {
-    leerFicha.mockResolvedValue(ok({ id: ID }))
-    leerLayoutDeLeads.mockResolvedValue(ok([{ clave: 'ciudad' }]))
-    leerCatalogosDeLead.mockResolvedValue(ok({ origenes: [{ id: 'o' }], tipos: [{ id: 't' }] }))
+  it('devuelve la ficha con los campos activos, el origen y el tipo de este lead, las etiquetas de quien mira y quién lo tiene', async () => {
+    const ficha = { id: ID, origenId: 'o', tipoLeadId: 't' }
+    leerFicha.mockResolvedValue(ok(ficha))
+    leerLayoutDeLeads.mockResolvedValue(
+      ok([
+        { clave: 'ciudad', activo: true },
+        { clave: 'cedula', activo: false },
+      ]),
+    )
+    leerCatalogosDeLead.mockResolvedValue(
+      ok({
+        origenes: [
+          { id: 'o', nombre: 'Facebook', activo: false },
+          { id: 'otro', nombre: 'Web', activo: true },
+        ],
+        tipos: [
+          { id: 't', nombre: 'Prospecto' },
+          { id: 'otro', nombre: 'Cliente' },
+        ],
+      }),
+    )
     leerEtiquetas.mockResolvedValue(ok([{ id: 'e' }]))
     leerCartera.mockResolvedValue(ok([{ usuarioId: 'u' }]))
     const resultado = await leerFichaDeLead(ID)
+    // Nada de los catálogos enteros ni del layout apagado: «Datos» recibe lo que dibuja, y el panel de edición lee el resto al abrirse.
     expect(resultado).toEqual(
       ok({
-        ficha: { id: ID },
-        campos: [{ clave: 'ciudad' }],
-        origenes: [{ id: 'o' }],
-        tipos: [{ id: 't' }],
+        ficha,
+        campos: [{ clave: 'ciudad', activo: true }],
+        origen: { nombre: 'Facebook', activo: false },
+        tipo: { id: 't', nombre: 'Prospecto' },
         etiquetas: [{ id: 'e' }],
         cartera: [{ usuarioId: 'u' }],
       }),
