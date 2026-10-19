@@ -11,6 +11,7 @@ import {
   prepararListado,
   type TerrenoDelListado,
 } from './soporte/leads-listado'
+import { panelDeEdicion } from './soporte/leads-ficha'
 import { capturar } from './soporte/recorrido'
 
 // «Editar» en el resumen de un lead (`?lead=<id>`, 9i): abre el panel de edición de la ficha encima del resumen, lo lee al pulsar (un
@@ -77,6 +78,9 @@ test('«Editar» abre el panel encima del resumen, y al guardar vuelve al resume
   const otra = panelDe(page, `${PROPIO_BERTA} editado`)
   await otra.getByLabel('Nombre', { exact: true }).fill(nombre(PROPIO_BERTA))
   await otra.getByRole('button', { name: 'Guardar', exact: true }).click()
+  // El panel que se va se llama «Editar <nombre>», y el nombre del resumen es una subcadena de ese: mientras se cierra,
+  // el resumen vería dos diálogos (visto en la corrida del 5a-fix-3). Se espera a que no quede ningún panel de edición.
+  await expect(panelDeEdicion(page)).toBeHidden()
   await expect(resumenDe(page, PROPIO_BERTA)).toBeVisible()
 })
 
