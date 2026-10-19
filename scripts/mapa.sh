@@ -4,7 +4,9 @@
 #   bash scripts/mapa.sh           regenera docs/MAPA.md
 #   bash scripts/mapa.sh --check   falla (exit 1) si MAPA.md está desactualizado, si una unidad
 #                                  no tiene CLAUDE.md, o si un módulo importa las tripas de otro
-#                                  (cualquier cosa que no sea `@/modules/<x>` o `@/modules/<x>/client`)
+#                                  (cualquier cosa que no sea `@/modules/<x>` o `@/modules/<x>/client`), o si una
+#                                  entrada de DECISIONES o BITACORA lleva una fecha de mañana o fuera de orden
+#                                  (`scripts/fechas-de-entradas.mjs`: la fecha sale de `TZ=America/La_Paz date +%F`)
 #
 # Lo corre el hook Stop de Claude Code (regenera), lefthook en pre-commit (--check) y CI (--check).
 # No escribe fechas a propósito: la salida es determinista, así --check solo falla si algo cambió.
@@ -230,6 +232,8 @@ if [ "$MODO" = "--check" ]; then
   if [ -n "$AVISOS_TXT" ]; then
     echo "✗ El mapa tiene pendientes:" >&2; echo "$AVISOS_TXT" >&2; fallo=1
   fi
+  # No depende del mapa sino de los docs: va aparte para que `generar` no escriba fechas en MAPA.md.
+  if [ -f scripts/fechas-de-entradas.mjs ] && ! node scripts/fechas-de-entradas.mjs; then fallo=1; fi
   exit $fallo
 fi
 

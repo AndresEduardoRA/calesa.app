@@ -88,6 +88,8 @@ Dónde va cada cosa:
 - Unidad nueva = su `CLAUDE.md`. Término nuevo = fila en `docs/GLOSARIO.md`, y se usa ese nombre
   en tipos, tablas y UI. Nunca un sinónimo.
 - `docs/MAPA.md` no se edita a mano: `bash scripts/mapa.sh` lo regenera (el hook Stop lo corre).
+- La fecha de una entrada de `docs/DECISIONES.md` o `docs/BITACORA.md` sale de `TZ=America/La_Paz date +%F`, nunca de la memoria:
+  `bash scripts/mapa.sh --check` falla con una fecha de mañana o fuera de orden.
 - Los nombres de orígenes, fases, tipos de documento, categorías y monedas salen de la base: ningún
   texto fijo de la UI los nombra.
 - Toda lista se diseña para miles de filas y se prueba con volumen: `.claude/rules/escala.md`.
