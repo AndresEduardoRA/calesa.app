@@ -109,6 +109,23 @@ const esquemaDelLead = esquemaOportunidad.extend({
 // Cuántas oportunidades de un lead trae `lead_oportunidades()` (espejo de su `limit 100`): más allá se avisa.
 export const TOPE_DE_OPORTUNIDADES_DEL_LEAD = 100
 
+// La sección «Oportunidades» de la ficha muestra las 10 más recientes (las abiertas primero) y, con «Ver todas» (`?todas=1`), las que trae la
+// lectura, hasta `TOPE_DE_OPORTUNIDADES_DEL_LEAD`: lo que no se ve no viaja con el documento de la ficha (cierre 5b).
+export const OPORTUNIDADES_VISIBLES_DEL_LEAD = 10
+export const CLAVE_DE_TODAS_LAS_OPORTUNIDADES = 'todas'
+
+// Las que se muestran de la lista que trajo la lectura, y si quedaron algunas afuera (`recortada`: es lo que «Ver todas» trae).
+export function oportunidadesParaMostrar<T>(
+  lista: readonly T[],
+  todas: boolean,
+): { visibles: T[]; recortada: boolean } {
+  const recortada = !todas && lista.length > OPORTUNIDADES_VISIBLES_DEL_LEAD
+  return {
+    visibles: recortada ? lista.slice(0, OPORTUNIDADES_VISIBLES_DEL_LEAD) : [...lista],
+    recortada,
+  }
+}
+
 // Lo que entrega `lead_oportunidades()`: las mías sobre ese lead y si puedo crear.
 export function oportunidadesDelLeadDesde(
   crudo: unknown,

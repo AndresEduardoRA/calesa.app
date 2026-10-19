@@ -14,3 +14,9 @@ export const PRESUPUESTO_DE_JS_EN_KB: Readonly<Record<string, number>> = {
 // completo y los catálogos de lead (el panel de edición los lee al abrirse) y se midió 39,2 a 40,3: sobre lo medido más un 5 %, 43. Con
 // 100 orígenes y 100 tipos aporta lo mismo (`e2e/leads-ficha.spec.ts`); con las props de antes habrían sido 70 KB.
 export const PRESUPUESTO_DE_LA_FICHA_EN_KB = 43
+
+// La ficha con la sección «Oportunidades» llena (cierre 5b, `e2e/leads-oportunidades-ver-todas.spec.ts`), en KB sobre `/perfil`: cada
+// oportunidad pesa ~3,5 KB en el documento. Con 10 a la vista (lo máximo que se dibuja por defecto) se midió 62,3; con «Ver todas» (100,
+// pedido por quien lo quiere), 374. Antes cada visita a una ficha con 100 pagaba lo segundo. Sobre lo medido más un 5 %.
+export const PRESUPUESTO_DE_LA_FICHA_CON_10_OPORTUNIDADES_EN_KB = 66
+export const PRESUPUESTO_DE_LA_FICHA_CON_TODAS_EN_KB = 400

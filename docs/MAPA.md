@@ -66,7 +66,7 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 
 ### `leads`
 Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 580 archivos
-- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `ContextoDeAlta`, `leerOrigenesDeLeadConUso`, `leerTiposDeLeadConUso`, `leerListadoDeLeads`, +24
+- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `ContextoDeAlta`, `leerOrigenesDeLeadConUso`, `leerTiposDeLeadConUso`, `leerListadoDeLeads`, +25
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
 - API del shell (`shell.ts`, sólo el layout `(app)`): `leerContextoDeAlta`, `leerLayoutDeLeads`, `AltaDeLead`
 - Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):

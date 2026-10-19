@@ -324,8 +324,10 @@ dice, con un camino a lo antiguo.
   tiene más vehículos.». El historial de un tipo de cambio: «Mostrando los 30 cambios más recientes.». Siempre `<AvisoDeTope>`:
   el mismo texto, al pie.
 - **Ficha:** «Tiene más de 100 vehículos vinculados…» (el aviso de la cartera y el motivo de la papelera). La sección
-  «Oportunidades» muestra las 100 más recientes (las abiertas primero) y lo dice: «Mostrando las 100 más recientes, las
-  abiertas primero.»
+  «Oportunidades» muestra las 10 más recientes (las abiertas primero) y lo dice: «Mostrando las 10 más recientes, las
+  abiertas primero.» con «Ver todas» (`?seccion=oportunidades&todas=1`, un enlace: «atrás» vuelve a las 10), que trae las que
+  lee la base, hasta 100: «Mostrando las 100 más recientes, las abiertas primero.» (o «Mostrando las 12…» si son menos) y «Ver
+  sólo las 10 más recientes». Con 10 o menos no hay aviso ni enlace.
 - **Etiquetas, «Gestionar»:** «En 12 leads» o «En más de 1.000 leads».
 - **Papeleras (leads y vehículos):** de a 5 lotes por página (Anterior y Siguiente, `?cursor=`); un lote trae hasta 200 y
   muestra sus primeros 20 con «Mostrar los 200» al pie (cierre 1): mientras llega, «Trayendo los 200…»; sin red, el motivo y

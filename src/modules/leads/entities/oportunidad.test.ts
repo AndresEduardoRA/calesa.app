@@ -6,6 +6,8 @@ import {
   montoDesdeTexto,
   oportunidadDesde,
   oportunidadesDelLeadDesde,
+  oportunidadesParaMostrar,
+  OPORTUNIDADES_VISIBLES_DEL_LEAD,
   validarMotivo,
   motivoParaNoMover,
   MENSAJE_DE_OPORTUNIDAD_A_MOVER_NO_DISPONIBLE,
@@ -184,5 +186,39 @@ describe('motivoParaNoMover', () => {
     expect(motivoParaNoMover({ etapaId: 'a' }, etapas, 'b')).toBe(
       'Pasar a «Cotizado» no pide un motivo: se mueve desde «Mover a…».',
     )
+  })
+})
+
+describe('oportunidadesParaMostrar', () => {
+  const lista = (n: number) => Array.from({ length: n }, (_, i) => i + 1)
+
+  it('hasta 10 se ven todas, sin recorte', () => {
+    expect(OPORTUNIDADES_VISIBLES_DEL_LEAD).toBe(10)
+    expect(oportunidadesParaMostrar(lista(0), false)).toEqual({ visibles: [], recortada: false })
+    expect(oportunidadesParaMostrar(lista(10), false)).toEqual({
+      visibles: lista(10),
+      recortada: false,
+    })
+  })
+
+  it('con más de 10 se ven las 10 primeras, que son las más recientes (abiertas primero), y se dice que hay más', () => {
+    expect(oportunidadesParaMostrar(lista(11), false)).toEqual({
+      visibles: lista(10),
+      recortada: true,
+    })
+    expect(oportunidadesParaMostrar(lista(100), false).visibles).toHaveLength(10)
+  })
+
+  it('con «Ver todas» se ven todas las que trajo la lectura y ya no se dice que hay más por ver', () => {
+    expect(oportunidadesParaMostrar(lista(100), true)).toEqual({
+      visibles: lista(100),
+      recortada: false,
+    })
+  })
+
+  it('no toca la lista que recibe', () => {
+    const original = lista(12)
+    oportunidadesParaMostrar(original, false).visibles.push(99)
+    expect(original).toHaveLength(12)
   })
 })

@@ -6,6 +6,7 @@ import { puede, requerirSesion } from '@/modules/equipo'
 import {
   accionesDeCartera,
   CLAVE_DE_SECCION,
+  CLAVE_DE_TODAS_LAS_OPORTUNIDADES,
   duenoDe,
   leerFichaDeLead,
   puedeCambiarTelefonoDeLead,
@@ -108,6 +109,7 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
           <Suspense fallback={<EsqueletoDeOportunidades />}>
             <SeccionOportunidades
               leadId={datos.ficha.id}
+              todas={unParametro(parametros[CLAVE_DE_TODAS_LAS_OPORTUNIDADES]) === '1'}
               {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
             />
           </Suspense>
