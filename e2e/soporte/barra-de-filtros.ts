@@ -8,7 +8,7 @@ export type PiezaDeLaBarra = { nombre: string; lugar: Locator }
 type Caja = { nombre: string; x: number; y: number; ancho: number; alto: number; fila: number }
 
 // Dos cuadros: lo que cambió de tamaño o de lugar ya se acomodó (las cajas no se animan, pero el `rem` de la raíz se aplica al repintar).
-const esperarDosCuadros = (page: Page) =>
+export const esperarDosCuadros = (page: Page) =>
   page.evaluate(
     () =>
       new Promise<void>((listo) =>

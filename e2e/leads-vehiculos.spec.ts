@@ -7,6 +7,7 @@ import {
 } from './soporte/confirmar-por-url'
 import { formatearNumero } from '../src/shared/lib/formato'
 import { entrar } from './soporte/inventario'
+import { esperarDosCuadros } from './soporte/barra-de-filtros'
 import { marcarInteres, vincular } from './soporte/leads'
 import { irAFicha, tituloDeLaFicha } from './soporte/leads-ficha'
 import { capturar } from './soporte/recorrido'
@@ -123,6 +124,9 @@ test('la nota de un interés que se tipea y no se manda pregunta antes de perder
   panel = await elegirVehiculo(page, uno)
   const nota = panel.getByLabel('Nota del interés (opcional)')
   await nota.fill('Quiere verlo el sábado')
+  // La app anota «hay algo escrito» en un efecto, después de pintar: un Esc 1 ms después del `fill` (lo que una persona no
+  // hace) cerraba el panel sin preguntar (visto en la corrida del 5a-fix-3, con el Esc a 1 ms del `fill`).
+  await esperarDosCuadros(page)
   await page.keyboard.press('Escape')
   await expect(panel.getByText('Tienes cambios sin guardar.')).toBeVisible()
   await capturar(page, info, 'agregar-vehiculo-nota-pregunta')
