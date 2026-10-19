@@ -61,7 +61,7 @@ export function BusquedaDelEmbudo() {
         <Input
           id={ID_DE_LA_BUSQUEDA_DEL_EMBUDO}
           type="search"
-          placeholder="Buscar en el embudo"
+          placeholder="Título o lead"
           className="h-11 w-full pl-8 sm:w-64 md:h-9"
           value={texto}
           onChange={(evento) => {

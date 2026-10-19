@@ -1,5 +1,9 @@
 import { expect, test } from './soporte/prueba'
-import { exigirBarraOrdenada, type PiezaDeLaBarra } from './soporte/barra-de-filtros'
+import {
+  exigirBarraOrdenada,
+  exigirMarcadorQueCabe,
+  type PiezaDeLaBarra,
+} from './soporte/barra-de-filtros'
 import {
   aLaVista,
   entrar,
@@ -42,7 +46,7 @@ for (const zoom of ['100', '200'] as const) {
     const piezas: PiezaDeLaBarra[] = [
       {
         nombre: 'Buscar',
-        lugar: aLaVista(barra.getByPlaceholder('Buscar por título, VIN o lote')),
+        lugar: aLaVista(barra.getByPlaceholder('Título, VIN o lote')),
       },
       {
         nombre: 'Filtros',
@@ -65,6 +69,7 @@ for (const zoom of ['100', '200'] as const) {
       })
     }
     await exigirBarraOrdenada(page, barra, piezas)
+    await exigirMarcadorQueCabe(barra.getByPlaceholder('Título, VIN o lote'))
     await sinScrollHorizontal(page)
     await capturar(page, info, `barra-de-vehiculos-${zoom}`)
   })

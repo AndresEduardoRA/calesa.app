@@ -164,7 +164,7 @@ test('las papeleras, vehículos e importación de la dueña', async ({ page }, i
   await expect(page.getByRole('heading', { name: 'Papelera de vehículos' })).toBeVisible()
   await capturar(page, info, 'papelera-vehiculos')
   await page.goto('/vehiculos')
-  await expect(page.getByPlaceholder('Buscar por título, VIN o lote')).toBeVisible()
+  await expect(page.getByPlaceholder('Título, VIN o lote')).toBeVisible()
   await capturar(page, info, 'vehiculos')
   await paginar(page, 5)
   await capturar(page, info, 'vehiculos-pagina-6')

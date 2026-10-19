@@ -47,7 +47,9 @@ export type SeccionDeFiltros = { clave: string; titulo: string; descripcion?: st
 
 export type EsquemaDeFiltros = {
   // La búsqueda libre de la barra; null si el listado no la tiene.
-  busqueda: { clave: string; etiqueta: string } | null
+  // `etiqueta` es lo que lee un lector de pantalla («Buscar por nombre o número»); `marcador`, lo que se ve dentro del campo vacío, más corto: al
+  // 200 % de texto en el celular el campo mide ~300 px y un marcador largo se corta (cierre 5b, defecto 4.2).
+  busqueda: { clave: string; etiqueta: string; marcador?: string } | null
   filtros: readonly DefFiltro[]
   // En el orden en que se dibujan; los filtros sin sección van después.
   secciones?: readonly SeccionDeFiltros[]

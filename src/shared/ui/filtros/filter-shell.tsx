@@ -150,6 +150,7 @@ export function FilterShell(props: Props) {
           {esquema.busqueda ? (
             <CampoDeBusqueda
               etiqueta={esquema.busqueda.etiqueta}
+              marcador={esquema.busqueda.marcador}
               valor={filtros.valores.busqueda}
               alBuscar={filtros.buscar}
             />

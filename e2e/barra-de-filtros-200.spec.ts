@@ -1,7 +1,12 @@
 import { expect, test, type Page } from './soporte/prueba'
 import { entrar } from './soporte/alta'
-import { exigirBarraOrdenada, type PiezaDeLaBarra } from './soporte/barra-de-filtros'
+import {
+  exigirBarraOrdenada,
+  exigirMarcadorQueCabe,
+  type PiezaDeLaBarra,
+} from './soporte/barra-de-filtros'
 import { aLaVista, esMovil } from './soporte/inventario'
+import { irAlEmbudo } from './soporte/leads-oportunidades'
 import {
   irALeads,
   limpiarListado,
@@ -30,7 +35,7 @@ test.afterAll(async () => {
 // de la lista.
 function piezasDeLeads(page: Page): PiezaDeLaBarra[] {
   const piezas: PiezaDeLaBarra[] = [
-    { nombre: 'Buscar', lugar: aLaVista(page.getByPlaceholder('Buscar por nombre o número')) },
+    { nombre: 'Buscar', lugar: aLaVista(page.getByPlaceholder('Nombre o número')) },
     {
       nombre: 'Filtros',
       lugar: aLaVista(page.getByRole('button', { name: 'Filtros', exact: true })),
@@ -75,9 +80,31 @@ for (const zoom of ['100', '200'] as const) {
     const barra = page.locator('[data-barra-de-filtros]')
     await expect(barra).toBeVisible()
     const cajas = await exigirBarraOrdenada(page, barra, piezasDeLeads(page))
+    await exigirMarcadorQueCabe(page.getByPlaceholder('Nombre o número'))
     await sinScrollHorizontal(page)
     const filas = new Set(cajas.map((c) => c.fila)).size
     info.annotations.push({ type: `filas de la barra al ${zoom} %`, description: String(filas) })
     await capturar(page, info, `barra-de-leads-${zoom}`)
+  })
+}
+
+// El kanban (`?vista=embudo`) tiene su propia búsqueda: su marcador también cabe, y la página no se ensancha al 200 % (en el celular el
+// campo, el título del embudo y el aviso se salían por la derecha).
+for (const zoom of ['100', '200'] as const) {
+  test(`el buscador del embudo al ${zoom} %: el marcador cabe y la página no se ensancha`, async ({
+    page,
+  }, info) => {
+    await entrar(page, t.personas.berta)
+    await irAlEmbudo(page)
+    if (zoom === '200') {
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%'
+      })
+    }
+    const campo = aLaVista(page.getByRole('searchbox', { name: 'Buscar en el embudo' }))
+    await expect(campo).toBeVisible()
+    await exigirMarcadorQueCabe(campo)
+    await sinScrollHorizontal(page)
+    await capturar(page, info, `buscador-del-embudo-${zoom}`)
   })
 }

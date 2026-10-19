@@ -247,6 +247,8 @@ export function FiltroDeTexto({ def, valor, alCambiar }: Props<'texto'>) {
 // La búsqueda libre de la barra del listado.
 export function CampoDeBusqueda(props: {
   etiqueta: string
+  // Lo que se ve en el campo vacío si es más corto que la etiqueta (la etiqueta queda para el lector de pantalla).
+  marcador?: string | undefined
   valor: string
   alBuscar: (texto: string) => void
 }) {
@@ -261,7 +263,7 @@ export function CampoDeBusqueda(props: {
         id={id}
         type="search"
         autoComplete="off"
-        placeholder={props.etiqueta}
+        placeholder={props.marcador ?? props.etiqueta}
         className="h-11 md:h-9"
         value={texto}
         onChange={(evento) => {

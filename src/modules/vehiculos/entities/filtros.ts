@@ -33,7 +33,11 @@ export const FILTRO_LIMPIEZA = 'limpieza'
 // En el filtro de fase: lo que todavía no entró al flujo.
 export const SIN_FASE = 'ninguna'
 
-const BUSQUEDA = { clave: 'q', etiqueta: 'Buscar por título, VIN o lote' }
+const BUSQUEDA = {
+  clave: 'q',
+  etiqueta: 'Buscar por título, VIN o lote',
+  marcador: 'Título, VIN o lote',
+}
 
 type Fuentes = {
   campos: readonly CampoDeVehiculo[]

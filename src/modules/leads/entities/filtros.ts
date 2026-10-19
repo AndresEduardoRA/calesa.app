@@ -29,7 +29,7 @@ export const FILTRO_ORIGEN = 'origen'
 // punto, así que nunca choca con `tipo`, `origen`, `alcance`, `cursor` ni `lead`.
 export const PREFIJO_DE_FILTRO = 'a.'
 
-const BUSQUEDA = { clave: 'q', etiqueta: 'Buscar por nombre o número' }
+const BUSQUEDA = { clave: 'q', etiqueta: 'Buscar por nombre o número', marcador: 'Nombre o número' }
 
 // Quien ve «todos» filtra sólo entre sus leads cuando el campo es privado.
 const AYUDA_DE_PRIVADO = 'Solo busca en tus leads: de los demás no recibes este dato.'

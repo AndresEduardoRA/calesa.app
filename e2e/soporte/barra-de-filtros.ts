@@ -90,3 +90,30 @@ export async function exigirBarraOrdenada(
   }
   return cajas
 }
+
+// El marcador de un campo de búsqueda cabe entero en el campo: se mide con el mismo tipo de letra (un `placeholder` largo se corta con
+// «…» o sin nada, y quien lo lee no sabe qué se busca). Descuenta los rellenos, también el del icono si lo hay.
+export async function exigirMarcadorQueCabe(campo: Locator): Promise<void> {
+  const medida = await campo.evaluate((el) => {
+    const entrada = el as HTMLInputElement
+    const estilo = getComputedStyle(entrada)
+    const contexto = document.createElement('canvas').getContext('2d')
+    if (!contexto) {
+      return null
+    }
+    contexto.font = `${estilo.fontStyle} ${estilo.fontWeight} ${estilo.fontSize} ${estilo.fontFamily}`
+    return {
+      texto: entrada.placeholder,
+      ancho: contexto.measureText(entrada.placeholder).width,
+      lugar:
+        entrada.clientWidth -
+        Number.parseFloat(estilo.paddingLeft) -
+        Number.parseFloat(estilo.paddingRight),
+    }
+  })
+  expect(medida, 'el navegador mide texto').not.toBeNull()
+  expect(
+    medida?.ancho ?? Infinity,
+    `el marcador «${medida?.texto ?? ''}» (${String(Math.round(medida?.ancho ?? 0))} px) cabe en el campo (${String(Math.round(medida?.lugar ?? 0))} px)`,
+  ).toBeLessThanOrEqual(medida?.lugar ?? 0)
+}
