@@ -7801,6 +7801,7 @@ export type Database = {
         Args: { p_filas: number; p_filtros?: string[] }
         Returns: Json
       }
+      leads_ids_del_numero: { Args: { p_numero: number; p_todos: boolean }; Returns: string[] }
       leads_importacion_deshacer: { Args: { p_importacion: string }; Returns: Json }
       leads_importacion_terminar: {
         Args: {

@@ -270,7 +270,8 @@ declare
     'lead_seguimiento', 'devuelve un seguimiento: sólo el número del vehículo que nombra',
     'leads_exportacion_registrar', 'deja la constancia (cuántas filas y qué filtros): ningún lead',
     'lead_campo_crear', 'devuelve el campo creado: nada de leads',
-    'leads_candidatos', 'devuelve ids de leads (los que quien llama ve), si hay más y hasta dónde llegó: nunca un número; la página la lee leads_vista_por_ids, que tiene su sonda');
+    'leads_candidatos', 'devuelve ids de leads (los que quien llama ve), si hay más y hasta dónde llegó: nunca un número; la página la lee leads_vista_por_ids, que tiene su sonda',
+    'leads_ids_del_numero', 'devuelve ids de leads (los que quien llama ve con ese número, según la policy de las copias), nunca un número; numero-busqueda.sql prueba qué ve cada quien');
   r record; v_fallas text := '';
 begin
   if to_regclass('pg_temp.matriz_cubiertas') is null then
