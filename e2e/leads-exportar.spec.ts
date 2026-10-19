@@ -26,7 +26,8 @@ import {
 
 // Exportar leads a CSV (parte 8) contra la app compilada y el Supabase local: qué entra en el archivo
 // (sólo la cartera, aunque se vea «todos» o se fuerce la URL), cómo se escribe (BOM, columnas del
-// layout, celdas que empiezan por una fórmula), quién ve el botón y los topes (por hora y 5.000).
+// layout), quién ve el botón y los topes (por hora y 5.000). Las celdas que empiezan por una fórmula
+// se prueban en `escribir.test.ts` y `exportacion.test.ts`, y de punta a punta en `leads-recorrido-csv`.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelListado
@@ -206,25 +207,6 @@ test('«todos» exporta sólo su cartera: ni los leads ajenos ni sus privados sa
   expect(texto).toContain(`E2E ${PROPIO_DALIA}`)
   expect(texto).not.toContain(`E2E ${AJENO_CARLOS}`)
   expect(texto).not.toContain(CI_DE_CARLOS)
-})
-
-// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
-test('una celda que empieza por una fórmula sale con apóstrofo y el resto queda entero', async ({
-  page,
-}) => {
-  // `exporta` tiene su cartera: lo mira con su propia sesión.
-  await entrar(page, exporta)
-  await irALeads(page)
-  const csv = await descargar(page)
-  expect(csv).toContain(";'=cmd|' /C calc'!A0")
-  expect(csv).toContain(";'+1+1")
-  expect(csv).toContain(";'-2+3")
-  expect(csv).toContain(";'@SUMA(A1)")
-  // Comillas, coma y salto de línea: entre comillas, con las comillas duplicadas, y el emoji intacto.
-  expect(csv).toContain('"Dijo ""ok"", luego\nsalto 😀"')
-  // Ninguna celda arranca por un carácter de fórmula sin el apóstrofo.
-  const peligrosas = csv.split('\r\n').flatMap((linea) => linea.split(';'))
-  expect(peligrosas.filter((celda) => /^[=+\-@]/.test(celda))).toEqual([])
 })
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
