@@ -13,8 +13,14 @@ paths:
   Playwright: `pnpm test:e2e:completo --project=escritorio` sirve para iterar sobre un proyecto.
 - **Los tres niveles de verificación** (desde la 9i):
   - **Nivel 1 — toda tarea:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y los e2e **dirigidos** a lo tocado, en `escritorio` y en `movil`.
-  - **Nivel 2 — si la tarea toca `src/shared`:** además `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve`
-    en otra terminal), sólo en escritorio. Un componente o hook de `shared` lo usan todas las pantallas: lo dirigido no alcanza para verlo.
+  - **Nivel 2 — si la tarea toca algo que usan todas las pantallas o toda la base, y sólo entonces.** Los disparadores son estos seis y
+    ningún otro: (1) lo compartido, `src/shared`; (2) el proxy, `src/proxy.ts`; (3) auth: `src/modules/equipo/features/auth`,
+    `src/app/auth` y `src/app/(acceso)`; (4) RLS: una migración que crea, cambia o borra una policy, o enciende RLS en una tabla; (5) el
+    layout: `src/app/layout.tsx`, `src/app/(app)/layout.tsx`, `src/app/(app)/_shell` y `src/app/(acceso)/layout.tsx`; (6) el esquema base:
+    `supabase/schemas` y `supabase/migrations/20261011000000_esquema_base.sql`. Además de lo dirigido corre
+    `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve` en otra terminal): **sólo escritorio, ~20 min**. Un
+    componente, el proxy, una policy o el layout los usan todas las pantallas: lo dirigido no alcanza para ver lo que rompe en otra. Corre
+    **después del último cambio de código**; si el código cambia después, se vuelve a correr.
   - **Nivel 3 — un cierre de fase:** `pnpm test:e2e:completo` con los dos proyectos, sin la bandera.
     La BITACORA dice cuál se corrió: `e2e completo: sí|no (<tarea>)`. Un nivel que no se corrió se dice, no se da por pasado.
 - **Una captura para mirar se toma con `capturar()` de `e2e/soporte/recorrido.ts`** (o `capturarEn()` de `e2e/soporte/capturas.ts`), nunca
