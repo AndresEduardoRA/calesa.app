@@ -105,6 +105,9 @@ test('la dueña cambia el nombre y la zona horaria y se ven en el shell', async 
     await page.getByRole('button', { name: 'Abrir el menú' }).click()
     await expect(page.getByRole('dialog').getByText(nombre)).toBeVisible()
     await page.keyboard.press('Escape')
+    // Mientras el menú se va, la barra superior ya se ve y el menú aún tiene su copia del botón: el clic de abajo
+    // vería dos «Tipos de cambio» (visto en la corrida del 5a-fix-3: el clic salió 1 ms después del Escape).
+    await expect(page.getByRole('dialog')).toBeHidden()
   } else {
     await expect(page.getByRole('complementary').getByText(nombre)).toBeVisible()
   }
