@@ -64,3 +64,7 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   ruta se lee con una función que niegue lo que no es uuid (`puede_objeto_de_vehiculo`), no con un
   cast suelto.
 - Renombrar columnas o tablas: migración a mano con `alter … rename`; el diff lo ve como drop+add.
+- **El nombre de una migración nueva lleva un prefijo mayor al de la última** (`ls supabase/migrations | tail -1`: hoy
+  `20261019003300`, y la siguiente `20261019003400`), no la fecha de hoy: los prefijos van por delante de la fecha real y
+  `supabase migration new` la dejaría antes de las que ya la necesitan (`db reset` aplica por orden de nombre). Una guarda de
+  `pnpm test` (`scripts/guardas/orden-de-migraciones.test.ts`) lo exige a toda migración que HEAD no tiene. Las que ya están no se renombran.
