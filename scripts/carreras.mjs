@@ -20,6 +20,7 @@ import { carrerasDeDeshacer, carrerasDeImportacion } from './carreras/importacio
 import { carrerasDeAlta } from './carreras/alta.mjs'
 import { carrerasDeOrigenes } from './carreras/origenes.mjs'
 import { carrerasDeTipos } from './carreras/tipos.mjs'
+import { carrerasDeMarcas } from './carreras/marcas.mjs'
 import { carrerasDeNumeros } from './carreras/numeros.mjs'
 import { carrerasDeLaCartera, carrerasDePrivacidad } from './carreras/cartera.mjs'
 
@@ -324,6 +325,7 @@ try {
   await carrerasDeAlta({ orquesta, carrera, espero, conectar })
   await carrerasDeOrigenes({ orquesta, carrera, espero })
   await carrerasDeTipos({ orquesta, carrera, espero })
+  await carrerasDeMarcas({ orquesta, carrera, espero })
   await carrerasDeNumeros({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeLaCartera({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDePrivacidad({ orquesta, carrera, espero })

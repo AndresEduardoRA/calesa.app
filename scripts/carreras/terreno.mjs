@@ -26,6 +26,8 @@ export async function limpiar(db) {
   await db.query(`delete from public.importaciones where usuario_id = any ($1::uuid[])`, [personas])
   await db.query(`delete from public.seguimientos where usuario_id = any ($1::uuid[])`, [personas])
   await db.query(`delete from public.leads where nombre like $1`, [`${PREFIJO}%`])
+  // Las etiquetas de las carreras de las marcas (después de sus leads: `leads_etiquetas` las une).
+  await db.query(`delete from public.etiquetas where usuario_id = any ($1::uuid[])`, [personas])
   // Los campos de las carreras de privacidad (9h), después de sus leads.
   await db.query(`delete from public.leads_campos where clave like 'carreras_%'`)
   // Los orígenes del lead que crearon las carreras (después de los leads: la FK es restrict).
