@@ -12,6 +12,8 @@
 // `goto` y `reload` esperan; las páginas de otras personas (`browser.newContext`) también.
 import { test as base, type Browser, type BrowserContext, type Page } from '@playwright/test'
 
+import { empezarHuella } from './huella'
+
 export * from '@playwright/test'
 
 const ASENTADA = () => document.querySelector('[id^="S:"]') === null
@@ -63,5 +65,16 @@ export const test = base.extend<object, { browser: Browser }>({
   ],
   context: async ({ context }, entregar) => {
     await entregar(conEspera(context))
+  },
+  // Con `E2E_HUELLA=<carpeta>` la página graba lo que hace la prueba (`e2e/soporte/huella.ts`); sin la variable, nada.
+  page: async ({ page }, entregar, info) => {
+    const carpeta = process.env['E2E_HUELLA']
+    if (!carpeta) {
+      await entregar(page)
+      return
+    }
+    const huella = await empezarHuella(page, info, carpeta)
+    await entregar(page)
+    await huella.terminar()
   },
 })
