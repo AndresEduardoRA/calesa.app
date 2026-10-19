@@ -168,6 +168,7 @@ test('anotar desde el drawer: el modal va adentro, Esc y «atrás» cierran sól
   await expect(recordatorio(page, 'Anotado desde el drawer')).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('agendar en «Recordatorios» (arriba, sin pasar por los seguimientos), Esc y «atrás», y eliminar con «Deshacer»', async ({
   page,
 }, info) => {
@@ -207,6 +208,7 @@ test('agendar en «Recordatorios» (arriba, sin pasar por los seguimientos), Esc
   await expect(seguimiento(page, 'Para eliminar en el drawer')).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('fuera de la cartera: ni «Anotar» ni «Agendar», y la URL no abre el modal', async ({
   page,
 }, info) => {

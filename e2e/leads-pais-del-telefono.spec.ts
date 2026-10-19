@@ -12,6 +12,8 @@ import { exigir } from './soporte/leads'
 import { codigoDePaisDeLaEmpresa, leadsConTelefono, telefonoAlAzar } from './soporte/leads-alta'
 import { abrirAgregarTelefono } from './soporte/leads-ficha-telefonos'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // El país del teléfono, contra la app compilada y el Supabase local: se dice al tipear (sin pedir
 // nada), «País» lo sigue mientras la persona no lo toque, la ficha lo muestra y la tabla no viaja
 // hasta que se abre el alta.

@@ -20,6 +20,7 @@ test.afterAll(async () => {
   await limpiarRecorrido(r)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('con un modal abierto, el aviso está en el árbol de accesibilidad y se alcanza con el teclado', async ({
   page,
 }) => {
@@ -80,6 +81,7 @@ async function abrirAlta(page: Page) {
   return page.getByRole('dialog', { name: 'Nuevo lead' })
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('«Abrir ficha» con el siguiente lead a medio escribir pregunta en el pie: «Seguir editando» no tira nada', async ({
   page,
 }, info) => {

@@ -159,6 +159,7 @@ test('un doble clic en «Mover» manda un solo pedido y el modal no se cierra mi
   expect(enviadas).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('una URL escrita a mano que no se puede abrir no abre nada, avisa y se limpia', async ({
   page,
 }, info) => {
@@ -210,6 +211,7 @@ test('si la oportunidad la mueve otra pestaña con el modal abierto, el conflict
   expect((await enLaBase(op.id))?.etapa_id).toBe(etapa(embudo, 'Cotizado'))
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('en la ficha: la misma URL, el mismo modal, y mueve con el motivo', async ({ page }, info) => {
   const lead = await leadDeBerta(`Motivo Ficha ${info.project.name}`)
   const titulo = `Motivo ficha ${info.project.name}`

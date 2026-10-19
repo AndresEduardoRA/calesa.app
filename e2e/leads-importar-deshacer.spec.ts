@@ -70,6 +70,7 @@ async function leadsDe(patron: string): Promise<Lead[]> {
   return data ?? []
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('deshacer completo: lo importado va a la papelera, en un lote de quien importó', async ({
   page,
 }, info) => {
@@ -131,6 +132,7 @@ test('con una parte que ya cambió: sale lo intacto y lo editado se queda, con s
   ])
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('«Tus importaciones recientes» sobrevive a cerrar la pantalla y deshace desde ahí, también en oscuro', async ({
   page,
 }, info) => {
@@ -160,6 +162,7 @@ test('«Tus importaciones recientes» sobrevive a cerrar la pantalla y deshace d
   expect((await leadsDe(`${nombre}%`)).every((l) => l.eliminado_en !== null)).toBe(true)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('fuera de plazo: la base lo rechaza sin tocar nada y la lista ya no la ofrece', async ({
   page,
 }, info) => {
@@ -198,6 +201,7 @@ test('fuera de plazo: la base lo rechaza sin tocar nada y la lista ya no la ofre
   ).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('«Deshacer importación» en las recientes: su URL, Esc, atrás, recarga, sin red y un solo pedido', async ({
   page,
   context,
@@ -225,6 +229,7 @@ test('«Deshacer importación» en las recientes: su URL, Esc, atrás, recarga, 
   expect((await leadsDe(`${nombre}%`)).every((l) => l.eliminado_en !== null)).toBe(true)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('«Deshacer importación» en el resultado: su URL; al recargar el resultado se va y la URL se limpia', async ({
   page,
 }, info) => {
@@ -247,6 +252,7 @@ test('«Deshacer importación» en el resultado: su URL; al recargar el resultad
   expect((await leadsDe(`${nombre}%`)).every((l) => l.eliminado_en === null)).toBe(true)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('una importación que no está entre las recientes no abre nada, avisa y limpia la URL', async ({
   page,
 }) => {

@@ -9,6 +9,8 @@ import { entrar, limpiarInventario, prepararInventario, type Terreno } from './s
 import { estadoDe } from './soporte/papelera'
 import { cargarVehiculos, vehiculoPorTitulo } from './soporte/vehiculos'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // La purga de la papelera de vehículos, con su URL (cierre 2): `?panel=purgar&lote=<id>&vehiculo=<id>`. Se abre, Esc devuelve el
 // foco, «atrás» y la recarga funcionan, sin red no deja confirmar, un doble clic manda un solo pedido y un lote que no está en la
 // página no abre nada. El desvincular y el eliminar origen se recorren en `leads-vehiculos*.spec.ts` y `origenes.spec.ts`.

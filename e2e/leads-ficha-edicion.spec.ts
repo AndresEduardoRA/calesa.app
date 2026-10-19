@@ -102,6 +102,7 @@ test('edita los fijos y un dato propio, y sólo viaja lo que cambió', async ({ 
   expect(guardado.atributos['e2e_color']).toBe('verde')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('guardar sin cambiar nada cierra y no mueve la versión', async ({ page }, info) => {
   const lead = await fichaDeBerta(page, `SinCambios ${info.project.name}`)
   const antes = await versionDe(lead.id)
@@ -152,6 +153,7 @@ test('dos personas editan: la segunda ve de quién es el cambio y conserva lo qu
   await otra.context().close()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un seguimiento que entra mientras se edita no da conflicto', async ({ page }, info) => {
   const lead = await fichaDeBerta(page, `Seguimiento ${info.project.name}`)
   const panel = await abrirEdicion(page)
@@ -168,6 +170,7 @@ test('un seguimiento que entra mientras se edita no da conflicto', async ({ page
   )
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un requerido nuevo vacío en un lead viejo se marca antes de guardar, con el foco', async ({
   page,
 }, info) => {
@@ -199,6 +202,7 @@ test('un requerido nuevo vacío en un lead viejo se marca antes de guardar, con 
   }
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un origen y un campo desactivados con dato se conservan', async ({ page }, info) => {
   const { data: origen, error } = await admin()
     .from('origenes_lead')
@@ -241,6 +245,7 @@ test('un origen y un campo desactivados con dato se conservan', async ({ page },
   }
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('cerrar con cambios sin guardar los conserva como borrador', async ({ page }, info) => {
   await fichaDeBerta(page, `Borrador ${info.project.name}`)
   const panel = await abrirEdicion(page)
@@ -253,6 +258,7 @@ test('cerrar con cambios sin guardar los conserva como borrador', async ({ page 
   await expect(reabierto.getByLabel('Nombre')).toHaveValue(escrito)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('se cae la conexión al guardar: lo escrito queda y sale una sola vez al volver', async ({
   page,
 }, info) => {
@@ -276,6 +282,7 @@ test('se cae la conexión al guardar: lo escrito queda y sale una sola vez al vo
   expect(await edicionesRegistradas(lead.id)).toBe(antes + 1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('se revoca el acceso con la ficha abierta: guardar lo dice y la ficha deja de verse', async ({
   page,
 }, info) => {
@@ -289,6 +296,7 @@ test('se revoca el acceso con la ficha abierta: guardar lo dice y la ficha deja 
   expect((await leadEnLaBase(lead.id)).nombre).toBe(lead.nombre)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la dueña con «todos» ve lo ajeno y no lo edita: sin botón, sin panel y la base lo rechaza', async ({
   page,
 }, info) => {

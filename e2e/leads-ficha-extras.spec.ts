@@ -101,6 +101,7 @@ test('agrega, rotula, quita y deshace un extra, sin mover la versión', async ({
   expect(await constanciasDe(lead.id, 'lead.telefono_extra_quitado')).toBe(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un extra repetido, igual al principal o con una etiqueta larga se dice junto al campo', async ({
   page,
 }, info) => {
@@ -125,6 +126,7 @@ test('un extra repetido, igual al principal o con una etiqueta larga se dice jun
   expect(await extrasDeLead(lead.id)).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('con 10 extras no se agrega otro, y la ficha lo dice', async ({ page }, info) => {
   const lead = await fichaDeBerta(t, page, `Tope ${info.project.name}`)
   await ponerExtras(
@@ -140,6 +142,7 @@ test('con 10 extras no se agrega otro, y la ficha lo dice', async ({ page }, inf
   await expect(modalDeExtra(page)).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el modal vive en la URL: recargar lo reabre y «atrás» lo cierra', async ({ page }, info) => {
   const lead = await fichaDeBerta(t, page, `URL ${info.project.name}`)
   await abrirAgregarTelefono(page)
@@ -150,6 +153,7 @@ test('el modal vive en la URL: recargar lo reabre y «atrás» lo cierra', async
   await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin conexión lo escrito queda y se agrega solo al volver, una vez; un doble clic agrega uno', async ({
   page,
 }, info) => {
@@ -174,6 +178,7 @@ test('sin conexión lo escrito queda y se agrega solo al volver, una vez; un dob
   expect(await extrasDeLead(lead.id)).toHaveLength(2)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la dueña con «todos» y sin cartera no ve ninguna acción y la base la rechaza', async ({
   page,
 }, info) => {

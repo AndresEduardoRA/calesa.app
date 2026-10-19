@@ -238,6 +238,7 @@ test('revocar pide confirmación, corta la sesión del cliente y deja volver a o
   await expect(seccionPortal(page).getByRole('button', { name: 'Revocar' })).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('bloqueado tras cinco fallos: dice hasta qué hora y «Desbloquear» lo limpia', async ({
   page,
 }, info) => {
@@ -306,6 +307,7 @@ test('en modo oscuro el código y el texto se leen igual', async ({ page }, info
   ).toBe(true)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('lo que aporta la ficha con la sección «Portal»', async ({ page }, info) => {
   const lead = await leadDePia(`Portal Pesa ${info.project.name}`)
   await otorgarComo(t.pia.email, lead.id, 'clave-pesa-1')

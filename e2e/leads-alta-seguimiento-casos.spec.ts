@@ -50,6 +50,7 @@ async function llenarDatos(page: Page, nacional: string, nombre: string) {
 const editorDelAlta = (page: Page): Locator =>
   dialogo(page).getByRole('textbox', { name: 'Detalle (opcional)' })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el editor y los campos del seguimiento no se piden hasta abrir el paso 2', async ({
   page,
 }) => {
@@ -83,6 +84,7 @@ test('el editor y los campos del seguimiento no se piden hasta abrir el paso 2',
   await expect.poll(() => conEditor.length).toBeGreaterThan(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('lo escrito del seguimiento, con su formato, vuelve tras recargar', async ({ page }, info) => {
   const { nacional } = nuevoNumero()
   await entrar(page, personas.duena)
@@ -108,6 +110,7 @@ test('lo escrito del seguimiento, con su formato, vuelve tras recargar', async (
   await expect(editorDelAlta(page).locator('strong')).toHaveText('Con formato')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('«Tomar lead» con seguimiento enriquecido y sin seguimiento', async ({ page }, info) => {
   await entrar(page, personas.duena)
   for (const conSeguimiento of [true, false]) {
@@ -142,6 +145,7 @@ test('«Tomar lead» con seguimiento enriquecido y sin seguimiento', async ({ pa
   }
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin tipos de seguimiento activos se guarda sin seguimiento y no se bloquea', async ({
   page,
 }, info) => {

@@ -169,6 +169,7 @@ test('B · el teclado recorre la lista y los textos y el tema oscuro caben: 200 
   })
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('C · la asesora no ve la pantalla, y su alta ofrece los tipos activos', async ({
   page,
 }, info) => {

@@ -137,6 +137,7 @@ test('una etiqueta de otra persona no se pone ni se nombra; dos pedidos a la vez
   await borrarEtiquetasDe(t.personas.berta)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('compartir y transferir no mueven ni muestran las marcas; revocar saca el lead del listado y la marca queda', async ({
   page,
 }, info) => {

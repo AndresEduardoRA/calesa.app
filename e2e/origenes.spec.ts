@@ -20,6 +20,8 @@ import { apagarApibara } from './soporte/apibara'
 import { descartarAviso } from './soporte/inventario'
 import { ingresar } from './soporte/pasos'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // Configuración › Orígenes contra la app compilada y el Supabase local. Una sola historia, en
 // orden: se crean un origen manual y uno de subasta (cada uno con su flujo y sus campos), se edita
 // el layout, y se prueban los casos no felices. Al terminar se borra todo lo que se creó.

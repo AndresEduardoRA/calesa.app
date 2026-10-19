@@ -55,6 +55,7 @@ test.afterAll(async () => {
   await borrarRolesDePrueba()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un alta con el origen que se apagó mientras tanto falla con un mensaje legible', async ({
   page,
 }) => {
@@ -91,6 +92,7 @@ test('un alta con el origen que se apagó mientras tanto falla con un mensaje le
     .eq('id', origen?.id ?? '')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('dos personas editando el mismo origen: la segunda ve el conflicto y lo escrito queda', async ({
   page,
   browser,
@@ -121,6 +123,7 @@ test('dos personas editando el mismo origen: la segunda ve el conflicto y lo esc
   await contexto.close()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('una URL que nombra un origen que no existe no abre nada y lo dice', async ({ page }) => {
   await entrar(page, duena)
   await page.goto(
@@ -131,6 +134,7 @@ test('una URL que nombra un origen que no existe no abre nada y lo dice', async 
   await expect.poll(() => page.url()).not.toContain('panel=')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el tope de 100: lo dice, apaga «Nuevo origen» y la base no deja pasar', async ({ page }) => {
   await llenarHasta(100)
   await entrar(page, duena)
@@ -143,6 +147,7 @@ test('el tope de 100: lo dice, apaga «Nuevo origen» y la base no deja pasar', 
   await borrarOrigenesDePrueba().catch(() => undefined)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la asesora no entra a la pantalla ni puede llamar la RPC', async ({ page }) => {
   await entrar(page, asesora, { fresco: true })
   await page.goto('/configuracion/leads?seccion=origenes')

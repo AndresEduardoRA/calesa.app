@@ -46,6 +46,7 @@ const telefono = () => `${t.codigo}${telefonoAlAzar()}`
 const deBerta = (corto: string) =>
   nuevoLead({ corto, telefono: telefono(), deQuien: t.personas.berta })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('salir de un lead: su URL, Esc, atrás, recarga, sin red y un solo pedido', async ({
   page,
   context,
@@ -75,6 +76,7 @@ test('salir de un lead: su URL, Esc, atrás, recarga, sin red y un solo pedido',
   expect((await carteraEnLaBase(lead.id)).map((a) => a.usuario_id)).not.toContain(carlos)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('salir de un lead: quien es el dueño no lo abre escribiendo la URL', async ({
   page,
 }, info) => {
@@ -85,6 +87,7 @@ test('salir de un lead: quien es el dueño no lo abre escribiendo la URL', async
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('purgar de la papelera: su URL, Esc, atrás, recarga, sin red y un solo pedido', async ({
   page,
   context,
@@ -116,6 +119,7 @@ test('purgar de la papelera: su URL, Esc, atrás, recarga, sin red y un solo ped
   expect((await estadoDeLead(a.id))?.eliminado_en).not.toBeNull()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('purgar de la papelera: un lote que no está en la página no abre nada, avisa y limpia la URL', async ({
   page,
 }) => {

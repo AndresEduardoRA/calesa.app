@@ -99,6 +99,7 @@ test('se guarda el lead desde el paso 1, sin diálogo, y el aviso lo dice', asyn
   await expect(page).toHaveURL(new RegExp(`/leads/${lead?.id ?? ''}\\?seccion=seguimientos`))
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('con el paso 2 abierto y vacío también se guarda sin seguimiento, con el mismo aviso', async ({
   page,
 }, info) => {
@@ -210,6 +211,7 @@ test('«Próximo contacto» nace plegado y se programa con el teclado; uno en el
   expect(Date.parse(recordatorio?.recordar_en ?? '')).toBeGreaterThan(Date.now())
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un detalle o un próximo contacto sin resumen pide el resumen: no lo deriva', async ({
   page,
 }, info) => {
@@ -236,6 +238,7 @@ test('un detalle o un próximo contacto sin resumen pide el resumen: no lo deriv
   await expect(page.getByText(/^Lead creado(?! sin seguimiento)/)).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('lo pegado conserva sólo lo admitido y un detalle demasiado largo se dice junto al campo', async ({
   page,
 }, info) => {

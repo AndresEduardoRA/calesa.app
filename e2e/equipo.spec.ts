@@ -168,6 +168,7 @@ test('una persona invitada entra con su rol y ve sólo lo que sus permisos permi
   await expect(page.getByText('Invitación pendiente')).toBeHidden()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la dueña bloquea a alguien y esa persona queda afuera', async ({ page, browser }) => {
   await entrar(page, duena)
   // La invitada tiene su sesión abierta en otro navegador.
@@ -230,6 +231,7 @@ test('la dueña da de baja a alguien con leads, y una baja en curso se dice en l
   await expect(fila.getByText('Pasando sus leads…')).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el guardián no deja al equipo sin quien lo administre, y lo dice en claro', async ({
   page,
 }) => {

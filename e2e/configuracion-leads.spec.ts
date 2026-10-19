@@ -10,6 +10,8 @@ import { descartarAviso } from './soporte/inventario'
 import { borrarCamposDeLeadDePrueba, campoDeLead, camposDeLead, crearLead } from './soporte/leads'
 import { ingresar } from './soporte/pasos'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // Configuración › Leads › Campos contra la app compilada y el Supabase local. Una sola historia, en
 // orden: los campos de fábrica, un campo propio que se crea, se ordena, se vuelve privado y se
 // desactiva, y los casos no felices (con datos, sin permiso, dos personas a la vez). Al terminar se

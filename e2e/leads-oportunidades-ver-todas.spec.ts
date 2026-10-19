@@ -11,6 +11,8 @@ import {
   PRESUPUESTO_DE_LA_FICHA_CON_TODAS_EN_KB,
 } from './soporte/presupuestos'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // La sección «Oportunidades» de la ficha muestra las 10 más recientes y «Ver todas» (`?todas=1`) trae las que lee la base, hasta 100
 // (cierre 5b). Lo que no se ve no viaja con el documento de la ficha. El resto de la sección va en `leads-oportunidades.spec.ts`.
 test.describe.configure({ mode: 'serial' })

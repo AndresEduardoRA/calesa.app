@@ -86,6 +86,7 @@ test('la primera persona que se registra nace dueña y ve su menú', async ({ pa
   }
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('con el equipo ya creado y el registro cerrado no se ofrece crear cuenta', async ({
   page,
 }) => {
@@ -99,6 +100,7 @@ test('con el equipo ya creado y el registro cerrado no se ofrece crear cuenta', 
   await expect(page.getByLabel('Contraseña')).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('una contraseña mala da un mensaje que no dice si el correo existe', async ({ page }) => {
   await page.goto('/ingreso')
 

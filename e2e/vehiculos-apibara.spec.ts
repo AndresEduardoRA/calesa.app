@@ -18,6 +18,8 @@ import {
 } from './soporte/apibara'
 import { aLaVista, descartarAviso, entrar } from './soporte/inventario'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // El alta por apibara contra la app compilada y el Supabase local. Ningún test llama a la API
 // real: la edge function se intercepta en el navegador y contesta con lo grabado (Copart e IAAI).
 // La función verdadera se prueba aparte (`vehiculos-apibara-funcion.spec.ts`). Una sola historia,

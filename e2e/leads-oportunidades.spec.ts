@@ -34,6 +34,7 @@ const irAOportunidades = (page: Parameters<typeof irAFicha>[0], leadId: string) 
 const item = (page: Parameters<typeof irAFicha>[0], titulo: string) =>
   aLaVista(page.getByRole('article', { name: titulo }))
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('crear desde el panel: lo que falta se dice junto al campo y entra en la etapa inicial', async ({
   page,
 }, info) => {
@@ -60,6 +61,7 @@ test('crear desde el panel: lo que falta se dice junto al campo y entra en la et
   await expect(item(page, titulo).getByText('Quiere financiar')).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('editar con versión: otra pestaña la cambió y se ofrece «Recargar» sin perder lo escrito', async ({
   page,
 }, info) => {
@@ -121,6 +123,7 @@ test('mover a una ganada desde la ficha y reabrir; eliminar ofrece «Deshacer»'
   await expect.poll(async () => (await enLaBase(op.id))?.eliminado_en).toBeNull()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('quién la ve: el compartido tiene la sección pero no la de Berta; la dueña con «todos» no tiene la sección', async ({
   page,
   browser,

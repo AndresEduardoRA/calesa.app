@@ -163,6 +163,7 @@ test('edita un tipo de cambio y aparece en la barra superior y en el historial',
   await expect(enLaBarra).toContainText('7,13')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin el permiso de ajustes, la pestaña Empresa sale deshabilitada con el motivo', async ({
   page,
   browser,
@@ -186,6 +187,7 @@ test('sin el permiso de ajustes, la pestaña Empresa sale deshabilitada con el m
   await suya.context().close()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('guarda la clave de apibara sin volver a mostrarla, y recién entonces la activa', async ({
   page,
 }) => {
@@ -235,6 +237,7 @@ test('guarda la clave de apibara sin volver a mostrarla, y recién entonces la a
   expect(await page.content()).not.toContain(secreto)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin conexión, el formulario avisa y conserva lo tipeado', async ({ page, context }) => {
   await entrar(page, duena)
   await page.goto('/configuracion/empresa')
@@ -266,6 +269,7 @@ test('sin conexión, el formulario avisa y conserva lo tipeado', async ({ page, 
 
 type Manifest = { name: string; icons: { src: string; purpose?: string }[] }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('carga el logo al guardar, regenera los íconos y el manifest los sirve', async ({
   page,
   request,
@@ -345,6 +349,7 @@ test('carga el logo al guardar, regenera los íconos y el manifest los sirve', a
   expect(neutro.icons[0]?.src).toBe('/iconos/icono-192.png')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la dueña abre el registro y otra persona crea su cuenta y entra, sin rol', async ({
   page,
   browser,

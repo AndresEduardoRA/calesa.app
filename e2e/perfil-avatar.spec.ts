@@ -12,6 +12,8 @@ import { ingresar } from './soporte/pasos'
 import { capturar } from './soporte/recorrido'
 import { literal, sql } from './soporte/sql'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // El avatar chico (cierre 1): al subir la foto se guardan dos tamaños (512 y 96 px); la lista del equipo dibuja la
 // miniatura; y lo que ya existía lo rellena la edge function `avatares-miniaturas` (una persona dada de baja también;
 // una imagen corrupta queda marcada y no se reintenta).

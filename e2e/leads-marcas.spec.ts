@@ -39,6 +39,7 @@ async function leadDeBerta(corto: string) {
   return nuevoLead({ corto, telefono: completoCon(t, nacional()), deQuien: t.personas.berta })
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('favorito y tachado desde el «⋯» de la ficha: siguen al recargar y no mueven la versión', async ({
   page,
   browser,

@@ -37,6 +37,7 @@ test.afterAll(async () => {
 const leadDeBerta = (corto: string) =>
   nuevoLead({ corto, telefono: completoCon(t, nacional()), deQuien: t.personas.berta })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la primera vez prepara el embudo por defecto, con sus etapas, y dice que los filtros no aplican', async ({
   page,
 }) => {
@@ -148,6 +149,7 @@ test('cada columna trae 50 y «Ver más» suma las siguientes', async ({ page },
   await expect(columna.getByRole('button', { name: /Ver más/ })).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('las etapas: las reglas se dicen, se reordenan y una con oportunidades no se quita', async ({
   page,
 }, info) => {

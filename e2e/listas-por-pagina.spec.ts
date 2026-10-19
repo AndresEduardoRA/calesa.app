@@ -209,6 +209,7 @@ test('un valor manipulado en la URL se ignora y manda la preferencia; uno válid
   expect(await preferenciaDe(t.personas.berta)).toBe(25)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('una lista con menos filas que la página no ofrece páginas, y el selector sigue ahí', async ({
   page,
 }) => {

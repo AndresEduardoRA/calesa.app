@@ -66,6 +66,7 @@ async function preguntaAlDescartar(
   await expect(page).not.toHaveURL(/panel=/)
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('nuevo rol: sin nada cierra; con algo escrito pregunta; descartar lo tira y la apertura siguiente empieza vacía', async ({
   page,
 }) => {
@@ -162,6 +163,7 @@ test('al 200 % el campo de una etiqueta nueva cabe en su modal y se lee', async 
   await cabeEnElModal(etiquetas, etiquetas.getByLabel('Nombre de la etiqueta nueva'), 200)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('invitar: con algo escrito pregunta; sin rol dice el motivo junto al campo', async ({
   page,
 }) => {
@@ -187,6 +189,7 @@ test('invitar: con algo escrito pregunta; sin rol dice el motivo junto al campo'
   await expect(dialogo.getByLabel('Nombre y apellido')).toHaveValue('')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('nuevo embudo: con algo escrito pregunta; un nombre repetido se dice junto al campo', async ({
   page,
 }) => {
@@ -212,6 +215,7 @@ test('nuevo embudo: con algo escrito pregunta; un nombre repetido se dice junto 
   await expect(dialogo.getByLabel('Nombre')).toHaveValue('')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('nuevo embudo sin conexión: lo escrito queda, se dice, y se crea solo al volver', async ({
   page,
 }, info) => {
@@ -237,6 +241,7 @@ test('nuevo embudo sin conexión: lo escrito queda, se dice, y se crea solo al v
   await expect(dialogo).toBeHidden()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('etiquetas: lo escrito en «Nueva etiqueta» pregunta antes de descartar', async ({ page }) => {
   await entrar(page, terreno.personas.berta)
   await page.goto('/leads?panel=etiquetas')
@@ -255,6 +260,7 @@ test('etiquetas: lo escrito en «Nueva etiqueta» pregunta antes de descartar', 
   })
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin permiso para gestionar, la URL de nuevo rol o de invitar no abre nada', async ({
   page,
 }) => {

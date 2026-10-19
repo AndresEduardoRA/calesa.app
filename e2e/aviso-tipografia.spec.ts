@@ -4,6 +4,8 @@ import { irAFicha, ponerExtras } from './soporte/leads-ficha'
 import { nacional } from './soporte/leads-ficha-telefonos'
 import { limpiarRecorrido, prepararRecorrido, type TerrenoDelRecorrido } from './soporte/recorrido'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // Los avisos (sonner) usan la tipografía de la app, no la del sistema (cierre 2): sonner inyecta su propio `font-family` y le
 // ganaba a la que hereda de `<html>`. Se compara la fuente calculada del aviso con la del cuerpo, en claro y en oscuro.
 test.describe.configure({ mode: 'serial' })

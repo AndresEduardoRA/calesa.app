@@ -59,6 +59,7 @@ test.afterAll(async () => {
   await borrarRolesDePrueba()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('apagar el último activo de su clase con la lista vieja: la base lo rechaza, lo dice y la pantalla se vuelve a leer', async ({
   page,
 }) => {
@@ -84,6 +85,7 @@ test('apagar el último activo de su clase con la lista vieja: la base lo rechaz
   await admin().from('tipos_lead').update({ activo: true }).eq('id', cliente.id)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('dos personas editando el mismo tipo: la segunda ve el conflicto y lo escrito queda', async ({
   page,
   browser,
@@ -112,6 +114,7 @@ test('dos personas editando el mismo tipo: la segunda ve el conflicto y lo escri
   await contexto.close()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('una URL que nombra un tipo que no existe no abre nada y lo dice', async ({ page }) => {
   await entrar(page, duena)
   await page.goto(
@@ -122,6 +125,7 @@ test('una URL que nombra un tipo que no existe no abre nada y lo dice', async ({
   await expect.poll(() => page.url()).not.toContain('panel=')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el tope de 100: lo dice, apaga «Nuevo tipo» y la base no deja pasar', async ({ page }) => {
   await llenarHasta(100)
   await entrar(page, duena)
@@ -143,6 +147,7 @@ test('el tope de 100: lo dice, apaga «Nuevo tipo» y la base no deja pasar', as
   await borrarTiposDePrueba().catch(() => undefined)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la asesora no entra a la pantalla ni puede llamar la RPC', async ({ page }) => {
   await entrar(page, asesora, { fresco: true })
   await page.goto('/configuracion/leads?seccion=tipos')

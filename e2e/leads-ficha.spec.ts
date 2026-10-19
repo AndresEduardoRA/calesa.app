@@ -46,6 +46,7 @@ test.afterAll(async () => {
 
 const nacionalDe = (completo: string) => completo.slice(t.codigo.length)
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la cartera ve su ficha: teléfono completo, quién lo tiene y sus datos', async ({ page }) => {
   const id = await idDeLead(PROPIO_BERTA)
   await entrar(page, t.personas.berta)
@@ -81,6 +82,7 @@ test('desde el drawer del listado: «Abrir ficha» lleva a la ficha, ya con el n
   await expect(tituloDeLaFicha(page, nombre(PROPIO_BERTA))).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('«Ya existe: … · Abrir» del alta lleva a la ficha del lead', async ({ page }) => {
   const id = await idDeLead(PROPIO_BERTA)
   const telefono = await telefonoDeLead(id)
@@ -97,6 +99,7 @@ test('«Ya existe: … · Abrir» del alta lleva a la ficha del lead', async ({ 
   await expect(dialogo(page)).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el toast «Abrir ficha» del alta lleva al lead recién creado', async ({ page }, info) => {
   const corto = `Toast ${info.project.name}`
   await entrar(page, t.personas.berta)
@@ -114,6 +117,7 @@ test('el toast «Abrir ficha» del alta lleva al lead recién creado', async ({ 
   await expect(page).toHaveURL(/\/leads\/[0-9a-f-]{36}$/)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la dueña con «todos» ve la ficha ajena con los teléfonos enmascarados y sin privados', async ({
   page,
 }) => {
@@ -143,6 +147,7 @@ test('la dueña con «todos» ve la ficha ajena con los teléfonos enmascarados 
   await expect(cuerpo.getByText('Lo tiene Carlos Alta Prueba')).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('inexistente, ajeno, en limbo y en la papelera se ven exactamente igual', async ({ page }) => {
   const enLimbo = await crearLead({
     nombre: 'Ficha Limbo',
@@ -182,6 +187,7 @@ test('inexistente, ajeno, en limbo y en la papelera se ven exactamente igual', a
   expect(new Set(textos).size).toBe(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin leads.editar no hay botón y la URL de edición no abre nada', async ({ page }) => {
   const id = await idDeLead(PROPIO_DALIA)
   await entrar(page, t.personas.sinCrear)
@@ -257,6 +263,7 @@ test('abrir la ficha trae poco: lo que aporta sobre el resto de la pantalla y lo
 // (El shell sí los manda, para el alta: lo pagan todas las pantallas por igual, también `/perfil`; `docs/PLAN.md`, 5b-1.)
 const PREFIJO_DE_CATALOGO = 'E2E catálogo ficha'
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('los orígenes y los tipos de lead no viajan con la ficha: con los 100 de cada uno aporta lo mismo', async ({
   page,
 }, info) => {

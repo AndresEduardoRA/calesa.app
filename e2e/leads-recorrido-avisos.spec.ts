@@ -108,6 +108,7 @@ test('D · «Abrir ficha» del aviso de un lead nuevo con un modal sucio abierto
   ).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('E · sin red: lo escrito en el modal queda y sale una vez; «Ver más» dice que es la conexión', async ({
   page,
 }, info) => {

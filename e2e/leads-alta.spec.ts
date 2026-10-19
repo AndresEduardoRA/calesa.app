@@ -50,6 +50,7 @@ const nuevoNumero = () => {
   return { nacional, normalizado: `${codigo}${nacional}` }
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('tarea de oro 1: de N al lead guardado con seguimiento, sólo con el teclado', async ({
   page,
 }, info) => {
@@ -138,6 +139,7 @@ test('el teléfono pegado con espacios, guiones, paréntesis, «+» y «00» lle
   await expect(panel.getByText('Se guardará como +54 91155550000 · Argentina.')).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('lo que no es un teléfono se dice junto al campo, al salir de él', async ({ page }) => {
   await entrar(page, personas.duena)
   await abrirConN(page)
@@ -193,6 +195,7 @@ test('un teléfono que ya es mío: se dice al terminar de tipear y no deja crear
   expect(await leadsConTelefono(normalizado)).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el de otra persona dice de quién es y nada más del lead', async ({ page }, info) => {
   const { nacional, normalizado } = nuevoNumero()
   const secreto = `E2E Ajeno ${info.project.name}`
@@ -219,6 +222,7 @@ test('el de otra persona dice de quién es y nada más del lead', async ({ page 
   expect(await leadsConTelefono(normalizado)).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un lead sin dueño se toma al guardar, no pisa lo que tiene y deja constancia', async ({
   page,
 }, info) => {
@@ -262,6 +266,7 @@ test('un lead sin dueño se toma al guardar, no pisa lo que tiene y deja constan
   expect((await seguimientosDe(leadId)).map((s) => s.titulo)).toEqual(['Retomé el contacto'])
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el último origen que la persona usó queda elegido para el siguiente lead', async ({
   page,
 }, info) => {

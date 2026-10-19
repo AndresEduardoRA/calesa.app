@@ -71,6 +71,7 @@ test('agenda con «Mañana 09:00»; uno en el pasado se rechaza junto al campo',
   expect(new Date(guardados[0]?.recordar_en ?? '').getUTCHours()).toBe(13)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('anotar un seguimiento con recordatorio deja los dos, en una sola vez', async ({
   page,
 }, info) => {
@@ -87,6 +88,7 @@ test('anotar un seguimiento con recordatorio deja los dos, en una sola vez', asy
   expect(await recordatoriosEnLaBase(lead.id)).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('completar es poner: dos veces no cambia nada; reabrir lo devuelve', async ({
   page,
 }, info) => {
@@ -128,6 +130,7 @@ test('completar es poner: dos veces no cambia nada; reabrir lo devuelve', async 
   expect((await recordatoriosEnLaBase(lead.id))[0]?.completado_en).toBeNull()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un vencido se avisa arriba de la ficha; completarlo quita el aviso', async ({
   page,
 }, info) => {
@@ -151,6 +154,7 @@ test('un vencido se avisa arriba de la ficha; completarlo quita el aviso', async
   await expect(aviso).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('cambiar la hora de uno ya avisado lo vuelve a dejar por avisar; eliminar ofrece «Deshacer»', async ({
   page,
 }, info) => {
@@ -193,6 +197,7 @@ test('cambiar la hora de uno ya avisado lo vuelve a dejar por avisar; eliminar o
   expect((await recordatoriosEnLaBase(lead.id))[0]?.eliminado_en).toBeNull()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el recordatorio de otra persona no existe para ti, ni en el lead que comparten', async ({
   page,
 }, info) => {

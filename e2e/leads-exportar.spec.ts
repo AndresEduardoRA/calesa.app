@@ -125,6 +125,7 @@ async function descargar(page: Page): Promise<string> {
   return readFileSync(ruta, 'utf8')
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin leads.exportar el botón no se dibuja y el pedido directo es 403', async ({ page }) => {
   await entrar(page, t.personas.berta)
   await irALeads(page)
@@ -135,6 +136,7 @@ test('sin leads.exportar el botón no se dibuja y el pedido directo es 403', asy
   expect(directo.status()).toBe(403)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('ver «todos» sin el permiso tampoco exporta: el pedido directo es 403', async ({ page }) => {
   await entrar(page, t.personas.veTodos)
   await irALeads(page, '?alcance=todos')
@@ -145,6 +147,7 @@ test('ver «todos» sin el permiso tampoco exporta: el pedido directo es 403', a
   expect(directo.status()).toBe(403)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el pedido sale de esta aplicación: un origen ajeno o un GET se rechazan', async ({
   page,
 }) => {
@@ -205,6 +208,7 @@ test('«todos» exporta sólo su cartera: ni los leads ajenos ni sus privados sa
   expect(texto).not.toContain(CI_DE_CARLOS)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('una celda que empieza por una fórmula sale con apóstrofo y el resto queda entero', async ({
   page,
 }) => {
@@ -223,6 +227,7 @@ test('una celda que empieza por una fórmula sale con apóstrofo y el resto qued
   expect(peligrosas.filter((celda) => /^[=+\-@]/.test(celda))).toEqual([])
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('los filtros del listado viajan: se exporta lo que se ve', async ({ page }) => {
   await entrar(page, exporta)
   await irALeads(page, `?${new URLSearchParams({ q: 'Peligro Mas' }).toString()}`)
@@ -232,6 +237,7 @@ test('los filtros del listado viajan: se exporta lo que se ve', async ({ page })
   expect(csv).not.toContain('Peligro Menos')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('«ver como» un rol sin el permiso: el botón no se dibuja', async ({ page }) => {
   await entrar(page, t.personas.duena)
   await irALeads(page)
@@ -246,6 +252,7 @@ test('«ver como» un rol sin el permiso: el botón no se dibuja', async ({ page
   await expect(botonExportar(page)).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el límite por hora: la sexta se dice con la hora y no se descarga', async ({ page }) => {
   const id = await idDe(exporta)
   // Las que ya hizo en la última hora (tal como las deja la base).
@@ -270,6 +277,7 @@ test('el límite por hora: la sexta se dice con la hora y no se descarga', async
   await expect(dialogo).toBeHidden()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('más de 5.000 leads: no se exporta nada a medias y se dice cuántos hay', async ({ page }) => {
   test.setTimeout(180_000)
   const id = await idDe(masivo)

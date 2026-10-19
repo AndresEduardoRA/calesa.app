@@ -116,6 +116,7 @@ test('quien tiene al lead en su cartera ve el vínculo y edita el vehículo que 
   await expect(menuDeVehiculo(page, SUELTO)).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el interés de su lead se ve en el otro vehículo, que no puede editar', async ({ page }) => {
   await entrar(page, asesora)
   await abrirFicha(page, suelto, SUELTO)
@@ -131,6 +132,7 @@ test('el interés de su lead se ve en el otro vehículo, que no puede editar', a
   await expect(page.getByRole('button', { name: 'Elegir fotos' })).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('quien no tiene al lead en su cartera sabe que hay un vínculo, no de quién', async ({
   page,
 }) => {
@@ -144,6 +146,7 @@ test('quien no tiene al lead en su cartera sabe que hay un vínculo, no de quié
   await expect(interesados(page).getByText(/Ninguno de los leads que ves/)).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin permiso sobre leads el bloque no existe', async ({ page }) => {
   await entrar(page, soloCorea)
   await abrirFicha(page, vinculado, VINCULADO)

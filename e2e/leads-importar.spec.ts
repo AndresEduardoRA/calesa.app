@@ -56,6 +56,7 @@ const resumen = (page: Page, texto: string | RegExp) => aLaVista(page.getByText(
 const delResultado = (page: Page, texto: string) =>
   page.getByRole('region', { name: 'Resultado de la importación' }).getByText(texto)
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin leads.crear no se ofrece importar y la pantalla lo dice', async ({ page }) => {
   await entrar(page, t.personas.sinCrear)
   await page.goto('/leads')
@@ -65,6 +66,7 @@ test('sin leads.crear no se ofrece importar y la pantalla lo dice', async ({ pag
   await expect(page.getByText('No tienes permiso para importar leads.')).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el archivo de ejemplo trae las columnas del layout de hoy', async ({ page }) => {
   await entrar(page, t.personas.duena)
   await irAImportar(page)
@@ -80,6 +82,7 @@ test('el archivo de ejemplo trae las columnas del layout de hoy', async ({ page 
   expect([...encabezado.slice(4)].sort()).toEqual([...activos].sort())
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('filas buenas y malas: las válidas entran y las demás se explican; los errores se corrigen y se vuelven a subir', async ({
   page,
 }) => {
@@ -149,6 +152,7 @@ test('filas buenas y malas: las válidas entran y las demás se explican; los er
   expect(lineas).toHaveLength(6)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('los errores se corrigen y se vuelven a subir; el mismo archivo otra vez no duplica', async ({
   page,
 }) => {
@@ -183,6 +187,7 @@ test('los errores se corrigen y se vuelven a subir; el mismo archivo otra vez no
   expect(await leadsDeLaPrueba('E2E Corregida %')).toHaveLength(5)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un archivo que no es un CSV de texto se rechaza diciendo cómo guardarlo', async ({
   page,
 }) => {
@@ -242,6 +247,7 @@ test('se pierde la respuesta de un lote: reintentar no duplica', async ({ page }
   expect(await leadsDeLaPrueba('E2E Masa %')).toHaveLength(60)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('lo que pesa: el asistente trae poco y papaparse espera a que se elija un archivo', async ({
   page,
 }, info) => {

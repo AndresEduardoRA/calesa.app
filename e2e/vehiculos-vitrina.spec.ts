@@ -100,6 +100,7 @@ async function abrirFicha(page: Page, id: string, titulo: string) {
   await expect(page.getByRole('heading', { name: titulo, level: 1 })).toBeVisible()
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin el permiso, «Publicar en la web…» se ve apagado en el «⋯» y dice por qué', async ({
   page,
 }) => {
@@ -176,6 +177,7 @@ test('con el permiso se publica con su precio, mirando lo que verá el visitante
   await expect(aLaVista(page.getByText('En vitrina', { exact: true }))).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el visitante ve sólo lo publicado, con lo público y la portada', async ({ page }) => {
   const filas = await vitrinaPublica(CLAVE_DE_COREA)
   expect(filas.map((fila) => fila.titulo)).toEqual([SEDAN])
@@ -228,6 +230,7 @@ test('el inventario dice cuál está en vitrina y deja filtrarlo', async ({ page
   await expect(vehiculo(page, SEDAN)).toBeHidden()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('despublicar lo saca de la vitrina y conserva el precio', async ({ page }) => {
   await entrar(page, duena)
   await abrirFicha(page, sedan, SEDAN)
@@ -243,6 +246,7 @@ test('despublicar lo saca de la vitrina y conserva el precio', async ({ page }) 
   await expect(panel(page).getByLabel('Precio público')).toHaveValue('21500')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('lo que va a la papelera sale de la vitrina, y vuelve sin publicar', async ({ page }) => {
   await entrar(page, duena)
   await abrirFicha(page, sedan, SEDAN)

@@ -97,6 +97,7 @@ test('el listado dibuja una página de 50 filas y los nodos no crecen con las p�
 })
 
 // Cierre 1: no hay «página N» (con cursor no se sabe sin contar); arriba se dice lo que sí es verdad.
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('arriba dice «Los más recientes» o hasta qué fecha llega la página, y vuelve al principio con la búsqueda', async ({
   page,
 }) => {
@@ -270,6 +271,7 @@ test('una columna del kanban con más de 500: «500+», «Ver más» hasta el to
   await expect(page.getByText(/^Buscando «Escala kanban»/)).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin red, abrir un modal cuyo código nunca se pidió lo dice en su lugar y se reintenta', async ({
   page,
 }, info) => {

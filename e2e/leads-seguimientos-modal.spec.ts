@@ -38,6 +38,7 @@ async function leadDeBerta(corto: string) {
   return nuevoLead({ corto, telefono: completoCon(t, nacional()), deQuien: t.personas.berta })
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('Esc sin cambios cierra y el foco vuelve a quien lo abrió; el teclado recorre los campos y el pie', async ({
   page,
 }, info) => {
@@ -75,6 +76,7 @@ test('Esc sin cambios cierra y el foco vuelve a quien lo abrió; el teclado reco
   ).toBeFocused()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin conexión lo escrito queda y sale solo al volver, una vez', async ({ page }, info) => {
   const lead = await leadDeBerta(`Seg Modal Red ${info.project.name}`)
   await entrar(page, t.personas.berta)
@@ -91,6 +93,7 @@ test('sin conexión lo escrito queda y sale solo al volver, una vez', async ({ p
   expect(await seguimientosEnLaBase(lead.id)).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un id que no está, o de otra persona, no abre y lo dice igual', async ({
   page,
   browser,
@@ -128,6 +131,7 @@ test('un id que no está, o de otra persona, no abre y lo dice igual', async ({
   await otra.context().close()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin tipos activos el botón se apaga y dice por qué, y la URL no abre el formulario', async ({
   page,
 }, info) => {
@@ -157,6 +161,7 @@ test('sin tipos activos el botón se apaga y dice por qué, y la URL no abre el 
   }
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el lead que deja de verse con el modal abierto: lo dice adentro y lo escrito queda', async ({
   page,
 }, info) => {
@@ -180,6 +185,7 @@ test('el lead que deja de verse con el modal abierto: lo dice adentro y lo escri
   expect(await seguimientosEnLaBase(lead.id)).toEqual([])
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin la cartera no hay «Anotar» y la URL no lo abre', async ({ page }, info) => {
   const lead = await leadDeBerta(`Seg Modal Sin ${info.project.name}`)
   await entrar(page, t.personas.duena)

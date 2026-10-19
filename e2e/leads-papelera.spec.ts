@@ -70,6 +70,7 @@ test('desde la ficha: enviar a la papelera ofrece «Deshacer» y el lead vuelve'
   await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un lead en la papelera es, para la ficha, un lead que no existe', async ({ page }, info) => {
   const lead = await deBerta(`Ficha en papelera ${info.project.name}`)
   await entrar(page, t.personas.berta)
@@ -167,6 +168,7 @@ test('restaurar con el teléfono tomado: queda adentro y dice por qué', async (
   expect((await estadoDeLead(original.id))?.eliminado_en).not.toBeNull()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin permiso: la papelera no abre, no hay enlace y el «⋯» de la ficha no ofrece enviar', async ({
   page,
 }, info) => {

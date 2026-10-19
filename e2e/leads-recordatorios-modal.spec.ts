@@ -66,6 +66,7 @@ test('el modal vive en la URL: recargar lo reabre con lo escrito; Esc con cambio
   expect(await recordatoriosEnLaBase(lead.id)).toEqual([])
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un id que no está o uno completado no abren el modal y lo dicen', async ({ page }, info) => {
   const lead = await leadDeBerta(`Rec Id ${info.project.name}`)
   const berta = await idDePersona(t.personas.berta)
@@ -99,6 +100,7 @@ test('un id que no está o uno completado no abren el modal y lo dicen', async (
   await expect(modalDeRecordatorio(page, 'Editar')).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('cambiado en otra pestaña: el conflicto conserva lo escrito y «Recargar» deja guardarlo', async ({
   page,
 }, info) => {
@@ -137,6 +139,7 @@ test('cambiado en otra pestaña: el conflicto conserva lo escrito y «Recargar»
   expect((await recordatoriosEnLaBase(lead.id))[0]?.titulo).toBe('Lo mío')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('completado en otra pestaña con el modal abierto: lo dice y no se guarda', async ({
   page,
 }, info) => {
@@ -167,6 +170,7 @@ test('completado en otra pestaña con el modal abierto: lo dice y no se guarda',
   expect((await recordatoriosEnLaBase(lead.id))[0]?.titulo).toBe('Se completa solo')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin conexión lo escrito queda y se agenda solo al volver, una vez', async ({
   page,
 }, info) => {
@@ -186,6 +190,7 @@ test('sin conexión lo escrito queda y se agenda solo al volver, una vez', async
   expect(await recordatoriosEnLaBase(lead.id)).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin la cartera no hay «Agendar recordatorio» y la URL no lo abre', async ({ page }, info) => {
   const lead = await leadDeBerta(`Rec Sin Cartera ${info.project.name}`)
   await entrar(page, t.personas.duena)

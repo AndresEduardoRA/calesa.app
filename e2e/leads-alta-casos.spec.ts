@@ -51,6 +51,7 @@ async function llenarYSeguir(page: Page, telefono: string, nombre: string) {
   await expect(panel.getByLabel('Resumen')).toBeVisible()
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('se cae la conexión al guardar: el drawer lo conserva todo y guarda una sola vez al volver', async ({
   page,
   context,
@@ -113,6 +114,7 @@ test('la respuesta se perdió pero el lead entró: reintentar no duplica', async
   expect(await seguimientosDe(leads[0]?.id ?? '')).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('cerrar el drawer o recargar no pierde lo tipeado', async ({ page }, info) => {
   const { nacional } = nuevoNumero()
   const nombre = `E2E Borrador ${info.project.name}`
@@ -176,6 +178,7 @@ test('un campo requerido propio vacío se dice junto al campo y lleva el foco', 
   }
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('sin leads.crear no hay botón, ni atajo, ni URL, y la base lo rechaza', async ({ page }) => {
   await entrar(page, personas.sinCrear)
   await expect(page.getByRole('button', { name: 'Nuevo lead' })).toHaveCount(0)
@@ -194,6 +197,7 @@ test('sin leads.crear no hay botón, ni atajo, ni URL, y la base lo rechaza', as
   expect(verificar.error?.code).toBe('42501')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('con orígenes de lead apagados el drawer no ofrece el apagado, y sin ninguno se guarda sin origen', async ({
   page,
 }, info) => {
@@ -224,6 +228,7 @@ test('con orígenes de lead apagados el drawer no ofrece el apagado, y sin ningu
   }
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un recordatorio con fecha pasada se rechaza junto al campo y no guarda nada', async ({
   page,
 }, info) => {
@@ -245,6 +250,7 @@ test('un recordatorio con fecha pasada se rechaza junto al campo y no guarda nad
   await expect(page.getByText(/Lead creado/)).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un privado lo llena y lo ve quien queda en la cartera, y no quien sólo ve el lead', async ({
   page,
 }, info) => {

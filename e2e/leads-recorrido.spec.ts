@@ -133,6 +133,7 @@ test('A · el «⋯» de la asesora: sus acciones, cada modal y su descarte, y n
   await expect(boton).toBeFocused()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('A · un lead que la asesora no ve: la URL a mano no abre nada ni insinúa que existe', async ({
   page,
 }, info) => {

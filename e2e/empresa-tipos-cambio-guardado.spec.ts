@@ -7,6 +7,8 @@ import {
 } from './soporte/empresa'
 import { ingresar } from './soporte/pasos'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // El panel de un tipo de cambio no pierde lo que se teclea alrededor de guardar (cierre 2): el aviso «guardado» sale antes de que
 // el panel se dibuje con lo guardado y el formulario se reemplaza (`key` con la versión), así que mientras guarda y hasta que llega
 // lo guardado los campos están apagados; lo que se teclea en cuanto se pueden editar sobrevive. Igual que Empresa (`empresa-guardado.spec.ts`).

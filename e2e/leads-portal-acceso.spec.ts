@@ -13,6 +13,8 @@ import {
   type TerrenoDelPortal,
 } from './soporte/leads-portal'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // Quién tiene la sección «Portal»: con el lead en la cartera y `leads.portal.gestionar`. Sin el permiso
 // (aunque tenga la cartera), sin la cartera (aunque vea «todos» y tenga el permiso) o la dueña con
 // «todos», ni la pestaña ni `?seccion=portal` escrito a mano: abre «Datos», como lo que no existe.

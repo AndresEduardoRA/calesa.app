@@ -154,6 +154,7 @@ test('se envía desde la ficha, lo publicado se despublica, y «Deshacer» lo de
   })
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('lo que ya salió de su fase inicial no va: el menú lo dice antes de intentar', async ({
   page,
 }) => {
@@ -190,6 +191,7 @@ test('un lote desde el inventario: entran los que pueden y el resto se dice', as
   expect(await estadoDe(id(T.enTransito))).toMatchObject({ eliminado_en: null })
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la papelera lista por lote y restaura uno; un VIN que ya tomó otro queda pendiente', async ({
   page,
 }) => {
@@ -227,6 +229,7 @@ test('la papelera lista por lote y restaura uno; un VIN que ya tomó otro queda 
   await expect(loteDe(page, T.vin)).toBeHidden()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('purgar uno pide confirmar nombrándolo, y sus fotos salen de Storage con storage-gc', async ({
   page,
   context,
@@ -281,6 +284,7 @@ test('purgar uno pide confirmar nombrándolo, y sus fotos salen de Storage con s
   expect(await correrStorageGc()).toBe(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('purgar algo que otra persona ya restauró es un conflicto, y no purga nada', async ({
   page,
   browser,
@@ -316,6 +320,7 @@ test('purgar algo que otra persona ya restauró es un conflicto, y no purga nada
   expect(await estadoDe(id(T.disputado))).toMatchObject({ eliminado_en: null })
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('purgar un lote pide tipear, y quien no envió nada ve su papelera vacía', async ({
   page,
   browser,

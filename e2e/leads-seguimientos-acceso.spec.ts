@@ -34,6 +34,7 @@ async function leadDeBerta(corto: string) {
   return nuevoLead({ corto, telefono: completoCon(t, nacional()), deQuien: t.personas.berta })
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la lista blanca: un enlace javascript no entra por la pantalla ni por la RPC, y una fila escrita por fuera se dibuja inerte', async ({
   page,
 }, info) => {
@@ -104,6 +105,7 @@ test('la lista blanca: un enlace javascript no entra por la pantalla ni por la R
   expect(dialogos).toBe(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('pegar contenido con imágenes y encabezados deja sólo lo admitido, y el detalle tiene tope', async ({
   page,
 }, info) => {
@@ -147,6 +149,7 @@ test('pegar contenido con imágenes y encabezados deja sólo lo admitido, y el d
   expect(await seguimientosEnLaBase(lead.id)).toHaveLength(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la co-asesora ve sólo lo «Visible para el cliente» de la otra, sin conteo, y al revocarle la cartera deja de verlo', async ({
   page,
   browser,

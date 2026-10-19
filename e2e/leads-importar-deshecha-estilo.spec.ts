@@ -4,6 +4,8 @@ import { borrarLeadsDePrueba } from './soporte/leads'
 import { telefonoAlAzar } from './soporte/leads-alta'
 import { borrarLotesDePrueba } from './soporte/papelera'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // «Deshecha» en «Tus importaciones recientes» tiene un solo estilo (cierre 2): el estado de una insignia cambia de golpe, no se anima
 // el color. Con `transition-all` la palabra nueva se veía unos cuadros con el color de «Terminada» (gris) y recién después en el suyo
 // (azul): dos estilos para el mismo estado. Se muestrea el color cuadro a cuadro desde antes de confirmar.

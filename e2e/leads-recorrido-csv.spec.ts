@@ -18,6 +18,8 @@ import {
   volcarArbol,
 } from './soporte/recorrido'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // El recorrido de la IA (9d-3), el CSV: la dueña exporta su cartera (y la IA lee el archivo), y cada
 // cuenta importa un archivo de 20 filas con de todo —buenas, con tildes, un teléfono repetido en el
 // archivo, uno que ya está en la base, un origen inventado, sin nombre, un país que no existe—, lee el

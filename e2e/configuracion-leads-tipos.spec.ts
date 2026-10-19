@@ -200,6 +200,7 @@ test('se ordena con el teclado: sube, baja y el foco se queda en el botón', asy
   await expect(subir).toBeFocused()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el último activo de su clase no se apaga ni se elimina, y la fila lo dice antes de intentarlo', async ({
   page,
 }) => {
@@ -240,6 +241,7 @@ test('el último activo de su clase no se apaga ni se elimina, y la fila lo dice
   await expect(interruptorDe(page, 'Cliente')).toBeEnabled()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('desactivar un tipo con leads: se conserva en ellos y deja de ofrecerse; con leads no se elimina', async ({
   page,
 }) => {
@@ -273,6 +275,7 @@ test('desactivar un tipo con leads: se conserva en ellos y deja de ofrecerse; co
   await expect(fila.getByText('Desactivado')).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('eliminar sin leads pide confirmar nombrando el tipo', async ({ page }) => {
   const dos = nombre('Dos')
   await entrar(page, duena)

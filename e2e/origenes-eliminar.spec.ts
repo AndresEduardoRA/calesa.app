@@ -13,6 +13,8 @@ import {
 import { borrarOrigenes, crearOrigenDePrueba, origenPorClave } from './soporte/origenes'
 import { ingresar } from './soporte/pasos'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // «Eliminar origen» de un origen de vehículos, con su URL (cierre 2): `?panel=eliminar-origen` en la página del origen. Pide tipear
 // el nombre; se abre con su URL, Esc devuelve el foco, «atrás» y la recarga funcionan, sin red no deja confirmar y un doble clic
 // manda un solo pedido. Los casos de qué se elimina y qué no están en `origenes.spec.ts`.

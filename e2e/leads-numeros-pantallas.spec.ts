@@ -189,6 +189,7 @@ test('D · la búsqueda «#n» encuentra por el número que cada quien ve', asyn
   await capturar(page, info, 'asesora-busqueda')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('E · el archivo exportado: la dueña lleva las dos columnas; quien no puede exportar, nada', async ({
   page,
 }, info) => {

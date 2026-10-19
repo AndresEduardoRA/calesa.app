@@ -99,6 +99,7 @@ test('anota un seguimiento con formato, se dibuja igual y no mueve la versión d
   )
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un seguimiento anotado en otra pestaña no le da conflicto a quien edita los datos', async ({
   page,
   context,
@@ -158,6 +159,7 @@ test('editar con una versión vieja da el conflicto sin perder lo escrito; recar
   expect((await seguimientosEnLaBase(lead.id))[0]?.titulo).toBe('Lo que escribí acá')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un tipo apagado no se ofrece, y una fecha futura se dice junto al campo', async ({
   page,
 }, info) => {
@@ -188,6 +190,7 @@ test('un tipo apagado no se ofrece, y una fecha futura se dice junto al campo', 
   }
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('eliminar se hace al instante y «Deshacer» lo devuelve', async ({ page }, info) => {
   const lead = await leadDeBerta(`Seg Eliminar ${info.project.name}`)
   await entrar(page, t.personas.berta)
@@ -251,6 +254,7 @@ test('el editor no le roba la N ni los atajos al marco, y lo escrito sobrevive a
   expect(guardado?.detalle_texto).toBe('Nunca nada')
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('«Próximo contacto» nace plegado, se explica y se guarda junto con el seguimiento', async ({
   page,
 }, info) => {

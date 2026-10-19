@@ -110,6 +110,7 @@ test('transferir lo dice con nombres, el saliente queda compartido y puede salir
   expect((await carteraEnLaBase(lead.id)).map((a) => a.usuario_id)).not.toContain(berta)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el dueño no se sale: no hay «Salir de este lead»', async ({ page }, info) => {
   const lead = await leadDeBerta(`Sin salir ${info.project.name}`)
   await entrar(page, t.personas.berta)
@@ -151,6 +152,7 @@ test('la supervisión ve los nombres, no el teléfono, y no se da el lead a sí 
   expect((await carteraEnLaBase(lead.id)).map((a) => a.tipo_acceso)).toEqual(['dueno'])
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('se revoca la cartera con la ficha abierta: la acción lo dice y la ficha deja de verse', async ({
   page,
 }, info) => {

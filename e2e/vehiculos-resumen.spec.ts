@@ -129,6 +129,7 @@ test('«Fotos» e «Interesados» leen al elegirse, sin sumar al historial', asy
   await expect(resumenDe(page, TITULO)).toHaveCount(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('quien no ve leads no tiene «Interesados», y una pestaña que no existe abre «Resumen»', async ({
   page,
 }) => {

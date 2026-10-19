@@ -10,6 +10,8 @@ import {
   tituloDeLaFicha,
 } from './soporte/leads-ficha'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // El panel de edición de la ficha (`?panel=editar-lead`) pide el layout y los catálogos de lead (hasta 100 orígenes y 100 tipos) cuando se
 // abre, desde el navegador, y no viajan con el documento de la ficha (cierre 5b; cuánto pesa la ficha con los catálogos al tope:
 // `leads-ficha.spec.ts`). Lo que se escribe y se guarda va en `leads-ficha-edicion.spec.ts`.

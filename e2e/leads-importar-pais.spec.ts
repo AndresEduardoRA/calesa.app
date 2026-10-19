@@ -6,6 +6,8 @@ import { borrarLeadsDePrueba, exigir } from './soporte/leads'
 import { telefonoAlAzar } from './soporte/leads-alta'
 import { limpiarListado, prepararListado, type TerrenoDelListado } from './soporte/leads-listado'
 
+// @sin-celular-archivo: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
+
 // El país del teléfono en la importación CSV: «País» se completa con el del número sólo donde la
 // celda viene vacía, y la vista previa lo dice antes de importar.
 test.describe.configure({ mode: 'serial' })

@@ -138,6 +138,7 @@ test('sube tres fotos al confirmar, la primera queda de portada y se elige otra'
   await expect(enElListado).toHaveCount(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('reordena con los botones y con el teclado, y el foco sigue a la foto', async ({ page }) => {
   await entrar(page, duena)
   await abrirFotos(page, TITULOS.sedan)
@@ -158,6 +159,7 @@ test('reordena con los botones y con el teclado, y el foco sigue a la foto', asy
   expect(await ordenDe(TITULOS.sedan)).toEqual([primera, tercera, segunda])
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la misma foto no entra dos veces al vehículo, y en otro sobrevive al borrado', async ({
   page,
 }) => {
@@ -203,6 +205,7 @@ test('la misma foto no entra dos veces al vehículo, y en otro sobrevive al borr
   await expect(galeria(page).getByRole('listitem')).toHaveCount(1)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('entran hasta 24: las que no caben se dicen antes de subir', async ({ page }) => {
   test.setTimeout(90_000)
   await entrar(page, duena)
@@ -227,6 +230,7 @@ test('entran hasta 24: las que no caben se dicen antes de subir', async ({ page 
   await expect(porSubir(page).getByText('No entra: el vehículo admite 24 fotos.')).toHaveCount(2)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('si Storage se corta a mitad, dice cuántas quedaron y reintenta sólo las que faltan', async ({
   page,
 }) => {
@@ -265,6 +269,7 @@ test('si Storage se corta a mitad, dice cuántas quedaron y reintenta sólo las 
   expect(new Set(await ordenDe(TITULOS.red)).size).toBe(4)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('lo que no es una foto, lo que no se puede leer y lo que pesa demasiado se dicen', async ({
   page,
 }) => {
@@ -288,6 +293,7 @@ test('lo que no es una foto, lo que no se puede leer y lo que pesa demasiado se 
   expect(await objetosDe(id(TITULOS.camioneta))).toHaveLength(0)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('quien no puede editar el vehículo ve las fotos sin controles y con el motivo', async ({
   page,
 }) => {
@@ -308,6 +314,7 @@ test('quien no puede editar el vehículo ve las fotos sin controles y con el mot
   ).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('dos personas reordenan a la vez: la segunda se entera de quién las cambió', async ({
   page,
   browser,

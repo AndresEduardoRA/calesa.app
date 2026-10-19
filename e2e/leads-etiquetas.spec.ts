@@ -41,6 +41,7 @@ async function leadDeBerta(corto: string) {
   return nuevoLead({ corto, telefono: completoCon(t, nacional()), deQuien: t.personas.berta })
 }
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('crear con Enter desde el selector la pone en el lead; Enter sobre una que existe la quita', async ({
   page,
 }, info) => {
@@ -194,6 +195,7 @@ test('eliminar una en uso pide confirmar diciendo a cuántos toca; sin leads se 
     .toBe(antes?.id)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('las insignias se leen en modo oscuro', async ({ page }, info) => {
   const lead = await leadDeBerta(`Etq Oscuro ${info.project.name}`)
   const nombreDeLaEtiqueta = `Oscura ${info.project.name}`

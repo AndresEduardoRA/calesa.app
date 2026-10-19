@@ -175,6 +175,7 @@ test('el filtro «Se limpiará pronto» deja sólo lo que se va en los próximos
   await expect(page.getByText('Se limpiará pronto: sí').first()).toBeVisible()
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('la ficha avisa con la misma fecha, y Conservar lo saca de la limpieza sin mover la ficha', async ({
   page,
 }) => {
@@ -213,6 +214,7 @@ test('la ficha avisa con la misma fecha, y Conservar lo saca de la limpieza sin 
   expect(await limpiezaEl(T.pronto)).toBe(dia)
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('un vehículo en la vitrina, uno manual y uno lejano no tienen aviso de «pronto»', async ({
   page,
 }) => {
@@ -235,6 +237,7 @@ test('un vehículo en la vitrina, uno manual y uno lejano no tienen aviso de «p
   )
 })
 
+// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
 test('el job manda a la papelera lo que toca, en un lote de limpieza, y restaurarlo lo conserva', async ({
   page,
 }) => {
