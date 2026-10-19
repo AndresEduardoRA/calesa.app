@@ -101,9 +101,14 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 - Casos de uso: bandeja
 
 ### `vehiculos`
-Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), el vínculo a un lead con sus interesados (en la ficha del vehículo, con «Desvincular»; y la sección «Vehículos» de la ficha del lead, que vive acá), la vitrina (publicar en la web con precio público y vista previa de lo que verá el visitante) la papelera por lotes (enviar con «Deshacer», restaurar y purgar) y, en un origen de subasta con apibara encendida, el alta pegando un enlace de Copart o IAAI, un VIN o un lote (de a uno o varios), con sus fotos, y «Refrescar» la subasta desde la ficha; y la limpieza automática de lo importado de una subasta que nadie compró, con su aviso previo y «Conservar». · 232 archivos
-- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerSubasta`, `leerVehiculo`, `MAXIMO_DE_PAGINA_DE_VEHICULOS`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, +57
+Inventario de vehículos por origen con atributos dinámicos: listado con filtros en la URL y vistas guardadas, ficha según el layout del origen, alta y edición en un panel, fotos (hasta 24, con portada), el vínculo a un lead con sus interesados (en la ficha del vehículo, con «Desvincular»; y la sección «Vehículos» de la ficha del lead, que vive acá), la vitrina (publicar en la web con precio público y vista previa de lo que verá el visitante) la papelera por lotes (enviar con «Deshacer», restaurar y purgar) y, en un origen de subasta con apibara encendida, el alta pegando un enlace de Copart o IAAI, un VIN o un lote (de a uno o varios), con sus fotos, y «Refrescar» la subasta desde la ficha; y la limpieza automática de lo importado de una subasta que nadie compró, con su aviso previo y «Conservar». · 236 archivos
+- API: `buscarVehiculos`, `leerGaleria`, `leerRelaciones`, `leerSubasta`, `leerVehiculo`, `MAXIMO_DE_PAGINA_DE_VEHICULOS`, `Vehiculo`, `Galeria`, `origenElegido`, `origenesVisibles`, +39
 - API de cliente (`client.ts`): `TarjetaVehiculo`, `BadgeDeFase`, `Vehiculo`
+- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
+  - `ficha`: `AvisoDeLimpieza`, `BloqueDeSubasta`, `BotonDesvincular`, `VinculoEInteresados`, `EsqueletoDeFotos`, `SeccionDeFotos`, `BotonEditarVehiculo`, `CabeceraDeVehiculo`, `InsigniaDeVitrina`, `MenuDeVehiculoDeLaFicha`, +3
+  - `listado`: `ListadoDeVehiculos`
+  - `papelera`: `PapeleraDeVehiculos`
+  - `vehiculos-del-lead`: `SeccionVehiculosDelLead`, `EsqueletoDeVehiculosDelLead`
 - Depende de: empresa, equipo, flujos, origenes
 - Casos de uso: acciones, alta, ficha, fotos, limpieza, listado, papelera, permisos, resumen, subasta, vinculo, vitrina
 

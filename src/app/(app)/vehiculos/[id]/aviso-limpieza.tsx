@@ -1,6 +1,7 @@
 import { connection } from 'next/server'
 import { getAjustes } from '@/modules/empresa'
-import { AvisoDeLimpieza, hoyEnZona, limpiezaDe, type Vehiculo } from '@/modules/vehiculos'
+import { hoyEnZona, limpiezaDe, type Vehiculo } from '@/modules/vehiculos'
+import { AvisoDeLimpieza } from '@/modules/vehiculos/pantallas/ficha'
 
 type Props = {
   vehiculo: Vehiculo

@@ -1,15 +1,17 @@
 import type { FaseResumen } from '@/modules/flujos'
 import type { OrigenResumen } from '@/modules/origenes'
 import {
-  BotonEditarVehiculo,
-  CabeceraDeVehiculo,
-  InsigniaDeVitrina,
-  MenuDeVehiculoDeLaFicha,
   type PermisoDePapelera,
   type PermisoDeVitrina,
   type Vehiculo,
   type VistaPreviaDeVitrina,
 } from '@/modules/vehiculos'
+import {
+  BotonEditarVehiculo,
+  CabeceraDeVehiculo,
+  InsigniaDeVitrina,
+  MenuDeVehiculoDeLaFicha,
+} from '@/modules/vehiculos/pantallas/ficha'
 
 type Props = {
   vehiculo: Vehiculo

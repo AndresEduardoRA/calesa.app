@@ -4,7 +4,6 @@ import { leerVistas, puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
 import { getOrigenes, leerLayout } from '@/modules/origenes'
 import {
-  ListadoDeVehiculos,
   MAXIMO_DE_PAGINA_DE_VEHICULOS,
   buscarVehiculos,
   condicionesDe,
@@ -20,6 +19,7 @@ import {
   puedeAbrirLaPapelera,
   vitrinaDelOrigen,
 } from '@/modules/vehiculos'
+import { ListadoDeVehiculos } from '@/modules/vehiculos/pantallas/listado'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR, CLAVE_DE_POR_PAGINA, leerFiltros } from '@/shared/lib/filtros'
 import { leerCursor, leerPorPagina, tamanoDePagina, tamanosHasta } from '@/shared/lib/paginacion'

@@ -1,7 +1,8 @@
 import { connection } from 'next/server'
 import { getAjustes, integracionActiva } from '@/modules/empresa'
 import { puede, requerirSesion } from '@/modules/equipo'
-import { BloqueDeSubasta, leerSubasta, type Vehiculo } from '@/modules/vehiculos'
+import { leerSubasta, type Vehiculo } from '@/modules/vehiculos'
+import { BloqueDeSubasta } from '@/modules/vehiculos/pantallas/ficha'
 import { datosO } from '@/shared/lib/errores'
 
 type Props = {

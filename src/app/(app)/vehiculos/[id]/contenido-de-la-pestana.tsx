@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import type { LayoutDeOrigen, OrigenResumen } from '@/modules/origenes'
-import { EsqueletoDeFotos, type Vehiculo } from '@/modules/vehiculos'
+import { type Vehiculo } from '@/modules/vehiculos'
+import { EsqueletoDeFotos } from '@/modules/vehiculos/pantallas/ficha'
 import { BloqueSubasta } from './bloque-subasta'
 import { BloqueVinculo } from './bloque-vinculo'
 import type { PestanaDeVehiculo } from './pestanas'

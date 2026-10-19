@@ -1,13 +1,12 @@
 import type { FaseResumen } from '@/modules/flujos'
 import type { OrigenResumen, leerLayout } from '@/modules/origenes'
 import {
-  PanelDeVehiculo,
   SIN_APIBARA,
-  PanelDeVitrina,
   type PermisoDeVitrina,
   type Vehiculo,
   type VistaPreviaDeVitrina,
 } from '@/modules/vehiculos'
+import { PanelDeVehiculo, PanelDeVitrina } from '@/modules/vehiculos/pantallas/ficha'
 
 type Layout = Extract<Awaited<ReturnType<typeof leerLayout>>, { ok: true }>['data']
 

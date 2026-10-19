@@ -1,9 +1,5 @@
-import {
-  BotonDesvincular,
-  VinculoEInteresados,
-  leerRelaciones,
-  type Vehiculo,
-} from '@/modules/vehiculos'
+import { leerRelaciones, type Vehiculo } from '@/modules/vehiculos'
+import { BotonDesvincular, VinculoEInteresados } from '@/modules/vehiculos/pantallas/ficha'
 import { datosO } from '@/shared/lib/errores'
 
 type Props = { vehiculo: Vehiculo; editable: boolean }

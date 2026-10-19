@@ -1,6 +1,7 @@
-// API pública del módulo `vehiculos` para el servidor. Con `client.ts`, lo único que `app/` u
-// otro módulo puede importar. Mezcla lecturas de servidor con componentes de cliente: lo importan
-// los Server Components. Un Client Component de afuera importa `@/modules/vehiculos/client`.
+// API pública del módulo `vehiculos` para el servidor: lecturas, reglas y tipos. Con `client.ts`, lo único que
+// `app/` u otro módulo puede importar. No exporta componentes (una pantalla paga en JS todo lo que reexporta lo
+// que importa): los de cada pantalla salen por `pantallas/<pantalla>.ts` (sólo `src/app`) y los de otros módulos
+// por `client.ts`. Un Client Component de afuera importa `@/modules/vehiculos/client`.
 
 // El inventario: leer una página de un origen y un vehículo
 export {
@@ -36,8 +37,6 @@ export {
   type PermisoDeVitrina,
   type VistaPreviaDeVitrina,
 } from './entities/vitrina'
-export { InsigniaDeVitrina } from './features/vitrina/components/insignia-de-vitrina'
-export { PanelDeVitrina } from './features/vitrina/components/panel-de-vitrina'
 
 // La limpieza automática de los vehículos de subasta que nadie compró: lo que dice la base de cada
 // vehículo (cuándo se va, si se conserva), la ventana del aviso y la última noche. La regla es de
@@ -52,7 +51,6 @@ export {
   type LimpiezaDeVehiculo,
   type UltimaLimpieza,
 } from './entities/limpieza'
-export { AvisoDeLimpieza } from './features/limpieza/components/aviso-de-limpieza'
 
 // La papelera: enviar (desde la ficha y, en lote, desde el listado), restaurar y purgar
 export { leerPapelera } from './composicion'
@@ -66,36 +64,18 @@ export {
   type LoteDePapelera,
   type PermisoDePapelera,
 } from './entities/papelera'
-export { MenuDeVehiculoDeLaFicha } from './features/acciones/components/menu-de-vehiculo-de-la-ficha'
-export { PapeleraDeVehiculos } from './features/papelera/components/papelera-de-vehiculos'
 
-// Pantallas
-export { ListadoDeVehiculos } from './features/listado/components/listado-de-vehiculos'
-export { TarjetaVehiculo } from './features/listado/components/tarjeta-vehiculo'
-export { CabeceraDeVehiculo } from './features/ficha/components/cabecera-de-vehiculo'
-export { FichaDeVehiculo } from './features/ficha/components/ficha-de-vehiculo'
-
-// Las fotos: subir, portada, orden y eliminar
-export { SeccionDeFotos } from './features/fotos/components/seccion-de-fotos'
-export { EsqueletoDeFotos } from './features/fotos/components/esqueleto-de-fotos'
-
-// Alta y edición: el panel (va una vez por pantalla) y el botón que abre la edición
-export { PanelDeVehiculo } from './features/alta/components/panel-de-vehiculo'
-export { BotonEditarVehiculo } from './features/alta/components/botones'
+// Alta y edición: la clave de su URL (el panel y el botón son de `pantallas/ficha`)
 export { CLAVE_DE_EDICION } from './features/alta/claves'
 export { SIN_APIBARA, type DisponibilidadDeApibara } from './entities/apibara'
 
-// El vínculo a un lead y los interesados: el bloque de la ficha del vehículo, y la sección «Vehículos»
-// de la ficha del lead (vive acá y la compone `app/`: `leads` no importa `vehiculos`)
-export { VinculoEInteresados } from './features/vinculo/components/vinculo-e-interesados'
-export { BotonDesvincular } from './features/vinculo/components/boton-desvincular'
+// El vínculo a un lead y los interesados: lo que lee el bloque de la ficha del vehículo y la sección «Vehículos»
+// de la ficha del lead (vive acá y la compone `app/`: `leads` no importa `vehiculos`; sus componentes salen
+// por `pantallas/ficha` y `pantallas/vehiculos-del-lead`)
 export type { Relaciones } from './entities/vinculo'
 export { leerVehiculosDelLead } from './composicion'
-export { SeccionVehiculosDelLead } from './features/vinculo/components/seccion-vehiculos-del-lead'
-export { EsqueletoDeVehiculosDelLead } from './features/vinculo/components/esqueleto-de-vehiculos-del-lead'
 export type { VehiculosDelLead } from './entities/vehiculos-del-lead'
 export { opcionesDeVehiculoDelLead, type OpcionDeVehiculo } from './features/vinculo/lecturas'
 
-// La subasta de un vehículo de subasta: su fecha, su estado, cuándo se consultó y refrescarla.
-export { BloqueDeSubasta } from './features/subasta/components/bloque-de-subasta'
+// La subasta de un vehículo de subasta: su fecha, su estado y cuándo se consultó (`<BloqueDeSubasta>`: `pantallas/ficha`).
 export { fotosPorTraerDe, type SubastaDeVehiculo } from './entities/subasta-vehiculo'

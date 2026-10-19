@@ -1,5 +1,6 @@
 import type { LayoutDeOrigen, OrigenResumen } from '@/modules/origenes'
-import { FichaDeVehiculo, type Vehiculo } from '@/modules/vehiculos'
+import { type Vehiculo } from '@/modules/vehiculos'
+import { FichaDeVehiculo } from '@/modules/vehiculos/pantallas/ficha'
 
 type Props = {
   vehiculo: Vehiculo

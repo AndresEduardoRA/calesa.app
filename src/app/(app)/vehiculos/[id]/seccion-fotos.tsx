@@ -1,6 +1,7 @@
 import { connection } from 'next/server'
 import { integracionActiva } from '@/modules/empresa'
-import { SeccionDeFotos, fotosPorTraerDe, leerGaleria, leerSubasta } from '@/modules/vehiculos'
+import { fotosPorTraerDe, leerGaleria, leerSubasta } from '@/modules/vehiculos'
+import { SeccionDeFotos } from '@/modules/vehiculos/pantallas/ficha'
 import { datosO } from '@/shared/lib/errores'
 
 type Props = {

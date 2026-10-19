@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { requerirSesion } from '@/modules/equipo'
 import { getOrigenes } from '@/modules/origenes'
 import {
-  PapeleraDeVehiculos,
   leerPapelera,
   limpiezaPendiente,
   puedeAbrirLaPapelera,
@@ -10,6 +9,7 @@ import {
   resumenDeUltimaLimpieza,
   ultimaLimpieza,
 } from '@/modules/vehiculos'
+import { PapeleraDeVehiculos } from '@/modules/vehiculos/pantallas/papelera'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import { LOTES_POR_PAGINA, leerCursor } from '@/shared/lib/paginacion'

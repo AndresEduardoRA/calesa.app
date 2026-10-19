@@ -22,11 +22,11 @@ import {
   SeccionSeguimientos,
   seccionDeLead,
 } from '@/modules/leads'
+import { opcionesDeVehiculoDelLead } from '@/modules/vehiculos'
 import {
   EsqueletoDeVehiculosDelLead,
   SeccionVehiculosDelLead,
-  opcionesDeVehiculoDelLead,
-} from '@/modules/vehiculos'
+} from '@/modules/vehiculos/pantallas/vehiculos-del-lead'
 import { leerDireccionPublica } from '@/modules/web'
 import { datosO } from '@/shared/lib/errores'
 import type { Permisos } from '@/shared/lib/permisos'
