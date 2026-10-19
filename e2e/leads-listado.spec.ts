@@ -168,11 +168,11 @@ test('la búsqueda trata %, _, comas y comillas como texto y no rompe', async ({
   await expect(fila(page, nombres.porcentaje)).toBeVisible()
   await expect(fila(page, nombres.sinPorcentaje)).toHaveCount(0)
 
-  // Un «%» solo es un carácter, no «todo».
+  // Un «%» solo no alcanza para buscar por nombre (5a-8: hacen falta 3 letras o dígitos seguidos): la lista entera, sin filtrar.
   await irALeads(page, buscar('%'))
   await expect(fila(page, nombres.porcentaje)).toBeVisible()
-  await expect(fila(page, nombres.sinPorcentaje)).toHaveCount(0)
-  await expect(fila(page, PROPIO_BERTA)).toHaveCount(0)
+  await expect(fila(page, nombres.sinPorcentaje)).toBeVisible()
+  await expect(fila(page, PROPIO_BERTA)).toBeVisible()
 
   await irALeads(page, buscar('Guion_bajo'))
   await expect(fila(page, nombres.guion)).toBeVisible()
@@ -197,11 +197,13 @@ test('la búsqueda trata %, _, comas y comillas como texto y no rompe', async ({
   await expect(fila(page, nombres.barra)).toBeVisible()
   await irALeads(page, buscar('Pérez (cliente)'))
   await expect(fila(page, nombres.ene)).toHaveCount(0)
-  // Dos y un carácter: sin trigramas, el resultado es el mismo.
+  // Dos y un carácter no buscan por nombre (5a-8): se ve la lista entera, no «nada coincide». `leads-listado-busqueda-minima.spec.ts` mira la línea.
   await irALeads(page, buscar('ñ'))
   await expect(fila(page, nombres.ene)).toBeVisible()
+  await expect(fila(page, PROPIO_BERTA)).toBeVisible()
   await irALeads(page, buscar('zq'))
-  await expect(sinResultados(page)).toBeVisible()
+  await expect(fila(page, PROPIO_BERTA)).toBeVisible()
+  await expect(sinResultados(page)).toHaveCount(0)
 
   // Escrita en la barra, no sólo en la URL.
   await irALeads(page)

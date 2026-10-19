@@ -3,6 +3,7 @@
 // base ya recortó a sus marcas (`esta_tachado`, `es_favorito`, `etiquetas`). Ni reordenan ni cambian
 // el keyset: sólo dejan filas afuera.
 import type { DefFiltro, ParametrosDeUrl, ValoresDeFiltros } from '@/shared/lib/filtros'
+import { interpretarBusqueda } from './busqueda-de-leads'
 import type { Etiqueta } from './etiqueta'
 
 // El aviso de tachados ocultos cuenta hasta acá: más allá dice «más de 50» (nunca el total exacto).
@@ -71,9 +72,10 @@ export function modoDeTachados(valores: ValoresDeFiltros): ModoDeTachados {
 }
 
 // Si el listado deja afuera los tachados: por defecto sí, salvo mientras se busca (buscar algo que
-// existe y no encontrarlo es peor que verlo marcado). «Solo» y «Mostrarlos también» no ocultan.
+// existe y no encontrarlo es peor que verlo marcado). «Solo» y «Mostrarlos también» no ocultan. Un texto que no alcanza para buscar
+// (`?q=ab`) no es una búsqueda (5a-8).
 export function ocultaTachados(valores: ValoresDeFiltros): boolean {
-  return modoDeTachados(valores) === 'ocultar' && valores.busqueda.trim() === ''
+  return modoDeTachados(valores) === 'ocultar' && interpretarBusqueda(valores.busqueda) === null
 }
 
 export type CondicionDeMarca =

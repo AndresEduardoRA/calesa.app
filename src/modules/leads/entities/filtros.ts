@@ -12,6 +12,7 @@ import {
   type ValoresDeFiltros,
 } from '@/shared/lib/filtros'
 import type { OrigenDeLead } from './alta'
+import { MINIMO_DE_BUSQUEDA, interpretarBusqueda } from './busqueda-de-leads'
 import { idsDeLasClaves, opcionesDeTipo, type TipoDeLeadEnCatalogo } from './catalogos'
 import { columnaParaFiltrar, type CampoDeLead, type ColumnaDeAtributos } from './campo'
 import type { Etiqueta } from './etiqueta'
@@ -23,13 +24,20 @@ import {
   type CondicionDeMarca,
 } from './filtros-de-marcas'
 
+export { MINIMO_DE_BUSQUEDA, interpretarBusqueda }
+
 export const FILTRO_TIPO = 'tipo'
 export const FILTRO_ORIGEN = 'origen'
 // Las claves de los campos del layout llevan este prefijo en la URL: una clave de campo no lleva
 // punto, así que nunca choca con `tipo`, `origen`, `alcance`, `cursor` ni `lead`.
 export const PREFIJO_DE_FILTRO = 'a.'
 
-const BUSQUEDA = { clave: 'q', etiqueta: 'Buscar por nombre o número', marcador: 'Nombre o número' }
+const BUSQUEDA = {
+  clave: 'q',
+  etiqueta: 'Buscar por nombre o número',
+  marcador: 'Nombre o número',
+  minimo: MINIMO_DE_BUSQUEDA,
+}
 
 // Quien ve «todos» filtra sólo entre sus leads cuando el campo es privado.
 const AYUDA_DE_PRIVADO = 'Solo busca en tus leads: de los demás no recibes este dato.'
@@ -115,24 +123,6 @@ export type CondicionDeLead =
   | { tipo: 'en_cartera'; desdeLaCartera: boolean }
   | (CondicionDeAtributo & { columna: ColumnaDeAtributos })
   | CondicionDeMarca
-
-// Un número de lead son hasta 15 dígitos: cabe entero en un `number` sin perder nada.
-const NUMERO_DE_LEAD = /^\d{1,15}$/
-
-// «124» busca el lead con ese número y también los nombres que contienen «124»; «#124» busca sólo el número. El número
-// es el que la persona ve primero (el global con el permiso, el propio sin él: lo resuelve la base). Nunca el teléfono:
-// buscar dígitos sobre lo ajeno sería un oráculo para saber si un número ya está cargado.
-export function interpretarBusqueda(
-  texto: string,
-): { texto: string; numero: number | null; soloNumero: boolean } | null {
-  const recortado = texto.trim()
-  const limpio = recortado.replace(/^#/, '').trim()
-  if (limpio === '') {
-    return null
-  }
-  const numero = NUMERO_DE_LEAD.test(limpio) ? Number(limpio) : null
-  return { texto: limpio, numero, soloNumero: numero !== null && recortado.startsWith('#') }
-}
 
 // Los filtros por campo del layout, cada uno sobre su columna (`columnaParaFiltrar()`). La clave de un atributo sale
 // siempre del layout (nunca de la URL): un filtro de un campo que ya no es filtrable se ignora.

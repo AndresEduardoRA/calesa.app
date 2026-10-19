@@ -1,7 +1,7 @@
 'use client'
 
 import { debounce, parseAsString, useQueryStates } from 'nuqs'
-import { useMemo, useTransition } from 'react'
+import { useMemo, useRef, useTransition } from 'react'
 import {
   CLAVE_DE_CURSOR,
   CLAVE_DE_PANEL,
@@ -9,6 +9,7 @@ import {
   PANEL_DE_FILTROS,
   clavesDeUrl,
   escribirFiltro,
+  cumpleElMinimo,
   hayFiltros,
   leerFiltros,
   limpiarFiltros,
@@ -53,6 +54,8 @@ export function useFiltros(esquema: EsquemaDeFiltros): Filtros {
   const [pendiente, startTransition] = useTransition()
   const [parametros, setParametros] = useQueryStates(parsers, { shallow: false, startTransition })
   const valores = leerFiltros(esquema, parametros)
+  // Lo último que se le pidió a la URL con la búsqueda: no es lo que la URL tiene (la escritura va detrás) sino lo que la persona dejó escrito.
+  const ultimaBusqueda = useRef(valores.busqueda)
 
   function aplicar(cambio: Record<string, string | null>, tipeando = false) {
     void setParametros(
@@ -63,15 +66,28 @@ export function useFiltros(esquema: EsquemaDeFiltros): Filtros {
 
   return {
     valores,
-    hayFiltros: hayFiltros(valores),
+    // Un `?q=ab` que no alcanza para buscar no es un filtro (5a-8): no ofrece «Limpiar».
+    hayFiltros: hayFiltros(
+      esquema.busqueda?.minimo && !cumpleElMinimo(valores.busqueda, esquema.busqueda.minimo)
+        ? { ...valores, busqueda: '' }
+        : valores,
+    ),
     pendiente,
     cambiar: (def, valor, opciones) => {
       aplicar(escribirFiltro(def, valor), opciones?.tipeando)
     },
     buscar: (texto) => {
-      if (esquema.busqueda) {
-        aplicar({ [esquema.busqueda.clave]: texto === '' ? null : texto }, true)
+      if (!esquema.busqueda) {
+        return
       }
+      const anterior = ultimaBusqueda.current
+      ultimaBusqueda.current = texto
+      // Pedir «nada» cuando no había nada pedido ni escrito en la URL no cambia lo que se lista, y escribirlo igual vuelve al servidor (5a-8: con 1 o 2
+      // caracteres el campo manda ''; la persona que sigue tecleando no cuesta un pedido por tecla).
+      if (texto === '' && anterior === '' && valores.busqueda === '') {
+        return
+      }
+      aplicar({ [esquema.busqueda.clave]: texto === '' ? null : texto }, true)
     },
     aplicar: (cambio) => {
       aplicar(cambio)

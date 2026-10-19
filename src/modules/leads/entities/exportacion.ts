@@ -13,6 +13,7 @@ import type { Celda } from '@/shared/lib/csv/escribir'
 import { diaEnZona, localDeInstante } from '@/shared/lib/fechas'
 import type { ValoresDeFiltros } from '@/shared/lib/filtros'
 import type { OpcionDeCampo, TipoDeCampoDeLead } from '@/shared/lib/campos/tipos'
+import { interpretarBusqueda } from './busqueda-de-leads'
 import type { CampoDeLead } from './campo'
 import type { FilaDeLead } from './listado'
 
@@ -168,7 +169,7 @@ const NOMBRE_VALIDO = /^[a-z][a-z0-9_.]{0,60}$/
 // de un nombre de filtro (la base lo rechazaría) no viaja.
 export function nombresDeFiltros(valores: ValoresDeFiltros): string[] {
   const nombres = Object.keys(valores.porClave)
-  if (valores.busqueda.trim() !== '') {
+  if (interpretarBusqueda(valores.busqueda) !== null) {
     nombres.unshift('q')
   }
   return nombres.filter((nombre) => NOMBRE_VALIDO.test(nombre)).slice(0, 40)

@@ -2,6 +2,7 @@
 import { formatearFecha } from '../fechas'
 import { formatearNumero } from '../formato'
 import type { DefFiltro, EsquemaDeFiltros, ValorDeFiltro, ValoresDeFiltros } from './esquema'
+import { cumpleElMinimo } from './minimo'
 import { escribirFiltro } from './url'
 
 export type Chip = {
@@ -78,7 +79,11 @@ export function chipsDe(
   formato: Formato = {},
 ): Chip[] {
   const chips: Chip[] = []
-  if (esquema.busqueda && valores.busqueda !== '') {
+  if (
+    esquema.busqueda &&
+    valores.busqueda !== '' &&
+    (!esquema.busqueda.minimo || cumpleElMinimo(valores.busqueda, esquema.busqueda.minimo))
+  ) {
     chips.push({
       id: esquema.busqueda.clave,
       texto: `«${valores.busqueda}»`,

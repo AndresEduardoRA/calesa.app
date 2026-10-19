@@ -263,7 +263,9 @@ end $$;
 -- entera, y la vista por ids se inlinea (sin `Function Scan`, que calcularía las columnas caras de todos los ids), y que lo ajeno no se lee: un término
 -- que otras personas tienen y quien busca no, no lleva al heap ninguna fila (el tiempo no cuenta los leads de los demás).
 -- Los términos sin un tramo de 3 letras o dígitos (`x`, `zq`, `%`, `a_b`) no tienen trigramas que buscar en el índice: recorren la cartera de quien mira
--- (la dueña, casi todo). Se miden y no se asertan: es `docs/PLAN.md` 5a-8.
+-- (la dueña, casi todo). Se miden y no se asertan: la app ya no los manda (5a-8: el nombre se busca con 3 letras o dígitos seguidos, y con menos el campo lo
+-- dice y no pide nada al servidor). La función de la base los sigue resolviendo, caminando la cartera, por si algo la llama directo. Lo que sí se asserta es el
+-- escaso de 3 letras (`zqx`, `zzzzqx`): el mínimo que la app deja pasar.
 create function pg_temp.pagina_por_ids(p_ids uuid[], p_mios boolean, p_n int) returns text language sql as $$
   select format('select coalesce(json_agg(t), ''[]'') from (select id, numero, numero_propio, numero_propio_creador, numero_visible, nombre, telefono_principal, en_cartera, dueno_id, tipo_lead_id, origen_lead_id, creado_en,
     atributos -> ''ciudad_vol'' as a_ciudad, es_favorito, esta_tachado, etiquetas from public.leads_vista_por_ids(%L::uuid[]) where %s esta_tachado = false order by creado_en desc, id desc limit %s) t',
@@ -325,15 +327,15 @@ begin
   foreach v_modo in array case when q = 'duena' then array['mios', 'todos'] else array['mios'] end loop
     -- Con tramo de 3 letras: un término selectivo, uno sin resultados, un apellido común (12,5 % de los leads), el mismo con otra tilde o mayúscula, y los que
     -- coinciden con casi todo (el índice de trigramas no corta en K: los resuelve la ventana, `leads_candidatos()` etapa W).
-    foreach t in array array['Volumen 4999', 'zzzzqx', 'Gómez', 'GÓMEZ', 'Mamani', 'Vol', 'Volumen'] loop
+    foreach t in array array['Volumen 4999', 'zzzzqx', 'zqx', 'Gómez', 'GÓMEZ', 'Mamani', 'Vol', 'Volumen'] loop
       perform pg_temp.busqueda_de(q, v_modo, '«' || t || '»', jsonb_build_object('texto', t), 25, 40, 50);
     end loop;
-    -- Densos de 1 y 2 caracteres: los resuelve la ventana. Escasos (`x`, `zq`), sin tramo y con comodines: se miden, no se asertan (5a-8).
+    -- Densos de 1 y 2 caracteres: los resuelve la ventana. Escasos (`x`, `zq`), sin tramo y con comodines: se miden, no se asertan (la app ya no los manda, 5a-8).
     foreach t in array array['v', 'ol'] loop
       perform pg_temp.busqueda_de(q, v_modo, '«' || t || '» (denso)', jsonb_build_object('texto', t), 25, 40, 50);
     end loop;
     foreach t in array array['x', 'zq', 'a_b', '%'] loop
-      perform pg_temp.busqueda_de(q, v_modo, '«' || t || '» (sin tramo de 3, 5a-8)', jsonb_build_object('texto', t), null, null, null);
+      perform pg_temp.busqueda_de(q, v_modo, '«' || t || '» (sin tramo de 3: la app no lo manda)', jsonb_build_object('texto', t), null, null, null);
     end loop;
     -- Un campo público (5a-fix-1a/1b): uno común, otro sin resultados, y combinado con un nombre.
     perform pg_temp.busqueda_de(q, v_modo, 'un atributo común', '{"atributos": [[{"ciudad_vol": "lp"}]]}', 25, 40, 50);

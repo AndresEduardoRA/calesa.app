@@ -101,6 +101,25 @@ begin
   return jsonb_array_length(v_nuevo)::text;
 end $$;
 
+-- 5a-8: el buscador pide 3 letras o dígitos seguidos para el nombre, y lo decide en el navegador con `cumpleElMinimo()` (`shared/lib/filtros/minimo.ts`, `[\\p{L}\\p{Nd}]{3}`).
+-- Tiene que ser lo mismo que `[[:alnum:]]{3}` de la base (`_leads_candidatos_indexable`): si el navegador dijera «alcanza» y la base «no tiene qué buscar en el índice», la
+-- búsqueda recorrería la cartera entera. La misma lista está en `minimo.test.ts`; acá corre en un Postgres de verdad (con ICU), que es donde las eñes y las tildes cuentan.
+do $paridad$
+declare c record; v_n int := 0;
+begin
+  for c in select * from (values
+    ('Ana', true), ('ana ro', true), ('Ñu', false), ('a b c', false), ('a_b', false), ('x', false), ('zq', false), ('%', false), (E'\\', false), ('ñandú', true),
+    ('ÁLAMO', true), ('á é', false), ('Ñuñ', true), ('123', true), ('12', false), ('ÿöü', true), ('日本語', true), ('²³¹', false), ('éé', false), ('a-b-c', false), ('٣٤٥', true)
+  ) x (texto, esperado) loop
+    if (c.texto ~ '[[:alnum:]]{3}') is distinct from c.esperado
+       or public._leads_candidatos_indexable(jsonb_build_object('texto', c.texto)) is distinct from c.esperado then
+      raise exception 'el tramo de 3 de la base no coincide con el del navegador para «%»: la base dice %, el navegador %', c.texto, c.texto ~ '[[:alnum:]]{3}', c.esperado;
+    end if;
+    v_n := v_n + 1;
+  end loop;
+  raise notice 'medicion|el tramo de 3 de la base es el del navegador (% textos)|%', v_n, v_n;
+end $paridad$;
+
 create temp table huellas (persona text, termino text, filas int);
 do $m$
 declare p record; t text; v_n int; v_comparaciones int := 0; v_con_filas int := 0; v_t0 timestamptz := clock_timestamp();

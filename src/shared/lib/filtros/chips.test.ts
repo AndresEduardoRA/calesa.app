@@ -81,3 +81,28 @@ describe('chipsDe', () => {
     expect(chips({ q: 'rav4' })[0]?.alQuitar).toEqual({ q: null })
   })
 })
+
+describe('el mínimo de la búsqueda', () => {
+  const CON_MINIMO: EsquemaDeFiltros = {
+    busqueda: {
+      clave: 'q',
+      etiqueta: 'Buscar',
+      minimo: { letras: 3, numerosLibres: true, aviso: 'Escribe al menos 3 letras' },
+    },
+    filtros: [],
+  }
+  const chips = (q: string) => chipsDe(CON_MINIMO, leerFiltros(CON_MINIMO, { q }))
+
+  it('un texto que no alcanza no es un chip; uno que alcanza, sí', () => {
+    expect(chips('ab')).toEqual([])
+    expect(chips('a_b')).toEqual([])
+    expect(chips('abc').map((chip) => chip.texto)).toEqual(['«abc»'])
+    expect(chips('12').map((chip) => chip.texto)).toEqual(['«12»'])
+  })
+
+  it('sin mínimo, cualquier texto es un chip', () => {
+    expect(chipsDe(ESQUEMA, leerFiltros(ESQUEMA, { q: 'ab' })).map((chip) => chip.texto)).toEqual([
+      '«ab»',
+    ])
+  })
+})

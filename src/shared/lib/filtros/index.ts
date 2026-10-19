@@ -24,6 +24,7 @@ export {
   parametrosDeFiltros,
 } from './url'
 export { chipsDe, type Chip } from './chips'
+export { cumpleElMinimo, type MinimoDeBusqueda } from './minimo'
 export {
   camposFiltrables,
   condicionDeCampo,

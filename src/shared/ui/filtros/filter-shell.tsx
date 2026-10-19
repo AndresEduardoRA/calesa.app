@@ -151,6 +151,7 @@ export function FilterShell(props: Props) {
             <CampoDeBusqueda
               etiqueta={esquema.busqueda.etiqueta}
               marcador={esquema.busqueda.marcador}
+              minimo={esquema.busqueda.minimo}
               valor={filtros.valores.busqueda}
               alBuscar={filtros.buscar}
             />

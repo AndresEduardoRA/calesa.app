@@ -272,6 +272,11 @@ describe('nombresDeFiltros', () => {
     expect(nombresDeFiltros({ busqueda: '  ', porClave: {} })).toEqual([])
   })
 
+  it('un texto que no alcanza para buscar (?q=ab) no se nombra', () => {
+    expect(nombresDeFiltros({ busqueda: 'ab', porClave: {} })).toEqual([])
+    expect(nombresDeFiltros({ busqueda: '12', porClave: {} })).toEqual(['q'])
+  })
+
   it('un nombre que la base rechazaría no viaja', () => {
     expect(
       nombresDeFiltros({

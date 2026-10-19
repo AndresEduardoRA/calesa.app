@@ -195,3 +195,74 @@ describe('FilterShell', () => {
     expect(screen.getByRole('button', { name: /Filtros\s*2/ })).toBeDefined()
   })
 })
+
+describe('el mínimo de la búsqueda (5a-8)', () => {
+  const CON_MINIMO: EsquemaDeFiltros = {
+    busqueda: {
+      clave: 'q',
+      etiqueta: 'Buscar por nombre o número',
+      minimo: { letras: 3, numerosLibres: true, aviso: 'Escribe al menos 3 letras' },
+    },
+    filtros: [],
+  }
+  const campoDeBusqueda = () =>
+    screen.getByRole('searchbox', { name: 'Buscar por nombre o número' })
+
+  function montarConMinimo(url: string) {
+    const alCambiarUrl = vi.fn<(evento: UrlUpdateEvent) => void>()
+    render(
+      <NuqsTestingAdapter searchParams={url} onUrlUpdate={alCambiarUrl} hasMemory>
+        <FilterShell esquema={CON_MINIMO}>
+          <Lista />
+        </FilterShell>
+      </NuqsTestingAdapter>,
+    )
+    return alCambiarUrl
+  }
+
+  it('con 1 o 2 caracteres dice la línea, deja lo escrito y no escribe ?q= en la URL', async () => {
+    const alCambiarUrl = montarConMinimo('')
+    fireEvent.change(campoDeBusqueda(), { target: { value: 'ab' } })
+    expect(await screen.findByText('Escribe al menos 3 letras')).toBeTruthy()
+    expect(campoDeBusqueda().getAttribute('aria-describedby')).toBeTruthy()
+    expect((campoDeBusqueda() as HTMLInputElement).value).toBe('ab')
+    await new Promise((resolver) => setTimeout(resolver, 500))
+    for (const [evento] of alCambiarUrl.mock.calls) {
+      expect(evento.searchParams.get('q')).toBeNull()
+    }
+  })
+
+  // Que el campo conserve «ab» al volver de «abc» lo comprueba el e2e en el navegador (`leads-listado-busqueda-minima.spec.ts`): el adaptador de pruebas
+  // de nuqs devuelve un instante valores viejos de la URL (abc, nada, abc) y no sirve para mirar el campo después de una escritura.
+  it('con 3 busca (?q=) y la línea se va; al volver a 2, quita ?q=', async () => {
+    const alCambiarUrl = montarConMinimo('')
+    fireEvent.change(campoDeBusqueda(), { target: { value: 'abc' } })
+    await waitFor(() => {
+      expect(alCambiarUrl.mock.lastCall?.[0].searchParams.get('q')).toBe('abc')
+    })
+    // El adaptador de pruebas repite la URL un instante (abc, nada, abc): se espera a que el campo se asiente.
+    await waitFor(() => {
+      expect((campoDeBusqueda() as HTMLInputElement).value).toBe('abc')
+    })
+    expect(screen.queryByText('Escribe al menos 3 letras')).toBeNull()
+    fireEvent.change(campoDeBusqueda(), { target: { value: 'ab' } })
+    await waitFor(() => {
+      expect(alCambiarUrl.mock.lastCall?.[0].searchParams.get('q')).toBeNull()
+    })
+  })
+
+  it('un número de 1 o 2 dígitos busca: no pide más', async () => {
+    const alCambiarUrl = montarConMinimo('')
+    fireEvent.change(campoDeBusqueda(), { target: { value: '12' } })
+    await waitFor(() => {
+      expect(alCambiarUrl.mock.lastCall?.[0].searchParams.get('q')).toBe('12')
+    })
+    expect(screen.queryByText('Escribe al menos 3 letras')).toBeNull()
+  })
+
+  it('un ?q=ab que viene de la URL dice la línea y no cuenta como filtro', () => {
+    montarConMinimo('?q=ab')
+    expect(screen.getByText('Escribe al menos 3 letras')).toBeTruthy()
+    expect(screen.getByText('todo')).toBeTruthy()
+  })
+})

@@ -5,7 +5,7 @@ import { columnaParaFiltrar, type CampoDeLead } from './campo'
 import {
   condicionesDeLeads,
   esquemaDeFiltrosDeLeads,
-  interpretarBusqueda,
+  MINIMO_DE_BUSQUEDA,
   opcionesDeOrigen,
   privadosFiltrando,
 } from './filtros'
@@ -130,42 +130,6 @@ describe('esquemaDeFiltrosDeLeads', () => {
     expect(delPrivado(true)?.ayuda).toMatch(/solo busca en tus leads/i)
     expect(delPrivado(false)?.ayuda).toBeUndefined()
     expect(esquema(true).filtros.find((f) => f.clave === 'a.ciudad')?.ayuda).toBeUndefined()
-  })
-})
-
-describe('interpretarBusqueda', () => {
-  it('un número, con o sin #, busca el número y el texto; el resto, sólo el nombre', () => {
-    expect(interpretarBusqueda(' 124 ')).toEqual({ texto: '124', numero: 124, soloNumero: false })
-    expect(interpretarBusqueda('Ana 124')).toEqual({
-      texto: 'Ana 124',
-      numero: null,
-      soloNumero: false,
-    })
-    expect(interpretarBusqueda('59170000001')).toEqual({
-      texto: '59170000001',
-      numero: 59170000001,
-      soloNumero: false,
-    })
-  })
-
-  it('«#124» busca sólo el número; un # delante de un texto no', () => {
-    expect(interpretarBusqueda('#124')).toEqual({ texto: '124', numero: 124, soloNumero: true })
-    expect(interpretarBusqueda('  #124 ')?.soloNumero).toBe(true)
-    expect(interpretarBusqueda('#Ana')).toEqual({ texto: 'Ana', numero: null, soloNumero: false })
-  })
-
-  it('vacío no busca; un número demasiado largo no se trata como número', () => {
-    expect(interpretarBusqueda('  ')).toBeNull()
-    expect(interpretarBusqueda('#')).toBeNull()
-    expect(interpretarBusqueda('1234567890123456')?.numero).toBeNull()
-  })
-
-  it('lo que escribió la persona viaja como texto, sin tocar (el saneado es de infra)', () => {
-    expect(interpretarBusqueda('50%_, "x"')).toEqual({
-      texto: '50%_, "x"',
-      numero: null,
-      soloNumero: false,
-    })
   })
 })
 
@@ -304,5 +268,27 @@ describe('opcionesDeOrigen', () => {
 
   it('sin orígenes no hay opciones', () => {
     expect(opcionesDeOrigen([])).toEqual([])
+  })
+})
+describe('el mínimo de la búsqueda en el esquema', () => {
+  it('el esquema lo declara para que el campo lo diga', () => {
+    expect(esquema(true).busqueda?.minimo).toEqual(MINIMO_DE_BUSQUEDA)
+    expect(MINIMO_DE_BUSQUEDA.aviso).toBe('Escribe al menos 3 letras')
+  })
+
+  it('un ?q=ab que no alcanza no pone ninguna condición de búsqueda', () => {
+    const condiciones = condicionesDeLeads(CAMPOS, leerFiltros(esquema(true), { q: 'ab' }), {
+      soloMios: false,
+    })
+    expect(condiciones.some((c) => c.tipo === 'busqueda')).toBe(false)
+  })
+
+  it('un ?q=12 busca sólo por número', () => {
+    const condiciones = condicionesDeLeads(CAMPOS, leerFiltros(esquema(true), { q: '12' }), {
+      soloMios: false,
+    })
+    expect(condiciones).toContainEqual(
+      expect.objectContaining({ tipo: 'busqueda', numero: 12, soloNumero: true }),
+    )
   })
 })

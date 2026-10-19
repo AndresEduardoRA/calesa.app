@@ -1,6 +1,7 @@
 // El esquema declarativo de los filtros de un listado. Cada listado arma el suyo (los fijos que su
 // tabla justifica y los que salen de sus datos); `FilterShell` lo dibuja y `leerFiltros()` lo lee
 // de la URL. Acá no hay reglas de ningún módulo: sólo la forma.
+import type { MinimoDeBusqueda } from './minimo'
 
 export type OpcionDeFiltro = {
   valor: string
@@ -46,10 +47,16 @@ export type DefFiltro =
 export type SeccionDeFiltros = { clave: string; titulo: string; descripcion?: string }
 
 export type EsquemaDeFiltros = {
-  // La búsqueda libre de la barra; null si el listado no la tiene.
+  // La búsqueda libre de la barra; null si el listado no la tiene. `minimo` (5a-8): lo que pide para buscar; mientras lo escrito no alcanza el campo lo
+  // dice junto a él, no se escribe en la URL y no cuenta como búsqueda (ni chip). Sin `minimo`, cualquier texto busca.
   // `etiqueta` es lo que lee un lector de pantalla («Buscar por nombre o número»); `marcador`, lo que se ve dentro del campo vacío, más corto: al
   // 200 % de texto en el celular el campo mide ~300 px y un marcador largo se corta (cierre 5b, defecto 4.2).
-  busqueda: { clave: string; etiqueta: string; marcador?: string } | null
+  busqueda: {
+    clave: string
+    etiqueta: string
+    marcador?: string
+    minimo?: MinimoDeBusqueda
+  } | null
   filtros: readonly DefFiltro[]
   // En el orden en que se dibujan; los filtros sin sección van después.
   secciones?: readonly SeccionDeFiltros[]

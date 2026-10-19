@@ -61,6 +61,14 @@ describe('tachados', () => {
     ])
     expect(ocultaTachados(leer(''))).toBe(true)
   })
+
+  it('un texto que no alcanza para buscar (?q=ab) no es una búsqueda: los tachados siguen ocultos', () => {
+    expect(ocultaTachados(leer('q=ab'))).toBe(true)
+    expect(ocultaTachados(leer('q=a_b'))).toBe(true)
+    expect(condicionesDeMarcas(leer('q=ab'))).toEqual([{ tipo: 'tachado', valor: false }])
+    // Un número de 1 o 2 dígitos sí busca (por número).
+    expect(ocultaTachados(leer('q=12'))).toBe(false)
+  })
 })
 
 describe('favoritos y etiquetas', () => {
