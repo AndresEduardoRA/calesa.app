@@ -26,6 +26,7 @@ import {
   tituloDeLaFicha,
 } from './soporte/leads-ficha'
 import { PRESUPUESTO_DE_LA_FICHA_EN_KB } from './soporte/presupuestos'
+import { sql } from './soporte/sql'
 
 // La ficha de un lead (`/leads/[id]`) contra la app compilada y el Supabase local: a dónde llegan
 // «Ya existe · Abrir», «Abrir ficha» y el drawer del listado, qué ve cada quien (el teléfono
@@ -248,5 +249,46 @@ test('abrir la ficha trae poco: lo que aporta sobre el resto de la pantalla y lo
   if (esMovil(page)) {
     const ancho = await page.evaluate(() => document.documentElement.scrollWidth)
     expect(ancho).toBeLessThanOrEqual((page.viewportSize()?.width ?? 0) + 1)
+  }
+})
+
+// Con los catálogos en su máximo: hasta 100 orígenes y 100 tipos de lead no viajan con la ficha (cierre 5b). El panel de edición los lee al
+// abrirse; antes cada visita pagaba sus ~30 KB, la usara o no. Lo que la ficha suma sobre otra pantalla no depende de cuántos tenga la empresa.
+// (El shell sí los manda, para el alta: lo pagan todas las pantallas por igual, también `/perfil`; `docs/PLAN.md`, 5b-1.)
+const PREFIJO_DE_CATALOGO = 'E2E catálogo ficha'
+
+test('los orígenes y los tipos de lead no viajan con la ficha: con los 100 de cada uno aporta lo mismo', async ({
+  page,
+}, info) => {
+  const id = await idDeLead(PROPIO_BERTA)
+  await entrar(page, t.personas.berta)
+  const documento = async (ruta: string) =>
+    (await (await page.goto(ruta))?.body())?.toString() ?? ''
+  // Lo que la ficha suma sobre `/perfil` (el mismo shell, con los mismos catálogos): su propio documento.
+  const aporte = async () =>
+    (await documento(`/leads/${id}`)).length - (await documento('/perfil')).length
+  const antes = await aporte()
+  try {
+    // Hasta el tope de la base (100 de cada uno), con nombres que no se parecen a nada del resto de la ficha.
+    sql(`
+      insert into public.origenes_lead (clave, nombre, orden)
+        select 'e2e_cat_ficha_' || n, '${PREFIJO_DE_CATALOGO} origen ' || n, 1000 + n
+        from generate_series(1, 100 - (select count(*) from public.origenes_lead)) n;
+      insert into public.tipos_lead (clave, nombre, clase, orden)
+        select 'e2e_cat_ficha_' || n, '${PREFIJO_DE_CATALOGO} tipo ' || n, 'prospecto', 1000 + n
+        from generate_series(1, 100 - (select count(*) from public.tipos_lead)) n;
+    `)
+    const perfilConTodo = (await documento('/perfil')).length
+    const despues = await aporte()
+    const resumen = `con 100 orígenes y 100 tipos la ficha aporta ${String(despues)} bytes (antes ${String(antes)}; /perfil pesa ${String(perfilConTodo)})`
+    console.warn(`[ficha] ${info.project.name}: ${resumen}`)
+    info.annotations.push({ type: 'ficha con los catálogos al máximo', description: resumen })
+    // Lo que cambia entre dos lecturas es ruido (unos cientos de bytes): con los catálogos en las props serían ~13 KB más por cada 100.
+    expect(Math.abs(despues - antes)).toBeLessThan(2 * 1024)
+  } finally {
+    sql(`
+      delete from public.origenes_lead where clave like 'e2e_cat_ficha_%';
+      delete from public.tipos_lead where clave like 'e2e_cat_ficha_%';
+    `)
   }
 })

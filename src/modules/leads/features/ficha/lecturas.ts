@@ -8,20 +8,20 @@ import {
   leerLayoutDeLeads,
 } from '../../composicion'
 import type { PersonaDeCartera } from '../../entities/cartera'
-import type { TipoDeLeadEnCatalogo } from '../../entities/catalogos'
+import { tipoDelCatalogo, type TipoDeLeadEnCatalogo } from '../../entities/catalogos'
 import type { CampoDeLead } from '../../entities/campo'
 import type { Etiqueta } from '../../entities/etiqueta'
-import type { LeadDeFicha, OrigenConEstado } from '../../entities/ficha'
+import { origenDeLaFicha, type LeadDeFicha } from '../../entities/ficha'
 
 export type DatosDeLaFicha = {
   ficha: LeadDeFicha
-  // Todo el layout: la ficha y el panel filtran los activos.
+  // Los campos activos: «Datos» no dibuja los desactivados. El layout completo y los catálogos de lead los lee el panel de edición al
+  // abrirse (`leerCatalogosDeEdicion()`): con hasta 100 orígenes y 100 tipos viajaban con el documento de cada visita.
   campos: CampoDeLead[]
-  // También los apagados: el lead que entró por uno se sigue nombrando.
-  origenes: OrigenConEstado[]
-  // También los apagados: el lead que conserva uno se sigue nombrando, y el panel lo ofrece marcado.
-  tipos: TipoDeLeadEnCatalogo[]
-  // Las de quien mira: nombran las del lead y se ofrecen en el selector.
+  // El origen y el tipo de ESTE lead, también apagados: el lead que conserva uno se sigue nombrando.
+  origen: { nombre: string; activo: boolean } | null
+  tipo: TipoDeLeadEnCatalogo | null
+  // Las de quien mira: nombran las del lead y se ofrecen en el selector (hasta 50).
   etiquetas: Etiqueta[]
   // Quién lo tiene: nombres y tipo de acceso (sin correo ni teléfono).
   cartera: PersonaDeCartera[]
@@ -59,9 +59,9 @@ export async function leerFichaDeLead(id: string): Promise<Resultado<DatosDeLaFi
   }
   return ok({
     ficha: ficha.data,
-    campos: layout.data,
-    origenes: catalogos.data.origenes,
-    tipos: catalogos.data.tipos,
+    campos: layout.data.filter((campo) => campo.activo),
+    origen: origenDeLaFicha(catalogos.data.origenes, ficha.data.origenId),
+    tipo: tipoDelCatalogo(catalogos.data.tipos, ficha.data.tipoLeadId),
     etiquetas: etiquetas.data,
     cartera: cartera.data,
   })

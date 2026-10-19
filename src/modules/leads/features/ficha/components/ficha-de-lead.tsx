@@ -5,17 +5,14 @@ import type { Route } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { RUTAS } from '@/shared/lib/rutas'
-import { useRegional } from '@/shared/ui/regional'
 import type { AccionesDeCartera, PersonaDeCartera } from '../../../entities/cartera'
-import { tipoDelCatalogo, type TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
+import type { TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { Etiqueta } from '../../../entities/etiqueta'
 import {
-  origenDeLaFicha,
   quienLoTiene,
   type LeadDeFicha,
   type LoQueVe,
-  type OrigenConEstado,
   type SeccionDeLead,
 } from '../../../entities/ficha'
 import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
@@ -28,19 +25,18 @@ import { AvisoDeVencidos } from './aviso-de-vencidos'
 import { BarraDeSecciones } from './barra-de-secciones'
 import { AccionesDeLaFicha } from './acciones-de-la-ficha'
 import { CabeceraDeLead } from './cabecera-de-lead'
-import { PanelDeEdicion } from './panel-de-edicion'
+import { EdicionDeLaFicha } from './edicion-de-la-ficha'
 import { PanelDeTelefono } from './panel-de-telefono'
 import { RefrescarAlVolver } from './refrescar-al-volver'
 import { SeccionDatos } from './seccion-datos'
 
 type Props = {
   ficha: LeadDeFicha
-  // Todo el layout de campos de los leads.
+  // Los campos activos del layout: los que dibuja «Datos». El panel de edición lee el layout completo al abrirse.
   campos: readonly CampoDeLead[]
-  // Todos, también los desactivados.
-  origenes: readonly OrigenConEstado[]
-  // Los tipos de lead, también los apagados: nombran el del lead y se ofrecen en el panel de edición.
-  tipos: readonly TipoDeLeadEnCatalogo[]
+  // El origen y el tipo de este lead, también apagados: lo nombran. Los catálogos completos los lee el panel de edición al abrirse.
+  origen: { nombre: string; activo: boolean } | null
+  tipo: TipoDeLeadEnCatalogo | null
   // Quien mira: para decir «lo tienes tú».
   usuarioId: string
   puedeEditar: boolean
@@ -108,10 +104,6 @@ function VolverALeads() {
 
 type PropsDeLosPaneles = {
   ficha: LeadDeFicha
-  campos: readonly CampoDeLead[]
-  origenes: readonly OrigenConEstado[]
-  tipos: readonly TipoDeLeadEnCatalogo[]
-  zona: string
   puedeEditar: boolean
   puedeCambiarTelefono: boolean
   etiquetas: ReturnType<typeof useEtiquetas>
@@ -121,18 +113,10 @@ type PropsDeLosPaneles = {
 
 // Lo que se abre encima de la ficha: editar el lead, cambiar el teléfono, gestionar etiquetas. Cada uno vive en su `?panel=`.
 function PanelesDeLaFicha(props: PropsDeLosPaneles) {
-  const { ficha, campos, origenes, tipos, zona, puedeEditar, puedeCambiarTelefono, etiquetas } =
-    props
+  const { ficha, puedeEditar, puedeCambiarTelefono, etiquetas } = props
   return (
     <>
-      <PanelDeEdicion
-        ficha={ficha}
-        campos={campos}
-        origenes={origenes}
-        tipos={tipos}
-        zona={zona}
-        puedeEditar={puedeEditar}
-      />
+      <EdicionDeLaFicha ficha={ficha} puedeEditar={puedeEditar} />
       <PanelDeTelefono ficha={ficha} puedeCambiar={puedeCambiarTelefono} />
       <DialogoDeEtiquetas etiquetas={etiquetas} />
       <RefrescarAlVolver activo={props.refrescaAlVolver} />
@@ -146,8 +130,8 @@ function PanelesDeLaFicha(props: PropsDeLosPaneles) {
 export function FichaDeLead({
   ficha,
   campos,
-  origenes,
-  tipos,
+  origen,
+  tipo,
   usuarioId,
   puedeEditar,
   puedeCambiarTelefono,
@@ -162,13 +146,10 @@ export function FichaDeLead({
   accionesDeCartera,
   puedeEnviarAPapelera,
 }: Props) {
-  const { zonaHoraria } = useRegional()
   const panel = usePanelDeLead()
   const marcas = useMarcas(ficha.id, ficha.marcas)
   const etiquetas = useEtiquetas(lista)
   const gestionar = usePanelDeEtiquetas()
-  const origen = origenDeLaFicha(origenes, ficha.origenId)
-  const tipo = tipoDelCatalogo(tipos, ficha.tipoLeadId)
   return (
     // Una sola columna que no crece con su contenido: sin `minmax(0, 1fr)`, la barra de secciones (con
     // cinco, más ancha que un celular) ensanchaba toda la ficha y los modales quedaban cortados.
@@ -216,8 +197,7 @@ export function FichaDeLead({
         vePortal: ve.portal,
       })}
       <PanelesDeLaFicha
-        {...{ ficha, campos, origenes, tipos, puedeEditar, puedeCambiarTelefono, etiquetas }}
-        zona={zonaHoraria}
+        {...{ ficha, puedeEditar, puedeCambiarTelefono, etiquetas }}
         refrescaAlVolver={!panel.hayPanel && !gestionar.abierto}
       />
     </div>

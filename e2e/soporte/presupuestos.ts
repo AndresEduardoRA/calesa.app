@@ -9,7 +9,8 @@ export const PRESUPUESTO_DE_JS_EN_KB: Readonly<Record<string, number>> = {
   '/vehiculos': 500,
 }
 
-// Lo que una sección de la ficha puede aportar al documento sobre `/perfil`, en KB. Era 44 hasta la 9e; con el
-// shell delgado (`/perfil` ya no lleva la ficha) se midió 45,3 («Datos») y 44,3 («Oportunidades»): el
-// presupuesto se volvió a fijar sobre lo medido más un 5 % (`docs/DECISIONES.md`, 2026-10-16).
-export const PRESUPUESTO_DE_LA_FICHA_EN_KB = 48
+// Lo que una sección de la ficha puede aportar al documento sobre `/perfil`, en KB. Era 44 hasta la 9e; con el shell delgado (`/perfil` ya
+// no lleva la ficha) se midió 45,3 («Datos») y 44,3 («Oportunidades») y se fijó en 48. En el cierre 5b la ficha dejó de mandar el layout
+// completo y los catálogos de lead (el panel de edición los lee al abrirse) y se midió 39,2 a 40,3: sobre lo medido más un 5 %, 43. Con
+// 100 orígenes y 100 tipos aporta lo mismo (`e2e/leads-ficha.spec.ts`); con las props de antes habrían sido 70 KB.
+export const PRESUPUESTO_DE_LA_FICHA_EN_KB = 43

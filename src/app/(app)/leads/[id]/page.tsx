@@ -68,8 +68,8 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
     <FichaDeLead
       ficha={datos.ficha}
       campos={datos.campos}
-      origenes={datos.origenes}
-      tipos={datos.tipos}
+      origen={datos.origen}
+      tipo={datos.tipo}
       usuarioId={sesion.usuarioId}
       puedeEditar={puedeEditarLead(sesion.permisos, datos.ficha.enCartera)}
       puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}

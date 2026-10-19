@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/shared/ui/button'
-import { Drawer } from '@/shared/ui/drawer'
 import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
@@ -12,6 +11,7 @@ import type { CampoDeLead } from '../../../entities/campo'
 import type { TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import { MENSAJE_DE_LEAD_NO_DISPONIBLE, type OrigenConEstado } from '../../../entities/ficha'
 import { PanelDeEdicion } from '../../ficha/components/panel-de-edicion'
+import { PanelSinFormulario } from '../../ficha/components/panel-sin-formulario'
 import { usePanelDeLead } from '../../ficha/hooks/use-panel-de-lead'
 
 type Props = {
@@ -26,20 +26,6 @@ type Props = {
 }
 
 type PropsDelLector = Props & { abierto: boolean; alCerrar: () => void }
-
-// Mientras llega la ficha, si no se pudo leer o si el lead ya no se ve: un panel con lo que pasa, en el lugar del formulario.
-function PanelSinFormulario({
-  nombre,
-  abierto,
-  alCerrar,
-  children,
-}: Pick<PropsDelLector, 'nombre' | 'abierto' | 'alCerrar'> & { children: React.ReactNode }) {
-  return (
-    <Drawer abierto={abierto} alCerrar={alCerrar} titulo={`Editar ${nombre}`} ancho="amplio">
-      {children}
-    </Drawer>
-  )
-}
 
 // Lee la ficha (`lead_ficha`: la versión y los datos que quien mira recibe) y, con ella, dibuja el panel de edición de la ficha. Se
 // monta de nuevo en cada apertura (`key`): cada una arranca de lo guardado.
