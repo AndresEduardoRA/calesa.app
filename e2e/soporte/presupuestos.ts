@@ -1,11 +1,12 @@
-// Los presupuestos de JS en frío por pantalla, en KB con gzip (`e2e/soporte/js-en-frio.ts`). Se fijan en la
-// 9e con lo medido más un 5 % (redondeado hacia arriba a la decena); `e2e/presupuesto-js.spec.ts` falla
-// por encima. Subir un presupuesto es una decisión (va en `docs/DECISIONES.md` con su razón), no un
-// arreglo para que pase. Medido en la 9e: `/leads` 544 KB, `/perfil` 435 KB, `/vehiculos` 505 KB.
+// Los presupuestos de JS en frío por pantalla, en KB con gzip (`e2e/soporte/js-en-frio.ts`). Se fijan con lo medido más un 5 %
+// (redondeado hacia arriba a la decena); `e2e/presupuesto-js.spec.ts` falla por encima. Subir un presupuesto es una decisión (va en
+// `docs/DECISIONES.md` con su razón), no un arreglo para que pase. Medido en la 9e: `/leads` 544 KB, `/perfil` 435 KB,
+// `/vehiculos` 505 KB. Medido en el cierre 5b, con el `index.ts` de cada módulo sin componentes (una pantalla paga lo que
+// reexporta lo que importa): `/leads` 498,6 KB, `/perfil` 413,0 KB, `/vehiculos` 467,7 KB (antes 565,4, 443,3 y 520,0).
 export const PRESUPUESTO_DE_JS_EN_KB: Readonly<Record<string, number>> = {
-  '/leads': 570,
-  '/perfil': 460,
-  '/vehiculos': 530,
+  '/leads': 530,
+  '/perfil': 440,
+  '/vehiculos': 500,
 }
 
 // Lo que una sección de la ficha puede aportar al documento sobre `/perfil`, en KB. Era 44 hasta la 9e; con el
