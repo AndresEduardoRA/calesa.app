@@ -214,6 +214,18 @@ create function pg_temp.atributo(p_valor text, p_columna text default 'atributos
   select format('%I @> %L', p_columna, jsonb_build_object('ciudad_vol', p_valor));
 $$;
 
+-- 5a-9 (ABIERTO, `docs/PLAN.md`): un texto o un rango sobre un campo público (`atributos_publicos ->> 'clave'`) no tiene índice: `ilike` y `->>` no son _leakproof_ bajo RLS y un
+-- GIN `jsonb_path_ops` sólo sirve a `@>`. Crece con la cartera de quien filtra (la dueña con 212.000 leads: «todos» 200 ms, «míos» 130, Berta 112, Ana 41; el rango 73 a 76 y 56).
+-- Se MIDE en cada corrida y no se asserta: el assert del PLAN (≤ 50 ms sin resultados) pide un índice por clave (DDL al volver filtrable y público un campo) y que la base lo use;
+-- por los candidatos solos mejoran la «chica» (52 → 0,7 ms en el rango) y Ana (41-55 → 21-28), no la dueña ni Berta. La decisión es de la persona (`docs/DECISIONES.md`, 5a-9).
+create function pg_temp.texto_y_rango_publicos(p_nombre text, p_quien text, p_donde text, p_rel text) returns void language plpgsql as $$
+declare v_max int := current_setting('medir.max_leads')::int; v_ciudad text := 'atributos_publicos ->> ''ciudad_vol''';
+begin
+  perform pg_temp.escala(p_nombre || ': un texto sin resultados en un campo público (5a-9, sin asertar)', p_quien, pg_temp.pagina(p_donde || v_ciudad || ' ilike ''%x%'' and esta_tachado = false', v_max, p_rel));
+  perform pg_temp.escala(p_nombre || ': un texto común en un campo público (5a-9, sin asertar)', p_quien, pg_temp.pagina(p_donde || v_ciudad || ' ilike ''%lp%'' and esta_tachado = false', v_max, p_rel));
+  perform pg_temp.escala(p_nombre || ': un rango de texto sin resultados en un campo público (5a-9, sin asertar)', p_quien, pg_temp.pagina(p_donde || v_ciudad || ' >= ''zz'' and ' || v_ciudad || ' < ''zzz'' and esta_tachado = false', v_max, p_rel));
+end $$;
+
 -- El listado de leads (9h; 5a-fix-1a). Dos lecturas, las dos que manda la app:
 --  · «míos» (`en_cartera = true`): lo que ve por defecto TODA persona y lo único que ve quien tiene «propios». Se lee de
 --    `leads_cartera_vista`, que camina la cartera de quien mira por `leads_asesores_listado_idx`: cuesta lo que pesa esa cartera y no
@@ -243,6 +255,7 @@ begin
   if p_mios and v_rel = 'leads_vista' then
     perform pg_temp.escala(v_modo || ': página 1 con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false', v_max, v_rel), 30, v_idx, v_tablas, v_desc);
     perform pg_temp.escala(v_modo || ': un campo privado sin resultados (recorre la cartera)', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada', 'atributos') || ' and esta_tachado = false', v_max, v_rel), 6000);
+    perform pg_temp.texto_y_rango_publicos(v_modo, q, v_m, v_rel);
     return;
   end if;
   perform pg_temp.escala(v_modo || ': página 1 (tachados ocultos)', q, pg_temp.pagina(v_m || 'esta_tachado = false', 50, v_rel), 30, v_idx, v_tablas, v_desc);
@@ -255,6 +268,7 @@ begin
   if p_mios then
     perform pg_temp.escala(v_modo || ': un campo privado sin resultados (recorre la cartera)', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada', 'atributos') || ' and esta_tachado = false', v_max, v_rel), 6000);
   end if;
+  perform pg_temp.texto_y_rango_publicos(v_modo, q, v_m, v_rel);
   perform pg_temp.escala(v_modo || ': sólo favoritos', q, pg_temp.pagina(v_m || 'es_favorito = true and esta_tachado = false', v_max, v_rel), 100);
   perform pg_temp.escala(v_modo || ': sólo tachados', q, pg_temp.pagina(v_m || 'esta_tachado = true', v_max, v_rel), 100);
   -- La etiqueta ya no se lee de la vista (`etiquetas && …` calculaba las de cada fila: 88 ms la dueña con 212.000 leads, 378 una que nadie tiene): va por los candidatos,
