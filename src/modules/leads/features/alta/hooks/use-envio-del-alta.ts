@@ -1,8 +1,8 @@
 'use client'
 
 import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
-import { useRouter } from 'next/navigation'
 import { useRef, type Dispatch, type SetStateAction } from 'react'
+import { olvidarDatosDelAlta } from '../../../composicion.client'
 import { validarAlta, type ContextoDeAlta, type DatosDeAlta } from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { ResultadoDeAlta } from '../../../entities/repositorios'
@@ -108,7 +108,6 @@ async function preparaElSeguimiento(args: Contexto, datos: DatosDeAlta): Promise
 // el intento queda esperando (con su id) y sale solo al volver.
 export function useEnvioDelAlta(args: Args) {
   const { estado, setEstado, layout, contexto, zona, telefono, alGuardado } = args
-  const router = useRouter()
   const envio = useCrearLead()
   const preparando = useRef(false)
   const hayTipos = contexto.tiposDeSeguimiento.length > 0
@@ -145,9 +144,9 @@ export function useEnvioDelAlta(args: Args) {
     setEstado((antes) => trasRechazo(antes, hecho.error, hecho.porCampo))
     const sinElegir = sinLoQueSeDesactivo(hecho.porCampo)
     if (sinElegir) {
-      // El origen o el tipo se desactivó (o se eliminó) mientras se escribía: se vuelve a leer lo que el alta ofrece.
+      // El origen o el tipo se desactivó (o se eliminó) mientras se escribía: lo leído ya no vale y el alta vuelve a leer lo que ofrece.
       setEstado(sinElegir)
-      router.refresh()
+      olvidarDatosDelAlta()
     }
     return false
   }

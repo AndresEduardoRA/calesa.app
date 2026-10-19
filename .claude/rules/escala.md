@@ -54,7 +54,7 @@ con 50.000 leads: `pnpm db:sembrar-volumen` y `pnpm db:medir:volumen`).
 - **El shell importa sólo lo que dibuja el marco.** Todo lo que importa `src/app/(app)/layout.tsx` viaja
   en el JS de todas las pantallas, así que no importa el `index.ts` de un módulo (reexporta cada
   pantalla) sino su entrada `@/modules/<x>/shell` (y `shell.client` para un Client Component de
-  `_shell/`). «Nuevo lead» es el botón y la tecla `N`; el drawer llega con el primer clic.
+  `_shell/`). «Nuevo lead» es el botón y la tecla `N`; el drawer y lo que necesita leer (el contexto del alta y el layout de campos, desde el navegador) llegan con el primer clic: el documento de una pantalla no lleva catálogos que casi nadie abre.
 - Ninguna acción crece con lo cargado: recargar lee una página (y lo puntual por su id), buscar tiene
   tope de páginas, nada consulta por fila (N+1).
 - Exportar, importar y los jobs van por lotes con tope por lote y por corrida (`supabase/tests/medir-jobs.sql`

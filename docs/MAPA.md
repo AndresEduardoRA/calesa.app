@@ -65,10 +65,10 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 580 archivos
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 584 archivos
 - API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `ContextoDeAlta`, `leerOrigenesDeLeadConUso`, `leerTiposDeLeadConUso`, `leerListadoDeLeads`, +25
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
-- API del shell (`shell.ts`, sólo el layout `(app)`): `leerContextoDeAlta`, `leerLayoutDeLeads`, `AltaDeLead`
+- API del shell (`shell.ts`, sólo el layout `(app)`): `AltaDeLead`
 - Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
   - `configuracion`: `EditorDeCamposDeLead`, `OrigenesDeLead`, `EsqueletoDeOrigenes`, `TiposDeLead`, `EsqueletoDeTipos`
   - `ficha`: `FichaDeLead`, `LeadNoDisponible`, `SeccionSeguimientos`, `EsqueletoDeSeguimientos`, `SeccionOportunidades`, `EsqueletoDeOportunidades`, `SeccionPortal`, `EsqueletoDePortal`
@@ -129,7 +129,7 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 Infraestructura transversal sin reglas de negocio: clientes de Supabase, permisos, errores como valores, formato de números y fechas, configuración y los componentes de interfaz que usan todos los módulos.
 
 - `config/`: `app.ts`, `entorno.ts`
-- `lib/`: `almacen.ts`, `ancho.server.ts`, `ancho.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `clic-de-fila.ts`, `color.ts`, `conteo.ts`, `enviar-accion.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `navegacion.ts`, `numeros-de-lead.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
+- `lib/`: `almacen.ts`, `ancho.server.ts`, `ancho.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `clic-de-fila.ts`, `color.ts`, `conteo.ts`, `enviar-accion.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `imagenes.ts`, `memoria-de-lectura.ts`, `navegacion.ts`, `numeros-de-lead.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
 - `lib/campos/`: `agrupar.ts`, `cambios.ts`, `clave.ts`, `controles.ts`, `esquema-de-valor.ts`, `esquemas.ts`, `impacto.ts`, `index.ts`, `mostrar.ts`, `motivos.ts`, `orden.ts`, `tipos.ts`, `valor-defecto.ts`, `valor.ts`
 - `lib/csv/`: `descargar.ts`, `escribir.ts`, `leer.ts`
 - `lib/filtros/`: `campos.ts`, `chips.ts`, `esquema.ts`, `index.ts`, `opciones.ts`, `url.ts`

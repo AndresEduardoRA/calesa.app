@@ -3,6 +3,7 @@
 import { useAction } from 'next-safe-action/hooks'
 import { enviarAccion } from '@/shared/lib/enviar-accion'
 import type { OrigenDeLeadConUso, RespuestaDeOrigenes } from '../../../entities/origen-de-lead'
+import { olvidarDatosDelAlta } from '../../../composicion.client'
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
 import { crearOrigen } from '../actions/crear-origen'
 import { eliminarOrigen } from '../actions/eliminar-origen'
@@ -11,8 +12,13 @@ import { moverOrigen } from '../actions/mover-origen'
 
 type Pedido = Parameters<typeof enviarAccion<RespuestaDeOrigenes>>[0]
 
-const comoEnvio = (pedido: Pedido) =>
-  enviarAccion<RespuestaDeOrigenes>(pedido, MENSAJE_DE_VALIDACION)
+// Lo que el alta de lead leyó (los orígenes y los tipos activos) deja de valer cuando termina cualquier cambio: crear, renombrar, ordenar,
+// activar, desactivar o eliminar. Se olvida al terminar, no antes: una lectura en medio no guardaría lo viejo.
+const comoEnvio = async (pedido: Pedido) => {
+  const envio = await enviarAccion<RespuestaDeOrigenes>(pedido, MENSAJE_DE_VALIDACION)
+  olvidarDatosDelAlta()
+  return envio
+}
 
 // Las cuatro Server Actions de los orígenes del lead, como funciones que devuelven el envío (el
 // resultado, o `sinRed` si no llegó al servidor). Cada una manda la versión que se tenía en pantalla.

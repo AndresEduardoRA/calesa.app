@@ -260,7 +260,7 @@ test('abrir la ficha trae poco: lo que aporta sobre el resto de la pantalla y lo
 
 // Con los catálogos en su máximo: hasta 100 orígenes y 100 tipos de lead no viajan con la ficha (cierre 5b). El panel de edición los lee al
 // abrirse; antes cada visita pagaba sus ~30 KB, la usara o no. Lo que la ficha suma sobre otra pantalla no depende de cuántos tenga la empresa.
-// (El shell sí los manda, para el alta: lo pagan todas las pantallas por igual, también `/perfil`; `docs/PLAN.md`, 5b-1.)
+// (El shell tampoco manda ya los del alta: «Nuevo lead» los lee al abrirse, cierre 5b-fix; `e2e/presupuesto-js.spec.ts` mide `/perfil`.)
 const PREFIJO_DE_CATALOGO = 'E2E catálogo ficha'
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
@@ -271,7 +271,7 @@ test('los orígenes y los tipos de lead no viajan con la ficha: con los 100 de c
   await entrar(page, t.personas.berta)
   const documento = async (ruta: string) =>
     (await (await page.goto(ruta))?.body())?.toString() ?? ''
-  // Lo que la ficha suma sobre `/perfil` (el mismo shell, con los mismos catálogos): su propio documento.
+  // Lo que la ficha suma sobre `/perfil` (el mismo shell): su propio documento.
   const aporte = async () =>
     (await documento(`/leads/${id}`)).length - (await documento('/perfil')).length
   const antes = await aporte()

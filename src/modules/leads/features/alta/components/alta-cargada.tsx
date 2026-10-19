@@ -77,6 +77,36 @@ function useFocoDelAlta({
   }, [abierto, hayErrores, errores, erroresDelSeguimiento, idFormulario])
 }
 
+// Si el formulario llega cuando el drawer ya estaba abierto (esperó la lectura de lo que necesita, o el código), el foco quedó en la espera:
+// se lleva al teléfono, que es lo primero que se tipea. Si ya hay un campo con el foco (Base UI lo puso en el teléfono, o se está tipeando),
+// no hace nada.
+function useFocoAlLlegarAbierto(abierto: boolean) {
+  useEffect(() => {
+    if (!abierto) {
+      return
+    }
+    let intentos = 0
+    const insistir = window.setInterval(() => {
+      const enUnCampo = document.activeElement?.closest(
+        'input, textarea, select, [contenteditable]',
+      )
+      const telefono = document.getElementById(ID_DEL_TELEFONO)
+      intentos += 1
+      if (enUnCampo || (telefono && document.activeElement === telefono)) {
+        window.clearInterval(insistir)
+      } else if (telefono) {
+        telefono.focus()
+        window.clearInterval(insistir)
+      } else if (intentos > 40) {
+        window.clearInterval(insistir)
+      }
+    }, 25)
+    return () => {
+      window.clearInterval(insistir)
+    }
+  }, [abierto])
+}
+
 type PropsDelPie = {
   idFormulario: string
   paso: Paso
@@ -185,6 +215,7 @@ export function AltaCargada({ contexto, campos }: Props) {
   })
   const { paso, enCurso, enviar, guardar } = alta
   const salida = useSalidaDelAlta(alta, panel)
+  useFocoAlLlegarAbierto(panel.abierto)
 
   useAtajo('guardarYSeguir', () => void enviar(), panel.abierto)
   useAtajo('guardar', () => void guardar(), panel.abierto)

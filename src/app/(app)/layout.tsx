@@ -9,7 +9,7 @@ import {
   puede,
   requerirSesion,
 } from '@/modules/equipo/shell'
-import { AltaDeLead, leerContextoDeAlta, leerLayoutDeLeads } from '@/modules/leads/shell'
+import { AltaDeLead } from '@/modules/leads/shell'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 import { anchoDeEstaPeticion } from '@/shared/lib/ancho.server'
 import { ProveedorDeAncho } from '@/shared/ui/ancho-de-pantalla'
@@ -22,17 +22,6 @@ import { EsqueletoShell } from './_shell/esqueleto-shell'
 import { Marco } from './_shell/marco'
 import { MenuUsuario } from './_shell/menu-usuario'
 import { entradasVisibles } from './_shell/navegacion'
-
-// «Nuevo lead», con lo que el drawer necesita de la base. Va detrás de su propio <Suspense>: el marco
-// no espera por él, y si no se puede leer el botón no aparece (la pantalla no se cae).
-async function NuevoLead() {
-  const [contexto, layout] = await Promise.all([leerContextoDeAlta(), leerLayoutDeLeads()])
-  if (!contexto.ok || !layout.ok) {
-    console.error('«Nuevo lead» no pudo leer su contexto', contexto.ok ? layout : contexto)
-    return null
-  }
-  return <AltaDeLead contexto={contexto.data} campos={layout.data} />
-}
 
 // Todo lo que depende de quién entró: la sesión, sus permisos y los ajustes de la empresa. Acá se
 // leen una vez y se reparten por props a un marco que no sabe de dónde salen.
@@ -85,14 +74,9 @@ async function Shell({ children }: { children: ReactNode }) {
                   />
                 ) : undefined
               }
-              // Sin `leads.crear` no se monta nada: ni botón, ni atajo, ni una URL que lo abra.
-              nuevoLead={
-                puede(sesion.permisos, 'leads.crear') ? (
-                  <Suspense fallback={null}>
-                    <NuevoLead />
-                  </Suspense>
-                ) : undefined
-              }
+              // Sin `leads.crear` no se monta nada: ni botón, ni atajo, ni una URL que lo abra. El drawer lee lo que necesita al abrirse:
+              // el documento de la pantalla no lleva los catálogos del alta.
+              nuevoLead={puede(sesion.permisos, 'leads.crear') ? <AltaDeLead /> : undefined}
               aviso={<BannerPerspectiva />}
               menuUsuario={
                 <MenuUsuario

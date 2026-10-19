@@ -15,6 +15,10 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
     formulario: 'src/modules/leads/features/alta/components/alta-cargada.tsx',
     mecanismo: 'propio',
   },
+  'src/modules/leads/features/alta/components/espera-del-alta.tsx': {
+    sinFormulario:
+      '«Nuevo lead» mientras lee lo que necesita o si no pudo: todavía no hay formulario, y cuando llega ocupa su lugar `alta-cargada.tsx`',
+  },
   'src/modules/leads/features/ficha/components/panel-de-edicion.tsx': {
     formulario: 'src/modules/leads/features/ficha/components/panel-de-edicion.tsx',
     mecanismo: 'contexto',

@@ -4,6 +4,13 @@ export { leerLeadRapido } from './infra/lead-rapido.client'
 export { leerFichaDelLead } from './infra/ficha.client'
 export { leerCatalogosDeEdicion } from './infra/catalogos-de-edicion.client'
 export {
+  alOlvidarDatosDelAlta,
+  datosDelAltaEnMemoria,
+  leerDatosDelAlta,
+  olvidarDatosDelAlta,
+  type DatosDelAlta,
+} from './infra/contexto-de-alta.client'
+export {
   leerMasSeguimientos,
   leerSeguimiento,
   leerTiposDeSeguimiento,

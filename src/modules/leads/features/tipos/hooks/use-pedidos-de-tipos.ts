@@ -7,6 +7,7 @@ import type {
   RespuestaDeTipos,
   TipoDeLeadConUso,
 } from '../../../entities/tipo-de-lead'
+import { olvidarDatosDelAlta } from '../../../composicion.client'
 import { MENSAJE_DE_VALIDACION } from '../../ficha/resultado'
 import { crearTipo } from '../actions/crear-tipo'
 import { eliminarTipo } from '../actions/eliminar-tipo'
@@ -15,7 +16,13 @@ import { moverTipo } from '../actions/mover-tipo'
 
 type Pedido = Parameters<typeof enviarAccion<RespuestaDeTipos>>[0]
 
-const comoEnvio = (pedido: Pedido) => enviarAccion<RespuestaDeTipos>(pedido, MENSAJE_DE_VALIDACION)
+// Lo que el alta de lead leyó (los orígenes y los tipos activos) deja de valer cuando termina cualquier cambio: crear, renombrar, ordenar,
+// activar, desactivar o eliminar. Se olvida al terminar, no antes: una lectura en medio no guardaría lo viejo.
+const comoEnvio = async (pedido: Pedido) => {
+  const envio = await enviarAccion<RespuestaDeTipos>(pedido, MENSAJE_DE_VALIDACION)
+  olvidarDatosDelAlta()
+  return envio
+}
 
 // Las cuatro Server Actions de los tipos de lead, como funciones que devuelven el envío (el
 // resultado, o `sinRed` si no llegó al servidor). Cada una manda la versión que se tenía en pantalla.

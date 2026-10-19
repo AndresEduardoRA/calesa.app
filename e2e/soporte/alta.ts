@@ -127,6 +127,9 @@ export async function abrirConN(page: Page, teclado?: Teclado): Promise<{ inicio
     }
     await expect(dialogo(page)).toBeVisible({ timeout: 1000 })
   }).toPass()
+  // El drawer se abre al instante con su esqueleto mientras lee lo que necesita; las teclas siguientes son para el formulario. «Teléfono
+  // principal» con el foco es lo que promete `docs/UX.md` («Foco en Teléfono principal»).
+  await expect(dialogo(page).getByLabel('Teléfono principal')).toBeFocused({ timeout: 10_000 })
   return { inicio }
 }
 

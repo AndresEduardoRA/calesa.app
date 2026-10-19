@@ -20,3 +20,9 @@ export const PRESUPUESTO_DE_LA_FICHA_EN_KB = 43
 // pedido por quien lo quiere), 374. Antes cada visita a una ficha con 100 pagaba lo segundo. Sobre lo medido más un 5 %.
 export const PRESUPUESTO_DE_LA_FICHA_CON_10_OPORTUNIDADES_EN_KB = 66
 export const PRESUPUESTO_DE_LA_FICHA_CON_TODAS_EN_KB = 400
+
+// El documento de `/perfil` (los bytes del HTML con el payload RSC, sin comprimir), en KB, con 100 orígenes y 100 tipos de lead: lo que paga
+// toda pantalla del marco (`e2e/presupuesto-js.spec.ts`). Antes del cierre 5b-fix el shell mandaba el contexto del alta de lead (los
+// catálogos y el layout de campos) en cada documento: 79,3 KB con la semilla y 106,6 con 100 + 100 (~26 KB de más); ahora pesa lo mismo con
+// los dos (77,4 KB, tolerancia ±1 KB). Sobre lo medido más un 5 %.
+export const PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB = 82
