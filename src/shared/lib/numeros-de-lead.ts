@@ -49,6 +49,20 @@ export type NumeroEscrito = Readonly<{
   secundario: string | null
 }>
 
+// El número propio dicho en dos partes: «Tu n.º 12» (el de quien mira: sin `creador`) o «N.º 12» con quien lo creó («N.º 12 · Berta»). Nulo si no
+// se ve. Lo comparten `escribirNumeros()` y la explicación de por qué una fila coincide con el número buscado.
+export function partesDelPropio(
+  numeros: NumerosDeLead,
+  formatear: (valor: number) => string,
+): { numero: string; creador: string | null } | null {
+  if (numeros.numeroPropio === null) {
+    return null
+  }
+  return numeros.creadorDelPropio
+    ? { numero: `N.º ${formatear(numeros.numeroPropio)}`, creador: numeros.creadorDelPropio }
+    : { numero: `Tu n.º ${formatear(numeros.numeroPropio)}`, creador: null }
+}
+
 // «N.º 1.234» el global, «Tu n.º 12» el propio de quien mira, «N.º 12 · Berta» el propio de otra persona. El
 // número se formatea con el locale de la empresa (`formatear`): nunca a mano.
 export function escribirNumeros(
@@ -56,12 +70,12 @@ export function escribirNumeros(
   formatear: (valor: number) => string,
 ): NumeroEscrito {
   const global = numeros.numero === null ? null : `N.º ${formatear(numeros.numero)}`
-  let propio: string | null = null
-  if (numeros.numeroPropio !== null) {
-    propio = numeros.creadorDelPropio
-      ? `N.º ${formatear(numeros.numeroPropio)} · ${numeros.creadorDelPropio}`
-      : `Tu n.º ${formatear(numeros.numeroPropio)}`
-  }
+  const partes = partesDelPropio(numeros, formatear)
+  const propio = partes
+    ? partes.creador
+      ? `${partes.numero} · ${partes.creador}`
+      : partes.numero
+    : null
   return global
     ? { principal: global, secundario: propio }
     : { principal: propio, secundario: null }

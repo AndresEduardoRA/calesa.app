@@ -18,6 +18,8 @@ export type DatosDeLaLista = {
   codigoDePais: string | null
   // Las etiquetas de quien mira: nombran las de cada lead.
   etiquetas: readonly Etiqueta[]
+  // El número que se buscó (`?q=30` o `?q=#30`), ya interpretado por el servidor: explica por qué coincide una fila (`CoincidenciaDelNumero`).
+  numeroBuscado?: number | null
 }
 
 // Lo que necesita el «⋯» de cada fila: la lista de etiquetas (con crear), abrir «Gestionar», qué

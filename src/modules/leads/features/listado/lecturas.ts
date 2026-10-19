@@ -29,7 +29,7 @@ import type { OrigenConEstado } from '../../entities/ficha'
 import { CLAVE_DE_ALCANCE, alcanceDelListado, type ModoDelListado } from '../../entities/alcance'
 import type { CampoDeLead } from '../../entities/campo'
 import type { Etiqueta } from '../../entities/etiqueta'
-import { esquemaDeFiltrosDeLeads } from '../../entities/filtros'
+import { esquemaDeFiltrosDeLeads, interpretarBusqueda } from '../../entities/filtros'
 import { filtrosDescartados, type FiltroDescartado } from '../../entities/filtros-descartados'
 import { FILTRO_TACHADOS, TOPE_DE_OCULTOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { MAXIMO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
@@ -51,6 +51,8 @@ export type DatosDelListado = {
   etiquetas: Etiqueta[]
   modo: ModoDelListado
   puedeVerTodos: boolean
+  // El número que se busca, si lo que se escribió es uno (`30`, `#30`): explica en cada fila por qué coincide.
+  numeroBuscado: number | null
   // De la URL, lo que ya no se puede filtrar (una vista vieja): se avisa y se quita.
   descartados: FiltroDescartado[]
   // Cuántos leads que cumplen los filtros quedaron afuera por estar tachados (0 si no se ocultan).
@@ -166,6 +168,7 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       etiquetas: etiquetas.data,
       modo,
       puedeVerTodos,
+      numeroBuscado: interpretarBusqueda(valores.busqueda)?.numero ?? null,
       descartados: filtrosDescartados(campos, parametros, etiquetas.data),
       // Si contar falla, el listado se dibuja igual: sin el aviso.
       ocultos: ocultos?.ok ? ocultos.data : SIN_OCULTOS,

@@ -3,6 +3,7 @@ import type { Etiqueta } from '../../../entities/etiqueta'
 import type { FilaDeLead } from '../../../entities/listado'
 import { InsigniasDeMarcas } from '../../marcas/components/insignias-de-marcas'
 import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
+import { CoincidenciaDelNumero } from './coincidencia-del-numero'
 
 // El nombre de un lead en la lista, atenuado y tachado si quien mira lo tachó (la insignia
 // «Tachado» lo dice con texto), con su número y sus marcas debajo.
@@ -10,11 +11,14 @@ export function NombreDeFila({
   lead,
   etiquetas,
   nombre,
+  numeroBuscado = null,
 }: {
   lead: FilaDeLead
   etiquetas: readonly Etiqueta[]
   // El nombre ya envuelto (un botón en la tabla, texto en la tarjeta).
   nombre: (clases: string) => React.ReactNode
+  // El número que se buscó, si se buscó uno: explica por qué coincide la fila cuando no es por el principal.
+  numeroBuscado?: number | null
 }) {
   const tachado = lead.marcas.estaTachado
   return (
@@ -29,6 +33,11 @@ export function NombreDeFila({
         <NumeroDeLead
           numeros={lead.numeros}
           className="text-(length:--text-xs) text-(--color-ink-soft) tabular-nums"
+        />
+        <CoincidenciaDelNumero
+          numeros={lead.numeros}
+          buscado={numeroBuscado}
+          className="text-(length:--text-xs) text-(--color-ink-soft)"
         />
         <InsigniasDeMarcas marcas={lead.marcas} etiquetas={etiquetas} />
       </span>

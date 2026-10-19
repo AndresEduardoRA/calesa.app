@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { CAMPOS_DE_NUMEROS, SIN_NUMEROS, escribirNumeros, numerosDesde } from './numeros-de-lead'
+import {
+  CAMPOS_DE_NUMEROS,
+  SIN_NUMEROS,
+  escribirNumeros,
+  numerosDesde,
+  partesDelPropio,
+} from './numeros-de-lead'
 
 const formatear = (n: number) => n.toLocaleString('es-BO')
 
@@ -69,5 +75,27 @@ describe('escribirNumeros', () => {
       principal: 'N.º 40',
       secundario: 'N.º 12 · Berta',
     })
+  })
+})
+
+describe('partesDelPropio', () => {
+  it('el propio de otra persona lleva su creador aparte; el de quien mira no', () => {
+    expect(
+      partesDelPropio({ numero: 62, numeroPropio: 30, creadorDelPropio: 'Berta' }, formatear),
+    ).toEqual({
+      numero: 'N.º 30',
+      creador: 'Berta',
+    })
+    expect(
+      partesDelPropio({ numero: 62, numeroPropio: 30, creadorDelPropio: null }, formatear),
+    ).toEqual({
+      numero: 'Tu n.º 30',
+      creador: null,
+    })
+  })
+  it('sin propio, nada', () => {
+    expect(
+      partesDelPropio({ numero: 62, numeroPropio: null, creadorDelPropio: null }, formatear),
+    ).toBeNull()
   })
 })

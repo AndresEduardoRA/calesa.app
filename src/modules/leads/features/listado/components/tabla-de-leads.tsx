@@ -52,8 +52,18 @@ function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposD
 // rápido (`?lead=`), salvo el del «⋯» y el de un enlace de la fila. La tabla es tan ancha como lo pidan sus columnas (el nombre nunca
 // se achica para que quepan) y se desplaza dentro de la tarjeta, con el nombre y el «⋯» a la vista.
 export function TablaDeLeads(props: Props) {
-  const { leads, campos, origenes, tipos, codigoDePais, etiquetas, alAbrir, abierto, marcar } =
-    props
+  const {
+    leads,
+    campos,
+    origenes,
+    tipos,
+    codigoDePais,
+    etiquetas,
+    alAbrir,
+    abierto,
+    marcar,
+    numeroBuscado,
+  } = props
   const columnas = camposDeTabla(campos)
   return (
     <TablaDeLista>
@@ -71,6 +81,7 @@ export function TablaDeLeads(props: Props) {
               <NombreDeFila
                 lead={lead}
                 etiquetas={etiquetas}
+                numeroBuscado={numeroBuscado}
                 nombre={(clases) => (
                   <AbrirResumen nombre={lead.nombre} className={`max-w-72 ${clases}`}>
                     {lead.nombre}

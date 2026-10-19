@@ -24,8 +24,18 @@ type Props = DatosDeLaLista & {
 // (`minmax(0, 1fr)` y `min-w-0`): sin eso la columna `auto` toma el ancho mínimo de la tarjeta y, con el texto al 200 %, un nombre que
 // no se parte ensancha la página y deja el «⋯» fuera de la vista; el «⋯» no se achica (`shrink-0`).
 export function TarjetasDeLeads(props: Props) {
-  const { leads, campos, origenes, tipos, codigoDePais, etiquetas, alAbrir, abierto, marcar } =
-    props
+  const {
+    leads,
+    campos,
+    origenes,
+    tipos,
+    codigoDePais,
+    etiquetas,
+    alAbrir,
+    abierto,
+    marcar,
+    numeroBuscado,
+  } = props
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
       {leads.map((lead) => {
@@ -55,6 +65,7 @@ export function TarjetasDeLeads(props: Props) {
               <NombreDeFila
                 lead={lead}
                 etiquetas={etiquetas}
+                numeroBuscado={numeroBuscado}
                 nombre={(clases) => (
                   <AbrirResumen
                     nombre={lead.nombre}
