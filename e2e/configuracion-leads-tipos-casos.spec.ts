@@ -27,16 +27,14 @@ import {
   noAbre,
   sinRedNoConfirma,
 } from './soporte/confirmar-por-url'
-import { crearAsesoraDeLaSemilla } from './soporte/recorrido'
 
 // Los casos no felices de Configuración › Leads › Tipos de lead (9j): apagar el último activo de su clase con la lista vieja (lo
 // dice la base y la pantalla se vuelve a leer), dos personas editando el mismo tipo, una URL que nombra uno que no existe, el tope
-// de 100 y la asesora sin permiso (por la pantalla y llamando la RPC con su sesión). Un alta con un tipo que se apagó mientras tanto
+// de 100. La asesora sin permiso (pantalla y RPC) se prueba en `*-recorrido` y en `humo.sql`. Un alta con un tipo que se apagó mientras tanto
 // está en `leads-tipos-pantallas.spec.ts`.
 test.describe.configure({ mode: 'serial' })
 
 let duena = ''
-let asesora = ''
 let proyecto = ''
 const nombre = (resto: string) => `${PREFIJO_DE_TIPO_E2E} ${resto} ${proyecto}`
 
@@ -48,7 +46,6 @@ test.beforeAll(async ({}, info) => {
   await borrarRolesDePrueba()
   duena = correoDePrueba(`duena-tipos-casos-${proyecto}`)
   await crearDuenaDePrueba({ email: duena, contrasena: CONTRASENA, nombre: 'Dalia Casos' })
-  asesora = (await crearAsesoraDeLaSemilla(proyecto)).email
   await sembrarTipo(nombre('Tres'))
 })
 
@@ -145,33 +142,6 @@ test('el tope de 100: lo dice, apaga «Nuevo tipo» y la base no deja pasar', as
   })
   expect(crear.error?.message).toContain('máximo')
   await borrarTiposDePrueba().catch(() => undefined)
-})
-
-// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
-test('la asesora no entra a la pantalla ni puede llamar la RPC', async ({ page }) => {
-  await entrar(page, asesora, { fresco: true })
-  await page.goto('/configuracion/leads?seccion=tipos')
-  await expect(page.getByText('No tienes permiso para ver esto')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Nuevo tipo' })).toHaveCount(0)
-
-  const cliente = await sesionDe(asesora, CONTRASENA)
-  const crear = await cliente.rpc('tipo_lead_crear', {
-    p_id: crypto.randomUUID(),
-    p_nombre: nombre('Intruso'),
-    p_clase: 'cliente',
-  })
-  expect(crear.error?.code).toBe('42501')
-  const lista = await cliente.rpc('tipos_lead_con_uso')
-  expect(lista.error?.code).toBe('42501')
-  const directo = await cliente
-    .from('tipos_lead')
-    .insert({ clave: 'e2e_9j_directo', nombre: nombre('Directo'), clase: 'cliente' })
-  expect(directo.error).not.toBeNull()
-  expect(await tipoEnLaBase(nombre('Intruso'))).toBeUndefined()
-  expect(await tipoEnLaBase(nombre('Directo'))).toBeUndefined()
-  // Leer los tipos sí puede (el alta, la ficha y el listado los necesitan).
-  const catalogos = await cliente.rpc('leads_catalogos')
-  expect(catalogos.error).toBeNull()
 })
 
 test('eliminar un tipo: su URL, Esc, atrás, recarga, sin red y un solo pedido; uno que no existe no abre', async ({

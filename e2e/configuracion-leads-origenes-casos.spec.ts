@@ -8,7 +8,7 @@ import {
   crearDuenaDePrueba,
 } from './soporte/base'
 import { borrarLeadsDePrueba } from './soporte/leads'
-import { sesionDe, telefonoAlAzar } from './soporte/leads-alta'
+import { telefonoAlAzar } from './soporte/leads-alta'
 import {
   PREFIJO_DE_ORIGEN_E2E,
   abrirOrigenes,
@@ -24,15 +24,13 @@ import {
   noAbre,
   sinRedNoConfirma,
 } from './soporte/confirmar-por-url'
-import { crearAsesoraDeLaSemilla } from './soporte/recorrido'
 
 // Los casos no felices de Configuración › Leads › Orígenes del lead (9f-1): un alta con un origen que se
 // apagó mientras tanto, dos personas editando el mismo, una URL que nombra uno que no existe, el tope de
-// 100 y la asesora sin permiso (por la pantalla y llamando la RPC con su sesión).
+// 100. La asesora sin permiso (pantalla y RPC) se prueba en `*-recorrido` y en `humo.sql`.
 test.describe.configure({ mode: 'serial' })
 
 let duena = ''
-let asesora = ''
 let proyecto = ''
 const nombre = (resto: string) => `${PREFIJO_DE_ORIGEN_E2E} ${resto} ${proyecto}`
 
@@ -44,7 +42,6 @@ test.beforeAll(async ({}, info) => {
   await borrarRolesDePrueba()
   duena = correoDePrueba(`duena-origenes-casos-${proyecto}`)
   await crearDuenaDePrueba({ email: duena, contrasena: CONTRASENA, nombre: 'Dalia Casos' })
-  asesora = (await crearAsesoraDeLaSemilla(proyecto)).email
   await sembrarOrigen(nombre('Tres'))
 })
 
@@ -145,29 +142,6 @@ test('el tope de 100: lo dice, apaga «Nuevo origen» y la base no deja pasar', 
   await page.goto('/configuracion/leads?seccion=origenes&panel=nuevo-origen')
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await borrarOrigenesDePrueba().catch(() => undefined)
-})
-
-// @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
-test('la asesora no entra a la pantalla ni puede llamar la RPC', async ({ page }) => {
-  await entrar(page, asesora, { fresco: true })
-  await page.goto('/configuracion/leads?seccion=origenes')
-  await expect(page.getByText('No tienes permiso para ver esto')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Nuevo origen' })).toHaveCount(0)
-
-  const cliente = await sesionDe(asesora, CONTRASENA)
-  const crear = await cliente.rpc('origen_lead_crear', {
-    p_id: crypto.randomUUID(),
-    p_nombre: nombre('Intruso'),
-  })
-  expect(crear.error?.code).toBe('42501')
-  const lista = await cliente.rpc('origenes_lead_con_uso')
-  expect(lista.error?.code).toBe('42501')
-  const directo = await cliente
-    .from('origenes_lead')
-    .insert({ clave: 'e2e_9f_directo', nombre: nombre('Directo') })
-  expect(directo.error).not.toBeNull()
-  expect(await origenEnLaBase(nombre('Intruso'))).toBeUndefined()
-  expect(await origenEnLaBase(nombre('Directo'))).toBeUndefined()
 })
 
 test('eliminar un origen: su URL, Esc, atrás, recarga, sin red y un solo pedido; uno que no existe no abre', async ({
