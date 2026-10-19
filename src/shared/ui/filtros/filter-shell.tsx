@@ -145,8 +145,8 @@ export function FilterShell(props: Props) {
 
   return (
     <ContextoDeFiltros value={filtros}>
-      <div className="grid gap-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="@container grid gap-3">
+        <div data-barra-de-filtros className="flex flex-wrap items-center gap-2">
           {esquema.busqueda ? (
             <CampoDeBusqueda
               etiqueta={esquema.busqueda.etiqueta}
@@ -168,9 +168,12 @@ export function FilterShell(props: Props) {
             />
           ) : null}
           {vistas}
-          <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
-            {selectorEnLaBarra ? selector : null}
+          {/* Con sitio de sobra (un contenedor de 48 rem o más) las acciones van juntas a la derecha; sin él, cada botón envuelve por su
+              cuenta —`contents`—, a la izquierda y en el orden en que se leen: un grupo que salta de fila como un bloque y reparte a la
+              derecha dejaba «Vistas» sola y los botones desparejos al 200 % (cierre 5b, defecto 4.1). «Ítems por página» va al final. */}
+          <div className="contents @3xl:ml-auto @3xl:flex @3xl:min-w-0 @3xl:flex-wrap @3xl:items-center @3xl:justify-end @3xl:gap-2">
             {acciones}
+            {selectorEnLaBarra ? selector : null}
           </div>
         </div>
         <ChipsDeFiltros esquema={esquema} />
