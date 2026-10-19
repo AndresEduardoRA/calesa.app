@@ -137,6 +137,7 @@ for (const archivo of [
   'cartera-policy.sql',
   'listado-cartera.sql',
   'busqueda-leads.sql',
+  'oportunidades-policy.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue

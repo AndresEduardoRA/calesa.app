@@ -452,13 +452,14 @@ do $medir$ declare q text; begin
       perform pg_temp.escala('kanban: buscar con resultados (todas las columnas)', q, format('select public.embudo_tablero(%L, %s, %s, %L)', current_setting('medir.embudo'), current_setting('medir.tam_columna'), current_setting('medir.tope_cargado'), 'Volumen 1'), 700);
       perform pg_temp.escala('kanban: «Ver más» buscando, sin resultados', q, format('select public.embudo_etapa_pagina(%L, %L, %L, %s, %L)',
         current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id'), current_setting('medir.tam_columna'), 'zzzz nada'), 200);
-      -- Lo de adentro. Bajo la policy de `oportunidades` (`lead_id = any(_mis_leads_vivos())`, un arreglo de
-      -- tamaño desconocido) Postgres elige `oportunidades_lead_id_idx` y ordena las de la persona: cuesta lo
-      -- que tiene la persona (~2 µs por oportunidad), no lo que tiene la columna. Límite anotado.
+      -- Lo de adentro. La policy de `oportunidades` pregunta por cada oportunidad que sale (`_lead_vivo_en_mi_cartera(lead_id)`, 5a-6) y no arma el arreglo de toda la
+      -- cartera: el planificador camina `oportunidades_tablero_idx` en el orden del kanban y corta en 51 (con el arreglo, un `Bitmap Index Scan` de `oportunidades_lead_id_idx` y 10.000
+      -- filas ordenadas: 67 a 111 ms con 212.000 leads). Se asserta la forma —ese índice, sin recorrer `oportunidades` ni descartar más que lo que no es visible— y 25 ms (medido 1,1).
       perform pg_temp.escala('kanban: primera página de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L order by o.ultima_actividad_en desc, o.id desc limit %s', current_setting('medir.etapa'), current_setting('medir.tam_columna')::int + 1),
-        100);
+        25, 'oportunidades_tablero_idx', '{oportunidades}', 200);
       perform pg_temp.escala('kanban: «Ver más» de una columna (la consulta)', q, format('select o.id from public.oportunidades o where o.etapa_id = %L and (o.ultima_actividad_en, o.id) < (%L, %L) order by o.ultima_actividad_en desc, o.id desc limit %s',
-        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id'), current_setting('medir.tam_columna')::int + 1), 100);
+        current_setting('medir.etapa'), current_setting('medir.op_en'), current_setting('medir.op_id'), current_setting('medir.tam_columna')::int + 1),
+        25, 'oportunidades_tablero_idx', '{oportunidades}', 200);
       perform pg_temp.escala('kanban: el total acotado de una columna', q, format('select count(*) from (select 1 from public.oportunidades o2 where o2.etapa_id = %L limit %s) q', current_setting('medir.etapa'), current_setting('medir.tope_cargado')::int + 1),
         100);
     end if;

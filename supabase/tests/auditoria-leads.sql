@@ -114,7 +114,7 @@ declare
     ('embudo_eliminar(uuid,timestamp with time zone)', 'M'),
     ('embudo_etapas_guardar(uuid,timestamp with time zone,jsonb)', 'M'),
     -- Lecturas de oportunidades: la RLS da sólo las propias sobre leads vivos de la cartera.
-    ('_mis_leads_vivos()', 'L'),
+    ('_lead_vivo_en_mi_cartera(uuid)', 'L'),
     ('_tarjeta_json(oportunidades,jsonb,jsonb)', 'L'),
     ('lead_oportunidades(uuid)', 'L'),
     ('etiqueta_guardar(uuid,timestamp with time zone,text,text)', 'M'),
