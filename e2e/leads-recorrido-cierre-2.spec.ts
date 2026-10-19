@@ -85,13 +85,17 @@ test('Ana · el kanban no ensancha la página: sin tarjetas, con una, con diez, 
   let vehiculoId = ''
   try {
     await entrar(page, r.ana.email)
-    const cabe = async (caso: string, captura?: string) => {
+    const cabe = async (caso: string, captura?: { nombre: string; tarjeta: string }) => {
       if (esMovil(page)) {
         await page.evaluate(() => {
           document.documentElement.style.fontSize = '200%'
         })
       }
-      if (captura) await capturar(page, info, captura)
+      if (captura) {
+        // La tarjeta a la vista: con el texto al 200 % queda debajo de la barra y el aviso.
+        await tarjeta(page, captura.tarjeta).scrollIntoViewIfNeeded()
+        await capturar(page, info, captura.nombre)
+      }
       await sinScrollHorizontal(page).catch((e: unknown) => {
         throw new Error(`${caso}: ${e instanceof Error ? e.message : String(e)}`)
       })
@@ -107,7 +111,10 @@ test('Ana · el kanban no ensancha la página: sin tarjetas, con una, con diez, 
     await oportunidad(r.ana.email, r.uno.id, { titulo: `Camioneta de una sola ${proyecto}` })
     await ver()
     await expect(tarjeta(page, `Camioneta de una sola ${proyecto}`)).toBeVisible()
-    await cabe('con una tarjeta', 'kanban-una-tarjeta')
+    await cabe('con una tarjeta', {
+      nombre: 'kanban-una-tarjeta',
+      tarjeta: `Camioneta de una sola ${proyecto}`,
+    })
 
     await muchasOportunidades({
       usuarioId: ana,
@@ -126,7 +133,10 @@ test('Ana · el kanban no ensancha la página: sin tarjetas, con una, con diez, 
     })
     await oportunidad(r.ana.email, largo.id, { titulo: `Compra de ${proyecto}` })
     await ver()
-    await cabe('con un nombre de 80 letras sin espacios', 'kanban-nombre-largo')
+    await cabe('con un nombre de 80 letras sin espacios', {
+      nombre: 'kanban-nombre-largo',
+      tarjeta: `Compra de ${proyecto}`,
+    })
 
     const origen = await admin().from('origenes').select('id').limit(1).single<{ id: string }>()
     vehiculoId = await vehiculoDe(
@@ -139,7 +149,10 @@ test('Ana · el kanban no ensancha la página: sin tarjetas, con una, con diez, 
       vehiculo_id: vehiculoId,
     })
     await ver()
-    await cabe('con un vehículo de título largo', 'kanban-vehiculo-largo')
+    await cabe('con un vehículo de título largo', {
+      nombre: 'kanban-vehiculo-largo',
+      tarjeta: `Con vehículo largo ${proyecto}`,
+    })
   } finally {
     // Lo que sigue en el spec parte de un kanban sin estas tarjetas.
     await admin().from('oportunidades').delete().eq('usuario_id', ana)
