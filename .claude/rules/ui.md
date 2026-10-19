@@ -78,6 +78,7 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   color. Los colores de fase/origen vienen de la fila, no de un mapa en código.
 - Las acciones visibles salen de `puede(permisos, clave, origenId)` de `@/shared/lib/permisos` y de la
   función de transiciones del flujo; no hay `if (rol === …)` en componentes.
+- **Un `<Drawer>` que nace ya abierto no se anima** (Base UI da el estado inicial sólo al abrir desde cerrado): el que tiene que deslizarse la primera vez se monta cerrado y no se vuelve a montar mientras lee (`useAbiertoAlgunaVez` es para el código diferido, no para el `<Drawer>`). Un cuerpo que cambia (esqueleto, error, formulario) cambia **dentro** del mismo drawer; uno con estado que no puede irse al cerrar dibuja en sus ranuras por portal (`marco-del-alta.tsx`). `e2e/soporte/contar-drawer.ts` cuenta montajes y entradas.
 - Ningún modal abre otro modal. Segundo nivel = `<Drawer>` o página. Un `<Drawer>` o `<Modal>` tiene
   su URL (`?panel=`, `?id=`).
 - Formularios en bloques: `<Bloque titulo>` plegable; los secundarios nacen plegados.

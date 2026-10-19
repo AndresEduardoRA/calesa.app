@@ -736,17 +736,17 @@ Una primera corrida final (806 pasan) falló en `leads-vehiculos` (la nota de «
 
 ### Cada rama del celular y quién la toca (las pruebas que se quedan, sólo en celular)
 
-| Rama del celular                                                                                          | Pruebas que se quedan y la tocan | Nota                                                                                                                             |
-| --------------------------------------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Tarjetas en vez de tabla (leads, vehículos, papeleras)                                                    | 111                              | `UnaSolaVista` dibuja una sola vista según el `user-agent`                                                                       |
-| Hoja «Filtros» en vez del panel                                                                           | 13                               | `leads-listado-filtros` (control) y `vehiculos`                                                                                  |
-| Pestañas de etapas en vez de columnas del kanban                                                          | 13                               | `leads-embudo` (control), `leads-numeros-pantallas`, `leads-recorrido-cierre-2`                                                  |
-| Panel desde abajo (`data-side` = bottom: la hoja de filtros, el teléfono, la cartera, «Agregar vehículo») | 34                               | incluye las 13 de la hoja de filtros; la ficha: `leads-ficha-telefonos` (control)                                                |
-| Menú del celular («Abrir el menú»)                                                                        | 5                                | entre ellas `leads-listado` y `vehiculos`                                                                                        |
-| Modal arriba con el pie de 44 px                                                                          | 2                                | `modales-celular-200`                                                                                                            |
-| «Tomar una foto»                                                                                          | 1                                | `vehiculos-fotos`: visible en celular, oculto en escritorio                                                                      |
-| «Ítems por página» arriba de la lista                                                                     | 14                               | es una posición, no una estructura: la huella no la distingue; la miden `listas-por-pagina` y `vehiculos-por-pagina` (se quedan) |
-| «Rol a la vista» (matriz de Roles)                                                                        | **0**                            | **ninguna prueba, en ningún proyecto, ni antes del cierre: `docs/PLAN.md` 5a-13**                                                |
+| Rama del celular                                                                                          | Pruebas que se quedan y la tocan | Nota                                                                                                                              |
+| --------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Tarjetas en vez de tabla (leads, vehículos, papeleras)                                                    | 111                              | `UnaSolaVista` dibuja una sola vista según el `user-agent`                                                                        |
+| Hoja «Filtros» en vez del panel                                                                           | 13                               | `leads-listado-filtros` (control) y `vehiculos`                                                                                   |
+| Pestañas de etapas en vez de columnas del kanban                                                          | 13                               | `leads-embudo` (control), `leads-numeros-pantallas`, `leads-recorrido-cierre-2`                                                   |
+| Panel desde abajo (`data-side` = bottom: la hoja de filtros, el teléfono, la cartera, «Agregar vehículo») | 34                               | incluye las 13 de la hoja de filtros; la ficha: `leads-ficha-telefonos` (control)                                                 |
+| Menú del celular («Abrir el menú»)                                                                        | 5                                | entre ellas `leads-listado` y `vehiculos`                                                                                         |
+| Modal arriba con el pie de 44 px                                                                          | 2                                | `modales-celular-200`                                                                                                             |
+| «Tomar una foto»                                                                                          | 1                                | `vehiculos-fotos`: visible en celular, oculto en escritorio                                                                       |
+| «Ítems por página» arriba de la lista                                                                     | 14                               | es una posición, no una estructura: la huella no la distingue; la miden `listas-por-pagina` y `vehiculos-por-pagina` (se quedan)  |
+| «Rol a la vista» (matriz de Roles)                                                                        | **1**                            | `equipo` › «Rol a la vista» (cierre 5b-fix-2, `docs/PLAN.md` 5a-13): DISTINTO en el paso 8 (`selectOption` contra `to.be.hidden`) |
 
 ### Las pruebas que bajan de nivel (la lista de «C», rehecha contra el código)
 
@@ -792,3 +792,34 @@ Lo que viajaba en cada documento era el contexto del alta (orígenes, tipos de l
 
 - **5b-1, el buscador de la barra:** el botón medía 72 px de alto (`h-9` en rem) y su «Buscar» se veía «B…»; ahora 44 × 44 px con el nombre «Buscar», y desde 24 rem de interior de barra (384 px a 16 px, el `@container` descuenta el relleno), el icono y «Buscar» entero. `sinTextoCortado()` recorre cada elemento con texto de la barra (`scrollWidth <= clientWidth`) también con la barra justo en 24 rem y un píxel menos.
 - **5b-2, el kanban:** una tarjeta pedía 411 px a una columna de 348 (el pie: «Mover a…» 192 px + «⋯» 44 + la fecha) y las pistas `auto` de cuatro grillas encadenadas empujaban la página a **475 px**; con `minmax(0,1fr)`, `min-w-0`, el pie que se parte y el nombre del lead cortado con «…», `sinScrollHorizontal()` pasa sin tarjetas, con una, con diez, con un nombre de 80 letras y con un vehículo de título largo, y en el listado, el inventario y las dos papeleras.
+
+## Cierre 5b-fix-2: «Nuevo lead» es un solo drawer (2026-10-19)
+
+Tres cosas sin cambio en la base. Los números son de la app compilada (`.next-e2e`), escritorio y celular (Pixel 7).
+
+### 5b-6 · montajes y entradas animadas del drawer «Nuevo lead» (`e2e/leads-alta-un-drawer.spec.ts`)
+
+Un observador cuenta las hojas del drawer que entran al documento (montajes) y las transiciones de entrada (`transitionrun` de su desplazamiento u opacidad que no son de salida). Idéntico en escritorio (clic sin hover previo) y en celular (un toque); la lectura de `lead_alta_contexto` y `leads_campos` retrasada con `page.route`.
+
+| Caso                          | Antes (montajes / entradas)  | Ahora                        |
+| ----------------------------- | ---------------------------- | ---------------------------- |
+| lectura 150, 400 y 1.500 ms   | 3 / 0                        | **1 / 1**                    |
+| un 500 y «Reintentar»         | 3 / 0                        | **1 / 1**                    |
+| red caída                     | 2 / 0                        | **1 / 1**                    |
+| doble toque o doble clic      | 3 / 0                        | **1 / 1**                    |
+| cerrar y reabrir mientras lee | 4 / 1 (celular y escritorio) | **2 / 2** (una por apertura) |
+
+Una sola lectura (un pedido de cada) en todos. El JS en frío no cambia (`presupuesto-js`, en verde dentro de 530, 440 y 500 KB: el `<Drawer>` ya viajaba en el shell por la espera). La tarea de oro 1: 1,4 → 0,7 s del robot en el dirigido y 1,2 s en el Nivel 2 (el reloj del robot es un tope, no una medida fina), 4 teclas, KLM 18,3 s. Nivel 2 del cierre: 538 en verde, 16 saltados, 0 fallos, 20,3 min.
+
+### 5b-4 · la tarea de oro 4 (`e2e/leads-portal-acceso.spec.ts`)
+
+|                                               | Escritorio | Celular   |
+| --------------------------------------------- | ---------- | --------- |
+| Teclas de control (31 son Tab)                | 32         | 31        |
+| KLM (0,28 s por tecla, 3 decisiones a 1,35 s) | 13,0 s     | 12,7 s    |
+| Robot                                         | 2,2–2,3 s  | 1,2–1,7 s |
+| Clics                                         | 0          | 0         |
+
+### 5a-13 · «Rol a la vista»
+
+Tabla de ramas del celular de «Cierre 5a-fix-3», fila actualizada: 0 → 1 prueba. El comparador de anchos la da DISTINTO (paso 8).
