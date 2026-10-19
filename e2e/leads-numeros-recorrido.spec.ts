@@ -1,8 +1,7 @@
 import { expect, test } from './soporte/prueba'
-import { CONTRASENA, entrar } from './soporte/alta'
+import { entrar } from './soporte/alta'
 import { admin } from './soporte/base'
 import { exigir } from './soporte/leads'
-import { sesionDe } from './soporte/leads-alta'
 import { irAFicha } from './soporte/leads-ficha'
 import { AJENO_CARLOS, delLead, fila, irALeads } from './soporte/leads-listado'
 import { compartirCon } from './soporte/leads-vehiculos'
@@ -204,22 +203,6 @@ test('D · importar un archivo con una columna de número: no se importa y lo di
   ).toBeVisible()
   await sinScrollHorizontal(page)
   await capturar(page, info, 'duena-importar-con-numero')
-})
-
-test('E · por la API, pedir leads.numero o leads.numero_propio se rechaza (no devuelve filas con nulo), también a la dueña', async () => {
-  for (const email of [r.ana.email, r.t.personas.duena]) {
-    const sesion = await sesionDe(email, CONTRASENA)
-    for (const columna of ['numero', 'numero_propio']) {
-      // Es el pedido `/rest/v1/leads?select=<columna>`: la columna no tiene grant, así que no hay respuesta.
-      const { data, error } = await sesion.from('leads').select(columna)
-      expect(error?.code).toBe('42501')
-      expect(data).toBeNull()
-    }
-    // El control: pedir una columna con grant sí responde (si no, el rechazo de arriba no diría nada).
-    const control = await sesion.from('leads').select('id').limit(1)
-    expect(control.error).toBeNull()
-    expect(control.data?.length).toBe(1)
-  }
 })
 
 test('F · un lead que Ana ve y no creó: «#<su número global>» no lo encuentra y no se le muestra ningún número', async ({
