@@ -154,6 +154,22 @@ export class Teclado {
     this.caracteres += texto.length
     await this.page.keyboard.type(texto)
   }
+
+  // Tab hasta que el foco llega a `destino` (cada Tab cuenta como una tecla de control): lo que hace quien no usa el ratón. Falla si
+  // pasa de `maximo` sin llegar.
+  async tabularHasta(destino: Locator, maximo = 40): Promise<void> {
+    for (let n = 0; n < maximo; n += 1) {
+      await this.pulsar('Tab')
+      const llego = await destino.evaluate((e) => e === document.activeElement).catch(() => false)
+      if (llego) return
+    }
+    throw new Error(`Con ${String(maximo)} Tab el foco no llegó a ${destino.toString()}`)
+  }
+
+  // La estimación de una persona (KLM): 0,28 s por tecla pulsada o tipeada y 1,35 s por cada decisión.
+  klm(decisiones: number): number {
+    return (this.caracteres + this.pulsaciones) * 0.28 + decisiones * 1.35
+  }
 }
 
 // El teléfono nacional como se escribiría pegado de distintas maneras.
