@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { archivosSinCelular } from './e2e/soporte/sin-celular'
+import { archivosSinCelular, patronesDePruebasSinCelular } from './e2e/soporte/sin-celular'
 
 // Corre contra la app COMPILADA (NEXT_DIST_DIR=.next-e2e) y Supabase local (supabase start).
 // El e2e completo parte de un `db:reset`: `pnpm test:e2e:completo`. Un spec suelto: `pnpm test:e2e <spec>`.
@@ -35,14 +35,14 @@ export default defineConfig({
     {
       name: 'movil',
       use: { ...devices['Pixel 7'] },
-      // Todo spec corre en los dos proyectos, salvo lo que se marca en el propio spec con su motivo
-      // (`e2e/soporte/sin-celular.ts`; la guarda en `scripts/guardas/sin-celular.test.ts`). Un `testIgnore` de
-      // proyecto reemplaza al de arriba: lleva también el de volumen.
+      // Todo spec corre en los dos proyectos, salvo lo que se marca en el propio spec con un comentario y su motivo
+      // (`// @sin-celular-archivo:` y `// @sin-celular:`; `e2e/soporte/sin-celular.ts`, y la guarda en
+      // `scripts/guardas/sin-celular.test.ts`). Un `testIgnore` de proyecto reemplaza al de arriba: lleva también el de volumen.
       testIgnore: [
         ...(process.env['E2E_VOLUMEN'] ? [] : SOLO_CON_VOLUMEN),
         ...archivosSinCelular('./e2e'),
       ],
-      grepInvert: /@sin-celular/,
+      grepInvert: patronesDePruebasSinCelular('./e2e'),
     },
   ],
   webServer: {
