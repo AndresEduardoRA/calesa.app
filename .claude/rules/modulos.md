@@ -5,14 +5,19 @@ paths:
 
 # Módulos
 
-- Cada módulo tiene dos entradas y nada más se importa desde afuera: `index.ts`
-  (`@/modules/<x>`, para Server Components: puede traer código de servidor) y, si expone algo al
+- Cada módulo tiene dos entradas y nada más se importa desde afuera, salvo las dos de `src/app` (abajo): `index.ts`
+  (`@/modules/<x>`, para Server Components: puede traer código de servidor, y no exporta componentes) y, si expone algo al
   navegador, `client.ts` (`@/modules/<x>/client`, para Client Components). Dentro del módulo, rutas
   relativas. Antes de agregar un export, pregúntate quién lo necesita.
 - **La tercera, la del shell** (`shell.ts`, y `shell.client.ts` para un Client Component de `_shell/`):
   sólo la importan `src/app/(app)/layout.tsx` y `src/app/(app)/_shell/` (lo cuida el lint). Lleva lo que
   dibuja el marco de toda pantalla y nada más: lo que importa el layout viaja en el JS de **todas** las
-  pantallas, y el `index.ts` reexporta cada pantalla del módulo (`docs/DECISIONES.md`, 2026-10-16).
+  pantallas (`docs/DECISIONES.md`, 2026-10-16).
+- **La cuarta, la de pantallas** (`pantallas/<pantalla>.ts`, `@/modules/<x>/pantallas/<pantalla>`): sólo `src/app` (lo cuida el lint). **El
+  `index.ts` no exporta componentes**: lleva sesión, lecturas, actions, reglas y tipos, y no alcanza ningún módulo
+  `'use client'`. Los componentes de una pantalla salen por su archivo de `pantallas/`, que reexporta sólo lo que esa
+  pantalla dibuja: una pantalla paga en JS todo lo que reexporta lo que importa, y un barril de todas hacía que `/perfil` pagara 30 KB de
+  la lista del equipo, la matriz de roles y los formularios de Empresa (`docs/DECISIONES.md`, 2026-10-18). Una pantalla nueva = su archivo.
 - `client.ts` sólo reexporta hooks, componentes de cliente (o puros) y tipos de `entities/`. Nunca
   `./index`, `./composicion`, `infra/` de servidor ni nada con `server-only`: lo frena el lint y,
   lo transitivo, el build. Un componente puro puede salir por las dos entradas.

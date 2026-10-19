@@ -12,7 +12,8 @@ const SOLO_CLIENTES_DE_SHARED = {
 }
 
 // Un módulo tiene dos entradas: `@/modules/<x>` (index.ts, para Server Components) y
-// `@/modules/<x>/client` (client.ts, para Client Components). Todo lo demás son sus tripas.
+// `@/modules/<x>/client` (client.ts, para Client Components). Todo lo demás son sus tripas, salvo las
+// dos entradas de `src/app`: la del shell y la de pantallas (más abajo).
 const SOLO_LAS_ENTRADAS = {
   group: ['@/modules/*/*', '!@/modules/*/client'],
   message:
@@ -31,6 +32,21 @@ const LAS_ENTRADAS_Y_LA_DEL_SHELL = {
   ],
   message:
     'Entre módulos sólo se importa @/modules/<otro>, @/modules/<otro>/client o, en el layout del shell, @/modules/<otro>/shell (y shell.client en sus Client Components).',
+}
+
+// La cuarta entrada, la de PANTALLAS (`@/modules/<x>/pantallas/<pantalla>`): sólo `src/app`. El `index.ts` de un módulo no exporta
+// componentes (lleva sesión, lecturas, actions, reglas y tipos); los de una pantalla salen por su archivo de `pantallas/`, que reexporta
+// sólo lo que esa pantalla dibuja. Una pantalla paga todo lo que reexporta el archivo que importa: con un barril de todas las pantallas,
+// `/perfil` pagaba 30 KB de la lista del equipo, la matriz de roles y los formularios de Empresa (cierre 5b, `docs/DECISIONES.md`).
+const LAS_ENTRADAS_Y_LAS_PANTALLAS = {
+  group: [
+    '@/modules/*/*',
+    '!@/modules/*/client',
+    '!@/modules/*/pantallas',
+    '!@/modules/*/pantallas/*',
+  ],
+  message:
+    'Entre módulos sólo se importa @/modules/<otro>, @/modules/<otro>/client o, desde src/app, @/modules/<otro>/pantallas/<pantalla>.',
 }
 
 // El código diferido (`import()` de un modal, un panel o una pestaña) pasa siempre por `diferido()` de
@@ -253,6 +269,21 @@ export default defineConfig([
   {
     files: ['src/shared/lib/supabase/**/*.ts', ...DONDE_SE_PERMITE_EL_ADMIN],
     rules: { 'no-restricted-imports': 'off' },
+  },
+
+  // `src/app` compone las pantallas: además de las dos entradas, importa `pantallas/<pantalla>` de cada módulo. El layout `(app)` y su
+  // `_shell/` quedan fuera (el bloque que sigue los reemplaza): un layout que importara una pantalla la pondría en toda pantalla.
+  {
+    files: ['src/app/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS],
+          patterns: [SOLO_CLIENTES_DE_SHARED, LAS_ENTRADAS_Y_LAS_PANTALLAS],
+        },
+      ],
+    },
   },
 
   // El layout del shell y su carpeta importan la entrada delgada de cada módulo.

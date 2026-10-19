@@ -92,6 +92,14 @@ exports_shell_de() {
   return 0
 }
 
+# Las pantallas de un módulo (`pantallas/<pantalla>.ts`, sólo `src/app` las importa): una línea por pantalla, con lo que reexporta.
+pantallas_de() {
+  [ "$STACK" = next ] && [ -d "$1/pantallas" ] || return 0
+  find "$1/pantallas" -maxdepth 1 -type f -name '*.ts' ! -name '*.test.*' | sort | while IFS= read -r f; do
+    echo "  - \`$(basename "$f" .ts)\`: $(exports_del_archivo "$f" | lista_corta)"
+  done
+}
+
 lista_corta() {
   awk -v max="$MAX_EXPORTS" '{ if (NR<=max) out = out (NR>1?", ":"") "`" $0 "`" } END { if (NR>max) out = out ", +" (NR-max); print out }'
 }
@@ -128,6 +136,8 @@ unidad() {
   [ -n "$exps" ] && echo "- API de cliente (\`client.ts\`): $exps"
   exps=$(exports_shell_de "$dir" | lista_corta)
   [ -n "$exps" ] && echo "- API del shell (\`shell.ts\`, sólo el layout \`(app)\`): $exps"
+  exps=$(pantallas_de "$dir")
+  [ -n "$exps" ] && printf -- '- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):\n%s\n' "$exps"
   if [ "$NIVEL" = 2 ]; then
     deps=$(dependencias "$dir")
     echo "- Depende de: ${deps:-ningún otro módulo}"

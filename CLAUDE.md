@@ -44,13 +44,16 @@ Nivel 2, monolito modular: `src/modules/<dominio>/` con sus propias capas adentr
 | `features/`                 | `entities/` del mismo módulo, `@/shared`, las entradas de `@/modules/<otro>` |
 | `entities/`                 | `@/shared`                                                                   |
 | `infra/`                    | `entities/` del mismo módulo, `@/shared`                                     |
-| `src/app/`                  | las entradas de `@/modules/<x>`, `@/shared`                                  |
+| `src/app/`                  | las entradas y las pantallas de `@/modules/<x>`, `@/shared`                  |
 | `src/shared/`               | `src/shared/`                                                                |
 
 Las entradas de un módulo son dos: `@/modules/<x>` (su `index.ts`, sólo desde Server Components) y
 `@/modules/<x>/client` (su `client.ts`, desde Client Components: hooks y componentes de cliente). Una
 tercera, `@/modules/<x>/shell` (`shell.ts`, y `shell.client.ts` en el navegador), es sólo del layout
 `(app)`: lleva lo que dibuja el marco de toda pantalla y nada más.
+Una cuarta, `@/modules/<x>/pantallas/<pantalla>` (`pantallas/<pantalla>.ts`), es sólo de `src/app`: el `index.ts` **no exporta
+componentes** (lleva sesión, lecturas, actions, reglas y tipos) y cada pantalla trae los suyos por su archivo, que reexporta sólo lo que esa
+pantalla dibuja. Una pantalla paga en JS todo lo que reexporta lo que importa; con un barril de todas, `/perfil` pagaba 30 KB que no usa.
 
 `features` **no** importa `infra`: los casos de uso dependen de la interfaz que declara `entities`
 y la composición del módulo (`composicion.ts`) le da la implementación. Entre módulos sólo las dos
@@ -64,6 +67,7 @@ Dónde va cada cosa:
 - `src/modules/<dominio>/entities/` — tipos, reglas puras, permisos y transiciones, interfaces de repositorio. Cero I/O.
 - `src/modules/<dominio>/infra/` — repositorios Supabase, adaptadores externos (apibara, push, PDF).
 - `src/modules/<dominio>/index.ts` — la API pública del módulo para el servidor.
+- `src/modules/<dominio>/pantallas/<pantalla>.ts` — los componentes de una pantalla, para `src/app` (el `index.ts` no los exporta).
 - `src/modules/<dominio>/client.ts` — la API pública para Client Components (si el módulo la necesita).
 - `src/shared/ui/` — shadcn y componentes transversales (XCell, FilterShell, Drawer, Monto, estados, esqueletos).
 - `src/shared/lib/` — `supabase/` (clientes server/browser/admin), `formato.ts`, `fechas.ts`, `permisos.ts`.

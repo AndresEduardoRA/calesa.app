@@ -57,7 +57,7 @@ un evento o con una función que el módulo de abajo expone, no importándose mu
 | `features/`                 | `entities/` del mismo módulo, `@/shared`, las entradas de `@/modules/<otro>` |
 | `entities/`                 | `@/shared`                                                                   |
 | `infra/`                    | `entities/` del mismo módulo, `@/shared`                                     |
-| `src/app/`                  | las entradas de `@/modules/<x>`, `@/shared`                                  |
+| `src/app/`                  | las entradas y las pantallas de `@/modules/<x>`, `@/shared`                  |
 | `src/shared/`               | `src/shared/`                                                                |
 
 `features` no importa `infra`: los casos de uso dependen de la interfaz de repositorio que declara
@@ -72,6 +72,13 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 - `@/modules/<x>/client` (`client.ts`) — para Client Components de `app/` o de otro módulo: hooks,
   componentes de cliente y tipos de `entities/`. Nunca nada de servidor.
 
+`src/app` suma dos más, que ningún otro código importa:
+
+- `@/modules/<x>/pantallas/<pantalla>` (`pantallas/<pantalla>.ts`) — los componentes de una pantalla,
+  reexportados sólo los que esa pantalla dibuja. El `index.ts` **no exporta componentes**: una pantalla paga
+  en JS todo lo que reexporta lo que importa, y con un barril de todas `/perfil` pagaba 30 KB que no usa.
+- `@/modules/<x>/shell` (y `shell.client`) — sólo el layout `(app)`: lo que dibuja el marco de toda pantalla.
+
 `composicion*.ts` es privado del módulo aunque esté en su raíz.
 
 ## Dónde va cada cosa
@@ -80,6 +87,7 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 - `src/app/` — rutas (App Router), `layout.tsx`, `manifest.ts`, route
   handlers (`api/portal`, `api/revalidar`, `api/push`, `api/pdf`). Composition root.
 - `src/modules/<dominio>/index.ts` — API pública del módulo (servidor); `client.ts` — la de cliente.
+  `pantallas/<pantalla>.ts` — los componentes de cada pantalla, para `src/app`.
 - `src/modules/<dominio>/features/<caso>/` — `components/`, `hooks/`, `actions/`, `schemas/`.
 - `src/modules/<dominio>/entities/` — tipos, reglas puras, `puede()`, transiciones, interfaces.
 - `src/modules/<dominio>/infra/` — repositorios Supabase (`queries/`, `*.client.ts`), adaptadores.
