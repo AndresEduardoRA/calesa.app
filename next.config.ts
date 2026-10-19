@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   experimental: { typedEnv: true },
   // El servidor de desarrollo imprime cada Server Action con sus argumentos: la clave temporal del
   // portal (y cualquier dato que viaje en una action) quedaría en la terminal. No hay forma de
-  // silenciar una sola (docs/DECISIONES.md, 2026-10-16).
+  // silenciar una sola (docs/DECISIONES.md, 2026-10-15).
   logging: { serverFunctions: false },
   // Tailwind 4 con Turbopack: sin esta regla nadie procesa `@import 'tailwindcss'` (no hay PostCSS).
   turbopack: {

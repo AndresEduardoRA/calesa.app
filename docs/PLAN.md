@@ -192,7 +192,7 @@ tablero de la cola (`estado_cola_web`, `unassigned` destacado, prioridades y cup
 turno con «Contacté» y «Vincular a lead» en 2 toques, interruptor de disponibilidad en el perfil,
 revalidación de la web por trigger + `WEB_PUBLICA_REVALIDAR_URL`, route handlers del portal
 (`api/portal/*` con cookie firmada y `web.portal_*`: el contrato está en `docs/DECISIONES.md`, «Contrato del portal
-para la Fase 8», 2026-10-16). Módulo `repuestos`: proyectos e ítems,
+para la Fase 8», 2026-10-15). Módulo `repuestos`: proyectos e ítems,
 imágenes, stock y movimientos, compras (permiso de costos), flujo de repuestos con la misma cadena,
 esperas que destraban al vehículo, cotizador de repuestos (config append-only, tramos, cajas,
 líneas importado/local, aceptar), catálogos.

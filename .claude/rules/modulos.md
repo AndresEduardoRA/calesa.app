@@ -12,7 +12,7 @@ paths:
 - **La tercera, la del shell** (`shell.ts`, y `shell.client.ts` para un Client Component de `_shell/`):
   sólo la importan `src/app/(app)/layout.tsx` y `src/app/(app)/_shell/` (lo cuida el lint). Lleva lo que
   dibuja el marco de toda pantalla y nada más: lo que importa el layout viaja en el JS de **todas** las
-  pantallas, y el `index.ts` reexporta cada pantalla del módulo (`docs/DECISIONES.md`, 2026-10-17).
+  pantallas, y el `index.ts` reexporta cada pantalla del módulo (`docs/DECISIONES.md`, 2026-10-16).
 - `client.ts` sólo reexporta hooks, componentes de cliente (o puros) y tipos de `entities/`. Nunca
   `./index`, `./composicion`, `infra/` de servidor ni nada con `server-only`: lo frena el lint y,
   lo transitivo, el build. Un componente puro puede salir por las dos entradas.

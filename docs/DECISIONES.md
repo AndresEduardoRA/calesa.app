@@ -2291,7 +2291,7 @@ terreno del e2e de vehículos, «Datos» 37,3 KB y «Vehículos» 31,4 KB.
 `FichaDeLead` sólo los campos activos y los que el lead tiene con dato, y los orígenes activos más el del lead
 (las opciones completas, al abrir «Editar»).
 
-## 2026-10-16 — Parte 7 partida en 7a y 7b; las quince preguntas se resolvieron con la recomendación
+## 2026-10-15 — Parte 7 partida en 7a y 7b; las quince preguntas se resolvieron con la recomendación
 
 **Contexto:** la parte 7 juntaba embudos, oportunidades, transferir, el acceso del cliente del lado del
 equipo y el endurecimiento de `web.portal_*`. El plan se aprobó sin respuestas una por una: se tomó la
@@ -2303,7 +2303,7 @@ editar, mover y cerrar; `leads.ver` para ver las propias; sin permisos nuevos (e
 oportunidad, sin conversión. Eliminar una oportunidad: lógico, con «Deshacer». Crear desde el kanban: no
 (pide el `<SelectorLead>` de la Fase 7).
 
-## 2026-10-16 — Los embudos son personales y se escriben sólo por RPC; las etapas se guardan como conjunto
+## 2026-10-15 — Los embudos son personales y se escriben sólo por RPC; las etapas se guardan como conjunto
 
 **Contexto:** leído contra la base viva, `embudos` y `embudos_etapas` tenían INSERT/UPDATE/DELETE para
 `authenticated` (con RLS de la dueña): nada garantizaba una sola etapa inicial, una ganada y una perdida,
@@ -2327,7 +2327,7 @@ fuera del embudo ni que el embudo fuera de la dueña de la oportunidad, y el emb
 embudos_etapas (embudo_id, id)`. La base garantiza que la etapa es del embudo y el embudo de la dueña.
 - Una plantilla de etapas por empresa queda pendiente.
 
-## 2026-10-16 — Una oportunidad es de su dueña, con la cartera del lead; nadie más la ve
+## 2026-10-15 — Una oportunidad es de su dueña, con la cartera del lead; nadie más la ve
 
 **Decisión:**
 
@@ -2351,7 +2351,7 @@ embudos_etapas (embudo_id, id)`. La base garantiza que la etapa es del embudo y 
 - **Una cuenta que se borra se lleva sus oportunidades** (y sus embudos); el historial queda sin autor. La
   limpieza de los e2e lo encontró: la FK a `perfiles` no decía qué hacer. La baja (lo normal) no borra: cancela.
 
-## 2026-10-16 — Transferir lleva las abiertas al embudo del destino; la baja sigue cancelando
+## 2026-10-15 — Transferir lleva las abiertas al embudo del destino; la baja sigue cancelando
 
 **Decisión:** `lead_transferir` pasa las abiertas y vivas del saliente al embudo por defecto del destino
 (creado si no tiene), a la etapa **abierta** del mismo nombre sin importar mayúsculas o, si no hay, a su
@@ -2363,7 +2363,7 @@ y una «abierta» eterna inflaría el pipeline abierto.
 **Efecto en la Fase 9:** las ganadas cuentan para quien las tiene al cerrarlas; el historial guarda quién
 creó y quién movió, así que «creadas por» se mide aparte; las métricas por etapa son dentro de cada embudo.
 
-## 2026-10-16 — El kanban: 50 por columna, «Ver más», pestañas en el celular, y la sección de la ficha
+## 2026-10-15 — El kanban: 50 por columna, «Ver más», pestañas en el celular, y la sección de la ficha
 
 **Decisión:**
 
@@ -2380,7 +2380,7 @@ creó y quién movió, así que «creadas por» se mide aparte; las métricas po
   de shadcn pesaba ~5 KB; «Editar» y «Eliminar» pasaron al «⋯» y quedó en ~2,5 KB). «Datos» pasó de 43,0 a
   43,3 KB por la pestaña nueva. El tope de 44 KB no se tocó.
 
-## 2026-10-16 — La auditoría ampliada de la 7a, y lo que encontraron las pruebas
+## 2026-10-15 — La auditoría ampliada de la 7a, y lo que encontraron las pruebas
 
 | Objeto                                                                                             | Clase | Antes                                                                | Ahora                                                                                 |
 | -------------------------------------------------------------------------------------------------- | ----- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -2405,7 +2405,7 @@ creó y quién movió, así que «creadas por» se mide aparte; las métricas po
   compartido mueve (dos órdenes), quitar una etapa mientras se mueve a ella (dos órdenes), transferir mientras
   la dueña mueve (dos órdenes) y dos guardados de etapas a la vez.
 
-## 2026-10-16 — Parte 7b: las dieciséis preguntas se resolvieron con la recomendación
+## 2026-10-15 — Parte 7b: las dieciséis preguntas se resolvieron con la recomendación
 
 **Contexto:** el plan de la 7b dejó dieciséis preguntas numeradas (ocho del pedido y ocho que salieron al leer
 la base viva) y se aprobó sin responderlas una por una. Como en la 7a, se tomó la recomendación de cada una.
@@ -2420,7 +2420,7 @@ nombrarlo), hasta 30; (12) bcrypt de costo 10 y la clave de 8 a 64 caracteres, �
 (13) la sección vuelve a mostrar el código, nunca la clave; (14) fuera `trg_auditar` de `accesos_portal`;
 (15) la tabla no la lee la app; (16) cambiar la clave no corta la sesión.
 
-## 2026-10-16 — El acceso del cliente: clase 1, sólo por RPC, con la versión del acceso
+## 2026-10-15 — El acceso del cliente: clase 1, sólo por RPC, con la versión del acceso
 
 **Contexto:** leído contra la base viva: `otorgar_portal` reemplazaba sin versión, la policy
 `accesos_portal: leer` dejaba leer la tabla (con el **código**) a la cartera con el permiso —la 6a la acotó,
@@ -2457,7 +2457,7 @@ p_clave, p_otorgado_en_esperado)`, `revocar_portal` (idempotente) y `portal_desb
   **Alternativas:** «Deshacer» al revocar (otra RPC con otra semántica); leer el estado en `lead_ficha` (suma
   bytes a «Datos» para todos).
 
-## 2026-10-16 — La clave del cliente nunca queda en claro
+## 2026-10-15 — La clave del cliente nunca queda en claro
 
 **Contexto:** la clave temporal es un secreto que la persona dicta. Al leer el runtime de Next 16 apareció que
 el servidor de desarrollo imprime cada Server Action **con sus argumentos** (`logging.serverFunctions`, activo
@@ -2479,7 +2479,7 @@ por omisión).
   caracteres de control; distingue mayúsculas y no se recorta. `codigo_dictable` pasa a `gen_random_bytes`
   (`random()` no es criptográfico) y ya no la llama la app.
 
-## 2026-10-16 — El texto para WhatsApp: la plantilla en el código, la dirección en `ajustes_web`
+## 2026-10-15 — El texto para WhatsApp: la plantilla en el código, la dirección en `ajustes_web`
 
 **Contexto:** no había ninguna dirección pública de la web: `ajustes_web` no tenía columna y
 `WEB_PUBLICA_REVALIDAR_URL` es el endpoint de revalidación, no el sitio.
@@ -2491,7 +2491,7 @@ compone `getAjustes()` y `leerDireccionPublica()` (lo primero que exporta `web`)
 empresa queda pendiente.
 **Alternativas:** una variable de entorno (no se puede probar por e2e con y sin dirección); nada hasta la Fase 8.
 
-## 2026-10-16 — Contrato del portal para la Fase 8
+## 2026-10-15 — Contrato del portal para la Fase 8
 
 **Contexto:** las `web.portal_*` no tenían consumidores; la 7b las endureció y fija lo que la Fase 8 construye
 encima (route handlers `api/portal/*`, la cookie y las pantallas). Todas son sólo de `service_role` (el cinturón
@@ -2521,7 +2521,7 @@ falla si una función de `web` que recibe un lead la puede llamar `anon` o `auth
   que no está vinculado a ese lead (sin nombrarlo), las 30 más nuevas; lo de un vehículo vinculado sale con él.
 - Cambiar la clave no cambia `otorgado_en`: el corte de todas las sesiones es «Volver a otorgar».
 
-## 2026-10-16 — La auditoría ampliada de la 7b, y lo que encontraron las pruebas
+## 2026-10-15 — La auditoría ampliada de la 7b, y lo que encontraron las pruebas
 
 | Objeto                                                | Clase | Antes                                                                                  | Ahora                                                                                   |
 | ----------------------------------------------------- | ----- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -2564,7 +2564,7 @@ falla si una función de `web` que recibe un lead la puede llamar `anon` o `auth
   espera el aviso del envío pendiente, no el de «sin conexión» que ya estaba antes del clic. Era el único
   formulario con ese guardia.
 
-## 2026-10-17 — CSV de leads (Fase 3, parte 8a): exportar la cartera e importar con las reglas del alta
+## 2026-10-15 — CSV de leads (Fase 3, parte 8a): exportar la cartera e importar con las reglas del alta
 
 **Qué se decidió, y por qué**
 
@@ -2625,7 +2625,7 @@ p_recordar_origen)` (sin grant) y `crear_lead` es su envoltorio. El lote procesa
 - **Pendiente de 8b:** deshacer durante 24 horas con una RPC propia (la papelera exige `leads.eliminar` y es
   todo o nada: no sirve para quien sólo importa).
 
-## 2026-10-17 — El reintento al volver la conexión sólo sale al volver: la causa del fallo de `leads-alta-casos`
+## 2026-10-15 — El reintento al volver la conexión sólo sale al volver: la causa del fallo de `leads-alta-casos`
 
 **Contexto:** en la primera corrida completa de la 8a, «la respuesta se perdió pero el lead entró…» no vio el aviso
 «No pudimos llegar al servidor» en 5 s, y Playwright borró los artefactos. La hipótesis del plan (que `route.fetch()`
@@ -2644,7 +2644,7 @@ Después del arreglo: 40 de 40 sin carga y 270 de 270 (el spec entero, ambos pro
 **Alternativas:** alargar el timeout (sin causa, escondía el bug: también pasaba en la ficha, el redactor y el alta de
 vehículos, que usan el mismo hook); esperar `isPending` dentro del hook (seguía siendo un reenvío que nadie pidió).
 
-## 2026-10-17 — Deshacer una importación (Fase 3, parte 8b): clase X, sólo lo intacto, 24 horas
+## 2026-10-15 — Deshacer una importación (Fase 3, parte 8b): clase X, sólo lo intacto, 24 horas
 
 **Contexto:** la 8a dejó `importaciones_leads` para esto. El plan se aprobó sin responder las once preguntas por
 número: se tomó la recomendación de cada una.
@@ -2700,7 +2700,7 @@ número: se tomó la recomendación de cada una.
   de mandar a la papelera (irreversible); un trigger por tabla que marque «tocado» (más superficie que mirar al
   deshacer, y escribiría en cada operación de leads).
 
-## 2026-10-17 — El país del teléfono: una tabla estática en el cliente, y «País» sigue al número
+## 2026-10-15 — El país del teléfono: una tabla estática en el cliente, y «País» sigue al número
 
 **Contexto:** quien tipeaba «+54 9 11…» no veía de qué país era el número; «País» sólo traía el de la empresa; la
 ficha partía únicamente los números de la empresa y un extra de otro país se veía «+5491155550000»; la importación
@@ -2755,7 +2755,7 @@ dejaba «País» vacío (ni el CSV ni la base aplican `valor_defecto_empresa`: e
   2,2 KB el pegamento que entra en el shell (el alta está en todas las rutas): `resolver`, `pais-del-telefono`, el estado del
   alta y los hooks. Es más de lo previsto; se acepta porque la tabla, que es lo grande, no viaja. «Datos» 43,4 de 44 KB.
 
-## 2026-10-18 — El primer seguimiento del alta, opcional y enriquecido (Fase 3, parte 9b)
+## 2026-10-16 — El primer seguimiento del alta, opcional y enriquecido (Fase 3, parte 9b)
 
 **Contexto.** «Nuevo lead» obligaba a escribir un resumen para guardar (~30 altas al día, muchas sin nada que anotar), el
 detalle era un `Textarea` plano que `_lead_crear` guardaba sólo como `detalle_texto`, y «Recordatorio (opcional)» abierto
@@ -2817,7 +2817,7 @@ guardar con algo escrito, y los campos del paso 2 y Tiptap no viajan con el draw
 ProseMirror hasta abrir el paso 2). **Medido:** la carga en frío de `/leads` creció 0,7 KB con gzip (570,8 → 571,5 KB en
 escritorio) contra el presupuesto de 1 KB del shell; el editor sigue siendo su chunk aparte. Lo que entra al shell es el estado del alta y `documento-limpio` (el borrador lo necesita para reponer el detalle por la lista blanca): moverlo a un `import()` ahorraría unos bytes pero, sin red, un borrador no se repondría y el siguiente `useEffect` lo borraría, y perder lo tipeado es el error que no puede pasar. Si el paso 2 no llega (sin red y sin caché) el drawer lo dice con «Recargar» en lugar de tumbar la pantalla; lo escrito queda en el borrador.
 
-## 2026-10-18 — Guardar en Empresa: el formulario espera a lo guardado, y el borrador mide contra lo que mandó el servidor
+## 2026-10-16 — Guardar en Empresa: el formulario espera a lo guardado, y el borrador mide contra lo que mandó el servidor
 
 **Contexto.** En la suite completa, «sin conexión, el formulario avisa y conserva lo tipeado» falló una vez: tras guardar,
 el NIT tipeado y la recarga no repusieron nada. La traza lo explica. `guardarAjustes` hace `revalidatePath('/', 'layout')`:
@@ -2864,7 +2864,7 @@ mide contra `guardado` por props. **Barandillas:** `use-borrador.test.tsx`, la c
 campo de leads y de orígenes, y `e2e/empresa-guardado.spec.ts` (no se teclea mientras guarda; guardar con la CPU frenada, sólo escritorio:
 con el freno solo la prueba pasa también sin el arreglo, así que la determinista es la que cuenta).
 
-## 2026-10-18 — Los avisos no reciben el puntero; el freno de CPU se borra; lo del borrador no se reproduce
+## 2026-10-16 — Los avisos no reciben el puntero; el freno de CPU se borra; lo del borrador no se reproduce
 
 **Contexto.** «edita un tipo de cambio» (`empresa.spec.ts:158`) se colgaba a veces 30 s en el clic de «Cerrar» (1 de 40 y 2 de 40
 con las 8 CPU ocupadas). Quedaban también el e2e del freno de CPU, que pasaba sin el arreglo del borrador, y un borrador que
@@ -2912,7 +2912,7 @@ limpieza corre después) volvió a escribir con la base vieja. Con el formulario
 ventana; si reaparece un «Recuperamos» tras un guardado exitoso, esta es la pista (ignorar `change` tras `limpiar()` hasta el
 próximo `input`) y lo que falta es un e2e que lo provoque.
 
-## 2026-10-18 — Los e2e reusan la sesión de cada cuenta dentro del proceso, y sólo eso
+## 2026-10-16 — Los e2e reusan la sesión de cada cuenta dentro del proceso, y sólo eso
 
 **Decisión.** `entrar` (`e2e/soporte/alta.ts` e `inventario.ts`) llama a `entrarConSesion` (`e2e/soporte/pasos.ts`): la primera vez que
 se entra con una cuenta es por la pantalla de ingreso; las siguientes, en el mismo proceso de Playwright, se inyectan las cookies de esa
@@ -2935,7 +2935,7 @@ umbral; si algún día pesa, la huella debe incluir HEAD, el diff, `next.config.
 build (un `.next-e2e` viejo con código nuevo es peor que reconstruir). `tsc` ya era incremental. Video y traza (`retain-on-failure`) no
 cuestan nada medible (A/B ×3: 77,3 s con ellos, 76,9 s sin ellos) y fueron los que permitieron diagnosticar el intermitente de Empresa.
 
-## 2026-10-18 — Parte 9c: los formularios que aparecen al pulsar algo van en un modal con su URL
+## 2026-10-16 — Parte 9c: los formularios que aparecen al pulsar algo van en un modal con su URL
 
 **Contexto.** «Agregar teléfono» y «Agendar / Editar recordatorio» se abrían dentro de la página, con estado local: recargar los
 perdía, no tenían borrador ni «Recargar», y un Esc los cerraba sin preguntar. El diálogo «Dar acceso al portal» tenía tres
@@ -2959,7 +2959,7 @@ editando» (con el foco: un Enter de más no tira nada) y «Descartar». Esc dur
 directo. «Atrás» del navegador no se puede interceptar y cierra sin preguntar: el recordatorio no pierde nada (su borrador lo repone
 al reabrir); el teléfono extra (dos campos) sí, aceptado.
 
-**Mientras guarda, el formulario no se toca y el modal no se cierra.** La regla de Empresa (2026-10-18: `<fieldset disabled>` con
+**Mientras guarda, el formulario no se toca y el modal no se cierra.** La regla de Empresa (2026-10-16: `<fieldset disabled>` con
 `enCurso`) vale para todo formulario que se redibuja con la respuesta. El modal suma `bloqueado`: Esc, la ✕ y el clic afuera no lo
 cierran mientras el pedido está en vuelo, porque la respuesta llegaría con el modal cerrado (en el portal, con la clave). Un envío a
 la vez con una marca propia (`useRef`), no con `isPending`: el reintento al volver la conexión puede llegar mientras el anterior
@@ -2994,7 +2994,7 @@ a la vez (un doble Enter otorgaba dos veces), otra generación también al reabr
 avisa que el acceso cambió («Vuelve a otorgarlo para dictarle una nueva»). **Queda aceptado:** «atrás» durante un guardado cierra el
 modal; si ese guardado falla, el motivo queda en el modal cerrado (al reabrir empieza de cero).
 
-## 2026-10-18 — Parte 9d: un solo modal de seguimiento, la pestaña del drawer y las acciones de la fila
+## 2026-10-16 — Parte 9d: un solo modal de seguimiento, la pestaña del drawer y las acciones de la fila
 
 **Contexto.** Anotar y editar un seguimiento eran un redactor dentro de la ficha (sin URL; se abría solo si había un borrador;
 Esc lo plegaba; el conflicto se borraba al pulsar «Recargar»). El drawer del lead era de sólo lectura y el «⋯» de la fila sólo
@@ -3143,7 +3143,7 @@ segundo (Node también tiene `navigator`, sin `onLine`). El código sigue siendo
 navegador) y abrir sin red un modal diferido que nunca se pidió (el `import()` falla y sube al `error.tsx`): son nueve
 `diferidos.tsx` y hay que decidir qué hace el panel cuando su código no llega.
 
-## 2026-10-17 — Parte 9e: la escala de toda la app, medida y con guardas
+## 2026-10-16 — Parte 9e: la escala de toda la app, medida y con guardas
 
 **Contexto.** La regla `.claude/rules/escala.md` (9d-2) sólo se había cumplido y medido en las listas de un lead. La 9e
 midió **toda** la app con 50.000 leads (la dueña con «todos» y Ana, la asesora de la semilla, como `authenticated`: la RLS

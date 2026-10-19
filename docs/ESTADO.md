@@ -39,7 +39,7 @@ En orden, una por sesión (detalle en `docs/PLAN.md` › Fase 3):
   props. **Embudos:** plantilla de etapas por empresa; tablero de equipo (Fase 9, `tablero.metricas.ver`).
   **Portal:** plantilla del texto por empresa; `ajustes_web.direccion_publica` sin pantalla; la Fase 8 hace
   `api/portal/*`, la cookie con `otorgado_en`, el límite por IP y el ingreso según el contrato de
-  `docs/DECISIONES.md` (2026-10-16). `logging.serverFunctions` quedó apagado.
+  `docs/DECISIONES.md` (2026-10-15). `logging.serverFunctions` quedó apagado.
 - **Lead sin dueño y con compartidos** (tras una baja): lo rescata la supervisión transfiriéndolo con `p_dueno_esperado` nulo. **Fase 7:** la notificación al compartir o transferir; la agenda dibuja el número del lead con `<NumeroDeLead>` (`recordatorios_vista` ya lo trae).
 - **Fase 4:** la cotización final como ancla de la limpieza; desvincular con cotización final;
   `cotizacion_marcar_final` toma vehículo → lead (al revés que vincular: posible deadlock); campos del
