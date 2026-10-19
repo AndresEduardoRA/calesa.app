@@ -4,13 +4,26 @@ import { irAFicha } from './soporte/leads-ficha'
 import { rpcComo } from './soporte/leads-cartera'
 import { idDePersona } from './soporte/leads-alta'
 import { irALeads, nombre } from './soporte/leads-listado'
-import { irAlEmbudo, moverA, oportunidad, tarjeta, verEtapa } from './soporte/leads-oportunidades'
+import { admin } from './soporte/base'
+import { esMovil } from './soporte/inventario'
+import { vehiculoDe } from './soporte/leads-vehiculos'
+import {
+  embudoPorDefecto,
+  etapa,
+  irAlEmbudo,
+  moverA,
+  muchasOportunidades,
+  oportunidad,
+  tarjeta,
+  verEtapa,
+} from './soporte/leads-oportunidades'
 import { nuevoLead } from './soporte/leads-ficha'
 import { completoCon, nacional } from './soporte/leads-ficha-telefonos'
 import {
   capturar,
   limpiarRecorrido,
   prepararRecorrido,
+  sinScrollHorizontal,
   type TerrenoDelRecorrido,
 } from './soporte/recorrido'
 
@@ -59,6 +72,98 @@ test('Ana · el listado con un nombre largo y la barra superior', async ({ page 
     page.getByText(nombre(r.uno.nombre.replace('E2E ', '')), { exact: false }).first(),
   ).toBeVisible()
   await variantes(page, info, 'ana-listado', true)
+})
+
+// 5b-2: el kanban ensanchaba la página al 200 % en el celular con una tarjeta (el buscador, el aviso y «Ventas» llegaban cortados al borde).
+// En el celular se mide con el texto al 200 %; en escritorio, al 100 % (el 200 % ahí es otro diseño). Cada caso suma a lo que ya hay.
+test('Ana · el kanban no ensancha la página: sin tarjetas, con una, con diez, con un nombre de 80 letras y con un vehículo largo', async ({
+  page,
+}, info) => {
+  const proyecto = info.project.name
+  const ana = await idDePersona(r.ana.email)
+  const embudo = await embudoPorDefecto(r.ana.email)
+  let vehiculoId = ''
+  try {
+    await entrar(page, r.ana.email)
+    const cabe = async (caso: string, captura?: string) => {
+      if (esMovil(page)) {
+        await page.evaluate(() => {
+          document.documentElement.style.fontSize = '200%'
+        })
+      }
+      if (captura) await capturar(page, info, captura)
+      await sinScrollHorizontal(page).catch((e: unknown) => {
+        throw new Error(`${caso}: ${e instanceof Error ? e.message : String(e)}`)
+      })
+    }
+    const ver = async () => {
+      await irAlEmbudo(page)
+      await verEtapa(page, 'Nuevo')
+    }
+
+    await ver()
+    await cabe('sin tarjetas')
+
+    await oportunidad(r.ana.email, r.uno.id, { titulo: `Camioneta de una sola ${proyecto}` })
+    await ver()
+    await expect(tarjeta(page, `Camioneta de una sola ${proyecto}`)).toBeVisible()
+    await cabe('con una tarjeta', 'kanban-una-tarjeta')
+
+    await muchasOportunidades({
+      usuarioId: ana,
+      leadId: r.uno.id,
+      embudo,
+      etapaId: etapa(embudo, 'Nuevo'),
+      cantidad: 9,
+    })
+    await ver()
+    await cabe('con diez tarjetas')
+
+    const largo = await nuevoLead({
+      corto: `${'Larguísimo'.repeat(8)}`,
+      telefono: completoCon(r.t, nacional()),
+      deQuien: r.ana.email,
+    })
+    await oportunidad(r.ana.email, largo.id, { titulo: `Compra de ${proyecto}` })
+    await ver()
+    await cabe('con un nombre de 80 letras sin espacios', 'kanban-nombre-largo')
+
+    const origen = await admin().from('origenes').select('id').limit(1).single<{ id: string }>()
+    vehiculoId = await vehiculoDe(
+      origen.data?.id ?? '',
+      'Toyota Land Cruiser Prado VX-L Diésel Automática 4x4 Edición Especial Aniversario 2024',
+      r.ana.email,
+    )
+    await oportunidad(r.ana.email, r.dos.id, {
+      titulo: `Con vehículo largo ${proyecto}`,
+      vehiculo_id: vehiculoId,
+    })
+    await ver()
+    await cabe('con un vehículo de título largo', 'kanban-vehiculo-largo')
+  } finally {
+    // Lo que sigue en el spec parte de un kanban sin estas tarjetas.
+    await admin().from('oportunidades').delete().eq('usuario_id', ana)
+    if (vehiculoId) await admin().from('vehiculos').delete().eq('id', vehiculoId)
+  }
+})
+
+// Las demás pantallas que comparten el contenedor de la página (`<main>` del marco) tampoco se ensanchan al 200 % en el celular.
+test('el listado, el inventario y las dos papeleras no ensanchan la página (al 200 % en el celular)', async ({
+  page,
+}) => {
+  await entrar(page, r.t.personas.duena)
+  for (const ruta of ['/leads', '/vehiculos', '/leads/papelera', '/vehiculos/papelera']) {
+    await page.goto(ruta)
+    await expect(page.locator('main')).toBeVisible()
+    if (esMovil(page)) {
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%'
+      })
+    }
+    await sinScrollHorizontal(page).catch((e: unknown) => {
+      throw new Error(`${ruta}: ${e instanceof Error ? e.message : String(e)}`)
+    })
+  }
 })
 
 test('Ana · el kanban con «Mover a…» en una línea y el modal del motivo', async ({

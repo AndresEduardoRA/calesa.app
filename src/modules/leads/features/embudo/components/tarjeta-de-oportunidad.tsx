@@ -31,7 +31,7 @@ export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover, alPedi
   return (
     <article
       aria-label={tarjeta.titulo}
-      className="grid gap-2 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3"
+      className="grid grid-cols-[minmax(0,1fr)] gap-2 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3"
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-(length:--text-sm) font-medium break-words text-(--color-ink)">
@@ -41,12 +41,14 @@ export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover, alPedi
       </div>
       <Link
         href={href}
-        className="w-fit text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:underline"
+        className="flex w-fit max-w-full items-baseline gap-1 text-(length:--text-sm) text-(--color-ink-soft) underline-offset-2 hover:underline"
       >
-        {tarjeta.lead.nombre} <NumeroDeLead numeros={tarjeta.lead.numeros} />
+        {/* Un nombre sin espacios no se parte: se corta con «…» y el número queda a la vista. */}
+        <span className="min-w-0 truncate">{tarjeta.lead.nombre}</span>
+        <NumeroDeLead numeros={tarjeta.lead.numeros} />
       </Link>
       {tarjeta.monto === null && !tarjeta.vehiculo ? null : (
-        <dl className="grid gap-0.5 text-(length:--text-xs) text-(--color-ink-soft)">
+        <dl className="grid grid-cols-[minmax(0,1fr)] gap-0.5 text-(length:--text-xs) text-(--color-ink-soft)">
           {tarjeta.monto === null ? null : (
             <div className="flex gap-1">
               <dt className="sr-only">Monto estimado</dt>
@@ -72,7 +74,7 @@ export function TarjetaDeOportunidad({ tarjeta, etapas, enCurso, alMover, alPedi
           Motivo: {tarjeta.motivoPerdida}
         </p>
       ) : null}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
         <span className="min-w-0 text-(length:--text-xs) text-(--color-ink-faint)">
           En esta etapa desde {fechaRelativa(tarjeta.enEtapaDesde, { zona: zonaHoraria })}
         </span>

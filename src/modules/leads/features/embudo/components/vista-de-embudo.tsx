@@ -28,7 +28,7 @@ type Props = { embudos: Embudo[]; tablero: Tablero | null; paraElMenu: ParaElMen
 export function VistaDeEmbudo({ embudos, tablero, paraElMenu }: Props) {
   if (!tablero || embudos.length === 0) {
     return (
-      <div className="grid gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
         <h1 className="sr-only">Embudo</h1>
         <ConmutadorDeVista actual="embudo" />
         <PrimerEmbudo />
@@ -86,7 +86,7 @@ function ConTablero(props: {
   // El «⋯» de cada tarjeta es el del lead (`MenuDeLead`): sus etiquetas, «Gestionar» y los modales de anotar y agendar viven acá, una vez.
   const menu = useMenuDelEmbudo(paraElMenu)
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
       <h1 className="sr-only">Embudo</h1>
       <BarraDelEmbudo
         embudos={embudos}

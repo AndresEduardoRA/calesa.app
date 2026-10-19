@@ -96,7 +96,7 @@ export function ColumnaDeEtapa({
   return (
     <section
       aria-label={`${etapa.nombre}: ${conteoEnFrase(total, { locale })}`}
-      className="grid content-start gap-2 rounded-(--radius-card) bg-(--color-surface-2) p-2"
+      className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-2 rounded-(--radius-card) bg-(--color-surface-2) p-2"
     >
       {conEncabezado ? (
         <h2 className="flex items-center gap-2 px-1 py-1 text-(length:--text-sm) font-medium text-(--color-ink)">
@@ -112,9 +112,9 @@ export function ColumnaDeEtapa({
           {buscando ? 'Nada coincide en esta etapa.' : 'Sin oportunidades en esta etapa.'}
         </p>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {tarjetas.map((tarjeta) => (
-            <li key={tarjeta.id}>
+            <li key={tarjeta.id} className="min-w-0">
               <TarjetaDeOportunidad
                 tarjeta={tarjeta}
                 etapas={etapas}
