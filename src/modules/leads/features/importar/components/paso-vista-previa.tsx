@@ -58,7 +58,7 @@ function FilaDePrevia({
   etiquetas: ReadonlyMap<string, string>
 }) {
   return (
-    <li className="grid gap-1 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3 text-(length:--text-sm) md:grid-cols-[6rem_1fr_2fr] md:items-start md:gap-3">
+    <li className="grid gap-1 rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-3 text-(length:--text-sm) @2xl:col-span-3 @2xl:grid-cols-subgrid @2xl:items-start @2xl:gap-x-3">
       <span className="flex items-center gap-2">
         <span className="text-(--color-ink-faint) tabular-nums">Fila {fila.fila}</span>
         <Badge variant={fila.pedido === null ? 'destructive' : 'secondary'}>
@@ -135,7 +135,7 @@ export function PasoVistaPrevia({ preparadas, objetivos, alVolver, alImportar }:
   const numero = (n: number) => formatearNumero(n, { locale })
 
   return (
-    <div className="grid gap-4">
+    <div className="@container grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-(length:--text-sm)">
           <strong className="font-medium">{numero(preparadas.length)} filas</strong>:{' '}
@@ -160,12 +160,17 @@ export function PasoVistaPrevia({ preparadas, objetivos, alVolver, alImportar }:
         Se importan las filas listas; las demás quedan afuera y podrás descargarlas con su motivo
         para corregirlas. Si un teléfono ya existe en el sistema, se dice al importar.
       </p>
-      <ul className="grid gap-2" aria-label="Filas del archivo">
+      {/* Con sitio (un contenedor de 42 rem o más, no el viewport: al 200 % de texto el escritorio mide como un celular) la lista es la grilla: «Fila N» con su distintivo (el ancho de lo más ancho, sin partirse), el nombre (el ancho de su contenido, hasta 20 rem, y se parte si pasa) y el motivo
+          (lo que sobra). Con un tercio fijo para el nombre, «…escritorio B 1» se partía con la mitad del ancho vacía (defecto 4.3). */}
+      <ul
+        className="grid gap-2 @2xl:grid-cols-[max-content_fit-content(20rem)_minmax(0,1fr)]"
+        aria-label="Filas del archivo"
+      >
         {enPantalla.map((fila) => (
           <FilaDePrevia key={fila.id} fila={fila} etiquetas={etiquetas} />
         ))}
         {enPantalla.length === 0 ? (
-          <li className="text-(length:--text-sm) text-(--color-ink-faint)">
+          <li className="text-(length:--text-sm) text-(--color-ink-faint) @2xl:col-span-3">
             No hay filas para mostrar.
           </li>
         ) : null}
