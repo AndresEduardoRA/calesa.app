@@ -33,9 +33,10 @@ const privado: CondicionDeLead = {
 }
 
 describe('usaCandidatos', () => {
-  it('una búsqueda por nombre o un campo público los piden', () => {
+  it('una búsqueda por nombre, una etiqueta o un campo público los piden', () => {
     expect(usaCandidatos([busqueda()])).toBe(true)
     expect(usaCandidatos([publico])).toBe(true)
+    expect(usaCandidatos([{ tipo: 'etiquetas', ids: [ID_A] }])).toBe(true)
     expect(usaCandidatos([{ tipo: 'en_cartera', desdeLaCartera: true }, busqueda()])).toBe(true)
   })
 
@@ -50,7 +51,7 @@ describe('usaCandidatos', () => {
 })
 
 describe('filtrosDeCandidatos', () => {
-  it('lleva lo que acota: el texto, «míos», el tipo, el origen y los campos públicos', () => {
+  it('lleva lo que acota: el texto, «míos», el tipo, el origen, las etiquetas y los campos públicos', () => {
     expect(
       filtrosDeCandidatos(
         [
@@ -58,6 +59,7 @@ describe('filtrosDeCandidatos', () => {
           { tipo: 'en_cartera', desdeLaCartera: false },
           { tipo: 'columna_en', columna: 'tipo_lead_id', valores: [ID_A] },
           { tipo: 'columna_en', columna: 'origen_lead_id', valores: [ID_B] },
+          { tipo: 'etiquetas', ids: [ID_A, ID_B] },
           publico,
         ],
         null,
@@ -69,6 +71,7 @@ describe('filtrosDeCandidatos', () => {
       mios: true,
       tipos: [ID_A],
       origenes: [ID_B],
+      etiquetas: [ID_A, ID_B],
       atributos: [[{ ciudad: 'lp' }, { ciudad: 'scz' }]],
     })
   })
@@ -80,7 +83,6 @@ describe('filtrosDeCandidatos', () => {
         privado,
         { tipo: 'tachado', valor: false },
         { tipo: 'favorito', valor: true },
-        { tipo: 'etiquetas', ids: [ID_A] },
         { tipo: 'atributo_texto', clave: 'ciudad', texto: 'x', columna: 'atributos_publicos' },
       ],
       null,
@@ -127,16 +129,17 @@ describe('filtrosDeCandidatos', () => {
 })
 
 describe('condicionesDeLaPagina', () => {
-  it('quita el nombre y el campo público (ya cumplidos) y deja todo lo demás', () => {
+  it('quita el nombre, las etiquetas y el campo público (ya cumplidos) y deja todo lo demás', () => {
     const resto: CondicionDeLead[] = [
       { tipo: 'en_cartera', desdeLaCartera: true },
       { tipo: 'columna_en', columna: 'tipo_lead_id', valores: [ID_A] },
       privado,
       { tipo: 'tachado', valor: false },
       { tipo: 'favorito', valor: true },
-      { tipo: 'etiquetas', ids: [ID_A] },
     ]
-    expect(condicionesDeLaPagina([busqueda(), publico, ...resto])).toEqual(resto)
+    expect(
+      condicionesDeLaPagina([busqueda(), publico, { tipo: 'etiquetas', ids: [ID_A] }, ...resto]),
+    ).toEqual(resto)
   })
 
   it('«#124» se queda: es lo único que filtra', () => {

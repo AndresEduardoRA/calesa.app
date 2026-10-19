@@ -7056,6 +7056,7 @@ export type Database = {
         Returns: boolean
       }
       _leads_al_limbo_de: { Args: { p_tope: number; p_usuario: string }; Returns: number }
+      _leads_candidatos_etiquetas: { Args: { p_filtros: Json; p_yo: string }; Returns: string[] }
       _leads_candidatos_indexable: { Args: { p_filtros: Json }; Returns: boolean }
       _leads_candidatos_recorrido: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_candidatos_sql: {

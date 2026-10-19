@@ -131,6 +131,12 @@ select set_config('medir.origen_lead_sin', (select id::text from public.origenes
 -- Los números de la numeración (9f-2): un global de la dueña, y un número propio de Ana con su id (Ana lo busca como `#n`).
 select set_config('medir.num_global', (select numero::text from public.leads where nombre like 'Volumen 20 %'), true);
 select set_config('medir.num_propio_ana', (select numero_propio::text from public.leads where nombre like 'Volumen 20001 %'), true);
+-- La etiqueta de Ana con 300 de sus leads (la siembra sólo etiqueta los de la dueña): una etiqueta rala de quien tiene «propios». Se revierte con la transacción.
+insert into public.leads_etiquetas (lead_id, etiqueta_id)
+select la.lead_id, current_setting('medir.et_ana')::uuid from public.leads_asesores la
+ where la.usuario_id = '00000000-0000-0000-0000-0000000000a1' and la.tipo_acceso = 'dueno' and la.revocado_en is null order by la.lead_id limit 300
+on conflict do nothing;
+analyze public.leads_etiquetas;
 -- Un origen con un solo lead (el peor caso de la sonda «¿lo usa algún lead?»): se crea aquí y se revierte con la transacción.
 insert into public.origenes_lead (clave, nombre, orden) values ('medir_uno', 'Medir uno', 9990);
 select set_config('medir.origen_lead_uno', (select id::text from public.origenes_lead where clave = 'medir_uno'), true);
@@ -223,7 +229,6 @@ declare
   v_max int := current_setting('medir.max_leads')::int;
   v_cursor text := format('creado_en <= %L and (creado_en < %L or id < %L)',
     current_setting('medir.cursor_en'), current_setting('medir.cursor_en'), current_setting('medir.cursor_id'));
-  v_etiqueta text := case q when 'duena' then current_setting('medir.et_duena') when 'ana' then current_setting('medir.et_ana') end;
   v_rel text := case when p_mios then pg_temp.fuente_mios(q) else 'leads_vista' end;
   v_m text := case when p_mios then 'en_cartera = true and ' else '' end;
   v_modo text := case when p_mios then 'listado «míos»' else 'listado «todos»' end;
@@ -252,9 +257,8 @@ begin
   end if;
   perform pg_temp.escala(v_modo || ': sólo favoritos', q, pg_temp.pagina(v_m || 'es_favorito = true and esta_tachado = false', v_max, v_rel), 100);
   perform pg_temp.escala(v_modo || ': sólo tachados', q, pg_temp.pagina(v_m || 'esta_tachado = true', v_max, v_rel), 100);
-  if v_etiqueta is not null then
-    perform pg_temp.escala(v_modo || ': etiqueta', q, pg_temp.pagina(v_m || format('etiquetas && array[%L::uuid] and esta_tachado = false', v_etiqueta), v_max, v_rel), 100);
-  end if;
+  -- La etiqueta ya no se lee de la vista (`etiquetas && …` calculaba las de cada fila: 88 ms la dueña con 212.000 leads, 378 una que nadie tiene): va por los candidatos,
+  -- en `busqueda()` (5a-7).
   -- El filtro por origen del lead (`?origen=`): uno de cinco (un quinto de la cartera), dos, y uno sin leads (que no
   -- recorre nada: lo resuelve el índice de la FK).
   perform pg_temp.escala(v_modo || ': un origen del lead', q, pg_temp.pagina(v_m || format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', current_setting('medir.origen_lead')), v_max, v_rel), 100);
@@ -358,6 +362,14 @@ begin
     perform pg_temp.busqueda_de(q, v_modo, 'un atributo sin resultados', '{"atributos": [[{"ciudad_vol": "nada"}]]}', 25, 40, 50);
     perform pg_temp.busqueda_de(q, v_modo, 'un atributo y un nombre', '{"atributos": [[{"ciudad_vol": "lp"}]], "texto": "Gómez"}', 25, 40, 50);
     perform pg_temp.busqueda_de(q, v_modo, 'un tipo y un nombre', jsonb_build_object('texto', 'Gómez', 'tipos', jsonb_build_array(current_setting('medir.tipo_comun'))), 25, 40, 50);
+    -- La etiqueta (5a-7), por `leads_etiquetas`: una propia (la dueña, 1.667 leads; Ana, 300), una que nadie tiene y una ajena, sola y con un nombre. 100 ms los dos pasos,
+    -- con 62.000 y con 212.000 leads: lo que la vista calculaba por fila era 88 a 378 ms (la dueña) y 64 (Ana).
+    if q in ('duena', 'ana') then
+      perform pg_temp.busqueda_de(q, v_modo, 'una etiqueta propia', jsonb_build_object('etiquetas', jsonb_build_array(case q when 'duena' then current_setting('medir.et_duena') else current_setting('medir.et_ana') end)), 60, 40, 100);
+      perform pg_temp.busqueda_de(q, v_modo, 'una etiqueta propia y un nombre', jsonb_build_object('etiquetas', jsonb_build_array(case q when 'duena' then current_setting('medir.et_duena') else current_setting('medir.et_ana') end), 'texto', 'Volumen'), 60, 40, 100);
+    end if;
+    perform pg_temp.busqueda_de(q, v_modo, 'una etiqueta que nadie tiene', jsonb_build_object('etiquetas', jsonb_build_array('00000000-0000-0000-0000-00000000dead')), 60, 40, 100);
+    perform pg_temp.busqueda_de(q, v_modo, 'una etiqueta ajena', jsonb_build_object('etiquetas', jsonb_build_array(case q when 'duena' then current_setting('medir.et_ana') else current_setting('medir.et_duena') end)), 60, 40, 100);
   end loop;
   -- Lo ajeno no se lee: Berta busca un apellido que otras personas tienen y ella no, y uno que nadie tiene; el índice cruza la cartera con el trigrama, así que
   -- ninguna fila de los demás llega al heap (y el tiempo no cuenta los leads de otras personas). La etapa de índice como la ejecuta la definer.
@@ -400,6 +412,8 @@ do $medir$ declare q text; begin
     -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
     perform pg_temp.escala('listado «míos»: ocultos hasta 51', q, format('select id from public.%I where en_cartera = true and esta_tachado = true order by creado_en desc, id desc limit 51', pg_temp.fuente_mios(q)), 100);
     perform pg_temp.escala('listado «míos»: ocultos con un atributo, hasta 51', q, format('select id from public.%I where en_cartera = true and esta_tachado = true and ', pg_temp.fuente_mios(q)) || pg_temp.atributo('lp') || ' order by creado_en desc, id desc limit 51', 100);
+    perform pg_temp.escala('listado «míos»: ocultos con una etiqueta, hasta 51', q, format('select id from public.%I where en_cartera = true and esta_tachado = true and etiquetas && array[%L::uuid] order by creado_en desc, id desc limit 51',
+      pg_temp.fuente_mios(q), case q when 'duena' then current_setting('medir.et_duena') else current_setting('medir.et_ana') end), 100);
     if q = 'duena' then
       perform pg_temp.escala('listado «todos»: ocultos hasta 51', q, 'select id from public.leads_vista where esta_tachado = true order by creado_en desc, id desc limit 51', 100);
       perform pg_temp.escala('listado «todos»: ocultos con un atributo, hasta 51', q, 'select id from public.leads_vista where esta_tachado = true and ' || pg_temp.atributo('lp') || ' order by creado_en desc, id desc limit 51', 100);

@@ -120,6 +120,63 @@ begin
   raise notice 'medicion|el tramo de 3 de la base es el del navegador (% textos)|%', v_n, v_n;
 end $paridad$;
 
+-- 5a-7: la etiqueta. La dueña, Ana, Berta y la «chica» etiquetan lo suyo (la siembra sólo etiqueta lo de la dueña); la huella de la etiqueta sola y con un nombre es la misma
+-- por los candidatos que por `etiquetas && …` de la vista. Las de cada una, una ajena y una que nadie tiene.
+create temp table etiquetas_huella (quien uuid, id uuid);
+insert into public.etiquetas (id, usuario_id, nombre)
+select gen_random_uuid(), q, 'Huella ' || k from (values ('00000000-0000-0000-0000-0000000000d1'::uuid), ('00000000-0000-0000-0000-0000000000a1'), ('00000000-0000-0000-0000-0000000000b1'),
+  ('00000000-0000-0000-0000-0000000000c9')) p (q), generate_series(1, 3) k;
+insert into etiquetas_huella select usuario_id, id from public.etiquetas where nombre like 'Huella %';
+-- Cada persona pone sus etiquetas en lo suyo (su cartera): la 1 en uno de cada 40, la 2 en uno de cada 7 y la 3 en lo más viejo (la ventana no lo ve), más el lead con ñ y tildes de Berta.
+insert into public.leads_etiquetas (lead_id, etiqueta_id)
+select r.lead_id, e.id
+  from (select la.usuario_id, la.lead_id, row_number() over (partition by la.usuario_id order by la.lead_creado_en desc, la.lead_id desc) as n
+          from public.leads_asesores la where la.revocado_en is null and la.tipo_acceso = 'dueno'
+           and la.usuario_id in ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000c9')) r
+  join public.etiquetas e on e.usuario_id = r.usuario_id and e.nombre like 'Huella %'
+ where (e.nombre = 'Huella 1' and r.n % 40 = 0) or (e.nombre = 'Huella 2' and r.n % 7 = 0) or (e.nombre = 'Huella 3' and r.n > 1500 and r.n % 11 = 0)
+on conflict do nothing;
+analyze public.leads_etiquetas;
+create function pg_temp.huella_et(p_quien uuid, p_rel text, p_mios boolean, p_texto text, p_ids uuid[], p_resto text default 'true') returns int language plpgsql as $$
+declare v_max int := current_setting('medir.max_leads')::int; v_viejo jsonb; v_nuevo jsonb; v_m text := case when p_mios then 'en_cartera = true and ' else '' end;
+begin
+  v_viejo := pg_temp.bl_viejo(p_quien, p_rel, case when p_texto is null then 'true' else format('nombre ilike %L', public._lead_busqueda_patron(p_texto)) end
+                                            || format(' and %s(etiquetas && %L::uuid[] and (%s))', v_m, p_ids, p_resto), v_max, false, null, null);
+  v_nuevo := pg_temp.bl_nuevo(p_quien, p_texto, null, p_mios, jsonb_build_object('etiquetas', to_jsonb(p_ids)), v_m || '(' || p_resto || ')', v_max, false, null, null);
+  if v_viejo is distinct from v_nuevo then
+    raise exception E'huella de etiquetas distinta | persona % | «%» | %: siempre % filas (md5 %), ahora % filas (md5 %)', p_quien, p_texto, p_rel,
+      jsonb_array_length(v_viejo), md5(v_viejo::text), jsonb_array_length(v_nuevo), md5(v_nuevo::text);
+  end if;
+  return jsonb_array_length(v_nuevo);
+end $$;
+do $et$
+declare p record; t text; v_ids uuid[]; v_n int; v_cmp int := 0; v_con_filas int := 0; v_t0 timestamptz := clock_timestamp(); v_ajena uuid[];
+begin
+  for p in select * from (values
+    ('dueña «todos»', '00000000-0000-0000-0000-0000000000d1'::uuid, 'leads_vista', false), ('dueña «míos»', '00000000-0000-0000-0000-0000000000d1'::uuid, 'leads_vista', true),
+    ('Ana', '00000000-0000-0000-0000-0000000000a1'::uuid, 'leads_cartera_vista', true), ('Berta', '00000000-0000-0000-0000-0000000000b1'::uuid, 'leads_cartera_vista', true),
+    ('la «chica»', '00000000-0000-0000-0000-0000000000c9'::uuid, 'leads_cartera_vista', true)) x (nombre, id, rel, mios) loop
+    v_ajena := array(select e.id from etiquetas_huella e where e.quien <> p.id order by e.id limit 2);
+    for v_ids in select x.a from (values
+      (array(select e.id from etiquetas_huella e join public.etiquetas x on x.id = e.id where e.quien = p.id and x.nombre = 'Huella 1')),
+      (array(select e.id from etiquetas_huella e join public.etiquetas x on x.id = e.id where e.quien = p.id and x.nombre = 'Huella 2')),
+      (array(select e.id from etiquetas_huella e join public.etiquetas x on x.id = e.id where e.quien = p.id and x.nombre = 'Huella 3')),
+      (array(select e.id from etiquetas_huella e where e.quien = p.id)),
+      (v_ajena),
+      (array['00000000-0000-0000-0000-00000000dead']::uuid[])) x (a) loop
+      foreach t in array array[null, 'Volumen', 'Gómez', 'Volumen 4999', 'ñandú'] loop
+        v_n := pg_temp.huella_et(p.id, p.rel, p.mios, t, v_ids);
+        v_cmp := v_cmp + 1; v_con_filas := v_con_filas + (v_n > 0)::int;
+      end loop;
+      -- Con los tachados ocultos (lo que la app suma por omisión).
+      v_n := pg_temp.huella_et(p.id, p.rel, p.mios, null, v_ids, 'esta_tachado = false');
+      v_cmp := v_cmp + 1; v_con_filas := v_con_filas + (v_n > 0)::int;
+    end loop;
+  end loop;
+  if v_con_filas < 40 then raise exception 'la huella de las etiquetas casi no comparó filas (% de % con filas): no prueba', v_con_filas, v_cmp; end if;
+  raise notice 'medicion|etiquetas por candidatos: % huellas iguales (% con filas)|%', v_cmp, v_con_filas, round(extract(epoch from clock_timestamp() - v_t0) * 1000, 0);
+end $et$;
+
 create temp table huellas (persona text, termino text, filas int);
 do $m$
 declare p record; t text; v_n int; v_comparaciones int := 0; v_con_filas int := 0; v_t0 timestamptz := clock_timestamp();

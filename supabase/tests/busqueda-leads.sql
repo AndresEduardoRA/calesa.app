@@ -318,3 +318,113 @@ begin
     end if;
   end loop;
 end $$;
+
+-- @test búsqueda-leads (5a-7): la etiqueta da las mismas filas enteras que `etiquetas && …` por la vista de siempre, con cada ventana, y no revela de quién es una etiqueta
+-- Las etiquetas son privadas de cada persona. Cada persona pide las suyas, una ajena (la de otra persona), una que no existe y varias a la vez, sola y con un nombre, con tachados
+-- ocultos y con un tipo. Una etiqueta ajena o inexistente da lo mismo que «ninguna»: ni los ids, ni «completa», ni un error, ni el tiempo la distinguen.
+do $$ declare
+  v_tope_original text := pg_get_functiondef('public._leads_candidatos_tope()'::regprocedure);
+  v_recorrido_original text := pg_get_functiondef('public._leads_candidatos_recorrido()'::regprocedure);
+  f3 constant uuid := '00000000-0000-0000-0000-0000000009f3'; f4 constant uuid := '00000000-0000-0000-0000-0000000009f4'; f5 constant uuid := '00000000-0000-0000-0000-0000000009f5';
+  d1 constant uuid := '00000000-0000-0000-0000-000000000001';
+  e_llamar uuid := gen_random_uuid(); e_seguir uuid := gen_random_uuid(); e_vip uuid := gen_random_uuid(); e_tres uuid := gen_random_uuid(); e_cinco uuid := gen_random_uuid();
+  v_fantasma constant uuid := '00000000-0000-0000-0000-00000000dead';
+  v_tipo uuid := (select id from public.tipos_lead where clase = 'prospecto' and activo order by orden limit 1);
+  p record; c record; s record; t text; v_viejo jsonb; v_nuevo jsonb; v_cmp int := 0; v_con_filas int := 0; v_donde text; v_resto text; v_pat text; v_ids jsonb;
+begin
+  insert into public.etiquetas (id, usuario_id, nombre) values (e_llamar, f4, 'Llamar'), (e_seguir, f4, 'Seguir'), (e_vip, d1, 'Vip'), (e_tres, f3, 'Tres'), (e_cinco, f5, 'Cinco');
+  -- f4 etiqueta lo suyo (con un solapamiento, uno tachado, uno de la papelera, uno de quien se va); la dueña etiqueta lo de f4 y lo de f3 (lo ve con «todos»); f3 y f5 lo suyo.
+  insert into public.leads_etiquetas (lead_id, etiqueta_id)
+    select id, e_llamar from public.leads where nombre in ('Búsqueda masiva 1', 'Búsqueda masiva 2', 'Búsqueda masiva 4', 'Búsqueda masiva 7', 'Búsqueda masiva 8', 'Búsqueda papelera Gómez', 'Búsqueda Ñandú 50% desc_uento')
+    union all select id, e_seguir from public.leads where nombre in ('Búsqueda masiva 4', 'Búsqueda masiva 6', 'Búsqueda masiva 9', 'Búsqueda masiva 10', 'Cartera siete 1')
+    union all select id, e_vip from public.leads where nombre in ('Búsqueda masiva 2', 'Búsqueda masiva 3', 'Búsqueda masiva 12', 'Búsqueda de la dueña Gómez', 'Búsqueda Gómez Acentuado', 'Cartera siete 1', 'Búsqueda limbo Gómez')
+    union all select id, e_tres from public.leads where nombre in ('Búsqueda masiva 3', 'Búsqueda masiva 6', 'Búsqueda masiva 9', 'Búsqueda limbo Gómez', 'Búsqueda Gómez Acentuado')
+    union all select id, e_cinco from public.leads where nombre in ('Cartera todos 1', 'Cartera todos 2');
+  for c in select * from (values (2, 3), (2, 100), (300, 4000)) x (k, s) loop
+    execute format('create or replace function public._leads_candidatos_tope() returns integer language sql immutable parallel safe set search_path = %L as $f$ select %s $f$', '', c.k);
+    execute format('create or replace function public._leads_candidatos_recorrido() returns integer language sql immutable parallel safe set search_path = %L as $f$ select %s $f$', '', c.s);
+    for p in select * from (values
+      ('con muchos', f4, 'leads_cartera_vista', true, array[e_llamar], array[e_seguir]),
+      ('con tres', f3, 'leads_cartera_vista', true, array[e_tres], array[e_llamar]),
+      ('«todos» con dos propios, en «míos»', f5, 'leads_vista', true, array[e_cinco], array[e_vip]),
+      ('«todos» con dos propios, en «todos»', f5, 'leads_vista', false, array[e_cinco], array[e_vip]),
+      ('la dueña, en «míos»', d1, 'leads_vista', true, array[e_vip], array[e_llamar]),
+      ('la dueña, en «todos»', d1, 'leads_vista', false, array[e_vip], array[e_llamar])) x (nombre, id, rel, mios, propias, ajenas) loop
+      foreach t in array array[null, 'masiva', 'Búsqueda', 'gómez', 'zzzz'] loop
+        v_pat := case when t is null then null else public._lead_busqueda_patron(t) end;
+        for s in select * from (values
+          ('una propia', to_jsonb(p.propias)),
+          ('las dos de f4 (sólo f4 tiene dos)', to_jsonb(p.propias || case when p.id = f4 then array[e_seguir] else array[]::uuid[] end)),
+          ('una propia y una ajena', to_jsonb(p.propias || p.ajenas)),
+          ('una ajena', to_jsonb(p.ajenas)),
+          ('una que no existe', to_jsonb(array[v_fantasma])),
+          ('una propia y una que no existe', to_jsonb(p.propias || array[v_fantasma])),
+          ('ninguna', '[]'::jsonb)) x (nombre, ids) loop
+          foreach v_resto in array array['true', 'esta_tachado = false', format('tipo_lead_id = %L', v_tipo)] loop
+            -- La consulta de siempre: la vista con `etiquetas && ids` (las etiquetas de la columna son sólo las de quien mira) y lo demás.
+            v_donde := case when t is null then 'true' else format('nombre ilike %L', v_pat) end || ' and ' || case when p.mios then 'en_cartera = true and ' else '' end
+              || format('etiquetas && %L::uuid[] and (%s)', array(select jsonb_array_elements_text(s.ids))::uuid[], v_resto);
+            v_viejo := pg_temp.bl_viejo(p.id, p.rel, v_donde, 4, false, null, null);
+            v_nuevo := pg_temp.bl_nuevo(p.id, t, null, p.mios, jsonb_build_object('etiquetas', s.ids), case when p.mios then 'en_cartera = true and ' else '' end || '(' || v_resto || ')', 4, false, null, null);
+            v_cmp := v_cmp + 1;
+            if jsonb_array_length(v_viejo) > 0 then v_con_filas := v_con_filas + 1; end if;
+            if v_viejo is distinct from v_nuevo then
+              raise exception E'% | término «%» | etiquetas «%» | filtro «%» | ventana K=%, S=%: la etiqueta por candidatos no da lo de siempre\n  siempre: %\n  ahora:   %',
+                p.nombre, t, s.nombre, v_resto, c.k, c.s, (select jsonb_agg(e ->> 'nombre') from jsonb_array_elements(v_viejo) e), (select jsonb_agg(e ->> 'nombre') from jsonb_array_elements(v_nuevo) e);
+            end if;
+          end loop;
+        end loop;
+      end loop;
+    end loop;
+  end loop;
+  execute v_tope_original; execute v_recorrido_original;
+  if v_con_filas < 100 then raise exception 'la prueba de etiquetas casi no encontró nada (% de % comparaciones con filas): no prueba', v_con_filas, v_cmp; end if;
+  raise notice 'búsqueda-leads (etiquetas): % comparaciones, % con filas', v_cmp, v_con_filas;
+
+  -- El recorrido entero por cursor, hacia los dos lados, de la etiqueta sola.
+  for p in select * from (values ('f4, Llamar', f4, 'leads_cartera_vista', true, e_llamar), ('f4, Seguir', f4, 'leads_cartera_vista', true, e_seguir), ('la dueña, Vip', d1, 'leads_vista', false, e_vip)) x (nombre, id, rel, mios, e) loop
+    for c in select * from (values (2, 3), (3, 100), (300, 4000)) x (k, s) loop
+      execute format('create or replace function public._leads_candidatos_tope() returns integer language sql immutable parallel safe set search_path = %L as $f$ select %s $f$', '', c.k);
+      execute format('create or replace function public._leads_candidatos_recorrido() returns integer language sql immutable parallel safe set search_path = %L as $f$ select %s $f$', '', c.s);
+      for s in select * from (values (2, false), (2, true), (5, false), (5, true)) x (tam, atras) loop
+        v_donde := case when p.mios then 'en_cartera = true and ' else '' end || format('etiquetas && array[%L]::uuid[]', p.e);
+        v_viejo := pg_temp.bl_recorre(false, p.id, p.rel, v_donde, null, null, p.mios, '{}', 'true', s.tam, s.atras);
+        v_nuevo := pg_temp.bl_recorre(true, p.id, p.rel, v_donde, null, null, p.mios, jsonb_build_object('etiquetas', jsonb_build_array(p.e)), case when p.mios then 'en_cartera = true' else 'true' end, s.tam, s.atras);
+        if v_viejo is distinct from v_nuevo then
+          raise exception '% | K=%, S=% | de a % | %: el recorrido por la etiqueta no es el de siempre (% filas contra %)', p.nombre, c.k, c.s, s.tam, case when s.atras then 'hacia atrás' else 'hacia adelante' end,
+            jsonb_array_length(v_viejo -> 'filas'), jsonb_array_length(v_nuevo -> 'filas');
+        end if;
+      end loop;
+    end loop;
+  end loop;
+  execute v_tope_original; execute v_recorrido_original;
+
+  -- Sin oráculo: la etiqueta de otra persona, una que no existe y una mal escrita contestan «nada», sin error, y los leads que la etiqueta ajena marca no entran.
+  v_ids := '{"ids": [], "completa": true, "hasta": null}'::jsonb;
+  foreach t in array array['mios', 'todos'] loop
+    for v_nuevo in select pg_temp.bl_como(q.quien, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'mios', t = 'mios', 'etiquetas', q.etiquetas)))
+                     from (values (f4, to_jsonb(array[e_vip])), (f4, to_jsonb(array[v_fantasma])), (f4, '["no-es-un-uuid"]'::jsonb), (f4, '[5, null, {"a": 1}]'::jsonb), (f4, '[]'::jsonb),
+                                  (f3, to_jsonb(array[e_llamar, e_vip])), (d1, to_jsonb(array[e_llamar, e_tres, e_cinco]))) q (quien, etiquetas) loop
+      if v_nuevo is distinct from v_ids then raise exception 'una etiqueta que no es de quien busca (o rara) no contestó «nada»: %', v_nuevo; end if;
+    end loop;
+  end loop;
+  -- `etiquetas` que no es una lista no es un filtro: se ignora, como cualquier forma rara.
+  v_nuevo := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', '{"sentido": "siguiente", "etiquetas": "x"}'));
+  if jsonb_typeof(v_nuevo -> 'ids') <> 'array' then raise exception 'etiquetas "x" rompió la respuesta: %', v_nuevo; end if;
+  -- El lead que llega por su número (`extra`) también tiene que tener la etiqueta.
+  select to_jsonb(array[id]) into v_ids from public.leads where nombre = 'Búsqueda masiva 12';  -- de f4, sin la etiqueta Llamar
+  v_nuevo := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'etiquetas', jsonb_build_array(e_llamar), 'extra', v_ids)));
+  if (v_nuevo -> 'ids') @> v_ids then raise exception 'un lead sin la etiqueta entró por «extra»: %', v_nuevo; end if;
+  select to_jsonb(array[id]) into v_ids from public.leads where nombre = 'Búsqueda masiva 8';   -- de f4, con Llamar
+  v_nuevo := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'etiquetas', jsonb_build_array(e_llamar), 'extra', v_ids)));
+  if not (v_nuevo -> 'ids') @> v_ids then raise exception 'un lead con la etiqueta no entró por «extra»: %', v_nuevo; end if;
+  -- Ni la papelera ni el limbo ni quien se va entran por la etiqueta (el lead de la papelera lleva Llamar de f4).
+  v_nuevo := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'etiquetas', jsonb_build_array(e_llamar))));
+  if (v_nuevo -> 'ids') @> (select to_jsonb(array[id]) from public.leads where nombre = 'Búsqueda papelera Gómez') then raise exception 'un lead de la papelera entró por su etiqueta'; end if;
+  v_nuevo := pg_temp.bl_como(d1, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'etiquetas', jsonb_build_array(e_vip))));
+  if (v_nuevo -> 'ids') @> (select to_jsonb(array[id]) from public.leads where nombre = 'Búsqueda limbo Gómez') then raise exception 'un lead del limbo entró por su etiqueta'; end if;
+  -- El ayudante no lo llama nadie desde afuera.
+  if has_function_privilege('authenticated', 'public._leads_candidatos_etiquetas(jsonb, uuid)', 'execute') or has_function_privilege('anon', 'public._leads_candidatos_etiquetas(jsonb, uuid)', 'execute') then
+    raise exception '_leads_candidatos_etiquetas lo puede llamar quien no debe';
+  end if;
+end $$;
