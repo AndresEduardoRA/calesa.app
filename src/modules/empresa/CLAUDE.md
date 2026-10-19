@@ -11,9 +11,10 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
   - `getPoliticaDeLimpieza()` — si la limpieza automática de vehículos de subasta está encendida y cuántos días de gracia. La lee cualquier cuenta con sesión; nunca tumba una pantalla (sin poder leerla, se da por apagada). La consulta `app/` para decirle a `vehiculos` si ofrece el filtro y las insignias.
   - `getTiposCambio()` — los tipos de cambio vigentes, con el por defecto adelante. Tampoco tumba una pantalla (devuelve una lista vacía). Lo consume `app/` para la barra superior (`<TiposCambioVigentes>`); lo consumirá `cotizaciones`, que congela los que usa.
   - `integracionActiva('apibara')` — si una integración está prendida; si la base no responde, no. La consulta `app/` para decirle a `vehiculos` si ofrece el alta por enlace y el refresco de la subasta.
-  - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`, `<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`.
-  - Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` para `app/manifest.ts` y `app/iconos/vigente/[tamano]`; `<IconosDeLaApp>` para la pantalla.
-- Sale por `shell.ts` (9e, sólo el layout `(app)`): `getAjustes()`, `getTiposCambio()` y `<TiposCambioVigentes>`: lo que dibuja el marco, sin los formularios de Configuración › Empresa que reexporta `index.ts`.
+  - Para la pantalla: `leerAjustes()`, `leerMonedasYTiposCambio()`, `leerHistorial()`, `leerIntegraciones()`, `zonasHorarias()`.
+  - Íconos: `iconosDelManifest()`, `urlDeIcono()`, `claveDeIconoVigente()` para `app/manifest.ts` y `app/iconos/vigente/[tamano]`.
+- **`index.ts` no exporta componentes.** Los de Configuración › Empresa (`<FormularioEmpresa>`, `<MonedasYTiposCambio>`, `<Integraciones>`, `<IconosDeLaApp>`) salen por `pantallas/configuracion-empresa.ts`, sólo para `src/app`: una pantalla paga en JS todo lo que reexporta lo que importa, y el `index.ts` lo importan muchas pantallas y `equipo` (`canjearAcceso`, el alta de la primera cuenta).
+- Sale por `shell.ts` (9e, sólo el layout `(app)`): `getAjustes()`, `getTiposCambio()` y `<TiposCambioVigentes>`: lo que dibuja el marco.
 - Depende de: ningún otro módulo. No tiene `client.ts`: ningún Client Component de afuera necesita nada de acá.
 
 ## Archivos clave

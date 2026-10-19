@@ -34,9 +34,11 @@ Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista pre
 - Depende de: ningún otro módulo
 
 ### `empresa`
-Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 82 archivos
-- API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `huellaDelFormulario`, `PoliticaDeLimpieza`, `getPoliticaDeLimpieza`, `zonasHorarias`, `FormularioEmpresa`, +13
+Ajustes de la empresa (marca, datos legales, país, formato regional, zona horaria, políticas), monedas y tipos de cambio nombrados con historial, integraciones activables. · 83 archivos
+- API: `registroDisponible`, `Ajustes`, `getAjustes`, `leerAjustes`, `leerMonedasYTiposCambio`, `huellaDelFormulario`, `PoliticaDeLimpieza`, `getPoliticaDeLimpieza`, `zonasHorarias`, `getTiposCambio`, +8
 - API del shell (`shell.ts`, sólo el layout `(app)`): `getAjustes`, `getTiposCambio`, `TiposCambioVigentes`
+- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
+  - `configuracion-empresa`: `FormularioEmpresa`, `IconosDeLaApp`, `Integraciones`, `MonedasYTiposCambio`
 - Depende de: ningún otro módulo
 - Casos de uso: empresa, iconos, integraciones, tipos-cambio
 

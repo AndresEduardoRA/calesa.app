@@ -1,4 +1,5 @@
-import { Integraciones, leerIntegraciones } from '@/modules/empresa'
+import { leerIntegraciones } from '@/modules/empresa'
+import { Integraciones } from '@/modules/empresa/pantallas/configuracion-empresa'
 import { datosO } from '@/shared/lib/errores'
 import { EstadoVacio } from '@/shared/ui/estados'
 

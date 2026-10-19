@@ -1,12 +1,11 @@
 import {
-  FormularioEmpresa,
-  IconosDeLaApp,
   huellaDelFormulario,
   leerAjustes,
   leerMonedasYTiposCambio,
   urlDeIcono,
   zonasHorarias,
 } from '@/modules/empresa'
+import { FormularioEmpresa, IconosDeLaApp } from '@/modules/empresa/pantallas/configuracion-empresa'
 import { urlPublica, urlPublicaONull } from '@/shared/lib/almacen'
 import { datosO } from '@/shared/lib/errores'
 

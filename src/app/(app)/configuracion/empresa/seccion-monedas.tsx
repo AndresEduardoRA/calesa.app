@@ -1,9 +1,5 @@
-import {
-  MonedasYTiposCambio,
-  leerAjustes,
-  leerHistorial,
-  leerMonedasYTiposCambio,
-} from '@/modules/empresa'
+import { leerAjustes, leerHistorial, leerMonedasYTiposCambio } from '@/modules/empresa'
+import { MonedasYTiposCambio } from '@/modules/empresa/pantallas/configuracion-empresa'
 import { datosO } from '@/shared/lib/errores'
 
 type Props = {
