@@ -7,21 +7,23 @@ import {
   accionesDeCartera,
   CLAVE_DE_SECCION,
   duenoDe,
-  EsqueletoDeOportunidades,
-  EsqueletoDePortal,
-  EsqueletoDeSeguimientos,
-  FichaDeLead,
-  LeadNoDisponible,
   leerFichaDeLead,
   puedeCambiarTelefonoDeLead,
   puedeEditarLead,
   puedeEnviarLead,
   puedeGestionarPortal,
+  seccionDeLead,
+} from '@/modules/leads'
+import {
+  EsqueletoDeOportunidades,
+  EsqueletoDePortal,
+  EsqueletoDeSeguimientos,
+  FichaDeLead,
+  LeadNoDisponible,
   SeccionOportunidades,
   SeccionPortal,
   SeccionSeguimientos,
-  seccionDeLead,
-} from '@/modules/leads'
+} from '@/modules/leads/pantallas/ficha'
 import { opcionesDeVehiculoDelLead } from '@/modules/vehiculos'
 import {
   EsqueletoDeVehiculosDelLead,

@@ -1,5 +1,6 @@
 import { leerAjustes } from '@/modules/empresa'
-import { EditorDeCamposDeLead, leerLayoutDeLeads } from '@/modules/leads'
+import { leerLayoutDeLeads } from '@/modules/leads'
+import { EditorDeCamposDeLead } from '@/modules/leads/pantallas/configuracion'
 import { datosO } from '@/shared/lib/errores'
 
 // La pestaña «Campos»: el layout de los leads, con sus campos desactivados al final. La ciudad y el

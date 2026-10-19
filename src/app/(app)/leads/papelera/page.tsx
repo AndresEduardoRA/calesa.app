@@ -1,11 +1,7 @@
 import type { Metadata } from 'next'
 import { requerirSesion } from '@/modules/equipo'
-import {
-  PapeleraDeLeads,
-  leerPapeleraDeLeads,
-  puedeAbrirLaPapelera,
-  puedePurgarLeads,
-} from '@/modules/leads'
+import { leerPapeleraDeLeads, puedeAbrirLaPapelera, puedePurgarLeads } from '@/modules/leads'
+import { PapeleraDeLeads } from '@/modules/leads/pantallas/papelera'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import { LOTES_POR_PAGINA, leerCursor } from '@/shared/lib/paginacion'

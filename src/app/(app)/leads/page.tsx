@@ -5,13 +5,15 @@ import { leerAjustes } from '@/modules/empresa'
 import { leerVistas, puede, requerirSesion } from '@/modules/equipo'
 import {
   CLAVE_DE_VISTA,
-  EsqueletoDeTablero,
-  ListadoDeLeads,
   VISTA_EMBUDO,
-  VistaDeEmbudo,
   leerListadoDeLeads,
   leerVistaDeEmbudo,
 } from '@/modules/leads'
+import {
+  EsqueletoDeTablero,
+  ListadoDeLeads,
+  VistaDeEmbudo,
+} from '@/modules/leads/pantallas/listado'
 import { datosO } from '@/shared/lib/errores'
 import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
 import type { ParametrosDeUrl } from '@/shared/lib/filtros'

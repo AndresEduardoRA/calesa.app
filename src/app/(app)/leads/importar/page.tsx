@@ -3,12 +3,8 @@ import { connection } from 'next/server'
 import { Suspense } from 'react'
 import { leerAjustes } from '@/modules/empresa'
 import { puede, requerirSesion } from '@/modules/equipo'
-import {
-  AsistenteDeImportacion,
-  ImportacionesRecientes,
-  leerDatosDeImportacion,
-  leerImportacionesRecientes,
-} from '@/modules/leads'
+import { leerDatosDeImportacion, leerImportacionesRecientes } from '@/modules/leads'
+import { AsistenteDeImportacion, ImportacionesRecientes } from '@/modules/leads/pantallas/importar'
 import { datosO } from '@/shared/lib/errores'
 import { ZONA_POR_DEFECTO } from '@/shared/lib/fechas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
