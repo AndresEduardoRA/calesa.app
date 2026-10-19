@@ -404,6 +404,27 @@ begin
   end if;
 end $$;
 
+-- Lo que encuentra, no sólo cuánto tarda: la dueña (con el permiso) halla el propio de cada creador que llegó a ese número y el global; Ana, sólo el suyo
+-- (también pidiendo `todos`: la base contesta como sin permiso).
+do $$
+declare
+  n bigint := current_setting('medir.num_propio_ana')::bigint; v_duena int; v_ana int; v_ana_todos int; v_global uuid[];
+begin
+  perform pg_temp.quien('duena'); set local role authenticated;
+  v_duena := cardinality(public.leads_ids_del_numero(n, true));
+  reset role;
+  perform pg_temp.quien('ana'); set local role authenticated;
+  v_ana := cardinality(public.leads_ids_del_numero(n, false)); v_ana_todos := cardinality(public.leads_ids_del_numero(n, true));
+  reset role;
+  -- Seis creadores, todos con más de n leads (Ana tiene 2.000 y n es suyo), y el global n puede ser uno de ellos: 6 o 7 leads.
+  if v_duena not between 6 and 7 then
+    insert into pg_temp.violaciones values (format('buscar #n: la dueña encuentra %s leads con el número %s, debían ser 6 o 7', v_duena, n));
+  end if;
+  if v_ana <> 1 or v_ana_todos <> 1 then
+    insert into pg_temp.violaciones values (format('buscar #n: Ana encuentra %s (%s pidiendo todos) con el número %s, debía ser sólo el suyo', v_ana, v_ana_todos, n));
+  end if;
+end $$;
+
 do $medir$ declare q text; begin
   foreach q in array array['duena', 'ana'] loop
     perform pg_temp.listado(q, true);
@@ -415,13 +436,32 @@ do $medir$ declare q text; begin
     perform pg_temp.llamadas('listado «míos»: página 1, el permiso del número', q, pg_temp.pagina('en_cartera = true and esta_tachado = false', 50, pg_temp.fuente_mios(q)), 'public.tiene_permiso(text,uuid)'::regprocedure, 6);
     -- `atributos_lead()` (~66 µs) corre sólo para las filas que salen (101 con el máximo), no para las que la consulta recorre.
     perform pg_temp.llamadas('listado «míos»: página 1, atributos_lead() por fila', q, pg_temp.pagina('en_cartera = true and esta_tachado = false', current_setting('medir.max_leads')::int, pg_temp.fuente_mios(q)), 'public.atributos_lead(uuid)'::regprocedure, current_setting('medir.max_leads')::int + 1);
+    -- Buscar un número (`leads_ids_del_numero()`): con el permiso, el global y el propio de cada creador; sin él, el propio de quien busca. Una llamada,
+    -- 5 ms como mucho con 62.000 y con 212.000 leads (no crece con N: una bajada de índice por persona del equipo), y resolución + página ≤ 20 ms. El
+    -- número es el propio de Ana: la dueña lo encuentra en cada creador que llegó a él (y es el global de otro lead); Ana, sólo el suyo.
+    perform pg_temp.escala('buscar #n: la resolución (' || case q when 'duena' then 'global y propios' else 'el propio' end || ')', q,
+      format('select public.leads_ids_del_numero(%s, %s)', current_setting('medir.num_propio_ana'), (q = 'duena')::text), 5);
+    -- La forma del plan, con el mismo recorrido que la función (el global por su índice único y una bajada de `leads_numeros_propios_creador_idx` por
+    -- persona): ni `leads_numeros_propios` ni `leads` enteras.
     if q = 'duena' then
-      perform pg_temp.escala('buscar #n con el permiso (el global)', q, format('select lead_id from public.leads_numeros_globales where numero = %s', current_setting('medir.num_global')),
-        20, 'leads_numeros_globales_numero_key', '{leads,leads_numeros_globales}', 5);
+      perform pg_temp.escala('buscar #n: el plan de los propios de cada creador', q,
+        format('select n.lead_id from public.perfiles p cross join lateral (select np.lead_id from public.leads_numeros_propios np where np.creado_por = p.id and np.numero = %s) n', current_setting('medir.num_propio_ana')),
+        5, 'leads_numeros_propios_creador_idx', '{leads_numeros_propios}', 5);
+      perform pg_temp.escala('buscar #n: el plan del global', q,
+        format('select lead_id from public.leads_numeros_globales where numero = %s', current_setting('medir.num_global')),
+        5, 'leads_numeros_globales_numero_key', '{leads,leads_numeros_globales}', 5);
     else
-      perform pg_temp.escala('buscar #n sin el permiso (el propio)', q, format('select lead_id from public.leads_numeros_propios where creado_por = %L and numero = %s',
-        '00000000-0000-0000-0000-0000000000a1', current_setting('medir.num_propio_ana')),
-        20, 'leads_numeros_propios_creador_idx', '{leads,leads_numeros_propios}', 5);
+      perform pg_temp.escala('buscar #n: el plan del propio', q,
+        format('select lead_id from public.leads_numeros_propios where creado_por = %L and numero = %s', '00000000-0000-0000-0000-0000000000a1', current_setting('medir.num_propio_ana')),
+        5, 'leads_numeros_propios_creador_idx', '{leads,leads_numeros_propios}', 5);
+    end if;
+    perform pg_temp.escala('buscar #n: la resolución y la página de ' || case q when 'duena' then 'todos' else 'la cartera' end, q,
+      format('select id from public.%I where id = any (public.leads_ids_del_numero(%s, %s)) order by creado_en desc, id desc limit 101',
+             case q when 'duena' then 'leads_vista' else pg_temp.fuente_mios(q) end, current_setting('medir.num_propio_ana'), (q = 'duena')::text), 20);
+    if q = 'duena' then
+      perform pg_temp.escala('buscar #n: la resolución y la página de «míos»', q,
+        format('select id from public.%I where en_cartera = true and id = any (public.leads_ids_del_numero(%s, true)) order by creado_en desc, id desc limit 101',
+               pg_temp.fuente_mios(q), current_setting('medir.num_propio_ana')), 20);
     end if;
     -- Los números que se muestran: hasta el tope, por el índice del listado, nunca el total.
     perform pg_temp.escala('listado «míos»: ocultos hasta 51', q, format('select id from public.%I where en_cartera = true and esta_tachado = true order by creado_en desc, id desc limit 51', pg_temp.fuente_mios(q)), 100);

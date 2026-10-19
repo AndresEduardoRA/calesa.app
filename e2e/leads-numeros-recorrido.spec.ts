@@ -124,11 +124,16 @@ test('A · la dueña, con el permiso: el global y, aparte, el propio de quien lo
   }
   await capturar(page, info, 'duena-ficha')
 
-  // Buscar «#n» es buscar el que ve primero: el global.
+  // Buscar «#n» encuentra el global; y, con el permiso, también el propio de cualquier creador, con su nombre (5a-14).
   await irALeads(page, todos(busqueda(`#${String(GLOBAL)}`)))
   await expect(fila(page, nombreCorto())).toBeVisible()
   await irALeads(page, todos(busqueda(`#${String(PROPIO)}`)))
-  await expect(fila(page, nombreCorto())).toHaveCount(0)
+  await expect(fila(page, nombreCorto())).toBeVisible()
+  await expect(
+    delLead(page, nombreCorto()).getByText(
+      new RegExp(`Coincide:\\s*N\\.º ${escrito(PROPIO)} · ${r.ana.nombre}`),
+    ),
+  ).toBeVisible()
 })
 
 test('B · Ana, sin el permiso: sólo «Tu n.º»; el global no llega ni al HTML ni se encuentra', async ({

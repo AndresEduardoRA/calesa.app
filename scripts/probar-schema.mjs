@@ -132,6 +132,7 @@ for (const archivo of [
   'numeracion.sql',
   'auditoria-leads.sql',
   'numero-global.sql',
+  'numero-busqueda.sql',
   'escala.sql',
   'derivados-leads.sql',
   'cartera-policy.sql',
