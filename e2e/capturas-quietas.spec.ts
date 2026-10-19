@@ -4,6 +4,8 @@ import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { capturarEn, esperarQueEsteQuieta } from './soporte/capturas'
 
+// @sin-celular-archivo: prueba el ayudante de capturas con una página armada con setContent, no la app: ninguna de sus tres pruebas depende del ancho
+
 // El ayudante de las capturas (`E2E_CAPTURAS`) espera a que la pantalla esté quieta (cierre 4): dos lecturas equivocadas de los botones
 // fueron capturas tomadas a media transición. Sin la app: una página con una transición de 1,2 s que arranca un cuadro después de
 // montarse (como la entrada de un aviso), y el color de un píxel de lo capturado, leído en el navegador. Una captura cruda en el mismo

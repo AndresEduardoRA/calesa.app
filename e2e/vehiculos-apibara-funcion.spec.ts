@@ -10,6 +10,8 @@ import { entorno } from './soporte/base'
 import { pedirAFuncion } from './soporte/funciones'
 import { CLAVE } from './soporte/inventario'
 
+// @sin-celular-archivo: llama a la función edge de apibara con fetch y no abre ninguna página: el ancho de la pantalla no interviene en sus tres pruebas
+
 // La edge function `apibara` de verdad (la que sirve el runtime local), sólo en los caminos que no
 // llegan a apibara: ningún test llama a la API real. Qué responde con la API se prueba cargando el
 // código con un `fetch` simulado (`src/modules/vehiculos/infra/funcion-apibara*.test.ts`).
