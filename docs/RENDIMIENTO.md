@@ -292,6 +292,8 @@ dibuja una sola vista (el HTML crudo del inventario con 100 filas, 1,4 MB → 92
 en `master`, ya se medían 560,6 y 515,5 en `/leads` y `/vehiculos` (lo anotado arriba había subido con el cierre 1 al 4): la 9i suma **1,5 y 3,7 KB**
 (el patrón de lista compartido, el «⋯» y el menú del lead; el resumen de vehículos y el panel de edición del resumen van por `diferido()` y no entran).
 
+**Tras el cierre 5b** (los barriles de módulo, abajo): `/leads` 498,6 KB, `/perfil` 413,0 KB y `/vehiculos` 467,7 KB, con presupuestos de 530, 440 y 500 KB (bajaron; ninguno subió).
+
 ### Lo que se vio al mirar (con volumen cargado; `e2e/escala-recorrido.spec.ts`, `E2E_CAPTURAS`)
 
 Escritorio y celular, la dueña y Ana. Se leyeron las capturas, y de ahí salieron dos arreglos y cuatro notas:
@@ -653,3 +655,50 @@ La baja pasa a costar ≈ 40–50 % más de tiempo total porque cada update de `
 ### Lo que no se hizo y por qué
 
 Los n-gramas (arriba); un índice de trigramas por separado de la cartera (C); el conteo de tachados ocultos (`contarLeadsHasta`) y la exportación del conteo siguen por la consulta de antes cuando hay una búsqueda por nombre (se cuentan hasta 51 / 5.001 ids, y mientras se busca no se ocultan tachados). La exportación lee las páginas de 500 por candidatos, en dos ventanas.
+
+## Cierre 5b: los barriles de módulo, la ficha y las oportunidades (2026-10-18)
+
+Lo que pesa una pantalla en el navegador, medido con `e2e/presupuesto-js.spec.ts` (JS en frío con gzip) y con las pruebas de la ficha (bytes crudos del documento de `/leads/<id>` menos los de `/perfil`: lo que la ficha **aporta**). Ninguna base cambió: son números de la app compilada (`.next-e2e`). **No se sube ningún presupuesto.**
+
+### JS en frío: el `index.ts` de un módulo no exporta componentes
+
+Una pantalla paga en JS todo lo que reexporta lo que importa, aunque no lo use: Next arma el manifiesto de cliente de la página con todo módulo `'use client'` que encuentra en el grafo de servidor, y el `index.ts` de un módulo lo importaba casi toda pantalla (una sesión, una lectura, un tipo). Había dos cadenas: `/perfil` importaba `@/modules/equipo`, cuyo `index.ts` reexportaba once componentes (`ListaEquipo` 6,8 KB y `MatrizDeRoles` 5,3 KB con gzip, más los formularios), y ese mismo barril reexportaba `canjearAcceso`, que importaba el barril entero de `empresa` (15,9 KB de formularios de Configuración › Empresa en **toda** pantalla); `/leads` arrastraba en un mismo chunk la ficha, el importador, los editores de campos, orígenes y tipos, la papelera, el portal y las oportunidades (el listado son ~24 KB).
+
+| Ruta         | Antes (9i y cierres 1 a 4) | Ahora (5b) | Diferencia | Presupuesto |
+| ------------ | -------------------------- | ---------- | ---------- | ----------- |
+| `/leads`     | 565,4 KB                   | 498,6 KB   | −66,8 KB   | 570 → 530   |
+| `/perfil`    | 443,3 KB                   | 413,0 KB   | −30,3 KB   | 460 → 440   |
+| `/vehiculos` | 520,0 KB                   | 467,7 KB   | −52,3 KB   | 530 → 500   |
+
+Los presupuestos bajan a lo medido más un 5 % (redondeado a la decena); ninguno sube. La forma: cada módulo con componentes de cliente (`equipo`, `empresa`, `leads`, `origenes`, `vehiculos`; `tablero` pasó con la bandeja) tiene `pantallas/<pantalla>.ts`, que reexporta sólo lo que esa pantalla dibuja y sólo la importa `src/app` (lo cuida el lint); el `index.ts` queda con sesión, lecturas, actions, reglas y tipos. Una guarda (`scripts/guardas/barriles.test.ts`, en `pnpm test`) recorre los imports de valor de cada `src/modules/<x>/index.ts` y falla, con el camino de archivos, si llega a un `'use client'`; se probó con una regresión (un componente de equipo en su index).
+
+### La ficha: «Datos» recibe lo que dibuja (bytes del documento sobre `/perfil`)
+
+`FichaDeLead` recibe sus props en **toda** sección, y mandaba el layout completo de campos (apagados incluidos), todos los orígenes y los tipos de lead (hasta 100 cada uno) para un panel de edición que casi nunca se abre.
+
+| Caso                                  | Antes   | Ahora   | Presupuesto |
+| ------------------------------------- | ------- | ------- | ----------- |
+| «Datos», con la semilla               | 40,6 KB | 39,2 KB | 48 → 43 KB  |
+| «Datos», con 100 orígenes y 100 tipos | 70,1 KB | 40,1 KB | 43 KB       |
+
+Ahora manda los campos activos y el origen y el tipo de ese lead; el panel de edición lee el layout y los catálogos desde el navegador al abrirse (`leerCatalogosDeEdicion()`, una lectura nueva en cada apertura, con esqueleto, «No se pudo cargar el formulario.» con «Reintentar» y un `?panel=editar-lead` que lo abre igual). Un test (`e2e/leads-ficha.spec.ts`) mide la ficha con 100 orígenes y 100 tipos y falla con las props de antes. **Lo que queda, con número:** el shell (`src/app/(app)/layout.tsx`) manda a **toda** pantalla el contexto del alta con esos catálogos (≈ 26 KB con 100 + 100): `docs/PLAN.md`, 5b-3.
+
+### Oportunidades: 10 a la vista, «Ver todas» hasta 100
+
+Cada oportunidad pesa ~3,5 KB en el documento (props del servidor a un componente de cliente), y la sección dibujaba hasta 100: una ficha con 100 pagaba ~370 KB en cada visita.
+
+| Caso (`e2e/leads-oportunidades-ver-todas.spec.ts`, 105 oportunidades sembradas por SQL) | Antes  | Ahora   | Presupuesto |
+| --------------------------------------------------------------------------------------- | ------ | ------- | ----------- |
+| La ficha con la sección abierta (10 a la vista, las abiertas primero)                   | 374 KB | 62,3 KB | 66 KB       |
+| La ficha con «Ver todas» (`?todas=1`, hasta 100)                                        | 374 KB | 374 KB  | 400 KB      |
+
+Sin cambio en la base: el servidor lee igual (101 y dice `hay_mas`) y manda sólo lo que se dibuja. «Ver todas» es un enlace (`?todas=1`): «atrás» vuelve a las 10, y «Ver sólo las 10 más recientes» también. Más allá de 100 no hay camino y cada oportunidad sigue pesando 3,5 KB: `docs/PLAN.md`, 5a-12.
+
+### Los cuatro defectos de interfaz (medidos con cajas, al 100 y al 200 %, en escritorio y celular)
+
+No son rendimiento, pero cada uno tiene su número porque su spec falla con el diseño anterior:
+
+- **4.1, la barra del listado** (`barra-de-filtros-200.spec.ts`, `barra-de-filtros-vehiculos-200.spec.ts`): las cajas siguen el orden de lectura, toda fila empieza a la izquierda y ningún botón queda solo si cabía en la fila de arriba.
+- **4.2, los marcadores** (`exigirMarcadorQueCabe`, mide con el lienzo): en el celular al 200 % el campo mide ~300 px; «Buscar por nombre o número» (396 px), «Buscar por título, VIN o lote» (375) y «Buscar en el embudo» (287 en 262) se cortaban; ahora «Nombre o número», «Título, VIN o lote» y «Título o lead» caben.
+- **4.3, la vista previa de la importación** (`leads-importar-vista-previa.spec.ts`): el nombre dejó de partirse («…escritorio B / 1» con la mitad del ancho vacía) y «Fila N» ya no se parte; la página no se ensancha al 200 %.
+- **4.4, el pie del modal en el celular** (`modales-celular-200.spec.ts`, en «Nuevo rol», «Invitar» y «Nuevo embudo»): pie 13 a 23 % de la pantalla (antes 31 %) y cuerpo 55 a 69 % del modal (antes 31 y 32 %); con la pregunta de descartar, pie 34 % y cuerpo 47 a 52 %; los botones miden 44 px (antes `min-h-11`, en rem: 88 px al 200 %).
