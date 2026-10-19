@@ -77,6 +77,7 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 - `@/modules/<x>/pantallas/<pantalla>` (`pantallas/<pantalla>.ts`) — los componentes de una pantalla,
   reexportados sólo los que esa pantalla dibuja. El `index.ts` **no exporta componentes**: una pantalla paga
   en JS todo lo que reexporta lo que importa, y con un barril de todas `/perfil` pagaba 30 KB que no usa.
+  `scripts/guardas/barriles.test.ts` falla si el `index.ts` de un módulo alcanza un módulo `'use client'`.
 - `@/modules/<x>/shell` (y `shell.client`) — sólo el layout `(app)`: lo que dibuja el marco de toda pantalla.
 
 `composicion*.ts` es privado del módulo aunque esté en su raíz.

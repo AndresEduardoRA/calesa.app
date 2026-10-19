@@ -15,7 +15,7 @@ paths:
   pantallas (`docs/DECISIONES.md`, 2026-10-16).
 - **La cuarta, la de pantallas** (`pantallas/<pantalla>.ts`, `@/modules/<x>/pantallas/<pantalla>`): sólo `src/app` (lo cuida el lint). **El
   `index.ts` no exporta componentes**: lleva sesión, lecturas, actions, reglas y tipos, y no alcanza ningún módulo
-  `'use client'`. Los componentes de una pantalla salen por su archivo de `pantallas/`, que reexporta sólo lo que esa
+  `'use client'` (lo recorre `scripts/guardas/barriles.test.ts`, en `pnpm test`). Los componentes de una pantalla salen por su archivo de `pantallas/`, que reexporta sólo lo que esa
   pantalla dibuja: una pantalla paga en JS todo lo que reexporta lo que importa, y un barril de todas hacía que `/perfil` pagara 30 KB de
   la lista del equipo, la matriz de roles y los formularios de Empresa (`docs/DECISIONES.md`, 2026-10-18). Una pantalla nueva = su archivo.
 - `client.ts` sólo reexporta hooks, componentes de cliente (o puros) y tipos de `entities/`. Nunca
