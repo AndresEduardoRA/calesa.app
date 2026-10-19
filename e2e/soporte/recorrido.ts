@@ -142,6 +142,31 @@ export async function sinScrollHorizontal(page: Page): Promise<void> {
   )
 }
 
+// Ningún texto de `lugar` queda cortado: cada elemento visible con texto propio cabe en su caja (`scrollWidth <= clientWidth`), un «B…» por
+// un `truncate` que no tenía lugar lo delata, y nada se sale por la derecha de la pantalla. Nombra a los elementos que no caben.
+export async function sinTextoCortado(lugar: Locator): Promise<void> {
+  const cortados = await lugar.evaluate((raiz) => {
+    const visible = document.documentElement.clientWidth
+    const descripcion = (e: Element) =>
+      `${e.tagName.toLowerCase()}.${(e.getAttribute('class') ?? '').slice(0, 30)} «${e.textContent.trim().slice(0, 30)}» (${String(e.scrollWidth)} > ${String(e.clientWidth)})`
+    const conTexto = [raiz, ...raiz.querySelectorAll('*')].filter((e) =>
+      [...e.childNodes].some(
+        (n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim() !== '',
+      ),
+    )
+    return conTexto.flatMap((e) => {
+      const caja = e.getBoundingClientRect()
+      // Lo escondido y lo `sr-only` (1 px) no se ve: no cuentan.
+      if (caja.width <= 1 || caja.height <= 1 || getComputedStyle(e).visibility === 'hidden')
+        return []
+      const sinLugar = e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1
+      const fuera = caja.right > visible + 1
+      return sinLugar || fuera ? [descripcion(e)] : []
+    })
+  })
+  expect(cortados, `texto cortado: ${cortados.join(' | ')}`).toEqual([])
+}
+
 // En el celular, un objetivo táctil mide al menos 44 px de alto y de ancho (`.claude/rules/ui.md`).
 export async function tactil(page: Page, lugar: Locator): Promise<void> {
   if (!esMovil(page)) return

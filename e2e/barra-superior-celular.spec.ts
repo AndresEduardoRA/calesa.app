@@ -8,6 +8,7 @@ import {
   limpiarRecorrido,
   prepararRecorrido,
   sinScrollHorizontal,
+  sinTextoCortado,
   type TerrenoDelRecorrido,
 } from './soporte/recorrido'
 
@@ -83,4 +84,74 @@ test('con el texto al 200 % el tipo de cambio sigue a mano en el menú', async (
   const menu = page.getByRole('dialog')
   await expect(menu.getByText('Tipo de cambio del día')).toBeVisible()
   await expect(menu.getByRole('button', { name: 'Tipos de cambio' })).toContainText('6,96')
+})
+
+// El buscador de la barra (5b-1). Hasta la Fase 7 es `<BuscadorPendiente>`, un botón que guarda su lugar: con la barra de ~300 px del
+// 200 % en el celular su «Buscar» llevaba `truncate` y sólo se veía «B…», y su alto estaba en rem (72 px al 200 %). Por debajo de 24 rem
+// de barra queda el icono, en un blanco de 44 px con su nombre; desde 24 rem, el icono y «Buscar» entero. Corre en los dos proyectos con
+// el mismo viewport de celular, así que lo que cuenta es el ancho de la barra, no el aparato.
+const CELULAR = { width: 412, height: 915 }
+
+function buscadorDeLaBarra(page: Page) {
+  return page.locator('header').first().getByRole('button', { name: 'Buscar', exact: true })
+}
+
+async function conTextoAl(page: Page, texto: '100%' | '200%') {
+  await page.evaluate((t) => {
+    document.documentElement.style.fontSize = t
+  }, texto)
+}
+
+test('al 200 % el buscador queda en un icono de 44 px que se llama «Buscar» y ningún texto de la barra se corta', async ({
+  page,
+}, info) => {
+  await page.setViewportSize(CELULAR)
+  await entrar(page, r.ana.email)
+  await irALeads(page)
+  await conTextoAl(page, '200%')
+  await capturar(page, info, 'buscador-200')
+  const buscador = buscadorDeLaBarra(page)
+  await expect(buscador).toBeVisible()
+  const caja = await buscador.boundingBox()
+  expect(Math.round(caja?.height ?? 0), 'alto del buscador').toBe(44)
+  expect(Math.round(caja?.width ?? 0), 'ancho del buscador').toBe(44)
+  await sinTextoCortado(page.locator('header').first())
+  await sinScrollHorizontal(page)
+})
+
+test('con la barra justo en 24 rem el buscador dice «Buscar» entero; un píxel menos, queda el icono', async ({
+  page,
+}, info) => {
+  await entrar(page, r.ana.email)
+  await irALeads(page)
+  await conTextoAl(page, '100%')
+  await page.setViewportSize(CELULAR)
+  // El `@container` mide el interior de la barra (sin su relleno): 24 rem a 16 px son 384 px de interior.
+  const relleno = await page
+    .locator('header')
+    .first()
+    .evaluate((el) => {
+      const estilo = getComputedStyle(el)
+      return parseFloat(estilo.paddingLeft) + parseFloat(estilo.paddingRight)
+    })
+  await page.setViewportSize({ width: 384 + relleno, height: 915 })
+  await capturar(page, info, 'buscador-24rem')
+  const buscador = buscadorDeLaBarra(page)
+  await expect(buscador.getByText('Buscar', { exact: true })).toBeVisible()
+  await sinTextoCortado(page.locator('header').first())
+  await page.setViewportSize({ width: 383 + relleno, height: 915 })
+  await expect(buscador.getByText('Buscar', { exact: true })).toBeHidden()
+  const caja = await buscador.boundingBox()
+  expect(Math.round(caja?.height ?? 0), 'alto del buscador').toBe(44)
+  await sinTextoCortado(page.locator('header').first())
+})
+
+test('con el texto normal el buscador se llama «Buscar», también en escritorio', async ({
+  page,
+}, info) => {
+  await entrar(page, r.ana.email)
+  await irALeads(page)
+  await capturar(page, info, 'buscador-normal')
+  await expect(buscadorDeLaBarra(page)).toBeVisible()
+  await expect(buscadorDeLaBarra(page).getByText('Buscar', { exact: true })).toBeVisible()
 })

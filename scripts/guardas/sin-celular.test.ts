@@ -168,6 +168,7 @@ describe('los ayudantes que miden el ancho', () => {
     for (const nombre of [
       'tactil',
       'sinScrollHorizontal',
+      'sinTextoCortado',
       'avisoNoTapaElPie',
       'panelDeFiltros',
       'verEtapa',
