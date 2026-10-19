@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   comparar,
   decidir,
+  estadosDelResultado,
   extrasDelCelular,
+  huellaLimpia,
   normalizar,
   primeraDiferencia,
 } from './comparar-anchos.mjs'
@@ -70,8 +72,19 @@ describe('comparar anchos: la huella de un paso', () => {
     expect(dif?.escritorio).toBeNull()
   })
 
-  it('cuántos elementos coinciden también cuenta (toHaveCount)', () => {
-    expect(primeraDiferencia([paso({ n: 0 })], [paso({ n: 1 })])?.paso).toBe(1)
+  it('cuántos elementos coinciden cuenta en un expect (toHaveCount), no en una acción', () => {
+    const cuenta = (n: number) => paso({ m: 'expect:to.have.count', n })
+    expect(primeraDiferencia([cuenta(0)], [cuenta(1)])?.campo).toBe('cuantos')
+    // Después de un clic el elemento pudo irse: sin elemento en un lado no hay huella que comparar.
+    expect(primeraDiferencia([paso({ n: 0, h: [] })], [paso({ n: 1 })])).toBeNull()
+  })
+
+  it('la URL de un paso es un instante: sólo cuenta la de un goto', () => {
+    expect(
+      primeraDiferencia([paso({ u: '/leads?panel=nuevo-lead' })], [paso({ u: '/leads' })]),
+    ).toBeNull()
+    const goto = (u: string) => paso({ m: 'goto', s: '', n: -1, h: [], u })
+    expect(primeraDiferencia([goto('/leads')], [goto('/vehiculos')])?.campo).toBe('url')
   })
 })
 
@@ -141,7 +154,7 @@ describe('comparar anchos: quién puede salir del celular', () => {
     const e2 = huella('escritorio', { prueba: 'b.spec.ts › mide', pasos: [paso()] })
     const m2 = huella('movil', {
       prueba: 'b.spec.ts › mide',
-      pasos: [paso({ n: 2 })],
+      pasos: [paso({ h: ['li|||||'] })],
       cobertura: { 'tarjetas.js|7': '' },
     })
     const cubierto = decidir(comparar(mapa(e1, e2), mapa(m1, m2)), mapa(m1, m2)) as {
@@ -167,5 +180,58 @@ describe('comparar anchos: quién puede salir del celular', () => {
     }[]
     expect(r.find((x) => x.prueba === corta.prueba)?.sale).toBe(false)
     expect(r.find((x) => x.prueba === larga.prueba)?.sale).toBe(true)
+  })
+})
+
+describe('comparar anchos: lo que no es el ancho', () => {
+  it('los números de un nombre, el nombre del proyecto y las envolturas sin sentido no cuentan', () => {
+    expect(huellaLimpia('div||Lead N.º 1.744|| < div||||| < main|||||')).toEqual([
+      'div||Lead N.º #.#||',
+      'main|||||',
+    ])
+    expect(huellaLimpia('li||E2E Escala 110 escritorio|||')).toEqual(
+      huellaLimpia('li||E2E Escala 7 movil|||'),
+    )
+    const e = paso({ h: ['h1||Embudo||| < div||||| < main|||||'] })
+    const m = paso({ h: ['h1||Embudo||| < div|||||'] })
+    expect(primeraDiferencia([e], [m])).toBeNull()
+  })
+
+  it('una cadena que el navegador cortó en otro nivel se compara hasta donde llegan las dos', () => {
+    const larga = paso({
+      h: ['td|||table-cell|| < tr|||table-row|| < table|||table|| < main|||||'],
+    })
+    const corta = paso({ h: ['td|||table-cell|| < tr|||table-row||'] })
+    expect(primeraDiferencia([larga], [corta])).toBeNull()
+    const tarjeta = paso({ h: ['article||||| < li||||| < ul|||||'] })
+    expect(primeraDiferencia([larga], [tarjeta])?.campo).toBe('huella-accion')
+  })
+
+  it('una prueba que se salta en un proyecto no se compara', () => {
+    const json = {
+      suites: [
+        {
+          title: 'a.spec.ts',
+          file: 'a.spec.ts',
+          specs: [
+            {
+              title: 'una prueba',
+              tests: [
+                { projectName: 'escritorio', status: 'expected', results: [{ status: 'passed' }] },
+                { projectName: 'movil', status: 'skipped', results: [{ status: 'skipped' }] },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+    const estados = estadosDelResultado(json)
+    expect(estados.get('movil')?.get('a.spec.ts › una prueba')).toBe('skipped')
+    const e = huella('escritorio', { prueba: 'a.spec.ts › una prueba' })
+    const m = huella('movil', { prueba: 'a.spec.ts › una prueba', pasos: [] })
+    const [r] = comparar(new Map([[e.prueba, e]]), new Map([[m.prueba, m]]), estados) as {
+      veredicto: string
+    }[]
+    expect(r?.veredicto).toBe('SALTADA')
   })
 })

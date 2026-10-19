@@ -23,7 +23,49 @@ export function normalizar(texto) {
     .replaceAll(/\d{6,}/g, '#')
 }
 
-const clavePaso = (p) => normalizar(JSON.stringify([p.m, p.s, p.x, p.u, p.n, p.h]))
+// La huella de un elemento, sin lo que cambia entre proyectos sin ser el ancho: los números de un nombre (el n.º de un lead,
+// «E2E Escala 110») y las envolturas sin significado (un `div` o `span` sin rol, nombre, `data-slot`, `data-side` ni
+// `aria-modal`: el celular y el escritorio envuelven distinto el marco). Lo que sí cuenta es la estructura con sentido:
+// tabla y filas contra lista y artículos, el diálogo y de qué lado sale, la barra, el menú.
+export function huellaLimpia(huella) {
+  return normalizar(huella)
+    .split(' < ')
+    .filter((pieza) => {
+      const [etiqueta, rol, nombre, hoja, lado, modal] = pieza.split('|')
+      const vacia = !rol && !nombre && !hoja && !lado && !modal
+      return !(vacia && ['div', 'span', 'p'].includes(etiqueta ?? ''))
+    })
+    .map((pieza) => pieza.replaceAll(/\d+/g, '#'))
+}
+
+// Las huellas de un paso son iguales si sus ancestros con sentido coinciden de adentro hacia afuera hasta donde llegan los dos: el
+// navegador corta la cadena en 8 niveles y el marco del escritorio gasta más niveles que el del celular, así que lo que cae
+// más afuera puede faltar en uno sin que sea una diferencia.
+function huellasIguales(a, b) {
+  if (a.length !== b.length) return false
+  return a.every((h, i) => {
+    const x = huellaLimpia(h)
+    const y = huellaLimpia(b[i] ?? '')
+    const comunes = Math.min(x.length, y.length)
+    return JSON.stringify(x.slice(0, comunes)) === JSON.stringify(y.slice(0, comunes))
+  })
+}
+
+// Un paso es de una acción (click, fill…) o un `expect`. El elemento de una acción se mide después de hacerla y puede
+// haberse ido (el diálogo que el clic cerró): sólo se compara si existe en los dos lados. La URL de un paso es un instante
+// (`nuqs` la escribe un cuadro después de que aparece el diálogo): sólo cuenta la de un `goto`, que espera la carga.
+export function camposDistintos(a, b) {
+  if (a.m !== b.m) return 'accion'
+  if (normalizar(a.s) !== normalizar(b.s)) return 'selector'
+  if (normalizar(a.x) !== normalizar(b.x)) return 'esperado'
+  if (a.m === 'goto') return normalizar(a.u) === normalizar(b.u) ? null : 'url'
+  const esExpect = a.m.startsWith('expect:')
+  if (esExpect && a.n !== b.n) return 'cuantos'
+  if (!esExpect && (a.n <= 0 || b.n <= 0)) return null
+  return huellasIguales(a.h, b.h) ? null : esExpect ? 'huella-expect' : 'huella-accion'
+}
+
+export const pasosIguales = (a, b) => camposDistintos(a, b) === null
 
 // La primera diferencia entre dos listas de pasos, o null si son la misma.
 export function primeraDiferencia(escritorio, movil) {
@@ -31,8 +73,9 @@ export function primeraDiferencia(escritorio, movil) {
   for (let i = 0; i < largo; i++) {
     const a = escritorio[i]
     const b = movil[i]
-    if (!a || !b || clavePaso(a) !== clavePaso(b)) {
-      return { paso: i + 1, escritorio: a ?? null, movil: b ?? null }
+    const campo = a && b ? camposDistintos(a, b) : 'largo'
+    if (campo !== null) {
+      return { paso: i + 1, campo, escritorio: a ?? null, movil: b ?? null }
     }
   }
   return null
@@ -72,7 +115,26 @@ export function leerHuellas(carpeta) {
   return huellas
 }
 
-export function comparar(escritorio, movil) {
+// El estado de cada prueba en cada proyecto, del JSON de Playwright: `proyecto` → (`archivo › título` → `passed`, `skipped`…).
+export function estadosDelResultado(json) {
+  const estados = new Map()
+  const recorrer = (suite, camino) => {
+    const aqui = suite.file ? [suite.file.split('/').at(-1)] : [...camino, suite.title]
+    for (const sub of suite.suites ?? []) recorrer(sub, aqui)
+    for (const spec of suite.specs ?? []) {
+      for (const prueba of spec.tests) {
+        const clave = [...aqui, spec.title].join(' › ')
+        if (!estados.has(prueba.projectName)) estados.set(prueba.projectName, new Map())
+        const resultado = prueba.results.at(-1)
+        estados.get(prueba.projectName).set(clave, resultado ? resultado.status : prueba.status)
+      }
+    }
+  }
+  for (const suite of json.suites) recorrer(suite, [])
+  return estados
+}
+
+export function comparar(escritorio, movil, estados = new Map()) {
   const pruebas = [...new Set([...escritorio.keys(), ...movil.keys()])].sort()
   return pruebas.map((prueba) => {
     const a = escritorio.get(prueba)
@@ -82,6 +144,15 @@ export function comparar(escritorio, movil) {
         prueba,
         veredicto: 'SOLO_UNO',
         motivo: a ? 'sólo corrió en escritorio' : 'sólo corrió en celular',
+        extras: [],
+      }
+    }
+    const saltada = ['escritorio', 'movil'].filter((p) => estados.get(p)?.get(prueba) === 'skipped')
+    if (saltada.length > 0) {
+      return {
+        prueba,
+        veredicto: 'SALTADA',
+        motivo: `se salta en ${saltada.join(' y ')}`,
         extras: [],
       }
     }
@@ -163,17 +234,20 @@ export function decidir(resultados, huellasMovil) {
 }
 
 function principal(argumentos) {
-  const [carpeta, salida] = argumentos
+  const [carpeta, salida, resultado] = argumentos
   if (!carpeta) {
     console.error('Uso: node scripts/comparar-anchos.mjs <carpeta de huellas> [salida.json]')
     process.exit(2)
   }
   const escritorio = leerHuellas(join(carpeta, 'escritorio'))
   const movil = leerHuellas(join(carpeta, 'movil'))
-  const resultados = decidir(comparar(escritorio, movil), movil)
+  const estados = resultado
+    ? estadosDelResultado(JSON.parse(readFileSync(resultado, 'utf8')))
+    : new Map()
+  const resultados = decidir(comparar(escritorio, movil, estados), movil)
   const cuenta = (v) => resultados.filter((r) => r.veredicto === v).length
   console.log(
-    `${String(resultados.length)} pruebas: ${String(cuenta('IGUAL'))} IGUAL, ${String(cuenta('DISTINTO'))} DISTINTO, ${String(cuenta('SOLO_UNO'))} SOLO_UNO; salen del celular: ${String(resultados.filter((r) => r.sale).length)}`,
+    `${String(resultados.length)} pruebas: ${String(cuenta('IGUAL'))} IGUAL, ${String(cuenta('DISTINTO'))} DISTINTO, ${String(cuenta('SOLO_UNO'))} SOLO_UNO, ${String(cuenta('SALTADA'))} SALTADA; salen del celular: ${String(resultados.filter((r) => r.sale).length)}`,
   )
   if (salida) writeFileSync(salida, JSON.stringify(resultados, null, 1))
   else
