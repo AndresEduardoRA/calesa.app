@@ -29,12 +29,12 @@ import type { OrigenConEstado } from '../../entities/ficha'
 import { CLAVE_DE_ALCANCE, alcanceDelListado, type ModoDelListado } from '../../entities/alcance'
 import type { CampoDeLead } from '../../entities/campo'
 import type { Etiqueta } from '../../entities/etiqueta'
-import { condicionesDeLeads, esquemaDeFiltrosDeLeads } from '../../entities/filtros'
+import { esquemaDeFiltrosDeLeads } from '../../entities/filtros'
 import { filtrosDescartados, type FiltroDescartado } from '../../entities/filtros-descartados'
 import { FILTRO_TACHADOS, TOPE_DE_OCULTOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { MAXIMO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
 import { puedeEditarLead } from '../../entities/edicion'
-import { idsDelNumeroBuscado } from './ids-del-numero'
+import { condicionesDeLaPersona } from './condiciones-de-la-persona'
 import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
 
 export type DatosDelListado = {
@@ -127,31 +127,28 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
     etiquetas: etiquetas.data,
   })
   const valores = leerFiltros(esquema, parametros)
-  const ids = await idsDelNumeroBuscado(valores, permisos)
-  if (!ids.ok) {
-    return ids
-  }
-  const opciones = {
+  const condicionesDe = await condicionesDeLaPersona({
+    campos,
+    valores,
+    permisos,
     zona,
-    soloMios: modo === 'mios',
-    // Quien ve sólo lo propio lee su cartera (`fuenteDelListado`): cuesta lo que pesa, no cuántos leads hay.
-    desdeLaCartera: !puedeVerTodos,
-    idsDelNumero: ids.data,
     tipos: catalogos.data.tipos,
+    soloMios: modo === 'mios',
+    puedeVerTodos,
+  })
+  if (!condicionesDe.ok) {
+    return condicionesDe
   }
   const tamano = tamanoDeEstaPagina(parametros, preferenciaDePagina)
   const [leida, ocultos] = await Promise.all([
     buscarLeads({
-      condiciones: condicionesDeLeads(campos, valores, opciones),
+      condiciones: condicionesDe.data(valores),
       cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR] as string | string[] | undefined)),
       tamano,
       clavesDeTabla: clavesDeTabla(campos),
     }),
     ocultaTachados(valores)
-      ? contarLeadsHasta(
-          condicionesDeLeads(campos, soloTachados(valores), opciones),
-          TOPE_DE_OCULTOS,
-        )
+      ? contarLeadsHasta(condicionesDe.data(soloTachados(valores)), TOPE_DE_OCULTOS)
       : null,
   ])
   if (!leida.ok) {

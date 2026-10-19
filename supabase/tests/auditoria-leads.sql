@@ -95,6 +95,8 @@ declare
     -- La búsqueda por candidatos (5a-fix-1b): lo que ve quien llama, ni una fila más (`_lead_visible_para()` con su sesión); el segundo paso es la vista de siempre, de invocador.
     ('leads_candidatos(jsonb)', 'L'),
     ('leads_vista_por_ids(uuid[])', 'L'),
+    -- Un sí o un no sobre la propia cartera de quien llama (5a-5: por dónde leer «míos»); no recibe un lead ni devuelve un número.
+    ('leads_cartera_corta()', 'L'),
     ('lead_seguimientos(uuid,timestamp with time zone,uuid,integer)', 'L'),
     ('lead_recordatorios(uuid,boolean,timestamp with time zone,uuid,integer)', 'L'),
     ('lead_seguimiento(uuid,uuid)', 'L'),

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { leerFiltros } from '@/shared/lib/filtros'
 import type { CampoDeLead } from './campo'
 import { condicionesDeLeads, esquemaDeFiltrosDeLeads } from './filtros'
-import { fuenteDelListado } from './fuente-del-listado'
+import { fuenteDelListado, leerMiosDeLaCartera, pideLaCartera } from './fuente-del-listado'
 
 const busqueda = {
   tipo: 'busqueda',
@@ -81,5 +81,32 @@ describe('fuenteDelListado', () => {
     expect(desde('', true, false)).toBe('leads_vista')
     expect(desde('', true)).toBe('leads_vista')
     expect(desde('a.ci=123', false, false)).toBe('leads_vista')
+  })
+})
+
+describe('pideLaCartera y leerMiosDeLaCartera (5a-5)', () => {
+  const mios = { tipo: 'en_cartera', desdeLaCartera: false } as const
+
+  it('sólo «míos» pide la cartera: sin esa condición, la vista de siempre es la única lectura', () => {
+    expect(pideLaCartera([mios])).toBe(true)
+    expect(pideLaCartera([busqueda, mios, { tipo: 'tachado', valor: false }])).toBe(true)
+    expect(pideLaCartera([])).toBe(false)
+    expect(pideLaCartera([busqueda, { tipo: 'tachado', valor: false }])).toBe(false)
+  })
+
+  it('pasa «míos» a la cartera y no toca lo demás', () => {
+    const tachado = { tipo: 'tachado', valor: false } as const
+    const leidas = leerMiosDeLaCartera([busqueda, mios, tachado])
+    expect(leidas).toEqual([busqueda, { tipo: 'en_cartera', desdeLaCartera: true }, tachado])
+    expect(fuenteDelListado(leidas)).toBe('leads_cartera_vista')
+    // Sin «míos», nada cambia (y la fuente sigue siendo la vista de siempre).
+    expect(leerMiosDeLaCartera([busqueda, tachado])).toEqual([busqueda, tachado])
+    expect(fuenteDelListado(leerMiosDeLaCartera([busqueda, tachado]))).toBe('leads_vista')
+  })
+
+  it('no muta lo que recibe', () => {
+    const entrada = [mios]
+    leerMiosDeLaCartera(entrada)
+    expect(entrada).toEqual([{ tipo: 'en_cartera', desdeLaCartera: false }])
   })
 })

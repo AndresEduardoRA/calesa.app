@@ -326,3 +326,45 @@ begin
   update public.leads set creado_en = v_viejo where id = v_lead;
   delete from public.leads_asesores where lead_id = v_lead and usuario_id = f4;
 end $$;
+
+-- @test listado-cartera: `leads_cartera_corta()` dice si la cartera de quien llama tiene como mucho T filas, y nada más (5a-5)
+-- Es una pista de por dónde leer «míos» (la app lee por la cartera a quien ve «todos» y tiene pocos propios): un sí o un no, sin número, sin sesión
+-- un no, y el tope sale de una sola función. Se prueba bajando el tope (se restaura al final): con T = 6, f3 (tres) y f2 (dos) tienen la cartera corta y f4 (siete
+-- visibles y una en la papelera, ocho filas vigentes) no; con el tope de verdad, todos. La persona con «todos» y dos propios (f5) también.
+do $$ declare
+  v_original text := pg_get_functiondef('public._leads_cartera_corta_tope()'::regprocedure);
+  f1 constant uuid := '00000000-0000-0000-0000-0000000009f1'; f2 constant uuid := '00000000-0000-0000-0000-0000000009f2';
+  f3 constant uuid := '00000000-0000-0000-0000-0000000009f3'; f4 constant uuid := '00000000-0000-0000-0000-0000000009f4';
+  f5 constant uuid := '00000000-0000-0000-0000-0000000009f5';
+  v_filas int;
+begin
+  select count(*) into v_filas from public.leads_asesores where usuario_id = f4 and revocado_en is null;
+  if v_filas < 7 then raise exception 'el supuesto cambió: f4 ya no tiene ocho filas vigentes (tiene %)', v_filas; end if;
+  -- Con el tope de verdad (5.000) todas tienen la cartera corta.
+  if not (pg_temp.como_f(f4, 'select to_jsonb(public.leads_cartera_corta())') = 'true'::jsonb
+          and pg_temp.como_f(f5, 'select to_jsonb(public.leads_cartera_corta())') = 'true'::jsonb
+          and pg_temp.como_f(f1, 'select to_jsonb(public.leads_cartera_corta())') = 'true'::jsonb) then
+    raise exception 'con el tope de verdad, una cartera de pocos leads no figura como corta';
+  end if;
+  -- Es un booleano: nunca un número (no revela cuántos leads tiene).
+  if jsonb_typeof(pg_temp.como_f(f4, 'select to_jsonb(public.leads_cartera_corta())')) <> 'boolean' then
+    raise exception 'leads_cartera_corta() no devuelve un booleano';
+  end if;
+  -- Con el tope en 6: ocho filas ya no son una cartera corta; dos y tres sí.
+  execute 'create or replace function public._leads_cartera_corta_tope() returns integer language sql immutable parallel safe set search_path = '''' as $f$ select 6 $f$';
+  if pg_temp.como_f(f4, 'select to_jsonb(public.leads_cartera_corta())') <> 'false'::jsonb then
+    raise exception 'f4 (ocho filas vigentes) tendría la cartera corta con un tope de 6';
+  end if;
+  if pg_temp.como_f(f3, 'select to_jsonb(public.leads_cartera_corta())') <> 'true'::jsonb
+     or pg_temp.como_f(f2, 'select to_jsonb(public.leads_cartera_corta())') <> 'true'::jsonb then
+    raise exception 'una cartera de dos o tres no figura como corta con un tope de 6';
+  end if;
+  execute v_original;
+  -- Sin sesión, no.
+  if (select public.leads_cartera_corta()) is distinct from false then raise exception 'sin sesión, leads_cartera_corta() tiene que decir que no'; end if;
+  -- anon no la ejecuta; authenticated sí; el tope no lo ejecuta nadie desde afuera.
+  if has_function_privilege('anon', 'public.leads_cartera_corta()', 'execute') then raise exception 'anon ejecuta leads_cartera_corta()'; end if;
+  if not has_function_privilege('authenticated', 'public.leads_cartera_corta()', 'execute') then raise exception 'authenticated no ejecuta leads_cartera_corta()'; end if;
+  if has_function_privilege('authenticated', 'public._leads_cartera_corta_tope()', 'execute') then raise exception 'authenticated ejecuta el tope de la cartera corta'; end if;
+end $$;
+

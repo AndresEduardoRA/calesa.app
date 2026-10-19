@@ -766,7 +766,7 @@ select set_config('request.jwt.claim.sub', '', false);
 -- Una nueva que nombra a alguien sin el filtro hace fallar esta prueba (cierre 2: `dueno_id`, la ficha y el portal lo hacían).
 do $$ declare r record; v_faltan text[] := '{}'; v_listadas constant text[] := array[
   -- desde quien llama (su propia fila de la cartera)
-  '_mis_leads_vivos', 'en_cartera', 'mis_leads', 'telefono_lead',
+  '_mis_leads_vivos', 'en_cartera', 'mis_leads', 'telefono_lead', 'leads_cartera_corta',
   -- escriben la cartera tras `_lead_aplicar_bajas` sobre el lead que bloquearon, o la revocan ellas mismas
   'lead_compartir', 'lead_revocar_acceso', 'lead_salir', 'lead_transferir', 'lead_cartera_candidatos',
   -- la propia baja y el cálculo de la cartera (la fuente, con todos los vigentes)

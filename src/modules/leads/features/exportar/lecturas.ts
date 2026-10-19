@@ -12,12 +12,8 @@ import {
   repositorioDeExportacion,
 } from '../../composicion'
 import type { CampoDeLead } from '../../entities/campo'
-import { idsDelNumeroBuscado } from '../listado/ids-del-numero'
-import {
-  condicionesDeLeads,
-  esquemaDeFiltrosDeLeads,
-  type CondicionDeLead,
-} from '../../entities/filtros'
+import { condicionesDeLaPersona } from '../listado/condiciones-de-la-persona'
+import { esquemaDeFiltrosDeLeads, type CondicionDeLead } from '../../entities/filtros'
 import {
   TAMANO_DE_PAGINA_DE_EXPORTACION,
   TOPE_DE_EXPORTACION,
@@ -159,20 +155,21 @@ export async function exportarLeadsEnCsv(entrada: Entrada): Promise<SalidaDeExpo
     etiquetas: etiquetas.data,
   })
   const valores = leerFiltros(esquema, parametrosDeConsulta(consulta))
-  const ids = await idsDelNumeroBuscado(valores, permisos)
-  if (!ids.ok) {
+  const conNumeroGlobal = puede(permisos, 'leads.numero_global.ver')
+  // La cartera, siempre: no es un modo que se elija. Se lee como el listado: de la cartera de quien mira si ve sólo lo propio o si la suya es corta.
+  const condicionesDe = await condicionesDeLaPersona({
+    campos,
+    valores,
+    permisos,
+    zona,
+    tipos: catalogos.data.tipos,
+    soloMios: true,
+    puedeVerTodos: alcanceDe(permisos, 'leads.ver') === 'todos',
+  })
+  if (!condicionesDe.ok) {
     return { tipo: 'error', mensaje: NO_SE_PUDO }
   }
-  const conNumeroGlobal = puede(permisos, 'leads.numero_global.ver')
-  // La cartera, siempre: no es un modo que se elija.
-  const condiciones = condicionesDeLeads(campos, valores, {
-    zona,
-    soloMios: true,
-    // Quien ve sólo lo propio lee su cartera (`fuenteDelListado`), como el listado.
-    desdeLaCartera: alcanceDe(permisos, 'leads.ver') !== 'todos',
-    idsDelNumero: ids.data,
-    tipos: catalogos.data.tipos,
-  })
+  const condiciones = condicionesDe.data(valores)
 
   // Hasta el tope y no más: cuenta pidiendo `tope + 1` ids, nunca el total exacto.
   const contadas = await contarLeadsHasta(condiciones, TOPE_DE_EXPORTACION)

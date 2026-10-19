@@ -59,7 +59,7 @@ import { oportunidadesSupabase } from './infra/oportunidades'
 import { origenesDeLeadSupabase } from './infra/origenes'
 import { tiposDeLeadSupabase } from './infra/tipos'
 import { getContextoDeAlta } from './infra/queries/alta'
-import { getCartera } from './infra/queries/cartera'
+import { getCartera, getCarteraCorta } from './infra/queries/cartera'
 import { getLayoutDeLeads } from './infra/queries/campos'
 import { getEmbudos, getTablero } from './infra/queries/embudos'
 import { getOportunidadesDelLead } from './infra/queries/oportunidades'
@@ -69,6 +69,7 @@ import {
   buscarLeads as buscarLeadsEnBase,
   contarLeadsHasta as contarEnBase,
 } from './infra/queries/listado'
+import type { LectorDeCarteraCorta } from './entities/fuente-del-listado'
 import type { LectorDeIdsDelNumero } from './entities/numero'
 import { getIdsDelNumero } from './infra/queries/numeros'
 import { getCatalogosDeLead } from './infra/queries/catalogos'
@@ -96,6 +97,8 @@ export const buscarLeads: BuscadorDeLeads = buscarLeadsEnBase
 export const contarLeadsHasta: ContadorDeLeads = contarEnBase
 
 export const leerIdsDelNumero: LectorDeIdsDelNumero = getIdsDelNumero
+
+export const leerCarteraCorta: LectorDeCarteraCorta = getCarteraCorta
 
 // Los orígenes y los tipos con que se nombra a un lead, en un solo pedido.
 export const leerCatalogosDeLead: LectorDeCatalogosDeLead = getCatalogosDeLead

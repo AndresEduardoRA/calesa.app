@@ -7069,6 +7069,7 @@ export type Database = {
         Returns: string
       }
       _leads_candidatos_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _leads_cartera_corta_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_cartera_recalcular: { Args: { p_leads: string[] }; Returns: undefined }
       _leads_columnas_a_atributos: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_derivados_rellenar: { Args: { p_lote: number }; Returns: number }
@@ -7793,6 +7794,7 @@ export type Database = {
       lead_vehiculos: { Args: { p_lead: string }; Returns: Json }
       leads_campos_privacidad_aplicar: { Args: Record<PropertyKey, never>; Returns: Json }
       leads_candidatos: { Args: { p_filtros: Json }; Returns: Json }
+      leads_cartera_corta: { Args: Record<PropertyKey, never>; Returns: boolean }
       leads_catalogos: { Args: Record<PropertyKey, never>; Returns: Json }
       leads_exportacion_registrar: {
         Args: { p_filas: number; p_filtros?: string[] }

@@ -30,10 +30,18 @@ create temp table violaciones (texto text);
 -- Lo que midió cada `escala()` (la mediana), para sumar los dos pasos de una búsqueda.
 create temp table medidas (nombre text, quien text, ms numeric);
 
--- De dónde lee «míos» cada persona (`fuenteDelListado()` de `entities/filtros.ts`): quien tiene `leads.ver` «propios» lee su cartera
--- (`leads_cartera_vista`, 5a-fix-1a); quien ve «todos» (la dueña), `leads_vista`: su cartera es grande y por la cartera no mejora.
-create function pg_temp.fuente_mios(p_quien text) returns text language sql as $$
-  select case when p_quien = 'duena' then 'leads_vista' else 'leads_cartera_vista' end $$;
+-- De dónde lee «míos» cada persona, como lo decide la app (`fuenteDelListado()` y `leerMiosDeLaCartera()`): quien tiene `leads.ver` «propios» lee su cartera
+-- (`leads_cartera_vista`, 5a-fix-1a); quien ve «todos» también si su cartera es corta (`leads_cartera_corta()`, 5a-5: la supervisora, con 3 leads propios); la
+-- dueña (40 % de los leads) conserva `leads_vista`: su cartera es grande y por la cartera no mejora. Se lo pregunta a la base como esa persona, igual que la app.
+create function pg_temp.fuente_mios(p_quien text) returns text language plpgsql as $$
+declare v_cartera boolean;
+begin
+  perform pg_temp.quien(p_quien);
+  set local role authenticated;
+  v_cartera := public.alcance_de('leads.ver') = 'propios' or public.leads_cartera_corta();
+  reset role;
+  return case when v_cartera then 'leads_cartera_vista' else 'leads_vista' end;
+end $$;
 
 -- Los claims de la persona que mide: `request.jwt.claim.sub` (lo que lee `auth.uid()`) y `request.jwt.claims`.
 create function pg_temp.quien(p_quien text) returns void language plpgsql as $$
@@ -43,6 +51,7 @@ begin
     when 'berta' then '00000000-0000-0000-0000-0000000000b1'
     when 'chica' then '00000000-0000-0000-0000-0000000000c9'
     when 'papelera' then '00000000-0000-0000-0000-0000000000c6'
+    when 'sup' then '00000000-0000-0000-0000-0000000000c8'
     else '00000000-0000-0000-0000-0000000000a1' end, true);
   perform set_config('request.jwt.claims', json_build_object('sub', current_setting('request.jwt.claim.sub'),
     'role', 'authenticated')::text, true);
@@ -136,6 +145,13 @@ select '00000000-0000-0000-0000-0000000000c9', id, true from public.roles where 
 update public.leads_asesores set usuario_id = '00000000-0000-0000-0000-0000000000c9'
  where tipo_acceso = 'dueno' and revocado_en is null
    and lead_id in (select id from public.leads where nombre in ('Volumen 49000 Pérez', 'Volumen 30001 Gómez', 'Volumen 25003 Suárez'));
+-- Una supervisora (5a-5): ve «todos» y tiene 3 leads propios. Su «míos» es la cartera de 3, no la tabla: por la vista de siempre recorría el índice del listado entero.
+insert into auth.users (id, email, raw_app_meta_data) values ('00000000-0000-0000-0000-0000000000c8', 'supervisora-medir@ejemplo.com', '{"invitado": true}');
+insert into public.usuarios_roles (usuario_id, rol_id, es_principal)
+select '00000000-0000-0000-0000-0000000000c8', id, true from public.roles where clave = 'dueno' on conflict do nothing;
+update public.leads_asesores set usuario_id = '00000000-0000-0000-0000-0000000000c8'
+ where tipo_acceso = 'dueno' and revocado_en is null
+   and lead_id in (select lead_id from public.leads_asesores where usuario_id = '00000000-0000-0000-0000-0000000000d1' and tipo_acceso = 'dueno' and revocado_en is null order by lead_id limit 3);
 -- Una asesora con 3 leads vivos y 500 de los más nuevos en la papelera (lo que deja deshacer una importación): su fila de la cartera
 -- sigue vigente, así que el recorrido de su cartera los descarta al unir con `leads`. Es el costo que acota la papelera de cada persona.
 insert into auth.users (id, email, raw_app_meta_data) values ('00000000-0000-0000-0000-0000000000c6', 'papelera-medir@ejemplo.com', '{"invitado": true}');
@@ -479,13 +495,13 @@ do $medir$ declare q text; begin
     if q = 'duena' then perform pg_temp.escala('baja de una persona (vista previa)', q, $w$select public.equipo_vista_previa_baja('00000000-0000-0000-0000-0000000000a1')$w$, 100); end if;
   end loop;
 
-  -- Berta (7.000 leads), una asesora con 3 y la asesora con 500 leads en la papelera: «míos» entero, por su cartera, con los mismos
-  -- presupuestos que la dueña. La búsqueda por nombre (5a-1) sólo de las cuatro de siempre. (Una supervisora —«todos» con pocos leads
-  -- propios— sigue leyendo `leads_vista` en «míos» y recorre `leads_listado_idx` entero: límite anotado en `docs/RENDIMIENTO.md`, no se
-  -- asserta porque no se cumple.)
-  foreach q in array array['berta', 'chica', 'papelera'] loop
+  -- Berta (7.000 leads), una asesora con 3, la asesora con 500 leads en la papelera y la supervisora («todos» y 3 propios, 5a-5): «míos» entero, por su
+  -- cartera, con los mismos presupuestos que la dueña. La búsqueda por nombre (5a-1) sólo de las cuatro de siempre.
+  foreach q in array array['berta', 'chica', 'papelera', 'sup'] loop
     perform pg_temp.listado(q, true);
   end loop;
+  -- La supervisora en «todos» (sin `en_cartera`): la vista de siempre, como la dueña.
+  perform pg_temp.listado('sup', false);
   foreach q in array array['duena', 'ana', 'berta', 'chica'] loop
     perform pg_temp.busqueda(q);
   end loop;
