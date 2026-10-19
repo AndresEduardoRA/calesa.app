@@ -1,10 +1,5 @@
-import {
-  DatosNuevosDeApibara,
-  EditorDeCampos,
-  leerDatosNuevosDeApibara,
-  leerLayout,
-  type OrigenConUso,
-} from '@/modules/origenes'
+import { leerDatosNuevosDeApibara, leerLayout, type OrigenConUso } from '@/modules/origenes'
+import { DatosNuevosDeApibara, EditorDeCampos } from '@/modules/origenes/pantallas/origen'
 import { datosO } from '@/shared/lib/errores'
 
 type Props = { origen: OrigenConUso; puedeGestionar: boolean }

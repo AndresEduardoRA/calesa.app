@@ -1,4 +1,5 @@
-import { ArbolDeCategorias, leerLayout, type OrigenConUso } from '@/modules/origenes'
+import { leerLayout, type OrigenConUso } from '@/modules/origenes'
+import { ArbolDeCategorias } from '@/modules/origenes/pantallas/origen'
 import { datosO } from '@/shared/lib/errores'
 
 type Props = { origen: OrigenConUso; puedeGestionar: boolean }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { ListaDeOrigenes, leerOrigenes } from '@/modules/origenes'
+import { leerOrigenes } from '@/modules/origenes'
+import { ListaDeOrigenes } from '@/modules/origenes/pantallas/origenes'
 import { puede, requerirSesion } from '@/modules/equipo'
 import { datosO } from '@/shared/lib/errores'
 import { EstadoSinPermiso } from '@/shared/ui/estados'

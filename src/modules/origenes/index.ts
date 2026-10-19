@@ -1,6 +1,7 @@
-// API pública del módulo `origenes` para el servidor. Con `client.ts`, lo único que `app/` u otro
-// módulo puede importar. Mezcla lecturas de servidor con componentes de cliente: lo importan los
-// Server Components. Un Client Component de afuera importa `@/modules/origenes/client`.
+// API pública del módulo `origenes` para el servidor: lecturas, reglas y tipos. Con `client.ts`, lo único que
+// `app/` u otro módulo puede importar. No exporta componentes (una pantalla paga en JS todo lo que reexporta lo
+// que importa): los de Configuración › Orígenes salen por `pantallas/origenes.ts` y `pantallas/origen.ts` (sólo
+// `src/app`). Un Client Component de afuera importa `@/modules/origenes/client`.
 
 // Los orígenes para nombrarlos y elegirlos (selectores, la matriz de roles)
 export { getOrigenes } from './composicion'
@@ -20,14 +21,9 @@ export type {
 export type { Categoria } from './entities/categoria'
 export type { LayoutDeOrigen } from './entities/repositorios'
 
-// Configuración › Orígenes: lista, datos, layout de campos y categorías
+// Configuración › Orígenes: lo que lee la lista y el detalle de un origen
 export { leerOrigenes } from './composicion'
 export type { OrigenConUso } from './entities/origen'
-export { ListaDeOrigenes } from './features/origenes/components/lista-de-origenes'
-export { DatosDelOrigen } from './features/origenes/components/datos-del-origen'
-export { EditorDeCampos } from './features/campos/components/editor-de-campos'
-export { DatosNuevosDeApibara } from './features/campos/components/datos-nuevos-de-apibara'
-export { ArbolDeCategorias } from './features/categorias/components/arbol-de-categorias'
 
 // Qué le falta a un origen para funcionar
 export {
@@ -36,4 +32,3 @@ export {
   type PasoConDestino,
   type PasoSiguiente,
 } from './entities/pasos'
-export { SiguientesPasos } from './features/pasos/components/siguientes-pasos'

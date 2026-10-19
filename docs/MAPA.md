@@ -81,9 +81,12 @@ Campana in-app con «requiere acción», realtime, web push (VAPID) y preferenci
 - Depende de: ningún otro módulo
 
 ### `origenes`
-Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías. Al crear uno nacen, por trigger y en la misma transacción, su flujo de logística (con sus reglas, sin fases) y los campos de su tipo. Uno de subasta nace con **un campo por cada dato normalizado que devuelve apibara** (el catálogo), todos encendidos. **No** nace una fórmula: «fórmula pendiente» es no tener una fila `publicada`. · 75 archivos
-- API: `getOrigenes`, `OrigenResumen`, `leerDatosNuevosDeApibara`, `leerLayout`, `agruparCampos`, `tieneOpciones`, `CampoDeLayout`, `GrupoDeCampos`, `OpcionDeCampo`, `TipoDeCampo`, +15
+Orígenes de vehículos configurables (subasta/apibara o manual), su layout de campos y sus categorías. Al crear uno nacen, por trigger y en la misma transacción, su flujo de logística (con sus reglas, sin fases) y los campos de su tipo. Uno de subasta nace con **un campo por cada dato normalizado que devuelve apibara** (el catálogo), todos encendidos. **No** nace una fórmula: «fórmula pendiente» es no tener una fila `publicada`. · 77 archivos
+- API: `getOrigenes`, `OrigenResumen`, `leerDatosNuevosDeApibara`, `leerLayout`, `agruparCampos`, `tieneOpciones`, `CampoDeLayout`, `GrupoDeCampos`, `OpcionDeCampo`, `TipoDeCampo`, +9
 - API de cliente (`client.ts`): `articulo`, `concordar`, `contados`, `frasePorVacio`, `generoSugerido`, `ninguno`, `pluralDe`, `Genero`, `OrigenResumen`, `TipoDeOrigen`, +9
+- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
+  - `origen`: `DatosDelOrigen`, `SiguientesPasos`, `EditorDeCampos`, `DatosNuevosDeApibara`, `ArbolDeCategorias`
+  - `origenes`: `ListaDeOrigenes`
 - Depende de: ningún otro módulo
 - Casos de uso: campos, categorias, origenes, pasos
 
