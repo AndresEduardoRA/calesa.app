@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { nombreVisible, requerirSesion, sinRol } from '@/modules/equipo'
-import { Bandeja } from '@/modules/tablero'
+import { Bandeja } from '@/modules/tablero/pantallas/inicio'
 
 export const metadata: Metadata = { title: 'Inicio' }
 

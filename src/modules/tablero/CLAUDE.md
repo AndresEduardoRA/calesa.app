@@ -5,7 +5,7 @@ Bandeja de inicio por rol y tablero de métricas con widgets personalizables por
 ## Entra y sale
 
 - Entra: permisos del usuario, `preferencias_usuario.widgets`.
-- Sale: `<Bandeja>` para `/` (hoy) y el tablero de `/tablero` (fase 9). No lo consume ningún módulo.
+- Sale: `<Bandeja>` para `/` por `pantallas/inicio.ts` (sólo `src/app`; el `index.ts` no exporta componentes, hoy nada) y el tablero de `/tablero` (fase 9). No lo consume ningún módulo.
 - Depende de: hoy de ningún módulo (la bandeja sólo usa permisos de `shared`). Cuando los bloques tengan contenido: `logistica`, `leads`, `web` (y por su API, `cotizaciones`, `agenda`, `repuestos`).
 
 ## Archivos clave

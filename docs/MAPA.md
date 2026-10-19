@@ -65,10 +65,16 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 572 archivos
-- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `EditorDeCamposDeLead`, `leerOrigenesDeLeadConUso`, +44
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 577 archivos
+- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `ContextoDeAlta`, `leerOrigenesDeLeadConUso`, `leerTiposDeLeadConUso`, `leerListadoDeLeads`, +24
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
 - API del shell (`shell.ts`, sólo el layout `(app)`): `leerContextoDeAlta`, `leerLayoutDeLeads`, `AltaDeLead`
+- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
+  - `configuracion`: `EditorDeCamposDeLead`, `OrigenesDeLead`, `EsqueletoDeOrigenes`, `TiposDeLead`, `EsqueletoDeTipos`
+  - `ficha`: `FichaDeLead`, `LeadNoDisponible`, `SeccionSeguimientos`, `EsqueletoDeSeguimientos`, `SeccionOportunidades`, `EsqueletoDeOportunidades`, `SeccionPortal`, `EsqueletoDePortal`
+  - `importar`: `AsistenteDeImportacion`, `ImportacionesRecientes`
+  - `listado`: `ListadoDeLeads`, `VistaDeEmbudo`, `EsqueletoDeTablero`
+  - `papelera`: `PapeleraDeLeads`
 - Depende de: equipo
 - Casos de uso: alta, campos, cartera, embudo, etiquetas, exportar, ficha, importar, listado, marcas, oportunidades, origenes, papelera, portal, rapido, recordatorios, seguimientos, telefono, tipos
 
@@ -95,8 +101,9 @@ Proyectos de repuestos por vehículo (o externos), ítems que recorren el flujo 
 - Depende de: ningún otro módulo
 
 ### `tablero`
-Bandeja de inicio por rol y tablero de métricas con widgets personalizables por usuario; compone a los demás módulos por su API pública. · 4 archivos
-- API: `Bandeja`
+Bandeja de inicio por rol y tablero de métricas con widgets personalizables por usuario; compone a los demás módulos por su API pública. · 5 archivos
+- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
+  - `inicio`: `Bandeja`
 - Depende de: ningún otro módulo
 - Casos de uso: bandeja
 
