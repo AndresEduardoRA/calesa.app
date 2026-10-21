@@ -55,9 +55,12 @@ export function SeccionDatos({
               <>
                 <OrigenDelLead nombre={origen.nombre} icono={origen.icono} />
                 {origen.activo ? null : (
-                  <span className="ml-1.5 text-(length:--text-xs) text-(--color-ink-soft)">
-                    (inactivo)
-                  </span>
+                  <>
+                    {' '}
+                    <span className="text-(length:--text-xs) text-(--color-ink-soft)">
+                      (inactivo)
+                    </span>
+                  </>
                 )}
               </>
             ) : (

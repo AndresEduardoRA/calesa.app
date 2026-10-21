@@ -36,7 +36,13 @@ export function CabeceraDeLead({ ficha, origen, tipo, quien, acciones, marcas }:
           {origen ? (
             <span className="inline-flex max-w-full min-w-0 items-center gap-1.5">
               <OrigenDelLead nombre={origen.nombre} icono={origen.icono} />
-              {origen.activo ? null : <span className="shrink-0">(inactivo)</span>}
+              {/* El espacio es texto, no sólo el hueco del `gap`: el lector y la búsqueda leen «Facebook (inactivo)» de corrido. */}
+              {origen.activo ? null : (
+                <>
+                  {' '}
+                  <span className="shrink-0">(inactivo)</span>
+                </>
+              )}
             </span>
           ) : null}
           <span className="tabular-nums">{telefonoDeFicha(ficha.telefono, ficha.telefonoCc)}</span>
