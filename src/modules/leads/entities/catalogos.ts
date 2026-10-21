@@ -106,3 +106,26 @@ export function idsDeLasClaves(
 
 // Cómo se dice la clase de un tipo junto a su nombre (la insignia de la lista de configuración).
 export const nombreDeLaClase = (clase: ClaseDeTipoDeLead): string => NOMBRE_DE_CLASE[clase]
+
+// Las claves de icono que las filas de una lista usan (el origen y el tipo de cada una), sin repetir ni contar las que no tienen: lo que monta el
+// símbolo compartido del listado (`<SimbolosDeIconos>`).
+export function iconosEnUso(
+  filas: readonly { origenId: string | null; tipoLeadId: string | null }[],
+  origenes: readonly { id: string; icono?: string | null }[],
+  tipos: readonly { id: string; icono?: string | null }[],
+): string[] {
+  const claves = new Set<string>()
+  const origenPorId = new Map(origenes.map((o) => [o.id, o.icono]))
+  const tipoPorId = new Map(tipos.map((t) => [t.id, t.icono]))
+  for (const fila of filas) {
+    for (const icono of [
+      origenPorId.get(fila.origenId ?? ''),
+      tipoPorId.get(fila.tipoLeadId ?? ''),
+    ]) {
+      if (icono !== null && icono !== undefined && icono.trim() !== '') {
+        claves.add(icono)
+      }
+    }
+  }
+  return [...claves]
+}

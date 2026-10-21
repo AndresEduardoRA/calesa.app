@@ -7,10 +7,12 @@ import { ubicacionDeLaPagina, type Pagina } from '@/shared/lib/paginacion'
 import { Button } from '@/shared/ui/button'
 import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared/ui/estados'
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
+import { SimbolosDeIconos } from '@/shared/ui/icono-del-catalogo/simbolos-de-iconos'
 import { UnaSolaVista } from '@/shared/ui/lista'
 import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
 import { useRegional } from '@/shared/ui/regional'
 import type { ModoDelListado } from '../../../entities/alcance'
+import { iconosEnUso } from '../../../entities/catalogos'
 import type { FilaDeLead } from '../../../entities/listado'
 import { usePanelDeAlta } from '../../alta/hooks/use-panel-de-alta'
 import { textoDeOcultos, useMostrarTachados } from './aviso-de-tachados-ocultos'
@@ -113,6 +115,7 @@ export function ResultadoDelListado(props: Props) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <UbicacionDeLaPagina ubicacion={ubicacionDeLaPagina(pagina)} />
+      <SimbolosDeIconos claves={iconosEnUso(pagina.filas, datos.origenes, datos.tipos)} />
       <UnaSolaVista
         tabla={() => (
           <TablaDeLeads

@@ -144,7 +144,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-listado.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-pagina-sin-filas.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
 - `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `estilos.ts`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `radios.tsx`, `selector-de-por-pagina.tsx`, `use-filtros.ts`, `use-panel-al-costado.ts`, `use-por-pagina-del-listado.ts`
-- `ui/icono-del-catalogo/`: `icono-del-catalogo.tsx`, `trazos.tsx`
+- `ui/icono-del-catalogo/`: `icono-del-catalogo.tsx`, `simbolos-de-iconos.tsx`, `trazos.tsx`
 - `ui/lista/`: `abrir-resumen.tsx`, `acciones.ts`, `fila-de-lista.tsx`, `index.ts`, `mas-acciones.tsx`, `pestanas-del-resumen.tsx`, `simbolos-de-lista.tsx`, `tabla-de-lista.tsx`, `tarjeta-de-lista.tsx`, `una-sola-vista.tsx`
 - `ui/lista-de-catalogo/`: `botones-de-orden.tsx`, `lista-de-catalogo.tsx`, `tipos.ts`, `use-foco-tras-mover.ts`
 

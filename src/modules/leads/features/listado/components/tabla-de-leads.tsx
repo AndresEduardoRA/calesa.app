@@ -31,7 +31,11 @@ type Props = DatosDeLaLista & {
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
 
 function OrigenDeLaFila({ origen }: { origen: OrigenConEstado | null }) {
-  return origen ? <OrigenDelLead nombre={origen.nombre} icono={origen.icono ?? null} /> : VACIO
+  return origen ? (
+    <OrigenDelLead nombre={origen.nombre} icono={origen.icono ?? null} enLista />
+  ) : (
+    VACIO
+  )
 }
 
 function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposDeTabla> }) {
@@ -99,7 +103,7 @@ export function TablaDeLeads(props: Props) {
               {telefonoDeLista(lead.telefono, codigoDePais)}
             </TableCell>
             <TableCell>
-              <BadgeDeTipo tipo={tipoDelCatalogo(tipos, lead.tipoLeadId)} />
+              <BadgeDeTipo tipo={tipoDelCatalogo(tipos, lead.tipoLeadId)} enLista />
             </TableCell>
             <TableCell className="max-w-48 truncate">
               <OrigenDeLaFila origen={origenDelCatalogo(origenes, lead.origenId)} />

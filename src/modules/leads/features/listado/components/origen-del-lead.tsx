@@ -8,17 +8,24 @@ export function OrigenDelLead({
   nombre,
   icono,
   className,
+  enLista = false,
 }: {
   nombre: string
   icono: string | null
   className?: string
+  // Una fila de la lista: el icono sale del símbolo compartido (`<SimbolosDeIconos>`), no en línea.
+  enLista?: boolean
 }) {
   return (
     <span
       title={nombre}
       className={cn('inline-flex max-w-full min-w-0 items-center gap-1.5', className)}
     >
-      <IconoDelCatalogo clave={icono} className="size-3.5 text-(--color-ink-soft)" />
+      <IconoDelCatalogo
+        clave={icono}
+        className="size-3.5 text-(--color-ink-soft)"
+        deLista={enLista}
+      />
       <span className="min-w-0 truncate">{nombre}</span>
     </span>
   )
@@ -30,6 +37,7 @@ export function OrigenDeLaTarjeta({ origen }: { origen: OrigenConEstado | null }
     <OrigenDelLead
       nombre={origen.nombre}
       icono={origen.icono ?? null}
+      enLista
       className="text-(length:--text-xs) text-(--color-ink-soft)"
     />
   ) : null

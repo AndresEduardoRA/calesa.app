@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   catalogosDeLeadDesde,
   idsDeLasClaves,
+  iconosEnUso,
   nombreDelTipo,
   opcionesDeTipo,
   tipoDelCatalogo,
@@ -89,5 +90,43 @@ describe('idsDeLasClaves', () => {
     expect(idsDeLasClaves(tipos, ['t3', 't1'])).toEqual([id(1), id(3)])
     expect(idsDeLasClaves(tipos, ['borrado'])).toEqual([])
     expect(idsDeLasClaves(tipos, [])).toEqual([])
+  })
+})
+
+describe('iconosEnUso', () => {
+  const origenes = [{ id: id(1), icono: 'web' }, { id: id(2), icono: null }, { id: id(3) }]
+  const tiposDeIcono = [
+    { id: id(11), icono: 'persona' },
+    { id: id(12), icono: 'web' },
+    { id: id(13), icono: '  ' },
+  ]
+
+  it('junta, sin repetir, las claves del origen y del tipo de cada fila', () => {
+    const filas = [
+      { origenId: id(1), tipoLeadId: id(11) },
+      { origenId: id(1), tipoLeadId: id(12) },
+      { origenId: id(2), tipoLeadId: id(11) },
+    ]
+    expect(iconosEnUso(filas, origenes, tiposDeIcono).sort()).toEqual(['persona', 'web'])
+  })
+
+  it('lo que no tiene icono, un lead sin origen o un id que no está no suman nada', () => {
+    const filas = [
+      { origenId: id(2), tipoLeadId: id(13) },
+      { origenId: id(3), tipoLeadId: id(99) },
+      { origenId: null, tipoLeadId: id(99) },
+    ]
+    expect(iconosEnUso(filas, origenes, tiposDeIcono)).toEqual([])
+    expect(iconosEnUso([], origenes, tiposDeIcono)).toEqual([])
+  })
+
+  it('una clave que el catálogo no conoce también se lleva (la lista monta el símbolo neutro)', () => {
+    expect(
+      iconosEnUso(
+        [{ origenId: id(1), tipoLeadId: id(11) }],
+        [{ id: id(1), icono: 'marciano' }],
+        [],
+      ),
+    ).toEqual(['marciano'])
   })
 })

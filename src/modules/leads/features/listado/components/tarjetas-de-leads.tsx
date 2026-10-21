@@ -76,7 +76,7 @@ export function TarjetasDeLeads(props: Props) {
                   </AbrirResumen>
                 )}
               />
-              <BadgeDeTipo tipo={tipoDelCatalogo(tipos, lead.tipoLeadId)} />
+              <BadgeDeTipo tipo={tipoDelCatalogo(tipos, lead.tipoLeadId)} enLista />
             </div>
             <span className="text-(length:--text-sm) text-(--color-ink) tabular-nums">
               {telefonoDeLista(lead.telefono, codigoDePais)}

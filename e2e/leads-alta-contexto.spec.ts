@@ -13,8 +13,8 @@ import { sql } from './soporte/sql'
 // 5b-3: «Nuevo lead» lee lo que necesita (los orígenes, los tipos de lead y de seguimiento, el último origen de quien lo abre y el layout
 // de campos) cuando se pide, no con el documento de cada pantalla. El drawer se abre al instante con su esqueleto; la lectura se adelanta
 // cuando el puntero llega al botón o éste toma el foco; si falla, lo dice con «Reintentar» sin cerrarse; y cerrarlo a medias no deja nada
-// colgado. Son dos pedidos al navegador (la función `lead_alta_contexto` y la tabla `leads_campos`), sin tope propio: el tope es el de
-// escribir (100 orígenes, 100 tipos), y los tipos de seguimiento todavía no tienen pantalla (`docs/PLAN.md`, 5b-5).
+// colgado. Son dos pedidos al navegador (la función `lead_alta_contexto` y la tabla `leads_campos`); la función pide cada catálogo acotado a su
+// tope (100 orígenes, 100 tipos de lead y 100 de seguimiento: el de escribir, que pone la base) y lo dice (`topes`; cierra 5b-5).
 test.describe.configure({ mode: 'serial' })
 
 const CONTEXTO = '**/rest/v1/rpc/lead_alta_contexto'
@@ -204,7 +204,7 @@ test('un origen creado en Configuración aparece en el alta sin recargar la pág
   expect(pedidos.contexto, 'se volvió a leer tras crear el origen').toBe(2)
 })
 
-test('lo que se lee al abrir: dos pedidos, con la semilla y con 100 orígenes y 100 tipos', async ({
+test('lo que se lee al abrir: dos pedidos, con la semilla y con 100 orígenes, 100 tipos de lead y 100 de seguimiento', async ({
   page,
 }, info) => {
   const pesos: Record<string, number> = {}
@@ -228,23 +228,27 @@ test('lo que se lee al abrir: dos pedidos, con la semilla y con 100 orígenes y 
   const conLaSemilla = await leer()
   try {
     sql(`
-      insert into public.origenes_lead (clave, nombre, orden)
-        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo contexto origen ' || n, 1000 + n
+      insert into public.origenes_lead (clave, nombre, icono, orden)
+        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo contexto origen ' || n, 'casa', 1000 + n
         from generate_series(1, 100 - (select count(*) from public.origenes_lead)) n;
-      insert into public.tipos_lead (clave, nombre, clase, orden)
-        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo contexto tipo ' || n, 'prospecto', 1000 + n
+      insert into public.tipos_lead (clave, nombre, clase, icono, orden)
+        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo contexto tipo ' || n, 'prospecto', 'persona', 1000 + n
         from generate_series(1, 100 - (select count(*) from public.tipos_lead)) n;
+      insert into public.tipos_seguimiento (clave, nombre, icono, orden)
+        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo contexto seguimiento ' || n, 'nota', 1000 + n
+        from generate_series(1, 100 - (select count(*) from public.tipos_seguimiento)) n;
     `)
     const alTope = await leer()
-    const resumen = `con la semilla ${JSON.stringify(conLaSemilla)} bytes; con 100 orígenes y 100 tipos ${JSON.stringify(alTope)}`
+    const resumen = `con la semilla ${JSON.stringify(conLaSemilla)} bytes; con 100 orígenes, 100 tipos de lead y 100 de seguimiento ${JSON.stringify(alTope)}`
     console.warn(`[contexto] ${info.project.name}: ${resumen}`)
     info.annotations.push({ type: 'lectura del alta', description: resumen })
-    // Con 100 y 100 la lectura es acotada: lo escribe la base con tope (100 + 100) y no crece con nada más.
+    // Con los tres catálogos al tope la lectura es acotada: lo escribe la base con tope (100 de cada uno) y no crece con nada más.
     expect(alTope['lead_alta_contexto'] ?? 0, resumen).toBeLessThan(40 * 1024)
   } finally {
     sql(`
       delete from public.origenes_lead where clave like '${PREFIJO_DEL_CATALOGO}%';
       delete from public.tipos_lead where clave like '${PREFIJO_DEL_CATALOGO}%';
+      delete from public.tipos_seguimiento where clave like '${PREFIJO_DEL_CATALOGO}%';
     `)
   }
 })

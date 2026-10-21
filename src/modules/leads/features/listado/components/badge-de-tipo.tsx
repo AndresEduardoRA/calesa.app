@@ -8,9 +8,12 @@ import { SUFIJO_DE_INACTIVO, type TipoDeLeadEnCatalogo } from '../../../entities
 export function BadgeDeTipo({
   tipo,
   className,
+  enLista = false,
 }: {
   tipo: TipoDeLeadEnCatalogo | null
   className?: string
+  // Una fila de la lista: el icono sale del símbolo compartido (`<SimbolosDeIconos>`), no en línea.
+  enLista?: boolean
 }) {
   if (tipo === null) {
     return null
@@ -25,7 +28,7 @@ export function BadgeDeTipo({
         className,
       )}
     >
-      <IconoDelCatalogo clave={tipo.icono} className="mr-1 size-3" />
+      <IconoDelCatalogo clave={tipo.icono} className="mr-1 size-3" deLista={enLista} />
       <span className="min-w-0 truncate">{tipo.nombre}</span>
       {tipo.activo ? null : <span className="shrink-0">{`\u00a0${SUFIJO_DE_INACTIVO}`}</span>}
     </span>

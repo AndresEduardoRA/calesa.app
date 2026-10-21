@@ -1,5 +1,6 @@
 import { cn } from 'cn'
 import { iconoADibujar } from '@/shared/lib/iconos'
+import { idDelSimbolo } from './simbolos-de-iconos'
 import { TRAZOS } from './trazos'
 
 // El icono de una clave del catálogo (`@/shared/lib/iconos`), de 1rem como el texto (crece con él al 200 %) y del color del texto
@@ -16,9 +17,12 @@ const TRAZO = {
 export function IconoDelCatalogo({
   clave,
   className,
+  deLista = false,
 }: {
   clave: string | null | undefined
   className?: string
+  // Una fila de una lista, que repite el icono: lo dibuja con `<use>` desde `<SimbolosDeIconos>` (que la lista monta con sus claves).
+  deLista?: boolean
 }) {
   const que = iconoADibujar(clave)
   if (que.tipo === 'ninguno') {
@@ -33,7 +37,9 @@ export function IconoDelCatalogo({
       className={cn('size-4 shrink-0', className)}
       {...TRAZO}
     >
-      {que.tipo === 'clave' ? (
+      {deLista ? (
+        <use href={`#${idDelSimbolo(clave ?? '')}`} />
+      ) : que.tipo === 'clave' ? (
         TRAZOS[que.clave]
       ) : (
         <circle cx="12" cy="12" r="9" strokeDasharray="3 4" />
