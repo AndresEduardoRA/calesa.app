@@ -3,8 +3,11 @@ import { entrar } from './soporte/alta'
 import {
   exigirBarraOrdenada,
   exigirMarcadorQueCabe,
+  exigirPanelAlCostadoSoloSiCabe,
   type PiezaDeLaBarra,
 } from './soporte/barra-de-filtros'
+import { admin } from './soporte/base'
+import { idDe } from './soporte/leads'
 import { aLaVista, esMovil } from './soporte/inventario'
 import { irAlEmbudo } from './soporte/leads-oportunidades'
 import {
@@ -25,6 +28,15 @@ let t: TerrenoDelListado
 
 test.beforeAll(async ({}, info) => {
   t = await prepararListado(info.project.name)
+  // Un lead de Berta con un nombre que cabe en los 16 rem de la columna del nombre.
+  const { error } = await admin()
+    .from('leads')
+    .insert({
+      nombre: `E2E Panel ${info.project.name}`,
+      telefono_principal: `5917${info.project.name === 'movil' ? '83' : '82'}00001`,
+      creado_por: await idDe(t.personas.berta),
+    })
+  expect(error).toBeNull()
 })
 
 test.afterAll(async () => {
@@ -108,3 +120,16 @@ for (const zoom of ['100', '200'] as const) {
     await capturar(page, info, `buscador-del-embudo-${zoom}`)
   })
 }
+
+// La duda de las capturas de 5a-14: con el texto al 200 % el panel de filtros al costado dejaba 176 px a la lista y la fila salía cortada
+// («Nom», «E2E», «N.º 5.»). El panel va al costado sólo si el contenedor mide 40 rem o más; si no, «Filtros» abre la hoja.
+test('el listado de leads: el panel va al costado sólo si cabe, y al 200 % la fila se lee entera', async ({
+  page,
+}) => {
+  await entrar(page, t.personas.berta)
+  await irALeads(page, '?q=E2E Panel')
+  await exigirPanelAlCostadoSoloSiCabe(
+    page,
+    aLaVista(page.getByRole('button', { name: /^Abrir E2E Panel/ })),
+  )
+})

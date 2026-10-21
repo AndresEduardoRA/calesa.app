@@ -2,6 +2,7 @@ import { expect, test } from './soporte/prueba'
 import {
   exigirBarraOrdenada,
   exigirMarcadorQueCabe,
+  exigirPanelAlCostadoSoloSiCabe,
   type PiezaDeLaBarra,
 } from './soporte/barra-de-filtros'
 import {
@@ -74,3 +75,15 @@ for (const zoom of ['100', '200'] as const) {
     await capturar(page, info, `barra-de-vehiculos-${zoom}`)
   })
 }
+
+// El mismo `<FilterShell>` que el listado de leads: el panel de filtros va al costado sólo si cabe, y al 200 % la fila se lee entera.
+test('el inventario: el panel va al costado sólo si cabe, y al 200 % la fila se lee entera', async ({
+  page,
+}) => {
+  await entrar(page, terreno.duena)
+  await page.goto(`/vehiculos?origen=${terreno.corea.id}`)
+  await exigirPanelAlCostadoSoloSiCabe(
+    page,
+    aLaVista(page.getByRole('button', { name: /^Abrir Barra200 V1/ })),
+  )
+})

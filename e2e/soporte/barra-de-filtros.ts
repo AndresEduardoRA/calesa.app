@@ -2,6 +2,7 @@
 // que se lea en orden, desde la izquierda, y que ningún botón quede solo en una fila si cabía en la anterior (cierre 5b, defecto 4.1: al
 // 200 % «Vistas» quedaba sola y los botones se repartían a la derecha, cada uno en su fila).
 import { expect, type Locator, type Page } from '@playwright/test'
+import { sinScrollHorizontal, sinTextoCortado } from './recorrido'
 
 export type PiezaDeLaBarra = { nombre: string; lugar: Locator }
 
@@ -116,4 +117,43 @@ export async function exigirMarcadorQueCabe(campo: Locator): Promise<void> {
     medida?.ancho ?? Infinity,
     `el marcador «${medida?.texto ?? ''}» (${String(Math.round(medida?.ancho ?? 0))} px) cabe en el campo (${String(Math.round(medida?.lugar ?? 0))} px)`,
   ).toBeLessThanOrEqual(medida?.lugar ?? 0)
+}
+
+// El panel de filtros de un listado va al costado sólo si el contenedor mide 40 rem o más (`REM_PARA_EL_PANEL_AL_COSTADO`); si no, «Filtros» abre
+// la hoja. Con el texto al 200 % los 15 rem del panel son 480 px: al costado dejaban 176 a la lista y la fila no se leía (la duda de las
+// capturas de 5a-14). `nombre` es el botón «Abrir …» de una fila que cabe entera en 16 rem. Escritorio: 1.024 px al 100 % (el contenedor
+// más angosto con el panel de siempre), 1.280 al 100 % y 1.280 al 200 %; celular: al 100 % y al 200 %.
+export async function exigirPanelAlCostadoSoloSiCabe(page: Page, nombre: Locator): Promise<void> {
+  const panel = page.getByRole('complementary', { name: 'Filtros' })
+  const movil = (page.viewportSize()?.width ?? 1280) < 768
+  const textoAl = (valor: string) =>
+    page.evaluate((v) => {
+      document.documentElement.style.fontSize = v
+    }, valor)
+  const verFila = async () => {
+    await expect(nombre).toBeVisible()
+    await sinTextoCortado(nombre)
+  }
+  if (!movil) {
+    await page.setViewportSize({ width: 1024, height: 768 })
+    await expect(panel, 'a 1.024 px y al 100 % el panel va al costado').toBeVisible()
+    await verFila()
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await expect(panel, 'a 1.280 px y al 100 % el panel va al costado').toBeVisible()
+    await verFila()
+  } else {
+    await expect(panel).toBeHidden()
+    await verFila()
+  }
+  await textoAl('200%')
+  await expect(panel, 'al 200 % el panel no cabe al costado').toBeHidden()
+  await verFila()
+  await sinScrollHorizontal(page)
+  // «Filtros» abre la hoja: el panel sigue al alcance.
+  await page
+    .getByRole('button', { name: /^Filtros/ })
+    .filter({ visible: true })
+    .click()
+  await expect(page.getByRole('dialog', { name: 'Filtros' })).toBeVisible()
+  await expect(page).toHaveURL(/panel=filtros/)
 }

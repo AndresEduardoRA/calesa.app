@@ -143,7 +143,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `ui/campos/`: `aviso-de-impacto.tsx`, `bloque-de-campos.tsx`, `campo-de-formulario.tsx`, `campo-valor-defecto.tsx`, `campos-de-campo.tsx`, `campos-desactivados.tsx`, `cerrar-con-aviso.ts`, `datos-por-grupo.tsx`, `ediciones.ts`, `editor-de-campos.tsx`, `editor-de-opciones.tsx`, `fila-de-campo.tsx`, `formulario-de-campo.tsx`, `grupos-de-campos.tsx`, `index.ts`, `nombre-de-campo.tsx`, `panel-de-campo.tsx`, `pie-del-formulario.tsx`, `tipos.ts`, `use-formulario-de-campo.ts`, `valor-mostrado.tsx`
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-listado.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-pagina-sin-filas.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
-- `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `estilos.ts`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `radios.tsx`, `selector-de-por-pagina.tsx`, `use-filtros.ts`, `use-por-pagina-del-listado.ts`
+- `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `estilos.ts`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `radios.tsx`, `selector-de-por-pagina.tsx`, `use-filtros.ts`, `use-panel-al-costado.ts`, `use-por-pagina-del-listado.ts`
 - `ui/lista/`: `abrir-resumen.tsx`, `acciones.ts`, `fila-de-lista.tsx`, `index.ts`, `mas-acciones.tsx`, `pestanas-del-resumen.tsx`, `simbolos-de-lista.tsx`, `tabla-de-lista.tsx`, `tarjeta-de-lista.tsx`, `una-sola-vista.tsx`
 
 ## Rutas

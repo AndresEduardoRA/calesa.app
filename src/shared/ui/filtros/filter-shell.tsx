@@ -1,7 +1,7 @@
 'use client'
 
 import { SlidersHorizontalIcon } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode, type RefObject } from 'react'
 import { cn } from 'cn'
 import { CORTE_DEL_PANEL, CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
 import type { EsquemaDeFiltros } from '@/shared/lib/filtros'
@@ -14,11 +14,14 @@ import { CampoDeBusqueda } from './controles'
 import { PanelDeFiltros } from './panel-de-filtros'
 import { SelectorDelListado, type PorPaginaDeLaLista } from './selector-de-por-pagina'
 import { useFiltros } from './use-filtros'
+import { usePanelAlCostado } from './use-panel-al-costado'
 
-// Desde `lg` el panel de filtros entra al costado; por debajo, en una hoja inferior. Lo decide el ancho de la petición en
-// el servidor y al hidratar (antes, una pintura de escritorio podía abrir la hoja un instante), y la pantalla después.
-function useEsEscritorio(): boolean {
-  return useAlMenos(CORTE_DEL_PANEL)
+// El panel de filtros entra al costado si el contenedor del listado mide 40 rem o más (`REM_PARA_EL_PANEL_AL_COSTADO`); si no, en una hoja
+// inferior. Antes el corte era `lg` (1.024 px de pantalla): con el texto al 200 % los 15 rem del panel son 480 px y dejaban 176 a la lista
+//. Hasta que se mide, vale lo que supuso el servidor por el ancho de la petición (antes, una pintura de escritorio podía abrir la hoja
+// un instante) y después el contenedor de verdad.
+function usePanelAlLado(contenedor: RefObject<HTMLElement | null>): boolean {
+  return usePanelAlCostado(contenedor, useAlMenos(CORTE_DEL_PANEL))
 }
 
 // Abre el panel (o lo pliega, en escritorio) y dice cuántos filtros hay puestos.
@@ -69,7 +72,7 @@ function HojaDeFiltros(props: {
   )
 }
 
-// La lista y, a su lado desde `lg`, el panel de filtros (el panel de la hoja del celular es otro, aparte). Mientras llega
+// La lista y, a su lado desde 40 rem de contenedor, el panel de filtros (el panel de la hoja del celular es otro, aparte). Mientras llega
 // una lista filtrada, la anterior se atenúa.
 function CuerpoDeLaLista(props: {
   conPanel: boolean
@@ -81,13 +84,13 @@ function CuerpoDeLaLista(props: {
     <div
       className={cn(
         'grid items-start gap-4',
-        props.conPanel && 'lg:grid-cols-[15rem_minmax(0,1fr)]',
+        props.conPanel && '@min-[40rem]:grid-cols-[15rem_minmax(0,1fr)]',
       )}
     >
       {props.conPanel ? (
         <aside
           aria-label="Filtros"
-          className="hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-4 lg:block"
+          className="hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface) p-4 @min-[40rem]:block"
         >
           {props.panel}
         </aside>
@@ -129,7 +132,8 @@ type Props = {
 export function FilterShell(props: Props) {
   const { esquema, vistas, acciones, pieDelPanel, accionesDeSeccion, porPagina, children } = props
   const filtros = useFiltros(esquema)
-  const esEscritorio = useEsEscritorio()
+  const raiz = useRef<HTMLDivElement>(null)
+  const alLado = usePanelAlLado(raiz)
   const selectorEnLaBarra = useAlMenos(CORTE_DE_LA_TABLA)
   const selector = <SelectorDelListado porPagina={porPagina} aplicar={filtros.aplicarPorPagina} />
   const [plegado, setPlegado] = useState(false)
@@ -145,7 +149,7 @@ export function FilterShell(props: Props) {
 
   return (
     <ContextoDeFiltros value={filtros}>
-      <div className="@container grid gap-3">
+      <div ref={raiz} className="@container grid gap-3">
         <div data-barra-de-filtros className="flex flex-wrap items-center gap-2">
           {esquema.busqueda ? (
             <CampoDeBusqueda
@@ -159,9 +163,9 @@ export function FilterShell(props: Props) {
           {hayPanel ? (
             <BotonDeFiltros
               cantidad={Object.keys(filtros.valores.porClave).length}
-              abierto={esEscritorio ? !plegado : filtros.panelAbierto}
+              abierto={alLado ? !plegado : filtros.panelAbierto}
               alPulsar={() => {
-                if (esEscritorio) {
+                if (alLado) {
                   setPlegado((antes) => !antes)
                 } else {
                   filtros.abrirPanel()
@@ -189,7 +193,7 @@ export function FilterShell(props: Props) {
         </CuerpoDeLaLista>
       </div>
       <HojaDeFiltros
-        abierta={filtros.panelAbierto && !esEscritorio}
+        abierta={filtros.panelAbierto && !alLado}
         hayFiltros={filtros.hayFiltros}
         alLimpiar={filtros.limpiar}
         alCerrar={filtros.cerrarPanel}
