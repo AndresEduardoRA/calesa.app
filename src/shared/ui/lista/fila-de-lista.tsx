@@ -6,8 +6,8 @@ import { esClicPropio } from '@/shared/lib/clic-de-fila'
 import { TableRow } from '../table'
 
 type Props = Omit<ComponentProps<'tr'>, 'onClick'> & {
-  // Abre el resumen de la fila.
-  alAbrir: () => void
+  // Abre el resumen de la fila. Una lista sin resumen (la del equipo) no lo pasa: la fila no promete un clic que no hace nada.
+  alAbrir?: () => void
   // Su resumen está abierto: la fila se marca.
   abierta?: boolean
 }
@@ -19,12 +19,16 @@ export function FilaDeLista({ alAbrir, abierta = false, className, ...props }: P
   return (
     <TableRow
       data-state={abierta ? 'selected' : undefined}
-      className={cn('group h-(--fila) cursor-pointer', className)}
-      onClick={(evento) => {
-        if (!esClicPropio(evento)) {
-          alAbrir()
-        }
-      }}
+      className={cn('group h-(--fila)', alAbrir && 'cursor-pointer', className)}
+      onClick={
+        alAbrir
+          ? (evento) => {
+              if (!esClicPropio(evento)) {
+                alAbrir()
+              }
+            }
+          : undefined
+      }
       {...props}
     />
   )
