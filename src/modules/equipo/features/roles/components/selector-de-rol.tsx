@@ -13,13 +13,13 @@ type Props = {
 export function SelectorDeRol({ roles, valor, alCambiar }: Props) {
   const id = useId()
   return (
-    <div className="grid gap-1.5 md:hidden">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5 md:hidden">
       <label htmlFor={id} className="text-(length:--text-sm) font-medium text-(--color-ink)">
         Rol a la vista
       </label>
       <select
         id={id}
-        className="h-11 rounded-(--radius-md) border border-(--color-line) bg-(--color-surface) px-2.5 text-(length:--text-sm) text-(--color-ink)"
+        className="h-11 w-full min-w-0 rounded-(--radius-md) border border-(--color-line) bg-(--color-surface) px-2.5 text-(length:--text-sm) text-(--color-ink)"
         value={valor}
         onChange={(evento) => {
           alCambiar(evento.target.value)

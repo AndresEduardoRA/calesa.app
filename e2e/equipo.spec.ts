@@ -12,7 +12,7 @@ import {
 import { borrarOrigenes, crearOrigenDePrueba } from './soporte/origenes'
 import { esMovil } from './soporte/inventario'
 import { ingresar } from './soporte/pasos'
-import { capturar } from './soporte/recorrido'
+import { aLaVistaSinDesplazar, capturar, sinScrollHorizontal } from './soporte/recorrido'
 import { literal, sql } from './soporte/sql'
 
 // Equipo y roles contra la app compilada y el Supabase local. Una sola historia, en orden: la
@@ -310,4 +310,57 @@ test('«Rol a la vista»: en el celular cada rol muestra sus permisos, y en escr
   await expect(selector).toHaveValue(valorDeB)
   await expect(tareas(b)).toBeVisible()
   await expect(tareas(a)).toHaveCount(0)
+})
+
+// 5a-16: al 200 % del texto en el celular (412 px) el nombre de cada permiso y su control caben a la vez en el ancho de la página, sin
+// desplazar la tarjeta: la matriz es una lista de un rol (la tabla pedía 465–564 px para el interruptor). En escritorio, la tabla: el
+// control del primer rol también está a la vista. Un rol de nombre largo no lo empuja. `sinScrollHorizontal()` no lo ve (lo que un
+// contenedor recorta no ensancha la página): `aLaVistaSinDesplazar()` sí. Capturas: `E2E_CAPTURAS=…`.
+test('«Rol a la vista» al 200 %: el nombre y el control de cada permiso caben a la vez, con un rol de nombre largo', async ({
+  page,
+}, info) => {
+  const proyecto = info.project.name
+  const largo = `${PREFIJO_ROL_E2E}Supervisión de importaciones y de logística de toda la región ${proyecto}`
+  sql(`
+    insert into public.roles (nombre, clave) values (${literal(largo)}, ${literal(`e2e_largo_${proyecto}`)});
+  `)
+  await entrar(page, duena)
+  await page.goto('/configuracion/roles')
+  await expect(page.getByRole('heading', { name: 'Roles y permisos' })).toBeVisible()
+  if (esMovil(page)) {
+    await page.getByLabel('Rol a la vista').selectOption({ label: largo })
+  }
+  const filas = page.locator('[data-permiso]')
+  const turnos = page.locator('[data-permiso="web.cola.participar"]')
+  await turnos.scrollIntoViewIfNeeded()
+  await capturar(page, info, 'matriz-turnos-100')
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '200%'
+  })
+  await turnos.scrollIntoViewIfNeeded()
+  await capturar(page, info, 'matriz-turnos-200')
+  await sinScrollHorizontal(page)
+  const cuantas = await filas.count()
+  expect(cuantas).toBeGreaterThan(12)
+  for (const indice of [...Array.from({ length: 12 }, (_, i) => i), cuantas - 1]) {
+    const fila = filas.nth(indice)
+    await fila.scrollIntoViewIfNeeded()
+    const clave = (await fila.getAttribute('data-permiso')) ?? String(indice)
+    await aLaVistaSinDesplazar(fila.locator('[data-nombre-de-permiso]'), `el nombre de ${clave}`)
+    const control = fila
+      .getByRole('switch')
+      .or(fila.getByRole('button', { name: /Cambiar$/ }))
+      .first()
+    await aLaVistaSinDesplazar(control, `el control de ${clave}`)
+  }
+  // El encabezado del rol (su nombre, cortado con «…», y «Eliminar») también está a la vista. En escritorio ese botón está en la columna del
+  // rol, al final de una tabla que se desplaza por diseño.
+  if (esMovil(page)) {
+    await aLaVistaSinDesplazar(
+      page.getByRole('button', {
+        name: new RegExp(`^Eliminar el rol ${PREFIJO_ROL_E2E}Supervisión`),
+      }),
+      'el botón de eliminar el rol largo',
+    )
+  }
 })

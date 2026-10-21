@@ -21,11 +21,11 @@ export function EncabezadoRol({ rol, puedeGestionar, dominado, alEliminar }: Pro
   const motivo = motivoDeNoEliminar(rol, dominado)
 
   return (
-    <div className="grid min-w-36 gap-1 py-1 font-normal">
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1 py-1 font-normal md:min-w-36">
       <div className="flex items-center justify-between gap-2">
-        <RoleBadge rol={rol} />
+        <RoleBadge rol={rol} className="min-w-0" />
         {puedeGestionar ? (
-          <span title={motivo ?? undefined}>
+          <span title={motivo ?? undefined} className="shrink-0">
             <Button
               variant="ghost"
               size="icon-sm"

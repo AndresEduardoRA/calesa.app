@@ -142,6 +142,32 @@ export async function sinScrollHorizontal(page: Page): Promise<void> {
   )
 }
 
+// `lugar` se ve entero sin desplazar nada: su caja cae dentro de la página (`right <= clientWidth`) y ningún antecesor que se desplaza
+// por dentro (una tarjeta con `overflow-x: auto`) lo recorta. `sinScrollHorizontal()` no lo ve: lo que un antecesor recorta no
+// ensancha la página, pero la persona tiene que desplazar la tarjeta para llegar (reflujo, WCAG 1.4.10; 5a-16, la matriz de Roles).
+export async function aLaVistaSinDesplazar(lugar: Locator, que: string): Promise<void> {
+  const caja = await lugar.evaluate((e) => {
+    const visible = document.documentElement.clientWidth
+    const propia = e.getBoundingClientRect()
+    let recortadoPor = ''
+    for (let a = e.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      if (getComputedStyle(a).overflowX === 'visible') continue
+      const c = a.getBoundingClientRect()
+      if (propia.right > c.right + 0.5 || propia.left < c.left - 0.5) {
+        recortadoPor = `${a.tagName.toLowerCase()}.${(a.getAttribute('class') ?? '').slice(0, 40)} (${String(Math.round(c.left))}–${String(Math.round(c.right))})`
+        break
+      }
+    }
+    return { izquierda: propia.left, derecha: propia.right, visible, recortadoPor }
+  })
+  expect(
+    caja.derecha,
+    `${que}: su borde derecho pasa el ancho de la página (${String(caja.visible)} px)`,
+  ).toBeLessThanOrEqual(caja.visible + 0.5)
+  expect(caja.izquierda, `${que}: queda a la izquierda de la página`).toBeGreaterThanOrEqual(-0.5)
+  expect(caja.recortadoPor, `${que}: lo recorta un contenedor que se desplaza`).toBe('')
+}
+
 // Ningún texto de `lugar` queda cortado: cada elemento visible con texto propio cabe en su caja (`scrollWidth <= clientWidth`), un «B…» por
 // un `truncate` que no tenía lugar lo delata, y nada se sale por la derecha de la pantalla. Nombra a los elementos que no caben.
 export async function sinTextoCortado(lugar: Locator): Promise<void> {

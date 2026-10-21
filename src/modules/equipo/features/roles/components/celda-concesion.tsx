@@ -86,7 +86,7 @@ export function CeldaConcesion(props: Props) {
     <Popover>
       <PopoverTrigger
         aria-label={`${permiso.nombre} para ${rolNombre}: ${resumen}. Cambiar`}
-        className="inline-flex min-h-11 max-w-44 items-center rounded-(--radius-md) border border-(--color-line) bg-(--color-surface) px-2.5 text-(length:--text-sm) text-(--color-ink) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:min-h-8"
+        className="inline-flex min-h-11 max-w-full items-center rounded-(--radius-md) border border-(--color-line) bg-(--color-surface) px-2.5 text-(length:--text-sm) text-(--color-ink) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) md:min-h-8 md:max-w-44"
       >
         <span className="truncate">{resumen}</span>
       </PopoverTrigger>

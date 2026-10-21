@@ -1,19 +1,21 @@
 'use client'
 
 import { parseAsString, useQueryStates } from 'nuqs'
+import { CORTE_DE_LA_TABLA } from '@/shared/lib/ancho'
 import type { Permisos } from '@/shared/lib/permisos'
+import { useAlMenos } from '@/shared/ui/ancho-de-pantalla'
 import { EstadoVacio } from '@/shared/ui/estados'
-import { Table, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { rolDominado } from '../../../entities/dominancia'
 import type { GrupoDePermisos, OrigenDeLaMatriz } from '../../../entities/matriz'
 import type { RolConConcesiones } from '../../../entities/rol'
 import { useMatriz } from '../hooks/use-matriz'
 import { CabeceraMatriz } from './cabecera-matriz'
 import { EliminarRol } from './eliminar-rol'
-import { EncabezadoRol } from './encabezado-rol'
-import { GrupoMatriz, type ColumnaDeRol } from './grupo-matriz'
+import type { ColumnaDeRol } from './grupo-matriz'
+import { ListaDelRol } from './lista-del-rol'
 import { NuevoRol } from './nuevo-rol'
 import { SelectorDeRol } from './selector-de-rol'
+import { TablaDeRoles } from './tabla-de-roles'
 
 type Props = {
   roles: RolConConcesiones[]
@@ -25,9 +27,6 @@ type Props = {
   puedeGestionar: boolean
 }
 
-// En móvil se ve un rol a la vez; el resto de las columnas aparece desde el ancho de tableta.
-const SOLO_EN_ANCHO = 'hidden md:table-cell'
-
 // Roles × permisos. Cada celda guarda sola; el panel abierto y el rol a la vista viven en la URL.
 export function MatrizDeRoles({ roles, grupos, origenes, misPermisos, puedeGestionar }: Props) {
   const [{ rol: rolElegido, panel, eliminar }, setParametros] = useQueryStates(
@@ -35,6 +34,8 @@ export function MatrizDeRoles({ roles, grupos, origenes, misPermisos, puedeGesti
     { shallow: false },
   )
   const { aplicar, rolEnCurso } = useMatriz()
+  // Una sola vista, la que dice el ancho: la tabla desde 768 px (todos los roles) y, por debajo, la lista de un rol (5a-16).
+  const enTabla = useAlMenos(CORTE_DE_LA_TABLA)
   const aLaVista = roles.find((rol) => rol.id === rolElegido) ?? roles[0]
 
   if (grupos.length === 0 || !aLaVista) {
@@ -50,8 +51,8 @@ export function MatrizDeRoles({ roles, grupos, origenes, misPermisos, puedeGesti
     rol,
     editable: puedeGestionar && rolDominado(misPermisos, rol.concesiones),
     ocupado: rolEnCurso === rol.id,
-    className: rol.id === aLaVista.id ? undefined : SOLO_EN_ANCHO,
   }))
+  const columnaALaVista = columnas.find(({ rol }) => rol.id === aLaVista.id) ?? columnas[0]
 
   return (
     <div className="grid gap-4">
@@ -65,33 +66,28 @@ export function MatrizDeRoles({ roles, grupos, origenes, misPermisos, puedeGesti
         alCambiar={(rol) => void setParametros({ rol })}
       />
       <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="min-w-52 align-bottom">Permiso</TableHead>
-              {columnas.map(({ rol, className }) => (
-                <TableHead key={rol.id} className={`align-top ${className ?? ''}`}>
-                  <EncabezadoRol
-                    rol={rol}
-                    puedeGestionar={puedeGestionar}
-                    dominado={rolDominado(misPermisos, rol.concesiones)}
-                    alEliminar={() => void setParametros({ eliminar: rol.id })}
-                  />
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          {grupos.map((grupo) => (
-            <GrupoMatriz
-              key={grupo.modulo}
-              grupo={grupo}
-              columnas={columnas}
-              origenes={origenes}
-              misPermisos={misPermisos}
-              alAplicar={(rol, cambio) => void aplicar(rol, cambio)}
-            />
-          ))}
-        </Table>
+        {enTabla || !columnaALaVista ? (
+          <TablaDeRoles
+            grupos={grupos}
+            columnas={columnas}
+            origenes={origenes}
+            misPermisos={misPermisos}
+            puedeGestionar={puedeGestionar}
+            alEliminar={(rolId) => void setParametros({ eliminar: rolId })}
+            alAplicar={(rol, cambio) => void aplicar(rol, cambio)}
+          />
+        ) : (
+          <ListaDelRol
+            grupos={grupos}
+            columna={columnaALaVista}
+            origenes={origenes}
+            misPermisos={misPermisos}
+            puedeGestionar={puedeGestionar}
+            dominado={rolDominado(misPermisos, columnaALaVista.rol.concesiones)}
+            alEliminar={() => void setParametros({ eliminar: columnaALaVista.rol.id })}
+            alAplicar={(cambio) => void aplicar(columnaALaVista.rol, cambio)}
+          />
+        )}
       </div>
       <NuevoRol
         abierto={puedeGestionar && panel === 'nuevo-rol'}

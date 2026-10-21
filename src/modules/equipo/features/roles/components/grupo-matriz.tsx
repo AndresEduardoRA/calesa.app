@@ -17,8 +17,6 @@ export type ColumnaDeRol = {
   // La persona gestiona roles y domina este.
   editable: boolean
   ocupado: boolean
-  // Clases de la celda: en móvil sólo se ve la columna del rol elegido.
-  className: string | undefined
 }
 
 type Props = {
@@ -43,17 +41,20 @@ export function GrupoMatriz({ grupo, columnas, origenes, misPermisos, alAplicar 
         </TableHead>
       </TableRow>
       {grupo.permisos.map((permiso) => (
-        <TableRow key={permiso.clave}>
+        <TableRow key={permiso.clave} data-permiso={permiso.clave}>
           <TableHead scope="row" className="py-2 font-normal whitespace-normal">
-            <span className="block text-(length:--text-sm) text-(--color-ink)">
+            <span
+              data-nombre-de-permiso
+              className="block text-(length:--text-sm) text-(--color-ink)"
+            >
               {permiso.nombre}
             </span>
             <span className="block text-(length:--text-xs) text-(--color-ink-faint)">
               {permiso.descripcion}
             </span>
           </TableHead>
-          {columnas.map(({ rol, editable, ocupado, className }) => (
-            <TableCell key={rol.id} className={className}>
+          {columnas.map(({ rol, editable, ocupado }) => (
+            <TableCell key={rol.id}>
               <CeldaConcesion
                 permiso={permiso}
                 rolNombre={rol.nombre}
