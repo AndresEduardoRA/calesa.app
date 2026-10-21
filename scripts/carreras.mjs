@@ -22,6 +22,7 @@ import { carrerasDeOrigenes } from './carreras/origenes.mjs'
 import { carrerasDeTipos } from './carreras/tipos.mjs'
 import { carrerasDeMarcas } from './carreras/marcas.mjs'
 import { carrerasDeNumeros } from './carreras/numeros.mjs'
+import { carrerasDeLaRueda } from './carreras/rueda.mjs'
 import { carrerasDeLaCartera, carrerasDePrivacidad } from './carreras/cartera.mjs'
 
 const toml = readFileSync('supabase/config.toml', 'utf8')
@@ -329,6 +330,7 @@ try {
   await carrerasDeNumeros({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeLaCartera({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDePrivacidad({ orquesta, carrera, espero })
+  await carrerasDeLaRueda({ orquesta, espero, conectar, esperarBloqueo })
 } finally {
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))
   await orquesta.end()

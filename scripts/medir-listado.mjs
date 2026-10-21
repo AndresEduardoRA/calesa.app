@@ -98,6 +98,11 @@ const MEDICIONES_CON_VOLUMEN = [
     'Importar 500 filas en lotes de 50, con 23.000 y con 124.000 filas de actividad (con transacciones de verdad: confirma y borra lo que crea)',
     UNA,
   ],
+  [
+    'supabase/tests/medir-rueda.sql',
+    'La rueda de turnos por rol: 500 personas, 60 roles y 50.000 y 200.000 solicitudes (el costo de preguntar al repartir no crece con las solicitudes)',
+    MEDIANA,
+  ],
   ['supabase/tests/medir-jobs.sql', 'Los jobs con 100.000 filas por purgar (ms por corrida)', UNA],
   [
     'supabase/tests/medir-bajas.sql',
