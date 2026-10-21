@@ -4,10 +4,6 @@
 // si un archivo de `src/modules` dibuja una tabla (`<Table…>`, `<table>`) o usa `CORTE_DE_LA_TABLA` sin importar el patrón y sin figurar
 // acá con su motivo. Un archivo que ya lo usa no puede figurar: la excepción se saca cuando deja de serlo.
 export const LISTAS_SIN_PATRON: Record<string, string> = {
-  'src/modules/equipo/features/equipo/components/tabla-equipo.tsx':
-    'la lista del equipo todavía no tiene resumen: cada persona se gestiona desde su menú («⋯»). Entra al patrón cuando lo tenga (candidato en docs/PLAN.md)',
-  'src/modules/equipo/features/equipo/components/fila-persona.tsx':
-    'es la fila de tabla-equipo.tsx: sigue su suerte',
   'src/modules/equipo/features/roles/components/matriz-de-roles.tsx':
     'es una matriz de permisos (roles contra permisos), no una lista de registros: no tiene resumen ni «⋯» por fila',
   'src/modules/equipo/features/roles/components/grupo-matriz.tsx':

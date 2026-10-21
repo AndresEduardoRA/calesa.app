@@ -1,81 +1,114 @@
 'use client'
 
-import { MoreHorizontalIcon } from 'lucide-react'
+import { MasAcciones, type AccionDeMenu } from '@/shared/ui/lista'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/shared/ui/dropdown-menu'
-import { MOTIVO_CUENTA_PROPIA, type AccionesSobrePersona } from '../../../entities/persona'
+  MOTIVO_CUENTA_PROPIA,
+  accionesSobre,
+  nombreDePersona,
+  type AccionesSobrePersona,
+  type PersonaDelEquipo,
+} from '../../../entities/persona'
 
-// Alto de un renglón del menú: cómodo para el dedo en móvil, compacto con mouse.
-const RENGLON = 'min-h-11 md:min-h-8'
-
-type Props = {
-  nombre: string
-  acciones: AccionesSobrePersona
+// Lo que la lista hace con una persona: quien dibuja la lista lo da una vez y cada fila lo usa.
+export type AccionesDeLaLista = {
+  yoId: string
+  // Sin el permiso de gestionar no hay «⋯»: sólo se lee.
+  puedeGestionar: boolean
   deshabilitado: boolean
-  alVerRoles: () => void
-  alCambiarBloqueo: (bloquear: boolean) => void
-  alDarDeBaja: () => void
-  // Sólo con una invitación pendiente; lo llena quien dibuja la lista.
-  alGenerarEnlace?: () => void
+  alVerRoles: (persona: PersonaDelEquipo) => void
+  alCambiarBloqueo: (persona: PersonaDelEquipo, bloquear: boolean) => void
+  alDarDeBaja: (persona: PersonaDelEquipo) => void
+  alGenerarEnlace: (persona: PersonaDelEquipo) => void
 }
 
-// Lo que se puede hacer sobre una persona. Lo que no aplica a su estado no aparece; sobre la
-// cuenta propia se dice por qué no se la puede bloquear ni dar de baja.
-export function MenuPersona(props: Props) {
-  const { nombre, acciones, deshabilitado, alVerRoles, alCambiarBloqueo, alDarDeBaja } = props
-  const { alGenerarEnlace } = props
-  const bloqueo = acciones.bloqueo
+// Las líneas del «⋯» de una persona, en su orden. Lo que no aplica a su estado no aparece; sobre la cuenta propia se dice por qué no se la
+// puede bloquear ni dar de baja. Mientras algo está en curso las acciones se apagan (el botón sigue: quien lo abre lee por qué).
+export function lineasDeLaPersona(
+  acciones: AccionesSobrePersona,
+  deshabilitado: boolean,
+  hacer: {
+    verRoles: () => void
+    cambiarBloqueo: (bloquear: boolean) => void
+    darDeBaja: () => void
+    generarEnlace: () => void
+  },
+): AccionDeMenu[] {
+  const lineas: AccionDeMenu[] = []
+  if (acciones.roles) {
+    lineas.push({
+      tipo: 'accion',
+      clave: 'roles',
+      etiqueta: 'Cambiar sus roles',
+      deshabilitada: deshabilitado,
+      despuesDeCerrar: true,
+      alElegir: hacer.verRoles,
+    })
+  }
+  if (acciones.enlace) {
+    lineas.push({
+      tipo: 'accion',
+      clave: 'enlace',
+      etiqueta: 'Generar otro enlace de invitación',
+      deshabilitada: deshabilitado,
+      alElegir: hacer.generarEnlace,
+    })
+  }
+  if (acciones.bloqueo) {
+    const bloquear = acciones.bloqueo === 'bloquear'
+    lineas.push({
+      tipo: 'accion',
+      clave: 'bloqueo',
+      etiqueta: bloquear ? 'Bloquear' : 'Desbloquear',
+      deshabilitada: deshabilitado,
+      alElegir: () => {
+        hacer.cambiarBloqueo(bloquear)
+      },
+    })
+  }
+  if (acciones.baja) {
+    lineas.push(
+      { tipo: 'separador', clave: 'separador-de-baja' },
+      {
+        tipo: 'accion',
+        clave: 'baja',
+        etiqueta: 'Dar de baja',
+        destructiva: true,
+        deshabilitada: deshabilitado,
+        despuesDeCerrar: true,
+        alElegir: hacer.darDeBaja,
+      },
+    )
+  }
+  if (acciones.esPropia) {
+    lineas.push({ tipo: 'nota', clave: 'cuenta-propia', texto: MOTIVO_CUENTA_PROPIA })
+  }
+  return lineas
+}
 
+type Props = { persona: PersonaDelEquipo; lista: AccionesDeLaLista }
+
+// El «⋯» de una persona («Más acciones de …», como en toda lista). Quien sólo ve el equipo, y una persona dada de baja, no lo tienen.
+export function MenuDePersona({ persona, lista }: Props) {
+  if (!lista.puedeGestionar || persona.estado === 'baja') {
+    return null
+  }
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label={`Acciones sobre ${nombre}`}
-        disabled={deshabilitado}
-        className="flex size-11 items-center justify-center rounded-(--radius-md) outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus) disabled:opacity-50 md:size-8"
-      >
-        <MoreHorizontalIcon aria-hidden className="size-4" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
-        {acciones.roles ? (
-          <DropdownMenuItem className={RENGLON} onClick={alVerRoles}>
-            Cambiar sus roles
-          </DropdownMenuItem>
-        ) : null}
-        {acciones.enlace && alGenerarEnlace ? (
-          <DropdownMenuItem className={RENGLON} onClick={alGenerarEnlace}>
-            Generar otro enlace de invitación
-          </DropdownMenuItem>
-        ) : null}
-        {bloqueo ? (
-          <DropdownMenuItem
-            className={RENGLON}
-            onClick={() => {
-              alCambiarBloqueo(bloqueo === 'bloquear')
-            }}
-          >
-            {bloqueo === 'bloquear' ? 'Bloquear' : 'Desbloquear'}
-          </DropdownMenuItem>
-        ) : null}
-        {acciones.baja ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className={RENGLON} variant="destructive" onClick={alDarDeBaja}>
-              Dar de baja
-            </DropdownMenuItem>
-          </>
-        ) : null}
-        {acciones.esPropia ? (
-          // Un párrafo y no una etiqueta de menú: esas sólo valen dentro de un grupo.
-          <p className="px-1.5 py-1.5 text-(length:--text-xs) text-(--color-ink-faint)">
-            {MOTIVO_CUENTA_PROPIA}
-          </p>
-        ) : null}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <MasAcciones
+      nombre={nombreDePersona(persona)}
+      acciones={lineasDeLaPersona(accionesSobre(persona, lista.yoId), lista.deshabilitado, {
+        verRoles: () => {
+          lista.alVerRoles(persona)
+        },
+        cambiarBloqueo: (bloquear) => {
+          lista.alCambiarBloqueo(persona, bloquear)
+        },
+        darDeBaja: () => {
+          lista.alDarDeBaja(persona)
+        },
+        generarEnlace: () => {
+          lista.alGenerarEnlace(persona)
+        },
+      })}
+    />
   )
 }

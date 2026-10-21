@@ -177,7 +177,7 @@ test('la dueña bloquea a alguien y esa persona queda afuera', async ({ page, br
   await entrar(suya, invitada)
 
   await page.goto('/configuracion/equipo')
-  await page.getByRole('button', { name: `Acciones sobre ${INVITADA}` }).click()
+  await page.getByRole('button', { name: `Más acciones de ${INVITADA}` }).click()
   await page.getByRole('menuitem', { name: 'Bloquear' }).click()
   await expect(page.getByText(`La cuenta de ${INVITADA} quedó bloqueada`)).toBeVisible()
   await expect(page.getByText('Bloqueada', { exact: true })).toBeVisible()
@@ -201,7 +201,7 @@ test('la dueña da de baja a alguien con leads, y una baja en curso se dice en l
        insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) select id, creado_por, 'dueno' from l`)
   await entrar(page, duena)
   await page.goto('/configuracion/equipo')
-  await page.getByRole('button', { name: `Acciones sobre ${INVITADA}` }).click()
+  await page.getByRole('button', { name: `Más acciones de ${INVITADA}` }).click()
   await page.getByRole('menuitem', { name: 'Dar de baja' }).click()
   const dialogo = page.getByRole('dialog')
   await expect(dialogo.getByText('2 leads irán al limbo')).toBeVisible()
@@ -219,7 +219,8 @@ test('la dueña da de baja a alguien con leads, y una baja en curso se dice en l
         where usuario_id = (select id from public.perfiles where email = ${literal(invitada)})`)
   await page.goto('/configuracion/equipo')
   await page.getByLabel('Estado').selectOption('baja')
-  const fila = page.getByRole('row').filter({ hasText: INVITADA })
+  // Una fila de la tabla (desde 768 px) o una tarjeta (por debajo).
+  const fila = page.locator('tr, article').filter({ hasText: INVITADA })
   await expect(fila.getByText('Dada de baja', { exact: true })).toBeVisible()
   await expect(fila.getByText('Pasando sus leads…')).toBeVisible()
   await capturar(page, info, 'equipo-baja-02-en-curso')
@@ -245,7 +246,7 @@ test('el guardián no deja al equipo sin quien lo administre, y lo dice en claro
   await page.goto('/configuracion/equipo')
 
   // La dueña es la única que administra: no puede quitarse el rol.
-  await page.getByRole('button', { name: `Acciones sobre ${DUENA}` }).click()
+  await page.getByRole('button', { name: `Más acciones de ${DUENA}` }).click()
   await page.getByRole('menuitem', { name: 'Cambiar sus roles' }).click()
   const suRol = page.getByRole('switch', { name: `Dueño para ${DUENA}` })
   await suRol.click()

@@ -4,6 +4,7 @@ import { debounce, parseAsString, parseAsStringLiteral, useQueryStates } from 'n
 import { useState } from 'react'
 import type { Permisos } from '@/shared/lib/permisos'
 import { EstadoSinResultados } from '@/shared/ui/estados'
+import { UnaSolaVista } from '@/shared/ui/lista'
 import {
   FILTROS_DE_ESTADO,
   filtrarPersonas,
@@ -19,8 +20,10 @@ import { ConfirmarBaja } from './confirmar-baja'
 import { EnlaceDePersona, type EnlaceGenerado } from './enlace-de-persona'
 import { FiltrosEquipo } from './filtros-equipo'
 import { InvitarPersona } from './invitar-persona'
+import type { AccionesDeLaLista } from './menu-persona'
 import { PanelRolesPersona } from './panel-roles-persona'
 import { TablaEquipo } from './tabla-equipo'
+import { TarjetasEquipo } from './tarjetas-equipo'
 
 type Props = {
   personas: PersonaDelEquipo[]
@@ -60,6 +63,17 @@ export function ListaEquipo(props: Props) {
     }
   }
 
+  // Lo que cada fila (o tarjeta) hace con una persona, dicho una vez.
+  const acciones: AccionesDeLaLista = {
+    yoId,
+    puedeGestionar,
+    deshabilitado: enCurso || generando,
+    alVerRoles: (persona) => void setParametros({ persona: persona.id }),
+    alCambiarBloqueo: (persona, valor) => void cambiarBloqueo(persona, valor),
+    alDarDeBaja: (persona) => void setParametros({ baja: persona.id }),
+    alGenerarEnlace: (persona) => void generarEnlace(persona),
+  }
+
   return (
     <div className="grid gap-4">
       <CabeceraEquipo
@@ -76,15 +90,9 @@ export function ListaEquipo(props: Props) {
       {visibles.length === 0 ? (
         <EstadoSinResultados alLimpiar={() => void setParametros({ q: null, estado: null })} />
       ) : (
-        <TablaEquipo
-          personas={visibles}
-          yoId={yoId}
-          puedeGestionar={puedeGestionar}
-          deshabilitado={enCurso || generando}
-          alVerRoles={(persona) => void setParametros({ persona: persona.id })}
-          alCambiarBloqueo={(persona, valor) => void cambiarBloqueo(persona, valor)}
-          alDarDeBaja={(persona) => void setParametros({ baja: persona.id })}
-          alGenerarEnlace={(persona) => void generarEnlace(persona)}
+        <UnaSolaVista
+          tabla={() => <TablaEquipo personas={visibles} lista={acciones} />}
+          tarjetas={() => <TarjetasEquipo personas={visibles} lista={acciones} />}
         />
       )}
       <InvitarPersona

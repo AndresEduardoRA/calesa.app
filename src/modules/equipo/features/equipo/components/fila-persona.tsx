@@ -1,65 +1,29 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { urlPublicaONull } from '@/shared/lib/almacen'
-import { Avatar } from '@/shared/ui/avatar'
-import { TableCell, TableRow } from '@/shared/ui/table'
-import { nombreDePersona, type PersonaDelEquipo } from '../../../entities/persona'
-import { RoleBadge } from '../../roles/components/role-badge'
+import { CeldaPegada, FilaDeLista } from '@/shared/ui/lista'
+import { TableCell } from '@/shared/ui/table'
+import type { PersonaDelEquipo } from '../../../entities/persona'
 import { EstadoDePersona } from './estado-persona'
+import { IdentidadDePersona } from './identidad-de-persona'
+import { MenuDePersona, type AccionesDeLaLista } from './menu-persona'
+import { RolesDePersona } from './roles-de-persona'
 
-type Props = {
-  persona: PersonaDelEquipo
-  esPropia: boolean
-  // El menú de acciones, si quien mira gestiona el equipo.
-  acciones: ReactNode
-}
+type Props = { persona: PersonaDelEquipo; lista: AccionesDeLaLista }
 
-function Roles({ persona }: { persona: PersonaDelEquipo }) {
-  if (persona.roles.length === 0) {
-    return <span className="text-(length:--text-sm) text-(--color-ink-faint)">Sin rol</span>
-  }
+// Una persona en la tabla (desde 768 px): el nombre pegado a la izquierda y el «⋯» pegado a la derecha. La fila no abre ningún resumen (la
+// persona se gestiona desde su menú): sin `alAbrir`.
+export function FilaPersona({ persona, lista }: Props) {
   return (
-    <span className="flex flex-wrap gap-1">
-      {persona.roles.map((rol) => (
-        <RoleBadge key={rol.id} rol={rol} />
-      ))}
-    </span>
-  )
-}
-
-// Una persona del equipo: quién es, qué roles tiene y en qué estado está su cuenta.
-export function FilaPersona({ persona, esPropia, acciones }: Props) {
-  const nombre = nombreDePersona(persona)
-  return (
-    <TableRow>
+    <FilaDeLista>
+      <CeldaPegada lado="nombre">
+        <IdentidadDePersona
+          persona={persona}
+          esPropia={persona.id === lista.yoId}
+          className="w-64"
+        />
+      </CeldaPegada>
       <TableCell className="whitespace-normal">
-        <div className="flex items-center gap-3 py-1">
-          {/* La miniatura de 96 px (cierre 1); mientras el relleno no la hizo, el avatar entero. */}
-          <Avatar
-            nombre={nombre}
-            url={urlPublicaONull('avatares', persona.avatarMiniaturaRuta ?? persona.avatarRuta)}
-            lado={32}
-          />
-          <div className="grid min-w-0 gap-0.5">
-            <span className="truncate text-(length:--text-sm) font-medium text-(--color-ink)">
-              {nombre}
-              {esPropia ? (
-                <span className="font-normal text-(--color-ink-faint)"> (tú)</span>
-              ) : null}
-            </span>
-            <span className="truncate text-(length:--text-xs) text-(--color-ink-soft)">
-              {persona.email}
-            </span>
-            {/* En móvil no hay columna de roles: van acá. */}
-            <span className="md:hidden">
-              <Roles persona={persona} />
-            </span>
-          </div>
-        </div>
-      </TableCell>
-      <TableCell className="hidden whitespace-normal md:table-cell">
-        <Roles persona={persona} />
+        <RolesDePersona persona={persona} className="w-[22rem] max-w-full" />
       </TableCell>
       <TableCell>
         <EstadoDePersona
@@ -68,7 +32,11 @@ export function FilaPersona({ persona, esPropia, acciones }: Props) {
           bajaEnCurso={persona.bajaEnCurso}
         />
       </TableCell>
-      <TableCell className="w-px text-right">{acciones}</TableCell>
-    </TableRow>
+      {lista.puedeGestionar ? (
+        <CeldaPegada lado="acciones" className="text-right">
+          <MenuDePersona persona={persona} lista={lista} />
+        </CeldaPegada>
+      ) : null}
+    </FilaDeLista>
   )
 }
