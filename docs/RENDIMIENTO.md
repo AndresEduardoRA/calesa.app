@@ -894,3 +894,22 @@ Ninguna de las migraciones nuevas agrega un índice, un trigger o una columna (`
 ### JS en frío de `/perfil` (pendiente del 5b-fix-2)
 
 Medido con `e2e/presupuesto-js.spec.ts` (Playwright con el reporter JSON, sobre el build de `.next-e2e` del Nivel 2, después del último cambio de código y de la última migración): **`/perfil` 413,9 KB con gzip en 24 chunks** (presupuesto 440; el 5b-fix lo dejó en 413,4 y el 5b en 413,0: +0,5 KB que no se atribuyó a nada concreto), **`/leads` 499,6 KB** en 31 chunks (530; antes 498,6: +1,0 KB, probablemente `cumpleElMinimo()` y la línea de aviso del campo de búsqueda, que `FilterShell` lleva a todo listado) y **`/vehiculos` 467,6 KB** en 29 chunks (500; antes 467,7). Ningún presupuesto cambió. El documento de `/perfil` (HTML con el payload RSC, sin comprimir): **79.288 bytes** con la semilla y con 100 orígenes y 100 tipos, 0 de diferencia (79.287 en el 5b-fix).
+
+## La rueda por rol: preguntar por el rol al repartir (2026-10-21)
+
+`web.solicitar_asesor` y `web_expirar_solicitudes` evalúan ahora, por cada candidata de la cola, `puede_estar_en_la_rueda()` (cuenta activa y sin bloqueo, y `web.cola.participar` por alguno de sus roles: una bajada por `usuarios_roles_pkey` y por `roles_permisos_rol_clave_idx`). `docs/DECISIONES.md`, 2026-10-21. **Qué se midió** (`supabase/tests/medir-rueda.sql`, dentro de `pnpm db:medir:volumen`; una transacción que se revierte, con 62.000 leads sembrados que la rueda no lee): 500 personas en la cola (3 roles cada una, 60 roles con 30 permisos, 15 de ellos con el permiso), 50.000 solicitudes (5.000 abiertas) y luego 200.000 (las mismas 5.000 abiertas); mediana de 5 corridas, ms.
+
+| Qué                                                        | 50.000 solicitudes | 200.000 solicitudes | Presupuesto |
+| ---------------------------------------------------------- | ------------------ | ------------------- | ----------- |
+| La elección de la rueda (el paso 5, con la regla)          | 15,0               | 15,5                | 40          |
+| La misma elección **antes** de la migración (sin la regla) | 7,1                | 7,4                 | (informa)   |
+| `puede_estar_en_la_rueda()` sobre las 500 de la cola       | 8,2                | 8,3                 | (informa)   |
+| `estado_cola_web` (la lista, con la regla)                 | 9,6                | 9,6                 | 40          |
+| `web.solicitar_asesor`, promedio de 50 llamadas completas  | 15,5               | 15,5                | 60          |
+| `web_expirar_solicitudes(20)`: 20 vencidas y reasignadas   | 357,6              | 367,3               | 800         |
+
+- **Lo que cuesta la regla:** ≈ 8 ms con 500 personas en la cola (16 µs por persona: dos consultas por clave). **No crece con las solicitudes** (la razón con 4 veces las solicitudes es ≤ 1,1; el assert pide ≤ 1,5 con 3 ms de piso) ni con los leads: lo que crece es la cola, y una cola de cientos de asesores es el techo del negocio. `web_expirar_solicitudes(20)` son 20 reasignaciones de 18 ms cada una; el job (cuando se programe, Fase 8) corre cada 5 minutos y la llamada de un visitante sólo trae 20.
+- **El plan** se asserta: las abiertas de cada persona se cuentan por `solicitudes_web_asesor_abiertas_idx` y nunca se recorre `solicitudes_contacto_web`. Sin índice, trigger ni columna nuevos: la regla se apoya en índices que ya estaban.
+- **Las corridas sueltas** (tres, sobre la base de la semilla, antes de sembrar volumen) dieron 14,1 a 18,6 ms la elección con la regla y 8,9 a 10,7 sin ella: ±2 ms de una corrida a otra. La tabla es la corrida de `db:medir:volumen` con 62.000 leads.
+- **La máquina:** carga 1,4 a 1,5 de 8 al empezar y al terminar (el navegador abierto, Brave, con varias pestañas; ningún juego), disco 0,9 % y CPU 0,0 % (`db:medir:volumen` la anota); sin checkpoints durante la medición (`checkpoints +0`) ni autovacuum activo.
+- **Qué no se mide y por qué:** cada llamada de `solicitar_asesor` escribe (una solicitud y el renglón de la persona) y dentro de una sola transacción esa escritura miente (`docs/RENDIMIENTO.md`, cierre 5a: una transacción por lote). Los 15,5 ms sirven para ver que no dependen de las solicitudes viejas, no como el costo de una escritura real.
