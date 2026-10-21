@@ -38,6 +38,9 @@ export async function limpiar(db) {
     `update public.tipos_lead set activo = true where clave in ('prospecto', 'cliente')`,
   )
   await db.query(`delete from public.tipos_lead where nombre like $1`, [`${PREFIJO}%`])
+  // Los tipos de seguimiento de las carreras (después de sus seguimientos: la FK es restrict) y el origen «por defecto» que dejaron
+  // (los orígenes se borran arriba: el índice y el check no frenan un borrado).
+  await db.query(`delete from public.tipos_seguimiento where nombre like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.lotes_papelera where creado_por = any ($1::uuid[])`, [
     personas,
   ])

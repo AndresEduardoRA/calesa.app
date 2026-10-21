@@ -140,6 +140,13 @@ analyze public.leads_etiquetas;
 -- Un origen con un solo lead (el peor caso de la sonda «¿lo usa algún lead?»): se crea aquí y se revierte con la transacción.
 insert into public.origenes_lead (clave, nombre, orden) values ('medir_uno', 'Medir uno', 9990);
 select set_config('medir.origen_lead_uno', (select id::text from public.origenes_lead where clave = 'medir_uno'), true);
+-- Los tres catálogos de «Nuevo lead» al tope, con nombres largos (lo peor que lee el alta: Configuración de leads, 5b-5). Se revierte con la transacción.
+insert into public.origenes_lead (clave, nombre, orden)
+  select 'medir_cat_o_' || g, 'Medir catálogo de origen largo ' || lpad(g::text, 8, '0'), 20000 + g from generate_series(1, 100 - (select count(*) from public.origenes_lead)) g;
+insert into public.tipos_lead (clave, nombre, clase, orden)
+  select 'medir_cat_t_' || g, 'Medir catálogo de tipo largo ' || lpad(g::text, 10, '0'), 'prospecto', 20000 + g from generate_series(1, 100 - (select count(*) from public.tipos_lead)) g;
+insert into public.tipos_seguimiento (clave, nombre, orden)
+  select 'medir_cat_s_' || g, 'Medir catálogo de seguimiento ' || lpad(g::text, 8, '0'), 20000 + g from generate_series(1, 100 - (select count(*) from public.tipos_seguimiento)) g;
 set local session_replication_role = replica;
 update public.leads set origen_lead_id = current_setting('medir.origen_lead_uno')::uuid
   where id = (select id from public.leads where nombre like 'Volumen %' and eliminado_en is null order by ctid desc limit 1);
@@ -556,6 +563,15 @@ do $medir$ declare q text; begin
         'select exists (select 1 from public.leads l where l.tipo_lead_id >= t.id and l.tipo_lead_id <= t.id) from public.tipos_lead t where t.id = %L',
         current_setting('medir.tipo_sin')), 5, 'leads_tipo_lead_id_idx', '{leads}', 100, 'postgres');
     end if;
+    -- Los tipos de seguimiento (Configuración de leads): la misma sonda por rango, sobre `seguimientos_tipo_idx` (200.000 seguimientos con el
+    -- volumen), y la lectura de «Nuevo lead» con los tres catálogos al tope: no crece con los leads.
+    if q = 'duena' then
+      perform pg_temp.escala('tipos_seguimiento_con_uso (hasta 100 tipos)', q, 'select public.tipos_seguimiento_con_uso()', 100);
+      perform pg_temp.escala('tipo de seguimiento: con_seguimientos de todos (la lista)', q,
+        'select t.id, exists (select 1 from public.seguimientos s where s.tipo_id >= t.id and s.tipo_id <= t.id) from public.tipos_seguimiento t',
+        20, 'seguimientos_tipo_idx', '{seguimientos}', 0, 'postgres');
+    end if;
+    perform pg_temp.escala('lead_alta_contexto (100 orígenes, 100 tipos y 100 tipos de seguimiento)', q, 'select public.lead_alta_contexto()', 30);
     perform pg_temp.escala('leads_catalogos (orígenes y tipos)', q, 'select public.leads_catalogos()', 30);
     if q = 'duena' then perform pg_temp.escala('origenes_resumen', q, 'select public.origenes_resumen()', 100); end if;
     if q = 'duena' then perform pg_temp.escala('categorias_con_uso', q, format('select public.categorias_con_uso(%L)', current_setting('medir.origen')), 50); end if;

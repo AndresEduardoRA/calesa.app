@@ -127,6 +127,7 @@ console.log(`✓ ${ok} archivos aplicados`)
 // auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
 for (const archivo of [
   'humo.sql',
+  'configuracion-de-leads.sql',
   'matriz-leads.sql',
   'portal-cliente.sql',
   'numeracion.sql',
