@@ -51,7 +51,10 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   `<li>`, `min-w-0` (una columna `auto` toma el ancho mínimo de lo que no se parte y empuja el «⋯» fuera de la vista); el nombre se corta
   con «…», lo de la esquina no se achica (`shrink-0`) y una tarjeta con varias piezas de ancho fijo en rem (miniatura, título, acción) se
   apila con un `@container` (`@max-[16rem]:flex-col`); una barra de botones que se parte (Anterior y Siguiente) lleva `flex-wrap`.
-  `sinScrollHorizontal()` de `e2e/soporte/recorrido.ts` lo comprueba y nombra al elemento que se sale.
+  `sinScrollHorizontal()` de `e2e/soporte/recorrido.ts` lo comprueba y nombra al elemento que se sale; lo que recorta un contenedor que se
+  desplaza por dentro no lo ve, y para eso está `aLaVistaSinDesplazar(lugar, que)` (5a-16: una tabla de dos columnas con un control al final
+  se resuelve con una lista que lo apila debajo, no con otro `min-w`). **El panel de filtros va al costado según el contenedor** (40 rem), no
+  según la pantalla: con el texto al 200 % sus 15 rem son 480 px.
 - Una barra que se desplaza de costado (las secciones de la ficha, las etapas del celular) dice que hay más (`useDesborde()` y
   `<PistaDeDesborde>`: un degradado en el borde por donde sigue) y deja a la vista la sección activa. Su contenedor, si es hijo
   de una grilla, lleva `min-w-0`.

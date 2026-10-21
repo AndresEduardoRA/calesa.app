@@ -913,3 +913,44 @@ Medido con `e2e/presupuesto-js.spec.ts` (Playwright con el reporter JSON, sobre 
 - **Las corridas sueltas** (tres, sobre la base de la semilla, antes de sembrar volumen) dieron 14,1 a 18,6 ms la elección con la regla y 8,9 a 10,7 sin ella: ±2 ms de una corrida a otra. La tabla es la corrida de `db:medir:volumen` con 62.000 leads.
 - **La máquina:** carga 1,4 a 1,5 de 8 al empezar y al terminar (el navegador abierto, Brave, con varias pestañas; ningún juego), disco 0,9 % y CPU 0,0 % (`db:medir:volumen` la anota); sin checkpoints durante la medición (`checkpoints +0`) ni autovacuum activo.
 - **Qué no se mide y por qué:** cada llamada de `solicitar_asesor` escribe (una solicitud y el renglón de la persona) y dentro de una sola transacción esa escritura miente (`docs/RENDIMIENTO.md`, cierre 5a: una transacción por lote). Los 15,5 ms sirven para ver que no dependen de las solicitudes viejas, no como el costo de una escritura real.
+
+## Cierre de defectos de la rueda: 5a-15, 5a-16, 8-2 y el panel de filtros (2026-10-21)
+
+Nada de esto crece con el número de leads (una lista de 72 permisos, una elección de «ítems por página», una llamada a `solicitar_asesor`, un corte de ancho), así que no hay medición con volumen sembrado: lo que se midió es **qué pasa y cuándo**. `docs/DECISIONES.md`, 2026-10-21.
+
+- **5a-15 — «ítems por página» con una navegación pendiente, 480 corridas, 0 fallos.** Escenario: segunda «Siguiente» y elegir el tamaño enseguida (o tras la fila de la página 3), en leads (25) y vehículos (50). Latencia sumada a toda lectura RSC (los adelantos también) y CPU ×6 por CDP; «Final» = la primera página con el tamaño nuevo, la URL con `por=` y sin cursor, el selector en lo elegido:
+
+  | Condición                                                                            | Corridas por caso | Casos | Fallos |
+  | ------------------------------------------------------------------------------------ | ----------------- | ----- | ------ |
+  | 300 y 1.000 ms, escritorio y celular, leads y vehículos, con y sin esperar a la fila | 10                | 16    | 0      |
+  | 0, 50 y 120 ms, escritorio, leads y vehículos                                        | 20                | 12    | 0      |
+  | CPU ×6, eligiendo al llegar la lectura de la página 3, escritorio                    | 20                | 4     | 0      |
+
+  **La traza del fallo del 2026-10-19** (`e2e-fallos/2026-10-19_19-18`, el POST y las lecturas con su hora): la segunda lectura de cursor empezó en 2.681 ms y **respondió en 6 ms**; el POST de la preferencia salió en 2.729 (+17 ms) y ningún GET con `por=` lo siguió. La corrida con CPU ×6 da la misma forma (POST 76 ms tras la respuesta) y termina bien. **El estrés que queda** (`E2E_ESTRES=1`, 20 corridas por modo y lista): con el guardado a 3 s y las lecturas a 1 s, el modo `latencia` tarda 2,2 min (leads) y 2,1 (vehículos) en escritorio; el modo `cpu` 0,8 y 0,9 min (medidos con el guardado sin demora: 8 pruebas, 7,7 min con los dos proyectos); ≈ 6 min por proyecto, una vez al cerrar una tarea que toque `shared/ui/filtros` o la preferencia. **Cae con la mutación** (`aplicar(tamano)` a la vez que el guardado): la URL ya trae `por=` mientras el guardado está en vuelo.
+
+- **5a-16 — la matriz de Roles al 200 % en 412 px** (`document.documentElement.style.fontSize = '200%'`):
+
+  |                                                                 | Antes        | Después       |
+  | --------------------------------------------------------------- | ------------ | ------------- |
+  | Filas con el control fuera de la vista (de 72)                  | 72           | 0             |
+  | Borde derecho del interruptor                                   | 465–497 px   | dentro de 412 |
+  | Borde derecho del permiso por origen                            | hasta 564 px | dentro de 412 |
+  | Ancho de la página con un rol de 80 letras                      | 935 px       | 412 px        |
+  | Escritorio al 200 % (1.280 px), filas con el control a la vista | 72 de 72     | 72 de 72      |
+
+  Medido con la prueba (`aLaVistaSinDesplazar()`: las doce primeras filas y la última, nombre y control) y, para las 72, con un recorrido aparte. Las otras listas de Configuración, medidas igual: la lista del equipo deja el «⋯» en x = 862 (5a-17), Empresa y la ficha de un origen ensanchan la página a 579 y 494 px (5a-18), y la matriz en escritorio mide 4.012 px en 686 (5a-19).
+
+- **El panel de filtros al costado — ancho del contenedor del listado, en rem** (`[data-barra-de-filtros]` y su padre):
+
+  | Pantalla | 100 % | 125 % | 150 % | 200 % |
+  | -------- | ----- | ----- | ----- | ----- |
+  | 1.024 px | 45,5  | 32,7  | 24,2  | 13,5  |
+  | 1.100 px | 50,3  | 36,5  | 27,3  | 15,9  |
+  | 1.280 px | 61,5  | 45,5  | 34,8  | 21,5  |
+  | 1.440 px | 71,5  | 53,5  | 41,5  | 26,5  |
+  | 1.920 px | 101,5 | 77,5  | 61,5  | 41,5  |
+
+  Corte en **40 rem** (panel 15 + hueco 1 + 24 para la lista): al costado en 1.024 al 100 %, 1.280 al 100 y al 125 %, 1.440 hasta el 150 %, 1.920 hasta el 200 %; hoja el resto. **Antes → después, a 1.280 px al 200 %:** panel de 480 px y lista de **176** (celda del nombre de 512, a la vista ~100) → hoja de filtros y lista de **688** con el nombre entero (472/472). Un cambio de lo que se ve al 125 % a 1.100 px y al 150 % a 1.280 px (antes al costado con la lista de ~20 rem).
+
+- **8-2** — sin medición: una línea (`returning * into s`) en una llamada que ya hacía el `update`.
+- **Verificación:** Nivel 2 (`pnpm test:e2e:completo --project=escritorio`, después del último cambio de código): **555 en verde, 16 saltados, 0 fallos, 21,6 min**; la carga de la máquina fue de 5 a 9 de 8 durante la corrida (el navegador de la persona abierto, Brave con varias pestañas; ningún juego), más alta que en el Nivel 2 de la rueda por rol (20,6 min) sin que lo notara ninguna prueba.
