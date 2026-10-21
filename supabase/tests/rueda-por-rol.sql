@@ -129,6 +129,26 @@ begin
   update public.cola_web_asesores set habilitado = true where usuario_id = pg_temp.c(3);
 end $$;
 
+-- @test rueda por rol: volver a pedir con el turno abierto responde el vencimiento nuevo (8-2) — `expira_en` es el `vence_en` de la tabla
+do $$
+declare r1 jsonb; r2 jsonb; v_s uuid; v_vence timestamptz;
+begin
+  delete from public.solicitudes_contacto_web;
+  r1 := pg_temp.pedir('rueda-expira-tokentoken-1');
+  select id into v_s from public.solicitudes_contacto_web where token_visitante = 'rueda-expira-tokentoken-1';
+  if v_s is null or r1 ->> 'expira_en' is null then raise exception 'el primer pedido debía abrir un turno con su vencimiento: %', r1; end if;
+  -- La primera llamada responde lo que escribió: nace con el reloj completo (30 min).
+  if (r1 ->> 'expira_en')::timestamptz <> (select vence_en from public.solicitudes_contacto_web where id = v_s) then raise exception 'el primer pedido responde un vencimiento que no es el de la tabla'; end if;
+  -- El reloj de antes queda corto (5 min): la segunda llamada lo reinicia, y lo que responde tiene que ser el reiniciado, no el de antes.
+  update public.solicitudes_contacto_web set vence_en = now() + interval '5 minutes' where id = v_s;
+  r2 := pg_temp.pedir('rueda-expira-tokentoken-1');
+  select vence_en into v_vence from public.solicitudes_contacto_web where id = v_s;
+  if v_vence < now() + interval '20 minutes' then raise exception 'con quien puede estar en la rueda, el reloj debía reiniciarse: %', v_vence; end if;
+  if (r2 ->> 'expira_en')::timestamptz is distinct from v_vence then raise exception 'la segunda llamada responde expira_en = % y la tabla dice vence_en = %', r2 ->> 'expira_en', v_vence; end if;
+  if (select count(*) from public.solicitudes_contacto_web where token_visitante = 'rueda-expira-tokentoken-1') <> 1 then raise exception 'volver a pedir no debía abrir otro turno'; end if;
+  delete from public.solicitudes_contacto_web;
+end $$;
+
 -- @test rueda por rol: el turno abierto de quien pierde el permiso — el reloj no se reinicia, vence a su hora, se reasigna a quien puede, y «Contacté» sigue andando
 do $$
 declare r jsonb; v_rol uuid := (select id from public.roles where clave = 'rueda_con'); v_s uuid; v_vence timestamptz; v_nueva uuid;
