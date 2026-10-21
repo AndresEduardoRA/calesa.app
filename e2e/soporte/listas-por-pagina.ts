@@ -51,6 +51,17 @@ export async function elegirTamano(page: Page, tamano: number): Promise<void> {
   await selectorDeTamano(page).selectOption(String(tamano))
 }
 
+// «Siguiente» y esperar a que la página nueva esté dibujada: la primera fila cambió (no basta `toHaveCount(10)`: la página de antes
+// también tiene 10) y la URL ya trae el cursor. Una prueba que elige el tamaño enseguida lo hace con la navegación pendiente: eso
+// lo cubre `por-pagina-pendiente.spec.ts`; las demás miden el cambio de tamaño, no la carrera (5a-15).
+export async function paginaSiguiente(page: Page): Promise<void> {
+  const primera = filasDelListado(page).first()
+  const antes = await primera.innerText()
+  await page.getByRole('link', { name: 'Siguiente' }).click()
+  await expect(page).toHaveURL(/cursor=/)
+  await expect(primera).not.toHaveText(antes)
+}
+
 // Qué vista trae el HTML del servidor (cierre 1: una sola, según el ancho de la petición). La tabla es un `<table>`; cada
 // tarjeta, un `<article>` dentro de su `<li>` (`tbody tr, li article` son las filas de toda lista).
 export const vistasDelHtml = (html: string): { tabla: boolean; tarjetas: boolean } => ({

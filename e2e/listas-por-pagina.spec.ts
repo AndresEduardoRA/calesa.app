@@ -13,6 +13,7 @@ import {
   esperarHidratado,
   filasDelListado,
   fijarPreferencia,
+  paginaSiguiente,
   parametrosDe,
   preferenciaDe,
   registrarRed,
@@ -116,8 +117,7 @@ test('cambiar el tamaño en la página 3 con filtros y búsqueda vuelve a la pri
   await irALeads(page, consulta('&tipo=prospecto'))
   await expect(filasDelListado(page)).toHaveCount(10)
   for (let pagina = 2; pagina <= 3; pagina++) {
-    await page.getByRole('link', { name: 'Siguiente' }).click()
-    await expect(page).toHaveURL(/cursor=/)
+    await paginaSiguiente(page)
     await expect(filasDelListado(page)).toHaveCount(10)
   }
   expect(parametrosDe(page).has('cursor')).toBe(true)

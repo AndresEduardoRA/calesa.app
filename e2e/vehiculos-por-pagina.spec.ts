@@ -11,6 +11,7 @@ import {
   esperarHidratado,
   filasDelListado,
   fijarPreferencia,
+  paginaSiguiente,
   parametrosDe,
   preferenciaDe,
   selectorDeTamano,
@@ -101,8 +102,7 @@ test('un valor manipulado se ignora; cambiar en la página 3 vuelve a la primera
   }
   await irAlInventario(page)
   for (let n = 0; n < 2; n++) {
-    await page.getByRole('link', { name: 'Siguiente' }).click()
-    await expect(page).toHaveURL(/cursor=/)
+    await paginaSiguiente(page)
     await expect(filasDelListado(page)).toHaveCount(10)
   }
   await elegirTamano(page, 50)

@@ -10,9 +10,16 @@ const puerto = Number(process.env['E2E_PORT'] ?? 3210)
 // completo los vuelve error), no corre.
 const SOLO_CON_VOLUMEN = ['**/escala-recorrido.spec.ts', '**/listas-por-pagina-volumen.spec.ts']
 
+// El estrés de «ítems por página» con una navegación pendiente (5a-15), 20 corridas por modo: sólo con `E2E_ESTRES=1`.
+const SOLO_CON_ESTRES = ['**/por-pagina-pendiente-*.spec.ts']
+const FUERA = [
+  ...(process.env['E2E_VOLUMEN'] ? [] : SOLO_CON_VOLUMEN),
+  ...(process.env['E2E_ESTRES'] ? [] : SOLO_CON_ESTRES),
+]
+
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: process.env['E2E_VOLUMEN'] ? [] : SOLO_CON_VOLUMEN,
+  testIgnore: FUERA,
   timeout: 30_000,
   retries: 0,
   workers: 1,
@@ -37,11 +44,8 @@ export default defineConfig({
       use: { ...devices['Pixel 7'] },
       // Todo spec corre en los dos proyectos, salvo lo que se marca en el propio spec con un comentario y su motivo
       // (`// @sin-celular-archivo:` y `// @sin-celular:`; `e2e/soporte/sin-celular.ts`, y la guarda en
-      // `scripts/guardas/sin-celular.test.ts`). Un `testIgnore` de proyecto reemplaza al de arriba: lleva también el de volumen.
-      testIgnore: [
-        ...(process.env['E2E_VOLUMEN'] ? [] : SOLO_CON_VOLUMEN),
-        ...archivosSinCelular('./e2e'),
-      ],
+      // `scripts/guardas/sin-celular.test.ts`). Un `testIgnore` de proyecto reemplaza al de arriba: lleva también el de volumen y el de estrés.
+      testIgnore: [...FUERA, ...archivosSinCelular('./e2e')],
       grepInvert: patronesDePruebasSinCelular('./e2e'),
     },
   ],

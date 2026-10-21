@@ -80,6 +80,12 @@ export function SelectorDePorPagina({ opciones, estado, className }: Props) {
           }}
           onChange={(evento) => {
             const tamano = Number(evento.target.value)
+            // Un tamaño que el selector no ofrece (un `<option>` agregado desde las herramientas del navegador) no se guarda ni se
+            // aplica: la página volvería con el tamaño de siempre y `usePorPaginaDelListado` seguiría mostrando el elegido (5a-15).
+            if (!opciones.includes(tamano)) {
+              evento.target.value = String(tecleado ?? estado.visto)
+              return
+            }
             if (conFlecha.current) {
               setTecleado(tamano)
             } else {
