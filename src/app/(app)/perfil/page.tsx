@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { requerirSesion } from '@/modules/equipo'
 import { FormularioPerfil, PreferenciasPerfil } from '@/modules/equipo/pantallas/perfil'
+import { EstadoEnLaRueda } from '@/modules/web/pantallas/perfil'
 import { urlPublicaONull } from '@/shared/lib/almacen'
 
 export const metadata: Metadata = { title: 'Mi perfil' }
@@ -19,6 +20,7 @@ export default async function PaginaPerfil() {
         avatarUrl={urlPublicaONull('avatares', sesion.avatarRuta)}
         actualizadoEn={sesion.perfilActualizadoEn}
       />
+      <EstadoEnLaRueda permisos={sesion.permisos} />
       <PreferenciasPerfil />
     </div>
   )

@@ -120,9 +120,12 @@ Inventario de vehículos por origen con atributos dinámicos: listado con filtro
 - Casos de uso: acciones, alta, ficha, fotos, limpieza, listado, papelera, permisos, resumen, subasta, vinculo, vitrina
 
 ### `web`
-Lo que el CRM configura para la web pública y el portal del cliente: ajustes del sitio, guías, FAQs, testimonios con consentimiento, cola web round-robin («turnos»), vistas y RPC del esquema `web`, revalidación on-demand. · 4 archivos
-- API: `leerDireccionPublica`
+Lo que el CRM configura para la web pública y el portal del cliente: ajustes del sitio, guías, FAQs, testimonios con consentimiento, cola web round-robin («turnos»), vistas y RPC del esquema `web`, revalidación on-demand. · 8 archivos
+- API: `leerDireccionPublica`, `puedeEstarEnLaRueda`
+- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
+  - `perfil`: `EstadoEnLaRueda`
 - Depende de: ningún otro módulo
+- Casos de uso: rueda
 
 ## Compartido (`src/shared/`)
 

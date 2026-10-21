@@ -10,15 +10,15 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 
 ## Archivos clave
 
-- Existe: `entities/repositorios.ts`, `infra/queries/sitio.ts` (`getDireccionPublica`), `composicion.ts`. Lo demás llega con la Fase 8.
-- `entities/cola.ts` — reglas de la rueda (orden, cupo, pegajoso, prioridad) documentadas y testeadas como espejo de `web.solicitar_asesor` (la base decide).
+- Existe: `entities/repositorios.ts`, `entities/rueda.ts` (`puedeEstarEnLaRueda`, los dos textos), `features/rueda/components/estado-en-la-rueda.tsx` (la sección «Turnos de la web» de `/perfil`, por `pantallas/perfil.ts`), `infra/queries/sitio.ts` (`getDireccionPublica`), `composicion.ts`. Lo demás llega con la Fase 8.
+- `entities/cola.ts` — **todavía no existe** (Fase 8): reglas de la rueda (orden, cupo, pegajoso, prioridad) documentadas y testeadas como espejo de `web.solicitar_asesor` (la base decide). Lo que sí existe es `entities/rueda.ts`, el espejo de «¿el rol recibe turnos?».
 - `infra/revalidar.ts` — trigger → POST a `WEB_PUBLICA_REVALIDAR_URL` con secreto de Vault; `app/api/portal/*` firma la cookie del portal.
 - `features/sitio/`, `features/guias/`, `features/faqs/`, `features/testimonios/`, `features/cola/`.
 
 ## Tablas
 
 `ajustes_web`, `web_categorias_guias`, `web_guias`, `web_faqs`, `web_testimonios`, `cola_web_asesores`, `solicitudes_contacto_web`, `eventos_web`. Vistas `web.vehiculos`, `web.asesores`, `web.guias`, `web.faqs`, `web.testimonios`, `web.ajustes`; `public.estado_cola_web`.
-RPC: `web.solicitar_asesor`, `web.registrar_evento`, `web.portal_login/snapshot/documento_ruta/cambiar_clave`, `web_confirmar_contacto`, `web_expirar_solicitudes`, `cola_web_configurar`.
+RPC: `puede_estar_en_la_rueda(uuid)`, `web.solicitar_asesor`, `web.registrar_evento`, `web.portal_login/snapshot/documento_ruta/cambiar_clave`, `web_confirmar_contacto`, `web_expirar_solicitudes`, `cola_web_configurar`.
 
 ## No se rompe
 
@@ -35,4 +35,4 @@ RPC: `web.solicitar_asesor`, `web.registrar_evento`, `web.portal_login/snapshot/
 - El esquema `interno` no se expone en PostgREST y ningún rol de la app tiene `usage`: ahí vive lo que comparten la web y el CRM. Nada de `interno` se lee desde la app si no es por una función `definer` o una vista de `web`.
 - `web_expirar_solicitudes` está escrita para correr cada 5 minutos, pero su job no está programado todavía (se programa con este módulo, Fase 8).
 - **El contrato del portal** (firmas de `web.portal_*`, la cookie con `otorgado_en`, el límite por IP, las respuestas idénticas del login, lo que el cliente nunca ve) está en `docs/DECISIONES.md` («Contrato del portal para la Fase 8», 2026-10-15). Las cuatro reciben el `otorgado_en` que devolvió el login y no entregan nada si el acceso cambió; `portal_documento_ruta` devuelve una ruta privada: el handler la firma o la sirve, nunca la manda al navegador.
-- Un asesor entra a la rueda sólo con perfil público, WhatsApp cargado, activo, no bloqueado y disponible (`perfil_cola_web`).
+- **Quién está en la rueda** = `habilitado` (decisión sobre la persona, de `cola_web_configurar`) **y** `web.cola.participar` por alguno de sus roles (decisión del rol, en la matriz de Roles), con la cuenta activa y sin bloqueo, WhatsApp cargado y, para recibir un turno nuevo, `disponible`. La regla del rol y de la cuenta es **una sola función**, `puede_estar_en_la_rueda(uuid)`, y la consultan la rueda (5), el pegajoso (4), la reasignación al vencer, el turno ya abierto (3: si quien lo tiene no puede, el reloj no se reinicia y vence a su hora) y `estado_cola_web`. Se evalúa **al repartir**: quitar el permiso saca a la persona al instante sin tocar `habilitado`, y devolverlo la reincorpora. Un turno ya asignado sigue hasta su cierre (`web_confirmar_contacto` no mira el permiso). Quien no lo tiene conserva todo su `leads.*`. El contacto directo por handle (`es_directa`) no es la rueda: lo gobierna `publico_web`. Una función nueva que reparta a alguien **debe** llamar `puede_estar_en_la_rueda` (lo comprueba `supabase/tests/rueda-por-rol.sql`).
