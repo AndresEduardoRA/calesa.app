@@ -42,7 +42,8 @@ export const SECCIONES = [
   {
     clave: 'leads',
     titulo: 'Leads',
-    descripcion: 'Los campos de los leads, quién los ve, y de dónde llegan (sus orígenes).',
+    descripcion:
+      'Los campos de los leads, quién los ve, de dónde llegan, qué es cada lead y cómo se contactó.',
     ruta: RUTAS.configuracionDeLeads,
     Icono: ContactRoundIcon,
     permisos: ['leads.configurar'],

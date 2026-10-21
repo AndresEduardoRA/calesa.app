@@ -20,7 +20,10 @@ export const TABLAS_ACOTADAS: Readonly<Record<string, TablaAcotada>> = {
   origenes_campos: { motivo: 'El layout de campos de un origen.', tope: 'decenas por origen' },
   categorias: { motivo: 'Categorías de un origen.', tope: 'decenas por origen' },
   fases: { motivo: 'Las fases de un flujo.', tope: 'decenas por origen' },
-  tipos_seguimiento: { motivo: 'Catálogo de la empresa.', tope: 'menos de 20 filas' },
+  tipos_seguimiento: {
+    motivo: 'Catálogo de la empresa, con un tope en la base (`_tipos_seguimiento_tope()`).',
+    tope: '100 filas (lo impone la base)',
+  },
   leads_campos: { motivo: 'El layout de campos de los leads.', tope: 'decenas' },
   preferencias_usuario: { motivo: 'Una fila por persona (la propia).', tope: '1 fila' },
   perfiles: { motivo: 'El equipo de la empresa (cuentas, no clientes).', tope: 'decenas' },

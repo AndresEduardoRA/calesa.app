@@ -26,7 +26,9 @@ export { leerOrigenesDeLeadConUso } from './composicion'
 // Configuración › Leads › Tipos de lead (parte 9j): qué es cada lead, con su clase fija (prospecto o cliente).
 // `leerTiposDeLeadConUso()` trae los tipos con su clase y si algún lead los usa; `<TiposDeLead>` los crea, ordena,
 // renombra y desactiva (siempre queda un tipo activo de cada clase).
-export { leerTiposDeLeadConUso } from './composicion'
+// Configuración › Leads › Tipos de seguimiento: `leerTiposDeSeguimientoConUso()` trae los tipos con su icono y si algún seguimiento los usa;
+// `<TiposDeSeguimiento>` (por `pantallas/configuracion`) los crea, ordena, renombra y desactiva; ninguno es de sistema.
+export { leerTiposDeLeadConUso, leerTiposDeSeguimientoConUso } from './composicion'
 
 // El listado de `/leads`: lo lee la página (`leerListadoDeLeads`) y lo dibuja `<ListadoDeLeads>` con
 // el drawer rápido (`?lead=`) adentro. El alcance («míos» y «todos») y lo que cada quien ve lo

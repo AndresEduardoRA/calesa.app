@@ -65,18 +65,18 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 593 archivos
-- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `ContextoDeAlta`, `leerOrigenesDeLeadConUso`, `leerTiposDeLeadConUso`, `leerListadoDeLeads`, +25
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 619 archivos
+- API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `ContextoDeAlta`, `leerOrigenesDeLeadConUso`, `leerTiposDeLeadConUso`, `leerTiposDeSeguimientoConUso`, +26
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
 - API del shell (`shell.ts`, sólo el layout `(app)`): `AltaDeLead`
 - Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
-  - `configuracion`: `EditorDeCamposDeLead`, `OrigenesDeLead`, `EsqueletoDeOrigenes`, `TiposDeLead`, `EsqueletoDeTipos`
+  - `configuracion`: `EditorDeCamposDeLead`, `OrigenesDeLead`, `EsqueletoDeOrigenes`, `TiposDeLead`, `EsqueletoDeTipos`, `TiposDeSeguimiento`, `EsqueletoDeTiposDeSeguimiento`
   - `ficha`: `FichaDeLead`, `LeadNoDisponible`, `SeccionSeguimientos`, `EsqueletoDeSeguimientos`, `SeccionOportunidades`, `EsqueletoDeOportunidades`, `SeccionPortal`, `EsqueletoDePortal`
   - `importar`: `AsistenteDeImportacion`, `ImportacionesRecientes`
   - `listado`: `ListadoDeLeads`, `VistaDeEmbudo`, `EsqueletoDeTablero`
   - `papelera`: `PapeleraDeLeads`
 - Depende de: equipo
-- Casos de uso: alta, campos, cartera, embudo, etiquetas, exportar, ficha, importar, listado, marcas, oportunidades, origenes, papelera, portal, rapido, recordatorios, seguimientos, telefono, tipos
+- Casos de uso: alta, campos, cartera, embudo, etiquetas, exportar, ficha, importar, listado, marcas, oportunidades, origenes, papelera, portal, rapido, recordatorios, seguimientos, telefono, tipos, tipos-de-seguimiento
 
 ### `logistica`
 Operación diaria sobre el flujo: cadena por fase, mover con vista previa, documentos con aprobación y vencimiento, transporte (embarques y contenedores como grupos), declaraciones aduaneras, gastos y pagos, notas, alertas por demora y margen contra la cotización final. · 1 archivos
@@ -146,6 +146,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `estilos.ts`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `radios.tsx`, `selector-de-por-pagina.tsx`, `use-filtros.ts`, `use-panel-al-costado.ts`, `use-por-pagina-del-listado.ts`
 - `ui/icono-del-catalogo/`: `icono-del-catalogo.tsx`, `trazos.tsx`
 - `ui/lista/`: `abrir-resumen.tsx`, `acciones.ts`, `fila-de-lista.tsx`, `index.ts`, `mas-acciones.tsx`, `pestanas-del-resumen.tsx`, `simbolos-de-lista.tsx`, `tabla-de-lista.tsx`, `tarjeta-de-lista.tsx`, `una-sola-vista.tsx`
+- `ui/lista-de-catalogo/`: `botones-de-orden.tsx`, `lista-de-catalogo.tsx`, `tipos.ts`, `use-foco-tras-mover.ts`
 
 ## Rutas
 
