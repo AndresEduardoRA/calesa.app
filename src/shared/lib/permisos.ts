@@ -74,6 +74,7 @@ export const CLAVES_PERMISO = [
   'web.guias.publicar',
   'web.ajustes.gestionar',
   'web.cola.gestionar',
+  'web.cola.participar',
   'tablero.metricas.ver',
   'datos.exportar.todo',
   'datos.importar.todo',

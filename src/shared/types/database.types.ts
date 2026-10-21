@@ -8087,6 +8087,7 @@ export type Database = {
       puede_actuar_lead: { Args: { p_clave: string; p_lead: string }; Returns: boolean }
       puede_configurar_flujo: { Args: { p_flujo: string }; Returns: boolean }
       puede_cotizacion: { Args: { p_clave: string; p_cot: string }; Returns: boolean }
+      puede_estar_en_la_rueda: { Args: { p_usuario: string }; Returns: boolean }
       puede_evento: { Args: { p_evento: string }; Returns: boolean }
       puede_lead: { Args: { p_clave: string; p_lead: string }; Returns: boolean }
       puede_objeto_de_vehiculo: { Args: { p_clave: string; p_nombre: string }; Returns: boolean }

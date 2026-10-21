@@ -1827,7 +1827,7 @@ create table public.cola_web_asesores (
   contactadas_total    int not null default 0,
   vencidas_total       int not null default 0
 );
-comment on table public.cola_web_asesores is 'La rueda de turnos. Tabla aparte de perfiles: se escribe en cada clic de un anónimo. prioridad > 0 da turnos extra (ponderado).';
+comment on table public.cola_web_asesores is 'La rueda de turnos. Tabla aparte de perfiles: se escribe en cada clic de un anónimo. prioridad > 0 da turnos extra (ponderado). habilitado es la decisión sobre la persona; para recibir turnos además hace falta el permiso web.cola.participar por algún rol (puede_estar_en_la_rueda, evaluado al repartir).';
 
 create table public.solicitudes_contacto_web (
   id                   uuid primary key default gen_random_uuid(),

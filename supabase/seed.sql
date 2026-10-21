@@ -93,6 +93,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('web.guias.publicar', 'web', 'Publicar guías', 'Publicar o despublicar guías', false, false, 'web_guia_publicar_validar', 630),
   ('web.ajustes.gestionar', 'web', 'Ajustes de la web', 'Lema, redes, legales, orígenes visibles, política de la cola', false, false, 'policy ajustes_web', 640),
   ('web.cola.gestionar', 'web', 'Gestionar la cola web', 'Habilitar asesores, cupos, prioridades; ver todas las solicitudes', false, false, 'cola_web_configurar', 650),
+  ('web.cola.participar', 'web', 'Recibir turnos de la web', 'Las personas con este rol pueden estar en la rueda de turnos de la web pública. Sin este permiso no reciben turnos ni figuran en la rueda, aunque estén habilitadas; sus leads no cambian', false, false, 'puede_estar_en_la_rueda: web.solicitar_asesor, web_expirar_solicitudes, estado_cola_web', 655),
   ('tablero.metricas.ver', 'tablero', 'Ver métricas', 'Tablero con métricas y gráficas', false, false, 'UI + vistas', 660),
   ('datos.exportar.todo', 'datos', 'Exportar todo', 'Exportar los datos de todos', false, false, 'UI + queries', 670),
   ('datos.importar.todo', 'datos', 'Importar para todos', 'Importar datos asignándolos a cualquiera', false, false, 'policy importaciones', 680)
@@ -115,7 +116,7 @@ select r.id, x.clave, x.alcance::public.alcance_permiso from public.roles r cros
   ('asesor', 'vehiculos.ver', 'todos'), ('asesor', 'vehiculos.crear', 'todos'), ('asesor', 'vehiculos.editar', 'propios'),
   ('asesor', 'cotizaciones.ver', 'propios'), ('asesor', 'cotizaciones.crear', 'todos'), ('asesor', 'cotizaciones.editar', 'propios'),
   ('asesor', 'logistica.ver', 'propios'), ('asesor', 'logistica.pagos.ver', 'propios'),
-  ('asesor', 'agenda.tareas.recibir', 'todos'), ('asesor', 'chat.participar', 'todos'), ('asesor', 'chat.global', 'todos'), ('asesor', 'notificaciones.push', 'todos'),
+  ('asesor', 'agenda.tareas.recibir', 'todos'), ('asesor', 'web.cola.participar', 'todos'), ('asesor', 'chat.participar', 'todos'), ('asesor', 'chat.global', 'todos'), ('asesor', 'notificaciones.push', 'todos'),
   ('logistica', 'vehiculos.ver', 'todos'), ('logistica', 'logistica.ver', 'todos'), ('logistica', 'flujos.mover', 'todos'), ('logistica', 'logistica.documentos.subir', 'todos'), ('logistica', 'logistica.documentos.aprobar', 'todos'),
   ('logistica', 'logistica.transporte.editar', 'todos'), ('logistica', 'logistica.aduana.gestionar', 'todos'), ('logistica', 'logistica.gastos.ver', 'todos'), ('logistica', 'logistica.gastos.editar', 'todos'),
   ('logistica', 'agenda.tareas.recibir', 'todos'), ('logistica', 'agenda.tareas.asignar', 'todos'), ('logistica', 'chat.participar', 'todos'), ('logistica', 'chat.global', 'todos'), ('logistica', 'notificaciones.push', 'todos'),
