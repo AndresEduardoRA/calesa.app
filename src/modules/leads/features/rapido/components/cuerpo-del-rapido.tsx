@@ -9,7 +9,8 @@ import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
 import type { FilaDeLead } from '../../../entities/listado'
 import { gruposDelRapido, hayPrivadosSinRecibir } from '../../../entities/rapido'
-import { nombreDelOrigen, type DatosDeLaLista } from '../../listado/components/tipos'
+import { OrigenDelLead } from '../../listado/components/origen-del-lead'
+import { origenDelCatalogo, type DatosDeLaLista } from '../../listado/components/tipos'
 import { telefonoDeLista } from '../../listado/components/telefono-de-lista'
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
@@ -69,6 +70,10 @@ function DatosDelLayout({ lead, campos }: PropsDeDatos) {
   )
 }
 
+function OrigenDeLaLinea({ origen }: { origen: ReturnType<typeof origenDelCatalogo> }) {
+  return origen ? <OrigenDelLead nombre={origen.nombre} icono={origen.icono ?? null} /> : '—'
+}
+
 type PropsDelCuerpo = PropsDeDatos & { completo: boolean; fallo: boolean; reintentar: () => void }
 
 // «Resumen»: lo que se sabe del lead. Editarlo es de la ficha.
@@ -86,7 +91,9 @@ export function CuerpoDelRapido({ completo, fallo, reintentar, ...datos }: Props
             </span>
           )}
         </Dato>
-        <Dato etiqueta="Origen del lead">{nombreDelOrigen(origenes, lead.origenId) ?? '—'}</Dato>
+        <Dato etiqueta="Origen del lead">
+          <OrigenDeLaLinea origen={origenDelCatalogo(origenes, lead.origenId)} />
+        </Dato>
         <Dato etiqueta="Creado">{formatearFechaHora(lead.creadoEn, { zona: zonaHoraria })}</Dato>
       </dl>
       {completo ? (

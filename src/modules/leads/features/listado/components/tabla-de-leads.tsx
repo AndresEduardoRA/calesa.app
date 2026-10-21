@@ -9,6 +9,7 @@ import {
 } from '@/shared/ui/lista'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { tipoDelCatalogo } from '../../../entities/catalogos'
+import type { OrigenConEstado } from '../../../entities/ficha'
 import { camposDeTabla } from '../../../entities/listado'
 import type { FilaDeLead } from '../../../entities/listado'
 import { MenuDeLead } from '../../marcas/components/menu-de-lead'
@@ -16,7 +17,8 @@ import { BadgeDeTipo } from './badge-de-tipo'
 import { CeldaDeCampo } from './celda-de-campo'
 import { NombreDeFila } from './nombre-de-fila'
 import { telefonoDeLista } from './telefono-de-lista'
-import { accionesDelMenu, type DatosDeLaLista, nombreDelOrigen, type ParaMarcar } from './tipos'
+import { OrigenDelLead } from './origen-del-lead'
+import { accionesDelMenu, type DatosDeLaLista, origenDelCatalogo, type ParaMarcar } from './tipos'
 
 type Props = DatosDeLaLista & {
   leads: readonly FilaDeLead[]
@@ -27,6 +29,10 @@ type Props = DatosDeLaLista & {
 }
 
 const VACIO = <span className="text-(--color-ink-faint)">—</span>
+
+function OrigenDeLaFila({ origen }: { origen: OrigenConEstado | null }) {
+  return origen ? <OrigenDelLead nombre={origen.nombre} icono={origen.icono ?? null} /> : VACIO
+}
 
 function EncabezadoDeLaTabla({ columnas }: { columnas: ReturnType<typeof camposDeTabla> }) {
   return (
@@ -96,7 +102,7 @@ export function TablaDeLeads(props: Props) {
               <BadgeDeTipo tipo={tipoDelCatalogo(tipos, lead.tipoLeadId)} />
             </TableCell>
             <TableCell className="max-w-48 truncate">
-              {nombreDelOrigen(origenes, lead.origenId) ?? VACIO}
+              <OrigenDeLaFila origen={origenDelCatalogo(origenes, lead.origenId)} />
             </TableCell>
             {columnas.map((campo) => (
               <TableCell key={campo.clave} className="max-w-48 truncate">

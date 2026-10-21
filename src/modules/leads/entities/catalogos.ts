@@ -12,6 +12,8 @@ export type TipoDeLeadEnCatalogo = {
   nombre: string
   // Lo único fijo: lo que el sistema entiende (prospecto o cliente), nunca el nombre ni la clave.
   clase: ClaseDeTipoDeLead
+  // Una clave del catálogo de iconos, o nada (una que no se conoce se dibuja neutra).
+  icono?: string | null
   activo: boolean
 }
 
@@ -22,7 +24,13 @@ export type CatalogosDeLead = {
 
 const esquema = z.object({
   origenes: z.array(
-    z.object({ id: z.guid(), clave: z.string(), nombre: z.string(), activo: z.boolean() }),
+    z.object({
+      id: z.guid(),
+      clave: z.string(),
+      nombre: z.string(),
+      icono: z.string().nullable(),
+      activo: z.boolean(),
+    }),
   ),
   tipos: z.array(
     z.object({
@@ -30,6 +38,7 @@ const esquema = z.object({
       clave: z.string(),
       nombre: z.string(),
       clase: z.enum(CLASES_DE_TIPO),
+      icono: z.string().nullable(),
       activo: z.boolean(),
     }),
   ),

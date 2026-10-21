@@ -2,12 +2,13 @@ import type { ReactNode } from 'react'
 import type { TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import { telefonoDeFicha, type LeadDeFicha } from '../../../entities/ficha'
 import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
+import { OrigenDelLead } from '../../listado/components/origen-del-lead'
 import { NumeroDeLead } from '@/shared/ui/numero-de-lead'
 
 type Props = {
   ficha: LeadDeFicha
-  // El nombre del origen del lead; null si no tiene o ya no existe.
-  origen: { nombre: string; activo: boolean } | null
+  // El origen del lead (con su icono); null si no tiene o ya no existe.
+  origen: { nombre: string; activo: boolean; icono: string | null } | null
   // El tipo del lead (con su estado); null si ya no está en el catálogo.
   tipo: TipoDeLeadEnCatalogo | null
   // «Lo tienes tú», «Lo tiene Rosa Mamani».
@@ -33,9 +34,9 @@ export function CabeceraDeLead({ ficha, origen, tipo, quien, acciones, marcas }:
           <NumeroDeLead numeros={ficha.numeros} conSecundario />
           <BadgeDeTipo tipo={tipo} />
           {origen ? (
-            <span>
-              {origen.nombre}
-              {origen.activo ? '' : ' (inactivo)'}
+            <span className="inline-flex max-w-full min-w-0 items-center gap-1.5">
+              <OrigenDelLead nombre={origen.nombre} icono={origen.icono} />
+              {origen.activo ? null : <span className="shrink-0">(inactivo)</span>}
             </span>
           ) : null}
           <span className="tabular-nums">{telefonoDeFicha(ficha.telefono, ficha.telefonoCc)}</span>

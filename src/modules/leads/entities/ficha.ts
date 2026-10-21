@@ -12,7 +12,8 @@ import { telefonoParaMostrar } from './telefono'
 export const MENSAJE_DE_LEAD_NO_DISPONIBLE = 'No encontramos este lead o no tienes acceso.'
 
 // Un origen con su estado: el lead que entró por uno apagado se sigue nombrando.
-export type OrigenConEstado = OrigenDeLead & { activo: boolean }
+// `icono` viene siempre de la base (`leads_catalogos()`); es opcional en el tipo para quien arma uno a mano.
+export type OrigenConEstado = OrigenDeLead & { activo: boolean; icono?: string | null }
 
 // Un teléfono alterno. Sin unicidad entre leads; sí dentro del mismo lead.
 export type TelefonoExtra = { id: string; telefono: string; etiqueta: string | null }
@@ -135,9 +136,11 @@ export function quienLoTiene(ficha: LeadDeFicha, yoId: string): string | null {
 export function origenDeLaFicha(
   origenes: readonly OrigenConEstado[],
   origenId: string | null,
-): { nombre: string; activo: boolean } | null {
+): { nombre: string; activo: boolean; icono: string | null } | null {
   const origen = origenes.find((uno) => uno.id === origenId)
-  return origen ? { nombre: origen.nombre, activo: origen.activo } : null
+  return origen
+    ? { nombre: origen.nombre, activo: origen.activo, icono: origen.icono ?? null }
+    : null
 }
 
 // --- Las secciones de la ficha (`?seccion=`) ----------------------------------------------------------

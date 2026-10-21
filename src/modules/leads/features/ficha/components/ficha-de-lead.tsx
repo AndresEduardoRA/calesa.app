@@ -35,7 +35,7 @@ type Props = {
   // Los campos activos del layout: los que dibuja «Datos». El panel de edición lee el layout completo al abrirse.
   campos: readonly CampoDeLead[]
   // El origen y el tipo de este lead, también apagados: lo nombran. Los catálogos completos los lee el panel de edición al abrirse.
-  origen: { nombre: string; activo: boolean } | null
+  origen: { nombre: string; activo: boolean; icono: string | null } | null
   tipo: TipoDeLeadEnCatalogo | null
   // Quien mira: para decir «lo tienes tú».
   usuarioId: string
@@ -66,7 +66,7 @@ type Props = {
 type DatosDeSeccion = {
   ficha: LeadDeFicha
   campos: readonly CampoDeLead[]
-  origen: { nombre: string; activo: boolean } | null
+  origen: { nombre: string; activo: boolean; icono: string | null } | null
   tipo: TipoDeLeadEnCatalogo | null
   puedeCambiarTelefono: boolean
   seguimientos: ReactNode

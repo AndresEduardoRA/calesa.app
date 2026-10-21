@@ -19,7 +19,7 @@ export type DatosDeLaFicha = {
   // abrirse (`leerCatalogosDeEdicion()`): con hasta 100 orígenes y 100 tipos viajaban con el documento de cada visita.
   campos: CampoDeLead[]
   // El origen y el tipo de ESTE lead, también apagados: el lead que conserva uno se sigue nombrando.
-  origen: { nombre: string; activo: boolean } | null
+  origen: { nombre: string; activo: boolean; icono: string | null } | null
   tipo: TipoDeLeadEnCatalogo | null
   // Las de quien mira: nombran las del lead y se ofrecen en el selector (hasta 50).
   etiquetas: Etiqueta[]

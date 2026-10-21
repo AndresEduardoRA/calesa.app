@@ -9,6 +9,7 @@ import type { TipoDeLeadEnCatalogo } from '../../../entities/catalogos'
 import type { CampoDeLead } from '../../../entities/campo'
 import type { LeadDeFicha } from '../../../entities/ficha'
 import { BadgeDeTipo } from '../../listado/components/badge-de-tipo'
+import { OrigenDelLead } from '../../listado/components/origen-del-lead'
 import { BloqueDeCartera } from '../../cartera/components/bloque-de-cartera'
 import { BloqueDeTelefonos } from './bloque-de-telefonos'
 
@@ -16,7 +17,7 @@ type Props = {
   ficha: LeadDeFicha
   // Todo el layout: los desactivados no se muestran.
   campos: readonly CampoDeLead[]
-  origen: { nombre: string; activo: boolean } | null
+  origen: { nombre: string; activo: boolean; icono: string | null } | null
   tipo: TipoDeLeadEnCatalogo | null
   // Quien mira puede cambiar los teléfonos de este lead (cartera y `leads.editar`).
   puedeCambiarTelefono: boolean
@@ -52,7 +53,7 @@ export function SeccionDatos({
           <Dato etiqueta="Origen del lead">
             {origen ? (
               <>
-                {origen.nombre}
+                <OrigenDelLead nombre={origen.nombre} icono={origen.icono} />
                 {origen.activo ? null : (
                   <span className="ml-1.5 text-(length:--text-xs) text-(--color-ink-soft)">
                     (inactivo)

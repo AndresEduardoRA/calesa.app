@@ -72,7 +72,7 @@ describe('leerFichaDeLead', () => {
       ok({
         ficha,
         campos: [{ clave: 'ciudad', activo: true }],
-        origen: { nombre: 'Facebook', activo: false },
+        origen: { nombre: 'Facebook', activo: false, icono: null },
         tipo: { id: 't', nombre: 'Prospecto' },
         etiquetas: [{ id: 'e' }],
         cartera: [{ usuarioId: 'u' }],

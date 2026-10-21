@@ -8,7 +8,8 @@ import { BadgeDeTipo } from './badge-de-tipo'
 import { CeldaDeCampo } from './celda-de-campo'
 import { NombreDeFila } from './nombre-de-fila'
 import { telefonoDeLista } from './telefono-de-lista'
-import { accionesDelMenu, type DatosDeLaLista, nombreDelOrigen, type ParaMarcar } from './tipos'
+import { OrigenDeLaTarjeta } from './origen-del-lead'
+import { accionesDelMenu, type DatosDeLaLista, origenDelCatalogo, type ParaMarcar } from './tipos'
 
 type Props = DatosDeLaLista & {
   leads: readonly FilaDeLead[]
@@ -39,7 +40,7 @@ export function TarjetasDeLeads(props: Props) {
   return (
     <ul className="grid grid-cols-[minmax(0,1fr)] gap-2">
       {leads.map((lead) => {
-        const origen = nombreDelOrigen(origenes, lead.origenId)
+        const origen = origenDelCatalogo(origenes, lead.origenId)
         const datos = camposDeLaTarjeta(campos, lead)
         return (
           <TarjetaDeLista
@@ -80,9 +81,7 @@ export function TarjetasDeLeads(props: Props) {
             <span className="text-(length:--text-sm) text-(--color-ink) tabular-nums">
               {telefonoDeLista(lead.telefono, codigoDePais)}
             </span>
-            {origen ? (
-              <span className="text-(length:--text-xs) text-(--color-ink-soft)">{origen}</span>
-            ) : null}
+            <OrigenDeLaTarjeta origen={origen} />
             {datos.length > 0 ? (
               <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-t border-(--color-line) pt-2">
                 {datos.map((campo) => (

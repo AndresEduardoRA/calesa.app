@@ -35,6 +35,9 @@ for (const [ruta, presupuesto] of Object.entries(PRESUPUESTO_DE_JS_EN_KB)) {
       type: 'JS en frío',
       description: `${ruta}: ${String(enKB(bytes))} KB con gzip en ${String(chunks)} chunks (presupuesto ${String(presupuesto)})`,
     })
+    console.warn(
+      `[js] ${ruta}: ${String(enKB(bytes))} KB con gzip en ${String(chunks)} chunks (presupuesto ${String(presupuesto)})`,
+    )
     expect(enKB(bytes), `${ruta}: ${String(enKB(bytes))} KB de JS en frío`).toBeLessThanOrEqual(
       presupuesto,
     )
@@ -55,7 +58,7 @@ test('el shell no trae la ficha ni el listado de leads a `/perfil`', async ({ pa
 // ~26 KB de más en cada visita, se abriera o no «Nuevo lead». Ahora el drawer los lee al primer clic.
 const PREFIJO_DEL_CATALOGO = 'e2e_cat_perfil_'
 
-test('el documento de `/perfil` pesa lo mismo con 100 orígenes y 100 tipos que con la semilla', async ({
+test('el documento de `/perfil` pesa lo mismo con 100 orígenes, 100 tipos de lead y 100 de seguimiento, con sus iconos, que con la semilla', async ({
   page,
 }, info) => {
   await entrar(page, personas.duena)
@@ -63,15 +66,18 @@ test('el documento de `/perfil` pesa lo mismo con 100 orígenes y 100 tipos que 
   const antes = await documento()
   try {
     sql(`
-      insert into public.origenes_lead (clave, nombre, orden)
-        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo perfil origen ' || n, 1000 + n
+      insert into public.origenes_lead (clave, nombre, icono, orden)
+        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo perfil origen ' || n, 'casa', 1000 + n
         from generate_series(1, 100 - (select count(*) from public.origenes_lead)) n;
-      insert into public.tipos_lead (clave, nombre, clase, orden)
-        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo perfil tipo ' || n, 'prospecto', 1000 + n
+      insert into public.tipos_lead (clave, nombre, clase, icono, orden)
+        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo perfil tipo ' || n, 'prospecto', 'persona', 1000 + n
         from generate_series(1, 100 - (select count(*) from public.tipos_lead)) n;
+      insert into public.tipos_seguimiento (clave, nombre, icono, orden)
+        select '${PREFIJO_DEL_CATALOGO}' || n, 'E2E catálogo perfil seguimiento ' || n, 'nota', 1000 + n
+        from generate_series(1, 100 - (select count(*) from public.tipos_seguimiento)) n;
     `)
     const despues = await documento()
-    const resumen = `/perfil pesa ${String(antes)} bytes con la semilla y ${String(despues)} con 100 orígenes y 100 tipos (${String(despues - antes)} de diferencia)`
+    const resumen = `/perfil pesa ${String(antes)} bytes con la semilla y ${String(despues)} con 100 orígenes, 100 tipos de lead y 100 de seguimiento (${String(despues - antes)} de diferencia)`
     console.warn(`[perfil] ${info.project.name}: ${resumen}`)
     info.annotations.push({ type: 'documento de /perfil', description: resumen })
     expect(Math.abs(despues - antes), resumen).toBeLessThanOrEqual(1024)
@@ -80,6 +86,7 @@ test('el documento de `/perfil` pesa lo mismo con 100 orígenes y 100 tipos que 
     sql(`
       delete from public.origenes_lead where clave like '${PREFIJO_DEL_CATALOGO}%';
       delete from public.tipos_lead where clave like '${PREFIJO_DEL_CATALOGO}%';
+      delete from public.tipos_seguimiento where clave like '${PREFIJO_DEL_CATALOGO}%';
     `)
   }
 })

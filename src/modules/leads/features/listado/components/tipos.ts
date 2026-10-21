@@ -49,6 +49,14 @@ export function accionesDelMenu(marcar: ParaMarcar, lead: FilaDeLead) {
   }
 }
 
+// El origen de un lead tal como está en el catálogo (con su icono y si sigue activo); nulo si no tiene o ya no está.
+export function origenDelCatalogo(
+  origenes: readonly OrigenConEstado[],
+  id: string | null,
+): OrigenConEstado | null {
+  return origenes.find((origen) => origen.id === id) ?? null
+}
+
 export function nombreDelOrigen(
   origenes: readonly OrigenDeLead[],
   id: string | null,

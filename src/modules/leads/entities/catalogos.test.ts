@@ -23,13 +23,21 @@ const tipos = [tipo(1), tipo(2, { activo: false }), tipo(3), tipo(4)]
 describe('catalogosDeLeadDesde', () => {
   it('lee los orígenes y los tipos de leads_catalogos()', () => {
     const leido = catalogosDeLeadDesde({
-      origenes: [{ id: id(9), clave: 'web', nombre: 'Web', activo: true }],
+      origenes: [{ id: id(9), clave: 'web', nombre: 'Web', icono: 'web', activo: true }],
       tipos: [
-        { id: id(1), clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto', activo: true },
+        {
+          id: id(1),
+          clave: 'prospecto',
+          nombre: 'Prospecto',
+          clase: 'prospecto',
+          icono: null,
+          activo: true,
+        },
       ],
     })
     expect(leido?.origenes).toHaveLength(1)
-    expect(leido?.tipos[0]).toMatchObject({ nombre: 'Prospecto', clase: 'prospecto' })
+    expect(leido?.tipos[0]).toMatchObject({ nombre: 'Prospecto', clase: 'prospecto', icono: null })
+    expect(leido?.origenes[0]).toMatchObject({ nombre: 'Web', icono: 'web' })
   })
 
   it('una forma rota, o una clase que no es una de las dos, es nula', () => {
@@ -37,7 +45,7 @@ describe('catalogosDeLeadDesde', () => {
     expect(
       catalogosDeLeadDesde({
         origenes: [],
-        tipos: [{ id: id(1), clave: 'x', nombre: 'X', clase: 'otra', activo: true }],
+        tipos: [{ id: id(1), clave: 'x', nombre: 'X', clase: 'otra', icono: null, activo: true }],
       }),
     ).toBeNull()
     expect(catalogosDeLeadDesde({ origenes: [] })).toBeNull()

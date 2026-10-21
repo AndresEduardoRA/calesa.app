@@ -107,12 +107,16 @@ describe('quién lo tiene', () => {
 
 describe('el origen de la ficha', () => {
   const origenes: OrigenConEstado[] = [
-    { id: ID, clave: 'web', nombre: 'Web', activo: true },
+    { id: ID, clave: 'web', nombre: 'Web', icono: 'web', activo: true },
     { id: OTRA, clave: 'fb', nombre: 'Facebook', activo: false },
   ]
-  it('nombra también uno desactivado y dice que lo está', () => {
-    expect(origenDeLaFicha(origenes, OTRA)).toEqual({ nombre: 'Facebook', activo: false })
-    expect(origenDeLaFicha(origenes, ID)).toEqual({ nombre: 'Web', activo: true })
+  it('nombra también uno desactivado y dice que lo está, con su icono (o ninguno)', () => {
+    expect(origenDeLaFicha(origenes, OTRA)).toEqual({
+      nombre: 'Facebook',
+      activo: false,
+      icono: null,
+    })
+    expect(origenDeLaFicha(origenes, ID)).toEqual({ nombre: 'Web', activo: true, icono: 'web' })
   })
   it('sin origen o con uno que ya no existe, null', () => {
     expect(origenDeLaFicha(origenes, null)).toBeNull()

@@ -1,5 +1,6 @@
 'use client'
 
+import { IconoDelCatalogo } from '@/shared/ui/icono-del-catalogo/icono-del-catalogo'
 import { EyeIcon } from 'lucide-react'
 import { formatearFechaHora, fechaRelativa } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
@@ -38,7 +39,10 @@ export function ItemDeSeguimiento({
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="grid gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">{seguimiento.tipoNombre}</Badge>
+            <Badge variant="secondary" className="gap-1">
+              <IconoDelCatalogo clave={seguimiento.tipoIcono} className="size-3" />
+              {seguimiento.tipoNombre}
+            </Badge>
             {seguimiento.visibilidad === 'publico' ? (
               <Badge variant="outline" className="gap-1">
                 <EyeIcon aria-hidden className="size-3" />
