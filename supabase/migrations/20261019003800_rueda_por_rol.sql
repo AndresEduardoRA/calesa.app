@@ -18,7 +18,7 @@
 -- ---------------------------------------------------------------------------------------------------
 insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con_alcance, aplicado_en, orden) values
   ('web.cola.participar', 'web', 'Recibir turnos de la web',
-   'Las personas con este rol pueden estar en la rueda de turnos de la web pública. Sin este permiso no reciben turnos ni figuran en la rueda, aunque estén habilitadas; sus leads no cambian',
+   'Estar en la rueda de turnos de la web. Sin este permiso no reciben turnos, aunque estén habilitadas',
    false, false, 'puede_estar_en_la_rueda: web.solicitar_asesor, web_expirar_solicitudes, estado_cola_web', 655)
 on conflict (clave) do update set nombre = excluded.nombre, descripcion = excluded.descripcion, por_origen = excluded.por_origen,
   con_alcance = excluded.con_alcance, aplicado_en = excluded.aplicado_en, modulo = excluded.modulo, orden = excluded.orden;
