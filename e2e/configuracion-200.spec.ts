@@ -5,7 +5,7 @@ import {
   correoDePrueba,
   crearDuenaDePrueba,
 } from './soporte/base'
-import { borrarOrigenes } from './soporte/origenes'
+import { borrarOrigenes, crearOrigenDePrueba } from './soporte/origenes'
 import { ingresar } from './soporte/pasos'
 import {
   aLaVistaSinDesplazar,
@@ -20,7 +20,11 @@ import {
 // que esa persona ve al entrar. Una prueba por pantalla y sin `serial`: cuando una cae, las demás siguen y dicen cuáles más fallan.
 
 const CLAVE = 'una-clave-de-prueba-9'
+const LARGO =
+  'Subasta internacional de vehículos livianos y pesados de Norteamérica y del Asia oriental'
+
 let duena = ''
+let origen = { id: '', nombre: '' }
 
 test.beforeAll(async ({}, info) => {
   await borrarPersonasDePrueba()
@@ -28,6 +32,7 @@ test.beforeAll(async ({}, info) => {
   await borrarOrigenes([])
   duena = correoDePrueba(`duena-200-${info.project.name}`)
   await crearDuenaDePrueba({ email: duena, contrasena: CLAVE, nombre: 'Dalia Doscientos' })
+  origen = await crearOrigenDePrueba(LARGO, `largo_${info.project.name}`)
 })
 
 test.afterAll(async () => {
@@ -49,6 +54,9 @@ type Pantalla = {
   controles?: (page: Page) => [Locator, string][]
 }
 
+const DE_UN_ORIGEN = (seccion: string) => () =>
+  `/configuracion/origenes/${origen.id}?seccion=${seccion}`
+
 const PANTALLAS: Pantalla[] = [
   { titulo: 'el centro de Configuración', url: () => '/configuracion' },
   { titulo: 'Empresa › Empresa', url: () => '/configuracion/empresa?seccion=empresa' },
@@ -67,6 +75,15 @@ const PANTALLAS: Pantalla[] = [
   },
   { titulo: 'Empresa › Integraciones', url: () => '/configuracion/empresa?seccion=integraciones' },
   { titulo: 'Orígenes', url: () => '/configuracion/origenes' },
+  {
+    titulo: 'la ficha de un origen › Datos',
+    url: DE_UN_ORIGEN('datos'),
+    controles: (page) => [
+      [page.getByRole('link', { name: /^Abrir/ }).first(), 'el primer «Abrir»'],
+    ],
+  },
+  { titulo: 'la ficha de un origen › Campos', url: DE_UN_ORIGEN('campos') },
+  { titulo: 'la ficha de un origen › Categorías', url: DE_UN_ORIGEN('categorias') },
   { titulo: 'Leads › Campos', url: () => '/configuracion/leads?seccion=campos' },
   { titulo: 'Leads › Orígenes del lead', url: () => '/configuracion/leads?seccion=origenes' },
   { titulo: 'Leads › Tipos de lead', url: () => '/configuracion/leads?seccion=tipos' },
