@@ -107,6 +107,25 @@ export async function avisoNoTapaElPie(aviso: Locator, pie: Locator): Promise<vo
   }
 }
 
+// El texto al 200 % desde el primer cuadro de cada documento que carga esta página: así lo ve quien lo tiene así en su navegador (lo que
+// se mide es lo que esa persona ve al entrar, no lo que pasa al ampliar con la página abierta).
+export async function textoGrandeAlCargar(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    // En un script de arranque el documento puede no tener todavía su raíz: el tipo del DOM no lo dice.
+    const raiz = () => document.documentElement as HTMLElement | null
+    const poner = () => {
+      const html = raiz()
+      if (html) html.style.fontSize = '200%'
+      return html !== null
+    }
+    if (poner()) return
+    const mira = new MutationObserver(() => {
+      if (poner()) mira.disconnect()
+    })
+    mira.observe(document, { childList: true })
+  })
+}
+
 export async function sinScrollHorizontal(page: Page): Promise<void> {
   const { ancho, visible, culpables } = await page.evaluate(() => {
     const visible = document.documentElement.clientWidth
