@@ -25,7 +25,7 @@ export function Integraciones({ apibara, puedeEditar }: Props) {
   const config = configDeApibara(apibara.config)
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4">
       {puedeEditar ? null : <Aviso>{MOTIVO_SIN_PERMISO_AJUSTES}</Aviso>}
       <Bloque
         titulo="apibara"
