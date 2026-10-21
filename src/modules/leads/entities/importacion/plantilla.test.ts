@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { lineaDeCsv } from '@/shared/lib/csv/escribir'
-import type { ContextoDeAlta } from '../alta'
+import type { ContextoDeImportacion } from './contexto'
 import { camposDeLeadDesde } from '../campo'
 import { objetivosDeImportacion } from './emparejar'
 import type { FilaPreparada } from './filas'
 import type { ResultadoDeFila } from './lotes'
 import { filasRechazadas, plantillaDeImportacion, tablaDeRechazadas } from './plantilla'
 
-const CONTEXTO: ContextoDeAlta = {
+const CONTEXTO: ContextoDeImportacion = {
   telefonoCc: '+591',
   origenes: [{ id: 'o1', clave: 'web', nombre: 'Web' }],
   // El alta propone el primero activo de la clase prospecto; el ejemplo lleva ese nombre, el que sea.
@@ -23,6 +23,8 @@ const CONTEXTO: ContextoDeAlta = {
   tipoPorDefectoId: 't-pro',
   tiposDeSeguimiento: [],
   ultimoOrigenId: null,
+  origenPorDefectoId: null,
+  topes: { origenes: 100, tipos: 100, tiposDeSeguimiento: 100 },
   empresa: { ciudad: null, pais: null },
 }
 

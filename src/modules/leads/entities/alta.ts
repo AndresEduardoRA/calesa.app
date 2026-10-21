@@ -3,7 +3,6 @@
 // avisar antes de enviar) y lo que la base vuelve a comprobar (`crear_lead()`): los mismos motivos
 // con el campo en el mismo lugar. Nada de esto sabe de React ni de Supabase.
 import { numeroEnFrase, type NumerosDeLead } from '@/shared/lib/numeros-de-lead'
-import { z } from 'zod'
 import {
   campoDeFormulario,
   deAtributo,
@@ -14,73 +13,24 @@ import {
   type Dato,
   type ValoresDeFormulario,
 } from '@/shared/lib/campos'
-import { valorDefectoVigente, type CampoDeLead, type DatosDeLaEmpresa } from './campo'
+import { valorDefectoVigente, type CampoDeLead } from './campo'
 import type { Documento } from './documento'
 import { hayAlgoEscrito } from './seguimiento-nuevo'
 import type { ValoresDelSeguimiento } from './seguimiento'
 import { normalizarTelefono } from './telefono'
-import { CLASES_DE_TIPO, type ClaseDeTipoDeLead } from './tipo-de-lead'
+import { origenInicial, type ContextoDeAlta } from './contexto-de-alta'
 
-// --- Lo que el drawer necesita de la base, en un viaje --------------------------------------------
-
-export type OrigenDeLead = { id: string; clave: string; nombre: string }
-
-// Un tipo de lead que el alta ofrece: sólo los activos. La clase es lo que el sistema entiende; el nombre, lo que se lee.
-export type TipoDeLeadEnAlta = {
-  id: string
-  clave: string
-  nombre: string
-  clase: ClaseDeTipoDeLead
-}
-
-export type TipoDeSeguimiento = { id: string; clave: string; nombre: string; icono: string | null }
-
-export type ContextoDeAlta = {
-  // El código de país de la empresa (`+` y 1 a 3 dígitos); sin él, el teléfono se pide con «+».
-  telefonoCc: string | null
-  // Sólo los activos, en su orden.
-  origenes: OrigenDeLead[]
-  // Sólo los activos, en su orden, y el que el alta propone (el primero activo de la clase prospecto: lo calcula la base).
-  tipos: TipoDeLeadEnAlta[]
-  tipoPorDefectoId: string | null
-  tiposDeSeguimiento: TipoDeSeguimiento[]
-  // El origen que esta persona usó la última vez, si sigue activo.
-  ultimoOrigenId: string | null
-  empresa: DatosDeLaEmpresa
-}
-
-const esquemaContexto = z.object({
-  telefono_cc: z.string().nullable(),
-  origenes: z.array(z.object({ id: z.guid(), clave: z.string(), nombre: z.string() })),
-  tipos: z.array(
-    z.object({
-      id: z.guid(),
-      clave: z.string(),
-      nombre: z.string(),
-      clase: z.enum(CLASES_DE_TIPO),
-    }),
-  ),
-  tipo_por_defecto_id: z.guid().nullable(),
-  tipos_seguimiento: z.array(
-    z.object({ id: z.guid(), clave: z.string(), nombre: z.string(), icono: z.string().nullable() }),
-  ),
-  ultimo_origen_id: z.guid().nullable(),
-  empresa: z.object({ ciudad: z.string().nullable(), pais: z.string().nullable() }),
-})
-
-// El `jsonb` de `lead_alta_contexto()`.
-export function contextoDeAltaDesde(crudo: unknown): ContextoDeAlta {
-  const c = esquemaContexto.parse(crudo)
-  return {
-    telefonoCc: c.telefono_cc,
-    origenes: c.origenes,
-    tipos: c.tipos,
-    tipoPorDefectoId: c.tipo_por_defecto_id,
-    tiposDeSeguimiento: c.tipos_seguimiento.map((t) => ({ ...t })),
-    ultimoOrigenId: c.ultimo_origen_id,
-    empresa: c.empresa,
-  }
-}
+// El contexto vive en su archivo; sale también de acá porque es lo que el alta nombra.
+export {
+  contextoDeAltaDesde,
+  origenInicial,
+  type ContextoDeAlta,
+  type OrigenDeLead,
+  type OrigenDelAlta,
+  type TipoDeLeadEnAlta,
+  type TipoDeSeguimiento,
+  type TopesDelAlta,
+} from './contexto-de-alta'
 
 // --- Las claves del formulario: las mismas que pone la base en el `hint` de un error ---------------
 
@@ -126,7 +76,7 @@ export function campoDelAlta(campo: CampoDeLead): CampoDeFormulario {
   )
 }
 
-// Con qué arranca el formulario de los datos: el último origen (o el primero activo), el tipo que propone la base (el primero
+// Con qué arranca el formulario de los datos: el origen inicial (`origenInicial`), el tipo que propone la base (el primero
 // activo de la clase prospecto) y el valor por defecto de cada campo activo (la ciudad de la empresa incluida). El primer seguimiento
 // tiene sus propios valores (`valoresDeSeguimientoNuevo`).
 export function valoresIniciales(
@@ -137,7 +87,7 @@ export function valoresIniciales(
   const valores: ValoresDeFormulario = {
     [CLAVE_DEL_ALTA.telefono]: '',
     [CLAVE_DEL_ALTA.nombre]: '',
-    [CLAVE_DEL_ALTA.origen]: contexto.ultimoOrigenId ?? contexto.origenes[0]?.id ?? '',
+    [CLAVE_DEL_ALTA.origen]: origenInicial(contexto) ?? '',
     [CLAVE_DEL_ALTA.tipo]: contexto.tipoPorDefectoId ?? contexto.tipos[0]?.id ?? '',
   }
   for (const campo of layout) {

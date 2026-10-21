@@ -2,7 +2,8 @@
 // vacía (o el archivo no trae la columna). Lo que el archivo dice se respeta. Sin I/O: la tabla de
 // países la recibe, porque se carga aparte (al elegir el archivo).
 import type { ValoresDeFormulario } from '@/shared/lib/campos'
-import { CLAVE_DEL_ALTA, claveDeAtributoDeAlta, type ContextoDeAlta } from '../alta'
+import { CLAVE_DEL_ALTA, claveDeAtributoDeAlta } from '../alta'
+import type { ContextoDeImportacion } from './contexto'
 import type { CampoDeLead } from '../campo'
 import { CLAVE_DEL_PAIS, paisDelEscrito, paisParaGuardar } from '../pais-del-telefono'
 import type { TablaDePaises } from '../paises/resolver'
@@ -15,7 +16,7 @@ type Entrada = {
   propios: ReadonlyMap<string, string>
   // Los campos activos por clave: si «País» está apagado no se llena nada.
   campos: ReadonlyMap<string, CampoDeLead>
-  contexto: ContextoDeAlta
+  contexto: ContextoDeImportacion
   // `null` hasta que la tabla llega (o si no pudo pedirse): la fila queda como estaba.
   tabla: TablaDePaises | null
 }

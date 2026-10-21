@@ -28,7 +28,7 @@ export const getTiposDeSeguimiento: LectorDeTiposDeSeguimiento = async () => {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('tipos_seguimiento')
-    .select('id, clave, nombre, icono')
+    .select('id, nombre')
     .eq('activo', true)
     .order('orden')
     .order('nombre')

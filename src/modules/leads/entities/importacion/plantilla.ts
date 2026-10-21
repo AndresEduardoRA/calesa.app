@@ -2,10 +2,10 @@
 // se exporta se puede volver a importar. Sin I/O.
 import type { Celda } from '@/shared/lib/csv/escribir'
 import { diaEnZona } from '@/shared/lib/fechas'
-import type { ContextoDeAlta } from '../alta'
 import type { CampoDeLead } from '../campo'
 import { ENCABEZADOS_FIJOS, camposDeExportacion } from '../exportacion'
 import type { FilaPreparada } from './filas'
+import type { ContextoDeImportacion } from './contexto'
 import type { ObjetivoDeImportacion } from './emparejar'
 import type { ResultadoDeFila } from './lotes'
 
@@ -38,7 +38,7 @@ const muestraDe = (campo: CampoDeLead, hoy: string): Celda =>
 // Los encabezados del layout de hoy y una fila de muestra para entender el formato.
 export function plantillaDeImportacion(
   campos: readonly CampoDeLead[],
-  contexto: ContextoDeAlta,
+  contexto: ContextoDeImportacion,
   ahoraIso: string,
   zona: string,
 ): { encabezados: string[]; muestra: Celda[] } {

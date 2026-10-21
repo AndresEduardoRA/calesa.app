@@ -571,13 +571,19 @@ create table public.origenes_lead (
   id     uuid primary key default gen_random_uuid(),
   clave  text not null unique,
   nombre text not null,
+  icono  text,                                        -- una clave del catálogo de iconos (`_iconos_del_catalogo()`); nulo = sin icono
   activo boolean not null default true,
+  -- El origen «por defecto» de la empresa: el que el alta propone a quien no tiene un último origen activo. Uno solo, y activo.
+  por_defecto boolean not null default false,
   orden  smallint not null default 0,
   creado_en      timestamptz not null default now(),
-  actualizado_en timestamptz not null default now()   -- versión: guardar, mover y eliminar la mandan
+  actualizado_en timestamptz not null default now(),  -- versión: guardar, mover y eliminar la mandan
+  constraint origenes_lead_por_defecto_activo check (not por_defecto or activo)
 );
 -- Un nombre por origen, sin importar mayúsculas ni espacios de los bordes.
 create unique index origenes_lead_nombre_unico on public.origenes_lead (lower(btrim(nombre)));
+-- Uno solo «por defecto», para quien sea que escriba la tabla (el candado de las RPC sólo ordena a quienes pasan por ellas).
+create unique index origenes_lead_por_defecto_unico on public.origenes_lead (por_defecto) where por_defecto;
 comment on table public.origenes_lead is 'De dónde llegó el lead. Configurable (Configuración › Leads › Orígenes): sólo de lectura para la app, se escribe por origen_lead_*(). Uno con leads no se elimina, se desactiva: sigue nombrando a los leads que ya lo tienen pero no se ofrece para uno nuevo. Distinto de origenes, que son los de los vehículos.';
 
 -- Los tipos de lead (9j): configurables como los orígenes. Cada tipo pertenece a una CLASE fija —«prospecto» o «cliente»— que se
@@ -589,6 +595,7 @@ create table public.tipos_lead (
   clave  text not null unique,
   nombre text not null,
   clase  public.clase_tipo_lead not null,
+  icono  text,                                        -- una clave del catálogo de iconos (`_iconos_del_catalogo()`); nulo = sin icono
   activo boolean not null default true,
   orden  smallint not null default 0,
   creado_en      timestamptz not null default now(),
@@ -763,10 +770,15 @@ create table public.tipos_seguimiento (
   id     uuid primary key default gen_random_uuid(),
   clave  text not null unique,
   nombre text not null,
-  icono  text,
+  icono  text,                                        -- una clave del catálogo de iconos (`_iconos_del_catalogo()`); nulo = sin icono
   activo boolean not null default true,
-  orden  smallint not null default 0
+  orden  smallint not null default 0,
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()   -- versión: guardar, mover y eliminar la mandan
 );
+-- Un nombre por tipo, sin importar mayúsculas ni espacios de los bordes.
+create unique index tipos_seguimiento_nombre_unico on public.tipos_seguimiento (lower(btrim(nombre)));
+comment on table public.tipos_seguimiento is 'Los tipos de seguimiento (WhatsApp, Llamada, Visita…). Configurable (Configuración › Leads › Tipos de seguimiento): sólo de lectura para la app, se escribe por tipo_seguimiento_*(). El sistema no razona por su clave ni su nombre: cualquiera se apaga. Uno con seguimientos no se elimina, se desactiva: sigue nombrando a los seguimientos que ya lo tienen.';
 
 create table public.seguimientos (
   id              uuid primary key default gen_random_uuid(),

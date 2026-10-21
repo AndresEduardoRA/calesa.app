@@ -11,7 +11,8 @@
 // - Un teléfono repetido dentro del archivo se marca desde su segunda aparición. Si ya existe en la
 //   base no se sabe acá: se dice al importar, fila por fila, sin nombrar a nadie.
 import type { Dato, ValoresDeFormulario } from '@/shared/lib/campos'
-import { CLAVE_DEL_ALTA, validarAlta, type ContextoDeAlta } from '../alta'
+import { CLAVE_DEL_ALTA, validarAlta } from '../alta'
+import type { ContextoDeImportacion } from './contexto'
 import type { CampoDeLead } from '../campo'
 import type { TablaDePaises } from '../paises/resolver'
 import { normalizarTelefono } from '../telefono'
@@ -65,7 +66,7 @@ export type EntradaDePreparacion = {
   // Por columna del archivo, el id del objetivo o `null`.
   destinos: readonly (string | null)[]
   campos: readonly CampoDeLead[]
-  contexto: ContextoDeAlta
+  contexto: ContextoDeImportacion
   zona: string
   eleccion: EleccionParaTodoElArchivo
   // La tabla de países, para completar «País» con el del teléfono. Sin ella (todavía no llegó) no se
@@ -81,7 +82,7 @@ const TIPOS_QUE_SE_NOMBRAN = 10
 
 // Un tipo que no existe o está desactivado nunca se crea por una errata: la fila se rechaza y el motivo lista los activos, para
 // corregir la celda sin ir a otra pantalla. Los nombres salen de la base.
-export function motivoDeTipoDesconocido(texto: string, contexto: ContextoDeAlta): string {
+export function motivoDeTipoDesconocido(texto: string, contexto: ContextoDeImportacion): string {
   const activos = contexto.tipos.map((tipo) => tipo.nombre)
   const principio = `El tipo «${texto}» no existe o está desactivado.`
   if (activos.length === 0) {
@@ -93,7 +94,7 @@ export function motivoDeTipoDesconocido(texto: string, contexto: ContextoDeAlta)
 }
 
 // El tipo (su id) que una celda nombra: por nombre o por clave, entre los activos, sin tildes ni mayúsculas.
-function tipoDeLaCelda(contexto: ContextoDeAlta, texto: string): string | null {
+function tipoDeLaCelda(contexto: ContextoDeImportacion, texto: string): string | null {
   const buscado = comparable(texto)
   return (
     contexto.tipos.find(
@@ -106,7 +107,7 @@ const ORIGENES_QUE_SE_NOMBRAN = 10
 
 // Un origen que no existe o está desactivado nunca se crea por una errata: la fila se rechaza y el
 // motivo lista los activos, para corregir la celda sin ir a otra pantalla.
-export function motivoDeOrigenDesconocido(texto: string, contexto: ContextoDeAlta): string {
+export function motivoDeOrigenDesconocido(texto: string, contexto: ContextoDeImportacion): string {
   const activos = contexto.origenes.map((origen) => origen.nombre)
   const principio = `El origen «${texto}» no existe o está desactivado.`
   if (activos.length === 0) {
@@ -117,7 +118,7 @@ export function motivoDeOrigenDesconocido(texto: string, contexto: ContextoDeAlt
   return `${principio} Los activos: ${nombrados}${resto > 0 ? ` y ${String(resto)} más` : ''}.`
 }
 
-function origenDeLaCelda(contexto: ContextoDeAlta, texto: string): string | null {
+function origenDeLaCelda(contexto: ContextoDeImportacion, texto: string): string | null {
   const buscado = comparable(texto)
   return (
     contexto.origenes.find(
@@ -291,7 +292,7 @@ function prepararFila(
 // El mismo teléfono, normalizado, dos veces en el archivo: la segunda ya no entra.
 function marcarRepetidos(
   filas: readonly FilaPreparada[],
-  contexto: ContextoDeAlta,
+  contexto: ContextoDeImportacion,
 ): FilaPreparada[] {
   const vistos = new Map<string, number>()
   return filas.map((fila) => {

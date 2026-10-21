@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ContextoDeAlta } from '../alta'
+import type { ContextoDeImportacion } from './contexto'
 import { camposDeLeadDesde, type CampoDeLead } from '../campo'
 import {
   motivoDeOrigenDesconocido,
@@ -20,7 +20,7 @@ const TIPOS = [
   { id: TIPO_VIP, clave: 'vip', nombre: 'Cliente VIP', clase: 'cliente' as const },
 ]
 
-const CONTEXTO: ContextoDeAlta = {
+const CONTEXTO: ContextoDeImportacion = {
   telefonoCc: '+591',
   origenes: [
     { id: WEB, clave: 'web', nombre: 'Web' },
@@ -30,6 +30,8 @@ const CONTEXTO: ContextoDeAlta = {
   tipoPorDefectoId: TIPO_PRO,
   tiposDeSeguimiento: [],
   ultimoOrigenId: null,
+  origenPorDefectoId: null,
+  topes: { origenes: 100, tipos: 100, tiposDeSeguimiento: 100 },
   empresa: { ciudad: null, pais: null },
 }
 

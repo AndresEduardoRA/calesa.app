@@ -45,7 +45,7 @@ export const leerSeguimiento: LectorDeSeguimiento = async ({ leadId, id }) => {
 export const leerTiposDeSeguimiento: LectorDeTiposDeSeguimiento = async () => {
   const { data, error } = await createClient()
     .from('tipos_seguimiento')
-    .select('id, clave, nombre, icono')
+    .select('id, nombre')
     .eq('activo', true)
     .order('orden')
     .order('nombre')

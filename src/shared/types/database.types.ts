@@ -3676,9 +3676,11 @@ export type Database = {
           actualizado_en: string
           clave: string
           creado_en: string
+          icono: string | null
           id: string
           nombre: string
           orden: number
+          por_defecto: boolean
         }
         ComputedFields: never
         Insert: {
@@ -3686,18 +3688,22 @@ export type Database = {
           actualizado_en?: string
           clave: string
           creado_en?: string
+          icono?: string | null
           id?: string
           nombre: string
           orden?: number
+          por_defecto?: boolean
         }
         Update: {
           activo?: boolean
           actualizado_en?: string
           clave?: string
           creado_en?: string
+          icono?: string | null
           id?: string
           nombre?: string
           orden?: number
+          por_defecto?: boolean
         }
         Relationships: []
       }
@@ -5543,6 +5549,7 @@ export type Database = {
           clase: Database['public']['Enums']['clase_tipo_lead']
           clave: string
           creado_en: string
+          icono: string | null
           id: string
           nombre: string
           orden: number
@@ -5554,6 +5561,7 @@ export type Database = {
           clase: Database['public']['Enums']['clase_tipo_lead']
           clave: string
           creado_en?: string
+          icono?: string | null
           id?: string
           nombre: string
           orden?: number
@@ -5564,6 +5572,7 @@ export type Database = {
           clase?: Database['public']['Enums']['clase_tipo_lead']
           clave?: string
           creado_en?: string
+          icono?: string | null
           id?: string
           nombre?: string
           orden?: number
@@ -5573,7 +5582,9 @@ export type Database = {
       tipos_seguimiento: {
         Row: {
           activo: boolean
+          actualizado_en: string
           clave: string
+          creado_en: string
           icono: string | null
           id: string
           nombre: string
@@ -5582,7 +5593,9 @@ export type Database = {
         ComputedFields: never
         Insert: {
           activo?: boolean
+          actualizado_en?: string
           clave: string
+          creado_en?: string
           icono?: string | null
           id?: string
           nombre: string
@@ -5590,7 +5603,9 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          actualizado_en?: string
           clave?: string
+          creado_en?: string
           icono?: string | null
           id?: string
           nombre?: string
@@ -6909,6 +6924,8 @@ export type Database = {
       }
       _gracia_de_storage: { Args: Record<PropertyKey, never>; Returns: string }
       _hace: { Args: { p_cuando: string }; Returns: string }
+      _icono_del_catalogo: { Args: { p_icono: string }; Returns: string }
+      _iconos_del_catalogo: { Args: Record<PropertyKey, never>; Returns: string[] }
       _importacion_vence_en: {
         Args: {
           p: Omit<
@@ -7207,6 +7224,7 @@ export type Database = {
       }
       _origen_vehiculos_con_valor: { Args: { p_clave: string; p_origen: string }; Returns: number }
       _origenes_lead_json: { Args: Record<PropertyKey, never>; Returns: Json }
+      _origenes_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _papelera_purgar_leads: { Args: { p_leads: string[]; p_lote: string }; Returns: Json }
       _papelera_purgar_vehiculos: { Args: { p_lote: string; p_vehiculos: string[] }; Returns: Json }
       _papelera_solo_cotizaciones: {
@@ -7344,8 +7362,12 @@ export type Database = {
       _tipo_lead_exigir_activo: { Args: { p_id: string }; Returns: undefined }
       _tipo_lead_nombre: { Args: { p_texto: string }; Returns: string }
       _tipo_lead_por_defecto: { Args: Record<PropertyKey, never>; Returns: string }
+      _tipo_seguimiento_clave: { Args: { p_nombre: string }; Returns: string }
+      _tipo_seguimiento_nombre: { Args: { p_texto: string }; Returns: string }
       _tipos_lead_lista: { Args: Record<PropertyKey, never>; Returns: Json }
       _tipos_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _tipos_seguimiento_lista: { Args: Record<PropertyKey, never>; Returns: Json }
+      _tipos_seguimiento_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
         Args: {
@@ -8011,7 +8033,10 @@ export type Database = {
         }
         Returns: string
       }
-      origen_lead_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
+      origen_lead_crear: {
+        Args: { p_icono?: string; p_id: string; p_nombre: string }
+        Returns: Json
+      }
       origen_lead_eliminar: {
         Args: { p_actualizado_en_esperado: string; p_id: string }
         Returns: Json
@@ -8237,7 +8262,10 @@ export type Database = {
         }
         Returns: string
       }
-      tipo_lead_crear: { Args: { p_clase: string; p_id: string; p_nombre: string }; Returns: Json }
+      tipo_lead_crear: {
+        Args: { p_clase: string; p_icono?: string; p_id: string; p_nombre: string }
+        Returns: Json
+      }
       tipo_lead_eliminar: {
         Args: { p_actualizado_en_esperado: string; p_id: string }
         Returns: Json
@@ -8250,7 +8278,24 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
         Returns: Json
       }
+      tipo_seguimiento_crear: {
+        Args: { p_icono?: string; p_id: string; p_nombre: string }
+        Returns: Json
+      }
+      tipo_seguimiento_eliminar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string }
+        Returns: Json
+      }
+      tipo_seguimiento_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
+      tipo_seguimiento_mover: {
+        Args: { p_actualizado_en_esperado: string; p_despues_de?: string; p_id: string }
+        Returns: Json
+      }
       tipos_lead_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
+      tipos_seguimiento_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
         Returns: boolean

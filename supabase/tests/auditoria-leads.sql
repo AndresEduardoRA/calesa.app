@@ -124,6 +124,7 @@ declare
     ('lead_campo_mover(uuid,timestamp with time zone,uuid)', 'X'),
     ('origen_lead_eliminar(uuid,timestamp with time zone)', 'X'),
     ('tipo_lead_eliminar(uuid,timestamp with time zone)', 'X'),
+    ('tipo_seguimiento_eliminar(uuid,timestamp with time zone)', 'X'),
     ('origen_eliminar(uuid,timestamp with time zone)', 'X'),
     ('origenes_resumen()', 'X'),
     ('comprobante_emitir(uuid,text,jsonb)', 'X'),

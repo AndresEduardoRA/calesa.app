@@ -9,14 +9,16 @@ const ORIGEN = '11111111-1111-4111-8111-111111111111'
 
 const CONTEXTO: ContextoDeAlta = {
   telefonoCc: '+591',
-  origenes: [{ id: ORIGEN, clave: 'web', nombre: 'Web' }],
+  origenes: [{ id: ORIGEN, nombre: 'Web' }],
   tipos: [
-    { id: TIPO_PRO, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto' },
-    { id: TIPO_CLI, clave: 'cliente', nombre: 'Cliente', clase: 'cliente' },
+    { id: TIPO_PRO, nombre: 'Prospecto', clase: 'prospecto' },
+    { id: TIPO_CLI, nombre: 'Cliente', clase: 'cliente' },
   ],
   tipoPorDefectoId: TIPO_PRO,
   tiposDeSeguimiento: [],
   ultimoOrigenId: null,
+  origenPorDefectoId: null,
+  topes: { origenes: 100, tipos: 100, tiposDeSeguimiento: 100 },
   empresa: { ciudad: null, pais: null },
 }
 

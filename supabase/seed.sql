@@ -129,8 +129,8 @@ on conflict do nothing;
 -- ---------------------------------------------------------------------------
 -- Catálogos de leads y logística
 -- ---------------------------------------------------------------------------
-insert into public.origenes_lead (clave, nombre, orden) values ('facebook', 'Facebook', 0), ('web', 'Web', 1), ('referido', 'Referido', 2), ('tiktok', 'TikTok', 3), ('oficina', 'Oficina', 4), ('otro', 'Otro', 9) on conflict do nothing;
-insert into public.tipos_seguimiento (clave, nombre, icono, orden) values ('whatsapp', 'WhatsApp', 'message-circle', 0), ('llamada', 'Llamada', 'phone', 1), ('reunion', 'Reunión', 'users', 2), ('email', 'Email', 'mail', 3), ('visita', 'Visita', 'map-pin', 4), ('nota', 'Nota', 'sticky-note', 5), ('otro', 'Otro', 'more-horizontal', 9) on conflict do nothing;
+insert into public.origenes_lead (clave, nombre, icono, orden) values ('facebook', 'Facebook', 'compartir', 0), ('web', 'Web', 'web', 1), ('referido', 'Referido', 'personas', 2), ('tiktok', 'TikTok', 'video', 3), ('oficina', 'Oficina', 'oficina', 4), ('otro', 'Otro', 'otro', 9) on conflict do nothing;
+insert into public.tipos_seguimiento (clave, nombre, icono, orden) values ('whatsapp', 'WhatsApp', 'mensaje', 10), ('llamada', 'Llamada', 'telefono', 20), ('reunion', 'Reunión', 'personas', 30), ('email', 'Email', 'correo', 40), ('visita', 'Visita', 'ubicacion', 50), ('nota', 'Nota', 'nota', 60), ('otro', 'Otro', 'otro', 70) on conflict do nothing;
 insert into public.categorias_gasto (nombre, proposito, orden) values ('Tributos aduaneros', 'tributos', 0), ('Flete marítimo', 'flete', 1), ('Grúa', 'grua', 2), ('Chapería', 'chaperia', 3), ('Despachante', 'despachante', 4), ('Otros', 'otro', 9) on conflict do nothing;
 insert into public.tipos_documento (nombre, descripcion, orden, visible_portal_permitido, proposito) values
   ('Título', 'Título de propiedad', 0, true, 'titulo'), ('Factura de compra', 'Invoice de la subasta o del proveedor', 1, true, 'factura'),

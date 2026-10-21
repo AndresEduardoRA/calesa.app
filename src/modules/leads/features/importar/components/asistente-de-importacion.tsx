@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { descargarCsv } from '@/shared/lib/csv/descargar'
 import { BOM_UTF8, lineasDeCsv } from '@/shared/lib/csv/escribir'
-import type { ContextoDeAlta } from '../../../entities/alta'
+import type { ContextoDeImportacion } from '../../../entities/importacion/contexto'
 import type { CampoDeLead } from '../../../entities/campo'
 import {
   NOMBRE_DE_LOS_ERRORES,
@@ -30,7 +30,7 @@ const TITULO_DE_PASO: Record<Paso, string> = {
 }
 const ORDEN: readonly Paso[] = ['archivo', 'emparejar', 'previa', 'importando', 'resultado']
 
-type Props = { campos: CampoDeLead[]; contexto: ContextoDeAlta; zona: string }
+type Props = { campos: CampoDeLead[]; contexto: ContextoDeImportacion; zona: string }
 type PropsDelAsistente = Props & { alReiniciar: () => void }
 
 function Pasos({ actual }: { actual: Paso }) {

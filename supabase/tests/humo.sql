@@ -4982,7 +4982,10 @@ begin
   if f[3] <> 'tipo_id' then raise exception 'crear con un tipo apagado: %', f; end if;
   r := public.seguimiento_crear(v_id, v_lead, jsonb_build_object('tipo_id', v_nota, 'titulo', 'Nota'));
   reset role;
-  update public.seguimientos set tipo_id = v_visita where id = v_id;   -- como si se hubiera apagado después
+  -- Como si se hubiera apagado después: el trigger `seguimiento_tipo_vigente` no deja entrar un tipo apagado (se prueba más abajo).
+  alter table public.seguimientos disable trigger trg_seguimiento_tipo_vigente;
+  update public.seguimientos set tipo_id = v_visita where id = v_id;
+  alter table public.seguimientos enable trigger trg_seguimiento_tipo_vigente;
   set local role authenticated;
   r := public.seguimiento_guardar(v_id, (select actualizado_en from public.seguimientos where id = v_id), jsonb_build_object('tipo_id', v_visita, 'titulo', 'Nota 2'));
   if r ->> 'resultado' <> 'guardado' or r #>> '{seguimiento,tipo_id}' <> v_visita::text then raise exception 'conservar el apagado: %', r; end if;

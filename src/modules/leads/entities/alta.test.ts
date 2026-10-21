@@ -5,7 +5,6 @@ import {
   avisoDelPieDelAlta,
   camposDelAlta,
   campoDelAlta,
-  contextoDeAltaDesde,
   primerCampoConError,
   resumenDePrecargados,
   textoDeLeadGuardado,
@@ -26,19 +25,21 @@ const TIPO_CLI = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 const CONTEXTO: ContextoDeAlta = {
   telefonoCc: '+591',
   origenes: [
-    { id: ORIGEN_FB, clave: 'facebook', nombre: 'Facebook' },
-    { id: ORIGEN_WEB, clave: 'web', nombre: 'Web' },
+    { id: ORIGEN_FB, nombre: 'Facebook' },
+    { id: ORIGEN_WEB, nombre: 'Web' },
   ],
   tipos: [
-    { id: TIPO_PRO, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto' },
-    { id: TIPO_CLI, clave: 'cliente', nombre: 'Cliente', clase: 'cliente' },
+    { id: TIPO_PRO, nombre: 'Prospecto', clase: 'prospecto' },
+    { id: TIPO_CLI, nombre: 'Cliente', clase: 'cliente' },
   ],
   tipoPorDefectoId: TIPO_PRO,
   tiposDeSeguimiento: [
-    { id: TIPO_WA, clave: 'whatsapp', nombre: 'WhatsApp', icono: null },
-    { id: TIPO_LLAMADA, clave: 'llamada', nombre: 'Llamada', icono: null },
+    { id: TIPO_WA, nombre: 'WhatsApp' },
+    { id: TIPO_LLAMADA, nombre: 'Llamada' },
   ],
   ultimoOrigenId: null,
+  origenPorDefectoId: null,
+  topes: { origenes: 100, tipos: 100, tiposDeSeguimiento: 100 },
   empresa: { ciudad: 'Santa Cruz', pais: 'Bolivia' },
 }
 
@@ -88,32 +89,6 @@ const LAYOUT: CampoDeLead[] = [
   }),
   campo({ clave: 'viejo', etiqueta: 'Viejo', activo: false, requerido: true, orden: 6 }),
 ]
-
-describe('contextoDeAltaDesde', () => {
-  it('lee lo que devuelve lead_alta_contexto()', () => {
-    const contexto = contextoDeAltaDesde({
-      telefono_cc: '+591',
-      origenes: [{ id: ORIGEN_WEB, clave: 'web', nombre: 'Web' }],
-      tipos: [{ id: TIPO_PRO, clave: 'prospecto', nombre: 'Prospecto', clase: 'prospecto' }],
-      tipo_por_defecto_id: TIPO_PRO,
-      tipos_seguimiento: [{ id: TIPO_WA, clave: 'whatsapp', nombre: 'WhatsApp', icono: 'm' }],
-      ultimo_origen_id: ORIGEN_WEB,
-      empresa: { ciudad: null, pais: 'Bolivia' },
-    })
-    expect(contexto).toMatchObject({
-      telefonoCc: '+591',
-      ultimoOrigenId: ORIGEN_WEB,
-      tipos: [{ id: TIPO_PRO, nombre: 'Prospecto', clase: 'prospecto' }],
-      tipoPorDefectoId: TIPO_PRO,
-      empresa: { ciudad: null, pais: 'Bolivia' },
-    })
-    expect(contexto.tiposDeSeguimiento[0]?.nombre).toBe('WhatsApp')
-  })
-
-  it('lo que no calza es un error', () => {
-    expect(() => contextoDeAltaDesde({})).toThrow()
-  })
-})
 
 describe('camposDelAlta', () => {
   it('pide arriba los requeridos activos, también los propios, y pliega el resto', () => {

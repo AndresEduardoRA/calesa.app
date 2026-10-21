@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import type { ContextoDeAlta } from '../../../entities/alta'
+import { origenInicial } from '../../../entities/alta'
+import type { ContextoDeImportacion } from '../../../entities/importacion/contexto'
 import type { CampoDeLead } from '../../../entities/campo'
 import {
   conDestino,
@@ -26,11 +27,11 @@ export type ArchivoCargado = {
   ids: string[]
 }
 
-type Entrada = { campos: readonly CampoDeLead[]; contexto: ContextoDeAlta; zona: string }
+type Entrada = { campos: readonly CampoDeLead[]; contexto: ContextoDeImportacion; zona: string }
 
-function eleccionInicial(contexto: ContextoDeAlta): EleccionParaTodoElArchivo {
+function eleccionInicial(contexto: ContextoDeImportacion): EleccionParaTodoElArchivo {
   return {
-    origenId: contexto.ultimoOrigenId ?? contexto.origenes[0]?.id ?? null,
+    origenId: origenInicial(contexto),
     // El que propone el alta (el primero activo de la clase prospecto: lo calcula la base).
     tipoLeadId: contexto.tipoPorDefectoId ?? contexto.tipos[0]?.id ?? '',
   }

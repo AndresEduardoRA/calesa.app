@@ -9,7 +9,7 @@ import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { useRegional } from '@/shared/ui/regional'
 import { ZonaDeArchivos } from '@/shared/ui/zona-de-archivos'
-import type { ContextoDeAlta } from '../../../entities/alta'
+import type { ContextoDeImportacion } from '../../../entities/importacion/contexto'
 import type { CampoDeLead } from '../../../entities/campo'
 import { LIMITES_DE_IMPORTACION } from '../../../entities/importacion/limites'
 import {
@@ -20,7 +20,7 @@ import type { ArchivoCargado } from '../hooks/use-asistente-de-importacion'
 
 type Props = {
   campos: readonly CampoDeLead[]
-  contexto: ContextoDeAlta
+  contexto: ContextoDeImportacion
   zona: string
   alCargar: (archivo: Omit<ArchivoCargado, 'ids'>) => void
 }

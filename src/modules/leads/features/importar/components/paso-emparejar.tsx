@@ -3,7 +3,7 @@
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
 import { CampoSeleccion } from '@/shared/ui/campo-seleccion'
-import type { ContextoDeAlta } from '../../../entities/alta'
+import type { ContextoDeImportacion } from '../../../entities/importacion/contexto'
 import type { ObjetivoDeImportacion } from '../../../entities/importacion/emparejar'
 import type { EleccionParaTodoElArchivo } from '../../../entities/importacion/filas'
 import type { ArchivoCargado } from '../hooks/use-asistente-de-importacion'
@@ -22,7 +22,7 @@ type Props = {
     elegirOrigen: (origenId: string | null) => void
     elegirTipo: (tipoLeadId: string) => void
   }
-  contexto: ContextoDeAlta
+  contexto: ContextoDeImportacion
   alVolver: () => void
   alContinuar: () => void
 }
