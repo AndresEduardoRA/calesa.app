@@ -32,9 +32,12 @@ export function usePedidosDeTipos() {
   const mover = useAction(moverTipo)
   const eliminar = useAction(eliminarTipo)
   return {
-    crear: (id: string, nombre: string, clase: ClaseDeTipoDeLead) =>
-      comoEnvio(crear.executeAsync({ id, nombre, clase })),
-    guardar: (tipo: TipoDeLeadConUso, cambios: { nombre?: string; activo?: boolean }) =>
+    crear: (id: string, nombre: string, clase: ClaseDeTipoDeLead, icono: string | null) =>
+      comoEnvio(crear.executeAsync({ id, nombre, clase, icono })),
+    guardar: (
+      tipo: TipoDeLeadConUso,
+      cambios: { nombre?: string; icono?: string | null; activo?: boolean },
+    ) =>
       comoEnvio(
         guardar.executeAsync({
           id: tipo.id,

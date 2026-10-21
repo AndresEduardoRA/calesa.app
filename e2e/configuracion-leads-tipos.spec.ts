@@ -9,6 +9,13 @@ import {
   crearDuenaDePrueba,
 } from './soporte/base'
 import { descartarAviso } from './soporte/inventario'
+import {
+  cerrarMenu,
+  elegirDelMenu,
+  lineaApagada,
+  lineaDelMenu,
+  menuDe,
+} from './soporte/lista-de-catalogo'
 import { borrarLeadsDePrueba, crearLead } from './soporte/leads'
 import { telefonoAlAzar } from './soporte/leads-alta'
 import {
@@ -16,7 +23,6 @@ import {
   abrirTipos,
   borrarTiposDePrueba,
   filaDeTipo,
-  interruptorDe,
   modalDeTipo,
   nombresEnPantalla,
   sembrarTipo,
@@ -134,7 +140,7 @@ test('se renombra y la clase se ve sin poder cambiarla; un nombre ya tomado o va
   await entrar(page, duena)
   await abrirTipos(page)
 
-  await page.getByRole('button', { name: `Editar ${uno}` }).click()
+  await page.getByRole('button', { name: `Abrir ${uno}`, exact: true }).click()
   const modal = modalDeTipo(page, 'Editar tipo')
   await expect(modal.getByLabel('Nombre')).toHaveValue(uno)
   // La clase de este tipo, marcada y quieta.
@@ -213,32 +219,33 @@ test('el último activo de su clase no se apaga ni se elimina, y la fila lo dice
   expect(error).toBeNull()
   await entrar(page, duena)
   await abrirTipos(page)
-  const prospecto = filaDeTipo(page, 'Prospecto')
   // «Prospecto» es el único activo de su clase: apagado y con el motivo; tampoco se elimina.
-  await expect(interruptorDe(page, 'Prospecto')).toBeDisabled()
-  await expect(prospecto.getByText('Es el único activo de su clase')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Eliminar Prospecto' })).toBeDisabled()
-  await expect(interruptorDe(page, 'Prospecto')).toHaveAttribute(
-    'title',
-    'Es el único tipo activo de la clase «prospecto»: activa o crea otro antes.',
-  )
+  const desactivarProspecto = await lineaDelMenu(page, 'Prospecto', 'Desactivar')
+  await expect(desactivarProspecto).toBeDisabled()
+  await expect(
+    page.getByText('Es el único tipo activo de la clase «prospecto»: activa o crea otro antes.'),
+  ).toBeVisible()
+  await expect(
+    menuDe(page, 'Prospecto').getByRole('menuitem', { name: 'Eliminar', exact: true }),
+  ).toBeDisabled()
+  await expect(
+    page.getByText('«Prospecto» es el único tipo activo de la clase «prospecto»: no se elimina.'),
+  ).toBeVisible()
+  await cerrarMenu(page, 'Prospecto')
 
   // La clase cliente tiene dos activos («Cliente» y «Primero»): se puede apagar uno...
-  await expect(interruptorDe(page, 'Cliente')).toBeEnabled()
-  await interruptorDe(page, uno).click()
+  expect(await lineaApagada(page, 'Cliente', 'Desactivar')).toBe(false)
+  await elegirDelMenu(page, uno, 'Desactivar')
   await expect(filaDeTipo(page, uno).getByText('Desactivado')).toBeVisible()
   expect(await tipoEnLaBase(uno)).toMatchObject({ activo: false })
   // ...y entonces el que queda es el último de su clase.
-  await expect(interruptorDe(page, 'Cliente')).toBeDisabled()
-  await expect(
-    filaDeTipo(page, 'Cliente').getByText('Es el único activo de su clase'),
-  ).toBeVisible()
+  expect(await lineaApagada(page, 'Cliente', 'Desactivar')).toBe(true)
 
   // «Deshacer» lo vuelve a encender y «Cliente» ya puede apagarse otra vez.
   await page.getByRole('button', { name: 'Deshacer' }).click()
   await expect(filaDeTipo(page, uno).getByText('Desactivado')).toHaveCount(0)
   expect(await tipoEnLaBase(uno)).toMatchObject({ activo: true })
-  await expect(interruptorDe(page, 'Cliente')).toBeEnabled()
+  expect(await lineaApagada(page, 'Cliente', 'Desactivar')).toBe(false)
 })
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
@@ -261,17 +268,17 @@ test('desactivar un tipo con leads: se conserva en ellos y deja de ofrecerse; co
   await abrirTipos(page)
   const fila = filaDeTipo(page, uno)
   await expect(fila.getByText('Tiene leads', { exact: true })).toBeVisible()
-  await interruptorDe(page, uno).click()
+  await elegirDelMenu(page, uno, 'Desactivar')
   await expect(fila.getByText('Desactivado')).toBeVisible()
-  await expect(fila.getByText('Tiene leads · no se ofrece en un lead nuevo')).toBeVisible()
+  await expect(fila.getByText('Tiene leads', { exact: true })).toBeVisible()
   expect(await tipoEnLaBase(uno)).toMatchObject({ activo: false })
 
-  const conLeads = page.getByRole('button', { name: `Eliminar ${uno}` })
-  await expect(conLeads).toBeDisabled()
-  await expect(conLeads).toHaveAttribute('title', new RegExp(`«${uno}» ya tiene leads`))
+  await expect(await lineaDelMenu(page, uno, 'Eliminar')).toBeDisabled()
+  await expect(page.getByText(new RegExp(`«${uno}» ya tiene leads`))).toBeVisible()
+  await cerrarMenu(page, uno)
 
   // Lo vuelve a encender, para lo que sigue.
-  await interruptorDe(page, uno).click()
+  await elegirDelMenu(page, uno, 'Activar')
   await expect(fila.getByText('Desactivado')).toHaveCount(0)
 })
 
@@ -281,13 +288,13 @@ test('eliminar sin leads pide confirmar nombrando el tipo', async ({ page }) => 
   await entrar(page, duena)
   await abrirTipos(page)
 
-  await page.getByRole('button', { name: `Eliminar ${dos}` }).click()
+  await elegirDelMenu(page, dos, 'Eliminar')
   const confirmar = page.getByRole('dialog', { name: `Eliminar el tipo «${dos}»` })
   await expect(confirmar).toBeVisible()
   await confirmar.getByRole('button', { name: 'Cancelar' }).click()
   expect(await tipoEnLaBase(dos)).toBeDefined()
 
-  await page.getByRole('button', { name: `Eliminar ${dos}` }).click()
+  await elegirDelMenu(page, dos, 'Eliminar')
   await page
     .getByRole('dialog', { name: `Eliminar el tipo «${dos}»` })
     .getByRole('button', { name: 'Eliminar tipo' })

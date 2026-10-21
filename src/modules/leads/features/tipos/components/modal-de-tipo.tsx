@@ -2,8 +2,10 @@
 
 import { Campo } from '@/shared/ui/campo'
 import { ModalDeFormulario } from '@/shared/ui/modal-de-formulario'
+import { SelectorDeIcono } from '@/shared/ui/selector-de-icono'
 import {
   CLAVE_DE_LA_CLASE,
+  CLAVE_DEL_ICONO,
   CLAVE_DEL_NOMBRE,
   LARGO_MAXIMO_DE_TIPO,
   type TipoDeLeadConUso,
@@ -26,10 +28,11 @@ const IDS = {
   formulario: 'tipo-de-lead',
   nombre: CLAVE_DEL_NOMBRE,
   clase: 'tipo-de-lead-clase',
+  icono: 'tipo-de-lead-icono',
 } as const
 
-// «Nuevo tipo» y «Editar» de un tipo de lead (`?panel=nuevo-tipo`, `?panel=editar-tipo&tipo=`): el nombre y, al crear, la clase,
-// que no cambia después (al editar se ve y no se toca). Activar y ordenar se hacen en la fila. El contrato del modal (preguntar
+// «Nuevo tipo» y «Editar» de un tipo de lead (`?panel=nuevo-tipo`, `?panel=editar-tipo&tipo=`): el nombre, el icono (del catálogo cerrado) y, al
+// crear, la clase, que no cambia después (al editar se ve y no se toca). Activar y ordenar se hacen en la lista. El contrato del modal (preguntar
 // antes de cerrar con algo escrito, no cerrarse mientras guarda, el conflicto con «Recargar») es de `ModalDeFormulario`. Quien lo
 // monta le da una `key` por apertura: cada una empieza de cero, con un id de intento nuevo.
 export function ModalDeTipo({ abierto, alCerrar, tipos, original, noDisponible }: Props) {
@@ -70,6 +73,12 @@ export function ModalDeTipo({ abierto, alCerrar, tipos, original, noDisponible }
         error={formulario.errores[CLAVE_DE_LA_CLASE]}
         fija={original !== null}
         idDelPrimero={IDS.clase}
+      />
+      <SelectorDeIcono
+        valor={formulario.icono}
+        alElegir={formulario.elegirIcono}
+        error={formulario.errores[CLAVE_DEL_ICONO]}
+        idDelPrimero={IDS.icono}
       />
     </ModalDeFormulario>
   )

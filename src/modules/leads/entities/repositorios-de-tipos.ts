@@ -4,15 +4,21 @@ import type { ClaseDeTipoDeLead, ListaDeTipos, RespuestaDeTipos } from './tipo-d
 
 // Los tipos de lead (parte 9j). Las cuatro escrituras devuelven la lista entera con las versiones nuevas (a lo sumo el tope, que
 // lo pone la base). El alta lleva el id del intento —repetirla devuelve el mismo tipo— y la clase, que no se cambia después.
-// Guardar es nombre y/o activo.
+// Guardar es nombre, icono y/o activo.
 type Respuesta = Promise<{ ok: true; data: RespuestaDeTipos } | FalloDeMarca>
 
 export type RepositorioDeTiposDeLead = {
-  crear: (pedido: { id: string; nombre: string; clase: ClaseDeTipoDeLead }) => Respuesta
+  crear: (pedido: {
+    id: string
+    nombre: string
+    clase: ClaseDeTipoDeLead
+    icono: string | null
+  }) => Respuesta
   guardar: (pedido: {
     id: string
     actualizadoEnEsperado: string
     nombre?: string | undefined
+    icono?: string | null | undefined
     activo?: boolean | undefined
   }) => Respuesta
   // «Después de X» (nulo = primero): la base calcula los lugares.

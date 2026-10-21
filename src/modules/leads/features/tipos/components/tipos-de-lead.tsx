@@ -3,20 +3,22 @@
 import { PlusIcon } from 'lucide-react'
 import { Aviso } from '@/shared/ui/aviso'
 import { Button } from '@/shared/ui/button'
+import { ListaDeCatalogo } from '@/shared/ui/lista-de-catalogo/lista-de-catalogo'
+import { useFocoTrasMover } from '@/shared/ui/lista-de-catalogo/use-foco-tras-mover'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { alTopeDeTipos, textoDelTope, type ListaDeTipos } from '../../../entities/tipo-de-lead'
 import { useEliminarTipoPorUrl } from '../hooks/use-eliminar-tipo-por-url'
-import { useFocoTrasMover } from '../hooks/use-foco-tras-mover'
 import { useModalDeTipo } from '../hooks/use-modal-de-tipo'
 import { useTiposDeLead } from '../hooks/use-tipos-de-lead'
 import { EliminarTipoDiferido, ModalDeTipoDiferido } from './diferidos'
-import { FilasDeTipos } from './filas-de-tipos'
+import { filasDeTipos } from './filas-de-tipos'
 
 type Props = {
   lista: ListaDeTipos
 }
 
 const BOTON = 'h-11 md:h-8'
+const PREFIJO = 'tipo'
 
 function Encabezado({ alNuevo, alTope }: { alNuevo: () => void; alTope: boolean }) {
   return (
@@ -46,7 +48,7 @@ function Encabezado({ alNuevo, alTope }: { alNuevo: () => void; alTope: boolean 
   )
 }
 
-// Configuración › Leads › Tipos de lead: se crean, renombran, ordenan, activan y desactivan; uno con leads no se elimina, se
+// Configuración › Leads › Tipos de lead: se crean, renombran, eligen su icono, ordenan, activan y desactivan; uno con leads no se elimina, se
 // desactiva (sigue nombrando a los leads que ya lo tienen y no se ofrece para uno nuevo). Cada tipo es de una clase fija
 // —prospecto o cliente— y siempre queda uno activo de cada clase: el último de la suya no se apaga ni se elimina, y la fila lo
 // dice antes de intentarlo. Hasta el tope que dice la base; la lista no se pagina. Todo cambio lo hace la base por RPC con su
@@ -59,7 +61,7 @@ export function TiposDeLead({ lista: inicial }: Props) {
   const eliminacion = useEliminarTipoPorUrl(lista.tipos)
   const montarEliminar = useAbiertoAlgunaVez(eliminacion.abierto)
   const alTope = alTopeDeTipos(lista.tipos, lista.tope)
-  useFocoTrasMover(tipos.movimiento)
+  useFocoTrasMover(PREFIJO, tipos.movimiento)
 
   return (
     <section className="grid gap-3" aria-labelledby="titulo-de-tipos">
@@ -69,11 +71,23 @@ export function TiposDeLead({ lista: inicial }: Props) {
           <span id="tipos-tope">{textoDelTope(lista.tope)}</span>
         </Aviso>
       ) : null}
-      <FilasDeTipos
-        tipos={tipos}
-        alEditar={modal.abrirEdicion}
-        alPedirEliminar={eliminacion.abrir}
+      <ListaDeCatalogo
+        filas={filasDeTipos(lista.tipos, {
+          alEditar: modal.abrirEdicion,
+          alActivar: (tipo, activo) => void tipos.activar(tipo, activo),
+          alPedirEliminar: eliminacion.abrir,
+        })}
+        prefijo={PREFIJO}
+        columnaDeUso="Leads"
+        alAbrir={modal.abrirEdicion}
+        alMover={(id, direccion) => {
+          const tipo = lista.tipos.find((uno) => uno.id === id)
+          if (tipo) void tipos.mover(tipo, direccion)
+        }}
       />
+      <p className="text-(length:--text-sm) text-(--color-ink-faint)">
+        {lista.tipos.length} de {lista.tope} tipos posibles.
+      </p>
       <p role="status" aria-live="polite" className="sr-only">
         {tipos.anuncio}
       </p>
@@ -96,7 +110,7 @@ export function TiposDeLead({ lista: inicial }: Props) {
           alEliminar={tipos.eliminar}
           focoAlCerrar={() =>
             document.querySelector<HTMLElement>(
-              `[data-eliminar-tipo="${eliminacion.tipo?.id ?? ''}"]`,
+              `[data-mas-acciones="${PREFIJO}-${eliminacion.tipo?.id ?? ''}-mas"]`,
             ) ?? true
           }
         />

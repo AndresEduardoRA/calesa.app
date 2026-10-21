@@ -14,13 +14,13 @@ import {
   abrirTipos,
   borrarTiposDePrueba,
   filaDeTipo,
-  interruptorDe,
   llenarHasta,
   modalDeTipo,
   sembrarTipo,
   tipoDeFabrica,
   tipoEnLaBase,
 } from './soporte/tipos-de-lead'
+import { elegirDelMenu, lineaApagada, masAccionesDe } from './soporte/lista-de-catalogo'
 import {
   cicloDeUnaConfirmacion,
   dobleClicManda,
@@ -64,12 +64,12 @@ test('apagar el último activo de su clase con la lista vieja: la base lo rechaz
   const cliente = await tipoDeFabrica('cliente')
   await entrar(page, duena)
   await abrirTipos(page)
-  // La pantalla ve a «Cliente» y a «Tres» activos: los dos interruptores andan.
-  await expect(interruptorDe(page, tres)).toBeEnabled()
-  await expect(interruptorDe(page, 'Cliente')).toBeEnabled()
+  // La pantalla ve a «Cliente» y a «Tres» activos: los dos se pueden desactivar.
+  expect(await lineaApagada(page, tres, 'Desactivar')).toBe(false)
+  expect(await lineaApagada(page, 'Cliente', 'Desactivar')).toBe(false)
   // Otra persona apaga «Cliente» (queda «Tres» como el último de su clase): esta pantalla no lo sabe.
   await admin().from('tipos_lead').update({ activo: false }).eq('id', cliente.id)
-  await interruptorDe(page, tres).click()
+  await elegirDelMenu(page, tres, 'Desactivar')
   await expect(
     page
       .getByText('Es el único tipo activo de la clase «cliente»: activa o crea otro antes.')
@@ -78,7 +78,7 @@ test('apagar el último activo de su clase con la lista vieja: la base lo rechaz
   expect(await tipoEnLaBase(tres)).toMatchObject({ activo: true })
   // La pantalla se vuelve a leer: «Cliente» aparece apagado y «Tres», ahora el único, no se puede apagar.
   await expect(filaDeTipo(page, 'Cliente').getByText('Desactivado')).toBeVisible()
-  await expect(interruptorDe(page, tres)).toBeDisabled()
+  expect(await lineaApagada(page, tres, 'Desactivar')).toBe(true)
   await admin().from('tipos_lead').update({ activo: true }).eq('id', cliente.id)
 })
 
@@ -90,7 +90,7 @@ test('dos personas editando el mismo tipo: la segunda ve el conflicto y lo escri
   const tres = nombre('Tres')
   await entrar(page, duena)
   await abrirTipos(page)
-  await page.getByRole('button', { name: `Editar ${tres}` }).click()
+  await page.getByRole('button', { name: `Abrir ${tres}`, exact: true }).click()
   const primera = modalDeTipo(page, 'Editar tipo')
   await primera.getByLabel('Nombre').fill(nombre('Tres A'))
 
@@ -98,7 +98,7 @@ test('dos personas editando el mismo tipo: la segunda ve el conflicto y lo escri
   const otra = await contexto.newPage()
   await entrar(otra, duena, { fresco: true })
   await abrirTipos(otra)
-  await otra.getByRole('button', { name: `Editar ${tres}` }).click()
+  await otra.getByRole('button', { name: `Abrir ${tres}`, exact: true }).click()
   const segunda = modalDeTipo(otra, 'Editar tipo')
   await segunda.getByLabel('Nombre').fill(nombre('Tres B'))
   await segunda.getByRole('button', { name: 'Guardar' }).click()
@@ -152,10 +152,12 @@ test('eliminar un tipo: su URL, Esc, atrás, recarga, sin red y un solo pedido; 
   await sembrarTipo(url)
   await entrar(page, duena, { fresco: true })
   await abrirTipos(page)
-  const disparador = page.getByRole('button', { name: `Eliminar ${url}` })
+  const disparador = masAccionesDe(page, url)
   const dialogo = page.getByRole('dialog', { name: `Eliminar el tipo «${url}»` })
   await cicloDeUnaConfirmacion(page, {
-    abrir: () => disparador.click(),
+    abrir: async () => {
+      await elegirDelMenu(page, url, 'Eliminar')
+    },
     dialogo,
     disparador,
     url: /panel=eliminar-tipo&tipo=/,

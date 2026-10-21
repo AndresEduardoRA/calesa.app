@@ -9,6 +9,7 @@ import {
 } from './soporte/base'
 import { borrarLeadsDePrueba, crearLead } from './soporte/leads'
 import { telefonoAlAzar } from './soporte/leads-alta'
+import { nombresDeLaLista } from './soporte/lista-de-catalogo'
 import {
   PREFIJO_DE_ORIGEN_E2E,
   abrirOrigenes,
@@ -95,7 +96,7 @@ async function cambiarA(page: Page, correo: string) {
 
 async function lasAcciones(page: Page) {
   for (const boton of await page
-    .getByRole('button', { name: /^(Subir|Bajar|Editar|Eliminar) / })
+    .getByRole('button', { name: /^(Subir|Bajar|Más acciones de) / })
     .all()) {
     if (await boton.isEnabled()) {
       // Fuera de la pantalla no hay nada que recibir el clic: se baja hasta el botón.
@@ -182,7 +183,7 @@ test('B · con 12 orígenes, uno desactivado y uno con leads: la lista, el alta 
   await volcarArbol(page.getByRole('region', { name: 'Orígenes del lead' }), info, 'duena-doce')
 
   // El modal de edición, en el celular también cabe.
-  await page.getByRole('button', { name: `Editar ${conLeads?.nombre ?? ''}` }).click()
+  await page.getByRole('button', { name: `Abrir ${conLeads?.nombre ?? ''}`, exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Editar origen' })).toBeVisible()
   await sinScrollHorizontal(page)
   await capturar(page, info, 'duena-doce-editar')
@@ -219,7 +220,7 @@ test('C · con el máximo (100): lo dice, «Nuevo origen» se apaga y la lista s
   await expect(page.getByText('Llegaste al máximo de 100 orígenes.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Nuevo origen' })).toBeDisabled()
   await expect(page.getByText('100 de 100 orígenes posibles.')).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Editar / })).toHaveCount(100)
+  await expect(nombresDeLaLista(page, 'origenes')).toHaveCount(100)
   await sinScrollHorizontal(page)
   await capturar(page, info, 'duena-cien')
 

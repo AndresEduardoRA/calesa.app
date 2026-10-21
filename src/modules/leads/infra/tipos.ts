@@ -12,6 +12,7 @@ const CAMPO_DEL_HINT: Record<string, string> = {
   nombre: 'nombre',
   activo: 'activo',
   clase: 'clase',
+  icono: 'icono',
 }
 
 function fallo(error: { code?: string | null; message: string; hint?: string | null }) {
@@ -27,22 +28,24 @@ function respuesta(data: unknown) {
 }
 
 export const tiposDeLeadSupabase: RepositorioDeTiposDeLead = {
-  crear: async ({ id, nombre, clase }) => {
+  crear: async ({ id, nombre, clase, icono }) => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('tipo_lead_crear', {
       p_id: id,
       p_nombre: nombre,
       p_clase: clase,
+      ...(icono === null ? {} : { p_icono: icono }),
     })
     return error ? fallo(error) : respuesta(data)
   },
-  guardar: async ({ id, actualizadoEnEsperado, nombre, activo }) => {
+  guardar: async ({ id, actualizadoEnEsperado, nombre, icono, activo }) => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('tipo_lead_guardar', {
       p_id: id,
       p_actualizado_en_esperado: actualizadoEnEsperado,
       p_cambios: {
         ...(nombre === undefined ? {} : { nombre }),
+        ...(icono === undefined ? {} : { icono }),
         ...(activo === undefined ? {} : { activo }),
       },
     })

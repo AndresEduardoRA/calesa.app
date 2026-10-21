@@ -8,7 +8,12 @@ import type { RepositorioDeOrigenesDeLead } from '../entities/repositorios-de-or
 // con `leads.configurar`. Guardar, mover y eliminar piden la versión (`PT409` legible si otra pestaña
 // la cambió). Todas devuelven la lista entera: la pantalla no vuelve a leer.
 
-const CAMPO_DEL_HINT: Record<string, string> = { nombre: 'nombre', activo: 'activo' }
+const CAMPO_DEL_HINT: Record<string, string> = {
+  nombre: 'nombre',
+  activo: 'activo',
+  icono: 'icono',
+  por_defecto: 'porDefecto',
+}
 
 function fallo(error: { code?: string | null; message: string; hint?: string | null }) {
   const campo = error.hint ? CAMPO_DEL_HINT[error.hint] : undefined
@@ -23,19 +28,25 @@ function respuesta(data: unknown) {
 }
 
 export const origenesDeLeadSupabase: RepositorioDeOrigenesDeLead = {
-  crear: async ({ id, nombre }) => {
+  crear: async ({ id, nombre, icono }) => {
     const supabase = await createClient()
-    const { data, error } = await supabase.rpc('origen_lead_crear', { p_id: id, p_nombre: nombre })
+    const { data, error } = await supabase.rpc('origen_lead_crear', {
+      p_id: id,
+      p_nombre: nombre,
+      ...(icono === null ? {} : { p_icono: icono }),
+    })
     return error ? fallo(error) : respuesta(data)
   },
-  guardar: async ({ id, actualizadoEnEsperado, nombre, activo }) => {
+  guardar: async ({ id, actualizadoEnEsperado, nombre, icono, activo, porDefecto }) => {
     const supabase = await createClient()
     const { data, error } = await supabase.rpc('origen_lead_guardar', {
       p_id: id,
       p_actualizado_en_esperado: actualizadoEnEsperado,
       p_cambios: {
         ...(nombre === undefined ? {} : { nombre }),
+        ...(icono === undefined ? {} : { icono }),
         ...(activo === undefined ? {} : { activo }),
+        ...(porDefecto === undefined ? {} : { por_defecto: porDefecto }),
       },
     })
     return error ? fallo(error) : respuesta(data)

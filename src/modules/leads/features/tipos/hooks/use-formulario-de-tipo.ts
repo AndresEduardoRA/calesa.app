@@ -5,9 +5,10 @@ import { useState, useTransition } from 'react'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import {
   CLAVE_DE_LA_CLASE,
+  CLAVE_DEL_ICONO,
   CLAVE_DEL_NOMBRE,
-  normalizarNombreDeTipo,
-  validarTipo,
+  decidirEnvioDeTipo,
+  hayCambiosEnTipo,
   type ClaseDeTipoDeLead,
   type TipoDeLeadConUso,
 } from '../../../entities/tipo-de-lead'
@@ -32,6 +33,7 @@ export function useFormularioDeTipo({ tipos, original, alCerrar, abierto }: Args
   const [intento] = useState(() => crypto.randomUUID())
   const [nombre, setNombre] = useState(original?.nombre ?? '')
   const [clase, setClase] = useState<ClaseDeTipoDeLead | null>(original?.clase ?? null)
+  const [icono, setIcono] = useState<string | null>(original?.icono ?? null)
   const [recargando, recargarPagina] = useTransition()
   const respuesta = useRespuestaDelFormulario(original, alCerrar)
   const { setErrores } = respuesta
@@ -40,22 +42,27 @@ export function useFormularioDeTipo({ tipos, original, alCerrar, abierto }: Args
     if (respuesta.conflicto !== null) {
       return false
     }
-    const validado = validarTipo(nombre, clase, tipos.tipos, original)
-    if (!validado.ok) {
-      setErrores(validado.motivos)
+    const decision = decidirEnvioDeTipo({
+      texto: nombre,
+      clase,
+      icono,
+      tipos: tipos.tipos,
+      original,
+    })
+    if (decision.paso === 'invalido') {
+      setErrores(decision.motivos)
       return false
     }
-    // Sin cambio no hay nada que guardar: se cierra.
-    if (original && validado.nombre === original.nombre) {
+    if (decision.paso === 'nada') {
       alCerrar()
       return true
     }
     respuesta.setAviso(null)
-    return respuesta.aplicar(
-      original
-        ? await tipos.renombrar(original, validado.nombre)
-        : await tipos.crear(intento, validado.nombre, validado.clase),
-    )
+    if (decision.paso === 'crear') {
+      return respuesta.aplicar(await tipos.crear(intento, decision.nombre, decision.clase, icono))
+    }
+    // `guardar` sólo sale con un tipo que se edita.
+    return original ? respuesta.aplicar(await tipos.guardar(original, decision.cambios)) : false
   }
 
   const enLinea = useReintentoAlVolver(abierto ? respuesta.pendiente : null, () => enviar())
@@ -63,19 +70,22 @@ export function useFormularioDeTipo({ tipos, original, alCerrar, abierto }: Args
   return {
     nombre,
     clase,
+    icono,
     errores: respuesta.errores,
     aviso: respuesta.aviso,
     conflicto: respuesta.conflicto,
     enCurso: tipos.enCurso,
     enLinea,
     esperandoConexion: respuesta.pendiente !== null,
-    // Cerrar ahora perdería lo escrito: el modal pregunta antes. Elegir la clase ya es algo hecho.
-    hayCambios:
-      normalizarNombreDeTipo(nombre) !== (original?.nombre ?? '') || (!original && clase !== null),
+    hayCambios: hayCambiosEnTipo(nombre, clase, icono, original),
     recargando,
     escribir: (valor: string) => {
       setNombre(valor)
       setErrores(({ [CLAVE_DEL_NOMBRE]: _resuelto, ...resto }) => resto)
+    },
+    elegirIcono: (valor: string | null) => {
+      setIcono(valor)
+      setErrores(({ [CLAVE_DEL_ICONO]: _resuelto, ...resto }) => resto)
     },
     elegirClase: (valor: ClaseDeTipoDeLead) => {
       setClase(valor)

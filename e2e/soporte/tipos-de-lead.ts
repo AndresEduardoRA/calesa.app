@@ -5,6 +5,7 @@ import type { Locator, Page } from '@playwright/test'
 import { expect } from '@playwright/test'
 import { admin } from './base'
 import { exigir } from './leads'
+import { filaDeCatalogo, nombresEnLaLista } from './lista-de-catalogo'
 
 export const PREFIJO_DE_TIPO_E2E = 'E2E 9j'
 
@@ -95,22 +96,10 @@ export async function abrirTipos(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Tipos de lead', level: 2 })).toBeVisible()
 }
 
-export const filaDeTipo = (page: Page, nombre: string): Locator =>
-  page.getByRole('listitem').filter({ has: page.getByRole('button', { name: `Editar ${nombre}` }) })
-
-// Los nombres de las filas, en el orden en que se ven.
-export async function nombresEnPantalla(page: Page): Promise<string[]> {
-  const botones = await page.getByRole('button', { name: /^Editar / }).all()
-  const nombres: string[] = []
-  for (const boton of botones) {
-    nombres.push(((await boton.getAttribute('aria-label')) ?? '').replace(/^Editar /, ''))
-  }
-  return nombres
-}
+// Lo de la lista (la fila, el «⋯», los nombres) es común a las tres pestañas: `soporte/lista-de-catalogo.ts`. Activar y desactivar ya no son un
+// interruptor sino una línea del «⋯» de la fila (`alternarActivo`, `lineaApagada`).
+export const filaDeTipo = filaDeCatalogo
+export const nombresEnPantalla = (page: Page): Promise<string[]> => nombresEnLaLista(page, 'tipos')
 
 export const modalDeTipo = (page: Page, titulo: 'Nuevo tipo' | 'Editar tipo'): Locator =>
   page.getByRole('dialog', { name: titulo })
-
-// El interruptor «Activo» de una fila, por el nombre del tipo.
-export const interruptorDe = (page: Page, nombre: string): Locator =>
-  page.getByRole('switch', { name: `${nombre}: activo`, exact: true })

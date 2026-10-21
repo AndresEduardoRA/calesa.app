@@ -19,9 +19,13 @@ export type OrigenDeLeadConUso = {
   id: string
   clave: string
   nombre: string
+  // Una clave del catálogo de iconos, o nada. Una que no se conoce se dibuja neutra (`iconoADibujar`).
+  icono: string | null
   activo: boolean
+  // El origen «por defecto» de la empresa: el que el alta propone a quien no tiene un último origen activo. Uno solo, y activo.
+  porDefecto: boolean
   orden: number
-  // La versión: editar, ordenar y eliminar la mandan.
+  // La versión: editar, ordenar y eliminar la mandan (marcar «por defecto» no la mueve).
   actualizadoEn: string
   // Algún lead lo usa (también en la papelera): entonces no se elimina, sólo se desactiva.
   conLeads: boolean
@@ -31,7 +35,9 @@ const filaDeOrigen = z.object({
   id: z.guid(),
   clave: z.string(),
   nombre: z.string(),
+  icono: z.string().nullable(),
   activo: z.boolean(),
+  por_defecto: z.boolean(),
   orden: z.number(),
   actualizado_en: z.string().min(1),
   con_leads: z.boolean(),
@@ -46,7 +52,9 @@ export function listaDeOrigenesDesde(crudo: unknown): OrigenDeLeadConUso[] | nul
     id: fila.id,
     clave: fila.clave,
     nombre: fila.nombre,
+    icono: fila.icono,
     activo: fila.activo,
+    porDefecto: fila.por_defecto,
     orden: fila.orden,
     actualizadoEn: fila.actualizado_en,
     conLeads: fila.con_leads,
@@ -91,6 +99,7 @@ export function normalizarNombreDeOrigen(texto: string): string {
 }
 
 export const CLAVE_DEL_NOMBRE = 'nombre'
+export const CLAVE_DEL_ICONO = 'icono'
 
 type Nombre = { ok: true; nombre: string } | { ok: false; motivo: string }
 
@@ -123,7 +132,36 @@ export function alTopeDeOrigenes(origenes: readonly OrigenDeLeadConUso[]): boole
 
 export const TEXTO_DEL_TOPE = `Llegaste al máximo de ${TOPE_DE_ORIGENES_DE_LEAD} orígenes. Elimina uno sin leads o desactiva los que no uses.`
 
+// Lo que cambió respecto del origen que se edita: sólo eso viaja (el icono sin tocar no se manda, aunque sea una clave que ya no se conoce).
+export function cambiosDeOrigen(
+  original: OrigenDeLeadConUso,
+  nombre: string,
+  icono: string | null,
+): { nombre?: string; icono?: string | null } {
+  return {
+    ...(nombre === original.nombre ? {} : { nombre }),
+    ...(icono === original.icono ? {} : { icono }),
+  }
+}
+
+// Por qué «Desactivar» no se puede (nulo = se puede): el origen «por defecto» tiene que estar activo. El mismo texto que dice la base.
+export function motivoParaNoDesactivar(origen: OrigenDeLeadConUso): string | null {
+  return origen.porDefecto
+    ? `«${origen.nombre}» es el origen por defecto: quítale la marca o elige otro por defecto antes de desactivarlo.`
+    : null
+}
+
+// Por qué «Marcar por defecto» no se puede (nulo = se puede): uno apagado no puede ser el por defecto. Activarlo primero.
+export function motivoParaNoMarcarPorDefecto(origen: OrigenDeLeadConUso): string | null {
+  return origen.activo
+    ? null
+    : `«${origen.nombre}» está desactivado: actívalo antes de elegirlo como origen por defecto.`
+}
+
 export function motivoParaNoEliminar(origen: OrigenDeLeadConUso): string | null {
+  if (origen.porDefecto) {
+    return `«${origen.nombre}» es el origen por defecto: quítale la marca o elige otro por defecto antes de eliminarlo.`
+  }
   return origen.conLeads
     ? `«${origen.nombre}» ya tiene leads: no se elimina. Desactívalo para que no se ofrezca a los nuevos.`
     : null
@@ -195,7 +233,10 @@ export function origenPorId(
 // Una firma de lo que trae la página: si cambia, la lista local se vuelve a sembrar.
 export function firmaDeOrigenes(origenes: readonly OrigenDeLeadConUso[]): string {
   return origenes
-    .map((o) => `${o.id}:${o.actualizadoEn}:${o.orden}:${o.activo ? 1 : 0}:${o.conLeads ? 1 : 0}`)
+    .map(
+      (o) =>
+        `${o.id}:${o.actualizadoEn}:${String(o.orden)}:${o.activo ? 1 : 0}:${o.conLeads ? 1 : 0}:${o.porDefecto ? 1 : 0}:${o.icono ?? ''}`,
+    )
     .join('|')
 }
 
@@ -210,4 +251,41 @@ export function motivoParaNoAbrir(
     return alTopeDeOrigenes(origenes) ? TEXTO_DEL_TOPE : null
   }
   return modo === 'editar' ? motivoDeUrlDeOrigen(origenes, id) : null
+}
+
+export type EnvioDelFormularioDeOrigen =
+  | { paso: 'invalido'; motivos: Record<string, string> }
+  // Sin cambio no hay nada que guardar: el modal se cierra.
+  | { paso: 'nada' }
+  | { paso: 'crear'; nombre: string }
+  | { paso: 'guardar'; cambios: { nombre?: string; icono?: string | null } }
+
+// Qué hace el modal al enviar: rechaza el nombre que no pasa (con su campo), cierra si no cambió nada, crea o guarda sólo lo que cambió.
+export function decidirEnvioDeOrigen(
+  texto: string,
+  icono: string | null,
+  origenes: readonly OrigenDeLeadConUso[],
+  original: OrigenDeLeadConUso | null,
+): EnvioDelFormularioDeOrigen {
+  const validado = validarNombreDeOrigen(texto, origenes, original?.id ?? null)
+  if (!validado.ok) {
+    return { paso: 'invalido', motivos: { [CLAVE_DEL_NOMBRE]: validado.motivo } }
+  }
+  if (!original) {
+    return { paso: 'crear', nombre: validado.nombre }
+  }
+  const cambios = cambiosDeOrigen(original, validado.nombre, icono)
+  return Object.keys(cambios).length === 0 ? { paso: 'nada' } : { paso: 'guardar', cambios }
+}
+
+// Cerrar ahora perdería lo escrito: el modal pregunta antes. Elegir un icono ya es algo hecho.
+export function hayCambiosEnOrigen(
+  texto: string,
+  icono: string | null,
+  original: OrigenDeLeadConUso | null,
+): boolean {
+  return (
+    normalizarNombreDeOrigen(texto) !== (original?.nombre ?? '') ||
+    icono !== (original?.icono ?? null)
+  )
 }

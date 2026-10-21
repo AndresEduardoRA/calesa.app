@@ -4,16 +4,18 @@ import type { OrigenDeLeadConUso, RespuestaDeOrigenes } from './origen-de-lead'
 
 // Los orígenes del lead (parte 9f-1). Las cuatro escrituras devuelven la lista entera con las
 // versiones nuevas (a lo sumo 100 filas). El alta lleva el id del intento: repetirla devuelve el mismo
-// origen. Guardar es nombre y/o activo.
+// origen y el icono (una clave del catálogo o nada). Guardar es nombre, icono, activo y/o «por defecto».
 type Respuesta = Promise<{ ok: true; data: RespuestaDeOrigenes } | FalloDeMarca>
 
 export type RepositorioDeOrigenesDeLead = {
-  crear: (pedido: { id: string; nombre: string }) => Respuesta
+  crear: (pedido: { id: string; nombre: string; icono: string | null }) => Respuesta
   guardar: (pedido: {
     id: string
     actualizadoEnEsperado: string
     nombre?: string | undefined
+    icono?: string | null | undefined
     activo?: boolean | undefined
+    porDefecto?: boolean | undefined
   }) => Respuesta
   // «Después de X» (nulo = primero): la base calcula los lugares.
   mover: (pedido: {

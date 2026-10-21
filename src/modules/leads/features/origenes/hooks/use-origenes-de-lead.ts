@@ -2,17 +2,18 @@
 
 import { useState } from 'react'
 import { avisarConDeshacer, avisarExito } from '@/shared/ui/toasts'
+import type { Movimiento } from '@/shared/ui/lista-de-catalogo/use-foco-tras-mover'
 import {
   destinoDeOrigen,
   firmaDeOrigenes,
+  motivoParaNoDesactivar,
   textoDelLugar,
   type Direccion,
   type OrigenDeLeadConUso,
 } from '../../../entities/origen-de-lead'
 import { useEscrituraDeOrigenes } from './use-escritura-de-origenes'
 import { usePedidosDeOrigenes } from './use-pedidos-de-origenes'
-
-export type Movimiento = { id: string; direccion: Direccion; veces: number }
+import { usePorDefecto } from './use-por-defecto'
 
 // La lista de la página, sembrada por una firma: si lo que trae cambia (otra persona, «Recargar»), la
 // local se vuelve a sembrar con eso.
@@ -34,12 +35,17 @@ export function useOrigenesDeLead(inicial: readonly OrigenDeLeadConUso[]) {
   const [origenes, poner] = useListaSembrada(inicial)
   const escritura = useEscrituraDeOrigenes(poner)
   const pedir = usePedidosDeOrigenes()
+  const porDefecto = usePorDefecto(origenes, escritura, pedir)
   // Lo que anuncia el lector de pantalla tras mover, y qué se movió (la pantalla devuelve el foco).
   const [anuncio, setAnuncio] = useState('')
   const [movimiento, setMovimiento] = useState<Movimiento | null>(null)
 
-  // El interruptor «Activo» guarda solo, y es reversible: se ofrece «Deshacer» (con la versión nueva).
+  // Activar o desactivar guarda solo, y es reversible: se ofrece «Deshacer» (con la versión nueva). El origen por defecto no se apaga (la
+  // lista lo dice y la base lo rechaza igual si llegara).
   async function activar(origen: OrigenDeLeadConUso, activo: boolean) {
+    if (!activo && motivoParaNoDesactivar(origen) !== null) {
+      return
+    }
     const envio = await escritura.mandar(() => pedir.guardar(origen, { activo }))
     if (envio === null) {
       return
@@ -91,10 +97,12 @@ export function useOrigenesDeLead(inicial: readonly OrigenDeLeadConUso[]) {
     movimiento,
     enCurso: escritura.enCurso,
     // Los dos del modal devuelven el envío entero: el modal dice el motivo junto al campo.
-    crear: (id: string, nombre: string) => escritura.mandar(() => pedir.crear(id, nombre)),
-    renombrar: (origen: OrigenDeLeadConUso, nombre: string) =>
-      escritura.mandar(() => pedir.guardar(origen, { nombre })),
+    crear: (id: string, nombre: string, icono: string | null) =>
+      escritura.mandar(() => pedir.crear(id, nombre, icono)),
+    guardar: (origen: OrigenDeLeadConUso, cambios: { nombre?: string; icono?: string | null }) =>
+      escritura.mandar(() => pedir.guardar(origen, cambios)),
     activar,
+    marcarPorDefecto: porDefecto.marcar,
     mover,
     eliminar,
   }

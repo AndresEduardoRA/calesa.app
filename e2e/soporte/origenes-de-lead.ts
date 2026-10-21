@@ -5,6 +5,7 @@ import { expect } from '@playwright/test'
 import { admin } from './base'
 import { esMovil } from './inventario'
 import { exigir } from './leads'
+import { filaDeCatalogo, nombresEnLaLista } from './lista-de-catalogo'
 
 export const PREFIJO_DE_ORIGEN_E2E = 'E2E 9f'
 
@@ -83,18 +84,10 @@ export async function abrirOrigenes(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Orígenes del lead', level: 2 })).toBeVisible()
 }
 
-export const filaDeOrigen = (page: Page, nombre: string): Locator =>
-  page.getByRole('listitem').filter({ has: page.getByRole('button', { name: `Editar ${nombre}` }) })
-
-// Los nombres de las filas, en el orden en que se ven.
-export async function nombresEnPantalla(page: Page): Promise<string[]> {
-  const botones = await page.getByRole('button', { name: /^Editar / }).all()
-  const nombres: string[] = []
-  for (const boton of botones) {
-    nombres.push(((await boton.getAttribute('aria-label')) ?? '').replace(/^Editar /, ''))
-  }
-  return nombres
-}
+// Lo de la lista (la fila, el «⋯», los nombres) es común a las tres pestañas: `soporte/lista-de-catalogo.ts`.
+export const filaDeOrigen = filaDeCatalogo
+export const nombresEnPantalla = (page: Page): Promise<string[]> =>
+  nombresEnLaLista(page, 'origenes')
 
 export const modalDeOrigen = (page: Page, titulo: 'Nuevo origen' | 'Editar origen'): Locator =>
   page.getByRole('dialog', { name: titulo })

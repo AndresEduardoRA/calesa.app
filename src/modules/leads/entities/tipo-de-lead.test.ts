@@ -27,6 +27,7 @@ const tipo = (n: number, extra: Partial<TipoDeLeadConUso> = {}): TipoDeLeadConUs
   clave: `t${n}`,
   nombre: `Tipo ${n}`,
   clase: n % 2 === 1 ? 'prospecto' : 'cliente',
+  icono: null,
   activo: true,
   orden: n * 10,
   actualizadoEn: `2026-10-16T12:00:0${n}.123456+00:00`,
@@ -46,6 +47,7 @@ const filas = [
     clave: 'prospecto',
     nombre: 'Prospecto',
     clase: 'prospecto',
+    icono: 'persona',
     activo: true,
     orden: 10,
     actualizado_en: '2026-10-16T12:00:00.123456+00:00',
@@ -63,6 +65,7 @@ describe('listaDeTiposDesde', () => {
           clave: 'prospecto',
           nombre: 'Prospecto',
           clase: 'prospecto',
+          icono: 'persona',
           activo: true,
           orden: 10,
           actualizadoEn: '2026-10-16T12:00:00.123456+00:00',
@@ -224,6 +227,7 @@ describe('textos y estados', () => {
     expect(firmaDeTipos(lista([tipo(1, { actualizadoEn: 'otra' }), ...tipos.slice(1)]))).not.toBe(
       base,
     )
+    expect(firmaDeTipos(lista([tipo(1, { icono: 'casa' }), ...tipos.slice(1)]))).not.toBe(base)
     expect(firmaDeTipos(lista(tipos, 50))).not.toBe(base)
   })
 })

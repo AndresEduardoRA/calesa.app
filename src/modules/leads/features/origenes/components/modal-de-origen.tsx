@@ -2,7 +2,9 @@
 
 import { Campo } from '@/shared/ui/campo'
 import { ModalDeFormulario } from '@/shared/ui/modal-de-formulario'
+import { SelectorDeIcono } from '@/shared/ui/selector-de-icono'
 import {
+  CLAVE_DEL_ICONO,
   CLAVE_DEL_NOMBRE,
   LARGO_MAXIMO_DE_ORIGEN,
   type OrigenDeLeadConUso,
@@ -20,10 +22,14 @@ type Props = {
   noDisponible: string | null
 }
 
-const IDS = { formulario: 'origen-de-lead', nombre: CLAVE_DEL_NOMBRE } as const
+const IDS = {
+  formulario: 'origen-de-lead',
+  nombre: CLAVE_DEL_NOMBRE,
+  icono: 'origen-de-lead-icono',
+} as const
 
 // «Nuevo origen» y «Editar» de un origen del lead (`?panel=nuevo-origen`, `?panel=editar-origen&origen=`):
-// sólo el nombre. Activar y ordenar se hacen en la fila. El contrato del modal (preguntar antes de
+// el nombre y el icono, del catálogo cerrado. Activar, ordenar y el «por defecto» se hacen en la lista. El contrato del modal (preguntar antes de
 // cerrar con algo escrito, no cerrarse mientras guarda, el conflicto con «Recargar») es de
 // `ModalDeFormulario`. Quien lo monta le da una `key` por apertura: cada una empieza de cero, con un
 // id de intento nuevo.
@@ -58,6 +64,12 @@ export function ModalDeOrigen({ abierto, alCerrar, origenes, original, noDisponi
         }}
         error={formulario.errores[CLAVE_DEL_NOMBRE]}
         ayuda={`Hasta ${String(LARGO_MAXIMO_DE_ORIGEN)} caracteres. Dos orígenes no pueden llamarse igual.`}
+      />
+      <SelectorDeIcono
+        valor={formulario.icono}
+        alElegir={formulario.elegirIcono}
+        error={formulario.errores[CLAVE_DEL_ICONO]}
+        idDelPrimero={IDS.icono}
       />
     </ModalDeFormulario>
   )

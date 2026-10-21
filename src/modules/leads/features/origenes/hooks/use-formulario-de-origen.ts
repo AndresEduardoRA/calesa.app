@@ -2,17 +2,15 @@
 
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import type { Envio } from '@/shared/lib/enviar-accion'
-import { avisarExito } from '@/shared/ui/toasts'
-import { useConflictoHastaLaVersion } from '@/shared/ui/use-conflicto-hasta-la-version'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
 import {
+  CLAVE_DEL_ICONO,
   CLAVE_DEL_NOMBRE,
-  normalizarNombreDeOrigen,
-  validarNombreDeOrigen,
+  decidirEnvioDeOrigen,
+  hayCambiosEnOrigen,
   type OrigenDeLeadConUso,
-  type RespuestaDeOrigenes,
 } from '../../../entities/origen-de-lead'
+import { useRespuestaDelFormulario } from './use-respuesta-del-formulario'
 import type { OrigenesDeLead } from './use-origenes-de-lead'
 
 type Args = {
@@ -24,8 +22,6 @@ type Args = {
   abierto: boolean
 }
 
-type Pendiente = { desde: number }
-
 // El estado del modal de un origen: el nombre, el motivo junto al campo, el envío. El id del intento
 // nace al abrir y se conserva en cada reintento (guardar dos veces lo mismo no duplica). Un conflicto
 // espera la versión nueva (la trae «Recargar»); sin conexión, lo escrito queda y sale solo al volver.
@@ -34,62 +30,37 @@ export function useFormularioDeOrigen({ origenes, original, alCerrar, abierto }:
   const router = useRouter()
   const [intento] = useState(() => crypto.randomUUID())
   const [nombre, setNombre] = useState(original?.nombre ?? '')
-  const [errores, setErrores] = useState<Record<string, string>>({})
-  const [aviso, setAviso] = useState<string | null>(null)
-  const [conflicto, setConflicto] = useConflictoHastaLaVersion(original?.actualizadoEn ?? null)
-  const [pendiente, setPendiente] = useState<Pendiente | null>(null)
+  const [icono, setIcono] = useState<string | null>(original?.icono ?? null)
   const [recargando, recargarPagina] = useTransition()
-
-  function aplicar(envio: Envio<RespuestaDeOrigenes> | null): boolean {
-    if (envio === null) {
-      return false
-    }
-    if (envio.ok) {
-      setPendiente(null)
-      avisarExito(original ? 'Origen guardado.' : 'Origen creado.')
-      alCerrar()
-      return true
-    }
-    if ('sinRed' in envio) {
-      setPendiente((antes) => antes ?? { desde: Date.now() })
-      return false
-    }
-    setPendiente(null)
-    if (envio.error.codigo === 'conflicto') {
-      setConflicto(envio.error.mensaje)
-      return false
-    }
-    setErrores(envio.porCampo ?? {})
-    setAviso(envio.porCampo ? null : envio.error.mensaje)
-    return false
-  }
+  const respuesta = useRespuestaDelFormulario(original, alCerrar)
+  const { errores, setErrores, aviso, setAviso, conflicto, pendiente, aplicar } = respuesta
 
   async function enviar(): Promise<boolean> {
     if (conflicto !== null) {
       return false
     }
-    const validado = validarNombreDeOrigen(nombre, origenes.origenes, original?.id ?? null)
-    if (!validado.ok) {
-      setErrores({ [CLAVE_DEL_NOMBRE]: validado.motivo })
+    const decision = decidirEnvioDeOrigen(nombre, icono, origenes.origenes, original)
+    if (decision.paso === 'invalido') {
+      setErrores(decision.motivos)
       return false
     }
-    // Sin cambio no hay nada que guardar: se cierra.
-    if (original && validado.nombre === original.nombre) {
+    if (decision.paso === 'nada') {
       alCerrar()
       return true
     }
     setAviso(null)
-    return aplicar(
-      original
-        ? await origenes.renombrar(original, validado.nombre)
-        : await origenes.crear(intento, validado.nombre),
-    )
+    if (decision.paso === 'crear') {
+      return aplicar(await origenes.crear(intento, decision.nombre, icono))
+    }
+    // `guardar` sólo sale con un origen que se edita.
+    return original ? aplicar(await origenes.guardar(original, decision.cambios)) : false
   }
 
   const enLinea = useReintentoAlVolver(abierto ? pendiente : null, () => enviar())
 
   return {
     nombre,
+    icono,
     errores,
     aviso,
     conflicto,
@@ -97,11 +68,15 @@ export function useFormularioDeOrigen({ origenes, original, alCerrar, abierto }:
     enLinea,
     esperandoConexion: pendiente !== null,
     // Cerrar ahora perdería lo escrito: el modal pregunta antes.
-    hayCambios: normalizarNombreDeOrigen(nombre) !== (original?.nombre ?? ''),
+    hayCambios: hayCambiosEnOrigen(nombre, icono, original),
     recargando,
     escribir: (valor: string) => {
       setNombre(valor)
       setErrores(({ [CLAVE_DEL_NOMBRE]: _resuelto, ...resto }) => resto)
+    },
+    elegirIcono: (valor: string | null) => {
+      setIcono(valor)
+      setErrores(({ [CLAVE_DEL_ICONO]: _resuelto, ...resto }) => resto)
     },
     enviar,
     reintentar: () => {

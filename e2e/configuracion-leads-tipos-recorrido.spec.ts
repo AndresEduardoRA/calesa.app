@@ -14,10 +14,10 @@ import {
   abrirTipos,
   borrarTiposDePrueba,
   filaDeTipo,
-  interruptorDe,
   modalDeTipo,
   tipoEnLaBase,
 } from './soporte/tipos-de-lead'
+import { cerrarMenu, elegirDelMenu, lineaApagada, lineaDelMenu } from './soporte/lista-de-catalogo'
 import {
   capturar,
   crearAsesoraDeLaSemilla,
@@ -60,8 +60,8 @@ test('A · la dueña crea un tipo de la clase cliente, lo usa en un alta y lo de
   await entrar(page, duena)
   await abrirTipos(page)
   // De fábrica: uno de cada clase, y cada uno es el último activo de la suya.
-  await expect(interruptorDe(page, 'Prospecto')).toBeDisabled()
-  await expect(interruptorDe(page, 'Cliente')).toBeDisabled()
+  expect(await lineaApagada(page, 'Prospecto', 'Desactivar')).toBe(true)
+  expect(await lineaApagada(page, 'Cliente', 'Desactivar')).toBe(true)
   await sinScrollHorizontal(page)
   await capturar(page, info, 'duena-de-fabrica')
 
@@ -76,7 +76,7 @@ test('A · la dueña crea un tipo de la clase cliente, lo usa en un alta y lo de
   await expect(modal).toBeHidden()
   await expect(filaDeTipo(page, mayorista()).getByText('Sin leads')).toBeVisible()
   // Ya hay dos activos de la clase cliente: «Cliente» se puede apagar.
-  await expect(interruptorDe(page, 'Cliente')).toBeEnabled()
+  expect(await lineaApagada(page, 'Cliente', 'Desactivar')).toBe(false)
   await capturar(page, info, 'duena-con-el-nuevo')
 
   // El alta lo ofrece y guarda un lead con él.
@@ -98,10 +98,9 @@ test('A · la dueña crea un tipo de la clase cliente, lo usa en un alta y lo de
   await abrirTipos(page)
   const fila = filaDeTipo(page, mayorista())
   await expect(fila.getByText('Tiene leads', { exact: true })).toBeVisible()
-  await interruptorDe(page, mayorista()).click()
+  await elegirDelMenu(page, mayorista(), 'Desactivar')
   await expect(fila.getByText('Desactivado')).toBeVisible()
-  const eliminar = page.getByRole('button', { name: `Eliminar ${mayorista()}` })
-  await expect(eliminar).toBeDisabled()
+  expect(await lineaApagada(page, mayorista(), 'Eliminar')).toBe(true)
   await sinScrollHorizontal(page)
   await capturar(page, info, 'duena-desactivado-con-leads')
 
@@ -122,11 +121,12 @@ test('A · la dueña crea un tipo de la clase cliente, lo usa en un alta y lo de
 
   // De vuelta: con el tipo apagado, «Cliente» es otra vez el último de su clase y la pantalla lo dice antes de intentarlo.
   await abrirTipos(page)
-  await expect(interruptorDe(page, 'Cliente')).toBeDisabled()
+  await lineaDelMenu(page, 'Cliente', 'Desactivar')
   await expect(
-    filaDeTipo(page, 'Cliente').getByText('Es el único activo de su clase'),
+    page.getByText('Es el único tipo activo de la clase «cliente»: activa o crea otro antes.'),
   ).toBeVisible()
   await capturar(page, info, 'duena-ultimo-de-su-clase')
+  await cerrarMenu(page, 'Cliente')
 })
 
 test('B · el teclado recorre la lista y los textos y el tema oscuro caben: 200 %, oscuro y un modal', async ({
@@ -136,7 +136,7 @@ test('B · el teclado recorre la lista y los textos y el tema oscuro caben: 200 
   await abrirTipos(page)
   // Tab llega a las acciones de cada fila y todas reciben el clic (también tocando, en el celular).
   for (const boton of await page
-    .getByRole('button', { name: /^(Subir|Bajar|Editar|Eliminar) / })
+    .getByRole('button', { name: /^(Subir|Bajar|Más acciones de) / })
     .all()) {
     if (await boton.isEnabled()) {
       await boton.scrollIntoViewIfNeeded()
@@ -156,7 +156,7 @@ test('B · el teclado recorre la lista y los textos y el tema oscuro caben: 200 
   await sinScrollHorizontal(page)
   await capturar(page, info, 'duena-oscuro-200')
 
-  await page.getByRole('button', { name: `Editar ${mayorista()}` }).click()
+  await page.getByRole('button', { name: `Abrir ${mayorista()}`, exact: true }).click()
   const modal = modalDeTipo(page, 'Editar tipo')
   await expect(modal).toBeVisible()
   await expect(modal.getByText('La clase se elige al crear el tipo y no se cambia.')).toBeVisible()

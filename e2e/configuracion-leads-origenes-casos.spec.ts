@@ -18,6 +18,7 @@ import {
   origenEnLaBase,
   sembrarOrigen,
 } from './soporte/origenes-de-lead'
+import { elegirDelMenu, masAccionesDe } from './soporte/lista-de-catalogo'
 import {
   cicloDeUnaConfirmacion,
   dobleClicManda,
@@ -97,7 +98,7 @@ test('dos personas editando el mismo origen: la segunda ve el conflicto y lo esc
   const tres = nombre('Tres')
   await entrar(page, duena)
   await abrirOrigenes(page)
-  await page.getByRole('button', { name: `Editar ${tres}` }).click()
+  await page.getByRole('button', { name: `Abrir ${tres}`, exact: true }).click()
   const primera = modalDeOrigen(page, 'Editar origen')
   await primera.getByLabel('Nombre').fill(nombre('Tres A'))
 
@@ -105,7 +106,7 @@ test('dos personas editando el mismo origen: la segunda ve el conflicto y lo esc
   const otra = await contexto.newPage()
   await entrar(otra, duena, { fresco: true })
   await abrirOrigenes(otra)
-  await otra.getByRole('button', { name: `Editar ${tres}` }).click()
+  await otra.getByRole('button', { name: `Abrir ${tres}`, exact: true }).click()
   const segunda = modalDeOrigen(otra, 'Editar origen')
   await segunda.getByLabel('Nombre').fill(nombre('Tres B'))
   await segunda.getByRole('button', { name: 'Guardar' }).click()
@@ -152,10 +153,12 @@ test('eliminar un origen: su URL, Esc, atrás, recarga, sin red y un solo pedido
   await sembrarOrigen(url)
   await entrar(page, duena, { fresco: true })
   await abrirOrigenes(page)
-  const disparador = page.getByRole('button', { name: `Eliminar ${url}` })
+  const disparador = masAccionesDe(page, url)
   const dialogo = page.getByRole('dialog', { name: `Eliminar el origen «${url}»` })
   await cicloDeUnaConfirmacion(page, {
-    abrir: () => disparador.click(),
+    abrir: async () => {
+      await elegirDelMenu(page, url, 'Eliminar')
+    },
     dialogo,
     disparador,
     url: /panel=eliminar-origen&origen=/,

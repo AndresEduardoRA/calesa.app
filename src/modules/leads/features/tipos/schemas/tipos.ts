@@ -5,6 +5,8 @@ import { CLASES_DE_TIPO } from '../../../entities/tipo-de-lead'
 // campo en el `hint`.
 const nombre = z.string().max(200)
 const version = z.string().min(1)
+// Una clave del catálogo o nada: la base rechaza la que no es del catálogo («Ese icono no está en el catálogo»).
+const icono = z.string().max(40).nullable()
 
 export const esquemaCrearTipo = z.object({
   // El del intento: el mismo en cada reintento.
@@ -12,6 +14,7 @@ export const esquemaCrearTipo = z.object({
   nombre,
   // Se elige al crearlo y no cambia.
   clase: z.enum(CLASES_DE_TIPO),
+  icono,
 })
 
 export const esquemaGuardarTipo = z
@@ -19,9 +22,10 @@ export const esquemaGuardarTipo = z
     id: z.guid(),
     actualizadoEnEsperado: version,
     nombre: nombre.optional(),
+    icono: icono.optional(),
     activo: z.boolean().optional(),
   })
-  .refine((e) => e.nombre !== undefined || e.activo !== undefined, {
+  .refine((e) => e.nombre !== undefined || e.icono !== undefined || e.activo !== undefined, {
     error: 'No hay nada que guardar.',
   })
 

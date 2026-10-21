@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
   alTopeDeOrigenes,
+  cambiosDeOrigen,
+  decidirEnvioDeOrigen,
   destinoDeOrigen,
   firmaDeOrigenes,
+  hayCambiosEnOrigen,
   listaDeOrigenesDesde,
   motivoDeUrlDeOrigen,
   motivoParaNoAbrir,
+  motivoParaNoDesactivar,
   motivoParaNoEliminar,
   motivoParaNoEliminarPorUrl,
+  motivoParaNoMarcarPorDefecto,
   normalizarNombreDeOrigen,
   origenPorId,
   respuestaDeOrigenesDesde,
@@ -24,7 +29,9 @@ const origen = (n: number, extra: Partial<OrigenDeLeadConUso> = {}): OrigenDeLea
   id: id(n),
   clave: `o${n}`,
   nombre: `Origen ${n}`,
+  icono: null,
   activo: true,
+  porDefecto: false,
   orden: n * 10,
   actualizadoEn: `2026-10-16T12:00:0${n}.123456+00:00`,
   conLeads: false,
@@ -39,7 +46,9 @@ describe('listaDeOrigenesDesde', () => {
         id: id(1),
         clave: 'web',
         nombre: 'Web',
+        icono: 'web',
         activo: true,
+        por_defecto: true,
         orden: 10,
         actualizado_en: '2026-10-16T12:00:00.123456+00:00',
         con_leads: true,
@@ -50,7 +59,9 @@ describe('listaDeOrigenesDesde', () => {
         id: id(1),
         clave: 'web',
         nombre: 'Web',
+        icono: 'web',
         activo: true,
+        porDefecto: true,
         orden: 10,
         actualizadoEn: '2026-10-16T12:00:00.123456+00:00',
         conLeads: true,
@@ -70,7 +81,9 @@ describe('respuestaDeOrigenesDesde', () => {
       id: id(1),
       clave: 'web',
       nombre: 'Web',
+      icono: null,
       activo: true,
+      por_defecto: false,
       orden: 10,
       actualizado_en: '2026-10-16T12:00:00+00:00',
       con_leads: false,
@@ -194,6 +207,8 @@ describe('textos y estados', () => {
     expect(firmaDeOrigenes([origen(1, { orden: 5 }), ...lista.slice(1)])).not.toBe(base)
     expect(firmaDeOrigenes([origen(1, { activo: false }), ...lista.slice(1)])).not.toBe(base)
     expect(firmaDeOrigenes([origen(1, { conLeads: true }), ...lista.slice(1)])).not.toBe(base)
+    expect(firmaDeOrigenes([origen(1, { porDefecto: true }), ...lista.slice(1)])).not.toBe(base)
+    expect(firmaDeOrigenes([origen(1, { icono: 'casa' }), ...lista.slice(1)])).not.toBe(base)
     expect(firmaDeOrigenes([origen(1, { actualizadoEn: 'otra' }), ...lista.slice(1)])).not.toBe(
       base,
     )
@@ -215,5 +230,77 @@ describe('motivoParaNoAbrir', () => {
 
   it('sin modal no hay nada que revisar', () => {
     expect(motivoParaNoAbrir(lista, null, null)).toBeNull()
+  })
+})
+
+describe('el origen «por defecto» y el icono', () => {
+  it('el por defecto no se desactiva, y dice por qué (el texto es el de la base)', () => {
+    expect(motivoParaNoDesactivar(origen(1, { porDefecto: true }))).toBe(
+      '«Origen 1» es el origen por defecto: quítale la marca o elige otro por defecto antes de desactivarlo.',
+    )
+    expect(motivoParaNoDesactivar(origen(1))).toBeNull()
+  })
+
+  it('el por defecto no se elimina, aunque no tenga leads; uno con leads, tampoco', () => {
+    expect(motivoParaNoEliminar(origen(1, { porDefecto: true }))).toContain(
+      'es el origen por defecto: quítale la marca o elige otro por defecto antes de eliminarlo.',
+    )
+    expect(motivoParaNoEliminar(origen(1, { porDefecto: true, conLeads: true }))).toContain(
+      'es el origen por defecto',
+    )
+    expect(motivoParaNoEliminar(origen(1, { conLeads: true }))).toContain('ya tiene leads')
+    expect(motivoParaNoEliminar(origen(1))).toBeNull()
+  })
+
+  it('uno apagado no se marca por defecto; uno activo, sí', () => {
+    expect(motivoParaNoMarcarPorDefecto(origen(1, { activo: false }))).toBe(
+      '«Origen 1» está desactivado: actívalo antes de elegirlo como origen por defecto.',
+    )
+    expect(motivoParaNoMarcarPorDefecto(origen(1))).toBeNull()
+  })
+
+  it('al editar sólo viaja lo que cambió; un icono que ya no se conoce, sin tocar, no viaja', () => {
+    const con = origen(1, { icono: 'web' })
+    expect(cambiosDeOrigen(con, 'Origen 1', 'web')).toEqual({})
+    expect(cambiosDeOrigen(con, 'Nuevo', 'web')).toEqual({ nombre: 'Nuevo' })
+    expect(cambiosDeOrigen(con, 'Origen 1', 'casa')).toEqual({ icono: 'casa' })
+    expect(cambiosDeOrigen(con, 'Origen 1', null)).toEqual({ icono: null })
+    const raro = origen(1, { icono: 'message-circle' })
+    expect(cambiosDeOrigen(raro, 'Otro', 'message-circle')).toEqual({ nombre: 'Otro' })
+  })
+})
+
+describe('el envío del modal de un origen', () => {
+  const con = origen(1, { icono: 'web' })
+
+  it('rechaza el nombre que no pasa, cierra sin cambios, crea o guarda sólo lo que cambió', () => {
+    expect(decidirEnvioDeOrigen('  ', null, lista, null)).toMatchObject({
+      paso: 'invalido',
+      motivos: { nombre: 'Escribe el nombre del origen.' },
+    })
+    expect(decidirEnvioDeOrigen(' ORIGEN 2 ', null, lista, null)).toMatchObject({
+      paso: 'invalido',
+    })
+    expect(decidirEnvioDeOrigen(' Nuevo ', 'casa', lista, null)).toEqual({
+      paso: 'crear',
+      nombre: 'Nuevo',
+    })
+    expect(decidirEnvioDeOrigen('Origen 1', 'web', lista, con)).toEqual({ paso: 'nada' })
+    expect(decidirEnvioDeOrigen('Origen 1', 'casa', lista, con)).toEqual({
+      paso: 'guardar',
+      cambios: { icono: 'casa' },
+    })
+    expect(decidirEnvioDeOrigen('Otro', 'web', lista, con)).toEqual({
+      paso: 'guardar',
+      cambios: { nombre: 'Otro' },
+    })
+  })
+
+  it('hay cambios con algo escrito o un icono elegido', () => {
+    expect(hayCambiosEnOrigen('', null, null)).toBe(false)
+    expect(hayCambiosEnOrigen('x', null, null)).toBe(true)
+    expect(hayCambiosEnOrigen('', 'casa', null)).toBe(true)
+    expect(hayCambiosEnOrigen('Origen 1', 'web', con)).toBe(false)
+    expect(hayCambiosEnOrigen('Origen 1', null, con)).toBe(true)
   })
 })

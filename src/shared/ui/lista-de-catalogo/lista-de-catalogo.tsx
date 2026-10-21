@@ -139,8 +139,10 @@ function Tarjetas({ filas, prefijo, alAbrir, alMover }: Props) {
             />
             <Insignias fila={fila} />
           </div>
-          <p className="text-(length:--text-sm) text-(--color-ink-faint)">
-            {fila.activo ? ESTADO_ACTIVO : 'No se ofrece en lo nuevo'} · {fila.uso}
+          <p className="flex flex-wrap gap-x-1 text-(length:--text-sm) text-(--color-ink-faint)">
+            <span>{fila.activo ? ESTADO_ACTIVO : 'No se ofrece en lo nuevo'}</span>
+            <span aria-hidden>·</span>
+            <span>{fila.uso}</span>
           </p>
           <BotonesDeOrden
             prefijo={prefijo}

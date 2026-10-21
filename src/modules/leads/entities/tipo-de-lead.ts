@@ -37,6 +37,8 @@ export type TipoDeLeadConUso = {
   clave: string
   nombre: string
   clase: ClaseDeTipoDeLead
+  // Una clave del catálogo de iconos, o nada. Una que no se conoce se dibuja neutra (`iconoADibujar`).
+  icono: string | null
   activo: boolean
   orden: number
   // La versión: editar, ordenar y eliminar la mandan.
@@ -53,6 +55,7 @@ const filaDeTipo = z.object({
   clave: z.string(),
   nombre: z.string(),
   clase: z.enum(CLASES_DE_TIPO),
+  icono: z.string().nullable(),
   activo: z.boolean(),
   orden: z.number(),
   actualizado_en: z.string().min(1),
@@ -73,6 +76,7 @@ export function listaDeTiposDesde(crudo: unknown): ListaDeTipos | null {
       clave: fila.clave,
       nombre: fila.nombre,
       clase: fila.clase,
+      icono: fila.icono,
       activo: fila.activo,
       orden: fila.orden,
       actualizadoEn: fila.actualizado_en,
@@ -120,6 +124,7 @@ export function normalizarNombreDeTipo(texto: string): string {
 
 export const CLAVE_DEL_NOMBRE = 'nombre'
 export const CLAVE_DE_LA_CLASE = 'clase'
+export const CLAVE_DEL_ICONO = 'icono'
 
 type Nombre = { ok: true; nombre: string } | { ok: false; motivo: string }
 
@@ -170,6 +175,18 @@ export function validarTipo(
     return { ok: false, motivos }
   }
   return { ok: true, nombre: nombre.nombre, clase: claseFinal }
+}
+
+// Lo que cambió respecto del tipo que se edita: sólo eso viaja (la clase no cambia; un icono que ya no se conoce, sin tocar, no se manda).
+export function cambiosDeTipo(
+  original: TipoDeLeadConUso,
+  nombre: string,
+  icono: string | null,
+): { nombre?: string; icono?: string | null } {
+  return {
+    ...(nombre === original.nombre ? {} : { nombre }),
+    ...(icono === original.icono ? {} : { icono }),
+  }
 }
 
 export function alTopeDeTipos(tipos: readonly TipoDeLeadConUso[], tope: number): boolean {
@@ -271,7 +288,10 @@ export function tipoPorId(
 // Una firma de lo que trae la página: si cambia, la lista local se vuelve a sembrar.
 export function firmaDeTipos(lista: ListaDeTipos): string {
   return `${String(lista.tope)}#${lista.tipos
-    .map((t) => `${t.id}:${t.actualizadoEn}:${t.orden}:${t.activo ? 1 : 0}:${t.conLeads ? 1 : 0}`)
+    .map(
+      (t) =>
+        `${t.id}:${t.actualizadoEn}:${String(t.orden)}:${t.activo ? 1 : 0}:${t.conLeads ? 1 : 0}:${t.icono ?? ''}`,
+    )
     .join('|')}`
 }
 
@@ -286,4 +306,50 @@ export function motivoParaNoAbrir(
     return alTopeDeTipos(lista.tipos, lista.tope) ? textoDelTope(lista.tope) : null
   }
   return modo === 'editar' ? motivoDeUrlDeTipo(lista.tipos, id) : null
+}
+
+export type EnvioDelFormularioDeTipo =
+  | { paso: 'invalido'; motivos: Record<string, string> }
+  // Sin cambio no hay nada que guardar: el modal se cierra.
+  | { paso: 'nada' }
+  | { paso: 'crear'; nombre: string; clase: ClaseDeTipoDeLead }
+  | { paso: 'guardar'; cambios: { nombre?: string; icono?: string | null } }
+
+// Qué hace el modal al enviar: rechaza lo que no pasa (con su campo), cierra si no cambió nada, crea (con la clase elegida) o guarda sólo lo que cambió.
+export function decidirEnvioDeTipo({
+  texto,
+  clase,
+  icono,
+  tipos,
+  original,
+}: {
+  texto: string
+  clase: ClaseDeTipoDeLead | null
+  icono: string | null
+  tipos: readonly TipoDeLeadConUso[]
+  original: TipoDeLeadConUso | null
+}): EnvioDelFormularioDeTipo {
+  const validado = validarTipo(texto, clase, tipos, original)
+  if (!validado.ok) {
+    return { paso: 'invalido', motivos: validado.motivos }
+  }
+  if (!original) {
+    return { paso: 'crear', nombre: validado.nombre, clase: validado.clase }
+  }
+  const cambios = cambiosDeTipo(original, validado.nombre, icono)
+  return Object.keys(cambios).length === 0 ? { paso: 'nada' } : { paso: 'guardar', cambios }
+}
+
+// Cerrar ahora perdería lo escrito: el modal pregunta antes. Elegir la clase o un icono ya es algo hecho.
+export function hayCambiosEnTipo(
+  texto: string,
+  clase: ClaseDeTipoDeLead | null,
+  icono: string | null,
+  original: TipoDeLeadConUso | null,
+): boolean {
+  return (
+    normalizarNombreDeTipo(texto) !== (original?.nombre ?? '') ||
+    icono !== (original?.icono ?? null) ||
+    (!original && clase !== null)
+  )
 }

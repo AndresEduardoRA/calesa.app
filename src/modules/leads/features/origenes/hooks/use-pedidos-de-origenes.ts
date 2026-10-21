@@ -28,8 +28,12 @@ export function usePedidosDeOrigenes() {
   const mover = useAction(moverOrigen)
   const eliminar = useAction(eliminarOrigen)
   return {
-    crear: (id: string, nombre: string) => comoEnvio(crear.executeAsync({ id, nombre })),
-    guardar: (origen: OrigenDeLeadConUso, cambios: { nombre?: string; activo?: boolean }) =>
+    crear: (id: string, nombre: string, icono: string | null) =>
+      comoEnvio(crear.executeAsync({ id, nombre, icono })),
+    guardar: (
+      origen: OrigenDeLeadConUso,
+      cambios: { nombre?: string; icono?: string | null; activo?: boolean; porDefecto?: boolean },
+    ) =>
       comoEnvio(
         guardar.executeAsync({
           id: origen.id,

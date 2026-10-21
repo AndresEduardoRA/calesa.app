@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { avisarConDeshacer, avisarExito } from '@/shared/ui/toasts'
+import type { Movimiento } from '@/shared/ui/lista-de-catalogo/use-foco-tras-mover'
 import {
   destinoDeTipo,
   firmaDeTipos,
@@ -14,8 +15,6 @@ import {
 } from '../../../entities/tipo-de-lead'
 import { useEscrituraDeTipos } from './use-escritura-de-tipos'
 import { usePedidosDeTipos } from './use-pedidos-de-tipos'
-
-export type Movimiento = { id: string; direccion: Direccion; veces: number }
 
 // La lista de la página, sembrada por una firma: si lo que trae cambia (otra persona, «Recargar»), la
 // local se vuelve a sembrar con eso.
@@ -42,7 +41,7 @@ export function useTiposDeLead(inicial: ListaDeTipos) {
   const [anuncio, setAnuncio] = useState('')
   const [movimiento, setMovimiento] = useState<Movimiento | null>(null)
 
-  // El interruptor «Activo» guarda solo, y es reversible: se ofrece «Deshacer» (con la versión nueva). Apagar el último activo de
+  // Activar o desactivar guarda solo, y es reversible: se ofrece «Deshacer» (con la versión nueva). Apagar el último activo de
   // su clase no se ofrece (la fila lo dice y lo apaga); la base lo rechaza igual si llegara.
   async function activar(tipo: TipoDeLeadConUso, activo: boolean) {
     if (!activo && motivoParaNoDesactivar(tipos, tipo) !== null) {
@@ -100,10 +99,10 @@ export function useTiposDeLead(inicial: ListaDeTipos) {
     movimiento,
     enCurso: escritura.enCurso,
     // Los dos del modal devuelven el envío entero: el modal dice el motivo junto al campo.
-    crear: (id: string, nombre: string, clase: ClaseDeTipoDeLead) =>
-      escritura.mandar(() => pedir.crear(id, nombre, clase)),
-    renombrar: (tipo: TipoDeLeadConUso, nombre: string) =>
-      escritura.mandar(() => pedir.guardar(tipo, { nombre })),
+    crear: (id: string, nombre: string, clase: ClaseDeTipoDeLead, icono: string | null) =>
+      escritura.mandar(() => pedir.crear(id, nombre, clase, icono)),
+    guardar: (tipo: TipoDeLeadConUso, cambios: { nombre?: string; icono?: string | null }) =>
+      escritura.mandar(() => pedir.guardar(tipo, cambios)),
     activar,
     mover,
     eliminar,

@@ -7,6 +7,7 @@ import {
   crearDuenaDePrueba,
 } from './soporte/base'
 import { descartarAviso } from './soporte/inventario'
+import { cerrarMenu, elegirDelMenu, lineaDelMenu } from './soporte/lista-de-catalogo'
 import { borrarLeadsDePrueba, crearLead } from './soporte/leads'
 import { abrirConN, dialogo } from './soporte/alta'
 import { telefonoAlAzar } from './soporte/leads-alta'
@@ -111,7 +112,7 @@ test('se renombra, y un nombre ya tomado o vacío no pasa', async ({ page }) => 
   await entrar(page, duena)
   await abrirOrigenes(page)
 
-  await page.getByRole('button', { name: `Editar ${uno}` }).click()
+  await page.getByRole('button', { name: `Abrir ${uno}`, exact: true }).click()
   const modal = modalDeOrigen(page, 'Editar origen')
   await expect(modal.getByLabel('Nombre')).toHaveValue(uno)
   await modal.getByLabel('Nombre').fill(dos)
@@ -192,9 +193,9 @@ test('desactivar: el alta no lo ofrece, la ficha lo conserva y se puede editar; 
   await abrirOrigenes(page)
   const fila = filaDeOrigen(page, uno)
   await expect(fila.getByText('Tiene leads', { exact: true })).toBeVisible()
-  await fila.getByRole('switch', { name: `${uno}: activo` }).click()
+  await elegirDelMenu(page, uno, 'Desactivar')
   await expect(fila.getByText('Desactivado')).toBeVisible()
-  await expect(fila.getByText('Tiene leads · no se ofrece en un lead nuevo')).toBeVisible()
+  await expect(fila.getByText('Tiene leads', { exact: true })).toBeVisible()
   expect(await origenEnLaBase(uno)).toMatchObject({ activo: false })
 
   // El alta no lo ofrece; los demás activos, sí.
@@ -223,9 +224,7 @@ test('desactivar: el alta no lo ofrece, la ficha lo conserva y se puede editar; 
 
   // «Deshacer» lo activa otra vez.
   await abrirOrigenes(page)
-  await filaDeOrigen(page, uno)
-    .getByRole('switch', { name: `${uno}: activo` })
-    .click()
+  await elegirDelMenu(page, uno, 'Activar')
   await expect(filaDeOrigen(page, uno).getByText('Desactivado')).toHaveCount(0)
   expect(await origenEnLaBase(uno)).toMatchObject({ activo: true })
 })
@@ -238,17 +237,17 @@ test('eliminar: con leads está apagado y lo dice; sin leads pide confirmar nomb
   await entrar(page, duena)
   await abrirOrigenes(page)
 
-  const conLeads = page.getByRole('button', { name: `Eliminar ${uno}` })
-  await expect(conLeads).toBeDisabled()
-  await expect(conLeads).toHaveAttribute('title', new RegExp(`«${uno}» ya tiene leads`))
+  await expect(await lineaDelMenu(page, uno, 'Eliminar')).toBeDisabled()
+  await expect(page.getByText(new RegExp(`«${uno}» ya tiene leads`))).toBeVisible()
+  await cerrarMenu(page, uno)
 
-  await page.getByRole('button', { name: `Eliminar ${dos}` }).click()
+  await elegirDelMenu(page, dos, 'Eliminar')
   const confirmar = page.getByRole('dialog', { name: `Eliminar el origen «${dos}»` })
   await expect(confirmar).toBeVisible()
   await confirmar.getByRole('button', { name: 'Cancelar' }).click()
   expect(await origenEnLaBase(dos)).toBeDefined()
 
-  await page.getByRole('button', { name: `Eliminar ${dos}` }).click()
+  await elegirDelMenu(page, dos, 'Eliminar')
   await page
     .getByRole('dialog', { name: `Eliminar el origen «${dos}»` })
     .getByRole('button', { name: 'Eliminar origen' })

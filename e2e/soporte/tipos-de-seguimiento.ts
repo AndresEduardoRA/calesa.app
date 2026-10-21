@@ -98,54 +98,19 @@ export async function abrirTiposDeSeguimiento(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { name: 'Tipos de seguimiento', level: 2 })).toBeVisible()
 }
 
-// La fila de un tipo (en la tabla o en la tarjeta del celular): la que tiene el botón con su nombre.
-export const filaDeTipoDeSeguimiento = (page: Page, nombre: string): Locator =>
-  page
-    .locator('tr, li')
-    .filter({ has: page.getByRole('button', { name: `Abrir ${nombre}`, exact: true }) })
+// Lo de la lista (la fila, el «⋯», los nombres, el icono) es común a las tres pestañas: `soporte/lista-de-catalogo.ts`.
+export { elegirDelMenu, elegirIcono, iconoDeLaFila, masAccionesDe } from './lista-de-catalogo'
+import {
+  filaDeCatalogo,
+  nombresDeLaLista as nombresDe,
+  nombresEnLaLista,
+} from './lista-de-catalogo'
 
-export const masAccionesDe = (page: Page, nombre: string): Locator =>
-  page.getByRole('button', { name: `Más acciones de ${nombre}`, exact: true })
-
-// Elige una línea del «⋯» de la fila.
-export async function elegirDelMenu(page: Page, nombre: string, linea: string): Promise<void> {
-  await masAccionesDe(page, nombre).click()
-  await page.getByRole('menuitem', { name: linea, exact: true }).click()
-}
-
-// Los nombres de las filas, en el orden en que se ven.
-export const nombresDeLaLista = (page: Page): Locator =>
-  page
-    .locator('section[aria-labelledby="titulo-de-tipos-de-seguimiento"]')
-    .getByRole('button', { name: /^Abrir / })
-
-export async function nombresDeSeguimientoEnPantalla(page: Page): Promise<string[]> {
-  const botones = await nombresDeLaLista(page).all()
-  const nombres: string[] = []
-  for (const boton of botones) {
-    nombres.push(((await boton.getAttribute('aria-label')) ?? '').replace(/^Abrir /, ''))
-  }
-  return nombres
-}
+export const filaDeTipoDeSeguimiento = filaDeCatalogo
+export const nombresDeLaLista = (page: Page): Locator => nombresDe(page, 'seguimientos')
+export const nombresDeSeguimientoEnPantalla = (page: Page) => nombresEnLaLista(page, 'seguimientos')
 
 export const modalDeTipoDeSeguimiento = (
   page: Page,
   titulo: 'Nuevo tipo de seguimiento' | 'Editar tipo de seguimiento',
 ): Locator => page.getByRole('dialog', { name: titulo })
-
-// El icono que dibuja una fila (`data-icono` de su `<svg>`), o nada si no lleva.
-export async function iconoDeLaFila(fila: Locator): Promise<string | null> {
-  const icono = fila.locator('svg[data-icono]').first()
-  return (await icono.count()) === 0 ? null : await icono.getAttribute('data-icono')
-}
-
-// Elige un icono del selector por su nombre («Estrella», «Sin icono»): se hace clic en su baldosa, que es lo que toca una persona (el radio
-// de adentro es de lectura de pantalla y está fuera de la vista).
-export async function elegirIcono(modal: Locator, nombre: string): Promise<void> {
-  const baldosa =
-    nombre === 'Sin icono'
-      ? modal.locator('label', { hasText: /^Sin icono$/ })
-      : modal.locator(`label[title="${nombre}"]`)
-  await baldosa.scrollIntoViewIfNeeded()
-  await baldosa.click()
-}
