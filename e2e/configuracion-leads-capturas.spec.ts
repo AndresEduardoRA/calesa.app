@@ -25,6 +25,7 @@ test.beforeAll(async ({}, info) => {
   r = await prepararRecorrido(info.project.name, 'Capturas')
   // Un lead con origen y un seguimiento público de un tipo: lo que las pantallas dibujan junto al nombre.
   sql(`
+    update public.origenes_lead set por_defecto = true where clave = 'web';
     update public.leads set origen_lead_id = (select id from public.origenes_lead where activo order by orden, nombre limit 1)
       where id = '${r.uno.id}';
     insert into public.seguimientos (lead_id, usuario_id, tipo_id, titulo, visibilidad)
@@ -34,6 +35,7 @@ test.beforeAll(async ({}, info) => {
 })
 
 test.afterAll(async () => {
+  sql(`update public.origenes_lead set por_defecto = false where por_defecto;`)
   await limpiarRecorrido(r)
 })
 
@@ -59,6 +61,14 @@ for (const zoom of ['100', '200'] as const) {
       if (zoom === '200') await alDoscientos(page)
       await sinScrollHorizontal(page)
       await capturar(page, info, `pestana-seguimientos-${zoom}`)
+      // El selector de icono, en el modal de «Nuevo tipo» (a este mismo tamaño de texto).
+      await page.getByRole('button', { name: 'Nuevo tipo' }).first().click()
+      const modal = page.getByRole('dialog', { name: 'Nuevo tipo de seguimiento' })
+      await expect(modal).toBeVisible()
+      await sinScrollHorizontal(page)
+      await capturar(page, info, `selector-de-icono-${zoom}`)
+      await page.keyboard.press('Escape')
+      await expect(modal).toBeHidden()
     }
   })
 }
@@ -69,9 +79,14 @@ test('el alta, el listado, la ficha y el rápido', async ({ page }, info) => {
   await page.goto(`/leads?alcance=todos&q=${encodeURIComponent(r.uno.nombre)}`)
   await expect(page.getByText(r.uno.nombre).first()).toBeVisible()
   await capturar(page, info, 'listado')
+  // Sin un último origen, el alta propone el «por defecto» de la empresa.
+  sql(`delete from public.preferencias_usuario where clave = 'leads.ultimo_origen_lead';`)
   await abrirConN(page)
   await expect(dialogo(page)).toBeVisible()
-  await capturar(page, info, 'alta')
+  await expect(dialogo(page).getByLabel('Origen del lead')).toHaveValue(
+    sql(`select id from public.origenes_lead where clave = 'web'`).trim(),
+  )
+  await capturar(page, info, 'alta-con-el-origen-por-defecto')
   await page.keyboard.press('Escape')
   await expect(dialogo(page)).toBeHidden()
   await page.goto(`/leads?lead=${r.uno.id}`)
@@ -83,4 +98,8 @@ test('el alta, el listado, la ficha y el rápido', async ({ page }, info) => {
   await irAFicha(page, r.uno.id, '?seccion=seguimientos')
   await expect(page.getByRole('region', { name: 'Seguimientos' })).toBeVisible()
   await capturar(page, info, 'ficha-seguimientos')
+  // El kanban no nombra el origen ni el tipo de un lead: no dibuja iconos (se mira para decirlo).
+  await page.goto('/leads?vista=embudo')
+  await page.waitForLoadState('networkidle')
+  await capturar(page, info, 'kanban')
 })
