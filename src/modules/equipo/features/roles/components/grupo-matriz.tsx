@@ -1,6 +1,7 @@
 'use client'
 
 import type { Permisos } from '@/shared/lib/permisos'
+import { CabeceraPegada } from '@/shared/ui/lista'
 import { TableBody, TableCell, TableHead, TableRow } from '@/shared/ui/table'
 import {
   concesionesDelPermiso,
@@ -37,12 +38,17 @@ export function GrupoMatriz({ grupo, columnas, origenes, misPermisos, alAplicar 
           colSpan={columnas.length + 1}
           className="h-8 text-(length:--text-xs) font-semibold tracking-wide text-(--color-ink-soft)"
         >
-          {grupo.titulo}
+          {/* El título del módulo abarca todas las columnas: él solo se queda a la vista mientras la tabla se desplaza. */}
+          <span className="sticky left-3 inline-block">{grupo.titulo}</span>
         </TableHead>
       </TableRow>
       {grupo.permisos.map((permiso) => (
         <TableRow key={permiso.clave} data-permiso={permiso.clave}>
-          <TableHead scope="row" className="py-2 font-normal whitespace-normal">
+          <CabeceraPegada
+            lado="nombre"
+            scope="row"
+            className="min-w-52 py-2 font-normal whitespace-normal"
+          >
             <span
               data-nombre-de-permiso
               className="block text-(length:--text-sm) text-(--color-ink)"
@@ -52,7 +58,7 @@ export function GrupoMatriz({ grupo, columnas, origenes, misPermisos, alAplicar 
             <span className="block text-(length:--text-xs) text-(--color-ink-faint)">
               {permiso.descripcion}
             </span>
-          </TableHead>
+          </CabeceraPegada>
           {columnas.map(({ rol, editable, ocupado }) => (
             <TableCell key={rol.id}>
               <CeldaConcesion

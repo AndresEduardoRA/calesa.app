@@ -8,6 +8,7 @@ import {
   crearPersona,
   darRolDePrueba,
 } from './soporte/base'
+import { esMovil } from './soporte/inventario'
 import { ingresar } from './soporte/pasos'
 import {
   aLaVistaSinDesplazar,
@@ -161,4 +162,41 @@ test('al 200 %: quien sólo puede ver el equipo no tiene «⋯» y la lista cabe
   expect(caja?.width ?? 0, 'el nombre largo se achicó hasta casi no verse').toBeGreaterThanOrEqual(
     100,
   )
+})
+
+// 5a-19: con ocho roles de nombre largo la tabla mide miles de píxeles y se desplaza dentro de su tarjeta: con la tabla desplazada hasta el
+// final, el nombre de cada permiso sigue a la vista (la columna «Permiso» pegada a la izquierda). Sólo escritorio: por debajo de 768 px la
+// matriz es la lista de un rol a la vez (5a-16), que no tiene columnas.
+test('al 200 %: con ocho roles, la columna «Permiso» sigue a la vista al desplazar la matriz', async ({
+  page,
+}) => {
+  test.skip(esMovil(page), 'por debajo de 768 px la matriz es una lista de un rol a la vez')
+  await textoGrandeAlCargar(page)
+  await entrar(page, duena)
+  await page.goto('/configuracion/roles')
+  await expect(page.getByRole('heading', { name: 'Roles y permisos' })).toBeVisible()
+  const filas = page.locator('[data-permiso]')
+  const cuantas = await filas.count()
+  expect(cuantas).toBeGreaterThan(12)
+  const ancho = await page.evaluate(() => {
+    let mayor = 0
+    for (const e of document.querySelectorAll<HTMLElement>('*')) {
+      if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX === 'auto') {
+        mayor = Math.max(mayor, e.scrollWidth)
+        e.scrollLeft = e.scrollWidth
+      }
+    }
+    return mayor
+  })
+  expect(
+    ancho,
+    'la tabla tiene que ser más ancha que su tarjeta para que valga la prueba',
+  ).toBeGreaterThan(1500)
+  await sinScrollHorizontal(page)
+  for (const indice of [...Array.from({ length: 12 }, (_, i) => i), cuantas - 1]) {
+    const fila = filas.nth(indice)
+    await fila.scrollIntoViewIfNeeded()
+    const clave = (await fila.getAttribute('data-permiso')) ?? String(indice)
+    await aLaVistaSinDesplazar(fila.locator('[data-nombre-de-permiso]'), `el nombre de ${clave}`)
+  }
 })

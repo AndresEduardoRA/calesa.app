@@ -6,8 +6,4 @@
 export const LISTAS_SIN_PATRON: Record<string, string> = {
   'src/modules/equipo/features/roles/components/matriz-de-roles.tsx':
     'es una matriz de permisos (roles contra permisos), no una lista de registros: no tiene resumen ni «⋯» por fila',
-  'src/modules/equipo/features/roles/components/grupo-matriz.tsx':
-    'es un grupo de la matriz de roles: sigue la suerte de matriz-de-roles.tsx',
-  'src/modules/equipo/features/roles/components/tabla-de-roles.tsx':
-    'es la tabla de la matriz de roles desde 768 px (por debajo, lista-del-rol.tsx apila cada permiso con su control, 5a-16): sigue la suerte de matriz-de-roles.tsx',
 }

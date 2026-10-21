@@ -1,6 +1,7 @@
 'use client'
 
 import type { Permisos } from '@/shared/lib/permisos'
+import { CabeceraPegada } from '@/shared/ui/lista'
 import { Table, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { rolDominado } from '../../../entities/dominancia'
 import type { GrupoDePermisos, OrigenDeLaMatriz } from '../../../entities/matriz'
@@ -19,14 +20,18 @@ type Props = {
   alAplicar: (rol: RolConConcesiones, cambio: CambioDeConcesion) => void
 }
 
-// La matriz desde 768 px: una columna por rol y un renglón por permiso. Por debajo, un rol a la vez en `ListaDelRol`.
+// La matriz desde 768 px: una columna por rol y un renglón por permiso. La columna «Permiso» va pegada a la izquierda: con muchos roles la
+// tabla se desplaza de costado dentro de su tarjeta (4.012 px con ocho roles al 200 %) y el nombre de cada permiso no se pierde (5a-19).
+// Por debajo de 768 px, un rol a la vez en `ListaDelRol`.
 export function TablaDeRoles(props: Props) {
   const { grupos, columnas, origenes, misPermisos, puedeGestionar } = props
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="min-w-52 align-bottom">Permiso</TableHead>
+          <CabeceraPegada lado="nombre" className="min-w-52 align-bottom">
+            Permiso
+          </CabeceraPegada>
           {columnas.map(({ rol }) => (
             <TableHead key={rol.id} className="align-top">
               <EncabezadoRol
