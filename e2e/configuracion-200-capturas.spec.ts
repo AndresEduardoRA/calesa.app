@@ -108,6 +108,10 @@ for (const zoom of ['100', '200'] as const) {
       if (zoom === '100' && !AL_CIEN.has(nombre)) continue
       await page.goto(url())
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+      // Las pestañas de un origen quedan bajo el título largo: sin llevar la barra a la vista, las tres capturas eran la misma imagen.
+      if (nombre.startsWith('origen-')) {
+        await page.getByRole('tablist').first().scrollIntoViewIfNeeded()
+      }
       await capturar(page, info, `${nombre}-${zoom}`)
       if (nombre === 'equipo') {
         await page
