@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from './soporte/prueba'
 import {
+  DOMINIO_E2E,
   PREFIJO_ROL_E2E,
   borrarPersonasDePrueba,
   borrarRolesDePrueba,
@@ -14,6 +15,7 @@ import {
   aLaVistaSinDesplazar,
   quieto,
   sinScrollHorizontal,
+  sinTextoCortado,
   textoGrandeAlCargar,
 } from './soporte/recorrido'
 import { literal, sql } from './soporte/sql'
@@ -27,6 +29,9 @@ const CLAVE = 'una-clave-de-prueba-9'
 const NOMBRE_LARGO = 'Maria de los Angeles Fernandez de Cordoba y Sanchez de la Vega Montenegro'
 const ROLES_LARGOS = 8
 const BOTON_DE_PERSONA = /^(Acciones sobre|Más acciones de) /
+
+// Un correo de 38 letras: lo bastante largo para que no quepa en 16 rem (5a-17 lo cortaba al 100 % en escritorio).
+const CORREO_DE_38 = `${'c'.repeat(17)}@${DOMINIO_E2E}`
 
 let duena = ''
 let soloVer = ''
@@ -42,6 +47,12 @@ test.beforeAll(async ({}, info) => {
   await crearDuenaDePrueba({ email: duena, contrasena: CLAVE, nombre: 'Dalia Equipo' })
   await crearPersona({ email: larga, contrasena: CLAVE, nombre: NOMBRE_LARGO, invitada: true })
   await crearPersona({ email: soloVer, contrasena: CLAVE, nombre: 'Sol Ver', invitada: true })
+  await crearPersona({
+    email: CORREO_DE_38,
+    contrasena: CLAVE,
+    nombre: 'Treinta y Ocho',
+    invitada: true,
+  })
   await darRolDePrueba({
     email: soloVer,
     rol: {
@@ -77,6 +88,17 @@ async function entrar(page: Page, correo: string) {
 }
 
 const botones = (page: Page): Locator => page.getByRole('button', { name: BOTON_DE_PERSONA })
+
+// La columna «Persona» crece con el espacio libre de la tabla (hasta 26 rem) en vez de fijarse en 16: al 100 % un correo de 38 letras se ve
+// entero. Al 200 % conserva sus 16 rem (lo que sobra es menos), y la prueba de abajo sigue pidiendo el nombre a 100 px y el «⋯» a la vista.
+test('al 100 %: un correo de 38 letras se ve entero', async ({ page }) => {
+  await entrar(page, duena)
+  await page.goto('/configuracion/equipo')
+  const correo = page.getByText(CORREO_DE_38, { exact: true }).first()
+  await expect(correo).toBeVisible()
+  await sinTextoCortado(correo)
+  await expect(correo).toHaveAttribute('title', CORREO_DE_38)
+})
 
 test('al 200 %: el nombre y el «⋯» de cada persona caben a la vez, con nombre, correo y roles largos', async ({
   page,

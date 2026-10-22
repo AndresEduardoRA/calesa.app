@@ -8,9 +8,15 @@ import { Table, TableCell, TableHead } from '../table'
 // desplaza de costado dentro de su tarjeta —nunca la página— y deja a la vista el nombre, pegado a la izquierda, y el «⋯», pegado a la
 // derecha: una acción por fila nunca queda fuera de la vista. Las celdas pegadas son opacas, para que lo que pasa por debajo no se
 // transparente, y toman el color de la fila al pasar el puntero, al estar abierta en el resumen o al tener el foco su botón.
-export function TablaDeLista({ children }: { children: ReactNode }) {
+// `className` es para lo que la lista necesita de su caja (el equipo la hace `@container` para repartir el ancho que sobra, 5a-17).
+export function TablaDeLista({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className="overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)">
+    <div
+      className={cn(
+        'overflow-hidden rounded-(--radius-card) border border-(--color-line) bg-(--color-surface)',
+        className,
+      )}
+    >
       <Table className="w-max min-w-full">{children}</Table>
     </div>
   )

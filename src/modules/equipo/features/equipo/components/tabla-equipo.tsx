@@ -11,7 +11,7 @@ type Props = { personas: readonly PersonaDelEquipo[]; lista: AccionesDeLaLista }
 // La lista desde 768 px: una fila por persona, con su «⋯» si quien mira gestiona el equipo. Por debajo, `tarjetas-equipo.tsx`.
 export function TablaEquipo({ personas, lista }: Props) {
   return (
-    <TablaDeLista>
+    <TablaDeLista className="@container">
       <TableHeader>
         <TableRow>
           <CabeceraPegada lado="nombre">Persona</CabeceraPegada>
