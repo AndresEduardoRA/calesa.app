@@ -4783,6 +4783,7 @@ con la `XCell`, con permisos y roles, y responsive. El inventario destapó tres 
   opciones de ese nodo.
 - **Hito a mitad de fase (sí):** al cerrar el paso que deja cotizar de punta a punta con la fórmula y el diseño de la semilla (4.17 en
   la numeración nueva) corre un Nivel 2, y la BITACORA lo anota como «hito 4-A». Los editores van después.
+  _(Corregido el 2026-10-22 por decisión de la persona: el hito 4-A pasa al cierre de 4.18, porque el PDF es parte de la tarea de oro 2.)_
 
 **Alternativas:**
 
