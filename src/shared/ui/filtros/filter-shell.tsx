@@ -149,7 +149,9 @@ export function FilterShell(props: Props) {
 
   return (
     <ContextoDeFiltros value={filtros}>
-      <div ref={raiz} className="@container grid gap-3">
+      {/* Columna `minmax(0, 1fr)`: con una `auto` el texto sin cortar de un chip (una búsqueda de 22 letras, 403 px) fija el mínimo de la grilla y
+          ensancha la página al 200 % (5a-23). */}
+      <div ref={raiz} className="@container grid grid-cols-[minmax(0,1fr)] gap-3">
         <div data-barra-de-filtros className="flex flex-wrap items-center gap-2">
           {esquema.busqueda ? (
             <CampoDeBusqueda

@@ -266,3 +266,16 @@ describe('el mínimo de la búsqueda (5a-8)', () => {
     expect(screen.getByText('todo')).toBeTruthy()
   })
 })
+
+describe('FilterShell: el chip de una búsqueda larga (5a-23)', () => {
+  it('cede con «…» y dice su texto entero, y la «×» no cede', () => {
+    montar('?q=E2E Menu mas acciones')
+    const chip = screen.getByRole('button', { name: 'Quitar el filtro «E2E Menu mas acciones»' })
+    const texto = chip.querySelector('.truncate')
+    expect(texto?.getAttribute('title')).toBe('«E2E Menu mas acciones»')
+    expect(texto?.className).toContain('min-w-0')
+    expect(chip.className).toContain('max-w-full')
+    expect(chip.closest('li')?.className).toContain('min-w-0')
+    expect(chip.querySelector('svg')?.getAttribute('class')).toContain('shrink-0')
+  })
+})

@@ -11,12 +11,18 @@ import { idDe } from './soporte/leads'
 import { aLaVista, esMovil } from './soporte/inventario'
 import { irAlEmbudo } from './soporte/leads-oportunidades'
 import {
+  buscar,
   irALeads,
   limpiarListado,
   prepararListado,
   type TerrenoDelListado,
 } from './soporte/leads-listado'
-import { capturar, sinScrollHorizontal } from './soporte/recorrido'
+import {
+  aLaVistaSinDesplazar,
+  capturar,
+  sinScrollHorizontal,
+  textoGrandeAlCargar,
+} from './soporte/recorrido'
 
 // La barra del listado de leads (`<FilterShell>`) se lee en orden y desde la izquierda con el texto al 100 % y al 200 %, en escritorio y
 // en el celular (cierre 5b, defecto 4.1: al 200 % «Vistas» quedaba sola, «Lista | Embudo», «Importar» y «Papelera» se repartían a la
@@ -132,4 +138,28 @@ test('el listado de leads: el panel va al costado sólo si cabe, y al 200 % la f
     page,
     aLaVista(page.getByRole('button', { name: /^Abrir E2E Panel/ })),
   )
+})
+
+// 5a-23: el chip de una búsqueda larga («E2E Menu mas acciones», 22 letras) con el texto al 200 % desde la carga. Medía 403 px de ancho
+// en una pantalla de 412 y la página llegaba a 435: el chip no se partía y empujaba la barra. Ahora se corta con «…» (el `title` dice
+// el texto entero), cabe en la pantalla y su «×» queda a la vista.
+const BUSQUEDA_LARGA = 'E2E Menu mas acciones'
+
+test('una búsqueda de 22 letras al 200 %: el chip se corta con «…» y no ensancha la página', async ({
+  page,
+}) => {
+  await textoGrandeAlCargar(page)
+  await entrar(page, t.personas.berta)
+  await irALeads(page, buscar(BUSQUEDA_LARGA))
+  const chip = aLaVista(page.getByRole('button', { name: `Quitar el filtro «${BUSQUEDA_LARGA}»` }))
+  await expect(chip).toBeVisible()
+  const texto = chip.locator('.truncate')
+  await sinScrollHorizontal(page)
+  await aLaVistaSinDesplazar(chip, 'el chip de la búsqueda')
+  await expect(texto).toHaveAttribute('title', `«${BUSQUEDA_LARGA}»`)
+  if (esMovil(page)) {
+    // En 412 px el chip no cabe entero: se corta, y el «×» (el último hijo del botón) sigue a la vista.
+    expect(await texto.evaluate((e) => e.scrollWidth > e.clientWidth)).toBe(true)
+    await aLaVistaSinDesplazar(chip.locator('svg'), 'la «×» del chip')
+  }
 })
