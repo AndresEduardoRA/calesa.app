@@ -1,4 +1,4 @@
--- La huella de la búsqueda por candidatos a volumen y en un Postgres de verdad (cierre 5a-fix-1b). `pnpm db:medir:volumen` la corre.
+-- La huella de la búsqueda por candidatos a volumen y en un Postgres de verdad (cierre 5a-fix-1b; el campo privado, paso 4.03). `pnpm db:medir:volumen` la corre.
 -- `busqueda-leads.sql` (en `pnpm db:probar`) compara las filas enteras de los dos caminos en PGlite, que pliega mayúsculas y tildes sólo en ASCII y
 -- no tiene el volumen. Acá es la base real, con ICU, con 62.000 o 212.000 leads: para cada persona y cada término, la primera página (el máximo de
 -- la lista) de la consulta de siempre y la de los candidatos tienen que tener el mismo md5 de filas enteras. Todo en una transacción que se revierte.
@@ -176,6 +176,76 @@ begin
   if v_con_filas < 40 then raise exception 'la huella de las etiquetas casi no comparó filas (% de % con filas): no prueba', v_con_filas, v_cmp; end if;
   raise notice 'medicion|etiquetas por candidatos: % huellas iguales (% con filas)|%', v_cmp, v_con_filas, round(extract(epoch from clock_timestamp() - v_t0) * 1000, 0);
 end $et$;
+
+-- 5a-10 (paso 4.03): un campo privado también se filtra por los candidatos, y quién ve qué no cambia. La dueña, Ana, Berta, la «chica» y la supervisora («todos» y 3 propios: la cuenta
+-- que ve más leads de los que le entregan el campo) filtran por un campo privado: el valor raro está en cinco leads de cada cartera y en cinco de OTRA persona (Berta B2: los ven la
+-- dueña y la supervisora con «todos», y no son de su cartera), más un valor denso (`ciudad_vol`). Las filas enteras (md5) tienen que ser las de la ruta de siempre (`en_cartera = true
+-- and atributos @> …` por la vista), y lo que sale tiene que ser exactamente lo de la cartera de quien filtra: nada de los leads de otra persona, que quien filtra vea o no.
+insert into auth.users (id, email, raw_app_meta_data) values ('00000000-0000-0000-0000-0000000000c8', 'supervisora-huella@ejemplo.com', '{"invitado": true}');
+insert into public.usuarios_roles (usuario_id, rol_id, es_principal) select '00000000-0000-0000-0000-0000000000c8', id, true from public.roles where clave = 'dueno' on conflict do nothing;
+update public.leads_asesores set usuario_id = '00000000-0000-0000-0000-0000000000c8'
+ where tipo_acceso = 'dueno' and revocado_en is null
+   and lead_id in (select lead_id from public.leads_asesores where usuario_id = '00000000-0000-0000-0000-0000000000d1' and tipo_acceso = 'dueno' and revocado_en is null order by lead_id limit 3);
+set local session_replication_role = replica;
+update public.leads l set atributos = l.atributos || '{"direccion": "Calle del Sol 1"}'
+ where l.id in (select x.lead_id from (select la.lead_id, row_number() over (partition by la.usuario_id order by la.lead_id) n from public.leads_asesores la
+                                          where la.tipo_acceso = 'dueno' and la.revocado_en is null
+                                            and la.usuario_id in ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1',
+                                                                  '00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000c9', '00000000-0000-0000-0000-0000000000c8')) x
+                 where x.n <= 5);
+set local session_replication_role = origin;
+analyze public.leads;
+analyze public.leads_asesores;
+create function pg_temp.huella_priv(p_quien uuid, p_rel text, p_texto text, p_donde text, p_privados jsonb, p_resto text default 'true') returns int language plpgsql as $$
+declare v_max int := current_setting('medir.max_leads')::int; v_viejo jsonb; v_nuevo jsonb;
+begin
+  v_viejo := pg_temp.bl_viejo(p_quien, p_rel, case when p_texto is null then 'true' else format('nombre ilike %L', public._lead_busqueda_patron(p_texto)) end
+                                            || format(' and en_cartera = true and (%s) and (%s)', p_donde, p_resto), v_max, false, null, null);
+  v_nuevo := pg_temp.bl_nuevo(p_quien, p_texto, null, true, jsonb_build_object('privados', p_privados), format('en_cartera = true and (%s)', p_resto), v_max, false, null, null);
+  if v_viejo is distinct from v_nuevo then
+    raise exception E'huella de un campo privado distinta | persona % | «%» | %: siempre % filas (md5 %), ahora % filas (md5 %)', p_quien, p_texto, p_donde,
+      jsonb_array_length(v_viejo), md5(v_viejo::text), jsonb_array_length(v_nuevo), md5(v_nuevo::text);
+  end if;
+  return jsonb_array_length(v_nuevo);
+end $$;
+do $priv$
+declare
+  p record; f record; t text; v_n int; v_cmp int := 0; v_con_filas int := 0; v_t0 timestamptz := clock_timestamp(); v_r jsonb; v_ids uuid[]; v_esperados int; v_con_ids int := 0;
+begin
+  for p in select * from (values
+    ('dueña, por la vista', '00000000-0000-0000-0000-0000000000d1'::uuid, 'leads_vista'), ('dueña, por la cartera', '00000000-0000-0000-0000-0000000000d1'::uuid, 'leads_cartera_vista'),
+    ('Ana', '00000000-0000-0000-0000-0000000000a1'::uuid, 'leads_cartera_vista'), ('Berta', '00000000-0000-0000-0000-0000000000b1'::uuid, 'leads_cartera_vista'),
+    ('la «chica»', '00000000-0000-0000-0000-0000000000c9'::uuid, 'leads_cartera_vista'),
+    ('la supervisora («todos»), por la vista', '00000000-0000-0000-0000-0000000000c8'::uuid, 'leads_vista'),
+    ('la supervisora, por la cartera', '00000000-0000-0000-0000-0000000000c8'::uuid, 'leads_cartera_vista')) x (nombre, id, rel) loop
+    for f in select * from (values
+      ('el valor raro', 'atributos @> ''{"direccion": "Calle del Sol 1"}''', '[[{"direccion": "Calle del Sol 1"}]]'::jsonb, 'true'),
+      ('uno que no existe', 'atributos @> ''{"direccion": "Nada"}''', '[[{"direccion": "Nada"}]]'::jsonb, 'true'),
+      ('el denso', 'atributos @> ''{"ciudad_vol": "lp"}''', '[[{"ciudad_vol": "lp"}]]'::jsonb, 'true'),
+      ('el denso con tachados ocultos', 'atributos @> ''{"ciudad_vol": "lp"}''', '[[{"ciudad_vol": "lp"}]]'::jsonb, 'esta_tachado = false'),
+      ('una opción u otra', '(atributos @> ''{"ciudad_vol": "lp"}'' or atributos @> ''{"direccion": "Calle del Sol 1"}'')', '[[{"ciudad_vol": "lp"}, {"direccion": "Calle del Sol 1"}]]'::jsonb, 'true'),
+      ('dos a la vez', 'atributos @> ''{"ciudad_vol": "lp"}'' and atributos @> ''{"direccion": "Calle del Sol 1"}''', '[[{"ciudad_vol": "lp"}], [{"direccion": "Calle del Sol 1"}]]'::jsonb, 'true')) x (nombre, donde, privados, resto) loop
+      foreach t in array array[null, 'Volumen', 'Gómez', 'Volumen 4999'] loop
+        v_n := pg_temp.huella_priv(p.id, p.rel, t, f.donde, f.privados, f.resto);
+        v_cmp := v_cmp + 1; v_con_filas := v_con_filas + (v_n > 0)::int;
+      end loop;
+    end loop;
+    -- Lo que sale es exactamente lo de su cartera con el valor (la regla escrita a mano, sin la vista): el raro y el que no existe, completos.
+    foreach t in array array['Calle del Sol 1', 'Nada'] loop
+      v_r := pg_temp.bl_como(p.id, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'privados', jsonb_build_array(jsonb_build_array(jsonb_build_object('direccion', t))))));
+      v_ids := array(select jsonb_array_elements_text(v_r -> 'ids'))::uuid[];
+      select count(*) into v_esperados from public.leads l where l.eliminado_en is null and l.cartera @> array[p.id] and l.atributos @> jsonb_build_object('direccion', t);
+      if cardinality(v_ids) <> v_esperados or not (v_r ->> 'completa')::boolean
+         or exists (select 1 from public.leads l where l.id = any (v_ids) and not (l.cartera @> array[p.id] and l.atributos @> jsonb_build_object('direccion', t))) then
+        raise exception 'FUGA o pérdida | % | «%»: salen % candidatos y los de su cartera con el valor son %: %', p.nombre, t, cardinality(v_ids), v_esperados, v_r;
+      end if;
+      v_con_ids := v_con_ids + (cardinality(v_ids) > 0)::int;
+    end loop;
+  end loop;
+  -- 7 lecturas × 6 filtros × 4 textos = 168; los 28 de «uno que no existe» nunca traen filas.
+  if v_con_filas < 60 or v_con_ids < 4 then raise exception 'la huella de un campo privado casi no comparó filas (% de % con filas, % con candidatos): no prueba', v_con_filas, v_cmp, v_con_ids; end if;
+  raise notice 'medicion|un campo privado por candidatos: % huellas iguales (% con filas)|%', v_cmp, v_con_filas, round(extract(epoch from clock_timestamp() - v_t0) * 1000, 0);
+end $priv$;
 
 create temp table huellas (persona text, termino text, filas int);
 do $m$

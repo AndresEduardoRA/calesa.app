@@ -181,6 +181,18 @@ update public.leads_asesores set usuario_id = '00000000-0000-0000-0000-000000000
 set local session_replication_role = replica;
 update public.leads set eliminado_en = now() where id in (select id from medir_papelera);
 set local session_replication_role = origin;
+-- Un valor raro del campo (5a-10): pocos leads de cada cartera grande, los de la «chica», la supervisora y la de la papelera, y cinco de la papelera ya eliminados. Cada
+-- persona tiene que encontrar exactamente los suyos vivos (los de las demás, que ve o no, no cuentan) con un filtro por un campo privado. Se revierte con la transacción.
+set local session_replication_role = replica;
+update public.leads l set atributos = l.atributos || '{"ciudad_vol": "rara"}'
+ where l.id in (select x.lead_id from (select la.lead_id, row_number() over (partition by la.usuario_id order by la.lead_id) n
+                                         from public.leads_asesores la
+                                        where la.tipo_acceso = 'dueno' and la.revocado_en is null
+                                          and la.usuario_id in ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1',
+                                                                '00000000-0000-0000-0000-0000000000c9', '00000000-0000-0000-0000-0000000000c8', '00000000-0000-0000-0000-0000000000c6')) x
+                 where x.n <= 5)
+    or l.id in (select id from medir_papelera order by id limit 5);
+set local session_replication_role = origin;
 analyze public.leads;
 analyze public.leads_asesores;
 select set_config('medir.origen', (select id::text from public.origenes where tipo = 'subasta' order by orden limit 1), true);
@@ -258,10 +270,9 @@ declare
 begin
   -- La dueña en «míos» sigue leyendo `leads_vista` (su cartera es grande: por la cartera no mejora, `docs/RENDIMIENTO.md`): se asserta lo
   -- que ya se asertaba de esa lectura y nada más. Su etiqueta propia (112 ms con 62.000 leads, presupuesto 100) es de `docs/PLAN.md` 5a-7; un campo
-  -- público (el atributo común, 105,6 ms con 212.000) se lee ahora por los candidatos y lo mide `busqueda()`.
+  -- público (el atributo común, 105,6 ms con 212.000) se lee ahora por los candidatos y lo mide `busqueda()`, y uno privado (5a-10), `privados()`.
   if p_mios and v_rel = 'leads_vista' then
     perform pg_temp.escala(v_modo || ': página 1 con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false', v_max, v_rel), 30, v_idx, v_tablas, v_desc);
-    perform pg_temp.escala(v_modo || ': un campo privado sin resultados (recorre la cartera)', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada', 'atributos') || ' and esta_tachado = false', v_max, v_rel), 6000);
     perform pg_temp.texto_y_rango_publicos(v_modo, q, v_m, v_rel);
     return;
   end if;
@@ -270,11 +281,7 @@ begin
   perform pg_temp.escala(v_modo || ': página 100 por cursor', q, pg_temp.pagina(v_m || 'esta_tachado = false and ' || v_cursor, 50, v_rel), 150, v_idx, v_tablas, v_desc);
   perform pg_temp.escala(v_modo || ': página 100 por cursor con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false and ' || v_cursor, v_max, v_rel), 150, v_idx, v_tablas, v_desc);
   -- Un campo público (`atributos_publicos @>`) y un nombre se leen por los candidatos: `busqueda()`.
-  -- Límite aceptado: un campo privado se filtra por lo recortado, con `atributos_lead()` en cada lead de la cartera
-  -- (~66 µs): cuesta lo que suma la cartera de quien filtra (la dueña, 20.000). Sólo se filtra en «míos»: sólo la cartera lo tiene.
-  if p_mios then
-    perform pg_temp.escala(v_modo || ': un campo privado sin resultados (recorre la cartera)', q, pg_temp.pagina('en_cartera = true and ' || pg_temp.atributo('nada', 'atributos') || ' and esta_tachado = false', v_max, v_rel), 6000);
-  end if;
+  -- Un campo privado también se lee por los candidatos (5a-10): lo mide `privados()`, abajo.
   perform pg_temp.texto_y_rango_publicos(v_modo, q, v_m, v_rel);
   perform pg_temp.escala(v_modo || ': sólo favoritos', q, pg_temp.pagina(v_m || 'es_favorito = true and esta_tachado = false', v_max, v_rel), 100);
   perform pg_temp.escala(v_modo || ': sólo tachados', q, pg_temp.pagina(v_m || 'esta_tachado = true', v_max, v_rel), 100);
@@ -332,12 +339,30 @@ begin
   return (select coalesce(sum(m[1]::numeric), 0) from regexp_matches(v_plan::text, '"(?:Exact|Lossy) Heap Blocks": (\d+)', 'g') m);
 end $$;
 
-create function pg_temp.busqueda_de(q text, p_modo text, p_nombre text, p_filtros jsonb, p_ms1 numeric, p_ms2 numeric, p_ms numeric) returns void language plpgsql as $$
+-- Los buffers que lee una consulta como `p_quien` (hit + read de la raíz del plan: una función que corre consultas por dentro suma los suyos). Los milisegundos
+-- se mueven con la máquina; los buffers no, y son lo que crece con N cuando algo se recorre.
+create function pg_temp.buffers_de(p_quien text, p_sql text) returns numeric language plpgsql as $$
+declare v_plan json;
+begin
+  perform pg_temp.quien(p_quien);
+  set local role authenticated;
+  set local plan_cache_mode = force_generic_plan;
+  execute 'explain (analyze, buffers, costs off, timing off, format json) ' || p_sql into v_plan;
+  reset role;
+  return coalesce((v_plan -> 0 -> 'Plan' ->> 'Shared Hit Blocks')::numeric, 0) + coalesce((v_plan -> 0 -> 'Plan' ->> 'Shared Read Blocks')::numeric, 0);
+end $$;
+
+-- `p_buffers`: tope de buffers de los dos pasos juntos (el mismo con 62.000 y con 212.000 leads: lo que se recorre de más aparece acá antes que en los ms).
+-- `p_privado`: el valor que se filtra en un campo privado. Se comprueba **lo que devuelve**, no sólo cuánto tarda: todo candidato está en la cartera de quien filtra
+-- y tiene el valor (ni un lead de otra persona, que quien filtra vea o no) y, con `p_exacto`, salen todos los que cumplen y la respuesta dice que no hay más.
+create function pg_temp.busqueda_de(q text, p_modo text, p_nombre text, p_filtros jsonb, p_ms1 numeric, p_ms2 numeric, p_ms numeric,
+                                    p_buffers numeric default null, p_privado jsonb default null, p_exacto boolean default false) returns void language plpgsql as $$
 declare
   v_max int := current_setting('medir.max_leads')::int;
   v_mios boolean := p_modo = 'mios';
   v_filtros jsonb := p_filtros || jsonb_build_object('mios', v_mios, 'sentido', 'siguiente');
   v_r jsonb; v_ids uuid[]; v_sql2 text; v_plan text; v_suma numeric; v_nombre text := 'búsqueda ' || p_modo || ': ' || p_nombre;
+  v_yo uuid; v_malos int; v_fugas int; v_esperados int; v_b numeric;
 begin
   perform pg_temp.escala(v_nombre || ' (paso 1: candidatos)', q, format('select public.leads_candidatos(%L::jsonb)', v_filtros), p_ms1);
   v_r := pg_temp.candidatos(q, v_filtros);
@@ -359,6 +384,52 @@ begin
   if p_ms is not null and v_suma > p_ms then
     insert into pg_temp.violaciones values (format('%s [%s]: los dos pasos tardan %s ms, el presupuesto es %s ms', v_nombre, q, round(v_suma, 1), p_ms));
   end if;
+  if p_buffers is not null then
+    v_b := pg_temp.buffers_de(q, format('select public.leads_candidatos(%L::jsonb)', v_filtros)) + pg_temp.buffers_de(q, v_sql2);
+    raise notice 'medicion|% (buffers de los dos pasos) [%]|%', v_nombre, q, v_b;
+    if v_b > p_buffers then
+      insert into pg_temp.violaciones values (format('%s [%s]: los dos pasos leen %s buffers, el tope es %s', v_nombre, q, v_b, p_buffers));
+    end if;
+  end if;
+  if p_privado is not null then
+    perform pg_temp.quien(q);
+    v_yo := current_setting('request.jwt.claim.sub')::uuid;
+    select count(*) filter (where not (l.eliminado_en is null and l.cartera @> array[v_yo] and l.atributos @> p_privado)),
+           count(*) filter (where not (l.cartera @> array[v_yo]) and l.atributos @> p_privado)
+      into v_malos, v_fugas
+      from public.leads l where l.id = any (v_ids);
+    if v_fugas > 0 then
+      insert into pg_temp.violaciones values (format('%s [%s]: FUGA, %s candidatos con %s no están en su cartera (decir que existen es un oráculo)', v_nombre, q, v_fugas, p_privado));
+    end if;
+    if v_malos > 0 then
+      insert into pg_temp.violaciones values (format('%s [%s]: %s de %s candidatos no cumplen el filtro (su cartera, vivos y con %s)', v_nombre, q, v_malos, cardinality(v_ids), p_privado));
+    end if;
+    if p_exacto then
+      select count(*) into v_esperados from public.leads l where l.eliminado_en is null and l.cartera @> array[v_yo] and l.atributos @> p_privado;
+      if cardinality(v_ids) <> v_esperados or not (v_r ->> 'completa')::boolean then
+        insert into pg_temp.violaciones values (format('%s [%s]: devolvió %s candidatos (completa: %s) y los que cumplen en su cartera son %s', v_nombre, q, cardinality(v_ids), v_r ->> 'completa', v_esperados));
+      end if;
+    end if;
+  end if;
+end $$;
+
+-- Un campo privado (5a-10, paso 4.03): lo filtra **la ventana de candidatos**, sólo sobre la cartera de quien filtra, y no la vista leyendo `atributos_lead()` en cada lead (66 µs
+-- por lead de la cartera: la dueña con 212.000 leads, 5.320 ms y 892.348 buffers; con 62.000, 1.317 y 228.351). Con 212.000 y con 62.000 los mismos presupuestos, sin fórmula
+-- por N: los dos pasos 100 ms y 40.000 buffers. Lo que crece con la cartera es la etapa del índice cuando el valor es raro (≈ 0,35 µs por lead, `docs/RENDIMIENTO.md`).
+create function pg_temp.privados(q text) returns void language plpgsql as $$
+declare
+  -- El valor denso de cada una (la siembra reparte las ciudades por el mismo número que el dueño: todos los leads de Berta son «scz»).
+  v_comun text := case q when 'berta' then 'scz' else 'lp' end;
+begin
+  -- Sin resultados (nadie lo tiene): ninguno, y la respuesta dice que no hay más.
+  perform pg_temp.busqueda_de(q, 'mios', 'un campo privado sin resultados', '{"privados": [[{"ciudad_vol": "nada"}]]}', 80, 40, 100, 40000, '{"ciudad_vol": "nada"}', true);
+  -- Raro (pocos en cada cartera, y los de otras personas, que se ven o no, no cuentan): exactamente los suyos vivos.
+  perform pg_temp.busqueda_de(q, 'mios', 'un campo privado raro', '{"privados": [[{"ciudad_vol": "rara"}]]}', 80, 40, 100, 40000, '{"ciudad_vol": "rara"}', true);
+  -- Común (un cuarto de la cartera): la ventana corta al juntar K.
+  perform pg_temp.busqueda_de(q, 'mios', 'un campo privado común', jsonb_build_object('privados', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad_vol', v_comun)))), 80, 40, 100, 40000, jsonb_build_object('ciudad_vol', v_comun));
+  -- Una opción u otra, y con un nombre.
+  perform pg_temp.busqueda_de(q, 'mios', 'un campo privado, una opción u otra', jsonb_build_object('privados', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad_vol', v_comun), jsonb_build_object('ciudad_vol', 'rara')))), 80, 40, 100, 40000);
+  perform pg_temp.busqueda_de(q, 'mios', 'un campo privado y un nombre', jsonb_build_object('privados', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad_vol', v_comun))), 'texto', 'Gómez'), 80, 40, 100, 40000, jsonb_build_object('ciudad_vol', v_comun));
 end $$;
 
 create function pg_temp.busqueda(q text) returns void language plpgsql as $$
@@ -589,6 +660,10 @@ do $medir$ declare q text; begin
   perform pg_temp.listado('sup', false);
   foreach q in array array['duena', 'ana', 'berta', 'chica'] loop
     perform pg_temp.busqueda(q);
+  end loop;
+  -- Un campo privado (5a-10), de cada persona que mide el listado: las tres de «propios» y las dos carteras cortas, la dueña y la supervisora («todos»).
+  foreach q in array array['duena', 'ana', 'berta', 'chica', 'papelera', 'sup'] loop
+    perform pg_temp.privados(q);
   end loop;
   -- Quien no tiene ningún tachado ni favorito (Berta, con 7.000 leads) no recorre su cartera para saberlo.
   perform pg_temp.escala('listado «míos»: ocultos hasta 51 de quien no tiene ninguno', 'berta', 'select id from public.leads_cartera_vista where en_cartera = true and esta_tachado = true order by creado_en desc, id desc limit 51', 30);

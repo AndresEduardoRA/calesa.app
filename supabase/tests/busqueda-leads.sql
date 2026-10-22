@@ -146,7 +146,8 @@ begin
              format('origen_lead_id = any (array[%L]::uuid[]) and esta_tachado = false', v_origen)),
           ('un campo público', 'atributos_publicos @> ''{"ciudad": "Sucre"}''', '{"atributos": [[{"ciudad": "Sucre"}]]}'::jsonb, 'true'),
           ('un campo público u otro', 'atributos_publicos @> ''{"ciudad": "Sucre"}'' or atributos_publicos @> ''{"ciudad": "Oruro"}''', '{"atributos": [[{"ciudad": "Sucre"}, {"ciudad": "Oruro"}]]}'::jsonb, 'true'),
-          ('un campo privado', 'atributos @> ''{"direccion": "Calle privada 9"}''', '{}', 'atributos @> ''{"direccion": "Calle privada 9"}''')) x (nombre, donde, empuja, resto) loop
+          -- Un campo privado lo cumplen los candidatos, sólo de la cartera de quien filtra (5a-10, `privados-candidatos.sql` lo prueba a fondo): la página ya no lo repite.
+          ('un campo privado', 'atributos @> ''{"direccion": "Calle privada 9"}''', '{"privados": [[{"direccion": "Calle privada 9"}]]}'::jsonb, 'true')) x (nombre, donde, empuja, resto) loop
           v_donde := format('nombre ilike %L and %s%s', v_pat, case when p.mios then 'en_cartera = true and ' else '' end, '(' || f.donde || ')');
           v_viejo := pg_temp.bl_viejo(p.id, p.rel, v_donde, 4, false, null, null);
           v_nuevo := pg_temp.bl_nuevo(p.id, t, null, p.mios, f.empuja, case when p.mios then 'en_cartera = true and ' else '' end || '(' || f.resto || ')', 4, false, null, null);

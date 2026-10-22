@@ -31,27 +31,44 @@ const privado: CondicionDeLead = {
   alternativas: [{ direccion: 'x' }],
   columna: 'atributos',
 }
+// Un texto o un rango sobre un campo privado: lo decide la página (5a-34).
+const textoPrivado: CondicionDeLead = {
+  tipo: 'atributo_texto',
+  clave: 'direccion',
+  texto: 'calle',
+  columna: 'atributos',
+}
+const rangoPrivado: CondicionDeLead = {
+  tipo: 'atributo_rango_numero',
+  clave: 'ingreso',
+  min: 10,
+  max: null,
+  columna: 'atributos',
+}
 
 describe('usaCandidatos', () => {
-  it('una búsqueda por nombre, una etiqueta o un campo público los piden', () => {
+  it('una búsqueda por nombre, una etiqueta o un campo, público o privado, los piden', () => {
     expect(usaCandidatos([busqueda()])).toBe(true)
     expect(usaCandidatos([publico])).toBe(true)
+    expect(usaCandidatos([privado])).toBe(true)
+    expect(usaCandidatos([{ tipo: 'en_cartera', desdeLaCartera: false }, privado])).toBe(true)
     expect(usaCandidatos([{ tipo: 'etiquetas', ids: [ID_A] }])).toBe(true)
     expect(usaCandidatos([{ tipo: 'en_cartera', desdeLaCartera: true }, busqueda()])).toBe(true)
   })
 
-  it('«#124» es sólo el número y un campo privado va por lo recortado: no los piden', () => {
+  it('«#124» es sólo el número y un texto o un rango privado los decide la página: no los piden', () => {
     expect(usaCandidatos([busqueda({ soloNumero: true, numero: 124, idsDelNumero: [ID_A] })])).toBe(
       false,
     )
-    expect(usaCandidatos([privado])).toBe(false)
+    expect(usaCandidatos([textoPrivado])).toBe(false)
+    expect(usaCandidatos([rangoPrivado])).toBe(false)
     expect(usaCandidatos([])).toBe(false)
     expect(usaCandidatos([{ tipo: 'tachado', valor: false }])).toBe(false)
   })
 })
 
 describe('filtrosDeCandidatos', () => {
-  it('lleva lo que acota: el texto, «míos», el tipo, el origen, las etiquetas y los campos públicos', () => {
+  it('lleva lo que acota: el texto, «míos», el tipo, el origen, las etiquetas y los campos, públicos y privados', () => {
     expect(
       filtrosDeCandidatos(
         [
@@ -61,6 +78,7 @@ describe('filtrosDeCandidatos', () => {
           { tipo: 'columna_en', columna: 'origen_lead_id', valores: [ID_B] },
           { tipo: 'etiquetas', ids: [ID_A, ID_B] },
           publico,
+          privado,
         ],
         null,
         'siguiente',
@@ -73,17 +91,19 @@ describe('filtrosDeCandidatos', () => {
       origenes: [ID_B],
       etiquetas: [ID_A, ID_B],
       atributos: [[{ ciudad: 'lp' }, { ciudad: 'scz' }]],
+      privados: [[{ direccion: 'x' }]],
     })
   })
 
-  it('no lleva lo que la página decide: un privado, una marca, un rango', () => {
+  it('no lleva lo que la página decide: una marca, un texto o un rango', () => {
     const filtros = filtrosDeCandidatos(
       [
         busqueda(),
-        privado,
         { tipo: 'tachado', valor: false },
         { tipo: 'favorito', valor: true },
         { tipo: 'atributo_texto', clave: 'ciudad', texto: 'x', columna: 'atributos_publicos' },
+        textoPrivado,
+        rangoPrivado,
       ],
       null,
       'siguiente',
@@ -114,6 +134,18 @@ describe('filtrosDeCandidatos', () => {
       cursor: { creado_en: '2026-10-18T10:00:00.123456+00:00', id: ID_A },
     })
   })
+})
+
+describe('filtrosDeCandidatos, los campos', () => {
+  it('un privado va a `privados` y un público a `atributos`: la base no los mezcla', () => {
+    const filtros = filtrosDeCandidatos([privado, publico, privado], null, 'siguiente')
+    expect(filtros.atributos).toEqual([[{ ciudad: 'lp' }, { ciudad: 'scz' }]])
+    expect(filtros.privados).toEqual([[{ direccion: 'x' }], [{ direccion: 'x' }]])
+    expect(Object.keys(filtrosDeCandidatos([privado], null, 'siguiente')).sort()).toEqual([
+      'privados',
+      'sentido',
+    ])
+  })
 
   it('dos campos públicos son dos grupos: se cumplen los dos', () => {
     const otro: CondicionDeLead = {
@@ -129,17 +161,29 @@ describe('filtrosDeCandidatos', () => {
 })
 
 describe('condicionesDeLaPagina', () => {
-  it('quita el nombre, las etiquetas y el campo público (ya cumplidos) y deja todo lo demás', () => {
+  it('quita el nombre, las etiquetas y los campos (ya cumplidos) y deja todo lo demás', () => {
     const resto: CondicionDeLead[] = [
       { tipo: 'en_cartera', desdeLaCartera: true },
       { tipo: 'columna_en', columna: 'tipo_lead_id', valores: [ID_A] },
-      privado,
+      textoPrivado,
+      rangoPrivado,
       { tipo: 'tachado', valor: false },
       { tipo: 'favorito', valor: true },
     ]
     expect(
-      condicionesDeLaPagina([busqueda(), publico, { tipo: 'etiquetas', ids: [ID_A] }, ...resto]),
+      condicionesDeLaPagina([
+        busqueda(),
+        publico,
+        privado,
+        { tipo: 'etiquetas', ids: [ID_A] },
+        ...resto,
+      ]),
     ).toEqual(resto)
+  })
+
+  it('«míos» se queda en la página aunque el privado lo pida a la base: es lo que acota las filas', () => {
+    const mios: CondicionDeLead = { tipo: 'en_cartera', desdeLaCartera: false }
+    expect(condicionesDeLaPagina([mios, privado])).toEqual([mios])
   })
 
   it('«#124» se queda: es lo único que filtra', () => {

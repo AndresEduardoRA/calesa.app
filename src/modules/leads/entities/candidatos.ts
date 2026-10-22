@@ -8,6 +8,8 @@ import { z } from 'zod'
 import type { Cursor } from '@/shared/lib/paginacion'
 import type { CondicionDeLead } from './filtros'
 
+type Atributos = Record<string, string | boolean | string[]>[][]
+
 // La forma que la base lee de `p_filtros` (`leads_candidatos`). Todo opcional y todo sólo acota: la página vuelve a aplicar lo que no se empujó.
 export type FiltrosDeCandidatos = {
   // El nombre que se busca, tal como lo escribió la persona (sin el «#»): la base arma el patrón con `_lead_busqueda_patron()`.
@@ -19,7 +21,10 @@ export type FiltrosDeCandidatos = {
   // Las etiquetas de quien mira (cualquiera de ellas): la base descarta las que no son suyas, y si no queda ninguna, no hay candidatos (5a-7).
   etiquetas?: string[]
   // Un Y de Os de `@>` sobre `atributos_publicos`.
-  atributos?: Record<string, string | boolean | string[]>[][]
+  atributos?: Atributos
+  // Lo mismo sobre `atributos` sin recortar (un campo privado, o a medias de cambiar de privacidad, 5a-10). La base lo lee **sólo de la cartera de quien llama**: pedirlo
+  // vuelve «míos» la ventana, y nadie encuentra por un privado lo que no es suyo.
+  privados?: Atributos
   cursor?: { creado_en: string; id: string }
   sentido: 'siguiente' | 'anterior'
   // Los leads con el número buscado (ya resueltos, sólo los que quien mira ve): cuentan aunque el nombre no coincida.
@@ -41,22 +46,21 @@ export function candidatosDesde(data: unknown): Candidatos | null {
 }
 
 // Las condiciones que un candidato puede cumplir antes de leer la página: la búsqueda por nombre (que no sea sólo por número), las etiquetas de quien
-// mira (5a-7: `leads_etiquetas` por `etiqueta_id`, en vez de calcular las de cada fila de la vista) y un campo público filtrado por su copia
-// (`atributos_publicos`). Un privado, o uno con un cambio de privacidad a medias, va por `atributos`, que es lo que quien mira recibe recortado:
-// la base no puede decidirlo desde los candidatos.
+// mira (5a-7: `leads_etiquetas` por `etiqueta_id`, en vez de calcular las de cada fila de la vista), un campo público filtrado por su copia
+// (`atributos_publicos`) y, desde 5a-10, un campo privado o a medias de cambiar de privacidad (`atributos`): la vista lo calculaba con `atributos_lead()` en cada
+// lead de la cartera (63 µs, 5.320 ms la dueña con 212.000 leads), y la base lo lee sin recortar sólo de la cartera de quien llama, que es lo que esa función le daría.
+// Un texto o un rango sobre un campo privado (`atributo_texto`, `atributo_rango_*`) sigue en la página: 5a-34.
 function esDeCandidatos(condicion: CondicionDeLead): boolean {
   return (
     (condicion.tipo === 'busqueda' && !condicion.soloNumero) ||
     condicion.tipo === 'etiquetas' ||
-    (condicion.tipo === 'atributos_contienen' && condicion.columna === 'atributos_publicos')
+    condicion.tipo === 'atributos_contienen'
   )
 }
 
 export function usaCandidatos(condiciones: readonly CondicionDeLead[]): boolean {
   return condiciones.some(esDeCandidatos)
 }
-
-type Atributos = Record<string, string | boolean | string[]>[][]
 
 function sumarBusqueda(
   filtros: FiltrosDeCandidatos,
@@ -74,7 +78,7 @@ function sumarBusqueda(
 // Lo que una condición le suma a lo que se le pide a la base (nada, si la página es quien la decide: las marcas, un campo privado, un rango).
 function sumarAlPedido(
   filtros: FiltrosDeCandidatos,
-  atributos: Atributos,
+  { atributos, privados }: { atributos: Atributos; privados: Atributos },
   condicion: CondicionDeLead,
 ): void {
   if (condicion.tipo === 'busqueda') {
@@ -85,11 +89,10 @@ function sumarAlPedido(
     filtros.mios = true
   } else if (condicion.tipo === 'columna_en') {
     filtros[condicion.columna === 'tipo_lead_id' ? 'tipos' : 'origenes'] = [...condicion.valores]
-  } else if (
-    condicion.tipo === 'atributos_contienen' &&
-    condicion.columna === 'atributos_publicos'
-  ) {
-    atributos.push([...condicion.alternativas])
+  } else if (condicion.tipo === 'atributos_contienen') {
+    // Un campo público por su copia (`atributos_publicos`); uno privado, por `atributos`, que la base lee sólo de la cartera de quien llama.
+    const grupos = condicion.columna === 'atributos_publicos' ? atributos : privados
+    grupos.push([...condicion.alternativas])
   }
 }
 
@@ -101,12 +104,15 @@ export function filtrosDeCandidatos(
   sentido: Cursor['sentido'],
 ): FiltrosDeCandidatos {
   const filtros: FiltrosDeCandidatos = { sentido }
-  const atributos: Atributos = []
+  const grupos = { atributos: [] as Atributos, privados: [] as Atributos }
   for (const condicion of condiciones) {
-    sumarAlPedido(filtros, atributos, condicion)
+    sumarAlPedido(filtros, grupos, condicion)
   }
-  if (atributos.length > 0) {
-    filtros.atributos = atributos
+  if (grupos.atributos.length > 0) {
+    filtros.atributos = grupos.atributos
+  }
+  if (grupos.privados.length > 0) {
+    filtros.privados = grupos.privados
   }
   if (desde) {
     filtros.cursor = { creado_en: desde.creadoEn, id: desde.id }
@@ -114,10 +120,10 @@ export function filtrosDeCandidatos(
   return filtros
 }
 
-// Lo que la página vuelve a aplicar. Los candidatos ya son exactamente los que coinciden por nombre, por etiqueta (el lead que llega por su número
-// también la tiene que tener: lo comprueba la base) y por un campo público: repetir esas condiciones sobre la lista de ids no cambia el resultado, y le cuesta caro al planificador, que las estima en casi cero filas y arma un
+// Lo que la página vuelve a aplicar. Los candidatos ya son exactamente los que coinciden por nombre, por etiqueta y por un campo, público o privado (el lead que llega por su
+// número también las cumple: lo comprueba la base): repetir esas condiciones sobre la lista de ids no cambia el resultado, y le cuesta caro al planificador, que las estima en casi cero filas y arma un
 // `Nested Loop` que recorre `leads_favoritos` y `leads_tachados` enteras por cada candidato (88 ms con 300, contra 21). Todo lo demás sí se
-// repite: «míos», tipo, origen, las marcas de quien mira (tachados y favoritos), un campo privado, un rango.
+// repite: «míos», tipo, origen, las marcas de quien mira (tachados y favoritos), un texto o un rango sobre un campo privado.
 export function condicionesDeLaPagina(
   condiciones: readonly CondicionDeLead[],
 ): readonly CondicionDeLead[] {
