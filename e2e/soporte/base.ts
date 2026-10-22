@@ -1,6 +1,7 @@
 // Acceso de los e2e a la base y al correo del Supabase LOCAL. Los tests entran por el navegador;
 // esto es sólo para preparar el terreno, mirar lo que el navegador no muestra y limpiar.
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type User } from '@supabase/supabase-js'
+import { literal, sql } from './sql'
 
 // Toda persona que crea un e2e usa este dominio: es lo único que la limpieza borra.
 export const DOMINIO_E2E = 'e2e.importadora.test'
@@ -35,12 +36,51 @@ export function correoDePrueba(etiqueta: string): string {
   return `${etiqueta}-${String(Date.now())}@${DOMINIO_E2E}`
 }
 
+// Todas las cuentas de Auth, página por página: `listUsers` entrega a lo sumo `perPage` (1.000 es el techo del servidor) y una lectura
+// sin paginar dejaba atrás a las demás (una limpieza que no borra a todas, 5a-21).
+const CUENTAS_POR_PAGINA = 1000
+
 async function cuentas() {
-  const { data, error } = await admin().auth.admin.listUsers({ perPage: 1000 })
-  if (error) {
-    throw new Error(`No se pudo listar las cuentas: ${error.message}`)
+  const todas: User[] = []
+  for (let pagina = 1; ; pagina++) {
+    const { data, error } = await admin().auth.admin.listUsers({
+      page: pagina,
+      perPage: CUENTAS_POR_PAGINA,
+    })
+    if (error) {
+      throw new Error(`No se pudo listar las cuentas: ${error.message}`)
+    }
+    todas.push(...data.users)
+    if (data.users.length < CUENTAS_POR_PAGINA) {
+      return todas
+    }
   }
-  return data.users
+}
+
+// Miles de personas de un golpe, por SQL (`auth.admin.createUser` tarda ~55 ms cada una). El trigger de `auth.users` les crea el perfil; llevan
+// `invitado` (el registro está cerrado) y ningún rol. Se llaman «<prefijo> 00001», «<prefijo> 00002»…: el orden por nombre es el de su número.
+// Su correo usa `DOMINIO_E2E`, así que `borrarPersonasDePrueba()` también las alcanza, aunque despacio: `borrarPersonasSembradas()` las quita
+// por SQL, antes.
+export function sembrarPersonas(cuantas: number, prefijo: string): void {
+  sql(`
+    insert into auth.users (instance_id, id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+                            created_at, updated_at, confirmation_token, recovery_token, email_change_token_new, email_change)
+    select '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+           lower(replace(${literal(prefijo)}, ' ', '-')) || '-' || lpad(n::text, 5, '0') || '@${DOMINIO_E2E}', now(),
+           '{"provider": "email", "providers": ["email"], "invitado": true}'::jsonb,
+           jsonb_build_object('nombre', ${literal(prefijo)} || ' ' || lpad(n::text, 5, '0')),
+           now(), now(), '', '', '', ''
+      from generate_series(1, ${String(Math.trunc(cuantas))}) as n;
+  `)
+}
+
+// Quita por SQL las que sembró `sembrarPersonas()` con ese prefijo (sin rol: el guardián de la base no tiene nada que cuidar).
+export function borrarPersonasSembradas(prefijo: string): void {
+  sql(`
+    delete from auth.users
+     where email like lower(replace(${literal(prefijo)}, ' ', '-')) || '-%@${DOMINIO_E2E}'
+       and raw_user_meta_data ->> 'nombre' like ${literal(prefijo)} || ' %';
+  `)
 }
 
 // Cuántas personas hay que NO creó un e2e.
