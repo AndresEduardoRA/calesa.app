@@ -26,7 +26,7 @@ type Props = {
 export function CabeceraDeLead({ ficha, origen, tipo, quien, acciones, marcas }: Props) {
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-      <div className="grid min-w-0 flex-1 gap-1.5">
+      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)] gap-1.5">
         <h1 className="text-(length:--text-xl) font-semibold break-words text-(--color-ink)">
           {ficha.nombre}
         </h1>
@@ -34,16 +34,7 @@ export function CabeceraDeLead({ ficha, origen, tipo, quien, acciones, marcas }:
           <NumeroDeLead numeros={ficha.numeros} conSecundario />
           <BadgeDeTipo tipo={tipo} />
           {origen ? (
-            <span className="inline-flex max-w-full min-w-0 items-center gap-1.5">
-              <OrigenDelLead nombre={origen.nombre} icono={origen.icono} />
-              {/* El espacio es texto, no sólo el hueco del `gap`: el lector y la búsqueda leen «Facebook (inactivo)» de corrido. */}
-              {origen.activo ? null : (
-                <>
-                  {' '}
-                  <span className="shrink-0">(inactivo)</span>
-                </>
-              )}
-            </span>
+            <OrigenDelLead nombre={origen.nombre} icono={origen.icono} activo={origen.activo} />
           ) : null}
           <span className="tabular-nums">{telefonoDeFicha(ficha.telefono, ficha.telefonoCc)}</span>
           {quien ? <span>{quien}</span> : null}

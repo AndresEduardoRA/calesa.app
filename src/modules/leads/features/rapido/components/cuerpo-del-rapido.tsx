@@ -15,9 +15,9 @@ import { telefonoDeLista } from '../../listado/components/telefono-de-lista'
 
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
   return (
-    <div className="grid gap-0.5">
+    <div className="grid min-w-0 gap-0.5">
       <dt className="text-(length:--text-xs) text-(--color-ink-soft)">{etiqueta}</dt>
-      <dd className="text-(length:--text-sm) text-(--color-ink)">{children}</dd>
+      <dd className="min-w-0 text-(length:--text-sm) text-(--color-ink)">{children}</dd>
     </div>
   )
 }
@@ -71,7 +71,11 @@ function DatosDelLayout({ lead, campos }: PropsDeDatos) {
 }
 
 function OrigenDeLaLinea({ origen }: { origen: ReturnType<typeof origenDelCatalogo> }) {
-  return origen ? <OrigenDelLead nombre={origen.nombre} icono={origen.icono ?? null} /> : '—'
+  return origen ? (
+    <OrigenDelLead nombre={origen.nombre} icono={origen.icono ?? null} activo={origen.activo} />
+  ) : (
+    '—'
+  )
 }
 
 type PropsDelCuerpo = PropsDeDatos & { completo: boolean; fallo: boolean; reintentar: () => void }
@@ -82,7 +86,7 @@ export function CuerpoDelRapido({ completo, fallo, reintentar, ...datos }: Props
   const { lead, origenes, codigoDePais } = datos
   return (
     <div className="grid gap-4">
-      <dl className="grid gap-3">
+      <dl className="grid grid-cols-[minmax(0,1fr)] gap-3">
         <Dato etiqueta="Teléfono">
           <span className="tabular-nums">{telefonoDeLista(lead.telefono, codigoDePais)}</span>
           {lead.enCartera ? null : (

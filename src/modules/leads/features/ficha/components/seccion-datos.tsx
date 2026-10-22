@@ -52,17 +52,7 @@ export function SeccionDatos({
           </Dato>
           <Dato etiqueta="Origen del lead">
             {origen ? (
-              <>
-                <OrigenDelLead nombre={origen.nombre} icono={origen.icono} />
-                {origen.activo ? null : (
-                  <>
-                    {' '}
-                    <span className="text-(length:--text-xs) text-(--color-ink-soft)">
-                      (inactivo)
-                    </span>
-                  </>
-                )}
-              </>
+              <OrigenDelLead nombre={origen.nombre} icono={origen.icono} activo={origen.activo} />
             ) : (
               '—'
             )}
