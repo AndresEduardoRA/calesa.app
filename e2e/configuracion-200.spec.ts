@@ -125,6 +125,39 @@ for (const pantalla of PANTALLAS) {
   })
 }
 
+// c.1: la pestaña activa de Configuración › Leads está a la vista cualquiera sea la sección y cuando el texto crece: antes de cargar (lo
+// que tiene quien lo configuró así) y después de cargar (lo que pasa al ampliar con la página abierta).
+const SECCIONES_DE_LEADS = ['campos', 'origenes', 'tipos', 'seguimientos'] as const
+
+for (const seccion of SECCIONES_DE_LEADS) {
+  test(`al 200 % antes de cargar: la pestaña activa «${seccion}» de Leads está a la vista`, async ({
+    page,
+  }) => {
+    await textoGrandeAlCargar(page)
+    await entrar(page)
+    await page.goto(`/configuracion/leads?seccion=${seccion}`)
+    await expect(page.getByRole('tab', { selected: true })).toBeVisible()
+    await aLaVistaSinDesplazar(page.getByRole('tab', { selected: true }), `la pestaña «${seccion}»`)
+  })
+
+  test(`al ampliar el texto con la página abierta: la pestaña activa «${seccion}» de Leads sigue a la vista`, async ({
+    page,
+  }) => {
+    await entrar(page)
+    await page.goto(`/configuracion/leads?seccion=${seccion}`)
+    await expect(page.getByRole('tab', { selected: true })).toBeVisible()
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = '200%'
+    })
+    await expect(async () => {
+      await aLaVistaSinDesplazar(
+        page.getByRole('tab', { selected: true }),
+        `la pestaña «${seccion}»`,
+      )
+    }).toPass({ timeout: 3_000 })
+  })
+}
+
 // c.2: con el texto al 200 % se llega a «Sin icono» y a cada una de las 24 claves del selector desplazando el cuerpo del modal, con el pie
 // fijo: cada opción recibe el clic y no cae bajo el pie.
 for (const zoom of ['100', '200'] as const) {
