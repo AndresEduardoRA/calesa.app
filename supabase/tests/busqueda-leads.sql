@@ -429,3 +429,52 @@ begin
     raise exception '_leads_candidatos_etiquetas lo puede llamar quien no debe';
   end if;
 end $$;
+
+-- @test búsqueda-leads (5a-35): el lead del número (`extra`) entra a los candidatos sin etiquetas, sólo si quien llama lo ve, y da lo mismo que la consulta de siempre
+-- Un número de 3 o más dígitos sin «#» se pide como el texto más el lead que tiene ese número (`extra`): tiene que entrar aunque el nombre no coincida. Con `…003500` (5a-7) no entraba
+-- nunca si el pedido no traía etiquetas (`v_con_etiquetas` nulo). Lo que quien llama no ve —papelera, limbo, quien se va, el lead de otra persona con «propios»— no entra, ni cambia la respuesta.
+do $$ declare
+  f4 constant uuid := '00000000-0000-0000-0000-0000000009f4'; f5 constant uuid := '00000000-0000-0000-0000-0000000009f5'; f7 constant uuid := '00000000-0000-0000-0000-0000000009f7';
+  d1 constant uuid := '00000000-0000-0000-0000-000000000001'; nada constant jsonb := '{"ids": [], "completa": true, "hasta": null}';
+  v_suyo uuid := (select id from public.leads where nombre = 'Búsqueda masiva 1');                  -- de f4
+  v_de_f3 uuid := (select id from public.leads where nombre = 'Búsqueda Gómez Acentuado');          -- de f3: f4 no lo ve, la dueña sí
+  v_papelera uuid := (select id from public.leads where nombre = 'Búsqueda papelera Gómez');
+  v_limbo uuid := (select id from public.leads where nombre = 'Búsqueda limbo Gómez');
+  v_se_va uuid := (select id from public.leads where nombre = 'Búsqueda de quien se va Gómez');
+  r jsonb; v_en timestamptz; v_id uuid; v_todos uuid[];
+begin
+  v_todos := array[v_suyo, v_de_f3, v_papelera, v_limbo, v_se_va];
+  -- f4 («propios») pide los cinco: sólo entra el suyo.
+  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', to_jsonb(v_todos))));
+  if r -> 'ids' is distinct from to_jsonb(array[v_suyo]) then raise exception 'f4 (propios): debía entrar sólo su lead por «extra»: %', r; end if;
+  -- La dueña («todos») ve el lead de f4 y el de f3; no ve la papelera, el limbo ni a quien se va.
+  r := pg_temp.bl_como(d1, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', to_jsonb(v_todos))));
+  if (select array_agg(x order by x) from jsonb_array_elements_text(r -> 'ids') x) is distinct from (select array_agg(x::text order by x::text) from unnest(array[v_suyo, v_de_f3]) x) then
+    raise exception 'la dueña («todos»): debían entrar el lead de f4 y el de f3 por «extra», y nada de la papelera, el limbo ni quien se va: %', r;
+  end if;
+  -- f5 («todos» con dos propios) lo mismo que la dueña; quien no puede ver leads, nada.
+  r := pg_temp.bl_como(f5, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', to_jsonb(v_todos))));
+  if jsonb_array_length(r -> 'ids') <> 2 then raise exception 'f5 («todos»): debían entrar 2 por «extra»: %', r; end if;
+  r := pg_temp.bl_como(f7, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', to_jsonb(v_todos))));
+  if r is distinct from nada then raise exception 'quien no puede ver leads recibió %', r; end if;
+  -- Con otro texto que no coincide ni con un nombre ni con nada (sin tramo de 3), igual.
+  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', '48', 'extra', jsonb_build_array(v_suyo))));
+  if r -> 'ids' is distinct from to_jsonb(array[v_suyo]) then raise exception 'texto corto: el lead del número no entró: %', r; end if;
+  -- El cursor: un lead más nuevo que el cursor (hacia adelante, `<`) no entra, uno más viejo sí.
+  select creado_en, id into v_en, v_id from public.leads where id = v_suyo;
+  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', jsonb_build_array(v_suyo),
+        'cursor', jsonb_build_object('creado_en', v_en, 'id', v_id))));
+  if r is distinct from nada then raise exception 'con el cursor en el propio lead no debía entrar: %', r; end if;
+  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', jsonb_build_array(v_suyo),
+        'cursor', jsonb_build_object('creado_en', v_en + interval '1 day', 'id', v_id))));
+  if r -> 'ids' is distinct from to_jsonb(array[v_suyo]) then raise exception 'con el cursor más nuevo debía entrar: %', r; end if;
+  -- Las filas enteras: por los candidatos, con el número buscado, es lo que da la consulta de siempre (`nombre ilike … or id = any (…)`).
+  if pg_temp.bl_nuevo(f4, 'zzzz', v_todos, true, '{}', 'en_cartera = true', 4, false, null, null)
+       is distinct from pg_temp.bl_viejo(f4, 'leads_cartera_vista', 'en_cartera = true and (nombre ilike ''%zzzz%'' or id = any (' || quote_literal(v_todos) || '::uuid[]))', 4, false, null, null) then
+    raise exception 'f4: el número buscado por candidatos no da lo de siempre';
+  end if;
+  if pg_temp.bl_nuevo(d1, 'zzzz', v_todos, false, '{}', 'true', 4, false, null, null)
+       is distinct from pg_temp.bl_viejo(d1, 'leads_vista', '(nombre ilike ''%zzzz%'' or id = any (' || quote_literal(v_todos) || '::uuid[]))', 4, false, null, null) then
+    raise exception 'la dueña: el número buscado por candidatos no da lo de siempre';
+  end if;
+end $$;

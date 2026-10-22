@@ -168,8 +168,7 @@ begin
 end $$;
 
 -- @test privados-candidatos: el lead del número (`extra`) también está en la cartera de quien filtra y tiene el valor, porque la página ya no repite el campo privado
--- Hoy `leads_candidatos` sólo deja entrar al lead del número cuando el pedido trae `etiquetas` (`v_con_etiquetas` es nulo sin ellas y descarta la fila: `docs/PLAN.md` 5a-35, un defecto
--- de 5a-7 que no es de este paso). Por eso el lead entra acá por una etiqueta propia de quien busca: la cláusula de los privados es la que se prueba, y seguirá valiendo cuando 5a-35 se arregle.
+-- Con y sin etiquetas (5a-35: sin ellas el lead del número no entraba nunca; `…20261019004500`): cada caso se pide dos veces, y da lo mismo. Con etiquetas, además, el lead tiene que tenerlas.
 do $$ declare
   d1 constant uuid := '00000000-0000-0000-0000-000000000001'; f4 constant uuid := '00000000-0000-0000-0000-0000000009f4'; f5 constant uuid := '00000000-0000-0000-0000-0000000009f5';
   e_f4 uuid := gen_random_uuid(); e_d1 uuid := gen_random_uuid(); e_f5 uuid := gen_random_uuid();
@@ -180,30 +179,45 @@ do $$ declare
   v_comp uuid := (select id from public.leads where nombre = 'Privado f3 compartido con f4');  -- de f3 compartido con f4: es de la cartera de f4
   v_papelera uuid := (select id from public.leads where nombre = 'Privado f4 papelera');
   nada constant jsonb := '{"ids": [], "completa": true, "hasta": null}';
-  r jsonb; i int;
+  r jsonb; i int; v_et boolean;
+  -- El pedido: el texto «zzzz» (nada coincide), el campo privado V1, el lead del número y, si se pide, la etiqueta de quien llama.
+  llamar text := $f$select public.leads_candidatos(%L::jsonb)$f$;
 begin
   insert into public.etiquetas (id, usuario_id, nombre) values (e_f4, f4, 'Privado f4'), (e_d1, d1, 'Privado d1'), (e_f5, f5, 'Privado f5');
   insert into public.leads_etiquetas (lead_id, etiqueta_id) values (v_a, e_f4), (v_sin, e_f4), (v_papelera, e_f4), (v_comp, e_f4), (v_f3, e_d1), (v_f3, e_f5);
-  -- f4 busca por número uno suyo con el valor: entra aunque el nombre no coincida («zzzz»).
-  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'etiquetas', jsonb_build_array(e_f4), 'privados', v_sol, 'extra', jsonb_build_array(v_a))));
-  if not (r -> 'ids') @> to_jsonb(array[v_a]) then raise exception 'el lead del número, de la cartera y con el valor, no entró: %', r; end if;
-  -- Uno suyo con la etiqueta pero sin el valor no entra, ni la papelera.
-  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'etiquetas', jsonb_build_array(e_f4), 'privados', v_sol, 'extra', jsonb_build_array(v_sin, v_papelera))));
-  if r is distinct from nada then raise exception 'entró un lead que no cumple por «extra»: %', r; end if;
-  -- Compartido por f3: está en la cartera de f4, así que cuenta.
-  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'etiquetas', jsonb_build_array(e_f4), 'privados', v_sol, 'extra', jsonb_build_array(v_comp))));
-  if not (r -> 'ids') @> to_jsonb(array[v_comp]) then raise exception 'el compartido, que es de su cartera, debía entrar: %', r; end if;
-  -- La dueña y f5 (ven «todos») piden por número el lead de f3 que tiene el valor y que ellas etiquetaron: lo ven, pero su campo privado no les llega. No entra.
-  foreach i in array array[1, 2] loop
-    r := pg_temp.bl_como(case i when 1 then d1 else f5 end, format('select public.leads_candidatos(%L::jsonb)',
-      jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'etiquetas', jsonb_build_array(case i when 1 then e_d1 else e_f5 end), 'privados', v_sol, 'extra', jsonb_build_array(v_f3))));
-    if r is distinct from nada then raise exception 'ORÁCULO: quien ve «todos» encontró el campo privado de un lead que no es suyo por «extra»: %', r; end if;
-    -- Y sin el campo privado, el mismo pedido sí lo trae (se ve con «todos»): lo que lo deja afuera es el privado.
-    r := pg_temp.bl_como(case i when 1 then d1 else f5 end, format('select public.leads_candidatos(%L::jsonb)',
-      jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'etiquetas', jsonb_build_array(case i when 1 then e_d1 else e_f5 end), 'extra', jsonb_build_array(v_f3))));
-    if not (r -> 'ids') @> to_jsonb(array[v_f3]) then raise exception 'el control no funciona: sin el campo privado el lead del número debía entrar: %', r; end if;
+  foreach v_et in array array[false, true] loop
+    -- f4 busca por número uno suyo con el valor: entra aunque el nombre no coincida («zzzz»).
+    r := pg_temp.bl_como(f4, format(llamar, jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'privados', v_sol, 'extra', jsonb_build_array(v_a))
+          || case when v_et then jsonb_build_object('etiquetas', jsonb_build_array(e_f4)) else '{}'::jsonb end));
+    if not (r -> 'ids') @> to_jsonb(array[v_a]) then raise exception 'con etiquetas %: el lead del número, de la cartera y con el valor, no entró: %', v_et, r; end if;
+    -- Uno suyo sin el valor no entra, ni la papelera.
+    r := pg_temp.bl_como(f4, format(llamar, jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'privados', v_sol, 'extra', jsonb_build_array(v_sin, v_papelera))
+          || case when v_et then jsonb_build_object('etiquetas', jsonb_build_array(e_f4)) else '{}'::jsonb end));
+    if r is distinct from nada then raise exception 'con etiquetas %: entró un lead que no cumple por «extra»: %', v_et, r; end if;
+    -- Compartido por f3: está en la cartera de f4, así que cuenta.
+    r := pg_temp.bl_como(f4, format(llamar, jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'privados', v_sol, 'extra', jsonb_build_array(v_comp))
+          || case when v_et then jsonb_build_object('etiquetas', jsonb_build_array(e_f4)) else '{}'::jsonb end));
+    if not (r -> 'ids') @> to_jsonb(array[v_comp]) then raise exception 'con etiquetas %: el compartido, que es de su cartera, debía entrar: %', v_et, r; end if;
+    -- La dueña y f5 (ven «todos») piden por número el lead de f3 que tiene el valor: lo ven, pero su campo privado no les llega. No entra.
+    foreach i in array array[1, 2] loop
+      r := pg_temp.bl_como(case i when 1 then d1 else f5 end, format(llamar, jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'privados', v_sol, 'extra', jsonb_build_array(v_f3))
+            || case when v_et then jsonb_build_object('etiquetas', jsonb_build_array(case i when 1 then e_d1 else e_f5 end)) else '{}'::jsonb end));
+      if r is distinct from nada then raise exception 'ORÁCULO (con etiquetas %): quien ve «todos» encontró el campo privado de un lead que no es suyo por «extra»: %', v_et, r; end if;
+      -- Y sin el campo privado, el mismo pedido sí lo trae (se ve con «todos»): lo que lo deja afuera es el privado.
+      r := pg_temp.bl_como(case i when 1 then d1 else f5 end, format(llamar, jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', jsonb_build_array(v_f3))
+            || case when v_et then jsonb_build_object('etiquetas', jsonb_build_array(case i when 1 then e_d1 else e_f5 end)) else '{}'::jsonb end));
+      if not (r -> 'ids') @> to_jsonb(array[v_f3]) then raise exception 'con etiquetas %: el control no funciona, sin el campo privado el lead del número debía entrar: %', v_et, r; end if;
+    end loop;
   end loop;
-  -- Todo junto, como lo hace la app: el número buscado, una etiqueta y un campo privado dan lo mismo por los dos caminos.
+  -- Con etiquetas, el lead del número también tiene que tenerlas: v_sin no tiene la de la dueña.
+  r := pg_temp.bl_como(d1, format(llamar, jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'etiquetas', jsonb_build_array(e_d1), 'extra', jsonb_build_array(v_sin))));
+  if r is distinct from nada then raise exception 'un lead sin la etiqueta de quien llama entró por «extra»: %', r; end if;
+  -- Todo junto, como lo hace la app: el número buscado y un campo privado, con y sin una etiqueta, dan lo mismo por los dos caminos.
+  if pg_temp.bl_nuevo(f4, 'zzzz', array[v_a, v_sin, v_comp, v_papelera], true, jsonb_build_object('privados', v_sol), 'en_cartera = true', 4, false, null, null)
+       is distinct from pg_temp.bl_viejo(f4, 'leads_cartera_vista', 'en_cartera = true and (nombre ilike ''%zzzz%'' or id = any (' || quote_literal(array[v_a, v_sin, v_comp, v_papelera]) || '::uuid[]))'
+                                          || ' and atributos @> ''{"direccion": "Calle del Sol 1"}''', 4, false, null, null) then
+    raise exception 'el número buscado y un campo privado no dan lo de siempre';
+  end if;
   if pg_temp.bl_nuevo(f4, 'zzzz', array[v_a, v_sin, v_comp, v_papelera], true, jsonb_build_object('etiquetas', jsonb_build_array(e_f4), 'privados', v_sol), 'en_cartera = true', 4, false, null, null)
        is distinct from pg_temp.bl_viejo(f4, 'leads_cartera_vista', 'en_cartera = true and (nombre ilike ''%zzzz%'' or id = any (' || quote_literal(array[v_a, v_sin, v_comp, v_papelera]) || '::uuid[]))'
                                           || format(' and etiquetas && array[%L]::uuid[]', e_f4) || ' and atributos @> ''{"direccion": "Calle del Sol 1"}''', 4, false, null, null) then
