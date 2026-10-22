@@ -22,8 +22,9 @@ type Base = {
 }
 
 export type DefFiltro =
-  // Contiene el texto.
-  | (Base & { tipo: 'texto' })
+  // Contiene el texto. Con `minimo` (4.03, 5a-9) lo escrito que no alcanza no filtra: el control lo dice junto al campo, no lo escribe en la URL
+  // y `leerFiltros()` descarta uno que llegue por una URL escrita a mano o una vista guardada vieja. Sin `minimo`, cualquier texto filtra (vehículos).
+  | (Base & { tipo: 'texto'; minimo?: MinimoDeBusqueda })
   // Cualquiera de las elegidas.
   | (Base & { tipo: 'opciones'; opciones: readonly OpcionDeFiltro[] })
   // Sí, no, o sin filtrar.

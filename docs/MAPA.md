@@ -65,7 +65,7 @@ Motor único de flujos: fases, transiciones, requisitos (documento | dato | espe
 - Depende de: ningún otro módulo
 
 ### `leads`
-Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 620 archivos
+Leads (prospectos y clientes) con teléfono principal único y enmascarado salvo cartera, **campos configurables** con quién los ve, seguimientos, recordatorios, etiquetas, favoritos/tachados, la cartera (compartir, transferir, quitar acceso y salir), la papelera, oportunidades en embudos, portal del cliente y limbo. · 621 archivos
 - API: `leerContextoDeAlta`, `leerLayoutDeLeads`, `CLAVES_RESERVADAS_DE_LEAD`, `valorDefectoVigente`, `CampoDeLead`, `DatosDeLaEmpresa`, `ContextoDeAlta`, `leerOrigenesDeLeadConUso`, `leerTiposDeLeadConUso`, `leerTiposDeSeguimientoConUso`, +26
 - API de cliente (`client.ts`): `CLAVES_RESERVADAS_DE_LEAD`, `soloCarteraPorTipo`, `valorDefectoVigente`, `CampoDeLead`, `DatoDeLaEmpresa`, `DatosDeLaEmpresa`, `AltaDeLead`, `ContextoDeAlta`, `normalizarTelefono`, `telefonoParaMostrar`
 - API del shell (`shell.ts`, sólo el layout `(app)`): `AltaDeLead`
@@ -143,7 +143,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `ui/campos/`: `aviso-de-impacto.tsx`, `bloque-de-campos.tsx`, `campo-de-formulario.tsx`, `campo-valor-defecto.tsx`, `campos-de-campo.tsx`, `campos-desactivados.tsx`, `cerrar-con-aviso.ts`, `datos-por-grupo.tsx`, `ediciones.ts`, `editor-de-campos.tsx`, `editor-de-opciones.tsx`, `fila-de-campo.tsx`, `formulario-de-campo.tsx`, `grupos-de-campos.tsx`, `index.ts`, `nombre-de-campo.tsx`, `panel-de-campo.tsx`, `pie-del-formulario.tsx`, `tipos.ts`, `use-formulario-de-campo.ts`, `valor-mostrado.tsx`
 - `ui/esqueletos/`: `esqueleto-bandeja.tsx`, `esqueleto-detalle.tsx`, `esqueleto-formulario.tsx`, `esqueleto-listado.tsx`, `esqueleto-tabla.tsx`, `index.ts`
 - `ui/estados/`: `estado-error.tsx`, `estado-pagina-sin-filas.tsx`, `estado-sin-permiso.tsx`, `estado-sin-resultados.tsx`, `estado-vacio.tsx`, `index.ts`, `marco-estado.tsx`
-- `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles.tsx`, `estilos.ts`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `radios.tsx`, `selector-de-por-pagina.tsx`, `use-filtros.ts`, `use-panel-al-costado.ts`, `use-por-pagina-del-listado.ts`
+- `ui/filtros/`: `chips-de-filtros.tsx`, `contexto.ts`, `controles-de-texto.tsx`, `controles.tsx`, `estilos.ts`, `filter-shell.tsx`, `index.ts`, `panel-de-filtros.tsx`, `radios.tsx`, `selector-de-por-pagina.tsx`, `use-filtros.ts`, `use-panel-al-costado.ts`, `use-por-pagina-del-listado.ts`, `use-texto-de-url.ts`
 - `ui/icono-del-catalogo/`: `icono-del-catalogo.tsx`, `simbolos-de-iconos.tsx`, `trazos.tsx`
 - `ui/lista/`: `abrir-resumen.tsx`, `acciones.ts`, `fila-de-lista.tsx`, `index.ts`, `mas-acciones.tsx`, `pestanas-del-resumen.tsx`, `simbolos-de-lista.tsx`, `tabla-de-lista.tsx`, `tarjeta-de-lista.tsx`, `una-sola-vista.tsx`
 - `ui/lista-de-catalogo/`: `botones-de-orden.tsx`, `lista-de-catalogo.tsx`, `tipos.ts`, `use-foco-tras-mover.ts`

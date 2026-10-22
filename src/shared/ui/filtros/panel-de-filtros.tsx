@@ -2,7 +2,8 @@
 
 import type { ReactNode } from 'react'
 import type { DefFiltro, SeccionDeFiltros, ValorDeFiltro } from '@/shared/lib/filtros'
-import { FiltroDeOpciones, FiltroDeTexto, FiltroRangoFecha, FiltroRangoNumero } from './controles'
+import { FiltroDeOpciones, FiltroRangoFecha, FiltroRangoNumero } from './controles'
+import { FiltroDeTexto } from './controles-de-texto'
 import { FiltroBooleano, FiltroEleccion } from './radios'
 import { useFiltrosDelListado } from './contexto'
 

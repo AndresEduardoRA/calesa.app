@@ -201,3 +201,44 @@ describe('una elección con valor por defecto', () => {
     expect(parametrosDeFiltros(conTachados, leerFiltros(conTachados, {}))).toEqual({})
   })
 })
+
+describe('leerFiltros: un texto con mínimo', () => {
+  const MINIMO = { letras: 3, numerosLibres: false, aviso: 'Escribe al menos 3 letras' }
+  const CON_MINIMO: EsquemaDeFiltros = {
+    busqueda: null,
+    filtros: [
+      { tipo: 'texto', clave: 'a.color', etiqueta: 'Color', minimo: MINIMO },
+      { tipo: 'texto', clave: 'a.libre', etiqueta: 'Libre' },
+    ],
+  }
+
+  it('lo que no alcanza no filtra: ni 1 o 2 letras, ni 12, ni signos', () => {
+    for (const corto of ['a', 'ab', ' ab ', '12', 'a_b', '%%%', '#ab']) {
+      const valores = leerFiltros(CON_MINIMO, { 'a.color': corto })
+      expect(valores.porClave, corto).toEqual({})
+      expect(hayFiltros(valores), corto).toBe(false)
+    }
+  })
+
+  it('con 3 letras o dígitos seguidos filtra, también con tildes y ñ', () => {
+    for (const largo of ['abc', 'rojo', '123', 'ñan', 'áé1']) {
+      expect(leerFiltros(CON_MINIMO, { 'a.color': largo }).porClave['a.color'], largo).toEqual({
+        tipo: 'texto',
+        texto: largo,
+      })
+    }
+  })
+
+  it('un texto sin mínimo sigue filtrando con cualquier cosa (vehículos)', () => {
+    expect(leerFiltros(CON_MINIMO, { 'a.libre': 'v8' }).porClave['a.libre']).toEqual({
+      tipo: 'texto',
+      texto: 'v8',
+    })
+  })
+
+  it('una vista guardada con un texto corto no lo lleva a los parámetros', () => {
+    expect(parametrosDeFiltros(CON_MINIMO, leerFiltros(CON_MINIMO, { 'a.color': 'ab' }))).toEqual(
+      {},
+    )
+  })
+})

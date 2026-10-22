@@ -9,6 +9,7 @@ import type {
   ValorDeFiltro,
   ValoresDeFiltros,
 } from './esquema'
+import { cumpleElMinimo } from './minimo'
 
 export const LARGO_MAXIMO_DE_TEXTO = 100
 
@@ -83,9 +84,14 @@ function ordenar<T extends number | string>(a: T | null, b: T | null): [T | null
 
 type De<Tipo extends DefFiltro['tipo']> = Extract<DefFiltro, { tipo: Tipo }>
 
+// Un texto con `minimo` que no alcanza no filtra (4.03, 5a-9): ni desde la URL escrita a mano ni desde una vista guardada. Es el único lugar que lo decide: chips,
+// contador, «Limpiar», vistas, exportación y la cartera que pide un privado leen todos lo que sale de acá.
 function leerTexto(def: De<'texto'>, parametros: ParametrosDeUrl): ValorDeFiltro | null {
   const texto = uno(parametros, def.clave).slice(0, LARGO_MAXIMO_DE_TEXTO)
-  return texto === '' ? null : { tipo: 'texto', texto }
+  if (texto === '' || (def.minimo !== undefined && !cumpleElMinimo(texto, def.minimo))) {
+    return null
+  }
+  return { tipo: 'texto', texto }
 }
 
 // Sólo las opciones que el esquema ofrece hoy: una que ya no existe se descarta.

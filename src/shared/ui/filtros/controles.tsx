@@ -3,12 +3,11 @@
 import { useId, useState } from 'react'
 import { Input } from '../input'
 import { LEYENDA, OPCION } from './estilos'
+import { useTextoDeUrl } from './use-texto-de-url'
 import {
   OPCIONES_PARA_BUSCAR,
-  cumpleElMinimo,
   opcionesQueCoinciden,
   type DefFiltro,
-  type MinimoDeBusqueda,
   type ValorDeFiltro,
 } from '@/shared/lib/filtros'
 
@@ -19,21 +18,6 @@ type Props<Tipo extends DefFiltro['tipo']> = {
   def: De<Tipo>
   valor: Valor<Tipo> | null
   alCambiar: (valor: ValorDeFiltro | null, opciones?: { tipeando?: boolean }) => void
-}
-
-// El texto de un campo que también vive en la URL. Mientras la persona escribe manda lo que
-// escribe (la URL va detrás, y puede descartar un valor a medio tipear); cuando la URL cambia por
-// otro lado (se quitó el chip, se limpiaron los filtros) manda la URL.
-function useTextoDeUrl(deLaUrl: string, normalizar: (texto: string) => string) {
-  const [texto, setTexto] = useState(deLaUrl)
-  const [visto, setVisto] = useState(deLaUrl)
-  if (deLaUrl !== visto) {
-    setVisto(deLaUrl)
-    if (normalizar(texto) !== deLaUrl) {
-      setTexto(deLaUrl)
-    }
-  }
-  return [texto, setTexto] as const
 }
 
 export function FiltroDeOpciones({ def, valor, alCambiar }: Props<'opciones'>) {
@@ -216,85 +200,5 @@ export function FiltroRangoFecha({ def, valor, alCambiar }: Props<'rango_fecha'>
         />
       </div>
     </fieldset>
-  )
-}
-
-const recortado = (texto: string) => texto.trim()
-
-export function FiltroDeTexto({ def, valor, alCambiar }: Props<'texto'>) {
-  const id = useId()
-  const [texto, setTexto] = useTextoDeUrl(valor?.texto ?? '', recortado)
-  return (
-    <div className="grid">
-      <label htmlFor={id} className={LEYENDA}>
-        {def.etiqueta}
-      </label>
-      <Input
-        id={id}
-        type="search"
-        autoComplete="off"
-        placeholder="Contiene…"
-        className="h-11 md:h-9"
-        value={texto}
-        onChange={(evento) => {
-          setTexto(evento.target.value)
-          const escrito = evento.target.value.trim()
-          alCambiar(escrito === '' ? null : { tipo: 'texto', texto: escrito }, { tipeando: true })
-        }}
-      />
-    </div>
-  )
-}
-
-// La búsqueda libre de la barra del listado. Con `minimo` (5a-8), lo escrito que no alcanza no se manda a la URL (ni al servidor): se queda en el campo,
-// con la línea de `minimo.aviso` al final de la barra, y la URL queda sin `?q=` (el campo no la lee como «quitaron el filtro» y no se vacía).
-export function CampoDeBusqueda(props: {
-  etiqueta: string
-  // Lo que se ve en el campo vacío si es más corto que la etiqueta (la etiqueta queda para el lector de pantalla).
-  marcador?: string | undefined
-  minimo?: MinimoDeBusqueda | undefined
-  valor: string
-  alBuscar: (texto: string) => void
-}) {
-  const id = useId()
-  const idDelAviso = useId()
-  const { minimo } = props
-  // Lo que cuenta como búsqueda: lo escrito si alcanza; si no, nada.
-  const buscable = (texto: string) =>
-    minimo && !cumpleElMinimo(texto, minimo) ? '' : recortado(texto)
-  const [texto, setTexto] = useTextoDeUrl(props.valor, buscable)
-  const insuficiente = minimo !== undefined && recortado(texto) !== '' && buscable(texto) === ''
-  return (
-    <>
-      <div className="min-w-0 flex-1 basis-56 md:max-w-sm">
-        <label htmlFor={id} className="sr-only">
-          {props.etiqueta}
-        </label>
-        <Input
-          id={id}
-          type="search"
-          autoComplete="off"
-          placeholder={props.marcador ?? props.etiqueta}
-          aria-describedby={insuficiente ? idDelAviso : undefined}
-          className="h-11 md:h-9"
-          value={texto}
-          onChange={(evento) => {
-            setTexto(evento.target.value)
-            props.alBuscar(buscable(evento.target.value))
-          }}
-        />
-      </div>
-      {/* Una fila entera al final de la barra: no mueve los botones mientras se escribe y, al 200 %, cabe en una sola línea. */}
-      {insuficiente ? (
-        <p
-          id={idDelAviso}
-          role="status"
-          data-aviso-de-busqueda
-          className="order-last basis-full text-xs text-(--color-ink-soft)"
-        >
-          {minimo.aviso}
-        </p>
-      ) : null}
-    </>
   )
 }

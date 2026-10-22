@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { CampoDeBusqueda } from '@/shared/ui/filtros/controles'
+import { CampoDeBusqueda } from '@/shared/ui/filtros/controles-de-texto'
 import { MINIMO_DE_BUSQUEDA_DEL_EQUIPO } from '../../../entities/lista-equipo'
 import { ETIQUETA_FILTRO, FILTROS_DE_ESTADO, type FiltroDeEstado } from '../../../entities/persona'
 
