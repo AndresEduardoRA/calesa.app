@@ -2,9 +2,8 @@
 // de `entities/repositorios`. Los casos de uso de `features/` importan de este archivo, nunca de
 // `infra/` (lo verifica eslint-plugin-boundaries).
 import 'server-only'
+import type { BuscadorDeLeads, ContadorDeLeads } from './entities/repositorios-del-listado'
 import type {
-  BuscadorDeLeads,
-  ContadorDeLeads,
   LectorDeCartera,
   LectorDeContextoDeAlta,
   LectorDeEtiquetas,

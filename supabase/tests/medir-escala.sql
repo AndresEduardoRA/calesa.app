@@ -233,18 +233,6 @@ create function pg_temp.atributo(p_valor text, p_columna text default 'atributos
   select format('%I @> %L', p_columna, jsonb_build_object('ciudad_vol', p_valor));
 $$;
 
--- 5a-9 (ABIERTO, `docs/PLAN.md`): un texto o un rango sobre un campo público (`atributos_publicos ->> 'clave'`) no tiene índice: `ilike` y `->>` no son _leakproof_ bajo RLS y un
--- GIN `jsonb_path_ops` sólo sirve a `@>`. Crece con la cartera de quien filtra (la dueña con 212.000 leads: «todos» 200 ms, «míos» 130, Berta 112, Ana 41; el rango 73 a 76 y 56).
--- Se MIDE en cada corrida y no se asserta: el assert del PLAN (≤ 50 ms sin resultados) pide un índice por clave (DDL al volver filtrable y público un campo) y que la base lo use;
--- por los candidatos solos mejoran la «chica» (52 → 0,7 ms en el rango) y Ana (41-55 → 21-28), no la dueña ni Berta. La decisión es de la persona (`docs/DECISIONES.md`, 5a-9).
-create function pg_temp.texto_y_rango_publicos(p_nombre text, p_quien text, p_donde text, p_rel text) returns void language plpgsql as $$
-declare v_max int := current_setting('medir.max_leads')::int; v_ciudad text := 'atributos_publicos ->> ''ciudad_vol''';
-begin
-  perform pg_temp.escala(p_nombre || ': un texto sin resultados en un campo público (5a-9, sin asertar)', p_quien, pg_temp.pagina(p_donde || v_ciudad || ' ilike ''%x%'' and esta_tachado = false', v_max, p_rel));
-  perform pg_temp.escala(p_nombre || ': un texto común en un campo público (5a-9, sin asertar)', p_quien, pg_temp.pagina(p_donde || v_ciudad || ' ilike ''%lp%'' and esta_tachado = false', v_max, p_rel));
-  perform pg_temp.escala(p_nombre || ': un rango de texto sin resultados en un campo público (5a-9, sin asertar)', p_quien, pg_temp.pagina(p_donde || v_ciudad || ' >= ''zz'' and ' || v_ciudad || ' < ''zzz'' and esta_tachado = false', v_max, p_rel));
-end $$;
-
 -- El listado de leads (9h; 5a-fix-1a). Dos lecturas, las dos que manda la app:
 --  · «míos» (`en_cartera = true`): lo que ve por defecto TODA persona y lo único que ve quien tiene «propios». Se lee de
 --    `leads_cartera_vista`, que camina la cartera de quien mira por `leads_asesores_listado_idx`: cuesta lo que pesa esa cartera y no
@@ -273,16 +261,14 @@ begin
   -- público (el atributo común, 105,6 ms con 212.000) se lee ahora por los candidatos y lo mide `busqueda()`, y uno privado (5a-10), `privados()`.
   if p_mios and v_rel = 'leads_vista' then
     perform pg_temp.escala(v_modo || ': página 1 con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false', v_max, v_rel), 30, v_idx, v_tablas, v_desc);
-    perform pg_temp.texto_y_rango_publicos(v_modo, q, v_m, v_rel);
     return;
   end if;
   perform pg_temp.escala(v_modo || ': página 1 (tachados ocultos)', q, pg_temp.pagina(v_m || 'esta_tachado = false', 50, v_rel), 30, v_idx, v_tablas, v_desc);
   perform pg_temp.escala(v_modo || ': página 1 con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false', v_max, v_rel), 30, v_idx, v_tablas, v_desc);
   perform pg_temp.escala(v_modo || ': página 100 por cursor', q, pg_temp.pagina(v_m || 'esta_tachado = false and ' || v_cursor, 50, v_rel), 150, v_idx, v_tablas, v_desc);
   perform pg_temp.escala(v_modo || ': página 100 por cursor con el máximo de la lista', q, pg_temp.pagina(v_m || 'esta_tachado = false and ' || v_cursor, v_max, v_rel), 150, v_idx, v_tablas, v_desc);
-  -- Un campo público (`atributos_publicos @>`) y un nombre se leen por los candidatos: `busqueda()`.
-  -- Un campo privado también se lee por los candidatos (5a-10): lo mide `privados()`, abajo.
-  perform pg_temp.texto_y_rango_publicos(v_modo, q, v_m, v_rel);
+  -- Un campo público (`atributos_publicos @>`) y un nombre se leen por los candidatos: `busqueda()`. Su texto y su rango (5a-9, 4.03), también: `comparaciones_publicas()`.
+  -- Un campo privado también se lee por los candidatos (5a-10; su texto y su rango, 5a-34): lo mide `privados()`, abajo.
   perform pg_temp.escala(v_modo || ': sólo favoritos', q, pg_temp.pagina(v_m || 'es_favorito = true and esta_tachado = false', v_max, v_rel), 100);
   perform pg_temp.escala(v_modo || ': sólo tachados', q, pg_temp.pagina(v_m || 'esta_tachado = true', v_max, v_rel), 100);
   -- La etiqueta ya no se lee de la vista (`etiquetas && …` calculaba las de cada fila: 88 ms la dueña con 212.000 leads, 378 una que nadie tiene): va por los candidatos,
@@ -356,13 +342,14 @@ end $$;
 -- `p_privado`: el valor que se filtra en un campo privado. Se comprueba **lo que devuelve**, no sólo cuánto tarda: todo candidato está en la cartera de quien filtra
 -- y tiene el valor (ni un lead de otra persona, que quien filtra vea o no) y, con `p_exacto`, salen todos los que cumplen y la respuesta dice que no hay más.
 create function pg_temp.busqueda_de(q text, p_modo text, p_nombre text, p_filtros jsonb, p_ms1 numeric, p_ms2 numeric, p_ms numeric,
-                                    p_buffers numeric default null, p_privado jsonb default null, p_exacto boolean default false) returns void language plpgsql as $$
+                                    p_buffers numeric default null, p_privado jsonb default null, p_exacto boolean default false,
+                                    p_cumple text default null, p_acotada boolean default null) returns void language plpgsql as $$
 declare
   v_max int := current_setting('medir.max_leads')::int;
   v_mios boolean := p_modo = 'mios';
   v_filtros jsonb := p_filtros || jsonb_build_object('mios', v_mios, 'sentido', 'siguiente');
   v_r jsonb; v_ids uuid[]; v_sql2 text; v_plan text; v_suma numeric; v_nombre text := 'búsqueda ' || p_modo || ': ' || p_nombre;
-  v_yo uuid; v_malos int; v_fugas int; v_esperados int; v_b numeric;
+  v_yo uuid; v_malos int; v_fugas int; v_esperados int; v_b numeric; v_cartera boolean;
 begin
   perform pg_temp.escala(v_nombre || ' (paso 1: candidatos)', q, format('select public.leads_candidatos(%L::jsonb)', v_filtros), p_ms1);
   v_r := pg_temp.candidatos(q, v_filtros);
@@ -411,6 +398,29 @@ begin
       end if;
     end if;
   end if;
+  -- `p_cumple`: un predicado sobre `l` (el texto o el rango de un campo, escrito a mano). Todo candidato lo cumple; y, si la respuesta dice que es completa, son **todos** los que cumplen
+  -- entre lo que quien filtra ve (la RLS de `leads`, como `authenticated`) y, con un campo privado o «míos», en su cartera. Una búsqueda acotada (el tope) no es completa: sólo se pide lo primero.
+  if p_cumple is not null then
+    perform pg_temp.quien(q);
+    v_yo := current_setting('request.jwt.claim.sub')::uuid;
+    v_cartera := v_mios or p_filtros ? 'comparaciones_privadas';
+    set local role authenticated;
+    execute format('select count(*) filter (where not (%s)) from public.leads l where l.id = any (%L::uuid[])', p_cumple, v_ids) into v_malos;
+    if v_malos > 0 then
+      insert into pg_temp.violaciones values (format('%s [%s]: %s de %s candidatos no cumplen el filtro', v_nombre, q, v_malos, cardinality(v_ids)));
+    end if;
+    if p_exacto and (v_r ->> 'completa')::boolean and coalesce(not (v_r ->> 'acotada')::boolean, true) then
+      execute format('select count(*) from public.leads l where (%s) %s', p_cumple, case when v_cartera then format('and l.cartera @> array[%L]::uuid[]', v_yo) else '' end) into v_esperados;
+      if cardinality(v_ids) <> v_esperados then
+        insert into pg_temp.violaciones values (format('%s [%s]: devolvió %s candidatos y los que cumplen y quien filtra ve son %s', v_nombre, q, cardinality(v_ids), v_esperados));
+      end if;
+    end if;
+    reset role;
+  end if;
+  -- `p_acotada`: si la búsqueda tiene que quedarse en el tope del recorrido (la dueña y quien ve «todos») o no (todos los demás, y un valor denso).
+  if p_acotada is not null and coalesce((v_r ->> 'acotada')::boolean, false) is distinct from p_acotada then
+    insert into pg_temp.violaciones values (format('%s [%s]: acotada = %s y tenía que ser %s (%s)', v_nombre, q, coalesce(v_r ->> 'acotada', 'no'), p_acotada, v_r - 'ids'));
+  end if;
 end $$;
 
 -- Un campo privado (5a-10, paso 4.03): lo filtra **la ventana de candidatos**, sólo sobre la cartera de quien filtra, y no la vista leyendo `atributos_lead()` en cada lead (66 µs
@@ -430,6 +440,42 @@ begin
   -- Una opción u otra, y con un nombre.
   perform pg_temp.busqueda_de(q, 'mios', 'un campo privado, una opción u otra', jsonb_build_object('privados', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad_vol', v_comun), jsonb_build_object('ciudad_vol', 'rara')))), 80, 40, 100, 40000);
   perform pg_temp.busqueda_de(q, 'mios', 'un campo privado y un nombre', jsonb_build_object('privados', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad_vol', v_comun))), 'texto', 'Gómez'), 80, 40, 100, 40000, jsonb_build_object('ciudad_vol', v_comun));
+  -- El texto y el rango de un campo privado (5a-34, 4.03): por la ventana, sólo de la cartera de quien filtra (la dueña con 212.000 leads pagaba 5.642 ms y 892.611 buffers por la vista: 66 µs de
+  -- `atributos_lead()` por lead). Los mismos presupuestos con 62.000 y con 212.000 (sin fórmula por N), y lo que devuelve: todos cumplen y son todos los de su cartera.
+  perform pg_temp.comparaciones_privadas(q, 'mios');
+  if q = 'duena' then perform pg_temp.comparaciones_privadas(q, 'todos'); end if;
+end $$;
+
+-- El texto y el rango de un campo privado, en sus dos pasos: los mismos presupuestos que un `@>` privado (100 ms y 40.000 buffers). «Todos» pide lo mismo que «míos»: con un campo privado
+-- la lectura es siempre la cartera de quien filtra.
+create function pg_temp.comparaciones_privadas(q text, p_modo text) returns void language plpgsql as $$
+declare
+  v_comun text := case q when 'berta' then 'scz' else 'lp' end; c constant text := '(l.atributos ->> ''ciudad_vol'')'; n constant text := '(l.atributos -> ''ciudad_vol'')';
+begin
+  perform pg_temp.busqueda_de(q, p_modo, 'un texto de un campo privado sin resultados', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "zqx"}]}', 100, 40, 100, 40000, null, true, c || ' ilike ''%zqx%''', false);
+  perform pg_temp.busqueda_de(q, p_modo, 'un texto de un campo privado denso', jsonb_build_object('comparaciones_privadas', jsonb_build_array(jsonb_build_object('tipo', 'texto', 'clave', 'ciudad_vol', 'texto', v_comun))), 100, 40, 100, 40000, null, true, c || format(' ilike ''%%%s%%''', v_comun), false);
+  perform pg_temp.busqueda_de(q, p_modo, 'un rango de texto de un campo privado sin resultados', '{"comparaciones_privadas": [{"tipo": "rango_texto", "clave": "ciudad_vol", "desde": "zz", "antes_de": "zzz"}]}', 100, 40, 100, 40000, null, true, c || ' >= ''zz'' and ' || c || ' < ''zzz''', false);
+  perform pg_temp.busqueda_de(q, p_modo, 'un rango de número de un campo privado sin resultados', '{"comparaciones_privadas": [{"tipo": "rango_numero", "clave": "ciudad_vol", "min": 5}]}', 100, 40, 100, 40000, null, true, n || ' >= ''5''::jsonb', false);
+end $$;
+
+-- El texto y el rango de un campo **público** (5a-9, 4.03): por la ventana y con el tope del recorrido (`recorridos` ≤ 2,5 ventanas = 10.000 leads) para quien ve «todos»; los demás los resuelve su
+-- cartera. Sin resultados, ≤ 50 ms los dos pasos y un tope de buffers que es el mismo con 62.000 y con 212.000 (el tope lo hace crecer con el recorrido y no con la tabla: la dueña «todos»
+-- pagaba 198 ms y 172.692 buffers con 212.000, «míos» 129 ms; 50,6 ms con 62.000). Un valor denso no llega al tope. Todos los candidatos cumplen el filtro, y lo que dice completo, es completo.
+create function pg_temp.comparaciones_publicas(q text) returns void language plpgsql as $$
+declare
+  v_modo text; v_comun text := case q when 'berta' then 'scz' else 'lp' end; c constant text := '(l.atributos_publicos ->> ''ciudad_vol'')'; n constant text := '(l.atributos_publicos -> ''ciudad_vol'')';
+  v_acota boolean;
+begin
+  foreach v_modo in array case when q in ('duena', 'sup') then array['mios', 'todos'] else array['mios'] end loop
+    -- Con el tope: quien ve «todos» (la dueña y la supervisora) recorre la tabla —o su cartera, si pasa de 10.000 leads— y se queda en el tope; la supervisora «míos» (3 propios) la agota.
+    v_acota := (q = 'duena') or (q = 'sup' and v_modo = 'todos');
+    perform pg_temp.busqueda_de(q, v_modo, 'un texto de un campo público sin resultados', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "zqx"}]}', 45, 40, 50, 45000, null, true, c || ' ilike ''%zqx%''', v_acota);
+    perform pg_temp.busqueda_de(q, v_modo, 'un rango de texto de un campo público sin resultados', '{"comparaciones": [{"tipo": "rango_texto", "clave": "ciudad_vol", "desde": "zz", "antes_de": "zzz"}]}', 45, 40, 50, 45000, null, true, c || ' >= ''zz'' and ' || c || ' < ''zzz''', v_acota);
+    perform pg_temp.busqueda_de(q, v_modo, 'un rango de número de un campo público sin resultados', '{"comparaciones": [{"tipo": "rango_numero", "clave": "ciudad_vol", "min": 5}]}', 45, 40, 50, 45000, null, true, n || ' >= ''5''::jsonb', v_acota);
+    -- Densos: juntan K + 1 antes del tope.
+    perform pg_temp.busqueda_de(q, v_modo, 'un texto de un campo público denso', jsonb_build_object('comparaciones', jsonb_build_array(jsonb_build_object('tipo', 'texto', 'clave', 'ciudad_vol', 'texto', v_comun))), 45, 40, 50, 45000, null, false, c || format(' ilike ''%%%s%%''', v_comun), false);
+    perform pg_temp.busqueda_de(q, v_modo, 'un rango de número de un campo público denso', '{"comparaciones": [{"tipo": "rango_numero", "clave": "ciudad_vol", "max": 5}]}', 45, 40, 50, 45000, null, false, n || ' <= ''5''::jsonb', false);
+  end loop;
 end $$;
 
 create function pg_temp.busqueda(q text) returns void language plpgsql as $$
@@ -664,6 +710,8 @@ do $medir$ declare q text; begin
   -- Un campo privado (5a-10), de cada persona que mide el listado: las tres de «propios» y las dos carteras cortas, la dueña y la supervisora («todos»).
   foreach q in array array['duena', 'ana', 'berta', 'chica', 'papelera', 'sup'] loop
     perform pg_temp.privados(q);
+    -- El texto y el rango de un campo público (5a-9, 4.03), con el tope del recorrido para quien ve «todos».
+    perform pg_temp.comparaciones_publicas(q);
   end loop;
   -- Quien no tiene ningún tachado ni favorito (Berta, con 7.000 leads) no recorre su cartera para saberlo.
   perform pg_temp.escala('listado «míos»: ocultos hasta 51 de quien no tiene ninguno', 'berta', 'select id from public.leads_cartera_vista where en_cartera = true and esta_tachado = true order by creado_en desc, id desc limit 51', 30);

@@ -1,7 +1,7 @@
 import 'server-only'
-import { errorDePostgrest, ok } from '@/shared/lib/errores'
+import { errorDePostgrest, ok, type Resultado } from '@/shared/lib/errores'
 import { conteoAcotado } from '@/shared/lib/conteo'
-import { armarPagina, type Cursor } from '@/shared/lib/paginacion'
+import { armarPagina, codificarCursor, type Cursor } from '@/shared/lib/paginacion'
 import { aplicarCursor } from '@/shared/lib/supabase/consultas'
 import { createClient } from '@/shared/lib/supabase/server'
 import {
@@ -9,10 +9,18 @@ import {
   filtrosDeCandidatos,
   usaCandidatos,
   ventanasHasta,
+  type Candidatos,
+  type PaginaDeLeads,
+  type RecorridoAcotado,
 } from '../../entities/candidatos'
 import { fuenteDelListado } from '../../entities/fuente-del-listado'
+import type { CondicionDeLead } from '../../entities/filtros'
 import { columnasDeLaConsulta, filasDeLeadDesde, type FilaDeLead } from '../../entities/listado'
-import type { BuscadorDeLeads, ContadorDeLeads, PedidoDeListado } from '../../entities/repositorios'
+import type {
+  BuscadorDeLeads,
+  ContadorDeLeads,
+  PedidoDeListado,
+} from '../../entities/repositorios-del-listado'
 import { leerCandidatos } from './candidatos'
 import { aplicarCondicionesDeLeads } from './condiciones'
 
@@ -26,10 +34,11 @@ import { aplicarCondicionesDeLeads } from './condiciones'
 // Una búsqueda por nombre (o un campo público filtrado) pide antes los candidatos a la base y lee la página de ellos (`leerPorCandidatos`).
 export const buscarLeads: BuscadorDeLeads = async (pedido) => {
   const { condiciones, cursor, tamano, clavesDeTabla } = pedido
+  const conTope = pedido.sinTope !== true
   const supabase = await createClient()
   const columnas = columnasDeLaConsulta(clavesDeTabla)
-  if (usaCandidatos(condiciones)) {
-    const porCandidatos = await leerPorCandidatos(supabase, pedido, columnas)
+  if (usaCandidatos(condiciones, conTope)) {
+    const porCandidatos = await leerPorCandidatos(supabase, pedido, columnas, conTope)
     if (porCandidatos !== null) {
       return porCandidatos
     }
@@ -47,7 +56,55 @@ export const buscarLeads: BuscadorDeLeads = async (pedido) => {
   if (error) {
     return { ok: false, error: errorDePostgrest(error) }
   }
-  return ok(armarPagina(filasDeLeadDesde(data, clavesDeTabla), tamano, cursor))
+  return ok({
+    ...armarPagina(filasDeLeadDesde(data, clavesDeTabla), tamano, cursor),
+    recorrido: null,
+  })
+}
+
+// Las filas de esos candidatos, de `leads_vista_por_ids()`, con las condiciones que la página sigue aplicando, el cursor, el orden y el límite de siempre.
+async function filasDeLosCandidatos(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: readonly string[],
+  datos: {
+    pedido: PedidoDeListado
+    deLaPagina: readonly CondicionDeLead[]
+    columnas: string
+    limite: number
+  },
+): Promise<Resultado<FilaDeLead[]>> {
+  const { pedido, deLaPagina, columnas, limite } = datos
+  const haciaAtras = pedido.cursor?.sentido === 'anterior'
+  const { data, error } = await aplicarCursor(
+    aplicarCondicionesDeLeads(
+      supabase.rpc('leads_vista_por_ids', { p_leads: [...ids] }).select(columnas),
+      deLaPagina,
+    ),
+    pedido.cursor,
+  )
+    .order('creado_en', { ascending: haciaAtras })
+    .order('id', { ascending: haciaAtras })
+    .limit(limite)
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(filasDeLeadDesde(data, pedido.clavesDeTabla))
+}
+
+// Hasta dónde llegó una ventana que se quedó en el tope: nulo si no se acotó (o no dijo hasta dónde).
+function recorridoAcotado(
+  candidatos: Candidatos,
+  sentido: Cursor['sentido'],
+): RecorridoAcotado | null {
+  const { hasta } = candidatos
+  if (candidatos.acotada !== true || hasta === null) {
+    return null
+  }
+  return {
+    recorridos: candidatos.recorridos ?? 0,
+    hastaEn: hasta.creado_en,
+    seguir: codificarCursor({ creadoEn: hasta.creado_en, id: hasta.id, sentido }),
+  }
 }
 
 // La página de una búsqueda por candidatos (5a-fix-1b), en dos pasos: `leads_candidatos()` dice cuáles son los primeros que coinciden, en el
@@ -59,40 +116,42 @@ async function leerPorCandidatos(
   supabase: Awaited<ReturnType<typeof createClient>>,
   pedido: PedidoDeListado,
   columnas: string,
+  conTope: boolean,
 ) {
-  const { condiciones, cursor, tamano, clavesDeTabla } = pedido
+  const { condiciones, cursor, tamano } = pedido
   const sentido = cursor?.sentido ?? 'siguiente'
-  const haciaAtras = sentido === 'anterior'
-  const deLaPagina = condicionesDeLaPagina(condiciones)
+  const deLaPagina = condicionesDeLaPagina(condiciones, conTope)
   let desde = cursor
   let juntas: FilaDeLead[] = []
   for (let ventana = 0; ventana < ventanasHasta(tamano); ventana++) {
     const candidatos = await leerCandidatos(
       supabase,
-      filtrosDeCandidatos(condiciones, desde, sentido),
+      filtrosDeCandidatos(condiciones, desde, sentido, conTope),
     )
     if (!candidatos.ok) {
       return candidatos
     }
     if (candidatos.data.ids.length > 0) {
-      const { data, error } = await aplicarCursor(
-        aplicarCondicionesDeLeads(
-          supabase.rpc('leads_vista_por_ids', { p_leads: candidatos.data.ids }).select(columnas),
-          deLaPagina,
-        ),
-        cursor,
-      )
-        .order('creado_en', { ascending: haciaAtras })
-        .order('id', { ascending: haciaAtras })
-        .limit(tamano + 1 - juntas.length)
-      if (error) {
-        return { ok: false as const, error: errorDePostgrest(error) }
+      const filas = await filasDeLosCandidatos(supabase, candidatos.data.ids, {
+        pedido,
+        deLaPagina,
+        columnas,
+        limite: tamano + 1 - juntas.length,
+      })
+      if (!filas.ok) {
+        return filas
       }
-      juntas = juntas.concat(filasDeLeadDesde(data, clavesDeTabla))
+      juntas = juntas.concat(filas.data)
     }
     const { hasta } = candidatos.data
     if (juntas.length > tamano || candidatos.data.completa) {
-      return ok(armarPagina(juntas, tamano, cursor))
+      return ok<PaginaDeLeads>({ ...armarPagina(juntas, tamano, cursor), recorrido: null })
+    }
+    // El tope de un campo público (4.03, 5a-9): la ventana miró `recorridos` leads y se quedó ahí. No se pide otra (cada una costaría lo mismo): la página sale con lo que
+    // juntó y dice hasta dónde llegó, con el cursor para seguir.
+    const recorrido = recorridoAcotado(candidatos.data, sentido)
+    if (recorrido !== null) {
+      return ok<PaginaDeLeads>({ ...armarPagina(juntas, tamano, cursor), recorrido })
     }
     if (hasta === null) {
       return null

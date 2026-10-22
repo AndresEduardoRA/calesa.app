@@ -34,6 +34,7 @@ import { filtrosDescartados, type FiltroDescartado } from '../../entities/filtro
 import { FILTRO_TACHADOS, TOPE_DE_OCULTOS, ocultaTachados } from '../../entities/filtros-de-marcas'
 import { MAXIMO_DE_PAGINA_DE_LEADS, clavesDeTabla, type FilaDeLead } from '../../entities/listado'
 import { puedeEditarLead } from '../../entities/edicion'
+import type { RecorridoAcotado } from '../../entities/candidatos'
 import { condicionesDeLaPersona } from './condiciones-de-la-persona'
 import { puedeAbrirLaPapelera, puedeEnviarLead } from '../../entities/papelera'
 
@@ -58,6 +59,8 @@ export type DatosDelListado = {
   // Cuántos leads que cumplen los filtros quedaron afuera por estar tachados (0 si no se ocultan).
   // Cuántos de los que cumplen los filtros quedan afuera por tachados: hasta 50, nunca el total.
   ocultos: ConteoAcotado
+  // La búsqueda por el texto o el rango de un campo público se quedó en el tope del recorrido (4.03, 5a-9): hasta dónde llegó y el cursor para seguir; si no, nulo.
+  recorrido: RecorridoAcotado | null
   // Los de esta página que quien mira puede enviar a la papelera (`leads.eliminar` con su alcance).
   eliminables: string[]
   // Quien mira puede abrir la papelera de leads (envía, o puede vaciarla).
@@ -172,6 +175,7 @@ export async function leerListadoDeLeads(entrada: Entrada): Promise<Resultado<Da
       descartados: filtrosDescartados(campos, parametros, etiquetas.data),
       // Si contar falla, el listado se dibuja igual: sin el aviso.
       ocultos: ocultos?.ok ? ocultos.data : SIN_OCULTOS,
+      recorrido: leida.data.recorrido,
       eliminables: leida.data.filas
         .filter((fila) => puedeEnviarLead(permisos, fila.duenoId, usuarioId))
         .map((fila) => fila.id),

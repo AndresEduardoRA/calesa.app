@@ -142,6 +142,7 @@ for (const archivo of [
   'listado-cartera.sql',
   'busqueda-leads.sql',
   'privados-candidatos.sql',
+  'comparaciones-candidatos.sql',
   'oportunidades-policy.sql',
   'rueda-por-rol.sql',
   'equipo-lista.sql',

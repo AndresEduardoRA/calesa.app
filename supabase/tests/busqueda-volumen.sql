@@ -247,6 +247,57 @@ begin
   raise notice 'medicion|un campo privado por candidatos: % huellas iguales (% con filas)|%', v_cmp, v_con_filas, round(extract(epoch from clock_timestamp() - v_t0) * 1000, 0);
 end $priv$;
 
+-- 4.03 (5a-9 y 5a-34): el texto y el rango de un campo, público y privado, también por los candidatos. Las filas enteras (md5) de la primera página con el máximo de la lista tienen que
+-- ser las de la ruta de siempre (la vista con `ilike`, `>=` y `->`/`->>`), para las mismas personas que el campo privado; un campo privado es siempre «míos» (lo suma `condicionesDeLeads`).
+-- La ventana de «todos» se pide `sin_tope`: con el tope (se mide y se asserta en `medir-escala.sql`) las filas ya no son «las mismas» por diseño.
+create function pg_temp.huella_comp(p_quien uuid, p_rel text, p_mios boolean, p_donde text, p_empuja jsonb, p_resto text default 'true') returns int language plpgsql as $$
+declare v_max int := current_setting('medir.max_leads')::int; v_viejo jsonb; v_nuevo jsonb;
+begin
+  v_viejo := pg_temp.bl_viejo(p_quien, p_rel, case when p_mios then 'en_cartera = true and ' else '' end || format('(%s) and (%s)', p_donde, p_resto), v_max, false, null, null);
+  v_nuevo := pg_temp.bl_nuevo(p_quien, null, null, p_mios, p_empuja || '{"sin_tope": true}'::jsonb, case when p_mios then 'en_cartera = true and ' else '' end || format('(%s)', p_resto), v_max, false, null, null);
+  if v_viejo is distinct from v_nuevo then
+    raise exception E'huella de un texto o un rango distinta | persona % | %: siempre % filas (md5 %), ahora % filas (md5 %)', p_quien, p_donde,
+      jsonb_array_length(v_viejo), md5(v_viejo::text), jsonb_array_length(v_nuevo), md5(v_nuevo::text);
+  end if;
+  return jsonb_array_length(v_nuevo);
+end $$;
+do $comp$
+declare
+  p record; f record; v_n int; v_cmp int := 0; v_con_filas int := 0; v_t0 timestamptz := clock_timestamp(); v_mios boolean;
+  c constant text := 'atributos_publicos ->> ''ciudad_vol'''; n constant text := 'atributos_publicos -> ''ciudad_vol''';
+begin
+  for p in select * from (values
+    ('dueña, por la vista', '00000000-0000-0000-0000-0000000000d1'::uuid, 'leads_vista', false), ('dueña, por la cartera', '00000000-0000-0000-0000-0000000000d1'::uuid, 'leads_cartera_vista', true),
+    ('Ana', '00000000-0000-0000-0000-0000000000a1'::uuid, 'leads_cartera_vista', true), ('Berta', '00000000-0000-0000-0000-0000000000b1'::uuid, 'leads_cartera_vista', true),
+    ('la «chica»', '00000000-0000-0000-0000-0000000000c9'::uuid, 'leads_cartera_vista', true),
+    ('la supervisora («todos»), por la vista', '00000000-0000-0000-0000-0000000000c8'::uuid, 'leads_vista', false),
+    ('la supervisora, por la cartera', '00000000-0000-0000-0000-0000000000c8'::uuid, 'leads_cartera_vista', true)) x (nombre, id, rel, mios) loop
+    for f in select * from (values
+      ('texto público denso «lp»', false, c || ' ilike ''%lp%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "lp"}]}'::jsonb, 'true'),
+      ('texto público «scz»', false, c || ' ilike ''%scz%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "scz"}]}', 'true'),
+      ('texto público sin resultados', false, c || ' ilike ''%zqx%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "zqx"}]}', 'true'),
+      ('texto público con tachados ocultos', false, c || ' ilike ''%lp%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "lp"}]}', 'esta_tachado = false'),
+      ('rango de texto público de «lp» a «sd»', false, c || ' >= ''lp'' and ' || c || ' < ''sd''', '{"comparaciones": [{"tipo": "rango_texto", "clave": "ciudad_vol", "desde": "lp", "antes_de": "sd"}]}', 'true'),
+      ('rango de texto público sin resultados', false, c || ' >= ''zz'' and ' || c || ' < ''zzz''', '{"comparaciones": [{"tipo": "rango_texto", "clave": "ciudad_vol", "desde": "zz", "antes_de": "zzz"}]}', 'true'),
+      ('rango de número público desde 5 (un texto ordena antes: nadie)', false, n || ' >= ''5''::jsonb', '{"comparaciones": [{"tipo": "rango_numero", "clave": "ciudad_vol", "min": 5}]}', 'true'),
+      ('rango de número público hasta 5 (un texto ordena antes: todos)', false, n || ' <= ''5''::jsonb', '{"comparaciones": [{"tipo": "rango_numero", "clave": "ciudad_vol", "max": 5}]}', 'true'),
+      ('texto público y una ciudad exacta', false, c || ' ilike ''%lp%'' and atributos_publicos @> ''{"ciudad_vol": "lp"}''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "lp"}], "atributos": [[{"ciudad_vol": "lp"}]]}', 'true'),
+      ('texto privado «sol» (5 por cartera)', true, 'atributos ->> ''direccion'' ilike ''%sol%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "sol"}]}', 'true'),
+      ('texto privado sin resultados', true, 'atributos ->> ''ciudad_vol'' ilike ''%zqx%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "zqx"}]}', 'true'),
+      ('texto privado denso «lp»', true, 'atributos ->> ''ciudad_vol'' ilike ''%lp%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "lp"}]}', 'true'),
+      ('rango de texto privado de la dirección', true, 'atributos ->> ''direccion'' >= ''Calle'' and atributos ->> ''direccion'' < ''Calles''', '{"comparaciones_privadas": [{"tipo": "rango_texto", "clave": "direccion", "desde": "Calle", "antes_de": "Calles"}]}', 'true'),
+      ('rango de número privado desde 5 (nadie)', true, 'atributos -> ''ciudad_vol'' >= ''5''::jsonb', '{"comparaciones_privadas": [{"tipo": "rango_numero", "clave": "ciudad_vol", "min": 5}]}', 'true'),
+      ('texto privado «sol» con tachados ocultos', true, 'atributos ->> ''direccion'' ilike ''%sol%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "sol"}]}', 'esta_tachado = false')) x (nombre, privado, donde, empuja, resto) loop
+      v_mios := p.mios or f.privado;
+      v_n := pg_temp.huella_comp(p.id, p.rel, v_mios, f.donde, f.empuja, f.resto);
+      v_cmp := v_cmp + 1; v_con_filas := v_con_filas + (v_n > 0)::int;
+    end loop;
+  end loop;
+  -- 7 lecturas × 15 filtros = 105; los de «sin resultados» y «nadie» nunca traen filas.
+  if v_con_filas < 50 then raise exception 'la huella de un texto o un rango casi no comparó filas (% de % con filas): no prueba', v_con_filas, v_cmp; end if;
+  raise notice 'medicion|un texto o un rango por candidatos: % huellas iguales (% con filas)|%', v_cmp, v_con_filas, round(extract(epoch from clock_timestamp() - v_t0) * 1000, 0);
+end $comp$;
+
 create temp table huellas (persona text, termino text, filas int);
 do $m$
 declare p record; t text; v_n int; v_comparaciones int := 0; v_con_filas int := 0; v_t0 timestamptz := clock_timestamp();

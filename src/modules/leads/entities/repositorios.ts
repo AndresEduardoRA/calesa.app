@@ -2,14 +2,12 @@
 // implementación (Supabase) vive en `infra/` y se la entrega `composicion.ts`.
 import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import type { OpcionDeCampo, TipoDeCampoDeLead, ValorDefecto } from '@/shared/lib/campos'
-import type { ConteoAcotado } from '@/shared/lib/conteo'
 import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { ContextoDeAlta, DatosDeAlta, TipoDeSeguimiento } from './alta'
 import type { CandidatoDeCartera, PersonaDeCartera, RespuestaDeCartera } from './cartera'
 import type { CambiosDeCampoDeLead } from './cambios-de-campo'
 import type { CampoDeLead, DatoDeLaEmpresa } from './campo'
-import type { CondicionDeLead } from './filtros'
 import type { CambiosDeLead } from './edicion'
 import type { RegistroDeExportacion } from './exportacion'
 import type { CatalogosDeLead } from './catalogos'
@@ -103,24 +101,6 @@ export type RepositorioDeAlta = {
 export type LectorDeContextoDeAlta = () => Promise<Resultado<ContextoDeAlta>>
 
 // --- El listado -------------------------------------------------------------------------------------
-
-export type PedidoDeListado = {
-  condiciones: readonly CondicionDeLead[]
-  cursor: Cursor | null
-  tamano: number
-  // Las claves de los campos «en tabla»: de `atributos` sólo se pide lo que se dibuja.
-  clavesDeTabla: readonly string[]
-}
-
-// Una página de leads de `leads_vista`. Lo que hay lo decide la RLS: acá no se filtra por permiso.
-export type BuscadorDeLeads = (pedido: PedidoDeListado) => Promise<Resultado<Pagina<FilaDeLead>>>
-
-// Cuántos leads cumplen esas condiciones, entre los que quien mira ve, **hasta `tope`** (el aviso de
-// tachados ocultos, el tope de una exportación). Nunca el total exacto.
-export type ContadorDeLeads = (
-  condiciones: readonly CondicionDeLead[],
-  tope: number,
-) => Promise<Resultado<ConteoAcotado>>
 
 // Todos los orígenes de lead, también los desactivados: un lead con uno apagado se sigue nombrando.
 // Los orígenes y los tipos con que se nombra a un lead (también los apagados), en un solo pedido (`leads_catalogos()`).

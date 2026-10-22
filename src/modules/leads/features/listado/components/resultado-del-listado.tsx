@@ -14,8 +14,10 @@ import { useRegional } from '@/shared/ui/regional'
 import type { ModoDelListado } from '../../../entities/alcance'
 import { iconosEnUso } from '../../../entities/catalogos'
 import type { FilaDeLead } from '../../../entities/listado'
+import type { RecorridoAcotado } from '../../../entities/candidatos'
 import { usePanelDeAlta } from '../../alta/hooks/use-panel-de-alta'
 import { textoDeOcultos, useMostrarTachados } from './aviso-de-tachados-ocultos'
+import { AvisoDelRecorrido, NadaPorAhora } from './aviso-del-recorrido'
 import { useAlcanceDelListado } from '../hooks/use-alcance-del-listado'
 import { TablaDeLeads } from './tabla-de-leads'
 import { TarjetasDeLeads } from './tarjetas-de-leads'
@@ -31,6 +33,8 @@ type Props = DatosDeLaLista & {
   marcar: ParaMarcar
   // Los que cumplen los filtros y quedaron afuera por tachados (hasta el tope del aviso).
   ocultos: ConteoAcotado
+  // La búsqueda por un campo público se quedó en el tope del recorrido: hasta dónde llegó (4.03, 5a-9).
+  recorrido: RecorridoAcotado | null
 }
 
 // No hay nada que mostrar, pero porque está tachado: decirlo y ofrecer verlos, no «Nada coincide».
@@ -94,14 +98,28 @@ function VacioDeLeads({
 // La lista de leads o el estado que corresponda: sin leads, sin resultados por filtro o una página
 // que se quedó sin filas. Se dibuja una sola vista (`<UnaSolaVista>`): la tabla desde `md`, las tarjetas por debajo.
 export function ResultadoDelListado(props: Props) {
-  const { pagina, modo, puedeVerTodos, puedeCrear, alAbrir, abierto, marcar, ocultos, ...datos } =
-    props
+  const {
+    pagina,
+    modo,
+    puedeVerTodos,
+    puedeCrear,
+    alAbrir,
+    abierto,
+    marcar,
+    ocultos,
+    recorrido,
+    ...datos
+  } = props
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
 
   if (pagina.filas.length === 0) {
     if (ocultos.n > 0 && !hayCursor) {
       return <TodoTachado ocultos={ocultos} />
+    }
+    // Se miró hasta el tope y no se encontró nada: no es «nada coincide», es «nada hasta ahora».
+    if (recorrido) {
+      return <NadaPorAhora recorrido={recorrido} />
     }
     if (filtros.hayFiltros) {
       return <EstadoSinResultados alLimpiar={filtros.limpiar} />
@@ -137,6 +155,7 @@ export function ResultadoDelListado(props: Props) {
         )}
       />
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
+      {recorrido ? <AvisoDelRecorrido recorrido={recorrido} /> : null}
     </div>
   )
 }

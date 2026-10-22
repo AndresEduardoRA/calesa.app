@@ -93,6 +93,8 @@ async function textoDeCsv({ condiciones, campos, delimitador, contexto }: Entrad
       cursor,
       tamano: TAMANO_DE_PAGINA_DE_EXPORTACION,
       clavesDeTabla: claves,
+      // Un archivo con todo lo que cumple, no con lo que se alcanzó a mirar: sin el tope del recorrido de un campo público.
+      sinTope: true,
     })
     if (!pagina.ok) {
       return null

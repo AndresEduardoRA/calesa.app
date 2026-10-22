@@ -13,6 +13,7 @@ import { privadosFiltrando } from '../../../entities/filtros'
 import type { FiltroDescartado } from '../../../entities/filtros-descartados'
 import { SECCION_MARCAS } from '../../../entities/filtros-de-marcas'
 import type { FilaDeLead } from '../../../entities/listado'
+import type { RecorridoAcotado } from '../../../entities/candidatos'
 import { ConmutadorDeVista } from '../../embudo/components/conmutador-de-vista'
 import { AccionesDeCsv } from '../../exportar/components/acciones-de-csv'
 import { DialogoDeEtiquetas } from '../../etiquetas/components/dialogo-de-etiquetas'
@@ -45,6 +46,7 @@ type Props = DatosDeLaLista & {
   puedeConfigurarCampos: boolean
   descartados: readonly FiltroDescartado[]
   ocultos: ConteoAcotado
+  recorrido: RecorridoAcotado | null
   eliminables: readonly string[]
   puedeAbrirPapelera: boolean
   puedeAnotar: boolean
@@ -124,6 +126,7 @@ export function ListadoDeLeads(props: Props) {
     puedeConfigurarCampos,
     descartados,
     ocultos,
+    recorrido,
     eliminables,
     puedeAbrirPapelera,
     puedeAnotar,
@@ -176,6 +179,7 @@ export function ListadoDeLeads(props: Props) {
             abierto={drawer.id}
             marcar={marcar}
             ocultos={ocultos}
+            recorrido={recorrido}
           />
         </div>
       </FilterShell>

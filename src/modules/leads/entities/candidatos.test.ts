@@ -31,7 +31,7 @@ const privado: CondicionDeLead = {
   alternativas: [{ direccion: 'x' }],
   columna: 'atributos',
 }
-// Un texto o un rango sobre un campo privado: lo decide la página (5a-34).
+// Un texto o un rango sobre un campo privado: desde 4.03 también va a los candidatos (5a-34).
 const textoPrivado: CondicionDeLead = {
   tipo: 'atributo_texto',
   clave: 'direccion',
@@ -56,12 +56,10 @@ describe('usaCandidatos', () => {
     expect(usaCandidatos([{ tipo: 'en_cartera', desdeLaCartera: true }, busqueda()])).toBe(true)
   })
 
-  it('«#124» es sólo el número y un texto o un rango privado los decide la página: no los piden', () => {
+  it('«#124» es sólo el número y lo decide la página: no los pide, como una lista sin filtros ni una marca', () => {
     expect(usaCandidatos([busqueda({ soloNumero: true, numero: 124, idsDelNumero: [ID_A] })])).toBe(
       false,
     )
-    expect(usaCandidatos([textoPrivado])).toBe(false)
-    expect(usaCandidatos([rangoPrivado])).toBe(false)
     expect(usaCandidatos([])).toBe(false)
     expect(usaCandidatos([{ tipo: 'tachado', valor: false }])).toBe(false)
   })
@@ -95,16 +93,9 @@ describe('filtrosDeCandidatos', () => {
     })
   })
 
-  it('no lleva lo que la página decide: una marca, un texto o un rango', () => {
+  it('no lleva lo que la página decide: una marca', () => {
     const filtros = filtrosDeCandidatos(
-      [
-        busqueda(),
-        { tipo: 'tachado', valor: false },
-        { tipo: 'favorito', valor: true },
-        { tipo: 'atributo_texto', clave: 'ciudad', texto: 'x', columna: 'atributos_publicos' },
-        textoPrivado,
-        rangoPrivado,
-      ],
+      [busqueda(), { tipo: 'tachado', valor: false }, { tipo: 'favorito', valor: true }],
       null,
       'siguiente',
     )
@@ -165,8 +156,6 @@ describe('condicionesDeLaPagina', () => {
     const resto: CondicionDeLead[] = [
       { tipo: 'en_cartera', desdeLaCartera: true },
       { tipo: 'columna_en', columna: 'tipo_lead_id', valores: [ID_A] },
-      textoPrivado,
-      rangoPrivado,
       { tipo: 'tachado', valor: false },
       { tipo: 'favorito', valor: true },
     ]
@@ -175,6 +164,8 @@ describe('condicionesDeLaPagina', () => {
         busqueda(),
         publico,
         privado,
+        textoPrivado,
+        rangoPrivado,
         { tipo: 'etiquetas', ids: [ID_A] },
         ...resto,
       ]),

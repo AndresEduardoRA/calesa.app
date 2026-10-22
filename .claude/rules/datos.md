@@ -24,7 +24,7 @@ paths:
 - Leads: se leen de `leads_vista` (teléfono enmascarado salvo cartera). Nunca `from('leads')`
   para leer el teléfono. «Míos» de quien tiene `leads.ver` «propios» se lee de `leads_cartera_vista`
   (las mismas columnas y la misma RLS, por la cartera de quien mira: cuesta lo que pesa, no el total de
-  la tabla): la elige `fuenteDelListado()` de `modules/leads/entities`, nunca cada pantalla; quien ve «todos» y tiene una cartera corta (`leads_cartera_corta()`, ≤ 5.000 filas) también la lee así (`leerMiosDeLaCartera()`, 5a-5). **Una búsqueda por nombre o un campo, público o privado**
+  la tabla): la elige `fuenteDelListado()` de `modules/leads/entities`, nunca cada pantalla; quien ve «todos» y tiene una cartera corta (`leads_cartera_corta()`, ≤ 5.000 filas) también la lee así (`leerMiosDeLaCartera()`, 5a-5). **Una búsqueda por nombre o un campo, público o privado, en opciones, texto o rango**
   (`ilike` y `@>` no son _leakproof_: bajo RLS ningún índice los sostiene; un privado lo calcula `atributos_lead()` por lead, 66 µs) no se pide a la vista: primero `leads_candidatos()` y
   después `leads_vista_por_ids()` con lo demás (`leerPorCandidatos()`; `docs/RENDIMIENTO.md` › «Cierre 5a-fix-1b»). Una función
   `returns setof leads_vista` nace dentro de `_leads_vista_crear()` y no lleva `strict`, `set`, `security definer` ni `volatile`:
