@@ -50,6 +50,7 @@ const VARIABLES_DE_PAGINA = {
   tam_columna: constante('src/shared/lib/paginacion.ts', 'TAMANO_DE_COLUMNA'),
   tope_cargado: constante('src/shared/lib/paginacion.ts', 'TOPE_DE_LO_CARGADO'),
   lotes: constante('src/shared/lib/paginacion.ts', 'LOTES_POR_PAGINA'),
+  tope_equipo: constante('src/shared/lib/paginacion.ts', 'TOPE_DEL_EQUIPO'),
   ver_mas: constante('src/shared/lib/paginacion.ts', 'TAMANO_DE_VER_MAS'),
   // El lote de la importación de leads (`medir-importacion.sql`): su tope vive en un solo punto del código.
   lote: constante('src/modules/leads/entities/importacion/limites.ts', 'FILAS_POR_LOTE'),
@@ -96,6 +97,11 @@ const MEDICIONES_CON_VOLUMEN = [
   [
     'supabase/tests/medir-importacion-volumen.sql',
     'Importar 500 filas en lotes de 50, con 23.000 y con 124.000 filas de actividad (con transacciones de verdad: confirma y borra lo que crea)',
+    UNA,
+  ],
+  [
+    'supabase/tests/medir-equipo.sql',
+    'La lista del equipo con 100.000 personas: buffers leídos por cada etapa de `equipo_lista` (no ms: el plan y las filas que lee, con 10.000 y con 100.000)',
     UNA,
   ],
   [

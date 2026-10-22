@@ -28,7 +28,8 @@ export { leerMatriz } from './composicion'
 export { agruparPorModulo } from './entities/matriz'
 
 // Las personas del equipo (la lista: `pantallas/equipo`)
-export { leerEquipo, leerVistaPreviaDeBaja } from './composicion'
+export { leerEquipo, leerPersona, leerSoloYo, leerVistaPreviaDeBaja } from './composicion'
+export { filtroDelEquipoDesde } from './entities/lista-equipo'
 export { idDePersona } from './entities/persona'
 
 // Vistas guardadas de un listado (`<MenuDeVistas>` sale por `client.ts`)

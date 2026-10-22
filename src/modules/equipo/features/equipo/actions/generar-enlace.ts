@@ -3,7 +3,7 @@
 import { fallo } from '@/shared/lib/errores'
 import { puede } from '@/shared/lib/permisos'
 import { actionClient } from '@/shared/lib/safe-action'
-import { conCuentasInvitadas, leerEquipo, repositorioRoles } from '../../../composicion'
+import { conCuentasInvitadas, leerPersona, repositorioRoles } from '../../../composicion'
 import { origenDelSitio } from '../../auth/origen'
 import { enlaceParaInvitada } from '../invitar'
 import { esquemaPersona } from '../schemas/equipo'
@@ -15,11 +15,11 @@ export const generarEnlace = actionClient
     if (!puede(ctx.permisos, 'equipo.usuarios.gestionar')) {
       return fallo('sin_permiso', 'No tienes permiso para invitar personas al equipo.')
     }
-    const equipo = await leerEquipo()
-    if (!equipo.ok) {
-      return equipo
+    const leida = await leerPersona(parsedInput.personaId)
+    if (!leida.ok) {
+      return leida
     }
-    const persona = equipo.data.find((una) => una.id === parsedInput.personaId)
+    const persona = leida.data
     if (!persona) {
       return fallo('no_encontrado', 'Esa persona ya no está en el equipo.')
     }

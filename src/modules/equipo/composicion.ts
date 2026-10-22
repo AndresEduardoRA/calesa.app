@@ -7,6 +7,8 @@ import type {
   ConCuentasInvitadas,
   LectorDeEquipo,
   LectorDeMatriz,
+  LectorDePersona,
+  LectorDeSoloYo,
   LectorDeVistaPreviaDeBaja,
   RepositorioEquipo,
   RepositorioRoles,
@@ -16,7 +18,7 @@ import { accesoSupabase } from './infra/acceso'
 import { equipoSupabase } from './infra/equipo'
 import { conAdminDeAuth } from './infra/invitaciones'
 import { perfilSupabase } from './infra/perfil'
-import { getEquipo, getVistaPreviaDeBaja } from './infra/queries/equipo'
+import { getEquipo, getPersona, getSoloYo, getVistaPreviaDeBaja } from './infra/queries/equipo'
 import { getMatriz } from './infra/queries/roles'
 import { getSesion } from './infra/queries/sesion'
 import { getVistas } from './infra/queries/vistas'
@@ -32,6 +34,8 @@ export const repositorioEquipo: RepositorioEquipo = equipoSupabase
 // La única puerta a la API de admin de Auth (ver `infra/invitaciones.ts`).
 export const conCuentasInvitadas: ConCuentasInvitadas = conAdminDeAuth
 export const leerEquipo: LectorDeEquipo = getEquipo
+export const leerPersona: LectorDePersona = getPersona
+export const leerSoloYo: LectorDeSoloYo = getSoloYo
 export const leerMatriz: LectorDeMatriz = getMatriz
 export const leerVistaPreviaDeBaja: LectorDeVistaPreviaDeBaja = getVistaPreviaDeBaja
 

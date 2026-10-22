@@ -3,11 +3,8 @@
 import { debounce, parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs'
 import { useState } from 'react'
 import type { Permisos } from '@/shared/lib/permisos'
-import { EstadoSinResultados } from '@/shared/ui/estados'
-import { UnaSolaVista } from '@/shared/ui/lista'
 import {
   FILTROS_DE_ESTADO,
-  filtrarPersonas,
   nombreDePersona,
   type PersonaDelEquipo,
   type VistaPreviaDeBaja,
@@ -22,11 +19,17 @@ import { FiltrosEquipo } from './filtros-equipo'
 import { InvitarPersona } from './invitar-persona'
 import type { AccionesDeLaLista } from './menu-persona'
 import { PanelRolesPersona } from './panel-roles-persona'
-import { TablaEquipo } from './tabla-equipo'
-import { TarjetasEquipo } from './tarjetas-equipo'
+import { ResultadoEquipo } from './resultado-equipo'
 
 type Props = {
+  // Las primeras por nombre que cumplen el filtro de la URL, ya filtradas en el servidor; `hayMas` dice que había más que el tope.
   personas: PersonaDelEquipo[]
+  hayMas: boolean
+  // El equipo vigente es sólo quien mira: no sale de `personas` (que depende de lo que se busca).
+  soloYo: boolean
+  // La de `?persona=` y la de `?baja=`, leídas por su id: pueden no estar en `personas`.
+  personaDelPanel: PersonaDelEquipo | null
+  personaDeLaBaja: PersonaDelEquipo | null
   // Con sus concesiones: hacen falta para saber qué roles puede dar quien mira.
   roles: RolConConcesiones[]
   misPermisos: Permisos
@@ -47,14 +50,11 @@ const PARAMETROS = {
 
 // Las personas del equipo con su estado, y lo que quien lo gestiona puede hacer sobre cada una.
 export function ListaEquipo(props: Props) {
-  const { personas, roles, misPermisos, yoId, puedeGestionar, vistaPreviaDeBaja } = props
+  const { yoId, puedeGestionar, personaDeLaBaja: deLaBaja } = props
   const [parametros, setParametros] = useQueryStates(PARAMETROS, { shallow: false })
   const { cambiarBloqueo, darBaja, cambiarRol, enCurso } = useAccionesEquipo()
   const { pedirEnlace, generando } = useInvitaciones()
   const [enlace, setEnlace] = useState<EnlaceGenerado | null>(null)
-  const visibles = filtrarPersonas(personas, { estado: parametros.estado, texto: parametros.q })
-  const buscar = (id: string | null) => personas.find((persona) => persona.id === id) ?? null
-  const deLaBaja = buscar(parametros.baja)
 
   async function generarEnlace(persona: PersonaDelEquipo) {
     const nuevo = await pedirEnlace(persona.id)
@@ -78,7 +78,7 @@ export function ListaEquipo(props: Props) {
     <div className="grid gap-4">
       <CabeceraEquipo
         puedeGestionar={puedeGestionar}
-        soloYo={personas.length === 1}
+        soloYo={props.soloYo}
         alInvitar={() => void setParametros({ panel: 'invitar' })}
       />
       <FiltrosEquipo
@@ -87,19 +87,17 @@ export function ListaEquipo(props: Props) {
         alBuscar={(q) => void setParametros({ q }, { limitUrlUpdates: debounce(300) })}
         alFiltrar={(estado) => void setParametros({ estado })}
       />
-      {visibles.length === 0 ? (
-        <EstadoSinResultados alLimpiar={() => void setParametros({ q: null, estado: null })} />
-      ) : (
-        <UnaSolaVista
-          tabla={() => <TablaEquipo personas={visibles} lista={acciones} />}
-          tarjetas={() => <TarjetasEquipo personas={visibles} lista={acciones} />}
-        />
-      )}
+      <ResultadoEquipo
+        personas={props.personas}
+        hayMas={props.hayMas}
+        lista={acciones}
+        alLimpiar={() => void setParametros({ q: null, estado: null })}
+      />
       <InvitarPersona
         abierto={puedeGestionar && parametros.panel === 'invitar'}
         alCerrar={() => void setParametros({ panel: null })}
-        roles={roles}
-        misPermisos={misPermisos}
+        roles={props.roles}
+        misPermisos={props.misPermisos}
       />
       <EnlaceDePersona
         generado={enlace}
@@ -108,16 +106,18 @@ export function ListaEquipo(props: Props) {
         }}
       />
       <PanelRolesPersona
-        persona={puedeGestionar ? buscar(parametros.persona) : null}
-        roles={roles}
-        misPermisos={misPermisos}
+        persona={puedeGestionar ? props.personaDelPanel : null}
+        roles={props.roles}
+        misPermisos={props.misPermisos}
         enCurso={enCurso}
         alCambiar={(persona, rolId, asignado) => void cambiarRol(persona, rolId, asignado)}
         alCerrar={() => void setParametros({ persona: null })}
       />
       <ConfirmarBaja
         persona={deLaBaja?.estado === 'baja' ? null : deLaBaja}
-        vistaPrevia={vistaPreviaDeBaja?.personaId === deLaBaja?.id ? vistaPreviaDeBaja : null}
+        vistaPrevia={
+          props.vistaPreviaDeBaja?.personaId === deLaBaja?.id ? props.vistaPreviaDeBaja : null
+        }
         enCurso={enCurso}
         alConfirmar={(persona) => {
           void darBaja(persona).then(() => setParametros({ baja: null }))

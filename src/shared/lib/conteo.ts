@@ -65,11 +65,12 @@ export function cortarAlTope<T>(
   return { filas: leidas.slice(0, tope), hayMas: leidas.length > tope }
 }
 
-// «Mostrando los 50 más recientes.»: el texto de siempre de un tope (el sustantivo va cuando aclara qué se cuenta).
+// «Mostrando los 50 más recientes.»: el texto de siempre de un tope (el sustantivo va cuando aclara qué se cuenta, y el artículo concuerda con él:
+// «Mostrando las 100 primeras por nombre.»).
 export function textoDelTope(
   tope: number,
-  opciones: { sustantivo?: string; orden?: string } = {},
+  opciones: { sustantivo?: string; orden?: string; articulo?: 'los' | 'las' } = {},
 ): string {
   const que = opciones.sustantivo ? ` ${opciones.sustantivo}` : ''
-  return `Mostrando los ${formatearNumero(tope, { locale: LOCALE_POR_DEFECTO })}${que} ${opciones.orden ?? 'más recientes'}.`
+  return `Mostrando ${opciones.articulo ?? 'los'} ${formatearNumero(tope, { locale: LOCALE_POR_DEFECTO })}${que} ${opciones.orden ?? 'más recientes'}.`
 }

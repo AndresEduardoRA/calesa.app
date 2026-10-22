@@ -137,24 +137,6 @@ export const ETIQUETA_FILTRO: Record<FiltroDeEstado, string> = {
   baja: 'Dadas de baja',
 }
 
-function sinAcentos(texto: string): string {
-  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-}
-
-export function filtrarPersonas(
-  personas: readonly PersonaDelEquipo[],
-  filtro: { estado: FiltroDeEstado; texto: string },
-): PersonaDelEquipo[] {
-  const buscado = sinAcentos(filtro.texto.trim())
-  return personas.filter((persona) => {
-    const porEstado =
-      filtro.estado === 'vigentes' ? persona.estado !== 'baja' : persona.estado === filtro.estado
-    const porTexto =
-      buscado === '' || sinAcentos(`${persona.nombre} ${persona.email}`).includes(buscado)
-    return porEstado && porTexto
-  })
-}
-
 // Lo que hay que saber antes de dar de baja a alguien (`equipo_vista_previa_baja()`): la base cuenta hasta 1.001,
 // así que con más se dice «más de 1.000».
 export type VistaPreviaDeBaja = {

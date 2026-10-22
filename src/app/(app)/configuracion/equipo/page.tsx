@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
 import {
+  filtroDelEquipoDesde,
   idDePersona,
   leerEquipo,
   leerMatriz,
+  leerPersona,
+  leerSoloYo,
   leerVistaPreviaDeBaja,
   puede,
   requerirSesion,
@@ -22,17 +25,33 @@ export default async function PaginaEquipo({ searchParams }: PageProps<'/configu
   if (!puedeGestionar && !puede(sesion.permisos, 'equipo.usuarios.ver')) {
     return <EstadoSinPermiso />
   }
-  // El diálogo de baja tiene su URL: cuántos leads irían al limbo se cuenta acá, antes de que el
-  // botón de confirmar exista.
+  // El texto y el estado se resuelven en la base (`?q=&estado=`): la página trae las primeras personas por nombre que los cumplen, no el equipo entero.
+  const filtro = filtroDelEquipoDesde({
+    q: unParametro(parametros['q']),
+    estado: unParametro(parametros['estado']),
+  })
+  // El panel de roles y el diálogo de baja tienen su URL: la persona se lee por su id aunque no esté en la página, y cuántos leads irían al limbo se
+  // cuenta acá, antes de que el botón de confirmar exista.
   const baja = puedeGestionar ? idDePersona(unParametro(parametros['baja'])) : null
-  const [equipo, matriz, vistaPrevia] = await Promise.all([
-    leerEquipo(),
-    leerMatriz(),
-    baja ? leerVistaPreviaDeBaja(baja) : null,
-  ])
+  const delPanel = puedeGestionar ? idDePersona(unParametro(parametros['persona'])) : null
+  const [equipo, matriz, soloYo, vistaPrevia, personaDeLaBaja, personaDelPanel] = await Promise.all(
+    [
+      leerEquipo(filtro),
+      leerMatriz(),
+      leerSoloYo(),
+      baja ? leerVistaPreviaDeBaja(baja) : null,
+      baja ? leerPersona(baja) : null,
+      delPanel ? leerPersona(delPanel) : null,
+    ],
+  )
+  const { personas, hayMas } = datosO(equipo)
   return (
     <ListaEquipo
-      personas={datosO(equipo)}
+      personas={personas}
+      hayMas={hayMas}
+      soloYo={datosO(soloYo)}
+      personaDelPanel={personaDelPanel ? datosO(personaDelPanel) : null}
+      personaDeLaBaja={personaDeLaBaja ? datosO(personaDeLaBaja) : null}
       roles={datosO(matriz).roles}
       misPermisos={sesion.permisos}
       yoId={sesion.usuarioId}

@@ -10,8 +10,9 @@
 // 2. Las listas que crecen con «Ver más» dentro de una ficha o un drawer (los seguimientos y los recordatorios de
 //    un lead): de a `TAMANO_DE_VER_MAS` y hasta `TOPE_DE_LO_CARGADO`. Más ítems por clic empeora el DOM sin acortar el
 //    camino a lo antiguo: se llega por otro lado («Ir a una fecha»), nunca sumando para siempre.
-// 3. Las que tienen su propia unidad: una columna del kanban (`TAMANO_DE_COLUMNA`) y las papeleras, que van de a
-//    `LOTES_POR_PAGINA` lotes (un lote ya trae hasta 200 filas).
+// 3. Las que tienen su propia unidad: una columna del kanban (`TAMANO_DE_COLUMNA`), las papeleras, que van de a
+//    `LOTES_POR_PAGINA` lotes (un lote ya trae hasta 200 filas), y la lista del equipo, que dibuja las primeras
+//    `TOPE_DEL_EQUIPO` por nombre y manda a buscar o filtrar por estado para llegar a las demás.
 //
 // En la base, cada RPC con tamaño acota con `_acotar_pagina(pedido, por_defecto, máximo)` y nunca confía en el cliente;
 // `scripts/guardas/paginas.test.ts` exige que ese máximo sea al menos el que pide el código.
@@ -25,6 +26,8 @@ export const TAMANO_DE_VER_MAS = 20
 export const TOPE_DE_LO_CARGADO = 500
 export const TAMANO_DE_COLUMNA = 50
 export const LOTES_POR_PAGINA = 5
+// La lista del equipo (5a-21): las primeras por nombre. Se pide uno más para saber si hay otras; la base lo acota a 101 (`equipo_lista`).
+export const TOPE_DEL_EQUIPO = 100
 // De cada lote de la papelera (hasta 200) se ven los primeros; «Mostrar los N» trae el lote entero (cierre 1).
 export const PRIMEROS_DEL_LOTE = 20
 

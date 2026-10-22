@@ -6894,6 +6894,22 @@ export type Database = {
         Args: { p_bucket: string; p_rutas: string[]; p_ya: boolean }
         Returns: number
       }
+      _equipo_busqueda_patron: { Args: { p_texto: string }; Returns: string }
+      _equipo_lista_indexable: { Args: { p_texto: string }; Returns: boolean }
+      _equipo_lista_recorrido: { Args: Record<PropertyKey, never>; Returns: number }
+      _equipo_lista_sql: {
+        Args: { p_estado: string; p_etapa: string; p_limite: number; p_texto: string }
+        Returns: string
+      }
+      _estado_de_persona: {
+        Args: {
+          p_aceptada_en: string
+          p_activo: boolean
+          p_bloqueado: boolean
+          p_invitado_en: string
+        }
+        Returns: string
+      }
       _etiqueta_color: { Args: { p_color: string }; Returns: string }
       _etiqueta_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _etiqueta_json: {
@@ -7346,6 +7362,7 @@ export type Database = {
         Args: { p_valor: Json }
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
       }
+      _sin_tildes: { Args: { p_texto: string }; Returns: string }
       _tarjeta_json: {
         Args: {
           o: Omit<
@@ -7658,6 +7675,10 @@ export type Database = {
         Returns: undefined
       }
       equipo_dar_de_baja: { Args: { p_usuario: string }; Returns: Json }
+      equipo_lista: {
+        Args: { p_estado?: string; p_limite?: number; p_texto?: string }
+        Returns: string[]
+      }
       equipo_vista_previa_baja: { Args: { p_usuario: string }; Returns: Json }
       es_miembro: { Args: { p_conversacion: string }; Returns: boolean }
       es_usuario_activo: { Args: Record<PropertyKey, never>; Returns: boolean }

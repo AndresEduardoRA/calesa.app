@@ -5,6 +5,7 @@ import type { Resultado } from '@/shared/lib/errores'
 import type { Alcance, ClavePermiso } from '@/shared/lib/permisos'
 import type { TipoDeEnlace } from './invitacion'
 import type { PermisoDelCatalogo } from './matriz'
+import type { FiltroDelEquipo, ListaDelEquipo } from './lista-equipo'
 import type { BajaHecha, PersonaDelEquipo, VistaPreviaDeBaja } from './persona'
 import type { RolConConcesiones } from './rol'
 
@@ -67,6 +68,11 @@ export type ConCuentasInvitadas = <T>(
 
 export type Matriz = { roles: RolConConcesiones[]; catalogo: PermisoDelCatalogo[] }
 
-export type LectorDeEquipo = () => Promise<Resultado<PersonaDelEquipo[]>>
+// Las primeras personas por nombre que cumplen el filtro, con sus roles, y si había más (5a-21). El texto y el estado se resuelven en la base.
+export type LectorDeEquipo = (filtro: FiltroDelEquipo) => Promise<Resultado<ListaDelEquipo>>
+// Una persona por su id (`?persona=` y `?baja=`), esté o no en la página que se dibuja; nula si no existe.
+export type LectorDePersona = (personaId: string) => Promise<Resultado<PersonaDelEquipo | null>>
+// ¿El equipo vigente es sólo quien mira? Independiente del filtro: «por ahora el equipo eres tú» no depende de lo que se busca.
+export type LectorDeSoloYo = () => Promise<Resultado<boolean>>
 export type LectorDeMatriz = () => Promise<Resultado<Matriz>>
 export type LectorDeVistaPreviaDeBaja = (personaId: string) => Promise<Resultado<VistaPreviaDeBaja>>

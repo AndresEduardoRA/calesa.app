@@ -43,8 +43,8 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - Casos de uso: empresa, iconos, integraciones, tipos-cambio
 
 ### `equipo`
-Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 150 archivos
-- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +12
+Autenticación, perfiles, roles y permisos (RBAC puro), invitaciones, bloqueo, baja con limbo de leads, preferencias y perspectiva «ver como». · 153 archivos
+- API: `cerrarSiInactiva`, `getPermisos`, `requerirSesion`, `requerirSesionDeEnlace`, `nombreVisible`, `sinRol`, `Sesion`, `puede`, `ClavePermiso`, `Permisos`, +15
 - API de cliente (`client.ts`): `RoleBadge`, `usePerspectiva`, `Perspectiva`, `RolParaVerComo`, `MenuDeVistas`, `ParamsDeVista`, `VistaGuardada`
 - API del shell (`shell.ts`, sólo el layout `(app)`): `requerirSesion`, `nombreVisible`, `puede`, `cerrarSesion`, `ProveedorPreferencias`, `BannerPerspectiva`, `ProveedorPerspectiva`, `usePerspectiva`
 - Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):

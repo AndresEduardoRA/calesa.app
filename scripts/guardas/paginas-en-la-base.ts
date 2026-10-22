@@ -8,6 +8,7 @@ import {
   TAMANO_DE_COLUMNA,
   TAMANO_DE_VER_MAS,
   TOPE_DE_LO_CARGADO,
+  TOPE_DEL_EQUIPO,
 } from '../../src/shared/lib/paginacion'
 
 export type RpcPaginada = {
@@ -69,6 +70,13 @@ export const RPC_PAGINADAS: readonly RpcPaginada[] = [
     parametro: 'p_tope_total',
     pideElCodigo: TOPE_DE_LO_CARGADO,
     lista: 'kanban, total de una columna',
+  },
+  // La lista del equipo pide `TOPE_DEL_EQUIPO + 1` (una persona de más para saber si hay otras).
+  {
+    rpc: 'equipo_lista',
+    parametro: 'p_limite',
+    pideElCodigo: TOPE_DEL_EQUIPO + 1,
+    lista: 'lista del equipo',
   },
   {
     rpc: 'embudo_etapa_pagina',

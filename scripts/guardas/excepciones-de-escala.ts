@@ -26,7 +26,6 @@ export const TABLAS_ACOTADAS: Readonly<Record<string, TablaAcotada>> = {
   },
   leads_campos: { motivo: 'El layout de campos de los leads.', tope: 'decenas' },
   preferencias_usuario: { motivo: 'Una fila por persona (la propia).', tope: '1 fila' },
-  perfiles: { motivo: 'El equipo de la empresa (cuentas, no clientes).', tope: 'decenas' },
   embudos: { motivo: 'Los embudos de quien mira, con un tope en la base.', tope: '10 por persona' },
   vistas_guardadas: {
     motivo: 'Las vistas de quien mira, con un tope en la base.',

@@ -79,5 +79,9 @@ describe('cortarAlTope y textoDelTope (cierre 1)', () => {
       'Mostrando los 1.000 cambios más recientes.',
     )
     expect(textoDelTope(20, { orden: 'primeros' })).toBe('Mostrando los 20 primeros.')
+    // 5a-21: la lista del equipo.
+    expect(textoDelTope(100, { articulo: 'las', orden: 'primeras por nombre' })).toBe(
+      'Mostrando las 100 primeras por nombre.',
+    )
   })
 })

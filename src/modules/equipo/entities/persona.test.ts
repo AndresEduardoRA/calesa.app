@@ -3,14 +3,12 @@ import {
   accionesSobre,
   descripcionDeBaja,
   estadoDePersona,
-  filtrarPersonas,
   idDePersona,
   nombreDePersona,
   personasDesde,
   resultadoDeBaja,
   bajaHechaDesde,
   vistaPreviaDesde,
-  type PersonaDelEquipo,
 } from './persona'
 
 const cuenta = { activo: true, bloqueado: false, invitadoEn: null, invitacionAceptadaEn: null }
@@ -127,43 +125,6 @@ describe('nombreDePersona', () => {
     expect(nombreDePersona({ nombre: 'Sofía Ramos', email: 's@ejemplo.com' })).toBe('Sofía Ramos')
     expect(nombreDePersona({ nombre: ' ', email: 's@ejemplo.com' })).toBe('s@ejemplo.com')
     expect(nombreDePersona({ nombre: '', email: '' })).toBe('Sin nombre')
-  })
-})
-
-describe('filtrarPersonas', () => {
-  const persona = (nombre: string, estado: PersonaDelEquipo['estado']): PersonaDelEquipo => ({
-    id: nombre,
-    nombre,
-    email: `${nombre.toLowerCase()}@ejemplo.com`,
-    avatarRuta: null,
-    avatarMiniaturaRuta: null,
-    estado,
-    bloqueoMotivo: null,
-    bajaEnCurso: false,
-    roles: [],
-  })
-  const equipo = [
-    persona('Sofía', 'activa'),
-    persona('Rosa', 'bloqueada'),
-    persona('Diego', 'baja'),
-    persona('Ana', 'invitacion_pendiente'),
-  ]
-  const nombres = (estado: Parameters<typeof filtrarPersonas>[1]['estado'], texto = '') =>
-    filtrarPersonas(equipo, { estado, texto }).map((p) => p.nombre)
-
-  it('«en el equipo» deja afuera sólo a las dadas de baja', () => {
-    expect(nombres('vigentes')).toEqual(['Sofía', 'Rosa', 'Ana'])
-  })
-
-  it('filtra por un estado', () => {
-    expect(nombres('baja')).toEqual(['Diego'])
-    expect(nombres('invitacion_pendiente')).toEqual(['Ana'])
-  })
-
-  it('busca por nombre o correo sin importar acentos ni mayúsculas', () => {
-    expect(nombres('vigentes', 'sofia')).toEqual(['Sofía'])
-    expect(nombres('vigentes', 'ROSA@')).toEqual(['Rosa'])
-    expect(nombres('vigentes', 'nadie')).toEqual([])
   })
 })
 
