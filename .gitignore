@@ -33,6 +33,9 @@ supabase/.temp/
 # referencias del negocio: la planilla de una empresa no viaja en el producto white-label;
 # su transcripción está en docs/referencias/excel-de-cotizacion.md
 docs/referencias/*.xlsx
+# las capturas del cotizador actual: nombres reales de leads y de personas del equipo;
+# su inventario, sin nombres, está en docs/referencias/cotizador-actual.md
+docs/referencias/cotizador-actual/
 
 # sistema
 .DS_Store

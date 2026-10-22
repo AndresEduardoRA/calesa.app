@@ -44,21 +44,55 @@ deshabilitado con su motivo y se guarda sin origen).
 
 ### Flujo 2 — Cotizar
 
-1. Desde la ficha del lead, el resumen de un vehículo o el listado de cotizaciones. Se elige el origen (si hay más de uno). `Ctrl/Cmd+K → «Nueva cotización»` llega con el buscador en la **Fase 7** y no entra en el criterio de la Fase 4.
-2. Si el origen es de subasta: pegar link o lote → `apibara` llena la ficha y las fotos; si es manual: buscar en inventario o cargar a mano. **Las dos formas crean el vehículo en el inventario** (D3). El vehículo es obligatorio salvo que el ajuste «Vehículo obligatorio al cotizar» diga que no; una final lo exige siempre. **El lead es obligatorio siempre**, y viene preseleccionado si se abrió desde su ficha.
-3. La hoja de cálculo **se ve y se maneja como el Excel que reemplaza** (`docs/referencias/excel-de-cotizacion.md`, D4):
-   - columnas de concepto, monto (USD), tipo de cambio de la fila o del grupo (oficial, paralelo…), plazo de pago, USD y Bs;
-   - los grupos con su subtotal en las dos monedas, y el total;
-   - cada monto es una **XCell** (`Tab` avanza, tipear abre edición, `Esc` cancela);
-   - lo **sugerido** (de una tabla o de un cálculo: la nacionalización, el factor de depreciación) lleva un punto, y el asesor lo sobrescribe: queda **modificado**, con anillo y «revertir».
-4. Resumen fijo al pie: el total en las dos monedas, el modo de tipo de cambio («por bucket», por defecto, o «uno solo») y el toggle **Live**.
-5. `Ctrl/Cmd+S` guarda (preventa); «Vista previa» abre el PDF con la plantilla publicada; «Compartir» copia texto + descarga PDF.
+La hoja es **configurable por origen** (D7, `docs/COTIZADOR.md` › «El diseño de la hoja»): la semilla trae un diseño que reproduce el
+cotizador que se usa hoy (`docs/referencias/cotizador-actual.md`) y otro igual al Excel (`docs/referencias/excel-de-cotizacion.md`).
 
-Estados propios: fórmula del origen sin publicar (pantalla bloqueada con «Falta publicar la fórmula
-de <origen>» y enlace a configuración si tiene permiso); link de subasta inválido o sin datos (se
-puede seguir a mano); **desactualizada** (D2: al guardar una nueva, la fórmula publicada o un tipo de cambio cambió desde que se
-abrió la hoja; la pantalla ofrece «Usar la versión N+1» o «Guardar con la N»; editar una vieja no avisa, usa SU versión); **vencida**
-(D1: pasó la vigencia de la empresa; se dice en el listado, la tarjeta y el PDF, y se recotiza encima).
+1. **Entrada.** Desde la ficha del lead, el resumen de un vehículo o el listado de cotizaciones.
+   - Arriba, las pestañas de los orígenes (los nombres salen de la base; «Oficina» es un origen) y los **modos** de tipo de cambio que
+     declara el diseño (Aduana, Paralelo, Unificado…), con «Ver total Bs» si el diseño lo ofrece.
+   - `Ctrl/Cmd+K → «Nueva cotización»` llega con el buscador en la **Fase 7** y no entra en el criterio de la Fase 4.
+2. **El paso a paso:** **la hoja** (con su clase: preventa o final), **vehículo**, **cliente** y **vista previa**. No hay paso
+   «Oficina».
+   - **El panel del vehículo:**
+     - el título de la cotización;
+     - pegar un link o un lote (`apibara` llena la ficha y las fotos), buscar por nombre o «+» para cargarlo a mano. **Las dos formas
+       crean el vehículo en el inventario** (D3);
+     - las pestañas «Últ. cotización» y «Cierre subasta»;
+     - el elegido muestra su historial de cotizaciones con «Ver más».
+   - **El panel del cliente:**
+     - se busca desde 3 letras o con `#n`;
+     - sin buscar, «míos» por actividad;
+     - pestañas por clase y el tipo del lead como etiqueta;
+     - «+» abre «Nuevo lead».
+   - **Los dos paneles van por cursor** (Anterior y Siguiente): nunca «Página N de M».
+   - **El lead es obligatorio siempre**, y viene preseleccionado si se abrió desde su ficha. El vehículo es obligatorio salvo que el
+     ajuste «Vehículo obligatorio al cotizar» diga que no; una final lo exige siempre.
+3. **La hoja**, según su diseño:
+   - secciones en el orden declarado, cada monto en una **XCell** (`Tab` avanza, tipear abre edición, `Esc` cancela) con el tono de su
+     grupo, su ayuda (la tabla), su ⚙ si el permiso lo da, y el monto y el % juntos donde el diseño lo pide;
+   - lo **sugerido** (de una tabla o de un cálculo: la nacionalización, el factor) lleva un punto, y al sobrescribirlo queda
+     **modificado**, con anillo y ↺;
+   - los **atajos** (chips de año), la **variante** (Moto, Auto Gasolina…) y los **interruptores** (habilitar una fila, mostrar la
+     garantía);
+   - **«avanzado»** abre un modal con su URL;
+   - **una celda que quien mira no puede ver no se dibuja ni llega**; una que no puede editar va con candado y su motivo;
+   - **la hoja recalcula en la base** 150 ms después de la última tecla.
+   - **Celular y 200 %:** una columna en el mismo orden, sin cortar ni encimar etiquetas.
+4. **Resumen fijo:** el total (y en Bs, si se pidió), la garantía si está a la vista, el modo de tipo de cambio y el toggle **Live**.
+   **Al pie en el celular** y al costado en escritorio.
+5. `Ctrl/Cmd+S` guarda (preventa); «Vista previa» abre la tarjeta con la plantilla publicada; «Compartir» copia el texto y descarga el
+   PDF.
+
+Estados propios:
+
+- **Fórmula del origen sin publicar:** pantalla bloqueada con «Falta publicar la fórmula de <origen>» y enlace a configuración si tiene
+  permiso.
+- **Link de subasta inválido o sin datos:** se puede seguir a mano.
+- **Desactualizada** (D2): al guardar una nueva, la fórmula publicada o un tipo de cambio cambió desde que se abrió la hoja; la pantalla
+  ofrece «Usar la versión N+1» o «Guardar con la N». Editar una vieja no avisa: usa SU versión.
+- **Vencida** (D1): pasó la vigencia de la empresa; se dice en el listado, la tarjeta y el PDF, y se recotiza encima.
+- **El recálculo falla o no hay red:** la hoja conserva lo tipeado, dice «No se pudo recalcular» con «Reintentar» y no deja guardar
+  con un total viejo.
 
 ### Flujo 3 — Mover de fase
 

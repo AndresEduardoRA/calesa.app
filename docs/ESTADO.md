@@ -6,7 +6,7 @@
 > a `docs/BITACORA.md`, copiado y no resumido. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-22
-**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22** con el paso 4a (sólo docs): las decisiones D1 a D6 (`docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones»), la partición en 24 pasos y 43 prompts (`docs/PLAN.md` › «Fase 4» › «Partición») y el Excel de cotización transcrito (`docs/referencias/excel-de-cotizacion.md`). La Fase 3 cerró el 2026-10-22 con el Nivel 3 (1.065 en verde, 40,1 min); lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-22, «movido de ESTADO», apertura de la Fase 4).
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el paso **4.01** (sólo docs, dos commits): D1 a D6 y el Excel transcrito; después **D7, la hoja configurable** (diseño declarativo por origen, niveles de acceso como permisos de Roles, la fórmula sólo para quien configura y el cálculo en la base, tipos de cambio y modos de la empresa, tonos editables; `docs/DECISIONES.md`, «D7»; `docs/COTIZADOR.md`) y el inventario del cotizador actual sin nombres (`docs/referencias/cotizador-actual.md`; las capturas y el `.xlsx` quedan fuera del repo). Partición: **28 pasos y 61 prompts**, numerados 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.17 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-22, «movido de ESTADO», D7).
 
 ## Funcionando
 
@@ -17,8 +17,8 @@
 
 ## Siguiente
 
-1. **4b — 5a-31 y 5a-27** (`docs/PLAN.md` › «Fase 4» › «Partición»): la búsqueda del equipo pide 3 letras («Escribe al menos 3 letras», `MINIMO_DE_BUSQUEDA`) con su assert en buffers, y Roles sin conteo exacto. Nivel 1 + cadena db + `db:medir:volumen`. Después, 4c a 4x en orden, **un paso por prompt, y se para a reportar**.
-2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-9 y 5a-10 en 4c, 5a-11 en 4d, 5a-12 en 4n, 5a-29 y 5a-30 en 4q, 5b-7 en 4s y 5a-4b en 4x); **5a-28** pasa a la Fase 9; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
+1. **4.02 — 5a-31 y 5a-27** (`docs/PLAN.md` › «Fase 4» › «Partición»): la búsqueda del equipo pide 3 letras («Escribe al menos 3 letras», `MINIMO_DE_BUSQUEDA`) con su assert en buffers, y Roles sin conteo exacto. Nivel 1 + cadena db + `db:medir:volumen`. Después, 4.03 a 4.28 en orden, **un paso por prompt, y se para a reportar**.
+2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-9 y 5a-10 en 4.03, 5a-11 en 4.04, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23 y 5a-4b en 4.28); **5a-28** pasa a la Fase 9; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
 
 ## Pendientes que se arrastran
 
