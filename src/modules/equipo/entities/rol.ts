@@ -1,5 +1,11 @@
 // Un rol: un conjunto de permisos con nombre, creado por quien administra. `dueno` es de sistema.
 import { z } from 'zod'
+import {
+  TOPE_DEL_CONTEO,
+  conteoAcotado,
+  conteoEnFrase,
+  type ConteoAcotado,
+} from '@/shared/lib/conteo'
 import { concesionesDe, type Permisos } from '@/shared/lib/permisos'
 import { MOTIVO_ROL_NO_DOMINADO } from './dominancia'
 
@@ -16,8 +22,8 @@ export type Rol = {
 
 export type RolConConcesiones = Rol & {
   concesiones: Permisos
-  // Cuántas personas lo tienen: con alguna adentro no se elimina.
-  personas: number
+  // Cuántas personas lo tienen, hasta `TOPE_DEL_CONTEO` («más de 1.000», 5a-27): con alguna adentro no se elimina.
+  personas: ConteoAcotado
 }
 
 // Los colores entre los que se elige al crear un rol. El elegido se guarda en la fila y de ahí
@@ -59,12 +65,18 @@ const esquemaRoles = z.array(
     es_sistema: z.boolean(),
     actualizado_en: z.string(),
     roles_permisos: z.array(z.object({ permiso_clave: z.string() }).loose()),
-    usuarios_roles: z.array(z.object({ count: z.number() })),
   }),
 )
 
-// Las filas de `roles` con sus concesiones y la cuenta de personas (así las lee infra).
-export function rolesDesde(filas: unknown): RolConConcesiones[] {
+// Lo que devuelve `roles_personas()`: una fila por rol con sus personas contadas hasta `TOPE_DEL_CONTEO + 1`.
+const esquemaPersonasPorRol = z.array(z.object({ rol_id: z.guid(), personas: z.number().int() }))
+
+// Las filas de `roles` con sus concesiones, y cuántas personas tiene cada uno según `roles_personas()` (así las lee infra). Un rol que no vino en la
+// cuenta (se creó entre las dos lecturas) no tiene a nadie.
+export function rolesDesde(filas: unknown, personasPorRol: unknown): RolConConcesiones[] {
+  const personas = new Map(
+    esquemaPersonasPorRol.parse(personasPorRol).map((fila) => [fila.rol_id, fila.personas]),
+  )
   return esquemaRoles.parse(filas).map((fila) => ({
     id: fila.id,
     clave: fila.clave,
@@ -78,7 +90,7 @@ export function rolesDesde(filas: unknown): RolConConcesiones[] {
         clave: permiso_clave,
       })),
     ),
-    personas: fila.usuarios_roles[0]?.count ?? 0,
+    personas: conteoAcotado(personas.get(fila.id) ?? 0, TOPE_DEL_CONTEO),
   }))
 }
 
@@ -99,15 +111,19 @@ export function motivoDeNoEliminar(
   if (!dominado) {
     return MOTIVO_ROL_NO_DOMINADO
   }
-  if (rol.personas > 0) {
+  if (rol.personas.n > 0) {
     return 'Quítaselo a las personas que lo tienen antes de eliminarlo.'
   }
   return null
 }
 
-export function personasConElRol(cantidad: number): string {
-  if (cantidad === 0) {
+// «Nadie lo tiene», «1 persona», «37 personas» o «más de 1.000 personas»: nunca el total exacto (5a-27).
+export function personasConElRol(conteo: ConteoAcotado): string {
+  if (!conteo.hayMas && conteo.n === 0) {
     return 'Nadie lo tiene'
   }
-  return cantidad === 1 ? '1 persona' : `${String(cantidad)} personas`
+  if (!conteo.hayMas && conteo.n === 1) {
+    return '1 persona'
+  }
+  return `${conteoEnFrase(conteo)} personas`
 }

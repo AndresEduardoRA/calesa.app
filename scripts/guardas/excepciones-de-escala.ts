@@ -46,12 +46,6 @@ export type Excepcion = {
   tope: string
 }
 
-// Hallazgos puntuales: el archivo, la regla rota y por qué se deja.
-export const EXCEPCIONES: readonly Excepcion[] = [
-  {
-    archivo: 'src/modules/equipo/infra/queries/roles.ts',
-    regla: 'count',
-    motivo: '`usuarios_roles(count)` cuenta las personas por rol: es el equipo de la empresa.',
-    tope: 'decenas',
-  },
-]
+// Hallazgos puntuales: el archivo, la regla rota y por qué se deja. Vacía desde 4.02: la última (`usuarios_roles(count)` de Roles, 5a-27) pasó a
+// `roles_personas()`, que cuenta hasta 1.001. Una nueva se discute.
+export const EXCEPCIONES: readonly Excepcion[] = []

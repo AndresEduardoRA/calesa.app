@@ -8225,6 +8225,13 @@ export type Database = {
       }
       revocar_portal: { Args: { p_lead: string }; Returns: undefined }
       rol_dominado: { Args: { p_rol: string }; Returns: boolean }
+      roles_personas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          personas: number
+          rol_id: string
+        }[]
+      }
       seguimiento_crear: {
         Args: { p_id: string; p_lead: string; p_recordatorio?: Json; p_seguimiento: Json }
         Returns: Json

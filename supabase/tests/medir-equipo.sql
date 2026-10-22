@@ -7,12 +7,16 @@
 --   indice    un texto que no apareció en esas S: el trigram (perfiles_busqueda_idx), ordenando lo que coincide
 -- 5a-31: un texto sin tramo de 3 letras o dígitos («zq», «z») no filtra: corre la consulta sin texto (≤ 150 buffers con 100.000) y la RPC entera,
 -- explicada como la dueña, cuesta lo mismo que sin texto. Antes recorría todo el orden buscándolo (172 ms y crecía con la tabla).
+-- 5a-27: las personas de cada rol se cuentan hasta 1.001 (`roles_personas()`, `usuarios_roles_rol_idx`), no todas: un rol con 100.000.
 --
 -- Una transacción que se revierte. Las personas se insertan sin triggers (`session_replication_role = replica`): no es lo que se mide. Lo revertido deja
 -- 100.000 tuplas muertas en `perfiles` y sus índices (un escaneo sólo de índice visita el heap por cada una: 1.106 visitas en vez de 101); por eso se limpia
--- `perfiles` antes de medir (lo que dejó una corrida anterior) y después (para quien mide a continuación).
+-- `perfiles` antes de medir (lo que dejó una corrida anterior) y después (para quien mide a continuación). Y `usuarios_roles`, por lo mismo.
 \set ON_ERROR_STOP 1
 vacuum analyze public.perfiles;
+-- Lo mismo con `usuarios_roles` (el rol de 100.000 de 5a-27): sin limpiar, cada corrida dejaba 100.000 tuplas muertas y la siguiente recorría
+-- 935, 1.870, 2.804 páginas para juntar las mismas 1.001 filas.
+vacuum analyze public.usuarios_roles;
 begin;
 
 create function pg_temp.plan(p_sql text) returns jsonb language plpgsql as $$
@@ -114,6 +118,43 @@ begin
   if (select count(*) from resultado) <> 18 then raise exception 'faltan medidas (%)', (select count(*) from resultado); end if;
 end $$;
 
+-- 5a-27: un rol con las 100.000 personas. Lo de antes (`usuarios_roles(count)` de PostgREST: un `count(*)` por rol, sin índice por `rol_id`) se
+-- informa; lo de ahora (`roles_personas()`: hasta 1.001 por rol, por `usuarios_roles_rol_idx`) se asserta y no crece con las personas del rol.
+do $$
+declare v_rol uuid := '00000000-0000-0000-0000-00000000e9b0'; v jsonb; v_b int; v_n int;
+begin
+  set local session_replication_role = replica;
+  insert into public.roles (id, clave, nombre, orden) values (v_rol, 'medir_roles', 'Medir Roles', 99);
+  insert into public.usuarios_roles (usuario_id, rol_id) select id, v_rol from public.perfiles where id::text like '00000000-0000-0000-0000-0000001%' or id::text like '00000000-0000-0000-0000-0000000%';
+  set local session_replication_role = origin;
+  analyze public.usuarios_roles;
+  select count(*) into v_n from public.usuarios_roles where rol_id = v_rol;
+  if v_n < 100000 then raise exception 'el rol de la medición tiene % personas y se esperaban 100.000', v_n; end if;
+  v := pg_temp.plan('select r.id, (select count(*) from public.usuarios_roles ur where ur.rol_id = r.id) from public.roles r');
+  raise notice 'medicion|roles, count(*) exacto, antes (% en el rol, buffers)|%', v_n, pg_temp.buffers(v);
+  raise notice 'medicion|roles, count(*) exacto, antes (% en el rol, filas leídas)|%', v_n,
+    pg_temp.filas_de(v, 'Seq Scan') + pg_temp.filas_de(v, 'Index Only Scan') + pg_temp.filas_de(v, 'Index Scan');
+  -- La función entera (el Function Scan suma lo que corre adentro): si contara todo, leería lo de antes. Una llamada antes, para que lo que se mide no
+  -- sea la primera carga de los catálogos.
+  perform * from public.roles_personas();
+  v := pg_temp.plan('select * from public.roles_personas()');
+  v_b := pg_temp.buffers(v);
+  raise notice 'medicion|roles, hasta 1.001 por rol (% en el rol, buffers)|%', v_n, v_b;
+  if v_b > 150 then raise exception 'roles_personas() lee % buffers con un rol de % personas y el tope es 150 (%)', v_b, v_n, v::text; end if;
+  -- La consulta de cada rol, explicada aparte con su id como literal (adentro de la función el plan no se ve): el rol de la dueña (una persona) va por
+  -- `usuarios_roles_rol_idx`, y el de 100.000 lee a lo sumo 1.001 filas, sin recorrer la tabla.
+  v := pg_temp.plan(format('select count(*)::int from (select 1 from public.usuarios_roles ur where ur.rol_id = %L limit 1001) x',
+                           (select id from public.roles where clave = 'dueno')));
+  if not pg_temp.usa(v, 'usuarios_roles_rol_idx') then raise exception 'el conteo de un rol chico no usa usuarios_roles_rol_idx (%)', v::text; end if;
+  v := pg_temp.plan(format('select count(*)::int from (select 1 from public.usuarios_roles ur where ur.rol_id = %L limit 1001) x', v_rol));
+  v_n := pg_temp.filas_de(v, 'Seq Scan') + pg_temp.filas_de(v, 'Index Only Scan') + pg_temp.filas_de(v, 'Index Scan');
+  raise notice 'medicion|roles, hasta 1.001 por rol (filas leídas del rol de 100.000)|%', v_n;
+  if v_n > 1001 then raise exception 'el conteo del rol de 100.000 lee % filas y el tope es 1.001', v_n; end if;
+  if (select personas from public.roles_personas() where rol_id = v_rol) <> 1001 then
+    raise exception 'roles_personas() no cortó en 1.001 el rol de % personas (dio %)', v_n, (select personas from public.roles_personas() where rol_id = v_rol);
+  end if;
+end $$;
+
 -- La RPC de verdad, como la dueña, con 100.000 personas: cada camino devuelve lo que dice y, en el tope, 101.
 select set_config('medir.tope_equipo', :'tope_equipo', true) \g /dev/null
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e9a1', true),
@@ -149,3 +190,4 @@ end $$;
 reset role;
 rollback;
 vacuum analyze public.perfiles;
+vacuum analyze public.usuarios_roles;
