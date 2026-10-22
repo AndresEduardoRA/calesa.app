@@ -84,7 +84,13 @@ export function ListaEquipo(props: Props) {
       <FiltrosEquipo
         texto={parametros.q}
         estado={parametros.estado}
-        alBuscar={(q) => void setParametros({ q }, { limitUrlUpdates: debounce(300) })}
+        alBuscar={(q) => {
+          // Con menos de 3 letras el campo manda '' mientras se escribe (5a-31): si la URL ya no tiene texto no hay nada que pedir, y la lista no se vuelve
+          // a leer del servidor.
+          if (q !== parametros.q) {
+            void setParametros({ q }, { limitUrlUpdates: debounce(300) })
+          }
+        }}
         alFiltrar={(estado) => void setParametros({ estado })}
       />
       <ResultadoEquipo

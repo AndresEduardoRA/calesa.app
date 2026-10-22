@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { filtroDelEquipoDesde, idsDelEquipoDesde, listaDelEquipoDesde } from './lista-equipo'
+import { cumpleElMinimo } from '@/shared/lib/filtros'
+import {
+  MINIMO_DE_BUSQUEDA_DEL_EQUIPO,
+  filtroDelEquipoDesde,
+  idsDelEquipoDesde,
+  listaDelEquipoDesde,
+} from './lista-equipo'
 
 describe('filtroDelEquipoDesde', () => {
   it('sin nada en la URL: «En el equipo» y sin texto', () => {
@@ -79,5 +85,25 @@ describe('listaDelEquipoDesde', () => {
   it('el tope por defecto es el de la lista del equipo (100)', () => {
     expect(listaDelEquipoDesde(filas(101)).personas).toHaveLength(100)
     expect(listaDelEquipoDesde(filas(101)).hayMas).toBe(true)
+  })
+})
+
+// 5a-31: el equipo se busca desde 3 letras o dígitos seguidos, como leads, con el mismo aviso. Espejo de `_equipo_lista_indexable()` (`[[:alnum:]]{3}`).
+describe('MINIMO_DE_BUSQUEDA_DEL_EQUIPO', () => {
+  it('pide 3 letras seguidas, sin números libres, con el aviso de leads', () => {
+    expect(MINIMO_DE_BUSQUEDA_DEL_EQUIPO).toEqual({
+      letras: 3,
+      numerosLibres: false,
+      aviso: 'Escribe al menos 3 letras',
+    })
+  })
+
+  it('con menos de 3 seguidas no busca; con 3 sí, también con tildes y ñ', () => {
+    for (const corto of ['', 'z', 'zq', 'a b c', '%', ' z q ', '12', '#5', 'ño']) {
+      expect(cumpleElMinimo(corto, MINIMO_DE_BUSQUEDA_DEL_EQUIPO), corto).toBe(false)
+    }
+    for (const largo of ['ana', 'zqx', 'ñan', 'Núñez', 'p77@', '123']) {
+      expect(cumpleElMinimo(largo, MINIMO_DE_BUSQUEDA_DEL_EQUIPO), largo).toBe(true)
+    }
   })
 })

@@ -166,8 +166,9 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', v_duena::text, true);
   set local role authenticated;
-  -- Cada búsqueda trae sólo a la de los comodines (la otra tiene X y «/» donde esta tiene %, _ y \).
-  for r in select * from (values ('50% desc'), ('desc_uento'), ('%'), ('_'), ('\'), ('"'), (''''), ('d"q ''x'), ('\ d"q'), ('c_u')) x (q) loop
+  -- Cada búsqueda trae sólo a la de los comodines (la otra tiene X y «/» donde esta tiene %, _ y \). Todas tienen un tramo de 3 letras o dígitos: sin él
+  -- el texto no filtra (5a-31, abajo).
+  for r in select * from (values ('50% desc'), ('desc_uento'), ('Eql 50%'), ('desc_'), ('_uento'), ('uento \'), ('uento \ d"q'), ('uento \ d"q ''x')) x (q) loop
     if not exists (select 1 from public.equipo_lista(r.q) i where i = '00000000-0000-0000-0000-000000000b01') then
       raise exception 'la búsqueda «%» no encontró a la persona de los comodines', r.q;
     end if;
@@ -182,6 +183,12 @@ begin
   -- Escritos como comodines no encuentran a «Eql 001»: `_` no es un carácter cualquiera y `%` no es «cualquier cosa».
   if exists (select 1 from public.equipo_lista('Eql_001')) then raise exception '«Eql_001» encontró algo: el _ hizo de comodín'; end if;
   if exists (select 1 from public.equipo_lista('Eql%001')) then raise exception '«Eql%%001» encontró algo: el %% hizo de comodín'; end if;
+  -- 5a-31: un comodín, una barra o una comilla sueltos (sin tramo de 3) no filtran: la lista sin texto, sin error.
+  for r in select * from (values ('%'), ('_'), ('\'), ('"'), (''''), ('d"q ''x'), ('\ d"q'), ('c_u')) x (q) loop
+    if (select array_agg(i) from public.equipo_lista(r.q) i) is distinct from (select array_agg(i) from public.equipo_lista(null) i) then
+      raise exception '«%» (sin tramo de 3) no devolvió la lista sin filtro de texto', r.q;
+    end if;
+  end loop;
   reset role;
 end $$;
 
@@ -273,14 +280,25 @@ begin
        is distinct from (select array_agg(i) from (select i from public.equipo_lista('zeql', 'vigentes', 101) i) y) then
     raise exception '«zeql» no devolvió las primeras 101 en el orden de la lista';
   end if;
-  -- Sin tramo indexable («ño» → «no», 2 letras), pasada la recorrida: recorre el orden sin tope y da lo mismo que la consulta directa.
-  select array_agg(i) into v_ids from public.equipo_lista('ño', 'vigentes', 101) i;
+  -- 5a-31: un texto sin tramo de 3 letras o dígitos seguidos («ño» → «no», «zq», «a b c», «%») no filtra: la RPC devuelve la lista sin texto, la
+  -- misma que `equipo_lista(null, …)` (como el buscador de leads, `cumpleElMinimo`). Antes caminaba el orden entero buscándolo (172 ms con 100.000).
+  declare
+    v_sin_texto uuid[] := (select array_agg(i) from public.equipo_lista(null, 'vigentes', 101) i);
+    v_corto text;
+  begin
+    if cardinality(v_sin_texto) <> 101 then raise exception 'sin texto se esperaba el tope (101) y llegaron %', cardinality(v_sin_texto); end if;
+    foreach v_corto in array array['ño', 'zq', 'a', 'jo', 'a b c', '%', ' z q '] loop
+      if (select array_agg(i) from public.equipo_lista(v_corto, 'vigentes', 101) i) is distinct from v_sin_texto then
+        raise exception '«%» (sin tramo de 3) no devolvió la lista sin filtro de texto', v_corto;
+      end if;
+    end loop;
+    -- Con el estado, también: el texto corto no cambia lo que dice el estado.
+    if (select array_agg(i) from public.equipo_lista('zq', 'invitacion_pendiente', 101) i)
+         is distinct from (select array_agg(i) from public.equipo_lista(null, 'invitacion_pendiente', 101) i) then
+      raise exception '«zq» con un estado no devolvió lo mismo que sin texto';
+    end if;
+  end;
   reset role;
-  if v_ids is distinct from (select array_agg(o.id order by o.nombre, o.email, o.id) from (
-        select p.id, p.nombre, p.email from public.perfiles p where p.activo and strpos(public._sin_tildes(p.nombre || ' ' || coalesce(p.email::text, '')), 'no') > 0
-         order by p.nombre, p.email, p.id limit 101) o) then
-    raise exception 'un texto sin tramo indexable no dio lo de la consulta directa';
-  end if;
   set local session_replication_role = replica;
   delete from public.perfiles where id = '00000000-0000-0000-0000-000000ffffff' or id::text like '00000000-0000-0000-0000-0000001%' or id::text like '00000000-0000-0000-0000-0000002%';
   set local session_replication_role = origin;

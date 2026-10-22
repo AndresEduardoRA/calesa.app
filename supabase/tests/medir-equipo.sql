@@ -5,7 +5,8 @@
 --   todo      sin texto: el índice del orden (perfiles_vigentes_orden_idx o perfiles_estado_orden_idx) y las 101 primeras
 --   recorrer  un texto: las primeras S = 2.000 del estado, de a una, cortando al juntar 101 (un término común aparece enseguida)
 --   indice    un texto que no apareció en esas S: el trigram (perfiles_busqueda_idx), ordenando lo que coincide
--- Aparte, sin assert de tiempo, el peor caso: un texto de dos letras que no coincide con nadie (sin tramo para el trigram) recorre todo.
+-- 5a-31: un texto sin tramo de 3 letras o dígitos («zq», «z») no filtra: corre la consulta sin texto (≤ 150 buffers con 100.000) y la RPC entera,
+-- explicada como la dueña, cuesta lo mismo que sin texto. Antes recorría todo el orden buscándolo (172 ms y crecía con la tabla).
 --
 -- Una transacción que se revierte. Las personas se insertan sin triggers (`session_replication_role = replica`): no es lo que se mide. Lo revertido deja
 -- 100.000 tuplas muertas en `perfiles` y sus índices (un escaneo sólo de índice visita el heap por cada una: 1.106 visitas en vez de 101); por eso se limpia
@@ -115,14 +116,32 @@ end $$;
 
 -- La RPC de verdad, como la dueña, con 100.000 personas: cada camino devuelve lo que dice y, en el tope, 101.
 select set_config('medir.tope_equipo', :'tope_equipo', true) \g /dev/null
-set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e9a1', true),
        set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000e9a1","role":"authenticated"}', true) \g /dev/null
+-- 5a-31: la RPC entera (el Function Scan suma los buffers de las consultas que corre adentro), con 1 y 2 letras sin coincidencias, cuesta lo mismo que la
+-- RPC sin texto (lo fijo de la RPC —la sesión activa, los permisos, armar la consulta— y la consulta `todo` sin texto, ≤ 150 arriba): no camina el
+-- orden buscando el texto. Una llamada antes, para que lo medido no sea el primer uso de la función.
+do $$
+declare v_q text; v jsonb; v_b int; v_base int; v_t int := current_setting('medir.tope_equipo')::int + 1;
+begin
+  perform count(*) from public.equipo_lista(null, 'vigentes', v_t);
+  v_base := pg_temp.buffers(pg_temp.plan(format('select * from public.equipo_lista(null, %L, %s)', 'vigentes', v_t)));
+  raise notice 'medicion|RPC sin texto (% personas, buffers)|%', (select count(*) from perfiles_medidos), v_base;
+  foreach v_q in array array['zq', 'z', 'ñq'] loop
+    v := pg_temp.plan(format('select * from public.equipo_lista(%L, %L, %s)', v_q, 'vigentes', v_t));
+    v_b := pg_temp.buffers(v);
+    raise notice 'medicion|RPC «%» (% personas, buffers)|%', v_q, (select count(*) from perfiles_medidos), v_b;
+    if v_b > v_base + 20 then
+      raise exception 'equipo_lista(%) lee % buffers con % personas, y sin texto %: el texto corto no tiene que costar más', v_q, v_b, (select count(*) from perfiles_medidos), v_base;
+    end if;
+  end loop;
+end $$;
+set local role authenticated;
 do $$
 declare r record; v_n int; v_t int := current_setting('medir.tope_equipo')::int + 1;
 begin
   for r in select * from (values (null, 'vigentes', v_t), ('maria', 'vigentes', v_t), ('MARÍA núñez', 'vigentes', v_t), ('p77777@', 'vigentes', 1),
-                                 ('p9999@', 'vigentes', 1), ('zzzqq', 'vigentes', 0), ('zq', 'vigentes', 0)) x (q, e, esperado) loop
+                                 ('p9999@', 'vigentes', 1), ('zzzqq', 'vigentes', 0), ('zq', 'vigentes', v_t), ('z', 'vigentes', v_t)) x (q, e, esperado) loop
     select count(*) into v_n from public.equipo_lista(r.q, r.e, v_t);
     if v_n <> r.esperado then raise exception 'equipo_lista(%, %) devolvió % y se esperaban %', r.q, r.e, v_n, r.esperado; end if;
   end loop;

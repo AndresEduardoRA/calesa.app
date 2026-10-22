@@ -140,7 +140,14 @@ test('escribir en el buscador la trae del servidor', async ({ page }) => {
 
 test('los comodines y las comillas se buscan como son', async ({ page }) => {
   await entrar(page, duena)
-  for (const q of ['50% desc_uento', '%', '_', '\\', '"', "'"]) {
+  // Con un tramo de 3 letras o dígitos (5a-31): un comodín, una barra o una comilla sueltos no filtran (`equipo-busqueda-minima`).
+  for (const q of [
+    '50% desc_uento',
+    '50% desc',
+    'desc_uento \\',
+    'uento \\ d"q',
+    `uento \\ d"q 'x`,
+  ]) {
     await ir(page, { q })
     await expect(page.getByText(COMODINES, { exact: true }).first(), `«${q}»`).toBeVisible()
     expect(await nombresVisibles(page), `«${q}»: sólo la de los comodines`).toEqual([COMODINES])
