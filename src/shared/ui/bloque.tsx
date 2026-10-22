@@ -30,6 +30,7 @@ export function Bloque({
 
   return (
     <details
+      data-slot="bloque"
       open={abierto || forzarAbierto}
       onToggle={(evento) => {
         setAbierto(evento.currentTarget.open)
@@ -51,7 +52,9 @@ export function Bloque({
           className="size-4 shrink-0 text-(--color-ink-faint) transition-transform duration-(--dur-rapida) group-open:rotate-180"
         />
       </summary>
-      <div className="grid gap-4 border-t border-(--color-line) p-4">{children}</div>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 border-t border-(--color-line) p-4">
+        {children}
+      </div>
     </details>
   )
 }
