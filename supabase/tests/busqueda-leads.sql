@@ -478,3 +478,45 @@ begin
     raise exception 'la dueña: el número buscado por candidatos no da lo de siempre';
   end if;
 end $$;
+
+-- @test búsqueda-leads (5a-38): el lead del número (`extra`) también tiene que cumplir un campo público filtrado, y da lo mismo que la consulta de siempre
+-- Un campo público filtrado (`atributos`) va a la ventana de candidatos y la página ya no lo repite (`condicionesDeLaPagina`), pero la cláusula de `extra` de `leads_candidatos()` (`…003300`) sólo miraba
+-- la visibilidad y las etiquetas: buscar «482» con un campo público filtrado devolvía el lead del número aunque no cumpliera el campo (de `a34318f`, 2026-10-18, tapado del 2026-10-19 al
+-- 2026-10-22 por 5a-35). Con `…004600` la cláusula se arma con las mismas condiciones de la ventana (menos la del nombre).
+do $$ declare
+  f4 constant uuid := '00000000-0000-0000-0000-0000000009f4'; d1 constant uuid := '00000000-0000-0000-0000-000000000001';
+  v_oruro uuid := (select id from public.leads where nombre = 'Búsqueda masiva 1');           -- de f4, ciudad Oruro
+  v_sucre uuid := (select id from public.leads where nombre = 'Búsqueda Gómez Acentuado');    -- de f3, ciudad Sucre: f4 no lo ve, la dueña sí
+  v_ambos uuid[]; r jsonb;
+begin
+  v_ambos := array[v_oruro, v_sucre];
+  -- f4 («propios») pide su lead de Oruro con el campo en Sucre: no entra. Con Oruro, entra.
+  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', jsonb_build_array(v_oruro),
+        'atributos', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad', 'Sucre'))))));
+  if jsonb_array_length(r -> 'ids') <> 0 then raise exception 'f4: su lead de Oruro entró por «extra» con el campo público en Sucre: %', r; end if;
+  r := pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', jsonb_build_array(v_oruro),
+        'atributos', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad', 'Oruro'))))));
+  if r -> 'ids' is distinct from to_jsonb(array[v_oruro]) then raise exception 'f4: su lead de Oruro no entró por «extra» con el campo público en Oruro: %', r; end if;
+  -- La dueña («todos») pide los dos con el campo en Sucre: sólo el de Sucre. Con «una u otra» (Sucre u Oruro), los dos.
+  r := pg_temp.bl_como(d1, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', to_jsonb(v_ambos),
+        'atributos', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad', 'Sucre'))))));
+  if r -> 'ids' is distinct from to_jsonb(array[v_sucre]) then raise exception 'la dueña: sólo el lead de Sucre debía entrar por «extra»: %', r; end if;
+  r := pg_temp.bl_como(d1, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('sentido', 'siguiente', 'texto', 'zzzz', 'extra', to_jsonb(v_ambos),
+        'atributos', jsonb_build_array(jsonb_build_array(jsonb_build_object('ciudad', 'Sucre'), jsonb_build_object('ciudad', 'Oruro'))))));
+  if (select array_agg(x order by x) from jsonb_array_elements_text(r -> 'ids') x) is distinct from (select array_agg(x::text order by x::text) from unnest(v_ambos) x) then
+    raise exception 'la dueña: con «Sucre u Oruro» debían entrar los dos por «extra»: %', r;
+  end if;
+  -- Las filas enteras, como la app: el número buscado más un campo público es lo que da la consulta de siempre (`(nombre ilike … or id = any (…)) and atributos_publicos @> …`).
+  if pg_temp.bl_nuevo(f4, 'zzzz', v_ambos, true, '{"atributos": [[{"ciudad": "Sucre"}]]}', 'en_cartera = true', 4, false, null, null)
+       is distinct from pg_temp.bl_viejo(f4, 'leads_cartera_vista', 'en_cartera = true and (nombre ilike ''%zzzz%'' or id = any (' || quote_literal(v_ambos) || '::uuid[])) and atributos_publicos @> ''{"ciudad": "Sucre"}''', 4, false, null, null) then
+    raise exception 'f4: el número buscado con un campo público por candidatos no da lo de siempre';
+  end if;
+  if pg_temp.bl_nuevo(d1, 'zzzz', v_ambos, false, '{"atributos": [[{"ciudad": "Sucre"}]]}', 'true', 4, false, null, null)
+       is distinct from pg_temp.bl_viejo(d1, 'leads_vista', '(nombre ilike ''%zzzz%'' or id = any (' || quote_literal(v_ambos) || '::uuid[])) and atributos_publicos @> ''{"ciudad": "Sucre"}''', 4, false, null, null) then
+    raise exception 'la dueña: el número buscado con un campo público por candidatos no da lo de siempre';
+  end if;
+  if pg_temp.bl_nuevo(d1, 'zzzz', v_ambos, false, '{"atributos": [[{"ciudad": "Oruro"}]]}', 'true', 4, false, null, null)
+       is distinct from pg_temp.bl_viejo(d1, 'leads_vista', '(nombre ilike ''%zzzz%'' or id = any (' || quote_literal(v_ambos) || '::uuid[])) and atributos_publicos @> ''{"ciudad": "Oruro"}''', 4, false, null, null) then
+    raise exception 'la dueña: el número buscado con el campo público en Oruro no da lo de siempre';
+  end if;
+end $$;

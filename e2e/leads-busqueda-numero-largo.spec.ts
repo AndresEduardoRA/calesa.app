@@ -22,7 +22,9 @@ import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 // que tiene ese número (`extra`). `leads_candidatos()` descartaba siempre ese lead cuando el pedido no traía etiquetas (`v_con_etiquetas` nulo), así
 // que sólo aparecía si algún nombre contenía los dígitos. Acá ningún nombre los contiene: el número propio de Berta es 482, el de la dueña 4821 y el
 // global de Carlos 5127. Con 1 o 2 dígitos (30, 31) no pasa por los candidatos y lo prueba `leads-busqueda-numero-ajeno.spec.ts`.
-// Capturas: `E2E_CAPTURAS=e2e-capturas/4-03b/{antes,despues}`.
+// 5a-38: el lead del número también cumple un campo público filtrado (F y G). Desde `a34318f` la ventana de candidatos cumplía el campo y la página dejó
+// de repetirlo, pero la cláusula del lead del número no lo miraba: buscar 5127 con «Ciudad de nacimiento = op_7» devolvía el lead de Carlos (op_42).
+// Capturas: `E2E_CAPTURAS=e2e-capturas/4-03b/{antes,despues}` (5a-35) y `e2e-capturas/4-03c/{antes,despues}` (5a-38).
 test.describe.configure({ mode: 'serial' })
 
 const PROPIO_DE_BERTA = 482
@@ -142,4 +144,29 @@ test('E · sin oráculo: quien no ve el lead no lo encuentra por su número, de 
     await expect(fila(page, PROPIO_DALIA)).toHaveCount(0)
   }
   await capturar(page, info, 'carlos-busca-4821')
+})
+
+const CIUDAD = 'a.e2e_ciudad'
+
+test('F · 5a-38: el número de un lead que no cumple el campo filtrado no lo trae', async ({
+  page,
+}, info) => {
+  await entrar(page, t.personas.duena)
+  // Carlos tiene op_42; se filtra por op_7: el lead no cumple el campo, aunque su número sea el buscado.
+  await irALeads(page, `${buscar(String(GLOBAL_DE_CARLOS))}&alcance=todos&${CIUDAD}=op_7`)
+  await expect(sinResultados(page)).toBeVisible()
+  await expect(fila(page, AJENO_CARLOS)).toHaveCount(0)
+  await capturar(page, info, 'duena-busca-5127-con-otra-ciudad')
+  await sinScrollHorizontal(page)
+})
+
+test('G · 5a-38: con el campo que sí cumple, el número del lead lo trae', async ({
+  page,
+}, info) => {
+  await entrar(page, t.personas.duena)
+  await irALeads(page, `${buscar(String(GLOBAL_DE_CARLOS))}&alcance=todos&${CIUDAD}=op_42`)
+  await expect(listo(page, AJENO_CARLOS)).toBeVisible()
+  await expect(fila(page, AJENO_CARLOS)).toBeVisible()
+  await capturar(page, info, 'duena-busca-5127-con-su-ciudad')
+  await sinScrollHorizontal(page)
 })
