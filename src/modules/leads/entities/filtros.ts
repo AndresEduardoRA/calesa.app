@@ -8,11 +8,16 @@ import {
   condicionDeCampo,
   filtroDeCampo,
   type CondicionDeAtributo,
+  type DefFiltro,
   type EsquemaDeFiltros,
   type ValoresDeFiltros,
 } from '@/shared/lib/filtros'
 import type { OrigenDeLead } from './alta'
-import { MINIMO_DE_BUSQUEDA, interpretarBusqueda } from './busqueda-de-leads'
+import {
+  MINIMO_DE_BUSQUEDA,
+  MINIMO_DEL_TEXTO_DE_UN_CAMPO,
+  interpretarBusqueda,
+} from './busqueda-de-leads'
 import { idsDeLasClaves, opcionesDeTipo, type TipoDeLeadEnCatalogo } from './catalogos'
 import { columnaParaFiltrar, type CampoDeLead, type ColumnaDeAtributos } from './campo'
 import type { Etiqueta } from './etiqueta'
@@ -24,7 +29,7 @@ import {
   type CondicionDeMarca,
 } from './filtros-de-marcas'
 
-export { MINIMO_DE_BUSQUEDA, interpretarBusqueda }
+export { MINIMO_DE_BUSQUEDA, MINIMO_DEL_TEXTO_DE_UN_CAMPO, interpretarBusqueda }
 
 export const FILTRO_TIPO = 'tipo'
 export const FILTRO_ORIGEN = 'origen'
@@ -88,13 +93,19 @@ export function esquemaDeFiltrosDeLeads(fuentes: Fuentes): EsquemaDeFiltros {
       opciones: opcionesDeOrigen(origenes),
     })
   }
-  const delLayout = camposFiltrables(campos).flatMap((campo) => {
+  const delLayout = camposFiltrables(campos).flatMap((campo): DefFiltro[] => {
     const filtro = filtroDeCampo(
       campo,
       PREFIJO_DE_FILTRO,
       campo.soloCartera && verTodos ? AYUDA_DE_PRIVADO : undefined,
     )
-    return filtro ? [{ ...filtro, seccion: SECCION_DATOS }] : []
+    if (!filtro) {
+      return []
+    }
+    // El texto de un campo pide 3 letras (4.03, 5a-9); uno de opciones, de número o de fecha no tiene mínimo.
+    return filtro.tipo === 'texto'
+      ? [{ ...filtro, minimo: MINIMO_DEL_TEXTO_DE_UN_CAMPO, seccion: SECCION_DATOS }]
+      : [{ ...filtro, seccion: SECCION_DATOS }]
   })
   return {
     busqueda: BUSQUEDA,

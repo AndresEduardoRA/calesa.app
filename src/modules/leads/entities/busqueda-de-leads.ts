@@ -11,6 +11,15 @@ export const MINIMO_DE_BUSQUEDA: MinimoDeBusqueda = {
   aviso: 'Escribe al menos 3 letras',
 }
 
+// El texto de un campo del layout (4.03, 5a-9) pide lo mismo: 3 letras o dígitos seguidos. Un campo de texto no tiene índice (`ilike` sobre `->>` no es _leakproof_ y un GIN
+// `jsonb_path_ops` sólo sirve a `@>`), así que un fragmento corto no acota nada y cuesta lo que pesa lo que se recorre. A diferencia del nombre, aquí un número no vale con
+// menos: «12» no es el número de un lead sino un fragmento del dato. Lo repite `leads_candidatos()` (`[[:alnum:]]{3}`, que ignora un texto más corto).
+export const MINIMO_DEL_TEXTO_DE_UN_CAMPO: MinimoDeBusqueda = {
+  letras: 3,
+  numerosLibres: false,
+  aviso: 'Escribe al menos 3 letras',
+}
+
 // Un número de lead son hasta 15 dígitos: cabe entero en un `number` sin perder nada.
 const NUMERO_DE_LEAD = /^\d{1,15}$/
 

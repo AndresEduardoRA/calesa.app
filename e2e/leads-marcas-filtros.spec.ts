@@ -206,7 +206,7 @@ test('con un campo propio llamado «tachado», cada filtro va en su sección y n
   const corto = `Fil Campo ${info.project.name}`
   await crearCampoDePrueba({ clave: 'tachado', etiqueta: 'Tachado (dato)', filtrable: true })
   try {
-    const lead = await leadDeBerta(corto, { tachado: 'sí' })
+    const lead = await leadDeBerta(corto, { tachado: 'sipi' })
     await entrar(page, t.personas.berta)
     await irALeads(page)
     const panel = await panelDeFiltros(page)
@@ -214,9 +214,9 @@ test('con un campo propio llamado «tachado», cada filtro va en su sección y n
       panel.getByRole('region', { name: 'Tus marcas' }).getByText('Tachados', { exact: true }),
     ).toBeVisible()
     const datos = panel.getByRole('region', { name: 'Datos del lead' })
-    await datos.getByLabel('Tachado (dato)').fill('sí')
+    await datos.getByLabel('Tachado (dato)').fill('sip')
     await cerrarPanelDeFiltros(page)
-    await expect(page).toHaveURL(/a\.tachado=s/)
+    await expect(page).toHaveURL(/a\.tachado=sip/)
     await expect(page).not.toHaveURL(/[?&]tachados=/)
     await expect(fila(page, corto)).toBeVisible()
     // Tacharlo (la marca) lo oculta aunque el dato diga otra cosa.
