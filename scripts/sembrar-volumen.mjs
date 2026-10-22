@@ -53,6 +53,56 @@ if (corrida.error || corrida.status !== 0) {
   process.exit(1)
 }
 console.log(corrida.stdout.trim())
+
+// Lo que deja la siembra masiva, como lo dejaría un uso largo (5a-37). `vacuum (analyze)` de todo lo sembrado: sin él, el mapa de visibilidad y las
+// estadísticas de lo recién insertado no existen. Y `reindex` del GIN de la búsqueda (`leads_busqueda_idx`): lo que dejan 200.000 altas con la lista
+// pendiente es un índice con otra estructura, que lee los mismos buffers y tarda 3 veces más (la dueña, «Volumen 4999», 34 contra 10 ms con 212.000 leads) hasta
+// que el primer volcado de esa lista, que hace la propia medición, lo reordena: la primera corrida de `db:medir:volumen` fallaba y la segunda pasaba sin
+// que nada cambiara. Un `vacuum` no lo arregla (medido el 2026-10-22). Un `reindex` lo deja siempre como el estado de la segunda corrida.
+const TABLAS_SEMBRADAS = [
+  'leads',
+  'leads_asesores',
+  'leads_numeros_globales',
+  'leads_numeros_propios',
+  'leads_tachados',
+  'leads_favoritos',
+  'leads_etiquetas',
+  'etiquetas',
+  'seguimientos',
+  'recordatorios',
+  'oportunidades',
+  'vehiculos',
+  'lotes_papelera',
+  'importaciones',
+  'importaciones_leads',
+]
+const limpieza = spawnSync(
+  'docker',
+  [
+    'exec',
+    contenedor,
+    'psql',
+    '-U',
+    'postgres',
+    '-q',
+    '-X',
+    '-v',
+    'ON_ERROR_STOP=1',
+    ...TABLAS_SEMBRADAS.flatMap((tabla) => ['-c', `vacuum (analyze) public.${tabla}`]),
+    '-c',
+    'reindex index public.leads_busqueda_idx',
+    '-c',
+    'analyze public.leads',
+  ],
+  { encoding: 'utf8' },
+)
+if (limpieza.error || limpieza.status !== 0) {
+  console.error(limpieza.error?.message ?? limpieza.stderr)
+  console.error(
+    'La siembra quedó hecha, pero no se pudo dejar la base como en uso (vacuum y reindex).',
+  )
+  process.exit(1)
+}
 console.log(`Sembrado en ${((Date.now() - inicio) / 1000).toFixed(0)} s.`)
 console.log(
   'Cuentas: duena-volumen@ejemplo.com y ana-volumen@ejemplo.com, clave «Volumen-9e-clave».',
