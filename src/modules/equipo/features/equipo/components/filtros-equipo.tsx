@@ -15,7 +15,8 @@ function esFiltro(valor: string): valor is FiltroDeEstado {
   return FILTROS_DE_ESTADO.some((filtro) => filtro === valor)
 }
 
-// Buscar por nombre o correo y elegir qué estados ver. Los dos viven en la URL.
+// Buscar por nombre o correo y elegir qué estados ver. Los dos viven en la URL. El marcador es corto a propósito (5a-26): «Buscar por nombre o correo» no
+// cabía en el campo del celular al 200 % y se leía «Buscar por nombre c»; la etiqueta (para lectores de pantalla) sí lo dice entero.
 export function FiltrosEquipo({ texto, estado, alBuscar, alFiltrar }: Props) {
   const idBusqueda = useId()
   const idEstado = useId()
@@ -27,7 +28,7 @@ export function FiltrosEquipo({ texto, estado, alBuscar, alFiltrar }: Props) {
       <Input
         id={idBusqueda}
         type="search"
-        placeholder="Buscar por nombre o correo"
+        placeholder="Nombre o correo"
         className="h-11 w-full sm:w-64 md:h-9"
         value={texto}
         onChange={(evento) => {

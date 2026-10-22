@@ -9,6 +9,7 @@ import {
   crearPersona,
   darRolDePrueba,
 } from './soporte/base'
+import { exigirMarcadorQueCabe } from './soporte/barra-de-filtros'
 import { esMovil } from './soporte/inventario'
 import { ingresar } from './soporte/pasos'
 import {
@@ -169,6 +170,16 @@ test('al 200 %: una lista vacía por filtro cabe y ofrece limpiar', async ({ pag
     'Limpiar filtros',
   )
   await expect(botones(page)).toHaveCount(0)
+})
+
+// 5a-26: el marcador de un buscador es lo que dice qué se busca; si no cabe en el campo se corta («Buscar por nombre c») y nadie sabe que también
+// se busca por correo. Es el marcador de un `<input>`, no el valor: no se ve cortado en `sinTextoCortado()`, se mide con el tipo de letra del campo.
+test('al 200 %: el marcador del buscador cabe entero en su campo', async ({ page }) => {
+  await textoGrandeAlCargar(page)
+  await entrar(page, duena)
+  await page.goto('/configuracion/equipo')
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+  await exigirMarcadorQueCabe(page.getByLabel('Buscar por nombre o correo'))
 })
 
 test('al 200 %: quien sólo puede ver el equipo no tiene «⋯» y la lista cabe', async ({ page }) => {
