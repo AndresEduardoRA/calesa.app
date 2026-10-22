@@ -34,6 +34,23 @@ Salidas: exactamente **un** nodo con `salida: total`. `base_imponible` se muestr
 total; `aparte` (garantía) se muestra y nunca suma. Un nodo con `bucket` entra a la suma de su
 bucket; `total_bob = Σ bucket × tipo de cambio del bucket`; `total_base` = suma en moneda base.
 
+## Lo que cambia con la apertura de la Fase 4 (D4 y D5, 2026-10-22)
+
+La forma de arriba es la de la Fase 0 y **la amplía el paso 4e** (`docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones»).
+La referencia es el Excel que la hoja reemplaza (`docs/referencias/excel-de-cotizacion.md`).
+
+- **Tipos de cambio:** `buckets` deja de ser sólo `origen` y `destino`. Una fórmula usa N tipos de cambio (en el Excel, oficial y
+  paralelo) y cada fila o grupo elige el suyo.
+- **Grupos:** los nodos se agrupan con un plazo de pago (texto) y un subtotal en USD y en Bs, como en el Excel.
+- **Total en dólares:** es el total en Bs ÷ el tipo de cambio paralelo, no la suma de los dólares de las filas.
+- **Sugerido:** un nodo puede ser sugerido (de una tabla o de un cálculo) y sobrescribible: la nacionalización y el factor de
+  depreciación, que el Excel tipea a mano.
+- **Fórmulas como texto:** quien configura escribe con nombres (`=(remate+fees)*4%`, `SUMA(grupo)`, `HOY()`) y el texto se compila a
+  este mismo grafo **al configurar**. Al cotizar no se evalúa texto. Sin referencias A1 ni funciones que el grafo no tenga.
+- **Tablas de referencia (D5):** editar una publica la N+1 de cada fórmula de su origen que la usa, y la fórmula congela en `params` las
+  filas que usa.
+- **`validar_formula()` y `validar.ts`** siguen siendo el candado, y cambian juntos.
+
 ## Lo que se guarda en una cotización
 
 - `formula_id`: de qué versión salieron los defaults (auditoría). Recalcular/editar usa **esa**

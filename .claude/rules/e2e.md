@@ -18,11 +18,11 @@ paths:
     `src/app/auth` y `src/app/(acceso)`; (4) RLS: una migración que crea, cambia o borra una policy, o enciende RLS en una tabla; (5) el
     layout: `src/app/layout.tsx`, `src/app/(app)/layout.tsx`, `src/app/(app)/_shell` y `src/app/(acceso)/layout.tsx`; (6) el esquema base:
     `supabase/schemas` y `supabase/migrations/20261011000000_esquema_base.sql`. Además de lo dirigido corre
-    `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve` en otra terminal): **sólo escritorio, ~20 min**. Un
+    `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve` en otra terminal): **sólo escritorio, ≈ 24 min**. Un
     componente, el proxy, una policy o el layout los usan todas las pantallas: lo dirigido no alcanza para ver lo que rompe en otra. Corre
     **después del último cambio de código**; si el código cambia después, se vuelve a correr.
-  - **Nivel 3 — un cierre de fase:** `pnpm test:e2e:completo` con los dos proyectos, sin la bandera (**≈ 32 min**: escritorio 19,6 y
-    celular 12,0 en el cierre 5a-fix-3; antes 42).
+  - **Nivel 3 — un cierre de fase:** `pnpm test:e2e:completo` con los dos proyectos, sin la bandera (**40,1 min** medido el 2026-10-22 en el
+    cierre de la Fase 3, 1.065 pruebas; 31,7 en el cierre 5a-fix-3 con 845; antes 42).
     La BITACORA dice cuál se corrió: `e2e completo: sí|no (<tarea>)`. Un nivel que no se corrió se dice, no se da por pasado.
 - **Una captura para mirar se toma con `capturar()` de `e2e/soporte/recorrido.ts`** (o `capturarEn()` de `e2e/soporte/capturas.ts`), nunca
   con un `page.screenshot` suelto: espera a que la pantalla esté quieta (dos cuadros y todas las animaciones y transiciones con fin, con

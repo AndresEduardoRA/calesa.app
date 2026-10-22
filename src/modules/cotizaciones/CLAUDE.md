@@ -25,7 +25,11 @@ RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador
 - Una cotización se recalcula **siempre** con su `formula_id`, nunca con la vigente. El snapshot (`valores`, `fuentes`, `tipos_cambio`, `totales`) es la autoridad.
 - Versionado append-only: un borrador y una publicada por origen; revertir = publicar una copia. El ⚙ publica N+1 con nota automática.
 - A lo sumo una cotización final activa por vehículo (`cotizacion_marcar_final`). Al entrar a logística la final se congela; si el vehículo sale de logística vuelve a preventa sin borrar historial.
-- Sin motor de expresiones: sólo las operaciones cerradas de `calculo`. Un nodo nuevo = tipo discriminado + `switch` exhaustivo + caso en `validar_formula()`.
+- Sin motor de expresiones al cotizar: sólo las operaciones cerradas de `calculo`. La «fórmula como texto» (D4,
+  `docs/DECISIONES.md` 2026-10-22) se compila a ese grafo **al configurar**, y lo que no se puede compilar a nodos se rechaza. Un nodo
+  nuevo = tipo discriminado + `switch` exhaustivo + caso en `validar_formula()`.
+- Lo decidido al abrir la Fase 4 (D1 a D6: «vencida», «desactualizada», el lead obligatorio, el vehículo según un ajuste de la
+  empresa, la hoja como el Excel, las tablas que publican N+1 y la numeración) está en `docs/PLAN.md` › «Fase 4».
 
 ## Ojo
 

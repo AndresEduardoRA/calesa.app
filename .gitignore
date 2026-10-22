@@ -30,6 +30,10 @@ supabase/.temp/
 .claude/.intentos-stop
 .claude/settings.local.json
 
+# referencias del negocio: la planilla de una empresa no viaja en el producto white-label;
+# su transcripción está en docs/referencias/excel-de-cotizacion.md
+docs/referencias/*.xlsx
+
 # sistema
 .DS_Store
 *.log
