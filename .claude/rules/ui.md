@@ -46,7 +46,7 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   `data-no-abre`). **Con el teclado** se alcanza el nombre (`<AbrirResumen nombre>`, un botón «Abrir {nombre}»: una parada de Tab por
   fila) y Enter o Espacio abren el resumen; la fila entera toma el color de abierta mientras ese botón tiene el foco. Nada de esto se
   repite a mano en un módulo: `scripts/guardas/listas-con-patron.ts` falla si un archivo de `src/modules` dibuja una tabla o usa
-  `CORTE_DE_LA_TABLA` sin importar el patrón y sin figurar en la guarda con su motivo (hoy, sólo la lista del equipo y la matriz de roles).
+  `CORTE_DE_LA_TABLA` sin importar el patrón y sin figurar en la guarda con su motivo (hoy, sólo la matriz de roles: la lista del equipo ya la usa, sin resumen).
 - Una lista de tarjetas no ensancha la página con el texto al 200 % (reflujo, WCAG 1.4.10): su `<ul>` es `grid-cols-[minmax(0,1fr)]` y su
   `<li>`, `min-w-0` (una columna `auto` toma el ancho mínimo de lo que no se parte y empuja el «⋯» fuera de la vista); el nombre se corta
   con «…», lo de la esquina no se achica (`shrink-0`) y una tarjeta con varias piezas de ancho fijo en rem (miniatura, título, acción) se
@@ -55,17 +55,24 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   desplaza por dentro no lo ve, y para eso está `aLaVistaSinDesplazar(lugar, que)` (5a-16: una tabla de dos columnas con un control al final
   se resuelve con una lista que lo apila debajo, no con otro `min-w`). **El panel de filtros va al costado según el contenedor** (40 rem), no
   según la pantalla: con el texto al 200 % sus 15 rem son 480 px.
-- Una barra que se desplaza de costado (las secciones de la ficha, las etapas del celular) dice que hay más (`useDesborde()` y
-  `<PistaDeDesborde>`: un degradado en el borde por donde sigue) y deja a la vista la sección activa. Su contenedor, si es hijo
-  de una grilla, lleva `min-w-0`.
+- Una barra que se desplaza de costado (las secciones de la ficha, las etapas del celular, las pestañas de Configuración) dice que hay más
+  (`useDesborde()` y `<PistaDeDesborde>`: un degradado en el borde por donde sigue) y deja a la vista la sección activa. Su contenedor, si es
+  hija de una grilla, lleva `min-w-0`. **Las pestañas de una pantalla de Configuración son `<PestanasConDesborde>`** (`shared/ui`): llevan la
+  abierta a la vista al montarse, al elegir otra y cada vez que la barra cambia de tamaño (se amplió el texto con la página abierta, se giró el
+  celular), moviendo sólo la barra y nunca la página. Una pantalla no arma las suyas con `<Tabs>`: la de Empresa y la de un origen medían 579 y
+  494 px por no llevar `min-w-0` (5a-18).
 - La barra superior del celular cabe con el texto al 200 %: los blancos táctiles miden 44 px siempre (no `size-11`, que es rem) y
   lo opcional (el tipo de cambio) se dibuja sólo si la barra mide 24 rem o más (`@container`); si no, está en el menú.
 - El cambio de estado de un `<Badge>` es de golpe: sólo se anima el anillo de foco (con `transition-all` el texto nuevo se veía
   con el color del viejo).
-  Ningún componente usa `transition-all` (`scripts/guardas/sin-transition-all.test.ts`; sólo el `<Switch>`, que no lleva texto): anima
+  Ningún componente usa `transition-all` (`scripts/guardas/sin-transition-all.test.ts`, sin excepciones: ni el `<Switch>`, que mide en rem): anima
   también `font-size` y el alto, y con el texto al 200 % un botón crecía a medio camino (una medición enseguida lo veía a 13 px, no a
   26). Un botón o una pestaña usa `transition` (colores, sombra y transformaciones). Un componente de terceros hereda la tipografía de la app (el `<Toaster>` la fija en línea: sonner
   inyecta la del sistema).
+- **Con el texto al 200 % un menú o un interruptor crece con él y no se sale de su lugar.** Un menú (`<DropdownMenuContent>`) no pasa del ancho que
+  deja la pantalla (`max-w-(--available-width)`): los 15 rem de un «⋯» eran 480 px y se salían del celular (485 px sobre 412). El `<Switch>` mide
+  su pista y su pulgar en rem, los dos (32 × 18,4 y 24 × 14 px al 100 %): con la pista en px y el pulgar en rem el pulgar medía 32 px y se
+  salía de la pista (5a-20). Un nombre que la persona tiene que leer (de un tipo de cambio, de una moneda) se parte, no se corta con «…».
 - El texto al 200 % se verifica con un e2e (`document.documentElement.style.fontSize = '200%'`) y, para lo que se juzga mirando,
   con capturas (`E2E_CAPTURAS`).
 - **Un aviso no tapa el pie de un panel ni sus botones.** Los avisos salen abajo a la derecha, justo donde un panel tiene «Cancelar» y
