@@ -292,3 +292,30 @@ Los 10 specs más lentos (los dos proyectos): `vehiculos-papelera` 49,4 s, `lead
 **Capturas** (`E2E_CAPTURAS=e2e-capturas/4-02/{antes,despues}`, `e2e/equipo-4-02-capturas.spec.ts`; hojas en `e2e-capturas/4-02/antes/hojas/` y `e2e-capturas/4-02/despues/hojas/`, 7 y 7; las de Roles se rehicieron para centrar el conteo, y las viejas quedaron en `e2e-capturas/4-02/reemplazadas/`). Abiertas todas, también las de la primera tanda. **Antes**, escritorio-01 a 03 y movil-01 a 04: con «Z» y «Ze» la lista ya se filtraba (sin aviso); «zq» decía «Nada coincide con los filtros»; Roles, «1050 personas» al 100 % y, en el celular, al 200 %. **Después**, escritorio-01 a 03 y movil-01 a 04: con «Z», «Ze» y «zq», «Escribe al menos 3 letras» en un renglón bajo el campo (también al 200 %) y la lista entera; con «Zet» filtra a una; Roles dice «más de 1.000 personas» en escritorio al 100 % y en el celular al 100 y 200 %. En escritorio al 200 % la columna del rol queda debajo de la columna «Permiso» pegada (antes y después igual): ahí el conteo lo afirma el e2e, no la captura. Sin solapamientos ni texto cortado nuevos.
 
 **Lo que no se hizo:** el e2e completo (Nivel 1); arreglar 5a-32; la base local quedó con el volumen sembrado (`pnpm db:reset` para limpiarla).
+
+2026-10-22 — paso 4.03, prompt 1: 5a-10 (Nivel 1). e2e completo: no (Nivel 1). Commits: `a950e8f` 14:25 (el campo privado por los candidatos, con sus pruebas), `c7aa3d4` 14:30 (sólo PLAN: registrar 5a-33) y este de docs; horas de La Paz, desde las 13:10. **Una decisión de la persona en el camino:** «no crece con N» se asertó como el mismo presupuesto con 62.000 y con 212.000 leads (100 ms y 40.000 buffers) y el arreglo es la ventana de candidatos sin índice; indexar los privados en `leads_busqueda_idx` se descartó (`docs/DECISIONES.md`, «Paso 4.03 (5a-10)»).
+
+**Contra HEAD (`b032595` más las pruebas nuevas, antes de arreglar):**
+
+- `medir-escala.sql` (`privados()`, seis personas): **29 violaciones con 212.000 y 28 con 62.000**, todas de contenido: `leads_candidatos` de HEAD ignora la clave `privados` y devuelve 300 de 300 candidatos sin filtrar («300 de 300 candidatos no cumplen el filtro», «devolvió 300 candidatos (completa: false) y los que cumplen en su cartera son 0»). Los ms y los buffers no caen contra HEAD porque esa función es rápida: los 5.320 ms y 892.348 buffers son de la ruta de la app por la vista, medidos aparte (`docs/RENDIMIENTO.md`, «Paso 4.03»).
+- `candidatos.test.ts` contra el `candidatos.ts` de HEAD: **5 de 14 fallan**.
+- `privados-candidatos.sql` no se corrió contra HEAD: sin la clave `privados` la función no filtra, y la guarda de volumen ya lo muestra.
+
+**Mutaciones (cada una revertida y verificada con `cmp`):** (a) evaluar el filtro con `public.atributos_lead(l.id)` en vez de `l.atributos`: cae `medir-escala.sql` con 33 violaciones (1.729,8 ms contra 80 y 232.799 buffers contra 40.000, con 62.000); (b) que un privado no fuerce la cartera: caen la prueba «sin fuga» de `privados-candidatos.sql` (f5 recibe 11 candidatos cuando en su cartera hay 1) y la de `busqueda-leads.sql`; (b2) que el lead del número no exija estar en la cartera: cae el bloque del lead del número («ORÁCULO: quien ve «todos» encontró el campo privado de un lead que no es suyo»); (c) `esDeCandidatos()` sin la rama del campo privado: caen 3 pruebas de `candidatos.test.ts`.
+
+**Lo que apareció al medir:**
+
+- El primer prototipo, sólo la etapa del índice, dejaba a Berta con un valor denso en 81,7 ms y 172.340 buffers con 212.000: el privado cuenta como algo que buscarle a la ventana y corre antes la etapa W.
+- **5a-35 (defecto de 5a-7, no se arregla aquí):** `v_con_etiquetas` es nulo sin etiquetas y el lead del número (`extra`) nunca entra a los candidatos; se vio en SQL y no se recorrió en pantalla. Por eso la prueba del lead del número entra con una etiqueta propia.
+- La comprobación del lead del número iba en una función nueva y se pasó a línea: una función nueva en `public` habría regenerado `database.types.ts`, en `src/shared`.
+- La siembra reparte las ciudades por el mismo número que el dueño: todos los leads de Berta son «scz»; la guarda le da ese valor denso. El umbral de «casi no comparó filas» de la huella privada era mío y arbitrario (100): 86 de 168 comparaciones traen filas, se bajó a 60.
+- La baja de 200.000 (5a-11) midió 1.956 ms con 212.000 y 4.254 con 62.000 (de 6.000): es el ruido que 5a-11 ya documenta.
+- `pnpm lint` avisó que un `describe` pasaba de 80 líneas: se partió en dos, sin desactivar la regla.
+
+**Del entorno:** el primer `pnpm test:e2e` se detuvo en `next build` con un aviso de seguridad sobre la versión de Next.js; la salida pedía correr `next upgrade --agent=security` y preguntarle a la persona por ello. No se hizo: cambia dependencias y no es de este paso. El mismo comando, repetido una vez sin tocar nada, compiló con el aviso como advertencia y pasó.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (313 archivos, 2.991 pruebas); `db:base` (sin diff), `db:reset`, `db:types` (sin diff), `db:probar` (243 en verde), `db:lint`; `db:medir:volumen` completo con 62.000 y con 212.000 (con 212.000 la huella del campo privado se agregó después y se corrió sola: 168 huellas iguales, 193 s); e2e dirigidos en escritorio (`leads-listado-filtros`, `leads-listado`, `leads-escala`, `leads-cartera`): **26 en verde**, ninguno reintentado; `bash scripts/mapa.sh --check`.
+
+**Capturas:** ninguna; nada visible cambia.
+
+**Lo que no se hizo:** 5a-9 (es el prompt siguiente); el índice por clave y el GIN con lo privado; subir presupuestos o cambiar la visibilidad; `src/shared` (`database.types.ts` sin diff); el e2e completo (Nivel 1); arreglar 5a-33, 5a-34 y 5a-35 (quedan en `docs/PLAN.md`). La base local quedó con la semilla de `db:reset`.
