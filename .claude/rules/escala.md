@@ -31,7 +31,7 @@ con 50.000 leads: `pnpm db:sembrar-volumen` y `pnpm db:medir:volumen`).
   ser menor.
 - Lo que se dibuja tiene tope. Al llegar, se dice con `<AvisoDeTope>` de `shared/ui` (al pie, «Mostrando los 500 más recientes»;
   la lectura pide uno de más y `cortarAlTope()` de `shared/lib/conteo` corta y dice si había más) y se ofrece un
-  camino a lo antiguo («Ir a una fecha», un filtro). «Ver más» no suma para siempre. Lo que crece es la
+  camino a lo antiguo («Ir a una fecha», un filtro). «Ver más» no suma para siempre. La lista del equipo (5a-21) dibuja 100 por nombre y resuelve el texto y el estado en la base (`equipo_lista()`: recorrer las primeras 2.000 o el trigram, con sus buffers asertados en `medir-equipo.sql`); su camino es «Busca por nombre o correo, o filtra por estado». Lo que crece es la
   cantidad de lotes, de columnas o de páginas, no el alto de una página: la papelera lee 5 lotes por vez.
 - Un número que se muestra sale de `limit n + 1` («más de 20») o no se muestra. Nunca de `count(*)`
   ni de `count: 'exact'`: el número crece con el total. La forma es una: la consulta pide `tope + 1`

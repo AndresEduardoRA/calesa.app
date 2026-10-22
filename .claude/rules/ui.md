@@ -92,7 +92,7 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
 - **Un `<Drawer>` que nace ya abierto no se anima** (Base UI da el estado inicial sólo al abrir desde cerrado): el que tiene que deslizarse la primera vez se monta cerrado y no se vuelve a montar mientras lee (`useAbiertoAlgunaVez` es para el código diferido, no para el `<Drawer>`). Un cuerpo que cambia (esqueleto, error, formulario) cambia **dentro** del mismo drawer; uno con estado que no puede irse al cerrar dibuja en sus ranuras por portal (`marco-del-alta.tsx`). `e2e/soporte/contar-drawer.ts` cuenta montajes y entradas.
 - Ningún modal abre otro modal. Segundo nivel = `<Drawer>` o página. Un `<Drawer>` o `<Modal>` tiene
   su URL (`?panel=`, `?id=`).
-- Formularios en bloques: `<Bloque titulo>` plegable; los secundarios nacen plegados.
+- Formularios en bloques: `<Bloque titulo>` plegable; los secundarios nacen plegados. **El cuerpo de un `<Bloque>` es una grilla de columna `minmax(0, 1fr)`** (`data-slot="bloque"`, 5a-25): con una columna `auto` lo que no se parte (el botón «Guardar configuración» de apibara, 315 px) ensanchaba la pista sobre el ancho útil de la tarjeta y arrastraba la fila de un interruptor hasta su borde (0 px al 200 % en 412 px; hoy 33).
 - Fechas cruzan servidor → cliente como string ISO; nunca `Date` en props de Server → Client.
 - Textos de la interfaz con los términos de `docs/GLOSARIO.md`; sin signos de exclamación; sin
   mayúsculas sostenidas; español neutro con tuteo («vuelve a intentar», «no tienes permiso»),
