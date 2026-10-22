@@ -42,7 +42,8 @@ export function ListaMonedas({ monedas, monedaBase, puedeGestionar, alAbrir, alC
                 <span className="font-mono text-(length:--text-sm) text-(--color-ink-soft)">
                   {moneda.codigo}
                 </span>
-                <span className="truncate text-(length:--text-base) font-medium text-(--color-ink)">
+                {/* El nombre se parte, no se corta con «…»: al 200 % tiene que leerse entero. */}
+                <span className="min-w-0 text-(length:--text-base) font-medium break-words text-(--color-ink)">
                   {moneda.nombre}
                 </span>
                 {moneda.codigo === monedaBase ? <Badge variant="secondary">Base</Badge> : null}

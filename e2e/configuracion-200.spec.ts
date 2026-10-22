@@ -11,6 +11,7 @@ import {
   aLaVistaSinDesplazar,
   recibeElClic,
   sinScrollHorizontal,
+  sinTextoCortado,
   textoGrandeAlCargar,
 } from './soporte/recorrido'
 
@@ -124,6 +125,42 @@ for (const pantalla of PANTALLAS) {
     }
   })
 }
+
+// Empresa › Monedas: con el texto al 200 % en 412 px la fila de un tipo de cambio no aprieta su nombre («O…») ni deja el valor encima de
+// su insignia: el valor baja a otra línea cuando no cabe al lado. Se lee entero el nombre de cada tipo de cambio y de cada moneda.
+test('al 200 %: en Monedas se leen enteros el nombre y el valor de cada tipo de cambio, sin solaparse', async ({
+  page,
+}) => {
+  await textoGrandeAlCargar(page)
+  await entrar(page)
+  await page.goto('/configuracion/empresa?seccion=monedas')
+  await expect(page.getByRole('heading', { name: 'Tipos de cambio' })).toBeVisible()
+  const filas = page.getByRole('list').filter({ has: page.getByText(/^1 [A-Z]{3} = $/) })
+  await sinTextoCortado(filas)
+  await sinTextoCortado(page.getByRole('list').filter({ hasText: 'Dólar estadounidense' }))
+  const cajas = await page.locator('li button').evaluateAll((botones) =>
+    botones
+      .filter((b) => /1 [A-Z]{3} =/.test(b.textContent))
+      .map((b) => {
+        const hijos = [...b.children].map((h) => h.getBoundingClientRect())
+        const [nombre, valor] = hijos
+        return {
+          texto: b.textContent.trim().slice(0, 30),
+          solapa:
+            !!nombre &&
+            !!valor &&
+            nombre.left < valor.right &&
+            valor.left < nombre.right &&
+            nombre.top < valor.bottom &&
+            valor.top < nombre.bottom,
+        }
+      }),
+  )
+  expect(cajas.length).toBeGreaterThan(0)
+  for (const caja of cajas) {
+    expect(caja.solapa, `el nombre y el valor de «${caja.texto}» se solapan`).toBe(false)
+  }
+})
 
 // c.1: la pestaña activa de Configuración › Leads está a la vista cualquiera sea la sección y cuando el texto crece: antes de cargar (lo
 // que tiene quien lo configuró así) y después de cargar (lo que pasa al ampliar con la página abierta).

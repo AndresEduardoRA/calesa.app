@@ -48,19 +48,20 @@ export function ListaTiposCambio({ tipos, puedeGestionar, alAbrir, alCrear }: Pr
             <li key={tipo.id}>
               <button
                 type="button"
-                className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus)"
+                className="flex min-h-14 w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2 text-left outline-none hover:bg-(--color-surface-3) focus-visible:shadow-(--shadow-focus)"
                 onClick={() => {
                   alAbrir(tipo.id)
                 }}
               >
                 <span className="flex min-w-0 flex-wrap items-center gap-2">
-                  <span className="truncate text-(length:--text-base) font-medium text-(--color-ink)">
+                  <span className="min-w-0 text-(length:--text-base) font-medium break-words text-(--color-ink)">
                     {tipo.nombre}
                   </span>
                   {tipo.esDefault ? <Badge variant="secondary">Por defecto</Badge> : null}
                   {tipo.activo ? null : <Badge variant="outline">Inactivo</Badge>}
                 </span>
-                <ValorDeCambio tipo={tipo} className="shrink-0 text-(length:--text-base)" />
+                {/* Si no cabe al lado del nombre baja a otra línea, a la derecha: antes apretaba el nombre hasta «O…» (5a-18). */}
+                <ValorDeCambio tipo={tipo} className="ml-auto shrink-0 text-(length:--text-base)" />
               </button>
             </li>
           ))}
