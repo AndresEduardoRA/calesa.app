@@ -61,6 +61,7 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   abierta a la vista al montarse, al elegir otra y cada vez que la barra cambia de tamaño (se amplió el texto con la página abierta, se giró el
   celular), moviendo sólo la barra y nunca la página. Una pantalla no arma las suyas con `<Tabs>`: la de Empresa y la de un origen medían 579 y
   494 px por no llevar `min-w-0` (5a-18).
+- **El cuerpo de un `<Modal>` que se desplaza dice que sigue** (5a-24): un degradado abajo mientras queda algo y otro arriba cuando ya se desplazó (`<PistaVerticalDeDesborde>`, `useDesbordeVertical()`), ninguno si cabe. El chip de un filtro (y todo texto de una barra) cede con «…» y dice su contenido con `title` antes de empujar la página; el listado que lo lleva es una grilla `minmax(0, 1fr)` (5a-23).
 - La barra superior del celular cabe con el texto al 200 %: los blancos táctiles miden 44 px siempre (no `size-11`, que es rem) y
   lo opcional (el tipo de cambio) se dibuja sólo si la barra mide 24 rem o más (`@container`); si no, está en el menú.
 - El cambio de estado de un `<Badge>` es de golpe: sólo se anima el anillo de foco (con `transition-all` el texto nuevo se veía
