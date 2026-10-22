@@ -1,6 +1,6 @@
 'use client'
 
-import type { ComponentProps, ReactNode } from 'react'
+import { useRef, type ComponentProps, type ReactNode } from 'react'
 import { XIcon } from 'lucide-react'
 import { cn } from 'cn'
 import { Button } from './button'
@@ -13,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from './dialog'
+import { PistaVerticalDeDesborde } from './pista-de-desborde'
+import { useDesbordeVertical } from './use-desborde'
 
 type Popup = ComponentProps<typeof DialogContent>
 
@@ -38,6 +40,32 @@ type Props = {
   // Cuando terminó de irse (la animación de cierre): lo que no debe quedar en memoria (una clave) se
   // olvida acá y no al cerrar, así no cambia lo que se ve mientras se va.
   alTerminarDeCerrar?: () => void
+}
+
+// El cuerpo que se desplaza, con su descripción: lo que queda escondido arriba o abajo lo dice un degradado (5a-24), sólo mientras hay algo.
+function CuerpoDelModal({
+  descripcion,
+  children,
+}: {
+  descripcion: string | undefined
+  children: ReactNode
+}) {
+  const cuerpo = useRef<HTMLDivElement>(null)
+  const desborde = useDesbordeVertical(cuerpo)
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {/* La descripción se desplaza con el cuerpo: con el texto al 200 % en el celular ocupaba hasta seis líneas fijas arriba y el cuerpo quedaba en
+          una cuarta parte de la pantalla (cierre 5b, defecto 4.4). */}
+      <div
+        ref={cuerpo}
+        className="grid min-h-0 min-w-0 flex-1 gap-4 overflow-y-auto px-4 pt-0.5 pb-4"
+      >
+        {descripcion ? <DialogDescription>{descripcion}</DialogDescription> : null}
+        {children}
+      </div>
+      <PistaVerticalDeDesborde {...desborde} />
+    </div>
+  )
 }
 
 // Diálogo centrado para una decisión o un formulario corto. Nunca abre otro modal: si hace falta
@@ -89,10 +117,7 @@ export function Modal({
         {/* La descripción se desplaza con el cuerpo: con el texto al 200 % en el celular ocupaba hasta seis líneas fijas arriba y el cuerpo quedaba en
             una cuarta parte de la pantalla (cierre 5b, defecto 4.4). */}
         {descripcion || children ? (
-          <div className="grid min-h-0 min-w-0 flex-1 gap-4 overflow-y-auto px-4 pt-0.5 pb-4">
-            {descripcion ? <DialogDescription>{descripcion}</DialogDescription> : null}
-            {children}
-          </div>
+          <CuerpoDelModal descripcion={descripcion}>{children}</CuerpoDelModal>
         ) : null}
         {pie ? (
           <DialogFooter className="m-0 shrink-0 max-sm:flex-row max-sm:flex-wrap-reverse max-sm:p-3 sm:flex-wrap [&_button]:min-h-[44px] sm:[&_button]:min-h-8 max-sm:[&>button]:min-w-fit max-sm:[&>button]:flex-1">

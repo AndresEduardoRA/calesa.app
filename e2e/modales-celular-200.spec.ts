@@ -34,9 +34,11 @@ type Medida = {
 const medir = (dialogo: Locator): Promise<Medida> =>
   dialogo.evaluate((modal) => {
     const pie = modal.querySelector('[data-slot=dialog-footer]')
-    const cuerpo = [...modal.children].find(
+    // El cuerpo es lo que se desplaza: se lo busca por lo que hace, no por su lugar en el árbol (el contenedor que lleva la pista de desborde,
+    // 5a-24, le puso un nivel).
+    const cuerpo = [...modal.querySelectorAll<HTMLElement>('*')].find(
       (hijo) => getComputedStyle(hijo).overflowY === 'auto',
-    ) as HTMLElement | undefined
+    )
     if (cuerpo) {
       cuerpo.scrollTop = cuerpo.scrollHeight
     }
