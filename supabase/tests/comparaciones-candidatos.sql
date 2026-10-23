@@ -383,6 +383,101 @@ begin
   end if;
 end $$;
 
+-- @test comparaciones-candidatos: «tachados» pide sólo los que quien llama tachó (4.03, 5a-34), y nadie recibe las marcas de otra persona
+-- La marca es de cada quien: la dueña tacha un lead de f4 y uno suyo; f4 tacha los suyos; f3 y f5 no tachan nada. La regla, escrita a mano y sin la vista: vivo, de la cartera de quien filtra,
+-- con el dato y tachado por quien filtra. Lo que otra persona tachó no cambia la respuesta de nadie.
+do $$ declare
+  d1 constant uuid := '00000000-0000-0000-0000-000000000001'; f4 constant uuid := '00000000-0000-0000-0000-0000000009f4';
+  p record; f record; r jsonb; v_ids uuid[]; v_esperados uuid[]; v_n int := 0; v_con int := 0;
+begin
+  insert into public.leads_tachados (lead_id, usuario_id) select id, d1 from public.leads where nombre in ('Comparación 01', 'Comparación 17', 'Comparación 18') on conflict do nothing;
+  for p in select * from (values
+    ('f3', '00000000-0000-0000-0000-0000000009f3'::uuid, true), ('f4, con tachados', f4, true), ('f5, «todos»', '00000000-0000-0000-0000-0000000009f5'::uuid, true),
+    ('f6, que se va', '00000000-0000-0000-0000-0000000009f6'::uuid, false), ('f7, sin permiso', '00000000-0000-0000-0000-0000000009f7'::uuid, false), ('la dueña, «todos»', d1, true)) x (nombre, id, ve) loop
+    for f in select * from (values
+      ('sólo los tachados', '{"tachados": true}'::jsonb, 'true'),
+      ('tachados y dirección «sol»', '{"tachados": true, "comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "sol"}]}', '(l.atributos ->> ''direccion'') ilike ''%sol%'''),
+      ('tachados e ingreso desde 500', '{"tachados": true, "comparaciones_privadas": [{"tipo": "rango_numero", "clave": "ingreso", "min": 500}]}', '(l.atributos -> ''ingreso'') >= ''500''::jsonb'),
+      ('tachados y una opción privada', '{"tachados": true, "privados": [[{"direccion": "Calle del Sol 1"}]]}', 'l.atributos @> ''{"direccion": "Calle del Sol 1"}'''),
+      ('tachados y una ciudad pública', '{"tachados": true, "comparaciones": [{"tipo": "texto", "clave": "ciudad", "texto": "sucre"}]}', '(l.atributos_publicos ->> ''ciudad'') ilike ''%sucre%''')) x (nombre, filtro, regla) loop
+      r := pg_temp.bl_como(p.id, format('select public.leads_candidatos(%L::jsonb)', f.filtro || '{"sentido": "siguiente", "mios": true, "sin_tope": true}'));
+      v_ids := array(select jsonb_array_elements_text(r -> 'ids'))::uuid[];
+      execute format($q$select coalesce(array_agg(l.id), '{}'::uuid[]) from public.leads l
+          where l.eliminado_en is null and l.cartera @> array[%L]::uuid[] and %s
+            and exists (select 1 from public.leads_tachados t where t.lead_id = l.id and t.usuario_id = %L)$q$, p.id, f.regla, p.id) into v_esperados;
+      if not p.ve then v_esperados := '{}'; end if;
+      v_n := v_n + 1;
+      if cardinality(v_ids) > 0 then v_con := v_con + 1; end if;
+      if (select array_agg(x order by x) from unnest(v_ids) x) is distinct from (select array_agg(x order by x) from unnest(v_esperados) x) then
+        raise exception '% | «%»: salen % candidatos y los tachados por quien filtra, de su cartera, con el dato, son %', p.nombre, f.nombre, cardinality(v_ids), cardinality(v_esperados);
+      end if;
+      if not (r ->> 'completa')::boolean then raise exception '% | «%»: dice que hay más: %', p.nombre, f.nombre, r; end if;
+    end loop;
+  end loop;
+  if v_con < 5 then raise exception 'casi nadie encontró nada tachado (% de %): la prueba no prueba', v_con, v_n; end if;
+  -- Un `tachados` que no es `true` no filtra, y la marca no se puede pedir por otra persona: la respuesta es la de un pedido sin él.
+  foreach r in array array['false'::jsonb, '"true"', '1', 'null', '[]', '{}'] loop
+    if pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', jsonb_build_object('tachados', r, 'sentido', 'siguiente', 'mios', true)))
+       is distinct from pg_temp.bl_como(f4, format('select public.leads_candidatos(%L::jsonb)', '{"sentido": "siguiente", "mios": true}')) then
+      raise exception 'tachados = % cambió la respuesta', r;
+    end if;
+  end loop;
+end $$;
+
+-- @test comparaciones-candidatos: contar por las ventanas da lo mismo que contar por la vista (los tachados ocultos y el conteo de la exportación con un campo privado)
+-- El bucle de `contarPorCandidatos()`: cada ventana trae los candidatos (con `tachados` si se cuentan los ocultos) y se cuentan los que cumplen lo que la página sigue aplicando; hasta `tope + 1`.
+-- Contra el conteo de siempre (la vista, `limit tope + 1`), con cada ventana y con topes de 1 a 1.000.
+create function pg_temp.cc_conteo(p_quien uuid, p_filtros jsonb, p_resto text, p_tope int) returns int language plpgsql as $$
+declare v_juntos int := 0; v_cursor jsonb := null; v_r jsonb; v_ids uuid[]; v_n int; v_vueltas int := 0;
+begin
+  loop
+    v_r := pg_temp.bl_como(p_quien, format('select public.leads_candidatos(%L::jsonb)', p_filtros || '{"sentido": "siguiente", "mios": true}'::jsonb || case when v_cursor is null then '{}'::jsonb else jsonb_build_object('cursor', v_cursor) end));
+    v_ids := array(select jsonb_array_elements_text(v_r -> 'ids'))::uuid[];
+    if cardinality(v_ids) > 0 then
+      v_n := (pg_temp.bl_como(p_quien, format('select to_jsonb(count(*)) from (select id from public.leads_vista_por_ids(%L::uuid[]) where %s limit %s) q', v_ids, p_resto, p_tope + 1 - v_juntos)))::int;
+      v_juntos := v_juntos + v_n;
+    end if;
+    exit when v_juntos > p_tope or (v_r ->> 'completa')::boolean;
+    v_cursor := v_r -> 'hasta';
+    v_vueltas := v_vueltas + 1;
+    if v_cursor = 'null'::jsonb or v_vueltas > 3000 then raise exception 'el conteo por ventanas no sabe dónde seguir: %', v_r; end if;
+  end loop;
+  return least(v_juntos, p_tope + 1);
+end $$;
+do $$ declare
+  v_tope_original text := pg_get_functiondef('public._leads_candidatos_tope()'::regprocedure);
+  v_recorrido_original text := pg_get_functiondef('public._leads_candidatos_recorrido()'::regprocedure);
+  p record; f record; c record; z int; v_viejo int; v_nuevo int; v_n int := 0; v_con int := 0;
+begin
+  for c in select * from (values (2, 3), (2, 100), (300, 4000)) x (k, s) loop
+    execute format('create or replace function public._leads_candidatos_tope() returns integer language sql immutable parallel safe set search_path = %L as $f$ select %s $f$', '', c.k);
+    execute format('create or replace function public._leads_candidatos_recorrido() returns integer language sql immutable parallel safe set search_path = %L as $f$ select %s $f$', '', c.s);
+    for p in select * from (values ('f4, «propios»', '00000000-0000-0000-0000-0000000009f4'::uuid, 'leads_cartera_vista'), ('f5, «todos»', '00000000-0000-0000-0000-0000000009f5'::uuid, 'leads_vista'),
+                                   ('la dueña, por la vista', '00000000-0000-0000-0000-000000000001'::uuid, 'leads_vista'), ('la dueña, por la cartera', '00000000-0000-0000-0000-000000000001'::uuid, 'leads_cartera_vista')) x (nombre, id, rel) loop
+      for f in select * from (values
+        ('ocultos con un privado de opciones', true, 'en_cartera = true and esta_tachado = true and atributos @> ''{"direccion": "Calle del Sol 1"}''', '{"tachados": true, "privados": [[{"direccion": "Calle del Sol 1"}]]}'::jsonb, 'en_cartera = true and esta_tachado = true'),
+        ('ocultos con un texto privado', true, 'en_cartera = true and esta_tachado = true and atributos ->> ''direccion'' ilike ''%sol%''', '{"tachados": true, "comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "sol"}]}', 'en_cartera = true and esta_tachado = true'),
+        ('ocultos con un rango privado', true, 'en_cartera = true and esta_tachado = true and atributos -> ''ingreso'' >= ''500''::jsonb', '{"tachados": true, "comparaciones_privadas": [{"tipo": "rango_numero", "clave": "ingreso", "min": 500}]}', 'en_cartera = true and esta_tachado = true'),
+        ('ocultos sin resultados', true, 'en_cartera = true and esta_tachado = true and atributos ->> ''direccion'' ilike ''%zzzz%''', '{"tachados": true, "comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "zzzz"}]}', 'en_cartera = true and esta_tachado = true'),
+        ('exportación con un texto privado', false, 'en_cartera = true and atributos ->> ''direccion'' ilike ''%sol%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "sol"}]}', 'en_cartera = true'),
+        ('exportación con un rango privado', false, 'en_cartera = true and atributos -> ''ingreso'' >= ''500''::jsonb', '{"comparaciones_privadas": [{"tipo": "rango_numero", "clave": "ingreso", "min": 500}]}', 'en_cartera = true'),
+        ('exportación con un privado y una ciudad pública', false, 'en_cartera = true and atributos ->> ''direccion'' ilike ''%sol%'' and atributos_publicos ->> ''ciudad'' ilike ''%sucre%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "sol"}]}', 'en_cartera = true and atributos_publicos ->> ''ciudad'' ilike ''%sucre%''')) x (nombre, oculto, donde, filtro, resto) loop
+        foreach z in array array[1, 2, 5, 1000] loop
+          v_viejo := (pg_temp.bl_como(p.id, format('select to_jsonb(count(*)) from (select id from public.%I where %s limit %s) q', p.rel, f.donde, z + 1)))::int;
+          v_nuevo := pg_temp.cc_conteo(p.id, f.filtro, f.resto, z);
+          v_n := v_n + 1;
+          if v_viejo > 0 then v_con := v_con + 1; end if;
+          if v_viejo is distinct from v_nuevo then
+            raise exception '% | «%» | K=%, S=% | tope %: por la vista cuenta % y por las ventanas %', p.nombre, f.nombre, c.k, c.s, z, v_viejo, v_nuevo;
+          end if;
+        end loop;
+      end loop;
+    end loop;
+  end loop;
+  execute v_tope_original; execute v_recorrido_original;
+  if v_con < 40 then raise exception 'el conteo casi no encontró nada (% de %): no prueba', v_con, v_n; end if;
+end $$;
+
 -- @test comparaciones-candidatos: se quitan los campos del terreno
 do $$ begin
   update public.leads set atributos = atributos - 'llegada' - 'ingreso' - 'nacio' where atributos ?| array['llegada', 'ingreso', 'nacio'];

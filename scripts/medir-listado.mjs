@@ -52,6 +52,13 @@ const VARIABLES_DE_PAGINA = {
   lotes: constante('src/shared/lib/paginacion.ts', 'LOTES_POR_PAGINA'),
   tope_equipo: constante('src/shared/lib/paginacion.ts', 'TOPE_DEL_EQUIPO'),
   ver_mas: constante('src/shared/lib/paginacion.ts', 'TAMANO_DE_VER_MAS'),
+  // El conteo de los tachados ocultos y el de la exportación por la ventana de candidatos (4.03, 5a-34): sus topes y cuántos candidatos espera cada ventana (cuántas ventanas alcanzan).
+  tope_ocultos: constante('src/modules/leads/entities/filtros-de-marcas.ts', 'TOPE_DE_OCULTOS'),
+  tope_exportacion: constante('src/modules/leads/entities/exportacion.ts', 'TOPE_DE_EXPORTACION'),
+  por_ventana: constante(
+    'src/modules/leads/entities/candidatos.ts',
+    'CANDIDATOS_POR_VENTANA_ESPERADOS',
+  ),
   // El lote de la importación de leads (`medir-importacion.sql`): su tope vive en un solo punto del código.
   lote: constante('src/modules/leads/entities/importacion/limites.ts', 'FILAS_POR_LOTE'),
 }

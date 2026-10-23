@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   candidatosDesde,
   condicionesDeLaPagina,
+  cuentaPorCandidatos,
   filtrosDeCandidatos,
   usaCandidatos,
 } from './candidatos'
@@ -147,5 +148,52 @@ describe('candidatosDesde: el tope', () => {
     expect(
       candidatosDesde({ ids: [], completa: false, hasta: null, recorridos: 'muchos' }),
     ).toBeNull()
+  })
+})
+
+describe('los tachados de quien llama (4.03, 5a-34)', () => {
+  const tachados: CondicionDeLead = { tipo: 'tachado', valor: true }
+  const ocultos: CondicionDeLead = { tipo: 'tachado', valor: false }
+
+  it('«sólo los tachados» viaja como `tachados: true`; «los que no» no acota y no viaja', () => {
+    expect(filtrosDeCandidatos([textoPrivado, tachados], null, 'siguiente').tachados).toBe(true)
+    expect(filtrosDeCandidatos([textoPrivado, ocultos], null, 'siguiente').tachados).toBeUndefined()
+  })
+
+  it('no pide candidatos por sí solo: acelera los que ya los piden', () => {
+    expect(usaCandidatos([tachados])).toBe(false)
+    expect(usaCandidatos([ocultos])).toBe(false)
+    expect(usaCandidatos([tachados, textoPrivado])).toBe(true)
+  })
+
+  it('la página sigue aplicando la marca', () => {
+    expect(condicionesDeLaPagina([tachados, textoPrivado])).toEqual([tachados])
+  })
+})
+
+describe('cuentaPorCandidatos: el conteo sólo cambia de ruta con un campo privado', () => {
+  const opcionPrivada: CondicionDeLead = {
+    tipo: 'atributos_contienen',
+    alternativas: [{ direccion: 'x' }],
+    columna: 'atributos',
+  }
+  const opcionPublica: CondicionDeLead = {
+    tipo: 'atributos_contienen',
+    alternativas: [{ ciudad: 'lp' }],
+    columna: 'atributos_publicos',
+  }
+
+  it('un privado, de opciones, texto o rango, lo cuenta por los candidatos', () => {
+    for (const condicion of [opcionPrivada, ...PRIVADAS]) {
+      expect(cuentaPorCandidatos([condicion]), condicion.tipo).toBe(true)
+      expect(cuentaPorCandidatos([{ tipo: 'tachado', valor: true }, condicion])).toBe(true)
+    }
+  })
+
+  it('sin un privado la vista ya es barata: lo público, las marcas y nada se quedan en ella', () => {
+    expect(cuentaPorCandidatos([])).toBe(false)
+    expect(cuentaPorCandidatos([opcionPublica, ...PUBLICAS])).toBe(false)
+    expect(cuentaPorCandidatos([{ tipo: 'tachado', valor: true }])).toBe(false)
+    expect(cuentaPorCandidatos([{ tipo: 'etiquetas', ids: [ID_A] }])).toBe(false)
   })
 })

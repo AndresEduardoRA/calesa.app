@@ -37,6 +37,8 @@ export type FiltrosDeCandidatos = {
   // la ventana, como `privados`). Un texto de menos de 3 letras o dígitos seguidos no filtra (espejo de `cumpleElMinimo()`); lo mal formado se ignora.
   comparaciones?: ComparacionDeCampo[]
   comparaciones_privadas?: ComparacionDeCampo[]
+  // Sólo los leads que quien llama tachó (4.03, 5a-34): la marca es suya, nunca del pedido. Sin esto el conteo de los tachados ocultos recorría la cartera hasta juntarlos.
+  tachados?: boolean
   cursor?: { creado_en: string; id: string }
   sentido: 'siguiente' | 'anterior'
   // Los leads con el número buscado (ya resueltos, sólo los que quien mira ve): cuentan aunque el nombre no coincida.
@@ -156,15 +158,40 @@ function sumarAlPedido(
     filtros.mios = true
   } else if (condicion.tipo === 'columna_en') {
     filtros[condicion.columna === 'tipo_lead_id' ? 'tipos' : 'origenes'] = [...condicion.valores]
-  } else if (condicion.tipo === 'atributos_contienen') {
+  } else {
+    sumarDeCampoOMarca(filtros, grupos, condicion, conTope)
+  }
+}
+
+// Lo de un campo (opciones, texto o rango, público o privado) y la marca de los tachados.
+function sumarDeCampoOMarca(
+  filtros: FiltrosDeCandidatos,
+  grupos: Grupos,
+  condicion: CondicionDeLead,
+  conTope: boolean,
+): void {
+  if (condicion.tipo === 'atributos_contienen') {
     // Un campo público por su copia (`atributos_publicos`); uno privado, por `atributos`, que la base lee sólo de la cartera de quien llama.
     const lista = condicion.columna === 'atributos_publicos' ? grupos.atributos : grupos.privados
     lista.push([...condicion.alternativas])
+  } else if (condicion.tipo === 'tachado' && condicion.valor) {
+    // Sólo «los que tachó»: «los que no» no acota (casi todos) y la página lo decide. No pide candidatos por sí sola (`usaCandidatos`): acelera los que ya los piden.
+    filtros.tachados = true
   } else if (esComparacion(condicion) && esDeCandidatos(condicion, conTope)) {
     const lista =
       condicion.columna === 'atributos' ? grupos.comparacionesPrivadas : grupos.comparaciones
     lista.push(comparacionDe(condicion))
   }
+}
+
+// El conteo de los tachados ocultos y el de la exportación (`contarLeadsHasta`) leen por los candidatos cuando hay un campo privado: la vista calculaba `atributos_lead()` en cada
+// lead de la cartera (la dueña con 212.000 leads: 280 ms los ocultos, 5.409 el primer pedido de la exportación). Sin un privado la vista ya es barata y lo público se queda ahí.
+export function cuentaPorCandidatos(condiciones: readonly CondicionDeLead[]): boolean {
+  return condiciones.some(
+    (condicion) =>
+      (condicion.tipo === 'atributos_contienen' || esComparacion(condicion)) &&
+      condicion.columna === 'atributos',
+  )
 }
 
 // Lo que se le pide a la base para esta ventana. Una ventana son los primeros K después de `desde` (el cursor de la persona, o hasta donde
@@ -217,7 +244,7 @@ export function condicionesDeLaPagina(
 // Cuántas ventanas se piden, a lo sumo, antes de volver al camino de siempre: las que hacen falta para llenar la página si cada ventana trae
 // la mitad de lo que se pide, más dos. Un filtro de quien mira que deja pasar pocos (favoritos y un nombre común) no se queda pidiendo
 // ventanas: cuesta, como mucho, lo que costaba.
-const CANDIDATOS_POR_VENTANA_ESPERADOS = 100
+export const CANDIDATOS_POR_VENTANA_ESPERADOS = 100
 export function ventanasHasta(tamano: number): number {
   return Math.ceil((tamano + 1) / CANDIDATOS_POR_VENTANA_ESPERADOS) + 2
 }

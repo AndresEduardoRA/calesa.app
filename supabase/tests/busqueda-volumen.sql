@@ -273,18 +273,18 @@ begin
     ('la supervisora («todos»), por la vista', '00000000-0000-0000-0000-0000000000c8'::uuid, 'leads_vista', false),
     ('la supervisora, por la cartera', '00000000-0000-0000-0000-0000000000c8'::uuid, 'leads_cartera_vista', true)) x (nombre, id, rel, mios) loop
     for f in select * from (values
-      ('texto público denso «lp»', false, c || ' ilike ''%lp%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "lp"}]}'::jsonb, 'true'),
+      ('texto público denso «cbba»', false, c || ' ilike ''%cbba%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "cbba"}]}'::jsonb, 'true'),
       ('texto público «scz»', false, c || ' ilike ''%scz%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "scz"}]}', 'true'),
       ('texto público sin resultados', false, c || ' ilike ''%zqx%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "zqx"}]}', 'true'),
-      ('texto público con tachados ocultos', false, c || ' ilike ''%lp%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "lp"}]}', 'esta_tachado = false'),
+      ('texto público con tachados ocultos', false, c || ' ilike ''%cbba%''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "cbba"}]}', 'esta_tachado = false'),
       ('rango de texto público de «lp» a «sd»', false, c || ' >= ''lp'' and ' || c || ' < ''sd''', '{"comparaciones": [{"tipo": "rango_texto", "clave": "ciudad_vol", "desde": "lp", "antes_de": "sd"}]}', 'true'),
       ('rango de texto público sin resultados', false, c || ' >= ''zz'' and ' || c || ' < ''zzz''', '{"comparaciones": [{"tipo": "rango_texto", "clave": "ciudad_vol", "desde": "zz", "antes_de": "zzz"}]}', 'true'),
       ('rango de número público desde 5 (un texto ordena antes: nadie)', false, n || ' >= ''5''::jsonb', '{"comparaciones": [{"tipo": "rango_numero", "clave": "ciudad_vol", "min": 5}]}', 'true'),
       ('rango de número público hasta 5 (un texto ordena antes: todos)', false, n || ' <= ''5''::jsonb', '{"comparaciones": [{"tipo": "rango_numero", "clave": "ciudad_vol", "max": 5}]}', 'true'),
-      ('texto público y una ciudad exacta', false, c || ' ilike ''%lp%'' and atributos_publicos @> ''{"ciudad_vol": "lp"}''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "lp"}], "atributos": [[{"ciudad_vol": "lp"}]]}', 'true'),
+      ('texto público y una ciudad exacta', false, c || ' ilike ''%cbba%'' and atributos_publicos @> ''{"ciudad_vol": "cbba"}''', '{"comparaciones": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "cbba"}], "atributos": [[{"ciudad_vol": "cbba"}]]}', 'true'),
       ('texto privado «sol» (5 por cartera)', true, 'atributos ->> ''direccion'' ilike ''%sol%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "sol"}]}', 'true'),
       ('texto privado sin resultados', true, 'atributos ->> ''ciudad_vol'' ilike ''%zqx%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "zqx"}]}', 'true'),
-      ('texto privado denso «lp»', true, 'atributos ->> ''ciudad_vol'' ilike ''%lp%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "lp"}]}', 'true'),
+      ('texto privado denso «cbba»', true, 'atributos ->> ''ciudad_vol'' ilike ''%cbba%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "ciudad_vol", "texto": "cbba"}]}', 'true'),
       ('rango de texto privado de la dirección', true, 'atributos ->> ''direccion'' >= ''Calle'' and atributos ->> ''direccion'' < ''Calles''', '{"comparaciones_privadas": [{"tipo": "rango_texto", "clave": "direccion", "desde": "Calle", "antes_de": "Calles"}]}', 'true'),
       ('rango de número privado desde 5 (nadie)', true, 'atributos -> ''ciudad_vol'' >= ''5''::jsonb', '{"comparaciones_privadas": [{"tipo": "rango_numero", "clave": "ciudad_vol", "min": 5}]}', 'true'),
       ('texto privado «sol» con tachados ocultos', true, 'atributos ->> ''direccion'' ilike ''%sol%''', '{"comparaciones_privadas": [{"tipo": "texto", "clave": "direccion", "texto": "sol"}]}', 'esta_tachado = false')) x (nombre, privado, donde, empuja, resto) loop

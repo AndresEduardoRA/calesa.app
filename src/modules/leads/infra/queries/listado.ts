@@ -6,6 +6,7 @@ import { aplicarCursor } from '@/shared/lib/supabase/consultas'
 import { createClient } from '@/shared/lib/supabase/server'
 import {
   condicionesDeLaPagina,
+  cuentaPorCandidatos,
   filtrosDeCandidatos,
   usaCandidatos,
   ventanasHasta,
@@ -22,6 +23,7 @@ import type {
   PedidoDeListado,
 } from '../../entities/repositorios-del-listado'
 import { leerCandidatos } from './candidatos'
+import { contarPorCandidatos } from './conteo-de-leads'
 import { aplicarCondicionesDeLeads } from './condiciones'
 
 // Una página de leads, de lo más nuevo a lo más viejo, con una fila de más para saber si hay otra.
@@ -89,6 +91,23 @@ async function filasDeLosCandidatos(
     return { ok: false, error: errorDePostgrest(error) }
   }
   return ok(filasDeLeadDesde(data, pedido.clavesDeTabla))
+}
+
+// Cuántos de esos candidatos cumplen lo que la página sigue aplicando, hasta `limite`: sólo cuenta ids, no trae columnas.
+async function cuantosDeLosCandidatos(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: readonly string[],
+  condiciones: readonly CondicionDeLead[],
+  limite: number,
+): Promise<Resultado<number>> {
+  const { data, error } = await aplicarCondicionesDeLeads(
+    supabase.rpc('leads_vista_por_ids', { p_leads: [...ids] }).select('id'),
+    condiciones,
+  ).limit(limite)
+  if (error) {
+    return { ok: false, error: errorDePostgrest(error) }
+  }
+  return ok(data.length)
 }
 
 // Hasta dónde llegó una ventana que se quedó en el tope: nulo si no se acotó (o no dijo hasta dónde).
@@ -169,6 +188,19 @@ const FILAS_POR_PEDIDO = 1000
 // un total). Lo decide la misma RLS que la página: cuenta sólo lo que quien mira ve. Con 50 es un solo pedido.
 export const contarLeadsHasta: ContadorDeLeads = async (condiciones, tope) => {
   const supabase = await createClient()
+  // Con un campo privado, por la ventana de candidatos: la vista calcula `atributos_lead()` en cada lead de la cartera (4.03, 5a-34).
+  if (cuentaPorCandidatos(condiciones)) {
+    const porCandidatos = await contarPorCandidatos({
+      condiciones,
+      tope,
+      leerVentana: (filtros) => leerCandidatos(supabase, filtros),
+      contarCandidatos: (ids, deLaPagina, limite) =>
+        cuantosDeLosCandidatos(supabase, ids, deLaPagina, limite),
+    })
+    if (porCandidatos !== null) {
+      return porCandidatos
+    }
+  }
   const fuente = fuenteDelListado(condiciones)
   let cursor: Cursor | null = null
   let leidos = 0
