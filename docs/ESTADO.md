@@ -5,8 +5,8 @@
 > el siguiente prompt va a asumir cosas falsas. Máximo 80 líneas y 12 KB: lo que ya no es actual se mueve
 > a `docs/BITACORA.md`, copiado y no resumido. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
-**Última actualización:** 2026-10-22
-**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hechos el paso **4.03 completo** (prompt 1, 5a-10: un campo privado por `leads_candidatos()`; prompt 2, 5a-35: el lead del número sin etiquetas; **prompt 3, 5a-9 y 5a-34 con 5a-37 y 5a-38:** el texto y el rango de un campo, público y privado, y los tachados ocultos y el conteo de la exportación con un privado, por los candidatos; la dueña con 212.000 leads, un texto privado sin resultados de 5.642 a 84,4 ms y uno público «todos» de 198 a 13,5; el texto de un campo pide 3 letras; un tope de 10.000 leads que se dice para un campo público de quien ve «todos»; `docs/DECISIONES.md`, «Paso 4.03, prompt 3 (5a-9 y 5a-34)»), el **4.02** (5a-31: el equipo busca desde 3 letras; 5a-27: Roles cuenta hasta 1.001) y el **4.01** (D1 a D6 y **D7, la hoja configurable**; `docs/COTIZADOR.md`). Partición: **28 pasos y 62 prompts**, numerados 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-22, «movido de ESTADO», paso 4.03, prompt 3).
+**Última actualización:** 2026-10-23
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. **Paso 4.04:** hechos **5a-36** (`cbbd388`: el global de F, fijo en 7 dígitos y buscado como número propio) y **5a-32** (`4bf3bf2`: la baja en curso se simula con un lead tomado por otra transacción, así que el job no la cierra); **5a-11 medido y parado sin arreglo** (ninguna opción del lugar cumple sin romper la búsqueda: `docs/RENDIMIENTO.md` › «Paso 4.04 (5a-11)»; `medir-bajas.sql` pausa ahora el cron `equipo-bajas` mientras mide). Antes: **4.03 completo**, **4.02** y **4.01** (`docs/COTIZADOR.md`). Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO»).
 
 ## Funcionando
 
@@ -17,8 +17,8 @@
 
 ## Siguiente
 
-1. **4.04** — **5a-11** (la baja de 200.000 sin reescribir claves del GIN que no cambian) y **5a-32** (el e2e de la baja en curso no depende del reloj del job) y **5a-36** (el e2e `leads-numeros-recorrido` F no compara el HTML entero con un global de 3 dígitos; `docs/PLAN.md` › «Partición»). Después, 4.05 a 4.28 en orden, **un paso por prompt, y se para a reportar**.
-2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-11, 5a-32 y 5a-36 en 4.04, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
+1. **Decidir 5a-11** (la persona): la causa medida no es la del PLAN. `cartera` está indexada desde 1b y por eso ningún update de la cartera es HOT; el GIN no recibe claves. Sacar la cartera del GIN cumple la baja (9.953,8 ms; 9.303,3 con `fillfactor` 90) y rompe 41 aserciones de la búsqueda; el lote y `gin_pending_list_limit` no cambian nada. Opciones fuera del lugar del ítem, o aceptar el número con la causa corregida (`docs/PLAN.md`, 5a-11). **Después, 4.05** y en orden hasta 4.28, **un paso por prompt, y se para a reportar**.
+2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-11 en 4.04, pendiente de decisión; 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila) sin fase; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
 
 ## Pendientes que se arrastran
 
