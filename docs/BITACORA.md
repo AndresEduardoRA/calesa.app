@@ -379,7 +379,7 @@ Los 10 specs más lentos (los dos proyectos): `vehiculos-papelera` 49,4 s, `lead
 
 ## 2026-10-23 — Paso 4.04: 5a-36 y 5a-32 hechos; 5a-11 medido y parado sin arreglo
 
-**Horas (La Paz):** del 2026-10-22 23:08 al 2026-10-23 01:10. **e2e completo: no** (ningún disparador del Nivel 2: no se tocó `supabase/schemas` ni una migración; sólo specs, `e2e/soporte` y una guarda de medición).
+**Horas (La Paz):** del 2026-10-22 23:06 (cierre del 4.03) al 2026-10-23 00:59 (último commit: `cbbd388` 23:23, `4bf3bf2` 23:32, `99b6703` 00:55 y `96ac89e` 00:59). _Corregido el 2026-10-23 con `.git/logs/HEAD`: esta entrada decía «23:08 al 01:10»._ **e2e completo: no** (ningún disparador del Nivel 2: no se tocó `supabase/schemas` ni una migración; sólo specs, `e2e/soporte` y una guarda de medición).
 
 **5a-36** (`cbbd388`): F de `e2e/leads-numeros-recorrido.spec.ts` comparaba el HTML entero con el global real del lead de Carlos. Contra HEAD, con el global igual a los microsegundos de su `creado_en` (`799377`), cayó siempre en `:250` y sólo ahí (el número estaba en `creadoEn` y `desde`). Arreglo: global fijo de 7 dígitos y búsqueda como número propio, en bruto y escrito. Mutación: el global en los datos de la ficha (`fuga` en `lecturas.ts`, sin dibujarse) → cae en `:253`. Al tomar las capturas de antes, el F viejo cayó solo en los dos proyectos sobre la base recién reseteada (globales 4 y 11, presentes en `--gray11` y en los chunks).
 
@@ -404,3 +404,38 @@ Copiado tal cual de `docs/ESTADO.md` al cerrar el paso 4.04:
 1. **4.04** — **5a-11** (la baja de 200.000 sin reescribir claves del GIN que no cambian) y **5a-32** (el e2e de la baja en curso no depende del reloj del job) y **5a-36** (el e2e `leads-numeros-recorrido` F no compara el HTML entero con un global de 3 dígitos; `docs/PLAN.md` › «Partición»). Después, 4.05 a 4.28 en orden, **un paso por prompt, y se para a reportar**.
 
 2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-11, 5a-32 y 5a-36 en 4.04, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
+
+## 2026-10-23 — Cierre del paso 4.04: 5a-11 aceptado, la guarda baja sus topes, y las repeticiones de 5a-32 y 5a-36
+
+**Horas (La Paz):** del 2026-10-23 01:15 (primera repetición) al 02:3x (commit de docs; el de la guarda, `daacad5`, a las 02:17:54). **e2e completo: no (Nivel 1: sólo la guarda SQL y repeticiones).**
+
+**Decisión de la persona:** 5a-11, opción A: se acepta el número medido (9 corridas, 15.202,8 ms, la más larga 1.867 ms) con la causa corregida; no se arregla la baja. La opción de fondo es **5a-40** (`cartera` indexada; sin fase, después del hito 4-A). Sin schema ni migraciones.
+
+**La guarda** (`daacad5`, `supabase/tests/medir-bajas.sql`): el job ≤ 12 corridas, ≤ 20.000 ms y la corrida más larga ≤ 3.000 ms (antes ≤ 60 corridas y ≤ 6.000 ms); la llamada y la vista previa, igual. **Falla primero contra HEAD:** con `equipo_bajas_continuar()` a lotes de 1.000 (mutación por `psql` sobre la base viva, 212.000 leads), la guarda de HEAD pasa (20 corridas, 15.402,8 ms, rc 0) y la nueva la rechaza (20 corridas, 15.814,0 ms, «el presupuesto es 12», rc 3). La función se devolvió a 5.000 y se comprobó contra la migración. **Tres corridas seguidas de `db:medir:volumen` con 212.000 leads, todas en verde:** carga al empezar 1,81 / 2,14 / 1,81 (1 min); baja de 200.000: 9, 9 y 10 corridas, 14.802,8, 14.068,8 y 15.515,6 ms, la más larga 1.830,0, 1.823,0 y 1.947,7 ms, la llamada 525,4, 466,4 y 500,0 ms.
+
+**Una corrida suelta cayó, y es un hallazgo (no una de las tres):** la guarda nueva, con el lote ya en 5.000, lanzada justo después de la que había fallado (esa dejó 200.000 leads «Medir baja» de más y el cron pausado), dio **13 corridas, 28.191,1 ms y una corrida de 3.823,3 ms** (carga 2,6 a 3,7). El log de la base muestra un checkpoint cada 15–30 s por WAL y dos con `sync` de 11,4 y 12,4 s: el fsync lento que el runner ya documenta. No se reintentó con otro número: se limpió (`borrar_lo_medido`, `vacuum analyze`, cron reactivado, sin autovacuum) y se corrieron las tres oficiales. **Los topes nuevos no aguantan un fsync de 12 s** (`docs/RENDIMIENTO.md` › «Cierre del 4.04»; `docs/DECISIONES.md`, 2026-10-23).
+
+**Repeticiones de los asserts «30 veces» del PLAN, sin reintentos (`--retries=0 --workers=1`):**
+
+- **5a-32:** `e2e/equipo.spec.ts` entero 30 veces por proyecto (la prueba de la baja depende de las anteriores del archivo, que son seriales): escritorio **210 de 210 en 9,4 min** y celular **150 de 150 en 7,4 min**; la prueba «la dueña da de baja a alguien con leads, y una baja en curso se dice en la lista», 30 de 30 en cada proyecto, cruzando el minuto unas 17 veces. Ninguna fila `E2E Baja`, baja sin terminar ni transacción abierta al terminar.
+- **5a-36:** el caso F de `e2e/leads-numeros-recorrido.spec.ts`, 30 de 30 en escritorio con **100 leads** en la base (2,1 min) y 30 de 30 con **1.000** (2,1 min). **Hallazgo:** `db:sembrar-volumen` no admite menos de 50.000 (`--leads` entre 50.000 y 1.000.000), así que las bases de ~100 y ~1.000 se sembraron por SQL con `generate_series` (leads simples con triggers: el número global sigue la secuencia). Con el global fijo en 7 dígitos el resultado ya no depende del tamaño de la base; se corrió igual.
+
+**Horas corregidas:** la entrada del 4.04 decía «23:08 al 01:10»; `.git/logs/HEAD` dice 23:06 (cierre del 4.03) y el último commit a las **00:59:02** (`96ac89e`). Corregida allí.
+
+**Del entorno:** cada `next build` nuevo se detuvo con el aviso de seguridad de Next; no se corrió `next upgrade` y se repitió el build (un script lo repite sólo ante `SecurityFatalError`). La base quedó con la siembra de 212.000 leads (`pnpm db:reset` la limpia).
+
+**Sin explicar:** al cerrar, una corrida de `pnpm test` (la primera tras `lint` y `typecheck`) cayó con **2 pruebas de 1 archivo** (318 archivos, 3.065 de 3.067); la salida se filtró con `grep` y no se guardó, así que no se sabe cuáles. Las dos corridas siguientes, con la salida guardada y los mismos archivos, dieron 318 de 318 y 3.067 de 3.067, con la carga en 12–14 por el juego abierto de la persona (Left 4 Dead 2). Entre la que cayó y las que pasaron sólo cambió el reloj: no se tocó código ni docs. No se explicó con «la máquina»: es **5a-41** en `docs/PLAN.md`, con su assert.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (la tanda de arriba cayó una vez, dos más en 318 de 318); `db:medir:volumen` con 212.000 tres veces; las repeticiones de arriba; `bash scripts/mapa.sh --check`. Sin cambios de interfaz: sin capturas.
+
+**Lo que no se hizo:** arreglar la baja (5a-40); el Nivel 2 (no toca schema ni lo compartido); `db:medir:volumen` con 62.000 (sólo exigido con cambios de schema). Nada se empujó; no se corrió `next upgrade`.
+
+## 2026-10-23 — Movido de ESTADO (cierre del paso 4.04)
+
+Copiado tal cual de `docs/ESTADO.md` al cerrar el 4.04:
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. **Paso 4.04:** hechos **5a-36** (`cbbd388`: el global de F, fijo en 7 dígitos y buscado como número propio) y **5a-32** (`4bf3bf2`: la baja en curso se simula con un lead tomado por otra transacción, así que el job no la cierra); **5a-11 medido y parado sin arreglo** (ninguna opción del lugar cumple sin romper la búsqueda: `docs/RENDIMIENTO.md` › «Paso 4.04 (5a-11)»; `medir-bajas.sql` pausa ahora el cron `equipo-bajas` mientras mide). Antes: **4.03 completo**, **4.02** y **4.01** (`docs/COTIZADOR.md`). Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO»).
+
+1. **Decidir 5a-11** (la persona): la causa medida no es la del PLAN. `cartera` está indexada desde 1b y por eso ningún update de la cartera es HOT; el GIN no recibe claves. Sacar la cartera del GIN cumple la baja (9.953,8 ms; 9.303,3 con `fillfactor` 90) y rompe 41 aserciones de la búsqueda; el lote y `gin_pending_list_limit` no cambian nada. Opciones fuera del lugar del ítem, o aceptar el número con la causa corregida (`docs/PLAN.md`, 5a-11). **Después, 4.05** y en orden hasta 4.28, **un paso por prompt, y se para a reportar**.
+
+2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-11 en 4.04, pendiente de decisión; 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila) sin fase; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
