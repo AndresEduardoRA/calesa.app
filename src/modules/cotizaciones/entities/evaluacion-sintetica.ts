@@ -14,6 +14,9 @@ export type OpcionesDeEvaluacionSintetica = {
   tablas?: number
   // Las tablas vienen en la entrada (vivas) y no congeladas en `params`.
   vivas?: boolean
+  // El año de la primera fila de las tablas por año (2000 por defecto). Con 1.000 filas el último año es 2999: para sembrar el
+  // vehículo en la base (`anio` va de 1900 a 2100) la medición de `cotizacion_evaluar()` pide 1100 y el último queda en 2099.
+  anioInicial?: number
 }
 
 const opcion = (clave: string) => ({ clave, etiqueta: clave, titulo: clave })
@@ -62,11 +65,13 @@ function forma(k: number, ids: readonly string[], grupo: string, pares: number):
   return { id: `x${k}`, etiqueta: `x${k}`, ...formas[k % 8] }
 }
 
-function tablasDe(tablas: number, filas: number): Record<string, Crudo[]> {
+function tablasDe(tablas: number, filas: number, anioInicial: number): Record<string, Crudo[]> {
   const salida: Record<string, Crudo[]> = {}
   for (let t = 1; t <= tablas; t += 1) {
     salida[`t${t}`] = Array.from({ length: filas }, (_, i) =>
-      t % 2 === 1 ? { clase: `c${i}`, v: i } : { desde: 2000 + i, hasta: 2000 + i, v: i },
+      t % 2 === 1
+        ? { clase: `c${i}`, v: i }
+        : { desde: anioInicial + i, hasta: anioInicial + i, v: i },
     )
   }
   return salida
@@ -92,7 +97,7 @@ function nodosDe(n: number, grupos: readonly { id: string }[], pares: number) {
 }
 
 export function evaluacionSintetica(n: number, opciones: OpcionesDeEvaluacionSintetica = {}) {
-  const { filas = 50, tablas = 2, vivas = false } = opciones
+  const { filas = 50, tablas = 2, vivas = false, anioInicial = 2000 } = opciones
   if (tablas < 2 || tablas % 2 !== 0)
     throw new Error('las tablas van de a pares: una por clase y una por año')
   const grupos = Array.from({ length: n / 10 }, (_, i) => ({
@@ -102,7 +107,7 @@ export function evaluacionSintetica(n: number, opciones: OpcionesDeEvaluacionSin
     bucket: `b${i % 2}`,
   }))
   const { nodos, params, overrides } = nodosDe(n, grupos, tablas / 2)
-  const congeladas = tablasDe(tablas, filas)
+  const congeladas = tablasDe(tablas, filas, anioInicial)
   if (!vivas) params['tablas'] = congeladas
   return {
     definicion: { nodos, buckets: { b0: 'tc_a', b1: 'tc_b' }, total_en: 'tc_b', grupos },
@@ -112,7 +117,7 @@ export function evaluacionSintetica(n: number, opciones: OpcionesDeEvaluacionSin
       banderas: { activa: true },
       tipos_cambio: { oficial: 6.96, paralelo: 10 },
       // La última fila de cada tabla: el peor caso de una búsqueda.
-      vehiculo: { anio: 2000 + filas - 1, clase: `c${filas - 1}` },
+      vehiculo: { anio: anioInicial + filas - 1, clase: `c${filas - 1}` },
       tablas: vivas ? congeladas : {},
       overrides,
     },

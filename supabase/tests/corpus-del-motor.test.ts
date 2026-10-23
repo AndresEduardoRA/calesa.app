@@ -43,6 +43,14 @@ const sinteticas = {
   // Para la guarda de los argumentos comprimidos: con 2.000 nodos hay cientos de lecturas que descomprimir si se lee un argumento
   // dentro de un bucle.
   grande_con_tablas: evaluacionSintetica(2000, { filas: 1000, tablas: 4 }),
+  // Para la medición de `cotizacion_evaluar()` (4.06, prompt 2): las mismas 4 tablas vivas de 1.000 filas, pero con el vehículo en un
+  // año que cabe en `vehiculos.anio` (1900 a 2100): la base las siembra y la función las lee.
+  con_tablas_en_la_base: evaluacionSintetica(200, {
+    filas: 1000,
+    tablas: 4,
+    vivas: true,
+    anioInicial: 1100,
+  }),
 }
 const texto = corpusComoTexto(SEMILLA, corpus, sinteticas)
 

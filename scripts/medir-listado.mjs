@@ -128,6 +128,11 @@ const MEDICIONES_CON_VOLUMEN = [
   ],
   ['supabase/tests/medir-jobs.sql', 'Los jobs con 100.000 filas por purgar (ms por corrida)', UNA],
   [
+    'supabase/tests/medir-evaluar.sql',
+    'cotizacion_evaluar() con 50.000 y con 250.000 cotizaciones, como authenticated con el permiso de la transacción: 200 llamadas seguidas con el plan genérico (ms y buffers de la llamada entera, de ARMAR y de EVALUAR)',
+    'mediana y p95 de 200 llamadas',
+  ],
+  [
     'supabase/tests/medir-bajas.sql',
     'La baja de una persona con 200.000 leads (con transacciones de verdad: confirma y borra lo que crea)',
     UNA,
@@ -142,6 +147,9 @@ const DATOS_DE_MEDICION = {
     _formulas_sinteticas: ['supabase/tests/corpus-de-formula.json', 'sinteticas'],
   },
   'supabase/tests/medir-evaluar-formula.sql': {
+    _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-evaluar.sql': {
     _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
   },
 }
@@ -285,6 +293,10 @@ for (const [archivo, titulo, corridas] of MEDICIONES) {
   console.log(`${titulo} (${corridas}, ms):`)
   for (const { consulta, ms } of medidas) {
     console.log(`  ${consulta.padEnd(ancho)}  ${ms.toFixed(1).padStart(7)}`)
+  }
+  // Lo que la medición anota además de sus medidas (`nota|texto`): la carga con la que midió, lo que una guarda vio.
+  for (const [, nota] of corrida.stderr.matchAll(/nota\|([^|\n]+)/g)) {
+    console.log(`  · ${nota}`)
   }
   console.log(lineaDeLaMaquina(antes, despues))
 }
