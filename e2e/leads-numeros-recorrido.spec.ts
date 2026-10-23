@@ -25,7 +25,15 @@ test.describe.configure({ mode: 'serial' })
 
 const GLOBAL = 7_654_321
 const PROPIO = 123_456
+// El global del lead de Carlos en F: 7 dígitos, como GLOBAL, y por encima de los 212.000 leads de la base con volumen.
+const GLOBAL_DE_CARLOS = 8_123_457
 const escrito = (n: number) => formatearNumero(n, { decimales: 0 })
+const escapado = (texto: string) => texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// Un número que llega al HTML como número propio (`"numero":8123457`) o escrito («8.123.457»), no como parte de otro
+// número ni de una fecha: el HTML trae fechas con microsegundos (`…44.587261+00:00`) en las que cabe cualquier número
+// de 6 dígitos o menos (5a-36).
+const comoNumero = (n: number) =>
+  new RegExp(`(?<![\\d.])(?:${String(n)}|${escapado(escrito(n))})(?![\\d])`)
 const PERMISO = 'leads.numero_global.ver'
 
 let r: TerrenoDelRecorrido
@@ -215,14 +223,14 @@ test('F · un lead que Ana ve y no creó: «#<su número global>» no lo encuent
 }) => {
   // El lead de Carlos, compartido con Ana: lo ve, no lo creó y no tiene el permiso.
   await compartirCon(r.deCarlos, r.ana.email, r.t.personas.carlos)
-  const { data, error } = await admin()
-    .from('leads')
-    .select('numero')
-    .eq('id', r.deCarlos)
-    .single<{ numero: number }>()
-  exigir(error, 'leer el número de un lead de Carlos')
-  const global = data?.numero ?? 0
-  expect(global).toBeGreaterThan(0)
+  // Se fija en la copia que leen la búsqueda y la ficha: el global real de la corrida tenía 3 dígitos y coincidía con
+  // los microsegundos de una fecha de la ficha (5a-36).
+  const global = GLOBAL_DE_CARLOS
+  const { error } = await admin()
+    .from('leads_numeros_globales')
+    .update({ numero: global })
+    .eq('lead_id', r.deCarlos)
+  exigir(error, 'fijar el número global de un lead de Carlos')
 
   // El control: con el permiso, la dueña lo encuentra por ese número.
   await entrar(page, r.t.personas.duena)
@@ -242,5 +250,5 @@ test('F · un lead que Ana ve y no creó: «#<su número global>» no lo encuent
   await irAFicha(page, r.deCarlos)
   await expect(page.getByRole('heading', { level: 1 })).toContainText(AJENO_CARLOS)
   await expect(page.getByText(/n\.º/i)).toHaveCount(0)
-  expect(await page.content()).not.toContain(String(global))
+  expect(await page.content()).not.toMatch(comoNumero(global))
 })
