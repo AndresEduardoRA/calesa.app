@@ -1228,3 +1228,59 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **Por qué dos guardas:** con tablas de 1.000 filas, las búsquedas (164 ms) tapan el costo de descomprimir (+22 ms), así que el tiempo
   no distingue a quien lee `p_params` unas pocas veces. La guarda de texto de `evaluar-formula.sql` (`db:probar`) es exacta; la de
   tiempo atrapa lo que se lee cientos de veces.
+
+## Paso 4.06 (2 de 2): `cotizacion_evaluar()` con 50.000 y con 250.000 cotizaciones (2026-10-23)
+
+- **Cómo se mide:** `supabase/tests/medir-evaluar.sql`, en `pnpm db:medir:volumen` (antes de `medir-bajas.sql`), contra el Supabase local
+  (Postgres 17) con la siembra de volumen y en una transacción que se revierte. **200 llamadas seguidas** (más 10 de calentamiento), cada una
+  cronometrada, **como `authenticated`** (con el permiso que sólo esa transacción le da: hasta el 4.10 nadie más lo tiene) y con el plan
+  genérico (`plan_cache_mode = force_generic_plan`, lo que usa plpgsql tras unas llamadas). Mediana y p95.
+- **Cuatro casos:** la fórmula del seed (`subasta_usa`) por origen y por cotización, y una sintética de 200 nodos con 4 tablas **vivas** de
+  1.000 filas (la del corpus, con `anioInicial: 1100` para que su vehículo quepa en `vehiculos.anio`) por origen y por cotización. De cada
+  uno: la llamada entera, **ARMAR** (`_cotizacion_armar`: leer la fórmula, las tablas, los tipos de cambio y el vehículo) y **EVALUAR**
+  (`evaluar_formula()` sobre lo armado), en ms; y los buffers de una llamada.
+- **El terreno:** las filas de `transporte_por_ruta` que el seed no trae (el 4.08 lo arregla; se siembran en la transacción y no se toca
+  `seed.sql`), 20 tablas que ningún nodo nombra en el origen de la sintética (20.000 filas), 50 orígenes con tablas `t1` a `t4` de 1.000
+  filas (200.000 filas que una mala lectura pagaría) y las cotizaciones, 50.000 y después 250.000, mitad de cada fórmula.
+
+| Medición (ms)                           | 50.000 cotizaciones | 250.000 cotizaciones | Tope        |
+| --------------------------------------- | ------------------- | -------------------- | ----------- |
+| seed por origen, mediana / p95          | 2,5 / 2,8           | 2,6 / 2,8            | 10 / 20     |
+| seed por cotización, mediana / p95      | 2,5 / 2,7           | 2,5 / 2,7            | 10 / 20     |
+| sintética por origen, mediana / p95     | 35,0 / 36,0         | 34,9 / 35,9          | — / 50      |
+| sintética por cotización, mediana / p95 | 34,8 / 35,7         | 35,2 / 36,4          | — / 50      |
+| sintética: ARMAR mediana / EVALUAR      | 7,4 / 27,4          | 7,4 / 27,3           | —           |
+| seed: ARMAR mediana / EVALUAR           | 1,3 / 1,2           | 1,3 / 1,2            | —           |
+| p95 con 250.000 sobre p95 con 50.000    | —                   | 0,95 a 1,07 (veces)  | ≤ 1,5 veces |
+
+- **Varias corridas** (dos sueltas y dos de `db:medir:volumen`; carga 1,5 a 2,4, sin presión de disco ni de CPU): la mediana del seed 2,5 a 2,8
+  y su p95 2,6 a 3,1; la sintética, mediana 34,5 a 35,6 y p95 35,6 a 37,3. **Ningún presupuesto subió:** la medición es nueva.
+- **Lo que cuesta armar las tablas:** 7,4 ms para 4.000 filas (1,9 µs por fila: un `jsonb_agg` ordenado sobre el índice), contra los 27 ms
+  de evaluarlas (4.06-1: 28 ms con las vivas). ARMAR de la fórmula del seed cuesta 1,3 ms, casi todo en los permisos (`puede_vehiculo`,
+  `assert_permiso`): 112 a 195 buffers según cuán encogidas estén las tablas de permisos.
+- **No crece con las cotizaciones.** En razón: el p95 con 250.000 es 0,95 a 1,07 veces el de 50.000 (tope 1,5, con un piso de 3 ms). En
+  bloques de `cotizaciones` (heap, índices y TOAST, con `pg_stat_get_xact_blocks_fetched`):
+
+  | Caso             | 50.000 | 250.000 | Qué es                                                                                   |
+  | ---------------- | ------ | ------- | ---------------------------------------------------------------------------------------- |
+  | por origen       | 0      | 0       | la función no toca la tabla                                                              |
+  | por cotización   | 6      | 8       | dos búsquedas por clave (el permiso y la lectura): 3 + 3, y 4 + 4 con el índice más alto |
+  | una por su clave | 3      | 4       | 2 niveles de `cotizaciones_pkey` y el heap, y 3 niveles y el heap                        |
+
+- **Los buffers totales van como dato y no se asertan:** incluyen las tablas de permisos (`roles_permisos`, `perfiles`, `usuarios_roles`:
+  23 a 27 páginas para 6 a 119 filas), que el autovacuum encoge a mitad de una corrida. Una misma llamada leyó 138 y 178 buffers en dos fases
+  de la misma corrida (por origen, con 50.000 y 250.000), y 249 y 460 en otra, sin que cambiara nada de la función. Con `pg_stat_get_xact_blocks_fetched`
+  sobre `cotizaciones` el ruido desaparece.
+- **Las guardas de escala muerden** (`medir-evaluar.sql`, sobre la sintética: ARMAR lee 303 buffers contra un tope de 359):
+
+  | Versión mala (copia de la función de verdad, en `pg_temp`)     | Lee            | Tope |
+  | -------------------------------------------------------------- | -------------- | ---- |
+  | lee todas las tablas del origen y no las que la fórmula nombra | 1.033 buffers  | 359  |
+  | lee las filas de todos los orígenes con esa clave              | 13.006 buffers | 359  |
+
+  El tope es `1,2 × (páginas del heap de las filas nombradas + 4 × (hojas del índice + 3) + el costo fijo de ARMAR del seed)`, con el costo
+  fijo medido en ese momento (64 + 40 + 195 = 299 → 359). Si el texto de `_cotizacion_armar` cambia y la mutación ya no aplica, la guarda falla.
+
+- **`medir-bajas.sql` pasó** en la corrida completa de `db:medir:volumen` (5a-42 no apareció): 9 corridas del job y 40 lotes, 14.357,4 ms en
+  total y 1.846,9 ms la corrida más larga, a las 19:11 y con carga 1,7. La primera corrida completa no llegó a `medir-bajas.sql`: cayó antes,
+  en `medir-evaluar.sql`, por la aserción de buffers totales que se reemplazó (arriba). No se tocó ni se subió ningún tope.

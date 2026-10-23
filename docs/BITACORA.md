@@ -1083,3 +1083,104 @@ Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de �
 **Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05 entero** (el prompt 4 de 4: `819c40d` a `bb791fc`): `validar_formula()` en la base, espejo exacto de `validar.ts` (la forma y 29 reglas, el mismo orden y los mismos códigos; 22023 con la regla en DETAIL y `donde` en HINT; lineal, 200 y 2.000 nodos en 8,4 y 78,4 ms con 0 buffers), probada con los 61 casos y un corpus diferencial de 544 fórmulas (0 diferencias, también en Postgres 17) y 110 mutaciones; `formula_publicar` tutea; «Sugerido: X» no se hace (**4-1**). Antes: **4.05-3** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-4).
 
 1. **4.06** (`evaluar_formula()` en la base, espejo de `motor.ts`, y `cotizacion_evaluar()`, con la paridad de `casos-del-motor.json`; reusa de 4.05-4 `pg_temp.paridad`, los datos en una tabla temporal y las mutaciones por texto) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.
+
+## 2026-10-23 — Paso 4.06, prompt 2 de 2: `cotizacion_evaluar()` sobre `evaluar_formula()` y su assert de tiempo
+
+**Horas (La Paz, de `.git/logs/HEAD`):** desde `f280d8c` (17:05:xx, el HEAD de partida) hasta `ebcc94f` (19:12:16):
+
+- `3809c47` (18:49), la función, el índice nuevo y la prueba de paridad (el primer intento falló en commitlint por 76 caracteres en el
+  encabezado: se repitió con 60);
+- `ebcc94f` (19:12:16), la medición con 50.000 y 250.000 cotizaciones.
+
+**e2e completo: sí (Nivel 2, escritorio):** 666 en verde, 16 saltados, 0 fallos, 24,8 min (19:19 a 19:44, horas de La Paz), sobre
+`ebcc94f`. El primer intento (19:17) se detuvo en `next build` con `SecurityFatalError`, antes de correr ninguna prueba; se repitió el
+mismo comando y no se corrió `next upgrade`.
+
+Toca `supabase/schemas` (el índice) y `supabase/migrations`: es Nivel 2, y `esquema-base.mjs --check` pasa. Sin dependencias nuevas. Ningún
+presupuesto subió: la medición es nueva.
+
+**Qué:** las decisiones as a bc están en `docs/DECISIONES.md` (2026-10-23, «Paso 4.06 (2 de 2)») y el contrato, en `docs/COTIZADOR.md`
+(«El motor» › «En la base (4.06-2)»).
+
+- **Son 3 commits:** la función con su índice y su prueba de paridad, la medición con su sintética, y estos docs. El hook de pre-commit
+  corre `db:probar` entero (3,5 min) con cualquier SQL, así que función y prueba no se pueden separar.
+- **Las cuatro preguntas a la persona** (decididas con la recomendación): la exposición (sin `execute` para `authenticated` hasta el
+  4.10), una función con cotización u origen, los tipos de cambio y el vehículo (los congelados de la cotización; el vehículo sólo si
+  quien llama lo ve), y cómo se leen las tablas (sólo las que la fórmula nombra y no congeló). La quinta salió al leer: un nombre de campo
+  es una columna o la clave de un campo del origen, y `atributos.x` no es nombre de nada.
+- **Hallazgos al leer el esquema y el seed:**
+  - `tablas_referencia_filas` no tenía ningún índice (ni el de su FK): se creó `(tabla_id, orden, id)`;
+  - la fórmula del seed nombra campos sin prefijo (`tipo_vehiculo`, `ubicacion`) y `COTIZADOR.md` decía `atributos.*`;
+  - `vehiculos.anio` va de 1900 a 2100 y la sintética con 1.000 filas pide el 2999: `anioInicial`;
+  - `tipos_cambio.valor` es `numeric(18,6)`.
+
+**Paridad: 0 diferencias.**
+
+- **82 de los 84 casos del juego y 603 de los 775 del corpus** dan exactamente lo de `evaluar_formula()` con la entrada entera (462
+  resultados y 223 errores de llamada), sembrando en la base las tablas, los tipos de cambio y el vehículo de cada caso.
+- **Los saltos, por su motivo** (174 casos; ninguno por una diferencia): 47 con un tipo de cambio que `numeric(18,6)` no guarda, 28 con un
+  campo que no es la clave de un campo del origen (con punto, de una letra, con mayúsculas), 20 con una tabla que la fórmula no lee y una
+  forma que `evaluar()` rechaza, 19 con tipos de cambio, vehículo o tablas que no son un objeto, 12 con una tabla que no es un arreglo,
+  12 con un año fuera de 1900 a 2100 o que no es un entero, 8 con una clave de más en la entrada, 8 con una clave de tipo de cambio que no
+  es un id, y 20 más (un valor que no es número ni texto, una entrada sin uno de sus miembros, un número que no cabe en un doble).
+- Además, a mano: el orden repetido en los dos órdenes de inserción, la congelada que gana a la viva (también vacía), una cotización
+  vieja con SU versión, SU tipo de cambio y SU vehículo, la resolución de tablas (propia, compartida, inactiva, de otro origen, que ningún
+  nodo nombra), los campos del vehículo y los permisos (asesora, logística, una persona bloqueada, una cotización y un vehículo que no se
+  ven, uno de otro origen, el armado que nadie ejecuta).
+
+**Mutaciones: 31, 31 muertas.** Cada una cambia el texto de la migración y corre la prueba (`db:probar` rápido: humo, `evaluar-formula.sql` y
+`cotizacion-evaluar.sql`, en PGlite); la migración se restauró desde una copia y se comprobó con `cmp`.
+
+| Grupo                  | Mutaciones | Qué se rompe                                                                                                                                                                |
+| ---------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| orden de las filas     | 4          | sin el `id` del desempate, sin orden, el `id` al revés, las filas inactivas                                                                                                 |
+| lo que manda           | 3          | la congelada que no manda, la fórmula vigente en vez de la de la cotización, los tipos de cambio vigentes                                                                   |
+| qué se lee             | 6          | los tipos de cambio inactivos, la tabla propia inactiva, la compartida primero, la de cualquier origen, todas las del origen, los `tabla` de `depreciar`                    |
+| permisos y llamada     | 9          | `assert_permiso`, `assert_activo`, `puede_cotizacion`, `puede_vehiculo`, el vehículo de otro origen, `p_vehiculo` con una cotización, las entradas libres, los dos `revoke` |
+| campos del vehículo    | 6          | el campo que el origen no declara, el inactivo, el texto largo, el booleano, los campos de un `match`, los de `campo_vehiculo`                                              |
+| lo que pasa la persona | 3          | la variante, los overrides y el modo perdidos                                                                                                                               |
+
+- **Dos vivas en la primera pasada** (32 mutaciones): `assert_activo` (lo tapaba `puede_cotizacion`; se sumó un caso con una persona
+  bloqueada, y ahora cae) y el regex de un campo, que era código muerto porque `origenes_campos.clave` ya excluye los puntos (se quitó).
+
+**Escala** (`medir-evaluar.sql`, `pnpm db:medir:volumen`; detalle en `docs/RENDIMIENTO.md`):
+
+- **La fórmula del seed:** mediana de 2,5 ms y p95 de 2,8 (topes 10 y 20), por origen y por cotización. **La sintética de 200 nodos con 4
+  tablas vivas de 1.000 filas:** p95 de 36 ms (tope 50): ARMAR 7,4 ms y EVALUAR 27,4. El p95 con 250.000 cotizaciones es 0,95 a 1,07 veces el
+  de 50.000.
+- **No crece con las cotizaciones, en bloques de `cotizaciones`:** 0 por origen; por cotización 6 con 50.000 y 8 con 250.000 (dos búsquedas
+  por clave; el índice pasó de 2 a 3 niveles).
+- **Las guardas muerden:** una versión que lee todas las tablas del origen lee 1.033 buffers y otra que lee las filas de todos los
+  orígenes, 13.006, contra un tope de 359 (la real, 303).
+- **La carga:** 1,5 a 2,4 al medir (`/proc/loadavg`, anotada en la salida por el runner), sin presión de disco ni de CPU.
+
+**Del entorno y de lo que se aprendió:**
+
+- **La primera aserción de buffers era frágil.** `db:medir:volumen` cayó en `medir-evaluar.sql` («lee 178 buffers con 250.000 y 138 con
+  50.000»): el autovacuum encogió a mitad de la corrida las tablas de permisos (`roles_permisos` 23 páginas para 119 filas, `perfiles` 27
+  para 6), que cada llamada recorre. Se reemplazó por los bloques de `cotizaciones` (`pg_stat_get_xact_blocks_fetched`), que no dependen
+  de ellas; los buffers totales quedan como dato.
+- **`pg_read_file` no está permitido a `postgres` en Supabase local:** la carga sale de `\set carga \`cat /proc/loadavg\``.
+- **`medir-bajas.sql` pasó** (5a-42 no apareció): 9 corridas del job y 40 lotes, 14.357,4 ms en total y 1.846,9 ms la corrida más larga, a las
+  19:11 y con carga 1,7; la medición no imprime buffers. No se tocó ni se subió ningún tope.
+- **El hook de pre-commit corre `db:probar` entero** en cada commit con SQL: 3,5 min cada uno.
+- **Un `case … end then` dentro de un `if` de plpgsql no parsea** (el scanner corta en el primer `then`): va a una variable.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (334 archivos, 3.344 pruebas), `bash scripts/mapa.sh --check`,
+`node scripts/esquema-base.mjs --check`, `pnpm db:reset`, `pnpm db:types`, `pnpm db:probar`, `pnpm db:lint`, `pnpm db:medir`,
+`pnpm db:medir:volumen` y el e2e completo (escritorio), sobre `ebcc94f`.
+
+**Lo que no se hizo:**
+
+- `cotizacion_crear` ni `cotizacion_guardar` (4.10), la visibilidad ni los niveles (4.08 y 4.09), ni interfaz;
+- que `validar_formula()` rechace un `campo` con punto (**4-3**, 4.07);
+- `next upgrade`;
+- empujar.
+
+## 2026-10-23 — Movido de ESTADO (4.06-2)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente» y, de «Funcionando», «Último Nivel 2 (escritorio), el paso 4.06 prompt 1: 666 en verde, 16 saltados, 0 fallos, 25,1 min.»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.06, prompt 1 de 2** (`3eaa087` y `fa4a630`): `evaluar_formula()` en la base, espejo exacto de `evaluar()` (los mismos float8, estados, fuentes, totales, faltantes y descartados, y los mismos errores de llamada con el código en DETAIL; pura: las tablas vivas llegan en la entrada; 200 y 2.000 nodos en 5,1 y 43,7 ms con 0 buffers), probada con los 84 casos y un corpus de 775 casos (0 diferencias, también en Postgres 17), la aritmética contra JS y 312 mutaciones (300 muertas y 12 equivalentes con su razón); **4-2** anotado. Antes: **4.05 entero** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.06-1).
+
+1. **4.06, prompt 2** (`cotizacion_evaluar()` sobre `evaluar_formula()` y `supabase/tests/medir-evaluar.sql`, en `db:medir:volumen`: 200 llamadas con el plan genérico ya armado, con 50.000 y 250.000 cotizaciones) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.06-1: armar `entrada.tablas` con `order by orden` y un desempate estable (`orden` admite repetidos), pasar `definicion` y `params` tal cual (la función los desarma una vez al entrar) y contar con que 4 tablas vivas de 1.000 filas cuestan 28 ms con 200 nodos (16 congeladas: la forma de la entrada se revisa), contra el p95 ≤ 50 ms del paso. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.

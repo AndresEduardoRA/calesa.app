@@ -47,7 +47,7 @@ Cada objeto es **estricto**: una clave mal escrita es un error.
 | `input`          | `sugerido_de?` (un nodo anterior), `requerido_si?` (una bandera), `condicion?`                                                        | lo tipea el asesor; con `sugerido_de`, hasta que lo tipee vale lo de ese nodo |
 | `constante`      | `condicion?`. Ninguna se llama `tablas`                                                                                               | `params[id]`: el «valor por defecto global» que cambia el ⚙ (publica la N+1)  |
 | `tipo_cambio`    | `clave` (oficial, paralelo…; una clave, un solo nodo)                                                                                 | el valor vigente de `tipos_cambio` al cotizar; se congela                     |
-| `campo_vehiculo` | `campo` (`anio`, `atributos.*`)                                                                                                       | del vehículo vinculado; null si no hay                                        |
+| `campo_vehiculo` | `campo` (`anio`, o la clave de un campo del origen: `cilindrada`)                                                                     | del vehículo vinculado; null si no hay                                        |
 | `bandera`        | —                                                                                                                                     | el interruptor de la cotización, 0 o 1                                        |
 | `opcion`         | `opciones: [{clave, etiqueta, titulo}]` (dos o más), `por_defecto?`. A lo sumo una por fórmula                                        | la clave elegida (texto). La nombran `solo_en` y un `match`, nunca un cálculo |
 | `tabla`          | `tabla`, `match` {columna: nodo anterior o, si no hay uno con ese id, campo del vehículo}, `columna`, `sobrescribible?`, `condicion?` | la fila que coincide → la columna                                             |
@@ -215,7 +215,7 @@ lo esperado, hecho a mano (las cifras del Excel, desde sus celdas).
 | `inputs`       | lo tipeado, por id de nodo `input`; lo que no está, sin tipear. Una clave que no es un `input` es un error                    |
 | `banderas`     | por id de nodo `bandera`; lo que no está, apagada. Una clave que no es una `bandera` es un error                              |
 | `tipos_cambio` | por clave (oficial, paralelo…), mayores que 0: los de la empresa, la forma de `cotizaciones.tipos_cambio`                     |
-| `vehiculo`     | por campo, tal cual lo escribe la fórmula (`anio`, `atributos.cilindrada`): número, texto o null                              |
+| `vehiculo`     | por campo, tal cual lo escribe la fórmula (`anio`, `cilindrada`): número, texto o null                                        |
 | `tablas`       | las vivas, por clave; la congelada de `params.tablas` manda                                                                   |
 | `variante?`    | la clave elegida del `opcion`. Sin clave, su `por_defecto`                                                                    |
 | `overrides`    | `{id de nodo: número}`: lo que la persona escribió sobre un default o un sugerido. El que no se aplica no es un error (abajo) |
@@ -470,6 +470,62 @@ STABLE. Hace lo mismo que `evaluar()`, y `cotizacion_evaluar()` (4.06-2) la llam
   - con dos claves malas en `inputs`, `banderas` o un modo, TS nombra la primera en orden de inserción y la base, en orden de jsonb. El
     corpus se guarda en orden de jsonb.
 
+### En la base (4.06-2)
+
+`cotizacion_evaluar(p_entradas, p_cotizacion, p_origen, p_vehiculo, p_modo)` y su ayudante `_cotizacion_armar()` están en
+`supabase/migrations/20261019005300_cotizacion_evaluar.sql`: STABLE y `security definer`. `_cotizacion_armar()` comprueba y lee; la otra
+llama a `evaluar_formula()` con lo que armó. `evaluar_formula()` no cambió.
+
+- **La llamada:** exactamente uno de `p_cotizacion` y `p_origen` (si no, `llamada_invalida`).
+  - **Con una cotización:** SU fórmula (`formula_id`, nunca la vigente), SUS tipos de cambio congelados (`cotizaciones.tipos_cambio`) y SU
+    vehículo. Los tipos de cambio no se completan con los vigentes: el que falta es un `tipo_de_cambio_sin_valor`. `p_vehiculo` con una
+    cotización es `llamada_invalida` (`donde = p_vehiculo`).
+  - **Con un origen:** la fórmula publicada (`origen_sin_formula` si no hay), los tipos de cambio activos de la empresa y `p_vehiculo`
+    (opcional; de otro origen es `vehiculo_de_otro_origen`).
+  - Los errores de llamada son 22023 con el código en DETAIL y `donde` en HINT, como los de `evaluar_formula()`.
+- **Lo que tipea la persona** es `p_entradas = {inputs, banderas, overrides, variante}` y nada más. `tipos_cambio`, `vehiculo` y `tablas`
+  los pone la base: una clave de más es `entradas_invalidas` con esa clave en HINT. La forma de cada una la revisa `evaluar_formula()`.
+- **Quién puede,** como la policy:
+  - una cotización, `puede_cotizacion(id, 'cotizaciones.ver')` (una que no existe y una que no se ve dan el mismo 42501); un origen,
+    `cotizaciones.crear` de ese origen; una persona bloqueada, 42501 en los dos;
+  - **el vehículo:** la función corre con los derechos de la base y no puede devolver lo que quien llama no vería. Lee el vehículo sólo si
+    `puede_vehiculo(id, 'vehiculos.ver')` (si no, 42501, también con el vehículo de su cotización), y de él sólo salen los campos que la
+    fórmula nombra y que valen un número o un texto de hasta 200 letras.
+- **Qué lee,** cada consulta con su índice:
+  - **la fórmula:** `formulas_pkey` (cotización) o `formulas_publicada_unica` (origen);
+  - **las tablas:** sólo las que un nodo nombra (`tabla` de un nodo `tabla`, `tramo` o del cálculo `depreciar`) y la fórmula no congeló.
+    Cada una por `tablas_referencia_origen_id_clave_key`: la del origen y, si no hay una activa, la compartida (`origen_id is null`); sus
+    filas activas por `tablas_referencia_filas_tabla_orden_idx (tabla_id, orden, id)` (**índice nuevo** en `schemas/`: la tabla no tenía
+    ninguno). La congelada de `params.tablas` manda aunque esté vacía: esa clave no se lee viva. Una tabla sin filas activas llega como
+    `[]`, una sin tabla no llega (las dos dan `tabla_sin_filas`);
+  - **los tipos de cambio:** sólo las claves de los nodos `tipo_cambio`;
+  - **un campo del vehículo** (`campo_vehiculo.campo` y los valores de un `match` que no son un nodo) es una columna de `anio`, `marca`,
+    `modelo`, `kilometraje` o `precio` o, si no, la clave de un campo **activo del origen del vehículo** (`atributos -> clave`). `atributos.x`
+    no es el nombre de nada: una clave de campo no lleva puntos (`origenes_campos`), así que no llega y la fórmula anota `campo_sin_valor`.
+    Un booleano, una lista, un texto de más de 200 letras y un número que no cabe en un doble no llegan (la hoja no se rompe por un dato
+    del vehículo).
+- **«La primera fila»** es la de menor `orden` y, con el `orden` repetido, la de menor `id`: no depende de cómo se insertaron.
+- **Exposición:** devuelve el resultado entero, y todavía no hay `formulas.visibilidad` (4.08) ni niveles (4.09) que lo recorten. Por
+  eso `revoke execute … from public, anon, authenticated` en las dos hasta el 4.10, y nada de ellas llega a la interfaz antes. Las pruebas
+  le dan el permiso dentro de una transacción que se revierte, y `cotizacion-evaluar.sql` asserta que hoy `authenticated`, `anon` y PUBLIC
+  no pueden ejecutarlas.
+- **Lo que se prueba:**
+  - **`supabase/tests/cotizacion-evaluar.sql`** (`pnpm db:probar`): la paridad, con el juego de 84 casos y el corpus de
+    `corpus-del-motor.json`: 82 y 603 casos dan **exactamente** lo que `evaluar_formula()` con la entrada entera (462 resultados y 223
+    errores de llamada, sembrando en la base las tablas, los tipos de cambio y el vehículo de cada caso). Los demás se saltan por un motivo
+    contado: la base no guarda o no deja pasar lo que piden (un tipo de cambio con más de 6 decimales, un año fuera de 1900 a 2100, un
+    campo con punto o de una letra, un valor que no es número ni texto, una entrada sin uno de sus miembros). Además: el orden repetido
+    (en los dos órdenes de inserción), la congelada que gana a la viva (también vacía), una cotización vieja con SU versión y SU tipo de
+    cambio, la resolución de tablas (propia, compartida, inactiva, de otro origen, no nombrada), los campos del vehículo y los permisos
+    (una asesora, logística, una persona bloqueada, una cotización o un vehículo que no se ven);
+  - **31 mutaciones** del texto de la función, cada una contra esa prueba (`docs/BITACORA.md`, 2026-10-23): caen las 31.
+- **Escala** (`supabase/tests/medir-evaluar.sql`, `pnpm db:medir:volumen`; detalle en `docs/RENDIMIENTO.md`): 200 llamadas seguidas como
+  `authenticated`, con 50.000 y con 250.000 cotizaciones. La fórmula del seed da una mediana de 2,5 ms y un p95 de 2,8 (topes 10 y 20);
+  200 nodos con 4 tablas vivas de 1.000 filas, un p95 de 36 ms (tope 50), de los cuales ARMAR cuesta 7,4 ms y EVALUAR 27,4. No crece con las
+  cotizaciones: el p95 con 250.000 es 1,0 veces el de 50.000, y por origen la llamada toca 0 bloques de `cotizaciones`.
+- **Lo que no hace:** recortar por nivel (4.09 y 4.10); revalidar la fórmula; ni que `validar_formula()` rechace un `campo` con punto (4.07,
+  `docs/PLAN.md` › 4-3).
+
 ## Tipos de cambio y modos (D7, H1)
 
 - Los tipos de cambio son **una lista de la empresa**: `tipos_cambio` (oficial, paralelo, unificado, aduana y los que se sumen), con
@@ -549,8 +605,8 @@ nada de CSS, clases, HTML ni hex.
   - el PDF lee con `cotizacion_leer`, y `validar_plantilla` rechaza un nodo que no sea del nivel «todos»;
   - el comprobante se arma con lo mismo;
   - un inventario (como `numero-global.sql`) registra cada función que devuelve `valores`, `fuentes`, `diff` o `params`.
-- **La hoja calcula en la base para todos:** `cotizacion_evaluar(origen o cotización, entradas)` (definer) usa `evaluar_formula()`,
-  espejo de `motor.ts`, y devuelve sólo lo visible y el total. Guardar recalcula en la base y conserva lo que quien guarda no ve ni
+- **La hoja calcula en la base para todos:** `cotizacion_evaluar(entradas, cotización o origen)` (definer, «En la base (4.06-2)») usa
+  `evaluar_formula()`, espejo de `motor.ts`, y devolverá sólo lo visible y el total (hoy devuelve todo y nadie la ejecuta, hasta el 4.10). Guardar recalcula en la base y conserva lo que quien guarda no ve ni
   edita. El motor TS queda para el editor de la fórmula.
 - **El límite:** un nodo restringido que es el único oculto de una suma visible se deduce restando. El editor del diseño lo avisa y
   no lo bloquea.
