@@ -18,7 +18,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   (`docs/COTIZADOR.md` › «Las reglas»).
 - `entities/casos-de-formula.json` — el juego de fórmulas válidas e inválidas con su motivo (una por regla, más las dos del seed, el
   Excel entero y «Amnistia»): lo recorren `validar.test.ts` y `supabase/tests/validar-formula.sql`. Una regla nueva = su caso acá.
-- `supabase/migrations/20261019004900_validar_formula.sql` — `validar_formula()` y sus ayudantes `_formula_*`: la forma y las 29
+- `supabase/migrations/20261019004900_validar_formula.sql` — `validar_formula()` y sus ayudantes `_formula_*` (STABLE desde `…005100`): la forma y las 29
   reglas en el orden de `validar.ts`, lineal; rechaza con 22023, el código de la regla en DETAIL y `donde` en HINT. Recorre las
   claves de un objeto en el orden de jsonb. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 61 casos y con
   el corpus diferencial `supabase/tests/corpus-de-formula.json` (más de 500 mutaciones de las 4 válidas, defectos mezclados, el esperado

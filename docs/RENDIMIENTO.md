@@ -1151,3 +1151,34 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **Los buffers del job no se mueven con el disco:** 15,60–15,61 M con presión y 15,51–15,61 M sin ella (8 corridas, 0,7 % de dispersión), con el job de 5 a 6 veces más largo que el control del día y más del doble de corridas. Los lotes son 40 en todas (200.000 ÷ 5.000): las corridas suben porque cada una corta a los 1,5 s, así que «≤ 12 corridas» también es un tope de tiempo. El WAL (317–426 MB) varía con las imágenes completas tras cada checkpoint, igual con y sin presión; las páginas ensuciadas (27.696 a 405.670) dependen de cuándo cae el checkpoint: ninguno de los dos sirve de tope.
 - **Lo que se rompe es todo lo que mide tiempo,** también lo que no escribe: la vista previa (359 ms) y la llamada, que una vez pasó los 8 s y `authenticated` la canceló (57014). Hay checkpoints durante el job con y sin presión (≈ 670 MB de WAL cada uno): lo que separa no es que haya uno, sino cuánto tarda su `sync` (con presión, 6 de 10 entre 5 y 17 s; sin ella, nunca más de 1,2 s en el log del día). Pero la guarda 1 cayó sin ningún checkpoint en su ventana: lo que la vio fue la presión de E/S del kernel (`/proc/pressure/io`, `some avg10`), con mediana de 66–76 % con presión y de 4,3 % sin ella, con el medidor escribiendo lo mismo que la guarda (máximo 25,9 %). Hacen falta las dos señales: el `sync` ve lo que escribe la base misma (la corrida de 13 del 4.04, a las 01:43, no tenía presión de afuera) y la presión del kernel ve lo de afuera.
 - **Assert propuesto en `docs/PLAN.md`, 5a-42 (no aplicado):** decide el trabajo (40 lotes, buffers del job ≤ 16.000.000, lo medido más alto + 2,5 %) y los ms de hoy se juzgan sólo si la ventana estuvo sana: ningún checkpoint con `sync` de más de 2 s y la presión de E/S del kernel con mediana ≤ 30 %; si no, «ms no medibles», que no cuenta como verde. No se subió ni se aflojó ningún tope.
+
+## Paso 4.05 (4 de 4): `validar_formula()` con 200 y 2.000 nodos (2026-10-23)
+
+- **Cómo se mide:** con `EXPLAIN (ANALYZE, BUFFERS)` como `authenticated`, en el Supabase local (Postgres 17), la mediana de 5
+  corridas de 7 (las 2 primeras calientan la compilación de plpgsql y el caché del catálogo).
+- **Las fórmulas:** las sintéticas de `formulaSintetica()`, con cadenas de dos referencias, un `suma` de n/2, n/4 constantes, n/10
+  grupos y una variante de 50 claves con `solo_en` de 25. Son las mismas de la prueba de escala de TS, volcadas a
+  `supabase/tests/corpus-de-formula.json` › `sinteticas`.
+- **Dónde corre:** `supabase/tests/medir-validar-formula.sql`, en `pnpm db:medir`.
+
+| Tamaño      | Antes (`…000600`)            | 3 corridas a mano (antes de `fdf87f7`) | Con `…005100` (STABLE) | Tope   |
+| ----------- | ---------------------------- | -------------------------------------- | ---------------------- | ------ |
+| 200 nodos   | — (rechazaba la forma nueva) | 8,39 · 8,57 · 8,46 ms                  | **8,4 ms**             | 26 ms  |
+| 2.000 nodos | —                            | 78,88 · 80,93 · 81,11 ms               | **78,4 ms**            | 245 ms |
+| 2.000 ÷ 200 | —                            | 9,41 · 9,44 · 9,59                     | **9,4**                | 12     |
+
+- **Buffers: 0 en todas las medidas** (shared, local y temp). La función no toca tablas.
+- **La carga al empezar** fue 2,18 en las tres corridas a mano y 1,93 y 2,23 en las dos de `pnpm db:medir`, sin presión de disco ni de
+  CPU (≤ 0,3 %).
+- **Los topes son la mayor mediana de las 3 corridas × 3** (8,57 → 26 y 81,11 → 245). La razón ≤ 12 la fija el pedido, porque el
+  tiempo es más ruidoso que las visitas; el validador TS mide ×10,05 en visitas.
+- **No se subió ningún presupuesto:** la medición es nueva.
+- **Por qué `offset 0`:** la llamada va sobre una subconsulta con `offset 0`. Si la función es IMMUTABLE (lo fue hasta `…005100`), el
+  planificador la evalúa con las constantes al planificar y el tiempo cae en Planning Time.
+- **La guarda muerde:** una mutación hizo cuadrática la pasada de la forma (que recorra la lista en cada nodo), en una transacción
+  que se revierte. Midió 14,32 y 507,03 ms y cayó por el tope de 2.000 nodos («tarda 507,03 ms y el tope es 245»). La razón, 35,4,
+  también la habría tumbado.
+- **Lo que cuesta:** unos 40 µs por nodo, contra 0,05 ms por fórmula entera en TS.
+  - Es plpgsql: cada pasada evalúa unas decenas de expresiones simples por nodo.
+  - La forma revisa con una expresión regular cada id, cada referencia y cada clave de `solo_en` (12.500 en la de 2.000).
+  - Corre al guardar una fórmula (`formula_guardar_borrador`, también desde el ⚙), no al cotizar.

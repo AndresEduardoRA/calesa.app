@@ -827,3 +827,112 @@ capturas», ya en `.claude/rules/e2e.md`, y «De la 9h»):
 - **Mirar capturas:** `capturar()` espera a la pantalla quieta y `node scripts/hoja-de-contacto.mjs <carpeta>` las monta en hojas; «mirar» es abrir todas (`.claude/rules/e2e.md`). Un e2e que falla deja sus artefactos en `e2e-fallos/`.
 
 - **De la 9h:** un texto, un rango o un `@>` sobre un campo privado ya no cuestan la cartera de quien filtra (4.03: por `leads_candidatos()`); sigue costando lo que pesa la cartera cuando el valor es raro (≈ 0,38 µs por lead). Una base viva grande: antes de `…001600`, `_leads_derivados_rellenar(5000)` hasta 0.
+
+## 2026-10-23 — Paso 4.05, prompt 4 de 4: `validar_formula()` en la base, espejo exacto de `validar.ts`
+
+**Horas (La Paz, de `.git/logs/HEAD`):** desde `960dc4e` (11:37:51, el HEAD de partida) hasta `bb791fc` (13:27:59):
+
+- `819c40d` (12:42:02), la función y los 61 casos;
+- `e787b7c` (13:08:18), el corpus diferencial;
+- `fdf87f7` (13:14:17), la escala;
+- `e051a8f` (13:19:08), los textos de la base;
+- `bb791fc` (13:27:59), STABLE.
+
+**e2e completo: sí (Nivel 2, escritorio):** 666 en verde, 16 saltados, 0 fallos, 25,4 min (13:33 a 13:59, horas de La Paz), sobre `bb791fc`.
+El primer intento (13:31) se detuvo en `next build` con `SecurityFatalError`, antes de correr ninguna prueba.
+
+Toca `supabase/schemas` (dos comentarios), así que es Nivel 2. Sin dependencias nuevas y sin `next upgrade`. Ningún presupuesto
+subió: la medición es nueva.
+
+**Qué:** las decisiones z a af están en `docs/DECISIONES.md` (2026-10-23, «Paso 4.05 (4 de 4)») y el contrato, en `docs/COTIZADOR.md`
+(«Las reglas» › «En la base»).
+
+- **Son 5 commits de código y 1 de docs, no 4:**
+  - el pedido juntaba «limpieza y docs», y eso lleva «y»;
+  - `db:lint` encontró después que IMMUTABLE era falso, y `…004900` ya estaba commiteada: va su arreglo, `…005100`.
+- **El plan se revisó en contra** con un agente, que usó `tsx` sobre los Zod reales y PGlite. Encontró cuatro cosas, corregidas
+  antes de escribir:
+  - el orden de la variante estaba invertido: las claves de la primera `opcion` van antes que `opcion_repetida`;
+  - `->>` y los NULL dejaban pasar tipos que Zod rechaza;
+  - un cast a float8 rechazaba `1e-400`;
+  - cuatro mutantes no se portaban como los de TS: el mapa de ids, los grupos por id, la última `opcion` y la posición nula.
+- **La persona eligió el orden de jsonb como contrato** para las claves de un objeto (`params`, `buckets`, `match`).
+- **El voseo de la deuda no estaba en `validar_formula`:** estaba en `formula_publicar` («Recargá.»). Lo corrige `…005000`. Queda
+  `cambiar_fase` (flujos).
+
+**Paridad: 0 diferencias.**
+
+- **Los 61 casos de `casos-de-formula.json`** y **los 544 del corpus** dan la misma regla y el mismo `donde` en PGlite
+  (`db:probar`) y en Postgres 17 (psql contra el local). La base no acepta ninguno que Zod rechaza.
+- **El corpus** tiene 314 casos dirigidos (un defecto) y 230 mezclas (147 con dos defectos y 83 con tres); 15 son válidos.
+  - Cada una de las 30 reglas es la primera en al menos 5 casos.
+  - Pesa 2,8 MB, 107 KB comprimido.
+- **Llegar ahí tomó tres vueltas del generador:**
+  - 743 casos y 3,8 MB, y `grupos_sin_total_en` primera en 4;
+  - después un mutador de miembros que caía en `par_mal_tipado`;
+  - y los seis huecos que dejaron las mutaciones (abajo).
+
+**Mutaciones: 110.** Un arnés en el scratchpad aplica todo en PGlite una vez. Después, por cada mutación: `begin`, el texto mutado de
+`…004900` (más `…005100`), el juego y el corpus, y `rollback`. Decide por DETAIL, nunca por el errcode. No escribe en el repo:
+`git status` quedó limpio en cada corrida.
+
+| Grupo | Qué se apaga                                                                                                                                             | De los 61                                      | Del corpus                                      |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------- |
+| R     | cada uno de los 30 códigos                                                                                                                               | **exactamente sus casos, ninguno más** (30/30) | ≥ 5 cada uno (forma 124, `par_mal_tipado` 26…)  |
+| F     | cada comprobación de la forma, de a una (62 sitios)                                                                                                      | informativo (los 12 de forma cubren 11 sitios) | ≥ 1 cada una, **salvo F01 y F50, equivalentes** |
+| S     | un sitio de los códigos con dos (`referencia_hacia_adelante`, `tipo_de_cambio_inexistente`, `bucket_inexistente`)                                        | 1 cada uno                                     | 36, 6, 7, 5, 6 y 6                              |
+| C     | el miembro sin `daMonto` / sin `esMonto`; el pct sin `aceptaValor` / sin `daMonto` / sin formato pct; el monto sin `esMonto`                             | 4 / 1 / 2 / 1 / 1 / 0                          | 2 / 10 / 3 / 2 / 11 / 7                         |
+| O     | §3↔§4; §6↔§7; `miembro_con_salida` antes; `referencia_de_tipo` antes; `param_sin_constante` antes; las claves de una `opcion` antes de `opcion_repetida` | **0** (cada caso rompe una sola regla)         | 7 / 8 / 7 / 1 / 9 / 5                           |
+
+- **Ninguna cascada** (`cascadas: []`, como en TS).
+- **F01 y F50 son equivalentes:** un nodo o una definición que no es objeto no tiene `tipo` ni `nodos`, y F02 o F51 lo rechazan con el
+  mismo `donde`.
+- **Seis «vivas» de la primera corrida obligaron a cambiar el corpus,** que se regeneró:
+  - F34 y C1 tenían el defecto acompañado de otro en el mismo nodo;
+  - el sitio `solo_en`, O3, O5 y O6 no tenían un caso que los distinguiera. Hay mutadores nuevos para eso: `solo_en_antes_de_variante`,
+    `miembro_pct_con_salida`, `param_renombrado` y `segunda_variante_mala`.
+- **O6 es el error de orden del primer diseño,** y el corpus lo atrapa (5).
+
+**Escala** (`medir-validar-formula.sql`, `pnpm db:medir`; detalle en `docs/RENDIMIENTO.md`):
+
+- 200 nodos 8,4 ms y 2.000 nodos 78,4 ms, ×9,4, con 0 buffers, como `authenticated`; carga 1,9 a 2,3.
+- Topes de 26 y 245 ms (la mayor de 3 corridas × 3) y razón ≤ 12.
+- Con la pasada de la forma hecha cuadrática (una mutación en una transacción que se revierte): 507 ms, y cae.
+
+**Punto 8 («Sugerido: X»): no.** Queda como **4-1** en `docs/PLAN.md` › «Abiertos de la Fase 4», citado desde la fila 4.12, con su
+assert y su lugar. **Punto 9:** la fila 4.08 dice que el seed no trae filas de `transporte_por_ruta`.
+
+**Del entorno:**
+
+- **`db:lint` falló por primera vez acá:** plpgsql_check planifica cada sentencia sin ejecutarla y evaluó la IMMUTABLE
+  `_formula_rechazar('grupos_sin_total_en', null, '…')`, que lanzó. Quedan 32 avisos cosméticos en las funciones nuevas (variables
+  de bucle redeclaradas, sin usar, bigint a int), de la misma clase que los que ya había.
+- **`next build` se detuvo con `SecurityFatalError`** (el aviso de una versión con una vulnerabilidad conocida). Se repitió el comando
+  y no se corrió `next upgrade`: lo decide la persona. Next pide recomendar la actualización:
+  `next upgrade --agent=security --internal-nudge-id=6b33d1fb-1c6e-46df-a6a1-a5cea4902319`.
+- **`noPropertyAccessFromIndexSignature`:** el generador pasó 134 accesos a corchetes, con un script sobre la posición que da `tsc`.
+- **`String.replace` de JS interpreta `$$`** en el texto de reemplazo. La primera mutación de escala rompió el SQL por eso; va con
+  `split`/`join`.
+- **Una función `immutable` que lanza:** con argumentos constantes, el planificador la evalúa. `perform` sólo planifica al llegar,
+  así que en ejecución no se notaba.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test`, `bash scripts/mapa.sh --check`, `node scripts/esquema-base.mjs --check`,
+`pnpm db:base`, `pnpm db:reset`, `pnpm db:types` (los ayudantes suman 24 líneas), `pnpm db:probar`, `pnpm db:lint` y `pnpm db:medir`,
+sobre `bb791fc`.
+
+**Lo que no se hizo:**
+
+- arreglar en TS la divergencia de `__proto__` (Zod lo descarta en un record y la base lo rechaza; está declarada);
+- `evaluar_formula()` (es el 4.06);
+- `next upgrade`;
+- empujar.
+
+## 2026-10-23 — Movido de ESTADO (4.05-4)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente» y, de «Deuda aceptada», «Dos mensajes de RPC
+hablan de vos: `cambiar_fase` y la fórmula.», y de «Funcionando», «Último Nivel 2 (escritorio), el paso 4.03 prompt 3: 666 en verde,
+16 saltados, 0 fallos, 25,1 min.»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05, prompt 3 de 4** (`fd4c6f1` a `b7e02ab`): la variante y el estado de cada nodo, los overrides con sus fuentes y descartados, el par porcentaje-monto, `sugerido_de` y `requerido_si`, sin `rasgo_pendiente`; `casos-del-motor.json` con 84 casos (el Excel entero y «Amnistia», desde sus celdas) y 51 mutaciones; dos arreglos del validador (`total_no_es_monto`, el pct del par) y uno del motor (el grupo con un miembro null daba 0). Antes: **4.05-2** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-3).
+
+1. **4.05, prompt 4** (`validar_formula()` en la base con el juego `casos-de-formula.json`, más lo que dejaron 4.05-2 y 4.05-3: el tipo en `miembro_no_es_monto`, `total_no_es_monto` y el pct del par) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).

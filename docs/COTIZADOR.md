@@ -2,7 +2,8 @@
 
 La fórmula de un origen vive en `formulas.definicion` y `formulas.params` (jsonb) y se versiona entera. El candado que impide publicar
 una fórmula rota es doble y aplica las mismas reglas: `validar.ts` (`src/modules/cotizaciones/entities/`) y `validar_formula()` en la
-base. Los dos comparten un juego de prueba, `entities/casos-de-formula.json`. La evalúan el motor TS (`entities/motor.ts`, 4.05) y
+base. Los dos comparten un juego de prueba, `entities/casos-de-formula.json`, y un corpus diferencial,
+`supabase/tests/corpus-de-formula.json` («Las reglas» › «En la base»). La evalúan el motor TS (`entities/motor.ts`, 4.05) y
 `evaluar_formula()` en la base (4.06). La forma es la del paso 4.05 (`docs/DECISIONES.md`, 2026-10-23, decisiones a a f). La referencia es
 el Excel que la hoja reemplaza (`docs/referencias/excel-de-cotizacion.md`).
 
@@ -154,6 +155,49 @@ aridad, un campo que falta, el id y un param que no es número.
 - **Cada caso inválido del juego rompe una sola regla.** Se comprueba apagando las reglas de a una: los 29 códigos, el 2026-10-23
   (`docs/BITACORA.md`), y en el 4.05-3 `total_no_es_monto` (cuatro casos, uno por tipo) y el pct del par (cinco), que sin su chequeo
   dan «válida».
+
+### En la base (4.05-4)
+
+`validar_formula(definicion, params)` está en `supabase/migrations/20261019004900_validar_formula.sql`, y es STABLE desde `…005100`.
+Hace lo mismo que `validarFormula()`.
+
+- **El rechazo:** `22023`, con el código de la regla en DETAIL (PostgREST lo devuelve como `details`) y `donde` en HINT. Si no hay
+  `donde`, no lleva HINT. El texto es el de `motivos-de-formula.ts`, pero no es contrato: sólo el código y `donde` lo son.
+- **La forma (§0) copia el Zod comprobación por comprobación.** Cada una está marcada `/*Fnn*/` y pasa antes por `jsonb_typeof`:
+  `->>` convierte `true` en un texto que pasa el patrón de un id. Cuenta los largos en code points, como Zod 4.6.5. Lee los números
+  como JS: `abs(x) < 2^1024 − 2^970`, y `n` como `z.int()`.
+- **Las reglas cruzadas (§1 a §7) van en el orden de TS,** una función por archivo de TS (`_formula_cambio_y_grupos`,
+  `_formula_variante`).
+  - Las claves de la primera `opcion` se revisan antes de ver una segunda.
+  - Un id repetido deja en el mapa su última posición, como el `pos.set` de TS.
+  - Una posición nula es el `undefined` de TS.
+- **Es lineal:**
+  - `p_def` se desarma una sola vez;
+  - los mapas (id → posición, grupo → lugar, clave → nodo) se arman por conjuntos;
+  - buscar es la búsqueda binaria de jsonb;
+  - el estado por nodo va en arreglos de plpgsql;
+  - no hay `||` sobre jsonb ni `= any` dentro de un bucle.
+
+  `medir-validar-formula.sql` (`pnpm db:medir`) mide 8,4 ms con 200 nodos y 78,4 ms con 2.000, como `authenticated`. Asserta 0
+  buffers, los topes de 26 y 245 ms y una razón ≤ 12 (medida: 9,4). Detalle en `docs/RENDIMIENTO.md`.
+
+- **El orden de las claves es el de jsonb** (largo en bytes y después bytes), que es lo único que la base ve y lo que se guarda.
+  Decidido con la persona el 2026-10-23.
+  - Aceptar o rechazar coincide con TS en cualquier orden.
+  - Con dos errores en el mismo `params`, `buckets` o `match`, el editor (que recorre en orden de inserción) puede nombrar el otro.
+  - Los 61 casos no dependen del orden, y el corpus se guarda en orden jsonb.
+- **Una divergencia declarada,** con la base más estricta que TS: una clave `__proto__` en `buckets`, `match`, `tablas`, una fila o
+  `params`. Zod la descarta en silencio y la base la rechaza como `forma`. El corpus no la lleva.
+- **Las pruebas (`supabase/tests/validar-formula.sql`, en `pnpm db:probar`):**
+  - los 61 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
+    nunca acepta lo que Zod rechaza;
+  - el corpus son 544 mutaciones deterministas de las 4 válidas, con uno, dos o tres defectos mezclados. Lo arman
+    `corpus-de-formula.ts` y los `mutadores-*.ts`, y `corpus-de-formula.test.ts` lo regenera y lo compara con el guardado.
+- **Las mutaciones (2026-10-23, `docs/BITACORA.md`): 110.**
+  - Cada uno de los 30 códigos apagado tumba exactamente sus casos del juego y ninguno más.
+  - Cada comprobación de forma tumba al menos un caso del corpus, salvo F01 y F50. Son equivalentes: un nodo o una definición que
+    no es objeto no tiene `tipo` ni `nodos`, y la comprobación siguiente lo rechaza con el mismo `donde`.
+  - Los seis cambios de orden no tocan los 61 casos (cada uno rompe una sola regla) y cada uno tumba al menos un caso del corpus.
 
 ## El motor (4.05, prompts 2 y 3)
 
