@@ -11,6 +11,7 @@ export const REGLAS_DE_FORMULA = [
   'referencia_de_tipo',
   'total_unico',
   'total_fijo',
+  'total_no_es_monto',
   'constante_sin_valor',
   'param_sin_constante',
   'par_mal_tipado',
@@ -72,6 +73,8 @@ const MENSAJES: Record<ReglaDeFormula, (d: DatosDeRechazo) => string> = {
     `La fórmula necesita exactamente un nodo con salida «total» (hay ${d.n ?? 0}).`,
   total_fijo: (d) =>
     `El total ${q(d.donde)} no puede depender de una variante ni de un interruptor, ni sobrescribirse.`,
+  total_no_es_monto: (d) =>
+    `El total ${q(d.donde)} tiene que dar un monto: un input, una constante, una tabla, un tramo o un cálculo.`,
   constante_sin_valor: (d) => `La constante ${q(d.donde)} no tiene valor en params.`,
   param_sin_constante: (d) => `params.${d.donde ?? '?'} no corresponde a ninguna constante.`,
   par_mal_tipado: (d) =>

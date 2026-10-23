@@ -1863,6 +1863,140 @@
       "params": {}
     },
     {
+      "nombre": "el total es un tipo de cambio",
+      "valida": false,
+      "motivo": {
+        "regla": "total_no_es_monto",
+        "donde": "total"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "etiqueta": "Total",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "salida": "total",
+            "bucket": "aduana"
+          }
+        ],
+        "buckets": {
+          "aduana": "tc_oficial"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "el total es un campo del vehículo",
+      "valida": false,
+      "motivo": {
+        "regla": "total_no_es_monto",
+        "donde": "total"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "etiqueta": "Total",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "salida": "total",
+            "bucket": "aduana"
+          }
+        ],
+        "buckets": {
+          "aduana": "tc_oficial"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "el total es una bandera",
+      "valida": false,
+      "motivo": {
+        "regla": "total_no_es_monto",
+        "donde": "total"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "etiqueta": "Total",
+            "tipo": "bandera",
+            "salida": "total",
+            "bucket": "aduana"
+          }
+        ],
+        "buckets": {
+          "aduana": "tc_oficial"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "el total es la variante",
+      "valida": false,
+      "motivo": {
+        "regla": "total_no_es_monto",
+        "donde": "total"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "etiqueta": "Total",
+            "tipo": "opcion",
+            "opciones": [
+              {
+                "clave": "moto",
+                "etiqueta": "Moto",
+                "titulo": "Moto"
+              },
+              {
+                "clave": "auto",
+                "etiqueta": "Auto",
+                "titulo": "Auto"
+              }
+            ],
+            "salida": "total",
+            "bucket": "aduana"
+          }
+        ],
+        "buckets": {
+          "aduana": "tc_oficial"
+        }
+      },
+      "params": {}
+    },
+    {
       "nombre": "una constante sin valor en params",
       "valida": false,
       "motivo": {

@@ -6,6 +6,7 @@ import { esquemaFormula, type Formula, type Params } from './formula'
 import { buscar, esta, recorrer, type Medidor } from './medidor'
 import {
   condicionDe,
+  daMonto,
   esMonto,
   formatoDe,
   referenciasDe,
@@ -122,6 +123,8 @@ function revisarTotal(ctx: Contexto): Fallo | undefined {
   ) {
     return fallo('total_fijo', { donde: t.id })
   }
+  // El total es lo que se paga: un tipo de cambio, un campo, una bandera o la variante no lo son.
+  if (t !== undefined && !daMonto(t)) return fallo('total_no_es_monto', { donde: t.id })
   return undefined
 }
 
