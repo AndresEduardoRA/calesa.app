@@ -459,3 +459,17 @@ Copiado tal cual de `docs/ESTADO.md` al cerrar el 4.04:
 Copiado tal cual de `docs/ESTADO.md` al registrar el diagnóstico (el punto 2 de «Siguiente»):
 
 2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT; toca `supabase/schemas`, después del hito 4-A) y **5a-41** (una corrida de `pnpm test` cayó 2 pruebas sin reproducirse) sin fase, las decide la persona; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
+
+## 2026-10-23 — La salida de `pnpm test` se guarda sola (cierre de 5a-41)
+
+**Horas (La Paz):** desde `8e75cf7` (05:01:05 en `.git/logs/HEAD`, el HEAD de partida) hasta `027c860` (06:51, el código). **e2e completo: no (Nivel 1).** Sin tocar `supabase/`, ninguna prueba, ningún timeout ni presupuesto.
+
+**Qué:** todo `pnpm test` deja `test-salidas/<fecha_hora-pid>/salida.txt` (la salida completa, sin colores) y `resultado.json` (reporter `json` de Vitest, sin dependencias nuevas). `vitest.config.mts` cablea el reporter `scripts/reporter-de-salida.ts`, que copia stdout y stderr al archivo con una escritura directa por trozo (una corrida cortada con Ctrl+C deja lo que alcanzó a imprimir, sin JSON) y no corre en modo watch; lo puro, con test, está en `scripts/salida-de-test.ts`. Al fijar `reporters` Vitest deja de elegir solo entre `agent` y `default`: la config repite su elección con el `std-env` de Vitest. Quedan las cinco últimas corridas (la actual nunca se borra); el pid en el nombre evita que dos corridas del mismo segundo se pisen; la fecha del nombre es UTC, como en `e2e-fallos/`. El hook de Stop sigue mostrando 40 líneas y dice dónde quedó el archivo.
+
+**Comprobado:** contra HEAD, con una prueba temporal que falla a propósito, `pnpm test` no dejó ningún archivo (rojo); con el cambio, `salida.txt` nombra la prueba y el mensaje y `resultado.json` trae `numFailedTests: 1` y su `fullName`. Dos corridas a la vez: dos carpetas distintas, cada una completa. Siete corridas: quedan cinco. Ctrl+C: `salida.txt` con lo impreso. Mutación (sin el reporter de salida y el `json`): no hay archivo y la comprobación cae; restaurada, pasa. La prueba temporal se borró y `git status` no muestra nada suyo. `pnpm test` completo: 319 archivos, 3.073 pruebas, 72,3 s (antes 73–88 s).
+
+**Movido de ESTADO** (copiado tal cual, punto 2 de «Siguiente»): «**5a-41** cerrado, no reproducida (50 corridas de `pnpm test` en 5 condiciones, 0 caídas: `docs/RENDIMIENTO.md` › «Diagnóstico de 5a-41»)». ESTADO quedó en 10.486 de 12.288 bytes.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y `bash scripts/mapa.sh --check`.
+
+**Lo que no se hizo:** 5a-42, 4.05, subir un presupuesto, `next upgrade`, empujar.
