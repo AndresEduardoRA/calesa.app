@@ -21,7 +21,7 @@ function delJuego(nombre: string): Formula {
   return r.formula
 }
 
-// Una fórmula con la forma del Zod pero sin las reglas cruzadas: el motor revisa sus rasgos antes que nada.
+// Una fórmula con la forma del Zod pero sin las reglas cruzadas.
 const conForma = (nodos: unknown[], extra: Record<string, unknown> = {}): Formula =>
   esquemaFormula.parse({ definicion: { nodos, buckets: { b: 'tc' }, ...extra }, params: {} })
 
@@ -44,6 +44,7 @@ const entrada = (x: Partial<Entrada> = {}): Entrada =>
     tipos_cambio: { oficial: 1 },
     vehiculo: {},
     tablas: {},
+    overrides: {},
     ...x,
   })
 
@@ -70,33 +71,6 @@ describe('ErrorDelMotor', () => {
       'buckets.b',
       'x',
     ])
-  })
-})
-
-describe('lo que el motor todavía no evalúa lanza y nombra el rasgo (llega con los overrides)', () => {
-  it('lo sobrescribible: el Excel entero y «Amnistia»', () => {
-    for (const nombre of [
-      'excel: las cuatro cotizaciones en una fórmula con su variante',
-      'excel: la multa de «Amnistia», gasolina y gas',
-    ]) {
-      const e = lanzado(() => evaluar(delJuego(nombre), entrada({ variante: 'gasolina' })))
-      expect(e, nombre).toMatchObject({
-        codigo: 'rasgo_pendiente',
-        message: expect.stringContaining('«sobrescribible»'),
-      })
-    }
-  })
-
-  it('sugerido_de lanza sólo si el input llega sin tipear: con valor tipeado, el número es lo tipeado', () => {
-    const semilla = delJuego('semilla: subasta_usa')
-    const e = lanzado(() => evaluar(semilla, entrada({ inputs: { remate: 10000 } })))
-    expect(e).toMatchObject({
-      codigo: 'rasgo_pendiente',
-      donde: 'fob_tabla',
-      message: expect.stringContaining('«sugerido_de»'),
-    })
-    const tipeado = evaluar(semilla, entrada({ inputs: { remate: 10000, fob_tabla: 12000 } }))
-    expect(tipeado.valores['fob_tabla']).toBe(12000)
   })
 })
 
@@ -142,6 +116,11 @@ describe('la variante que elige la entrada', () => {
     expect(lanzado(() => evaluar(conVariante(), entrada()))).toMatchObject({
       codigo: 'entrada_invalida',
       donde: 'v',
+    })
+    const amnistia = delJuego('excel: la multa de «Amnistia», gasolina y gas')
+    expect(lanzado(() => evaluar(amnistia, entrada()))).toMatchObject({
+      codigo: 'entrada_invalida',
+      donde: 'combustible',
     })
   })
 

@@ -34,3 +34,11 @@ export function propia<V>(
 export function mapaDe<V>(objeto: Readonly<Record<string, V>>, medidor: Medidor): Map<string, V> {
   return new Map(recorrer(Object.entries(objeto), medidor))
 }
+
+// Una copia ordenada por bytes (como `collate "C"`, para ids ASCII): cada comparación es una visita.
+export function ordenar(lista: Iterable<string>, medidor: Medidor): string[] {
+  return Array.from(recorrer(lista, medidor)).sort((a, b) => {
+    medidor.visitas += 1
+    return a < b ? -1 : a > b ? 1 : 0
+  })
+}

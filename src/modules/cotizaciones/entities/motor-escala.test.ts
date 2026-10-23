@@ -31,17 +31,18 @@ const CABECERA: Crudo[] = [
 // El nodo k, en un ciclo de 8 tipos: miembros (constantes, inputs, `porcentaje_de`, tablas y tramos) y cálculos
 // fuera de los grupos (uno de cada dos `multiplicar` con una condición encendida). Cada rasgo va en un tipo del
 // ciclo, así las dos sintéticas lo tienen en la misma proporción: el `multiplicar` está en su variante y el
-// `restar`, fuera.
+// `restar`, fuera; el input sin tipear vale su sugerido; el tramo trae override y el `redondear`, uno que se
+// descarta.
 function forma(k: number, ids: readonly string[], grupo: string): Crudo {
   const [a, b, c] = [ids[k - 1] ?? 'pct', ids[k - 2] ?? 'pct', ids[k - 3] ?? 'pct']
   const condicion = k % 16 === 3 ? { condicion: 'activa' } : {}
   const formas: Crudo[] = [
     { tipo: 'constante', grupo },
-    { tipo: 'input', grupo },
+    { tipo: 'input', sugerido_de: 'pct', grupo },
     { tipo: 'calculo', op: 'porcentaje_de', de: [a, b], pct: 'pct', grupo },
     { tipo: 'calculo', op: 'multiplicar', de: [a, b], solo_en: ['a'], ...condicion },
     { tipo: 'tabla', tabla: 't1', match: { clase: 'clase' }, columna: 'v', grupo },
-    { tipo: 'tramo', tabla: 't2', sobre: 'anio', columna: 'v', grupo },
+    { tipo: 'tramo', tabla: 't2', sobre: 'anio', columna: 'v', sobrescribible: true, grupo },
     { tipo: 'calculo', op: 'restar', de: [a, b, c], solo_en: ['b'] },
     { tipo: 'calculo', op: 'redondear', de: [a], n: 2 },
   ]
@@ -64,14 +65,14 @@ function sintetica(n: number): Sintetica {
   }))
   const nodos = [...CABECERA]
   const params: Crudo = { pct: 0.1 }
-  const inputs: Record<string, number> = {}
+  const overrides: Record<string, number> = { zz: 1, mm: 2, aa: 3 }
   const ids: string[] = []
   for (let k = 0, miembro = 0; nodos.length < n - 1; k += 1) {
     const nodo = forma(k, ids, `g${miembro % grupos.length}`)
     if (nodo['grupo'] !== undefined) miembro += 1
     nodos.push(nodo)
     if (k % 8 === 0) params[`x${k}`] = k
-    if (k % 8 === 1) inputs[`x${k}`] = k
+    if (k % 8 === 5 || k % 8 === 7) overrides[`x${k}`] = k
     ids.push(`x${k}`)
   }
   const de = ids.filter((_, i) => i % 2 === 0)
@@ -81,7 +82,8 @@ function sintetica(n: number): Sintetica {
   const r = validarFormula(definicion, params)
   if (!r.ok) throw new Error(r.error.mensaje)
   const entrada = {
-    inputs,
+    inputs: {},
+    overrides,
     banderas: { activa: true },
     tipos_cambio: { oficial: 6.96, paralelo: 10 },
     vehiculo: { anio: 2049, clase: `c${FILAS - 1}` },
@@ -90,7 +92,8 @@ function sintetica(n: number): Sintetica {
   return { formula: r.formula, entrada }
 }
 
-// Lo que mide una corrida: nodos, aristas, grupos, las claves de la entrada y de params, las entradas de `solo_en`
+// Lo que mide una corrida: nodos, aristas, grupos, las claves de la entrada (con los overrides) y de params, las
+// entradas de `solo_en`
 // y las opciones de la variante, y en cada búsqueda las filas de su tabla por (1 + las columnas que compara: las del
 // `match`, o `desde` y `hasta`).
 function tamano({ formula, entrada }: Sintetica): number {
@@ -105,6 +108,7 @@ function tamano({ formula, entrada }: Sintetica): number {
   }
   const claves = (o: object) => Object.keys(o).length
   total += claves(entrada.inputs) + claves(entrada.banderas) + claves(entrada.tipos_cambio)
+  total += claves(entrada.overrides)
   total +=
     claves(entrada.vehiculo) + claves(formula.params.constantes) + claves(formula.params.tablas)
   return total
@@ -116,12 +120,13 @@ function visitas(s: Sintetica): number {
   return medidor.visitas
 }
 
-// k contada por pasadas (no medida). La unidad que más cuesta es un nodo `tabla` de un grupo, con su condición y
-// su tabla viva: armar el índice (1), los rasgos (1), la pasada de los estados y su condición (2), la pasada (1), su
-// estado (1), la salida de valores y de estados (2), la tabla congelada y la viva (2), la celda (1) y su grupo (1) =
-// 12. Una arista cuesta a lo sumo 3 (un `match`: el recorrido, si es un nodo y su valor), un grupo 7 (el modo, si
-// se dibuja y el total), una clave de la entrada 3, una entrada de `solo_en` o una opción 1 y una celda comparada 2.
-const K = 12
+// k contada por pasadas (no medida). La unidad que más cuesta es un nodo `tabla` sobrescribible de un grupo, con su
+// condición y su tabla viva: armar el índice (1), la pasada de los estados y su condición (2), la pasada (1), su
+// estado (1), su override y si es un pct pisado (2), la salida de valores, de estados y de fuentes (3), la tabla
+// congelada y la viva (2), la celda (1) y su grupo (1) = 14. Una arista cuesta a lo sumo 3 (un `match`: el recorrido,
+// si es un nodo y su valor), un grupo 7 (el modo, si se dibuja y el total), una clave de la entrada 3, una entrada de
+// `solo_en` o una opción 1 y una celda comparada 2.
+const K = 14
 
 describe('evaluar con volumen', () => {
   const chica = sintetica(200)
@@ -151,6 +156,7 @@ describe('evaluar con volumen', () => {
       'motor-errores.ts',
       'motor-estados.ts',
       'motor-nodos.ts',
+      'motor-sobrescribir.ts',
       'motor-calculo.ts',
       'motor-tablas.ts',
       'motor-totales.ts',

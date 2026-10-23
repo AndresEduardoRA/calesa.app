@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { esquemaModoDeCambio, type Formula } from './formula'
 import { evaluar, type Resultado } from './motor'
-import { CODIGOS_DE_FALTANTE, ESTADOS } from './motor-contexto'
+import { CODIGOS_DE_FALTANTE, ESTADOS, FUENTES, MOTIVOS_DE_DESCARTE } from './motor-contexto'
 import { esquemaEntrada } from './motor-entrada'
 import { redondear } from './redondeo'
 import { validarFormula } from './validar'
@@ -28,8 +28,13 @@ const esquemaEsperado = z.strictObject({
   valores: z.record(z.string(), z.union([z.number(), z.string()]).nullable()).optional(),
   // Los que no están activos; el resto, activo.
   estados: z.record(z.string(), z.enum(ESTADOS).exclude(['activo'])).optional(),
+  // El mapa entero, en el orden de la lista.
+  fuentes: z.record(z.string(), z.enum(FUENTES)).optional(),
   totales: esquemaTotales.optional(),
   faltantes: z.array(esquemaFaltante),
+  overrides_descartados: z
+    .array(z.strictObject({ id: z.string(), motivo: z.enum(MOTIVOS_DE_DESCARTE) }))
+    .optional(),
 })
 const esquemaJuego = z.strictObject({
   descripcion: z.string(),
@@ -65,7 +70,14 @@ function formulaDe(c: Caso): Formula {
   return r.formula
 }
 
-const VACIA = { inputs: {}, banderas: {}, tipos_cambio: {}, vehiculo: {}, tablas: {} }
+const VACIA = {
+  inputs: {},
+  banderas: {},
+  tipos_cambio: {},
+  vehiculo: {},
+  tablas: {},
+  overrides: {},
+}
 const entradaDe = (c: Caso) => esquemaEntrada.parse({ ...VACIA, ...c.entrada })
 
 // Exacto (Object.is) salvo que el caso diga con cuántos decimales; un texto, siempre exacto.
@@ -95,15 +107,18 @@ function compararTotales(r: Resultado, c: Caso) {
   }
 }
 
-// Los estados se comparan enteros y en el orden de la lista (como los guarda la base).
+// Los estados y las fuentes se comparan enteros y en el orden de la lista (como los guarda la base).
 function compararMapas(r: Resultado, c: Caso, formula: Formula) {
-  const { estados } = c.esperado
-  if (estados === undefined) return
-  const todos = formula.definicion.nodos.map((n) => [
-    n.id,
-    Object.hasOwn(estados, n.id) ? estados[n.id] : 'activo',
-  ])
-  expect(Object.entries(r.estados), 'estados').toEqual(todos)
+  const { estados, fuentes } = c.esperado
+  if (estados !== undefined) {
+    const todos = formula.definicion.nodos.map((n) => [
+      n.id,
+      Object.hasOwn(estados, n.id) ? estados[n.id] : 'activo',
+    ])
+    expect(Object.entries(r.estados), 'estados').toEqual(todos)
+  }
+  if (fuentes !== undefined)
+    expect(Object.entries(r.fuentes), 'fuentes').toEqual(Object.entries(fuentes))
 }
 
 describe('casos-del-motor.json', () => {
@@ -114,7 +129,7 @@ describe('casos-del-motor.json', () => {
     compararTotales(r, c)
     compararMapas(r, c, formula)
     expect(r.faltantes).toEqual(c.esperado.faltantes)
-    expect(r.fuentes).toEqual({})
+    expect(r.overrides_descartados).toEqual(c.esperado.overrides_descartados ?? [])
   })
 })
 
@@ -143,9 +158,15 @@ describe('el juego del motor', () => {
     for (const op of [...todas, 'depreciar', 'redondear']) expect(ops, op).toContain(op)
   })
 
-  it('cubre cada estado', () => {
+  it('cubre cada fuente, cada estado y cada motivo de descarte', () => {
+    const fuentes = new Set(esperados.flatMap((e) => Object.values(e.fuentes ?? {})))
     const estados = new Set(esperados.flatMap((e) => Object.values(e.estados ?? {})))
+    const motivos = new Set(
+      esperados.flatMap((e) => (e.overrides_descartados ?? []).map((d) => d.motivo)),
+    )
+    for (const f of FUENTES) expect(fuentes, f).toContain(f)
     for (const e of ESTADOS) if (e !== 'activo') expect(estados, e).toContain(e)
+    for (const m of MOTIVOS_DE_DESCARTE) expect(motivos, m).toContain(m)
   })
 
   it('los nombres no se repiten y cada entrada pasa esquemaEntrada', () => {
@@ -169,7 +190,7 @@ describe('las capturas del cotizador de hoy (docs/referencias/cotizador-actual.m
   })
 
   it('la 09, con el unificado en 12, da 72.951,51 sin redondear y se muestra $72.952', () => {
-    for (const nombre of ['captura 09: modo unificado']) {
+    for (const nombre of ['captura 09: modo unificado', 'captura 09: el unificado de la empresa']) {
       const usd = total(nombre)
       expect(usd, nombre).toBeCloseTo(72951.50666666667, 9)
       expect([redondear(usd, 2), redondear(usd, 0)], nombre).toEqual([72951.51, 72952])

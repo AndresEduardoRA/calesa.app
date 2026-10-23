@@ -1,12 +1,9 @@
 // Los errores de llamada del motor: lo que no es un dato que falta sino un error del código que llama (un modo
-// que no corresponde a la fórmula, una entrada con claves de otro tipo, una fórmula que no pasó por
-// validarFormula) o un rasgo que el motor todavía no evalúa. Lanzan: lo que puede causar una persona viaja como
-// valor, en `faltantes` (docs/DECISIONES.md, 2026-10-23, paso 4.05 prompt 2).
-import { buscar, recorrer, type Medidor } from './medidor'
-import { sobrescribibleDe, type Nodo } from './nodos'
+// que no corresponde a la fórmula, una entrada con claves de otro tipo o una variante que no está, una fórmula que no
+// pasó por validarFormula). Lanzan: lo que puede causar una persona viaja como valor, en `faltantes` y en
+// `overrides_descartados` (docs/DECISIONES.md, 2026-10-23, paso 4.05 prompts 2 y 3).
 
 export const CODIGOS_DE_ERROR_DEL_MOTOR = [
-  'rasgo_pendiente',
   'modo_invalido',
   'entrada_invalida',
   'formula_sin_validar',
@@ -24,37 +21,4 @@ export class ErrorDelMotor extends Error {
     this.codigo = codigo
     this.donde = donde
   }
-}
-
-// Lo que el motor del prompt 2 no evalúa. El prompt 3 de 4.05 implementa cada uno y saca su caso de acá.
-export type RasgoPendiente = 'sobrescribible' | 'sugerido_de'
-
-// Una pasada antes de calcular nada: el motor no devuelve un número que dependa de algo que no implementa.
-export function revisarRasgos(
-  nodos: readonly Nodo[],
-  inputs: ReadonlyMap<string, number>,
-  m: Medidor,
-): void {
-  for (const n of recorrer(nodos, m)) {
-    const rasgo = rasgoPendienteDe(n, inputs, m)
-    if (rasgo !== undefined) {
-      throw new ErrorDelMotor(
-        'rasgo_pendiente',
-        `El motor todavía no evalúa «${rasgo}» (nodo «${n.id}»): llega en el paso 4.05, prompt 3.`,
-        n.id,
-      )
-    }
-  }
-}
-
-function rasgoPendienteDe(
-  n: Nodo,
-  inputs: ReadonlyMap<string, number>,
-  m: Medidor,
-): RasgoPendiente | undefined {
-  if (sobrescribibleDe(n)) return 'sobrescribible'
-  if (n.tipo !== 'input') return undefined
-  // Con valor tipeado, el número es lo tipeado y no depende del sugerido.
-  if (n.sugerido_de !== undefined && buscar(inputs, n.id, m) === undefined) return 'sugerido_de'
-  return undefined
 }

@@ -109,7 +109,26 @@
           "usd": 18487.48264,
           "suma_usd": 18487.48264
         },
-        "faltantes": []
+        "faltantes": [],
+        "fuentes": {
+          "tc_oficial": "default",
+          "tc_paralelo": "default",
+          "remate": "input",
+          "fob_tabla": "override",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gastos_puerto": "default",
+          "gastos_garaje": "default",
+          "utilidad": "default",
+          "poliza": "default",
+          "fees_pct": "default",
+          "transferencia_pct": "default",
+          "grua": "input",
+          "comision": "default",
+          "documentacion": "default",
+          "costo_hibrido_base": "default",
+          "garantia_pct": "default"
+        }
       }
     },
     {
@@ -4284,6 +4303,11 @@
           "c": "condicion_apagada",
           "d": "fuera_de_variante"
         },
+        "fuentes": {
+          "tc": "default",
+          "tc2": "default",
+          "x": "input"
+        },
         "totales": {
           "grupos": {
             "g1": {
@@ -4504,6 +4528,12 @@
         "estados": {
           "c": "condicion_apagada",
           "d": "condicion_apagada"
+        },
+        "fuentes": {
+          "tc": "default",
+          "tc2": "default",
+          "x": "input",
+          "k": "default"
         },
         "totales": {
           "grupos": {
@@ -5007,6 +5037,11 @@
           "total": null
         },
         "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "r": "input",
+          "w": "input"
+        },
         "totales": {
           "grupos": {},
           "bs": null,
@@ -5252,6 +5287,10 @@
         "estados": {
           "w": "condicion_apagada"
         },
+        "fuentes": {
+          "tc": "default",
+          "r": "input"
+        },
         "totales": {
           "grupos": {},
           "bs": null,
@@ -5265,6 +5304,1866 @@
             "ref": "f"
           }
         ]
+      }
+    },
+    {
+      "nombre": "semilla subasta_usa: fob_tabla sin tipear vale el remate (sugerido_de)",
+      "formula_de": "semilla: subasta_usa",
+      "entrada": {
+        "inputs": {
+          "remate": 10000,
+          "grua": 300
+        },
+        "banderas": {
+          "es_hibrido": true
+        },
+        "tipos_cambio": {
+          "oficial": 6.96,
+          "paralelo": 12.4
+        },
+        "vehiculo": {
+          "anio": 2023,
+          "tipo_vehiculo": "automovil",
+          "ubicacion": "houston"
+        },
+        "tablas": {
+          "impuestos_por_tipo": [
+            {
+              "tipo": "automovil",
+              "ga": 0.1,
+              "iva": 0.1494
+            },
+            {
+              "tipo": "moto",
+              "ga": 0.1,
+              "iva": 0.1494
+            }
+          ],
+          "ice_por_anio_y_cilindrada": [
+            {
+              "desde": 2015,
+              "hasta": 2100,
+              "ice": 0.05
+            },
+            {
+              "desde": 1900,
+              "hasta": 2014,
+              "ice": 0.1
+            }
+          ],
+          "depreciacion": [
+            {
+              "anio": 2025,
+              "factor": 1
+            },
+            {
+              "anio": 2024,
+              "factor": 0.95
+            },
+            {
+              "anio": 2023,
+              "factor": 0.9
+            },
+            {
+              "anio": 2022,
+              "factor": 0.85
+            },
+            {
+              "anio": 2021,
+              "factor": 0.8
+            }
+          ],
+          "transporte_por_ruta": [
+            {
+              "ruta": "houston",
+              "precio": 1100
+            }
+          ]
+        }
+      },
+      "esperado": {
+        "valores": {
+          "fob_tabla": 10000,
+          "factor_dp": 0.9,
+          "fob_base": 9000,
+          "seguro": 180,
+          "cif": 12160,
+          "ga": 1216,
+          "iva": 1998.3744000000002,
+          "ice": 668.8000000000001,
+          "destino_total": 4533.1744,
+          "origen_total": 13368,
+          "total": 17901.1744
+        },
+        "estados": {},
+        "fuentes": {
+          "tc_oficial": "default",
+          "tc_paralelo": "default",
+          "remate": "input",
+          "fob_tabla": "sugerido",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gastos_puerto": "default",
+          "gastos_garaje": "default",
+          "utilidad": "default",
+          "poliza": "default",
+          "fees_pct": "default",
+          "transferencia_pct": "default",
+          "grua": "input",
+          "comision": "default",
+          "documentacion": "default",
+          "costo_hibrido_base": "default",
+          "garantia_pct": "default"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 197314.093824,
+          "usd": 17901.1744,
+          "suma_usd": 17901.1744
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "sugerido_de: el sugerido de un valor que falta queda sin valor, sin faltante nuevo",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "A",
+            "formato": "raw"
+          },
+          {
+            "id": "s",
+            "tipo": "input",
+            "etiqueta": "S",
+            "sugerido_de": "a"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["s"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "a": null,
+          "s": null,
+          "total": null
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "s": "sugerido"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "campo_sin_valor",
+            "donde": "a",
+            "ref": "anio"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "sugerido_de con requerido_si: el sugerido no cumple lo requerido",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw"
+          },
+          {
+            "id": "base",
+            "tipo": "constante",
+            "etiqueta": "Base"
+          },
+          {
+            "id": "s",
+            "tipo": "input",
+            "etiqueta": "S",
+            "sugerido_de": "base",
+            "requerido_si": "f"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["s"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "base": 5
+      },
+      "entrada": {
+        "banderas": {
+          "f": true
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "base": 5,
+          "s": null,
+          "total": null
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "base": "default",
+          "s": "input"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "requerido_sin_valor",
+            "donde": "s",
+            "ref": "f"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "overrides: el override gana al sugerido, y lo que no se aplica se descarta con su motivo, en orden",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw"
+          },
+          {
+            "id": "k",
+            "tipo": "constante",
+            "etiqueta": "K"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "filas",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "T",
+            "sobrescribible": true
+          },
+          {
+            "id": "n",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["k"],
+            "etiqueta": "N"
+          },
+          {
+            "id": "z",
+            "tipo": "tabla",
+            "tabla": "filas",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "Z",
+            "sobrescribible": true,
+            "solo_en": ["b"]
+          },
+          {
+            "id": "w",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["k", "k"],
+            "etiqueta": "W",
+            "sobrescribible": true,
+            "condicion": "f"
+          },
+          {
+            "id": "j",
+            "tipo": "input",
+            "etiqueta": "J",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "i",
+            "tipo": "input",
+            "etiqueta": "I"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["k", "t", "n", "z", "w", "i"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "k": 10,
+        "tablas": {
+          "filas": [
+            {
+              "anio": 2020,
+              "v": 3
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "variante": "a",
+        "tipos_cambio": {
+          "oficial": 2
+        },
+        "vehiculo": {
+          "anio": 2017
+        },
+        "overrides": {
+          "t": 4,
+          "n": 99,
+          "z": 5,
+          "w": 6,
+          "j": 8,
+          "i": 7,
+          "total": 1,
+          "zz": 1,
+          "aa": 2
+        }
+      },
+      "esperado": {
+        "valores": {
+          "v": "a",
+          "tc": 2,
+          "f": 0,
+          "k": 10,
+          "t": 4,
+          "n": 10,
+          "z": 0,
+          "w": 0,
+          "j": 0,
+          "i": 0,
+          "total": 24
+        },
+        "estados": {
+          "z": "fuera_de_variante",
+          "w": "condicion_apagada",
+          "j": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc": "default",
+          "k": "default",
+          "t": "override",
+          "i": "input"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 48,
+          "usd": 24,
+          "suma_usd": 24
+        },
+        "faltantes": [],
+        "overrides_descartados": [
+          {
+            "id": "n",
+            "motivo": "no_sobrescribible"
+          },
+          {
+            "id": "z",
+            "motivo": "fuera_de_variante"
+          },
+          {
+            "id": "w",
+            "motivo": "condicion_apagada"
+          },
+          {
+            "id": "j",
+            "motivo": "fuera_de_variante"
+          },
+          {
+            "id": "i",
+            "motivo": "no_sobrescribible"
+          },
+          {
+            "id": "total",
+            "motivo": "no_sobrescribible"
+          },
+          {
+            "id": "aa",
+            "motivo": "nodo_inexistente"
+          },
+          {
+            "id": "zz",
+            "motivo": "nodo_inexistente"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "overrides: una constante y un tipo de cambio sobrescritos, y sin override vale el sugerido",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw"
+          },
+          {
+            "id": "k",
+            "tipo": "constante",
+            "etiqueta": "K"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "filas",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "T",
+            "sobrescribible": true
+          },
+          {
+            "id": "n",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["k"],
+            "etiqueta": "N"
+          },
+          {
+            "id": "z",
+            "tipo": "tabla",
+            "tabla": "filas",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "Z",
+            "sobrescribible": true,
+            "solo_en": ["b"]
+          },
+          {
+            "id": "w",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["k", "k"],
+            "etiqueta": "W",
+            "sobrescribible": true,
+            "condicion": "f"
+          },
+          {
+            "id": "j",
+            "tipo": "input",
+            "etiqueta": "J",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "i",
+            "tipo": "input",
+            "etiqueta": "I"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["k", "t", "n", "z", "w", "i"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "k": 10,
+        "tablas": {
+          "filas": [
+            {
+              "anio": 2020,
+              "v": 3
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "variante": "b",
+        "inputs": {
+          "j": 2
+        },
+        "banderas": {
+          "f": true
+        },
+        "tipos_cambio": {
+          "oficial": 2
+        },
+        "vehiculo": {
+          "anio": 2020
+        },
+        "overrides": {
+          "k": 11,
+          "tc": 4
+        }
+      },
+      "esperado": {
+        "valores": {
+          "tc": 4,
+          "k": 11,
+          "t": 3,
+          "n": 11,
+          "z": 3,
+          "w": 121,
+          "j": 2,
+          "i": 0,
+          "total": 149
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "override",
+          "k": "override",
+          "t": "sugerido",
+          "z": "sugerido",
+          "w": "sugerido",
+          "j": "input",
+          "i": "input"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 596,
+          "usd": 149,
+          "suma_usd": 149
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "overrides: un tipo de cambio sobrescrito a 0 queda sin valor, como el de la empresa",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw"
+          },
+          {
+            "id": "k",
+            "tipo": "constante",
+            "etiqueta": "K"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "filas",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "T",
+            "sobrescribible": true
+          },
+          {
+            "id": "n",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["k"],
+            "etiqueta": "N"
+          },
+          {
+            "id": "z",
+            "tipo": "tabla",
+            "tabla": "filas",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "Z",
+            "sobrescribible": true,
+            "solo_en": ["b"]
+          },
+          {
+            "id": "w",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["k", "k"],
+            "etiqueta": "W",
+            "sobrescribible": true,
+            "condicion": "f"
+          },
+          {
+            "id": "j",
+            "tipo": "input",
+            "etiqueta": "J",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "i",
+            "tipo": "input",
+            "etiqueta": "I"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["k", "t", "n", "z", "w", "i"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "k": 10,
+        "tablas": {
+          "filas": [
+            {
+              "anio": 2020,
+              "v": 3
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 2
+        },
+        "vehiculo": {
+          "anio": 2020
+        },
+        "overrides": {
+          "tc": 0
+        }
+      },
+      "esperado": {
+        "valores": {
+          "v": "a",
+          "tc": null,
+          "k": 10,
+          "t": 3,
+          "n": 10,
+          "total": 23
+        },
+        "estados": {
+          "z": "fuera_de_variante",
+          "w": "condicion_apagada",
+          "j": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc": "override",
+          "k": "default",
+          "t": "sugerido",
+          "i": "input"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": null,
+          "usd": 23,
+          "suma_usd": 23
+        },
+        "faltantes": [
+          {
+            "codigo": "tipo_de_cambio_sin_valor",
+            "donde": "tc",
+            "ref": "oficial"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "par: sin override manda el porcentaje",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "constante",
+            "etiqueta": "Pct",
+            "formato": "pct"
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "pct": 0.1
+      },
+      "entrada": {
+        "inputs": {
+          "a": 900,
+          "b": 100
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "pct": 0.1,
+          "m": 100,
+          "total": 1100
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "pct": "default",
+          "m": "sugerido"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 1100,
+          "usd": 1100,
+          "suma_usd": 1100
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "par: con override del monto manda el monto, y el porcentaje guarda monto ÷ base",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "constante",
+            "etiqueta": "Pct",
+            "formato": "pct"
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "pct": 0.1
+      },
+      "entrada": {
+        "inputs": {
+          "a": 9500,
+          "b": 0
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "overrides": {
+          "m": 1300
+        }
+      },
+      "esperado": {
+        "valores": {
+          "pct": 0.1368421052631579,
+          "m": 1300,
+          "total": 10800
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "pct": "override",
+          "m": "override"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 10800,
+          "usd": 10800,
+          "suma_usd": 10800
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "par: con override del porcentaje, el monto es la base por él",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "constante",
+            "etiqueta": "Pct",
+            "formato": "pct"
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "pct": 0.1
+      },
+      "entrada": {
+        "inputs": {
+          "a": 900,
+          "b": 100
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "overrides": {
+          "pct": 0.2
+        }
+      },
+      "esperado": {
+        "valores": {
+          "pct": 0.2,
+          "m": 200,
+          "total": 1200
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "pct": "override",
+          "m": "sugerido"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 1200,
+          "usd": 1200,
+          "suma_usd": 1200
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "par: con los dos overrides manda el monto, y el del porcentaje no se descarta",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "constante",
+            "etiqueta": "Pct",
+            "formato": "pct"
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "pct": 0.1
+      },
+      "entrada": {
+        "inputs": {
+          "a": 900,
+          "b": 100
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "overrides": {
+          "m": 130,
+          "pct": 0.2
+        }
+      },
+      "esperado": {
+        "valores": {
+          "pct": 0.13,
+          "m": 130,
+          "total": 1130
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "pct": "override",
+          "m": "override"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 1130,
+          "usd": 1130,
+          "suma_usd": 1130
+        },
+        "faltantes": [],
+        "overrides_descartados": []
+      }
+    },
+    {
+      "nombre": "par: con base 0 y el porcentaje mandando, el monto es 0",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "constante",
+            "etiqueta": "Pct",
+            "formato": "pct"
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "pct": 0.1
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "a": 0,
+          "b": 0,
+          "pct": 0.1,
+          "m": 0,
+          "total": 0
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "pct": "default",
+          "m": "sugerido"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 0,
+          "usd": 0,
+          "suma_usd": 0
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "par: con base 0 y el monto mandando, el porcentaje queda sin valor",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "constante",
+            "etiqueta": "Pct",
+            "formato": "pct"
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "pct": 0.1
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "overrides": {
+          "m": 50
+        }
+      },
+      "esperado": {
+        "valores": {
+          "pct": null,
+          "m": 50,
+          "total": 50
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "pct": "override",
+          "m": "override"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 50,
+          "usd": 50,
+          "suma_usd": 50
+        },
+        "faltantes": [
+          {
+            "codigo": "division_por_cero",
+            "donde": "pct"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "par: el porcentaje es una tabla sobrescribible con su override",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "tabla",
+            "tabla": "tasas",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "Pct",
+            "formato": "pct",
+            "sobrescribible": true
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "tasas": [
+            {
+              "anio": 2020,
+              "v": 0.1
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "inputs": {
+          "a": 900,
+          "b": 100
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "anio": 2020
+        },
+        "overrides": {
+          "pct": 0.25
+        }
+      },
+      "esperado": {
+        "valores": {
+          "pct": 0.25,
+          "m": 250,
+          "total": 1250
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "pct": "override",
+          "m": "sugerido"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 1250,
+          "usd": 1250,
+          "suma_usd": 1250
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "par: el porcentaje de otra variante sigue en 0 aunque mande el monto",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "constante",
+            "etiqueta": "Pct",
+            "formato": "pct",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "pct": 0.1
+      },
+      "entrada": {
+        "inputs": {
+          "a": 900,
+          "b": 100
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "overrides": {
+          "m": 130
+        }
+      },
+      "esperado": {
+        "valores": {
+          "pct": 0,
+          "m": 130,
+          "total": 1130
+        },
+        "estados": {
+          "pct": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "m": "override"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 1130,
+          "usd": 1130,
+          "suma_usd": 1130
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "par: si manda el monto, el porcentaje no busca su fila y no anota que falta",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "A"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "B"
+          },
+          {
+            "id": "pct",
+            "tipo": "tabla",
+            "tabla": "tasas",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "Pct",
+            "formato": "pct",
+            "sobrescribible": true
+          },
+          {
+            "id": "m",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["a", "b"],
+            "pct": "pct",
+            "etiqueta": "M",
+            "sobrescribible": true
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b", "m"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "x"
+          }
+        ],
+        "buckets": {
+          "x": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "tasas": [
+            {
+              "anio": 2020,
+              "v": 0.1
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "inputs": {
+          "a": 900,
+          "b": 100
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "anio": 2017
+        },
+        "overrides": {
+          "m": 130
+        }
+      },
+      "esperado": {
+        "valores": {
+          "pct": 0.13,
+          "m": 130,
+          "total": 1130
+        },
+        "estados": {},
+        "fuentes": {
+          "tc": "default",
+          "a": "input",
+          "b": "input",
+          "pct": "override",
+          "m": "override"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 1130,
+          "usd": 1130,
+          "suma_usd": 1130
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "captura 09: el unificado de la empresa (12,2) y el override de la persona (12)",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_unificado",
+            "tipo": "tipo_cambio",
+            "clave": "unificado",
+            "etiqueta": "Dólar unificado",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "tipo": "constante",
+            "etiqueta": "Fees (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "etiqueta": "Fees",
+            "pct": "fees_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "transferencia_pct",
+            "tipo": "constante",
+            "etiqueta": "Transferencia (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "transferencia",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees"],
+            "etiqueta": "Transferencia",
+            "pct": "transferencia_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "grua",
+            "tipo": "input",
+            "etiqueta": "Grúa",
+            "grupo": "logistica"
+          },
+          {
+            "id": "export",
+            "tipo": "input",
+            "etiqueta": "Costo export. híbrido",
+            "grupo": "logistica"
+          },
+          {
+            "id": "transporte",
+            "tipo": "input",
+            "etiqueta": "Transporte",
+            "grupo": "logistica"
+          },
+          {
+            "id": "comision",
+            "tipo": "constante",
+            "etiqueta": "Comisión",
+            "grupo": "logistica"
+          },
+          {
+            "id": "documentacion",
+            "tipo": "constante",
+            "etiqueta": "Documentación de ingreso",
+            "grupo": "logistica"
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Póliza (USD)",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": [
+              "remate",
+              "fees",
+              "transferencia",
+              "grua",
+              "export",
+              "transporte",
+              "comision",
+              "documentacion",
+              "poliza"
+            ],
+            "etiqueta": "TOTAL",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "logistica",
+            "etiqueta": "Logística",
+            "plazo": "7 días",
+            "tono": "logistica",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {
+        "fees_pct": 0.13,
+        "transferencia_pct": 0.04,
+        "comision": 500,
+        "documentacion": 700
+      },
+      "entrada": {
+        "inputs": {
+          "remate": 39500,
+          "grua": 1790,
+          "export": 500,
+          "transporte": 3700,
+          "poliza": 19871
+        },
+        "tipos_cambio": {
+          "oficial": 11.68,
+          "paralelo": 12.2,
+          "unificado": 12.2
+        },
+        "overrides": {
+          "tc_unificado": 12
+        }
+      },
+      "modo": {
+        "buckets": {
+          "exterior": "tc_unificado",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_unificado"
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "tc_unificado": 12,
+          "fees": 5135,
+          "transferencia": 1785.4,
+          "total": 73481.4
+        },
+        "estados": {},
+        "fuentes": {
+          "tc_oficial": "default",
+          "tc_paralelo": "default",
+          "tc_unificado": "override",
+          "remate": "input",
+          "fees_pct": "default",
+          "transferencia_pct": "default",
+          "grua": "input",
+          "export": "input",
+          "transporte": "input",
+          "comision": "default",
+          "documentacion": "default",
+          "poliza": "input"
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 46420.4,
+              "bs": 557044.8,
+              "se_dibuja": true
+            },
+            "logistica": {
+              "usd": 7190,
+              "bs": 86280,
+              "se_dibuja": true
+            },
+            "aduana": {
+              "usd": 19871,
+              "bs": 232093.28,
+              "se_dibuja": true
+            }
+          },
+          "bs": 875418.08,
+          "usd": 72951.50666666667,
+          "suma_usd": 73481.4
+        },
+        "faltantes": []
       }
     }
   ]

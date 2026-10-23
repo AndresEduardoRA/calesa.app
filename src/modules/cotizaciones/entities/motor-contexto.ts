@@ -31,6 +31,21 @@ export type ValorGuardado = Valor | string
 export const ESTADOS = ['activo', 'fuera_de_variante', 'condicion_apagada'] as const
 export type Estado = (typeof ESTADOS)[number]
 
+// De dónde salió el valor de un nodo activo que acepta uno de la persona (docs/COTIZADOR.md › «Lo que se guarda»).
+export const FUENTES = ['default', 'sugerido', 'override', 'input'] as const
+export type Fuente = (typeof FUENTES)[number]
+
+// Por qué un override de la entrada no se aplicó, en este orden: el nodo no existe, está fuera de la variante, está
+// apagado, o su tipo no se sobrescribe.
+export const MOTIVOS_DE_DESCARTE = [
+  'nodo_inexistente',
+  'fuera_de_variante',
+  'condicion_apagada',
+  'no_sobrescribible',
+] as const
+export type MotivoDeDescarte = (typeof MOTIVOS_DE_DESCARTE)[number]
+export type Descartado = { id: string; motivo: MotivoDeDescarte }
+
 export type Evaluacion = {
   formula: Formula
   entrada: MapasDeEntrada
@@ -46,6 +61,12 @@ export type Evaluacion = {
   // El estado de cada nodo y los grupos con algún miembro en la variante, decididos antes de calcular.
   estados: Map<string, Estado>
   dibujados: Set<string>
+  // El pct de cada par activo cuyo monto trae override: no se calcula y vale monto ÷ base (motor-sobrescribir.ts).
+  pisados: Set<string>
+  // La fuente de cada nodo activo que acepta un valor, en el orden de la lista.
+  fuentes: Map<string, Fuente>
+  // Los overrides que no se aplicaron: los de nodos en el orden de la lista, después los inexistentes por id.
+  descartados: Descartado[]
   // Lo ya evaluado, en el orden de la lista: sólo se lee hacia atrás.
   valores: Map<string, ValorGuardado>
   // El USD de cada grupo mientras se suma, en el orden de la lista.
@@ -84,6 +105,9 @@ export function prepararEvaluacion(formula: Formula, entrada: Entrada, m: Medido
     variante: undefined,
     estados: new Map(),
     dibujados: new Set(),
+    pisados: new Set(),
+    fuentes: new Map(),
+    descartados: [],
     valores: new Map(),
     subtotales: new Map(),
     faltantes: [],

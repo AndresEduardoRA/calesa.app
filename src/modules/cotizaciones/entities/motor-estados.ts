@@ -1,6 +1,7 @@
 // La variante elegida y el estado de cada nodo (docs/COTIZADOR.md › «La variante y el interruptor»). Se deciden en
 // una pasada previa y lineal, antes de calcular nada: dependen sólo de la variante, del `solo_en` de cada nodo y de
-// las banderas de la entrada. La misma pasada marca los grupos que se dibujan. `evaluar_formula()` (4.06) la copia.
+// las banderas de la entrada. La misma pasada marca los grupos que se dibujan y el pct de cada par cuyo monto trae
+// override. `evaluar_formula()` (4.06) la copia.
 import { buscar, esta, recorrer, type Medidor } from './medidor'
 import { sinValidar, type Estado, type Evaluacion } from './motor-contexto'
 import { ErrorDelMotor } from './motor-errores'
@@ -43,7 +44,16 @@ export function decidirEstados(ev: Evaluacion): void {
       encendidas.add(n.id)
     }
     if (n.grupo !== undefined && estado !== 'fuera_de_variante') ev.dibujados.add(n.grupo)
+    if (estado === 'activo') marcarPisado(ev, n)
   }
+}
+
+// El pct de un par activo cuyo monto trae override, si el pct también está activo, no se calcula: lo escribe el par
+// con monto ÷ base (docs/COTIZADOR.md › «El par porcentaje-monto»). El pct va antes en la lista: su estado ya está.
+function marcarPisado(ev: Evaluacion, n: Nodo): void {
+  if (n.tipo !== 'calculo' || n.op !== 'porcentaje_de' || n.sobrescribible !== true) return
+  if (buscar(ev.entrada.overrides, n.id, ev.m) === undefined) return
+  if (buscar(ev.estados, n.pct, ev.m) === 'activo') ev.pisados.add(n.pct)
 }
 
 // Primero la variante, después la condición: un nodo fuera de su variante dice «Sólo en …».

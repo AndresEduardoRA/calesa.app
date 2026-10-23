@@ -10,6 +10,7 @@ const BUENA = {
   tipos_cambio: { oficial: 6.96, paralelo: 12.4 },
   vehiculo: { anio: 2023, 'atributos.tipo': 'auto', 'atributos.vin': null },
   tablas: { depreciacion: [{ anio: 2023, factor: 0.9 }] },
+  overrides: { factor_dp: 0.8, tc_unificado: 12 },
 }
 
 describe('esquemaEntrada', () => {
@@ -17,7 +18,8 @@ describe('esquemaEntrada', () => {
     expect(esquemaEntrada.parse(BUENA)).toEqual(BUENA)
     expect(esquemaEntrada.parse({ ...BUENA, variante: 'gasolina' }).variante).toBe('gasolina')
     expect(esquemaEntrada.safeParse({ ...BUENA, variante: 'Gasolina' }).success).toBe(false)
-    expect(esquemaEntrada.safeParse({ ...BUENA, overrides: {} }).success).toBe(false)
+    expect(esquemaEntrada.safeParse({ ...BUENA, otra: {} }).success).toBe(false)
+    expect(esquemaEntrada.safeParse({ ...BUENA, overrides: undefined }).success).toBe(false)
     expect(esquemaEntrada.safeParse({ ...BUENA, tablas: undefined }).success).toBe(false)
   })
 
@@ -30,6 +32,8 @@ describe('esquemaEntrada', () => {
       { banderas: { b: 1 } },
       { vehiculo: { anio: true } },
       { inputs: { Remate: 1 } },
+      { overrides: { a: Number.POSITIVE_INFINITY } },
+      { overrides: { Fees: 1 } },
     ]
     for (const x of malas)
       expect(esquemaEntrada.safeParse({ ...BUENA, ...x }).success, JSON.stringify(x)).toBe(false)
@@ -57,7 +61,7 @@ describe('evaluar con una entrada que el Zod habría rechazado (el tipo no lo im
     params: {},
   })
   const con = (x: Partial<Entrada>): Entrada => ({
-    ...esquemaEntrada.parse({ ...BUENA, inputs: {}, banderas: {} }),
+    ...esquemaEntrada.parse({ ...BUENA, inputs: {}, banderas: {}, overrides: {} }),
     ...x,
   })
 

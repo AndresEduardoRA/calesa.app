@@ -34,7 +34,7 @@ export function valorDeCalculo(ev: Evaluacion, n: NodoCalculo): Valor {
 }
 
 // ((d0 + d1) + d2)…: se leen todos los términos aunque uno sea null.
-function sumar(ev: Evaluacion, quien: string, de: readonly string[]): Valor {
+export function sumar(ev: Evaluacion, quien: string, de: readonly string[]): Valor {
   let total = 0
   let nulo = false
   for (const id of recorrer(de, ev.m)) {

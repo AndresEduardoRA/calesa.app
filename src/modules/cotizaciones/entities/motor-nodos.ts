@@ -1,9 +1,19 @@
-// El valor de cada tipo de nodo (docs/COTIZADOR.md › «El motor»). El estado, decidido antes (`motor-estados.ts`),
-// manda: un nodo fuera de su variante o con su condición apagada vale 0 sin leer sus referencias, así que ahí un null
-// no se propaga. Un tipo nuevo = un caso en este `switch`.
+// El valor de cada tipo de nodo y su fuente (docs/COTIZADOR.md › «El motor»). El estado, decidido antes
+// (`motor-estados.ts`), manda: un nodo fuera de su variante o con su condición apagada vale 0 sin leer sus referencias
+// (ahí un null no se propaga) y descarta su override. Después, el override (`motor-sobrescribir.ts`). Un tipo nuevo =
+// un caso en este `switch`.
 import { buscar } from './medidor'
 import { valorDeCalculo } from './motor-calculo'
-import { anotar, asentar, leer, sinValidar, type Evaluacion, type Valor } from './motor-contexto'
+import {
+  anotar,
+  asentar,
+  leer,
+  sinValidar,
+  type Estado,
+  type Evaluacion,
+  type Valor,
+} from './motor-contexto'
+import { descartarSiHay, sobrescrito } from './motor-sobrescribir'
 import { valorDeTabla, valorDeTramo } from './motor-tablas'
 import { acumular } from './motor-totales'
 import type { Nodo } from './nodos'
@@ -14,16 +24,30 @@ type NodoInput = Extract<Nodo, { tipo: 'input' }>
 // Evalúa un nodo, lo guarda y, si es miembro de un grupo, lo suma a su grupo.
 export function evaluarNodo(ev: Evaluacion, n: Nodo): void {
   if (n.tipo === 'opcion') {
+    descartarSiHay(ev, n.id, 'no_sobrescribible')
     ev.valores.set(n.id, varianteDe(ev, n.id))
     return
   }
-  const activo = buscar(ev.estados, n.id, ev.m) === 'activo'
-  const v = asentar(ev, activo ? valorActivo(ev, n) : 0, n.id)
+  const estado = estadoDe(ev, n.id)
+  const v = asentar(ev, estado === 'activo' ? valorActivo(ev, n) : 0, n.id)
+  if (estado !== 'activo') descartarSiHay(ev, n.id, estado)
   ev.valores.set(n.id, v)
   if (n.grupo !== undefined) acumular(ev, n.grupo, v)
 }
 
+function estadoDe(ev: Evaluacion, id: string): Estado {
+  const estado = buscar(ev.estados, id, ev.m)
+  if (estado === undefined) throw sinValidar('un nodo no tiene estado', id)
+  return estado
+}
+
+// Un override aplicado manda; si no, se calcula (el sugerido, el default o lo tipeado).
 function valorActivo(ev: Evaluacion, n: NodoDeValor): Valor {
+  const v = sobrescrito(ev, n)
+  return v === undefined ? valorCalculado(ev, n) : v
+}
+
+function valorCalculado(ev: Evaluacion, n: NodoDeValor): Valor {
   switch (n.tipo) {
     case 'input':
       return valorDeInput(ev, n)
@@ -54,15 +78,21 @@ function varianteDe(ev: Evaluacion, id: string): string {
   return ev.variante
 }
 
-// Tipeado (la clave está, aunque valga 0) vale lo tipeado. Si no, y su `requerido_si` está encendida, no hay valor:
-// «requerido» es que la persona lo escriba. Si no, 0, como la celda vacía del Excel.
+// Tipeado (la clave está, aunque valga 0) vale lo tipeado: `override` si había un sugerido, `input` si no. Sin
+// tipear y con su `requerido_si` encendida no hay valor: «requerido» es que la persona lo escriba, y un sugerido no lo
+// cumple. Si no, el sugerido (`sugerido_de`) o 0, como la celda vacía del Excel.
 function valorDeInput(ev: Evaluacion, n: NodoInput): Valor {
   const tipeado = buscar(ev.entrada.inputs, n.id, ev.m)
-  if (tipeado !== undefined) return tipeado
-  if (n.requerido_si !== undefined && leer(ev, n.requerido_si, n.id) === 1) {
-    return anotar(ev, 'requerido_sin_valor', n.id, n.requerido_si)
+  const sugerido = n.sugerido_de
+  if (tipeado !== undefined) {
+    ev.fuentes.set(n.id, sugerido === undefined ? 'input' : 'override')
+    return tipeado
   }
-  return 0
+  const bandera = n.requerido_si
+  const requerido = bandera !== undefined && leer(ev, bandera, n.id) === 1
+  ev.fuentes.set(n.id, sugerido === undefined || requerido ? 'input' : 'sugerido')
+  if (requerido) return anotar(ev, 'requerido_sin_valor', n.id, bandera)
+  return sugerido === undefined ? 0 : leer(ev, sugerido, n.id)
 }
 
 // Encendida vale 1; apagada o sin valor, 0. Fuera de su variante ni se mira (vale 0 por su estado).

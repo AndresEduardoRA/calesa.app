@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buscar, esta, mapaDe, propia, recorrer } from './medidor'
+import { buscar, esta, mapaDe, ordenar, propia, recorrer } from './medidor'
 
 describe('medidor', () => {
   it('recorrer suma una visita por elemento y da los mismos elementos', () => {
@@ -32,5 +32,15 @@ describe('medidor', () => {
       ['a', 2],
     ])
     expect(m.visitas).toBe(2)
+  })
+
+  it('ordenar da una copia ordenada por bytes y cuenta cada elemento y cada comparación', () => {
+    const m = { visitas: 0 }
+    const lista = ['zz', 'aa', 'b_1', 'b0', 'mm']
+    expect(ordenar(lista, m)).toEqual(['aa', 'b0', 'b_1', 'mm', 'zz'])
+    expect(lista).toEqual(['zz', 'aa', 'b_1', 'b0', 'mm'])
+    // 5 al recorrer, y entre n − 1 y n·log2(n) + n comparaciones (cuántas, lo decide el sort de V8).
+    expect(m.visitas).toBeGreaterThanOrEqual(5 + 4)
+    expect(m.visitas).toBeLessThanOrEqual(5 + 5 * Math.log2(5) + 5)
   })
 })

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { Formula } from './formula'
 import { evaluar } from './motor'
 import { esquemaEntrada, type Entrada } from './motor-entrada'
+import { aceptaValor } from './nodos'
 import { validarFormula } from './validar'
 
 type Caso = {
@@ -22,7 +23,14 @@ const validada = (definicion: unknown, params: unknown): Formula => {
   if (!r.ok) throw new Error(r.error.mensaje)
   return r.formula
 }
-const VACIA = { inputs: {}, banderas: {}, tipos_cambio: {}, vehiculo: {}, tablas: {} }
+const VACIA = {
+  inputs: {},
+  banderas: {},
+  tipos_cambio: {},
+  vehiculo: {},
+  tablas: {},
+  overrides: {},
+}
 
 // Cada caso del juego, como fórmula y entrada nuevas en cada llamada.
 function casos(): { nombre: string; formula: Formula; entrada: Entrada }[] {
@@ -84,6 +92,16 @@ describe('evaluar es una función pura', () => {
       const r = evaluar(c.formula, c.entrada)
       expect(Object.keys(r.valores), c.nombre).toEqual(ids)
       expect(Object.keys(r.estados), c.nombre).toEqual(ids)
+    }
+  })
+
+  it('las fuentes son las de los nodos activos que aceptan un valor, en el orden de la lista', () => {
+    for (const c of casos()) {
+      const r = evaluar(c.formula, c.entrada)
+      const esperadas = c.formula.definicion.nodos
+        .filter((n) => r.estados[n.id] === 'activo' && aceptaValor(n))
+        .map((n) => n.id)
+      expect(Object.keys(r.fuentes), c.nombre).toEqual(esperadas)
     }
   })
 
