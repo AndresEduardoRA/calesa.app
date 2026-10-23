@@ -1,6 +1,7 @@
 -- validar_formula() contra validarFormula() de TS (paso 4.05, prompt 4; docs/COTIZADOR.md › «Las reglas»).
 -- `scripts/probar-schema.mjs` carga antes los JSON en tablas temporales (la base no lee archivos del repo):
 --   _juego_de_formula   ← src/modules/cotizaciones/entities/casos-de-formula.json (los 61 casos, una regla por caso)
+--   _corpus_de_formula  ← supabase/tests/corpus-de-formula.json (el corpus diferencial: las válidas mutadas, defectos mezclados)
 -- Un rechazo cuenta sólo si es 22023 y su DETAIL es el código de una regla: los errores propios de jsonb de Postgres también son
 -- 22023, pero sin DETAIL, y no son un rechazo de la fórmula.
 
@@ -43,6 +44,29 @@ begin
   if v_n <> 61 then raise exception 'el juego tiene % casos, no 61', v_n; end if;
   if v_malos is not null then
     raise exception '% de % casos no dan lo de validar.ts:%', cardinality(v_malos), v_n, E'\n  ' || array_to_string(v_malos, E'\n  ');
+  end if;
+end $$;
+
+-- @test fórmula: el corpus diferencial da la misma regla y el mismo donde que validarFormula (y nunca acepta lo que Zod rechaza)
+-- Lo genera `supabase/tests/corpus-de-formula.ts` con una semilla fija; el esperado lo calculó `validarFormula` sobre las claves en el
+-- orden de jsonb. Una diferencia es un hallazgo: se arregla el lado equivocado.
+do $$
+declare v_malos text[]; v_aceptadas text[]; v_n int;
+begin
+  create temp table _paridad_del_corpus on commit drop as
+    select * from pg_temp.paridad((select doc -> 'casos' from _corpus_de_formula));
+  v_n := (select jsonb_array_length(doc -> 'casos') from _corpus_de_formula);
+  if v_n < 400 then raise exception 'el corpus tiene % casos y se esperaban al menos 400', v_n; end if;
+  -- El mínimo de la forma: ningún caso que Zod rechaza lo acepta la base.
+  select array_agg(nombre) into v_aceptadas from _paridad_del_corpus where esperado like 'forma@%' and visto = 'válida';
+  if v_aceptadas is not null then
+    raise exception 'la base aceptó % fórmulas que Zod rechaza:%', cardinality(v_aceptadas), E'\n  ' || array_to_string(v_aceptadas, E'\n  ');
+  end if;
+  select array_agg(format('%s: esperado %s, visto %s', nombre, esperado, visto)) into v_malos
+    from _paridad_del_corpus where visto is distinct from esperado;
+  if v_malos is not null then
+    raise exception '% de % casos del corpus no dan lo de validarFormula:%', cardinality(v_malos), v_n,
+      E'\n  ' || array_to_string(v_malos[1:40], E'\n  ');
   end if;
 end $$;
 

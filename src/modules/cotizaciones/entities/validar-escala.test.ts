@@ -1,78 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { formulaSintetica, type FormulaSintetica } from './formula-sintetica'
 import { referenciasDe, soloEnDe } from './nodos'
 import { validarFormula } from './validar'
 
-// Una fórmula sintética de unos `n` nodos con todas las formas que crecen: cadenas de dos referencias, un
-// `suma` de n/2, n/4 constantes en params, n/10 grupos y una variante de 50 claves con `solo_en` largos.
-function sintetica(n: number) {
-  const opciones = Array.from({ length: 50 }, (_, i) => ({
-    clave: `o${i}`,
-    etiqueta: `O${i}`,
-    titulo: `Opción ${i}`,
-  }))
-  const soloEn = opciones.slice(0, 25).map((o) => o.clave)
-  const grupos = Array.from({ length: n / 10 }, (_, i) => ({
-    id: `g${i}`,
-    etiqueta: `G${i}`,
-    tono: 't',
-    bucket: `b${i % 2}`,
-  }))
-  const nodos: Record<string, unknown>[] = [
-    { id: 'tc_a', tipo: 'tipo_cambio', clave: 'oficial', etiqueta: 'A', formato: 'raw' },
-    { id: 'tc_b', tipo: 'tipo_cambio', clave: 'paralelo', etiqueta: 'B', formato: 'raw' },
-    { id: 'variante', tipo: 'opcion', etiqueta: 'V', opciones },
-    { id: 'pct', tipo: 'constante', etiqueta: 'P', formato: 'pct' },
-  ]
-  const params: Record<string, number> = { pct: 0.1 }
-  const ids: string[] = []
-  // Los miembros se reparten en orden entre los grupos: ninguno queda vacío.
-  for (let k = 0, miembro = 0; nodos.length < n - 1; k += 1) {
-    const id = `x${k}`
-    const grupo = `g${miembro % grupos.length}`
-    if (k % 4 !== 3) miembro += 1
-    const [a, b] = [ids[k - 1] ?? 'pct', ids[k - 2] ?? 'pct']
-    if (k % 4 === 0) {
-      nodos.push({ id, tipo: 'constante', etiqueta: id, grupo })
-      params[id] = k
-    } else if (k % 4 === 1) nodos.push({ id, tipo: 'input', etiqueta: id, grupo })
-    else if (k % 4 === 2)
-      nodos.push({
-        id,
-        tipo: 'calculo',
-        op: 'porcentaje_de',
-        de: [a, b],
-        pct: 'pct',
-        etiqueta: id,
-        grupo,
-      })
-    else
-      nodos.push({
-        id,
-        tipo: 'calculo',
-        op: 'multiplicar',
-        de: [a, b],
-        etiqueta: id,
-        solo_en: soloEn,
-      })
-    ids.push(id)
-  }
-  nodos.push({
-    id: 'total',
-    tipo: 'calculo',
-    op: 'suma',
-    de: ids.filter((_, i) => i % 2 === 0),
-    etiqueta: 'T',
-    salida: 'total',
-  })
-  return {
-    definicion: { nodos, buckets: { b0: 'tc_a', b1: 'tc_b' }, total_en: 'tc_b', grupos },
-    params,
-  }
-}
-
 // Lo que mide una fórmula: nodos, aristas (referencias y claves de `solo_en`), grupos, opciones y params.
-function tamano(f: ReturnType<typeof sintetica>): number {
+function tamano(f: FormulaSintetica): number {
   const r = validarFormula(f.definicion, f.params)
   if (!r.ok) throw new Error(r.error.mensaje)
   const nodos = r.formula.definicion.nodos
@@ -83,7 +16,7 @@ function tamano(f: ReturnType<typeof sintetica>): number {
   return nodos.length + aristas + f.definicion.grupos.length + 50 + Object.keys(f.params).length
 }
 
-function visitas(f: ReturnType<typeof sintetica>): number {
+function visitas(f: FormulaSintetica): number {
   const medidor = { visitas: 0 }
   const r = validarFormula(f.definicion, f.params, medidor)
   // Si no valida, el mensaje dice por qué.
@@ -96,8 +29,8 @@ function visitas(f: ReturnType<typeof sintetica>): number {
 const K = 16
 
 describe('validarFormula con volumen', () => {
-  const chica = sintetica(200)
-  const grande = sintetica(2000)
+  const chica = formulaSintetica(200)
+  const grande = formulaSintetica(2000)
 
   it('valida las dos sintéticas, de 200 y de 2.000 nodos', () => {
     expect(chica.definicion.nodos).toHaveLength(200)

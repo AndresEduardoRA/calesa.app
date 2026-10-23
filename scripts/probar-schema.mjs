@@ -130,6 +130,7 @@ console.log(`✓ ${ok} archivos aplicados`)
 const DATOS_DE_PRUEBA = {
   'validar-formula.sql': {
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
+    _corpus_de_formula: path.join(base, 'tests', 'corpus-de-formula.json'),
   },
 }
 

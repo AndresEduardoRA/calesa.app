@@ -20,7 +20,11 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   Excel entero y «Amnistia»): lo recorren `validar.test.ts` y `supabase/tests/validar-formula.sql`. Una regla nueva = su caso acá.
 - `supabase/migrations/20261019004900_validar_formula.sql` — `validar_formula()` y sus ayudantes `_formula_*`: la forma y las 29
   reglas en el orden de `validar.ts`, lineal; rechaza con 22023, el código de la regla en DETAIL y `donde` en HINT. Recorre las
-  claves de un objeto en el orden de jsonb. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`).
+  claves de un objeto en el orden de jsonb. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 61 casos y con
+  el corpus diferencial `supabase/tests/corpus-de-formula.json` (más de 500 mutaciones de las 4 válidas, defectos mezclados, el esperado
+  de `validarFormula`), que generan `corpus-de-formula.ts` y los `mutadores-*.ts` de esa carpeta y vigila `corpus-de-formula.test.ts`.
+- `entities/formula-sintetica.ts` — la fórmula sintética de n nodos de las pruebas de escala (`validar-escala.test.ts` y, volcada al
+  corpus, la medición de `validar_formula()`).
 - `entities/motor.ts` — `evaluar()`: una pasada en el orden de la lista, grupos por tipo de cambio, el total en Bs y en USD, y los
   `faltantes` (`docs/COTIZADOR.md` › «El motor»). Lo parten `motor-contexto.ts` (el estado y los códigos de faltante),
   `motor-entrada.ts` (`esquemaEntrada`), `motor-errores.ts` (`ErrorDelMotor`), `motor-estados.ts` (la variante elegida y el estado
