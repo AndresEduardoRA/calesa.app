@@ -16,6 +16,8 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 - `entities/validar.ts` (con `validar-contexto.ts`, `validar-grupos.ts`, `validar-variante.ts`, `motivos-de-formula.ts` y
   `medidor.ts`) — espejo TS de `validar_formula()`: la forma y 28 reglas cruzadas, lineal y con contador de visitas
   (`docs/COTIZADOR.md` › «Las reglas»).
+- `entities/casos-de-formula.json` — el juego de fórmulas válidas e inválidas con su motivo (una por regla, más las dos del seed, el
+  Excel entero y «Amnistia»): lo recorre `validar.test.ts` y, desde 4.05-4, `supabase/tests/`. Una regla nueva = su caso acá.
 - `entities/motor.ts` (4.05, prompt 2) — evaluación en una pasada, grupos por tipo de cambio, salidas `total | base_imponible | aparte`.
 - `features/hoja/` (XCell + binding `valores/fuentes/defaults`), `features/formulas/` (borrador/publicar/historial/revertir), `features/plantillas/`, `features/pdf/` (route handler con `@react-pdf/renderer`).
 - `docs/COTIZADOR.md` — la forma del grafo; leerlo antes de tocar el motor.
