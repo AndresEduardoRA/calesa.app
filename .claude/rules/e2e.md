@@ -6,7 +6,7 @@ paths:
 
 # e2e y capturas
 
-- **Un e2e que falla no se reintenta** (`retries: 0`): se busca la causa en `e2e-fallos/<fecha>/` (traza, video, captura, reporte): un reporter de Playwright (`e2e/soporte/reporter-de-fallos.ts`) lo guarda en **toda** corrida que falla, también la de un spec suelto; quedan los cinco últimos. Un
+- **Un e2e que falla no se reintenta** (`retries: 0`): se busca la causa en `e2e-fallos/<fecha>/` (traza, video, captura, reporte): un reporter de Playwright (`e2e/soporte/reporter-de-fallos.ts`) lo guarda en **toda** corrida que falla, también la de un spec suelto; quedan los cinco últimos. **Un `pnpm test` que cae** deja solo su salida completa y su JSON en `test-salidas/<fecha_hora-pid>/` (`salida.txt`, `resultado.json`; ignorada por git, quedan las cinco últimas; un Ctrl+C deja la salida hasta donde llegó y no el JSON): se mira ahí, no en las últimas 40 líneas del hook. Un
   número que sólo se explica con «la máquina estaba ocupada» no se explicó: se mide (carga, contadores, qué más corría).
 - `pnpm test:e2e <spec>` corre un spec sobre la base como esté (pide `npx supabase functions serve`); `--project=escritorio` o
   `--project=movil` elige el proyecto. **`pnpm test:e2e:completo`** resetea la base, corre las carreras y TODO, y pasa los argumentos a

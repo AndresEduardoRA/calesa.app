@@ -14,6 +14,7 @@ coverage/
 playwright-report/
 test-results/
 e2e-fallos/
+test-salidas/
 e2e-capturas/
 e2e/.auth/
 
