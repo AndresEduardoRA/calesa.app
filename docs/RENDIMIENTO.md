@@ -1040,3 +1040,30 @@ Medido con `EXPLAIN (ANALYZE, BUFFERS)` como la dueña (`authenticated`, plan ge
 - **Contra HEAD cae por contenido, no por ms:** `leads_candidatos` de HEAD ignora `privados` y devuelve 300 de 300 candidatos sin filtrar (29 violaciones con 212.000, 28 con 62.000); es rápida, así que los ms y los buffers no caen: los 5,3 s son de la ruta de la app por la vista, que la guarda ya no mide. **Mutación:** evaluar el filtro con `public.atributos_lead(l.id)` hace caer 33 aserciones con 62.000 (1.729,8 ms contra 80 y 232.799 buffers contra 40.000).
 - **Berta, «lp»:** la siembra reparte las ciudades por el mismo número que el dueño, así que todos los leads de Berta son «scz» y su valor denso en la guarda es «scz».
 - **La baja de 200.000 (5a-11) no es de este paso:** la corrida más larga del job midió 1.956 ms con 212.000 y 4.254 con 62.000 (de 6.000), con 10 y 14 corridas; es el ruido que 5a-11 documenta (el índice y los triggers no cambiaron).
+
+## Paso 4.03 (5a-9 y 5a-34): el texto y el rango de un campo, y los ocultos y la exportación, por los candidatos (2026-10-22)
+
+Medido con `EXPLAIN (ANALYZE, BUFFERS)` como `authenticated` (plan genérico), mediana de 5 corridas de 7, con 62.000 y con 212.000 leads (`db:sembrar-volumen`, sin y con `-- --leads 200000`; la dueña tiene 20.000 y 80.000 en su cartera, Berta 7.000 y 28.000). Carga de la máquina al empezar cada corrida (`/proc/loadavg`, de 8 núcleos): de 1,4 a 2,1. «Antes» es la ruta de la app en HEAD (`leads_vista` o `leads_cartera_vista` con las condiciones de `condicionesDeLeads()`); «después» son los dos pasos (candidatos y página). Los números de los seis casos del encargo, la dueña con 212.000 leads (con 62.000 entre paréntesis), ms y buffers:
+
+| Caso                                                | Antes                  | Después                           |
+| --------------------------------------------------- | ---------------------- | --------------------------------- |
+| 1 texto público sin resultados, «todos»             | 198,2 y 172.692 (50,6) | **13,5 y 11.365** (13,8)          |
+| 2 rango de texto público sin resultados, «todos»    | 76,2 y 26.565 (16,4)   | 7,4 y 11.365 (8,1)                |
+| 2 rango de número público desde 5, «todos»          | 104,4 y 172.692 (27,1) | 8,2 y 11.365 (8,5)                |
+| 1 texto público sin resultados, «míos»              | 128,7 y 172.692 (32,7) | 29,7 y 40.291 (38,0 y 43.905)     |
+| 3 texto privado sin resultados                      | 5.642,2 y 892.611      | **84,4 y 18.793** (29,3 y 16.881) |
+| 3 rango de texto privado sin resultados             | 5.464,2 y 892.611      | 35,4 y 18.793 (14,9)              |
+| 4 tachados ocultos con un texto privado (hasta 51)  | 290,5 y 52.021 (71,9)  | **10,8 y 9.981** (3,8)            |
+| 5 exportación, 1.er pedido, texto privado           | 5.638,7 y 892.611      | **84,6 y 18.793** (29,3)          |
+| 5 exportación, 1.er pedido, `@>` privado raro       | 5.408,9 y 727.046      | 37,0 y 18.793 (15,7)              |
+| 5 exportación, 1.er pedido, `@>` privado denso      | 5.463,0 y 727.046      | 11,9 y 17.106 (11,2)              |
+| 5 exportación, conteo entero, `@>` denso (17 vent.) | —                      | 201,4 y 290.290 (239,8)           |
+
+Las demás personas, sin resultados, 212.000 (62.000): **Berta** texto público 70,9 → 39,9 ms (15,3 → 21,0) y texto privado 2.081,5 y 478.417 → **39,5 y 18.522** (496,8 → 20,9); **Ana** 59,3 → 22,4 (12,0 → 10,6); la **«chica»** 52,9 → 0,7; la de la **papelera** 52,8 → 1,8; la **supervisora** «míos» 191,6 → 0,8 y «todos» 200,1 → 13,5. Los ocultos de Berta, que no tiene tachados, pasan de 0,2 a 0,7 ms.
+
+- **La causa de 5a-9, en el plan de HEAD:** un `ilike` o un `>=` sobre `atributos_publicos` no es _leakproof_ y bajo RLS ningún índice lo sostiene: la dueña «todos» recorre `leads_listado_idx` y descarta lo que no cumple, `Rows Removed by Filter` ∼ todo lo visible (172.692 buffers con 212.000, 48.878 con 62.000). Crece con N. La de 5a-34 es la de 5a-10: `atributos_lead()` ~66 µs por lead de la cartera.
+- **El arreglo:** el texto y el rango dentro de la ventana de candidatos (`comparaciones` y `comparaciones_privadas`), con el tope del recorrido para un campo público de quien ve «todos»: la ventana mira 4.000 leads y, si no junta candidatos, hasta 10.000 (≈ 11.365 buffers y 13,5 ms, **los mismos con 62.000 y con 212.000**). Sin ese tope la etapa W sería O(N) por `leads_listado_idx`. Los tachados ocultos y el conteo de la exportación, `tachados: true` en la ventana y la cuenta por `leads_vista_por_ids(ids)`.
+- **Dónde empeora, con su número:** con 62.000 la dueña «míos» con un texto público sin resultados cuesta 38,0 ms contra 32,7 de HEAD (≈ 40.000 buffers fijos contra 48.878 que crecen); un valor **denso** pasó de 22,1 a 29,7 ms (dueña «todos») y de 8.200 a 22.311 buffers; los ocultos de Berta de 0,2 a 0,7 ms. Todos dentro de su presupuesto.
+- **Lo asertado** (`medir-escala.sql`, seis personas, los mismos presupuestos con 62.000 y con 212.000): texto y rango público ≤ 50 ms y 45.000 buffers; privado y ocultos y el primer pedido de la exportación ≤ 100 ms y 40.000; el conteo entero de la exportación con un valor denso, 800 ms y 400.000 buffers (17 ventanas: 201 ms y 290.290 con 212.000, 240 y 298.994 con 62.000), y lo que devuelve. El mayor con 212.000: el texto privado de la dueña, 84,4 ms de 100. `busqueda-volumen.sql` suma las huellas md5 de 15 filtros × 7 lecturas.
+- **5a-37:** dos siembras nuevas seguidas (212.000 y 62.000) pasan `db:medir:volumen` a la primera con la siembra que termina en `vacuum (analyze)` de lo que siembra y `reindex` del GIN: `leads_busqueda_idx` recién sembrado leía los mismos buffers (269 contra 288) pero tardaba 28,8 ms en vez de 4,3.
+- **Qué falta medir:** con una cartera repartida por toda la tabla (la siembra junta las carteras) el peor caso del heap sigue siendo 26.557 buffers y ≈ 30 ms con 212.000 (5a-10); nada de este paso lo empeora.
