@@ -4,8 +4,9 @@
 -- este archivo (la base no lee archivos del repo).
 --
 -- Cada tamaño: 7 corridas de EXPLAIN (ANALYZE, BUFFERS) como `authenticated`; las 2 primeras calientan (la compilación de plpgsql y
--- el caché del catálogo) y se mide la mediana de las otras 5. La llamada va sobre una subconsulta con `offset 0`: la función es
--- `immutable` y, con constantes, el planificador la evaluaría al planificar y el tiempo caería en Planning Time.
+-- el caché del catálogo) y se mide la mediana de las otras 5. La llamada va sobre una subconsulta con `offset 0`: si la función
+-- fuera `immutable` (lo fue hasta …005100), con constantes el planificador la evaluaría al planificar y el tiempo caería en Planning
+-- Time.
 -- Asserta:
 --   - 0 buffers en las 5 medidas (shared, local y temp: hit, read, dirtied y written): no toca tablas;
 --   - la mediana de cada tamaño ≤ su tope (la mayor de 3 corridas medidas el 2026-10-23, × 3; docs/RENDIMIENTO.md);
