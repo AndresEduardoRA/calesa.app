@@ -87,6 +87,11 @@ const MEDICIONES_BASE = [
     'Listas de un lead, 20.000 seguimientos y 5.000 recordatorios (con la forma del plan asertada)',
     MEDIANA,
   ],
+  [
+    'supabase/tests/medir-validar-formula.sql',
+    'validar_formula() con una fórmula sintética de 200 y de 2.000 nodos, como authenticated (ms y buffers del EXPLAIN)',
+    'mediana de 5 de 7 corridas',
+  ],
 ]
 // Las que necesitan el volumen de `pnpm db:sembrar-volumen` (50.000 leads…): aparte, porque la base de
 // la semilla no lo tiene. `pnpm db:medir:volumen`; después, `pnpm db:reset`.
@@ -124,6 +129,26 @@ const MEDICIONES_CON_VOLUMEN = [
   ],
 ]
 const MEDICIONES = CON_VOLUMEN ? MEDICIONES_CON_VOLUMEN : MEDICIONES_BASE
+
+// Lo que una medición lee del repo: la base no lee archivos, así que se le antepone a la entrada de psql una tabla temporal
+// `<nombre> (doc jsonb)` con una clave de un JSON. Las comillas dólar pasan el texto sin procesar escapes.
+const DATOS_DE_MEDICION = {
+  'supabase/tests/medir-validar-formula.sql': {
+    _formulas_sinteticas: ['supabase/tests/corpus-de-formula.json', 'sinteticas'],
+  },
+}
+function datosDe(archivo) {
+  return Object.entries(DATOS_DE_MEDICION[archivo] ?? {})
+    .map(([tabla, [ruta, clave]]) => {
+      const texto = JSON.stringify(JSON.parse(readFileSync(ruta, 'utf8'))[clave])
+      if (texto === undefined || texto.includes('$datos$')) {
+        console.error(`No pude pasar ${ruta} › ${clave} a ${archivo}.`)
+        process.exit(1)
+      }
+      return `create temp table ${tabla} as select $datos$${texto}$datos$::jsonb as doc;\ngrant select on ${tabla} to authenticated;\n`
+    })
+    .join('')
+}
 
 // Lo que pasaba en la máquina y en la base mientras corría una medición (cierre 4): un tiempo fuera de lo normal se explica con estos
 // números o no se explica (un job tardó 6,4 s una vez y 0,2 s la siguiente; «la máquina estaba ocupada» no es una causa). La carga y
@@ -208,7 +233,7 @@ function lineaDeLaMaquina(antes, despues) {
 console.log(`Tamaños de página (del código): ${JSON.stringify(VARIABLES_DE_PAGINA)}`)
 console.log(lineaAlEmpezar(fotoDeLaMaquina()))
 for (const [archivo, titulo, corridas] of MEDICIONES) {
-  const sql = readFileSync(archivo, 'utf8')
+  const sql = datosDe(archivo) + readFileSync(archivo, 'utf8')
   const antes = fotoDeLaMaquina()
   const corrida = spawnSync(
     'docker',
