@@ -10,6 +10,11 @@
 -- que la baja termine y que todo quede igual a su fuente.
 \set ON_ERROR_STOP 1
 
+-- El job de verdad (`equipo-bajas`, cada minuto) se pausa mientras se mide: si no, la corrida de pg_cron de ese minuto hace
+-- parte de la misma baja en paralelo con las de abajo (medido en el paso 4.04: 10, 11 y una vez 25 corridas para la misma
+-- baja). Se reactiva al final; si la medición se corta, queda pausado hasta la próxima medición o `pnpm db:reset`.
+select cron.alter_job(jobid, active := false) from cron.job where jobname = 'equipo-bajas' \g /dev/null
+
 -- Lo que haya dejado una corrida cortada.
 create or replace function pg_temp.borrar_lo_medido() returns void language plpgsql as $$
 begin
@@ -112,3 +117,4 @@ begin
 end $$;
 
 select pg_temp.borrar_lo_medido();
+select cron.alter_job(jobid, active := true) from cron.job where jobname = 'equipo-bajas' \g /dev/null
