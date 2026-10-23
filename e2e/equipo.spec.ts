@@ -14,6 +14,7 @@ import { esMovil } from './soporte/inventario'
 import { ingresar } from './soporte/pasos'
 import { aLaVistaSinDesplazar, capturar, sinScrollHorizontal } from './soporte/recorrido'
 import { literal, sql } from './soporte/sql'
+import { bajaEnCurso } from './soporte/bajas'
 
 // Equipo y roles contra la app compilada y el Supabase local. Una sola historia, en orden: la
 // dueña crea un rol y le da permisos acotados a un origen; invita a una persona con ese rol, que
@@ -214,19 +215,25 @@ test('la dueña da de baja a alguien con leads, y una baja en curso se dice en l
     sql(`select count(*) from public.leads where nombre like 'E2E Baja %' and cartera = '{}'`),
   ).toBe('2')
 
-  // Una baja en curso: la fila de equipo_bajas sin terminar (lo que queda entre el primer lote y el último).
-  sql(`update public.equipo_bajas set terminada_en = null
-        where usuario_id = (select id from public.perfiles where email = ${literal(invitada)})`)
-  await page.goto('/configuracion/equipo')
-  await page.getByLabel('Estado').selectOption('baja')
-  // Una fila de la tabla (desde 768 px) o una tarjeta (por debajo).
-  const fila = page.locator('tr, article').filter({ hasText: INVITADA })
-  await expect(fila.getByText('Dada de baja', { exact: true })).toBeVisible()
-  await expect(fila.getByText('Pasando sus leads…')).toBeVisible()
-  await capturar(page, info, 'equipo-baja-02-en-curso')
+  // Una baja en curso que el job no puede cerrar: un lead suyo sigue en su cartera, tomado por otra transacción (5a-32).
+  const lead = await bajaEnCurso(invitada, `7990${sufijo}003`)
+  try {
+    // El job corre en medio, como a la hora en punto de cada minuto: salta el lead tomado y la baja sigue en curso.
+    sql('select public.equipo_bajas_continuar()')
+    await page.goto('/configuracion/equipo')
+    await page.getByLabel('Estado').selectOption('baja')
+    // Una fila de la tabla (desde 768 px) o una tarjeta (por debajo).
+    const fila = page.locator('tr, article').filter({ hasText: INVITADA })
+    await expect(fila.getByText('Dada de baja', { exact: true })).toBeVisible()
+    await expect(fila.getByText('Pasando sus leads…')).toBeVisible()
+    await capturar(page, info, 'equipo-baja-02-en-curso')
+  } finally {
+    await lead.soltar()
+  }
 
-  // El job la termina y la lista deja de decirlo.
+  // Suelto el lead, el job la termina y la lista deja de decirlo.
   sql('select public.equipo_bajas_continuar()')
+  const fila = page.locator('tr, article').filter({ hasText: INVITADA })
   await page.reload()
   await page.getByLabel('Estado').selectOption('baja')
   await expect(fila.getByText('Dada de baja', { exact: true })).toBeVisible()
