@@ -132,6 +132,10 @@ const DATOS_DE_PRUEBA = {
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
     _corpus_de_formula: path.join(base, 'tests', 'corpus-de-formula.json'),
   },
+  'evaluar-formula.sql': {
+    _juego_del_motor: 'src/modules/cotizaciones/entities/casos-del-motor.json',
+    _corpus_del_motor: path.join(base, 'tests', 'corpus-del-motor.json'),
+  },
 }
 
 async function cargarDatos(archivo) {
@@ -164,6 +168,7 @@ for (const archivo of [
   'equipo-lista.sql',
   'permisos-enforcement.sql',
   'validar-formula.sql',
+  'evaluar-formula.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue

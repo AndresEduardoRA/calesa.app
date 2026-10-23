@@ -5,7 +5,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Entra y sale
 
 - Entra: wizard `/cotizaciones/nuevo` (origen → vehículo → lead → hoja → resumen), editor de fórmulas en Configuración, ⚙ de una celda.
-- Sale: `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
+- Sale: `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula) y su espejo en la base, `evaluar_formula()` (4.06; `cotizacion_evaluar()` lo llamará), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
 - Depende de: `leads`, `vehiculos`, `empresa` (tipos de cambio).
 
 ## Archivos clave
@@ -23,6 +23,13 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   claves de un objeto en el orden de jsonb. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 61 casos y con
   el corpus diferencial `supabase/tests/corpus-de-formula.json` (más de 500 mutaciones de las 4 válidas, defectos mezclados, el esperado
   de `validarFormula`), que generan `corpus-de-formula.ts` y los `mutadores-*.ts` de esa carpeta y vigila `corpus-de-formula.test.ts`.
+- `supabase/migrations/20261019005200_evaluar_formula.sql` — `evaluar_formula(definicion, params, entrada, modo?)` y sus ayudantes `_motor_*`: espejo
+  exacto de `motor.ts` (los mismos float8, estados, fuentes, totales, faltantes y descartados; errores de llamada 22023 con el código en DETAIL).
+  Pura: las tablas vivas llegan en `entrada.tablas`. Desarma sus argumentos una sola vez y lleva el estado por nodo en arreglos. Lo prueban
+  `supabase/tests/evaluar-formula.sql` (`pnpm db:probar`, con el juego de 84 casos, el corpus diferencial `supabase/tests/corpus-del-motor.json`,
+  la aritmética contra JS y las guardas) y `medir-evaluar-formula.sql` (`pnpm db:medir`). El corpus lo generan `corpus-del-motor.ts`, los
+  `mutadores-*.ts` y los `casos-*.ts` de esa carpeta, con el esperado de `esperado-del-motor.ts`, y lo vigila `corpus-del-motor.test.ts`.
+- `entities/evaluacion-sintetica.ts` — la evaluación sintética de n nodos (fórmula, tablas y entrada) para medir el motor, con 50 o 1.000 filas por tabla.
 - `entities/formula-sintetica.ts` — la fórmula sintética de n nodos de las pruebas de escala (`validar-escala.test.ts` y, volcada al
   corpus, la medición de `validar_formula()`).
 - `entities/motor.ts` — `evaluar()`: una pasada en el orden de la lista, grupos por tipo de cambio, el total en Bs y en USD, y los
@@ -40,7 +47,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Tablas
 
 `formulas`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
-RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `validar_formula`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
+RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `validar_formula`, `evaluar_formula`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
 
 ## No se rompe
 

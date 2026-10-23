@@ -7198,6 +7198,25 @@ export type Database = {
         Returns: string
       }
       _lote_papelera_tocar: { Args: { p_lote: string }; Returns: string }
+      _motor_borde_entre: { Args: { a: number; b: number }; Returns: number }
+      _motor_borde_mas: { Args: { a: number; b: number }; Returns: number }
+      _motor_borde_menos: { Args: { a: number; b: number }; Returns: number }
+      _motor_borde_numero: { Args: { j: Json }; Returns: number }
+      _motor_borde_por: { Args: { a: number; b: number }; Returns: number }
+      _motor_entre: { Args: { a: number; b: number }; Returns: number }
+      _motor_fallar: {
+        Args: { p_codigo: string; p_donde: string; p_mensaje: string }
+        Returns: undefined
+      }
+      _motor_forma_entrada: { Args: { p_e: Json }; Returns: string }
+      _motor_forma_modo: { Args: { p_m: Json }; Returns: string }
+      _motor_mas: { Args: { a: number; b: number }; Returns: number }
+      _motor_menos: { Args: { a: number; b: number }; Returns: number }
+      _motor_numero: { Args: { j: Json }; Returns: number }
+      _motor_por: { Args: { a: number; b: number }; Returns: number }
+      _motor_redondear: { Args: { n: number; x: number }; Returns: number }
+      _motor_sin_leer: { Args: { p_quien: string; p_ref: string }; Returns: undefined }
+      _motor_sin_validar: { Args: { p_detalle: string; p_donde: string }; Returns: undefined }
       _oportunidad_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _oportunidad_constancia: {
         Args: {
@@ -7718,6 +7737,10 @@ export type Database = {
           p_id: string
           p_nombre?: string
         }
+        Returns: Json
+      }
+      evaluar_formula: {
+        Args: { p_def: Json; p_entrada: Json; p_modo?: Json; p_params: Json }
         Returns: Json
       }
       evaluar_requisitos: {
