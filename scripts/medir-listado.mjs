@@ -92,6 +92,11 @@ const MEDICIONES_BASE = [
     'validar_formula() con una fórmula sintética de 200 y de 2.000 nodos, como authenticated (ms y buffers del EXPLAIN)',
     'mediana de 5 de 7 corridas',
   ],
+  [
+    'supabase/tests/medir-evaluar-formula.sql',
+    'evaluar_formula() con una evaluación sintética de 200 y de 2.000 nodos y con 4 tablas de 1.000 filas, como authenticated (ms y buffers del EXPLAIN)',
+    'mediana de 5 de 7 corridas',
+  ],
 ]
 // Las que necesitan el volumen de `pnpm db:sembrar-volumen` (50.000 leads…): aparte, porque la base de
 // la semilla no lo tiene. `pnpm db:medir:volumen`; después, `pnpm db:reset`.
@@ -135,6 +140,9 @@ const MEDICIONES = CON_VOLUMEN ? MEDICIONES_CON_VOLUMEN : MEDICIONES_BASE
 const DATOS_DE_MEDICION = {
   'supabase/tests/medir-validar-formula.sql': {
     _formulas_sinteticas: ['supabase/tests/corpus-de-formula.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-evaluar-formula.sql': {
+    _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
   },
 }
 function datosDe(archivo) {
