@@ -1,71 +1,174 @@
 # El cotizador: fórmula como grafo
 
-La fórmula de un origen vive en `formulas.definicion` (jsonb) y se versiona entera. El motor TS
-de `src/modules/cotizaciones/entities/motor.ts` la evalúa; `validar_formula()` en SQL es el
-candado que impide publicar una fórmula rota. Ambos aplican las mismas reglas.
+La fórmula de un origen vive en `formulas.definicion` y `formulas.params` (jsonb) y se versiona entera. El candado que impide publicar
+una fórmula rota es doble y aplica las mismas reglas: `validar.ts` (`src/modules/cotizaciones/entities/`) y `validar_formula()` en la
+base. Los dos comparten un juego de prueba, `entities/casos-de-formula.json`. La evalúan el motor TS (`entities/motor.ts`, 4.05) y
+`evaluar_formula()` en la base (4.06). La forma es la del paso 4.05 (`docs/DECISIONES.md`, 2026-10-23, decisiones a a f). La referencia es
+el Excel que la hoja reemplaza (`docs/referencias/excel-de-cotizacion.md`).
 
 ## Forma
 
 ```jsonc
 {
   "nodos": [/* lista ORDENADA: el orden es el de evaluación; sólo se referencia hacia atrás */],
-  "buckets": { "origen": "tc_paralelo", "destino": "tc_oficial" }, // bucket → id de nodo tipo_cambio
+  "buckets": { "exterior": "tc_paralelo", "aduana": "tc_oficial" }, // nombre libre → id de nodo tipo_cambio
+  "total_en": "tc_paralelo", // el tipo de cambio que divide el total en Bs; obligatorio con grupos
+  "grupos": [
+    {
+      "id": "compra",
+      "etiqueta": "Compra",
+      "plazo": "2 días",
+      "tono": "compra",
+      "bucket": "exterior",
+    },
+  ],
 }
+// params: { <constante>: número, …, "tablas"?: { <clave de tabla>: [ { <columna>: número | texto | null } ] } }
 ```
 
-Cada nodo: `{ id, tipo, etiqueta, formato: usd|pct|raw|moneda, seccion?, bucket?: origen|destino|ninguno, salida?: total|base_imponible|aparte, color?: amarillo|verde|naranja, descripcion? }` más lo propio de su tipo:
+### Los nodos
 
-| tipo             | campos propios                                                                       | valor                                                                        |
-| ---------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| `input`          | `sugerido_de?` (id), `requerido_si?` (id de bandera)                                 | lo tipea el asesor; vacío = 0 salvo `requerido`                              |
-| `constante`      | —                                                                                    | `params[id]`; es el «valor por defecto global» que el ⚙ cambia (publica N+1) |
-| `tipo_cambio`    | `clave` (oficial, paralelo…)                                                         | valor vigente de `tipos_cambio` al cotizar; se congela                       |
-| `campo_vehiculo` | `campo` (anio, kilometraje, atributos.*)                                             | del vehículo vinculado; NULL si no hay                                       |
-| `bandera`        | —                                                                                    | toggle de la cotización (`valores[id]` 0/1)                                  |
-| `tabla`          | `tabla` (clave de `tablas_referencia`), `match` {col: id de nodo o campo}, `columna` | fila que matchea → columna; marca la celda como **sugerida**                 |
-| `tramo`          | `tabla`, `sobre` (id), `columna`                                                     | fila cuyo `desde ≤ sobre ≤ hasta` → columna                                  |
-| `calculo`        | `op`, `de` [ids], `pct?` (id), `condicion?` (id de bandera)                          | ver operaciones                                                              |
+Lo **común a todo nodo**:
 
-Operaciones cerradas de `calculo`: `suma(de)`, `porcentaje_de(de, pct)` = Σde × pct,
-`multiplicar(de)`, `restar(de[0] − de[1…])`, `dividir(de[0] / de[1])`, `si(condicion, de[0])`,
-`depreciar(de[0], tabla por año)`, `redondear(de[0], n)`.
+- `id` (`^[a-z][a-z0-9_]{0,40}$`), `tipo` y `etiqueta`;
+- `formato?`: `usd` (por defecto), `pct`, `raw` o `moneda`;
+- `descripcion?`;
+- `seccion?` y `color?`: son de la Fase 0, y el diseño los reemplaza (4.08);
+- `salida?`: `total`, `base_imponible` o `aparte`;
+- `bucket?`: sólo en una fórmula sin grupos;
+- `grupo?`;
+- `solo_en?`: claves de la variante; no en `tipo_cambio` ni en `opcion`.
 
-Salidas: exactamente **un** nodo con `salida: total`. `base_imponible` se muestra pero no suma al
-total; `aparte` (garantía) se muestra y nunca suma. Un nodo con `bucket` entra a la suma de su
-bucket; `total_bob = Σ bucket × tipo de cambio del bucket`; `total_base` = suma en moneda base.
+Cada objeto es **estricto**: una clave mal escrita es un error.
 
-## Lo que cambia con la apertura de la Fase 4 (D4 y D5, 2026-10-22)
+| tipo             | campos propios                                                                                                                        | valor                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `input`          | `sugerido_de?` (un nodo anterior), `requerido_si?` (una bandera), `condicion?`                                                        | lo tipea el asesor; con `sugerido_de`, hasta que lo tipee vale lo de ese nodo |
+| `constante`      | `condicion?`. Ninguna se llama `tablas`                                                                                               | `params[id]`: el «valor por defecto global» que cambia el ⚙ (publica la N+1)  |
+| `tipo_cambio`    | `clave` (oficial, paralelo…; una clave, un solo nodo)                                                                                 | el valor vigente de `tipos_cambio` al cotizar; se congela                     |
+| `campo_vehiculo` | `campo` (`anio`, `atributos.*`)                                                                                                       | del vehículo vinculado; null si no hay                                        |
+| `bandera`        | —                                                                                                                                     | el interruptor de la cotización, 0 o 1                                        |
+| `opcion`         | `opciones: [{clave, etiqueta, titulo}]` (dos o más), `por_defecto?`. A lo sumo una por fórmula                                        | la clave elegida (texto). La nombran `solo_en` y un `match`, nunca un cálculo |
+| `tabla`          | `tabla`, `match` {columna: nodo anterior o, si no hay uno con ese id, campo del vehículo}, `columna`, `sobrescribible?`, `condicion?` | la fila que coincide → la columna                                             |
+| `tramo`          | `tabla`, `sobre` (un nodo), `columna`, `sobrescribible?`, `condicion?`                                                                | la fila cuyo `desde ≤ sobre ≤ hasta` → la columna                             |
+| `calculo`        | `op` con su aridad, `sobrescribible?`, `condicion?`                                                                                   | la operación                                                                  |
 
-La forma de arriba es la de la Fase 0 y **la amplía el paso 4.05** (`docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones»).
-La referencia es el Excel que la hoja reemplaza (`docs/referencias/excel-de-cotizacion.md`).
+Las **operaciones cerradas de `calculo`**, con su aridad, discriminadas por `op`:
 
-- **Tipos de cambio:** `buckets` deja de ser sólo `origen` y `destino`. Una fórmula usa N tipos de cambio (en el Excel, oficial y
-  paralelo) y cada fila o grupo elige el suyo.
-- **Grupos:** los nodos se agrupan con un plazo de pago (texto) y un subtotal en USD y en Bs, como en el Excel.
-- **Total en dólares:** es el total en Bs ÷ el tipo de cambio paralelo, no la suma de los dólares de las filas.
-- **Sugerido:** un nodo puede ser sugerido (de una tabla o de un cálculo) y sobrescribible: la nacionalización y el factor de
-  depreciación, que el Excel tipea a mano.
-- **Fórmulas como texto:** quien configura escribe con nombres (`=(remate+fees)*4%`, `SUMA(grupo)`, `HOY()`) y el texto se compila a
-  este mismo grafo **al configurar**. Al cotizar no se evalúa texto. Sin referencias A1 ni funciones que el grafo no tenga.
-- **Tablas de referencia (D5):** editar una publica la N+1 de cada fórmula de su origen que la usa, y la fórmula congela en `params` las
-  filas que usa.
-- **`validar_formula()` y `validar.ts`** siguen siendo el candado, y cambian juntos.
-- **Desde D7:** la variante es un nodo `opcion` (sus opciones con clave, etiqueta y título para la plantilla), y un nodo puede declarar
-  `solo_en: [opciones]`. Cada grupo lleva la clave de su tono. Fuera de su variante, un nodo vale 0 y se dibuja deshabilitado con su
-  motivo.
+- `suma(de ≥ 1)`;
+- `porcentaje_de(de ≥ 1, pct)` = Σde × pct;
+- `multiplicar(de ≥ 2)`;
+- `restar(de[0] − de[1…])`;
+- `dividir(de[0] / de[1])`;
+- `si(condicion, de[0])`;
+- `depreciar(de[0], tabla, sobre, columna)`;
+- `redondear(de[0], n de 0 a 6)`.
+
+**Un nodo nuevo** lleva tres cosas: su tipo en el Zod de `nodos.ts`, su caso en el `switch` de `referenciasDe()` y su caso en
+`validar_formula()` y en el juego.
+
+**Fórmulas como texto (4.07):** quien configura escribe con nombres (`=(remate+fees)*4%`, `SUMA(grupo)`, `HOY()`). El texto se compila a
+este grafo **al configurar**, y `SUMA(grupo)` pasa a un `suma` con los miembros del grupo. Al cotizar no se evalúa texto. No hay
+referencias A1 ni funciones que el grafo no tenga.
+
+### Grupos, buckets y el total
+
+- **Un grupo** tiene su plazo de pago (texto), su tono (una clave del catálogo `tonos` de la empresa) y su bucket. No es un nodo: un nodo
+  entra con `grupo: id`.
+  - Su subtotal en USD es la suma de sus miembros, y el de Bs, ese subtotal por el tipo de cambio de su bucket.
+  - El orden de `grupos` es el de las bandas de la plantilla.
+  - Un grupo cuyos miembros están todos fuera de la variante no se dibuja: EE. UU.–Chile no tiene aduana.
+- **Un bucket** es el papel del dinero, lo que se paga afuera o en la aduana, y `buckets` le da a cada uno un nodo `tipo_cambio`.
+  Bs = Σ grupo × tc(su bucket).
+- **El total:**
+  - con `total_en`, **manda Bs ÷ tc(`total_en`)**: el «TOTAL DÓLARES» del Excel, 16.826,354 en la moto;
+  - el nodo `salida: total`, único, es la suma de los dólares (N22 = 16.910), y también se ve;
+  - con grupos, `total_en` es obligatorio.
+- **La forma de la Fase 0 (sin `grupos`, como las dos fórmulas del seed)** lleva el bucket en el nodo y **reparte el total**:
+  - si el total tiene bucket, Bs = total × su tc (`oficina`);
+  - si no, es un `suma` cuyos términos directos tienen bucket, y Bs = Σ término × tc(su bucket) (`subasta_usa`: `origen_total` ×
+    paralelo + `destino_total` × oficial).
+  - La regla vieja, «un nodo con bucket entra a la suma de su bucket», contaba dos veces con el seed.
+- `base_imponible` se muestra y no suma. `aparte` (la garantía) se muestra y nunca suma. Ninguno de los dos va en un grupo.
+
+### Sugerido, sobrescribible y el par porcentaje-monto
+
+- **Un nodo `tabla`, `tramo` o `calculo` con `sobrescribible: true`** calcula su valor (el sugerido) y la cotización puede traer otro.
+  Así se hacen la nacionalización (sugerida por la calculadora de póliza), el factor de depreciación y el transporte, que el Excel tipea
+  a mano. Un atajo de año elige una fila y deja su valor como sugerido.
+- **El par porcentaje-monto** es un `porcentaje_de` sobrescribible y su `pct`.
+  - **Manda el monto si tiene override**, y si no, el %.
+  - Cuando manda el monto, `valores[pct]` guarda monto ÷ base (null si la base es 0) y `fuentes[pct] = override`. Así la hoja y el PDF
+    dicen lo mismo.
+  - Con base 0 y el % mandando, el monto es 0.
+  - Ningún otro nodo lee ese `pct`.
+
+### La variante y el interruptor
+
+- **La evaluación es una sola pasada en el orden de la lista.** Un nodo que no está en su variante (`solo_en`), o cuya `condicion` está
+  apagada:
+  - vale 0 sin leer sus referencias;
+  - no guarda override;
+  - se dibuja deshabilitado con su motivo («Sólo en Híbrido / eléctrico»).
+- El `opcion` va antes que todo nodo con `solo_en`.
+- El total no lleva `solo_en`, `condicion` ni `sobrescribible`.
+
+### Las tablas congeladas (D5)
+
+- Editar una tabla de referencia publica la N+1 de cada fórmula de su origen que la usa.
+- La fórmula congela en `params.tablas` las filas que usa, así que recalcular con su versión vale también para las tablas.
+- El seed todavía no las trae.
+- Qué hace el motor con una tabla sin filas congeladas lo deciden el prompt 2 de 4.05 y 4.06.
+
+## Las reglas
+
+**Primero la forma (`forma`):** el Zod de `nodos.ts` y `formula.ts`. Cubre el tipo, la `op`, el formato, una clave desconocida, la
+aridad, un campo que falta, el id y un param que no es número.
+
+**Después, 28 reglas cruzadas,** cada una con un código estable. El código es el contrato con la base; el texto es de cada lado
+(`entities/motivos-de-formula.ts`). `donde` es el id del nodo, el grupo o la clave donde se rompe, y la base lo pone en `hint`.
+
+| Regla                                                                        | Qué rechaza                                                                                                                                 |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nodo_duplicado`, `referencia_inexistente`                                   | dos nodos con el mismo id; nombrar un nodo que no existe (un `match` sin nodo es un campo del vehículo)                                     |
+| `ciclo`, `referencia_hacia_adelante`                                         | un nodo que se usa a sí mismo; usar uno posterior, también `solo_en` antes del `opcion`. Sin ciclos por construcción                        |
+| `referencia_de_tipo`                                                         | `condicion` o `requerido_si` que no nombran una bandera; un cálculo que nombra el `opcion`                                                  |
+| `total_unico`, `total_fijo`                                                  | cero o dos totales; un total con `solo_en`, `condicion` o `sobrescribible`                                                                  |
+| `constante_sin_valor`, `param_sin_constante`                                 | una constante sin su valor; una clave de params que no es constante                                                                         |
+| `par_mal_tipado`, `pct_compartido`                                           | un `porcentaje_de` que no es monto o cuyo `pct` no es pct; otro nodo lee el `pct` de un par sobrescribible                                  |
+| `tipo_de_cambio_repetido`, `tipo_de_cambio_inexistente`                      | dos nodos con la misma clave; `buckets` o `total_en` que no nombran un `tipo_cambio`                                                        |
+| `bucket_inexistente`, `total_sin_tipo_de_cambio`                             | un nodo o un grupo con un bucket que no está; sin grupos, un total que no se puede repartir                                                 |
+| `grupos_sin_total_en`, `grupo_duplicado`, `grupo_inexistente`, `grupo_vacio` | con grupos y sin `total_en`; dos grupos con un id; un nodo en un grupo que no existe; un grupo sin nodos                                    |
+| `bucket_con_grupos`, `miembro_no_es_monto`, `miembro_con_salida`             | con grupos, un nodo con su bucket; un miembro que no es usd o moneda, o que es una salida                                                   |
+| `doble_conteo`                                                               | un miembro que acumula otro miembro (un cálculo que no es `porcentaje_de`, o un `sugerido_de`, también a través de un nodo fuera del grupo) |
+| `opcion_repetida`, `opcion_clave_repetida`, `opcion_por_defecto_inexistente` | dos `opcion`; una clave repetida; un `por_defecto` que no es una opción                                                                     |
+| `solo_en_sin_opcion`, `solo_en_opcion_inexistente`                           | `solo_en` sin variante; una clave que la variante no tiene                                                                                  |
+
+- **Devuelve el primer rechazo**, en un orden fijo, como el `raise` de la base.
+- **Es lineal en nodos y aristas.** Hace unas 12 pasadas por nodo y 6 por arista, y no recorre una lista dentro de otra: todo bucle y
+  toda búsqueda pasan por el contador de `medidor.ts`.
+  - La prueba de escala lo mira con 200 y 2.000 nodos: 6.525 y 65.565 visitas, 3,51 por unidad de tamaño.
+- **Cada caso inválido del juego rompe una sola regla.** Se comprueba apagando las reglas de a una: los 29 códigos, el 2026-10-23
+  (`docs/BITACORA.md`).
 
 ## Tipos de cambio y modos (D7, H1)
 
 - Los tipos de cambio son **una lista de la empresa**: `tipos_cambio` (oficial, paralelo, unificado, aduana y los que se sumen), con
   `tipos_cambio_historial` y `empresa.tipos_cambio.gestionar`. Un nodo `tipo_cambio` nombra su clave; **la cotización congela** en
   `tipos_cambio` lo que usó.
-- El asesor puede sobrescribir un tipo de cambio en su cotización si la celda es editable para su nivel (`fuente = override`, ↺). El ⚙
-  de esa celda es `tipo_cambio_guardar`, que afecta a todos los orígenes, con «Aplicar también a esta cotización». Cambiarlo vuelve
-  «desactualizada» una cotización nueva abierta (D2).
-- Un **modo** (Aduana, Paralelo, Unificado…) lo declara el diseño: `{clave, nombre, buckets: {bucket: clave de tipo de cambio}, total_en:
-clave}`. El modo elegido se guarda en `cotizaciones.modo_tc` (reemplaza «por bucket / uno solo» de D4).
-- Cuentas de las capturas: Unificado convierte los grupos que no son de aduana al unificado y el de aduana al oficial, y divide el total
-  en Bs por el unificado ($72.952, `docs/referencias/cotizador-actual.md`).
+- El asesor puede sobrescribir un tipo de cambio en su cotización si la celda es editable para su nivel (`fuente = override`, ↺).
+  - El ⚙ de esa celda es `tipo_cambio_guardar`, que afecta a todos los orígenes, con «Aplicar también a esta cotización».
+  - Cambiarlo vuelve «desactualizada» una cotización nueva abierta (D2).
+- **Un modo** (Aduana, Paralelo, Unificado…) lo declara el diseño, y el elegido se guarda en `cotizaciones.modo_tc` (reemplaza el «por
+  bucket / uno solo» de D4).
+  - **El motor lo recibe con la misma forma que la fórmula**, completo: `{ buckets: {bucket: id de nodo tipo_cambio}, total_en }`
+    (`ModoDeCambio` en `entities/formula.ts`). Sin modo, usa `buckets` y `total_en` de la fórmula.
+  - Un modo es otro mapa, no otra cuenta.
+  - Si el diseño lo nombra por clave de tipo de cambio, la regla «una clave, un solo nodo» deja traducirlo.
+- **Las cuentas de las capturas** (`docs/referencias/cotizador-actual.md`), con el modo Unificado `{exterior: tc_unificado, aduana:
+tc_oficial}`, `total_en: tc_unificado`:
+  - la 02 da 1.200 × 12,2 + 1.201 × 11,68 = 28.667,68; ÷ 12,2 = **$2.350**;
+  - la 09, con el unificado sobrescrito a 12, da (53.610,4 × 12 + 19.871 × 11,68) ÷ 12 = **$72.952**.
 
 ## El diseño de la hoja (D7)
 
@@ -137,17 +240,23 @@ nada de CSS, clases, HTML ni hex.
 
 ## Lo que se guarda en una cotización
 
-- `formula_id`: de qué versión salieron los defaults (auditoría). Recalcular/editar usa **esa**
-  versión, nunca la vigente.
-- `valores`: `{nodo_id: número}` de TODOS los nodos, lo que de verdad se usó.
-- `fuentes`: `{nodo_id: default|override|lookup|input}` — pinta el anillo «modificado» y el punto
-  «sugerido» de la XCell.
-- `tipos_cambio`: `{clave: valor}` congelados. `totales`: por moneda y por bucket.
+- `formula_id`: de qué versión salieron los defaults (auditoría). Recalcular o editar usa **esa** versión, nunca la vigente.
+- `valores`: `{nodo_id: número | null}` de TODOS los nodos, lo que de verdad se usó.
+  - El `opcion` guarda su clave (texto).
+  - Un nodo de otra variante o con su condición apagada guarda 0.
+  - El % de un par cuyo monto manda guarda monto ÷ base.
+- `fuentes`: `{nodo_id: default|sugerido|override|input}`, uno por cada nodo que acepta un valor de la persona.
+  - `default`: una constante o un tipo de cambio de la empresa.
+  - `sugerido`: lo propuso una tabla, un tramo, un cálculo o `sugerido_de`; pinta el punto. Desde 4.05 reemplaza a `lookup`.
+  - `override`: se cambió un default o un sugerido; pinta el anillo, y ↺ vuelve.
+  - `input`: se tipeó y no había nada que sugerir.
+- `tipos_cambio`: `{clave: valor}` congelados.
+- `totales`: por moneda y por grupo.
 
 ## Binding con la XCell
 
-Cada `input` y `constante` es una `XCell`: `value = valores[id]`, `defaultValue = defaults[id]`,
-`suggested = fuentes[id] === 'lookup'`, `disabledReason` si su `condicion` está apagada,
+Cada `input`, `constante`, `tipo_cambio` y nodo `sobrescribible` es una `XCell` (el par porcentaje-monto es una sola, con su secundario): `value = valores[id]`, `defaultValue = defaults[id]`,
+`suggested = fuentes[id] === 'sugerido'`, `disabledReason` si su `condicion` está apagada o es de otra variante,
 `onHelp` si el nodo viene de una tabla (abre la tabla editable inline), `settingsSlot` (⚙) si es
 `constante` y el usuario tiene `cotizaciones.configurar` del origen → `formula_cambiar_constante`, o si es
 `tipo_cambio` y tiene `empresa.tipos_cambio.gestionar` → `tipo_cambio_guardar` (afecta a todos los orígenes; D7). Desde D7 el

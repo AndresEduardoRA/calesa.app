@@ -473,3 +473,74 @@ Copiado tal cual de `docs/ESTADO.md` al registrar el diagnóstico (el punto 2 de
 **Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y `bash scripts/mapa.sh --check`.
 
 **Lo que no se hizo:** 5a-42, 4.05, subir un presupuesto, `next upgrade`, empujar.
+
+## 2026-10-23 — Paso 4.05, prompt 1 de 4: la forma ampliada del grafo, `validar.ts` y el juego de prueba
+
+**Horas (La Paz, de `.git/logs/HEAD`):** desde `c4030f3` (07:50:54, el HEAD de partida) hasta `e62bbd5` (08:33:18, el juego de prueba);
+`e23a694` (tipos y validador) a las 08:28:21. **e2e completo: no (Nivel 1: TS puro, sin interfaz ni base).** No se tocó `supabase/`,
+`src/shared`, ninguna interfaz ni e2e; sin dependencias nuevas; ningún tope cambió.
+
+**Qué:** las seis decisiones (a a f) están en `docs/DECISIONES.md` (2026-10-23) y la forma final, en `docs/COTIZADOR.md` («Forma» y «Las
+reglas»).
+
+- **`entities/nodos.ts`:** un Zod estricto por tipo de nodo, discriminado por `tipo` y, el cálculo, por `op`, con su aridad.
+  `referenciasDe()` lleva el `switch` exhaustivo.
+- **`entities/formula.ts`:** `buckets`, `total_en`, `grupos`, `params.tablas` y el `ModoDeCambio` que recibe el motor.
+- **`entities/validar.ts`:** con `validar-contexto`, `validar-grupos`, `validar-variante`, `motivos-de-formula` y `medidor`. Lleva la forma
+  y 28 reglas cruzadas, cada una con un código estable.
+- **`entities/casos-de-formula.json`:** 48 casos.
+  - **Válidos (4):** las dos fórmulas del seed tal cual (la prueba las compara con `supabase/seed.sql`); el Excel entero, con las cuatro
+    cotizaciones como variantes de una fórmula y sus tablas congeladas; y la multa de «Amnistia».
+  - **Inválidos (44):** 32 de reglas cruzadas (una por regla, y dos para las que se comprueban en dos lugares) y 12 de forma.
+  - **Cada caso lleva su propia tabla de depreciación:** la del Excel va de 2018 a 2026 (2025 → 0,8); la de «Amnistia», de 2006 a 2011,
+    gasolina y gas.
+- Las dos fórmulas del seed validan sin cambiarlas.
+
+**Escala:** la prueba cuenta visitas, no milisegundos.
+
+- Hay unas 12 pasadas lineales por nodo y 6 por arista, así que k = 16, fijado por esa cuenta. El plan decía 3; la cuenta de pasadas lo
+  corrigió antes de medir.
+- 200 nodos dan 6.525 visitas, y 2.000 nodos, 65.565: ×10,05, 3,51 visitas por unidad de tamaño (nodos + aristas + grupos + opciones +
+  params).
+- Un grep prohíbe en los validadores `.includes(`, `.find(`, `.filter(`, `.some(` y sus parientes, que el contador no vería.
+
+**Mutaciones: 29 reglas (la forma y las 28 cruzadas), 29 mutaciones y 0 problemas.**
+
+- **Cómo se hizo:** un test, un script y una config de Vitest en el scratchpad (no en el repo). Para cada código, `return fallo('x'` pasó a
+  `if (0) return fallo('x'` en sus sitios; los sitios son 33, porque cuatro reglas tienen dos. Se corrieron los 48 casos y cada archivo
+  se restauró con `cp` desde un respaldo, comprobado con `cmp`; nunca con `git checkout`.
+- **Lo que tenía que pasar:** los casos de esa regla dan `ok` o lanzan, y ningún otro caso cambia.
+- **Resultado:**
+  - 31 de los 32 casos cruzados dieron `ok`;
+  - 1 lanzó: «solo_en sin variante», porque el código de después supone la variante;
+  - los 12 de forma lanzaron (sin el Zod no hay `formula`);
+  - ningún otro caso cambió, y no hizo falta declarar ninguna cascada (`cascadas: []`).
+- **Otra comprobación:** una clave de más en una copia del seed del juego hizo caer las dos pruebas que la cubren; restaurado con `cp`.
+
+**Para 4.05-4:**
+
+- `validar_formula()` está en `supabase/migrations/20261011000600_rpc_cotizaciones.sql`. No mira `buckets`, `sugerido_de`, `requerido_si`
+  ni `match`, y su `id = any(ids)` es cuadrático.
+- El comentario de `cotizaciones.fuentes` en `schemas/` todavía dice `lookup`.
+- La base no lee archivos del repo desde su contenedor: el JSON se le pasa del lado del cliente (psql con `cat`, o `probar-schema.mjs`).
+
+**Del entorno:**
+
+- La primera sintética dejaba grupos vacíos, y el validador lo rechazó (`grupo_vacio`); se arregló el generador.
+- Prettier sacó llaves que el lint (`curly`) exige: `eslint --fix` las devolvió.
+- La primera corrida completa de `pnpm test` cayó en `indice-de-decisiones.test.ts`, porque faltaba regenerar el índice de DECISIONES con
+  `bash scripts/mapa.sh`.
+- **`git checkout -- <archivo>` está prohibido** (lo pidió la persona): para volver un archivo a su estado, respaldo y `cp`.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (la salida queda en `test-salidas/`) y `bash scripts/mapa.sh --check`
+sobre el árbol final: 325 archivos, 3.187 pruebas, 74,1 s (`test-salidas/2026-10-23_12-39-35-1570448/`).
+
+**Lo que no se hizo:** `motor.ts` (es el prompt 2), SQL, `next upgrade`, empujar.
+
+## 2026-10-23 — Movido de ESTADO (4.05-1)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual» y el punto 1 de «Siguiente»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.04 completo**: **5a-36** (`cbbd388`: el global de F, fijo en 7 dígitos y buscado como número propio; 30 de 30 con ~100 y ~1.000 leads), **5a-32** (`4bf3bf2`: la baja en curso se simula con un lead tomado por otra transacción; 30 de 30 en escritorio y celular) y **5a-11 aceptado con la causa corregida** (opción A de la persona: 9 corridas, 15.202,8 ms; `cartera` indexada, ningún update de la cartera es HOT; la opción de fondo es **5a-40**). `medir-bajas.sql` pausa el cron `equipo-bajas` mientras mide y asserta ≤ 12 corridas, ≤ 20.000 ms y ≤ 3.000 ms por corrida (`99b6703`, `daacad5`). Antes: **4.03**, **4.02** y **4.01** (`docs/COTIZADOR.md`). Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», cierre del 4.04).
+
+1. **4.05** y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).

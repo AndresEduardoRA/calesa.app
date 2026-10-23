@@ -6,7 +6,7 @@
 > a `docs/BITACORA.md`, copiado y no resumido. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-23
-**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.04 completo**: **5a-36** (`cbbd388`: el global de F, fijo en 7 dígitos y buscado como número propio; 30 de 30 con ~100 y ~1.000 leads), **5a-32** (`4bf3bf2`: la baja en curso se simula con un lead tomado por otra transacción; 30 de 30 en escritorio y celular) y **5a-11 aceptado con la causa corregida** (opción A de la persona: 9 corridas, 15.202,8 ms; `cartera` indexada, ningún update de la cartera es HOT; la opción de fondo es **5a-40**). `medir-bajas.sql` pausa el cron `equipo-bajas` mientras mide y asserta ≤ 12 corridas, ≤ 20.000 ms y ≤ 3.000 ms por corrida (`99b6703`, `daacad5`). Antes: **4.03**, **4.02** y **4.01** (`docs/COTIZADOR.md`). Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», cierre del 4.04).
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05, prompt 1 de 4** (`e23a694`, `e62bbd5`): la forma ampliada del grafo (grupos, N tipos de cambio y `total_en`, `sobrescribible`, el par porcentaje-monto, `opcion` y `solo_en`, `params.tablas`) como Zod en `entities/`, `validar.ts` (la forma y 28 reglas cruzadas, lineal) y `casos-de-formula.json` (48 casos; 29 mutaciones: cada inválido rompe una sola regla). Antes: **4.04** a **4.01**. Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-1).
 
 ## Funcionando
 
@@ -17,7 +17,7 @@
 
 ## Siguiente
 
-1. **4.05** y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).
+1. **4.05, prompt 2** (`motor.ts`, contra los casos válidos de `casos-de-formula.json` con sus cifras y los $2.350 y $72.952) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).
 2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT; toca `supabase/schemas`, después del hito 4-A) y **5a-42** (`medir-bajas.sql` cae sin regresión con un `sync` de disco largo: decidir por el trabajo —40 lotes, ≤ 16 M buffers— y juzgar los ms sólo con la ventana sana) sin fase, las decide la persona; **5a-41** cerrado: no reproducida y `pnpm test` guarda su salida en `test-salidas/`; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
 
 ## Pendientes que se arrastran
