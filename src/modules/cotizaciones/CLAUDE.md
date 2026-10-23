@@ -14,7 +14,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   exhaustivo. `entities/formula.ts` — `definicion` (`buckets`, `total_en`, `grupos`), `params` (constantes y tablas congeladas, D5) y
   el modo que recibe el motor.
 - `entities/validar.ts` (con `validar-contexto.ts`, `validar-grupos.ts`, `validar-variante.ts`, `motivos-de-formula.ts` y
-  `medidor.ts`) — espejo TS de `validar_formula()`: la forma y 28 reglas cruzadas, lineal y con contador de visitas
+  `medidor.ts`) — espejo TS de `validar_formula()`: la forma y 29 reglas cruzadas, lineal y con contador de visitas
   (`docs/COTIZADOR.md` › «Las reglas»).
 - `entities/casos-de-formula.json` — el juego de fórmulas válidas e inválidas con su motivo (una por regla, más las dos del seed, el
   Excel entero y «Amnistia»): lo recorre `validar.test.ts` y, desde 4.05-4, `supabase/tests/`. Una regla nueva = su caso acá.
@@ -24,8 +24,9 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   de cada nodo, en una pasada previa), `motor-nodos.ts` (un caso por tipo), `motor-sobrescribir.ts` (los overrides, las fuentes, el
   par porcentaje-monto y los descartados), `motor-calculo.ts` (un caso por `op`), `motor-tablas.ts` (`tabla`, `tramo`, la congelada
   contra la viva), `motor-totales.ts` (grupos, modo y reparto) y `redondeo.ts` (`round(numeric)` de Postgres, exacto).
-- `entities/casos-del-motor.json` — los casos del motor con su resultado hecho a mano (el seed, la moto y la gasolina del Excel, las
-  capturas, un caso por tipo, `op` y faltante): lo recorre `motor.test.ts` y, desde 4.06, la paridad de `evaluar_formula()`.
+- `entities/casos-del-motor.json` — los casos del motor con su resultado hecho a mano (el seed, el Excel entero con sus cifras de
+  celda, «Amnistia», las capturas, un caso por tipo, `op`, faltante, estado, fuente, motivo de descarte y fila del par): lo recorre
+  `motor.test.ts` y, desde 4.06, la paridad de `evaluar_formula()`.
 - `features/hoja/` (XCell + binding `valores/fuentes/defaults`), `features/formulas/` (borrador/publicar/historial/revertir), `features/plantillas/`, `features/pdf/` (route handler con `@react-pdf/renderer`).
 - `docs/COTIZADOR.md` — la forma del grafo; leerlo antes de tocar el motor.
 

@@ -101,12 +101,14 @@ referencias A1 ni funciones que el grafo no tenga.
   - Cuando manda el monto, `valores[pct]` guarda monto ÷ base (null si la base es 0) y `fuentes[pct] = override`. Así la hoja y el PDF
     dicen lo mismo.
   - Con base 0 y el % mandando, el monto es 0.
-  - Ningún otro nodo lee ese `pct`.
+  - Ningún otro nodo lee ese `pct`, y el `pct` acepta un valor: un `input`, una `constante` o una tabla, un tramo o un cálculo
+    sobrescribibles (`aceptaValor()` en `nodos.ts`, y `par_mal_tipado` si no).
+  - Cómo lo evalúa el motor: «El motor» › «El par porcentaje-monto».
 
 ### La variante y el interruptor
 
-- **La evaluación es una sola pasada en el orden de la lista.** Un nodo que no está en su variante (`solo_en`), o cuya `condicion` está
-  apagada:
+- **La evaluación es una sola pasada en el orden de la lista**, después de una pasada previa que decide la variante y el estado de cada
+  nodo («El motor» › «La variante y el estado»). Un nodo que no está en su variante (`solo_en`), o cuya `condicion` está apagada:
   - vale 0 sin leer sus referencias;
   - no guarda override;
   - se dibuja deshabilitado con su motivo («Sólo en Híbrido / eléctrico»).
@@ -126,7 +128,7 @@ referencias A1 ni funciones que el grafo no tenga.
 **Primero la forma (`forma`):** el Zod de `nodos.ts` y `formula.ts`. Cubre el tipo, la `op`, el formato, una clave desconocida, la
 aridad, un campo que falta, el id y un param que no es número.
 
-**Después, 28 reglas cruzadas,** cada una con un código estable. El código es el contrato con la base; el texto es de cada lado
+**Después, 29 reglas cruzadas,** cada una con un código estable. El código es el contrato con la base; el texto es de cada lado
 (`entities/motivos-de-formula.ts`). `donde` es el id del nodo, el grupo o la clave donde se rompe, y la base lo pone en `hint`.
 
 | Regla                                                                        | Qué rechaza                                                                                                                                                                   |
@@ -134,9 +136,9 @@ aridad, un campo que falta, el id y un param que no es número.
 | `nodo_duplicado`, `referencia_inexistente`                                   | dos nodos con el mismo id; nombrar un nodo que no existe (un `match` sin nodo es un campo del vehículo)                                                                       |
 | `ciclo`, `referencia_hacia_adelante`                                         | un nodo que se usa a sí mismo; usar uno posterior, también `solo_en` antes del `opcion`. Sin ciclos por construcción                                                          |
 | `referencia_de_tipo`                                                         | `condicion` o `requerido_si` que no nombran una bandera; un cálculo que nombra el `opcion`                                                                                    |
-| `total_unico`, `total_fijo`                                                  | cero o dos totales; un total con `solo_en`, `condicion` o `sobrescribible`                                                                                                    |
+| `total_unico`, `total_fijo`, `total_no_es_monto`                             | cero o dos totales; un total con `solo_en`, `condicion` o `sobrescribible`; un total que no da un monto (un tipo de cambio, un campo, una bandera o la variante)              |
 | `constante_sin_valor`, `param_sin_constante`                                 | una constante sin su valor; una clave de params que no es constante                                                                                                           |
-| `par_mal_tipado`, `pct_compartido`                                           | un `porcentaje_de` que no es monto o cuyo `pct` no es pct; otro nodo lee el `pct` de un par sobrescribible                                                                    |
+| `par_mal_tipado`, `pct_compartido`                                           | un `porcentaje_de` que no es monto o cuyo `pct` no es pct; el `pct` de un par que no da un monto o no acepta un valor; otro nodo lee el `pct` de un par sobrescribible        |
 | `tipo_de_cambio_repetido`, `tipo_de_cambio_inexistente`                      | dos nodos con la misma clave; `buckets` o `total_en` que no nombran un `tipo_cambio`                                                                                          |
 | `bucket_inexistente`, `total_sin_tipo_de_cambio`                             | un nodo o un grupo con un bucket que no está; sin grupos, un total que no se puede repartir                                                                                   |
 | `grupos_sin_total_en`, `grupo_duplicado`, `grupo_inexistente`, `grupo_vacio` | con grupos y sin `total_en`; dos grupos con un id; un nodo en un grupo que no existe; un grupo sin nodos                                                                      |
@@ -150,70 +152,147 @@ aridad, un campo que falta, el id y un param que no es número.
   toda búsqueda pasan por el contador de `medidor.ts`.
   - La prueba de escala lo mira con 200 y 2.000 nodos: 6.525 y 65.565 visitas, 3,51 por unidad de tamaño.
 - **Cada caso inválido del juego rompe una sola regla.** Se comprueba apagando las reglas de a una: los 29 códigos, el 2026-10-23
-  (`docs/BITACORA.md`).
+  (`docs/BITACORA.md`), y en el 4.05-3 `total_no_es_monto` (cuatro casos, uno por tipo) y el pct del par (cinco), que sin su chequeo
+  dan «válida».
 
-## El motor (4.05, prompt 2)
+## El motor (4.05, prompts 2 y 3)
 
 `evaluar(formula, entrada, modo?, medidor?)` en `entities/motor.ts`. Es puro: sin I/O, sin fecha, sin azar, sin leer la base.
 `formula` es la salida de `validarFormula()`. `evaluar_formula()` (4.06) es su espejo, y los dos comparten el juego
 `entities/casos-del-motor.json`: cada caso con su fórmula (o el nombre de un caso de `casos-de-formula.json`), su entrada, su modo y
-lo esperado, hecho a mano.
+lo esperado, hecho a mano (las cifras del Excel, desde sus celdas).
 
 **La entrada** (`esquemaEntrada`, en `motor-entrada.ts`):
 
-| Campo          | Qué es                                                                                                |
-| -------------- | ----------------------------------------------------------------------------------------------------- |
-| `inputs`       | lo tipeado, por id de nodo `input`; lo que no está vale 0. Una clave que no es un `input` es un error |
-| `banderas`     | por id de nodo `bandera`; lo que no está, apagada. Una clave que no es una `bandera` es un error      |
-| `tipos_cambio` | por clave (oficial, paralelo…), mayores que 0: la forma de `cotizaciones.tipos_cambio`                |
-| `vehiculo`     | por campo, tal cual lo escribe la fórmula (`anio`, `atributos.cilindrada`): número, texto o null      |
-| `tablas`       | las vivas, por clave; la congelada de `params.tablas` manda                                           |
+| Campo          | Qué es                                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `inputs`       | lo tipeado, por id de nodo `input`; lo que no está, sin tipear. Una clave que no es un `input` es un error                    |
+| `banderas`     | por id de nodo `bandera`; lo que no está, apagada. Una clave que no es una `bandera` es un error                              |
+| `tipos_cambio` | por clave (oficial, paralelo…), mayores que 0: los de la empresa, la forma de `cotizaciones.tipos_cambio`                     |
+| `vehiculo`     | por campo, tal cual lo escribe la fórmula (`anio`, `atributos.cilindrada`): número, texto o null                              |
+| `tablas`       | las vivas, por clave; la congelada de `params.tablas` manda                                                                   |
+| `variante?`    | la clave elegida del `opcion`. Sin clave, su `por_defecto`                                                                    |
+| `overrides`    | `{id de nodo: número}`: lo que la persona escribió sobre un default o un sugerido. El que no se aplica no es un error (abajo) |
 
 **El resultado:**
 
-- `valores`: todos los nodos, en el orden de la lista; null cuando falta algo que lo alcanza.
-- `fuentes`: vacío hasta el prompt 3, que lo llena.
+- `valores`: todos los nodos, en el orden de la lista; null cuando falta algo que lo alcanza; el `opcion`, su clave (texto).
+- `estados`: todos los nodos, en el orden de la lista: `activo`, `fuera_de_variante` o `condicion_apagada`.
+- `fuentes`: `default`, `sugerido`, `override` o `input`, sólo de los nodos activos que aceptan un valor (`aceptaValor()`: `input`,
+  `constante`, `tipo_cambio` y lo sobrescribible), en el orden de la lista.
 - `totales`:
-  - `grupos`: `{usd, bs}` de cada grupo, en el orden de `grupos`;
+  - `grupos`: `{usd, bs, se_dibuja}` de cada grupo, en el orden de `grupos`;
   - `bs`;
   - `usd`: Bs ÷ tc(`total_en`). Sin `total_en` y sin modo (la Fase 0), es la suma de los dólares;
   - `suma_usd`: el nodo `salida: total`.
 - `faltantes`: `{codigo, donde, ref?}`, uno por cada null que nace, en el orden en que nace.
+- `overrides_descartados`: `{id, motivo}`, los que no se aplicaron (abajo).
 
 **Los errores de llamada lanzan** `ErrorDelMotor` con su `codigo`:
 
 - `modo_invalido`: un modo que nombra algo que no es un `tipo_cambio` de la fórmula o no cubre un bucket que se usa;
-- `entrada_invalida`;
-- `formula_sin_validar`;
-- `rasgo_pendiente` (abajo).
+- `entrada_invalida`: una clave de `inputs` o `banderas` de otro tipo; una `variante` que la opción no tiene, o con una fórmula sin
+  variante; sin `variante` y sin `por_defecto` («Amnistia»);
+- `formula_sin_validar`: también dos `opcion` o un `solo_en` sin variante.
 
-Lo que puede causar una persona no lanza: viaja como `faltantes`.
+Lo que puede causar una persona no lanza: viaja como `faltantes` o como `overrides_descartados`.
+
+### La variante y el estado
+
+**Una pasada previa y lineal** (`motor-estados.ts`), antes de calcular nada, decide la variante y el estado de cada nodo. Depende sólo
+de la variante, del `solo_en` de cada nodo y de las banderas de la entrada (una bandera fuera de su variante está apagada). La misma
+pasada marca los grupos que se dibujan y los pct «pisados» (abajo).
+
+| Orden | Si…                                      | Estado              | Valor                                       | Override                       | Fuente  |
+| ----- | ---------------------------------------- | ------------------- | ------------------------------------------- | ------------------------------ | ------- |
+| 1     | tiene `solo_en` y la variante no está    | `fuera_de_variante` | 0, sin leer sus referencias ni su condición | descartado `fuera_de_variante` | ninguna |
+| 2     | tiene `condicion` y la bandera no vale 1 | `condicion_apagada` | 0, sin leer sus referencias                 | descartado `condicion_apagada` | ninguna |
+| 3     | si no                                    | `activo`            | se calcula                                  | se aplica si su tipo lo admite | la suya |
+
+- La variante gana a la condición: un nodo con las dos, fuera de su variante, dice «Sólo en …».
+- **Un `match` que nombra la variante** compara la clave elegida (texto) con la columna, con la igualdad estricta de siempre: es la
+  comisión por variante del Excel. Sin fila, null con `fila_sin_coincidencia`.
+- Un input tipeado fuera de su variante vale 0 y no es un error.
+
+### Overrides y fuentes
+
+**Precedencia: override > sugerido.** Un nodo activo con override vale el override (pasa por el mismo `asentar`: −0 a 0, lo no finito a
+null) y **no calcula su sugerido**: no busca su tabla ni anota faltantes. ↺ quita el override y la hoja recalcula.
+
+| Nodo                                                                             | Sin override                                               | Con override                                                     |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| `constante`                                                                      | `params`, `default`                                        | el override, `override` (la captura 05)                          |
+| `tipo_cambio`                                                                    | `tipos_cambio` de la empresa, `default`                    | el override, `override`; ≤ 0 es sin valor, como el de la empresa |
+| `tabla`, `tramo` o `calculo` con `sobrescribible`                                | lo calculado, `sugerido`                                   | el override, `override`                                          |
+| `input` sin `sugerido_de`                                                        | tipeado o 0, `input`                                       | descartado `no_sobrescribible` (lo tipeado va en `inputs`)       |
+| `input` con `sugerido_de`                                                        | tipeado (`override`) o el del nodo que nombra (`sugerido`) | descartado `no_sobrescribible`                                   |
+| lo demás (cálculo, tabla o tramo sin `sobrescribible`, campo, bandera, `opcion`) | sin fuente                                                 | descartado `no_sobrescribible`                                   |
+
+- **El motivo, en este orden:** el id no es un nodo (`nodo_inexistente`), el nodo está fuera de su variante, está apagado, su tipo no
+  se sobrescribe. Los de nodos van en el orden de la lista; los inexistentes, al final y **ordenados por id** (bytes, como
+  `collate "C"`): así no dependen del orden de las claves de la entrada. Una cotización que pasa a la N+1 trae overrides de la N.
+- **El tipo de cambio:** el de la empresa viene en `tipos_cambio` y el de la persona en `overrides`, por el id del nodo. La captura 09:
+  `unificado` 12,2 y el override 12 dan $72.951,51, con `fuentes.tc_unificado = override`.
+- **`total_en` y los buckets** leen el valor final del nodo, con su override.
+
+### El par porcentaje-monto
+
+Un `porcentaje_de` sobrescribible (el monto) y su `pct`; base = Σde de izquierda a derecha. **Si el monto trae override, el pct está
+«pisado»** (lo marca la pasada previa, si el monto y el pct están activos): no se calcula, no aplica su propio override, su fuente es
+`override` y, al llegar el par, vale monto ÷ base.
+
+| Caso                                             | monto (fuente)            | `valores[pct]` (fuente)        | faltante                                                                                |
+| ------------------------------------------------ | ------------------------- | ------------------------------ | --------------------------------------------------------------------------------------- |
+| ninguno                                          | base × pct (`sugerido`)   | el suyo (la de su tipo)        | —                                                                                       |
+| override del monto                               | el override (`override`)  | monto ÷ base (`override`)      | —                                                                                       |
+| override del pct                                 | base × pct (`sugerido`)   | el override (`override`)       | —                                                                                       |
+| los dos                                          | el del monto (`override`) | monto ÷ base (`override`)      | — (el del pct no se descarta: releer una cotización con el monto mandando trae los dos) |
+| base 0, manda el %                               | 0 (`sugerido`)            | el suyo                        | —                                                                                       |
+| base 0, override del monto                       | el override               | null (`override`)              | `division_por_cero` en el pct, al llegar al par                                         |
+| el pct es una tabla sin fila, override del monto | el override               | monto ÷ base                   | — (el pct pisado no busca)                                                              |
+| el pct fuera de la variante o apagado            | el override               | 0, sin fuente (no está pisado) | —                                                                                       |
+
+Fees tipeado 1.300 sobre 9.500 (la moto, `H15`): el pct guarda 0,1368421052631579.
+
+### `sugerido_de` y `requerido_si`
+
+- **«Tipeado»** es que la clave está en `inputs`, aunque valga 0.
+- **`sugerido_de`:** sin tipear vale lo del nodo que nombra (null si es null, sin faltante nuevo), fuente `sugerido`; tipeado, lo tipeado
+  con fuente `override` (había un sugerido; ↺ vuelve a él).
+- **`requerido_si` encendida y sin tipear:** null con `requerido_sin_valor` (donde = el input, ref = la bandera), fuente `input`. Un
+  sugerido no lo cumple: «requerido» es que la persona lo escriba. Un input inactivo no exige nada.
 
 ### Qué pasa cuando falta algo
 
 | Situación                                                                             | Valor                            | En `faltantes` (`donde` / `ref`)                                    |
 | ------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
 | Input sin valor tipeado                                                               | **0** (la celda vacía del Excel) | —                                                                   |
+| Input sin tipear con `requerido_si` encendida                                         | null                             | `requerido_sin_valor` (el input / la bandera)                       |
 | Bandera sin valor                                                                     | **0** (apagada)                  | —                                                                   |
 | `campo_vehiculo` sin valor (no está, es null o no es número)                          | null                             | `campo_sin_valor` (el nodo / el campo)                              |
 | `match` sobre un campo del vehículo que no está o es null                             | null                             | `campo_sin_valor` (la tabla / el campo; si faltan varios, el menor) |
 | Tabla sin filas: ni congelada ni viva, o la que manda está vacía                      | null                             | `tabla_sin_filas` (el nodo / la clave de la tabla)                  |
 | Ninguna fila coincide (`tabla`, `tramo`, `depreciar`)                                 | null                             | `fila_sin_coincidencia` (el nodo / la tabla)                        |
 | La celda no es un número (null, que es la «X» del Excel; texto; o la columna no está) | null                             | `celda_sin_valor` (el nodo / la tabla)                              |
-| `dividir` por 0                                                                       | null                             | `division_por_cero` (el nodo)                                       |
-| Tipo de cambio ausente o ≤ 0                                                          | null                             | `tipo_de_cambio_sin_valor` (el nodo / la clave)                     |
+| `dividir` por 0, o el pct de un par con base 0 cuando manda el monto                  | null                             | `division_por_cero` (el nodo, o el pct)                             |
+| Tipo de cambio ausente o ≤ 0 (también el sobrescrito)                                 | null                             | `tipo_de_cambio_sin_valor` (el nodo / la clave)                     |
 | Un resultado no finito (desborde)                                                     | null                             | `fuera_de_rango` (el nodo, el grupo o `total`)                      |
 | Un nodo lee un null                                                                   | null                             | nada nuevo: el faltante es de donde nació                           |
-| `condicion` apagada (también la del `si`)                                             | **0, sin leer sus referencias**  | — (ahí el null **no** se propaga)                                   |
+| Fuera de la variante o condición apagada (también la del `si`)                        | **0, sin leer sus referencias**  | — (ahí el null **no** se propaga)                                   |
+| Un nodo con override                                                                  | el override                      | — (no calcula su sugerido)                                          |
 
 - **Un nodo anota a lo sumo un faltante**, el primero en este orden: tabla sin filas, campo sin valor, fila sin coincidencia, celda
   sin valor.
 - **Los totales:**
-  - el USD de un grupo es null si lo es un miembro;
+  - el USD de un grupo es null si lo es un miembro (hasta el 4.05-3 salía 0: un `?? 0` lo tapaba);
   - su Bs, si lo es su USD o su tipo de cambio;
-  - el total en Bs, si lo es el Bs de un grupo (o, sin grupos, un término del reparto o su tipo de cambio);
+  - **un grupo que no se dibuja** (todos sus miembros fuera de la variante) vale `{usd: 0, bs: 0, se_dibuja: false}` y no lee su tipo
+    de cambio: EE. UU.–Chile no necesita el oficial. Uno con todos sus miembros apagados se dibuja y sí lo lee;
+  - el total en Bs, si lo es el Bs de un grupo (o, sin grupos, un término del reparto o su tipo de cambio; un término fuera de la
+    variante aporta 0 sin leerlo);
   - el total en USD, si lo es el total en Bs o tc(`total_en`).
-- **Los códigos** (`CODIGOS_DE_FALTANTE`, en `motor-contexto.ts`) son el contrato con la base; el texto lo pone la interfaz.
+- **Los códigos** (`CODIGOS_DE_FALTANTE`, `ESTADOS`, `FUENTES` y `MOTIVOS_DE_DESCARTE`, en `motor-contexto.ts`) son el contrato con la
+  base; el texto lo pone la interfaz.
 
 ### La aritmética
 
@@ -221,7 +300,7 @@ Lo que puede causar una persona no lanza: viaja como `faltantes`.
   - `suma` = ((d0 + d1) + d2)…;
   - `restar` = ((d0 − d1) − d2)…, nunca d0 − Σresto;
   - `multiplicar` = ((d0 × d1) × d2)…;
-  - `porcentaje_de` = (Σde) × pct.
+  - `porcentaje_de` = (Σde) × pct; el pct pisado, monto ÷ (Σde).
 - **Los grupos:** sus miembros se suman en el orden de la lista; los grupos, en el orden de `grupos`; el reparto, en el de `total.de`.
   Los casos lo fijan bit a bit: suma(0,1; 0,2; 0,3) = 0,6000000000000001, y al revés da 0,6.
 - **Sin −0 ni infinitos:** −0 se guarda como 0, y lo no finito, como null con `fuera_de_rango`. JSON y jsonb no guardan ninguno de los
@@ -237,7 +316,7 @@ Lo que puede causar una persona no lanza: viaja como `faltantes`.
 
 - **Cuál manda:** la congelada de `params.tablas` si existe, aunque esté vacía; si no, la de `entrada.tablas`.
 - **`tabla`:** gana la **primera fila**, en el orden de la tabla, cuyas columnas del `match` son todas iguales a lo que nombran: un
-  nodo anterior con ese id o, si no hay, el campo del vehículo.
+  nodo anterior con ese id (la variante, su clave) o, si no hay, el campo del vehículo.
   - **La igualdad es estricta y sin conversión** (2024 ≠ "2024", "Moto" ≠ "moto"), como la de jsonb.
   - Un `match` vacío da la primera fila.
   - Un `match` que nombra un nodo null da null, sin faltante nuevo.
@@ -251,31 +330,32 @@ Lo que puede causar una persona no lanza: viaja como `faltantes`.
 - Sumar con un bucle en el orden de la lista: `sum()` sin `order by` no garantiza el orden.
 - Redondear con `round(x::numeric, n)::float8`.
 - Elegir la primera fila por `orden` (las congeladas, por su posición en el arreglo).
-- Comparar el `match` como jsonb. jsonb no guarda el orden de las claves, por eso el faltante de varios campos nombra el menor (en
-  orden de código, `collate "C"`).
+- Comparar el `match` como jsonb (la variante, como texto). jsonb no guarda el orden de las claves, por eso el faltante de varios campos
+  nombra el menor (en orden de código, `collate "C"`).
 - Guardar −0 como 0.
-
-### Lo que todavía no evalúa (lanza `rasgo_pendiente`, y el prompt 3 lo quita)
-
-- un nodo `opcion`;
-- algún `solo_en`;
-- algún `sobrescribible` (también el par porcentaje-monto);
-- algún `requerido_si`;
-- un `input` con `sugerido_de` **sin valor tipeado**. Con valor tipeado el número no depende del sugerido: así se evalúa la semilla
-  `subasta_usa`, cuyo `fob_tabla` lo lleva.
-
-Por eso el Excel entero y «Amnistia» lanzan (tienen variante). Sus cifras quedan para el 3 y el 4. El juego trae la moto y la gasolina
-del Excel como fórmulas de prueba sin variante.
+- **La pasada previa** antes de calcular: la variante (la de la entrada o la `por_defecto`), el estado de cada nodo (primero la
+  variante, después la condición, con la bandera fuera de su variante apagada), los grupos que se dibujan y los pct pisados.
+- **Un nodo inactivo** vale 0 sin leer nada y descarta su override con su estado; **un grupo que no se dibuja** no lee su tipo de cambio,
+  ni un término del reparto fuera de la variante.
+- **El override** antes del cálculo, por tipo; **el pct pisado** vale null hasta que llega el par, y el `division_por_cero` de la base 0 se
+  anota ahí, en el orden de los faltantes.
+- **Los descartados:** los de nodos en el orden de la lista, los inexistentes al final, por id con `collate "C"`.
+- **Las fuentes,** sólo de los nodos activos que aceptan un valor, en el orden de la lista.
+- El USD de un grupo con un miembro null es null.
+- Leer `casos-del-motor.json` (84 casos).
 
 ### Escala
 
-Una pasada por los nodos más unas pocas por la entrada y los grupos, y una búsqueda de tabla recorre sus filas una vez. Todo bucle y
-toda búsqueda pasan por `medidor.ts`.
+Una pasada previa, una pasada por los nodos y unas pocas por la entrada y los grupos; una búsqueda de tabla recorre sus filas una vez y
+un nodo con override no la recorre. Todo bucle y toda búsqueda pasan por `medidor.ts` (`ordenar()` cuenta cada comparación).
 
-- **La prueba** usa una sintética de 200 y 2.000 nodos, con dos tablas de 50 filas: 9.196 y 94.764 visitas, 1,38 por unidad de tamaño
-  y ×10,31.
-- **El tamaño** es nodos + aristas + grupos + claves de la entrada y de params + filas × (1 + columnas comparadas).
-- **k = 9** se fija por la cuenta de pasadas: lo que más cuesta es un nodo `tabla` de un grupo, con su condición.
+- **La prueba** usa una sintética de 200 y 2.000 nodos, con dos tablas de 50 filas, la variante (un `multiplicar` en ella y un
+  `restar` fuera), inputs sin tipear con `sugerido_de`, overrides en los tramos, uno descartado en cada `redondear` y tres
+  inexistentes: 6.408 y 65.381 visitas, 0,95 por unidad de tamaño y ×10,20.
+- **El tamaño** es nodos + aristas + grupos + claves de la entrada (con los overrides) y de params + entradas de `solo_en` + opciones +
+  filas × (1 + columnas comparadas).
+- **k = 14** se fija por la cuenta de pasadas: lo que más cuesta es un nodo `tabla` sobrescribible de un grupo, con su condición y su
+  tabla viva.
 
 ## Tipos de cambio y modos (D7, H1)
 
@@ -375,7 +455,7 @@ nada de CSS, clases, HTML ni hex.
   - `default`: una constante o un tipo de cambio de la empresa.
   - `sugerido`: lo propuso una tabla, un tramo, un cálculo o `sugerido_de`; pinta el punto. Desde 4.05 reemplaza a `lookup`.
   - `override`: se cambió un default o un sugerido; pinta el anillo, y ↺ vuelve.
-  - `input`: se tipeó y no había nada que sugerir.
+  - `input`: lo escribe la persona y no hay un sugerido en uso (tipeado sin `sugerido_de`, sin tipear, o requerido y sin tipear).
 - `tipos_cambio`: `{clave: valor}` congelados.
 - `totales`: por moneda y por grupo.
 

@@ -687,3 +687,143 @@ Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual» y el punto 1 de 
 **Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05, prompt 1 de 4** (`e23a694`, `e62bbd5`): la forma ampliada del grafo (grupos, N tipos de cambio y `total_en`, `sobrescribible`, el par porcentaje-monto, `opcion` y `solo_en`, `params.tablas`) como Zod en `entities/`, `validar.ts` (la forma y 28 reglas cruzadas, lineal) y `casos-de-formula.json` (48 casos; 29 mutaciones: cada inválido rompe una sola regla). Antes: **4.04** a **4.01**. Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-1).
 
 1. **4.05, prompt 2** (`motor.ts`, contra los casos válidos de `casos-de-formula.json` con sus cifras y los $2.350 y $72.952) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).
+
+## 2026-10-23 — Paso 4.05, prompt 3 de 4: la variante, lo sobrescribible y las cifras del Excel entero
+
+**Horas (La Paz, de `.git/logs/HEAD`):** desde `6cef77f` (10:13:51, el HEAD de partida) hasta `b7e02ab` (11:31:19, los casos del Excel);
+`fd4c6f1` (11:04:12) y `1670c00` (11:07:46) los dos arreglos del validador, `9a030d0` (11:15:43) la variante, `6447a17` (11:21:56) los
+overrides y `8b9588d` (11:24:52) el arreglo del grupo null. **e2e completo: no (Nivel 1: TS puro).** No se tocó `supabase/`, `src/shared`,
+ninguna interfaz ni e2e; sin dependencias nuevas; el tope de la razón de escala (10,5) no cambió.
+
+**Qué:** las decisiones p a y están en `docs/DECISIONES.md` (2026-10-23, «Paso 4.05 (3 de 4)») y el motor, en `docs/COTIZADOR.md` («El
+motor»). La persona eligió `override` para un input con `sugerido_de` tipeado (el prompt decía `input`; COTIZADOR.md y el GLOSARIO
+decían `override`) y que un nodo con override no calcule su sugerido. Un agente revisó el plan en contra con `validarFormula` corrido sobre
+cada fórmula de prueba: las cuentas a mano cuadraban, y encontró que los casos del Excel anotaban `tc_unificado` sin valor, dos huecos
+del validador y funciones al borde del lint.
+
+- **Son 7 commits, no 4** (el prompt pedía 4): los dos arreglos del validador y el del grupo null van aparte, como `5d81edc` en el 4.05-2.
+  - **`fd4c6f1`** `total_no_es_monto`, regla 29: un total que es la variante (un texto) o no da un monto. Cuatro casos, uno por tipo.
+  - **`1670c00`** `par_mal_tipado` también para el pct de un par que no da un monto o no acepta un valor (`aceptaValor()`). Cinco casos.
+  - **`9a030d0`** la variante, la pasada previa de estados, `requerido_si` y `se_dibuja`.
+  - **`6447a17`** los overrides, las fuentes, el par y `sugerido_de`; sale `rasgo_pendiente`.
+  - **`8b9588d`** el USD de un grupo con un miembro null era 0 (`subtotal ?? 0`), desde `48fc91f`. Lo encontró la gasolina sin overrides
+    del Excel; su caso chico cae sin el arreglo (Bs 14 en vez de null).
+  - **`b7e02ab`** los casos del Excel entero y de «Amnistia».
+- **Cada caso nuevo cae primero contra HEAD:** los 35 casos del motor, con el arnés nuevo sobre el código de `6cef77f` (las listas
+  nuevas escritas en el archivo de prueba), y los archivos devueltos con `cp` y comprobados con `cmp`:
+  - 25 porque `esquemaEntrada` de HEAD rechaza `variante` u `overrides`;
+  - 10 por `rasgo_pendiente`: «opcion» (1), «requerido_si» (5), «sugerido_de» (2), «sobrescribible» (2).
+  - Los nueve casos del validador dan «válida» sin su chequeo.
+- **Las cifras del Excel, desde sus celdas** (Python con dobles, en el orden de las fórmulas): moto 16.826,354 (`H22`), gasolina
+  43.756,416 (`H41`) y, sin el override, la nacionalización de la calculadora 20.159,291316 (`D41`) con USD 42.167,790450468; híbrido
+  61.710,6 (`H60`); Chile 20.157,6 (`H73`); «Amnistia» 8.201,0562852864 (`C37`) y 5.422,661258085 (`H37`).
+- **El juego del motor pasa de 48 a 84 casos**, y el de fórmulas de 52 a 61.
+
+**Escala:**
+
+- Motor: con la variante, 9.716 y 99.964 visitas, ×10,29 (`9a030d0`). Con los overrides en los tramos, que ya no recorren su tabla,
+  6.408 y 65.381, ×10,20, sobre un tamaño de 6.751 y 69.819.
+- **k sube de 9 a 14, por la cuenta de pasadas.** Sale la de los rasgos y entran la pasada previa con su condición, el estado, el override,
+  el pct pisado y las salidas de estados y fuentes. El tope de la razón no se tocó.
+- Validador: 6.525 y 65.565, sin cambio. Los dos chequeos nuevos no recorren nada.
+
+**Mutaciones: 51, y las 51 tumban su prueba.**
+
+- **Cómo:** un script en el scratchpad con (archivo, texto exacto que aparece una sola vez, reemplazo, lo que tiene que caer). Para cada
+  una: respaldo con `cp`, la mutación, `vitest run` de `entities/`, restaurar con `cp` y comprobar con `cmp`. La huella sha256 de
+  `entities/` dio igual antes y después. Nunca `git checkout`.
+
+| #   | Mutación                                               | Pruebas que caen | Resultado |
+| --- | ------------------------------------------------------ | ---------------- | --------- |
+| A1  | el total sin el chequeo de tipo                        | 4                | OK        |
+| B1  | el pct de un par sin aceptaValor                       | 2                | OK        |
+| B2  | el pct de un par sin daMonto                           | 1                | OK        |
+| V1  | sin clave, la primera opción y no la por_defecto       | 3                | OK        |
+| V2  | fuera de la variante se calcula igual                  | 17               | OK        |
+| V4  | la condición antes que la variante                     | 2                | OK        |
+| V5  | una clave que la variante no tiene no lanza            | 1                | OK        |
+| V6  | sin clave ni por_defecto vale la primera               | 1                | OK        |
+| V7  | un grupo sin miembros en la variante se dibuja         | 4                | OK        |
+| V8  | el grupo que no se dibuja lee su tipo de cambio        | 2                | OK        |
+| V9  | en el reparto, el término fuera lee su tipo de cambio  | 1                | OK        |
+| V10 | el match lee la variante como 0                        | 12               | OK        |
+| V11 | una bandera fuera de su variante cuenta como encendida | 1                | OK        |
+| V12 | un grupo con todos sus miembros apagados no se dibuja  | 3                | OK        |
+| Q1  | requerido_si se ignora                                 | 3                | OK        |
+| Q2  | se exige con la bandera apagada                        | 1                | OK        |
+| Q3  | el requerido queda null sin faltante                   | 3                | OK        |
+| Q4  | el sugerido cumple lo requerido                        | 1                | OK        |
+| Q5  | un 0 tipeado cuenta como sin tipear                    | 1                | OK        |
+| S1  | sugerido_de sin tipear vale 0                          | 2                | OK        |
+| S2  | el sugerido gana a lo tipeado                          | 3                | OK        |
+| S3  | lo tipeado sobre un sugerido lleva fuente input        | 1                | OK        |
+| S4  | lo sugerido lleva fuente input                         | 2                | OK        |
+| O1  | el sugerido gana al override                           | 15               | OK        |
+| O2  | con override se calcula igual                          | 4                | OK        |
+| O3  | se aplica el override de un nodo no sobrescribible     | 30               | OK        |
+| O4  | se aplica fuera de la variante                         | 2                | OK        |
+| O5  | se aplica con la condición apagada                     | 1                | OK        |
+| O6  | overrides_descartados vacío                            | 2                | OK        |
+| O7  | los inexistentes en el orden de la entrada             | 2                | OK        |
+| O8  | el tipo se mira antes que el estado (motivo)           | 1                | OK        |
+| O9  | la constante ignora su override                        | 2                | OK        |
+| O10 | el tipo de cambio ignora su override                   | 4                | OK        |
+| O11 | el override de un tipo de cambio ≤ 0 no se revisa      | 1                | OK        |
+| O12 | un nodo inactivo lleva fuente                          | 11               | OK        |
+| P1  | manda siempre el porcentaje                            | 6                | OK        |
+| P2  | el pct no se reescribe                                 | 5                | OK        |
+| P3  | fuentes[pct] queda en default                          | 5                | OK        |
+| P4  | con los dos, el pct conserva su override               | 1                | OK        |
+| P5  | con los dos, el del pct va a descartados               | 1                | OK        |
+| P6  | base 0 con override: el pct vale 0                     | 1                | OK        |
+| P7  | base 0 y manda el %: el monto es null                  | 3                | OK        |
+| P8  | el pct inactivo se reescribe igual                     | 1                | OK        |
+| P9  | el override de una tabla sobrescribible se ignora      | 5                | OK        |
+| P10 | el pct pisado se calcula igual                         | 1                | OK        |
+| T1  | el grupo suma 0 por cada override                      | 3                | OK        |
+| F1  | campo_sin_valor no se anota (campo del vehículo)       | 3                | OK        |
+| F2  | tabla_sin_filas no se anota                            | 5                | OK        |
+| F3  | fila_sin_coincidencia no se anota (tabla)              | 5                | OK        |
+| E1  | un bucle sin el medidor en motor-sobrescribir.ts       | 1                | OK        |
+| E2  | ordenar no cuenta las comparaciones                    | 1                | OK        |
+
+- **Cascadas declaradas:**
+  - O3 (30): un nodo que no acepta un valor gana fuente, y las fuentes se comparan enteras;
+  - V2 (17), O1 (15), V10 (12) y O12 (11): la variante, los overrides, la comisión por variante y las fuentes recorren el juego.
+- **No se aislaron dos del plan:**
+  - V3 («fuera de la variante lee sus referencias») es V2: un nodo que se calcula lee lo que nombra;
+  - T2 («`total_en` sin el override») lee el mismo valor del nodo que los buckets: lo cubre O10.
+- **Cinco «no cae» del script eran un falso aviso:** Vitest corta el nombre del caso en 37 caracteres y el script comparaba 38. B1 y B2
+  se ubicaron por la posición del caso en el juego (los cinco del pct empiezan igual).
+
+**Para 4.05-4:** `validar_formula()` copia `total_no_es_monto` (con sus cuatro casos) y el pct del par (`aceptaValor()`, cinco).
+
+**Para 4.06:** «Lo que el 4.06 tiene que copiar» en `docs/COTIZADOR.md`: la pasada previa, el grupo oculto sin su tipo de cambio, el pct
+pisado y su faltante, los descartados por `collate "C"`, las fuentes sólo de los activos y el grupo con un miembro null.
+
+**Del entorno:**
+
+- **Vitest con `cwd` en `entities/`** escribió su `test-salidas/` ahí (ignorada por git); se borró. La salida en JSON va siempre a
+  `test-salidas/<corrida>/` aunque se pase `--outputFile`.
+- **En una prueba temporal, `new URL('./literal', import.meta.url)`** volvió a fallar («scheme file»); la ruta va por una variable.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y `bash scripts/mapa.sh --check` en cada commit y sobre el árbol final.
+Último `pnpm test`: 331 archivos, 3.326 pruebas (`test-salidas/2026-10-23_15-30-02-1999448/`).
+
+**Lo que no se hizo:** SQL (`validar_formula()` es del 4.05-4 y `evaluar_formula()` del 4.06), exportar el motor desde `index.ts`,
+`sugeridos` para la hoja, `next upgrade`, empujar.
+
+## 2026-10-23 — Movido de ESTADO (4.05-3)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente», el «5a-41 cerrado» del punto 2, «Mirar
+capturas», ya en `.claude/rules/e2e.md`, y «De la 9h»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05, prompt 2 de 4** (`5d81edc`, `48fc91f`): el motor `evaluar()` en `entities/` (una pasada en el orden de la lista, grupos por tipo de cambio, el total en Bs y en USD, `faltantes` con siete códigos, `redondear` exacto como `round(numeric)`; lanza ante `opcion`, `solo_en`, `sobrescribible`, `requerido_si` y un `sugerido_de` sin tipear), `casos-del-motor.json` (48 casos a mano: el seed, la moto y la gasolina del Excel, las capturas $2.350 y $72.952) y 47 mutaciones; el validador rechaza en un grupo un nodo que no da un monto (cuatro casos). Antes: **4.05-1** y **4.04** a **4.01**. Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-2).
+
+1. **4.05, prompt 3** (sugerido, `sobrescribible`, el par porcentaje-monto, `opcion` y `solo_en`, `requerido_si` y `fuentes`: quita cada `rasgo_pendiente` del motor y da las cifras del Excel entero y de «Amnistia») y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). **4.05-4** copia en `validar_formula()` el chequeo de tipo de `miembro_no_es_monto` (`daMonto()`, `5d81edc`).
+
+**5a-41** cerrado: no reproducida y `pnpm test` guarda su salida en `test-salidas/`;
+
+- **Mirar capturas:** `capturar()` espera a la pantalla quieta y `node scripts/hoja-de-contacto.mjs <carpeta>` las monta en hojas; «mirar» es abrir todas (`.claude/rules/e2e.md`). Un e2e que falla deja sus artefactos en `e2e-fallos/`.
+
+- **De la 9h:** un texto, un rango o un `@>` sobre un campo privado ya no cuestan la cartera de quien filtra (4.03: por `leads_candidatos()`); sigue costando lo que pesa la cartera cuando el valor es raro (≈ 0,38 µs por lead). Una base viva grande: antes de `…001600`, `_leads_derivados_rellenar(5000)` hasta 0.
