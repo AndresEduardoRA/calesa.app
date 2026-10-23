@@ -5,6 +5,7 @@ import type { z } from 'zod'
 import { esquemaFormula, type Formula, type Params } from './formula'
 import { buscar, esta, recorrer, type Medidor } from './medidor'
 import {
+  aceptaValor,
   condicionDe,
   daMonto,
   esMonto,
@@ -13,6 +14,7 @@ import {
   sobrescribibleDe,
   soloEnDe,
   type Nodo,
+  type NodoCalculo,
   type Referencia,
 } from './nodos'
 import { esFallo, fallo, indexar, nodoDe, type Contexto, type Fallo } from './validar-contexto'
@@ -165,12 +167,20 @@ function otroLector(lectores: Lectores, id: string, yo: string, ctx: Contexto): 
   return l.primero === yo ? l.otro : l.primero
 }
 
+// Un `porcentaje_de` es un monto y su porcentaje tiene formato pct. Si se sobrescribe (el par), su porcentaje también
+// acepta un valor de la persona y da uno propio: el motor lo reescribe con monto ÷ base cuando manda el monto.
+function parMalTipado(n: NodoCalculo, pct: Nodo | undefined): boolean {
+  if (!esMonto(n)) return true
+  if (pct === undefined) return false
+  if (formatoDe(pct) !== 'pct') return true
+  return n.sobrescribible === true && !(daMonto(pct) && aceptaValor(pct))
+}
+
 function revisarPares(ctx: Contexto): Fallo | undefined {
   const lectores = lectoresDe(ctx)
   for (const n of recorrer(ctx.nodos, ctx.m)) {
     if (n.tipo !== 'calculo' || n.op !== 'porcentaje_de') continue
-    const pct = nodoDe(ctx, n.pct)
-    if (!esMonto(n) || (pct !== undefined && formatoDe(pct) !== 'pct')) {
+    if (parMalTipado(n, nodoDe(ctx, n.pct))) {
       return fallo('par_mal_tipado', { donde: n.id, ref: n.pct })
     }
     const otro = n.sobrescribible === true ? otroLector(lectores, n.pct, n.id, ctx) : undefined

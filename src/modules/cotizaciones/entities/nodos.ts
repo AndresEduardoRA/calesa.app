@@ -228,6 +228,28 @@ export function daMonto(n: Nodo): boolean {
     }
   }
 }
+// Si el nodo acepta un valor de la persona (es una XCell): lo que se tipea (`input`), un default de la empresa o de la
+// fórmula (`constante`, `tipo_cambio`) o un sugerido que se puede sobrescribir. Sólo estos llevan fuente.
+export function aceptaValor(n: Nodo): boolean {
+  switch (n.tipo) {
+    case 'input':
+    case 'constante':
+    case 'tipo_cambio':
+      return true
+    case 'tabla':
+    case 'tramo':
+    case 'calculo':
+      return n.sobrescribible === true
+    case 'campo_vehiculo':
+    case 'bandera':
+    case 'opcion':
+      return false
+    default: {
+      const _: never = n
+      return _
+    }
+  }
+}
 // `ninguno` (o nada) = sin bucket.
 export const bucketDe = (n: Pick<Nodo, 'bucket'>) =>
   n.bucket === undefined || n.bucket === 'ninguno' ? undefined : n.bucket

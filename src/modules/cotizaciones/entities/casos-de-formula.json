@@ -2178,6 +2178,442 @@
       }
     },
     {
+      "nombre": "el porcentaje de un par sobrescribible es un tipo de cambio",
+      "valida": false,
+      "motivo": {
+        "regla": "par_mal_tipado",
+        "donde": "fees"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "etiqueta": "Fees (%)",
+            "formato": "pct",
+            "tipo": "tipo_cambio",
+            "clave": "fees"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "pct": "fees_pct",
+            "etiqueta": "Fees",
+            "grupo": "compra",
+            "sobrescribible": true
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "poliza"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {}
+    },
+    {
+      "nombre": "el porcentaje de un par sobrescribible es un campo del vehículo",
+      "valida": false,
+      "motivo": {
+        "regla": "par_mal_tipado",
+        "donde": "fees"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "etiqueta": "Fees (%)",
+            "formato": "pct",
+            "tipo": "campo_vehiculo",
+            "campo": "atributos.fees"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "pct": "fees_pct",
+            "etiqueta": "Fees",
+            "grupo": "compra",
+            "sobrescribible": true
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "poliza"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {}
+    },
+    {
+      "nombre": "el porcentaje de un par sobrescribible es una bandera",
+      "valida": false,
+      "motivo": {
+        "regla": "par_mal_tipado",
+        "donde": "fees"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "etiqueta": "Fees (%)",
+            "formato": "pct",
+            "tipo": "bandera"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "pct": "fees_pct",
+            "etiqueta": "Fees",
+            "grupo": "compra",
+            "sobrescribible": true
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "poliza"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {}
+    },
+    {
+      "nombre": "el porcentaje de un par sobrescribible es una tabla que no se sobrescribe",
+      "valida": false,
+      "motivo": {
+        "regla": "par_mal_tipado",
+        "donde": "fees"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "etiqueta": "Fees (%)",
+            "formato": "pct",
+            "tipo": "tabla",
+            "tabla": "fees",
+            "match": {},
+            "columna": "v"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "pct": "fees_pct",
+            "etiqueta": "Fees",
+            "grupo": "compra",
+            "sobrescribible": true
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "poliza"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {}
+    },
+    {
+      "nombre": "el porcentaje de un par sobrescribible es un cálculo que no se sobrescribe",
+      "valida": false,
+      "motivo": {
+        "regla": "par_mal_tipado",
+        "donde": "fees"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_base",
+            "tipo": "constante",
+            "etiqueta": "Fees base",
+            "formato": "pct"
+          },
+          {
+            "id": "fees_pct",
+            "etiqueta": "Fees (%)",
+            "formato": "pct",
+            "tipo": "calculo",
+            "op": "redondear",
+            "de": ["fees_base"],
+            "n": 4
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "pct": "fees_pct",
+            "etiqueta": "Fees",
+            "grupo": "compra",
+            "sobrescribible": true
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "poliza"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {
+        "fees_base": 0.13
+      }
+    },
+    {
       "nombre": "otro nodo lee el porcentaje de un par sobrescribible",
       "valida": false,
       "motivo": {

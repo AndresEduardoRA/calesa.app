@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  aceptaValor,
   bucketDe,
   condicionDe,
   daMonto,
@@ -124,6 +125,17 @@ describe('lo que se lee de un nodo', () => {
     const sinMonto = new Set(['tipo_cambio', 'campo_vehiculo', 'bandera', 'opcion'])
     for (const [nombre, crudo] of CASOS)
       expect(daMonto(nodo(crudo)), nombre).toBe(!sinMonto.has(nombre))
+  })
+
+  it('aceptaValor: el input, la constante y el tipo de cambio siempre; tabla, tramo y cálculo si son sobrescribibles', () => {
+    const siempre = new Set(['input', 'constante', 'tipo_cambio'])
+    for (const [nombre, crudo] of CASOS) {
+      expect(aceptaValor(nodo(crudo)), nombre).toBe(siempre.has(nombre))
+      if (['tabla', 'tramo'].includes(nombre) || crudo['tipo'] === 'calculo') {
+        const sobrescribible = nodo({ ...crudo, sobrescribible: true })
+        expect(aceptaValor(sobrescribible), `${nombre} sobrescribible`).toBe(true)
+      }
+    }
   })
 
   it('bucketDe trata «ninguno» como sin bucket', () => {
