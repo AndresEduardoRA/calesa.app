@@ -7165,6 +7165,110 @@
         },
         "faltantes": []
       }
+    },
+    {
+      "nombre": "grupos: un miembro sin valor deja sin valor el grupo y el total, no en 0",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "X",
+            "grupo": "g"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "vacia",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "T",
+            "grupo": "g"
+          },
+          {
+            "id": "y",
+            "tipo": "input",
+            "etiqueta": "Y",
+            "grupo": "h"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["x", "t", "y"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "g",
+            "etiqueta": "G",
+            "tono": "t",
+            "bucket": "b"
+          },
+          {
+            "id": "h",
+            "etiqueta": "H",
+            "tono": "t",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": 5,
+          "y": 7
+        },
+        "tipos_cambio": {
+          "oficial": 2
+        }
+      },
+      "esperado": {
+        "valores": {
+          "x": 5,
+          "t": null,
+          "y": 7,
+          "total": null
+        },
+        "estados": {},
+        "totales": {
+          "grupos": {
+            "g": {
+              "usd": null,
+              "bs": null,
+              "se_dibuja": true
+            },
+            "h": {
+              "usd": 7,
+              "bs": 14,
+              "se_dibuja": true
+            }
+          },
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "tabla_sin_filas",
+            "donde": "t",
+            "ref": "vacia"
+          }
+        ]
+      }
     }
   ]
 }

@@ -71,7 +71,9 @@ function conGrupos(ev: Evaluacion, grupos: readonly Grupo[], cambio: Cambio) {
   const porGrupo: TotalesDelMotor['grupos'] = {}
   let bs: Valor = 0
   for (const g of recorrer(grupos, ev.m)) {
-    const usd = asentar(ev, buscar(ev.subtotales, g.id, ev.m) ?? 0, g.id)
+    // Un miembro null deja null el grupo (`??` lo volvía 0). Un grupo sin miembros no pasa `grupo_vacio`.
+    const subtotal = buscar(ev.subtotales, g.id, ev.m)
+    const usd = asentar(ev, subtotal === undefined ? 0 : subtotal, g.id)
     const seDibuja = esta(ev.dibujados, g.id, ev.m)
     // Un grupo que no se dibuja vale 0 y no lee su tipo de cambio: EE. UU.–Chile no necesita el oficial.
     const enBs = seDibuja ? asentar(ev, porDos(usd, tipoDeCambioDe(ev, cambio, g.bucket)), g.id) : 0
