@@ -407,7 +407,7 @@ Copiado tal cual de `docs/ESTADO.md` al cerrar el paso 4.04:
 
 ## 2026-10-23 — Cierre del paso 4.04: 5a-11 aceptado, la guarda baja sus topes, y las repeticiones de 5a-32 y 5a-36
 
-**Horas (La Paz):** del 2026-10-23 01:15 (primera repetición) al 02:3x (commit de docs; el de la guarda, `daacad5`, a las 02:17:54). **e2e completo: no (Nivel 1: sólo la guarda SQL y repeticiones).**
+**Horas (La Paz):** del 2026-10-23 01:15 (primera repetición) al 02:31 (`daacad5`, la guarda, a las 02:17:54, y `88c07de`, los docs, a las 02:31:25). **e2e completo: no (Nivel 1: sólo la guarda SQL y repeticiones).**
 
 **Decisión de la persona:** 5a-11, opción A: se acepta el número medido (9 corridas, 15.202,8 ms, la más larga 1.867 ms) con la causa corregida; no se arregla la baja. La opción de fondo es **5a-40** (`cartera` indexada; sin fase, después del hito 4-A). Sin schema ni migraciones.
 
