@@ -442,7 +442,7 @@ Copiado tal cual de `docs/ESTADO.md` al cerrar el 4.04:
 
 ## 2026-10-23 — Diagnóstico de 5a-41 (no reproducida) y de la guarda de la baja bajo un fsync lento (5a-42)
 
-**Horas (La Paz):** desde `204ea3b` (02:31:39 en `.git/logs/HEAD`, el HEAD de partida) hasta el commit de este registro; las corridas, de 02:44:44 a 04:52:08. **e2e completo: no (diagnóstico).** Sin cambios de código, SQL ni specs: sólo `docs/PLAN.md`, `docs/RENDIMIENTO.md`, esta bitácora y `docs/ESTADO.md`.
+**Horas (La Paz):** desde `204ea3b` (02:31:39 en `.git/logs/HEAD`, el HEAD de partida) hasta `bfcf1b9` (05:00:48, este registro); las corridas, de 02:44:44 a 04:52:08. **e2e completo: no (diagnóstico).** Sin cambios de código, SQL ni specs: sólo `docs/PLAN.md`, `docs/RENDIMIENTO.md`, esta bitácora y `docs/ESTADO.md`.
 
 **5a-41, no reproducida:** 50 corridas de `pnpm test` (`--retry=0`, salida entera y JSON en un archivo cada una), 0 caídas: 10 sin carga extra, 10 con 12 bucles de CPU (carga 12–24), 10 con escritura con `fdatasync` en bucle sobre el disco de la base, 10 con la caché vaciada y `lint` y `typecheck` antes, y 10 con CPU y disco a la vez (carga 27–29). La corrida que cayó se ubicó con el registro de la sesión del cierre: de 02:24:05 a 02:25:40, 41 min después de la guarda de 13 corridas y no en su ventana; a esa hora el disco estaba ocioso (`sar`) y el checkpoint de la base tuvo `sync` de 0,327 s. A y C descartadas; B sin mecanismo por reloj u orden y sin reproducirse por carga (lo más cerca del segundo de `waitFor`: 895 y 766 ms con carga 22–24). Tablas y razones en `docs/RENDIMIENTO.md` › «Diagnóstico de 5a-41 y la guarda de la baja bajo un fsync lento». No hay otro rastro de qué pruebas fueron: el caché de resultados de Vitest ya se había reescrito.
 
