@@ -7269,6 +7269,818 @@
           }
         ]
       }
+    },
+    {
+      "nombre": "excel moto: fees, transporte y nacionalización tipeados como overrides dan 16.826,354 (H22)",
+      "formula_de": "excel: las cuatro cotizaciones en una fórmula con su variante",
+      "entrada": {
+        "variante": "moto",
+        "inputs": {
+          "remate": 9500,
+          "grua": 880
+        },
+        "tipos_cambio": {
+          "oficial": 9.73,
+          "paralelo": 10,
+          "unificado": 10
+        },
+        "vehiculo": {
+          "anio": 2025,
+          "tipo_vehiculo": "motos"
+        },
+        "overrides": {
+          "fees": 1300,
+          "transporte_bolivia": 1300,
+          "nacionalizacion": 3098
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "variante": "moto",
+          "fees_pct": 0.1368421052631579,
+          "fees": 1300,
+          "transferencia": 432,
+          "cuenta_especial": 0,
+          "transporte_bolivia": 1300,
+          "transporte_chile": 0,
+          "comision": 400,
+          "documentacion": 0,
+          "export": 0,
+          "nacionalizacion": 3098,
+          "total": 16910
+        },
+        "estados": {
+          "cuenta_especial": "condicion_apagada",
+          "transporte_chile": "fuera_de_variante",
+          "documentacion": "fuera_de_variante",
+          "export": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc_oficial": "default",
+          "tc_paralelo": "default",
+          "tc_unificado": "default",
+          "remate": "input",
+          "fees_pct": "override",
+          "fees": "override",
+          "transferencia_pct": "default",
+          "grua": "input",
+          "transporte_bolivia": "override",
+          "comision": "sugerido",
+          "valor_tabla": "input",
+          "factor_dp": "sugerido",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gasto_puerto": "default",
+          "gasto_taller": "default",
+          "utilidad": "default",
+          "ga_pct": "default",
+          "iva_pct": "default",
+          "ice_pct": "default",
+          "factura_taller": "default",
+          "almacenaje": "default",
+          "agencia": "default",
+          "gas_sao": "default",
+          "factura_venta": "default",
+          "almacenaje_salida": "default",
+          "nacionalizacion": "override",
+          "garantia_pct": "default"
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 11232,
+              "bs": 112320,
+              "se_dibuja": true
+            },
+            "logistica": {
+              "usd": 2580,
+              "bs": 25800,
+              "se_dibuja": true
+            },
+            "aduana": {
+              "usd": 3098,
+              "bs": 30143.54,
+              "se_dibuja": true
+            }
+          },
+          "bs": 168263.54,
+          "usd": 16826.354,
+          "suma_usd": 16910
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "excel gasolina sin clave (la por defecto), con la nacionalización tipeada: 43.756,416 (H41)",
+      "formula_de": "excel: las cuatro cotizaciones en una fórmula con su variante",
+      "entrada": {
+        "inputs": {
+          "remate": 14000,
+          "grua": 1300,
+          "valor_tabla": 53900
+        },
+        "tipos_cambio": {
+          "oficial": 9.73,
+          "paralelo": 10,
+          "unificado": 10
+        },
+        "vehiculo": {
+          "anio": 2017,
+          "tipo_vehiculo": "vagonetas_medianas"
+        },
+        "overrides": {
+          "nacionalizacion": 21792
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "variante": "gasolina",
+          "fees": 1820,
+          "transferencia": 632.8,
+          "transporte_bolivia": 3600,
+          "transporte_chile": 0,
+          "comision": 500,
+          "documentacion": 700,
+          "export": 0,
+          "factor_dp": null,
+          "fob": null,
+          "cif": null,
+          "nacionalizacion": 21792,
+          "total": 44344.8
+        },
+        "estados": {
+          "cuenta_especial": "condicion_apagada",
+          "transporte_chile": "fuera_de_variante",
+          "export": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc_oficial": "default",
+          "tc_paralelo": "default",
+          "tc_unificado": "default",
+          "remate": "input",
+          "fees_pct": "default",
+          "fees": "sugerido",
+          "transferencia_pct": "default",
+          "grua": "input",
+          "transporte_bolivia": "sugerido",
+          "comision": "sugerido",
+          "documentacion": "default",
+          "valor_tabla": "input",
+          "factor_dp": "sugerido",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gasto_puerto": "default",
+          "gasto_taller": "default",
+          "utilidad": "default",
+          "ga_pct": "default",
+          "iva_pct": "default",
+          "ice_pct": "default",
+          "factura_taller": "default",
+          "almacenaje": "default",
+          "agencia": "default",
+          "gas_sao": "default",
+          "factura_venta": "default",
+          "almacenaje_salida": "default",
+          "nacionalizacion": "override",
+          "garantia_pct": "default"
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 16452.8,
+              "bs": 164528,
+              "se_dibuja": true
+            },
+            "logistica": {
+              "usd": 6100,
+              "bs": 61000,
+              "se_dibuja": true
+            },
+            "aduana": {
+              "usd": 21792,
+              "bs": 212036.16,
+              "se_dibuja": true
+            }
+          },
+          "bs": 437564.16,
+          "usd": 43756.416,
+          "suma_usd": 44344.8
+        },
+        "faltantes": [
+          {
+            "codigo": "fila_sin_coincidencia",
+            "donde": "factor_dp",
+            "ref": "depreciacion"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "excel gasolina con el factor 0,8 tipeado: la nacionalización sugerida es la de la calculadora (D41)",
+      "formula_de": "excel: las cuatro cotizaciones en una fórmula con su variante",
+      "entrada": {
+        "inputs": {
+          "remate": 14000,
+          "grua": 1300,
+          "valor_tabla": 53900
+        },
+        "tipos_cambio": {
+          "oficial": 9.73,
+          "paralelo": 10,
+          "unificado": 10
+        },
+        "vehiculo": {
+          "anio": 2017,
+          "tipo_vehiculo": "vagonetas_medianas"
+        },
+        "variante": "gasolina",
+        "overrides": {
+          "factor_dp": 0.8
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "factor_dp": 0.8,
+          "fob": 43120,
+          "seguro": 862.4,
+          "cif": 45137.4,
+          "ga": 4513.74,
+          "iva": 7417.880316,
+          "ice": 7447.671,
+          "total_impuesto": 19379.291316,
+          "total_gastos": 19479.291316,
+          "nacionalizacion": 20159.291316,
+          "total": 42712.091316
+        },
+        "estados": {
+          "cuenta_especial": "condicion_apagada",
+          "transporte_chile": "fuera_de_variante",
+          "export": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc_oficial": "default",
+          "tc_paralelo": "default",
+          "tc_unificado": "default",
+          "remate": "input",
+          "fees_pct": "default",
+          "fees": "sugerido",
+          "transferencia_pct": "default",
+          "grua": "input",
+          "transporte_bolivia": "sugerido",
+          "comision": "sugerido",
+          "documentacion": "default",
+          "valor_tabla": "input",
+          "factor_dp": "override",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gasto_puerto": "default",
+          "gasto_taller": "default",
+          "utilidad": "default",
+          "ga_pct": "default",
+          "iva_pct": "default",
+          "ice_pct": "default",
+          "factura_taller": "default",
+          "almacenaje": "default",
+          "agencia": "default",
+          "gas_sao": "default",
+          "factura_venta": "default",
+          "almacenaje_salida": "default",
+          "nacionalizacion": "sugerido",
+          "garantia_pct": "default"
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 16452.8,
+              "bs": 164528,
+              "se_dibuja": true
+            },
+            "logistica": {
+              "usd": 6100,
+              "bs": 61000,
+              "se_dibuja": true
+            },
+            "aduana": {
+              "usd": 20159.291316,
+              "bs": 196149.90450468,
+              "se_dibuja": true
+            }
+          },
+          "bs": 421677.90450468,
+          "usd": 42167.790450468,
+          "suma_usd": 42712.091316
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "excel gasolina sin overrides: el año 2017 no está en la tabla y la nacionalización queda sin valor",
+      "formula_de": "excel: las cuatro cotizaciones en una fórmula con su variante",
+      "entrada": {
+        "inputs": {
+          "remate": 14000,
+          "grua": 1300,
+          "valor_tabla": 53900
+        },
+        "tipos_cambio": {
+          "oficial": 9.73,
+          "paralelo": 10,
+          "unificado": 10
+        },
+        "vehiculo": {
+          "anio": 2017,
+          "tipo_vehiculo": "vagonetas_medianas"
+        },
+        "variante": "gasolina"
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "factor_dp": null,
+          "fob": null,
+          "total_gastos": null,
+          "nacionalizacion": null,
+          "total": null
+        },
+        "estados": {
+          "cuenta_especial": "condicion_apagada",
+          "transporte_chile": "fuera_de_variante",
+          "export": "fuera_de_variante"
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 16452.8,
+              "bs": 164528,
+              "se_dibuja": true
+            },
+            "logistica": {
+              "usd": 6100,
+              "bs": 61000,
+              "se_dibuja": true
+            },
+            "aduana": {
+              "usd": null,
+              "bs": null,
+              "se_dibuja": true
+            }
+          },
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "fila_sin_coincidencia",
+            "donde": "factor_dp",
+            "ref": "depreciacion"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "excel híbrido: suma la exportación y da 61.710,6 (H60)",
+      "formula_de": "excel: las cuatro cotizaciones en una fórmula con su variante",
+      "entrada": {
+        "variante": "hibrido",
+        "inputs": {
+          "remate": 30000,
+          "grua": 1500
+        },
+        "tipos_cambio": {
+          "oficial": 9.73,
+          "paralelo": 10,
+          "unificado": 10
+        },
+        "vehiculo": {
+          "anio": 2025,
+          "tipo_vehiculo": "vagonetas_medianas"
+        },
+        "overrides": {
+          "nacionalizacion": 20200
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "variante": "hibrido",
+          "fees": 3900,
+          "transferencia": 1356,
+          "transporte_bolivia": 3600,
+          "transporte_chile": 0,
+          "comision": 500,
+          "documentacion": 700,
+          "export": 500,
+          "nacionalizacion": 20200,
+          "total": 62256
+        },
+        "estados": {
+          "cuenta_especial": "condicion_apagada",
+          "transporte_chile": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc_oficial": "default",
+          "tc_paralelo": "default",
+          "tc_unificado": "default",
+          "remate": "input",
+          "fees_pct": "default",
+          "fees": "sugerido",
+          "transferencia_pct": "default",
+          "grua": "input",
+          "transporte_bolivia": "sugerido",
+          "comision": "sugerido",
+          "documentacion": "default",
+          "export": "default",
+          "valor_tabla": "input",
+          "factor_dp": "sugerido",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gasto_puerto": "default",
+          "gasto_taller": "default",
+          "utilidad": "default",
+          "ga_pct": "default",
+          "iva_pct": "default",
+          "ice_pct": "default",
+          "factura_taller": "default",
+          "almacenaje": "default",
+          "agencia": "default",
+          "gas_sao": "default",
+          "factura_venta": "default",
+          "almacenaje_salida": "default",
+          "nacionalizacion": "override",
+          "garantia_pct": "default"
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 35256,
+              "bs": 352560,
+              "se_dibuja": true
+            },
+            "logistica": {
+              "usd": 6800,
+              "bs": 68000,
+              "se_dibuja": true
+            },
+            "aduana": {
+              "usd": 20200,
+              "bs": 196546,
+              "se_dibuja": true
+            }
+          },
+          "bs": 617106,
+          "usd": 61710.6,
+          "suma_usd": 62256
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "excel Chile: sin aduana, su grupo no se dibuja y da 20.157,6 (H73)",
+      "formula_de": "excel: las cuatro cotizaciones en una fórmula con su variante",
+      "entrada": {
+        "variante": "chile",
+        "inputs": {
+          "remate": 13000,
+          "grua": 1180
+        },
+        "tipos_cambio": {
+          "oficial": 9.73,
+          "paralelo": 10,
+          "unificado": 10
+        },
+        "vehiculo": {
+          "anio": 2025,
+          "tipo_vehiculo": "vagonetas_medianas"
+        },
+        "overrides": {
+          "nacionalizacion": 15000
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "variante": "chile",
+          "fees": 1690,
+          "transferencia": 587.6,
+          "transporte_bolivia": 0,
+          "transporte_chile": 3300,
+          "comision": 400,
+          "documentacion": 0,
+          "export": 0,
+          "nacionalizacion": 0,
+          "total": 20157.6
+        },
+        "estados": {
+          "cuenta_especial": "condicion_apagada",
+          "transporte_bolivia": "fuera_de_variante",
+          "documentacion": "fuera_de_variante",
+          "export": "fuera_de_variante",
+          "nacionalizacion": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc_oficial": "default",
+          "tc_paralelo": "default",
+          "tc_unificado": "default",
+          "remate": "input",
+          "fees_pct": "default",
+          "fees": "sugerido",
+          "transferencia_pct": "default",
+          "grua": "input",
+          "transporte_chile": "sugerido",
+          "comision": "sugerido",
+          "valor_tabla": "input",
+          "factor_dp": "sugerido",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gasto_puerto": "default",
+          "gasto_taller": "default",
+          "utilidad": "default",
+          "ga_pct": "default",
+          "iva_pct": "default",
+          "ice_pct": "default",
+          "factura_taller": "default",
+          "almacenaje": "default",
+          "agencia": "default",
+          "gas_sao": "default",
+          "factura_venta": "default",
+          "almacenaje_salida": "default",
+          "garantia_pct": "default"
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 15277.6,
+              "bs": 152776,
+              "se_dibuja": true
+            },
+            "logistica": {
+              "usd": 4880,
+              "bs": 48800,
+              "se_dibuja": true
+            },
+            "aduana": {
+              "usd": 0,
+              "bs": 0,
+              "se_dibuja": false
+            }
+          },
+          "bs": 201576,
+          "usd": 20157.6,
+          "suma_usd": 20157.6
+        },
+        "faltantes": [],
+        "overrides_descartados": [
+          {
+            "id": "nacionalizacion",
+            "motivo": "fuera_de_variante"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "excel Chile sin el oficial: el grupo que no se dibuja no lo lee y el total no cambia",
+      "formula_de": "excel: las cuatro cotizaciones en una fórmula con su variante",
+      "entrada": {
+        "variante": "chile",
+        "inputs": {
+          "remate": 13000,
+          "grua": 1180
+        },
+        "tipos_cambio": {
+          "paralelo": 10,
+          "unificado": 10
+        },
+        "vehiculo": {
+          "anio": 2025,
+          "tipo_vehiculo": "vagonetas_medianas"
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "tc_oficial": null,
+          "total": 20157.6
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 15277.6,
+              "bs": 152776,
+              "se_dibuja": true
+            },
+            "logistica": {
+              "usd": 4880,
+              "bs": 48800,
+              "se_dibuja": true
+            },
+            "aduana": {
+              "usd": 0,
+              "bs": 0,
+              "se_dibuja": false
+            }
+          },
+          "bs": 201576,
+          "usd": 20157.6,
+          "suma_usd": 20157.6
+        },
+        "faltantes": [
+          {
+            "codigo": "tipo_de_cambio_sin_valor",
+            "donde": "tc_oficial",
+            "ref": "oficial"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "amnistia gasolina (2008): la multa de la hoja, 8.201,0562852864 (C37)",
+      "formula_de": "excel: la multa de «Amnistia», gasolina y gas",
+      "entrada": {
+        "variante": "gasolina",
+        "inputs": {
+          "valor_tabla": 27711
+        },
+        "tipos_cambio": {
+          "oficial": 9.73
+        },
+        "vehiculo": {
+          "anio": 2008
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "combustible": "gasolina",
+          "factor_dp": 0.512,
+          "fob": 14188.032,
+          "seguro": 283.76064,
+          "cif": 14471.79264,
+          "ga": 1447.179264,
+          "iva": 2378.2944024576,
+          "ice": 1591.8971904,
+          "total_impuesto": 5417.3708568576,
+          "factura_taller": 50,
+          "tanque_gas": 0,
+          "total_gastos": 5467.3708568576,
+          "multiplicador": 1.5,
+          "multa": 8201.0562852864
+        },
+        "estados": {
+          "tanque_gas": "fuera_de_variante"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 79796.2776558367,
+          "usd": 8201.0562852864,
+          "suma_usd": 8201.0562852864
+        },
+        "faltantes": [],
+        "fuentes": {
+          "tc_oficial": "default",
+          "valor_tabla": "input",
+          "factor_dp": "sugerido",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gasto_puerto": "default",
+          "gasto_gas": "default",
+          "utilidad": "default",
+          "ga_pct": "default",
+          "iva_pct": "default",
+          "ice_pct": "default",
+          "factura_taller": "default",
+          "almacenaje": "default",
+          "agencia": "default"
+        }
+      }
+    },
+    {
+      "nombre": "amnistia gas (2008): la multa de la hoja, 5.422,661258085 (H37)",
+      "formula_de": "excel: la multa de «Amnistia», gasolina y gas",
+      "entrada": {
+        "variante": "gas",
+        "inputs": {
+          "valor_tabla": 27711
+        },
+        "tipos_cambio": {
+          "oficial": 9.73
+        },
+        "vehiculo": {
+          "anio": 2008
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "combustible": "gas",
+          "factor_dp": 0.41,
+          "fob": 11361.51,
+          "seguro": 227.2302,
+          "cif": 11588.7402,
+          "ga": 1158.87402,
+          "iva": 1904.493564468,
+          "ice": 1274.761422,
+          "total_impuesto": 4338.129006468,
+          "factura_taller": 0,
+          "tanque_gas": 0,
+          "total_gastos": 4338.129006468,
+          "multiplicador": 1.25,
+          "multa": 5422.661258085
+        },
+        "estados": {
+          "factura_taller": "fuera_de_variante"
+        },
+        "fuentes": {
+          "tc_oficial": "default",
+          "valor_tabla": "input",
+          "factor_dp": "sugerido",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gasto_puerto": "default",
+          "gasto_gas": "default",
+          "utilidad": "default",
+          "ga_pct": "default",
+          "iva_pct": "default",
+          "ice_pct": "default",
+          "tanque_gas": "default",
+          "almacenaje": "default",
+          "agencia": "default"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 52762.49404116705,
+          "usd": 5422.661258085,
+          "suma_usd": 5422.661258085
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "amnistia gasolina (2009, la Serena) con el factor 0,512 tipeado como override: la misma multa",
+      "formula_de": "excel: la multa de «Amnistia», gasolina y gas",
+      "entrada": {
+        "variante": "gasolina",
+        "inputs": {
+          "valor_tabla": 27711
+        },
+        "tipos_cambio": {
+          "oficial": 9.73
+        },
+        "vehiculo": {
+          "anio": 2009
+        },
+        "overrides": {
+          "factor_dp": 0.512
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "combustible": "gasolina",
+          "factor_dp": 0.512,
+          "fob": 14188.032,
+          "seguro": 283.76064,
+          "cif": 14471.79264,
+          "ga": 1447.179264,
+          "iva": 2378.2944024576,
+          "ice": 1591.8971904,
+          "total_impuesto": 5417.3708568576,
+          "factura_taller": 50,
+          "tanque_gas": 0,
+          "total_gastos": 5467.3708568576,
+          "multiplicador": 1.5,
+          "multa": 8201.0562852864
+        },
+        "estados": {
+          "tanque_gas": "fuera_de_variante"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 79796.2776558367,
+          "usd": 8201.0562852864,
+          "suma_usd": 8201.0562852864
+        },
+        "faltantes": [],
+        "fuentes": {
+          "tc_oficial": "default",
+          "valor_tabla": "input",
+          "factor_dp": "override",
+          "seguro_pct": "default",
+          "flete": "default",
+          "gasto_puerto": "default",
+          "gasto_gas": "default",
+          "utilidad": "default",
+          "ga_pct": "default",
+          "iva_pct": "default",
+          "ice_pct": "default",
+          "factura_taller": "default",
+          "almacenaje": "default",
+          "agencia": "default"
+        }
+      }
     }
   ]
 }
