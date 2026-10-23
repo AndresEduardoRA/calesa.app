@@ -1,0 +1,4071 @@
+{
+  "descripcion": "Casos del motor con su resultado esperado (docs/COTIZADOR.md › «El motor»). Los lee motor.test.ts y, desde 4.06, la prueba de paridad de evaluar_formula(). Una fórmula es la de un caso de casos-de-formula.json («formula_de») o la del caso. La entrada que falta vale {}. Sin «decimales», cada número esperado es el doble exacto; con «decimales», se compara con esa precisión. «valores» y «totales» nombran sólo lo que el caso fija; «faltantes» es la lista entera.",
+  "casos": [
+    {
+      "nombre": "semilla subasta_usa: híbrido, con su ruta de transporte",
+      "formula_de": "semilla: subasta_usa",
+      "entrada": {
+        "inputs": {
+          "remate": 10000,
+          "fob_tabla": 12000,
+          "grua": 300
+        },
+        "banderas": {
+          "es_hibrido": true
+        },
+        "tipos_cambio": {
+          "oficial": 6.96,
+          "paralelo": 12.4
+        },
+        "vehiculo": {
+          "anio": 2023,
+          "tipo_vehiculo": "automovil",
+          "ubicacion": "houston"
+        },
+        "tablas": {
+          "impuestos_por_tipo": [
+            {
+              "tipo": "automovil",
+              "ga": 0.1,
+              "iva": 0.1494
+            },
+            {
+              "tipo": "moto",
+              "ga": 0.1,
+              "iva": 0.1494
+            }
+          ],
+          "ice_por_anio_y_cilindrada": [
+            {
+              "desde": 2015,
+              "hasta": 2100,
+              "ice": 0.05
+            },
+            {
+              "desde": 1900,
+              "hasta": 2014,
+              "ice": 0.1
+            }
+          ],
+          "depreciacion": [
+            {
+              "anio": 2025,
+              "factor": 1
+            },
+            {
+              "anio": 2024,
+              "factor": 0.95
+            },
+            {
+              "anio": 2023,
+              "factor": 0.9
+            },
+            {
+              "anio": 2022,
+              "factor": 0.85
+            },
+            {
+              "anio": 2021,
+              "factor": 0.8
+            }
+          ],
+          "transporte_por_ruta": [
+            {
+              "ruta": "houston",
+              "precio": 1100
+            }
+          ]
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "factor_dp": 0.9,
+          "fob_base": 10800,
+          "seguro": 216,
+          "cif": 13996,
+          "ga_pct": 0.1,
+          "ga": 1399.6,
+          "iva_pct": 0.1494,
+          "iva": 2300.10264,
+          "ice_pct": 0.05,
+          "ice": 769.78,
+          "poliza": 650,
+          "destino_total": 5119.48264,
+          "fees": 600,
+          "transferencia": 318,
+          "grua": 300,
+          "transporte": 1100,
+          "comision": 500,
+          "documentacion": 150,
+          "garantia": 1000,
+          "costo_hibrido": 400,
+          "origen_total": 13368,
+          "total": 18487.48264
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 201394.7991744,
+          "usd": 18487.48264,
+          "suma_usd": 18487.48264
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "semilla subasta_usa: sin híbrido, el si apagado vale 0",
+      "formula_de": "semilla: subasta_usa",
+      "entrada": {
+        "inputs": {
+          "remate": 10000,
+          "fob_tabla": 12000,
+          "grua": 300
+        },
+        "banderas": {
+          "es_hibrido": false
+        },
+        "tipos_cambio": {
+          "oficial": 6.96,
+          "paralelo": 12.4
+        },
+        "vehiculo": {
+          "anio": 2023,
+          "tipo_vehiculo": "automovil",
+          "ubicacion": "houston"
+        },
+        "tablas": {
+          "impuestos_por_tipo": [
+            {
+              "tipo": "automovil",
+              "ga": 0.1,
+              "iva": 0.1494
+            },
+            {
+              "tipo": "moto",
+              "ga": 0.1,
+              "iva": 0.1494
+            }
+          ],
+          "ice_por_anio_y_cilindrada": [
+            {
+              "desde": 2015,
+              "hasta": 2100,
+              "ice": 0.05
+            },
+            {
+              "desde": 1900,
+              "hasta": 2014,
+              "ice": 0.1
+            }
+          ],
+          "depreciacion": [
+            {
+              "anio": 2025,
+              "factor": 1
+            },
+            {
+              "anio": 2024,
+              "factor": 0.95
+            },
+            {
+              "anio": 2023,
+              "factor": 0.9
+            },
+            {
+              "anio": 2022,
+              "factor": 0.85
+            },
+            {
+              "anio": 2021,
+              "factor": 0.8
+            }
+          ],
+          "transporte_por_ruta": [
+            {
+              "ruta": "houston",
+              "precio": 1100
+            }
+          ]
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "costo_hibrido": 0,
+          "origen_total": 12968,
+          "destino_total": 5119.48264,
+          "total": 18087.48264
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 196434.7991744,
+          "usd": 18087.48264,
+          "suma_usd": 18087.48264
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "semilla subasta_usa: las tablas del seed tal cual, el transporte sin filas",
+      "formula_de": "semilla: subasta_usa",
+      "entrada": {
+        "inputs": {
+          "remate": 10000,
+          "fob_tabla": 12000,
+          "grua": 300
+        },
+        "banderas": {
+          "es_hibrido": true
+        },
+        "tipos_cambio": {
+          "oficial": 6.96,
+          "paralelo": 12.4
+        },
+        "vehiculo": {
+          "anio": 2023,
+          "tipo_vehiculo": "automovil",
+          "ubicacion": "houston"
+        },
+        "tablas": {
+          "impuestos_por_tipo": [
+            {
+              "tipo": "automovil",
+              "ga": 0.1,
+              "iva": 0.1494
+            },
+            {
+              "tipo": "moto",
+              "ga": 0.1,
+              "iva": 0.1494
+            }
+          ],
+          "ice_por_anio_y_cilindrada": [
+            {
+              "desde": 2015,
+              "hasta": 2100,
+              "ice": 0.05
+            },
+            {
+              "desde": 1900,
+              "hasta": 2014,
+              "ice": 0.1
+            }
+          ],
+          "depreciacion": [
+            {
+              "anio": 2025,
+              "factor": 1
+            },
+            {
+              "anio": 2024,
+              "factor": 0.95
+            },
+            {
+              "anio": 2023,
+              "factor": 0.9
+            },
+            {
+              "anio": 2022,
+              "factor": 0.85
+            },
+            {
+              "anio": 2021,
+              "factor": 0.8
+            }
+          ]
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "transporte": null,
+          "origen_total": null,
+          "destino_total": 5119.48264,
+          "garantia": 1000,
+          "total": null
+        },
+        "totales": {
+          "grupos": {},
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "tabla_sin_filas",
+            "donde": "transporte",
+            "ref": "transporte_por_ruta"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "semilla subasta_usa: un año sin fila de depreciación (2019)",
+      "formula_de": "semilla: subasta_usa",
+      "entrada": {
+        "inputs": {
+          "remate": 10000,
+          "fob_tabla": 12000,
+          "grua": 300
+        },
+        "banderas": {
+          "es_hibrido": true
+        },
+        "tipos_cambio": {
+          "oficial": 6.96,
+          "paralelo": 12.4
+        },
+        "vehiculo": {
+          "anio": 2019,
+          "tipo_vehiculo": "automovil",
+          "ubicacion": "houston"
+        },
+        "tablas": {
+          "impuestos_por_tipo": [
+            {
+              "tipo": "automovil",
+              "ga": 0.1,
+              "iva": 0.1494
+            },
+            {
+              "tipo": "moto",
+              "ga": 0.1,
+              "iva": 0.1494
+            }
+          ],
+          "ice_por_anio_y_cilindrada": [
+            {
+              "desde": 2015,
+              "hasta": 2100,
+              "ice": 0.05
+            },
+            {
+              "desde": 1900,
+              "hasta": 2014,
+              "ice": 0.1
+            }
+          ],
+          "depreciacion": [
+            {
+              "anio": 2025,
+              "factor": 1
+            },
+            {
+              "anio": 2024,
+              "factor": 0.95
+            },
+            {
+              "anio": 2023,
+              "factor": 0.9
+            },
+            {
+              "anio": 2022,
+              "factor": 0.85
+            },
+            {
+              "anio": 2021,
+              "factor": 0.8
+            }
+          ],
+          "transporte_por_ruta": [
+            {
+              "ruta": "houston",
+              "precio": 1100
+            }
+          ]
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "factor_dp": null,
+          "fob_base": null,
+          "cif": null,
+          "ga": null,
+          "ice_pct": 0.05,
+          "ice": null,
+          "destino_total": null,
+          "origen_total": 13368,
+          "total": null
+        },
+        "totales": {
+          "grupos": {},
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "fila_sin_coincidencia",
+            "donde": "factor_dp",
+            "ref": "depreciacion"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "semilla oficina: precio menos descuento, al paralelo",
+      "formula_de": "semilla: oficina",
+      "entrada": {
+        "inputs": {
+          "precio": 25000,
+          "descuento": 1500
+        },
+        "tipos_cambio": {
+          "oficial": 6.96,
+          "paralelo": 12.4
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "precio": 25000,
+          "descuento": 1500,
+          "total": 23500
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 291400,
+          "usd": 23500,
+          "suma_usd": 23500
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "semilla oficina: sin descuento tipeado vale 0",
+      "formula_de": "semilla: oficina",
+      "entrada": {
+        "inputs": {
+          "precio": 25000
+        },
+        "tipos_cambio": {
+          "oficial": 6.96,
+          "paralelo": 12.4
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "descuento": 0,
+          "total": 25000
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 310000,
+          "usd": 25000,
+          "suma_usd": 25000
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "excel moto: tres grupos, el total en Bs dividido por el paralelo",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate (costo aprox.)",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees / Tarifa USA",
+            "grupo": "compra"
+          },
+          {
+            "id": "transferencia_pct",
+            "tipo": "constante",
+            "etiqueta": "Transferencia (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "transferencia",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees"],
+            "etiqueta": "Transferencia a USA",
+            "pct": "transferencia_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "grua",
+            "tipo": "input",
+            "etiqueta": "Grúa",
+            "grupo": "logistica"
+          },
+          {
+            "id": "transporte",
+            "tipo": "input",
+            "etiqueta": "Transporte",
+            "grupo": "logistica"
+          },
+          {
+            "id": "comision",
+            "tipo": "constante",
+            "etiqueta": "Comisión",
+            "grupo": "logistica"
+          },
+          {
+            "id": "nacionalizacion",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": [
+              "remate",
+              "fees",
+              "transferencia",
+              "grua",
+              "transporte",
+              "comision",
+              "nacionalizacion"
+            ],
+            "etiqueta": "TOTAL",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "logistica",
+            "etiqueta": "Logística",
+            "plazo": "7 días",
+            "tono": "logistica",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {
+        "transferencia_pct": 0.04,
+        "comision": 400
+      },
+      "entrada": {
+        "inputs": {
+          "remate": 9500,
+          "fees": 1300,
+          "grua": 880,
+          "transporte": 1300,
+          "nacionalizacion": 3098
+        },
+        "tipos_cambio": {
+          "oficial": 9.73,
+          "paralelo": 10
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "transferencia": 432,
+          "total": 16910
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 11232,
+              "bs": 112320
+            },
+            "logistica": {
+              "usd": 2580,
+              "bs": 25800
+            },
+            "aduana": {
+              "usd": 3098,
+              "bs": 30143.54
+            }
+          },
+          "bs": 168263.54,
+          "usd": 16826.354,
+          "suma_usd": 16910
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "excel moto: sin el paralelo, los grupos al exterior y los totales quedan sin Bs",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate (costo aprox.)",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees / Tarifa USA",
+            "grupo": "compra"
+          },
+          {
+            "id": "transferencia_pct",
+            "tipo": "constante",
+            "etiqueta": "Transferencia (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "transferencia",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees"],
+            "etiqueta": "Transferencia a USA",
+            "pct": "transferencia_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "grua",
+            "tipo": "input",
+            "etiqueta": "Grúa",
+            "grupo": "logistica"
+          },
+          {
+            "id": "transporte",
+            "tipo": "input",
+            "etiqueta": "Transporte",
+            "grupo": "logistica"
+          },
+          {
+            "id": "comision",
+            "tipo": "constante",
+            "etiqueta": "Comisión",
+            "grupo": "logistica"
+          },
+          {
+            "id": "nacionalizacion",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": [
+              "remate",
+              "fees",
+              "transferencia",
+              "grua",
+              "transporte",
+              "comision",
+              "nacionalizacion"
+            ],
+            "etiqueta": "TOTAL",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "logistica",
+            "etiqueta": "Logística",
+            "plazo": "7 días",
+            "tono": "logistica",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {
+        "transferencia_pct": 0.04,
+        "comision": 400
+      },
+      "entrada": {
+        "inputs": {
+          "remate": 9500,
+          "fees": 1300,
+          "grua": 880,
+          "transporte": 1300,
+          "nacionalizacion": 3098
+        },
+        "tipos_cambio": {
+          "oficial": 9.73
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "tc_paralelo": null,
+          "total": 16910
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 11232,
+              "bs": null
+            },
+            "logistica": {
+              "usd": 2580,
+              "bs": null
+            },
+            "aduana": {
+              "usd": 3098,
+              "bs": 30143.54
+            }
+          },
+          "bs": null,
+          "usd": null,
+          "suma_usd": 16910
+        },
+        "faltantes": [
+          {
+            "codigo": "tipo_de_cambio_sin_valor",
+            "donde": "tc_paralelo",
+            "ref": "paralelo"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "excel gasolina: fees al 13 % y la transferencia encadenada",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate (costo aprox.)",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "tipo": "constante",
+            "etiqueta": "Fees (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "etiqueta": "Fees / Tarifa USA",
+            "pct": "fees_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "transferencia_pct",
+            "tipo": "constante",
+            "etiqueta": "Transferencia (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "transferencia",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees"],
+            "etiqueta": "Transferencia a USA",
+            "pct": "transferencia_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "grua",
+            "tipo": "input",
+            "etiqueta": "Grúa",
+            "grupo": "logistica"
+          },
+          {
+            "id": "transporte",
+            "tipo": "input",
+            "etiqueta": "Transporte",
+            "grupo": "logistica"
+          },
+          {
+            "id": "comision",
+            "tipo": "constante",
+            "etiqueta": "Comisión",
+            "grupo": "logistica"
+          },
+          {
+            "id": "documentacion",
+            "tipo": "constante",
+            "etiqueta": "Documentación de ingreso",
+            "grupo": "logistica"
+          },
+          {
+            "id": "nacionalizacion",
+            "tipo": "input",
+            "etiqueta": "Nacionalización",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": [
+              "remate",
+              "fees",
+              "transferencia",
+              "grua",
+              "transporte",
+              "comision",
+              "documentacion",
+              "nacionalizacion"
+            ],
+            "etiqueta": "TOTAL",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "logistica",
+            "etiqueta": "Logística",
+            "plazo": "7 días",
+            "tono": "logistica",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {
+        "fees_pct": 0.13,
+        "transferencia_pct": 0.04,
+        "comision": 500,
+        "documentacion": 700
+      },
+      "entrada": {
+        "inputs": {
+          "remate": 14000,
+          "grua": 1300,
+          "transporte": 3600,
+          "nacionalizacion": 21792
+        },
+        "tipos_cambio": {
+          "oficial": 9.73,
+          "paralelo": 10
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "fees": 1820,
+          "transferencia": 632.8,
+          "total": 44344.8
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 16452.8,
+              "bs": 164528
+            },
+            "logistica": {
+              "usd": 6100,
+              "bs": 61000
+            },
+            "aduana": {
+              "usd": 21792,
+              "bs": 212036.16
+            }
+          },
+          "bs": 437564.16,
+          "usd": 43756.416,
+          "suma_usd": 44344.8
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "captura 02: modo unificado, sólo comisión, documentación y póliza",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_unificado",
+            "tipo": "tipo_cambio",
+            "clave": "unificado",
+            "etiqueta": "Dólar unificado",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "tipo": "constante",
+            "etiqueta": "Fees (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "etiqueta": "Fees",
+            "pct": "fees_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "transferencia_pct",
+            "tipo": "constante",
+            "etiqueta": "Transferencia (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "transferencia",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees"],
+            "etiqueta": "Transferencia",
+            "pct": "transferencia_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "grua",
+            "tipo": "input",
+            "etiqueta": "Grúa",
+            "grupo": "logistica"
+          },
+          {
+            "id": "export",
+            "tipo": "input",
+            "etiqueta": "Costo export. híbrido",
+            "grupo": "logistica"
+          },
+          {
+            "id": "transporte",
+            "tipo": "input",
+            "etiqueta": "Transporte",
+            "grupo": "logistica"
+          },
+          {
+            "id": "comision",
+            "tipo": "constante",
+            "etiqueta": "Comisión",
+            "grupo": "logistica"
+          },
+          {
+            "id": "documentacion",
+            "tipo": "constante",
+            "etiqueta": "Documentación de ingreso",
+            "grupo": "logistica"
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Póliza (USD)",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": [
+              "remate",
+              "fees",
+              "transferencia",
+              "grua",
+              "export",
+              "transporte",
+              "comision",
+              "documentacion",
+              "poliza"
+            ],
+            "etiqueta": "TOTAL",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "logistica",
+            "etiqueta": "Logística",
+            "plazo": "7 días",
+            "tono": "logistica",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {
+        "fees_pct": 0.13,
+        "transferencia_pct": 0.04,
+        "comision": 500,
+        "documentacion": 700
+      },
+      "entrada": {
+        "inputs": {
+          "poliza": 1201
+        },
+        "tipos_cambio": {
+          "oficial": 11.68,
+          "paralelo": 12.2,
+          "unificado": 12.2
+        }
+      },
+      "modo": {
+        "buckets": {
+          "exterior": "tc_unificado",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_unificado"
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "fees": 0,
+          "transferencia": 0,
+          "total": 2401
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 0,
+              "bs": 0
+            },
+            "logistica": {
+              "usd": 1200,
+              "bs": 14640
+            },
+            "aduana": {
+              "usd": 1201,
+              "bs": 14027.68
+            }
+          },
+          "bs": 28667.68,
+          "usd": 2349.809836065574,
+          "suma_usd": 2401
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "captura 09: modo unificado, con el unificado sobrescrito a 12",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_unificado",
+            "tipo": "tipo_cambio",
+            "clave": "unificado",
+            "etiqueta": "Dólar unificado",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "tipo": "constante",
+            "etiqueta": "Fees (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "etiqueta": "Fees",
+            "pct": "fees_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "transferencia_pct",
+            "tipo": "constante",
+            "etiqueta": "Transferencia (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "transferencia",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees"],
+            "etiqueta": "Transferencia",
+            "pct": "transferencia_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "grua",
+            "tipo": "input",
+            "etiqueta": "Grúa",
+            "grupo": "logistica"
+          },
+          {
+            "id": "export",
+            "tipo": "input",
+            "etiqueta": "Costo export. híbrido",
+            "grupo": "logistica"
+          },
+          {
+            "id": "transporte",
+            "tipo": "input",
+            "etiqueta": "Transporte",
+            "grupo": "logistica"
+          },
+          {
+            "id": "comision",
+            "tipo": "constante",
+            "etiqueta": "Comisión",
+            "grupo": "logistica"
+          },
+          {
+            "id": "documentacion",
+            "tipo": "constante",
+            "etiqueta": "Documentación de ingreso",
+            "grupo": "logistica"
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Póliza (USD)",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": [
+              "remate",
+              "fees",
+              "transferencia",
+              "grua",
+              "export",
+              "transporte",
+              "comision",
+              "documentacion",
+              "poliza"
+            ],
+            "etiqueta": "TOTAL",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "logistica",
+            "etiqueta": "Logística",
+            "plazo": "7 días",
+            "tono": "logistica",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {
+        "fees_pct": 0.13,
+        "transferencia_pct": 0.04,
+        "comision": 500,
+        "documentacion": 700
+      },
+      "entrada": {
+        "inputs": {
+          "remate": 39500,
+          "grua": 1790,
+          "export": 500,
+          "transporte": 3700,
+          "poliza": 19871
+        },
+        "tipos_cambio": {
+          "oficial": 11.68,
+          "paralelo": 12.2,
+          "unificado": 12
+        }
+      },
+      "modo": {
+        "buckets": {
+          "exterior": "tc_unificado",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_unificado"
+      },
+      "decimales": 9,
+      "esperado": {
+        "valores": {
+          "fees": 5135,
+          "transferencia": 1785.4,
+          "total": 73481.4
+        },
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 46420.4,
+              "bs": 557044.8
+            },
+            "logistica": {
+              "usd": 7190,
+              "bs": 86280
+            },
+            "aduana": {
+              "usd": 19871,
+              "bs": 232093.28
+            }
+          },
+          "bs": 875418.08,
+          "usd": 72951.50666666667,
+          "suma_usd": 73481.4
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "captura 09 sin modo: los buckets y el total_en de la fórmula",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_oficial",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC oficial",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_unificado",
+            "tipo": "tipo_cambio",
+            "clave": "unificado",
+            "etiqueta": "Dólar unificado",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate",
+            "grupo": "compra"
+          },
+          {
+            "id": "fees_pct",
+            "tipo": "constante",
+            "etiqueta": "Fees (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "fees",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "etiqueta": "Fees",
+            "pct": "fees_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "transferencia_pct",
+            "tipo": "constante",
+            "etiqueta": "Transferencia (%)",
+            "formato": "pct"
+          },
+          {
+            "id": "transferencia",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees"],
+            "etiqueta": "Transferencia",
+            "pct": "transferencia_pct",
+            "grupo": "compra"
+          },
+          {
+            "id": "grua",
+            "tipo": "input",
+            "etiqueta": "Grúa",
+            "grupo": "logistica"
+          },
+          {
+            "id": "export",
+            "tipo": "input",
+            "etiqueta": "Costo export. híbrido",
+            "grupo": "logistica"
+          },
+          {
+            "id": "transporte",
+            "tipo": "input",
+            "etiqueta": "Transporte",
+            "grupo": "logistica"
+          },
+          {
+            "id": "comision",
+            "tipo": "constante",
+            "etiqueta": "Comisión",
+            "grupo": "logistica"
+          },
+          {
+            "id": "documentacion",
+            "tipo": "constante",
+            "etiqueta": "Documentación de ingreso",
+            "grupo": "logistica"
+          },
+          {
+            "id": "poliza",
+            "tipo": "input",
+            "etiqueta": "Póliza (USD)",
+            "grupo": "aduana"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": [
+              "remate",
+              "fees",
+              "transferencia",
+              "grua",
+              "export",
+              "transporte",
+              "comision",
+              "documentacion",
+              "poliza"
+            ],
+            "etiqueta": "TOTAL",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "exterior": "tc_paralelo",
+          "aduana": "tc_oficial"
+        },
+        "total_en": "tc_paralelo",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "Compra",
+            "plazo": "2 días",
+            "tono": "compra",
+            "bucket": "exterior"
+          },
+          {
+            "id": "logistica",
+            "etiqueta": "Logística",
+            "plazo": "7 días",
+            "tono": "logistica",
+            "bucket": "exterior"
+          },
+          {
+            "id": "aduana",
+            "etiqueta": "Aduana",
+            "plazo": "4 meses (Aprox.)",
+            "tono": "aduana",
+            "bucket": "aduana"
+          }
+        ]
+      },
+      "params": {
+        "fees_pct": 0.13,
+        "transferencia_pct": 0.04,
+        "comision": 500,
+        "documentacion": 700
+      },
+      "entrada": {
+        "inputs": {
+          "remate": 39500,
+          "grua": 1790,
+          "export": 500,
+          "transporte": 3700,
+          "poliza": 19871
+        },
+        "tipos_cambio": {
+          "oficial": 11.68,
+          "paralelo": 12.2,
+          "unificado": 12
+        }
+      },
+      "decimales": 9,
+      "esperado": {
+        "totales": {
+          "grupos": {
+            "compra": {
+              "usd": 46420.4,
+              "bs": 566328.88
+            },
+            "logistica": {
+              "usd": 7190,
+              "bs": 87718
+            },
+            "aduana": {
+              "usd": 19871,
+              "bs": 232093.28
+            }
+          },
+          "bs": 886140.16,
+          "usd": 72634.4393442623,
+          "suma_usd": 73481.4
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "input: lo tipeado, y vacío vale 0",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "a"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "b"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a", "b"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "a": 5
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "a": 5,
+          "b": 0,
+          "total": 5
+        },
+        "totales": {
+          "bs": 5,
+          "usd": 5
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "constante: su valor de params",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "c",
+            "tipo": "constante",
+            "etiqueta": "c"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["c"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "c": 7
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "c": 7,
+          "total": 7
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "tipo de cambio: el valor de su clave, y el total en Bs por él",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "a"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "a": 100
+        },
+        "tipos_cambio": {
+          "oficial": 6.96
+        }
+      },
+      "esperado": {
+        "valores": {
+          "tc": 6.96,
+          "total": 100
+        },
+        "totales": {
+          "bs": 696,
+          "usd": 100
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "campo del vehículo: un número",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["anio"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "anio": 2024
+        }
+      },
+      "esperado": {
+        "valores": {
+          "anio": 2024
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "bandera: encendida vale 1 y ausente vale 0",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "b1",
+            "tipo": "bandera",
+            "etiqueta": "b1",
+            "formato": "raw"
+          },
+          {
+            "id": "b2",
+            "tipo": "bandera",
+            "etiqueta": "b2",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["b1", "b2"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "banderas": {
+          "b1": true
+        }
+      },
+      "esperado": {
+        "valores": {
+          "b1": 1,
+          "b2": 0,
+          "total": 1
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "suma: de izquierda a derecha",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "y",
+            "tipo": "input",
+            "etiqueta": "y"
+          },
+          {
+            "id": "z",
+            "tipo": "input",
+            "etiqueta": "z"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["x", "y", "z"],
+            "etiqueta": "r"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": 0.1,
+          "y": 0.2,
+          "z": 0.3
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 0.6000000000000001
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "porcentaje_de: primero la suma, después por el porcentaje",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "y",
+            "tipo": "input",
+            "etiqueta": "y"
+          },
+          {
+            "id": "p",
+            "tipo": "constante",
+            "etiqueta": "p",
+            "formato": "pct"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["x", "y"],
+            "etiqueta": "r",
+            "pct": "p"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "p": 0.3
+      },
+      "entrada": {
+        "inputs": {
+          "x": 0.1,
+          "y": 0.2
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 0.09000000000000001
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "multiplicar: de izquierda a derecha",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "y",
+            "tipo": "input",
+            "etiqueta": "y"
+          },
+          {
+            "id": "z",
+            "tipo": "input",
+            "etiqueta": "z"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["x", "y", "z"],
+            "etiqueta": "r"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": 0.1,
+          "y": 0.2,
+          "z": 0.3
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 0.006000000000000001
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "restar: de izquierda a derecha, no el primero menos la suma del resto",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "y",
+            "tipo": "input",
+            "etiqueta": "y"
+          },
+          {
+            "id": "z",
+            "tipo": "input",
+            "etiqueta": "z"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["x", "y", "z"],
+            "etiqueta": "r"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": 1,
+          "y": 0.3,
+          "z": 0.6
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 0.09999999999999998
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "dividir: el primero por el segundo",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "y",
+            "tipo": "input",
+            "etiqueta": "y"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["x", "y"],
+            "etiqueta": "r"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": 7,
+          "y": 2
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 3.5
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "si: encendida vale su término y apagada vale 0",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "si_on",
+            "tipo": "bandera",
+            "etiqueta": "on",
+            "formato": "raw"
+          },
+          {
+            "id": "si_off",
+            "tipo": "bandera",
+            "etiqueta": "off",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "r1",
+            "tipo": "calculo",
+            "op": "si",
+            "de": ["x"],
+            "etiqueta": "r1",
+            "condicion": "si_on"
+          },
+          {
+            "id": "r2",
+            "tipo": "calculo",
+            "op": "si",
+            "de": ["x"],
+            "etiqueta": "r2",
+            "condicion": "si_off"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r1", "r2"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": 40
+        },
+        "banderas": {
+          "si_on": true,
+          "si_off": false
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r1": 40,
+          "r2": 0,
+          "total": 40
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "depreciar: el término por la columna de la fila de tramo",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "valor",
+            "tipo": "input",
+            "etiqueta": "valor"
+          },
+          {
+            "id": "anio",
+            "tipo": "input",
+            "etiqueta": "anio"
+          },
+          {
+            "id": "anio2",
+            "tipo": "input",
+            "etiqueta": "anio2"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "depreciar",
+            "de": ["valor"],
+            "etiqueta": "r",
+            "tabla": "dep",
+            "sobre": "anio",
+            "columna": "factor"
+          },
+          {
+            "id": "r2",
+            "tipo": "calculo",
+            "op": "depreciar",
+            "de": ["valor"],
+            "etiqueta": "r2",
+            "tabla": "dep",
+            "sobre": "anio2",
+            "columna": "factor"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r", "r2"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "dep": [
+            {
+              "desde": 2018,
+              "hasta": 2021,
+              "factor": 0.328
+            },
+            {
+              "desde": 2022,
+              "hasta": 2022,
+              "factor": 0.41
+            },
+            {
+              "desde": 2025,
+              "hasta": 2025,
+              "factor": 0.8
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "inputs": {
+          "valor": 10000,
+          "anio": 2025,
+          "anio2": 2019
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 8000,
+          "r2": 3280
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "redondear: 15 cifras y después mitad lejos de cero, como round(numeric)",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "a"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "b"
+          },
+          {
+            "id": "c",
+            "tipo": "input",
+            "etiqueta": "c"
+          },
+          {
+            "id": "d",
+            "tipo": "input",
+            "etiqueta": "d"
+          },
+          {
+            "id": "e",
+            "tipo": "input",
+            "etiqueta": "e"
+          },
+          {
+            "id": "ra",
+            "tipo": "calculo",
+            "op": "redondear",
+            "de": ["a"],
+            "etiqueta": "ra",
+            "n": 2
+          },
+          {
+            "id": "rb",
+            "tipo": "calculo",
+            "op": "redondear",
+            "de": ["b"],
+            "etiqueta": "rb",
+            "n": 2
+          },
+          {
+            "id": "rc",
+            "tipo": "calculo",
+            "op": "redondear",
+            "de": ["c"],
+            "etiqueta": "rc",
+            "n": 0
+          },
+          {
+            "id": "rd",
+            "tipo": "calculo",
+            "op": "redondear",
+            "de": ["d"],
+            "etiqueta": "rd",
+            "n": 2
+          },
+          {
+            "id": "re",
+            "tipo": "calculo",
+            "op": "redondear",
+            "de": ["e"],
+            "etiqueta": "re",
+            "n": 6
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["ra"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "a": 2.675,
+          "b": 1.005,
+          "c": -2.5,
+          "d": -0.001,
+          "e": 100000000.0078125
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "ra": 2.68,
+          "rb": 1.01,
+          "rc": -3,
+          "rd": 0,
+          "re": 100000000.007812
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "tabla: un match de dos columnas, un nodo y un campo del vehículo",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "factor",
+            "tipo": "tabla",
+            "tabla": "dep",
+            "match": {
+              "anio": "anio",
+              "combustible": "combustible"
+            },
+            "columna": "factor",
+            "etiqueta": "Factor",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["factor"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "dep": [
+            {
+              "anio": 2008,
+              "combustible": "gas",
+              "factor": 0.41
+            },
+            {
+              "anio": 2009,
+              "combustible": "gasolina",
+              "factor": 0.64
+            },
+            {
+              "anio": 2009,
+              "combustible": "gas",
+              "factor": 0.512
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "anio": 2009,
+          "combustible": "gas"
+        }
+      },
+      "esperado": {
+        "valores": {
+          "factor": 0.512
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "tabla: gana la primera de dos filas que coinciden",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "x",
+            "match": {
+              "k": "clase"
+            },
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": [
+            {
+              "k": "a",
+              "v": 1
+            },
+            {
+              "k": "b",
+              "v": 2
+            },
+            {
+              "k": "b",
+              "v": 3
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "clase": "b"
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": 2
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "tabla: la igualdad es estricta, el texto \"2024\" no es el número 2024",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "x",
+            "match": {
+              "anio": "anio"
+            },
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": [
+            {
+              "anio": 2024,
+              "v": 1
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "anio": "2024"
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": null,
+          "total": null
+        },
+        "faltantes": [
+          {
+            "codigo": "fila_sin_coincidencia",
+            "donde": "t",
+            "ref": "x"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "tabla: un match vacío da la primera fila",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "x",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": [
+            {
+              "v": 4
+            },
+            {
+              "v": 5
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": 4
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "tramo: los dos bordes coinciden y gana la primera fila que se solapa",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "a"
+          },
+          {
+            "id": "b",
+            "tipo": "input",
+            "etiqueta": "b"
+          },
+          {
+            "id": "c",
+            "tipo": "input",
+            "etiqueta": "c"
+          },
+          {
+            "id": "ta",
+            "tipo": "tramo",
+            "tabla": "x",
+            "sobre": "a",
+            "columna": "v",
+            "etiqueta": "ta"
+          },
+          {
+            "id": "tb",
+            "tipo": "tramo",
+            "tabla": "x",
+            "sobre": "b",
+            "columna": "v",
+            "etiqueta": "tb"
+          },
+          {
+            "id": "tc_",
+            "tipo": "tramo",
+            "tabla": "x",
+            "sobre": "c",
+            "columna": "v",
+            "etiqueta": "tc_"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["ta", "tb", "tc_"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": [
+            {
+              "desde": 2015,
+              "hasta": 2020,
+              "v": 1
+            },
+            {
+              "desde": 2021,
+              "hasta": 2025,
+              "v": 2
+            },
+            {
+              "desde": 2021,
+              "hasta": 2030,
+              "v": 3
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "inputs": {
+          "a": 2015,
+          "b": 2020,
+          "c": 2025
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "ta": 1,
+          "tb": 1,
+          "tc_": 2
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "tramo: una fila sin desde no coincide nunca",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "a"
+          },
+          {
+            "id": "t",
+            "tipo": "tramo",
+            "tabla": "x",
+            "sobre": "a",
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": [
+            {
+              "desde": null,
+              "hasta": 2030,
+              "v": 9
+            },
+            {
+              "desde": 1990,
+              "hasta": 2030,
+              "v": 5
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "inputs": {
+          "a": 2000
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": 5
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "tramo: un valor entre dos filas no coincide con ninguna",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "a"
+          },
+          {
+            "id": "t",
+            "tipo": "tramo",
+            "tabla": "x",
+            "sobre": "a",
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": [
+            {
+              "desde": 2015,
+              "hasta": 2020,
+              "v": 1
+            },
+            {
+              "desde": 2021,
+              "hasta": 2025,
+              "v": 2
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "inputs": {
+          "a": 2020.5
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": null
+        },
+        "faltantes": [
+          {
+            "codigo": "fila_sin_coincidencia",
+            "donde": "t",
+            "ref": "x"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "la tabla congelada en params manda sobre la viva",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "x",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": [
+            {
+              "v": 10
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "tablas": {
+          "x": [
+            {
+              "v": 20
+            }
+          ]
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": 10
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "la tabla congelada vacía también manda: no hay filas",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "x",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": []
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "tablas": {
+          "x": [
+            {
+              "v": 20
+            }
+          ]
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": null
+        },
+        "faltantes": [
+          {
+            "codigo": "tabla_sin_filas",
+            "donde": "t",
+            "ref": "x"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "campo del vehículo sin valor o con texto: null, y el que lo lee también",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "cc",
+            "tipo": "campo_vehiculo",
+            "campo": "atributos.cilindrada",
+            "etiqueta": "cc",
+            "formato": "raw"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["anio"],
+            "etiqueta": "r"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r", "cc"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "atributos.cilindrada": "1997"
+        }
+      },
+      "esperado": {
+        "valores": {
+          "anio": null,
+          "cc": null,
+          "r": null,
+          "total": null
+        },
+        "totales": {
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "campo_sin_valor",
+            "donde": "anio",
+            "ref": "anio"
+          },
+          {
+            "codigo": "campo_sin_valor",
+            "donde": "cc",
+            "ref": "atributos.cilindrada"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "match sobre un campo que el vehículo no trae",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "x",
+            "match": {
+              "tipo": "tipo_vehiculo"
+            },
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "x": [
+            {
+              "tipo": "auto",
+              "v": 1
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "tipo_vehiculo": null
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": null
+        },
+        "faltantes": [
+          {
+            "codigo": "campo_sin_valor",
+            "donde": "t",
+            "ref": "tipo_vehiculo"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "tabla sin filas: ni congelada ni viva",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "x",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "t"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": null
+        },
+        "faltantes": [
+          {
+            "codigo": "tabla_sin_filas",
+            "donde": "t",
+            "ref": "x"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "celda sin valor: la «X» del transporte de motos, y una columna de texto",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "transporte",
+            "tipo": "tabla",
+            "tabla": "transporte_usa_bolivia",
+            "match": {
+              "tipo": "tipo_vehiculo"
+            },
+            "columna": "cliente",
+            "etiqueta": "Transporte"
+          },
+          {
+            "id": "texto",
+            "tipo": "tabla",
+            "tabla": "transporte_usa_bolivia",
+            "match": {
+              "tipo": "tipo_vehiculo"
+            },
+            "columna": "tipo",
+            "etiqueta": "Texto"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["transporte"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "tablas": {
+          "transporte_usa_bolivia": [
+            {
+              "tipo": "autos",
+              "oficina": 2700,
+              "cliente": 3000
+            },
+            {
+              "tipo": "motos",
+              "oficina": null,
+              "cliente": null
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        },
+        "vehiculo": {
+          "tipo_vehiculo": "motos"
+        }
+      },
+      "esperado": {
+        "valores": {
+          "transporte": null,
+          "texto": null
+        },
+        "faltantes": [
+          {
+            "codigo": "celda_sin_valor",
+            "donde": "transporte",
+            "ref": "transporte_usa_bolivia"
+          },
+          {
+            "codigo": "celda_sin_valor",
+            "donde": "texto",
+            "ref": "transporte_usa_bolivia"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "división por cero: null, y dividir por un null no anota otro faltante",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "cero",
+            "tipo": "input",
+            "etiqueta": "cero"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["x", "cero"],
+            "etiqueta": "r"
+          },
+          {
+            "id": "r2",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["x", "r"],
+            "etiqueta": "r2"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r2"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": 5
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": null,
+          "r2": null,
+          "total": null
+        },
+        "faltantes": [
+          {
+            "codigo": "division_por_cero",
+            "donde": "r"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "tipo de cambio ausente: sin Bs; sin total_en, el total en USD es la suma",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "a",
+            "tipo": "input",
+            "etiqueta": "a"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["a"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "a": 100
+        },
+        "tipos_cambio": {
+          "paralelo": 10
+        }
+      },
+      "esperado": {
+        "valores": {
+          "tc": null,
+          "total": 100
+        },
+        "totales": {
+          "bs": null,
+          "usd": 100,
+          "suma_usd": 100
+        },
+        "faltantes": [
+          {
+            "codigo": "tipo_de_cambio_sin_valor",
+            "donde": "tc",
+            "ref": "oficial"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "fuera de rango: un desborde no se guarda como infinito",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "y",
+            "tipo": "input",
+            "etiqueta": "y"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["x", "y"],
+            "etiqueta": "r"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": 1e200,
+          "y": 1e200
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": null,
+          "total": null
+        },
+        "faltantes": [
+          {
+            "codigo": "fuera_de_rango",
+            "donde": "r"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "un −0 se guarda como 0: JSON y jsonb no lo distinguen",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "x"
+          },
+          {
+            "id": "y",
+            "tipo": "input",
+            "etiqueta": "y"
+          },
+          {
+            "id": "r",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["x", "y"],
+            "etiqueta": "r"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "x": -1,
+          "y": 0
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 0,
+          "total": 0
+        },
+        "totales": {
+          "bs": 0,
+          "usd": 0
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "condición apagada: vale 0 sin leer lo que sería null, y no propaga",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "no_existe",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "t",
+            "condicion": "activa"
+          },
+          {
+            "id": "extra",
+            "tipo": "input",
+            "etiqueta": "extra",
+            "condicion": "activa"
+          },
+          {
+            "id": "cargo",
+            "tipo": "constante",
+            "etiqueta": "cargo",
+            "condicion": "activa"
+          },
+          {
+            "id": "base",
+            "tipo": "input",
+            "etiqueta": "base"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t", "extra", "cargo", "base"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "cargo": 50
+      },
+      "entrada": {
+        "inputs": {
+          "extra": 300,
+          "base": 5
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": 0,
+          "extra": 0,
+          "cargo": 0,
+          "total": 5
+        },
+        "totales": {
+          "bs": 5,
+          "usd": 5
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "condición encendida: el mismo nodo lee su tabla y anota el faltante",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "no_existe",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "t",
+            "condicion": "activa"
+          },
+          {
+            "id": "extra",
+            "tipo": "input",
+            "etiqueta": "extra",
+            "condicion": "activa"
+          },
+          {
+            "id": "cargo",
+            "tipo": "constante",
+            "etiqueta": "cargo",
+            "condicion": "activa"
+          },
+          {
+            "id": "base",
+            "tipo": "input",
+            "etiqueta": "base"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["t", "extra", "cargo", "base"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {
+        "cargo": 50
+      },
+      "entrada": {
+        "inputs": {
+          "extra": 300,
+          "base": 5
+        },
+        "banderas": {
+          "activa": true
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "t": null,
+          "extra": 300,
+          "cargo": 50,
+          "total": null
+        },
+        "faltantes": [
+          {
+            "codigo": "tabla_sin_filas",
+            "donde": "t",
+            "ref": "no_existe"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "un input llamado constructor sin tipear vale 0",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "constructor",
+            "tipo": "input",
+            "etiqueta": "constructor"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["constructor"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "constructor": 0,
+          "total": 0
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "grupos: el total en Bs suma los grupos en el orden de grupos, no el de la lista",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "m3",
+            "tipo": "input",
+            "etiqueta": "m3",
+            "grupo": "g3"
+          },
+          {
+            "id": "m2",
+            "tipo": "input",
+            "etiqueta": "m2",
+            "grupo": "g2"
+          },
+          {
+            "id": "m1",
+            "tipo": "input",
+            "etiqueta": "m1",
+            "grupo": "g1"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["m3", "m2", "m1"],
+            "etiqueta": "total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "g1",
+            "etiqueta": "g1",
+            "tono": "t",
+            "bucket": "b"
+          },
+          {
+            "id": "g2",
+            "etiqueta": "g2",
+            "tono": "t",
+            "bucket": "b"
+          },
+          {
+            "id": "g3",
+            "etiqueta": "g3",
+            "tono": "t",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "m1": 0.1,
+          "m2": 0.2,
+          "m3": 0.3
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "total": 0.6
+        },
+        "totales": {
+          "grupos": {
+            "g1": {
+              "usd": 0.1,
+              "bs": 0.1
+            },
+            "g2": {
+              "usd": 0.2,
+              "bs": 0.2
+            },
+            "g3": {
+              "usd": 0.3,
+              "bs": 0.3
+            }
+          },
+          "bs": 0.6000000000000001,
+          "usd": 0.6000000000000001,
+          "suma_usd": 0.6
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "grupos: los miembros de un grupo se suman en el orden de la lista",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "TC",
+            "formato": "raw"
+          },
+          {
+            "id": "m1",
+            "tipo": "input",
+            "etiqueta": "m1",
+            "grupo": "g1"
+          },
+          {
+            "id": "m2",
+            "tipo": "input",
+            "etiqueta": "m2",
+            "grupo": "g1"
+          },
+          {
+            "id": "m3",
+            "tipo": "input",
+            "etiqueta": "m3",
+            "grupo": "g1"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["m1", "m2", "m3"],
+            "etiqueta": "total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "g1",
+            "etiqueta": "g1",
+            "tono": "t",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "m1": 0.3,
+          "m2": 0.2,
+          "m3": 0.1
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "totales": {
+          "grupos": {
+            "g1": {
+              "usd": 0.6,
+              "bs": 0.6
+            }
+          },
+          "bs": 0.6,
+          "usd": 0.6,
+          "suma_usd": 0.6
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "modo sin grupos: reemplaza el tipo de cambio del bucket del total y divide por su total_en",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_a",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "A",
+            "formato": "raw"
+          },
+          {
+            "id": "tc_b",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "B",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "precio"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["precio"],
+            "etiqueta": "total",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_a"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "precio": 100
+        },
+        "tipos_cambio": {
+          "oficial": 7,
+          "paralelo": 8
+        }
+      },
+      "modo": {
+        "buckets": {
+          "origen": "tc_b"
+        },
+        "total_en": "tc_b"
+      },
+      "esperado": {
+        "totales": {
+          "grupos": {},
+          "bs": 800,
+          "usd": 100,
+          "suma_usd": 100
+        },
+        "faltantes": []
+      }
+    }
+  ]
+}

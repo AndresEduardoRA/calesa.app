@@ -29,7 +29,7 @@ export const esquemaDefinicion = z.strictObject({
   grupos: z.array(esquemaGrupo).optional(),
 })
 
-const esquemaFila = z.record(esquemaId, z.union([z.number(), z.string().max(200), z.null()]))
+export const esquemaFila = z.record(esquemaId, z.union([z.number(), z.string().max(200), z.null()]))
 
 // Lo guardado es plano (`{flete: 900, …, tablas?: {…}}`, como el seed); el código lo recibe partido.
 export const esquemaParams = z

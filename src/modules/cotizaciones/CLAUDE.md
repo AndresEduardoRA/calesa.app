@@ -5,7 +5,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Entra y sale
 
 - Entra: wizard `/cotizaciones/nuevo` (origen → vehículo → lead → hoja → resumen), editor de fórmulas en Configuración, ⚙ de una celda.
-- Sale: `evaluar(definicion, params, entradas)` (motor puro), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
+- Sale: `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
 - Depende de: `leads`, `vehiculos`, `empresa` (tipos de cambio).
 
 ## Archivos clave
@@ -18,7 +18,14 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   (`docs/COTIZADOR.md` › «Las reglas»).
 - `entities/casos-de-formula.json` — el juego de fórmulas válidas e inválidas con su motivo (una por regla, más las dos del seed, el
   Excel entero y «Amnistia»): lo recorre `validar.test.ts` y, desde 4.05-4, `supabase/tests/`. Una regla nueva = su caso acá.
-- `entities/motor.ts` (4.05, prompt 2) — evaluación en una pasada, grupos por tipo de cambio, salidas `total | base_imponible | aparte`.
+- `entities/motor.ts` — `evaluar()`: una pasada en el orden de la lista, grupos por tipo de cambio, el total en Bs y en USD, y los
+  `faltantes` (`docs/COTIZADOR.md` › «El motor»). Lo parten `motor-contexto.ts` (el estado y los códigos de faltante),
+  `motor-entrada.ts` (`esquemaEntrada`), `motor-errores.ts` (`ErrorDelMotor` y los rasgos pendientes), `motor-nodos.ts` (un caso por
+  tipo), `motor-calculo.ts` (un caso por `op`), `motor-tablas.ts` (`tabla`, `tramo`, la congelada contra la viva), `motor-totales.ts`
+  (grupos, modo y reparto) y `redondeo.ts` (`round(numeric)` de Postgres, exacto). Hasta el prompt 3 de 4.05 lanza ante `opcion`,
+  `solo_en`, `sobrescribible`, `requerido_si` y un `sugerido_de` sin tipear.
+- `entities/casos-del-motor.json` — los casos del motor con su resultado hecho a mano (el seed, la moto y la gasolina del Excel, las
+  capturas, un caso por tipo, `op` y faltante): lo recorre `motor.test.ts` y, desde 4.06, la paridad de `evaluar_formula()`.
 - `features/hoja/` (XCell + binding `valores/fuentes/defaults`), `features/formulas/` (borrador/publicar/historial/revertir), `features/plantillas/`, `features/pdf/` (route handler con `@react-pdf/renderer`).
 - `docs/COTIZADOR.md` — la forma del grafo; leerlo antes de tocar el motor.
 
