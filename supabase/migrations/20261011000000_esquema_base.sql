@@ -1102,7 +1102,7 @@ create table public.formulas (
   version         int,                               -- se asigna al publicar
   estado          public.estado_version not null default 'borrador',
   definicion      jsonb not null,                    -- grafo de nodos (ver docs/COTIZADOR.md); validado por validar_formula()
-  params          jsonb not null default '{}'::jsonb, -- valores de las constantes versionadas: {nodo_id: numero}
+  params          jsonb not null default '{}'::jsonb, -- {constante: número, …, tablas?: {clave: [filas]}}: las constantes y las filas congeladas (D5)
   nota            text,                              -- obligatoria al publicar
   version_origen_id uuid references public.formulas (id) on delete set null,
   creado_por      uuid references public.perfiles (id),
@@ -1128,7 +1128,7 @@ create table public.tablas_referencia (
   actualizado_en timestamptz not null default now(),
   unique nulls not distinct (origen_id, clave)
 );
-comment on table public.tablas_referencia is 'Tablas que alimentan nodos lookup/bracket de la fórmula (impuestos por tipo, tramos por año y cilindrada, tarifas de transporte por ruta, depreciación por año). Editables desde el cotizador por quien tenga cotizaciones.configurar.';
+comment on table public.tablas_referencia is 'Tablas que alimentan los nodos tabla y tramo y el cálculo depreciar de la fórmula (impuestos por tipo, tramos por año y cilindrada, tarifas de transporte por ruta, depreciación por año). Editables desde el cotizador por quien tenga cotizaciones.configurar.';
 
 create table public.tablas_referencia_filas (
   id        uuid primary key default gen_random_uuid(),
@@ -1169,7 +1169,7 @@ create table public.cotizaciones (
   formula_id      uuid not null references public.formulas (id) on delete restrict,
   plantilla_id    uuid references public.plantillas_tarjeta (id) on delete set null,
   valores         jsonb not null,          -- {nodo_id: numero} — TODO lo que el cálculo usó
-  fuentes         jsonb not null default '{}'::jsonb, -- {nodo_id: default|override|lookup|input}
+  fuentes         jsonb not null default '{}'::jsonb, -- {nodo_id: default|sugerido|override|input}
   tipos_cambio    jsonb not null,          -- {clave: valor} congelados
   totales         jsonb not null,          -- {total_base, por_moneda:{…}, por_bucket:{…}}
   total_base      numeric(18, 2) not null,
