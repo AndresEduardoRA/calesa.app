@@ -6,7 +6,7 @@
 > a `docs/BITACORA.md`, copiado y no resumido. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
 
 **Última actualización:** 2026-10-23
-**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05, prompt 1 de 4** (`e23a694`, `e62bbd5`): la forma ampliada del grafo (grupos, N tipos de cambio y `total_en`, `sobrescribible`, el par porcentaje-monto, `opcion` y `solo_en`, `params.tablas`) como Zod en `entities/`, `validar.ts` (la forma y 28 reglas cruzadas, lineal) y `casos-de-formula.json` (48 casos; 29 mutaciones: cada inválido rompe una sola regla). Antes: **4.04** a **4.01**. Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-1).
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05, prompt 2 de 4** (`5d81edc`, `48fc91f`): el motor `evaluar()` en `entities/` (una pasada en el orden de la lista, grupos por tipo de cambio, el total en Bs y en USD, `faltantes` con siete códigos, `redondear` exacto como `round(numeric)`; lanza ante `opcion`, `solo_en`, `sobrescribible`, `requerido_si` y un `sugerido_de` sin tipear), `casos-del-motor.json` (48 casos a mano: el seed, la moto y la gasolina del Excel, las capturas $2.350 y $72.952) y 47 mutaciones; el validador rechaza en un grupo un nodo que no da un monto (cuatro casos). Antes: **4.05-1** y **4.04** a **4.01**. Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-2).
 
 ## Funcionando
 
@@ -17,7 +17,7 @@
 
 ## Siguiente
 
-1. **4.05, prompt 2** (`motor.ts`, contra los casos válidos de `casos-de-formula.json` con sus cifras y los $2.350 y $72.952) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).
+1. **4.05, prompt 3** (sugerido, `sobrescribible`, el par porcentaje-monto, `opcion` y `solo_en`, `requerido_si` y `fuentes`: quita cada `rasgo_pendiente` del motor y da las cifras del Excel entero y de «Amnistia») y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). **4.05-4** copia en `validar_formula()` el chequeo de tipo de `miembro_no_es_monto` (`daMonto()`, `5d81edc`).
 2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT; toca `supabase/schemas`, después del hito 4-A) y **5a-42** (`medir-bajas.sql` cae sin regresión con un `sync` de disco largo: decidir por el trabajo —40 lotes, ≤ 16 M buffers— y juzgar los ms sólo con la ventana sana) sin fase, las decide la persona; **5a-41** cerrado: no reproducida y `pnpm test` guarda su salida en `test-salidas/`; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
 
 ## Pendientes que se arrastran

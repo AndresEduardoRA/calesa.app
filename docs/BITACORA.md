@@ -544,3 +544,146 @@ Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual» y el punto 1 de 
 **Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.04 completo**: **5a-36** (`cbbd388`: el global de F, fijo en 7 dígitos y buscado como número propio; 30 de 30 con ~100 y ~1.000 leads), **5a-32** (`4bf3bf2`: la baja en curso se simula con un lead tomado por otra transacción; 30 de 30 en escritorio y celular) y **5a-11 aceptado con la causa corregida** (opción A de la persona: 9 corridas, 15.202,8 ms; `cartera` indexada, ningún update de la cartera es HOT; la opción de fondo es **5a-40**). `medir-bajas.sql` pausa el cron `equipo-bajas` mientras mide y asserta ≤ 12 corridas, ≤ 20.000 ms y ≤ 3.000 ms por corrida (`99b6703`, `daacad5`). Antes: **4.03**, **4.02** y **4.01** (`docs/COTIZADOR.md`). Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», cierre del 4.04).
 
 1. **4.05** y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).
+
+## 2026-10-23 — Paso 4.05, prompt 2 de 4: el motor del cotizador y sus faltantes
+
+**Horas (La Paz, de `.git/logs/HEAD`):** desde `1789a24` (08:41:06, el HEAD de partida) hasta `48fc91f` (10:09:48, el motor y sus
+pruebas); `5d81edc` (el validador) a las 09:44:10. **e2e completo: no (Nivel 1: TS puro, sin interfaz ni base).** No se tocó
+`supabase/`, `src/shared`, ninguna interfaz ni e2e; sin dependencias nuevas; ningún tope cambió.
+
+**Qué:** las decisiones g a o están en `docs/DECISIONES.md` (2026-10-23, «Paso 4.05 (2 de 4)») y el motor, en `docs/COTIZADOR.md`
+(«El motor»). La persona aprobó el plan con dos elecciones: `sugerido_de` lanza sólo sin tipear, y el validador suma cuatro casos.
+
+- **Parte A (`5d81edc`):** `daMonto()` en `nodos.ts` (un `switch` exhaustivo por tipo) y `miembro_no_es_monto` lo exige además del
+  formato.
+  - Los cuatro casos nuevos (bandera, tipo de cambio, campo del vehículo, variante) cayeron contra HEAD dando «válida».
+  - **A1** (sacar el chequeo): caen exactamente esos cuatro.
+  - **A2** (la variante da un monto): caen su caso y el test de `daMonto`.
+  - El contador del validador no cambió: 6.525 y 65.565 visitas.
+- **Parte B (`48fc91f`):**
+  - `motor.ts` (51 líneas), `motor-contexto` (98), `motor-entrada` (68), `motor-errores` (64), `motor-nodos` (75), `motor-calculo`
+    (82), `motor-tablas` (102), `motor-totales` (138) y `redondeo` (71). Todas las funciones caben en la complejidad 12 del lint;
+    `valorDeNodo` se partió en dos para entrar.
+  - `medidor.ts` suma `propia()` y `mapaDe()`; `nodos.ts` exporta `esquemaCampo` y `formula.ts`, `esquemaFila`.
+- **Parte C:**
+  - `casos-del-motor.json`: 48 casos con lo esperado hecho a mano.
+    - Las dos fórmulas del seed: `subasta_usa` en cuatro (híbrido, sin híbrido, las tablas tal cual y un año sin depreciación) y
+      `oficina` en dos.
+    - La moto (con y sin el paralelo) y la gasolina del Excel.
+    - Las capturas 02 y 09 con el modo unificado, y la 09 sin modo.
+    - Un caso por tipo, `op`, faltante y regla de tablas.
+  - Seis archivos de prueba: `motor`, `motor-errores`, `motor-entrada`, `motor-propiedades`, `motor-escala` y `redondeo`.
+  - **Sin el motor caen todas:** se apartaron los ocho archivos del motor al scratchpad, los cinco archivos de prueba que existían no
+    cargaron, y se devolvieron con `cp`, comprobados con `cmp`.
+
+**Escala:**
+
+- Con 200 y 2.000 nodos (dos tablas de 50 filas, recorridas enteras): 9.196 y 94.764 visitas, sobre un tamaño de 6.651 y 68.819. Son
+  1,38 visitas por unidad de tamaño y una razón de ×10,305.
+- **k = 9, por la cuenta de pasadas.** El plan estimaba 8; la cuenta da 9 por el nodo `tabla` de un grupo, con su condición y su tabla
+  viva.
+
+**Mutaciones: 47, y las 47 tumban su prueba.**
+
+- **Cómo se hizo:** un script en el scratchpad, con la lista de (archivo, texto exacto que aparece una sola vez, reemplazo, lo que tiene
+  que caer). Para cada una:
+  1. respaldo con `cp`;
+  2. la mutación;
+  3. `vitest run` de `entities/`;
+  4. restaurar con `cp` y comprobar con `cmp`.
+
+  La huella sha256 de `entities/` dio igual antes y después. Nunca `git checkout`.
+
+| #    | Mutación                                                    | Pruebas que caen | Resultado |
+| ---- | ----------------------------------------------------------- | ---------------- | --------- |
+| M1   | USD del grupo: sólo el último miembro                       | 9                | OK        |
+| M2   | conversión por el tc de total_en y no por el del bucket     | 8                | OK        |
+| M3   | con grupos, el USD es la suma y no Bs ÷ tc(total_en)        | 9                | OK        |
+| M4   | el total en Bs suma los grupos al revés de `grupos`         | 1                | OK        |
+| M5   | el modo no reemplaza los buckets                            | 6                | OK        |
+| M6   | el modo no reemplaza total_en                               | 3                | OK        |
+| M7   | sin la revisión de que el modo cubra los buckets usados     | 2                | OK        |
+| M8   | el reparto multiplica el total entero por cada bucket       | 2                | OK        |
+| M9   | se ignora el bucket del total                               | 44               | OK        |
+| M10  | sin total_en, el USD queda null                             | 9                | OK        |
+| M11  | suma toma el null como 0                                    | 8                | OK        |
+| M12  | la condición apagada lee igual sus referencias              | 1                | OK        |
+| M13  | el si ignora su condición                                   | 2                | OK        |
+| M14  | la viva manda sobre la congelada                            | 2                | OK        |
+| M15  | la congelada vacía cae a la viva                            | 1                | OK        |
+| M16  | suma de derecha a izquierda                                 | 3                | OK        |
+| M17  | porcentaje_de reparte: Σ(d × pct)                           | 2                | OK        |
+| M18  | multiplicar asocia por la derecha                           | 1                | OK        |
+| M19  | restar es d0 − Σresto                                       | 1                | OK        |
+| M20  | dividir al revés                                            | 1                | OK        |
+| M21  | sin la guarda de la división por cero                       | 1                | OK        |
+| M22  | depreciar sin el factor                                     | 1                | OK        |
+| M23  | redondear con Math.round(x · 10ⁿ) / 10ⁿ                     | 5                | OK        |
+| M24  | las 15 cifras con toExponential (mitad para arriba)         | 2                | OK        |
+| M25a | redondear devuelve −0                                       | 1                | OK        |
+| M25b | asentar deja pasar −0                                       | 1                | OK        |
+| M26  | sin el chequeo de lo no finito                              | 2                | OK        |
+| M27  | un input vacío vale null                                    | 6                | OK        |
+| M28  | una bandera ausente vale 1                                  | 2                | OK        |
+| M29  | el tramo excluye sus bordes                                 | 3                | OK        |
+| M30a | tabla: gana la última fila que coincide                     | 2                | OK        |
+| M30b | tramo: gana la última fila que coincide                     | 1                | OK        |
+| M31  | la igualdad del match convierte (==)                        | 1                | OK        |
+| M32  | una celda vacía vale 0                                      | 1                | OK        |
+| M33  | el tipo de cambio ausente no anota su faltante              | 3                | OK        |
+| M34  | propia lee también el prototipo                             | 1                | OK        |
+| M35a | sin el rasgo opcion                                         | 1                | OK        |
+| M35b | sin el rasgo solo_en                                        | 1                | OK        |
+| M35c | sin el rasgo sobrescribible                                 | 1                | OK        |
+| M35d | sin el rasgo requerido_si                                   | 1                | OK        |
+| M35e | sin el rasgo sugerido_de                                    | 1                | OK        |
+| M35f | sugerido_de lanza también con valor tipeado                 | 9                | OK        |
+| M36  | un bucle sin el medidor                                     | 1                | OK        |
+| M37  | el faltante de un match nombra el último campo, no el menor | 1                | OK        |
+| M38  | sin la revisión de que el modo nombre tipos de cambio       | 2                | OK        |
+| M39  | sin la revisión de las claves de inputs                     | 3                | OK        |
+| M40  | leer un nodo que no está da 0 en vez de lanzar              | 1                | OK        |
+
+- **Dos correcciones de la lista:**
+  - **M4:** la primera versión metía un `for` sin `recorrer` y tumbaba también el grep de escala. Se reescribió con `recorrer`, y cae
+    sólo su caso.
+  - **M5:** esperaba que cayera la captura 02, pero ahí el unificado y el paralelo valen lo mismo (12,2), así que ignorar el modo da el
+    mismo número. Caen la 09 y «modo sin grupos».
+- **Cascada declarada, M9 (44 pruebas):** el bucket del total es como se reparte cada fórmula chica del juego.
+- **M34:** el plan decía «indexar `entrada.inputs[id]` sin `hasOwn`», pero el motor lee la entrada sólo por `Map`, así que no hay índice
+  que mutar. La mutación fue a `propia()` (las filas), y cae su test.
+
+**Para 4.05-4:**
+
+- `validar_formula()` copia el chequeo de tipo de `miembro_no_es_monto`.
+
+**Para 4.06** (`docs/COTIZADOR.md` › «Lo que el 4.06 tiene que copiar»):
+
+- sumar en un bucle en el orden de la lista;
+- `round(x::numeric, n)::float8`;
+- la primera fila por `orden`;
+- el `match` como jsonb, y el menor campo con `collate "C"`;
+- −0 a 0;
+- leer `casos-del-motor.json`.
+
+**Del entorno:**
+
+- **Vite reescribe `new URL('./literal', import.meta.url)`** como un recurso (sale `http:`, no `file:`): un test con la ruta literal no
+  cargaba. La ruta va por una variable, como en `validar.test.ts`.
+- **Un comando con `cd` y `&&` se cortó a la mitad:** `redondeo.ts` todavía no existía y el `cp` falló. Los ocho archivos quedaron en el
+  respaldo y se devolvieron con `cp` + `cmp`, antes de seguir.
+- **`noPropertyAccessFromIndexSignature`:** en los tests, `valores['x']` en vez de `valores.x`.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y `bash scripts/mapa.sh --check` sobre el árbol final:
+331 archivos, 3.276 pruebas, 75,3 s (`test-salidas/2026-10-23_14-12-19-1786361/`).
+
+**Lo que no se hizo:** SQL (`validar_formula()` es del 4.05-4 y `evaluar_formula()` del 4.06), exportar el motor desde `index.ts`
+(nadie lo usa todavía), `next upgrade`, empujar.
+
+## 2026-10-23 — Movido de ESTADO (4.05-2)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual» y el punto 1 de «Siguiente»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05, prompt 1 de 4** (`e23a694`, `e62bbd5`): la forma ampliada del grafo (grupos, N tipos de cambio y `total_en`, `sobrescribible`, el par porcentaje-monto, `opcion` y `solo_en`, `params.tablas`) como Zod en `entities/`, `validar.ts` (la forma y 28 reglas cruzadas, lineal) y `casos-de-formula.json` (48 casos; 29 mutaciones: cada inválido rompe una sola regla). Antes: **4.04** a **4.01**. Partición: **28 pasos y 62 prompts**, 4.01 a 4.28, con el **hito 4-A** (Nivel 2) al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo que esta línea decía está copiado en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-1).
+
+1. **4.05, prompt 2** (`motor.ts`, contra los casos válidos de `casos-de-formula.json` con sus cifras y los $2.350 y $72.952) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).

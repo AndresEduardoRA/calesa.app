@@ -118,7 +118,8 @@ referencias A1 ni funciones que el grafo no tenga.
 - Editar una tabla de referencia publica la N+1 de cada fórmula de su origen que la usa.
 - La fórmula congela en `params.tablas` las filas que usa, así que recalcular con su versión vale también para las tablas.
 - El seed todavía no las trae.
-- Qué hace el motor con una tabla sin filas congeladas lo deciden el prompt 2 de 4.05 y 4.06.
+- **El motor usa la congelada si existe, aunque esté vacía**; si no, la viva que le pasa quien llama (el 4.06, la de
+  `tablas_referencia_filas`). Sin ninguna, el nodo queda null con `tabla_sin_filas` («El motor», abajo).
 
 ## Las reglas
 
@@ -150,6 +151,131 @@ aridad, un campo que falta, el id y un param que no es número.
   - La prueba de escala lo mira con 200 y 2.000 nodos: 6.525 y 65.565 visitas, 3,51 por unidad de tamaño.
 - **Cada caso inválido del juego rompe una sola regla.** Se comprueba apagando las reglas de a una: los 29 códigos, el 2026-10-23
   (`docs/BITACORA.md`).
+
+## El motor (4.05, prompt 2)
+
+`evaluar(formula, entrada, modo?, medidor?)` en `entities/motor.ts`. Es puro: sin I/O, sin fecha, sin azar, sin leer la base.
+`formula` es la salida de `validarFormula()`. `evaluar_formula()` (4.06) es su espejo, y los dos comparten el juego
+`entities/casos-del-motor.json`: cada caso con su fórmula (o el nombre de un caso de `casos-de-formula.json`), su entrada, su modo y
+lo esperado, hecho a mano.
+
+**La entrada** (`esquemaEntrada`, en `motor-entrada.ts`):
+
+| Campo          | Qué es                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| `inputs`       | lo tipeado, por id de nodo `input`; lo que no está vale 0. Una clave que no es un `input` es un error |
+| `banderas`     | por id de nodo `bandera`; lo que no está, apagada. Una clave que no es una `bandera` es un error      |
+| `tipos_cambio` | por clave (oficial, paralelo…), mayores que 0: la forma de `cotizaciones.tipos_cambio`                |
+| `vehiculo`     | por campo, tal cual lo escribe la fórmula (`anio`, `atributos.cilindrada`): número, texto o null      |
+| `tablas`       | las vivas, por clave; la congelada de `params.tablas` manda                                           |
+
+**El resultado:**
+
+- `valores`: todos los nodos, en el orden de la lista; null cuando falta algo que lo alcanza.
+- `fuentes`: vacío hasta el prompt 3, que lo llena.
+- `totales`:
+  - `grupos`: `{usd, bs}` de cada grupo, en el orden de `grupos`;
+  - `bs`;
+  - `usd`: Bs ÷ tc(`total_en`). Sin `total_en` y sin modo (la Fase 0), es la suma de los dólares;
+  - `suma_usd`: el nodo `salida: total`.
+- `faltantes`: `{codigo, donde, ref?}`, uno por cada null que nace, en el orden en que nace.
+
+**Los errores de llamada lanzan** `ErrorDelMotor` con su `codigo`:
+
+- `modo_invalido`: un modo que nombra algo que no es un `tipo_cambio` de la fórmula o no cubre un bucket que se usa;
+- `entrada_invalida`;
+- `formula_sin_validar`;
+- `rasgo_pendiente` (abajo).
+
+Lo que puede causar una persona no lanza: viaja como `faltantes`.
+
+### Qué pasa cuando falta algo
+
+| Situación                                                                             | Valor                            | En `faltantes` (`donde` / `ref`)                                    |
+| ------------------------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------- |
+| Input sin valor tipeado                                                               | **0** (la celda vacía del Excel) | —                                                                   |
+| Bandera sin valor                                                                     | **0** (apagada)                  | —                                                                   |
+| `campo_vehiculo` sin valor (no está, es null o no es número)                          | null                             | `campo_sin_valor` (el nodo / el campo)                              |
+| `match` sobre un campo del vehículo que no está o es null                             | null                             | `campo_sin_valor` (la tabla / el campo; si faltan varios, el menor) |
+| Tabla sin filas: ni congelada ni viva, o la que manda está vacía                      | null                             | `tabla_sin_filas` (el nodo / la clave de la tabla)                  |
+| Ninguna fila coincide (`tabla`, `tramo`, `depreciar`)                                 | null                             | `fila_sin_coincidencia` (el nodo / la tabla)                        |
+| La celda no es un número (null, que es la «X» del Excel; texto; o la columna no está) | null                             | `celda_sin_valor` (el nodo / la tabla)                              |
+| `dividir` por 0                                                                       | null                             | `division_por_cero` (el nodo)                                       |
+| Tipo de cambio ausente o ≤ 0                                                          | null                             | `tipo_de_cambio_sin_valor` (el nodo / la clave)                     |
+| Un resultado no finito (desborde)                                                     | null                             | `fuera_de_rango` (el nodo, el grupo o `total`)                      |
+| Un nodo lee un null                                                                   | null                             | nada nuevo: el faltante es de donde nació                           |
+| `condicion` apagada (también la del `si`)                                             | **0, sin leer sus referencias**  | — (ahí el null **no** se propaga)                                   |
+
+- **Un nodo anota a lo sumo un faltante**, el primero en este orden: tabla sin filas, campo sin valor, fila sin coincidencia, celda
+  sin valor.
+- **Los totales:**
+  - el USD de un grupo es null si lo es un miembro;
+  - su Bs, si lo es su USD o su tipo de cambio;
+  - el total en Bs, si lo es el Bs de un grupo (o, sin grupos, un término del reparto o su tipo de cambio);
+  - el total en USD, si lo es el total en Bs o tc(`total_en`).
+- **Los códigos** (`CODIGOS_DE_FALTANTE`, en `motor-contexto.ts`) son el contrato con la base; el texto lo pone la interfaz.
+
+### La aritmética
+
+- **Dobles (float8), de izquierda a derecha en el orden de `de`:**
+  - `suma` = ((d0 + d1) + d2)…;
+  - `restar` = ((d0 − d1) − d2)…, nunca d0 − Σresto;
+  - `multiplicar` = ((d0 × d1) × d2)…;
+  - `porcentaje_de` = (Σde) × pct.
+- **Los grupos:** sus miembros se suman en el orden de la lista; los grupos, en el orden de `grupos`; el reparto, en el de `total.de`.
+  Los casos lo fijan bit a bit: suma(0,1; 0,2; 0,3) = 0,6000000000000001, y al revés da 0,6.
+- **Sin −0 ni infinitos:** −0 se guarda como 0, y lo no finito, como null con `fuera_de_rango`. JSON y jsonb no guardan ninguno de los
+  dos.
+- **`redondear(x, n)` es `round(x::float8::numeric, n)::float8`:**
+  - el cast toma 15 cifras significativas (`%.15g` de glibc, mitad al par sobre el valor exacto del doble);
+  - `round(numeric)` redondea mitad lejos de cero, como ROUND del Excel;
+  - así 2,675 da 2,68, 1,005 da 1,01 y −2,5 da −3.
+  - `redondeo.ts` lo hace exacto con BigInt. `toExponential(14)` no alcanza: en un empate en la cifra 16 sube, y glibc va al par
+    (100000000,0078125 con n = 6 da …812 en Postgres).
+
+### Las tablas, los tramos y `depreciar`
+
+- **Cuál manda:** la congelada de `params.tablas` si existe, aunque esté vacía; si no, la de `entrada.tablas`.
+- **`tabla`:** gana la **primera fila**, en el orden de la tabla, cuyas columnas del `match` son todas iguales a lo que nombran: un
+  nodo anterior con ese id o, si no hay, el campo del vehículo.
+  - **La igualdad es estricta y sin conversión** (2024 ≠ "2024", "Moto" ≠ "moto"), como la de jsonb.
+  - Un `match` vacío da la primera fila.
+  - Un `match` que nombra un nodo null da null, sin faltante nuevo.
+- **`tramo`:** la primera fila con `desde ≤ sobre ≤ hasta`, los dos extremos incluidos. Una fila sin `desde` o sin `hasta` numérico
+  no coincide nunca: no hay extremos abiertos (la semilla usa 1900 y 2100).
+- **`depreciar(d0, tabla, sobre, columna)` = d0 × el `tramo` de esa tabla.** Tiene los mismos campos que un `tramo`, y la depreciación
+  del Excel son rangos con un mismo factor (2018–2021 = 0,328). Hoy nadie lo usa: el seed y el Excel hacen `tabla` + `multiplicar`.
+
+### Lo que el 4.06 tiene que copiar
+
+- Sumar con un bucle en el orden de la lista: `sum()` sin `order by` no garantiza el orden.
+- Redondear con `round(x::numeric, n)::float8`.
+- Elegir la primera fila por `orden` (las congeladas, por su posición en el arreglo).
+- Comparar el `match` como jsonb. jsonb no guarda el orden de las claves, por eso el faltante de varios campos nombra el menor (en
+  orden de código, `collate "C"`).
+- Guardar −0 como 0.
+
+### Lo que todavía no evalúa (lanza `rasgo_pendiente`, y el prompt 3 lo quita)
+
+- un nodo `opcion`;
+- algún `solo_en`;
+- algún `sobrescribible` (también el par porcentaje-monto);
+- algún `requerido_si`;
+- un `input` con `sugerido_de` **sin valor tipeado**. Con valor tipeado el número no depende del sugerido: así se evalúa la semilla
+  `subasta_usa`, cuyo `fob_tabla` lo lleva.
+
+Por eso el Excel entero y «Amnistia» lanzan (tienen variante). Sus cifras quedan para el 3 y el 4. El juego trae la moto y la gasolina
+del Excel como fórmulas de prueba sin variante.
+
+### Escala
+
+Una pasada por los nodos más unas pocas por la entrada y los grupos, y una búsqueda de tabla recorre sus filas una vez. Todo bucle y
+toda búsqueda pasan por `medidor.ts`.
+
+- **La prueba** usa una sintética de 200 y 2.000 nodos, con dos tablas de 50 filas: 9.196 y 94.764 visitas, 1,38 por unidad de tamaño
+  y ×10,31.
+- **El tamaño** es nodos + aristas + grupos + claves de la entrada y de params + filas × (1 + columnas comparadas).
+- **k = 9** se fija por la cuenta de pasadas: lo que más cuesta es un nodo `tabla` de un grupo, con su condición.
 
 ## Tipos de cambio y modos (D7, H1)
 
