@@ -6929,6 +6929,30 @@ export type Database = {
         Args: { p_actual: string; p_esperado: string; p_mensaje: string }
         Returns: undefined
       }
+      _formula_cambio_y_grupos: {
+        Args: {
+          p_buckets: Json
+          p_formatos: string[]
+          p_grupos: Json
+          p_ids: string[]
+          p_nodos: Json
+          p_pos: Json
+          p_tipos: string[]
+          p_total: number
+          p_total_en: Json
+        }
+        Returns: undefined
+      }
+      _formula_forma: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
+      _formula_forma_nodo: { Args: { p_n: Json }; Returns: string }
+      _formula_rechazar: {
+        Args: { p_donde: string; p_mensaje: string; p_regla: string }
+        Returns: undefined
+      }
+      _formula_variante: {
+        Args: { p_ids: string[]; p_nodos: Json; p_tipos: string[] }
+        Returns: undefined
+      }
       _fotos_abrir: { Args: { p_vehiculo: string }; Returns: string }
       _fotos_cerrar: {
         Args: { p_accion: string; p_detalle: Json; p_vehiculo: string }

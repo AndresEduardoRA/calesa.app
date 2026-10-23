@@ -345,15 +345,19 @@ end $$;
 -- @test fórmula: cambiar una constante desde el ⚙ publica v2 y archiva v1
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 set role authenticated;
-do $$ declare o uuid; f2 uuid; begin
+do $$ declare o uuid; f2 uuid; d text; begin
   select id into o from public.origenes where clave = 'subasta_usa';
   f2 := public.formula_cambiar_constante(o, 'flete', 1500);
   if (select version from public.formulas where id = f2) <> 2 or (select estado from public.formulas where id = f2) <> 'publicada' then raise exception 'v2 no publicada'; end if;
   if (select count(*) from public.formulas where origen_id = o and estado = 'archivada') <> 1 then raise exception 'v1 no archivada'; end if;
+  -- Con la forma completa (con su etiqueta), para que el rechazo sea por la referencia y no por la forma.
   begin
-    perform public.formula_guardar_borrador(o, '{"nodos": [{"id": "a", "tipo": "calculo", "op": "suma", "de": ["zzz"], "salida": "total"}]}', '{}');
+    perform public.formula_guardar_borrador(o, '{"nodos": [{"id": "a", "tipo": "calculo", "op": "suma", "de": ["zzz"], "etiqueta": "A", "salida": "total"}]}', '{}');
     raise exception 'aceptó referencia inexistente';
-  exception when invalid_parameter_value then null; end;
+  exception when invalid_parameter_value then
+    get stacked diagnostics d = pg_exception_detail;
+    if d is distinct from 'referencia_inexistente' then raise exception 'rechazó por «%», no por la referencia inexistente', d; end if;
+  end;
 end $$;
 reset role;
 

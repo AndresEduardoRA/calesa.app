@@ -125,6 +125,21 @@ for (const f of lista) {
 }
 console.log(`✓ ${ok} archivos aplicados`)
 
+// Los datos que una prueba lee del repo: la base no lee archivos, así que se los pasa el cliente en una tabla temporal
+// `<nombre> (doc jsonb)`, creada antes de correr su archivo. La ruta es relativa a la raíz del repo.
+const DATOS_DE_PRUEBA = {
+  'validar-formula.sql': {
+    _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
+  },
+}
+
+async function cargarDatos(archivo) {
+  for (const [tabla, ruta] of Object.entries(DATOS_DE_PRUEBA[archivo] ?? {})) {
+    await db.exec(`drop table if exists pg_temp.${tabla}; create temp table ${tabla} (doc jsonb)`)
+    await db.query(`insert into ${tabla} (doc) values ($1::jsonb)`, [fs.readFileSync(ruta, 'utf8')])
+  }
+}
+
 // Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
 // auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
 for (const archivo of [
@@ -147,9 +162,11 @@ for (const archivo of [
   'rueda-por-rol.sql',
   'equipo-lista.sql',
   'permisos-enforcement.sql',
+  'validar-formula.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue
+  await cargarDatos(archivo)
   const bloques = fs
     .readFileSync(t, 'utf8')
     .split(/^-- @test\s+/m)
