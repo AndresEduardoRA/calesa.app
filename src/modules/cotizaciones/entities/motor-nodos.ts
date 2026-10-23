@@ -1,20 +1,32 @@
-// El valor de cada tipo de nodo (docs/COTIZADOR.md › «El motor»). Un nodo con su `condicion` apagada vale 0 sin
-// leer sus referencias: ahí un null no se propaga. Un tipo nuevo = un caso en este `switch`.
+// El valor de cada tipo de nodo (docs/COTIZADOR.md › «El motor»). El estado, decidido antes (`motor-estados.ts`),
+// manda: un nodo fuera de su variante o con su condición apagada vale 0 sin leer sus referencias, así que ahí un null
+// no se propaga. Un tipo nuevo = un caso en este `switch`.
 import { buscar } from './medidor'
 import { valorDeCalculo } from './motor-calculo'
-import { anotar, leer, sinValidar, type Evaluacion, type Valor } from './motor-contexto'
-import { ErrorDelMotor } from './motor-errores'
+import { anotar, asentar, leer, sinValidar, type Evaluacion, type Valor } from './motor-contexto'
 import { valorDeTabla, valorDeTramo } from './motor-tablas'
-import { condicionDe, type Nodo } from './nodos'
+import { acumular } from './motor-totales'
+import type { Nodo } from './nodos'
 
-export function valorDeNodo(ev: Evaluacion, n: Nodo): Valor {
-  return apagado(ev, n) ? 0 : valorEncendido(ev, n)
+type NodoDeValor = Exclude<Nodo, { tipo: 'opcion' }>
+type NodoInput = Extract<Nodo, { tipo: 'input' }>
+
+// Evalúa un nodo, lo guarda y, si es miembro de un grupo, lo suma a su grupo.
+export function evaluarNodo(ev: Evaluacion, n: Nodo): void {
+  if (n.tipo === 'opcion') {
+    ev.valores.set(n.id, varianteDe(ev, n.id))
+    return
+  }
+  const activo = buscar(ev.estados, n.id, ev.m) === 'activo'
+  const v = asentar(ev, activo ? valorActivo(ev, n) : 0, n.id)
+  ev.valores.set(n.id, v)
+  if (n.grupo !== undefined) acumular(ev, n.grupo, v)
 }
 
-function valorEncendido(ev: Evaluacion, n: Nodo): Valor {
+function valorActivo(ev: Evaluacion, n: NodoDeValor): Valor {
   switch (n.tipo) {
     case 'input':
-      return valorDeInput(ev, n.id)
+      return valorDeInput(ev, n)
     case 'constante':
       return valorDeConstante(ev, n.id)
     case 'tipo_cambio':
@@ -23,13 +35,6 @@ function valorEncendido(ev: Evaluacion, n: Nodo): Valor {
       return valorDeCampo(ev, n.id, n.campo)
     case 'bandera':
       return valorDeBandera(ev, n.id)
-    case 'opcion':
-      // `revisarRasgos` ya lanzó; esto queda por si se llama de otro modo.
-      throw new ErrorDelMotor(
-        'rasgo_pendiente',
-        `El motor todavía no evalúa «opcion» (nodo «${n.id}»).`,
-        n.id,
-      )
     case 'tabla':
       return valorDeTabla(ev, n)
     case 'tramo':
@@ -43,16 +48,24 @@ function valorEncendido(ev: Evaluacion, n: Nodo): Valor {
   }
 }
 
-// La condición del nodo (una bandera anterior) está apagada.
-function apagado(ev: Evaluacion, n: Nodo): boolean {
-  const condicion = condicionDe(n)
-  return condicion !== undefined && leer(ev, condicion, n.id) !== 1
+// La variante vale su clave, que `resolverVariante` ya eligió.
+function varianteDe(ev: Evaluacion, id: string): string {
+  if (ev.variante === undefined) throw sinValidar('la variante no tiene una clave elegida', id)
+  return ev.variante
 }
 
-// Lo que no se tipeó vale 0, como la celda vacía del Excel.
-const valorDeInput = (ev: Evaluacion, id: string): Valor => buscar(ev.entrada.inputs, id, ev.m) ?? 0
+// Tipeado (la clave está, aunque valga 0) vale lo tipeado. Si no, y su `requerido_si` está encendida, no hay valor:
+// «requerido» es que la persona lo escriba. Si no, 0, como la celda vacía del Excel.
+function valorDeInput(ev: Evaluacion, n: NodoInput): Valor {
+  const tipeado = buscar(ev.entrada.inputs, n.id, ev.m)
+  if (tipeado !== undefined) return tipeado
+  if (n.requerido_si !== undefined && leer(ev, n.requerido_si, n.id) === 1) {
+    return anotar(ev, 'requerido_sin_valor', n.id, n.requerido_si)
+  }
+  return 0
+}
 
-// Encendida vale 1; apagada o sin valor, 0.
+// Encendida vale 1; apagada o sin valor, 0. Fuera de su variante ni se mira (vale 0 por su estado).
 const valorDeBandera = (ev: Evaluacion, id: string): Valor =>
   buscar(ev.entrada.banderas, id, ev.m) === true ? 1 : 0
 

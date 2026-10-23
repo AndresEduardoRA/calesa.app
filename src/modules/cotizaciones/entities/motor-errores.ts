@@ -3,7 +3,7 @@
 // validarFormula) o un rasgo que el motor todavía no evalúa. Lanzan: lo que puede causar una persona viaja como
 // valor, en `faltantes` (docs/DECISIONES.md, 2026-10-23, paso 4.05 prompt 2).
 import { buscar, recorrer, type Medidor } from './medidor'
-import { sobrescribibleDe, soloEnDe, type Nodo } from './nodos'
+import { sobrescribibleDe, type Nodo } from './nodos'
 
 export const CODIGOS_DE_ERROR_DEL_MOTOR = [
   'rasgo_pendiente',
@@ -27,8 +27,7 @@ export class ErrorDelMotor extends Error {
 }
 
 // Lo que el motor del prompt 2 no evalúa. El prompt 3 de 4.05 implementa cada uno y saca su caso de acá.
-export type RasgoPendiente =
-  'opcion' | 'solo_en' | 'sobrescribible' | 'requerido_si' | 'sugerido_de'
+export type RasgoPendiente = 'sobrescribible' | 'sugerido_de'
 
 // Una pasada antes de calcular nada: el motor no devuelve un número que dependa de algo que no implementa.
 export function revisarRasgos(
@@ -53,11 +52,8 @@ function rasgoPendienteDe(
   inputs: ReadonlyMap<string, number>,
   m: Medidor,
 ): RasgoPendiente | undefined {
-  if (n.tipo === 'opcion') return 'opcion'
-  if (soloEnDe(n) !== undefined) return 'solo_en'
   if (sobrescribibleDe(n)) return 'sobrescribible'
   if (n.tipo !== 'input') return undefined
-  if (n.requerido_si !== undefined) return 'requerido_si'
   // Con valor tipeado, el número es lo tipeado y no depende del sugerido.
   if (n.sugerido_de !== undefined && buscar(inputs, n.id, m) === undefined) return 'sugerido_de'
   return undefined

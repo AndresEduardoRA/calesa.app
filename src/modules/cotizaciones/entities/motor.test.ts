@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { esquemaModoDeCambio, type Formula } from './formula'
-import { evaluar } from './motor'
-import { CODIGOS_DE_FALTANTE } from './motor-contexto'
+import { evaluar, type Resultado } from './motor'
+import { CODIGOS_DE_FALTANTE, ESTADOS } from './motor-contexto'
 import { esquemaEntrada } from './motor-entrada'
 import { redondear } from './redondeo'
 import { validarFormula } from './validar'
@@ -12,7 +12,9 @@ import { validarFormula } from './validar'
 // evaluar_formula(): por eso es un archivo de datos y no TypeScript.
 const numero = z.number().nullable()
 const esquemaTotales = z.strictObject({
-  grupos: z.record(z.string(), z.strictObject({ usd: numero, bs: numero })).optional(),
+  grupos: z
+    .record(z.string(), z.strictObject({ usd: numero, bs: numero, se_dibuja: z.boolean() }))
+    .optional(),
   bs: numero.optional(),
   usd: numero.optional(),
   suma_usd: numero.optional(),
@@ -21,6 +23,13 @@ const esquemaFaltante = z.strictObject({
   codigo: z.enum(CODIGOS_DE_FALTANTE),
   donde: z.string(),
   ref: z.string().optional(),
+})
+const esquemaEsperado = z.strictObject({
+  valores: z.record(z.string(), z.union([z.number(), z.string()]).nullable()).optional(),
+  // Los que no están activos; el resto, activo.
+  estados: z.record(z.string(), z.enum(ESTADOS).exclude(['activo'])).optional(),
+  totales: esquemaTotales.optional(),
+  faltantes: z.array(esquemaFaltante),
 })
 const esquemaJuego = z.strictObject({
   descripcion: z.string(),
@@ -33,11 +42,7 @@ const esquemaJuego = z.strictObject({
       entrada: z.record(z.string(), z.unknown()),
       modo: esquemaModoDeCambio.optional(),
       decimales: z.int().optional(),
-      esperado: z.strictObject({
-        valores: z.record(z.string(), numero).optional(),
-        totales: esquemaTotales.optional(),
-        faltantes: z.array(esquemaFaltante),
-      }),
+      esperado: esquemaEsperado,
     }),
   ),
 })
@@ -63,30 +68,51 @@ function formulaDe(c: Caso): Formula {
 const VACIA = { inputs: {}, banderas: {}, tipos_cambio: {}, vehiculo: {}, tablas: {} }
 const entradaDe = (c: Caso) => esquemaEntrada.parse({ ...VACIA, ...c.entrada })
 
-// Exacto (Object.is) salvo que el caso diga con cuántos decimales.
-function igual(visto: number | null | undefined, esperado: number | null, c: Caso, que: string) {
-  if (esperado === null || c.decimales === undefined) expect(visto, que).toBe(esperado)
+// Exacto (Object.is) salvo que el caso diga con cuántos decimales; un texto, siempre exacto.
+function igual(visto: unknown, esperado: number | string | null, c: Caso, que: string) {
+  if (typeof esperado !== 'number' || c.decimales === undefined) expect(visto, que).toBe(esperado)
   else expect(visto, que).toBeCloseTo(esperado, c.decimales)
+}
+
+function compararValores(r: Resultado, c: Caso) {
+  for (const [id, v] of Object.entries(c.esperado.valores ?? {})) {
+    expect(Object.hasOwn(r.valores, id), id).toBe(true)
+    igual(r.valores[id], v, c, `valores.${id}`)
+  }
+}
+
+function compararTotales(r: Resultado, c: Caso) {
+  const { grupos, ...totales } = c.esperado.totales ?? {}
+  for (const [clave, v] of Object.entries(totales)) {
+    igual(r.totales[clave as keyof typeof totales], v, c, `totales.${clave}`)
+  }
+  if (grupos === undefined) return
+  expect(Object.keys(r.totales.grupos)).toEqual(Object.keys(grupos))
+  for (const [id, g] of Object.entries(grupos)) {
+    igual(r.totales.grupos[id]?.usd, g.usd, c, `grupos.${id}.usd`)
+    igual(r.totales.grupos[id]?.bs, g.bs, c, `grupos.${id}.bs`)
+    expect(r.totales.grupos[id]?.se_dibuja, `grupos.${id}.se_dibuja`).toBe(g.se_dibuja)
+  }
+}
+
+// Los estados se comparan enteros y en el orden de la lista (como los guarda la base).
+function compararMapas(r: Resultado, c: Caso, formula: Formula) {
+  const { estados } = c.esperado
+  if (estados === undefined) return
+  const todos = formula.definicion.nodos.map((n) => [
+    n.id,
+    Object.hasOwn(estados, n.id) ? estados[n.id] : 'activo',
+  ])
+  expect(Object.entries(r.estados), 'estados').toEqual(todos)
 }
 
 describe('casos-del-motor.json', () => {
   it.each(juego.casos)('$nombre', (c) => {
-    const r = evaluar(formulaDe(c), entradaDe(c), c.modo)
-    for (const [id, v] of Object.entries(c.esperado.valores ?? {})) {
-      expect(Object.hasOwn(r.valores, id), id).toBe(true)
-      igual(r.valores[id], v, c, `valores.${id}`)
-    }
-    const { grupos, ...totales } = c.esperado.totales ?? {}
-    for (const [clave, v] of Object.entries(totales)) {
-      igual(r.totales[clave as keyof typeof totales], v, c, `totales.${clave}`)
-    }
-    if (grupos !== undefined) {
-      expect(Object.keys(r.totales.grupos)).toEqual(Object.keys(grupos))
-      for (const [id, g] of Object.entries(grupos)) {
-        igual(r.totales.grupos[id]?.usd, g.usd, c, `grupos.${id}.usd`)
-        igual(r.totales.grupos[id]?.bs, g.bs, c, `grupos.${id}.bs`)
-      }
-    }
+    const formula = formulaDe(c)
+    const r = evaluar(formula, entradaDe(c), c.modo)
+    compararValores(r, c)
+    compararTotales(r, c)
+    compararMapas(r, c, formula)
     expect(r.faltantes).toEqual(c.esperado.faltantes)
     expect(r.fuentes).toEqual({})
   })
@@ -94,9 +120,10 @@ describe('casos-del-motor.json', () => {
 
 describe('el juego del motor', () => {
   const resueltas = juego.casos.map(formulaDe)
+  const esperados = juego.casos.map((c) => c.esperado)
 
-  it('cubre cada código de faltante, cada tipo de nodo (salvo la variante) y cada operación', () => {
-    const codigos = new Set(juego.casos.flatMap((c) => c.esperado.faltantes.map((f) => f.codigo)))
+  it('cubre cada tipo de nodo, cada operación y cada código de faltante', () => {
+    const codigos = new Set(esperados.flatMap((e) => e.faltantes.map((f) => f.codigo)))
     const nodos = resueltas.flatMap((f) => f.definicion.nodos)
     const tipos = new Set(nodos.map((n) => n.tipo))
     const ops = new Set(nodos.flatMap((n) => (n.tipo === 'calculo' ? [n.op] : [])))
@@ -107,21 +134,18 @@ describe('el juego del motor', () => {
       'tipo_cambio',
       'campo_vehiculo',
       'bandera',
+      'opcion',
       'tabla',
       'tramo',
     ]
     for (const tipo of todos) expect(tipos, tipo).toContain(tipo)
-    const todas = [
-      'suma',
-      'porcentaje_de',
-      'multiplicar',
-      'restar',
-      'dividir',
-      'si',
-      'depreciar',
-      'redondear',
-    ]
-    for (const op of todas) expect(ops, op).toContain(op)
+    const todas = ['suma', 'porcentaje_de', 'multiplicar', 'restar', 'dividir', 'si']
+    for (const op of [...todas, 'depreciar', 'redondear']) expect(ops, op).toContain(op)
+  })
+
+  it('cubre cada estado', () => {
+    const estados = new Set(esperados.flatMap((e) => Object.values(e.estados ?? {})))
+    for (const e of ESTADOS) if (e !== 'activo') expect(estados, e).toContain(e)
   })
 
   it('los nombres no se repiten y cada entrada pasa esquemaEntrada', () => {
@@ -145,8 +169,10 @@ describe('las capturas del cotizador de hoy (docs/referencias/cotizador-actual.m
   })
 
   it('la 09, con el unificado en 12, da 72.951,51 sin redondear y se muestra $72.952', () => {
-    const usd = total('captura 09: modo unificado')
-    expect(usd).toBeCloseTo(72951.50666666667, 9)
-    expect([redondear(usd, 2), redondear(usd, 0)]).toEqual([72951.51, 72952])
+    for (const nombre of ['captura 09: modo unificado']) {
+      const usd = total(nombre)
+      expect(usd, nombre).toBeCloseTo(72951.50666666667, 9)
+      expect([redondear(usd, 2), redondear(usd, 0)], nombre).toEqual([72951.51, 72952])
+    }
   })
 })

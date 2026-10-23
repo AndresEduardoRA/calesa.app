@@ -1,6 +1,6 @@
 // La entrada del motor (docs/COTIZADOR.md › «El motor»): lo tipeado, las banderas, los tipos de cambio por clave,
-// los campos del vehículo y las tablas vivas. `esquemaEntrada` es para quien la recibe desde afuera; `evaluar`
-// confía en el tipo y la lee siempre por `Map`, nunca indexando un objeto.
+// los campos del vehículo, las tablas vivas y la variante elegida. `esquemaEntrada` es para quien la recibe desde
+// afuera; `evaluar` confía en el tipo y la lee siempre por `Map`, nunca indexando un objeto.
 import { z } from 'zod'
 import { esquemaFila, type FilaDeTabla } from './formula'
 import { buscar, mapaDe, recorrer, type Medidor } from './medidor'
@@ -18,6 +18,8 @@ export const esquemaEntrada = z.strictObject({
   vehiculo: z.record(esquemaCampo, z.union([z.number(), z.string().max(200), z.null()])),
   // Las tablas vivas, por clave. La congelada de `params.tablas` manda (D5).
   tablas: z.record(esquemaId, z.array(esquemaFila)),
+  // La clave elegida del nodo `opcion`. Sin clave vale su `por_defecto` (docs/COTIZADOR.md › «La variante»).
+  variante: esquemaId.optional(),
 })
 
 export type Entrada = z.infer<typeof esquemaEntrada>

@@ -20,10 +20,10 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   Excel entero y «Amnistia»): lo recorre `validar.test.ts` y, desde 4.05-4, `supabase/tests/`. Una regla nueva = su caso acá.
 - `entities/motor.ts` — `evaluar()`: una pasada en el orden de la lista, grupos por tipo de cambio, el total en Bs y en USD, y los
   `faltantes` (`docs/COTIZADOR.md` › «El motor»). Lo parten `motor-contexto.ts` (el estado y los códigos de faltante),
-  `motor-entrada.ts` (`esquemaEntrada`), `motor-errores.ts` (`ErrorDelMotor` y los rasgos pendientes), `motor-nodos.ts` (un caso por
-  tipo), `motor-calculo.ts` (un caso por `op`), `motor-tablas.ts` (`tabla`, `tramo`, la congelada contra la viva), `motor-totales.ts`
-  (grupos, modo y reparto) y `redondeo.ts` (`round(numeric)` de Postgres, exacto). Hasta el prompt 3 de 4.05 lanza ante `opcion`,
-  `solo_en`, `sobrescribible`, `requerido_si` y un `sugerido_de` sin tipear.
+  `motor-entrada.ts` (`esquemaEntrada`), `motor-errores.ts` (`ErrorDelMotor` y los rasgos pendientes), `motor-estados.ts` (la
+  variante elegida y el estado de cada nodo, en una pasada previa), `motor-nodos.ts` (un caso por tipo), `motor-calculo.ts` (un caso
+  por `op`), `motor-tablas.ts` (`tabla`, `tramo`, la congelada contra la viva), `motor-totales.ts` (grupos, modo y reparto) y
+  `redondeo.ts` (`round(numeric)` de Postgres, exacto). Todavía lanza ante `sobrescribible` y un `sugerido_de` sin tipear.
 - `entities/casos-del-motor.json` — los casos del motor con su resultado hecho a mano (el seed, la moto y la gasolina del Excel, las
   capturas, un caso por tipo, `op` y faltante): lo recorre `motor.test.ts` y, desde 4.06, la paridad de `evaluar_formula()`.
 - `features/hoja/` (XCell + binding `valores/fuentes/defaults`), `features/formulas/` (borrador/publicar/historial/revertir), `features/plantillas/`, `features/pdf/` (route handler con `@react-pdf/renderer`).

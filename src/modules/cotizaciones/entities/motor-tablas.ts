@@ -3,7 +3,7 @@
 // a lo sumo un faltante, el primero en este orden: tabla sin filas, campo sin valor, fila sin coincidencia, celda.
 import type { FilaDeTabla } from './formula'
 import { buscar, propia, recorrer } from './medidor'
-import { anotar, leer, type Evaluacion, type Valor } from './motor-contexto'
+import { anotar, leerGuardado, type Evaluacion, type Valor } from './motor-contexto'
 import type { Nodo } from './nodos'
 
 type NodoTabla = Extract<Nodo, { tipo: 'tabla' }>
@@ -65,13 +65,14 @@ function clavesDeMatch(ev: Evaluacion, n: NodoTabla): Clave[] | null {
   return nulo ? null : claves
 }
 
-// El valor de un nodo anterior (null si es null), o el del campo del vehículo (undefined si no está o es null).
+// El valor de un nodo anterior (null si es null; la clave elegida si es la variante), o el del campo del vehículo
+// (undefined si no está o es null).
 function valorDeMatch(
   ev: Evaluacion,
   quien: string,
   ref: string,
 ): number | string | null | undefined {
-  if (buscar(ev.nodos, ref, ev.m) !== undefined) return leer(ev, ref, quien)
+  if (buscar(ev.nodos, ref, ev.m) !== undefined) return leerGuardado(ev, ref, quien)
   return buscar(ev.entrada.vehiculo, ref, ev.m) ?? undefined
 }
 

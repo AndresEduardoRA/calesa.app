@@ -73,36 +73,16 @@ describe('ErrorDelMotor', () => {
   })
 })
 
-describe('lo que el motor todavía no evalúa lanza y nombra el rasgo (llega en 4.05, prompt 3)', () => {
-  it('la variante: el Excel entero y «Amnistia»', () => {
+describe('lo que el motor todavía no evalúa lanza y nombra el rasgo (llega con los overrides)', () => {
+  it('lo sobrescribible: el Excel entero y «Amnistia»', () => {
     for (const nombre of [
       'excel: las cuatro cotizaciones en una fórmula con su variante',
       'excel: la multa de «Amnistia», gasolina y gas',
     ]) {
-      const e = lanzado(() => evaluar(delJuego(nombre), entrada()))
+      const e = lanzado(() => evaluar(delJuego(nombre), entrada({ variante: 'gasolina' })))
       expect(e, nombre).toMatchObject({
         codigo: 'rasgo_pendiente',
-        message: expect.stringContaining('«opcion»'),
-      })
-    }
-  })
-
-  it('solo_en, sobrescribible y requerido_si, en el nodo que los lleva', () => {
-    const bandera = { id: 'f', tipo: 'bandera', etiqueta: 'F' }
-    const casos: [string, Record<string, unknown>][] = [
-      ['solo_en', { ...A, solo_en: ['x'] }],
-      [
-        'sobrescribible',
-        { id: 'a', tipo: 'calculo', op: 'suma', de: ['tc'], etiqueta: 'A', sobrescribible: true },
-      ],
-      ['requerido_si', { ...A, requerido_si: 'f' }],
-    ]
-    for (const [rasgo, nodo] of casos) {
-      const e = lanzado(() => evaluar(conForma([TC, bandera, nodo, TOTAL]), entrada()))
-      expect(e, rasgo).toMatchObject({
-        codigo: 'rasgo_pendiente',
-        donde: 'a',
-        message: expect.stringContaining(`«${rasgo}»`),
+        message: expect.stringContaining('«sobrescribible»'),
       })
     }
   })
@@ -117,6 +97,65 @@ describe('lo que el motor todavía no evalúa lanza y nombra el rasgo (llega en 
     })
     const tipeado = evaluar(semilla, entrada({ inputs: { remate: 10000, fob_tabla: 12000 } }))
     expect(tipeado.valores['fob_tabla']).toBe(12000)
+  })
+})
+
+describe('la variante que elige la entrada', () => {
+  const OPCION = {
+    id: 'v',
+    tipo: 'opcion',
+    etiqueta: 'V',
+    opciones: [
+      { clave: 'a', etiqueta: 'A', titulo: 'A' },
+      { clave: 'b', etiqueta: 'B', titulo: 'B' },
+    ],
+  }
+  const conVariante = (porDefecto?: string) => {
+    const r = validarFormula(
+      {
+        nodos: [
+          { ...OPCION, ...(porDefecto === undefined ? {} : { por_defecto: porDefecto }) },
+          TC,
+          A,
+          TOTAL,
+        ],
+        buckets: { b: 'tc' },
+      },
+      {},
+    )
+    if (!r.ok) throw new Error(r.error.mensaje)
+    return r.formula
+  }
+
+  it('una clave que la variante no tiene, o una clave sin variante, es un error de llamada', () => {
+    expect(lanzado(() => evaluar(conVariante('a'), entrada({ variante: 'c' })))).toMatchObject({
+      codigo: 'entrada_invalida',
+      donde: 'v',
+    })
+    expect(
+      lanzado(() => evaluar(conForma([TC, A, TOTAL]), entrada({ variante: 'a' }))),
+    ).toMatchObject({ codigo: 'entrada_invalida' })
+  })
+
+  it('sin clave vale la por defecto; sin clave ni por defecto, es un error de llamada', () => {
+    expect(evaluar(conVariante('b'), entrada()).valores['v']).toBe('b')
+    expect(lanzado(() => evaluar(conVariante(), entrada()))).toMatchObject({
+      codigo: 'entrada_invalida',
+      donde: 'v',
+    })
+  })
+
+  it('dos variantes, o un solo_en sin variante, son una fórmula sin validar', () => {
+    const dos = conForma([OPCION, { ...OPCION, id: 'w' }, TC, A, TOTAL])
+    const sinVariante = conForma([TC, { ...A, solo_en: ['a'] }, TOTAL])
+    expect(lanzado(() => evaluar(dos, entrada()))).toMatchObject({
+      codigo: 'formula_sin_validar',
+      donde: 'w',
+    })
+    expect(lanzado(() => evaluar(sinVariante, entrada()))).toMatchObject({
+      codigo: 'formula_sin_validar',
+      donde: 'a',
+    })
   })
 })
 

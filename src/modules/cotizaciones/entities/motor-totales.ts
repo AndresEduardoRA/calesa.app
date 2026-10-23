@@ -1,15 +1,17 @@
 // Grupos, buckets y el total (docs/COTIZADOR.md › «Grupos, buckets y el total»). Con grupos: USD del grupo = Σ de
 // sus miembros en el orden de la lista; Bs = USD × tc(su bucket); el total en Bs, Σ de los grupos en el orden de
-// `grupos`; el total en USD, Bs ÷ tc(`total_en`). Sin grupos, el total se reparte por bucket.
+// `grupos`; el total en USD, Bs ÷ tc(`total_en`). Sin grupos, el total se reparte por bucket. Un grupo sin miembros en
+// la variante no se dibuja y un término del reparto fuera de ella no cuenta: ninguno lee su tipo de cambio.
 import type { Grupo, ModoDeCambio } from './formula'
-import { buscar, recorrer } from './medidor'
+import { buscar, esta, recorrer } from './medidor'
 import { asentar, leer, sinValidar, type Evaluacion, type Valor } from './motor-contexto'
 import { ErrorDelMotor, type CodigoDeErrorDelMotor } from './motor-errores'
 import { bucketDe } from './nodos'
 
 export type TotalesDelMotor = {
-  // Por grupo, en el orden de `grupos`; vacío sin grupos.
-  grupos: Record<string, { usd: Valor; bs: Valor }>
+  // Por grupo, en el orden de `grupos`; vacío sin grupos. `se_dibuja` es falso si todos sus miembros están fuera de
+  // la variante (una condición apagada no lo oculta: la fila se dibuja deshabilitada).
+  grupos: Record<string, { usd: Valor; bs: Valor; se_dibuja: boolean }>
   bs: Valor
   // El «TOTAL DÓLARES»: Bs ÷ tc(`total_en`). Sin `total_en` (y sin modo), la suma de los dólares.
   usd: Valor
@@ -70,8 +72,10 @@ function conGrupos(ev: Evaluacion, grupos: readonly Grupo[], cambio: Cambio) {
   let bs: Valor = 0
   for (const g of recorrer(grupos, ev.m)) {
     const usd = asentar(ev, buscar(ev.subtotales, g.id, ev.m) ?? 0, g.id)
-    const enBs = asentar(ev, porDos(usd, tipoDeCambioDe(ev, cambio, g.bucket)), g.id)
-    porGrupo[g.id] = { usd, bs: enBs }
+    const seDibuja = esta(ev.dibujados, g.id, ev.m)
+    // Un grupo que no se dibuja vale 0 y no lee su tipo de cambio: EE. UU.–Chile no necesita el oficial.
+    const enBs = seDibuja ? asentar(ev, porDos(usd, tipoDeCambioDe(ev, cambio, g.bucket)), g.id) : 0
+    porGrupo[g.id] = { usd, bs: enBs, se_dibuja: seDibuja }
     bs = sumarDos(bs, enBs)
   }
   return { porGrupo, bs: asentar(ev, bs, 'total') }
@@ -81,6 +85,8 @@ function conGrupos(ev: Evaluacion, grupos: readonly Grupo[], cambio: Cambio) {
 function repartir(ev: Evaluacion, cambio: Cambio): Valor {
   let bs: Valor = 0
   for (const t of recorrer(cambio.reparto, ev.m)) {
+    // Fuera de la variante aporta 0 sin leer su tipo de cambio; apagado aporta 0 × tc.
+    if (buscar(ev.estados, t.id, ev.m) === 'fuera_de_variante') continue
     bs = sumarDos(bs, porDos(leer(ev, t.id, ev.total.id), tipoDeCambioDe(ev, cambio, t.bucket)))
   }
   return asentar(ev, bs, 'total')

@@ -1,5 +1,5 @@
 {
-  "descripcion": "Casos del motor con su resultado esperado (docs/COTIZADOR.md › «El motor»). Los lee motor.test.ts y, desde 4.06, la prueba de paridad de evaluar_formula(). Una fórmula es la de un caso de casos-de-formula.json («formula_de») o la del caso. La entrada que falta vale {}. Sin «decimales», cada número esperado es el doble exacto; con «decimales», se compara con esa precisión. «valores» y «totales» nombran sólo lo que el caso fija; «faltantes» es la lista entera.",
+  "descripcion": "Casos del motor con su resultado esperado (docs/COTIZADOR.md › «El motor»). Los lee motor.test.ts y, desde 4.06, la prueba de paridad de evaluar_formula(). Una fórmula es la de un caso de casos-de-formula.json («formula_de») o la del caso. En la entrada, inputs, banderas, tipos_cambio, vehiculo, tablas y overrides que faltan valen {}; «variante» que falta quiere decir sin clave (vale la por_defecto). Sin «decimales», cada número esperado es el doble exacto; con «decimales», se compara con esa precisión. «valores» y «totales» nombran sólo lo que el caso fija, y cada grupo de «totales» dice si se dibuja. «estados», si está, nombra todos los nodos que no están activos (el resto está activo). «fuentes», si está, es el mapa entero, en el orden de la lista. «faltantes» es la lista entera; «overrides_descartados» también, y si falta es [].",
   "casos": [
     {
       "nombre": "semilla subasta_usa: híbrido, con su ruta de transporte",
@@ -601,15 +601,18 @@
           "grupos": {
             "compra": {
               "usd": 11232,
-              "bs": 112320
+              "bs": 112320,
+              "se_dibuja": true
             },
             "logistica": {
               "usd": 2580,
-              "bs": 25800
+              "bs": 25800,
+              "se_dibuja": true
             },
             "aduana": {
               "usd": 3098,
-              "bs": 30143.54
+              "bs": 30143.54,
+              "se_dibuja": true
             }
           },
           "bs": 168263.54,
@@ -760,15 +763,18 @@
           "grupos": {
             "compra": {
               "usd": 11232,
-              "bs": null
+              "bs": null,
+              "se_dibuja": true
             },
             "logistica": {
               "usd": 2580,
-              "bs": null
+              "bs": null,
+              "se_dibuja": true
             },
             "aduana": {
               "usd": 3098,
-              "bs": 30143.54
+              "bs": 30143.54,
+              "se_dibuja": true
             }
           },
           "bs": null,
@@ -944,15 +950,18 @@
           "grupos": {
             "compra": {
               "usd": 16452.8,
-              "bs": 164528
+              "bs": 164528,
+              "se_dibuja": true
             },
             "logistica": {
               "usd": 6100,
-              "bs": 61000
+              "bs": 61000,
+              "se_dibuja": true
             },
             "aduana": {
               "usd": 21792,
-              "bs": 212036.16
+              "bs": 212036.16,
+              "se_dibuja": true
             }
           },
           "bs": 437564.16,
@@ -1141,15 +1150,18 @@
           "grupos": {
             "compra": {
               "usd": 0,
-              "bs": 0
+              "bs": 0,
+              "se_dibuja": true
             },
             "logistica": {
               "usd": 1200,
-              "bs": 14640
+              "bs": 14640,
+              "se_dibuja": true
             },
             "aduana": {
               "usd": 1201,
-              "bs": 14027.68
+              "bs": 14027.68,
+              "se_dibuja": true
             }
           },
           "bs": 28667.68,
@@ -1342,15 +1354,18 @@
           "grupos": {
             "compra": {
               "usd": 46420.4,
-              "bs": 557044.8
+              "bs": 557044.8,
+              "se_dibuja": true
             },
             "logistica": {
               "usd": 7190,
-              "bs": 86280
+              "bs": 86280,
+              "se_dibuja": true
             },
             "aduana": {
               "usd": 19871,
-              "bs": 232093.28
+              "bs": 232093.28,
+              "se_dibuja": true
             }
           },
           "bs": 875418.08,
@@ -1531,15 +1546,18 @@
           "grupos": {
             "compra": {
               "usd": 46420.4,
-              "bs": 566328.88
+              "bs": 566328.88,
+              "se_dibuja": true
             },
             "logistica": {
               "usd": 7190,
-              "bs": 87718
+              "bs": 87718,
+              "se_dibuja": true
             },
             "aduana": {
               "usd": 19871,
-              "bs": 232093.28
+              "bs": 232093.28,
+              "se_dibuja": true
             }
           },
           "bs": 886140.16,
@@ -3909,15 +3927,18 @@
           "grupos": {
             "g1": {
               "usd": 0.1,
-              "bs": 0.1
+              "bs": 0.1,
+              "se_dibuja": true
             },
             "g2": {
               "usd": 0.2,
-              "bs": 0.2
+              "bs": 0.2,
+              "se_dibuja": true
             },
             "g3": {
               "usd": 0.3,
-              "bs": 0.3
+              "bs": 0.3,
+              "se_dibuja": true
             }
           },
           "bs": 0.6000000000000001,
@@ -3994,7 +4015,8 @@
           "grupos": {
             "g1": {
               "usd": 0.6,
-              "bs": 0.6
+              "bs": 0.6,
+              "se_dibuja": true
             }
           },
           "bs": 0.6,
@@ -4065,6 +4087,1184 @@
           "suma_usd": 100
         },
         "faltantes": []
+      }
+    },
+    {
+      "nombre": "variante: fuera de la variante vale 0 sin leer nada, y el grupo vacío no se dibuja ni lee su tipo de cambio",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              },
+              {
+                "clave": "c",
+                "etiqueta": "C",
+                "titulo": "Opción c"
+              }
+            ],
+            "por_defecto": "b"
+          },
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "tc2",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "tc2",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "X",
+            "grupo": "g1"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "extra",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "T",
+            "solo_en": ["b"],
+            "grupo": "g1"
+          },
+          {
+            "id": "k",
+            "tipo": "constante",
+            "etiqueta": "K",
+            "solo_en": ["b"],
+            "grupo": "g2"
+          },
+          {
+            "id": "c",
+            "tipo": "constante",
+            "etiqueta": "C",
+            "condicion": "f",
+            "grupo": "g3"
+          },
+          {
+            "id": "d",
+            "tipo": "constante",
+            "etiqueta": "D",
+            "solo_en": ["b"],
+            "condicion": "f"
+          },
+          {
+            "id": "m",
+            "tipo": "tabla",
+            "tabla": "por_variante",
+            "match": {
+              "var": "v"
+            },
+            "columna": "monto",
+            "etiqueta": "M"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["x", "t", "k", "c"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "ext": "tc",
+          "adu": "tc2"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "g1",
+            "etiqueta": "G1",
+            "tono": "t",
+            "bucket": "ext"
+          },
+          {
+            "id": "g2",
+            "etiqueta": "G2",
+            "tono": "t",
+            "bucket": "adu"
+          },
+          {
+            "id": "g3",
+            "etiqueta": "G3",
+            "tono": "t",
+            "bucket": "ext"
+          }
+        ]
+      },
+      "params": {
+        "k": 40,
+        "c": 30,
+        "d": 1,
+        "tablas": {
+          "extra": [
+            {
+              "v": 5
+            }
+          ],
+          "por_variante": [
+            {
+              "var": "a",
+              "monto": 7
+            },
+            {
+              "var": "b",
+              "monto": 9
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "variante": "a",
+        "inputs": {
+          "x": 100
+        },
+        "banderas": {
+          "f": true
+        },
+        "tipos_cambio": {
+          "oficial": 2
+        }
+      },
+      "esperado": {
+        "valores": {
+          "v": "a",
+          "tc": 2,
+          "tc2": null,
+          "f": 0,
+          "anio": 0,
+          "x": 100,
+          "t": 0,
+          "k": 0,
+          "c": 0,
+          "d": 0,
+          "m": 7,
+          "total": 100
+        },
+        "estados": {
+          "f": "fuera_de_variante",
+          "anio": "fuera_de_variante",
+          "t": "fuera_de_variante",
+          "k": "fuera_de_variante",
+          "c": "condicion_apagada",
+          "d": "fuera_de_variante"
+        },
+        "totales": {
+          "grupos": {
+            "g1": {
+              "usd": 100,
+              "bs": 200,
+              "se_dibuja": true
+            },
+            "g2": {
+              "usd": 0,
+              "bs": 0,
+              "se_dibuja": false
+            },
+            "g3": {
+              "usd": 0,
+              "bs": 0,
+              "se_dibuja": true
+            }
+          },
+          "bs": 200,
+          "usd": 100,
+          "suma_usd": 100
+        },
+        "faltantes": [
+          {
+            "codigo": "tipo_de_cambio_sin_valor",
+            "donde": "tc2",
+            "ref": "paralelo"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "variante: sin clave vale la por defecto, y ahí se leen sus nodos",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              },
+              {
+                "clave": "c",
+                "etiqueta": "C",
+                "titulo": "Opción c"
+              }
+            ],
+            "por_defecto": "b"
+          },
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "tc2",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "tc2",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "X",
+            "grupo": "g1"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "extra",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "T",
+            "solo_en": ["b"],
+            "grupo": "g1"
+          },
+          {
+            "id": "k",
+            "tipo": "constante",
+            "etiqueta": "K",
+            "solo_en": ["b"],
+            "grupo": "g2"
+          },
+          {
+            "id": "c",
+            "tipo": "constante",
+            "etiqueta": "C",
+            "condicion": "f",
+            "grupo": "g3"
+          },
+          {
+            "id": "d",
+            "tipo": "constante",
+            "etiqueta": "D",
+            "solo_en": ["b"],
+            "condicion": "f"
+          },
+          {
+            "id": "m",
+            "tipo": "tabla",
+            "tabla": "por_variante",
+            "match": {
+              "var": "v"
+            },
+            "columna": "monto",
+            "etiqueta": "M"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["x", "t", "k", "c"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "ext": "tc",
+          "adu": "tc2"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "g1",
+            "etiqueta": "G1",
+            "tono": "t",
+            "bucket": "ext"
+          },
+          {
+            "id": "g2",
+            "etiqueta": "G2",
+            "tono": "t",
+            "bucket": "adu"
+          },
+          {
+            "id": "g3",
+            "etiqueta": "G3",
+            "tono": "t",
+            "bucket": "ext"
+          }
+        ]
+      },
+      "params": {
+        "k": 40,
+        "c": 30,
+        "d": 1,
+        "tablas": {
+          "extra": [
+            {
+              "v": 5
+            }
+          ],
+          "por_variante": [
+            {
+              "var": "a",
+              "monto": 7
+            },
+            {
+              "var": "b",
+              "monto": 9
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "inputs": {
+          "x": 100
+        },
+        "banderas": {
+          "f": false
+        },
+        "tipos_cambio": {
+          "oficial": 2,
+          "paralelo": 3
+        }
+      },
+      "esperado": {
+        "valores": {
+          "v": "b",
+          "tc2": 3,
+          "f": 0,
+          "anio": null,
+          "x": 100,
+          "t": 5,
+          "k": 40,
+          "c": 0,
+          "d": 0,
+          "m": 9,
+          "total": 145
+        },
+        "estados": {
+          "c": "condicion_apagada",
+          "d": "condicion_apagada"
+        },
+        "totales": {
+          "grupos": {
+            "g1": {
+              "usd": 105,
+              "bs": 210,
+              "se_dibuja": true
+            },
+            "g2": {
+              "usd": 40,
+              "bs": 120,
+              "se_dibuja": true
+            },
+            "g3": {
+              "usd": 0,
+              "bs": 0,
+              "se_dibuja": true
+            }
+          },
+          "bs": 330,
+          "usd": 165,
+          "suma_usd": 145
+        },
+        "faltantes": [
+          {
+            "codigo": "campo_sin_valor",
+            "donde": "anio",
+            "ref": "anio"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "variante: un match que nombra la variante compara su clave, y sin fila no hay valor",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              },
+              {
+                "clave": "c",
+                "etiqueta": "C",
+                "titulo": "Opción c"
+              }
+            ],
+            "por_defecto": "b"
+          },
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "tc2",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "tc2",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "x",
+            "tipo": "input",
+            "etiqueta": "X",
+            "grupo": "g1"
+          },
+          {
+            "id": "t",
+            "tipo": "tabla",
+            "tabla": "extra",
+            "match": {},
+            "columna": "v",
+            "etiqueta": "T",
+            "solo_en": ["b"],
+            "grupo": "g1"
+          },
+          {
+            "id": "k",
+            "tipo": "constante",
+            "etiqueta": "K",
+            "solo_en": ["b"],
+            "grupo": "g2"
+          },
+          {
+            "id": "c",
+            "tipo": "constante",
+            "etiqueta": "C",
+            "condicion": "f",
+            "grupo": "g3"
+          },
+          {
+            "id": "d",
+            "tipo": "constante",
+            "etiqueta": "D",
+            "solo_en": ["b"],
+            "condicion": "f"
+          },
+          {
+            "id": "m",
+            "tipo": "tabla",
+            "tabla": "por_variante",
+            "match": {
+              "var": "v"
+            },
+            "columna": "monto",
+            "etiqueta": "M"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["x", "t", "k", "c"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "ext": "tc",
+          "adu": "tc2"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "g1",
+            "etiqueta": "G1",
+            "tono": "t",
+            "bucket": "ext"
+          },
+          {
+            "id": "g2",
+            "etiqueta": "G2",
+            "tono": "t",
+            "bucket": "adu"
+          },
+          {
+            "id": "g3",
+            "etiqueta": "G3",
+            "tono": "t",
+            "bucket": "ext"
+          }
+        ]
+      },
+      "params": {
+        "k": 40,
+        "c": 30,
+        "d": 1,
+        "tablas": {
+          "extra": [
+            {
+              "v": 5
+            }
+          ],
+          "por_variante": [
+            {
+              "var": "a",
+              "monto": 7
+            },
+            {
+              "var": "b",
+              "monto": 9
+            }
+          ]
+        }
+      },
+      "entrada": {
+        "variante": "c",
+        "inputs": {
+          "x": 100
+        },
+        "tipos_cambio": {
+          "oficial": 2,
+          "paralelo": 3
+        }
+      },
+      "esperado": {
+        "valores": {
+          "v": "c",
+          "m": null,
+          "total": 100
+        },
+        "estados": {
+          "f": "fuera_de_variante",
+          "anio": "fuera_de_variante",
+          "t": "fuera_de_variante",
+          "k": "fuera_de_variante",
+          "c": "condicion_apagada",
+          "d": "fuera_de_variante"
+        },
+        "totales": {
+          "grupos": {
+            "g1": {
+              "usd": 100,
+              "bs": 200,
+              "se_dibuja": true
+            },
+            "g2": {
+              "usd": 0,
+              "bs": 0,
+              "se_dibuja": false
+            },
+            "g3": {
+              "usd": 0,
+              "bs": 0,
+              "se_dibuja": true
+            }
+          },
+          "bs": 200,
+          "usd": 100,
+          "suma_usd": 100
+        },
+        "faltantes": [
+          {
+            "codigo": "fila_sin_coincidencia",
+            "donde": "m",
+            "ref": "por_variante"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "reparto: un término de otra variante aporta 0 sin leer su tipo de cambio",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "tc2",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "tc2",
+            "formato": "raw"
+          },
+          {
+            "id": "p",
+            "tipo": "input",
+            "etiqueta": "P",
+            "bucket": "o"
+          },
+          {
+            "id": "q",
+            "tipo": "input",
+            "etiqueta": "Q",
+            "bucket": "d",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["p", "q"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "o": "tc",
+          "d": "tc2"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "variante": "a",
+        "inputs": {
+          "p": 10,
+          "q": 20
+        },
+        "tipos_cambio": {
+          "oficial": 2
+        }
+      },
+      "esperado": {
+        "valores": {
+          "p": 10,
+          "q": 0,
+          "total": 10
+        },
+        "estados": {
+          "q": "fuera_de_variante"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": 20,
+          "usd": 10,
+          "suma_usd": 10
+        },
+        "faltantes": [
+          {
+            "codigo": "tipo_de_cambio_sin_valor",
+            "donde": "tc2",
+            "ref": "paralelo"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "reparto: en su variante, el término suma por su tipo de cambio",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "v",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción a"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción b"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "tc2",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "tc2",
+            "formato": "raw"
+          },
+          {
+            "id": "p",
+            "tipo": "input",
+            "etiqueta": "P",
+            "bucket": "o"
+          },
+          {
+            "id": "q",
+            "tipo": "input",
+            "etiqueta": "Q",
+            "bucket": "d",
+            "solo_en": ["b"]
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["p", "q"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "o": "tc",
+          "d": "tc2"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "variante": "b",
+        "inputs": {
+          "p": 10,
+          "q": 20
+        },
+        "tipos_cambio": {
+          "oficial": 2,
+          "paralelo": 3
+        }
+      },
+      "esperado": {
+        "valores": {
+          "p": 10,
+          "q": 20,
+          "total": 30
+        },
+        "estados": {},
+        "totales": {
+          "grupos": {},
+          "bs": 80,
+          "usd": 30,
+          "suma_usd": 30
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "requerido_si: con la bandera encendida, sin tipear no hay valor y lo dice",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw"
+          },
+          {
+            "id": "g",
+            "tipo": "bandera",
+            "etiqueta": "G",
+            "formato": "raw"
+          },
+          {
+            "id": "r",
+            "tipo": "input",
+            "etiqueta": "R",
+            "requerido_si": "f"
+          },
+          {
+            "id": "w",
+            "tipo": "input",
+            "etiqueta": "W",
+            "requerido_si": "f",
+            "condicion": "g"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r", "w"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "banderas": {
+          "f": true,
+          "g": true
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": null,
+          "w": null,
+          "total": null
+        },
+        "estados": {},
+        "totales": {
+          "grupos": {},
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "requerido_sin_valor",
+            "donde": "r",
+            "ref": "f"
+          },
+          {
+            "codigo": "requerido_sin_valor",
+            "donde": "w",
+            "ref": "f"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "requerido_si: un 0 tipeado es un valor",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw"
+          },
+          {
+            "id": "g",
+            "tipo": "bandera",
+            "etiqueta": "G",
+            "formato": "raw"
+          },
+          {
+            "id": "r",
+            "tipo": "input",
+            "etiqueta": "R",
+            "requerido_si": "f"
+          },
+          {
+            "id": "w",
+            "tipo": "input",
+            "etiqueta": "W",
+            "requerido_si": "f",
+            "condicion": "g"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r", "w"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "inputs": {
+          "r": 0,
+          "w": 4
+        },
+        "banderas": {
+          "f": true,
+          "g": true
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 0,
+          "w": 4,
+          "total": 4
+        },
+        "estados": {},
+        "totales": {
+          "grupos": {},
+          "bs": 4,
+          "usd": 4,
+          "suma_usd": 4
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "requerido_si: con la bandera apagada, sin tipear vale 0",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw"
+          },
+          {
+            "id": "g",
+            "tipo": "bandera",
+            "etiqueta": "G",
+            "formato": "raw"
+          },
+          {
+            "id": "r",
+            "tipo": "input",
+            "etiqueta": "R",
+            "requerido_si": "f"
+          },
+          {
+            "id": "w",
+            "tipo": "input",
+            "etiqueta": "W",
+            "requerido_si": "f",
+            "condicion": "g"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r", "w"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "banderas": {
+          "f": false,
+          "g": true
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": 0,
+          "w": 0,
+          "total": 0
+        },
+        "estados": {},
+        "totales": {
+          "grupos": {},
+          "bs": 0,
+          "usd": 0,
+          "suma_usd": 0
+        },
+        "faltantes": []
+      }
+    },
+    {
+      "nombre": "requerido_si: un input apagado por su condición no exige nada",
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "oficial",
+            "etiqueta": "tc",
+            "formato": "raw"
+          },
+          {
+            "id": "f",
+            "tipo": "bandera",
+            "etiqueta": "F",
+            "formato": "raw"
+          },
+          {
+            "id": "g",
+            "tipo": "bandera",
+            "etiqueta": "G",
+            "formato": "raw"
+          },
+          {
+            "id": "r",
+            "tipo": "input",
+            "etiqueta": "R",
+            "requerido_si": "f"
+          },
+          {
+            "id": "w",
+            "tipo": "input",
+            "etiqueta": "W",
+            "requerido_si": "f",
+            "condicion": "g"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["r", "w"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "b"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        }
+      },
+      "params": {},
+      "entrada": {
+        "banderas": {
+          "f": true,
+          "g": false
+        },
+        "tipos_cambio": {
+          "oficial": 1
+        }
+      },
+      "esperado": {
+        "valores": {
+          "r": null,
+          "w": 0,
+          "total": null
+        },
+        "estados": {
+          "w": "condicion_apagada"
+        },
+        "totales": {
+          "grupos": {},
+          "bs": null,
+          "usd": null,
+          "suma_usd": null
+        },
+        "faltantes": [
+          {
+            "codigo": "requerido_sin_valor",
+            "donde": "r",
+            "ref": "f"
+          }
+        ]
       }
     }
   ]

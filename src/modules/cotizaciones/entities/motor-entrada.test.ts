@@ -15,6 +15,8 @@ const BUENA = {
 describe('esquemaEntrada', () => {
   it('acepta la entrada del motor, y es estricta', () => {
     expect(esquemaEntrada.parse(BUENA)).toEqual(BUENA)
+    expect(esquemaEntrada.parse({ ...BUENA, variante: 'gasolina' }).variante).toBe('gasolina')
+    expect(esquemaEntrada.safeParse({ ...BUENA, variante: 'Gasolina' }).success).toBe(false)
     expect(esquemaEntrada.safeParse({ ...BUENA, overrides: {} }).success).toBe(false)
     expect(esquemaEntrada.safeParse({ ...BUENA, tablas: undefined }).success).toBe(false)
   })

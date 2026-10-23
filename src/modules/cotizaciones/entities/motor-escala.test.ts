@@ -3,64 +3,80 @@ import { describe, expect, it } from 'vitest'
 import type { Formula } from './formula'
 import { evaluar } from './motor'
 import type { Entrada } from './motor-entrada'
-import { referenciasDe } from './nodos'
+import { referenciasDe, soloEnDe } from './nodos'
 import { validarFormula } from './validar'
 
 const FILAS = 50
 
-// Una fórmula sintética de unos `n` nodos con todo lo que el motor recorre: miembros (constantes, inputs,
-// `porcentaje_de`, tablas y tramos) en n/10 grupos, cálculos fuera de los grupos (uno de cada dos con una
-// condición encendida) y un total que suma la mitad. Las dos tablas, congeladas, tienen 50 filas.
-function sintetica(n: number): { formula: Formula; entrada: Entrada } {
+type Sintetica = { formula: Formula; entrada: Entrada }
+type Crudo = Record<string, unknown>
+
+const opcion = (clave: string) => ({ clave, etiqueta: clave, titulo: clave })
+// Lo fijo: la variante (a o b, por defecto a), dos tipos de cambio, la bandera, el año y el porcentaje.
+const CABECERA: Crudo[] = [
+  {
+    id: 'variante',
+    tipo: 'opcion',
+    etiqueta: 'V',
+    opciones: [opcion('a'), opcion('b')],
+    por_defecto: 'a',
+  },
+  { id: 'tc_a', tipo: 'tipo_cambio', clave: 'oficial', etiqueta: 'A', formato: 'raw' },
+  { id: 'tc_b', tipo: 'tipo_cambio', clave: 'paralelo', etiqueta: 'B', formato: 'raw' },
+  { id: 'activa', tipo: 'bandera', etiqueta: 'Activa', formato: 'raw' },
+  { id: 'anio', tipo: 'campo_vehiculo', campo: 'anio', etiqueta: 'Año', formato: 'raw' },
+  { id: 'pct', tipo: 'constante', etiqueta: 'P', formato: 'pct' },
+]
+
+// El nodo k, en un ciclo de 8 tipos: miembros (constantes, inputs, `porcentaje_de`, tablas y tramos) y cálculos
+// fuera de los grupos (uno de cada dos `multiplicar` con una condición encendida). Cada rasgo va en un tipo del
+// ciclo, así las dos sintéticas lo tienen en la misma proporción: el `multiplicar` está en su variante y el
+// `restar`, fuera.
+function forma(k: number, ids: readonly string[], grupo: string): Crudo {
+  const [a, b, c] = [ids[k - 1] ?? 'pct', ids[k - 2] ?? 'pct', ids[k - 3] ?? 'pct']
+  const condicion = k % 16 === 3 ? { condicion: 'activa' } : {}
+  const formas: Crudo[] = [
+    { tipo: 'constante', grupo },
+    { tipo: 'input', grupo },
+    { tipo: 'calculo', op: 'porcentaje_de', de: [a, b], pct: 'pct', grupo },
+    { tipo: 'calculo', op: 'multiplicar', de: [a, b], solo_en: ['a'], ...condicion },
+    { tipo: 'tabla', tabla: 't1', match: { clase: 'clase' }, columna: 'v', grupo },
+    { tipo: 'tramo', tabla: 't2', sobre: 'anio', columna: 'v', grupo },
+    { tipo: 'calculo', op: 'restar', de: [a, b, c], solo_en: ['b'] },
+    { tipo: 'calculo', op: 'redondear', de: [a], n: 2 },
+  ]
+  return { id: `x${k}`, etiqueta: `x${k}`, ...formas[k % 8] }
+}
+
+const tablas = () => ({
+  t1: Array.from({ length: FILAS }, (_, i) => ({ clase: `c${i}`, v: i })),
+  t2: Array.from({ length: FILAS }, (_, i) => ({ desde: 2000 + i, hasta: 2000 + i, v: i })),
+})
+
+// Una fórmula sintética de unos `n` nodos en n/10 grupos, con un total que suma la mitad. Las dos tablas,
+// congeladas, tienen 50 filas.
+function sintetica(n: number): Sintetica {
   const grupos = Array.from({ length: n / 10 }, (_, i) => ({
     id: `g${i}`,
     etiqueta: `G${i}`,
     tono: 't',
     bucket: `b${i % 2}`,
   }))
-  const nodos: Record<string, unknown>[] = [
-    { id: 'tc_a', tipo: 'tipo_cambio', clave: 'oficial', etiqueta: 'A', formato: 'raw' },
-    { id: 'tc_b', tipo: 'tipo_cambio', clave: 'paralelo', etiqueta: 'B', formato: 'raw' },
-    { id: 'activa', tipo: 'bandera', etiqueta: 'Activa', formato: 'raw' },
-    { id: 'anio', tipo: 'campo_vehiculo', campo: 'anio', etiqueta: 'Año', formato: 'raw' },
-    { id: 'pct', tipo: 'constante', etiqueta: 'P', formato: 'pct' },
-  ]
-  const params: Record<string, unknown> = { pct: 0.1 }
+  const nodos = [...CABECERA]
+  const params: Crudo = { pct: 0.1 }
   const inputs: Record<string, number> = {}
   const ids: string[] = []
   for (let k = 0, miembro = 0; nodos.length < n - 1; k += 1) {
-    const id = `x${k}`
-    const [a, b, c] = [ids[k - 1] ?? 'pct', ids[k - 2] ?? 'pct', ids[k - 3] ?? 'pct']
-    const grupo = `g${miembro % grupos.length}`
-    const condicion = k % 16 === 3 ? { condicion: 'activa' } : {}
-    const forma = [
-      { tipo: 'constante', grupo },
-      { tipo: 'input', grupo },
-      { tipo: 'calculo', op: 'porcentaje_de', de: [a, b], pct: 'pct', grupo },
-      { tipo: 'calculo', op: 'multiplicar', de: [a, b], ...condicion },
-      { tipo: 'tabla', tabla: 't1', match: { clase: 'clase' }, columna: 'v', grupo },
-      { tipo: 'tramo', tabla: 't2', sobre: 'anio', columna: 'v', grupo },
-      { tipo: 'calculo', op: 'restar', de: [a, b, c] },
-      { tipo: 'calculo', op: 'redondear', de: [a], n: 2 },
-    ][k % 8]
-    if (forma?.grupo !== undefined) miembro += 1
-    nodos.push({ id, etiqueta: id, ...forma })
-    if (k % 8 === 0) params[id] = k
-    if (k % 8 === 1) inputs[id] = k
-    ids.push(id)
+    const nodo = forma(k, ids, `g${miembro % grupos.length}`)
+    if (nodo['grupo'] !== undefined) miembro += 1
+    nodos.push(nodo)
+    if (k % 8 === 0) params[`x${k}`] = k
+    if (k % 8 === 1) inputs[`x${k}`] = k
+    ids.push(`x${k}`)
   }
-  nodos.push({
-    id: 'total',
-    tipo: 'calculo',
-    op: 'suma',
-    de: ids.filter((_, i) => i % 2 === 0),
-    etiqueta: 'T',
-    salida: 'total',
-  })
-  params['tablas'] = {
-    t1: Array.from({ length: FILAS }, (_, i) => ({ clase: `c${i}`, v: i })),
-    t2: Array.from({ length: FILAS }, (_, i) => ({ desde: 2000 + i, hasta: 2000 + i, v: i })),
-  }
+  const de = ids.filter((_, i) => i % 2 === 0)
+  nodos.push({ id: 'total', tipo: 'calculo', op: 'suma', de, etiqueta: 'T', salida: 'total' })
+  params['tablas'] = tablas()
   const definicion = { nodos, buckets: { b0: 'tc_a', b1: 'tc_b' }, total_en: 'tc_b', grupos }
   const r = validarFormula(definicion, params)
   if (!r.ok) throw new Error(r.error.mensaje)
@@ -74,14 +90,16 @@ function sintetica(n: number): { formula: Formula; entrada: Entrada } {
   return { formula: r.formula, entrada }
 }
 
-// Lo que mide una corrida: nodos, aristas, grupos, las claves de la entrada y de params, y en cada búsqueda las
-// filas de su tabla por (1 + las columnas que compara: las del `match`, o `desde` y `hasta`).
-function tamano({ formula, entrada }: ReturnType<typeof sintetica>): number {
+// Lo que mide una corrida: nodos, aristas, grupos, las claves de la entrada y de params, las entradas de `solo_en`
+// y las opciones de la variante, y en cada búsqueda las filas de su tabla por (1 + las columnas que compara: las del
+// `match`, o `desde` y `hasta`).
+function tamano({ formula, entrada }: Sintetica): number {
   const nodos = formula.definicion.nodos
   const filas = (t: string) => formula.params.tablas[t]?.length ?? 0
   let total = nodos.length + (formula.definicion.grupos?.length ?? 0)
   for (const n of nodos) {
-    total += referenciasDe(n).length
+    total += referenciasDe(n).length + (soloEnDe(n)?.length ?? 0)
+    if (n.tipo === 'opcion') total += n.opciones.length
     if (n.tipo === 'tabla') total += filas(n.tabla) * (1 + Object.keys(n.match).length)
     if (n.tipo === 'tramo') total += filas(n.tabla) * 3
   }
@@ -92,17 +110,18 @@ function tamano({ formula, entrada }: ReturnType<typeof sintetica>): number {
   return total
 }
 
-function visitas(s: ReturnType<typeof sintetica>): number {
+function visitas(s: Sintetica): number {
   const medidor = { visitas: 0 }
   evaluar(s.formula, s.entrada, undefined, medidor)
   return medidor.visitas
 }
 
 // k contada por pasadas (no medida). La unidad que más cuesta es un nodo `tabla` de un grupo, con su condición y
-// su tabla viva: armar el índice, los rasgos, la pasada, la salida (4), la condición (1), la tabla congelada y la
-// viva (2), la celda (1) y su grupo (1) = 9. Una arista cuesta a lo sumo 3 (un `match`: el recorrido, si es un
-// nodo y su valor), un grupo 6 (el modo y el total), una clave de la entrada 3 y una celda comparada 2.
-const K = 9
+// su tabla viva: armar el índice (1), los rasgos (1), la pasada de los estados y su condición (2), la pasada (1), su
+// estado (1), la salida de valores y de estados (2), la tabla congelada y la viva (2), la celda (1) y su grupo (1) =
+// 12. Una arista cuesta a lo sumo 3 (un `match`: el recorrido, si es un nodo y su valor), un grupo 7 (el modo, si
+// se dibuja y el total), una clave de la entrada 3, una entrada de `solo_en` o una opción 1 y una celda comparada 2.
+const K = 12
 
 describe('evaluar con volumen', () => {
   const chica = sintetica(200)
@@ -130,6 +149,7 @@ describe('evaluar con volumen', () => {
       'motor-contexto.ts',
       'motor-entrada.ts',
       'motor-errores.ts',
+      'motor-estados.ts',
       'motor-nodos.ts',
       'motor-calculo.ts',
       'motor-tablas.ts',

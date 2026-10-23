@@ -78,10 +78,12 @@ describe('evaluar es una función pura', () => {
     }
   })
 
-  it('las claves de valores siguen el orden de la lista de nodos', () => {
+  it('las claves de valores y de estados siguen el orden de la lista de nodos', () => {
     for (const c of casos()) {
       const ids = c.formula.definicion.nodos.map((n) => n.id)
-      expect(Object.keys(evaluar(c.formula, c.entrada).valores), c.nombre).toEqual(ids)
+      const r = evaluar(c.formula, c.entrada)
+      expect(Object.keys(r.valores), c.nombre).toEqual(ids)
+      expect(Object.keys(r.estados), c.nombre).toEqual(ids)
     }
   })
 
