@@ -99,8 +99,11 @@ begin
   raise notice 'medicion|baja de 200.000: la corrida más larga del job [postgres]|%', round(v_max, 1);
   raise notice 'medicion|baja de 200.000: el job entero, % corridas y % lotes [postgres]|%', v_corridas, v_lotes, round(v_total, 1);
   if not v_terminada then raise exception 'la baja de 200.000 no terminó en % corridas', v_corridas; end if;
-  -- 1,7–2,4 s casi siempre (corta a los 1,5 s más un lote); con la máquina ocupada se vieron 3,5 y 4,3 s.
-  if v_max > 6000 then raise exception 'baja de 200.000: una corrida del job tarda % ms, el presupuesto es 6000 ms', round(v_max, 1); end if;
+  -- Lo medido con el cron pausado (paso 4.04, 5a-11, `docs/RENDIMIENTO.md`): 9 corridas, 15,2 s el job entero y 1,9 s la corrida más larga; con la
+  -- máquina ocupada, una corrida suelta de 3,7 a 3,9 s. Un lote de 1.000 (20 corridas, 16,5 s) o un job que se alarga al doble es una regresión.
+  if v_corridas > 12 then raise exception 'baja de 200.000: el job necesitó % corridas, el presupuesto es 12', v_corridas; end if;
+  if v_total > 20000 then raise exception 'baja de 200.000: el job entero tarda % ms, el presupuesto es 20000 ms', round(v_total, 1); end if;
+  if v_max > 3000 then raise exception 'baja de 200.000: una corrida del job tarda % ms, el presupuesto es 3000 ms', round(v_max, 1); end if;
 end $$;
 
 do $$
