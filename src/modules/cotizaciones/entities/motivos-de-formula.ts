@@ -93,7 +93,7 @@ const MENSAJES: Record<ReglaDeFormula, (d: DatosDeRechazo) => string> = {
   bucket_con_grupos: (d) =>
     `${q(d.donde)} declara su bucket, y con grupos el tipo de cambio es del grupo.`,
   miembro_no_es_monto: (d) =>
-    `${q(d.donde)} está en el grupo ${q(d.grupo)} y no es un monto (formato usd o moneda).`,
+    `${q(d.donde)} está en el grupo ${q(d.grupo)} y no es un monto: un miembro es un input, una constante, una tabla, un tramo o un cálculo, con formato usd o moneda.`,
   miembro_con_salida: (d) => `${q(d.donde)} es una salida y no puede sumar al grupo ${q(d.grupo)}.`,
   doble_conteo: (d) =>
     `${q(d.donde)} está en el grupo ${q(d.grupo)} y suma ${q(d.ref)}, que ya cuenta en un grupo: se contaría dos veces.`,

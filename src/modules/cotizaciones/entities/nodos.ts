@@ -206,6 +206,28 @@ export function referenciasDe(n: Nodo): Referencia[] {
 export const formatoDe = (n: Pick<Nodo, 'formato'>): Formato => n.formato ?? 'usd'
 export const esMonto = (n: Pick<Nodo, 'formato'>) =>
   formatoDe(n) === 'usd' || formatoDe(n) === 'moneda'
+
+// Si el tipo de nodo da un monto, sea cual sea su formato: un tipo de cambio, un campo del vehículo, una
+// bandera o la variante no lo dan, aunque digan `usd`. Sólo lo que da un monto puede ser miembro de un grupo.
+export function daMonto(n: Nodo): boolean {
+  switch (n.tipo) {
+    case 'input':
+    case 'constante':
+    case 'tabla':
+    case 'tramo':
+    case 'calculo':
+      return true
+    case 'tipo_cambio':
+    case 'campo_vehiculo':
+    case 'bandera':
+    case 'opcion':
+      return false
+    default: {
+      const _: never = n
+      return _
+    }
+  }
+}
 // `ninguno` (o nada) = sin bucket.
 export const bucketDe = (n: Pick<Nodo, 'bucket'>) =>
   n.bucket === undefined || n.bucket === 'ninguno' ? undefined : n.bucket

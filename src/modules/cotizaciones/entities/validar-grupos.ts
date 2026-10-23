@@ -1,7 +1,7 @@
 // Las reglas de los tipos de cambio, los buckets y los grupos (decisiones a y b de docs/DECISIONES.md, paso 4.05).
 import type { Grupo } from './formula'
 import { buscar, esta, recorrer } from './medidor'
-import { bucketDe, esMonto, type Nodo } from './nodos'
+import { bucketDe, daMonto, esMonto, type Nodo } from './nodos'
 import { fallo, nodoDe, type Contexto, type Fallo } from './validar-contexto'
 
 export function revisarCambioYGrupos(ctx: Contexto): Fallo | undefined {
@@ -88,7 +88,8 @@ function revisarMiembros(ctx: Contexto, miembros: Map<string, number>): Fallo | 
     const cuantos = buscar(miembros, n.grupo, ctx.m)
     if (cuantos === undefined) return fallo('grupo_inexistente', { donde: n.id, grupo: n.grupo })
     miembros.set(n.grupo, cuantos + 1)
-    if (!esMonto(n)) return fallo('miembro_no_es_monto', { donde: n.id, grupo: n.grupo })
+    if (!daMonto(n) || !esMonto(n))
+      return fallo('miembro_no_es_monto', { donde: n.id, grupo: n.grupo })
     if (n.salida !== undefined) return fallo('miembro_con_salida', { donde: n.id, grupo: n.grupo })
   }
   return undefined

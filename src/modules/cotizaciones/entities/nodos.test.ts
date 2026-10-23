@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   bucketDe,
   condicionDe,
+  daMonto,
   esMonto,
   esquemaNodo,
   formatoDe,
@@ -117,6 +118,12 @@ describe('lo que se lee de un nodo', () => {
       esMonto({ formato: 'pct' }),
       esMonto({ formato: 'raw' }),
     ]).toEqual([true, true, false, false])
+  })
+
+  it('daMonto: sólo input, constante, tabla, tramo y calculo dan un monto, aunque los demás digan usd', () => {
+    const sinMonto = new Set(['tipo_cambio', 'campo_vehiculo', 'bandera', 'opcion'])
+    for (const [nombre, crudo] of CASOS)
+      expect(daMonto(nodo(crudo)), nombre).toBe(!sinMonto.has(nombre))
   })
 
   it('bucketDe trata «ninguno» como sin bucket', () => {
