@@ -44,6 +44,10 @@ create table public.tablas_referencia_filas (
   activa    boolean not null default true,
   actualizado_en timestamptz not null default now()
 );
+-- Las filas de una tabla, en su orden: lo que lee `cotizacion_evaluar()` (`_cotizacion_armar`: `tabla_id = t.id and activa order by
+-- orden, id`). `orden` admite repetidos y el `id` desempata, así que la primera fila de una tabla es siempre la misma. Sirve también a
+-- la FK (el `on delete cascade` de una tabla) y a las policies que preguntan por la tabla.
+create index tablas_referencia_filas_tabla_orden_idx on public.tablas_referencia_filas (tabla_id, orden, id);
 
 create table public.plantillas_tarjeta (
   id            uuid primary key default gen_random_uuid(),

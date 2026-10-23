@@ -136,6 +136,9 @@ const DATOS_DE_PRUEBA = {
     _juego_del_motor: 'src/modules/cotizaciones/entities/casos-del-motor.json',
     _corpus_del_motor: path.join(base, 'tests', 'corpus-del-motor.json'),
   },
+  'cotizacion-evaluar.sql': {
+    _corpus_del_motor: path.join(base, 'tests', 'corpus-del-motor.json'),
+  },
 }
 
 async function cargarDatos(archivo) {
@@ -169,6 +172,7 @@ for (const archivo of [
   'permisos-enforcement.sql',
   'validar-formula.sql',
   'evaluar-formula.sql',
+  'cotizacion-evaluar.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue

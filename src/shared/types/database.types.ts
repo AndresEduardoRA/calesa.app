@@ -6852,6 +6852,14 @@ export type Database = {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
         Returns: undefined
       }
+      _cotizacion_armar: {
+        Args: { p_cotizacion: string; p_entradas: Json; p_origen: string; p_vehiculo: string }
+        Returns: {
+          definicion: Json
+          entrada: Json
+          params: Json
+        }[]
+      }
       _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _embudo_defecto_de: { Args: { p_usuario: string }; Returns: string }
       _embudo_insertar: {
@@ -7669,6 +7677,16 @@ export type Database = {
           p_origen: string
         }
         Returns: boolean
+      }
+      cotizacion_evaluar: {
+        Args: {
+          p_cotizacion?: string
+          p_entradas: Json
+          p_modo?: Json
+          p_origen?: string
+          p_vehiculo?: string
+        }
+        Returns: Json
       }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {

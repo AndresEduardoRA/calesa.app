@@ -5,7 +5,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Entra y sale
 
 - Entra: wizard `/cotizaciones/nuevo` (origen → vehículo → lead → hoja → resumen), editor de fórmulas en Configuración, ⚙ de una celda.
-- Sale: `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula) y su espejo en la base, `evaluar_formula()` (4.06; `cotizacion_evaluar()` lo llamará), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
+- Sale: `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula) y su espejo en la base, `evaluar_formula()` (4.06) y `cotizacion_evaluar()` (4.06; arma lo que `evaluar_formula()` necesita y la llama; sin `execute` para `authenticated` hasta el 4.10), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
 - Depende de: `leads`, `vehiculos`, `empresa` (tipos de cambio).
 
 ## Archivos clave
@@ -29,7 +29,14 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   `supabase/tests/evaluar-formula.sql` (`pnpm db:probar`, con el juego de 84 casos, el corpus diferencial `supabase/tests/corpus-del-motor.json`,
   la aritmética contra JS y las guardas) y `medir-evaluar-formula.sql` (`pnpm db:medir`). El corpus lo generan `corpus-del-motor.ts`, los
   `mutadores-*.ts` y los `casos-*.ts` de esa carpeta, con el esperado de `esperado-del-motor.ts`, y lo vigila `corpus-del-motor.test.ts`.
-- `entities/evaluacion-sintetica.ts` — la evaluación sintética de n nodos (fórmula, tablas y entrada) para medir el motor, con 50 o 1.000 filas por tabla.
+- `supabase/migrations/20261019005300_cotizacion_evaluar.sql` — `cotizacion_evaluar(entradas, cotización | origen, vehículo?, modo?)` y `_cotizacion_armar()`
+  (`definer`): con una cotización usa SU fórmula, SUS tipos de cambio congelados y SU vehículo; con un origen, la publicada, los tipos de cambio vigentes
+  y el vehículo que se pase. Lee sólo las tablas que un nodo nombra y la fórmula no congeló (`tablas_referencia_filas_tabla_orden_idx`), los tipos de cambio
+  y los campos del vehículo que la fórmula nombra, y comprueba `puede_cotizacion` / `puede_vehiculo` / `cotizaciones.crear`. Las `entradas` sólo llevan
+  `inputs`, `banderas`, `overrides` y `variante`. Devuelve el resultado entero: `revoke execute … from public, anon, authenticated` hasta que el 4.10 recorte
+  por nivel. Lo prueban `supabase/tests/cotizacion-evaluar.sql` (`pnpm db:probar`: paridad con el juego de 84 y el corpus, y los casos de orden, congelada,
+  versión vieja, tablas, campos y permisos) y `medir-evaluar.sql` (`pnpm db:medir:volumen`: 200 llamadas con 50.000 y 250.000 cotizaciones y las guardas de escala).
+- `entities/evaluacion-sintetica.ts` — la evaluación sintética de n nodos (fórmula, tablas y entrada) para medir el motor, con 50 o 1.000 filas por tabla (y `anioInicial` para sembrar su vehículo en la base).
 - `entities/formula-sintetica.ts` — la fórmula sintética de n nodos de las pruebas de escala (`validar-escala.test.ts` y, volcada al
   corpus, la medición de `validar_formula()`).
 - `entities/motor.ts` — `evaluar()`: una pasada en el orden de la lista, grupos por tipo de cambio, el total en Bs y en USD, y los
@@ -47,7 +54,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Tablas
 
 `formulas`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
-RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `validar_formula`, `evaluar_formula`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
+RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `validar_formula`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
 
 ## No se rompe
 
