@@ -187,7 +187,9 @@ Hace lo mismo que `validarFormula()`.
   - Con dos errores en el mismo `params`, `buckets` o `match`, el editor (que recorre en orden de inserción) puede nombrar el otro.
   - Los 61 casos no dependen del orden, y el corpus se guarda en orden jsonb.
 - **Una divergencia declarada,** con la base más estricta que TS: una clave `__proto__` en `buckets`, `match`, `tablas`, una fila o
-  `params`. Zod la descarta en silencio y la base la rechaza como `forma`. El corpus no la lleva.
+  `params`. Zod la descarta en silencio. La base la rechaza como `forma` en las cuatro primeras, y en `params` como
+  `param_sin_constante` (con `donde = __proto__`: pasa la forma porque su valor es un número, y no es una constante). Queda como
+  **4-2** en `docs/PLAN.md`. El corpus no la lleva.
 - **Las pruebas (`supabase/tests/validar-formula.sql`, en `pnpm db:probar`):**
   - los 61 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
     nunca acepta lo que Zod rechaza;
@@ -371,11 +373,14 @@ Fees tipeado 1.300 sobre 9.500 (la moto, `H15`): el pct guarda 0,136842105263157
 
 ### Lo que el 4.06 tiene que copiar
 
+(Hecho en `evaluar_formula()`: «En la base (4.06-1)», abajo. Cada punto está marcado `/*Pnn*/` en la migración.)
+
 - Sumar con un bucle en el orden de la lista: `sum()` sin `order by` no garantiza el orden.
 - Redondear con `round(x::numeric, n)::float8`.
 - Elegir la primera fila por `orden` (las congeladas, por su posición en el arreglo).
-- Comparar el `match` como jsonb (la variante, como texto). jsonb no guarda el orden de las claves, por eso el faltante de varios campos
-  nombra el menor (en orden de código, `collate "C"`).
+- Comparar el `match` como dobles: un número con un número, un texto con un texto (la variante, como texto). La igualdad de jsonb es la
+  del decimal exacto y no sirve (`0.10000000000000001` no es `0.1` para jsonb y sí para JS). jsonb no guarda el orden de las claves,
+  por eso el faltante de varios campos nombra el menor (en orden de código, `collate "C"`).
 - Guardar −0 como 0.
 - **La pasada previa** antes de calcular: la variante (la de la entrada o la `por_defecto`), el estado de cada nodo (primero la
   variante, después la condición, con la bandera fuera de su variante apagada), los grupos que se dibujan y los pct pisados.
@@ -400,6 +405,70 @@ un nodo con override no la recorre. Todo bucle y toda búsqueda pasan por `medid
   filas × (1 + columnas comparadas).
 - **k = 14** se fija por la cuenta de pasadas: lo que más cuesta es un nodo `tabla` sobrescribible de un grupo, con su condición y su
   tabla viva.
+
+### En la base (4.06-1)
+
+`evaluar_formula(p_def, p_params, p_entrada, p_modo default null)` está en `supabase/migrations/20261019005200_evaluar_formula.sql` y es
+STABLE. Hace lo mismo que `evaluar()`, y `cotizacion_evaluar()` (4.06-2) la llamará.
+
+- **La llamada:**
+  - la fórmula son las dos columnas de `formulas`, tal cual (`definicion` y `params` plano, con `tablas` entre las constantes);
+  - la entrada es la de `esquemaEntrada`, y el modo, `{buckets, total_en}` completo: un NULL de SQL es «sin modo» y un `'null'::jsonb`
+    es `modo_invalido`;
+  - **no revalida la fórmula:** la precondición es la de `evaluar()`, la salida de `validar_formula()`. Lanza `formula_sin_validar` en
+    los mismos puntos alcanzables.
+- **El resultado** es un jsonb con `valores`, `estados`, `fuentes`, `totales`, `faltantes` y `overrides_descartados`.
+  - jsonb no guarda el orden de las claves: `valores`, `estados`, `fuentes` y `totales.grupos` son objetos, y su orden (el de la lista)
+    sale de `definicion.nodos` y `definicion.grupos`.
+  - `faltantes` y `overrides_descartados` son **arreglos**, porque su orden es contrato («en el orden en que nace»; los de nodos en el
+    orden de la lista y los inexistentes al final, por id con `collate "C"`).
+  - Un faltante sin `ref` no lleva la clave. Los agregados vacíos son `[]` y `{}`, no null.
+- **Los errores de llamada** son 22023 con el código en DETAIL y `donde` en HINT (sin HINT si no hay `donde`), como `validar_formula`.
+  - **La forma de la entrada y del modo** se revisa como `esquemaEntrada` y `esquemaModoDeCambio`: el HINT es el primer campo que
+    falla en el orden del Zod (`inputs`, `banderas`, `tipos_cambio`, `vehiculo`, `tablas`, `variante`, `overrides`; `buckets`,
+    `total_en`), y no hay si la entrada no es un objeto o trae una clave de más.
+  - **Orden:** la forma de la entrada, la del modo, dos `opcion`, sin total, los `inputs` y las `banderas`, la variante, un `solo_en`
+    sin variante, los buckets y el `total_en`, el reparto y los buckets que se usan.
+  - **No se copian cuatro `formula_sin_validar`** que un chequeo anterior vuelve inalcanzables: el estado que falta, la variante sin
+    clave elegida, el bucket sin tipo de cambio en los totales y la lectura del reparto (`totalesDe` ya leyó el total, y los demás
+    términos son los `de` del total, que su `sumar` ya leyó).
+- **Las tablas vivas** llegan en `entrada.tablas`, ya en su orden: «la primera fila» es la primera del arreglo. La congelada de
+  `params.tablas` manda, aunque esté vacía. La función no lee `tablas_referencia_filas`: `cotizacion_evaluar()` (4.06-2) arma ese
+  objeto con las claves que la fórmula usa y no congela, `order by orden` con un desempate estable (`orden` admite repetidos).
+- **Los números son los de JS:**
+  - **Dobles de izquierda a derecha,** y `redondear` como `round(x::numeric, n)::float8`, con la guarda de lo que ya no cabe en un
+    doble (≥ 2^1024 − 2^970 es ±∞, como `redondeo.ts`).
+  - **Desborde y subdesborde:** Postgres lanza 22003 donde IEEE da ±∞ o ±0 (1e200 × 1e200). Los ayudantes `_motor_mas`, `_motor_menos`,
+    `_motor_por` y `_motor_entre` usan la cuenta de Postgres cuando los operandos son seguros (`+` y `−` bajo 1e307; `*` y `/` en
+    [1e-150, 1e150] o 0), y sólo en el borde un ayudante plpgsql atrapa el 22003 y devuelve lo de IEEE. Se inlinean (`language sql`,
+    `stable`, sin `set` ni `strict`).
+  - **Lo no finito** se asienta como null con `fuera_de_rango`, también el NaN de ∞ × 0, y −0 como 0.
+  - **Un número de jsonb se lee como `JSON.parse`:** `1e-400` vale 0 (el cast a float8 lanza 22003 exactamente donde JS da 0) y lo que JS
+    lee como infinito es una entrada inválida.
+  - **El `match` y el tramo comparan como float8:** un número con un número (`0.10000000000000001` es `0.1`, y `2024.0` es `2024`), un
+    texto con un texto, y nunca uno con otro. jsonb compara el decimal exacto y daría «distintos».
+  - **`set extra_float_digits = 3`** en la definición: con la sesión en 0, `float8out` daría 15 cifras y jsonb perdería el último bit.
+- **Es lineal:** los argumentos se desarman **una sola vez al entrar** (un jsonb que llega de una columna comprimida se descomprime
+  entero en cada `->`: con 1.000 filas congeladas, 86 ms contra 0,7), el estado por nodo va en arreglos de plpgsql y una búsqueda de
+  tabla recorre sus filas una vez. Ningún `||` toca un jsonb en un bucle.
+- **Lo que se prueba** (`supabase/tests/evaluar-formula.sql`, en `pnpm db:probar`, y la misma prueba en Postgres 17):
+  - **los 84 casos de `casos-del-motor.json`,** con el resultado entero de `evaluar()`, no sólo lo que cada caso comprueba;
+  - **el corpus diferencial `supabase/tests/corpus-del-motor.json`:** 775 casos que comparan cada número como float8, sin tolerancia (un
+    NaN o un Infinity como texto no pasa); lo generan `corpus-del-motor.ts` y los `mutadores-*` y `casos-*` de esa carpeta, con una
+    semilla fija, y lo regenera `corpus-del-motor.test.ts`;
+  - **la aritmética contra JS:** 5.632 operaciones de los cuatro ayudantes, con los signos de ±∞ y de ±0, y 731 redondeos contra
+    `redondeo.ts` (exacto, con BigInt);
+  - **guardas:** los ayudantes se inlinean (`proconfig` nulo, sin `strict`), todo es STABLE, y la pasada no nombra `p_def`, `p_params`,
+    `p_entrada` ni `p_modo`.
+- **Mutaciones:** 312 por texto del SQL, cada una en una transacción que se revierte y contra Postgres 17 (`docs/BITACORA.md`,
+  2026-10-23): 300 muertas y 12 equivalentes, cada una con su razón.
+- **Escala** (`medir-evaluar-formula.sql`, `pnpm db:medir`): 5,1 ms con 200 nodos y 43,7 ms con 2.000 (×8,5), sin leer un buffer. Con
+  4 tablas de 1.000 filas, 200 nodos cuestan 28 ms con las tablas vivas y 16 ms con las congeladas (`docs/RENDIMIENTO.md`).
+- **Dos divergencias declaradas,** en las que la base es más estricta o elige el orden de jsonb:
+  - una clave `__proto__` dentro de un record de la entrada (`inputs`, `banderas`, `tipos_cambio`, `vehiculo`, `tablas`, una fila,
+    `overrides`, `modo.buckets`): Zod la descarta en silencio y la base la rechaza como `entrada_invalida` o `modo_invalido` (4-2);
+  - con dos claves malas en `inputs`, `banderas` o un modo, TS nombra la primera en orden de inserción y la base, en orden de jsonb. El
+    corpus se guarda en orden de jsonb.
 
 ## Tipos de cambio y modos (D7, H1)
 

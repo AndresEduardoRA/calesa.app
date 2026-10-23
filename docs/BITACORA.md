@@ -936,3 +936,150 @@ hablan de vos: `cambiar_fase` y la fórmula.», y de «Funcionando», «Último 
 **Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05, prompt 3 de 4** (`fd4c6f1` a `b7e02ab`): la variante y el estado de cada nodo, los overrides con sus fuentes y descartados, el par porcentaje-monto, `sugerido_de` y `requerido_si`, sin `rasgo_pendiente`; `casos-del-motor.json` con 84 casos (el Excel entero y «Amnistia», desde sus celdas) y 51 mutaciones; dos arreglos del validador (`total_no_es_monto`, el pct del par) y uno del motor (el grupo con un miembro null daba 0). Antes: **4.05-2** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-3).
 
 1. **4.05, prompt 4** (`validar_formula()` en la base con el juego `casos-de-formula.json`, más lo que dejaron 4.05-2 y 4.05-3: el tipo en `miembro_no_es_monto`, `total_no_es_monto` y el pct del par) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»).
+
+## 2026-10-23 — Paso 4.06, prompt 1 de 2: `evaluar_formula()` en la base, espejo exacto de `evaluar()`
+
+**Horas (La Paz, de `.git/logs/HEAD`):** desde `389da4c` (14:00:14, el HEAD de partida; el trabajo empezó hacia las 15:20) hasta `fa4a630`
+(16:30:36):
+
+- `3eaa087` (16:26:19), la función, su juego y su corpus;
+- `fa4a630` (16:30:36), la escala.
+
+**e2e completo: sí (Nivel 2, escritorio):** 666 en verde, 16 saltados, 0 fallos, 25,1 min (16:37 a 17:03, horas de La Paz), sobre
+`fa4a630`. El primer intento (16:34) se detuvo en `next build` con `SecurityFatalError`, antes de correr ninguna prueba; se repitió el
+mismo comando y no se corrió `next upgrade`.
+
+Toca `supabase/migrations` y no `supabase/schemas` (`esquema-base.mjs --check` no aplica), así que es Nivel 2. Sin dependencias nuevas.
+Ningún presupuesto subió: la medición es nueva.
+
+**Qué:** las decisiones ag a ar están en `docs/DECISIONES.md` (2026-10-23, «Paso 4.06 (1 de 2)») y el contrato, en `docs/COTIZADOR.md`
+(«El motor» › «En la base (4.06-1)»).
+
+- **Son 3 commits, no 4:** la función con su juego y su corpus, la escala, y estos docs. El pedido separaba «función y juego» de
+  «corpus», pero el hook de pre-commit corre `db:probar` entero (3,5 min) cuando hay SQL, y la prueba de la función lee el corpus.
+- **El plan se revisó en contra** con un agente (`tsx` sobre el motor real, PGlite y lecturas en el Postgres 17 local). Encontró, y se
+  corrigió antes de escribir:
+  - un jsonb de una columna comprimida se descomprime entero en cada `->` (86 ms contra 0,7 con 1.000 filas congeladas): los
+    argumentos se desarman una vez al entrar;
+  - ∞ × 0 es NaN: `asentar` mira `abs(x) < 'Infinity'`;
+  - un punto de `formula_sin_validar` de más (el total que es la variante) y las lecturas perezosas que el motor no hace;
+  - el corpus de `JSON.stringify` no puede escribir `0.10000000000000001`, `2024.0` ni `1e-400`: hay una sección de textos.
+- **Las cuatro preguntas a la persona** (decididas con la recomendación): el `match` y el tramo comparan como float8, la base revisa la
+  forma de la entrada y del modo, `__proto__` en un record se rechaza, y la firma lleva las dos columnas de la fórmula.
+
+**Paridad: 0 diferencias.**
+
+- **Los 84 casos de `casos-del-motor.json`,** con el resultado entero de `evaluar()`, y **los 775 del corpus** (418 resultados y 357
+  errores de llamada) dan lo mismo, número a número como float8, en PGlite (`db:probar`) y en Postgres 17.
+- **El corpus** (`supabase/tests/corpus-del-motor.json`, 2,4 MB, un caso por línea, en `.prettierignore`):
+
+  | Grupo       | Casos | Qué es                                                                                            |
+  | ----------- | ----- | ------------------------------------------------------------------------------------------------- |
+  | dirigido    | 171   | cada mutador solo, 3 veces, rotando por las 84 bases                                              |
+  | mezcla      | 218   | de 1 a 3 defectos mezclados (la fórmula o las tablas, la entrada y, a veces, un error de llamada) |
+  | borde       | 99    | la aritmética de dobles (uno por cada sitio de `asentar`), tramos, repartos, orden de bytes       |
+  | sin_validar | 57    | cada `formula_sin_validar`, el orden entre errores y las lecturas que no lanzan                   |
+  | forma       | 190   | cada manera de romper cada campo de la entrada y del modo, en el orden del Zod                    |
+  | texto       | 40    | lo que `JSON.stringify` no escribe: `1e-400`, `1e400`, `0.10000000000000001`, `2024.0`, emojis    |
+
+  Más 5.632 operaciones de los cuatro ayudantes aritméticos contra JS (con los signos de ±∞ y de ±0) y 731 redondeos contra
+  `redondeo.ts`.
+
+**Mutaciones: 312.** Un arnés en el scratchpad aplica cada una por texto al SQL y corre los 11 bloques de `evaluar-formula.sql`
+contra el Postgres 17 local, en una transacción que se revierte. No escribe en el repo. Se corrió contra Postgres 17 y no contra PGlite,
+porque las dos que quitan `collate "C"` sólo mueren con ICU (PGlite ordena en C).
+
+| Grupo                                  | Qué se apaga o se cambia                                                                                        | Mutaciones | Muertas | Equivalentes |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------- | ------- | ------------ |
+| faltante                               | el código de cada sitio de `anotar` (19) y cada sitio sin anotar                                                | 38         | 38      | 0            |
+| error                                  | el código de cada `_motor_fallar`, cada `_motor_fallar`, `_motor_sin_validar` y `_motor_sin_leer` sin lanzar    | 41         | 40      | 1            |
+| forma                                  | cada `return` de la forma de la entrada y del modo (22) y cada pieza de cada chequeo (29)                       | 51         | 49      | 2            |
+| aritmética                             | cada ayudante sin borde, los umbrales, los signos del borde, `_motor_numero` y `_motor_redondear`               | 27         | 25      | 2            |
+| P1                                     | el orden de la suma (términos, grupos, reparto), `restar`, `multiplicar`                                        | 9          | 7       | 2            |
+| P3                                     | gana la última fila, o la que salga                                                                             | 3          | 2       | 1            |
+| P4                                     | el menor campo sin `collate "C"` (sólo ICU), el mayor, el primero, el último                                    | 4          | 4       | 0            |
+| P5                                     | −0 se guarda tal cual                                                                                           | 1          | 0       | 1            |
+| P6                                     | la pasada previa: variante, condición, banderas, grupos dibujados, pct pisados, la variante elegida             | 16         | 14      | 2            |
+| P7                                     | un nodo inactivo se calcula; un grupo que no se dibuja o un término fuera de la variante leen su tipo de cambio | 6          | 6       | 0            |
+| P8                                     | los overrides, las fuentes del pct pisado y el par: su base, su división por cero, su reescritura               | 19         | 19      | 0            |
+| P9                                     | los descartados: el orden, los inexistentes, el motivo                                                          | 6          | 6       | 0            |
+| P10                                    | las fuentes                                                                                                     | 10         | 10      | 0            |
+| P11                                    | el USD de un grupo con un miembro null o sin miembros                                                           | 5          | 5       | 0            |
+| input                                  | `valorDeInput`: tipeado, requerido, sugerido                                                                    | 7          | 7       | 0            |
+| constante, tipo_cambio, campo, bandera | cada tipo de nodo simple                                                                                        | 8          | 7       | 1            |
+| tabla                                  | la congelada, la viva, el `match`, la igualdad, la celda                                                        | 16         | 16      | 0            |
+| tramo                                  | los extremos, las filas sin `desde` o `hasta`, `depreciar`                                                      | 9          | 9       | 0            |
+| calculo                                | `suma`, `porcentaje_de`, `multiplicar`, `restar`, `dividir`, `si`, `redondear`                                  | 10         | 10      | 0            |
+| totales                                | el USD, el Bs, el reparto, el modo, `ninguno`, y los siete sitios de `asentar`                                  | 19         | 19      | 0            |
+| orden                                  | el orden entre los errores de llamada (7 intercambios)                                                          | 7          | 7       | 0            |
+| **Total**                              |                                                                                                                 | **312**    | **300** | **12**       |
+
+- **El juego solo tumba 132 de las 300 muertas** y el corpus, 289. Las 11 restantes las tumban otros bloques: la aritmética contra JS (9,
+  las de signos y umbrales), el redondeo (1) y el contrato de los errores (1).
+- **Las 12 equivalentes, cada una con su razón:**
+  - `a + b = b + a` y `a · b = b · a` (2): el bloque de aritmética asserta la conmutatividad con todos los pares;
+  - −0 (1): jsonb no guarda −0 (asertado) y nada lee el signo de un cero, porque `dividir` descarta el 0 antes;
+  - dos umbrales (2): el producto de 1e-150 por 1e-160 es 1e-310, no 0; ni desborda ni desborda por abajo;
+  - `ORDER BY f.orden` (1): `jsonb_array_elements … with ordinality` ya devuelve las filas en el orden del arreglo;
+  - una bandera no admite `condicion` y un tipo de cambio ni una opción admiten `solo_en`, en la forma estricta (2); un tipo de cambio
+    ≤ 0 lo rechaza la forma de la entrada (1);
+  - el chequeo «sin opción por defecto» (1), subsumido por el que sigue (la clave no está en las opciones): mismo código y mismo `donde`;
+  - dos piezas del `total_en` del modo (2), subsumidas por «no es un tipo de cambio»: mismo código y mismo `donde`.
+- **De 56 vivas a 0 sin explicar, en tres corridas** (254 muertas y 56 vivas; 297, 10 equivalentes y 5 vivas; 300 y 12). La primera, con el
+  corpus de entradas mutadas y los casos a mano de entonces, dejó además 2 mutaciones inválidas (mal escritas). Lo que pidieron las vivas:
+  - **la forma:** 190 casos sistemáticos (el chequeo de un campo que no es objeto, una clave mala, un valor mal tipado, el orden entre
+    dos campos), porque un mutador al azar no toca cada chequeo;
+  - **cada operación que lee hacia adelante** (`porcentaje_de`, `multiplicar`, `restar`, `dividir` ×2, `redondear`, `si`, `tramo`,
+    `depreciar` ×2), el total que es la variante con grupos, y el total que no es una suma aunque sus términos tengan bucket;
+  - **el orden entre los errores de llamada** (7 pares), el pct pisado que otro nodo lee, y un grupo sin miembros;
+  - **un reparto de tres términos** (0,1 + 0,2 + 0,3 y al revés) y uno apagado con su tipo de cambio ausente, «ninguno» como
+    bucket, un campo null, los tramos sin `desde` o sin `hasta`, `depreciar` con un término que falta, `null ÷ 0`, `redondear` de un
+    null y el orden de los bytes (`a1` antes que `a_b`, `a.b` antes que `a_b`);
+  - **la aritmética** (los signos de ±∞ y de ±0 no se ven después de `asentar`, así que se prueban en el ayudante) y el redondeo;
+  - **la segunda corrida:** `{"nodos": 5}` (sin el chequeo, un error crudo de Postgres), una mutación mal escrita (los extremos de un
+    tramo) y un `redondear` de un null, y dos umbrales que eran equivalentes de verdad y se reemplazaron por versiones que cambian
+    el comportamiento.
+- **Dos hallazgos de las mutaciones, sobre mis propias pruebas:**
+  - los casos de texto del `match` no probaban el `match`: el nodo `kf` de esa fórmula tapaba el campo del vehículo `kf` (un `match` que
+    nombra un nodo lee el nodo). Se quitó el nodo; ahora `0.10000000000000001` contra `0.1` sí prueba la igualdad de dobles;
+  - un nombre de caso cortó un emoji por la mitad y jsonb rechazó el surrogate suelto.
+
+**Escala** (`medir-evaluar-formula.sql`, `pnpm db:medir`; detalle en `docs/RENDIMIENTO.md`):
+
+- 200 nodos 5,1 ms y 2.000 nodos 43,7 ms, ×8,5, con 0 buffers, como `authenticated`; carga 2,2 a 3,1 en las corridas de ajuste.
+- Topes de 16 y 136 ms (la mayor de 3 corridas × 3) y razón ≤ 12.
+- **Informativo, para el 4.06-2:** 200 nodos con 4 tablas de 1.000 filas, 28 ms con las tablas vivas y 16 con las congeladas; con 2.000
+  nodos y las 4 congeladas, 164 ms.
+- **Los argumentos de una columna comprimida cuestan ×1,0** los literales (tope 1,5), con 2.000 nodos y 4 tablas congeladas.
+- **Las guardas muerden,** cada versión mala en una transacción que se revierte: acumular los valores con `||` (cuadrática) da 198 ms
+  contra el tope de 136; releer `p_def` en la pasada da ×2,4 con la columna comprimida; leer las constantes de `p_params` no cae por
+  tiempo (×1,1: las búsquedas de 1.000 filas lo tapan) y la tumba la guarda de texto, que exige que la pasada no nombre ningún argumento.
+
+**Del entorno:**
+
+- **`db:lint` pasa;** `evaluar_formula` suma 15 avisos cosméticos (`'{}'` a arreglo, variables de bucle redeclaradas, sin usar), de la misma
+  clase que los 32 de `_formula_*`.
+- **`String.replace` de JS interpreta `$$`** en el texto de reemplazo: el arnés de medición rompió el SQL de una mutación por eso (ya
+  había pasado en 4.05-4). Va con una función de reemplazo.
+- **El hook de pre-commit corre `db:probar` entero** en cada commit con SQL: 3,5 min cada uno.
+- **`db:reset` pasó a la primera.**
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (334 archivos, 3.343 pruebas), `bash scripts/mapa.sh --check`, `pnpm db:reset`,
+`pnpm db:types` (la función y sus ayudantes suman 23 líneas), `pnpm db:probar`, `pnpm db:lint`, `pnpm db:medir` y el e2e completo,
+sobre `fa4a630`.
+
+**Lo que no se hizo:**
+
+- `cotizacion_evaluar()` ni `medir-evaluar.sql` (son el prompt 2);
+- el 4.07 ni arreglar `__proto__` en TS (declarado, es el 4-2);
+- `next upgrade`;
+- empujar.
+
+## 2026-10-23 — Movido de ESTADO (4.06-1)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente» y, de «Deuda aceptada», «`db:lint` da 32 avisos cosméticos en `_formula_*` (variables de bucle redeclaradas, sin usar, bigint a int): `…004900` no se edita.», y de
+«Funcionando», «Último Nivel 2 (escritorio), el paso 4.05 prompt 4: 666 en verde, 16 saltados, 0 fallos, 25,4 min.»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.05 entero** (el prompt 4 de 4: `819c40d` a `bb791fc`): `validar_formula()` en la base, espejo exacto de `validar.ts` (la forma y 29 reglas, el mismo orden y los mismos códigos; 22023 con la regla en DETAIL y `donde` en HINT; lineal, 200 y 2.000 nodos en 8,4 y 78,4 ms con 0 buffers), probada con los 61 casos y un corpus diferencial de 544 fórmulas (0 diferencias, también en Postgres 17) y 110 mutaciones; `formula_publicar` tutea; «Sugerido: X» no se hace (**4-1**). Antes: **4.05-3** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.05-4).
+
+1. **4.06** (`evaluar_formula()` en la base, espejo de `motor.ts`, y `cotizacion_evaluar()`, con la paridad de `casos-del-motor.json`; reusa de 4.05-4 `pg_temp.paridad`, los datos en una tabla temporal y las mutaciones por texto) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.

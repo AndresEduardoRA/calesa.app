@@ -344,6 +344,9 @@ db» es `db:base`, `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuan
 
 - **Los arrastrados de leads (4.02 a 4.04) van primero.** 5a-10 está al 92 % de su techo y 5a-11 tocó 4.948 de 6.000 con carga: la
   fase corre `db:medir:volumen` muchas veces, y no puede caerse por una causa ajena.
+- **4.06, prompt 1 de 2 hecho:** `evaluar_formula()` en la base, espejo exacto de `motor.ts`, con los 84 casos del motor, un corpus
+  diferencial de 775 casos, 312 mutaciones y su escala (`docs/COTIZADOR.md` › «En la base (4.06-1)» y `docs/DECISIONES.md`,
+  2026-10-23). **Falta el prompt 2:** `cotizacion_evaluar()` y `supabase/tests/medir-evaluar.sql`.
 - **El motor, su espejo en la base, el diseño y los niveles (4.05 a 4.09) van antes de escribir (4.10).** La escritura calcula en la
   base y lee la visibilidad compilada.
 - **5a-12 va justo antes de las secciones** que reusan su «Ver más» (4.17).
@@ -364,6 +367,18 @@ db» es `db:base`, `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuan
     con la paridad de `casos-del-motor.json` y sin faltantes nuevos.
   - **Lugar:** `entities/motor-sobrescribir.ts`, `evaluar_formula()` y el recorte de `cotizacion_evaluar` (4.10).
   - **Se reabre** si 4.12 o 4.13 piden mostrar el sugerido.
+
+- **4-2 · Una clave `__proto__` en un record: Zod la descarta y la base la rechaza (4.06, prompt 1; viene del 4.05-4).**
+  - **Hoy:** en la fórmula, Zod descarta `__proto__` en `buckets`, `match`, `tablas`, una fila o `params`, y `validar_formula()` la
+    rechaza: como `forma` en las cuatro primeras y, en `params`, como `param_sin_constante` (con `donde = __proto__`: es un número, pasa
+    la forma, y no es una constante). `docs/COTIZADOR.md` decía «forma» para las cinco. En la entrada de `evaluar_formula()` pasa lo
+    mismo en cada record (`inputs`, `banderas`, `tipos_cambio`, `vehiculo`, `tablas`, una fila, `overrides`, `modo.buckets`): la base
+    responde `entrada_invalida` o `modo_invalido`.
+  - **Por qué importa:** el compilador de fórmulas como texto (4.07) arma `params` y `match` desde lo que escribe la persona. Un nombre
+    `__proto__` tiene que ser un error suyo, en su posición, y no pasar por Zod para morir en la base.
+  - **Assert:** un caso con esa clave en `params` y otro en un `match`, que `validar.ts` y `validar_formula()` rechacen igual (la misma
+    regla y el mismo `donde`); el corpus de `validar_formula()` no lo lleva porque JS no guarda ese orden.
+  - **Lugar:** 4.07.
 
 ## Fase 5 — Flujos (configuración)
 

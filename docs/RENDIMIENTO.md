@@ -1182,3 +1182,49 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
   - Es plpgsql: cada pasada evalúa unas decenas de expresiones simples por nodo.
   - La forma revisa con una expresión regular cada id, cada referencia y cada clave de `solo_en` (12.500 en la de 2.000).
   - Corre al guardar una fórmula (`formula_guardar_borrador`, también desde el ⚙), no al cotizar.
+
+## Paso 4.06 (1 de 2): `evaluar_formula()` con 200 y 2.000 nodos (2026-10-23)
+
+- **Cómo se mide:** como `validar_formula()` (4.05-4): `EXPLAIN (ANALYZE, BUFFERS)` como `authenticated`, en el Supabase local
+  (Postgres 17), la mediana de 5 corridas de 7 (las 2 primeras calientan la compilación de plpgsql y el caché del catálogo), sobre
+  una subconsulta con `offset 0`.
+- **Las evaluaciones:** las de `evaluacionSintetica()` (`entities/evaluacion-sintetica.ts`), volcadas a
+  `supabase/tests/corpus-del-motor.json` › `sinteticas`. Es la de `motor-escala.test.ts` hecha paramétrica: n/10 grupos, una variante,
+  inputs sin tipear con `sugerido_de`, overrides en los tramos y tres inexistentes, y tablas de 50 o de 1.000 filas, vivas (en la
+  entrada) o congeladas (en `params`), con la fila buscada siempre la última.
+- **Dónde corre:** `supabase/tests/medir-evaluar-formula.sql`, en `pnpm db:medir`.
+
+| Medición                                                        | 1.ª      | 2.ª      | 3.ª      | `pnpm db:medir` | Tope   |
+| --------------------------------------------------------------- | -------- | -------- | -------- | --------------- | ------ |
+| 200 nodos                                                       | 5,34 ms  | 5,15 ms  | 5,17 ms  | **5,1 ms**      | 16 ms  |
+| 2.000 nodos                                                     | 45,29 ms | 43,54 ms | 43,57 ms | **43,7 ms**     | 136 ms |
+| 2.000 ÷ 200                                                     | 8,48     | 8,46     | 8,42     | **8,5**         | 12     |
+| 200 nodos, 4 tablas **vivas** de 1.000 filas (informativo)      | 28,33    | 27,57    | 27,63    | **28,2 ms**     | —      |
+| 200 nodos, 4 tablas **congeladas** de 1.000 filas (informativo) | 16,83    | 16,24    | 16,37    | **16,3 ms**     | —      |
+| 2.000 nodos, 4 tablas congeladas de 1.000 filas (informativo)   | —        | —        | —        | **164,4 ms**    | —      |
+| ídem con los argumentos de una columna comprimida (veces)       | —        | —        | —        | **1,0**         | 1,5    |
+
+- **Buffers: 0 en todas las medidas** (shared, local y temp). La función es pura y no toca tablas.
+- **La carga al empezar** fue 3,08 (1.ª), 3,04 (2.ª) y 2,21 (3.ª), sin presión de disco ni de CPU. La de `pnpm db:medir`, 1,48.
+- **Los topes son la mayor mediana de las 3 corridas × 3** (5,34 → 16 y 45,29 → 136). La razón ≤ 12 la fija el pedido, porque el tiempo
+  es más ruidoso que las visitas.
+- **No se subió ningún presupuesto:** la medición es nueva. `validar_formula()` sigue en 8,4 y 78,8 ms.
+- **Lo que cuesta:** unos 22 a 26 µs por nodo (`validar_formula()`, 40), y es plpgsql: unas decenas de expresiones simples por nodo, más una
+  búsqueda por cada `tabla` que no trae override.
+- **Las tablas grandes** (para el p95 de ≤ 50 ms con 4 tablas de 1.000 filas que pide el 4.06-2):
+  - vivas, 200 nodos: **28 ms.** Son 12 ms más que congeladas: la base revisa la forma de cada celda de `entrada.tablas` (4.000
+    filas) antes de evaluar, porque no confía en quien llama;
+  - congeladas, 2.000 nodos: **164 ms** (166 en la corrida de ajuste). Hay unas 250 búsquedas de 1.000 filas (`tabla`; los tramos traen override), 0,5 ms cada una.
+    Cada una expande la tabla con `jsonb_array_elements` y filtra, sin salir en la primera coincidencia;
+  - la lectura de las tablas de la base (por `tablas_referencia_filas_…`) la hace `cotizacion_evaluar()`, y no cuenta acá.
+- **Las guardas muerden,** cada versión mala en una transacción que se revierte:
+
+  | Versión mala                                                | Lo que dice                                                                                |
+  | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+  | Acumula los valores con `\|\|` por nodo (cuadrática)        | 7,2 y **198,0 ms**: «tarda 198,04 ms y el tope es 136» (la razón, 27, también cae)         |
+  | Relee `p_def` en cada nodo de la pasada                     | la columna comprimida tarda **×2,36** los literales: «lee un argumento dentro de un bucle» |
+  | Lee las constantes de `p_params` (sin desarmarlo al entrar) | ×1,10: no cae por tiempo, la tumba la guarda de texto (`la pasada nombra un argumento`)    |
+
+- **Por qué dos guardas:** con tablas de 1.000 filas, las búsquedas (164 ms) tapan el costo de descomprimir (+22 ms), así que el tiempo
+  no distingue a quien lee `p_params` unas pocas veces. La guarda de texto de `evaluar-formula.sql` (`db:probar`) es exacta; la de
+  tiempo atrapa lo que se lee cientos de veces.
