@@ -982,19 +982,15 @@
       }
     },
     {
-      "nombre": "un exponente enorme y negativo es 0",
+      "nombre": "un exponente enorme y negativo no cabe: el número se redondea a 0",
       "texto": "1e-999999999",
       "esperado": {
-        "nodos": [
-          {
-            "id": "total",
-            "tipo": "constante",
-            "etiqueta": "Total",
-            "salida": "total"
-          }
-        ],
-        "params": {
-          "total": 0
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 0,
+          "largo": 12,
+          "linea": 1,
+          "columna": 1
         }
       }
     },
@@ -1725,6 +1721,233 @@
           "largo": 6,
           "linea": 1,
           "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "0 con un exponente enorme y negativo es 0",
+      "texto": "0e-999999999",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 0
+        }
+      }
+    },
+    {
+      "nombre": "una mantisa de ceros con fracción es 0, aun con exponente enorme",
+      "texto": "0.000e999999999",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 0
+        }
+      }
+    },
+    {
+      "nombre": "00 se acepta: los ceros a la izquierda no cambian el valor",
+      "texto": "00",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 0
+        }
+      }
+    },
+    {
+      "nombre": "01 se acepta y vale 1 (no hay octales)",
+      "texto": "01",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 1
+        }
+      }
+    },
+    {
+      "nombre": "007.50 se acepta",
+      "texto": "007.50",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 7.5
+        }
+      }
+    },
+    {
+      "nombre": "01e2 se acepta",
+      "texto": "01e2",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 100
+        }
+      }
+    },
+    {
+      "nombre": "el menor subnormal (5e-324) se acepta",
+      "texto": "5e-324",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 5e-324
+        }
+      }
+    },
+    {
+      "nombre": "3e-324 se redondea al menor subnormal y se acepta",
+      "texto": "3e-324",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 5e-324
+        }
+      }
+    },
+    {
+      "nombre": "1e-400 se redondea a 0",
+      "texto": "1e-400",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 0,
+          "largo": 6,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "2e-324 se redondea a 0",
+      "texto": "2e-324",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 0,
+          "largo": 6,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un negativo que se redondea a 0 incluye el signo",
+      "texto": "remate*-1e-400",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 7,
+          "largo": 7,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "con % se corre el punto: 1e-323% se redondea a 0 (el tramo incluye el %)",
+      "texto": "1e-323%",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 0,
+          "largo": 7,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un negativo con %: el tramo incluye el signo y el %",
+      "texto": "-1e-323%",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 0,
+          "largo": 8,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un cero seguido de 400 ceros y un 1 se redondea a 0",
+      "texto": "0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 0,
+          "largo": 403,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE con un literal que se redondea a 0",
+      "texto": "PORCENTAJE_DE(remate; 1e-400)",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 22,
+          "largo": 6,
+          "linea": 1,
+          "columna": 23
         }
       }
     },

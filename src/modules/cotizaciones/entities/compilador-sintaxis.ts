@@ -38,7 +38,7 @@ function empujarNumero(
   desde: number,
   negativo: boolean,
 ): ErrorCrudo | undefined {
-  const v = valorDeNumero(e.lex.texto, t.desde, t.hasta, false)
+  const v = valorDeNumero(e.lex, t, false)
   if (v === null)
     return error('numero_fuera_de_rango', desde, t.hasta, {
       texto: textoDe(e, { desde, hasta: t.hasta }),
@@ -190,8 +190,12 @@ function porciento(e: Estado, t: Token): ErrorCrudo | undefined {
   const ultimo = e.operandos[e.operandos.length - 1]
   if (e.esperaValor || !e.numPrevio || ultimo?.k !== 'num')
     return enToken(t, 'porcentaje_sin_numero')
-  // Correr el punto a la izquierda achica el número: si el texto cupo, esto también.
-  const v = valorDeNumero(e.lex.texto, ultimo.numDesde, ultimo.numHasta, true) ?? 0
+  // Correr el punto a la izquierda achica el número: el texto pudo caber solo y redondearse a 0 con el «%» (`1e-323%`).
+  const v = valorDeNumero(e.lex, { desde: ultimo.numDesde, hasta: ultimo.numHasta }, true)
+  if (v === null)
+    return error('numero_fuera_de_rango', ultimo.desde, t.hasta, {
+      texto: textoDe(e, { desde: ultimo.desde, hasta: t.hasta }),
+    })
   const valor = ultimo.negativo ? -v : v
   ultimo.valor = valor === 0 ? 0 : valor
   ultimo.pct = true

@@ -118,23 +118,34 @@ export function siguiente(lex: Lexico): Token {
   return { t: T.ERROR, desde, hasta: lex.pos, codigo: 'caracter_invalido' }
 }
 
+// Una mantisa sin ningún dígito distinto de cero («0», «0.0», «00.000»): vale 0 con el exponente que sea. Comparar `Number(mantisa)` con
+// 0 no sirve, porque «0.» con 400 ceros y un 1 también da 0 y no es cero. Se corta en el primer dígito que cuenta.
+function soloCeros(mantisa: string, m: Medidor): boolean {
+  for (let i = 0; i < mantisa.length; i += 1) {
+    m.visitas += 1
+    const c = mantisa.charCodeAt(i)
+    if (c !== 48 && c !== 46) return false
+  }
+  return true
+}
+
 // El valor de un número ya leído. Con `pct` se corre el punto dos lugares en el TEXTO (0.1% = 0.1e-2 = 0.001): dividir el
-// doble entre 100 daría otro doble. Null si no cabe en un doble.
+// doble entre 100 daría otro doble. Null si no cabe: si pasa del doble más grande, o si no es cero y se redondea a 0 (`1e-400`,
+// o `0.` con 400 ceros y un 1), porque un literal que vale 0 sin serlo se aceptaría en silencio. Una mantisa de puros ceros es 0,
+// con el exponente que sea; los ceros a la izquierda (`00`, `01`) no cambian el valor.
 export function valorDeNumero(
-  texto: string,
-  desde: number,
-  hasta: number,
+  lex: Lexico,
+  tramo: { desde: number; hasta: number },
   pct: boolean,
 ): number | null {
-  const s = texto.slice(desde, hasta)
+  const { m } = lex
+  const s = lex.texto.slice(tramo.desde, tramo.hasta)
   let i = s.indexOf('e')
   if (i < 0) i = s.indexOf('E')
   const mantisa = i < 0 ? s : s.slice(0, i)
+  if (soloCeros(mantisa, m)) return 0
   const exponente = i < 0 ? 0 : Number.parseInt(s.slice(i + 1), 10)
-  if (!Number.isSafeInteger(exponente) || Math.abs(exponente) > 100_000) {
-    if (Number(mantisa) === 0) return 0
-    return exponente > 0 ? null : 0
-  }
+  if (!Number.isSafeInteger(exponente) || Math.abs(exponente) > 100_000) return null
   const v = Number(`${mantisa}e${String(exponente - (pct ? 2 : 0))}`)
-  return Number.isFinite(v) ? v : null
+  return Number.isFinite(v) && v !== 0 ? v : null
 }

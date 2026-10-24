@@ -141,6 +141,76 @@ describe('la aritmética de dobles, escrita a mano', () => {
   })
 })
 
+describe('un literal es el doble más cercano, o no cabe', () => {
+  // Un literal armado con sus partes (ceros a la izquierda, entero, fracción, exponente, con y sin «%» y con y sin signo). El
+  // oráculo no mira el texto: usa `Number()` sobre las partes, corriendo el punto del «%» en el exponente.
+  const digitos = (azar: ReturnType<typeof azarCon>, n: number) =>
+    Array.from({ length: n }, () => String(azar.entero(10))).join('')
+
+  function mantisaAlAzar(azar: ReturnType<typeof azarCon>) {
+    const fraccion = azar.entero(2) === 0 ? '' : `.${digitos(azar, 1 + azar.entero(6))}`
+    return `${'0'.repeat(azar.entero(3))}${digitos(azar, 1 + azar.entero(4))}${fraccion}`
+  }
+
+  const noEsDoble = (v: number) => v === 0 || !Number.isFinite(v)
+
+  // `solo` es el número tal como se escribe, sin el «%»: el compilador lo mide antes de ver el «%» (docs/COTIZADOR.md), así que
+  // `1e309%` no cabe aunque valga 1e307.
+  function literalAlAzar(azar: ReturnType<typeof azarCon>) {
+    const mantisa = mantisaAlAzar(azar)
+    const exponente = azar.entero(3) === 0 ? undefined : azar.entero(801) - 400
+    const [pct, negativo] = [azar.entero(4) === 0, azar.entero(4) === 0]
+    const sufijo = exponente === undefined ? '' : `e${String(exponente)}`
+    const texto = `${negativo ? '-' : ''}${mantisa}${sufijo}${pct ? '%' : ''}`
+    const solo = Number(`${mantisa}e${String(exponente ?? 0)}`)
+    const v = Number(`${mantisa}e${String((exponente ?? 0) - (pct ? 2 : 0))}`)
+    const ceroExacto = !Array.from(mantisa).some((c) => c >= '1' && c <= '9')
+    const noCabe = !ceroExacto && (noEsDoble(solo) || noEsDoble(v))
+    return { texto, esperado: negativo ? -v || 0 : v, noCabe }
+  }
+
+  // Lo que está mal en el resultado de compilar el literal, o nada.
+  function queFalla(l: ReturnType<typeof literalAlAzar>): string | undefined {
+    const r = compilarExpresion(l.texto, CONTEXTO)
+    if (l.noCabe) {
+      const dio = r.ok ? 'compiló' : r.error.codigo
+      return dio === 'numero_fuera_de_rango' ? undefined : `debía no caber y dio ${dio}`
+    }
+    if (!r.ok) return r.error.codigo
+    const valor = r.params['total']
+    return r.nodos[0]?.tipo === 'constante' && mismoBit(valor, l.esperado)
+      ? undefined
+      : `${String(valor)} contra ${String(l.esperado)}`
+  }
+
+  it('2.000 literales al azar: valen Number() bit a bit, y un distinto de cero que se redondea a 0 o a ∞ no cabe', () => {
+    const azar = azarCon(SEMILLA + 4)
+    const malos: string[] = []
+    let sinCaber = 0
+    for (let i = 0; i < 2000; i += 1) {
+      const l = literalAlAzar(azar)
+      if (l.noCabe) sinCaber += 1
+      const mal = queFalla(l)
+      if (mal !== undefined) malos.push(`${l.texto}: ${mal}`)
+    }
+    expect(malos.slice(0, 5)).toEqual([])
+    // La muestra incluye de los dos lados (si no, la prueba no probaría el rango).
+    expect(sinCaber).toBeGreaterThan(100)
+    expect(sinCaber).toBeLessThan(1500)
+  })
+
+  it('1e309% no cabe aunque valga 1e307: el número tal como se escribe tiene que caber solo', () => {
+    const r = compilarExpresion('1e309%', CONTEXTO)
+    expect(r.ok ? 'compiló' : r.error.codigo).toBe('numero_fuera_de_rango')
+  })
+
+  it('un literal que no cabe en un argumento o en una cadena también se nombra, y los ceros a la izquierda valen', () => {
+    for (const t of ['remate+1e-400', 'REDONDEAR(1e-400; 2)', 'SI(activa; 1e-400)', '(1e-999)*2'])
+      expect(compilarExpresion(t, CONTEXTO).ok ? 'compiló' : 'no', t).toBe('no')
+    expect(calc('00+01+007.50').valor).toBe(0 + 1 + 7.5)
+  })
+})
+
 describe('un texto adversario nunca lanza', () => {
   const ALFABETO = '0123456789.eE+-*/()%;, =xyzabSUMAIHOYR_$@#\n\tñ😀:! '
   it('6.000 cadenas al azar: o compilan o dan un error con un tramo dentro del texto', () => {

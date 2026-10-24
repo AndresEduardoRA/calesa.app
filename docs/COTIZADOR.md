@@ -557,7 +557,7 @@ Un `=` inicial es opcional. Los espacios, el tab, el salto de línea y el espaci
 
 | Se escribe                            | Qué es                                                                                                                            |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `12`, `0.5`, `1e3`                    | un número, con punto decimal. Sin separador de miles ni `.5` ni `1.`                                                              |
+| `12`, `0.5`, `1e3`                    | un número, con punto decimal; los ceros a la izquierda valen (`01` es 1). Sin separador de miles ni `.5` ni `1.`                  |
 | `4%`, `0.1%`                          | un número con `%` pegado; vale el número ÷ 100 y la constante es de formato `pct`                                                 |
 | `-5`                                  | un número negativo: el menos va pegado al número. Delante de un nombre o de un paréntesis es un error (para restar, `0 - nombre`) |
 | `+ - * /` y `( )`                     | la precedencia usual; `*` y `/` antes que `+` y `-`; todo asocia a la izquierda                                                   |
@@ -576,8 +576,13 @@ Un `=` inicial es opcional. Los espacios, el tab, el salto de línea y el espaci
 - **Un nombre es sólo el id de un nodo.** La etiqueta no sirve: se repite y se renombra, y el texto se rompería. Así no hay colisiones. Un
   grupo se nombra sólo dentro de `SUMA`. Un token con forma de celda (`B12`, `$A$1`) que no sea un nodo es `referencia_a1`.
 - **Un literal es una `constante`** con su valor en `params`, de formato `pct` si se escribió con `%` o se usó donde va un porcentaje, y `raw`
-  si no. `4%` corre el punto en el TEXTO (`4e-2`), no divide el doble entre 100: `0.1%` es el doble de `0.001`. Un número que no cabe en un
-  doble es `numero_fuera_de_rango`; −0 se guarda como 0. Escrito solo (`=100`), el literal es la propia fila, una `constante`.
+  si no. `4%` corre el punto en el TEXTO (`4e-2`), no divide el doble entre 100: `0.1%` es el doble de `0.001`. **Un número que no cabe es
+  `numero_fuera_de_rango`**, y no cabe si pasa del doble más grande (`1e999`) o si no es cero y se redondea a 0 (`1e-400`, `2e-324`, o `0.`
+  con 400 ceros y un 1, que sería un 0 aceptado en silencio): vale el doble más cercano, como `Number()`, y el menor subnormal (`5e-324`)
+  cabe. Una mantisa de puros ceros es 0 con el exponente que sea (`0e999999999`). Con `%` el tramo del error incluye el signo y el `%`, y
+  **el número tal como se escribe tiene que caber solo**: `1e309%` no cabe aunque valga 1e307, porque se mide antes de ver el `%`. **Los
+  ceros a la izquierda se aceptan** (`00` vale 0, `01` vale 1, `007.50` vale 7,5, `01e2` vale 100): no hay octales, y el Excel hace lo
+  mismo. −0 se guarda como 0. Escrito solo (`=100`), el literal es la propia fila, una `constante`.
 
 ### Cómo se arma el grafo
 
