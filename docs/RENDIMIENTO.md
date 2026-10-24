@@ -1284,3 +1284,38 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **`medir-bajas.sql` pasó** en la corrida completa de `db:medir:volumen` (5a-42 no apareció): 9 corridas del job y 40 lotes, 14.357,4 ms en
   total y 1.846,9 ms la corrida más larga, a las 19:11 y con carga 1,7. La primera corrida completa no llegó a `medir-bajas.sql`: cayó antes,
   en `medir-evaluar.sql`, por la aserción de buffers totales que se reemplazó (arriba). No se tocó ni se subió ningún tope.
+
+## Paso 4.08 (1 de 3): `validar_diseno()` con unos 200 y unos 2.000 ítems (2026-10-24)
+
+- **Cómo se mide:** como `validar_formula()` (4.05-4): `EXPLAIN (ANALYZE, BUFFERS)` como `authenticated`, en el Supabase local
+  (Postgres 17), la mediana de 5 corridas de 7, sobre una subconsulta con `offset 0`.
+- **Los diseños:** los de `disenoSintetico()` (`entities/diseno-sintetico.ts`), volcados a `supabase/tests/corpus-de-diseno.json` ›
+  `sinteticas`. Son 206 y 2.018 ítems (255 y 2.487 nodos de la fórmula): celdas de pares con su porcentaje, tablas con atajos,
+  subtotales, banderas con su interruptor, secciones con niveles, modos y grupos con tonos.
+- **Dónde corre:** `supabase/tests/medir-validar-diseno.sql`, en `pnpm db:medir`.
+- **Tres formas de llamar:** con los argumentos como literales (0 buffers); de una columna `storage external` (fuera de línea y sin
+  comprimir), donde los buffers son los del TOAST y crecen con lo que la función relee; y de una columna comprimida (la que tendrá
+  `formulas.diseno`), contra los literales.
+
+| Medición                                           | 1.ª (carga 3,2) | 2.ª (2,2) | 3.ª (1,6) | 4.ª (1,1) | `pnpm db:medir` (0,9) | Tope  |
+| -------------------------------------------------- | --------------- | --------- | --------- | --------- | --------------------- | ----- |
+| 206 ítems, ms                                      | 4,84            | 4,87      | 4,77      | 4,77      | **4,8**               | 15    |
+| 2.018 ítems, ms                                    | 44,61           | 44,98     | 43,86     | 44,30     | **44,3**              | 136   |
+| 2.018 ÷ 206 (ms)                                   | 9,22            | 9,23      | 9,20      | 9,28      | **9,3**               | 12    |
+| Columna externa, 206 ítems, buffers (5 corridas)   | 265             | 265       | 265       | 265       | **265**               | 320   |
+| Columna externa, 2.018 ítems, buffers              | 1.665           | 1.665     | 1.665     | 1.665     | **1.665**             | 2.000 |
+| Columna externa, 2.018 ÷ 206 (buffers)             | 6,28            | 6,28      | 6,28      | 6,28      | **6,3**               | 12    |
+| Columna comprimida ÷ literales (2.018 ítems)       | 1,02            | 1,02      | 1,02      | 1,00      | **1,0**               | 1,5   |
+| Guarda: búsqueda lineal por ítem (veces, ms)       | 18,06           | 18,38     | 17,20     | 18,01     | **18,5**              | > 12  |
+| Guarda: `p_def` releído por grupo (veces, buffers) | 56,72           | 56,72     | 56,72     | 56,72     | **56,7**              | > 12  |
+
+- **Buffers con literales: 0 en todas las medidas** (shared, local y temp). La función no toca tablas.
+- **Los topes de ms son la mayor mediana de las 4 corridas × 3** (4,87 → 15 y 44,98 → 136); los de buffers, lo medido + 20 % (265 → 320
+  y 1.665 → 2.000): los bloques no dependen de la máquina. La razón ≤ 12 la fija el pedido. Sin presión de disco ni de CPU (≤ 0,3 %).
+- **Un diseño de 2.000 ítems cuesta 44 ms:** unos 20 µs por ítem, y la mitad de lo que cuesta `validar_formula()` con 2.000 nodos (78 ms).
+  Corre al publicar, no al cotizar.
+- **La columna comprimida cuesta lo mismo que los literales (1,0 veces):** la función desarma `p_def` y `p_diseno` un número fijo de veces
+  al entrar, y los ayudantes reciben las partes ya desarmadas.
+- **Las guardas muerden, en el mismo archivo:** una copia de `_diseno_secciones()` con `array_position(p_ids, …)` en lugar del mapa
+  (una búsqueda lineal por ítem) da una razón de ms de 18 (tope 12), y una copia de `validar_diseno()` que relee `p_def` por cada grupo
+  lee 57 veces los buffers de 200 ítems con 2.000. Ninguna pasa la medición; no se subió ningún tope.

@@ -1,0 +1,96 @@
+// Las mediciones de `pnpm db:medir` y `pnpm db:medir:volumen` (`scripts/medir-listado.mjs` las corre): cada una con su título y las
+// corridas que hay detrás de su número, y los datos del repo que la base no puede leer y se le pasan en una tabla temporal.
+// Cada medición dice cuántas corridas hay detrás de su número: la mediana de 5 (las consultas) o una sola (la importación, los jobs y la
+// baja: gastan lo que miden, no se repiten).
+export const MEDIANA = 'mediana de 5 corridas'
+export const UNA = 'una corrida'
+export const MEDICIONES_BASE = [
+  ['supabase/tests/medir-listado.sql', 'Listado de leads, 2.000 leads sintéticos', MEDIANA],
+  [
+    'supabase/tests/medir-embudo.sql',
+    'Kanban de oportunidades, 2.000 leads y 10.000 oportunidades',
+    MEDIANA,
+  ],
+  [
+    'supabase/tests/medir-importacion.sql',
+    'Importación de leads, 500 filas en lotes de 50 sobre 22.000 filas de actividad',
+    UNA,
+  ],
+  [
+    'supabase/tests/medir-volumen.sql',
+    'Listas de un lead, 20.000 seguimientos y 5.000 recordatorios (con la forma del plan asertada)',
+    MEDIANA,
+  ],
+  [
+    'supabase/tests/medir-validar-formula.sql',
+    'validar_formula() con una fórmula sintética de 200 y de 2.000 nodos, como authenticated (ms y buffers del EXPLAIN)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-validar-diseno.sql',
+    'validar_diseno() con un diseño sintético de unos 200 y de unos 2.000 ítems, como authenticated (ms y buffers del EXPLAIN, con los argumentos como literales y de una columna fuera de línea y comprimida)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-evaluar-formula.sql',
+    'evaluar_formula() con una evaluación sintética de 200 y de 2.000 nodos y con 4 tablas de 1.000 filas, como authenticated (ms y buffers del EXPLAIN)',
+    'mediana de 5 de 7 corridas',
+  ],
+]
+// Las que necesitan el volumen de `pnpm db:sembrar-volumen` (50.000 leads…): aparte, porque la base de
+// la semilla no lo tiene. `pnpm db:medir:volumen`; después, `pnpm db:reset`.
+export const MEDICIONES_CON_VOLUMEN = [
+  [
+    'supabase/tests/medir-escala.sql',
+    'Escala de toda la app, 50.000 leads (dueña «todos» y Ana «propios»)',
+    MEDIANA,
+  ],
+  [
+    'supabase/tests/busqueda-volumen.sql',
+    'La búsqueda por candidatos contra la consulta de siempre: la huella md5 de las filas enteras, en la base real con volumen (ñ, tildes y comodines)',
+    UNA,
+  ],
+  [
+    'supabase/tests/medir-importacion-volumen.sql',
+    'Importar 500 filas en lotes de 50, con 23.000 y con 124.000 filas de actividad (con transacciones de verdad: confirma y borra lo que crea)',
+    UNA,
+  ],
+  [
+    'supabase/tests/medir-equipo.sql',
+    'La lista del equipo con 100.000 personas: buffers leídos por cada etapa de `equipo_lista` (no ms: el plan y las filas que lee, con 10.000 y con 100.000)',
+    UNA,
+  ],
+  [
+    'supabase/tests/medir-rueda.sql',
+    'La rueda de turnos por rol: 500 personas, 60 roles y 50.000 y 200.000 solicitudes (el costo de preguntar al repartir no crece con las solicitudes)',
+    MEDIANA,
+  ],
+  ['supabase/tests/medir-jobs.sql', 'Los jobs con 100.000 filas por purgar (ms por corrida)', UNA],
+  [
+    'supabase/tests/medir-evaluar.sql',
+    'cotizacion_evaluar() con 50.000 y con 250.000 cotizaciones, como authenticated con el permiso de la transacción: 200 llamadas seguidas con el plan genérico (ms y buffers de la llamada entera, de ARMAR y de EVALUAR)',
+    'mediana y p95 de 200 llamadas',
+  ],
+  [
+    'supabase/tests/medir-bajas.sql',
+    'La baja de una persona con 200.000 leads (con transacciones de verdad: confirma y borra lo que crea)',
+    UNA,
+  ],
+]
+
+// Lo que una medición lee del repo: la base no lee archivos, así que se le antepone a la entrada de psql una tabla temporal
+// `<nombre> (doc jsonb)` con una clave de un JSON. Las comillas dólar pasan el texto sin procesar escapes.
+export const DATOS_DE_MEDICION = {
+  'supabase/tests/medir-validar-formula.sql': {
+    _formulas_sinteticas: ['supabase/tests/corpus-de-formula.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-validar-diseno.sql': {
+    _disenos_sinteticos: ['supabase/tests/corpus-de-diseno.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-evaluar-formula.sql': {
+    _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-evaluar.sql': {
+    _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
+  },
+}
