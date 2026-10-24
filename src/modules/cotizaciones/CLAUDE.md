@@ -16,12 +16,13 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 - `entities/validar.ts` (con `validar-contexto.ts`, `validar-grupos.ts`, `validar-variante.ts`, `validar-campos.ts`, `motivos-de-formula.ts` y
   `medidor.ts`) — espejo TS de `validar_formula()`: la forma y 30 reglas cruzadas (`validar-campos.ts` es la última, `campo_con_punto`), lineal y con contador de visitas
   (`docs/COTIZADOR.md` › «Las reglas»).
-- `entities/casos-de-formula.json` — el juego de fórmulas válidas e inválidas con su motivo (una por regla, más las dos del seed, el
-  Excel entero y «Amnistia»): lo recorren `validar.test.ts` y `supabase/tests/validar-formula.sql`. Una regla nueva = su caso acá.
+- `entities/casos-de-formula.json` — el juego de fórmulas válidas e inválidas con su motivo (una por regla, más las tres del seed —«semilla: subasta_usa»,
+  «semilla: planilla_usa» y «semilla: oficina»—, la anterior de `subasta_usa` como «ip generalizado: …», el Excel entero y «Amnistia»): lo recorren `validar.test.ts` y
+  `supabase/tests/validar-formula.sql`. Una regla nueva = su caso acá.
 - `supabase/migrations/20261019004900_validar_formula.sql` — `validar_formula()` y sus ayudantes `_formula_*` (STABLE desde `…005100`): la forma y las 29
   primeras reglas en el orden de `validar.ts`, lineal; rechaza con 22023, el código de la regla en DETAIL y `donde` en HINT. Recorre las
-  claves de un objeto en el orden de jsonb. La 30.ª, `campo_con_punto`, está en `supabase/migrations/20261019005400_validar_formula_campos.sql`, que redefine `validar_formula()` entera (STABLE) y añade `_formula_campos()`; `…005500_formula_texto.sql` redefine `_formula_forma_nodo()` (STABLE) para admitir `texto`. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 87 casos y con
-  el corpus diferencial `supabase/tests/corpus-de-formula.json` (más de 500 mutaciones de las 4 válidas, defectos mezclados, el esperado
+  claves de un objeto en el orden de jsonb. La 30.ª, `campo_con_punto`, está en `supabase/migrations/20261019005400_validar_formula_campos.sql`, que redefine `validar_formula()` entera (STABLE) y añade `_formula_campos()`; `…005500_formula_texto.sql` redefine `_formula_forma_nodo()` (STABLE) para admitir `texto`. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 92 casos y con
+  el corpus diferencial `supabase/tests/corpus-de-formula.json` (más de 500 mutaciones de las 6 válidas, defectos mezclados, el esperado
   de `validarFormula`), que generan `corpus-de-formula.ts` y los `mutadores-*.ts` de esa carpeta y vigila `corpus-de-formula.test.ts`.
 - `entities/diseno.ts` — el Zod del diseño de la hoja (D7, 4.08): `cabecera` (los modos de tipo de cambio y «Ver total Bs»), `secciones[]` con sus
   ítems (`celda`, `atajos`, `variante`, `interruptor`, `subtotal`) y `tarjeta_total`. Declarativo y estricto (nada de CSS, clases, HTML ni hex) y sin
@@ -30,7 +31,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   `validarDiseno(definicion, diseno, contexto)`: la forma y 27 reglas que cruzan el diseño con la fórmula (modos, niveles, ítems, tarjeta,
   atajos, cobertura y tonos), en un orden fijo, lineal y con el contador de `medidor.ts`. El contexto son tres listas: los niveles que existen, los
   retirados y las claves de tono. La definición llega ya validada por `validarFormula()`. Espejo de `validar_diseno()` (abajo).
-- `entities/casos-de-diseno.json` — el juego a mano del diseño (válidos de las capturas, del Excel, de la semilla y de «Amnistia»; cada regla con su
+- `entities/casos-de-diseno.json` — el juego a mano del diseño (válidos de las capturas, del Excel, de la semilla —uno por origen sembrado— y de «Amnistia»; cada regla con su
   caso y uno de orden por pasada): lo recorren `validar-diseno.test.ts` y `supabase/tests/validar-diseno.sql`. `diseno-sintetico.ts` arma los
   diseños de 200 y 2.000 ítems de la prueba de escala y de la medición.
 - `supabase/migrations/20261019005600_validar_diseno.sql` — `validar_diseno(def, diseno, niveles, retirados, tonos)` y sus ayudantes `_diseno_*`
@@ -44,6 +45,13 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   (AA en la base: `_color_contraste()`, copia de `color.ts`; hasta 24; `_tono_en_uso()`); la policy de lectura de `formulas` sólo para `cotizaciones.configurar` y
   `formula_auditar()` (sin la fórmula en `actividad`). Los ayudantes no son de nadie. Lo prueban `supabase/tests/{tonos,publicar-diseno}.sql`, el corpus
   `corpus-de-contraste.json` (lo genera `corpus-de-contraste.ts`), el bloque de la policy de `humo.sql`, `scripts/carreras/tonos.mjs` y `medir-publicar.sql`.
+- `supabase/semillas/cotizador-{subasta-usa,planilla-usa,oficina}.sql`, `…/estadisticas.sql` y `supabase/migrations/20261019006000_preparar_publicacion.sql` (4.08-3;
+  `docs/COTIZADOR.md` › «La semilla (4.08-3)»): las tres fórmulas v1 con su diseño y su `visibilidad` (la de las capturas con los modos Unificado y Paralelo, el Excel entero
+  en `planilla_usa` y `oficina`), sus tablas de referencia generadas de `params.tablas`, y los tipos de cambio `oficial`, `paralelo`, `unificado` y `aduana` de `seed.sql`.
+  Nacen por `_preparar_publicacion()` —el tramo de `_publicar_formula()` que valida la fórmula y el diseño con los niveles y los tonos de la base y compila la visibilidad—
+  y pasan el `check` `formulas_publicada_con_diseno` (en `schemas/`). `config.toml` › `[db.seed] sql_paths` fija el orden y `scripts/probar-schema.mjs` lo lee. Los prueban
+  `entities/semilla.test.ts` (el juego, el diseño, las cifras de las capturas y del Excel contra `evaluar()`) y `supabase/tests/semilla-cotizador.sql` (lo mismo en la base, con
+  `cotizacion_evaluar()`; corre antes que `humo.sql`).
 - `supabase/migrations/20261019005200_evaluar_formula.sql` — `evaluar_formula(definicion, params, entrada, modo?)` y sus ayudantes `_motor_*`: espejo
   exacto de `motor.ts` (los mismos float8, estados, fuentes, totales, faltantes y descartados; errores de llamada 22023 con el código en DETAIL).
   Pura: las tablas vivas llegan en `entrada.tablas`. Desarma sus argumentos una sola vez y lleva el estado por nodo en arreglos. Lo prueban
@@ -112,3 +120,5 @@ RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador
   números.
 - `comprobantes_contadores` es tabla, no sequence: la numeración no puede tener huecos.
 - Office/«oficina» no es un caso especial: es un origen manual con una fórmula de dos nodos.
+- **Cambiar una fórmula del seed = cambiar su caso del juego** (`semilla.test.ts` los compara) **y su diseño**; el transporte sembrado casa `tipo` con el campo `tipo_vehiculo`
+  y es sobrescribible: un tipo que la tabla no tiene (la subasta trae «AUTOMOBILE») da null con su motivo, y el asesor lo tipea.

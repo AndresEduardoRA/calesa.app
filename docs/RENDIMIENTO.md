@@ -1361,3 +1361,29 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **Una trampa del planificador:** con `order by o.nombre limit 1` y la tabla de versiones, la sonda de una clave que nadie usa puede elegir recorrer los
   orígenes por nombre y probar cada versión: 139 y 519 bloques con 200 y 2.000 versiones, y cambia según el orden en que se cargaron. Una CTE `materialized`
   hace que el GIN conduzca (`offset 0` también, pero `escala.sql` lo prohíbe).
+
+## Paso 4.08 (3 de 3): `cotizacion_evaluar()` con la fórmula de las capturas, y la guarda de ARMAR (2026-10-24)
+
+- **Cómo se mide:** `pnpm db:reset`, `pnpm db:sembrar-volumen` y `pnpm db:medir:volumen` (62.000 leads); `supabase/tests/medir-evaluar.sql`, como `authenticated`, con el plan genérico.
+  La fórmula del seed ya no es la de antes: es la de las capturas (47 nodos, con variante, tres tipos de cambio y modos), que congela sus tablas en `params.tablas`.
+- **La fórmula del seed (topes del plan, sin subir: mediana ≤ 10 ms y p95 ≤ 20):**
+
+  | `cotizacion_evaluar()`, fórmula del seed | Con 50.000 cotizaciones | Con 250.000 |
+  | ---------------------------------------- | ----------------------- | ----------- |
+  | por origen, mediana / p95 (ms)           | 2,2 / 2,4               | 2,3 / 2,5   |
+  | por cotización, mediana / p95 (ms)       | 2,3 / 2,4               | —           |
+  | ARMAR por origen, buffers de una llamada | 116                     | —           |
+  | bloques de `cotizaciones` por origen     | 0                       | 0           |
+
+  Con 250.000 sobre 50.000 el p95 es 1,0 veces (tope 1,5). ARMAR lee **116 buffers** y ninguna tabla viva: las cuatro tablas de la fórmula van en `params.tablas`.
+
+- **La guarda de ARMAR** (lee a lo sumo las páginas de las tablas que la fórmula nombra) medía su costo fijo con ARMAR de la fórmula del seed «con 4 tablas casi vacías». La del
+  seed ya no tiene tablas vivas, y el tope habría bajado en lo que cuestan las cuatro búsquedas de tabla (la primera corrida dio 310 contra 309, medido, no
+  supuesto). Ahora el costo fijo sale de un origen de control (`medir_evaluar_fijo`: una fórmula con dos tipos de cambio y 4 tablas vivas de una fila) y **la guarda es la
+  misma**: ARMAR de la sintética lee **272 buffers contra un tope de 321** (costo fijo de 162; antes 303 contra 359 con 195: el costo fijo cambia con lo encogidas que estén
+  las tablas de permisos), y las dos versiones malas leen 1.041 y 12.976 (la guarda muerde).
+- **La siembra de volumen reparte los 10.000 vehículos entre tres orígenes** (antes dos): `subasta_usa` tiene un tercio y no la mitad (`1 + g % total` en `sembrar.sql`). Las guardas del inventario
+  (profundidad de 2.000 y de 11 páginas de 100) siguen en verde.
+- **`medir-bajas.sql`:** la corrida limpia dio 14.265,2 ms con 9 corridas del job y 40 lotes (la corrida más larga, 1.843,9 ms). La primera dio 22.778,8 ms contra un
+  presupuesto de 20.000 con 12 corridas y los mismos 40 lotes, con dos checkpoints que escribieron 26,4 s durante la medición (5a-42: se decide por el trabajo, que no
+  cambió, y la ventana sana pasó). No se tocó ni se subió ningún tope.

@@ -641,8 +641,9 @@ sin cerrar.
 - El asesor puede sobrescribir un tipo de cambio en su cotización si la celda es editable para su nivel (`fuente = override`, ↺).
   - El ⚙ de esa celda es `tipo_cambio_guardar`, que afecta a todos los orígenes, con «Aplicar también a esta cotización».
   - Cambiarlo vuelve «desactualizada» una cotización nueva abierta (D2).
-  - **Falta para el prompt 3:** que `tipos_cambio` tenga las claves que usan los nodos `tipo_cambio` de las fórmulas sembradas (`unificado`,
-    `aduana`). Publicar no lo comprueba (el validador sólo mira que el nodo exista en la fórmula); `cotizacion_evaluar()` lo da como faltante.
+  - **Publicar no comprueba** que `tipos_cambio` tenga la clave de cada nodo `tipo_cambio` (el validador sólo mira que el nodo exista en la fórmula);
+    `cotizacion_evaluar()` lo da como faltante. La semilla (4.08-3) trae `oficial`, `paralelo`, `unificado` y `aduana`, y una prueba comprueba que toda clave que
+    nombra una fórmula sembrada existe.
 - **Un modo** (Aduana, Paralelo, Unificado…) lo declara el diseño, y el elegido se guarda en `cotizaciones.modo_tc` (reemplaza el «por
   bucket / uno solo» de D4).
   - **El motor lo recibe con la misma forma que la fórmula**, completo: `{ buckets: {bucket: id de nodo tipo_cambio}, total_en }`
@@ -705,7 +706,7 @@ nada de CSS, clases, HTML ni hex. Hecho en el paso 4.08, prompt 1.
 - **`cabecera`:** los modos que se ofrecen y si se ofrece «Ver total Bs».
   - **Un modo** es otro `buckets` y otro `total_en`: nombra **nodos `tipo_cambio`** (no claves), igual que la fórmula y que el
     `ModoDeCambio` del motor (una lista en vez de un registro). Llena **exactamente** los buckets de la fórmula.
-  - **No hay modos en una fórmula sin `total_en`** (las dos del seed): con un modo el total pasaría de la suma de los dólares a Bs ÷ tc, y
+  - **No hay modos en una fórmula sin `total_en`** (`oficina`): con un modo el total pasaría de la suma de los dólares a Bs ÷ tc, y
     «un modo es otro mapa, no otra cuenta».
   - Sin `por_defecto`: si no se elige un modo, mandan los de la fórmula.
 - **`secciones[]`, en orden** (el del DOM, de lectura y del `Tab`): `id`, `titulo?` (1 a 80), `presentacion` (`principal` o `avanzado`),
@@ -829,7 +830,7 @@ en DETAIL y `donde` en HINT, por el mismo `_formula_rechazar()`. Un arreglo nulo
 columnas viven en `schemas/07_cotizaciones`.
 
 - **`formulas.diseno` y `formulas.visibilidad`** (jsonb, comprimidas por defecto): nulas sólo en un borrador. **Publicar exige el diseño** (22023,
-  `diseno_faltante`, hint `diseno`). El `check` que lo impone espera al prompt 3: las dos fórmulas del seed todavía no lo traen.
+  `diseno_faltante`, hint `diseno`). El `check` que lo impone (`formulas_publicada_con_diseno`) llegó con la semilla (4.08-3).
 - **Guardar:** `formula_guardar_borrador(origen, definición, params, diseño, nota?)` valida la fórmula (`validar_formula()`) y sólo la **forma** del
   diseño (`_diseno_forma()`): el borrador puede estar a medio camino entre una y otro. `p_diseno` no tiene default (quien se olvida del diseño no lo
   borra en silencio) y la firma de cuatro parámetros se borró. Guardar deja `visibilidad` nula.
@@ -868,6 +869,40 @@ columnas viven en `schemas/07_cotizaciones`.
 - **Pruebas:** `supabase/tests/tonos.sql`, `publicar-diseno.sql` (la `visibilidad` del diseño de las capturas con «costos», calculada a mano) y el
   bloque de la policy en `humo.sql`; las carreras de `scripts/carreras/tonos.mjs` (eliminar contra publicar en los dos órdenes, publicar contra
   publicar, ⚙ contra ⚙); la medición `medir-publicar.sql` (`docs/RENDIMIENTO.md`).
+
+### La semilla (4.08-3)
+
+El seed deja tres fórmulas publicadas (v1, nota «Fórmula inicial»), cada una con su diseño y su `visibilidad` compilada, en `supabase/semillas/cotizador-*.sql`
+(`config.toml` › `[db.seed] sql_paths` fija el orden: `seed.sql`, las tres fórmulas, `estadisticas.sql`). Nacen por el camino de publicar:
+`_preparar_publicacion(def, params, diseno, ignorar_retirados)` (migración `…006000`) es el tramo de `_publicar_formula()` que toma los tonos de los grupos, lee el
+catálogo y los niveles, valida la fórmula y el diseño completo y devuelve `_compilar_visibilidad()`; el seed la llama y guarda lo que devuelve. Un diseño sembrado
+inválido tumba el seed con la regla y su `donde`.
+
+| Origen                            | Fórmula y diseño                                                                                                                                                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `subasta_usa` (Subasta EE. UU.)   | `formulas.capturas` de `casos-de-diseno.json`: variante (moto, gasolina, USA → Chile, híbrido), unificado y oficial con los modos **Unificado** y **Paralelo**, la garantía aparte y «Avanzado» del nivel `costos` |
+| `planilla_usa` (Planilla EE. UU.) | el Excel entero («excel: las cuatro cotizaciones…»), sin modos ni celdas de tipo de cambio, y «Avanzado» del nivel `costos`                                                                                        |
+| `oficina`                         | precio acordado − descuento; una sección de dos celdas, sin niveles                                                                                                                                                |
+
+- **Cambios respecto del juego, comprobados por `entities/semilla.test.ts`:** los tonos de los grupos (compra → `verde`, logística → `amarillo`, aduana → `naranja`, del
+  catálogo sembrado) y, en `subasta_usa`, el GA al **5 %** (captura 02, «GA 5 % = 57,75»). `planilla_usa` conserva el 10 % del Excel. La fórmula anterior de `subasta_usa`
+  sigue en los juegos como «ip generalizado: la v1 del seed hasta el 4.08».
+- **Tipos de cambio** (`seed.sql`): `oficial` 11,68 (el por defecto), `paralelo` 12,20, `unificado` 12,20 y `aduana` 11,68. Los 9,73 y 10 del Excel no se siembran: para
+  reproducir sus totales se sobrescriben `tc_oficial` y `tc_paralelo`.
+- **Tablas de referencia:** las cuatro de cada fórmula con tablas (`depreciacion`, `transporte_usa_bolivia`, `transporte_usa_chile`, `comision_por_variante`) se
+  congelan en `params.tablas` y las vivas se generan **de ese mismo JSON**. El transporte es el del Excel (oficina / cliente; ATV y motos, nulas) y el nodo (`sobrescribible`)
+  lee `cliente` casando `tipo` con el campo `tipo_vehiculo` del vehículo. Sin vehículo da null con `campo_sin_valor`; con un tipo que la tabla no tiene (la subasta trae
+  «AUTOMOBILE», no `autos`), null con `fila_sin_coincidencia`; en los dos casos se tipea y el total deja de ser null.
+- **El check:** `formulas_publicada_con_diseno` (`schemas/07_cotizaciones`): `estado = 'borrador' or (diseno is not null and visibilidad is not null)`. Cubre las archivadas.
+- **Las anclas** (a mano, `docs/referencias/`), en `supabase/tests/semilla-cotizador.sql` (con `cotizacion_evaluar()`, y el modo armado desde el diseño sembrado) y en
+  `entities/semilla.test.ts` (con `evaluar()`):
+  - captura 02, Unificado, la póliza tipeada en 1.201: 1.200 × 12,2 + 1.201 × 11,68 = **28.667,68 Bs**, ÷ 12,2 = **$2.350**; con la póliza calculada por «Avanzado»
+    (CIF 1.155, GA 57,75, IVA 181,18485, ICE 181,9125) la nacionalización es 1.200,84735 y el total 28.665,897048 Bs;
+  - captura 09 (un híbrido, el unificado sobrescrito a 12, el transporte de 3.700 de la fila `vagonetas_grandes`): **875.418,08 Bs**, **$72.952** y la garantía **5.925**;
+  - el Excel, con 9,73 y 10: la moto **16.826,354**, la gasolina **43.756,416** (transporte 3.600 de la fila), el híbrido **61.710,6** y Chile **20.157,6** (3.300);
+  - `oficina`: 25.000 − 1.500 = **23.500** y × 12,20 = 286.700 Bs.
+- **Pruebas:** `semilla-cotizador.sql` corre **antes** de `humo.sql` (mira el seed sin tocar: el humo publica la v2 de `subasta_usa` con el ⚙ y cambia el oficial) y crea su
+  persona dentro de una transacción que se revierte (el humo exige que su dueña sea la primera cuenta). 18 mutaciones, las 18 caen (`docs/DECISIONES.md`, 2026-10-24, «Paso 4.08 (3 de 3)»).
 
 ## Niveles de acceso (D7, H3 y H4)
 

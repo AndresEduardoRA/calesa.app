@@ -1588,3 +1588,73 @@ veces lo de 200 (el tope es 12): la guarda cae.
 `_niveles_de_cotizacion()`, `_nivel_en_uso()` y **4-9**; para el 4.10, lo que `visibilidad` no cubre; para el 4.20, **4-8**.
 
 **Lo que no se hizo:** la semilla de diseños, de tipos de cambio y de transporte (prompt 3), `cotizaciones_niveles` y sus permisos (4.09), push ni `next upgrade`.
+
+## 2026-10-24 — Movido de ESTADO (4.08-3)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente» y, de «Funcionando», «Último Nivel 2 (escritorio), el paso 4.08 prompt 2: 666 en verde, 16 saltados, 0 fallos, 24,8 min.»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.08, prompts 1 y 2 de 3**. El 1 (`55ddabd`, `8c1a0e4`, `9fafed0`, `589b090` y el remiendo 4-7, `16a2c69`): el Zod del diseño, `validarDiseno()` y `validar_diseno()` (27 reglas, un juego de 225 casos, un corpus de 784). El 2 (`ef73f33`, `0398774` y `fb1ec21`): `formulas.diseno` y `visibilidad` (publicar exige el diseño, lo valida con los niveles de `_niveles_de_cotizacion()` y los tonos de la tabla, y compila la visibilidad por nodo), el catálogo de **tonos** (AA en la base, hasta 24, sembrado), un tono o un nivel que una versión nombra no se elimina, y `formulas` sólo para `cotizaciones.configurar` (la auditoría ya no copia la fórmula a `actividad`). **Falta el prompt 3** (los tipos de cambio nuevos, la semilla de diseños y el transporte). Antes: **4.07** entero, **4.06**, **4.05**, **4.04** a **4.01**; **4-4**, **4-5**, **4-6**, **4-8** y **4-9** siguen abiertos. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24, «movido de ESTADO», 4.08-1 y 4.08-2).
+
+1. **4.08, prompt 3 de 3** (los tipos de cambio `unificado` y `aduana`, dos diseños en la semilla y el transporte) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.08-2: publicar **exige el diseño** y las dos publicadas del seed no lo traen (su ⚙ falla hasta que la semilla se lo dé); con ellas entra el `check (estado = 'borrador' or (diseno is not null and visibilidad is not null))`; los grupos que se siembren nombran `amarillo`, `verde` y `naranja` (o crean los suyos con `tono_crear`); `tipos_cambio` tiene que traer las claves de los nodos `tipo_cambio` (publicar no lo comprueba); un modo sólo existe en una fórmula con `total_en` (las del seed no, así que sus diseños no llevan modos). Del 4.07-2: un campo del vehículo es una columna o la clave de un campo del origen, **sin puntos**; la fila que guarda el editor (4.21) es `{ ...raíz compilada, texto }`; las `entradas` de `cotizacion_evaluar()` sólo llevan `inputs`, `banderas`, `overrides` y `variante`. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`. Para el 4.09: `_niveles_de_cotizacion()` es el único cuerpo que cambia, `nivel_eliminar` llama a `_nivel_en_uso()` y **4-9**; para el 4.10: `visibilidad` no cubre los subtotales por grupo ni las tablas de referencia.
+
+## 2026-10-24 — Paso 4.08, prompt 3 de 3: la semilla del cotizador
+
+**Horas** (hora de La Paz): el Nivel 2 empezó a las 11:02 y terminó a las 11:28 (el primer intento, a las 11:01, se detuvo en `next build` por el aviso de seguridad de
+la versión de Next, antes de correr un solo e2e, y se repitió una vez; lo mismo pasó una vez con los e2e dirigidos del celular); `827ab95` y `6004ec1` y este cierre son de
+después. Decisiones cw a de: `docs/DECISIONES.md`, 2026-10-24, «Paso 4.08 (3 de 3)».
+
+**Qué se hizo** (tres commits; el 3.º es este cierre):
+
+- **`827ab95` — el esquema y la semilla.** `…006000_preparar_publicacion.sql` (`_preparar_publicacion()`: el tramo de `_publicar_formula()` que valida la fórmula y el diseño y
+  compila la visibilidad; publicar la llama), el `check` `formulas_publicada_con_diseno` en `schemas/` (y la base regenerada), `seed.sql` (los cuatro tipos de cambio, el origen
+  `planilla_usa`, el bloque de fases que ahora recorre los dos de subasta) y `supabase/semillas/` (las tres fórmulas con su diseño y sus tablas, y las estadísticas), con el orden en
+  `config.toml` y `scripts/probar-schema.mjs` leyéndolo (y `SOLO=<archivo>` para correr una prueba suelta).
+- **`6004ec1` — las pruebas.** `semilla.test.ts`, `semilla-cifras.test.ts` (con `semilla-lectura.ts`) y `semilla-cotizador.sql` (primero en la lista, antes del humo); los juegos
+  (92 fórmulas, 227 diseños) y los tres corpus regenerados; las pruebas que insertaban una versión publicada a mano; `humo.sql`; `medir-evaluar.sql`; y el e2e de tipos de cambio.
+
+**Del plan, tal como se aprobó** (lo que la persona resolvió antes de empezar): el origen del Excel es `planilla_usa`, de tipo subasta y último en el orden; las tres fórmulas son las del
+juego con los tonos del catálogo y, en `subasta_usa`, el GA al 5 % de la captura 02; «Avanzado» es del nivel `costos`; los tipos de cambio son los de las capturas, y la aduana
+nace en 11,68 (la respuesta de la persona, porque ninguna captura la muestra); el transporte son las dos tablas por ruta del Excel (la otra opción era una sola tabla `transporte_por_ruta`).
+
+**Lo que se corrigió al implementar:**
+
+- **La guarda de ARMAR de `medir-evaluar.sql` dio 310 contra un tope de 309.** Su costo fijo salía de ARMAR de la fórmula del seed «con 4 tablas casi vacías»; la nueva congela sus tablas y no
+  lee ninguna viva, así que el tope bajó en lo que cuestan las cuatro búsquedas. No se subió el tope: el costo fijo sale ahora de un origen de control con una fórmula de 4 tablas vivas
+  de una fila (`medir_evaluar_fijo`), que es lo que se medía. Corrida limpia: 272 contra 321 (antes 303 contra 359), y las dos versiones malas, 1.041 y 12.976.
+- **La primera corrida de `medir-bajas.sql` dio 22.778,8 ms contra 20.000** (12 corridas del job y 40 lotes, con dos checkpoints que escribieron 26,4 s): es 5a-42. La corrida limpia
+  (`db:reset`, siembra y medición otra vez) dio 14.265,2 ms con 9 corridas y los mismos 40 lotes. La segunda corrida de una base sucia (con los leads que dejan las mediciones de
+  importación) falló en `medir-escala.sql` con N = 262.000: se resetea antes de repetir. Ningún tope se tocó.
+- **`semilla.test.ts` pasaba de 300 líneas y una función de 80:** se partió en `semilla.test.ts` (el juego, el diseño y los tipos de cambio), `semilla-cifras.test.ts` (las cifras) y
+  `semilla-lectura.ts` (lo que comparten).
+- **El orden de los orígenes lo asserta `order by orden, clave` y su valor (2), no sólo el orden:** con el `orden` de `planilla_usa` en 0 el desempate era un azar (la mutación M12 lo mostró).
+- **`semilla-cotizador.sql` crea su persona dentro de una transacción que se revierte** y corre antes del humo: el humo exige que su dueña sea la primera cuenta de la base y publica la v2 de
+  `subasta_usa`, así que lo sembrado hay que mirarlo antes.
+
+**Mutaciones: 18, y las 18 caen** (respaldo en el scratchpad, mutar, correr, `cp` y `cmp`; dos veces, antes y después de partir la prueba de TypeScript):
+
+| Grupo                            | Mutaciones | Caen | Qué se rompe                                                                                                                                                     |
+| -------------------------------- | ---------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| El check y el camino de publicar | 4          | 4    | el `check` en `schemas/` (y la base), un diseño sembrado inválido (sin su variante), la visibilidad escrita a mano, `_preparar_publicacion` sin `validar_diseno` |
+| Tipos de cambio                  | 4          | 4    | `unificado` en 12,3, `oficial` y `aduana` en 6,96, sin `aduana`                                                                                                  |
+| La fórmula y las tablas          | 6          | 6    | el GA al 10 %, una fila viva de transporte menos, un precio de Chile, el transporte sin `sobrescribible`, los tonos cruzados, el `total_en` del modo             |
+| El diseño y los niveles          | 2          | 2    | «Avanzado» sin su nivel `costos`, un nivel en `oficina`                                                                                                          |
+| El origen nuevo                  | 2          | 2    | el `orden` en 0, el tipo `manual`                                                                                                                                |
+
+**Cifras** (`docs/RENDIMIENTO.md`): la fórmula de las capturas por `cotizacion_evaluar()` tarda 2,2 ms de mediana y 2,4 de p95 con 50.000 cotizaciones (topes 10 y 20), ARMAR lee 116 buffers y ningún
+bloque de `cotizaciones`; con 250.000, 2,3 y 2,5.
+
+**Verificación (Nivel 2):** `pnpm lint`, `pnpm typecheck`, `pnpm test` (3.887 pruebas, 347 archivos), `pnpm db:reset`, `pnpm db:types`, `pnpm db:probar` (322 bloques),
+`pnpm db:lint` (sin errores; los avisos de siempre, ninguno de `_preparar_publicacion`), `pnpm db:carreras` (en verde, 9,9 s), `bash scripts/mapa.sh --check`, y `db:sembrar-volumen` con
+`db:medir:volumen` (en verde, tras repetirla en una base limpia). Dirigido al celular: `e2e/empresa.spec.ts`, `empresa-guardado`, `empresa-tipos-cambio-guardado` y
+`barra-superior-celular`, 12 en verde.
+**e2e completo: sí (4.08-3, escritorio): 666 en verde, 16 saltados, 0 fallos, 24,8 min, de las 11:02 a las 11:28 (hora de La Paz).**
+
+**Del entorno:** Next avisa de una vulnerabilidad de su versión en `next build` (se detuvo ahí en el primer intento del e2e completo y del dirigido). No se actualizó ni se tocó
+`package.json`: lo decide la persona.
+
+**Anotado:** para el 4.09, que `cotizaciones_niveles` traiga «costos» (los diseños sembrados de `subasta_usa` y `planilla_usa` lo nombran) y lo de siempre (`_niveles_de_cotizacion()`,
+`_nivel_en_uso()`, **4-9**); **4-10** (el tipo de vehículo que trae la subasta no casa con las filas del transporte) para el 4.14; que el diseño del Excel (`planilla_usa`) no dibuja
+los tipos de cambio, así que sus 9,73 y 10 sólo se tipean en el motor (el editor del diseño, 4.22, puede sumar la sección); y que la siembra de volumen reparte los vehículos entre
+tres orígenes.
+
+**Lo que no se hizo:** `cotizaciones_niveles` y sus permisos (4.09), ninguna interfaz, la lectura recortada por nivel (4.10), subir un tope, `next upgrade` ni empujar.
