@@ -265,6 +265,17 @@ describe('permisos de un nivel de acceso: lo que no se mueve', () => {
     )
   })
 
+  it('ordena por el nombre del nivel y no por su clave', () => {
+    const resultado = catalogoDesde([
+      filaDeNivel('a_ultimo', 'ver', 'Zeta final'),
+      filaDeNivel('z_primero', 'ver', 'Álamo primero'),
+    ])
+    expect(resultado.map((p) => p.clave)).toEqual([
+      'cotizaciones.nivel.z_primero.ver',
+      'cotizaciones.nivel.a_ultimo.ver',
+    ])
+  })
+
   it('es estable: el mismo orden venga como venga', () => {
     const invertido = catalogoDesde(
       [
