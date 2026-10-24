@@ -15,7 +15,8 @@ export const PERSONAS = {
   compartido: '00000000-0000-4000-8000-0000000c0002',
   supervision: '00000000-0000-4000-8000-0000000c0003',
   destino: '00000000-0000-4000-8000-0000000c0004',
-  // Quien configura los leads (los orígenes): leads.configurar, y crea y edita los suyos; y cotizaciones.configurar (carreras/tonos.mjs).
+  // Quien configura los leads (los orígenes): leads.configurar, y crea y edita los suyos; cotizaciones.configurar (carreras/tonos.mjs) y
+  // equipo.roles.gestionar (carreras/niveles.mjs).
   configura: '00000000-0000-4000-8000-0000000c0005',
 }
 
@@ -43,6 +44,20 @@ export async function limpiar(db) {
   await db.query(`delete from public.tipos_seguimiento where nombre like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.origenes where nombre like $1`, [`${PREFIJO}%`]) // sus fórmulas caen con él (carreras/tonos.mjs)
   await db.query(`delete from public.tonos where nombre like $1`, [`${PREFIJO}%`])
+  // Los niveles de acceso de las carreras (carreras/niveles.mjs), después de los orígenes que los nombran. Sus permisos y el nivel se van en la misma
+  // transacción: el trigger diferido pide que un nivel tenga sus dos permisos al cerrar. Sus concesiones caen con los permisos.
+  await db.query('begin')
+  try {
+    await db.query(
+      `delete from public.permisos where nivel_clave in (select clave from public.cotizaciones_niveles where nombre like $1)`,
+      [`${PREFIJO}%`],
+    )
+    await db.query(`delete from public.cotizaciones_niveles where nombre like $1`, [`${PREFIJO}%`])
+    await db.query('commit')
+  } catch (e) {
+    await db.query('rollback')
+    throw e
+  }
   await db.query(`delete from public.lotes_papelera where creado_por = any ($1::uuid[])`, [
     personas,
   ])
@@ -114,6 +129,8 @@ export async function sembrar(db) {
     'leads.crear',
     'leads.editar',
     'cotizaciones.configurar',
+    // Crea, renombra, retira y elimina niveles de acceso (carreras/niveles.mjs).
+    'equipo.roles.gestionar',
   ]) {
     await db.query(
       `insert into public.roles_permisos (rol_id, permiso_clave, alcance) values ($1, $2, 'todos')`,
