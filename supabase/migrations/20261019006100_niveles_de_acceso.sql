@@ -400,9 +400,11 @@ begin
      where v_ver and (e.value ->> 'ver') is not null
        and ((e.value ->> 'ver') = 'todos' or ('cotizaciones.nivel.' || (e.value ->> 'ver') || '.ver') = any (v_claves))
     union all
-    select n ->> 'id', false
-      from jsonb_array_elements(v_def -> 'nodos') n
-     where v_cfg and not (v_vis ? (n ->> 'id'));
+    -- Una resta de conjuntos y no `v_vis ? id` por nodo: un jsonb que llega como puntero TOAST se vuelve a leer entero en cada operador (cuadrático).
+    select s.id, false from (
+      select n ->> 'id' as id from jsonb_array_elements(v_def -> 'nodos') n where v_cfg
+      except
+      select k from jsonb_object_keys(v_vis) k) s;
 end;
 $$;
 revoke all on function public._nodos_visibles(uuid) from public, anon, authenticated;
