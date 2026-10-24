@@ -237,13 +237,15 @@ do $$ declare v uuid; sin_fase uuid; f_sub uuid; f_comp uuid; pre jsonb; h bigin
 end $$;
 reset role;
 -- el asesor cotiza y la dueña cierra la final; el vehículo queda vinculado al lead
+-- La asesora ya no lee `formulas` (sólo cotizaciones.configurar): el id de la publicada se lo pasa quien la lee.
+select set_config('humo.formula_subasta', (select f.id::text from public.formulas f join public.origenes o on o.id = f.origen_id where o.clave = 'subasta_usa' and f.estado = 'publicada'), false);
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 set role authenticated;
 do $$ declare v uuid; l uuid; o uuid; f uuid; c uuid; begin
   select id into v from public.vehiculos where lote = '58741223';
   select id into l from public.leads_vista where nombre = 'Ana Quispe';
   select id into o from public.origenes where clave = 'subasta_usa';
-  select id into f from public.formulas where origen_id = o and estado = 'publicada';
+  f := current_setting('humo.formula_subasta')::uuid;
   insert into public.cotizaciones (origen_id, lead_id, vehiculo_id, creado_por, formula_id, valores, tipos_cambio, totales, total_base)
   values (o, l, v, '00000000-0000-0000-0000-000000000004', f, '{"remate": 14200, "total": 24980}', '{"oficial": 6.96, "paralelo": 12.40}', '{"total_base": 24980}', 24980) returning id into c;
   update public.cotizaciones set notas = 'ajuste' where id = c;
@@ -343,6 +345,10 @@ do $$ begin
 end $$;
 
 -- @test fórmula: cambiar una constante desde el ⚙ publica v2 y archiva v1
+-- La semilla de las fórmulas todavía no trae diseño (es del prompt 3 del 4.08): la publicada recibe el de `subasta_usa` del juego de
+-- casos-de-diseno.json, que es el que sembrará, y el ⚙ lo copia a la v2 y vuelve a validarlo.
+update public.formulas set diseno = $d${"cabecera":{"modos":[],"ver_total_bs":false},"secciones":[{"id":"valor","titulo":"Valor","presentacion":"principal","items":[{"tipo":"interruptor","nodo":"es_hibrido","efecto":"habilita"},{"tipo":"celda","nodo":"remate","ancho":"completo"},{"tipo":"celda","nodo":"fob_tabla","ancho":"completo"},{"tipo":"celda","nodo":"factor_dp","ancho":"mitad"},{"tipo":"celda","nodo":"fob_base","ancho":"mitad"},{"tipo":"celda","nodo":"seguro","ancho":"mitad","secundario":"porcentaje"},{"tipo":"celda","nodo":"flete","ancho":"tercio"},{"tipo":"celda","nodo":"gastos_puerto","ancho":"tercio"},{"tipo":"celda","nodo":"gastos_garaje","ancho":"tercio"},{"tipo":"celda","nodo":"utilidad","ancho":"completo"},{"tipo":"subtotal","nodo":"cif"}]},{"id":"impuestos","titulo":"Impuestos","presentacion":"principal","items":[{"tipo":"celda","nodo":"ga","ancho":"tercio","secundario":"porcentaje"},{"tipo":"celda","nodo":"iva","ancho":"tercio","secundario":"porcentaje"},{"tipo":"celda","nodo":"ice","ancho":"tercio","secundario":"porcentaje"},{"tipo":"celda","nodo":"poliza","ancho":"completo"}]},{"id":"origen","titulo":"Origen","presentacion":"principal","items":[{"tipo":"celda","nodo":"fees","ancho":"mitad","secundario":"porcentaje"},{"tipo":"celda","nodo":"transferencia","ancho":"mitad","secundario":"porcentaje"},{"tipo":"celda","nodo":"grua","ancho":"mitad"},{"tipo":"celda","nodo":"transporte","ancho":"mitad"},{"tipo":"celda","nodo":"comision","ancho":"mitad"},{"tipo":"celda","nodo":"documentacion","ancho":"mitad"},{"tipo":"celda","nodo":"costo_hibrido_base","ancho":"completo"}]},{"id":"aparte","titulo":"Aparte","presentacion":"principal","items":[{"tipo":"celda","nodo":"garantia","ancho":"completo","secundario":"porcentaje"}]}],"tarjeta_total":{"nodo":"total","secundarios":["garantia"]}}$d$::jsonb
+ where estado = 'publicada' and origen_id = (select id from public.origenes where clave = 'subasta_usa');
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 set role authenticated;
 do $$ declare o uuid; f2 uuid; d text; begin
@@ -350,9 +356,10 @@ do $$ declare o uuid; f2 uuid; d text; begin
   f2 := public.formula_cambiar_constante(o, 'flete', 1500);
   if (select version from public.formulas where id = f2) <> 2 or (select estado from public.formulas where id = f2) <> 'publicada' then raise exception 'v2 no publicada'; end if;
   if (select count(*) from public.formulas where origen_id = o and estado = 'archivada') <> 1 then raise exception 'v1 no archivada'; end if;
+  if (select diseno from public.formulas where id = f2) is null or (select visibilidad from public.formulas where id = f2) is null then raise exception 'la v2 no lleva el diseño ni su visibilidad'; end if;
   -- Con la forma completa (con su etiqueta), para que el rechazo sea por la referencia y no por la forma.
   begin
-    perform public.formula_guardar_borrador(o, '{"nodos": [{"id": "a", "tipo": "calculo", "op": "suma", "de": ["zzz"], "etiqueta": "A", "salida": "total"}]}', '{}');
+    perform public.formula_guardar_borrador(o, '{"nodos": [{"id": "a", "tipo": "calculo", "op": "suma", "de": ["zzz"], "etiqueta": "A", "salida": "total"}]}', '{}', null);
     raise exception 'aceptó referencia inexistente';
   exception when invalid_parameter_value then
     get stacked diagnostics d = pg_exception_detail;
@@ -6412,4 +6419,34 @@ begin
   end if;
   begin perform public.avatares_miniaturas_disparar('http://otro.sitio/llevarse-el-pase'); raise exception 'mandó un pase a una dirección que no es la función';
   exception when sqlstate '22023' then null; end;
+end $$;
+
+-- @test fórmulas: sólo las lee quien tiene cotizaciones.configurar, de los orígenes que le tocan (policy «formulas: leer», …005900)
+do $$
+declare v_rol uuid := (select id from public.roles where clave = 'asesor'); v_sub uuid := (select id from public.origenes where clave = 'subasta_usa');
+        v_total int; v_n int; v_otro int;
+begin
+  select count(*) into v_total from public.formulas;
+  select count(*) into v_otro from public.formulas where origen_id <> v_sub;
+  if v_otro = 0 then raise exception 'la prueba necesita una fórmula de otro origen'; end if;
+
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
+  set local role authenticated;
+  select count(*) into v_n from public.formulas;
+  if v_n <> 0 then raise exception 'la asesora lee % fórmulas sin cotizaciones.configurar', v_n; end if;
+  reset role;
+
+  -- Con el permiso de un solo origen: sólo las de ese origen.
+  insert into public.roles_permisos (rol_id, permiso_clave, origen_id) values (v_rol, 'cotizaciones.configurar', v_sub);
+  set local role authenticated;
+  select count(*) into v_n from public.formulas;
+  if v_n = 0 or exists (select 1 from public.formulas where origen_id <> v_sub) then raise exception 'con un origen lee % fórmulas, y de otros orígenes', v_n; end if;
+  reset role;
+  delete from public.roles_permisos where rol_id = v_rol and permiso_clave = 'cotizaciones.configurar' and origen_id = v_sub;
+
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+  set local role authenticated;
+  select count(*) into v_n from public.formulas;
+  if v_n <> v_total then raise exception 'la dueña lee % de % fórmulas', v_n, v_total; end if;
+  reset role;
 end $$;

@@ -2005,6 +2005,7 @@ export type Database = {
           creado_en: string
           creado_por: string | null
           definicion: NonNullable<Json>
+          diseno: Json | null
           estado: Database['public']['Enums']['estado_version']
           id: string
           nota: string | null
@@ -2014,6 +2015,7 @@ export type Database = {
           publicado_por: string | null
           version: number | null
           version_origen_id: string | null
+          visibilidad: Json | null
         }
         ComputedFields: never
         Insert: {
@@ -2021,6 +2023,7 @@ export type Database = {
           creado_en?: string
           creado_por?: string | null
           definicion: NonNullable<Json>
+          diseno?: Json | null
           estado?: Database['public']['Enums']['estado_version']
           id?: string
           nota?: string | null
@@ -2030,12 +2033,14 @@ export type Database = {
           publicado_por?: string | null
           version?: number | null
           version_origen_id?: string | null
+          visibilidad?: Json | null
         }
         Update: {
           actualizado_en?: string
           creado_en?: string
           creado_por?: string | null
           definicion?: NonNullable<Json>
+          diseno?: Json | null
           estado?: Database['public']['Enums']['estado_version']
           id?: string
           nota?: string | null
@@ -2045,6 +2050,7 @@ export type Database = {
           publicado_por?: string | null
           version?: number | null
           version_origen_id?: string | null
+          visibilidad?: Json | null
         }
         Relationships: [
           {
@@ -5613,6 +5619,49 @@ export type Database = {
         }
         Relationships: []
       }
+      tonos: {
+        Row: {
+          actualizado_en: string
+          claro_borde: string
+          claro_fondo: string
+          claro_tinta: string
+          clave: string
+          creado_en: string
+          id: string
+          nombre: string
+          oscuro_borde: string
+          oscuro_fondo: string
+          oscuro_tinta: string
+        }
+        ComputedFields: never
+        Insert: {
+          actualizado_en?: string
+          claro_borde: string
+          claro_fondo: string
+          claro_tinta: string
+          clave: string
+          creado_en?: string
+          id?: string
+          nombre: string
+          oscuro_borde: string
+          oscuro_fondo: string
+          oscuro_tinta: string
+        }
+        Update: {
+          actualizado_en?: string
+          claro_borde?: string
+          claro_fondo?: string
+          claro_tinta?: string
+          clave?: string
+          creado_en?: string
+          id?: string
+          nombre?: string
+          oscuro_borde?: string
+          oscuro_fondo?: string
+          oscuro_tinta?: string
+        }
+        Relationships: []
+      }
       transportes: {
         Row: {
           actualizado_en: string
@@ -6848,10 +6897,14 @@ export type Database = {
         }[]
       }
       _candado_de_objeto: { Args: { p_bucket: string; p_ruta: string }; Returns: number }
+      _color_contraste: { Args: { p_a: string; p_b: string }; Returns: number }
+      _color_luminancia: { Args: { p_hex: string }; Returns: number }
+      _compilar_visibilidad: { Args: { p_def: Json; p_diseno: Json }; Returns: Json }
       _conflicto_de_edicion: {
         Args: { p_cuando: string; p_registro: string; p_sujeto: string; p_tabla: string }
         Returns: undefined
       }
+      _contraste_aa: { Args: { p_razon: number }; Returns: boolean }
       _cotizacion_armar: {
         Args: { p_cotizacion: string; p_entradas: Json; p_origen: string; p_vehiculo: string }
         Returns: {
@@ -7261,6 +7314,9 @@ export type Database = {
       _motor_redondear: { Args: { n: number; x: number }; Returns: number }
       _motor_sin_leer: { Args: { p_quien: string; p_ref: string }; Returns: undefined }
       _motor_sin_validar: { Args: { p_detalle: string; p_donde: string }; Returns: undefined }
+      _nivel_en_uso: { Args: { p_clave: string }; Returns: string }
+      _niveles_de_cotizacion: { Args: Record<PropertyKey, never>; Returns: Record<string, unknown> }
+      _niveles_del_diseno: { Args: { p_diseno: Json }; Returns: Json }
       _oportunidad_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _oportunidad_constancia: {
         Args: {
@@ -7360,6 +7416,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      _publicar_formula: {
+        Args: {
+          p_ignorar_retirados: boolean
+          p_nota: string
+          p_origen: string
+          p_publicada_esperada: string
+        }
+        Returns: string
       }
       _puede_mover: { Args: { p_a: string; p_de: string; p_flujo: string }; Returns: boolean }
       _recordatorio_conflicto: { Args: { p_cuando: string }; Returns: undefined }
@@ -7472,6 +7537,13 @@ export type Database = {
       _tipos_lead_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _tipos_seguimiento_lista: { Args: Record<PropertyKey, never>; Returns: Json }
       _tipos_seguimiento_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _tono_clave: { Args: { p_nombre: string }; Returns: string }
+      _tono_colores: { Args: { p_colores: Json }; Returns: Json }
+      _tono_en_uso: { Args: { p_clave: string }; Returns: string }
+      _tono_nombre: { Args: { p_texto: string }; Returns: string }
+      _tonos_de_grupos: { Args: { p_def: Json }; Returns: Json }
+      _tonos_lista: { Args: Record<PropertyKey, never>; Returns: Json }
+      _tonos_tope: { Args: Record<PropertyKey, never>; Returns: number }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
         Args: {
@@ -7817,7 +7889,7 @@ export type Database = {
       }
       formula_descartar_borrador: { Args: { p_origen: string }; Returns: undefined }
       formula_guardar_borrador: {
-        Args: { p_def: Json; p_nota?: string; p_origen: string; p_params: Json }
+        Args: { p_def: Json; p_diseno: Json; p_nota?: string; p_origen: string; p_params: Json }
         Returns: string
       }
       formula_publicar: {
@@ -8425,6 +8497,12 @@ export type Database = {
       }
       tipos_lead_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       tipos_seguimiento_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
+      tono_crear: { Args: { p_colores: Json; p_id: string; p_nombre: string }; Returns: Json }
+      tono_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      tono_guardar: {
+        Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_id: string }
+        Returns: Json
+      }
       unidad_llego_a_fase: {
         Args: { p_fase: string; p_repuesto: string; p_vehiculo: string }
         Returns: boolean

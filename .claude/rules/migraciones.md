@@ -32,7 +32,8 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   parámetros con default) y rechaza un nulo con un mensaje legible: `_exigir_version()` hace las dos
   cosas. El seed y `humo.sql` pasan la versión real; un nulo «para las pruebas» es un control que no
   existe. Las de crear no la llevan: no hay fila que versionar. Una RPC de lote la lleva por
-  elemento, dentro de su arreglo, y rechaza el elemento que no la trae. Excepción decidida: enviar leads
+  elemento, dentro de su arreglo, y rechaza el elemento que no la trae. Excepción hasta el 4.20: `formula_guardar_borrador` (y con él el ⚙, `docs/PLAN.md`, 4-8).
+  Excepción decidida: enviar leads
   a la papelera (`leads_papelera_enviar`) es todo o nada, sin versión por lead, e idempotente por el id de
   lote que genera el cliente (`docs/DECISIONES.md`, 2026-10-15).
 - Una versión que tiene que moverse en cada operación (también dos en la misma transacción) no usa

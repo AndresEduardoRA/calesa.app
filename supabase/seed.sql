@@ -53,7 +53,7 @@ insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con
   ('cotizaciones.crear', 'cotizaciones', 'Cotizar', 'Crear cotizaciones preventa (por origen)', true, false, 'policy cotizaciones insert', 230),
   ('cotizaciones.editar', 'cotizaciones', 'Editar cotizaciones', 'Editar preventas, adjuntar, comentar (por origen y alcance)', true, true, 'puede_cotizacion', 240),
   ('cotizaciones.final.gestionar', 'cotizaciones', 'Cerrar cotización final', 'Marcar la final de un vehículo y editarla', true, false, 'cotizacion_marcar_final', 250),
-  ('cotizaciones.configurar', 'cotizaciones', 'Configurar el cotizador', 'Fórmulas, constantes, tablas de referencia y plantilla (por origen)', true, false, 'formula_*, plantilla_*, policy tablas_referencia', 260),
+  ('cotizaciones.configurar', 'cotizaciones', 'Configurar el cotizador', 'Fórmulas, constantes, tablas de referencia y plantilla (por origen)', true, false, 'formula_*, plantilla_*, tono_*, policy tablas_referencia', 260),
   ('cotizaciones.moderar', 'cotizaciones', 'Moderar cotizaciones', 'Invalidar, resolver reportes, borrar comentarios ajenos', false, false, 'cotizacion_moderar', 270),
   ('cotizaciones.comprobantes.emitir', 'cotizaciones', 'Emitir comprobantes', 'Emitir y anular comprobantes de venta', false, false, 'comprobante_emitir', 280),
   ('flujos.configurar', 'flujos', 'Configurar el flujo', 'Fases, transiciones, requisitos y reglas del flujo (por origen)', true, false, 'puede_configurar_flujo', 290),

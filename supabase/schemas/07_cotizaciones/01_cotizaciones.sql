@@ -10,6 +10,8 @@ create table public.formulas (
   definicion      jsonb not null,                    -- grafo de nodos (ver docs/COTIZADOR.md); validado por validar_formula()
   params          jsonb not null default '{}'::jsonb, -- {constante: número, …, tablas?: {clave: [filas]}}: las constantes y las filas congeladas (D5)
   nota            text,                              -- obligatoria al publicar
+  diseno          jsonb,                             -- el diseño de la hoja (docs/COTIZADOR.md); nulo sólo en un borrador: publicar lo exige y lo valida con validar_diseno()
+  visibilidad     jsonb,                             -- {nodo: {ver, editar}} con claves de nivel; la compila publicar desde el diseño y es lo único que lee la base; nula en un borrador
   version_origen_id uuid references public.formulas (id) on delete set null,
   creado_por      uuid references public.perfiles (id),
   publicado_por   uuid references public.perfiles (id),
@@ -21,6 +23,28 @@ create table public.formulas (
 create unique index formulas_borrador_unico on public.formulas (origen_id) where estado = 'borrador';
 create unique index formulas_publicada_unica on public.formulas (origen_id) where estado = 'publicada';
 comment on table public.formulas is 'Una serie por origen, append-only. A lo sumo un borrador y una publicada. Publicar archiva la vigente. «Revertir» publica una copia. Escritura sólo por RPC formula_*.';
+-- Los índices formulas_tonos_idx y formulas_niveles_idx (los tonos de los grupos y los niveles del diseño que nombra cada versión) nombran funciones
+-- de la migración …005700 y …005800: viven ahí, no acá.
+
+-- El catálogo de tonos de la empresa: el color de un grupo de la fórmula en la hoja y en la tarjeta, en claro y en oscuro. El diseño y la
+-- plantilla nombran la clave, nunca un hex. Se escribe sólo por tono_crear|guardar|eliminar (cotizaciones.configurar); cada tinta se lee sobre su
+-- fondo con contraste AA (la regla de src/shared/lib/color.ts, copiada en _color_contraste()).
+create table public.tonos (
+  id             uuid primary key default gen_random_uuid(),
+  clave          text not null unique check (clave ~ '^[a-z][a-z0-9_]{0,40}$'),   -- sale del nombre y no cambia: la nombran los grupos de las fórmulas
+  nombre         text not null check (char_length(nombre) between 1 and 40),
+  claro_fondo    text not null check (claro_fondo ~ '^#[0-9a-f]{6}$'),
+  claro_borde    text not null check (claro_borde ~ '^#[0-9a-f]{6}$'),
+  claro_tinta    text not null check (claro_tinta ~ '^#[0-9a-f]{6}$'),
+  oscuro_fondo   text not null check (oscuro_fondo ~ '^#[0-9a-f]{6}$'),
+  oscuro_borde   text not null check (oscuro_borde ~ '^#[0-9a-f]{6}$'),
+  oscuro_tinta   text not null check (oscuro_tinta ~ '^#[0-9a-f]{6}$'),
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()
+);
+create unique index tonos_nombre_unico on public.tonos (lower(btrim(nombre)));
+alter table public.tonos enable row level security;
+comment on table public.tonos is 'Catálogo de tonos de la empresa (claro y oscuro: fondo, borde y tinta). Sólo de lectura para la app: se escribe por tono_*(). Un tono que alguna versión de una fórmula nombra en sus grupos no se elimina.';
 
 create table public.tablas_referencia (
   id         uuid primary key default gen_random_uuid(),
