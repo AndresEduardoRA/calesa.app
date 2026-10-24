@@ -505,7 +505,8 @@ llama a `evaluar_formula()` con lo que armó. `evaluar_formula()` no cambió.
   - **los tipos de cambio:** sólo las claves de los nodos `tipo_cambio`;
   - **un campo del vehículo** (`campo_vehiculo.campo` y los valores de un `match` que no son un nodo) es una columna de `anio`, `marca`,
     `modelo`, `kilometraje` o `precio` o, si no, la clave de un campo **activo del origen del vehículo** (`atributos -> clave`). `atributos.x`
-    no es el nombre de nada: una clave de campo no lleva puntos (`origenes_campos`), así que no llega y la fórmula anota `campo_sin_valor`.
+    no es el nombre de nada: una clave de campo no lleva puntos (`origenes_campos`), así que no llega y la fórmula anota `campo_sin_valor`
+    (desde el 4.07 una fórmula así ni valida: `campo_con_punto`).
     Un booleano, una lista, un texto de más de 200 letras y un número que no cabe en un doble no llegan (la hoja no se rompe por un dato
     del vehículo).
 - **«La primera fila»** es la de menor `orden` y, con el `orden` repetido, la de menor `id`: no depende de cómo se insertaron.
@@ -527,8 +528,8 @@ llama a `evaluar_formula()` con lo que armó. `evaluar_formula()` no cambió.
   `authenticated`, con 50.000 y con 250.000 cotizaciones. La fórmula del seed da una mediana de 2,5 ms y un p95 de 2,8 (topes 10 y 20);
   200 nodos con 4 tablas vivas de 1.000 filas, un p95 de 36 ms (tope 50), de los cuales ARMAR cuesta 7,4 ms y EVALUAR 27,4. No crece con las
   cotizaciones: el p95 con 250.000 es 1,0 veces el de 50.000, y por origen la llamada toca 0 bloques de `cotizaciones`.
-- **Lo que no hace:** recortar por nivel (4.09 y 4.10); revalidar la fórmula; ni que `validar_formula()` rechace un `campo` con punto (4.07,
-  `docs/PLAN.md` › 4-3).
+- **Lo que no hace:** recortar por nivel (4.09 y 4.10); revalidar la fórmula (un `campo` con punto lo rechaza `validar_formula()` desde el 4.07,
+  `campo_con_punto`; `_cotizacion_armar()` lo seguiría ignorando si una fórmula vieja lo trajera).
 
 ## Fórmulas como texto (4.07)
 
@@ -626,7 +627,7 @@ sin cerrar.
 - **Las pruebas:** `casos-del-compilador.json` (a mano: nodos, `params`, tramos y cada código con su posición exacta),
   `compilador-propiedades.test.ts` (2.500 expresiones al azar con semilla fija contra el cálculo directo en JS, bit a bit: un resultado que
   no es finito es null, −0 es 0 y dividir por 0 es null; 0,1+0,2+0,3 y su orden contrario, ±0, ∞ y 1e-300; 6.000 cadenas al azar y 1.500
-  textos válidos con un carácter cambiado que nunca lanzan) y `compilador-escala.test.ts`. Doce de los casos compilados están en
+  textos válidos con un carácter cambiado que nunca lanzan) y `compilador-escala.test.ts`. Trece de los casos compilados están en
   `casos-de-formula.json` como válidos (`compilada: …`), así que `validar_formula()` los compara sola en `pnpm db:probar`;
   `compilador-casos-de-formula.test.ts` los recompila (con el `texto` en la fila raíz, como lo guardará el editor) y exige que el JSON sea igual.
 

@@ -43,7 +43,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   `compilador-funciones.ts` (SUMA, SI, REDONDEAR, PORCENTAJE_DE, DEPRECIAR), `compilador-nombres.ts` (el contexto), `compilador-emitir.ts`
   (los nodos auxiliares `<fila>__<n>`) y `motivos-del-compilador.ts` (los 28 códigos). `HOY()` se rechaza (4-4). La fila que guarda el editor lleva el texto fuente en `texto?` (1 a 2.000 caracteres; sólo `constante` y `calculo`; el compilador no lo lee ni lo escribe). Lo prueban
   `casos-del-compilador.json` (a mano), `compilador-propiedades.test.ts` (contra el cálculo directo en JS, bit a bit) y `compilador-escala.test.ts`;
-  `compilador-generador.ts` y `compilador-formula-de-prueba.ts` son sólo de las pruebas. Doce casos «compilada: …» viven en
+  `compilador-generador.ts` y `compilador-formula-de-prueba.ts` son sólo de las pruebas. Trece casos «compilada: …» viven en
   `casos-de-formula.json` (los recompila `compilador-casos-de-formula.test.ts`).
 - `entities/evaluacion-sintetica.ts` — la evaluación sintética de n nodos (fórmula, tablas y entrada) para medir el motor, con 50 o 1.000 filas por tabla (y `anioInicial` para sembrar su vehículo en la base).
 - `entities/formula-sintetica.ts` — la fórmula sintética de n nodos de las pruebas de escala (`validar-escala.test.ts` y, volcada al

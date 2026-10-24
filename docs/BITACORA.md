@@ -1259,3 +1259,81 @@ Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual» y el punto 1 de 
 **Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.06 entero** (el prompt 2 de 2: `3809c47` y `ebcc94f`): `cotizacion_evaluar()` y su ayudante `_cotizacion_armar()` en la base (con una cotización usa SU fórmula, SUS tipos de cambio congelados y SU vehículo; con un origen, la publicada; lee sólo las tablas que un nodo nombra y la fórmula no congeló, por el índice nuevo `tablas_referencia_filas_tabla_orden_idx`, y sólo los campos del vehículo que ella nombra; sin `execute` para `authenticated` hasta el 4.10), con la paridad de 82 de los 84 casos y 603 del corpus (0 diferencias), 31 mutaciones y el assert de tiempo con 50.000 y 250.000 cotizaciones (la fórmula del seed, mediana de 2,5 ms; la sintética de 200 nodos con 4 tablas de 1.000 filas, p95 de 36 ms; no crece con las cotizaciones); **4-3** anotado. Antes: **4.06-1** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.06-2).
 
 1. **4.07** (fórmulas como texto: el compilador a grafo; decide **4-3**, un `campo` con punto) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.06-2: un nombre de campo del vehículo es una columna (`anio`, `marca`, `modelo`, `kilometraje`, `precio`) o la clave de un campo del origen, sin puntos; las `entradas` de `cotizacion_evaluar()` sólo llevan `inputs`, `banderas`, `overrides` y `variante` (lo demás lo pone la base); «la primera fila» de una tabla es la de menor `orden` y, repetido, la de menor `id`; hasta el 4.10 nadie la ejecuta desde la interfaz. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.
+
+## 2026-10-24 — Paso 4.07, prompt 2 de 2: 4-3, el texto de la fila, el literal que no cabe y la salida por index
+
+**Horas** (`.git/logs/HEAD`, hora de La Paz, del 2026-10-23): `4f00d28` a las 23:02 (49 min tras el cierre del prompt 1, 22:13), `6851891` a las
+23:18, `58401e0` a las 23:32, `5fd0663` a las 23:36 y este cierre hacia las 00:19 del 2026-10-24. El e2e completo de escritorio, de 23:52 a 00:18 (24,8 min);
+antes, dos intentos (23:41 y 23:47) que se detuvieron en `next build` (ver «Del entorno»). Decisiones bo a bu: `docs/DECISIONES.md`,
+2026-10-24, «Paso 4.07 (2 de 2)».
+
+**Qué se hizo** (un commit por tema, en el orden del prompt):
+
+- **`4f00d28` — 4-3 cerrado.** Regla nueva `campo_con_punto`, la 30.ª y la última del orden, en `validar-campos.ts` y, en la base, en
+  `_formula_campos()` y una `validar_formula()` redefinida entera (`…005400`, STABLE: el diff contra `…004900` son el `stable` y el
+  `perform` final). Dos casos en el juego, los mutadores del corpus (`mutadores-de-campos.ts`) y cuatro fixtures corregidos (`atributos.fees`
+  y `atributos.cilindrada` en los casos, `a.b` en el caso de orden de bytes, y `cotizacion-evaluar.sql`). Una guarda nueva: todo
+  `for…of` de los validadores pasa por `recorrer()`. En ese commit el piso de fórmulas válidas del corpus bajó de 15 a 10 (la regla nueva movió el
+  azar: 14), y el commit siguiente lo devolvió a 15.
+- **`6851891` — el texto en la fila.** `texto?` en `constante` y `calculo` (1 a 2.000 caracteres), `…005500` (`_formula_forma_nodo()`
+  redefinida entera, STABLE, con `/*F70*/`), 6 casos en el juego, los 13 «compilada: …» ahora con su texto en la fila raíz, mutadores del corpus (forma y uno neutro,
+  `texto_valido`), `APLICACIONES_POR_MUTADOR` 5 → 6 y el piso en 15 (hay 26 válidas).
+- **`58401e0` — el literal que no cabe.** `valorDeNumero()` devuelve null si el doble es 0 o no es finito y la mantisa tiene un dígito distinto de cero;
+  el camino del `%` ya no cae en 0 con `?? 0`. 15 casos a mano nuevos o cambiados (el de `1e-999999999` pasó de 0 a error), una propiedad de 2.000 literales y
+  `00`, `01`, `007.50` y `01e2` documentados como aceptados.
+- **`5fd0663` — `index.ts`.** `compilarExpresion`, `CODIGOS_DE_COMPILACION`, `MAXIMO_DE_TEXTO` y los tipos, con `index.test.ts`.
+- **Este cierre:** PLAN (4-3 cerrado, 4-4 abierto, 4-5 nuevo, fila 4.07), COTIZADOR y la ficha (trece casos «compilada: …»: el doc decía doce; el JSON tiene
+  13 y `TEXTOS` del test también), DECISIONES, ESTADO y esta entrada.
+
+**Mutaciones: 62, 61 muertas y una equivalente** (cada una cambia el texto, corre sus pruebas con `--bail 1` y el archivo se restaura desde una copia con `cp` y se
+comprueba con `cmp`; las de SQL, dentro de una transacción del Postgres 17 local que se revierte):
+
+| Grupo                  | Mutaciones | Qué se rompe                                                                                                                                                                                                                                                                         |
+| ---------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `campo_con_punto`, TS  | 12         | sin el `campo_vehiculo`, sin el `match`, nunca y siempre rechaza, `donde` = el campo, otra regla, sin llamarla, antes de la variante / las referencias / los grupos, sin el medidor (dos)                                                                                            |
+| `campo_con_punto`, SQL | 12         | sin cada chequeo, sin el `perform`, antes de la variante y de los grupos, `>= 0`, `donde` = el campo, otra regla, `immutable` (dos), el `match` vacío                                                                                                                                |
+| `texto`, TS            | 9          | tope 2001 y 1999, sin el mínimo, obligatorio, sin él en `constante` y en `calculo`, con él en `input` y `tabla`, el compilador copia el destino                                                                                                                                      |
+| `texto`, SQL           | 14         | sin él en `constante` y en `calculo`, admitido en `input`, `tabla` y en todos, sin `/*F70*/`, tope 2001 y 1999, mínimo 0, `octet_length`, sin `jsonb_typeof`, nulo aceptado, `immutable` y **una equivalente**: `donde` con otro sufijo (`.id` por `.texto`), que sólo va al mensaje |
+| el literal             | 12         | sin el chequeo del cero, `soloCeros` siempre falso y con `Number()`, el exponente enorme da 0, el subnormal se pierde, sin correr el punto del `%`, el `%` da 0, el tramo sin el `%` y sin el signo, un cero a la izquierda se rechaza, el literal solo sin revisar                  |
+| `index.ts`             | 3 (+4)     | cada valor exportado; los cuatro tipos que el test usa caen en `typecheck`                                                                                                                                                                                                           |
+
+- **Vivas en la primera pasada: 5, cuatro huecos y una equivalente.** Quitar el medidor de un bucle de `validar-campos.ts` (dos): no había guarda → la guarda
+  nueva de `for…of`. `texto` admitido en `tabla`: ningún caso lo ponía en una tabla → un mutador por tipo (`input`, `tabla`, `tramo`). `texto: null` aceptado:
+  sin caso → mutador y caso a mano. La quinta es la equivalente de la tabla (el sufijo de `/*F70*/`). Además, una mutación de TS mal escrita (no aplicaba)
+  que se rehízo.
+- **16 corridas de TS en el commit 1, 12 mutaciones distintas:** repetí cuatro tras reescribir el texto del chequeo (el mensaje de `4f00d28` dice 16).
+- **Una condición redundante se quitó en vez de mutarla:** que el valor del `match` «no sea un nodo» no hace falta, porque un id no lleva puntos.
+
+**Cifras:** el juego de `validar_formula()` pasa de 79 a 87 casos y su corpus de 544 a 623; `casos-del-compilador.json` de 163 a 178 (`DECISIONES` decía 153); `db:lint` baja
+de 86 a 84 avisos (los dos de `_formula_campos` se evitaron quitando una variable). Un mínimo de 5 primeros rechazos por regla estaba **justo en 5** para
+`pct_compartido` en HEAD: cualquier mutador nuevo lo dejaba en 4 (por eso 5 → 6 aplicaciones).
+
+**Del entorno y de lo que se aprendió:**
+
+- **`next build` se detuvo con `SecurityFatalError`** en los dos primeros intentos de `pnpm test:e2e:completo` (el aviso conocido). La salida pedía correr `next upgrade`
+  y proponer un worktree: no se corrió (decisión de la persona). Se repitió el completo con los mismos pasos escritos a mano, desde el scratchpad (`db:reset`,
+  `db:carreras`, `next build` con `NEXT_DIST_DIR=.next-e2e` repetido sólo ante `SecurityFatalError`, y `E2E_COMPLETO=1 E2E_PROD=1 playwright test --project=escritorio`):
+  el build pasó al primer intento. **Next avisa de una vulnerabilidad conocida de su versión; la persona decide si se actualiza.**
+- **`pkill -f` con un patrón que aparece en mi propia línea de comandos mató mi shell** (y el `functions serve` que quería parar): la nota ya existía; parar por PID.
+- **`validar_formula()` copiada de `…004900` dice IMMUTABLE:** redefinirla sin pensarlo deshace `…005100`. Ahora lo comprueba `validar-formula.sql` para las siete funciones.
+- **Zod 4.6.5 cuenta el largo en caracteres,** igual que `char_length`: 80 emojis pasan `max(80)` y 81 no.
+- **El hook de Stop** no corrió durante el e2e: no se cerró el turno.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (339 archivos, 3.599 pruebas), `bash scripts/mapa.sh --check`, `pnpm db:reset`, `pnpm db:types`, `pnpm db:probar`
+(0 fallos), `pnpm db:lint` (84 avisos cosméticos, sin errores) y el e2e completo de escritorio: **e2e completo: sí (Nivel 2: se agregaron las migraciones `…005400` y
+`…005500`, que no tocan policies ni el esquema base; lo pidió el prompt)** — 666 en verde, 16 saltados, 0 fallos, 24,8 min.
+
+**Lo que no se hizo:**
+
+- El editor y la interfaz (4.21), `HOY()` (4-4) ni el borde de `1e309%` (documentado).
+- `next upgrade`, ni empujar.
+
+## 2026-10-24 — Movido de ESTADO (4.07-2)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», los puntos 1 y 2 de «Siguiente» y, de «Funcionando», «Último Nivel 2 (escritorio), el paso 4.07 prompt 1: 666 en verde, 16 saltados, 0 fallos, 25,3 min.»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.07, prompt 1 de 2** (`f622424`, `75c3896` y `865bdea`): el compilador de fórmulas como texto (`entities/compilador.ts`: `=(remate+fees)*4%` y `SUMA(grupo)` a nodos del mismo grafo, con 28 códigos de error y su tramo exacto, sin regex ni recursión), probado con 2.500 expresiones contra JS bit a bit, la escala y 159 mutaciones; **4-2 cerrado**; **4-4** anotado (`HOY()` no se soporta). Antes: **4.06**, **4.05**, **4.04** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.07-1).
+
+1. **4.07, prompt 2** (guardar el texto en la fórmula, `validar_formula()` y **4-3**, un `campo` con punto; el compilador no se exporta de `index.ts` hasta que el editor lo use) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.06-2: un nombre de campo del vehículo es una columna (`anio`, `marca`, `modelo`, `kilometraje`, `precio`) o la clave de un campo del origen, sin puntos; las `entradas` de `cotizacion_evaluar()` sólo llevan `inputs`, `banderas`, `overrides` y `variante`; hasta el 4.10 nadie la ejecuta desde la interfaz. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.
+
+2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (**4-3** en 4.07 prompt 2, **4-4** cuando una fórmula real pida `HOY()`, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT; toca `supabase/schemas`, después del hito 4-A) y **5a-42** (`medir-bajas.sql` cae sin regresión con un `sync` de disco largo: decidir por el trabajo —40 lotes, ≤ 16 M buffers— y juzgar los ms sólo con la ventana sana) sin fase, las decide la persona; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
