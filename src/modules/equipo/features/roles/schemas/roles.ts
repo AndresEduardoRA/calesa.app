@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CLAVES_PERMISO } from '@/shared/lib/permisos'
+import { esquemaClavePermiso } from '@/shared/lib/permisos'
 import { COLORES_DE_ROL, claveDeRol } from '../../../entities/rol'
 
 const COLORES = COLORES_DE_ROL.map((color) => color.valor)
@@ -28,7 +28,7 @@ export const esquemaEliminarRol = z.object(edicionDeRol)
 
 export const esquemaOtorgar = z.object({
   ...edicionDeRol,
-  clave: z.enum(CLAVES_PERMISO),
+  clave: esquemaClavePermiso,
   // null = todos los orígenes.
   origenId: z.guid().nullable(),
   alcance: z.enum(['propios', 'todos']),
@@ -36,6 +36,6 @@ export const esquemaOtorgar = z.object({
 
 export const esquemaRevocar = z.object({
   ...edicionDeRol,
-  clave: z.enum(CLAVES_PERMISO),
+  clave: esquemaClavePermiso,
   origenId: z.guid().nullable(),
 })

@@ -1,6 +1,7 @@
-// Catálogo de permisos: espejo exacto de la tabla `permisos` que siembra supabase/seed.sql.
+// Catálogo de permisos: espejo exacto de la tabla `permisos` que siembra supabase/seed.sql, más los que genera
+// `nivel_crear()` (`cotizaciones.nivel.<clave>.ver|editar`, uno por nivel de acceso que la empresa crea).
 // Un permiso nuevo es una migración con su policy; acá sólo se agrega la clave.
-// permisos.test.ts lee el seed y falla si las dos listas divergen.
+// permisos.test.ts lee el seed y falla si las dos listas divergen, y comprueba que toda clave que genera la base pasa el patrón de nivel.
 //
 // La UI esconde o deshabilita con `puede()`; quien decide de verdad es la base (RLS y RPC).
 import { z } from 'zod'
@@ -80,7 +81,25 @@ export const CLAVES_PERMISO = [
   'datos.importar.todo',
 ] as const
 
-export type ClavePermiso = (typeof CLAVES_PERMISO)[number]
+// Los permisos de un nivel de acceso de la hoja (D7, paso 4.09) no están en la lista: los crea la empresa al crear un nivel, así que se
+// reconocen por su forma, la misma que el check de `cotizaciones_niveles.clave` (`^[a-z][a-z0-9_]{1,29}$`) y la de `nivel_crear()`.
+// «todos» no genera permisos (usa los de la cotización).
+export type ClaveDeNivel = `cotizaciones.nivel.${string}.${'ver' | 'editar'}`
+
+const PATRON_DE_NIVEL = /^cotizaciones\.nivel\.([a-z][a-z0-9_]{1,29})\.(ver|editar)$/
+const NIVEL_QUE_NO_GENERA_PERMISOS = 'todos'
+
+// La clave del nivel que nombra un permiso de nivel (`cotizaciones.nivel.costos.ver` → `costos`), o null si no lo es.
+export function nivelDeClave(valor: string): string | null {
+  const nivel = PATRON_DE_NIVEL.exec(valor)?.[1]
+  return nivel === undefined || nivel === NIVEL_QUE_NO_GENERA_PERMISOS ? null : nivel
+}
+
+export function esClaveDeNivel(valor: string): valor is ClaveDeNivel {
+  return nivelDeClave(valor) !== null
+}
+
+export type ClavePermiso = (typeof CLAVES_PERMISO)[number] | ClaveDeNivel
 
 export type Alcance = 'propios' | 'todos'
 
@@ -93,7 +112,19 @@ export type Permisos = readonly Concesion[]
 const CONJUNTO: ReadonlySet<string> = new Set(CLAVES_PERMISO)
 
 export function esClavePermiso(valor: string): valor is ClavePermiso {
-  return CONJUNTO.has(valor)
+  return CONJUNTO.has(valor) || esClaveDeNivel(valor)
+}
+
+// Para validar una clave que llega de afuera (una action): la del catálogo o la de un nivel.
+export const esquemaClavePermiso = z.custom<ClavePermiso>(
+  (valor) => typeof valor === 'string' && esClavePermiso(valor),
+  { error: 'Ese permiso no existe.' },
+)
+
+// Los niveles se ordenan por nombre, igual en la pantalla de Niveles y en la matriz de Roles: la base ordena con su colación (en una
+// base de prueba, «Ñ» queda después de «z»), así que el orden que se ve sale de acá y no del `order by`.
+export function compararNombresDeNivel(a: string, b: string): number {
+  return a.localeCompare(b, 'es')
 }
 
 const esquemaFilas = z.array(
@@ -106,7 +137,7 @@ const esquemaFilas = z.array(
 )
 
 // Convierte la respuesta de la RPC `mis_permisos()` en concesiones tipadas. Una clave que la base
-// conoce y este archivo no se descarta: sin su clave en el catálogo nada en la app la consulta.
+// conoce y este archivo no (ni el patrón de un nivel) se descarta: sin su clave en el catálogo nada en la app la consulta.
 export function concesionesDe(filas: unknown): Permisos {
   return esquemaFilas
     .parse(filas)

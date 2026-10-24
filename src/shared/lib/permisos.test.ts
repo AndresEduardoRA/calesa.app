@@ -1,13 +1,19 @@
+// @vitest-environment node
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { PGlite } from '@electric-sql/pglite'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   CLAVES_PERMISO,
   MODULOS_PERMISO,
   alcanceDe,
+  compararNombresDeNivel,
   concesionesDe,
+  esClaveDeNivel,
   esClavePermiso,
+  esquemaClavePermiso,
   moduloDe,
+  nivelDeClave,
   origenesCon,
   puede,
   type Permisos,
@@ -45,6 +51,186 @@ describe('catálogo', () => {
   it('reconoce una clave válida y rechaza una inventada', () => {
     expect(esClavePermiso('leads.ver')).toBe(true)
     expect(esClavePermiso('leads.volar')).toBe(false)
+  })
+
+  it('no lista a mano los permisos de un nivel: los reconoce por su patrón', () => {
+    expect(CLAVES_PERMISO.filter((clave) => clave.startsWith('cotizaciones.nivel.'))).toEqual([])
+    // «costos» lo siembra la migración de los niveles (no el seed): tiene que pasar el patrón.
+    const migracion = readFileSync(
+      path.join(process.cwd(), 'supabase/migrations/20261019006100_niveles_de_acceso.sql'),
+      'utf8',
+    )
+    expect(migracion).toContain("_nivel_permisos_crear('costos'")
+    expect(esClavePermiso('cotizaciones.nivel.costos.ver')).toBe(true)
+    expect(esClavePermiso('cotizaciones.nivel.costos.editar')).toBe(true)
+    expect(moduloDe('cotizaciones.nivel.costos.ver')).toBe('cotizaciones')
+  })
+})
+
+describe('permisos de un nivel de acceso (D7)', () => {
+  it('reconoce la clave del nivel y distingue ver de editar', () => {
+    expect(nivelDeClave('cotizaciones.nivel.gerencia.ver')).toBe('gerencia')
+    expect(nivelDeClave('cotizaciones.nivel.n_2024.editar')).toBe('n_2024')
+    expect(esClaveDeNivel('cotizaciones.nivel.gerencia.editar')).toBe(true)
+  })
+
+  it.each([
+    ['«todos» no genera permisos', 'cotizaciones.nivel.todos.ver'],
+    ['un sufijo que no es ver ni editar', 'cotizaciones.nivel.costos.borrar'],
+    ['un nivel sin nombre', 'cotizaciones.nivel..ver'],
+    ['sin el nivel', 'cotizaciones.nivel.costos'],
+    ['mayúsculas', 'cotizaciones.nivel.Costos.ver'],
+    ['empieza con un dígito', 'cotizaciones.nivel.9costos.ver'],
+    ['empieza con guion bajo', 'cotizaciones.nivel._costos.ver'],
+    ['una sola letra', 'cotizaciones.nivel.a.ver'],
+    ['31 caracteres', `cotizaciones.nivel.${'a'.repeat(31)}.ver`],
+    ['un segmento de más', 'cotizaciones.nivel.costos.extra.ver'],
+    ['con punto en la clave', 'cotizaciones.nivel.cos.tos.ver'],
+    ['con tilde', 'cotizaciones.nivel.dirección.ver'],
+    ['otro módulo', 'leads.nivel.costos.ver'],
+    ['con un espacio al final', 'cotizaciones.nivel.costos.ver '],
+  ])('rechaza %s', (_motivo, clave) => {
+    expect(esClaveDeNivel(clave)).toBe(false)
+    expect(esClavePermiso(clave)).toBe(false)
+    expect(nivelDeClave(clave)).toBeNull()
+    expect(esquemaClavePermiso.safeParse(clave).success).toBe(false)
+  })
+
+  it('el esquema acepta una clave del catálogo y una de nivel, y nada que no sea texto', () => {
+    expect(esquemaClavePermiso.safeParse('leads.ver').success).toBe(true)
+    expect(esquemaClavePermiso.safeParse('cotizaciones.nivel.gerencia.ver').success).toBe(true)
+    expect(esquemaClavePermiso.safeParse(7).success).toBe(false)
+    expect(esquemaClavePermiso.safeParse(undefined).success).toBe(false)
+  })
+
+  it('una concesión de nivel llega a la sesión y una inventada se sigue descartando', () => {
+    const filas = [
+      { clave: 'cotizaciones.nivel.gerencia.ver', origen_id: USA, alcance: 'todos' },
+      { clave: 'cotizaciones.nivel.todos.ver', origen_id: USA, alcance: 'todos' },
+      { clave: 'cotizaciones.nivel.gerencia.borrar', origen_id: USA, alcance: 'todos' },
+    ]
+    const permisos = concesionesDe(filas)
+    expect(permisos).toEqual([
+      { clave: 'cotizaciones.nivel.gerencia.ver', origenId: USA, alcance: 'todos' },
+    ])
+    expect(puede(permisos, 'cotizaciones.nivel.gerencia.ver', USA)).toBe(true)
+    expect(puede(permisos, 'cotizaciones.nivel.gerencia.ver', COREA)).toBe(false)
+    expect(puede(permisos, 'cotizaciones.nivel.gerencia.editar', USA)).toBe(false)
+  })
+
+  it('ordena los nombres con el español, no con la colación de la base', () => {
+    const nombres = ['Ñandú', 'zeta', 'Álamo', 'alfa', 'Costos']
+    expect([...nombres].sort(compararNombresDeNivel)).toEqual([
+      'Álamo',
+      'alfa',
+      'Costos',
+      'Ñandú',
+      'zeta',
+    ])
+  })
+})
+
+// Lo que la base exige de una clave de nivel, leído de sus archivos (no copiado): el check de la tabla y la regla de la clave de un permiso.
+const leerSql = (ruta: string) => readFileSync(path.join(process.cwd(), ruta), 'utf8')
+function reglaDe(archivo: string, desde: string, patron: RegExp): RegExp {
+  const sql = leerSql(archivo)
+  const texto = patron.exec(sql.slice(sql.indexOf(desde)))?.[1]
+  return new RegExp(texto ?? '(no se leyó)')
+}
+const MIGRACION_DE_NIVELES = 'supabase/migrations/20261019006100_niveles_de_acceso.sql'
+const checkDeLaTabla = reglaDe(
+  'supabase/schemas/07_cotizaciones/01_cotizaciones.sql',
+  'create table public.cotizaciones_niveles',
+  /clave\s+text not null unique check \(clave ~ '([^']+)'\)/,
+)
+const reglaDeUnPermiso = reglaDe(
+  'supabase/schemas/02_equipo/01_equipo.sql',
+  'create table public.permisos',
+  /clave\s+text primary key check \(clave ~ '([^']+)'\)/,
+)
+
+const NOMBRES_DIFICILES = [
+  'Gerencia',
+  'Costos',
+  'Ñandú Ción 2',
+  '2024 Costos',
+  '  Dirección   general  ',
+  'ÁÉÍÓÚ üñ',
+  'a-b',
+  'Muy largo '.repeat(4).trim(),
+  'x'.repeat(40),
+  'Compras & Ventas (internas)',
+  '___guiones___',
+  '99',
+  'ab',
+]
+
+// La base es la fuente de las claves de nivel: la misma función SQL (`_nivel_clave()`), los mismos nombres difíciles, y todo lo que
+// devuelve tiene que pasar lo mismo que la base le exige y el patrón de TS.
+describe('contra _nivel_clave() de la base', () => {
+  let db: PGlite
+
+  beforeAll(async () => {
+    const migracion = leerSql(MIGRACION_DE_NIVELES)
+    const inicio = migracion.indexOf('create or replace function public._nivel_clave')
+    const fin = migracion.indexOf('$$;', migracion.indexOf('begin', inicio)) + 3
+    expect(inicio).toBeGreaterThan(-1)
+    db = new PGlite()
+    await db.exec(migracion.slice(inicio, fin))
+  })
+
+  afterAll(async () => {
+    await db.close()
+  })
+
+  async function claveEnLaBase(nombre: string): Promise<string | null> {
+    try {
+      const { rows } = await db.query<{ c: string }>('select public._nivel_clave($1) as c', [
+        nombre,
+      ])
+      return rows[0]?.c ?? null
+    } catch {
+      return null
+    }
+  }
+
+  it('lee las dos reglas de la base', () => {
+    expect(checkDeLaTabla.source).not.toContain('no se leyó')
+    expect(reglaDeUnPermiso.source).not.toContain('no se leyó')
+  })
+
+  it.each(NOMBRES_DIFICILES)(
+    'la clave de «%s» pasa lo que la base exige y el patrón de TS',
+    async (nombre) => {
+      const clave = await claveEnLaBase(nombre)
+      if (clave === null) {
+        // Un nombre sin al menos dos letras o números no da clave: la base lo rechaza, nada que reconocer.
+        expect(nombre.replace(/[^a-zA-Z0-9]/g, '').length).toBeLessThan(2)
+        return
+      }
+      expect(checkDeLaTabla.test(clave)).toBe(true)
+      for (const sufijo of ['ver', 'editar']) {
+        const permiso = `cotizaciones.nivel.${clave}.${sufijo}`
+        expect(reglaDeUnPermiso.test(permiso)).toBe(true)
+        expect(esClaveDeNivel(permiso)).toBe(true)
+        expect(esClavePermiso(permiso)).toBe(true)
+        expect(nivelDeClave(permiso)).toBe(clave)
+      }
+    },
+  )
+})
+
+describe('el patrón de TS es el check de la tabla', () => {
+  it('ninguna clave que la base admite se pierde (menos «todos», que no genera permisos)', () => {
+    const candidatas = ['ab', 'a_', 'a_b', 'costos', 'n_2024', 'a'.repeat(30), 'a1', 'z9_']
+    for (const clave of candidatas) {
+      expect(checkDeLaTabla.test(clave)).toBe(true)
+      expect(esClaveDeNivel(`cotizaciones.nivel.${clave}.ver`)).toBe(true)
+    }
+    for (const clave of ['a', '9a', '_a', 'A', 'a'.repeat(31), 'a.b', 'ñu']) {
+      expect(checkDeLaTabla.test(clave)).toBe(false)
+      expect(esClaveDeNivel(`cotizaciones.nivel.${clave}.ver`)).toBe(false)
+    }
   })
 })
 

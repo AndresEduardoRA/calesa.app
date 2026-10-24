@@ -47,6 +47,21 @@ describe('esquemaOtorgar y esquemaRevocar', () => {
     expect(esquemaRevocar.safeParse({ ...base, clave: 'permiso.inventado' }).success).toBe(false)
   })
 
+  it('también aceptan el permiso de un nivel de acceso, pero no uno mal formado ni el de «todos»', () => {
+    for (const clave of ['cotizaciones.nivel.costos.ver', 'cotizaciones.nivel.gerencia.editar']) {
+      expect(esquemaOtorgar.safeParse({ ...base, alcance: 'todos', clave }).success).toBe(true)
+      expect(esquemaRevocar.safeParse({ ...base, clave }).success).toBe(true)
+    }
+    for (const clave of [
+      'cotizaciones.nivel.todos.ver',
+      'cotizaciones.nivel.costos.borrar',
+      'cotizaciones.nivel.Costos.ver',
+    ]) {
+      expect(esquemaOtorgar.safeParse({ ...base, alcance: 'todos', clave }).success).toBe(false)
+      expect(esquemaRevocar.safeParse({ ...base, clave }).success).toBe(false)
+    }
+  })
+
   it('el origen es un id o nada (todos los orígenes)', () => {
     expect(esquemaOtorgar.safeParse({ ...base, alcance: 'propios', origenId: ROL }).success).toBe(
       true,
