@@ -32,6 +32,11 @@ export const MEDICIONES_BASE = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-publicar.sql',
+    'formula_guardar_borrador() y formula_publicar() con un diseño sintético de unos 200 y de unos 2.000 ítems, como authenticated (ms y buffers del EXPLAIN), la compilación de la visibilidad aislada y las sondas de uso de tonos y niveles con 200 y 2.000 versiones archivadas',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-evaluar-formula.sql',
     'evaluar_formula() con una evaluación sintética de 200 y de 2.000 nodos y con 4 tablas de 1.000 filas, como authenticated (ms y buffers del EXPLAIN)',
     'mediana de 5 de 7 corridas',
@@ -85,6 +90,9 @@ export const DATOS_DE_MEDICION = {
     _formulas_sinteticas: ['supabase/tests/corpus-de-formula.json', 'sinteticas'],
   },
   'supabase/tests/medir-validar-diseno.sql': {
+    _disenos_sinteticos: ['supabase/tests/corpus-de-diseno.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-publicar.sql': {
     _disenos_sinteticos: ['supabase/tests/corpus-de-diseno.json', 'sinteticas'],
   },
   'supabase/tests/medir-evaluar-formula.sql': {
