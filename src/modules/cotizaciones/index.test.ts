@@ -1,13 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ANCHOS,
   CODIGOS_DE_COMPILACION,
   compilarExpresion,
+  EFECTOS_DE_INTERRUPTOR,
+  MAXIMO_DE_ATAJOS,
   MAXIMO_DE_TEXTO,
+  NIVEL_TODOS,
+  PRESENTACIONES,
+  REGLAS_DE_DISENO,
+  SECUNDARIOS,
+  validarDiseno,
+  type CeldaDeDiseno,
   type CodigoDeCompilacion,
   type ContextoDeCompilacion,
+  type ContextoDeDiseno,
   type DestinoDeCompilacion,
+  type Diseno,
   type ErrorDeCompilacion,
+  type ItemDeDiseno,
+  type ModoDeTipoDeCambio,
+  type RechazoDeDiseno,
+  type ReglaDeDiseno,
   type ResultadoDeCompilacion,
+  type ResultadoDeValidacionDeDiseno,
+  type SeccionDeDiseno,
   type Tramo,
 } from './index'
 
@@ -40,5 +57,47 @@ describe('index.ts del módulo cotizaciones', () => {
     expect(CODIGOS_DE_COMPILACION).toContain('hoy_no_soportado')
     expect(CODIGOS_DE_COMPILACION.length).toBeGreaterThanOrEqual(28)
     expect(MAXIMO_DE_TEXTO).toBe(2000)
+  })
+})
+
+// Lo que el editor del diseño (4.22) va a usar.
+describe('index.ts del módulo cotizaciones: el diseño de la hoja', () => {
+  const definicion = {
+    nodos: [{ id: 'monto', tipo: 'input' as const, etiqueta: 'Monto', salida: 'total' as const }],
+  }
+  const contexto: ContextoDeDiseno = { niveles: [], retirados: [], tonos: [] }
+  const celda: CeldaDeDiseno = { tipo: 'celda', nodo: 'monto', ancho: 'completo' }
+  const item: ItemDeDiseno = celda
+  const seccion: SeccionDeDiseno = { id: 's', presentacion: 'principal', items: [item] }
+  const modos: ModoDeTipoDeCambio[] = []
+  const diseno: Diseno = {
+    cabecera: { modos, ver_total_bs: false },
+    secciones: [seccion],
+    tarjeta_total: { nodo: 'monto', secundarios: [] },
+  }
+
+  it('valida un diseño por la entrada pública', () => {
+    const r: ResultadoDeValidacionDeDiseno = validarDiseno(definicion, diseno, contexto)
+    expect(r.ok).toBe(true)
+  })
+
+  it('un diseño que no pasa devuelve su regla y su donde, no una excepción', () => {
+    const roto: Diseno = { ...diseno, tarjeta_total: { nodo: 'otro', secundarios: [] } }
+    const r = validarDiseno(definicion, roto, contexto)
+    const error: RechazoDeDiseno | undefined = r.ok ? undefined : r.error
+    const regla: ReglaDeDiseno | undefined = error?.regla
+    expect(regla).toBe('nodo_inexistente')
+    expect(error?.donde).toBe('otro')
+    expect(REGLAS_DE_DISENO).toContain(regla)
+  })
+
+  it('exporta las listas cerradas que el diseño admite', () => {
+    expect(ANCHOS).toEqual(['completo', 'mitad', 'tercio'])
+    expect(PRESENTACIONES).toEqual(['principal', 'avanzado'])
+    expect(SECUNDARIOS).toEqual(['porcentaje', 'monto'])
+    expect(EFECTOS_DE_INTERRUPTOR).toEqual(['habilita', 'muestra'])
+    expect(MAXIMO_DE_ATAJOS).toBe(12)
+    expect(NIVEL_TODOS).toBe('todos')
+    expect(REGLAS_DE_DISENO).toHaveLength(28)
   })
 })

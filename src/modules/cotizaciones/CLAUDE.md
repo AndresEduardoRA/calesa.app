@@ -5,7 +5,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Entra y sale
 
 - Entra: wizard `/cotizaciones/nuevo` (origen → vehículo → lead → hoja → resumen), editor de fórmulas en Configuración, ⚙ de una celda.
-- Sale: `compilarExpresion(texto, contexto)` con sus códigos y tipos (ya por `index.ts`), `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula) y su espejo en la base, `evaluar_formula()` (4.06) y `cotizacion_evaluar()` (4.06; arma lo que `evaluar_formula()` necesita y la llama; sin `execute` para `authenticated` hasta el 4.10), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
+- Sale: `compilarExpresion(texto, contexto)` con sus códigos y tipos (ya por `index.ts`), `validarDiseno(definicion, diseno, contexto)` con `REGLAS_DE_DISENO`, las listas cerradas del diseño (`ANCHOS`, `PRESENTACIONES`, `SECUNDARIOS`, `EFECTOS_DE_INTERRUPTOR`, `MAXIMO_DE_ATAJOS`, `NIVEL_TODOS`) y sus tipos (ya por `index.ts`: lo usará el editor del diseño, 4.22), `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula) y su espejo en la base, `evaluar_formula()` (4.06) y `cotizacion_evaluar()` (4.06; arma lo que `evaluar_formula()` necesita y la llama; sin `execute` para `authenticated` hasta el 4.10), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
 - Depende de: `leads`, `vehiculos`, `empresa` (tipos de cambio).
 
 ## Archivos clave
