@@ -69,6 +69,7 @@ const PANTALLAS = [
   ['leads-origenes', () => '/configuracion/leads?seccion=origenes'],
   ['leads-tipos', () => '/configuracion/leads?seccion=tipos'],
   ['leads-seguimientos', () => '/configuracion/leads?seccion=seguimientos'],
+  ['cotizacion-niveles', () => '/configuracion/cotizacion?seccion=niveles'],
   ['equipo', () => '/configuracion/equipo'],
   ['roles', () => '/configuracion/roles'],
 ] as const

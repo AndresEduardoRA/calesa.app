@@ -93,6 +93,13 @@ const PANTALLAS: Pantalla[] = [
     url: () => '/configuracion/leads?seccion=seguimientos',
   },
   {
+    titulo: 'Cotización › Niveles de acceso',
+    url: () => '/configuracion/cotizacion?seccion=niveles',
+    controles: (page) => [
+      [page.getByRole('button', { name: /^Más acciones de / }).first(), 'el «⋯» del primer nivel'],
+    ],
+  },
+  {
     titulo: 'Equipo',
     url: () => '/configuracion/equipo',
     controles: (page) => [
