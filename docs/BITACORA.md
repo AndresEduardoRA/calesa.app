@@ -1510,3 +1510,81 @@ demostradas** (las 9 del paso 4.08-1 y estas 2). Vitest: **344 archivos y 3.861 
 `bash scripts/mapa.sh --check`.
 
 **Lo que no se hizo:** `formulas.diseno`, los tonos y publicar (prompt 2 de 3), ni `next upgrade`, ni empujar.
+
+## 2026-10-24 — Movido de ESTADO (4.08-2)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente» y, de «Funcionando», «Último Nivel 2 (escritorio), el paso 4.08 prompt 1: 666 en verde, 16 saltados, 0 fallos, 25,0 min.»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.08, prompt 1 de 3** (`55ddabd`, `8c1a0e4`, `9fafed0` y `589b090`): el modelo del diseño de la hoja y su validación. `entities/diseno.ts` es el Zod (cabecera con los modos de tipo de cambio, secciones con celdas, atajos, variante, interruptor y subtotal, y la tarjeta del total; sin registros, CSS ni hex); `validarDiseno()` y su espejo `validar_diseno()` en la base (`…005600`) rechazan lo mismo (27 reglas cruzadas con su código y su `donde`, el contexto como tres listas: niveles, retirados y tonos), con un juego de 225 casos, un corpus de 784, 319 mutaciones y su escala (206 y 2.018 ítems en 4,8 y 44,3 ms); el remiendo **4-7** (`16a2c69`) prueba con texto multibyte los topes en caracteres de `ayuda.texto` y del nombre de un modo. **Faltan el prompt 2** (`formulas.diseno`, los tonos y publicar) **y el 3** (los tipos de cambio nuevos, la semilla y el transporte). Antes: **4.07** entero, **4.06**, **4.05**, **4.04** a **4.01**; **4-4** (`HOY()`), **4-5** y **4-6** siguen abiertos. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24, «movido de ESTADO», 4.08-1).
+
+1. **4.08, prompt 2 de 3** (`formulas.diseno`, el catálogo de tonos con validación AA y publicar con `validar_formula()` y `validar_diseno()`) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.08-1: el contexto del diseño son tres listas (`niveles`, `retirados`, `tonos`) y el ⚙ y la N+1 de una tabla republican el diseño con `retirados` vacío; **borrar un tono o un nivel en uso tiene que estar prohibido**, o el ⚙ cae en `tono_inexistente`; `formulas.diseno` fija su almacenamiento (la medición lo supone comprimido); un modo sólo existe en una fórmula con `total_en` (las del seed no, así que sus diseños no llevan modos); `index.ts` ya exporta `validarDiseno`. Del 4.07-2: un campo del vehículo es una columna o la clave de un campo del origen, **sin puntos**; la fila que guarda el editor (4.21) es `{ ...raíz compilada, texto }`; las `entradas` de `cotizacion_evaluar()` sólo llevan `inputs`, `banderas`, `overrides` y `variante`. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.
+
+## 2026-10-24 — Paso 4.08, prompt 2 de 3: el diseño en la fórmula, su visibilidad y los tonos
+
+**Horas** (hora de La Paz): el Nivel 2 empezó a las 09:06 y terminó a las 09:31 (el primer intento, a las 09:04, se detuvo en `next build` por el aviso de
+seguridad de la versión de Next, antes de correr un solo e2e, y se repitió una vez); `ef73f33`, `0398774` y `fb1ec21` y este cierre son de después. Decisiones cl a cv:
+`docs/DECISIONES.md`, 2026-10-24, «Paso 4.08 (2 de 3)».
+
+**Qué se hizo** (cuatro commits; el 4.º es este cierre):
+
+- **`ef73f33` — el esquema.** `formulas.diseno` y `visibilidad`, la tabla `tonos`, `…005700_tonos.sql` (el contraste, las RPC de los tonos, la sonda de uso, la
+  semilla), `…005800_formula_con_diseno.sql` (`_niveles_de_cotizacion`, `_compilar_visibilidad`, `_nivel_en_uso`, `formula_guardar_borrador` con el diseño,
+  `_publicar_formula`) y `…005900_formulas_solo_configurar.sql` (la policy y `formula_auditar()`); el seed, los tipos y `humo.sql` (los llamadores, el diseño de la
+  semilla antes del ⚙ y el bloque de la policy).
+- **`0398774` — las pruebas.** `tonos.sql`, `publicar-diseno.sql`, el corpus de contraste que genera `color.ts` (360 pares, 46 pegados al umbral) y las carreras de
+  `scripts/carreras/tonos.mjs`.
+- **`fb1ec21` — la medición.** `medir-publicar.sql` y su fila en `scripts/mediciones.mjs`.
+
+**Del plan, tal como se aprobó** (y lo que el revisor en contra cambió): el tono lo nombran los grupos de la fórmula y no el diseño; la policy de `formulas` era `true`
+(la persona decidió cerrarla acá) y la auditoría copiaba la fórmula entera a `actividad`, que lee quien tiene `actividad.ver` sin filtro por origen; dos guardas
+cuentan las funciones `_formula_%` y `_diseno_%`, así que las nuevas no llevan ese prefijo; una función nueva nace con EXECUTE para PUBLIC, así que cada ayudante lo
+revoca y una prueba lo comprueba; `nivel_no_admitido` no mira el `pct` de un par (4-9); no existen revertir ni la N+1 de una tabla (4-8); un GIN angosto sobre
+`jsonb_path_query_array(...)` en vez de `jsonb_path_ops` sobre el diseño entero; el candado de los tonos sólo sobre los que nombran los grupos.
+
+**Lo que se corrigió al implementar:**
+
+- **`_exigir_version()` ya rechaza un nulo** (con el mismo mensaje): el chequeo propio de `tono_guardar` era redundante y se quitó (la mutación `t11` lo mostró).
+- **`_contraste_aa()`** se extrajo para probar el 4,5 exacto; con la comparación en línea, el umbral no se podía probar sin un par que diera 4,5 justo.
+- **La sonda de uso con `order by o.nombre limit 1`** podía recorrer los orígenes por nombre y probar cada versión: 139 y 519 bloques con 200 y 2.000 versiones (y distinto según
+  el orden de carga). Una CTE `materialized` hace que el GIN conduzca; `offset 0` lo logra pero `escala.sql` lo prohíbe. La guarda compara cuánto **suman** 1.800 versiones más
+  (18 contra 100 de una copia sin índice) y no el total, que lleva la basura de las corridas revertidas.
+- **Las mediciones de la compilación aislada** corren como el dueño: `_compilar_visibilidad()` no es ejecutable por `authenticated`.
+
+**Mutaciones: 111, 109 caen y 2 son equivalentes demostradas.** Las de SQL, en una transacción del arnés del scratchpad sobre PGlite (aplica todo una vez y por cada
+mutación vuelve a correr el `create or replace` mutado y los bloques de las pruebas, con un `savepoint` por bloque; se revierte); las de candados, contra la base real.
+
+| Grupo                                            | Mutaciones | Caen | Qué se rompe                                                                                                                           |
+| ------------------------------------------------ | ---------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| AA y contraste                                   | 18         | 17   | el umbral (4,4, 4,6, `>`), cada tema por separado, la tinta contra el borde, el exponente y los coeficientes, `lower()`, el hex        |
+| Tonos (crear, guardar, eliminar, sondas, grants) | 28         | 28   | el tope, el nombre repetido, la clave que cambia, sin AA, sin versión, sin permiso, sin tildes, la sonda sin archivadas o sin borrador |
+| Niveles                                          | 8          | 8    | cada uno de los cuatro lugares donde un diseño nombra un nivel, las archivadas y el borrador, «costos» ausente o retirado              |
+| Compilación de la visibilidad                    | 18         | 17   | el nivel del ítem y de la sección (ver y editar), cruzados, el `pct`, el total y lo `aparte`, lo no dibujado, cada tipo de ítem        |
+| Guardar y publicar                               | 27         | 27   | la forma, la fórmula, el diseño, el nulo, los retirados, los tonos, los niveles, el conflicto, la nota, el permiso, el ⚙, los grants   |
+| Policy y auditoría                               | 9          | 9    | `true`, `tiene_permiso` sin origen, cada columna de la fórmula en `actividad`, el trigger, los grants                                  |
+| Candados contra la base real (`db:carreras`)     | 3          | 3    | publicar sin `for update` del borrador, sin `for key share` de los tonos, y `tono_eliminar` sin `for update` de su fila                |
+
+Las dos equivalentes, demostradas:
+
+- **`aa7`** (el 0,04045 de `_color_luminancia()` pasa a 0,0405): un canal de 8 bits vale `c/255`, y ninguno cae entre los dos (10/255 = 0,0392 y 11/255 = 0,0431): se
+  comprobó para los 256 valores.
+- **`v17`** (los atajos suman su entrada a la visibilidad): `nodo_con_dos_niveles` y `atajos_sin_celda` obligan a que un atajos tenga los mismos niveles que la celda de su
+  nodo, así que su entrada es idéntica a la de la celda y `jsonb_object_agg` colapsa la clave repetida. `publicar-diseno.sql` lo comprueba en cada diseño válido del juego
+  que tiene atajos (la visibilidad con y sin ellos es la misma).
+
+Las primeras vivas eran del arnés (quitar un `revoke` no cambia lo ya aplicado, la semilla ya estaba insertada) y de las pruebas (el borde sin validar, el nulo de
+`tono_guardar`, `validar_formula()` al publicar, que publicar escriba en `actividad`, el umbral exacto y la truncación de la razón): cada una tiene ahora su caso.
+
+**Cifras** (`docs/RENDIMIENTO.md`): publicar con 206 y 2.018 ítems tarda 17,5 y 172 ms (razón 9,8; buffers 1.902 y 17.144, razón 9,0); guardar, 10,8 y 103 ms; la
+compilación aislada, 1,1 y 8,2 ms; las sondas de uso suman 18 bloques con 1.800 versiones más. Con una compilación cuadrática puesta a propósito, `formula_publicar` tarda 23,2
+veces lo de 200 (el tope es 12): la guarda cae.
+
+**Verificación (Nivel 2):** `pnpm lint`, `pnpm typecheck`, `pnpm test` (3.863 pruebas, 345 archivos), `pnpm db:reset`, `pnpm db:types`, `pnpm db:probar` (311 bloques),
+`pnpm db:lint` (sin errores; los avisos de siempre, ninguno de las funciones nuevas), `pnpm db:carreras` (en verde, 12,9 s) y `bash scripts/mapa.sh --check`.
+**e2e completo: sí (4.08-2, escritorio): 666 en verde, 16 saltados, 0 fallos, 24,8 min, de las 09:06 a las 09:31 (hora de La Paz).**
+
+**Del entorno:** Next avisa de una vulnerabilidad de su versión en `next build` (en el primer intento se detuvo ahí). No se actualizó ni se tocó `package.json`: lo decide la persona.
+
+**Anotado:** para el prompt 3, el `check` de «publicada tiene diseño», las claves de tono de los grupos que se siembren y las claves de `tipos_cambio`; para el 4.09, el cuerpo de
+`_niveles_de_cotizacion()`, `_nivel_en_uso()` y **4-9**; para el 4.10, lo que `visibilidad` no cubre; para el 4.20, **4-8**.
+
+**Lo que no se hizo:** la semilla de diseños, de tipos de cambio y de transporte (prompt 3), `cotizaciones_niveles` y sus permisos (4.09), push ni `next upgrade`.

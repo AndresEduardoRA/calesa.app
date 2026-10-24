@@ -1319,3 +1319,45 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **Las guardas muerden, en el mismo archivo:** una copia de `_diseno_secciones()` con `array_position(p_ids, …)` en lugar del mapa
   (una búsqueda lineal por ítem) da una razón de ms de 18 (tope 12), y una copia de `validar_diseno()` que relee `p_def` por cada grupo
   lee 57 veces los buffers de 200 ítems con 2.000. Ninguna pasa la medición; no se subió ningún tope.
+
+## Paso 4.08 (2 de 3): guardar y publicar una fórmula con su diseño, de unos 200 y unos 2.000 ítems (2026-10-24)
+
+- **Cómo se mide:** `supabase/tests/medir-publicar.sql` (`pnpm db:medir`), en el Supabase local (Postgres 17), dentro de una transacción que se revierte.
+  `EXPLAIN (ANALYZE, BUFFERS)` como `authenticated` (una dueña creada para la medición), la mediana de 5 corridas de 7. Cada ronda guarda un borrador
+  nuevo y lo publica. Los diseños son los de `disenoSintetico()` (206 y 2.018 ítems; 100 tonos y 100 niveles, más que el tope de 24: se insertan como
+  `postgres`).
+- **Qué cuesta publicar:** valida la fórmula (`validar_formula()`), valida el diseño (`validar_diseno()`) y compila la visibilidad
+  (`_compilar_visibilidad()`); guardar valida la fórmula y la forma del diseño. Es lineal.
+
+| Medición                                                    | 1.ª (carga 1,1) | 2.ª (1,2)      | 3.ª (1,2)      | Tope           |
+| ----------------------------------------------------------- | --------------- | -------------- | -------------- | -------------- |
+| `formula_publicar`, 206 ítems, ms                           | 17,53           | 17,94          | 17,53          | 55             |
+| `formula_publicar`, 2.018 ítems, ms                         | 172,26          | 174,59         | 171,78         | 550            |
+| 2.018 ÷ 206 (ms)                                            | 9,83            | 9,73           | 9,80           | 12             |
+| `formula_publicar`, buffers (5 corridas), 206 / 2.018 ítems | 1.902 / 17.144  | 1.912 / 17.097 | 1.925 / 17.112 | 2.350 / 20.600 |
+| 2.018 ÷ 206 (buffers)                                       | 9,01            | 8,94           | 8,89           | 12             |
+| `formula_guardar_borrador`, 206 / 2.018 ítems, ms           | 10,83 / 103,15  | 11,00 / 105,76 | 10,80 / 103,94 | 36 / 320       |
+| `_compilar_visibilidad`, 206 / 2.018 ítems, ms (aislada)    | 1,07 / 8,21     | 1,07 / 8,06    | 1,07 / 8,43    | 4 / 27         |
+| `_compilar_visibilidad`, columna externa, buffers           | 50 / 310        | 50 / 310       | 50 / 310       | 60 / 375       |
+| Guarda: búsqueda lineal por ítem (veces, ms)                | 36,09           | 36,35          | 35,42          | > 12           |
+| Guarda: el diseño releído por sección (veces, buffers)      | 42,30           | 42,30          | 42,30          | > 12           |
+
+- **Los topes de ms son la mayor mediana de las corridas × 3** (con una primera de 181,51 ms de publicar, 546 → 550); los de buffers, lo medido + 20 %.
+  Publicar un diseño de 2.000 ítems cuesta unos 0,17 s: corre al configurar, no al cotizar.
+- **Sin guardar y sin publicar, la compilación cuesta 8 ms con 2.000 ítems** (la décima parte de `validar_diseno()`), y con literales no lee ningún bloque.
+- **Una regresión real cae:** con `_compilar_visibilidad()` cuadrática aplicada a la base, `formula_publicar` con 2.000 ítems tarda 23,2 veces lo de 200
+  (el tope es 12); restaurada, vuelve a pasar. Las dos copias malas de la medición (una búsqueda lineal por ítem y el diseño releído por sección) dan 36 y
+  42 veces.
+
+### Las sondas de uso de un tono y de un nivel (`_tono_en_uso`, `_nivel_en_uso`)
+
+- **Se miden primero,** con `formulas` casi vacía: las versiones grandes de las otras mediciones llenan el TOAST y taparían lo que se mide. Se siembran 200
+  y después 1.800 versiones archivadas más (sin auditoría, `session_replication_role = replica`), con `analyze`, y se cuentan los bloques de `formulas`
+  (heap, índices y TOAST) con `pg_stat_get_xact_blocks_fetched`, ya calientes.
+- **Se compara cuánto SUMAN 1.800 versiones más, no el total:** el total lleva la basura que dejaron en el heap las corridas anteriores (cada una se
+  revierte y el vacuum tarda) y sube de corrida en corrida (9, 38, 65 con 200 versiones). El crecimiento es limpio: **18 bloques** las dos sondas, contra
+  **100** una copia que no puede usar el GIN (tiene que sumar 50 o más, y las sondas, menos de un tercio de lo que suma la copia). Las dos sondas usan
+  `formulas_tonos_idx` y `formulas_niveles_idx`, con el plan genérico y sin recorrer `formulas` (se asierta el texto del plan).
+- **Una trampa del planificador:** con `order by o.nombre limit 1` y la tabla de versiones, la sonda de una clave que nadie usa puede elegir recorrer los
+  orígenes por nombre y probar cada versión: 139 y 519 bloques con 200 y 2.000 versiones, y cambia según el orden en que se cargaron. Una CTE `materialized`
+  hace que el GIN conduzca (`offset 0` también, pero `escala.sql` lo prohíbe).

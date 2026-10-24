@@ -641,6 +641,8 @@ sin cerrar.
 - El asesor puede sobrescribir un tipo de cambio en su cotización si la celda es editable para su nivel (`fuente = override`, ↺).
   - El ⚙ de esa celda es `tipo_cambio_guardar`, que afecta a todos los orígenes, con «Aplicar también a esta cotización».
   - Cambiarlo vuelve «desactualizada» una cotización nueva abierta (D2).
+  - **Falta para el prompt 3:** que `tipos_cambio` tenga las claves que usan los nodos `tipo_cambio` de las fórmulas sembradas (`unificado`,
+    `aduana`). Publicar no lo comprueba (el validador sólo mira que el nodo exista en la fórmula); `cotizacion_evaluar()` lo da como faltante.
 - **Un modo** (Aduana, Paralelo, Unificado…) lo declara el diseño, y el elegido se guarda en `cotizaciones.modo_tc` (reemplaza el «por
   bucket / uno solo» de D4).
   - **El motor lo recibe con la misma forma que la fórmula**, completo: `{ buckets: {bucket: id de nodo tipo_cambio}, total_en }`
@@ -654,8 +656,8 @@ tc_oficial}`, `total_en: tc_unificado`:
 
 ## El diseño de la hoja (D7)
 
-`formulas.diseno` (jsonb), versionado y publicado con la fórmula: entra en D5 y en «desactualizada» (la columna llega en el prompt 2 del
-4.08). Lo validan `validarDiseno()` (`entities/validar-diseno.ts`, sobre el Zod de `entities/diseno.ts`) y `validar_diseno()` en la base,
+`formulas.diseno` (jsonb), versionado y publicado con la fórmula: entra en D5 y en «desactualizada» (un cambio de diseño publica la N+1, así que
+las dos lo ven sin código nuevo; la columna existe desde el 4.08-2). Lo validan `validarDiseno()` (`entities/validar-diseno.ts`, sobre el Zod de `entities/diseno.ts`) y `validar_diseno()` en la base,
 con un juego de prueba (`entities/casos-de-diseno.json`) que los dos rechazan igual: la misma regla y el mismo `donde`. **Declarativo:**
 nada de CSS, clases, HTML ni hex. Hecho en el paso 4.08, prompt 1.
 
@@ -732,9 +734,9 @@ nada de CSS, clases, HTML ni hex. Hecho en el paso 4.08, prompt 1.
   trae), si no el de su sección, si no `todos`.
 - **El diseño no lleva `solo_en`.** Lo que cambia con la variante lo dice el nodo (el `solo_en` de la fórmula) y la hoja lo dibuja
   deshabilitado con su motivo; `validar_formula()` ya asegura que nombre opciones que existen (`solo_en_opcion_inexistente`).
-- **El tono es del grupo de la fórmula**, una clave del catálogo `tonos` de la empresa (claro y oscuro: fondo, borde, tinta), con
-  validación AA como `color_acento` (`src/shared/lib/color.ts`), sembrado desde los tokens de celda. La plantilla puede elegir otra
-  clave para un grupo (H5). El validador sólo exige que la clave exista.
+- **El tono es del grupo de la fórmula** (`definicion.grupos[].tono`, no del diseño), una clave del catálogo `tonos` de la empresa (claro y oscuro:
+  fondo, borde y tinta). La plantilla puede elegir otra clave para un grupo (H5, 4.18). El validador sólo exige que la clave exista; el catálogo, su
+  validación AA y su semilla están en «En la base (4.08-2)».
 - **Celular y 200 % sin un segundo diseño:**
   - un solo orden declarado, que es el orden del DOM, de lectura y del `Tab`;
   - cada sección es una grilla de 12 pistas con `@container`;
@@ -821,6 +823,52 @@ en DETAIL y `donde` en HINT, por el mismo `_formula_rechazar()`. Un arreglo nulo
   buffers (razón 6,3; tope 12). Comprimida cuesta 1,0 veces los literales. Las guardas muerden: una búsqueda lineal por ítem da una razón
   de 18 en ms y releer `p_def` por grupo, 57 en buffers. Detalle en `docs/RENDIMIENTO.md`.
 
+### En la base (4.08-2)
+
+`supabase/migrations/20261019005700_tonos.sql`, `…005800_formula_con_diseno.sql` y `…005900_formulas_solo_configurar.sql`; la tabla `tonos` y las dos
+columnas viven en `schemas/07_cotizaciones`.
+
+- **`formulas.diseno` y `formulas.visibilidad`** (jsonb, comprimidas por defecto): nulas sólo en un borrador. **Publicar exige el diseño** (22023,
+  `diseno_faltante`, hint `diseno`). El `check` que lo impone espera al prompt 3: las dos fórmulas del seed todavía no lo traen.
+- **Guardar:** `formula_guardar_borrador(origen, definición, params, diseño, nota?)` valida la fórmula (`validar_formula()`) y sólo la **forma** del
+  diseño (`_diseno_forma()`): el borrador puede estar a medio camino entre una y otro. `p_diseno` no tiene default (quien se olvida del diseño no lo
+  borra en silencio) y la firma de cuatro parámetros se borró. Guardar deja `visibilidad` nula.
+- **Publicar** (`formula_publicar()` y el ⚙ → `_publicar_formula()`): toma el borrador `for update` y los tonos de sus grupos `for key share`, valida
+  la fórmula y el diseño completo (`validar_diseno()` con los niveles de `_niveles_de_cotizacion()` y los tonos de la tabla) y compila `visibilidad`.
+  Dos publicar a la vez: el segundo da PT409 o «No hay borrador». El ⚙ copia el diseño de la publicada y publica con `retirados` vacío.
+- **Los niveles que existen salen de un solo punto,** `_niveles_de_cotizacion(niveles, retirados)`: hoy `{costos}` y `{}` (el 4.09 siembra
+  `cotizaciones_niveles` con «todos» y «costos» y cambia sólo su cuerpo). «todos» no figura: siempre existe y nunca se retira.
+- **`visibilidad`** = `{nodo: {ver, editar}}` con **claves de nivel**, no permisos (los permisos nacen en el 4.09). La regla (`_compilar_visibilidad()`):
+  1. cada `celda`, `subtotal`, `variante` e `interruptor` da su nodo con su nivel efectivo (el de la celda, si no el de su sección, si no «todos»), por
+     separado para ver y para editar;
+  2. una celda con `secundario` da también el `pct` de su nodo, con los mismos niveles;
+  3. el total y lo `aparte` tienen `ver: todos` aunque se dibujen en una sección restringida (D7: la base los manda siempre), y los que no se dibujan
+     entran como `{ver: todos, editar: null}`: lo que no se dibuja no se edita;
+  4. los atajos y la tarjeta no agregan nada (los atajos tienen los niveles de su celda; la prueba lo comprueba en cada diseño con atajos del juego).
+
+  Lo que no figura no viaja, salvo a quien configura. **No cubre** los subtotales por grupo (no son nodos) ni las filas de las tablas de referencia
+  (`tablas_referencia(_filas)` tienen policy `true`): el 4.10 los recorta aparte. Y `nivel_no_admitido` no mira el `pct` de un par ni un interruptor,
+  así que un `aparte` que es el `pct` de una celda restringida se ve igual (la compilación lo cubre; que los validadores lo rechacen es 4-9).
+
+- **Los tonos** (`tonos`: clave, nombre, y fondo, borde y tinta en claro y en oscuro). Se escriben sólo por `tono_crear|guardar|eliminar`, con
+  `cotizaciones.configurar` (cualquier concesión: el catálogo es de la empresa); los lee toda sesión. Hasta **24** (`_tonos_tope()`). La clave sale del
+  nombre, sin tildes, y no cambia. Sembrados: `amarillo`, `verde` y `naranja`, de los tokens de celda (`design/tokens.css`; los hex los calcula
+  `supabase/tests/corpus-de-contraste.ts`).
+- **El AA se valida en la base,** porque no hay otra capa: la tinta sobre su fondo da al menos 4,5:1 (`_contraste_aa()`) en claro y en oscuro; el borde sólo
+  tiene que ser un `#rrggbb`. `_color_luminancia()` y `_color_contraste()` copian `luminancia()` y `contraste()` de `src/shared/lib/color.ts`, y un corpus
+  que genera TS (`corpus-de-contraste.json`, 360 pares) comprueba que dicen lo mismo, también pegado al umbral. El contrato para la hoja: el texto sobre el
+  fondo de un tono va en su **tinta** (`--color-ink-faint` sobre ese fondo da 3,6).
+- **Un tono o un nivel que alguna versión nombra no se elimina** (borrador, publicada o archivada: las cotizaciones viejas se leen con su versión).
+  `_tono_en_uso()` mira los grupos de `definicion` y `_nivel_en_uso()` el diseño, cada una por su GIN angosto (`formulas_tonos_idx` y
+  `formulas_niveles_idx`, sobre `jsonb_path_query_array`); con uso, `tono_eliminar` responde 23503 con el origen. Los tonos no se retiran: se cambian
+  sus colores. `nivel_eliminar` (4.09) llamará a `_nivel_en_uso()`.
+- **La fórmula sólo la lee quien la configura:** la policy «formulas: leer» pasa de `true` a `cotizaciones.configurar` del origen, y la auditoría de
+  `formulas` (`formula_auditar()`) ya no copia `definicion`, `params`, `diseno` ni `visibilidad` a `actividad`, que lee quien tiene `actividad.ver` sin
+  filtro por origen.
+- **Pruebas:** `supabase/tests/tonos.sql`, `publicar-diseno.sql` (la `visibilidad` del diseño de las capturas con «costos», calculada a mano) y el
+  bloque de la policy en `humo.sql`; las carreras de `scripts/carreras/tonos.mjs` (eliminar contra publicar en los dos órdenes, publicar contra
+  publicar, ⚙ contra ⚙); la medición `medir-publicar.sql` (`docs/RENDIMIENTO.md`).
+
 ## Niveles de acceso (D7, H3 y H4)
 
 - **Qué es un nivel:** una fila de `cotizaciones_niveles`, sembrada con «todos» y «costos».
@@ -828,7 +876,8 @@ en DETAIL y `donde` en HINT, por el mismo `_formula_rechazar()`. Un arreglo nulo
     de Roles.
   - «Todos» usa `cotizaciones.ver` y `cotizaciones.crear` o `cotizaciones.editar`.
   - Cómo nace, cómo se retira y por qué no rompe la regla del enforcement: `docs/DECISIONES.md`, «D7».
-- **Al publicar, el diseño se compila a `formulas.visibilidad`** (`{nodo: {ver, editar}}`), que es lo único que lee la base.
+- **Al publicar, el diseño se compila a `formulas.visibilidad`** (`{nodo: {ver, editar}}`, claves de nivel), que es lo único que lee la base (la regla, en
+  «En la base (4.08-2)»). Los niveles que existen salen de `_niveles_de_cotizacion()`; la tabla `cotizaciones_niveles` y los permisos son del 4.09.
 - **Lo que no se ve no viaja:**
   - `revoke select (valores, fuentes, totales)` en `cotizaciones`;
   - `cotizacion_leer(id)` recorta por `_nodos_visibles(formula_id)` y siempre trae el total y las salidas `aparte`;

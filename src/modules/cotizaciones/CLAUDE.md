@@ -35,9 +35,15 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   diseños de 200 y 2.000 ítems de la prueba de escala y de la medición.
 - `supabase/migrations/20261019005600_validar_diseno.sql` — `validar_diseno(def, diseno, niveles, retirados, tonos)` y sus ayudantes `_diseno_*`
   (STABLE, invoker, `search_path` vacío): lo mismo que `validarDiseno()`, con el mismo código de regla y el mismo `donde` (22023, la regla en DETAIL y
-  `donde` en HINT, por `_formula_rechazar()`). Sin tabla ni columna todavía: `formulas.diseno`, los tonos y los niveles son de los prompts 2 y 3 y del
-  4.09. Lo prueba `supabase/tests/validar-diseno.sql` (`pnpm db:probar`) con el juego y con el corpus `supabase/tests/corpus-de-diseno.json`
+  `donde` en HINT, por `_formula_rechazar()`). No lee tablas: el contexto entra como argumentos (lo arma `_publicar_formula()`). Lo prueba `supabase/tests/validar-diseno.sql` (`pnpm db:probar`) con el juego y con el corpus `supabase/tests/corpus-de-diseno.json`
   (`corpus-de-diseno.ts` y los `mutadores-de-diseno*.ts`, que vigila `corpus-de-diseno.test.ts`).
+- `supabase/migrations/20261019005700_tonos.sql`, `…005800_formula_con_diseno.sql` y `…005900_formulas_solo_configurar.sql` (4.08-2; `docs/COTIZADOR.md` › «En la
+  base (4.08-2)»): `formulas.diseno` y `visibilidad` (en `schemas/`); `formula_guardar_borrador(origen, def, params, diseño, nota?)` (valida la fórmula y la forma del
+  diseño; sin default de `p_diseno`); `formula_publicar()` y el ⚙ por `_publicar_formula()` (valida la fórmula y el diseño completo, compila `visibilidad`, **exige el
+  diseño**); `_niveles_de_cotizacion()` (el punto que el 4.09 reemplaza), `_compilar_visibilidad()`, `_nivel_en_uso()`; el catálogo `tonos` y `tono_crear|guardar|eliminar`
+  (AA en la base: `_color_contraste()`, copia de `color.ts`; hasta 24; `_tono_en_uso()`); la policy de lectura de `formulas` sólo para `cotizaciones.configurar` y
+  `formula_auditar()` (sin la fórmula en `actividad`). Los ayudantes no son de nadie. Lo prueban `supabase/tests/{tonos,publicar-diseno}.sql`, el corpus
+  `corpus-de-contraste.json` (lo genera `corpus-de-contraste.ts`), el bloque de la policy de `humo.sql`, `scripts/carreras/tonos.mjs` y `medir-publicar.sql`.
 - `supabase/migrations/20261019005200_evaluar_formula.sql` — `evaluar_formula(definicion, params, entrada, modo?)` y sus ayudantes `_motor_*`: espejo
   exacto de `motor.ts` (los mismos float8, estados, fuentes, totales, faltantes y descartados; errores de llamada 22023 con el código en DETAIL).
   Pura: las tablas vivas llegan en `entrada.tablas`. Desarma sus argumentos una sola vez y lleva el estado por nodo en arreglos. Lo prueban
@@ -77,8 +83,8 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 
 ## Tablas
 
-`formulas`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
-RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
+`formulas`, `tonos`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
+RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear`, `tono_guardar`, `tono_eliminar`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
 
 ## No se rompe
 
@@ -88,6 +94,10 @@ RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador
 - Sin motor de expresiones al cotizar: sólo las operaciones cerradas de `calculo`. La «fórmula como texto» (D4,
   `docs/DECISIONES.md` 2026-10-22; `compilador.ts`, 4.07) se compila a ese grafo **al configurar**, y lo que no se puede compilar a nodos se rechaza. Un nodo
   nuevo = tipo discriminado (`nodos.ts`) + `switch` exhaustivo (`referenciasDe()`) + caso en `validar_formula()` y en el juego de prueba.
+- **Toda copia de una versión lleva el diseño** (el ⚙ pasa `v_pub.diseno`; revertir y la N+1 de una tabla, cuando existan, también): publicar lo exige, y un cambio de
+  diseño publica la N+1, así que «desactualizada» y D5 lo cuentan solos. El ⚙, revertir y la N+1 publican con `retirados` vacío: lo que ya usa un nivel retirado se
+  sigue filtrando igual. **Un tono o un nivel que una versión nombra no se elimina** (`_tono_en_uso()`, `_nivel_en_uso()`). **Los tonos y los niveles que existen salen
+  de un solo punto cada uno** (la tabla `tonos` y `_niveles_de_cotizacion()`): nada escribe «costos» a mano fuera de él. `formulas` sólo la lee quien configura.
 - **D7 (2026-10-22):**
   - la hoja **calcula en la base** (`cotizacion_evaluar()` sobre `evaluar_formula()`, espejo de `motor.ts`) para todos;
   - **la fórmula (`definicion`, `params`, el texto) viaja sólo a quien tiene `cotizaciones.configurar`**, y `motor.ts` queda para el
