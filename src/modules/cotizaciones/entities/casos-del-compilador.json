@@ -1,0 +1,2496 @@
+{
+  "descripcion": "Casos a mano del compilador de fórmulas como texto (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»). «contexto» es la base de todos; el de un caso pisa sólo las claves que trae. Un caso válido dice los nodos, los params y, si quiere, los tramos; uno inválido, el código y el tramo exacto (desde y largo en unidades UTF-16; línea y columna desde 1).",
+  "contexto": {
+    "nodos": [
+      {
+        "id": "tc",
+        "tipo": "tipo_cambio",
+        "clave": "paralelo",
+        "etiqueta": "TC paralelo",
+        "formato": "raw"
+      },
+      {
+        "id": "anio",
+        "tipo": "campo_vehiculo",
+        "campo": "anio",
+        "etiqueta": "Año",
+        "formato": "raw"
+      },
+      {
+        "id": "remate",
+        "tipo": "input",
+        "etiqueta": "Remate"
+      },
+      {
+        "id": "fees",
+        "tipo": "input",
+        "etiqueta": "Fees",
+        "grupo": "compra"
+      },
+      {
+        "id": "flete",
+        "tipo": "constante",
+        "etiqueta": "Flete",
+        "grupo": "compra"
+      },
+      {
+        "id": "iva",
+        "tipo": "constante",
+        "etiqueta": "IVA",
+        "formato": "pct"
+      },
+      {
+        "id": "activa",
+        "tipo": "bandera",
+        "etiqueta": "Activa",
+        "formato": "raw"
+      },
+      {
+        "id": "variante",
+        "tipo": "opcion",
+        "etiqueta": "Variante",
+        "formato": "raw",
+        "opciones": [
+          {
+            "clave": "a",
+            "etiqueta": "A",
+            "titulo": "Opción A"
+          },
+          {
+            "clave": "b",
+            "etiqueta": "B",
+            "titulo": "Opción B"
+          }
+        ],
+        "por_defecto": "a"
+      }
+    ],
+    "grupos": ["compra", "vacio"],
+    "params": {
+      "flete": 900,
+      "iva": 0.13
+    },
+    "destino": {
+      "id": "total",
+      "etiqueta": "Total",
+      "salida": "total"
+    }
+  },
+  "casos": [
+    {
+      "nombre": "el ejemplo del plan: (remate+fees)*4%",
+      "texto": "=(remate+fees)*4%",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees"],
+            "etiqueta": "(remate+fees)"
+          },
+          {
+            "id": "total__2",
+            "tipo": "constante",
+            "etiqueta": "4%",
+            "formato": "pct"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["total__1", "total__2"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total__2": 0.04
+        },
+        "tramos": {
+          "total__1": {
+            "desde": 1,
+            "largo": 13,
+            "linea": 1,
+            "columna": 2
+          },
+          "total__2": {
+            "desde": 15,
+            "largo": 2,
+            "linea": 1,
+            "columna": 16
+          },
+          "total": {
+            "desde": 1,
+            "largo": 16,
+            "linea": 1,
+            "columna": 2
+          }
+        }
+      }
+    },
+    {
+      "nombre": "SUMA(grupo) es la suma de sus miembros en el orden de la lista",
+      "texto": "=SUMA(compra)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["fees", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "SUMA en minúsculas y con espacios",
+      "texto": "suma ( compra )",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["fees", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a+b+c es UN suma, en el orden del texto",
+      "texto": "remate+fees+flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a+(b+c) NO se aplana",
+      "texto": "remate+(fees+flete)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["fees", "flete"],
+            "etiqueta": "(fees+flete)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "(a+b)+c NO se aplana",
+      "texto": "(remate+fees)+flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees"],
+            "etiqueta": "(remate+fees)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["total__1", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a-b-c asocia a la izquierda: un restar de tres",
+      "texto": "remate-fees-flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["remate", "fees", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a-(b-c) no se aplana",
+      "texto": "remate-(fees-flete)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["fees", "flete"],
+            "etiqueta": "(fees-flete)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["remate", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a/b/c asocia a la izquierda: (a/b)/c",
+      "texto": "remate/fees/flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["remate", "fees"],
+            "etiqueta": "remate/fees"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["total__1", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a/(b/c)",
+      "texto": "remate/(fees/flete)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["fees", "flete"],
+            "etiqueta": "(fees/flete)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["remate", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a*b*c es UN multiplicar",
+      "texto": "remate*fees*flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["remate", "fees", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "precedencia: a+b*c",
+      "texto": "remate+fees*flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["fees", "flete"],
+            "etiqueta": "fees*flete"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "precedencia: a*b+c",
+      "texto": "remate*fees+flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["remate", "fees"],
+            "etiqueta": "remate*fees"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["total__1", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "precedencia: a-b/c",
+      "texto": "remate-fees/flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["fees", "flete"],
+            "etiqueta": "fees/flete"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["remate", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "precedencia: a/b*c es (a/b)*c",
+      "texto": "remate/fees*flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["remate", "fees"],
+            "etiqueta": "remate/fees"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["total__1", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a+b-c: el suma queda dentro del restar",
+      "texto": "remate+fees-flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees"],
+            "etiqueta": "remate+fees"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["total__1", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "a-b+c: el restar queda dentro del suma",
+      "texto": "remate-fees+flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["remate", "fees"],
+            "etiqueta": "remate-fees"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["total__1", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "un número dentro de una cadena es un auxiliar, numerado después de sus hermanos anteriores",
+      "texto": "3+remate+4",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "3",
+            "formato": "raw"
+          },
+          {
+            "id": "total__2",
+            "tipo": "constante",
+            "etiqueta": "4",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["total__1", "remate", "total__2"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total__1": 3,
+          "total__2": 4
+        }
+      }
+    },
+    {
+      "nombre": "un número después de una cadena",
+      "texto": "remate+fees+3",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "3",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total__1": 3
+        }
+      }
+    },
+    {
+      "nombre": "el orden de los auxiliares es post-orden",
+      "texto": "(remate*2)+(fees*3)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "2",
+            "formato": "raw"
+          },
+          {
+            "id": "total__2",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["remate", "total__1"],
+            "etiqueta": "(remate*2)"
+          },
+          {
+            "id": "total__3",
+            "tipo": "constante",
+            "etiqueta": "3",
+            "formato": "raw"
+          },
+          {
+            "id": "total__4",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["fees", "total__3"],
+            "etiqueta": "(fees*3)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["total__2", "total__4"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total__1": 2,
+          "total__3": 3
+        }
+      }
+    },
+    {
+      "nombre": "un número solo es la constante de la fila",
+      "texto": "=100",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 100
+        }
+      }
+    },
+    {
+      "nombre": "un número negativo",
+      "texto": "-5",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": -5
+        }
+      }
+    },
+    {
+      "nombre": "-0 se guarda como 0",
+      "texto": "-0",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 0
+        }
+      }
+    },
+    {
+      "nombre": "un porcentaje solo es una constante pct que corre el punto en el texto",
+      "texto": "0.1%",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total",
+            "formato": "pct"
+          }
+        ],
+        "params": {
+          "total": 0.001
+        }
+      }
+    },
+    {
+      "nombre": "un porcentaje con exponente",
+      "texto": "1.5e1%",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total",
+            "formato": "pct"
+          }
+        ],
+        "params": {
+          "total": 0.15
+        }
+      }
+    },
+    {
+      "nombre": "un porcentaje negativo",
+      "texto": "-4%",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total",
+            "formato": "pct"
+          }
+        ],
+        "params": {
+          "total": -0.04
+        }
+      }
+    },
+    {
+      "nombre": "un número con exponente",
+      "texto": "1e3",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 1000
+        }
+      }
+    },
+    {
+      "nombre": "un menos pegado a un número después de un operador",
+      "texto": "remate - -5",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "-5",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["remate", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total__1": -5
+        }
+      }
+    },
+    {
+      "nombre": "un menos binario pegado al número",
+      "texto": "remate-5",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "5",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["remate", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total__1": 5
+        }
+      }
+    },
+    {
+      "nombre": "un nombre solo es una suma de uno",
+      "texto": "remate",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {},
+        "tramos": {
+          "total": {
+            "desde": 0,
+            "largo": 6,
+            "linea": 1,
+            "columna": 1
+          }
+        }
+      }
+    },
+    {
+      "nombre": "un paréntesis alrededor de todo no crea un auxiliar",
+      "texto": "((remate+fees))",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "SUMA no se aplana dentro de una cadena",
+      "texto": "SUMA(compra)+remate",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["fees", "flete"],
+            "etiqueta": "SUMA(compra)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["total__1", "remate"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "una cadena no se aplana dentro de SUMA",
+      "texto": "remate+SUMA(compra)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["fees", "flete"],
+            "etiqueta": "SUMA(compra)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "total__1"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "SI(bandera; x) en la raíz (un total no puede llevar condición: lo dice validarFormula)",
+      "texto": "SI(activa; remate*fees)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["remate", "fees"],
+            "etiqueta": "remate*fees"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "si",
+            "de": ["total__1"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "condicion": "activa"
+          }
+        ],
+        "params": {}
+      },
+      "sinValidar": true
+    },
+    {
+      "nombre": "SI(bandera; x) dentro de una suma: el auxiliar lleva la condición",
+      "texto": "SI(activa; remate*fees)+flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["remate", "fees"],
+            "etiqueta": "remate*fees"
+          },
+          {
+            "id": "total__2",
+            "tipo": "calculo",
+            "op": "si",
+            "de": ["total__1"],
+            "condicion": "activa",
+            "etiqueta": "SI(activa; remate*fees)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["total__2", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "REDONDEAR(x; n)",
+      "texto": "REDONDEAR(remate/fees; 2)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "dividir",
+            "de": ["remate", "fees"],
+            "etiqueta": "remate/fees"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "redondear",
+            "de": ["total__1"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "n": 2
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE con una cadena + sin paréntesis va directo a de",
+      "texto": "PORCENTAJE_DE(remate+fees+flete; iva)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees", "flete"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "pct": "iva"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE con un paréntesis no se aplana",
+      "texto": "PORCENTAJE_DE((remate+fees); iva)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees"],
+            "etiqueta": "(remate+fees)"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["total__1"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "pct": "iva"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE con un 4% escrito: el pct nace después de los términos",
+      "texto": "PORCENTAJE_DE(remate; 4%)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "4%",
+            "formato": "pct"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "pct": "total__1"
+          }
+        ],
+        "params": {
+          "total__1": 0.04
+        }
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE con un número sin %: la constante igual es pct",
+      "texto": "PORCENTAJE_DE(remate; 0.04)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "0.04",
+            "formato": "pct"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "pct": "total__1"
+          }
+        ],
+        "params": {
+          "total__1": 0.04
+        }
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE sobre SUMA",
+      "texto": "PORCENTAJE_DE(SUMA(compra); iva)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "porcentaje_de",
+            "de": ["fees", "flete"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "pct": "iva"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "DEPRECIAR(x; tabla; sobre; columna)",
+      "texto": "DEPRECIAR(remate; depreciacion; anio; factor)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "depreciar",
+            "de": ["remate"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "tabla": "depreciacion",
+            "sobre": "anio",
+            "columna": "factor"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "un salto de línea y un espacio duro valen como espacio",
+      "texto": "remate\n+ fees*2",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "2",
+            "formato": "raw"
+          },
+          {
+            "id": "total__2",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["fees", "total__1"],
+            "etiqueta": "fees*2"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "total__2"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total__1": 2
+        },
+        "tramos": {
+          "total__1": {
+            "desde": 14,
+            "largo": 1,
+            "linea": 2,
+            "columna": 8
+          },
+          "total__2": {
+            "desde": 9,
+            "largo": 6,
+            "linea": 2,
+            "columna": 3
+          },
+          "total": {
+            "desde": 0,
+            "largo": 15,
+            "linea": 1,
+            "columna": 1
+          }
+        }
+      }
+    },
+    {
+      "nombre": "una fila con grupo, formato y descripción los lleva sólo ella, y los auxiliares no",
+      "texto": "remate*3%",
+      "contexto": {
+        "destino": {
+          "id": "seguro",
+          "etiqueta": "Seguro",
+          "formato": "usd",
+          "descripcion": "3 % del remate",
+          "grupo": "compra",
+          "bucket": "b",
+          "solo_en": ["a"]
+        }
+      },
+      "sinValidar": true,
+      "esperado": {
+        "nodos": [
+          {
+            "id": "seguro__1",
+            "tipo": "constante",
+            "etiqueta": "3%",
+            "formato": "pct"
+          },
+          {
+            "id": "seguro",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["remate", "seguro__1"],
+            "etiqueta": "Seguro",
+            "formato": "usd",
+            "descripcion": "3 % del remate",
+            "grupo": "compra",
+            "bucket": "b",
+            "solo_en": ["a"]
+          }
+        ],
+        "params": {
+          "seguro__1": 0.03
+        }
+      }
+    },
+    {
+      "nombre": "un destino de 41 letras recorta el prefijo del auxiliar",
+      "texto": "remate*3",
+      "contexto": {
+        "destino": {
+          "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "etiqueta": "Larga"
+        }
+      },
+      "sinValidar": true,
+      "esperado": {
+        "nodos": [
+          {
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa__1",
+            "tipo": "constante",
+            "etiqueta": "3",
+            "formato": "raw"
+          },
+          {
+            "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["remate", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa__1"],
+            "etiqueta": "Larga"
+          }
+        ],
+        "params": {
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa__1": 3
+        }
+      }
+    },
+    {
+      "nombre": "una etiqueta de más de 80 caracteres se corta con puntos suspensivos",
+      "texto": "remate*(fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees+fees)",
+      "sinValidar": true,
+      "esperado": {
+        "etiquetaDe": {
+          "id": "total__1",
+          "largo": 80,
+          "termina": "…"
+        }
+      }
+    },
+    {
+      "nombre": "texto vacío",
+      "texto": "",
+      "esperado": {
+        "error": {
+          "codigo": "texto_vacio",
+          "desde": 0,
+          "largo": 0,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "sólo espacios",
+      "texto": "   ",
+      "esperado": {
+        "error": {
+          "codigo": "texto_vacio",
+          "desde": 0,
+          "largo": 3,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "sólo un igual",
+      "texto": "=",
+      "esperado": {
+        "error": {
+          "codigo": "texto_vacio",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un carácter fuera de la gramática",
+      "texto": "remate #",
+      "esperado": {
+        "error": {
+          "codigo": "caracter_invalido",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un emoji es un carácter de dos unidades",
+      "texto": "remate + 😀",
+      "esperado": {
+        "error": {
+          "codigo": "caracter_invalido",
+          "desde": 9,
+          "largo": 2,
+          "linea": 1,
+          "columna": 10
+        }
+      }
+    },
+    {
+      "nombre": "otro igual en medio",
+      "texto": "remate = fees",
+      "esperado": {
+        "error": {
+          "codigo": "caracter_invalido",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "una coma separa mal",
+      "texto": "SUMA(compra, x)",
+      "esperado": {
+        "error": {
+          "codigo": "coma",
+          "desde": 11,
+          "largo": 1,
+          "linea": 1,
+          "columna": 12
+        }
+      }
+    },
+    {
+      "nombre": "una coma de miles",
+      "texto": "1,000",
+      "esperado": {
+        "error": {
+          "codigo": "coma",
+          "desde": 1,
+          "largo": 1,
+          "linea": 1,
+          "columna": 2
+        }
+      }
+    },
+    {
+      "nombre": "un punto y coma fuera de una función",
+      "texto": "remate;fees",
+      "esperado": {
+        "error": {
+          "codigo": "separador_fuera_de_funcion",
+          "desde": 6,
+          "largo": 1,
+          "linea": 1,
+          "columna": 7
+        }
+      }
+    },
+    {
+      "nombre": "un punto y coma dentro de un paréntesis suelto",
+      "texto": "(remate;fees)",
+      "esperado": {
+        "error": {
+          "codigo": "separador_fuera_de_funcion",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un decimal sin dígitos",
+      "texto": "1.",
+      "esperado": {
+        "error": {
+          "codigo": "numero_mal_escrito",
+          "desde": 0,
+          "largo": 2,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un decimal sin entero",
+      "texto": "remate*.5",
+      "esperado": {
+        "error": {
+          "codigo": "numero_mal_escrito",
+          "desde": 7,
+          "largo": 2,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "dos puntos",
+      "texto": "1.2.3",
+      "esperado": {
+        "error": {
+          "codigo": "numero_mal_escrito",
+          "desde": 0,
+          "largo": 5,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un exponente sin dígitos",
+      "texto": "1e",
+      "esperado": {
+        "error": {
+          "codigo": "numero_mal_escrito",
+          "desde": 0,
+          "largo": 2,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un exponente con signo y sin dígitos",
+      "texto": "1e+",
+      "esperado": {
+        "error": {
+          "codigo": "numero_mal_escrito",
+          "desde": 0,
+          "largo": 2,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un número pegado a letras",
+      "texto": "remate+4x",
+      "esperado": {
+        "error": {
+          "codigo": "numero_mal_escrito",
+          "desde": 7,
+          "largo": 2,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un número que se pasa del doble",
+      "texto": "1e999",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 0,
+          "largo": 5,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un negativo que se pasa del doble",
+      "texto": "remate*-1e999",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 7,
+          "largo": 6,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un paréntesis sin cerrar",
+      "texto": "(remate+fees",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_sin_cerrar",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "el último paréntesis sin cerrar",
+      "texto": "remate+(fees",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_sin_cerrar",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "el externo sin cerrar",
+      "texto": "((remate)",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_sin_cerrar",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "una función sin cerrar",
+      "texto": "SUMA(compra",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_sin_cerrar",
+          "desde": 4,
+          "largo": 1,
+          "linea": 1,
+          "columna": 5
+        }
+      }
+    },
+    {
+      "nombre": "un paréntesis abierto al final",
+      "texto": "remate+(",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_sin_cerrar",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un paréntesis de más",
+      "texto": "remate)",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_de_mas",
+          "desde": 6,
+          "largo": 1,
+          "linea": 1,
+          "columna": 7
+        }
+      }
+    },
+    {
+      "nombre": "el segundo paréntesis de más",
+      "texto": "(remate+fees))",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_de_mas",
+          "desde": 13,
+          "largo": 1,
+          "linea": 1,
+          "columna": 14
+        }
+      }
+    },
+    {
+      "nombre": "un operador al final",
+      "texto": "remate+",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 6,
+          "largo": 1,
+          "linea": 1,
+          "columna": 7
+        }
+      }
+    },
+    {
+      "nombre": "un operador al principio",
+      "texto": "+remate",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "dos operadores",
+      "texto": "remate**fees",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un operador después de otro",
+      "texto": "remate+*fees",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un menos antes de un nombre",
+      "texto": "-remate",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un menos separado de su número",
+      "texto": "remate*- 5",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un menos antes de un paréntesis",
+      "texto": "-(remate)",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un menos al final",
+      "texto": "remate-",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 6,
+          "largo": 1,
+          "linea": 1,
+          "columna": 7
+        }
+      }
+    },
+    {
+      "nombre": "un paréntesis vacío",
+      "texto": "()",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_valor",
+          "desde": 1,
+          "largo": 1,
+          "linea": 1,
+          "columna": 2
+        }
+      }
+    },
+    {
+      "nombre": "una función sin argumentos",
+      "texto": "SUMA()",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_valor",
+          "desde": 5,
+          "largo": 1,
+          "linea": 1,
+          "columna": 6
+        }
+      }
+    },
+    {
+      "nombre": "un argumento que falta antes del punto y coma",
+      "texto": "SI(;remate)",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_valor",
+          "desde": 3,
+          "largo": 1,
+          "linea": 1,
+          "columna": 4
+        }
+      }
+    },
+    {
+      "nombre": "un argumento que falta al final",
+      "texto": "SI(activa;)",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_valor",
+          "desde": 10,
+          "largo": 1,
+          "linea": 1,
+          "columna": 11
+        }
+      }
+    },
+    {
+      "nombre": "un punto y coma sin lo que sigue",
+      "texto": "SI(activa;",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_valor",
+          "desde": 9,
+          "largo": 1,
+          "linea": 1,
+          "columna": 10
+        }
+      }
+    },
+    {
+      "nombre": "dos nombres seguidos",
+      "texto": "remate fees",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_operador",
+          "desde": 7,
+          "largo": 4,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "dos números seguidos",
+      "texto": "2 3",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_operador",
+          "desde": 2,
+          "largo": 1,
+          "linea": 1,
+          "columna": 3
+        }
+      }
+    },
+    {
+      "nombre": "un número y un paréntesis",
+      "texto": "3(4)",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_operador",
+          "desde": 1,
+          "largo": 1,
+          "linea": 1,
+          "columna": 2
+        }
+      }
+    },
+    {
+      "nombre": "dos paréntesis seguidos",
+      "texto": "(remate)(fees)",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_operador",
+          "desde": 8,
+          "largo": 1,
+          "linea": 1,
+          "columna": 9
+        }
+      }
+    },
+    {
+      "nombre": "un paréntesis cerrado y un nombre",
+      "texto": "(remate)fees",
+      "esperado": {
+        "error": {
+          "codigo": "falta_un_operador",
+          "desde": 8,
+          "largo": 4,
+          "linea": 1,
+          "columna": 9
+        }
+      }
+    },
+    {
+      "nombre": "un porcentaje repetido",
+      "texto": "4%%",
+      "esperado": {
+        "error": {
+          "codigo": "porcentaje_sin_numero",
+          "desde": 2,
+          "largo": 1,
+          "linea": 1,
+          "columna": 3
+        }
+      }
+    },
+    {
+      "nombre": "un porcentaje solo",
+      "texto": "%",
+      "esperado": {
+        "error": {
+          "codigo": "porcentaje_sin_numero",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un porcentaje pegado a un nombre",
+      "texto": "remate%",
+      "esperado": {
+        "error": {
+          "codigo": "porcentaje_sin_numero",
+          "desde": 6,
+          "largo": 1,
+          "linea": 1,
+          "columna": 7
+        }
+      }
+    },
+    {
+      "nombre": "un porcentaje pegado a un paréntesis",
+      "texto": "(4)%",
+      "esperado": {
+        "error": {
+          "codigo": "porcentaje_sin_numero",
+          "desde": 3,
+          "largo": 1,
+          "linea": 1,
+          "columna": 4
+        }
+      }
+    },
+    {
+      "nombre": "65 paréntesis anidados",
+      "texto": "(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((remate)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "esperado": {
+        "error": {
+          "codigo": "demasiado_profundo",
+          "desde": 64,
+          "largo": 1,
+          "linea": 1,
+          "columna": 65
+        }
+      }
+    },
+    {
+      "nombre": "un nombre que no existe",
+      "texto": "zzz+1",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 0,
+          "largo": 3,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "el nombre desconocido de la derecha",
+      "texto": "remate+zzz",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 7,
+          "largo": 3,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "una mayúscula no es el mismo nombre",
+      "texto": "Remate+1",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 0,
+          "largo": 6,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "la etiqueta no es un nombre",
+      "texto": "Precio+1",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 0,
+          "largo": 6,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "una celda A1",
+      "texto": "B12",
+      "esperado": {
+        "error": {
+          "codigo": "referencia_a1",
+          "desde": 0,
+          "largo": 3,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "una celda con signos de dinero",
+      "texto": "$A$1*2",
+      "esperado": {
+        "error": {
+          "codigo": "referencia_a1",
+          "desde": 0,
+          "largo": 4,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "una celda con dos letras",
+      "texto": "remate+AB12",
+      "esperado": {
+        "error": {
+          "codigo": "referencia_a1",
+          "desde": 7,
+          "largo": 4,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un rango de celdas",
+      "texto": "A1:B2",
+      "esperado": {
+        "error": {
+          "codigo": "referencia_a1",
+          "desde": 0,
+          "largo": 2,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un nodo posterior",
+      "texto": "remate+despues",
+      "esperado": {
+        "error": {
+          "codigo": "referencia_hacia_adelante",
+          "desde": 7,
+          "largo": 7,
+          "linea": 1,
+          "columna": 8
+        }
+      },
+      "contexto": {
+        "posteriores": [
+          {
+            "id": "despues"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "la misma fila",
+      "texto": "total+1",
+      "esperado": {
+        "error": {
+          "codigo": "ciclo",
+          "desde": 0,
+          "largo": 5,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un grupo sin SUMA",
+      "texto": "compra+1",
+      "esperado": {
+        "error": {
+          "codigo": "grupo_sin_suma",
+          "desde": 0,
+          "largo": 6,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "la variante en un cálculo",
+      "texto": "variante+1",
+      "esperado": {
+        "error": {
+          "codigo": "variante_en_calculo",
+          "desde": 0,
+          "largo": 8,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "una función que no existe",
+      "texto": "RAIZ(remate)",
+      "esperado": {
+        "error": {
+          "codigo": "funcion_desconocida",
+          "desde": 0,
+          "largo": 4,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un nombre con paréntesis es una función",
+      "texto": "remate(3)",
+      "esperado": {
+        "error": {
+          "codigo": "funcion_desconocida",
+          "desde": 0,
+          "largo": 6,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "HOY()",
+      "texto": "HOY()",
+      "esperado": {
+        "error": {
+          "codigo": "hoy_no_soportado",
+          "desde": 0,
+          "largo": 3,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "hoy() en minúsculas, en medio de un texto",
+      "texto": "remate+hoy()",
+      "esperado": {
+        "error": {
+          "codigo": "hoy_no_soportado",
+          "desde": 7,
+          "largo": 3,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "HOY con argumentos",
+      "texto": "HOY(1)",
+      "esperado": {
+        "error": {
+          "codigo": "hoy_no_soportado",
+          "desde": 0,
+          "largo": 3,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "SUMA con dos argumentos",
+      "texto": "SUMA(compra; compra)",
+      "esperado": {
+        "error": {
+          "codigo": "cantidad_de_argumentos",
+          "desde": 0,
+          "largo": 4,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "SI con uno",
+      "texto": "SI(activa)",
+      "esperado": {
+        "error": {
+          "codigo": "cantidad_de_argumentos",
+          "desde": 0,
+          "largo": 2,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "REDONDEAR con uno",
+      "texto": "REDONDEAR(remate)",
+      "esperado": {
+        "error": {
+          "codigo": "cantidad_de_argumentos",
+          "desde": 0,
+          "largo": 9,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE con uno",
+      "texto": "PORCENTAJE_DE(remate)",
+      "esperado": {
+        "error": {
+          "codigo": "cantidad_de_argumentos",
+          "desde": 0,
+          "largo": 13,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "DEPRECIAR con dos",
+      "texto": "DEPRECIAR(remate; t)",
+      "esperado": {
+        "error": {
+          "codigo": "cantidad_de_argumentos",
+          "desde": 0,
+          "largo": 9,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "SUMA de un número",
+      "texto": "SUMA(3)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 5,
+          "largo": 1,
+          "linea": 1,
+          "columna": 6
+        }
+      }
+    },
+    {
+      "nombre": "SUMA de una expresión",
+      "texto": "SUMA(compra+1)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 5,
+          "largo": 8,
+          "linea": 1,
+          "columna": 6
+        }
+      }
+    },
+    {
+      "nombre": "REDONDEAR con un decimal",
+      "texto": "REDONDEAR(remate; 1.5)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 18,
+          "largo": 3,
+          "linea": 1,
+          "columna": 19
+        }
+      }
+    },
+    {
+      "nombre": "REDONDEAR con un 7",
+      "texto": "REDONDEAR(remate; 7)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 18,
+          "largo": 1,
+          "linea": 1,
+          "columna": 19
+        }
+      }
+    },
+    {
+      "nombre": "REDONDEAR con un negativo",
+      "texto": "REDONDEAR(remate; -1)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 18,
+          "largo": 2,
+          "linea": 1,
+          "columna": 19
+        }
+      }
+    },
+    {
+      "nombre": "REDONDEAR con un nombre",
+      "texto": "REDONDEAR(remate; fees)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 18,
+          "largo": 4,
+          "linea": 1,
+          "columna": 19
+        }
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE con un monto como pct",
+      "texto": "PORCENTAJE_DE(remate; fees)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 22,
+          "largo": 4,
+          "linea": 1,
+          "columna": 23
+        }
+      }
+    },
+    {
+      "nombre": "PORCENTAJE_DE con una cuenta como pct",
+      "texto": "PORCENTAJE_DE(remate; 1+2)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 22,
+          "largo": 3,
+          "linea": 1,
+          "columna": 23
+        }
+      }
+    },
+    {
+      "nombre": "DEPRECIAR con un número como tabla",
+      "texto": "DEPRECIAR(remate; 3; anio; factor)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 18,
+          "largo": 1,
+          "linea": 1,
+          "columna": 19
+        }
+      }
+    },
+    {
+      "nombre": "DEPRECIAR con una tabla en mayúsculas",
+      "texto": "DEPRECIAR(remate; Tabla; anio; factor)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 18,
+          "largo": 5,
+          "linea": 1,
+          "columna": 19
+        }
+      }
+    },
+    {
+      "nombre": "DEPRECIAR con un número como sobre",
+      "texto": "DEPRECIAR(remate; t; 5; factor)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 21,
+          "largo": 1,
+          "linea": 1,
+          "columna": 22
+        }
+      }
+    },
+    {
+      "nombre": "SI con un número como bandera",
+      "texto": "SI(3; remate)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 3,
+          "largo": 1,
+          "linea": 1,
+          "columna": 4
+        }
+      }
+    },
+    {
+      "nombre": "SI con un monto como bandera",
+      "texto": "SI(remate; fees)",
+      "esperado": {
+        "error": {
+          "codigo": "no_es_bandera",
+          "desde": 3,
+          "largo": 6,
+          "linea": 1,
+          "columna": 4
+        }
+      }
+    },
+    {
+      "nombre": "SI con la variante como bandera",
+      "texto": "SI(variante; fees)",
+      "esperado": {
+        "error": {
+          "codigo": "no_es_bandera",
+          "desde": 3,
+          "largo": 8,
+          "linea": 1,
+          "columna": 4
+        }
+      }
+    },
+    {
+      "nombre": "un grupo que no existe",
+      "texto": "SUMA(zzz)",
+      "esperado": {
+        "error": {
+          "codigo": "grupo_inexistente",
+          "desde": 5,
+          "largo": 3,
+          "linea": 1,
+          "columna": 6
+        }
+      }
+    },
+    {
+      "nombre": "un nodo no es un grupo",
+      "texto": "SUMA(remate)",
+      "esperado": {
+        "error": {
+          "codigo": "grupo_inexistente",
+          "desde": 5,
+          "largo": 6,
+          "linea": 1,
+          "columna": 6
+        }
+      }
+    },
+    {
+      "nombre": "un grupo sin filas",
+      "texto": "SUMA(vacio)",
+      "esperado": {
+        "error": {
+          "codigo": "grupo_vacio",
+          "desde": 5,
+          "largo": 5,
+          "linea": 1,
+          "columna": 6
+        }
+      }
+    },
+    {
+      "nombre": "SUMA del grupo de la propia fila",
+      "texto": "SUMA(compra)",
+      "esperado": {
+        "error": {
+          "codigo": "ciclo",
+          "desde": 5,
+          "largo": 6,
+          "linea": 1,
+          "columna": 6
+        }
+      },
+      "contexto": {
+        "destino": {
+          "id": "total",
+          "etiqueta": "Total",
+          "grupo": "compra"
+        }
+      }
+    },
+    {
+      "nombre": "SUMA de un grupo con filas más abajo",
+      "texto": "SUMA(compra)",
+      "esperado": {
+        "error": {
+          "codigo": "referencia_hacia_adelante",
+          "desde": 5,
+          "largo": 6,
+          "linea": 1,
+          "columna": 6
+        }
+      },
+      "contexto": {
+        "posteriores": [
+          {
+            "id": "despues",
+            "grupo": "compra"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "un auxiliar con el id de un nodo",
+      "texto": "(remate+fees)*4%",
+      "esperado": {
+        "error": {
+          "codigo": "auxiliar_ocupado",
+          "desde": 14,
+          "largo": 2,
+          "linea": 1,
+          "columna": 15
+        }
+      },
+      "contexto": {
+        "posteriores": [
+          {
+            "id": "total__2"
+          }
+        ]
+      }
+    },
+    {
+      "nombre": "un auxiliar con la clave de un param",
+      "texto": "(remate+fees)*4%",
+      "esperado": {
+        "error": {
+          "codigo": "auxiliar_ocupado",
+          "desde": 0,
+          "largo": 13,
+          "linea": 1,
+          "columna": 1
+        }
+      },
+      "contexto": {
+        "params": {
+          "flete": 900,
+          "iva": 0.13,
+          "total__1": 5
+        }
+      }
+    },
+    {
+      "nombre": "el error en la segunda línea",
+      "texto": "remate +\n  zzz",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 11,
+          "largo": 3,
+          "linea": 2,
+          "columna": 3
+        }
+      }
+    },
+    {
+      "nombre": "el error después de un CRLF",
+      "texto": "remate +\r\n zzz",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 11,
+          "largo": 3,
+          "linea": 2,
+          "columna": 2
+        }
+      }
+    },
+    {
+      "nombre": "un error después de una letra con tilde",
+      "texto": "ñ",
+      "esperado": {
+        "error": {
+          "codigo": "caracter_invalido",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "el primer error del texto gana",
+      "texto": "zzz + $ + (",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 0,
+          "largo": 3,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un error léxico antes de uno de sintaxis",
+      "texto": "remate # )",
+      "esperado": {
+        "error": {
+          "codigo": "caracter_invalido",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "un error de sintaxis antes de uno léxico",
+      "texto": "remate ) #",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_de_mas",
+          "desde": 7,
+          "largo": 1,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    }
+  ]
+}
