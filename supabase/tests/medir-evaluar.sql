@@ -22,8 +22,10 @@
 --     origen, y por cotización a lo sumo dos veces lo que cuesta buscar una cotización por su clave (la función la busca dos veces: el
 --     permiso y la lectura), con el índice que haya. Los buffers totales de la llamada van como dato, no como assert: incluyen las
 --     tablas de permisos, que el autovacuum encoge o no a mitad de una corrida (138 y 178 buffers en dos fases de la misma corrida);
---   - las guardas de escala: ARMAR lee a lo sumo las páginas que ocupan las filas de las tablas nombradas más una constante, y dos
---     versiones malas (una que lee todas las tablas del origen y otra que lee las filas de todos los orígenes) tienen que caer.
+--   - las guardas de escala: ARMAR lee a lo sumo las páginas que ocupan las filas de las tablas nombradas más una constante (con un 20 % de margen, que
+--     cubre el costo fijo y deja pasar una tabla más), y dos versiones malas (una que lee todas las tablas del origen y otra que lee las filas de todos los
+--     orígenes) tienen que caer; y **por relación** (4-11): lo que ARMAR pide de `tablas_referencia(_filas)` es lo que pide la misma consulta sobre las cuatro tablas
+--     que la fórmula nombra (+ 2), y seis versiones malas —las dos de arriba, una tabla viva de más, un N+1 por fila, una lectura doble y un N+1 por tabla— lo superan.
 -- Cada línea `medicion|…|número` sale por el runner (`scripts/medir-listado.mjs`); las `nota|…`, también.
 \set ON_ERROR_STOP 1
 begin;
@@ -92,6 +94,27 @@ create function pg_temp.bloques_cotizaciones() returns bigint language sql as $$
           union all select indexrelid from pg_index where indrelid = 'public.cotizaciones'::regclass
           union all select reltoastrelid from pg_class where oid = 'public.cotizaciones'::regclass and reltoastrelid <> 0) r
 $$;
+
+-- Los bloques que esta transacción ha pedido de las tablas de referencia: el heap, los índices y el TOAST de `tablas_referencia_filas`, y el heap y los
+-- índices de `tablas_referencia`. Lo único que ARMAR lee y crece con lo que la fórmula nombra: sin las tablas de permisos, de fórmulas ni de vehículos, cuyo peso
+-- cambia con lo encogidas que estén (el costo fijo de la guarda de abajo se mueve unos 30 buffers entre corridas, lo que cuesta una tabla de más).
+create function pg_temp.bloques_de_tablas() returns bigint language sql as $$
+  select coalesce(sum(pg_stat_get_xact_blocks_fetched(r.oid)), 0)::bigint
+    from (select 'public.tablas_referencia_filas'::regclass::oid as oid
+          union all select indexrelid from pg_index where indrelid = 'public.tablas_referencia_filas'::regclass
+          union all select reltoastrelid from pg_class where oid = 'public.tablas_referencia_filas'::regclass and reltoastrelid <> 0
+          union all select 'public.tablas_referencia'::regclass::oid
+          union all select indexrelid from pg_index where indrelid = 'public.tablas_referencia'::regclass) r
+$$;
+-- Los bloques de esas tablas que pide UNA ejecución de la sentencia (ya caliente).
+create function pg_temp.bloques_que_lee(p_sql text) returns bigint language plpgsql as $$
+declare v_antes bigint;
+begin
+  execute p_sql;
+  v_antes := pg_temp.bloques_de_tablas();
+  execute p_sql;
+  return pg_temp.bloques_de_tablas() - v_antes;
+end $$;
 
 -- Un caso: mide, anota y asserta los topes de tiempo. `p_mediana` y `p_p95` en ms (null = sin tope).
 create function pg_temp.caso(p_caso text, p_n int, p_entradas jsonb, p_cot uuid, p_origen uuid, p_veh uuid, p_mediana numeric, p_p95 numeric)
@@ -362,12 +385,20 @@ do $$
 declare
   v_sint uuid := (select id from _ids where clave = 'origen_sint');
   v_veh uuid := (select id from _ids where clave = 'veh_sint');
-  v_sql text; v_sql_seed text; v_filas bigint; v_paginas bigint; v_fijo bigint; v_tope bigint; v_real bigint; v_def text; v_malo text; v_b bigint; v_nombre text;
+  v_sql text; v_sql_seed text; v_filas bigint; v_paginas bigint; v_fijo bigint; v_tope bigint; v_real bigint; v_def text; v_malo text; v_b bigint; v_nombre text; v_ref bigint; v_rel bigint; v_rel_mala bigint;
   v_malas text[][] := array[
     ['a', 'lee todas las tablas del origen y no las que la fórmula nombra', 'from unnest(v_vivas) c (clave)',
      'from (select r.clave from public.tablas_referencia r where r.origen_id = v_origen) c (clave)'],
     ['b', 'lee las filas de todos los orígenes con esa clave', 'from public.tablas_referencia_filas f where f.tabla_id = t.id and f.activa',
-     'from public.tablas_referencia_filas f where f.tabla_id in (select r.id from public.tablas_referencia r where r.clave = c.clave) and f.activa']];
+     'from public.tablas_referencia_filas f where f.tabla_id in (select r.id from public.tablas_referencia r where r.clave = c.clave) and f.activa'],
+    ['c', 'lee una tabla viva más del origen', 'or not (v_cong ? t));',
+     'or not (v_cong ? t)) || array(select r.clave from public.tablas_referencia r where r.origen_id = v_origen and r.clave <> all (v_tablas) order by r.clave limit 1);'],
+    ['d', 'lee cada fila de las tablas con una consulta aparte (N+1)', 'jsonb_agg(f.valores order by f.orden, f.id)',
+     'jsonb_agg((select g.valores from public.tablas_referencia_filas g where g.id = f.id) order by f.orden, f.id)'],
+    ['e', 'lee dos veces las filas de cada tabla', 'from public.tablas_referencia_filas f where f.tabla_id = t.id and f.activa) as filas',
+     'from public.tablas_referencia_filas f where f.tabla_id = t.id and f.activa and (select count(*) from public.tablas_referencia_filas g where g.tabla_id = t.id and g.activa) >= 0) as filas'],
+    ['f', 'busca dos veces la tabla de cada nombre (un N+1 por tabla)', '(select r.id from public.tablas_referencia r where r.origen_id = v_origen and r.clave = c.clave and r.activa),',
+     '(select r.id from public.tablas_referencia r where r.origen_id = v_origen and r.clave = c.clave and r.activa and (select count(*) from public.tablas_referencia r2 where r2.origen_id = v_origen and r2.clave = c.clave) >= 0),']];
   i int;
 begin
   v_sql := format('select a.definicion from public._cotizacion_armar(%L::jsonb, null, %L::uuid, %L::uuid) a', (select sint from _entradas), v_sint, v_veh);
@@ -384,9 +415,22 @@ begin
   v_real := pg_temp.buffers(v_sql);
   raise notice 'medicion|cotizacion_evaluar, guarda: ARMAR de la sintética lee (buffers; tope %, con % filas en % páginas y un costo fijo de %)|%', v_tope, v_filas, v_paginas, v_fijo, v_real;
   if v_real > v_tope then raise exception 'ARMAR lee % buffers y el tope de las tablas que nombra la fórmula es %', v_real, v_tope; end if;
+  -- La guarda por relación (4-11): lo que ARMAR pide de las tablas de referencia y de sus filas no pasa de lo que pide la misma consulta sobre las cuatro tablas que
+  -- la fórmula nombra. El 20 % de arriba cubre también el costo fijo y deja pasar una tabla más (≈ 38 buffers contra ≈ 50 de holgura); esto no deja pasar ni una.
+  v_ref := pg_temp.bloques_que_lee(format($q$select coalesce(jsonb_object_agg(x.clave, x.filas), '{}'::jsonb)
+      from (select c.clave,
+                   (select coalesce(jsonb_agg(f.valores order by f.orden, f.id), '[]'::jsonb)
+                      from public.tablas_referencia_filas f where f.tabla_id = t.id and f.activa) as filas
+              from unnest(%L::text[]) c (clave)
+             cross join lateral (select coalesce((select r.id from public.tablas_referencia r where r.origen_id = %L and r.clave = c.clave and r.activa),
+                                                 (select r.id from public.tablas_referencia r where r.origen_id is null and r.clave = c.clave and r.activa)) as id) t
+             where t.id is not null) x$q$, array['t1', 't2', 't3', 't4'], v_sint));
+  v_rel := pg_temp.bloques_que_lee(v_sql);
+  raise notice 'medicion|cotizacion_evaluar, guarda por relación: ARMAR de la sintética lee de las tablas de referencia (bloques; la misma consulta sobre t1 a t4 lee %)|%', v_ref, v_rel;
+  if v_rel > v_ref + 2 then raise exception 'ARMAR lee % bloques de las tablas de referencia y la consulta sobre las cuatro que nombra la fórmula, %', v_rel, v_ref; end if;
   -- Las dos versiones malas: la función de verdad con un cambio, creada en pg_temp, que tiene que pasarse del tope.
   v_def := pg_get_functiondef('public._cotizacion_armar(jsonb, uuid, uuid, uuid)'::regprocedure);
-  for i in 1 .. 2 loop
+  for i in 1 .. 6 loop
     v_nombre := '_cotizacion_armar_mala_' || v_malas[i][1];
     v_malo := replace(v_def, 'public._cotizacion_armar(', 'pg_temp.' || v_nombre || '(');
     if v_malo = v_def or position(v_malas[i][3] in v_malo) = 0 then
@@ -395,9 +439,15 @@ begin
     execute replace(v_malo, v_malas[i][3], v_malas[i][4]);
     perform pg_temp.buffers(replace(v_sql, 'public._cotizacion_armar(', 'pg_temp.' || v_nombre || '('));
     v_b := pg_temp.buffers(replace(v_sql, 'public._cotizacion_armar(', 'pg_temp.' || v_nombre || '('));
-    raise notice 'medicion|cotizacion_evaluar, guarda: una versión que % lee (buffers; tiene que pasar de %)|%', v_malas[i][2], v_tope, v_b;
-    if v_b <= v_tope then
+    raise notice 'medicion|cotizacion_evaluar, guarda: una versión que % lee (buffers; las dos primeras tienen que pasar de %)|%', v_malas[i][2], v_tope, v_b;
+    -- Las dos primeras pasan del 20 % de margen; las otras (una tabla más, un N+1, una lectura doble) sólo las ve la guarda por relación.
+    if i <= 2 and v_b <= v_tope then
       raise exception 'la guarda no muerde: una versión que % lee % buffers y el tope es %', v_malas[i][2], v_b, v_tope;
+    end if;
+    v_rel_mala := pg_temp.bloques_que_lee(replace(v_sql, 'public._cotizacion_armar(', 'pg_temp.' || v_nombre || '('));
+    raise notice 'medicion|cotizacion_evaluar, guarda por relación: una versión que % lee de las tablas de referencia (bloques; tiene que pasar de %)|%', v_malas[i][2], v_ref + 2, v_rel_mala;
+    if v_rel_mala <= v_ref + 2 then
+      raise exception 'la guarda por relación no muerde: una versión que % lee % bloques de las tablas y la referencia es %', v_malas[i][2], v_rel_mala, v_ref;
     end if;
   end loop;
 end $$;
