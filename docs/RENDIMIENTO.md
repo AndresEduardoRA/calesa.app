@@ -1424,3 +1424,25 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 
   Mutando la función **real** (`_cotizacion_armar` aplicada con `psql`): una tabla más cae por la guarda por relación (191 bloques contra 150) y un N+1 por tabla también (177 contra 151); el N+1 por fila
   (16.286 buffers) y la lectura doble (426) caen además por el tope de siempre. Ningún tope se tocó.
+
+## Paso 4.09 (2 de 2): `niveles_con_uso()` y la matriz de Roles con los niveles (2026-10-24)
+
+- **Cómo se mide:** `pnpm db:medir` (`supabase/tests/medir-nodos-visibles.sql`, sección 3), mediana de 5 de 7 corridas de `EXPLAIN (ANALYZE, BUFFERS)`, como la dueña.
+- **`niveles_con_uso()`** es lo que lee la pantalla al abrirse y lo que devuelve cada escritura (`_niveles_lista()` lleva `motivo_de_uso`): por cada nivel que alguna versión nombra corre `_nivel_uso()`, que crece con las versiones que
+  lo nombran. La lista se corta en el tope (10: «todos», «costos» y 8 más), así que el peor caso son **9 niveles en uso**:
+
+  | `niveles_con_uso()`                                                                 | ms    | buffers en las 5 medidas | Tope |
+  | ----------------------------------------------------------------------------------- | ----- | ------------------------ | ---- |
+  | 8 niveles sin uso y «costos» en uso (la semilla)                                    | 2,6   | —                        | —    |
+  | los 9 en uso, cada uno nombrado por 200 versiones                                   | 20,9  | 3.050                    | 60   |
+  | los 9 en uso, cada uno nombrado por 2.000 versiones (18.000 diseños de 8 secciones) | 199,5 | 19.025                   | 400  |
+
+  **Antes del arreglo** el motivo preguntaba primero `_nivel_en_uso()` (21,6 ms con 2.000 versiones de 8 secciones) y después `_nivel_uso()` (22,7): **358 ms** en el peor caso. `…006600` pregunta una vez (sin ningún origen que lo
+  nombre no hay uso): **199 ms**. Se probó recorrer cada origen hacia atrás por `(origen_id, version)` hasta la primera versión que lo nombra: con 2.000 versiones bajaba a 12 ms por nivel pero con 200 salía **4 veces peor**
+  (7 ms contra 1,75), porque un origen que no lo nombra obliga a recorrer todo su historial sin usar el índice de niveles. Se descartó. Los 2.000 por nivel son un extremo (cada ⚙ publica una versión); lo realista, 200, cuesta 21 ms.
+
+- **La matriz de Roles** no tiene paginación (es la excepción registrada de `listas-con-patron.ts`, `docs/RENDIMIENTO.md` 5a-16 y 5a-19): dibuja el catálogo por cada rol. Con los permisos de un nivel son **hasta 18 filas más sobre las 72 del
+  catálogo** (9 niveles que generan permisos × 2; el tope de la base los acota, `_niveles_tope()`). `e2e/roles-niveles.spec.ts` lo comprueba con el tope lleno: 18 filas de nivel (90 en total), la página sin ensanchar al 200 % y el nombre
+  y el control de la primera, la segunda, una del medio y las últimas a la vista sin desplazar, en 412 y en 1.280 px. La lectura de los permisos suma una columna embebida por la FK (`cotizaciones_niveles(nombre, retirado_en)`): sin
+  consulta extra.
+- **La pantalla de Niveles** lee una vez (`niveles_con_uso()`) y no pagina (a lo sumo 10 filas); sus modales y la confirmación viajan con `diferido()` (`useAbiertoAlgunaVez`).

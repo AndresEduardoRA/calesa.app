@@ -946,10 +946,11 @@ inválido tumba el seed con la regla y su `donde`.
   - `nivel_crear(p_id, p_nombre)` (idempotente por el id del intento; el candado de la tabla ordena el tope, el nombre y la clave);
   - `nivel_renombrar(p_id, p_actualizado_en_esperado, p_nombre)` (cambia el nombre del nivel y el de sus dos permisos; no vuelve a conceder lo que alguien le haya quitado al dueño);
   - `nivel_retirar(p_id, p_actualizado_en_esperado)` (el nivel deja de ofrecerse; sus permisos, concesiones y usos siguen; la fecha de retiro no se pisa);
+  - `nivel_restaurar(p_id, p_actualizado_en_esperado)` (4.09-2, 4-12: deshace un retiro; no cambia la clave, los permisos, las concesiones ni el tope; uno que no está retirado responde `sin_cambios` sin mirar la versión);
   - `nivel_eliminar(p_id, p_actualizado_en_esperado)`: `for update` del nivel **antes** de mirar el uso (`_nivel_en_uso()`: borrador, publicada o archivada); con uso responde 23503, `detail
 nivel_en_uso`, «Está en 6 celdas de 2 orígenes (en alguna versión de su fórmula): no se elimina. Puedes retirarlo…» (`_nivel_uso()` cuenta sólo la versión más nueva de cada origen que lo
     nombra); sin uso toma `for update` de los roles que lo tienen concedido, borra sus dos permisos (las concesiones caen con ellos), toca la versión de esos roles y borra el nivel.
-  - Todo queda en `actividad` (`nivel.crear|renombrar|retirar|eliminar` con `{clave, nombre}`), sin contenido de fórmula.
+  - Todo queda en `actividad` (`nivel.crear|renombrar|retirar|restaurar|eliminar` con `{clave, nombre}`), sin contenido de fórmula.
 - **Publicar y eliminar no se cruzan:** `_preparar_publicacion()` toma `for key share` los niveles que nombra el diseño (como los tonos); `nivel_eliminar` toma `for update` antes de mirar el
   uso. O se publica y el nivel no se elimina (23503), o se elimina y publicar da `nivel_inexistente`. **Invariante:** ninguna versión publicada o archivada nombra un nivel que no existe.
 - **`_nodos_visibles(formula_id)`** → `(nodo, editar)` (de nadie; la llamarán las RPC definer de lectura y guardado, 4.10): **un nivel sólo estrecha.** Se ve un nodo de `ver: todos` con
@@ -962,8 +963,23 @@ nivel_en_uso`, «Está en 6 celdas de 2 orígenes (en alguna versión de su fór
   nivel de la tabla, los sembrados y uno creado con `nivel_crear`: sin el permiso los nodos no llegan, con él sí, ver y editar por separado), `scripts/carreras/niveles.mjs` (dos crear con la misma
   clave, eliminar contra publicar en los dos órdenes, contra retirar y renombrar, crear contra renombrar al mismo nombre, eliminar contra el borrado de un rol sin bloqueo mutuo) y
   `medir-nodos-visibles.sql`. Detalle de las mutaciones: `docs/BITACORA.md`, 4.09-1.
-- **No está todavía** (prompt 2 y 4.10): la pantalla Configuración › Cotización › Niveles, que la matriz de Roles muestre estos permisos (el catálogo de TS es cerrado y descarta una clave que no
-  conoce), y las lecturas que consumen `_nodos_visibles()`.
+- **No está todavía** (4.10): las lecturas que consumen `_nodos_visibles()` (el alcance y crear contra editar los decide `puede_cotizacion`).
+
+### La pantalla y la matriz de Roles (4.09-2)
+
+`…006400_nivel_restaurar.sql`, `…006500_niveles_con_uso.sql` y `…006600_motivo_de_uso_en_una_sola_pasada.sql`.
+
+- **`niveles_con_uso()`** (`equipo.roles.ver` o `equipo.roles.gestionar`) devuelve `{tope, niveles}`: de cada nivel, `se_renombra`, `se_retira` y `se_elimina` (la misma regla que `_nivel_protegido()`: «todos» no se toca, «costos» no se
+  elimina) y `motivo_de_uso`, el texto que también dice `nivel_eliminar` al rechazar (`_nivel_motivo_de_uso()`: «Está en 6 celdas de 2 orígenes (en alguna versión de su fórmula): no se elimina. Puedes retirarlo…»; uno ya retirado no
+  ofrece retirarse). **`_niveles_lista()` lo lleva en la respuesta de cada escritura**: la pantalla nunca lo pierde al cambiar algo. Cuesta una cuenta por nivel que alguna versión nombra: 2,6 ms con ninguno, 21 ms con los nueve que pueden tener
+  permisos en uso y 200 versiones cada uno, 199 con 2.000 (`medir-nodos-visibles.sql`, topes de 60 y 400 ms). Con esto `equipo.roles.ver` tiene enforcement en la base.
+- **En TS** los permisos de un nivel no están en `CLAVES_PERMISO`: se reconocen por su forma, la del check de `cotizaciones_niveles.clave` menos «todos» (`esClaveDeNivel()` de `@/shared/lib/permisos`). La sesión, las actions de la matriz y
+  `catalogoDesde()` los dejan pasar; la prueba corre `_nivel_clave()` de la base sobre nombres difíciles y exige que cada clave que da pase el patrón.
+- **La matriz de Roles** los trae con su nivel por la FK (`PermisoDelCatalogo.nivel`): van al final de «Cotizaciones» (`orden` 700 y 701 empatan entre niveles; los desempata `ordenarPermisosDeNivel()` por nombre en español y «Ver» antes
+  de «Editar»), y uno retirado dice «(retirado)» porque lo que se le dio sigue valiendo. Otorgarlos pasa por `rbac_otorgar` (por origen, sin alcance) con la dominancia de siempre; «Ver como» los refleja porque la sesión ya los trae
+  (un rol sin el permiso del nivel no se lo puede dar a otro). Sin paginación (la matriz es la excepción de `listas-con-patron.ts`): con el tope de niveles suma 18 filas a las 72, y cabe al 200 % en 412 y 1.280 px.
+- **La pantalla** `/configuracion/cotizacion?seccion=niveles` (`docs/UX.md`, «Cotización: niveles de acceso»): la lista con «N de 10», los retirados aparte, y crear, renombrar, retirar y restaurar (con «Deshacer») y eliminar. No razona
+  por el nombre ni por la clave de un nivel: lo que admite cada uno lo dicen las banderas de su fila.
 
 ## Lo que se guarda en una cotización
 
