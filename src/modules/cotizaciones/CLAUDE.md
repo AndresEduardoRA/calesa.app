@@ -20,7 +20,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   Excel entero y «Amnistia»): lo recorren `validar.test.ts` y `supabase/tests/validar-formula.sql`. Una regla nueva = su caso acá.
 - `supabase/migrations/20261019004900_validar_formula.sql` — `validar_formula()` y sus ayudantes `_formula_*` (STABLE desde `…005100`): la forma y las 29
   primeras reglas en el orden de `validar.ts`, lineal; rechaza con 22023, el código de la regla en DETAIL y `donde` en HINT. Recorre las
-  claves de un objeto en el orden de jsonb. La 30.ª, `campo_con_punto`, está en `supabase/migrations/20261019005400_validar_formula_campos.sql`, que redefine `validar_formula()` entera (STABLE) y añade `_formula_campos()`. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 81 casos y con
+  claves de un objeto en el orden de jsonb. La 30.ª, `campo_con_punto`, está en `supabase/migrations/20261019005400_validar_formula_campos.sql`, que redefine `validar_formula()` entera (STABLE) y añade `_formula_campos()`; `…005500_formula_texto.sql` redefine `_formula_forma_nodo()` (STABLE) para admitir `texto`. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 87 casos y con
   el corpus diferencial `supabase/tests/corpus-de-formula.json` (más de 500 mutaciones de las 4 válidas, defectos mezclados, el esperado
   de `validarFormula`), que generan `corpus-de-formula.ts` y los `mutadores-*.ts` de esa carpeta y vigila `corpus-de-formula.test.ts`.
 - `supabase/migrations/20261019005200_evaluar_formula.sql` — `evaluar_formula(definicion, params, entrada, modo?)` y sus ayudantes `_motor_*`: espejo
@@ -41,7 +41,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   `linea`, `columna`). No lo exporta `index.ts` todavía: lo usará el editor (4.21). Lo parten `compilador-lexico.ts`, `compilador-sintaxis.ts`
   (parser iterativo de dos pilas, nada recursivo), `compilador-reducir.ts` (el aplanado de `a+b+c`), `compilador-estado.ts`,
   `compilador-funciones.ts` (SUMA, SI, REDONDEAR, PORCENTAJE_DE, DEPRECIAR), `compilador-nombres.ts` (el contexto), `compilador-emitir.ts`
-  (los nodos auxiliares `<fila>__<n>`) y `motivos-del-compilador.ts` (los 28 códigos). `HOY()` se rechaza (4-4). Lo prueban
+  (los nodos auxiliares `<fila>__<n>`) y `motivos-del-compilador.ts` (los 28 códigos). `HOY()` se rechaza (4-4). La fila que guarda el editor lleva el texto fuente en `texto?` (1 a 2.000 caracteres; sólo `constante` y `calculo`; el compilador no lo lee ni lo escribe). Lo prueban
   `casos-del-compilador.json` (a mano), `compilador-propiedades.test.ts` (contra el cálculo directo en JS, bit a bit) y `compilador-escala.test.ts`;
   `compilador-generador.ts` y `compilador-formula-de-prueba.ts` son sólo de las pruebas. Doce casos «compilada: …» viven en
   `casos-de-formula.json` (los recompila `compilador-casos-de-formula.test.ts`).

@@ -20,6 +20,12 @@ export type Formato = (typeof FORMATOS)[number]
 
 const texto = (max: number) => z.string().min(1).max(max)
 
+// El texto con que se escribió una fila (`=(remate+fees)*4%`), para que el editor lo muestre y lo recompile. Lo lleva la raíz que
+// compila `compilarExpresion()` (una `constante` o un `calculo`); el compilador no lo lee ni lo escribe. Se cuenta en caracteres,
+// como `char_length` de `validar_formula()`.
+export const MAXIMO_DE_TEXTO = 2000
+const deTexto = { texto: texto(MAXIMO_DE_TEXTO).optional() }
+
 // Lo que todo nodo puede llevar. `seccion` y `color` son de la Fase 0: el diseño (4.08) los reemplaza.
 const base = {
   id: esquemaId,
@@ -50,6 +56,7 @@ const esquemaInput = z.strictObject({
 // `tablas` es la clave de `params` donde van las filas congeladas (D5): ninguna constante se llama así.
 const esquemaConstante = z.strictObject({
   ...deValor,
+  ...deTexto,
   id: esquemaId.refine((id) => id !== 'tablas', {
     error: '«tablas» es una clave reservada de params',
   }),
@@ -102,7 +109,7 @@ const esquemaTramo = z.strictObject({
 })
 
 // `calculo`, con la aridad de cada operación cerrada.
-const deCalculo = { ...deValor, ...sobrescribible, tipo: z.literal('calculo') }
+const deCalculo = { ...deValor, ...sobrescribible, ...deTexto, tipo: z.literal('calculo') }
 const uno = z.tuple([esquemaId])
 const esquemaCalculo = z.discriminatedUnion('op', [
   z.strictObject({ ...deCalculo, op: z.literal('suma'), de: z.array(esquemaId).min(1) }),

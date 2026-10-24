@@ -18,6 +18,7 @@ import {
   type Mutador,
 } from './mutadores-de-formula'
 import { MUTADORES_DE_CAMPOS } from './mutadores-de-campos'
+import { MUTADORES_DE_TEXTO } from './mutadores-de-texto'
 import { MUTADORES_DEL_TOTAL } from './mutadores-del-total'
 import { MUTADORES_DE_GRUPOS } from './mutadores-de-grupos'
 import { MUTADORES_DE_VARIANTE } from './mutadores-de-variante'
@@ -30,12 +31,13 @@ export const MUTADORES_CRUZADOS: readonly Mutador[] = [
   ...MUTADORES_DE_GRUPOS,
   ...MUTADORES_DE_VARIANTE,
   ...MUTADORES_DE_CAMPOS,
+  ...MUTADORES_DE_TEXTO,
 ]
 export { MUTADORES_DE_FORMA }
 
 // Cuántas veces se aplica solo cada mutador cruzado (rotando por las bases donde se aplica, con otra elección al azar cada vez), y
 // cuántas mezclas se arman.
-const APLICACIONES_POR_MUTADOR = 5
+const APLICACIONES_POR_MUTADOR = 6
 const MEZCLAS_CRUZADAS = 180
 const MEZCLAS_CON_FORMA = 50
 
@@ -124,7 +126,7 @@ function caso(k: number, base: Base, f: Formula, mutaciones: string[]): Caso {
 
 type Agregar = (base: Base, r: ReturnType<typeof mutar>) => void
 
-// 1. Dirigidos: cada mutador solo. Los cruzados, cinco veces, rotando por las bases (los de grupos sólo se aplican al Excel).
+// 1. Dirigidos: cada mutador solo. Los cruzados, seis veces, rotando por las bases (los de grupos sólo se aplican al Excel).
 function dirigidosCruzados(bases: readonly Base[], azar: Azar, agregar: Agregar) {
   for (const m of MUTADORES_CRUZADOS) {
     let hechos = 0

@@ -12,8 +12,9 @@ const REGENERAR = 'ACTUALIZAR_CORPUS=1 pnpm vitest run supabase/tests/corpus-de-
 
 const juego = JSON.parse(readFileSync(JUEGO, 'utf8')) as { casos: (Base & { valida: boolean })[] }
 const bases: Base[] = juego.casos
-  // Los «compilada: …» salen del compilador de texto (4.07) y no son bases del corpus: no lo mutan.
-  .filter((c) => c.valida && !c.nombre.startsWith('compilada: '))
+  // Los «compilada: …» salen del compilador de texto (4.07) y los «texto: …» son casos a mano del `texto` de una fila: no son bases
+  // del corpus, no lo mutan.
+  .filter((c) => c.valida && !c.nombre.startsWith('compilada: ') && !c.nombre.startsWith('texto: '))
   .map(({ nombre, definicion, params }) => ({
     nombre: nombre.startsWith('semilla: ')
       ? nombre.slice('semilla: '.length)
@@ -53,7 +54,7 @@ describe('corpus-de-formula.json', () => {
     for (const regla of REGLAS_DE_FORMULA)
       expect(porRegla.get(regla) ?? 0, regla).toBeGreaterThanOrEqual(5)
     expect(casos.filter((c) => c.mutaciones.length >= 2).length).toBeGreaterThanOrEqual(200)
-    expect(casos.filter((c) => c.valida).length).toBeGreaterThanOrEqual(10)
+    expect(casos.filter((c) => c.valida).length).toBeGreaterThanOrEqual(15)
     expect(new Set(casos.map((c) => c.nombre)).size).toBe(casos.length)
   })
 

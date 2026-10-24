@@ -6051,6 +6051,302 @@
       "params": {}
     },
     {
+      "nombre": "forma: un texto vacío",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "total"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen",
+            "texto": ""
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "forma: un texto de 2.001 caracteres",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "total"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen",
+            "texto": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "forma: un texto que no es un texto",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "total"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen",
+            "texto": 5
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "forma: un texto en un input",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "precio"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen",
+            "texto": "precio"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "forma: un texto nulo",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "total"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen",
+            "texto": null
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "texto: 2.000 caracteres, cada uno un emoji (se cuentan caracteres, no bytes)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen",
+            "texto": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
       "nombre": "compilada: (remate+fees)*4%",
       "valida": true,
       "definicion": {
@@ -6136,7 +6432,8 @@
             "etiqueta": "Total",
             "salida": "total",
             "op": "multiplicar",
-            "de": ["total__1", "total__2"]
+            "de": ["total__1", "total__2"],
+            "texto": "(remate+fees)*4%"
           }
         ],
         "buckets": {
@@ -6231,7 +6528,8 @@
             "etiqueta": "Total",
             "salida": "total",
             "op": "suma",
-            "de": ["fees", "flete"]
+            "de": ["fees", "flete"],
+            "texto": "SUMA(compra)"
           }
         ],
         "buckets": {
@@ -6332,7 +6630,8 @@
             "etiqueta": "Total",
             "salida": "total",
             "op": "suma",
-            "de": ["remate", "total__1"]
+            "de": ["remate", "total__1"],
+            "texto": "remate+(fees+flete)"
           }
         ],
         "buckets": {
@@ -6433,7 +6732,8 @@
             "etiqueta": "Total",
             "salida": "total",
             "op": "multiplicar",
-            "de": ["total__1", "flete"]
+            "de": ["total__1", "flete"],
+            "texto": "remate/fees*flete"
           }
         ],
         "buckets": {
@@ -6542,7 +6842,8 @@
             "etiqueta": "Total",
             "salida": "total",
             "op": "suma",
-            "de": ["total__2", "flete"]
+            "de": ["total__2", "flete"],
+            "texto": "SI(activa; remate*fees)+flete"
           }
         ],
         "buckets": {
@@ -6644,7 +6945,8 @@
             "salida": "total",
             "op": "redondear",
             "de": ["total__1"],
-            "n": 2
+            "n": 2,
+            "texto": "REDONDEAR(remate/fees; 2)"
           }
         ],
         "buckets": {
@@ -6745,7 +7047,8 @@
             "salida": "total",
             "op": "porcentaje_de",
             "de": ["remate"],
-            "pct": "total__1"
+            "pct": "total__1",
+            "texto": "PORCENTAJE_DE(remate; 4%)"
           }
         ],
         "buckets": {
@@ -6841,7 +7144,8 @@
             "salida": "total",
             "op": "porcentaje_de",
             "de": ["remate", "fees", "flete"],
-            "pct": "iva"
+            "pct": "iva",
+            "texto": "PORCENTAJE_DE(remate+fees+flete; iva)"
           }
         ],
         "buckets": {
@@ -6938,7 +7242,8 @@
             "de": ["remate"],
             "tabla": "depreciacion",
             "sobre": "anio",
-            "columna": "factor"
+            "columna": "factor",
+            "texto": "DEPRECIAR(remate; depreciacion; anio; factor)"
           }
         ],
         "buckets": {
@@ -7044,7 +7349,8 @@
             "etiqueta": "Total",
             "salida": "total",
             "op": "suma",
-            "de": ["total__1", "remate", "total__2"]
+            "de": ["total__1", "remate", "total__2"],
+            "texto": "3+remate+4"
           }
         ],
         "buckets": {
@@ -7146,7 +7452,8 @@
             "etiqueta": "Total",
             "salida": "total",
             "op": "restar",
-            "de": ["remate", "total__1"]
+            "de": ["remate", "total__1"],
+            "texto": "remate - -5"
           }
         ],
         "buckets": {
@@ -7239,7 +7546,8 @@
             "id": "total",
             "tipo": "constante",
             "etiqueta": "Total",
-            "salida": "total"
+            "salida": "total",
+            "texto": "-5"
           }
         ],
         "buckets": {
@@ -7334,7 +7642,8 @@
             "etiqueta": "Total",
             "salida": "total",
             "op": "suma",
-            "de": ["remate"]
+            "de": ["remate"],
+            "texto": "((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((remate))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))"
           }
         ],
         "buckets": {

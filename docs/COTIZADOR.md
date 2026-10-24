@@ -45,14 +45,14 @@ Cada objeto es **estricto**: una clave mal escrita es un error.
 | tipo             | campos propios                                                                                                                        | valor                                                                         |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `input`          | `sugerido_de?` (un nodo anterior), `requerido_si?` (una bandera), `condicion?`                                                        | lo tipea el asesor; con `sugerido_de`, hasta que lo tipee vale lo de ese nodo |
-| `constante`      | `condicion?`. Ninguna se llama `tablas`                                                                                               | `params[id]`: el «valor por defecto global» que cambia el ⚙ (publica la N+1)  |
+| `constante`      | `condicion?`, `texto?`. Ninguna se llama `tablas`                                                                                     | `params[id]`: el «valor por defecto global» que cambia el ⚙ (publica la N+1)  |
 | `tipo_cambio`    | `clave` (oficial, paralelo…; una clave, un solo nodo)                                                                                 | el valor vigente de `tipos_cambio` al cotizar; se congela                     |
 | `campo_vehiculo` | `campo` (`anio`, o la clave de un campo del origen: `cilindrada`)                                                                     | del vehículo vinculado; null si no hay                                        |
 | `bandera`        | —                                                                                                                                     | el interruptor de la cotización, 0 o 1                                        |
 | `opcion`         | `opciones: [{clave, etiqueta, titulo}]` (dos o más), `por_defecto?`. A lo sumo una por fórmula                                        | la clave elegida (texto). La nombran `solo_en` y un `match`, nunca un cálculo |
 | `tabla`          | `tabla`, `match` {columna: nodo anterior o, si no hay uno con ese id, campo del vehículo}, `columna`, `sobrescribible?`, `condicion?` | la fila que coincide → la columna                                             |
 | `tramo`          | `tabla`, `sobre` (un nodo), `columna`, `sobrescribible?`, `condicion?`                                                                | la fila cuyo `desde ≤ sobre ≤ hasta` → la columna                             |
-| `calculo`        | `op` con su aridad, `sobrescribible?`, `condicion?`                                                                                   | la operación                                                                  |
+| `calculo`        | `op` con su aridad, `sobrescribible?`, `condicion?`, `texto?`                                                                         | la operación                                                                  |
 
 Las **operaciones cerradas de `calculo`**, con su aridad, discriminadas por `op`:
 
@@ -159,7 +159,7 @@ aridad, un campo que falta, el id y un param que no es número.
 ### En la base (4.05-4)
 
 `validar_formula(definicion, params)` está en `supabase/migrations/20261019004900_validar_formula.sql`, y es STABLE desde `…005100`.
-Hace lo mismo que `validarFormula()`. La regla 30, `campo_con_punto`, la añade `…005400`, que **redefine `validar_formula()` entera** (la
+Hace lo mismo que `validarFormula()`. `…005500` redefine `_formula_forma_nodo()` entera (STABLE) para admitir `texto` (`/*F70*/`). La regla 30, `campo_con_punto`, la añade `…005400`, que **redefine `validar_formula()` entera** (la
 base de `…004900` no se edita) y su ayudante `_formula_campos()`; la copia tiene que decir STABLE, o deshace `…005100`
 (`validar-formula.sql` lo comprueba).
 
@@ -195,7 +195,7 @@ base de `…004900` no se edita) y su ayudante `_formula_campos()`; la copia tie
   `donde` que la base; cinco casos del juego lo prueban (también el orden entre nodos: un nodo roto antes del `match` va primero, uno
   roto después no). Quedan `buckets`, `tablas` y una fila, que el compilador nunca arma.
 - **Las pruebas (`supabase/tests/validar-formula.sql`, en `pnpm db:probar`):**
-  - los 81 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
+  - los 87 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
     nunca acepta lo que Zod rechaza;
   - el corpus son 558 mutaciones deterministas de las 4 válidas, con uno, dos o tres defectos mezclados. Lo arman
     `corpus-de-formula.ts` y los `mutadores-*.ts`, y `corpus-de-formula.test.ts` lo regenera y lo compara con el guardado.
@@ -534,11 +534,16 @@ llama a `evaluar_formula()` con lo que armó. `evaluar_formula()` no cambió.
 
 `compilarExpresion(texto, contexto, medidor?)` (`entities/compilador.ts`) convierte `=(remate+fees)*4%` en nodos del mismo grafo. Es puro, sin
 `eval`, sin `Function` y sin expresiones regulares, **nunca lanza** (un texto que no compila devuelve su error) y no necesita ningún nodo ni
-operación que el grafo no tenga. No lo exporta `index.ts`: lo usa el editor (4.21) y lo guarda el prompt 2 de este paso.
+operación que el grafo no tenga. No lo exporta `index.ts`: lo usa el editor (4.21) y lo guarda la fila con su `texto` (abajo).
 
 - **Recibe** el texto y un contexto: los `nodos` anteriores a la fila (lo único que el texto puede nombrar), los `posteriores` (sólo para decir
   «está más abajo»), los ids de los `grupos`, las constantes que ya existen (`params`) y el `destino`, la fila que se compila (`id`, `etiqueta`
   y lo que la fila ya lleva: `formato`, `descripcion`, `grupo`, `salida`, `bucket`, `solo_en`).
+- **El texto de la fila** (`texto?`, sólo en una `constante` y en un `calculo`, que son las raíces que el compilador emite): el editor (4.21)
+  guarda `{ ...raíz compilada, texto }` para mostrarlo y recompilarlo. Es de 1 a 2.000 caracteres (`MAXIMO_DE_TEXTO` en `nodos.ts`;
+  `char_length` en la base: caracteres, no bytes; un emoji cuenta uno). Va en `definicion`, así que D7 lo cubre (viaja sólo con
+  `cotizaciones.configurar`). **`compilarExpresion()` no lo lee ni lo escribe** (un destino que lo trae compila igual), así que el compilador sigue
+  aceptando 100.000 caracteres y el tope vive en un solo sitio, el esquema; el motor lo ignora. Cualquier otro nodo con `texto` es `forma`.
 - **Devuelve** `{ ok: true, nodos, params, tramos }` o `{ ok: false, error }`:
   - `nodos`: los auxiliares y, al final, la fila compilada (sólo ella lleva lo del `destino`);
   - `params`: las constantes nuevas (cada número escrito);
@@ -618,7 +623,7 @@ sin cerrar.
   no es finito es null, −0 es 0 y dividir por 0 es null; 0,1+0,2+0,3 y su orden contrario, ±0, ∞ y 1e-300; 6.000 cadenas al azar y 1.500
   textos válidos con un carácter cambiado que nunca lanzan) y `compilador-escala.test.ts`. Doce de los casos compilados están en
   `casos-de-formula.json` como válidos (`compilada: …`), así que `validar_formula()` los compara sola en `pnpm db:probar`;
-  `compilador-casos-de-formula.test.ts` los recompila y exige que el JSON sea igual.
+  `compilador-casos-de-formula.test.ts` los recompila (con el `texto` en la fila raíz, como lo guardará el editor) y exige que el JSON sea igual.
 
 ## Tipos de cambio y modos (D7, H1)
 

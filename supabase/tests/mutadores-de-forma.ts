@@ -192,6 +192,13 @@ const NODOS: Mutador[] = [
     esTipo('tabla', 'tramo', 'calculo'),
     (n) => (n['sobrescribible'] = 'si'),
   ), // F18
+  enNodo('texto_vacio', esTipo('constante', 'calculo'), (n) => (n['texto'] = '')), // F70
+  enNodo('texto_largo', esTipo('constante', 'calculo'), (n) => (n['texto'] = largo(2001))), // F70
+  enNodo('texto_no_texto', esTipo('constante', 'calculo'), (n) => (n['texto'] = 5)), // F70
+  enNodo('texto_null', esTipo('constante', 'calculo'), (n) => (n['texto'] = null)), // F70
+  enNodo('texto_en_input', esTipo('input'), (n) => (n['texto'] = '=a+b')), // F04
+  enNodo('texto_en_tabla', esTipo('tabla'), (n) => (n['texto'] = '=a+b')), // F04
+  enNodo('texto_en_tramo', esTipo('tramo'), (n) => (n['texto'] = '=a+b')), // F04
   enNodo('sugerido_de_malo', esTipo('input'), (n) => (n['sugerido_de'] = 'X')), // F19
   enNodo('requerido_si_malo', esTipo('input'), (n) => (n['requerido_si'] = 5)), // F20
   enNodo('clave_mala', esTipo('tipo_cambio'), (n) => (n['clave'] = 'Paralelo')), // F21

@@ -136,4 +136,12 @@ describe('el contrato del compilador', () => {
     const r = compilarExpresion(`${texto}flete`, juego.contexto)
     expect(r.ok).toBe(true)
   })
+
+  it('no depende del texto de la fila: un destino que ya trae `texto` compila igual y el compilador no lo copia', () => {
+    const solo = compilarExpresion('(remate+fees)*4%', juego.contexto)
+    const destino = { ...juego.contexto.destino, texto: 'otro texto' }
+    const con = compilarExpresion('(remate+fees)*4%', { ...juego.contexto, destino })
+    expect(con).toEqual(solo)
+    expect(JSON.stringify(con)).not.toContain('otro texto')
+  })
 })

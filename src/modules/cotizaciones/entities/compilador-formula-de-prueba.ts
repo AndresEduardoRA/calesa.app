@@ -5,15 +5,19 @@ import type { Nodo } from './nodos'
 
 export type FormulaCruda = { definicion: unknown; params: Record<string, number> }
 
+// Con `texto`, la fila compilada lo lleva, como la guardará el editor (`{ ...raíz compilada, texto }`); el compilador no lo toca.
 export function formulaDe(
   ctx: ContextoDeCompilacion,
   compilado: { nodos: readonly Nodo[]; params: Record<string, number> },
+  texto?: string,
 ): FormulaCruda {
   const tc = ctx.nodos.find((n) => n.tipo === 'tipo_cambio')?.id ?? 'tc'
   const grupos = [...new Set(ctx.nodos.flatMap((n) => (n.grupo === undefined ? [] : [n.grupo])))]
-  const nodos = [...ctx.nodos, ...compilado.nodos].map((n) =>
-    n.id === ctx.destino.id && grupos.length === 0 ? { ...n, bucket: 'b' } : n,
-  )
+  const nodos = [...ctx.nodos, ...compilado.nodos].map((n) => {
+    if (n.id !== ctx.destino.id) return n
+    const raiz = grupos.length === 0 ? { ...n, bucket: 'b' } : n
+    return texto === undefined ? raiz : { ...raiz, texto }
+  })
   const definicion = {
     nodos,
     buckets: { b: tc },

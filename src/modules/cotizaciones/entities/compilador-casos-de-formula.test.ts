@@ -42,7 +42,7 @@ function compilados(): Caso[] {
   return TEXTOS.map(({ nombre, texto }) => {
     const r = compilarExpresion(texto, contexto)
     if (!r.ok) throw new Error(`«${texto}» no compila: ${r.error.mensaje}`)
-    const f = formulaDe(contexto, r)
+    const f = formulaDe(contexto, r, texto)
     return { nombre: PREFIJO + nombre, valida: true, definicion: f.definicion, params: f.params }
   })
 }
