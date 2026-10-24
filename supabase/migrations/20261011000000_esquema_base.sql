@@ -1112,7 +1112,10 @@ create table public.formulas (
   publicado_en    timestamptz,
   creado_en       timestamptz not null default now(),
   actualizado_en  timestamptz not null default now(),
-  unique (origen_id, version)
+  unique (origen_id, version),
+  -- Una versión publicada (o archivada, que fue publicada) tiene su diseño y su visibilidad compilada; sólo un borrador puede no tenerlos. Publicar los
+  -- exige y los compila (`_publicar_formula()` por `_preparar_publicacion()`); la semilla nace por el mismo camino.
+  constraint formulas_publicada_con_diseno check (estado = 'borrador' or (diseno is not null and visibilidad is not null))
 );
 create unique index formulas_borrador_unico on public.formulas (origen_id) where estado = 'borrador';
 create unique index formulas_publicada_unica on public.formulas (origen_id) where estado = 'publicada';

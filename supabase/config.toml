@@ -38,7 +38,15 @@ schema_paths = [
 
 [db.seed]
 enabled = true
-sql_paths = ["./seed.sql"]
+# El orden es el de las dependencias: el seed (empresa, permisos, orígenes, flujos), las fórmulas del cotizador (necesitan los orígenes, los tonos y los tipos de
+# cambio), y al final las estadísticas. `scripts/probar-schema.mjs` lee esta lista.
+sql_paths = [
+  "./seed.sql",
+  "./semillas/cotizador-subasta-usa.sql",
+  "./semillas/cotizador-oficina.sql",
+  "./semillas/cotizador-planilla-usa.sql",
+  "./semillas/estadisticas.sql",
+]
 
 [studio]
 enabled = true

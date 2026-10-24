@@ -7417,6 +7417,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _preparar_publicacion: {
+        Args: { p_def: Json; p_diseno: Json; p_ignorar_retirados: boolean; p_params: Json }
+        Returns: Json
+      }
       _publicar_formula: {
         Args: {
           p_ignorar_retirados: boolean

@@ -102,7 +102,18 @@ const migraciones = [...archivos(path.join(base, 'migrations'))].filter(
   (f) => path.basename(f) !== NOMBRE_BASE,
 )
 const lista = [...archivos(path.join(base, 'schemas')), ...migraciones]
-if (fs.existsSync(path.join(base, 'seed.sql'))) lista.push(path.join(base, 'seed.sql'))
+// El seed: los archivos de `[db.seed] sql_paths` de config.toml, en su orden (lo que aplica `supabase db reset`). Sin config.toml, sólo seed.sql.
+const configToml = path.join(base, 'config.toml')
+const rutasDelSeed = fs.existsSync(configToml)
+  ? [
+      ...(
+        /sql_paths\s*=\s*\[([^\]]*)\]/.exec(
+          fs.readFileSync(configToml, 'utf8').replace(/^\s*#.*$/gm, ''),
+        )?.[1] ?? ''
+      ).matchAll(/"([^"]+)"/g),
+    ].map((m) => m[1])
+  : ['./seed.sql']
+for (const r of rutasDelSeed) if (fs.existsSync(path.join(base, r))) lista.push(path.join(base, r))
 
 await db.exec(preambulo)
 let ok = 0
@@ -162,7 +173,11 @@ async function cargarDatos(archivo) {
 
 // Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
 // auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
+// SOLO=<archivo>[,<archivo>] corre sólo esos (para iterar sobre uno); sin él, todos y en este orden.
+const SOLO = process.env['SOLO']?.split(',')
 for (const archivo of [
+  // Primero: mira el seed tal como queda, antes de que el humo publique la v2 de una fórmula o cambie un tipo de cambio.
+  'semilla-cotizador.sql',
   'humo.sql',
   'configuracion-de-leads.sql',
   'matriz-leads.sql',
@@ -190,7 +205,7 @@ for (const archivo of [
   'publicar-diseno.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
-  if (!fs.existsSync(t)) continue
+  if (!fs.existsSync(t) || (SOLO && !SOLO.includes(archivo))) continue
   await cargarDatos(archivo)
   const bloques = fs
     .readFileSync(t, 'utf8')
@@ -204,6 +219,8 @@ for (const archivo of [
     } catch (e) {
       console.error('  ✗ ' + nombre.trim() + '\n    ' + e.message)
       process.exitCode = 1
+      // Un bloque que abrió una transacción y cayó la deja abortada: se cierra para que el siguiente diga su propio error.
+      await db.exec('rollback').catch(() => undefined)
     }
   }
 }

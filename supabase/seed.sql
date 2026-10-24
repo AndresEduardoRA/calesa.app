@@ -1,6 +1,7 @@
 -- Seed: lo que un despliegue nuevo necesita para arrancar. Sin usuarios (el primero que se
--- registra es el dueño). Catálogo de permisos (FIJO POR CÓDIGO), rol dueño, monedas, dos
--- orígenes de ejemplo con su flujo y una fórmula publicada cada uno.
+-- registra es el dueño). Catálogo de permisos (FIJO POR CÓDIGO), rol dueño, monedas, tipos de cambio y tres
+-- orígenes de ejemplo con su flujo. Las fórmulas del cotizador (con su diseño y su visibilidad) y las estadísticas
+-- iniciales viven en `supabase/semillas/` y corren después, en el orden de `config.toml` (`[db.seed] sql_paths`).
 
 -- ---------------------------------------------------------------------------
 -- Empresa
@@ -11,9 +12,13 @@ insert into public.monedas (codigo, nombre, simbolo, decimales, orden) values
   ('USD', 'Dólar estadounidense', '$', 2, 0),
   ('BOB', 'Boliviano', 'Bs', 2, 1)
 on conflict do nothing;
+-- Los de las capturas del cotizador actual (`docs/referencias/cotizador-actual.md`: «Of 11,68 · Par 12,20», el unificado en 12,2). La aduana se paga al
+-- oficial, y nace con su valor para que un modo «Aduana» tenga de dónde leerlo. Sólo el oficial es el por defecto (uno por par de monedas).
 insert into public.tipos_cambio (clave, nombre, moneda_de, moneda_a, valor, es_default, orden) values
-  ('oficial', 'Oficial', 'USD', 'BOB', 6.96, true, 0),
-  ('paralelo', 'Paralelo', 'USD', 'BOB', 12.40, false, 1)
+  ('oficial', 'Oficial', 'USD', 'BOB', 11.68, true, 0),
+  ('paralelo', 'Paralelo', 'USD', 'BOB', 12.20, false, 1),
+  ('unificado', 'Unificado', 'USD', 'BOB', 12.20, false, 2),
+  ('aduana', 'Aduana', 'USD', 'BOB', 11.68, false, 3)
 on conflict do nothing;
 insert into public.integraciones (clave, activa, config) values
   ('apibara', false, '{"plataformas": ["copart", "iaai"], "endpoint": "https://apibara.tech/api/v1/vehicle-auction"}'),
@@ -141,19 +146,22 @@ insert into public.puertos (nombre, pais, orden) values ('Iquique', 'Chile', 0),
 insert into public.repuestos_catalogos (catalogo, nombre, orden) values ('condicion', 'Nuevo original', 0), ('condicion', 'Reemplazo', 1), ('condicion', 'Usado', 2), ('modo_transporte', 'Aéreo', 0), ('modo_transporte', 'Marítimo', 1), ('modo_transporte', 'Compra local', 2) on conflict do nothing;
 
 -- ---------------------------------------------------------------------------
--- Dos orígenes de ejemplo (los triggers crean flujo, reglas y campos)
+-- Tres orígenes de ejemplo (los triggers crean flujo, reglas y campos). `planilla_usa` es el del Excel de cotización: compra en subasta como
+-- `subasta_usa` (mismo tipo, mismas fases) con su propia fórmula; va último en el orden para que `subasta_usa` siga siendo el primero de su tipo.
 -- ---------------------------------------------------------------------------
 insert into public.origenes (clave, nombre, sustantivo, genero, tipo, color, orden, apibara_plataformas) values
   ('subasta_usa', 'Subasta EE. UU.', 'vehículo', 'm', 'subasta', '#465fff', 0, '{copart,iaai}'),
-  ('oficina', 'Oficina', 'vehículo', 'm', 'manual', '#027a48', 1, '{}')
+  ('oficina', 'Oficina', 'vehículo', 'm', 'manual', '#027a48', 1, '{}'),
+  ('planilla_usa', 'Planilla EE. UU.', 'vehículo', 'm', 'subasta', '#7a5af8', 2, '{copart,iaai}')
 on conflict (clave) do nothing;
 
--- Flujo de ejemplo para subasta_usa (fases con transiciones lineales)
+-- Flujo de ejemplo para los orígenes de subasta (fases con transiciones lineales)
 do $$
-declare v_flujo uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f7 uuid; v_doc_titulo uuid; v_doc_bl uuid; v_doc_dui uuid;
+declare v_flujo uuid; f1 uuid; f2 uuid; f3 uuid; f4 uuid; f5 uuid; f6 uuid; f7 uuid; v_doc_titulo uuid; v_doc_bl uuid; v_doc_dui uuid; v_clave text;
 begin
-  select f.id into v_flujo from public.flujos f join public.origenes o on o.id = f.origen_id where o.clave = 'subasta_usa';
-  if v_flujo is null or exists (select 1 from public.fases where flujo_id = v_flujo) then return; end if;
+ foreach v_clave in array array['subasta_usa', 'planilla_usa'] loop
+  select f.id into v_flujo from public.flujos f join public.origenes o on o.id = f.origen_id where o.clave = v_clave;
+  if v_flujo is null or exists (select 1 from public.fases where flujo_id = v_flujo) then continue; end if;
   insert into public.fases (flujo_id, nombre, color, orden, es_inicial, es_logistica, publica_web, visible_portal, alias_portal, demora_dias) values (v_flujo, 'En subasta', '#465fff', 10, true, false, true, false, null, 0) returning id into f1;
   insert into public.fases (flujo_id, nombre, color, orden, es_logistica, visible_portal, alias_portal, demora_dias) values (v_flujo, 'Comprado', '#7a5af8', 20, true, true, 'Comprado en subasta', 7) returning id into f2;
   insert into public.fases (flujo_id, nombre, color, orden, es_logistica, visible_portal, alias_portal, demora_dias) values (v_flujo, 'En tránsito a puerto USA', '#c7680a', 30, true, true, 'En camino al puerto', 14) returning id into f3;
@@ -173,6 +181,7 @@ begin
   insert into public.fases_requisitos (fase_id, tipo, bloqueante, clave_dato, orden) values (f6, 'dato', true, 'aduana.tributos_pagados', 1);
   insert into public.fases_requisitos (fase_id, tipo, bloqueante, tipo_documento_id, min_archivos, orden) values (f7, 'documento', true, v_doc_titulo, 1, 0);
   insert into public.fases_requisitos (fase_id, tipo, bloqueante, clave_dato, config, orden) values (f7, 'dato', true, 'pagos.umbral_pct', '{"pct": 100}', 1);
+ end loop;
 end $$;
 
 -- Flujo de ejemplo para oficina (venta en plaza: dos fases)
@@ -204,86 +213,7 @@ begin
   insert into public.fases_requisitos (fase_id, tipo, bloqueante, clave_dato, orden) values (f2, 'dato', true, 'repuesto.precio', 0), (f3, 'dato', false, 'repuesto.tracking', 0);
 end $$;
 
--- ---------------------------------------------------------------------------
--- Fórmula v1 de subasta_usa: el grafo real de ip generalizado (CIF → impuestos → origen → total)
--- ---------------------------------------------------------------------------
-do $$
-declare v_origen uuid; v_def jsonb; v_params jsonb;
-begin
-  select id into v_origen from public.origenes where clave = 'subasta_usa';
-  if exists (select 1 from public.formulas where origen_id = v_origen) then return; end if;
-  v_def := $j${"nodos": [
-    {"id": "tc_oficial", "tipo": "tipo_cambio", "clave": "oficial", "etiqueta": "TC oficial", "formato": "raw"},
-    {"id": "tc_paralelo", "tipo": "tipo_cambio", "clave": "paralelo", "etiqueta": "TC paralelo", "formato": "raw"},
-    {"id": "anio", "tipo": "campo_vehiculo", "campo": "anio", "etiqueta": "Año", "formato": "raw"},
-    {"id": "es_hibrido", "tipo": "bandera", "etiqueta": "Es híbrido", "formato": "raw"},
-    {"id": "remate", "tipo": "input", "etiqueta": "Precio de remate", "formato": "usd", "seccion": "Valor", "color": "amarillo"},
-    {"id": "fob_tabla", "tipo": "input", "etiqueta": "FOB de tabla", "formato": "usd", "seccion": "Valor", "sugerido_de": "remate"},
-    {"id": "factor_dp", "tipo": "tabla", "tabla": "depreciacion", "match": {"anio": "anio"}, "columna": "factor", "etiqueta": "Factor de depreciación", "formato": "raw", "seccion": "Valor"},
-    {"id": "fob_base", "tipo": "calculo", "op": "multiplicar", "de": ["fob_tabla", "factor_dp"], "etiqueta": "FOB depreciado", "formato": "usd", "seccion": "Valor"},
-    {"id": "seguro_pct", "tipo": "constante", "etiqueta": "Seguro (%)", "formato": "pct", "seccion": "Valor"},
-    {"id": "seguro", "tipo": "calculo", "op": "porcentaje_de", "de": ["fob_base"], "pct": "seguro_pct", "etiqueta": "Seguro", "formato": "usd", "seccion": "Valor"},
-    {"id": "flete", "tipo": "constante", "etiqueta": "Flete marítimo", "formato": "usd", "seccion": "Valor"},
-    {"id": "gastos_puerto", "tipo": "constante", "etiqueta": "Gastos de puerto", "formato": "usd", "seccion": "Valor"},
-    {"id": "gastos_garaje", "tipo": "constante", "etiqueta": "Gastos de garaje", "formato": "usd", "seccion": "Valor"},
-    {"id": "utilidad", "tipo": "constante", "etiqueta": "Utilidad", "formato": "usd", "seccion": "Valor", "color": "verde"},
-    {"id": "cif", "tipo": "calculo", "op": "suma", "de": ["fob_base", "seguro", "flete", "gastos_puerto", "gastos_garaje", "utilidad"], "etiqueta": "CIF", "formato": "usd", "seccion": "Valor", "salida": "base_imponible"},
-    {"id": "ga_pct", "tipo": "tabla", "tabla": "impuestos_por_tipo", "match": {"tipo": "tipo_vehiculo"}, "columna": "ga", "etiqueta": "GA (%)", "formato": "pct", "seccion": "Impuestos"},
-    {"id": "ga", "tipo": "calculo", "op": "porcentaje_de", "de": ["cif"], "pct": "ga_pct", "etiqueta": "GA", "formato": "usd", "seccion": "Impuestos", "bucket": "destino"},
-    {"id": "iva_pct", "tipo": "tabla", "tabla": "impuestos_por_tipo", "match": {"tipo": "tipo_vehiculo"}, "columna": "iva", "etiqueta": "IVA (%)", "formato": "pct", "seccion": "Impuestos"},
-    {"id": "iva", "tipo": "calculo", "op": "porcentaje_de", "de": ["cif", "ga"], "pct": "iva_pct", "etiqueta": "IVA", "formato": "usd", "seccion": "Impuestos", "bucket": "destino"},
-    {"id": "ice_pct", "tipo": "tramo", "tabla": "ice_por_anio_y_cilindrada", "sobre": "anio", "columna": "ice", "etiqueta": "ICE (%)", "formato": "pct", "seccion": "Impuestos"},
-    {"id": "ice", "tipo": "calculo", "op": "porcentaje_de", "de": ["cif", "ga"], "pct": "ice_pct", "etiqueta": "ICE", "formato": "usd", "seccion": "Impuestos", "bucket": "destino"},
-    {"id": "poliza", "tipo": "constante", "etiqueta": "Póliza y trámites", "formato": "usd", "seccion": "Impuestos", "bucket": "destino"},
-    {"id": "fees_pct", "tipo": "constante", "etiqueta": "Fees de subasta (%)", "formato": "pct", "seccion": "Origen"},
-    {"id": "fees", "tipo": "calculo", "op": "porcentaje_de", "de": ["remate"], "pct": "fees_pct", "etiqueta": "Fees", "formato": "usd", "seccion": "Origen", "bucket": "origen"},
-    {"id": "transferencia_pct", "tipo": "constante", "etiqueta": "Transferencia (%)", "formato": "pct", "seccion": "Origen"},
-    {"id": "transferencia", "tipo": "calculo", "op": "porcentaje_de", "de": ["remate", "fees"], "pct": "transferencia_pct", "etiqueta": "Transferencia", "formato": "usd", "seccion": "Origen", "bucket": "origen"},
-    {"id": "grua", "tipo": "input", "etiqueta": "Grúa a la yarda", "formato": "usd", "seccion": "Origen", "bucket": "origen", "color": "amarillo"},
-    {"id": "transporte", "tipo": "tabla", "tabla": "transporte_por_ruta", "match": {"ruta": "ubicacion"}, "columna": "precio", "etiqueta": "Transporte interno", "formato": "usd", "seccion": "Origen", "bucket": "origen"},
-    {"id": "comision", "tipo": "constante", "etiqueta": "Comisión", "formato": "usd", "seccion": "Origen", "bucket": "origen"},
-    {"id": "documentacion", "tipo": "constante", "etiqueta": "Documentación", "formato": "usd", "seccion": "Origen", "bucket": "origen"},
-    {"id": "costo_hibrido_base", "tipo": "constante", "etiqueta": "Costo híbrido", "formato": "usd", "seccion": "Origen"},
-    {"id": "costo_hibrido", "tipo": "calculo", "op": "si", "condicion": "es_hibrido", "de": ["costo_hibrido_base"], "etiqueta": "Costo híbrido (si aplica)", "formato": "usd", "seccion": "Origen", "bucket": "origen"},
-    {"id": "garantia_pct", "tipo": "constante", "etiqueta": "Garantía (%)", "formato": "pct", "seccion": "Aparte"},
-    {"id": "garantia", "tipo": "calculo", "op": "porcentaje_de", "de": ["remate"], "pct": "garantia_pct", "etiqueta": "Garantía (no suma)", "formato": "usd", "seccion": "Aparte", "salida": "aparte"},
-    {"id": "origen_total", "tipo": "calculo", "op": "suma", "de": ["remate", "fees", "transferencia", "grua", "transporte", "comision", "documentacion", "costo_hibrido"], "etiqueta": "Lado origen", "formato": "usd", "bucket": "origen"},
-    {"id": "destino_total", "tipo": "calculo", "op": "suma", "de": ["ga", "iva", "ice", "poliza"], "etiqueta": "Impuestos y trámites", "formato": "usd", "bucket": "destino"},
-    {"id": "total", "tipo": "calculo", "op": "suma", "de": ["origen_total", "destino_total"], "etiqueta": "Total puesto en destino", "formato": "usd", "salida": "total"}
-  ], "buckets": {"origen": "tc_paralelo", "destino": "tc_oficial"}}$j$;
-  v_params := '{"seguro_pct": 0.02, "flete": 1450, "gastos_puerto": 380, "gastos_garaje": 250, "utilidad": 900, "poliza": 650, "fees_pct": 0.06, "transferencia_pct": 0.03, "comision": 500, "documentacion": 150, "costo_hibrido_base": 400, "garantia_pct": 0.10}';
-  perform public.validar_formula(v_def, v_params);
-  insert into public.formulas (origen_id, version, estado, definicion, params, nota, publicado_en) values (v_origen, 1, 'publicada', v_def, v_params, 'Fórmula inicial', now());
-  insert into public.tablas_referencia (origen_id, clave, nombre, columnas) values
-    (v_origen, 'impuestos_por_tipo', 'Impuestos por tipo de vehículo', '[{"clave":"tipo","etiqueta":"Tipo","tipo":"texto"},{"clave":"ga","etiqueta":"GA","tipo":"pct"},{"clave":"iva","etiqueta":"IVA","tipo":"pct"}]'),
-    (v_origen, 'ice_por_anio_y_cilindrada', 'ICE por año', '[{"clave":"desde","etiqueta":"Año desde","tipo":"anio"},{"clave":"hasta","etiqueta":"Año hasta","tipo":"anio"},{"clave":"ice","etiqueta":"ICE","tipo":"pct"}]'),
-    (v_origen, 'depreciacion', 'Depreciación por año', '[{"clave":"anio","etiqueta":"Año","tipo":"anio"},{"clave":"factor","etiqueta":"Factor","tipo":"numero"}]'),
-    (v_origen, 'transporte_por_ruta', 'Transporte interno por ruta', '[{"clave":"ruta","etiqueta":"Ruta","tipo":"texto"},{"clave":"precio","etiqueta":"Precio","tipo":"numero"}]');
-  insert into public.tablas_referencia_filas (tabla_id, valores, orden)
-  select t.id, x.v::jsonb, x.o from public.tablas_referencia t join (values
-    ('impuestos_por_tipo', '{"tipo":"automovil","ga":0.10,"iva":0.1494}', 0), ('impuestos_por_tipo', '{"tipo":"moto","ga":0.10,"iva":0.1494}', 1),
-    ('ice_por_anio_y_cilindrada', '{"desde":2015,"hasta":2100,"ice":0.05}', 0), ('ice_por_anio_y_cilindrada', '{"desde":1900,"hasta":2014,"ice":0.10}', 1),
-    ('depreciacion', '{"anio":2025,"factor":1.0}', 0), ('depreciacion', '{"anio":2024,"factor":0.95}', 1), ('depreciacion', '{"anio":2023,"factor":0.90}', 2), ('depreciacion', '{"anio":2022,"factor":0.85}', 3), ('depreciacion', '{"anio":2021,"factor":0.80}', 4)
-  ) as x (clave, v, o) on x.clave = t.clave where t.origen_id = v_origen;
-end $$;
-
--- Fórmula v1 de oficina: precio acordado − descuento
-do $$
-declare v_origen uuid; v_def jsonb;
-begin
-  select id into v_origen from public.origenes where clave = 'oficina';
-  if exists (select 1 from public.formulas where origen_id = v_origen) then return; end if;
-  v_def := $j${"nodos": [
-    {"id": "tc_paralelo", "tipo": "tipo_cambio", "clave": "paralelo", "etiqueta": "TC paralelo", "formato": "raw"},
-    {"id": "precio", "tipo": "input", "etiqueta": "Precio acordado", "formato": "usd", "seccion": "Venta", "bucket": "origen"},
-    {"id": "descuento", "tipo": "input", "etiqueta": "Descuento", "formato": "usd", "seccion": "Venta", "bucket": "origen"},
-    {"id": "total", "tipo": "calculo", "op": "restar", "de": ["precio", "descuento"], "etiqueta": "Total", "formato": "usd", "salida": "total", "bucket": "origen"}
-  ], "buckets": {"origen": "tc_paralelo"}}$j$;
-  perform public.validar_formula(v_def, '{}'::jsonb);
-  insert into public.formulas (origen_id, version, estado, definicion, params, nota, publicado_en) values (v_origen, 1, 'publicada', v_def, '{}'::jsonb, 'Fórmula inicial', now());
-end $$;
-
--- Plantilla de tarjeta v1 (mínima) para ambos orígenes
+-- Plantilla de tarjeta v1 (mínima) para cada origen
 insert into public.plantillas_tarjeta (origen_id, version, estado, definicion, nota, publicado_en)
 select o.id, 1, 'publicada',
   '{"paleta": {"fondo": "#ffffff", "tinta": "#1b2230", "acento": "#465fff"}, "columnas": [{"id": "etiqueta", "ancho": 640}, {"id": "monto", "ancho": 320}], "encabezado": {"logo": true, "titulo": "{{titulo}}", "fecha": "{{fecha}}"}, "grupos": [{"titulo": "Detalle", "filas": "secciones"}], "totales": [{"variable": "total", "formato": "usd"}], "pie": "Cotización válida por 7 días. Precios sujetos a cambio de tipo de cambio."}'::jsonb,
@@ -292,15 +222,3 @@ from public.origenes o where not exists (select 1 from public.plantillas_tarjeta
 
 -- Chat global
 insert into public.conversaciones (tipo, nombre, es_global) select 'grupo', 'Equipo', true where not exists (select 1 from public.conversaciones where es_global);
-
--- Estadísticas iniciales (cierre 4). Tras un `db reset` (o el primer `db push --include-seed`) ninguna tabla tiene estadísticas hasta que
--- el autovacuum las analiza, minutos después de las primeras filas: sin ellas el planificador elige mal los planes de las RPC y la
--- primera importación de 500 filas tardaba ~20 s (lotes de 3,8 s contra el corte de 8 s de `authenticated`); con ellas, ~1 s
--- (`docs/RENDIMIENTO.md`, «Importación»). Un `analyze` aunque las tablas estén casi vacías ya lo evita.
-do $$
-declare v_tabla record;
-begin
-  for v_tabla in select schemaname, tablename from pg_tables where schemaname in ('public', 'web') loop
-    execute format('analyze %I.%I', v_tabla.schemaname, v_tabla.tablename);
-  end loop;
-end $$;
