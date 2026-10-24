@@ -8192,6 +8192,7 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_id: string; p_nombre: string }
         Returns: Json
       }
+      nivel_restaurar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       nivel_retirar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       normalizar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: string }
       notificar: {

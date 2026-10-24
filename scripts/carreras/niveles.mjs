@@ -1,5 +1,5 @@
-// Las carreras de los niveles de acceso (paso 4.09, prompt 1): dos `nivel_crear` con la misma clave, eliminar un nivel mientras otra persona publica un diseño que
-// lo nombra (en los dos órdenes) y eliminar contra retirar y renombrar. Cada una abre una transacción de A y deja a B esperando un lock (el arnés de
+// Las carreras de los niveles de acceso (paso 4.09, prompts 1 y 2): dos `nivel_crear` con la misma clave, eliminar un nivel mientras otra persona publica un diseño que
+// lo nombra (en los dos órdenes), eliminar contra retirar y renombrar, y restaurar contra retirar y contra eliminar (4-12). Cada una abre una transacción de A y deja a B esperando un lock (el arnés de
 // `scripts/carreras.mjs`): si B no espera, la carrera no se probó. Trabaja en niveles y orígenes propios (prefijo «Carreras»).
 // Después de cada una vale el invariante: ninguna versión publicada o archivada nombra un nivel que no existe.
 import { PERSONAS, PREFIJO, comoPersona } from './terreno.mjs'
@@ -45,17 +45,18 @@ const disenoCon = (clave) => ({
 })
 
 let numero = 0
-// Un nivel con sus dos permisos (en una sola sentencia: el trigger diferido los exige al cerrar) y un origen propio.
-async function terreno(db, etiqueta) {
+// Un nivel con sus dos permisos (en una sola sentencia: el trigger diferido los exige al cerrar) y un origen propio. `retirado`: nace ya retirado.
+async function terreno(db, etiqueta, retirado = false) {
   numero += 1
   const nombre = `${PREFIJO} ${etiqueta} ${numero}`
   const clave = `carreras_${etiqueta}_${numero}`
   const {
     rows: [nivel],
   } = await db.query(
-    `with n as (insert into public.cotizaciones_niveles (clave, nombre) values ($1, $2) returning id, clave, actualizado_en)
+    `with n as (insert into public.cotizaciones_niveles (clave, nombre, retirado_en) values ($1, $2, case when $3::boolean then now() end)
+                returning id, clave, actualizado_en)
      select n.id, n.clave, n.actualizado_en::text as v, public._nivel_permisos_crear(n.clave, $2, true) from n`,
-    [clave, nombre],
+    [clave, nombre, retirado],
   )
   const {
     rows: [origen],
@@ -91,6 +92,13 @@ async function invariante(db) {
 const existe = async (db, clave) =>
   (await db.query(`select 1 from public.cotizaciones_niveles where clave = $1`, [clave])).rowCount >
   0
+const retirado = async (db, clave) =>
+  (
+    await db.query(
+      `select retirado_en is not null as r from public.cotizaciones_niveles where clave = $1`,
+      [clave],
+    )
+  ).rows[0]?.r === true
 const permisos = async (db, clave) =>
   Number(
     (await db.query(`select count(*) as n from public.permisos where nivel_clave = $1`, [clave]))
@@ -281,6 +289,104 @@ export async function carrerasDeNiveles({ orquesta, carrera, espero, conectar, e
       a: r.a,
       b: r.b,
     })
+  }
+
+  // Restaurar (4-12). Vale la fila: `for no key update` en restaurar, retirar y renombrar; `for update` en eliminar. Sin ese candado el segundo no espera
+  // y `esperarBloqueo` lo dice («la carrera no se probó»). La versión que lleva cada uno es la de antes de que el primero cambie nada.
+  const llamar = (cual, t) => ({
+    persona,
+    sql: `public.${cual}($1, $2::timestamptz)`,
+    args: [t.id, t.v],
+  })
+
+  console.log('Retirar un nivel y, a la vez, restaurarlo')
+  {
+    const t = await terreno(orquesta, 'retirarestaura')
+    const r = await carrera(orquesta, {
+      a: llamar('nivel_retirar', t),
+      b: llamar('nivel_restaurar', t),
+    })
+    // A retira (la versión se mueve); B esperaba la fila y, al llegar, el nivel está retirado y su versión ya no es la que B tenía.
+    espero(
+      'retira primero: restaurar da conflicto (PT409) y el nivel sigue retirado',
+      r.a.ok &&
+        r.b.codigo === 'PT409' &&
+        (await retirado(orquesta, t.clave)) &&
+        (await invariante(orquesta)),
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Restaurar un nivel retirado y, a la vez, retirarlo')
+  {
+    const t = await terreno(orquesta, 'restauraretira', true)
+    const r = await carrera(orquesta, {
+      a: llamar('nivel_restaurar', t),
+      b: llamar('nivel_retirar', t),
+    })
+    espero(
+      'restaura primero: retirar da conflicto (PT409) y el nivel queda a la vista',
+      r.a.ok &&
+        r.b.codigo === 'PT409' &&
+        !(await retirado(orquesta, t.clave)) &&
+        (await invariante(orquesta)),
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Eliminar un nivel y, a la vez, restaurarlo')
+  {
+    const t = await terreno(orquesta, 'eliminarestaura')
+    const r = await carrera(orquesta, {
+      a: llamar('nivel_eliminar', t),
+      b: llamar('nivel_restaurar', t),
+    })
+    // Un restaurar sin el candado de la fila no espera, no encuentra nada que actualizar y responde bien con un nivel que ya no está.
+    espero(
+      'elimina primero: restaurar dice que el nivel ya no existe (PT409), no «ok»',
+      r.a.ok &&
+        r.b.ok === false &&
+        r.b.codigo === 'PT409' &&
+        /ya no existe/.test(r.b.mensaje ?? '') &&
+        !(await existe(orquesta, t.clave)) &&
+        (await permisos(orquesta, t.clave)) === 0 &&
+        (await invariante(orquesta)),
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Restaurar un nivel retirado y, a la vez, eliminarlo')
+  {
+    const t = await terreno(orquesta, 'restauraelimina', true)
+    const r = await carrera(orquesta, {
+      a: llamar('nivel_restaurar', t),
+      b: llamar('nivel_eliminar', t),
+    })
+    espero(
+      'restaura primero: eliminar da conflicto (PT409) y el nivel, sus permisos y su versión siguen',
+      r.a.ok &&
+        r.b.codigo === 'PT409' &&
+        (await existe(orquesta, t.clave)) &&
+        !(await retirado(orquesta, t.clave)) &&
+        (await permisos(orquesta, t.clave)) === 2 &&
+        (await invariante(orquesta)),
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Restaurar dos veces el mismo nivel (un doble «Deshacer»)')
+  {
+    const t = await terreno(orquesta, 'restauradoble', true)
+    const r = await carrera(orquesta, {
+      a: llamar('nivel_restaurar', t),
+      b: llamar('nivel_restaurar', t),
+    })
+    // El segundo espera la fila, ve que ya no está retirado y responde «sin cambios»: lo ya hecho no choca.
+    espero(
+      'los dos responden bien y el segundo dice sin_cambios',
+      r.a.ok && r.b.ok && r.b.valor?.sin_cambios === true && !(await retirado(orquesta, t.clave)),
+      { a: r.a, b: r.b },
+    )
   }
 
   for (const [nombre, primero, segundo] of [

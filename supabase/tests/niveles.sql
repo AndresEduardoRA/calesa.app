@@ -438,6 +438,7 @@ begin
   perform pg_temp.falla_con($f$select public.nivel_crear(gen_random_uuid(), 'Gerencia')$f$, '42501', 'No tienes el permiso «equipo.roles.gestionar»');
   perform pg_temp.falla_con(format($f$select public.nivel_renombrar(%L, %L, 'Otro')$f$, v_id, v_v), '42501', 'No tienes el permiso');
   perform pg_temp.falla_con(format($f$select public.nivel_retirar(%L, %L)$f$, v_id, v_v), '42501', 'No tienes el permiso');
+  perform pg_temp.falla_con(format($f$select public.nivel_restaurar(%L, %L)$f$, v_id, v_v), '42501', 'No tienes el permiso');
   perform pg_temp.falla_con(format($f$select public.nivel_eliminar(%L, %L)$f$, v_id, v_v), '42501', 'No tienes el permiso');
   -- Todos leen la tabla; nadie la escribe directo.
   if (select count(*) from public.cotizaciones_niveles) <> 2 then raise exception 'no lee los niveles'; end if;
@@ -455,10 +456,10 @@ begin
   if not exists (select 1 from public.cotizaciones_niveles where clave = 'gerencia') then raise exception 'quien gestiona roles no creó el nivel'; end if;
   -- Las RPC son de authenticated y de nadie más; los ayudantes y el enforcement, de nadie.
   for r in select p.proname, p.oid, pg_get_function_identity_arguments(p.oid) as args from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'public' and p.proname in ('nivel_crear', 'nivel_renombrar', 'nivel_retirar', 'nivel_eliminar') loop
+            where n.nspname = 'public' and p.proname in ('nivel_crear', 'nivel_renombrar', 'nivel_retirar', 'nivel_restaurar', 'nivel_eliminar') loop
     if has_function_privilege('anon', r.oid, 'execute') or not has_function_privilege('authenticated', r.oid, 'execute') then raise exception '%(%) tiene los grants mal', r.proname, r.args; end if;
   end loop;
-  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('nivel_crear', 'nivel_renombrar', 'nivel_retirar', 'nivel_eliminar')) <> 4 then raise exception 'faltan RPC'; end if;
+  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('nivel_crear', 'nivel_renombrar', 'nivel_retirar', 'nivel_restaurar', 'nivel_eliminar')) <> 5 then raise exception 'faltan RPC'; end if;
   for r in select p.proname, p.oid from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'public' and p.proname in ('_niveles_tope', '_nivel_nombre', '_nivel_clave', '_nivel_permisos_crear', '_nivel_con_permisos', '_nivel_protegido', 'nivel_version',
                                                          '_niveles_lista', '_nivel_uso', '_nodos_visibles', '_niveles_de_cotizacion', '_preparar_publicacion', '_nivel_en_uso') loop
@@ -480,9 +481,11 @@ begin
   v_v := (public.nivel_crear(v_id, 'Gerencia') ->> 'actualizado_en')::timestamptz;
   v_v := (public.nivel_renombrar(v_id, v_v, 'Dirección') ->> 'actualizado_en')::timestamptz;
   v_v := (public.nivel_retirar(v_id, v_v) ->> 'actualizado_en')::timestamptz;
+  v_v := (public.nivel_restaurar(v_id, v_v) ->> 'actualizado_en')::timestamptz;
+  v_v := (public.nivel_retirar(v_id, v_v) ->> 'actualizado_en')::timestamptz;
   perform public.nivel_eliminar(v_id, v_v);
   reset role;
-  if (select string_agg(a.accion, ',' order by a.id) from public.actividad a where a.tabla = 'cotizaciones_niveles' and a.registro_id = v_id::text) <> 'nivel.crear,nivel.renombrar,nivel.retirar,nivel.eliminar' then
+  if (select string_agg(a.accion, ',' order by a.id) from public.actividad a where a.tabla = 'cotizaciones_niveles' and a.registro_id = v_id::text) <> 'nivel.crear,nivel.renombrar,nivel.retirar,nivel.restaurar,nivel.retirar,nivel.eliminar' then
     raise exception 'la actividad: %', (select string_agg(a.accion, ',' order by a.id) from public.actividad a where a.tabla = 'cotizaciones_niveles' and a.registro_id = v_id::text); end if;
   for r in select a.* from public.actividad a where a.accion like 'nivel.%' loop
     if (select count(*) from jsonb_object_keys(coalesce(r.antes, '{}') || coalesce(r.despues, '{}') || coalesce(r.detalle, '{}')) k where k not in ('clave', 'nombre', 'concesiones')) > 0 then
@@ -517,5 +520,90 @@ begin
               where f.estado <> 'borrador' and x not in ('todos') and not exists (select 1 from public.cotizaciones_niveles c where c.clave = x)) then raise exception 'una versión nombra un nivel que no existe'; end if;
   if exists (select 1 from public.formulas f, jsonb_each(f.visibilidad) e, unnest(array[e.value ->> 'ver', e.value ->> 'editar']) x
               where f.estado <> 'borrador' and x is not null and x <> 'todos' and not exists (select 1 from public.cotizaciones_niveles c where c.clave = x)) then raise exception 'una visibilidad nombra un nivel que no existe'; end if;
+end $$;
+rollback;
+
+-- @test niveles: restaurar quita el retiro y mueve la versión, y deja intactos la clave, los permisos, sus nombres, las concesiones, el tope y el orden de la lista; deja su actividad
+begin;
+do $$
+declare
+  v_duena constant uuid := '00000000-0000-0000-0000-000000000001'; v_id uuid := gen_random_uuid(); r jsonb; v_v timestamptz; v_rol uuid; v_n int; v_tope int; v_conc int;
+begin
+  perform pg_temp.como(v_duena);
+  set local role authenticated;
+  v_v := (public.nivel_crear(v_id, 'Gerencia') ->> 'actualizado_en')::timestamptz;
+  r := public.nivel_retirar(v_id, v_v);
+  v_v := (r ->> 'actualizado_en')::timestamptz;
+  v_n := jsonb_array_length(r -> 'lista' -> 'niveles'); v_tope := (r -> 'lista' ->> 'tope')::int;
+  reset role;
+  -- Al dueño se le quitó el «ver» antes de restaurar: restaurar no se lo devuelve (ni toca lo demás).
+  select id into v_rol from public.roles where clave = 'dueno';
+  delete from public.roles_permisos where rol_id = v_rol and permiso_clave = 'cotizaciones.nivel.gerencia.ver';
+  select count(*) into v_conc from public.roles_permisos where permiso_clave like 'cotizaciones.nivel.%';
+  set local role authenticated;
+  r := public.nivel_restaurar(v_id, v_v);
+  reset role;
+  if (select retirado_en from public.cotizaciones_niveles where id = v_id) is not null then raise exception 'no se restauró'; end if;
+  if (r ->> 'actualizado_en')::timestamptz <= v_v then raise exception 'la versión no se movió'; end if;
+  if (r ->> 'actualizado_en')::timestamptz is distinct from (select actualizado_en from public.cotizaciones_niveles where id = v_id) then raise exception 'la versión devuelta no es la de la fila'; end if;
+  if (r ->> 'sin_cambios') is not null and (r ->> 'sin_cambios')::boolean then raise exception 'dijo sin_cambios al restaurar de verdad'; end if;
+  if (select clave from public.cotizaciones_niveles where id = v_id) <> 'gerencia' or (select nombre from public.cotizaciones_niveles where id = v_id) <> 'Gerencia' then raise exception 'cambió la clave o el nombre'; end if;
+  if (select count(*) from public.permisos where nivel_clave = 'gerencia') <> 2 then raise exception 'cambiaron los permisos'; end if;
+  if (select nombre from public.permisos where clave = 'cotizaciones.nivel.gerencia.ver') <> 'Ver el nivel «Gerencia»' then raise exception 'cambió el nombre del permiso'; end if;
+  if (select count(*) from public.roles_permisos where permiso_clave like 'cotizaciones.nivel.%') <> v_conc then raise exception 'restaurar tocó las concesiones'; end if;
+  if exists (select 1 from public.roles_permisos where rol_id = v_rol and permiso_clave = 'cotizaciones.nivel.gerencia.ver') then raise exception 'restaurar volvió a conceder'; end if;
+  -- El tope y la lista: los mismos niveles, el mismo tope, y el nivel ya no figura retirado.
+  if jsonb_array_length(r -> 'lista' -> 'niveles') is distinct from v_n or (r -> 'lista' ->> 'tope')::int is distinct from v_tope then raise exception 'cambió el tope o la cuenta'; end if;
+  if (select e ->> 'retirado_en' from jsonb_array_elements(r -> 'lista' -> 'niveles') e where e ->> 'clave' = 'gerencia') is not null then raise exception 'la lista lo sigue dando por retirado'; end if;
+  -- Sigue contando para el tope y su clave sigue ocupada: crear otro con el mismo nombre se rechaza.
+  set local role authenticated;
+  perform pg_temp.falla_con($f$select public.nivel_crear(gen_random_uuid(), 'gerencia')$f$, '23505', 'Ya hay un nivel «gerencia»', 'nombre');
+  reset role;
+  -- Una acción en actividad, con el nombre antes y la clave después, nada de fórmula.
+  if (select count(*) from public.actividad a where a.accion = 'nivel.restaurar' and a.registro_id = v_id::text) <> 1 then raise exception 'la actividad de restaurar'; end if;
+  if (select a.antes ->> 'nombre' from public.actividad a where a.accion = 'nivel.restaurar' and a.registro_id = v_id::text) is distinct from 'Gerencia'
+     or (select a.despues ->> 'clave' from public.actividad a where a.accion = 'nivel.restaurar' and a.registro_id = v_id::text) is distinct from 'gerencia' then raise exception 'la actividad de restaurar lleva otra cosa'; end if;
+end $$;
+rollback;
+
+-- @test niveles: restaurar uno que no está retirado (y «todos») responde sin error ni cambio —sin mirar la versión—, y un retirado exige la versión
+begin;
+do $$
+declare
+  v_duena constant uuid := '00000000-0000-0000-0000-000000000001'; v_id uuid := gen_random_uuid(); r jsonb; v_v timestamptz; v_todos uuid := (select id from public.cotizaciones_niveles where clave = 'todos'); v_vt timestamptz;
+begin
+  perform pg_temp.como(v_duena);
+  set local role authenticated;
+  v_v := (public.nivel_crear(v_id, 'Gerencia') ->> 'actualizado_en')::timestamptz;
+  -- Vivo: sin cambios, con la versión al día, con una vieja y con ninguna.
+  r := public.nivel_restaurar(v_id, v_v);
+  if not coalesce((r ->> 'sin_cambios')::boolean, false) then raise exception 'no dijo sin_cambios: %', r; end if;
+  if (r ->> 'actualizado_en')::timestamptz is distinct from v_v then raise exception 'sin_cambios devolvió otra versión'; end if;
+  if jsonb_typeof(r -> 'lista' -> 'niveles') is distinct from 'array' then raise exception 'sin lista'; end if;
+  perform public.nivel_restaurar(v_id, v_v - interval '1 day');
+  perform public.nivel_restaurar(v_id, null);
+  -- «Todos» nunca está retirado: responde igual.
+  v_vt := (select actualizado_en from public.cotizaciones_niveles where id = v_todos);
+  r := public.nivel_restaurar(v_todos, v_vt);
+  if not coalesce((r ->> 'sin_cambios')::boolean, false) then raise exception '«todos» no dijo sin_cambios'; end if;
+  reset role;
+  if (select actualizado_en from public.cotizaciones_niveles where id = v_id) <> v_v then raise exception 'la versión se movió sin cambios'; end if;
+  if (select actualizado_en from public.cotizaciones_niveles where id = v_todos) <> v_vt then raise exception 'la versión de «todos» se movió'; end if;
+  if exists (select 1 from public.actividad a where a.accion = 'nivel.restaurar') then raise exception 'dejó actividad sin cambiar nada'; end if;
+  -- Retirado: la versión vieja es PT409, la nula también (con su mensaje), y un id que no existe es PT409.
+  set local role authenticated;
+  v_v := (public.nivel_retirar(v_id, v_v) ->> 'actualizado_en')::timestamptz;
+  perform pg_temp.falla_con(format($f$select public.nivel_restaurar(%L, %L)$f$, v_id, v_v - interval '1 second'), 'PT409', 'Otra persona cambió este nivel');
+  perform pg_temp.falla_con(format($f$select public.nivel_restaurar(%L, null)$f$, v_id), 'P0001', 'Falta la versión');
+  perform pg_temp.falla_con($f$select public.nivel_restaurar(gen_random_uuid(), now())$f$, 'PT409', 'ya no existe');
+  reset role;
+  if (select retirado_en from public.cotizaciones_niveles where id = v_id) is null then raise exception 'un rechazo restauró'; end if;
+  -- Restaurar dos veces con la misma versión: la segunda ya no está retirado y responde sin cambios (un doble «Deshacer» no da conflicto).
+  set local role authenticated;
+  r := public.nivel_restaurar(v_id, v_v);
+  r := public.nivel_restaurar(v_id, v_v);
+  reset role;
+  if not coalesce((r ->> 'sin_cambios')::boolean, false) then raise exception 'el segundo restaurar no dijo sin_cambios'; end if;
+  if (select count(*) from public.actividad a where a.accion = 'nivel.restaurar') <> 1 then raise exception 'el segundo restaurar dejó actividad'; end if;
 end $$;
 rollback;
