@@ -1003,6 +1003,34 @@ export type Database = {
           },
         ]
       }
+      cotizaciones_niveles: {
+        Row: {
+          actualizado_en: string
+          clave: string
+          creado_en: string
+          id: string
+          nombre: string
+          retirado_en: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          actualizado_en?: string
+          clave: string
+          creado_en?: string
+          id?: string
+          nombre: string
+          retirado_en?: string | null
+        }
+        Update: {
+          actualizado_en?: string
+          clave?: string
+          creado_en?: string
+          id?: string
+          nombre?: string
+          retirado_en?: string | null
+        }
+        Relationships: []
+      }
       cotizaciones_reportes: {
         Row: {
           cotizacion_id: string
@@ -3960,6 +3988,7 @@ export type Database = {
           con_alcance: boolean
           descripcion: string
           modulo: string
+          nivel_clave: string | null
           nombre: string
           orden: number
           por_origen: boolean
@@ -3971,6 +4000,7 @@ export type Database = {
           con_alcance?: boolean
           descripcion: string
           modulo: string
+          nivel_clave?: string | null
           nombre: string
           orden?: number
           por_origen?: boolean
@@ -3981,11 +4011,20 @@ export type Database = {
           con_alcance?: boolean
           descripcion?: string
           modulo?: string
+          nivel_clave?: string | null
           nombre?: string
           orden?: number
           por_origen?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'permisos_nivel_fk'
+            columns: ['nivel_clave']
+            isOneToOne: false
+            referencedRelation: 'cotizaciones_niveles'
+            referencedColumns: ['clave']
+          },
+        ]
       }
       plantillas_tarjeta: {
         Row: {
@@ -7314,9 +7353,25 @@ export type Database = {
       _motor_redondear: { Args: { n: number; x: number }; Returns: number }
       _motor_sin_leer: { Args: { p_quien: string; p_ref: string }; Returns: undefined }
       _motor_sin_validar: { Args: { p_detalle: string; p_donde: string }; Returns: undefined }
+      _nivel_clave: { Args: { p_nombre: string }; Returns: string }
       _nivel_en_uso: { Args: { p_clave: string }; Returns: string }
+      _nivel_nombre: { Args: { p_texto: string }; Returns: string }
+      _nivel_permisos_crear: {
+        Args: { p_clave: string; p_conceder: boolean; p_nombre: string }
+        Returns: undefined
+      }
+      _nivel_uso: { Args: { p_clave: string }; Returns: Json }
       _niveles_de_cotizacion: { Args: Record<PropertyKey, never>; Returns: Record<string, unknown> }
       _niveles_del_diseno: { Args: { p_diseno: Json }; Returns: Json }
+      _niveles_lista: { Args: Record<PropertyKey, never>; Returns: Json }
+      _niveles_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _nodos_visibles: {
+        Args: { p_formula: string }
+        Returns: {
+          editar: boolean
+          nodo: string
+        }[]
+      }
       _oportunidad_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _oportunidad_constancia: {
         Args: {
@@ -8131,6 +8186,13 @@ export type Database = {
         }
         Returns: string
       }
+      nivel_crear: { Args: { p_id: string; p_nombre: string }; Returns: Json }
+      nivel_eliminar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      nivel_renombrar: {
+        Args: { p_actualizado_en_esperado: string; p_id: string; p_nombre: string }
+        Returns: Json
+      }
+      nivel_retirar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       normalizar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: string }
       notificar: {
         Args: {

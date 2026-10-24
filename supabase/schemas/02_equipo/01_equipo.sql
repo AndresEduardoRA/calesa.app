@@ -46,16 +46,23 @@ create table public.roles (
 comment on table public.roles is 'Roles libres creados por el dueño. Sólo `dueno` es de sistema. Los permisos son la unión de los de todos los roles de la persona; no hay herencia ni deny.';
 
 create table public.permisos (
-  clave        text primary key check (clave ~ '^[a-z]+(\.[a-z_]+){1,3}$'),
+  clave        text primary key check (clave ~ '^[a-z]+(\.[a-z0-9_]+){1,3}$'),
   modulo       text not null,
   nombre       text not null,
   descripcion  text not null,
   por_origen   boolean not null default false,  -- la concesión puede acotarse a un origen
   con_alcance  boolean not null default false,  -- la concesión lleva alcance propios|todos
   aplicado_en  text not null,                   -- dónde se hace cumplir (policy, RPC)
-  orden        smallint not null default 0
+  orden        smallint not null default 0,
+  -- Los permisos `cotizaciones.nivel.<clave>.ver|editar` los genera `nivel_crear()` (el único permiso que nace de la configuración): su nivel es una FK a
+  -- `cotizaciones_niveles` (07_cotizaciones) y el check ata la clave a su nivel en los dos sentidos. Su enforcement es `_nodos_visibles()`.
+  nivel_clave  text,
+  constraint permisos_nivel_check check (
+    (clave like 'cotizaciones.nivel.%') = (nivel_clave is not null)
+    and (nivel_clave is null or (nivel_clave <> 'todos'
+         and clave in ('cotizaciones.nivel.' || nivel_clave || '.ver', 'cotizaciones.nivel.' || nivel_clave || '.editar'))))
 );
-comment on table public.permisos is 'CATÁLOGO FIJO POR CÓDIGO. Un permiso existe sólo si hay un punto de enforcement (policy o RPC) que lo consulta. Se siembra por migración; la UI lo lee y lo asigna, nunca lo crea. Sin política de escritura para nadie: la ausencia de política ES el enforcement.';
+comment on table public.permisos is 'CATÁLOGO FIJO POR CÓDIGO, salvo los `cotizaciones.nivel.*`, que los genera `nivel_crear()` al crear un nivel de acceso. Un permiso existe sólo si hay un punto de enforcement (policy o RPC) que lo consulta. Se siembra por migración; la UI lo lee y lo asigna, nunca lo crea. Sin política de escritura para nadie: la ausencia de política ES el enforcement.';
 
 create table public.roles_permisos (
   id           uuid primary key default gen_random_uuid(),

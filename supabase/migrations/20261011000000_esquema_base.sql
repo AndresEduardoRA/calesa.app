@@ -275,16 +275,23 @@ create table public.roles (
 comment on table public.roles is 'Roles libres creados por el dueño. Sólo `dueno` es de sistema. Los permisos son la unión de los de todos los roles de la persona; no hay herencia ni deny.';
 
 create table public.permisos (
-  clave        text primary key check (clave ~ '^[a-z]+(\.[a-z_]+){1,3}$'),
+  clave        text primary key check (clave ~ '^[a-z]+(\.[a-z0-9_]+){1,3}$'),
   modulo       text not null,
   nombre       text not null,
   descripcion  text not null,
   por_origen   boolean not null default false,  -- la concesión puede acotarse a un origen
   con_alcance  boolean not null default false,  -- la concesión lleva alcance propios|todos
   aplicado_en  text not null,                   -- dónde se hace cumplir (policy, RPC)
-  orden        smallint not null default 0
+  orden        smallint not null default 0,
+  -- Los permisos `cotizaciones.nivel.<clave>.ver|editar` los genera `nivel_crear()` (el único permiso que nace de la configuración): su nivel es una FK a
+  -- `cotizaciones_niveles` (07_cotizaciones) y el check ata la clave a su nivel en los dos sentidos. Su enforcement es `_nodos_visibles()`.
+  nivel_clave  text,
+  constraint permisos_nivel_check check (
+    (clave like 'cotizaciones.nivel.%') = (nivel_clave is not null)
+    and (nivel_clave is null or (nivel_clave <> 'todos'
+         and clave in ('cotizaciones.nivel.' || nivel_clave || '.ver', 'cotizaciones.nivel.' || nivel_clave || '.editar'))))
 );
-comment on table public.permisos is 'CATÁLOGO FIJO POR CÓDIGO. Un permiso existe sólo si hay un punto de enforcement (policy o RPC) que lo consulta. Se siembra por migración; la UI lo lee y lo asigna, nunca lo crea. Sin política de escritura para nadie: la ausencia de política ES el enforcement.';
+comment on table public.permisos is 'CATÁLOGO FIJO POR CÓDIGO, salvo los `cotizaciones.nivel.*`, que los genera `nivel_crear()` al crear un nivel de acceso. Un permiso existe sólo si hay un punto de enforcement (policy o RPC) que lo consulta. Se siembra por migración; la UI lo lee y lo asigna, nunca lo crea. Sin política de escritura para nadie: la ausencia de política ES el enforcement.';
 
 create table public.roles_permisos (
   id           uuid primary key default gen_random_uuid(),
@@ -1142,6 +1149,24 @@ create table public.tonos (
 create unique index tonos_nombre_unico on public.tonos (lower(btrim(nombre)));
 alter table public.tonos enable row level security;
 comment on table public.tonos is 'Catálogo de tonos de la empresa (claro y oscuro: fondo, borde y tinta). Sólo de lectura para la app: se escribe por tono_*(). Un tono que alguna versión de una fórmula nombra en sus grupos no se elimina.';
+
+-- Los niveles de acceso de la hoja (D7): quién ve y quién edita una celda o una sección. «todos» y «costos» vienen sembrados. Cada nivel salvo «todos» genera
+-- dos permisos por origen, `cotizaciones.nivel.<clave>.ver|editar` (`permisos.nivel_clave`), en la misma transacción que lo crea; `_nodos_visibles()` los aplica.
+-- Se escribe sólo por nivel_crear|renombrar|retirar|eliminar (`equipo.roles.gestionar`). La clave sale del nombre y no cambia.
+create table public.cotizaciones_niveles (
+  id             uuid primary key default gen_random_uuid(),
+  clave          text not null unique check (clave ~ '^[a-z][a-z0-9_]{1,29}$'),
+  nombre         text not null check (char_length(nombre) between 1 and 40),
+  retirado_en    timestamptz,                         -- deja de ofrecerse; sus permisos, concesiones y usos siguen
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()
+);
+create unique index cotizaciones_niveles_nombre_unico on public.cotizaciones_niveles (lower(btrim(nombre)));
+alter table public.cotizaciones_niveles enable row level security;
+comment on table public.cotizaciones_niveles is 'Niveles de acceso de la hoja del cotizador (sembrados «todos» y «costos»). Cada uno salvo «todos» tiene dos permisos por origen. Sólo de lectura para la app: se escribe por nivel_*(). Un nivel que alguna versión de una fórmula nombra no se elimina, se retira.';
+
+alter table public.permisos
+  add constraint permisos_nivel_fk foreign key (nivel_clave) references public.cotizaciones_niveles (clave) on delete restrict;
 
 create table public.tablas_referencia (
   id         uuid primary key default gen_random_uuid(),

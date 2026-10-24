@@ -49,6 +49,24 @@ create unique index tonos_nombre_unico on public.tonos (lower(btrim(nombre)));
 alter table public.tonos enable row level security;
 comment on table public.tonos is 'Catálogo de tonos de la empresa (claro y oscuro: fondo, borde y tinta). Sólo de lectura para la app: se escribe por tono_*(). Un tono que alguna versión de una fórmula nombra en sus grupos no se elimina.';
 
+-- Los niveles de acceso de la hoja (D7): quién ve y quién edita una celda o una sección. «todos» y «costos» vienen sembrados. Cada nivel salvo «todos» genera
+-- dos permisos por origen, `cotizaciones.nivel.<clave>.ver|editar` (`permisos.nivel_clave`), en la misma transacción que lo crea; `_nodos_visibles()` los aplica.
+-- Se escribe sólo por nivel_crear|renombrar|retirar|eliminar (`equipo.roles.gestionar`). La clave sale del nombre y no cambia.
+create table public.cotizaciones_niveles (
+  id             uuid primary key default gen_random_uuid(),
+  clave          text not null unique check (clave ~ '^[a-z][a-z0-9_]{1,29}$'),
+  nombre         text not null check (char_length(nombre) between 1 and 40),
+  retirado_en    timestamptz,                         -- deja de ofrecerse; sus permisos, concesiones y usos siguen
+  creado_en      timestamptz not null default now(),
+  actualizado_en timestamptz not null default now()
+);
+create unique index cotizaciones_niveles_nombre_unico on public.cotizaciones_niveles (lower(btrim(nombre)));
+alter table public.cotizaciones_niveles enable row level security;
+comment on table public.cotizaciones_niveles is 'Niveles de acceso de la hoja del cotizador (sembrados «todos» y «costos»). Cada uno salvo «todos» tiene dos permisos por origen. Sólo de lectura para la app: se escribe por nivel_*(). Un nivel que alguna versión de una fórmula nombra no se elimina, se retira.';
+
+alter table public.permisos
+  add constraint permisos_nivel_fk foreign key (nivel_clave) references public.cotizaciones_niveles (clave) on delete restrict;
+
 create table public.tablas_referencia (
   id         uuid primary key default gen_random_uuid(),
   origen_id  uuid references public.origenes (id) on delete cascade,   -- NULL = compartida

@@ -40,7 +40,9 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   el trigger genérico (`now()` es la hora de inicio): se quita `trg_actualizado_en` de esa tabla y
   la RPC sella con `greatest(clock_timestamp(), anterior + 1 µs)` (fotos, lotes de papelera).
 - Permiso nuevo = fila en `seed.sql` (`permisos`) **en la misma migración** que crea su punto de
-  enforcement, con `aplicado_en` diciendo cuál. Sin enforcement no hay permiso.
+  enforcement, con `aplicado_en` diciendo cuál. Sin enforcement no hay permiso. Única excepción: los `cotizaciones.nivel.<clave>.ver|editar`
+  los genera `nivel_crear()` (D7, paso 4.09); su enforcement es estructural (`_nodos_visibles()` recorre `cotizaciones_niveles`, y un check, una FK
+  y un trigger diferido atan permisos y niveles) y `permisos-enforcement.sql` lo prueba con un caso genérico por cada nivel de la tabla.
 - Clave de dato nueva para requisitos de fase = caso en `_requisito_dato_cumplido()` **y** en
   `claves_dato_requisito()`.
 - Columna nueva que guarde una ruta de storage = sumarla a `storage_refcount()`. Si sus objetos

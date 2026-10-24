@@ -239,6 +239,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `limpieza_corridas` — `supabase/schemas/06_vehiculos/01_vehiculos.sql`
 - `formulas` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`
 - `tonos` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`
+- `cotizaciones_niveles` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`
 - `tablas_referencia` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`
 - `tablas_referencia_filas` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`
 - `plantillas_tarjeta` — `supabase/schemas/07_cotizaciones/01_cotizaciones.sql`
