@@ -59,6 +59,14 @@ export const error = (
 export const errorEn = (a: Rango, codigo: CodigoDeCompilacion, datos: DatosDeError = {}) =>
   error(codigo, a.desde, a.hasta, datos)
 
+// Los errores que se dicen desde más de un lugar, con su código escrito una sola vez.
+export const faltaUnValor = (a: Rango) => errorEn(a, 'falta_un_valor')
+export const demasiadosTerminos = (a: Rango) => errorEn(a, 'demasiados_terminos')
+export const argumentoInvalido = (a: Rango, esperado?: string) =>
+  errorEn(a, 'argumento_invalido', esperado === undefined ? {} : { esperado })
+export const funcionDesconocida = (a: Rango, nombre: string) =>
+  errorEn(a, 'funcion_desconocida', { nombre })
+
 export const esError = (x: object): x is ErrorCrudo => 'codigo' in x
 
 export type TipoDeArgumento = 'valor' | 'bandera' | 'nodo' | 'grupo' | 'clave' | 'entero' | 'pct'

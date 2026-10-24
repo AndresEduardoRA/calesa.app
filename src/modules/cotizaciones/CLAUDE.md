@@ -36,6 +36,15 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   `inputs`, `banderas`, `overrides` y `variante`. Devuelve el resultado entero: `revoke execute … from public, anon, authenticated` hasta que el 4.10 recorte
   por nivel. Lo prueban `supabase/tests/cotizacion-evaluar.sql` (`pnpm db:probar`: paridad con el juego de 84 y el corpus, y los casos de orden, congelada,
   versión vieja, tablas, campos y permisos) y `medir-evaluar.sql` (`pnpm db:medir:volumen`: 200 llamadas con 50.000 y 250.000 cotizaciones y las guardas de escala).
+- `entities/compilador.ts` — `compilarExpresion(texto, contexto)`: la fórmula como texto (`=(remate+fees)*4%`, `SUMA(grupo)`) a nodos del mismo grafo
+  (4.07). Puro, sin `eval` ni regex, lineal y nunca lanza: un texto que no compila da un error con código estable y su tramo (`desde`, `largo`,
+  `linea`, `columna`). No lo exporta `index.ts` todavía: lo usará el editor (4.21). Lo parten `compilador-lexico.ts`, `compilador-sintaxis.ts`
+  (parser iterativo de dos pilas, nada recursivo), `compilador-reducir.ts` (el aplanado de `a+b+c`), `compilador-estado.ts`,
+  `compilador-funciones.ts` (SUMA, SI, REDONDEAR, PORCENTAJE_DE, DEPRECIAR), `compilador-nombres.ts` (el contexto), `compilador-emitir.ts`
+  (los nodos auxiliares `<fila>__<n>`) y `motivos-del-compilador.ts` (los 28 códigos). `HOY()` se rechaza (4-4). Lo prueban
+  `casos-del-compilador.json` (a mano), `compilador-propiedades.test.ts` (contra el cálculo directo en JS, bit a bit) y `compilador-escala.test.ts`;
+  `compilador-generador.ts` y `compilador-formula-de-prueba.ts` son sólo de las pruebas. Doce casos «compilada: …» viven en
+  `casos-de-formula.json` (los recompila `compilador-casos-de-formula.test.ts`).
 - `entities/evaluacion-sintetica.ts` — la evaluación sintética de n nodos (fórmula, tablas y entrada) para medir el motor, con 50 o 1.000 filas por tabla (y `anioInicial` para sembrar su vehículo en la base).
 - `entities/formula-sintetica.ts` — la fórmula sintética de n nodos de las pruebas de escala (`validar-escala.test.ts` y, volcada al
   corpus, la medición de `validar_formula()`).
@@ -62,7 +71,7 @@ RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador
 - Versionado append-only: un borrador y una publicada por origen; revertir = publicar una copia. El ⚙ de una constante publica N+1 con nota automática; el de un tipo de cambio lo cambia para la empresa (`tipo_cambio_guardar`, D7).
 - A lo sumo una cotización final activa por vehículo (`cotizacion_marcar_final`). Al entrar a logística la final se congela; si el vehículo sale de logística vuelve a preventa sin borrar historial.
 - Sin motor de expresiones al cotizar: sólo las operaciones cerradas de `calculo`. La «fórmula como texto» (D4,
-  `docs/DECISIONES.md` 2026-10-22) se compila a ese grafo **al configurar**, y lo que no se puede compilar a nodos se rechaza. Un nodo
+  `docs/DECISIONES.md` 2026-10-22; `compilador.ts`, 4.07) se compila a ese grafo **al configurar**, y lo que no se puede compilar a nodos se rechaza. Un nodo
   nuevo = tipo discriminado (`nodos.ts`) + `switch` exhaustivo (`referenciasDe()`) + caso en `validar_formula()` y en el juego de prueba.
 - **D7 (2026-10-22):**
   - la hoja **calcula en la base** (`cotizacion_evaluar()` sobre `evaluar_formula()`, espejo de `motor.ts`) para todos;

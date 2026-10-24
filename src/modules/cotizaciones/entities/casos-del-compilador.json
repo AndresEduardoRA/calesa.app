@@ -844,6 +844,305 @@
       }
     },
     {
+      "nombre": "el tramo de una cadena crece hasta el último término",
+      "texto": "remate*fees*flete+3",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "op": "multiplicar",
+            "de": ["remate", "fees", "flete"],
+            "etiqueta": "remate*fees*flete"
+          },
+          {
+            "id": "total__2",
+            "tipo": "constante",
+            "etiqueta": "3",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["total__1", "total__2"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total__2": 3
+        },
+        "tramos": {
+          "total__1": {
+            "desde": 0,
+            "largo": 17,
+            "linea": 1,
+            "columna": 1
+          }
+        }
+      }
+    },
+    {
+      "nombre": "el tramo de una cadena que es la raíz",
+      "texto": "remate+fees+flete",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "suma",
+            "de": ["remate", "fees", "flete"],
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {},
+        "tramos": {
+          "total": {
+            "desde": 0,
+            "largo": 17,
+            "linea": 1,
+            "columna": 1
+          }
+        }
+      }
+    },
+    {
+      "nombre": "un nombre en un argumento que no es el primer token de SUMA",
+      "texto": "SUMA(1+compra)",
+      "esperado": {
+        "error": {
+          "codigo": "grupo_sin_suma",
+          "desde": 7,
+          "largo": 6,
+          "linea": 1,
+          "columna": 8
+        }
+      }
+    },
+    {
+      "nombre": "dos paréntesis sin cerrar: se señala el último",
+      "texto": "((remate+fees",
+      "esperado": {
+        "error": {
+          "codigo": "parentesis_sin_cerrar",
+          "desde": 1,
+          "largo": 1,
+          "linea": 1,
+          "columna": 2
+        }
+      }
+    },
+    {
+      "nombre": "una E mayúscula en el exponente",
+      "texto": "1E3",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 1000
+        }
+      }
+    },
+    {
+      "nombre": "una E mayúscula sin dígitos",
+      "texto": "1E",
+      "esperado": {
+        "error": {
+          "codigo": "numero_mal_escrito",
+          "desde": 0,
+          "largo": 2,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "0 con un exponente enorme es 0",
+      "texto": "0e999999999",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 0
+        }
+      }
+    },
+    {
+      "nombre": "un exponente enorme y negativo es 0",
+      "texto": "1e-999999999",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "params": {
+          "total": 0
+        }
+      }
+    },
+    {
+      "nombre": "un exponente enorme y positivo no cabe",
+      "texto": "1e999999999",
+      "esperado": {
+        "error": {
+          "codigo": "numero_fuera_de_rango",
+          "desde": 0,
+          "largo": 11,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "REDONDEAR con un 600% (vale 6, pero es un porcentaje)",
+      "texto": "REDONDEAR(remate; 600%)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 18,
+          "largo": 4,
+          "linea": 1,
+          "columna": 19
+        }
+      }
+    },
+    {
+      "nombre": "DEPRECIAR con una columna en mayúsculas",
+      "texto": "DEPRECIAR(remate; t; anio; Factor)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 27,
+          "largo": 6,
+          "linea": 1,
+          "columna": 28
+        }
+      }
+    },
+    {
+      "nombre": "DEPRECIAR con ids con guion bajo y dígitos",
+      "texto": "DEPRECIAR(remate; tabla_2; anio; factor_9)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "depreciar",
+            "de": ["remate"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "tabla": "tabla_2",
+            "sobre": "anio",
+            "columna": "factor_9"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "DEPRECIAR con ids de 41 letras",
+      "texto": "DEPRECIAR(remate; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; anio; bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb)",
+      "esperado": {
+        "nodos": [
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "depreciar",
+            "de": ["remate"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "tabla": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "sobre": "anio",
+            "columna": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "params": {}
+      }
+    },
+    {
+      "nombre": "DEPRECIAR con un id de 42 letras",
+      "texto": "DEPRECIAR(remate; aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; anio; factor)",
+      "esperado": {
+        "error": {
+          "codigo": "argumento_invalido",
+          "desde": 18,
+          "largo": 42,
+          "linea": 1,
+          "columna": 19
+        }
+      }
+    },
+    {
+      "nombre": "cuatro letras y un número no son una celda",
+      "texto": "ABCD1+1",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 0,
+          "largo": 5,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "una celda con algo después de los números no es una celda",
+      "texto": "A1x+1",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 0,
+          "largo": 3,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un signo de dinero y un número no son una celda",
+      "texto": "$1+1",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 0,
+          "largo": 2,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "una sola letra con dígitos y signos no es una celda a la mitad",
+      "texto": "$A$+1",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 0,
+          "largo": 3,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
       "nombre": "SI(bandera; x) en la raíz (un total no puede llevar condición: lo dice validarFormula)",
       "texto": "SI(activa; remate*fees)",
       "esperado": {
@@ -1536,6 +1835,19 @@
     {
       "nombre": "un operador al principio",
       "texto": "+remate",
+      "esperado": {
+        "error": {
+          "codigo": "operador_suelto",
+          "desde": 0,
+          "largo": 1,
+          "linea": 1,
+          "columna": 1
+        }
+      }
+    },
+    {
+      "nombre": "un más delante de un número tampoco es un signo",
+      "texto": "+5",
       "esperado": {
         "error": {
           "codigo": "operador_suelto",
@@ -2437,6 +2749,19 @@
           "largo": 3,
           "linea": 2,
           "columna": 2
+        }
+      }
+    },
+    {
+      "nombre": "un error justo al principio de la segunda línea",
+      "texto": "remate +\nzzz",
+      "esperado": {
+        "error": {
+          "codigo": "nombre_desconocido",
+          "desde": 9,
+          "largo": 3,
+          "linea": 2,
+          "columna": 1
         }
       }
     },

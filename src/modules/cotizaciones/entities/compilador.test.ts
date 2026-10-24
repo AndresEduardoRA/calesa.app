@@ -111,6 +111,13 @@ describe('el contrato del compilador', () => {
     expect(ctx).toEqual(juego.contexto)
   })
 
+  it('el tope de términos es exacto: 100.000 compilan y 100.001 no', () => {
+    const justo = compilarExpresion(`${'remate+'.repeat(99_999)}remate`, juego.contexto)
+    expect(justo.ok).toBe(true)
+    const uno = compilarExpresion(`${'remate+'.repeat(100_000)}remate`, juego.contexto)
+    expect(uno.ok ? 'compiló' : uno.error.codigo).toBe('demasiados_terminos')
+  })
+
   it('demasiados términos es un error, no una excepción', () => {
     const texto = `${'remate+'.repeat(100_001)}remate`
     const r = compilarExpresion(texto, juego.contexto)

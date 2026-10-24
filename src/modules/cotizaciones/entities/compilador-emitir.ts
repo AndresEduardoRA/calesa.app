@@ -1,7 +1,14 @@
 // De un árbol a nodos del grafo (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»). Una pasada en post-orden con pila explícita:
 // los hijos de izquierda a derecha y después el padre. Cada operación anidada y cada número escrito es un nodo auxiliar
 // `<destino>__<n>`, con `n` desde 1 en ese orden; la raíz es la fila que se compila y no se numera. Un nombre no crea nodo.
-import { error, type Arbol, type Calculo, type ErrorCrudo, type Numero } from './compilador-arbol'
+import {
+  argumentoInvalido,
+  error,
+  type Arbol,
+  type Calculo,
+  type ErrorCrudo,
+  type Numero,
+} from './compilador-arbol'
 import type { Nombres } from './compilador-nombres'
 import { esta, type Medidor } from './medidor'
 import type { Nodo, NodoCalculo } from './nodos'
@@ -18,7 +25,7 @@ type Comunes = Partial<
 >
 
 const ANCHO_DE_ETIQUETA = 80
-const LECTURA_DE_ETIQUETA = 400
+const LECTURA_DE_ETIQUETA = 100
 
 // El fragmento del texto con los espacios juntos, a lo sumo 80 caracteres.
 function etiquetaDe(texto: string, desde: number, hasta: number, m: Medidor): string {
@@ -28,7 +35,7 @@ function etiquetaDe(texto: string, desde: number, hasta: number, m: Medidor): st
   for (let i = 0; i < trozo.length; i += 1) {
     m.visitas += 1
     const c = trozo.charCodeAt(i)
-    if (c === 32 || c === 9 || c === 10 || c === 13 || c === 160) espacio = s.length > 0
+    if (c === 32 || c === 9 || c === 10 || c === 13 || c === 160) espacio = true
     else {
       if (espacio) s += ' '
       espacio = false
@@ -216,7 +223,7 @@ export function emitir(texto: string, raiz: Arbol, nombres: Nombres): Emitido | 
     }
     pila.pop()
     const a = marca.a
-    if (a.k === 'clave') return error('argumento_invalido', a.desde, a.hasta)
+    if (a.k === 'clave') return argumentoInvalido(a)
     if (a.k === 'ref') {
       em.ids.push(a.nodo.id)
       continue

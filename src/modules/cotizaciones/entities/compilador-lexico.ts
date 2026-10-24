@@ -70,7 +70,7 @@ const deNumeroMalo = (c: number) => esDeNombre(c) || c === 46
 
 // «1.», «.5», «1.2.3», «1e», «4x»: todo el tramo pegado cuenta como un número mal escrito.
 function malEscrito(lex: Lexico, desde: number): Token {
-  const hasta = Math.max(pasar(lex, desde, deNumeroMalo), desde + 1)
+  const hasta = pasar(lex, desde, deNumeroMalo)
   lex.pos = hasta
   return { t: T.ERROR, desde, hasta, codigo: 'numero_mal_escrito' }
 }

@@ -12,7 +12,8 @@ const REGENERAR = 'ACTUALIZAR_CORPUS=1 pnpm vitest run supabase/tests/corpus-de-
 
 const juego = JSON.parse(readFileSync(JUEGO, 'utf8')) as { casos: (Base & { valida: boolean })[] }
 const bases: Base[] = juego.casos
-  .filter((c) => c.valida)
+  // Los «compilada: …» salen del compilador de texto (4.07) y no son bases del corpus: no lo mutan.
+  .filter((c) => c.valida && !c.nombre.startsWith('compilada: '))
   .map(({ nombre, definicion, params }) => ({
     nombre: nombre.startsWith('semilla: ')
       ? nombre.slice('semilla: '.length)

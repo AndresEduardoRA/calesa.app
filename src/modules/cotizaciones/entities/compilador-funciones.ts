@@ -1,8 +1,11 @@
 // Las funciones del texto (docs/COTIZADOR.md › «Fórmulas como texto (4.07)»): sólo operaciones que el grafo ya tiene. Al cerrarse
 // el paréntesis se revisa cada argumento contra lo que su posición pide y se arma la operación.
 import {
-  error,
+  argumentoInvalido,
+  demasiadosTerminos,
   errorEn,
+  faltaUnValor,
+  funcionDesconocida,
   type Arbol,
   type Calculo,
   type Campos,
@@ -43,7 +46,7 @@ const NECESITA: Record<string, string> = {
 
 // El patrón de un id (`esquemaId`), sin regex: una letra minúscula y hasta 40 más entre a-z, 0-9 y _.
 function esIdValido(s: string): boolean {
-  if (s.length < 1 || s.length > 41) return false
+  if (s.length > 41) return false
   for (let i = 0; i < s.length; i += 1) {
     const c = s.charCodeAt(i)
     const minuscula = c >= 97 && c <= 122
@@ -52,8 +55,7 @@ function esIdValido(s: string): boolean {
   return true
 }
 
-const invalido = (a: Arbol, tipo: string) =>
-  errorEn(a, 'argumento_invalido', { esperado: NECESITA[tipo] })
+const invalido = (a: Arbol, tipo: string) => argumentoInvalido(a, NECESITA[tipo])
 
 type Rango = { desde: number; hasta: number }
 
@@ -89,7 +91,7 @@ function cerrarSuma(
     return errorEn(arg, 'referencia_hacia_adelante', dato)
   const miembros = buscar(nombres.miembros, g, nombres.m) ?? []
   if (miembros.length === 0) return errorEn(arg, 'grupo_vacio', dato)
-  if (!contar(miembros.length)) return errorEn(arg, 'demasiados_terminos')
+  if (!contar(miembros.length)) return demasiadosTerminos(arg)
   const hijos: Referencia[] = []
   for (const nodo of recorrer(miembros, nombres.m)) {
     hijos.push({ k: 'ref', nodo, paren: false, desde: arg.desde, hasta: arg.hasta })
@@ -99,7 +101,7 @@ function cerrarSuma(
 
 function cerrarSi(args: Arbol[], rango: { desde: number; hasta: number }) {
   const [b, x] = args
-  if (b === undefined || x === undefined) return error('falta_un_valor', rango.desde, rango.hasta)
+  if (b === undefined || x === undefined) return faltaUnValor(rango)
   if (b.k !== 'ref') return invalido(b, 'bandera')
   if (b.nodo.tipo !== 'bandera') return errorEn(b, 'no_es_bandera', { nombre: b.nodo.id })
   return calculo('si', rango, [x], { campos: { condicion: b.nodo.id } })
@@ -107,7 +109,7 @@ function cerrarSi(args: Arbol[], rango: { desde: number; hasta: number }) {
 
 function cerrarRedondear(args: Arbol[], rango: { desde: number; hasta: number }) {
   const [x, n] = args
-  if (x === undefined || n === undefined) return error('falta_un_valor', rango.desde, rango.hasta)
+  if (x === undefined || n === undefined) return faltaUnValor(rango)
   const entero = n.k === 'num' && !n.pct && !n.negativo && Number.isInteger(n.valor) && n.valor <= 6
   if (n.k !== 'num' || !entero) return invalido(n, 'entero')
   return calculo('redondear', rango, [x], { campos: { n: n.valor } })
@@ -115,21 +117,21 @@ function cerrarRedondear(args: Arbol[], rango: { desde: number; hasta: number })
 
 function cerrarPorcentaje(args: Arbol[], rango: { desde: number; hasta: number }, contar: Contar) {
   const [x, p] = args
-  if (x === undefined || p === undefined) return error('falta_un_valor', rango.desde, rango.hasta)
+  if (x === undefined || p === undefined) return faltaUnValor(rango)
   if (p.k === 'ref') {
     if (formatoDe(p.nodo) !== 'pct') return invalido(p, 'pct')
   } else if (p.k === 'num') p.comoPct = true
   else return invalido(p, 'pct')
   // «a+b+c» sin paréntesis va directo a `de`: Σde × pct es lo mismo que (a+b+c) × pct.
   const cadena = x.k === 'calc' && x.op === 'suma' && !x.paren
-  if (!contar(1)) return errorEn(x, 'demasiados_terminos')
+  if (!contar(1)) return demasiadosTerminos(x)
   return calculo('porcentaje_de', rango, cadena ? x.hijos : [x], { pct: p })
 }
 
 function cerrarDepreciar(args: Arbol[], rango: { desde: number; hasta: number }) {
   const [x, t, s, c] = args
   if (x === undefined || t === undefined || s === undefined || c === undefined) {
-    return error('falta_un_valor', rango.desde, rango.hasta)
+    return faltaUnValor(rango)
   }
   if (t.k !== 'clave' || !esIdValido(t.texto)) return invalido(t, 'clave')
   if (s.k !== 'ref') return invalido(s, 'nodo')
@@ -148,7 +150,8 @@ export function cerrarFuncion(
 ): Arbol | ErrorCrudo {
   const spec = marco.spec
   const nombreRango = marco.nombreRango
-  if (spec === undefined || nombreRango === undefined) return error('funcion_desconocida', 0, 0)
+  if (spec === undefined || nombreRango === undefined)
+    return funcionDesconocida({ desde: 0, hasta: 0 }, '')
   if (marco.args.length !== spec.args.length) {
     return errorEn(nombreRango, 'cantidad_de_argumentos', {
       nombre: spec.nombre,
@@ -169,7 +172,7 @@ function porNombre(
   switch (nombre) {
     case 'SUMA':
       return primero === undefined
-        ? error('falta_un_valor', rango.desde, rango.hasta)
+        ? faltaUnValor(rango)
         : cerrarSuma(primero, rango, nombres, contar)
     case 'SI':
       return cerrarSi(args, rango)

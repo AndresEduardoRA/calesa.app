@@ -5,6 +5,8 @@
 import {
   error,
   esError,
+  faltaUnValor,
+  funcionDesconocida,
   type Arbol,
   type ErrorCrudo,
   type Marco,
@@ -113,8 +115,7 @@ function abrirFuncion(e: Estado, nombre: Token): ErrorCrudo | undefined {
   const mayusculas = textoDe(e, nombre).toUpperCase()
   if (mayusculas === 'HOY') return enToken(nombre, 'hoy_no_soportado')
   const spec = FUNCIONES.get(mayusculas)
-  if (spec === undefined)
-    return enToken(nombre, 'funcion_desconocida', { nombre: textoDe(e, nombre) })
+  if (spec === undefined) return funcionDesconocida(nombre, textoDe(e, nombre))
   return abrirMarco(e, paren, {
     tipo: 'funcion',
     nombre: mayusculas,
@@ -152,13 +153,13 @@ function nombre(e: Estado, t: Token): ErrorCrudo | undefined {
 function cierra(e: Estado, t: Token): ErrorCrudo | undefined {
   const marco = e.marcos[e.marcos.length - 1]
   if (marco === undefined) return enToken(t, 'parentesis_de_mas')
-  if (e.esperaValor) return enToken(t, 'falta_un_valor')
+  if (e.esperaValor) return faltaUnValor(t)
   const r = reducir(e, 0)
   if (r !== undefined) return r
   const arg = e.operandos.pop()
   e.marcos.pop()
   e.esperaValor = false
-  if (arg === undefined) return enToken(t, 'falta_un_valor')
+  if (arg === undefined) return faltaUnValor(t)
   if (marco.tipo === 'grupo') {
     arg.paren = true
     arg.desde = marco.abre.desde
@@ -176,7 +177,7 @@ function cierra(e: Estado, t: Token): ErrorCrudo | undefined {
 function puntoYComa(e: Estado, t: Token): ErrorCrudo | undefined {
   const marco = e.marcos[e.marcos.length - 1]
   if (marco?.tipo !== 'funcion') return enToken(t, 'separador_fuera_de_funcion')
-  if (e.esperaValor) return enToken(t, 'falta_un_valor')
+  if (e.esperaValor) return faltaUnValor(t)
   const r = reducir(e, 0)
   if (r !== undefined) return r
   const arg = e.operandos.pop()
@@ -189,8 +190,8 @@ function porciento(e: Estado, t: Token): ErrorCrudo | undefined {
   const ultimo = e.operandos[e.operandos.length - 1]
   if (e.esperaValor || !e.numPrevio || ultimo?.k !== 'num')
     return enToken(t, 'porcentaje_sin_numero')
-  const v = valorDeNumero(e.lex.texto, ultimo.numDesde, ultimo.numHasta, true)
-  if (v === null) return enToken({ desde: ultimo.desde, hasta: t.hasta }, 'numero_fuera_de_rango')
+  // Correr el punto a la izquierda achica el número: si el texto cupo, esto también.
+  const v = valorDeNumero(e.lex.texto, ultimo.numDesde, ultimo.numHasta, true) ?? 0
   const valor = ultimo.negativo ? -v : v
   ultimo.valor = valor === 0 ? 0 : valor
   ultimo.pct = true
@@ -211,7 +212,10 @@ const MANEJADORES = new Map<number, Manejador>([
   [T.PUNTO_Y_COMA, puntoYComa],
   [T.PORCIENTO, porciento],
   [T.COMA, (_e, t) => enToken(t, 'coma')],
-  [T.ERROR, (e, t) => enToken(t, t.codigo ?? 'caracter_invalido', { texto: textoDe(e, t) })],
+  [
+    T.ERROR,
+    (e, t) => (t.codigo === undefined ? undefined : enToken(t, t.codigo, { texto: textoDe(e, t) })),
+  ],
 ])
 
 // --- el final ---------------------------------------------------------------------------------------
@@ -220,20 +224,20 @@ function alFinal(e: Estado): ResultadoDeSintaxis {
   const fallo = (x: ErrorCrudo): ResultadoDeSintaxis => ({ ok: false, error: x })
   const marco = e.marcos[e.marcos.length - 1]
   const ultimo = e.ultimo
-  if (e.esperaValor) {
-    if (ultimo === undefined) return fallo(error('texto_vacio', 0, e.lex.texto.length))
-    if (ultimo.t === T.ABRE && marco !== undefined)
-      return fallo(enToken(marco.abre, 'parentesis_sin_cerrar'))
-    if (ultimo.t === T.PUNTO_Y_COMA) return fallo(enToken(ultimo, 'falta_un_valor'))
-    return fallo(enToken(ultimo, 'operador_suelto', { texto: textoDe(e, ultimo) }))
+  if (!e.esperaValor) {
+    if (marco !== undefined) return fallo(enToken(marco.abre, 'parentesis_sin_cerrar'))
+    const r = reducir(e, 0)
+    if (r !== undefined) return fallo(r)
+    const raiz = e.operandos[0]
+    if (raiz !== undefined) return { ok: true, raiz }
   }
-  if (marco !== undefined) return fallo(enToken(marco.abre, 'parentesis_sin_cerrar'))
-  const r = reducir(e, 0)
-  if (r !== undefined) return fallo(r)
-  const raiz = e.operandos[0]
-  return raiz === undefined
-    ? fallo(error('texto_vacio', 0, e.lex.texto.length))
-    : { ok: true, raiz }
+  // Falta algo al final: el texto está vacío, o termina en un «(», un «;» o un operador.
+  if (ultimo === undefined) return fallo(error('texto_vacio', 0, e.lex.texto.length))
+  if (ultimo.t === T.ABRE && marco !== undefined) {
+    return fallo(enToken(marco.abre, 'parentesis_sin_cerrar'))
+  }
+  if (ultimo.t === T.PUNTO_Y_COMA) return fallo(faltaUnValor(ultimo))
+  return fallo(enToken(ultimo, 'operador_suelto', { texto: textoDe(e, ultimo) }))
 }
 
 export function analizar(texto: string, nombres: Nombres, m: Medidor): ResultadoDeSintaxis {

@@ -5933,6 +5933,1311 @@
         }
       },
       "params": {}
+    },
+    {
+      "nombre": "compilada: (remate+fees)*4%",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "etiqueta": "(remate+fees)",
+            "op": "suma",
+            "de": ["remate", "fees"]
+          },
+          {
+            "id": "total__2",
+            "tipo": "constante",
+            "etiqueta": "4%",
+            "formato": "pct"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "multiplicar",
+            "de": ["total__1", "total__2"]
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13,
+        "total__2": 0.04
+      }
+    },
+    {
+      "nombre": "compilada: SUMA(compra)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "suma",
+            "de": ["fees", "flete"]
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13
+      }
+    },
+    {
+      "nombre": "compilada: remate+(fees+flete)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "etiqueta": "(fees+flete)",
+            "op": "suma",
+            "de": ["fees", "flete"]
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "suma",
+            "de": ["remate", "total__1"]
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13
+      }
+    },
+    {
+      "nombre": "compilada: remate/fees*flete",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "etiqueta": "remate/fees",
+            "op": "dividir",
+            "de": ["remate", "fees"]
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "multiplicar",
+            "de": ["total__1", "flete"]
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13
+      }
+    },
+    {
+      "nombre": "compilada: SI(activa; remate*fees)+flete",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "etiqueta": "remate*fees",
+            "op": "multiplicar",
+            "de": ["remate", "fees"]
+          },
+          {
+            "id": "total__2",
+            "tipo": "calculo",
+            "etiqueta": "SI(activa; remate*fees)",
+            "op": "si",
+            "de": ["total__1"],
+            "condicion": "activa"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "suma",
+            "de": ["total__2", "flete"]
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13
+      }
+    },
+    {
+      "nombre": "compilada: REDONDEAR(remate/fees; 2)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total__1",
+            "tipo": "calculo",
+            "etiqueta": "remate/fees",
+            "op": "dividir",
+            "de": ["remate", "fees"]
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "redondear",
+            "de": ["total__1"],
+            "n": 2
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13
+      }
+    },
+    {
+      "nombre": "compilada: PORCENTAJE_DE(remate; 4%)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "4%",
+            "formato": "pct"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "porcentaje_de",
+            "de": ["remate"],
+            "pct": "total__1"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13,
+        "total__1": 0.04
+      }
+    },
+    {
+      "nombre": "compilada: PORCENTAJE_DE(remate+fees+flete; iva)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "porcentaje_de",
+            "de": ["remate", "fees", "flete"],
+            "pct": "iva"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13
+      }
+    },
+    {
+      "nombre": "compilada: DEPRECIAR(remate; depreciacion; anio; factor)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "depreciar",
+            "de": ["remate"],
+            "tabla": "depreciacion",
+            "sobre": "anio",
+            "columna": "factor"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13
+      }
+    },
+    {
+      "nombre": "compilada: 3+remate+4",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "3",
+            "formato": "raw"
+          },
+          {
+            "id": "total__2",
+            "tipo": "constante",
+            "etiqueta": "4",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "suma",
+            "de": ["total__1", "remate", "total__2"]
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13,
+        "total__1": 3,
+        "total__2": 4
+      }
+    },
+    {
+      "nombre": "compilada: remate - -5",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total__1",
+            "tipo": "constante",
+            "etiqueta": "-5",
+            "formato": "raw"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "restar",
+            "de": ["remate", "total__1"]
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13,
+        "total__1": -5
+      }
+    },
+    {
+      "nombre": "compilada: -5",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total",
+            "tipo": "constante",
+            "etiqueta": "Total",
+            "salida": "total"
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13,
+        "total": -5
+      }
+    },
+    {
+      "nombre": "compilada: 64 paréntesis anidados",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "anio",
+            "tipo": "campo_vehiculo",
+            "campo": "anio",
+            "etiqueta": "Año",
+            "formato": "raw"
+          },
+          {
+            "id": "remate",
+            "tipo": "input",
+            "etiqueta": "Remate"
+          },
+          {
+            "id": "fees",
+            "tipo": "input",
+            "etiqueta": "Fees",
+            "grupo": "compra"
+          },
+          {
+            "id": "flete",
+            "tipo": "constante",
+            "etiqueta": "Flete",
+            "grupo": "compra"
+          },
+          {
+            "id": "iva",
+            "tipo": "constante",
+            "etiqueta": "IVA",
+            "formato": "pct"
+          },
+          {
+            "id": "activa",
+            "tipo": "bandera",
+            "etiqueta": "Activa",
+            "formato": "raw"
+          },
+          {
+            "id": "variante",
+            "tipo": "opcion",
+            "etiqueta": "Variante",
+            "formato": "raw",
+            "opciones": [
+              {
+                "clave": "a",
+                "etiqueta": "A",
+                "titulo": "Opción A"
+              },
+              {
+                "clave": "b",
+                "etiqueta": "B",
+                "titulo": "Opción B"
+              }
+            ],
+            "por_defecto": "a"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "etiqueta": "Total",
+            "salida": "total",
+            "op": "suma",
+            "de": ["remate"]
+          }
+        ],
+        "buckets": {
+          "b": "tc"
+        },
+        "total_en": "tc",
+        "grupos": [
+          {
+            "id": "compra",
+            "etiqueta": "compra",
+            "tono": "compra",
+            "bucket": "b"
+          }
+        ]
+      },
+      "params": {
+        "flete": 900,
+        "iva": 0.13
+      }
     }
   ]
 }
