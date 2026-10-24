@@ -1,11 +1,11 @@
 -- validar_formula() contra validarFormula() de TS (paso 4.05, prompt 4; docs/COTIZADOR.md › «Las reglas»).
 -- `scripts/probar-schema.mjs` carga antes los JSON en tablas temporales (la base no lee archivos del repo):
---   _juego_de_formula   ← src/modules/cotizaciones/entities/casos-de-formula.json (los 87 casos, una regla por caso)
+--   _juego_de_formula   ← src/modules/cotizaciones/entities/casos-de-formula.json (los 90 casos, una regla por caso)
 --   _corpus_de_formula  ← supabase/tests/corpus-de-formula.json (el corpus diferencial: las válidas mutadas, defectos mezclados)
 -- Un rechazo cuenta sólo si es 22023 y su DETAIL es el código de una regla: los errores propios de jsonb de Postgres también son
 -- 22023, pero sin DETAIL, y no son un rechazo de la fórmula.
 
--- @test fórmula: los 87 casos de casos-de-formula.json dan la misma regla y el mismo donde que validar.ts
+-- @test fórmula: los 90 casos de casos-de-formula.json dan la misma regla y el mismo donde que validar.ts
 -- `pg_temp.paridad(casos)` corre cada caso y devuelve lo esperado y lo visto (`válida`, `regla@donde` o `lanzó …`).
 create function pg_temp.paridad(p_casos jsonb)
 returns table (nombre text, esperado text, visto text) language plpgsql as $$
@@ -41,10 +41,33 @@ begin
     from pg_temp.paridad((select doc -> 'casos' from _juego_de_formula)) p
    where p.visto is distinct from p.esperado;
   v_n := jsonb_array_length((select doc -> 'casos' from _juego_de_formula));
-  if v_n <> 87 then raise exception 'el juego tiene % casos, no 87', v_n; end if;
+  if v_n <> 90 then raise exception 'el juego tiene % casos, no 90', v_n; end if;
   if v_malos is not null then
     raise exception '% de % casos no dan lo de validar.ts:%', cardinality(v_malos), v_n, E'\n  ' || array_to_string(v_malos, E'\n  ');
   end if;
+end $$;
+
+-- @test fórmula: un texto rechazado nombra su ruta en el mensaje, como el campo de validarFormula
+-- La paridad compara `regla@donde`, y el `donde` de `forma` es el id del nodo: la ruta («definicion.nodos.3.texto») sólo va al
+-- mensaje. Sin esto, que `/*F70*/` devolviera `.id` no cambiaba ninguna prueba. El texto esperado es el `mensaje` de TS.
+do $$
+declare v_caso jsonb; v_mensaje text; v_n int := 0;
+begin
+  for v_caso in select c.value from jsonb_array_elements((select doc -> 'casos' from _juego_de_formula)) c
+                 where c.value ->> 'nombre' in ('forma: un texto vacío', 'forma: un texto de 2.001 caracteres',
+                                                'forma: un texto que no es un texto', 'forma: un texto nulo') loop
+    v_n := v_n + 1;
+    begin
+      perform public.validar_formula(v_caso -> 'definicion', v_caso -> 'params');
+      raise exception '«%» se aceptó', v_caso ->> 'nombre';
+    exception when invalid_parameter_value then
+      get stacked diagnostics v_mensaje = message_text;
+    end;
+    if v_mensaje is distinct from 'La fórmula no tiene la forma esperada en «definicion.nodos.3.texto».' then
+      raise exception '«%»: el mensaje es «%»', v_caso ->> 'nombre', v_mensaje;
+    end if;
+  end loop;
+  if v_n <> 4 then raise exception 'se esperaban los 4 casos de un texto rechazado y hay %', v_n; end if;
 end $$;
 
 -- @test fórmula: el corpus diferencial da la misma regla y el mismo donde que validarFormula (y nunca acepta lo que Zod rechaza)

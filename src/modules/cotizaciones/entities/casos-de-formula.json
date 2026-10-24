@@ -6347,6 +6347,148 @@
       "params": {}
     },
     {
+      "nombre": "texto: 1 carácter en una constante (el mínimo)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "constante",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen",
+            "texto": "5"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {
+        "descuento": 5
+      }
+    },
+    {
+      "nombre": "texto: 2 caracteres en una constante",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "constante",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen",
+            "texto": "45"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {
+        "descuento": 45
+      }
+    },
+    {
+      "nombre": "texto: 1 carácter en un cálculo (el mínimo)",
+      "valida": true,
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen",
+            "texto": "-"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
       "nombre": "compilada: (remate+fees)*4%",
       "valida": true,
       "definicion": {

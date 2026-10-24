@@ -58,6 +58,18 @@ describe('corpus-de-formula.json', () => {
     expect(new Set(casos.map((c) => c.nombre)).size).toBe(casos.length)
   })
 
+  it('trae textos válidos de 1, 2 y 3 caracteres (el mínimo de `texto` es 1)', () => {
+    const largos = new Set<number>()
+    for (const c of casos.filter((x) => x.valida)) {
+      const def = c.definicion as { nodos: Record<string, unknown>[] }
+      for (const n of def.nodos) {
+        const t = n['texto']
+        if (typeof t === 'string') largos.add([...t].length)
+      }
+    }
+    for (const largo of [1, 2, 3]) expect(largos.has(largo), `largo ${String(largo)}`).toBe(true)
+  })
+
   it('el esperado de cada caso es lo que dice validarFormula sobre lo guardado', () => {
     for (const c of casos) {
       const r = validarFormula(c.definicion, c.params)
