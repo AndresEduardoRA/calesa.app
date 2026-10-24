@@ -155,4 +155,59 @@ begin
   if (m2000 ->> 'ms')::numeric > 100 then
     raise exception '_nivel_uso con 2.000 versiones tarda % ms (tope 100)', round((m2000 ->> 'ms')::numeric, 1); end if;
 end $$;
+
+-- ---------------------------------------------------------------------------------------------------------------------------------
+-- 3. niveles_con_uso() con los 9 niveles que pueden tener permisos (8 nuevos y «costos»), cada uno nombrado por 2.000 versiones archivadas (paso 4.09, prompt 2)
+-- ---------------------------------------------------------------------------------------------------------------------------------
+-- La pantalla de Niveles la pide al abrirse, y cada escritura (crear, renombrar, retirar, restaurar, eliminar) devuelve la misma lista: por cada nivel
+-- que alguna versión nombra corre `_nivel_uso()` (la cuenta), que crece con las versiones que lo nombran. Es el peor caso: «todos», «costos» (que las hojas de fábrica
+-- nombran) y 8 más —el tope de 10 corta la lista ahí—, los nueve en uso, con 2.000 versiones cada uno.
+create function pg_temp.versiones_de_todos(p_origen uuid, p_desde int, p_n int) returns void language plpgsql as $$
+declare v_diseno jsonb;
+begin
+  v_diseno := jsonb_build_object('secciones', (select jsonb_agg(jsonb_build_object('id', 's' || n, 'nivel_ver', 'medir_n' || n, 'nivel_editar', 'medir_n' || n,
+                'items', jsonb_build_array(jsonb_build_object('tipo', 'celda', 'nodo', 'a'), jsonb_build_object('tipo', 'celda', 'nodo', 'b')))) from generate_series(1, 8) n));
+  set local session_replication_role = replica;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  select p_origen, p_desde + g, 'archivada', '{"nodos": []}'::jsonb, '{}', v_diseno, '{}' from generate_series(1, p_n) g;
+  set local session_replication_role = origin;
+end $$;
+
+do $$
+declare
+  o uuid := (select id from public.origenes where clave = 'medir_nv_grande');
+  m jsonb; m_200 jsonb; m_sin jsonb; m_uso jsonb; r jsonb; n int;
+begin
+  for n in 1 .. 8 loop
+    insert into public.cotizaciones_niveles (clave, nombre) values ('medir_n' || n, 'Medir ' || n);
+    perform public._nivel_permisos_crear('medir_n' || n, 'Medir ' || n, false);
+  end loop;
+  -- Sin uso: lo que cuesta la lista con los ocho niveles nuevos que nadie nombra (la sonda sola, sin la cuenta; «costos» sí está en uso).
+  analyze public.formulas;
+  m_sin := pg_temp.medir($q$select public.niveles_con_uso()$q$);
+  perform pg_temp.versiones_de_todos(o, 5000, 200);
+  analyze public.formulas;
+  m_200 := pg_temp.medir($q$select public.niveles_con_uso()$q$);
+  perform pg_temp.versiones_de_todos(o, 5200, 1800);
+  analyze public.formulas;
+  m := pg_temp.medir($q$select public.niveles_con_uso()$q$);
+  m_uso := pg_temp.medir($q$select public._nivel_uso('medir_n1')$q$);
+  raise notice 'medicion|_nivel_uso de un nivel nombrado por 2.000 versiones de 8 secciones (ms, mediana de 5 de 7)|%', round((m_uso ->> 'ms')::numeric, 2);
+  r := public.niveles_con_uso();
+  -- Una medición de algo que no devuelve nada no mide nada: los ocho vienen con su motivo, y «costos» también.
+  if (select count(*) from jsonb_array_elements(r -> 'niveles') e where e ->> 'clave' like 'medir_n%' and e ->> 'motivo_de_uso' like 'Está en 2 celdas de 1 origen%') <> 8
+     or (select count(*) from jsonb_array_elements(r -> 'niveles') e where e ->> 'motivo_de_uso' is not null) <> 9 then
+    raise exception 'niveles_con_uso no trae el motivo de los nueve niveles en uso: %', r; end if;
+  raise notice 'medicion|niveles_con_uso con 8 niveles sin uso y «costos» en uso (ms, mediana de 5 de 7)|%', round((m_sin ->> 'ms')::numeric, 2);
+  raise notice 'medicion|niveles_con_uso con 9 niveles en uso, cada uno en 200 versiones (ms, mediana de 5 de 7)|%', round((m_200 ->> 'ms')::numeric, 2);
+  raise notice 'medicion|niveles_con_uso con 9 niveles en uso, cada uno en 200 versiones (buffers en las 5 medidas)|%', m_200 ->> 'buffers';
+  raise notice 'medicion|niveles_con_uso con 9 niveles en uso, cada uno en 2.000 versiones (ms, mediana de 5 de 7)|%', round((m ->> 'ms')::numeric, 2);
+  raise notice 'medicion|niveles_con_uso con 9 niveles en uso, cada uno en 2.000 versiones (buffers en las 5 medidas)|%', m ->> 'buffers';
+  -- Lo realista (200 versiones por nivel) tiene un tope corto; lo extremo (2.000 por nivel, 18.000 diseños de 8 secciones), uno amplio: crece con las versiones que
+  -- nombran cada nivel y es lo que paga cada apertura de la pantalla y cada escritura.
+  if (m_200 ->> 'ms')::numeric > 60 then
+    raise exception 'niveles_con_uso con 9 niveles en uso y 200 versiones cada uno tarda % ms (tope 60)', round((m_200 ->> 'ms')::numeric, 1); end if;
+  if (m ->> 'ms')::numeric > 400 then
+    raise exception 'niveles_con_uso con 9 niveles en uso y 2.000 versiones cada uno tarda % ms (tope 400)', round((m ->> 'ms')::numeric, 1); end if;
+end $$;
 rollback;

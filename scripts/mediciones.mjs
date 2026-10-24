@@ -38,7 +38,7 @@ export const MEDICIONES_BASE = [
   ],
   [
     'supabase/tests/medir-nodos-visibles.sql',
-    '_nodos_visibles() con 255 y con 2.487 nodos (ms y buffers del EXPLAIN, contra lo que cuesta leer la fila) y _nivel_uso() con 200 y con 2.000 versiones que nombran el nivel',
+    '_nodos_visibles() con 255 y con 2.487 nodos (ms y buffers del EXPLAIN, contra lo que cuesta leer la fila), _nivel_uso() con 200 y con 2.000 versiones que nombran el nivel y niveles_con_uso() con los 9 niveles que pueden tener permisos en uso (200 y 2.000 versiones cada uno)',
     'mediana de 5 de 7 corridas',
   ],
   [
