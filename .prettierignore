@@ -11,3 +11,5 @@ e2e-fallos
 public/sw.js
 supabase/tests/corpus-de-formula.json
 supabase/tests/corpus-del-motor.json
+src/modules/cotizaciones/entities/casos-de-diseno.json
+supabase/tests/corpus-de-diseno.json
