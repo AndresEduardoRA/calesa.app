@@ -15,7 +15,11 @@ export const TABLAS_ACOTADAS: Readonly<Record<string, TablaAcotada>> = {
   },
   integraciones: { motivo: 'Una fila por integración conocida.', tope: 'menos de 10 filas' },
   roles: { motivo: 'Catálogo de roles de la empresa.', tope: 'decenas' },
-  permisos: { motivo: 'Catálogo fijo, cambia sólo por migración.', tope: 'unos 100 filas' },
+  permisos: {
+    motivo:
+      'Catálogo fijo por migración, más los dos permisos de cada nivel de acceso de la hoja (`cotizaciones.nivel.<clave>.*`), que crea `nivel_crear()`.',
+    tope: '72 del catálogo + 18 de niveles (`_niveles_tope()` = 10, «todos» no genera)',
+  },
   origenes: { motivo: 'Catálogo de la empresa (un origen por línea de negocio).', tope: 'decenas' },
   origenes_campos: { motivo: 'El layout de campos de un origen.', tope: 'decenas por origen' },
   categorias: { motivo: 'Categorías de un origen.', tope: 'decenas por origen' },

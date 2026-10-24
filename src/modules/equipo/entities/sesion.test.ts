@@ -47,6 +47,19 @@ describe('sesionDesde', () => {
     })
   })
 
+  it('trae los permisos de un nivel de acceso de la sesión', () => {
+    const sesion = sesionDesde({
+      ...json,
+      permisos: [
+        { clave: 'cotizaciones.nivel.costos.ver', origen_id: null, alcance: 'todos' },
+        { clave: 'cotizaciones.nivel.todos.ver', origen_id: null, alcance: 'todos' },
+      ],
+    })
+    expect(sesion?.permisos).toEqual([
+      { clave: 'cotizaciones.nivel.costos.ver', origenId: null, alcance: 'todos' },
+    ])
+  })
+
   it('devuelve null si no hay perfil', () => {
     expect(sesionDesde(null)).toBeNull()
   })

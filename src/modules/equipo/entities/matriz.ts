@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import {
   MODULOS_PERMISO,
+  compararNombresDeNivel,
   esClavePermiso,
   moduloDe,
   type Alcance,
@@ -11,6 +12,9 @@ import {
   type ModuloPermiso,
   type Permisos,
 } from '@/shared/lib/permisos'
+
+// El nivel de acceso de la hoja que genera un permiso `cotizaciones.nivel.<clave>.ver|editar` (D7, paso 4.09). El nombre sale de la fila del nivel.
+export type NivelDelPermiso = { clave: string; nombre: string; retirado: boolean }
 
 export type PermisoDelCatalogo = {
   clave: ClavePermiso
@@ -21,7 +25,11 @@ export type PermisoDelCatalogo = {
   porOrigen: boolean
   // Distingue «lo propio» de «todo».
   conAlcance: boolean
+  // Sólo los permisos de un nivel de acceso lo traen.
+  nivel?: NivelDelPermiso
 }
+
+export const SUFIJO_DE_NIVEL_RETIRADO = ' (retirado)'
 
 export type GrupoDePermisos = {
   modulo: ModuloPermiso
@@ -43,26 +51,71 @@ const esquemaCatalogo = z.array(
     descripcion: z.string(),
     por_origen: z.boolean(),
     con_alcance: z.boolean(),
+    // Sólo los permisos de un nivel de acceso: su clave y, embebida por la FK, la fila del nivel.
+    nivel_clave: z.string().nullish(),
+    cotizaciones_niveles: z
+      .object({ nombre: z.string(), retirado_en: z.string().nullable() })
+      .nullish(),
   }),
 )
 
+function permisoDesde(fila: z.infer<typeof esquemaCatalogo>[number]): PermisoDelCatalogo[] {
+  if (!esClavePermiso(fila.clave)) {
+    return []
+  }
+  const nivel = fila.nivel_clave && fila.cotizaciones_niveles ? fila.cotizaciones_niveles : null
+  const retirado = nivel?.retirado_en != null
+  return [
+    {
+      clave: fila.clave,
+      modulo: moduloDe(fila.clave),
+      // Un nivel retirado sigue en la matriz (lo que se le dio sigue valiendo): se dice en el nombre, como un origen «(inactivo)».
+      nombre: retirado ? `${fila.nombre}${SUFIJO_DE_NIVEL_RETIRADO}` : fila.nombre,
+      descripcion: fila.descripcion,
+      porOrigen: fila.por_origen,
+      conAlcance: fila.con_alcance,
+      ...(nivel && fila.nivel_clave
+        ? { nivel: { clave: fila.nivel_clave, nombre: nivel.nombre, retirado } }
+        : {}),
+    },
+  ]
+}
+
+// Los permisos de nivel comparten `orden` (700 y 701): el orden entre niveles lo decide acá, por nombre, y «Ver» antes que «Editar» de cada uno
+// (el mismo orden de la pantalla de Niveles). Los demás permisos no se mueven: cada fila de nivel se escribe en el lugar de otra fila de nivel.
+export function ordenarPermisosDeNivel(
+  catalogo: readonly PermisoDelCatalogo[],
+): PermisoDelCatalogo[] {
+  const lugares = catalogo.flatMap((permiso, indice) => (permiso.nivel ? [indice] : []))
+  const ordenados = lugares
+    .map((indice) => catalogo[indice])
+    .filter((permiso): permiso is PermisoDelCatalogo => permiso !== undefined)
+    .sort((a, b) => {
+      const nivelA = a.nivel
+      const nivelB = b.nivel
+      if (!nivelA || !nivelB) {
+        return 0
+      }
+      return (
+        compararNombresDeNivel(nivelA.nombre, nivelB.nombre) ||
+        nivelA.clave.localeCompare(nivelB.clave) ||
+        Number(a.clave.endsWith('.editar')) - Number(b.clave.endsWith('.editar'))
+      )
+    })
+  const resultado = [...catalogo]
+  lugares.forEach((lugar, orden) => {
+    const permiso = ordenados[orden]
+    if (permiso) {
+      resultado[lugar] = permiso
+    }
+  })
+  return resultado
+}
+
 // Las filas de la tabla `permisos`, en su orden. Una clave que la base conoce y el catálogo
-// tipado no, se descarta: sin su clave en `permisos.ts` nada en la app la consulta.
+// tipado no (ni el patrón de un nivel de acceso), se descarta: sin su clave en `permisos.ts` nada en la app la consulta.
 export function catalogoDesde(filas: unknown): PermisoDelCatalogo[] {
-  return esquemaCatalogo.parse(filas).flatMap((fila) =>
-    esClavePermiso(fila.clave)
-      ? [
-          {
-            clave: fila.clave,
-            modulo: moduloDe(fila.clave),
-            nombre: fila.nombre,
-            descripcion: fila.descripcion,
-            porOrigen: fila.por_origen,
-            conAlcance: fila.con_alcance,
-          },
-        ]
-      : [],
-  )
+  return ordenarPermisosDeNivel(esquemaCatalogo.parse(filas).flatMap(permisoDesde))
 }
 
 function esModuloDelCatalogo(valor: string): valor is ModuloPermiso {

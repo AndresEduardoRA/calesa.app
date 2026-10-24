@@ -8,6 +8,7 @@ import {
   concesionesDelPermiso,
   esSimple,
   lugaresDe,
+  ordenarPermisosDeNivel,
   resumenDeCelda,
   type PermisoDelCatalogo,
 } from './matriz'
@@ -175,5 +176,119 @@ describe('concesionesDelPermiso', () => {
       { clave: 'vehiculos.ver', origenId: OFICINA, alcance: 'todos' },
     ]
     expect(concesionesDelPermiso(todas, 'vehiculos.ver')).toEqual([todas[1]])
+  })
+})
+
+// Los permisos de un nivel de acceso (D7): la base los entrega con el nivel embebido por la FK, todos con `orden` 700 y 701.
+const filaDeNivel = (
+  clave: string,
+  accion: 'ver' | 'editar',
+  nombre: string,
+  retirado_en: string | null = null,
+) => ({
+  clave: `cotizaciones.nivel.${clave}.${accion}`,
+  nombre: `${accion === 'ver' ? 'Ver' : 'Editar'} el nivel «${nombre}»`,
+  descripcion: 'Qué ve o edita quien lo tiene',
+  por_origen: true,
+  con_alcance: false,
+  nivel_clave: clave,
+  cotizaciones_niveles: { nombre, retirado_en },
+})
+
+describe('permisos de un nivel de acceso', () => {
+  // Llegan en el orden en que la base empata (700 y 701 para todos), a propósito mezclados.
+  const delNivel = catalogoDesde([
+    filas[0],
+    { ...filas[2], clave: 'cotizaciones.ver', nombre: 'Ver cotizaciones' },
+    filaDeNivel('zeta', 'ver', 'Zeta'),
+    filaDeNivel('costos', 'ver', 'Costos'),
+    filaDeNivel('nandu', 'ver', 'Ñandú'),
+    filaDeNivel('zeta', 'editar', 'Zeta'),
+    filaDeNivel('costos', 'editar', 'Costos'),
+    filaDeNivel('nandu', 'editar', 'Ñandú'),
+    filaDeNivel('alamo', 'editar', 'Álamo', '2026-10-24T10:00:00Z'),
+    filaDeNivel('alamo', 'ver', 'Álamo', '2026-10-24T10:00:00Z'),
+  ])
+
+  it('los reconoce, con su nivel, y los pone en «Cotizaciones» por nombre y «Ver» antes de «Editar»', () => {
+    const grupo = agruparPorModulo(delNivel).find((g) => g.modulo === 'cotizaciones')
+    expect(grupo?.permisos.map((p) => p.clave)).toEqual([
+      'cotizaciones.ver',
+      'cotizaciones.nivel.alamo.ver',
+      'cotizaciones.nivel.alamo.editar',
+      'cotizaciones.nivel.costos.ver',
+      'cotizaciones.nivel.costos.editar',
+      'cotizaciones.nivel.nandu.ver',
+      'cotizaciones.nivel.nandu.editar',
+      'cotizaciones.nivel.zeta.ver',
+      'cotizaciones.nivel.zeta.editar',
+    ])
+  })
+
+  it('lleva el nombre del nivel, y un retirado lo dice en el nombre sin dejar de aparecer', () => {
+    const grupo = agruparPorModulo(delNivel).find((g) => g.modulo === 'cotizaciones')
+    const nombres = grupo?.permisos.map((p) => p.nombre)
+    expect(nombres).toContain('Ver el nivel «Costos»')
+    expect(nombres).toContain('Ver el nivel «Álamo» (retirado)')
+    expect(nombres).toContain('Editar el nivel «Álamo» (retirado)')
+    const costos = delNivel.find((p) => p.clave === 'cotizaciones.nivel.costos.ver')
+    expect(costos).toMatchObject({
+      modulo: 'cotizaciones',
+      porOrigen: true,
+      conAlcance: false,
+      nivel: { clave: 'costos', nombre: 'Costos', retirado: false },
+    })
+    expect(delNivel.find((p) => p.clave === 'cotizaciones.nivel.alamo.ver')?.nivel?.retirado).toBe(
+      true,
+    )
+    // Un permiso de nivel no se acota por alcance: por origen y sin más.
+    expect(esSimple(costos as PermisoDelCatalogo)).toBe(false)
+  })
+})
+
+describe('permisos de un nivel de acceso: lo que no se mueve', () => {
+  const delNivel = catalogoDesde([
+    filas[0],
+    { ...filas[2], clave: 'cotizaciones.ver', nombre: 'Ver cotizaciones' },
+    filaDeNivel('zeta', 'ver', 'Zeta'),
+    filaDeNivel('alamo', 'ver', 'Álamo'),
+  ])
+
+  it('no mueve a los demás permisos', () => {
+    expect(delNivel.slice(0, 3).map((p) => p.clave)).toEqual([
+      'equipo.roles.gestionar',
+      'cotizaciones.ver',
+      'cotizaciones.nivel.alamo.ver',
+    ])
+    expect(ordenarPermisosDeNivel(catalogo).map((p) => p.clave)).toEqual(
+      catalogo.map((p) => p.clave),
+    )
+  })
+
+  it('es estable: el mismo orden venga como venga', () => {
+    const invertido = catalogoDesde(
+      [
+        filaDeNivel('zeta', 'editar', 'Zeta'),
+        filaDeNivel('costos', 'editar', 'Costos'),
+        filaDeNivel('zeta', 'ver', 'Zeta'),
+        filaDeNivel('costos', 'ver', 'Costos'),
+      ].reverse(),
+    )
+    expect(invertido.map((p) => p.clave)).toEqual([
+      'cotizaciones.nivel.costos.ver',
+      'cotizaciones.nivel.costos.editar',
+      'cotizaciones.nivel.zeta.ver',
+      'cotizaciones.nivel.zeta.editar',
+    ])
+  })
+
+  it('descarta una clave de nivel mal formada y un nivel que no viene embebido no rompe', () => {
+    const resultado = catalogoDesde([
+      { ...filaDeNivel('costos', 'ver', 'Costos'), clave: 'cotizaciones.nivel.todos.ver' },
+      { ...filaDeNivel('costos', 'ver', 'Costos'), clave: 'cotizaciones.nivel.costos.borrar' },
+      { ...filaDeNivel('gerencia', 'ver', 'Gerencia'), cotizaciones_niveles: null },
+    ])
+    expect(resultado.map((p) => p.clave)).toEqual(['cotizaciones.nivel.gerencia.ver'])
+    expect(resultado[0]?.nivel).toBeUndefined()
   })
 })

@@ -56,6 +56,24 @@ describe('rolesDesde', () => {
     ])
   })
 
+  it('conserva las concesiones de un nivel de acceso (y descarta la que no encaja con el patrón)', () => {
+    const [rol] = rolesDesde(
+      [
+        {
+          ...fila,
+          roles_permisos: [
+            { permiso_clave: 'cotizaciones.nivel.costos.ver', origen_id: null, alcance: 'todos' },
+            { permiso_clave: 'cotizaciones.nivel.todos.ver', origen_id: null, alcance: 'todos' },
+          ],
+        },
+      ],
+      [],
+    )
+    expect(rol?.concesiones).toEqual([
+      { clave: 'cotizaciones.nivel.costos.ver', origenId: null, alcance: 'todos' },
+    ])
+  })
+
   // 5a-27: `roles_personas()` cuenta hasta 1.001 por rol; más que el tope es «más de 1.000», nunca el total.
   it('con 1.001 personas leídas el rol tiene «más de» el tope', () => {
     const [rol] = rolesDesde([fila], [{ rol_id: fila.id, personas: 1001 }])

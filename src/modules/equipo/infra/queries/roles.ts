@@ -20,10 +20,15 @@ export const getMatriz: LectorDeMatriz = cache(async () => {
       .order('orden')
       .order('nombre'),
     supabase.rpc('roles_personas'),
+    // Los permisos de un nivel de acceso (`cotizaciones.nivel.<clave>.*`) traen su nivel por la FK: hasta 18 filas más (tope de 10 niveles,
+    // `_niveles_tope()`), sobre las 72 del catálogo. `clave` desempata el `orden` que comparten.
     supabase
       .from('permisos')
-      .select('clave, nombre, descripcion, por_origen, con_alcance')
-      .order('orden'),
+      .select(
+        'clave, nombre, descripcion, por_origen, con_alcance, nivel_clave, cotizaciones_niveles(nombre, retirado_en)',
+      )
+      .order('orden')
+      .order('clave'),
   ])
   if (roles.error) {
     return { ok: false, error: errorDePostgrest(roles.error) }
