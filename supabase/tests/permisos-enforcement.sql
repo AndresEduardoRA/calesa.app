@@ -15,7 +15,6 @@ declare
   r record; v_sin text[] := '{}'; v_sobran text[] := '{}';
   v_excepciones constant jsonb := jsonb_build_object(
     'datos.exportar.todo', 'UI + queries: la exportación de los datos de todos llega con la Fase 9 (Datos)',
-    'equipo.roles.ver', 'UI: gobierna sólo que se dibuje la pantalla de Roles; la lectura de roles y permisos es abierta a quien tiene sesión (policy true)',
     'logistica.pagos.confirmar', 'la RPC pago_confirmar llega con la Fase 6 (Logística)',
     'notificaciones.push', 'función edge de push (Fase 7): vive fuera de la base',
     'tablero.metricas.ver', 'UI + vistas del tablero de equipo (Fase 9)');

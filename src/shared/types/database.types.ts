@@ -7355,6 +7355,7 @@ export type Database = {
       _motor_sin_validar: { Args: { p_detalle: string; p_donde: string }; Returns: undefined }
       _nivel_clave: { Args: { p_nombre: string }; Returns: string }
       _nivel_en_uso: { Args: { p_clave: string }; Returns: string }
+      _nivel_motivo_de_uso: { Args: { p_clave: string }; Returns: string }
       _nivel_nombre: { Args: { p_texto: string }; Returns: string }
       _nivel_permisos_crear: {
         Args: { p_clave: string; p_conceder: boolean; p_nombre: string }
@@ -8194,6 +8195,7 @@ export type Database = {
       }
       nivel_restaurar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
       nivel_retirar: { Args: { p_actualizado_en_esperado: string; p_id: string }; Returns: Json }
+      niveles_con_uso: { Args: Record<PropertyKey, never>; Returns: Json }
       normalizar_telefono: { Args: { p_cc: string; p_tel: string }; Returns: string }
       notificar: {
         Args: {

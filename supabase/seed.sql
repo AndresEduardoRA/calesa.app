@@ -32,7 +32,7 @@ on conflict do nothing;
 insert into public.permisos (clave, modulo, nombre, descripcion, por_origen, con_alcance, aplicado_en, orden) values
   ('equipo.usuarios.ver', 'equipo', 'Ver el equipo', 'Ver la lista de personas y sus roles', false, false, 'UI', 10),
   ('equipo.usuarios.gestionar', 'equipo', 'Gestionar usuarios', 'Invitar, asignar roles, bloquear, dar de baja', false, false, 'rbac_asignar_rol, rbac_quitar_rol, equipo_bloquear, equipo_dar_de_baja, equipo_vista_previa_baja', 20),
-  ('equipo.roles.ver', 'equipo', 'Ver roles', 'Ver la matriz de roles y permisos', false, false, 'UI', 30),
+  ('equipo.roles.ver', 'equipo', 'Ver roles', 'Ver la matriz de roles y permisos', false, false, 'UI; niveles_con_uso()', 30),
   ('equipo.roles.gestionar', 'equipo', 'Gestionar roles', 'Crear roles y otorgar permisos (sólo los que uno tiene)', false, false, 'rbac_crear_rol, rbac_otorgar, rbac_revocar, rbac_eliminar_rol, permisos_efectivos', 40),
   ('empresa.ajustes.gestionar', 'empresa', 'Ajustes de la empresa', 'Marca, datos legales, registro abierto, integraciones', false, false, 'empresa_guardar_ajustes, integracion_guardar, integracion_guardar_secreto, storage marca', 50),
   ('empresa.tipos_cambio.gestionar', 'empresa', 'Tipos de cambio', 'Monedas y tipos de cambio', false, false, 'moneda_guardar, tipo_cambio_guardar, policy tipos_cambio_historial', 60),
