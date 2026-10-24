@@ -30,14 +30,19 @@ export function validarFormula(
 ): ResultadoDeValidacion {
   const m = medidor ?? { visitas: 0 }
   const leida = esquemaFormula.safeParse({ definicion, params })
+  const enMatch = protoEnMatch(definicion, m)
+  const crudo = rechazoDeZodOMatch(leida, definicion, enMatch)
+  if (crudo !== undefined) return crudo
   if (!leida.success) return fallo('forma', datosDeForma(leida.error, definicion))
   const formula = leida.data
+  const crudas = clavesDeParams(params, m)
+  if (esFallo(crudas)) return crudas
   const ctx = indexar(formula.definicion, m)
   if (esFallo(ctx)) return ctx
   const rechazo =
     revisarReferencias(ctx) ??
     revisarTotal(ctx) ??
-    revisarParams(ctx, formula.params) ??
+    revisarParams(ctx, formula.params, crudas.claves) ??
     revisarPares(ctx) ??
     revisarCambioYGrupos(ctx) ??
     revisarVariante(ctx)
@@ -68,6 +73,66 @@ function idCrudo(definicion: unknown, lista: string, i: number): string | undefi
 
 const campoDe = (x: unknown, clave: string): unknown =>
   typeof x === 'object' && x !== null ? (x as Record<string, unknown>)[clave] : undefined
+
+// --- `__proto__` (4-2) ------------------------------------------------------------------------------
+// Zod descarta en silencio una clave `__proto__` de un record, y `validar_formula()` la rechaza: en un `match`, como `forma`
+// del nodo (F28); en `params`, como `forma` si su valor no es un número (F69) y si no, como `param_sin_constante`. Se mira lo crudo.
+
+const PROTO = '__proto__'
+const esObjetoCrudo = (x: unknown): x is object =>
+  typeof x === 'object' && x !== null && !Array.isArray(x)
+
+// La posición del primer nodo `tabla` cuyo `match` trae la clave `__proto__`.
+function protoEnMatch(definicion: unknown, m: Medidor): number | undefined {
+  const nodos = campoDe(definicion, 'nodos')
+  if (!Array.isArray(nodos)) return undefined
+  let i = 0
+  for (const n of recorrer(nodos as unknown[], m)) {
+    const match = campoDe(n, 'match')
+    if (campoDe(n, 'tipo') === 'tabla' && esObjetoCrudo(match) && Object.hasOwn(match, PROTO)) {
+      return i
+    }
+    i += 1
+  }
+  return undefined
+}
+
+// La base revisa los nodos en orden antes que todo lo demás: un error de Zod en un nodo anterior va primero.
+function nodoDelError(error: z.ZodError): number | undefined {
+  const [raiz, lista, i] = error.issues[0]?.path ?? []
+  return raiz === 'definicion' && lista === 'nodos' && typeof i === 'number' ? i : undefined
+}
+
+// El `forma` por un `match` con `__proto__`, si le toca: Zod no lo ve, y un error suyo en un nodo anterior va primero.
+function rechazoDeZodOMatch(
+  leida: z.ZodSafeParseResult<unknown>,
+  definicion: unknown,
+  enMatch: number | undefined,
+): Fallo | undefined {
+  if (enMatch === undefined) return undefined
+  const antes = leida.success ? undefined : nodoDelError(leida.error)
+  return antes !== undefined && antes < enMatch ? undefined : falloDeMatch(definicion, enMatch)
+}
+
+function falloDeMatch(definicion: unknown, i: number): Fallo {
+  const campo = `definicion.nodos.${String(i)}.match`
+  const donde = idCrudo(definicion, 'nodos', i)
+  return fallo('forma', donde === undefined ? { campo } : { campo, donde })
+}
+
+// Las claves de las constantes tal como llegaron, `__proto__` incluida, en su orden.
+function clavesDeParams(params: unknown, m: Medidor): { claves: string[] } | Fallo {
+  if (!esObjetoCrudo(params)) return { claves: [] }
+  if (Object.hasOwn(params, PROTO)) {
+    const valor: unknown = (params as Record<string, unknown>)[PROTO]
+    if (typeof valor !== 'number' || !Number.isFinite(valor)) {
+      return fallo('forma', { campo: `params.${PROTO}`, donde: PROTO })
+    }
+  }
+  const claves: string[] = []
+  for (const clave of recorrer(Object.keys(params), m)) if (clave !== 'tablas') claves.push(clave)
+  return { claves }
+}
 
 // --- referencias: existen, van hacia atrás y nombran el tipo que corresponde ------------------------
 
@@ -130,7 +195,11 @@ function revisarTotal(ctx: Contexto): Fallo | undefined {
   return undefined
 }
 
-function revisarParams(ctx: Contexto, params: Params): Fallo | undefined {
+function revisarParams(
+  ctx: Contexto,
+  params: Params,
+  claves: readonly string[],
+): Fallo | undefined {
   const constantes = new Set<string>()
   for (const n of recorrer(ctx.nodos, ctx.m)) {
     if (n.tipo !== 'constante') continue
@@ -138,7 +207,7 @@ function revisarParams(ctx: Contexto, params: Params): Fallo | undefined {
     if (!Object.hasOwn(params.constantes, n.id))
       return fallo('constante_sin_valor', { donde: n.id })
   }
-  for (const clave of recorrer(Object.keys(params.constantes), ctx.m)) {
+  for (const clave of recorrer(claves, ctx.m)) {
     if (!esta(constantes, clave, ctx.m)) return fallo('param_sin_constante', { donde: clave })
   }
   return undefined

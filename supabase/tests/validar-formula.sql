@@ -1,11 +1,11 @@
 -- validar_formula() contra validarFormula() de TS (paso 4.05, prompt 4; docs/COTIZADOR.md › «Las reglas»).
 -- `scripts/probar-schema.mjs` carga antes los JSON en tablas temporales (la base no lee archivos del repo):
---   _juego_de_formula   ← src/modules/cotizaciones/entities/casos-de-formula.json (los 61 casos, una regla por caso)
+--   _juego_de_formula   ← src/modules/cotizaciones/entities/casos-de-formula.json (los 66 casos, una regla por caso)
 --   _corpus_de_formula  ← supabase/tests/corpus-de-formula.json (el corpus diferencial: las válidas mutadas, defectos mezclados)
 -- Un rechazo cuenta sólo si es 22023 y su DETAIL es el código de una regla: los errores propios de jsonb de Postgres también son
 -- 22023, pero sin DETAIL, y no son un rechazo de la fórmula.
 
--- @test fórmula: los 61 casos de casos-de-formula.json dan la misma regla y el mismo donde que validar.ts
+-- @test fórmula: los 66 casos de casos-de-formula.json dan la misma regla y el mismo donde que validar.ts
 -- `pg_temp.paridad(casos)` corre cada caso y devuelve lo esperado y lo visto (`válida`, `regla@donde` o `lanzó …`).
 create function pg_temp.paridad(p_casos jsonb)
 returns table (nombre text, esperado text, visto text) language plpgsql as $$
@@ -41,7 +41,7 @@ begin
     from pg_temp.paridad((select doc -> 'casos' from _juego_de_formula)) p
    where p.visto is distinct from p.esperado;
   v_n := jsonb_array_length((select doc -> 'casos' from _juego_de_formula));
-  if v_n <> 61 then raise exception 'el juego tiene % casos, no 61', v_n; end if;
+  if v_n <> 66 then raise exception 'el juego tiene % casos, no 66', v_n; end if;
   if v_malos is not null then
     raise exception '% de % casos no dan lo de validar.ts:%', cardinality(v_malos), v_n, E'\n  ' || array_to_string(v_malos, E'\n  ');
   end if;

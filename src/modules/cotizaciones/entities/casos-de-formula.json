@@ -5664,6 +5664,275 @@
       "params": {
         "fees_pct": 0.13
       }
+    },
+    {
+      "nombre": "4-2: params con la clave __proto__ y un número",
+      "valida": false,
+      "motivo": {
+        "regla": "param_sin_constante",
+        "donde": "__proto__"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {
+        "__proto__": 1
+      }
+    },
+    {
+      "nombre": "4-2: params con la clave __proto__ y un texto",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "__proto__"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {
+        "__proto__": "x"
+      }
+    },
+    {
+      "nombre": "4-2: un match con la clave __proto__",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "factor"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "factor",
+            "tipo": "tabla",
+            "tabla": "depreciacion",
+            "match": {
+              "__proto__": "anio"
+            },
+            "columna": "factor",
+            "etiqueta": "Factor",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "4-2: un match con __proto__ y un nodo roto después gana el match",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "factor"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "factor",
+            "tipo": "tabla",
+            "tabla": "depreciacion",
+            "match": {
+              "__proto__": "anio"
+            },
+            "columna": "factor",
+            "etiqueta": "Factor",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio",
+            "bucket": "origen"
+          },
+          {
+            "id": "roto",
+            "tipo": "constante",
+            "etiqueta": "Roto",
+            "formato": "nada"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "4-2: un nodo roto antes de un match con __proto__ gana el nodo roto",
+      "valida": false,
+      "motivo": {
+        "regla": "forma",
+        "donde": "roto"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "roto",
+            "tipo": "constante",
+            "etiqueta": "Roto",
+            "formato": "nada"
+          },
+          {
+            "id": "factor",
+            "tipo": "tabla",
+            "tabla": "depreciacion",
+            "match": {
+              "__proto__": "anio"
+            },
+            "columna": "factor",
+            "etiqueta": "Factor",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
     }
   ]
 }
