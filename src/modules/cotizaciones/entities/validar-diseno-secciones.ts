@@ -42,7 +42,7 @@ function revisarItem(
     (item.tipo === 'celda'
       ? (revisarNivel(ix, item.nivel_ver, nodo.id) ?? revisarNivel(ix, item.nivel_editar, nodo.id))
       : undefined) ??
-    revisarNivelAbierto(item, nodo, propios.ver)
+    revisarNivelAbierto(ix, item, nodo, propios.ver)
   return rechazo ?? registrar(ix, e, item, { nodo, propios, sec })
 }
 
@@ -92,17 +92,34 @@ function interruptorHace(ix: Indice, efecto: 'habilita' | 'muestra', bandera: st
 }
 
 // El total, lo que va aparte y la variante los recibe todo el mundo: la base siempre manda el total y las salidas aparte (D7), y la
-// variante titula el PDF, que sólo lleva lo del nivel «todos».
+// variante titula el PDF, que sólo lleva lo del nivel «todos». «Lo que va aparte» incluye el porcentaje que muestra una celda con
+// secundario y la bandera de un interruptor (4-9): se dibujan con el nivel de su ítem, y la base los manda igual.
 function revisarNivelAbierto(
+  ix: Indice,
   item: ItemDeDiseno,
   nodo: Nodo,
   ver: string,
 ): FalloDeDiseno | undefined {
-  const cerrado =
+  if (ver === NIVEL_TODOS) return undefined
+  const suyo =
     item.tipo === 'variante' ||
-    ((item.tipo === 'celda' || item.tipo === 'subtotal') &&
-      (nodo.salida === 'total' || nodo.salida === 'aparte'))
-  return cerrado && ver !== NIVEL_TODOS ? fallo('nivel_no_admitido', { donde: nodo.id }) : undefined
+    ((item.tipo === 'celda' || item.tipo === 'subtotal') && sinNivel(nodo))
+  if (suyo) return fallo('nivel_no_admitido', { donde: nodo.id })
+  const pct = item.tipo === 'celda' && item.secundario !== undefined ? pctDe(ix, nodo) : undefined
+  if (pct !== undefined && sinNivel(pct)) return fallo('nivel_no_admitido', { donde: pct.id })
+  return item.tipo === 'interruptor' && sinNivel(nodo)
+    ? fallo('nivel_no_admitido', { donde: nodo.id })
+    : undefined
+}
+
+// El total y lo que va aparte no admiten un nivel.
+const sinNivel = (nodo: Nodo) => nodo.salida === 'total' || nodo.salida === 'aparte'
+
+// El nodo del porcentaje de un par (`porcentaje_de`), o nada si el nodo no lo es.
+function pctDe(ix: Indice, nodo: Nodo): Nodo | undefined {
+  return nodo.tipo === 'calculo' && nodo.op === 'porcentaje_de'
+    ? buscar(ix.nodos, nodo.pct, ix.m)
+    : undefined
 }
 
 // Anota dónde se dibuja el valor del nodo (y el del porcentaje de un par); un segundo dibujo es `nodo_repetido`.

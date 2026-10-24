@@ -84,6 +84,23 @@ export const MUTADORES_DE_TARJETA: readonly MutadorDeDiseno[] = [
   },
 ]
 
+// La celda de un nodo con atajos toma otro nivel que el de su sección (que lo heredan los atajos): sólo el de editar, o el de ver y el de editar a la vez
+// (un nivel de ver sin el de editar es otra regla, `editar_sin_ver`).
+const atajosConOtroNivel = (nombre: string, conVer: boolean): MutadorDeDiseno => ({
+  nombre,
+  aplicar: (e, azar) => {
+    const atajos = elegir(azar, itemsDe(e, deTipo('atajos')))
+    const nivel = elegir(azar, sinRetirar(e.contexto.niveles, e.contexto.retirados))
+    const celda = atajos
+      ? itemsDe(e, (it) => deTipo('celda')(it) && it['nodo'] === atajos.it['nodo'])[0]
+      : undefined
+    if (!celda || nivel === undefined) return null
+    if (conVer) celda.it['nivel_ver'] = nivel
+    celda.it['nivel_editar'] = nivel
+    return `${nombre}(${nivel})`
+  },
+})
+
 export const MUTADORES_DE_COBERTURA: readonly MutadorDeDiseno[] = [
   {
     nombre: 'atajos_sin_celda',
@@ -97,19 +114,8 @@ export const MUTADORES_DE_COBERTURA: readonly MutadorDeDiseno[] = [
       return `atajos_sin_celda(${texto(celda.it, 'nodo') ?? '?'})`
     },
   },
-  {
-    nombre: 'atajos_con_otro_nivel',
-    aplicar: (e, azar) => {
-      const atajos = elegir(azar, itemsDe(e, deTipo('atajos')))
-      const nivel = elegir(azar, sinRetirar(e.contexto.niveles, e.contexto.retirados))
-      const celda = atajos
-        ? itemsDe(e, (it) => deTipo('celda')(it) && it['nodo'] === atajos.it['nodo'])[0]
-        : undefined
-      if (!celda || nivel === undefined) return null
-      celda.it[azar.entero(2) === 0 ? 'nivel_ver' : 'nivel_editar'] = nivel
-      return `atajos_con_otro_nivel(${nivel})`
-    },
-  },
+  atajosConOtroNivel('atajos_con_otro_nivel_de_editar', false),
+  atajosConOtroNivel('atajos_con_otro_nivel_de_ver_y_editar', true),
   {
     nombre: 'input_o_constante_sin_celda',
     aplicar: (e, azar) => {

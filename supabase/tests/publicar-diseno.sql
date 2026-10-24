@@ -102,7 +102,7 @@ begin
   perform pg_temp.limpiar(o);
 end $$;
 
--- @test publicar: un aparte que no se dibuja no se edita; un aparte que es el pct de una celda restringida se ve igual (D7: la base lo manda)
+-- @test publicar: un aparte que no se dibuja no se edita; un aparte que es el pct de una celda restringida se rechaza (4-9) y la compilación lo manda igual a todos (D7)
 do $$
 declare
   o uuid := pg_temp.preparar(); v_vis jsonb; v_def jsonb; v_d jsonb;
@@ -117,7 +117,8 @@ begin
   if v_vis -> 'garantia_pct' is distinct from '{"ver": "todos", "editar": "costos"}'::jsonb then raise exception 'garantia_pct: %', v_vis -> 'garantia_pct'; end if;
   if v_vis -> 'total' is distinct from '{"ver": "todos", "editar": null}'::jsonb then raise exception 'el total: %', v_vis -> 'total'; end if;
 
-  -- 4-9: fees_pct es un aparte y se dibuja como el pct de `fees`, que sólo ve «costos»: el pct se ve igual que el total.
+  -- 4-9: fees_pct es un aparte y se dibujaría como el pct de `fees`, que sólo ve «costos»: el pct se vería igual que el total. Publicarlo se rechaza, con el
+  -- código de siempre y el `donde` del pct; la compilación (la segunda barrera) lo manda a todos igual si se la llama directo.
   v_def := jsonb_set(pg_temp.def_capturas(), '{nodos}', (select jsonb_agg(case when n ->> 'id' = 'fees_pct' then n || '{"salida": "aparte"}' else n end order by o2)
                                                        from jsonb_array_elements(pg_temp.def_capturas() -> 'nodos') with ordinality t(n, o2)));
   v_d := jsonb_set(pg_temp.diseno_costos(), '{secciones}', (select jsonb_agg(case when s ->> 'id' = 'compra'
@@ -126,9 +127,10 @@ begin
                                   from jsonb_array_elements(pg_temp.diseno_costos() -> 'secciones') with ordinality q(s, n)));
   set local role authenticated;
   perform public.formula_guardar_borrador(o, v_def, pg_temp.params_capturas(), v_d);
-  perform public.formula_publicar(o, 'Pct aparte');
+  perform pg_temp.espera(format($f$select public.formula_publicar(%L, 'Pct aparte')$f$, o), '22023:nivel_no_admitido@fees_pct');
   reset role;
-  select visibilidad into v_vis from public.formulas where origen_id = o and estado = 'publicada';
+  if (select max(version) from public.formulas where origen_id = o) <> 1 then raise exception 'se publicó con el pct aparte restringido'; end if;
+  v_vis := public._compilar_visibilidad(v_def, v_d);
   if v_vis -> 'fees' is distinct from '{"ver": "costos", "editar": "costos"}'::jsonb then raise exception 'fees: %', v_vis -> 'fees'; end if;
   if v_vis -> 'fees_pct' is distinct from '{"ver": "todos", "editar": "costos"}'::jsonb then raise exception 'el pct aparte: %', v_vis -> 'fees_pct'; end if;
   perform pg_temp.limpiar(o);
