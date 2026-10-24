@@ -15,7 +15,7 @@ export const PERSONAS = {
   compartido: '00000000-0000-4000-8000-0000000c0002',
   supervision: '00000000-0000-4000-8000-0000000c0003',
   destino: '00000000-0000-4000-8000-0000000c0004',
-  // Quien configura los leads (los orígenes): leads.configurar, y crea y edita los suyos.
+  // Quien configura los leads (los orígenes): leads.configurar, y crea y edita los suyos; y cotizaciones.configurar (carreras/tonos.mjs).
   configura: '00000000-0000-4000-8000-0000000c0005',
 }
 
@@ -41,6 +41,8 @@ export async function limpiar(db) {
   // Los tipos de seguimiento de las carreras (después de sus seguimientos: la FK es restrict) y el origen «por defecto» que dejaron
   // (los orígenes se borran arriba: el índice y el check no frenan un borrado).
   await db.query(`delete from public.tipos_seguimiento where nombre like $1`, [`${PREFIJO}%`])
+  await db.query(`delete from public.origenes where nombre like $1`, [`${PREFIJO}%`]) // sus fórmulas caen con él (carreras/tonos.mjs)
+  await db.query(`delete from public.tonos where nombre like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.lotes_papelera where creado_por = any ($1::uuid[])`, [
     personas,
   ])
@@ -106,7 +108,13 @@ export async function sembrar(db) {
     `insert into public.roles (clave, nombre) values ('carreras_configura', $1) returning id`,
     [`${PREFIJO} configura`],
   )
-  for (const clave of ['leads.configurar', 'leads.ver', 'leads.crear', 'leads.editar']) {
+  for (const clave of [
+    'leads.configurar',
+    'leads.ver',
+    'leads.crear',
+    'leads.editar',
+    'cotizaciones.configurar',
+  ]) {
     await db.query(
       `insert into public.roles_permisos (rol_id, permiso_clave, alcance) values ($1, $2, 'todos')`,
       [configura.id, clave],

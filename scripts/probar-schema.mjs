@@ -144,6 +144,13 @@ const DATOS_DE_PRUEBA = {
   'cotizacion-evaluar.sql': {
     _corpus_del_motor: path.join(base, 'tests', 'corpus-del-motor.json'),
   },
+  'tonos.sql': {
+    _corpus_de_contraste: path.join(base, 'tests', 'corpus-de-contraste.json'),
+  },
+  'publicar-diseno.sql': {
+    _juego_de_diseno: 'src/modules/cotizaciones/entities/casos-de-diseno.json',
+    _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
+  },
 }
 
 async function cargarDatos(archivo) {
@@ -179,6 +186,8 @@ for (const archivo of [
   'validar-diseno.sql',
   'evaluar-formula.sql',
   'cotizacion-evaluar.sql',
+  'tonos.sql',
+  'publicar-diseno.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t)) continue
