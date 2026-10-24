@@ -23,6 +23,7 @@ export const REGLAS_DE_DISENO = [
   'interruptor_sin_efecto',
   'subtotal_no_es_calculo',
   'nivel_no_admitido',
+  'editar_sin_ver',
   'nodo_repetido',
   'tarjeta_no_es_el_total',
   'tarjeta_secundario_no_es_aparte',
@@ -86,6 +87,8 @@ const MENSAJES: Record<ReglaDeDiseno, (d: DatosDeRechazoDeDiseno) => string> = {
   subtotal_no_es_calculo: (d) => `${q(d.donde)} no es un cálculo: un subtotal se dibuja desde uno.`,
   nivel_no_admitido: (d) =>
     `${q(d.donde)} se muestra a todos: el total, lo que va aparte y la variante no se pueden restringir a un nivel.`,
+  editar_sin_ver: (d) =>
+    `${q(d.donde)} se ve sólo con un nivel y se edita sin él: lo que no se ve no se edita. Ponle también un nivel de edición.`,
   nodo_repetido: (d) => `${q(d.donde)} aparece dos veces en el diseño.`,
   tarjeta_no_es_el_total: (d) =>
     `La tarjeta nombra ${q(d.donde)}, que no es el total de la fórmula.`,

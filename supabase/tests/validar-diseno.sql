@@ -1,6 +1,6 @@
 -- validar_diseno() contra validarDiseno() de TS (paso 4.08, prompt 1; docs/COTIZADOR.md › «El diseño de la hoja»).
 -- `scripts/probar-schema.mjs` carga antes los JSON en tablas temporales (la base no lee archivos del repo):
---   _juego_de_diseno    ← src/modules/cotizaciones/entities/casos-de-diseno.json (los 236 casos, una regla por caso)
+--   _juego_de_diseno    ← src/modules/cotizaciones/entities/casos-de-diseno.json (los 244 casos, una regla por caso)
 --   _juego_de_formula   ← src/modules/cotizaciones/entities/casos-de-formula.json (las fórmulas que nombra «formula_de»)
 --   _corpus_de_diseno   ← supabase/tests/corpus-de-diseno.json (el corpus diferencial: los diseños válidos mutados)
 -- Un rechazo cuenta sólo si es 22023 y su DETAIL es el código de una regla: los errores propios de jsonb de Postgres también son
@@ -59,10 +59,10 @@ begin
     perform public.validar_formula(v_f -> 'definicion', v_f -> 'params');
     v_n := v_n + 1;
   end loop;
-  if v_n <> 236 then raise exception 'se esperaban 236 casos y hay %', v_n; end if;
+  if v_n <> 244 then raise exception 'se esperaban 244 casos y hay %', v_n; end if;
 end $$;
 
--- @test diseño: los 236 casos de casos-de-diseno.json dan la misma regla y el mismo donde que validar-diseno.ts
+-- @test diseño: los 244 casos de casos-de-diseno.json dan la misma regla y el mismo donde que validar-diseno.ts
 do $$
 declare v_malos text[]; v_n int;
 begin
@@ -71,7 +71,7 @@ begin
     from pg_temp.paridad_de_diseno((select doc -> 'casos' from _juego_de_diseno)) p
    where p.visto is distinct from p.esperado;
   v_n := jsonb_array_length((select doc -> 'casos' from _juego_de_diseno));
-  if v_n <> 236 then raise exception 'el juego tiene % casos, no 236', v_n; end if;
+  if v_n <> 244 then raise exception 'el juego tiene % casos, no 244', v_n; end if;
   if v_malos is not null then
     raise exception '% de % casos no dan lo de validar-diseno.ts:%', cardinality(v_malos), v_n, E'\n  ' || array_to_string(v_malos, E'\n  ');
   end if;

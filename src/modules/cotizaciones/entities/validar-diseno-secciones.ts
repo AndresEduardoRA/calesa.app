@@ -16,6 +16,7 @@ export function revisarSecciones(ix: Indice, d: Diseno, e: Estado): FalloDeDisen
     vistas.add(s.id)
     const r = revisarNivel(ix, s.nivel_ver, s.id) ?? revisarNivel(ix, s.nivel_editar, s.id)
     if (r !== undefined) return r
+    if (editaSinVer(s.nivel_ver, s.nivel_editar)) return fallo('editar_sin_ver', { donde: s.id })
     const heredados = { ver: s.nivel_ver ?? NIVEL_TODOS, editar: s.nivel_editar ?? NIVEL_TODOS }
     for (const item of recorrer(s.items, ix.m)) {
       const rechazo = revisarItem(ix, e, item, heredados)
@@ -42,7 +43,8 @@ function revisarItem(
     (item.tipo === 'celda'
       ? (revisarNivel(ix, item.nivel_ver, nodo.id) ?? revisarNivel(ix, item.nivel_editar, nodo.id))
       : undefined) ??
-    revisarNivelAbierto(ix, item, nodo, propios.ver)
+    revisarNivelAbierto(ix, item, nodo, propios.ver) ??
+    revisarEditarSinVer(item, nodo, propios)
   return rechazo ?? registrar(ix, e, item, { nodo, propios, sec })
 }
 
@@ -109,6 +111,21 @@ function revisarNivelAbierto(
   if (pct !== undefined && sinNivel(pct)) return fallo('nivel_no_admitido', { donde: pct.id })
   return item.tipo === 'interruptor' && sinNivel(nodo)
     ? fallo('nivel_no_admitido', { donde: nodo.id })
+    : undefined
+}
+
+// Lo que no se ve no se edita: un nivel de ver restringido con el de editar abierto se rechaza (ver abierto con editar restringido vale: se ve y no se edita
+// sin el permiso). Una sección ya revisada no lo tiene, así que sus ítems sólo lo rompen con el nivel propio de una celda.
+const editaSinVer = (ver: string | undefined, editar: string | undefined) =>
+  (ver ?? NIVEL_TODOS) !== NIVEL_TODOS && (editar ?? NIVEL_TODOS) === NIVEL_TODOS
+
+function revisarEditarSinVer(
+  item: ItemDeDiseno,
+  nodo: Nodo,
+  propios: Niveles,
+): FalloDeDiseno | undefined {
+  return item.tipo === 'celda' && editaSinVer(propios.ver, propios.editar)
+    ? fallo('editar_sin_ver', { donde: nodo.id })
     : undefined
 }
 

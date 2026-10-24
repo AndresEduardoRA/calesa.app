@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { REGLAS_DE_DISENO, rechazoDeDiseno, fallo } from './motivos-de-diseno'
 
 describe('motivos-de-diseno', () => {
-  it('son 28 reglas, sin repetir, con la forma primero', () => {
-    expect(REGLAS_DE_DISENO).toHaveLength(28)
-    expect(new Set(REGLAS_DE_DISENO).size).toBe(28)
+  it('son 29 reglas, sin repetir, con la forma primero', () => {
+    expect(REGLAS_DE_DISENO).toHaveLength(29)
+    expect(new Set(REGLAS_DE_DISENO).size).toBe(29)
     expect(REGLAS_DE_DISENO[0]).toBe('forma')
   })
 

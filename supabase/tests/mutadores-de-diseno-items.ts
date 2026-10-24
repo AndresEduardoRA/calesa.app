@@ -149,6 +149,7 @@ export const MUTADORES_DE_ITEMS: readonly MutadorDeDiseno[] = [
       )
       if (!yo || nivel === undefined) return null
       yo.s['nivel_ver'] = nivel
+      yo.s['nivel_editar'] = nivel
       return `nivel_a_la_variante(${nivel})`
     },
   },
@@ -169,6 +170,7 @@ export const MUTADORES_DE_ITEMS: readonly MutadorDeDiseno[] = [
         id: 'resumen',
         presentacion: 'principal',
         nivel_ver: nivel,
+        nivel_editar: nivel,
         items: [celdaDe(total)],
       })
       return `celda_del_total_con_nivel(${nivel})`
@@ -188,53 +190,8 @@ export const MUTADORES_DE_ITEMS: readonly MutadorDeDiseno[] = [
       )
       if (!yo || nivel === undefined) return null
       yo.it['nivel_ver'] = nivel
+      yo.it['nivel_editar'] = nivel
       return `celda_de_lo_aparte_con_nivel(${nivel})`
-    },
-  },
-  // 4-9: lo que va aparte también es el porcentaje que muestra una celda con secundario y la bandera de un interruptor.
-  {
-    nombre: 'pct_aparte_restringido',
-    aplicar: (e, azar) => {
-      const aparte = new Set(idsDe(e, (n) => texto(n, 'salida') === 'aparte'))
-      const pares = new Set(
-        nodosDeFormula(e, porcentajeDe)
-          .filter((n) => aparte.has(texto(n, 'pct') ?? ''))
-          .map((n) => texto(n, 'id') ?? ''),
-      )
-      const yo = elegir(
-        azar,
-        itemsDe(
-          e,
-          (it) =>
-            deTipo('celda')(it) &&
-            it['secundario'] !== undefined &&
-            pares.has(texto(it, 'nodo') ?? ''),
-        ),
-      )
-      const nivel = elegir(
-        azar,
-        e.contexto.niveles.filter((n) => !e.contexto.retirados.includes(n)),
-      )
-      if (!yo || nivel === undefined) return null
-      yo.it['nivel_ver'] = nivel
-      return `pct_aparte_restringido(${nivel})`
-    },
-  },
-  {
-    nombre: 'interruptor_aparte_restringido',
-    aplicar: (e, azar) => {
-      const aparte = new Set(idsDe(e, (n) => texto(n, 'salida') === 'aparte'))
-      const yo = elegir(
-        azar,
-        itemsDe(e, (it) => deTipo('interruptor')(it) && aparte.has(texto(it, 'nodo') ?? '')),
-      )
-      const nivel = elegir(
-        azar,
-        e.contexto.niveles.filter((n) => !e.contexto.retirados.includes(n)),
-      )
-      if (!yo || nivel === undefined) return null
-      yo.s['nivel_ver'] = nivel
-      return `interruptor_aparte_restringido(${nivel})`
     },
   },
   {
