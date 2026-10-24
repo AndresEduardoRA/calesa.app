@@ -33,3 +33,8 @@ export type {
   ModoDeTipoDeCambio,
   SeccionDeDiseno,
 } from './entities/diseno'
+
+// Configuración › Cotización › Niveles (4.09): la lectura de los niveles de acceso con el tope, lo que admite cada uno y por qué no se elimina.
+// Los componentes salen por `pantallas/configuracion.ts`. Sólo se importa desde un Server Component.
+export { leerNivelesDeAcceso } from './composicion'
+export type { ListaDeNiveles, NivelDeAcceso } from './entities/nivel'

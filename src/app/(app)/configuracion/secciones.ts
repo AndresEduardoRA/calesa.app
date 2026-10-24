@@ -1,5 +1,6 @@
 import {
   Building2Icon,
+  CalculatorIcon,
   ContactRoundIcon,
   MapPinIcon,
   ShieldCheckIcon,
@@ -47,6 +48,14 @@ export const SECCIONES = [
     ruta: RUTAS.configuracionDeLeads,
     Icono: ContactRoundIcon,
     permisos: ['leads.configurar'],
+  },
+  {
+    clave: 'cotizacion',
+    titulo: 'Cotización',
+    descripcion: 'Los niveles de acceso de la hoja: quién ve y quién edita cada parte.',
+    ruta: RUTAS.configuracionDeCotizacion,
+    Icono: CalculatorIcon,
+    permisos: ['equipo.roles.ver', 'equipo.roles.gestionar'],
   },
   {
     clave: 'equipo',

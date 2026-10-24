@@ -16,6 +16,7 @@ export const RUTAS = {
   empresa: '/configuracion/empresa',
   origenes: '/configuracion/origenes',
   configuracionDeLeads: '/configuracion/leads',
+  configuracionDeCotizacion: '/configuracion/cotizacion',
   leads: '/leads',
   papeleraDeLeads: '/leads/papelera',
   importarLeads: '/leads/importar',

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   ANCHOS,
   CODIGOS_DE_COMPILACION,
@@ -28,6 +28,10 @@ import {
   type Tramo,
 } from './index'
 
+// `index.ts` también lleva la lectura de los niveles (servidor): su composición pide `server-only` y el cliente de Supabase, que acá no corren.
+vi.mock('server-only', () => ({}))
+vi.mock('@/shared/lib/supabase/server', () => ({ createClient: vi.fn() }))
+
 // La entrada pública del módulo lleva lo que el editor de fórmulas (4.21) va a usar.
 const destino: DestinoDeCompilacion = { id: 'total', etiqueta: 'Total', salida: 'total' }
 const contexto: ContextoDeCompilacion = {
@@ -51,6 +55,11 @@ describe('index.ts del módulo cotizaciones', () => {
     expect(codigo).toBeDefined()
     expect(CODIGOS_DE_COMPILACION).toContain(codigo)
     expect(tramo).toMatchObject({ desde: 7, largo: 1, linea: 1, columna: 8 })
+  })
+
+  it('lleva la lectura de los niveles de acceso (4.09), y los tipos de su lista', async () => {
+    const modulo = await import('./index')
+    expect(typeof modulo.leerNivelesDeAcceso).toBe('function')
   })
 
   it('exporta la lista de códigos y el tope del texto de una fila', () => {

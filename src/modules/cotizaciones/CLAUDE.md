@@ -4,8 +4,9 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 
 ## Entra y sale
 
-- Entra: wizard `/cotizaciones/nuevo` (origen → vehículo → lead → hoja → resumen), editor de fórmulas en Configuración, ⚙ de una celda.
+- Entra: wizard `/cotizaciones/nuevo` (origen → vehículo → lead → hoja → resumen), editor de fórmulas en Configuración, ⚙ de una celda, y **Configuración › Cotización › Niveles** (`/configuracion/cotizacion?seccion=niveles`, 4.09-2) con `equipo.roles.ver` o `equipo.roles.gestionar`; el modal de un nivel en `?panel=nuevo-nivel` y `?panel=renombrar-nivel&nivel=<id>`, la confirmación de eliminar en `?panel=eliminar-nivel&nivel=<id>`.
 - Sale: `compilarExpresion(texto, contexto)` con sus códigos y tipos (ya por `index.ts`), `validarDiseno(definicion, diseno, contexto)` con `REGLAS_DE_DISENO`, las listas cerradas del diseño (`ANCHOS`, `PRESENTACIONES`, `SECUNDARIOS`, `EFECTOS_DE_INTERRUPTOR`, `MAXIMO_DE_ATAJOS`, `NIVEL_TODOS`) y sus tipos (ya por `index.ts`: lo usará el editor del diseño, 4.22), `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula) y su espejo en la base, `evaluar_formula()` (4.06) y `cotizacion_evaluar()` (4.06; arma lo que `evaluar_formula()` necesita y la llama; sin `execute` para `authenticated` hasta el 4.10), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
+- Sale también `leerNivelesDeAcceso()` por `index.ts` (`niveles_con_uso()`: los niveles, el tope, lo que admite cada uno y por qué no se elimina) con los tipos `ListaDeNiveles` y `NivelDeAcceso`, y por `pantallas/configuracion.ts` (sólo `src/app`) `<NivelesDeAcceso lista puedeGestionar>` y `<EsqueletoDeNiveles>`.
 - Depende de: `leads`, `vehiculos`, `empresa` (tipos de cambio).
 
 ## Archivos clave
@@ -58,7 +59,16 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   y responde cuánto lo usan); `_niveles_de_cotizacion()` leyendo la tabla; el `for key share` de los niveles del diseño en `_preparar_publicacion()`; **`_nodos_visibles(formula_id)`**, el enforcement
   (un nivel sólo estrecha; de nadie; el 4.10 la consume); y las reglas `editar_sin_ver` y 4-9 (`nivel_no_admitido` también mira el `pct` de un par y el interruptor) de `_diseno_secciones()`. Las
   prueban `supabase/tests/niveles.sql`, el caso genérico de `permisos-enforcement.sql`, `scripts/carreras/niveles.mjs` y `medir-nodos-visibles.sql`. El catálogo de TS de permisos
-  (`CLAVES_PERMISO`) es cerrado y no conoce estas claves: la matriz de Roles no las muestra hasta el prompt 2.
+  reconoce estas claves por su patrón (`esClaveDeNivel()` de `@/shared/lib/permisos`): la matriz de Roles las muestra, por origen y en «Cotizaciones».
+- `supabase/migrations/20261019006400_nivel_restaurar.sql` y `…006500_niveles_con_uso.sql` (4.09-2; 4-12): `nivel_restaurar(id, versión)` deshace `nivel_retirar` (uno que no está retirado responde `sin_cambios` sin mirar la versión ni
+  escribir) y `niveles_con_uso()` (`equipo.roles.ver` o `gestionar`) entrega la lista con, de cada nivel, `se_renombra`, `se_retira`, `se_elimina` y `motivo_de_uso` (`_nivel_motivo_de_uso()`, el texto
+  que también dice `nivel_eliminar`); `_niveles_lista()` lo lleva en la respuesta de cada escritura. Las prueban `niveles.sql`, `niveles-con-uso.sql` y las carreras de restaurar contra retirar y contra eliminar.
+- `entities/nivel.ts` (4.09-2) — `NivelDeAcceso`, `ListaDeNiveles`, `listaDeNivelesDesde()`/`respuestaDeNivelesDesde()` (Zod), `separarNiveles()` (fijo · en uso · retirados, por nombre en español), `validarNivel()` (espejo de
+  `_nivel_nombre()`), `accionesDeNivel()` (Renombrar · Retirar o Restaurar · Eliminar, con el motivo cuando no se puede), `motivoParaNoAbrirNivel()` y las constantes de la URL. **Nada razona por el nombre ni la clave de un nivel**:
+  qué admite lo dice la fila. `entities/repositorios-de-niveles.ts`, `infra/niveles.ts` (las cinco RPC), `infra/queries/niveles.ts` y `composicion.ts`.
+- `features/niveles/` (4.09-2) — `actions/` (crear, renombrar, retirar, restaurar, eliminar; `equipo.roles.gestionar`), `schemas/`, `hooks/` (`use-niveles` la lista sembrada por una firma —cada respuesta la reemplaza—, retirar y restaurar con «Deshacer»;
+  `use-filas-de-niveles`; el modal y la confirmación por URL) y `components/` (`niveles-de-acceso`, `lista-de-niveles` sobre `@/shared/ui/lista`, `acciones-de-nivel` el «⋯», `modal-de-nivel`, `eliminar-nivel`, `diferidos`, `esqueleto-de-niveles`).
+  Quien sólo lee (`equipo.roles.ver`) ve la lista sin «Nuevo nivel» ni «⋯». La ruta vive en `src/app/(app)/configuracion/cotizacion/`.
 - `supabase/migrations/20261019005200_evaluar_formula.sql` — `evaluar_formula(definicion, params, entrada, modo?)` y sus ayudantes `_motor_*`: espejo
   exacto de `motor.ts` (los mismos float8, estados, fuentes, totales, faltantes y descartados; errores de llamada 22023 con el código en DETAIL).
   Pura: las tablas vivas llegan en `entrada.tablas`. Desarma sus argumentos una sola vez y lleva el estado por nodo en arreglos. Lo prueban
@@ -99,7 +109,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Tablas
 
 `formulas`, `tonos`, `cotizaciones_niveles`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
-RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear`, `tono_guardar`, `tono_eliminar`, `nivel_crear`, `nivel_renombrar`, `nivel_retirar`, `nivel_eliminar`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
+RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear`, `tono_guardar`, `tono_eliminar`, `nivel_crear`, `nivel_renombrar`, `nivel_retirar`, `nivel_restaurar`, `nivel_eliminar`, `niveles_con_uso`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
 
 ## No se rompe
 

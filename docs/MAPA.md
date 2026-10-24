@@ -26,8 +26,10 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 - Depende de: ningún otro módulo
 
 ### `cotizaciones`
-Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCell con ⚙ de default global, tablas de referencia, snapshot por cotización, preventa/final, versiones, comentarios, adjuntos, reportes, plantilla de tarjeta y PDF, comprobantes. · 68 archivos
-- API: `compilarExpresion`, `ContextoDeCompilacion`, `DestinoDeCompilacion`, `ErrorDeCompilacion`, `ResultadoDeCompilacion`, `Tramo`, `CODIGOS_DE_COMPILACION`, `CodigoDeCompilacion`, `MAXIMO_DE_TEXTO`, `validarDiseno`, +16
+Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCell con ⚙ de default global, tablas de referencia, snapshot por cotización, preventa/final, versiones, comentarios, adjuntos, reportes, plantilla de tarjeta y PDF, comprobantes. · 99 archivos
+- API: `compilarExpresion`, `ContextoDeCompilacion`, `DestinoDeCompilacion`, `ErrorDeCompilacion`, `ResultadoDeCompilacion`, `Tramo`, `CODIGOS_DE_COMPILACION`, `CodigoDeCompilacion`, `MAXIMO_DE_TEXTO`, `validarDiseno`, +19
+- Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
+  - `configuracion`: `NivelesDeAcceso`, `EsqueletoDeNiveles`
 - Depende de: ningún otro módulo
 - Casos de uso: niveles
 
@@ -156,6 +158,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `/auth/callback` — API
 - `/auth/cerrar` — API
 - `/auth/nueva-contrasena` — página
+- `/configuracion/cotizacion` — página
 - `/configuracion/empresa` — página
 - `/configuracion/equipo` — página
 - `/configuracion/leads` — página

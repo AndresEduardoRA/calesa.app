@@ -37,6 +37,10 @@ export const CONFIRMAR_CON_URL: Record<string, ConfirmarConUrl> = {
     abre: 'src/modules/leads/features/tipos-de-seguimiento/hooks/use-eliminar-tipo-de-seguimiento-por-url.ts',
     senal: 'PANEL_ELIMINAR_TIPO_DE_SEGUIMIENTO',
   },
+  'src/modules/cotizaciones/features/niveles/components/eliminar-nivel.tsx': {
+    abre: 'src/modules/cotizaciones/features/niveles/hooks/use-eliminar-nivel-por-url.ts',
+    senal: 'PANEL_ELIMINAR_NIVEL',
+  },
   'src/modules/leads/features/portal/components/dialogo-de-revocar.tsx': {
     abre: 'src/modules/leads/features/portal/hooks/use-panel-de-portal.ts',
     senal: 'PANEL_REVOCAR_PORTAL',
