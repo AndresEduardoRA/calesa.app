@@ -534,7 +534,7 @@ llama a `evaluar_formula()` con lo que armó. `evaluar_formula()` no cambió.
 
 `compilarExpresion(texto, contexto, medidor?)` (`entities/compilador.ts`) convierte `=(remate+fees)*4%` en nodos del mismo grafo. Es puro, sin
 `eval`, sin `Function` y sin expresiones regulares, **nunca lanza** (un texto que no compila devuelve su error) y no necesita ningún nodo ni
-operación que el grafo no tenga. No lo exporta `index.ts`: lo usa el editor (4.21) y lo guarda la fila con su `texto` (abajo).
+operación que el grafo no tenga. Sale por `index.ts` (con `CODIGOS_DE_COMPILACION`, `MAXIMO_DE_TEXTO` y los tipos): lo usa el editor (4.21) y lo guarda la fila con su `texto` (abajo).
 
 - **Recibe** el texto y un contexto: los `nodos` anteriores a la fila (lo único que el texto puede nombrar), los `posteriores` (sólo para decir
   «está más abajo»), los ids de los `grupos`, las constantes que ya existen (`params`) y el `destino`, la fila que se compila (`id`, `etiqueta`

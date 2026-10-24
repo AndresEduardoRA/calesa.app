@@ -5,7 +5,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Entra y sale
 
 - Entra: wizard `/cotizaciones/nuevo` (origen → vehículo → lead → hoja → resumen), editor de fórmulas en Configuración, ⚙ de una celda.
-- Sale: `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula) y su espejo en la base, `evaluar_formula()` (4.06) y `cotizacion_evaluar()` (4.06; arma lo que `evaluar_formula()` necesita y la llama; sin `execute` para `authenticated` hasta el 4.10), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
+- Sale: `compilarExpresion(texto, contexto)` con sus códigos y tipos (ya por `index.ts`), `evaluar(formula, entrada, modo?)` (motor puro, en `entities/`; todavía no lo exporta `index.ts`: lo usará el editor de la fórmula) y su espejo en la base, `evaluar_formula()` (4.06) y `cotizacion_evaluar()` (4.06; arma lo que `evaluar_formula()` necesita y la llama; sin `execute` para `authenticated` hasta el 4.10), `getCotizacion()`, `<ResumenCotizacion>`, `cotizacionFinalDe(vehiculoId)`. Lo consumen `logistica` (final vs real), `chat`, `buscador`, `web` (precio público), `tablero`.
 - Depende de: `leads`, `vehiculos`, `empresa` (tipos de cambio).
 
 ## Archivos clave
@@ -38,7 +38,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   versión vieja, tablas, campos y permisos) y `medir-evaluar.sql` (`pnpm db:medir:volumen`: 200 llamadas con 50.000 y 250.000 cotizaciones y las guardas de escala).
 - `entities/compilador.ts` — `compilarExpresion(texto, contexto)`: la fórmula como texto (`=(remate+fees)*4%`, `SUMA(grupo)`) a nodos del mismo grafo
   (4.07). Puro, sin `eval` ni regex, lineal y nunca lanza: un texto que no compila da un error con código estable y su tramo (`desde`, `largo`,
-  `linea`, `columna`). No lo exporta `index.ts` todavía: lo usará el editor (4.21). Lo parten `compilador-lexico.ts`, `compilador-sintaxis.ts`
+  `linea`, `columna`). Sale por `index.ts` (`compilarExpresion`, `CODIGOS_DE_COMPILACION`, `MAXIMO_DE_TEXTO` y los tipos `ContextoDeCompilacion`, `DestinoDeCompilacion`, `ErrorDeCompilacion`, `ResultadoDeCompilacion`, `CodigoDeCompilacion` y `Tramo`): lo usará el editor (4.21), que si es un Client Component lo sacará también por `client.ts`. Lo parten `compilador-lexico.ts`, `compilador-sintaxis.ts`
   (parser iterativo de dos pilas, nada recursivo), `compilador-reducir.ts` (el aplanado de `a+b+c`), `compilador-estado.ts`,
   `compilador-funciones.ts` (SUMA, SI, REDONDEAR, PORCENTAJE_DE, DEPRECIAR), `compilador-nombres.ts` (el contexto), `compilador-emitir.ts`
   (los nodos auxiliares `<fila>__<n>`) y `motivos-del-compilador.ts` (los 28 códigos). `HOY()` se rechaza (4-4). La fila que guarda el editor lleva el texto fuente en `texto?` (1 a 2.000 caracteres; sólo `constante` y `calculo`; el compilador no lo lee ni lo escribe). Lo prueban

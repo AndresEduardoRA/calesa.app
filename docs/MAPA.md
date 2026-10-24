@@ -26,7 +26,8 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 - Depende de: ningún otro módulo
 
 ### `cotizaciones`
-Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCell con ⚙ de default global, tablas de referencia, snapshot por cotización, preventa/final, versiones, comentarios, adjuntos, reportes, plantilla de tarjeta y PDF, comprobantes. · 52 archivos
+Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCell con ⚙ de default global, tablas de referencia, snapshot por cotización, preventa/final, versiones, comentarios, adjuntos, reportes, plantilla de tarjeta y PDF, comprobantes. · 53 archivos
+- API: `compilarExpresion`, `ContextoDeCompilacion`, `DestinoDeCompilacion`, `ErrorDeCompilacion`, `ResultadoDeCompilacion`, `Tramo`, `CODIGOS_DE_COMPILACION`, `CodigoDeCompilacion`, `MAXIMO_DE_TEXTO`
 - Depende de: ningún otro módulo
 
 ### `datos`
