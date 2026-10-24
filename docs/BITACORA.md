@@ -1337,3 +1337,46 @@ Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», los puntos 1 y 
 1. **4.07, prompt 2** (guardar el texto en la fórmula, `validar_formula()` y **4-3**, un `campo` con punto; el compilador no se exporta de `index.ts` hasta que el editor lo use) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.06-2: un nombre de campo del vehículo es una columna (`anio`, `marca`, `modelo`, `kilometraje`, `precio`) o la clave de un campo del origen, sin puntos; las `entradas` de `cotizacion_evaluar()` sólo llevan `inputs`, `banderas`, `overrides` y `variante`; hasta el 4.10 nadie la ejecuta desde la interfaz. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.
 
 2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (**4-3** en 4.07 prompt 2, **4-4** cuando una fórmula real pida `HOY()`, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT; toca `supabase/schemas`, después del hito 4-A) y **5a-42** (`medir-bajas.sql` cae sin regresión con un `sync` de disco largo: decidir por el trabajo —40 lotes, ≤ 16 M buffers— y juzgar los ms sólo con la ventana sana) sin fase, las decide la persona; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
+
+## 2026-10-24 — Paso 4.07, prompt 3 (remiendo): el mínimo de un carácter del `texto`
+
+**Horas** (hora de La Paz): empezó a las 00:38 (39 min después del cierre del prompt 2), `591401c` a las 00:53 y este cierre hacia la 01:00.
+Decisiones bv a by: `docs/DECISIONES.md`, 2026-10-24, «Paso 4.07 (remiendo, prompt 3)».
+
+**El hueco, reproducido antes de tocar el repo** (arnés en el scratchpad: SQL en una transacción que se revierte contra el Postgres 17
+local, con los JSON de HEAD; TS con respaldo, mutación, `pnpm vitest run src/modules/cotizaciones supabase/tests`, `cp` y `cmp`):
+
+- `…005500` con `between 2 and 2000`: los 6 bloques de `validar-formula.sql` en verde, igual que sin mutar. De control, `between 3`
+  cae (1 de 87 casos: `compilada: -5`, el único texto de 2 caracteres).
+- `deTexto` con `z.string().min(2)`: 526 pruebas en verde.
+- `.min(1)` → `.min(2)` en el helper `texto()` de `nodos.ts` (que también usan `etiqueta`, `seccion` y las opciones) ya caía en HEAD,
+  por una prueba del compilador con una etiqueta de 1 carácter.
+
+**Qué se hizo:**
+
+- **`591401c`** — tres casos válidos en el juego (1 y 2 caracteres en una `constante`, 1 en un `calculo`; 87 → 90), los mutadores
+  `texto_de_1`, `_2` y `_3` (corpus regenerado con `ACTUALIZAR_CORPUS=1`: 623 → 641 casos, 26 → 45 válidas, con 6, 8 y 8 textos
+  válidos de largo 1, 2 y 3), un test que exige los tres largos y un bloque de `validar-formula.sql` que exige el mensaje de los cuatro
+  rechazos de `texto` (`definicion.nodos.3.texto`).
+- Este commit: 4-6 en `docs/PLAN.md` (y la fila 4.21 nombra 4-5 y 4-6), cifras de `docs/COTIZADOR.md` (90 casos y 641 del corpus; decía
+  558), la decisión, esta entrada y `docs/ESTADO.md`.
+
+**Mutaciones: 32, 30 caen y 2 equivalentes demostradas.** Con los datos nuevos; sin mutar, todo en verde.
+
+| Grupo        | Mutaciones | Qué                                                                                                                                                                                                                                                                   |
+| ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `texto`, SQL | 19         | mínimo 2 (el hueco) y 3, mínimo 0, tope 2001 y 1999, sufijo `.id` y vacío, sin él en `constante` y en `calculo`, admitido en `input`, `tabla` y en todos, sin `/*F70*/`, `octet_length`, sin `jsonb_typeof`, nulo aceptado, `immutable`; vivas: `length` e `is false` |
+| `texto`, TS  | 13         | mínimo 2 en `deTexto` (el hueco) y en el helper, mínimo 3, sin mínimo, tope 2001 y 1999, obligatorio, nulo aceptado, sin él en `constante` y en `calculo`, con él en `input`, `tabla` y `tramo`                                                                       |
+
+- **El sufijo de `/*F70*/` (`.id` en vez de `.texto`) cae ahora:** en el 4.07-2 se dio por equivalente porque «sólo va al mensaje»; el
+  mensaje lleva la misma ruta que el `campo` de TS, y ninguna prueba la miraba.
+- **Las dos vivas:** `length(text)` y `char_length(text)` son la misma función (`prosrc = textlen` en `pg_proc`); y la condición de
+  `/*F70*/` nunca es nula (probado con cada tipo de jsonb y con 0, 1, 2.000 y 2.001 caracteres), así que `is not true` es `is false`.
+
+**Del entorno:** `\warn` de psql ejecuta lo que va entre backticks: el nombre del bloque nuevo los llevaba (`campo`) y el arnés imprimía
+`sh: campo: not found`. Se quitaron del nombre; `probar-schema.mjs` no usa `\warn` y no lo veía.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (339 archivos, 3.603 pruebas), `pnpm db:probar` (0 fallos) y
+`bash scripts/mapa.sh --check`. **e2e completo: no (solo datos de prueba y docs, Nivel 1).**
+
+**Lo que no se hizo:** el editor (4.21, con 4-5 y 4-6), push ni `next upgrade`.

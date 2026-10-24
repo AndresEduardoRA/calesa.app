@@ -195,9 +195,11 @@ base de `…004900` no se edita) y su ayudante `_formula_campos()`; la copia tie
   `donde` que la base; cinco casos del juego lo prueban (también el orden entre nodos: un nodo roto antes del `match` va primero, uno
   roto después no). Quedan `buckets`, `tablas` y una fila, que el compilador nunca arma.
 - **Las pruebas (`supabase/tests/validar-formula.sql`, en `pnpm db:probar`):**
-  - los 87 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
+  - los 90 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
     nunca acepta lo que Zod rechaza;
-  - el corpus son 558 mutaciones deterministas de las 4 válidas, con uno, dos o tres defectos mezclados. Lo arman
+  - un `texto` rechazado nombra su ruta en el mensaje (`definicion.nodos.<i>.texto`), como el `campo` de `validarFormula()`: la paridad
+    no lo ve, porque el `donde` de `forma` es el id del nodo;
+  - el corpus son 641 mutaciones deterministas de las 4 válidas, con uno, dos o tres defectos mezclados. Lo arman
     `corpus-de-formula.ts` y los `mutadores-*.ts`, y `corpus-de-formula.test.ts` lo regenera y lo compara con el guardado.
 - **Las mutaciones (2026-10-23, `docs/BITACORA.md`): 110.**
   - Cada uno de los 30 códigos apagado tumba exactamente sus casos del juego y ninguno más.
