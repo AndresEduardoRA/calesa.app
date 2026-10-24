@@ -1466,3 +1466,47 @@ tras el commit), `pnpm db:probar` (0 fallos), `pnpm db:lint` (84 avisos cosméti
 
 - `formulas.diseno`, los tonos, la compilación a `visibilidad`, la semilla y el transporte de la semilla (prompts 2 y 3), los niveles (4.09) y el editor (4.22).
 - `next upgrade`, ni empujar.
+
+## 2026-10-24 — Paso 4.08, prompt 1 (remiendo 4-7): los topes en caracteres de la ayuda y del nombre de un modo
+
+**Horas** (hora de La Paz): el pedido llegó antes de las 05:53 (a esa hora se agregaron los casos al juego); el Nivel 1 corrió de 06:03 a 06:09; el commit de datos `16a2c69`
+es de 06:10 y este cierre de 06:14. **e2e completo: no (solo datos de prueba y docs, Nivel 1)**.
+
+**El hueco (4-7).** Una revisión externa cambió `char_length` por `octet_length` en el tope de `ayuda.texto` (300) y en el del `nombre` de un modo (40) y la mutación
+sobrevivió al juego (221 casos) y al corpus (784): ningún caso válido traía caracteres multibyte en esos dos campos. En `titulo` sí caía (el caso de los 80 emojis). TS no puede
+tener esta regresión (Zod 4 cuenta caracteres, un emoji es uno); la base sí. No se tocó la migración `…005600` ni los `validar-diseno*.ts`.
+
+**Qué se hizo** (un commit de datos, `16a2c69`, y este de docs):
+
+- **Cuatro casos nuevos al final del juego** (los existentes no se tocaron; el texto mezcla `ñ`, `a` y un emoji, así que 300 caracteres pesan más de 300 bytes): un válido con
+  `ayuda.texto` de 300 caracteres y su inválido de 301 (`forma`, `donde` `logistica`, el mismo de su vecino de `x`), y un válido con el `nombre` de un modo de 40 y su inválido de 41
+  (`forma`, sin `donde`). **Antes de seguir se comprobó que TS y SQL daban lo mismo en los cuatro, contra HEAD:** `validar-diseno.test.ts` (230 pruebas) y `pnpm db:probar`
+  (los 225 casos) en verde; el único cambio a `validar-diseno.sql` es la cuenta fija (221 a 225, que el propio archivo guarda).
+- **Corpus regenerado** con `ACTUALIZAR_CORPUS=1` y la misma semilla (20261024): **784 casos antes y 784 después** (la cuenta sale de los mutadores, no de las bases), **73 válidos antes
+  y 74 después**; sigue con 260 de dos defectos o más y 105 mutadores. Las bases nuevas entran a la rotación sin tocar `corpus-de-diseno.ts`: ahora hay 8 casos con un
+  `nombre` multibyte de 40 caracteres (1 válido) y 11 con una `ayuda` multibyte de 300 (ninguno válido: un válido puro de 300 es del juego).
+
+**Mutaciones (2 nuevas, caen las 2).** Se aplicaron en un arnés del scratchpad (el texto mutado va por stdin a una transacción del Postgres 17 local que se revierte, con las seis
+funciones borradas al empezar), no sobre el archivo: la migración quedó intacta (`cmp` contra la copia y `git status` limpios). Lo que corre es `validar-diseno.sql` entero.
+
+| Mutación                                                                                | Juego (225)                              | Corpus (784)                                                |
+| --------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------- |
+| `char_length` → `octet_length` en `ayuda.texto` (`/*D52*/`, la marca va en el `return`) | cae 1: el válido de 300 (`forma@compra`) | caen 9 (su regla esperada era otra y `forma` salta primero) |
+| `char_length` → `octet_length` en el `nombre` del modo (`/*D09*/`)                      | cae 1: el válido de 40 (`forma@`)        | caen 6                                                      |
+| control: lo mismo en `titulo`                                                           | cae 1: el título de 80 emojis            | caen 21                                                     |
+
+La comprobación del `nombre` no tiene marca en su propio `if`; la marca `/*D09*/` está en el `perform` de la línea siguiente (es la que cuenta el mutador de forma `D09`).
+
+**Dos mutaciones equivalentes, demostradas** (las corrió la misma revisión externa y sobrevivieron; no son huecos):
+
+- (a) `abs(v_num) >= 13` → `>= 14` en `D57`: un valor entre 13 (incluido) y 14 deja de cortarlo `D57` y pasa a `D58`, que pide `v_f > 12` y lo rechaza igual. Es la misma regla
+  (`forma`) y el mismo `donde`, porque todo `return false` del ayudante da el mismo rechazo.
+- (b) el umbral `1e-300` de `D56` a `1e-100`: todo valor entre ambos es un `double` no entero (`v_f <> trunc(v_f)`) y lo rechaza `D58` con la misma regla y el mismo `donde`.
+
+**Cifras:** el juego de `validar_diseno()` son **225 casos (33 válidos)** y su corpus **784 (74 válidos)**; mutaciones **319** (132 de TS y 187 de SQL): **308 caen y 11 son equivalentes
+demostradas** (las 9 del paso 4.08-1 y estas 2). Vitest: **344 archivos y 3.861 pruebas** (eran 3.857; las cuatro del juego).
+
+**Verificación (Nivel 1):** `pnpm lint`, `pnpm typecheck`, `pnpm test` (344 archivos, 3.861 pruebas), `pnpm db:probar` (0 fallos; el juego y el corpus son datos de esa prueba) y
+`bash scripts/mapa.sh --check`.
+
+**Lo que no se hizo:** `formulas.diseno`, los tonos y publicar (prompt 2 de 3), ni `next upgrade`, ni empujar.

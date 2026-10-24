@@ -798,17 +798,18 @@ en DETAIL y `donde` en HINT, por el mismo `_formula_rechazar()`. Un arreglo nulo
 
 ### Las pruebas (4.08-1)
 
-- **El juego a mano** (`entities/casos-de-diseno.json`, 221 casos): 31 válidos —el diseño de las capturas con sus modos, el del Excel, el de
-  cada fórmula del seed, el de «Amnistia» (variante sin opción por defecto) y los bordes— y 190 inválidos, uno por regla o por cada forma
+- **El juego a mano** (`entities/casos-de-diseno.json`, 225 casos): 33 válidos —el diseño de las capturas con sus modos, el del Excel, el de
+  cada fórmula del seed, el de «Amnistia» (variante sin opción por defecto) y los bordes— y 192 inválidos, uno por regla o por cada forma
   de las que tienen varias, más los de forma (`__proto__` en cada nivel, `ancho: "50%"`, `"mitad; color: red"`, `clase`, `html`…) y los de
   orden. Cuatro fórmulas propias (`capturas`, `minima`, `secundaria`, `tonos_distintos`) y el resto de `casos-de-formula.json`.
-- **El corpus diferencial** (`supabase/tests/corpus-de-diseno.json`, 784 casos): las 31 válidas mutadas de forma determinista (semilla
+- **El corpus diferencial** (`supabase/tests/corpus-de-diseno.json`, 784 casos, 74 válidos): las 33 válidas mutadas de forma determinista (semilla
   20261024), cada mutador cruzado seis veces solo, uno de forma por cada `/*Dnn*/`, 200 mezclas de dos o tres reglas y 60 con la forma. Lo
   arman `corpus-de-diseno.ts` y los `mutadores-de-diseno*.ts`, y `corpus-de-diseno.test.ts` lo regenera (`ACTUALIZAR_CORPUS=1`) y exige que
   cada comprobación de la migración tenga su mutador. `supabase/tests/validar-diseno.sql` (`pnpm db:probar`) compara regla y `donde` de
-  los 221 y de los 784, y que la base nunca acepte lo que Zod rechaza.
-- **Las mutaciones (2026-10-24, `docs/BITACORA.md`):** 132 de TS (128 caen y 4 son equivalentes demostradas) y 183 de SQL (178 caen y 5 son
-  equivalentes demostradas). Cada regla apagada tumba exactamente sus casos del juego.
+  los 225 y de los 784, y que la base nunca acepte lo que Zod rechaza.
+- **Las mutaciones (2026-10-24, `docs/BITACORA.md`):** 132 de TS (128 caen y 4 son equivalentes demostradas) y 187 de SQL (180 caen y 7 son
+  equivalentes demostradas). Cada regla apagada tumba exactamente sus casos del juego. Los topes de `ayuda.texto` y del `nombre` de un
+  modo se cuentan en caracteres (`char_length`): con `octet_length` caen los casos multibyte del juego y del corpus (remiendo 4-7).
 
 ### Escala (4.08-1)
 

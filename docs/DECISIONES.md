@@ -5640,9 +5640,9 @@ en dos celdas, los modos sin `total_en`, el orden exacto, «todos» y la medici�
 
 - **27 reglas cruzadas y la forma** (`entities/motivos-de-diseno.ts`), en `entities/validar-diseno*.ts` y en `…20261019005600_validar_diseno.sql`
   (`validar_diseno()` y cinco ayudantes `_diseno_*`, STABLE, invoker, `search_path` vacío). Sin tabla ni columna: `database.types.ts` gana las seis funciones.
-- **El juego** `entities/casos-de-diseno.json` (221 casos: 31 válidos, uno por regla, los de forma y los de orden) y **el corpus**
-  `supabase/tests/corpus-de-diseno.json` (784 casos, 105 mutadores). `pnpm db:probar` compara regla y `donde`.
-- **Mutaciones: 315** (132 de TS y 183 de SQL), con 9 equivalentes demostradas. Tabla en `docs/BITACORA.md`. Cuatro cosas salieron de las vivas de la
+- **El juego** `entities/casos-de-diseno.json` (225 casos: 33 válidos, uno por regla, los de forma y los de orden) y **el corpus**
+  `supabase/tests/corpus-de-diseno.json` (784 casos, 74 válidos, 105 mutadores). `pnpm db:probar` compara regla y `donde`.
+- **Mutaciones: 319** (132 de TS y 187 de SQL), con 11 equivalentes demostradas. Tabla en `docs/BITACORA.md`. Cuatro cosas salieron de las vivas de la
   primera pasada y están en el juego: los atajos con `nivel_editar`, los atajos sobre un tramo, los atajos sobre el porcentaje que muestra una celda y
   un tono que no se llama como su grupo; y la cabecera que es un texto, que en la base daba un error de jsonb en vez de `forma`.
 - **Escala:** 206 y 2.018 ítems en 4,8 y 44,3 ms (razón 9,3), 0 buffers con literales; `docs/RENDIMIENTO.md`. `scripts/medir-listado.mjs` pasa su lista
