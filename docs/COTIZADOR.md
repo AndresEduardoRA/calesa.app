@@ -68,9 +68,8 @@ Las **operaciones cerradas de `calculo`**, con su aridad, discriminadas por `op`
 **Un nodo nuevo** lleva tres cosas: su tipo en el Zod de `nodos.ts`, su caso en el `switch` de `referenciasDe()` y su caso en
 `validar_formula()` y en el juego.
 
-**Fórmulas como texto (4.07):** quien configura escribe con nombres (`=(remate+fees)*4%`, `SUMA(grupo)`, `HOY()`). El texto se compila a
-este grafo **al configurar**, y `SUMA(grupo)` pasa a un `suma` con los miembros del grupo. Al cotizar no se evalúa texto. No hay
-referencias A1 ni funciones que el grafo no tenga.
+**Fórmulas como texto (4.07):** quien configura escribe con nombres (`=(remate+fees)*4%`, `=SUMA(aduana)`) y el texto se compila a este mismo
+grafo **al configurar**. Al cotizar no se evalúa texto. Está hecho: «Fórmulas como texto (4.07)», más abajo.
 
 ### Grupos, buckets y el total
 
@@ -185,13 +184,15 @@ Hace lo mismo que `validarFormula()`.
   Decidido con la persona el 2026-10-23.
   - Aceptar o rechazar coincide con TS en cualquier orden.
   - Con dos errores en el mismo `params`, `buckets` o `match`, el editor (que recorre en orden de inserción) puede nombrar el otro.
-  - Los 61 casos no dependen del orden, y el corpus se guarda en orden jsonb.
-- **Una divergencia declarada,** con la base más estricta que TS: una clave `__proto__` en `buckets`, `match`, `tablas`, una fila o
-  `params`. Zod la descarta en silencio. La base la rechaza como `forma` en las cuatro primeras, y en `params` como
-  `param_sin_constante` (con `donde = __proto__`: pasa la forma porque su valor es un número, y no es una constante). Queda como
-  **4-2** en `docs/PLAN.md`. El corpus no la lleva.
+  - Los casos del juego no dependen del orden, y el corpus se guarda en orden jsonb.
+- **Una divergencia declarada,** con la base más estricta que TS, en cuatro lugares: una clave `__proto__` en `buckets`, `tablas`, una fila
+  de una tabla o un `match` de un `calculo`. Zod la descarta en silencio y la base la rechaza como `forma`. **Cerrada en dos de los cinco
+  lugares (4-2, 4.07):** `validar.ts` mira lo crudo y rechaza un `__proto__` en un `match` (`forma`, con `donde` = el id del nodo) y en
+  `params` (`param_sin_constante` con `donde = __proto__` si su valor es un número, y `forma` si no lo es), con la misma regla y el mismo
+  `donde` que la base; cinco casos del juego lo prueban (también el orden entre nodos: un nodo roto antes del `match` va primero, uno
+  roto después no). Quedan `buckets`, `tablas` y una fila, que el compilador nunca arma.
 - **Las pruebas (`supabase/tests/validar-formula.sql`, en `pnpm db:probar`):**
-  - los 61 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
+  - los 79 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
     nunca acepta lo que Zod rechaza;
   - el corpus son 544 mutaciones deterministas de las 4 válidas, con uno, dos o tres defectos mezclados. Lo arman
     `corpus-de-formula.ts` y los `mutadores-*.ts`, y `corpus-de-formula.test.ts` lo regenera y lo compara con el guardado.
@@ -525,6 +526,96 @@ llama a `evaluar_formula()` con lo que armó. `evaluar_formula()` no cambió.
   cotizaciones: el p95 con 250.000 es 1,0 veces el de 50.000, y por origen la llamada toca 0 bloques de `cotizaciones`.
 - **Lo que no hace:** recortar por nivel (4.09 y 4.10); revalidar la fórmula; ni que `validar_formula()` rechace un `campo` con punto (4.07,
   `docs/PLAN.md` › 4-3).
+
+## Fórmulas como texto (4.07)
+
+`compilarExpresion(texto, contexto, medidor?)` (`entities/compilador.ts`) convierte `=(remate+fees)*4%` en nodos del mismo grafo. Es puro, sin
+`eval`, sin `Function` y sin expresiones regulares, **nunca lanza** (un texto que no compila devuelve su error) y no necesita ningún nodo ni
+operación que el grafo no tenga. No lo exporta `index.ts`: lo usa el editor (4.21) y lo guarda el prompt 2 de este paso.
+
+- **Recibe** el texto y un contexto: los `nodos` anteriores a la fila (lo único que el texto puede nombrar), los `posteriores` (sólo para decir
+  «está más abajo»), los ids de los `grupos`, las constantes que ya existen (`params`) y el `destino`, la fila que se compila (`id`, `etiqueta`
+  y lo que la fila ya lleva: `formato`, `descripcion`, `grupo`, `salida`, `bucket`, `solo_en`).
+- **Devuelve** `{ ok: true, nodos, params, tramos }` o `{ ok: false, error }`:
+  - `nodos`: los auxiliares y, al final, la fila compilada (sólo ella lleva lo del `destino`);
+  - `params`: las constantes nuevas (cada número escrito);
+  - `tramos`: dónde está en el texto cada nodo que se creó, por id, para señalar un rechazo de `validarFormula()` que nombra un auxiliar;
+  - `error`: `{ codigo, mensaje, tramo }`, el `tramo` con `desde` y `largo` en unidades UTF-16 (como un `<textarea>`), y `linea` y `columna`
+    desde 1 (las líneas se parten en «\n»). El mensaje habla con tuteo.
+
+### La gramática
+
+Un `=` inicial es opcional. Los espacios, el tab, el salto de línea y el espacio duro valen como espacio.
+
+| Se escribe                            | Qué es                                                                                                                            |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `12`, `0.5`, `1e3`                    | un número, con punto decimal. Sin separador de miles ni `.5` ni `1.`                                                              |
+| `4%`, `0.1%`                          | un número con `%` pegado; vale el número ÷ 100 y la constante es de formato `pct`                                                 |
+| `-5`                                  | un número negativo: el menos va pegado al número. Delante de un nombre o de un paréntesis es un error (para restar, `0 - nombre`) |
+| `+ - * /` y `( )`                     | la precedencia usual; `*` y `/` antes que `+` y `-`; todo asocia a la izquierda                                                   |
+| `remate`                              | el id de un nodo anterior                                                                                                         |
+| `SUMA(grupo)`                         | un `suma` con los miembros del grupo, en el orden de la lista                                                                     |
+| `SI(bandera; x)`                      | un `si` con `condicion` = la bandera                                                                                              |
+| `REDONDEAR(x; n)`                     | un `redondear`, con `n` un entero literal de 0 a 6                                                                                |
+| `PORCENTAJE_DE(x; pct)`               | un `porcentaje_de`; `pct` es un nodo de formato `pct` o un número (`4%`, `0.04`)                                                  |
+| `DEPRECIAR(x; tabla; sobre; columna)` | un `depreciar`; `tabla` y `columna` son ids en minúsculas, `sobre` un nodo                                                        |
+
+- **Los argumentos se separan con `;`** (como el Excel en español); una `,` es un error propio. Los nombres de función no distinguen
+  mayúsculas (`suma(g)` vale), los de un nodo sí.
+- **No se escribe:** `MULTIPLICAR`, `RESTAR` ni `DIVIDIR` (para eso están los operadores), los nodos que no calculan (`input`, `tabla`,
+  `tramo`…: son filas del editor), referencias A1 ni **`HOY()`**. `HOY()` se rechaza con `hoy_no_soportado` en el nombre; queda como
+  **4-4** (`docs/PLAN.md`) hasta que una fórmula real lo pida.
+- **Un nombre es sólo el id de un nodo.** La etiqueta no sirve: se repite y se renombra, y el texto se rompería. Así no hay colisiones. Un
+  grupo se nombra sólo dentro de `SUMA`. Un token con forma de celda (`B12`, `$A$1`) que no sea un nodo es `referencia_a1`.
+- **Un literal es una `constante`** con su valor en `params`, de formato `pct` si se escribió con `%` o se usó donde va un porcentaje, y `raw`
+  si no. `4%` corre el punto en el TEXTO (`4e-2`), no divide el doble entre 100: `0.1%` es el doble de `0.001`. Un número que no cabe en un
+  doble es `numero_fuera_de_rango`; −0 se guarda como 0. Escrito solo (`=100`), el literal es la propia fila, una `constante`.
+
+### Cómo se arma el grafo
+
+- **Aplanar.** Una cadena `a+b+c` es UN `suma` en el orden del texto, y `a-b-c` un `restar`, `a*b*c` un `multiplicar` (el motor dobla de
+  izquierda a derecha). Un paréntesis, una función o un cambio de operación cortan el aplanado: `a+(b+c)` y `(a+b)+c` son dos sumas, `a+b-c`
+  un `restar` de un `suma`, y `a/b/c` un `dividir` dentro de otro (`/` nunca se aplana). Es exacto bit a bit con el motor.
+- **PORCENTAJE_DE** pone una cadena `+` sin paréntesis directo en `de` (Σde × pct es lo mismo), y si no, un nodo.
+- **Los auxiliares.** Cada operación anidada y cada número escrito es un nodo `<destino>__<n>`. `n` cuenta desde 1 en **post-orden**: los
+  hijos de izquierda a derecha y después el padre. La fila es la raíz y no se numera: `(remate+fees)*4%` da `total__1` (el `suma`),
+  `total__2` (la constante `4%`) y `total` (el `multiplicar`). Si el id no entra en 41 caracteres se recorta el prefijo. Un nombre solo es un
+  `suma` de uno (`total = suma(remate)`). Un id que ya existe (un nodo, un posterior o una clave de `params`) es `auxiliar_ocupado`: quien
+  recompila no pasa los auxiliares viejos de la misma fila. La etiqueta de un auxiliar es el fragmento del texto, con los espacios juntos y
+  a lo sumo 80 caracteres. El mismo texto y el mismo contexto dan siempre los mismos ids, en el mismo orden.
+- **Lo que decide `validarFormula()`**, no el compilador: un `SI` en la fila del total (`total_fijo`), un total que no es un monto, el
+  `doble_conteo` de un grupo. Todo grafo que compila y respeta esas reglas pasa `validarFormula()` y `validar_formula()`.
+
+### Los errores
+
+Cada error tiene un código estable (`CODIGOS_DE_COMPILACION` en `entities/motivos-del-compilador.ts`) y su tramo exacto. Se nombra **el
+primero del texto** (el léxico se lee de a un token, junto al parser); al final del texto, un operador suelto va antes que un paréntesis
+sin cerrar.
+
+| Grupo                | Códigos                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| el texto             | `texto_vacio` (vacío, sólo espacios o sólo `=`), `caracter_invalido`, `coma`, `separador_fuera_de_funcion`, `numero_mal_escrito`, `numero_fuera_de_rango`                    |
+| paréntesis y valores | `parentesis_sin_cerrar` (en el último abierto), `parentesis_de_mas`, `operador_suelto`, `falta_un_valor`, `falta_un_operador`, `porcentaje_sin_numero`, `demasiado_profundo` |
+| los nombres          | `nombre_desconocido`, `referencia_a1`, `referencia_hacia_adelante`, `ciclo`, `grupo_sin_suma`, `variante_en_calculo`                                                         |
+| las funciones        | `funcion_desconocida`, `hoy_no_soportado`, `cantidad_de_argumentos`, `argumento_invalido`, `no_es_bandera`, `grupo_inexistente`, `grupo_vacio`                               |
+| el resultado         | `auxiliar_ocupado`, `demasiados_terminos` (más de 100.000 términos, contando lo que expande un `SUMA`)                                                                       |
+
+### Escala y entrada adversaria
+
+- **Nada recursivo.** Un parser de dos pilas (operandos y operadores) con una pila de marcos para los paréntesis y las funciones, y una
+  emisión en post-orden con pila explícita. Diez mil paréntesis dan `demasiado_profundo` (el 65.º, en su posición) y una cadena de 30.000
+  operadores alternados, un árbol de 30.000 niveles, sin un `RangeError`. La profundidad máxima es 64 (`MAXIMO_DE_PROFUNDIDAD`).
+- **Lineal.** Todo bucle y toda búsqueda pasan por `medidor.ts`. `k = 70` se fija contando pasadas (`compilador-escala.test.ts`): por carácter
+  el léxico y la tabla de líneas (2), por token leerlo, el bucle, buscar el nombre y reducir (4), por auxiliar la emisión (3), su etiqueta
+  (a lo sumo 100) y su posición, y 3 por nodo del contexto y por miembro expandido. Medido: de 2,8 a 22 visitas por unidad de tamaño, y diez
+  veces más texto son entre 9,5 y 10,0 veces más visitas (100.000 caracteres con 2.000 referencias; 30.000 operadores alternados; paréntesis
+  y precedencia; `SUMA` de 1.000 miembros repetida).
+- **Las pruebas:** `casos-del-compilador.json` (a mano: nodos, `params`, tramos y cada código con su posición exacta),
+  `compilador-propiedades.test.ts` (2.500 expresiones al azar con semilla fija contra el cálculo directo en JS, bit a bit: un resultado que
+  no es finito es null, −0 es 0 y dividir por 0 es null; 0,1+0,2+0,3 y su orden contrario, ±0, ∞ y 1e-300; 6.000 cadenas al azar y 1.500
+  textos válidos con un carácter cambiado que nunca lanzan) y `compilador-escala.test.ts`. Doce de los casos compilados están en
+  `casos-de-formula.json` como válidos (`compilada: …`), así que `validar_formula()` los compara sola en `pnpm db:probar`;
+  `compilador-casos-de-formula.test.ts` los recompila y exige que el JSON sea igual.
 
 ## Tipos de cambio y modos (D7, H1)
 

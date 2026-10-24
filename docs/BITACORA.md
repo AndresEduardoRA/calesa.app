@@ -1184,3 +1184,78 @@ Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de �
 **Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.06, prompt 1 de 2** (`3eaa087` y `fa4a630`): `evaluar_formula()` en la base, espejo exacto de `evaluar()` (los mismos float8, estados, fuentes, totales, faltantes y descartados, y los mismos errores de llamada con el código en DETAIL; pura: las tablas vivas llegan en la entrada; 200 y 2.000 nodos en 5,1 y 43,7 ms con 0 buffers), probada con los 84 casos y un corpus de 775 casos (0 diferencias, también en Postgres 17), la aritmética contra JS y 312 mutaciones (300 muertas y 12 equivalentes con su razón); **4-2** anotado. Antes: **4.05 entero** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.06-1).
 
 1. **4.06, prompt 2** (`cotizacion_evaluar()` sobre `evaluar_formula()` y `supabase/tests/medir-evaluar.sql`, en `db:medir:volumen`: 200 llamadas con el plan genérico ya armado, con 50.000 y 250.000 cotizaciones) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.06-1: armar `entrada.tablas` con `order by orden` y un desempate estable (`orden` admite repetidos), pasar `definicion` y `params` tal cual (la función los desarma una vez al entrar) y contar con que 4 tablas vivas de 1.000 filas cuestan 28 ms con 200 nodos (16 congeladas: la forma de la entrada se revisa), contra el p95 ≤ 50 ms del paso. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.
+
+## 2026-10-23 — Paso 4.07, prompt 1 de 2: el compilador de fórmulas como texto y el cierre de 4-2
+
+**Horas** (`.git/logs/HEAD`, hora de La Paz): `f622424` a las 20:29 (35 min tras el cierre del 4.06, 19:53), `75c3896` a las 20:48 y `865bdea` a las
+21:38; el e2e completo de escritorio, de 21:45 a 22:11. Decisiones bd a bn: `docs/DECISIONES.md`, 2026-10-23, «Paso 4.07 (1 de 2)».
+
+**Qué se hizo:**
+
+- **4-2 cerrado** en `validar.ts`: un `__proto__` en un `match` y en `params` se rechaza con la misma regla y el mismo `donde` que la base
+  (que no cambió). Cinco casos nuevos en `casos-de-formula.json`.
+- **El compilador** `compilarExpresion(texto, contexto)` (`entities/compilador*.ts`, 10 archivos de menos de 300 líneas): léxico leído de a un
+  token, parser iterativo de dos pilas, aplanado de `a+b+c`, cinco funciones, nodos auxiliares `<fila>__<n>` en post-orden, 28 códigos de error
+  con su tramo (UTF-16, línea y columna). `HOY()` se rechaza (4-4).
+- **Pruebas:** 153 casos a mano (`casos-del-compilador.json`), 2.500 expresiones al azar contra el cálculo directo en JS bit a bit (con
+  0,1+0,2+0,3 y su orden contrario, ±0, ∞ y 1e-300), 7.500 textos adversarios, la escala con el medidor y doce casos «compilada: …» en el juego
+  que la base compara sola. `casos-de-formula.json` pasó de 61 a 79 casos.
+- **Escala:** `k = 70` contada por pasadas; medido, de 2,8 a 22 visitas por unidad de tamaño, y diez veces más texto son de 9,5 a 10,0 veces
+  más visitas. 100.000 caracteres con 2.000 referencias, 10.000 paréntesis (error de profundidad, sin `RangeError`) y 30.000 operadores
+  alternados (un árbol de 30.000 niveles) compilan o fallan limpio. Dos versiones cuadráticas de referencia (buscar por la lista, copiar los
+  términos) caen contra esa cota.
+
+**Mutaciones: 159, 159 muertas** (la primera pasada fueron 187; de las 166 que la segunda tenía en la lista, 7 ya no aplican porque ese código se eliminó). Cada una cambia el texto del compilador y corre sus cuatro archivos de prueba (`--bail 1`); el archivo se
+restauró desde una copia y se comprobó con `cmp`.
+
+| Grupo                       | Mutaciones | Qué se rompe                                                                                                                                         |
+| --------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| precedencia y asociatividad | 7          | cada operador sube o baja, la asociación a la derecha, reducir al revés                                                                              |
+| aplanado                    | 8          | a través de un paréntesis, de una función, la división, otra operación, nunca, el hijo nuevo primero, hijos al revés, todo es función                |
+| operaciones                 | 4          | `+`, `-`, `*` y `/` cada uno con la operación de otro                                                                                                |
+| posiciones                  | 14         | el tramo al aplanar y al abrir un paréntesis, `HOY`, función desconocida, línea y columna desde 0, el largo, el comienzo de línea, el emoji          |
+| números y léxico            | 27         | el menos, `-0`, el `%` (cinco), `.5`, `1.`, `1e`, `4x`, `1.2.3`, `1E`, `$`, los espacios, el `=` inicial, los exponentes enormes, un infinito        |
+| funciones y argumentos      | 30         | la profundidad, mayúsculas, `HOY`, el pct, el grupo propio y el vacío, el rango de `REDONDEAR`, la bandera, los ids de 41 y 42 letras, la cuenta     |
+| estructura                  | 5          | reducir a través de los marcos, el paréntesis marca, el `;` fuera de una función, el final del texto                                                 |
+| nombres                     | 12         | la fila misma, la variante, los posteriores, un grupo suelto, la celda A1 (cuatro), los ids reservados, el orden de los miembros                     |
+| auxiliares, fila, formato   | 15         | el id recortado, la numeración, el orden de los hijos, un id ocupado, lo de la fila en los auxiliares, el formato `pct`, la etiqueta                 |
+| un código de error cambiado | 30         | cada sitio donde se escribe un código, cambiado por otro                                                                                             |
+| versión cuadrática          | 5          | buscar por la lista, copiar los términos, cortar el resto del texto en cada token, leer 10.000 caracteres por etiqueta, la tabla de líneas por tramo |
+| topes                       | 2          | el tope de términos estricto y enorme                                                                                                                |
+
+- **Treinta y cuatro vivas en la primera pasada** (187 mutaciones): 15 eran ramas inalcanzables que repetían un código de error (ahora cada
+  código se escribe una vez, en `faltaUnValor()`, `demasiadosTerminos()`, `argumentoInvalido()` y `funcionDesconocida()`, y el camino alcanzable
+  los usa), 4 eran código redundante (se quitó un `Math.max`, una guarda de id vacío, un `s.length > 0` y una rama de `numero_fuera_de_rango`),
+  y 15 pidieron casos: ver `docs/DECISIONES.md`. Quedan 159 aplicadas porque los códigos duplicados dejaron de ser sitios y se quitó código redundante.
+- **Dos con resultado raro en la segunda pasada** (`SUMA` con los miembros al revés y `PORCENTAJE_DE` sin marcar el literal) cayeron al
+  repetirlas solas.
+
+**Del entorno y de lo que se aprendió:**
+
+- **El hook de Stop contamina un arnés de mutaciones,** como una medición cronometrada: corrió la suite entera, tres veces, mientras un
+  archivo estaba mutado, y dio falsas fallas (una `HOY()` con otra posición, un `par` sin usar). Se esperó con un bucle de primer plano o
+  con un monitor, y las dudosas se repitieron solas.
+- **El primer `next build` del e2e se detuvo con `SecurityFatalError`** (el aviso conocido, sin red hacia el registro): se repitió una vez y
+  pasó. No se corrió `next upgrade`.
+- **Una heurística de «no se llama a sí misma»** por conteo de nombres contaba la definición más la llamada desde otra función; se hizo
+  por cuerpo de función.
+- **`new URL('literal', import.meta.url)`** en un test falla en Vitest: la ruta va por una variable.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (338 archivos, 3.567 pruebas), `bash scripts/mapa.sh --check`, `pnpm db:probar` (los 79
+casos del juego dan la misma regla y el mismo `donde` en la base; el corpus de 544 no cambió ni un byte) y el e2e completo de escritorio:
+**e2e completo: sí (Nivel 2: se tocaron `supabase/tests/validar-formula.sql` y `corpus-de-formula.test.ts`, pero ni migraciones ni esquema;
+lo pidió el prompt)** — 666 en verde, 16 saltados, 0 fallos, 25,3 min.
+
+**Lo que no se hizo:**
+
+- 4-3 (un `campo` con punto), guardar el texto en la fórmula, el editor y la interfaz, ni cambios en `validar_formula()` (prompt 2);
+- exportar el compilador desde `index.ts`, ni tocar el motor;
+- `next upgrade`, ni empujar.
+
+## 2026-10-23 — Movido de ESTADO (4.07-1)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual» y el punto 1 de «Siguiente»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.06 entero** (el prompt 2 de 2: `3809c47` y `ebcc94f`): `cotizacion_evaluar()` y su ayudante `_cotizacion_armar()` en la base (con una cotización usa SU fórmula, SUS tipos de cambio congelados y SU vehículo; con un origen, la publicada; lee sólo las tablas que un nodo nombra y la fórmula no congeló, por el índice nuevo `tablas_referencia_filas_tabla_orden_idx`, y sólo los campos del vehículo que ella nombra; sin `execute` para `authenticated` hasta el 4.10), con la paridad de 82 de los 84 casos y 603 del corpus (0 diferencias), 31 mutaciones y el assert de tiempo con 50.000 y 250.000 cotizaciones (la fórmula del seed, mediana de 2,5 ms; la sintética de 200 nodos con 4 tablas de 1.000 filas, p95 de 36 ms; no crece con las cotizaciones); **4-3** anotado. Antes: **4.06-1** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-23, «movido de ESTADO», 4.06-2).
+
+1. **4.07** (fórmulas como texto: el compilador a grafo; decide **4-3**, un `campo` con punto) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.06-2: un nombre de campo del vehículo es una columna (`anio`, `marca`, `modelo`, `kilometraje`, `precio`) o la clave de un campo del origen, sin puntos; las `entradas` de `cotizacion_evaluar()` sólo llevan `inputs`, `banderas`, `overrides` y `variante` (lo demás lo pone la base); «la primera fila» de una tabla es la de menor `orden` y, repetido, la de menor `id`; hasta el 4.10 nadie la ejecuta desde la interfaz. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.
