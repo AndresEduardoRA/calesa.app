@@ -268,7 +268,6 @@ returns jsonb language plpgsql security definer set search_path = '' as $$
 declare o public.cotizaciones_niveles; v_version timestamptz;
 begin
   perform public.assert_permiso('equipo.roles.gestionar');
-  lock table public.cotizaciones_niveles in share row exclusive mode;
   select * into o from public.cotizaciones_niveles x where x.id = p_id for no key update;
   if not found then
     raise exception 'Ese nivel ya no existe.' using errcode = 'PT409';
@@ -286,8 +285,8 @@ revoke all on function public.nivel_retirar(uuid, timestamptz) from public, anon
 grant execute on function public.nivel_retirar(uuid, timestamptz) to authenticated;
 
 -- Sólo uno que ninguna versión de ninguna fórmula nombra. Con uso responde cuánto y ofrece retirarlo.
--- Orden: el candado de la tabla y el de la fila ANTES de mirar el uso. Publicar toma el nivel `for key share` antes de escribir: o publica y este
--- nivel ya no se elimina, o se elimina y publicar da `nivel_inexistente`. Después, los roles que lo tienen concedido (en orden de id, como
+-- Orden: el candado de la fila (`for update`) ANTES de mirar el uso. Publicar toma el nivel `for key share` antes de escribir: o publica y este
+-- nivel ya no se elimina, o se elimina y publicar da `nivel_inexistente`. Sin candado de tabla: la fila ya serializa con retirar, renombrar y publicar. Después, los roles que lo tienen concedido (en orden de id, como
 -- `_rol_para_editar`): `rbac_eliminar_rol` borra sus concesiones en otro orden y sin esto podría cruzarse (40P01).
 create or replace function public.nivel_eliminar(p_id uuid, p_actualizado_en_esperado timestamptz)
 returns jsonb language plpgsql security definer set search_path = '' as $$
@@ -295,7 +294,6 @@ declare o public.cotizaciones_niveles; v_uso jsonb; v_celdas int; v_secciones in
   v_ver text; v_editar text;
 begin
   perform public.assert_permiso('equipo.roles.gestionar');
-  lock table public.cotizaciones_niveles in share row exclusive mode;
   select * into o from public.cotizaciones_niveles x where x.id = p_id for update;
   if not found then
     raise exception 'Ese nivel ya no existe.' using errcode = 'PT409';
