@@ -37,6 +37,11 @@ export const MEDICIONES_BASE = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-nodos-visibles.sql',
+    '_nodos_visibles() con 255 y con 2.487 nodos (ms y buffers del EXPLAIN, contra lo que cuesta leer la fila) y _nivel_uso() con 200 y con 2.000 versiones que nombran el nivel',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-evaluar-formula.sql',
     'evaluar_formula() con una evaluación sintética de 200 y de 2.000 nodos y con 4 tablas de 1.000 filas, como authenticated (ms y buffers del EXPLAIN)',
     'mediana de 5 de 7 corridas',
@@ -93,6 +98,9 @@ export const DATOS_DE_MEDICION = {
     _disenos_sinteticos: ['supabase/tests/corpus-de-diseno.json', 'sinteticas'],
   },
   'supabase/tests/medir-publicar.sql': {
+    _disenos_sinteticos: ['supabase/tests/corpus-de-diseno.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-nodos-visibles.sql': {
     _disenos_sinteticos: ['supabase/tests/corpus-de-diseno.json', 'sinteticas'],
   },
   'supabase/tests/medir-evaluar-formula.sql': {
