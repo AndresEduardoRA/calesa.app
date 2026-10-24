@@ -753,40 +753,40 @@ nada de CSS, clases, HTML ni hex. Hecho en el paso 4.08, prompt 1.
 `1.0` y `0.99999999999999999` valen 1) e ids. Su `donde` es el id (crudo, si es un texto) de la sección donde está el primer error de Zod;
 en la cabecera, la tarjeta o la raíz, ninguno. Zod recorre cabecera, secciones (en orden), tarjeta y, al final, las claves desconocidas.
 
-**Después, 27 reglas cruzadas,** cada una con un código estable (`entities/motivos-de-diseno.ts`; el texto es de cada lado). `donde` es el
+**Después, 28 reglas cruzadas,** cada una con un código estable (`entities/motivos-de-diseno.ts`; el texto es de cada lado). `donde` es el
 id del nodo, la sección, el modo o el grupo donde se rompe; la base lo pone en `hint`.
 
-| Regla                                                       | Qué rechaza                                                                                                                                                                                                                   | `donde`              |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| `modo_duplicado`, `modo_sin_total_en`                       | dos modos con una clave; un modo en una fórmula sin `total_en`                                                                                                                                                                | la clave del modo    |
-| `modo_bucket_inexistente`, `modo_bucket_repetido`           | un bucket que la fórmula no tiene; el mismo bucket dos veces                                                                                                                                                                  | la clave del modo    |
-| `modo_tipo_de_cambio_inexistente`, `modo_incompleto`        | el `nodo` de un bucket o el `total_en` que no es un `tipo_cambio`; un bucket de la fórmula sin llenar                                                                                                                         | la clave del modo    |
-| `seccion_duplicada`                                         | dos secciones con un id                                                                                                                                                                                                       | el id                |
-| `nivel_inexistente`, `nivel_retirado`                       | un nivel de una sección o de una celda que no es «todos» ni existe; uno retirado                                                                                                                                              | la sección o el nodo |
-| `nodo_inexistente`                                          | un ítem o la tarjeta nombran un nodo que no existe                                                                                                                                                                            | el id nombrado       |
-| `celda_no_es_valor`                                         | una celda de la variante o de una bandera                                                                                                                                                                                     | el nodo              |
-| `secundario_sin_porcentaje`, `par_sin_secundario`           | un `secundario` en una celda que no es un `porcentaje_de`; la celda de un `porcentaje_de` sobrescribible sin él                                                                                                               | el nodo              |
-| `atajos_no_es_tabla`, `atajos_no_sobrescribible`            | atajos sobre un nodo que no es `tabla`; sobre una tabla que no se sobrescribe                                                                                                                                                 | el nodo              |
-| `variante_no_es_opcion`, `interruptor_no_es_bandera`        | una variante que no nombra el `opcion`; un interruptor que no nombra una `bandera`                                                                                                                                            | el nodo              |
-| `interruptor_sin_efecto`, `subtotal_no_es_calculo`          | su bandera no condiciona nada (ni pide un dato, si es «habilita»); un subtotal que no es un `calculo`                                                                                                                         | el nodo              |
-| `nivel_no_admitido`                                         | el total, una salida `aparte` (en una celda o un subtotal) o la variante con un nivel efectivo que no es «todos»: la base siempre manda el total y lo `aparte` (D7) y la variante titula el PDF, que sólo lleva lo de «todos» | el nodo              |
-| `nodo_repetido`                                             | un nodo dibujado dos veces; un segundo atajos del mismo nodo; un secundario repetido en la tarjeta                                                                                                                            | el id repetido       |
-| `tarjeta_no_es_el_total`, `tarjeta_secundario_no_es_aparte` | la tarjeta no nombra el total; un secundario que no es una salida `aparte`                                                                                                                                                    | el nodo              |
-| `atajos_sin_celda`, `nodo_con_dos_niveles`                  | unos atajos cuyo nodo no se dibuja; con otro nivel (de ver o de editar) que la celda                                                                                                                                          | el nodo              |
-| `nodo_sin_seccion`                                          | un `input` o una `constante` sin celda (ni como secundario); el `opcion` sin sus chips; una bandera que condiciona algo o pide un dato sin interruptor                                                                        | el nodo              |
-| `tono_inexistente`                                          | el tono de un grupo de la fórmula que no está en el catálogo                                                                                                                                                                  | el id del grupo      |
+| Regla                                                       | Qué rechaza                                                                                                                                                                                                                                                                                                                           | `donde`                            |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `modo_duplicado`, `modo_sin_total_en`                       | dos modos con una clave; un modo en una fórmula sin `total_en`                                                                                                                                                                                                                                                                        | la clave del modo                  |
+| `modo_bucket_inexistente`, `modo_bucket_repetido`           | un bucket que la fórmula no tiene; el mismo bucket dos veces                                                                                                                                                                                                                                                                          | la clave del modo                  |
+| `modo_tipo_de_cambio_inexistente`, `modo_incompleto`        | el `nodo` de un bucket o el `total_en` que no es un `tipo_cambio`; un bucket de la fórmula sin llenar                                                                                                                                                                                                                                 | la clave del modo                  |
+| `seccion_duplicada`                                         | dos secciones con un id                                                                                                                                                                                                                                                                                                               | el id                              |
+| `nivel_inexistente`, `nivel_retirado`                       | un nivel de una sección o de una celda que no es «todos» ni existe; uno retirado                                                                                                                                                                                                                                                      | la sección o el nodo               |
+| `nodo_inexistente`                                          | un ítem o la tarjeta nombran un nodo que no existe                                                                                                                                                                                                                                                                                    | el id nombrado                     |
+| `celda_no_es_valor`                                         | una celda de la variante o de una bandera                                                                                                                                                                                                                                                                                             | el nodo                            |
+| `secundario_sin_porcentaje`, `par_sin_secundario`           | un `secundario` en una celda que no es un `porcentaje_de`; la celda de un `porcentaje_de` sobrescribible sin él                                                                                                                                                                                                                       | el nodo                            |
+| `atajos_no_es_tabla`, `atajos_no_sobrescribible`            | atajos sobre un nodo que no es `tabla`; sobre una tabla que no se sobrescribe                                                                                                                                                                                                                                                         | el nodo                            |
+| `variante_no_es_opcion`, `interruptor_no_es_bandera`        | una variante que no nombra el `opcion`; un interruptor que no nombra una `bandera`                                                                                                                                                                                                                                                    | el nodo                            |
+| `interruptor_sin_efecto`, `subtotal_no_es_calculo`          | su bandera no condiciona nada (ni pide un dato, si es «habilita»); un subtotal que no es un `calculo`                                                                                                                                                                                                                                 | el nodo                            |
+| `nivel_no_admitido`                                         | el total, una salida `aparte` (en una celda o un subtotal), el `pct` `aparte` que muestra una celda con `secundario`, la bandera `aparte` de un interruptor o la variante con un nivel efectivo de ver que no es «todos»: la base siempre manda el total y lo `aparte` (D7) y la variante titula el PDF, que sólo lleva lo de «todos» | el nodo (o el `pct`, o la bandera) |
+| `editar_sin_ver`                                            | una sección con `nivel_ver` restringido y `nivel_editar` ausente o «todos»; una celda cuyo nivel efectivo de ver es restringido y el de editar «todos» (lo que no se ve no se edita; **ver abierto con editar restringido vale**, y también dos niveles restringidos distintos)                                                       | la sección o el nodo               |
+| `nodo_repetido`                                             | un nodo dibujado dos veces; un segundo atajos del mismo nodo; un secundario repetido en la tarjeta                                                                                                                                                                                                                                    | el id repetido                     |
+| `tarjeta_no_es_el_total`, `tarjeta_secundario_no_es_aparte` | la tarjeta no nombra el total; un secundario que no es una salida `aparte`                                                                                                                                                                                                                                                            | el nodo                            |
+| `atajos_sin_celda`, `nodo_con_dos_niveles`                  | unos atajos cuyo nodo no se dibuja; con otro nivel (de ver o de editar) que la celda                                                                                                                                                                                                                                                  | el nodo                            |
+| `nodo_sin_seccion`                                          | un `input` o una `constante` sin celda (ni como secundario); el `opcion` sin sus chips; una bandera que condiciona algo o pide un dato sin interruptor                                                                                                                                                                                | el nodo                            |
+| `tono_inexistente`                                          | el tono de un grupo de la fórmula que no está en el catálogo                                                                                                                                                                                                                                                                          | el id del grupo                    |
 
 - **El orden (el primero que falla manda):** la forma; los modos (por modo: duplicado, sin `total_en`, por cada entrada bucket inexistente,
-  repetido y tipo de cambio; después el `total_en` y lo incompleto); las secciones, ítem por ítem (sección repetida, sus niveles; por ítem:
-  nodo inexistente, lo propio de su tipo, niveles de la celda, `nivel_no_admitido`, `nodo_repetido`); la tarjeta; los atajos (sin celda, otro
+  repetido y tipo de cambio; después el `total_en` y lo incompleto); las secciones, ítem por ítem (sección repetida, sus niveles y `editar_sin_ver` de la sección; por ítem:
+  nodo inexistente, lo propio de su tipo, niveles de la celda, `nivel_no_admitido` —el nodo, después su `pct`, después la bandera de un interruptor—, `editar_sin_ver` de la celda, `nodo_repetido`); la tarjeta; los atajos (sin celda, otro
   nivel); la cobertura, en el orden de la fórmula; los tonos, en el de los grupos. El juego trae un caso de orden por pasada.
 - **El contexto** son tres listas, para que el validador no dependa de tablas que no existen todavía (niveles: 4.09; tonos: prompt 2): los
   niveles que existen, los retirados y las claves de tono. «todos» siempre existe y nunca se retira. El publicar las leerá de sus tablas; el
   ⚙ y la N+1 de una tabla (D5) republican el diseño sin cambiarlo y pasan `retirados` vacío, porque lo que ya usa un nivel retirado se sigue
   filtrando igual. **La definición llega ya validada** por `validarFormula()` (el publicar llama a las dos, en ese orden).
 - **No se valida, a propósito:** que `ayuda.tabla` y `atajos.columna` existan (las tablas viven fuera de la fórmula); qué opciones de la
-  variante dan chip (todas); que una salida `aparte` esté en la tarjeta (la base la manda igual); un `nivel_ver` restringido con
-  `nivel_editar` abierto (depende de qué signifique editar, del 4.09).
+  variante dan chip (todas); que una salida `aparte` esté en la tarjeta (la base la manda igual). (Lo de «un `nivel_ver` restringido con `nivel_editar` abierto» se decidió en el 4.09-1: se rechaza, `editar_sin_ver`.)
 
 ### En la base (4.08-1)
 
@@ -801,15 +801,15 @@ en DETAIL y `donde` en HINT, por el mismo `_formula_rechazar()`. Un arreglo nulo
 
 ### Las pruebas (4.08-1)
 
-- **El juego a mano** (`entities/casos-de-diseno.json`, 225 casos): 33 válidos —el diseño de las capturas con sus modos, el del Excel, el de
+- **El juego a mano** (`entities/casos-de-diseno.json`, 244 casos): 40 válidos —el diseño de las capturas con sus modos, el del Excel, el de
   cada fórmula del seed, el de «Amnistia» (variante sin opción por defecto) y los bordes— y 192 inválidos, uno por regla o por cada forma
   de las que tienen varias, más los de forma (`__proto__` en cada nivel, `ancho: "50%"`, `"mitad; color: red"`, `clase`, `html`…) y los de
   orden. Cuatro fórmulas propias (`capturas`, `minima`, `secundaria`, `tonos_distintos`) y el resto de `casos-de-formula.json`.
-- **El corpus diferencial** (`supabase/tests/corpus-de-diseno.json`, 784 casos, 74 válidos): las 33 válidas mutadas de forma determinista (semilla
+- **El corpus diferencial** (`supabase/tests/corpus-de-diseno.json`, 814 casos, 76 válidos): las 40 válidas mutadas de forma determinista (semilla
   20261024), cada mutador cruzado seis veces solo, uno de forma por cada `/*Dnn*/`, 200 mezclas de dos o tres reglas y 60 con la forma. Lo
   arman `corpus-de-diseno.ts` y los `mutadores-de-diseno*.ts`, y `corpus-de-diseno.test.ts` lo regenera (`ACTUALIZAR_CORPUS=1`) y exige que
   cada comprobación de la migración tenga su mutador. `supabase/tests/validar-diseno.sql` (`pnpm db:probar`) compara regla y `donde` de
-  los 225 y de los 784, y que la base nunca acepte lo que Zod rechaza.
+  los 244 y de los 814, y que la base nunca acepte lo que Zod rechaza.
 - **Las mutaciones (2026-10-24, `docs/BITACORA.md`):** 132 de TS (128 caen y 4 son equivalentes demostradas) y 187 de SQL (180 caen y 7 son
   equivalentes demostradas). Cada regla apagada tumba exactamente sus casos del juego. Los topes de `ayuda.texto` y del `nombre` de un
   modo se cuentan en caracteres (`char_length`): con `octet_length` caen los casos multibyte del juego y del corpus (remiendo 4-7).
@@ -837,8 +837,8 @@ columnas viven en `schemas/07_cotizaciones`.
 - **Publicar** (`formula_publicar()` y el ⚙ → `_publicar_formula()`): toma el borrador `for update` y los tonos de sus grupos `for key share`, valida
   la fórmula y el diseño completo (`validar_diseno()` con los niveles de `_niveles_de_cotizacion()` y los tonos de la tabla) y compila `visibilidad`.
   Dos publicar a la vez: el segundo da PT409 o «No hay borrador». El ⚙ copia el diseño de la publicada y publica con `retirados` vacío.
-- **Los niveles que existen salen de un solo punto,** `_niveles_de_cotizacion(niveles, retirados)`: hoy `{costos}` y `{}` (el 4.09 siembra
-  `cotizaciones_niveles` con «todos» y «costos» y cambia sólo su cuerpo). «todos» no figura: siempre existe y nunca se retira.
+- **Los niveles que existen salen de un solo punto,** `_niveles_de_cotizacion(niveles, retirados)`: hasta el 4.08 `{costos}` y `{}`; desde el 4.09-1 lee
+  `cotizaciones_niveles` (con «todos» y «costos» sembrados) sin cambiar su firma. «todos» no figura: siempre existe y nunca se retira.
 - **`visibilidad`** = `{nodo: {ver, editar}}` con **claves de nivel**, no permisos (los permisos nacen en el 4.09). La regla (`_compilar_visibilidad()`):
   1. cada `celda`, `subtotal`, `variante` e `interruptor` da su nodo con su nivel efectivo (el de la celda, si no el de su sección, si no «todos»), por
      separado para ver y para editar;
@@ -912,7 +912,7 @@ inválido tumba el seed con la regla y su `donde`.
   - «Todos» usa `cotizaciones.ver` y `cotizaciones.crear` o `cotizaciones.editar`.
   - Cómo nace, cómo se retira y por qué no rompe la regla del enforcement: `docs/DECISIONES.md`, «D7».
 - **Al publicar, el diseño se compila a `formulas.visibilidad`** (`{nodo: {ver, editar}}`, claves de nivel), que es lo único que lee la base (la regla, en
-  «En la base (4.08-2)»). Los niveles que existen salen de `_niveles_de_cotizacion()`; la tabla `cotizaciones_niveles` y los permisos son del 4.09.
+  «En la base (4.08-2)»). Los niveles que existen salen de `_niveles_de_cotizacion()`, que desde el 4.09-1 lee la tabla `cotizaciones_niveles` (abajo, «En la base (4.09-1)»).
 - **Lo que no se ve no viaja:**
   - `revoke select (valores, fuentes, totales)` en `cotizaciones`;
   - `cotizacion_leer(id)` recorta por `_nodos_visibles(formula_id)` y siempre trae el total y las salidas `aparte`;
@@ -928,6 +928,42 @@ inválido tumba el seed con la regla y su `donde`.
   no lo bloquea.
 - **Prueba** (`cotizaciones-visibilidad.sql`): sin el permiso del nivel, la clave del nodo no llega por ninguna función del inventario,
   el total sí, y guardar sin mandarla la conserva; con el permiso, llega. «Ver como» no cambia lo que decide la base.
+
+### En la base (4.09-1)
+
+`supabase/migrations/20261019006100_niveles_de_acceso.sql` (la tabla y `permisos.nivel_clave` viven en `schemas/`), `…006200_nivel_no_admitido_del_pct.sql` y `…006300_editar_sin_ver.sql`.
+
+- **La tabla** `cotizaciones_niveles (id, clave, nombre, retirado_en, creado_en, actualizado_en)`: «todos» y «costos» sembrados. La clave sale del nombre (minúsculas, sin tildes,
+  `n_` delante si empieza con un dígito, hasta 30) y no cambia; **no se desambigua**: una clave que ya existe —viva, retirada o «todos»— se rechaza (23505, «Ya hay un nivel con la clave
+  «costos» (retirado)…»). **Tope: 10 niveles** contando «todos» y los retirados (`_niveles_tope()`): como mucho 9 generan permisos, 18 filas más en la matriz de Roles sobre las 72 de hoy
+  y 18 concesiones más en el `mi_sesion()` del dueño; 24 (el de los tonos) la duplicaría para algo que se usa de a dos o tres. Se lee con `select` abierto; se escribe sólo por RPC.
+- **Los permisos** `cotizaciones.nivel.<clave>.ver` y `….editar` (`permisos.nivel_clave`, `por_origen`, sin alcance, `orden` 700 y 701, `aplicado_en` = `_nodos_visibles`) nacen en la
+  misma transacción que el nivel (`_nivel_permisos_crear()`), concedidos al rol `dueno` para todos los orígenes. Los ata en los dos sentidos: un **check** (`permisos_nivel_check`: clave de
+  nivel ⇔ `nivel_clave`, y exactamente `.ver` o `.editar` de ese nivel), una **FK** `on delete restrict` y un **trigger diferido** (`trg_nivel_con_permisos`: al cerrar la transacción, todo
+  nivel salvo «todos» tiene los dos). La regla de la clave de un permiso admite dígitos (`^[a-z]+(\.[a-z0-9_]+){1,3}$`). `_nivel_protegido()`: la clave no cambia, «todos» no se toca y
+  «costos» no se borra.
+- **Las RPC** (`equipo.roles.gestionar`; `search_path` vacío; devuelven `{…, lista}`):
+  - `nivel_crear(p_id, p_nombre)` (idempotente por el id del intento; el candado de la tabla ordena el tope, el nombre y la clave);
+  - `nivel_renombrar(p_id, p_actualizado_en_esperado, p_nombre)` (cambia el nombre del nivel y el de sus dos permisos; no vuelve a conceder lo que alguien le haya quitado al dueño);
+  - `nivel_retirar(p_id, p_actualizado_en_esperado)` (el nivel deja de ofrecerse; sus permisos, concesiones y usos siguen; la fecha de retiro no se pisa);
+  - `nivel_eliminar(p_id, p_actualizado_en_esperado)`: `for update` del nivel **antes** de mirar el uso (`_nivel_en_uso()`: borrador, publicada o archivada); con uso responde 23503, `detail
+nivel_en_uso`, «Está en 6 celdas de 2 orígenes (en alguna versión de su fórmula): no se elimina. Puedes retirarlo…» (`_nivel_uso()` cuenta sólo la versión más nueva de cada origen que lo
+    nombra); sin uso toma `for update` de los roles que lo tienen concedido, borra sus dos permisos (las concesiones caen con ellos), toca la versión de esos roles y borra el nivel.
+  - Todo queda en `actividad` (`nivel.crear|renombrar|retirar|eliminar` con `{clave, nombre}`), sin contenido de fórmula.
+- **Publicar y eliminar no se cruzan:** `_preparar_publicacion()` toma `for key share` los niveles que nombra el diseño (como los tonos); `nivel_eliminar` toma `for update` antes de mirar el
+  uso. O se publica y el nivel no se elimina (23503), o se elimina y publicar da `nivel_inexistente`. **Invariante:** ninguna versión publicada o archivada nombra un nivel que no existe.
+- **`_nodos_visibles(formula_id)`** → `(nodo, editar)` (de nadie; la llamarán las RPC definer de lectura y guardado, 4.10): **un nivel sólo estrecha.** Se ve un nodo de `ver: todos` con
+  `cotizaciones.ver` del origen, y uno de `ver: X` con `cotizaciones.ver` **y** `cotizaciones.nivel.X.ver`; se edita lo que se ve con `cotizaciones.crear` o `cotizaciones.editar` y, si `editar` no es
+  «todos», `cotizaciones.nivel.Y.editar` (un `editar` nulo no se edita; lo que no se ve no se edita, tampoco entre dos niveles distintos). Lo que la fórmula tiene y la visibilidad no nombra sólo
+  llega a quien tiene `cotizaciones.configurar` del origen, sin editar. Usa los permisos **reales** (`mis_permisos()`, una vez); «Ver como» no cambia lo que decide la base. El alcance
+  (`propios`/`todos`) y crear contra editar son de la fila: los decide quien llama (`puede_cotizacion`). Lineal en los nodos: 2.487 nodos en 3,1 ms y 110 buffers (leer la fila cuesta 70).
+- **Las dos reglas del validador** (mismo código y `donde` en TS y en SQL): `editar_sin_ver` y la ampliación de `nivel_no_admitido` (4-9), en la tabla de «Las reglas (4.08-1)».
+- **Pruebas:** `supabase/tests/niveles.sql` (la siembra, el tope, las cuatro RPC, la estructura, el uso, los grants y la actividad), el caso genérico de `permisos-enforcement.sql` (por cada
+  nivel de la tabla, los sembrados y uno creado con `nivel_crear`: sin el permiso los nodos no llegan, con él sí, ver y editar por separado), `scripts/carreras/niveles.mjs` (dos crear con la misma
+  clave, eliminar contra publicar en los dos órdenes, contra retirar y renombrar, crear contra renombrar al mismo nombre, eliminar contra el borrado de un rol sin bloqueo mutuo) y
+  `medir-nodos-visibles.sql`. Detalle de las mutaciones: `docs/BITACORA.md`, 4.09-1.
+- **No está todavía** (prompt 2 y 4.10): la pantalla Configuración › Cotización › Niveles, que la matriz de Roles muestre estos permisos (el catálogo de TS es cerrado y descarta una clave que no
+  conoce), y las lecturas que consumen `_nodos_visibles()`.
 
 ## Lo que se guarda en una cotización
 

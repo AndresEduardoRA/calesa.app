@@ -28,7 +28,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   ítems (`celda`, `atajos`, `variante`, `interruptor`, `subtotal`) y `tarjeta_total`. Declarativo y estricto (nada de CSS, clases, HTML ni hex) y sin
   registros: la clave de cada colección va adentro, así que un `__proto__` es una clave desconocida en los dos lados.
 - `entities/validar-diseno.ts` (con `validar-diseno-contexto.ts`, `-modos.ts`, `-secciones.ts`, `-cobertura.ts` y `motivos-de-diseno.ts`) —
-  `validarDiseno(definicion, diseno, contexto)`: la forma y 27 reglas que cruzan el diseño con la fórmula (modos, niveles, ítems, tarjeta,
+  `validarDiseno(definicion, diseno, contexto)`: la forma y 28 reglas que cruzan el diseño con la fórmula (modos, niveles, ítems, tarjeta,
   atajos, cobertura y tonos), en un orden fijo, lineal y con el contador de `medidor.ts`. El contexto son tres listas: los niveles que existen, los
   retirados y las claves de tono. La definición llega ya validada por `validarFormula()`. Espejo de `validar_diseno()` (abajo).
 - `entities/casos-de-diseno.json` — el juego a mano del diseño (válidos de las capturas, del Excel, de la semilla —uno por origen sembrado— y de «Amnistia»; cada regla con su
@@ -41,7 +41,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 - `supabase/migrations/20261019005700_tonos.sql`, `…005800_formula_con_diseno.sql` y `…005900_formulas_solo_configurar.sql` (4.08-2; `docs/COTIZADOR.md` › «En la
   base (4.08-2)»): `formulas.diseno` y `visibilidad` (en `schemas/`); `formula_guardar_borrador(origen, def, params, diseño, nota?)` (valida la fórmula y la forma del
   diseño; sin default de `p_diseno`); `formula_publicar()` y el ⚙ por `_publicar_formula()` (valida la fórmula y el diseño completo, compila `visibilidad`, **exige el
-  diseño**); `_niveles_de_cotizacion()` (el punto que el 4.09 reemplaza), `_compilar_visibilidad()`, `_nivel_en_uso()`; el catálogo `tonos` y `tono_crear|guardar|eliminar`
+  diseño**); `_niveles_de_cotizacion()` (desde el 4.09-1 lee `cotizaciones_niveles`), `_compilar_visibilidad()`, `_nivel_en_uso()`; el catálogo `tonos` y `tono_crear|guardar|eliminar`
   (AA en la base: `_color_contraste()`, copia de `color.ts`; hasta 24; `_tono_en_uso()`); la policy de lectura de `formulas` sólo para `cotizaciones.configurar` y
   `formula_auditar()` (sin la fórmula en `actividad`). Los ayudantes no son de nadie. Lo prueban `supabase/tests/{tonos,publicar-diseno}.sql`, el corpus
   `corpus-de-contraste.json` (lo genera `corpus-de-contraste.ts`), el bloque de la policy de `humo.sql`, `scripts/carreras/tonos.mjs` y `medir-publicar.sql`.
@@ -52,6 +52,13 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   y pasan el `check` `formulas_publicada_con_diseno` (en `schemas/`). `config.toml` › `[db.seed] sql_paths` fija el orden y `scripts/probar-schema.mjs` lo lee. Los prueban
   `entities/semilla.test.ts` (el juego, el diseño, las cifras de las capturas y del Excel contra `evaluar()`) y `supabase/tests/semilla-cotizador.sql` (lo mismo en la base, con
   `cotizacion_evaluar()`; corre antes que `humo.sql`).
+- `supabase/migrations/20261019006100_niveles_de_acceso.sql`, `…006200_nivel_no_admitido_del_pct.sql` y `…006300_editar_sin_ver.sql` (4.09-1; `docs/COTIZADOR.md` › «En la base (4.09-1)»):
+  la tabla `cotizaciones_niveles` (en `schemas/`, sembrada con «todos» y «costos», hasta 10) y los permisos `cotizaciones.nivel.<clave>.ver|editar` (`permisos.nivel_clave`) que genera cada
+  nivel salvo «todos» y se conceden al dueño; el check, la FK y el trigger diferido que los atan; `nivel_crear|renombrar|retirar|eliminar` (`equipo.roles.gestionar`; eliminar mira `_nivel_en_uso()`
+  y responde cuánto lo usan); `_niveles_de_cotizacion()` leyendo la tabla; el `for key share` de los niveles del diseño en `_preparar_publicacion()`; **`_nodos_visibles(formula_id)`**, el enforcement
+  (un nivel sólo estrecha; de nadie; el 4.10 la consume); y las reglas `editar_sin_ver` y 4-9 (`nivel_no_admitido` también mira el `pct` de un par y el interruptor) de `_diseno_secciones()`. Las
+  prueban `supabase/tests/niveles.sql`, el caso genérico de `permisos-enforcement.sql`, `scripts/carreras/niveles.mjs` y `medir-nodos-visibles.sql`. El catálogo de TS de permisos
+  (`CLAVES_PERMISO`) es cerrado y no conoce estas claves: la matriz de Roles no las muestra hasta el prompt 2.
 - `supabase/migrations/20261019005200_evaluar_formula.sql` — `evaluar_formula(definicion, params, entrada, modo?)` y sus ayudantes `_motor_*`: espejo
   exacto de `motor.ts` (los mismos float8, estados, fuentes, totales, faltantes y descartados; errores de llamada 22023 con el código en DETAIL).
   Pura: las tablas vivas llegan en `entrada.tablas`. Desarma sus argumentos una sola vez y lleva el estado por nodo en arreglos. Lo prueban
@@ -91,8 +98,8 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 
 ## Tablas
 
-`formulas`, `tonos`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
-RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear`, `tono_guardar`, `tono_eliminar`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
+`formulas`, `tonos`, `cotizaciones_niveles`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
+RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear`, `tono_guardar`, `tono_eliminar`, `nivel_crear`, `nivel_renombrar`, `nivel_retirar`, `nivel_eliminar`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
 
 ## No se rompe
 
@@ -104,8 +111,8 @@ RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador
   nuevo = tipo discriminado (`nodos.ts`) + `switch` exhaustivo (`referenciasDe()`) + caso en `validar_formula()` y en el juego de prueba.
 - **Toda copia de una versión lleva el diseño** (el ⚙ pasa `v_pub.diseno`; revertir y la N+1 de una tabla, cuando existan, también): publicar lo exige, y un cambio de
   diseño publica la N+1, así que «desactualizada» y D5 lo cuentan solos. El ⚙, revertir y la N+1 publican con `retirados` vacío: lo que ya usa un nivel retirado se
-  sigue filtrando igual. **Un tono o un nivel que una versión nombra no se elimina** (`_tono_en_uso()`, `_nivel_en_uso()`). **Los tonos y los niveles que existen salen
-  de un solo punto cada uno** (la tabla `tonos` y `_niveles_de_cotizacion()`): nada escribe «costos» a mano fuera de él. `formulas` sólo la lee quien configura.
+  sigue filtrando igual. **Un tono o un nivel que una versión nombra no se elimina** (`_tono_en_uso()`, `_nivel_en_uso()`; un nivel se retira). **Los tonos y los niveles que existen salen
+  de un solo punto cada uno** (la tabla `tonos` y `_niveles_de_cotizacion()`, que lee `cotizaciones_niveles`): nada escribe «costos» a mano fuera de él. `formulas` sólo la lee quien configura.
 - **D7 (2026-10-22):**
   - la hoja **calcula en la base** (`cotizacion_evaluar()` sobre `evaluar_formula()`, espejo de `motor.ts`) para todos;
   - **la fórmula (`definicion`, `params`, el texto) viaja sólo a quien tiene `cotizaciones.configurar`**, y `motor.ts` queda para el

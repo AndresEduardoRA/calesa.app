@@ -1658,3 +1658,78 @@ los tipos de cambio, así que sus 9,73 y 10 sólo se tipean en el motor (el edit
 tres orígenes.
 
 **Lo que no se hizo:** `cotizaciones_niveles` y sus permisos (4.09), ninguna interfaz, la lectura recortada por nivel (4.10), subir un tope, `next upgrade` ni empujar.
+
+## 2026-10-24 — Movido de ESTADO (4.09-1)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente» y, de «Funcionando», «Último Nivel 2 (escritorio), el paso 4.08 prompt 3: 666 en verde, 16 saltados, 0 fallos, 24,8 min.»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.08 entero** (tres prompts): el modelo del diseño de la hoja y su validación (`validar_diseno()`, 27 reglas), `formulas.diseno` y `visibilidad` con el catálogo de **tonos**, y la **semilla** (4.08-3): los tipos de cambio `unificado` y `aduana`, las tres fórmulas v1 con su diseño por el mismo camino que publicar (`_preparar_publicacion()`; `subasta_usa` = la de las capturas, el origen nuevo `planilla_usa` = el Excel, `oficina`), el transporte del Excel sobrescribible y el `check` «una versión publicada tiene diseño y visibilidad». Antes: **4.07** entero, **4.06**, **4.05**, **4.04** a **4.01**; **4-4**, **4-5**, **4-6**, **4-8**, **4-9** y **4-10** siguen abiertos. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24, «movido de ESTADO», 4.08-1, 4.08-2 y 4.08-3).
+
+1. **4.09, los niveles de acceso** (`cotizaciones_niveles` sembrada con «todos» y «costos», sus permisos por origen, la matriz de Roles, Configuración › Cotización › Niveles) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda: `_niveles_de_cotizacion()` es el único cuerpo que cambia, y la tabla **tiene que traer «costos»**: los diseños sembrados de `subasta_usa` y `planilla_usa` lo nombran en «Avanzado»; `nivel_eliminar` llama a `_nivel_en_uso()`; **4-9**; y qué significa `nivel_editar` restringido con `nivel_ver` abierto se decide acá. Para el 4.10: `visibilidad` no cubre los subtotales por grupo ni las tablas de referencia (policy `true`); `cotizaciones.modo_tc` guarda la clave de un modo de la cabecera (`subasta_usa` trae `paralelo` y `unificado`); el ⚙ de un tipo de cambio es `tipo_cambio_guardar`; las `entradas` de `cotizacion_evaluar()` sólo llevan `inputs`, `banderas`, `overrides` y `variante`; el transporte sembrado casa `tipo` con `tipo_vehiculo` (lo que trae la subasta, «AUTOMOBILE», no casa: queda sin valor y se tipea). Para el 4.21: un campo del vehículo es una columna o la clave de un campo del origen, **sin puntos**, y la fila que guarda el editor es `{ ...raíz compilada, texto }`.
+
+## 2026-10-24 — Paso 4.09, prompt 1 de 2: los niveles de acceso en la base (4.09-1)
+
+**Horas** (hora de La Paz): empezó a las 13:34. El Nivel 2 corrió así: `pnpm lint`, `typecheck`, `test`, `db:probar`, `db:lint`, `db:carreras` y `mapa.sh --check` de 15:53 a 15:59; `db:medir` y `db:sembrar-volumen` con
+`db:medir:volumen` de 16:00 a 16:07; el e2e completo, de 16:09:06 a 16:35:47 (el primer intento se detuvo a 16:10:08 en `next build` por el aviso de seguridad de Next, antes de correr un solo e2e, y se repitió una vez).
+Decisiones df a do: `docs/DECISIONES.md`, 2026-10-24, «Paso 4.09 (1 de 2)». Antes de empezar: no había un `functions serve` en segundo plano (`pgrep` sólo devolvió su propio shell) y `git status` estaba limpio.
+
+**Qué se hizo** (ocho commits de código y pruebas, y este cierre como el 9.º):
+
+- **`3dbdafc` — la base.** `cotizaciones_niveles` y `permisos.nivel_clave` con su check y su FK (en `schemas/` y la base regenerada), `…006100_niveles_de_acceso.sql` (el tope de 10, las cuatro RPC, `_nivel_permisos_crear()`, el trigger diferido,
+  `_nivel_protegido()`, `_nivel_uso()`, `_niveles_de_cotizacion()` desde la tabla, el `for key share` en `_preparar_publicacion()` y `_nodos_visibles()`), `database.types.ts`, el caso genérico de `permisos-enforcement.sql` y la excepción en
+  `.claude/rules/migraciones.md`.
+- **`76f0adb` — 4-9.** `nivel_no_admitido` mira el `pct` de un par y el interruptor, en TS y en `…006200`; las fórmulas `aparte_restringido` y `aparte_doble` del juego, nueve casos, dos mutadores y `publicar-diseno.sql`.
+- **`08d8b06` — `editar_sin_ver`.** La regla en los dos validadores (`…006300`), 8 casos nuevos y 8 corregidos, cuatro mutadores en `mutadores-de-diseno-niveles.ts`, el corpus regenerado.
+- **`8bf1f85`** (el candado de tabla sobraba en retirar y eliminar), **`e14c988`** (`niveles.sql`, `scripts/carreras/niveles.mjs`), **`6b5f775`** (la guarda por relación de ARMAR, 4-11), **`e33bbb6`** (`_nodos_visibles()` pasa de cuadrática a lineal)
+  y **`2f0fedc`** (`medir-nodos-visibles.sql`).
+
+**Del plan, tal como se aprobó** (y lo que el revisor en contra cambió): el índice de `permisos.nivel_clave` lo crea solo `…000900_indices.sql` (uno explícito chocaba por nombre); los mutadores de 4-9 no se aplicaban a ninguna fórmula del juego (hizo falta una fórmula con un
+`pct` y una bandera `aparte`); G no tenía una decisión si el guard no caía; la regla ver/editar invalidaba 3 casos válidos; `escala.sql` rechaza un `count(` sin `limit`; `permisos-enforcement.sql` corre antes que `publicar-diseno.sql` y tiene que dejar la base como la encontró;
+`nivel_eliminar` y `rbac_eliminar_rol` borran concesiones en órdenes distintos (candado de los roles); y `_nodos_visibles` no puede dejar que un nivel conceda por sí solo.
+
+**Lo que se corrigió al implementar:**
+
+- **`_nodos_visibles()` era cuadrática,** y la encontró la medición nueva (56 ms y 50.185 buffers en 5 medidas con 2.487 nodos, 48,8 veces los ms de 255 nodos): `v_vis ? id` por nodo relee el jsonb entero si llega como puntero TOAST. Ahora es una resta de conjuntos (3,1 ms, 110 buffers).
+- **El candado de tabla de `nivel_retirar` y `nivel_eliminar` era redundante** (la mutación que lo quitaba no caía): la fila los serializa. Se quitó. El de `crear` y `renombrar` sí importa, y tiene su carrera (crear contra renombrar al mismo nombre).
+- **El candado de los roles de `nivel_eliminar` no lo veía la primera carrera** (B esperaba igual en `_rol_tocar`): hizo falta una con interleaving real —A toma el rol, B empieza, A borra el rol— que da 40P01 sin el candado y termina con él.
+- **La regla de la clave de un permiso no admitía dígitos** y la de un nivel sí podía llevarlos; se amplió después del primer segmento.
+- **`mutadores-de-diseno-items.ts` pasó de 300 líneas:** los de niveles viven en `mutadores-de-diseno-niveles.ts`. `atajos_con_otro_nivel` se partió en dos deterministas (sólo editar; ver y editar) para no perder el piso de «cada regla, primera en ≥ 5».
+- **Cuatro mutaciones vivas de la primera pasada eran huecos de la prueba** y tienen su caso: retirar dos veces (la fecha no se pisa), un ítem de atajos que no cuenta como celda, el trigger diferido sobre `permisos` (el del alta tapaba al del borrado) y el orden «nodo antes que su `pct`».
+- **Un commit se rechazó dos veces por el asunto de más de 72 caracteres** (el hook corre el esquema entero antes: ≈ 4 min cada intento); desde entonces el mensaje se valida con `commitlint` antes de commitear.
+
+**Mutaciones: 127, y 120 caen** (7 equivalentes demostradas). El arnés de SQL, sobre PGlite en transacción y copia de `supabase/`; los candados, contra la base real (la función mutada con `psql` y el original reaplicado); las de TS, con respaldo, `cp` y `cmp`.
+
+| Grupo                                                        | Mutaciones | Caen | Qué se rompe                                                                                                                                                                   |
+| ------------------------------------------------------------ | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Estructura (check, FK, trigger diferido, protección, únicos) | 14         | 14   | el check (3), la regla sin dígitos, la FK `cascade`, el largo de la clave, el nombre único, **el trigger diferido (3)**, «todos», la clave y «costos» protegidos               |
+| Tope y clave                                                 | 5          | 5    | **el assert del tope** (11, `>`), el prefijo `n_`, el largo 31, la clave corta                                                                                                 |
+| RPC y permisos (crear, renombrar, retirar, eliminar)         | 21         | 21   | **sin la concesión al dueño**, un solo permiso, sin `assert_permiso` (cuatro), la clave repetida, `(retirado)`, el reintento, la versión, «todos», la fecha de retiro          |
+| Uso, grants, lista y actividad                               | 11         | 11   | **`_nivel_en_uso` que sólo mira la publicada**, sin borrador o sin archivadas, `_nivel_uso` que suma versiones, la actividad con la fórmula, los ayudantes ejecutables         |
+| `_nodos_visibles`                                            | 13         | 13   | sin el permiso del nivel, sin `cotizaciones.ver`, editar sin crear, sin el nivel de editar, el nulo editable, el origen, lo no dibujado, quien configura                       |
+| Candados, contra la base real (`db:carreras`)                | 7          | 7    | **eliminar sin `for update`**, publicar sin `for key share`, crear y renombrar sin el candado de tabla, retirar sin `for no key update`, sin el de los roles, sin mirar el uso |
+| Validador 4-9, TS (12) y SQL (12)                            | 24         | 19   | el `pct` y el interruptor, su `donde`, el orden, `secundario`; 5 equivalentes: `total` en un `pct` o en una bandera no pasa `validarFormula()`, y `pctDe` sin la operación     |
+| Validador `editar_sin_ver`, TS (14) y SQL (14)               | 28         | 26   | la sección y la celda, su `donde`, el sentido contrario, dos niveles distintos, ver abierto, el orden (tres); 2 equivalentes: la regla para todo ítem (la sección ya la cubre) |
+| Guarda de ARMAR sobre la función real                        | 4          | 4    | una tabla más y un N+1 por tabla (sólo los ve la guarda por relación), un N+1 por fila y una lectura doble                                                                     |
+
+**Todo test nuevo falló primero contra HEAD:** `permisos-enforcement.sql` y `niveles.sql` (13 bloques) contra una copia de `supabase/` de HEAD (`column "nivel_clave" does not exist`, `relation … does not exist`); los 5 casos de 4-9 del juego y los 6 de `editar_sin_ver`, contra el
+validador de HEAD; 5 casos del juego y 12 del corpus, contra la base de HEAD; y la versión «una tabla más» contra el guard de HEAD (373 contra 382). Las carreras y `medir-nodos-visibles.sql` no se pueden correr contra HEAD (no existen los objetos);
+la medición sí cayó antes del arreglo (48,8 contra 12).
+
+**4-11, el guard de ARMAR** (el pedido: demostrar que sigue vigilando; si no, revertir). Medido antes de tocar nada: ARMAR de la sintética 285 contra un tope de 341 (costo fijo 179); con volumen, 330 contra 382 (213). Una tabla viva más: **330 contra 342 y 373 contra 382, no caía.**
+El costo fijo vale 162, 179, 195, 204 y 213 en las corridas medidas. La persona eligió la guarda por relación, **sin revertir** (revertir no cambia la causa) y sin tocar ningún tope: 163 bloques contra 163 de la referencia, y seis versiones malas la superan (195, 206, 310, 937, 12.860 y 16.163).
+`docs/PLAN.md` ya tiene la entrada 4-11 y `docs/RENDIMIENTO.md` las cifras.
+
+**Cifras** (`docs/RENDIMIENTO.md`): `_nodos_visibles` 0,7 y 3,1 ms con 255 y 2.487 nodos (razón 4,4), 50 y 110 buffers; `_nivel_uso` 1,6 y 12,2 ms con 200 y 2.000 versiones; publicar 17,4 y 167,1 ms (antes 17,5 y 172), 1.646 y 17.740 buffers (antes 1.902 y 17.144; tope 20.600), razón 10,8.
+
+**Verificación (Nivel 2):** `pnpm lint`, `pnpm typecheck`, `pnpm test` (3.904 pruebas, 347 archivos), `pnpm db:reset`, `pnpm db:types` (sin cambios tras el último arreglo), `pnpm db:probar` (336 bloques), `pnpm db:lint` (sin errores; los avisos de siempre, ninguno de las
+funciones nuevas), `pnpm db:carreras` (en verde, 12,2 s), `pnpm db:medir`, `db:sembrar-volumen` con `db:medir:volumen` (en verde) y `bash scripts/mapa.sh --check`.
+**e2e completo: sí (4.09-1, escritorio): 666 en verde, 16 saltados, 0 fallos, 24,8 min, de las 16:10 a las 16:35 (hora de La Paz).**
+
+**Del entorno:** Next avisa de una vulnerabilidad de su versión en `next build` (el primer intento del e2e completo se detuvo ahí, antes de correr un e2e; el segundo, sin tocar nada, compiló). No se actualizó ni se tocó `package.json`: lo decide la persona. Un hook de Bash rechazó un comando
+porque su texto nombraba el comando de empujar a la nube; el texto se escribió con la herramienta de archivos. La sesión se cortó una vez en medio de las mutaciones de la función real de la base: se reaplicó su migración y se repitieron.
+`functions serve` se levantó para el e2e y se cerró por sus pids.
+
+**Anotado:** para el 4.09-2, la pantalla, enseñar a TS las claves de nivel (`CLAVES_PERMISO` es cerrado y hoy las descarta), el orden de los empates (`orden` 700 y 701), que retirar no se deshace y que `nivel_crear` devuelve `{lista}` con el `tope`; para el 4.10, `_nodos_visibles(formula_id)`,
+que el alcance y crear contra editar los decide `puede_cotizacion` y lo de siempre (subtotales por grupo, tablas de referencia); para el 4.20, **4-8**; para el 4.22, que el editor avise cuando un nodo restringido es el único oculto de una suma visible.
+
+**Lo que no se hizo:** la pantalla y la matriz de Roles (prompt 2), las lecturas que consumen `_nodos_visibles` (4.10), deshacer un retiro, subir un tope, `next upgrade` ni empujar.

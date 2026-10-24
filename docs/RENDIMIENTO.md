@@ -1387,3 +1387,40 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **`medir-bajas.sql`:** la corrida limpia dio 14.265,2 ms con 9 corridas del job y 40 lotes (la corrida más larga, 1.843,9 ms). La primera dio 22.778,8 ms contra un
   presupuesto de 20.000 con 12 corridas y los mismos 40 lotes, con dos checkpoints que escribieron 26,4 s durante la medición (5a-42: se decide por el trabajo, que no
   cambió, y la ventana sana pasó). No se tocó ni se subió ningún tope.
+
+## Paso 4.09 (1 de 2): `_nodos_visibles()`, `_nivel_uso()`, publicar con niveles y la guarda de ARMAR por relación (2026-10-24)
+
+- **Cómo se mide:** `pnpm db:medir` (`supabase/tests/medir-nodos-visibles.sql` y `medir-publicar.sql`, en la base de la semilla) y, con `pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`
+  (`medir-evaluar.sql`, 62.000 leads); mediana de 5 de 7 corridas de `EXPLAIN (ANALYZE, BUFFERS)`.
+- **`_nodos_visibles(formula)`** con los diseños sintéticos de 255 y 2.487 nodos, como la dueña (devuelve casi todos los nodos):
+
+  | `_nodos_visibles()`                                  | 255 nodos | 2.487 nodos | Razón |
+  | ---------------------------------------------------- | --------- | ----------- | ----- |
+  | ms                                                   | 0,7       | 3,1         | 4,4   |
+  | buffers en las 5 medidas                             | 50        | 110         | 2,2   |
+  | leer sólo la fila de la fórmula (buffers, 5 medidas) | —         | 70          | —     |
+
+  Topes: razón ≤ 12 en ms y en buffers, ≤ 20 ms con 2.487 nodos y nunca más que leer la fila + 600 buffers. **La guarda muerde:** la misma función preguntando `tiene_permiso()` por cada nodo lee
+  10.110 buffers (5 medidas). **Una primera versión era cuadrática** (56 ms y 50.185 buffers en 5 medidas con 2.487 nodos, 48,8 veces los ms de 255 nodos): `v_vis ? id` por nodo vuelve a leer el
+  jsonb entero cuando llega como puntero TOAST (la trampa de 4.08-1, cj); lo que la visibilidad no nombra sale ahora de una resta de conjuntos. La medición cayó por la razón (tope 12) y se arregló.
+
+- **`_nivel_uso(clave)`** (sólo corre cuando eliminar un nivel se rechaza), con 200 y con 2.000 versiones archivadas que lo nombran: **1,6 y 12,2 ms**, 165 y 560 buffers en 5 medidas (tope en
+  tiempo: 100 ms con 2.000). Crece con las versiones que lo nombran, porque el índice las entrega todas; cuenta sólo la más nueva de cada origen.
+- **Publicar con el `for key share` de los niveles** (`medir-publicar.sql`, topes sin subir): guardar 10,5 y 102,0 ms; **publicar 17,4 y 167,1 ms** (antes, 4.08-2: 17,5 y 172) y **1.646 y 17.740 buffers** (antes 1.902 y 17.144;
+  tope 2.350 y 20.600), razón 9,6 en ms y 10,8 en buffers (tope 12). Los buffers de la grande suben 3,5 %: el `for key share` evalúa `_niveles_del_diseno(p_diseno)` una vez más sobre el diseño de 2.018 ítems.
+- **La guarda de ARMAR por relación** (4-11; `docs/PLAN.md`). El tope de siempre es `1,2 × (páginas + hojas + costo fijo)`, y el costo fijo **cambia entre corridas** (162, 179, 195, 204 y 213 en las
+  que se midieron): lo que cuesta una tabla (≈ 38 buffers). Con volumen: ARMAR de la sintética lee **330 buffers contra un tope de 382**, y la versión «una tabla viva más» **373: no caía**.
+  La guarda por relación cuenta los bloques de `tablas_referencia(_filas)` (heap, índices y TOAST, `pg_stat_get_xact_blocks_fetched`) que pide ARMAR contra los de la misma consulta sobre `t1` a `t4`:
+
+  | ARMAR de la sintética, bloques de las tablas de referencia | Bloques | Pasa de la referencia + 2 |
+  | ---------------------------------------------------------- | ------- | ------------------------- |
+  | la función de verdad                                       | 163     | — (la referencia lee 163) |
+  | busca dos veces la tabla de cada nombre (N+1 por tabla)    | 195     | sí                        |
+  | una tabla viva más del origen                              | 206     | sí                        |
+  | lee dos veces las filas de cada tabla                      | 310     | sí                        |
+  | todas las tablas del origen                                | 937     | sí                        |
+  | cada fila con una consulta aparte (N+1 por fila)           | 16.163  | sí                        |
+  | las filas de todos los orígenes con esa clave              | 12.860  | sí                        |
+
+  Mutando la función **real** (`_cotizacion_armar` aplicada con `psql`): una tabla más cae por la guarda por relación (191 bloques contra 150) y un N+1 por tabla también (177 contra 151); el N+1 por fila
+  (16.286 buffers) y la lectura doble (426) caen además por el tope de siempre. Ningún tope se tocó.
