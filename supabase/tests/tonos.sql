@@ -157,8 +157,8 @@ begin
   reset role;
   if public._tono_en_uso('prueba_de_uso') is not null then raise exception 'libre figura en uso'; end if;
   -- Una versión archivada, otra borrador: cada una por su lado.
-  insert into public.formulas (origen_id, version, estado, definicion, params)
-  values (v_o, 9001, 'archivada', '{"nodos": [], "grupos": [{"id": "g", "etiqueta": "G", "tono": "prueba_de_uso", "bucket": "b"}]}', '{}');
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  values (v_o, 9001, 'archivada', '{"nodos": [], "grupos": [{"id": "g", "etiqueta": "G", "tono": "prueba_de_uso", "bucket": "b"}]}', '{}', '{}', '{}');
   if public._tono_en_uso('prueba_de_uso') is null then raise exception 'la archivada no cuenta'; end if;
   set local role authenticated;
   perform pg_temp.falla(format($f$select public.tono_eliminar(%L, %L)$f$, v_id, v_ver), '23503', 'Subasta EE. UU.');

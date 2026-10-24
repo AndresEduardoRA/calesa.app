@@ -41,7 +41,7 @@ begin
     from pg_temp.paridad((select doc -> 'casos' from _juego_de_formula)) p
    where p.visto is distinct from p.esperado;
   v_n := jsonb_array_length((select doc -> 'casos' from _juego_de_formula));
-  if v_n <> 90 then raise exception 'el juego tiene % casos, no 90', v_n; end if;
+  if v_n <> 92 then raise exception 'el juego tiene % casos, no 92', v_n; end if;
   if v_malos is not null then
     raise exception '% de % casos no dan lo de validar.ts:%', cardinality(v_malos), v_n, E'\n  ' || array_to_string(v_malos, E'\n  ');
   end if;
@@ -129,16 +129,19 @@ begin
   if v_detalle is distinct from 'forma' then raise exception 'la fórmula nula da %', v_detalle; end if;
 end $$;
 
--- @test fórmula: las dos fórmulas del seed validan tal cual están guardadas
+-- @test fórmula: las tres fórmulas del seed validan tal cual están guardadas, y sus diseños con los niveles y los tonos de la base
 do $$
-declare f record; v_n int := 0;
+declare f record; v_n int := 0; v_niv text[]; v_ret text[]; v_tonos text[];
 begin
-  for f in select o.clave, x.definicion, x.params from public.formulas x join public.origenes o on o.id = x.origen_id
-            where o.clave in ('subasta_usa', 'oficina') and x.version = 1 loop
+  select n.niveles, n.retirados into v_niv, v_ret from public._niveles_de_cotizacion() n;
+  select array_agg(clave) into v_tonos from public.tonos;
+  for f in select o.clave, x.definicion, x.params, x.diseno from public.formulas x join public.origenes o on o.id = x.origen_id
+            where o.clave in ('subasta_usa', 'oficina', 'planilla_usa') and x.version = 1 loop
     perform public.validar_formula(f.definicion, f.params);
+    perform public.validar_diseno(f.definicion, f.diseno, v_niv, v_ret, v_tonos);
     v_n := v_n + 1;
   end loop;
-  if v_n <> 2 then raise exception 'se esperaban las dos fórmulas del seed y hay %', v_n; end if;
+  if v_n <> 3 then raise exception 'se esperaban las tres fórmulas del seed y hay %', v_n; end if;
 end $$;
 
 -- @test fórmula: authenticated ejecuta validar_formula y sus ayudantes; anon y PUBLIC no

@@ -83,7 +83,7 @@ test('con el texto al 200 % el tipo de cambio sigue a mano en el menú', async (
   await page.getByRole('button', { name: 'Abrir el menú' }).click()
   const menu = page.getByRole('dialog')
   await expect(menu.getByText('Tipo de cambio del día')).toBeVisible()
-  await expect(menu.getByRole('button', { name: 'Tipos de cambio' })).toContainText('6,96')
+  await expect(menu.getByRole('button', { name: 'Tipos de cambio' })).toContainText('11,68')
 })
 
 // El buscador de la barra (5b-1). Hasta la Fase 7 es `<BuscadorPendiente>`, un botón que guarda su lugar: con la barra de ~300 px del

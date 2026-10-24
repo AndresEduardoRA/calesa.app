@@ -345,10 +345,7 @@ do $$ begin
 end $$;
 
 -- @test fórmula: cambiar una constante desde el ⚙ publica v2 y archiva v1
--- La semilla de las fórmulas todavía no trae diseño (es del prompt 3 del 4.08): la publicada recibe el de `subasta_usa` del juego de
--- casos-de-diseno.json, que es el que sembrará, y el ⚙ lo copia a la v2 y vuelve a validarlo.
-update public.formulas set diseno = $d${"cabecera":{"modos":[],"ver_total_bs":false},"secciones":[{"id":"valor","titulo":"Valor","presentacion":"principal","items":[{"tipo":"interruptor","nodo":"es_hibrido","efecto":"habilita"},{"tipo":"celda","nodo":"remate","ancho":"completo"},{"tipo":"celda","nodo":"fob_tabla","ancho":"completo"},{"tipo":"celda","nodo":"factor_dp","ancho":"mitad"},{"tipo":"celda","nodo":"fob_base","ancho":"mitad"},{"tipo":"celda","nodo":"seguro","ancho":"mitad","secundario":"porcentaje"},{"tipo":"celda","nodo":"flete","ancho":"tercio"},{"tipo":"celda","nodo":"gastos_puerto","ancho":"tercio"},{"tipo":"celda","nodo":"gastos_garaje","ancho":"tercio"},{"tipo":"celda","nodo":"utilidad","ancho":"completo"},{"tipo":"subtotal","nodo":"cif"}]},{"id":"impuestos","titulo":"Impuestos","presentacion":"principal","items":[{"tipo":"celda","nodo":"ga","ancho":"tercio","secundario":"porcentaje"},{"tipo":"celda","nodo":"iva","ancho":"tercio","secundario":"porcentaje"},{"tipo":"celda","nodo":"ice","ancho":"tercio","secundario":"porcentaje"},{"tipo":"celda","nodo":"poliza","ancho":"completo"}]},{"id":"origen","titulo":"Origen","presentacion":"principal","items":[{"tipo":"celda","nodo":"fees","ancho":"mitad","secundario":"porcentaje"},{"tipo":"celda","nodo":"transferencia","ancho":"mitad","secundario":"porcentaje"},{"tipo":"celda","nodo":"grua","ancho":"mitad"},{"tipo":"celda","nodo":"transporte","ancho":"mitad"},{"tipo":"celda","nodo":"comision","ancho":"mitad"},{"tipo":"celda","nodo":"documentacion","ancho":"mitad"},{"tipo":"celda","nodo":"costo_hibrido_base","ancho":"completo"}]},{"id":"aparte","titulo":"Aparte","presentacion":"principal","items":[{"tipo":"celda","nodo":"garantia","ancho":"completo","secundario":"porcentaje"}]}],"tarjeta_total":{"nodo":"total","secundarios":["garantia"]}}$d$::jsonb
- where estado = 'publicada' and origen_id = (select id from public.origenes where clave = 'subasta_usa');
+-- La semilla trae el diseño de cada fórmula (4.08-3): el ⚙ lo copia a la v2 y vuelve a validarlo.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 set role authenticated;
 do $$ declare o uuid; f2 uuid; d text; begin
@@ -901,7 +898,7 @@ do $$ declare oficial uuid; paralelo uuid; banco uuid; v timestamptz; v2 timesta
   if v2 is distinct from (select actualizado_en from public.tipos_cambio where id = oficial) then raise exception 'no devolvió la versión nueva del tipo de cambio'; end if;
   if (select count(*) from public.tipos_cambio where clave = 'oficial') <> 1 or (select valor from public.tipos_cambio where id = oficial) <> 6.97 then raise exception 'debía quedar un solo valor vigente'; end if;
   select * into h from public.tipos_cambio_historial where tipo_cambio_id = oficial order by id desc limit 1;
-  if h.valor_anterior <> 6.96 or h.valor_nuevo <> 6.97 or h.cambiado_por is distinct from '00000000-0000-0000-0000-000000000001'::uuid then raise exception 'el historial no registró el cambio: %', h; end if;
+  if h.valor_anterior <> 11.68 or h.valor_nuevo <> 6.97 or h.cambiado_por is distinct from '00000000-0000-0000-0000-000000000001'::uuid then raise exception 'el historial no registró el cambio: %', h; end if;
   -- Cambiar sólo el nombre no escribe historial.
   perform public.tipo_cambio_guardar(oficial, (select actualizado_en from public.tipos_cambio where id = oficial), p_nombre => 'Oficial BCB');
   if (select count(*) from public.tipos_cambio_historial where tipo_cambio_id = oficial) <> 2 then raise exception 'renombrar no debía escribir historial'; end if;

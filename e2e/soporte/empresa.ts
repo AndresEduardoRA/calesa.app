@@ -170,24 +170,28 @@ export async function restaurarEmpresa(instantanea?: InstantaneaDeEmpresa): Prom
   }
 }
 
+// Los de supabase/seed.sql (los de las capturas del cotizador): el oficial es el único por defecto.
+const TIPOS_DE_CAMBIO_DEL_SEED = [
+  { clave: 'paralelo', nombre: 'Paralelo', valor: 12.2, es_default: false, orden: 1 },
+  { clave: 'unificado', nombre: 'Unificado', valor: 12.2, es_default: false, orden: 2 },
+  { clave: 'aduana', nombre: 'Aduana', valor: 11.68, es_default: false, orden: 3 },
+  { clave: 'oficial', nombre: 'Oficial', valor: 11.68, es_default: true, orden: 0 },
+] as const
+
 async function dejarTiposDeCambioComoElSeed(): Promise<void> {
   const cliente = admin()
   const sobrantes = await cliente
     .from('tipos_cambio')
     .delete()
-    .not('clave', 'in', '(oficial,paralelo)')
+    .not('clave', 'in', `(${TIPOS_DE_CAMBIO_DEL_SEED.map((t) => t.clave).join(',')})`)
   exigir(sobrantes.error, 'los tipos de cambio')
-  // Primero se desmarca el que no es por defecto: entre dos monedas sólo cabe uno.
-  const paralelo = await cliente
-    .from('tipos_cambio')
-    .update({ nombre: 'Paralelo', valor: 12.4, activo: true, es_default: false })
-    .eq('clave', 'paralelo')
-  exigir(paralelo.error, 'el paralelo')
-  const oficial = await cliente
-    .from('tipos_cambio')
-    .update({ nombre: 'Oficial', valor: 6.96, activo: true, es_default: true })
-    .eq('clave', 'oficial')
-  exigir(oficial.error, 'el oficial')
+  // Primero los que no son por defecto y al final el oficial: entre dos monedas sólo cabe uno por defecto.
+  for (const t of TIPOS_DE_CAMBIO_DEL_SEED) {
+    const fila = await cliente
+      .from('tipos_cambio')
+      .upsert({ ...t, moneda_de: 'USD', moneda_a: 'BOB', activo: true }, { onConflict: 'clave' })
+    exigir(fila.error, `el tipo de cambio ${t.clave}`)
+  }
   const historial = await cliente
     .from('tipos_cambio_historial')
     .delete()

@@ -18,9 +18,11 @@ const bases: Base[] = juego.casos
   .map(({ nombre, definicion, params }) => ({
     nombre: nombre.startsWith('semilla: ')
       ? nombre.slice('semilla: '.length)
-      : nombre.includes('Amnistia')
-        ? 'amnistia'
-        : 'excel',
+      : nombre.startsWith('ip generalizado: ')
+        ? 'ip_generalizado'
+        : nombre.includes('Amnistia')
+          ? 'amnistia'
+          : 'excel',
     definicion,
     params,
   }))
@@ -41,8 +43,15 @@ describe('corpus-de-formula.json', () => {
     )
   })
 
-  it('trae las 4 fórmulas válidas como bases: las dos del seed, el Excel entero y «Amnistia»', () => {
-    expect(bases.map((b) => b.nombre)).toEqual(['subasta_usa', 'oficina', 'excel', 'amnistia'])
+  it('trae las 6 fórmulas válidas como bases: las tres del seed, la vieja del seed («ip generalizado»), el Excel entero y «Amnistia»', () => {
+    expect(bases.map((b) => b.nombre)).toEqual([
+      'ip_generalizado',
+      'oficina',
+      'subasta_usa',
+      'planilla_usa',
+      'excel',
+      'amnistia',
+    ])
   })
 
   it('tiene al menos 400 casos, cada regla es el primer rechazo de al menos 5, y mezcla defectos', () => {

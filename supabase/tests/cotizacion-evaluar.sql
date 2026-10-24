@@ -117,7 +117,8 @@ begin
     end if;
   end loop;
 
-  -- La siembra, dentro de una subtransacción que se deshace.
+  -- La siembra, dentro de una subtransacción que se deshace. (Las fórmulas de acá llevan `diseno` y `visibilidad` vacíos: cotizacion_evaluar() no los lee y el
+  -- `check` de las publicadas sólo pide que existan.)
   begin
     update public.formulas set definicion = v_def, params = v_par where id = p_formula;
     insert into public.tablas_referencia (origen_id, clave, nombre, columnas)
@@ -181,7 +182,7 @@ declare
   v_malos text[]; v_saltos text; v_corridos_juego int; v_corridos_corpus int; v_resultados int; v_errores int;
 begin
   insert into public.origenes (clave, nombre) values ('cot_eval_paridad', 'Paridad de cotizacion_evaluar') returning id into v_origen;
-  insert into public.formulas (origen_id, version, estado, definicion, params) values (v_origen, 1, 'publicada', '{}', '{}') returning id into v_formula;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (v_origen, 1, 'publicada', '{}', '{}', '{}', '{}') returning id into v_formula;
   insert into public.vehiculos (origen_id, titulo) values (v_origen, 'Paridad') returning id into v_vehiculo;
 
   create temp table _paridad_cotizacion on commit drop as
@@ -233,7 +234,7 @@ declare
 begin
   perform public.validar_formula(pg_temp.formula_chica(), '{"c": 10}');
   insert into public.origenes (clave, nombre) values ('cot_eval_orden', 'Orden de las filas') returning id into v_origen;
-  insert into public.formulas (origen_id, version, estado, definicion, params) values (v_origen, 1, 'publicada', pg_temp.formula_chica(), '{"c": 10}');
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (v_origen, 1, 'publicada', pg_temp.formula_chica(), '{"c": 10}', '{}', '{}');
   insert into public.vehiculos (origen_id, titulo, marca) values (v_origen, 'Orden', 'toyota') returning id into v_vehiculo;
   insert into public.tablas_referencia (origen_id, clave, nombre, columnas) values (v_origen, 't', 'T', '[]') returning id into v_tabla;
   -- El grande entra primero y vale 1; el chico entra segundo y vale 2; los dos con orden 0. Gana el chico: el 2.
@@ -267,8 +268,8 @@ do $$
 declare v_origen uuid; v_tabla uuid; v_vehiculo uuid; v_res jsonb; v_formula uuid;
 begin
   insert into public.origenes (clave, nombre) values ('cot_eval_congelada', 'La congelada manda') returning id into v_origen;
-  insert into public.formulas (origen_id, version, estado, definicion, params)
-    values (v_origen, 1, 'publicada', pg_temp.formula_chica(), '{"c": 10, "tablas": {"t": [{"marca": "toyota", "v": 99}]}}') returning id into v_formula;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+    values (v_origen, 1, 'publicada', pg_temp.formula_chica(), '{"c": 10, "tablas": {"t": [{"marca": "toyota", "v": 99}]}}', '{}', '{}') returning id into v_formula;
   insert into public.vehiculos (origen_id, titulo, marca) values (v_origen, 'Congelada', 'toyota') returning id into v_vehiculo;
   insert into public.tablas_referencia (origen_id, clave, nombre, columnas) values (v_origen, 't', 'T', '[]') returning id into v_tabla;
   insert into public.tablas_referencia_filas (tabla_id, valores, orden) values (v_tabla, '{"marca": "toyota", "v": 1}', 0);
@@ -299,7 +300,7 @@ declare
   v_def jsonb := pg_temp.formula_chica();
 begin
   insert into public.origenes (clave, nombre) values ('cot_eval_vieja', 'La versión de la cotización') returning id into v_origen;
-  insert into public.formulas (origen_id, version, estado, definicion, params) values (v_origen, 1, 'publicada', v_def, '{"c": 10}') returning id into v_v1;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (v_origen, 1, 'publicada', v_def, '{"c": 10}', '{}', '{}') returning id into v_v1;
   insert into public.vehiculos (origen_id, titulo, marca) values (v_origen, 'Vieja', 'toyota') returning id into v_vehiculo;
   insert into public.tablas_referencia (origen_id, clave, nombre, columnas) values (v_origen, 't', 'T', '[]') returning id into v_tabla;
   insert into public.tablas_referencia_filas (tabla_id, valores, orden) values (v_tabla, '{"marca": "toyota", "v": 1}', 0);
@@ -312,7 +313,7 @@ begin
     values (v_origen, '00000000-0000-0000-0000-000000000001', v_v1, null, '{}', '{"oficial": 5}', '{}', 0) returning id into v_cot_sin_vehiculo;
   -- Después se publica la versión 2: otra constante, y el tipo de cambio vigente cambia.
   update public.formulas set estado = 'archivada' where id = v_v1;
-  insert into public.formulas (origen_id, version, estado, definicion, params) values (v_origen, 2, 'publicada', v_def, '{"c": 20}');
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (v_origen, 2, 'publicada', v_def, '{"c": 20}', '{}', '{}');
   update public.tablas_referencia_filas set valores = '{"marca": "toyota", "v": 7}' where tabla_id = v_tabla;
   update public.tipos_cambio set valor = 7.5 where clave = 'oficial';
 
@@ -357,7 +358,7 @@ declare
 begin
   insert into public.origenes (clave, nombre) values ('cot_eval_tablas', 'Resolución de tablas') returning id into v_origen;
   insert into public.origenes (clave, nombre) values ('cot_eval_tablas_otro', 'Otro origen') returning id into v_otro;
-  insert into public.formulas (origen_id, version, estado, definicion, params) values (v_origen, 1, 'publicada', pg_temp.formula_chica(), '{"c": 10}');
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (v_origen, 1, 'publicada', pg_temp.formula_chica(), '{"c": 10}', '{}', '{}');
   insert into public.vehiculos (origen_id, titulo, marca) values (v_origen, 'Tablas', 'toyota') returning id into v_vehiculo;
   -- Una de otro origen con la misma clave, una compartida, la propia (inactiva) y una que ningún nodo nombra.
   insert into public.tablas_referencia (origen_id, clave, nombre, columnas) values (v_otro, 't', 'Ajena', '[]') returning id into v_ajena;
@@ -419,7 +420,7 @@ begin
   -- `validar_formula()` rechaza el campo con punto (`campo_con_punto`, 4-3): se valida con la clave sin punto y se guarda con el punto,
   -- porque lo que se comprueba es que `_cotizacion_armar()` no lo lea aunque una fórmula vieja lo traiga.
   perform public.validar_formula(replace(v_def::text, '"atributos.cilindrada"', '"con_punto"')::jsonb, '{}');
-  insert into public.formulas (origen_id, version, estado, definicion, params) values (v_origen, 1, 'publicada', v_def, '{}');
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (v_origen, 1, 'publicada', v_def, '{}', '{}', '{}');
   insert into public.origenes_campos (origen_id, clave, etiqueta, tipo) values
     (v_origen, 'cilindrada', 'Cilindrada', 'numero'), (v_origen, 'nota', 'Nota', 'texto'), (v_origen, 'listo', 'Listo', 'booleano');
   insert into public.origenes_campos (origen_id, clave, etiqueta, tipo, activo) values (v_origen, 'apagado', 'Apagado', 'numero', false)
@@ -496,7 +497,7 @@ begin
   insert into public.origenes (clave, nombre) values ('cot_eval_permisos', 'Permisos') returning id into v_origen;
   insert into public.origenes (clave, nombre) values ('cot_eval_permisos_otro', 'Otro') returning id into v_otro;
   insert into public.origenes (clave, nombre) values ('cot_eval_sin_formula', 'Sin fórmula') returning id into v_sin_formula;
-  insert into public.formulas (origen_id, version, estado, definicion, params) values (v_origen, 1, 'publicada', pg_temp.formula_chica(), '{"c": 10}') returning id into v_formula;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (v_origen, 1, 'publicada', pg_temp.formula_chica(), '{"c": 10}', '{}', '{}') returning id into v_formula;
   insert into public.vehiculos (origen_id, titulo, marca) values (v_origen, 'Visible', 'toyota') returning id into v_vehiculo;
   insert into public.vehiculos (origen_id, titulo, marca) values (v_otro, 'De otro origen', 'toyota') returning id into v_ajeno;
   insert into public.vehiculos (origen_id, titulo, marca) values (v_origen, 'En la papelera', 'toyota') returning id into v_papelera;

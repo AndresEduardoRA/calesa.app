@@ -258,11 +258,11 @@ begin
   if public._nivel_en_uso('gerencia') is not null then raise exception 'libre figura en uso'; end if;
   d := (select doc -> 'casos' -> 0 -> 'diseno' from _juego_de_diseno);
   -- Cada forma de nombrar un nivel, como una versión archivada distinta (insertadas como postgres: sin validar).
-  insert into public.formulas (origen_id, version, estado, definicion, params, diseno) values
-    (o, 1, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,0,nivel_ver}', '"n_seccion_ver"')),
-    (o, 2, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,0,nivel_editar}', '"n_seccion_editar"')),
-    (o, 3, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,2,items,0,nivel_ver}', '"n_item_ver"')),
-    (o, 4, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,2,items,0,nivel_editar}', '"n_item_editar"'));
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values
+    (o, 1, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,0,nivel_ver}', '"n_seccion_ver"'), '{}'),
+    (o, 2, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,0,nivel_editar}', '"n_seccion_editar"'), '{}'),
+    (o, 3, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,2,items,0,nivel_ver}', '"n_item_ver"'), '{}'),
+    (o, 4, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,2,items,0,nivel_editar}', '"n_item_editar"'), '{}');
   insert into public.formulas (origen_id, estado, definicion, params, diseno)
   values (o, 'borrador', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,1,nivel_ver}', '"n_borrador"'));
   if public._nivel_en_uso('n_seccion_ver') is null or public._nivel_en_uso('n_seccion_editar') is null
@@ -272,6 +272,23 @@ begin
   end if;
   if public._nivel_en_uso('n_seccion') is not null or public._nivel_en_uso('n_otro') is not null then raise exception 'una subcadena o un libre figura en uso'; end if;
   if public._nivel_en_uso('n_item_ver') <> 'Prueba publicar' then raise exception 'dice el origen: %', public._nivel_en_uso('n_item_ver'); end if;
+  perform pg_temp.limpiar(o);
+end $$;
+
+-- @test publicar: _preparar_publicacion (lo que publicar y el seed comparten) devuelve la visibilidad compilada y rechaza el diseño nulo, uno inválido y un tono que no existe
+do $$
+declare
+  o uuid := pg_temp.preparar(); v_def jsonb := pg_temp.def_capturas(); v_par jsonb := pg_temp.params_capturas(); v_d jsonb := pg_temp.diseno_costos();
+begin
+  if public._preparar_publicacion(v_def, v_par, v_d, false) is distinct from public._compilar_visibilidad(v_def, v_d)
+     or public._preparar_publicacion(v_def, v_par, v_d, false) = '{}'::jsonb then
+    raise exception 'no devuelve la visibilidad que compila el diseño';
+  end if;
+  perform pg_temp.espera(format($f$select public._preparar_publicacion(%L, %L, null, false)$f$, v_def, v_par), '22023:diseno_faltante@diseno');
+  perform pg_temp.espera(format($f$select public._preparar_publicacion(%L, %L, %L, false)$f$, v_def, v_par, jsonb_set(v_d, '{tarjeta_total,nodo}', '"zzz"')), '22023:nodo_inexistente@zzz');
+  perform pg_temp.espera(format($f$select public._preparar_publicacion(%L, %L, %L, false)$f$, v_def, jsonb_set(v_par, '{ga_pct}', '"x"'), v_d), '22023:');
+  delete from public.tonos where clave = 'aduana';
+  perform pg_temp.espera(format($f$select public._preparar_publicacion(%L, %L, %L, false)$f$, v_def, v_par, v_d), '22023:tono_inexistente@aduana');
   perform pg_temp.limpiar(o);
 end $$;
 
@@ -286,10 +303,10 @@ begin
      or has_function_privilege('anon', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text)', 'execute') then
     raise exception 'los grants de formula_guardar_borrador'; end if;
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-              where n.nspname = 'public' and p.proname in ('_publicar_formula', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', '_nivel_en_uso', 'formula_auditar')
+              where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', '_nivel_en_uso', 'formula_auditar')
                 and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))) then
     raise exception 'un ayudante se puede ejecutar: %', (select string_agg(p.proname, ',') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-      where n.nspname = 'public' and p.proname in ('_publicar_formula', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', '_nivel_en_uso', 'formula_auditar')
+      where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', '_nivel_en_uso', 'formula_auditar')
         and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute')));
   end if;
   if (select count(*) from public.actividad where tabla = 'formulas') = 0 then raise exception 'formulas no se audita'; end if;

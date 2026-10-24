@@ -141,7 +141,7 @@ test('edita un tipo de cambio y aparece en la barra superior y en el historial',
   await page.goto('/configuracion/empresa?seccion=monedas')
   await expect(page.getByRole('heading', { name: 'Tipos de cambio' })).toBeVisible()
   const enLaBarra = page.getByRole('button', { name: 'Tipos de cambio' })
-  await expect(enLaBarra).toContainText('6,96')
+  await expect(enLaBarra).toContainText('11,68')
 
   // Tocar el tipo de cambio abre su panel, con el valor listo para cambiar.
   await page.getByRole('button', { name: /^Oficial/ }).click()
@@ -153,9 +153,12 @@ test('edita un tipo de cambio y aparece en la barra superior y en el historial',
 
   // El historial del panel dice de cuánto a cuánto y quién.
   const cambio = panel.getByRole('listitem').filter({ hasText: '7,13' }).first()
-  await expect(cambio).toContainText('6,96')
+  await expect(cambio).toContainText('11,68')
   await expect(cambio).toContainText(DUENA)
-  expect(await ultimoCambioDe('oficial')).toMatchObject({ valor_anterior: 6.96, valor_nuevo: 7.13 })
+  expect(await ultimoCambioDe('oficial')).toMatchObject({
+    valor_anterior: 11.68,
+    valor_nuevo: 7.13,
+  })
 
   // Y la barra superior muestra el valor nuevo, sin recargar.
   await panel.getByRole('button', { name: 'Cerrar' }).first().click()

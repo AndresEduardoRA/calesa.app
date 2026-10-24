@@ -2,8 +2,8 @@
   "descripcion": "Casos del motor con su resultado esperado (docs/COTIZADOR.md › «El motor»). Los lee motor.test.ts y, desde 4.06, la prueba de paridad de evaluar_formula(). Una fórmula es la de un caso de casos-de-formula.json («formula_de») o la del caso. En la entrada, inputs, banderas, tipos_cambio, vehiculo, tablas y overrides que faltan valen {}; «variante» que falta quiere decir sin clave (vale la por_defecto). Sin «decimales», cada número esperado es el doble exacto; con «decimales», se compara con esa precisión. «valores» y «totales» nombran sólo lo que el caso fija, y cada grupo de «totales» dice si se dibuja. «estados», si está, nombra todos los nodos que no están activos (el resto está activo). «fuentes», si está, es el mapa entero, en el orden de la lista. «faltantes» es la lista entera; «overrides_descartados» también, y si falta es [].",
   "casos": [
     {
-      "nombre": "semilla subasta_usa: híbrido, con su ruta de transporte",
-      "formula_de": "semilla: subasta_usa",
+      "nombre": "ip generalizado: híbrido, con su ruta de transporte",
+      "formula_de": "ip generalizado: la v1 del seed hasta el 4.08",
       "entrada": {
         "inputs": {
           "remate": 10000,
@@ -132,8 +132,8 @@
       }
     },
     {
-      "nombre": "semilla subasta_usa: sin híbrido, el si apagado vale 0",
-      "formula_de": "semilla: subasta_usa",
+      "nombre": "ip generalizado: sin híbrido, el si apagado vale 0",
+      "formula_de": "ip generalizado: la v1 del seed hasta el 4.08",
       "entrada": {
         "inputs": {
           "remate": 10000,
@@ -225,8 +225,8 @@
       }
     },
     {
-      "nombre": "semilla subasta_usa: las tablas del seed tal cual, el transporte sin filas",
-      "formula_de": "semilla: subasta_usa",
+      "nombre": "ip generalizado: las tablas del seed tal cual, el transporte sin filas",
+      "formula_de": "ip generalizado: la v1 del seed hasta el 4.08",
       "entrada": {
         "inputs": {
           "remate": 10000,
@@ -319,8 +319,8 @@
       }
     },
     {
-      "nombre": "semilla subasta_usa: un año sin fila de depreciación (2019)",
-      "formula_de": "semilla: subasta_usa",
+      "nombre": "ip generalizado: un año sin fila de depreciación (2019)",
+      "formula_de": "ip generalizado: la v1 del seed hasta el 4.08",
       "entrada": {
         "inputs": {
           "remate": 10000,
@@ -5307,8 +5307,8 @@
       }
     },
     {
-      "nombre": "semilla subasta_usa: fob_tabla sin tipear vale el remate (sugerido_de)",
-      "formula_de": "semilla: subasta_usa",
+      "nombre": "ip generalizado: fob_tabla sin tipear vale el remate (sugerido_de)",
+      "formula_de": "ip generalizado: la v1 del seed hasta el 4.08",
       "entrada": {
         "inputs": {
           "remate": 10000,

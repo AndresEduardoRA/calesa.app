@@ -11,8 +11,8 @@
 -- Por separado y en cada caso: la llamada entera, ARMAR (`_cotizacion_armar`: leer la fórmula, las tablas, los tipos de cambio y el
 -- vehículo) y EVALUAR (`evaluar_formula()` sobre lo armado), en ms (mediana y p95) y en buffers de UNA llamada (EXPLAIN, ya caliente).
 --
--- El terreno: el seed no trae filas de `transporte_por_ruta` (lo arregla el 4.08): esta prueba siembra las suyas. Además, lo que una
--- mala lectura pagaría: 20 tablas que ningún nodo nombra en el origen de la sintética (20.000 filas) y 50 orígenes con tablas de las
+-- El terreno: la fórmula del seed (`subasta_usa`, la de las capturas, 4.08-3) congela sus tablas en `params.tablas`, así que ARMAR no lee ninguna
+-- viva para ella: lo que se mide de ARMAR es la sintética (4 tablas vivas) y el costo de no leer. Además, lo que una mala lectura pagaría: 20 tablas que ningún nodo nombra en el origen de la sintética (20.000 filas) y 50 orígenes con tablas de las
 -- mismas claves (200.000 filas). Y las cotizaciones: 50.000 y, después, 250.000.
 --
 -- Asserta:
@@ -139,18 +139,12 @@ grant execute on function pg_temp.estadistica(numeric[]), pg_temp.corrida(text, 
 -- ---------------------------------------------------------------------------------------------------------------------------------
 set local session_replication_role = replica;
 
--- 1) La fórmula del seed: sus filas de transporte (el seed no las trae) y un vehículo con lo que sus tablas leen.
+-- 1) La fórmula del seed: un vehículo con lo que sus nodos leen (el año y el tipo de vehículo, que casa con su tabla de transporte).
 do $$
-declare v_origen uuid := (select id from public.origenes where clave = 'subasta_usa'); v_tabla uuid;
+declare v_origen uuid := (select id from public.origenes where clave = 'subasta_usa');
 begin
-  select id into v_tabla from public.tablas_referencia where origen_id = v_origen and clave = 'transporte_por_ruta';
-  if v_tabla is null then raise exception 'falta la tabla transporte_por_ruta del seed'; end if;
-  insert into public.tablas_referencia_filas (tabla_id, valores, orden)
-    select v_tabla, jsonb_build_object('ruta', 'Ruta ' || g, 'precio', 100 + g), g from generate_series(0, 38) g;
-  insert into public.tablas_referencia_filas (tabla_id, valores, orden)
-    values (v_tabla, '{"ruta": "Miami (FL)", "precio": 1100}', 39);
   insert into public.vehiculos (origen_id, titulo, anio, atributos, creado_por)
-    values (v_origen, 'Medir evaluar, seed', 2023, '{"tipo_vehiculo": "automovil", "ubicacion": "Miami (FL)"}', '00000000-0000-0000-0000-0000000000d1');
+    values (v_origen, 'Medir evaluar, seed', 2024, '{"tipo_vehiculo": "autos"}', '00000000-0000-0000-0000-0000000000d1');
 end $$;
 
 -- 2) La sintética: su origen, su fórmula, sus 4 tablas de 1.000 filas, 20 tablas que nadie nombra y su vehículo.
@@ -164,8 +158,9 @@ begin
   end if;
   insert into public.origenes (clave, nombre, tipo) values ('medir_evaluar_sint', 'Medir evaluar, sintética', 'manual') returning id into v_origen;
   insert into public.origenes_campos (origen_id, clave, etiqueta, tipo) values (v_origen, 'clase', 'Clase', 'texto');
-  insert into public.formulas (origen_id, version, estado, definicion, params)
-    values (v_origen, 1, 'publicada', v_s -> 'definicion', v_s -> 'params');
+  -- Sin diseño que medir: el `check` de las publicadas sólo pide que existan.
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+    values (v_origen, 1, 'publicada', v_s -> 'definicion', v_s -> 'params', '{}', '{}');
   insert into public.tablas_referencia (origen_id, clave, nombre, columnas) select v_origen, k, k, '[]' from jsonb_object_keys(v_s -> 'entrada' -> 'tablas') k;
   insert into public.tablas_referencia_filas (tabla_id, valores, orden)
     select t.id, f.value, (f.ordinality - 1)::smallint
@@ -177,11 +172,36 @@ begin
   insert into public.tablas_referencia_filas (tabla_id, valores, orden)
     select t.id, jsonb_build_object('clase', 'c' || i, 'v', i), i from public.tablas_referencia t cross join generate_series(0, 999) i
      where t.origen_id = v_origen and t.clave like 'ruido\_%';
-  -- Los tipos de cambio de la sintética: oficial 6,96 (el del seed) y paralelo 10.
+  -- Los tipos de cambio de la sintética (oficial 6,96 y paralelo 10): pisan los del seed.
   update public.tipos_cambio set valor = (v_s -> 'entrada' -> 'tipos_cambio' ->> 'paralelo')::numeric where clave = 'paralelo';
+  update public.tipos_cambio set valor = (v_s -> 'entrada' -> 'tipos_cambio' ->> 'oficial')::numeric where clave = 'oficial';
   insert into public.vehiculos (origen_id, titulo, anio, atributos, creado_por)
     values (v_origen, 'Medir evaluar, sintética', (v_s -> 'entrada' -> 'vehiculo' ->> 'anio')::int,
             jsonb_build_object('clase', v_s -> 'entrada' -> 'vehiculo' -> 'clase'), '00000000-0000-0000-0000-0000000000d1');
+end $$;
+
+-- 2b) El costo fijo de ARMAR (la guarda de abajo): un origen con una fórmula que nombra 4 tablas vivas casi vacías (una fila cada una) y dos tipos de cambio, que es lo que
+-- leía la fórmula del seed hasta el 4.08-3. La de ahora congela sus tablas en `params.tablas` y ARMAR no lee ninguna viva, así que ya no sirve para medir ese costo: sin
+-- esto el tope de la guarda bajaría en lo que cuestan las 4 búsquedas de tabla y se estaría midiendo otra cosa.
+do $$
+declare v_origen uuid;
+begin
+  insert into public.origenes (clave, nombre, tipo) values ('medir_evaluar_fijo', 'Medir evaluar, costo fijo', 'manual') returning id into v_origen;
+  insert into public.origenes_campos (origen_id, clave, etiqueta, tipo) values (v_origen, 'clase', 'Clase', 'texto');
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+    values (v_origen, 1, 'publicada',
+            '{"nodos": [{"id": "tc_a", "tipo": "tipo_cambio", "clave": "oficial", "etiqueta": "A", "formato": "raw"},
+                        {"id": "tc_b", "tipo": "tipo_cambio", "clave": "paralelo", "etiqueta": "B", "formato": "raw"},
+                        {"id": "f1", "tipo": "tabla", "tabla": "f1", "match": {"clase": "clase"}, "columna": "v", "etiqueta": "F1", "formato": "raw"},
+                        {"id": "f2", "tipo": "tabla", "tabla": "f2", "match": {"clase": "clase"}, "columna": "v", "etiqueta": "F2", "formato": "raw"},
+                        {"id": "f3", "tipo": "tabla", "tabla": "f3", "match": {"clase": "clase"}, "columna": "v", "etiqueta": "F3", "formato": "raw"},
+                        {"id": "f4", "tipo": "tabla", "tabla": "f4", "match": {"clase": "clase"}, "columna": "v", "etiqueta": "F4", "formato": "raw"}]}',
+            '{}', '{}', '{}');
+  insert into public.tablas_referencia (origen_id, clave, nombre, columnas) select v_origen, 'f' || g, 'F' || g, '[]' from generate_series(1, 4) g;
+  insert into public.tablas_referencia_filas (tabla_id, valores, orden)
+    select t.id, '{"clase": "c0", "v": 1}', 0 from public.tablas_referencia t where t.origen_id = v_origen;
+  insert into public.vehiculos (origen_id, titulo, anio, atributos, creado_por)
+    values (v_origen, 'Medir evaluar, costo fijo', 2024, '{"clase": "c0"}', '00000000-0000-0000-0000-0000000000d1');
 end $$;
 
 -- 3) Lo ajeno: 50 orígenes con tablas de las mismas claves (t1 a t4) y 1.000 filas cada una.
@@ -201,10 +221,12 @@ insert into _ids
   union all select 'formula_seed', f.id from public.formulas f join public.origenes o on o.id = f.origen_id where o.clave = 'subasta_usa' and f.estado = 'publicada'
   union all select 'formula_sint', f.id from public.formulas f join public.origenes o on o.id = f.origen_id where o.clave = 'medir_evaluar_sint'
   union all select 'veh_seed', id from public.vehiculos where titulo = 'Medir evaluar, seed'
-  union all select 'veh_sint', id from public.vehiculos where titulo = 'Medir evaluar, sintética';
+  union all select 'veh_sint', id from public.vehiculos where titulo = 'Medir evaluar, sintética'
+  union all select 'origen_fijo', id from public.origenes where clave = 'medir_evaluar_fijo'
+  union all select 'veh_fijo', id from public.vehiculos where titulo = 'Medir evaluar, costo fijo';
 insert into public.cotizaciones (origen_id, creado_por, formula_id, vehiculo_id, valores, tipos_cambio, totales, total_base, titulo)
   values ((select id from _ids where clave = 'origen_seed'), '00000000-0000-0000-0000-0000000000d1', (select id from _ids where clave = 'formula_seed'),
-          (select id from _ids where clave = 'veh_seed'), '{}', '{"oficial": 6.96, "paralelo": 12.4}', '{}', 0, 'Medir evaluar, seed');
+          (select id from _ids where clave = 'veh_seed'), '{}', '{"oficial": 11.68, "paralelo": 12.2, "unificado": 12.2}', '{}', 0, 'Medir evaluar, seed');
 insert into public.cotizaciones (origen_id, creado_por, formula_id, vehiculo_id, valores, tipos_cambio, totales, total_base, titulo)
   values ((select id from _ids where clave = 'origen_sint'), '00000000-0000-0000-0000-0000000000d1', (select id from _ids where clave = 'formula_sint'),
           (select id from _ids where clave = 'veh_sint'), '{}', '{"oficial": 6.96, "paralelo": 10}', '{}', 0, 'Medir evaluar, sintética');
@@ -223,7 +245,7 @@ $$;
 
 -- Los argumentos de la persona: lo que tipea.
 create temp table _entradas as select
-  '{"inputs": {"remate": 10000, "grua": 300}, "banderas": {"es_hibrido": true}}'::jsonb as seed,
+  '{"variante": "hibrido", "inputs": {"remate": 10000, "grua": 300, "valor_tabla": 12000}, "banderas": {"mostrar_garantia": true}}'::jsonb as seed,
   (select jsonb_build_object('inputs', s -> 'entrada' -> 'inputs', 'banderas', s -> 'entrada' -> 'banderas', 'overrides', s -> 'entrada' -> 'overrides') from _sint) as sint;
 grant select on _entradas, _ids, _sint to authenticated;
 
@@ -334,7 +356,7 @@ end $$;
 -- ---------------------------------------------------------------------------------------------------------------------------------
 -- El tope sale de lo que las tablas nombradas ocupan: las páginas del heap de sus filas (contadas por `ctid`), la bajada y las hojas del
 -- índice de cada tabla (3 niveles y una hoja por cada 150 filas) y el costo fijo de armar (la fórmula, los permisos, los tipos de cambio y el
--- vehículo: lo que ARMAR de la fórmula del seed lee con 4 tablas casi vacías, medido en este momento), todo con un 20 % de margen.
+-- vehículo: lo que ARMAR lee con 4 tablas casi vacías, medido en este momento), todo con un 20 % de margen.
 -- La función de verdad queda a un 85 % del tope; leer una tabla más del origen, o las filas de otros orígenes, lo pasa por mucho.
 do $$
 declare
@@ -349,12 +371,12 @@ declare
   i int;
 begin
   v_sql := format('select a.definicion from public._cotizacion_armar(%L::jsonb, null, %L::uuid, %L::uuid) a', (select sint from _entradas), v_sint, v_veh);
-  v_sql_seed := format('select a.definicion from public._cotizacion_armar(%L::jsonb, null, %L::uuid, %L::uuid) a', (select seed from _entradas),
-                       (select id from _ids where clave = 'origen_seed'), (select id from _ids where clave = 'veh_seed'));
+  v_sql_seed := format('select a.definicion from public._cotizacion_armar(%L::jsonb, null, %L::uuid, %L::uuid) a', '{"inputs": {}}',
+                       (select id from _ids where clave = 'origen_fijo'), (select id from _ids where clave = 'veh_fijo'));
   select count(*), count(distinct (f.ctid::text::point)[0]::bigint) into v_filas, v_paginas
     from public.tablas_referencia_filas f join public.tablas_referencia t on t.id = f.tabla_id
    where t.origen_id = v_sint and t.clave = any (array['t1', 't2', 't3', 't4']);
-  -- El costo fijo, medido ahora (los permisos pesan distinto según cuán encogidas estén sus tablas): ARMAR de la fórmula del seed.
+  -- El costo fijo, medido ahora (los permisos pesan distinto según cuán encogidas estén sus tablas): ARMAR de una fórmula con 4 tablas casi vacías (2b).
   perform pg_temp.buffers(v_sql_seed);
   v_fijo := pg_temp.buffers(v_sql_seed);
   v_tope := ceil(1.2 * (v_paginas + 4 * (ceil(v_filas / 4 / 150.0) + 3) + v_fijo))::bigint;

@@ -37,20 +37,6 @@ describe('casos-de-formula.json', () => {
 })
 
 describe('el juego', () => {
-  it('trae las dos fórmulas del seed tal cual están en supabase/seed.sql (igual, no sólo contenidas)', () => {
-    const sql = leer('../../../../supabase/seed.sql')
-    const json = (texto: string | undefined): unknown => JSON.parse(texto ?? 'null')
-    const defs = [...sql.matchAll(/v_def := \$j\$([\s\S]*?)\$j\$;/g)].map((m) => json(m[1]))
-    const paramsUsa = json(/v_params := '([^']*)';/.exec(sql)?.[1])
-    const delJuego = (nombre: string) => {
-      const c = juego.casos.find((x) => x.nombre === nombre)
-      return [c?.valida, c?.definicion, c?.params]
-    }
-    expect(defs).toHaveLength(2)
-    expect(delJuego('semilla: subasta_usa')).toEqual([true, defs[0], paramsUsa])
-    expect(delJuego('semilla: oficina')).toEqual([true, defs[1], {}])
-  })
-
   it('cada regla tiene al menos un caso, cada inválida dice su motivo y las válidas no', () => {
     const cubiertas = new Set(juego.casos.map((c) => c.motivo?.regla))
     for (const regla of REGLAS_DE_FORMULA) expect(cubiertas, regla).toContain(regla)
