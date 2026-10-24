@@ -1380,3 +1380,89 @@ local, con los JSON de HEAD; TS con respaldo, mutación, `pnpm vitest run src/mo
 `bash scripts/mapa.sh --check`. **e2e completo: no (solo datos de prueba y docs, Nivel 1).**
 
 **Lo que no se hizo:** el editor (4.21, con 4-5 y 4-6), push ni `next upgrade`.
+
+## 2026-10-24 — Movido de ESTADO (4.08-1)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente» y, de «Funcionando», «Último Nivel 2 (escritorio), el paso 4.07 prompt 2: 666 en verde, 16 saltados, 0 fallos, 24,8 min.»):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.07 entero** (el prompt 2 de 2: `4f00d28`, `6851891`, `58401e0` y `5fd0663`) y su **remiendo** (prompt 3, `591401c`: el mínimo de 1 carácter de `texto` probado en la base y en TS, 90 casos en el juego y 641 en el corpus, y el mensaje con la ruta de un `texto` rechazado): **4-3 cerrado** (la regla 30, `campo_con_punto`, en `validar.ts` y en `validar_formula()` por `…005400`), la fila guarda su texto fuente en `texto?` (1 a 2.000 caracteres; `…005500`; el compilador no lo lee ni lo escribe), un literal que se redondea a 0 (`1e-400`) es `numero_fuera_de_rango` (`00` y `01` se aceptan) y `compilarExpresion` sale por `index.ts`, con 62 mutaciones (61 caen, una equivalente); **4-5** anotado (para el 4.21) y **4-4** (`HOY()`) sigue abierto. Antes: **4.07-1**, **4.06**, **4.05**, **4.04** a **4.01**. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24, «movido de ESTADO», 4.07-2).
+
+1. **4.08** (el diseño de la hoja: `docs/PLAN.md`, fila 4.08) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda de 4.07-2: un nombre de campo del vehículo es una columna (`anio`, `marca`, `modelo`, `kilometraje`, `precio`) o la clave de un campo del origen, **sin puntos** (`validar_formula()` rechaza `campo_con_punto`); la fila que guarda el editor (4.21) es `{ ...raíz compilada, texto }` y el compilador no toca el texto (importa `compilarExpresion`, `CODIGOS_DE_COMPILACION` y `MAXIMO_DE_TEXTO` de `@/modules/cotizaciones`; desde un Client Component pedirá `client.ts`); las `entradas` de `cotizacion_evaluar()` sólo llevan `inputs`, `banderas`, `overrides` y `variante`; hasta el 4.10 nadie la ejecuta desde la interfaz. La fila 4.08 anota que el seed no trae filas de `transporte_por_ruta`.
+
+## 2026-10-24 — Paso 4.08, prompt 1 de 3: el modelo del diseño de la hoja y su validación
+
+**Horas** (hora de La Paz): el pedido a las 01:20 y el plan (con la revisión en contra de un agente) aprobado a las 01:43; `55ddabd` a las 02:21,
+`8c1a0e4` a las 02:58, `9fafed0` a las 03:02 y `589b090` a las 03:06; el Nivel 2 empezó a las 03:12 (la segunda vuelta, a las 03:14, terminó a las 03:40) y este cierre es de después. Decisiones bz a ck:
+`docs/DECISIONES.md`, 2026-10-24, «Paso 4.08 (1 de 3)».
+
+**Qué se hizo** (cinco commits; el 5.º es este cierre):
+
+- **`55ddabd` — el validador puro.** `entities/diseno.ts` (el Zod, sin registros), `motivos-de-diseno.ts` (28 códigos con la forma), `validar-diseno*.ts` (cuatro
+  pasadas: modos, secciones y tarjeta, cobertura), `diseno-sintetico.ts`, el juego `casos-de-diseno.json` y sus pruebas (el juego, el Zod, los motivos y la
+  escala con el contador de visitas).
+- **`8c1a0e4` — la base.** `…005600_validar_diseno.sql` (`validar_diseno()` y cinco ayudantes), `validar-diseno.sql` en `db:probar`, el corpus de 784 casos con sus
+  105 mutadores, `database.types.ts`. El juego sube de 218 a 221 casos con lo que pidieron las vivas.
+- **`9fafed0` — la medición.** `medir-validar-diseno.sql` y `scripts/mediciones.mjs` (la lista de mediciones salió de `medir-listado.mjs`, que tenía 302 líneas).
+- **`589b090` — `index.ts`** exporta `validarDiseno`, `REGLAS_DE_DISENO`, las listas cerradas y los tipos, con su test.
+
+**Del plan, tal como se aprobó** (y lo que el revisor en contra cambió): 27 reglas cruzadas con su `donde` y su orden; el contexto como tres listas (niveles,
+retirados, tonos); sin registros, así que el `__proto__` y el orden de jsonb dan lo mismo desde el principio; los largos en caracteres. El revisor encontró, y
+se verificó en el motor: una variante sin chips deja la hoja sin poder cotizar (`nodo_sin_seccion` la cubre), el interruptor tiene que apagar por `condicion`
+y no por cualquier lectura, un par sobrescribible partido en dos celdas pisa el % tipeado (`par_sin_secundario`), un modo en una fórmula sin `total_en` cambia
+la cuenta del total (`modo_sin_total_en`), el orden de las reglas tenía que escribirse pasada por pasada, «todos» siempre existe, y la medición del TOAST
+necesita `storage external` y comprobar que el valor quedó fuera de línea.
+
+**Mutaciones: 315, 306 caen y 9 son equivalentes demostradas.** Cada una cambia el texto, corre el evaluador del juego y el corpus, y el archivo se restaura desde
+una copia con `cp` y se comprueba con `cmp`; las de SQL, dentro de una transacción del Postgres 17 local que se revierte (con las seis funciones borradas al
+empezar, para que un cambio en los grants o en `create or replace` cuente).
+
+| Grupo         | Mutaciones | Qué se rompe                                                                                                                                                                                                      |
+| ------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TS, apagar    | 34         | cada `fallo('regla'` (cada aparición): sólo caen los casos de su regla                                                                                                                                            |
+| TS, el resto  | 98         | el orden entre las cinco pasadas, el `donde` de la forma, los modos (11), el contexto (6), las secciones (39), la cobertura (10) y cada tope y cada `strictObject` del Zod (24)                                   |
+| SQL, apagar   | 33         | cada rechazo de regla: sólo caen los casos de su regla                                                                                                                                                            |
+| SQL, forma    | 54         | cada `/*Dnn*/` (el `return false` o el `perform`)                                                                                                                                                                 |
+| SQL, el resto | 96         | los modos (12), las secciones (34), la tarjeta, los atajos y la cobertura (12), el índice de la fórmula y el contexto (11), el orden (2), STABLE, definer y `search_path` de las seis funciones (18) y los grants |
+
+- **Vivas en la primera pasada: 17** (10 de TS y 7 de SQL): 9 equivalentes, 7 huecos y una rama redundante que se quitó del código. Los huecos, ahora en el juego o
+  en el corpus: los atajos con el `nivel_editar` de la sección; los atajos sobre un tramo; los atajos sobre el porcentaje que muestra una celda (dos
+  mutaciones; ningún caso lo tenía y hizo falta una fórmula nueva, `secundaria`); un tono que no se llama como su grupo (`donde` es el grupo: fórmula
+  `tonos_distintos`); la cabecera que es un texto (la base lanzaba un error de jsonb en lugar de `forma`, porque `jsonb - text[]` no admite un escalar); y el
+  `nivel_editar` de la celda de un par. Además la tarjeta sobre un nodo que no existe sólo la tumbaba el juego: el corpus la elegía al azar y no salía, y ahora
+  tiene su mutador. La rama redundante era `Aparicion.como`: un nodo de tabla sólo puede dibujarse en una celda o como el porcentaje de una, así que los atajos
+  no necesitaban mirar cómo se dibujaba; se quitó del TS y de la base.
+- **Las 9 equivalentes, demostradas:**
+  - un `bucket` repetido antes que inexistente, en TS y en SQL: un bucket repetido ya pasó la comprobación de «existe», así que el orden no se ve;
+  - la tarjeta con el repetido antes que el «aparte»: lo mismo;
+  - `donde` de la forma sin `raiz === 'secciones'`: sólo `secciones` tiene un arreglo como hijo directo de la raíz, así que el segundo elemento de la ruta
+    sólo es un número ahí;
+  - los atajos con los niveles de la celda: un atajos no trae niveles propios, los suyos son los de su sección;
+  - `D01` y `D40`: un diseño o un ítem que no es un objeto da `NULL` con `->`, y la comprobación siguiente (`D02`, `D41`) rechaza igual;
+  - el bucket con `coalesce(p_buckets ? …, true)`: una fórmula sin `buckets` pero con `total_en` no valida (`validar_formula()` la rechaza antes).
+- **Una condición se quitó en vez de mutarla:** `v_f < 1` de `D58` era inalcanzable (un entero menor que 1 sólo puede ser 0, y `D56` ya lo corta).
+
+**Cifras:** el juego de `validar_diseno()` son 221 casos (31 válidos) y su corpus 784 (73 válidos, 260 con dos defectos o más, 105 mutadores); la prueba de
+Vitest pasa de 339 archivos y 3.603 pruebas a 344 y 3.857. `db:lint` sigue en 84 avisos: los 21 que tuvo la primera versión de `validar_diseno()` (variables de
+bucle redeclaradas, `'{}'` sin tipo) se arreglaron.
+
+**Medición** (`docs/RENDIMIENTO.md`): 206 y 2.018 ítems en 4,8 y 44,3 ms (razón 9,3), 0 buffers con literales y 265 y 1.665 de una columna fuera de línea (razón
+6,3); comprimida cuesta 1,0 veces los literales. Las dos guardas muerden (razón de ms 18 y de buffers 57). Cuatro corridas a mano con la carga de 3,2 a 1,1 y la
+de `pnpm db:medir` con 0,9; ningún tope se subió.
+
+**Del entorno y de lo que se aprendió:**
+
+- **Un nombre de mutación con un emoji cortado a la mitad** (`slice(0, 20)` sobre un texto con 😀) dejó un sustituto suelto en el corpus y jsonb lo rechazó entero:
+  los recortes de texto del corpus van por caracteres (`[...texto]`).
+- **La guarda de `escala.sql` rechaza `count(*)` en cualquier función de la app,** también sobre `jsonb_object_keys()`: se cuenta con `cardinality(array(select …))`.
+- **Un arnés de mutaciones de SQL que no borra las funciones al empezar no ve los cambios de grants** (`create or replace` conserva los privilegios que ya tiene): las dos
+  mutaciones de grants «sobrevivieron» hasta que el arnés las borró antes de la migración.
+- **`S=… && cmd &` pone la variable en un subshell:** el comando siguiente no la ve (escribió a `/functions.txt`, denegado). Se define aparte.
+- **Next avisó de una vulnerabilidad conocida de su versión** como en los pasos anteriores; no se corrió `next upgrade`.
+
+**Verificación:** `pnpm lint`, `pnpm typecheck`, `pnpm test` (344 archivos, 3.857 pruebas), `bash scripts/mapa.sh --check`, `pnpm db:reset`, `pnpm db:types` (sin diff
+tras el commit), `pnpm db:probar` (0 fallos), `pnpm db:lint` (84 avisos cosméticos, sin errores) y `pnpm db:medir`. **e2e completo: sí (Nivel 2: se agregó la migración `…005600` y `src/shared/types`, que no tocan policies ni el esquema base; lo pidió el prompt)** — `pnpm test:e2e:completo --project=escritorio`: 666 en verde, 16 saltados, 0 fallos, 25,0 min (03:14 a 03:40). El primer intento se detuvo en `next build` con el aviso de seguridad conocido de Next (`SecurityFatalError`) tras el reset y las carreras; se repitió el mismo comando, sin `next upgrade`.
+
+**Lo que no se hizo:**
+
+- `formulas.diseno`, los tonos, la compilación a `visibilidad`, la semilla y el transporte de la semilla (prompts 2 y 3), los niveles (4.09) y el editor (4.22).
+- `next upgrade`, ni empujar.

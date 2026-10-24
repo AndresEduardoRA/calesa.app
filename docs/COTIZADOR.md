@@ -654,27 +654,87 @@ tc_oficial}`, `total_en: tc_unificado`:
 
 ## El diseño de la hoja (D7)
 
-`formulas.diseno` (jsonb), versionado y publicado con la fórmula: entra en D5 y en «desactualizada». Lo validan el Zod de
-`entities/diseno.ts` y `validar_diseno(def, diseno)` en la base, con un juego de prueba que los dos rechazan igual. **Declarativo:**
-nada de CSS, clases, HTML ni hex.
+`formulas.diseno` (jsonb), versionado y publicado con la fórmula: entra en D5 y en «desactualizada» (la columna llega en el prompt 2 del
+4.08). Lo validan `validarDiseno()` (`entities/validar-diseno.ts`, sobre el Zod de `entities/diseno.ts`) y `validar_diseno()` en la base,
+con un juego de prueba (`entities/casos-de-diseno.json`) que los dos rechazan igual: la misma regla y el mismo `donde`. **Declarativo:**
+nada de CSS, clases, HTML ni hex. Hecho en el paso 4.08, prompt 1.
 
-- **`cabecera`:** los modos que se ofrecen (arriba) y si se ofrece «Ver total Bs».
-- **`secciones[]`, en orden:** cada una con `id`, título opcional, `presentacion` (`principal` o `avanzado`; avanzado es un modal con su
-  URL), `nivel_ver` y `nivel_editar` opcionales e `items[]`.
+```jsonc
+{
+  "cabecera": {
+    "modos": [
+      {
+        "clave": "unificado",
+        "nombre": "Unificado",
+        "buckets": [
+          { "bucket": "exterior", "nodo": "tc_unificado" },
+          { "bucket": "aduana", "nodo": "tc_oficial" },
+        ],
+        "total_en": "tc_unificado",
+      },
+    ],
+    "ver_total_bs": true,
+  },
+  "secciones": [
+    {
+      "id": "compra",
+      "titulo": "Compra",
+      "presentacion": "principal",
+      "nivel_ver": "costos",
+      "nivel_editar": "costos",
+      "items": [
+        {
+          "tipo": "celda",
+          "nodo": "fees",
+          "ancho": "mitad",
+          "secundario": "porcentaje",
+          "ayuda": { "tabla": "fees" },
+        },
+      ],
+    },
+  ],
+  "tarjeta_total": { "nodo": "total", "secundarios": ["garantia"] },
+}
+```
+
+- **Sin registros.** Toda colección es un arreglo con su clave adentro (`modos[].clave`, `buckets[].bucket`): ninguna clave del JSON es un
+  dato. Una clave `__proto__` sólo puede ser una clave desconocida de un objeto estricto (`forma`), igual en Zod y en la base, y el orden de
+  las claves de jsonb no cambia ningún resultado (la divergencia declarada de `validar_formula()` no se repite).
+- **`cabecera`:** los modos que se ofrecen y si se ofrece «Ver total Bs».
+  - **Un modo** es otro `buckets` y otro `total_en`: nombra **nodos `tipo_cambio`** (no claves), igual que la fórmula y que el
+    `ModoDeCambio` del motor (una lista en vez de un registro). Llena **exactamente** los buckets de la fórmula.
+  - **No hay modos en una fórmula sin `total_en`** (las dos del seed): con un modo el total pasaría de la suma de los dólares a Bs ÷ tc, y
+    «un modo es otro mapa, no otra cuenta».
+  - Sin `por_defecto`: si no se elige un modo, mandan los de la fórmula.
+- **`secciones[]`, en orden** (el del DOM, de lectura y del `Tab`): `id`, `titulo?` (1 a 80), `presentacion` (`principal` o `avanzado`),
+  `nivel_ver?` y `nivel_editar?` (el de la sección lo heredan sus ítems) e `items[]`. Todas las `avanzado` van, en su orden, en **un** modal
+  «Avanzado» con su URL (captura 07; el modal es de 4.13).
 - **`items`**, de cinco tipos:
-  - **`celda`**: `nodo`, `ancho` (`completo`, `mitad` o `tercio` de la sección), `secundario` (`porcentaje` o `monto`), `ayuda` (clave
-    de tabla o texto), `nivel_ver` y `nivel_editar`. **El candado se deriva:** tipo de cambio de la empresa sin permiso de editarlo, un
-    cálculo, una condición apagada, otra variante o un nivel que falta. Siempre dice su motivo.
-  - **`atajos`**: un nodo de tabla, la columna que etiqueta y cuántas filas se ofrecen como chips (los años del factor de depreciación).
-  - **`variante`**: el nodo `opcion`, como chips.
-  - **`interruptor`**: un nodo `bandera` con `efecto` `habilita` (la fila se dibuja deshabilitada con su motivo cuando está apagado) o
-    `muestra` (la garantía en la tarjeta y en la plantilla).
+  - **`celda`**: `nodo`, `ancho` (`completo`, `mitad` o `tercio` de la sección), `secundario?` (`porcentaje` o `monto`), `ayuda?` (la
+    `tabla` de referencia que se abre **o** un `texto` de 1 a 300, no los dos), `nivel_ver?` y `nivel_editar?`. **El candado se deriva:**
+    tipo de cambio de la empresa sin permiso de editarlo, un cálculo, una condición apagada, otra variante o un nivel que falta. Siempre dice
+    su motivo. **El par porcentaje-monto es una sola celda:** la de un `porcentaje_de` lleva `secundario` y dibuja el `pct` (el IVA
+    «14,94 % · $181»); si se sobrescribe, es obligatorio.
+  - **`atajos`**: un nodo de **tabla sobrescribible**, la `columna` que etiqueta y cuántas `filas` (1 a 12) se ofrecen como chips (los
+    años del factor de depreciación). No dibuja el valor: va sobre la celda de su nodo (o sobre el porcentaje que ella muestra), con sus
+    mismos niveles.
+  - **`variante`**: el nodo `opcion`, como chips. Es obligatoria si la fórmula tiene variante (sin `por_defecto` el motor falla en cada
+    cálculo, y con una no se podría cambiar).
+  - **`interruptor`**: una `bandera` con `efecto` `habilita` (los nodos que la bandera condiciona se dibujan deshabilitados con su motivo
+    cuando está apagada) o `muestra` (apagada, no se dibujan: la garantía en la tarjeta y en la plantilla). Los nodos son los de
+    `condicion` = la bandera, que es lo único que el motor apaga; `habilita` cuenta también los inputs que la piden en `requerido_si`.
+    Una bandera que condiciona algo o pide un dato tiene que tener su interruptor.
   - **`subtotal`**: un nodo de cálculo dibujado como franja (el «CIF (base imponible)» de «avanzado»).
-- **`tarjeta_total`:** el nodo total y sus secundarios (la garantía, que es `aparte`). La tarjeta no se ubica en el diseño: es el
-  resumen fijo de UX (al pie en el celular, al costado en escritorio).
+- **`tarjeta_total`:** el nodo total y sus `secundarios` (la garantía, que es `aparte`). La tarjeta no se ubica en el diseño: es el
+  resumen fijo de UX (al pie en el celular, al costado en escritorio). **Repite** lo que la hoja ya dibuja y no cuenta como aparición.
+- **«Aparecer una vez».** Dibujan el valor de un nodo una `celda`, el `pct` que muestra una celda con `secundario`, un `subtotal`, la
+  `variante` y un `interruptor`; entre todas, un nodo aparece a lo sumo una vez. El nivel efectivo de un ítem es el suyo (sólo la celda lo
+  trae), si no el de su sección, si no `todos`.
+- **El diseño no lleva `solo_en`.** Lo que cambia con la variante lo dice el nodo (el `solo_en` de la fórmula) y la hoja lo dibuja
+  deshabilitado con su motivo; `validar_formula()` ya asegura que nombre opciones que existen (`solo_en_opcion_inexistente`).
 - **El tono es del grupo de la fórmula**, una clave del catálogo `tonos` de la empresa (claro y oscuro: fondo, borde, tinta), con
   validación AA como `color_acento` (`src/shared/lib/color.ts`), sembrado desde los tokens de celda. La plantilla puede elegir otra
-  clave para un grupo (H5).
+  clave para un grupo (H5). El validador sólo exige que la clave exista.
 - **Celular y 200 % sin un segundo diseño:**
   - un solo orden declarado, que es el orden del DOM, de lectura y del `Tab`;
   - cada sección es una grilla de 12 pistas con `@container`;
@@ -682,19 +742,83 @@ nada de CSS, clases, HTML ni hex.
   - por debajo, una columna en el mismo orden, con `mitad` y `tercio` como `completo`;
   - como el corte es en rem del contenedor, el 200 % colapsa solo (`ui.md`: `minmax(0,1fr)`, `min-w-0`, y la etiqueta arriba del valor
     si la celda mide menos de 16 rem, nunca cortada).
-- **Se asserta:**
-  - **Zod y la base:**
-    - cada nodo existe y aparece una vez;
-    - toda `input` y `constante` está en una sección;
-    - `solo_en` nombra opciones que existen;
-    - `atajos` apunta a un nodo de tabla;
-    - un nodo no aparece en dos secciones con niveles distintos;
-    - los niveles existen y no están retirados.
-  - **e2e** con los dos diseños de la semilla a 412 y 1.280 px, al 100 y al 200 %:
-    - `sinScrollHorizontal()`;
-    - `sinTextoCortado()` en cada etiqueta;
-    - `aLaVistaSinDesplazar()` en el valor y los iconos;
-    - el orden del DOM igual al declarado.
+
+### Las reglas (4.08-1)
+
+**Primero la forma (`forma`):** el Zod de `diseno.ts`. Cubre tipo, clave desconocida (CSS, clase, `__proto__`…), `ancho`, `presentacion`,
+`secundario` y `efecto` fuera de su lista, largos (en caracteres: 80 emojis pasan un título y 81 no), un `null`, `filas` (como las lee JS:
+`1.0` y `0.99999999999999999` valen 1) e ids. Su `donde` es el id (crudo, si es un texto) de la sección donde está el primer error de Zod;
+en la cabecera, la tarjeta o la raíz, ninguno. Zod recorre cabecera, secciones (en orden), tarjeta y, al final, las claves desconocidas.
+
+**Después, 27 reglas cruzadas,** cada una con un código estable (`entities/motivos-de-diseno.ts`; el texto es de cada lado). `donde` es el
+id del nodo, la sección, el modo o el grupo donde se rompe; la base lo pone en `hint`.
+
+| Regla                                                       | Qué rechaza                                                                                                                                                                                                                   | `donde`              |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `modo_duplicado`, `modo_sin_total_en`                       | dos modos con una clave; un modo en una fórmula sin `total_en`                                                                                                                                                                | la clave del modo    |
+| `modo_bucket_inexistente`, `modo_bucket_repetido`           | un bucket que la fórmula no tiene; el mismo bucket dos veces                                                                                                                                                                  | la clave del modo    |
+| `modo_tipo_de_cambio_inexistente`, `modo_incompleto`        | el `nodo` de un bucket o el `total_en` que no es un `tipo_cambio`; un bucket de la fórmula sin llenar                                                                                                                         | la clave del modo    |
+| `seccion_duplicada`                                         | dos secciones con un id                                                                                                                                                                                                       | el id                |
+| `nivel_inexistente`, `nivel_retirado`                       | un nivel de una sección o de una celda que no es «todos» ni existe; uno retirado                                                                                                                                              | la sección o el nodo |
+| `nodo_inexistente`                                          | un ítem o la tarjeta nombran un nodo que no existe                                                                                                                                                                            | el id nombrado       |
+| `celda_no_es_valor`                                         | una celda de la variante o de una bandera                                                                                                                                                                                     | el nodo              |
+| `secundario_sin_porcentaje`, `par_sin_secundario`           | un `secundario` en una celda que no es un `porcentaje_de`; la celda de un `porcentaje_de` sobrescribible sin él                                                                                                               | el nodo              |
+| `atajos_no_es_tabla`, `atajos_no_sobrescribible`            | atajos sobre un nodo que no es `tabla`; sobre una tabla que no se sobrescribe                                                                                                                                                 | el nodo              |
+| `variante_no_es_opcion`, `interruptor_no_es_bandera`        | una variante que no nombra el `opcion`; un interruptor que no nombra una `bandera`                                                                                                                                            | el nodo              |
+| `interruptor_sin_efecto`, `subtotal_no_es_calculo`          | su bandera no condiciona nada (ni pide un dato, si es «habilita»); un subtotal que no es un `calculo`                                                                                                                         | el nodo              |
+| `nivel_no_admitido`                                         | el total, una salida `aparte` (en una celda o un subtotal) o la variante con un nivel efectivo que no es «todos»: la base siempre manda el total y lo `aparte` (D7) y la variante titula el PDF, que sólo lleva lo de «todos» | el nodo              |
+| `nodo_repetido`                                             | un nodo dibujado dos veces; un segundo atajos del mismo nodo; un secundario repetido en la tarjeta                                                                                                                            | el id repetido       |
+| `tarjeta_no_es_el_total`, `tarjeta_secundario_no_es_aparte` | la tarjeta no nombra el total; un secundario que no es una salida `aparte`                                                                                                                                                    | el nodo              |
+| `atajos_sin_celda`, `nodo_con_dos_niveles`                  | unos atajos cuyo nodo no se dibuja; con otro nivel (de ver o de editar) que la celda                                                                                                                                          | el nodo              |
+| `nodo_sin_seccion`                                          | un `input` o una `constante` sin celda (ni como secundario); el `opcion` sin sus chips; una bandera que condiciona algo o pide un dato sin interruptor                                                                        | el nodo              |
+| `tono_inexistente`                                          | el tono de un grupo de la fórmula que no está en el catálogo                                                                                                                                                                  | el id del grupo      |
+
+- **El orden (el primero que falla manda):** la forma; los modos (por modo: duplicado, sin `total_en`, por cada entrada bucket inexistente,
+  repetido y tipo de cambio; después el `total_en` y lo incompleto); las secciones, ítem por ítem (sección repetida, sus niveles; por ítem:
+  nodo inexistente, lo propio de su tipo, niveles de la celda, `nivel_no_admitido`, `nodo_repetido`); la tarjeta; los atajos (sin celda, otro
+  nivel); la cobertura, en el orden de la fórmula; los tonos, en el de los grupos. El juego trae un caso de orden por pasada.
+- **El contexto** son tres listas, para que el validador no dependa de tablas que no existen todavía (niveles: 4.09; tonos: prompt 2): los
+  niveles que existen, los retirados y las claves de tono. «todos» siempre existe y nunca se retira. El publicar las leerá de sus tablas; el
+  ⚙ y la N+1 de una tabla (D5) republican el diseño sin cambiarlo y pasan `retirados` vacío, porque lo que ya usa un nivel retirado se sigue
+  filtrando igual. **La definición llega ya validada** por `validarFormula()` (el publicar llama a las dos, en ese orden).
+- **No se valida, a propósito:** que `ayuda.tabla` y `atajos.columna` existan (las tablas viven fuera de la fórmula); qué opciones de la
+  variante dan chip (todas); que una salida `aparte` esté en la tarjeta (la base la manda igual); un `nivel_ver` restringido con
+  `nivel_editar` abierto (depende de qué signifique editar, del 4.09).
+
+### En la base (4.08-1)
+
+`validar_diseno(def, diseno, niveles, retirados, tonos)` está en `supabase/migrations/20261019005600_validar_diseno.sql`, con cinco
+ayudantes `_diseno_*`: STABLE, invoker y con `search_path` vacío, y los mismos grants que `validar_formula()`. Rechaza con `22023`, la regla
+en DETAIL y `donde` en HINT, por el mismo `_formula_rechazar()`. Un arreglo nulo del contexto es uno vacío; un diseño nulo es `forma`.
+
+- **La forma copia el Zod comprobación por comprobación:** cada una lleva su `/*Dnn*/` y pasa antes por `jsonb_typeof` (un `->>` convierte
+  `true` en un texto). Cuenta los largos con `char_length` y lee `filas` como JS.
+- **Es lineal:** la fórmula y el diseño se desarman una vez; los mapas (id → posición, quién condiciona, el contexto) se arman por
+  conjuntos y se buscan con `?`; el estado por nodo va en arreglos de plpgsql; sin `||` sobre jsonb ni `= any` dentro de un bucle.
+
+### Las pruebas (4.08-1)
+
+- **El juego a mano** (`entities/casos-de-diseno.json`, 221 casos): 31 válidos —el diseño de las capturas con sus modos, el del Excel, el de
+  cada fórmula del seed, el de «Amnistia» (variante sin opción por defecto) y los bordes— y 190 inválidos, uno por regla o por cada forma
+  de las que tienen varias, más los de forma (`__proto__` en cada nivel, `ancho: "50%"`, `"mitad; color: red"`, `clase`, `html`…) y los de
+  orden. Cuatro fórmulas propias (`capturas`, `minima`, `secundaria`, `tonos_distintos`) y el resto de `casos-de-formula.json`.
+- **El corpus diferencial** (`supabase/tests/corpus-de-diseno.json`, 784 casos): las 31 válidas mutadas de forma determinista (semilla
+  20261024), cada mutador cruzado seis veces solo, uno de forma por cada `/*Dnn*/`, 200 mezclas de dos o tres reglas y 60 con la forma. Lo
+  arman `corpus-de-diseno.ts` y los `mutadores-de-diseno*.ts`, y `corpus-de-diseno.test.ts` lo regenera (`ACTUALIZAR_CORPUS=1`) y exige que
+  cada comprobación de la migración tenga su mutador. `supabase/tests/validar-diseno.sql` (`pnpm db:probar`) compara regla y `donde` de
+  los 221 y de los 784, y que la base nunca acepte lo que Zod rechaza.
+- **Las mutaciones (2026-10-24, `docs/BITACORA.md`):** 132 de TS (128 caen y 4 son equivalentes demostradas) y 183 de SQL (178 caen y 5 son
+  equivalentes demostradas). Cada regla apagada tumba exactamente sus casos del juego.
+
+### Escala (4.08-1)
+
+- **TS:** todo bucle y toda búsqueda pasan por `medidor.ts`. k = 8 por tamaño (el peor ítem: recorrerlo, buscar su nodo, dos niveles y su
+  registro), y diez veces más unidades son a lo sumo 10,5 veces más visitas (`validar-diseno-escala.test.ts`). Un bucle sin `recorrer()`, un
+  `find` o un bucle anidado caen.
+- **Base:** `supabase/tests/medir-validar-diseno.sql` (`pnpm db:medir`) mide como `authenticated`, mediana de 5 de 7, con 206 y 2.018
+  ítems (255 y 2.487 nodos): 4,8 y 44,3 ms (razón 9,3; tope 12), 0 buffers con literales, y de una columna fuera de línea 265 y 1.665
+  buffers (razón 6,3; tope 12). Comprimida cuesta 1,0 veces los literales. Las guardas muerden: una búsqueda lineal por ítem da una razón
+  de 18 en ms y releer `p_def` por grupo, 57 en buffers. Detalle en `docs/RENDIMIENTO.md`.
 
 ## Niveles de acceso (D7, H3 y H4)
 
