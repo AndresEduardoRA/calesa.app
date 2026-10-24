@@ -6860,6 +6860,41 @@ export type Database = {
           params: Json
         }[]
       }
+      _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
+      _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
+      _diseno_modos: {
+        Args: {
+          p_buckets: Json
+          p_modos: Json
+          p_nb: number
+          p_pos: Json
+          p_tipos: string[]
+          p_total_en: string
+        }
+        Returns: undefined
+      }
+      _diseno_nivel: {
+        Args: { p_donde: string; p_nivel: string; p_niveles: Json; p_retirados: Json }
+        Returns: undefined
+      }
+      _diseno_secciones: {
+        Args: {
+          p_cond: Json
+          p_ids: string[]
+          p_niveles: Json
+          p_ops: string[]
+          p_pcts: string[]
+          p_pos: Json
+          p_req: Json
+          p_retirados: Json
+          p_salidas: string[]
+          p_secs: Json
+          p_sobres: boolean[]
+          p_tarjeta: Json
+          p_tipos: string[]
+        }
+        Returns: undefined
+      }
       _embudo_conflicto: { Args: { p_cuando: string }; Returns: undefined }
       _embudo_defecto_de: { Args: { p_usuario: string }; Returns: string }
       _embudo_insertar: {
@@ -8395,6 +8430,16 @@ export type Database = {
         Returns: boolean
       }
       usuario_tiene_permiso: { Args: { p_clave: string; p_usuario: string }; Returns: boolean }
+      validar_diseno: {
+        Args: {
+          p_def: Json
+          p_diseno: Json
+          p_niveles: string[]
+          p_retirados: string[]
+          p_tonos: string[]
+        }
+        Returns: undefined
+      }
       validar_formula: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
       vehiculo_conservar: { Args: { p_conservar: boolean; p_vehiculo: string }; Returns: Json }
       vehiculo_crear: {

@@ -23,6 +23,21 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   claves de un objeto en el orden de jsonb. La 30.ª, `campo_con_punto`, está en `supabase/migrations/20261019005400_validar_formula_campos.sql`, que redefine `validar_formula()` entera (STABLE) y añade `_formula_campos()`; `…005500_formula_texto.sql` redefine `_formula_forma_nodo()` (STABLE) para admitir `texto`. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 87 casos y con
   el corpus diferencial `supabase/tests/corpus-de-formula.json` (más de 500 mutaciones de las 4 válidas, defectos mezclados, el esperado
   de `validarFormula`), que generan `corpus-de-formula.ts` y los `mutadores-*.ts` de esa carpeta y vigila `corpus-de-formula.test.ts`.
+- `entities/diseno.ts` — el Zod del diseño de la hoja (D7, 4.08): `cabecera` (los modos de tipo de cambio y «Ver total Bs»), `secciones[]` con sus
+  ítems (`celda`, `atajos`, `variante`, `interruptor`, `subtotal`) y `tarjeta_total`. Declarativo y estricto (nada de CSS, clases, HTML ni hex) y sin
+  registros: la clave de cada colección va adentro, así que un `__proto__` es una clave desconocida en los dos lados.
+- `entities/validar-diseno.ts` (con `validar-diseno-contexto.ts`, `-modos.ts`, `-secciones.ts`, `-cobertura.ts` y `motivos-de-diseno.ts`) —
+  `validarDiseno(definicion, diseno, contexto)`: la forma y 27 reglas que cruzan el diseño con la fórmula (modos, niveles, ítems, tarjeta,
+  atajos, cobertura y tonos), en un orden fijo, lineal y con el contador de `medidor.ts`. El contexto son tres listas: los niveles que existen, los
+  retirados y las claves de tono. La definición llega ya validada por `validarFormula()`. Espejo de `validar_diseno()` (abajo).
+- `entities/casos-de-diseno.json` — el juego a mano del diseño (válidos de las capturas, del Excel, de la semilla y de «Amnistia»; cada regla con su
+  caso y uno de orden por pasada): lo recorren `validar-diseno.test.ts` y `supabase/tests/validar-diseno.sql`. `diseno-sintetico.ts` arma los
+  diseños de 200 y 2.000 ítems de la prueba de escala y de la medición.
+- `supabase/migrations/20261019005600_validar_diseno.sql` — `validar_diseno(def, diseno, niveles, retirados, tonos)` y sus ayudantes `_diseno_*`
+  (STABLE, invoker, `search_path` vacío): lo mismo que `validarDiseno()`, con el mismo código de regla y el mismo `donde` (22023, la regla en DETAIL y
+  `donde` en HINT, por `_formula_rechazar()`). Sin tabla ni columna todavía: `formulas.diseno`, los tonos y los niveles son de los prompts 2 y 3 y del
+  4.09. Lo prueba `supabase/tests/validar-diseno.sql` (`pnpm db:probar`) con el juego y con el corpus `supabase/tests/corpus-de-diseno.json`
+  (`corpus-de-diseno.ts` y los `mutadores-de-diseno*.ts`, que vigila `corpus-de-diseno.test.ts`).
 - `supabase/migrations/20261019005200_evaluar_formula.sql` — `evaluar_formula(definicion, params, entrada, modo?)` y sus ayudantes `_motor_*`: espejo
   exacto de `motor.ts` (los mismos float8, estados, fuentes, totales, faltantes y descartados; errores de llamada 22023 con el código en DETAIL).
   Pura: las tablas vivas llegan en `entrada.tablas`. Desarma sus argumentos una sola vez y lleva el estado por nodo en arreglos. Lo prueban
@@ -63,7 +78,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Tablas
 
 `formulas`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
-RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `validar_formula`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
+RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
 
 ## No se rompe
 

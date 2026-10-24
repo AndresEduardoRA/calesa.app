@@ -132,6 +132,11 @@ const DATOS_DE_PRUEBA = {
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
     _corpus_de_formula: path.join(base, 'tests', 'corpus-de-formula.json'),
   },
+  'validar-diseno.sql': {
+    _juego_de_diseno: 'src/modules/cotizaciones/entities/casos-de-diseno.json',
+    _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
+    _corpus_de_diseno: path.join(base, 'tests', 'corpus-de-diseno.json'),
+  },
   'evaluar-formula.sql': {
     _juego_del_motor: 'src/modules/cotizaciones/entities/casos-del-motor.json',
     _corpus_del_motor: path.join(base, 'tests', 'corpus-del-motor.json'),
@@ -171,6 +176,7 @@ for (const archivo of [
   'equipo-lista.sql',
   'permisos-enforcement.sql',
   'validar-formula.sql',
+  'validar-diseno.sql',
   'evaluar-formula.sql',
   'cotizacion-evaluar.sql',
 ]) {
