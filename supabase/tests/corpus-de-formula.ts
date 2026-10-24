@@ -17,6 +17,7 @@ import {
   type Json,
   type Mutador,
 } from './mutadores-de-formula'
+import { MUTADORES_DE_CAMPOS } from './mutadores-de-campos'
 import { MUTADORES_DEL_TOTAL } from './mutadores-del-total'
 import { MUTADORES_DE_GRUPOS } from './mutadores-de-grupos'
 import { MUTADORES_DE_VARIANTE } from './mutadores-de-variante'
@@ -28,6 +29,7 @@ export const MUTADORES_CRUZADOS: readonly Mutador[] = [
   ...MUTADORES_DEL_TOTAL,
   ...MUTADORES_DE_GRUPOS,
   ...MUTADORES_DE_VARIANTE,
+  ...MUTADORES_DE_CAMPOS,
 ]
 export { MUTADORES_DE_FORMA }
 

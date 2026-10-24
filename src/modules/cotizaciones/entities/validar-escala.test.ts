@@ -52,12 +52,27 @@ describe('validarFormula con volumen', () => {
       'validar-contexto.ts',
       'validar-grupos.ts',
       'validar-variante.ts',
+      'validar-campos.ts',
     ]
     for (const a of archivos) {
       const fuente = readFileSync(new URL(a, import.meta.url), 'utf8')
       expect(fuente, a).not.toMatch(
         /\.(includes|indexOf|lastIndexOf|find|findIndex|findLast|filter|some|every)\(/,
       )
+    }
+  })
+
+  it('todo bucle de los validadores pasa por recorrer(): sin él, el contador no lo vería', () => {
+    const archivos = [
+      'validar.ts',
+      'validar-contexto.ts',
+      'validar-grupos.ts',
+      'validar-variante.ts',
+      'validar-campos.ts',
+    ]
+    for (const a of archivos) {
+      const fuente = readFileSync(new URL(a, import.meta.url), 'utf8')
+      expect(fuente, a).not.toMatch(/for \((const|let|var) [^)]* of (?!recorrer\()/)
     }
   })
 })

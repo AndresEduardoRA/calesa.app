@@ -78,7 +78,7 @@ const REPARTO_CON_APAGADO = formula(
   { buckets: { x: 'tc', y: 'tc2' } },
 )
 
-// El orden de los bytes (`collate "C"`) no es el de un idioma: «a1» va antes que «a_b» y «a.b» antes que «a_b», al revés que con ICU.
+// El orden de los bytes (`collate "C"`) no es el de un idioma: «a1» y «a0» van antes que «a_b», al revés que con ICU (un campo ya no lleva punto: `campo_con_punto`).
 const conCampos = (b: string, aa: string) =>
   formula(
     [tc('tc'), tabla('tb', 't', { b, aa }), total(['tb'], { bucket: 'x' })],
@@ -184,11 +184,7 @@ export const CASOS_DE_LO_QUE_FALTA: CasoAMano[] = [
   ),
   // El orden de los bytes.
   solo('orden: dos campos del vehículo faltan, el menor es a1', conCampos('a_b', 'a1'), entrada()),
-  solo(
-    'orden: dos campos del vehículo faltan, el menor es a.b',
-    conCampos('a_b', 'a.b'),
-    entrada(),
-  ),
+  solo('orden: dos campos del vehículo faltan, el menor es a0', conCampos('a_b', 'a0'), entrada()),
   solo(
     'orden: dos campos del vehículo faltan, el menor es a1 y va primero',
     conCampos('a1', 'a_b'),

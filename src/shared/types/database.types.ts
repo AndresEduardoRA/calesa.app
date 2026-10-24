@@ -6951,6 +6951,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      _formula_campos: { Args: { p_nodos: Json; p_tipos: string[] }; Returns: undefined }
       _formula_forma: { Args: { p_def: Json; p_params: Json }; Returns: undefined }
       _formula_forma_nodo: { Args: { p_n: Json }; Returns: string }
       _formula_rechazar: {

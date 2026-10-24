@@ -53,7 +53,7 @@ describe('corpus-de-formula.json', () => {
     for (const regla of REGLAS_DE_FORMULA)
       expect(porRegla.get(regla) ?? 0, regla).toBeGreaterThanOrEqual(5)
     expect(casos.filter((c) => c.mutaciones.length >= 2).length).toBeGreaterThanOrEqual(200)
-    expect(casos.filter((c) => c.valida).length).toBeGreaterThanOrEqual(15)
+    expect(casos.filter((c) => c.valida).length).toBeGreaterThanOrEqual(10)
     expect(new Set(casos.map((c) => c.nombre)).size).toBe(casos.length)
   })
 

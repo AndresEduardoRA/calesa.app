@@ -5,7 +5,8 @@ import { z } from 'zod'
 
 // El id de un nodo, un grupo, un bucket, una opción o un tono: el patrón de `validar_formula()`.
 export const esquemaId = z.string().regex(/^[a-z][a-z0-9_]{0,40}$/)
-// Un campo del vehículo (`anio`, `atributos.cilindrada`): un `match` que no nombra un nodo es esto.
+// Un campo del vehículo (`anio`, `cilindrada`): un `match` que no nombra un nodo es esto. El patrón admite puntos a propósito:
+// `validarFormula()` los rechaza con su propia regla (`campo_con_punto`) y no como `forma`.
 export const esquemaCampo = z
   .string()
   .max(80)

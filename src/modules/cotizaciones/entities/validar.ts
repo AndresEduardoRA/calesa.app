@@ -19,6 +19,7 @@ import {
 } from './nodos'
 import { esFallo, fallo, indexar, nodoDe, type Contexto, type Fallo } from './validar-contexto'
 import { revisarCambioYGrupos } from './validar-grupos'
+import { revisarCampos } from './validar-campos'
 import { revisarVariante } from './validar-variante'
 
 export type ResultadoDeValidacion = { ok: true; formula: Formula } | Fallo
@@ -45,9 +46,13 @@ export function validarFormula(
     revisarParams(ctx, formula.params, crudas.claves) ??
     revisarPares(ctx) ??
     revisarCambioYGrupos(ctx) ??
-    revisarVariante(ctx)
+    revisarVarianteYCampos(ctx)
   return rechazo ?? { ok: true, formula }
 }
+
+// Las dos últimas pasadas, en su orden: la variante y, al final, los campos con punto (la base las llama una tras otra).
+const revisarVarianteYCampos = (ctx: Contexto): Fallo | undefined =>
+  revisarVariante(ctx) ?? revisarCampos(ctx)
 
 // --- forma -----------------------------------------------------------------------------------------
 

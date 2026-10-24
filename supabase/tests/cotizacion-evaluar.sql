@@ -416,7 +416,9 @@ begin
     {"id": "t", "tipo": "tabla", "tabla": "t", "match": {"color": "color", "modelo": "modelo"}, "columna": "v", "etiqueta": "T", "formato": "usd"},
     {"id": "total", "tipo": "calculo", "op": "suma", "de": ["t"], "etiqueta": "Total", "formato": "usd", "salida": "total", "bucket": "b"}
   ], "buckets": {"b": "tc"}}';
-  perform public.validar_formula(v_def, '{}');
+  -- `validar_formula()` rechaza el campo con punto (`campo_con_punto`, 4-3): se valida con la clave sin punto y se guarda con el punto,
+  -- porque lo que se comprueba es que `_cotizacion_armar()` no lo lea aunque una fórmula vieja lo traiga.
+  perform public.validar_formula(replace(v_def::text, '"atributos.cilindrada"', '"con_punto"')::jsonb, '{}');
   insert into public.formulas (origen_id, version, estado, definicion, params) values (v_origen, 1, 'publicada', v_def, '{}');
   insert into public.origenes_campos (origen_id, clave, etiqueta, tipo) values
     (v_origen, 'cilindrada', 'Cilindrada', 'numero'), (v_origen, 'nota', 'Nota', 'texto'), (v_origen, 'listo', 'Listo', 'booleano');

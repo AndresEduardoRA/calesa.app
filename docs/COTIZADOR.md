@@ -128,45 +128,48 @@ grafo **al configurar**. Al cotizar no se evalúa texto. Está hecho: «Fórmula
 **Primero la forma (`forma`):** el Zod de `nodos.ts` y `formula.ts`. Cubre el tipo, la `op`, el formato, una clave desconocida, la
 aridad, un campo que falta, el id y un param que no es número.
 
-**Después, 29 reglas cruzadas,** cada una con un código estable. El código es el contrato con la base; el texto es de cada lado
+**Después, 30 reglas cruzadas,** cada una con un código estable. El código es el contrato con la base; el texto es de cada lado
 (`entities/motivos-de-formula.ts`). `donde` es el id del nodo, el grupo o la clave donde se rompe, y la base lo pone en `hint`.
 
-| Regla                                                                        | Qué rechaza                                                                                                                                                                   |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `nodo_duplicado`, `referencia_inexistente`                                   | dos nodos con el mismo id; nombrar un nodo que no existe (un `match` sin nodo es un campo del vehículo)                                                                       |
-| `ciclo`, `referencia_hacia_adelante`                                         | un nodo que se usa a sí mismo; usar uno posterior, también `solo_en` antes del `opcion`. Sin ciclos por construcción                                                          |
-| `referencia_de_tipo`                                                         | `condicion` o `requerido_si` que no nombran una bandera; un cálculo que nombra el `opcion`                                                                                    |
-| `total_unico`, `total_fijo`, `total_no_es_monto`                             | cero o dos totales; un total con `solo_en`, `condicion` o `sobrescribible`; un total que no da un monto (un tipo de cambio, un campo, una bandera o la variante)              |
-| `constante_sin_valor`, `param_sin_constante`                                 | una constante sin su valor; una clave de params que no es constante                                                                                                           |
-| `par_mal_tipado`, `pct_compartido`                                           | un `porcentaje_de` que no es monto o cuyo `pct` no es pct; el `pct` de un par que no da un monto o no acepta un valor; otro nodo lee el `pct` de un par sobrescribible        |
-| `tipo_de_cambio_repetido`, `tipo_de_cambio_inexistente`                      | dos nodos con la misma clave; `buckets` o `total_en` que no nombran un `tipo_cambio`                                                                                          |
-| `bucket_inexistente`, `total_sin_tipo_de_cambio`                             | un nodo o un grupo con un bucket que no está; sin grupos, un total que no se puede repartir                                                                                   |
-| `grupos_sin_total_en`, `grupo_duplicado`, `grupo_inexistente`, `grupo_vacio` | con grupos y sin `total_en`; dos grupos con un id; un nodo en un grupo que no existe; un grupo sin nodos                                                                      |
-| `bucket_con_grupos`, `miembro_no_es_monto`, `miembro_con_salida`             | con grupos, un nodo con su bucket; un miembro que no da un monto (sólo `input`, `constante`, `tabla`, `tramo` y `calculo`) o no es usd o moneda; un miembro que es una salida |
-| `doble_conteo`                                                               | un miembro que acumula otro miembro (un cálculo que no es `porcentaje_de`, o un `sugerido_de`, también a través de un nodo fuera del grupo)                                   |
-| `opcion_repetida`, `opcion_clave_repetida`, `opcion_por_defecto_inexistente` | dos `opcion`; una clave repetida; un `por_defecto` que no es una opción                                                                                                       |
-| `solo_en_sin_opcion`, `solo_en_opcion_inexistente`                           | `solo_en` sin variante; una clave que la variante no tiene                                                                                                                    |
+| Regla                                                                        | Qué rechaza                                                                                                                                                                               |
+| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nodo_duplicado`, `referencia_inexistente`                                   | dos nodos con el mismo id; nombrar un nodo que no existe (un `match` sin nodo es un campo del vehículo)                                                                                   |
+| `ciclo`, `referencia_hacia_adelante`                                         | un nodo que se usa a sí mismo; usar uno posterior, también `solo_en` antes del `opcion`. Sin ciclos por construcción                                                                      |
+| `referencia_de_tipo`                                                         | `condicion` o `requerido_si` que no nombran una bandera; un cálculo que nombra el `opcion`                                                                                                |
+| `total_unico`, `total_fijo`, `total_no_es_monto`                             | cero o dos totales; un total con `solo_en`, `condicion` o `sobrescribible`; un total que no da un monto (un tipo de cambio, un campo, una bandera o la variante)                          |
+| `constante_sin_valor`, `param_sin_constante`                                 | una constante sin su valor; una clave de params que no es constante                                                                                                                       |
+| `par_mal_tipado`, `pct_compartido`                                           | un `porcentaje_de` que no es monto o cuyo `pct` no es pct; el `pct` de un par que no da un monto o no acepta un valor; otro nodo lee el `pct` de un par sobrescribible                    |
+| `tipo_de_cambio_repetido`, `tipo_de_cambio_inexistente`                      | dos nodos con la misma clave; `buckets` o `total_en` que no nombran un `tipo_cambio`                                                                                                      |
+| `bucket_inexistente`, `total_sin_tipo_de_cambio`                             | un nodo o un grupo con un bucket que no está; sin grupos, un total que no se puede repartir                                                                                               |
+| `grupos_sin_total_en`, `grupo_duplicado`, `grupo_inexistente`, `grupo_vacio` | con grupos y sin `total_en`; dos grupos con un id; un nodo en un grupo que no existe; un grupo sin nodos                                                                                  |
+| `bucket_con_grupos`, `miembro_no_es_monto`, `miembro_con_salida`             | con grupos, un nodo con su bucket; un miembro que no da un monto (sólo `input`, `constante`, `tabla`, `tramo` y `calculo`) o no es usd o moneda; un miembro que es una salida             |
+| `doble_conteo`                                                               | un miembro que acumula otro miembro (un cálculo que no es `porcentaje_de`, o un `sugerido_de`, también a través de un nodo fuera del grupo)                                               |
+| `opcion_repetida`, `opcion_clave_repetida`, `opcion_por_defecto_inexistente` | dos `opcion`; una clave repetida; un `por_defecto` que no es una opción                                                                                                                   |
+| `solo_en_sin_opcion`, `solo_en_opcion_inexistente`                           | `solo_en` sin variante; una clave que la variante no tiene                                                                                                                                |
+| `campo_con_punto`                                                            | un `campo_vehiculo`, o un valor de `match` que no es un nodo, con un punto (`atributos.cilindrada`): un campo es una columna o la clave de un campo del origen, que no lleva puntos (4-3) |
 
 - **Devuelve el primer rechazo**, en un orden fijo, como el `raise` de la base.
 - **Es lineal en nodos y aristas.** Hace unas 12 pasadas por nodo y 6 por arista, y no recorre una lista dentro de otra: todo bucle y
   toda búsqueda pasan por el contador de `medidor.ts`.
   - La prueba de escala lo mira con 200 y 2.000 nodos: 6.525 y 65.565 visitas, 3,51 por unidad de tamaño.
-- **Cada caso inválido del juego rompe una sola regla.** Se comprueba apagando las reglas de a una: los 29 códigos, el 2026-10-23
+- **Cada caso inválido del juego rompe una sola regla.** Se comprueba apagando las reglas de a una: los 29 códigos de entonces, el 2026-10-23
   (`docs/BITACORA.md`), y en el 4.05-3 `total_no_es_monto` (cuatro casos, uno por tipo) y el pct del par (cinco), que sin su chequeo
   dan «válida».
 
 ### En la base (4.05-4)
 
 `validar_formula(definicion, params)` está en `supabase/migrations/20261019004900_validar_formula.sql`, y es STABLE desde `…005100`.
-Hace lo mismo que `validarFormula()`.
+Hace lo mismo que `validarFormula()`. La regla 30, `campo_con_punto`, la añade `…005400`, que **redefine `validar_formula()` entera** (la
+base de `…004900` no se edita) y su ayudante `_formula_campos()`; la copia tiene que decir STABLE, o deshace `…005100`
+(`validar-formula.sql` lo comprueba).
 
 - **El rechazo:** `22023`, con el código de la regla en DETAIL (PostgREST lo devuelve como `details`) y `donde` en HINT. Si no hay
   `donde`, no lleva HINT. El texto es el de `motivos-de-formula.ts`, pero no es contrato: sólo el código y `donde` lo son.
 - **La forma (§0) copia el Zod comprobación por comprobación.** Cada una está marcada `/*Fnn*/` y pasa antes por `jsonb_typeof`:
   `->>` convierte `true` en un texto que pasa el patrón de un id. Cuenta los largos en code points, como Zod 4.6.5. Lee los números
   como JS: `abs(x) < 2^1024 − 2^970`, y `n` como `z.int()`.
-- **Las reglas cruzadas (§1 a §7) van en el orden de TS,** una función por archivo de TS (`_formula_cambio_y_grupos`,
-  `_formula_variante`).
+- **Las reglas cruzadas (§1 a §8) van en el orden de TS,** una función por archivo de TS (`_formula_cambio_y_grupos`,
+  `_formula_variante`, `_formula_campos`).
   - Las claves de la primera `opcion` se revisan antes de ver una segunda.
   - Un id repetido deja en el mapa su última posición, como el `pos.set` de TS.
   - Una posición nula es el `undefined` de TS.
@@ -192,15 +195,15 @@ Hace lo mismo que `validarFormula()`.
   `donde` que la base; cinco casos del juego lo prueban (también el orden entre nodos: un nodo roto antes del `match` va primero, uno
   roto después no). Quedan `buckets`, `tablas` y una fila, que el compilador nunca arma.
 - **Las pruebas (`supabase/tests/validar-formula.sql`, en `pnpm db:probar`):**
-  - los 79 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
+  - los 81 casos de `casos-de-formula.json` y el corpus diferencial `corpus-de-formula.json` comparan regla y `donde`, y la base
     nunca acepta lo que Zod rechaza;
-  - el corpus son 544 mutaciones deterministas de las 4 válidas, con uno, dos o tres defectos mezclados. Lo arman
+  - el corpus son 558 mutaciones deterministas de las 4 válidas, con uno, dos o tres defectos mezclados. Lo arman
     `corpus-de-formula.ts` y los `mutadores-*.ts`, y `corpus-de-formula.test.ts` lo regenera y lo compara con el guardado.
 - **Las mutaciones (2026-10-23, `docs/BITACORA.md`): 110.**
   - Cada uno de los 30 códigos apagado tumba exactamente sus casos del juego y ninguno más.
   - Cada comprobación de forma tumba al menos un caso del corpus, salvo F01 y F50. Son equivalentes: un nodo o una definición que
     no es objeto no tiene `tipo` ni `nodos`, y la comprobación siguiente lo rechaza con el mismo `donde`.
-  - Los seis cambios de orden no tocan los 61 casos (cada uno rompe una sola regla) y cada uno tumba al menos un caso del corpus.
+  - Los seis cambios de orden no tocan los 61 casos de entonces (cada uno rompe una sola regla) y cada uno tumba al menos un caso del corpus.
 
 ## El motor (4.05, prompts 2 y 3)
 

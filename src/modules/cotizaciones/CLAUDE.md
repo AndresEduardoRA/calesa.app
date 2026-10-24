@@ -13,14 +13,14 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 - `entities/nodos.ts` — el Zod de cada nodo, discriminado por `tipo` (y `calculo` por `op`), estricto; `referenciasDe()` con el `switch`
   exhaustivo. `entities/formula.ts` — `definicion` (`buckets`, `total_en`, `grupos`), `params` (constantes y tablas congeladas, D5) y
   el modo que recibe el motor.
-- `entities/validar.ts` (con `validar-contexto.ts`, `validar-grupos.ts`, `validar-variante.ts`, `motivos-de-formula.ts` y
-  `medidor.ts`) — espejo TS de `validar_formula()`: la forma y 29 reglas cruzadas, lineal y con contador de visitas
+- `entities/validar.ts` (con `validar-contexto.ts`, `validar-grupos.ts`, `validar-variante.ts`, `validar-campos.ts`, `motivos-de-formula.ts` y
+  `medidor.ts`) — espejo TS de `validar_formula()`: la forma y 30 reglas cruzadas (`validar-campos.ts` es la última, `campo_con_punto`), lineal y con contador de visitas
   (`docs/COTIZADOR.md` › «Las reglas»).
 - `entities/casos-de-formula.json` — el juego de fórmulas válidas e inválidas con su motivo (una por regla, más las dos del seed, el
   Excel entero y «Amnistia»): lo recorren `validar.test.ts` y `supabase/tests/validar-formula.sql`. Una regla nueva = su caso acá.
 - `supabase/migrations/20261019004900_validar_formula.sql` — `validar_formula()` y sus ayudantes `_formula_*` (STABLE desde `…005100`): la forma y las 29
-  reglas en el orden de `validar.ts`, lineal; rechaza con 22023, el código de la regla en DETAIL y `donde` en HINT. Recorre las
-  claves de un objeto en el orden de jsonb. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 61 casos y con
+  primeras reglas en el orden de `validar.ts`, lineal; rechaza con 22023, el código de la regla en DETAIL y `donde` en HINT. Recorre las
+  claves de un objeto en el orden de jsonb. La 30.ª, `campo_con_punto`, está en `supabase/migrations/20261019005400_validar_formula_campos.sql`, que redefine `validar_formula()` entera (STABLE) y añade `_formula_campos()`. Lo prueba `supabase/tests/validar-formula.sql` (`pnpm db:probar`) con los 81 casos y con
   el corpus diferencial `supabase/tests/corpus-de-formula.json` (más de 500 mutaciones de las 4 válidas, defectos mezclados, el esperado
   de `validarFormula`), que generan `corpus-de-formula.ts` y los `mutadores-*.ts` de esa carpeta y vigila `corpus-de-formula.test.ts`.
 - `supabase/migrations/20261019005200_evaluar_formula.sql` — `evaluar_formula(definicion, params, entrada, modo?)` y sus ayudantes `_motor_*`: espejo

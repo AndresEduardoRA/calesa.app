@@ -33,6 +33,7 @@ export const REGLAS_DE_FORMULA = [
   'opcion_por_defecto_inexistente',
   'solo_en_sin_opcion',
   'solo_en_opcion_inexistente',
+  'campo_con_punto',
 ] as const
 
 export type ReglaDeFormula = (typeof REGLAS_DE_FORMULA)[number]
@@ -109,6 +110,8 @@ const MENSAJES: Record<ReglaDeFormula, (d: DatosDeRechazo) => string> = {
     `${q(d.donde)} dice en qué variantes vale, y la fórmula no tiene variante.`,
   solo_en_opcion_inexistente: (d) =>
     `${q(d.donde)} nombra la opción ${q(d.clave)}, que la variante no tiene.`,
+  campo_con_punto: (d) =>
+    `${q(d.donde)} nombra el campo ${q(d.campo)}: un campo del vehículo es una columna o la clave de un campo del origen, sin puntos (escribe, por ejemplo, «cilindrada»).`,
 }
 
 export function rechazoDeFormula(regla: ReglaDeFormula, datos: DatosDeRechazo): RechazoDeFormula {

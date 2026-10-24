@@ -3124,7 +3124,7 @@
           {
             "id": "cc",
             "tipo": "campo_vehiculo",
-            "campo": "atributos.cilindrada",
+            "campo": "cilindrada",
             "etiqueta": "cc",
             "formato": "raw"
           },
@@ -3155,7 +3155,7 @@
           "oficial": 1
         },
         "vehiculo": {
-          "atributos.cilindrada": "1997"
+          "cilindrada": "1997"
         }
       },
       "esperado": {
@@ -3179,7 +3179,7 @@
           {
             "codigo": "campo_sin_valor",
             "donde": "cc",
-            "ref": "atributos.cilindrada"
+            "ref": "cilindrada"
           }
         ]
       }

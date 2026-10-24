@@ -2296,7 +2296,7 @@
             "etiqueta": "Fees (%)",
             "formato": "pct",
             "tipo": "campo_vehiculo",
-            "campo": "atributos.fees"
+            "campo": "fees"
           },
           {
             "id": "fees",
@@ -5924,6 +5924,122 @@
             "op": "restar",
             "de": ["precio", "descuento"],
             "etiqueta": "Total",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "un campo del vehículo con punto nunca se calcula",
+      "valida": false,
+      "motivo": {
+        "regla": "campo_con_punto",
+        "donde": "cc"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "cc",
+            "tipo": "campo_vehiculo",
+            "etiqueta": "Cilindrada",
+            "formato": "raw",
+            "campo": "atributos.cilindrada"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
+            "salida": "total",
+            "bucket": "origen"
+          }
+        ],
+        "buckets": {
+          "origen": "tc_paralelo"
+        }
+      },
+      "params": {}
+    },
+    {
+      "nombre": "un match que nombra un campo con punto",
+      "valida": false,
+      "motivo": {
+        "regla": "campo_con_punto",
+        "donde": "recargo"
+      },
+      "definicion": {
+        "nodos": [
+          {
+            "id": "tc_paralelo",
+            "tipo": "tipo_cambio",
+            "clave": "paralelo",
+            "etiqueta": "TC paralelo",
+            "formato": "raw"
+          },
+          {
+            "id": "precio",
+            "tipo": "input",
+            "etiqueta": "Precio acordado",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "descuento",
+            "tipo": "input",
+            "etiqueta": "Descuento",
+            "formato": "usd",
+            "seccion": "Venta",
+            "bucket": "origen"
+          },
+          {
+            "id": "recargo",
+            "tipo": "tabla",
+            "etiqueta": "Recargo",
+            "tabla": "recargos",
+            "match": {
+              "cilindrada": "atributos.cilindrada"
+            },
+            "columna": "valor",
+            "formato": "usd"
+          },
+          {
+            "id": "total",
+            "tipo": "calculo",
+            "op": "restar",
+            "de": ["precio", "descuento"],
+            "etiqueta": "Total",
+            "formato": "usd",
             "salida": "total",
             "bucket": "origen"
           }
