@@ -95,6 +95,15 @@ const publica = (t, nota) => ({
   args: [t.origen, JSON.stringify(definicion), JSON.stringify(diseno), nota],
 })
 
+// Una cotización escrita directo (como la base, sin pasar por ninguna RPC) sobre la fórmula v1 del terreno: sirve de fixture a las carreras que no son de crear.
+async function insertaCotizacion(db, t, id, { vehiculo = t.vehiculo, clase = 'preventa' } = {}) {
+  await db.query(
+    `insert into public.cotizaciones (id, origen_id, lead_id, vehiculo_id, creado_por, clase, formula_id, valores, fuentes, tipos_cambio, totales, total_base)
+     values ($1, $2, $3, $4, $5, $6::public.clase_cotizacion, $7, '{"a": 10, "total": 10}'::jsonb, '{"a": "input"}'::jsonb, '{"oficial": 6.96}'::jsonb, '{"usd": 10}'::jsonb, 10)`,
+    [id, t.origen, t.lead, vehiculo, duena, clase, t.v1],
+  )
+}
+
 const cuantas = async (db, origen, extra = '') =>
   Number(
     (
@@ -452,6 +461,83 @@ export async function carrerasDeCotizaciones({ orquesta, carrera, espero, conect
         /ya tiene una cotización final activa/.test(r.b.mensaje ?? '') &&
         (await cuantas(orquesta, t.origen, `and clase = 'final'`)) === 1,
       { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Marcar una cotización como final mientras otra persona le cambia el vehículo')
+  {
+    // A le cambia el vehículo (sin confirmar); B la marca como final. B espera la fila, la vuelve a leer y trabaja con el vehículo de ahora: el viejo no recibe el lead ni pierde sus preventas.
+    const t = await terreno(orquesta, 'fin2')
+    const v2 = await nuevoVehiculo(orquesta, t.origen, 'cot veh fin2 nuevo')
+    const c = '00000000-0000-4000-8000-0000000c1c10'
+    const hermana = '00000000-0000-4000-8000-0000000c1c11'
+    await insertaCotizacion(orquesta, t, c)
+    await insertaCotizacion(orquesta, t, hermana)
+    const r = await carrera(orquesta, {
+      a: {
+        rol: 'service_role',
+        consulta:
+          'with u as (update public.cotizaciones set vehiculo_id = $2 where id = $1 returning 1) select count(*) as r from u',
+        args: [c, v2],
+      },
+      b: { persona: duena, sql: 'public.cotizacion_marcar_final($1)', args: [c] },
+    })
+    const {
+      rows: [fila],
+    } = await orquesta.query(
+      `select c.clase, c.vehiculo_id, (select eliminado_en is not null from public.cotizaciones where id = $2) as hermana_a_papelera,
+              (select lead_id from public.vehiculos where id = $3) as lead_del_viejo, (select lead_id from public.vehiculos where id = $4) as lead_del_nuevo
+         from public.cotizaciones c where c.id = $1`,
+      [c, hermana, t.vehiculo, v2],
+    )
+    espero(
+      'queda final en el vehículo nuevo, el lead se vincula al nuevo y la preventa del viejo sigue viva',
+      r.a.ok &&
+        r.b.ok &&
+        fila.clase === 'final' &&
+        fila.vehiculo_id === v2 &&
+        fila.hermana_a_papelera === false &&
+        fila.lead_del_viejo === null &&
+        fila.lead_del_nuevo === t.lead,
+      { a: r.a, b: r.b, fila },
+    )
+  }
+
+  console.log('Marcar como final mientras otra persona mueve una preventa del vehículo a otro')
+  {
+    // A mueve una preventa hermana al otro vehículo (sin confirmar); B marca la suya como final. B espera a la hermana, vuelve a mirar su vehículo y la deja: la papelera sólo se lleva las que siguen ahí.
+    const t = await terreno(orquesta, 'fin3')
+    const v2 = await nuevoVehiculo(orquesta, t.origen, 'cot veh fin3 nuevo')
+    const c = '00000000-0000-4000-8000-0000000c1c12'
+    const hermana = '00000000-0000-4000-8000-0000000c1c13'
+    const otra = '00000000-0000-4000-8000-0000000c1c14'
+    await insertaCotizacion(orquesta, t, c)
+    await insertaCotizacion(orquesta, t, hermana)
+    await insertaCotizacion(orquesta, t, otra)
+    const r = await carrera(orquesta, {
+      a: {
+        rol: 'service_role',
+        consulta:
+          'with u as (update public.cotizaciones set vehiculo_id = $2 where id = $1 returning 1) select count(*) as r from u',
+        args: [hermana, v2],
+      },
+      b: { persona: duena, sql: 'public.cotizacion_marcar_final($1)', args: [c] },
+    })
+    const {
+      rows: [fila],
+    } = await orquesta.query(
+      `select (select clase from public.cotizaciones where id = $1) as clase, (select eliminado_en is not null from public.cotizaciones where id = $2) as movida_a_papelera,
+              (select eliminado_en is not null from public.cotizaciones where id = $3) as otra_a_papelera`,
+      [c, hermana, otra],
+    )
+    espero(
+      'la preventa que se movió de vehículo sigue viva; la que se quedó va a la papelera',
+      r.a.ok &&
+        r.b.ok &&
+        fila.clase === 'final' &&
+        fila.movida_a_papelera === false &&
+        fila.otra_a_papelera === true,
+      { a: r.a, b: r.b, fila },
     )
   }
 }

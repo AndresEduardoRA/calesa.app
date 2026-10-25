@@ -123,7 +123,7 @@ export async function sembrar(db) {
       )
     }
   }
-  // Quien cotiza (carreras/cotizaciones.mjs): cotizar y cerrar finales, ver y crear vehículos y mandarlos a la papelera, y ver todos los leads. Se suma a lo que ya tiene.
+  // Quien cotiza (carreras/cotizaciones.mjs): cotizar, editar (guardar y mandar a la papelera) y cerrar finales, ver y crear vehículos y mandarlos a la papelera, y ver todos los leads. Se suma a lo que ya tiene.
   const {
     rows: [cotiza],
   } = await db.query(
@@ -133,6 +133,7 @@ export async function sembrar(db) {
   for (const clave of [
     'cotizaciones.ver',
     'cotizaciones.crear',
+    'cotizaciones.editar',
     'cotizaciones.final.gestionar',
     'vehiculos.ver',
     'vehiculos.crear',
