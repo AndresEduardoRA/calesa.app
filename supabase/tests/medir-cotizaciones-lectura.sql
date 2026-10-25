@@ -18,6 +18,11 @@
 --   - la guarda: la policy de antes (`lead_id in (select mis_leads())` y `alcance_de()` por fila) con los mismos datos llama a `alcance_de()` por fila (101 y 202 veces por página) y no
 --     pasa esta prueba. Su costo en ms con los datos de arriba es de 3 a 6 ms: lo que crecía con la cartera de quien mira era el arreglo de `mis_leads()`, que sólo se arma en lo ajeno.
 -- No se asserta «todas las que veo» de quien ve «propios» (Ana, la «chica»): recorre el índice global descartando lo ajeno y crece con N. Se mide y se anota (`docs/PLAN.md`, 4-14).
+-- Además de la página del listado:
+--   - `cotizacion_leer()` de una cotización de la fórmula sembrada de `subasta_usa` (la dueña y Ana): ≤ 10 ms y ≤ 300 buffers como las páginas, `_nodos_visibles()` una sola vez y el permiso
+--     una sola vez, sin mirar ninguna cartera entera, y sin crecer con las cotizaciones;
+--   - `cotizacion_revisiones()` de una cotización con 500 revisiones (cada una con el snapshot entero de antes y de después): una página de 20 y la siguiente por el cursor, ≤ 12 ms
+--     (medido: 4 a 6 ms), `_nodos_visibles()` una sola vez, y sin crecer con las cotizaciones.
 -- Cada línea `medicion|…|número` sale por el runner (`scripts/medir-listado.mjs`); las `nota|…`, también.
 -- Las corridas anteriores de esta medición se revierten, pero sus 300.000 tuplas muertas quedan en el heap y en los índices hasta que alguien las limpie, con las mismas fechas que
 -- las de ahora: la página 1 (las más nuevas) tendría que saltar las muertas de las corridas de antes (102 buffers la primera vez, 1.873 la segunda). Se limpian antes de medir y,
@@ -165,6 +170,18 @@ begin
     insert into _med values (p_fase, 'leer · una cotización', p_quien, (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, '[]', false, 0, v_llamadas);
     return;
   end if;
+  if p_ruta = 'revisiones' then
+    -- Una cotización de esa persona con 500 revisiones (cada una con el snapshot entero de antes y de después): una página de 20 y la siguiente por el cursor.
+    select id into v_cur from public.cotizaciones where creado_por = v_id and formula_id = (select formula from _o o join public.origenes x on x.id = o.origen and x.clave = 'subasta_usa') order by creado_en, id limit 1;
+    v_m := pg_temp.medir(format('select public.cotizacion_revisiones(%L)', v_cur));
+    v_llamadas := pg_temp.llamadas(format('select public.cotizacion_revisiones(%L)', v_cur));
+    insert into _med values (p_fase, 'revisiones · página 1', p_quien, (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, '[]', false, 0, v_llamadas);
+    select r.id into v_args from public.cotizaciones_revisiones r where r.cotizacion_id = v_cur order by r.id desc offset 20 limit 1;
+    v_m := pg_temp.medir(format('select public.cotizacion_revisiones(%L, %s)', v_cur, v_args));
+    v_llamadas := pg_temp.llamadas(format('select public.cotizacion_revisiones(%L, %s)', v_cur, v_args));
+    insert into _med values (p_fase, 'revisiones · con cursor', p_quien, (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, '[]', false, 0, v_llamadas);
+    return;
+  end if;
   if p_ruta = 'todas' then
     select creado_en, id into v_ts, v_cur from public.cotizaciones order by creado_en desc, id desc offset p_profundidad limit 1;
     v_args := 'c_todas'; v_args2 := format('c_todas_cursor(%L, %L)', v_ts, v_cur);
@@ -191,6 +208,18 @@ do $$ begin
   if (select count(*) from public.cotizaciones) <> 50000 then raise exception 'esperaba 50.000 cotizaciones y hay %', (select count(*) from public.cotizaciones); end if;
   if (select count(*) from public.cotizaciones where creado_por = '00000000-0000-0000-0000-0000000000a1') <> 5000 then raise exception 'Ana debía tener 5.000 propias'; end if;
 end $$;
+-- 500 revisiones de una cotización de la dueña y de una de Ana (la más antigua de cada una de subasta_usa), con el snapshot entero de antes y de después, como las deja el trigger.
+set local session_replication_role = replica;
+insert into public.cotizaciones_revisiones (cotizacion_id, usuario_id, diff, creado_en)
+select c.id, c.creado_por,
+       jsonb_build_object('valores', jsonb_build_object('de', s.valores, 'a', jsonb_set(s.valores, '{remate}', to_jsonb(g))), 'notas', jsonb_build_object('de', null, 'a', 'nota ' || g)),
+       now() - g * interval '1 minute'
+  from (select distinct on (creado_por) id, creado_por from public.cotizaciones
+         where creado_por in ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000a1')
+           and formula_id = (select formula from _o o join public.origenes x on x.id = o.origen and x.clave = 'subasta_usa') order by creado_por, creado_en, id) c
+ cross join _snap s cross join generate_series(1, 500) g;
+set local session_replication_role = origin;
+analyze public.cotizaciones_revisiones;
 set local track_functions = 'all';
 set local plan_cache_mode = force_generic_plan;
 set local role authenticated;
@@ -200,6 +229,8 @@ select pg_temp.ruta('50.000', 'mias', 'ana');
 select pg_temp.ruta('50.000', 'mias', 'chica');
 select pg_temp.ruta('50.000', 'leer', 'duena');
 select pg_temp.ruta('50.000', 'leer', 'ana');
+select pg_temp.ruta('50.000', 'revisiones', 'duena');
+select pg_temp.ruta('50.000', 'revisiones', 'ana');
 reset role;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------
@@ -216,6 +247,8 @@ select pg_temp.ruta('250.000', 'mias', 'ana');
 select pg_temp.ruta('250.000', 'mias', 'chica');
 select pg_temp.ruta('250.000', 'leer', 'duena');
 select pg_temp.ruta('250.000', 'leer', 'ana');
+select pg_temp.ruta('250.000', 'revisiones', 'duena');
+select pg_temp.ruta('250.000', 'revisiones', 'ana');
 reset role;
 
 -- «Todas las que veo» de quien ve «propios»: se mide y se anota, sin assert (4-14).
@@ -246,9 +279,16 @@ begin
   for r in select * from _med order by fase, ruta, quien loop
     raise notice 'medicion|% · % · % (ms)|%', r.fase, r.ruta, r.quien, round(r.ms, 2);
     raise notice 'medicion|% · % · % (buffers)|%', r.fase, r.ruta, r.quien, r.buffers;
-    if r.ms > 10 then v_fallas := v_fallas || format(E'\n  %s · %s · %s: %s ms, el presupuesto es 10', r.fase, r.ruta, r.quien, round(r.ms, 1)); end if;
-    if r.buffers > 300 then v_fallas := v_fallas || format(E'\n  %s · %s · %s: %s buffers, el presupuesto es 300', r.fase, r.ruta, r.quien, r.buffers); end if;
+    if r.ms > 10 and r.ruta not like 'revisiones%' then v_fallas := v_fallas || format(E'\n  %s · %s · %s: %s ms, el presupuesto es 10', r.fase, r.ruta, r.quien, round(r.ms, 1)); end if;
+    if r.buffers > 300 and r.ruta not like 'revisiones%' then v_fallas := v_fallas || format(E'\n  %s · %s · %s: %s buffers, el presupuesto es 300', r.fase, r.ruta, r.quien, r.buffers); end if;
     if r.seq then v_fallas := v_fallas || format(E'\n  %s · %s · %s recorre cotizaciones entera', r.fase, r.ruta, r.quien); end if;
+    if r.ruta like 'revisiones%' then
+      -- Una página de revisiones: la cotización se busca una vez, `_nodos_visibles()` se llama una sola vez y no se mira ninguna cartera entera.
+      if coalesce((r.llamadas ->> '_nodos_visibles')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s llama a _nodos_visibles %s veces: %s', r.fase, r.ruta, r.quien, coalesce(r.llamadas ->> '_nodos_visibles', '0'), r.llamadas); end if;
+      if r.llamadas ? 'mis_leads' or coalesce((r.llamadas ->> 'puede_cotizacion')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s pregunta mal por el permiso: %s', r.fase, r.ruta, r.quien, r.llamadas); end if;
+      if r.ms > 12 then v_fallas := v_fallas || format(E'\n  %s · %s · %s: %s ms, el presupuesto de una página de revisiones es 12', r.fase, r.ruta, r.quien, round(r.ms, 1)); end if;
+      continue;
+    end if;
     if r.ruta like 'leer%' then
       -- Leer una cotización: se busca por su clave una vez, se recortan sus nodos una vez (`_nodos_visibles()` se llama una sola vez) y no se mira ninguna cartera entera.
       if coalesce((r.llamadas ->> '_nodos_visibles')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s llama a _nodos_visibles %s veces: %s', r.fase, r.ruta, r.quien, coalesce(r.llamadas ->> '_nodos_visibles', '0'), r.llamadas); end if;

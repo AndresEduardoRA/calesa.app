@@ -6959,6 +6959,10 @@ export type Database = {
         Args: { p_def: Json; p_visibilidad: Json; p_visibles: string[] }
         Returns: Json
       }
+      _cotizacion_diff_recortado: {
+        Args: { p_ctx: Json; p_diff: Json; p_legibles: string[] }
+        Returns: Json
+      }
       _cotizacion_recorte: { Args: { p_ctx: Json; p_res: Json }; Returns: Json }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
@@ -7863,10 +7867,15 @@ export type Database = {
         }
         Returns: Json
       }
+      cotizacion_leer: { Args: { p_id: string }; Returns: Json }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {
         Args: { p_cotizacion: string; p_estado: Database['public']['Enums']['estado_cotizacion'] }
         Returns: undefined
+      }
+      cotizacion_revisiones: {
+        Args: { p_antes?: number; p_cotizacion: string; p_tamano?: number }
+        Returns: Json
       }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }

@@ -125,6 +125,8 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
     'cotizacion_evaluar', jsonb_build_object('clase', 'recorta',
       'sonda', 'select public.cotizacion_evaluar(jsonb_build_object(''inputs'', jsonb_build_object({oculto}, {centinela}::numeric)), null, {origen})',
       'motivo', 'calcula con _cotizacion_armar() y devuelve _cotizacion_recorte(): lo que se tipea sólo nombra lo que se ve (un nodo oculto da el error de uno inexistente) y los overrides ocultos se descartan como inexistentes'),
+    'cotizacion_revisiones', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_revisiones({cot})',
+      'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
     'cotizacion_leer', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_leer({cot})',
       'motivo', 'el snapshot de una cotización recortado con _nodos_visibles() de SU versión: el total y lo aparte siempre, los subtotales por grupo sólo si se ve el grupo entero')
   )
@@ -860,6 +862,9 @@ begin
     insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base, titulo)
     values (o, duena, (select id from public.formulas where origen_id = o), jsonb_build_object('visible', 111.25, v_oculto, v_centinela::numeric, 'total', 123456.78),
             jsonb_build_object('visible', 'input', v_oculto, 'input'), '{}', '{"bs": 123456.78, "usd": 123456.78, "suma_usd": 123456.78}', 123456.78, 'CV generico ' || v_i) returning id into v_c;
+    -- Un cambio del nodo oculto y su vuelta dejan dos revisiones cuyo diff lleva el valor (lo lee cotizacion_revisiones()); la cotización queda como estaba.
+    update public.cotizaciones set valores = jsonb_set(valores, array[v_oculto], to_jsonb(v_centinela::numeric + 1)) where id = v_c;
+    update public.cotizaciones set valores = jsonb_set(valores, array[v_oculto], to_jsonb(v_centinela::numeric)) where id = v_c;
     -- sin: ve cotizaciones; con: además el nivel; ed: sólo editar el nivel; ajeno: el nivel, pero en otro origen; otro_nivel: el ver de otro nivel; ver_como: el nivel y gestionar roles.
     sin := gen_random_uuid(); con := gen_random_uuid(); ed := gen_random_uuid(); ajeno := gen_random_uuid(); otro_nivel := gen_random_uuid(); ver_como := gen_random_uuid();
     perform pg_temp.cv_persona(sin, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear')));
@@ -1105,5 +1110,105 @@ begin
   v_res := public.evaluar_formula(v_def, (select params from public.formulas where id = f),
     jsonb_build_object('inputs', jsonb_build_object('remate', 14200), 'banderas', '{}'::jsonb, 'tipos_cambio', '{"oficial": 6.96, "paralelo": 12.4, "unificado": 12.2}'::jsonb, 'vehiculo', '{}'::jsonb, 'tablas', '{}'::jsonb, 'overrides', '{}'::jsonb));
   if pg_temp.cv_recorte(v_res, v_ids, v_def, '{}') is distinct from v_res then raise exception 'recortar lo que ve quien lo ve todo cambia el resultado'; end if;
+end $$;
+rollback;
+
+-- @test visibilidad: cotizacion_revisiones recorta cada diff por nodo, no delata un cambio de sólo lo oculto, pagina por cursor y niega lo que no se ve igual que lo que no existe
+begin;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  sin constant uuid := '00000000-0000-0000-0000-000000000f01'; con constant uuid := '00000000-0000-0000-0000-000000000f02'; otro constant uuid := '00000000-0000-0000-0000-000000000f03';
+  o uuid; o2 uuid; f1 uuid; c uuid; c_ajena uuid; r jsonb; r2 jsonb; v_ids bigint[]; v_def jsonb; v_pag1 jsonb; v_pag2 jsonb; v_pag3 jsonb; v_msg text;
+  v0 constant jsonb := '{"tc_o": 6.96, "tc_p": 12.4, "remate": 1000.5, "fees": 50.25, "flete": 41111.5, "margen": 42222.5, "total": 99999.5, "garantia": 55.5}';
+  v1 jsonb; v2 jsonb; t0 constant jsonb := '{"grupos": {"g1": {"usd": 1050, "bs": 7308, "se_dibuja": true}, "g2": {"usd": 41111.5, "bs": 286127, "se_dibuja": true}}, "bs": 99999000.5, "usd": 99999.5, "suma_usd": 99999.5}';
+  v_vis constant jsonb := '{"remate": {"ver": "todos", "editar": "todos"}, "fees": {"ver": "todos", "editar": null}, "flete": {"ver": "costos", "editar": "costos"},
+    "margen": {"ver": "costos", "editar": "costos"}, "total": {"ver": "todos", "editar": null}, "garantia": {"ver": "costos", "editar": null},
+    "tc_o": {"ver": "costos", "editar": "costos"}, "tc_p": {"ver": "todos", "editar": "todos"}}';
+begin
+  v1 := jsonb_set(v0, '{flete}', '50123.5'); v2 := v1 || '{"remate": 2000.5, "flete": 60123.5}';
+  v_def := jsonb_build_object(
+    'nodos', jsonb_build_array(
+      jsonb_build_object('id', 'tc_o', 'tipo', 'tipo_cambio', 'clave', 'oficial'), jsonb_build_object('id', 'tc_p', 'tipo', 'tipo_cambio', 'clave', 'paralelo'),
+      jsonb_build_object('id', 'remate', 'tipo', 'input', 'grupo', 'g1'), jsonb_build_object('id', 'fees', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('remate'), 'grupo', 'g1'),
+      jsonb_build_object('id', 'flete', 'tipo', 'input', 'grupo', 'g2'), jsonb_build_object('id', 'margen', 'tipo', 'input'),
+      jsonb_build_object('id', 'total', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('remate'), 'salida', 'total'),
+      jsonb_build_object('id', 'garantia', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('remate'), 'salida', 'aparte')),
+    'grupos', jsonb_build_array(jsonb_build_object('id', 'g1'), jsonb_build_object('id', 'g2')));
+  perform pg_temp.cv_persona(sin, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver')));
+  perform pg_temp.cv_persona(con, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.nivel.costos.ver')));
+  insert into public.origenes (clave, nombre) values ('cv_revisiones', 'CV revisiones') returning id into o;
+  insert into public.origenes (clave, nombre) values ('cv_revisiones_otro', 'CV revisiones otro') returning id into o2;
+  perform pg_temp.cv_persona(otro, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', o2)));
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o, 1, 'publicada', v_def, '{}', '{}', v_vis) returning id into f1;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o2, 1, 'publicada', v_def, '{}', '{}', v_vis);
+  insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base, titulo)
+  values (o, duena, f1, v0, '{"remate": "input", "flete": "input"}', '{"oficial": 6.96, "paralelo": 12.4}', t0, 99999.5, 'CV revisiones') returning id into c;
+  insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base, titulo)
+  values (o2, duena, (select id from public.formulas where origen_id = o2), '{}', '{}', '{}', '{}', 1, 'CV revisiones ajena') returning id into c_ajena;
+  -- Seis cambios (cada uno deja su revisión): una nota; sólo un costo; un costo y un dato visible; el subtotal de un grupo oculto; la tarifa oficial; el título y el total.
+  update public.cotizaciones set notas = 'uno' where id = c;
+  update public.cotizaciones set valores = jsonb_set(valores, '{flete}', '50123.5') where id = c;
+  update public.cotizaciones set valores = valores || '{"remate": 2000.5, "flete": 60123.5}' where id = c;
+  update public.cotizaciones set totales = jsonb_set(totales, '{grupos,g2,usd}', '77123.5') where id = c;
+  update public.cotizaciones set tipos_cambio = '{"oficial": 7.75, "paralelo": 12.4}' where id = c;
+  update public.cotizaciones set titulo = 'CV revisiones nuevo', total_base = 5 where id = c;
+  if (select count(*) from public.cotizaciones_revisiones where cotizacion_id = c) <> 6 then raise exception 'esperaba 6 revisiones y hay %', (select count(*) from public.cotizaciones_revisiones where cotizacion_id = c); end if;
+
+  -- 1. Sin el nivel: seis revisiones, de la más nueva a la más vieja; cada una dice quién y cuándo; los cambios de sólo lo oculto viajan con el diff vacío.
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L)', c));
+  if r ? 'error' then raise exception 'sin el nivel no lee las revisiones: %', r; end if;
+  if jsonb_array_length(r -> 'revisiones') <> 6 or r ->> 'hay_mas' <> 'false' or r -> 'siguiente' is distinct from 'null'::jsonb then raise exception 'las seis, sin otra página: %', r; end if;
+  select array_agg((x ->> 'id')::bigint order by ord) into v_ids from jsonb_array_elements(r -> 'revisiones') with ordinality t (x, ord);
+  if v_ids <> (select array_agg(id order by id desc) from public.cotizaciones_revisiones where cotizacion_id = c) then raise exception 'el orden de las revisiones: %', v_ids; end if;
+  if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"titulo": {"de": "CV revisiones", "a": "CV revisiones nuevo"}, "total_base": {"de": 99999.5, "a": 5}}'::jsonb then raise exception 'las columnas legibles, tal cual: %', r -> 'revisiones' -> 0 -> 'diff'; end if;
+  if r -> 'revisiones' -> 1 -> 'diff' <> '{}'::jsonb then raise exception 'cambió sólo la tarifa oficial (oculta): % ', r -> 'revisiones' -> 1 -> 'diff'; end if;
+  if r -> 'revisiones' -> 2 -> 'diff' <> '{}'::jsonb then raise exception 'cambió sólo el subtotal de un grupo oculto: %', r -> 'revisiones' -> 2 -> 'diff'; end if;
+  if r -> 'revisiones' -> 3 -> 'diff' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v1 - 'tc_o' - 'flete' - 'margen', 'a', v2 - 'tc_o' - 'flete' - 'margen')) then raise exception 'el dato visible, sin los costos: %', r -> 'revisiones' -> 3 -> 'diff'; end if;
+  if r -> 'revisiones' -> 4 -> 'diff' <> '{}'::jsonb then raise exception 'cambió sólo un costo: %', r -> 'revisiones' -> 4 -> 'diff'; end if;
+  if r -> 'revisiones' -> 5 -> 'diff' is distinct from '{"notas": {"de": null, "a": "uno"}}'::jsonb then raise exception 'la nota: %', r -> 'revisiones' -> 5 -> 'diff'; end if;
+  if position('50123' in r::text) > 0 or position('60123' in r::text) > 0 or position('77123' in r::text) > 0 or position('7.75' in r::text) > 0 or position('41111' in r::text) > 0 or position('flete' in r::text) > 0 or position('tc_o' in r::text) > 0 then
+    raise exception 'algo oculto viaja por las revisiones: %', r;
+  end if;
+  -- 2. Con el nivel: los diffs enteros.
+  r2 := pg_temp.cv_corre(con, format('select public.cotizacion_revisiones(%L)', c));
+  if r2 -> 'revisiones' -> 4 -> 'diff' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v0, 'a', v1)) then raise exception 'con el nivel, el costo: %', r2 -> 'revisiones' -> 4 -> 'diff'; end if;
+  if r2 -> 'revisiones' -> 3 -> 'diff' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v1, 'a', v2)) then raise exception 'con el nivel, el dato y el costo: %', r2 -> 'revisiones' -> 3 -> 'diff'; end if;
+  if r2 -> 'revisiones' -> 2 -> 'diff' is distinct from jsonb_build_object('totales', jsonb_build_object('de', t0, 'a', jsonb_set(t0, '{grupos,g2,usd}', '77123.5'))) then
+    raise exception 'con el nivel, el subtotal del grupo: %', r2 -> 'revisiones' -> 2 -> 'diff';
+  end if;
+  if r2 -> 'revisiones' -> 1 -> 'diff' is distinct from '{"tipos_cambio": {"de": {"oficial": 6.96, "paralelo": 12.4}, "a": {"oficial": 7.75, "paralelo": 12.4}}}'::jsonb then raise exception 'con el nivel, la tarifa: %', r2 -> 'revisiones' -> 1 -> 'diff'; end if;
+  -- 2b. Una versión nueva de la fórmula (que muestra el flete a todos) no cambia lo que se ve de las revisiones de una cotización de la v1: se leen con SU visibilidad.
+  update public.formulas set estado = 'archivada' where id = f1;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  values (o, 2, 'publicada', v_def, '{}', '{}', jsonb_set(jsonb_set(v_vis, '{flete}', '{"ver": "todos", "editar": "todos"}'), '{tc_o}', '{"ver": "todos", "editar": "todos"}'));
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L)', c));
+  if position('50123' in r::text) > 0 or position('60123' in r::text) > 0 or position('7.75' in r::text) > 0 or position('flete' in r::text) > 0 then raise exception 'una versión nueva cambia lo que se ve de una cotización de la anterior: %', r; end if;
+  -- 3. Páginas de a 2 por el cursor: 2 + 2 + 2, la última sin otra, y sin repetir ni saltar.
+  v_pag1 := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, null, 2)', c));
+  v_pag2 := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, %s, 2)', c, v_pag1 ->> 'siguiente'));
+  v_pag3 := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, %s, 2)', c, v_pag2 ->> 'siguiente'));
+  if jsonb_array_length(v_pag1 -> 'revisiones') <> 2 or v_pag1 ->> 'hay_mas' <> 'true' or jsonb_array_length(v_pag2 -> 'revisiones') <> 2 or v_pag2 ->> 'hay_mas' <> 'true'
+     or jsonb_array_length(v_pag3 -> 'revisiones') <> 2 or v_pag3 ->> 'hay_mas' <> 'false' then raise exception 'las páginas: % % %', v_pag1, v_pag2, v_pag3; end if;
+  if (v_pag1 -> 'revisiones') || (v_pag2 -> 'revisiones') || (v_pag3 -> 'revisiones') is distinct from r -> 'revisiones' then raise exception 'las páginas no suman las seis, en orden'; end if;
+  if (v_pag1 ->> 'siguiente')::bigint <> (v_pag1 -> 'revisiones' -> 1 ->> 'id')::bigint then raise exception 'el cursor es el id de la última de la página'; end if;
+  -- 4. Una cotización que no existe, una de un origen sin permiso y una que no se ve dan el mismo error; anon no la ejecuta, y los ayudantes son de nadie.
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L)', gen_random_uuid()));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes acceso a esta cotización.' then raise exception 'una inexistente: %', r; end if;
+  if pg_temp.cv_corre(otro, format('select public.cotizacion_revisiones(%L)', c)) is distinct from r then raise exception 'de otro origen se distingue de lo inexistente'; end if;
+  if (pg_temp.cv_corre(otro, format('select public.cotizacion_revisiones(%L)', c_ajena))) ? 'error' then raise exception 'quien ve su origen no lee las revisiones de la suya'; end if;
+  if has_function_privilege('anon', 'public.cotizacion_revisiones(uuid,bigint,integer)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_revisiones(uuid,bigint,integer)', 'execute')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_revisiones(uuid,bigint,integer)'::regprocedure and x.grantee = 0) then
+    raise exception 'los grants de cotizacion_revisiones';
+  end if;
+  if exists (select 1 from unnest(array['public._cotizacion_diff_recortado(jsonb,jsonb,text[])']) f
+              where has_function_privilege('anon', f, 'execute') or has_function_privilege('authenticated', f, 'execute')
+                 or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = f::regprocedure and x.grantee = 0)) then
+    raise exception 'el recorte del diff se puede ejecutar';
+  end if;
+  -- 5. Una clave del diff que no es una columna conocida no viaja (falla cerrada), ni una columna oculta que no es del snapshot.
+  r := jsonb_build_object('d', public._cotizacion_diff_recortado('{"desconocida": {"de": 1, "a": 2}, "notas": {"de": null, "a": "x"}, "eliminado_por": {"de": null, "a": "p"}}',
+         public._cotizacion_contexto(array['remate'], v_def, v_vis), array['notas', 'titulo']));
+  if r -> 'd' is distinct from '{"notas": {"de": null, "a": "x"}}'::jsonb then raise exception 'una clave desconocida viaja: %', r; end if;
 end $$;
 rollback;

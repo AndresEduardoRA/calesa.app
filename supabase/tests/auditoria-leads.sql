@@ -133,6 +133,7 @@ declare
     ('margen_vehiculo(uuid)', 'X'),
     -- Lee una cotización recortada por nivel (4.10): el recorte lo prueba cotizaciones-visibilidad.sql.
     ('cotizacion_leer(uuid)', 'L'),
+    ('cotizacion_revisiones(uuid,bigint,integer)', 'L'),
     ('reasignar_tarea(uuid,uuid)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));
