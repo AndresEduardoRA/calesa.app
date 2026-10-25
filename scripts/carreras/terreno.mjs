@@ -22,6 +22,12 @@ export const PERSONAS = {
 
 export async function limpiar(db) {
   const personas = [ADMINISTRA, ...Object.values(PERSONAS)]
+  // Las cotizaciones de las carreras (carreras/cotizaciones.mjs) primero: antes de los vehículos (el `set null` del vehículo dispara `cotizacion_validar` sobre una
+  // final) y antes de los orígenes, las fórmulas, los lotes y las cuentas, que las frenan con una FK `restrict`.
+  await db.query(
+    `delete from public.cotizaciones where creado_por = any ($1::uuid[]) or origen_id in (select id from public.origenes where nombre like $2)`,
+    [personas, `${PREFIJO}%`],
+  )
   await db.query(`update public.vehiculos set lead_id = null where titulo like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.vehiculos where titulo like $1`, [`${PREFIJO}%`])
   await db.query(`delete from public.importaciones where usuario_id = any ($1::uuid[])`, [personas])
@@ -117,6 +123,53 @@ export async function sembrar(db) {
       )
     }
   }
+  // Quien cotiza (carreras/cotizaciones.mjs): cotizar y cerrar finales, ver y crear vehículos y mandarlos a la papelera, y ver todos los leads. Se suma a lo que ya tiene.
+  const {
+    rows: [cotiza],
+  } = await db.query(
+    `insert into public.roles (clave, nombre) values ('carreras_cotiza', $1) returning id`,
+    [`${PREFIJO} cotiza`],
+  )
+  for (const clave of [
+    'cotizaciones.ver',
+    'cotizaciones.crear',
+    'cotizaciones.final.gestionar',
+    'vehiculos.ver',
+    'vehiculos.crear',
+    'vehiculos.eliminar',
+    'leads.ver',
+  ]) {
+    await db.query(
+      `insert into public.roles_permisos (rol_id, permiso_clave, alcance) values ($1, $2, 'todos')`,
+      [cotiza.id, clave],
+    )
+  }
+  await db.query(
+    `insert into public.usuarios_roles (usuario_id, rol_id) values ($1, $4), ($2, $4), ($3, $4)`,
+    [PERSONAS.duena, PERSONAS.compartido, PERSONAS.supervision, cotiza.id],
+  )
+  // Quien cotiza pero sólo ve los leads de su cartera (leads.ver «propios», del rol de arriba): `destino` (carreras/cotizaciones.mjs).
+  const {
+    rows: [cotizaPropios],
+  } = await db.query(
+    `insert into public.roles (clave, nombre) values ('carreras_cotiza_propios', $1) returning id`,
+    [`${PREFIJO} cotiza propios`],
+  )
+  for (const clave of [
+    'cotizaciones.ver',
+    'cotizaciones.crear',
+    'vehiculos.ver',
+    'vehiculos.crear',
+  ]) {
+    await db.query(
+      `insert into public.roles_permisos (rol_id, permiso_clave, alcance) values ($1, $2, 'todos')`,
+      [cotizaPropios.id, clave],
+    )
+  }
+  await db.query(`insert into public.usuarios_roles (usuario_id, rol_id) values ($1, $2)`, [
+    PERSONAS.destino,
+    cotizaPropios.id,
+  ])
   const {
     rows: [configura],
   } = await db.query(
