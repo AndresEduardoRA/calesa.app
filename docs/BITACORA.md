@@ -1976,3 +1976,83 @@ el intento repetido 1,5 ms y 41 a 42; **0 recorridos de `cotizaciones`**; la raz
 fuera lo que devuelve numeric, boolean, entero o fecha aunque lea una columna oculta), **4-17** (la final directa no vincula el vehículo, no manda las preventas a la papelera ni pasa el lead a cliente: 4.25), **4-18** (cerrado) y **4-20** (el aviso angosto) en PLAN; **5a-43** sin fase.
 
 **Lo que no se hizo:** `cotizacion_guardar` ni D2, una pantalla de cotizar, el campo del ajuste en Configuración (4.20), el Nivel 3, `next upgrade` ni empujar.
+
+## 2026-10-25 — Movido de ESTADO (4.10-3)
+
+Copiado tal cual de `docs/ESTADO.md` (la línea «Fase actual», el punto 1 de «Siguiente» y la línea «Verdes» de «Funcionando», con su «Último Nivel 2 (escritorio), el paso 4.10 prompt 2: 689 en verde, 16 saltados, 0 fallos, 26,1 min.»). Del punto 2 de «Siguiente» salió «**4-16** (el detector del inventario deja fuera lo que devuelve numeric, boolean, entero o fecha) en 4.16» (cerrado). De «Pendientes que se arrastran» cambió «`cotizacion_marcar_final` toma vehículo → lead (al revés que vincular: posible deadlock)», que ahora dice que toma primero su cotización.
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.10, prompts 1 y 2 de 3**: la lectura (lo que alguien no puede ver no viaja) y el alta: **nadie escribe `cotizaciones` ni sus revisiones directo** y `cotizacion_crear` calcula en la base (idempotente por id, snapshot entero, tipos de cambio congelados; ajuste «Vehículo obligatorio al cotizar»), con `_cotizacion_tipeado()`, 4-15 (niveles al 200 % y avisos de escritorio sobre la barra lateral) y 4-18. Antes: el **paso 4.09 entero**, **4.08** a **4.01**; **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-16**, **4-17**, **4-19** y **4-20** siguen abiertos (**4-9, 4-11, 4-12, 4-13, 4-15 y 4-18** cerrados). Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 y 2026-10-25, «movido de ESTADO», 4.08-1 a 4.10-2).
+
+1. **4.10, prompt 3 de 3: `cotizacion_guardar`** (calcula en la base, como `cotizacion_crear`) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda del 2: `cotizaciones` ya no se escribe directo y `cotizacion_guardar` es **la única edición** (versión esperada, PT409): guardar sin mandar la clave de un nodo oculto la conserva (assert: `valores` y `fuentes` de ese nodo iguales antes y después, leídos como postgres) y `cotizacion_evaluar` con `p_cotizacion` completa lo oculto con lo guardado; D2 es suyo. Para reusar: `_cotizacion_tipeado()`, `_cotizacion_respuesta()` (el único recorte) y el patrón de `cotizacion_crear` (permiso por origen; lead y vehículo comprobados antes y después de bloquear; candados intento → lead → vehículo → fórmula, y `for share` en la fórmula). `cotizaciones.modo_tc` guarda la clave de un modo de la cabecera; el ⚙ de un tipo de cambio es `tipo_cambio_guardar`; las `entradas` sólo llevan `inputs`, `banderas`, `overrides` y `variante`; el transporte sembrado casa `tipo` con `tipo_vehiculo` (el de la subasta, «AUTOMOBILE», no casa: queda sin valor y se tipea). Toda función nueva que pueda devolver lo oculto se registra en el inventario de `cotizaciones-visibilidad.sql`. Para el 4.13: el diseño recortado que dibuja la hoja es una lectura propia. Para el 4.15: registrar `cotizacion_revisiones` en `RPC_PAGINADAS`. Para el 4.21: un campo del vehículo es una columna o la clave de un campo del origen, **sin puntos**, y la fila que guarda el editor es `{ ...raíz compilada, texto }`. Para el 4.22: `editar_sin_ver` rechaza una sección con sólo `nivel_ver` restringido (el editor pone ver y editar juntos), y avisa cuando un nodo restringido es el único oculto de una suma visible.
+
+- Verdes: lint, typecheck, test, `db:probar` (matrices, cinturón de la auditoría y cinturón de enforcement de permisos), `db:lint`, `db:carreras` (dos o tres conexiones reales, sin `sleep`), `db:medir:volumen`, `mapa.sh` y el e2e completo. Último Nivel 2 (escritorio), el paso 4.10 prompt 2: 689 en verde, 16 saltados, 0 fallos, 26,1 min. Último Nivel 3 (los dos proyectos), el cierre de la Fase 3: escritorio 640 en verde y 16 saltados, celular 425 y 18, 0 fallos, 40,1 min (ver BITACORA, 2026-10-22). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide `npx supabase functions serve`); los tres niveles de verificación, en `.claude/rules/e2e.md`. Apibara sin clave: lo grabado.
+
+## 2026-10-25 — Paso 4.10, prompt 3 de 3: `cotizacion_guardar`, D2 en el alta y el cierre del 4.10 (4.10-3)
+
+**Horas** (hora de La Paz): los trece commits de código y pruebas son de las 07:52 a las 11:08; cada uno corrió `db:probar` entero en su hook. Después del último: `pnpm lint` (51 s), `typecheck`, `test` (350 archivos, 3.985 pruebas, 81,8 s), `db:reset`, `db:types`, `db:base` (sin cambios), `db:probar` (394 bloques, 4 min 4 s), `db:lint`, `db:carreras` (14 s), `db:medir`, `db:sembrar-volumen` y `db:medir:volumen`; el e2e completo de escritorio corrió de las 11:16 a las 11:46 (el primer intento, de las 11:13 a las 11:16, se detuvo en `next build` por el aviso de seguridad de Next antes de correr un solo e2e, y se repitió el mismo comando).
+
+**Pre-paso** (`e0ce415`, solo): el encabezado de `…007900` y `cotizaciones-visibilidad.sql` decían que un `revoke … on table` NO quita los grants de columna; sí los quita. Corregido en los dos (el bucle por columna se queda como defensa, y `has_column_privilege` lo comprueba por rol y columna). `db:base`, `db:types` y `db:reset` no cambiaron nada. No había más sitios con la frase.
+
+**Qué se hizo** (trece commits, y este cierre como el 14.º):
+
+| Commit    | Hora  | Qué                                                                                                                          |
+| --------- | ----- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `e0ce415` | 07:52 | pre-paso: lo que dice el `revoke` de tabla sobre las columnas                                                                |
+| `d31afb5` | 07:59 | `cotizacion_version()`: un cambio sólo de contadores no mueve la versión; dentro de una transacción sí (`…008000`)           |
+| `b009921` | 08:09 | la revisión por nodo con `intento` y `huella` (schema, índice único, `db:base`, `db:types`; `…008100`)                       |
+| `fd6e7b1` | 08:19 | `cotizacion_marcar_final` toma primero su cotización (`…008200`)                                                             |
+| `efbc336` | 08:32 | tres ayudantes sacados de crear: el vehículo, el modo y lo guardable (`…008300`)                                             |
+| `239d49a` | 08:50 | D2 en `cotizacion_crear`: `desactualizada`, «guardar con la N», historial de tipos de cambio e índice (`…008400`, `…008500`) |
+| `eb44cb3` | 09:28 | `cotizacion_evaluar` con cotización conserva lo que no se edita (`_cotizacion_conservar`, `…008600`)                         |
+| `f1154ac` | 09:59 | `cotizacion_guardar` (`…008700`)                                                                                             |
+| `3f3f988` | 10:10 | 4-16: el detector del inventario ve también lo escalar, con autoprueba                                                       |
+| `28b615d` | 10:15 | las carreras de `cotizacion_guardar` (`db:carreras`)                                                                         |
+| `68e7739` | 10:24 | la medición `medir-cotizacion-guardar.sql` con 50.000 y 250.000, en `db:medir`, con su guarda                                |
+| `8d61df9` | 10:29 | pruebas de lo guardable y de las claves que no son nodos (sobrevivientes de las mutaciones)                                  |
+| `c1bded1` | 11:08 | la guarda de bloques lee el snapshot completo (caía una vez por TOAST)                                                       |
+
+**Del plan, tal como se aprobó** (un revisor en contra lo leyó con el código delante: 8 bloqueantes, 13 a corregir, 6 menores, todos incorporados): D2 **completo en `cotizacion_crear`** (decisión de la persona); el orden de candados **vehículo(s) → cotización**, sin lead ni fórmula, no «cotización, lead, vehículo, fórmula» como pedía el prompt: la papelera de vehículos (por lotes, en orden de id) y purgar un lead toman al padre y después sus cotizaciones, y el orden pedido interbloquea con ellas (probado en `db:carreras`, ninguna da `40P01`); la versión de una cotización con trigger propio (un favorito ajeno ya no da PT409 a quien edita); el intento y la huella en `cotizaciones_revisiones`, sin lectura; una final pide `cotizaciones.final.gestionar`; guardar usa SU fórmula y SUS tipos de cambio.
+
+**D2 donde el texto era ambiguo** (se dijo antes de escribir): «guardar una cotización nueva» y «editar una vieja no avisa» → `cotizacion_crear` avisa, `cotizacion_guardar` no. La versión de la hoja se compara por id (no por `publicado_en`, que es la hora de inicio de la transacción de publicar). «Guardar con la N» sólo si la hoja es de las últimas 24 h y la versión dejó de ser la publicada hace menos de 24 h.
+
+**Lo que se corrigió al implementar:**
+
+- **El orden de candados del prompt interbloquea** (arriba): se tomó el vehículo primero y se quitó un bucle de reintento redundante (la versión ya lo cubre).
+- **`if … then` de plpgsql termina en el primer `then`, también el de un `case`**: la condición con `case` va a una variable (guardar y su medición).
+- **`<>` con nulo vale nulo**: las pruebas nuevas usan `is distinct from`; `jsonb_build_object` con literales sin comillas produjo texto (se castearon a `::jsonb`).
+- **`_cotizacion_conservar` copiaba en O(n²)**: se armó por partes una vez (5,7 → 1,5 ms con 200 nodos).
+- **Un override a un nodo inexistente hacía fallar `conservar`**: se filtra por los ids de la fórmula.
+- **El inventario no veía `{centinela}` igual al total**: la sonda suma `'visible', 1.5`.
+- **La sintética de `medir-evaluar` tenía visibilidad `'{{}}'`** y daba `nodo_no_editable`: se le dio una editable y un snapshot de 200 nodos.
+- **La guarda de bloques de la medición cayó una vez** (9 contra 8) por leer el snapshot sin TOAST: `c1bded1`.
+- **Una migración aplicada a medias en psql** dejó `_cotizacion_armar` sin crear: `db:reset`.
+- **Los ganchos de commit** prueban el árbol y no el commit: cada commit se armó apartando lo demás; ningún hook se saltó.
+
+**Mutaciones** (arnés en el scratchpad: PGlite y, los candados, la base real): **172, caen 164, 8 equivalentes demostradas**.
+
+| Qué                                                                                      | Mutaciones | Caen | Equivalentes |
+| ---------------------------------------------------------------------------------------- | ---------- | ---- | ------------ |
+| la versión (`cotizacion_version`)                                                        | 8          | 7    | 1            |
+| la revisión por nodo, con intento y huella                                               | 11         | 11   | 0            |
+| `cotizacion_marcar_final`                                                                | 2          | 2    | 0            |
+| los ayudantes (vehículo, modo, guardable) y la validación                                | 15         | 13   | 2            |
+| D2 (versión, tipo de cambio, con la abierta, 24 h, futuro, nulos)                        | 28         | 28   | 0            |
+| `_cotizacion_conservar`, `_cotizacion_entradas_de` y `cotizacion_evaluar` con cotización | 30         | 28   | 2            |
+| `cotizacion_guardar` (PGlite y propiedades)                                              | 52         | 50   | 2            |
+| los candados, en la base real                                                            | 11         | 10   | 1            |
+| el detector del inventario                                                               | 15         | 15   | 0            |
+
+Las 8 equivalentes (nombradas y demostradas en `docs/DECISIONES.md`): la versión sin el +1 µs; crear con un vehículo existente sin comprobar (lo cubren los vehículos reales de la prueba); la segunda comprobación del vehículo tras esperar; el `pct` pisado sin ser sobrescribible; lo mandado que no pisa lo guardado; escribir siempre; la variante guardada que no se quita (código muerto, borrado) y el reintento por vehículo (borrado). Los sobrevivientes no equivalentes se cerraron con pruebas directas (`8d61df9`).
+
+**Todo test nuevo falló primero contra HEAD:** `cotizacion-guardar.sql` y `cotizacion-conservar.sql` (las funciones no existen), los bloques de D2 de `cotizacion-crear.sql` (firma vieja), la mitad de escritura de `cotizaciones-visibilidad.sql` (guardar sin registrar) y la autoprueba del detector (no veía `numeric`, `boolean`, `integer`, `bigint` ni `date`), las carreras de guardar (sin la función) y la medición.
+
+**Cifras** (`docs/RENDIMIENTO.md`, «Paso 4.10 (3 de 3)»), `cotizacion_guardar` como `authenticated`, plan genérico, mediana de 5 de 7, con 50.000 y con 250.000 cotizaciones (carga al empezar 3,35 / 2,27 / 2,43), ms · buffers: la dueña 6,0 · 290 y 5,7 · 301; una asesora 6,5 · 310 y 6,4 · 316; cambiar el vehículo 6,5 · 315 y 6,5 · 327; sin cambios 5,0 · 170 y 5,2 · 177; el intento repetido 1,8 · 58 y 1,8 · 62; la sintética de 200 nodos 41,8 · 438 y 42,0 · 446; **0 recorridos** de `cotizaciones` ni de sus revisiones. Presupuesto nuevo: 20 ms y 1.500 buffers (la fórmula del seed) y 60 ms y 1.000 buffers (la sintética). La guarda (la búsqueda del intento sin `cotizacion_id`): 23,4 ms, 4.847 buffers y un recorrido, rompe los topes. `cotizacion_evaluar` con cotización, sintética por cotización p95 42,6 / 42,8 (tope 50, **no se subió**), por origen 40,3 / 41,1, seed 4,4 / 4,7; bloques 8 (seed) y 9 (sintética) contra la guarda de 2×(4,5). `cotizacion_crear` sin cambio (5,7 a 5,8 ms, 238 a 239 buffers).
+
+**Verificación:** `pnpm lint` y `pnpm typecheck` sin avisos; `pnpm test` (350 archivos, 3.985 pruebas); `db:reset`, `db:types` y `db:base` sin cambios al final; `pnpm db:probar` (394 bloques; eran 374); `db:lint`; `db:carreras` en verde y sin reintentos; `bash scripts/mapa.sh --check`; `db:medir` y `db:medir:volumen` en verde.
+**e2e completo: sí (4.10-3, escritorio): 689 en verde, 16 saltados, 0 fallos, 29,6 min, de las 11:16 a las 11:46 (hora de La Paz).** (Nivel 2 por tocar `supabase/schemas`; los dos proyectos, el Nivel 3, son del cierre de fase.)
+
+**Del entorno:** Next paró `next build` con el aviso de seguridad en el primer intento del e2e completo; se repitió el mismo comando, que compiló. No se actualizó nada ni se corrió `next upgrade`. `functions serve` se cerró con sus hijos al terminar.
+
+**Anotado:** **4-21** (repetir el intento de `cotizacion_crear` con otros datos devuelve la vieja con `repetido: true`; en 4.13, con el assert de PLAN), **4-16** y **4-18** cerrados; para el 4.13, la lectura que abre la hoja tiene que dar la versión de la fórmula y la hora; para el 4.15, `cotizacion_revisiones` (ya lee el diff por nodo) a `RPC_PAGINADAS`; para el 4.25, 4-17 (`cotizacion_marcar_final` ya toma primero su cotización, pero vincula el lead antes de tomar el vehículo).
+
+**Lo que no se hizo:** una pantalla de cotizar, `plantilla_id`, `moneda_mostrar` ni `lead_id` por guardar (nadie los pide), el Nivel 3, el 4.11, `next upgrade` ni empujar.

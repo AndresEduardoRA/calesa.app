@@ -36,6 +36,7 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   Excepción decidida: enviar leads
   a la papelera (`leads_papelera_enviar`) es todo o nada, sin versión por lead, e idempotente por el id de
   lote que genera el cliente (`docs/DECISIONES.md`, 2026-10-15).
+- **La versión de una cotización** (`actualizado_en`) la sella `cotizacion_version()` (4.10-3), no el trigger genérico: un cambio sólo de `reportes_count` o `favoritos_count` no la mueve (un favorito ajeno daba PT409 a quien editaba) y se mueve también dos veces en la misma transacción. **Un `if` de plpgsql termina en el primer `then`, también en el de un `case`**: la condición con `case … then` va a una variable antes.
 - Una versión que tiene que moverse en cada operación (también dos en la misma transacción) no usa
   el trigger genérico (`now()` es la hora de inicio): se quita `trg_actualizado_en` de esa tabla y
   la RPC sella con `greatest(clock_timestamp(), anterior + 1 µs)` (fotos, lotes de papelera).
@@ -54,10 +55,10 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   (`revoke select (numero)`). Lo que la lee con los derechos de la base (`definer`) calcula el permiso una vez por consulta; lo
   que la lee como quien mira se apoya en la policy, con subconsultas en la lista de columnas y no uniones. `numero-global.sql`
   falla si `authenticated`, `anon` o PUBLIC pueden leer la columna, o si la tabla entra a una publicación de Realtime.
-- Una tabla cuyas columnas no lee todo el que lee la fila (`cotizaciones.valores|fuentes|totales|tipos_cambio` y `cotizaciones_revisiones.diff`, además de `leads.telefono_principal`) pierde el `select` de tabla y da
+- Una tabla cuyas columnas no lee todo el que lee la fila (`cotizaciones.valores|fuentes|totales|tipos_cambio` y `cotizaciones_revisiones.diff|intento|huella`, además de `leads.telefono_principal`) pierde el `select` de tabla y da
   `select (columnas legibles)`: un `revoke select (columna)` no hace nada mientras exista el de tabla. La lista sale del catálogo (`pg_attribute`), así una columna nueva nace sin grant. Lo oculto se lee por una RPC que lo recorta
   (`cotizacion_leer`, `cotizacion_revisiones`, `cotizacion_tabla`), y toda función que pueda devolverlo figura en el inventario de `supabase/tests/cotizaciones-visibilidad.sql` con su clase y su sonda; una nueva sin registrar rompe la prueba.
-- **`cotizaciones` y `cotizaciones_revisiones` se escriben sólo por RPC `security definer`** (4.10-2): ningún rol de la app tiene `insert`, `update` ni `delete`, ni de tabla ni de columna, ni policies para escribir. Un `revoke … on table` ya quita los de columna; el de columna se deja explícito. El alta es `cotizacion_crear`; una columna nueva nace sin grant y la prueba de privilegios de `cotizaciones-visibilidad.sql` (por rol, tabla y columna, y la copia contra la base real en `scripts/carreras/cotizaciones.mjs`) falla si alguien lo concede.
+- **`cotizaciones` y `cotizaciones_revisiones` se escriben sólo por RPC `security definer`** (4.10-2): ningún rol de la app tiene `insert`, `update` ni `delete`, ni de tabla ni de columna, ni policies para escribir. Un `revoke … on table` ya quita los de columna; el de columna se deja explícito. El alta es `cotizacion_crear` y la edición, `cotizacion_guardar` (4.10-3: calcula con SU versión y conserva lo que quien guarda no ve ni edita; `docs/COTIZADOR.md` › «Cómo se guarda»); una columna nueva nace sin grant y la prueba de privilegios de `cotizaciones-visibilidad.sql` (por rol, tabla y columna, y la copia contra la base real en `scripts/carreras/cotizaciones.mjs`) falla si alguien lo concede.
 - Tabla nueva en `schemas/` = su `_rls(...)` en `…000200_rls_y_grants.sql`: ese archivo termina
   comprobando que ninguna tabla de `public` quede sin RLS.
 - Después de cualquier cambio: `pnpm db:base` (si tocaste `schemas/`), `pnpm db:reset`, `pnpm db:types`,
