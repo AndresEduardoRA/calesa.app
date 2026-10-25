@@ -42,7 +42,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 - `supabase/migrations/20261019005700_tonos.sql`, `…005800_formula_con_diseno.sql` y `…005900_formulas_solo_configurar.sql` (4.08-2; `docs/COTIZADOR.md` › «En la
   base (4.08-2)»): `formulas.diseno` y `visibilidad` (en `schemas/`); `formula_guardar_borrador(origen, def, params, diseño, nota?)` (valida la fórmula y la forma del
   diseño; sin default de `p_diseno`); `formula_publicar()` y el ⚙ por `_publicar_formula()` (valida la fórmula y el diseño completo, compila `visibilidad`, **exige el
-  diseño**); `_niveles_de_cotizacion()` (desde el 4.09-1 lee `cotizaciones_niveles`), `_compilar_visibilidad()`, `_nivel_en_uso()`; el catálogo `tonos` y `tono_crear|guardar|eliminar`
+  diseño**); `_niveles_de_cotizacion()` (desde el 4.09-1 lee `cotizaciones_niveles`), `_compilar_visibilidad()`; el catálogo `tonos` y `tono_crear|guardar|eliminar`
   (AA en la base: `_color_contraste()`, copia de `color.ts`; hasta 24; `_tono_en_uso()`); la policy de lectura de `formulas` sólo para `cotizaciones.configurar` y
   `formula_auditar()` (sin la fórmula en `actividad`). Los ayudantes no son de nadie. Lo prueban `supabase/tests/{tonos,publicar-diseno}.sql`, el corpus
   `corpus-de-contraste.json` (lo genera `corpus-de-contraste.ts`), el bloque de la policy de `humo.sql`, `scripts/carreras/tonos.mjs` y `medir-publicar.sql`.
@@ -55,14 +55,14 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   `cotizacion_evaluar()`; corre antes que `humo.sql`).
 - `supabase/migrations/20261019006100_niveles_de_acceso.sql`, `…006200_nivel_no_admitido_del_pct.sql` y `…006300_editar_sin_ver.sql` (4.09-1; `docs/COTIZADOR.md` › «En la base (4.09-1)»):
   la tabla `cotizaciones_niveles` (en `schemas/`, sembrada con «todos» y «costos», hasta 10) y los permisos `cotizaciones.nivel.<clave>.ver|editar` (`permisos.nivel_clave`) que genera cada
-  nivel salvo «todos» y se conceden al dueño; el check, la FK y el trigger diferido que los atan; `nivel_crear|renombrar|retirar|eliminar` (`equipo.roles.gestionar`; eliminar mira `_nivel_en_uso()`
+  nivel salvo «todos» y se conceden al dueño; el check, la FK y el trigger diferido que los atan; `nivel_crear|renombrar|retirar|eliminar` (`equipo.roles.gestionar`; eliminar mira `_nivel_motivo_de_uso()`
   y responde cuánto lo usan); `_niveles_de_cotizacion()` leyendo la tabla; el `for key share` de los niveles del diseño en `_preparar_publicacion()`; **`_nodos_visibles(formula_id)`**, el enforcement
   (un nivel sólo estrecha; de nadie; el 4.10 la consume); y las reglas `editar_sin_ver` y 4-9 (`nivel_no_admitido` también mira el `pct` de un par y el interruptor) de `_diseno_secciones()`. Las
   prueban `supabase/tests/niveles.sql`, el caso genérico de `permisos-enforcement.sql`, `scripts/carreras/niveles.mjs` y `medir-nodos-visibles.sql`. El catálogo de TS de permisos
   reconoce estas claves por su patrón (`esClaveDeNivel()` de `@/shared/lib/permisos`): la matriz de Roles las muestra, por origen y en «Cotizaciones».
 - `supabase/migrations/20261019006400_nivel_restaurar.sql`, `…006500_niveles_con_uso.sql` y `…006600_motivo_de_uso_en_una_sola_pasada.sql` (4.09-2; 4-12): `nivel_restaurar(id, versión)` deshace `nivel_retirar` (uno que no está retirado responde `sin_cambios` sin mirar la versión ni
   escribir) y `niveles_con_uso()` (`equipo.roles.ver` o `gestionar`) entrega la lista con, de cada nivel, `se_renombra`, `se_retira`, `se_elimina` y `motivo_de_uso` (`_nivel_motivo_de_uso()`, el texto
-  que también dice `nivel_eliminar`); `_niveles_lista()` lo lleva en la respuesta de cada escritura, y `…006600` lo calcula en una sola pasada (sin preguntar antes `_nivel_en_uso()`). Las prueban `niveles.sql`, `niveles-con-uso.sql`, las carreras de restaurar contra retirar y contra eliminar y `medir-nodos-visibles.sql`.
+  que también dice `nivel_eliminar`); `_niveles_lista()` lo lleva en la respuesta de cada escritura, y `…006600` lo calcula en una sola pasada (`_nivel_en_uso()` se quitó en el 4.10-1: nadie la llamaba). Las prueban `niveles.sql`, `niveles-con-uso.sql`, las carreras de restaurar contra retirar y contra eliminar y `medir-nodos-visibles.sql`.
 - `entities/nivel.ts` (4.09-2) — `NivelDeAcceso`, `ListaDeNiveles`, `listaDeNivelesDesde()`/`respuestaDeNivelesDesde()` (Zod), `separarNiveles()` (fijo · en uso · retirados, por nombre en español), `validarNivel()` (espejo de
   `_nivel_nombre()`), `accionesDeNivel()` (Renombrar · Retirar o Restaurar · Eliminar, con el motivo cuando no se puede), `motivoParaNoAbrirNivel()` y las constantes de la URL. **Nada razona por el nombre ni la clave de un nivel**:
   qué admite lo dice la fila. `entities/repositorios-de-niveles.ts`, `infra/niveles.ts` (las cinco RPC), `infra/queries/niveles.ts` y `composicion.ts`.
@@ -121,7 +121,7 @@ RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador
   nuevo = tipo discriminado (`nodos.ts`) + `switch` exhaustivo (`referenciasDe()`) + caso en `validar_formula()` y en el juego de prueba.
 - **Toda copia de una versión lleva el diseño** (el ⚙ pasa `v_pub.diseno`; revertir y la N+1 de una tabla, cuando existan, también): publicar lo exige, y un cambio de
   diseño publica la N+1, así que «desactualizada» y D5 lo cuentan solos. El ⚙, revertir y la N+1 publican con `retirados` vacío: lo que ya usa un nivel retirado se
-  sigue filtrando igual. **Un tono o un nivel que una versión nombra no se elimina** (`_tono_en_uso()`, `_nivel_en_uso()`; un nivel se retira). **Los tonos y los niveles que existen salen
+  sigue filtrando igual. **Un tono o un nivel que una versión nombra no se elimina** (`_tono_en_uso()`, `_nivel_uso()`; un nivel se retira). **Los tonos y los niveles que existen salen
   de un solo punto cada uno** (la tabla `tonos` y `_niveles_de_cotizacion()`, que lee `cotizaciones_niveles`): nada escribe «costos» a mano fuera de él. `formulas` sólo la lee quien configura.
 - **D7 (2026-10-22):**
   - la hoja **calcula en la base** (`cotizacion_evaluar()` sobre `evaluar_formula()`, espejo de `motor.ts`) para todos;

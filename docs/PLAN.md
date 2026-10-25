@@ -468,6 +468,13 @@ db» es `db:base`, `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuan
     mutaciones de la función, de las que cae cada una (la de `for no key update` sólo la ve la carrera, contra la función real).
   - **Lugar:** 4.09, prompt 2. El botón «Restaurar» está en el «⋯» de un nivel retirado.
 
+- **4-13 · `_nivel_en_uso()` quedó sin ningún llamador (4.09, prompt 2; cerrado en el 4.10, prompt 1).**
+  - **Hoy (cerrado):** desde `…006500` `nivel_eliminar()` pregunta por `_nivel_motivo_de_uso()` (`…006600`), que cuenta con `_nivel_uso()`: `_nivel_en_uso()` (4.08-2) sólo la sostenían su propia prueba y una medición. `…006700_sin_nivel_en_uso.sql` la quita; el índice `formulas_niveles_idx` y `_niveles_del_diseno()` se quedan, los usa `_nivel_uso()`.
+  - **Por qué importa:** código muerto con prueba propia es una función más que revisar en el inventario de lo que lee `formulas` (4.10), y su prueba daba la falsa seguridad de que `nivel_eliminar` la usaba.
+  - **Assert (hecho):** `publicar-diseno.sql` ya no la nombra y asserta que no existe; sus formas (una sección o un ítem, ver y editar, el borrador, la subcadena) se prueban sobre `_nivel_uso()` con orígenes/secciones/celdas exactos; `niveles.sql` suma el borrador y la publicada del mismo origen (cuenta una versión por origen, la más nueva); `medir-publicar.sql` mide `_nivel_uso`.
+  - **Mutaciones por `nivel_eliminar`:** `_nivel_uso` que ignora el borrador, que ignora las archivadas, que sólo mira la publicada, y `nulls last`: caen las cuatro (`docs/BITACORA.md`, 4.10-1).
+  - **Lugar:** 4.10, prompt 1.
+
 ## Fase 5 — Flujos (configuración)
 
 Módulo `flujos`: configuración por origen (y el de repuestos): fases con todos sus atributos,

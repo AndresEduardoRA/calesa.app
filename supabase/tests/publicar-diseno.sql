@@ -251,13 +251,13 @@ begin
   if n is distinct from array['costos'] or r is distinct from '{}'::text[] then raise exception 'niveles: % retirados: %', n, r; end if;
 end $$;
 
--- @test publicar: _nivel_en_uso mira el diseño de toda versión (archivada, publicada, borrador), en secciones y en ítems, para ver y para editar
+-- @test publicar: _nivel_uso mira el diseño de toda versión (archivada, publicada, borrador), en secciones y en ítems, para ver y para editar
 do $$
 declare
   o uuid := pg_temp.preparar(); d jsonb;
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
-  if public._nivel_en_uso('gerencia') is not null then raise exception 'libre figura en uso'; end if;
+  if (public._nivel_uso('gerencia') ->> 'origenes')::int <> 0 then raise exception 'libre figura en uso'; end if;
   d := (select doc -> 'casos' -> 0 -> 'diseno' from _juego_de_diseno);
   -- Cada forma de nombrar un nivel, como una versión archivada distinta (insertadas como postgres: sin validar).
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values
@@ -267,13 +267,21 @@ begin
     (o, 4, 'archivada', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,2,items,0,nivel_editar}', '"n_item_editar"'), '{}');
   insert into public.formulas (origen_id, estado, definicion, params, diseno)
   values (o, 'borrador', '{"nodos": []}', '{}', jsonb_set(d, '{secciones,1,nivel_ver}', '"n_borrador"'));
-  if public._nivel_en_uso('n_seccion_ver') is null or public._nivel_en_uso('n_seccion_editar') is null
-     or public._nivel_en_uso('n_item_ver') is null or public._nivel_en_uso('n_item_editar') is null or public._nivel_en_uso('n_borrador') is null then
-    raise exception 'un nivel en uso no figura: % % % % %', public._nivel_en_uso('n_seccion_ver'), public._nivel_en_uso('n_seccion_editar'),
-      public._nivel_en_uso('n_item_ver'), public._nivel_en_uso('n_item_editar'), public._nivel_en_uso('n_borrador');
+  -- Orígenes / secciones / celdas de cada uno: una sección nombra a sus 3 ítems (la hoja, la variante y los dos interruptores; «cambio», las tres celdas de tipo de
+  -- cambio) y un ítem sólo a sí mismo.
+  if concat_ws('/', public._nivel_uso('n_seccion_ver') ->> 'origenes', public._nivel_uso('n_seccion_ver') ->> 'secciones', public._nivel_uso('n_seccion_ver') ->> 'celdas') <> '1/1/3'
+     or concat_ws('/', public._nivel_uso('n_seccion_editar') ->> 'origenes', public._nivel_uso('n_seccion_editar') ->> 'secciones', public._nivel_uso('n_seccion_editar') ->> 'celdas') <> '1/1/3'
+     or concat_ws('/', public._nivel_uso('n_item_ver') ->> 'origenes', public._nivel_uso('n_item_ver') ->> 'secciones', public._nivel_uso('n_item_ver') ->> 'celdas') <> '1/0/1'
+     or concat_ws('/', public._nivel_uso('n_item_editar') ->> 'origenes', public._nivel_uso('n_item_editar') ->> 'secciones', public._nivel_uso('n_item_editar') ->> 'celdas') <> '1/0/1'
+     or concat_ws('/', public._nivel_uso('n_borrador') ->> 'origenes', public._nivel_uso('n_borrador') ->> 'secciones', public._nivel_uso('n_borrador') ->> 'celdas') <> '1/1/3' then
+    raise exception 'un nivel en uso no figura bien: % % % % %', public._nivel_uso('n_seccion_ver'), public._nivel_uso('n_seccion_editar'),
+      public._nivel_uso('n_item_ver'), public._nivel_uso('n_item_editar'), public._nivel_uso('n_borrador');
   end if;
-  if public._nivel_en_uso('n_seccion') is not null or public._nivel_en_uso('n_otro') is not null then raise exception 'una subcadena o un libre figura en uso'; end if;
-  if public._nivel_en_uso('n_item_ver') <> 'Prueba publicar' then raise exception 'dice el origen: %', public._nivel_en_uso('n_item_ver'); end if;
+  if (public._nivel_uso('n_seccion') ->> 'origenes')::int <> 0 or (public._nivel_uso('n_otro') ->> 'origenes')::int <> 0 then raise exception 'una subcadena o un libre figura en uso'; end if;
+  -- La función muerta se quitó (4-13): nadie la llamaba desde que nivel_eliminar() pregunta por _nivel_motivo_de_uso().
+  if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = '_nivel_en_uso') then
+    raise exception '_nivel_en_uso sigue en la base: nadie la llama';
+  end if;
   perform pg_temp.limpiar(o);
 end $$;
 
@@ -305,10 +313,10 @@ begin
      or has_function_privilege('anon', 'public.formula_guardar_borrador(uuid,jsonb,jsonb,jsonb,text)', 'execute') then
     raise exception 'los grants de formula_guardar_borrador'; end if;
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-              where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', '_nivel_en_uso', 'formula_auditar')
+              where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', 'formula_auditar')
                 and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))) then
     raise exception 'un ayudante se puede ejecutar: %', (select string_agg(p.proname, ',') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-      where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', '_nivel_en_uso', 'formula_auditar')
+      where n.nspname = 'public' and p.proname in ('_publicar_formula', '_preparar_publicacion', '_compilar_visibilidad', '_niveles_de_cotizacion', '_niveles_del_diseno', 'formula_auditar')
         and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute')));
   end if;
   if (select count(*) from public.actividad where tabla = 'formulas') = 0 then raise exception 'formulas no se audita'; end if;

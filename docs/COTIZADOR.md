@@ -860,9 +860,9 @@ columnas viven en `schemas/07_cotizaciones`.
   que genera TS (`corpus-de-contraste.json`, 360 pares) comprueba que dicen lo mismo, también pegado al umbral. El contrato para la hoja: el texto sobre el
   fondo de un tono va en su **tinta** (`--color-ink-faint` sobre ese fondo da 3,6).
 - **Un tono o un nivel que alguna versión nombra no se elimina** (borrador, publicada o archivada: las cotizaciones viejas se leen con su versión).
-  `_tono_en_uso()` mira los grupos de `definicion` y `_nivel_en_uso()` el diseño, cada una por su GIN angosto (`formulas_tonos_idx` y
+  `_tono_en_uso()` mira los grupos de `definicion` y `_nivel_uso()` el diseño, cada una por su GIN angosto (`formulas_tonos_idx` y
   `formulas_niveles_idx`, sobre `jsonb_path_query_array`); con uso, `tono_eliminar` responde 23503 con el origen. Los tonos no se retiran: se cambian
-  sus colores. `nivel_eliminar` (4.09) llamará a `_nivel_en_uso()`.
+  sus colores. `nivel_eliminar` (4.09) pregunta por `_nivel_motivo_de_uso()`, que cuenta con `_nivel_uso()`; `_nivel_en_uso()`, que escribió el 4.08-2 para eso, se quitó en el 4.10-1 (4-13).
 - **La fórmula sólo la lee quien la configura:** la policy «formulas: leer» pasa de `true` a `cotizaciones.configurar` del origen, y la auditoría de
   `formulas` (`formula_auditar()`) ya no copia `definicion`, `params`, `diseno` ni `visibilidad` a `actividad`, que lee quien tiene `actividad.ver` sin
   filtro por origen.
@@ -947,7 +947,7 @@ inválido tumba el seed con la regla y su `donde`.
   - `nivel_renombrar(p_id, p_actualizado_en_esperado, p_nombre)` (cambia el nombre del nivel y el de sus dos permisos; no vuelve a conceder lo que alguien le haya quitado al dueño);
   - `nivel_retirar(p_id, p_actualizado_en_esperado)` (el nivel deja de ofrecerse; sus permisos, concesiones y usos siguen; la fecha de retiro no se pisa);
   - `nivel_restaurar(p_id, p_actualizado_en_esperado)` (4.09-2, 4-12: deshace un retiro; no cambia la clave, los permisos, las concesiones ni el tope; uno que no está retirado responde `sin_cambios` sin mirar la versión);
-  - `nivel_eliminar(p_id, p_actualizado_en_esperado)`: `for update` del nivel **antes** de mirar el uso (`_nivel_en_uso()`: borrador, publicada o archivada); con uso responde 23503, `detail
+  - `nivel_eliminar(p_id, p_actualizado_en_esperado)`: `for update` del nivel **antes** de mirar el uso (`_nivel_motivo_de_uso()` sobre `_nivel_uso()`: borrador, publicada o archivada); con uso responde 23503, `detail
 nivel_en_uso`, «Está en 6 celdas de 2 orígenes (en alguna versión de su fórmula): no se elimina. Puedes retirarlo…» (`_nivel_uso()` cuenta sólo la versión más nueva de cada origen que lo
     nombra); sin uso toma `for update` de los roles que lo tienen concedido, borra sus dos permisos (las concesiones caen con ellos), toca la versión de esos roles y borra el nivel.
   - Todo queda en `actividad` (`nivel.crear|renombrar|retirar|restaurar|eliminar` con `{clave, nombre}`), sin contenido de fórmula.

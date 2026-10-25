@@ -4,7 +4,7 @@
 -- Todo corre en una transacción que se revierte: el origen, la persona, los tonos y los niveles de la medición no quedan.
 --
 -- Lo que mide, como `authenticated` (la dueña), con 7 corridas de EXPLAIN (ANALYZE, BUFFERS) y la mediana de las 5 últimas:
---   1. Las sondas `_tono_en_uso()` y `_nivel_en_uso()` con 200 y con 2.000 versiones archivadas: usan su GIN (plan genérico) y los bloques de
+--   1. Las sondas `_tono_en_uso()` y `_nivel_uso()` con 200 y con 2.000 versiones archivadas: usan su GIN (plan genérico) y los bloques de
 --      `formulas` (heap, índices y TOAST, por pg_stat_get_xact_blocks_fetched) no crecen con las versiones; una copia que recorre la tabla sí. Va primero:
 --      con las versiones grandes de abajo, el TOAST de `formulas` taparía lo que se mide.
 --   2. `formula_guardar_borrador()` y `formula_publicar()` con 206 y 2.018 ítems: ms y buffers. Publicar es lineal (valida la fórmula y el diseño y
@@ -169,9 +169,9 @@ begin
   perform pg_temp.versiones(o, 1000, 200);
   analyze public.formulas;
   -- Calientes, y los bloques de una llamada con una clave libre.
-  for i in 1 .. 3 loop perform public._tono_en_uso('libre_xx'); perform public._nivel_en_uso('libre_xx'); end loop;
+  for i in 1 .. 3 loop perform public._tono_en_uso('libre_xx'); perform public._nivel_uso('libre_xx'); end loop;
   v_antes := pg_temp.bloques_de_formulas();
-  perform public._tono_en_uso('libre_xx'); perform public._nivel_en_uso('libre_xx');
+  perform public._tono_en_uso('libre_xx'); perform public._nivel_uso('libre_xx');
   v_200 := pg_temp.bloques_de_formulas() - v_antes;
   for i in 1 .. 3 loop perform pg_temp.malo_tono('libre_xx'); end loop;
   v_antes := pg_temp.bloques_de_formulas();
@@ -179,21 +179,21 @@ begin
   v_m200 := pg_temp.bloques_de_formulas() - v_antes;
   perform pg_temp.versiones(o, 1200, 1800);
   analyze public.formulas;
-  for i in 1 .. 3 loop perform public._tono_en_uso('libre_xx'); perform public._nivel_en_uso('libre_xx'); end loop;
+  for i in 1 .. 3 loop perform public._tono_en_uso('libre_xx'); perform public._nivel_uso('libre_xx'); end loop;
   v_antes := pg_temp.bloques_de_formulas();
-  perform public._tono_en_uso('libre_xx'); perform public._nivel_en_uso('libre_xx');
+  perform public._tono_en_uso('libre_xx'); perform public._nivel_uso('libre_xx');
   v_2000 := pg_temp.bloques_de_formulas() - v_antes;
   for i in 1 .. 3 loop perform pg_temp.malo_tono('libre_xx'); end loop;
   v_antes := pg_temp.bloques_de_formulas();
   perform pg_temp.malo_tono('libre_xx');
   v_m2000 := pg_temp.bloques_de_formulas() - v_antes;
-  raise notice 'medicion|_tono_en_uso y _nivel_en_uso de una clave libre, bloques de formulas con 200 versiones archivadas|%', v_200;
-  raise notice 'medicion|_tono_en_uso y _nivel_en_uso de una clave libre, bloques de formulas con 2.000 versiones archivadas|%', v_2000;
+  raise notice 'medicion|_tono_en_uso y _nivel_uso de una clave libre, bloques de formulas con 200 versiones archivadas|%', v_200;
+  raise notice 'medicion|_tono_en_uso y _nivel_uso de una clave libre, bloques de formulas con 2.000 versiones archivadas|%', v_2000;
   if v_200 = 0 then raise exception 'las sondas no leyeron nada de formulas: no mide nada'; end if;
   -- Lo que se compara es cuánto SUMAN 1.800 versiones más, no el total: el total lleva la basura que dejaron en el heap las corridas anteriores
   -- (cada una se revierte y el vacuum tarda) y sube de corrida en corrida (94, 113, 132…). El crecimiento es limpio.
   raise notice 'medicion|guarda, la sonda de tonos sin su índice, bloques de más con 1.800 versiones más (tiene que pasar de 50)|%', v_m2000 - v_m200;
-  raise notice 'medicion|_tono_en_uso y _nivel_en_uso, bloques de más con 1.800 versiones más (menos de un tercio de lo que suma la que recorre la tabla)|%', v_2000 - v_200;
+  raise notice 'medicion|_tono_en_uso y _nivel_uso, bloques de más con 1.800 versiones más (menos de un tercio de lo que suma la que recorre la tabla)|%', v_2000 - v_200;
   if v_m2000 - v_m200 < 50 then
     raise exception 'la guarda no muerde: una sonda que recorre la tabla suma sólo % bloques con 1.800 versiones más (tiene que sumar 50 o más)', v_m2000 - v_m200; end if;
   if (v_2000 - v_200) * 3 > v_m2000 - v_m200 then
@@ -203,9 +203,10 @@ begin
   prepare sonda_tono(text) as with u as materialized (select distinct f.origen_id from public.formulas f
     where public._tonos_de_grupos(f.definicion) @> jsonb_build_array($1))
     select o.nombre from u join public.origenes o on o.id = u.origen_id order by o.nombre limit 1;
-  prepare sonda_nivel(text) as with u as materialized (select distinct f.origen_id from public.formulas f
+  -- El CTE `u` de `_nivel_uso()`, copiado literal: lo que decide el índice es esto (el resto trabaja sobre lo que él trae).
+  prepare sonda_nivel(text) as with u as materialized (select f.id, f.origen_id, f.version from public.formulas f
     where public._niveles_del_diseno(f.diseno) @> jsonb_build_array($1))
-    select o.nombre from u join public.origenes o on o.id = u.origen_id order by o.nombre limit 1;
+    select u.id from u order by u.origen_id, u.version desc nulls first limit 1;
   foreach v_q in array array['sonda_tono', 'sonda_nivel'] loop
     v_plan := '';
     for v_linea in execute 'explain execute ' || v_q || '(''libre_xx'')' loop v_plan := v_plan || v_linea || E'\n'; end loop;

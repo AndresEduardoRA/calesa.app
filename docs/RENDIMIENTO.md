@@ -1349,7 +1349,9 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
   (el tope es 12); restaurada, vuelve a pasar. Las dos copias malas de la medición (una búsqueda lineal por ítem y el diseño releído por sección) dan 36 y
   42 veces.
 
-### Las sondas de uso de un tono y de un nivel (`_tono_en_uso`, `_nivel_en_uso`)
+### Las sondas de uso de un tono y de un nivel (`_tono_en_uso`, `_nivel_uso`)
+
+> Desde el 4.10-1 (4-13) la sonda del nivel es `_nivel_uso()`: `_nivel_en_uso()` se quitó (nadie la llamaba desde `…006500`). La medición es la misma: el CTE que conduce el GIN es el de `_nivel_uso()`.
 
 - **Se miden primero,** con `formulas` casi vacía: las versiones grandes de las otras mediciones llenan el TOAST y taparían lo que se mide. Se siembran 200
   y después 1.800 versiones archivadas más (sin auditoría, `session_replication_role = replica`), con `analyze`, y se cuentan los bloques de `formulas`

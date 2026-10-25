@@ -327,6 +327,11 @@ begin
   set local role authenticated;
   perform pg_temp.falla_con(format($f$select public.nivel_eliminar(%L, %L)$f$, v_id, v_v), '23503', 'Está en 2 celdas de 1 origen (en alguna versión de su fórmula): no se elimina. Puedes retirarlo', 'retirar', 'nivel_en_uso');
   reset role;
+  -- El borrador y la publicada del mismo origen lo nombran (2 y 4 celdas): cuenta una sola versión por origen, y la más nueva es el borrador.
+  perform pg_temp.version(v_o1, 'gerencia', 'publicada', 1, 4);
+  set local role authenticated;
+  perform pg_temp.falla_con(format($f$select public.nivel_eliminar(%L, %L)$f$, v_id, v_v), '23503', 'Está en 2 celdas de 1 origen', 'retirar', 'nivel_en_uso');
+  reset role;
   -- Sólo una archivada lo nombra: la publicada de ese origen ya no. Cuenta igual (las cotizaciones viejas se leen con su versión).
   delete from public.formulas where origen_id = v_o1;
   perform pg_temp.version(v_o1, 'gerencia', 'archivada', 1, 3);
@@ -462,7 +467,7 @@ begin
   if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('nivel_crear', 'nivel_renombrar', 'nivel_retirar', 'nivel_restaurar', 'nivel_eliminar')) <> 5 then raise exception 'faltan RPC'; end if;
   for r in select p.proname, p.oid from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'public' and p.proname in ('_niveles_tope', '_nivel_nombre', '_nivel_clave', '_nivel_permisos_crear', '_nivel_con_permisos', '_nivel_protegido', 'nivel_version',
-                                                         '_niveles_lista', '_nivel_uso', '_nodos_visibles', '_niveles_de_cotizacion', '_preparar_publicacion', '_nivel_en_uso') loop
+                                                         '_niveles_lista', '_nivel_uso', '_nodos_visibles', '_niveles_de_cotizacion', '_preparar_publicacion') loop
     if has_function_privilege('anon', r.oid, 'execute') or has_function_privilege('authenticated', r.oid, 'execute') then raise exception '% es ejecutable por quien no debe', r.proname; end if;
   end loop;
 end $$;

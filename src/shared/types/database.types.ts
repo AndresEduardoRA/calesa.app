@@ -7354,7 +7354,6 @@ export type Database = {
       _motor_sin_leer: { Args: { p_quien: string; p_ref: string }; Returns: undefined }
       _motor_sin_validar: { Args: { p_detalle: string; p_donde: string }; Returns: undefined }
       _nivel_clave: { Args: { p_nombre: string }; Returns: string }
-      _nivel_en_uso: { Args: { p_clave: string }; Returns: string }
       _nivel_motivo_de_uso: { Args: { p_clave: string }; Returns: string }
       _nivel_nombre: { Args: { p_texto: string }; Returns: string }
       _nivel_permisos_crear: {
