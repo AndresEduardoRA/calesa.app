@@ -527,6 +527,11 @@ db» es `db:base`, `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuan
   - **Assert:** en `medir-cotizaciones-lectura.sql` (hoy sólo la mide y la anota), la página 1 y una profunda por cursor de Ana y de la «chica» con 50.000 y con 250.000 cotizaciones: ≤ 50 ms y un tope de buffers que no crece con N (el mismo en los dos volúmenes), y que lo que devuelve es lo que dice la regla (`cotizaciones-visibilidad.sql`). **Se escribe al empezar el 4.16, antes de arreglarlo, y tiene que caer contra lo de hoy** (≈ 1,6 s y ≈ 42.000 buffers Ana, ≈ 2,0 s y ≈ 58.000 la «chica» con 250.000).
   - **Lugar:** 4.16 (el listado). La salida más probable es la de los leads: leer «propias» por `creado_por` y por la cartera (`leads_asesores_usuario_vigente_idx` hacia `cotizaciones_lead_idx`) y juntar las dos por `creado_en desc, id desc`, en una función con sus dos consultas (con y sin cursor) y un umbral para quien tiene una cartera enorme; se decide ahí con el `EXPLAIN` delante.
 
+- **4-22 · Un teléfono al azar en `cotizaciones-visibilidad.sql` puede chocar con un lead vivo (auditoría del 4.10-3b; no se arregló).**
+  - **Hoy:** el bloque «la auditoría…» de la línea 1580 inserta `'78' || lpad(floor(random() * 1000000), 6, '0')` y `leads_telefono_unico` no admite dos vivos con el mismo número. Las pruebas anteriores dejan vivos leads con `78xxxxxx` (119 al terminar `db:probar`, medido el 2026-10-25; los siembran `humo.sql`, `matriz-leads.sql`, `listado-cartera.sql` y otros): ≈ 1 de cada 8.400 corridas da un `23505` que no es de la prueba. Los demás teléfonos al azar (`'71'`, `'73'` a `'77'`, `'79'`) no tienen vivos con su prefijo (0 en la misma medición).
+  - **Assert:** ninguna prueba de `supabase/tests/` arma un teléfono con `random()` (un grep en `scripts/guardas/`), o cada una cuenta antes los vivos con su prefijo y exige 0.
+  - **Lugar:** `supabase/tests/cotizaciones-visibilidad.sql` (y, para quedar a salvo, los de `cotizacion-crear.sql` y `cotizacion-guardar.sql`): un número fijo o un prefijo que nadie deja vivo, en el próximo paso que toque esas pruebas.
+
 ## Fase 5 — Flujos (configuración)
 
 Módulo `flujos`: configuración por origen (y el de repuestos): fases con todos sus atributos,

@@ -2252,3 +2252,96 @@ tabla de `docs/PLAN.md`.
 **Commits:** separados (`ci.yml`, la guarda, los docs). El hook de pre-commit no corre `pnpm test`, así que el primer commit, solo,
 queda rojo contra la guarda vieja (el job nuevo nombra `db:carreras`). La guarda sola también quedaría roja contra el `ci.yml` de
 antes. Desde el segundo commit, el árbol está en verde.
+
+## 2026-10-25 — 4.10-3b: el falso rojo de `cotizacion-guardar.sql` y las pruebas que buscaban números en el texto
+
+**Horas** (hora de La Paz): el plan, hasta las 15:17. La reproducción contra HEAD, a las 15:17. La prueba nueva y sus mutaciones, de 15:18
+a 15:20. La auditoría y los arreglos de `cotizaciones-visibilidad.sql` y `humo.sql`, con sus demostraciones, de 15:20 a 15:33 (`db:probar`
+completo, 4 min 10 s, dentro de ese tramo). Hora y orden, la regla y los docs, de 15:33 a 15:38. Nivel 1 de 15:38 a 15:40. Sin push. No
+se tocó `src/` ni `supabase/migrations/`. ESTADO no se tocó: su línea («`db:probar` verde») sigue siendo cierta y con 12.273 B no le cabe nada.
+
+**La causa.** CI (corrida 40222560271, job Base) cayó en el bloque «un guardado que sólo cambia lo oculto…» con `diff: {}`: la línea
+`if r::text ~ 'aparte_costos|99'` miraba el texto entero de `cotizacion_revisiones()`, que trae el `usuario_id` (un uuid al azar,
+`edf0dc3c-699e-…`) y `creado_en`. Un «99» en cualquiera de los dos daba rojo sin que viajara nada oculto.
+
+**Falla primero contra HEAD, determinista** (arnés en el scratchpad: copia de `supabase/` y `SOLO=… node scripts/probar-schema.mjs <copia>`;
+cada sustitución comprobada, una sola vez). Con `k := 'edf0dc3c-699e-45cf-8000-000000000001'` en `cg_preparar`: `✗ … algo oculto viaja por
+las revisiones: {… "diff": {}, … "usuario_id": "edf0dc3c-699e-45cf-8000-000000000001"}`. Las mismas 20 repeticiones de abajo contra la
+prueba de HEAD: **2 de 20 rojas**, una por el uuid (`bebc4162-9883-492f-9949-…`) y otra por la fecha (`creado_en …T15:19:50.399…`).
+
+**La prueba nueva** (`cotizacion-guardar.sql`, `pg_temp.cg_claves()` y `pg_temp.cg_hojas()` con `jsonb_path_query(p, 'strict $.**')`): la
+respuesta tiene exactamente `hay_mas`, `revisiones` y `siguiente`; cada revisión, exactamente `creado_en`, `diff`, `id` y `usuario_id`;
+ninguna clave en ningún nivel es un nodo oculto; ninguna hoja de ningún diff vale 3 o 99 ni es el nombre de un nodo oculto. Lo de antes
+(el diff vacío y quién) sigue.
+
+| Variante (con el uuid fijado con «99»)                                                     | Resultado                                                     |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| la prueba nueva, uuid al azar y uuid con «99»                                              | pasa (135 bloques)                                            |
+| A: `cotizacion_revisiones` devuelve `r.diff` sin recortar                                  | cae («la revisión de sólo lo oculto se delata…», la de antes) |
+| A sin la comprobación de antes                                                             | cae: «un nodo oculto viaja como clave»                        |
+| B: cada revisión suma `'extra', <el 99 del diff>`                                          | cae: «una revisión trae otras claves»                         |
+| B2: una clave nueva sin valor oculto (`'nota', 'x'`)                                       | cae: «una revisión trae otras claves»                         |
+| C: el 99 dentro del diff bajo una clave visible (`titulo.a`), sin la comprobación de antes | cae: «algo oculto viaja en el diff de las revisiones»         |
+| D: la respuesta suma `'aparte_costos', 99` arriba                                          | cae: «la respuesta trae otras claves»                         |
+
+**20 seguidas con uuids distintos:** el bloque arreglado, 20 veces con `commit` en vez de `rollback`, y un bloque final que lista los
+`usuario_id` de esas revisiones: 20 distintos, **4 con «99»** (`19999b45-…`, `2903abad-…-2d6677235c99`, `2c316d99-…`, `503b7606-…-99c5-…`),
+las 20 en verde.
+
+**La auditoría** (`supabase/tests/*.sql` y `scripts/`: `::text ~|like`, `position(… in …::text)`, `strpos`, `regexp_*`, `~*`,
+`JSON.stringify(…).includes`, `/…/.test`). Un primer grep cortado a 80 líneas dejó afuera la mitad; se repitió entero.
+
+| Dónde (líneas de HEAD)                                                                                                                                                                                   | Qué buscaba en el texto                                               | ¿Falso rojo? Por qué                                                                                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cotizacion-guardar.sql:323`                                                                                                                                                                             | `aparte_costos\|99` en `cotizacion_revisiones`                        | **Sí**: `usuario_id` y `creado_en` (≈ 1 de 9). Arreglada arriba                                                                                               |
+| `cotizaciones-visibilidad.sql:416`                                                                                                                                                                       | `%7777%` en `actividad.antes/despues`                                 | **Sí**: la fila auditada lleva `id`, `origen_id`, `formula_id` y dos fechas                                                                                   |
+| `cotizaciones-visibilidad.sql:798, 805, 809, 813`                                                                                                                                                        | `41111`, `42222`, `286127`, `6.96`, `31313` en `cotizacion_leer`      | **Sí**: la respuesta lleva `cotizacion.{id, origen_id, formula_id, creado_en, actualizado_en}`; «6.96» calza con una hora `…:36.96…` (≈ 1 de 1.000 por fecha) |
+| `cotizaciones-visibilidad.sql:1050`                                                                                                                                                                      | `88888` en `cotizacion_leer`                                          | **Sí**: el id y las fechas de la cotización                                                                                                                   |
+| `cotizaciones-visibilidad.sql:1285, 1301`                                                                                                                                                                | `50123`, `60123`, `77123`, `7.75`, `41111` en `cotizacion_revisiones` | **Sí**: seis fechas (`creado_en`) en la respuesta                                                                                                             |
+| `humo.sql:2216`                                                                                                                                                                                          | `17999\|18500\|JTFVTR\|45123\|3333` en `to_jsonb(web.vehiculos)`      | **Sí**: «3333» (y los de cinco dígitos) calzan con los microsegundos de `actualizado_en`                                                                      |
+| `cotizaciones-visibilidad.sql:705`                                                                                                                                                                       | números y nombres en `cv_recorte`                                     | No: el recorte de literales, sin uuid ni fecha                                                                                                                |
+| `cotizaciones-visibilidad.sql:931–995`                                                                                                                                                                   | `oculto_<nivel>` y `9xxxx.43`                                         | No: «oculto_» tiene letras fuera de `0-9a-f`; el centinela lleva punto con cinco dígitos delante (una fecha tiene dos)                                        |
+| `cotizaciones-visibilidad.sql:1446, 1477`                                                                                                                                                                | `1500`, `700.5`, `9999` en `cotizacion_tabla`                         | No: la respuesta es la tabla (clave, nombre, columnas, filas), sin uuid ni fecha                                                                              |
+| `cotizacion-guardar.sql:217, 276`, `cotizacion-crear.sql:109`, `cotizaciones-visibilidad.sql:1701–1715` (`var_costos`), `niveles.sql:500` (`nodos`), `humo.sql:333, 986, 4982`                           | nombres de nodo, de columna o de prueba                               | No: letras fuera de `0-9a-f`                                                                                                                                  |
+| `matriz-leads.sql:574` (`\m9182[0-9]{5}\M`), `651`, `1610`, `1797` (`5917722`), `838` (el teléfono), `portal-cliente.sql:428, 434` (`78100001`)                                                          | números largos o palabras                                             | No: ningún tramo de un uuid ni de una fecha tiene 9 dígitos entre límites; 7 u 8 dígitos fijos en un uuid, ≈ 1 en 10⁷                                         |
+| `matriz-leads.sql:1653`                                                                                                                                                                                  | `78111\|Importada` en `actividad.detalle`                             | No: el detalle es exactamente `{creadas, ya_existian, rechazadas}` (lo aserta el bloque)                                                                      |
+| `portal-cliente.sql:99, 105`                                                                                                                                                                             | la clave generada en el estado y en `actividad`                       | No: 10 caracteres de `codigo_dictable()` al azar; que calcen en un uuid o una fecha es despreciable                                                           |
+| `configuracion-de-leads.sql:11, 203`, `niveles.sql:22-23`, `scripts/carreras/*.mjs`                                                                                                                      | que un mensaje TRAIGA una palabra                                     | No: buscan presencia; lo aleatorio sólo podría dar un falso verde, y las palabras no son hexadecimales                                                        |
+| `escala.sql`, `numero-global.sql`, `auditoria-leads.sql`, `evaluar-formula.sql:312-316`, `cotizaciones-visibilidad.sql:107-113, 190`, `busqueda-leads.sql:308`, `medir-*.sql`, `publicar-diseno.sql:202` | código (`prosrc`, `pg_get_viewdef`), planes o el corpus               | No: texto determinista, no una respuesta                                                                                                                      |
+| `equipo-lista.sql`, `rueda-por-rol.sql`, `numeracion.sql:149`, `humo.sql:2926–3009`, `tonos.sql:174`, `medir-rueda.sql`                                                                                  | filtros y limpieza por prefijos fijos                                 | No: un `gen_random_uuid()` v4 no empieza con `00000000-0000-0000`; `ffffffff-` es 1 en 4·10⁹                                                                  |
+
+**Los arreglos** (`pg_temp.cv_trae(p, valores)`: alguna hoja es ese número, como número o como su texto; en `humo.sql`, lo mismo en línea, y la
+foto por su nombre entero, `repeat('3', 64)`). Los nombres de nodo (`flete`, `margen`, `tc_o`, `costo`) siguen como texto, con el motivo en
+el comentario. Cada uno, con su demostración determinista (`SOLO=semilla-cotizador.sql,humo.sql,niveles.sql,cotizaciones-visibilidad.sql`, 157 bloques):
+
+| Caso                                                 | HEAD                                                                | Arreglo |
+| ---------------------------------------------------- | ------------------------------------------------------------------- | ------- |
+| 416: la cotización con `id …000000007777`            | cae («el valor de un nodo quedó en actividad»)                      | pasa    |
+| 798: `c1` con `id …000000041111`                     | cae («algo del nivel oculto viaja»)                                 | pasa    |
+| 798: `c1` con `creado_en …:36.961234`                | cae (lo mismo, por «6.96»)                                          | pasa    |
+| 805: `c1` con `id …000000031313`                     | cae («un nodo que la visibilidad no nombra…»)                       | pasa    |
+| 809 y 813: `id …041111`, con las anteriores apagadas | caen («configurar se salta…», «editar el nivel sin verlo…»)         | pasan   |
+| 1050: la cotización con `id …000000088888`           | cae («B ve el costo sin el nivel»)                                  | pasa    |
+| 1285 y 1301: las revisiones con `creado_en …:17.75`  | caen («algo oculto viaja por las revisiones», «una versión nueva…») | pasan   |
+| 2216: `actualizado_en …:13.333312`                   | cae («se filtró un dato que no es público»)                         | pasa    |
+
+Mutaciones contra el arreglo (la fuga inyectada antes de la comprobación), todas caen: 416 con `7777.5` como número, como texto y dentro de
+un texto anidado (`"remate=7777.5"`, que se sigue buscando como subcadena: con punto y cuatro dígitos delante no sale de un uuid ni de una
+fecha); 798 con `41111.5` anidado y `"6.96"` en un arreglo; 809 con `41111.5`; 1050 con `88888.5`; 1285 con `[{"y": 7.75}]`; 1301 con
+`60123.5`; 2216 con `costo: 17999`, `atributos.humo_costo: "17999"` (el costo se siembra como texto) y una ruta con `repeat('3', 64)`.
+
+**Hora y orden** (anotado, no arreglado): **4-22** en `docs/PLAN.md` — `cotizaciones-visibilidad.sql:1580` (1567 en HEAD) inserta un lead con `'78'` y
+seis dígitos al azar, y `leads_telefono_unico` choca con los 119 leads vivos `78xxxxxx` que dejan las pruebas anteriores (≈ 1 de cada 8.400
+corridas); los otros prefijos al azar no tienen vivos. Lo demás se miró y no depende de la hora ni del orden: las comparaciones con `now()`
+tienen márgenes de minutos u horas contra el instante de la transacción (`cotizacion-crear.sql`, `portal-cliente.sql`, `rueda-por-rol.sql`);
+los `array_agg`/`jsonb_agg` sin `order by` comparan un solo elemento o la salida ya ordenada de la misma función (`equipo-lista.sql`); los
+`limit 1` sin orden eligen una fila cualquiera que la prueba no compara; `derivados-leads.sql` usa `random()` con `setseed(0.42)`.
+
+**La regla:** `.claude/rules/migraciones.md`, una viñeta antes de «Después de cualquier cambio».
+
+**Verificación:** `pnpm lint` y `pnpm typecheck` sin avisos; `pnpm test`: 352 archivos, 4.030 pruebas; `pnpm db:probar` completo: 394
+bloques, sin fallos; `bash scripts/mapa.sh --check`.
+
+**e2e completo: no (4.10-3b, sólo pruebas SQL y docs).**
+
+**Commits:** separados (la prueba de guardar; las de visibilidad y humo; la regla; los docs).
