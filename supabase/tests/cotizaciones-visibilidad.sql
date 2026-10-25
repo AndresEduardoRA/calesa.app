@@ -281,3 +281,49 @@ begin
   if not 'una vista nombra esas tablas: cv_vista_sonda' = any (v_p) then raise exception 'el detector de vistas no la ve: %', v_p; end if;
 end $$;
 rollback;
+
+-- @test visibilidad: la auditoría de una cotización guarda la fila sin valores, fuentes, totales ni tipos_cambio, en el alta, la edición y el borrado
+begin;
+do $$
+declare
+  v_o uuid := (select id from public.origenes where clave = 'subasta_usa');
+  v_f uuid; v_c uuid; v_n int; v_despues jsonb;
+  v_ocultas constant text[] := array['valores', 'fuentes', 'totales', 'tipos_cambio'];
+begin
+  select id into v_f from public.formulas where origen_id = v_o and estado = 'publicada';
+  insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base, titulo)
+  values (v_o, '00000000-0000-0000-0000-000000000001', v_f, '{"remate": 111.5}', '{"remate": "input"}', '{"oficial": 6.96}', '{"usd": 111.5}', 111.5, 'Auditoría') returning id into v_c;
+  update public.cotizaciones set notas = 'cambió', valores = '{"remate": 7777.5}' where id = v_c;
+  delete from public.cotizaciones where id = v_c;
+  select count(*) into v_n from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text;
+  if v_n <> 3 then raise exception 'esperaba 3 filas de actividad (alta, edición y borrado) y hay %', v_n; end if;
+  if exists (select 1 from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text
+              and (coalesce(antes, '{}') ?| v_ocultas or coalesce(despues, '{}') ?| v_ocultas)) then
+    raise exception 'actividad guarda el snapshot de la cotización';
+  end if;
+  -- El valor que se escribió no aparece en ninguna parte de lo que se auditó.
+  if exists (select 1 from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text and (antes::text like '%7777%' or despues::text like '%7777%')) then
+    raise exception 'el valor de un nodo quedó en actividad';
+  end if;
+  -- Y el resto de la fila sí: lo que se pierde es sólo el snapshot.
+  select despues into v_despues from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text and accion = 'cotizaciones.insert';
+  if v_despues ->> 'titulo' <> 'Auditoría' or (v_despues ->> 'total_base')::numeric <> 111.5 or v_despues ->> 'origen_id' <> v_o::text then
+    raise exception 'el alta no guarda el resto de la fila: %', v_despues;
+  end if;
+  if not exists (select 1 from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text and accion = 'cotizaciones.update'
+                  and despues ->> 'notas' = 'cambió' and antes ->> 'notas' is null) then
+    raise exception 'la edición no guarda las notas de antes y de después';
+  end if;
+  if not exists (select 1 from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text and accion = 'cotizaciones.delete' and antes ->> 'titulo' = 'Auditoría' and despues is null) then
+    raise exception 'el borrado no guarda la fila de antes';
+  end if;
+  -- El trigger es el nuevo y nadie lo ejecuta a mano.
+  if not exists (select 1 from pg_trigger t join pg_proc p on p.oid = t.tgfoid
+                  where t.tgrelid = 'public.cotizaciones'::regclass and t.tgname = 'trg_auditar' and p.proname = 'cotizacion_auditar') then
+    raise exception 'cotizaciones no se audita con cotizacion_auditar()';
+  end if;
+  if has_function_privilege('authenticated', 'public.cotizacion_auditar()', 'execute') or has_function_privilege('anon', 'public.cotizacion_auditar()', 'execute') then
+    raise exception 'cotizacion_auditar() se puede ejecutar';
+  end if;
+end $$;
+rollback;
