@@ -308,6 +308,8 @@ export default defineConfig([
     'playwright-report/**',
     'test-results/**',
     'e2e-fallos/**',
+    // Salidas locales (`pnpm test`, mediciones, artefactos de CI bajados): ignoradas por git, nunca código.
+    'test-salidas/**',
     'out/**',
     'build/**',
     'next-env.d.ts',
