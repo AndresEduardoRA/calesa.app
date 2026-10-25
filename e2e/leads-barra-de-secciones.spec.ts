@@ -58,8 +58,10 @@ test('abrir la ficha en «Portal» deja esa sección a la vista', async ({ page 
     .getByRole('navigation', { name: 'Secciones del lead' })
     .getByRole('link', { name: 'Portal' })
   await expect(portal).toHaveAttribute('aria-current', 'page')
-  await dentroDeLaPantalla(page, portal)
+  // `aria-current` ya viene en el HTML del servidor; llevar la sección activa a la vista es un efecto de la hidratación. La pista de la
+  // izquierda sólo está cuando la barra ya se desplazó: se espera ese estado y después se mide (en un runner lento, antes, «Portal» seguía afuera).
   await expect(pista(page, 'izquierda')).toHaveAttribute('data-visible', 'true')
+  await dentroDeLaPantalla(page, portal)
 })
 
 test('con el texto al 200 % la barra sigue diciendo que hay más', async ({ page }) => {
