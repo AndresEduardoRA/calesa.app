@@ -19,7 +19,7 @@
 --   - la fórmula del seed: mediana ≤ 10 ms y p95 ≤ 20 ms; la sintética: p95 ≤ 50 ms (los topes del plan, 4.06; ninguno se sube);
 --   - que no crece con las cotizaciones: con 250.000 el p95 es a lo sumo 1,5 veces el de 50.000 (con un piso de 3 ms de ruido) y los
 --     bloques que la llamada toca de `cotizaciones` (su heap, sus índices y su TOAST: `pg_stat_get_xact_blocks_fetched`) son CERO por
---     origen, y por cotización a lo sumo dos veces lo que cuesta buscar una cotización por su clave (la función la busca dos veces: el
+--     origen, y por cotización a lo sumo dos veces lo que cuesta buscar una cotización por su clave con su snapshot (la función la busca dos veces: el
 --     permiso y la lectura), con el índice que haya. Los buffers totales de la llamada van como dato, no como assert: incluyen las
 --     tablas de permisos, que el autovacuum encoge o no a mitad de una corrida (138 y 178 buffers en dos fases de la misma corrida);
 --   - las guardas de escala: ARMAR lee a lo sumo las páginas que ocupan las filas de las tablas nombradas más una constante (con un 20 % de margen, que
@@ -117,6 +117,11 @@ begin
 end $$;
 
 -- Un caso: mide, anota y asserta los topes de tiempo. `p_mediana` y `p_p95` en ms (null = sin tope).
+-- Buscar una cotización por su clave con su snapshot: `authenticated` no lee esas columnas, así que la lee quien la creó (la base).
+create function pg_temp.leer_snapshot(p_id uuid) returns void language sql security definer as $$
+  select c.id, c.valores, c.fuentes from public.cotizaciones c where c.id = p_id
+$$;
+grant execute on function pg_temp.leer_snapshot(uuid) to authenticated;
 create function pg_temp.caso(p_caso text, p_n int, p_entradas jsonb, p_cot uuid, p_origen uuid, p_veh uuid, p_mediana numeric, p_p95 numeric)
 returns void language plpgsql as $$
 declare
@@ -134,7 +139,8 @@ begin
   v_bcot := pg_temp.bloques_cotizaciones() - v_antes;
   v_id := coalesce(p_cot, (select id from public.cotizaciones limit 1));
   v_antes := pg_temp.bloques_cotizaciones();
-  perform c.id from public.cotizaciones c where c.id = v_id;
+  -- Con el snapshot (`valores` y `fuentes`, que viven en el TOAST): desde el 4.10-3 la llamada lo lee para completar lo que quien llama no edita.
+  perform pg_temp.leer_snapshot(v_id);
   v_bclave := pg_temp.bloques_cotizaciones() - v_antes;
   raise notice 'medicion|% ›  la llamada entera, mediana (ms)|%', v_pref, round(v_t.mediana, 2);
   raise notice 'medicion|% ›  la llamada entera, p95 (ms)|%', v_pref, round(v_t.p95, 2);
@@ -181,9 +187,11 @@ begin
   end if;
   insert into public.origenes (clave, nombre, tipo) values ('medir_evaluar_sint', 'Medir evaluar, sintética', 'manual') returning id into v_origen;
   insert into public.origenes_campos (origen_id, clave, etiqueta, tipo) values (v_origen, 'clase', 'Clase', 'texto');
-  -- Sin diseño que medir: el `check` de las publicadas sólo pide que existan.
+  -- Sin diseño que medir: el `check` de las publicadas sólo pide que existan. La visibilidad deja a todos ver y editar cada nodo (desde el 4.10-3 `cotizacion_evaluar` por cotización rechaza lo que
+  -- se tipea en un nodo que no se edita, y con `{}` sólo quien configura ve algo y nada se edita): así lo que se mide es el costo de completar lo guardado, no un error.
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
-    values (v_origen, 1, 'publicada', v_s -> 'definicion', v_s -> 'params', '{}', '{}');
+    values (v_origen, 1, 'publicada', v_s -> 'definicion', v_s -> 'params', '{}',
+            (select jsonb_object_agg(n ->> 'id', jsonb_build_object('ver', 'todos', 'editar', 'todos')) from jsonb_array_elements(v_s -> 'definicion' -> 'nodos') n));
   insert into public.tablas_referencia (origen_id, clave, nombre, columnas) select v_origen, k, k, '[]' from jsonb_object_keys(v_s -> 'entrada' -> 'tablas') k;
   insert into public.tablas_referencia_filas (tabla_id, valores, orden)
     select t.id, f.value, (f.ordinality - 1)::smallint
@@ -250,9 +258,11 @@ insert into _ids
 insert into public.cotizaciones (origen_id, creado_por, formula_id, vehiculo_id, valores, tipos_cambio, totales, total_base, titulo)
   values ((select id from _ids where clave = 'origen_seed'), '00000000-0000-0000-0000-0000000000d1', (select id from _ids where clave = 'formula_seed'),
           (select id from _ids where clave = 'veh_seed'), '{}', '{"oficial": 11.68, "paralelo": 12.2, "unificado": 12.2}', '{}', 0, 'Medir evaluar, seed');
-insert into public.cotizaciones (origen_id, creado_por, formula_id, vehiculo_id, valores, tipos_cambio, totales, total_base, titulo)
-  values ((select id from _ids where clave = 'origen_sint'), '00000000-0000-0000-0000-0000000000d1', (select id from _ids where clave = 'formula_sint'),
-          (select id from _ids where clave = 'veh_sint'), '{}', '{"oficial": 6.96, "paralelo": 10}', '{}', 0, 'Medir evaluar, sintética');
+-- La sintética lleva su snapshot de 200 nodos (lo que guardaría el motor con su entrada): `cotizacion_evaluar` lo lee para completar lo que quien llama no edita.
+insert into public.cotizaciones (origen_id, creado_por, formula_id, vehiculo_id, valores, fuentes, tipos_cambio, totales, total_base, titulo)
+  select (select id from _ids where clave = 'origen_sint'), '00000000-0000-0000-0000-0000000000d1', (select id from _ids where clave = 'formula_sint'),
+         (select id from _ids where clave = 'veh_sint'), e -> 'valores', e -> 'fuentes', '{"oficial": 6.96, "paralelo": 10}', '{}', 0, 'Medir evaluar, sintética'
+    from (select public.evaluar_formula((select s from _sint) -> 'definicion', (select s from _sint) -> 'params', (select s from _sint) -> 'entrada', null) as e) x;
 insert into _ids select 'cot_seed', id from public.cotizaciones where titulo = 'Medir evaluar, seed';
 insert into _ids select 'cot_sint', id from public.cotizaciones where titulo = 'Medir evaluar, sintética';
 

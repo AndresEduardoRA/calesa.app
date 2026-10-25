@@ -6971,11 +6971,16 @@ export type Database = {
           definicion: Json
           entrada: Json
           formula_id: string
+          guardado: Json
           origen_id: string
           params: Json
           tc_cambiado: boolean
           visibilidad: Json
         }[]
+      }
+      _cotizacion_conservar: {
+        Args: { p_def: Json; p_editables: Json; p_entrada: Json; p_guardado: Json }
+        Returns: Json
       }
       _cotizacion_contexto: {
         Args: { p_def: Json; p_visibilidad: Json; p_visibles: string[] }
@@ -6983,6 +6988,10 @@ export type Database = {
       }
       _cotizacion_diff_recortado: {
         Args: { p_ctx: Json; p_diff: Json; p_legibles: string[] }
+        Returns: Json
+      }
+      _cotizacion_entradas_de: {
+        Args: { p_def: Json; p_fuentes: Json; p_valores: Json }
         Returns: Json
       }
       _cotizacion_guardable: { Args: { p_mandados: Json; p_res: Json }; Returns: number }
@@ -6999,7 +7008,7 @@ export type Database = {
         Returns: Json
       }
       _cotizacion_tipeado: {
-        Args: { p_def: Json; p_entrada: Json; p_modo: Json; p_ok: Json }
+        Args: { p_def: Json; p_entrada: Json; p_modo: Json; p_ok: Json; p_tiene_variante?: boolean }
         Returns: string[]
       }
       _cotizacion_vehiculo: { Args: { p_vehiculo: string }; Returns: undefined }

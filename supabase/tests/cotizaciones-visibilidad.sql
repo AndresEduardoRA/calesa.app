@@ -1627,5 +1627,11 @@ begin
   if r ? 'error' or r -> 'valores' ->> 'var_costos' is distinct from 'b' then raise exception 'quien tiene el nivel no pudo elegir la variante: %', r; end if;
   r := pg_temp.cv_corre(k, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"variante": "b"}'', %L, now())', o_con, l, pg_temp.cv_pub(o_con)));
   if r ? 'error' or r -> 'valores' ->> 'var_costos' is distinct from 'b' then raise exception 'quien tiene el nivel no pudo crear con la variante: %', r; end if;
+  -- 6. Una cotización que ya tiene su variante (la opción es de «costos» y no trae `por_defecto`): quien no la ve la evalúa sin el error de «sin elección» y la variante guardada se conserva.
+  r := pg_temp.cv_corre(k, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"variante": "b"}'', %L, now())', o_nd, l, pg_temp.cv_pub(o_nd)));
+  r2 := pg_temp.cv_corre(sin, format('select public.cotizacion_evaluar(''{}''::jsonb, %L)', r -> 'cotizacion' ->> 'id'));
+  if r2 ? 'error' or r2::text like '%var_costos%' then raise exception 'una cotización guardada con variante debía evaluarse sin elegirla: %', r2; end if;
+  r2 := pg_temp.cv_corre(k, format('select public.cotizacion_evaluar(''{}''::jsonb, %L)', r -> 'cotizacion' ->> 'id'));
+  if r2 ? 'error' or r2 -> 'valores' ->> 'var_costos' is distinct from 'b' then raise exception 'la variante guardada debía conservarse al evaluar sin mandarla: %', r2; end if;
 end $$;
 rollback;

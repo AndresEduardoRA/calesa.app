@@ -155,6 +155,9 @@ const DATOS_DE_PRUEBA = {
   'cotizacion-evaluar.sql': {
     _corpus_del_motor: path.join(base, 'tests', 'corpus-del-motor.json'),
   },
+  'cotizacion-conservar.sql': {
+    _corpus_del_motor: path.join(base, 'tests', 'corpus-del-motor.json'),
+  },
   'tonos.sql': {
     _corpus_de_contraste: path.join(base, 'tests', 'corpus-de-contraste.json'),
   },
@@ -207,6 +210,7 @@ for (const archivo of [
   'niveles-con-uso.sql',
   'cotizaciones-visibilidad.sql',
   'cotizacion-crear.sql',
+  'cotizacion-conservar.sql',
   'cotizacion-guardar.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)

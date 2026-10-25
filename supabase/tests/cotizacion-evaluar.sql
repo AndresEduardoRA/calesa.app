@@ -338,14 +338,11 @@ begin
   if not (v_res -> 'faltantes' @> '[{"codigo": "campo_sin_valor", "donde": "x"}]') then
     raise exception 'una cotización sin vehículo no anotó el campo sin valor: %', v_res -> 'faltantes';
   end if;
-  -- A una cotización no se le pasa otro vehículo.
-  begin
-    perform public.cotizacion_evaluar('{}', v_cot, null, v_vehiculo);
-    raise exception 'dejó pasar un vehículo con una cotización';
-  exception when invalid_parameter_value then
-    get stacked diagnostics v_detalle = pg_exception_detail, v_pista = pg_exception_hint;
-    if v_detalle <> 'llamada_invalida' or v_pista <> 'p_vehiculo' then raise exception 'otro error: % / %', v_detalle, v_pista; end if;
-  end;
+  -- A una cotización se le puede pasar otro vehículo para ese cálculo (lo que daría cambiarlo antes de guardar, 4.10-3): el campo sale de ése y no del suyo (aquí no tiene).
+  v_res := public.cotizacion_evaluar('{}', v_cot_sin_vehiculo, null, v_vehiculo);
+  if v_res -> 'valores' -> 'x' <> '7' then
+    raise exception 'el campo del vehículo que se pasó con una cotización no se usó: %', v_res -> 'valores' -> 'x';
+  end if;
 end $$;
 rollback;
 
