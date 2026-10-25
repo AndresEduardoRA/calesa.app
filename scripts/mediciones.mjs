@@ -47,6 +47,11 @@ export const MEDICIONES_BASE = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-cotizacion-guardar.sql',
+    'cotizacion_guardar() con 50.000 y con 250.000 cotizaciones, como authenticated con el plan genérico: una preventa de la dueña, una de la asesora («propios»), cambiando de vehículo, sin cambios, el intento repetido y la fórmula sintética de 200 nodos con 4 tablas de 1.000 filas (ms y buffers del EXPLAIN de la llamada entera, y que no recorre cotizaciones ni sus revisiones)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-evaluar-formula.sql',
     'evaluar_formula() con una evaluación sintética de 200 y de 2.000 nodos y con 4 tablas de 1.000 filas, como authenticated (ms y buffers del EXPLAIN)',
     'mediana de 5 de 7 corridas',
@@ -117,6 +122,9 @@ export const DATOS_DE_MEDICION = {
     _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
   },
   'supabase/tests/medir-evaluar.sql': {
+    _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-cotizacion-guardar.sql': {
     _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
   },
 }
