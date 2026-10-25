@@ -31,6 +31,6 @@ fi
 echo "La tarea no está terminada: estas verificaciones fallan. Corrígelas antes de parar." >&2
 echo "$salida" | tail -n 40 >&2
 # `pnpm test` guarda sola su salida completa y su JSON (vitest.config.mts): se dice dónde, para no depender de estas 40 líneas.
-ultima=$(ls -dt test-salidas/*/ 2>/dev/null | head -n 1)
+ultima=$(ls -dt test-salidas/20*/ 2>/dev/null | head -n 1)
 [ -n "$ultima" ] && echo "Salida completa de la última corrida de pnpm test: ${ultima}salida.txt (y resultado.json)." >&2
 exit 2
