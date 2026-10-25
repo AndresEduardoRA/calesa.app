@@ -111,7 +111,7 @@ $f$;
 -- Lo que cada función ejecutable que puede devolver esas tablas es y por qué está bien. Las clases:
 --   recorta       devuelve contenido de cotizaciones recortado por `_nodos_visibles()`: tiene una `sonda` (el SQL que la llama, con `{cot}` por la cotización) y el caso genérico la corre
 --                 por cada nivel
---   configurar    sólo la ejecuta quien tiene `cotizaciones.configurar` del origen (tiene sonda de 42501)
+--   configurar    sólo la ejecuta quien tiene `cotizaciones.configurar` del origen (tiene `sonda` con `{origen}`: sin ese permiso da 42501, aunque se tenga todo lo demás)
 --   no_devuelve   lee esas tablas pero lo que devuelve no es contenido: conteos, ids, nombres o textos de motivo
 create or replace function pg_temp.cv_registro() returns jsonb language sql as $f$
   select jsonb_build_object(
@@ -125,6 +125,8 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
     'cotizacion_evaluar', jsonb_build_object('clase', 'recorta',
       'sonda', 'select public.cotizacion_evaluar(jsonb_build_object(''inputs'', jsonb_build_object({oculto}, {centinela}::numeric)), null, {origen})',
       'motivo', 'calcula con _cotizacion_armar() y devuelve _cotizacion_recorte(): lo que se tipea sólo nombra lo que se ve (un nodo oculto da el error de uno inexistente) y los overrides ocultos se descartan como inexistentes'),
+    'formula_para_cotizar', jsonb_build_object('clase', 'configurar', 'sonda', 'select public.formula_para_cotizar({origen})',
+      'motivo', 'la publicada entera (definicion, params, diseno y visibilidad) sólo con cotizaciones.configurar del origen; el permiso se pide antes de mirar si el origen existe'),
     'cotizacion_revisiones', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_revisiones({cot})',
       'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
     'cotizacion_leer', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_leer({cot})',
@@ -155,7 +157,7 @@ begin
     if coalesce(btrim(r.ficha ->> 'motivo'), '') = '' then
       v_p := v_p || ('sin motivo: ' || r.nombre);
     end if;
-    if (r.ficha ->> 'clase') = 'recorta' and coalesce(btrim(r.ficha ->> 'sonda'), '') = '' then
+    if (r.ficha ->> 'clase') in ('recorta', 'configurar') and coalesce(btrim(r.ficha ->> 'sonda'), '') = '' then
       v_p := v_p || ('sin sonda: ' || r.nombre);
     end if;
   end loop;
@@ -833,7 +835,7 @@ do $$
 declare
   duena constant uuid := '00000000-0000-0000-0000-000000000001';
   v_reg jsonb := pg_temp.cv_registro(); v_nuevo uuid := gen_random_uuid(); v_niveles text[]; v_nivel text; v_otro_nivel text; v_i int := 0;
-  o uuid; o2 uuid; v_c uuid; sin uuid; con uuid; ed uuid; ajeno uuid; otro_nivel uuid; ver_como uuid; v_rol_sin uuid; v_oculto text; v_centinela text; k text; v_sql text; v_txt text;
+  o uuid; o2 uuid; v_c uuid; sin uuid; con uuid; ed uuid; ajeno uuid; otro_nivel uuid; ver_como uuid; cfg uuid; cfg_ajeno uuid; v_rol_sin uuid; v_oculto text; v_centinela text; k text; v_sql text; v_txt text;
   v_vis jsonb; v_def jsonb; v_con_como jsonb; r jsonb; v_quien uuid; v_tipea boolean;
 begin
   perform pg_temp.cv_como(duena);
@@ -867,6 +869,9 @@ begin
     update public.cotizaciones set valores = jsonb_set(valores, array[v_oculto], to_jsonb(v_centinela::numeric)) where id = v_c;
     -- sin: ve cotizaciones; con: además el nivel; ed: sólo editar el nivel; ajeno: el nivel, pero en otro origen; otro_nivel: el ver de otro nivel; ver_como: el nivel y gestionar roles.
     sin := gen_random_uuid(); con := gen_random_uuid(); ed := gen_random_uuid(); ajeno := gen_random_uuid(); otro_nivel := gen_random_uuid(); ver_como := gen_random_uuid();
+    cfg := gen_random_uuid(); cfg_ajeno := gen_random_uuid();
+    perform pg_temp.cv_persona(cfg, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o)));
+    perform pg_temp.cv_persona(cfg_ajeno, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o2)));
     perform pg_temp.cv_persona(sin, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear')));
     perform pg_temp.cv_persona(con, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver')));
     perform pg_temp.cv_persona(ed, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.editar')));
@@ -874,8 +879,20 @@ begin
     perform pg_temp.cv_persona(otro_nivel, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_otro_nivel || '.ver')));
     perform pg_temp.cv_persona(ver_como, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver'), jsonb_build_object('clave', 'equipo.roles.gestionar')));
     for k in select jsonb_object_keys(v_reg) loop
-      continue when v_reg -> k ->> 'clase' <> 'recorta';
       v_sql := replace(replace(replace(replace(v_reg -> k ->> 'sonda', '{cot}', quote_literal(v_c)), '{origen}', quote_literal(o)), '{oculto}', quote_literal(v_oculto)), '{centinela}', v_centinela);
+      if v_reg -> k ->> 'clase' = 'configurar' then
+        -- Sólo con cotizaciones.configurar DE ESE ORIGEN: ni ver, crear, el nivel (con o sin «ver como»), ni configurar otro origen; quien configura sí, y la fórmula lleva el nodo.
+        foreach v_txt in array array['sin', 'con', 'ed', 'ajeno', 'otro_nivel', 'ver_como', 'cfg_ajeno'] loop
+          v_quien := case v_txt when 'sin' then sin when 'con' then con when 'ed' then ed when 'ajeno' then ajeno when 'otro_nivel' then otro_nivel when 'ver_como' then ver_como else cfg_ajeno end;
+          r := pg_temp.cv_corre(v_quien, v_sql);
+          if r ->> 'error' is distinct from '42501' then raise exception 'nivel %: % da algo a «%», que no configura el origen: %', v_nivel, k, v_txt, r; end if;
+        end loop;
+        r := pg_temp.cv_corre(cfg, v_sql);
+        if r ? 'error' or position(v_oculto in r::text) = 0 then raise exception 'nivel %: % no da la fórmula a quien configura el origen: %', v_nivel, k, r; end if;
+        continue;
+      elsif v_reg -> k ->> 'clase' <> 'recorta' then
+        continue;
+      end if;
       v_tipea := position('{oculto}' in v_reg -> k ->> 'sonda') > 0;      -- la sonda tipea el nodo (un input): sin el permiso, el error tiene que ser el de un nodo que no existe
       -- Sin el permiso del nivel (ninguno, sólo editar, el de otro origen y el de otro nivel): ni el nodo ni su valor.
       foreach v_txt in array array['sin', 'ed', 'ajeno', 'otro_nivel'] loop
@@ -1210,5 +1227,61 @@ begin
   r := jsonb_build_object('d', public._cotizacion_diff_recortado('{"desconocida": {"de": 1, "a": 2}, "notas": {"de": null, "a": "x"}, "eliminado_por": {"de": null, "a": "p"}}',
          public._cotizacion_contexto(array['remate'], v_def, v_vis), array['notas', 'titulo']));
   if r -> 'd' is distinct from '{"notas": {"de": null, "a": "x"}}'::jsonb then raise exception 'una clave desconocida viaja: %', r; end if;
+end $$;
+rollback;
+
+-- @test visibilidad: formula_para_cotizar sólo la da a quien configura el origen (el mismo error con cualquier uuid), y trae la publicada entera
+begin;
+do $$
+declare
+  cfg constant uuid := '00000000-0000-0000-0000-000000000a01'; cfg_otro constant uuid := '00000000-0000-0000-0000-000000000a02'; ve_todo constant uuid := '00000000-0000-0000-0000-000000000a03';
+  cfg_todos constant uuid := '00000000-0000-0000-0000-000000000a04'; cfg_sin_formula constant uuid := '00000000-0000-0000-0000-000000000a05';
+  o uuid; o2 uuid; o_sin uuid; f_pub uuid; r jsonb; r2 jsonb; v_msg text;
+begin
+  insert into public.origenes (clave, nombre) values ('cv_fpc', 'CV fpc') returning id into o;
+  insert into public.origenes (clave, nombre) values ('cv_fpc_otro', 'CV fpc otro') returning id into o2;
+  insert into public.origenes (clave, nombre) values ('cv_fpc_sin', 'CV fpc sin fórmula') returning id into o_sin;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, nota)
+  values (o, 1, 'archivada', '{"nodos": []}', '{"vieja": 1}', '{}', '{}', 'la vieja');
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, nota)
+  values (o, 2, 'publicada', '{"nodos": [{"id": "x", "tipo": "input"}]}', '{"c": 5}', '{"secciones": []}', '{"x": {"ver": "costos", "editar": "costos"}}', 'la publicada') returning id into f_pub;
+  insert into public.formulas (origen_id, estado, definicion, params, diseno) values (o, 'borrador', '{"nodos": [{"id": "borrador"}]}', '{}', '{}');
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o2, 1, 'publicada', '{"nodos": []}', '{}', '{}', '{}');
+  perform pg_temp.cv_persona(cfg, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o)));
+  perform pg_temp.cv_persona(cfg_otro, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o2)));
+  perform pg_temp.cv_persona(ve_todo, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.editar'),
+                                                         jsonb_build_object('clave', 'cotizaciones.nivel.costos.ver'), jsonb_build_object('clave', 'cotizaciones.nivel.costos.editar')));
+  perform pg_temp.cv_persona(cfg_todos, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.configurar')));
+  perform pg_temp.cv_persona(cfg_sin_formula, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o_sin)));
+  -- 1. Quien configura el origen recibe la publicada entera (no la vieja ni el borrador).
+  r := pg_temp.cv_corre(cfg, format('select public.formula_para_cotizar(%L)', o));
+  if r ? 'error' then raise exception 'quien configura no la recibe: %', r; end if;
+  if (select array_agg(k order by k) from jsonb_object_keys(r) k) is distinct from array['definicion', 'diseno', 'id', 'nota', 'params', 'publicado_en', 'version', 'visibilidad'] then raise exception 'las claves: %', r; end if;
+  if r ->> 'id' <> f_pub::text or (r ->> 'version')::int <> 2 or r ->> 'nota' <> 'la publicada' or r -> 'definicion' <> '{"nodos": [{"id": "x", "tipo": "input"}]}'::jsonb
+     or r -> 'params' <> '{"c": 5}'::jsonb or r -> 'diseno' <> '{"secciones": []}'::jsonb or r -> 'visibilidad' <> '{"x": {"ver": "costos", "editar": "costos"}}'::jsonb then
+    raise exception 'no es la publicada: %', r;
+  end if;
+  if position('borrador' in r::text) > 0 or position('vieja' in r::text) > 0 then raise exception 'trae el borrador o la vieja: %', r; end if;
+  -- 2. Quien configura TODOS los orígenes (una concesión sin origen) también.
+  if (pg_temp.cv_corre(cfg_todos, format('select public.formula_para_cotizar(%L)', o))) ? 'error' then raise exception 'quien configura todos los orígenes no la recibe'; end if;
+  -- 3. Quien no la configura —ni con ver, crear, editar y el nivel de costos, ni configurando otro origen— recibe el MISMO error con la fórmula de este origen, la de otro, un origen sin fórmula, uno que no existe y null.
+  r := pg_temp.cv_corre(ve_todo, format('select public.formula_para_cotizar(%L)', o));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes el permiso «cotizaciones.configurar».' then raise exception 'ver, crear, editar y los costos no dan la fórmula: %', r; end if;
+  for r2 in select pg_temp.cv_corre(ve_todo, format('select public.formula_para_cotizar(%L)', x)) from unnest(array[o2, o_sin, gen_random_uuid()]) x loop
+    if r2 is distinct from r then raise exception 'el error cambia según el origen: % contra %', r2, r; end if;
+  end loop;
+  if pg_temp.cv_corre(ve_todo, 'select public.formula_para_cotizar(null)') is distinct from r then raise exception 'null se distingue'; end if;
+  r2 := pg_temp.cv_corre(cfg_otro, format('select public.formula_para_cotizar(%L)', o));
+  if r2 ->> 'error' is distinct from '42501' then raise exception 'configurar otro origen da la fórmula de éste: %', r2; end if;
+  -- 4. Quien configura sí ve lo suyo aunque no haya fórmula, con su error; y sin origen, el suyo.
+  r := pg_temp.cv_corre(cfg_sin_formula, format('select public.formula_para_cotizar(%L)', o_sin));
+  if r ->> 'error' is distinct from '22023' or r ->> 'mensaje' is distinct from 'Este origen no tiene una fórmula publicada.' then raise exception 'origen sin fórmula: %', r; end if;
+  r := pg_temp.cv_corre(cfg_todos, 'select public.formula_para_cotizar(null)');
+  if r ->> 'error' is distinct from '22023' or r ->> 'mensaje' is distinct from 'Falta el origen.' then raise exception 'sin origen: %', r; end if;
+  -- 5. Los grants.
+  if has_function_privilege('anon', 'public.formula_para_cotizar(uuid)', 'execute') or not has_function_privilege('authenticated', 'public.formula_para_cotizar(uuid)', 'execute')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.formula_para_cotizar(uuid)'::regprocedure and x.grantee = 0) then
+    raise exception 'los grants de formula_para_cotizar';
+  end if;
 end $$;
 rollback;

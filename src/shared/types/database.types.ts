@@ -7968,6 +7968,7 @@ export type Database = {
         Args: { p_def: Json; p_diseno: Json; p_nota?: string; p_origen: string; p_params: Json }
         Returns: string
       }
+      formula_para_cotizar: { Args: { p_origen: string }; Returns: Json }
       formula_publicar: {
         Args: { p_nota: string; p_origen: string; p_publicada_esperada?: string }
         Returns: string
