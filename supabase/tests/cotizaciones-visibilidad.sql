@@ -127,6 +127,8 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
       'motivo', 'calcula con _cotizacion_armar() y devuelve _cotizacion_recorte(): lo que se tipea sólo nombra lo que se ve (un nodo oculto da el error de uno inexistente) y los overrides ocultos se descartan como inexistentes'),
     'formula_para_cotizar', jsonb_build_object('clase', 'configurar', 'sonda', 'select public.formula_para_cotizar({origen})',
       'motivo', 'la publicada entera (definicion, params, diseno y visibilidad) sólo con cotizaciones.configurar del origen; el permiso se pide antes de mirar si el origen existe'),
+    'cotizacion_tabla', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'el bloque «las tablas de referencia se leen por lo que la hoja ve» (necesita tablas, no nodos)',
+      'motivo', 'una tabla de referencia con sólo las columnas que leen los nodos que quien llama ve (la entera, a quien configura); sin acceso, el error de una tabla que no existe'),
     'cotizacion_revisiones', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_revisiones({cot})',
       'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
     'cotizacion_leer', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_leer({cot})',
@@ -157,7 +159,7 @@ begin
     if coalesce(btrim(r.ficha ->> 'motivo'), '') = '' then
       v_p := v_p || ('sin motivo: ' || r.nombre);
     end if;
-    if (r.ficha ->> 'clase') in ('recorta', 'configurar') and coalesce(btrim(r.ficha ->> 'sonda'), '') = '' then
+    if (r.ficha ->> 'clase') in ('recorta', 'configurar') and coalesce(btrim(r.ficha ->> 'sonda'), '') = '' and coalesce(btrim(r.ficha ->> 'cubierta_por'), '') = '' then
       v_p := v_p || ('sin sonda: ' || r.nombre);
     end if;
   end loop;
@@ -879,6 +881,7 @@ begin
     perform pg_temp.cv_persona(otro_nivel, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_otro_nivel || '.ver')));
     perform pg_temp.cv_persona(ver_como, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver'), jsonb_build_object('clave', 'equipo.roles.gestionar')));
     for k in select jsonb_object_keys(v_reg) loop
+      continue when v_reg -> k ? 'cubierta_por';
       v_sql := replace(replace(replace(replace(v_reg -> k ->> 'sonda', '{cot}', quote_literal(v_c)), '{origen}', quote_literal(o)), '{oculto}', quote_literal(v_oculto)), '{centinela}', v_centinela);
       if v_reg -> k ->> 'clase' = 'configurar' then
         -- Sólo con cotizaciones.configurar DE ESE ORIGEN: ni ver, crear, el nivel (con o sin «ver como»), ni configurar otro origen; quien configura sí, y la fórmula lleva el nodo.
@@ -1282,6 +1285,122 @@ begin
   if has_function_privilege('anon', 'public.formula_para_cotizar(uuid)', 'execute') or not has_function_privilege('authenticated', 'public.formula_para_cotizar(uuid)', 'execute')
      or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.formula_para_cotizar(uuid)'::regprocedure and x.grantee = 0) then
     raise exception 'los grants de formula_para_cotizar';
+  end if;
+end $$;
+rollback;
+
+-- @test visibilidad: las tablas de referencia se leen por lo que la hoja ve: sólo las columnas que leen los nodos visibles, la congelada de la versión manda, y sin acceso es como si no existieran
+begin;
+do $$
+declare
+  sin constant uuid := '00000000-0000-0000-0000-000000000b01'; con constant uuid := '00000000-0000-0000-0000-000000000b02'; cfg constant uuid := '00000000-0000-0000-0000-000000000b03';
+  cfg_todos constant uuid := '00000000-0000-0000-0000-000000000b04'; sin_crear constant uuid := '00000000-0000-0000-0000-000000000b05'; otro constant uuid := '00000000-0000-0000-0000-000000000b06';
+  propios constant uuid := '00000000-0000-0000-0000-000000000b07';
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  o uuid; o2 uuid; v_def jsonb; v_vis jsonb; v_diseno jsonb; v_par jsonb; f1 uuid; c uuid; r jsonb; r2 jsonb; k text;
+begin
+  insert into public.origenes (clave, nombre) values ('cv_tabla', 'CV tabla') returning id into o;
+  insert into public.origenes (clave, nombre) values ('cv_tabla_otro', 'CV tabla otro') returning id into o2;
+  -- Las tablas: el transporte (con la columna de costos), la depreciación (un tramo con una columna interna), una que sólo lee un nodo de costos, una que nadie nombra y una compartida.
+  insert into public.tablas_referencia (origen_id, clave, nombre, columnas) values
+    (o, 'transporte', 'Transporte', '[{"clave": "tipo", "etiqueta": "Tipo", "tipo": "texto"}, {"clave": "oficina", "etiqueta": "Oficina", "tipo": "numero"}, {"clave": "cliente", "etiqueta": "Cliente", "tipo": "numero"}]'),
+    (o, 'dep', 'Depreciación', '[{"clave": "desde", "etiqueta": "Desde", "tipo": "anio"}, {"clave": "hasta", "etiqueta": "Hasta", "tipo": "anio"}, {"clave": "factor", "etiqueta": "Factor", "tipo": "numero"}, {"clave": "interno", "etiqueta": "Interno", "tipo": "numero"}, {"clave": "rotulo", "etiqueta": "Rótulo", "tipo": "texto"}]'),
+    (o, 'solo_costos', 'Sólo costos', '[{"clave": "k", "etiqueta": "K", "tipo": "texto"}, {"clave": "v", "etiqueta": "V", "tipo": "numero"}]'),
+    (o, 'ruido', 'Ruido', '[{"clave": "k", "etiqueta": "K", "tipo": "texto"}]'),
+    (o2, 'transporte', 'Transporte de otro origen', '[{"clave": "tipo", "etiqueta": "Tipo", "tipo": "texto"}]'),
+    (null, 'compartida', 'Compartida', '[{"clave": "k", "etiqueta": "K", "tipo": "texto"}, {"clave": "v", "etiqueta": "V", "tipo": "numero"}]');
+  insert into public.tablas_referencia_filas (tabla_id, valores, orden)
+    select t.id, f.v, f.ord from public.tablas_referencia t join (values
+      ('transporte', '{"tipo": "autos", "oficina": 1500.5, "cliente": 2500.5}'::jsonb, 0), ('transporte', '{"tipo": "motos", "oficina": 700.5, "cliente": 900.5}', 1),
+      ('dep', '{"desde": 2020, "hasta": 2025, "factor": 0.9, "interno": 777.5, "rotulo": "reciente"}', 0), ('dep', '{"desde": 2010, "hasta": 2019, "factor": 0.7, "interno": 888.5, "rotulo": "antiguo"}', 1),
+      ('solo_costos', '{"k": "a", "v": 3131.5}', 0), ('ruido', '{"k": "r"}', 0), ('compartida', '{"k": "c", "v": 4242.5}', 0)) f (clave, v, ord) on t.clave = f.clave and t.origen_id is not distinct from
+        (case when f.clave = 'compartida' then null else o end);
+  insert into public.tablas_referencia_filas (tabla_id, valores, orden) select id, '{"tipo": "ajena"}', 0 from public.tablas_referencia where origen_id = o2;
+  -- La fórmula: dos nodos de `transporte` (uno de todos, otro de costos), un tramo de `dep` con sus atajos, un nodo de costos sobre `solo_costos` y uno de todos sobre la compartida.
+  v_def := jsonb_build_object('nodos', jsonb_build_array(
+    jsonb_build_object('id', 'anio_x', 'tipo', 'input'),
+    jsonb_build_object('id', 't_cliente', 'tipo', 'tabla', 'tabla', 'transporte', 'match', jsonb_build_object('tipo', 'tipo_vehiculo'), 'columna', 'cliente'),
+    jsonb_build_object('id', 't_oficina', 'tipo', 'tabla', 'tabla', 'transporte', 'match', jsonb_build_object('tipo', 'tipo_vehiculo'), 'columna', 'oficina'),
+    jsonb_build_object('id', 'fact', 'tipo', 'tramo', 'tabla', 'dep', 'sobre', 'anio_x', 'columna', 'factor'),
+    jsonb_build_object('id', 't_costos', 'tipo', 'tabla', 'tabla', 'solo_costos', 'match', jsonb_build_object('k', 'k'), 'columna', 'v'),
+    jsonb_build_object('id', 't_comp', 'tipo', 'tabla', 'tabla', 'compartida', 'match', jsonb_build_object('k', 'k'), 'columna', 'v'),
+    jsonb_build_object('id', 'total', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('anio_x'), 'salida', 'total')));
+  v_vis := '{"anio_x": {"ver": "todos", "editar": "todos"}, "t_cliente": {"ver": "todos", "editar": null}, "t_oficina": {"ver": "costos", "editar": null}, "fact": {"ver": "todos", "editar": null},
+             "t_costos": {"ver": "costos", "editar": null}, "t_comp": {"ver": "todos", "editar": null}, "total": {"ver": "todos", "editar": null}}';
+  v_diseno := jsonb_build_object('secciones', jsonb_build_array(jsonb_build_object('id', 's', 'items', jsonb_build_array(jsonb_build_object('tipo', 'atajos', 'nodo', 'fact', 'columna', 'rotulo', 'filas', 3),
+    jsonb_build_object('tipo', 'atajos', 'nodo', 't_costos', 'columna', 'k', 'filas', 3)))));
+  v_par := '{"tablas": {"transporte": [{"tipo": "autos", "oficina": 9999.5, "cliente": 8888.5}]}}';
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o, 1, 'publicada', v_def, '{}', v_diseno, v_vis) returning id into f1;
+  perform pg_temp.cv_persona(sin, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear')));
+  perform pg_temp.cv_persona(con, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.costos.ver')));
+  perform pg_temp.cv_persona(cfg, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o)));
+  perform pg_temp.cv_persona(cfg_todos, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.configurar')));
+  perform pg_temp.cv_persona(sin_crear, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver')));
+  perform pg_temp.cv_persona(propios, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', o, 'alcance', 'propios'), jsonb_build_object('clave', 'cotizaciones.crear', 'origen', o)));
+  perform pg_temp.cv_persona(otro, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', o2), jsonb_build_object('clave', 'cotizaciones.crear', 'origen', o2), jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o2)));
+
+  -- 1. Sin el nivel: del transporte, `tipo` y `cliente` (el nodo de todos), nunca `oficina` ni su valor; las etiquetas también se recortan.
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L, null, %L)', 'transporte', o));
+  if r ? 'error' then raise exception 'sin el nivel no lee la tabla que un nodo suyo lee: %', r; end if;
+  if (select array_agg(col ->> 'clave' order by col ->> 'clave') from jsonb_array_elements(r -> 'columnas') col) is distinct from array['cliente', 'tipo'] then raise exception 'columnas sin el nivel: %', r -> 'columnas'; end if;
+  if r -> 'filas' is distinct from '[{"tipo": "autos", "cliente": 2500.5}, {"tipo": "motos", "cliente": 900.5}]'::jsonb then raise exception 'filas sin el nivel: %', r -> 'filas'; end if;
+  if position('oficina' in r::text) > 0 or position('1500' in r::text) > 0 or position('700.5' in r::text) > 0 or r ->> 'congelada' <> 'false' then raise exception 'la columna de costos viaja: %', r; end if;
+  -- 2. Con el nivel: la columna de costos también.
+  r := pg_temp.cv_corre(con, format('select public.cotizacion_tabla(%L, null, %L)', 'transporte', o));
+  if (select array_agg(col ->> 'clave' order by col ->> 'clave') from jsonb_array_elements(r -> 'columnas') col) is distinct from array['cliente', 'oficina', 'tipo']
+     or r -> 'filas' -> 0 is distinct from '{"tipo": "autos", "oficina": 1500.5, "cliente": 2500.5}'::jsonb then raise exception 'con el nivel: %', r; end if;
+  -- 3. Un tramo: `desde`, `hasta` y su columna, más la que etiqueta sus atajos (que ve); la interna no. Los atajos de un nodo de costos no abren su tabla.
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L, null, %L)', 'dep', o));
+  if (select array_agg(col ->> 'clave' order by col ->> 'clave') from jsonb_array_elements(r -> 'columnas') col) is distinct from array['desde', 'factor', 'hasta', 'rotulo'] or position('interno' in r::text) > 0 or position('777' in r::text) > 0 then
+    raise exception 'el tramo: %', r;
+  end if;
+  -- 4. Una tabla que sólo lee un nodo de costos, una que nadie nombra, una de otro origen y una que no existe dan el MISMO error a quien no ve el nodo.
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L, null, %L)', 'zz_no_existe', o));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes acceso a esa tabla.' then raise exception 'una inexistente: %', r; end if;
+  for k in select unnest(array['solo_costos', 'ruido', 'compartida_x']) loop
+    if pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L, null, %L)', k, o)) is distinct from r then raise exception 'la tabla % se distingue de una inexistente', k; end if;
+  end loop;
+  -- 5. Con el nivel, la de costos sí; la compartida (la del origen no existe) llega a quien ve el nodo que la lee.
+  r2 := pg_temp.cv_corre(con, format('select public.cotizacion_tabla(%L, null, %L)', 'solo_costos', o));
+  if r2 ? 'error' or r2 -> 'filas' <> '[{"k": "a", "v": 3131.5}]'::jsonb then raise exception 'con el nivel, la tabla de costos: %', r2; end if;
+  r2 := pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L, null, %L)', 'compartida', o));
+  if r2 ? 'error' or r2 -> 'filas' <> '[{"k": "c", "v": 4242.5}]'::jsonb then raise exception 'la compartida: %', r2; end if;
+  -- 6. Quien configura el origen: la tabla entera, también la que nadie nombra; no la de otro origen.
+  r2 := pg_temp.cv_corre(cfg, format('select public.cotizacion_tabla(%L, null, %L)', 'transporte', o));
+  if r2 -> 'filas' -> 0 is distinct from '{"tipo": "autos", "oficina": 1500.5, "cliente": 2500.5}'::jsonb then raise exception 'quien configura recibe la tabla entera: %', r2; end if;
+  if (pg_temp.cv_corre(cfg, format('select public.cotizacion_tabla(%L, null, %L)', 'ruido', o))) ? 'error' then raise exception 'quien configura no recibe la que nadie nombra'; end if;
+  -- 7. Por cotización: la congelada de SU versión manda (aunque la viva sea otra), y lo oculto sigue oculto.
+  update public.formulas set estado = 'archivada' where id = f1;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o, 2, 'publicada', v_def, v_par, v_diseno, v_vis) returning id into f1;
+  insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base, titulo)
+  values (o, duena, f1, '{}', '{}', '{}', '{}', 0, 'CV tabla') returning id into c;
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L, %L)', 'transporte', c));
+  if r -> 'filas' is distinct from '[{"tipo": "autos", "cliente": 8888.5}]'::jsonb or r ->> 'congelada' <> 'true' or position('9999' in r::text) > 0 then raise exception 'la congelada de la versión, sin la columna de costos: %', r; end if;
+  r := pg_temp.cv_corre(con, format('select public.cotizacion_tabla(%L, %L)', 'transporte', c));
+  if r -> 'filas' is distinct from '[{"tipo": "autos", "oficina": 9999.5, "cliente": 8888.5}]'::jsonb then raise exception 'con el nivel, la congelada: %', r; end if;
+  -- Y la publicada, por origen, también trae la congelada.
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L, null, %L)', 'transporte', o));
+  if r ->> 'congelada' <> 'true' then raise exception 'por origen, la publicada trae la congelada: %', r; end if;
+  -- 8. Los permisos de la llamada: sin crear no hay por origen; sin ver la cotización no hay por ella; ni los dos ni ninguno.
+  if (pg_temp.cv_corre(sin_crear, format('select public.cotizacion_tabla(%L, null, %L)', 'transporte', o))) ->> 'error' is distinct from '42501' then raise exception 'sin crear lee por origen'; end if;
+  if (pg_temp.cv_corre(otro, format('select public.cotizacion_tabla(%L, %L)', 'transporte', c))) ->> 'error' is distinct from '42501' then raise exception 'quien no ve la cotización lee su tabla'; end if;
+  -- Ve el origen (y los nodos de todos) pero no esa cotización, que es de otra persona y de ningún lead suyo: tampoco su tabla.
+  if (pg_temp.cv_corre(propios, format('select public.cotizacion_tabla(%L, %L)', 'transporte', c))) ->> 'error' is distinct from '42501' then raise exception 'quien ve «propios» lee la tabla de una cotización ajena'; end if;
+  if (pg_temp.cv_corre(propios, format('select public.cotizacion_tabla(%L, null, %L)', 'transporte', o))) ? 'error' then raise exception 'quien ve «propios» sí lee la tabla del origen que cotiza'; end if;
+  if (pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L)', 'transporte'))) ->> 'error' is distinct from '22023' then raise exception 'sin cotización ni origen'; end if;
+  if (pg_temp.cv_corre(sin, format('select public.cotizacion_tabla(%L, %L, %L)', 'transporte', c, o))) ->> 'error' is distinct from '22023' then raise exception 'con las dos'; end if;
+  -- 9. La policy: nadie lee las tablas directo salvo quien configura (su origen, o todos con una concesión sin origen).
+  if (pg_temp.cv_corre(sin, 'select jsonb_build_object(''t'', (select count(*) from public.tablas_referencia), ''f'', (select count(*) from public.tablas_referencia_filas))')) <> '{"t": 0, "f": 0}'::jsonb then raise exception 'sin configurar lee tablas directo'; end if;
+  if (pg_temp.cv_corre(con, 'select jsonb_build_object(''t'', (select count(*) from public.tablas_referencia), ''f'', (select count(*) from public.tablas_referencia_filas))')) <> '{"t": 0, "f": 0}'::jsonb then raise exception 'con el nivel lee tablas directo'; end if;
+  r := pg_temp.cv_corre(cfg, 'select jsonb_build_object(''t'', (select count(*) from public.tablas_referencia where clave in (''transporte'', ''dep'', ''solo_costos'', ''ruido'', ''compartida'')), ''ajena'', (select count(*) from public.tablas_referencia where origen_id is distinct from ' || quote_literal(o) || '::uuid and clave like ''transporte%''), ''compartida'', (select count(*) from public.tablas_referencia where origen_id is null and clave = ''compartida''))');
+  -- Las cuatro de su origen y la compartida (quien configura algún origen la lee: la usa cualquiera); no la de otro origen.
+  if r is distinct from '{"t": 5, "ajena": 0, "compartida": 1}'::jsonb then raise exception 'quien configura un origen lee las tablas de su origen y las compartidas, no las de otros: %', r; end if;
+  r := pg_temp.cv_corre(cfg_todos, 'select jsonb_build_object(''compartida'', (select count(*) from public.tablas_referencia where origen_id is null and clave = ''compartida''), ''filas'', (select count(*) from public.tablas_referencia_filas f join public.tablas_referencia t on t.id = f.tabla_id where t.clave = ''compartida''))');
+  if r is distinct from '{"compartida": 1, "filas": 1}'::jsonb then raise exception 'quien configura todos los orígenes lee también la compartida: %', r; end if;
+  -- 10. Los grants.
+  if has_function_privilege('anon', 'public.cotizacion_tabla(text,uuid,uuid)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_tabla(text,uuid,uuid)', 'execute')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_tabla(text,uuid,uuid)'::regprocedure and x.grantee = 0) then
+    raise exception 'los grants de cotizacion_tabla';
   end if;
 end $$;
 rollback;

@@ -7877,6 +7877,10 @@ export type Database = {
         Args: { p_antes?: number; p_cotizacion: string; p_tamano?: number }
         Returns: Json
       }
+      cotizacion_tabla: {
+        Args: { p_cotizacion?: string; p_origen?: string; p_tabla: string }
+        Returns: Json
+      }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
