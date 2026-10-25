@@ -2345,3 +2345,294 @@ bloques, sin fallos; `bash scripts/mapa.sh --check`.
 **e2e completo: no (4.10-3b, sólo pruebas SQL y docs).**
 
 **Commits:** separados (la prueba de guardar; las de visibilidad y humo; la regla; los docs).
+
+## 2026-10-25 — Movido de ESTADO (CI-2)
+
+Copiado tal cual de `docs/ESTADO.md` antes de cerrar CI-2: la línea de CI (su «Estimado: push ≈ 18 min, e2e ≈ 84 (a contrastar con la primera corrida)» ya
+tiene la primera corrida, con otros números).
+
+- **CI** (GitHub, privado; corre desde el 2026-10-23): `nivel-1` siempre; `base` y el e2e en 4 bloques sólo si cambia código; el e2e en PR y a mano (`proyectos: escritorio|ambos`), no en push. Estimado: push ≈ 18 min, e2e ≈ 84 (a contrastar con la primera corrida). Next 16.4.0 tiene dos advisories críticos: decide la persona.
+
+## 2026-10-25 — CI-2: la primera corrida real del e2e en GitHub, sus dos rojos y los bloques desde una base limpia
+
+**Horas** (hora de La Paz): los datos de GitHub (Parte A) de ≈ 16:46 a 16:52; el rojo de apibara (reproducción, arreglo, mutaciones) de ≈ 16:53 a 16:57; el pie
+(reproducción, arreglo, el spec de las esperas, mutaciones) y las demás carreras de ≈ 17:00 a 17:36; los cuatro bloques (Parte C) de 17:38:10 a 18:07:22.
+Antes de eso, el plan, y el Nivel 1 roto por una carpeta de salidas (abajo, «Del entorno»). Sin push. No se tocó `src/` ni `supabase/migrations/`.
+
+**Commits** (siete, separados, sin push):
+
+| Commit    | Hora  | Qué                                                                                                               |
+| --------- | ----- | ----------------------------------------------------------------------------------------------------------------- |
+| `9f1bebc` | 16:49 | `eslint.config.mjs`: `test-salidas/**` ignorada (el visor de trazas de un artefacto de CI lo tumbaba)             |
+| `24ce2bd` | 16:49 | el hook de Stop busca la salida de vitest sólo en las carpetas que empiezan por la fecha                          |
+| `1c5f58c` | 16:57 | la clave de relleno de apibara (`soporte/apibara-clave.ts`), el spec que la usa y el spec de la regla             |
+| `ea2d1c6` | 17:36 | `soporte/esperas.ts` (`pieQuieto`, `recibeElClic` con la caja quieta, `quieto`) y `e2e/recorrido-esperas.spec.ts` |
+| `3b1edaf` | 17:36 | `leads-barra-de-secciones.spec.ts`: espera la pista antes de medir «Portal»                                       |
+| `c107bfb` | 18:09 | la regla en `.claude/rules/e2e.md`                                                                                |
+| (éste)    |       | BITACORA, DECISIONES, PLAN y la línea de CI de ESTADO                                                             |
+
+### Parte A — los datos de GitHub (sólo lectura)
+
+`gh api repos/{owner}/{repo}/actions/runs/<id>/jobs --paginate` de las tres corridas, al TSV crudo `test-salidas/ci-1-dispatch/pasos.tsv` (ignorado por git:
+corrida, job, conclusión, inicio y fin del job y de cada paso). `gh run view --job <id> --log` salió **vacío** aquí; el log de un job se baja con
+`gh api repos/{owner}/{repo}/actions/jobs/<id>/logs` (los cuatro bloques, en `test-salidas/ci-1-dispatch/logs/`). Nada de `gh run rerun` ni de lanzar un
+workflow.
+
+**Por job** (duración; los minutos facturables son la duración **redondeada hacia arriba**, por job; un job `skipped` no factura):
+
+| Corrida                            | Job                              | Resultado | Duración  | Min                        |
+| ---------------------------------- | -------------------------------- | --------- | --------- | -------------------------- |
+| 40222560271 (push)                 | `nivel-1`                        | verde     | 9:52      | 10                         |
+|                                    | `cambios`                        | verde     | 0:07      | 1                          |
+|                                    | `base`                           | **rojo**  | 7:50      | 8                          |
+|                                    | `carreras`, `e2e-build`, bloques | saltados  | —         | 0                          |
+|                                    | **total**                        |           |           | **19**                     |
+| 40222651048 (dispatch, escritorio) | `carreras` (a mano)              | verde     | 3:13      | 4                          |
+|                                    | `nivel-1`                        | verde     | 13:01     | 14                         |
+|                                    | `cambios`                        | verde     | 0:08      | 1                          |
+|                                    | `e2e-build`                      | verde     | 1:47      | 2                          |
+|                                    | `base`                           | verde     | 8:04      | 9                          |
+|                                    | bloque 1                         | **rojo**  | 13:53     | 14                         |
+|                                    | bloque 2                         | verde     | **19:18** | 20                         |
+|                                    | bloque 3                         | verde     | 14:08     | 15                         |
+|                                    | bloque 4                         | **rojo**  | 14:48     | 15                         |
+|                                    | **total**                        |           |           | **94** (90 sin `carreras`) |
+| 40228429158 (push 4.10-3b)         | `nivel-1`                        | verde     | 12:25     | 13                         |
+|                                    | `cambios`                        | verde     | 0:06      | 1                          |
+|                                    | `base`                           | verde     | 7:34      | 8                          |
+|                                    | **total**                        |           |           | **22**                     |
+
+La corrida 40222560271 cayó en `base`, paso `pnpm db:probar` (5:03), en `cotizacion_guardar: un guardado que sólo cambia lo oculto no se delata…`: el falso rojo que cerró 4.10-3b (la corrida 40228429158, ya con eso, pasó); no es del e2e.
+
+**Los pasos de lo que no es un bloque** (los de menos de 5 s no figuran; el TSV los tiene todos): `nivel-1`: preparar 0:22 a 0:26, `pnpm lint` 1:14 / 1:40 /
+1:32, `pnpm typecheck` 0:22 / 0:31 / 0:28, **`pnpm test` 7:39 / 10:11 / 9:55** (la dispersión de un mismo trabajo entre corridas es de 2,5 min: el runner no es
+estable). `base`: preparar 0:22 a 0:29, `supabase start` 1:36 a 1:38, `db:reset` 0:32, `db:probar` 5:03 / 5:05 / 4:54. `e2e-build`: preparar 0:25, `next build`
+1:02. `carreras`: `supabase start` 1:56, `db:reset` 0:30, `db:carreras` 0:13.
+
+**Los cuatro bloques de escritorio, paso a paso** (corrida 40222651048):
+
+| Paso                                       | Bloque 1 | Bloque 2 | Bloque 3 | Bloque 4 | Promedio                    |
+| ------------------------------------------ | -------- | -------- | -------- | -------- | --------------------------- |
+| preparar (Node, pnpm, `install`)           | 0:22     | 0:24     | 0:30     | 0:20     | 0:24                        |
+| **chromium y lo que pide del sistema**     | 0:36     | **4:35** | 0:40     | 0:27     | 1:35 (0:34 sin el bloque 2) |
+| `supabase start` (con el edge runtime)     | 1:57     | 2:07     | 2:16     | 2:05     | 2:06                        |
+| `.env.local` y la descarga del build       | ≈ 0:03   | ≈ 0:04   | ≈ 0:04   | ≈ 0:02   | ≈ 0:03                      |
+| `db:reset`                                 | 0:32     | 0:33     | 0:32     | 0:33     | 0:33                        |
+| funciones edge (la espera de las tres)     | 0:01     | 0:01     | 0:00     | 0:00     | < 0:01                      |
+| **e2e** (`playwright test --shard=i/4`)    | 10:14    | 11:17    | 9:47     | 11:11    | 10:37                       |
+| el resto (montar, checkout, subir, cierre) | 0:08     | 0:17     | 0:19     | 0:10     | 0:13                        |
+| **el job**                                 | 13:53    | 19:18    | 14:08    | 14:48    | 15:32                       |
+
+El e2e es el **68 %** del job (10:37 de 15:32); `supabase start`, el 14 %; preparar, chromium, `db:reset`, descargas y cierre suman ≈ 1:50 sin la lentitud de apt del bloque 2.
+
+**Contra la estimación de DECISIONES «CI-1»:**
+
+| Escenario                                    | Estimado | Medido                                                                  |
+| -------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `nivel-1`                                    | ≈ 10     | 10, 14 y 13                                                             |
+| `base`                                       | ≈ 7      | 8, 9 y 8                                                                |
+| `e2e-build`                                  | ≈ 2      | 2                                                                       |
+| un bloque, escritorio                        | 13 a 19  | 14, 20, 15 y 15 (promedio 16)                                           |
+| los 4 bloques, escritorio                    | 52 a 76  | 64                                                                      |
+| un push sólo de docs (`nivel-1` + `cambios`) | ≈ 11     | 11 a 15                                                                 |
+| un push con código (+ `base`)                | ≈ 18     | **22** (19 en la corrida donde `base` cayó antes de terminar)           |
+| un e2e a mano, escritorio                    | 70 a 96  | **90** (94 con `carreras`); ≈ 85 con el bloque 2 sin la lentitud de apt |
+
+Estimado mensual con los números medidos (el ritmo de CI-1: ≈ 45 pushes, casi todos con código, a 22 min; un e2e a mano o en PR, 90 min; el plan gratuito, 2.000):
+
+| Propuesta                                                            | Cuenta            | Antes (CI-1) | Ahora       | Contra 2.000                      |
+| -------------------------------------------------------------------- | ----------------- | ------------ | ----------- | --------------------------------- |
+| (a) e2e en cada push con código                                      | 45 × 90           | ≈ 3.800      | ≈ **4.050** | se pasa (el doble)                |
+| (b) **hoy:** push sin e2e; e2e a mano cuando hoy se corre un Nivel 2 | 45 × 22 + 10 × 90 | ≈ 1.650      | ≈ **1.890** | cabe, al 95 %                     |
+| (c) e2e nocturno si `main` cambió                                    | 45 × 22 + 25 × 90 | ≈ 2.900      | ≈ **3.240** | se pasa                           |
+| (d) e2e en push sólo con los seis disparadores del Nivel 2           | 45 × 22 + 15 × 90 | ≈ 2.070      | ≈ **2.340** | **se pasa** (antes, en el límite) |
+
+Con (b) caben **≈ 11 e2e de escritorio por mes** ((2.000 − 45 × 22) / 90). Un Nivel 3 por CI (`ambos`) se estimó en 72 a 112 y no se midió.
+
+**El factor de lentitud del runner.** De los logs de los cuatro bloques (la línea del reporter `list` de cada prueba) la suma por archivo de spec, contra
+`test-salidas/medicion-ci-1/por-spec.json` (la medición local de CI-1, 1 worker):
+
+| Bloque | Pruebas (verdes + rojas) | Suma de pruebas en CI | Lo mismo, local | Razón    | Paso e2e | Fuera de las pruebas |
+| ------ | ------------------------ | --------------------- | --------------- | -------- | -------- | -------------------- |
+| 1      | 168 + 1 (4 no corrieron) | 9,3 min               | 5,7             | 1,64     | 10:14    | ≈ 0:55               |
+| 2      | 172                      | 10,2                  | 6,0             | 1,71     | 11:17    | ≈ 1:05               |
+| 3      | 176                      | 8,9                   | 6,5             | 1,37     | 9:47     | ≈ 0:55               |
+| 4      | 167 + 1                  | 10,1                  | 5,7             | 1,77     | 11:11    | ≈ 1:05               |
+| todo   |                          | 38,6                  | 23,9            | **1,61** |          |                      |
+
+**La mediana de la razón CI / local, por spec** (114 archivos de 3 s o más en local): **1,59** (p10 1,29; p90 2,11; de 0,49, un spec que cayó y dejó 4 pruebas
+sin correr, a 2,61). CI-1 había supuesto 1,5 a 2,5: salió en la parte baja. Los más lentos respecto de local: `avisos-con-panel` 2,61, `vehiculos-apibara` 2,48,
+`barra-de-filtros-200` 2,32 y `vehiculos-limpieza` 2,16; los más parejos, `leads-menu-orden` 1,11 y `leads-mover-con-motivo` 1,14 (esperas largas de la propia
+prueba, que no escalan con la CPU). El reparto real de minutos por bloque es el de la tabla de pasos: lo que depende del runner de las pruebas son unos 10 min.
+
+**Por qué el bloque 2 tardó 19 min 18 s y los otros 14 a 15: no fueron sus specs.** Su paso de chromium tardó **4:35** (los otros, 0:27 a 0:40): `apt` bajó 25,9 MB
+a **104 kB/s** (4 min 10 s, «Fetched 25.9 MB in 4min 10s (104 kB/s)») y el bloque 3, los mismos paquetes, en 2 s (12,5 MB/s). Es el espejo de `apt` del
+runner de ese momento. Su paso de e2e (11:17) está a 6 s del bloque 4 (11:11) y a 1:03 del bloque 1; sus pruebas, a razón 1,71. Sin esos 4 min habría sido de ≈ 15.
+En el reloj fue la corrida más larga (19:16:32 el último), pero el costo extra fueron 4 minutos facturables, no los 5 del bloque.
+
+**Lo que esperaron los bloques a `nivel-1`.** `e2e-build` terminó a las 18:46:06; los bloques empezaron a las 18:57:13, **11 min 7 s** de reloj, justo cuando
+`nivel-1` terminó (13:01 de job; `needs: [cambios, nivel-1, e2e-build]` en `ci.yml:152`). **Facturados: 0** (un job que espera no corre). Qué costaría que los bloques
+no dependan de `nivel-1` (propuesta, sin aplicar, `docs/DECISIONES.md`, «CI-2»):
+
+| Opción                                                                                                 | Reloj       | Minutos facturables                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `needs: [cambios, e2e-build]`                                                                          | **−11 min** | igual si `nivel-1` pasa; si cae, los 4 bloques corren igual: **+64** (los de un e2e)                                                    |
+| partir `nivel-1`: lint y typecheck (≈ 2:30) aparte de `pnpm test` (≈ 10) y sólo esos dos en el `needs` | −8 min      | **+1 a +2 por corrida** (otro job con su preparar ≈ 0:25 y su redondeo) y se pierden 64 sólo si lint o typecheck caen _y_ nadie cancela |
+
+El costo esperado de la primera es 64 × la tasa de `nivel-1` en rojo: en las 6 corridas que hay, **ninguna** cayó en `nivel-1` (una cayó en `base`): la muestra no
+alcanza para dar una tasa (a 10 % serían ≈ 64 min al mes con 10 e2e; a 25 %, 160).
+
+**¿Es la CPU el cuello del e2e local? No.** Con los números de la medición local de CI-1 (1 worker; `us+sy` promedio **33,9 %**, p95 47 %, pico **62 %**, ninguna
+muestra sobre 85 %; el e2e pide ≈ **1,4 hilos de 8**, y esa medición ya tenía a Brave, VS Code, Steam y un juego usando la máquina) y los del runner (2 vCPU: la
+**misma serie** de pruebas, con 4 veces menos núcleos, sólo 1,6 veces más lenta). Si la CPU limitara la corrida local, pasar de 8 núcleos a 2 la habría
+multiplicado por mucho más de 1,6. Lo que se ve es una serie: un solo worker, un navegador a la vez, y el reloj es la suma de las esperas de cada prueba
+(navegación, la base, las animaciones). Lo que sí cuenta es la velocidad de un hilo (el runner es ≈ 1,6 veces más lento, compatible con un reloj más bajo): **más
+núcleos no la acortan, más workers sí**, y esos piden aislar la base (5a-4b); los bloques de CI son esa salida, con una base por runner (de 26 min de pruebas a ≈ 10
+en reloj). Lo que **no se midió** es la CPU del runner (CI no corre `vmstat`): que su 1,6 sea reloj y no contención con Postgres y Next, de los que ahí comparten 2
+vCPU, se infiere, no se sabe.
+
+### Parte B — los dos rojos
+
+**1) `e2e/vehiculos-apibara-funcion.spec.ts:84`** («una foto de otro sitio no sale, y apagada no consulta nada»). La función (`supabase/functions/apibara/index.ts`,
+329-336) responde `apagada` si `integracion_secreto('apibara')` no devuelve nada, **antes** de validar la URL de la foto (248-251); `fijarApibara(true)` sólo sella
+`secreto_guardado_en`. **Reproducido contra HEAD** (`pnpm db:reset`, `functions serve`, el spec solo, `E2E_PROD=1 pnpm exec playwright test`, con 0 claves en Vault):
+cae en `:91`, `Expected "entrada"`, `Received "apagada"`: igual que en CI. **Por qué en local pasaba:** `e2e/empresa.spec.ts:194` guarda una clave por la pantalla
+(`e2e-clave-<proyecto>-0123456789`, a Vault) y `restaurarEmpresa()` (`e2e/soporte/empresa.ts:132-151`) sólo restaura la **columna** `secreto_guardado_en`: la clave
+se queda en Vault. En CI, `empresa.spec.ts` cae en el bloque 1 y `vehiculos-apibara-funcion` en el 4, con un `db:reset` entre medias.
+
+**Arreglo.** `e2e/soporte/apibara-clave.ts`: `asegurarClaveDeRelleno(persona)` devuelve cómo quitarla. **Si ya hay una clave, no la toca ni la lee** (sólo
+`select id from vault.secrets where name = 'integracion:apibara'`; la huella que usa la prueba es el `md5` del texto **cifrado**, nunca `decrypted_secret`);
+si no hay, deja `e2e-sin-clave-real` por `integracion_guardar_secreto` y la quita por su id. El spec la llama en el `beforeAll` y la quita en el `afterAll`
+(corre también si una prueba cae), y el `afterAll` comprueba que la clave quede como estaba (con clave antes: sigue; sin clave: ninguna). Nada imprime una clave.
+**Una desviación de lo pedido:** se guarda **con la sesión de la dueña** (`signInWithPassword` + la RPC) y no con la service key, porque
+`integracion_guardar_secreto` hace `assert_permiso('empresa.ajustes.gestionar')` y la service key no tiene `auth.uid()`: es, además, la misma vía que la app. El spec
+`e2e/apibara-clave-de-relleno.spec.ts` prueba la regla (sin celular: no abre páginas): «con una clave ya guardada, el relleno no la pisa ni la borra» y «sin clave,
+deja el relleno y al quitarlo no queda ninguna» (se salta si hay una clave que no es suya).
+
+**Mutaciones** (cada una con respaldo y `cmp` al volver; Vault queda en 0 claves tras cada una):
+
+| Mutación                                                    | Cae                                                                                      |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| (a) el spec no deja la clave                                | `vehiculos-apibara-funcion.spec.ts`, la prueba de la foto, `apagada` en vez de `entrada` |
+| (b) el relleno se guarda aunque ya haya una clave (la pisa) | «con una clave ya guardada…»: la huella cambia (`updated_at` y el cifrado)               |
+| (c) quitar no borra                                         | «sin clave, deja el relleno…» y el `afterAll` del spec principal                         |
+| (d) el spec no llama a la función de quitar                 | el `afterAll` del spec principal: «la clave tras el spec»                                |
+
+**2) `e2e/avisos-sobre-el-pie.spec.ts:55`** («el clic lo recibe div «CancelarGuardando…Seguir con el seguimie»»). **Causa.** El aviso «Abrir ficha» sale en
+`alGuardar` (`alta-cargada.tsx:200-212`) cuando responde la acción; `enCurso` es el `isPending` de next-safe-action (`use-crear-lead.ts:25`), que dura hasta que la
+pantalla termina de refrescarse. En esa ventana el pie dice «Guardando…» y sus tres botones están `disabled`; el `Button` lleva `disabled:pointer-events-none`
+(`button.tsx:6`) y `elementFromPoint` los atraviesa: lo recibe el `div` del pie. No es una caja que se mueve: es un botón ocupado. `recibeElClic` medía una vez.
+**Reproducido** en una copia fuera del repo (en el scratchpad, con `Emulation.setCPUThrottlingRate` por CDP y las rutas de `e2e/soporte/` absolutas):
+
+| CPU del navegador | Aviso → pie quieto (sonda con un `MutationObserver`) | El spec contra HEAD                  | Con el arreglo                       |
+| ----------------- | ---------------------------------------------------- | ------------------------------------ | ------------------------------------ |
+| 1× (sin limitar)  | **40 a 49 ms**                                       | pasa                                 | pasa                                 |
+| 6×                | 145 a 159 ms                                         | pasa (25 de 25)                      | —                                    |
+| 10×               | —                                                    | pasa (15 de 15)                      | pasa (15 de 15)                      |
+| **14×**           | —                                                    | **cae 3 de 3, con el mensaje de CI** | **pasa 15 de 15**                    |
+| 20×               | 745 a 829 ms                                         | cae 3 de 3, el mismo mensaje         | pasa la primera medición (ver abajo) |
+
+A 20× el spec con el arreglo cae más adelante, en la segunda medición (el tema oscuro): el aviso dura 4 s (sonner) y a esa lentitud ya se fue; es un límite de la
+tasa extrema, no del arreglo. Las otras dos pruebas con la misma carrera, a 14× y 20× (8 de 8 con el arreglo): ver «Las demás carreras».
+
+**Arreglo** (`e2e/soporte/esperas.ts`, que `recorrido.ts` reexporta: ningún spec cambia): `pieQuieto(pie)` espera a que no haya «Guardando…» y a que cada botón
+esté habilitado, y `avisoNoTapaElPie()` lo llama antes de medir; `recibeElClic()` espera, cuadro a cuadro y con tope de 2 s, a que la caja sea igual en dos cuadros
+seguidos y calcula el clic en ese mismo cuadro; `quieto()` espera dos cuadros antes de leer las animaciones (lo que arranca en el cuadro en que se monta todavía no
+está en `getAnimations()`). Se espera un estado, nunca un tiempo (ni `waitForTimeout` ni reintentos). `recorrido.ts` pasó de 300 líneas de código (el lint) y se
+partió por responsabilidad. **La prueba permanente** es `e2e/recorrido-esperas.spec.ts` (los dos proyectos, sin marca): una página armada ahí con un pie que se
+habilita 700 ms después y un botón que se desliza bajo una tapa; **cae contra el `recorrido.ts` de HEAD en escritorio y en celular** («el clic lo recibe
+div#pie «Cancelar…» y «div#tapa») y pasa con el arreglo.
+
+| Mutación                                            | Cae                                                                                       |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| quitar `await pieQuieto(pie)` de `avisoNoTapaElPie` | la prueba del pie de `recorrido-esperas.spec.ts` (la copia con 14× **no** cae: ver abajo) |
+| `recibeElClic` sin esperar la caja quieta           | la prueba de la caja deslizante                                                           |
+| quitar las dos esperas (= HEAD)                     | la copia con 14×, 3 de 3                                                                  |
+
+**Dato honesto:** quitar sólo `pieQuieto` no rompe la copia a 14× (15 de 15): la espera de la caja quieta de `recibeElClic` ya le gana tiempo a la ventana. Lo que
+sostiene a `pieQuieto` es la prueba determinista de `recorrido-esperas.spec.ts`, no el retraso.
+
+**¿Es un defecto de la pantalla?** Menor, sí: confirma «guardado» mientras el pie dice «Guardando…» con los botones apagados (40 ms en una PC rápida, ≈ 150 ms con la
+CPU 6 veces más lenta, ≈ 800 ms a 20×). `ui.md` ya sabe que «el aviso sale antes de que se dibuje lo guardado», pero no que eso deje el pie apagado con el aviso a
+la vista. Anotado como **9-7** en `docs/PLAN.md` (con su assert y su lugar); no se arregla aquí (`src/` está prohibido en este paso).
+
+### Las demás carreras de e2e/ (B3)
+
+La auditoría (sólo lectura) buscó medir una caja o ver quién recibe un clic apenas aparece un aviso, termina una acción o se abre un panel sin esperar al estado
+final. **Cada sitio con carrera se reprodujo primero** (la copia con la CPU limitada, contra HEAD) y se arregló sólo si cayó.
+
+| Sitio                                                                                                                                                                                                                                         | Veredicto                                                                                                                                                                    | Qué se hizo                                                  |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `avisos-sobre-el-pie.spec.ts:70`, `:84`, `:129` (`avisoNoTapaElPie`)                                                                                                                                                                          | **carrera**: el alta recién guardada (reproducido, arriba)                                                                                                                   | arreglado en `esperas.ts`                                    |
+| `vehiculos-aviso-con-panel.spec.ts:76`                                                                                                                                                                                                        | **carrera** (el pie de `<PieDelPanel>` con `enCurso`; cae a 14×: «CancelarGuardar y cargar otroGuardando…»)                                                                  | arreglado en `esperas.ts`: 8 de 8 a 14× y 20×                |
+| `avisos-con-descripcion.spec.ts:105`                                                                                                                                                                                                          | **carrera** (el aviso de error de etapas sale con `isPending` aún prendido; cae a 20×)                                                                                       | arreglado en `esperas.ts`                                    |
+| `leads-barra-de-secciones.spec.ts:61` (`dentroDeLaPantalla`)                                                                                                                                                                                  | **carrera sin aviso**: `aria-current` ya viene del servidor; llevar la sección a la vista es un efecto de la hidratación (`barra-de-secciones.tsx:28`). Cae a 20× en celular | espera la pista de la izquierda y después mide: 9 de 9 a 20× |
+| `modales-con-salida.spec.ts:109-131` (`cabeEnElModal`, `:151`, `:163`)                                                                                                                                                                        | **sin reproducir** a 20×: las dos cajas se leen en el mismo cuadro y la transición de 100 ms sólo podría dar un falso rojo en una dirección                                  | no se toca                                                   |
+| `configuracion-cotizacion-niveles-200.spec.ts:88` (`quePisaElAviso`, soft)                                                                                                                                                                    | **sin reproducir** a 20×                                                                                                                                                     | no se toca                                                   |
+| `configuracion-200.spec.ts:224`, `barra-superior-celular.spec.ts:53`, `leads-recorrido.spec.ts:242`                                                                                                                                           | dudosos y de bajo riesgo (la medida no cambia con la acción, o no afirma nada)                                                                                               | anotados, sin arreglar                                       |
+| los demás llamadores de `recibeElClic`, `dentroDeLaPantalla` y `tactil` (`leads-recorrido*`, `configuracion-*-recorrido`, `leads-tabla-ancha`, `leads-numeros-recorrido`, `modales-con-salida`, `listas-por-pagina`, `vehiculos-por-pagina`…) | sin carrera: no siguen a un guardado, el tamaño no cambia con la acción, o ya hacen `expect.poll`                                                                            | los cubre `quieto()` con dos cuadros; sin cambio de spec     |
+| `empresa-guardado.spec.ts:128-143` (su propio `recibeElClic` y `quieto`)                                                                                                                                                                      | sin carrera: espera a que el historial muestre lo guardado y hace poll de la caja quieta                                                                                     | es el patrón correcto                                        |
+
+Los 20 specs que llaman a `quieto`, `recibeElClic`, `avisoNoTapaElPie` o `dentroDeLaPantalla`, más la barra de secciones: **en celular, 92 en verde y 3
+saltadas, 0 fallos** (3,0 min); en escritorio los cubre la Parte C.
+
+### Las dependencias de orden (specs que usan estado que no crean)
+
+Con `workers: 1` y sin `fullyParallel`, Playwright reparte archivos enteros en tramos contiguos: dentro de un bloque el orden es el de la corrida completa y lo único
+nuevo es que el primer spec arranca desde `db:reset`. Sólo importa lo que un spec **deja sin restaurar** (lo que se quita lo repone `db:reset`).
+
+- **Reales: una.** `vehiculos-apibara-funcion.spec.ts:84` (arriba). La deja `empresa.spec.ts:194`, que **sigue dejándola**: ver **9-8** en `docs/PLAN.md`
+  (`restaurarEmpresa()` no toca Vault; además, esa prueba **pisaría** una clave real si la hubiera, y no puede restaurarla porque no se lee). No se arregló aquí
+  (necesita mover el secreto de lugar por SQL sin leerlo y volver a ponerlo: es más grande).
+- **Sólo del seed o de las migraciones** (valen en CI): las integraciones (`fijarApibara`/`restaurarApibara` dejan `activa`, `config` y `secreto_guardado_en`;
+  `empresa.spec.ts:198` parte de la columna en `null`; `web_publica` apagada en `vehiculos-vitrina.spec.ts:174`); los ajustes de la empresa (`registro_abierto` en
+  `acceso.spec.ts:31-42`, `telefono_cc` y `pais` leídos en vivo en `soporte/leads-alta.ts:17`, `leads-pais-del-telefono.spec.ts:33`, `leads-importar-pais.spec.ts:21`;
+  `leads-portal.spec.ts:58` y `vehiculos-limpieza.spec.ts:61` fijan los suyos y los restauran); los catálogos (Prospecto y Cliente; WhatsApp y Llamada en
+  `configuracion-leads-seguimientos.spec.ts:70-73`; los orígenes del seed; el rol `asesor`; la fórmula publicada de `oficina`, `soporte/niveles.ts:85`;
+  `llenarHasta(n)`); el equipo vacío (`hayEquipoQueImpide()`, `soporte/base.ts:317`, con `CI`/`E2E_COMPLETO` exige que no haya cuentas ajenas); las preferencias y
+  los contadores, que son por persona y las personas son nuevas en cada spec (`leads_contadores`, `listas.por_pagina`).
+- **Dudosas, resueltas corriendo:** `leads-busqueda-numero-ajeno.spec.ts:89-127` (fija los números propios en 30 y 31 pero no el global) e `interruptor-200.spec.ts:97-110`
+  (los interruptores de las cuatro pantallas): **pasaron en los cuatro bloques desde base limpia**; no dependen de lo que dejó otro.
+- **Quién llama a cada ayudante:** `fijarApibara` — `vehiculos-apibara-funcion.spec.ts:93`, `vehiculos-apibara.spec.ts:183` y `:203`; `prepararSubasta` — los dos
+  anteriores y `vehiculos-limpieza.spec.ts:49`; `apagarApibara` — `origenes.spec.ts:45`; `pedirSecreto` — `empresa.spec.ts:235-236` (sólo comprueba el rechazo `42501`).
+
+### Parte C — los cuatro bloques, cada uno desde una base limpia (como los ve CI)
+
+`.next-e2e` ya compilado con el código de HEAD (`src/` sin cambios desde su compilación: la compilación del 12:18; el último cambio de `src/`, 11:47). Para cada
+bloque: `pnpm db:reset`, `functions serve` nuevo (se cerró y se volvió a servir entre bloques, con `kill -INT`), y `E2E_PROD=1 E2E_COMPLETO=1 pnpm exec playwright test
+--shard=i/4 --project=escritorio`. Reparto con los dos specs nuevos: 36, 35, 33 y 38 archivos; 180, 175, 177 y 177 pruebas (`apibara-clave-de-relleno` y
+`avisos-sobre-el-pie` en el 1; `recorrido-esperas` y `vehiculos-apibara-funcion` en el 4: el 4 es el que caía por apibara).
+
+**e2e completo: sí (CI-2, escritorio, 4 bloques desde base limpia):**
+
+| Bloque | Inicio   | `db:reset` listo | Funciones | Fin del comando | Verdes  | Saltadas | Fallos | Pruebas  | Todo el bloque                                             |
+| ------ | -------- | ---------------- | --------- | --------------- | ------- | -------- | ------ | -------- | ---------------------------------------------------------- |
+| 1      | 17:38:10 | 17:38:46         | 17:38:50  | 17:45:05        | 175     | 5        | **0**  | 6,2 min  | 6 min 55 s                                                 |
+| 2      | 17:45:13 | 17:45:48         | 17:45:50  | 17:52:14        | 172     | 3        | **0**  | 6,4 min  | 7 min 1 s                                                  |
+| 3      | 17:52:20 | 17:52:55         | 17:52:58  | 18:00:01        | 176     | 1        | **0**  | 7,0 min  | 7 min 41 s                                                 |
+| 4      | 18:00:13 | 18:00:49         | 18:00:52  | 18:07:22        | 170     | 7        | **0**  | 6,5 min  | 7 min 9 s                                                  |
+| total  |          |                  |           |                 | **693** | **16**   | **0**  | 26,1 min | 28 min 46 s (29 min 12 s de reloj, con los cuatro cierres) |
+
+Las 16 saltadas son las mismas por bloque que en CI (5, 3, 1 y 7): las 5 del bloque 1 son `barra-superior-celular` (sólo celular). Ninguna dependencia de orden nueva.
+Al terminar: `functions serve` cerrado con sus hijos, ningún contenedor `supabase_edge_runtime_*`, nada en el 3210, y 0 claves de integración en Vault.
+
+### Verificación
+
+`pnpm lint` y `pnpm typecheck` sin avisos; `pnpm test`: 352 archivos, 4.031 pruebas (eran 4.030); `bash scripts/mapa.sh --check`; ESTADO, 44 líneas y 12.276 B (límite 12.288).
+**Nivel 3: no.** Escritorio sí (Parte C); el celular, sólo lo dirigido (92 en verde).
+
+### Del entorno
+
+- **Nivel 1 roto antes de empezar:** `pnpm lint` caía con `RangeError: Invalid string length` porque eslint recorría los artefactos de GitHub bajados a
+  `test-salidas/ci-1-dispatch/` (el visor de trazas de Playwright, JS minificado). `test-salidas/**` ya estaba en `.gitignore` y no en los ignores de eslint
+  (`9f1bebc`). El hook de Stop además señalaba esa carpeta como «la última corrida de `pnpm test`» (`24ce2bd`).
+- **Un comando mío fue denegado antes de correr:** cargaba `.env.local` (`source`) para sondear las funciones edge, y ese archivo no se lee. No se leyó; las sondas
+  siguientes usaron el puerto 54621 de la pila local. (El código de `e2e/` carga `.env.local` por su cuenta, como siempre.)
+- `gh run view --job <id> --log` salió vacío; el log de un job sale de `gh api …/actions/jobs/<id>/logs`.
+- `functions serve` se cierra con `kill -INT` al proceso de la CLI (`supabase.js`): también baja el contenedor del edge runtime.
+- El primer `db:reset` de la sesión y los de cada bloque funcionaron a la primera.
+
+**Anotado (`docs/PLAN.md`):** **9-7** (el aviso de guardado sale con el pie todavía en «Guardando…») y **9-8** (`empresa.spec.ts:194` deja una clave en Vault y
+pisaría una real). **Sin reproducir, no tocados:** `modales-con-salida` (`cabeEnElModal`) y `configuracion-cotizacion-niveles-200` (`quePisaElAviso`).
+
+**Lo que no se hizo:** aplicar `needs` sin `nivel-1` (se propone), tocar `ci.yml`, más workers, `gh run rerun`, lanzar un workflow, `next upgrade`, empujar.
