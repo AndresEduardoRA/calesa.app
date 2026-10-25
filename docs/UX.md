@@ -280,7 +280,7 @@ Configuración › Cotización (`/configuracion/cotizacion?seccion=niveles`, una
 - **Tope:** 10 contando «todos» y los retirados. Al llegar, un aviso con el motivo real («Ya hay 10 niveles, que es el máximo. Los retirados también cuentan: elimina uno que ninguna hoja use para crear otro.»), «Nuevo nivel» apagado y la URL no abre.
 - **Estados:** cargando (esqueleto), error (el de la ruta, con «Reintentar»), lista llena; no hay «vacío por primera vez» (siempre está «Todos»).
 - **Dónde se nota:** cada nivel es **dos permisos por origen** (`Ver el nivel «X»` y `Editar el nivel «X»`) en la matriz de Roles, al final de «Cotizaciones» (los retirados dicen «(retirado)»); el dueño los recibe al nacer. «Ver como» un rol que no tiene el permiso deja los interruptores apagados («No puedes dar un permiso que no tienes.»).
-- **Anchos:** al 100 % y al 200 % en 412 y 1.280 px la página no se ensancha y el nombre y el «⋯» de cada fila están a la vista (`e2e/configuracion-cotizacion-niveles.spec.ts`; la matriz con 18 filas de nivel, `e2e/roles-niveles.spec.ts`).
+- **Anchos:** al 100 % y al 200 % en 412 y 1.280 px la página no se ensancha y el nombre y el «⋯» de cada fila están a la vista (`e2e/configuracion-cotizacion-niveles.spec.ts`; la matriz con 18 filas de nivel, `e2e/roles-niveles.spec.ts`). **La tabla de escritorio tiene dos columnas, «Nombre» y el «⋯»; el estado y el uso van bajo el nombre** (4-15: con columnas aparte, al 200 % la del «⋯» pegada a la derecha tapaba «Estado» y «Uso»). Cada texto de cada fila se lee entero y nada lo tapa, tampoco un aviso (`e2e/configuracion-cotizacion-niveles-200.spec.ts`, en los dos proyectos; el aviso, sólo en escritorio).
 
 ### Leads: iconos en las pantallas (estados propios)
 
