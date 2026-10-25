@@ -206,6 +206,7 @@ for (const archivo of [
   'niveles.sql',
   'niveles-con-uso.sql',
   'cotizaciones-visibilidad.sql',
+  'cotizacion-crear.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t) || (SOLO && !SOLO.includes(archivo))) continue

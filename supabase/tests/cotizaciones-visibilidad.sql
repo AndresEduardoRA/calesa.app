@@ -132,7 +132,10 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
     'cotizacion_revisiones', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_revisiones({cot})',
       'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
     'cotizacion_leer', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_leer({cot})',
-      'motivo', 'el snapshot de una cotización recortado con _nodos_visibles() de SU versión: el total y lo aparte siempre, los subtotales por grupo sólo si se ve el grupo entero')
+      'motivo', 'el snapshot de una cotización recortado con _nodos_visibles() de SU versión: el total y lo aparte siempre, los subtotales por grupo sólo si se ve el grupo entero'),
+    'cotizacion_crear', jsonb_build_object('clase', 'recorta',
+      'sonda', 'select public.cotizacion_crear(gen_random_uuid(), {origen}, {lead}, jsonb_build_object(''inputs'', jsonb_build_object(''visible'', 1.5, {oculto}, {centinela}::numeric)))',
+      'motivo', 'calcula con _cotizacion_armar() y devuelve _cotizacion_respuesta() (el mismo recorte de cotizacion_leer): lo que se tipea sólo nombra lo que se ve y se edita (un nodo oculto da el error de uno inexistente, uno que se ve y no se edita da nodo_no_editable) y el snapshot guardado lleva los nodos que quien llama no ve con su valor de la fórmula')
   )
 $f$;
 
@@ -838,12 +841,14 @@ declare
   duena constant uuid := '00000000-0000-0000-0000-000000000001';
   v_reg jsonb := pg_temp.cv_registro(); v_nuevo uuid := gen_random_uuid(); v_niveles text[]; v_nivel text; v_otro_nivel text; v_i int := 0;
   o uuid; o2 uuid; v_c uuid; sin uuid; con uuid; ed uuid; ajeno uuid; otro_nivel uuid; ver_como uuid; cfg uuid; cfg_ajeno uuid; v_rol_sin uuid; v_oculto text; v_centinela text; k text; v_sql text; v_txt text;
-  v_vis jsonb; v_def jsonb; v_con_como jsonb; r jsonb; v_quien uuid; v_tipea boolean;
+  v_vis jsonb; v_def jsonb; v_con_como jsonb; r jsonb; v_quien uuid; v_tipea boolean; v_lead uuid; solo_ver uuid;
 begin
   perform pg_temp.cv_como(duena);
   set local role authenticated;
   perform public.nivel_crear(v_nuevo, 'Gerencia CV');
   reset role;
+  -- Las sondas que crean (`cotizacion_crear`) no piden vehículo: el ajuste de la empresa lo dice (se revierte con el bloque).
+  update public.ajustes_empresa set vehiculo_obligatorio_al_cotizar = false where id = 1;
   v_niveles := array(select clave from public.cotizaciones_niveles where clave <> 'todos' order by clave);
   if cardinality(v_niveles) < 2 or not 'costos' = any (v_niveles) or not 'gerencia_cv' = any (v_niveles) then raise exception 'esperaba al menos costos y el creado: %', v_niveles; end if;
   foreach v_nivel in array v_niveles loop
@@ -863,6 +868,9 @@ begin
     v_vis := jsonb_build_object('tc', jsonb_build_object('ver', 'todos', 'editar', 'todos'), 'visible', jsonb_build_object('ver', 'todos', 'editar', 'todos'),
                                 v_oculto, jsonb_build_object('ver', v_nivel, 'editar', v_nivel), 'total', jsonb_build_object('ver', 'todos', 'editar', null));
     insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o, 1, 'publicada', v_def, '{}', '{}', v_vis);
+    -- Un lead que ven todas las personas con `leads.ver` (para lo que crea: el lead es obligatorio).
+    insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
+    values ('CV lead generico ' || v_i, '77' || lpad((floor(random() * 1000000))::text, 6, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into v_lead;
     insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base, titulo)
     values (o, duena, (select id from public.formulas where origen_id = o), jsonb_build_object('visible', 111.25, v_oculto, v_centinela::numeric, 'total', 123456.78),
             jsonb_build_object('visible', 'input', v_oculto, 'input'), '{}', '{"bs": 123456.78, "usd": 123456.78, "suma_usd": 123456.78}', 123456.78, 'CV generico ' || v_i) returning id into v_c;
@@ -872,17 +880,26 @@ begin
     -- sin: ve cotizaciones; con: además el nivel; ed: sólo editar el nivel; ajeno: el nivel, pero en otro origen; otro_nivel: el ver de otro nivel; ver_como: el nivel y gestionar roles.
     sin := gen_random_uuid(); con := gen_random_uuid(); ed := gen_random_uuid(); ajeno := gen_random_uuid(); otro_nivel := gen_random_uuid(); ver_como := gen_random_uuid();
     cfg := gen_random_uuid(); cfg_ajeno := gen_random_uuid();
+    solo_ver := gen_random_uuid();
+    perform pg_temp.cv_persona(solo_ver, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+                                                           jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver')));
     perform pg_temp.cv_persona(cfg, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o)));
     perform pg_temp.cv_persona(cfg_ajeno, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o2)));
-    perform pg_temp.cv_persona(sin, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear')));
-    perform pg_temp.cv_persona(con, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver')));
-    perform pg_temp.cv_persona(ed, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.editar')));
-    perform pg_temp.cv_persona(ajeno, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver', 'origen', o2)));
-    perform pg_temp.cv_persona(otro_nivel, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_otro_nivel || '.ver')));
-    perform pg_temp.cv_persona(ver_como, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver'), jsonb_build_object('clave', 'equipo.roles.gestionar')));
+    perform pg_temp.cv_persona(sin, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver')));
+    perform pg_temp.cv_persona(con, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+                                                      jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.editar')));
+    perform pg_temp.cv_persona(ed, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+                                                     jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.editar')));
+    perform pg_temp.cv_persona(ajeno, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+                                                        jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver', 'origen', o2)));
+    perform pg_temp.cv_persona(otro_nivel, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+                                                             jsonb_build_object('clave', 'cotizaciones.nivel.' || v_otro_nivel || '.ver')));
+    perform pg_temp.cv_persona(ver_como, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+                                                           jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.editar'),
+                                                           jsonb_build_object('clave', 'equipo.roles.gestionar')));
     for k in select jsonb_object_keys(v_reg) loop
       continue when v_reg -> k ? 'cubierta_por';
-      v_sql := replace(replace(replace(replace(v_reg -> k ->> 'sonda', '{cot}', quote_literal(v_c)), '{origen}', quote_literal(o)), '{oculto}', quote_literal(v_oculto)), '{centinela}', v_centinela);
+      v_sql := replace(replace(replace(replace(replace(v_reg -> k ->> 'sonda', '{cot}', quote_literal(v_c)), '{origen}', quote_literal(o)), '{lead}', quote_literal(v_lead)), '{oculto}', quote_literal(v_oculto)), '{centinela}', v_centinela);
       if v_reg -> k ->> 'clase' = 'configurar' then
         -- Sólo con cotizaciones.configurar DE ESE ORIGEN: ni ver, crear, el nivel (con o sin «ver como»), ni configurar otro origen; quien configura sí, y la fórmula lleva el nodo.
         foreach v_txt in array array['sin', 'con', 'ed', 'ajeno', 'otro_nivel', 'ver_como', 'cfg_ajeno'] loop
@@ -921,6 +938,21 @@ begin
       v_txt := (pg_temp.cv_corre(ver_como, v_sql))::text;
       if position(v_oculto in v_txt) = 0 or position(v_centinela in v_txt) = 0 then raise exception 'nivel %: con «ver como» % cambia lo que decide la base: %', v_nivel, k, v_txt; end if;
     end loop;
+    -- Crear sin tipear el nodo del nivel (4.10-2): quien no lo ve no lo recibe, y lo guardado (leído como postgres) lo trae con su valor por defecto, que es el de la fórmula; quien lo ve y lo edita
+    -- lo tipea y queda guardado con lo que tipeó.
+    r := pg_temp.cv_corre(sin, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {"visible": 2}}'')', o, v_lead));
+    if r ? 'error' or position(v_oculto in r::text) > 0 then raise exception 'nivel %: crear sin tipear el nodo falla o lo devuelve a quien no lo ve: %', v_nivel, r; end if;
+    if (select c.valores -> v_oculto from public.cotizaciones c where c.id = (r -> 'cotizacion' ->> 'id')::uuid) is distinct from '0'::jsonb then
+      raise exception 'nivel %: lo guardado no trae el nodo oculto con su valor por defecto: %', v_nivel, (select c.valores from public.cotizaciones c where c.id = (r -> 'cotizacion' ->> 'id')::uuid);
+    end if;
+    r := pg_temp.cv_corre(con, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, jsonb_build_object(''inputs'', jsonb_build_object(''visible'', 2, %L, %s::numeric)))', o, v_lead, v_oculto, v_centinela));
+    if r ? 'error' or (r -> 'valores' ->> v_oculto)::numeric is distinct from v_centinela::numeric
+       or (select (c.valores ->> v_oculto)::numeric from public.cotizaciones c where c.id = (r -> 'cotizacion' ->> 'id')::uuid) <> v_centinela::numeric then
+      raise exception 'nivel %: quien tiene el nivel no recibe ni guarda lo que tipeó: %', v_nivel, r;
+    end if;
+    -- Quien ve el nivel pero no lo edita: tipearlo es nodo_no_editable (el nodo se ve, no se edita); quien lo edita y no lo ve, el error del nodo que no existe.
+    r := pg_temp.cv_corre(solo_ver, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, jsonb_build_object(''inputs'', jsonb_build_object(%L, 1)))', o, v_lead, v_oculto));
+    if r ->> 'error' is distinct from '42501' or r ->> 'detail' is distinct from 'nodo_no_editable' or r ->> 'hint' is distinct from v_oculto then raise exception 'nivel %: sólo ver el nivel y tipear su nodo debía dar nodo_no_editable: %', v_nivel, r; end if;
   end loop;
 end $$;
 rollback;
@@ -1402,5 +1434,118 @@ begin
      or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_tabla(text,uuid,uuid)'::regprocedure and x.grantee = 0) then
     raise exception 'los grants de cotizacion_tabla';
   end if;
+end $$;
+rollback;
+
+-- @test visibilidad: lo que `cotizacion_crear` y `cotizacion_evaluar` dicen de un lead, un vehículo, un nodo o una variante que quien llama no ve es lo mismo que dirían si no existieran (4.10-2)
+begin;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  base constant text[] := array['cotizaciones.ver', 'cotizaciones.crear', 'leads.ver', 'vehiculos.ver'];
+  sin uuid := gen_random_uuid(); sin_lv uuid := gen_random_uuid(); sin_v uuid := gen_random_uuid(); solo_ver uuid := gen_random_uuid(); otro uuid := gen_random_uuid(); k uuid := gen_random_uuid();
+  o_con uuid; o_sin uuid; o_nd uuid; l uuid; l_pap uuid; v uuid; v_pap uuid; c_ajena uuid; v_def jsonb; v_vis jsonb; v_def_sin jsonb; v_vis_sin jsonb;
+  r jsonb; r2 jsonb; v_sql text; v_q record; v_cb text := '{"inputs": {"visible": 1}';
+  c_nodos constant jsonb := jsonb_build_array(
+    jsonb_build_object('id', 'tc', 'tipo', 'tipo_cambio', 'clave', 'oficial', 'etiqueta', 'TC', 'formato', 'raw'),
+    jsonb_build_object('id', 'visible', 'tipo', 'input', 'etiqueta', 'Visible', 'bucket', 'origen'),
+    jsonb_build_object('id', 'oculto_costos', 'tipo', 'input', 'etiqueta', 'Oculto', 'bucket', 'origen'));
+begin
+  update public.ajustes_empresa set vehiculo_obligatorio_al_cotizar = false where id = 1;
+  perform pg_temp.cv_persona(sin, (select jsonb_agg(jsonb_build_object('clave', c)) from unnest(base) c));
+  perform pg_temp.cv_persona(otro, (select jsonb_agg(jsonb_build_object('clave', c)) from unnest(base) c));
+  perform pg_temp.cv_persona(sin_lv, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear')));
+  perform pg_temp.cv_persona(solo_ver, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'), jsonb_build_object('clave', 'cotizaciones.nivel.costos.ver')));
+  perform pg_temp.cv_persona(sin_v, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver')));
+  perform pg_temp.cv_persona(k, (select jsonb_agg(jsonb_build_object('clave', c)) from unnest(base || array['cotizaciones.nivel.costos.ver', 'cotizaciones.nivel.costos.editar']) c));
+  -- Tres fórmulas: una con una variante, una bandera y un input del nivel «costos» (con y sin `por_defecto`) y otra sin variante ni bandera.
+  v_def := jsonb_build_object('nodos', c_nodos || jsonb_build_array(
+      jsonb_build_object('id', 'b_costos', 'tipo', 'bandera', 'etiqueta', 'B', 'formato', 'raw'),
+      jsonb_build_object('id', 'var_costos', 'tipo', 'opcion', 'etiqueta', 'V', 'por_defecto', 'a', 'opciones', jsonb_build_array(
+        jsonb_build_object('clave', 'a', 'etiqueta', 'A', 'titulo', 'T A'), jsonb_build_object('clave', 'b', 'etiqueta', 'B', 'titulo', 'T B'))),
+      jsonb_build_object('id', 'total', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('visible', 'oculto_costos'), 'etiqueta', 'Total', 'salida', 'total', 'bucket', 'origen')),
+    'buckets', jsonb_build_object('origen', 'tc'));
+  v_vis := jsonb_build_object('tc', jsonb_build_object('ver', 'todos', 'editar', 'todos'), 'visible', jsonb_build_object('ver', 'todos', 'editar', 'todos'),
+    'oculto_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'), 'b_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'),
+    'var_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'), 'total', jsonb_build_object('ver', 'todos', 'editar', null));
+  v_def_sin := jsonb_build_object('nodos', c_nodos || jsonb_build_array(
+      jsonb_build_object('id', 'total', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('visible', 'oculto_costos'), 'etiqueta', 'Total', 'salida', 'total', 'bucket', 'origen')),
+    'buckets', jsonb_build_object('origen', 'tc'));
+  v_vis_sin := jsonb_build_object('tc', jsonb_build_object('ver', 'todos', 'editar', 'todos'), 'visible', jsonb_build_object('ver', 'todos', 'editar', 'todos'),
+    'oculto_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'), 'total', jsonb_build_object('ver', 'todos', 'editar', null));
+  insert into public.origenes (clave, nombre) values ('cv_d_con', 'CV d con') returning id into o_con;
+  insert into public.origenes (clave, nombre) values ('cv_d_sin', 'CV d sin') returning id into o_sin;
+  insert into public.origenes (clave, nombre) values ('cv_d_nd', 'CV d nd') returning id into o_nd;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o_con, 1, 'publicada', v_def, '{}', '{}', v_vis);
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o_sin, 1, 'publicada', v_def_sin, '{}', '{}', v_vis_sin);
+  -- La tercera es la primera sin `por_defecto`.
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  values (o_nd, 1, 'publicada', jsonb_set(v_def, '{nodos}', (select jsonb_agg(case when n ->> 'id' = 'var_costos' then n - 'por_defecto' else n end) from jsonb_array_elements(v_def -> 'nodos') n)), '{}', '{}', v_vis);
+  insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
+  values ('CV d lead', '79' || lpad((floor(random() * 1000000))::text, 6, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos, eliminado_en)
+  values ('CV d lead borrado', '71' || lpad((floor(random() * 1000000))::text, 6, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}', now()) returning id into l_pap;
+  insert into public.vehiculos (origen_id, titulo, marca) values (o_sin, 'CV d vehículo', 'toyota') returning id into v;
+  insert into public.vehiculos (origen_id, titulo, marca, eliminado_en) values (o_sin, 'CV d vehículo borrado', 'toyota', now()) returning id into v_pap;
+
+  -- 1. El lead: inexistente, de la papelera y de quien no tiene leads.ver dan el mismo error.
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{}'')', o_sin, gen_random_uuid()));
+  if r ->> 'error' is distinct from '42501' then raise exception 'un lead inexistente debía dar 42501: %', r; end if;
+  if pg_temp.cv_corre(sin, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{}'')', o_sin, l_pap)) is distinct from r
+     or pg_temp.cv_corre(sin_lv, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{}'')', o_sin, l)) is distinct from r then
+    raise exception 'el lead de la papelera o el de quien no lo ve se distinguen de uno inexistente';
+  end if;
+  -- 2. El vehículo: inexistente, de la papelera y de quien no tiene vehiculos.ver dan el mismo error, y el mismo que da cotizacion_evaluar.
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{}'', %L)', o_sin, l, gen_random_uuid()));
+  if r ->> 'error' is distinct from '42501' then raise exception 'un vehículo inexistente debía dar 42501: %', r; end if;
+  if pg_temp.cv_corre(sin, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{}'', %L)', o_sin, l, v_pap)) is distinct from r
+     or pg_temp.cv_corre(sin_v, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{}'', %L)', o_sin, l, v)) is distinct from r
+     or pg_temp.cv_corre(sin, format('select public.cotizacion_evaluar(''{}''::jsonb, null, %L, %L)', o_sin, gen_random_uuid())) is distinct from r then
+    raise exception 'el vehículo de la papelera, el que no se ve o el de cotizacion_evaluar se distinguen de uno inexistente';
+  end if;
+  -- 3. El id de una cotización de otra persona da lo que daría cotizacion_leer con un id que no existe.
+  r := pg_temp.cv_corre(otro, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{}'')', o_sin, l));
+  c_ajena := (r -> 'cotizacion' ->> 'id')::uuid;
+  if c_ajena is null then raise exception 'la alta de la otra persona falló: %', r; end if;
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_crear(%L, %L, %L, ''{}'')', c_ajena, o_sin, l));
+  if r is distinct from pg_temp.cv_corre(sin, format('select public.cotizacion_leer(%L)', gen_random_uuid())) then raise exception 'un id ajeno se distingue de uno que no existe: %', r; end if;
+  -- 4. Un nodo oculto (un input, una bandera, un override) o la variante oculta se dicen como uno que no existe, en las dos RPC.
+  for v_q in select * from (values
+      ('crear', 'inputs', '{"inputs": {"oculto_costos": 1}}', '{"inputs": {"zz_inexistente": 1}}', 'oculto_costos'),
+      ('crear', 'banderas', '{"banderas": {"b_costos": true}}', '{"banderas": {"zz_inexistente": true}}', 'b_costos'),
+      ('crear', 'overrides', '{"overrides": {"oculto_costos": 1}}', '{"overrides": {"zz_inexistente": 1}}', 'oculto_costos'),
+      ('evaluar', 'inputs', '{"inputs": {"oculto_costos": 1}}', '{"inputs": {"zz_inexistente": 1}}', 'oculto_costos'),
+      ('evaluar', 'banderas', '{"banderas": {"b_costos": true}}', '{"banderas": {"zz_inexistente": true}}', 'b_costos'),
+      ('evaluar', 'overrides', '{"overrides": {"oculto_costos": 1}}', '{"overrides": {"zz_inexistente": 1}}', 'oculto_costos')) t (rpc, que, oculto, inexistente, nodo) loop
+    v_sql := case v_q.rpc when 'crear' then 'select public.cotizacion_crear(gen_random_uuid(), %L, %L, %L::jsonb)' else 'select public.cotizacion_evaluar(%L::jsonb, null, %L)' end;
+    if v_q.rpc = 'crear' then
+      r := pg_temp.cv_corre(sin, format(v_sql, o_con, l, v_q.oculto)); r2 := pg_temp.cv_corre(sin, format(v_sql, o_con, l, v_q.inexistente));
+    else
+      r := pg_temp.cv_corre(sin, format(v_sql, v_q.oculto, o_con)); r2 := pg_temp.cv_corre(sin, format(v_sql, v_q.inexistente, o_con));
+    end if;
+    if replace(r::text, v_q.nodo, 'zz_inexistente') is distinct from r2::text then
+      raise exception '% de % con un nodo oculto se distingue de uno inexistente: % contra %', v_q.que, v_q.rpc, r, r2;
+    end if;
+    if v_q.que = 'overrides' and v_q.rpc = 'crear' and r ->> 'detail' is distinct from 'nodo_inexistente' then raise exception 'un override oculto en crear debía dar nodo_inexistente: %', r; end if;
+  end loop;
+  -- 5. La variante: con la opción oculta, elegir una da lo que da una fórmula SIN variante (el texto no nombra el nodo ni lleva su pista), en las dos RPC; no elegir ninguna, sin `por_defecto`, tampoco la nombra.
+  r2 := pg_temp.cv_corre(sin, format('select public.cotizacion_evaluar(''{"variante": "b"}''::jsonb, null, %L)', o_sin));
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_evaluar(''{"variante": "b"}''::jsonb, null, %L)', o_con));
+  if r2 ->> 'error' is distinct from '22023' or r is distinct from r2 then raise exception 'la variante oculta en evaluar se distingue de una fórmula sin variante: % contra %', r, r2; end if;
+  r2 := pg_temp.cv_corre(sin, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"variante": "b"}'')', o_sin, l));
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"variante": "b"}'')', o_con, l));
+  if r2 ->> 'error' is distinct from '22023' or r is distinct from r2 then raise exception 'la variante oculta en crear se distingue de una fórmula sin variante: % contra %', r, r2; end if;
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_evaluar(''{}''::jsonb, null, %L)', o_nd));
+  if r ->> 'error' is distinct from '22023' or r::text like '%var_costos%' then raise exception 'sin por_defecto y con la opción oculta debía dar un error que no nombra el nodo: %', r; end if;
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{}'')', o_nd, l));
+  if r ->> 'error' is distinct from '22023' or r::text like '%var_costos%' then raise exception 'crear sin por_defecto y con la opción oculta debía dar un error que no nombra el nodo: %', r; end if;
+  -- Quien ve el nivel y no lo edita ve la variante pero no la elige: nodo_no_editable (con la pista del nodo, que sí ve).
+  r := pg_temp.cv_corre(solo_ver, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"variante": "b"}'')', o_con, l));
+  if r ->> 'error' is distinct from '42501' or r ->> 'detail' is distinct from 'nodo_no_editable' or r ->> 'hint' is distinct from 'var_costos' then raise exception 'elegir la variante de un nivel que sólo se ve debía dar nodo_no_editable: %', r; end if;
+  -- Quien ve y edita el nivel sí elige la variante.
+  r := pg_temp.cv_corre(k, format('select public.cotizacion_evaluar(''{"variante": "b"}''::jsonb, null, %L)', o_con));
+  if r ? 'error' or r -> 'valores' ->> 'var_costos' is distinct from 'b' then raise exception 'quien tiene el nivel no pudo elegir la variante: %', r; end if;
+  r := pg_temp.cv_corre(k, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"variante": "b"}'')', o_con, l));
+  if r ? 'error' or r -> 'valores' ->> 'var_costos' is distinct from 'b' then raise exception 'quien tiene el nivel no pudo crear con la variante: %', r; end if;
 end $$;
 rollback;

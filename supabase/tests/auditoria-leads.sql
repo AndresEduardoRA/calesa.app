@@ -135,6 +135,9 @@ declare
     ('cotizacion_leer(uuid)', 'L'),
     ('cotizacion_revisiones(uuid,bigint,integer)', 'L'),
     ('cotizacion_tabla(text,uuid,uuid)', 'L'),
+    -- Crear una cotización (4.10-2): el lead es obligatorio y se pide visible (`leads.ver`, la regla de la policy de insert que se fue), no de la cartera: una cotización cuelga de un lead que quien
+    -- cotiza ve (D3). Lo bloquea `for key share` entre dos comprobaciones, igual para el que no existe y el que no ve (`cotizacion-crear.sql` y `cotizaciones-visibilidad.sql`).
+    ('cotizacion_crear(uuid,uuid,uuid,jsonb,uuid,jsonb,text,clase_cotizacion)', 'X'),
     ('reasignar_tarea(uuid,uuid)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));

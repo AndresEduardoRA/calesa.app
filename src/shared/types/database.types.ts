@@ -6967,6 +6967,20 @@ export type Database = {
         Returns: Json
       }
       _cotizacion_recorte: { Args: { p_ctx: Json; p_res: Json }; Returns: Json }
+      _cotizacion_respuesta: {
+        Args: {
+          c: Omit<
+            Database['public']['Tables']['cotizaciones']['Row'],
+            Database['public']['Tables']['cotizaciones']['ComputedFields']
+          >
+          p_ctx?: Json
+        }
+        Returns: Json
+      }
+      _cotizacion_tipeado: {
+        Args: { p_def: Json; p_entrada: Json; p_modo: Json; p_ok: Json }
+        Returns: string[]
+      }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
       _diseno_modos: {
@@ -7859,6 +7873,19 @@ export type Database = {
           p_origen: string
         }
         Returns: boolean
+      }
+      cotizacion_crear: {
+        Args: {
+          p_clase?: Database['public']['Enums']['clase_cotizacion']
+          p_entradas: Json
+          p_id: string
+          p_lead: string
+          p_modo_tc?: string
+          p_origen: string
+          p_vehiculo?: string
+          p_vehiculo_nuevo?: Json
+        }
+        Returns: Json
       }
       cotizacion_evaluar: {
         Args: {
