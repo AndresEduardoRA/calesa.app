@@ -58,11 +58,11 @@ begin
 end $f$;
 
 -- El terreno de guardar: un origen con una fórmula publicada de nueve nodos, un lead y un vehículo (y otro), las personas y UNA cotización ya guardada (escrita directo, consistente con la fórmula).
---   visible   input, lo ven y lo editan todos          fijo        input, lo ven todos y nadie lo edita
+--   visible   input, lo ven y lo editan todos          fijo        input, lo ven todos y nadie lo edita          ajuste  cálculo sobrescribible que no entra al total
 --   oculto    input del nivel «costos»                 b_costos    bandera del nivel «costos»          bono_costos  input de «costos», sólo con b_costos encendida
---   der_costos cálculo de «costos» (= visible)         total       suma de todo, lo ven todos y nadie lo edita
+--   der_costos cálculo de «costos» (= visible)         aparte_costos  input de «costos» que no entra al total       total  suma de todo lo demás, lo ven todos y nadie lo edita
 -- Personas: a (cotiza: ver, crear, editar, leads y vehículos), k (a + ver y editar el nivel «costos»), kv (a + sólo ver «costos»), ke (a + sólo editar «costos»), sc (sólo ver),
--- fg (a + gestionar finales), aj (a, pero en OTRO origen), sl (sin leads.ver: igual puede guardar, el lead no se mira). La cotización: visible 100, fijo 5, oculto 25, b_costos encendida, bono 7.
+-- fg (a + gestionar finales), aj (a, pero en OTRO origen), sl (sin leads.ver: igual puede guardar, el lead no se mira). La cotización: visible 100, fijo 5, oculto 25, b_costos encendida, bono 7, aparte 3 (total 237).
 create or replace function pg_temp.cg_preparar() returns jsonb language plpgsql as $f$
 declare
   o uuid; o2 uuid; f uuid; l uuid; v uuid; v2 uuid; c uuid := gen_random_uuid(); v_def jsonb; v_vis jsonb; v_res jsonb; v_ent jsonb;
@@ -79,14 +79,17 @@ begin
     jsonb_build_object('id', 'oculto', 'tipo', 'input', 'etiqueta', 'Oculto', 'bucket', 'origen'),
     jsonb_build_object('id', 'b_costos', 'tipo', 'bandera', 'etiqueta', 'Bono'),
     jsonb_build_object('id', 'bono_costos', 'tipo', 'input', 'etiqueta', 'Bono', 'condicion', 'b_costos', 'bucket', 'origen'),
+    jsonb_build_object('id', 'aparte_costos', 'tipo', 'input', 'etiqueta', 'Aparte', 'bucket', 'origen'),
+    jsonb_build_object('id', 'ajuste', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('visible'), 'etiqueta', 'Ajuste', 'sobrescribible', true, 'bucket', 'origen'),
     jsonb_build_object('id', 'der_costos', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('visible'), 'etiqueta', 'Derivado', 'bucket', 'origen'),
     jsonb_build_object('id', 'total', 'tipo', 'calculo', 'op', 'suma', 'de', jsonb_build_array('visible', 'fijo', 'oculto', 'bono_costos', 'der_costos'), 'etiqueta', 'Total', 'salida', 'total', 'bucket', 'origen')),
     'buckets', jsonb_build_object('origen', 'tc'));
   v_vis := jsonb_build_object('tc', jsonb_build_object('ver', 'todos', 'editar', 'todos'), 'visible', jsonb_build_object('ver', 'todos', 'editar', 'todos'),
                               'fijo', jsonb_build_object('ver', 'todos', 'editar', null), 'oculto', jsonb_build_object('ver', 'costos', 'editar', 'costos'),
                               'b_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'), 'bono_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'),
-                              'der_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'), 'total', jsonb_build_object('ver', 'todos', 'editar', null));
-  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, publicado_en) values (o, 1, 'publicada', v_def, '{}', '{}', v_vis, now() - interval '10 days') returning id into f;
+                              'der_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'), 'aparte_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'), 'ajuste', jsonb_build_object('ver', 'todos', 'editar', 'todos'), 'total', jsonb_build_object('ver', 'todos', 'editar', null));
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, publicado_en) values (o, 1, 'publicada', v_def, '{}',
+    '{"cabecera": {"modos": [{"clave": "paralelo", "nombre": "Paralelo", "buckets": [{"bucket": "origen", "nodo": "tc"}], "total_en": "tc"}]}}', v_vis, now() - interval '10 days') returning id into f;
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, publicado_en) values (o2, 1, 'publicada', v_def, '{}', '{}', v_vis, now() - interval '10 days');
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
   values ('CG lead', '73' || lpad((floor(random() * 1000000))::text, 6, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
@@ -101,7 +104,7 @@ begin
   perform pg_temp.cg_persona(aj, v_base, o2);
   perform pg_temp.cg_persona(sl, array['cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'vehiculos.ver'], o);
   -- La cotización: el resultado del motor con esas entradas, tal cual lo guardaría crear (la fila la escribe postgres).
-  v_ent := '{"inputs": {"visible": 100, "fijo": 5, "oculto": 25, "bono_costos": 7}, "banderas": {"b_costos": true}, "overrides": {}, "vehiculo": {}, "tablas": {}}'::jsonb
+  v_ent := '{"inputs": {"visible": 100, "fijo": 5, "oculto": 25, "bono_costos": 7, "aparte_costos": 3}, "banderas": {"b_costos": true}, "overrides": {}, "vehiculo": {}, "tablas": {}}'::jsonb
            || jsonb_build_object('tipos_cambio', jsonb_build_object('oficial', (select valor from public.tipos_cambio where clave = 'oficial')));
   v_res := public.evaluar_formula(v_def, '{}', v_ent, null);
   insert into public.cotizaciones (id, origen_id, lead_id, vehiculo_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base)
@@ -131,23 +134,23 @@ begin
   if v2 <= v1 then raise exception 'dos cambios en la misma transacción debían dar dos versiones (% -> %)', v1, v2; end if;
   -- Un update que no cambia nada no mueve la versión.
   update public.cotizaciones set notas = 'dos' where id = c;
-  if (select actualizado_en from public.cotizaciones where id = c) <> v2 then raise exception 'un update sin cambios movió la versión'; end if;
+  if (select actualizado_en from public.cotizaciones where id = c) is distinct from v2 then raise exception 'un update sin cambios movió la versión'; end if;
 
   -- Un favorito y un reporte (los cuentan triggers) no son un cambio de la cotización: ni la versión, ni una revisión, ni una fila de actividad.
   select count(*) into v_rev from public.cotizaciones_revisiones where cotizacion_id = c;
   select count(*) into v_act from public.actividad where tabla = 'cotizaciones' and registro_id = c::text;
   insert into public.cotizaciones_favoritos (cotizacion_id, usuario_id) values (c, '00000000-0000-0000-0000-000000000001');
   insert into public.cotizaciones_reportes (cotizacion_id, usuario_id, motivo) values (c, '00000000-0000-0000-0000-000000000001', 'x');
-  if (select favoritos_count from public.cotizaciones where id = c) <> 1 or (select reportes_count from public.cotizaciones where id = c) <> 1 then
+  if (select favoritos_count from public.cotizaciones where id = c) is distinct from 1 or (select reportes_count from public.cotizaciones where id = c) is distinct from 1 then
     raise exception 'los contadores debían subir';
   end if;
-  if (select actualizado_en from public.cotizaciones where id = c) <> v2 then raise exception 'un favorito o un reporte movió la versión'; end if;
-  if (select count(*) from public.cotizaciones_revisiones where cotizacion_id = c) <> v_rev then raise exception 'un favorito o un reporte dejó una revisión'; end if;
-  if (select count(*) from public.actividad where tabla = 'cotizaciones' and registro_id = c::text) <> v_act then raise exception 'un favorito o un reporte quedó en actividad'; end if;
+  if (select actualizado_en from public.cotizaciones where id = c) is distinct from v2 then raise exception 'un favorito o un reporte movió la versión'; end if;
+  if (select count(*) from public.cotizaciones_revisiones where cotizacion_id = c) is distinct from v_rev then raise exception 'un favorito o un reporte dejó una revisión'; end if;
+  if (select count(*) from public.actividad where tabla = 'cotizaciones' and registro_id = c::text) is distinct from v_act then raise exception 'un favorito o un reporte quedó en actividad'; end if;
   -- Y uno que sí cambia algo, junto con un contador, sí la mueve.
   update public.cotizaciones set titulo = 'T', favoritos_count = 5 where id = c;
   if (select actualizado_en from public.cotizaciones where id = c) <= v2 then raise exception 'un cambio de título junto a un contador debía mover la versión'; end if;
-  if (select count(*) from public.actividad where tabla = 'cotizaciones' and registro_id = c::text) <> v_act + 1 then raise exception 'un cambio real debía quedar en actividad'; end if;
+  if (select count(*) from public.actividad where tabla = 'cotizaciones' and registro_id = c::text) is distinct from v_act + 1 then raise exception 'un cambio real debía quedar en actividad'; end if;
 end $$;
 rollback;
 
@@ -211,7 +214,7 @@ begin
   r := pg_temp.cg_corre(a, pg_temp.cg_evalua(c, '{"inputs": {"visible": 200}}'));
   if r ? 'error' then raise exception 'evaluar falló: %', r; end if;
   if (r -> 'valores' ->> 'total')::numeric is distinct from 437 or (r -> 'totales' ->> 'usd')::numeric is distinct from 437 then raise exception 'el total debía conservar lo oculto (437): %', r -> 'totales'; end if;
-  if r::text like '%oculto%' or r::text like '%der_costos%' or r::text like '%b_costos%' or r::text like '%bono_costos%' then raise exception 'viaja algo del nivel: %', r; end if;
+  if r::text like '%oculto%' or r::text like '%der_costos%' or r::text like '%b_costos%' or r::text like '%bono_costos%' or r::text like '%aparte_costos%' then raise exception 'viaja algo del nivel: %', r; end if;
   -- Mandando lo mismo que está guardado de lo que edita, da lo guardado; sin mandarlo, lo que edita queda sin tipear (↺) y lo demás se conserva: 0 + 5 + 25 + 7 + 0 = 37.
   r := pg_temp.cg_corre(a, pg_temp.cg_evalua(c, '{"inputs": {"visible": 100}}'));
   if (r -> 'valores' ->> 'total')::numeric is distinct from 100 + 5 + 25 + 7 + 100 then raise exception 'mandando lo guardado debía dar lo guardado (237): %', r -> 'valores'; end if;
@@ -248,5 +251,321 @@ begin
   if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'llamada_invalida' or r ->> 'hint' is distinct from 'p_vehiculo' then raise exception 'una final no cambia de vehículo: %', r; end if;
   r := pg_temp.cg_corre(a, pg_temp.cg_evalua(c, '{}', (t ->> 'v')::uuid));
   if r ? 'error' then raise exception 'una final con su mismo vehículo debía evaluar: %', r; end if;
+end $$;
+rollback;
+
+-- Una llamada a cotizacion_guardar (la versión se pasa tal cual: se escribe con %L).
+create or replace function pg_temp.cg_sql(p_c uuid, p_intento uuid, p_version timestamptz, p_entradas text, p_modo text, p_titulo text, p_notas text, p_v uuid) returns text language sql as $f$
+  select format('select public.cotizacion_guardar(%L, %L, %L, %L::jsonb, %L, %L, %L, %L)', p_c, p_intento, p_version, p_entradas, p_modo, p_titulo, p_notas, p_v)
+$f$;
+create or replace function pg_temp.cg_ver(p_c uuid) returns timestamptz language sql as $f$ select actualizado_en from public.cotizaciones where id = p_c $f$;
+create or replace function pg_temp.cg_veh(p_c uuid) returns uuid language sql as $f$ select vehiculo_id from public.cotizaciones where id = p_c $f$;
+create or replace function pg_temp.cg_revs(p_c uuid) returns bigint language sql as $f$ select count(*) from public.cotizaciones_revisiones where cotizacion_id = p_c $f$;
+
+-- @test cotizacion_guardar: guarda lo que edita, conserva lo oculto byte a byte, recalcula lo derivado, devuelve sólo lo que se ve y deja una revisión por nodo con su intento
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; k uuid := (t ->> 'k')::uuid; v uuid := (t ->> 'v')::uuid;
+  i1 uuid := gen_random_uuid(); i2 uuid := gen_random_uuid(); antes public.cotizaciones; despues public.cotizaciones; rev public.cotizaciones_revisiones; n text;
+begin
+  select * into antes from public.cotizaciones where id = c;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, i1, antes.actualizado_en, '{"inputs": {"visible": 200}}', null, ' Nuevo título ', ' una nota ', v));
+  if r ? 'error' then raise exception 'guardar falló: %', r; end if;
+  if r ->> 'repetido' is distinct from 'false' or r -> 'cotizacion' ->> 'titulo' is distinct from 'Nuevo título' or r -> 'cotizacion' ->> 'notas' is distinct from 'una nota' then raise exception 'la respuesta no es lo guardado: %', r -> 'cotizacion'; end if;
+  if r::text ~ 'oculto|der_costos|b_costos|bono_costos|aparte_costos' then raise exception 'la respuesta trae nodos del nivel: %', r; end if;
+  select * into despues from public.cotizaciones where id = c;
+  -- Lo oculto, idéntico (leído como postgres), valores y fuentes.
+  foreach n in array array['oculto', 'b_costos', 'bono_costos', 'aparte_costos', 'fijo', 'tc'] loop
+    if despues.valores -> n is distinct from antes.valores -> n or despues.fuentes -> n is distinct from antes.fuentes -> n then raise exception 'lo oculto o fijo % cambió: % -> %', n, antes.valores -> n, despues.valores -> n; end if;
+  end loop;
+  -- Lo que edita, lo que mandó; lo derivado, recalculado; el total en la moneda base.
+  if (despues.valores ->> 'visible')::numeric is distinct from 200 or (despues.valores ->> 'der_costos')::numeric is distinct from 200 or (despues.valores ->> 'total')::numeric is distinct from 437 or despues.total_base is distinct from 437 then
+    raise exception 'el snapshot no es el calculado (437): %', despues.valores;
+  end if;
+  if despues.titulo is distinct from 'Nuevo título' or despues.notas is distinct from 'una nota' or despues.modo_tc is not null or despues.tipos_cambio is distinct from antes.tipos_cambio or despues.formula_id is distinct from antes.formula_id then
+    raise exception 'las demás columnas: %', to_jsonb(despues);
+  end if;
+  if despues.actualizado_en <= antes.actualizado_en then raise exception 'la versión no se movió'; end if;
+  -- La revisión: por nodo (los que cambiaron), con el intento y la huella; el diff real trae lo derivado oculto.
+  select * into rev from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if rev.intento is distinct from i1 or rev.huella is null or rev.usuario_id is distinct from a then raise exception 'la revisión no lleva el intento, la huella y quién: %', to_jsonb(rev); end if;
+  if rev.diff -> 'valores' is distinct from jsonb_build_object('de', jsonb_build_object('visible', 100, 'ajuste', 100, 'der_costos', 100, 'total', 237), 'a', jsonb_build_object('visible', 200, 'ajuste', 200, 'der_costos', 200, 'total', 437)) then
+    raise exception 'el diff no es por nodo con lo derivado: %', rev.diff -> 'valores';
+  end if;
+  if rev.diff ? 'fuentes' or rev.diff ->> 'titulo' is null or rev.diff ? 'tipos_cambio' then raise exception 'el diff trae de más o le falta: %', rev.diff; end if;
+  -- Quien ve el nivel guarda lo suyo y cambia el nodo oculto: total = 100 + 5 + 30 + 9 + 100.
+  select * into antes from public.cotizaciones where id = c;
+  r := pg_temp.cg_corre(k, pg_temp.cg_sql(c, i2, antes.actualizado_en, '{"inputs": {"visible": 100, "oculto": 30, "bono_costos": 9, "aparte_costos": 3}, "banderas": {"b_costos": true}}', null, 'Nuevo título', 'una nota', v));
+  if r ? 'error' or (r -> 'valores' ->> 'oculto')::numeric is distinct from 30 or (r -> 'valores' ->> 'total')::numeric is distinct from 244 then raise exception 'quien edita el nivel debía poder cambiar el nodo (244): %', r; end if;
+  select * into despues from public.cotizaciones where id = c;
+  if (despues.valores ->> 'oculto')::numeric is distinct from 30 or despues.total_base is distinct from 244 or despues.fuentes ->> 'oculto' is distinct from 'input' then raise exception 'lo guardado por quien edita el nivel: %', despues.valores; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: un guardado que sólo cambia lo oculto no se delata a quien no lo ve (la revisión viaja con el diff vacío) y a quien lo ve se le muestra
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; k uuid := (t ->> 'k')::uuid; v uuid := (t ->> 'v')::uuid; antes public.cotizaciones; leido jsonb;
+begin
+  select * into antes from public.cotizaciones where id = c;
+  -- k cambia sólo «aparte_costos» (no entra al total): para quien no ve el nivel, el snapshot visible no cambia.
+  r := pg_temp.cg_corre(k, pg_temp.cg_sql(c, gen_random_uuid(), antes.actualizado_en,
+         '{"inputs": {"visible": 100, "oculto": 25, "bono_costos": 7, "aparte_costos": 99}, "banderas": {"b_costos": true}}', null, null, null, v));
+  if r ? 'error' then raise exception 'k no pudo guardar: %', r; end if;
+  if (select valores ->> 'aparte_costos' from public.cotizaciones where id = c)::numeric is distinct from 99 then raise exception 'el nodo oculto no cambió'; end if;
+  -- a lee: la cotización y las revisiones. Lo visible es lo mismo; la revisión nueva dice quién y cuándo, no qué.
+  leido := pg_temp.cg_corre(a, format('select public.cotizacion_leer(%L)', c));
+  if leido -> 'valores' is distinct from (select jsonb_object_agg(e.key, e.value) from jsonb_each(antes.valores) e where e.key in ('tc', 'visible', 'fijo', 'ajuste', 'total')) then raise exception 'lo visible cambió: %', leido -> 'valores'; end if;
+  r := pg_temp.cg_corre(a, format('select public.cotizacion_revisiones(%L)', c));
+  if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{}'::jsonb or (r -> 'revisiones' -> 0 ->> 'usuario_id')::uuid is distinct from k then raise exception 'la revisión de sólo lo oculto se delata o no dice quién: %', r -> 'revisiones' -> 0; end if;
+  if r::text ~ 'aparte_costos|99' then raise exception 'algo oculto viaja por las revisiones: %', r; end if;
+  -- k sí lo ve.
+  r := pg_temp.cg_corre(k, format('select public.cotizacion_revisiones(%L)', c));
+  if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"valores": {"de": {"aparte_costos": 3}, "a": {"aparte_costos": 99}}}'::jsonb then raise exception 'quien ve el nivel debía ver el cambio: %', r -> 'revisiones' -> 0 -> 'diff'; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: permisos — una que no existe, está en la papelera, es de otro origen o sólo se ve dan exactamente el mismo error; una final pide gestionarla
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; r0 jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; v uuid := (t ->> 'v')::uuid; ver timestamptz := pg_temp.cg_ver(c);
+  e constant text := '{"inputs": {"visible": 100}}'; n_antes bigint := pg_temp.cg_revs(c);
+begin
+  -- Lo que dice una cotización que no existe.
+  r0 := pg_temp.cg_corre(a, pg_temp.cg_sql(gen_random_uuid(), gen_random_uuid(), ver, e, null, 'x', null, v));
+  if r0 ->> 'error' is distinct from '42501' or r0 ->> 'mensaje' is distinct from 'No tienes acceso a esta cotización.' then raise exception 'una inexistente: %', r0; end if;
+  -- Sólo ver, de otro origen (con todo ahí) y la misma de quien sí puede, pero sin `cotizaciones.editar`: lo mismo, palabra por palabra.
+  if pg_temp.cg_corre((t ->> 'sc')::uuid, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'x', null, v)) is distinct from r0 then raise exception 'sólo ver se distingue de lo inexistente'; end if;
+  if pg_temp.cg_corre((t ->> 'aj')::uuid, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'x', null, v)) is distinct from r0 then raise exception 'otro origen se distingue de lo inexistente'; end if;
+  -- La papelera.
+  update public.cotizaciones set eliminado_en = now() where id = c;
+  if pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'x', null, v)) is distinct from r0 then raise exception 'la papelera se distingue de lo inexistente'; end if;
+  update public.cotizaciones set eliminado_en = null where id = c;
+  ver := pg_temp.cg_ver(c); n_antes := pg_temp.cg_revs(c);
+  -- Una cuenta bloqueada no guarda.
+  update public.perfiles set bloqueado = true where id = a;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'x', null, v));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' not like '%bloqueada%' then raise exception 'una cuenta bloqueada debía dar 42501 con su motivo: %', r; end if;
+  update public.perfiles set bloqueado = false where id = a;
+  -- Faltan los ids.
+  r := pg_temp.cg_corre(a, format('select public.cotizacion_guardar(null, null, null, ''{}'', null, null, null, null)'));
+  if r ->> 'error' is distinct from '22023' then raise exception 'sin ids debía dar 22023: %', r; end if;
+  if pg_temp.cg_revs(c) is distinct from n_antes or exists (select 1 from public.cotizaciones where id = c and titulo is not null) then raise exception 'un rechazo dejó rastro'; end if;
+
+  -- Una final: la edita quien la gestiona; quien sólo edita preventas recibe el mismo error que lo inexistente.
+  update public.cotizaciones set clase = 'final' where id = c;
+  ver := pg_temp.cg_ver(c);
+  if pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'x', null, v)) is distinct from r0 then raise exception 'una final sin gestionarla se distingue de lo inexistente'; end if;
+  r := pg_temp.cg_corre((t ->> 'fg')::uuid, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'Final', null, v));
+  if r ? 'error' or (select titulo from public.cotizaciones where id = c) is distinct from 'Final' then raise exception 'quien gestiona la final debía poder editarla: %', r; end if;
+  -- Y no le cambia el vehículo.
+  r := pg_temp.cg_corre((t ->> 'fg')::uuid, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, 'Final', null, (t ->> 'v2')::uuid));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'vehiculo' then raise exception 'una final no cambia de vehículo: %', r; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: el intento — repetirlo devuelve lo guardado, con otros datos o de otra persona es un error claro, y no escribir nada no escribe
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; r2 jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; k uuid := (t ->> 'k')::uuid; v uuid := (t ->> 'v')::uuid;
+  i1 uuid := gen_random_uuid(); v0 timestamptz := pg_temp.cg_ver(c); v1 timestamptz; n bigint; e constant text := '{"inputs": {"visible": 200}}';
+begin
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, i1, v0, e, null, 'T', null, v));
+  if r ? 'error' or r ->> 'repetido' is distinct from 'false' then raise exception 'el primer guardado: %', r; end if;
+  v1 := pg_temp.cg_ver(c); n := pg_temp.cg_revs(c);
+  -- El mismo intento, con la versión de antes (que ya cambió): lo guardado, `repetido`, sin PT409 y sin otra revisión.
+  r2 := pg_temp.cg_corre(a, pg_temp.cg_sql(c, i1, v0, e, null, 'T', null, v));
+  if r2 ? 'error' or r2 ->> 'repetido' is distinct from 'true' or (r2 - 'repetido') is distinct from (r - 'repetido') then raise exception 'repetir el intento: % contra %', r2, r; end if;
+  if pg_temp.cg_ver(c) is distinct from v1 or pg_temp.cg_revs(c) is distinct from n then raise exception 'repetir el intento escribió'; end if;
+  -- El mismo intento con otros datos (cualquiera de los ocho): un error claro, nunca lo viejo en silencio.
+  r2 := pg_temp.cg_corre(a, pg_temp.cg_sql(c, i1, v0, '{"inputs": {"visible": 201}}', null, 'T', null, v));
+  if r2 ->> 'error' is distinct from '22023' or r2 ->> 'detail' is distinct from 'intento_reusado' or r2 ->> 'hint' is distinct from 'intento' then raise exception 'otras entradas con el mismo intento: %', r2; end if;
+  r2 := pg_temp.cg_corre(a, pg_temp.cg_sql(c, i1, v0, '{"inputs": {"visible": 200}}', null, 'otro título', null, v));
+  if r2 ->> 'detail' is distinct from 'intento_reusado' then raise exception 'otro título con el mismo intento: %', r2; end if;
+  r2 := pg_temp.cg_corre(a, pg_temp.cg_sql(c, i1, v1, '{"inputs": {"visible": 200}}', null, 'T', null, v));
+  if r2 ->> 'detail' is distinct from 'intento_reusado' then raise exception 'otra versión esperada con el mismo intento: %', r2; end if;
+  r2 := pg_temp.cg_corre(k, pg_temp.cg_sql(c, i1, v0, '{"inputs": {"visible": 200}}', null, 'T', null, v));
+  if r2 ->> 'detail' is distinct from 'intento_reusado' then raise exception 'otra persona con el mismo intento: %', r2; end if;
+  -- Nada cambió: no escribe (ni la versión ni una revisión), y repetirlo da lo mismo.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), v1, '{"inputs": {"visible": 200}}', null, 'T', null, v));
+  if r ? 'error' or r ->> 'repetido' is distinct from 'false' then raise exception 'guardar sin cambios: %', r; end if;
+  if pg_temp.cg_ver(c) is distinct from v1 or pg_temp.cg_revs(c) is distinct from n then raise exception 'guardar sin cambios escribió'; end if;
+  i1 := gen_random_uuid();
+  r2 := pg_temp.cg_corre(a, pg_temp.cg_sql(c, i1, v1, '{"inputs": {"visible": 200}}', null, 'T', null, v));
+  if r2 ? 'error' or pg_temp.cg_ver(c) is distinct from v1 then raise exception 'guardar sin cambios, otra vez: %', r2; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: la versión esperada — nula pide recargar, una vieja es PT409 (con quién y cuándo) y un favorito no la mueve
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; k uuid := (t ->> 'k')::uuid; v uuid := (t ->> 'v')::uuid;
+  v0 timestamptz := pg_temp.cg_ver(c); e constant text := '{"inputs": {"visible": 150}}';
+begin
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), null, e, null, 'T', null, v));
+  if r ->> 'error' is distinct from 'P0001' or r ->> 'mensaje' not like 'Falta la versión%' then raise exception 'sin versión: %', r; end if;
+  -- Un favorito de cualquiera no mueve la versión: guardar con la de antes sigue valiendo.
+  insert into public.cotizaciones_favoritos (cotizacion_id, usuario_id) values (c, k);
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), v0, e, null, 'T', null, v));
+  if r ? 'error' then raise exception 'un favorito no debía dar conflicto: %', r; end if;
+  -- Otra persona guardó mientras tanto: PT409 diciendo quién.
+  r := pg_temp.cg_corre(k, pg_temp.cg_sql(c, gen_random_uuid(), v0, '{"inputs": {"visible": 160}}', null, 'T', null, v));
+  if r ->> 'error' is distinct from 'PT409' or r ->> 'mensaje' not like '%esta cotización%' then raise exception 'una versión vieja debía dar PT409: %', r; end if;
+  if (select valores ->> 'visible' from public.cotizaciones where id = c)::numeric is distinct from 150 then raise exception 'el conflicto escribió'; end if;
+  -- Con la de ahora, sí.
+  r := pg_temp.cg_corre(k, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), '{"inputs": {"visible": 160}}', null, 'T', null, v));
+  if r ? 'error' then raise exception 'con la versión de ahora debía guardar: %', r; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: lo que no se edita — un valor distinto es nodo_no_editable, lo oculto da el error de lo inexistente y un override que el motor descarta se rechaza
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; r2 jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; v uuid := (t ->> 'v')::uuid; ver timestamptz := pg_temp.cg_ver(c); n bigint := pg_temp.cg_revs(c);
+begin
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"inputs": {"visible": 100, "fijo": 6}}', null, null, null, v));
+  if r ->> 'error' is distinct from '42501' or r ->> 'detail' is distinct from 'nodo_no_editable' or r ->> 'hint' is distinct from 'fijo' then raise exception 'cambiar lo que se ve y no se edita: %', r; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"inputs": {"visible": 100, "fijo": 5}}', null, null, null, v));
+  if r ? 'error' then raise exception 'repetir lo guardado de lo que no se edita no es un cambio: %', r; end if;
+  -- Lo oculto: un input, una bandera y un override dan lo que daría uno que no existe.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"inputs": {"oculto": 1}}', null, null, null, v));
+  r2 := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"inputs": {"zz_nada": 1}}', null, null, null, v));
+  if r ->> 'error' is distinct from '22023' or replace(r::text, 'oculto', 'zz_nada') is distinct from r2::text then raise exception 'un input oculto: % / %', r, r2; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"banderas": {"b_costos": false}}', null, null, null, v));
+  r2 := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"banderas": {"zz_nada": false}}', null, null, null, v));
+  if r ->> 'error' is distinct from '22023' or replace(r::text, 'b_costos', 'zz_nada') is distinct from r2::text then raise exception 'una bandera oculta: % / %', r, r2; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"overrides": {"oculto": 1}}', null, null, null, v));
+  r2 := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"overrides": {"zz_nada": 1}}', null, null, null, v));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'nodo_inexistente' or replace(r::text, 'oculto', 'zz_nada') is distinct from r2::text then raise exception 'un override oculto: % / %', r, r2; end if;
+  -- Un override de un nodo visible que no se sobrescribe: el motor lo descarta y no se guarda en silencio.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"overrides": {"visible": 1}}', null, null, null, v));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'no_sobrescribible' or r ->> 'hint' is distinct from 'visible' then raise exception 'un override descartado: %', r; end if;
+  -- Una entrada que no es un objeto, o con claves que la base pone.
+  r := pg_temp.cg_corre(a, format('select public.cotizacion_guardar(%L, %L, %L, ''[]''::jsonb, null, null, null, %L)', c, gen_random_uuid(), ver, v));
+  if r ->> 'detail' is distinct from 'entradas_invalidas' then raise exception 'entradas que no son un objeto: %', r; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), ver, '{"tipos_cambio": {"oficial": 1}}', null, null, null, v));
+  if r ->> 'detail' is distinct from 'entradas_invalidas' then raise exception 'tipos de cambio mandados: %', r; end if;
+  if pg_temp.cg_revs(c) is distinct from n or pg_temp.cg_ver(c) is distinct from ver then raise exception 'un rechazo escribió'; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: título, notas, modo y vehículo
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; v uuid := (t ->> 'v')::uuid; v2 uuid := (t ->> 'v2')::uuid; o2 uuid := (t ->> 'o2')::uuid;
+  e constant text := '{"inputs": {"visible": 100}}'; v_otro uuid; rev public.cotizaciones_revisiones; todos uuid := gen_random_uuid();
+begin
+  -- Largos.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, repeat('t', 121), null, v));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'titulo' then raise exception 'un título de 121: %', r; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, repeat('n', 2001), v));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'notas' then raise exception 'unas notas de 2.001: %', r; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, repeat('t', 120), repeat('n', 2000), v));
+  if r ? 'error' then raise exception '120 y 2.000 caben: %', r; end if;
+  -- Vacíos son nulos.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, '   ', '', v));
+  if r ? 'error' or exists (select 1 from public.cotizaciones where id = c and (titulo is not null or notas is not null)) then raise exception 'los vacíos debían quedar nulos: %', r; end if;
+  -- El modo: la hoja de esta fórmula no ofrece ninguno.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, 'unificado', null, null, v));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'modo_invalido' or r ->> 'hint' is distinct from 'modo_tc' then raise exception 'un modo que la hoja no ofrece: %', r; end if;
+  -- El vehículo: otro del mismo origen se guarda; no se quita; uno que no existe o que no se ve da el error de siempre; uno de otro origen lo dice el motor.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, v2));
+  if r ? 'error' or pg_temp.cg_veh(c) is distinct from v2 then raise exception 'cambiar el vehículo: %', r; end if;
+  select * into rev from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if rev.diff -> 'vehiculo_id' is distinct from jsonb_build_object('de', v, 'a', v2) then raise exception 'la revisión no dice el cambio de vehículo: %', rev.diff; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, null));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'vehiculo' then raise exception 'quitar el vehículo: %', r; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, gen_random_uuid()));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes acceso a este vehículo.' then raise exception 'un vehículo que no existe: %', r; end if;
+  insert into public.vehiculos (origen_id, titulo, marca) values (o2, 'CG de otro origen', 'x') returning id into v_otro;
+  -- Quien no ve los vehículos de ese otro origen recibe el error de siempre; quien los ve en todos, el del motor.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, v_otro));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes acceso a este vehículo.' then raise exception 'un vehículo de un origen que no ve: %', r; end if;
+  perform pg_temp.cg_persona(todos, array['cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'leads.ver', 'vehiculos.ver']);
+  r := pg_temp.cg_corre(todos, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, v_otro));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'vehiculo_de_otro_origen' then raise exception 'un vehículo de otro origen: %', r; end if;
+  update public.vehiculos set eliminado_en = now() where id = v;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, v));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes acceso a este vehículo.' then raise exception 'un vehículo en la papelera: %', r; end if;
+  update public.vehiculos set eliminado_en = null where id = v;
+  -- Una preventa sin vehículo (el ajuste lo permite) lo recibe, y sin vehículo se queda.
+  update public.cotizaciones set vehiculo_id = null where id = c;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, 'sin vehículo', null, null));
+  if r ? 'error' or pg_temp.cg_veh(c) is not null then raise exception 'sin vehículo y sin pedirlo se queda sin: %', r; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, v));
+  if r ? 'error' or pg_temp.cg_veh(c) is distinct from v then raise exception 'ponerle un vehículo: %', r; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: se calcula con SU versión de la fórmula y SUS tipos de cambio, no con los de hoy
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; v uuid := (t ->> 'v')::uuid; f uuid := (t ->> 'f')::uuid; o uuid := (t ->> 'o')::uuid;
+  antes public.cotizaciones; despues public.cotizaciones; f2 uuid; v_def jsonb;
+begin
+  select * into antes from public.cotizaciones where id = c;
+  -- Se publica una v2 distinta (el total sólo suma lo visible) y cambian las tarifas de la empresa.
+  select definicion into v_def from public.formulas where id = f;
+  update public.formulas set estado = 'archivada' where id = f;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  select o, 2, 'publicada', jsonb_set(definicion, '{nodos}', (select jsonb_agg(case when n ->> 'id' = 'total' then jsonb_set(n, '{de}', '["visible"]') else n end) from jsonb_array_elements(definicion -> 'nodos') n)), params, diseno, visibilidad
+    from public.formulas where id = f returning id into f2;
+  update public.tipos_cambio set valor = valor + 5 where clave = 'oficial';
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), antes.actualizado_en, '{"inputs": {"visible": 300}}', null, null, null, v));
+  if r ? 'error' then raise exception 'guardar con una v2 publicada: %', r; end if;
+  select * into despues from public.cotizaciones where id = c;
+  if despues.formula_id is distinct from f or (despues.valores ->> 'total')::numeric is distinct from 300 + 5 + 25 + 7 + 300 then raise exception 'debía calcular con la v1 (637): % %', despues.formula_id, despues.valores ->> 'total'; end if;
+  if despues.tipos_cambio is distinct from antes.tipos_cambio or despues.valores -> 'tc' is distinct from antes.valores -> 'tc' then raise exception 'debía conservar los tipos de cambio congelados: %', despues.tipos_cambio; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: cada columna que difiere de lo calculado se reescribe (una por una), y guardar lo mismo que hay no escribe nada
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; v uuid := (t ->> 'v')::uuid; v2 uuid := (t ->> 'v2')::uuid;
+  e constant text := '{"inputs": {"visible": 100}}'; original public.cotizaciones; despues public.cotizaciones; k text; v_estropicio text;
+  estropicios constant text[] := array[
+    'titulo', $q$titulo = 'estropeado'$q$, 'notas', $q$notas = 'estropeadas'$q$, 'modo_tc', $q$modo_tc = 'paralelo'$q$, 'total_base', $q$total_base = 1$q$,
+    'fuentes', $q$fuentes = jsonb_set(fuentes, '{ajuste}', '"override"')$q$, 'totales', $q$totales = '{}'::jsonb$q$, 'valores', $q$valores = jsonb_set(valores, '{visible}', '1')$q$, 'vehiculo_id', format('vehiculo_id = %L', v2)];
+  i int;
+begin
+  select * into original from public.cotizaciones where id = c;
+  -- Lo mismo que hay: no escribe (ni versión, ni revisión, ni actividad).
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), original.actualizado_en, e, null, null, null, v));
+  if r ? 'error' or r ->> 'repetido' is distinct from 'false' then raise exception 'guardar lo mismo: %', r; end if;
+  if pg_temp.cg_ver(c) is distinct from original.actualizado_en or pg_temp.cg_revs(c) is distinct from 0 then raise exception 'guardar lo mismo escribió'; end if;
+  -- Cada columna estropeada por separado: guardar la deja como la calcula. (Se estropea lo que no sirve para reconstruir lo guardado: sin `fuentes` ni lo tipeado de `valores`, lo que no se edita se perdería.)
+  for i in 1 .. cardinality(estropicios) / 2 loop
+    k := estropicios[2 * i - 1]; v_estropicio := estropicios[2 * i];
+    execute format('update public.cotizaciones set %s where id = %L', v_estropicio, c);
+    r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, v));
+    if r ? 'error' then raise exception 'guardar con % estropeado: %', k, r; end if;
+    select * into despues from public.cotizaciones where id = c;
+    if (to_jsonb(despues) - 'actualizado_en') is distinct from (to_jsonb(original) - 'actualizado_en') then raise exception 'con % estropeado, guardar no lo dejó como estaba: % contra %', k, to_jsonb(despues), to_jsonb(original); end if;
+  end loop;
+  -- La moneda base de la empresa cambia (total_base sigue a otro total) y guardar lo mismo lo reescribe.
+  update public.ajustes_empresa set moneda_base = 'BOB' where id = 1;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), e, null, null, null, v));
+  select * into despues from public.cotizaciones where id = c;
+  if r ? 'error' or despues.total_base is distinct from round((despues.totales ->> 'bs')::numeric, 2) or despues.total_base is not distinct from original.total_base then raise exception 'con otra moneda base, total_base debía seguir al total en bolivianos: % %', despues.total_base, despues.totales; end if;
+  update public.ajustes_empresa set moneda_base = 'USD' where id = 1;
+  -- Sólo las fuentes: un override igual a lo sugerido cambia la fuente y no el valor.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), '{"inputs": {"visible": 100}, "overrides": {"ajuste": 100}}', null, null, null, v));
+  select * into despues from public.cotizaciones where id = c;
+  if r ? 'error' or despues.fuentes ->> 'ajuste' is distinct from 'override' or despues.valores ->> 'ajuste' is distinct from '100' then raise exception 'un override igual a lo sugerido: % %', r, despues.fuentes; end if;
+  -- El modo (la hoja ofrece «paralelo»): se guarda y se quita.
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), '{"inputs": {"visible": 100}, "overrides": {"ajuste": 100}}', 'paralelo', null, null, v));
+  if r ? 'error' or (select modo_tc from public.cotizaciones where id = c) is distinct from 'paralelo' then raise exception 'guardar con el modo: %', r; end if;
+  r := pg_temp.cg_corre(a, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), '{"inputs": {"visible": 100}, "overrides": {"ajuste": 100}}', null, null, null, v));
+  if r ? 'error' or (select modo_tc from public.cotizaciones where id = c) is not null then raise exception 'quitar el modo: %', r; end if;
 end $$;
 rollback;

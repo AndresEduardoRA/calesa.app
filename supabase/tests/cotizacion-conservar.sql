@@ -75,6 +75,13 @@ begin
     get stacked diagnostics v_e = pg_exception_hint;
     if v_e is distinct from 'b_ocu' then raise exception 'el primero por id en bytes era b_ocu y es %', v_e; end if;
   end;
+  -- Una clave que no es un nodo no se juzga acá (un override así vuelve del motor como nodo_inexistente): ni error ni se pierde.
+  r := public._cotizacion_conservar(v_def, jsonb_set(v_entrada, '{overrides}', '{"zz_no_existe": 1}'), v_edita, v_guardado);
+  if r -> 'overrides' is distinct from '{"oculto2": 8, "zz_no_existe": 1}'::jsonb then raise exception 'un override de un nodo que no existe: %', r -> 'overrides'; end if;
+  r := public._cotizacion_conservar(v_def, jsonb_set(v_entrada, '{inputs}', '{"zz_no_existe": 1}'), v_edita, v_guardado);
+  if r -> 'inputs' is distinct from '{"fijo": 5, "oculto": 25, "zz_no_existe": 1}'::jsonb then raise exception 'un input de un nodo que no existe: %', r -> 'inputs'; end if;
+  r := public._cotizacion_conservar(v_def, jsonb_set(v_entrada, '{banderas}', '{"zz_no_existe": true}'), v_edita, v_guardado);
+  if r -> 'banderas' is distinct from '{"b_ocu": true, "zz_no_existe": true}'::jsonb then raise exception 'una bandera de un nodo que no existe: %', r -> 'banderas'; end if;
   -- La variante: la que edita y manda entra; sin mandar, la guardada (no tiene «sin tipear»).
   r := public._cotizacion_conservar(v_def, v_entrada || '{"variante": "a"}', v_edita || '{"op": true}', v_guardado);
   if r -> 'variante' is distinct from '"a"'::jsonb then raise exception 'la variante que edita: %', r; end if;

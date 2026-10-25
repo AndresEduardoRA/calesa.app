@@ -7931,6 +7931,19 @@ export type Database = {
         }
         Returns: Json
       }
+      cotizacion_guardar: {
+        Args: {
+          p_actualizado_en_esperado: string
+          p_entradas: Json
+          p_id: string
+          p_intento: string
+          p_modo_tc: string
+          p_notas: string
+          p_titulo: string
+          p_vehiculo: string
+        }
+        Returns: Json
+      }
       cotizacion_leer: { Args: { p_id: string }; Returns: Json }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {

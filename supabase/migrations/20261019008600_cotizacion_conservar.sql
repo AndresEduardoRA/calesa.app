@@ -154,7 +154,6 @@ begin
     if v_nuevo is not null then v_parts := v_parts || jsonb_build_object('variante', v_nuevo); end if;
   end if;
   v_out := p_entrada || v_parts;
-  if v_opc is not null and v_nuevo is null then v_out := v_out - 'variante'; end if;
   return v_out;
 end $$;
 revoke all on function public._cotizacion_conservar(jsonb, jsonb, jsonb, jsonb) from public, anon, authenticated;

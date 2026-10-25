@@ -11,6 +11,11 @@
 --      `formulas`, de las tablas de referencia o de `actividad.antes|despues` figura en `pg_temp.cv_registro()` con su clase y su motivo, y una nueva sin
 --      registrar rompe la prueba. El detector tiene su autoprueba con funciones de usar y tirar.
 
+-- La sonda de una RPC que edita lleva `{version}`: la versión de ahora de la cotización (cada guardado la mueve).
+create or replace function pg_temp.cv_ver_en(p_sql text, p_cot uuid) returns text language sql as $f$
+  select replace(p_sql, '{version}', quote_literal((select actualizado_en from public.cotizaciones where id = p_cot)))
+$f$;
+
 -- La versión publicada de un origen: lo que la hoja abierta le diría a `cotizacion_crear` (D2). Se calcula al armar el SQL, como postgres.
 create or replace function pg_temp.cv_pub(p_origen uuid) returns uuid language sql as $f$
   select f.id from public.formulas f where f.origen_id = p_origen and f.estado = 'publicada'
@@ -138,6 +143,9 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
       'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
     'cotizacion_leer', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_leer({cot})',
       'motivo', 'el snapshot de una cotización recortado con _nodos_visibles() de SU versión: el total y lo aparte siempre, los subtotales por grupo sólo si se ve el grupo entero'),
+    'cotizacion_guardar', jsonb_build_object('clase', 'recorta',
+      'sonda', 'select public.cotizacion_guardar({cot}, gen_random_uuid(), {version}, jsonb_build_object(''inputs'', jsonb_build_object(''visible'', 1.5, {oculto}, {centinela}::numeric)), null, null, null, null)',
+      'motivo', 'calcula con SU versión (_cotizacion_armar de la cotización), completa lo que quien llama no ve ni edita con lo guardado (_cotizacion_conservar) y devuelve _cotizacion_respuesta() (el mismo recorte de cotizacion_leer): lo que se tipea sólo nombra lo que se ve y se edita (un nodo oculto da el error de uno inexistente) y la revisión que deja se recorta al leerla'),
     'cotizacion_crear', jsonb_build_object('clase', 'recorta',
       'sonda', 'select public.cotizacion_crear(gen_random_uuid(), {origen}, {lead}, jsonb_build_object(''inputs'', jsonb_build_object(''visible'', 1.5, {oculto}, {centinela}::numeric)), {formula}, now())',
       'motivo', 'calcula con _cotizacion_armar() y devuelve _cotizacion_respuesta() (el mismo recorte de cotizacion_leer): lo que se tipea sólo nombra lo que se ve y se edita (un nodo oculto da el error de uno inexistente, uno que se ve y no se edita da nodo_no_editable) y el snapshot guardado lleva los nodos que quien llama no ve con su valor de la fórmula')
@@ -822,6 +830,7 @@ declare
   v_reg jsonb := pg_temp.cv_registro(); v_nuevo uuid := gen_random_uuid(); v_niveles text[]; v_nivel text; v_otro_nivel text; v_i int := 0;
   o uuid; o2 uuid; v_c uuid; sin uuid; con uuid; ed uuid; ajeno uuid; otro_nivel uuid; ver_como uuid; cfg uuid; cfg_ajeno uuid; v_rol_sin uuid; v_oculto text; v_centinela text; k text; v_sql text; v_txt text;
   v_vis jsonb; v_def jsonb; v_con_como jsonb; r jsonb; v_quien uuid; v_tipea boolean; v_lead uuid; solo_ver uuid;
+  ed_o2 uuid; v_int uuid; v_ver timestamptz; v_antes jsonb; v_despues jsonb; v_e jsonb; v_g jsonb; r0 jsonb; v_gsql text;
 begin
   perform pg_temp.cv_como(duena);
   set local role authenticated;
@@ -865,16 +874,16 @@ begin
                                                            jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver')));
     perform pg_temp.cv_persona(cfg, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o)));
     perform pg_temp.cv_persona(cfg_ajeno, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.configurar', 'origen', o2)));
-    perform pg_temp.cv_persona(sin, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver')));
-    perform pg_temp.cv_persona(con, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+    perform pg_temp.cv_persona(sin, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.editar'), jsonb_build_object('clave', 'leads.ver')));
+    perform pg_temp.cv_persona(con, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.editar'), jsonb_build_object('clave', 'leads.ver'),
                                                       jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.editar')));
-    perform pg_temp.cv_persona(ed, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+    perform pg_temp.cv_persona(ed, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.editar'), jsonb_build_object('clave', 'leads.ver'),
                                                      jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.editar')));
-    perform pg_temp.cv_persona(ajeno, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+    perform pg_temp.cv_persona(ajeno, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.editar'), jsonb_build_object('clave', 'leads.ver'),
                                                         jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver', 'origen', o2)));
-    perform pg_temp.cv_persona(otro_nivel, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+    perform pg_temp.cv_persona(otro_nivel, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.editar'), jsonb_build_object('clave', 'leads.ver'),
                                                              jsonb_build_object('clave', 'cotizaciones.nivel.' || v_otro_nivel || '.ver')));
-    perform pg_temp.cv_persona(ver_como, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'leads.ver'),
+    perform pg_temp.cv_persona(ver_como, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver'), jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.editar'), jsonb_build_object('clave', 'leads.ver'),
                                                            jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.ver'), jsonb_build_object('clave', 'cotizaciones.nivel.' || v_nivel || '.editar'),
                                                            jsonb_build_object('clave', 'equipo.roles.gestionar')));
     for k in select jsonb_object_keys(v_reg) loop
@@ -897,10 +906,10 @@ begin
       -- Sin el permiso del nivel (ninguno, sólo editar, el de otro origen y el de otro nivel): ni el nodo ni su valor.
       foreach v_txt in array array['sin', 'ed', 'ajeno', 'otro_nivel'] loop
         v_quien := case v_txt when 'sin' then sin when 'ed' then ed when 'ajeno' then ajeno else otro_nivel end;
-        r := pg_temp.cv_corre(v_quien, v_sql);
+        r := pg_temp.cv_corre(v_quien, pg_temp.cv_ver_en(v_sql, v_c));
         if r ? 'error' then
           if not v_tipea then raise exception 'nivel %: % falla a «%» sin tipear nada oculto: %', v_nivel, k, v_txt, r; end if;
-          if replace(r::text, v_oculto, 'zz_inexistente') is distinct from (pg_temp.cv_corre(v_quien, replace(v_sql, quote_literal(v_oculto), quote_literal('zz_inexistente'))))::text then
+          if replace(r::text, v_oculto, 'zz_inexistente') is distinct from (pg_temp.cv_corre(v_quien, pg_temp.cv_ver_en(replace(v_sql, quote_literal(v_oculto), quote_literal('zz_inexistente')), v_c)))::text then
             raise exception 'nivel %: % distingue el nodo oculto % de uno que no existe, para «%»: %', v_nivel, k, v_oculto, v_txt, r;
           end if;
         elsif position(v_centinela in r::text) > 0 or (not v_tipea and position(v_oculto in r::text) > 0) or (v_tipea and (r -> 'valores') ? v_oculto) then
@@ -908,14 +917,14 @@ begin
         end if;
       end loop;
       -- Con el permiso, llegan los dos.
-      v_txt := (pg_temp.cv_corre(con, v_sql))::text;
+      v_txt := (pg_temp.cv_corre(con, pg_temp.cv_ver_en(v_sql, v_c)))::text;
       if position(v_oculto in v_txt) = 0 or position(v_centinela in v_txt) = 0 then raise exception 'nivel %: % no le da a quien tiene el permiso el nodo %/valor %: %', v_nivel, k, v_oculto, v_centinela, v_txt; end if;
       -- «Ver como» un rol sin el nivel no cambia lo que decide la base: la interfaz lo estrecha (permisos_efectivos), la base sigue con los permisos reales.
       v_rol_sin := (select ur.rol_id from public.usuarios_roles ur where ur.usuario_id = sin);
       v_con_como := pg_temp.cv_corre(ver_como, format('select jsonb_build_object(''real'', exists (select 1 from public.mis_permisos() m where m.clave = %L), ''como'', exists (select 1 from public.permisos_efectivos(%L) m where m.clave = %L))',
                                                       'cotizaciones.nivel.' || v_nivel || '.ver', v_rol_sin, 'cotizaciones.nivel.' || v_nivel || '.ver'));
       if v_con_como is distinct from '{"real": true, "como": false}'::jsonb then raise exception 'nivel %: «ver como» no estrecha lo que la interfaz ve (o la prueba no lo ve): %', v_nivel, v_con_como; end if;
-      v_txt := (pg_temp.cv_corre(ver_como, v_sql))::text;
+      v_txt := (pg_temp.cv_corre(ver_como, pg_temp.cv_ver_en(v_sql, v_c)))::text;
       if position(v_oculto in v_txt) = 0 or position(v_centinela in v_txt) = 0 then raise exception 'nivel %: con «ver como» % cambia lo que decide la base: %', v_nivel, k, v_txt; end if;
     end loop;
     -- Crear sin tipear el nodo del nivel (4.10-2): quien no lo ve no lo recibe, y lo guardado (leído como postgres) lo trae con su valor por defecto, que es el de la fórmula; quien lo ve y lo edita
@@ -933,6 +942,46 @@ begin
     -- Quien ve el nivel pero no lo edita: tipearlo es nodo_no_editable (el nodo se ve, no se edita); quien lo edita y no lo ve, el error del nodo que no existe.
     r := pg_temp.cv_corre(solo_ver, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, jsonb_build_object(''inputs'', jsonb_build_object(%L, 1)), %L, now())', o, v_lead, v_oculto, pg_temp.cv_pub(o)));
     if r ->> 'error' is distinct from '42501' or r ->> 'detail' is distinct from 'nodo_no_editable' or r ->> 'hint' is distinct from v_oculto then raise exception 'nivel %: sólo ver el nivel y tipear su nodo debía dar nodo_no_editable: %', v_nivel, r; end if;
+
+    -- Guardar (4.10-3), la mitad de escritura por nivel.
+    -- a. Quien no ve el nivel guarda lo suyo: lo oculto queda idéntico (leído como postgres), y ni la respuesta ni la revisión que deja lo traen.
+    select jsonb_build_object('valores', c.valores -> v_oculto, 'fuentes', c.fuentes -> v_oculto) into v_antes from public.cotizaciones c where c.id = v_c;
+    v_int := gen_random_uuid(); v_ver := (select c.actualizado_en from public.cotizaciones c where c.id = v_c);
+    v_gsql := format('select public.cotizacion_guardar(%L, %L, %L, ''{"inputs": {"visible": 3.5}}'', null, ''título nuevo'', null, null)', v_c, v_int, v_ver);
+    r := pg_temp.cv_corre(sin, v_gsql);
+    if r ? 'error' then raise exception 'nivel %: quien no ve el nivel no pudo guardar: %', v_nivel, r; end if;
+    if position(v_oculto in r::text) > 0 or position(v_centinela in r::text) > 0 then raise exception 'nivel %: la respuesta de guardar trae el nodo del nivel a quien no lo ve: %', v_nivel, r; end if;
+    select jsonb_build_object('valores', c.valores -> v_oculto, 'fuentes', c.fuentes -> v_oculto) into v_despues from public.cotizaciones c where c.id = v_c;
+    if v_despues is distinct from v_antes then raise exception 'nivel %: guardar de quien no ve el nivel cambió lo oculto: % contra %', v_nivel, v_antes, v_despues; end if;
+    r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L)', v_c));
+    if position(v_oculto in r::text) > 0 or position(v_centinela in r::text) > 0 then raise exception 'nivel %: la revisión del guardado delata el nodo del nivel: %', v_nivel, r; end if;
+    -- Repetir el intento y guardar sin cambiar nada devuelven lo mismo que se ve, también sin el nodo del nivel.
+    r := pg_temp.cv_corre(sin, v_gsql);
+    if r ? 'error' or r ->> 'repetido' is distinct from 'true' or position(v_oculto in r::text) > 0 or position(v_centinela in r::text) > 0 then raise exception 'nivel %: el intento repetido falla o trae el nodo del nivel: %', v_nivel, r; end if;
+    r := pg_temp.cv_corre(sin, pg_temp.cv_ver_en(format('select public.cotizacion_guardar(%L, gen_random_uuid(), {version}, ''{"inputs": {"visible": 3.5}}'', null, ''título nuevo'', null, null)', v_c), v_c));
+    if r ? 'error' or r ->> 'repetido' is distinct from 'false' or position(v_oculto in r::text) > 0 or position(v_centinela in r::text) > 0 then raise exception 'nivel %: guardar sin cambios falla o trae el nodo del nivel: %', v_nivel, r; end if;
+    -- b. Paridad: calcular sin guardar y guardar dan lo mismo (el total y los valores visibles), para quien no ve el nivel y para quien sí.
+    foreach v_txt in array array['sin', 'con'] loop
+      v_quien := case v_txt when 'sin' then sin else con end;
+      v_gsql := case v_txt when 'sin' then '{"inputs": {"visible": 9.5}}' else format('{"inputs": {"visible": 9.5, "%s": 40.25}}', v_oculto) end;
+      v_e := pg_temp.cv_corre(v_quien, format('select public.cotizacion_evaluar(%L::jsonb, %L)', v_gsql, v_c));
+      v_g := pg_temp.cv_corre(v_quien, pg_temp.cv_ver_en(format('select public.cotizacion_guardar(%L, gen_random_uuid(), {version}, %L::jsonb, null, null, null, null)', v_c, v_gsql), v_c));
+      if v_e ? 'error' or v_g ? 'error' or v_e -> 'valores' is distinct from v_g -> 'valores' or v_e -> 'totales' is distinct from v_g -> 'totales' then
+        raise exception 'nivel %: evaluar y guardar no dan lo mismo para «%»: % contra %', v_nivel, v_txt, v_e, v_g;
+      end if;
+    end loop;
+    -- c. Con el nivel el nodo cambia (el último guardado fue de «con»: 40,25).
+    if (select (c.valores ->> v_oculto)::numeric from public.cotizaciones c where c.id = v_c) is distinct from 40.25 then raise exception 'nivel %: quien tiene el nivel no cambió el nodo al guardar', v_nivel; end if;
+    -- d. Los errores de una que no existe, está en la papelera, es de otro origen o sólo se ve son el mismo, palabra por palabra.
+    ed_o2 := gen_random_uuid();
+    perform pg_temp.cv_persona(ed_o2, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', o2), jsonb_build_object('clave', 'cotizaciones.editar', 'origen', o2), jsonb_build_object('clave', 'leads.ver')));
+    r0 := pg_temp.cv_corre(sin, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null)', gen_random_uuid()));
+    if r0 ->> 'error' is distinct from '42501' or r0 ->> 'mensaje' is distinct from 'No tienes acceso a esta cotización.' then raise exception 'nivel %: guardar una inexistente: %', v_nivel, r0; end if;
+    if pg_temp.cv_corre(ed_o2, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar la de otro origen se distingue de una inexistente', v_nivel; end if;
+    if pg_temp.cv_corre(solo_ver, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar sin poder editar se distingue de una inexistente', v_nivel; end if;
+    update public.cotizaciones set eliminado_en = now() where id = v_c;
+    if pg_temp.cv_corre(sin, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar la de la papelera se distingue de una inexistente', v_nivel; end if;
+    update public.cotizaciones set eliminado_en = null where id = v_c;
   end loop;
 end $$;
 rollback;
