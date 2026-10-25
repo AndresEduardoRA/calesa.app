@@ -18,8 +18,10 @@ export const PERSONAS = {
   // Quien configura los leads (los orígenes): leads.configurar, y crea y edita los suyos; cotizaciones.configurar (carreras/tonos.mjs) y
   // equipo.roles.gestionar (carreras/niveles.mjs).
   configura: '00000000-0000-4000-8000-0000000c0005',
-  // Cotiza y ve los leads, pero no los vehículos (carreras/cotizaciones.mjs): lo que no ve no lo espera.
+  // Cotiza y edita cotizaciones y ve los leads, pero no los vehículos (carreras/cotizaciones.mjs): lo que no ve no lo espera.
   sinVehiculos: '00000000-0000-4000-8000-0000000c0006',
+  // Edita cotizaciones pero no gestiona finales (carreras/cotizaciones-guardar.mjs): lo que pasa si la cotización se vuelve final mientras espera.
+  soloEdita: '00000000-0000-4000-8000-0000000c0007',
 }
 
 export async function limpiar(db) {
@@ -179,7 +181,12 @@ export async function sembrar(db) {
     `insert into public.roles (clave, nombre) values ('carreras_sin_vehiculos', $1) returning id`,
     [`${PREFIJO} sin vehiculos`],
   )
-  for (const clave of ['cotizaciones.ver', 'cotizaciones.crear', 'leads.ver']) {
+  for (const clave of [
+    'cotizaciones.ver',
+    'cotizaciones.crear',
+    'cotizaciones.editar',
+    'leads.ver',
+  ]) {
     await db.query(
       `insert into public.roles_permisos (rol_id, permiso_clave, alcance) values ($1, $2, 'todos')`,
       [sinVehiculos.id, clave],
@@ -188,6 +195,22 @@ export async function sembrar(db) {
   await db.query(`insert into public.usuarios_roles (usuario_id, rol_id) values ($1, $2)`, [
     PERSONAS.sinVehiculos,
     sinVehiculos.id,
+  ])
+  const {
+    rows: [soloEdita],
+  } = await db.query(
+    `insert into public.roles (clave, nombre) values ('carreras_solo_edita', $1) returning id`,
+    [`${PREFIJO} solo edita`],
+  )
+  for (const clave of ['cotizaciones.ver', 'cotizaciones.editar', 'leads.ver', 'vehiculos.ver']) {
+    await db.query(
+      `insert into public.roles_permisos (rol_id, permiso_clave, alcance) values ($1, $2, 'todos')`,
+      [soloEdita.id, clave],
+    )
+  }
+  await db.query(`insert into public.usuarios_roles (usuario_id, rol_id) values ($1, $2)`, [
+    PERSONAS.soloEdita,
+    soloEdita.id,
   ])
   const {
     rows: [configura],

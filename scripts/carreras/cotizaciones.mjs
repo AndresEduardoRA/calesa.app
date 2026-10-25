@@ -42,11 +42,11 @@ const visibilidad = Object.fromEntries(
     { ver: 'todos', editar: id === 'total' ? null : 'todos' },
   ]),
 )
-const ENTRADAS = JSON.stringify({ inputs: { a: 10 } })
+export const ENTRADAS = JSON.stringify({ inputs: { a: 10 } })
 
 let numero = 0
 // Un origen con su fórmula publicada, un vehículo y un lead de la dueña.
-async function terreno(db, etiqueta, { compartidoCon } = {}) {
+export async function terreno(db, etiqueta, { compartidoCon } = {}) {
   numero += 1
   const {
     rows: [origen],
@@ -66,7 +66,7 @@ async function terreno(db, etiqueta, { compartidoCon } = {}) {
   return { origen: origen.id, v1: v1.id, vehiculo, lead }
 }
 
-async function nuevoVehiculo(db, origen, titulo) {
+export async function nuevoVehiculo(db, origen, titulo) {
   const {
     rows: [fila],
   } = await db.query(
@@ -76,7 +76,7 @@ async function nuevoVehiculo(db, origen, titulo) {
   return fila.id
 }
 
-const crear = (
+export const crear = (
   persona,
   t,
   id,
@@ -94,7 +94,7 @@ const crear = (
 })
 
 // Publicar una versión nueva (guardar el borrador y publicarlo).
-const publica = (t, nota) => ({
+export const publica = (t, nota) => ({
   persona: configura,
   consulta: `with g as (select public.formula_guardar_borrador($1, $2::jsonb, '{}'::jsonb, $3::jsonb) as id)
              select public.formula_publicar($1, $4) as r from g`,
@@ -102,7 +102,12 @@ const publica = (t, nota) => ({
 })
 
 // Una cotización escrita directo (como la base, sin pasar por ninguna RPC) sobre la fórmula v1 del terreno: sirve de fixture a las carreras que no son de crear.
-async function insertaCotizacion(db, t, id, { vehiculo = t.vehiculo, clase = 'preventa' } = {}) {
+export async function insertaCotizacion(
+  db,
+  t,
+  id,
+  { vehiculo = t.vehiculo, clase = 'preventa' } = {},
+) {
   await db.query(
     `insert into public.cotizaciones (id, origen_id, lead_id, vehiculo_id, creado_por, clase, formula_id, valores, fuentes, tipos_cambio, totales, total_base)
      values ($1, $2, $3, $4, $5, $6::public.clase_cotizacion, $7, '{"a": 10, "total": 10}'::jsonb, '{"a": "input"}'::jsonb, '{"oficial": 6.96}'::jsonb, '{"usd": 10}'::jsonb, 10)`,
@@ -110,7 +115,7 @@ async function insertaCotizacion(db, t, id, { vehiculo = t.vehiculo, clase = 'pr
   )
 }
 
-const cuantas = async (db, origen, extra = '') =>
+export const cuantas = async (db, origen, extra = '') =>
   Number(
     (
       await db.query(
