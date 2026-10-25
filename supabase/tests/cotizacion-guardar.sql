@@ -57,3 +57,51 @@ begin
   if (select count(*) from public.actividad where tabla = 'cotizaciones' and registro_id = c::text) <> v_act + 1 then raise exception 'un cambio real debía quedar en actividad'; end if;
 end $$;
 rollback;
+
+-- @test cotizacion_guardar: la revisión guarda sólo los nodos que cambiaron, con el intento y la huella del guardado, y esas dos columnas no se leen
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_basica(); c uuid := (t ->> 'c')::uuid; i uuid := gen_random_uuid(); d jsonb; r public.cotizaciones_revisiones;
+begin
+  -- Un nodo cambia, otro no: el diff trae sólo el que cambió, en valores y en fuentes por separado (fuentes no cambió, no figura).
+  update public.cotizaciones set valores = '{"visible": 20, "total": 10}' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.diff is distinct from '{"valores": {"de": {"visible": 10}, "a": {"visible": 20}}}'::jsonb then raise exception 'el diff no es por nodo: %', r.diff; end if;
+  if r.intento is not null or r.huella is not null then raise exception 'un cambio sin guardado no lleva intento ni huella: % %', r.intento, r.huella; end if;
+  -- Un nodo que aparece o desaparece figura en un solo lado; uno que pasa a nulo figura con el jsonb null (no es lo mismo que faltar).
+  update public.cotizaciones set valores = '{"visible": null, "total": 10, "nuevo": 5}', fuentes = '{}' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.diff is distinct from '{"valores": {"de": {"visible": 20}, "a": {"visible": null, "nuevo": 5}}, "fuentes": {"de": {"visible": "input"}, "a": {}}}'::jsonb then
+    raise exception 'el diff de un nodo nulo, uno nuevo y uno que se va: %', r.diff;
+  end if;
+  -- El resto de las columnas, tal cual: de y a enteros.
+  update public.cotizaciones set titulo = 'Nuevo', totales = '{"usd": 11}' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.diff is distinct from '{"titulo": {"de": null, "a": "Nuevo"}, "totales": {"de": {"usd": 10}, "a": {"usd": 11}}}'::jsonb then raise exception 'las demás columnas, tal cual: %', r.diff; end if;
+
+  -- El intento y la huella que deja cotizacion_guardar en el ajuste de la transacción.
+  perform set_config('importadora.guardado', jsonb_build_object('intento', i, 'huella', 'abc')::text, true);
+  update public.cotizaciones set notas = 'con intento' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.intento is distinct from i or r.huella is distinct from 'abc' then raise exception 'la revisión no lleva el intento y la huella: % %', r.intento, r.huella; end if;
+  -- Limpiado con '' (lo que queda tras fijarlo una vez en la sesión), la revisión siguiente no los lleva.
+  perform set_config('importadora.guardado', '', true);
+  update public.cotizaciones set notas = 'sin intento' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.intento is not null or r.huella is not null then raise exception 'el ajuste vacío dejó el intento: % %', r.intento, r.huella; end if;
+  -- Un intento es de una sola revisión de la cotización; el mismo en otra cotización no choca.
+  begin
+    insert into public.cotizaciones_revisiones (cotizacion_id, diff, intento, huella) values (c, '{}', i, 'otra');
+    raise exception 'el mismo intento entró dos veces a la misma cotización';
+  exception when unique_violation then null; end;
+  d := pg_temp.cg_basica();
+  insert into public.cotizaciones_revisiones (cotizacion_id, diff, intento, huella) values ((d ->> 'c')::uuid, '{}', i, 'otra');
+
+  -- Ni authenticated ni anon las leen (la lista exacta de columnas legibles la guarda cotizaciones-visibilidad.sql).
+  if has_column_privilege('authenticated', 'public.cotizaciones_revisiones', 'intento', 'select') or has_column_privilege('authenticated', 'public.cotizaciones_revisiones', 'huella', 'select')
+     or has_column_privilege('anon', 'public.cotizaciones_revisiones', 'intento', 'select') or has_column_privilege('anon', 'public.cotizaciones_revisiones', 'huella', 'select') then
+    raise exception 'el intento o la huella de una revisión se pueden leer';
+  end if;
+end $$;
+rollback;

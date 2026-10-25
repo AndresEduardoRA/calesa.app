@@ -148,9 +148,13 @@ create table public.cotizaciones_revisiones (
   id             bigint generated always as identity primary key,
   cotizacion_id  uuid not null references public.cotizaciones (id) on delete cascade,
   usuario_id     uuid references public.perfiles (id),
-  diff           jsonb not null,           -- {campo: {de, a}}
-  creado_en      timestamptz not null default now()
+  diff           jsonb not null,           -- {campo: {de, a}}; en valores y fuentes, sólo los nodos que cambiaron
+  creado_en      timestamptz not null default now(),
+  intento        uuid,                     -- el id del guardado (cotizacion_guardar); nulo en cualquier otro cambio. No se lee directo
+  huella         text                      -- md5 de lo que mandó quien guardó: repetir el intento con otros datos es un error. No se lee directo
 );
+-- Un guardado se repite por su intento, no se duplica: lo ordena este índice y lo busca cotizacion_guardar.
+create unique index cotizaciones_revisiones_intento_unico on public.cotizaciones_revisiones (cotizacion_id, intento) where intento is not null;
 
 create table public.cotizaciones_comentarios (
   id             uuid primary key default gen_random_uuid(),

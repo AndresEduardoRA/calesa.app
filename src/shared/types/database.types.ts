@@ -1076,7 +1076,9 @@ export type Database = {
           cotizacion_id: string
           creado_en: string
           diff: NonNullable<Json>
+          huella: string | null
           id: number
+          intento: string | null
           usuario_id: string | null
         }
         ComputedFields: never
@@ -1084,14 +1086,18 @@ export type Database = {
           cotizacion_id: string
           creado_en?: string
           diff: NonNullable<Json>
+          huella?: string | null
           id?: never
+          intento?: string | null
           usuario_id?: string | null
         }
         Update: {
           cotizacion_id?: string
           creado_en?: string
           diff?: NonNullable<Json>
+          huella?: string | null
           id?: never
+          intento?: string | null
           usuario_id?: string | null
         }
         Relationships: [

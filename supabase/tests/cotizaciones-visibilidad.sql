@@ -178,7 +178,7 @@ end $f$;
 begin;
 do $$
 declare
-  v_ocultas constant jsonb := '{"cotizaciones": ["valores", "fuentes", "totales", "tipos_cambio"], "cotizaciones_revisiones": ["diff"]}';
+  v_ocultas constant jsonb := '{"cotizaciones": ["valores", "fuentes", "totales", "tipos_cambio"], "cotizaciones_revisiones": ["diff", "intento", "huella"]}';
   v_tabla text; v_col text; v_rol text; v_legibles text[]; v_esperadas text[];
 begin
   for v_tabla in select jsonb_object_keys(v_ocultas) loop
@@ -1191,7 +1191,8 @@ begin
   if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"titulo": {"de": "CV revisiones", "a": "CV revisiones nuevo"}, "total_base": {"de": 99999.5, "a": 5}}'::jsonb then raise exception 'las columnas legibles, tal cual: %', r -> 'revisiones' -> 0 -> 'diff'; end if;
   if r -> 'revisiones' -> 1 -> 'diff' <> '{}'::jsonb then raise exception 'cambió sólo la tarifa oficial (oculta): % ', r -> 'revisiones' -> 1 -> 'diff'; end if;
   if r -> 'revisiones' -> 2 -> 'diff' <> '{}'::jsonb then raise exception 'cambió sólo el subtotal de un grupo oculto: %', r -> 'revisiones' -> 2 -> 'diff'; end if;
-  if r -> 'revisiones' -> 3 -> 'diff' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v1 - 'tc_o' - 'flete' - 'margen', 'a', v2 - 'tc_o' - 'flete' - 'margen')) then raise exception 'el dato visible, sin los costos: %', r -> 'revisiones' -> 3 -> 'diff'; end if;
+  -- La revisión guarda por nodo: sólo lo que cambió (el dato visible `remate`; el costo `flete` que cambió con él no viaja).
+  if r -> 'revisiones' -> 3 -> 'diff' is distinct from '{"valores": {"de": {"remate": 1000.5}, "a": {"remate": 2000.5}}}'::jsonb then raise exception 'el dato visible, sin los costos: %', r -> 'revisiones' -> 3 -> 'diff'; end if;
   if r -> 'revisiones' -> 4 -> 'diff' <> '{}'::jsonb then raise exception 'cambió sólo un costo: %', r -> 'revisiones' -> 4 -> 'diff'; end if;
   if r -> 'revisiones' -> 5 -> 'diff' is distinct from '{"notas": {"de": null, "a": "uno"}}'::jsonb then raise exception 'la nota: %', r -> 'revisiones' -> 5 -> 'diff'; end if;
   if position('50123' in r::text) > 0 or position('60123' in r::text) > 0 or position('77123' in r::text) > 0 or position('7.75' in r::text) > 0 or position('41111' in r::text) > 0 or position('flete' in r::text) > 0 or position('tc_o' in r::text) > 0 then
@@ -1199,8 +1200,8 @@ begin
   end if;
   -- 2. Con el nivel: los diffs enteros.
   r2 := pg_temp.cv_corre(con, format('select public.cotizacion_revisiones(%L)', c));
-  if r2 -> 'revisiones' -> 4 -> 'diff' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v0, 'a', v1)) then raise exception 'con el nivel, el costo: %', r2 -> 'revisiones' -> 4 -> 'diff'; end if;
-  if r2 -> 'revisiones' -> 3 -> 'diff' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v1, 'a', v2)) then raise exception 'con el nivel, el dato y el costo: %', r2 -> 'revisiones' -> 3 -> 'diff'; end if;
+  if r2 -> 'revisiones' -> 4 -> 'diff' is distinct from '{"valores": {"de": {"flete": 41111.5}, "a": {"flete": 50123.5}}}'::jsonb then raise exception 'con el nivel, el costo: %', r2 -> 'revisiones' -> 4 -> 'diff'; end if;
+  if r2 -> 'revisiones' -> 3 -> 'diff' is distinct from '{"valores": {"de": {"remate": 1000.5, "flete": 50123.5}, "a": {"remate": 2000.5, "flete": 60123.5}}}'::jsonb then raise exception 'con el nivel, el dato y el costo: %', r2 -> 'revisiones' -> 3 -> 'diff'; end if;
   if r2 -> 'revisiones' -> 2 -> 'diff' is distinct from jsonb_build_object('totales', jsonb_build_object('de', t0, 'a', jsonb_set(t0, '{grupos,g2,usd}', '77123.5'))) then
     raise exception 'con el nivel, el subtotal del grupo: %', r2 -> 'revisiones' -> 2 -> 'diff';
   end if;
@@ -1237,6 +1238,10 @@ begin
   r := jsonb_build_object('d', public._cotizacion_diff_recortado('{"desconocida": {"de": 1, "a": 2}, "notas": {"de": null, "a": "x"}, "eliminado_por": {"de": null, "a": "p"}}',
          public._cotizacion_contexto(array['remate'], v_def, v_vis), array['notas', 'titulo']));
   if r -> 'd' is distinct from '{"notas": {"de": null, "a": "x"}}'::jsonb then raise exception 'una clave desconocida viaja: %', r; end if;
+  -- 6. Las revisiones de antes (dos snapshots enteros en valores) se siguen leyendo recortadas igual que las de ahora.
+  r := jsonb_build_object('d', public._cotizacion_diff_recortado(jsonb_build_object('valores', jsonb_build_object('de', v1, 'a', v2)),
+         public._cotizacion_contexto(array['remate', 'fees', 'tc_p'], v_def, v_vis), array['notas']));
+  if r -> 'd' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v1 - 'tc_o' - 'flete' - 'margen', 'a', v2 - 'tc_o' - 'flete' - 'margen')) then raise exception 'una revisión con dos snapshots enteros no se recorta: %', r; end if;
 end $$;
 rollback;
 
