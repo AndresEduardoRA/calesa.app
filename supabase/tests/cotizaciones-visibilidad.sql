@@ -84,39 +84,45 @@ begin
 end $f$;
 
 -- Las funciones de `public` y `web` que pueden devolver contenido de lo oculto, y si las ejecuta un cliente (`authenticated` o `anon`).
---   - Una función "puede devolver contenido" si su tipo de retorno carga datos (no void, booleano, uuid, número, fecha ni trigger).
+--   - Una función "puede devolver contenido" si su tipo de retorno carga datos (no void, uuid ni trigger: un número, un booleano, un entero o una fecha también pueden decir algo de un nodo oculto, 4-16).
 --   - Es fuente si su texto, sin comentarios, nombra una de las tablas con una de sus columnas ocultas, hace `select *` de ellas, o devuelve su fila.
 --   - Y también lo es quien la llama (cierre): una función que devuelve lo que otra leyó.
 create or replace function pg_temp.cv_inventario()
-returns table (id oid, nombre name, argumentos text, retorna text, ejecutable boolean) language sql as $f$
-  with recursive todas as (
-    select p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args, pg_get_function_result(p.oid) as retorna,
-           regexp_replace(p.prosrc, '--[^\n]*', '', 'g') as src, p.prorettype,
-           p.prorettype not in ('void'::regtype, 'boolean'::regtype, 'uuid'::regtype, 'integer'::regtype, 'bigint'::regtype, 'smallint'::regtype,
-                                'numeric'::regtype, 'timestamp with time zone'::regtype, 'date'::regtype, 'trigger'::regtype) as carga,
-           has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute') as ejecutable
+returns table (id oid, nombre name, argumentos text, retorna text, ejecutable boolean) language plpgsql as $f$
+declare
+  v_inv oid[]; v_nuevo oid[]; v_re text;
+begin
+  -- Todas las funciones de `public` y `web`, con su texto sin comentarios (una sola vez).
+  drop table if exists pg_temp.cv_todas;
+  create temp table cv_todas on commit drop as
+    select p.oid as oid_, p.proname as nombre_, pg_get_function_identity_arguments(p.oid) as args_, pg_get_function_result(p.oid) as retorna_,
+           regexp_replace(p.prosrc, '--[^\n]*', '', 'g') as src_, p.prorettype as tipo_,
+           -- Sólo `void`, `uuid` y `trigger` no cargan contenido: un número, un booleano, un entero o una fecha pueden ser un nodo oculto, su comparación con otro o cuándo se guardó (4-16).
+           p.prorettype not in ('void'::regtype, 'uuid'::regtype, 'trigger'::regtype) as carga_,
+           has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute') as ejecutable_
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname in ('public', 'web') and p.prokind = 'f'
-  ), fuente as (
-    select t.oid from todas t where t.carga and (
-         (t.src ~* '\mpublic\.cotizaciones\M' and t.src ~* '\m(valores|fuentes|totales|tipos_cambio)\M')
-      or (t.src ~* '\mpublic\.cotizaciones_revisiones\M' and t.src ~* '\mdiff\M')
-      or (t.src ~* '\mpublic\.formulas\M' and t.src ~* '\m(definicion|params|diseno|visibilidad)\M')
-      or (t.src ~* '\mpublic\.tablas_referencia(_filas)?\M' and t.src ~* '\m(valores|columnas)\M')
-      or (t.src ~* '\mpublic\.actividad\M' and t.src ~* '\m(antes|despues)\M')
-      or t.src ~* 'select\s+(\w+\.)?\*[^;]{0,60}from\s+public\.(cotizaciones|cotizaciones_revisiones|formulas|tablas_referencia|tablas_referencia_filas)\M'
-      or t.src ~* '(to_jsonb|row_to_json)\s*\(\s*\w+\s*\)[^;]{0,80}from\s+public\.(cotizaciones|cotizaciones_revisiones|formulas)\M'
-      or t.prorettype in ('public.cotizaciones'::regtype, 'public.cotizaciones_revisiones'::regtype, 'public.formulas'::regtype, 'public.tablas_referencia_filas'::regtype)
-         or exists (select 1 from pg_type ty where ty.oid = t.prorettype and ty.typelem <> 0
-                      and ty.typelem in ('public.cotizaciones'::regtype, 'public.cotizaciones_revisiones'::regtype, 'public.formulas'::regtype, 'public.tablas_referencia_filas'::regtype)))
-  ), cierre as (
-    select oid from fuente
-    union
-    select t.oid from todas t join cierre c on true join todas g on g.oid = c.oid
-     where t.carga and t.src ~ ('\m' || g.proname || '\s*\(') and t.oid <> g.oid
-  )
-  select t.oid, t.proname, t.args, t.retorna, t.ejecutable from todas t where t.oid in (select oid from cierre)
-$f$;
+     where n.nspname in ('public', 'web') and p.prokind = 'f';
+  -- Las fuentes: su texto nombra una de las tablas con una de sus columnas ocultas, hace `select *` de ellas o devuelve su fila.
+  select coalesce(array_agg(t.oid_), '{}') into v_inv from cv_todas t where t.carga_ and (
+         (t.src_ ~* '\mpublic\.cotizaciones\M' and t.src_ ~* '\m(valores|fuentes|totales|tipos_cambio)\M')
+      or (t.src_ ~* '\mpublic\.cotizaciones_revisiones\M' and t.src_ ~* '\m(diff|intento|huella)\M')
+      or (t.src_ ~* '\mpublic\.formulas\M' and t.src_ ~* '\m(definicion|params|diseno|visibilidad)\M')
+      or (t.src_ ~* '\mpublic\.tablas_referencia(_filas)?\M' and t.src_ ~* '\m(valores|columnas)\M')
+      or (t.src_ ~* '\mpublic\.actividad\M' and t.src_ ~* '\m(antes|despues)\M')
+      or t.src_ ~* 'select\s+(\w+\.)?\*[^;]{0,60}from\s+public\.(cotizaciones|cotizaciones_revisiones|formulas|tablas_referencia|tablas_referencia_filas)\M'
+      or t.src_ ~* '(to_jsonb|row_to_json)\s*\(\s*\w+\s*\)[^;]{0,80}from\s+public\.(cotizaciones|cotizaciones_revisiones|formulas)\M'
+      or t.tipo_ in ('public.cotizaciones'::regtype, 'public.cotizaciones_revisiones'::regtype, 'public.formulas'::regtype, 'public.tablas_referencia_filas'::regtype)
+      or exists (select 1 from pg_type ty where ty.oid = t.tipo_ and ty.typelem <> 0
+                   and ty.typelem in ('public.cotizaciones'::regtype, 'public.cotizaciones_revisiones'::regtype, 'public.formulas'::regtype, 'public.tablas_referencia_filas'::regtype)));
+  -- El cierre: quien llama a una del inventario devuelve lo que ella leyó. Una vuelta por nivel de llamadas, con UNA regex de todos los nombres (no una por par de funciones).
+  loop
+    v_re := '\m(' || (select string_agg(distinct t.nombre_, '|') from cv_todas t where t.oid_ = any (v_inv)) || ')\s*\(';
+    v_nuevo := coalesce((select array_agg(t.oid_) from cv_todas t where t.carga_ and not t.oid_ = any (v_inv) and t.src_ ~ v_re), '{}');
+    exit when cardinality(v_nuevo) = 0;
+    v_inv := v_inv || v_nuevo;
+  end loop;
+  return query select t.oid_, t.nombre_, t.args_, t.retorna_, t.ejecutable_ from cv_todas t where t.oid_ = any (v_inv);
+end $f$;
 
 -- Lo que cada función ejecutable que puede devolver esas tablas es y por qué está bien. Las clases:
 --   recorta       devuelve contenido de cotizaciones recortado por `_nodos_visibles()`: tiene una `sonda` (el SQL que la llama, con `{cot}` por la cotización) y el caso genérico la corre
@@ -298,11 +304,38 @@ begin
   perform 1 from public.cotizaciones where valores is not null;
 end $s$;
 create function public.cv_sonda_inocente() returns jsonb language sql as $s$ select '{}'::jsonb $s$;
+-- 4-16: lo que devuelve un número, un booleano, un entero o una fecha también puede decir algo de un nodo oculto (su valor, si vale más que algo, cuántos hay, cuándo).
+create function public.cv_sonda_numeric() returns numeric language sql as $s$ select (c.valores ->> 'costo')::numeric from public.cotizaciones c limit 1 $s$;
+create function public.cv_sonda_booleano() returns boolean language sql as $s$ select (c.fuentes ->> 'costo') = 'override' from public.cotizaciones c limit 1 $s$;
+create function public.cv_sonda_entero() returns integer language sql as $s$ select jsonb_array_length(c.fuentes -> 'lista') from public.cotizaciones c limit 1 $s$;
+create function public.cv_sonda_bigint() returns bigint language plpgsql as $s$
+declare n bigint;
+begin
+  select count(*) into n from public.cotizaciones c where (c.totales ->> 'usd')::numeric > 100;
+  return n;
+end $s$;
+create function public.cv_sonda_smallint() returns smallint language sql as $s$ select (c.tipos_cambio ->> 'oficial')::smallint from public.cotizaciones c limit 1 $s$;
+create function public.cv_sonda_fecha() returns date language sql as $s$ select (c.valores ->> 'fecha')::date from public.cotizaciones c limit 1 $s$;
+create function public.cv_sonda_cuando() returns timestamptz language sql as $s$ select (r.diff ->> 'cuando')::timestamptz from public.cotizaciones_revisiones r limit 1 $s$;
+create function public.cv_sonda_intento() returns boolean language sql as $s$ select exists (select 1 from public.cotizaciones_revisiones r where r.huella is not null) $s$;
+create function public.cv_sonda_numeric_llama() returns numeric language sql as $s$ select (public.cv_sonda_directa() ->> 'a')::numeric $s$;
+create function public.cv_sonda_numeric_llama2() returns boolean language sql as $s$ select public.cv_sonda_numeric_llama() > 0 $s$;
+-- Y las que no: un número que sólo es `total_base` (legible), un booleano que nombra las palabras en un comentario, un uuid (sin contenido) y un entero que no toca ninguna tabla.
+create function public.cv_sonda_total_base() returns numeric language sql as $s$ select c.total_base from public.cotizaciones c limit 1 $s$;
+create function public.cv_sonda_booleano_comentario() returns boolean language sql as $s$ select true -- public.cotizaciones valores
+$s$;
+create function public.cv_sonda_uuid() returns uuid language sql as $s$ select c.id from public.cotizaciones c where c.valores is not null limit 1 $s$;
+create function public.cv_sonda_entero_inocente() returns integer language sql as $s$ select 1 $s$;
+create function public.cv_sonda_void_llama() returns void language plpgsql as $s$
+begin
+  perform public.cv_sonda_directa();
+end $s$;
 create temp table cv_inv on commit drop as select * from pg_temp.cv_inventario();
 do $$
 declare
-  v_buenas text[] := array['cv_sonda_directa', 'cv_sonda_revisiones', 'cv_sonda_formula', 'cv_sonda_tabla', 'cv_sonda_actividad', 'cv_sonda_estrella', 'cv_sonda_fila', 'cv_sonda_arreglo', 'cv_sonda_llama'];
-  v_malas text[] := array['cv_sonda_comentario', 'cv_sonda_void', 'cv_sonda_inocente'];
+  v_buenas text[] := array['cv_sonda_directa', 'cv_sonda_revisiones', 'cv_sonda_formula', 'cv_sonda_tabla', 'cv_sonda_actividad', 'cv_sonda_estrella', 'cv_sonda_fila', 'cv_sonda_arreglo', 'cv_sonda_llama',
+                           'cv_sonda_numeric', 'cv_sonda_booleano', 'cv_sonda_entero', 'cv_sonda_bigint', 'cv_sonda_smallint', 'cv_sonda_fecha', 'cv_sonda_cuando', 'cv_sonda_intento', 'cv_sonda_numeric_llama', 'cv_sonda_numeric_llama2'];
+  v_malas text[] := array['cv_sonda_comentario', 'cv_sonda_void', 'cv_sonda_inocente', 'cv_sonda_total_base', 'cv_sonda_booleano_comentario', 'cv_sonda_uuid', 'cv_sonda_entero_inocente', 'cv_sonda_void_llama'];
   v_n text; v_p text[];
 begin
   -- 1. El registro de hoy está completo y bien formado.
@@ -317,7 +350,7 @@ begin
     if not exists (select 1 from pg_temp.cv_inv i where i.nombre = v_n) then raise exception 'el detector no encuentra %', v_n; end if;
   end loop;
   foreach v_n in array v_malas loop
-    if exists (select 1 from pg_temp.cv_inv i where i.nombre = v_n) then raise exception 'el detector encuentra % y no debía (comentario, void o sin tablas)', v_n; end if;
+    if exists (select 1 from pg_temp.cv_inv i where i.nombre = v_n) then raise exception 'el detector encuentra % y no debía (comentario, void, uuid, sólo total_base o sin tablas)', v_n; end if;
   end loop;
   -- Y las reales: lo que lee el diseño o el snapshot entra; el motor puro y los validadores, que no leen ninguna tabla, no.
   foreach v_n in array array['_cotizacion_armar', '_nodos_visibles', 'cotizacion_evaluar', '_nivel_uso'] loop
