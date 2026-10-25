@@ -475,6 +475,12 @@ db» es `db:base`, `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuan
   - **Mutaciones por `nivel_eliminar`:** `_nivel_uso` que ignora el borrador, que ignora las archivadas, que sólo mira la publicada, y `nulls last`: caen las cuatro (`docs/BITACORA.md`, 4.10-1).
   - **Lugar:** 4.10, prompt 1.
 
+- **4-14 · «Todas las que veo» de quien ve «propios» recorre el índice global (4.10, prompt 1; para el 4.16).**
+  - **Hoy:** la policy por fila hace barata la página de la dueña y la de «Mías» (0,5 y 0,7 ms, 102 y 153 buffers, iguales con 50.000 y con 250.000), pero «todas las que veo» de una asesora —sin el filtro «mías»— camina `cotizaciones_listado_idx` entera y descarta lo ajeno: con 250.000 cotizaciones, **Ana** (5.000 propias y 1.000 de otras personas sobre su cartera) tarda **1.530 ms y 42.066 buffers** y la **«chica»** (3 propias) **1.930 ms y 55.263**. Es la misma familia que 5a-2 en los leads (`leads_cartera_vista`).
+  - **Por qué importa:** es lo que ve una asesora al abrir `/cotizaciones` sin filtrar, y la ruta crece con las cotizaciones de toda la empresa.
+  - **Assert:** en `medir-cotizaciones-lectura.sql` (hoy sólo la mide y la anota), la página 1 y una profunda por cursor de Ana y de la «chica» con 50.000 y con 250.000 cotizaciones: ≤ 50 ms y un tope de buffers que no crece con N (el mismo en los dos volúmenes), y que lo que devuelve es lo que dice la regla (`cotizaciones-visibilidad.sql`).
+  - **Lugar:** 4.16 (el listado). La salida más probable es la de los leads: leer «propias» por `creado_por` y por la cartera (`leads_asesores_usuario_vigente_idx` hacia `cotizaciones_lead_idx`) y juntar las dos por `creado_en desc, id desc`, en una función con sus dos consultas (con y sin cursor) y un umbral para quien tiene una cartera enorme; se decide ahí con el `EXPLAIN` delante.
+
 ## Fase 5 — Flujos (configuración)
 
 Módulo `flujos`: configuración por origen (y el de repuestos): fases con todos sus atributos,

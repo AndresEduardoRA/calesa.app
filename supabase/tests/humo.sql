@@ -250,6 +250,8 @@ do $$ declare v uuid; l uuid; o uuid; f uuid; c uuid; begin
   values (o, l, v, '00000000-0000-0000-0000-000000000004', f, '{"remate": 14200, "total": 24980}', '{"oficial": 6.96, "paralelo": 12.40}', '{"total_base": 24980}', 24980) returning id into c;
   update public.cotizaciones set notas = 'ajuste' where id = c;
   if (select count(*) from public.cotizaciones_revisiones where cotizacion_id = c) <> 1 then raise exception 'sin revisión con diff'; end if;
+  -- La policy de lectura decide por fila (4.10-1): quien la creó la lee. Que otra persona sin su lead no la lea lo prueba `cotizaciones-visibilidad.sql`.
+  if (select count(*) from public.cotizaciones where id = c) <> 1 then raise exception 'quien creó la cotización no la lee'; end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
