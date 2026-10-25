@@ -261,6 +261,14 @@ $f$;
 create or replace function pg_temp.cg_ver(p_c uuid) returns timestamptz language sql as $f$ select actualizado_en from public.cotizaciones where id = p_c $f$;
 create or replace function pg_temp.cg_veh(p_c uuid) returns uuid language sql as $f$ select vehiculo_id from public.cotizaciones where id = p_c $f$;
 create or replace function pg_temp.cg_revs(p_c uuid) returns bigint language sql as $f$ select count(*) from public.cotizaciones_revisiones where cotizacion_id = p_c $f$;
+-- Las claves de objeto y las hojas (escalares) de un jsonb, a cualquier profundidad. Para preguntar por estructura y no por el texto de una respuesta que trae
+-- uuids y fechas: `r::text ~ '99'` caía cuando el usuario_id traía «99» (4.10-3b).
+create or replace function pg_temp.cg_claves(p jsonb) returns setof text language sql as $f$
+  select k from jsonb_path_query(p, 'strict $.**') v, jsonb_object_keys(case when jsonb_typeof(v) = 'object' then v end) k
+$f$;
+create or replace function pg_temp.cg_hojas(p jsonb) returns setof jsonb language sql as $f$
+  select v from jsonb_path_query(p, 'strict $.**') v where jsonb_typeof(v) not in ('object', 'array')
+$f$;
 
 -- @test cotizacion_guardar: guarda lo que edita, conserva lo oculto byte a byte, recalcula lo derivado, devuelve sólo lo que se ve y deja una revisión por nodo con su intento
 begin;
@@ -320,7 +328,17 @@ begin
   if leido -> 'valores' is distinct from (select jsonb_object_agg(e.key, e.value) from jsonb_each(antes.valores) e where e.key in ('tc', 'visible', 'fijo', 'ajuste', 'total')) then raise exception 'lo visible cambió: %', leido -> 'valores'; end if;
   r := pg_temp.cg_corre(a, format('select public.cotizacion_revisiones(%L)', c));
   if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{}'::jsonb or (r -> 'revisiones' -> 0 ->> 'usuario_id')::uuid is distinct from k then raise exception 'la revisión de sólo lo oculto se delata o no dice quién: %', r -> 'revisiones' -> 0; end if;
-  if r::text ~ 'aparte_costos|99' then raise exception 'algo oculto viaja por las revisiones: %', r; end if;
+  -- Lo oculto no viaja: se mira la forma de la respuesta y los valores del diff, nunca su texto (el uuid y la fecha de una revisión son al azar).
+  if (select array_agg(x order by x) from jsonb_object_keys(r) x) is distinct from array['hay_mas', 'revisiones', 'siguiente'] then raise exception 'la respuesta trae otras claves: %', r; end if;
+  if exists (select 1 from jsonb_array_elements(r -> 'revisiones') e
+              where (select array_agg(x order by x) from jsonb_object_keys(e) x) is distinct from array['creado_en', 'diff', 'id', 'usuario_id']) then
+    raise exception 'una revisión trae otras claves: %', r;
+  end if;
+  if exists (select 1 from pg_temp.cg_claves(r) x where x in ('oculto', 'b_costos', 'bono_costos', 'der_costos', 'aparte_costos')) then raise exception 'un nodo oculto viaja como clave: %', r; end if;
+  if exists (select 1 from jsonb_array_elements(r -> 'revisiones') e, pg_temp.cg_hojas(e -> 'diff') h
+              where h in ('3', '99') or h #>> '{}' in ('3', '99', 'oculto', 'b_costos', 'bono_costos', 'der_costos', 'aparte_costos')) then
+    raise exception 'algo oculto viaja en el diff de las revisiones: %', r;
+  end if;
   -- k sí lo ve.
   r := pg_temp.cg_corre(k, format('select public.cotizacion_revisiones(%L)', c));
   if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"valores": {"de": {"aparte_costos": 3}, "a": {"aparte_costos": 99}}}'::jsonb then raise exception 'quien ve el nivel debía ver el cambio: %', r -> 'revisiones' -> 0 -> 'diff'; end if;
