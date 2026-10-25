@@ -6,6 +6,7 @@ import {
   prepararSubasta,
   type EstadoDeApibara,
 } from './soporte/apibara'
+import { asegurarClaveDeRelleno, idDelSecretoDeApibara } from './soporte/apibara-clave'
 import { entorno } from './soporte/base'
 import { pedirAFuncion } from './soporte/funciones'
 import { CLAVE } from './soporte/inventario'
@@ -19,13 +20,22 @@ let duena = ''
 let sinPermisos = ''
 let subasta = { id: '', nombre: '' }
 let apibaraAntes: EstadoDeApibara
+// La función responde `apagada` si no hay clave en Vault, antes de mirar la dirección de una foto: una base recién reseteada (los
+// bloques de CI) no tiene ninguna. El spec deja la suya, de relleno, sólo si no hay una, y la quita al terminar.
+let quitarLaClave: () => Promise<void> = async () => {}
+let habiaClave = true
 
 test.beforeAll(async ({}, info) => {
   ;({ duena, sinPermisos, subasta, apibaraAntes } = await prepararSubasta(info.project.name))
+  habiaClave = idDelSecretoDeApibara() !== null
+  quitarLaClave = await asegurarClaveDeRelleno(duena)
 })
 
 test.afterAll(async () => {
+  await quitarLaClave()
   await desmontarSubasta(apibaraAntes)
+  // Si no había clave, no queda ninguna; si la había, es la de quien usa la app y sigue ahí.
+  expect(idDelSecretoDeApibara() !== null, 'la clave tras el spec').toBe(habiaClave)
 })
 
 const opciones = { auth: { persistSession: false, autoRefreshToken: false } }
