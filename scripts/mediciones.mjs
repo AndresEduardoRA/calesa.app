@@ -42,6 +42,11 @@ export const MEDICIONES_BASE = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-cotizacion-crear.sql',
+    'cotizacion_crear() con 50.000 y con 250.000 cotizaciones, como authenticated con el plan genérico: una preventa de la dueña con vehículo, una de la asesora («propios»), cargando el vehículo a mano y el intento repetido (ms y buffers del EXPLAIN de la llamada entera, y que no recorre la tabla)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-evaluar-formula.sql',
     'evaluar_formula() con una evaluación sintética de 200 y de 2.000 nodos y con 4 tablas de 1.000 filas, como authenticated (ms y buffers del EXPLAIN)',
     'mediana de 5 de 7 corridas',
