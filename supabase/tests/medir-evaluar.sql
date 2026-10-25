@@ -118,8 +118,9 @@ end $$;
 
 -- Un caso: mide, anota y asserta los topes de tiempo. `p_mediana` y `p_p95` en ms (null = sin tope).
 -- Buscar una cotización por su clave con su snapshot: `authenticated` no lee esas columnas, así que la lee quien la creó (la base).
-create function pg_temp.leer_snapshot(p_id uuid) returns void language sql security definer as $$
-  select c.id, c.valores, c.fuentes from public.cotizaciones c where c.id = p_id
+create function pg_temp.leer_snapshot(p_id uuid) returns int language sql security definer as $$
+  -- Pasar a texto fuerza a leer el TOAST (sin eso, un valor que nadie usa se queda sin leer y el conteo depende de si el snapshot está o no comprimido en línea).
+  select length(c.valores::text) + length(c.fuentes::text) from public.cotizaciones c where c.id = p_id
 $$;
 grant execute on function pg_temp.leer_snapshot(uuid) to authenticated;
 create function pg_temp.caso(p_caso text, p_n int, p_entradas jsonb, p_cot uuid, p_origen uuid, p_veh uuid, p_mediana numeric, p_p95 numeric)
