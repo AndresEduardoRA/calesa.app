@@ -12,14 +12,23 @@ on:
         type: choice
         options: [escritorio, ambos]
         default: escritorio
+      e2e:
+        description: 'Compilar la app y correr el e2e en sus 4 bloques'
+        type: boolean
+        default: true
+      carreras:
+        description: 'Correr las carreras con dos conexiones (docs/PLAN.md, 9-6): cada corrida cuenta para las 5 seguidas en verde'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-# Un push nuevo a la misma rama (o al mismo PR) cancela la corrida anterior.
+# Un push nuevo a la misma rama (o al mismo PR) cancela la corrida anterior. Un dispatch (un e2e de 70 a 96 min, unas carreras)
+# tiene su propio grupo, con run_id, y nunca se cancela: ni un push lo corta ni otro dispatch lo deja en espera.
 concurrency:
-  group: ci-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'workflow_dispatch' && format('ci-manual-{0}-{1}', github.ref, github.run_id) || format('ci-{0}', github.head_ref || github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 # Acciones de terceros admitidas, una por línea con su motivo (`# accion-de-terceros: <dueño/repo> — <motivo>`).
 # Hoy ninguna: sólo acciones de GitHub (`actions/*`), fijadas por SHA, y la local `./.github/acciones/preparar`.
@@ -95,12 +104,27 @@ jobs:
           psql "$SUPABASE_DB_LOCAL" -At -v ON_ERROR_STOP=1 -f scripts/splinter.sql > "$RUNNER_TEMP/advisors.txt"
           if grep -i '|ERROR|' "$RUNNER_TEMP/advisors.txt"; then echo "::error::Advisors con nivel ERROR"; exit 1; fi
 
+  # docs/PLAN.md, 9-6: dos o tres conexiones reales, sólo a mano (`carreras: true`) hasta 5 corridas seguidas en verde; entonces
+  # pasan a `base`. Sin reintentos: `scripts/carreras.mjs` falla si una carrera no llegó a probarse.
+  carreras:
+    name: Carreras · db:carreras (a mano, 9-6)
+    if: github.event_name == 'workflow_dispatch' && inputs.carreras
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/acciones/preparar
+      - run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+      - run: pnpm db:reset
+      - run: pnpm db:carreras
+
   # La app se compila una vez y los cuatro bloques bajan la misma (docs/DECISIONES.md, «CI-1»: factura menos y corre en
   # paralelo con el Nivel 1, que los bloques esperan igual).
+  # Con workflow_dispatch, `e2e: false` lo apaga (para correr sólo las carreras).
   e2e-build:
     name: e2e · compilar la app
     needs: cambios
-    if: needs.cambios.outputs.e2e == 'true'
+    if: needs.cambios.outputs.e2e == 'true' && (github.event_name != 'workflow_dispatch' || inputs.e2e)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -122,11 +146,11 @@ jobs:
           if-no-files-found: error
 
   # Cada bloque tiene su runner y su pila de Supabase: una base por bloque. Sin reintentos (`retries: 0`): la causa de un
-  # fallo va a los artefactos y a e2e-fallos/. Las carreras (`db:carreras`) no corren acá (docs/PLAN.md, 9-6).
+  # fallo va a los artefactos y a e2e-fallos/. Las carreras (`db:carreras`) van en su job, a mano (docs/PLAN.md, 9-6).
   e2e:
     name: e2e · bloque ${{ matrix.bloque }} de 4
     needs: [cambios, nivel-1, e2e-build]
-    if: needs.cambios.outputs.e2e == 'true'
+    if: needs.cambios.outputs.e2e == 'true' && (github.event_name != 'workflow_dispatch' || inputs.e2e)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
@@ -171,16 +195,22 @@ jobs:
           path: ${{ runner.temp }}
       - run: tar -xzf "$RUNNER_TEMP/next-e2e.tgz"
       - run: pnpm db:reset
+      # Las tres que exige e2e/soporte/guardia.ts (FUNCIONES), con su regla: OPTIONS responde y no es 404 ni 5xx.
       - name: funciones edge (las pide e2e/global-setup.ts)
         run: |
           nohup pnpm exec supabase functions serve > "$RUNNER_TEMP/funciones.log" 2>&1 &
+          funciones="apibara storage-gc avatares-miniaturas"
           for _ in $(seq 1 60); do
-            s=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$SUPABASE_API_LOCAL/functions/v1/apibara" || true)
-            if [ "$s" != 000 ] && [ "$s" != 404 ] && [ "${s:0:1}" != 5 ]; then echo "servidas ($s)"; exit 0; fi
+            faltan=""
+            for f in $funciones; do
+              s=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$SUPABASE_API_LOCAL/functions/v1/$f" || true)
+              if [ "$s" = 000 ] || [ "$s" = 404 ] || [ "${s:0:1}" = 5 ]; then faltan="$faltan $f"; fi
+            done
+            if [ -z "$faltan" ]; then echo "servidas: $funciones"; exit 0; fi
             sleep 2
           done
           cat "$RUNNER_TEMP/funciones.log"
-          echo "::error::Las funciones edge no respondieron en 120 s"
+          echo "::error::Las funciones edge no respondieron en 120 s:$faltan"
           exit 1
       - name: e2e completo, bloque ${{ matrix.bloque }} de 4
         env:
