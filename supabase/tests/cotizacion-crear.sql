@@ -314,7 +314,7 @@ begin
   r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, v_entradas, v, null, null));
   if r ? 'error' or (select modo_tc from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid) is not null then raise exception 'sin modo, modo_tc debía quedar nulo: %', r; end if;
   r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, v_entradas, v, null, 'inventado'));
-  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'modo_invalido' then raise exception 'un modo que la hoja no ofrece debía dar modo_invalido: %', r; end if;
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'modo_invalido' or r ->> 'hint' is distinct from 'modo_tc' then raise exception 'un modo que la hoja no ofrece debía dar modo_invalido: %', r; end if;
 
   -- La moneda base de la empresa decide qué total se guarda: USD, el de dólares; BOB, el de bolivianos; otra, nada.
   update public.ajustes_empresa set moneda_base = 'BOB' where id = 1;

@@ -5,7 +5,7 @@
 // crear contra mandar el vehículo a la papelera (los dos órdenes de cada una) y dos finales del mismo vehículo. Nunca toca un origen de la semilla: el e2e corre después.
 import { PERSONAS, PREFIJO, comoPersona, leadDeLaDuena } from './terreno.mjs'
 
-const { duena, supervision, destino, configura } = PERSONAS
+const { duena, supervision, destino, configura, sinVehiculos } = PERSONAS
 
 // Una fórmula de cuatro entradas y un total (la de `niveles.mjs`), sin niveles: lo que cualquiera con `cotizaciones.crear` puede tipear.
 const definicion = {
@@ -538,6 +538,52 @@ export async function carrerasDeCotizaciones({ orquesta, carrera, espero, conect
         fila.movida_a_papelera === false &&
         fila.otra_a_papelera === true,
       { a: r.a, b: r.b, fila },
+    )
+  }
+
+  console.log('Quien no ve el vehículo no queda esperando su candado')
+  {
+    // A tiene el vehículo tomado (a la papelera, sin confirmar); B cotiza sin verlo: la respuesta es inmediata (42501), no una espera: se corta a los 2 s.
+    const t = await terreno(orquesta, 'noveveh')
+    const version = (
+      await orquesta.query(`select actualizado_en::text as v from public.vehiculos where id = $1`, [
+        t.vehiculo,
+      ])
+    ).rows[0].v
+    const a = await conectar()
+    const b = await conectar()
+    let rb
+    try {
+      await comoPersona(a, duena)
+      await a.query('begin')
+      await a.query('select public.vehiculos_papelera_enviar($1::jsonb)', [
+        JSON.stringify([{ id: t.vehiculo, actualizado_en: version }]),
+      ])
+      await comoPersona(b, sinVehiculos)
+      await b.query('set statement_timeout = 2000')
+      rb = await b
+        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $5) as r', [
+          '00000000-0000-4000-8000-0000000c1c15',
+          t.origen,
+          t.lead,
+          ENTRADAS,
+          t.vehiculo,
+        ])
+        .then(
+          () => ({ ok: true }),
+          (e) => ({ ok: false, codigo: e.code, mensaje: e.message }),
+        )
+    } finally {
+      await a.query('rollback').catch(() => undefined)
+      await a.end()
+      await b.end()
+    }
+    espero(
+      'B recibe el error de un vehículo que no ve sin esperar a A (42501, no el corte por tiempo 57014)',
+      rb.codigo === '42501' &&
+        /vehículo/.test(rb.mensaje ?? '') &&
+        (await cuantas(orquesta, t.origen)) === 0,
+      { b: rb },
     )
   }
 }
