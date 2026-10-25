@@ -6949,13 +6949,17 @@ export type Database = {
         Returns: {
           definicion: Json
           entrada: Json
+          formula_id: string
+          origen_id: string
           params: Json
+          visibilidad: Json
         }[]
       }
-      _cotizacion_recorte: {
-        Args: { p_def: Json; p_ocultos: string[]; p_res: Json; p_visibles: string[] }
+      _cotizacion_contexto: {
+        Args: { p_def: Json; p_visibilidad: Json; p_visibles: string[] }
         Returns: Json
       }
+      _cotizacion_recorte: { Args: { p_ctx: Json; p_res: Json }; Returns: Json }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
       _diseno_modos: {
@@ -7859,7 +7863,6 @@ export type Database = {
         }
         Returns: Json
       }
-      cotizacion_leer: { Args: { p_id: string }; Returns: Json }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {
         Args: { p_cotizacion: string; p_estado: Database['public']['Enums']['estado_cotizacion'] }

@@ -448,17 +448,23 @@ begin
 end $$;
 rollback;
 
--- @test cotizacion_evaluar: hasta el 4.10 authenticated no la ejecuta; con el permiso, cada quien ve lo que la policy le deja ver
+-- @test cotizacion_evaluar: desde el 4.10 la ejecuta authenticated (y nadie más) porque recorta por nivel; el armado, de nadie; cada quien ve lo que la policy le deja ver
 begin;
 do $$
 declare
-  v_fn text[] := array['public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb)', 'public._cotizacion_armar(jsonb, uuid, uuid, uuid)'];
   f text;
 begin
-  foreach f in array v_fn loop
-    if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then
-      raise exception '% la ejecuta authenticated o anon: hasta el 4.10 devuelve el resultado entero, sin recorte por nivel', f;
-    end if;
+  -- El armado devuelve la fórmula entera: de nadie.
+  f := 'public._cotizacion_armar(jsonb, uuid, uuid, uuid)';
+  if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then
+    raise exception '% la ejecuta authenticated o anon', f;
+  end if;
+  -- La evaluación, de authenticated; ni anon ni PUBLIC.
+  f := 'public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb)';
+  if has_function_privilege('anon', f, 'execute') or not has_function_privilege('authenticated', f, 'execute') then
+    raise exception '% debía ser de authenticated y no de anon', f;
+  end if;
+  foreach f in array array['public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb)', 'public._cotizacion_armar(jsonb, uuid, uuid, uuid)'] loop
     if exists (select 1 from aclexplode(coalesce((select proacl from pg_proc where oid = f::regprocedure),
                                                   acldefault('f', (select proowner from pg_proc where oid = f::regprocedure)))) a
                 where a.grantee = 0) then
@@ -509,7 +515,6 @@ begin
   insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, tipos_cambio, totales, total_base)
     values (v_origen, '00000000-0000-0000-0000-0000000004a3', v_formula, '{}', '{"oficial": 5}', '{}', 0) returning id into v_cot_bloqueada;
   update public.perfiles set bloqueado = true where id = '00000000-0000-0000-0000-0000000004a3';
-  grant execute on function public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb) to authenticated;
   set local role authenticated;
 
   -- La dueña: todo.
