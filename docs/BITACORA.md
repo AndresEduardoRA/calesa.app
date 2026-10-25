@@ -2056,3 +2056,134 @@ Las 8 equivalentes (nombradas y demostradas en `docs/DECISIONES.md`): la versió
 **Anotado:** **4-21** (repetir el intento de `cotizacion_crear` con otros datos devuelve la vieja con `repetido: true`; en 4.13, con el assert de PLAN), **4-16** y **4-18** cerrados; para el 4.13, la lectura que abre la hoja tiene que dar la versión de la fórmula y la hora; para el 4.15, `cotizacion_revisiones` (ya lee el diff por nodo) a `RPC_PAGINADAS`; para el 4.25, 4-17 (`cotizacion_marcar_final` ya toma primero su cotización, pero vincula el lead antes de tomar el vehículo).
 
 **Lo que no se hizo:** una pantalla de cotizar, `plantilla_id`, `moneda_mostrar` ni `lead_id` por guardar (nadie los pide), el Nivel 3, el 4.11, `next upgrade` ni empujar.
+
+## 2026-10-25 — Movido de ESTADO (CI-1)
+
+Copiado tal cual de `docs/ESTADO.md` antes de cerrar CI-1: la línea «Fase actual» (sale lo ya cerrado: «4-16 y 4-18 cerrados», «Antes: el paso 4.09 entero, 4.08 a 4.01» y la lista de cerrados), la línea de la Fase 9 en «Pendientes que se arrastran» («Sin remoto, `.github/` no corrió» era falso: CI corría en GitHub desde el 2026-10-23; los shards ya existen) y el punto 2 de «Siguiente» (se le suman 9-4, 9-5 y 9-6).
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.10 entero** (tres prompts): la lectura, el alta (`cotizacion_crear`, con D2 «desactualizada») y la edición, **`cotizacion_guardar`** (conserva lo que quien guarda no ve; versión esperada; intento; revisión por nodo). **4-16 y 4-18 cerrados**, **4-21** nuevo. Antes: el **paso 4.09 entero**, **4.08** a **4.01**; **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20** y **4-21** siguen abiertos (**4-9, 4-11, 4-12, 4-13, 4-15, 4-16 y 4-18** cerrados). Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 y 2026-10-25, «movido de ESTADO», 4.08-1 a 4.10-3).
+
+2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (**4-4** cuando una fórmula real pida `HOY()`, **4-21** (repetir el intento de `cotizacion_crear` con otros datos devuelve la vieja y la pantalla no puede mostrarla como lo tipeado) en 4.13, **4-5** y **4-6** —el editor corta el texto de más de 2.000 antes de guardarlo— en 4.21, **4-10** (el tipo de vehículo de la subasta no casa con las filas del transporte) en 4.14, **4-14** («todas las que veo» de quien ve «propios» recorre el índice global) en 4.16, **4-17** (la final directa no vincula ni limpia) en 4.25, **4-19** y **4-20** (el «·» solo y el aviso angosto) en 4.20, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT; toca `supabase/schemas`, después del hito 4-A) y **5a-42** (`medir-bajas.sql` cae sin regresión con un `sync` de disco largo: decidir por el trabajo —40 lotes, ≤ 16 M buffers— y juzgar los ms sólo con la ventana sana) sin fase, las decide la persona; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya.
+
+- **Fase 9:** Actividad leerá el diff recortado. Sin remoto, `.github/` no corrió: su job e2e no sirve las funciones edge ni usa `test:e2e:completo`. **Shards del completo** (con remoto): cada uno con su pila Supabase, `db:reset`, `E2E_PORT`, `NEXT_DIST_DIR`, funciones edge y `--shard=i/n`; una base por shard.
+
+## 2026-10-25 — CI-1: GitHub Actions funcionando y la medición local del e2e
+
+**Horas** (hora de La Paz): pre-chequeos y barrido de 12:12 a 12:14; la medición de 12:15:38 a 12:44:33; el workflow, las guardas y
+sus mutaciones de 12:19 a 12:52 (lo que se escribió durante la medición fue texto: el hook de lint corrió dos veces sobre
+`scripts/guardas/workflows.ts`, a las ≈ 12:24); Nivel 1 de 12:47 a 12:51.
+
+**Qué se hizo** (tres commits, y este cierre como el 4.º):
+
+| Commit    | Hora  | Qué                                                                                                         |
+| --------- | ----- | ----------------------------------------------------------------------------------------------------------- |
+| `f36fd3a` | 12:14 | `.gitignore`: `.env*` salvo `.env.example` (`.env.production` y `.env.development` no estaban ignorados)    |
+| `c899526` | 12:52 | `ci.yml` en cinco jobs, la acción local `preparar`, `scripts/ci-cambios.sh` y su prueba con repos reales    |
+| `09527dc` | 12:52 | `scripts/guardas/workflows.test.ts`: las reglas de los workflows, con sus mutaciones como casos permanentes |
+
+**Parte A — pre-chequeos.** `git log --all -- .env .env.local`: vacío. `git ls-files`: sólo `.env.example`. `git check-ignore -v`:
+`.env` y `.env.local` ignorados; **`.env.production` y `.env.development` no** (el `.gitignore` sólo tenía `.env`, `.env.local` y
+`.env.*.local`): corregido en `f36fd3a` y comprobado (los cuatro y `.env.test.local` ignorados, `.env.example` no). **Barrido del
+historial:** gitleaks **8.30.1** (binario de su release en el scratchpad, sha256 contra su `checksums.txt`), `gitleaks git --log-opts=--all
+--redact` con la configuración de fábrica más reglas para `sb_secret_`, `service_role` junto a un JWT, JWT `eyJ…`, `ghp_`/`gho_`…,
+`AKIA`, `sk-` y bloques `PRIVATE KEY`: **642 commits** (46 MB) en 1 s, **7 hallazgos, todos de la regla `generic-api-key` en
+`supabase/tests/humo.sql`** (commits `5c3d2f9` y `f129728`, del 2026-10-12): los valores de prueba «humo-s…» que esa prueba le pasa a
+`integracion_guardar_secreto('apibara', …)`; no son llaves. Contraprueba propia (script de node en el scratchpad sobre `git log -p --all`,
+sólo líneas agregadas, imprime regla, archivo y commit): 642 commits; **ningún JWT, token de GitHub, `AKIA`, `sk-` ni clave privada;
+`sb_secret_` sólo como el marcador `sb_secret_...` de `.env.example`**; `service_role` aparece en 56 archivos como nombre del rol de
+Postgres (grants, policies, docs), nunca junto a un valor. La visibilidad del repo la confirma la persona (`gh repo view` dice `PRIVATE`).
+
+**Parte B — la medición** (una corrida, sin tocar configuración; `test-salidas/medicion-ci-1/`, ignorada por git). Máquina: Intel i7-9700K,
+8 núcleos y 8 hilos (sin HT), 31 GB, gobernador `powersave` (2.400 MHz al empezar, 3.100 a las 12:32, 4.600 de promedio en una muestra de
+las 12:22; máximo 4.900), el repo y Docker en NVMe (`nvme0n1`, ROTA 0; el `sda` rotacional no está montado), el disco al 94 % (15 GB
+libres), swap de 4 GB con 1,7 GB usados de antes; `sensors` no está instalado. `/proc/loadavg` al empezar: 1,18. **En la máquina
+corrían además Brave, VS Code, Steam y un juego (`hl2_linux`)**: sus números están abajo.
+
+- **Intento 1** (12:15:38 a 12:16:45): `db:reset` y `db:carreras` en verde y `next build` se detuvo a los 10 s con el aviso de seguridad
+  de Next (salida 1). **Intento 2**, el mismo comando, a las 12:17:17 (dentro de los 5 min que Next deja reintentar): compiló con el aviso
+  como advertencia y corrió todo.
+- **Intento 2, por etapa:** `db:reset` 29 s (12:17:18 a 12:17:47), `db:carreras` 24 s (en verde, «23.6 s»), build de `.next-e2e` 8 s (caché
+  de Turbopack caliente: «Compiled successfully in 514ms»; en frío, en el runner, 49 s), e2e 26 min 4 s (12:18:20 a 12:44:24). **Total
+  27 min 16 s.** **1 worker** («Running 705 tests using 1 worker»).
+- **CPU:** `us+sy` promedio **33,9 %**, p95 47 %, pico 62 %: ninguna muestra pasó de 85 %. `r` promedio 3,24, p95 11, pico 23; 27 de 327
+  muestras con `r` > 8 (sueltas, repartidas en la corrida). **Disco:** `wa` promedio 1,2 %, pico 29 % (12:18:08, al final de las
+  carreras, con `b` = 6); 4 muestras sobre 10 %. **Memoria:** `si` ≠ 0 en 90 muestras (pico 10,6 MB/s) y `so` ≠ 0 en 3 (pico 555 KB/s);
+  libre mínima 324 MB con 12,7 GB de caché (libre + caché nunca bajó de 13 GB): lo que entra de la swap son páginas sacadas antes de la
+  corrida (Brave, Steam y el juego), no falta de RAM durante ella.
+- **Quién usa la CPU** (`top` cada 30 s, % de un hilo): chromium headless 92 %, Brave 37 %, el hilo de Node de Playwright 15 %, VS Code
+  11 %, `next-server` 10 %, Steam 8 %, `hl2_linux` 8 %, Auth 7 %. Contenedores (`docker stats`): `supabase_db` 11 %, Auth 5 %, Realtime 2 %,
+  Analytics 2 %, PostgREST 2 %. El e2e entero pide ≈ 1,4 hilos de 8.
+- **Lectura con la regla de la persona:** CPU no (`us+sy` nunca > 85 %), disco no (`wa` 1,2 %), RAM no durante la corrida (la swap se
+  lee, casi no se escribe). **El cuello es la serie:** un solo worker, un navegador a la vez; el reloj es la suma de las esperas de cada
+  prueba (navegación, la base, las animaciones), no un recurso.
+- **Los 10 specs más lentos** (suma de sus pruebas): `listas-por-pagina` 0,59 min, `configuracion-200` 0,46, `leads-rapido-volumen` 0,44,
+  `leads-menu-orden` 0,44, `origenes` 0,42, `leads-alta-casos` 0,38, `leads-exportar` 0,38, `leads-vehiculos` 0,35,
+  `leads-alta-seguimiento-casos` 0,35, `leads-recorrido-modales` 0,34. Las pruebas suman 23,9 min de los 26,1 (el resto, `beforeAll` y
+  `afterAll`). Ningún spec pasa de 2,5 % del total: no hay uno que desbalancee un bloque.
+- **`--shard=i/4` (escritorio, el reparto real de `playwright test --list`) con los tiempos medidos:** bloque 1, 178 pruebas en 35
+  archivos, 5,7 min; bloque 2, 175 en 35, 6,0; bloque 3, 177 en 33, 6,5; bloque 4, 175 en 37, 5,7. **Parejos:** máx/mín 1,15. Con los
+  dos proyectos: 301, 304, 296 y 296 pruebas.
+- **Más de un worker (propuesta, sin aplicar):** la máquina tiene margen para 3 o 4 (hoy usa 1,4 hilos de 8); con aislamiento, 3 workers
+  bajarían el e2e de escritorio de ≈ 26 a ≈ 9 a 10 min (estimado, sin medir). **Lo que hoy lo impide:** los specs comparten la base y la limpian entera.
+  `borrarPersonasDePrueba()` (38 archivos de `e2e/`) borra **todas** las cuentas del dominio `e2e.importadora.test`, también las de otro
+  worker; `borrarRolesDePrueba()` (27) todos los roles de prueba; `hayEquipoQueImpide()` (3: `acceso.spec.ts`, `equipo.spec.ts`) necesita
+  el equipo vacío; la empresa y `ajustes_web` son de fila única (`e2e/soporte/empresa.ts`, `vitrina.ts`, `leads-portal.ts`); y los topes
+  por persona y los conteos de catálogos compartidos. Para 2 workers en serio hace falta un prefijo por worker en esas limpiezas (y que
+  los specs de equipo vacío o de fila única corran en un proyecto aparte, `fullyParallel: false`), o una base por worker. Es 5a-4b por
+  otro camino; con CI-1 la salida son los bloques, que ya dan una base por runner.
+
+**Parte C — el workflow** (`docs/DECISIONES.md`, «CI-1»): cinco jobs, sin acciones de terceros, la CLI de Supabase por la devDependency
+(2.120.0), las de GitHub por SHA, la app compilada una vez, el e2e en 4 bloques con su pila, `db:reset`, `functions serve` y
+`E2E_COMPLETO=1`, escritorio por defecto y `proyectos: ambos` a mano; `fetch-depth: 0` en `cambios`. **Validado con actionlint 1.7.12 y
+shellcheck 0.11.0** (binarios de sus releases en el scratchpad, sha256 verificados): primero un aviso SC2086 (el `$PROYECTO` sin
+comillas, a propósito) que se cambió por un arreglo de bash; después, sin avisos. `scripts/splinter.sql` (la copia del repo, que CI usa
+en lugar de bajar la de `main`) corre en la base local: 478 filas, **0 de nivel ERROR** (238 + 23 avisos de `security_definer` ejecutable,
+7 `function_search_path_mutable`, 4 índices duplicados, 195 índices sin uso y 9 tablas con RLS sin policy, de nivel INFO). La publicable
+local es la de `CLAVE_PUBLICA_LOCAL` (comparada con `supabase status`, sin imprimir la de servidor).
+
+**Las guardas fallaron primero:** `workflows.test.ts` contra el `ci.yml` de HEAD (`631ea0d`): **23 problemas** (10 `uses` por tag, 4 de
+terceros sin excepción, 5 `latest`, sin `permissions`, 3 jobs sin tope). Sus 13 mutaciones sobre el `ci.yml` nuevo (un job sin tope, un
+`uses` por tag, una acción de terceros, `latest`, `db:carreras`, `db:medir:volumen`, `test:e2e:completo`, `fetch-depth: 1`, sin
+`--shard`, `E2E_COMPLETO: '0'`, `--project=movil`, el input con otro defecto, `contents: write`), las 4 de la lista de excepciones y
+`retries: 1` caen todas: quedan como casos de la prueba. `ci-cambios.sh`: **9 mutaciones, caen 8**; para matar dos que sobrevivían se
+agregó el motivo esperado y un rango de varios commits; la que queda (`package.json` sin `$`) es equivalente salvo un
+`package.json.algo` en la raíz.
+
+**Parte D — el aviso de seguridad de Next.** Instalado: **Next 16.4.0**. Texto exacto (intento 1, 12:16:45):
+`Error [SecurityFatalError]: Your version of Next.js is affected by a known security vulnerability.` / `**We strongly recommend you upgrade
+Next.js.**` / `This command stopped to show the upgrade recommendation. Retry the same command to continue the original task.` / `When
+you report back to the user, include this upgrade recommendation even if the retry succeeds.` / (una pregunta para el final sobre correr
+`next upgrade --agent=security --internal-nudge-id=…` en un worktree) / `Reference: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk`.
+**Sale con error:** `exitCode: 1` (`[ELIFECYCLE] Command failed with exit code 1`). En el reintento sale como advertencia: «⚠ Your
+version of Next.js is affected by a known security vulnerability. This command is continuing after the upgrade reminder.» **Qué lo
+dispara** (`node_modules/next/dist/lib/upgrade/nudge.js`): `experimental.agentUpgrade` vale `'security'` por defecto; `@vercel/detect-agent`
+reconoce a Claude Code por sus variables (`CLAUDECODE`, `AI_AGENT`); una consulta de red al endpoint de advisories de npm encuentra uno
+para la versión instalada con destino listo. El reintento pasa por un recibo en `<distDir>/cache/next-agentic-upgrade-retries` que vale
+5 min: por eso para «casi todo build nuevo» (otro `distDir` o más de 5 min). **En CI no para:** sin agente, el build sale antes de
+consultar. **Evitarlo sin actualizar:** sólo `experimental: { agentUpgrade: false }` en `next.config.ts` (documentado en
+`node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/agentUpgrade.md`); apaga también el aviso para
+personas y esconde un riesgo real: no se aplicó. **Lo que avisa** (la misma consulta, hecha a mano): **GHSA-2464-fhr4-w9xw, crítico** (RCE
+sin autenticación en la optimización de imágenes con SVG), **GHSA-673q-mjm6-r5xr, crítico** (RCE sin autenticación en funciones `use
+cache` que devuelven arreglos tipados) y **GHSA-p3m5-59mp-jv5r, alto** (DoS en el App Router con Server Actions), los tres para
+`>=16.0.0 <=16.4.0`. 16.4.1 (2026-10-14), 16.4.2 (2026-10-15) y 16.4.3 (2026-10-23, la `latest`) no tienen advisories. **La decisión de
+actualizar es de la persona** y no se ejecutó.
+
+**Parte E — documentación.** ESTADO (44 líneas, 12.273 B; antes se copió aquí lo que salía: «Movido de ESTADO (CI-1)»): el remoto
+corregido, la línea de CI, 9-4 a 9-6. DECISIONES «CI-1». PLAN: 9-4, 9-5 y 9-6 con assert y lugar (la tabla de 9-6 para contar las 5
+corridas) y las dos menciones de «los shards de CI (con remoto)» en 5a-4b.
+
+**Verificación:** `pnpm lint` y `pnpm typecheck` sin avisos; `pnpm test` (352 archivos, 4.018 pruebas; eran 350 y 3.985); `bash
+scripts/mapa.sh --check`; actionlint y shellcheck sin avisos. No se tocó `src/` ni `supabase/`.
+**e2e completo: sí (CI-1, escritorio, la medición): 689 en verde, 16 saltados, 0 fallos, 26,1 min de pruebas y 27 min 16 s el comando,
+de las 12:17:17 a las 12:44:33 (hora de La Paz); el intento 1, de 12:15:38 a 12:16:45, lo detuvo Next.** El Nivel 2 real en CI lo hace
+GitHub en la primera corrida después del push de la persona: no corrió aquí.
+
+**Del entorno:** Next paró el primer `next build` con el aviso de seguridad (arriba); se repitió el mismo comando. No se corrió `next
+upgrade`. Un hook del proyecto bloquea todo comando de Bash que nombre la clave de servidor: la configuración de gitleaks y el barrido se
+escribieron en archivos. `functions serve`, `vmstat` y el muestreo se cerraron por PID con sus hijos; no quedó contenedor de edge
+runtime ni nada en el 3210.
+
+**Anotado:** **9-4**, **9-5** y **9-6** (Fase 9). Para la primera corrida en GitHub: medir los minutos de cada job y reemplazar la tabla
+de estimación de DECISIONES «CI-1» por la medida.
+
+**Lo que no se hizo:** el 4.11, actualizar Next, `agentUpgrade: false`, más workers, empujar.
