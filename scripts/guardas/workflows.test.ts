@@ -2,21 +2,25 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   excepcionesDeTerceros,
+  funcionesDeLaGuardia,
   jobsDe,
   problemasDeAcciones,
+  problemasDeEsperaDeFunciones,
   problemasDePlaywright,
   problemasDelWorkflow,
 } from './workflows'
 
 // Las reglas de CI (`docs/DECISIONES.md`, «CI-1»): cada job con su tope de minutos, permisos de lectura, acciones fijadas por SHA y
 // sólo de GitHub (o con su excepción escrita), nada de `latest`, lo que mide tiempo fuera de CI (docs/PLAN.md, 9-4 a 9-6), el e2e en
-// bloques con E2E_COMPLETO y escritorio o ambos, el diff con la historia entera y Playwright sin reintentos.
+// bloques con E2E_COMPLETO y escritorio o ambos, el diff con la historia entera y Playwright sin reintentos. Desde CI-1b: un dispatch
+// con su propio grupo y sin cancelarse, `db:carreras` sólo en su job manual con su input apagado, y la espera de cada función edge.
 const WORKFLOWS = '.github/workflows'
 const ACCIONES = '.github/acciones'
 const CI = `${WORKFLOWS}/ci.yml`
 
 const leer = (ruta: string) => readFileSync(ruta, 'utf8')
 const ci = leer(CI)
+const FUNCIONES = funcionesDeLaGuardia(leer('e2e/soporte/guardia.ts'))
 
 // Cambia `antes` por `despues` exactamente una vez: la mutación tiene que tocar el archivo real.
 function mutar(texto: string, antes: string | RegExp, despues: string): string {
@@ -35,7 +39,16 @@ describe('los workflows del repo cumplen', () => {
   })
 
   it.each(workflows)('%s', (nombre) => {
-    expect(problemasDelWorkflow(leer(`${WORKFLOWS}/${nombre}`), nombre)).toEqual([])
+    const texto = leer(`${WORKFLOWS}/${nombre}`)
+    expect([
+      ...problemasDelWorkflow(texto, nombre),
+      ...problemasDeEsperaDeFunciones(texto, nombre, FUNCIONES),
+    ]).toEqual([])
+  })
+
+  it('lee las funciones de e2e/soporte/guardia.ts', () => {
+    expect(FUNCIONES).toContain('apibara')
+    expect(FUNCIONES.length).toBeGreaterThan(1)
   })
 
   const compuestas = existsSync(ACCIONES)
@@ -57,6 +70,7 @@ describe('los workflows del repo cumplen', () => {
       'nivel-1',
       'cambios',
       'base',
+      'carreras',
       'e2e-build',
       'e2e',
     ])
@@ -124,6 +138,85 @@ describe('las mutaciones caen', () => {
   it('Playwright con un reintento', () => {
     const config = mutar(leer('playwright.config.ts'), 'retries: 0', 'retries: 1')
     expect(problemasDePlaywright(config)).not.toEqual([])
+  })
+})
+
+// CI-1b: el dispatch con su grupo y sin cancelarse, `db:carreras` sólo en su job manual y la espera de cada función edge.
+describe('las mutaciones de CI-1b caen', () => {
+  const casos: [string, string | RegExp, string, RegExp][] = [
+    [
+      'un solo grupo de concurrency (el de CI-1)',
+      /^ {2}group: .+\n {2}cancel-in-progress: .+$/m,
+      '  group: ci-${{ github.head_ref || github.ref }}\n  cancel-in-progress: true',
+      /un workflow_dispatch necesita su propio grupo[^\n]*\n[^\n]*cancel-in-progress tiene que ser/,
+    ],
+    [
+      'el dispatch se cancela',
+      /^ {2}cancel-in-progress: .+$/m,
+      '  cancel-in-progress: true',
+      /cancel-in-progress tiene que ser/,
+    ],
+    [
+      'push y PR dejan de cancelar',
+      /^ {2}cancel-in-progress: .+$/m,
+      '  cancel-in-progress: false',
+      /cancel-in-progress tiene que ser/,
+    ],
+    [
+      'el grupo manual sin run_id',
+      ', github.run_id)',
+      ')',
+      /un workflow_dispatch necesita su propio grupo/,
+    ],
+    [
+      'el job carreras sin su if',
+      /^ {4}if: github\.event_name == 'workflow_dispatch' && inputs\.carreras\n/m,
+      '',
+      /db:carreras no corre en CI/,
+    ],
+    [
+      'el job carreras sin workflow_dispatch en su if',
+      "if: github.event_name == 'workflow_dispatch' && inputs.carreras",
+      'if: inputs.carreras',
+      /db:carreras no corre en CI/,
+    ],
+    [
+      'el job carreras con otro if',
+      "if: github.event_name == 'workflow_dispatch' && inputs.carreras",
+      "if: github.event_name == 'workflow_dispatch' || inputs.carreras",
+      /db:carreras no corre en CI/,
+    ],
+    [
+      'el input carreras encendido por defecto',
+      /( {6}carreras:\n(?: {8}.*\n)*? {8}default: )false/,
+      '$1true',
+      /input «carreras»/,
+    ],
+    [
+      'carreras.mjs en el job carreras',
+      '- run: pnpm db:carreras',
+      '- run: node scripts/carreras.mjs',
+      /carreras\.mjs no corre en CI/,
+    ],
+  ]
+
+  it.each(casos)('%s', (_, antes, despues, motivo) => {
+    const problemas = problemasDe(mutar(ci, antes, despues))
+    expect(problemas.join('\n')).toMatch(motivo)
+  })
+
+  it('la espera de funciones sin storage-gc', () => {
+    const texto = mutar(ci, /(funciones="[^"]*?) ?storage-gc/, '$1')
+    expect(problemasDeEsperaDeFunciones(texto, CI, FUNCIONES).join('\n')).toMatch(
+      /no prueba storage-gc/,
+    )
+  })
+
+  it('la espera de funciones que vuelve a mirar sólo apibara', () => {
+    const texto = mutar(ci, /for (\w+) in \$funciones/, 'for $1 in apibara')
+    expect(problemasDeEsperaDeFunciones(texto, CI, FUNCIONES).join('\n')).toMatch(
+      /no recorre funciones=/,
+    )
   })
 })
 

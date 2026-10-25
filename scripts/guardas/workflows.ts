@@ -5,6 +5,7 @@ const SHA = /^[0-9a-f]{40}$/
 const MINIMO_DE_MOTIVO = 40
 
 // Lo que mide tiempo o necesita dos conexiones queda fuera de CI (docs/PLAN.md, 9-4 a 9-6), y el completo local corre las carreras.
+// La única salvedad es `db:carreras` en el job `carreras`, que corre sólo a mano (`admitidaEnSuJob`).
 const FUERA_DE_CI = [
   'db:medir',
   'medir-listado',
@@ -109,12 +110,35 @@ export function jobsDe(texto: string): Job[] {
   }))
 }
 
+const codigoDe = (job: Job) =>
+  lineasDeCodigo(job.bloque)
+    .map((l) => l.texto)
+    .join('\n')
+
+// El job en el que cae la línea `n`, si cae en alguno.
+function jobDeLinea(jobs: Job[], n: number): Job | undefined {
+  return jobs.find((j) => n >= j.n && n < j.n + j.bloque.split('\n').length)
+}
+
+// `db:carreras` corre sólo en el job `carreras` y sólo a mano, con su input (docs/PLAN.md, 9-6: hasta 5 corridas seguidas en verde).
+const JOB_DE_CARRERAS = 'carreras'
+const SI_DE_CARRERAS =
+  /^(?:\$\{\{\s*)?github\.event_name == 'workflow_dispatch' && inputs\.carreras(?:\s*\}\})?$/
+
+function admitidaEnSuJob(prohibido: string, job: Job | undefined): boolean {
+  if (prohibido !== 'db:carreras' || job?.nombre !== JOB_DE_CARRERAS) return false
+  const si = /^ {4}if:\s*(.+?)\s*$/m.exec(codigoDe(job))?.[1] ?? ''
+  return SI_DE_CARRERAS.test(si)
+}
+
 // Lo que se mira línea por línea: permisos de escritura, lo que no corre en CI y el proyecto del e2e.
 function problemasPorLinea(texto: string, archivo: string): string[] {
   const problemas: string[] = []
+  const jobs = jobsDe(texto)
   for (const { n, texto: t } of lineasDeCodigo(texto)) {
     if (/^\s+[a-z-]+:\s*write\b/.test(t)) problemas.push(`${archivo}:${n}: un permiso de escritura`)
     for (const prohibido of FUERA_DE_CI.filter((p) => t.includes(p))) {
+      if (admitidaEnSuJob(prohibido, jobDeLinea(jobs, n))) continue
       problemas.push(`${archivo}:${n}: ${prohibido} no corre en CI`)
     }
     for (const m of t.matchAll(/--project=([A-Za-z0-9_-]*)/g)) {
@@ -131,9 +155,7 @@ function problemasDelJob(job: Job, archivo: string): string[] {
   const problemas: string[] = []
   const donde = `${archivo}:${job.n}: el job ${job.nombre}`
   // Sólo el código: un comentario (el que presenta al job siguiente) no cuenta como paso.
-  const codigo = lineasDeCodigo(job.bloque)
-    .map((l) => l.texto)
-    .join('\n')
+  const codigo = codigoDe(job)
   if (!/^ {4}timeout-minutes:\s*\d+\s*$/m.test(codigo)) {
     problemas.push(`${donde} no tiene timeout-minutes`)
   }
@@ -167,6 +189,50 @@ function problemasDelInputProyectos(texto: string, archivo: string): string[] {
   ]
 }
 
+// Con el job `carreras`, workflow_dispatch ofrece `carreras` (boolean, por defecto false): nadie las corre sin pedirlas.
+function problemasDelInputCarreras(texto: string, archivo: string, jobs: Job[]): string[] {
+  if (!jobs.some((j) => j.nombre === JOB_DE_CARRERAS)) return []
+  const entrada = /^ {6}carreras:\s*\n((?: {8}.*\n)+)/m.exec(texto)?.[1] ?? ''
+  if (/type:\s*boolean\b/.test(entrada) && /default:\s*false\b/.test(entrada)) return []
+  return [`${archivo}: workflow_dispatch necesita el input «carreras» (boolean, por defecto false)`]
+}
+
+// Un dispatch (un e2e de 70 a 96 min, unas carreras) tiene su propio grupo, con run_id, y nunca se cancela: un push a la misma
+// rama no lo corta y otro dispatch no lo deja en espera. Push y pull_request cancelan a su corrida anterior.
+const NO_CANCELA_EL_DISPATCH = "${{ github.event_name != 'workflow_dispatch' }}"
+
+// `${{ github.event_name == 'workflow_dispatch' && <manual> || <el de push y PR> }}`: el manual lleva ci-manual- y run_id; el otro no.
+function grupoManualAparte(grupo: string): boolean {
+  const ramas =
+    /^\$\{\{\s*github\.event_name == 'workflow_dispatch' && (.+?) \|\| (.+?)\s*\}\}$/.exec(grupo)
+  const manual = ramas?.[1] ?? ''
+  const otro = ramas?.[2] ?? ''
+  return (
+    manual.includes('ci-manual-') &&
+    manual.includes('github.run_id') &&
+    !otro.includes('ci-manual-')
+  )
+}
+
+function problemasDeConcurrencia(texto: string, archivo: string): string[] {
+  if (!/^ {2}workflow_dispatch:/m.test(texto)) return []
+  const bloque = /^concurrency:\s*\n((?: {2}.*(?:\n|$))+)/m.exec(texto)?.[1] ?? ''
+  const grupo = /^ {2}group:\s*(.+?)\s*$/m.exec(bloque)?.[1] ?? ''
+  const cancela = /^ {2}cancel-in-progress:\s*(.+?)\s*$/m.exec(bloque)?.[1] ?? ''
+  const problemas: string[] = []
+  if (!grupoManualAparte(grupo)) {
+    problemas.push(
+      `${archivo}: concurrency: un workflow_dispatch necesita su propio grupo (ci-manual-… con github.run_id), distinto del de push y pull_request`,
+    )
+  }
+  if (cancela !== NO_CANCELA_EL_DISPATCH) {
+    problemas.push(
+      `${archivo}: concurrency: cancel-in-progress tiene que ser ${NO_CANCELA_EL_DISPATCH} (un dispatch no se cancela; push y PR sí)`,
+    )
+  }
+  return problemas
+}
+
 export function problemasDelWorkflow(texto: string, archivo: string): string[] {
   const problemas = problemasDeAcciones(texto, archivo)
   if (!/^permissions:\s*\n {2}contents: read\s*$/m.test(texto)) {
@@ -177,7 +243,36 @@ export function problemasDelWorkflow(texto: string, archivo: string): string[] {
   if (jobs.length === 0) problemas.push(`${archivo}: no se encontraron jobs`)
   problemas.push(...jobs.flatMap((job) => problemasDelJob(job, archivo)))
   problemas.push(...problemasDelInputProyectos(texto, archivo))
+  problemas.push(...problemasDelInputCarreras(texto, archivo, jobs))
+  problemas.push(...problemasDeConcurrencia(texto, archivo))
   return problemas
+}
+
+// Las funciones que exige la guardia de los e2e (`const FUNCIONES = [...]` de `e2e/soporte/guardia.ts`).
+export function funcionesDeLaGuardia(texto: string): string[] {
+  const lista = /const FUNCIONES = \[([^\]]*)\]/.exec(texto)?.[1] ?? ''
+  return [...lista.matchAll(/'([^']+)'/g)].map((m) => m[1] ?? '')
+}
+
+// Un workflow que sirve las funciones edge espera a cada una de las que pide la guardia (`funciones="…"` y un `for … in $funciones`):
+// si espera sólo a una, un bloque arranca con otra caída y la guardia lo tumba con la corrida ya pagada.
+export function problemasDeEsperaDeFunciones(
+  texto: string,
+  archivo: string,
+  funciones: string[],
+): string[] {
+  if (!texto.includes('functions serve')) return []
+  const declaradas = /^\s*funciones="([^"]*)"\s*$/m.exec(texto)?.[1]
+  if (declaradas === undefined || !/for \w+ in \$funciones\b/.test(texto)) {
+    return [`${archivo}: la espera de las funciones edge no recorre funciones="…"`]
+  }
+  const esperadas = new Set(declaradas.split(/\s+/).filter(Boolean))
+  return funciones
+    .filter((f) => !esperadas.has(f))
+    .map(
+      (f) =>
+        `${archivo}: la espera de las funciones edge no prueba ${f} (la pide e2e/soporte/guardia.ts)`,
+    )
 }
 
 // Un e2e que falla no se reintenta: la causa va a e2e-fallos/ (`.claude/rules/e2e.md`).
