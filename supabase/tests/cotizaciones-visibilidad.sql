@@ -429,24 +429,6 @@ exception when others then
   raise;
 end $f$;
 
--- Las que la policy de edición le deja actualizar: un `update … set notas = notas` dentro de una subtransacción que se deshace.
-create or replace function pg_temp.cv_edita(p_quien uuid) returns uuid[] language plpgsql as $f$
-declare v uuid[];
-begin
-  perform pg_temp.cv_como(p_quien);
-  begin
-    set local role authenticated;
-    with u as (update public.cotizaciones set notas = notas where id in (select id from cv_c) returning id)
-      select coalesce(array_agg(id order by id), '{}') into v from u;
-    reset role;
-    raise exception 'deshacer' using errcode = 'P0999';
-  exception when sqlstate 'P0999' then
-    null;
-  end;
-  reset role;
-  return v;
-end $f$;
-
 -- La regla a mano, como postgres. `p_clave`: cotizaciones.ver o cotizaciones.editar.
 create or replace function pg_temp.cv_regla(p_quien uuid, p_clave text) returns uuid[] language sql as $f$
   select coalesce(array_agg(c.id order by c.id), '{}') from public.cotizaciones c
@@ -460,15 +442,6 @@ create or replace function pg_temp.cv_regla(p_quien uuid, p_clave text) returns 
            and (c.creado_por = p_quien
                 or c.lead_id in (select la.lead_id from public.leads_asesores la where la.usuario_id = p_quien and la.revocado_en is null)))
      )
-$f$;
-
--- Lo que puede actualizar: lo que ve, y de eso una preventa con el alcance de cotizaciones.editar o cualquier clase con final.gestionar del origen.
-create or replace function pg_temp.cv_regla_edita(p_quien uuid) returns uuid[] language sql as $f$
-  select coalesce(array_agg(c.id order by c.id), '{}') from public.cotizaciones c
-   where c.id = any (pg_temp.cv_regla(p_quien, 'cotizaciones.ver'))
-     and ((c.clase = 'preventa' and c.id = any (pg_temp.cv_regla(p_quien, 'cotizaciones.editar')))
-          or exists (select 1 from public.usuarios_roles ur join public.roles_permisos rp on rp.rol_id = ur.rol_id
-                      where ur.usuario_id = p_quien and rp.permiso_clave = 'cotizaciones.final.gestionar' and (rp.origen_id is null or rp.origen_id = c.origen_id)))
 $f$;
 
 create or replace function pg_temp.cv_nombres(p_ids uuid[]) returns text[] language sql as $f$
@@ -529,10 +502,12 @@ begin
   if (select count(*) from cv_c) <> 13 then raise exception 'la prueba esperaba 13 cotizaciones y hay %', (select count(*) from cv_c); end if;
 end $$;
 
--- Cada persona, lo que ve y lo que edita: tres caminos (policy, puede_cotizacion, regla a mano) y los nombres concretos.
-create or replace function pg_temp.cv_verificar(p_quien uuid, p_nombre text, p_ve text[], p_edita text[]) returns void language plpgsql as $f$
+-- Cada persona, lo que ve: tres caminos (policy, puede_cotizacion, regla a mano) y los nombres concretos. Y lo que alcanza con `cotizaciones.editar` según
+-- `puede_cotizacion()` (lo que usará `cotizacion_guardar`, prompt 3) contra la regla a mano: desde el 4.10-2 nadie actualiza `cotizaciones` directo, así que la policy
+-- de editar ya no existe y esta función es la única regla de quién edita una (el alcance; que sea una preventa o la final es de cada RPC).
+create or replace function pg_temp.cv_verificar(p_quien uuid, p_nombre text, p_ve text[]) returns void language plpgsql as $f$
 declare v_regla uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.ver'); v_lee uuid[] := pg_temp.cv_lee(p_quien);
-        v_puede uuid[] := pg_temp.cv_puede(p_quien, 'cotizaciones.ver'); v_edita uuid[] := pg_temp.cv_edita(p_quien); v_regla_e uuid[] := pg_temp.cv_regla_edita(p_quien);
+        v_puede uuid[] := pg_temp.cv_puede(p_quien, 'cotizaciones.ver'); v_puede_e uuid[] := pg_temp.cv_puede(p_quien, 'cotizaciones.editar'); v_regla_e uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.editar');
 begin
   if v_lee is distinct from v_regla then
     raise exception 'la policy entrega a % algo distinto de la regla: policy %, regla %', p_nombre, pg_temp.cv_nombres(v_lee), pg_temp.cv_nombres(v_regla);
@@ -543,11 +518,8 @@ begin
   if pg_temp.cv_nombres(v_lee) is distinct from (select array_agg(n order by n) from unnest(p_ve) n) and not (cardinality(p_ve) = 0 and cardinality(v_lee) = 0) then
     raise exception '% debía ver % y ve %', p_nombre, p_ve, pg_temp.cv_nombres(v_lee);
   end if;
-  if v_edita is distinct from v_regla_e then
-    raise exception 'la policy de edición deja a % actualizar algo distinto de la regla: policy %, regla %', p_nombre, pg_temp.cv_nombres(v_edita), pg_temp.cv_nombres(v_regla_e);
-  end if;
-  if pg_temp.cv_nombres(v_edita) is distinct from (select array_agg(n order by n) from unnest(p_edita) n) and not (cardinality(p_edita) = 0 and cardinality(v_edita) = 0) then
-    raise exception '% debía poder editar % y puede %', p_nombre, p_edita, pg_temp.cv_nombres(v_edita);
+  if v_puede_e is distinct from v_regla_e then
+    raise exception 'puede_cotizacion(…, cotizaciones.editar) deja a % editar algo distinto de la regla: función %, regla %', p_nombre, pg_temp.cv_nombres(v_puede_e), pg_temp.cv_nombres(v_regla_e);
   end if;
 end $f$;
 
@@ -559,50 +531,53 @@ declare
   v_todas constant text[] := array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'a_o2', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'a_final', 'c_o2', 'c_o1', 'r_o1'];
   la uuid := (select id from public.leads where nombre = 'CV lead de A'); v_r jsonb;
 begin
-  -- A: las que creó y las de leads de su cartera (también una cuyo lead está en la papelera, como `mis_leads()`); la final es de otra clase y no la edita.
-  perform pg_temp.cv_verificar(a, 'A (propios)', array['a_la', 'b_la', 'a_o2', 'b_lead_borrado', 'a_final'], array['a_la', 'b_la', 'a_o2', 'b_lead_borrado']);
-  perform pg_temp.cv_verificar(b, 'B (propios)', array['b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado'], array['b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado']);
-  perform pg_temp.cv_verificar(t, 'T (todos)', v_todas, array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'a_o2', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'c_o2', 'c_o1', 'r_o1']);
-  -- R ve todo y edita sólo lo suyo: ver «todos» no da editar «todos».
-  perform pg_temp.cv_verificar(r, 'R (ve todos, edita propios)', v_todas, array['r_o1']);
+  -- A: las que creó y las de leads de su cartera (también una cuyo lead está en la papelera, como `mis_leads()`). Lo que edita con `cotizaciones.editar` (propios) es lo mismo, de cualquier clase.
+  perform pg_temp.cv_verificar(a, 'A (propios)', array['a_la', 'b_la', 'a_o2', 'b_lead_borrado', 'a_final']);
+  perform pg_temp.cv_verificar(b, 'B (propios)', array['b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado']);
+  perform pg_temp.cv_verificar(t, 'T (todos)', v_todas);
+  -- R ve todo y edita sólo lo suyo: ver «todos» no da editar «todos» (la regla de editar la compara `cv_verificar`).
+  perform pg_temp.cv_verificar(r, 'R (ve todos, edita propios)', v_todas);
   -- C: «propios» sólo en el origen 2: lo suyo de ahí, y nada de lo que creó en el 1.
-  perform pg_temp.cv_verificar(c, 'C (propios sólo en el origen 2)', array['c_o2'], array['c_o2']);
-  perform pg_temp.cv_verificar(l, 'L (logística, sin cotizaciones.ver)', '{}', '{}');
-  perform pg_temp.cv_verificar(x, 'X (bloqueada)', '{}', '{}');
-  perform pg_temp.cv_verificar(s, 'S (sin leads ni cotizaciones propias)', '{}', '{}');
-  -- F: ve todo el origen 1 y cierra finales ahí: edita también la final, y no toca el origen 2.
-  perform pg_temp.cv_verificar(f, 'F (ve todo el origen 1 y gestiona finales ahí)', array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'a_final', 'c_o1', 'r_o1'],
-                               array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'a_final', 'c_o1', 'r_o1']);
-  perform pg_temp.cv_verificar(d, 'la dueña', v_todas, v_todas);
+  perform pg_temp.cv_verificar(c, 'C (propios sólo en el origen 2)', array['c_o2']);
+  perform pg_temp.cv_verificar(l, 'L (logística, sin cotizaciones.ver)', '{}');
+  perform pg_temp.cv_verificar(x, 'X (bloqueada)', '{}');
+  perform pg_temp.cv_verificar(s, 'S (sin leads ni cotizaciones propias)', '{}');
+  -- F: ve todo el origen 1 y cierra finales ahí (no edita preventas con `cotizaciones.editar`: no la tiene).
+  perform pg_temp.cv_verificar(f, 'F (ve todo el origen 1 y gestiona finales ahí)', array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'a_final', 'c_o1', 'r_o1']);
+  perform pg_temp.cv_verificar(d, 'la dueña', v_todas);
 
   -- El lead de A pasa a B: la cartera nueva ve sus cotizaciones en el acto (a_la y la final, que no veía); A, que queda como compartida, sigue viéndolas.
   perform pg_temp.cv_como(a);
   set local role authenticated;
   v_r := public.lead_transferir(la, b, a);
   reset role;
-  perform pg_temp.cv_verificar(b, 'B (dueña de lo transferido)', array['a_la', 'a_final', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado'], array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado']);
-  perform pg_temp.cv_verificar(a, 'A (que queda como compartida)', array['a_la', 'b_la', 'a_o2', 'b_lead_borrado', 'a_final'], array['a_la', 'b_la', 'a_o2', 'b_lead_borrado']);
-  perform pg_temp.cv_verificar(s, 'S (sin relación con el lead)', '{}', '{}');
+  perform pg_temp.cv_verificar(b, 'B (dueña de lo transferido)', array['a_la', 'a_final', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado']);
+  perform pg_temp.cv_verificar(a, 'A (que queda como compartida)', array['a_la', 'b_la', 'a_o2', 'b_lead_borrado', 'a_final']);
+  perform pg_temp.cv_verificar(s, 'S (sin relación con el lead)', '{}');
   -- B le quita el acceso a A: A pierde lo que sólo veía por el lead (b_la) y conserva lo que creó (a_la, a_final).
   perform pg_temp.cv_como(b);
   set local role authenticated;
   v_r := public.lead_revocar_acceso(la, a);
   reset role;
-  perform pg_temp.cv_verificar(a, 'A (sin acceso al lead)', array['a_la', 'a_o2', 'b_lead_borrado', 'a_final'], array['a_la', 'a_o2', 'b_lead_borrado']);
-  perform pg_temp.cv_verificar(b, 'B (sigue siendo la dueña)', array['a_la', 'a_final', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado'], array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado']);
+  perform pg_temp.cv_verificar(a, 'A (sin acceso al lead)', array['a_la', 'a_o2', 'b_lead_borrado', 'a_final']);
+  perform pg_temp.cv_verificar(b, 'B (sigue siendo la dueña)', array['a_la', 'a_final', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado']);
 end $$;
 
--- La policy y la función ya no arman el arreglo de la cartera, y usan la regla por fila.
+-- La policy y la función ya no arman el arreglo de la cartera, y usan la regla por fila. Y no hay policy de escritura: desde el 4.10-2 se escribe por RPC.
 do $$
 declare v_pol record;
 begin
-  for v_pol in select policyname, coalesce(qual, '') as qual, coalesce(with_check, '') as con from pg_policies
-                where schemaname = 'public' and tablename = 'cotizaciones' and policyname in ('cotizaciones: leer', 'cotizaciones: editar') loop
-    if v_pol.qual ~ 'mis_leads' or v_pol.con ~ 'mis_leads' then raise exception '«%» arma el arreglo de toda la cartera (mis_leads)', v_pol.policyname; end if;
+  for v_pol in select policyname, coalesce(qual, '') as qual from pg_policies
+                where schemaname = 'public' and tablename = 'cotizaciones' and policyname = 'cotizaciones: leer' loop
+    if v_pol.qual ~ 'mis_leads' then raise exception '«%» arma el arreglo de toda la cartera (mis_leads)', v_pol.policyname; end if;
     if v_pol.qual !~ 'en_cartera' or v_pol.qual !~ 'origenes_con_alcance' then raise exception '«%» no pregunta por fila con en_cartera y los orígenes con alcance', v_pol.policyname; end if;
-    if v_pol.policyname = 'cotizaciones: editar' and (v_pol.con !~ 'en_cartera' or v_pol.con !~ 'final.gestionar') then raise exception 'el WITH CHECK de editar no lleva las dos ramas'; end if;
   end loop;
-  if (select count(*) from pg_policies where schemaname = 'public' and tablename = 'cotizaciones' and policyname in ('cotizaciones: leer', 'cotizaciones: editar')) <> 2 then raise exception 'faltan las policies'; end if;
+  if (select count(*) from pg_policies where schemaname = 'public' and tablename = 'cotizaciones' and policyname = 'cotizaciones: leer') <> 1 then raise exception 'falta la policy de lectura'; end if;
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename in ('cotizaciones', 'cotizaciones_revisiones') and cmd in ('INSERT', 'UPDATE', 'DELETE')) then
+    raise exception 'cotizaciones o sus revisiones todavía tienen una policy de escritura: %', (select string_agg(tablename || ': ' || policyname, ', ') from pg_policies
+      where schemaname = 'public' and tablename in ('cotizaciones', 'cotizaciones_revisiones') and cmd in ('INSERT', 'UPDATE', 'DELETE'));
+  end if;
+  -- Una restrictiva «para todo» (la de la papelera) sí cuenta como `ALL`, no como escritura.
   -- La papelera la esconde la policy restrictiva (para todo comando), y no la de lectura: por eso «cotizaciones: leer» puede no repetir eliminado_en.
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'cotizaciones' and policyname = 'cotizaciones: fuera de la papelera'
                   and permissive = 'RESTRICTIVE' and cmd = 'ALL' and qual ~* 'eliminado_en IS NULL') then
@@ -1434,6 +1409,101 @@ begin
      or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_tabla(text,uuid,uuid)'::regprocedure and x.grantee = 0) then
     raise exception 'los grants de cotizacion_tabla';
   end if;
+end $$;
+rollback;
+
+-- @test visibilidad: ninguna escritura directa de cotizaciones ni de sus revisiones (4.10-2): ni insert, ni update, ni delete, por tabla y por columna, para authenticated, anon y PUBLIC; la lectura y service_role siguen
+begin;
+do $$
+declare
+  v_t text; v_r text; v_p text; v_col record; v_sql text;
+begin
+  create role cv_nadie nologin;
+  foreach v_t in array array['cotizaciones', 'cotizaciones_revisiones'] loop
+    foreach v_r in array array['authenticated', 'anon', 'public', 'cv_nadie'] loop
+      -- Por tabla: ningún privilegio de escritura (y ni los de referencia ni el de disparador).
+      foreach v_p in array array['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'] loop
+        if has_table_privilege(v_r, 'public.' || v_t, v_p) then raise exception '% tiene % sobre %', v_r, v_p, v_t; end if;
+      end loop;
+      -- Por columna: ni insert, ni update, ni referencias de ninguna (un revoke de tabla no las quita).
+      for v_col in select a.attname, a.attnum from pg_attribute a where a.attrelid = ('public.' || v_t)::regclass and a.attnum > 0 and not a.attisdropped loop
+        foreach v_p in array array['INSERT', 'UPDATE', 'REFERENCES'] loop
+          if has_column_privilege(v_r, ('public.' || v_t)::regclass, v_col.attnum, v_p) then raise exception '% tiene % sobre %.%', v_r, v_p, v_t, v_col.attname; end if;
+        end loop;
+      end loop;
+    end loop;
+    -- Quien sí escribe (los jobs y las funciones con los derechos de la base).
+    foreach v_p in array array['SELECT', 'INSERT', 'UPDATE', 'DELETE'] loop
+      if not has_table_privilege('service_role', 'public.' || v_t, v_p) then raise exception 'service_role perdió % sobre %', v_p, v_t; end if;
+    end loop;
+  end loop;
+  -- La lectura de las columnas legibles sigue como estaba.
+  if not has_column_privilege('authenticated', 'public.cotizaciones', 'total_base', 'select') or not has_column_privilege('authenticated', 'public.cotizaciones', 'id', 'select') then
+    raise exception 'authenticated perdió la lectura de las columnas legibles';
+  end if;
+
+  -- Y por el SQL de verdad: como authenticated, como anon y como un rol que sólo tiene lo de PUBLIC, el insert, el update y el delete directos dan 42501 (por tabla y por cada columna).
+  foreach v_r in array array['authenticated', 'anon', 'cv_nadie'] loop
+    execute format('set local role %I', v_r);
+    foreach v_t in array array['cotizaciones', 'cotizaciones_revisiones'] loop
+      perform pg_temp.cv_da(format('delete from public.%I where false', v_t), '42501');
+      -- (Una columna `generated always` —el número— da 428C9 antes de mirar el permiso: sólo cuenta su privilegio, que ya se miró arriba.)
+      for v_col in select a.attname from pg_attribute a where a.attrelid = ('public.' || v_t)::regclass and a.attnum > 0 and not a.attisdropped and a.attidentity <> 'a' and a.attgenerated = '' loop
+        perform pg_temp.cv_da(format('update public.%I set %I = %I where false', v_t, v_col.attname, v_col.attname), '42501');
+        perform pg_temp.cv_da(format('insert into public.%I (%I) values (null)', v_t, v_col.attname), '42501');
+      end loop;
+    end loop;
+    reset role;
+  end loop;
+  -- No queda una policy de escritura (sin grant eran letra muerta).
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename in ('cotizaciones', 'cotizaciones_revisiones') and cmd in ('INSERT', 'UPDATE', 'DELETE')) then
+    raise exception 'quedó una policy de escritura sobre cotizaciones o sus revisiones';
+  end if;
+end $$;
+rollback;
+
+-- @test visibilidad: la auditoría sigue completa con la escritura por RPC (4.10-2): el alta por cotizacion_crear, la edición por cotizacion_marcar_final y el borrado por la papelera, sin el snapshot
+begin;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  o uuid := (select id from public.origenes where clave = 'oficina'); l uuid; v uuid; r jsonb; v_c uuid; v_lote uuid; v_n int;
+  v_ocultas constant text[] := array['valores', 'fuentes', 'totales', 'tipos_cambio'];
+begin
+  insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
+  values ('CV lead auditoria', '78' || lpad((floor(random() * 1000000))::text, 6, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CV auditoria', 'toyota') returning id into v;
+  -- Alta: por la RPC, como la dueña (authenticated).
+  r := pg_temp.cv_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {}}'', %L)', o, l, v));
+  if r ? 'error' then
+    -- La fórmula de «oficina» pide sus entradas: si falla por falta de datos, se prueba con la tipeada en la fórmula sembrada.
+    raise exception 'el alta por la RPC falló: %', r;
+  end if;
+  v_c := (r -> 'cotizacion' ->> 'id')::uuid;
+  if (select count(*) from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text and accion = 'cotizaciones.insert' and actor_id = duena) <> 1 then
+    raise exception 'el alta por cotizacion_crear no quedó en actividad con su actor';
+  end if;
+  -- Edición: marcarla final (la RPC cambia la clase).
+  r := pg_temp.cv_corre(duena, format('select jsonb_build_object(''ok'', true) from (select public.cotizacion_marcar_final(%L)) x', v_c));
+  if r ? 'error' then raise exception 'marcar la final falló: %', r; end if;
+  if not exists (select 1 from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text and accion = 'cotizaciones.update' and despues ->> 'clase' = 'final') then
+    raise exception 'marcar la final no quedó en actividad';
+  end if;
+  -- Borrado: a la papelera (que ya no puede por ser la final) y purgada: se prueba con otra, preventa.
+  r := pg_temp.cv_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {}}'', %L)', o, l, v));
+  if r ? 'error' then raise exception 'la segunda alta por la RPC falló: %', r; end if;
+  v_c := (r -> 'cotizacion' ->> 'id')::uuid;
+  r := pg_temp.cv_corre(duena, format('select to_jsonb(public.papelera_enviar(%L, array[%L]::uuid[]))', 'cotizaciones', v_c));
+  if r ? 'error' then raise exception 'enviar a la papelera falló: %', r; end if;
+  v_lote := (r #>> '{}')::uuid;
+  r := pg_temp.cv_corre(duena, format('select to_jsonb(public.papelera_purgar(%L))', v_lote));
+  if r ? 'error' then raise exception 'purgar falló: %', r; end if;
+  if not exists (select 1 from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text and accion = 'cotizaciones.delete' and despues is null and antes ->> 'id' = v_c::text) then
+    raise exception 'el borrado por la papelera no quedó en actividad';
+  end if;
+  -- Ninguna fila guarda el snapshot, ni el valor tipeado.
+  select count(*) into v_n from public.actividad where tabla = 'cotizaciones' and (coalesce(antes, '{}') ?| v_ocultas or coalesce(despues, '{}') ?| v_ocultas);
+  if v_n <> 0 then raise exception 'actividad guarda el snapshot de una cotización (% filas)', v_n; end if;
 end $$;
 rollback;
 

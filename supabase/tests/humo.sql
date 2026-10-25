@@ -237,27 +237,30 @@ do $$ declare v uuid; sin_fase uuid; f_sub uuid; f_comp uuid; pre jsonb; h bigin
 end $$;
 reset role;
 -- el asesor cotiza y la dueña cierra la final; el vehículo queda vinculado al lead
--- La asesora ya no lee `formulas` (sólo cotizaciones.configurar): el id de la publicada se lo pasa quien la lee.
-select set_config('humo.formula_subasta', (select f.id::text from public.formulas f join public.origenes o on o.id = f.origen_id where o.clave = 'subasta_usa' and f.estado = 'publicada'), false);
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 set role authenticated;
-do $$ declare v uuid; l uuid; o uuid; f uuid; c uuid; begin
+do $$ declare v uuid; l uuid; o uuid; r jsonb; begin
   select id into v from public.vehiculos where lote = '58741223';
   select id into l from public.leads_vista where nombre = 'Ana Quispe';
   select id into o from public.origenes where clave = 'subasta_usa';
-  f := current_setting('humo.formula_subasta')::uuid;
-  insert into public.cotizaciones (origen_id, lead_id, vehiculo_id, creado_por, formula_id, valores, tipos_cambio, totales, total_base)
-  values (o, l, v, '00000000-0000-0000-0000-000000000004', f, '{"remate": 14200, "total": 24980}', '{"oficial": 6.96, "paralelo": 12.40}', '{"total_base": 24980}', 24980) returning id into c;
-  update public.cotizaciones set notas = 'ajuste' where id = c;
-  if (select count(*) from public.cotizaciones_revisiones where cotizacion_id = c) <> 1 then raise exception 'sin revisión con diff'; end if;
+  -- Desde el 4.10-2 una cotización se crea por `cotizacion_crear()`: la base calcula con la fórmula publicada. El vehículo de este humo no trae el tipo de
+  -- vehículo que casa con la tabla del transporte (queda sin valor y se tipea, como dice la ficha de cotizaciones): se tipea, y la nacionalización, que cualquiera edita.
+  r := public.cotizacion_crear(gen_random_uuid(), o, l, '{"inputs": {"remate": 14200}, "overrides": {"transporte_bolivia": 3000, "nacionalizacion": 1201}}', v);
+  if (r -> 'cotizacion' ->> 'total_base')::numeric <= 0 or r ->> 'repetido' <> 'false' then raise exception 'cotizacion_crear no calculó el total: %', r; end if;
+  perform set_config('humo.cotizacion', r -> 'cotizacion' ->> 'id', false);
   -- La policy de lectura decide por fila (4.10-1): quien la creó la lee. Que otra persona sin su lead no la lea lo prueba `cotizaciones-visibilidad.sql`.
-  if (select count(*) from public.cotizaciones where id = c) <> 1 then raise exception 'quien creó la cotización no la lee'; end if;
+  if (select count(*) from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid) <> 1 then raise exception 'quien creó la cotización no la lee'; end if;
 end $$;
 reset role;
+-- Un cambio de la fila deja su revisión con el diff (el trigger, que sigue siendo `definer`: desde el 4.10-2 nadie edita `cotizaciones` directo; la edición por RPC es del prompt 3).
+update public.cotizaciones set notas = 'ajuste' where id = current_setting('humo.cotizacion')::uuid;
+do $$ begin
+  if (select count(*) from public.cotizaciones_revisiones where cotizacion_id = current_setting('humo.cotizacion')::uuid) <> 1 then raise exception 'sin revisión con diff'; end if;
+end $$;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
 set role authenticated;
 do $$ declare c uuid; v uuid; f_comp uuid; h bigint; res jsonb; begin
-  select id into c from public.cotizaciones where total_base = 24980;
+  c := current_setting('humo.cotizacion')::uuid;
   perform public.cotizacion_marcar_final(c);
   select id into v from public.vehiculos where lote = '58741223';
   if (select lead_id from public.vehiculos where id = v) is null then raise exception 'la final debía vincular el lead'; end if;
