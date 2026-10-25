@@ -6177,3 +6177,21 @@ de terceros (`dorny/paths-filter`): `git diff` alcanza.
 pide. Toca al primer push: medir los minutos reales y reemplazar esta tabla por la medida (y, si el factor del runner sale peor que 2,5,
 revisar si conviene más de 4 bloques). Cambiar la CLI de Supabase puede cambiar la clave publicable local: el bloque lo dice y se
 actualiza `CLAVE_PUBLICA_LOCAL`.
+
+**CI-1b (2026-10-25), antes del primer push.** Tres arreglos, con la guarda que los exige:
+
+- **Un dispatch tiene su propio grupo y no se cancela.** Con un grupo único y `cancel-in-progress: true`, un push a `main` cortaba un e2e
+  manual de 70 a 96 min, y lanzar el e2e justo después de empujar cancelaba el `base` del push. Ahora el grupo de un dispatch es
+  `ci-manual-<ref>-<run_id>` y `cancel-in-progress` vale `github.event_name != 'workflow_dispatch'`: push y PR siguen cancelando a su
+  corrida anterior. **Con `run_id` y no sólo `<ref>`** (lo decidió la persona): GitHub deja una sola corrida en espera por grupo y
+  cancela a la que esperaba cuando llega otra, aun con `cancel-in-progress: false`. Con `ci-manual-<ref>`, unas carreras lanzadas durante
+  un e2e manual esperarían hasta que terminara, y un tercer dispatch las cancelaría. El costo es que dos dispatch pueden correr a la vez
+  (se paga lo que se lanza).
+- **El job `carreras` (9-6) existe** y corre sólo con `workflow_dispatch` y el input `carreras` (boolean, por defecto false): `supabase
+start` sin edge runtime, `db:reset`, `db:carreras`, 20 min de tope, sin reintentos. El input `e2e` (por defecto true) apaga
+  `e2e-build` y los bloques en un dispatch, para correr sólo las carreras (`nivel-1`, `cambios` y `base` corren igual). La guarda admite
+  `db:carreras` sólo dentro del job llamado `carreras` y sólo con `if: github.event_name == 'workflow_dispatch' && inputs.carreras`.
+  En cualquier otro job, o con otro `if`, sigue prohibido. `carreras.mjs` sigue prohibido en todos.
+- **La espera de funciones edge prueba las tres** que pide `e2e/soporte/guardia.ts` (`apibara`, `storage-gc`, `avatares-miniaturas`).
+  Antes sólo probaba apibara: un bloque podía arrancar con otra caída y la guardia lo tumbaba con la corrida ya pagada. La guarda lee
+  `FUNCIONES` de la guardia y exige que la línea `funciones="…"` del YAML nombre cada una y que el bucle la recorra.

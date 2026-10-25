@@ -2187,3 +2187,68 @@ runtime ni nada en el 3210.
 de estimación de DECISIONES «CI-1» por la medida.
 
 **Lo que no se hizo:** el 4.11, actualizar Next, `agentUpgrade: false`, más workers, empujar.
+
+## 2026-10-25 — CI-1b: el grupo del dispatch, el job de carreras y la espera de las tres funciones
+
+**Horas** (hora de La Paz): el plan, hasta las 13:55. La guarda y su corrida contra el `ci.yml` de HEAD, de 13:55 a 13:56. `ci.yml`,
+mutaciones, actionlint y shellcheck, de 13:56 a 13:57. Docs a las 13:57. Nivel 1 de 13:58 a 14:02. Sin push. No se tocó `src/` ni
+`supabase/`. ESTADO no se tocó: su línea de CI sigue siendo cierta y con 12.273 B no le cabe nada.
+
+**Qué cambió** (`docs/DECISIONES.md`, «CI-1» › «CI-1b»):
+
+- **concurrency:** un dispatch va en `ci-manual-<ref>-<run_id>` y `cancel-in-progress` vale `github.event_name != 'workflow_dispatch'`. El
+  `run_id` lo eligió la persona: GitHub cancela la corrida en espera de un grupo aunque `cancel-in-progress` sea false.
+- **Job `carreras`:** sólo con dispatch y el input `carreras` (boolean, por defecto false): checkout, `preparar`, `supabase start -x
+studio,imgproxy,edge-runtime,logflare,vector`, `db:reset` y `db:carreras`, con 20 min de tope y sin reintentos. Input `e2e` (boolean,
+  por defecto true): `e2e-build` y `e2e` lo respetan en un dispatch.
+- **La espera de funciones edge:** recorre `funciones="apibara storage-gc avatares-miniaturas"`, cada una con la regla de antes (OPTIONS, ni
+  000 ni 404 ni 5xx), y el error nombra las que faltan.
+- **La guarda** (`scripts/guardas/workflows.ts`): `problemasDeConcurrencia`, `admitidaEnSuJob` (`db:carreras` sólo en el job `carreras`
+  con `if: github.event_name == 'workflow_dispatch' && inputs.carreras`), el input `carreras` (boolean, por defecto false),
+  `funcionesDeLaGuardia` (lee `FUNCIONES` de `e2e/soporte/guardia.ts`) y `problemasDeEsperaDeFunciones`.
+
+**Primero contra HEAD** (la guarda nueva, el `ci.yml` sin tocar): 13 casos cayeron.
+
+- Al `ci.yml` real le marcó 3 problemas: el grupo del dispatch, `cancel-in-progress` y «la espera de las funciones edge no recorre
+  funciones="…"».
+- «lee los jobs» cayó porque faltaba `carreras`.
+- El caso positivo de una excepción de terceros cayó por la concurrency.
+- Las 9 mutaciones nuevas cayeron porque todavía no tenían sobre qué operar.
+
+**Cada mutación, sobre el `ci.yml` nuevo, y el motivo con que cae:**
+
+| Mutación                                                                                                | Cae con                                                                                |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| volver al grupo único de CI-1 (`ci-${{ github.head_ref \|\| github.ref }}`, `cancel-in-progress: true`) | «un workflow_dispatch necesita su propio grupo» y «cancel-in-progress tiene que ser …» |
+| `cancel-in-progress: true` (el dispatch se cancela)                                                     | «cancel-in-progress tiene que ser …»                                                   |
+| `cancel-in-progress: false` (push y PR dejan de cancelar)                                               | «cancel-in-progress tiene que ser …»                                                   |
+| el grupo manual sin `github.run_id`                                                                     | «un workflow_dispatch necesita su propio grupo»                                        |
+| `db:carreras` en `base` (el caso de CI-1, se queda)                                                     | «ci.yml:101: db:carreras no corre en CI»                                               |
+| el job `carreras` sin su `if`                                                                           | «db:carreras no corre en CI» (el `name` y el paso)                                     |
+| el `if` sin `workflow_dispatch` (`if: inputs.carreras`)                                                 | «db:carreras no corre en CI»                                                           |
+| el `if` con `\|\|` en vez de `&&`                                                                       | «db:carreras no corre en CI»                                                           |
+| el input `carreras` con `default: true`                                                                 | «workflow_dispatch necesita el input «carreras» (boolean, por defecto false)»          |
+| `node scripts/carreras.mjs` dentro del job `carreras`                                                   | «carreras.mjs no corre en CI»                                                          |
+| la espera sin `storage-gc`                                                                              | «no prueba storage-gc (la pide e2e/soporte/guardia.ts)»                                |
+| el bucle vuelve a mirar sólo `apibara` (`for f in apibara`)                                             | «no recorre funciones="…"»                                                             |
+
+Lint pidió partir `problemasDeConcurrencia` (complejidad 16 de 12: sale `grupoManualAparte`) y el `describe` de mutaciones (126 líneas
+de 80: los casos de CI-1b van en «las mutaciones de CI-1b caen»).
+
+**Verificación:**
+
+- actionlint 1.7.12 y shellcheck 0.11.0, los binarios del scratchpad de CI-1: el tarball de actionlint, contra su `checksums.txt`; su
+  binario y el de shellcheck, iguales a los de sus tarballs (`c872d6db…` y `4da528dd…`; el tarball de shellcheck, `8c3be12b…`). Sobre
+  `ci.yml`, sin avisos.
+- `pnpm lint` y `pnpm typecheck` sin avisos.
+- `pnpm test`: 352 archivos, 4.030 pruebas (eran 4.018).
+- `bash scripts/mapa.sh --check`.
+
+**e2e completo: no (CI-1b, sólo el YAML y la guarda).** El YAML nuevo corre en GitHub por primera vez con el push de la persona.
+
+**Para después del push:** la primera corrida con `carreras: true` (y `e2e: false` si se quiere sólo eso) abre la cuenta de 9-6, en la
+tabla de `docs/PLAN.md`.
+
+**Commits:** separados (`ci.yml`, la guarda, los docs). El hook de pre-commit no corre `pnpm test`, así que el primer commit, solo,
+queda rojo contra la guarda vieja (el job nuevo nombra `db:carreras`). La guarda sola también quedaría roja contra el `ci.yml` de
+antes. Desde el segundo commit, el árbol está en verde.
