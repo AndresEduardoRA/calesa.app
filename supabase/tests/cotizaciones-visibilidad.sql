@@ -65,6 +65,14 @@ begin
     (select coalesce(jsonb_object_agg(x, '{}'::jsonb), '{}'::jsonb) from unnest(coalesce(p_visibles, '{}'::text[]) || coalesce(p_ocultos, '{}'::text[])) x)));
 end $f$;
 
+-- ¿Alguna hoja de p, a cualquier profundidad, es uno de esos números (como número o como el texto del número)? Para no buscar «41111» o «6.96» en el texto de una
+-- respuesta que trae uuids y fechas al azar: «6.96» calza con una hora «…:36.961…» y cinco dígitos, con un uuid (4.10-3b).
+create or replace function pg_temp.cv_trae(p jsonb, p_valores numeric[]) returns boolean language sql as $f$
+  select exists (select 1 from jsonb_path_query(p, 'strict $.**') h
+                  where (jsonb_typeof(h) = 'number' and (h #>> '{}')::numeric = any (p_valores))
+                     or (jsonb_typeof(h) = 'string' and h #>> '{}' = any (p_valores::text[])))
+$f$;
+
 -- Corre un SQL como esa persona (authenticated) y devuelve su resultado, o {error, mensaje} si falla.
 create or replace function pg_temp.cv_corre(p_quien uuid, p_sql text) returns jsonb language plpgsql as $f$
 declare v jsonb; v_d text; v_h text; v_e text; v_m text;
@@ -412,8 +420,12 @@ begin
               and (coalesce(antes, '{}') ?| v_ocultas or coalesce(despues, '{}') ?| v_ocultas)) then
     raise exception 'actividad guarda el snapshot de la cotización';
   end if;
-  -- El valor que se escribió no aparece en ninguna parte de lo que se auditó.
-  if exists (select 1 from public.actividad where tabla = 'cotizaciones' and registro_id = v_c::text and (antes::text like '%7777%' or despues::text like '%7777%')) then
+  -- El valor que se escribió no aparece en ninguna parte de lo que se auditó: ni como hoja (número o texto) ni dentro de un texto. «7777.5» lleva punto con cuatro
+  -- dígitos delante, así que no puede estar dentro de un uuid ni de una fecha de la fila (`'%7777%'` sí: un id o los microsegundos lo daban, 4.10-3b).
+  if exists (select 1 from public.actividad a where a.tabla = 'cotizaciones' and a.registro_id = v_c::text
+                and (pg_temp.cv_trae(a.antes, '{7777.5}') or pg_temp.cv_trae(a.despues, '{7777.5}')
+                     or exists (select 1 from (select jsonb_path_query(a.antes, 'strict $.**') union all select jsonb_path_query(a.despues, 'strict $.**')) x(h)
+                                 where jsonb_typeof(h) = 'string' and position('7777.5' in h #>> '{}') > 0))) then
     raise exception 'el valor de un nodo quedó en actividad';
   end if;
   -- Y el resto de la fila sí: lo que se pierde es sólo el snapshot.
@@ -795,22 +807,23 @@ begin
   if r -> 'totales' -> 'grupos' -> 'g1' ? 'bs' then raise exception 'el Bs del grupo viaja con una tarifa oculta: %', r -> 'totales'; end if;
   if r -> 'totales' ->> 'bs' <> '99999000.5' or r -> 'totales' ->> 'usd' <> '99999.5' then raise exception 'el total en Bs y en USD viaja siempre: %', r -> 'totales'; end if;
   if (select array_agg(k order by k) from jsonb_object_keys(r -> 'tipos_cambio') k) is distinct from array['paralelo'] then raise exception 'tipos_cambio sin el nivel: %', r -> 'tipos_cambio'; end if;
-  if position('41111' in r::text) > 0 or position('42222' in r::text) > 0 or position('286127' in r::text) > 0 or position('6.96' in r::text) > 0 or position('flete' in r::text) > 0 or position('margen' in r::text) > 0 or position('tc_o' in r::text) > 0 then
+  -- Los valores ocultos se buscan como hojas, no en el texto (la respuesta trae el id y las fechas de la cotización); los nombres de nodo sí como texto: no son hexadecimales.
+  if pg_temp.cv_trae(r, '{41111.5, 42222.5, 286127, 6.96}') or position('flete' in r::text) > 0 or position('margen' in r::text) > 0 or position('tc_o' in r::text) > 0 then
     raise exception 'algo del nivel oculto viaja: %', r;
   end if;
   -- 2. Con el nivel: todo, los dos grupos con su Bs y las dos tarifas.
   r := pg_temp.cv_corre(con, format('select public.cotizacion_leer(%L)', c1));
   if r -> 'valores' is distinct from (v_res -> 'valores') - 'interno' or r -> 'fuentes' is distinct from v_res -> 'fuentes' or r -> 'totales' is distinct from v_res -> 'totales' then raise exception 'con el nivel debía ver todo lo que la visibilidad nombra: %', r; end if;
   if r -> 'tipos_cambio' is distinct from '{"oficial": 6.96, "paralelo": 12.4}'::jsonb then raise exception 'con el nivel, las dos tarifas: %', r -> 'tipos_cambio'; end if;
-  if position('31313' in r::text) > 0 then raise exception 'un nodo que la visibilidad no nombra le llega a quien no configura: %', r; end if;
+  if pg_temp.cv_trae(r, '{31313.5}') then raise exception 'un nodo que la visibilidad no nombra le llega a quien no configura: %', r; end if;
   -- 3. Quien configura el origen suma lo que la visibilidad no nombra (sin saltarse los niveles); el permiso de EDITAR el nivel, solo, no da a ver.
   r := pg_temp.cv_corre(cfg, format('select public.cotizacion_leer(%L)', c1));
   if (select array_agg(k order by k) from jsonb_object_keys(r -> 'valores') k) is distinct from array['fees', 'garantia', 'interno', 'remate', 'tc_p', 'total'] then raise exception 'quien configura, sin el nivel: %', r -> 'valores'; end if;
-  if position('41111' in r::text) > 0 then raise exception 'configurar se salta el nivel: %', r; end if;
+  if pg_temp.cv_trae(r, '{41111.5}') then raise exception 'configurar se salta el nivel: %', r; end if;
   r := pg_temp.cv_corre(todo, format('select public.cotizacion_leer(%L)', c1));
   if r -> 'valores' is distinct from v_res -> 'valores' then raise exception 'quien configura y tiene el nivel lo ve todo: %', r -> 'valores'; end if;
   r := pg_temp.cv_corre(solo_editar, format('select public.cotizacion_leer(%L)', c1));
-  if position('41111' in r::text) > 0 or position('flete' in r::text) > 0 then raise exception 'editar el nivel sin verlo deja ver: %', r; end if;
+  if pg_temp.cv_trae(r, '{41111.5}') or position('flete' in r::text) > 0 then raise exception 'editar el nivel sin verlo deja ver: %', r; end if;
   -- 4. Una versión vieja se lee con SU visibilidad: se publica la v2 (que muestra el flete a todos) y la cotización de la v1 sigue sin mostrárselo a «sin».
   update public.formulas set estado = 'archivada' where id = f1;
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o, 2, 'publicada', v_def, '{}', '{}', v_vis2) returning id into f2;
@@ -1047,7 +1060,7 @@ begin
   if r ? 'error' then raise exception 'no se transfirió: %', r; end if;
   r := pg_temp.cv_corre(b, format('select public.cotizacion_leer(%L)', v_c));
   if r ? 'error' or r -> 'valores' ->> 'total' <> '99999.25' or r -> 'valores' ->> 'visible' <> '10.5' then raise exception 'B no lee la cotización del lead transferido: %', r; end if;
-  if position('88888' in r::text) > 0 or position('costo' in r::text) > 0 then raise exception 'B ve el costo sin el nivel: %', r; end if;
+  if pg_temp.cv_trae(r, '{88888.5}') or position('costo' in r::text) > 0 then raise exception 'B ve el costo sin el nivel: %', r; end if;
   if (pg_temp.cv_corre(z, format('select public.cotizacion_leer(%L)', v_c))) ->> 'error' is distinct from '42501' then raise exception 'Z lee una cotización de un lead que no es suyo'; end if;
   -- B le quita el acceso a A: A sigue leyendo la que creó (creado_por), y Z sigue sin poder.
   r := pg_temp.cv_corre(b, format('select public.lead_revocar_acceso(%L, %L)', v_lead, a));
@@ -1282,7 +1295,8 @@ begin
   if r -> 'revisiones' -> 3 -> 'diff' is distinct from '{"valores": {"de": {"remate": 1000.5}, "a": {"remate": 2000.5}}}'::jsonb then raise exception 'el dato visible, sin los costos: %', r -> 'revisiones' -> 3 -> 'diff'; end if;
   if r -> 'revisiones' -> 4 -> 'diff' <> '{}'::jsonb then raise exception 'cambió sólo un costo: %', r -> 'revisiones' -> 4 -> 'diff'; end if;
   if r -> 'revisiones' -> 5 -> 'diff' is distinct from '{"notas": {"de": null, "a": "uno"}}'::jsonb then raise exception 'la nota: %', r -> 'revisiones' -> 5 -> 'diff'; end if;
-  if position('50123' in r::text) > 0 or position('60123' in r::text) > 0 or position('77123' in r::text) > 0 or position('7.75' in r::text) > 0 or position('41111' in r::text) > 0 or position('flete' in r::text) > 0 or position('tc_o' in r::text) > 0 then
+  -- Los valores, como hojas (la respuesta trae seis fechas: «7.75» calzaba con una hora); los nombres de nodo, como texto (no son hexadecimales).
+  if pg_temp.cv_trae(r, '{50123.5, 60123.5, 77123.5, 7.75, 41111.5}') or position('flete' in r::text) > 0 or position('tc_o' in r::text) > 0 then
     raise exception 'algo oculto viaja por las revisiones: %', r;
   end if;
   -- 2. Con el nivel: los diffs enteros.
@@ -1298,7 +1312,7 @@ begin
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
   values (o, 2, 'publicada', v_def, '{}', '{}', jsonb_set(jsonb_set(v_vis, '{flete}', '{"ver": "todos", "editar": "todos"}'), '{tc_o}', '{"ver": "todos", "editar": "todos"}'));
   r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L)', c));
-  if position('50123' in r::text) > 0 or position('60123' in r::text) > 0 or position('7.75' in r::text) > 0 or position('flete' in r::text) > 0 then raise exception 'una versión nueva cambia lo que se ve de una cotización de la anterior: %', r; end if;
+  if pg_temp.cv_trae(r, '{50123.5, 60123.5, 7.75}') or position('flete' in r::text) > 0 then raise exception 'una versión nueva cambia lo que se ve de una cotización de la anterior: %', r; end if;
   -- 3. Páginas de a 2 por el cursor: 2 + 2 + 2, la última sin otra, y sin repetir ni saltar.
   v_pag1 := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, null, 2)', c));
   v_pag2 := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, %s, 2)', c, v_pag1 ->> 'siguiente'));

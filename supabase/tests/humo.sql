@@ -2213,7 +2213,10 @@ do $$ declare w record; columnas text[]; v1 uuid := 'dddddddd-0000-4000-8000-000
   if w.atributos <> '{"humo_color": "Blanco"}'::jsonb then raise exception 'atributos debía traer sólo el campo público: %', w.atributos; end if;
   if w.imagen <> v1 || '/' || repeat('1', 64) || '.webp' or w.miniatura <> v1 || '/' || repeat('2', 64) || '.webp' then raise exception 'la portada no es la esperada: % / %', w.imagen, w.miniatura; end if;
   -- Ni el costo, ni el precio de lista, ni el VIN, ni el kilometraje, ni la otra foto.
-  if to_jsonb(w)::text ~ '17999|18500|JTFVTR|45123|3333' then raise exception 'se filtró un dato que no es público: %', to_jsonb(w); end if;
+  -- Los números se comparan como hojas y la foto por su nombre entero: «3333» suelto calzaba con los microsegundos de `actualizado_en` (4.10-3b).
+  if exists (select 1 from jsonb_path_query(to_jsonb(w), 'strict $.**') h
+              where (jsonb_typeof(h) = 'number' and (h #>> '{}')::numeric in (17999, 18500, 45123)) or (jsonb_typeof(h) = 'string' and h #>> '{}' in ('17999', '18500', '45123')))
+     or to_jsonb(w)::text ~ ('JTFVTR|' || repeat('3', 64)) then raise exception 'se filtró un dato que no es público: %', to_jsonb(w); end if;
   begin perform 1 from interno.vitrina_vehiculos; raise exception 'anon leyó el esquema interno';
   exception when insufficient_privilege then null; end;
   begin perform public.vehiculo_vitrina_previa(v1); raise exception 'anon pidió la vista previa';
