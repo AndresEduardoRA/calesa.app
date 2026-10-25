@@ -1425,7 +1425,7 @@ begin
       foreach v_p in array array['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER'] loop
         if has_table_privilege(v_r, 'public.' || v_t, v_p) then raise exception '% tiene % sobre %', v_r, v_p, v_t; end if;
       end loop;
-      -- Por columna: ni insert, ni update, ni referencias de ninguna (un revoke de tabla no las quita).
+      -- Por columna: ni insert, ni update, ni referencias de ninguna (el revoke de tabla ya las quita; el de columna es la defensa explícita).
       for v_col in select a.attname, a.attnum from pg_attribute a where a.attrelid = ('public.' || v_t)::regclass and a.attnum > 0 and not a.attisdropped loop
         foreach v_p in array array['INSERT', 'UPDATE', 'REFERENCES'] loop
           if has_column_privilege(v_r, ('public.' || v_t)::regclass, v_col.attnum, v_p) then raise exception '% tiene % sobre %.%', v_r, v_p, v_t, v_col.attname; end if;

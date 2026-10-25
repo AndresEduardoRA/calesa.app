@@ -5,8 +5,10 @@
 -- el permiso pisaba un nodo oculto, o una preventa pasaba a final sin la RPC. Desde ahora una cotización se crea con `cotizacion_crear()` y se cambia por RPC
 -- (`cotizacion_marcar_final`, `cotizacion_moderar`, la papelera; `cotizacion_guardar` llega en el prompt 3). Las demás RPC que las escriben son `definer`: no cambian.
 --
--- Un `revoke … on table` NO quita los grants de columna (un grant de columna es otra entrada de la ACL): se quitan también, columna por columna, leyendo el catálogo (una columna
--- que se agregue mañana nace sin ningún grant). `select (columnas legibles)` de `authenticated` no se toca. `service_role` y `postgres` conservan lo suyo.
+-- Un `revoke … on table` SÍ quita los grants de columna (la documentación de `REVOKE`: al revocar a nivel de tabla, los privilegios de columna correspondientes se revocan en cada
+-- columna). Lo que no hace nada es lo contrario: revocar una columna mientras exista el grant de tabla (`…006800`). El bucle por columna se queda como defensa, explícito, leyendo el
+-- catálogo, y lo que comprueba el resultado es `has_column_privilege` de cada rol sobre cada columna. `select (columnas legibles)` de `authenticated` no se toca. `service_role` y
+-- `postgres` conservan lo suyo.
 -- Sin ningún `grant` que las use, las policies de escritura son letra muerta: se quitan (quedan «leer» y la restrictiva de la papelera).
 
 do $$
