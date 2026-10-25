@@ -67,6 +67,11 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
   (grant de columnas; `auditar()` → `cotizacion_auditar()` no los copia a `actividad`); la policy de `cotizaciones` y `puede_cotizacion()` preguntan por fila; lo oculto sale por `cotizacion_leer(id)`, `cotizacion_evaluar()` (concedida, recortada, sin oráculo),
   `cotizacion_revisiones()`, `cotizacion_tabla()` y `formula_para_cotizar()` (sólo `cotizaciones.configurar`), todas sobre `_cotizacion_recorte()`/`_cotizacion_contexto()` (de nadie) y `_nodos_visibles(formula_id)` de SU versión; `_nivel_en_uso()` se quitó (4-13). Las prueba
   `supabase/tests/cotizaciones-visibilidad.sql` (con el inventario de funciones, modelo de `numero-global.sql`) y `medir-cotizaciones-lectura.sql`. **Una función nueva que pueda devolver esas columnas, `formulas.*` o las tablas de referencia se registra en el inventario.**
+- `supabase/migrations/20261019007600_vehiculo_obligatorio_al_cotizar.sql` a `…007900_cotizaciones_sin_escritura_directa.sql` (4.10-2, la escritura; `docs/COTIZADOR.md` › «Quién escribe una cotización y cómo»): **nadie escribe `cotizaciones` ni `cotizaciones_revisiones` directo**
+  (ni `authenticated`, ni `anon`, ni PUBLIC: sin `insert`, `update`, `delete` ni grants de columna, y sin las policies «crear» y «editar»). El alta es `cotizacion_crear(id, origen, lead, entradas, vehículo | vehículo_nuevo, modo_tc, clase)`: calcula en la base con `evaluar_formula()`
+  (`_cotizacion_armar()` + `_cotizacion_tipeado()`, el mismo validador de lo tipeado que `cotizacion_evaluar()`), guarda `valores`/`fuentes` enteros, congela `tipos_cambio` y devuelve lo recortado por `_cotizacion_respuesta()`; idempotente por id (candado consultivo), un id ajeno responde como uno que no existe
+  (42501) y la fórmula se toma `for share`. Ajuste `vehiculo_obligatorio_al_cotizar` (`ajustes_empresa`). Pruebas: `supabase/tests/cotizacion-crear.sql`, los privilegios y la auditoría en `cotizaciones-visibilidad.sql`, `scripts/carreras/cotizaciones.mjs` y `medir-cotizacion-crear.sql`.
+  **Una escritura nueva de cotizaciones es una RPC `security definer`, nunca un grant.**
 - `entities/nivel.ts` (4.09-2) — `NivelDeAcceso`, `ListaDeNiveles`, `listaDeNivelesDesde()`/`respuestaDeNivelesDesde()` (Zod), `separarNiveles()` (fijo · en uso · retirados, por nombre en español), `validarNivel()` (espejo de
   `_nivel_nombre()`), `accionesDeNivel()` (Renombrar · Retirar o Restaurar · Eliminar, con el motivo cuando no se puede), `motivoParaNoAbrirNivel()` y las constantes de la URL. **Nada razona por el nombre ni la clave de un nivel**:
   qué admite lo dice la fila. `entities/repositorios-de-niveles.ts`, `infra/niveles.ts` (las cinco RPC), `infra/queries/niveles.ts` y `composicion.ts`.
@@ -113,7 +118,7 @@ Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCel
 ## Tablas
 
 `formulas`, `tonos`, `cotizaciones_niveles`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
-RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear`, `tono_guardar`, `tono_eliminar`, `nivel_crear`, `nivel_renombrar`, `nivel_retirar`, `nivel_restaurar`, `nivel_eliminar`, `niveles_con_uso`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
+RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear`, `tono_guardar`, `tono_eliminar`, `nivel_crear`, `nivel_renombrar`, `nivel_retirar`, `nivel_restaurar`, `nivel_eliminar`, `niveles_con_uso`, `validar_formula`, `validar_diseno`, `evaluar_formula`, `cotizacion_evaluar`, `cotizacion_crear`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
 
 ## No se rompe
 

@@ -1475,3 +1475,24 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **4-14, sin assert:** «todas las que veo» de quien ve «propios» recorre `cotizaciones_listado_idx` entera y descarta lo ajeno: con 250.000, **Ana 1.622 ms y 42.170 buffers**, la **«chica» 2.008 ms y 58.342**. Es lo que ve una asesora al abrir `/cotizaciones` sin filtro; se arregla en el 4.16 (`docs/PLAN.md`, 4-14).
 - **`medir-bajas.sql` cayó una vez** en la corrida final de `db:medir:volumen`: el job entero tardó 22.516,7 ms (tope 20.000) con 12 corridas y 40 lotes, y esa ventana tuvo `sync +5.465 ms` (checkpoints +2, escribir +17.728 ms). Se repitió sola, sin tocar el tope: **15.779,4 ms** con 10 corridas y los mismos 40 lotes, `sync +652 ms`.
   Es 5a-42 (la guarda es de tiempo y un `fsync` lento la tumba sin regresión); el trabajo, 40 lotes, no cambió. Ninguna de estas dos corridas toca lo de este paso.
+
+## Paso 4.10 (2 de 3): `cotizacion_crear()` con 50.000 y con 250.000 cotizaciones (2026-10-25)
+
+- **Cómo se mide:** `supabase/tests/medir-cotizacion-crear.sql`, en `pnpm db:medir` (la base de la semilla: arma su propio terreno), contra el Supabase local (Postgres 17). Una dueña, una asesora «propios» con su lead, un vehículo y la fórmula sembrada de `subasta_usa`; las filas de relleno
+  llevan la forma de las de `medir-cotizaciones-lectura.sql` (el `valores` y las `fuentes` de la fórmula), sin triggers; 50.000 y después 250.000, en una transacción que se deshace, con `vacuum` antes y después. **Como `authenticated`**, con el plan genérico (`plan_cache_mode = force_generic_plan`) y
+  `EXPLAIN (ANALYZE, BUFFERS)` de la llamada entera, con la mediana de 5 de 7 corridas; la carga (`/proc/loadavg`) se anota al empezar (1,38 / 2,11 / 1,92 en la corrida de cierre). Cada corrida de una alta crea una cotización de verdad (el `insert`, la auditoría y el índice incluidos).
+
+| Medición (ms · buffers)                      | 50.000 cotizaciones | 250.000 cotizaciones | Tope                                                               |
+| -------------------------------------------- | ------------------- | -------------------- | ------------------------------------------------------------------ |
+| preventa de la dueña, con vehículo           | 5,5 · 281           | 5,6 · 282            | 20 ms · 1.500                                                      |
+| preventa de la asesora («propios»)           | 5,7 · 280           | 5,5 · 281            | 20 ms · 1.500                                                      |
+| la dueña cargando el vehículo a mano         | 6,1 · 388           | 6,3 · 387            | 20 ms · 1.500                                                      |
+| el intento repetido (la vuelta temprana)     | 1,5 · 41            | 1,5 · 42             | 20 ms · 1.500                                                      |
+| recorridos enteros de `cotizaciones` por una | 0                   | 0                    | 0 (`pg_stat_xact_user_tables.seq_scan`)                            |
+| razón de ms con 250.000 sobre 50.000         | —                   | 1,0 en todas         | ≤ máx(1,5 × t; t + 3 ms), y los buffers ≤ 1,2 × los de 50.000 + 20 |
+
+- **Medido antes de fijar los topes:** una primera corrida dio 5,2 a 6,5 ms y 39 a 629 buffers (la primera vuelta lee más: cachés frías); los topes (20 ms y 1.500) dejan una vuelta de margen a una máquina ocupada y siguen lejos de lo que cuesta recorrer la tabla.
+- **La guarda:** la misma función con una búsqueda más por una columna sin índice (`notas`, que es lo que haría un intento o una final buscados sin su clave) da **44,3 ms, 62.747 buffers y un recorrido de la tabla** con 250.000: rompe los tres topes. La medición falla si esa copia los cumple.
+- **`cotizacion_evaluar()` tras sacar la revisión de lo tipeado a `_cotizacion_tipeado()`** (`medir-evaluar.sql`, `db:medir:volumen`, 200 llamadas seguidas): la fórmula del seed 3,6 ms de mediana y 3,9 de p95 (antes 3,7 a 4,0 y 3,9 a 4,1; tope 10 y 20) y la sintética de 200 nodos con 4 tablas de 1.000 filas **37,6 ms de mediana y 38,7 de p95** (antes 39,9; tope 50, que no se sube). `cotizacion_leer()` 1,4 a 1,6 ms
+  y `cotizacion_revisiones()` 4,2 a 5,2 ms, iguales a las del 4.10-1 (la respuesta ahora pasa por `_cotizacion_respuesta()`). La razón con 250.000 sobre 50.000 es 1,0.
+- **`medir-importacion-volumen.sql` cayó una vez** en la primera corrida de `db:medir:volumen` (justo después de `db:sembrar-volumen`): el tiempo por fila de la segunda pasada, con ≈ 123.000 filas de actividad, salió 0,77 veces el de la primera (la banda es de 0,8 a 1,2: la segunda pasada, _más rápida_), con la carga al empezar en 2,19 y el disco al 12,3 % al terminar; repetida sola pasó (1,0). No toca nada de este paso (importar leads): es **5a-43** en `docs/PLAN.md`, y no se tocó su tope.

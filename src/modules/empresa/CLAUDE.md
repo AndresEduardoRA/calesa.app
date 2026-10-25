@@ -20,7 +20,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 ## Archivos clave
 
 - `entities/ajustes.ts` — `Ajustes` (lo mínimo, para toda pantalla), `ajustesDesde()`, `registroDisponible()`, `AJUSTES_POR_DEFECTO`.
-- `entities/ajustes-empresa.ts` — `AjustesEmpresa` (la fila entera, con su versión; `telefonoCc` es el código de país con el que se completa un teléfono de lead escrito sin «+» ni «00»), `CambiosDeAjustes`, `cambiosComoColumnas()`; la política de la limpieza automática (`PoliticaDeLimpieza`, `GRACIA_*_DIAS`).
+- `entities/ajustes-empresa.ts` — `AjustesEmpresa` (la fila entera, con su versión; `vehiculoObligatorioAlCotizar` (4.10-2: lo lee `cotizacion_crear`; sin pantalla hasta el 4.20), `telefonoCc` es el código de país con el que se completa un teléfono de lead escrito sin «+» ni «00»), `CambiosDeAjustes`, `cambiosComoColumnas()`; la política de la limpieza automática (`PoliticaDeLimpieza`, `GRACIA_*_DIAS`).
 - `entities/marca.ts` — `validarColorDeMarca()` (contraste AA, con el motivo y un tono cercano que sí pasa) y las reglas del logo: formatos, pesos, `motivoDeSvgInvalido()`, `medidasDeSvg()`.
 - `entities/regional.ts` — `localeCanonico()`, `zonaHorariaValida()`, `codigoDeMoneda()`: todo contra `Intl`.
 - `entities/iconos.ts` — tamaños, `encuadreDeIcono()`, `iconosDelManifest()`, `urlDeIcono()`.
