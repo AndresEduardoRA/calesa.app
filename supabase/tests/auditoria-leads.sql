@@ -131,6 +131,8 @@ declare
     ('cotizacion_moderar(uuid,estado_cotizacion)', 'X'),
     ('evaluar_requisitos(uuid,uuid,uuid)', 'X'),
     ('margen_vehiculo(uuid)', 'X'),
+    -- Lee una cotización recortada por nivel (4.10): el recorte lo prueba cotizaciones-visibilidad.sql.
+    ('cotizacion_leer(uuid)', 'L'),
     ('reasignar_tarea(uuid,uuid)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));

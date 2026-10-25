@@ -52,9 +52,11 @@ insert into public.usuarios_roles (usuario_id, rol_id, es_principal) select '000
 create temp table _o (i int primary key, origen uuid not null, formula uuid not null);
 insert into _o select row_number() over (order by o.clave), o.id, f.id from public.origenes o join public.formulas f on f.origen_id = o.id and f.estado = 'publicada'
   where o.clave in ('subasta_usa', 'planilla_usa', 'oficina');
--- Una fila de verdad pesa: el snapshot de una cotización (60 nodos de valores y 30 de fuentes) se guarda comprimido y fuera de línea, y es lo que un listado NO lee.
-create temp table _snap as select (select jsonb_object_agg('nodo_' || i, round((i * 1.37)::numeric, 2)) from generate_series(1, 60) i) as valores,
-                                  (select jsonb_object_agg('nodo_' || i, 'input') from generate_series(1, 30) i) as fuentes;
+-- Una fila de verdad pesa: el snapshot de una cotización (un valor por cada nodo de la fórmula de la semilla de `subasta_usa`, y una fuente por cada nodo que acepta un valor) es lo que
+-- `cotizacion_leer()` recorta y lo que un listado NO lee.
+create temp table _snap as select (select jsonb_object_agg(n ->> 'id', round((n_ord * 13.37)::numeric, 2)) from jsonb_array_elements(f.definicion -> 'nodos') with ordinality x (n, n_ord)) as valores,
+                                  (select jsonb_object_agg(n ->> 'id', 'input') from jsonb_array_elements(f.definicion -> 'nodos') n where n ->> 'tipo' in ('input', 'constante', 'tipo_cambio')) as fuentes
+  from public.formulas f join public.origenes o on o.id = f.origen_id where o.clave = 'subasta_usa' and f.estado = 'publicada';
 create temp table _leads_de_ana (i int primary key, lead uuid not null);
 insert into _leads_de_ana select row_number() over (), lead_id from (select la.lead_id from public.leads_asesores la
   where la.usuario_id = '00000000-0000-0000-0000-0000000000a1' and la.revocado_en is null limit 1000) x;
@@ -155,6 +157,14 @@ declare
 begin
   perform set_config('request.jwt.claim.sub', v_id::text, true);
   perform set_config('request.jwt.claims', json_build_object('sub', v_id, 'role', 'authenticated')::text, true);
+  if p_ruta = 'leer' then
+    -- Una cotización de esa persona, de la fórmula de la semilla de subasta_usa: se lee recortada (la dueña la ve entera por «todos»; Ana, la suya).
+    select id into v_cur from public.cotizaciones where creado_por = v_id and formula_id = (select formula from _o o join public.origenes x on x.id = o.origen and x.clave = 'subasta_usa') limit 1;
+    v_m := pg_temp.medir(format('select public.cotizacion_leer(%L)', v_cur));
+    v_llamadas := pg_temp.llamadas(format('select public.cotizacion_leer(%L)', v_cur));
+    insert into _med values (p_fase, 'leer · una cotización', p_quien, (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, '[]', false, 0, v_llamadas);
+    return;
+  end if;
   if p_ruta = 'todas' then
     select creado_en, id into v_ts, v_cur from public.cotizaciones order by creado_en desc, id desc offset p_profundidad limit 1;
     v_args := 'c_todas'; v_args2 := format('c_todas_cursor(%L, %L)', v_ts, v_cur);
@@ -188,6 +198,8 @@ select pg_temp.preparar();
 select pg_temp.ruta('50.000', 'todas', 'duena');
 select pg_temp.ruta('50.000', 'mias', 'ana');
 select pg_temp.ruta('50.000', 'mias', 'chica');
+select pg_temp.ruta('50.000', 'leer', 'duena');
+select pg_temp.ruta('50.000', 'leer', 'ana');
 reset role;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------
@@ -202,6 +214,8 @@ set local role authenticated;
 select pg_temp.ruta('250.000', 'todas', 'duena');
 select pg_temp.ruta('250.000', 'mias', 'ana');
 select pg_temp.ruta('250.000', 'mias', 'chica');
+select pg_temp.ruta('250.000', 'leer', 'duena');
+select pg_temp.ruta('250.000', 'leer', 'ana');
 reset role;
 
 -- «Todas las que veo» de quien ve «propios»: se mide y se anota, sin assert (4-14).
@@ -235,6 +249,12 @@ begin
     if r.ms > 10 then v_fallas := v_fallas || format(E'\n  %s · %s · %s: %s ms, el presupuesto es 10', r.fase, r.ruta, r.quien, round(r.ms, 1)); end if;
     if r.buffers > 300 then v_fallas := v_fallas || format(E'\n  %s · %s · %s: %s buffers, el presupuesto es 300', r.fase, r.ruta, r.quien, r.buffers); end if;
     if r.seq then v_fallas := v_fallas || format(E'\n  %s · %s · %s recorre cotizaciones entera', r.fase, r.ruta, r.quien); end if;
+    if r.ruta like 'leer%' then
+      -- Leer una cotización: se busca por su clave una vez, se recortan sus nodos una vez (`_nodos_visibles()` se llama una sola vez) y no se mira ninguna cartera entera.
+      if coalesce((r.llamadas ->> '_nodos_visibles')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s llama a _nodos_visibles %s veces: %s', r.fase, r.ruta, r.quien, coalesce(r.llamadas ->> '_nodos_visibles', '0'), r.llamadas); end if;
+      if r.llamadas ? 'mis_leads' or coalesce((r.llamadas ->> 'puede_cotizacion')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s pregunta mal por el permiso: %s', r.fase, r.ruta, r.quien, r.llamadas); end if;
+      continue;
+    end if;
     if not r.indices ? (v_indice ->> split_part(r.ruta, ' ', 1)) then
       v_fallas := v_fallas || format(E'\n  %s · %s · %s no usa %s: %s', r.fase, r.ruta, r.quien, v_indice ->> split_part(r.ruta, ' ', 1), r.indices);
     end if;
