@@ -18,6 +18,10 @@ import {
 import { borrarLotesDePrueba } from './papelera'
 import { esMovil } from './inventario'
 import { capturarEn } from './capturas'
+import { pieQuieto, recibeElClic } from './esperas'
+
+// Las esperas viven en `esperas.ts`; los specs las siguen importando de aquí.
+export { pieQuieto, quieto, recibeElClic } from './esperas'
 
 // --- Capturas ----------------------------------------------------------------------------------------
 
@@ -39,31 +43,6 @@ export async function capturar(page: Page, info: TestInfo, nombre: string): Prom
 
 // --- Lo que se afirma sin mirar ----------------------------------------------------------------------
 
-// Un panel que entra con animación (zoom, deslizamiento) mide menos mientras entra: se espera a que
-// termine antes de medir cajas.
-export async function quieto(lugar: Locator): Promise<void> {
-  await lugar.evaluate((e) =>
-    Promise.all(e.getAnimations({ subtree: true }).map((a) => a.finished.catch(() => undefined))),
-  )
-}
-
-// El elemento que recibe un clic en el centro de la caja es éste (o está adentro): nada lo tapa.
-export async function recibeElClic(lugar: Locator): Promise<void> {
-  await expect(lugar).toBeVisible()
-  const lo = await lugar.evaluate((elemento) => {
-    const caja = elemento.getBoundingClientRect()
-    const x = caja.left + caja.width / 2
-    const y = caja.top + caja.height / 2
-    const arriba = document.elementFromPoint(x, y)
-    const describir = (e: Element | null) =>
-      e
-        ? `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''} «${e.textContent.trim().slice(0, 40)}»`
-        : 'nada'
-    return { recibe: arriba !== null && elemento.contains(arriba), quien: describir(arriba) }
-  })
-  expect(lo.recibe, `el clic lo recibe ${lo.quien}`).toBe(true)
-}
-
 // La caja entera dentro de la pantalla (con un píxel de redondeo).
 export async function dentroDeLaPantalla(page: Page, lugar: Locator): Promise<void> {
   const caja = await lugar.boundingBox()
@@ -80,6 +59,7 @@ export async function dentroDeLaPantalla(page: Page, lugar: Locator): Promise<vo
 // que está en su centro es el botón, no el aviso). Con el pie pegado abajo el aviso queda por encima; con uno a media altura (un panel
 // corto) no hace falta moverlo. Se mide con el aviso ya quieto: entra deslizándose.
 export async function avisoNoTapaElPie(aviso: Locator, pie: Locator): Promise<void> {
+  await pieQuieto(pie)
   await expect
     .poll(
       async () => {
