@@ -18,10 +18,9 @@ test-salidas/
 e2e-capturas/
 e2e/.auth/
 
-# entorno
-.env
-.env.local
-.env.*.local
+# entorno: todo archivo de entorno, salvo el ejemplo (que no lleva valores)
+.env*
+!.env.example
 
 # supabase local
 supabase/.branches/
