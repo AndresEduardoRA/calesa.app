@@ -205,6 +205,7 @@ for (const archivo of [
   'publicar-diseno.sql',
   'niveles.sql',
   'niveles-con-uso.sql',
+  'cotizaciones-visibilidad.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t) || (SOLO && !SOLO.includes(archivo))) continue
