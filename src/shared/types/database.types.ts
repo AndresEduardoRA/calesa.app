@@ -149,6 +149,7 @@ export type Database = {
           registro_abierto: boolean
           telefono: string | null
           telefono_cc: string | null
+          vehiculo_obligatorio_al_cotizar: boolean
           whatsapp: string | null
           zona_horaria: string
         }
@@ -179,6 +180,7 @@ export type Database = {
           registro_abierto?: boolean
           telefono?: string | null
           telefono_cc?: string | null
+          vehiculo_obligatorio_al_cotizar?: boolean
           whatsapp?: string | null
           zona_horaria?: string
         }
@@ -208,6 +210,7 @@ export type Database = {
           registro_abierto?: boolean
           telefono?: string | null
           telefono_cc?: string | null
+          vehiculo_obligatorio_al_cotizar?: boolean
           whatsapp?: string | null
           zona_horaria?: string
         }

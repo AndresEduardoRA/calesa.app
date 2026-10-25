@@ -26,13 +26,15 @@ create table public.ajustes_empresa (
   lead_dormido_meses int not null default 3 check (lead_dormido_meses between 1 and 24),
   limpieza_automatica boolean not null default true,  -- interruptor general de la limpieza de vehículos de subasta
   limpieza_dias_gracia int not null default 7 check (limpieza_dias_gracia between 1 and 90),
+  vehiculo_obligatorio_al_cotizar boolean not null default true,  -- D3: una preventa sin vehículo sólo si dice false; una final siempre lo exige
   actualizado_en     timestamptz not null default now(),
   actualizado_por    uuid
 );
 comment on column public.ajustes_empresa.iconos is 'Objeto {"32","180","192","512","512m"} → ruta en el bucket marca. Lo escribe «Regenerar íconos»; lo lee manifest.ts.';
 comment on column public.ajustes_empresa.limpieza_automatica is 'Interruptor general de la limpieza automática de vehículos de subasta. Apagado: no hay job, filtro ni banner.';
 comment on column public.ajustes_empresa.limpieza_dias_gracia is 'Días que pasan desde que terminó la subasta hasta que un vehículo sin ancla va a la papelera (1 a 90).';
-comment on table public.ajustes_empresa is 'Fila única (id = 1). Marca, país, locale, zona horaria, moneda base y políticas globales. Nada de cotización vive acá: eso es formulas.';
+comment on column public.ajustes_empresa.vehiculo_obligatorio_al_cotizar is 'D3 (Fase 4): sí por defecto. Con no, cotizacion_crear acepta una preventa sin vehículo; una final siempre lo exige. Sin pantalla hasta el 4.20 (Configuración › Cotización); lo cambia quien tiene cotizaciones.configurar.';
+comment on table public.ajustes_empresa is 'Fila única (id = 1). Marca, país, locale, zona horaria, moneda base y políticas globales. Del cotizador sólo vive acá el ajuste «Vehículo obligatorio al cotizar»: lo demás (fórmulas, tablas, plantillas) es de formulas y tablas_referencia.';
 
 create table public.monedas (
   codigo     char(3) primary key,
