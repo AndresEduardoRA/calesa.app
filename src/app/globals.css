@@ -49,6 +49,25 @@
   color-scheme: dark;
 }
 
+/*
+ * El carril de los avisos (`<Toaster>`, `src/shared/ui/sonner.tsx`). Sin barra lateral (el celular, las pantallas de acceso): abajo a la derecha, de
+ * 22,25 rem como máximo. Con la barra lateral a la vista (desde 768 px, la marca `data-barra-lateral` del marco `(app)`): abajo a la izquierda, SOBRE la
+ * barra y con su ancho, para que un aviso nunca tape el contenido de la pantalla ni al 100 % ni al 200 % (4-15: el de abajo a la derecha cubría la última fila
+ * de una lista). Crece con el texto porque el ancho de la barra es `--sidebar`, en rem.
+ */
+:root {
+  --ancho-del-aviso: min(22.25rem, calc(100vw - 2rem));
+}
+@media (min-width: 768px) {
+  body:has([data-barra-lateral]) {
+    --ancho-del-aviso: calc(var(--sidebar) - 2rem);
+  }
+  body:has([data-barra-lateral]) [data-sonner-toaster][data-x-position] {
+    right: auto;
+    left: var(--offset-left);
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

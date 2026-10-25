@@ -76,9 +76,11 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   salía de la pista (5a-20). Un nombre que la persona tiene que leer (de un tipo de cambio, de una moneda) se parte, no se corta con «…».
 - El texto al 200 % se verifica con un e2e (`document.documentElement.style.fontSize = '200%'`) y, para lo que se juzga mirando,
   con capturas (`E2E_CAPTURAS`).
-- **Un aviso no tapa el pie de un panel ni sus botones.** Los avisos salen abajo a la derecha, justo donde un panel tiene «Cancelar» y
-  «Guardar»: `<Toaster>` los sube sobre el pie mientras haya un panel abierto (`useAvisosSobreElPie()` mide el pie y pone `--avisos-abajo`;
-  sólo cuenta un pie que cae en el lugar de los avisos, no un modal centrado). El pie se marca como tal: el de `<Drawer>` y el de
+- **Un aviso no tapa el contenido de la pantalla, ni el pie de un panel ni sus botones.** Con la barra lateral a la vista (desde 768 px) los avisos
+  salen abajo a la izquierda, SOBRE la barra y con su ancho (13,5 rem: 216 px al 100 %, 432 al 200 %; `data-barra-lateral` y `--ancho-del-aviso` en
+  `src/app/globals.css`): abajo a la derecha cubrían la última fila de una lista (4-15). Sin barra (el celular, las pantallas de acceso) salen abajo a la derecha,
+  de lado a lado en el celular, y ahí un panel tiene «Cancelar» y «Guardar»: `<Toaster>` los sube sobre el pie mientras haya un panel abierto
+  (`useAvisosSobreElPie()` mide el pie y pone `--avisos-abajo`; sólo cuenta un pie que cae en el lugar de los avisos, no un modal centrado). El pie se marca como tal: el de `<Drawer>` y el de
   `<Modal>` ya lo son; el que va dentro del cuerpo es `<PieDelPanel>` o `<PieConSalida>` (`data-pie-de-panel`); un pie nuevo con botones
   propios usa uno de los dos. `avisoNoTapaElPie()` de `e2e/soporte/recorrido.ts` lo comprueba (cajas sin solaparse y el clic llega a cada botón).
 - Montos, números y fechas con `src/shared/lib/formato.ts` (Intl, locale y moneda de la empresa).

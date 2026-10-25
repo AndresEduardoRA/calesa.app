@@ -24,10 +24,26 @@ const FRANJA_DE_ABAJO = 160
 
 export type CajaDeUnPie = { top: number; bottom: number; left: number; right: number }
 
+// Con la barra lateral a la vista (`[data-barra-lateral]`, desde 768 px) los avisos salen abajo a la izquierda, sobre la barra, con su ancho menos 2 rem (4-15,
+// `src/app/globals.css`): ahí ningún panel tiene su pie, pero la columna se calcula igual por si un pie ancho llega hasta ahí.
+const ANCHO_DE_LA_BARRA_EN_REM = 15.5
+const ANCHO_DEL_AVISO_EN_LA_BARRA_EN_REM = ANCHO_DE_LA_BARRA_EN_REM - 2
+const ANCHO_CON_BARRA = 768
+
 // Por dónde ocupan la pantalla los avisos: de izquierda a derecha. `rem`: cuántos píxeles mide 1 rem (el texto al 200 % lo duplica).
-function columnaDeAvisos(anchoDeLaVentana: number, rem: number): { left: number; right: number } {
+function columnaDeAvisos(
+  anchoDeLaVentana: number,
+  rem: number,
+  conBarra: boolean,
+): { left: number; right: number } {
   if (anchoDeLaVentana <= ANCHO_DEL_CELULAR) {
     return { left: MARGEN_DEL_CELULAR, right: anchoDeLaVentana - MARGEN_DEL_CELULAR }
+  }
+  if (conBarra && anchoDeLaVentana >= ANCHO_CON_BARRA) {
+    return {
+      left: MARGEN_DE_ESCRITORIO,
+      right: MARGEN_DE_ESCRITORIO + ANCHO_DEL_AVISO_EN_LA_BARRA_EN_REM * rem,
+    }
   }
   const right = anchoDeLaVentana - MARGEN_DE_ESCRITORIO
   const ancho = Math.min(ANCHO_DEL_AVISO_EN_REM * rem, anchoDeLaVentana - 2 * rem)
@@ -38,10 +54,14 @@ function columnaDeAvisos(anchoDeLaVentana: number, rem: number): { left: number;
 // de la pantalla y en la franja de abajo): un modal centrado en escritorio, o a media altura en el celular, no se solapa y los avisos
 // no se mueven. De los que sí, manda el que está más arriba. Nulo = ninguno: los avisos van donde siempre.
 export function avisosAbajo(
-  ventana: { ancho: number; alto: number; rem?: number },
+  ventana: { ancho: number; alto: number; rem?: number; conBarra?: boolean },
   pies: readonly CajaDeUnPie[],
 ): number | null {
-  const columna = columnaDeAvisos(ventana.ancho, ventana.rem ?? PX_POR_REM)
+  const columna = columnaDeAvisos(
+    ventana.ancho,
+    ventana.rem ?? PX_POR_REM,
+    ventana.conBarra ?? false,
+  )
   const tapan = pies.filter(
     (pie) =>
       [pie.top, pie.bottom, pie.left, pie.right].every(Number.isFinite) &&
@@ -79,6 +99,8 @@ export function useAvisosSobreElPie(): void {
           ancho: window.innerWidth,
           alto: window.innerHeight,
           rem: Number.parseFloat(getComputedStyle(raiz).fontSize) || PX_POR_REM,
+          conBarra:
+            (document.querySelector('[data-barra-lateral]')?.getClientRects().length ?? 0) > 0,
         },
         cajasDeLosPies(),
       )

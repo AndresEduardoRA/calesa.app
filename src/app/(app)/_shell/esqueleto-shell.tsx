@@ -5,7 +5,10 @@ import { Skeleton } from '@/shared/ui/skeleton'
 export function EsqueletoShell() {
   return (
     <div aria-busy="true" aria-label="Cargando" className="flex min-h-dvh flex-1">
-      <aside className="hidden h-dvh w-(--sidebar) shrink-0 flex-col border-r border-(--color-line) bg-(--color-surface) md:flex">
+      <aside
+        data-barra-lateral=""
+        className="hidden h-dvh w-(--sidebar) shrink-0 flex-col border-r border-(--color-line) bg-(--color-surface) md:flex"
+      >
         <div className="flex h-(--topbar) items-center border-b border-(--color-line) px-4">
           <Skeleton className="h-6 w-36" />
         </div>

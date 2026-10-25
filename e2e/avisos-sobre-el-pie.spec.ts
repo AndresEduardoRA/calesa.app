@@ -82,13 +82,18 @@ test('con el panel cerrado los avisos vuelven a su lugar de siempre', async ({ p
   const { alta, aviso } = await altaConAviso(page, `Alta cierra ${info.project.name}`)
   // Con el aviso ya quieto, sobre el pie (entra deslizándose).
   await avisoNoTapaElPie(aviso, pieDelAlta(alta))
-  const conPanel = await aviso.boundingBox()
   await page.keyboard.press('Escape')
   await expect(alta).toHaveCount(0)
-  // Sin panel, el margen de abajo es el de siempre (24 px en escritorio, 16 en el celular): el aviso baja.
+  // Sin panel, el margen de abajo es el de siempre (24 px en escritorio, 16 en el celular): el borde de abajo del aviso está a ese margen del de la pantalla.
+  // (En escritorio el aviso sale a la izquierda, sobre la barra lateral, y el pie del panel está a la derecha: nunca tuvo que subir.)
+  const abajo = info.project.name === 'escritorio' ? 24 : 16
+  const altoDeLaPantalla = page.viewportSize()?.height ?? 0
   await expect
-    .poll(async () => (await aviso.boundingBox())?.y ?? 0)
-    .toBeGreaterThan((conPanel?.y ?? 0) + 20)
+    .poll(async () => {
+      const caja = await aviso.boundingBox()
+      return caja ? Math.round(altoDeLaPantalla - (caja.y + caja.height)) : -1
+    })
+    .toBe(abajo)
   const margen = await page.evaluate(() => {
     const lista = document.querySelector('[data-sonner-toaster]')
     return lista ? getComputedStyle(lista).getPropertyValue('--offset-bottom') : ''

@@ -41,7 +41,10 @@ export function Marco({
         Saltar al contenido
       </a>
 
-      <aside className="sticky top-0 hidden h-dvh w-(--sidebar) shrink-0 flex-col border-r border-(--color-line) bg-(--color-surface) md:flex">
+      <aside
+        data-barra-lateral=""
+        className="sticky top-0 hidden h-dvh w-(--sidebar) shrink-0 flex-col border-r border-(--color-line) bg-(--color-surface) md:flex"
+      >
         <div className="flex h-(--topbar) shrink-0 items-center border-b border-(--color-line) px-4">
           {marca}
         </div>

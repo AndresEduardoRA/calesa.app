@@ -118,10 +118,18 @@ for (const tema of ['light', 'dark'] as const) {
         m.avisoAbajo + 1,
       )
       expect(m.derecha, 'el aviso no se sale de la pantalla').toBeLessThanOrEqual(m.pantalla + 1)
-      // 356 px al 100 %: al 200 % el ancho crece con el texto (sin pasar de la pantalla menos 1 rem por lado) y no queda una columna angosta.
-      expect(m.ancho, 'el aviso crece con el texto').toBeGreaterThanOrEqual(
-        Math.min(356 * factor, m.pantalla - 2 * 16 * factor) - 1,
+      // El ancho crece con el texto. En el celular, 356 px al 100 % (sin pasar de la pantalla menos 1 rem por lado); en escritorio los avisos salen abajo a la
+      // izquierda, sobre la barra lateral, y llenan su carril (13,5 rem: 216 px al 100 %, 432 al 200 %): así no tapan el contenido (4-15).
+      const esperado =
+        info.project.name === 'escritorio'
+          ? 13.5 * 16 * factor
+          : Math.min(356 * factor, m.pantalla - 2 * 16 * factor)
+      expect(m.ancho, 'el aviso llena su carril y crece con el texto').toBeGreaterThanOrEqual(
+        esperado - 1,
       )
+      if (info.project.name === 'escritorio') {
+        expect(m.ancho, 'el aviso no es más ancho que su carril').toBeLessThanOrEqual(esperado + 1)
+      }
       expect(
         contraste(haceHex(m.colorDescripcion), haceHex(m.fondo)),
         'la descripción se lee (AA)',

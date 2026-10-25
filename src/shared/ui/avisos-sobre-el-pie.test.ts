@@ -58,6 +58,21 @@ describe('avisosAbajo', () => {
     expect(avisosAbajo(ancha, [{ ...pie, left: 5, right: 39 }])).toBeNull()
   })
 
+  it('con la barra lateral a la vista los avisos van sobre ella: el pie de un panel a la derecha no los toca', () => {
+    const conBarra = { ...ESCRITORIO, conBarra: true }
+    expect(avisosAbajo(conBarra, [pieDelPanel(72)])).toBeNull()
+    // La columna va de 24 a 24 + 13,5 rem (240 px al 100 %; 456 al 200 %): un pie que llega hasta ahí sí la toca.
+    const pieAncho = { top: 700, bottom: 800, left: 200, right: 700 }
+    expect(avisosAbajo(conBarra, [pieAncho])).toBe(116)
+    expect(avisosAbajo({ ...conBarra, rem: 32 }, [{ ...pieAncho, left: 440 }])).toBe(116)
+    expect(avisosAbajo({ ...conBarra, rem: 32 }, [{ ...pieAncho, left: 460 }])).toBeNull()
+  })
+
+  it('por debajo de 768 px no hay barra lateral: la columna es la de siempre', () => {
+    const angosta = { ancho: 700, alto: 800, conBarra: true }
+    expect(avisosAbajo(angosta, [{ top: 700, bottom: 800, left: 400, right: 700 }])).toBe(116)
+  })
+
   it('un pie fuera de la pantalla (el panel se desplaza) no cuenta', () => {
     const afuera = { top: 900, bottom: 972, left: 832, right: 1280 }
     expect(avisosAbajo(ESCRITORIO, [afuera])).toBeNull()

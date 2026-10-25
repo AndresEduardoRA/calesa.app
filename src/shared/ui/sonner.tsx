@@ -16,8 +16,9 @@ import {
 const ABAJO = `var(${VARIABLE_DE_AVISOS}, 24px)`
 const ABAJO_EN_EL_CELULAR = `var(${VARIABLE_DE_AVISOS}, 16px)`
 
-// 356 px (lo de sonner) en rem, y nunca más que la pantalla menos un margen de 1 rem por lado.
-const ANCHO_DEL_AVISO = 'min(22.25rem, calc(100vw - 2rem))'
+// El ancho lo da `--ancho-del-aviso` (`src/app/globals.css`): 356 px (lo de sonner) en rem y nunca más que la pantalla menos 1 rem por lado, y con la barra lateral
+// a la vista (desde 768 px) el de esa barra menos sus márgenes, porque ahí los avisos salen abajo a la izquierda, sobre ella, y no tapan la pantalla (4-15).
+const ANCHO_DEL_AVISO = 'var(--ancho-del-aviso, min(22.25rem, calc(100vw - 2rem)))'
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
