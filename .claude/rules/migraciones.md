@@ -61,6 +61,9 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
 - **`cotizaciones` y `cotizaciones_revisiones` se escriben sólo por RPC `security definer`** (4.10-2): ningún rol de la app tiene `insert`, `update` ni `delete`, ni de tabla ni de columna, ni policies para escribir. Un `revoke … on table` ya quita los de columna; el de columna se deja explícito. El alta es `cotizacion_crear` y la edición, `cotizacion_guardar` (4.10-3: calcula con SU versión y conserva lo que quien guarda no ve ni edita; `docs/COTIZADOR.md` › «Cómo se guarda»); una columna nueva nace sin grant y la prueba de privilegios de `cotizaciones-visibilidad.sql` (por rol, tabla y columna, y la copia contra la base real en `scripts/carreras/cotizaciones.mjs`) falla si alguien lo concede.
 - Tabla nueva en `schemas/` = su `_rls(...)` en `…000200_rls_y_grants.sql`: ese archivo termina
   comprobando que ninguna tabla de `public` quede sin RLS.
+- **Una prueba de la base no busca texto suelto en una respuesta que trae uuids o fechas al azar** (`r::text ~ '99'` caía 1 de cada 9 corridas por el `usuario_id`;
+  `'6.96'` calza con una hora `…:36.961…`, 4.10-3b): compara claves exactas y hojas (`jsonb_path_query(r, 'strict $.**')`, `pg_temp.cv_trae()`). Sólo se busca como texto
+  lo que no puede salir de un uuid ni de una fecha (un nombre de nodo con letras fuera de `0-9a-f`), y el comentario dice por qué.
 - Después de cualquier cambio: `pnpm db:base` (si tocaste `schemas/`), `pnpm db:reset`, `pnpm db:types`,
   `pnpm db:probar`, y si tocaste policies agregá una prueba a `supabase/tests/humo.sql` con un usuario
   simulado.
