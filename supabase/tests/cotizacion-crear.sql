@@ -87,9 +87,12 @@ begin
 end $f$;
 
 -- Una llamada a cotizacion_crear con esos argumentos (el id del intento y el modo, opcionales).
-create or replace function pg_temp.cc_sql(p_id uuid, p_o uuid, p_l uuid, p_entradas text, p_v uuid default null, p_nuevo text default null, p_modo text default null, p_clase text default 'preventa')
+create or replace function pg_temp.cc_sql(p_id uuid, p_o uuid, p_l uuid, p_entradas text, p_v uuid default null, p_nuevo text default null, p_modo text default null, p_clase text default 'preventa',
+                                         p_abierta uuid default null, p_abierta_en timestamptz default null, p_con_la_abierta boolean default false)
 returns text language sql as $f$
-  select format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L::jsonb, %L, %L::public.clase_cotizacion)', p_id, p_o, p_l, p_entradas, p_v, p_nuevo, p_modo, p_clase)
+  -- Por omisión, la hoja «se abrió» ahora sobre la versión publicada del origen (D2): ni la fórmula ni los tipos de cambio cambiaron desde entonces.
+  select format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L, %L, %L::jsonb, %L, %L::public.clase_cotizacion, %L)', p_id, p_o, p_l, p_entradas,
+                coalesce(p_abierta, (select f.id from public.formulas f where f.origen_id = p_o and f.estado = 'publicada')), coalesce(p_abierta_en, now()), p_v, p_nuevo, p_modo, p_clase, p_con_la_abierta)
 $f$;
 
 -- @test cotizacion_crear: calcula en la base, guarda el snapshot entero (los nodos que no se ven, con su valor de la fórmula) y devuelve sólo lo que se ve
@@ -157,7 +160,7 @@ begin
   r := pg_temp.cc_corre((t ->> 'a')::uuid, pg_temp.cc_sql(gen_random_uuid(), o, l, '{}', v));
   if r ->> 'error' is distinct from '42501' or coalesce(r ->> 'mensaje', '') not like '%bloqueada%' then raise exception 'una cuenta bloqueada debía dar 42501 con su motivo: %', r; end if;
   -- Faltan el id o el origen.
-  r := pg_temp.cc_corre((t ->> 'k')::uuid, 'select public.cotizacion_crear(null, null, null, ''{}''::jsonb)');
+  r := pg_temp.cc_corre((t ->> 'k')::uuid, 'select public.cotizacion_crear(null, null, null, ''{}''::jsonb, null, null)');
   if r ->> 'error' is distinct from '22023' then raise exception 'sin id ni origen debía dar 22023: %', r; end if;
   if (select count(*) from public.cotizaciones where origen_id = o) <> 0 then raise exception 'un rechazo dejó una cotización'; end if;
 end $$;
@@ -385,7 +388,144 @@ begin
   -- Un origen sin fórmula publicada.
   insert into public.origenes (clave, nombre) values ('cc_sinf_' || substr(gen_random_uuid()::text, 1, 6), 'CC sin fórmula') returning id into o2;
   update public.ajustes_empresa set vehiculo_obligatorio_al_cotizar = false where id = 1;
-  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o2, l, '{}', null));
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o2, l, '{}', null, p_abierta => gen_random_uuid()));  -- (una hoja no se abre sin fórmula: el id es uno cualquiera)
   if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'origen_sin_formula' then raise exception 'un origen sin fórmula debía dar origen_sin_formula: %', r; end if;
+end $$;
+rollback;
+
+-- Publica una v2 del origen: la v1 pasa a archivada y la v2 queda publicada (con la hora de publicación que se diga). Devuelve el id de la v2.
+create or replace function pg_temp.cc_publicar_v2(p_o uuid, p_f1 uuid, p_cuando timestamptz) returns uuid language plpgsql as $f$
+declare f2 uuid;
+begin
+  update public.formulas set estado = 'archivada', publicado_en = p_cuando - interval '10 days' where id = p_f1;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, publicado_en)
+  select origen_id, 2, 'publicada', definicion, params, diseno, visibilidad, p_cuando from public.formulas where id = p_f1 returning id into f2;
+  return f2;
+end $f$;
+
+-- @test cotizacion_crear: D2 «desactualizada» por la versión de la hoja: se avisa sin guardar, «Guardar con la N» nace de la que se abrió, y tiene sus límites
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cc_preparar(); r jsonb; c public.cotizaciones; f2 uuid; o2 uuid; f_otra uuid; f_borrador uuid;
+  o uuid := (t ->> 'o')::uuid; l uuid := (t ->> 'l')::uuid; v uuid := (t ->> 'v')::uuid; f1 uuid := (t ->> 'f')::uuid; a uuid := (t ->> 'a')::uuid;
+  e constant text := '{"inputs": {"visible": 100}}';
+begin
+  -- Sin cambios entre la apertura y el guardado, se guarda (la publicada es la que se abrió).
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v));
+  if r ? 'error' then raise exception 'sin cambios debía guardar: %', r; end if;
+  -- Nulos: la versión que se abrió y cuándo son obligatorias; la hora no puede ser del futuro.
+  r := pg_temp.cc_corre(a, format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, null, now(), %L)', gen_random_uuid(), o, l, e, v));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'abierta' then raise exception 'sin la versión abierta debía dar 22023 abierta: %', r; end if;
+  r := pg_temp.cc_corre(a, format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, null, %L)', gen_random_uuid(), o, l, e, f1, v));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'abierta' then raise exception 'sin la hora debía dar 22023 abierta: %', r; end if;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() + interval '1 hour'));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'abierta' then raise exception 'una hora del futuro debía dar 22023 abierta: %', r; end if;
+
+  -- Se publica la v2 mientras la hoja estaba abierta sobre la v1: aviso, y no se guarda.
+  f2 := pg_temp.cc_publicar_v2(o, f1, now());
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f1));
+  if r ->> 'error' is distinct from 'PT409' or r ->> 'detail' is distinct from 'desactualizada' or r ->> 'hint' is distinct from 'formula' or r ->> 'mensaje' not like '%versión 2%' then
+    raise exception 'la hoja de la v1 con la v2 publicada debía dar PT409 desactualizada (formula): %', r;
+  end if;
+  if (select count(*) from public.cotizaciones where origen_id = o and creado_por = a) <> 1 then raise exception 'el aviso dejó una cotización'; end if;
+  -- Una hoja abierta sobre la v2 guarda (usar la N+1 es llamar con lo nuevo).
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f2));
+  if r ? 'error' or (select formula_id from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid) is distinct from f2 then raise exception 'usar la N+1 debía guardar con la v2: %', r; end if;
+  -- «Guardar con la N»: nace de la v1 (archivada), con su fórmula.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f1, p_con_la_abierta => true));
+  if r ? 'error' then raise exception 'guardar con la N debía guardar: %', r; end if;
+  select * into c from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid;
+  if c.formula_id is distinct from f1 or c.total_base <> 100 then raise exception 'guardar con la N no nació de la v1: % %', c.formula_id, c.total_base; end if;
+  -- Con la abierta y sin cambios (la publicada es la abierta), nada especial.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f2, p_con_la_abierta => true));
+  if r ? 'error' then raise exception 'con la abierta igual a la publicada debía guardar: %', r; end if;
+
+  -- Los límites de «Guardar con la N»: hoja abierta hace más de un día, versión reemplazada hace más de un día o sin fecha, de otro origen, un borrador.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f1, p_abierta_en => now() - interval '25 hours', p_con_la_abierta => true));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_vencida' then raise exception 'una hoja de hace más de un día debía dar abierta_vencida: %', r; end if;
+  update public.formulas set publicado_en = now() - interval '25 hours' where id = f2;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f1, p_con_la_abierta => true));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_vencida' then raise exception 'una versión reemplazada hace más de un día debía dar abierta_vencida: %', r; end if;
+  update public.formulas set publicado_en = null where id = f2;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f1, p_con_la_abierta => true));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_vencida' then raise exception 'una versión que no dice cuándo se reemplazó debía dar abierta_vencida: %', r; end if;
+  update public.formulas set publicado_en = now() where id = f2;
+  insert into public.origenes (clave, nombre) values ('cc_d2_' || substr(gen_random_uuid()::text, 1, 6), 'CC otro D2') returning id into o2;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, publicado_en)
+  select o2, 1, 'archivada', definicion, params, diseno, visibilidad, now() from public.formulas where id = f1 returning id into f_otra;
+  insert into public.formulas (origen_id, estado, definicion, params, diseno, visibilidad) select o, 'borrador', definicion, params, diseno, visibilidad from public.formulas where id = f1 returning id into f_borrador;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f_otra, p_con_la_abierta => true));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_no_disponible' then raise exception 'una versión de otro origen debía dar abierta_no_disponible: %', r; end if;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f_borrador, p_con_la_abierta => true));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_no_disponible' then raise exception 'un borrador debía dar abierta_no_disponible: %', r; end if;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f_borrador));
+  if r ->> 'error' is distinct from 'PT409' or r ->> 'detail' is distinct from 'desactualizada' then raise exception 'un id que no es la publicada, sin la abierta, debía dar desactualizada: %', r; end if;
+  -- El trigger deja nacer de una versión archivada del origen, pero no de un borrador.
+  begin
+    insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base) values (o, a, f_borrador, '{}', '{}', '{}', '{}', 1);
+    raise exception 'el trigger dejó nacer una cotización de un borrador';
+  exception when check_violation then null; end;
+  insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base) values (o, a, f1, '{}', '{}', '{}', '{}', 1);
+  begin
+    insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base) values (o, a, f_otra, '{}', '{}', '{}', '{}', 1);
+    raise exception 'el trigger dejó nacer una cotización de la versión de otro origen';
+  exception when check_violation then null; end;
+end $$;
+rollback;
+
+-- @test cotizacion_crear: D2 «desactualizada» por un tipo de cambio: avisa si uno que la hoja usa cambió desde que se abrió, «Guardar con la N» congela el de entonces, y el intento repetido va antes
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cc_preparar(); r jsonb; c public.cotizaciones; id1 uuid := gen_random_uuid(); v_antes numeric; v_id_oficial uuid;
+  o uuid := (t ->> 'o')::uuid; l uuid := (t ->> 'l')::uuid; v uuid := (t ->> 'v')::uuid; f1 uuid := (t ->> 'f')::uuid; a uuid := (t ->> 'a')::uuid;
+  e constant text := '{"inputs": {"visible": 100}}'; v_abierta timestamptz;
+begin
+  select id, valor into v_id_oficial, v_antes from public.tipos_cambio where clave = 'oficial';
+  -- Los cambios de tarifa que ya había (el seed y otras pruebas) pasaron hace días, para que la hoja se abra «después» de ellos.
+  update public.tipos_cambio_historial set cambiado_en = now() - interval '10 days' where tipo_cambio_id in (select id from public.tipos_cambio);
+  v_abierta := now() - interval '1 hour';
+
+  -- El intento que se repite vuelve antes que D2.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(id1, o, l, e, v, p_abierta_en => v_abierta));
+  if r ? 'error' then raise exception 'sin cambios debía guardar: %', r; end if;
+
+  -- Una tarifa que la fórmula NO nombra cambia: no es desactualizada (el paralelo no figura en esta fórmula).
+  update public.tipos_cambio set valor = valor + 1 where clave = 'paralelo';
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => v_abierta));
+  if r ? 'error' then raise exception 'cambiar una tarifa que la hoja no usa no debía avisar: %', r; end if;
+
+  -- La que sí usa (la oficial) cambia después de abrir la hoja.
+  update public.tipos_cambio set valor = valor + 1 where clave = 'oficial';
+  update public.tipos_cambio_historial set cambiado_en = now() - interval '10 minutes' where tipo_cambio_id = v_id_oficial and valor_nuevo = v_antes + 1;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => v_abierta));
+  if r ->> 'error' is distinct from 'PT409' or r ->> 'detail' is distinct from 'desactualizada' or r ->> 'hint' is distinct from 'tipo_cambio' or r ->> 'mensaje' like '%oficial%' then
+    raise exception 'un tipo de cambio que cambió debía dar PT409 desactualizada (tipo_cambio) sin nombrar cuál: %', r;
+  end if;
+  -- El mismo intento ya guardado no avisa: vuelve lo guardado.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(id1, o, l, e, v, p_abierta_en => v_abierta));
+  if r ? 'error' or r ->> 'repetido' <> 'true' then raise exception 'el intento repetido debía volver antes que D2: %', r; end if;
+  -- Una hoja abierta después del cambio guarda.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '5 minutes'));
+  if r ? 'error' then raise exception 'una hoja abierta después del cambio debía guardar: %', r; end if;
+  -- «Guardar con la N»: congela la tarifa que valía cuando se abrió.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => v_abierta, p_con_la_abierta => true));
+  if r ? 'error' then raise exception 'guardar con la N por una tarifa debía guardar: %', r; end if;
+  select * into c from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid;
+  if (c.tipos_cambio ->> 'oficial')::numeric is distinct from v_antes then raise exception 'guardar con la N debía congelar la tarifa de entonces (%): %', v_antes, c.tipos_cambio; end if;
+  -- Sin «con la abierta», la que se congela es la de hoy.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '5 minutes'));
+  select * into c from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid;
+  if (c.tipos_cambio ->> 'oficial')::numeric is distinct from v_antes + 1 then raise exception 'sin la abierta debía congelar la tarifa de hoy: %', c.tipos_cambio; end if;
+  -- Una tarifa desactivada no se usa (ni se congela ni cuenta para D2): el nodo queda sin valor, como antes de D2 (el total en USD no depende de ella).
+  update public.tipos_cambio set activo = false where clave = 'oficial';
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '1 hour'));
+  if r ? 'error' or r -> 'tipos_cambio' ? 'oficial' or r -> 'valores' -> 'tc' is distinct from 'null'::jsonb then raise exception 'una tarifa desactivada no debía congelarse ni avisar: %', r; end if;
+  update public.tipos_cambio set activo = true where clave = 'oficial';
+  -- Una tarifa que no valía todavía cuando se abrió la hoja (nació después) cuenta como cambiada.
+  delete from public.tipos_cambio_historial where tipo_cambio_id = v_id_oficial;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => v_abierta));
+  if r ->> 'hint' is distinct from 'tipo_cambio' then raise exception 'una tarifa sin historial a esa hora debía contar como cambiada: %', r; end if;
 end $$;
 rollback;

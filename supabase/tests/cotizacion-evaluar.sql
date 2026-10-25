@@ -455,7 +455,7 @@ declare
   f text;
 begin
   -- El armado devuelve la fórmula entera: de nadie.
-  f := 'public._cotizacion_armar(jsonb, uuid, uuid, uuid)';
+  f := 'public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean)';
   if has_function_privilege('authenticated', f, 'execute') or has_function_privilege('anon', f, 'execute') then
     raise exception '% la ejecuta authenticated o anon', f;
   end if;
@@ -464,7 +464,7 @@ begin
   if has_function_privilege('anon', f, 'execute') or not has_function_privilege('authenticated', f, 'execute') then
     raise exception '% debía ser de authenticated y no de anon', f;
   end if;
-  foreach f in array array['public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb)', 'public._cotizacion_armar(jsonb, uuid, uuid, uuid)'] loop
+  foreach f in array array['public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb)', 'public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean)'] loop
     if exists (select 1 from aclexplode(coalesce((select proacl from pg_proc where oid = f::regprocedure),
                                                   acldefault('f', (select proowner from pg_proc where oid = f::regprocedure)))) a
                 where a.grantee = 0) then

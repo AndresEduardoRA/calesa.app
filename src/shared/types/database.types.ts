@@ -6953,14 +6953,27 @@ export type Database = {
         Returns: undefined
       }
       _contraste_aa: { Args: { p_razon: number }; Returns: boolean }
+      _cotizacion_abierta: {
+        Args: { p_abierta_en: string; p_formula: string; p_origen: string }
+        Returns: undefined
+      }
       _cotizacion_armar: {
-        Args: { p_cotizacion: string; p_entradas: Json; p_origen: string; p_vehiculo: string }
+        Args: {
+          p_abierta_en?: string
+          p_con_la_abierta?: boolean
+          p_cotizacion: string
+          p_entradas: Json
+          p_formula?: string
+          p_origen: string
+          p_vehiculo: string
+        }
         Returns: {
           definicion: Json
           entrada: Json
           formula_id: string
           origen_id: string
           params: Json
+          tc_cambiado: boolean
           visibilidad: Json
         }[]
       }
@@ -6972,6 +6985,8 @@ export type Database = {
         Args: { p_ctx: Json; p_diff: Json; p_legibles: string[] }
         Returns: Json
       }
+      _cotizacion_guardable: { Args: { p_mandados: Json; p_res: Json }; Returns: number }
+      _cotizacion_modo: { Args: { p_formula: string; p_modo_tc: string }; Returns: Json }
       _cotizacion_recorte: { Args: { p_ctx: Json; p_res: Json }; Returns: Json }
       _cotizacion_respuesta: {
         Args: {
@@ -6987,6 +7002,7 @@ export type Database = {
         Args: { p_def: Json; p_entrada: Json; p_modo: Json; p_ok: Json }
         Returns: string[]
       }
+      _cotizacion_vehiculo: { Args: { p_vehiculo: string }; Returns: undefined }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
       _diseno_modos: {
@@ -7882,8 +7898,11 @@ export type Database = {
       }
       cotizacion_crear: {
         Args: {
+          p_abierta_en: string
           p_clase?: Database['public']['Enums']['clase_cotizacion']
+          p_con_la_abierta?: boolean
           p_entradas: Json
+          p_formula_abierta: string
           p_id: string
           p_lead: string
           p_modo_tc?: string

@@ -80,11 +80,17 @@ const crear = (
   persona,
   t,
   id,
-  { clase = 'preventa', vehiculo = t.vehiculo, nuevo = null } = {},
+  {
+    clase = 'preventa',
+    vehiculo = t.vehiculo,
+    nuevo = null,
+    formula = null,
+    conLaAbierta = false,
+  } = {},
 ) => ({
   persona,
-  sql: 'public.cotizacion_crear($1, $2, $3, $4::jsonb, $5, $6::jsonb, null, $7::public.clase_cotizacion)',
-  args: [id, t.origen, t.lead, ENTRADAS, vehiculo, nuevo, clase],
+  sql: 'public.cotizacion_crear($1, $2, $3, $4::jsonb, $5, now(), $6, $7::jsonb, null, $8::public.clase_cotizacion, $9)',
+  args: [id, t.origen, t.lead, ENTRADAS, formula ?? t.v1, vehiculo, nuevo, clase, conLaAbierta],
 })
 
 // Publicar una versión nueva (guardar el borrador y publicarlo).
@@ -275,9 +281,29 @@ export async function carrerasDeCotizaciones({ orquesta, carrera, espero, conect
 
   console.log('Crear mientras otra persona publica una versión nueva (publicar primero)')
   {
+    // La hoja se abrió sobre la v1 y A publica la v2: B espera la fila de la v1, ve la v2 y avisa que la hoja está desactualizada (D2) sin guardar nada.
     const t = await terreno(orquesta, 'pub2')
     const id = '00000000-0000-4000-8000-0000000c1c05'
     const r = await carrera(orquesta, { a: publica(t, 'v2 de A'), b: crear(duena, t, id) })
+    espero(
+      'crear espera, ve la v2 y responde desactualizada (PT409) sin crear nada, ni la rechazada por la fórmula archivada (23514)',
+      r.a.ok &&
+        r.b.codigo === 'PT409' &&
+        /Se publicó la versión 2 de la hoja/.test(r.b.mensaje ?? '') &&
+        (await cuantas(orquesta, t.origen)) === 0,
+      { a: r.a, b: r.b },
+    )
+  }
+
+  console.log('Crear con «Guardar con la N» mientras otra persona publica (publicar primero)')
+  {
+    // Lo mismo, pero quien cotiza elige «Guardar con la N»: nace de la v1, ya archivada, que el trigger deja nacer.
+    const t = await terreno(orquesta, 'pub3')
+    const id = '00000000-0000-4000-8000-0000000c1c16'
+    const r = await carrera(orquesta, {
+      a: publica(t, 'v2 de A'),
+      b: crear(duena, t, id, { conLaAbierta: true }),
+    })
     const {
       rows: [c],
     } = await orquesta.query(
@@ -285,8 +311,8 @@ export async function carrerasDeCotizaciones({ orquesta, carrera, espero, conect
       [id],
     )
     espero(
-      'la cotización nace de la v2 recién publicada, sin el rechazo de la fórmula archivada (23514)',
-      r.a.ok && r.b.ok && c?.version === 2 && c.estado === 'publicada',
+      'la cotización nace de la v1 (archivada) que se abrió, aunque la publicada sea la v2',
+      r.a.ok && r.b.ok && c?.formula_id === t.v1 && c.version === 1 && c.estado === 'archivada',
       { a: r.a, b: r.b, c },
     )
   }
@@ -349,12 +375,13 @@ export async function carrerasDeCotizaciones({ orquesta, carrera, espero, conect
       await comoPersona(b, destino)
       await b.query('set statement_timeout = 2000')
       rb = await b
-        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $5) as r', [
+        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $6, now(), $5) as r', [
           '00000000-0000-4000-8000-0000000c1c0c',
           t.origen,
           t.lead,
           ENTRADAS,
           t.vehiculo,
+          t.v1,
         ])
         .then(
           () => ({ ok: true }),
@@ -562,12 +589,13 @@ export async function carrerasDeCotizaciones({ orquesta, carrera, espero, conect
       await comoPersona(b, sinVehiculos)
       await b.query('set statement_timeout = 2000')
       rb = await b
-        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $5) as r', [
+        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $6, now(), $5) as r', [
           '00000000-0000-4000-8000-0000000c1c15',
           t.origen,
           t.lead,
           ENTRADAS,
           t.vehiculo,
+          t.v1,
         ])
         .then(
           () => ({ ok: true }),

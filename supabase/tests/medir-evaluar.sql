@@ -276,7 +276,7 @@ grant select on _entradas, _ids, _sint to authenticated;
 -- Las mediciones, con 50.000 y con 250.000 cotizaciones.
 -- ---------------------------------------------------------------------------------------------------------------------------------
 -- Hasta el 4.10 nadie ejecuta estas funciones: el permiso vale sólo dentro de esta transacción.
-grant execute on function public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb), public._cotizacion_armar(jsonb, uuid, uuid, uuid) to authenticated;
+grant execute on function public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb), public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean) to authenticated;
 
 -- 50.000 cotizaciones (las dos de arriba y 49.998 de relleno).
 select pg_temp.rellenar(49998) \g /dev/null
@@ -429,7 +429,7 @@ begin
   raise notice 'medicion|cotizacion_evaluar, guarda por relación: ARMAR de la sintética lee de las tablas de referencia (bloques; la misma consulta sobre t1 a t4 lee %)|%', v_ref, v_rel;
   if v_rel > v_ref + 2 then raise exception 'ARMAR lee % bloques de las tablas de referencia y la consulta sobre las cuatro que nombra la fórmula, %', v_rel, v_ref; end if;
   -- Las dos versiones malas: la función de verdad con un cambio, creada en pg_temp, que tiene que pasarse del tope.
-  v_def := pg_get_functiondef('public._cotizacion_armar(jsonb, uuid, uuid, uuid)'::regprocedure);
+  v_def := pg_get_functiondef('public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean)'::regprocedure);
   for i in 1 .. 6 loop
     v_nombre := '_cotizacion_armar_mala_' || v_malas[i][1];
     v_malo := replace(v_def, 'public._cotizacion_armar(', 'pg_temp.' || v_nombre || '(');
