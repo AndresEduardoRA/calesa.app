@@ -1,72 +1,205 @@
 name: ci
 
+# Cómo corre y cuánto cuesta: docs/DECISIONES.md, «CI-1». Las reglas de este archivo las prueba scripts/guardas/workflows.test.ts.
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      proyectos:
+        description: 'Proyectos del e2e: escritorio (como el Nivel 2) o ambos (el Nivel 3, el cierre de una fase)'
+        type: choice
+        options: [escritorio, ambos]
+        default: escritorio
 
-# El stack local de Supabase usa los puertos 546xx (supabase/config.toml).
+permissions:
+  contents: read
+
+# Un push nuevo a la misma rama (o al mismo PR) cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+# Acciones de terceros admitidas, una por línea con su motivo (`# accion-de-terceros: <dueño/repo> — <motivo>`).
+# Hoy ninguna: sólo acciones de GitHub (`actions/*`), fijadas por SHA, y la local `./.github/acciones/preparar`.
+
 env:
+  # El stack local de Supabase usa los puertos 546xx (supabase/config.toml).
   SUPABASE_API_LOCAL: http://127.0.0.1:54621
   SUPABASE_DB_LOCAL: postgresql://postgres:postgres@127.0.0.1:54622/postgres
+  # La clave publicable fija de la pila local de la CLI (pública por diseño; no es la de un proyecto). El build del e2e la
+  # inlinea y cada bloque comprueba que su `supabase status` da la misma: si la CLI la cambia, el bloque falla diciéndolo.
+  CLAVE_PUBLICA_LOCAL: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
   # config.toml lee las credenciales de Google con env(): en CI van de relleno, nadie ingresa con Google.
   SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: relleno-ci
   SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: relleno-ci
+  NEXT_TELEMETRY_DISABLED: '1'
 
 jobs:
-  calidad:
-    runs-on: ubuntu-latest
+  # Siempre: algunas guardas de `pnpm test` leen docs/, así que un cambio sólo de documentación también lo corre.
+  nivel-1:
+    name: Nivel 1 · lint, tipos, tests, migración base y mapa
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4 # la versión sale de packageManager en package.json
-      - uses: actions/setup-node@v4
-        with: { node-version: 24, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/acciones/preparar
       - run: pnpm lint
       - run: pnpm typecheck # corre `next typegen` antes de tsc
       - run: pnpm test
+      - name: db:base sin diff (la migración base es copia fiel de supabase/schemas)
+        run: node scripts/esquema-base.mjs --check
       - run: bash scripts/mapa.sh --check
-      - run: node scripts/esquema-base.mjs --check # la migración base es copia fiel de supabase/schemas
-      - run: pnpm db:probar
-      - run: pnpm build
+
+  # Decide si corren los jobs pesados: scripts/ci-cambios.sh (probado en scripts/ci-cambios.test.ts).
+  cambios:
+    name: Cambios · ¿base y e2e?
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      pesado: ${{ steps.filtro.outputs.pesado }}
+      e2e: ${{ steps.filtro.outputs.e2e }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # El diff necesita `before` (push) y la base del PR: con un clon superficial no están y todo cae a «pesado».
+          fetch-depth: 0
+      - id: filtro
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_LOCAL }}
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+          EVENTO: ${{ github.event_name }}
+          ANTES: ${{ github.event.before }}
+          BASE_PR: ${{ github.event.pull_request.base.sha }}
+        run: bash scripts/ci-cambios.sh >> "$GITHUB_OUTPUT"
 
-  base-de-datos:
-    runs-on: ubuntu-latest
+  base:
+    name: Base · reset, tipos, probar, lint y advisors
+    needs: cambios
+    if: needs.cambios.outputs.pesado == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with: { version: latest }
-      - run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector
-      - run: supabase db lint --fail-on error
-      - name: splinter (advisors de seguridad)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/acciones/preparar
+      # La CLI es la devDependency (`pnpm exec supabase`): la misma versión que en local, fijada por pnpm-lock.yaml.
+      - run: pnpm exec supabase start -x studio,imgproxy,edge-runtime,logflare,vector
+      - run: pnpm db:reset
+      - name: db:types sin diff
         run: |
-          curl -fsSL https://raw.githubusercontent.com/supabase/splinter/main/splinter.sql -o /tmp/splinter.sql
-          psql "$SUPABASE_DB_LOCAL" -At -f /tmp/splinter.sql > /tmp/advisors.txt || true
-          if grep -i '|ERROR|' /tmp/advisors.txt; then echo "Advisors con nivel ERROR"; exit 1; fi
-      - run: supabase stop
+          pnpm db:types
+          git diff --exit-code -- src/shared/types/database.types.ts
+      - run: pnpm db:probar
+      - run: pnpm db:lint
+      - name: splinter (advisors de seguridad, la copia del repo)
+        run: |
+          psql "$SUPABASE_DB_LOCAL" -At -v ON_ERROR_STOP=1 -f scripts/splinter.sql > "$RUNNER_TEMP/advisors.txt"
+          if grep -i '|ERROR|' "$RUNNER_TEMP/advisors.txt"; then echo "::error::Advisors con nivel ERROR"; exit 1; fi
 
-  e2e:
-    runs-on: ubuntu-latest
-    needs: [calidad]
-    if: github.event_name == 'pull_request'
+  # La app se compila una vez y los cuatro bloques bajan la misma (docs/DECISIONES.md, «CI-1»: factura menos y corre en
+  # paralelo con el Nivel 1, que los bloques esperan igual).
+  e2e-build:
+    name: e2e · compilar la app
+    needs: cambios
+    if: needs.cambios.outputs.e2e == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4 # la versión sale de packageManager en package.json
-      - uses: actions/setup-node@v4
-        with: { node-version: 24, cache: pnpm }
-      - uses: supabase/setup-cli@v1
-        with: { version: latest }
-      - run: pnpm install --frozen-lockfile
-      - run: npx playwright install --with-deps chromium
-      - run: supabase start -x studio,imgproxy,logflare,vector
-      - run: |
-          echo "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_API_LOCAL" >> .env.local
-          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(supabase status -o env | grep PUBLISHABLE_KEY | cut -d= -f2 | tr -d '"')" >> .env.local
-          echo "SUPABASE_SECRET_KEY=$(supabase status -o env | grep SECRET_KEY | cut -d= -f2 | tr -d '"')" >> .env.local
-      - run: pnpm test:e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/acciones/preparar
+      - name: next build en .next-e2e
+        env:
+          NEXT_DIST_DIR: .next-e2e
+          NEXT_PUBLIC_SUPABASE_URL: ${{ env.SUPABASE_API_LOCAL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ env.CLAVE_PUBLICA_LOCAL }}
+        run: pnpm exec next build
+      - name: empaquetar sin la caché de compilación
+        run: tar --exclude=.next-e2e/cache -czf "$RUNNER_TEMP/next-e2e.tgz" .next-e2e
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: next-e2e
+          path: ${{ runner.temp }}/next-e2e.tgz
+          retention-days: 1
+          if-no-files-found: error
+
+  # Cada bloque tiene su runner y su pila de Supabase: una base por bloque. Sin reintentos (`retries: 0`): la causa de un
+  # fallo va a los artefactos y a e2e-fallos/. Las carreras (`db:carreras`) no corren acá (docs/PLAN.md, 9-6).
+  e2e:
+    name: e2e · bloque ${{ matrix.bloque }} de 4
+    needs: [cambios, nivel-1, e2e-build]
+    if: needs.cambios.outputs.e2e == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        bloque: [1, 2, 3, 4]
+    env:
+      # Escritorio por defecto; `proyectos: ambos` (workflow_dispatch) corre los dos, el Nivel 3.
+      PROYECTOS: ${{ inputs.proyectos || 'escritorio' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/acciones/preparar
+      - id: playwright
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: chromium y lo que pide del sistema
+        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector
+      - name: .env.local desde supabase status
+        run: |
+          pnpm exec supabase status -o env > "$RUNNER_TEMP/status.env"
+          leer() { grep "^$1=" "$RUNNER_TEMP/status.env" | cut -d= -f2- | tr -d '"'; }
+          publica=$(leer PUBLISHABLE_KEY)
+          servidor=$(leer SECRET_KEY)
+          rm "$RUNNER_TEMP/status.env"
+          echo "::add-mask::$servidor"
+          if [ "$publica" != "$CLAVE_PUBLICA_LOCAL" ]; then
+            echo "::error::La clave publicable de la pila no es CLAVE_PUBLICA_LOCAL: la app compilada no podría hablarle. Actualízala en ci.yml."
+            exit 1
+          fi
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_API_LOCAL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$publica"
+            echo "SUPABASE_SECRET_KEY=$servidor"
+          } > .env.local
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: next-e2e
+          path: ${{ runner.temp }}
+      - run: tar -xzf "$RUNNER_TEMP/next-e2e.tgz"
+      - run: pnpm db:reset
+      - name: funciones edge (las pide e2e/global-setup.ts)
+        run: |
+          nohup pnpm exec supabase functions serve > "$RUNNER_TEMP/funciones.log" 2>&1 &
+          for _ in $(seq 1 60); do
+            s=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$SUPABASE_API_LOCAL/functions/v1/apibara" || true)
+            if [ "$s" != 000 ] && [ "$s" != 404 ] && [ "${s:0:1}" != 5 ]; then echo "servidas ($s)"; exit 0; fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/funciones.log"
+          echo "::error::Las funciones edge no respondieron en 120 s"
+          exit 1
+      - name: e2e completo, bloque ${{ matrix.bloque }} de 4
+        env:
+          E2E_PROD: '1'
+          E2E_COMPLETO: '1'
+        run: |
+          proyecto=(--project=escritorio)
+          if [ "$PROYECTOS" = ambos ]; then proyecto=(); fi
+          pnpm exec playwright test --shard=${{ matrix.bloque }}/4 "${proyecto[@]}"
+      - name: el log de las funciones, junto a los artefactos
         if: failure()
-        with: { name: playwright-report, path: playwright-report }
+        run: cp "$RUNNER_TEMP/funciones.log" e2e-fallos/ 2>/dev/null || { mkdir -p e2e-fallos && cp "$RUNNER_TEMP/funciones.log" e2e-fallos/; }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: e2e-bloque-${{ matrix.bloque }}
+          path: |
+            playwright-report/
+            e2e-fallos/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore

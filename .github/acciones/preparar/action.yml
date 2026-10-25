@@ -1,0 +1,23 @@
+# Lo que todo job de ci.yml hace antes de trabajar: Node 24, pnpm (la versión de `packageManager`), el store de pnpm en caché e
+# `pnpm install`. Va después de `actions/checkout`, que es el que trae este archivo.
+name: preparar
+description: Node, pnpm con su caché y las dependencias
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24
+    - name: pnpm (la versión de packageManager)
+      shell: bash
+      run: |
+        npm install -g "$(node -p 'require("./package.json").packageManager')"
+        echo "store=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ env.store }}
+        key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: pnpm-${{ runner.os }}-
+    - name: dependencias
+      shell: bash
+      run: pnpm install --frozen-lockfile
