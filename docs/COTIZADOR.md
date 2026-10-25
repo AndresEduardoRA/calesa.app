@@ -913,17 +913,17 @@ inválido tumba el seed con la regla y su `donde`.
   - Cómo nace, cómo se retira y por qué no rompe la regla del enforcement: `docs/DECISIONES.md`, «D7».
 - **Al publicar, el diseño se compila a `formulas.visibilidad`** (`{nodo: {ver, editar}}`, claves de nivel), que es lo único que lee la base (la regla, en
   «En la base (4.08-2)»). Los niveles que existen salen de `_niveles_de_cotizacion()`, que desde el 4.09-1 lee la tabla `cotizaciones_niveles` (abajo, «En la base (4.09-1)»).
-- **Lo que no se ve no viaja:**
-  - `revoke select (valores, fuentes, totales)` en `cotizaciones`;
+- **Lo que no se ve no viaja** (hecho en el 4.10-1, abajo en «En la base (4.10-1)»):
+  - `authenticated` no lee directo `valores`, `fuentes`, `totales` ni `tipos_cambio` de `cotizaciones`, ni el `diff` de sus revisiones (grant de columnas, el patrón de `leads`);
   - `cotizacion_leer(id)` recorta por `_nodos_visibles(formula_id)` y siempre trae el total y las salidas `aparte`;
-  - las revisiones se recortan por nodo;
+  - las revisiones se recortan por nodo (`cotizacion_revisiones`);
   - `formula_para_cotizar(origen)` y la lectura de `formulas` son sólo para `cotizaciones.configurar`;
-  - el PDF lee con `cotizacion_leer`, y `validar_plantilla` rechaza un nodo que no sea del nivel «todos»;
-  - el comprobante se arma con lo mismo;
-  - un inventario (como `numero-global.sql`) registra cada función que devuelve `valores`, `fuentes`, `diff` o `params`.
+  - las tablas de referencia se leen por las columnas que leen los nodos que se ven (`cotizacion_tabla`);
+  - el PDF y el comprobante (4.18) leen con `cotizacion_leer`, y `validar_plantilla` rechaza un nodo que no sea del nivel «todos»;
+  - un inventario (como `numero-global.sql`) registra cada función que puede devolver esas columnas, `formulas.*` o las tablas de referencia.
 - **La hoja calcula en la base para todos:** `cotizacion_evaluar(entradas, cotización o origen)` (definer, «En la base (4.06-2)») usa
-  `evaluar_formula()`, espejo de `motor.ts`, y devolverá sólo lo visible y el total (hoy devuelve todo y nadie la ejecuta, hasta el 4.10). Guardar recalcula en la base y conserva lo que quien guarda no ve ni
-  edita. El motor TS queda para el editor de la fórmula.
+  `evaluar_formula()`, espejo de `motor.ts`, y devuelve sólo lo visible y el total (desde el 4.10-1 la ejecuta `authenticated`). Guardar recalcula en la base y conserva lo que quien guarda no ve ni
+  edita (prompt 3 del 4.10). El motor TS queda para el editor de la fórmula.
 - **El límite:** un nodo restringido que es el único oculto de una suma visible se deduce restando. El editor del diseño lo avisa y
   no lo bloquea.
 - **Prueba** (`cotizaciones-visibilidad.sql`): sin el permiso del nivel, la clave del nodo no llega por ninguna función del inventario,
@@ -981,6 +981,51 @@ nivel_en_uso`, «Está en 6 celdas de 2 orígenes (en alguna versión de su fór
 - **La pantalla** `/configuracion/cotizacion?seccion=niveles` (`docs/UX.md`, «Cotización: niveles de acceso»): la lista con «N de 10», los retirados aparte, y crear, renombrar, retirar y restaurar (con «Deshacer») y eliminar. No razona
   por el nombre ni por la clave de un nivel: lo que admite cada uno lo dicen las banderas de su fila.
 
+### En la base (4.10-1)
+
+La lectura de una cotización: lo que quien llama no ve no viaja. Migraciones `…006700` a `…007500`; pruebas en `supabase/tests/cotizaciones-visibilidad.sql`, medición en `medir-cotizaciones-lectura.sql`.
+
+- **Ninguna lectura directa del snapshot.** `authenticated` y `anon` ya no leen `cotizaciones.valores|fuentes|totales|tipos_cambio` ni `cotizaciones_revisiones.diff` (`…006800`). Un `revoke select (columna)` no hace nada
+  mientras exista el `select` de tabla que da `_rls()`: se quitó el de la tabla y se dio el de las columnas que sí se leen (el patrón de `leads`). Una columna nueva nace sin grant. `tipos_cambio` también se
+  esconde: el nodo `tipo_cambio` de una sección restringida congela su valor ahí. `total_base`, `modo_tc`, `titulo`… siguen legibles. `auditar()` copiaba la fila entera a `actividad`: `cotizacion_auditar()`
+  (`…006900`) quita esas cuatro columnas y limpia lo que ya estaba.
+- **La policy y `puede_cotizacion()` por fila** (`…007000`): los orígenes con «todos» y con «propios» se calculan una vez por sentencia (`origenes_con_alcance()`) y lo propio es `creado_por` o
+  `en_cartera(lead_id)` por fila; ya no se arma `lead_id in (select mis_leads())`. La visibilidad no cambia (al transferir un lead, la cartera nueva ve sus cotizaciones en el acto; quien se va, si
+  queda compartido, también). Índices del listado: `cotizaciones_listado_idx (creado_en desc, id desc)` y `cotizaciones_creador_idx (creado_por, creado_en desc, id desc)`.
+- **El recorte** (`…007200`): `_cotizacion_contexto(visibles, definición, visibilidad)` arma una vez por llamada conjuntos jsonb (los nodos que viajan, todos, los grupos que se ven enteros, los tipos de
+  cambio que un nivel esconde) y `_cotizacion_recorte(resultado, contexto)` los aplica. Las reglas:
+
+  | Parte                           | Qué viaja                                                                                                                                                                                                                                                                                                |
+  | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `valores`, `estados`, `fuentes` | los nodos de `_nodos_visibles(formula_id)`, y siempre el total y los de salida `aparte` (aunque la visibilidad los restrinja)                                                                                                                                                                            |
+  | `totales`                       | `bs`, `usd` y `suma_usd`, siempre. Un grupo (`grupos[g]`: `usd`, `bs`, `se_dibuja`) sólo si se ven **todos** sus nodos, y su `bs` sólo si ningún tipo de cambio de la fórmula está restringido por un nivel que quien lee no tiene (Bs ÷ USD es esa tarifa). Otra clave (la forma de la Fase 0) no viaja |
+  | `tipos_cambio` (lo congelado)   | todas las claves salvo las de un nodo restringido por un nivel. Una tarifa que el diseño no dibuja no figura en `visibilidad`: es la de la empresa (toda sesión lee `tipos_cambio`) y no cuenta como oculta                                                                                              |
+  | `faltantes`                     | uno cuyo `donde` es un nodo visible, `total` (la letra) o un grupo que viaja, y cuyo `ref`, si es un nodo, también se ve. Las demás sólo marcan `hay_faltantes_ocultos: true`, que se omite cuando es falso                                                                                              |
+  | `overrides_descartados`         | los de un nodo visible y los de un id que la fórmula no tiene                                                                                                                                                                                                                                            |
+
+  Quien lo ve todo recibe exactamente lo que dio el motor.
+
+- **`cotizacion_leer(id)`**: `puede_cotizacion(id, 'cotizaciones.ver')` (una que no existe, una en la papelera y una que no se ve dan el mismo 42501), `_nodos_visibles(formula_id)` de SU versión —nunca la vigente— y
+  el recorte. Devuelve `{cotizacion, valores, fuentes, totales, tipos_cambio}`; las columnas de `cotizacion` son las que dice el grant. `configurar` suma los nodos que la visibilidad no nombra, sin saltarse un nivel.
+- **`cotizacion_evaluar(entradas, cotización | origen, vehículo, modo)`** (`…007200`) se concede a `authenticated` y devuelve lo recortado. **No es un oráculo**: lo tipeado sólo nombra nodos que se ven;
+  un `input` o una `bandera` oculta da el mismo error que uno que no existe (texto, `donde` y orden del motor: la forma —sin las tablas que arma la base—, la fórmula inválida, los inputs, las banderas); un
+  override de un nodo oculto se quita antes del motor y vuelve como `nodo_inexistente` (después de recortar, entre los inexistentes, ordenados por id en bytes). Quien no configura el origen sólo elige uno de
+  los `cabecera.modos` del diseño de esa versión (`modo_invalido` si no). El tipo de cambio congelado se mira con un `case` y no con un `and` (el orden de un AND no está garantizado).
+- **`cotizacion_revisiones(cotización, antes?, tamaño?)`** (`…007300`): una página de revisiones, de la más nueva a la más vieja, por el cursor `id` (`_acotar_pagina(tamaño, 20, 100)`; `{revisiones, hay_mas,
+siguiente}`), con cada `diff` recortado: las columnas legibles tal cual; `valores` y `fuentes` sólo con los nodos que se ven; `totales` y `tipos_cambio` por el recorte; si lo que cambió es sólo lo oculto
+  la columna no figura (una revisión de sólo lo oculto viaja con `diff: {}`: se sabe quién y cuándo, no qué). Índice `cotizaciones_revisiones_cotizacion_idx`. Aún no figura en
+  `scripts/guardas/paginas-en-la-base.ts` (esa guarda pide quién la llame desde `src/`): la registra el 4.15.
+- **`formula_para_cotizar(origen)`** (`…007400`): la publicada entera (`definicion`, `params`, `diseno`, `visibilidad`), sólo con `cotizaciones.configurar` del origen; el permiso se pide antes de mirar si el origen existe.
+- **Las tablas de referencia** (`…007500`): la policy de lectura pide `cotizaciones.configurar`. `cotizacion_tabla(clave, cotización | origen)` da la tabla sólo si un nodo que quien llama ve la lee, y sólo las
+  columnas que leen esos nodos (las de su `match` y su `columna`; `desde` y `hasta` en un tramo; la de unos atajos que se ven), con la copia congelada de `params.tablas` de esa versión si existe; si no, la
+  viva (la del origen o la compartida). Hasta 1.000 filas. Sin acceso, el error de una tabla que no existe. Una `ayuda` sola no da nada.
+- **El inventario** (`cotizaciones-visibilidad.sql`, el modelo de `numero-global.sql`): toda función de `public` o `web` que un cliente puede ejecutar y que puede devolver el contenido de esas tablas
+  (por su texto sin comentarios y su tipo de retorno, y por quien la llama) figura en `pg_temp.cv_registro()` con su clase —`recorta`, `configurar` o `no_devuelve`— y su motivo; una nueva sin registrar rompe la
+  prueba. Cada una que recorta lleva su sonda y el caso genérico la corre por cada nivel de `cotizaciones_niveles` (y uno creado con `nivel_crear`): sin el permiso ni el id ni el valor del nodo; con él, los dos;
+  «Ver como» no cambia nada.
+- **Costos** (`medir-cotizaciones-lectura.sql`, `docs/RENDIMIENTO.md`): una página de 101 cotizaciones, con 50.000 y con 250.000: la dueña 0,4 ms y 92 buffers, Ana («mías») 0,7 y 241, la «chica» 0 y 3;
+  `cotizacion_leer` 1,4 a 1,6 ms, `cotizacion_revisiones` (500 revisiones) 4 a 5 ms, `cotizacion_evaluar` 3,9 ms la fórmula del seed y 39,9 ms de p95 la sintética de 200 nodos. «Todas las que veo» de quien ve «propios» recorre el índice global (≈ 1,6 s con 250.000): `docs/PLAN.md`, **4-14**.
+
 ## Lo que se guarda en una cotización
 
 - `formula_id`: de qué versión salieron los defaults (auditoría). Recalcular o editar usa **esa** versión, nunca la vigente.
@@ -995,6 +1040,7 @@ nivel_en_uso`, «Está en 6 celdas de 2 orígenes (en alguna versión de su fór
   - `input`: lo escribe la persona y no hay un sugerido en uso (tipeado sin `sugerido_de`, sin tipear, o requerido y sin tipear).
 - `tipos_cambio`: `{clave: valor}` congelados.
 - `totales`: por moneda y por grupo.
+- **Nada de esto se lee directo** (desde el 4.10-1): `valores`, `fuentes`, `totales` y `tipos_cambio` salen por `cotizacion_leer()`, recortados por el nivel de quien lee; `total_base` y `modo_tc` sí son legibles.
 
 ## Binding con la XCell
 

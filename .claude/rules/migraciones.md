@@ -54,6 +54,9 @@ anon, authenticated`, grants explícitos y una policy por operación con `to aut
   (`revoke select (numero)`). Lo que la lee con los derechos de la base (`definer`) calcula el permiso una vez por consulta; lo
   que la lee como quien mira se apoya en la policy, con subconsultas en la lista de columnas y no uniones. `numero-global.sql`
   falla si `authenticated`, `anon` o PUBLIC pueden leer la columna, o si la tabla entra a una publicación de Realtime.
+- Una tabla cuyas columnas no lee todo el que lee la fila (`cotizaciones.valores|fuentes|totales|tipos_cambio` y `cotizaciones_revisiones.diff`, además de `leads.telefono_principal`) pierde el `select` de tabla y da
+  `select (columnas legibles)`: un `revoke select (columna)` no hace nada mientras exista el de tabla. La lista sale del catálogo (`pg_attribute`), así una columna nueva nace sin grant. Lo oculto se lee por una RPC que lo recorta
+  (`cotizacion_leer`, `cotizacion_revisiones`, `cotizacion_tabla`), y toda función que pueda devolverlo figura en el inventario de `supabase/tests/cotizaciones-visibilidad.sql` con su clase y su sonda; una nueva sin registrar rompe la prueba.
 - Tabla nueva en `schemas/` = su `_rls(...)` en `…000200_rls_y_grants.sql`: ese archivo termina
   comprobando que ninguna tabla de `public` quede sin RLS.
 - Después de cualquier cambio: `pnpm db:base` (si tocaste `schemas/`), `pnpm db:reset`, `pnpm db:types`,

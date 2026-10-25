@@ -1448,3 +1448,30 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
   y el control de la primera, la segunda, una del medio y las últimas a la vista sin desplazar, en 412 y en 1.280 px. La lectura de los permisos suma una columna embebida por la FK (`cotizaciones_niveles(nombre, retirado_en)`): sin
   consulta extra.
 - **La pantalla de Niveles** lee una vez (`niveles_con_uso()`) y no pagina (a lo sumo 10 filas); sus modales y la confirmación viajan con `diferido()` (`useAbiertoAlgunaVez`).
+
+## Paso 4.10 (1 de 3): la lectura de cotizaciones con 50.000 y con 250.000 (2026-10-25)
+
+- **Cómo se mide:** `supabase/tests/medir-cotizaciones-lectura.sql`, en `pnpm db:medir:volumen` (antes de `medir-bajas.sql`), contra el Supabase local (Postgres 17). Siembra 50.000 y después 250.000 cotizaciones en una transacción que se deshace (`valores` de ≈ 90 claves, `creado_en`
+  escalonado, 500 revisiones en una), **como `authenticated`**, con el plan genérico (`PREPARE` y `EXPLAIN EXECUTE` con `force_generic_plan`: un literal arma un plan a medida) y `EXPLAIN (ANALYZE, BUFFERS)` con la mediana de 5 de 7 corridas. La carga (`/proc/loadavg`) queda anotada al empezar.
+  `vacuum` antes de la transacción y después de deshacerla: sin eso las filas muertas de las corridas anteriores suman buffers (la página 1 de la dueña pasó de 102 a 1.873 antes de ponerlo).
+- **Quién:** la dueña (`todos`), **Ana** (5.000 propias, 1.000 de otras personas sobre su cartera de 2.000 leads) y la «chica» (3 propias). Una página es de n + 1 (101), la primera y una profunda por cursor `(creado_en desc, id desc)`.
+
+| Medición (ms · buffers)                    | 50.000 cotizaciones   | 250.000 cotizaciones  | Tope                                                                |
+| ------------------------------------------ | --------------------- | --------------------- | ------------------------------------------------------------------- |
+| dueña, «todas», página 1 y profunda        | 0,4 · 92 y 93         | 0,4 · 92              | 10 ms · 300                                                         |
+| Ana, «mías», página 1 y profunda           | 0,7 · 241             | 0,7 · 241             | 10 ms · 300                                                         |
+| «chica», «mías», página 1 y profunda       | 0,0 · 3 y 0           | 0,0 · 3 y 0           | 10 ms · 300                                                         |
+| `cotizacion_leer`, dueña / Ana             | 1,4 · 135 / 1,6 · 178 | 1,4 · 137 / 1,6 · 180 | 10 ms                                                               |
+| `cotizacion_revisiones` (500), dueña / Ana | 5,4 · 143 / 4,2 · 186 | 5,2 · 145 / 4,3 · 188 | 12 ms                                                               |
+| razón de ms con 250.000 sobre 50.000       | —                     | 1,0 en todas          | ≤ máx(1; 5 × t; t + 3 ms), y los buffers ≤ 1,2 × los de 50.000 + 20 |
+
+- **Llamadas por página** (con `track_functions = 'all'` y `pg_stat_xact_user_functions`): 0 a `en_cartera`, `alcance_de(text, uuid)` y `mis_leads()`, y a lo sumo 2 a `origenes_con_alcance`; `cotizacion_leer` y `cotizacion_revisiones` llaman una vez a `_nodos_visibles`.
+- **Antes del arreglo** la policy llamaba a `alcance_de()` por fila: **101 y 202 llamadas por página**, 3,2 ms y 4.569 buffers la dueña, 6,2 ms y 9.195 Ana con 250.000. La medición lleva una guarda: corre también la policy de antes y exige que pase de 10 ms o llame a `alcance_de` por fila,
+  así sabe que sus topes distinguen la policy vieja de la nueva.
+- **`cotizacion_evaluar()` con el recorte** (`medir-evaluar.sql`, los mismos 200 llamados seguidos, ahora ejecutada por `authenticated`): la fórmula del seed pasó de 2,5 a **3,7–4,0 ms** de mediana (p95 3,9–4,1; tope 10 y 20) y la sintética de 200 nodos con 4 tablas de 1.000 filas de 35,0 a **38,6–39,7 ms** (p95 39,4–40,1; tope 50, que
+  no se sube). La razón del p95 con 250.000 sobre 50.000 es 1,0. ARMAR cuesta 1,2 y 8,0 ms, y EVALUAR 1,1 y 27,7 a 28,2 (más el recorte).
+  - **La primera versión del recorte llegó a 52 ms de p95** (la sintética): comparaba con `= any (arreglo)` dentro de bucles, cuadrático en los nodos. El perfil por etapa mostró dos cosas: el recorte (2,8 ms) y **revisar con `_motor_forma_entrada` las 4.000 filas de tablas que arma la base** (11,5 ms), que el motor repite.
+    Un contexto de conjuntos jsonb armado una vez por llamada (`_cotizacion_contexto`) y la forma revisada sólo en lo que tipea la persona lo dejaron en 40 ms.
+- **4-14, sin assert:** «todas las que veo» de quien ve «propios» recorre `cotizaciones_listado_idx` entera y descarta lo ajeno: con 250.000, **Ana 1.622 ms y 42.170 buffers**, la **«chica» 2.008 ms y 58.342**. Es lo que ve una asesora al abrir `/cotizaciones` sin filtro; se arregla en el 4.16 (`docs/PLAN.md`, 4-14).
+- **`medir-bajas.sql` cayó una vez** en la corrida final de `db:medir:volumen`: el job entero tardó 22.516,7 ms (tope 20.000) con 12 corridas y 40 lotes, y esa ventana tuvo `sync +5.465 ms` (checkpoints +2, escribir +17.728 ms). Se repitió sola, sin tocar el tope: **15.779,4 ms** con 10 corridas y los mismos 40 lotes, `sync +652 ms`.
+  Es 5a-42 (la guarda es de tiempo y un `fsync` lento la tumba sin regresión); el trabajo, 40 lotes, no cambió. Ninguna de estas dos corridas toca lo de este paso.
