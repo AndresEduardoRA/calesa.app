@@ -120,3 +120,37 @@ begin
   if v_n < 300 then raise exception 'sólo % casos con resultado: ¿se cargó el corpus?', v_n; end if;
   if cardinality(v_malos) > 0 then raise exception '% de % casos no se reconstruyen:%', cardinality(v_malos), v_n, E'\n  ' || array_to_string(v_malos[1:15], E'\n  '); end if;
 end $$;
+
+-- @test guardable: sólo se rechaza un override que se MANDÓ y el motor descartó (uno reconstruido de lo guardado que ya no aplica se descarta en silencio), y el total tiene que tener valor y caber
+do $$
+declare
+  v_res constant jsonb := '{"totales": {"usd": 123.456, "bs": 860}, "overrides_descartados": [{"id": "viejo", "motivo": "condicion_apagada"}, {"id": "mandado", "motivo": "no_sobrescribible"}]}';
+  v_t numeric; v_e text; v_d text; v_h text;
+begin
+  -- Nada se mandó: lo descartado es de lo guardado, y no se dice.
+  v_t := public._cotizacion_guardable(v_res, '{}');
+  if v_t is distinct from 123.46 then raise exception 'total_base debía ser el total en la moneda base redondeado (123,46): %', v_t; end if;
+  -- Se mandó «mandado»: se rechaza con su motivo y su nodo; «viejo» no se mandó y no cuenta.
+  begin
+    perform public._cotizacion_guardable(v_res, '{"mandado": 1}');
+    raise exception 'un override mandado y descartado debía rechazarse';
+  exception when sqlstate '22023' then
+    get stacked diagnostics v_d = pg_exception_detail, v_h = pg_exception_hint;
+    if v_d is distinct from 'no_sobrescribible' or v_h is distinct from 'mandado' then raise exception 'el rechazo: % %', v_d, v_h; end if;
+  end;
+  -- Un total sin valor y uno que no cabe.
+  begin
+    perform public._cotizacion_guardable('{"totales": {"usd": null}}', '{}');
+    raise exception 'un total sin valor debía rechazarse';
+  exception when sqlstate '22023' then
+    get stacked diagnostics v_d = pg_exception_detail;
+    if v_d is distinct from 'total_sin_valor' then raise exception 'sin valor: %', v_d; end if;
+  end;
+  begin
+    perform public._cotizacion_guardable('{"totales": {"usd": 1e15}}', '{}');
+    raise exception 'un total que no cabe debía rechazarse';
+  exception when sqlstate '22023' then
+    get stacked diagnostics v_d = pg_exception_detail;
+    if v_d is distinct from 'fuera_de_rango' then raise exception 'fuera de rango: %', v_d; end if;
+  end;
+end $$;
