@@ -10,7 +10,8 @@
 --   repetido     el mismo intento ya guardado (la vuelta temprana, sin calcular)        sintetica     la fórmula de 200 nodos con 4 tablas de 1.000 filas
 --
 -- Asserta, con los dos volúmenes:
---   - el presupuesto de una llamada en ms Y en buffers (los topes salen de lo medido, con una vuelta de margen para una máquina ocupada; la tabla de abajo tiene las cifras);
+--   - el presupuesto de una llamada en ms Y en buffers (los topes salen de lo medido, con una vuelta de margen para una máquina ocupada; lo medido va, con su fecha, junto a
+--     cada tope en «Lo medido y sus presupuestos», y la tabla entera en `docs/RENDIMIENTO.md`, «Paso 4.10 (3 de 3)»);
 --   - que no crece con N: con 250.000 el tiempo es a lo sumo `greatest(1,5 × el de 50.000, el de 50.000 + 3 ms)` y los buffers a lo sumo 1,2 × los de 50.000 + 20;
 --   - que la llamada no recorre `cotizaciones` ni `cotizaciones_revisiones`: ningún `Seq Scan` en `pg_stat_xact_user_tables` (se lee por su clave y por el índice único del intento);
 --   - la guarda: una copia de la función que busca el intento SIN la cotización (`where intento = …`, sin el primer campo del índice) recorre las revisiones y rompe esos presupuestos.
@@ -264,10 +265,10 @@ reset role;
 -- ---------------------------------------------------------------------------------------------------------------------------------
 do $$
 declare
-  c_ms constant numeric := 20;            -- ms por llamada con la fórmula del seed (medido: 1,9 a 6,7; docs/RENDIMIENTO.md, «Paso 4.10 (3 de 3)»): 3 veces lo medido y el tope de `cotizacion_crear`
-  c_ms_sint constant numeric := 60;       -- ms de la sintética (200 nodos y 4 tablas de 1.000 filas; medido: 42): el motor pone 27 y ARMAR 8, igual que `cotizacion_evaluar` (p95 41, tope 50); el resto es guardar
-  c_buf constant bigint := 1500;          -- buffers por llamada (medido: 59 a 305)
-  c_buf_sint constant bigint := 1000;     -- buffers de la sintética (medido: 404 a 409)
+  c_ms constant numeric := 20;            -- ms por llamada con la fórmula del seed (medido el 2026-10-26: 2,0 a 7,5): unas 3 veces lo medido y el tope de `cotizacion_crear`
+  c_ms_sint constant numeric := 60;       -- ms de la sintética (200 nodos y 4 tablas de 1.000 filas; medido el 2026-10-26: 43,8 a 43,9): el motor pone 27 y ARMAR 8, igual que `cotizacion_evaluar` (p95 41, tope 50); el resto es guardar
+  c_buf constant bigint := 1500;          -- buffers por llamada (medido el 2026-10-26: 55 a 307)
+  c_buf_sint constant bigint := 1000;     -- buffers de la sintética (medido el 2026-10-26: 434 a 438)
   r record; g record; v_fallas text := ''; v_tope_ms numeric; v_tope_buf bigint;
 begin
   for r in select * from _med order by fase, caso loop
