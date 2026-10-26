@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { afterAll, describe, expect, it } from 'vitest'
 import { nivelDe } from './nivel.mjs'
 
 // `nivel.mjs` dice el nivel de verificación de un conjunto de archivos con los seis disparadores del Nivel 2 de
@@ -138,5 +142,58 @@ describe('nivel.mjs › toca_interfaz decide si los e2e dirigidos corren tambié
   it('una prueba de componente (.test.tsx) no es interfaz, un componente sí', () => {
     const r = nivelDe(['src/a/b.test.tsx', 'src/a/b.tsx'], sinContenido)
     expect(r.interfaz).toEqual(['src/a/b.tsx'])
+  })
+})
+
+describe('nivel.mjs › la línea de comandos', () => {
+  const SCRIPT = resolve('scripts/piloto/nivel.mjs')
+  const raices: string[] = []
+  afterAll(() => {
+    for (const r of raices) rmSync(r, { recursive: true, force: true })
+  })
+
+  const correr = (cwd: string, ...args: string[]) =>
+    JSON.parse(
+      spawnSync('node', [SCRIPT, ...args], { cwd, encoding: 'utf8' }).stdout,
+    ) as ReturnType<typeof nivelDe>
+
+  it('sin --rango, todos los argumentos son archivos (también el primero)', () => {
+    const r = correr(tmpdir(), 'src/proxy.ts', 'docs/ESTADO.md')
+    expect(r.archivos).toEqual(['src/proxy.ts', 'docs/ESTADO.md'])
+    expect(r.disparadores.map((d) => d.id)).toEqual(['proxy'])
+  })
+
+  it('con --rango lee los archivos del diff y el contenido de las migraciones del final del rango', () => {
+    const repo = mkdtempSync(join(tmpdir(), 'nivel-'))
+    raices.push(repo)
+    const git = (...args: string[]) =>
+      execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@ejemplo.test', ...args], {
+        cwd: repo,
+        encoding: 'utf8',
+      }).trim()
+    const escribir = (ruta: string, texto: string) => {
+      mkdirSync(dirname(join(repo, ruta)), { recursive: true })
+      writeFileSync(join(repo, ruta), texto)
+    }
+    git('init', '-q', '-b', 'main')
+    escribir('README.md', 'x')
+    git('add', '.')
+    git('commit', '-q', '-m', 'inicio')
+    const desde = git('rev-parse', 'HEAD')
+    escribir(
+      'supabase/migrations/20261020000000_x.sql',
+      'create policy ver on leads using (true);\n',
+    )
+    escribir('src/modules/leads/features/tabla.tsx', 'export {}\n')
+    git('add', '.')
+    git('commit', '-q', '-m', 'cambio')
+    const r = correr(repo, '--rango', `${desde}..HEAD`)
+    expect(r.nivel).toBe(2)
+    expect(r.disparadores.map((d) => d.id)).toEqual(['rls'])
+    expect(r.toca_interfaz).toBe(true)
+    expect([...r.archivos].sort()).toEqual([
+      'src/modules/leads/features/tabla.tsx',
+      'supabase/migrations/20261020000000_x.sql',
+    ])
   })
 })

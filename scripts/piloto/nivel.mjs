@@ -73,7 +73,8 @@ export function nivelDe(archivos, leer) {
 function main(argv) {
   const i = argv.indexOf('--rango')
   const rango = i >= 0 ? argv[i + 1] : undefined
-  const archivos = argv.filter((_, k) => k !== i && k !== i + 1)
+  // Sin --rango todos los argumentos son archivos (con i = -1, `k !== i + 1` descartaba el primero).
+  const archivos = i >= 0 ? argv.filter((_, k) => k !== i && k !== i + 1) : argv
   if (rango === undefined) {
     const leer = (a) => {
       try {
