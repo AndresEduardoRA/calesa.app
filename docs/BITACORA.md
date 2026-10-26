@@ -2906,3 +2906,106 @@ la ayuda con otro id: **las nueve corridas caen** (la segunda de «la descripci�
 **ESTADO:** la línea «Fase actual» y el punto 1 de «Siguiente» dicen ahora el 4.12 hecho y el 4.13; **12.262 B** (`wc -c`, tope 12.288). Lo que salió, copiado sin resumir en «Movido de ESTADO (4.12-2)», arriba.
 
 **Lo que no se hizo:** el 4.13, ningún push ni dispatch, `next upgrade`, el Nivel 3, la prueba del gestor de contraseñas de Chrome (no se puede aquí).
+
+## 2026-10-26 — Movido de ESTADO (CI-4)
+
+Copiado tal cual de `docs/ESTADO.md` antes de CI-4 (la línea «Fase actual», la línea de CI de «Funcionando» y el punto 2 de «Siguiente»). Cambiaron la frase de CI y los abiertos de la 4 y de la 9; los detalles de 5a-39, 5a-40 y 5a-42 salieron porque `docs/PLAN.md` ya los dice enteros:
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.12** (dos prompts): `XCell`, la celda de la hoja de cotizar (`src/shared/ui/xcell`, sin pantalla todavía), con su Nivel 2 en verde; antes, el **4.11** y el **4.10 entero**. **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20**, **4-21**, **4-23**, **4-24** y **4-25** siguen abiertos. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 a 2026-10-26, «movido de ESTADO», 4.08-1 a 4.12-2).
+
+- **CI** (GitHub, privado; desde 2026-10-23): `nivel-1` siempre; `base` y e2e en 4 bloques si cambia código; e2e en PR y a mano (`escritorio|ambos`), no en push. Facturables: push con código 22, dispatch de escritorio ≈ 94; reloj del dispatch: 27 a 32 min. CI-3 arregló su rojo. Next 16.4.0, dos advisories críticos, decide la persona.
+
+2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (**4-4** cuando una fórmula real pida `HOY()`, **4-21** (repetir el intento de `cotizacion_crear` con otros datos devuelve la vieja y la pantalla no puede mostrarla como lo tipeado) en 4.13, **4-5** y **4-6** —el editor corta el texto de más de 2.000 antes de guardarlo— en 4.21, **4-10** (el tipo de vehículo de la subasta no casa con las filas del transporte) en 4.14, **4-14** («todas las que veo» de quien ve «propios» recorre el índice global) y **4-23** (lo mismo en el inventario de vehículos) en 4.16, **4-24** (`puede_cotizacion` mira el alcance dos veces) en 4.15, **4-25** (el número tipeado se lee con `aNumero`: «1.234» es 1,234) en 4.13, **4-17** (la final directa no vincula ni limpia) en 4.25, **4-19** y **4-20** (el «·» solo y el aviso angosto) en 4.20, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT; toca `supabase/schemas`, después del hito 4-A) y **5a-42** (`medir-bajas.sql` cae sin regresión con un `sync` de disco largo: decidir por el trabajo —40 lotes, ≤ 16 M buffers— y juzgar los ms sólo con la ventana sana) sin fase, las decide la persona; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya, y **9-4** a **9-6** (`db:medir`, `db:medir:volumen` y `db:carreras` fuera de CI; carreras va 2 de 5), de la 9.
+
+## 2026-10-26 — CI-4: `leads-exportar` espera la respuesta del POST y no un texto con 5 s (el rojo del dispatch 40320539963)
+
+**El rojo.** El dispatch 40320539963 (a mano, escritorio, sobre `9dc3653`; salió a las 12:10:45 UTC) dejó verdes el nivel 1, `carreras`, `base`, la compilación y los
+bloques 1, 3 y 4, y el bloque 2 con un fallo de 182 pruebas (178 verdes, 3 saltadas, 10,7 min): `e2e/leads-exportar.spec.ts:263`, «más de 5.000 leads: no se exporta
+nada a medias y se dice cuántos hay», con `Expected pattern: /Hay más de 5\.000 leads con estos filtros/` y `Timeout: 5000ms`. En local había pasado en el Nivel 2 del 4.11
+y volvió a pasar en el del 4.12-2.
+
+**Los artefactos** (`gh run download 40320539963 -n e2e-bloque-2` y `gh run view 40320539963 --log-failed`, en `test-salidas/ci-4-dispatch/`). `error-context.md`: al fallar,
+el diálogo estaba en reposo, con «Hasta 5.000 leads y 5 descargas por hora.» y el botón **«Descargando…» `[disabled]`**: ni un 409, ni un CSV, ni un error. La traza
+(`test.trace` y `1-trace.network`; horas en UTC):
+
+| Paso                                                              | Hora                    | Duración    |
+| ----------------------------------------------------------------- | ----------------------- | ----------- |
+| `idDe` y los 6 inserts de 1.000 (la siembra)                      | 12:37:39,4 a 12:37:50,0 | **10,5 s**  |
+| el ingreso, `/leads` (611 ms) y abrir «Exportar»                  | 12:37:50,0 a 12:37:52,9 | 2,8 s       |
+| el clic en «Descargar»; sale el `POST /leads/exportar`            | 12:37:52,9 y 12:37:53,0 | —           |
+| vence el `toContainText`                                          | 12:37:58,1              | 5,0 s       |
+| el contexto se cierra con el POST **sin respuesta** (`time = -1`) | 12:37:58,5              | **> 5,4 s** |
+| el `afterAll` (borra los 5.001)                                   | 12:37:58,9              | 2,07 s      |
+
+**Cómo decide la app «más de 5.000»** (H1): un conteo exacto con tope, no una estimación del planner. `route.ts:90` → `exportarLeadsEnCsv` → `lecturas.ts:177-187`
+(`contarLeadsHasta(condiciones, 5000)`) → `listado.ts:189-232` (ids de a 1.000 por cursor sobre `leads_cartera_vista`, hasta 5.001) → `conteoAcotado()` →
+`{ tipo: 'demasiadas' }` → 409 (`route.ts:60-61`). Con 50.000 leads cuesta 5 / 31 ms (`docs/RENDIMIENTO.md`).
+
+**Las hipótesis, con lo que dijo cada una:**
+
+- **H1, el tope sale de una estimación que, sin estadísticas, queda bajo 5.000: descartada.** Ningún paso consulta una estimación; y una estimación baja habría dado un CSV de
+  5.000 filas y el estado «listo», no el silencio de una respuesta que no llega. Las estadísticas podrían cambiar cuánto tarda, no qué contesta (eso es H4).
+- **H2, el runner más lento (≈ 1,6 veces) y los 5 s de fábrica: descartada como causa.** Comparado con el bloque 2 de CI-1 (dispatch del 2026-10-25 sobre `ce81d1c`, log en
+  `test-salidas/ci-1-dispatch/`), donde esta prueba pasó en 10,7 s (en local, 10,0): en las 172 pruebas comunes el runner de hoy fue **0,93 veces** (569,8 s contra 613,5), y
+  la única que se disparó es ésta (la siguiente, 1,3 veces). Los 5 s son el mecanismo, no la causa: la línea 282 (de `9dc3653`) esperaba un tiempo y no la respuesta, lo que prohíbe
+  `.claude/rules/e2e.md` (CI-2).
+- **H3, el estado que deja otro spec: descartada.** Las 110 pruebas anteriores del bloque son **las mismas y en el mismo orden** que en CI-1 (sólo cambió el número de línea de
+  una saltada: `leads-barra-de-secciones.spec.ts:65` → `:67`). La persona de la prueba nace en su `beforeAll` y el conteo lee sólo su cartera. Entre `ce81d1c` y `9dc3653`, en
+  ese camino, sólo cambió la policy de `vehiculos` (`…008800`, 4.11), que ni la siembra (clave de servicio) ni el conteo leen, y tres ayudantes de e2e que este spec no importa.
+- **Descartadas también:** el service worker (`public/sw.js` no tiene `fetch`), Realtime (ninguna tabla en la publicación) y los crons de cada minuto (la ventana empieza 39 s
+  después de las 12:37:00 y termina antes de las 12:38).
+- **H4, la base se atrasó unos 20 s: la que queda, sin confirmar.** Con el mismo código y el mismo bloque, en CI-1 la prueba entera (siembra, interfaz y respuesta) tardó 10,7 s;
+  hoy la siembra sola tardó 10,5 s y la respuesta más de 5,4. La prueba anterior y el `afterAll` corrieron normales: la lentitud duró de 12:37:39 a 12:37:58 y sólo la tocó a ella.
+  **El workflow no sube nada de la base** y las corridas anteriores ya no están en GitHub (404): no hay con qué decir si fue un checkpoint, un autovacuum o la ráfaga misma
+  de 5.001 altas (5a-40, 5a-42). → **4-26** y **9-11**.
+
+**Veredicto:** fallo **de la prueba**, no del producto: el producto contestó bien cada vez que contestó, y la prueba esperaba un tiempo y no el pedido.
+
+**Reproducido** (una copia temporal, `e2e/leads-exportar-demora.spec.ts`, **borrada**: la guarda de `sin-celular` vería la marca repetida): la prueba con un
+`page.route('**/leads/exportar')` que demora `DEMORA_MS` y sigue. Desde `pnpm db:reset`, con su propia compilación y `E2E_SIN_FUNCIONES=1`, escritorio:
+
+| Copia de            | Demora del POST | Resultado                                                                                                             |
+| ------------------- | --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| la prueba de `HEAD` | 6 s             | **cae**, con el mismo texto de CI («…CancelarDescargando…Cerrar») y `Timeout: 5000ms`                                 |
+| la prueba nueva     | 6 s             | pasa: siembra 5,8 s, respuesta 6.416 ms                                                                               |
+| la prueba nueva     | 35 s            | **cae a los 30 s**: `TimeoutError: page.waitForResponse: Timeout 30000ms exceeded while waiting for event "response"` |
+
+Sin demora, en local: la siembra de 5.001 tarda 5,9 s y la respuesta, 745 ms (en CI, 10,5 s y más de 5,4 s).
+
+**Arreglo** (sólo `e2e/leads-exportar.spec.ts`, `ac03a6f`): antes del clic en «Descargar» arma `page.waitForResponse` del `POST /leads/exportar` **con un tope propio de 30 s**
+(un servidor colgado no se come los 180 s de la prueba ni pasa por «lento pero verde»), comprueba el 409 y su cuerpo (`{ codigo: 'demasiadas' }`) y recién ahí lee los dos
+textos del diálogo. Deja en el log `[exportar] escritorio: siembra de 5.001 X s · respuesta Y ms`, para que un tiempo malo quede a la vista aunque la prueba pase. Por qué esperar
+el pedido y no subir `expect.timeout`: `docs/DECISIONES.md`, «CI-4».
+
+**El mismo patrón en otros specs** (sólo se listan; no se arreglan de paso → **9-10** en `docs/PLAN.md`). Un `toContainText`, `toBeVisible` o `toHaveCount` con la espera de fábrica sobre algo
+que depende de un pedido que no se espera (una RPC desde el navegador, un route handler o una server action), después de sembrar volumen:
+
+- `e2e/leads-rapido-volumen.spec.ts` (20.000 seguimientos, 2.000 pendientes, 3.000 completados): `:106`, `:111`, `:124`, `:130-131`, `:152-153`, `:158`, `:172`, `:184`, `:190`,
+  `:195`, `:228` y `:231` («Ver más», «Ir a una fecha», «Guardar» con conflicto, «Recargar», «Completados»).
+- `e2e/leads-papelera.spec.ts` (un lote de 200): `:231` («Mostrar los 200»), `:234` («Restaurar …») y `:236` (la página releída).
+- `e2e/leads-escala.spec.ts` (560 oportunidades): `:223` («Ver más» del kanban, nueve veces) y `:226` (el aviso del tope).
+- `e2e/leads-alta-contexto.spec.ts:224` (100 + 100 + 100 en los catálogos: «Nuevo lead» hasta el teléfono, tras dos RPC desde el navegador).
+- `e2e/leads-exportar.spec.ts:257-258` («el límite por hora»: el mismo endpoint, sin volumen; con el import que sumó CI-4, una línea más abajo que en `9dc3653`).
+- `e2e/escala-recorrido.spec.ts:140` y `:142` (8.000 oportunidades; sólo con `db:sembrar-volumen`, no corre en CI).
+- **Fuera, con su motivo:** `equipo-tope`, `equipo-busqueda-minima` y `roles-conteo-acotado` (buscan por la URL: una navegación), `leads-escala.spec.ts:66` (navegación),
+  `vehiculos-por-pagina` y `por-pagina-pendiente-*` (una action sin un volumen que la encarezca), `listas-por-pagina-volumen` (60 s) y `leads-recorrido-csv:121` (20 s) con su espera
+  explícita, y el ayudante `descargar()` (espera el evento `download`).
+
+**Abierto, con número** (`docs/PLAN.md`): **4-26** (por qué se atrasó la base; **antes del 4.15**, decidido por la persona), **9-10** (las esperas de arriba, en la Fase 9 junto a 9-9) y
+**9-11** (que un rojo del e2e en CI deje los logs de la base; para el próximo cambio del workflow, no en este commit).
+
+### Verificación
+
+`pnpm lint` y `pnpm typecheck` sin avisos; `pnpm test`: 360 archivos, 4.151 pruebas. `pnpm db:reset` y `NEXT_DIST_DIR=.next-e2e pnpm next build`; el spec entero con
+`E2E_PROD=1 E2E_SIN_FUNCIONES=1 pnpm exec playwright test e2e/leads-exportar.spec.ts` (los dos proyectos): **9 de 9**, y las tres copias de la tabla de arriba. `bash scripts/mapa.sh --check`.
+**e2e completo: no (CI-4, sólo `e2e/` y docs; no es un paso de pantalla: la cuenta sigue en 0).** **Sin push ni dispatch:** el del hito 4.18 es el que confirma el arreglo en CI.
+
+### Del entorno
+
+- Otra sesión tenía la base y el e2e (el Nivel 2 del 4.12-2) y su árbol sin commitear; esperé a que lo cerrara (`c7770d6`) con un vigilante de procesos y árbol limpio, y no
+  toqué nada antes. Un `ps` con `playwright test` no ve al hijo `…/@playwright/test/cli.js test`: se busca `playwright`.
+- El primer `next build` se detuvo con `SecurityFatalError` (Next 16.4.0 avisa de una vulnerabilidad); repetido sin cambios, compiló. Decide la persona.
+- **Para la persona:** este dispatch corrió `carreras` en verde (3 min 8 s); si cuenta como la tercera de las 5 seguidas de 9-6, falta su fila en la tabla.
+
+**ESTADO:** la línea «Fase actual» suma 4-26; la de CI dice CI-4 en lugar de «CI-3 arregló su rojo»; los abiertos suman 4-26 (en 4.15), 9-10 y 9-11; **12.265 B** (`wc -c`, tope 12.288),
+44 líneas. Para hacer lugar salieron los detalles de 5a-39, 5a-40 y 5a-42, que ya dice el PLAN: copiados sin resumir en «Movido de ESTADO (CI-4)», arriba.
