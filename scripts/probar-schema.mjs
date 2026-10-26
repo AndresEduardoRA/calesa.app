@@ -212,6 +212,8 @@ for (const archivo of [
   'cotizacion-crear.sql',
   'cotizacion-conservar.sql',
   'cotizacion-guardar.sql',
+  // Al final: sus `pg_temp` (la copia vieja de `puede_vehiculo`) no llegan a los archivos de antes.
+  'vehiculos-visibilidad.sql',
 ]) {
   const t = path.join(base, 'tests', archivo)
   if (!fs.existsSync(t) || (SOLO && !SOLO.includes(archivo))) continue
