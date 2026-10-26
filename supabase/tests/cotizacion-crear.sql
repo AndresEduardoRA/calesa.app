@@ -3,6 +3,9 @@
 -- la clase, el modo de cambio, los tipos de cambio congelados, la moneda base, «cargar a mano» y lo que se rechaza.
 -- Corre después de `cotizaciones-visibilidad.sql`; la dueña es `…0001` (la crea `humo.sql`). Cada bloque abre su transacción y la revierte.
 
+-- Los teléfonos de los leads de la prueba salen de una secuencia: `cc_preparar()` corre dos veces en un mismo bloque (un número fijo chocaría consigo
+-- mismo), y uno al azar chocaba de vez en cuando con un lead vivo que dejó otra prueba (`docs/PLAN.md`, 4-22). Nadie más usa 7212xxxx.
+create temp sequence cc_telefono;
 create or replace function pg_temp.cc_como(p_quien uuid) returns void language plpgsql as $f$
 begin
   perform set_config('request.jwt.claim.sub', p_quien::text, true);
@@ -73,7 +76,7 @@ begin
                               'oculto_costos', jsonb_build_object('ver', 'costos', 'editar', 'costos'), 'total', jsonb_build_object('ver', 'todos', 'editar', null));
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o, 1, 'publicada', v_def, '{}', '{}', v_vis) returning id into f;
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('CC lead', '73' || lpad((floor(random() * 1000000))::text, 6, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  values ('CC lead', '7212' || lpad(nextval('pg_temp.cc_telefono')::text, 4, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
   insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CC vehículo', 'toyota') returning id into v;
   perform pg_temp.cc_persona(a, pg_temp.cc_conc(variadic v_base));
   perform pg_temp.cc_persona(k, pg_temp.cc_conc(variadic v_base || array['cotizaciones.nivel.costos.ver', 'cotizaciones.nivel.costos.editar']));
@@ -211,7 +214,7 @@ begin
   if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'lead' then raise exception 'sin lead debía dar 22023 con la pista lead: %', r; end if;
   r_in := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, gen_random_uuid(), '{}', v));
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos, eliminado_en)
-  values ('CC lead borrado', '74' || lpad((floor(random() * 1000000))::text, 6, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}', now()) returning id into l2;
+  values ('CC lead borrado', '7212' || lpad(nextval('pg_temp.cc_telefono')::text, 4, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}', now()) returning id into l2;
   r_pap := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l2, '{}', v));
   r_sl := pg_temp.cc_corre((t ->> 'sl')::uuid, pg_temp.cc_sql(gen_random_uuid(), o, l, '{}', v));
   if r_in ->> 'error' is distinct from '42501' or r_in ->> 'mensaje' is distinct from 'No encontramos este lead o no tienes acceso.' then raise exception 'un lead inexistente no da el error esperado: %', r_in; end if;
@@ -290,7 +293,7 @@ declare
 begin
   perform pg_temp.cc_persona(a, pg_temp.cc_conc('cotizaciones.ver', 'cotizaciones.crear', 'leads.ver', 'vehiculos.ver'));
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('CC lead modo', '75' || lpad((floor(random() * 1000000))::text, 6, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  values ('CC lead modo', '7212' || lpad(nextval('pg_temp.cc_telefono')::text, 4, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
   insert into public.vehiculos (origen_id, titulo, anio, atributos) values (o, 'CC subasta', 2025, '{"tipo_vehiculo": "autos"}') returning id into v;
   -- El unificado se separa del paralelo (en la semilla valen lo mismo y un modo ignorado daría igual): así el total dice qué modo se usó.
   update public.tipos_cambio set valor = valor * 1.5 where clave = 'unificado';
@@ -345,7 +348,7 @@ declare
 begin
   perform pg_temp.cc_persona(a, pg_temp.cc_conc('cotizaciones.ver', 'cotizaciones.crear', 'leads.ver', 'vehiculos.ver'));
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('CC lead desc', '76' || lpad((floor(random() * 1000000))::text, 6, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  values ('CC lead desc', '7212' || lpad(nextval('pg_temp.cc_telefono')::text, 4, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
   insert into public.vehiculos (origen_id, titulo, anio, atributos) values (o, 'CC subasta', 2025, '{"tipo_vehiculo": "autos"}') returning id into v;
   -- «remate» es un input sin sugerido: no se sobrescribe, se tipea en `inputs`.
   r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, '{"inputs": {"remate": 1000}, "overrides": {"remate": 5, "nacionalizacion": 1201}}', v));

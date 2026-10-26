@@ -4,6 +4,9 @@
 -- Corre después de `cotizacion-crear.sql`; la dueña es `…0001` (la crea `humo.sql`). Cada bloque abre su transacción y la revierte.
 
 -- Una cotización escrita directo (como postgres) sobre una fórmula publicada nueva: sirve para probar la versión sin pasar por ninguna RPC.
+-- Los teléfonos de los leads de la prueba salen de una secuencia: un número fijo chocaría consigo mismo si un bloque preparara dos terrenos, y uno al azar
+-- chocaba de vez en cuando con un lead vivo que dejó otra prueba (`docs/PLAN.md`, 4-22). Nadie más usa 7213xxxx.
+create temp sequence cg_telefono;
 create or replace function pg_temp.cg_basica() returns jsonb language plpgsql as $f$
 declare
   o uuid; f uuid; c uuid;
@@ -92,7 +95,7 @@ begin
     '{"cabecera": {"modos": [{"clave": "paralelo", "nombre": "Paralelo", "buckets": [{"bucket": "origen", "nodo": "tc"}], "total_en": "tc"}]}}', v_vis, now() - interval '10 days') returning id into f;
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, publicado_en) values (o2, 1, 'publicada', v_def, '{}', '{}', v_vis, now() - interval '10 days');
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('CG lead', '73' || lpad((floor(random() * 1000000))::text, 6, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  values ('CG lead', '7213' || lpad(nextval('pg_temp.cg_telefono')::text, 4, '0'), '00000000-0000-0000-0000-000000000001', (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
   insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CG vehículo', 'toyota') returning id into v;
   insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CG vehículo 2', 'mazda') returning id into v2;
   perform pg_temp.cg_persona(a, v_base, o);

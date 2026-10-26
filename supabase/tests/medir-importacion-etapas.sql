@@ -29,8 +29,9 @@ select format('medicion|N leads|%s (de la dueña %s; actividad %s; leads_asesore
   (select count(*) from public.actividad), (select count(*) from public.leads_asesores)) as dato \gset
 \echo :dato
 
--- Un teléfono que no choca con la semilla ni con una corrida anterior.
-select (60000000 + floor(random() * 30000000))::int as base \gset
+-- Un teléfono que no choca con la semilla (8xxxxxxx y 9xxxxxxx) ni con una corrida anterior: esta deja sus «Etapas», así que la base corre tantos como ya hay.
+-- Nunca `random()` (`docs/PLAN.md`, 4-22).
+select 61000000 + (select count(*) from public.leads where nombre like 'Etapas %')::int as base \gset
 
 set track_functions = 'all';
 create temp table antes as select funcid, calls, total_time, self_time from pg_stat_user_functions where schemaname = 'public';

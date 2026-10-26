@@ -74,8 +74,9 @@ begin
   raise notice 'medicion|500 filas con % filas de actividad|%', v_etiqueta, round(v_total, 1);
 end $$;
 
--- Un teléfono que no choca con la semilla ni con una corrida anterior (la semilla usa otros prefijos).
-select (60000000 + floor(random() * 20000000))::int as base \gset
+-- Un teléfono fijo que no choca: la semilla de volumen usa 8xxxxxxx y 9xxxxxxx, las pruebas de `db:probar` 7xxxxxxx, `medir-bajas.sql` nueve dígitos (69…), y
+-- `borrar_lo_medido()` quita los «Volimp» de una corrida anterior al empezar. Nunca `random()` (`docs/PLAN.md`, 4-22: 1 de cada N corridas chocaba).
+select 60000000 as base \gset
 
 -- Pasada 1: `actividad` en 23.000 filas.
 select pg_temp.rellenar(23000) as agregadas \gset

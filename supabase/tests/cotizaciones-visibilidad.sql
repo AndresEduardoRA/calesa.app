@@ -905,7 +905,7 @@ begin
     insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad) values (o, 1, 'publicada', v_def, '{}', '{}', v_vis);
     -- Un lead que ven todas las personas con `leads.ver` (para lo que crea: el lead es obligatorio).
     insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-    values ('CV lead generico ' || v_i, '77' || lpad((floor(random() * 1000000))::text, 6, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into v_lead;
+    values ('CV lead generico ' || v_i, '7214' || lpad(v_i::text, 4, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into v_lead;
     insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base, titulo)
     values (o, duena, (select id from public.formulas where origen_id = o), jsonb_build_object('visible', 111.25, v_oculto, v_centinela::numeric, 'total', 123456.78),
             jsonb_build_object('visible', 'input', v_oculto, 'input'), '{}', '{"bs": 123456.78, "usd": 123456.78, "suma_usd": 123456.78}', 123456.78, 'CV generico ' || v_i) returning id into v_c;
@@ -1577,7 +1577,7 @@ declare
   v_ocultas constant text[] := array['valores', 'fuentes', 'totales', 'tipos_cambio'];
 begin
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('CV lead auditoria', '78' || lpad((floor(random() * 1000000))::text, 6, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  values ('CV lead auditoria', '72150001', duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
   insert into public.vehiculos (origen_id, titulo, marca) values (o, 'CV auditoria', 'toyota') returning id into v;
   -- Alta: por la RPC, como la dueña (authenticated).
   r := pg_temp.cv_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {}}'', %L, now(), %L)', o, l, pg_temp.cv_pub(o), v));
@@ -1658,9 +1658,9 @@ begin
   insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
   values (o_nd, 1, 'publicada', jsonb_set(v_def, '{nodos}', (select jsonb_agg(case when n ->> 'id' = 'var_costos' then n - 'por_defecto' else n end) from jsonb_array_elements(v_def -> 'nodos') n)), '{}', '{}', v_vis);
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos)
-  values ('CV d lead', '79' || lpad((floor(random() * 1000000))::text, 6, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
+  values ('CV d lead', '72150002', duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
   insert into public.leads (nombre, telefono_principal, creado_por, origen_lead_id, atributos, eliminado_en)
-  values ('CV d lead borrado', '71' || lpad((floor(random() * 1000000))::text, 6, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}', now()) returning id into l_pap;
+  values ('CV d lead borrado', '72150003', duena, (select id from public.origenes_lead where clave = 'web'), '{}', now()) returning id into l_pap;
   insert into public.vehiculos (origen_id, titulo, marca) values (o_sin, 'CV d vehículo', 'toyota') returning id into v;
   insert into public.vehiculos (origen_id, titulo, marca, eliminado_en) values (o_sin, 'CV d vehículo borrado', 'toyota', now()) returning id into v_pap;
 

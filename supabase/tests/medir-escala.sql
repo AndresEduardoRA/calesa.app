@@ -30,6 +30,10 @@ select set_config('medir.n_leads', (select count(*)::text from public.leads), tr
 create temp table violaciones (texto text);
 -- Lo que midió cada `escala()` (la mediana), para sumar los dos pasos de una búsqueda.
 create temp table medidas (nombre text, quien text, ms numeric);
+-- Los teléfonos de las altas que se miden: cada `escala()` corre la llamada siete veces por persona en esta transacción (un número fijo chocaría consigo mismo,
+-- y uno al azar, de vez en cuando, con otro lead vivo: `docs/PLAN.md`, 4-22). Una secuencia, con el prefijo 70 que no siembra nadie.
+create temp sequence medir_telefono start 900001;
+grant usage on sequence pg_temp.medir_telefono to authenticated;
 
 -- De dónde lee «míos» cada persona, como lo decide la app (`fuenteDelListado()` y `leerMiosDeLaCartera()`): quien tiene `leads.ver` «propios» lee su cartera
 -- (`leads_cartera_vista`, 5a-fix-1a); quien ve «todos» también si su cartera es corta (`leads_cartera_corta()`, 5a-5: la supervisora, con 3 leads propios); la
@@ -729,7 +733,7 @@ do $medir$ declare q text; begin
     perform pg_temp.escala('storage_gc_pendiente', q, 'select public.storage_gc_pendiente()', 50);
     -- El alta con el contador: un upsert por la clave primaria, lo mismo con 20 leads que con 62.000.
     perform pg_temp.escala('alta de un lead (trigger del número propio incluido)', q, $w$select public.crear_lead(gen_random_uuid(), jsonb_build_object('nombre', 'Medir alta',
-      'telefono_principal', '7' || lpad(floor(random() * 9999999)::text, 7, '0'), 'origen_lead_id', (select id from public.origenes_lead order by orden limit 1)))$w$, 80);
+      'telefono_principal', '70' || lpad(nextval('pg_temp.medir_telefono')::text, 6, '0'), 'origen_lead_id', (select id from public.origenes_lead order by orden limit 1)))$w$, 80);
     if q = 'duena' then
       perform pg_temp.escala('contador del número propio (upsert)', q, $w$insert into public.leads_contadores as c (usuario_id, ultimo) values ('00000000-0000-0000-0000-0000000000a1', 1)
         on conflict (usuario_id) do update set ultimo = c.ultimo + 1 returning c.ultimo$w$, 5, null, '{}', 0, 'postgres');  -- el arbitro es leads_contadores_pkey (no figura como «Index Name»)
