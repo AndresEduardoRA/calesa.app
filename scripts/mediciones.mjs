@@ -92,6 +92,11 @@ export const MEDICIONES_CON_VOLUMEN = [
     'mediana y p95 de 200 llamadas',
   ],
   [
+    'supabase/tests/medir-vehiculos-lectura.sql',
+    'La lectura de vehículos con 50.000 y con 250.000 vivos, como authenticated y con el plan genérico: una página de n + 1 del inventario (primera y profunda por cursor) de la dueña («todos»), de Pía («propios», lo que creó) y de Beto («propios», 50.000 leads en su cartera), y puede_vehiculo() de Beto, con la policy por fila (ms y buffers del EXPLAIN, y las llamadas por página); la «chica», sin assert de tiempo (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-cotizaciones-lectura.sql',
     'La lectura de cotizaciones con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: una página de n + 1 (primera y profunda por cursor) de la dueña («todas») y de Ana y la «chica» («mías»), con la policy por fila (ms y buffers del EXPLAIN, y las llamadas por página)',
     'mediana de 5 de 7 corridas',
