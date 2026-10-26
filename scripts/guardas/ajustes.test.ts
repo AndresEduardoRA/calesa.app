@@ -84,3 +84,38 @@ describe('.claude/settings.json › hooks', () => {
     expect(cableado('Stop', '', '.claude/hooks/verificar-al-terminar.sh')).toBe(true)
   })
 })
+
+// Todo lo que usa la base local o el servidor de e2e pasa por `scripts/candado.sh` (una sesión a la vez, en cualquier worktree).
+// `db:base` y `db:probar` no: corren en PGlite, en memoria, sin base ni puerto compartidos (y lefthook corre `probar-schema` al
+// commitear SQL: bloquearlo frenaría los commits de otra sesión durante un e2e).
+const scripts = (
+  JSON.parse(readFileSync(join(RAIZ, 'package.json'), 'utf8')) as {
+    scripts: Record<string, string>
+  }
+).scripts
+const CON_CANDADO = [
+  'db:reset',
+  'db:types',
+  'db:diff',
+  'db:medir',
+  'db:carreras',
+  'db:lint',
+  'db:sembrar-volumen',
+  'db:medir:volumen',
+  'test:e2e',
+  'test:e2e:completo',
+]
+
+describe('package.json › el candado de la base', () => {
+  it.each(CON_CANDADO)('%s toma el candado con su propio nombre', (nombre) => {
+    expect(scripts[nombre]).toContain(`bash scripts/candado.sh ${nombre} -- `)
+  })
+
+  it.each(['db:base', 'db:probar'])('%s no lo toma: es PGlite en memoria', (nombre) => {
+    expect(scripts[nombre]).not.toContain('candado.sh')
+  })
+
+  it('test:e2e construye fuera del candado y le deja a playwright los argumentos', () => {
+    expect(scripts['test:e2e']).toMatch(/next build && .*candado\.sh test:e2e -- playwright test$/)
+  })
+})
