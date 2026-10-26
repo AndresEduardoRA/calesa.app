@@ -24,6 +24,11 @@ paths:
   - **Nivel 3 — un cierre de fase:** `pnpm test:e2e:completo` con los dos proyectos, sin la bandera (**40,1 min** medido el 2026-10-22 en el
     cierre de la Fase 3, 1.065 pruebas; 31,7 en el cierre 5a-fix-3 con 845; antes 42).
     La BITACORA dice cuál se corrió: `e2e completo: sí|no (<tarea>)`. Un nivel que no se corrió se dice, no se da por pasado.
+  - **En la Fase 4** (decidido por la persona el 2026-10-25, `docs/DECISIONES.md`): los pasos de pura pantalla (4.12–4.14 y 4.16–4.23) van
+    con el Nivel 1, más el Nivel 2 si tocan uno de sus disparadores. Además, el completo de escritorio corre en el **tercer paso de pantalla
+    seguido sin completo** y en el **hito 4-A** (al cerrar 4.18). Los pasos de datos y seguridad (4.11, 4.15, 4.24–4.27) van con el Nivel 1 y
+    el Nivel 2, como siempre. La cuenta sale del marcador de BITACORA: un paso de pantalla que no lo corre escribe
+    `e2e completo: no (4.xx, pantalla, n de 3)`, y la cuenta vuelve a 0 con cada `e2e completo: sí`, sea del paso que sea.
 - **Una captura para mirar se toma con `capturar()` de `e2e/soporte/recorrido.ts`** (o `capturarEn()` de `e2e/soporte/capturas.ts`), nunca
   con un `page.screenshot` suelto: espera a que la pantalla esté quieta (dos cuadros y todas las animaciones y transiciones con fin, con
   tope de 2 s que dice cuáles seguían) y deja `animations: 'disabled'` como respaldo para las infinitas (un spinner, el pulso de un
