@@ -2,6 +2,7 @@
 
 import type { KeyboardEvent, RefObject } from 'react'
 import { BOTON_DEL_VALOR } from './clases'
+import { ID_DEL_ATAJO } from './simbolos-de-xcell'
 import { TextoDeValor } from './texto-de-valor'
 import type { DatosDeLado, Lado } from './use-edicion'
 
@@ -33,7 +34,13 @@ export function BotonDelValor(props: Props) {
       data-parada={lado === 'principal' ? 0 : 1}
       className={BOTON_DEL_VALOR}
       aria-labelledby={`${idDeLaEtiqueta} ${idDelBoton}`}
-      aria-describedby={idDeLaNota}
+      aria-describedby={
+        conAtajo
+          ? idDeLaNota === undefined
+            ? ID_DEL_ATAJO
+            : `${idDeLaNota} ${ID_DEL_ATAJO}`
+          : idDeLaNota
+      }
       aria-disabled={bloqueada || undefined}
       aria-keyshortcuts={conAtajo ? 'ArrowRight' : undefined}
       ref={(elemento) => {

@@ -6,7 +6,7 @@ import { memo, useId, useRef, type KeyboardEvent } from 'react'
 import { useRegional } from '../regional'
 import { CabeceraDeXCell, PARADA_DE_ACCIONES_DESDE } from './cabecera-de-xcell'
 import { RAIZ } from './clases'
-import { estadosDe, notaDe, type FormatoDeXCell } from './estado'
+import { accionesDe, estadosDe, notaDe, type FormatoDeXCell } from './estado'
 import { LadoDeXCell } from './lado-de-xcell'
 import { NotaDeXCell } from './nota-de-xcell'
 import { useEdicion, type DatosDeLado, type Lado } from './use-edicion'
@@ -36,6 +36,12 @@ export type XCellProps = {
   secondaryValue?: number | null | undefined
   secondaryFormat?: FormatoDeXCell | undefined
   secondaryDecimals?: number | undefined
+  // La ayuda de la celda (una tabla o un texto: lo que abre lo decide la hoja) y el ⚙ (cambia el valor por defecto, global). Banderas y callbacks
+  // aparte: la hoja pasa los MISMOS callbacks a todas las celdas y el `memo` aguanta. La celda no decide permisos y no mueve el foco al accionarlas.
+  hasHelp?: boolean | undefined
+  hasSettings?: boolean | undefined
+  onHelp?: ((id: string) => void) | undefined
+  onSettings?: ((id: string) => void) | undefined
   onCommit: (id: string, valor: number | null) => void
   onReset: (id: string) => void
 }
@@ -80,14 +86,14 @@ function teclasDeLaCelda(evento: KeyboardEvent<HTMLDivElement>, valor: HTMLEleme
 }
 
 function XCellBase(props: XCellProps) {
-  const { id, label, currency, defaultValue, suggested, overridden, onReset } = props
+  const { id, label, currency, suggested, overridden, onReset } = props
   const { locale } = useRegional()
   const uid = useId()
   const principalRef = useRef<HTMLElement | null>(null)
 
   const bloqueada = props.disabledReason !== undefined && props.disabledReason !== ''
   const hayPar = props.secondaryId !== undefined && props.secondaryFormat !== undefined
-  const hayRestablecer = overridden && !bloqueada
+  const acciones = accionesDe({ ...props, bloqueada })
   const estados = estadosDe({ suggested, overridden, disabledReason: props.disabledReason })
 
   const edicion = useEdicion({
@@ -109,7 +115,7 @@ function XCellBase(props: XCellProps) {
       idDeLaEtiqueta={`${uid}e`}
       idDeLaNota={idDeLaNota}
       bloqueada={bloqueada}
-      conAtajo={cual === 'principal' && (hayPar || hayRestablecer)}
+      conAtajo={acciones.hay}
       principalRef={principalRef}
       edicion={edicion}
     />
@@ -131,13 +137,9 @@ function XCellBase(props: XCellProps) {
         idDeLaEtiqueta={`${uid}e`}
         label={label}
         sugerido={estados.includes('sugerido')}
-        restablecer={
-          hayRestablecer
-            ? defaultValue === undefined
-              ? 'Volver al sugerido'
-              : 'Volver al valor por defecto'
-            : null
-        }
+        alAyudar={acciones.alAyudar}
+        alAjustar={acciones.alAjustar}
+        restablecer={acciones.restablecer}
         alRestablecer={() => {
           // El foco pasa al valor antes de que ↺ desaparezca.
           principalRef.current?.focus()

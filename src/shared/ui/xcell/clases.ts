@@ -9,9 +9,11 @@ export const RAIZ =
   'flex flex-wrap items-start gap-x-2 gap-y-1.5 rounded-md border p-2 text-sm border-[color:var(--tono-borde,var(--color-line-strong))] bg-[color:var(--tono-fondo,var(--color-surface))] data-[estado~=deshabilitado]:border-dashed ' +
   TINTA
 
-export const CABECERA = 'flex min-w-0 basis-full items-start justify-between gap-1'
-export const ETIQUETA = 'min-w-0 flex-1 py-1 font-medium [overflow-wrap:anywhere]'
-export const ACCIONES = 'flex shrink-0 items-center'
+// La cabecera se parte en dos filas cuando la etiqueta no tiene 6 rem junto a las acciones (tres de 44 px al 200 %): las palabras no se quiebran por la mitad.
+export const CABECERA = 'flex min-w-0 basis-full flex-wrap items-start justify-between gap-1'
+export const ETIQUETA = 'min-w-[6rem] flex-1 py-1 font-medium [overflow-wrap:anywhere]'
+// Las acciones se separan 8 px, como los valores: el contorno del foco de una ocupa 4 y no toca a la vecina.
+export const ACCIONES = 'ml-auto flex shrink-0 items-center gap-2'
 
 export const CAJA = `${BLANCO_TACTIL} block w-full min-w-0 flex-1 basis-28 rounded-sm border-0 px-2 py-1 text-right text-sm leading-5 tabular-nums [overflow-wrap:anywhere]`
 

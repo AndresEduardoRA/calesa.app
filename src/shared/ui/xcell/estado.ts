@@ -28,6 +28,56 @@ export function estadosDe({ suggested, overridden, disabledReason }: EntradaDeEs
   return estados.length === 0 ? 'normal' : estados.join(' ')
 }
 
+export type EntradaDeAcciones = {
+  id: string
+  overridden: boolean
+  bloqueada: boolean
+  defaultValue?: number | null | undefined
+  hasHelp?: boolean | undefined
+  hasSettings?: boolean | undefined
+  onHelp?: ((id: string) => void) | undefined
+  onSettings?: ((id: string) => void) | undefined
+}
+
+export type Acciones = {
+  alAyudar: (() => void) | null
+  alAjustar: (() => void) | null
+  // `null` = sin ↺; si no, lo que dice («Volver al valor por defecto» o «Volver al sugerido»; nunca la cifra).
+  restablecer: string | null
+  // ¿Hay algo que se alcance con →? Lo anuncia el valor.
+  hay: boolean
+}
+
+// Qué acciones tiene una celda. La ayuda y el ⚙ piden la bandera Y con qué responder (una bandera sin callback sería un botón muerto) y
+// siguen en una celda deshabilitada (no escriben en esta cotización); ↺ sí escribe, y con el candado se va.
+export function accionesDe(e: EntradaDeAcciones): Acciones {
+  const { id, onHelp, onSettings } = e
+  const alAyudar =
+    e.hasHelp === true && onHelp !== undefined
+      ? () => {
+          onHelp(id)
+        }
+      : null
+  const alAjustar =
+    e.hasSettings === true && onSettings !== undefined
+      ? () => {
+          onSettings(id)
+        }
+      : null
+  const restablecer =
+    e.overridden && !e.bloqueada
+      ? e.defaultValue === undefined
+        ? 'Volver al sugerido'
+        : 'Volver al valor por defecto'
+      : null
+  return {
+    alAyudar,
+    alAjustar,
+    restablecer,
+    hay: alAyudar !== null || alAjustar !== null || restablecer !== null,
+  }
+}
+
 export type Tipeado = { ok: true; valor: number | null } | { ok: false }
 
 // Lo que se escribe, como lo entiende el resto de la app (`aNumero`: coma o punto decimal). Los blancos se quitan ANTES: `aNumero('  ')`

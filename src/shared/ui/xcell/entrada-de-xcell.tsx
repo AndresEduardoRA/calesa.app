@@ -19,6 +19,15 @@ type Props = {
   alPerderElFoco: () => void
 }
 
+// Un campo de contraseña que se vacía solo invita a «Guardar contraseña». Las marcas de 1Password, LastPass, Bitwarden y Dashlane lo
+// evitan; Chrome no tiene una propia y no se puede probar con el Chromium de Playwright (no trae gestor): ver `CLAUDE.md`.
+const MARCAS_DE_GESTORES = {
+  'data-1p-ignore': 'true',
+  'data-lpignore': 'true',
+  'data-bwignore': 'true',
+  'data-form-type': 'other',
+}
+
 // Estable a propósito: React sólo la llama al montar la entrada. Una función nueva por render la volvería a llamar con cada tecla y
 // devolvería el cursor al final (o seleccionaría todo) a mitad de lo que se tipea.
 function alMontar(elemento: HTMLElement | null) {
@@ -63,6 +72,7 @@ export function EntradaDeXCell(props: Props) {
       type={live ? 'password' : 'text'}
       inputMode="decimal"
       autoComplete="off"
+      {...(live ? MARCAS_DE_GESTORES : {})}
       spellCheck={false}
       aria-label={nombre}
       aria-invalid={invalido || undefined}
