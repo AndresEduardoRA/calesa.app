@@ -59,7 +59,7 @@ const problemasDeCaja = (page: Page): Promise<string[]> =>
       const marco = celda.getBoundingClientRect()
       const hitos = [
         ...celda.querySelectorAll(
-          '[id$="e"], [data-parada="12"], :scope > button, :scope > input, :scope > p',
+          '[id$="e"], [data-parada="10"], [data-parada="11"], [data-parada="12"], :scope > button, :scope > input, :scope > p',
         ),
       ]
       hitos.forEach((a, i) => {
@@ -223,10 +223,30 @@ async function capturarTramos(page: Page, info: TestInfo, nombre: string): Promi
   })
 }
 
+// 4.12-2: la celda más cargada (par modificado con error, ayuda, ⚙ y ↺) con el foco en cada acción, para verlo y medirlo: las tres a la vista
+// con su nombre, ninguna encimada, y el contorno del foco no tapa a la de al lado.
+async function accionesConFoco(page: Page, info: TestInfo, nombre: string): Promise<void> {
+  const celda = page.locator('[data-caso="todas-las-acciones"]')
+  await celda.scrollIntoViewIfNeeded()
+  await celda.locator('[data-parada="0"]').focus()
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight')
+  await expect(celda.locator('[data-parada="12"]')).toBeFocused()
+  await page.keyboard.press('ArrowLeft')
+  await expect(celda.locator('[data-parada="11"]')).toBeFocused()
+  await expect(celda.locator('[data-parada="11"]')).toHaveAttribute(
+    'aria-label',
+    /^Cambiar el valor por defecto de /,
+  )
+  await expect(celda.locator('[data-parada="10"]')).toHaveAttribute('aria-label', /^Ayuda de /)
+  expect(await problemasDeCaja(page)).toEqual([])
+  await capturar(page, info, `${nombre}-acciones-con-foco`)
+  await celda.locator('[data-parada="0"]').focus()
+}
+
 for (const { tema, zoom } of COMBINACIONES) {
   test(`la celda en ${tema}, con el texto al ${zoom} %`, async ({ page }, info) => {
     await abrir(page, { tema, zoom })
-    await expect(page.locator('[data-xcell]')).toHaveCount(16)
+    await expect(page.locator('[data-xcell]')).toHaveCount(20)
     await sinScrollHorizontal(page)
     await sinTextoCortado(page.locator('#banco'))
     expect(await problemasDeCaja(page)).toEqual([])
@@ -234,6 +254,7 @@ for (const { tema, zoom } of COMBINACIONES) {
     await tonosYContraste(page, tema)
     await anilloDistintoDelFoco(page)
     await capturarTramos(page, info, `${tema}-${zoom}`)
+    await accionesConFoco(page, info, `${tema}-${zoom}`)
     await entradaIgualAlBoton(page, 'normal', 0)
     await page.keyboard.press('Escape')
     await entradaIgualAlBoton(page, 'par-modificado', 1)
@@ -276,6 +297,13 @@ test('Modo Live: la cifra tipeada no queda a la vista ni en el árbol de accesib
   const valores = await valoresEnElArbol(page, 'Fees')
   expect(valores, 'hay un cuadro de texto «Fees» en el árbol').toHaveLength(1)
   expect(valores.join(), 'la cifra de la entrada abierta').not.toMatch(/1\.?234/)
+  // Las marcas que ignoran los gestores de contraseñas. Que Chrome no ofrezca «Guardar contraseña» NO se puede probar aquí: el Chromium
+  // de Playwright no trae gestor (ver la ficha de la xcell).
+  await expect(entrada).toHaveAttribute('autocomplete', 'off')
+  await expect(entrada).toHaveAttribute('data-1p-ignore', 'true')
+  await expect(entrada).toHaveAttribute('data-lpignore', 'true')
+  await expect(entrada).toHaveAttribute('data-bwignore', 'true')
+  await expect(entrada).toHaveAttribute('data-form-type', 'other')
 })
 
 test('sin el Modo Live la entrada es un cuadro de texto con su valor a la vista del lector', async ({

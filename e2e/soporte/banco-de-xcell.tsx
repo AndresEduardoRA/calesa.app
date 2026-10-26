@@ -9,10 +9,15 @@ declare global {
   interface Window {
     __emitidos: [string, number | null][]
     __resets: string[]
+    __ayudas: string[]
+    __ajustes: string[]
   }
 }
 
-type Caso = Omit<XCellProps, 'suggested' | 'overridden' | 'onCommit' | 'onReset'> & {
+type Caso = Omit<
+  XCellProps,
+  'suggested' | 'overridden' | 'onCommit' | 'onReset' | 'onHelp' | 'onSettings'
+> & {
   caso: string
   suggested?: boolean
   overridden?: boolean
@@ -153,6 +158,50 @@ const CASOS: Caso[] = [
     value: 6.96,
     tone: 'verde',
   },
+  // 4.12-2: la ayuda y el ⚙. El orden del DOM cuenta: el e2e de `Tab` va de `tipo-de-cambio` a `ayuda`.
+  {
+    caso: 'ayuda',
+    id: 'fees_a',
+    label: 'Fees de la casa',
+    format: 'monto',
+    value: 450,
+    hasHelp: true,
+  },
+  {
+    caso: 'configurable',
+    id: 'iva_c',
+    label: 'Alícuota de IVA',
+    format: 'porcentaje',
+    value: 0.13,
+    defaultValue: 0.13,
+    hasSettings: true,
+  },
+  {
+    caso: 'deshabilitado-con-acciones',
+    id: 'gar_c',
+    label: 'Garantía extendida',
+    format: 'monto',
+    value: 0,
+    overridden: true,
+    disabledReason: 'Se activa con el interruptor de garantía.',
+    hasHelp: true,
+    hasSettings: true,
+  },
+  {
+    caso: 'todas-las-acciones',
+    id: 'todo',
+    label: 'Comisión del despachante aduanero por trámite de nacionalización',
+    format: 'monto',
+    value: 320,
+    defaultValue: 300,
+    overridden: true,
+    error: 'Tiene que ser menor que el precio de subasta.',
+    secondaryId: 'todo_pct',
+    secondaryFormat: 'porcentaje',
+    secondaryValue: 0.032,
+    hasHelp: true,
+    hasSettings: true,
+  },
 ]
 
 // `?modo=300`: 300 celdas de la mezcla, con ids propios.
@@ -186,6 +235,12 @@ function Hoja({ casos }: { casos: Caso[] }) {
     window.__resets.push(id)
     setQuitados((antes) => ({ ...antes, [id]: true }))
   }, [])
+  const alAyudar = useCallback((id: string) => {
+    window.__ayudas.push(id)
+  }, [])
+  const alAjustar = useCallback((id: string) => {
+    window.__ajustes.push(id)
+  }, [])
 
   return (
     <main
@@ -210,6 +265,8 @@ function Hoja({ casos }: { casos: Caso[] }) {
             overridden={(overridden ?? false) && !(celda.id in quitados)}
             onCommit={alCommit}
             onReset={alReset}
+            onHelp={alAyudar}
+            onSettings={alAjustar}
           />
         </div>
       ))}
@@ -219,6 +276,8 @@ function Hoja({ casos }: { casos: Caso[] }) {
 
 window.__emitidos = []
 window.__resets = []
+window.__ayudas = []
+window.__ajustes = []
 const destino = document.getElementById('banco')
 if (destino) {
   const modo = new URLSearchParams(window.location.search).get('modo')

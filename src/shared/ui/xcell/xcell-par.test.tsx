@@ -88,6 +88,26 @@ describe('las flechas y el recorrido de Tab', () => {
     expect(document.activeElement).toBe(c.parada(1))
   })
 
+  it('→ recorre las cinco paradas (valor, secundario, ayuda, ⚙, ↺) y Esc en cada acción vuelve al valor', () => {
+    const c = celda({
+      ...MODIFICADA,
+      hasHelp: true,
+      onHelp: vi.fn(),
+      hasSettings: true,
+      onSettings: vi.fn(),
+    })
+    c.parada(0)?.focus()
+    for (const parada of [1, 10, 11, 12]) {
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'ArrowRight' })
+      expect(document.activeElement).toBe(c.parada(parada))
+    }
+    for (const parada of [10, 11, 12]) {
+      c.parada(parada)?.focus()
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: 'Escape' })
+      expect(document.activeElement).toBe(c.parada(0))
+    }
+  })
+
   it('Esc en ↺ vuelve al valor; Esc en el valor no lo atiende (es del modal)', () => {
     const alEsc = vi.fn()
     const c = celda(MODIFICADA)

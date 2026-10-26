@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
+  accionesDe,
   abreConSuCaracter,
   estadosDe,
   hayCambio,
@@ -136,5 +137,58 @@ describe('abreConSuCaracter', () => {
     expect(abreConSuCaracter('s', true, false, false)).toBe(false)
     expect(abreConSuCaracter('s', false, true, false)).toBe(false)
     expect(abreConSuCaracter('s', false, false, true)).toBe(false)
+  })
+})
+
+describe('accionesDe', () => {
+  const f = () => undefined
+  const base = {
+    id: 'fees',
+    overridden: false,
+    bloqueada: false,
+    defaultValue: undefined,
+    hasHelp: undefined,
+    hasSettings: undefined,
+    onHelp: undefined,
+    onSettings: undefined,
+  }
+
+  it('sin nada no hay acciones', () => {
+    expect(accionesDe(base)).toEqual({
+      alAyudar: null,
+      alAjustar: null,
+      restablecer: null,
+      hay: false,
+    })
+  })
+
+  it('la ayuda y el ⚙ piden la bandera y el callback, y emiten el id de la celda', () => {
+    const onHelp = vi.fn()
+    const onSettings = vi.fn()
+    expect(accionesDe({ ...base, hasHelp: true }).alAyudar).toBeNull()
+    expect(accionesDe({ ...base, onHelp }).alAyudar).toBeNull()
+    expect(accionesDe({ ...base, hasSettings: true }).alAjustar).toBeNull()
+    const a = accionesDe({ ...base, hasHelp: true, onHelp, hasSettings: true, onSettings })
+    a.alAyudar?.()
+    a.alAjustar?.()
+    expect(onHelp).toHaveBeenCalledExactlyOnceWith('fees')
+    expect(onSettings).toHaveBeenCalledExactlyOnceWith('fees')
+    expect(a.hay).toBe(true)
+  })
+
+  it('con el candado siguen la ayuda y el ⚙ y se va ↺', () => {
+    const a = accionesDe({ ...base, overridden: true, bloqueada: true, hasHelp: true, onHelp: f })
+    expect(a.alAyudar).not.toBeNull()
+    expect(a.restablecer).toBeNull()
+  })
+
+  it('↺ dice a dónde vuelve, sin la cifra', () => {
+    expect(accionesDe({ ...base, overridden: true }).restablecer).toBe('Volver al sugerido')
+    expect(accionesDe({ ...base, overridden: true, defaultValue: 0.4 }).restablecer).toBe(
+      'Volver al valor por defecto',
+    )
+    expect(accionesDe({ ...base, overridden: true, defaultValue: null }).restablecer).toBe(
+      'Volver al valor por defecto',
+    )
   })
 })

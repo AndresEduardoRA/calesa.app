@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { abrir, BASE, celda } from './xcell.soporte'
-import { SimbolosDeXCell } from './simbolos-de-xcell'
+import { IDS_DE_ICONOS_DE_XCELL, SimbolosDeXCell } from './simbolos-de-xcell'
 import { XCell, type XCellProps } from './index'
 
 afterEach(cleanup)
@@ -164,6 +164,13 @@ describe('los iconos del sprite', () => {
       { overridden: true },
       { disabledReason: 'Apagado' },
       { error: 'Mal' },
+      {
+        overridden: true,
+        hasHelp: true,
+        onHelp: () => undefined,
+        hasSettings: true,
+        onSettings: () => undefined,
+      },
     ]
     for (const caso of casos) {
       const { container } = render(
@@ -180,6 +187,15 @@ describe('los iconos del sprite', () => {
         expect(container.querySelector(`defs ${href ?? '#nada'}`), String(href)).not.toBeNull()
       }
       cleanup()
+    }
+  })
+
+  it('cada id de IDS_DE_ICONOS_DE_XCELL existe en el sprite, con trazo', () => {
+    const { container } = render(<SimbolosDeXCell />)
+    for (const id of IDS_DE_ICONOS_DE_XCELL) {
+      const grupo = container.querySelector(`defs #${id}`)
+      expect(grupo, id).not.toBeNull()
+      expect(grupo?.children.length, id).toBeGreaterThan(0)
     }
   })
 })
