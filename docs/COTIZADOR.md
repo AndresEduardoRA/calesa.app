@@ -1130,8 +1130,8 @@ Orden de candados: el del intento, el lead, el vehículo, la fórmula (el de `ve
 
 Cada `input`, `constante`, `tipo_cambio` y nodo `sobrescribible` es una `XCell` (el par porcentaje-monto es una sola, con su secundario): `value = valores[id]`, `defaultValue = defaults[id]`,
 `suggested = fuentes[id] === 'sugerido'`, `disabledReason` si su `condicion` está apagada o es de otra variante,
-`onHelp` si el nodo viene de una tabla (abre la tabla editable inline), `settingsSlot` (⚙) si es
-`constante` y el usuario tiene `cotizaciones.configurar` del origen → `formula_cambiar_constante`, o si es
+`hasHelp` / `onHelp(id)` si la celda del diseño trae `ayuda` (una `tabla`, que abre la tabla editable inline, **o** un `texto`; lo que abre lo decide la hoja),
+`hasSettings` / `onSettings(id)` (⚙) si es `constante` y el usuario tiene `cotizaciones.configurar` del origen → `formula_cambiar_constante`, o si es
 `tipo_cambio` y tiene `empresa.tipos_cambio.gestionar` → `tipo_cambio_guardar` (afecta a todos los orígenes; D7). Desde D7 el
 binding sale del diseño de la hoja y de los niveles: una celda que el nivel esconde no se dibuja.
 El ⚙ cambia el default global (versión N+1); «Aplicar también a esta cotización» es el único
@@ -1143,7 +1143,12 @@ esa bandera no se distingue «modificado» de «input». ↺ dice «Volver al va
 dos lados editables** (`secondaryId`, `secondaryValue`, `secondaryFormat`): cada lado emite `onCommit(suId, valor)` y ↺ emite `onReset(id)`; **la hoja traduce** (editar el % quita el override
 del monto, porque si no el monto lo pisa; ↺ quita los dos). Emite sólo si el número cambió (a 15 cifras); vacío es `null`; un porcentaje se tipea en puntos y se emite como fracción.
 **La celda no valida el rango, lo obligatorio ni lo entero: lo hace la base y su mensaje vuelve por `error`.** Los tonos llegan por `<EstiloDeTonos tonos>`, una vez por hoja, y la celda sólo
-lleva `data-tono="<clave>"`. Una parada de `Tab` por valor; ↺ y, en el prompt 2, la ayuda y el ⚙ se alcanzan con `→` desde el valor: **las flechas son de la celda**, la hoja no las usa para moverse.
+lleva `data-tono="<clave>"`. Una parada de `Tab` por valor; la ayuda, el ⚙ y ↺ se alcanzan con `→` desde el valor (valor → secundario → ayuda → ⚙ → ↺): **las flechas son de la celda**, la hoja no las usa para moverse.
+
+**La ayuda y el ⚙ (4.12, prompt 2).** Son banderas (`hasHelp`, `hasSettings`) **más** un callback (`onHelp(id)`, `onSettings(id)`), y la hoja pasa **los mismos callbacks a todas las celdas** (el `memo` aguanta cientos de
+celdas cada 150 ms). **La celda no decide permisos ni abre nada:** la hoja calcula las banderas (permiso, tipo de nodo, `ayuda` del diseño) y decide qué abrir; la celda emite el id de la celda (no el del secundario) y no mueve el
+foco, así que devolverlo al cerrar lo abierto es de la hoja. **Deshabilitada:** la ayuda y el ⚙ siguen (no escriben en esta cotización) y ↺ se va. **Modo Live:** siguen; lo que abran pasa sus cifras por `<Monto>`. Si no corresponde
+(un tipo de cambio sin permiso), la hoja no manda `hasSettings`. Con acciones, el valor anuncia el atajo (`aria-keyshortcuts` y una descripción: «Más acciones con la flecha derecha.»).
 
 ## Plantilla de tarjeta (PDF)
 

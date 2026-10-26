@@ -2847,3 +2847,62 @@ un tono sin neutro, Enter sin `preventDefault` y desmontar la entrada en Tab: to
 **e2e completo: no (4.12-1, pantalla, 1 de 3).** Van 1 de 3 pasos de pantalla seguidos sin completo; el Nivel 2 lo corre el prompt 2 (decisión hf).
 
 **ESTADO:** la línea «Fase actual» y el punto 1 de «Siguiente» dicen ahora el 4.12-1 y el prompt 2; 12.279 B.
+
+## 2026-10-26 — Movido de ESTADO (4.12-2)
+
+Copiado tal cual de `docs/ESTADO.md` antes del cierre del 4.12-2 (la línea «Fase actual» y el punto 1 de «Siguiente» entero):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **prompt 1 del paso 4.12**: `XCell`, la celda de la hoja de cotizar (`src/shared/ui/xcell`, sin pantalla todavía); antes, el **4.11** y el **4.10 entero**. **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20**, **4-21**, **4-23**, **4-24** y **4-25** siguen abiertos. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 a 2026-10-26, «movido de ESTADO», 4.08-1 a 4.12-1).
+
+1. **4.12, prompt 2 de 2** (la ayuda `onHelp` y el ⚙ `settingsSlot` de la `XCell`, en la ranura de acciones que dejó el 1, y el **Nivel 2**, sólo escritorio: toca `src/shared`) y después 4.13 a 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»); los de pura pantalla, con Nivel 1 y el completo cada 3 (`.claude/rules/e2e.md`; van **1 de 3** sin completo: 4.12-1). **Del 4.12-1:** la celda no calcula y el par es una celda con dos lados (`onCommit(id, valor)`, `onReset(id)`); las acciones llevan `tabIndex -1` y se alcanzan con `→` desde el valor (el prompt 2 suma la ayuda y el ⚙ ahí, sin decidir nada más: `src/shared/ui/xcell/CLAUDE.md`); el rango lo valida la base y vuelve por `error`; **4-25** (el parser de números) se decide en el 4.13. Hereda del 4.10: nadie escribe `cotizaciones` directo; `cotizacion_crear(…, p_formula_abierta, p_abierta_en, …)` (D2: PT409 `desactualizada`) y `cotizacion_guardar(id, intento, versión, entradas, modo, título, notas, vehículo)` son las únicas puertas, y las llamará la pantalla de cotizar (4.13, con **4-21**: la lectura que abre la hoja da la versión de la fórmula y la hora, y el intento de guardar es un uuid por guardado). Guardar conserva lo oculto y recalcula lo derivado; una final pide `cotizaciones.final.gestionar`; el orden de candados es vehículo(s) → cotización, no el del pedido (`docs/DECISIONES.md`, «Paso 4.10 (3 de 3)»). `cotizaciones.modo_tc` guarda la clave de un modo de la cabecera; el ⚙ de un tipo de cambio es `tipo_cambio_guardar`; las `entradas` sólo llevan `inputs`, `banderas`, `overrides` y `variante`; el transporte sembrado casa `tipo` con `tipo_vehiculo` (el de la subasta, «AUTOMOBILE», no casa: queda sin valor y se tipea). Para el 4.13: el diseño recortado que dibuja la hoja es una lectura propia.
+
+## 2026-10-26 — Paso 4.12 (2 de 2): la ayuda y el ⚙ de la `XCell`, y el cierre de la fila (4.12-2)
+
+**Qué se pidió:** cerrar la `XCell` (`src/shared/ui/xcell/`, sin pantalla, sin tocar `src/modules/cotizaciones` ni la base): la ayuda y el ⚙ en la ranura de acciones, en el orden decidido (valor → secundario → ayuda → ⚙ → ↺, con flechas y `tabIndex -1`); los nombres con el glosario y los iconos por el sprite;
+anunciar las flechas; Modo Live y los gestores de contraseñas; el ayudante de pruebas fuera del aspecto de producto; volver a medir los nodos; y el Nivel 2 que cierra la fila 4.12. Decisiones hh a hs: `docs/DECISIONES.md`, 2026-10-26, «Paso 4.12 (2 de 2)».
+Antes de empezar: `df -h /` dijo 94 % (bajo el 95 %, y se volvió a mirar antes de cada compilación: siguió en 94 %); `git status` limpio. No se leyó `.env.local`.
+
+**Lo que la persona respondió:** no hubo preguntas. **Me respondió aprobando el plan sin cambios.**
+
+**Qué se hizo:**
+
+- **La ayuda y el ⚙:** `hasHelp` / `onHelp(id)` y `hasSettings` / `onSettings(id)` (banderas y callbacks aparte, los mismos para todas las celdas; la celda no decide permisos y no mueve el foco). `accionesDe()` en `estado.ts` (pura, con test). Siguen en una celda deshabilitada y en Modo Live; ↺ se va con el candado.
+  `cabecera-de-xcell.tsx` con un `BotonDeAccion` y las paradas 10, 11 y 12. El binding de `docs/COTIZADOR.md` corregido: la ayuda es una `tabla` **o** un `texto`, no sólo una tabla.
+- **Nombres e iconos:** «Ayuda de {label}» y «Cambiar el valor por defecto de {label}»; `xcell-ayuda` y `xcell-ajustes` en el sprite (los trazos de `circle-help` y `settings` de lucide, sin dependencia). La fila «XCell» del glosario apuntaba a `src/shared/ui/x-cell`: corregida.
+- **El atajo anunciado:** con acciones, y en los dos lados de un par, el valor lleva `aria-keyshortcuts` y `aria-describedby` a «Más acciones con la flecha derecha.» (un nodo por hoja en `<SimbolosDeXCell/>`). Antes salía también en un par sin acciones y sólo en el lado principal.
+- **Live y gestores de contraseñas:** `autoComplete="off"`, `data-1p-ignore`, `data-lpignore`, `data-bwignore` y `data-form-type` en la entrada de contraseña. **No se puede probar aquí** (el Chromium de Playwright no trae gestor); queda escrito en la ficha.
+- **`celda-de-prueba.tsx` → `xcell.soporte.tsx`**, el patrón de `funcion-apibara.soporte.ts`; `scripts/mapa.sh` no lista `*.soporte.*`.
+- **La cabecera:** `gap-2` entre acciones y `flex-wrap` con la etiqueta en 6 rem (hp).
+- **Pruebas:** `xcell-acciones.test.tsx` (nuevo, 11 casos), `estado.test.ts` (`accionesDe`), el recorrido de cinco paradas, el sprite (cada id existe), los nodos y el memo con ayuda y ⚙. e2e: el banco con cuatro celdas nuevas (`ayuda`, `configurable`, `deshabilitado-con-acciones`, `todas-las-acciones`),
+  la descripción del valor por CDP, el recorrido con las flechas, las marcas de Live, la caja de las tres acciones y una captura con el foco en cada una.
+- **Docs:** la ficha, `COTIZADOR.md` › «Binding con la XCell», `GLOSARIO.md`, `PLAN.md` (fila 4.12 hecha), `DECISIONES.md` y esta entrada.
+
+**Verificación (Nivel 1):** `pnpm lint` y `pnpm typecheck` limpios; `pnpm test` en verde (**360 archivos, 4.151 pruebas**); `bash scripts/mapa.sh --check` pasa; el e2e dirigido (`E2E_SIN_FUNCIONES=1 … e2e/xcell-teclado.spec.ts e2e/xcell-geometria.spec.ts`), **34 en verde** (17 en `escritorio` y 17 en `movil`).
+
+**Mutaciones** (se rompe el código, se ve caer la prueba, se restaura y se compara con `cmp`): la ayuda sin su bandera, ↺ con el candado, sin la descripción del atajo, el atajo antes que la nota, las marcas de los gestores siempre o nunca, el atajo en un par sin acciones, las paradas de la ayuda y el ⚙ cambiadas,
+la ayuda con otro id: **las nueve corridas caen** (la segunda de «la descripción» se rehízo: el texto de la primera ya no estaba tras Prettier). El `gap-0` de la cabecera lo cayó la geometría sola, antes de corregirlo.
+
+**Lo que se midió y cambió el diseño:** (1) tres acciones a 0 px una de otra: la geometría cayó; `gap-2` (hp). (2) Al 200 % en el celular, la celda más cargada quebraba la etiqueta a media palabra («despachan/te», «nacionaliz/ación»), sin cortarla y sin que ninguna aserción lo viera: se vio en la hoja de contacto; las acciones bajan a su fila (hp).
+(3) React escribe `data-1p-ignore={true}` como «true» y no vacío (hs). (4) Nodos por celda: normal 8, par 9, la ayuda o el ⚙ **+3** cada uno, modificado con los dos 17, **el peor 21** (era 15); 300 celdas de la mezcla del banco: **3.000** (tope 3.100, eran 2.688 y 2.800); la mezcla del vitest: 3.368 (tope 3.500).
+
+**Recorrido (a cargo de la IA):** `E2E_CAPTURAS` con `e2e/xcell-geometria.spec.ts` y `node scripts/hoja-de-contacto.mjs`, dos veces: la primera (15 hojas, todas abiertas) encontró la etiqueta quebrada del celular al 200 %; la segunda es la final: **14 hojas, abiertas todas** (las 5 de escritorio y las 9 de celular). Lo visto en la final:
+
+- `escritorio-01` (claro 100 %, tramos 1 y 2; con el foco en el ⚙; editando con error): cuatro columnas; la fila nueva con «Fees de la casa» (ayuda), «Alícuota de IVA» (⚙), «Garantía extendida» (candado, ayuda y ⚙, con su anillo de modificada) y «Comisión del despachante aduanero…» (ayuda, ⚙ y ↺, el par, el error); las acciones separadas, el contorno azul del foco sobre el ⚙ sin tocar a sus vecinas.
+- `escritorio-02` (claro 200 %, tramos 1 a 4): la etiqueta larga en tres líneas con sus tres acciones al lado, nada cortado; el candado con su motivo; el par con aire. Sin novedad.
+- `escritorio-03` (claro 200 % con el foco en el ⚙ y editando con error; oscuro 100 %, tramos 1 y 2): el foco sobre el ⚙ al 200 %, a la vista; el oscuro con los mismos íconos legibles. Sin novedad.
+- `escritorio-04` (oscuro 100 % con foco y con error; oscuro 200 %, tramos 1 y 2): el contorno lavanda en el ⚙ y el aviso de «abc». Sin novedad.
+- `escritorio-05` (oscuro 200 %, tramos 3 y 4, con foco y con error): la fila de las acciones, los tonos y los avisos con el texto ampliado. Sin novedad.
+- `movil-01` y `movil-02` (claro 100 %, tramos 1 a 3 y con foco y error; claro 200 %, tramo 1): una columna, las acciones de 44 px, «Comisión del despachante aduanero…» con sus tres acciones a la derecha de la etiqueta (en tres líneas) y el ⚙ enfocado, sin tocar a la ayuda ni a ↺.
+- `movil-03` y `movil-04` (claro 200 %, tramos 2 a 6 y con foco): las celdas con una o dos acciones, y **la más cargada con la etiqueta entera en cuatro líneas y las tres acciones en su propia fila, a la derecha** (la corrección de hp); el ⚙ con foco.
+- `movil-05` y `movil-06` (claro 200 % con error; oscuro 100 %, tramos 1 a 3, con foco y con error): lo mismo en oscuro, sin acciones fuera de la celda. Sin novedad.
+- `movil-07`, `movil-08` y `movil-09` (oscuro 200 %, tramos 1 a 6, con foco y con error): las acciones en su fila bajo la etiqueta de la celda más cargada, el foco lavanda sobre el ⚙, y la etiqueta entera. Sin novedad.
+- **Lo que se vio y no se tocó:** nada nuevo; sigue pendiente lo del 4.12-1 (el borde de un par sin modificar, que se decide en el 4.13).
+
+**Del entorno:** Next avisa de una vulnerabilidad (`SecurityFatalError`) y detuvo el primer `next build` de **cuatro de las ocho** corridas con compilación (tres e2e dirigidos y el primer intento del Nivel 2, a los 52 s, tras las carreras); el mismo comando repetido compiló en todas. No se corrió `next upgrade`; decide la persona.
+`functions serve` se levantó para el Nivel 2 y se cerró por PID (sin contenedor `supabase_edge_runtime_*` al terminar). Los scripts y las capturas viven en el scratchpad de la sesión.
+
+**e2e completo: sí (4.12-2, escritorio): 712 en verde, 16 saltados, 0 fallos, 27,2 min de pruebas, de las 09:53 a las 10:21 (hora de La Paz).** (Nivel 2 por tocar `src/shared`; la cuenta de los pasos de pantalla vuelve a 0.) `leads-exportar` no cayó.
+
+**ESTADO:** la línea «Fase actual» y el punto 1 de «Siguiente» dicen ahora el 4.12 hecho y el 4.13; **12.262 B** (`wc -c`, tope 12.288). Lo que salió, copiado sin resumir en «Movido de ESTADO (4.12-2)», arriba.
+
+**Lo que no se hizo:** el 4.13, ningún push ni dispatch, `next upgrade`, el Nivel 3, la prueba del gestor de contraseñas de Chrome (no se puede aquí).
