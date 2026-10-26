@@ -320,5 +320,8 @@ export default defineConfig([
     // Deno, con sus globales y sus imports: `tsconfig.json` ya lo excluye, y sin proyecto de
     // TypeScript el lint tipado no tiene cómo leerlo. Se verifica con el e2e contra el runtime.
     'supabase/functions/**',
+    // Un worktree de otra sesión y lo que escribe el piloto: no son código de este árbol (el ESLint plano no ignora carpetas con punto).
+    '.claude/worktrees/**',
+    '.piloto/**',
   ]),
 ])

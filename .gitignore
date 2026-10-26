@@ -26,9 +26,12 @@ e2e/.auth/
 supabase/.branches/
 supabase/.temp/
 
-# claude code (contador del hook Stop)
+# claude code (contador del hook Stop, su huella verde, los worktrees y lo que escribe el piloto)
 .claude/.intentos-stop
+.claude/.verificado-stop
 .claude/settings.local.json
+.claude/worktrees/
+.piloto/
 
 # referencias del negocio: la planilla de una empresa no viaja en el producto white-label;
 # su transcripción está en docs/referencias/excel-de-cotizacion.md

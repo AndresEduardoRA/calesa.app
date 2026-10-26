@@ -1,0 +1,2 @@
+# Lo ignorado por git que un worktree de Claude Code copia: lo que pide `next build`.
+.env.local
