@@ -1519,3 +1519,37 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **El detector del inventario (4-16).** Ahora mira toda función cuyo retorno no sea `void`, `uuid` ni `trigger`, y el cierre por llamadores es iterativo (una regex con todos los nombres por vuelta, no una por par): `cotizaciones-visibilidad.sql` corre en **7,9 s, antes 16,8 s**; con el cierre recursivo de antes y los tipos nuevos habría sido de 20,2 s.
 - **`db:probar`:** 394 bloques en 4 min 4 s (antes 374 y 4 min 9 s).
 - **Verde en `db:medir:volumen`** (6,4 min); la primera corrida cayó una vez por la guarda de bloques de `medir-evaluar.sql` (arriba: 9 contra 8), sin tocar ningún tope.
+
+## Paso 4.11: la lectura de vehículos con 50.000 y con 250.000, y `puede_vehiculo()` (2026-10-26)
+
+- **Cómo se mide:** `supabase/tests/medir-vehiculos-lectura.sql`, en `pnpm db:medir:volumen` (antes de `medir-cotizaciones-lectura.sql`), contra el Supabase local (Postgres 17)
+  con la siembra de volumen. Lleva los vehículos vivos a 50.000 y después a 250.000 en una transacción que se deshace, **como `authenticated`**, con el plan genérico
+  (`PREPARE` con `force_generic_plan`) y `EXPLAIN (ANALYZE, BUFFERS)`, mediana de 5 de 7. La consulta es la del inventario (`origen_id`, `order by creado_en desc, id desc`,
+  `n + 1` = 101, el cursor de `aplicarCursor`) con las columnas de la tabla, **sin la portada embebida ni `limpieza_el`**: la portada vuelve a pasar por la policy de
+  `vehiculos` en cada foto (la de `vehiculos_imagenes` es un `exists` sobre el vehículo), así que en la página real de Beto `en_cartera` corre unas dos veces por fila,
+  acotado por la página. `vacuum` de `vehiculos` y `leads_asesores` antes y después.
+- **Quién:** la dueña («todos»), Pía («propios», sus 5.000 son lo más nuevo del origen A), Beto («propios», compartido en los 50.000 leads «Volumen»; 5.000 vehículos de su
+  cartera, lo más nuevo del origen B) y la «chica» (3 propios, lo más viejo de A, sin cartera). Primera página y una profunda por cursor, a 2.000 dentro de su bloque.
+
+| Medición (ms · buffers)                   | lo de antes (250.000) | 50.000      | 250.000      | Tope                                                               |
+| ----------------------------------------- | --------------------- | ----------- | ------------ | ------------------------------------------------------------------ |
+| dueña, página 1 y profunda                | 0,4 · 73 y 75         | 0,4 · 73/75 | 0,4 · 73/75  | 10 ms · 300                                                        |
+| Pía, sobre lo que creó                    | 0,7 · 141 y 143       | 0,7 · 141   | 0,7 · 141    | 10 ms · 300                                                        |
+| Beto, sobre su cartera                    | **37,5 · 802**        | 1,8 · 648   | 1,7 · 648    | 10 ms · 1.000                                                      |
+| `puede_vehiculo()` de Beto                | **34,5 · 754**        | 0,5 · 55    | 0,5 · 55     | 5 ms                                                               |
+| la chica, página 1 (sin assert, **4-23**) | 34,3 · 6.649          | 6,8 · 1.744 | 32,7 · 6.647 | —                                                                  |
+| razón de ms con 250.000 sobre 50.000      | —                     | —           | 1,0 en todas | ≤ máx(1,5 × t; t + 3 ms), y los buffers ≤ 1,2 × los de 50.000 + 20 |
+
+- **Llamadas por página** (`track_functions = 'all'`, `pg_stat_xact_user_functions`): la dueña y Pía, 0 a `en_cartera`, `alcance_de` y `mis_leads`, y 2 a
+  `origenes_con_alcance`; Beto, 101 a `en_cartera` (una por fila) y 0 a `mis_leads` y `alcance_de`; `puede_vehiculo()`, 1 a `alcance_de` y 1 a `en_cartera`; la chica, 0
+  a `en_cartera` (sus filas no tienen lead).
+- **Lo de antes** (la guarda: la policy y la función de antes puestas en la transacción, con los mismos datos): la dueña y Pía cuestan lo mismo —el `or` corta antes de
+  la rama de la cartera, y el hash de `mis_leads()` se arma recién la primera vez que se evalúa—; Beto arma la cartera entera (1 llamada a `mis_leads`, 37,5 ms) y su
+  `puede_vehiculo()` también (34,5 ms, 2 llamadas a `alcance_de`). La guarda exige que esos dos caigan.
+- **La chica (4-23):** camina `vehiculos_origen_listado_idx` hasta terminar el origen (125.000 filas con 250.000); cuesta lo mismo con la policy de antes. Con el
+  `en_cartera(lead_id)` del molde, sin `lead_id is not null`, eran **927 ms y 123.331 llamadas**.
+- **`medir-bajas.sql` cayó en las corridas enteras** (26,4 s y 14 corridas con esta medición antes de cotizaciones; 27,8 s con ella al final, después de la baja), siempre
+  con 40 lotes y con checkpoints en la ventana (escribir 36,5 s y 4,7 s); sola, 15,6 s. Es 5a-42 (el job es de tiempo y un checkpoint lo tumba sin regresión); no cambió
+  ningún tope ni ningún lote. Todo lo demás de `db:medir:volumen` pasó, la lectura de cotizaciones y el inventario de `medir-escala.sql` incluidos.
+- **`db:medir`:** `cotizacion_crear()` (la preventa 6,5 ms y 265 buffers con 250.000; antes 5,6 y 282: menos buffers, porque `puede_vehiculo()` mira el alcance una vez)
+  y `cotizacion_guardar()` (2,0 a 7,5 ms y 55 a 307 buffers; la sintética 43,8 a 43,9 ms y 434 a 438) en verde.

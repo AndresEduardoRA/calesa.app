@@ -2704,3 +2704,89 @@ escritorio y celular. **El bloque 1 desde base limpia**, como CI: `pnpm db:reset
 - **Para la persona:** este dispatch corrió `carreras` en verde y la tabla de 9-6 sigue vacía; si cuenta como la primera de las 5 seguidas, falta su fila.
 
 **ESTADO:** la línea de CI dice ahora minutos facturables (push con código 22, dispatch de escritorio ≈ 94) y reloj (27 a 32 min); 12.280 B.
+
+## 2026-10-26 — Movido de ESTADO (4.11)
+
+Copiado tal cual de `docs/ESTADO.md` antes del cierre del 4.11 (la línea «Fase actual», la línea «Verdes» de «Funcionando», con su «Último Nivel 2 (escritorio), el paso 4.10 prompt 3», y los puntos 1 y 2 de «Siguiente»; del punto 1 salió además la frase del inventario de `cotizaciones-visibilidad.sql`, que ya dice `.claude/rules/migraciones.md`):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.10 entero** (tres prompts): la lectura, el alta (`cotizacion_crear`, con D2 «desactualizada») y la edición, **`cotizacion_guardar`** (conserva lo que quien guarda no ve; versión esperada; intento; revisión por nodo). **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20** y **4-21** siguen abiertos. Entre medio, **CI-1** (BITACORA y DECISIONES). Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 y 2026-10-25, «movido de ESTADO», 4.08-1 a CI-1).
+
+- Verdes: lint, typecheck, test, `db:probar` (matrices, cinturón de la auditoría y cinturón de enforcement de permisos), `db:lint`, `db:carreras` (dos o tres conexiones reales, sin `sleep`), `db:medir:volumen`, `mapa.sh` y el e2e completo. Último Nivel 2 (escritorio), el paso 4.10 prompt 3: 689 en verde, 16 saltados, 0 fallos, 29,6 min. Último Nivel 3 (los dos proyectos), el cierre de la Fase 3: escritorio 640 en verde y 16 saltados, celular 425 y 18, 0 fallos, 40,1 min (ver BITACORA, 2026-10-22). **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide `npx supabase functions serve`); los tres niveles de verificación, en `.claude/rules/e2e.md`. Apibara sin clave: lo grabado.
+
+1. **4.11** (`puede_vehiculo()` y la policy `vehiculos: leer` por fila; `docs/PLAN.md`, fila 4.11) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»). Hereda del 4.10: nadie escribe `cotizaciones` directo; `cotizacion_crear(…, p_formula_abierta, p_abierta_en, …)` (D2: PT409 `desactualizada`) y `cotizacion_guardar(id, intento, versión, entradas, modo, título, notas, vehículo)` son las únicas puertas, y las llamará la pantalla de cotizar (4.13, con **4-21**: la lectura que abre la hoja da la versión de la fórmula y la hora, y el intento de guardar es un uuid por guardado). Guardar conserva lo oculto y recalcula lo derivado; una final pide `cotizaciones.final.gestionar`; el orden de candados es vehículo(s) → cotización, no el del pedido (`docs/DECISIONES.md`, «Paso 4.10 (3 de 3)»). Toda función nueva que pueda devolver lo oculto se registra en el inventario de `cotizaciones-visibilidad.sql`. `cotizaciones.modo_tc` guarda la clave de un modo de la cabecera; el ⚙ de un tipo de cambio es `tipo_cambio_guardar`; las `entradas` sólo llevan `inputs`, `banderas`, `overrides` y `variante`; el transporte sembrado casa `tipo` con `tipo_vehiculo` (el de la subasta, «AUTOMOBILE», no casa: queda sin valor y se tipea). Para el 4.13: el diseño recortado que dibuja la hoja es una lectura propia. Para el 4.15: registrar `cotizacion_revisiones` (ya lee el diff por nodo) en `RPC_PAGINADAS`; cotizar encima es crear con la publicada. Para el 4.21: un campo del vehículo es una columna o la clave de un campo del origen, **sin puntos**, y la fila que guarda el editor es `{ ...raíz compilada, texto }`. Para el 4.22: `editar_sin_ver` rechaza una sección con sólo `nivel_ver` restringido, y avisa cuando un nodo restringido es el único oculto de una suma visible. Para el 4.25: 4-17; `cotizacion_marcar_final` ya toma primero su cotización, pero vincula el lead antes de tomar el vehículo.
+
+2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (**4-4** cuando una fórmula real pida `HOY()`, **4-21** (repetir el intento de `cotizacion_crear` con otros datos devuelve la vieja y la pantalla no puede mostrarla como lo tipeado) en 4.13, **4-5** y **4-6** —el editor corta el texto de más de 2.000 antes de guardarlo— en 4.21, **4-10** (el tipo de vehículo de la subasta no casa con las filas del transporte) en 4.14, **4-14** («todas las que veo» de quien ve «propios» recorre el índice global) en 4.16, **4-17** (la final directa no vincula ni limpia) en 4.25, **4-19** y **4-20** (el «·» solo y el aviso angosto) en 4.20, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú» con una fila), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT; toca `supabase/schemas`, después del hito 4-A) y **5a-42** (`medir-bajas.sql` cae sin regresión con un `sync` de disco largo: decidir por el trabajo —40 lotes, ≤ 16 M buffers— y juzgar los ms sólo con la ventana sana) sin fase, las decide la persona; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya, y **9-4** a **9-6** (`db:medir`, `db:medir:volumen` y `db:carreras` fuera de CI), de la 9.
+
+## 2026-10-26 — Paso 4.11: `puede_vehiculo()` y la policy `vehiculos: leer` por fila (4.11)
+
+**Horas** (hora de La Paz): el plan, su revisión en contra y las pruebas contra HEAD, la noche del 2026-10-25; la migración, la cadena db, las mediciones y las
+mutaciones, hasta las 00:45 del 2026-10-26; el e2e completo, de las 00:49:20 a las 01:16:05 (el comando; el primer intento, a las 00:47, se detuvo en `next build` por el aviso de seguridad de Next y se repitió el mismo comando). Decisiones gl a gs: `docs/DECISIONES.md`, 2026-10-26, «Paso 4.11»; y la de
+los niveles de e2e de la Fase 4 (la persona, el 2026-10-25), aparte. Antes de empezar: `git status` limpio y la pila de Supabase arriba. No se leyó `.env.local`.
+
+**Qué se hizo:**
+
+- **La migración** `…20261019008800_vehiculos_por_fila.sql`: la policy `vehiculos: leer` con lo propio como `creado_por = (select auth.uid()) or (lead_id is not null and
+public.en_cartera(lead_id))`, y `puede_vehiculo(p_vehiculo, p_clave)` con la misma firma, el alcance como argumento de un `case` (una evaluación) y `en_cartera`.
+- **La matriz** `supabase/tests/vehiculos-visibilidad.sql` (al final de `db:probar`): la policy nueva, la vieja (puesta con `alter policy` en la transacción), la función
+  nueva y una copia de la vieja dan lo mismo y lo esperado, por persona, sobre 23 vehículos; el lead transferido (queda compartida, lo sigue viendo) y revocado (lo pierde);
+  `anon` (42501 en las tres); falso y nunca nulo; y el texto (sin `mis_leads`, con `en_cartera`, con `lead_id IS NOT NULL`, el alcance en un `case`).
+- **La medición** `supabase/tests/medir-vehiculos-lectura.sql` (en `db:medir:volumen`, antes de `medir-cotizaciones-lectura.sql`): la dueña, Pía, Beto y su
+  `puede_vehiculo`, con 50.000 y 250.000 vehículos, y la guarda contra lo de antes; la chica sin assert de tiempo (4-23).
+- **4-22 cerrado:** ningún `random()` para un dato en `supabase/tests/` (doce sitios en seis archivos) y la guarda `scripts/guardas/telefonos-en-pruebas.test.ts`.
+- **`medir-cotizacion-guardar.sql`:** la cabecera remitía a una tabla que no existe; ahora remite al bloque de topes y a RENDIMIENTO, y los topes citan lo medido hoy.
+- **9-6:** las dos corridas por dispatch del 2026-10-25 cuentan por el job `carreras` (2 de 5; commit aparte).
+- **Los niveles de e2e de la Fase 4** (decisión de la persona): cláusula en `.claude/rules/e2e.md` y entrada en DECISIONES (commit aparte).
+
+**El inventario (solo lectura, antes de editar):** `mis_leads()` aparecía, en lo que gobierna vehículos, sus fotos, sus notas y la papelera, sólo en la policy y en
+`puede_vehiculo()`. Todo lo demás hereda la policy por RLS o pasa por `puede_vehiculo()`; la papelera se lee por funciones `definer` sin cartera. **No quedó entrada para
+PLAN** (DECISIONES gl).
+
+**Del plan, tal como se aprobó** (un revisor en contra lo leyó con el código delante: 7 bloqueantes, 6 de diseño y 5 menores, todos incorporados): el caso **Beto** con
+assert (con la dueña y con Pía la policy vieja no llega a la rama de la cartera: la guarda no habría mordido), **`lead_id is not null`** desde el principio, el alcance
+contado una vez, y 4-22 entero.
+
+**Lo que se corrigió al implementar:**
+
+- El `offset 0` que impedía aplanar el lateral lo rechazó la guarda de `escala.sql` (ninguna función pagina con `offset`): el alcance pasó a ser el argumento de un `case`.
+  No se tocó la guarda.
+- `cotizacion-crear.sql` corre `cc_preparar()` dos veces en un bloque: el teléfono fijo chocaba consigo mismo (`leads_telefono_unico`). Secuencias del archivo
+  (`7212…` y `7213…`).
+- Un `if` de plpgsql con un `case … then` adentro (la trampa de `migraciones.md`): el tope de buffers va a una variable.
+- `medir-bajas.sql` cayó en las corridas enteras de `db:medir:volumen` (abajo). `checkpoint` al final de la medición no se puede (`postgres` no tiene `pg_checkpoint`);
+  la medición de vehículos va antes de la de cotizaciones.
+
+**Mutaciones** (arnés en el scratchpad: una copia de `supabase/` en PGlite para la matriz y el humo, y el Postgres 17 local para la medición; 18, **caen 17, 1 equivalente**):
+
+| Qué                            | Mutaciones | Caen | Qué las tumba                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------ | ---------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| La policy (`…008800`)          | 7          | 6    | `en_cartera` por `true` y por `false`, sin `creado_por`, «todos» y «propios» cambiados (la matriz; las dos últimas, también el humo); de vuelta a `mis_leads` (el texto y la medición: Beto, 37,9 ms y 1 `mis_leads`); sin `lead_id is not null` (el texto y la medición: la chica, 123.331 `en_cartera`). **Equivalente:** sin `eliminado_en` (la policy restrictiva ya lo filtra) |
+| `puede_vehiculo()` (`…008800`) | 7          | 7    | `en_cartera` por `true` y por `false`, sin `creado_por`, «todos» y «propios» cambiados en el `case`, sin la papelera (la matriz); de vuelta a `mis_leads` (el texto y la medición: 34,5 ms); el alcance comparado dos veces (el texto y la medición: 2 `alcance_de`)                                                                                                                |
+| Las mismas, contra la medición | 4          | 4    | las de `mis_leads` de la policy y de la función, el alcance dos veces y sin `lead_id is not null`, corridas otra vez en el Postgres 17 con volumen                                                                                                                                                                                                                                  |
+
+**Todo test nuevo falló primero contra HEAD:** el bloque de texto de la matriz (`«vehiculos: leer» arma el arreglo de toda la cartera`; la equivalencia pasa, como debe:
+las dos definiciones eran la vieja), la medición (Beto 39,6 ms con 1 `mis_leads`; su `puede_vehiculo` 35,9 ms con 2 `alcance_de`) y la guarda de teléfonos (señalaba
+seis archivos).
+
+**Cifras** (`docs/RENDIMIENTO.md`, «Paso 4.11»), con 50.000 y con 250.000 vehículos, desde una base recién sembrada: la dueña 0,4 ms y 73 buffers, Pía 0,7 y 141 (las dos,
+lo mismo con la policy de antes); **Beto 37,5 → 1,7 ms** (802 → 648 buffers, 1 `mis_leads` → 101 `en_cartera`); **su `puede_vehiculo` 34,5 → 0,5 ms** (1 `alcance_de`);
+la chica, sin assert, 6,8 y 32,7 ms (la vieja, 34,3; con el molde sin `lead_id is not null`, 927). La razón de ms con 250.000 sobre 50.000, 1,0 en todas.
+Y **`puede_cotizacion()` llama a `alcance_de` dos veces** para una asesora sobre una de su cartera (contado): 4-24.
+
+**Verificación:** `pnpm lint` y `pnpm typecheck` sin avisos; `pnpm test` (353 archivos, 4.034 pruebas, con la guarda nueva de teléfonos); `db:base`, `db:types` sin cambios; `db:reset`; `db:probar` (397 bloques, 4 min 5 s);
+`db:lint` (los avisos de siempre, ninguno de lo tocado); `db:medir` en verde (`cotizacion_crear` y `cotizacion_guardar` usan `puede_vehiculo`). **`db:medir:volumen`:**
+todo en verde salvo **`medir-bajas.sql`**, que cayó por tiempo en las tres corridas enteras (21,9 s con la medición de vehículos justo antes; 26,4 s y 14 corridas con ella
+antes de la de cotizaciones; 27,8 s y 14 corridas con ella al final, después de la baja), siempre con 40 lotes y checkpoints en la ventana (escribir 11 s, 36,5 s y 4,7 s);
+sola, 15,6 s (y 14,9 a 23,1 s en cinco corridas seguidas detrás de la medición de vehículos). Es **5a-42**; no se tocó ningún tope. Una cuarta corrida tropezó en
+`medir-escala.sql` por la base sucia de esas corridas sueltas (un plan de la baja sin índice); desde una base recién sembrada pasa. `medir-importacion-etapas.sql` (no lo
+corre ningún runner) se corrió dos veces: 1.000 leads sin choques.
+**e2e dirigido (Nivel 1, celular):** los specs de vehículos y de la sección de vehículos del lead, 61 en verde, 1 saltado, 0 fallos (2,5 min; el primer intento se detuvo en
+`next build` por el aviso de seguridad de Next y se repitió el mismo comando).
+**e2e completo: sí (4.11, escritorio): 695 en verde, 16 saltados, 0 fallos, 25,9 min de pruebas, de las 00:49 a las 01:16 (hora de La Paz).** (Nivel 2 por cambiar una policy; la cuenta de los pasos de pantalla empieza aquí.)
+
+**Del entorno:** `functions serve` se levantó para los e2e y se cerró con `kill -INT` a `supabase.js` al terminar. El arnés de mutaciones vive en el scratchpad de esta
+sesión.
+
+**Anotado:** **4-23** (el inventario de quien ve «propios» y casi nada es suyo recorre el origen; con 4-14, en el 4.16) y **4-24** (`puede_cotizacion` mira el alcance dos
+veces; en el 4.15). En 4-14, que la chica de `medir-cotizaciones-lectura.sql` tiene 0 cotizaciones y no 3.
+
+**Lo que no se hizo:** el 4.12, ningún push ni dispatch, `next upgrade`, el Nivel 3.
