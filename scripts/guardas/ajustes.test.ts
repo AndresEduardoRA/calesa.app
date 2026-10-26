@@ -89,6 +89,12 @@ describe('.claude/settings.json › hooks', () => {
     ).toBe(true)
   })
 
+  it('la sola lectura del auditor y del planificador no depende de la confianza de la carpeta: también por settings', () => {
+    expect(
+      cableado('PreToolUse', 'Write|Edit|NotebookEdit|Bash', '.claude/hooks/por-agente.sh'),
+    ).toBe(true)
+  })
+
   it('un archivo editado se lintea y al terminar se verifica', () => {
     expect(cableado('PostToolUse', 'Edit|Write', '.claude/hooks/lint-archivo.sh')).toBe(true)
     expect(cableado('Stop', '', '.claude/hooks/verificar-al-terminar.sh')).toBe(true)
