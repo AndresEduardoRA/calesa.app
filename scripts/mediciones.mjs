@@ -47,6 +47,11 @@ export const MEDICIONES_BASE = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-cotizacion-hoja.sql',
+    'cotizacion_hoja() como authenticated con el plan genérico: la hoja de las capturas como dueña y como asesora (ms, bytes de la respuesta y que no lee cotizaciones ni sus revisiones), los atajos de una tabla viva de 1.000 filas y las sintéticas de 255 y de 2.487 nodos',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-cotizacion-guardar.sql',
     'cotizacion_guardar() con 50.000 y con 250.000 cotizaciones, como authenticated con el plan genérico: una preventa de la dueña, una de la asesora («propios»), cambiando de vehículo, sin cambios, el intento repetido y la fórmula sintética de 200 nodos con 4 tablas de 1.000 filas (ms y buffers del EXPLAIN de la llamada entera, y que no recorre cotizaciones ni sus revisiones)',
     'mediana de 5 de 7 corridas',
@@ -128,6 +133,9 @@ export const DATOS_DE_MEDICION = {
   },
   'supabase/tests/medir-evaluar.sql': {
     _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],
+  },
+  'supabase/tests/medir-cotizacion-hoja.sql': {
+    _disenos_sinteticos: ['supabase/tests/corpus-de-diseno.json', 'sinteticas'],
   },
   'supabase/tests/medir-cotizacion-guardar.sql': {
     _sinteticas_del_motor: ['supabase/tests/corpus-del-motor.json', 'sinteticas'],

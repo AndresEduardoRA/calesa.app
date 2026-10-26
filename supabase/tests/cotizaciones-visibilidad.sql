@@ -155,6 +155,8 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
       'motivo', 'una tabla de referencia con sólo las columnas que leen los nodos que quien llama ve (la entera, a quien configura); sin acceso, el error de una tabla que no existe'),
     'cotizacion_revisiones', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_revisiones({cot})',
       'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
+    'cotizacion_hoja', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'el último bloque de cotizacion-hoja.sql, por cada nivel (necesita fórmulas con lo oculto en toda forma, no un nodo centinela)',
+      'motivo', 'el diseño de la hoja publicada recortado con _cotizacion_contexto() y _nodos_visibles(): un ítem viaja si su nodo se ve (más el total y lo aparte); sin etiquetas, ayudas, tonos, secciones ni modos (sólo clave y nombre) de lo oculto; la ayuda de una tabla con la regla de cotizacion_tabla'),
     'cotizacion_leer', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_leer({cot})',
       'motivo', 'el snapshot de una cotización recortado con _nodos_visibles() de SU versión: el total y lo aparte siempre, los subtotales por grupo sólo si se ve el grupo entero'),
     'cotizacion_guardar', jsonb_build_object('clase', 'recorta',
@@ -361,7 +363,7 @@ begin
     if exists (select 1 from pg_temp.cv_inv i where i.nombre = v_n) then raise exception 'el detector encuentra % y no debía (comentario, void, uuid, sólo total_base o sin tablas)', v_n; end if;
   end loop;
   -- Y las reales: lo que lee el diseño o el snapshot entra; el motor puro y los validadores, que no leen ninguna tabla, no.
-  foreach v_n in array array['_cotizacion_armar', '_nodos_visibles', 'cotizacion_evaluar', '_nivel_uso'] loop
+  foreach v_n in array array['_cotizacion_armar', '_nodos_visibles', 'cotizacion_evaluar', '_nivel_uso', 'cotizacion_hoja', '_cotizacion_hoja'] loop
     if not exists (select 1 from pg_temp.cv_inv i where i.nombre = v_n) then raise exception 'el detector no encuentra la real %', v_n; end if;
   end loop;
   foreach v_n in array array['evaluar_formula', 'validar_formula', 'validar_diseno', 'registrar_actividad', 'cotizacion_marcar_final'] loop
@@ -1140,8 +1142,8 @@ begin
   -- 6. Sin cotizaciones.crear del origen no evalúa por origen; sin ver la cotización, no evalúa por ella.
   if (pg_temp.cv_corre(sin_crear, format('select public.cotizacion_evaluar(%L, null, %L)', '{}', o))) ->> 'error' is distinct from '42501' then raise exception 'sin crear evalúa por origen'; end if;
   -- 7. Los grants: authenticated sí, anon y PUBLIC no; el armado, de nadie.
-  if has_function_privilege('anon', 'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb)', 'execute')
-     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb)'::regprocedure and x.grantee = 0) then
+  if has_function_privilege('anon', 'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb,text)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb,text)', 'execute')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb,text)'::regprocedure and x.grantee = 0) then
     raise exception 'los grants de cotizacion_evaluar';
   end if;
   if has_function_privilege('anon', 'public._cotizacion_armar(jsonb,uuid,uuid,uuid,uuid,timestamp with time zone,boolean)', 'execute') or has_function_privilege('authenticated', 'public._cotizacion_armar(jsonb,uuid,uuid,uuid,uuid,timestamp with time zone,boolean)', 'execute')

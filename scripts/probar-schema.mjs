@@ -212,6 +212,7 @@ for (const archivo of [
   'cotizacion-crear.sql',
   'cotizacion-conservar.sql',
   'cotizacion-guardar.sql',
+  'cotizacion-hoja.sql',
   // Al final: sus `pg_temp` (la copia vieja de `puede_vehiculo`) no llegan a los archivos de antes.
   'vehiculos-visibilidad.sql',
 ]) {

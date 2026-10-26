@@ -287,7 +287,7 @@ grant select on _entradas, _ids, _sint to authenticated;
 -- Las mediciones, con 50.000 y con 250.000 cotizaciones.
 -- ---------------------------------------------------------------------------------------------------------------------------------
 -- Hasta el 4.10 nadie ejecuta estas funciones: el permiso vale sólo dentro de esta transacción.
-grant execute on function public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb), public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean) to authenticated;
+grant execute on function public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb, text), public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean) to authenticated;
 
 -- 50.000 cotizaciones (las dos de arriba y 49.998 de relleno).
 select pg_temp.rellenar(49998) \g /dev/null

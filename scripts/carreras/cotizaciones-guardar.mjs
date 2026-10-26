@@ -595,6 +595,8 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
     const llamables = [
       'public.cotizacion_guardar(uuid,uuid,timestamptz,jsonb,text,text,text,uuid)',
       'public.cotizacion_crear(uuid,uuid,uuid,jsonb,uuid,timestamptz,uuid,jsonb,text,clase_cotizacion,boolean)',
+      'public.cotizacion_hoja(uuid)',
+      'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb,text)',
     ]
     const internas = [
       'public._cotizacion_conservar(jsonb,jsonb,jsonb,jsonb)',
@@ -606,6 +608,9 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
       'public._cotizacion_tipeado(jsonb,jsonb,jsonb,jsonb,boolean)',
       'public._cotizacion_armar(jsonb,uuid,uuid,uuid,uuid,timestamptz,boolean)',
       'public.cotizacion_version()',
+      'public._cotizacion_hoja(uuid,uuid)',
+      'public._hoja_estado(jsonb,boolean,boolean,text,text,boolean,boolean)',
+      'public._hoja_chips(uuid,jsonb,jsonb,text,integer)',
     ]
     const mal = []
     for (const f of llamables) {

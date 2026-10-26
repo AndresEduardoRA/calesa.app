@@ -457,11 +457,11 @@ begin
     raise exception '% la ejecuta authenticated o anon', f;
   end if;
   -- La evaluación, de authenticated; ni anon ni PUBLIC.
-  f := 'public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb)';
+  f := 'public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb, text)';
   if has_function_privilege('anon', f, 'execute') or not has_function_privilege('authenticated', f, 'execute') then
     raise exception '% debía ser de authenticated y no de anon', f;
   end if;
-  foreach f in array array['public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb)', 'public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean)'] loop
+  foreach f in array array['public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb, text)', 'public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean)'] loop
     if exists (select 1 from aclexplode(coalesce((select proacl from pg_proc where oid = f::regprocedure),
                                                   acldefault('f', (select proowner from pg_proc where oid = f::regprocedure)))) a
                 where a.grantee = 0) then
@@ -579,5 +579,70 @@ begin
   v_r := pg_temp.llamar(format('select public.cotizacion_evaluar(%L, null, %L)', '{}', v_origen));
   if v_r not like '42501|%' then raise exception 'sin sesión: %', v_r; end if;
   reset role;
+end $$;
+rollback;
+
+-- @test cotizacion_evaluar: el modo por su clave (p_modo_tc) da lo mismo que el modo completo del diseño; una clave que no es de la hoja es modo_invalido; la clave y el objeto a la vez, no; y no delata un tipo de cambio que un nivel esconde
+-- La hoja recibe los modos con su clave y su nombre (sus `buckets` nombran tipos de cambio), así que recalcula con la clave: la misma que reciben `cotizacion_crear` y `cotizacion_guardar`.
+begin;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  sin constant uuid := '00000000-0000-0000-0000-000000000f41';
+  o uuid; o2 uuid; f0 public.formulas; v_rol uuid; v_modo jsonb; v_modo2 jsonb; a jsonb; b jsonb; c jsonb; r text;
+  -- Los tipos de cambio paralelo y unificado valen lo mismo en el seed: se sobrescribe el unificado para que el modo se note en el Bs.
+  v_entrada constant text := '{"inputs": {"remate": 14200}, "overrides": {"tc_unificado": 13}}';
+  v_sql text;
+begin
+  select x.id into o from public.origenes x where x.clave = 'subasta_usa';
+  select * into f0 from public.formulas x where x.origen_id = o and x.estado = 'publicada';
+  v_modo := public._cotizacion_modo(f0.id, 'unificado');
+  -- La dueña: la clave y el objeto dan exactamente lo mismo, y el modo cambia el Bs respecto de los buckets de la fórmula.
+  perform set_config('request.jwt.claims', json_build_object('sub', duena, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', duena::text, true);
+  set local role authenticated;
+  a := public.cotizacion_evaluar(v_entrada::jsonb, null, o, null, null, 'unificado');
+  b := public.cotizacion_evaluar(v_entrada::jsonb, null, o, null, v_modo, null);
+  c := public.cotizacion_evaluar(v_entrada::jsonb, null, o);
+  reset role;
+  if a is distinct from b then raise exception 'la clave y el objeto del modo no dan lo mismo: % contra %', a -> 'totales', b -> 'totales'; end if;
+  if a -> 'totales' -> 'grupos' -> 'compra' ->> 'bs' is not distinct from c -> 'totales' -> 'grupos' -> 'compra' ->> 'bs' then raise exception 'el modo no cambió el Bs de «Compra» (la clave no se aplicó): %', a -> 'totales'; end if;
+  -- Una clave que no es de la hoja: modo_invalido, con la pista del parámetro (como en crear y guardar). La clave y el objeto a la vez, una llamada inválida.
+  perform set_config('request.jwt.claims', json_build_object('sub', duena, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  v_sql := format('select public.cotizacion_evaluar(%L::jsonb, null, %L, null, null, %L)', v_entrada, o, 'no_es_de_la_hoja');
+  begin
+    execute v_sql into a;
+    raise exception 'una clave ajena no falló';
+  exception when sqlstate '22023' then
+    get stacked diagnostics r = pg_exception_detail;
+    if r is distinct from 'modo_invalido' then raise exception 'la clave ajena debía dar modo_invalido y dio %', r; end if;
+  end;
+  begin
+    execute format('select public.cotizacion_evaluar(%L::jsonb, null, %L, null, %L::jsonb, %L)', v_entrada, o, v_modo, 'unificado') into a;
+    raise exception 'la clave y el objeto a la vez no fallaron';
+  exception when sqlstate '22023' then
+    get stacked diagnostics r = pg_exception_detail;
+    if r is distinct from 'llamada_invalida' then raise exception 'las dos formas del modo debían dar llamada_invalida y dieron %', r; end if;
+  end;
+  reset role;
+  -- Una copia de la fórmula con el tipo de cambio del modo «unificado» escondido por un nivel: quien no lo tiene calcula con la clave, igual que con el objeto, y no recibe el nodo.
+  insert into public.origenes (clave, nombre) values ('ev_modo', 'EV modo') returning id into o2;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad)
+  values (o2, 1, 'publicada', f0.definicion, f0.params, f0.diseno, jsonb_set(f0.visibilidad, '{tc_unificado}', '{"ver": "costos", "editar": "costos"}'));
+  v_modo2 := public._cotizacion_modo((select f.id from public.formulas f where f.origen_id = o2), 'unificado');
+  insert into auth.users (id, email, raw_app_meta_data) values (sin, sin || '@ejemplo.com', '{"invitado": true}');
+  insert into public.roles (clave, nombre) values ('ev_modo', 'EV modo') returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (sin, v_rol, true);
+  insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (v_rol, 'cotizaciones.ver', 'todos'), (v_rol, 'cotizaciones.crear', 'todos');
+  perform set_config('request.jwt.claims', json_build_object('sub', sin, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claim.sub', sin::text, true);
+  set local role authenticated;
+  a := public.cotizacion_evaluar(v_entrada::jsonb, null, o2, null, null, 'unificado');
+  b := public.cotizacion_evaluar(v_entrada::jsonb, null, o2, null, v_modo2, null);
+  reset role;
+  if a is distinct from b then raise exception 'sin el nivel, la clave y el objeto no dan lo mismo'; end if;
+  -- (El override que se mandó para él vuelve como inexistente: es lo que dice hoy, y no es la clave la que lo delata.)
+  if (a -> 'valores') ? 'tc_unificado' or (a - 'overrides_descartados')::text like '%tc_unificado%' then raise exception 'la clave delata el tipo de cambio que el nivel esconde: %', a -> 'valores'; end if;
 end $$;
 rollback;

@@ -6995,6 +6995,7 @@ export type Database = {
         Returns: Json
       }
       _cotizacion_guardable: { Args: { p_mandados: Json; p_res: Json }; Returns: number }
+      _cotizacion_hoja: { Args: { p_formula: string; p_origen: string }; Returns: Json }
       _cotizacion_modo: { Args: { p_formula: string; p_modo_tc: string }; Returns: Json }
       _cotizacion_recorte: { Args: { p_ctx: Json; p_res: Json }; Returns: Json }
       _cotizacion_respuesta: {
@@ -7160,6 +7161,22 @@ export type Database = {
       }
       _gracia_de_storage: { Args: Record<PropertyKey, never>; Returns: string }
       _hace: { Args: { p_cuando: string }; Returns: string }
+      _hoja_chips: {
+        Args: { p_columna: string; p_filas: number; p_nodo: Json; p_origen: string; p_params: Json }
+        Returns: Json
+      }
+      _hoja_estado: {
+        Args: {
+          p_celda: boolean
+          p_cfg: boolean
+          p_edita: boolean
+          p_nivel: string
+          p_nodo: Json
+          p_nombre: string
+          p_tc: boolean
+        }
+        Returns: Json
+      }
       _icono_del_catalogo: { Args: { p_icono: string }; Returns: string }
       _iconos_del_catalogo: { Args: Record<PropertyKey, never>; Returns: string[] }
       _importacion_vence_en: {
@@ -7926,6 +7943,7 @@ export type Database = {
           p_cotizacion?: string
           p_entradas: Json
           p_modo?: Json
+          p_modo_tc?: string
           p_origen?: string
           p_vehiculo?: string
         }
@@ -7944,6 +7962,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cotizacion_hoja: { Args: { p_origen: string }; Returns: Json }
       cotizacion_leer: { Args: { p_id: string }; Returns: Json }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {
