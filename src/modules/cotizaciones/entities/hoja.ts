@@ -26,6 +26,7 @@ export type EdicionDeHoja = { editable: boolean; motivo: MotivoDeCandado | null 
 
 export type SecundarioDeCelda = EdicionDeHoja & {
   nodo: string
+  tipoDeNodo: TipoDeNodoDeHoja
   como: (typeof SECUNDARIOS)[number]
   formato: Formato
   ajustes: boolean
@@ -86,9 +87,11 @@ export type NodoDeTarjeta = { nodo: string; etiqueta: string; formato: Formato }
 export type HojaLista = {
   estado: 'lista'
   origen: { id: string; nombre: string }
-  // La versión de la fórmula y la hora de la base con que se abrió: `p_formula_abierta` y `p_abierta_en` de `cotizacion_crear` (D2). La hora es un texto ISO.
+  // La versión de la fórmula y la hora de la base con que se abrió (la hora es un texto ISO), y la hoja abierta que firma la base con las dos: es lo que se manda como
+  // `p_abierta` a `cotizacion_evaluar` (el recálculo calcula con esta versión y estas tarifas, 4-28) y a `cotizacion_crear` (D2, 4-27). Opaca: la pantalla no la lee.
   formula: { id: string; version: number }
   abiertaEn: string
+  abierta: string
   vehiculoObligatorio: boolean
   // Los modos de tipo de cambio se identifican por su clave: sus buckets no viajan (nombran tipos de cambio que un nivel puede esconder).
   cabecera: { modos: { clave: string; nombre: string }[]; verTotalBs: boolean }
@@ -129,6 +132,7 @@ function celdaDe(c: Crudo<typeof esquemaCelda>): CeldaDeHoja {
       ? {
           ...edicionDe(c.secundario),
           nodo: c.secundario.nodo,
+          tipoDeNodo: c.secundario.tipo_nodo,
           como: c.secundario.como,
           formato: c.secundario.formato,
           ajustes: c.secundario.ajustes,
@@ -182,6 +186,7 @@ function listaDe(h: Crudo<typeof esquemaLista>): HojaLista {
     origen: h.origen,
     formula: h.formula,
     abiertaEn: h.abierta_en,
+    abierta: h.abierta,
     vehiculoObligatorio: h.vehiculo_obligatorio,
     cabecera: { modos: h.cabecera.modos, verTotalBs: h.cabecera.ver_total_bs },
     secciones: h.secciones.map((s) => ({

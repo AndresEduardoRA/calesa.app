@@ -14,6 +14,7 @@ import {
   VISIBLE_SIN_COSTOS,
   borrarOrigenesDeCotizar,
   crearOrigenDeCotizar,
+  publicarLaVersionSiguiente,
 } from './soporte/cotizar-formula'
 import { capturar } from './soporte/recorrido'
 import { formatearMonto } from '../src/shared/lib/formato'
@@ -161,6 +162,7 @@ test('tipear un monto sin separador de miles recalcula y el total sale de la res
   await expect.poll(() => vigilante.respuestas.length).toBe(1)
   expect(vigilante.pedidos[0]?.p_entradas.inputs).toEqual({ pub: 1200 })
   expect(vigilante.pedidos[0]?.p_origen).toBe(conFormula.id)
+  expect(vigilante.pedidos[0]?.p_abierta).toMatch(/^[0-9a-f-]{36}\.[0-9]{1,16}\.[0-9a-f]{64}$/)
   const usd = (vigilante.respuestas[0] as { totales: { usd: number } }).totales.usd
   const esperado = formatearMonto(usd, { moneda: 'USD', locale: 'es-BO' })
   await expect(total(page)).toContainText('1.205,00')
@@ -275,12 +277,30 @@ test('«Falta publicar la fórmula» lleva el enlace a configuración sólo a qu
   await capturar(page, info, 'cotizar-falta-publicar')
 })
 
-test('quien puede cotizar pero no ver cotizaciones no recibe una hoja vacía: se le dice', async ({
+test('quien puede cotizar pero no ver cotizaciones no tiene dónde cotizar: cotizar pide también ver (4-32)', async ({
   page,
 }) => {
   await irA(page, soloCrear, `/cotizaciones/nuevo?origen=${conFormula.id}`)
-  await expect(page.getByText('No puedes ver esta hoja')).toBeVisible()
+  await expect(page.getByText('No tienes permiso para cotizar en ningún origen.')).toBeVisible()
+  await expect(page.getByText('No puedes ver esta hoja')).toHaveCount(0)
   await expect(hoja(page)).toHaveCount(0)
+})
+
+test('si se publica otra versión con la hoja abierta, el total que se ve sigue siendo el de la hoja que se dibujó (4-28)', async ({
+  page,
+}) => {
+  const origen = await crearOrigenDeCotizar(proyecto, 'v2', true)
+  const vigilante = await vigilarRecalculos(page)
+  await abrirLaHoja(page, todos, `/cotizaciones/nuevo?origen=${origen.id}`)
+  await expect(celda(page, 'con_ayuda')).toContainText('5,00')
+  // Otra persona publica la versión siguiente (con_ayuda 6) mientras ésta tiene la hoja abierta.
+  publicarLaVersionSiguiente(origen.id, 6)
+  await tipear(page, 'pub', '100')
+  await expect.poll(() => vigilante.respuestas.length).toBe(1)
+  // El total es el de la versión que se dibujó (5 + 100), no el de la publicada ahora (6 + 100), y la constante sigue en 5.
+  await expect(total(page)).toContainText('105,00')
+  await expect(total(page)).not.toContainText('106,00')
+  await expect(celda(page, 'con_ayuda')).toContainText('5,00')
 })
 
 test('quien no cotiza en ningún origen ve «sin permiso», no una hoja ni un error', async ({

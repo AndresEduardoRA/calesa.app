@@ -283,20 +283,4 @@ describe('useRecalculo: montaje y pantalla escondida', () => {
     })
     expect(pedir).toHaveBeenCalledOnce()
   })
-
-  it('las fuentes de la última respuesta, para quien necesita el tipo de un nodo', async () => {
-    const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
-    expect(hook.result.current.fuentesActuales()).toBe(INICIAL.respuesta.fuentes)
-    act(() => {
-      hook.result.current.programar(entradas(5))
-    })
-    await avanzar(ESPERA_DE_RECALCULO_MS)
-    const nueva = respuestaDePrueba({ fuentes: { remate: 'input' } })
-    await act(async () => {
-      pendientes[0]?.soltar(ok(nueva))
-      await Promise.resolve()
-    })
-    expect(hook.result.current.fuentesActuales()?.get('remate')).toBe('input')
-  })
 })

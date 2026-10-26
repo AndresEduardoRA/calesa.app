@@ -223,6 +223,20 @@ export function publicarFormulaDePrueba(origenId: string): void {
     end $f$`)
 }
 
+// Publica la versión siguiente de la fórmula de prueba de un origen con otro valor de la constante `con_ayuda` (lo que haría `formula_cambiar_constante`, sin pasar por una sesión):
+// la anterior queda archivada. Para probar lo que pasa con una hoja que se abrió antes (4-28).
+export function publicarLaVersionSiguiente(origenId: string, conAyuda: number): void {
+  sql(`
+    do $f$
+    declare v1 public.formulas;
+    begin
+      select * into v1 from public.formulas where origen_id = ${literal(origenId)}::uuid and estado = 'publicada';
+      update public.formulas set estado = 'archivada' where id = v1.id;
+      insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, nota, publicado_en)
+      values (v1.origen_id, v1.version + 1, 'publicada', v1.definicion, jsonb_set(v1.params, '{con_ayuda}', to_jsonb(${conAyuda}::numeric)), v1.diseno, v1.visibilidad, 'E2E 4.13 siguiente', now());
+    end $f$`)
+}
+
 // Un origen con la fórmula de prueba publicada, o sin ninguna (`conFormula: false`, para «Falta publicar la fórmula»). `proyecto` va en la clave y el nombre: dos proyectos no se pisan.
 export async function crearOrigenDeCotizar(
   proyecto: string,

@@ -9,6 +9,7 @@ const ORIGENES = [
 ]
 const concede = (origenId: string | null): Permisos => [
   { clave: 'cotizaciones.crear', origenId, alcance: 'todos' },
+  { clave: 'cotizaciones.ver', origenId, alcance: 'todos' },
 ]
 
 describe('origenesParaCotizar', () => {
@@ -21,9 +22,26 @@ describe('origenesParaCotizar', () => {
     expect(origenesParaCotizar([], ORIGENES)).toEqual([])
   })
 
-  it('sólo cuenta cotizaciones.crear: ver o editar no alcanza', () => {
-    const solo: Permisos = [{ clave: 'cotizaciones.ver', origenId: null, alcance: 'todos' }]
-    expect(origenesParaCotizar(solo, ORIGENES)).toEqual([])
+  it('pide cotizaciones.crear Y cotizaciones.ver del origen: una sola no alcanza (4-32)', () => {
+    const soloVer: Permisos = [{ clave: 'cotizaciones.ver', origenId: null, alcance: 'todos' }]
+    const soloCrear: Permisos = [{ clave: 'cotizaciones.crear', origenId: null, alcance: 'todos' }]
+    expect(origenesParaCotizar(soloVer, ORIGENES)).toEqual([])
+    expect(origenesParaCotizar(soloCrear, ORIGENES)).toEqual([])
+  })
+
+  it('el origen tiene que estar en los dos: crear en a y b, ver en b y c, sólo b; ver «propios» alcanza', () => {
+    const permisos: Permisos = [
+      { clave: 'cotizaciones.crear', origenId: 'a', alcance: 'todos' },
+      { clave: 'cotizaciones.crear', origenId: 'b', alcance: 'todos' },
+      { clave: 'cotizaciones.ver', origenId: 'b', alcance: 'propios' },
+      { clave: 'cotizaciones.ver', origenId: 'c', alcance: 'todos' },
+    ]
+    expect(origenesParaCotizar(permisos, ORIGENES).map((o) => o.id)).toEqual(['b'])
+    const verEnTodos: Permisos = [
+      { clave: 'cotizaciones.crear', origenId: 'a', alcance: 'todos' },
+      { clave: 'cotizaciones.ver', origenId: null, alcance: 'propios' },
+    ]
+    expect(origenesParaCotizar(verEnTodos, ORIGENES).map((o) => o.id)).toEqual(['a'])
   })
 })
 

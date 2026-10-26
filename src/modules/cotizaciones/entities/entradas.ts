@@ -109,11 +109,10 @@ function sinClave(mapa: ReadonlyMap<string, number>, ...ids: string[]) {
   return nuevo
 }
 
-// Lo que dice la hoja de cada nodo para decidir adónde va lo tipeado en el porcentaje de un par: el `pct` casi siempre es una constante (va a `overrides`),
-// pero también puede ser un input (va a `inputs`: un override sobre un input se descarta) y la lectura no trae su tipo. Lo dice su fuente en el recálculo.
+// Lo que la hoja sabe de cada nodo para decidir adónde va lo tipeado: el índice de la hoja. El porcentaje de un par casi siempre es una constante (va a `overrides`), pero también
+// puede ser un input (va a `inputs`: un override sobre un input se descarta), y la lectura dice cuál es (`secundario.tipoDeNodo`, 4-31): no se adivina por una respuesta.
 export type ContextoDeCambio = {
   indice: IndiceDeHoja
-  fuentes?: ReadonlyMap<string, string> | undefined
 }
 
 // Una celda confirmó un número (o vació el campo: null). Un input va a `inputs`; una constante, un tipo de cambio o un sobrescribible, a `overrides`.
@@ -129,7 +128,7 @@ export function confirmar(
     return e
   }
   if (dueno.lado === 'secundario') {
-    const comoInput = contexto.fuentes?.get(id) === 'input'
+    const comoInput = dueno.celda.secundario?.tipoDeNodo === 'input'
     return {
       ...e,
       inputs: comoInput ? conValor(e.inputs, id, valor) : e.inputs,

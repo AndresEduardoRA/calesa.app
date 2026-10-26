@@ -43,21 +43,23 @@ export function useHoja({
   // `setState`: StrictMode los llama dos veces.
   const ultimas = useRef<Entradas>(ENTRADAS_VACIAS)
   const origenId = hoja.origen.id
+  const abierta = hoja.abierta
   // El pedido, estable: el hook del recálculo lo lee una vez. La hoja se vuelve a montar si cambia la fórmula o el vehículo (la `key` de la pantalla).
   const pedir = useCallback(
     (e: Entradas) => {
       const pedido: PedidoDeRecalculo = {
         origenId,
         vehiculoId,
+        abierta,
         entradas: entradasDelPedido(e),
         modoTc: null,
       }
       return recalcular(pedido)
     },
-    [origenId, vehiculoId],
+    [origenId, vehiculoId, abierta],
   )
   const recalculo = useRecalculo({ inicial, pedir })
-  const { programar, fuentesActuales } = recalculo
+  const { programar } = recalculo
 
   const cambiar = useCallback(
     (cambio: (antes: Entradas) => Entradas) => {
@@ -72,7 +74,7 @@ export function useHoja({
   const acciones = useMemo<AccionesDeHoja>(
     () => ({
       alConfirmar: (id, valor) => {
-        cambiar((e) => confirmar(e, { indice, fuentes: fuentesActuales() }, id, valor))
+        cambiar((e) => confirmar(e, { indice }, id, valor))
       },
       alRestablecer: (id) => {
         cambiar((e) => restablecer(e, indice, id))
@@ -84,12 +86,10 @@ export function useHoja({
         cambiar((e) => elegirVariante(e, clave))
       },
       alElegirAtajo: (nodo, posicion, valor) => {
-        cambiar((e) =>
-          elegirAtajo(e, { indice, fuentes: fuentesActuales() }, nodo, { posicion, valor }),
-        )
+        cambiar((e) => elegirAtajo(e, { indice }, nodo, { posicion, valor }))
       },
     }),
-    [cambiar, indice, fuentesActuales],
+    [cambiar, indice],
   )
 
   return { indice, entradas, acciones, ...recalculo }

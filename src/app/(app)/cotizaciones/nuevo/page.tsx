@@ -47,6 +47,20 @@ const idDeUrl = (valor: string | string[] | undefined): string | null => {
   return leido.success ? leido.data : null
 }
 
+// La hoja y, con la hoja abierta que ella entrega, el primer cálculo (4-28: el total es el de la versión y las tarifas que se dibujan): llega dibujada con sus valores y el
+// navegador no pide nada al abrir. Un pedido más en serie, que se ahorra cuando no hay hoja que calcular (sin permiso, sin publicar).
+async function abrirLaHoja(origenId: string, vehiculoId: string | null) {
+  const hoja = await leerHojaParaCotizar(origenId)
+  const alAbrir =
+    hoja.ok && hoja.data.estado === 'lista'
+      ? await recalcularAlAbrir({ origenId, vehiculoId, abierta: hoja.data.abierta })
+      : null
+  return {
+    apertura: aperturaDe(hoja, alAbrir?.resultado ?? null),
+    vehiculoSoltado: alAbrir?.vehiculoSoltado ?? false,
+  }
+}
+
 async function Hoja({
   parametros,
 }: {
@@ -63,12 +77,7 @@ async function Hoja({
   }
   const lead = idDeUrl(url[CLAVE_DE_LEAD])
   const vehiculo = idDeUrl(url[CLAVE_DE_VEHICULO])
-  // La hoja y el primer cálculo, en paralelo: llega dibujada con sus valores y el navegador no pide nada al abrir.
-  const [hoja, alAbrir] = await Promise.all([
-    leerHojaParaCotizar(origen.id),
-    recalcularAlAbrir({ origenId: origen.id, vehiculoId: vehiculo }),
-  ])
-  const apertura = aperturaDe(hoja, alAbrir.resultado)
+  const { apertura, vehiculoSoltado } = await abrirLaHoja(origen.id, vehiculo)
   if (apertura.tipo === 'sin_permiso') {
     return (
       <EstadoSinPermiso descripcion="No tienes permiso para cotizar en este origen. Pídeselo a quien administra los roles." />
@@ -90,7 +99,7 @@ async function Hoja({
       </>
     )
   }
-  const vehiculoUsado = alAbrir.vehiculoSoltado ? null : vehiculo
+  const vehiculoUsado = vehiculoSoltado ? null : vehiculo
   return (
     <>
       {pestanas}
@@ -99,7 +108,7 @@ async function Hoja({
         hoja={apertura.hoja}
         inicial={apertura.inicial}
         vehiculoId={vehiculoUsado}
-        vehiculoSoltado={alAbrir.vehiculoSoltado}
+        vehiculoSoltado={vehiculoSoltado}
       />
     </>
   )

@@ -1,5 +1,5 @@
-// Los orígenes donde la persona puede cotizar: una pestaña por cada uno en la hoja. Espejo de `origenes_con_permiso('cotizaciones.crear')`; lo que protege es la base
-// (`cotizacion_hoja()` pide ese permiso antes de mirar nada). Un origen desactivado no se cotiza.
+// Los orígenes donde la persona puede cotizar: una pestaña por cada uno en la hoja. Cotizar pide `cotizaciones.crear` Y `cotizaciones.ver` del origen (4-32: con sólo `crear` la hoja
+// iba vacía); lo que protege es la base (`cotizacion_hoja()`, `cotizacion_evaluar()` y `cotizacion_crear()` piden los dos antes de mirar nada). Un origen desactivado no se cotiza.
 import { origenesCon, type Permisos } from '@/shared/lib/permisos'
 
 type Origen = { id: string; activo: boolean }
@@ -8,9 +8,11 @@ export function origenesParaCotizar<O extends Origen>(
   permisos: Permisos,
   origenes: readonly O[],
 ): O[] {
-  const donde = origenesCon(permisos, 'cotizaciones.crear')
+  const crear = origenesCon(permisos, 'cotizaciones.crear')
+  const ver = origenesCon(permisos, 'cotizaciones.ver')
+  const vale = (donde: 'todos' | string[], id: string) => donde === 'todos' || donde.includes(id)
   return origenes.filter(
-    (origen) => origen.activo && (donde === 'todos' || donde.includes(origen.id)),
+    (origen) => origen.activo && vale(crear, origen.id) && vale(ver, origen.id),
   )
 }
 

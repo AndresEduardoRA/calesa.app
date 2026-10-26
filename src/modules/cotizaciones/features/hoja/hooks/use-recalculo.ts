@@ -133,9 +133,6 @@ export function useRecalculo({
     }
   }, [enviar])
 
-  // Las fuentes de la última respuesta, para quien necesita saber de qué tipo es un nodo que la lectura no dice (el porcentaje de un par).
-  const fuentesActuales = useCallback(() => motor.current.respuesta?.fuentes, [])
-
   useEffect(() => {
     const m = motor.current
     m.vivo = true
@@ -155,5 +152,5 @@ export function useRecalculo({
     }
   }, [])
 
-  return { respuesta, estado, programar, reintentar, fuentesActuales }
+  return { respuesta, estado, programar, reintentar }
 }

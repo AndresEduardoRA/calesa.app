@@ -53,6 +53,7 @@ const itemsDeCeldas = () => [
     tono: 'verde',
     secundario: {
       nodo: 'fees_pct',
+      tipo_nodo: 'constante',
       como: 'porcentaje',
       formato: 'pct',
       ajustes: false,
@@ -64,6 +65,7 @@ const itemsDeCeldas = () => [
     motivo: { codigo: 'se_calcula' },
     secundario: {
       nodo: 'transf_pct',
+      tipo_nodo: 'constante',
       como: 'porcentaje',
       formato: 'pct',
       ajustes: false,
@@ -73,6 +75,7 @@ const itemsDeCeldas = () => [
   celda('seguro', 'calculo', {
     secundario: {
       nodo: 'seguro_pct',
+      tipo_nodo: 'input',
       como: 'porcentaje',
       formato: 'pct',
       ajustes: false,
@@ -112,6 +115,7 @@ export const crudaDeLaHoja = () => ({
   origen: { id: ID, nombre: 'Subasta' },
   formula: { id: ID, version: 3 },
   abierta_en: '2026-10-26T14:00:00+00:00',
+  abierta: `${ID}.1792850400000000.${'a'.repeat(64)}`,
   vehiculo_obligatorio: false,
   cabecera: { modos: [], ver_total_bs: false },
   secciones: [

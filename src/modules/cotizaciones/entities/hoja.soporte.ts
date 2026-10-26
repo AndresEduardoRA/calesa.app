@@ -1,5 +1,7 @@
 // Lo que entrega `cotizacion_hoja()`, para las pruebas de `hoja.ts`: un ítem de cada tipo, el par porcentaje-monto, un candado por nivel y otro porque se calcula.
 export const ID = '00000000-0000-0000-0000-000000000001'
+// La hoja abierta que firma la base: para la pantalla es un texto opaco.
+export const ABIERTA = `${ID}.1792850400123456.${'a'.repeat(64)}`
 export const COLORES = { fondo: '#fff7d6', borde: '#e9d27a', tinta: '#1b2130' }
 
 export const itemsDeLista = () => [
@@ -35,6 +37,7 @@ export const itemsDeLista = () => [
     requerido_si: 'cuenta',
     secundario: {
       nodo: 'fees_pct',
+      tipo_nodo: 'constante',
       como: 'porcentaje',
       formato: 'pct',
       ajustes: true,
@@ -68,6 +71,7 @@ export const lista = () => ({
   origen: { id: ID, nombre: 'Subasta' },
   formula: { id: ID, version: 3 },
   abierta_en: '2026-10-26T14:00:00.123456+00:00',
+  abierta: ABIERTA,
   vehiculo_obligatorio: true,
   cabecera: { modos: [{ clave: 'unificado', nombre: 'Unificado' }], ver_total_bs: true },
   secciones: [

@@ -3,8 +3,8 @@ import { ANCHOS, EFECTOS_DE_INTERRUPTOR, PRESENTACIONES, SECUNDARIOS } from './d
 import { esquemaId, FORMATOS } from './nodos'
 
 // Lo que la hoja de cotizar lee al abrir (paso 4.13, `cotizacion_hoja()` en `…20261019008900_cotizacion_hoja.sql`): el diseño publicado de un origen RECORTADO al nivel de
-// quien mira, con lo que la hoja necesita para dibujarse sin otra consulta, la versión de la fórmula y la hora de la base (`p_formula_abierta` y `p_abierta_en` de
-// `cotizacion_crear`, D2) o el estado «sin publicar». Lo que la persona no ve no llega: ni su id, ni su etiqueta, ni su valor, ni su tono, ni su ayuda; lo que ve y no edita
+// quien mira, con lo que la hoja necesita para dibujarse sin otra consulta, la versión de la fórmula, la hora de la base y la hoja abierta firmada (`p_abierta` de
+// `cotizacion_crear` y de `cotizacion_evaluar`, D2, 4-27 y 4-28) o el estado «sin publicar». Lo que la persona no ve no llega: ni su id, ni su etiqueta, ni su valor, ni su tono, ni su ayuda; lo que ve y no edita
 // llega con su motivo. Este tipo es lo único que la pantalla conoce de la respuesta: lo que la base manda y no figura acá se cae al leerla (`z.object` no es estricto).
 
 export const TIPOS_DE_NODO = [
@@ -42,6 +42,8 @@ const esquemaSecundario = z
   .object({
     nodo: esquemaId,
     como: z.enum(SECUNDARIOS),
+    // El tipo del nodo del porcentaje (4-31): un `input` se edita en `inputs` y una constante en `overrides`; la hoja ya no lo adivina por la fuente de una respuesta.
+    tipo_nodo: z.enum(TIPOS_DE_NODO),
     formato: z.enum(FORMATOS),
     ajustes: z.boolean(),
     ...edicion,
@@ -143,6 +145,8 @@ export const esquemaLista = z.object({
   origen: esquemaOrigen,
   formula: z.object({ id: z.guid(), version: z.int().positive() }),
   abierta_en: z.string().min(1),
+  // La hoja abierta que firma la base: lo único que `cotizacion_crear` y `cotizacion_evaluar` aceptan como `p_abierta`. Para la pantalla es opaca.
+  abierta: z.string().min(1),
   vehiculo_obligatorio: z.boolean(),
   cabecera: z.object({
     modos: z.array(z.object({ clave: esquemaId, nombre: z.string().min(1) })),

@@ -123,6 +123,8 @@ describe('HojaDeCotizar: tipear y recalcular', () => {
     const pedido = recalcular.mock.calls[0]?.[0] as PedidoDeRecalculo
     expect(pedido.entradas.inputs).toEqual({ remate: 9500 })
     expect(pedido.origenId).toBe('00000000-0000-0000-0000-000000000001')
+    // La hoja abierta de la lectura viaja en cada pedido (4-28): el recálculo calcula con la versión y las tarifas de la hoja que se dibujó.
+    expect(pedido.abierta).toBe(hojaDePrueba().abierta)
     expect(total().textContent).toContain('9.876')
   })
 

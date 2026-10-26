@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ANCHOS, EFECTOS_DE_INTERRUPTOR, PRESENTACIONES, SECUNDARIOS } from './diseno'
 import { hojaDesde, type HojaLista } from './hoja'
 import { TIPOS_DE_NODO } from './hoja-esquema'
-import { COLORES, ID, lista } from './hoja.soporte'
+import { ABIERTA, COLORES, ID, lista } from './hoja.soporte'
 import { esquemaNodo, FORMATOS } from './nodos'
 
 describe('hojaDesde: lo que abre la hoja de cotizar', () => {
@@ -11,6 +11,7 @@ describe('hojaDesde: lo que abre la hoja de cotizar', () => {
     expect(hoja.estado).toBe('lista')
     expect(hoja.formula).toEqual({ id: ID, version: 3 })
     expect(hoja.abiertaEn).toBe('2026-10-26T14:00:00.123456+00:00')
+    expect(hoja.abierta).toBe(ABIERTA)
     expect(hoja.vehiculoObligatorio).toBe(true)
     expect(hoja.cabecera).toEqual({
       modos: [{ clave: 'unificado', nombre: 'Unificado' }],
@@ -41,6 +42,7 @@ describe('hojaDesde: lo que abre la hoja de cotizar', () => {
       requeridoSi: 'cuenta',
       secundario: {
         nodo: 'fees_pct',
+        tipoDeNodo: 'constante',
         como: 'porcentaje',
         formato: 'pct',
         ajustes: true,
@@ -104,6 +106,19 @@ describe('hojaDesde: el candado, lo que falta y sin publicar', () => {
   })
 })
 
+describe('hojaDesde: el tipo del porcentaje de un par (4-31)', () => {
+  it('lee el tipo del nodo del porcentaje: una constante y un input', () => {
+    for (const tipo of ['constante', 'input'] as const) {
+      const cruda = lista()
+      const celda = cruda.secciones[0]?.items[2] as { secundario: { tipo_nodo: string } }
+      celda.secundario.tipo_nodo = tipo
+      const hoja = hojaDesde(cruda) as HojaLista
+      const leida = hoja.secciones[0]?.items[2]
+      expect(leida?.tipo === 'celda' && leida.secundario?.tipoDeNodo).toBe(tipo)
+    }
+  })
+})
+
 describe('hojaDesde: lo que la base no promete', () => {
   it('rechaza lo que la base no promete', () => {
     const casos: Record<string, (h: ReturnType<typeof lista>) => unknown> = {
@@ -160,6 +175,35 @@ describe('hojaDesde: lo que la base no promete', () => {
         tonos: [{ clave: 'verde', claro: { ...COLORES, fondo: 'red' }, oscuro: COLORES }],
       }),
       nada: () => null,
+    }
+    for (const [caso, rompe] of Object.entries(casos)) {
+      expect(hojaDesde(rompe(lista())), caso).toBeNull()
+    }
+  })
+})
+
+describe('hojaDesde: la hoja abierta y el tipo del par que la base promete', () => {
+  it('rechaza una hoja sin la hoja abierta que firma la base y un par sin el tipo de su nodo', () => {
+    const casos: Record<string, (h: ReturnType<typeof lista>) => unknown> = {
+      'sin la hoja abierta': (h) => ({ ...h, abierta: undefined }),
+      'una hoja abierta vacía': (h) => ({ ...h, abierta: '' }),
+      'un secundario sin el tipo de su nodo': (h) => ({
+        ...h,
+        secciones: [
+          {
+            ...h.secciones[0],
+            items: [
+              {
+                ...h.secciones[0]?.items[2],
+                secundario: {
+                  ...(h.secciones[0]?.items[2] as { secundario: object }).secundario,
+                  tipo_nodo: undefined,
+                },
+              },
+            ],
+          },
+        ],
+      }),
     }
     for (const [caso, rompe] of Object.entries(casos)) {
       expect(hojaDesde(rompe(lista())), caso).toBeNull()

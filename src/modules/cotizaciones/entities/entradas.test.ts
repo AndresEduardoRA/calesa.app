@@ -64,15 +64,29 @@ describe('confirmar: lo que una celda emitió', () => {
     expect(e.overrides.get('fees')).toBe(1300)
   })
 
-  it('un porcentaje que es un input (lo dice su fuente en el recálculo) va a inputs, no a overrides', () => {
-    const e = confirmar(
+  it('un porcentaje que es un input (lo dice la lectura: tipoDeNodo) va a inputs, aunque no haya respuesta; una constante, a overrides', () => {
+    const conPct = (tipoDeNodo: 'input' | 'constante') =>
+      indiceDeHoja(
+        hojaDePrueba().secciones.map((s) => ({
+          ...s,
+          items: s.items.map((i) =>
+            i.tipo === 'celda' && i.nodo === 'fees' && i.secundario
+              ? { ...i, secundario: { ...i.secundario, tipoDeNodo } }
+              : i,
+          ),
+        })),
+      )
+    const comoInput = confirmar(ENTRADAS_VACIAS, { indice: conPct('input') }, 'fees_pct', 0.1)
+    expect(comoInput.inputs.get('fees_pct')).toBe(0.1)
+    expect(comoInput.overrides.size).toBe(0)
+    const comoConstante = confirmar(
       ENTRADAS_VACIAS,
-      { indice, fuentes: new Map([['fees_pct', 'input']]) },
+      { indice: conPct('constante') },
       'fees_pct',
       0.1,
     )
-    expect(e.inputs.get('fees_pct')).toBe(0.1)
-    expect(e.overrides.size).toBe(0)
+    expect(comoConstante.overrides.get('fees_pct')).toBe(0.1)
+    expect(comoConstante.inputs.size).toBe(0)
   })
 
   it('un id que la hoja no dibuja no cambia nada', () => {

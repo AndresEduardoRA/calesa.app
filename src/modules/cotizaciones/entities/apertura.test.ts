@@ -13,9 +13,17 @@ describe('aperturaDe: qué se ve al abrir la hoja', () => {
     expect(a.tipo === 'lista' && a.inicial.estado).toEqual({ tipo: 'al_dia' })
   })
 
-  it('sólo el «sin permiso» de la hoja es sin permiso; otro error de la hoja sube', () => {
-    expect(aperturaDe(fallo('sin_permiso', 'x'), SIN_CALCULAR).tipo).toBe('sin_permiso')
-    expect(aperturaDe(fallo('inesperado', 'x'), SIN_CALCULAR).tipo).toBe('error')
+  it('sólo el «sin permiso» de la hoja es sin permiso; otro error de la hoja sube (y no se calcula nada)', () => {
+    expect(aperturaDe(fallo('sin_permiso', 'x'), null).tipo).toBe('sin_permiso')
+    expect(aperturaDe(fallo('inesperado', 'x'), null).tipo).toBe('error')
+  })
+
+  it('una hoja lista sin cálculo (no se hizo) queda en «No se pudo recalcular», no con un total inventado', () => {
+    const a = aperturaDe(ok(hojaDePrueba()), null)
+    expect(a.tipo === 'lista' && a.inicial).toEqual({
+      respuesta: null,
+      estado: { tipo: 'fallo', recargar: false },
+    })
   })
 
   it('un origen sin fórmula publicada es su propio estado, con si se puede configurar', () => {
@@ -24,7 +32,7 @@ describe('aperturaDe: qué se ve al abrir la hoja', () => {
       origen: { id: '00000000-0000-0000-0000-000000000001', nombre: 'Oficina' },
       puede_configurar: true,
     })
-    const a = aperturaDe(ok(sin!), SIN_CALCULAR)
+    const a = aperturaDe(ok(sin!), null)
     expect(a.tipo === 'sin_publicar' && a.hoja.puedeConfigurar).toBe(true)
   })
 

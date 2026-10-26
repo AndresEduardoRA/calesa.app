@@ -12,6 +12,8 @@ export type PedidoDeRecalculoVisto = {
     variante?: string
   }
   p_origen: string
+  // La hoja abierta que firmó la base al abrir (4-28): la versión y las tarifas con que se dibujó la hoja.
+  p_abierta: string
   p_vehiculo?: string
   p_modo_tc?: string
 }

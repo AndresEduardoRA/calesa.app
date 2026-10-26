@@ -5,23 +5,32 @@ import { argumentosDeEvaluar, resultadoDeEvaluar } from './pedido-de-recalculo'
 const VACIAS = entradasDelPedido(ENTRADAS_VACIAS)
 
 describe('argumentosDeEvaluar', () => {
-  it('manda el origen y las entradas; el vehículo y el modo sólo si los hay (nunca nulos)', () => {
+  it('manda el origen, la hoja abierta y las entradas; el vehículo y el modo sólo si los hay (nunca nulos)', () => {
     expect(
-      argumentosDeEvaluar({ origenId: 'o', vehiculoId: null, entradas: VACIAS, modoTc: null }),
+      argumentosDeEvaluar({
+        origenId: 'o',
+        vehiculoId: null,
+        abierta: 'ab',
+        entradas: VACIAS,
+        modoTc: null,
+      }),
     ).toEqual({
       p_entradas: VACIAS,
       p_origen: 'o',
+      p_abierta: 'ab',
     })
     expect(
       argumentosDeEvaluar({
         origenId: 'o',
         vehiculoId: 'v',
+        abierta: 'ab',
         entradas: VACIAS,
         modoTc: 'unificado',
       }),
     ).toEqual({
       p_entradas: VACIAS,
       p_origen: 'o',
+      p_abierta: 'ab',
       p_vehiculo: 'v',
       p_modo_tc: 'unificado',
     })
