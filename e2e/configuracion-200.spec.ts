@@ -8,6 +8,7 @@ import {
 import { borrarOrigenes, crearOrigenDePrueba } from './soporte/origenes'
 import { ingresar } from './soporte/pasos'
 import {
+  aLaVistaAlAcomodarse,
   aLaVistaSinDesplazar,
   recibeElClic,
   sinScrollHorizontal,
@@ -125,7 +126,8 @@ for (const pantalla of PANTALLAS) {
     await aLaVistaSinDesplazar(page.getByRole('heading', { level: 1 }), 'el título')
     const activa = page.getByRole('tab', { selected: true })
     if ((await activa.count()) > 0) {
-      await aLaVistaSinDesplazar(activa.first(), 'la pestaña activa')
+      // La barra se desplaza hasta la pestaña abierta recién al hidratar (CI-3).
+      await aLaVistaAlAcomodarse(activa.first(), 'la pestaña activa')
     }
     for (const [lugar, que] of pantalla.controles?.(page) ?? []) {
       await aLaVistaSinDesplazar(lugar, que)
@@ -181,7 +183,8 @@ for (const seccion of SECCIONES_DE_LEADS) {
     await entrar(page)
     await page.goto(`/configuracion/leads?seccion=${seccion}`)
     await expect(page.getByRole('tab', { selected: true })).toBeVisible()
-    await aLaVistaSinDesplazar(page.getByRole('tab', { selected: true }), `la pestaña «${seccion}»`)
+    // La pestaña abierta ya se ve con el HTML del servidor; la barra se desplaza hasta ella recién al hidratar (CI-3).
+    await aLaVistaAlAcomodarse(page.getByRole('tab', { selected: true }), `la pestaña «${seccion}»`)
   })
 
   test(`al ampliar el texto con la página abierta: la pestaña activa «${seccion}» de Leads sigue a la vista`, async ({
@@ -193,12 +196,7 @@ for (const seccion of SECCIONES_DE_LEADS) {
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '200%'
     })
-    await expect(async () => {
-      await aLaVistaSinDesplazar(
-        page.getByRole('tab', { selected: true }),
-        `la pestaña «${seccion}»`,
-      )
-    }).toPass({ timeout: 3_000 })
+    await aLaVistaAlAcomodarse(page.getByRole('tab', { selected: true }), `la pestaña «${seccion}»`)
   })
 }
 

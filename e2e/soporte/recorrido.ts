@@ -167,6 +167,16 @@ export async function aLaVistaSinDesplazar(lugar: Locator, que: string): Promise
   expect(caja.recortadoPor, `${que}: lo recorta un contenedor que se desplaza`).toBe('')
 }
 
+// `aLaVistaSinDesplazar()` de algo que un efecto de la hidratación acomoda: la pestaña abierta de una barra con desborde
+// (`PestanasConDesborde`) ya viene marcada en el HTML del servidor y se ve, pero la barra recién se desplaza al hidratar. Medir apenas se ve
+// cae (CI-3: 70 ms después en una PC rápida, ≈ 2 s con la CPU 14 veces más lenta). Espera el estado, «quedó a la vista», reintentando la
+// misma medición; el tope es sólo cuánto tarda en decir que no llegó. Vive aquí y no en `esperas.ts` para no importarse en círculo.
+export async function aLaVistaAlAcomodarse(lugar: Locator, que: string): Promise<void> {
+  await expect(async () => {
+    await aLaVistaSinDesplazar(lugar, que)
+  }).toPass({ timeout: 10_000 })
+}
+
 // Ningún texto de `lugar` queda cortado: cada elemento visible con texto propio cabe en su caja (`scrollWidth <= clientWidth`), un «B…» por
 // un `truncate` que no tenía lugar lo delata, y nada se sale por la derecha de la pantalla. Nombra a los elementos que no caben.
 export async function sinTextoCortado(lugar: Locator): Promise<void> {

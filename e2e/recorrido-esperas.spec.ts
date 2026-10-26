@@ -1,5 +1,10 @@
 import { expect, test } from './soporte/prueba'
-import { avisoNoTapaElPie, recibeElClic } from './soporte/recorrido'
+import {
+  aLaVistaAlAcomodarse,
+  aLaVistaSinDesplazar,
+  avisoNoTapaElPie,
+  recibeElClic,
+} from './soporte/recorrido'
 
 // Las esperas de `e2e/soporte/recorrido.ts`, en una página armada aquí y no en la app: un runner lento mostró (CI-2) que `recibeElClic`
 // medía una sola vez. Un botón `disabled` lleva `pointer-events: none` (como el de shadcn): el punto lo atraviesa y «lo recibe» el pie.
@@ -46,4 +51,47 @@ test('recibeElClic mide con la caja del botón quieta, no a mitad de una transic
     <button id="boton">Seguir</button><div id="tapa"></div>`)
   await page.evaluate(() => document.querySelector('#boton')?.classList.add('va'))
   await recibeElClic(page.locator('#boton'))
+})
+
+// CI-3: la pestaña abierta de una barra con desborde ya viene marcada y se ve, pero la barra se desplaza hasta ella recién al hidratar
+// (`PestanasConDesborde`). Aquí la barra se desplaza 600 ms después de cargar: medir apenas se ve cae, esperar el estado no.
+const BARRA_QUE_SE_ACOMODA = `<style>
+    body { margin: 0; font: 16px sans-serif; }
+    #barra { width: 220px; overflow-x: auto; white-space: nowrap; display: flex; }
+    [role=tab] { flex: none; width: 120px; }
+  </style>
+  <div id="barra" role="tablist">
+    <button role="tab" aria-selected="false">Campos</button>
+    <button role="tab" aria-selected="false">Orígenes</button>
+    <button role="tab" aria-selected="false">Tipos</button>
+    <button role="tab" aria-selected="true">Seguimientos</button>
+  </div>
+  <script>
+    setTimeout(() => {
+      const barra = document.querySelector('#barra')
+      barra.scrollLeft = barra.scrollWidth
+    }, 600)
+  </script>`
+
+test('la pestaña abierta medida apenas se ve, antes de que la barra se acomode, no está a la vista', async ({
+  page,
+}) => {
+  await page.setContent(BARRA_QUE_SE_ACOMODA)
+  const abierta = page.getByRole('tab', { selected: true })
+  await expect(abierta).toBeVisible()
+  await expect(aLaVistaSinDesplazar(abierta, 'la pestaña abierta')).rejects.toThrow(
+    /lo recorta un contenedor que se desplaza/,
+  )
+})
+
+test('aLaVistaAlAcomodarse espera a que la barra lleve la pestaña abierta a la vista', async ({
+  page,
+}) => {
+  await page.setContent(BARRA_QUE_SE_ACOMODA)
+  const barra = page.locator('#barra')
+  // Al empezar la barra todavía no se movió: la espera hace falta.
+  expect(await barra.evaluate((b) => b.scrollLeft)).toBe(0)
+  await aLaVistaAlAcomodarse(page.getByRole('tab', { selected: true }), 'la pestaña abierta')
+  // Si midió, midió con la barra ya desplazada.
+  expect(await barra.evaluate((b) => b.scrollLeft)).toBeGreaterThan(0)
 })
