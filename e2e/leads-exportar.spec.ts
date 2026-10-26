@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import type { Page } from '@playwright/test'
+import { formatearNumero } from '../src/shared/lib/formato'
 import { expect, test } from './soporte/prueba'
 import { CONTRASENA, entrar } from './soporte/alta'
 import {
@@ -260,7 +261,9 @@ test('el límite por hora: la sexta se dice con la hora y no se descarga', async
 })
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)
-test('más de 5.000 leads: no se exporta nada a medias y se dice cuántos hay', async ({ page }) => {
+test('más de 5.000 leads: no se exporta nada a medias y se dice cuántos hay', async ({
+  page,
+}, info) => {
   test.setTimeout(180_000)
   const id = await idDe(masivo)
   const base = Array.from({ length: 5001 }, (_, i) => ({
@@ -268,17 +271,34 @@ test('más de 5.000 leads: no se exporta nada a medias y se dice cuántos hay', 
     telefono_principal: `5917999${String(i).padStart(5, '0')}`,
     creado_por: id,
   }))
+  const empezo = performance.now()
   for (let desde = 0; desde < base.length; desde += 1000) {
     const { error } = await admin()
       .from('leads')
       .insert(base.slice(desde, desde + 1000))
     exigir(error, 'sembrar los leads masivos')
   }
+  const sembrado = performance.now()
   await entrar(page, masivo)
   await irALeads(page)
   await abrirExportar(page)
   const dialogo = dialogoDeExportar(page)
+  // Se espera la respuesta del pedido y no el texto con los 5 s de fábrica: el POST cuenta hasta 5.001 leads y una
+  // base lenta lo atrasa (CI, 2026-10-26: pasó de 5 s y el diálogo seguía en «Descargando…»; PLAN 4-26). El tope es
+  // propio: un servidor colgado falla a los 30 s diciendo qué esperaba, no a los 180 s de la prueba.
+  const respuesta = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/leads/exportar',
+    { timeout: 30_000 },
+  )
+  const hizoClic = performance.now()
   await dialogo.getByRole('button', { name: 'Descargar' }).click()
+  const recibida = await respuesta
+  const llego = performance.now()
+  console.warn(
+    `[exportar] ${info.project.name}: siembra de 5.001 ${formatearNumero((sembrado - empezo) / 1000, { decimales: 1 })} s · respuesta ${formatearNumero(llego - hizoClic, { decimales: 0 })} ms`,
+  )
+  expect(recibida.status()).toBe(409)
+  expect(await recibida.json()).toEqual({ codigo: 'demasiadas' })
   await expect(dialogo).toContainText(/Hay más de 5\.000 leads con estos filtros/)
   await expect(dialogo).toContainText('Filtra un poco más')
 })
