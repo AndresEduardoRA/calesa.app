@@ -119,3 +119,59 @@ describe('package.json › el candado de la base', () => {
     expect(scripts['test:e2e']).toMatch(/next build && .*candado\.sh test:e2e -- playwright test$/)
   })
 })
+
+// El frontmatter de los agentes del piloto: el motor de agentes tampoco corre en Vitest. Se prueba lo que los hace de sólo lectura:
+// las herramientas que no tienen, y el hook de su frontmatter (que sólo corre con la carpeta confiada) cableado a un archivo real.
+function frontmatter(archivo: string) {
+  const texto = readFileSync(join(RAIZ, archivo), 'utf8')
+  const bloque = /^---\n([\s\S]*?)\n---\n/.exec(texto)?.[1] ?? ''
+  const campo = (nombre: string) => new RegExp(`^${nombre}: *(.+)$`, 'm').exec(bloque)?.[1]?.trim()
+  const hooks = [
+    ...bloque.matchAll(
+      /matcher: *(.+)\n\s+hooks:\n\s+- type: command\n\s+command: *["']?([^"'\n]+)["']?/g,
+    ),
+  ].map((m) => ({
+    matcher: m[1]?.trim() ?? '',
+    ruta: (m[2] ?? '').replace('${CLAUDE_PROJECT_DIR}/', ''),
+  }))
+  return { campo, hooks }
+}
+
+describe('.claude/agents › el auditor y el planificador', () => {
+  const auditor = frontmatter('.claude/agents/auditor.md')
+  const planificador = frontmatter('.claude/agents/planificador.md')
+
+  it('los dos son opus con esfuerzo alto', () => {
+    for (const agente of [auditor, planificador]) {
+      expect(agente.campo('model')).toBe('opus')
+      expect(agente.campo('effort')).toBe('high')
+    }
+  })
+
+  it('el auditor lee y corre Bash de sólo lectura: sin Edit, Write, NotebookEdit ni Agent', () => {
+    expect(auditor.campo('tools')).toBe('Read, Grep, Glob, Bash')
+    expect(auditor.campo('disallowedTools')).toBe('Edit, Write, NotebookEdit, Agent')
+    expect(auditor.hooks).toEqual([{ matcher: 'Bash', ruta: '.claude/hooks/solo-lectura.sh' }])
+  })
+
+  it('el planificador escribe sólo por su hook, y su Bash es de sólo lectura', () => {
+    expect(planificador.campo('tools')).toBe('Read, Grep, Glob, Bash, Write, Edit')
+    expect(planificador.campo('disallowedTools')).toBe('NotebookEdit, Agent')
+    expect(planificador.hooks).toEqual([
+      { matcher: 'Bash', ruta: '.claude/hooks/solo-lectura.sh' },
+      { matcher: 'Write|Edit', ruta: '.claude/hooks/escribir-solo-en-piloto.sh' },
+    ])
+  })
+
+  it('cada hook del frontmatter existe y se puede ejecutar', () => {
+    for (const { ruta } of [...auditor.hooks, ...planificador.hooks]) {
+      expect(() => accessSync(join(RAIZ, ruta), constants.X_OK), ruta).not.toThrow()
+    }
+  })
+
+  it('revisor.md queda como estaba: sonnet y sin hooks', () => {
+    const revisor = frontmatter('.claude/agents/revisor.md')
+    expect(revisor.campo('model')).toBe('sonnet')
+    expect(revisor.hooks).toEqual([])
+  })
+})
