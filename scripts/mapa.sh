@@ -166,13 +166,13 @@ rutas() {
   fi
 }
 
-# Lo transversal (src/shared): qué archivos hay en cada carpeta, sin los tests.
+# Lo transversal (src/shared): qué archivos hay en cada carpeta, sin los tests ni sus ayudantes (`*.soporte.*`).
 compartido() {
   [ "$STACK" = next ] && [ -d "$RAIZ/shared" ] || return 0
   echo "$(proposito "$RAIZ/shared")"
   echo
   find "$RAIZ/shared" -type d | sort | while IFS= read -r d; do
-    lista=$(find "$d" -mindepth 1 -maxdepth 1 -type f -name "*.$EXT*" ! -name '*.test.*' -exec basename {} \; \
+    lista=$(find "$d" -mindepth 1 -maxdepth 1 -type f -name "*.$EXT*" ! -name '*.test.*' ! -name '*.soporte.*' -exec basename {} \; \
       | sort | sed 's/.*/`&`/' | paste -sd, - | sed 's/,/, /g')
     [ -n "$lista" ] && echo "- \`${d#"$RAIZ"/shared/}/\`: $lista"
   done

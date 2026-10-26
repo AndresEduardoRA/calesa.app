@@ -1,6 +1,6 @@
 import { cleanup, fireEvent } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { abrir, celda } from './celda-de-prueba'
+import { abrir, celda } from './xcell.soporte'
 import { type XCellProps } from './index'
 
 afterEach(cleanup)

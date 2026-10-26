@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { BASE, celda } from './celda-de-prueba'
+import { BASE, celda } from './xcell.soporte'
 import { XCell, type XCellProps } from './index'
 import type * as TextoDeValorReal from './texto-de-valor'
 
