@@ -3081,3 +3081,74 @@ la ventana de `now()`, dos motivos del candado sin decidir y el lint). Todos est
 **ESTADO:** la línea «Fase actual» y el punto 1 de «Siguiente» dicen el 4.13-1 hecho y el 4.13-2; los abiertos suman **4-27** y llevan 4-21 y 4-25 a 4.13-3; carreras va 3 de 5; **12.181 B** (`wc -c`, tope 12.288). Lo que salió, copiado sin resumir en «Movido de ESTADO (4.13-1)», arriba.
 
 **Lo que no se hizo:** la pantalla ni el prompt 2, **4-27** (anotado), el Nivel 2 ni el 3, `next upgrade`, ningún push ni dispatch.
+
+## 2026-10-26 — Movido de ESTADO (4.13-2)
+
+Lo que `docs/ESTADO.md` decía y ya no es actual (copiado, no resumido):
+
+- «Hecho el **4.13, prompt 1 de 4** (la lectura que abre la hoja: `cotizacion_hoja()`, sin pantalla); antes, el **4.12** (`XCell`), el **4.11** y el **4.10 entero**. **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20**, **4-21**, **4-23**, **4-24**, **4-25**, **4-26** y **4-27** siguen abiertos.»
+- «(2026-10-24 a 2026-10-26, «movido de ESTADO», 4.08-1 a 4.13-1)»
+- «1. **4.13, prompt 2** (la hoja dibujada y el recálculo, sin guardar; son 4 prompts: `docs/PLAN.md` fila 4.13) y en orden hasta 4.28, **un prompt a la vez, y se para a reportar** (`docs/PLAN.md` › «Partición»); los de pura pantalla, con Nivel 1 y el completo cada 3 (`.claude/rules/e2e.md`; el `sí` del 4.12-2 volvió la cuenta a 0). **Del 4.12:** la celda no calcula: el par es una celda con dos lados (`onCommit(id, valor)`, `onReset(id)`); la ayuda y el ⚙ son `hasHelp`/`onHelp(id)` y `hasSettings`/`onSettings(id)`: **la hoja** calcula las banderas (diseño y permisos), pasa los **mismos** callbacks a todas las celdas y devuelve el foco al cerrar lo que se abre; el rango lo valida la base y vuelve por `error`; el 4.13 decide el borde del par sin modificar y **4-25** (el parser de números). Hereda del 4.10:»
+- «(4.13-3, con **4-21** y **4-27**: `cotizacion_hoja()` ya da la versión de la fórmula y la hora; el intento de guardar es un uuid por guardado)»
+- «**4-21** y **4-27** («Guardar con la N» congela la tarifa de cualquier hora) en 4.13-3,»
+
+## 2026-10-26 — Paso 4.13 (2 de 4): la hoja dibujada y el recálculo, sin guardar (4.13-2)
+
+**Qué se pidió:** el prompt 2 de 4 del paso 4.13. Una pantalla donde quien puede cotizar abre la hoja de un origen, la ve dibujada desde el diseño que trae `leerHojaParaCotizar()`, tipea y ve recalcular el total, sin guardar: la ruta y las pestañas de origen, las secciones con sus `XCell`, la variante, los interruptores, los atajos y los subtotales, el recálculo con
+`cotizacion_evaluar` (con `p_modo_tc`) a los 150 ms, de a un pedido y aplicando sólo la respuesta más nueva, «No se pudo recalcular» con «Reintentar», los estados (cargando, sin permiso, error y «Falta publicar la fórmula de <origen>») y el total del resumen sin fijar. Tres decisiones por escrito: una celda cuyo nodo de `condicion` no llega, dónde vive el recálculo y
+cuántos pedidos hace, y el tope de nodos del DOM. Sin tocar la base ni `src/shared`; seguridad con una persona que ve «todos» y otra que ve «costos». Decisiones ie a io: `docs/DECISIONES.md`, 2026-10-26, «Paso 4.13 (2 de 4)».
+Antes de empezar: `df -h /` dijo **94 %** (bajo el 95 %), el árbol estaba limpio, no había procesos de otra sesión y una corrida completa de `pnpm test` dio la base conocida: **362 archivos y 4.164 pruebas en verde** (88 s).
+
+**Lo que la persona respondió:** aprobó el plan y eligió cuatro cosas. (1) **«Avanzado» va en la hoja, en su orden** (el 4.13-4 lo pasa al modal con URL). (2) **`?lead=` y `?vehiculo=` sólo se llevan** (sin lecturas de más). (3) **El enlace de «Falta publicar la fórmula» va a Configuración › Cotización** (el revisor había propuesto la pantalla del origen). (4) **El par con el monto
+calculado lleva candado entero en este prompt** y el candado por lado de la `XCell` entra con el 4.13-3 (que ya toca `src/shared`); la otra opción era tocar la `XCell` ahora y correr el Nivel 2.
+
+**Qué se hizo:**
+
+- **`entities/`** (puro, cada export con su test): `recalculo-esquema.ts` y `recalculo.ts` (la respuesta de `cotizacion_evaluar` con `Map`), `entradas.ts` (las entradas y sus cambios: el % de un par quita el override del monto, los chips por posición), `binding.ts` (las props de cada `XCell`, qué se dibuja, el candado y sus textos propios, el resumen), `pedido-de-recalculo.ts`,
+  `apertura.ts`, `origenes-para-cotizar.ts`, `ruta-de-la-hoja.ts` y `repositorios-de-hoja.ts` (suma `Recalculador` y `RecalculadorAlAbrir`); `hoja-de-prueba.soporte.ts` es sólo de las pruebas.
+- **`infra/`:** `queries/recalculo.ts` (el primer cálculo, en el servidor; una segunda llamada sólo si la base rechaza el vehículo) e `recalculo.client.ts` (el del navegador); `composicion.ts` y el nuevo `composicion.client.ts`.
+- **`features/hoja/`:** `hooks/use-recalculo.ts` (la cola) y `hooks/use-hoja.ts` (los mismos callbacks para todas las celdas); `components/` (`hoja-de-cotizar`, `seccion-de-hoja`, `item-de-hoja`, `celda-de-hoja`, `variante-de-hoja`, `interruptor-de-hoja`, `atajos-de-hoja`, `subtotal-de-hoja`, `valor-de-nodo`, `resumen-de-hoja`, `pestanas-de-origen`, `formula-sin-publicar`, `esqueleto-de-hoja`).
+- **La ruta:** `src/app/(app)/cotizaciones/nuevo/` (`page.tsx` con `connection()` y `<Suspense>`, `loading.tsx`); `pantallas/cotizar.ts` e `index.ts` del módulo. La navegación no se toca (`disponible: false`).
+- **Pruebas:** Vitest (**104 pruebas nuevas**: la respuesta, las entradas, el binding, la apertura, los orígenes, el pedido, la cola con temporizadores falsos, `<Activity>` y StrictMode, la hoja entera con la `XCell` de verdad); e2e `e2e/cotizar-hoja.spec.ts` (13), `e2e/cotizar-hoja-niveles.spec.ts` (5) y
+  `e2e/cotizar-hoja-200.spec.ts` (4; 3 en el celular), con `e2e/soporte/cotizar.ts` (el vigilante de recálculos y el detector) y `e2e/soporte/cotizar-formula.ts` (la fórmula de prueba publicada por SQL con `_preparar_publicacion()`, el origen sin fórmula y el orden declarado).
+- **Docs:** la ficha del módulo, `COTIZADOR.md` (la sección «La hoja dibujada y el recálculo» y la línea corregida de `error`), `GLOSARIO.md` (tres filas), `UX.md` (los estados nuevos), `RENDIMIENTO.md`, `DECISIONES.md`, `PLAN.md` (la fila 4.13, la 4.20 y **4-28** a **4-32**), `ESTADO.md` y esta entrada.
+
+**Lo que se midió y cambió el diseño:** (1) **Nodos del DOM:** el plan propuso 650; con `subasta_usa` como quien ve todos los niveles se midieron **31 celdas, 411 nodos al abrir y 430 con la hoja usada**: tope **460** (lo medido más un 5 %), igual en los dos proyectos. (2) **JS de la ruta: 418,5 KB** con gzip en 24 chunks; `/perfil` en el mismo build, 414,3 (24 chunks), `/vehiculos` 468,9 y
+`/leads` 505,1: la hoja pesa +4,2 KB sobre el marco; sin presupuesto (es del 4.13-4). (3) **Pedidos:** 0 del navegador al abrir; con el primer pedido retenido y tres confirmaciones, ninguno más hasta soltarlo y entonces uno solo con lo último; el máximo en vuelo a la vez, 1. (4) La base **no rechaza el rango ni lo obligatorio** (vuelven en `faltantes`) y **no devuelve
+`defaults`**: la ficha de la `XCell` y `COTIZADOR.md` decían otra cosa. (5) Una celda del vehículo sin vehículo perdía su «Viene del vehículo.» porque la `XCell` dice el error antes que el candado: una celda bloqueada dice su motivo. (6) Con sólo `cotizaciones.crear` la lectura vuelve sin secciones (`_nodos_visibles()` pide `ver`): «No puedes ver esta hoja» (**4-32**). (7) El primer
+e2e falló porque el rol de prueba no tenía `cotizaciones.ver`; el segundo porque la primera cuenta de una base es la dueña (hay que crearla antes). (8) Mi primera aserción sobre la variante miraba un pedido que ya había salido con `b`: se quitó.
+
+**La revisión del plan por un agente, con el código delante:** 5 bloqueantes, 11 a corregir y ~10 menores, todos incorporados. Los bloqueantes: un par con el monto calculado y el porcentaje editable no se puede dibujar sin tocar `src/shared` (la persona eligió el candado entero); `self.__next_f` queda vacío al hidratar (se lee del cuerpo del documento y de las respuestas `rsc: 1`); el detector
+miraba hojas y los ids llegan como claves; «lo tipeado queda» no valía si la celda sólo pinta la respuesta; y el plan decía a la vez que no abría «Avanzado» y que contaba las secciones de «costos». A corregir, entre otros: una variante sin elección por defecto (el motor falla: no es un error, es la primera elección), el total null y los faltantes ocultos, el efecto que sólo
+limpia (`<Activity>` y StrictMode), el vehículo que la base rechaza, las pestañas con la pista de desborde y que el mensaje de la base nunca se muestre.
+
+**Verificación:**
+
+- **Nivel 1:** `pnpm lint` y `pnpm typecheck` limpios; `pnpm test` en verde (**374 archivos y 4.268 pruebas**; el índice de DECISIONES se regeneró con `mapa.sh`, que lo exige); `bash scripts/mapa.sh --check` pasa. **e2e dirigidos en los dos proyectos:** los tres specs, **43 pruebas en verde** (22 en escritorio, 21 en celular), 1,1 min; `e2e/presupuesto-js.spec.ts` (escritorio, 5) en verde con las rutas de siempre.
+- **Recorrido con `E2E_CAPTURAS` y `hoja-de-contacto`:** hojas **abiertas todas**, escritorio 01 a 03 y celular 01 a 04: (e-01) la hoja de prueba con el candado de cada celda («Se habilita con «Activar».», «Está apagada en esta hoja.», «Viene del vehículo.»), «No se pudo recalcular» con «Reintentar» y el total «desactualizado» con el resumen a la vista, «Falta publicar» con su botón y
+  la subasta al 100 % con el resumen al pie; (e-02) el resumen de la subasta «Sin total: Falta un dato que esta hoja no muestra.» al 100 y al 200 %, y «todos» y «costos» de la fórmula de prueba; (e-03) la subasta para «todos» y para «costos», iguales arriba; (m-01 a m-04) lo mismo a 412 px, una columna, y al 200 % las pestañas se desplazan con su degradado y nada se corta. Sin novedad salvo lo ya
+  anotado: **el resumen queda al final de la hoja** (el 4.13-4 lo fija) y el botón de «Falta publicar» no se veía (se hizo primario). La primera vuelta de capturas (6 hojas) mostró lo mismo y pidió llevar el resumen a la vista.
+- **Nivel 2: no corre** (no toca `src/shared`, ni policies, ni `schemas/`, ni el layout). **e2e completo: no (4.13-2, pantalla, 2 de 3).**
+
+**Mutaciones (10):** nueve en el código contra Vitest y una en el e2e (el arnés vive en el scratchpad de la sesión y no se commitea; cada una se aplica con una copia de respaldo y se restaura).
+
+| Mutación                                                      | Cae                                                                                         |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| dos pedidos en vuelo (no mira si hay uno al vencer la espera) | la cola con uno en vuelo                                                                    |
+| aplicar la respuesta vieja (sin mirar la generación)          | la cola con uno en vuelo; el error de uno que ya no es el último                            |
+| el debounce en 0                                              | «pide 150 ms después»; «varias confirmaciones, un pedido»                                   |
+| el porcentaje de un par que no quita el override del monto    | `entradas.test.ts`                                                                          |
+| esconder la celda cuya bandera no llegó                       | **sobrevivía**: se agregó el caso de una condición a la vista sin interruptor               |
+| el motivo que nombra la bandera                               | el binding («sin nombrar nada»)                                                             |
+| lo tipeado que no se ve mientras recalcula                    | el binding (dos casos)                                                                      |
+| el error antes que el candado en una celda bloqueada          | el binding                                                                                  |
+| una bandera de más en el pedido                               | `entradas.test.ts` y la hoja entera                                                         |
+| el detector sin las claves (e2e)                              | «quien ve «costos» recibe todo eso»: el de «todos» pasaba igual, por eso hace falta el otro |
+
+**Del entorno:** casi un `next build` de cada dos se detuvo con `SecurityFatalError` (el aviso de seguridad de Next 16.4.0); se repitió una vez cada vez con un envoltorio del scratchpad y siguió. No se corrió `next upgrade`: lo decide la persona. Un `rm -rf` dentro de una orden compuesta fue rechazado y se repitió sin borrar nada.
+
+**e2e completo: no (4.13-2, pantalla, 2 de 3).** Van 2 de 3 pasos de pantalla seguidos sin completo; el Nivel 2 lo corre el 4.13-3 (toca `src/shared`) y vuelve la cuenta a 0.
+
+**ESTADO:** la línea «Fase actual» y el punto 1 de «Siguiente» dicen el 4.13-2 hecho y el 4.13-3 (con Nivel 2); los abiertos suman **4-28** a **4-32**; **12.124 B** (`wc -c`, tope 12.288). Lo que salió, copiado sin resumir en «Movido de ESTADO (4.13-2)», arriba.
+
+**Lo que no se hizo:** guardar, «Avanzado» en su modal, la ayuda y el ⚙, los modos y «Ver total Bs», el resumen fijo, el presupuesto de JS, el candado por lado de la `XCell` (src/shared), el Nivel 2 ni el 3, `next upgrade`, ningún push ni dispatch, y el prompt 3.

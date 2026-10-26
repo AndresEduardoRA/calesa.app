@@ -1582,3 +1582,16 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
   `aceptaValor()` dentro) son 3,9 y 157,7 ms: cada llamada de más a una función SQL con `set search_path` (que no se inlinea) costaba ≈ 50 µs por ítem. Los mapas por nodo se arman una vez en memoria (`jsonb_object_agg`) y no
   se leen de la fila: un `jsonb` que viene de la tabla se vuelve a leer entero en cada operador.
 - **`db:medir` entero:** en verde, 1 m 50 s (las demás mediciones, incluidas `medir-evaluar.sql`, `cotizacion_crear()` y `cotizacion_guardar()`, sin cambios).
+
+## Paso 4.13 (2 de 4): la hoja dibujada y el recálculo (2026-10-26)
+
+- **Cómo se mide:** `e2e/cotizar-hoja-200.spec.ts` contra el build (`.next-e2e`) y la base local, como la dueña (ve todos los niveles) en `/cotizaciones/nuevo?origen=<subasta_usa>`: la fórmula más grande del juego (47 nodos, 9 secciones, 39 ítems: 32 celdas, 3 subtotales, 2 interruptores, la variante y los atajos), con la
+  hoja recién abierta y con la hoja usada (un monto tipeado, los dos interruptores encendidos —la garantía se dibuja— y un override del monto de un par). Lo mismo en los dos proyectos (412 y 1.280 px) y al 100 y al 200 % del texto.
+- **Nodos del DOM del subárbol `[data-hoja]`:** el plan propuso **650** (32 celdas × 15 nodos, lo que pesa la `XCell` sin ayuda ni ⚙, más ≈ 170 de estructura). Medido: **31 celdas y 411 nodos al abrir; 430 con la hoja usada** (≈ 13 por celda con la estructura). Tope fijado en lo medido más un 5 %: **460**. Con la ayuda y el ⚙ conectados (4.13-4) cada
+  celda suma 3 nodos por cada uno: el tope se vuelve a medir allí.
+- **La curva con el tamaño del diseño:** ≈ 13 nodos por celda con su estructura. Una sintética de 2.487 nodos (`corpus-de-diseno.json › sinteticas`) dibujaría ≈ 30.000: el diseño no tiene tope de tamaño (**4-30**, `docs/PLAN.md`).
+- **Pedidos por apertura:** al abrir, **dos** llamadas desde el servidor, en paralelo (`cotizacion_hoja` y `cotizacion_evaluar` con las entradas vacías), y **ninguna** del navegador (`e2e/cotizar-hoja.spec.ts` lo cuenta con el vigilante de recálculos). Una tercera, también del servidor, sólo si la base rechaza el vehículo de la URL (se
+  vuelve a calcular sin él). Después, **uno por pausa de tecleo**: tres confirmaciones con el primer pedido retenido no sacan otro; al soltarlo sale **uno** con lo último; el máximo en vuelo a la vez medido es **1**.
+- **JS en frío de la ruta (gzip, sin caché, `e2e/soporte/js-en-frio.ts`):** `/cotizaciones/nuevo` **418,5 KB** en 24 chunks; en el mismo build `/perfil` **414,3 KB** (24 chunks), `/vehiculos` 468,9 y `/leads` 505,1. La hoja pesa **+4,2 KB** sobre el marco (la `XCell`, el hook de recálculo, el binding y el cliente de Supabase que ya estaba).
+  Sin presupuesto todavía: el formal es del 4.13-4 (`e2e/soporte/presupuestos.ts`).
+- **El recálculo:** una llamada a `cotizacion_evaluar()` por pausa; su costo en la base es el de `medir-evaluar.sql` (la fórmula del seed ≤ 10 ms de mediana). La respuesta de la subasta pesa lo que sus nodos visibles (decenas de claves): el navegador no la mide aparte.

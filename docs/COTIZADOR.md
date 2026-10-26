@@ -1181,13 +1181,46 @@ puente hacia la cotización abierta.
 esa bandera no se distingue «modificado» de «input». ↺ dice «Volver al valor por defecto» si hay `defaultValue` y «Volver al sugerido» si no, nunca con la cifra. El par es **una celda con
 dos lados editables** (`secondaryId`, `secondaryValue`, `secondaryFormat`): cada lado emite `onCommit(suId, valor)` y ↺ emite `onReset(id)`; **la hoja traduce** (editar el % quita el override
 del monto, porque si no el monto lo pisa; ↺ quita los dos). Emite sólo si el número cambió (a 15 cifras); vacío es `null`; un porcentaje se tipea en puntos y se emite como fracción.
-**La celda no valida el rango, lo obligatorio ni lo entero: lo hace la base y su mensaje vuelve por `error`.** Los tonos llegan por `<EstiloDeTonos tonos>`, una vez por hoja, y la celda sólo
+**La celda no valida el rango, lo obligatorio ni lo entero: lo dice la base, pero no como un error sino en `faltantes` (`fuera_de_rango`, `requerido_sin_valor`) con el valor en null; la hoja lo traduce a un texto propio y lo pasa por `error`** (4.13-2: `cotizacion_evaluar` no levanta una excepción por un número fuera de rango). Los tonos llegan por `<EstiloDeTonos tonos>`, una vez por hoja, y la celda sólo
 lleva `data-tono="<clave>"`. Una parada de `Tab` por valor; la ayuda, el ⚙ y ↺ se alcanzan con `→` desde el valor (valor → secundario → ayuda → ⚙ → ↺): **las flechas son de la celda**, la hoja no las usa para moverse.
 
 **La ayuda y el ⚙ (4.12, prompt 2).** Son banderas (`hasHelp`, `hasSettings`) **más** un callback (`onHelp(id)`, `onSettings(id)`), y la hoja pasa **los mismos callbacks a todas las celdas** (el `memo` aguanta cientos de
 celdas cada 150 ms). **La celda no decide permisos ni abre nada:** la hoja calcula las banderas (permiso, tipo de nodo, `ayuda` del diseño) y decide qué abrir; la celda emite el id de la celda (no el del secundario) y no mueve el
 foco, así que devolverlo al cerrar lo abierto es de la hoja. **Deshabilitada:** la ayuda y el ⚙ siguen (no escriben en esta cotización) y ↺ se va. **Modo Live:** siguen; lo que abran pasa sus cifras por `<Monto>`. Si no corresponde
 (un tipo de cambio sin permiso), la hoja no manda `hasSettings`. Con acciones, el valor anuncia el atajo (`aria-keyshortcuts` y una descripción: «Más acciones con la flecha derecha.»).
+
+### La hoja dibujada y el recálculo (4.13-2)
+
+`/cotizaciones/nuevo?origen=&lead=&vehiculo=` (`src/app/(app)/cotizaciones/nuevo/`, sin entrada en la navegación hasta el 4.16). **Una lectura y un cálculo al abrir, en el servidor y en paralelo** (`cotizacion_hoja` y `cotizacion_evaluar` con las entradas vacías, `recalcularAlAbrir()`): la hoja llega dibujada con sus valores y el navegador no
+pide nada. Después, **un pedido por pausa, desde el navegador** (`infra/recalculo.client.ts`): no hay un salto por Next ni se vuelve a leer la sesión en cada pausa, y la base ya exige `cotizaciones.crear` del origen y recorta lo oculto.
+
+**La cola (`useRecalculo()`).** Cada confirmación (un Enter, un Tab, un clic en un chip o en un interruptor: la `XCell` no emite por tecla) reinicia una espera de 150 ms; al vencer sale UN pedido con las entradas de ese momento. Con uno en vuelo no sale otro: queda pendiente y sale uno solo, con lo
+más nuevo, cuando el anterior vuelve. La respuesta —o el error— de un pedido sólo se aplica si nadie confirmó nada después de lo que calculó. «Reintentar» pasa por la misma puerta. Al esconderse la pantalla (Next la guarda en un `<Activity>`) o desmontarse no manda nada y deja «No se pudo recalcular».
+Una regla rota (22023: la fórmula cambió, **4-28**), la sesión vencida o un permiso que se fue piden «Recargar» y no «Reintentar» (`pideRecargar()`). **El mensaje de la base nunca llega a la pantalla.**
+
+**De dónde sale cada prop de la `XCell` (`entities/binding.ts`).**
+
+| Prop                       | Sale de                                                                                                                                                                                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `value`                    | lo tipeado y pendiente (`Entradas`), si no `valores[id]` de la última respuesta, si no null: la celda no vuelve al número viejo mientras recalcula ni si falla                                                                                                     |
+| `suggested` / `overridden` | `fuentes[id] === 'sugerido'` y, para `overridden`, el override tipeado (en un par, de cualquiera de los dos lados): la fuente de una respuesta vieja no pinta el anillo                                                                                            |
+| `defaultValue`             | `null` sólo en una `constante` y un `tipo_cambio` («Volver al valor por defecto»); la base no devuelve `defaults`                                                                                                                                                  |
+| `disabledReason`           | primero `estados` del recálculo (apagada, otra variante), después el candado de la lectura (`motivo`); en un par, el del monto y, si el monto se edita, el del porcentaje                                                                                          |
+| `error`                    | el `faltante` del nodo (o del porcentaje del par) con un texto propio por código; un valor null sin faltante propio dice «Falta un dato para calcular esto.»; **una celda bloqueada dice su motivo y no el error** (la `XCell` dice el error antes que el candado) |
+| formato                    | `usd` → monto en dólares; `moneda` → monto de la empresa; `pct` → porcentaje; `raw` → número                                                                                                                                                                       |
+
+**Entradas (`entities/entradas.ts`).** Un `input` va a `inputs`; una constante, un tipo de cambio o un sobrescribible, a `overrides`; vaciar la celda quita lo tipeado. **El porcentaje de un par quita el override del monto** (si no, el monto manda y lo tipeado no se ve) y ↺ quita los dos. Un chip de unos atajos pone su valor como
+override del nodo y recuerda **su posición**: con años que repiten el valor (la depreciación de 2018 a 2021 vale 0,328) un valor igual no puede decir cuál se pulsó. La variante elegida viaja como `variante`; sin elegir, manda la de la fórmula; las banderas encendidas viajan como `true` y las apagadas no viajan. El porcentaje de un par puede ser un `input` y
+la lectura no dice el tipo del nodo: se decide con su fuente en la última respuesta (**4-31**). Sin `modo` de tipo de cambio todavía (`p_modo_tc` es del 4.13-4).
+
+**Lo que la hoja decide con lo que no le llega (decisión 1 del 4.13-2).** La lectura le quita a una celda `condicion` y `requerido_si` si su bandera no se ve (`…008900:123-124`); `solo_en` nunca falta (la variante es siempre de nivel «todos»). **Lo que se dibuja de una celda apagada sale de `estados` del recálculo, nunca de la lectura:**
+quien no ve la bandera no puede mandarla (`entrada_invalida`, igual que una que no existe), así que para esa persona la celda vuelve siempre `condicion_apagada` con valor 0, y la hoja dice «Está apagada en esta hoja.» sin nombrar nada. No la esconde: no sabe si el interruptor oculto era `habilita` o `muestra`, y esconderla por una ausencia sería deducir algo
+que la lectura no dice. Con la bandera a la vista: «Se habilita con «<interruptor>».»; si es de una bandera `muestra` y está apagada, no se dibuja. La prueba: `e2e/cotizar-hoja-niveles.spec.ts`, con una persona que ve «todos» y otra que ve «costos».
+
+**El par con el monto calculado.** La `XCell` tiene un solo candado para los dos lados, y en Transferencia, Garantía, Seguro, GA, IVA e ICE el monto se calcula y el porcentaje se edita: hasta el candado por lado (4.13-3, `src/shared`) el par se bloquea entero con el motivo del monto.
+
+**Pedidos por apertura:** dos en el servidor (la hoja y el primer cálculo; una tercera sólo si la base rechaza el vehículo de la URL, y entonces se calcula sin él), ninguno del navegador al abrir, y uno por pausa de tecleo después, nunca dos en vuelo. **Tope de nodos del DOM** de la hoja más grande del juego (`subasta_usa`, 47 nodos y 39 ítems, 31 celdas): se propuso en 650 y se midió 411 al abrir
+y 430 con la hoja usada (un monto, los dos interruptores, un override): tope **460** (`docs/RENDIMIENTO.md`).
 
 ## Plantilla de tarjeta (PDF)
 
