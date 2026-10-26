@@ -457,11 +457,11 @@ begin
     raise exception '% la ejecuta authenticated o anon', f;
   end if;
   -- La evaluación, de authenticated; ni anon ni PUBLIC.
-  f := 'public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb, text)';
+  f := 'public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb, text, text)';
   if has_function_privilege('anon', f, 'execute') or not has_function_privilege('authenticated', f, 'execute') then
     raise exception '% debía ser de authenticated y no de anon', f;
   end if;
-  foreach f in array array['public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb, text)', 'public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean)'] loop
+  foreach f in array array['public.cotizacion_evaluar(jsonb, uuid, uuid, uuid, jsonb, text, text)', 'public._cotizacion_armar(jsonb, uuid, uuid, uuid, uuid, timestamptz, boolean)'] loop
     if exists (select 1 from aclexplode(coalesce((select proacl from pg_proc where oid = f::regprocedure),
                                                   acldefault('f', (select proowner from pg_proc where oid = f::regprocedure)))) a
                 where a.grantee = 0) then

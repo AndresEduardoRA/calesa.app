@@ -10,6 +10,7 @@
 --   - **sin leer cotizaciones**: por relación (`pg_stat_get_xact_blocks_fetched`: los buffers totales los mueve el autovacuum de las tablas de permisos), 0 bloques de `cotizaciones`, de
 --     `cotizaciones_revisiones` y de sus índices;
 --   - los atajos de una tabla viva leen a lo sumo las filas que piden (`limit`), no las 1.000;
+--   - `cotizacion_evaluar()` por origen con y sin la hoja abierta (4-28): la fórmula del seed ≤ 10 ms con las dos, y lo que suma verificar la firma (leer la clave de Vault y un HMAC) ≤ 3 ms;
 --   - las guardas: una copia que lee `cotizaciones` por una columna sin índice rompe el 0, y una que lee la tabla viva entera, sin `limit`, rompe el tope de bloques de `tablas_referencia_filas`.
 \set ON_ERROR_STOP 1
 \set carga `cat /proc/loadavg`
@@ -152,6 +153,30 @@ begin
                            pg_temp.bloques_que_lee(v_sql, 'public.tablas_referencia_filas'::regclass));
 end $$;
 
+-- El recálculo de la hoja (`cotizacion_evaluar` por origen) con y sin la hoja abierta que firmó la base: la firma se hace una vez, como cada persona y antes de dejar de ser postgres.
+create temp table _t (clave text primary key, abierta text not null);
+do $$
+begin
+  perform pg_temp.como('duena');
+  insert into _t select 'subasta_usa', public._cotizacion_abierta_firmar(origen, formula, now()) from _o where clave = 'subasta_usa';
+end $$;
+grant select on _t to authenticated;
+create function pg_temp.caso_evaluar(p_caso text, p_quien text, p_con_abierta boolean) returns void language plpgsql as $$
+declare
+  v_o uuid := (select origen from _o where clave = 'subasta_usa');
+  v_sql text := format('select public.cotizacion_evaluar(%L::jsonb, null, %L, null, null, null, %L)', '{"inputs": {"remate": 14200}}', v_o,
+                       case when p_con_abierta then (select abierta from _t where clave = 'subasta_usa') end);
+  v_m jsonb; v_bytes int;
+begin
+  perform pg_temp.como(p_quien);
+  execute replace(v_sql, 'select ', 'select octet_length((') || ')::text)' into v_bytes;
+  v_m := pg_temp.medir(v_sql);
+  insert into _med values (p_caso, (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, v_bytes,
+                           pg_temp.bloques_que_lee(v_sql, 'public.cotizaciones'::regclass),
+                           pg_temp.bloques_que_lee(v_sql, 'public.cotizaciones_revisiones'::regclass),
+                           pg_temp.bloques_que_lee(v_sql, 'public.tablas_referencia_filas'::regclass));
+end $$;
+
 -- Las copias malas. (1) La función de verdad, más una búsqueda por una columna sin índice (`notas`) que recorre `cotizaciones`. (2) La de los atajos sin su `limit`.
 do $$
 declare
@@ -183,6 +208,8 @@ select pg_temp.caso('duena, planilla', 'duena', 'planilla_usa');
 select pg_temp.caso('duena, atajos de la tabla viva', 'duena', 'viva');
 select pg_temp.caso('duena, sintetica de 255 nodos', 'duena', 'chica');
 select pg_temp.caso('duena, sintetica de 2.487 nodos', 'duena', 'grande');
+select pg_temp.caso_evaluar('evaluar sin hoja abierta', 'duena', false);
+select pg_temp.caso_evaluar('evaluar con hoja abierta', 'duena', true);
 select pg_temp.caso('mala, lee cotizaciones', 'duena', 'subasta_usa', 'hoja_mala_cotizaciones');
 select pg_temp.caso('mala, atajos sin limit', 'duena', 'viva', 'hoja_mala_atajos');
 reset role;
@@ -193,15 +220,16 @@ declare
   c_ms constant numeric := 10;             -- ms por llamada de una hoja de las capturas
   c_ms_chica constant numeric := 25;       -- ms de la sintética de 255 nodos (medido: 11 a 24)
   c_ms_grande constant numeric := 300;     -- ms de la sintética de 2.487 nodos (medido: 156 a 284)
+  c_firma constant numeric := 3;           -- ms que suma verificar la hoja abierta en `cotizacion_evaluar` (leer la clave de Vault y un HMAC)
   c_filas constant bigint := 12;           -- bloques de `tablas_referencia_filas` que pueden pedir unos atajos de 8 filas (heap, índice y TOAST)
   r record; v_fallas text := ''; m record; g record;
 begin
   for r in select * from _med order by caso loop
-    raise notice 'medicion|cotizacion_hoja, % (ms)|%', r.caso, round(r.ms, 2);
-    raise notice 'medicion|cotizacion_hoja, % (bytes de la respuesta)|%', r.caso, r.bytes;
-    raise notice 'medicion|cotizacion_hoja, % (bloques de cotizaciones)|%', r.caso, r.cot;
-    raise notice 'medicion|cotizacion_hoja, % (bloques de cotizaciones_revisiones)|%', r.caso, r.rev;
-    raise notice 'medicion|cotizacion_hoja, % (bloques de tablas_referencia_filas)|%', r.caso, r.filas;
+    raise notice 'medicion|%, % (ms)|%', case when r.caso like 'evaluar%' then 'cotizacion_evaluar' else 'cotizacion_hoja' end, r.caso, round(r.ms, 2);
+    raise notice 'medicion|%, % (bytes de la respuesta)|%', case when r.caso like 'evaluar%' then 'cotizacion_evaluar' else 'cotizacion_hoja' end, r.caso, r.bytes;
+    raise notice 'medicion|%, % (bloques de cotizaciones)|%', case when r.caso like 'evaluar%' then 'cotizacion_evaluar' else 'cotizacion_hoja' end, r.caso, r.cot;
+    raise notice 'medicion|%, % (bloques de cotizaciones_revisiones)|%', case when r.caso like 'evaluar%' then 'cotizacion_evaluar' else 'cotizacion_hoja' end, r.caso, r.rev;
+    raise notice 'medicion|%, % (bloques de tablas_referencia_filas)|%', case when r.caso like 'evaluar%' then 'cotizacion_evaluar' else 'cotizacion_hoja' end, r.caso, r.filas;
   end loop;
   for r in select * from _med where caso not like 'mala,%' loop
     if r.cot <> 0 or r.rev <> 0 then v_fallas := v_fallas || format(E'\n  %s: lee %s bloques de cotizaciones y %s de sus revisiones', r.caso, r.cot, r.rev); end if;
@@ -219,6 +247,13 @@ begin
   select (g1.ms / g0.ms) as razon into g from _med g0, _med g1 where g0.caso = 'duena, sintetica de 255 nodos' and g1.caso = 'duena, sintetica de 2.487 nodos';
   raise notice 'medicion|cotizacion_hoja, razón de ms entre 2.487 y 255 nodos|%', round(g.razon, 1);
   if g.razon > 15 then v_fallas := v_fallas || format(E'\n  10 veces los nodos cuestan %s veces el tiempo (tope 15): no es lineal', round(g.razon, 1)); end if;
+  -- El recálculo con la hoja abierta (4-28): dentro del presupuesto de evaluar con la fórmula del seed, y lo que suma la firma tiene su propio tope.
+  for r in select * from _med where caso like 'evaluar%' loop
+    if r.ms > c_ms then v_fallas := v_fallas || format(E'\n  %s tarda %s ms (tope %s)', r.caso, round(r.ms, 2), c_ms); end if;
+  end loop;
+  if (select ms from _med where caso = 'evaluar con hoja abierta') - (select ms from _med where caso = 'evaluar sin hoja abierta') > c_firma then
+    v_fallas := v_fallas || format(E'\n  verificar la hoja abierta suma %s ms (tope %s)', round((select ms from _med where caso = 'evaluar con hoja abierta') - (select ms from _med where caso = 'evaluar sin hoja abierta'), 2), c_firma);
+  end if;
   if v_fallas <> '' then raise exception 'cotizacion_hoja rompe su presupuesto:%', v_fallas; end if;
   -- Las guardas.
   select * into r from _med where caso = 'mala, lee cotizaciones';

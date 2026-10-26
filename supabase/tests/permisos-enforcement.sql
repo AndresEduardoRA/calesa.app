@@ -166,3 +166,68 @@ begin
     raise exception 'el caso genérico no recorrió los niveles sembrados y el creado (%)', v_n; end if;
 end $$;
 rollback;
+
+-- @test permisos: cotizar pide cotizaciones.ver además de cotizaciones.crear, del mismo origen (4-32), en las tres puertas de la hoja
+-- La matriz de Roles no lo impone (los permisos son la unión de los roles: `crear` puede venir de un rol y `ver` de otro), así que se mira donde se usa. Antes `crear` solo abría la hoja vacía.
+begin;
+-- Una persona activa con un rol propio y estas concesiones: 'clave' (todos los orígenes) o 'clave@origen'.
+create or replace function pg_temp.persona(p_concesiones text[]) returns uuid language plpgsql as $f$
+declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
+begin
+  insert into auth.users (id, email, raw_app_meta_data) values (v_id, v_id || '@ejemplo.com', '{"invitado": true}');
+  insert into public.roles (clave, nombre) values ('ver_' || substr(v_id::text, 1, 8), 'Ver ' || substr(v_id::text, 1, 8)) returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_id, v_rol, true);
+  foreach c in array p_concesiones loop
+    insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance)
+    values (v_rol, split_part(c, '@', 1), nullif(split_part(c, '@', 2), '')::uuid, 'todos');
+  end loop;
+  return v_id;
+end $f$;
+
+create or replace function pg_temp.corre_como(p_persona uuid, p_sql text) returns text language plpgsql as $f$
+declare v text;
+begin
+  perform set_config('request.jwt.claim.sub', p_persona::text, true);
+  set local role authenticated;
+  begin
+    execute p_sql;
+    v := 'ok';
+  exception when others then
+    v := sqlstate || ': ' || sqlerrm;
+  end;
+  reset role;
+  return v;
+end $f$;
+
+do $$
+declare
+  o uuid; o2 uuid; solo_crear uuid; con_ver uuid; ver_ajeno uuid; ambos_en_otro uuid; v text; sql text;
+begin
+  select id into o from public.origenes where clave = 'subasta_usa';
+  insert into public.origenes (clave, nombre) values ('prueba_cotizar_ver', 'Prueba cotizar ver') returning id into o2;
+  solo_crear := pg_temp.persona(array['cotizaciones.crear']);
+  con_ver := pg_temp.persona(array['cotizaciones.crear', 'cotizaciones.ver']);
+  ver_ajeno := pg_temp.persona(array['cotizaciones.crear', 'cotizaciones.ver@' || o2]);
+  ambos_en_otro := pg_temp.persona(array['cotizaciones.crear@' || o2, 'cotizaciones.ver@' || o2]);
+  foreach sql in array array[
+    format('select public.cotizacion_hoja(%L)', o),
+    format('select public.cotizacion_evaluar(''{}''::jsonb, null, %L)', o),
+    format('select public.cotizacion_crear(gen_random_uuid(), %L, gen_random_uuid(), ''{}''::jsonb, ''x'')', o)] loop
+    -- Con sólo crear, o con ver de otro origen: el permiso que falta es cotizaciones.ver.
+    foreach v in array array[pg_temp.corre_como(solo_crear, sql), pg_temp.corre_como(ver_ajeno, sql)] loop
+      if v not like '42501: %cotizaciones.ver%' then raise exception 'sin ver del origen debía dar 42501 (cotizaciones.ver): % en %', v, sql; end if;
+    end loop;
+    -- Sin crear en ese origen, el primero que falta es crear.
+    v := pg_temp.corre_como(ambos_en_otro, sql);
+    if v not like '42501: %cotizaciones.crear%' then raise exception 'sin crear del origen debía dar 42501 (cotizaciones.crear): % en %', v, sql; end if;
+  end loop;
+  -- El permiso va antes de mirar el origen: con un origen que no existe, quien sólo puede crear recibe el mismo 42501 (no un «no encontramos ese origen» que delataría cuáles hay).
+  v := pg_temp.corre_como(solo_crear, format('select public.cotizacion_hoja(%L)', gen_random_uuid()));
+  if v not like '42501: %cotizaciones.ver%' then raise exception 'con sólo crear y un origen que no existe debía dar el mismo 42501 (cotizaciones.ver): %', v; end if;
+  -- Con los dos pasa: la hoja y el recálculo abren, y crear llega a la hoja abierta (la 'x' no es una: 22023, no un permiso).
+  if pg_temp.corre_como(con_ver, format('select public.cotizacion_hoja(%L)', o)) <> 'ok' then raise exception 'con crear y ver la hoja debía abrir'; end if;
+  if pg_temp.corre_como(con_ver, format('select public.cotizacion_evaluar(''{}''::jsonb, null, %L)', o)) <> 'ok' then raise exception 'con crear y ver el recálculo debía abrir'; end if;
+  v := pg_temp.corre_como(con_ver, format('select public.cotizacion_crear(gen_random_uuid(), %L, gen_random_uuid(), ''{}''::jsonb, ''x'')', o));
+  if v not like '22023: %' then raise exception 'con crear y ver, crear debía pasar los permisos y caer en la hoja abierta (22023): %', v; end if;
+end $$;
+rollback;

@@ -594,14 +594,16 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
   {
     const llamables = [
       'public.cotizacion_guardar(uuid,uuid,timestamptz,jsonb,text,text,text,uuid)',
-      'public.cotizacion_crear(uuid,uuid,uuid,jsonb,uuid,timestamptz,uuid,jsonb,text,clase_cotizacion,boolean)',
+      'public.cotizacion_crear(uuid,uuid,uuid,jsonb,text,uuid,jsonb,text,clase_cotizacion,boolean)',
       'public.cotizacion_hoja(uuid)',
-      'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb,text)',
+      'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb,text,text)',
     ]
     const internas = [
       'public._cotizacion_conservar(jsonb,jsonb,jsonb,jsonb)',
       'public._cotizacion_entradas_de(jsonb,jsonb,jsonb)',
       'public._cotizacion_abierta(uuid,uuid,timestamptz)',
+      'public._cotizacion_abierta_firmar(uuid,uuid,timestamptz)',
+      'public._cotizacion_abierta_leer(text,uuid)',
       'public._cotizacion_vehiculo(uuid)',
       'public._cotizacion_modo(uuid,text)',
       'public._cotizacion_guardable(jsonb,jsonb)',

@@ -13,14 +13,28 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', p_quien, 'role', 'authenticated')::text, true);
 end $f$;
 
--- Corre un SQL como esa persona (authenticated) y devuelve su resultado, o {error, mensaje, detail, hint} si falla (lo hecho se deshace: va en su propia subtransacción).
-create or replace function pg_temp.cc_corre(p_quien uuid, p_sql text) returns jsonb language plpgsql as $f$
-declare v jsonb; v_d text; v_h text; v_e text; v_m text;
+-- La hoja abierta de esa persona (4-27): lo que `cotizacion_hoja()` le entregaría, firmado como postgres con su identidad, para ese origen, esa versión y esa hora.
+create or replace function pg_temp.cc_token(p_quien uuid, p_o uuid, p_f uuid, p_cuando timestamptz) returns text language plpgsql as $f$
 begin
   perform pg_temp.cc_como(p_quien);
+  return public._cotizacion_abierta_firmar(p_o, p_f, p_cuando);
+end $f$;
+
+-- Corre un SQL como esa persona (authenticated) y devuelve su resultado, o {error, mensaje, detail, hint} si falla (lo hecho se deshace: va en su propia subtransacción).
+-- Antes firma, para esa persona, las hojas abiertas que el SQL pide con el marcador `@@abierta|origen|fórmula|µs@@` (lo arma `cc_sql`): ya como `authenticated` la firma no se puede llamar.
+create or replace function pg_temp.cc_corre(p_quien uuid, p_sql text) returns jsonb language plpgsql as $f$
+declare v jsonb; v_d text; v_h text; v_e text; v_m text; v_sql text := p_sql; m text[];
+begin
+  perform pg_temp.cc_como(p_quien);
+  loop
+    m := regexp_match(v_sql, '@@abierta\|([0-9a-f-]{36})\|([0-9a-f-]{36})\|([0-9]+)@@');
+    exit when m is null;
+    v_sql := replace(v_sql, '@@abierta|' || m[1] || '|' || m[2] || '|' || m[3] || '@@',
+                     pg_temp.cc_token(p_quien, m[1]::uuid, m[2]::uuid, 'epoch'::timestamptz + m[3]::bigint * interval '1 microsecond'));
+  end loop;
   set local role authenticated;
   begin
-    execute p_sql into v;
+    execute v_sql into v;
   exception when others then
     get stacked diagnostics v_d = pg_exception_detail, v_h = pg_exception_hint, v_m = message_text;
     v_e := sqlstate;
@@ -89,13 +103,15 @@ begin
   return jsonb_build_object('o', o, 'f', f, 'l', l, 'v', v, 'a', a, 'k', k, 'kv', kv, 'ke', ke, 'sl', sl, 'sv', sv, 'sc', sc, 'fg', fg);
 end $f$;
 
--- Una llamada a cotizacion_crear con esos argumentos (el id del intento y el modo, opcionales).
+-- Una llamada a cotizacion_crear con esos argumentos (el id del intento y el modo, opcionales). La hoja abierta va como marcador y `cc_corre` la firma para quien llama: por omisión «se abrió»
+-- ahora sobre la versión publicada del origen (D2): ni la fórmula ni los tipos de cambio cambiaron desde entonces. `p_raw` pone en su lugar un texto cualquiera (una firma rota, basura).
 create or replace function pg_temp.cc_sql(p_id uuid, p_o uuid, p_l uuid, p_entradas text, p_v uuid default null, p_nuevo text default null, p_modo text default null, p_clase text default 'preventa',
-                                         p_abierta uuid default null, p_abierta_en timestamptz default null, p_con_la_abierta boolean default false)
+                                         p_abierta uuid default null, p_abierta_en timestamptz default null, p_con_la_abierta boolean default false, p_raw text default 'marcador')
 returns text language sql as $f$
-  -- Por omisión, la hoja «se abrió» ahora sobre la versión publicada del origen (D2): ni la fórmula ni los tipos de cambio cambiaron desde entonces.
-  select format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L, %L, %L::jsonb, %L, %L::public.clase_cotizacion, %L)', p_id, p_o, p_l, p_entradas,
-                coalesce(p_abierta, (select f.id from public.formulas f where f.origen_id = p_o and f.estado = 'publicada')), coalesce(p_abierta_en, now()), p_v, p_nuevo, p_modo, p_clase, p_con_la_abierta)
+  select format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L, %L::jsonb, %L, %L::public.clase_cotizacion, %L)', p_id, p_o, p_l, p_entradas,
+                case when p_raw = 'marcador' then '@@abierta|' || p_o || '|' || coalesce(p_abierta, (select f.id from public.formulas f where f.origen_id = p_o and f.estado = 'publicada')) || '|'
+                                                  || round(extract(epoch from coalesce(p_abierta_en, now())) * 1000000)::bigint || '@@' else p_raw end,
+                p_v, p_nuevo, p_modo, p_clase, p_con_la_abierta)
 $f$;
 
 -- @test cotizacion_crear: calcula en la base, guarda el snapshot entero (los nodos que no se ven, con su valor de la fórmula) y devuelve sólo lo que se ve
@@ -417,13 +433,9 @@ begin
   -- Sin cambios entre la apertura y el guardado, se guarda (la publicada es la que se abrió).
   r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v));
   if r ? 'error' then raise exception 'sin cambios debía guardar: %', r; end if;
-  -- Nulos: la versión que se abrió y cuándo son obligatorias; la hora no puede ser del futuro.
-  r := pg_temp.cc_corre(a, format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, null, now(), %L)', gen_random_uuid(), o, l, e, v));
-  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'abierta' then raise exception 'sin la versión abierta debía dar 22023 abierta: %', r; end if;
-  r := pg_temp.cc_corre(a, format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, null, %L)', gen_random_uuid(), o, l, e, f1, v));
-  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'abierta' then raise exception 'sin la hora debía dar 22023 abierta: %', r; end if;
-  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() + interval '1 hour'));
-  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'abierta' then raise exception 'una hora del futuro debía dar 22023 abierta: %', r; end if;
+  -- Nula: la hoja que se abrió es obligatoria.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_raw => null));
+  if r ->> 'error' is distinct from '22023' or r ->> 'hint' is distinct from 'abierta' or coalesce(r ->> 'detail', '') <> '' then raise exception 'sin la hoja abierta debía dar 22023 abierta: %', r; end if;
 
   -- Se publica la v2 mientras la hoja estaba abierta sobre la v1: aviso, y no se guarda.
   f2 := pg_temp.cc_publicar_v2(o, f1, now());
@@ -474,6 +486,101 @@ begin
     insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base) values (o, a, f_otra, '{}', '{}', '{}', '{}', 1);
     raise exception 'el trigger dejó nacer una cotización de la versión de otro origen';
   exception when check_violation then null; end;
+end $$;
+rollback;
+
+-- @test cotizacion_crear: la hoja abierta la firma la base (4-27): una firma rota, de otra persona, de otro origen o de otra forma es abierta_invalida; el tope de 24 h corre siempre; «con la abierta» no cambia nada sin una desactualización
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cc_preparar(); r jsonb; r2 jsonb; c public.cotizaciones; c2 public.cotizaciones; tok text; mala text; k text; id1 uuid := gen_random_uuid(); v_id_oficial uuid; v_antes numeric;
+  o uuid := (t ->> 'o')::uuid; l uuid := (t ->> 'l')::uuid; v uuid := (t ->> 'v')::uuid; f1 uuid := (t ->> 'f')::uuid; a uuid := (t ->> 'a')::uuid; kk uuid := (t ->> 'k')::uuid;
+  e constant text := '{"inputs": {"visible": 100}}';
+  n0 bigint;
+begin
+  -- Los cambios de tarifa que ya había pasaron hace días: la hoja de hace 25 h «vio» las tarifas de hoy.
+  update public.tipos_cambio_historial set cambiado_en = now() - interval '10 days' where tipo_cambio_id in (select id from public.tipos_cambio);
+  tok := pg_temp.cc_token(a, o, f1, now());
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(id1, o, l, e, v, p_raw => tok));
+  if r ? 'error' or r ->> 'repetido' <> 'false' then raise exception 'una hoja abierta sana debía guardar: %', r; end if;
+  n0 := (select count(*) from public.cotizaciones where origen_id = o and creado_por = a);
+
+  -- Las rotas: ninguna guarda, todas dicen lo mismo (abierta_invalida, con el hint de la hoja abierta).
+  foreach k in array array['firma', 'persona', 'origen', 'formula', 'hora', 'sufijo', 'mayusculas', 'diecisiete', 'basura', 'vacio', 'forma_ok_firma_falsa'] loop
+    mala := case k
+      when 'firma' then left(tok, length(tok) - 1) || case when right(tok, 1) = '0' then '1' else '0' end
+      when 'persona' then pg_temp.cc_token(kk, o, f1, now())
+      when 'origen' then pg_temp.cc_token(a, gen_random_uuid(), f1, now())
+      when 'formula' then gen_random_uuid()::text || '.' || split_part(tok, '.', 2) || '.' || split_part(tok, '.', 3)
+      when 'hora' then split_part(tok, '.', 1) || '.' || (split_part(tok, '.', 2)::bigint + 1)::text || '.' || split_part(tok, '.', 3)
+      when 'sufijo' then tok || 'x'
+      when 'mayusculas' then upper(tok)
+      when 'diecisiete' then split_part(tok, '.', 1) || '.12345678901234567.' || split_part(tok, '.', 3)
+      when 'basura' then 'hola'
+      when 'vacio' then ''
+      else split_part(tok, '.', 1) || '.' || split_part(tok, '.', 2) || '.' || repeat('0', 64)
+    end;
+    r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_raw => mala));
+    if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_invalida' or r ->> 'hint' is distinct from 'abierta' then
+      raise exception 'la hoja abierta rota («%») debía dar 22023 abierta_invalida: %', k, r;
+    end if;
+  end loop;
+  if (select count(*) from public.cotizaciones where origen_id = o and creado_por = a) <> n0 then raise exception 'una hoja abierta rota dejó una cotización'; end if;
+
+  -- El intento que se repite vuelve antes que la hoja abierta: vieja, de una clave que rotó o basura, vuelve lo guardado.
+  foreach k in array array['vieja', 'basura'] loop
+    r := pg_temp.cc_corre(a, pg_temp.cc_sql(id1, o, l, e, v, p_abierta_en => now() - interval '25 hours', p_con_la_abierta => true, p_raw => case k when 'vieja' then 'marcador' else 'hola' end));
+    if r ? 'error' or r ->> 'repetido' <> 'true' then raise exception 'el intento repetido con una hoja abierta «%» debía devolver lo guardado: %', k, r; end if;
+  end loop;
+
+  -- Sin cambios de por medio, la hoja de hace 25 h con la versión vigente guarda (nada la desactualizó) y «Guardar con la N» no: el tope de 24 h corre siempre.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '25 hours'));
+  if r ? 'error' then raise exception 'la hoja de hace 25 h, sin cambios y sin la bandera, debía guardar: %', r; end if;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '25 hours', p_con_la_abierta => true));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_vencida' then raise exception 'con la abierta y una hoja de hace 25 h debía dar abierta_vencida aunque la versión sea la vigente: %', r; end if;
+
+  -- «Con la abierta» sin una desactualización no cambia nada: la misma fórmula, las mismas tarifas y el mismo total.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '1 hour'));
+  r2 := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '1 hour', p_con_la_abierta => true));
+  if r ? 'error' or r2 ? 'error' then raise exception 'sin desactualización, con y sin la bandera debían guardar: % / %', r, r2; end if;
+  select * into c from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid;
+  select * into c2 from public.cotizaciones where id = (r2 -> 'cotizacion' ->> 'id')::uuid;
+  if c.formula_id is distinct from c2.formula_id or c.tipos_cambio is distinct from c2.tipos_cambio or c.total_base is distinct from c2.total_base or c.valores is distinct from c2.valores then
+    raise exception 'sin desactualización, la bandera cambió lo guardado: % contra %', c, c2;
+  end if;
+
+  -- El exploit de 4-27: una tarifa cambió hace 2 h y quien manda la hora la pone de hace 25 h para quedarse con la de antes. La hora ya no la elige el cliente: vence.
+  select id, valor into v_id_oficial, v_antes from public.tipos_cambio where clave = 'oficial';
+  update public.tipos_cambio set valor = valor + 1 where clave = 'oficial';
+  update public.tipos_cambio_historial set cambiado_en = now() - interval '2 hours' where tipo_cambio_id = v_id_oficial and valor_nuevo = v_antes + 1;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '25 hours', p_con_la_abierta => true));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_vencida' then raise exception 'la hora de hace 25 h con una tarifa cambiada debía dar abierta_vencida: %', r; end if;
+  -- Y con la hora de la apertura real (hace 3 h, antes del cambio de hace 2 h) congela la de entonces: es lo que pide «Guardar con la N».
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => now() - interval '3 hours', p_con_la_abierta => true));
+  select * into c from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid;
+  if r ? 'error' or (c.tipos_cambio ->> 'oficial')::numeric is distinct from v_antes then raise exception 'con la hoja abierta hace 3 h debía congelar la tarifa de entonces (%): %', v_antes, r; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_crear: cotizar pide también cotizaciones.ver del origen (4-32), después de crear y antes de mirar nada más
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cc_preparar(); r jsonb; so uuid := gen_random_uuid(); ov uuid := gen_random_uuid(); o2 uuid;
+  o uuid := (t ->> 'o')::uuid; l uuid := (t ->> 'l')::uuid; v uuid := (t ->> 'v')::uuid;
+begin
+  insert into public.origenes (clave, nombre) values ('cc_ver_' || substr(gen_random_uuid()::text, 1, 6), 'CC otro ver') returning id into o2;
+  perform pg_temp.cc_persona(so, pg_temp.cc_conc('cotizaciones.crear', 'leads.ver', 'vehiculos.ver'));
+  perform pg_temp.cc_persona(ov, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.crear'), jsonb_build_object('clave', 'cotizaciones.ver', 'origen', o2),
+                                                   jsonb_build_object('clave', 'leads.ver'), jsonb_build_object('clave', 'vehiculos.ver')));
+  -- Con sólo crear (o con ver de otro origen) no se crea: 42501 que nombra el permiso que falta.
+  r := pg_temp.cc_corre(so, pg_temp.cc_sql(gen_random_uuid(), o, l, '{"inputs": {"visible": 1}}', v));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' not like '%cotizaciones.ver%' then raise exception 'con sólo crear debía dar 42501 (cotizaciones.ver): %', r; end if;
+  r := pg_temp.cc_corre(ov, pg_temp.cc_sql(gen_random_uuid(), o, l, '{"inputs": {"visible": 1}}', v));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' not like '%cotizaciones.ver%' then raise exception 'con ver de otro origen debía dar 42501 (cotizaciones.ver): %', r; end if;
+  -- Quien no tiene crear sigue recibiendo el 42501 de crear (el primero).
+  r := pg_temp.cc_corre((t ->> 'sc')::uuid, pg_temp.cc_sql(gen_random_uuid(), o, l, '{"inputs": {"visible": 1}}', v));
+  if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' not like '%cotizaciones.crear%' then raise exception 'sin crear debía dar 42501 (cotizaciones.crear): %', r; end if;
 end $$;
 rollback;
 

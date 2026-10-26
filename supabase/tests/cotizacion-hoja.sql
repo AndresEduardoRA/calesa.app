@@ -43,6 +43,23 @@ begin
   end loop;
 end $f$;
 
+-- La hoja abierta de esa persona a esa hora, firmada como postgres con su identidad (lo que `cotizacion_hoja()` le habría entregado entonces).
+create or replace function pg_temp.ch_token(p_quien uuid, p_o uuid, p_f uuid, p_cuando timestamptz) returns text language plpgsql as $f$
+begin
+  perform pg_temp.ch_como(p_quien);
+  return public._cotizacion_abierta_firmar(p_o, p_f, p_cuando);
+end $f$;
+
+-- Publica una v2 del origen: la v1 pasa a archivada y la v2 queda publicada con esa hora. Devuelve el id de la v2.
+create or replace function pg_temp.ch_publicar_v2(p_o uuid, p_f1 uuid, p_cuando timestamptz) returns uuid language plpgsql as $f$
+declare f2 uuid;
+begin
+  update public.formulas set estado = 'archivada', publicado_en = p_cuando - interval '10 days' where id = p_f1;
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, publicado_en)
+  select origen_id, 2, 'publicada', definicion, params, diseno, visibilidad, p_cuando from public.formulas where id = p_f1 returning id into f2;
+  return f2;
+end $f$;
+
 create or replace function pg_temp.ch_conc(variadic p_claves text[]) returns jsonb language sql as $f$
   select coalesce(jsonb_agg(jsonb_build_object('clave', c)), '[]'::jsonb) from unnest(p_claves) c
 $f$;
@@ -160,6 +177,11 @@ begin
     if r ? 'error' or r ->> 'estado' is distinct from 'lista' then raise exception '%: la dueña no recibe la hoja: %', v_clave, left(r::text, 300); end if;
     if (r -> 'formula' ->> 'id')::uuid is distinct from f.id or (r -> 'formula' ->> 'version')::int is distinct from f.version then raise exception '%: la versión no es la publicada: %', v_clave, r -> 'formula'; end if;
     if (r ->> 'abierta_en')::timestamptz is distinct from now() then raise exception '%: abierta_en no es la hora de la base: %', v_clave, r ->> 'abierta_en'; end if;
+    -- La hoja abierta que firma la base (4-27): `<fórmula>.<µs>.<firma>`; la fórmula y la hora son las de la lectura.
+    if r ->> 'abierta' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[0-9]{1,16}\.[0-9a-f]{64}$' or split_part(r ->> 'abierta', '.', 1)::uuid is distinct from f.id
+       or split_part(r ->> 'abierta', '.', 2)::bigint is distinct from round(extract(epoch from (r ->> 'abierta_en')::timestamptz) * 1000000)::bigint then
+      raise exception '%: la hoja abierta no es la de la lectura: %', v_clave, r ->> 'abierta';
+    end if;
     if jsonb_typeof(r -> 'vehiculo_obligatorio') is distinct from 'boolean' or (r -> 'origen' ->> 'id')::uuid is distinct from o then raise exception '%: origen o ajuste: %', v_clave, r; end if;
     if pg_temp.ch_items(r) is distinct from pg_temp.ch_items_del_diseno(f.id) then
       raise exception '%: los ítems no son los del diseño, en su orden: % contra %', v_clave, pg_temp.ch_items(r), pg_temp.ch_items_del_diseno(f.id);
@@ -189,7 +211,7 @@ begin
   if r -> 'tonos' is distinct from v_t then raise exception 'los tonos no son los del catálogo: % contra %', r -> 'tonos', v_t; end if;
   -- «Fees» (un cálculo sobrescribible) se edita; su par, el porcentaje, es una constante y tiene ⚙ (la dueña configura). «Transferencia» se calcula: no se edita y dice por qué.
   it := pg_temp.ch_item(r, 'celda', 'fees');
-  if (it ->> 'editable')::boolean is not true or (it ->> 'ajustes')::boolean is not false or it -> 'secundario' is distinct from '{"nodo": "fees_pct", "como": "porcentaje", "formato": "pct", "editable": true, "ajustes": true}'::jsonb then
+  if (it ->> 'editable')::boolean is not true or (it ->> 'ajustes')::boolean is not false or it -> 'secundario' is distinct from '{"nodo": "fees_pct", "como": "porcentaje", "formato": "pct", "tipo_nodo": "constante", "editable": true, "ajustes": true}'::jsonb then
     raise exception 'fees: %', it;
   end if;
   it := pg_temp.ch_item(r, 'celda', 'transferencia');
@@ -418,7 +440,7 @@ begin
   values ('CH lead', '7215' || lpad(nextval('pg_temp.ch_telefono')::text, 4, '0'), duena, (select id from public.origenes_lead where clave = 'web'), '{}') returning id into l;
   h := pg_temp.ch_corre(duena, format('select public.cotizacion_hoja(%L)', o));
   if (h ->> 'vehiculo_obligatorio')::boolean is not false then raise exception 'el ajuste del vehículo no viaja: %', h ->> 'vehiculo_obligatorio'; end if;
-  r := pg_temp.ch_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {"pub": 10}}''::jsonb, %L, %L)', o, l, h -> 'formula' ->> 'id', h ->> 'abierta_en'));
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {"pub": 10}}''::jsonb, %L)', o, l, h ->> 'abierta'));
   if r ? 'error' or r -> 'cotizacion' ->> 'id' is null then raise exception 'crear con lo que entregó la lectura falla: %', r; end if;
   -- Una versión nueva: la hoja que se abrió antes ya no es la vigente.
   v_pub := (select f.id from public.formulas f where f.origen_id = o and f.estado = 'publicada');
@@ -427,13 +449,99 @@ begin
   perform public.formula_cambiar_constante(o, 'con_ayuda', 6);
   reset role;
   if (select f.id from public.formulas f where f.origen_id = o and f.estado = 'publicada') = v_pub then raise exception 'no se publicó la N+1'; end if;
-  r := pg_temp.ch_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {"pub": 10}}''::jsonb, %L, %L)', o, l, h -> 'formula' ->> 'id', h ->> 'abierta_en'));
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {"pub": 10}}''::jsonb, %L)', o, l, h ->> 'abierta'));
   if r ->> 'error' is distinct from 'PT409' or r ->> 'detail' is distinct from 'desactualizada' or r ->> 'hint' is distinct from 'formula' then raise exception 'la hoja vieja debía dar desactualizada: %', r; end if;
+  -- 4-28: el recálculo con la hoja abierta calcula con SU versión (la constante vieja), no con la que se publicó después; sin ella, con la publicada.
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_evaluar(''{"inputs": {"pub": 10}}''::jsonb, null, %L, null, null, null, %L)', o, h ->> 'abierta'));
+  if r ? 'error' or (r -> 'valores' ->> 'con_ayuda')::numeric is distinct from 5 or (r -> 'valores' ->> 'total')::numeric is distinct from 15 then raise exception 'el recálculo con la hoja abierta debía usar la versión vieja (con_ayuda 5, total 15): %', r; end if;
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_evaluar(''{"inputs": {"pub": 10}}''::jsonb, null, %L)', o));
+  if r ? 'error' or (r -> 'valores' ->> 'con_ayuda')::numeric is distinct from 6 or (r -> 'valores' ->> 'total')::numeric is distinct from 16 then raise exception 'el recálculo sin la hoja abierta debía usar la publicada (con_ayuda 6, total 16): %', r; end if;
   -- Y la lectura de ahora trae la versión nueva.
   h := pg_temp.ch_corre(duena, format('select public.cotizacion_hoja(%L)', o));
   if (h -> 'formula' ->> 'id')::uuid = v_pub then raise exception 'la lectura trae la versión vieja'; end if;
-  r := pg_temp.ch_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {"pub": 10}}''::jsonb, %L, %L)', o, l, h -> 'formula' ->> 'id', h ->> 'abierta_en'));
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, ''{"inputs": {"pub": 10}}''::jsonb, %L)', o, l, h ->> 'abierta'));
   if r ? 'error' then raise exception 'crear con la versión nueva falla: %', r; end if;
+end $$;
+rollback;
+
+-- @test hoja abierta: la firma es un HMAC-SHA256 de verdad (vectores del RFC 4231, casos 2 y 6: el segundo con una clave más larga que el bloque)
+begin;
+do $$
+begin
+  if encode(extensions.hmac(convert_to('what do ya want for nothing?', 'UTF8'), convert_to('Jefe', 'UTF8'), 'sha256'), 'hex') is distinct from '5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843' then
+    raise exception 'HMAC-SHA256 del RFC 4231, caso 2';
+  end if;
+  if encode(extensions.hmac(convert_to('Test Using Larger Than Block-Size Key - Hash Key First', 'UTF8'), decode(repeat('aa', 131), 'hex'), 'sha256'), 'hex') is distinct from '60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54' then
+    raise exception 'HMAC-SHA256 del RFC 4231, caso 6';
+  end if;
+  -- La clave existe y no es legible por quien llama (sólo las dos funciones de nadie la leen).
+  if (select count(*) from vault.secrets where name = 'cotizacion:abierta') <> 1 then raise exception 'falta la clave que firma la hoja abierta'; end if;
+  if has_function_privilege('authenticated', 'public._cotizacion_abierta_firmar(uuid, uuid, timestamptz)', 'execute') or has_function_privilege('authenticated', 'public._cotizacion_abierta_leer(text, uuid)', 'execute')
+     or has_function_privilege('anon', 'public._cotizacion_abierta_firmar(uuid, uuid, timestamptz)', 'execute') or has_function_privilege('anon', 'public._cotizacion_abierta_leer(text, uuid)', 'execute') then
+    raise exception 'quien llama puede firmar o leer la hoja abierta';
+  end if;
+end $$;
+rollback;
+
+-- @test cotizacion_evaluar con la hoja abierta (4-28): calcula con su versión y sus tarifas; vence a las 24 h si ya no es la publicada; es de esa persona, de ese origen y de una hoja nueva; el permiso va antes
+begin;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  o uuid; o2 uuid; r jsonb; h jsonb; f1 uuid; f2 uuid; so uuid := gen_random_uuid(); sv uuid := gen_random_uuid(); sc uuid := gen_random_uuid(); tok text; v_id_oficial uuid; v_antes numeric;
+  c_ev constant text := 'select public.cotizacion_evaluar(''{"inputs": {"pub": 10}}''::jsonb, null, %L, null, null, null, %L)';
+begin
+  insert into public.origenes (clave, nombre) values ('ch_ev', 'CH EV') returning id into o;
+  insert into public.origenes (clave, nombre) values ('ch_ev2', 'CH EV 2') returning id into o2;
+  f1 := pg_temp.ch_formula(o, 'costos', 'ev');
+  perform pg_temp.ch_persona(sv, pg_temp.ch_conc('cotizaciones.ver'));
+  perform pg_temp.ch_persona(so, pg_temp.ch_conc('cotizaciones.crear'));
+  perform pg_temp.ch_persona(sc, pg_temp.ch_conc('cotizaciones.crear', 'cotizaciones.ver'));
+  update public.tipos_cambio_historial set cambiado_en = now() - interval '10 days' where tipo_cambio_id in (select id from public.tipos_cambio);
+
+  -- Con la hoja de la lectura calcula.
+  h := pg_temp.ch_corre(duena, format('select public.cotizacion_hoja(%L)', o));
+  r := pg_temp.ch_corre(duena, format(c_ev, o, h ->> 'abierta'));
+  if r ? 'error' or (r -> 'valores' ->> 'total')::numeric is distinct from 15 then raise exception 'con la hoja abierta debía calcular: %', r; end if;
+
+  -- Rota, de otra persona, de otro origen: abierta_invalida (el mismo error, y no dice más).
+  for tok in select unnest(array[left(h ->> 'abierta', 100) || '0', 'hola', pg_temp.ch_token(sc, o, f1, now()), pg_temp.ch_token(duena, o2, f1, now())]) loop
+    r := pg_temp.ch_corre(duena, format(c_ev, o, tok));
+    if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_invalida' then raise exception 'la hoja abierta rota debía dar abierta_invalida: % (%)', r, tok; end if;
+  end loop;
+
+  -- De una hoja nueva, no de una cotización.
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_evaluar(''{}''::jsonb, %L, null, null, null, null, %L)', gen_random_uuid(), h ->> 'abierta'));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'llamada_invalida' then raise exception 'p_abierta con una cotización debía dar llamada_invalida: %', r; end if;
+
+  -- El permiso, antes de leer la hoja abierta: sin crear o sin ver, 42501 aunque la hoja sea basura.
+  foreach tok in array array['hola', h ->> 'abierta'] loop
+    r := pg_temp.ch_corre(so, format(c_ev, o, tok));
+    if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' not like '%cotizaciones.ver%' then raise exception 'con sólo crear debía dar 42501 (cotizaciones.ver): %', r; end if;
+    r := pg_temp.ch_corre(sv, format(c_ev, o, tok));
+    if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' not like '%cotizaciones.crear%' then raise exception 'con sólo ver debía dar 42501 (cotizaciones.crear): %', r; end if;
+  end loop;
+
+  -- Publicada la v2 hace más de un día, la hoja de la v1 ya no se puede usar para guardar y el recálculo lo dice (la pantalla pide recargar); la vigente de hace 25 h sigue calculando.
+  f2 := pg_temp.ch_publicar_v2(o, f1, now());
+  tok := pg_temp.ch_token(duena, o, f1, now());
+  r := pg_temp.ch_corre(duena, format(c_ev, o, tok));
+  if r ? 'error' or (r -> 'valores' ->> 'con_ayuda')::numeric is distinct from 5 then raise exception 'la v1 reemplazada hace un momento debía calcular con la v1: %', r; end if;
+  update public.formulas set publicado_en = now() - interval '25 hours' where id = f2;
+  r := pg_temp.ch_corre(duena, format(c_ev, o, tok));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'abierta_vencida' then raise exception 'la v1 reemplazada hace 25 h debía dar abierta_vencida: %', r; end if;
+  r := pg_temp.ch_corre(duena, format(c_ev, o, pg_temp.ch_token(duena, o, f2, now() - interval '25 hours')));
+  if r ? 'error' then raise exception 'la vigente de hace 25 h debía seguir calculando: %', r; end if;
+  update public.formulas set publicado_en = now() where id = f2;
+
+  -- Las tarifas son las de la apertura: cambia la oficial hace 2 h; la hoja abierta hace 3 h calcula con la de antes y sin ella, con la de hoy.
+  select id, valor into v_id_oficial, v_antes from public.tipos_cambio where clave = 'oficial';
+  update public.tipos_cambio set valor = valor + 1 where clave = 'oficial';
+  update public.tipos_cambio_historial set cambiado_en = now() - interval '2 hours' where tipo_cambio_id = v_id_oficial and valor_nuevo = v_antes + 1;
+  r := pg_temp.ch_corre(duena, format(c_ev, o, pg_temp.ch_token(duena, o, f2, now() - interval '3 hours')));
+  if r ? 'error' or (r -> 'valores' ->> 'tc')::numeric is distinct from v_antes then raise exception 'con la hoja abierta hace 3 h debía calcular con la tarifa de entonces (%): %', v_antes, r -> 'valores'; end if;
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_evaluar(''{"inputs": {"pub": 10}}''::jsonb, null, %L)', o));
+  if r ? 'error' or (r -> 'valores' ->> 'tc')::numeric is distinct from v_antes + 1 then raise exception 'sin la hoja abierta debía calcular con la tarifa de hoy (%): %', v_antes + 1, r -> 'valores'; end if;
 end $$;
 rollback;
 
@@ -487,10 +595,15 @@ begin
                             when 'solo_ver' then solo_ver when 'con' then con else ver_como end;
       v_con_nivel := v_txt in ('solo_ver', 'con', 'ver_como');
       r := pg_temp.ch_corre(v_quien, format('select public.cotizacion_hoja(%L)', o));
+      -- Cotizar pide también cotizaciones.ver (4-32): con sólo crear no hay hoja que mostrar, ni siquiera vacía.
+      if v_txt = 'solo_crear' then
+        if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' not like '%cotizaciones.ver%' then raise exception 'nivel %: quien sólo puede crear debía recibir 42501 (cotizaciones.ver): %', v_nivel, left(r::text, 200); end if;
+        continue;
+      end if;
       if r ? 'error' or r ->> 'estado' is distinct from 'lista' then raise exception 'nivel %: % no recibe la hoja: %', v_nivel, v_txt, r; end if;
       if not pg_temp.ch_motivos_ok(r) then raise exception 'nivel %: % motivos: %', v_nivel, v_txt, r; end if;
       -- La lista exacta de ítems.
-      if pg_temp.ch_items(r) is distinct from (case when v_txt = 'solo_crear' then '{}'::text[] when v_con_nivel then v_todo else v_abierta end) then
+      if pg_temp.ch_items(r) is distinct from (case when v_con_nivel then v_todo else v_abierta end) then
         raise exception 'nivel %: los ítems de «%» no son los esperados: %', v_nivel, v_txt, pg_temp.ch_items(r);
       end if;
       if not v_con_nivel then
@@ -501,8 +614,8 @@ begin
         if pg_temp.ch_trae(r, '{9191.5, 9192.5, 9193.5, 9194.5}') then raise exception 'nivel %: «%» recibe un valor de la tabla del nivel', v_nivel, v_txt; end if;
         -- La celda condicionada por la bandera del nivel llega sin su condición ni su requerido; los modos, sin buckets.
         it := pg_temp.ch_item(r, 'celda', 'cond_oc');
-        if (it is null) is distinct from (v_txt = 'solo_crear') or it ? 'condicion' or it ? 'requerido_si' then raise exception 'nivel %: «%» recibe la bandera del nivel en una celda: %', v_nivel, v_txt, it; end if;
-        if (select array_agg(t ->> 'clave') from jsonb_array_elements(r -> 'tonos') t) is distinct from (case when v_txt = 'solo_crear' then null else array['verde'] end) then
+        if it is null or it ? 'condicion' or it ? 'requerido_si' then raise exception 'nivel %: «%» recibe la bandera del nivel en una celda: %', v_nivel, v_txt, it; end if;
+        if (select array_agg(t ->> 'clave') from jsonb_array_elements(r -> 'tonos') t) is distinct from array['verde'] then
           raise exception 'nivel %: los tonos de «%»: %', v_nivel, v_txt, r -> 'tonos';
         end if;
       else
@@ -521,17 +634,14 @@ begin
       end if;
       -- El candado de «solo_n» (ver abierto, editar del nivel): se edita con el permiso de editar el nivel, y si no, dice el nombre del nivel.
       it := pg_temp.ch_item(r, 'celda', 'solo_n');
-      if v_txt <> 'solo_crear' then
-        if (it ->> 'editable')::boolean is distinct from (v_txt in ('ed', 'con', 'ver_como')) then raise exception 'nivel %: «%» edita solo_n = %', v_nivel, v_txt, it; end if;
-        if v_txt not in ('ed', 'con', 'ver_como') and it -> 'motivo' is distinct from jsonb_build_object('codigo', 'nivel', 'nivel', v_nombre) then raise exception 'nivel %: el motivo de solo_n para «%»: %', v_nivel, v_txt, it; end if;
-      end if;
+      if (it ->> 'editable')::boolean is distinct from (v_txt in ('ed', 'con', 'ver_como')) then raise exception 'nivel %: «%» edita solo_n = %', v_nivel, v_txt, it; end if;
+      if v_txt not in ('ed', 'con', 'ver_como') and it -> 'motivo' is distinct from jsonb_build_object('codigo', 'nivel', 'nivel', v_nombre) then raise exception 'nivel %: el motivo de solo_n para «%»: %', v_nivel, v_txt, it; end if;
       -- La ayuda de la tabla: llega a quien configura y a quien ve la celda que la lee; las dos mismas personas a las que `cotizacion_tabla` se la da.
       it := pg_temp.ch_item(r, 'celda', 'con_ayuda');
       r2 := pg_temp.ch_corre(v_quien, format('select public.cotizacion_tabla(%L, null, %L)', 'ch_tabla', o));
-      if v_txt <> 'solo_crear' and ((it ? 'ayuda') is distinct from (v_txt in ('cfg', 'solo_ver', 'con', 'ver_como')) or (it ? 'ayuda') is distinct from not (r2 ? 'error')) then
+      if ((it ? 'ayuda') is distinct from (v_txt in ('cfg', 'solo_ver', 'con', 'ver_como')) or (it ? 'ayuda') is distinct from not (r2 ? 'error')) then
         raise exception 'nivel %: la ayuda de la tabla para «%»: celda % y cotizacion_tabla %', v_nivel, v_txt, it, left(r2::text, 120);
       end if;
-      if v_txt = 'solo_crear' and not (r2 ? 'error') then raise exception 'nivel %: cotizacion_tabla le da la tabla a quien no ve nada', v_nivel; end if;
     end loop;
     -- «Ver como» un rol sin el nivel no cambia lo que decide la base: la interfaz lo estrecha, la base sigue con los permisos reales.
     r := pg_temp.ch_corre(ver_como, format('select public.cotizacion_hoja(%L)', o));

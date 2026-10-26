@@ -5,19 +5,26 @@ import { PGlite } from '@electric-sql/pglite'
 import { pg_trgm } from '@electric-sql/pglite/contrib/pg_trgm'
 import { citext } from '@electric-sql/pglite/contrib/citext'
 import { unaccent } from '@electric-sql/pglite/contrib/unaccent'
+import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { NOMBRE_BASE, esquemaBaseAlDia } from './esquema-base.mjs'
 
 const base = process.argv[2] ?? 'supabase'
-const db = new PGlite({ extensions: { pg_trgm, citext, unaccent } })
+const db = new PGlite({ extensions: { pg_trgm, citext, unaccent, pgcrypto } })
 
 const preambulo = `
 create schema if not exists extensions;
 create extension if not exists pg_trgm with schema extensions;
 create extension if not exists citext with schema extensions;
 create extension if not exists unaccent with schema extensions;
--- stubs de pgcrypto (no disponible en PGlite)
+-- pgcrypto: hmac() es el de verdad (firma la hoja abierta de cotizar, 4.13-3a: un doble débil no probaría nada). Va en su propio esquema porque en extensions chocaría con los
+-- dobles de abajo; el resto (gen_salt, crypt, gen_random_bytes) sigue siendo un doble, que no firma nada.
+create schema if not exists pgcrypto_real;
+create extension if not exists pgcrypto with schema pgcrypto_real;
+create or replace function extensions.hmac(d bytea, k bytea, t text) returns bytea language sql immutable as $$ select pgcrypto_real.hmac(d, k, t) $$;
+create or replace function extensions.hmac(d text, k text, t text) returns bytea language sql immutable as $$ select pgcrypto_real.hmac(d, k, t) $$;
+-- stubs del resto de pgcrypto
 create or replace function extensions.gen_salt(t text) returns text language sql as $$ select '$stub$' $$;
 create or replace function extensions.gen_salt(t text, c int) returns text language sql as $$ select '$stub$' $$;
 create or replace function extensions.crypt(p text, s text) returns text language sql as $$ select '$stub$' || md5(p || '$stub$') $$;

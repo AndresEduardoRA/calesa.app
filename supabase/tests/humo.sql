@@ -237,8 +237,6 @@ do $$ declare v uuid; sin_fase uuid; f_sub uuid; f_comp uuid; pre jsonb; h bigin
 end $$;
 reset role;
 -- el asesor cotiza y la dueña cierra la final; el vehículo queda vinculado al lead
--- La versión de la hoja que «abrió» (D2): la publicada de hoy, leída antes de ser el asesor (que no lee `formulas`).
-select set_config('humo.formula_subasta', (select f.id::text from public.formulas f join public.origenes o on o.id = f.origen_id where o.clave = 'subasta_usa' and f.estado = 'publicada'), false);
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000004', false);
 set role authenticated;
 do $$ declare v uuid; l uuid; o uuid; r jsonb; begin
@@ -248,7 +246,7 @@ do $$ declare v uuid; l uuid; o uuid; r jsonb; begin
   -- Desde el 4.10-2 una cotización se crea por `cotizacion_crear()`: la base calcula con la fórmula publicada. El vehículo de este humo no trae el tipo de
   -- vehículo que casa con la tabla del transporte (queda sin valor y se tipea, como dice la ficha de cotizaciones): se tipea, y la nacionalización, que cualquiera edita.
   r := public.cotizacion_crear(gen_random_uuid(), o, l, '{"inputs": {"remate": 14200}, "overrides": {"transporte_bolivia": 3000, "nacionalizacion": 1201}}',
-                               current_setting('humo.formula_subasta')::uuid, now(), v);
+                               public.cotizacion_hoja(o) ->> 'abierta', v);   -- la hoja que «abrió» (D2): la firma la base, para él y para ese origen
   if (r -> 'cotizacion' ->> 'total_base')::numeric <= 0 or r ->> 'repetido' <> 'false' then raise exception 'cotizacion_crear no calculó el total: %', r; end if;
   perform set_config('humo.cotizacion', r -> 'cotizacion' ->> 'id', false);
   -- La policy de lectura decide por fila (4.10-1): quien la creó la lee. Que otra persona sin su lead no la lea lo prueba `cotizaciones-visibilidad.sql`.

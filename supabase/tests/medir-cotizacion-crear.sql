@@ -50,6 +50,18 @@ create temp table _snap as select (select jsonb_object_agg(n ->> 'id', round((n_
                                   (select jsonb_object_agg(n ->> 'id', 'input') from jsonb_array_elements(f.definicion -> 'nodos') n where n ->> 'tipo' in ('input', 'constante', 'tipo_cambio')) as fuentes
   from public.formulas f join _o on f.id = _o.formula;
 grant select on _p, _x, _o to authenticated;
+-- La hoja abierta de cada persona (4-27): la firma la base para quien llama y no se puede llamar como `authenticated`, así que se firma acá, una vez, como cada una. Sin esto la
+-- llamada que se mide tendría que leer la hoja entera (`cotizacion_hoja()`), que se mide aparte.
+create temp table _t (clave text primary key, abierta text not null);
+do $$
+declare p record;
+begin
+  for p in select clave, id from _p loop
+    perform set_config('request.jwt.claim.sub', p.id::text, true);
+    insert into _t values (p.clave, public._cotizacion_abierta_firmar((select origen from _o), (select formula from _o), now()));
+  end loop;
+end $$;
+grant select on _t to authenticated;
 
 -- Las filas de relleno (la dueña y la asesora, y tres más): g más nuevas cuanto mayor es g. Sin triggers (cada fila auditaría y numeraría).
 create function pg_temp.rellenar(p_desde int, p_hasta int) returns void language plpgsql as $$
@@ -71,15 +83,15 @@ end $$;
 create function pg_temp.sql_de(p_caso text) returns text language plpgsql as $$
 declare
   c_entradas constant text := '{"overrides": {"transporte_bolivia": 0, "nacionalizacion": 1201}}';
-  v_o uuid := (select origen from _o); v_f uuid := (select formula from _o); v_v uuid := (select id from _x where clave = 'vehiculo');
+  v_o uuid := (select origen from _o); v_v uuid := (select id from _x where clave = 'vehiculo');
 begin
   return case p_caso
-    when 'preventa' then format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, %L::jsonb, %L, now(), %L)', v_o, (select id from _x where clave = 'lead_duena'), c_entradas, v_f, v_v)
-    when 'asesora' then format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, %L::jsonb, %L, now(), %L)', v_o, (select id from _x where clave = 'lead_asesora'), c_entradas, v_f, v_v)
-    when 'a_mano' then format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, %L::jsonb, %L, now(), null, jsonb_build_object(''id'', gen_random_uuid(), ''datos'', jsonb_build_object(''titulo'', ''Medir a mano'')))',
-                              v_o, (select id from _x where clave = 'lead_duena'), c_entradas, v_f)
-    when 'repetido' then format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, now(), %L)', (select id from _x where clave = 'repetido'), v_o, (select id from _x where clave = 'lead_duena'), c_entradas, v_f, v_v)
-    when 'mala' then format('select pg_temp.cotizacion_crear_mala(gen_random_uuid(), %L, %L, %L::jsonb, %L, now(), %L)', v_o, (select id from _x where clave = 'lead_duena'), c_entradas, v_f, v_v)
+    when 'preventa' then format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, %L::jsonb, %L, %L)', v_o, (select id from _x where clave = 'lead_duena'), c_entradas, (select abierta from _t where clave = 'duena'), v_v)
+    when 'asesora' then format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, %L::jsonb, %L, %L)', v_o, (select id from _x where clave = 'lead_asesora'), c_entradas, (select abierta from _t where clave = 'asesora'), v_v)
+    when 'a_mano' then format('select public.cotizacion_crear(gen_random_uuid(), %L, %L, %L::jsonb, %L, null, jsonb_build_object(''id'', gen_random_uuid(), ''datos'', jsonb_build_object(''titulo'', ''Medir a mano'')))',
+                              v_o, (select id from _x where clave = 'lead_duena'), c_entradas, (select abierta from _t where clave = 'duena'))
+    when 'repetido' then format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L)', (select id from _x where clave = 'repetido'), v_o, (select id from _x where clave = 'lead_duena'), c_entradas, (select abierta from _t where clave = 'duena'), v_v)
+    when 'mala' then format('select pg_temp.cotizacion_crear_mala(gen_random_uuid(), %L, %L, %L::jsonb, %L, %L)', v_o, (select id from _x where clave = 'lead_duena'), c_entradas, (select abierta from _t where clave = 'duena'), v_v)
   end;
 end $$;
 
@@ -148,7 +160,7 @@ end $$;
 
 -- La copia mala: la función de verdad, más una búsqueda por una columna sin índice (`notas`) que recorre `cotizaciones` entera.
 do $$
-declare v_def text := pg_get_functiondef('public.cotizacion_crear(uuid, uuid, uuid, jsonb, uuid, timestamptz, uuid, jsonb, text, public.clase_cotizacion, boolean)'::regprocedure);
+declare v_def text := pg_get_functiondef('public.cotizacion_crear(uuid, uuid, uuid, jsonb, text, uuid, jsonb, text, public.clase_cotizacion, boolean)'::regprocedure);
 begin
   v_def := replace(v_def, 'FUNCTION public.cotizacion_crear(', 'FUNCTION pg_temp.cotizacion_crear_mala(');
   if position('perform pg_advisory_xact_lock(hashtextextended(''cotizacion_crear:'' || p_id::text, 0));' in v_def) = 0 then raise exception 'la copia mala: no está el candado del intento'; end if;

@@ -63,7 +63,21 @@ export async function terreno(db, etiqueta, { compartidoCon } = {}) {
   )
   const vehiculo = await nuevoVehiculo(db, origen.id, `cot veh ${etiqueta} ${numero}`)
   const lead = await leadDeLaDuena(db, `cot lead ${etiqueta} ${numero}`, { compartidoCon })
-  return { origen: origen.id, v1: v1.id, vehiculo, lead }
+  // La hoja abierta de cada persona que cotiza aquí (4-27): la firma la base para quien llama (`cotizacion_hoja()` se la daría al abrir) y se firma ahora, ANTES de la carrera: en
+  // «publicar primero» la hoja se abrió sobre la v1 y ya hay una v2 cuando se guarda. Como postgres, con el `sub` de cada una (el rol vuelve a postgres tras el alta del lead).
+  const abiertas = {}
+  for (const persona of [duena, supervision, destino, sinVehiculos]) {
+    await db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [persona])
+    const {
+      rows: [firmada],
+    } = await db.query('select public._cotizacion_abierta_firmar($1, $2, now()) as a', [
+      origen.id,
+      v1.id,
+    ])
+    abiertas[persona] = firmada.a
+  }
+  await db.query(`select set_config('request.jwt.claim.sub', '', false)`)
+  return { origen: origen.id, v1: v1.id, vehiculo, lead, abiertas }
 }
 
 export async function nuevoVehiculo(db, origen, titulo) {
@@ -80,17 +94,11 @@ export const crear = (
   persona,
   t,
   id,
-  {
-    clase = 'preventa',
-    vehiculo = t.vehiculo,
-    nuevo = null,
-    formula = null,
-    conLaAbierta = false,
-  } = {},
+  { clase = 'preventa', vehiculo = t.vehiculo, nuevo = null, conLaAbierta = false } = {},
 ) => ({
   persona,
-  sql: 'public.cotizacion_crear($1, $2, $3, $4::jsonb, $5, now(), $6, $7::jsonb, null, $8::public.clase_cotizacion, $9)',
-  args: [id, t.origen, t.lead, ENTRADAS, formula ?? t.v1, vehiculo, nuevo, clase, conLaAbierta],
+  sql: 'public.cotizacion_crear($1, $2, $3, $4::jsonb, $5, $6, $7::jsonb, null, $8::public.clase_cotizacion, $9)',
+  args: [id, t.origen, t.lead, ENTRADAS, t.abiertas[persona], vehiculo, nuevo, clase, conLaAbierta],
 })
 
 // Publicar una versión nueva (guardar el borrador y publicarlo).
@@ -380,13 +388,13 @@ export async function carrerasDeCotizaciones({ orquesta, carrera, espero, conect
       await comoPersona(b, destino)
       await b.query('set statement_timeout = 2000')
       rb = await b
-        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $6, now(), $5) as r', [
+        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $6, $5) as r', [
           '00000000-0000-4000-8000-0000000c1c0c',
           t.origen,
           t.lead,
           ENTRADAS,
           t.vehiculo,
-          t.v1,
+          t.abiertas[destino],
         ])
         .then(
           () => ({ ok: true }),
@@ -594,13 +602,13 @@ export async function carrerasDeCotizaciones({ orquesta, carrera, espero, conect
       await comoPersona(b, sinVehiculos)
       await b.query('set statement_timeout = 2000')
       rb = await b
-        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $6, now(), $5) as r', [
+        .query('select public.cotizacion_crear($1, $2, $3, $4::jsonb, $6, $5) as r', [
           '00000000-0000-4000-8000-0000000c1c15',
           t.origen,
           t.lead,
           ENTRADAS,
           t.vehiculo,
-          t.v1,
+          t.abiertas[sinVehiculos],
         ])
         .then(
           () => ({ ok: true }),

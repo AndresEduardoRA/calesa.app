@@ -121,11 +121,17 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_id, 'role', 'authenticated')::text, true);
 end $$;
 
+-- La firma de la hoja abierta es de nadie: se llama con los derechos de quien creó esta función (postgres), con los claims de quien está en `como`.
+create function pg_temp.firmar(p_origen uuid, p_formula uuid) returns text language sql security definer as $$ select public._cotizacion_abierta_firmar(p_origen, p_formula, now()) $$;
+grant execute on function pg_temp.firmar(uuid, uuid) to authenticated;
+
 create function pg_temp.crear(p_fase text, p_caso text, p_quien text, p_origen uuid, p_formula uuid, p_lead text, p_vehiculo text, p_entradas text) returns void language plpgsql as $$
 declare v_id uuid := gen_random_uuid(); v_r jsonb;
 begin
   perform pg_temp.como(p_quien);
-  execute format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, now(), %L)', v_id, p_origen, (select id from _x where clave = p_lead), p_entradas, p_formula, (select id from _x where clave = p_vehiculo)) into v_r;
+  -- La hoja abierta (4-27) la firma la base para quien llama (los claims de `como` ya dicen quién): sin medirla, esta llamada no es lo que se mide.
+  execute format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L)', v_id, p_origen, (select id from _x where clave = p_lead), p_entradas,
+                 pg_temp.firmar(p_origen, p_formula), (select id from _x where clave = p_vehiculo)) into v_r;
   insert into _c values (p_fase, p_caso, v_id);
 end $$;
 

@@ -6957,6 +6957,17 @@ export type Database = {
         Args: { p_abierta_en: string; p_formula: string; p_origen: string }
         Returns: undefined
       }
+      _cotizacion_abierta_firmar: {
+        Args: { p_cuando: string; p_formula: string; p_origen: string }
+        Returns: string
+      }
+      _cotizacion_abierta_leer: {
+        Args: { p_abierta: string; p_origen: string }
+        Returns: {
+          abierta_en: string
+          formula_id: string
+        }[]
+      }
       _cotizacion_armar: {
         Args: {
           p_abierta_en?: string
@@ -7924,11 +7935,10 @@ export type Database = {
       }
       cotizacion_crear: {
         Args: {
-          p_abierta_en: string
+          p_abierta: string
           p_clase?: Database['public']['Enums']['clase_cotizacion']
           p_con_la_abierta?: boolean
           p_entradas: Json
-          p_formula_abierta: string
           p_id: string
           p_lead: string
           p_modo_tc?: string
@@ -7940,6 +7950,7 @@ export type Database = {
       }
       cotizacion_evaluar: {
         Args: {
+          p_abierta?: string
           p_cotizacion?: string
           p_entradas: Json
           p_modo?: Json
