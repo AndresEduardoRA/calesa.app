@@ -62,6 +62,11 @@ describe('index.ts del módulo cotizaciones', () => {
     expect(typeof modulo.leerNivelesDeAcceso).toBe('function')
   })
 
+  it('lleva la lectura de la hoja de cotizar (4.13)', async () => {
+    const modulo = await import('./index')
+    expect(typeof modulo.leerHojaParaCotizar).toBe('function')
+  })
+
   it('exporta la lista de códigos y el tope del texto de una fila', () => {
     expect(CODIGOS_DE_COMPILACION).toContain('hoy_no_soportado')
     expect(CODIGOS_DE_COMPILACION.length).toBeGreaterThanOrEqual(28)

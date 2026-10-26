@@ -38,3 +38,25 @@ export type {
 // Los componentes salen por `pantallas/configuracion.ts`. Sólo se importa desde un Server Component.
 export { leerNivelesDeAcceso } from './composicion'
 export type { ListaDeNiveles, NivelDeAcceso } from './entities/nivel'
+
+// La hoja de cotizar (4.13): UNA lectura al abrirla, con el diseño recortado al nivel de quien mira y la versión de la fórmula y la hora de la base para D2. Sólo se importa desde un Server Component.
+export { leerHojaParaCotizar } from './composicion'
+export type {
+  AtajosDeHoja,
+  AyudaDeCelda,
+  CeldaDeHoja,
+  ChipDeAtajos,
+  EdicionDeHoja,
+  HojaLista,
+  HojaParaCotizar,
+  HojaSinPublicar,
+  InterruptorDeHoja,
+  ItemDeHoja,
+  MotivoDeCandado,
+  NodoDeTarjeta,
+  SecundarioDeCelda,
+  SeccionDeHoja,
+  SubtotalDeHoja,
+  TipoDeNodoDeHoja,
+  VarianteDeHoja,
+} from './entities/hoja'
