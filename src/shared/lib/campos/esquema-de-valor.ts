@@ -32,7 +32,8 @@ export function texto(largo: number) {
 }
 
 // Acepta la coma decimal: «1,6» es 1.6.
-const aNumero = (escrito: string) => (escrito === '' ? null : Number(escrito.replace(',', '.')))
+export const aNumero = (escrito: string) =>
+  escrito === '' ? null : Number(escrito.replace(',', '.'))
 
 export function numero(minimo: number, maximo: number, entero: boolean) {
   const mensaje = entero

@@ -49,3 +49,11 @@ export function formatearPorcentaje(fraccion: number, opciones: OpcionesNumero =
     fraccion,
   )
 }
+
+// El texto que se abre para editar un número: la precisión completa (15 cifras significativas, las del cast de la base), sin
+// separador de miles y con la coma o el punto decimal del locale. No usa los decimales con que se muestra: abrir «1.234,57» y salir
+// con Tab emitiría un cambio que nadie hizo. 0.1494 → «0,1494»; 0.1 + 0.2 → «0,3».
+export function formatearParaEditar(valor: number, opciones: { locale?: string } = {}): string {
+  const { locale = LOCALE_POR_DEFECTO } = opciones
+  return formateador(locale, { maximumSignificantDigits: 15, useGrouping: false }).format(valor)
+}
