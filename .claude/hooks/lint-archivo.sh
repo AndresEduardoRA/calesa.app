@@ -2,10 +2,13 @@
 # Hook PostToolUse (anillo 1): lintea SÓLO el archivo tocado y le devuelve el error a Claude.
 # Nunca tsc acá (eso es el anillo 2). Exit 2 hace que Claude corrija, y lo que Claude recibe es
 # stderr: el detalle de qué regla falló y en qué línea va por ahí, no en un JSON por stdout.
+# Corre en el repo de `cwd` de la entrada (no `${CLAUDE_PROJECT_DIR}`, que no sigue a un worktree).
 set -uo pipefail
-cd "${CLAUDE_PROJECT_DIR:-.}"
 ENTRADA=$(cat)
-ARCHIVO=$(printf '%s' "$ENTRADA" | sed -nE 's/.*"file_path" *: *"([^"]+)".*/\1/p' | head -n1)
+CWD=$(printf '%s' "$ENTRADA" | jq -r '.cwd // empty' 2>/dev/null)
+cd "${CWD:-${CLAUDE_PROJECT_DIR:-.}}" || exit 0
+RAIZ_REPO=$(git rev-parse --show-toplevel 2>/dev/null) && cd "$RAIZ_REPO"
+ARCHIVO=$(printf '%s' "$ENTRADA" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 [ -z "$ARCHIVO" ] && exit 0
 [ -f "$ARCHIVO" ] || exit 0
 
@@ -33,7 +36,7 @@ case "$ARCHIVO" in
     # Las migraciones no llevan auth.uid() suelto ni funciones definer sin search_path.
     if grep -nE 'using *\( *auth\.uid\(\)|= *auth\.uid\(\)' "$ARCHIVO" | grep -v 'select auth.uid()' >/dev/null; then
       echo "En $ARCHIVO hay auth.uid() sin envolver: usa (select auth.uid()) dentro de las policies." >&2
-      grep -nE 'using *\( *auth\.uid\(\)|= *auth\.uid\(\)' "$ARCHIVO" | grep -v 'select auth.uid()' | head -n 10 >&2
+      grep -nE 'using *\( *auth\.uid\(\)|= *auth\.uid\(\)' "$ARCHIVO" | head -n 10 >&2
       exit 2
     fi
     if grep -n 'security definer' "$ARCHIVO" >/dev/null && ! grep -n "set search_path = ''" "$ARCHIVO" >/dev/null; then
