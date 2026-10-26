@@ -13,7 +13,8 @@ chat, agenda y el contenido de la web pública. Una empresa por despliegue. Sól
 4. Bajo demanda: `docs/GLOSARIO.md` (términos del negocio ↔ nombres en el código),
    `docs/UX.md` (roles, tareas de oro y estados de cada pantalla), `docs/ARQUITECTURA.md`,
    `docs/COTIZADOR.md` (el grafo de la fórmula), `docs/DECISIONES.md`, `docs/PLAN.md`,
-   `docs/RENDIMIENTO.md` (cada lista que crece: su tope, su índice y su presupuesto).
+   `docs/RENDIMIENTO.md` (cada lista que crece: su tope, su índice y su presupuesto),
+   `docs/PILOTO.md` (el bucle que avanza `docs/PLAN.md` un paso por sesión: sus compuertas, guardas y consumo).
 
 Si tuviste que explorar mucho para encontrar algo, el mapa o una ficha están incompletos:
 arréglalos en la misma tarea.
@@ -33,6 +34,7 @@ pnpm db:types            # regenera src/shared/types/database.types.ts desde la 
 pnpm db:probar           # aplica schema+migraciones+seed en Postgres embebido y corre supabase/tests/humo.sql
 pnpm db:sembrar-volumen  # 50.000 leads, 10.000 vehículos, 200.000 seguimientos… en la base local (después: db:reset)
 pnpm db:medir:volumen    # planes y tiempos de cada consulta del inventario, y los jobs, sobre ese volumen
+bash scripts/piloto/arrancar.sh  # el piloto: avanza docs/PLAN.md un paso por sesión (--en-seco ensaya; scripts/piloto/parar.sh lo para)
 ```
 
 ## Arquitectura
