@@ -2636,3 +2636,71 @@ Al terminar: `functions serve` cerrado con sus hijos, ningún contenedor `supaba
 pisaría una real). **Sin reproducir, no tocados:** `modales-con-salida` (`cabeEnElModal`) y `configuracion-cotizacion-niveles-200` (`quePisaElAviso`).
 
 **Lo que no se hizo:** aplicar `needs` sin `nivel-1` (se propone), tocar `ci.yml`, más workers, `gh run rerun`, lanzar un workflow, `next upgrade`, empujar.
+
+## 2026-10-25 — CI-3: la pestaña «seguimientos» medida antes de que la barra se desplace
+
+**El rojo.** El dispatch 40241115895 (a mano, escritorio, `carreras: true`; 22:38:07 a 23:05:19 UTC, **27 min de reloj**) dejó `carreras` y los bloques
+2 a 4 en verde y el bloque 1 con un fallo de 175: `configuracion-200.spec.ts:177`, «la pestaña «seguimientos»: su borde derecho pasa el ancho de la página
+(1280 px)», con 1490. Los dos rojos de CI-2 no cayeron.
+
+**Los artefactos** (`gh run download 40241115895 -n e2e-bloque-1`, en `test-salidas/ci-3-dispatch/`; `error-context.md` no trae la instantánea de la página):
+la traza dice que la medición corrió a los 158.934 ms, 190 ms después del `load`. El video: a los 158.866 ms la barra está en `scrollLeft` 0 y la pestaña
+se corta en «Tip»; a los 159.021 la barra ya se desplazó y «Tipos de seguimiento» se ve entera. **Causa:** `PestanasConDesborde` trae la abierta a la vista en
+un `useEffect`; `aria-selected` viene en el HTML del servidor y `toBeVisible()` pasa antes de hidratar. «seguimientos» es la última pestaña: la única de las
+cuatro que necesita desplazar la barra en escritorio.
+
+**Reproducido** en una copia fuera del repo (scratchpad, rutas de `e2e/soporte/` absolutas, `Emulation.setCPUThrottlingRate` por CDP antes del `goto`,
+sola, tras `pnpm db:reset` y con las funciones servidas). La sonda (un rAF desde que existe la pestaña abierta: cuándo se revela, cuándo hidrata React y cuándo
+queda a la vista) dice que no es un efecto que nunca ocurre: ocurre uno o dos cuadros después de hidratar.
+
+| CPU del navegador | Se ve → a la vista (sonda)                                     | La copia del spec contra HEAD                         | Con el arreglo               |
+| ----------------- | -------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------- |
+| 1× (sin limitar)  | 62 a 104 ms (escritorio 71–104, celular 62–67; 5 + 3 corridas) | pasa 10 de 10                                         | —                            |
+| 2×                | —                                                              | cae 4 de 5 (escritorio)                               | —                            |
+| 3× y 4×           | —                                                              | cae 5 de 5 (escritorio), 1490                         | —                            |
+| **6×**            | —                                                              | **cae 5 de 5 en los dos proyectos, el mensaje de CI** | **pasa 15 de 15 en los dos** |
+| 10×               | —                                                              | cae 5 de 5 en los dos                                 | —                            |
+| **14×**           | 1,7 a 2,0 s (escritorio 3 corridas, celular 2)                 | cae 5 de 5 en los dos                                 | **pasa 15 de 15 en los dos** |
+| 20×               | —                                                              | cae 5 de 5 en los dos                                 | pasa 5 de 5 en los dos       |
+
+En el celular la barra se desplaza 601 px (la pestaña, de 978 a 377 en 412 px); en escritorio, 261 (de 1490 a 1229). En CI cayó sin limitar: el runner va
+≈ 1,6 veces más lento (CI-2) y la ventana a 1× es de unos 70 ms.
+
+**Arreglo** (sólo `e2e/`): `aLaVistaAlAcomodarse(lugar, que)` en `e2e/soporte/recorrido.ts` reintenta `aLaVistaSinDesplazar` hasta que se cumple (`toPass`,
+tope 10 s): espera el estado, no un tiempo. La usan las tres mediciones de la pestaña abierta de `configuracion-200.spec.ts` (la de la hermana «al ampliar»
+tenía su `toPass` de 3 s suelto). Por qué no dentro de `aLaVistaSinDesplazar` y por qué en `recorrido.ts`: `docs/DECISIONES.md`, «CI-3». **La prueba
+permanente**, en `recorrido-esperas.spec.ts`: una barra de 220 px que se desplaza 600 ms después de cargar; la medición de antes cae («lo recorta un contenedor
+que se desplaza») y la nueva pasa, en escritorio y en celular. **Mutación:** sin el `toPass` el ayudante cae en los dos proyectos con ese mensaje; revertido.
+
+**Auditoría** (sólo lectura, por un agente; después, cada candidata con la copia CDP). Los componentes que mueven algo después de hidratar son tres:
+`PestanasConDesborde`, `barra-de-secciones.tsx` (la arregló CI-2) y `pestanas-del-resumen.tsx` (ninguna prueba mide su barra).
+
+| Lugar                                                                                                                                                       | Mide                                     | ¿Esperaba?                                        | Con la CPU limitada                                                                                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `configuracion-200.spec.ts:129` (`PANTALLAS`)                                                                                                               | la pestaña abierta, 7 pantallas          | no                                                | **cae:** a 14×, 2 de 30 (escritorio) y 5 de 30 (celular); a 20×, 2 y 10 (Leads ×4, Empresa › Integraciones, origen › Categorías). **Arreglada:** 30 de 30 en los cuatro casos |
+| `leads-ficha-origen-inactivo-200.spec.ts:81`                                                                                                                | «(inactivo)» del drawer abierto por URL  | no                                                | no cae a 14× (9 de 9 en los dos); a 20×, en escritorio, el drawer tarda más que los 5 s de `toBeVisible`, antes de medir → 9-9                                                |
+| `barra-de-filtros-200.spec.ts:157-163`                                                                                                                      | el chip y su «×» al 200 %                | no                                                | 18 de 18 a 14× y a 20× en los dos → 9-9                                                                                                                                       |
+| `leads-recorrido.spec.ts:242-243`                                                                                                                           | fila contra drawer (sólo decide un `if`) | no                                                | no se corrió: no afirma → 9-9                                                                                                                                                 |
+| `leads-recorrido-modales.spec.ts:66`                                                                                                                        | `sinScrollHorizontal` con `diferido()`   | no                                                | puede dar un verde falso, no un rojo → 9-9                                                                                                                                    |
+| capturas de pestañas (`configuracion-200-capturas:61-72`, `cierre-pendientes-capturas:66,107,118`, `leads-recorrido-cierre-2:208-210`)                      | imagen, no assert                        | cuadros y animaciones, no el efecto               | → 9-9                                                                                                                                                                         |
+| `leads-barra-de-secciones.spec.ts:41-74`, `menu-de-acciones-200:55`, `equipo-200:148`, los drawers de `leads-numeros-recorrido` y `leads-recorrido-modales` | —                                        | sí (`data-visible`, `esperarHidratado`, `quieto`) | —                                                                                                                                                                             |
+
+El resto de los llamadores de `aLaVistaSinDesplazar`, `dentroDeLaPantalla`, `sinScrollHorizontal`, `sinTextoCortado` y `tactil` (≈ 190) mide filas, menús,
+cabeceras o anchos que no mueve ningún efecto. **Anotado:** `docs/PLAN.md` **9-9**, con su assert.
+
+### Verificación
+
+`pnpm lint` y `pnpm typecheck` sin avisos; `pnpm test`: 352 archivos, 4.031 pruebas. Dirigido: `configuracion-200` y `recorrido-esperas`, 60 de 60 en
+escritorio y celular. **El bloque 1 desde base limpia**, como CI: `pnpm db:reset` (20:07:26 → 20:08:00), `functions serve` nuevo (20:08:04) y
+`E2E_PROD=1 E2E_COMPLETO=1 pnpm exec playwright test --shard=1/4 --project=escritorio`: **175 verdes, 5 saltadas (las de `barra-superior-celular`), 0 fallos,
+6,9 min** (fin 20:15:01). Al terminar: sin `functions serve`, sin `supabase_edge_runtime_*`, nada en el 3210. `bash scripts/mapa.sh --check`.
+**Nivel 2 y 3: no** (sólo `e2e/` y docs). Sin push ni dispatch.
+
+### Del entorno
+
+- El primer `next build` se detuvo con `SecurityFatalError` (Next 16.4.0 avisa de una vulnerabilidad); repetido sin cambios, compiló. Decide la persona.
+- `functions serve` lanzado con `nohup … &` deja como pid el de la shell: se cierra con `kill -INT` al `supabase.js`, no al pid guardado. El `pkill -f` del final
+  del script del bloque se encontró a sí mismo y cortó el script después del e2e (salió 1 con el e2e en 0).
+- **Para la persona:** este dispatch corrió `carreras` en verde y la tabla de 9-6 sigue vacía; si cuenta como la primera de las 5 seguidas, falta su fila.
+
+**ESTADO:** la línea de CI dice ahora minutos facturables (push con código 22, dispatch de escritorio ≈ 94) y reloj (27 a 32 min); 12.280 B.

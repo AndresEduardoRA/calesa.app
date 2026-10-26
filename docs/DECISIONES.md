@@ -22,257 +22,258 @@ cada parte): busca el tema en el índice y abre la entrada con `Read` y `offset`
 
 <!-- indice:inicio (generado por scripts/mapa.sh: no se edita) -->
 
-- L281 · 2026-10-11 · Stack y andamiaje inicial
-- L298 · 2026-10-11 · Nivel 2, monolito modular con 17 módulos
-- L310 · 2026-10-11 · Un motor de flujos para vehículos y repuestos, no tres copias
-- L324 · 2026-10-11 · Orígenes configurables: campos comunes como columnas, el resto en `atributos`
-- L334 · 2026-10-11 · La fórmula de cotización es un grafo versionado validado en SQL
-- L349 · 2026-10-11 · Permisos: catálogo fijo por código, roles libres, origen y alcance como parámetros
-- L360 · 2026-10-11 · Teléfono único global y enmascarado salvo cartera; leads en limbo
-- L371 · 2026-10-11 · Policies de la fila propia inline, no por función
-- L380 · 2026-10-11 · Embarques y contenedores son grupos; la DUI es entidad
-- L388 · 2026-10-11 · Secretos fuera de la base; integraciones como interruptor
-- L395 · 2026-10-11 · Monedas: base + N tipos de cambio nombrados, congelados por cotización
-- L403 · 2026-10-11 · Cola web: habilitado nace en false; prioridad ponderada
-- L410 · 2026-10-11 · PDF de cotizaciones en servidor con `@react-pdf/renderer`
-- L418 · 2026-10-11 · Íconos PWA neutros hasta que la empresa cargue su logo
-- L426 · 2026-10-11 · Lo que se dejó fuera a propósito
-- L432 · 2026-10-11 · Boundaries con la sintaxis v7, no la legacy
-- L444 · 2026-10-11 · Migración base generada desde `supabase/schemas`
-- L463 · 2026-10-11 · shadcn dentro de `src/shared/ui`, con sus variables puenteadas a los tokens
-- L480 · 2026-10-11 · `puede()` y el catálogo de claves viven en `src/shared/lib/permisos.ts`
-- L490 · 2026-10-11 · Lo que se ve sin sesión sale de `web.ajustes_acceso()`, con `primer_registro`
-- L504 · 2026-10-11 · `/auth/callback` canjea `code` (Google) y `token_hash` (correos)
-- L517 · 2026-10-11 · `mi_sesion()`: la sesión entera en una ida a la base
-- L531 · 2026-10-11 · Google sin variable de entorno; el botón depende de lo que diga Auth
-- L541 · 2026-10-11 · El `index.ts` de un módulo se importa sólo desde Server Components
-- L556 · 2026-10-11 · La navegación se declara entera y un test la compara con las rutas que existen
-- L564 · 2026-10-11 · El e2e de acceso exige la base local sin personas
-- L573 · 2026-10-11 · Un módulo tiene dos entradas: `index.ts` (servidor) y `client.ts` (cliente)
-- L588 · 2026-10-11 · El cliente admin tiene una sola excepción: `conAdminDeAuth()`
-- L603 · 2026-10-11 · El registro cerrado se comprueba al cerrar la transacción, no al insertar
-- L618 · 2026-10-11 · Un solo enlace de invitación vigente por persona
-- L632 · 2026-10-11 · La perspectiva «ver como» viaja en una cookie y se calcula en SQL
-- L647 · 2026-10-11 · La vista previa de una baja es una RPC que sólo cuenta
-- L660 · 2026-10-11 · La versión de un rol cubre sus concesiones; bloquear usa el estado
-- L675 · 2026-10-11 · El guardián cuenta la unión de roles y cuida todo `equipo.*` del dueño
-- L686 · 2026-10-11 · Voz: español neutro con tuteo, también en la base
-- L694 · 2026-10-12 · Secretos: Vault por RPC para lo que se edita en la interfaz
-- L715 · 2026-10-12 · La empresa se escribe sólo por RPC; sus tablas son de sólo lectura
-- L730 · 2026-10-12 · El color de la marca se acepta si el texto de un botón se lee sobre él
-- L746 · 2026-10-12 · Íconos: dibujados en el navegador, guardados en Storage, servidos por el manifest
-- L762 · 2026-10-12 · Empresa es una pantalla con pestañas; cada formulario lleva de `key` lo que edita
-- L780 · 2026-10-12 · Un logo no pasa por la compresión de fotos
-- L790 · 2026-10-12 · Toda RPC de edición exige la versión: un nulo se rechaza
-- L805 · 2026-10-12 · Orígenes, campos y categorías se escriben sólo por RPC, con versión por fila
-- L823 · 2026-10-12 · Un origen con uso se desactiva; sólo uno sin uso se elimina
-- L840 · 2026-10-12 · Un campo con datos no cambia de tipo ni se elimina: se desactiva
-- L857 · 2026-10-12 · El tipo de un origen (subasta o manual) no cambia
-- L870 · 2026-10-12 · Nombre, sustantivo y género: tres datos de la fila y reglas puras
-- L884 · 2026-10-12 · El orden se cambia con botones y por movimiento relativo, no arrastrando
-- L899 · 2026-10-12 · Quién abre Configuración › Orígenes: sin `origenes.ver`
-- L912 · 2026-10-13 · FilterShell vive en `shared`; las vistas guardadas las posee `equipo`
-- L929 · 2026-10-13 · Un solo esquema Zod, armado desde el layout, valida en el navegador y en el servidor
-- L947 · 2026-10-13 · Filtros sobre `atributos` por PostgREST, keyset y policy de InitPlan; el GIN no cuenta
-- L966 · 2026-10-13 · Vehículos se escriben sólo por RPC; el alta entra a la única fase inicial
-- L987 · 2026-10-13 · Campos sensibles: el esquema no los resuelve, y el inventario no muestra costos
-- L1002 · 2026-10-13 · Un VIN repetido bloquea, y se dice junto al campo
-- L1012 · 2026-10-13 · Los e2e del inventario no piden el equipo vacío
-- L1021 · 2026-10-13 · Las fotos van a un bucket público, cada una en la carpeta de su vehículo
-- L1039 · 2026-10-13 · Dos tamaños por foto, hechos en el navegador; sin optimizador
-- L1055 · 2026-10-13 · Las fotos tienen su propia versión, aparte de la de la ficha
-- L1072 · 2026-10-13 · La limpieza de Storage reclama antes de borrar; la función queda para la parte 4
-- L1092 · 2026-10-13 · Una foto se valida decodificándola, y se reconoce por el hash del archivo original
-- L1107 · 2026-10-13 · Vínculo e interesados: RPC y lectura ahora, interfaz con leads
-- L1126 · 2026-10-13 · En plpgsql un permiso se pregunta con `puede_*()`, no con un `if` sobre `in (…)`
-- L1138 · 2026-10-13 · La vitrina muestra identidad, precio público, campos públicos y la portada; nada más
-- L1157 · 2026-10-13 · Una sola definición de lo público: el esquema `interno`
-- L1176 · 2026-10-13 · Publicar lleva la versión del vehículo y manda el estado entero
-- L1186 · 2026-10-13 · Qué no va a la papelera, y que todo lo que entra se pueda purgar
-- L1206 · 2026-10-13 · Los vehículos tienen su papelera; el envío es por lote, con versión por vehículo
-- L1227 · 2026-10-13 · La purga manual y la automática son la misma función
-- L1249 · 2026-10-13 · `storage-gc` se dispara desde la base y se autentica con un pase de un solo uso
-- L1274 · 2026-10-13 · Vitrina y papelera no suman permisos: los cuatro que había, todos con enforcement
-- L1294 · 2026-10-14 · apibara: se guarda todo lo que devuelve, y cada dato normalizado es un campo
-- L1321 · 2026-10-14 · Refrescar no pisa lo que la persona editó: tres vías con el bruto anterior
-- L1337 · 2026-10-14 · Las fotos de una subasta pasan por la tubería del navegador, en primer plano
-- L1356 · 2026-10-14 · La llamada a apibara vive en la edge function y la hace el navegador
-- L1377 · 2026-10-14 · «Subastas próximas en la ficha» es la subasta de ese vehículo
-- L1390 · 2026-10-14 · Migraciones sobre una base viva, y e2e que no exigen la base vacía
-- L1406 · 2026-10-14 · El bruto de apibara lo origina la función; el navegador manda una referencia
-- L1428 · 2026-10-14 · La regla de limpieza vive en un solo lugar de la base
-- L1449 · 2026-10-14 · Qué ancla y qué no; la cotización final queda para la Fase 4
-- L1465 · 2026-10-14 · «Conservar» es una marca aparte, sin versión, y restaurar la deja puesta
-- L1479 · 2026-10-14 · El job: una vez por día local, desde las 03:00, lote acotado y con registro
-- L1499 · 2026-10-14 · El lote de la limpieza lo ven y restauran quienes pueden vaciar la papelera
-- L1508 · 2026-10-14 · El aviso: los próximos 3 días, y el interruptor apagado lo borra todo
-- L1517 · 2026-10-14 · Los textos de uso diario dicen «subasta»; el proveedor se nombra donde se configura
-- L1533 · 2026-10-14 · El motor de campos es de `shared`, y los leads lo usan
-- L1553 · 2026-10-14 · Los leads suman `correo` y `documento`, y nacen «solo la cartera»
-- L1565 · 2026-10-14 · Configuración › Leads reusa `leads.configurar`
-- L1578 · 2026-10-14 · Las seis columnas de un lead pasan a atributos, sobre la base viva
-- L1594 · 2026-10-14 · Los privados se recortan al leer, con la cartera de ese momento; filtrar es leer
-- L1617 · 2026-10-14 · «La de la empresa» es una columna, no una referencia dentro del valor
-- L1627 · 2026-10-14 · «De fábrica» reemplaza a «de sistema» para los campos
-- L1634 · 2026-10-14 · El alta rápida pide los requeridos propios, y el panel lo dice
-- L1644 · 2026-10-14 · El alta rápida es una sola RPC: el lead, su seguimiento y el recordatorio entran juntos
-- L1664 · 2026-10-14 · El teléfono lo normaliza la base y el código de país es de la empresa
-- L1680 · 2026-10-14 · Tomar un lead sin dueño exige aceptarlo, deja de dueño y no pisa
-- L1693 · 2026-10-14 · Ctrl/Cmd+Enter avanza al seguimiento y se guarda al final
-- L1705 · 2026-10-14 · `N` es de la pantalla; «Nuevo lead» siempre tiene botón
-- L1717 · 2026-10-14 · El resumen de un seguimiento es un título corto y un detalle en texto plano
-- L1724 · 2026-10-14 · El formulario por bloques y los controles por tipo son de `shared`
-- L1734 · 2026-10-14 · La guardia de los e2e: respaldo en disco, funciones servidas y teardown
-- L1752 · 2026-10-14 · Cómo se mide la tarea de oro 1
-- L1761 · 2026-10-14 · El listado de leads: orden, «míos», búsqueda, privados y drawer
-- L1798 · 2026-10-14 · `alcance_de()` y `atributos_lead()` más baratas: lo que midió el listado
-- L1820 · 2026-10-14 · La guardia de los e2e no respalda la base, y un respaldo viejo puede pisar un cambio
-- L1843 · 2026-10-14 · La versión de un lead la mueve lo que la ficha edita, y nada más
-- L1868 · 2026-10-14 · `lead_guardar` es la única puerta, y los atributos viajan como parche
-- L1888 · 2026-10-14 · Los teléfonos de un lead se leen por función, y `telefono_lead()` da nulo a quien no ve
-- L1907 · 2026-10-14 · Teléfonos extra y cambio del principal: las reglas (para la parte 4b)
-- L1924 · 2026-10-14 · La ficha: tres lecturas, el código de país del lead y el tope de KB
-- L1942 · 2026-10-14 · Tachados y claves de campo en la URL: no hay choque y no se reserva la clave
-- L1955 · 2026-10-14 · Teléfonos de la ficha: cómo se aterrizó la 4b
-- L1986 · 2026-10-15 · El e2e completo parte de un reset, la guardia sólo comprueba las funciones, y el atajo de la…
-- L2041 · 2026-10-15 · Seguimientos y recordatorios se escriben sólo por RPC, y actuar exige la cartera
-- L2064 · 2026-10-15 · Privado es sólo de su autor; ni el co-asesor ni «todos» leen lo privado ajeno
-- L2075 · 2026-10-15 · El detalle viaja como documento del editor, nunca como HTML
-- L2099 · 2026-10-15 · El editor: carga diferida, atajos del marco y borrador en la pestaña
-- L2113 · 2026-10-15 · Recordatorios: crear exige la cartera; si se pierde el lead, sigue sin él
-- L2127 · 2026-10-15 · Un seguimiento no mueve la versión del lead; la actividad deja constancia sin contenido
-- L2138 · 2026-10-15 · Parte 5 partida en 5a y 5b; el diseño de la 5b
-- L2159 · 2026-10-15 · Un corte del runtime local de funciones se vuelve a pedir, con una sola regla
-- L2173 · 2026-10-15 · Las marcas se escriben sólo por RPC, y marcar exige ver el lead (no la cartera)
-- L2200 · 2026-10-15 · El listado lee las marcas como columnas de `leads_vista`; lo que midió
-- L2228 · 2026-10-15 · Los tachados se ocultan, salvo mientras se busca; el aviso cuenta con los mismos filtros
-- L2246 · 2026-10-15 · Paleta de ocho claves en tokens; selector con cmdk; confirmar en la fila; sin atajo
-- L2270 · 2026-10-15 · Parte 6a: toda RPC que recibe un lead cae en una de tres clases
-- L2389 · 2026-10-15 · La papelera de leads: todo o nada, el lote lo genera el cliente, y lo vinculado no entra
-- L2419 · 2026-10-15 · El documento de la ficha pasa de 40 a 48 KB
-- L2428 · 2026-10-15 · Lo que dejó la revisión de la 6a: carreras, `lead_id` en otras tablas y un cinturón más ancho
-- L2457 · 2026-10-15 · Parte 6b: vincular desde el lead, sin oráculo y con el lead bloqueado
-- L2494 · 2026-10-15 · La sección «Vehículos» vive en `vehiculos`, y lo que no se ve no se cuenta
-- L2516 · 2026-10-15 · `vehiculo_id` en seguimientos y recordatorios: uno que se ve, y si deja de verse sigue
-- L2528 · 2026-10-15 · Las carreras se prueban con dos conexiones reales (`pnpm db:carreras`)
-- L2546 · 2026-10-15 · El tope del documento de la ficha vuelve a 44 KB; diferir los paneles no ahorra documento
-- L2558 · 2026-10-15 · Parte 7 partida en 7a y 7b; las quince preguntas se resolvieron con la recomendación
-- L2570 · 2026-10-15 · Los embudos son personales y se escriben sólo por RPC; las etapas se guardan como conjunto
-- L2594 · 2026-10-15 · Una oportunidad es de su dueña, con la cartera del lead; nadie más la ve
-- L2618 · 2026-10-15 · Transferir lleva las abiertas al embudo del destino; la baja sigue cancelando
-- L2630 · 2026-10-15 · El kanban: 50 por columna, «Ver más», pestañas en el celular, y la sección de la ficha
-- L2647 · 2026-10-15 · La auditoría ampliada de la 7a, y lo que encontraron las pruebas
-- L2672 · 2026-10-15 · Parte 7b: las dieciséis preguntas se resolvieron con la recomendación
-- L2687 · 2026-10-15 · El acceso del cliente: clase 1, sólo por RPC, con la versión del acceso
-- L2724 · 2026-10-15 · La clave del cliente nunca queda en claro
-- L2746 · 2026-10-15 · El texto para WhatsApp: la plantilla en el código, la dirección en `ajustes_web`
-- L2758 · 2026-10-15 · Contrato del portal para la Fase 8
-- L2788 · 2026-10-15 · La auditoría ampliada de la 7b, y lo que encontraron las pruebas
-- L2831 · 2026-10-15 · CSV de leads (Fase 3, parte 8a): exportar la cartera e importar con las reglas del alta
-- L2892 · 2026-10-15 · El reintento al volver la conexión sólo sale al volver: la causa del fallo de `leads-alta-casos`
-- L2911 · 2026-10-15 · Deshacer una importación (Fase 3, parte 8b): clase X, sólo lo intacto, 24 horas
-- L2967 · 2026-10-15 · El país del teléfono: una tabla estática en el cliente, y «País» sigue al número
-- L3022 · 2026-10-16 · El primer seguimiento del alta, opcional y enriquecido (Fase 3, parte 9b)
-- L3084 · 2026-10-16 · Guardar en Empresa: el formulario espera a lo guardado, y el borrador mide contra lo que mandó el…
-- L3131 · 2026-10-16 · Los avisos no reciben el puntero; el freno de CPU se borra; lo del borrador no se reproduce
-- L3179 · 2026-10-16 · Los e2e reusan la sesión de cada cuenta dentro del proceso, y sólo eso
-- L3202 · 2026-10-16 · Parte 9c: los formularios que aparecen al pulsar algo van en un modal con su URL
-- L3261 · 2026-10-16 · Parte 9d: un solo modal de seguimiento, la pestaña del drawer y las acciones de la fila
-- L3321 · 2026-10-16 · Parte 9d-2: el drawer con tres pestañas y las listas de un lead a escala
-- L3377 · 2026-10-16 · Parte 9d-3: el recorrido de la IA con dos cuentas
-- L3410 · 2026-10-16 · Parte 9e: la escala de toda la app, medida y con guardas
-- L3472 · 2026-10-16 · Parte 9f-1: el origen del lead es configurable, y se escribe sólo por RPC
-- L3488 · 2026-10-17 · Parte 9f-2: los dos números de un lead, y el global sólo con un permiso
-- L3508 · 2026-10-17 · Parte 9g: ítems por página configurables, y la base acota toda página
-- L3528 · 2026-10-17 · Parte 9h: la cartera de «todos» a escala, con la regla escrita una vez y estimable
-- L3555 · 2026-10-17 · Cierre 1 (A): la baja de una persona va en dos tiempos, y la regla ya sabe que hay una baja en curso
-- L3596 · 2026-10-17 · Cierre 1 (B): una sola vista por lista, elegida en el servidor con el ancho de la petición
-- L3626 · 2026-10-17 · Cierre 1 (G): «página N» se descarta; arriba se dice lo que sí es verdad
-- L3643 · 2026-10-17 · Cierre 1 (C): un lote de la papelera muestra sus primeros 20, y la papelera no entra al selector
-- L3664 · 2026-10-17 · Cierre 1 (D): los topes se dicen, con un solo aviso y sin inventar un camino que no existe
-- L3681 · 2026-10-17 · Cierre 1 (E): para llegar a lo antiguo de una columna del kanban, buscar
-- L3699 · 2026-10-17 · Cierre 1 (F, d): el barrido de huérfanos de storage-gc sigue un cursor por bucket
-- L3716 · 2026-10-17 · Cierre 1 (F, c): el avatar chico, con el relleno en una edge function
-- L3741 · 2026-10-17 · Cierre 2 (0a): quien está en una baja en curso no figura como dueño para los demás
-- L3763 · 2026-10-17 · Cierre 2 (0a): `_bajas_en_curso()` no le dice nada a una cuenta que no está activa
-- L3777 · 2026-10-17 · Cierre 2 (0b): la carrera real de `…002400` es de dos corridas de la misma baja, no la del commit
-- L3789 · 2026-10-17 · Cierre 2 (1): todo `<Confirmar>` tiene su URL, y una guarda lo exige
-- L3809 · 2026-10-17 · Cierre 2 (2, 4): «Mover a…» no se parte, y la tabla del listado se desplaza dentro de su tarjeta
-- L3822 · 2026-10-17 · Cierre 2 (3): un formulario que se reemplaza al llegar lo guardado apaga sus campos hasta entonces
-- L3832 · 2026-10-17 · Cierre 2 (5): los avisos con un modal abierto sí se anuncian; lo que faltaba era preguntar al salir
-- L3845 · 2026-10-17 · Cierre 2 (6, 7, 8): la barra que se desplaza lo dice, la barra superior cabe al 200 %, y los…
-- L3860 · 2026-10-17 · Cierre 3 (0a): la policy de `leads_asesores` no entrega la fila de quien está en una baja en curso
-- L3879 · 2026-10-17 · Cierre 3 (0b): el comentario de `…002400` dice la carrera que existe
-- L3885 · 2026-10-17 · Cierre 3 (1): las tarjetas del listado no ensanchan la página con el texto al 200 %
-- L3899 · 2026-10-17 · Cierre 3 (2): todo `<Drawer>` pregunta al salir desde un aviso; el `<Drawer>` lo hace, el…
-- L3924 · 2026-10-17 · Cierre 3 (3): el aviso sube sobre el pie de un panel, y crece con el texto
-- L3939 · 2026-10-17 · Cierre 3 (4): las etiquetas de los botones sí crecían; lo que las hacía parecer quietas era…
-- L3952 · 2026-10-17 · Cierre 4 (1): todo modal con algo escrito pregunta al descartar; un hook compartido y una guarda
-- L3974 · 2026-10-17 · Cierre 4 (2): la nota de un interés sin mandar cuenta como «hay cambios» y no se pierde al cambiar…
-- L3986 · 2026-10-17 · Cierre 4 (3): el aviso con descripción crece con el texto; la letra ya crecía, el ancho no
-- L3999 · 2026-10-17 · Cierre 4 (4): una captura se toma con la pantalla quieta
-- L4011 · 2026-10-17 · Cierre 4 (5): hojas de contacto, y mirar es abrir todas
-- L4019 · 2026-10-17 · Cierre 4 (6): `importaciones-vinculos-purgar` no es lento; la importación recién creada sí, por…
-- L4038 · 2026-10-17 · Cierre 4 (7): una base recién creada tarda 20 s en su primera importación; la semilla analiza
-- L4051 · 2026-10-17 · Cierre 4 (8): el lote de la importación se queda en 50, y tiene su guarda
-- L4065 · 2026-10-17 · Cierre 4 (9): los `beforeAll`/`afterAll` son 1,15 s por spec y proyecto; las cuentas se crean y se…
-- L4076 · 2026-10-17 · Cierre 4 (10): al 200 % los campos de un modal caben en él
-- L4084 · 2026-10-18 · Parte 9i: un patrón de lista para toda tabla, el resumen de vehículos y el «⋯» del lead desde una…
-- L4158 · 2026-10-18 · Parte 9j (0a): `listas-por-pagina` en la página 3 no se reprodujo; qué se probó y qué quedó…
-- L4183 · 2026-10-18 · Parte 9j (0b): el «⋯» cuesta 3 nodos con un símbolo SVG compartido
-- L4194 · 2026-10-18 · Parte 9j: los tipos de lead son una tabla con una clase fija, y el sistema razona por la clase
-- L4229 · 2026-10-18 · Cierre 5a: medir antes de arreglar (la búsqueda, la persona con pocos leads, la importación y la…
-- L4249 · 2026-10-18 · Cierre 5a-fix-2: importar en volumen no depende de `actividad` (la adopción del intento sólo se…
-- L4264 · 2026-10-18 · Cierre 5a-fix-1a: «míos» de quien tiene «propios» se lee por su cartera (la persona con pocos…
-- L4293 · 2026-10-18 · Cierre 5a-fix-1b: la búsqueda por nombre no depende de cuántos leads hay (candidatos por ventana…
-- L4321 · 2026-10-18 · Cierre 5b: el `index.ts` de un módulo no exporta componentes, la ficha manda lo que dibuja y los…
-- L4347 · 2026-10-19 · Cierre 5a-fix-3: la suite de e2e baja de 42,0 a 31,7 min; el celular sale por demostración, no por…
-- L4374 · 2026-10-19 · Cierre 5b-fix: el buscador cabe por el ancho de la barra, el kanban no ensancha la página y «Nuevo…
-- L4392 · 2026-10-19 · Cierre 5b-fix-2: «Nuevo lead» es un solo drawer, montado cerrado, que cambia de cuerpo
-- L4421 · 2026-10-19 · 5a-8: el buscador pide 3 caracteres para buscar por nombre; no se pagan n-gramas
-- L4431 · 2026-10-19 · 5a-4b: no se monta la segunda pila local de Supabase
-- L4441 · 2026-10-19 · Cierre 5a-fix-4: el nombre se busca con 3 letras seguidas, «míos» por la cartera si es corta, la…
-- L4479 · 2026-10-19 · Buscar un número entre los propios ajenos (5a-14), y 5a-9 a la Fase 4 sin cambios
-- L4503 · 2026-10-21 · La rueda de turnos de la web, por rol (`web.cola.participar`)
-- L4525 · 2026-10-21 · 5a-15 no se reproduce: el hook se queda y el selector ignora un tamaño que no ofrece
-- L4534 · 2026-10-21 · La matriz de Roles en el celular es una lista de un rol, y el panel de filtros va al costado sólo…
-- L4541 · 2026-10-21 · 8-2: `web.solicitar_asesor` responde el vencimiento que escribió
-- L4547 · 2026-10-21 · Dominancia sobre la persona: la regla (la implementación, a 9-1)
-- L4554 · 2026-10-21 · Vencimiento de la invitación (`otp_expiry`): 24 horas en la nube
-- L4560 · 2026-10-21 · Fotos de una subasta en segundo plano: no se hace
-- L4566 · 2026-10-21 · Rango de un campo numérico, `leads.campos.gestionar` y el campo «principal»: no antes de…
-- L4573 · 2026-10-21 · Configuración de leads: tipos de seguimiento, iconos del catálogo y origen por defecto
-- L4597 · 2026-10-21 · Cierre de defectos al 200 %: la lista del equipo, la matriz de Roles, el interruptor, Empresa y la…
-- L4621 · 2026-10-21 · Cierre de pendientes del 200 %: el origen inactivo, el chip, el modal y la columna «Persona»
-- L4645 · 2026-10-22 · La lista del equipo tiene tope de 100 y busca con tildes en el servidor; el interruptor era un…
-- L4671 · 2026-10-22 · Apertura de la Fase 4 — Cotizaciones
-- L4755 · 2026-10-22 · 5a-4b: la cifra pasa a 40,1
-- L4771 · 2026-10-22 · D7 · La hoja configurable: diseño, niveles de acceso y tipos de cambio
-- L4881 · 2026-10-22 · Paso 4.02: el equipo busca desde 3 letras con su propio mínimo, y Roles cuenta por una RPC con el…
-- L4908 · 2026-10-22 · Paso 4.03 (5a-10): un campo privado se filtra por los candidatos de la cartera, sin índice
-- L4946 · 2026-10-22 · Paso 4.03, prompt 2 (5a-35): el lead del número entra a los candidatos aunque el pedido no traiga…
-- L4966 · 2026-10-22 · Paso 4.03, prompt 3 (5a-9 y 5a-34): el texto y el rango de un campo, y los ocultos y la…
-- L5006 · 2026-10-23 · Paso 4.04: dos e2e que no dependen del azar, la medición de la baja sin el cron, y 5a-11 sin arreglo
-- L5020 · 2026-10-23 · Cierre del 4.04: 5a-11 se acepta con la causa corregida, y la guarda baja sus topes
-- L5030 · 2026-10-23 · Paso 4.05 (1 de 4): la forma ampliada del grafo del cotizador
-- L5091 · 2026-10-23 · Paso 4.05 (2 de 4): el motor del cotizador y sus faltantes
-- L5156 · 2026-10-23 · Paso 4.05 (3 de 4): la variante, lo sobrescribible y las fuentes del motor
-- L5226 · 2026-10-23 · Paso 4.05 (4 de 4): `validar_formula()` en la base, espejo exacto de `validar.ts`
-- L5287 · 2026-10-23 · Paso 4.06 (1 de 2): `evaluar_formula()` en la base, espejo exacto de `evaluar()`
-- L5360 · 2026-10-23 · Paso 4.06 (2 de 2): `cotizacion_evaluar()` sobre `evaluar_formula()` y su assert de tiempo
-- L5432 · 2026-10-23 · Paso 4.07 (1 de 2): el compilador de fórmulas como texto y el cierre de 4-2
-- L5508 · 2026-10-24 · Paso 4.07 (2 de 2): 4-3, el texto de la fila, el literal que no cabe y la salida por index
-- L5566 · 2026-10-24 · Paso 4.07 (remiendo, prompt 3): el mínimo del `texto` y su mensaje
-- L5592 · 2026-10-24 · Paso 4.08 (1 de 3): el modelo del diseño de la hoja y su validación
-- L5663 · 2026-10-24 · Paso 4.08 (2 de 3): el diseño en la fórmula, su visibilidad y el catálogo de tonos
-- L5730 · 2026-10-24 · Paso 4.08 (3 de 3): la semilla del cotizador, el check de «publicada tiene diseño» y un origen…
-- L5804 · 2026-10-24 · Paso 4.09 (1 de 2): los niveles de acceso en la base
-- L5881 · 2026-10-24 · Paso 4.09 (2 de 2): la pantalla de niveles, la matriz de Roles y deshacer un retiro
-- L5932 · 2026-10-25 · Paso 4.10 (1 de 3): lo que no se ve no viaja (la lectura)
-- L5998 · 2026-10-25 · Paso 4.10 (2 de 3): escribir por RPC, cerrar la escritura directa y `cotizacion_crear`
-- L6048 · 2026-10-25 · Paso 4.10 (3 de 3): `cotizacion_guardar`, D2 en el alta, el detector y los candados
-- L6089 · 2026-10-25 · CI-1: GitHub Actions por niveles, el e2e en cuatro bloques y lo que queda fuera de CI
-- L6200 · 2026-10-25 · CI-2: un spec prepara su estado, las esperas son de un estado, y los minutos medidos
+- L282 · 2026-10-11 · Stack y andamiaje inicial
+- L299 · 2026-10-11 · Nivel 2, monolito modular con 17 módulos
+- L311 · 2026-10-11 · Un motor de flujos para vehículos y repuestos, no tres copias
+- L325 · 2026-10-11 · Orígenes configurables: campos comunes como columnas, el resto en `atributos`
+- L335 · 2026-10-11 · La fórmula de cotización es un grafo versionado validado en SQL
+- L350 · 2026-10-11 · Permisos: catálogo fijo por código, roles libres, origen y alcance como parámetros
+- L361 · 2026-10-11 · Teléfono único global y enmascarado salvo cartera; leads en limbo
+- L372 · 2026-10-11 · Policies de la fila propia inline, no por función
+- L381 · 2026-10-11 · Embarques y contenedores son grupos; la DUI es entidad
+- L389 · 2026-10-11 · Secretos fuera de la base; integraciones como interruptor
+- L396 · 2026-10-11 · Monedas: base + N tipos de cambio nombrados, congelados por cotización
+- L404 · 2026-10-11 · Cola web: habilitado nace en false; prioridad ponderada
+- L411 · 2026-10-11 · PDF de cotizaciones en servidor con `@react-pdf/renderer`
+- L419 · 2026-10-11 · Íconos PWA neutros hasta que la empresa cargue su logo
+- L427 · 2026-10-11 · Lo que se dejó fuera a propósito
+- L433 · 2026-10-11 · Boundaries con la sintaxis v7, no la legacy
+- L445 · 2026-10-11 · Migración base generada desde `supabase/schemas`
+- L464 · 2026-10-11 · shadcn dentro de `src/shared/ui`, con sus variables puenteadas a los tokens
+- L481 · 2026-10-11 · `puede()` y el catálogo de claves viven en `src/shared/lib/permisos.ts`
+- L491 · 2026-10-11 · Lo que se ve sin sesión sale de `web.ajustes_acceso()`, con `primer_registro`
+- L505 · 2026-10-11 · `/auth/callback` canjea `code` (Google) y `token_hash` (correos)
+- L518 · 2026-10-11 · `mi_sesion()`: la sesión entera en una ida a la base
+- L532 · 2026-10-11 · Google sin variable de entorno; el botón depende de lo que diga Auth
+- L542 · 2026-10-11 · El `index.ts` de un módulo se importa sólo desde Server Components
+- L557 · 2026-10-11 · La navegación se declara entera y un test la compara con las rutas que existen
+- L565 · 2026-10-11 · El e2e de acceso exige la base local sin personas
+- L574 · 2026-10-11 · Un módulo tiene dos entradas: `index.ts` (servidor) y `client.ts` (cliente)
+- L589 · 2026-10-11 · El cliente admin tiene una sola excepción: `conAdminDeAuth()`
+- L604 · 2026-10-11 · El registro cerrado se comprueba al cerrar la transacción, no al insertar
+- L619 · 2026-10-11 · Un solo enlace de invitación vigente por persona
+- L633 · 2026-10-11 · La perspectiva «ver como» viaja en una cookie y se calcula en SQL
+- L648 · 2026-10-11 · La vista previa de una baja es una RPC que sólo cuenta
+- L661 · 2026-10-11 · La versión de un rol cubre sus concesiones; bloquear usa el estado
+- L676 · 2026-10-11 · El guardián cuenta la unión de roles y cuida todo `equipo.*` del dueño
+- L687 · 2026-10-11 · Voz: español neutro con tuteo, también en la base
+- L695 · 2026-10-12 · Secretos: Vault por RPC para lo que se edita en la interfaz
+- L716 · 2026-10-12 · La empresa se escribe sólo por RPC; sus tablas son de sólo lectura
+- L731 · 2026-10-12 · El color de la marca se acepta si el texto de un botón se lee sobre él
+- L747 · 2026-10-12 · Íconos: dibujados en el navegador, guardados en Storage, servidos por el manifest
+- L763 · 2026-10-12 · Empresa es una pantalla con pestañas; cada formulario lleva de `key` lo que edita
+- L781 · 2026-10-12 · Un logo no pasa por la compresión de fotos
+- L791 · 2026-10-12 · Toda RPC de edición exige la versión: un nulo se rechaza
+- L806 · 2026-10-12 · Orígenes, campos y categorías se escriben sólo por RPC, con versión por fila
+- L824 · 2026-10-12 · Un origen con uso se desactiva; sólo uno sin uso se elimina
+- L841 · 2026-10-12 · Un campo con datos no cambia de tipo ni se elimina: se desactiva
+- L858 · 2026-10-12 · El tipo de un origen (subasta o manual) no cambia
+- L871 · 2026-10-12 · Nombre, sustantivo y género: tres datos de la fila y reglas puras
+- L885 · 2026-10-12 · El orden se cambia con botones y por movimiento relativo, no arrastrando
+- L900 · 2026-10-12 · Quién abre Configuración › Orígenes: sin `origenes.ver`
+- L913 · 2026-10-13 · FilterShell vive en `shared`; las vistas guardadas las posee `equipo`
+- L930 · 2026-10-13 · Un solo esquema Zod, armado desde el layout, valida en el navegador y en el servidor
+- L948 · 2026-10-13 · Filtros sobre `atributos` por PostgREST, keyset y policy de InitPlan; el GIN no cuenta
+- L967 · 2026-10-13 · Vehículos se escriben sólo por RPC; el alta entra a la única fase inicial
+- L988 · 2026-10-13 · Campos sensibles: el esquema no los resuelve, y el inventario no muestra costos
+- L1003 · 2026-10-13 · Un VIN repetido bloquea, y se dice junto al campo
+- L1013 · 2026-10-13 · Los e2e del inventario no piden el equipo vacío
+- L1022 · 2026-10-13 · Las fotos van a un bucket público, cada una en la carpeta de su vehículo
+- L1040 · 2026-10-13 · Dos tamaños por foto, hechos en el navegador; sin optimizador
+- L1056 · 2026-10-13 · Las fotos tienen su propia versión, aparte de la de la ficha
+- L1073 · 2026-10-13 · La limpieza de Storage reclama antes de borrar; la función queda para la parte 4
+- L1093 · 2026-10-13 · Una foto se valida decodificándola, y se reconoce por el hash del archivo original
+- L1108 · 2026-10-13 · Vínculo e interesados: RPC y lectura ahora, interfaz con leads
+- L1127 · 2026-10-13 · En plpgsql un permiso se pregunta con `puede_*()`, no con un `if` sobre `in (…)`
+- L1139 · 2026-10-13 · La vitrina muestra identidad, precio público, campos públicos y la portada; nada más
+- L1158 · 2026-10-13 · Una sola definición de lo público: el esquema `interno`
+- L1177 · 2026-10-13 · Publicar lleva la versión del vehículo y manda el estado entero
+- L1187 · 2026-10-13 · Qué no va a la papelera, y que todo lo que entra se pueda purgar
+- L1207 · 2026-10-13 · Los vehículos tienen su papelera; el envío es por lote, con versión por vehículo
+- L1228 · 2026-10-13 · La purga manual y la automática son la misma función
+- L1250 · 2026-10-13 · `storage-gc` se dispara desde la base y se autentica con un pase de un solo uso
+- L1275 · 2026-10-13 · Vitrina y papelera no suman permisos: los cuatro que había, todos con enforcement
+- L1295 · 2026-10-14 · apibara: se guarda todo lo que devuelve, y cada dato normalizado es un campo
+- L1322 · 2026-10-14 · Refrescar no pisa lo que la persona editó: tres vías con el bruto anterior
+- L1338 · 2026-10-14 · Las fotos de una subasta pasan por la tubería del navegador, en primer plano
+- L1357 · 2026-10-14 · La llamada a apibara vive en la edge function y la hace el navegador
+- L1378 · 2026-10-14 · «Subastas próximas en la ficha» es la subasta de ese vehículo
+- L1391 · 2026-10-14 · Migraciones sobre una base viva, y e2e que no exigen la base vacía
+- L1407 · 2026-10-14 · El bruto de apibara lo origina la función; el navegador manda una referencia
+- L1429 · 2026-10-14 · La regla de limpieza vive en un solo lugar de la base
+- L1450 · 2026-10-14 · Qué ancla y qué no; la cotización final queda para la Fase 4
+- L1466 · 2026-10-14 · «Conservar» es una marca aparte, sin versión, y restaurar la deja puesta
+- L1480 · 2026-10-14 · El job: una vez por día local, desde las 03:00, lote acotado y con registro
+- L1500 · 2026-10-14 · El lote de la limpieza lo ven y restauran quienes pueden vaciar la papelera
+- L1509 · 2026-10-14 · El aviso: los próximos 3 días, y el interruptor apagado lo borra todo
+- L1518 · 2026-10-14 · Los textos de uso diario dicen «subasta»; el proveedor se nombra donde se configura
+- L1534 · 2026-10-14 · El motor de campos es de `shared`, y los leads lo usan
+- L1554 · 2026-10-14 · Los leads suman `correo` y `documento`, y nacen «solo la cartera»
+- L1566 · 2026-10-14 · Configuración › Leads reusa `leads.configurar`
+- L1579 · 2026-10-14 · Las seis columnas de un lead pasan a atributos, sobre la base viva
+- L1595 · 2026-10-14 · Los privados se recortan al leer, con la cartera de ese momento; filtrar es leer
+- L1618 · 2026-10-14 · «La de la empresa» es una columna, no una referencia dentro del valor
+- L1628 · 2026-10-14 · «De fábrica» reemplaza a «de sistema» para los campos
+- L1635 · 2026-10-14 · El alta rápida pide los requeridos propios, y el panel lo dice
+- L1645 · 2026-10-14 · El alta rápida es una sola RPC: el lead, su seguimiento y el recordatorio entran juntos
+- L1665 · 2026-10-14 · El teléfono lo normaliza la base y el código de país es de la empresa
+- L1681 · 2026-10-14 · Tomar un lead sin dueño exige aceptarlo, deja de dueño y no pisa
+- L1694 · 2026-10-14 · Ctrl/Cmd+Enter avanza al seguimiento y se guarda al final
+- L1706 · 2026-10-14 · `N` es de la pantalla; «Nuevo lead» siempre tiene botón
+- L1718 · 2026-10-14 · El resumen de un seguimiento es un título corto y un detalle en texto plano
+- L1725 · 2026-10-14 · El formulario por bloques y los controles por tipo son de `shared`
+- L1735 · 2026-10-14 · La guardia de los e2e: respaldo en disco, funciones servidas y teardown
+- L1753 · 2026-10-14 · Cómo se mide la tarea de oro 1
+- L1762 · 2026-10-14 · El listado de leads: orden, «míos», búsqueda, privados y drawer
+- L1799 · 2026-10-14 · `alcance_de()` y `atributos_lead()` más baratas: lo que midió el listado
+- L1821 · 2026-10-14 · La guardia de los e2e no respalda la base, y un respaldo viejo puede pisar un cambio
+- L1844 · 2026-10-14 · La versión de un lead la mueve lo que la ficha edita, y nada más
+- L1869 · 2026-10-14 · `lead_guardar` es la única puerta, y los atributos viajan como parche
+- L1889 · 2026-10-14 · Los teléfonos de un lead se leen por función, y `telefono_lead()` da nulo a quien no ve
+- L1908 · 2026-10-14 · Teléfonos extra y cambio del principal: las reglas (para la parte 4b)
+- L1925 · 2026-10-14 · La ficha: tres lecturas, el código de país del lead y el tope de KB
+- L1943 · 2026-10-14 · Tachados y claves de campo en la URL: no hay choque y no se reserva la clave
+- L1956 · 2026-10-14 · Teléfonos de la ficha: cómo se aterrizó la 4b
+- L1987 · 2026-10-15 · El e2e completo parte de un reset, la guardia sólo comprueba las funciones, y el atajo de la…
+- L2042 · 2026-10-15 · Seguimientos y recordatorios se escriben sólo por RPC, y actuar exige la cartera
+- L2065 · 2026-10-15 · Privado es sólo de su autor; ni el co-asesor ni «todos» leen lo privado ajeno
+- L2076 · 2026-10-15 · El detalle viaja como documento del editor, nunca como HTML
+- L2100 · 2026-10-15 · El editor: carga diferida, atajos del marco y borrador en la pestaña
+- L2114 · 2026-10-15 · Recordatorios: crear exige la cartera; si se pierde el lead, sigue sin él
+- L2128 · 2026-10-15 · Un seguimiento no mueve la versión del lead; la actividad deja constancia sin contenido
+- L2139 · 2026-10-15 · Parte 5 partida en 5a y 5b; el diseño de la 5b
+- L2160 · 2026-10-15 · Un corte del runtime local de funciones se vuelve a pedir, con una sola regla
+- L2174 · 2026-10-15 · Las marcas se escriben sólo por RPC, y marcar exige ver el lead (no la cartera)
+- L2201 · 2026-10-15 · El listado lee las marcas como columnas de `leads_vista`; lo que midió
+- L2229 · 2026-10-15 · Los tachados se ocultan, salvo mientras se busca; el aviso cuenta con los mismos filtros
+- L2247 · 2026-10-15 · Paleta de ocho claves en tokens; selector con cmdk; confirmar en la fila; sin atajo
+- L2271 · 2026-10-15 · Parte 6a: toda RPC que recibe un lead cae en una de tres clases
+- L2390 · 2026-10-15 · La papelera de leads: todo o nada, el lote lo genera el cliente, y lo vinculado no entra
+- L2420 · 2026-10-15 · El documento de la ficha pasa de 40 a 48 KB
+- L2429 · 2026-10-15 · Lo que dejó la revisión de la 6a: carreras, `lead_id` en otras tablas y un cinturón más ancho
+- L2458 · 2026-10-15 · Parte 6b: vincular desde el lead, sin oráculo y con el lead bloqueado
+- L2495 · 2026-10-15 · La sección «Vehículos» vive en `vehiculos`, y lo que no se ve no se cuenta
+- L2517 · 2026-10-15 · `vehiculo_id` en seguimientos y recordatorios: uno que se ve, y si deja de verse sigue
+- L2529 · 2026-10-15 · Las carreras se prueban con dos conexiones reales (`pnpm db:carreras`)
+- L2547 · 2026-10-15 · El tope del documento de la ficha vuelve a 44 KB; diferir los paneles no ahorra documento
+- L2559 · 2026-10-15 · Parte 7 partida en 7a y 7b; las quince preguntas se resolvieron con la recomendación
+- L2571 · 2026-10-15 · Los embudos son personales y se escriben sólo por RPC; las etapas se guardan como conjunto
+- L2595 · 2026-10-15 · Una oportunidad es de su dueña, con la cartera del lead; nadie más la ve
+- L2619 · 2026-10-15 · Transferir lleva las abiertas al embudo del destino; la baja sigue cancelando
+- L2631 · 2026-10-15 · El kanban: 50 por columna, «Ver más», pestañas en el celular, y la sección de la ficha
+- L2648 · 2026-10-15 · La auditoría ampliada de la 7a, y lo que encontraron las pruebas
+- L2673 · 2026-10-15 · Parte 7b: las dieciséis preguntas se resolvieron con la recomendación
+- L2688 · 2026-10-15 · El acceso del cliente: clase 1, sólo por RPC, con la versión del acceso
+- L2725 · 2026-10-15 · La clave del cliente nunca queda en claro
+- L2747 · 2026-10-15 · El texto para WhatsApp: la plantilla en el código, la dirección en `ajustes_web`
+- L2759 · 2026-10-15 · Contrato del portal para la Fase 8
+- L2789 · 2026-10-15 · La auditoría ampliada de la 7b, y lo que encontraron las pruebas
+- L2832 · 2026-10-15 · CSV de leads (Fase 3, parte 8a): exportar la cartera e importar con las reglas del alta
+- L2893 · 2026-10-15 · El reintento al volver la conexión sólo sale al volver: la causa del fallo de `leads-alta-casos`
+- L2912 · 2026-10-15 · Deshacer una importación (Fase 3, parte 8b): clase X, sólo lo intacto, 24 horas
+- L2968 · 2026-10-15 · El país del teléfono: una tabla estática en el cliente, y «País» sigue al número
+- L3023 · 2026-10-16 · El primer seguimiento del alta, opcional y enriquecido (Fase 3, parte 9b)
+- L3085 · 2026-10-16 · Guardar en Empresa: el formulario espera a lo guardado, y el borrador mide contra lo que mandó el…
+- L3132 · 2026-10-16 · Los avisos no reciben el puntero; el freno de CPU se borra; lo del borrador no se reproduce
+- L3180 · 2026-10-16 · Los e2e reusan la sesión de cada cuenta dentro del proceso, y sólo eso
+- L3203 · 2026-10-16 · Parte 9c: los formularios que aparecen al pulsar algo van en un modal con su URL
+- L3262 · 2026-10-16 · Parte 9d: un solo modal de seguimiento, la pestaña del drawer y las acciones de la fila
+- L3322 · 2026-10-16 · Parte 9d-2: el drawer con tres pestañas y las listas de un lead a escala
+- L3378 · 2026-10-16 · Parte 9d-3: el recorrido de la IA con dos cuentas
+- L3411 · 2026-10-16 · Parte 9e: la escala de toda la app, medida y con guardas
+- L3473 · 2026-10-16 · Parte 9f-1: el origen del lead es configurable, y se escribe sólo por RPC
+- L3489 · 2026-10-17 · Parte 9f-2: los dos números de un lead, y el global sólo con un permiso
+- L3509 · 2026-10-17 · Parte 9g: ítems por página configurables, y la base acota toda página
+- L3529 · 2026-10-17 · Parte 9h: la cartera de «todos» a escala, con la regla escrita una vez y estimable
+- L3556 · 2026-10-17 · Cierre 1 (A): la baja de una persona va en dos tiempos, y la regla ya sabe que hay una baja en curso
+- L3597 · 2026-10-17 · Cierre 1 (B): una sola vista por lista, elegida en el servidor con el ancho de la petición
+- L3627 · 2026-10-17 · Cierre 1 (G): «página N» se descarta; arriba se dice lo que sí es verdad
+- L3644 · 2026-10-17 · Cierre 1 (C): un lote de la papelera muestra sus primeros 20, y la papelera no entra al selector
+- L3665 · 2026-10-17 · Cierre 1 (D): los topes se dicen, con un solo aviso y sin inventar un camino que no existe
+- L3682 · 2026-10-17 · Cierre 1 (E): para llegar a lo antiguo de una columna del kanban, buscar
+- L3700 · 2026-10-17 · Cierre 1 (F, d): el barrido de huérfanos de storage-gc sigue un cursor por bucket
+- L3717 · 2026-10-17 · Cierre 1 (F, c): el avatar chico, con el relleno en una edge function
+- L3742 · 2026-10-17 · Cierre 2 (0a): quien está en una baja en curso no figura como dueño para los demás
+- L3764 · 2026-10-17 · Cierre 2 (0a): `_bajas_en_curso()` no le dice nada a una cuenta que no está activa
+- L3778 · 2026-10-17 · Cierre 2 (0b): la carrera real de `…002400` es de dos corridas de la misma baja, no la del commit
+- L3790 · 2026-10-17 · Cierre 2 (1): todo `<Confirmar>` tiene su URL, y una guarda lo exige
+- L3810 · 2026-10-17 · Cierre 2 (2, 4): «Mover a…» no se parte, y la tabla del listado se desplaza dentro de su tarjeta
+- L3823 · 2026-10-17 · Cierre 2 (3): un formulario que se reemplaza al llegar lo guardado apaga sus campos hasta entonces
+- L3833 · 2026-10-17 · Cierre 2 (5): los avisos con un modal abierto sí se anuncian; lo que faltaba era preguntar al salir
+- L3846 · 2026-10-17 · Cierre 2 (6, 7, 8): la barra que se desplaza lo dice, la barra superior cabe al 200 %, y los…
+- L3861 · 2026-10-17 · Cierre 3 (0a): la policy de `leads_asesores` no entrega la fila de quien está en una baja en curso
+- L3880 · 2026-10-17 · Cierre 3 (0b): el comentario de `…002400` dice la carrera que existe
+- L3886 · 2026-10-17 · Cierre 3 (1): las tarjetas del listado no ensanchan la página con el texto al 200 %
+- L3900 · 2026-10-17 · Cierre 3 (2): todo `<Drawer>` pregunta al salir desde un aviso; el `<Drawer>` lo hace, el…
+- L3925 · 2026-10-17 · Cierre 3 (3): el aviso sube sobre el pie de un panel, y crece con el texto
+- L3940 · 2026-10-17 · Cierre 3 (4): las etiquetas de los botones sí crecían; lo que las hacía parecer quietas era…
+- L3953 · 2026-10-17 · Cierre 4 (1): todo modal con algo escrito pregunta al descartar; un hook compartido y una guarda
+- L3975 · 2026-10-17 · Cierre 4 (2): la nota de un interés sin mandar cuenta como «hay cambios» y no se pierde al cambiar…
+- L3987 · 2026-10-17 · Cierre 4 (3): el aviso con descripción crece con el texto; la letra ya crecía, el ancho no
+- L4000 · 2026-10-17 · Cierre 4 (4): una captura se toma con la pantalla quieta
+- L4012 · 2026-10-17 · Cierre 4 (5): hojas de contacto, y mirar es abrir todas
+- L4020 · 2026-10-17 · Cierre 4 (6): `importaciones-vinculos-purgar` no es lento; la importación recién creada sí, por…
+- L4039 · 2026-10-17 · Cierre 4 (7): una base recién creada tarda 20 s en su primera importación; la semilla analiza
+- L4052 · 2026-10-17 · Cierre 4 (8): el lote de la importación se queda en 50, y tiene su guarda
+- L4066 · 2026-10-17 · Cierre 4 (9): los `beforeAll`/`afterAll` son 1,15 s por spec y proyecto; las cuentas se crean y se…
+- L4077 · 2026-10-17 · Cierre 4 (10): al 200 % los campos de un modal caben en él
+- L4085 · 2026-10-18 · Parte 9i: un patrón de lista para toda tabla, el resumen de vehículos y el «⋯» del lead desde una…
+- L4159 · 2026-10-18 · Parte 9j (0a): `listas-por-pagina` en la página 3 no se reprodujo; qué se probó y qué quedó…
+- L4184 · 2026-10-18 · Parte 9j (0b): el «⋯» cuesta 3 nodos con un símbolo SVG compartido
+- L4195 · 2026-10-18 · Parte 9j: los tipos de lead son una tabla con una clase fija, y el sistema razona por la clase
+- L4230 · 2026-10-18 · Cierre 5a: medir antes de arreglar (la búsqueda, la persona con pocos leads, la importación y la…
+- L4250 · 2026-10-18 · Cierre 5a-fix-2: importar en volumen no depende de `actividad` (la adopción del intento sólo se…
+- L4265 · 2026-10-18 · Cierre 5a-fix-1a: «míos» de quien tiene «propios» se lee por su cartera (la persona con pocos…
+- L4294 · 2026-10-18 · Cierre 5a-fix-1b: la búsqueda por nombre no depende de cuántos leads hay (candidatos por ventana…
+- L4322 · 2026-10-18 · Cierre 5b: el `index.ts` de un módulo no exporta componentes, la ficha manda lo que dibuja y los…
+- L4348 · 2026-10-19 · Cierre 5a-fix-3: la suite de e2e baja de 42,0 a 31,7 min; el celular sale por demostración, no por…
+- L4375 · 2026-10-19 · Cierre 5b-fix: el buscador cabe por el ancho de la barra, el kanban no ensancha la página y «Nuevo…
+- L4393 · 2026-10-19 · Cierre 5b-fix-2: «Nuevo lead» es un solo drawer, montado cerrado, que cambia de cuerpo
+- L4422 · 2026-10-19 · 5a-8: el buscador pide 3 caracteres para buscar por nombre; no se pagan n-gramas
+- L4432 · 2026-10-19 · 5a-4b: no se monta la segunda pila local de Supabase
+- L4442 · 2026-10-19 · Cierre 5a-fix-4: el nombre se busca con 3 letras seguidas, «míos» por la cartera si es corta, la…
+- L4480 · 2026-10-19 · Buscar un número entre los propios ajenos (5a-14), y 5a-9 a la Fase 4 sin cambios
+- L4504 · 2026-10-21 · La rueda de turnos de la web, por rol (`web.cola.participar`)
+- L4526 · 2026-10-21 · 5a-15 no se reproduce: el hook se queda y el selector ignora un tamaño que no ofrece
+- L4535 · 2026-10-21 · La matriz de Roles en el celular es una lista de un rol, y el panel de filtros va al costado sólo…
+- L4542 · 2026-10-21 · 8-2: `web.solicitar_asesor` responde el vencimiento que escribió
+- L4548 · 2026-10-21 · Dominancia sobre la persona: la regla (la implementación, a 9-1)
+- L4555 · 2026-10-21 · Vencimiento de la invitación (`otp_expiry`): 24 horas en la nube
+- L4561 · 2026-10-21 · Fotos de una subasta en segundo plano: no se hace
+- L4567 · 2026-10-21 · Rango de un campo numérico, `leads.campos.gestionar` y el campo «principal»: no antes de…
+- L4574 · 2026-10-21 · Configuración de leads: tipos de seguimiento, iconos del catálogo y origen por defecto
+- L4598 · 2026-10-21 · Cierre de defectos al 200 %: la lista del equipo, la matriz de Roles, el interruptor, Empresa y la…
+- L4622 · 2026-10-21 · Cierre de pendientes del 200 %: el origen inactivo, el chip, el modal y la columna «Persona»
+- L4646 · 2026-10-22 · La lista del equipo tiene tope de 100 y busca con tildes en el servidor; el interruptor era un…
+- L4672 · 2026-10-22 · Apertura de la Fase 4 — Cotizaciones
+- L4756 · 2026-10-22 · 5a-4b: la cifra pasa a 40,1
+- L4772 · 2026-10-22 · D7 · La hoja configurable: diseño, niveles de acceso y tipos de cambio
+- L4882 · 2026-10-22 · Paso 4.02: el equipo busca desde 3 letras con su propio mínimo, y Roles cuenta por una RPC con el…
+- L4909 · 2026-10-22 · Paso 4.03 (5a-10): un campo privado se filtra por los candidatos de la cartera, sin índice
+- L4947 · 2026-10-22 · Paso 4.03, prompt 2 (5a-35): el lead del número entra a los candidatos aunque el pedido no traiga…
+- L4967 · 2026-10-22 · Paso 4.03, prompt 3 (5a-9 y 5a-34): el texto y el rango de un campo, y los ocultos y la…
+- L5007 · 2026-10-23 · Paso 4.04: dos e2e que no dependen del azar, la medición de la baja sin el cron, y 5a-11 sin arreglo
+- L5021 · 2026-10-23 · Cierre del 4.04: 5a-11 se acepta con la causa corregida, y la guarda baja sus topes
+- L5031 · 2026-10-23 · Paso 4.05 (1 de 4): la forma ampliada del grafo del cotizador
+- L5092 · 2026-10-23 · Paso 4.05 (2 de 4): el motor del cotizador y sus faltantes
+- L5157 · 2026-10-23 · Paso 4.05 (3 de 4): la variante, lo sobrescribible y las fuentes del motor
+- L5227 · 2026-10-23 · Paso 4.05 (4 de 4): `validar_formula()` en la base, espejo exacto de `validar.ts`
+- L5288 · 2026-10-23 · Paso 4.06 (1 de 2): `evaluar_formula()` en la base, espejo exacto de `evaluar()`
+- L5361 · 2026-10-23 · Paso 4.06 (2 de 2): `cotizacion_evaluar()` sobre `evaluar_formula()` y su assert de tiempo
+- L5433 · 2026-10-23 · Paso 4.07 (1 de 2): el compilador de fórmulas como texto y el cierre de 4-2
+- L5509 · 2026-10-24 · Paso 4.07 (2 de 2): 4-3, el texto de la fila, el literal que no cabe y la salida por index
+- L5567 · 2026-10-24 · Paso 4.07 (remiendo, prompt 3): el mínimo del `texto` y su mensaje
+- L5593 · 2026-10-24 · Paso 4.08 (1 de 3): el modelo del diseño de la hoja y su validación
+- L5664 · 2026-10-24 · Paso 4.08 (2 de 3): el diseño en la fórmula, su visibilidad y el catálogo de tonos
+- L5731 · 2026-10-24 · Paso 4.08 (3 de 3): la semilla del cotizador, el check de «publicada tiene diseño» y un origen…
+- L5805 · 2026-10-24 · Paso 4.09 (1 de 2): los niveles de acceso en la base
+- L5882 · 2026-10-24 · Paso 4.09 (2 de 2): la pantalla de niveles, la matriz de Roles y deshacer un retiro
+- L5933 · 2026-10-25 · Paso 4.10 (1 de 3): lo que no se ve no viaja (la lectura)
+- L5999 · 2026-10-25 · Paso 4.10 (2 de 3): escribir por RPC, cerrar la escritura directa y `cotizacion_crear`
+- L6049 · 2026-10-25 · Paso 4.10 (3 de 3): `cotizacion_guardar`, D2 en el alta, el detector y los candados
+- L6090 · 2026-10-25 · CI-1: GitHub Actions por niveles, el e2e en cuatro bloques y lo que queda fuera de CI
+- L6201 · 2026-10-25 · CI-2: un spec prepara su estado, las esperas son de un estado, y los minutos medidos
+- L6255 · 2026-10-25 · CI-3: lo que acomoda la hidratación se mide con una espera propia, no cambiando…
 
 <!-- indice:fin -->
 
@@ -6250,3 +6251,35 @@ sólo corre la ventana); correr la copia con CPU limitada en CI (17 s por caso y
 
 **Consecuencia:** cualquier spec que use estado ajeno se prueba solo tras `pnpm db:reset`; una espera nueva es de un estado y viene con su página armada; el
 estimado mensual de CI-1 queda reemplazado por el medido; la propuesta de los `needs` espera a la persona. Falta que `empresa.spec.ts` deje Vault limpio (9-8).
+
+## 2026-10-25 — CI-3: lo que acomoda la hidratación se mide con una espera propia, no cambiando `aLaVistaSinDesplazar`
+
+**Contexto:** el dispatch 40241115895 (escritorio, `carreras: true`) dejó un rojo de 175 en el bloque 1: `configuracion-200.spec.ts:177`, la pestaña
+«seguimientos» de Configuración › Leads «pasa el ancho de la página» (1490 > 1280). `PestanasConDesborde` trae la pestaña abierta a la vista en un
+`useEffect`; `aria-selected` ya viene en el HTML del servidor, así que `toBeVisible()` pasa antes de que la barra se desplace, y la prueba medía una vez.
+La traza de CI lo muestra (la barra en 0 a los 158.866 ms, la medición a los 158.934, la barra desplazada a los 159.021) y en local cae desde 2×
+(`docs/BITACORA.md`, «CI-3»). No es un defecto del producto: la pestaña siempre llega a la vista, 70 ms después de verse en una PC rápida.
+
+**Decisión:**
+
+- **Un ayudante nuevo, `aLaVistaAlAcomodarse(lugar, que)`** (`e2e/soporte/recorrido.ts`), que reintenta `aLaVistaSinDesplazar` hasta que se cumple
+  (`toPass`, tope de 10 s): espera el estado «quedó a la vista», no un tiempo. Lo usan las tres mediciones de la pestaña abierta de
+  `configuracion-200.spec.ts` (el bucle `PANTALLAS`, «antes de cargar» y «al ampliar», que ya tenía su `toPass` de 3 s suelto).
+- **No se cambia `aLaVistaSinDesplazar`** (la opción b). Tenía 27 llamadas en 9 specs (hoy 24: tres pasan al ayudante nuevo) (`configuracion-200`, `equipo-200`, `equipo`, `roles-niveles`,
+  `leads-ficha-origen-inactivo-200`, `configuracion-leads-seguimientos`, `configuracion-cotizacion-niveles`, `menu-de-acciones-200`,
+  `barra-de-filtros-200`) y la auditoría no encontró otra que dependa de un efecto: casi todas miden filas, menús ya quietos (`quieto()`) o la cabecera.
+  Ninguna depende de medir de inmediato, pero ponerles la espera a todas haría que cada fallo verdadero tarde el tope en decirse y escondería
+  durante 10 s un estado intermedio que alguna sí quiere ver.
+- **Vive en `recorrido.ts` y no en `esperas.ts`:** `recorrido.ts` importa de `esperas.ts`, y la espera necesita la medición; al revés sería un
+  círculo. La guarda `sin-celular` la reconoce como «ayudante que mide» por transitividad, sin cambios.
+- **La prueba permanente** es una página armada en `recorrido-esperas.spec.ts` (una barra de 220 px que se desplaza 600 ms después de cargar): la medición
+  de antes cae, la nueva pasa, y quitar el `toPass` hace caer la segunda (escritorio y celular).
+- **La auditoría encontró una más que caía** (`configuracion-200.spec.ts:129`, el bucle `PANTALLAS`: 7 pantallas con la pestaña abierta que no es la
+  primera; 2 a 10 caídas por corrida a 14× y 20×) y se arregló con el mismo ayudante. Las que no cayeron van juntas a `docs/PLAN.md`, **9-9**.
+
+**Alternativas:** la espera dentro de `aLaVistaSinDesplazar` (descartada arriba); esperar la pista de la izquierda (`data-visible`), como CI-2 en la
+barra de la ficha (sólo existe si la abierta no es la primera: no sirve para el bucle); que el producto desplace la barra antes de pintar (en el servidor
+no se sabe el ancho, y el efecto ya es lo que corresponde; no es un defecto); un `waitForTimeout` (esperar un tiempo sólo corre la ventana).
+
+**Consecuencia:** tras un `goto`, lo que una barra con desborde acomoda se mide con `aLaVistaAlAcomodarse()` (la cláusula va en la regla de CI-2 de
+`.claude/rules/e2e.md`); lo demás sigue midiendo una vez. Quedan sin reproducir y anotadas las de 9-9.
