@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$PILOTO_BIN/anotar-decision.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

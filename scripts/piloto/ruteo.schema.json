@@ -1,0 +1,79 @@
+{
+  "type": "object",
+  "description": "Lo que decide el ruteo (sólo lee): qué paso de docs/PLAN.md sigue, con qué modelo y esfuerzo, si abre una sesión nueva o continúa una, el nivel de verificación y si hay una compuerta. paso = «ninguno» cuando no queda nada por avanzar.",
+  "properties": {
+    "paso": {
+      "type": "string",
+      "description": "Número del paso de docs/PLAN.md, p. ej. 4.13-3b; «ninguno» si no hay más."
+    },
+    "titulo": { "type": "string" },
+    "modelo": { "type": "string", "enum": ["sonnet", "opus"] },
+    "effort": { "type": "string", "enum": ["low", "medium", "high", "xhigh"] },
+    "sesion": {
+      "type": "object",
+      "properties": {
+        "tipo": { "type": "string", "enum": ["nueva", "continuar"] },
+        "session_id": {
+          "type": ["string", "null"],
+          "description": "El session_id de en-curso.json si tipo es continuar."
+        }
+      },
+      "required": ["tipo", "session_id"]
+    },
+    "nivel": {
+      "type": "object",
+      "properties": {
+        "nivel": { "type": "integer", "enum": [1, 2, 3] },
+        "disparadores": { "type": "array", "items": { "type": "string" } },
+        "cuenta_e2e": {
+          "type": "integer",
+          "description": "La n de «n de 3» pasos de pantalla sin e2e completo."
+        },
+        "completo": {
+          "type": "boolean",
+          "description": "Si el paso corre el e2e completo (por la cuenta o por el nivel)."
+        }
+      },
+      "required": ["nivel", "disparadores", "cuenta_e2e", "completo"]
+    },
+    "compuerta": {
+      "type": "object",
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": [
+            "ninguna",
+            "datos",
+            "dependencia",
+            "hito",
+            "fase",
+            "producto",
+            "atasco",
+            "afuera"
+          ]
+        },
+        "motivo": { "type": "string" }
+      },
+      "required": ["tipo", "motivo"]
+    },
+    "particion": {
+      "type": "string",
+      "description": "Si el paso junta capas con verificación distinta, cómo se parte; vacío si no."
+    },
+    "por_que": {
+      "type": "string",
+      "description": "En una o dos frases, por qué este paso y estos parámetros."
+    }
+  },
+  "required": [
+    "paso",
+    "titulo",
+    "modelo",
+    "effort",
+    "sesion",
+    "nivel",
+    "compuerta",
+    "particion",
+    "por_que"
+  ]
+}

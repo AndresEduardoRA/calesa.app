@@ -79,6 +79,16 @@ describe('.claude/settings.json › hooks', () => {
     expect(cableado('PreToolUse', 'Bash', '.claude/hooks/bloquear-peligrosos.sh')).toBe(true)
   })
 
+  it('lo que autoriza el piloto se guarda en cada escritura y cada Bash, también en los subagentes', () => {
+    expect(
+      cableado(
+        'PreToolUse',
+        'Write|Edit|NotebookEdit|Bash',
+        '.claude/hooks/guardar-autorizaciones.sh',
+      ),
+    ).toBe(true)
+  })
+
   it('un archivo editado se lintea y al terminar se verifica', () => {
     expect(cableado('PostToolUse', 'Edit|Write', '.claude/hooks/lint-archivo.sh')).toBe(true)
     expect(cableado('Stop', '', '.claude/hooks/verificar-al-terminar.sh')).toBe(true)
@@ -173,5 +183,49 @@ describe('.claude/agents › el auditor y el planificador', () => {
     const revisor = frontmatter('.claude/agents/revisor.md')
     expect(revisor.campo('model')).toBe('sonnet')
     expect(revisor.hooks).toEqual([])
+  })
+})
+
+// Las skills del piloto: cada SKILL.md < 200 líneas; las que sólo lanza el bucle no las invoca el modelo (`disable-model-invocation`);
+// `piloto-decidir` y `piloto-control` sí (se abren como el prompt inicial de una sesión interactiva, que la doc no documenta: por eso
+// se dejan invocables). Los archivos que enlazan existen.
+describe('.claude/skills › las del piloto', () => {
+  const texto = (skill: string, archivo = 'SKILL.md') =>
+    readFileSync(join(RAIZ, '.claude/skills', skill, archivo), 'utf8')
+
+  it.each(['piloto-ruteo', 'piloto', 'piloto-decidir', 'piloto-control'])(
+    '%s: nombre igual a su carpeta y menos de 200 líneas',
+    (skill) => {
+      const s = texto(skill)
+      expect(/^name: (.+)$/m.exec(s)?.[1]).toBe(skill)
+      expect(s.split('\n').length).toBeLessThan(200)
+    },
+  )
+
+  it.each(['piloto-ruteo', 'piloto'])('%s no la invoca el modelo', (skill) => {
+    expect(texto(skill)).toMatch(/^disable-model-invocation: true$/m)
+  })
+
+  it.each(['piloto-decidir', 'piloto-control'])('%s sí queda invocable', (skill) => {
+    expect(texto(skill)).not.toMatch(/disable-model-invocation/)
+  })
+
+  it('/piloto trae sus tres archivos y los enlaza', () => {
+    const s = texto('piloto')
+    for (const archivo of ['plantilla-plan.md', 'plantilla-informe.md', 'compuertas.md']) {
+      expect(s, archivo).toContain(`](${archivo})`)
+      expect(texto('piloto', archivo).length, archivo).toBeGreaterThan(200)
+    }
+  })
+
+  it('el ruteo sólo lee: no pide Bash ni Edit', () => {
+    expect(texto('piloto-ruteo')).toMatch(/sólo `Read`, `Grep` y `Glob`/)
+  })
+
+  it('la sesión de decidir no escribe: sólo Read y AskUserQuestion', () => {
+    const s = texto('piloto-decidir')
+    expect(s).toContain('sólo `Read` y')
+    expect(s).toContain('AskUserQuestion')
+    expect(s).toContain('no escribes nada')
   })
 })
