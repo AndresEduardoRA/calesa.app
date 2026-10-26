@@ -1553,3 +1553,32 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
   ningún tope ni ningún lote. Todo lo demás de `db:medir:volumen` pasó, la lectura de cotizaciones y el inventario de `medir-escala.sql` incluidos.
 - **`db:medir`:** `cotizacion_crear()` (la preventa 6,5 ms y 265 buffers con 250.000; antes 5,6 y 282: menos buffers, porque `puede_vehiculo()` mira el alcance una vez)
   y `cotizacion_guardar()` (2,0 a 7,5 ms y 55 a 307 buffers; la sintética 43,8 a 43,9 ms y 434 a 438) en verde.
+
+## Paso 4.13 (1 de 4): `cotizacion_hoja()`, la lectura que abre la hoja (2026-10-26)
+
+- **Cómo se mide:** `supabase/tests/medir-cotizacion-hoja.sql`, en `pnpm db:medir` (la base de la semilla: arma su propio terreno), contra el Supabase local (Postgres 17). Una dueña, una asesora sin el nivel «costos»,
+  la fórmula sembrada de `subasta_usa` (la de las capturas, la más grande del juego: 47 nodos, 8 KB de definición y 3,6 KB de diseño), `planilla_usa`, una copia con la tabla del factor DP **viva** de 1.000 filas con
+  relleno (la semilla congela todas sus tablas), las dos sintéticas de `corpus-de-diseno.json › sinteticas` (255 y 2.487 nodos) y **20.000 cotizaciones de relleno** (sin ellas, la guarda de «no lee cotizaciones»
+  no muerde). **Como `authenticated`**, con el plan genérico y `EXPLAIN (ANALYZE, BUFFERS)` ×7, la mediana de las 5 últimas; los bytes son `octet_length(respuesta::text)`; los bloques, por relación
+  (`pg_stat_get_xact_blocks_fetched`: los buffers totales los mueve el autovacuum de las tablas de permisos). Carga al empezar: 2,09 / 1,63 / 1,76.
+
+| Medición                                                  | ms    | Bytes                | Bloques de `cotizaciones` | Tope                                        |
+| --------------------------------------------------------- | ----- | -------------------- | ------------------------- | ------------------------------------------- |
+| hoja de las capturas, **dueña**                           | 3,9   | **10.295** (10,1 KB) | 0                         | **16 KB** y 10 ms                           |
+| hoja de las capturas, asesora (sin «costos»)              | 3,0   | 5.967 (5,8 KB)       | 0                         | más chica que la de la dueña                |
+| `planilla_usa` (el Excel entero), dueña                   | 3,8   | 9.415                | 0                         | 10 ms                                       |
+| capturas con la tabla del factor DP viva (1.000 filas)    | 3,9   | 10.439               | 0                         | 12 bloques de `tablas_referencia_filas` (3) |
+| sintética de 255 nodos                                    | 11,5  | 36.238               | 0                         | 25 ms                                       |
+| sintética de 2.487 nodos                                  | 157,7 | 351.470              | 0                         | 300 ms                                      |
+| razón de ms, 2.487 sobre 255 nodos (9,75 veces los nodos) | 13,7  | —                    | —                         | ≤ 15                                        |
+
+- **El número que se propone: 16 KB** la primera respuesta de la hoja de las capturas como dueña (la peor persona): lo medido es 10,3 KB, y la asesora recibe 6,0 KB. Es una lectura por apertura, sin lista ni cursor; crece con
+  el diseño (≈ 140 bytes por ítem: la sintética de 2.487 nodos pesa 351 KB), no con las cotizaciones. Un diseño real (tres fórmulas sembradas) tiene de 30 a 50 ítems.
+- **No lee cotizaciones ni el snapshot:** 0 bloques de `cotizaciones` y de `cotizaciones_revisiones` (heap, índices y TOAST) en las siete lecturas buenas. **Las guardas muerden:** una copia que busca por una columna sin índice
+  (`notas`) lee **4.950 bloques** de `cotizaciones`; la de los atajos sin su `limit` lee **91 bloques** de `tablas_referencia_filas`, contra 3.
+- **Lineal, con su constante:** 255 → 2.487 nodos cuesta 13,7 veces (9,75 veces los nodos); una cuadrática daría ≈ 95. El tope de la razón es 15 (con la versión final se midió 13,3 y 13,7) y el de 4.08 era 12 porque aquel validador
+  no arma un `jsonb` por ítem.
+- **Lo que cambió el diseño al medir:** la primera versión llamaba dos funciones SQL por ítem (`_hoja_acepta()` dentro de `_hoja_estado()`): la dueña tardaba 6,6 ms y la sintética grande 284 ms. Con **una sola función por nodo** (la regla de
+  `aceptaValor()` dentro) son 3,9 y 157,7 ms: cada llamada de más a una función SQL con `set search_path` (que no se inlinea) costaba ≈ 50 µs por ítem. Los mapas por nodo se arman una vez en memoria (`jsonb_object_agg`) y no
+  se leen de la fila: un `jsonb` que viene de la tabla se vuelve a leer entero en cada operador.
+- **`db:medir` entero:** en verde, 1 m 50 s (las demás mediciones, incluidas `medir-evaluar.sql`, `cotizacion_crear()` y `cotizacion_guardar()`, sin cambios).

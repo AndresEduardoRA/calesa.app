@@ -3009,3 +3009,75 @@ que depende de un pedido que no se espera (una RPC desde el navegador, un route 
 
 **ESTADO:** la línea «Fase actual» suma 4-26; la de CI dice CI-4 en lugar de «CI-3 arregló su rojo»; los abiertos suman 4-26 (en 4.15), 9-10 y 9-11; **12.265 B** (`wc -c`, tope 12.288),
 44 líneas. Para hacer lugar salieron los detalles de 5a-39, 5a-40 y 5a-42, que ya dice el PLAN: copiados sin resumir en «Movido de ESTADO (CI-4)», arriba.
+
+## 2026-10-26 — Movido de ESTADO (4.13-1)
+
+Lo que `docs/ESTADO.md` decía y ya no es actual (copiado, no resumido):
+
+- «Hecho el **paso 4.12** (dos prompts): `XCell`, la celda de la hoja de cotizar (`src/shared/ui/xcell`, sin pantalla todavía), con su Nivel 2 en verde; antes, el **4.11** y el **4.10 entero**.»
+- «**4-24**, **4-25** y **4-26** siguen abiertos. Partición: **28 pasos y 62 prompts**» y «(2026-10-24 a 2026-10-26, «movido de ESTADO», 4.08-1 a 4.12-2)».
+- «1. **4.13** (la hoja de cotizar, que usa la `XCell`) y en orden hasta 4.28, **un paso por prompt, y se para a reportar**».
+- «y las llamará la pantalla de cotizar (4.13, con **4-21**: la lectura que abre la hoja da la versión de la fórmula y la hora, y el intento de guardar es un uuid por guardado).» y «Para el 4.13: el diseño recortado que dibuja la hoja es una lectura propia.»
+- «**4-21** (repetir el intento de `cotizacion_crear` con otros datos devuelve la vieja y la pantalla no puede mostrarla como lo tipeado) en 4.13,» y «**4-25** (el número tipeado se lee con `aNumero`: «1.234» es 1,234) en 4.13,».
+- «**9-4** a **9-6** (`db:medir`, `db:medir:volumen` y `db:carreras` fuera de CI; carreras va 2 de 5)».
+
+## 2026-10-26 — Paso 4.13 (1 de 4): la lectura que abre la hoja y el modo por clave (4.13-1)
+
+**Qué se pidió:** el prompt 1 de 4 del paso 4.13. (A) Escribir la partición del 4.13 en su fila de `docs/PLAN.md`, con criterio de terminado y nivel de verificación por prompt. (B) Una sola lectura que la hoja hace al abrir: el diseño recortado al nivel de quien mira (lo que no ve no llega; lo que ve y no edita, con su motivo), lo que necesita para
+dibujarse sin otra consulta (tonos, modos, variantes, atajos, interruptores, banderas de ayuda y ⚙), la versión de la fórmula y la hora de la base para D2, y «fórmula sin publicar»; reusar lo que sirva de `cotizacion_leer`, `formula_para_cotizar` y `cotizacion_evaluar` y decirlo; su seguridad (inventario y matrices por nivel, con la mutación que quita el
+recorte), su escala (una lectura, tope de KB medido, sin leer cotizaciones ni el snapshot) y, de la app, sólo el tipo y la función de lectura con test. Docs: el punto de «¿Guardar contraseña?» de Chrome (**9-12**) y la fila 3 de 9-6. Decisiones ht a id: `docs/DECISIONES.md`, 2026-10-26, «Paso 4.13 (1 de 4)».
+Antes de empezar: `df -h /` dijo **94 %** (bajo el 95 %; se miró otra vez antes de la cadena: igual); `git status` limpio; un bucle de espera de otra sesión que se vio en la lista de procesos ya no existía.
+
+**Lo que la persona respondió:** aprobó el plan y eligió dos cosas. (1) **El modo por clave** (`cotizacion_evaluar(…, p_modo_tc)`) **va en este prompt** (no en el 2). (2) **4-27** (lo que descubrí leyendo D2) **se arregla en el 4.13-3**, con D2, y se anota ahora con su assert.
+
+**Qué se hizo:**
+
+- **La partición** en la fila 4.13 de `PLAN` (4 prompts; el total pasa de 62 a 65): la lectura y el modo por clave; la hoja y el recálculo, sin guardar; guardar (con 4-21, 4-25 y 4-27); lo que se abre y los anchos (la ayuda pasa aquí).
+- **`supabase/migrations/20261019008900_cotizacion_hoja.sql`:** `cotizacion_hoja(origen)`, `_cotizacion_hoja(fórmula, origen)`, `_hoja_estado()` y `_hoja_chips()`; `permisos.aplicado_en` de `cotizaciones.crear` (y `seed.sql`); `cotizacion_evaluar(…, p_modo_tc)` y se borra la firma de cinco argumentos.
+- **Pruebas de la base:** `supabase/tests/cotizacion-hoja.sql` (nuevo, 8 bloques: la dueña sobre las tres fórmulas sembradas, una asesora, el permiso y «sin publicar», el ⚙ y las condiciones, los atajos, el candado por tipo de nodo, D2 de punta a punta y la **matriz por nivel** con nueve personas, tres niveles con el creado con `nivel_crear`);
+  el registro de `cotizaciones-visibilidad.sql`; un bloque de `p_modo_tc` en `cotizacion-evaluar.sql`; las firmas nuevas en tres archivos y en `scripts/carreras/cotizaciones-guardar.mjs` (privilegios en la base real).
+- **Escala:** `supabase/tests/medir-cotizacion-hoja.sql` (en `scripts/mediciones.mjs`, `pnpm db:medir`): `docs/RENDIMIENTO.md`, «Paso 4.13 (1 de 4)». **El número: 16 KB** (medido 10,3 KB como dueña, 6,0 KB como asesora; 3,9 y 3,0 ms; 0 bloques de cotizaciones).
+- **La app (sin pantalla):** `entities/hoja-esquema.ts`, `entities/hoja.ts` (+ `hoja.soporte.ts`, `hoja.test.ts`), `entities/repositorios-de-hoja.ts`, `infra/queries/hoja.ts` (+ test), `composicion.ts` e `index.ts`.
+- **Docs:** `COTIZADOR.md` (la sección nueva y dos líneas corregidas), `GLOSARIO.md` («Abrir la hoja»), la ficha del módulo, `PLAN.md` (la fila 4.13, **4-27**, **9-12**, la fila 3 de 9-6 y el total), `DECISIONES.md`, `RENDIMIENTO.md`, `ESTADO.md` y esta entrada.
+
+**Lo que se midió y cambió el diseño:** (1) con dos funciones SQL por ítem (`_hoja_acepta()` dentro de `_hoja_estado()`) la sintética de 2.487 nodos tardaba 284 ms y la hoja de las capturas 6,6; con una sola, 157,7 y 3,9. (2) La razón entre 255 y 2.487 nodos quedó en 13,7 (tope 15; el de 4.08 era 12): lineal con su constante. (3) El primer plan quitaba `requerido_si` y dejaba sin datos al interruptor «habilita»;
+la revisión lo vio. (4) Una mutación (el campo del vehículo dibujado como celda) y otra (el tope de `filas` de la congelada) sobrevivían: la fórmula de prueba suma ahora el dato del vehículo y una cuarta fila congelada.
+
+**La revisión del plan por un agente, con el código delante:** 2 bloqueantes (un texto en `p_modo` no funciona —`_motor_forma_modo` lo rechaza antes y rompería el caso 768 del corpus—, y `editable` con el espejo de `aceptaValor()` bloqueaba siempre la variante y los interruptores), 7 a corregir (el par necesita su candado propio; `requerido_si`; la regla exacta de la ayuda de tabla; 4-27 era más grande de lo que decía el plan;
+la medición apuntaba a un archivo equivocado y le faltaban datos y guardas que mordieran; un origen que no existe no da 42501 para quien cotiza en todos; los chips con etiqueta numérica y valor nulo) y 9 menores (el cinturón de `auditoria-leads.sql`, PGlite que no ve los privilegios de Supabase, `Tono` con `import type`, el orden de `probar-schema`, fórmulas por el camino de publicar, quien cotiza sin ver,
+la ventana de `now()`, dos motivos del candado sin decidir y el lint). Todos están incorporados.
+
+**Verificación:**
+
+- **Cadena db:** `pnpm db:base` (sin cambios), `pnpm db:reset`, `pnpm db:types`, `pnpm db:probar` (**410 comprobaciones**, 8 bloques nuevos y el de `p_modo_tc`), `pnpm db:lint`, `pnpm db:carreras` (en verde, 14 s, con los privilegios de lo nuevo en la base real) y `pnpm db:medir` (en verde, 1 m 50 s). La medición nueva también se corrió suelta contra la base local.
+- **Nivel 1:** `pnpm lint` y `pnpm typecheck` limpios; `pnpm test` en verde (**362 archivos, 4.164 pruebas**); `bash scripts/mapa.sh --check` pasa. No hay e2e dirigido: ningún spec de `e2e/` nombra `cotizacion_evaluar`, `cotizacion_hoja` ni `aplicado_en`.
+- **Nivel 2: no corre** (ningún disparador: ni policy, ni `schemas/`, ni `src/shared`, ni layout; `database.types.ts` es de la cadena db). **e2e completo: no (4.13-1, pantalla, 1 de 3).**
+
+**Mutaciones (33; el arnés vive en el scratchpad de la sesión y no se commitea):** las de SQL se aplican con `create or replace` dentro de una transacción contra el Postgres 17 local, con los 9 bloques de `cotizacion-hoja.sql` y `cotizacion-evaluar.sql` por savepoints, y se revierte; las de TS, con una copia y `cmp`.
+
+| Mutación                                                                                                                            | Cae                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| ítems sin filtrar por `ok`; los atajos de un nodo oculto; quien configura se salta el nivel                                         | la asesora, la matriz                                                            |
+| los tonos de todos los grupos; los modos con sus `buckets`                                                                          | la matriz; la dueña                                                              |
+| la ayuda de tabla sin mirar quién la lee, sin la rama de quien configura, o sin mirar que la tabla exista                           | la matriz; los atajos                                                            |
+| `condicion` o `requerido_si` sin mirar su bandera                                                                                   | el ⚙ y las condiciones; la matriz                                                |
+| `editable` sin el nivel de editar; la variante bloqueada por la regla de `v_acepta`; lo que no se edita, sin motivo                 | el ⚙, la matriz; la dueña; casi todos                                            |
+| el secundario con el candado del monto; el motivo de nivel con la clave y no el nombre; un campo del vehículo que dice «se calcula» | la dueña y el candado por tipo; el ⚙ y la matriz; el ⚙ (tras reforzarla)         |
+| sin `assert_permiso`; el permiso sin el origen                                                                                      | «el permiso va antes que el origen»                                              |
+| el ⚙ de la constante o del tipo de cambio sin su permiso                                                                            | la asesora y el ⚙                                                                |
+| «sin publicar» con versión y hora; `abierta_en` con `clock_timestamp()`; `vehiculo_obligatorio` fijo                                | el permiso y «sin publicar»; la dueña; D2                                        |
+| los atajos sin su `limit` (viva y congelada), con filas inactivas o de una tabla inactiva                                           | los atajos (tras la cuarta fila)                                                 |
+| `solo_en` sin la variante a la vista                                                                                                | el ⚙ y las condiciones                                                           |
+| `p_modo_tc` sin `_cotizacion_modo()`; la clave junto con el objeto aceptada                                                         | el bloque de `p_modo_tc`                                                         |
+| sacar `cotizacion_hoja` del registro de `cotizaciones-visibilidad.sql`                                                              | «sin registrar: cotizacion_hoja»                                                 |
+| TS: sin «se edita ⇔ sin motivo»; sin validar el origen                                                                              | `hoja.test.ts` («rechaza lo que la base no promete»); `hoja.test.ts` de la infra |
+
+**Recorrido (a cargo de la IA):** sin pantalla, no hay capturas; la lectura se probó llamándola como dueña y como asesora sobre `subasta_usa` (secciones, ítems, el par, los atajos de la tabla del factor y los tonos) y se compararon sus bytes con la medición.
+
+**Del entorno:** una consulta de procesos mostró un bucle de espera de otra sesión; cuando se fue a mirar ya no existía y el árbol estaba limpio, así que se siguió. En una base recién reseteada la primera cuenta que se crea es la dueña (lo vi a mano al probar con `psql`; las pruebas crean antes a `…0001`). `next build` no corrió, así que no apareció `SecurityFatalError`.
+
+**e2e completo: no (4.13-1, pantalla, 1 de 3).** Van 1 de 3 pasos de pantalla seguidos sin completo; el Nivel 2 lo corre el 4.13-3 (toca `src/shared`).
+
+**ESTADO:** la línea «Fase actual» y el punto 1 de «Siguiente» dicen el 4.13-1 hecho y el 4.13-2; los abiertos suman **4-27** y llevan 4-21 y 4-25 a 4.13-3; carreras va 3 de 5; **12.181 B** (`wc -c`, tope 12.288). Lo que salió, copiado sin resumir en «Movido de ESTADO (4.13-1)», arriba.
+
+**Lo que no se hizo:** la pantalla ni el prompt 2, **4-27** (anotado), el Nivel 2 ni el 3, `next upgrade`, ningún push ni dispatch.
