@@ -26,12 +26,13 @@ Mensajería interna: conversaciones directas (deduplicadas), grupos y canal glob
 - Depende de: ningún otro módulo
 
 ### `cotizaciones`
-Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCell con ⚙ de default global, tablas de referencia, snapshot por cotización, preventa/final, versiones, comentarios, adjuntos, reportes, plantilla de tarjeta y PDF, comprobantes. · 106 archivos
-- API: `compilarExpresion`, `ContextoDeCompilacion`, `DestinoDeCompilacion`, `ErrorDeCompilacion`, `ResultadoDeCompilacion`, `Tramo`, `CODIGOS_DE_COMPILACION`, `CodigoDeCompilacion`, `MAXIMO_DE_TEXTO`, `validarDiseno`, +37
+Cotizador configurable: fórmula por origen como grafo de nodos versionado, XCell con ⚙ de default global, tablas de referencia, snapshot por cotización, preventa/final, versiones, comentarios, adjuntos, reportes, plantilla de tarjeta y PDF, comprobantes. · 146 archivos
+- API: `compilarExpresion`, `ContextoDeCompilacion`, `DestinoDeCompilacion`, `ErrorDeCompilacion`, `ResultadoDeCompilacion`, `Tramo`, `CODIGOS_DE_COMPILACION`, `CodigoDeCompilacion`, `MAXIMO_DE_TEXTO`, `validarDiseno`, +47
 - Pantallas (\`pantallas/<pantalla>\`, sólo \`src/app\`):
   - `configuracion`: `NivelesDeAcceso`, `EsqueletoDeNiveles`
+  - `cotizar`: `EsqueletoDeHoja`, `FormulaSinPublicar`, `HojaDeCotizar`, `PestanasDeOrigen`
 - Depende de: ningún otro módulo
-- Casos de uso: niveles
+- Casos de uso: hoja, niveles
 
 ### `datos`
 Exportación e importación CSV: cada persona lo suyo, el dueño todo; vista previa por fila, importa las válidas y deja el informe. · 1 archivos
@@ -167,6 +168,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `/configuracion/origenes` — página
 - `/configuracion/roles` — página
 - `/configuracion` — página
+- `/cotizaciones/nuevo` — página
 - `/iconos/vigente/[tamano]` — API
 - `/ingreso` — página
 - `/leads/[id]` — página

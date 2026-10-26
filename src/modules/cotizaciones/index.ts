@@ -60,3 +60,16 @@ export type {
   TipoDeNodoDeHoja,
   VarianteDeHoja,
 } from './entities/hoja'
+
+// La pantalla de cotizar (4.13-2): el primer cálculo que hace el servidor junto con la hoja, qué orígenes se cotizan, qué se ve al abrir y la URL. Los componentes salen por
+// `pantallas/cotizar.ts`. `recalcularAlAbrir` sólo se importa desde un Server Component.
+export { recalcularAlAbrir } from './composicion'
+export { aperturaDe } from './entities/apertura'
+export type { Apertura, RecalculoInicial } from './entities/apertura'
+export { origenElegido, origenesParaCotizar } from './entities/origenes-para-cotizar'
+export {
+  CLAVE_DE_LEAD,
+  CLAVE_DE_ORIGEN,
+  CLAVE_DE_VEHICULO,
+  RUTA_DE_LA_HOJA,
+} from './entities/ruta-de-la-hoja'
