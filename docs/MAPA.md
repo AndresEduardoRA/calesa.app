@@ -151,6 +151,7 @@ Infraestructura transversal sin reglas de negocio: clientes de Supabase, permiso
 - `ui/icono-del-catalogo/`: `icono-del-catalogo.tsx`, `simbolos-de-iconos.tsx`, `trazos.tsx`
 - `ui/lista/`: `abrir-resumen.tsx`, `acciones.ts`, `fila-de-lista.tsx`, `index.ts`, `mas-acciones.tsx`, `pestanas-del-resumen.tsx`, `simbolos-de-lista.tsx`, `tabla-de-lista.tsx`, `tarjeta-de-lista.tsx`, `una-sola-vista.tsx`
 - `ui/lista-de-catalogo/`: `botones-de-orden.tsx`, `lista-de-catalogo.tsx`, `tipos.ts`, `use-foco-tras-mover.ts`
+- `ui/xcell/`: `boton-del-valor.tsx`, `cabecera-de-xcell.tsx`, `celda-de-prueba.tsx`, `clases.ts`, `entrada-de-xcell.tsx`, `estado.ts`, `estilo-de-tonos.tsx`, `index.ts`, `lado-de-xcell.tsx`, `nota-de-xcell.tsx`, `simbolos-de-xcell.tsx`, `texto-de-valor.tsx`, `tonos.ts`, `use-edicion.ts`, `xcell.tsx`
 
 ## Rutas
 

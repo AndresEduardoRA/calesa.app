@@ -2790,3 +2790,60 @@ sesión.
 veces; en el 4.15). En 4-14, que la chica de `medir-cotizaciones-lectura.sql` tiene 0 cotizaciones y no 3.
 
 **Lo que no se hizo:** el 4.12, ningún push ni dispatch, `next upgrade`, el Nivel 3.
+
+## 2026-10-26 — Movido de ESTADO (4.12-1)
+
+Copiado tal cual de `docs/ESTADO.md` antes del cierre del 4.12-1 (la línea «Fase actual», el punto 1 de «Siguiente» entero, y, dentro de él, la cola que ahora sólo vive en `docs/PLAN.md`: las notas para 4.15, 4.21, 4.22 y 4.25):
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **paso 4.11**: `puede_vehiculo()` y la policy `vehiculos: leer` deciden por fila, con la misma visibilidad (probada contra la definición vieja); antes, el **4.10 entero**. **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20**, **4-21**, **4-23** y **4-24** siguen abiertos. Partición: **28 pasos y 62 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 a 2026-10-26, «movido de ESTADO», 4.08-1 a 4.11).
+
+1. **4.12** (`XCell`; `docs/PLAN.md`, fila 4.12) y en orden hasta 4.28, **un paso por prompt, y se para a reportar** (`docs/PLAN.md` › «Partición»); los de pura pantalla, con Nivel 1 y el completo cada 3 (`.claude/rules/e2e.md`; la cuenta empieza en el `sí` del 4.11). Hereda del 4.10: nadie escribe `cotizaciones` directo; `cotizacion_crear(…, p_formula_abierta, p_abierta_en, …)` (D2: PT409 `desactualizada`) y `cotizacion_guardar(id, intento, versión, entradas, modo, título, notas, vehículo)` son las únicas puertas, y las llamará la pantalla de cotizar (4.13, con **4-21**: la lectura que abre la hoja da la versión de la fórmula y la hora, y el intento de guardar es un uuid por guardado). Guardar conserva lo oculto y recalcula lo derivado; una final pide `cotizaciones.final.gestionar`; el orden de candados es vehículo(s) → cotización, no el del pedido (`docs/DECISIONES.md`, «Paso 4.10 (3 de 3)»). `cotizaciones.modo_tc` guarda la clave de un modo de la cabecera; el ⚙ de un tipo de cambio es `tipo_cambio_guardar`; las `entradas` sólo llevan `inputs`, `banderas`, `overrides` y `variante`; el transporte sembrado casa `tipo` con `tipo_vehiculo` (el de la subasta, «AUTOMOBILE», no casa: queda sin valor y se tipea). Para el 4.13: el diseño recortado que dibuja la hoja es una lectura propia. Para el 4.15: registrar `cotizacion_revisiones` (ya lee el diff por nodo) en `RPC_PAGINADAS`; cotizar encima es crear con la publicada. Para el 4.21: un campo del vehículo es una columna o la clave de un campo del origen, **sin puntos**, y la fila que guarda el editor es `{ ...raíz compilada, texto }`. Para el 4.22: `editar_sin_ver` rechaza una sección con sólo `nivel_ver` restringido, y avisa cuando un nodo restringido es el único oculto de una suma visible. Para el 4.25: 4-17; `cotizacion_marcar_final` ya toma primero su cotización, pero vincula el lead antes de tomar el vehículo.
+
+**La cola del punto 1 (ya está en las filas de PLAN de 4.13, 4.15, 4.22 y 4.25 y en «Pendientes que se arrastran»):** Para el 4.15: registrar `cotizacion_revisiones` (ya lee el diff por nodo) en `RPC_PAGINADAS`; cotizar encima es crear con la publicada. Para el 4.21: un campo del vehículo es una columna o la clave de un campo del origen, **sin puntos**, y la fila que guarda el editor es `{ ...raíz compilada, texto }`. Para el 4.22: `editar_sin_ver` rechaza una sección con sólo `nivel_ver` restringido, y avisa cuando un nodo restringido es el único oculto de una suma visible. Para el 4.25: 4-17; `cotizacion_marcar_final` ya toma primero su cotización, pero vincula el lead antes de tomar el vehículo.
+
+## 2026-10-26 — Paso 4.12 (1 de 2): el núcleo de la `XCell` (4.12-1)
+
+**Qué se pidió:** la celda de la hoja de cotizar en `src/shared/ui/xcell/` (`docs/PLAN.md`, fila 4.12; `docs/COTIZADOR.md` › «Binding con la XCell»; `docs/UX.md` › «Cotizar», 3): estados, candado con su motivo,
+el par porcentaje–monto como una celda con su secundario, el tono por clave, el teclado y una etiqueta que se parte, sin pantalla y sin tocar `src/modules/cotizaciones`. La ayuda y el ⚙ son del prompt 2. Decisiones gt a hg: `docs/DECISIONES.md`, 2026-10-26, «Paso 4.12 (1 de 2)».
+Antes de empezar: `git status` limpio y la pila de Supabase arriba. No se leyó `.env.local`.
+
+**Lo que la persona respondió:** a la única pregunta del plan, el par, **me respondió «Los dos lados»** (cada lado editable; ↺ quita los dos). Al plan **me respondió con siete ajustes** y se incorporaron todos: (1) abrir con la precisión completa y no emitir sin cambio real;
+(2) el primer carácter exige `preventDefault` y jsdom no lo prueba; (3) el foco no se roba al montar 300 celdas; (4) blancos, «Infinity», «1e999» y «1,2,3»; (5) Modo Live medido contra el árbol de accesibilidad; (6) la entrada ocupa la caja del botón, mide 44 px y no lleva los estilos de `<Input>`; (7) el orden de `Tab` con las acciones antes del valor.
+
+**Qué se hizo:**
+
+- **La carpeta** `src/shared/ui/xcell/` con su `index.ts` y su `CLAUDE.md`: `xcell.tsx` (memo), `use-edicion.ts`, `lado-de-xcell.tsx`, `boton-del-valor.tsx`, `entrada-de-xcell.tsx`, `cabecera-de-xcell.tsx`, `nota-de-xcell.tsx`, `texto-de-valor.tsx`, `estado.ts`, `tonos.ts`, `estilo-de-tonos.tsx`, `simbolos-de-xcell.tsx` y `clases.ts`.
+- **Lo ya existente que se tocó:** `formatearParaEditar()` en `src/shared/lib/formato.ts` (con su test) y el `export` de `aNumero` en `esquema-de-valor.ts`. `globals.css` quedó igual.
+- **Pruebas de componente** (`xcell-estados`, `xcell-teclado`, `xcell-par`, `xcell-hoja`, `estado`, `tonos`): cada estado, el deshabilitado con su motivo, el teclado, lo tipeado, sin emisión falsa (1234,567, 14,94 %, 0,1 + 0,2), el par, las flechas, el tono desconocido, que nunca diga «Sugerido:», el sprite, los nodos, el memo (cambiar una de 300 dibuja una) y el foco al montar.
+- **El banco del e2e** (`e2e/soporte/banco.ts` y `banco-de-xcell.tsx`): la celda sola, hidratada, sin una ruta en `src/app`; esbuild sale de `tsx`.
+- **Los e2e** `e2e/xcell-teclado.spec.ts` (9 pruebas) y `e2e/xcell-geometria.spec.ts` (6), en los dos proyectos: 30 en verde.
+- **Docs:** `COTIZADOR.md` › «Binding con la XCell», `PLAN.md` (fila 4.12 y **4-25**), `DECISIONES.md` y esta entrada.
+
+**Verificación (Nivel 1):** `pnpm lint` y `pnpm typecheck` limpios; `pnpm test` en verde (359 archivos, 4.134 pruebas); `bash scripts/mapa.sh --check` pasa; el e2e dirigido, **30 en verde** (15 en `escritorio` y 15 en `movil`: `E2E_SIN_FUNCIONES=1 npx playwright test e2e/xcell-geometria.spec.ts e2e/xcell-teclado.spec.ts`). No se corrió el Nivel 2 (decisión hf).
+
+**Mutaciones** (se rompe el código, se ve caer la prueba, se revierte): sin `trim`, sin `isFinite`, `hayCambio` sin normalizar, sin el `preventDefault` del primer carácter, sin `memo`, las acciones con `Tab`, robar el foco al montar, un tono sin validar el color, la etiqueta con `truncate`, sin 44 px, la entrada con otro relleno o con fondo, sin el anillo interior,
+un tono sin neutro, Enter sin `preventDefault` y desmontar la entrada en Tab: todas caen. **Dos mutaciones no probaban nada** (`bg-white` no existe en el CSS compilado y la primera de Enter tocaba otra línea) y se repitieron con una clase que sí existe y con la línea correcta.
+
+**Lo que se midió y cambió el diseño:** (1) Modo Live: con sólo `-webkit-text-security` el valor seguía en el árbol de accesibilidad (CDP: `1234,567`); con `type="password"` sale enmascarado. (2) Desmontar la entrada en Tab rompe el avance (cae la prueba); Enter sin `preventDefault` reabre la edición.
+(3) El contorno de foco con `--color-primario` da 2,8:1 sobre el fondo oscuro: ahora `--color-primario-ink`, con el e2e en ≥ 3:1. (4) El contorno del `%` tocaba al monto en un par apilado: 8 px entre controles. (5) Nodos por celda: 8, 9, 10, 11, 11, 11 y 15 (el peor); 300 celdas de la mezcla: 2.688.
+
+**Recorrido (a cargo de la IA):** `E2E_CAPTURAS` con `e2e/xcell-geometria.spec.ts` y `node scripts/hoja-de-contacto.mjs`: **11 hojas, abiertas todas** (las 4 de escritorio y las 7 de celular), dos veces: la primera encontró el foco oscuro y el par apretado (hd), la segunda es la final. Lo visto en la final:
+
+- `escritorio-01` (claro 100 %, tramos 1 y 2; claro 100 % editando con error; claro 200 %, tramo 1): cuatro columnas; el punto de «Sugerido» en «Nacionalización» y «A revisar»; ↺ y anillo interior en «Factor de depreciación», «Transporte» y «Comisión del despachante» (esta, modificada y sugerida, sin punto); contorno azul de foco, exterior, junto al anillo en «Factor»; candado y motivo escrito en «Garantía» y «Costo extra», con borde discontinuo; amarillo, verde y naranja; neutro en «Tono inventado»; el aviso de la base en «Descuento»; «Sin valor» en «Seguro»; el par «USD 181,00 · 14,94 %»; con el texto al 200 %, dos columnas y las etiquetas partidas. Sin novedad.
+- `escritorio-02` (claro 200 %, tramos 2 y 3; claro 200 % editando con error; oscuro 100 %, tramo 1): la etiqueta larga en tres líneas sin cortar; el par con aire entre sus dos controles; «abc» en el `%` con su aviso «Escribe un número, por ejemplo 1234,5.» y su icono; el aviso de «Descuento» partido; el oscuro con el mismo orden. Sin novedad.
+- `escritorio-03` (oscuro 100 %, tramo 2; oscuro 100 % editando con error; oscuro 200 %, tramos 1 y 2): los tonos en oscuro (oliva, verde azulado, café), el neutro oscuro en «Tono inventado», el punto blanco, el anillo claro y el contorno de foco lavanda; el candado y el motivo legibles. Sin novedad.
+- `escritorio-04` (oscuro 200 %, tramo 3; oscuro 200 % editando con error): «Seguro» y «Tipo de cambio», y el aviso de la entrada con el texto ampliado. Sin novedad.
+- `movil-01` (claro 100 %, tramos 1 a 3): una columna; el valor y ↺ altos (44 px); el par lado a lado; el motivo de «Costo extra» en tres líneas; todos los tonos. Sin novedad.
+- `movil-02` (claro 100 % editando con error; claro 200 %, tramos 1 y 2): el aviso bajo el par; al 200 % «Factor de depreciación» parte su etiqueta en dos líneas con ↺ al costado y el anillo y el contorno visibles. Sin novedad.
+- `movil-03` (claro 200 %, tramos 3 a 5): el par apilado (monto y %) con espacio entre los dos; los avisos de «Descuento» partidos; sin nada fuera de la pantalla. Sin novedad.
+- `movil-04` (claro 200 % editando con error; oscuro 100 %, tramos 1 y 2): el `%` en edición, apilado, con su aviso y su icono; el oscuro en una columna. Sin novedad.
+- `movil-05` (oscuro 100 %, tramo 3; oscuro 100 % editando con error; oscuro 200 %, tramo 1): los tonos oscuros, el contorno de foco lavanda en «Factor», el aviso de la base. Sin novedad.
+- `movil-06` (oscuro 200 %, tramos 2 a 4): el candado con su motivo en ocho líneas sin cortar, la etiqueta larga en cinco, el par apilado. Sin novedad.
+- `movil-07` (oscuro 200 %, tramo 5; oscuro 200 % editando con error): «Tipo de cambio», el `%` con su aviso, «Comisión del despachante» partido en dos líneas con ↺. Sin novedad.
+- **Lo que se vio y no se tocó:** un par sin modificar no dibuja el borde de sus dos controles (se leen como texto hasta que se enfocan o se modifican). Es lo de una hoja de cálculo; si el 4.13 lo quiere más evidente, se decide con la hoja puesta.
+
+**Del entorno:** Next avisa de una vulnerabilidad (`SecurityFatalError`, 16.4.0) y detuvo el primer `next build` de las dos corridas con compilación; el mismo comando repetido compiló. No se corrió `next upgrade`; decide la persona. `esbuild` no es una dependencia del proyecto: se resuelve desde `tsx`.
+
+**e2e completo: no (4.12-1, pantalla, 1 de 3).** Van 1 de 3 pasos de pantalla seguidos sin completo; el Nivel 2 lo corre el prompt 2 (decisión hf).
+
+**ESTADO:** la línea «Fase actual» y el punto 1 de «Siguiente» dicen ahora el 4.12-1 y el prompt 2; 12.279 B.

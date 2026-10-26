@@ -1137,6 +1137,14 @@ binding sale del diseño de la hoja y de los niveles: una celda que el nivel esc
 El ⚙ cambia el default global (versión N+1); «Aplicar también a esta cotización» es el único
 puente hacia la cotización abierta.
 
+**Lo que la `XCell` hace con el binding (4.12, prompt 1; `src/shared/ui/xcell/CLAUDE.md`).** Además de `value`, `defaultValue`, `suggested` y `disabledReason`, trae
+**`overridden` = `fuentes[id] === 'override'`**: con un override el motor no calcula el sugerido (4-1) y `defaultValue` sólo existe para constantes y tipos de cambio, así que sin
+esa bandera no se distingue «modificado» de «input». ↺ dice «Volver al valor por defecto» si hay `defaultValue` y «Volver al sugerido» si no, nunca con la cifra. El par es **una celda con
+dos lados editables** (`secondaryId`, `secondaryValue`, `secondaryFormat`): cada lado emite `onCommit(suId, valor)` y ↺ emite `onReset(id)`; **la hoja traduce** (editar el % quita el override
+del monto, porque si no el monto lo pisa; ↺ quita los dos). Emite sólo si el número cambió (a 15 cifras); vacío es `null`; un porcentaje se tipea en puntos y se emite como fracción.
+**La celda no valida el rango, lo obligatorio ni lo entero: lo hace la base y su mensaje vuelve por `error`.** Los tonos llegan por `<EstiloDeTonos tonos>`, una vez por hoja, y la celda sólo
+lleva `data-tono="<clave>"`. Una parada de `Tab` por valor; ↺ y, en el prompt 2, la ayuda y el ⚙ se alcanzan con `→` desde el valor: **las flechas son de la celda**, la hoja no las usa para moverse.
+
 ## Plantilla de tarjeta (PDF)
 
 **Desde D7:** filas por grupo con el tono del grupo (o el que la plantilla elija del catálogo), celdas combinadas de tipo de cambio y plazo por grupo, título de la opción de la variante, «Asesor:», banda del vehículo, leyenda, logo de la empresa, banda de nota y la garantía condicionada a su interruptor; una etiqueta propia por fila. Sólo nodos del nivel «todos».
