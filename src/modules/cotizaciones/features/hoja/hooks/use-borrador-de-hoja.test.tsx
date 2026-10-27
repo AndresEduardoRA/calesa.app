@@ -18,8 +18,9 @@ vi.mock('@/shared/ui/toasts', () => ({ avisar }))
 
 // El borrador de la hoja (4-29) con el marco de verdad: se escribe al confirmar, vuelve al abrir con UN recálculo, y «Descartar» deja la hoja como recién abierta.
 const LEAD = '1b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
+const PERSONA = '3b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
 const HOJA = hojaDePrueba()
-const CLAVE = `borrador-estado:${claveDelBorrador(HOJA.origen.id, LEAD, null)}`
+const CLAVE = `borrador-estado:${claveDelBorrador({ personaId: PERSONA, origenId: HOJA.origen.id, leadId: LEAD, vehiculoId: null })}`
 const INICIAL: RecalculoInicial = {
   respuesta: respuestaDePrueba({ usd: 2350, valores: { remate: 0 } }),
   estado: { tipo: 'al_dia' },
@@ -32,6 +33,7 @@ const montar = () =>
       vehiculoId={null}
       vehiculoSoltado={false}
       leadId={LEAD}
+      personaId={PERSONA}
     />,
   )
 const total = () => document.querySelector('[data-total]')?.textContent ?? ''

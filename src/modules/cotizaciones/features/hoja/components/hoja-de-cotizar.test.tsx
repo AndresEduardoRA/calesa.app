@@ -19,6 +19,7 @@ const QUIETO: Guardado = {
   hayPendiente: false,
   ocupado: false,
   guardar: () => {},
+  guardarConLaAbierta: () => {},
   olvidarAviso: () => {},
   reiniciar: () => {},
 }
@@ -40,8 +41,8 @@ const montar = (inicial: RecalculoInicial = AL_DIA, vehiculoId: string | null = 
       vehiculoId={vehiculoId}
       vehiculoSoltado={false}
       leadId={null}
+      borrador={{ clave: 'cotizar:prueba', alDescartar: () => {} }}
       guardado={QUIETO}
-      alDescartar={() => {}}
     />,
   )
 
@@ -238,8 +239,8 @@ describe('HojaDeCotizar: avisos y atajos', () => {
         vehiculoId={null}
         vehiculoSoltado={false}
         leadId={null}
+        borrador={{ clave: 'cotizar:prueba', alDescartar: () => {} }}
         guardado={QUIETO}
-        alDescartar={() => {}}
       />,
     )
     expect(screen.getByText('Este origen pide un vehículo para guardar.')).toBeTruthy()
@@ -253,8 +254,8 @@ describe('HojaDeCotizar: avisos y atajos', () => {
         vehiculoId={null}
         vehiculoSoltado={false}
         leadId={null}
+        borrador={{ clave: 'cotizar:prueba', alDescartar: () => {} }}
         guardado={QUIETO}
-        alDescartar={() => {}}
       />,
     )
     expect(screen.getByText('No puedes ver esta hoja')).toBeTruthy()
@@ -269,8 +270,8 @@ describe('HojaDeCotizar: avisos y atajos', () => {
         vehiculoId={null}
         vehiculoSoltado
         leadId={null}
+        borrador={{ clave: 'cotizar:prueba', alDescartar: () => {} }}
         guardado={QUIETO}
-        alDescartar={() => {}}
       />,
     )
     expect(screen.getByText('No se puede usar ese vehículo.')).toBeTruthy()

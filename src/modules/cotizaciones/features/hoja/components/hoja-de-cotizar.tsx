@@ -8,11 +8,10 @@ import type { RecalculoInicial } from '../../../entities/apertura'
 import { seccionSeDibuja, type ContextoDeHoja } from '../../../entities/binding'
 import { FALTA_EL_VEHICULO } from '../../../entities/guardado'
 import type { HojaLista } from '../../../entities/hoja'
-import { claveDelBorrador } from '../../../entities/claves-de-la-hoja'
 import type { Guardado } from '../hooks/use-guardado'
 import { useGuardarLaHoja } from '../hooks/use-guardar-la-hoja'
 import { useHoja } from '../hooks/use-hoja'
-import { AvisoDeGuardado } from './aviso-de-guardado'
+import { AvisoDelGuardado } from './aviso-de-guardado'
 import { ResumenDeHoja } from './resumen-de-hoja'
 import { SeccionDeHoja } from './seccion-de-hoja'
 
@@ -24,8 +23,8 @@ type Props = {
   vehiculoSoltado: boolean
   leadId: string | null
   guardado: Guardado
-  // «Descartar» el borrador: el marco vuelve a montar la hoja vacía.
-  alDescartar: () => void
+  // El borrador de lo tipeado: su clave en la pestaña (de quien cotiza) y «Descartar», con el que el marco vuelve a montar la hoja vacía.
+  borrador: { clave: string; alDescartar: () => void }
 }
 
 function avisoDelVehiculo(vehiculoSoltado: boolean, faltaVehiculo: boolean) {
@@ -44,8 +43,8 @@ export function HojaDeCotizar({
   vehiculoId,
   vehiculoSoltado,
   leadId,
+  borrador,
   guardado,
-  alDescartar,
 }: Props) {
   const router = useRouter()
   const raiz = useRef<HTMLDivElement>(null)
@@ -54,13 +53,12 @@ export function HojaDeCotizar({
     inicial,
     vehiculoId,
     alCambiar: guardado.olvidarAviso,
-    borrador: { clave: claveDelBorrador(hoja.origen.id, leadId, vehiculoId), alDescartar },
+    borrador,
   })
   const contexto = useMemo<ContextoDeHoja>(
     () => ({ indice: h.indice, entradas: h.entradas, respuesta: h.respuesta }),
     [h.indice, h.entradas, h.respuesta],
   )
-  const faltaVehiculo = hoja.vehiculoObligatorio && vehiculoId === null
   const { boton, armar } = useGuardarLaHoja({
     h,
     contexto,
@@ -98,19 +96,19 @@ export function HojaDeCotizar({
         tarjeta={hoja.tarjetaTotal}
         contexto={contexto}
         estado={h.estado}
-        avisoDelVehiculo={avisoDelVehiculo(vehiculoSoltado, faltaVehiculo)}
+        avisoDelVehiculo={avisoDelVehiculo(
+          vehiculoSoltado,
+          hoja.vehiculoObligatorio && vehiculoId === null,
+        )}
         alReintentar={h.reintentar}
         alRecargar={router.refresh}
         guardar={boton}
         avisoDeGuardado={
-          <AvisoDeGuardado
-            estado={guardado.estado}
-            hayPendiente={guardado.hayPendiente}
-            enLinea={guardado.enLinea}
+          <AvisoDelGuardado
+            guardado={guardado}
+            armar={armar}
+            version={hoja.formula.version}
             alRecargar={router.refresh}
-            alReintentar={() => {
-              guardado.guardar(armar)
-            }}
           />
         }
       />

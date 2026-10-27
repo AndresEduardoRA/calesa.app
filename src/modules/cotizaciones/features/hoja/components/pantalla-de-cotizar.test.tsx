@@ -22,6 +22,7 @@ vi.mock('@/shared/ui/toasts', () => ({ avisar }))
 // El marco de la hoja (paso 4.13-3b): lo guardado, los avisos del intento y la instantánea que no cambia a medio guardar.
 const ID = '0b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
 const LEAD = '1b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
+const PERSONA = '3b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
 const INICIAL: RecalculoInicial = {
   respuesta: respuestaDePrueba({ usd: 2350 }),
   estado: { tipo: 'al_dia' },
@@ -47,6 +48,7 @@ const pantalla = (hoja: HojaLista) => (
     vehiculoId={null}
     vehiculoSoltado={false}
     leadId={LEAD}
+    personaId={PERSONA}
   />
 )
 const guardar = () => fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
@@ -90,7 +92,12 @@ describe('PantallaDeCotizar › lo guardado', () => {
       conLaAbierta: false,
     }
     window.sessionStorage.setItem(
-      claveDelPendiente(pendiente.origenId, LEAD, null),
+      claveDelPendiente({
+        personaId: PERSONA,
+        origenId: pendiente.origenId,
+        leadId: LEAD,
+        vehiculoId: null,
+      }),
       JSON.stringify(pendiente),
     )
     ejecutar.mockResolvedValue(guardada(false))
@@ -103,7 +110,7 @@ describe('PantallaDeCotizar › lo guardado', () => {
     expect(screen.getByText(/Se guardó el pedido que había quedado sin confirmar/)).toBeTruthy()
   })
 
-  it('«Cotizar otra» suelta lo guardado, vuelve a la hoja y pide la página de nuevo', async () => {
+  it('«Cotizar otra» suelta lo guardado y vuelve a la hoja, sin pedir la página (la volvería a montar a medio tipear)', async () => {
     ejecutar.mockResolvedValue(guardada(false))
     render(pantalla(hojaDePrueba()))
     await act(async () => {
@@ -111,13 +118,13 @@ describe('PantallaDeCotizar › lo guardado', () => {
       await Promise.resolve()
     })
     fireEvent.click(screen.getByRole('button', { name: 'Cotizar otra' }))
-    expect(refrescar).toHaveBeenCalledTimes(1)
+    expect(refrescar).not.toHaveBeenCalled()
     expect(document.querySelector('[data-hoja]')).not.toBeNull()
   })
 })
 
 describe('PantallaDeCotizar › la hoja abierta y la instantánea', () => {
-  it('el guardado manda la abierta con la que se montó la hoja, aunque llegue otra por props', async () => {
+  it('otra abierta por props vuelve a montar la hoja: el guardado manda la nueva, la misma que el recálculo (D2)', async () => {
     ejecutar.mockResolvedValue(guardada(false))
     const hoja = hojaDePrueba()
     const vista = render(pantalla(hoja))
@@ -126,7 +133,47 @@ describe('PantallaDeCotizar › la hoja abierta y la instantánea', () => {
       guardar()
       await Promise.resolve()
     })
-    expect(pedidos()[0]?.abierta).toBe(hoja.abierta)
+    expect(pedidos()[0]?.abierta).toBe(`${hoja.abierta}-otra`)
+  })
+
+  it('el aviso D2 se va cuando la hoja se vuelve a montar con otra abierta', async () => {
+    ejecutar.mockResolvedValue({
+      data: { ok: true, data: { tipo: 'rechazo', motivo: 'desactualizada_formula' } },
+    })
+    const hoja = hojaDePrueba()
+    const vista = render(pantalla(hoja))
+    await act(async () => {
+      guardar()
+      await Promise.resolve()
+    })
+    expect(
+      screen.getByRole('button', {
+        name: `Guardar con la versión ${String(hoja.formula.version)}`,
+      }),
+    ).toBeTruthy()
+    vista.rerender(pantalla(conEtiqueta(hoja, hoja.tarjetaTotal.etiqueta, `${hoja.abierta}-otra`)))
+    expect(screen.queryByRole('button', { name: /Guardar con la versión/ })).toBeNull()
+  })
+
+  it('«Guardar con la versión N» manda el pedido que recibió el D2, con otro intento y con la abierta', async () => {
+    ejecutar.mockResolvedValueOnce({
+      data: { ok: true, data: { tipo: 'rechazo', motivo: 'desactualizada_formula' } },
+    })
+    ejecutar.mockResolvedValueOnce(guardada(false))
+    const hoja = hojaDePrueba()
+    render(pantalla(hoja))
+    await act(async () => {
+      guardar()
+      await Promise.resolve()
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Guardar con la versión/ }))
+      await Promise.resolve()
+    })
+    const [d2, conLaN] = pedidos()
+    expect(conLaN).toEqual({ ...d2, intento: conLaN?.intento, conLaAbierta: true })
+    expect(conLaN?.intento).not.toBe(d2?.intento)
+    expect(screen.getByText('Cotización n.º 41 guardada')).toBeTruthy()
   })
 
   it('mientras guarda, otra hoja por props no llega a la hoja ni la vuelve a montar', async () => {
@@ -150,7 +197,8 @@ describe('PantallaDeCotizar › la hoja abierta y la instantánea', () => {
 })
 
 describe('PantallaDeCotizar › el borrador', () => {
-  const clave = () => `borrador-estado:${claveDelBorrador(hojaDePrueba().origen.id, LEAD, null)}`
+  const clave = () =>
+    `borrador-estado:${claveDelBorrador({ personaId: PERSONA, origenId: hojaDePrueba().origen.id, leadId: LEAD, vehiculoId: null })}`
 
   it('un guardado con éxito borra el borrador', async () => {
     window.sessionStorage.setItem(clave(), JSON.stringify({ inputs: [['remate', 7]] }))

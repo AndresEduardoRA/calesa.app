@@ -110,6 +110,7 @@ async function Hoja({
         vehiculoId={vehiculoUsado}
         vehiculoSoltado={vehiculoSoltado}
         leadId={lead}
+        personaId={sesion.usuarioId}
       />
     </>
   )

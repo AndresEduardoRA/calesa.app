@@ -26,6 +26,7 @@ function guardadoDePrueba(mas: Partial<Guardado> = {}) {
     enLinea: true,
     hayPendiente: false,
     ocupado: false,
+    guardarConLaAbierta: () => {},
     guardar: vi.fn((armar: Armar) => {
       armar((p) => armados.push(p))
     }),
@@ -47,8 +48,8 @@ const montar = (
       vehiculoId={null}
       vehiculoSoltado={false}
       leadId={leadId}
+      borrador={{ clave: 'cotizar:prueba', alDescartar: () => {} }}
       guardado={guardado}
-      alDescartar={() => {}}
     />,
     {
       wrapper: ({ children }: { children: ReactNode }) => (

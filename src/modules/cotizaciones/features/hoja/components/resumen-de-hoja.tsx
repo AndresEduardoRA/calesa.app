@@ -21,7 +21,7 @@ type Props = {
   alReintentar: () => void
   alRecargar: () => void
   guardar: BotonDeGuardar
-  // Lo que dice el último guardado (`<AvisoDeGuardado>`): va en la misma región viva.
+  // Lo que dice el último guardado (`<AvisoDelGuardado>`): va en la misma región viva.
   avisoDeGuardado: ReactNode
 }
 

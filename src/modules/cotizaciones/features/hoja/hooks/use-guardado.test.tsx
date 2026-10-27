@@ -11,6 +11,7 @@ vi.mock('../actions/crear-cotizacion', () => ({ crearCotizacion: {} }))
 
 const ORIGEN = '0b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
 const LEAD = '1b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
+const PERSONA = '3b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
 const armado = (valor: number): PedidoArmado => ({
   origenId: ORIGEN,
   leadId: LEAD,
@@ -31,7 +32,12 @@ const GUARDADA = respuesta({
 const mandados = () => ejecutar.mock.calls.map((c) => c[0] as PedidoDeGuardado)
 
 const montar = (vehiculoId: string | null = null) =>
-  renderHook(() => useGuardado({ origenId: ORIGEN, leadId: LEAD, vehiculoId, alGuardar: () => {} }))
+  renderHook(() =>
+    useGuardado({
+      hoja: { personaId: PERSONA, origenId: ORIGEN, leadId: LEAD, vehiculoId },
+      alGuardar: () => {},
+    }),
+  )
 
 // Guarda y deja correr la respuesta de la action (una promesa ya resuelta).
 const guardar = (hook: ReturnType<typeof montar>, armar: Armar) =>
@@ -84,7 +90,9 @@ describe('useGuardado: un envío a la vez y el intento pendiente', () => {
     ejecutar.mockResolvedValueOnce(undefined)
     const hook = montar()
     await guardar(hook, armarCon(1))
-    const guardado = window.sessionStorage.getItem(claveDelPendiente(ORIGEN, LEAD, null))
+    const guardado = window.sessionStorage.getItem(
+      claveDelPendiente({ personaId: PERSONA, origenId: ORIGEN, leadId: LEAD, vehiculoId: null }),
+    )
     expect(JSON.parse(guardado ?? '{}')).toEqual(mandados()[0])
     hook.unmount()
     ejecutar.mockResolvedValueOnce(GUARDADA)
@@ -113,8 +121,29 @@ describe('useGuardado: los rechazos y la hoja que no arma', () => {
     ejecutar.mockResolvedValueOnce(respuesta({ tipo: 'rechazo', motivo: 'desactualizada_formula' }))
     const hook = montar()
     await guardar(hook, armarCon(1))
-    expect(hook.result.current.estado).toMatchObject({ tipo: 'aviso', d2: mandados()[0] })
+    expect(hook.result.current.estado).toMatchObject({
+      tipo: 'aviso',
+      d2: { pedido: mandados()[0], por: 'formula' },
+    })
     expect(hook.result.current.hayPendiente).toBe(false)
+  })
+
+  it('«Guardar con la N» manda lo que recibió el D2, con otro intento y con la abierta', async () => {
+    ejecutar.mockResolvedValueOnce(
+      respuesta({ tipo: 'rechazo', motivo: 'desactualizada_tipo_cambio' }),
+    )
+    const hook = montar()
+    await guardar(hook, armarCon(1))
+    expect(hook.result.current.estado).toMatchObject({ d2: { por: 'tipo_cambio' } })
+    ejecutar.mockResolvedValueOnce(GUARDADA)
+    await act(async () => {
+      hook.result.current.guardarConLaAbierta()
+      await Promise.resolve()
+    })
+    const [d2, conLaN] = mandados()
+    expect(conLaN?.entradas.inputs).toEqual({ pub: 1 })
+    expect(conLaN).toEqual({ ...d2, intento: conLaN?.intento, conLaAbierta: true })
+    expect(conLaN?.intento).not.toBe(d2?.intento)
   })
 
   it('si la hoja no arma (falló, el total quedó nulo o se fue), vuelve a «Guardar» sin mandar nada', () => {
