@@ -91,5 +91,5 @@ export function useGuardarLaHoja({
     ocupado: guardado.ocupado,
     alGuardar,
   }
-  return { boton, armar }
+  return { boton }
 }

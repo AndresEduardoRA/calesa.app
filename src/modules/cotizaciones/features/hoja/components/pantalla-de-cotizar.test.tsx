@@ -52,6 +52,19 @@ const pantalla = (hoja: HojaLista) => (
   />
 )
 const guardar = () => fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+function tipearRemate(texto: string) {
+  const celda = document.querySelector('[data-nodo="remate"] [data-parada="0"]')
+  if (!celda) {
+    throw new Error('No hay la celda remate')
+  }
+  fireEvent.click(celda)
+  const entrada = document.querySelector<HTMLInputElement>('[data-nodo="remate"] input')
+  if (!entrada) {
+    throw new Error('No se abrió la edición')
+  }
+  fireEvent.change(entrada, { target: { value: texto } })
+  fireEvent.keyDown(entrada, { key: 'Enter' })
+}
 const pedidos = () => ejecutar.mock.calls.map((c) => c[0] as PedidoDeGuardado)
 
 beforeEach(() => {
@@ -135,7 +148,9 @@ describe('PantallaDeCotizar › la hoja abierta y la instantánea', () => {
     })
     expect(pedidos()[0]?.abierta).toBe(`${hoja.abierta}-otra`)
   })
+})
 
+describe('PantallaDeCotizar › el aviso D2', () => {
   it('el aviso D2 se va cuando la hoja se vuelve a montar con otra abierta', async () => {
     ejecutar.mockResolvedValue({
       data: { ok: true, data: { tipo: 'rechazo', motivo: 'desactualizada_formula' } },
@@ -152,6 +167,20 @@ describe('PantallaDeCotizar › la hoja abierta y la instantánea', () => {
       }),
     ).toBeTruthy()
     vista.rerender(pantalla(conEtiqueta(hoja, hoja.tarjetaTotal.etiqueta, `${hoja.abierta}-otra`)))
+    expect(screen.queryByRole('button', { name: /Guardar con la versión/ })).toBeNull()
+  })
+
+  it('el aviso D2 se va con la próxima confirmación de la hoja', async () => {
+    ejecutar.mockResolvedValue({
+      data: { ok: true, data: { tipo: 'rechazo', motivo: 'desactualizada_formula' } },
+    })
+    render(pantalla(hojaDePrueba()))
+    await act(async () => {
+      guardar()
+      await Promise.resolve()
+    })
+    expect(screen.getByRole('button', { name: /Guardar con la versión/ })).toBeTruthy()
+    tipearRemate('9')
     expect(screen.queryByRole('button', { name: /Guardar con la versión/ })).toBeNull()
   })
 
@@ -186,6 +215,8 @@ describe('PantallaDeCotizar › la hoja abierta y la instantánea', () => {
     })
     vista.rerender(pantalla(conEtiqueta(hoja, 'Total de después', 'otra-abierta')))
     expect(screen.getByText('Total de antes')).toBeTruthy()
+    // Y no se toca: lo guardado la reemplaza.
+    expect(document.querySelector('[data-hoja]')?.hasAttribute('inert')).toBe(true)
     expect(screen.queryByText('Total de después')).toBeNull()
     await act(async () => {
       soltar(guardada(false))

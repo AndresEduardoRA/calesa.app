@@ -36,7 +36,7 @@ function avisoDelVehiculo(vehiculoSoltado: boolean, faltaVehiculo: boolean) {
 
 // La hoja de cotizar: las secciones del diseño en su orden, cada celda con su `XCell`, y el resumen. Recalcula en la base 150 ms después de la última confirmación.
 // Guarda con `Ctrl/Cmd+S` o «Guardar» (el guardado vive en el marco, `useGuardado`): confirma la celda abierta, espera al total al día (P8) y arma el pedido con las
-// entradas que ese recálculo calculó y la misma hoja abierta. Los iconos y los tonos se montan una sola vez por hoja.
+// entradas que ese recálculo calculó y la misma hoja abierta. Mientras guarda no se toca (`inert`): lo guardado la reemplaza y lo tecleado en el medio se perdería sin aviso. Los iconos y los tonos se montan una sola vez por hoja.
 export function HojaDeCotizar({
   hoja,
   inicial,
@@ -48,18 +48,12 @@ export function HojaDeCotizar({
 }: Props) {
   const router = useRouter()
   const raiz = useRef<HTMLDivElement>(null)
-  const h = useHoja({
-    hoja,
-    inicial,
-    vehiculoId,
-    alCambiar: guardado.olvidarAviso,
-    borrador,
-  })
+  const h = useHoja({ hoja, inicial, vehiculoId, alCambiar: guardado.olvidarAviso, borrador })
   const contexto = useMemo<ContextoDeHoja>(
     () => ({ indice: h.indice, entradas: h.entradas, respuesta: h.respuesta }),
     [h.indice, h.entradas, h.respuesta],
   )
-  const { boton, armar } = useGuardarLaHoja({
+  const { boton } = useGuardarLaHoja({
     h,
     contexto,
     hoja,
@@ -79,7 +73,12 @@ export function HojaDeCotizar({
     )
   }
   return (
-    <div ref={raiz} data-hoja="" className="@container grid min-w-0 gap-4">
+    <div
+      ref={raiz}
+      data-hoja=""
+      inert={guardado.estado.tipo === 'guardando'}
+      className="@container grid min-w-0 gap-4"
+    >
       <SimbolosDeXCell />
       <EstiloDeTonos tonos={hoja.tonos} />
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @5xl:grid-cols-2">
@@ -106,7 +105,7 @@ export function HojaDeCotizar({
         avisoDeGuardado={
           <AvisoDelGuardado
             guardado={guardado}
-            armar={armar}
+            alReintentar={boton.alGuardar}
             version={hoja.formula.version}
             alRecargar={router.refresh}
           />

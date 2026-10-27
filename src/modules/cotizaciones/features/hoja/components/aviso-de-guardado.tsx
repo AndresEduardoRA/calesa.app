@@ -2,7 +2,7 @@
 
 import { RUTAS } from '@/shared/lib/rutas'
 import { Button } from '@/shared/ui/button'
-import type { Armar, EstadoDelGuardado, Guardado } from '../hooks/use-guardado'
+import type { EstadoDelGuardado, Guardado } from '../hooks/use-guardado'
 
 type Props = {
   estado: EstadoDelGuardado
@@ -79,7 +79,15 @@ function AvisoDeGuardado({
             </Button>
           ) : null}
           {aviso.salida === 'reintentar' && enLinea ? (
-            <Button variant="outline" className={CLASE_DEL_BOTON} onClick={alReintentar}>
+            <Button
+              variant="outline"
+              className={CLASE_DEL_BOTON}
+              // Como «Guardar»: el foco no sale de una celda abierta.
+              onMouseDown={(evento) => {
+                evento.preventDefault()
+              }}
+              onClick={alReintentar}
+            >
               Reintentar
             </Button>
           ) : null}
@@ -105,15 +113,15 @@ function AvisoDeGuardado({
   )
 }
 
-// El aviso con lo que la hoja le pone: «Reintentar» vuelve a armar el pedido; «Recargar» y «Usar la versión nueva» piden la página (otra hoja abierta la vuelve a montar).
+// El aviso con lo que la hoja le pone: «Reintentar» es «Guardar» (confirma la celda abierta y arma el pedido con el total al día); «Recargar» y «Usar la versión nueva» piden la página (otra hoja abierta la vuelve a montar).
 export function AvisoDelGuardado({
   guardado,
-  armar,
+  alReintentar,
   version,
   alRecargar,
 }: {
   guardado: Guardado
-  armar: Armar
+  alReintentar: () => void
   version: number
   alRecargar: () => void
 }) {
@@ -123,9 +131,7 @@ export function AvisoDelGuardado({
       hayPendiente={guardado.hayPendiente}
       enLinea={guardado.enLinea}
       alRecargar={alRecargar}
-      alReintentar={() => {
-        guardado.guardar(armar)
-      }}
+      alReintentar={alReintentar}
       version={version}
       alUsarLaNueva={alRecargar}
       alGuardarConLaAbierta={guardado.guardarConLaAbierta}
