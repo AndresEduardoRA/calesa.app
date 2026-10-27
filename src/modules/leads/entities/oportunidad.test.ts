@@ -136,21 +136,28 @@ describe('lo que viaja', () => {
   })
   it('al editar, sólo lo que cambió; un vehículo que ya no se ve no se toca', () => {
     const antes = leida()
-    expect(cambiosDeOportunidad(antes, valoresDeOportunidad(antes))).toEqual({})
-    expect(cambiosDeOportunidad(antes, { ...valoresDeOportunidad(antes), titulo: 'Otra' })).toEqual(
-      {
-        titulo: 'Otra',
-      },
-    )
-    expect(cambiosDeOportunidad(antes, { ...valoresDeOportunidad(antes), vehiculo: '' })).toEqual({
+    expect(cambiosDeOportunidad(antes, valoresDeOportunidad(antes, 'es-BO'))).toEqual({})
+    expect(
+      cambiosDeOportunidad(antes, { ...valoresDeOportunidad(antes, 'es-BO'), titulo: 'Otra' }),
+    ).toEqual({
+      titulo: 'Otra',
+    })
+    expect(
+      cambiosDeOportunidad(antes, { ...valoresDeOportunidad(antes, 'es-BO'), vehiculo: '' }),
+    ).toEqual({
       vehiculo_id: null,
     })
     const oculta = { ...antes, vehiculo: null, vehiculoOculto: true }
-    expect(valoresDeOportunidad(oculta).vehiculo).toBe('oculto')
-    expect(cambiosDeOportunidad(oculta, valoresDeOportunidad(oculta))).toEqual({})
+    expect(valoresDeOportunidad(oculta, 'es-BO').vehiculo).toBe('oculto')
+    expect(cambiosDeOportunidad(oculta, valoresDeOportunidad(oculta, 'es-BO'))).toEqual({})
   })
   it('una nueva arranca vacía', () => {
-    expect(valoresDeOportunidad(null)).toEqual({ titulo: '', monto: '', notas: '', vehiculo: '' })
+    expect(valoresDeOportunidad(null, 'es-BO')).toEqual({
+      titulo: '',
+      monto: '',
+      notas: '',
+      vehiculo: '',
+    })
   })
 })
 
@@ -220,5 +227,13 @@ describe('oportunidadesParaMostrar', () => {
     const original = lista(12)
     oportunidadesParaMostrar(original, false).visibles.push(99)
     expect(original).toHaveLength(12)
+  })
+})
+
+describe('valoresDeOportunidad con el locale (4.13-3c)', () => {
+  it('el monto guardado sale con el decimal del locale y sin miles', () => {
+    expect(valoresDeOportunidad({ ...leida(), monto: 1.6 }, 'es-BO').monto).toBe('1,6')
+    expect(valoresDeOportunidad({ ...leida(), monto: 21500.25 }, 'es-BO').monto).toBe('21500,25')
+    expect(valoresDeOportunidad({ ...leida(), monto: 21500.25 }, 'en-US').monto).toBe('21500.25')
   })
 })

@@ -42,7 +42,7 @@ const FICHA: LeadDeFicha = {
 
 function entrada(cambios: Record<string, string> = {}, ficha: LeadDeFicha = FICHA) {
   const campos = camposEditables(LAYOUT, ficha.enCartera)
-  const iniciales = valoresDeEdicion(ficha, campos, ZONA)
+  const iniciales = valoresDeEdicion(ficha, campos, ZONA, 'es-BO')
   return {
     ficha,
     valores: { ...iniciales, ...cambios },
@@ -58,7 +58,7 @@ describe('el tipo al editar la ficha', () => {
   const clave = CLAVE_DE_EDICION.tipo
 
   it('arranca con el del lead, y cambiarlo viaja como id', () => {
-    expect(valoresDeEdicion(FICHA, [], ZONA)[clave]).toBe(TIPO_PROSPECTO)
+    expect(valoresDeEdicion(FICHA, [], ZONA, 'es-BO')[clave]).toBe(TIPO_PROSPECTO)
     expect(validarEdicion(entrada({ [clave]: TIPO_CLIENTE }))).toEqual({
       ok: true,
       cambios: { tipoLeadId: TIPO_CLIENTE },

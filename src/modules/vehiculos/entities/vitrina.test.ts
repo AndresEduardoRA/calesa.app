@@ -188,14 +188,32 @@ describe('validarVitrina', () => {
 describe('valoresDeVitrina', () => {
   it('arranca de lo guardado', () => {
     expect(
-      valoresDeVitrina({
-        publicadoWeb: true,
-        precioWeb: 21500,
-        precioWebHasta: null,
-        precioWebNota: null,
-        destacadoWeb: false,
-      }),
+      valoresDeVitrina(
+        {
+          publicadoWeb: true,
+          precioWeb: 21500,
+          precioWebHasta: null,
+          precioWebNota: null,
+          destacadoWeb: false,
+        },
+        'es-BO',
+      ),
     ).toEqual({ publicado: true, precio: '21500', precioHasta: '', nota: '', destacado: false })
+  })
+
+  it('el precio guardado sale con el decimal del locale (4.13-3c)', () => {
+    const publicado = {
+      publicadoWeb: true,
+      precioWeb: 21500.25,
+      precioWebHasta: 1.6,
+      precioWebNota: null,
+      destacadoWeb: false,
+    }
+    expect(valoresDeVitrina(publicado, 'es-BO')).toMatchObject({
+      precio: '21500,25',
+      precioHasta: '1,6',
+    })
+    expect(valoresDeVitrina(publicado, 'en-US').precio).toBe('21500.25')
   })
 })
 

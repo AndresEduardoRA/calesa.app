@@ -79,6 +79,7 @@ describe('valoresIniciales', () => {
         campo('paquetes', 'multi_opcion'),
       ],
       vehiculo: null,
+      locale: 'es-BO',
     })
     expect(valores).toMatchObject({
       titulo: '',
@@ -107,13 +108,14 @@ describe('valoresIniciales', () => {
       ],
       vehiculo: VEHICULO,
       zona: 'America/La_Paz',
+      locale: 'es-BO',
     })
     expect(valores).toMatchObject({
       titulo: '2021 Toyota RAV4',
       marca: 'Toyota',
       modelo: '',
       anio: '2021',
-      precio: '24500.5',
+      precio: '24500,5',
       placado: true,
       precioNegociable: false,
       aceptaPermuta: null,
@@ -148,7 +150,13 @@ describe('conDatosDeSubasta', () => {
     campo('subasta', 'fecha_hora'),
     campo('transmision', 'opcion', { opciones: [{ clave: 'auto', etiqueta: 'Automática' }] }),
   ]
-  const inicial = valoresIniciales({ comunes, campos, vehiculo: null, zona: 'America/La_Paz' })
+  const inicial = valoresIniciales({
+    comunes,
+    campos,
+    vehiculo: null,
+    zona: 'America/La_Paz',
+    locale: 'es-BO',
+  })
   const datos = {
     columnas: {
       titulo: '2024 FORD BRONCO',
@@ -168,7 +176,10 @@ describe('conDatosDeSubasta', () => {
   }
 
   it('pone lo traído como lo muestra el formulario: texto, sí o no y fecha en la zona', () => {
-    const valores = conDatosDeSubasta(inicial, datos, campos, 'America/La_Paz')
+    const valores = conDatosDeSubasta(inicial, datos, campos, {
+      zona: 'America/La_Paz',
+      locale: 'es-BO',
+    })
     expect(valores['titulo']).toBe('2024 FORD BRONCO')
     expect(valores['anio']).toBe('2024')
     expect(valores['lote']).toBe('58540656')
@@ -186,9 +197,39 @@ describe('conDatosDeSubasta', () => {
       { ...inicial, marca: 'Escrito a mano' },
       { columnas: { titulo: 'Otro' }, atributos: { nadie: 'x' }, sinCoincidencia: [] },
       campos,
+      { locale: 'es-BO' },
     )
     expect(valores['marca']).toBe('Escrito a mano')
     expect(valores['titulo']).toBe('Otro')
     expect(Object.keys(valores)).not.toContain('a.nadie')
+  })
+})
+
+// 4.13-3c: lo guardado y lo que trae la subasta se escriben con el locale de la empresa (el lector estricto lo exige).
+describe('lo guardado, escrito con el locale', () => {
+  const comunes = camposComunes('manual')
+  const conPrecio = { ...VEHICULO, precio: 21500.25, anio: 2020 }
+
+  it('el precio y el año salen con el decimal del locale y sin miles', () => {
+    const bo = valoresIniciales({ comunes, campos: [], vehiculo: conPrecio, locale: 'es-BO' })
+    expect(bo['precio']).toBe('21500,25')
+    expect(bo['anio']).toBe('2020')
+    const us = valoresIniciales({ comunes, campos: [], vehiculo: conPrecio, locale: 'en-US' })
+    expect(us['precio']).toBe('21500.25')
+  })
+
+  it('el motor de 3,5 l que trae IAAI llega al campo del layout como «3,5»', () => {
+    const campos = [campo('costo_estimado_motor_l', 'numero')]
+    const subasta = camposComunes('subasta')
+    const inicial = valoresIniciales({ comunes: subasta, campos, vehiculo: null, locale: 'es-BO' })
+    const datos = {
+      columnas: { anio: 2019, kilometraje: 88000 },
+      atributos: { costo_estimado_motor_l: 3.5 },
+      sinCoincidencia: [],
+    }
+    const valores = conDatosDeSubasta(inicial, datos, campos, { locale: 'es-BO' })
+    expect(valores[claveDeAtributo('costo_estimado_motor_l')]).toBe('3,5')
+    expect(valores['anio']).toBe('2019')
+    expect(valores['kilometraje']).toBe('88000')
   })
 })

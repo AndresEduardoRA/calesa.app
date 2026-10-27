@@ -105,7 +105,7 @@ function entrada(
   layout: readonly CampoDeLead[] = LAYOUT,
 ) {
   const campos = camposEditables(layout, ficha.enCartera)
-  const iniciales = valoresDeEdicion(ficha, campos, ZONA)
+  const iniciales = valoresDeEdicion(ficha, campos, ZONA, 'es-BO')
   return {
     ficha,
     valores: { ...iniciales, ...cambios },
@@ -152,7 +152,7 @@ describe('qué campos se ofrecen', () => {
 describe('con qué arranca el formulario', () => {
   it('lo guardado, tal como se ve', () => {
     const campos = camposEditables(LAYOUT, true)
-    const valores = valoresDeEdicion(FICHA, campos, ZONA)
+    const valores = valoresDeEdicion(FICHA, campos, ZONA, 'es-BO')
     expect(valores[CLAVE_DE_EDICION.nombre]).toBe('Ana Rojas')
     expect(valores[CLAVE_DE_EDICION.tipo]).toBe(TIPO_PROSPECTO)
     expect(valores[CLAVE_DE_EDICION.origen]).toBe(WEB)
@@ -163,9 +163,9 @@ describe('con qué arranca el formulario', () => {
     expect(valores['atributos.viejo']).toBeUndefined()
   })
   it('sin origen, vacío', () => {
-    expect(valoresDeEdicion({ ...FICHA, origenId: null }, [], ZONA)[CLAVE_DE_EDICION.origen]).toBe(
-      '',
-    )
+    expect(
+      valoresDeEdicion({ ...FICHA, origenId: null }, [], ZONA, 'es-BO')[CLAVE_DE_EDICION.origen],
+    ).toBe('')
   })
   it('una opción que ya se sacó del campo se sigue ofreciendo', () => {
     const control = campoDeEdicion(LAYOUT[4] as CampoDeLead, 'virgo')

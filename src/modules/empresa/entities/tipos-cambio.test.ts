@@ -3,6 +3,7 @@ import {
   claveDeTipoCambio,
   decimalesDeValor,
   historialDesde,
+  textoParaEditar,
   tiposCambioDesde,
   valorTipeado,
   vigentes,
@@ -134,5 +135,14 @@ describe('valorTipeado', () => {
     expect(valorTipeado('siete')).toBeNull()
     expect(valorTipeado('1.234,56')).toBeNull()
     expect(valorTipeado('1,2345678')).toBeNull()
+  })
+})
+
+describe('textoParaEditar (4.13-3c)', () => {
+  it('el valor guardado sale con el decimal del locale, toda su precisión y sin miles', () => {
+    expect(textoParaEditar(2.125, 'es-BO')).toBe('2,125')
+    expect(textoParaEditar(6.96, 'es-BO')).toBe('6,96')
+    expect(textoParaEditar(12405.5, 'es-BO')).toBe('12405,5')
+    expect(textoParaEditar(2.125, 'en-US')).toBe('2.125')
   })
 })

@@ -75,7 +75,10 @@ function conSubasta(
 ): Estado {
   return {
     ...antes,
-    valores: conDatosDeSubasta(antes.valores, datos, fuentes.campos, fuentes.zona),
+    valores: conDatosDeSubasta(antes.valores, datos, fuentes.campos, {
+      zona: fuentes.zona,
+      locale: fuentes.locale,
+    }),
     errores: {},
     aviso: null,
     subasta,
@@ -105,6 +108,7 @@ function useValoresIniciales(fuentes: Fuentes, vehiculo: Vehiculo | null): Valor
         campos: fuentes.campos,
         vehiculo,
         zona: fuentes.zona,
+        locale: fuentes.locale,
       }),
     [fuentes, vehiculo],
   )

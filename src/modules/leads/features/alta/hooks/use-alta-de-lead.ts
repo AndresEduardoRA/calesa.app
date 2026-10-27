@@ -1,5 +1,6 @@
 'use client'
 
+import { useRegional } from '@/shared/ui/regional'
 import { useMemo, useState } from 'react'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { useReintentoAlVolver } from '@/shared/ui/use-reintento-al-volver'
@@ -34,10 +35,11 @@ type Args = {
 // reintentado al volver. Vive en el componente que no se desmonta: cerrar el drawer no pierde lo
 // escrito.
 export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Args) {
+  const { locale } = useRegional()
   const [ultimoOrigen, setUltimoOrigen] = useState(contexto.ultimoOrigenId)
   const iniciales = useMemo(
-    () => valoresIniciales({ ...contexto, ultimoOrigenId: ultimoOrigen }, layout, zona),
-    [contexto, layout, zona, ultimoOrigen],
+    () => valoresIniciales({ ...contexto, ultimoOrigenId: ultimoOrigen }, layout, zona, locale),
+    [contexto, layout, zona, locale, ultimoOrigen],
   )
   const seguimientoInicial = useMemo(
     () => valoresDeSeguimientoNuevo(contexto.tiposDeSeguimiento),
@@ -72,7 +74,7 @@ export function useAltaDeLead({ contexto, layout, zona, abierto, alGuardar }: Ar
       setEstado(
         limpio(
           nuevoId(),
-          valoresIniciales({ ...contexto, ultimoOrigenId: origen }, layout, zona),
+          valoresIniciales({ ...contexto, ultimoOrigenId: origen }, layout, zona, locale),
           seguimientoInicial,
         ),
       )

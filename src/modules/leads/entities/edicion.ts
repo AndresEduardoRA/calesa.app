@@ -64,6 +64,7 @@ export function valoresDeEdicion(
   ficha: LeadDeFicha,
   campos: readonly CampoDeLead[],
   zona: string,
+  locale: string,
 ): ValoresDeFormulario {
   const valores: ValoresDeFormulario = {
     [CLAVE_DE_EDICION.nombre]: ficha.nombre,
@@ -75,6 +76,7 @@ export function valoresDeEdicion(
       campo,
       ficha.atributos[campo.clave],
       zona,
+      locale,
     )
   }
   return valores

@@ -24,7 +24,7 @@ const CONTEXTO: ContextoDeAlta = {
 
 const entrada = (tipo: string, contexto = CONTEXTO) => ({
   valores: {
-    ...valoresIniciales(contexto, [], ZONA),
+    ...valoresIniciales(contexto, [], ZONA, 'es-BO'),
     [CLAVE_DEL_ALTA.telefono]: '70011002',
     [CLAVE_DEL_ALTA.nombre]: 'Ana',
     [CLAVE_DEL_ALTA.tipo]: tipo,
@@ -36,10 +36,12 @@ const entrada = (tipo: string, contexto = CONTEXTO) => ({
 
 describe('el tipo con el que arranca el alta', () => {
   it('el que propone la base; sin él, el primero activo; y sin ninguno, vacío', () => {
-    expect(valoresIniciales(CONTEXTO, [], ZONA)[CLAVE_DEL_ALTA.tipo]).toBe(TIPO_PRO)
+    expect(valoresIniciales(CONTEXTO, [], ZONA, 'es-BO')[CLAVE_DEL_ALTA.tipo]).toBe(TIPO_PRO)
     const sinDefecto = { ...CONTEXTO, tipoPorDefectoId: null }
-    expect(valoresIniciales(sinDefecto, [], ZONA)[CLAVE_DEL_ALTA.tipo]).toBe(TIPO_PRO)
-    expect(valoresIniciales({ ...sinDefecto, tipos: [] }, [], ZONA)[CLAVE_DEL_ALTA.tipo]).toBe('')
+    expect(valoresIniciales(sinDefecto, [], ZONA, 'es-BO')[CLAVE_DEL_ALTA.tipo]).toBe(TIPO_PRO)
+    expect(
+      valoresIniciales({ ...sinDefecto, tipos: [] }, [], ZONA, 'es-BO')[CLAVE_DEL_ALTA.tipo],
+    ).toBe('')
   })
 })
 

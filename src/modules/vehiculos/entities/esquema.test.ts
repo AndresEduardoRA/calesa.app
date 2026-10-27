@@ -50,10 +50,16 @@ const FUENTES: Fuentes = {
     { id: 'c2', nombre: 'Vieja', activa: false },
   ],
   zona: 'America/La_Paz',
+  locale: 'es-BO',
 }
 
 const vacios = (fuentes: Fuentes = FUENTES) =>
-  valoresIniciales({ comunes: fuentes.comunes, campos: fuentes.campos, vehiculo: null })
+  valoresIniciales({
+    comunes: fuentes.comunes,
+    campos: fuentes.campos,
+    vehiculo: null,
+    locale: 'es-BO',
+  })
 
 function validar(cambios: ValoresDeFormulario, fuentes: Fuentes = FUENTES) {
   return validarVehiculo(fuentes, { ...vacios(fuentes), titulo: 'RAV4', ...cambios })

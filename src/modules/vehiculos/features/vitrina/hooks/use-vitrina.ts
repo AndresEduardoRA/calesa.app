@@ -1,5 +1,6 @@
 'use client'
 
+import { useRegional } from '@/shared/ui/regional'
 import { useAction } from 'next-safe-action/hooks'
 import { useState } from 'react'
 import { conRed } from '@/shared/lib/formularios'
@@ -30,7 +31,8 @@ function dicho(antes: boolean, datos: DatosDeVitrina): string {
 export function useVitrina(vehiculo: Vehiculo, alGuardar: () => void) {
   const publicando = useAction(publicarEnVitrina)
   const enLinea = useEnLinea()
-  const [valores, setValores] = useState<ValoresDeVitrina>(() => valoresDeVitrina(vehiculo))
+  const { locale } = useRegional()
+  const [valores, setValores] = useState<ValoresDeVitrina>(() => valoresDeVitrina(vehiculo, locale))
   const [porCampo, setPorCampo] = useState<PorCampo>({})
   const [conflicto, setConflicto] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
@@ -81,7 +83,7 @@ export function useVitrina(vehiculo: Vehiculo, alGuardar: () => void) {
   return {
     valores,
     // Algo escrito que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
-    hayCambios: JSON.stringify(valores) !== JSON.stringify(valoresDeVitrina(vehiculo)),
+    hayCambios: JSON.stringify(valores) !== JSON.stringify(valoresDeVitrina(vehiculo, locale)),
     cambiar,
     guardar,
     porCampo,

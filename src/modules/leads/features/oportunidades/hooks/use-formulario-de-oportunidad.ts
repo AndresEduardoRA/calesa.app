@@ -1,5 +1,6 @@
 'use client'
 
+import { useRegional } from '@/shared/ui/regional'
 import { useAction } from 'next-safe-action/hooks'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -42,7 +43,10 @@ type Opciones = {
 export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: Opciones) {
   const router = useRouter()
   const [intento] = useState(() => crypto.randomUUID())
-  const [valores, setValores] = useState<ValoresDeOportunidad>(valoresDeOportunidad(oportunidad))
+  const { locale } = useRegional()
+  const [valores, setValores] = useState<ValoresDeOportunidad>(
+    valoresDeOportunidad(oportunidad, locale),
+  )
   const [embudo, setEmbudo] = useState('')
   const [errores, setErrores] = useState<ErroresDelFormulario>({})
   const [conflicto, setConflicto] = useState<string | null>(null)
@@ -106,7 +110,8 @@ export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: 
     // Algo escrito que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
     hayCambios:
       oportunidad === null
-        ? embudo !== '' || JSON.stringify(valores) !== JSON.stringify(valoresDeOportunidad(null))
+        ? embudo !== '' ||
+          JSON.stringify(valores) !== JSON.stringify(valoresDeOportunidad(null, locale))
         : Object.keys(cambiosDeOportunidad(oportunidad, valores)).length > 0,
     errores,
     conflicto,

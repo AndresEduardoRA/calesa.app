@@ -114,7 +114,7 @@ describe('campoDelAlta', () => {
 
 describe('valoresIniciales', () => {
   it('arranca con el primer origen, el tipo que propone la base y la ciudad de la empresa', () => {
-    const v = valoresIniciales(CONTEXTO, LAYOUT, ZONA)
+    const v = valoresIniciales(CONTEXTO, LAYOUT, ZONA, 'es-BO')
     expect(v[CLAVE_DEL_ALTA.origen]).toBe(ORIGEN_FB)
     expect(v[CLAVE_DEL_ALTA.tipo]).toBe(TIPO_PRO)
     expect(Object.keys(v).some((clave) => clave.startsWith('seguimiento'))).toBe(false)
@@ -125,7 +125,7 @@ describe('valoresIniciales', () => {
   })
 
   it('el último origen usado gana', () => {
-    const v = valoresIniciales({ ...CONTEXTO, ultimoOrigenId: ORIGEN_WEB }, LAYOUT, ZONA)
+    const v = valoresIniciales({ ...CONTEXTO, ultimoOrigenId: ORIGEN_WEB }, LAYOUT, ZONA, 'es-BO')
     expect(v[CLAVE_DEL_ALTA.origen]).toBe(ORIGEN_WEB)
   })
 
@@ -134,6 +134,7 @@ describe('valoresIniciales', () => {
       { ...CONTEXTO, origenes: [], empresa: { ciudad: null, pais: null } },
       LAYOUT,
       ZONA,
+      'es-BO',
     )
     expect(v[CLAVE_DEL_ALTA.origen]).toBe('')
     expect(v['atributos.ciudad']).toBe('')
@@ -143,7 +144,7 @@ describe('valoresIniciales', () => {
 describe('resumenDePrecargados', () => {
   it('dice lo que ya viene cargado para no tener que abrir el bloque', () => {
     const { masDatos } = camposDelAlta(LAYOUT)
-    const v = valoresIniciales(CONTEXTO, LAYOUT, ZONA)
+    const v = valoresIniciales(CONTEXTO, LAYOUT, ZONA, 'es-BO')
     expect(resumenDePrecargados(masDatos, v)).toBe('Ciudad: Santa Cruz · País: Bolivia')
   })
 
@@ -164,7 +165,7 @@ describe('resumenDePrecargados', () => {
 })
 
 const base = () => ({
-  ...valoresIniciales(CONTEXTO, LAYOUT, ZONA),
+  ...valoresIniciales(CONTEXTO, LAYOUT, ZONA, 'es-BO'),
   [CLAVE_DEL_ALTA.telefono]: '700 11 002',
   [CLAVE_DEL_ALTA.nombre]: ' Ana Quispe ',
   'atributos.signo': 'leo',

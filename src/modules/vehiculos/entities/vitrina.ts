@@ -3,6 +3,7 @@
 // (`interno.vitrina_vehiculos`); acá sólo se lee lo que ella responde y se lo pone en palabras.
 import { z } from 'zod'
 import { puede, type Permisos } from '@/shared/lib/permisos'
+import { formatearParaEditar } from '@/shared/lib/formato'
 
 // Lo que hace falta, además de la marca del vehículo, para que algo de un origen se vea.
 export type VitrinaDelOrigen = {
@@ -244,13 +245,15 @@ type Publicado = {
   destacadoWeb: boolean
 }
 
-const comoTexto = (numero: number | null) => (numero === null ? '' : String(numero))
+// El precio guardado, con el locale de la empresa y sin miles (4.13-3c): el lector de lo tipeado lo lee de vuelta igual.
+const comoTexto = (numero: number | null, locale: string) =>
+  numero === null ? '' : formatearParaEditar(numero, { locale })
 
-export function valoresDeVitrina(vehiculo: Publicado): ValoresDeVitrina {
+export function valoresDeVitrina(vehiculo: Publicado, locale: string): ValoresDeVitrina {
   return {
     publicado: vehiculo.publicadoWeb,
-    precio: comoTexto(vehiculo.precioWeb),
-    precioHasta: comoTexto(vehiculo.precioWebHasta),
+    precio: comoTexto(vehiculo.precioWeb, locale),
+    precioHasta: comoTexto(vehiculo.precioWebHasta, locale),
     nota: vehiculo.precioWebNota ?? '',
     destacado: vehiculo.destacadoWeb,
   }

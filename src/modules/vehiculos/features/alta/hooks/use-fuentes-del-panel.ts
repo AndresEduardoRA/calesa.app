@@ -16,9 +16,9 @@ type Datos = {
 }
 
 // Lo que el formulario necesita para validar: los datos comunes del origen, sus campos activos, las
-// categorías y la zona de la empresa; en una edición, lo que el vehículo ya tiene guardado.
+// categorías y la zona y el locale de la empresa; en una edición, lo que el vehículo ya tiene guardado.
 export function useFuentesDelPanel({ origen, campos, categorias, vehiculo }: Datos) {
-  const { zonaHoraria } = useRegional()
+  const { zonaHoraria, locale } = useRegional()
   const activos = useMemo(() => camposActivos(campos), [campos])
   const fuentes = useMemo<Fuentes>(
     () => ({
@@ -26,11 +26,12 @@ export function useFuentesDelPanel({ origen, campos, categorias, vehiculo }: Dat
       campos: activos,
       categorias,
       zona: zonaHoraria,
+      locale,
       ...(vehiculo
         ? { actuales: { atributos: vehiculo.atributos, categoriaId: vehiculo.categoriaId } }
         : {}),
     }),
-    [origen.tipo, activos, categorias, zonaHoraria, vehiculo],
+    [origen.tipo, activos, categorias, zonaHoraria, locale, vehiculo],
   )
   return { activos, fuentes }
 }

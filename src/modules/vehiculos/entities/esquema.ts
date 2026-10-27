@@ -37,6 +37,8 @@ export type Fuentes = {
   // siguen valiendo mientras el vehículo las tenga (el dato se conserva).
   actuales?: { atributos: Atributos; categoriaId: string | null }
   zona?: string
+  // El de la empresa (4.13-3c): con él se escribe lo guardado en el formulario y se lee lo tipeado. Obligatorio: un llamador que lo olvide no compila.
+  locale: string
 }
 
 // Las categorías activas del origen, más la que el vehículo ya tiene.

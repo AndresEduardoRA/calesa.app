@@ -8,7 +8,7 @@ import type { Fuentes } from '../../entities/esquema'
 import type { Vehiculo } from '../../entities/vehiculo'
 
 // Lo que hace falta para validar un vehículo en el servidor: el origen, su layout de hoy y la
-// zona de la empresa. Se lee de nuevo en cada guardado: el formulario pudo abrirse con un layout
+// zona y el locale de la empresa. Se lee de nuevo en cada guardado: el formulario pudo abrirse con un layout
 // que ya cambió, y lo que manda es el de ahora.
 export async function fuentesDeValidacion(
   origenId: string,
@@ -36,6 +36,7 @@ export async function fuentesDeValidacion(
       campos: camposActivos(layout.data.campos),
       categorias: layout.data.categorias,
       zona: ajustes.zonaHoraria,
+      locale: ajustes.locale,
       ...(vehiculo
         ? { actuales: { atributos: vehiculo.atributos, categoriaId: vehiculo.categoriaId } }
         : {}),

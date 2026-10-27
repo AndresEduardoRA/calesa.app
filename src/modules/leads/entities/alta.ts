@@ -83,6 +83,7 @@ export function valoresIniciales(
   contexto: ContextoDeAlta,
   layout: readonly CampoDeLead[],
   zona: string,
+  locale: string,
 ): ValoresDeFormulario {
   const valores: ValoresDeFormulario = {
     [CLAVE_DEL_ALTA.telefono]: '',
@@ -96,6 +97,7 @@ export function valoresIniciales(
         campo,
         valorDefectoVigente(campo, contexto.empresa),
         zona,
+        locale,
       )
     }
   }

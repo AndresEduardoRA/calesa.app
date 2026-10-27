@@ -10,8 +10,14 @@ import { Drawer } from '@/shared/ui/drawer'
 import { useHayCambiosEnFormulario } from '@/shared/ui/use-hay-cambios-en-formulario'
 import { useUltimo } from '@/shared/ui/use-ultimo'
 import { Interruptor } from '@/shared/ui/interruptor'
+import { useRegional } from '@/shared/ui/regional'
 import { MOTIVO_SIN_PERMISO_TIPOS_CAMBIO } from '../../../entities/motivos'
-import { valorTipeado, type CambioDeValor, type TipoCambio } from '../../../entities/tipos-cambio'
+import {
+  textoParaEditar,
+  valorTipeado,
+  type CambioDeValor,
+  type TipoCambio,
+} from '../../../entities/tipos-cambio'
 import type { EdicionesDeTiposCambio } from '../hooks/use-tipos-cambio'
 import { Historial } from './historial'
 
@@ -48,6 +54,7 @@ type PropsDeCampos = {
 function Campos(props: PropsDeCampos) {
   const { tipo, puedeGestionar, bloqueado, errores, valorInvalido } = props
   const { activo, alCambiarActivo, esDefault, alCambiarDefault } = props
+  const { locale } = useRegional()
   return (
     <>
       <Campo
@@ -56,7 +63,7 @@ function Campos(props: PropsDeCampos) {
         inputMode="decimal"
         autoComplete="off"
         autoFocus={puedeGestionar}
-        defaultValue={String(tipo.valor).replace('.', ',')}
+        defaultValue={textoParaEditar(tipo.valor, locale)}
         error={valorInvalido ? VALOR_INVALIDO : errorDeCampo(errores, 'valor')}
         ayuda="Las cotizaciones ya guardadas conservan el valor con el que se hicieron."
       />

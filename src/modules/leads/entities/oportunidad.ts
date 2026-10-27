@@ -2,6 +2,7 @@
 // dueña y mientras tenga el lead en su cartera. Crear, editar, mover, eliminar y restaurar piden la
 // cartera y `leads.editar` (la base decide). El estado sale de la etapa: una ganada o perdida la
 // cierra (y se queda en su columna), una abierta la reabre. `cancelada` la pone la baja de su dueña.
+import { formatearParaEditar } from '@/shared/lib/formato'
 import { z } from 'zod'
 import { esquemaEtapa, etapaDesde, type EtapaGuardada } from './embudo'
 import {
@@ -211,13 +212,17 @@ export function validarOportunidad(valores: ValoresDeOportunidad): ErroresDeOpor
 }
 
 // Con qué arranca el formulario: vacío para una nueva, lo guardado para editar.
-export function valoresDeOportunidad(oportunidad: Oportunidad | null): ValoresDeOportunidad {
+// El monto, con el locale de la empresa y sin miles (4.13-3c): el lector de lo tipeado lo lee de vuelta igual.
+export function valoresDeOportunidad(
+  oportunidad: Oportunidad | null,
+  locale: string,
+): ValoresDeOportunidad {
   if (!oportunidad) {
     return { titulo: '', monto: '', notas: '', vehiculo: '' }
   }
   return {
     titulo: oportunidad.titulo,
-    monto: oportunidad.monto === null ? '' : String(oportunidad.monto),
+    monto: oportunidad.monto === null ? '' : formatearParaEditar(oportunidad.monto, { locale }),
     notas: oportunidad.notas ?? '',
     vehiculo: valorDeVehiculo(oportunidad),
   }

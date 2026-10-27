@@ -41,9 +41,13 @@ export function useAltaDeLista({ origenId, fuentes, campos, fijarEstado, traerFo
       comunes: fuentes.comunes,
       campos,
       vehiculo: null,
+      locale: fuentes.locale,
       ...(fuentes.zona ? { zona: fuentes.zona } : {}),
     })
-    const valores = conDatosDeSubasta(iniciales, datos, campos, fuentes.zona)
+    const valores = conDatosDeSubasta(iniciales, datos, campos, {
+      zona: fuentes.zona,
+      locale: fuentes.locale,
+    })
     const validacion = validarVehiculo(fuentes, valores)
     if (!validacion.ok) {
       const motivo = Object.values(validacion.porCampo)[0] ?? 'Faltan datos.'

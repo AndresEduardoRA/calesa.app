@@ -1,5 +1,6 @@
 'use client'
 
+import { useRegional } from '@/shared/ui/regional'
 import { useMemo, useState } from 'react'
 import type { ValorDeFormulario, ValoresDeFormulario } from '@/shared/lib/campos'
 import { cambiosDeEstado } from '@/shared/lib/borrador'
@@ -58,7 +59,11 @@ export function useFormularioDeLead({
   alGuardar,
   alPerderElLead,
 }: Args) {
-  const iniciales = useMemo(() => valoresDeEdicion(ficha, campos, zona), [ficha, campos, zona])
+  const { locale } = useRegional()
+  const iniciales = useMemo(
+    () => valoresDeEdicion(ficha, campos, zona, locale),
+    [ficha, campos, zona, locale],
+  )
   const [estado, setEstado] = useState(() => limpio(iniciales))
   const guardando = useGuardarLead()
   const borrador = useBorradorDeLaFicha(ficha, estado, iniciales, setEstado)

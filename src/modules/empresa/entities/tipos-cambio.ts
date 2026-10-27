@@ -2,6 +2,7 @@
 // cambiarlo pisa el anterior y el historial lo guarda un trigger. Las cotizaciones guardadas no
 // se mueven: cada una congeló los que usó.
 import type { Tables } from '@/shared/types/database.types'
+import { formatearParaEditar } from '@/shared/lib/formato'
 
 export type Moneda = {
   codigo: string
@@ -124,6 +125,10 @@ export function decimalesDeValor(valor: number): number {
   }
   return DECIMALES_MAXIMOS
 }
+
+// El valor guardado como se abre para editar: toda su precisión, el decimal del locale de la empresa y sin miles (4.13-3c).
+export const textoParaEditar = (valor: number, locale: string): string =>
+  formatearParaEditar(valor, { locale })
 
 // Lo que se tipea en el campo del valor: acepta coma o punto decimal. null si no es un número
 // mayor que cero o tiene más decimales de los que guarda la base.
