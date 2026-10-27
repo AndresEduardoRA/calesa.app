@@ -3450,3 +3450,30 @@ La línea «Fase actual» y el punto 1 de «Siguiente», como estaban antes del 
 - Nada llamó a `claude` de verdad: el bucle se prueba con sus falsos.
 
 **Lo que no se hizo:** la prueba en vivo de la persona (`bash scripts/piloto/decidir.sh --prueba-tandas`, `docs/PILOTO.md` › «Pendiente»); copiar los scripts a `.git/piloto/bin` (lo hace el próximo `arrancar.sh`); `solo_docs`, el auditor Sonnet para docs, el desglose por subagente y el USD de decidir (fuera por ahora); que la retoma herede el modelo (observado en DECISIONES, sin implementar); el 4.13-3c, CI-5 y el push, que lo hace la persona.
+
+## 2026-10-27 — Movido de ESTADO (4.13-3c)
+
+La línea «Fase actual» y el punto 1 de «Siguiente», como estaban antes del 4.13-3c:
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **4.13, prompt 3b de 6** (guardar la hoja: un intento por guardado, el borrador, D2 en línea; antes, el 3a: la hoja abierta que firma la base, el 2 y el 1), **DEP-1** (Next 16.4.3 y Node 24), el **4.12** (`XCell`), el **4.11** y el **4.10 entero**. **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20**, **4-23** a **4-26**, **4-30**, **4-33** y **4-34** siguen abiertos. Partición: **28 pasos y 67 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 a 2026-10-27, «movido de ESTADO», 4.08-1 a 4.13-3b).
+
+1. **El 4.13, prompt 3c, con el piloto** (la `XCell` y el parser: el candado por lado del par, la ficha de la `XCell` y **4-25** con P7 ya respondida; toca `src/shared`, así que va con **Nivel 2** y corre el completo de escritorio; `docs/PLAN.md` fila 4.13; **antes de arrancar el piloto, `npx supabase functions serve` en otra terminal**: el completo las exige y el bucle no las levanta, `docs/PILOTO.md` › «Requisitos») y en orden hasta 4.28, **un prompt a la vez, y se para a reportar**; la cuenta de pantallas sin completo va en 1 de 3. **Del 3b** (`docs/DECISIONES.md`, «Paso 4.13 (3b de 6)»): guardar es la Server Action `crear-cotizacion.ts` sobre `cotizacion_crear`, con la misma hoja abierta que el recálculo (la `key` de la hoja la lleva) y un intento pendiente en la pestaña hasta una respuesta con SQLSTATE; el borrador y el pendiente van por persona; «Cotizar otra» no pide la página. Sigue de lo hecho: `cotizacion_guardar(id, intento, versión, entradas, modo, título, notas, vehículo)` es la otra puerta (4.15), y nadie escribe `cotizaciones` directo.
+
+Y de «Funcionando», «Último completo (los dos proyectos), DEP-1: escritorio 735 en verde y 16 saltados, celular 517 y 18, 0 fallos, 45,3 min (BITACORA, 2026-10-26)», y de «Siguiente» 2, « **4-25** («1.234» se lee 1,234) en 4.13-3c,».
+
+## 2026-10-27 — Paso 4.13 (3c de 6): el candado por lado del par y un solo lector de números (4.13-3c)
+
+**Qué se pidió:** el 4.13-3c con el piloto (la fila 4.13 de `docs/PLAN.md`): el candado por lado del par en la `XCell`, la corrección de su ficha y **4-25**. El plan, en `.piloto/planes/4.13-3c.md`, pasó dos rondas: la primera la bloqueó el auditor (sin cambiar los escritores, el lector estricto leería «2.125» guardado como 2125) y la segunda salió con observaciones. La persona eligió las seis recomendadas (P1–P6); la sesión de decidir las guardó corridas un lugar y se leyeron de su transcripción. El informe está en `.piloto/informes/4.13-3c.md` y las salidas en `.piloto/salidas/4.13-3c/`.
+
+**Lo que se hizo:**
+
+- `375004a`: un candado por lado del par (`secondaryDisabledReason`, `candadosDe()`, `notasDe()`, `bloqueoDeLado()`), la ficha de la `XCell` corregida.
+- `d80a9db`: lo guardado se abre con el locale de la empresa (`deAtributo`, vehículos, vitrina, oportunidad, tipo de cambio), con `locale` obligatorio.
+- `a7d0da5`: `leerNumeroTipeado()` (4-25) y sus consumidores; el CSV con su lector permisivo (P1).
+- El detalle está en `docs/DECISIONES.md`, «Paso 4.13 (3c de 6)».
+
+**Verificación:** Nivel 1 en cada commit (lint, typecheck, `pnpm test`: 5.306 al final), e2e dirigidos en los dos proyectos (89 + 2, 65 y 106), 48 mutaciones (3 equivalentes, dichas en el informe; más 2 de los `fix` de la auditoría), cero saltadas nuevas. Los nodos de la hoja de la subasta siguen en 413 y 432 (tope 460); el peor de una celda pasa de 21 a 24.
+
+**Lo que no se hizo:** el e2e de `leads-ficha-edicion.spec.ts` con un 2,125 guardado (C14 de la edición queda en Vitest). **La auditoría del informe** (observaciones) pidió la C14 del alta y medir de nuevo la mezcla de 300 celdas: `1e1e443` (3.485 nodos, tope 3.500) y `5c07ed7`; los dos e2e nuevos del lector se corrieron en rojo contra el lector de antes (`e2e-rojas-c3.txt`); los cuatro archivos de más de 300 líneas que crecieron van a **4-39**.
+
+- **e2e completo: sí (4.13-3c, Nivel 2: src/shared).** `pnpm test:e2e:completo --project=escritorio` tras `a7d0da5`: 749 en verde, 16 saltados, 0 fallos (27,3 min de Playwright; con el reset y las carreras, 15:36 a 16:04). La cuenta de pasos de pantalla seguidos sin completo vuelve a 0 de 3.
