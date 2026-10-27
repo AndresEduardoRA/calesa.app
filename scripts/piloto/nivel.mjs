@@ -43,9 +43,8 @@ const DISPARADORES = [
   { id: 'base', aplica: (a) => a.startsWith('supabase/schemas/') || a === ESQUEMA_BASE },
 ]
 
-// Interfaz: lo que se dibuja o se ve (componentes, estilos, rutas, tokens, lo público). Una prueba no lo es, y lo que está en
-// `entities/`, `infra/` o `src/shared/lib` sólo se ve a través de una pantalla, que tiene su propio cambio si importa.
-// `.claude/rules/e2e.md` no escribe esta regla (dice que todo dirigido corre en los dos proyectos): ésta es la del piloto, conservadora.
+// Interfaz: la regla está escrita en un solo lugar, `.claude/rules/e2e.md` › «Interfaz: cuándo los e2e dirigidos corren también en
+// `movil`». Aquí sólo se aplica; si una cambia, la otra también (`nivel.test.ts` falla si la lista de la regla y ésta se separan).
 const esPrueba = (a) => /\.(test|spec)\.[cm]?[jt]sx?$/.test(a)
 const tocaInterfaz = (a) =>
   !esPrueba(a) &&

@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -142,6 +142,43 @@ describe('nivel.mjs › toca_interfaz decide si los e2e dirigidos corren tambié
   it('una prueba de componente (.test.tsx) no es interfaz, un componente sí', () => {
     const r = nivelDe(['src/a/b.test.tsx', 'src/a/b.tsx'], sinContenido)
     expect(r.interfaz).toEqual(['src/a/b.tsx'])
+  })
+
+  // La regla vive en `.claude/rules/e2e.md` y nivel.mjs sólo la aplica: si la lista de una y la del otro se separan, cae.
+  describe('la regla está escrita en un solo lugar: .claude/rules/e2e.md', () => {
+    const regla = readFileSync(resolve('.claude/rules/e2e.md'), 'utf8')
+    const codigo = readFileSync(resolve('scripts/piloto/nivel.mjs'), 'utf8')
+
+    it('nivel.mjs cita la regla por su título, que es el de e2e.md', () => {
+      const titulo = 'Interfaz: cuándo los e2e dirigidos corren también en `movil`'
+      expect(regla).toContain(`**${titulo}**`)
+      // El comentario se parte en líneas: se junta antes de buscar el título.
+      expect(codigo.replace(/\n\/\/ /g, ' ')).toContain(`.claude/rules/e2e.md\` › «${titulo}»`)
+    })
+
+    it.each([
+      'design/',
+      'public/',
+      'src/app/',
+      'src/shared/ui/',
+      'src/modules/<módulo>/pantallas/',
+      '.tsx',
+      '.css',
+    ])('la regla nombra %s', (parte) => {
+      expect(regla).toContain(parte)
+    })
+
+    it.each([
+      'design/x.css',
+      'public/x.png',
+      'src/app/x.ts',
+      'src/shared/ui/x.ts',
+      'src/modules/m/pantallas/x.ts',
+      'src/m/x.tsx',
+      'src/m/x.css',
+    ])('%s es interfaz', (archivo) => {
+      expect(nivelDe([archivo], sinContenido).toca_interfaz).toBe(true)
+    })
   })
 })
 

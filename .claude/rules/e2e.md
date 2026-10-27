@@ -13,7 +13,8 @@ paths:
   `--project=movil` elige el proyecto. **`pnpm test:e2e:completo`** resetea la base, corre las carreras y TODO, y pasa los argumentos a
   Playwright: `pnpm test:e2e:completo --project=escritorio` sirve para iterar sobre un proyecto.
 - **Los tres niveles de verificación** (desde la 9i):
-  - **Nivel 1 — toda tarea:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y los e2e **dirigidos** a lo tocado, en `escritorio` y en `movil`.
+  - **Nivel 1 — toda tarea:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y los e2e **dirigidos** a lo tocado, en `escritorio` y, si lo
+    tocado es interfaz (la regla de abajo), también en `movil`.
   - **Nivel 2 — si la tarea toca algo que usan todas las pantallas o toda la base, y sólo entonces.** Los disparadores son estos seis y
     ningún otro: (1) lo compartido, `src/shared`; (2) el proxy, `src/proxy.ts`; (3) auth: `src/modules/equipo/features/auth`,
     `src/app/auth` y `src/app/(acceso)`; (4) RLS: una migración que crea, cambia o borra una policy, o enciende RLS en una tabla; (5) el
@@ -30,6 +31,13 @@ paths:
     seguido sin completo** y en el **hito 4-A** (al cerrar 4.18). Los pasos de datos y seguridad (4.11, 4.15, 4.24–4.27) van con el Nivel 1 y
     el Nivel 2, como siempre. La cuenta sale del marcador de BITACORA: un paso de pantalla que no lo corre escribe
     `e2e completo: no (4.xx, pantalla, n de 3)`, y la cuenta vuelve a 0 con cada `e2e completo: sí`, sea del paso que sea.
+- **Interfaz: cuándo los e2e dirigidos corren también en `movil`** (la regla vive aquí y en ningún otro lugar; `scripts/piloto/nivel.mjs` la aplica
+  como `toca_interfaz` y la cita, `verificar.sh` del piloto la usa, y `scripts/piloto/nivel.test.ts` falla si esta lista y el código se separan).
+  Un archivo cambiado **es interfaz** si no es una prueba (`*.test.*` o `*.spec.*`) y es un `.tsx` o un `.css` de `src/`, algo de `design/`,
+  `public/`, `src/app/` o `src/shared/ui/`, o algo de `src/modules/<módulo>/pantallas/`. **No lo es** lo demás: `entities/`, `infra/`,
+  `features/` sin componentes, `src/shared/lib`, `supabase/`, `scripts/`, `e2e/` y los docs. Eso sólo se ve a través de una pantalla, y si esa
+  pantalla cambia es ella la que cuenta. La regla es conservadora: ante la duda, `movil`. Un cambio sin interfaz corre los dirigidos sólo en
+  `escritorio`. Esto no toca al completo (Nivel 2 y 3), ni a que todo spec corra en los dos proyectos.
 - **Una captura para mirar se toma con `capturar()` de `e2e/soporte/recorrido.ts`** (o `capturarEn()` de `e2e/soporte/capturas.ts`), nunca
   con un `page.screenshot` suelto: espera a que la pantalla esté quieta (dos cuadros y todas las animaciones y transiciones con fin, con
   tope de 2 s que dice cuáles seguían) y deja `animations: 'disabled'` como respaldo para las infinitas (un spinner, el pulso de un
