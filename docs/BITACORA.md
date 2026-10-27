@@ -3346,3 +3346,57 @@ La salida recomienda correr `next upgrade --agent=security`; **no se corrió** (
 **ESTADO:** «Fase actual» y «Siguiente» dicen DEP-1 hecho y el 4.13-3b es lo que sigue; ya no dice «Next 16.4.0, dos advisories críticos, decide la persona»; el último completo pasa a ser el de DEP-1 y la cuenta de pantallas sin completo, 0. **12.221 B** (`wc -c`, tope 12.288). Lo que salió (el Nivel 3 de la Fase 3 y el aviso de Next) ya está en esta bitácora (2026-10-22 y «CI-1»), así que no se copia otra vez.
 
 **Lo que no se hizo:** el 4.13-3b, ningún push (lo hace la persona después de que el piloto lo revise), `next upgrade`, `experimental.agentUpgrade`, subir `@types/node` a 24, ni cambiar nada de `supabase/`.
+
+## 2026-10-27 — Paso 4.13 (3b de 6): guardar la hoja (4.13-3b)
+
+**Qué se pidió:** el 4.13-3b con el piloto: guardar desde la hoja (la fila 4.13 de `docs/PLAN.md`). El plan, en `.piloto/planes/4.13-3b.md`, pasó por tres versiones: la primera la bloqueó el auditor (la regla del pendiente frente a un SQLSTATE desconocido) y la segunda salió con observaciones. Propuso partir el paso: el 3b es la pantalla y el 3c lo de `src/shared` y 4-25. La persona aprobó P0–P9 como se recomendaron. El informe está en `.piloto/informes/4.13-3b.md` y las salidas en `.piloto/salidas/4.13-3b/` (no van al repo).
+
+**Lo que se hizo:**
+
+- `7d547a4`: guardar con un intento por guardado (4-21).
+- `f32a7ed`: el borrador (4-29).
+- `ff0b560`: D2 en línea con sus dos salidas.
+- `14b6011`: la hoja `inert` mientras guarda, y «Reintentar» por la puerta de «Guardar».
+- El detalle está en `docs/DECISIONES.md`, «Paso 4.13 (3b de 6)».
+- **`ff0b560` junta tres intenciones:** D2, la persona en la clave de la pestaña y «Cotizar otra» sin `router.refresh()`. Las otras dos salieron de los e2e dirigidos de D2:
+  - `cotizar-hoja-niveles.spec.ts:193` entra con dos cuentas en la misma pestaña, y la segunda veía el borrador de la primera (total `46,00` y no `45,00`).
+  - El e2e del clic en «Guardar» con «abc» perdía la celda: el `refresh` la volvía a montar.
+  - No se reescribió la historia: el cuerpo del commit las cuenta por separado.
+
+**Verificación:**
+
+- **Nivel 1:** `pnpm lint` y `pnpm typecheck` en 0; `pnpm test` con 410 archivos y 5.210 pruebas, 0 fallas; `bash scripts/mapa.sh --check` pasa. No se tocó `supabase/`.
+- **e2e dirigidos:** 65 pasan en escritorio y móvil (1,8 min). Son `cotizar-guardar` (1, 2, 7, 9), `cotizar-guardar-intento` (3, 4), `cotizar-guardar-d2` (5, 6, 8), `cotizar-hoja`, `cotizar-hoja-200` y `cotizar-hoja-niveles`. Saltadas nuevas: 0.
+- **Nodos de `[data-hoja]`:** 413 al abrir y 432 usada (tope 460).
+- **JS en frío de `/cotizaciones/nuevo`:** 423,8 KB con gzip.
+- **Pruebas en rojo primero:**
+  - Las entidades, `alQuedarAlDia` y la pantalla, contra `2e103d9`.
+  - Los e2e del guardado y del intento, contra el `src/` de `2e103d9` (2 caen y 3 no corren).
+  - El borrador contra `7d547a4` y D2 contra `f32a7ed`.
+- **Mutaciones (52, en Vitest):** caen todas, salvo cuatro.
+  - La 36 y la 18 sobrevivieron en su primera forma: la 36 se reescribió, y la 18 pidió una prueba con algo tipeado.
+  - Las cuatro sin mutación posible o equivalentes:
+    - 12: la tarjeta sólo recibe la respuesta; lo asserta el e2e 3.
+    - 23: el resultado no lleva el `message` de la base.
+    - «Programa dos»: la espera de 150 ms los junta.
+    - 26: con la abierta en la `key`, otra abierta vuelve a montar la hoja.
+  - Sin mutación: que la action llame a `puedeCotizarEn`. Ninguna action tiene test de Vitest, y la base lo exige.
+- **e2e completo: no (4.13-3b, pantalla, 1 de 3).** El completo que prometía el 3a («el completo lo corre el 4.13-3b») lo cubrió DEP-1, que corrió después del 3a y dejó la cuenta en 0.
+
+**Lo que no se hizo, y lo que queda:**
+
+- El cableado del reenvío al volver la red no tiene prueba propia; `useReintentoAlVolver` sí la tiene.
+- No se tomaron capturas: la redacción del aviso D2 y de la tarjeta no se miró.
+- **Un pendiente que vuelva siempre `perdida` o `inesperado` se reenvía para siempre.** Sólo lo suelta «Cotizar otra» o cerrar la pestaña. El plan lo aceptó: con SQLSTATE siempre se suelta.
+- Los borradores de leads siguen sin la persona en la clave.
+- La trampa de `StrictMode` del borrador, sólo en desarrollo.
+- Sin `@testing-library/user-event`: el `mousedown` se emula con `fireEvent`.
+- Ni push ni Nivel 2: el Nivel 2 es del 3c.
+
+## 2026-10-27 — Movido de ESTADO (4.13-3b)
+
+La línea «Fase actual» y el punto 1 de «Siguiente», como estaban antes del 4.13-3b:
+
+**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho **DEP-1** (Next 16.4.3 y Node 24; cierra **4-35** y **4-37**), el **4.13, prompt 3a de 5** (la base antes de guardar: la hoja abierta que firma la base; antes, el 2: la hoja dibujada, y el 1: `cotizacion_hoja()`), el **4.12** (`XCell`), el **4.11** y el **4.10 entero**. **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20**, **4-21**, **4-23** a **4-26**, **4-29**, **4-30**, **4-33** y **4-34** siguen abiertos. Partición: **28 pasos y 66 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 a 2026-10-26, «movido de ESTADO», 4.08-1 a 4.13-3a).
+
+1. **El 4.13, prompt 3b, con el piloto** (guardar, **con Nivel 2**: toca `src/shared`; son 5 prompts: `docs/PLAN.md` fila 4.13) y en orden hasta 4.28, **un prompt a la vez, y se para a reportar** (`docs/PLAN.md` › «Partición»); la cuenta de pantallas sin completo está en 0 (el completo de DEP-1; `.claude/rules/e2e.md`). **Del 3a:** `cotizacion_hoja().abierta` es la hoja abierta firmada por la base y viaja como `p_abierta` a `cotizacion_evaluar` (el recálculo, ya hecho) y a `cotizacion_crear(id, origen, lead, entradas, abierta, vehículo?, vehículo_nuevo?, modo_tc?, clase, con_la_abierta)` (D2: PT409 `desactualizada`; `abierta_vencida` pide recargar); guardar usa **la misma abierta que el recálculo**; el intento es un uuid por `Ctrl/Cmd+S`, reusado sólo para reintentar **el mismo** pedido, y con `repetido: true` se muestra lo guardado (**4-21**). Hereda del 4.10: nadie escribe `cotizaciones` directo; `cotizacion_guardar(id, intento, versión, entradas, modo, título, notas, vehículo)` es la otra puerta; guarda lo oculto, recalcula lo derivado, una final pide `cotizaciones.final.gestionar` y el orden de candados es vehículo(s) → cotización (`docs/DECISIONES.md`, «Paso 4.10 (3 de 3)»). `cotizaciones.modo_tc` guarda la clave de un modo; el ⚙ de un tipo de cambio es `tipo_cambio_guardar`; las `entradas` sólo llevan `inputs`, `banderas`, `overrides` y `variante`.

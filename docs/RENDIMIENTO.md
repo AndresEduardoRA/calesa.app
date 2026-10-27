@@ -1590,7 +1590,7 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
 - **Nodos del DOM del subárbol `[data-hoja]`:** el plan propuso **650** (32 celdas × 15 nodos, lo que pesa la `XCell` sin ayuda ni ⚙, más ≈ 170 de estructura). Medido: **31 celdas y 411 nodos al abrir; 430 con la hoja usada** (≈ 13 por celda con la estructura). Tope fijado en lo medido más un 5 %: **460**. Con la ayuda y el ⚙ conectados (4.13-4) cada
   celda suma 3 nodos por cada uno: el tope se vuelve a medir allí.
 - **La curva con el tamaño del diseño:** ≈ 13 nodos por celda con su estructura. Una sintética de 2.487 nodos (`corpus-de-diseno.json › sinteticas`) dibujaría ≈ 30.000: el diseño no tiene tope de tamaño (**4-30**, `docs/PLAN.md`).
-- **Pedidos por apertura:** al abrir, **dos** llamadas desde el servidor, en paralelo (`cotizacion_hoja` y `cotizacion_evaluar` con las entradas vacías), y **ninguna** del navegador (`e2e/cotizar-hoja.spec.ts` lo cuenta con el vigilante de recálculos). Una tercera, también del servidor, sólo si la base rechaza el vehículo de la URL (se
+- **Pedidos por apertura:** al abrir, **dos** llamadas desde el servidor, en serie desde el 4.13-3a (`cotizacion_hoja` y `cotizacion_evaluar` con las entradas vacías), y **ninguna** del navegador (`e2e/cotizar-hoja.spec.ts` lo cuenta con el vigilante de recálculos). Una tercera, también del servidor, sólo si la base rechaza el vehículo de la URL (se
   vuelve a calcular sin él). Después, **uno por pausa de tecleo**: tres confirmaciones con el primer pedido retenido no sacan otro; al soltarlo sale **uno** con lo último; el máximo en vuelo a la vez medido es **1**.
 - **JS en frío de la ruta (gzip, sin caché, `e2e/soporte/js-en-frio.ts`):** `/cotizaciones/nuevo` **418,5 KB** en 24 chunks; en el mismo build `/perfil` **414,3 KB** (24 chunks), `/vehiculos` 468,9 y `/leads` 505,1. La hoja pesa **+4,2 KB** sobre el marco (la `XCell`, el hook de recálculo, el binding y el cliente de Supabase que ya estaba).
   Sin presupuesto todavía: el formal es del 4.13-4 (`e2e/soporte/presupuestos.ts`).
@@ -1604,3 +1604,12 @@ Sin cambios de código, SQL ni specs: sólo reproducir y medir. La causa vive ac
   la clave de Vault y un HMAC: ≈ 0,3 ms; tope de lo que suma, 3 ms). `cotizacion_crear()` con 250.000 cotizaciones: la preventa **6,0 a 6,5 ms y 356 buffers** (antes 6,5 ms y 265: la lectura de la clave y el HMAC suman ≈ 90 buffers; tope 20 ms y 1.500); `cotizacion_guardar()` no cambia (no la usa).
 - **Un viaje más al abrir:** el primer `cotizacion_evaluar()` del servidor espera a la lectura de la hoja (necesita la `abierta`); antes iban en paralelo. Son ≈ 4 ms de la base más el salto de red del servidor a la base, medido en local (≈ 1 ms); se ahorra el cálculo cuando la hoja vuelve «sin publicar» o sin permiso. Del navegador sigue sin salir ningún pedido al abrir.
 - **`db:medir` entero:** en verde desde `db:reset`. **`medir-publicar.sql` no se repite sin `db:reset`** (la guarda «una sonda que recorre la tabla suma 0 bloques» cayó en una segunda corrida sobre la misma base; es de 4.08, no de este paso).
+
+## Paso 4.13 (3b de 6): guardar la hoja (2026-10-27)
+
+- **Nodos del DOM** de `[data-hoja]` en la hoja más grande del juego (31 celdas): **413 al abrir y 432 usada**, con «Guardar» y el lugar de su aviso. El tope sigue en 460 (`e2e/cotizar-hoja-200.spec.ts`); antes eran 411 y 430.
+- **JS en frío de `/cotizaciones/nuevo`:** **423,8 KB** con gzip en 24 chunks (antes 418,5): el marco, el guardado y el borrador. El presupuesto formal es del 4.13-4.
+- **Pedidos:**
+  - Un guardado es **un** POST de la action y **una** llamada a `cotizacion_crear`, ya medida en el 4.13-3a: 6,0 a 6,5 ms y 356 buffers con 250.000 cotizaciones.
+  - Guardar mientras se recalcula no suma recálculos: espera al que ya iba.
+  - Reponer un borrador saca un recálculo. Abrir sin borrador no saca ninguno.

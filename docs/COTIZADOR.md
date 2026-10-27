@@ -1209,7 +1209,7 @@ foco, así que devolverlo al cerrar lo abierto es de la hoja. **Deshabilitada:**
 
 ### La hoja dibujada y el recálculo (4.13-2)
 
-`/cotizaciones/nuevo?origen=&lead=&vehiculo=` (`src/app/(app)/cotizaciones/nuevo/`, sin entrada en la navegación hasta el 4.16). **Una lectura y un cálculo al abrir, en el servidor y en paralelo** (`cotizacion_hoja` y `cotizacion_evaluar` con las entradas vacías, `recalcularAlAbrir()`): la hoja llega dibujada con sus valores y el navegador no
+`/cotizaciones/nuevo?origen=&lead=&vehiculo=` (`src/app/(app)/cotizaciones/nuevo/`, sin entrada en la navegación hasta el 4.16). **Una lectura y un cálculo al abrir, en el servidor, en serie** (`cotizacion_hoja` primero y `cotizacion_evaluar` con las entradas vacías y su hoja abierta después, `recalcularAlAbrir()`; iban en paralelo hasta el 4.13-3a): la hoja llega dibujada con sus valores y el navegador no
 pide nada. Después, **un pedido por pausa, desde el navegador** (`infra/recalculo.client.ts`): no hay un salto por Next ni se vuelve a leer la sesión en cada pausa, y la base ya exige `cotizaciones.crear` del origen y recorta lo oculto.
 
 **La cola (`useRecalculo()`).** Cada confirmación (un Enter, un Tab, un clic en un chip o en un interruptor: la `XCell` no emite por tecla) reinicia una espera de 150 ms; al vencer sale UN pedido con las entradas de ese momento. Con uno en vuelo no sale otro: queda pendiente y sale uno solo, con lo
@@ -1235,10 +1235,30 @@ la lectura dice su tipo (`secundario.tipo_nodo`, 4-31): un `input` va a `inputs`
 quien no ve la bandera no puede mandarla (`entrada_invalida`, igual que una que no existe), así que para esa persona la celda vuelve siempre `condicion_apagada` con valor 0, y la hoja dice «Está apagada en esta hoja.» sin nombrar nada. No la esconde: no sabe si el interruptor oculto era `habilita` o `muestra`, y esconderla por una ausencia sería deducir algo
 que la lectura no dice. Con la bandera a la vista: «Se habilita con «<interruptor>».»; si es de una bandera `muestra` y está apagada, no se dibuja. La prueba: `e2e/cotizar-hoja-niveles.spec.ts`, con una persona que ve «todos» y otra que ve «costos».
 
-**El par con el monto calculado.** La `XCell` tiene un solo candado para los dos lados, y en Transferencia, Garantía, Seguro, GA, IVA e ICE el monto se calcula y el porcentaje se edita: hasta el candado por lado (4.13-3, `src/shared`) el par se bloquea entero con el motivo del monto.
+**El par con el monto calculado.** La `XCell` tiene un solo candado para los dos lados, y en Transferencia, Garantía, Seguro, GA, IVA e ICE el monto se calcula y el porcentaje se edita: hasta el candado por lado (4.13-3c, `src/shared`) el par se bloquea entero con el motivo del monto.
 
 **Pedidos por apertura:** dos en el servidor (la hoja y el primer cálculo; una tercera sólo si la base rechaza el vehículo de la URL, y entonces se calcula sin él), ninguno del navegador al abrir, y uno por pausa de tecleo después, nunca dos en vuelo. **Tope de nodos del DOM** de la hoja más grande del juego (`subasta_usa`, 47 nodos y 39 ítems, 31 celdas): se propuso en 650 y se midió 411 al abrir
 y 430 con la hoja usada (un monto, los dos interruptores, un override): tope **460** (`docs/RENDIMIENTO.md`).
+
+### Guardar desde la hoja (4.13-3b)
+
+`docs/DECISIONES.md`, «Paso 4.13 (3b de 6)».
+
+- **El camino:** `Ctrl/Cmd+S` o «Guardar» llegan a la Server Action `crear-cotizacion.ts`, y de ahí a `cotizacion_crear`.
+  - Siempre como preventa, sin `p_modo_tc` (eso es del 4.13-4) ni vehículo cargado a mano (4.14).
+  - Va con **la misma hoja abierta que el recálculo**: `useHoja` la fija al montarse, y la `key` de la hoja la lleva.
+- **El intento (4-21):** un uuid por guardado. El pedido queda pendiente en la pestaña, con la clave de la persona y de la hoja.
+  - Se suelta con toda respuesta con SQLSTATE.
+  - Se conserva sin red, con un `serverError`, o con una respuesta sin código o ilegible.
+  - Con un pendiente, «Guardar» reenvía ese pedido. Con `repetido`, la tarjeta muestra lo guardado y lo dice.
+- **Antes de guardar:**
+  - La celda abierta recibe un `Enter`. Con «abc» no se guarda.
+  - Se espera al total al día (`alQuedarAlDia`): el pedido lleva las entradas que ese recálculo calculó.
+  - Con el total nulo, o con un valor que el recálculo descartó, «Guardar» se apaga con su motivo.
+- **Los rechazos** se leen de su código, `details` y `hint` (`entities/guardado.ts`), con textos propios: nunca el mensaje de la base.
+  - D2 (`PT409 desactualizada`) va en línea con dos salidas. «Guardar con la versión N» manda el pedido que recibió el aviso, con `p_con_la_abierta`.
+  - La abierta rechazada ofrece «Recargar».
+- **El borrador (4-29):** sólo lo tipeado, y vuelve contra la hoja de ahora.
 
 ## Plantilla de tarjeta (PDF)
 

@@ -89,7 +89,13 @@ Estados propios:
   permiso.
 - **Link de subasta inválido o sin datos:** se puede seguir a mano.
 - **Desactualizada** (D2): al guardar una nueva, la fórmula publicada o un tipo de cambio cambió desde que se abrió la hoja; la pantalla
-  ofrece «Usar la versión N+1» o «Guardar con la N». Editar una vieja no avisa: usa SU versión.
+  ofrece «Usar la versión nueva» o «Guardar con la versión N» (4.13-3b: en línea en el resumen; para un tipo de cambio, «Usar el de hoy» o «Guardar con el de la hoja», sin decir cuál cambió). Editar una vieja no avisa: usa SU versión.
+- **Guardar** (4.13-3b): `Ctrl/Cmd+S` o «Guardar».
+  - Lo guardado reemplaza la hoja por la tarjeta «Cotización n.º N guardada», con su total y «Cotizar otra».
+  - Sin lead, «Guardar» está apagado con «Para guardar, abre la hoja desde un lead.».
+  - Mientras recalcula, el guardado espera al total; con el total nulo, «Guardar» se apaga. Mientras guarda, la hoja no se toca.
+  - Si la respuesta se perdió, el próximo guardado reenvía lo mismo y la tarjeta dice que lo tipeado después no se guardó.
+  - El borrador vuelve al recargar, con «Descartar».
 - **Vencida** (D1): pasó la vigencia de la empresa; se dice en el listado, la tarjeta y el PDF, y se recotiza encima.
 - **El recálculo falla o no hay red:** la hoja conserva lo tipeado, dice «No se pudo recalcular» con «Reintentar» y no deja guardar
   con un total viejo. (4.13-2) Mientras recalcula —o si falló— el total lleva «Total desactualizado.»; si la fórmula cambió (una regla
