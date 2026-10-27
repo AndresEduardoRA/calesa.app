@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Las compuertas del bucle (se hace `source` desde bucle.sh; no se corre solo). Una compuerta es lo único que el bucle le pregunta a la
-# persona: escribe `<común>/piloto/compuerta.md` (con un id nuevo) y su copia de lectura en `.piloto/`, abre la sesión corta de decidir
-# (`decidir.sh abrir`) y espera. Sólo acepta `decision.md` si: su id es el de la compuerta vigente, es posterior a `compuerta.md` y
+# persona: escribe `<común>/piloto/compuerta.md` (con un id nuevo), abre la sesión corta de decidir (`decidir.sh abrir`, que deja la copia
+# de lectura en `.piloto/`) y espera. Sólo acepta `decision.md` si: su id es el de la compuerta vigente, es posterior a `compuerta.md` y
 # ningún paso vivía cuando apareció (`en-curso.json` y `pgrep`); si no, la borra y sigue esperando. Con la decisión aceptada cierra la
 # sesión de decidir y, con `datos` aprobada, escribe `aprobado-<paso>`. Nada sigue sin respuesta. Se prueba en `bucle.test.ts`.
 #
@@ -57,7 +57,6 @@ escribir_compuerta() {
     for o in "${CONTEXTO[@]:-}"; do [ -n "$o" ] && echo "- $o"; done
   } >"$COMUN/compuerta.md.tmp"
   mv -f "$COMUN/compuerta.md.tmp" "$COMUN/compuerta.md"
-  cp -f "$COMUN/compuerta.md" "$ESTADO/compuerta.md"
 }
 
 paso_vivo() {

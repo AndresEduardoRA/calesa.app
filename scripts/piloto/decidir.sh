@@ -3,8 +3,9 @@
 # cierra: la compuerta (`<común>/piloto/compuerta.md`, con un id nuevo) la escribe el bucle, y la decisión la anota el hook
 # `anotar-decision.sh` (esa sesión no escribe nada). Se prueba en `decidir.test.ts`.
 #
-#   decidir.sh abrir     lee compuerta.md y abre la sesión (`piloto-decidir`); no espera la respuesta
-#   decidir.sh cerrar    anota el consumo de la sesión (tokens del transcript) y la cierra
+#   decidir.sh abrir     lee compuerta.md, deja su copia de lectura en `.piloto/` (la que lee la skill) y abre la sesión
+#                        (`piloto-decidir`); no espera la respuesta
+#   decidir.sh cerrar    anota el consumo de la sesión (tokens del transcript), la cierra y borra la copia de lectura
 #   decidir.sh --prueba  una compuerta de mentira, para que la persona pruebe el push, la pregunta y el hook la primera vez
 #
 # La sesión: sonnet, esfuerzo bajo, sólo `Read` y `AskUserQuestion`, con `decidir.settings.json` de la copia (el hook). Con
@@ -26,6 +27,9 @@ abrir() {
   uuid=$(cat /proc/sys/kernel/random/uuid)
   mkdir -p "$ESTADO"
   echo "$uuid" >"$ESTADO/decidir-sesion"
+  # La skill lee la copia de `.piloto/` (no puede abrir `.git/`): se hace aquí, donde se abre la sesión, para que valga con cualquier
+  # escritor de la compuerta (el bucle o `--prueba`). Sin la copia la sesión contestaba «No hay una compuerta abierta.».
+  cp -f "$COMUN/compuerta.md" "$ESTADO/compuerta.md"
   tmux kill-session -t "$SESION_TMUX" 2>/dev/null
   # El nombre lleva el tipo y el paso (sin comillas): es lo que la persona ve en la lista de sesiones del celular.
   local nombre="piloto · ${tipo//[\'\"]/} ${paso//[\'\"]/}"
@@ -41,6 +45,7 @@ cerrar() {
     [ -n "$transcript" ] && PILOTO_DIR="$ESTADO" bash "$BIN/consumo.sh" transcript decidir "$(campo tipo) $(campo paso)" sonnet low listo "$transcript"
   fi
   tmux kill-session -t "$SESION_TMUX" 2>/dev/null
+  rm -f "$ESTADO/compuerta.md"
   return 0
 }
 

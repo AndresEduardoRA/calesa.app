@@ -84,7 +84,7 @@ es el de la compuerta vigente, es posterior a `compuerta.md` y **ningún paso es
 
 ## Dónde vive cada cosa
 
-- **`.piloto/`** (ignorada por git; la escriben el bucle y las sesiones): `hechos.json`, `en-curso.json`, `ultimo.json`, `ruteo.json`, `consumo.csv`, `registro.md`, `llamadas/`, `sesiones/`, `planes/`, `informes/`, `salidas/`, `compuerta.md` (copia de lectura), `PARAR`, `bucle.lock`.
+- **`.piloto/`** (ignorada por git; la escriben el bucle y las sesiones): `hechos.json`, `en-curso.json`, `ultimo.json`, `ruteo.json`, `consumo.csv`, `registro.md`, `llamadas/`, `sesiones/`, `planes/`, `informes/`, `salidas/`, `compuerta.md` (copia de lectura; la deja `decidir.sh abrir` y la borra `cerrar`), `PARAR`, `bucle.lock`.
 - **`<carpeta común de git>/piloto/`** (común a todos los worktrees, fuera del árbol; sólo la escribe bash): `compuerta.md` (la que vale, con un `id` nuevo), `decision.md`, `aprobado-<paso>` y `bin/` con `bin.sha256`.
 - `scripts/piloto/` las piezas y sus pruebas; `.claude/skills/piloto*` los prompts; `.claude/agents/{auditor,planificador}.md`; `.claude/hooks/` las guardas.
 
@@ -129,6 +129,10 @@ La verificación de siempre del Stop (mapa + typecheck + lint + test + mapa) ≈
 - **`bash scripts/piloto/decidir.sh --prueba`** desde el celular (el push, la pregunta y el hook que anota la decisión; confirma si `tool_response` de `AskUserQuestion` trae la respuesta o hay que leer el transcript) y **el primer `bash scripts/piloto/arrancar.sh`** real: ambos los hace la persona. Sin eso las compuertas nunca se probaron de punta a punta con el modelo.
 - Aceptar la confianza de la carpeta (arriba) para que valgan las `permissions.allow`.
 - Integrar: `git rebase main` en el worktree, entradas A0 en DECISIONES y BITACORA, ESTADO por sustitución y `docs(docs): cerrar el paso a0 del piloto` (ver el plan de A0).
+
+## La primera prueba en vivo de decidir (2026-10-26)
+
+`decidir.sh --prueba` abrió la sesión «piloto · prueba decidir --prueba» y ésta contestó «No hay una compuerta abierta.» sin preguntar nada. **Causa:** `--prueba` escribía la compuerta sólo en `<común>/piloto/compuerta.md`, y la skill lee la copia `.piloto/compuerta.md`, que sólo hacía `escribir_compuerta` del bucle (el transcript: un `Read` de esa ruta, «File does not exist»). El camino real del bucle funcionaba; el de `--prueba` no. **Por qué las pruebas no lo vieron:** `decidir.test.ts` sembraba `comun/compuerta.md` a mano y su `tmux` falso no leía nada, y `FALSO_DECIDIR` del arnés del bucle lee `$PILOTO_COMUN`: ninguno leía por el camino de la skill. **Arreglo:** la copia la hace `decidir.sh abrir` (un solo lugar, vale para cualquier escritor) y `cerrar` la borra; el `tmux` falso de `decidir.test.ts` lee, desde el `-c` que recibe, la ruta que sale del propio `SKILL.md`, y `--prueba` tiene test. Pasa a BITACORA al integrar.
 
 ## Lo que la doc no confirma
 
