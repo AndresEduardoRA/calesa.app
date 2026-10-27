@@ -46,11 +46,16 @@ rama_de() {
   git -C "$d" symbolic-ref --quiet --short HEAD 2>/dev/null
 }
 
-# El primer argumento que no es una opción (después de $1 argumentos que se saltan).
+# Hay un argumento que no es una opción ni el valor de una (`--filter web`, `--dir x`): un paquete.
 hay_posicional() {
-  local t
+  local t saltar=0
   for t in "$@"; do
-    case "$t" in -*) ;; *) return 0 ;; esac
+    if [ "$saltar" = 1 ]; then saltar=0; continue; fi
+    case "$t" in
+      --filter | -F | --dir | -C | --prefix | --registry | --store-dir | --reporter | --loglevel) saltar=1 ;;
+      -*) ;;
+      *) return 0 ;;
+    esac
   done
   return 1
 }
@@ -203,6 +208,15 @@ revisar_segmento() {
   local W=() t
   # Sin comillas: `bash -c 'git clean -fd'` y `git commit -m "x"` se leen igual que sin ellas.
   read -ra W <<<"${1//[\"\']/}"
+  # Una redirección (`> f`, `2>/dev/null`, `>> f`, `< f`) no es un argumento: se descarta con su archivo.
+  local L=("${W[@]}") saltar=0
+  W=()
+  for t in "${L[@]}"; do
+    if [ "$saltar" = 1 ]; then saltar=0; continue; fi
+    if [[ "$t" =~ ^[0-9]*(\>\>?|\<)$ ]]; then saltar=1; continue; fi
+    [[ "$t" =~ ^[0-9]*(\>\>?|\<). ]] && continue
+    W+=("$t")
+  done
   CON_CANDADO=0
   while :; do
     [ "${#W[@]}" -eq 0 ] && return 0
@@ -273,7 +287,8 @@ revisar_segmento() {
 A=()
 ARGS=""
 CON_CANDADO=0
-SEGMENTOS=$(printf '%s' "$CMD" | sed -E 's/(&&|\|\||;|\||`|\$\(|\(|\)|&)/\n/g')
+# `2>&1` y `&>` llevan un `&` que no separa comandos: se reducen antes de partir.
+SEGMENTOS=$(printf '%s' "$CMD" | sed -E 's/[0-9]*[<>]&[0-9-]*//g; s/&>>?/>/g' | sed -E 's/(&&|\|\||;|\||`|\$\(|\(|\)|&)/\n/g')
 while IFS= read -r segmento; do
   revisar_segmento "$segmento"
 done <<<"$SEGMENTOS"

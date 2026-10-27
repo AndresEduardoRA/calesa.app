@@ -82,6 +82,8 @@ es el de la compuerta vigente, es posterior a `compuerta.md` y **ningún paso es
 | La copia de `bin/`                               | El bucle no ejecuta código que un paso pudo cambiar                                                                                                                                         | `bucle*.test.ts` («paso que reescribe verificar.sh», «copia alterada»)                                          |
 | Cierre por el bucle                              | a) → c) → b) → d), sin creerle al «listo»                                                                                                                                                   | `bucle-cierre.test.ts`, `verificar.test.ts`, `publicar.test.ts`                                                 |
 
+`bloquear-peligrosos.sh` lee los argumentos sin redirecciones (`2>&1`, `> f`, `&>`, `< f`) ni valores de opción (`--filter web`): `pnpm install 2>&1` ya no se toma por un paquete (visto en DEP-1); la tabla lo cubre para pnpm, npm, yarn, el candado y `playwright --list`.
+
 ## Dónde vive cada cosa
 
 - **`.piloto/`** (ignorada por git; la escriben el bucle y las sesiones): `hechos.json`, `en-curso.json`, `ultimo.json`, `ruteo.json`, `consumo.csv`, `registro.md`, `llamadas/`, `sesiones/`, `planes/`, `informes/`, `salidas/`, `compuerta.md` (copia de lectura; la deja `decidir.sh abrir` y la borra `cerrar`), `PARAR`, `bucle.lock`.
