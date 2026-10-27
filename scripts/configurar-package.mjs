@@ -8,7 +8,7 @@ const pkg = JSON.parse(readFileSync(ruta, 'utf8'))
 pkg.name = 'importadora'
 pkg.packageManager = `pnpm@${execSync('pnpm -v').toString().trim()}` // lo leen corepack y CI
 pkg.private = true
-pkg.engines = { node: '>=22.13.0', pnpm: '>=10' }
+pkg.engines = { node: '>=24', pnpm: '>=10' }
 pkg.scripts = {
   ...pkg.scripts,
   dev: 'next dev',
