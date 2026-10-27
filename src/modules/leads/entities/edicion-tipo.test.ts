@@ -51,6 +51,7 @@ function entrada(cambios: Record<string, string> = {}, ficha: LeadDeFicha = FICH
     origenes: ORIGENES,
     tipos: TIPOS,
     zona: ZONA,
+    locale: 'es-BO',
   }
 }
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRegional } from '@/shared/ui/regional'
 import type { NumerosDeLead } from '@/shared/lib/numeros-de-lead'
 import { useRef, type Dispatch, type SetStateAction } from 'react'
 import { olvidarDatosDelAlta } from '../../../composicion.client'
@@ -54,9 +55,11 @@ type Preparado =
 type Contexto = Pick<Args, 'estado' | 'setEstado' | 'contexto' | 'zona'>
 
 // Los datos del lead y el teléfono: lo que no pasa queda dicho en el estado y no se sigue.
-function validarLosDatos(args: Contexto & Pick<Args, 'layout' | 'telefono'>): DatosDeAlta | null {
-  const { estado, setEstado, layout, contexto, zona, telefono } = args
-  const validacion = validarAlta({ valores: estado.valores, layout, contexto, zona })
+function validarLosDatos(
+  args: Contexto & Pick<Args, 'layout' | 'telefono'> & { locale: string },
+): DatosDeAlta | null {
+  const { estado, setEstado, layout, contexto, zona, locale, telefono } = args
+  const validacion = validarAlta({ valores: estado.valores, layout, contexto, zona, locale })
   if (!validacion.ok) {
     setEstado((antes) => trasValidacion(antes, validacion.porCampo))
     return null
@@ -108,6 +111,7 @@ async function preparaElSeguimiento(args: Contexto, datos: DatosDeAlta): Promise
 // el intento queda esperando (con su id) y sale solo al volver.
 export function useEnvioDelAlta(args: Args) {
   const { estado, setEstado, layout, contexto, zona, telefono, alGuardado } = args
+  const { locale } = useRegional()
   const envio = useCrearLead()
   const preparando = useRef(false)
   const hayTipos = contexto.tiposDeSeguimiento.length > 0
@@ -153,7 +157,7 @@ export function useEnvioDelAlta(args: Args) {
 
   // Los datos del lead y del teléfono, antes de pasar a nada más.
   function validarElLead(): DatosDeAlta | null {
-    return validarLosDatos({ estado, setEstado, layout, contexto, zona, telefono })
+    return validarLosDatos({ estado, setEstado, layout, contexto, zona, locale, telefono })
   }
 
   async function conElSeguimiento(datos: DatosDeAlta): Promise<Preparado> {

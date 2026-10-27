@@ -32,7 +32,7 @@ export function LadoDeXCell(props: Props) {
         seleccion={e.edicion.seleccion}
         nombre={lado === 'principal' ? etiqueta : `${etiqueta}, ${datos.formato}`}
         describedby={props.idDeLaNotaDeLaEntrada}
-        invalido={e.edicion.invalido}
+        invalido={e.edicion.aviso !== null}
         alEscribir={e.alEscribir}
         alCerrar={e.alCerrar}
         alPerderElFoco={e.alPerderElFoco}

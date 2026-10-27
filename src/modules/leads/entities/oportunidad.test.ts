@@ -89,33 +89,47 @@ describe('oportunidadDesde', () => {
 
 describe('montoDesdeTexto', () => {
   it('entiende los separadores de miles y decimales', () => {
-    expect(montoDesdeTexto('25000')).toBe(25000)
-    expect(montoDesdeTexto('25.000')).toBe(25000)
-    expect(montoDesdeTexto('25.000,50')).toBe(25000.5)
-    expect(montoDesdeTexto('25,000.5')).toBe(25000.5)
-    expect(montoDesdeTexto('1.234.567')).toBe(1234567)
-    expect(montoDesdeTexto(' ')).toBeNull()
+    expect(montoDesdeTexto('25000', 'es-BO')).toBe(25000)
+    expect(montoDesdeTexto('25.000', 'es-BO')).toBe(25000)
+    expect(montoDesdeTexto('25.000,50', 'es-BO')).toBe(25000.5)
+    expect(montoDesdeTexto('1.234.567', 'es-BO')).toBe(1234567)
+    expect(montoDesdeTexto(' ', 'es-BO')).toBeNull()
   })
   it('lo que no es un número', () => {
-    expect(montoDesdeTexto('-5')).toBe('invalido')
-    expect(montoDesdeTexto('abc')).toBe('invalido')
-    expect(montoDesdeTexto('1,2,3')).toBe('invalido')
+    expect(montoDesdeTexto('-5', 'es-BO')).toBe('invalido')
+    expect(montoDesdeTexto('abc', 'es-BO')).toBe('invalido')
+    expect(montoDesdeTexto('1,2,3', 'es-BO')).toBe('invalido')
+    expect(montoDesdeTexto('1e3', 'es-BO')).toBe('invalido')
+  })
+  it('con el locale de la empresa: en es-BO «25,000.5» es un aviso, en en-US un monto (P2)', () => {
+    expect(montoDesdeTexto('25,000.5', 'es-BO')).toEqual({
+      aviso: 'Usa coma para los decimales y el punto sólo para los miles: 1.234,5.',
+    })
+    expect(montoDesdeTexto('25,000.5', 'en-US')).toBe(25000.5)
+    expect(
+      validarOportunidad({ titulo: 'Hilux', monto: '25.5', notas: '', vehiculo: '' }, 'es-BO')
+        .monto_estimado,
+    ).toBe('Usa coma para los decimales: 25,5.')
   })
 })
 
 describe('validarOportunidad', () => {
   const valores = { titulo: 'Hilux', monto: '', notas: '', vehiculo: '' }
   it('título, monto y notas, por campo', () => {
-    expect(validarOportunidad(valores)).toEqual({})
-    expect(validarOportunidad({ ...valores, titulo: ' ' }).titulo).toMatch(/entre 1 y 120/)
-    expect(validarOportunidad({ ...valores, titulo: 'x'.repeat(121) }).titulo).toMatch(
+    expect(validarOportunidad(valores, 'es-BO')).toEqual({})
+    expect(validarOportunidad({ ...valores, titulo: ' ' }, 'es-BO').titulo).toMatch(/entre 1 y 120/)
+    expect(validarOportunidad({ ...valores, titulo: 'x'.repeat(121) }, 'es-BO').titulo).toMatch(
       /entre 1 y 120/,
     )
-    expect(validarOportunidad({ ...valores, monto: 'mucho' }).monto_estimado).toMatch(/con números/)
-    expect(validarOportunidad({ ...valores, monto: '1000000000000' }).monto_estimado).toBe(
+    expect(validarOportunidad({ ...valores, monto: 'mucho' }, 'es-BO').monto_estimado).toMatch(
+      /con números/,
+    )
+    expect(validarOportunidad({ ...valores, monto: '1000000000000' }, 'es-BO').monto_estimado).toBe(
       'El monto es demasiado grande.',
     )
-    expect(validarOportunidad({ ...valores, notas: 'x'.repeat(2001) }).notas).toMatch(/hasta 2000/)
+    expect(validarOportunidad({ ...valores, notas: 'x'.repeat(2001) }, 'es-BO').notas).toMatch(
+      /hasta 2000/,
+    )
   })
   it('el motivo hasta 200', () => {
     expect(validarMotivo('x'.repeat(200))).toBeNull()
@@ -126,7 +140,10 @@ describe('validarOportunidad', () => {
 describe('lo que viaja', () => {
   it('al crear: recorta, el monto como número y el vehículo como id', () => {
     expect(
-      datosDeOportunidad({ titulo: ' Hilux ', monto: '25.000', notas: ' ', vehiculo: 'v1' }),
+      datosDeOportunidad(
+        { titulo: ' Hilux ', monto: '25.000', notas: ' ', vehiculo: 'v1' },
+        'es-BO',
+      ),
     ).toEqual({
       titulo: 'Hilux',
       monto_estimado: 25000,
@@ -136,20 +153,28 @@ describe('lo que viaja', () => {
   })
   it('al editar, sólo lo que cambió; un vehículo que ya no se ve no se toca', () => {
     const antes = leida()
-    expect(cambiosDeOportunidad(antes, valoresDeOportunidad(antes, 'es-BO'))).toEqual({})
+    expect(cambiosDeOportunidad(antes, valoresDeOportunidad(antes, 'es-BO'), 'es-BO')).toEqual({})
     expect(
-      cambiosDeOportunidad(antes, { ...valoresDeOportunidad(antes, 'es-BO'), titulo: 'Otra' }),
+      cambiosDeOportunidad(
+        antes,
+        { ...valoresDeOportunidad(antes, 'es-BO'), titulo: 'Otra' },
+        'es-BO',
+      ),
     ).toEqual({
       titulo: 'Otra',
     })
     expect(
-      cambiosDeOportunidad(antes, { ...valoresDeOportunidad(antes, 'es-BO'), vehiculo: '' }),
+      cambiosDeOportunidad(
+        antes,
+        { ...valoresDeOportunidad(antes, 'es-BO'), vehiculo: '' },
+        'es-BO',
+      ),
     ).toEqual({
       vehiculo_id: null,
     })
     const oculta = { ...antes, vehiculo: null, vehiculoOculto: true }
     expect(valoresDeOportunidad(oculta, 'es-BO').vehiculo).toBe('oculto')
-    expect(cambiosDeOportunidad(oculta, valoresDeOportunidad(oculta, 'es-BO'))).toEqual({})
+    expect(cambiosDeOportunidad(oculta, valoresDeOportunidad(oculta, 'es-BO'), 'es-BO')).toEqual({})
   })
   it('una nueva arranca vacía', () => {
     expect(valoresDeOportunidad(null, 'es-BO')).toEqual({
@@ -235,5 +260,16 @@ describe('valoresDeOportunidad con el locale (4.13-3c)', () => {
     expect(valoresDeOportunidad({ ...leida(), monto: 1.6 }, 'es-BO').monto).toBe('1,6')
     expect(valoresDeOportunidad({ ...leida(), monto: 21500.25 }, 'es-BO').monto).toBe('21500,25')
     expect(valoresDeOportunidad({ ...leida(), monto: 21500.25 }, 'en-US').monto).toBe('21500.25')
+  })
+})
+
+describe('abrir lo guardado y guardar sin tocar conserva el monto (4.13-3c, C14)', () => {
+  it('1,6 y 21500,25 en es-BO y en en-US: nada cambia', () => {
+    for (const locale of ['es-BO', 'en-US']) {
+      for (const monto of [1.6, 21500.25]) {
+        const antes = { ...leida(), monto }
+        expect(cambiosDeOportunidad(antes, valoresDeOportunidad(antes, locale), locale)).toEqual({})
+      }
+    }
   })
 })

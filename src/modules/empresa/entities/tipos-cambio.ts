@@ -1,6 +1,7 @@
 // Monedas y tipos de cambio nombrados (oficial, paralelo…). Hay un solo valor vigente por clave:
 // cambiarlo pisa el anterior y el historial lo guarda un trigger. Las cotizaciones guardadas no
 // se mueven: cada una congeló los que usó.
+import { avisoDeNumero, leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
 import type { Tables } from '@/shared/types/database.types'
 import { formatearParaEditar } from '@/shared/lib/formato'
 
@@ -130,13 +131,22 @@ export function decimalesDeValor(valor: number): number {
 export const textoParaEditar = (valor: number, locale: string): string =>
   formatearParaEditar(valor, { locale })
 
-// Lo que se tipea en el campo del valor: acepta coma o punto decimal. null si no es un número
-// mayor que cero o tiene más decimales de los que guarda la base.
-export function valorTipeado(texto: string): number | null {
-  const limpio = texto.trim().replace(',', '.')
-  if (!/^\d+(\.\d{1,6})?$/.test(limpio)) {
-    return null
+export const VALOR_INVALIDO = 'Escribe un valor mayor que cero, con hasta 6 decimales.'
+
+export type ValorTipeado = { ok: true; valor: number } | { ok: false; motivo: string }
+
+// Lo que se tipea en el campo del valor, con el lector de toda la app y el locale de la empresa (4-25): en es-BO «6,96» y «12.405» (doce mil
+// cuatrocientos cinco, P5 del 4.13-3c); «6.96» dice su aviso. Tiene que ser mayor que cero y con los decimales que guarda la base.
+export function valorTipeado(texto: string, locale: string): ValorTipeado {
+  const leido = leerNumeroTipeado(texto, locale)
+  if (!leido.ok) {
+    return {
+      ok: false,
+      motivo:
+        leido.motivo === 'separador' ? avisoDeNumero(texto, leido.motivo, locale) : VALOR_INVALIDO,
+    }
   }
-  const valor = Number(limpio)
-  return valor > 0 ? valor : null
+  return leido.valor !== null && leido.valor > 0 && leido.decimales <= DECIMALES_MAXIMOS
+    ? { ok: true, valor: leido.valor }
+    : { ok: false, motivo: VALOR_INVALIDO }
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRegional } from '@/shared/ui/regional'
 import { useMemo, useState } from 'react'
 import { origenInicial } from '../../../entities/alta'
 import type { ContextoDeImportacion } from '../../../entities/importacion/contexto'
@@ -40,6 +41,7 @@ function eleccionInicial(contexto: ContextoDeImportacion): EleccionParaTodoElArc
 // El estado del asistente hasta antes de importar: el archivo, a qué dato va cada columna, lo que se
 // elige para todo el archivo y lo que sale de validar cada fila con las reglas del alta.
 export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
+  const { locale } = useRegional()
   const objetivos = useMemo<ObjetivoDeImportacion[]>(() => objetivosDeImportacion(campos), [campos])
   const [archivo, setArchivo] = useState<ArchivoCargado | null>(null)
   const [destinos, setDestinos] = useState<(string | null)[]>([])
@@ -60,6 +62,7 @@ export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
       campos,
       contexto,
       zona,
+      locale,
       eleccion,
       paises,
       nuevoId: () => {
@@ -68,7 +71,7 @@ export function useAsistenteDeImportacion({ campos, contexto, zona }: Entrada) {
         return id
       },
     })
-  }, [archivo, destinos, campos, contexto, zona, eleccion, paises])
+  }, [archivo, destinos, campos, contexto, zona, locale, eleccion, paises])
 
   const faltan = useMemo(() => objetivosSinColumna(destinos, objetivos), [destinos, objetivos])
 

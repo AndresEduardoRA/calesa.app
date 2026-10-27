@@ -1,6 +1,8 @@
 // De lo que dice una celda a lo que el formulario del alta espera de un campo (`ValorDeFormulario`),
 // según su tipo. Después `validarAlta()` lo valida con las mismas reglas del alta: el archivo no tiene
 // reglas propias. Sin I/O.
+import { formatearParaEditar } from '@/shared/lib/formato'
+import { avisoDeNumero } from '@/shared/lib/numero-tipeado'
 import { vacioDe, type ValorDeFormulario } from '@/shared/lib/campos'
 import type { CampoDeLead } from '../campo'
 import { comparable, sinApostrofoDeFormula } from './texto'
@@ -47,15 +49,29 @@ export function fechaHoraLocal(texto: string): string | null {
     : null
 }
 
-// «1.234,5» y «1,234.5» se dicen como un número; lo demás lo lee el esquema del campo.
-function numeroLimpio(texto: string): string {
+// El número de una celda del archivo (P1 del 4.13-3c: un archivo viene de otro sistema, no de quien tipea): «1.234,5» y «1,234.5», y «1.234»
+// y «1,234» como 1234 en cualquier locale; «1.5» y «1,5» como decimal. Es el segundo lector de la app, más permisivo que el del formulario a
+// propósito (`docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»). «1e3», «0x10» e «Infinity» no son números. Sale escrito en el formato de la
+// empresa, sin miles: es lo que el alta lee de vuelta igual.
+function numeroDelArchivo(texto: string): number | null {
   if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(texto)) {
-    return texto.replaceAll('.', '')
+    return Number(texto.replaceAll('.', '').replace(',', '.'))
   }
   if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(texto)) {
-    return texto.replaceAll(',', '')
+    return Number(texto.replaceAll(',', ''))
   }
-  return texto
+  if (/^-?\d+([.,]\d+)?$/.test(texto)) {
+    const numero = Number(texto.replace(',', '.'))
+    return Number.isFinite(numero) ? numero : null
+  }
+  return null
+}
+
+function convertirNumero(texto: string, locale: string): Conversion {
+  const numero = numeroDelArchivo(texto)
+  return numero === null
+    ? { ok: false, motivo: avisoDeNumero(texto, 'no_es_numero', locale) }
+    : { ok: true, valor: formatearParaEditar(numero, { locale }) }
 }
 
 function claveDeOpcion(campo: CampoDeLead, texto: string): string | null {
@@ -102,7 +118,7 @@ function convertirConFormato(
   return leido === null ? { ok: false, motivo } : { ok: true, valor: leido }
 }
 
-type Convertidor = (campo: CampoDeLead, texto: string) => Conversion
+type Convertidor = (campo: CampoDeLead, texto: string, locale: string) => Conversion
 
 const comoTexto: Convertidor = (_campo, texto) => ({ ok: true, valor: texto })
 
@@ -117,8 +133,8 @@ const POR_TIPO: Record<CampoDeLead['tipo'], Convertidor> = {
   multi_opcion: convertirOpciones,
   fecha: (_campo, texto) => convertirConFormato(texto, fechaIso, MOTIVO_DE_FECHA),
   fecha_hora: (_campo, texto) => convertirConFormato(texto, fechaHoraLocal, MOTIVO_DE_FECHA_HORA),
-  numero: (_campo, texto) => ({ ok: true, valor: numeroLimpio(texto) }),
-  moneda: (_campo, texto) => ({ ok: true, valor: numeroLimpio(texto) }),
+  numero: (_campo, texto, locale) => convertirNumero(texto, locale),
+  moneda: (_campo, texto, locale) => convertirNumero(texto, locale),
   texto: comoTexto,
   texto_largo: comoTexto,
   url: comoTexto,
@@ -126,10 +142,14 @@ const POR_TIPO: Record<CampoDeLead['tipo'], Convertidor> = {
   documento: comoTexto,
 }
 
-export function valorDeFormularioDesdeTexto(campo: CampoDeLead, crudo: string): Conversion {
+export function valorDeFormularioDesdeTexto(
+  campo: CampoDeLead,
+  crudo: string,
+  locale: string,
+): Conversion {
   const texto = sinApostrofoDeFormula(crudo).trim()
   if (texto === '') {
     return { ok: true, valor: vacioDe(campo) }
   }
-  return POR_TIPO[campo.tipo](campo, texto)
+  return POR_TIPO[campo.tipo](campo, texto, locale)
 }

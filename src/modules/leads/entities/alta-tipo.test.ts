@@ -32,6 +32,7 @@ const entrada = (tipo: string, contexto = CONTEXTO) => ({
   layout: [],
   contexto,
   zona: ZONA,
+  locale: 'es-BO',
 })
 
 describe('el tipo con el que arranca el alta', () => {

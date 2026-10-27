@@ -39,41 +39,53 @@ describe('estadosDe', () => {
 })
 
 describe('leerTipeado', () => {
-  it('lee la coma y el punto decimal', () => {
-    expect(leerTipeado('1,5', 'monto')).toEqual({ ok: true, valor: 1.5 })
-    expect(leerTipeado('1.5', 'monto')).toEqual({ ok: true, valor: 1.5 })
+  it('lee con el locale de la empresa: la coma es el decimal y el punto agrupa de a 3 (4-25)', () => {
+    expect(leerTipeado('1,5', 'monto', 'es-BO')).toEqual({ ok: true, valor: 1.5 })
+    expect(leerTipeado('1.234', 'monto', 'es-BO')).toEqual({ ok: true, valor: 1234 })
+    expect(leerTipeado('1.5', 'monto', 'es-BO')).toEqual({
+      ok: false,
+      aviso: 'Usa coma para los decimales: 1,5.',
+    })
+    expect(leerTipeado('1.5', 'monto', 'en-US')).toEqual({ ok: true, valor: 1.5 })
+    expect(leerTipeado('1,5', 'monto', 'en-US')).toEqual({
+      ok: false,
+      aviso: 'Usa punto para los decimales: 1.5.',
+    })
   })
 
   it('vacío y blancos son null, no 0', () => {
-    expect(leerTipeado('', 'monto')).toEqual({ ok: true, valor: null })
-    expect(leerTipeado('  ', 'monto')).toEqual({ ok: true, valor: null })
-    expect(leerTipeado(' \t ', 'porcentaje')).toEqual({ ok: true, valor: null })
+    expect(leerTipeado('', 'monto', 'es-BO')).toEqual({ ok: true, valor: null })
+    expect(leerTipeado('  ', 'monto', 'es-BO')).toEqual({ ok: true, valor: null })
+    expect(leerTipeado(' \t ', 'porcentaje', 'es-BO')).toEqual({ ok: true, valor: null })
   })
 
   it('quita los blancos de los lados', () => {
-    expect(leerTipeado('  12,5 ', 'numero')).toEqual({ ok: true, valor: 12.5 })
+    expect(leerTipeado('  12,5 ', 'numero', 'es-BO')).toEqual({ ok: true, valor: 12.5 })
   })
 
-  it.each(['Infinity', '-Infinity', '1e999', '1,2,3', 'abc', '12abc', '1..2'])(
+  it.each(['Infinity', '-Infinity', '1e999', '1e3', '0x10', '1,2,3', 'abc', '12abc'])(
     'no lee «%s»',
     (texto) => {
-      expect(leerTipeado(texto, 'monto')).toEqual({ ok: false })
+      expect(leerTipeado(texto, 'monto', 'es-BO')).toEqual({
+        ok: false,
+        aviso: 'Escribe un número, por ejemplo 1234,5.',
+      })
     },
   )
 
   it('el porcentaje se tipea en puntos y sale como fracción', () => {
-    expect(leerTipeado('14,94', 'porcentaje')).toEqual({ ok: true, valor: 0.1494 })
-    expect(leerTipeado('13', 'porcentaje')).toEqual({ ok: true, valor: 0.13 })
+    expect(leerTipeado('14,94', 'porcentaje', 'es-BO')).toEqual({ ok: true, valor: 0.1494 })
+    expect(leerTipeado('13', 'porcentaje', 'es-BO')).toEqual({ ok: true, valor: 0.13 })
   })
 
   it('normaliza a 15 cifras (0,07 / 100 no deja ruido binario)', () => {
-    const t = leerTipeado('7', 'porcentaje')
+    const t = leerTipeado('7', 'porcentaje', 'es-BO')
     expect(t).toEqual({ ok: true, valor: 0.07 })
   })
 
   it('acepta negativos y cero', () => {
-    expect(leerTipeado('-3,5', 'monto')).toEqual({ ok: true, valor: -3.5 })
-    expect(leerTipeado('0', 'monto')).toEqual({ ok: true, valor: 0 })
+    expect(leerTipeado('-3,5', 'monto', 'es-BO')).toEqual({ ok: true, valor: -3.5 })
+    expect(leerTipeado('0', 'monto', 'es-BO')).toEqual({ ok: true, valor: 0 })
   })
 })
 

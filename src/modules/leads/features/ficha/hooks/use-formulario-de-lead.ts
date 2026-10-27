@@ -80,6 +80,7 @@ export function useFormularioDeLead({
       origenes,
       tipos,
       zona,
+      locale,
     })
     if (!validacion.ok) {
       setEstado((antes) => conMotivos(antes, validacion.porCampo))

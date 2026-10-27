@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { abrir, BASE, celda } from './xcell.soporte'
 import { IDS_DE_ICONOS_DE_XCELL, SimbolosDeXCell } from './simbolos-de-xcell'
+import { ProveedorRegional } from '../regional'
 import { XCell, type XCellProps } from './index'
 
 afterEach(cleanup)
@@ -197,5 +198,34 @@ describe('los iconos del sprite', () => {
       expect(grupo, id).not.toBeNull()
       expect(grupo?.children.length, id).toBeGreaterThan(0)
     }
+  })
+})
+
+// 4-25: la celda lee con el locale de la empresa, no con el de fábrica.
+describe('lo tipeado, con el locale de la empresa', () => {
+  it('en en-US «1.234,5» no se emite y el aviso lo dice con el punto decimal', () => {
+    const onCommit = () => {
+      throw new Error('no tenía que emitir')
+    }
+    const { container } = render(
+      <ProveedorRegional locale="en-US" monedaBase="USD" zonaHoraria="America/La_Paz">
+        <XCell {...BASE} onCommit={onCommit} />
+      </ProveedorRegional>,
+    )
+    const boton = container.querySelector<HTMLElement>('[data-parada="0"]') as HTMLElement
+    fireEvent.click(boton)
+    const entrada = container.querySelector('input') as HTMLInputElement
+    fireEvent.change(entrada, { target: { value: '1.234,5' } })
+    fireEvent.keyDown(entrada, { key: 'Enter' })
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'Usa punto para los decimales y la coma sólo para los miles: 1,234.5.',
+    )
+    fireEvent.change(container.querySelector('input') as HTMLInputElement, {
+      target: { value: 'abc' },
+    })
+    fireEvent.keyDown(container.querySelector('input') as HTMLInputElement, { key: 'Enter' })
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe(
+      'Escribe un número, por ejemplo 1234.5.',
+    )
   })
 })

@@ -36,15 +36,14 @@ type PropsDelFormulario = Omit<Props, 'tipo' | 'historial' | 'alCerrar'> & {
   idFormulario: string
 }
 
-const VALOR_INVALIDO = 'Escribe un valor mayor que cero, con hasta 6 decimales.'
-
 type PropsDeCampos = {
   tipo: TipoCambio
   puedeGestionar: boolean
   // Sin permiso, o guardando: los campos se apagan hasta que llega lo guardado.
   bloqueado: boolean
   errores: EdicionesDeTiposCambio['errores']['guardar']
-  valorInvalido: boolean
+  // El motivo de un valor que no se lee, o null.
+  valorInvalido: string | null
   activo: boolean
   alCambiarActivo: (activo: boolean) => void
   esDefault: boolean
@@ -64,7 +63,7 @@ function Campos(props: PropsDeCampos) {
         autoComplete="off"
         autoFocus={puedeGestionar}
         defaultValue={textoParaEditar(tipo.valor, locale)}
-        error={valorInvalido ? VALOR_INVALIDO : errorDeCampo(errores, 'valor')}
+        error={valorInvalido ?? errorDeCampo(errores, 'valor')}
         ayuda="Las cotizaciones ya guardadas conservan el valor con el que se hicieron."
       />
       <Campo
@@ -106,7 +105,8 @@ function Formulario({ tipo, puedeGestionar, ediciones, idFormulario }: PropsDelF
   const { formulario, hayCambios } = useHayCambiosEnFormulario(['nombre', 'valor'])
   const [activo, setActivo] = useState(tipo.activo)
   const [esDefault, setEsDefault] = useState(tipo.esDefault)
-  const [valorInvalido, setValorInvalido] = useState(false)
+  const [valorInvalido, setValorInvalido] = useState<string | null>(null)
+  const { locale } = useRegional()
   const errores = ediciones.errores.guardar
   // Guardando, el formulario que se ve es el viejo y está por reemplazarse con lo guardado (`key` con la versión): lo que se
   // tecleara ahí caería en un campo que desaparece. `enCurso` dura hasta que se dibuja lo guardado, no sólo hasta que llega.
@@ -118,12 +118,13 @@ function Formulario({ tipo, puedeGestionar, ediciones, idFormulario }: PropsDelF
 
   async function guardar(elemento: HTMLFormElement) {
     const { nombre, valor: tipeado } = valoresDe(elemento, ['nombre', 'valor'])
-    const valor = valorTipeado(tipeado)
-    setValorInvalido(valor === null)
-    if (valor === null) {
+    const leido = valorTipeado(tipeado, locale)
+    setValorInvalido(leido.ok ? null : leido.motivo)
+    if (!leido.ok) {
       enfocarPrimerError(elemento)
       return
     }
+    const valor = leido.valor
     // Sólo viaja lo que cambió: lo demás no se toca.
     const hecho = await ediciones.guardar(
       {

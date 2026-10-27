@@ -35,6 +35,7 @@ function preparar(filas: string[][], extra: Partial<EntradaDePreparacion> = {}) 
     campos: [],
     contexto: CONTEXTO,
     zona: 'America/La_Paz',
+    locale: 'es-BO',
     eleccion: { origenId: WEB, tipoLeadId: TIPO_PRO },
     nuevoId: () => `id-${String((n += 1))}`,
     ...extra,

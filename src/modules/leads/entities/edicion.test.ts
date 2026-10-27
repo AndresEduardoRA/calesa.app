@@ -114,6 +114,7 @@ function entrada(
     origenes: ORIGENES,
     tipos: TIPOS,
     zona: ZONA,
+    locale: 'es-BO',
   }
 }
 
@@ -300,5 +301,25 @@ describe('qué no pasa', () => {
       ),
     ).toBe('nombre')
     expect(primerCampoConErrorDeEdicion({}, camposEditables(LAYOUT, true))).toBeNull()
+  })
+})
+
+// C14 del 4.13-3c: abrir la edición con un número guardado y guardar sin tocar no avisa ni cambia nada.
+describe('abrir lo guardado y guardar sin tocar conserva el número', () => {
+  it('2,125 y 21500,25 en es-BO y en en-US', () => {
+    for (const locale of ['es-BO', 'en-US']) {
+      for (const edad of [2.125, 21500.25, 1.6]) {
+        const ficha = { ...FICHA, atributos: { ...FICHA.atributos, edad } }
+        const campos = camposEditables(LAYOUT, ficha.enCartera)
+        const iniciales = valoresDeEdicion(ficha, campos, ZONA, locale)
+        const validacion = validarEdicion({
+          ...entrada({}, ficha),
+          valores: iniciales,
+          iniciales,
+          locale,
+        })
+        expect(validacion.ok && validacion.cambios, `${locale} ${String(edad)}`).toEqual({})
+      }
+    }
   })
 })

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { CampoDeVehiculo, TipoDeCampo } from './campo'
 import { camposComunes } from './comunes'
 import { validarVehiculo, type Fuentes } from './esquema'
-import { valoresIniciales, type ValoresDeFormulario } from './formulario'
+import { formatearParaEditar } from '@/shared/lib/formato'
+import { conDatosDeSubasta, valoresIniciales, type ValoresDeFormulario } from './formulario'
 
 function campo(
   clave: string,
@@ -113,7 +114,9 @@ describe('datos comunes', () => {
 
   it('rechaza lo que la base rechazaría, diciendo por qué', () => {
     expect(motivos({ anio: '1800' })['anio']).toContain('entre 1900 y 2100')
-    expect(motivos({ anio: '2021.5' })['anio']).toContain('entero')
+    expect(motivos({ anio: '2021,5' })['anio']).toContain('entero')
+    // 4-25: con el locale de la empresa (es-BO) un punto fuera de un grupo de 3 dice su aviso.
+    expect(motivos({ anio: '2021.5' })['anio']).toBe('Usa coma para los decimales: 2021,5.')
     expect(motivos({ anio: 'dos mil' })['anio']).toBeDefined()
     expect(motivos({ precio: '-1' })['precio']).toBeDefined()
     expect(motivos({ vin: 'OOOO' })['vin']).toContain('VIN')
@@ -220,5 +223,41 @@ describe('campos del layout', () => {
       'anio',
       'titulo',
     ])
+  })
+})
+
+// C14 del 4.13-3c: lo que el formulario escribe de lo guardado (con el locale) el lector lo lee igual, sin aviso.
+describe('abrir lo guardado y guardar sin tocar conserva el número', () => {
+  it('el precio, un campo numérico del layout y lo que trae la subasta, en es-BO y en en-US', () => {
+    const campos = [
+      campo('cilindros', 'numero', { valorDefecto: 2.125 }),
+      campo('valor', 'moneda', { valorDefecto: 21500.25 }),
+      campo('motor', 'numero'),
+    ]
+    for (const locale of ['es-BO', 'en-US']) {
+      const fuentes: Fuentes = { ...FUENTES, campos, locale }
+      const iniciales = valoresIniciales({
+        comunes: fuentes.comunes,
+        campos,
+        vehiculo: null,
+        locale,
+      })
+      const valores = conDatosDeSubasta(
+        { ...iniciales, titulo: 'RAV4', precio: formatearParaEditar(21500.25, { locale }) },
+        { columnas: { anio: 2019 }, atributos: { motor: 3.5 }, sinCoincidencia: [] },
+        campos,
+        { locale },
+      )
+      const leido = validarVehiculo(fuentes, valores)
+      expect(leido.ok && leido.datos.atributos, locale).toMatchObject({
+        cilindros: 2.125,
+        valor: 21500.25,
+        motor: 3.5,
+      })
+      expect(leido.ok && leido.datos.comunes, locale).toMatchObject({
+        precio: 21500.25,
+        anio: 2019,
+      })
+    }
   })
 })

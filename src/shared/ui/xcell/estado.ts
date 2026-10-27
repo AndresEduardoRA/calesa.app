@@ -1,6 +1,6 @@
 // Lo puro de la XCell: los estados que salen del binding, cómo se lee lo tipeado y cuándo hay un cambio que emitir. Sin React y sin
 // I/O: la celda NO calcula nada del cotizador, sólo traduce lo que la persona escribe a un número y se lo dice a la hoja.
-import { aNumero } from '@/shared/lib/campos/esquema-de-valor'
+import { avisoDeNumero, leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
 import { formatearParaEditar } from '@/shared/lib/formato'
 
 export type FormatoDeXCell = 'monto' | 'porcentaje' | 'numero'
@@ -78,21 +78,23 @@ export function accionesDe(e: EntradaDeAcciones): Acciones {
   }
 }
 
-export type Tipeado = { ok: true; valor: number | null } | { ok: false }
+export type Tipeado = { ok: true; valor: number | null } | { ok: false; aviso: string }
 
-// Lo que se escribe, como lo entiende el resto de la app (`aNumero`: coma o punto decimal). Los blancos se quitan ANTES: `aNumero('  ')`
-// da 0 porque `Number(' ')` es 0. Vacío es `null`; lo que no es un número finito («Infinity», «1e999», «1,2,3») no se lee.
+// Lo que se escribe, con el lector de toda la app (`leerNumeroTipeado`, 4-25) y el locale de la empresa: en es-BO «1.234» es 1234 y «1.5» no se
+// lee, con su aviso. Vacío es `null`; lo que no es un número finito («Infinity», «1e3», «1,2,3») no se lee.
 // Un porcentaje se tipea en puntos («14,94») y sale como la fracción que guarda `valores` (0,1494): una unidad, no un cálculo.
-export function leerTipeado(texto: string, formato: FormatoDeXCell): Tipeado {
-  const limpio = texto.trim()
-  if (limpio === '') {
+export function leerTipeado(texto: string, formato: FormatoDeXCell, locale: string): Tipeado {
+  const leido = leerNumeroTipeado(texto, locale)
+  if (!leido.ok) {
+    return { ok: false, aviso: avisoDeNumero(texto, leido.motivo, locale) }
+  }
+  if (leido.valor === null) {
     return { ok: true, valor: null }
   }
-  const numero = aNumero(limpio)
-  if (numero === null || !Number.isFinite(numero)) {
-    return { ok: false }
+  return {
+    ok: true,
+    valor: normalizar(formato === 'porcentaje' ? leido.valor / 100 : leido.valor),
   }
-  return { ok: true, valor: normalizar(formato === 'porcentaje' ? numero / 100 : numero) }
 }
 
 // El texto con el que se abre la edición: la precisión completa, no los decimales con que se muestra.
@@ -126,14 +128,15 @@ export function abreConSuCaracter(tecla: string, ctrl: boolean, meta: boolean, a
   return tecla.length === 1 && tecla !== ' ' && !ctrl && !meta && !alt
 }
 
-export const MENSAJE_NO_ES_NUMERO = 'Escribe un número, por ejemplo 1234,5.'
-
 export type Nota = { texto: string; esError: boolean }
 
-// Lo que dice la primera línea de abajo de la celda, por prioridad: lo tipeado que no es un número y, si no, lo que dijo la base. Describe a todos los lados.
-export function notaDe(invalido: boolean, error: string | undefined): Nota | undefined {
-  if (invalido) {
-    return { texto: MENSAJE_NO_ES_NUMERO, esError: true }
+// Lo que dice la primera línea de abajo de la celda, por prioridad: el aviso de lo tipeado que no se leyó y, si no, lo que dijo la base. Describe a todos los lados.
+export function notaDe(
+  aviso: string | null | undefined,
+  error: string | undefined,
+): Nota | undefined {
+  if (aviso !== null && aviso !== undefined) {
+    return { texto: aviso, esError: true }
   }
   if (error !== undefined && error !== '') {
     return { texto: error, esError: true }

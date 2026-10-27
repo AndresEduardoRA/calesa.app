@@ -140,7 +140,7 @@ describe('validarVitrina', () => {
   }
 
   it('entiende la coma decimal y limpia la nota', () => {
-    expect(validarVitrina(VALORES)).toEqual({
+    expect(validarVitrina(VALORES, 'es-BO')).toEqual({
       ok: true,
       datos: {
         publicado: true,
@@ -153,34 +153,49 @@ describe('validarVitrina', () => {
   })
 
   it('sin precio es «Consultar»', () => {
-    const validacion = validarVitrina({ ...VALORES, precio: ' ', nota: '' })
+    const validacion = validarVitrina({ ...VALORES, precio: ' ', nota: '' }, 'es-BO')
     expect(validacion).toMatchObject({ ok: true, datos: { precio: null, nota: null } })
   })
 
   it('lo que no está publicado no se destaca', () => {
-    expect(validarVitrina({ ...VALORES, publicado: false })).toMatchObject({
+    expect(validarVitrina({ ...VALORES, publicado: false }, 'es-BO')).toMatchObject({
       ok: true,
       datos: { publicado: false, destacado: false, precio: 21500.5 },
     })
   })
 
   it('dice junto a cada campo lo que no pasa', () => {
-    expect(validarVitrina({ ...VALORES, precio: 'mucho' })).toEqual({
+    expect(validarVitrina({ ...VALORES, precio: 'mucho' }, 'es-BO')).toEqual({
       ok: false,
       porCampo: { precio: 'Tiene que ser un número, de cero para arriba.' },
     })
-    expect(validarVitrina({ ...VALORES, precio: '-1' })).toMatchObject({ ok: false })
-    expect(validarVitrina({ ...VALORES, precio: '', precioHasta: '100' })).toEqual({
+    expect(validarVitrina({ ...VALORES, precio: '-1' }, 'es-BO')).toMatchObject({ ok: false })
+    expect(validarVitrina({ ...VALORES, precio: '', precioHasta: '100' }, 'es-BO')).toEqual({
       ok: false,
       porCampo: { precioHasta: 'Para poner un «hasta» falta el precio público.' },
     })
-    expect(validarVitrina({ ...VALORES, precio: '200', precioHasta: '100' })).toEqual({
+    expect(validarVitrina({ ...VALORES, precio: '200', precioHasta: '100' }, 'es-BO')).toEqual({
       ok: false,
       porCampo: { precioHasta: 'No puede ser menor que el precio público.' },
     })
-    expect(validarVitrina({ ...VALORES, nota: 'x'.repeat(121) })).toEqual({
+    expect(validarVitrina({ ...VALORES, nota: 'x'.repeat(121) }, 'es-BO')).toEqual({
       ok: false,
       porCampo: { nota: 'Hasta 120 caracteres.' },
+    })
+  })
+
+  it('lee el precio con el locale de la empresa (4-25): «21.500» es 21500 y «21.5» dice su aviso', () => {
+    expect(validarVitrina({ ...VALORES, precio: '21.500' }, 'es-BO')).toMatchObject({
+      ok: true,
+      datos: { precio: 21500 },
+    })
+    expect(validarVitrina({ ...VALORES, precio: '21.5' }, 'es-BO')).toEqual({
+      ok: false,
+      porCampo: { precio: 'Usa coma para los decimales: 21,5.' },
+    })
+    expect(validarVitrina({ ...VALORES, precio: '21500.5' }, 'en-US')).toMatchObject({
+      ok: true,
+      datos: { precio: 21500.5 },
     })
   })
 })
@@ -229,5 +244,28 @@ describe('permisoDeVitrina', () => {
       motivo:
         'No tienes permiso para publicar en la web lo de Taiwán. Pídeselo a quien administra los roles.',
     })
+  })
+})
+
+describe('abrir lo guardado y guardar sin tocar conserva el precio (4.13-3c, C14)', () => {
+  it('1,6 y 21500,25 en es-BO y en en-US', () => {
+    for (const locale of ['es-BO', 'en-US']) {
+      for (const precio of [1.6, 21500.25]) {
+        const valores = valoresDeVitrina(
+          {
+            publicadoWeb: true,
+            precioWeb: precio,
+            precioWebHasta: precio,
+            precioWebNota: null,
+            destacadoWeb: false,
+          },
+          locale,
+        )
+        expect(validarVitrina(valores, locale)).toMatchObject({
+          ok: true,
+          datos: { precio, precioHasta: precio },
+        })
+      }
+    }
   })
 })

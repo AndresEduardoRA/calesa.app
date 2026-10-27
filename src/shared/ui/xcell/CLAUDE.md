@@ -5,7 +5,7 @@ no lee la base y **no calcula nada**. Dice «esta celda pasó a N» (`onCommit`)
 
 ## Entra y sale
 
-- Entra: `@/shared/lib` (`formato`, `color`, `campos/esquema-de-valor`), `../monto`, `../regional`, `../live`, `../lista/simbolos-de-lista` (los trazos de los iconos).
+- Entra: `@/shared/lib` (`formato`, `color`, `numero-tipeado`), `../monto`, `../regional`, `../live`, `../lista/simbolos-de-lista` (los trazos de los iconos).
 - Sale: `index.ts` → `XCell`, `EstiloDeTonos`, `SimbolosDeXCell` y los tipos. Nadie la importa todavía. `xcell.soporte.tsx` (`celda()`, `abrir()`, `BASE`) es **sólo de las pruebas**
   (importa vitest y testing-library; el sufijo `.soporte.` es el del repo, como `funcion-apibara.soporte.ts`, y `scripts/mapa.sh` no lo lista).
 - La hoja monta **una vez** `<SimbolosDeXCell/>` (los iconos y la descripción que anuncia las flechas) y `<EstiloDeTonos tonos={…}/>` (las filas de `tonos`, que lee ella; `shared` no las busca).
@@ -59,8 +59,9 @@ distinto** (dos lados con el mismo motivo, una sola que describe a los dos). El 
 - **El rango, lo obligatorio y lo entero no los valida la celda ni llegan como un error de la base:** `cotizacion_evaluar` los dice en `faltantes` (`fuera_de_rango`, `requerido_sin_valor`) con el
   valor en null, y la hoja los traduce a un texto propio (`textoDelFaltante()` de `cotizaciones`) y los pasa por `error`.
 - Un porcentaje se tipea en puntos («14,94») y se emite como la fracción que guarda `valores` (0,1494), a 15 cifras: una unidad, no un cálculo.
-- El número se lee con `aNumero` de `@/shared/lib/campos/esquema-de-valor` (coma o punto decimal), igual que los campos numéricos; se hace `trim` antes y se exige
-  `Number.isFinite`. Heredado, y de ese parser compartido: «1e3» y «0x10» se leen, y «1.234» es 1,234 (`docs/PLAN.md`).
+- **El número se lee con el lector de toda la app** (`leerNumeroTipeado` de `@/shared/lib/numero-tipeado`, 4-25) y el locale de la empresa (`useRegional()`): en es-BO
+  «1.234» es 1234, «1,5» es 1,5 y «1.5» no se emite, con su aviso en la nota («Usa coma para los decimales: 1,5.»); «1e3», «0x10» e «Infinity» no son números
+  («Escribe un número, por ejemplo 1234,5.», el ejemplo escrito en el locale).
 
 ## Teclado
 

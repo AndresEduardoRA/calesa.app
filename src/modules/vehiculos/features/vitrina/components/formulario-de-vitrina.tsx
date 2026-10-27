@@ -1,5 +1,6 @@
 'use client'
 
+import { useRegional } from '@/shared/ui/regional'
 import { useRouter } from 'next/navigation'
 import { Aviso } from '@/shared/ui/aviso'
 import { AvisoDeConflicto } from '@/shared/ui/aviso-de-conflicto'
@@ -138,8 +139,8 @@ function EstadoEnElSitio({
 }
 
 // Lo escrito, si es válido, se ve en la tarjeta antes de guardar; si no, lo guardado.
-function precioALaVista(estado: Estado, vehiculo: Vehiculo) {
-  const validacion = validarVitrina(estado.valores)
+function precioALaVista(estado: Estado, vehiculo: Vehiculo, locale: string) {
+  const validacion = validarVitrina(estado.valores, locale)
   return validacion.ok
     ? {
         precio: validacion.datos.precio,
@@ -156,6 +157,7 @@ function precioALaVista(estado: Estado, vehiculo: Vehiculo) {
 // El formulario de publicar: el interruptor, el precio público y, debajo, lo que verá el
 // visitante. Si el envío no sale, lo escrito queda.
 export function FormularioDeVitrina({ vehiculo, origen, fase, campos, previa, alCerrar }: Props) {
+  const { locale } = useRegional()
   const estado = useVitrina(vehiculo, alCerrar)
   const { valores } = estado
   useCambiosSinGuardar(estado.hayCambios)
@@ -199,7 +201,7 @@ export function FormularioDeVitrina({ vehiculo, origen, fase, campos, previa, al
           />
           <VistaPreviaDeVitrina
             tarjeta={previa.tarjeta}
-            precio={precioALaVista(estado, vehiculo)}
+            precio={precioALaVista(estado, vehiculo, locale)}
             destacado={valores.publicado && valores.destacado}
             campos={campos}
           />

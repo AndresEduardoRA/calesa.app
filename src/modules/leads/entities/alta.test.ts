@@ -175,6 +175,7 @@ const entrada = (valores: Record<string, string | boolean | null | string[]>) =>
   layout: LAYOUT,
   contexto: CONTEXTO,
   zona: ZONA,
+  locale: 'es-BO',
 })
 
 describe('validarAlta: lo que pasa', () => {

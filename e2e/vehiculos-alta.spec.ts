@@ -1,4 +1,5 @@
 import { expect, test } from './soporte/prueba'
+import { sql } from './soporte/sql'
 import {
   TAIWAN,
   aLaVista,
@@ -114,6 +115,29 @@ test('dar de alta un vehículo en Corea, con los valores por defecto y los atajo
   await expect(aLaVista(page.getByText('Automática', { exact: true }))).toBeVisible()
   // Las pestañas que existen, y ninguna que lleve a lo que falta.
   await expect(aLaVista(page.getByRole('tab'))).toHaveText(['Ficha', 'Fotos'])
+})
+
+// 4-25: el precio se lee con el locale de la empresa (es-BO): el punto agrupa de a 3 y, en otro lugar, el campo dice cómo escribirlo.
+test('el precio se lee con el locale de la empresa: «21.5» avisa y «21.500» se guarda 21500', async ({
+  page,
+}, info) => {
+  const nombre = `E2E Precio con miles ${info.project.name}`
+  await entrar(page, duena)
+  await page.goto(`/vehiculos?origen=${corea.id}&panel=nuevo`)
+  const panel = page.getByRole('dialog', { name: 'Nuevo vehículo' })
+  await panel.getByLabel('Título (obligatorio)').fill(nombre)
+  const precio = panel.getByLabel('Precio', { exact: true })
+  if (!(await precio.isVisible())) await bloque(panel, 'Precio').click()
+  await precio.fill('21.5')
+  await panel.getByRole('button', { name: 'Guardar', exact: true }).click()
+  await expect(panel.getByText('Usa coma para los decimales: 21,5.')).toBeVisible()
+  expect(await vehiculoPorTitulo(nombre)).toBeNull()
+  await precio.fill('21.500')
+  await panel.getByRole('button', { name: 'Guardar', exact: true }).click()
+  await expect(panel).toBeHidden()
+  await expect
+    .poll(() => sql(`select precio::float8 from public.vehiculos where titulo = '${nombre}'`))
+    .toBe('21500')
 })
 
 test('un VIN repetido se dice junto al campo', async ({ page }) => {

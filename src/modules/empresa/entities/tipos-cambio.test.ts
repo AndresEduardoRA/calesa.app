@@ -5,6 +5,7 @@ import {
   historialDesde,
   textoParaEditar,
   tiposCambioDesde,
+  VALOR_INVALIDO,
   valorTipeado,
   vigentes,
   type TipoCambio,
@@ -122,19 +123,27 @@ describe('decimalesDeValor', () => {
 })
 
 describe('valorTipeado', () => {
-  it('acepta coma o punto decimal', () => {
-    expect(valorTipeado('6,97')).toBe(6.97)
-    expect(valorTipeado(' 12.405 ')).toBe(12.405)
-    expect(valorTipeado('7')).toBe(7)
+  const valor = (texto: string, locale = 'es-BO') => {
+    const leido = valorTipeado(texto, locale)
+    return leido.ok ? leido.valor : leido.motivo
+  }
+
+  it('lee con el locale de la empresa: la coma decimal y el punto de miles en grupos de 3 (4-25, P5)', () => {
+    expect(valor('6,97')).toBe(6.97)
+    expect(valor('7')).toBe(7)
+    expect(valor(' 12.405 ')).toBe(12405)
+    expect(valor('1.234,56')).toBe(1234.56)
+    expect(valor('6.96', 'en-US')).toBe(6.96)
+  })
+
+  it('un punto fuera de un grupo de 3 dice su aviso', () => {
+    expect(valor('6.96')).toBe('Usa coma para los decimales: 6,96.')
   })
 
   it('rechaza lo que no es un valor mayor que cero con hasta seis decimales', () => {
-    expect(valorTipeado('')).toBeNull()
-    expect(valorTipeado('0')).toBeNull()
-    expect(valorTipeado('-1')).toBeNull()
-    expect(valorTipeado('siete')).toBeNull()
-    expect(valorTipeado('1.234,56')).toBeNull()
-    expect(valorTipeado('1,2345678')).toBeNull()
+    for (const texto of ['', '0', '-1', 'siete', '1e3', '1,2345678', '6,9600001']) {
+      expect(valor(texto), texto).toBe(VALOR_INVALIDO)
+    }
   })
 })
 
@@ -144,5 +153,15 @@ describe('textoParaEditar (4.13-3c)', () => {
     expect(textoParaEditar(6.96, 'es-BO')).toBe('6,96')
     expect(textoParaEditar(12405.5, 'es-BO')).toBe('12405,5')
     expect(textoParaEditar(2.125, 'en-US')).toBe('2.125')
+  })
+})
+
+describe('abrir lo guardado y guardar sin tocar conserva el valor (4.13-3c, C14)', () => {
+  it('2,125, 6,96 y 12405,5 en es-BO y en en-US', () => {
+    for (const locale of ['es-BO', 'en-US']) {
+      for (const valor of [2.125, 6.96, 12405.5]) {
+        expect(valorTipeado(textoParaEditar(valor, locale), locale)).toEqual({ ok: true, valor })
+      }
+    }
   })
 })

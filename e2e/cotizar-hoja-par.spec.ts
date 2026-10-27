@@ -72,3 +72,23 @@ test('Transferencia: el monto calculado lleva su candado y el porcentaje se tipe
   await expect(transferencia.getByRole('button', { name: /^Volver al/ })).toBeVisible()
   await expect(transferencia.locator('[data-parada="0"]')).toHaveAttribute('aria-disabled', 'true')
 })
+
+// 4-25: la celda lee con el locale de la empresa (es-BO): «1.234» es mil doscientos treinta y cuatro y «1.5» no sale, con su aviso.
+test('el remate se lee con el locale de la empresa: «1.234» viaja 1234 y «1.5» avisa sin pedir nada', async ({
+  page,
+}) => {
+  const vigilante = await vigilarRecalculos(page)
+  await abrir(page)
+  await tipear(page, 'remate', 0, '1.234')
+  await expect.poll(() => vigilante.pedidos.at(-1)?.p_entradas.inputs['remate']).toBe(1234)
+  const pedidos = vigilante.pedidos.length
+  const remate = celda(page, 'remate')
+  await remate.locator('[data-parada="0"]').click()
+  const entrada = remate.locator('input')
+  await entrada.fill('1.5')
+  await entrada.press('Enter')
+  await expect(remate.getByRole('alert')).toHaveText('Usa coma para los decimales: 1,5.')
+  await expect(entrada).toHaveAttribute('aria-invalid', 'true')
+  await page.waitForTimeout(400)
+  expect(vigilante.pedidos).toHaveLength(pedidos)
+})

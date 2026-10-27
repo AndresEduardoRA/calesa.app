@@ -179,6 +179,8 @@ type Entrada = {
   layout: readonly CampoDeLead[]
   contexto: ContextoDeAlta
   zona: string
+  // El de la empresa: con él se leen los números tipeados (4-25). Obligatorio.
+  locale: string
 }
 
 type Motivos = Record<string, string>
@@ -220,7 +222,7 @@ function validarFijos(
 }
 
 function validarAtributos(
-  { valores, layout, zona }: Pick<Entrada, 'valores' | 'layout' | 'zona'>,
+  { valores, layout, zona, locale }: Pick<Entrada, 'valores' | 'layout' | 'zona' | 'locale'>,
   motivos: Motivos,
 ): DatosDeAlta['atributos'] {
   const atributos: DatosDeAlta['atributos'] = {}
@@ -229,7 +231,7 @@ function validarAtributos(
       continue
     }
     const clave = claveDeAtributoDeAlta(campo.clave)
-    const base = esquemaDeValor(campo, { zona })
+    const base = esquemaDeValor(campo, { zona, locale })
     const leido = (campo.requerido ? requerir(base) : base).safeParse(
       valores[clave] ?? vacioDe(campo),
     )

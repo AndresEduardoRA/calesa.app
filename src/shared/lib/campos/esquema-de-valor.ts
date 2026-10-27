@@ -1,6 +1,7 @@
 // El esquema Zod de un dato escrito en un formulario de campos, uno por tipo. Es la misma pieza en
 // el formulario (para avisar antes de enviar) y en la Server Action (que vuelve a leer el layout):
 // las dos validan igual. La base es la última línea y su mensaje lleva el campo en el `hint`.
+import { avisoDeNumero, leerNumeroTipeado } from '../numero-tipeado'
 import { z } from 'zod'
 import { instanteDeLocal } from '../fechas'
 import type { OpcionDeCampo, TipoDeCampo } from './tipos'
@@ -31,18 +32,25 @@ export function texto(largo: number) {
     .transform(vacioANulo)
 }
 
-// Acepta la coma decimal: «1,6» es 1.6.
-export const aNumero = (escrito: string) =>
-  escrito === '' ? null : Number(escrito.replace(',', '.'))
-
-export function numero(minimo: number, maximo: number, entero: boolean) {
+// Lo tipeado, con el lector de toda la app y el locale de la empresa (4-25): en es-BO «1.234» es 1234 y «1.5» dice su aviso como motivo
+// del campo. Lo que no es un número dice el mensaje de siempre.
+export function numero(minimo: number, maximo: number, entero: boolean, locale: string) {
   const mensaje = entero
     ? `Tiene que ser un número entero entre ${String(minimo)} y ${String(maximo)}.`
     : 'Tiene que ser un número.'
   return z
     .string()
     .trim()
-    .transform(aNumero)
+    .transform((escrito, ctx) => {
+      const leido = leerNumeroTipeado(escrito, locale)
+      if (leido.ok) {
+        return leido.valor
+      }
+      const motivo =
+        leido.motivo === 'separador' ? avisoDeNumero(escrito, leido.motivo, locale) : mensaje
+      ctx.issues.push({ code: 'custom', message: motivo, input: escrito })
+      return z.NEVER
+    })
     .refine(
       (valor) =>
         valor === null ||
@@ -132,6 +140,8 @@ export function requerir(esquema: Esquema): Esquema {
 
 export type ContextoDeEsquema = {
   zona?: string | undefined
+  // El de la empresa, con el que se lee un número tipeado (4-25). Obligatorio: un llamador que lo olvide no compila.
+  locale: string
   // Lo que el registro ya tiene en ese campo: una opción que se sacó del campo sigue valiendo
   // mientras el registro la tenga (el dato se conserva).
   guardado?: unknown
@@ -152,8 +162,8 @@ const ESQUEMA_POR_TIPO: Record<TipoDeCampo, DeTipo> = {
   texto: () => texto(LARGO_DE_TEXTO),
   texto_largo: () => texto(LARGO_DE_TEXTO_LARGO),
   lote: () => texto(LARGO_DE_TEXTO),
-  numero: () => numero(-NUMERO_MAXIMO, NUMERO_MAXIMO, false),
-  moneda: () => numero(-NUMERO_MAXIMO, NUMERO_MAXIMO, false),
+  numero: (_opciones, contexto) => numero(-NUMERO_MAXIMO, NUMERO_MAXIMO, false, contexto.locale),
+  moneda: (_opciones, contexto) => numero(-NUMERO_MAXIMO, NUMERO_MAXIMO, false, contexto.locale),
   booleano: siONo,
   fecha,
   fecha_hora: (_opciones, contexto) => fechaHora(contexto.zona),
@@ -168,7 +178,7 @@ const ESQUEMA_POR_TIPO: Record<TipoDeCampo, DeTipo> = {
 // El esquema de un campo del layout, según su tipo.
 export function esquemaDeValor(
   campo: { tipo: TipoDeCampo; opciones: readonly OpcionDeCampo[] },
-  contexto: ContextoDeEsquema = {},
+  contexto: ContextoDeEsquema,
 ): Esquema {
   return ESQUEMA_POR_TIPO[campo.tipo](campo.opciones, contexto)
 }

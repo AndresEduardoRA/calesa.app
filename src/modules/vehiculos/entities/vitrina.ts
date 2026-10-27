@@ -4,6 +4,7 @@
 import { z } from 'zod'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import { formatearParaEditar } from '@/shared/lib/formato'
+import { avisoDeNumero, leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
 
 // Lo que hace falta, además de la marca del vehículo, para que algo de un origen se vea.
 export type VitrinaDelOrigen = {
@@ -259,33 +260,39 @@ export function valoresDeVitrina(vehiculo: Publicado, locale: string): ValoresDe
   }
 }
 
-// Acepta la coma decimal: «21500,5» es 21500.5. `undefined` = no es un número.
-function precioDe(escrito: string): number | null | undefined {
-  const limpio = escrito.trim()
-  if (limpio === '') {
+const NO_ES_PRECIO = 'Tiene que ser un número, de cero para arriba.'
+
+// Con el lector de toda la app y el locale de la empresa (4-25): en es-BO «21500,5» es 21500,5 y «21.500» es 21500; «21.5» dice su aviso.
+// Un texto es el motivo de lo que no pasa.
+function precioDe(escrito: string, locale: string): number | null | string {
+  const leido = leerNumeroTipeado(escrito, locale)
+  if (!leido.ok) {
+    return leido.motivo === 'separador'
+      ? avisoDeNumero(escrito, leido.motivo, locale)
+      : NO_ES_PRECIO
+  }
+  const numero = leido.valor
+  if (numero === null) {
     return null
   }
-  const numero = Number(limpio.replace(',', '.'))
-  return Number.isFinite(numero) && numero >= 0 && numero <= PRECIO_PUBLICO_MAXIMO
+  return numero >= 0 && numero <= PRECIO_PUBLICO_MAXIMO
     ? Math.round(numero * 100) / 100
-    : undefined
+    : NO_ES_PRECIO
 }
 
 export type ValidacionDeVitrina =
   | { ok: true; datos: DatosDeVitrina }
   | { ok: false; porCampo: Partial<Record<CampoDeVitrina, string>> }
 
-const NO_ES_PRECIO = 'Tiene que ser un número, de cero para arriba.'
-
-// Lo que no pasa del «hasta», mirando también el precio. `undefined` = no es un número.
+// Lo que no pasa del «hasta», mirando también el precio. Un texto es el motivo de lo que no se leyó.
 function errorDeHasta(
-  precio: number | null | undefined,
-  precioHasta: number | null | undefined,
+  precio: number | null | string,
+  precioHasta: number | null | string,
 ): string | undefined {
-  if (precioHasta === undefined) {
-    return NO_ES_PRECIO
+  if (typeof precioHasta === 'string') {
+    return precioHasta
   }
-  if (precioHasta === null || precio === undefined) {
+  if (precioHasta === null || typeof precio === 'string') {
     return undefined
   }
   if (precio === null) {
@@ -295,12 +302,12 @@ function errorDeHasta(
 }
 
 // Las mismas reglas que la RPC, dichas junto al campo antes de enviar.
-export function validarVitrina(valores: ValoresDeVitrina): ValidacionDeVitrina {
-  const precio = precioDe(valores.precio)
-  const precioHasta = precioDe(valores.precioHasta)
+export function validarVitrina(valores: ValoresDeVitrina, locale: string): ValidacionDeVitrina {
+  const precio = precioDe(valores.precio, locale)
+  const precioHasta = precioDe(valores.precioHasta, locale)
   const nota = valores.nota.trim()
   const errores: [CampoDeVitrina, string | undefined][] = [
-    ['precio', precio === undefined ? NO_ES_PRECIO : undefined],
+    ['precio', typeof precio === 'string' ? precio : undefined],
     ['precioHasta', errorDeHasta(precio, precioHasta)],
     [
       'nota',
@@ -310,7 +317,11 @@ export function validarVitrina(valores: ValoresDeVitrina): ValidacionDeVitrina {
     ],
   ]
   const porCampo = Object.fromEntries(errores.filter(([, error]) => error !== undefined))
-  if (precio === undefined || precioHasta === undefined || Object.keys(porCampo).length > 0) {
+  if (
+    typeof precio === 'string' ||
+    typeof precioHasta === 'string' ||
+    Object.keys(porCampo).length > 0
+  ) {
     return { ok: false, porCampo }
   }
   return {

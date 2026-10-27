@@ -24,7 +24,7 @@ Ajustes de la empresa (marca, datos legales, país, formato regional, zona horar
 - `entities/marca.ts` — `validarColorDeMarca()` (contraste AA, con el motivo y un tono cercano que sí pasa) y las reglas del logo: formatos, pesos, `motivoDeSvgInvalido()`, `medidasDeSvg()`.
 - `entities/regional.ts` — `localeCanonico()`, `zonaHorariaValida()`, `codigoDeMoneda()`: todo contra `Intl`.
 - `entities/iconos.ts` — tamaños, `encuadreDeIcono()`, `iconosDelManifest()`, `urlDeIcono()`.
-- `entities/tipos-cambio.ts`, `entities/integraciones.ts` — tipos y reglas puras de lo que viene. `textoParaEditar(valor, locale)` abre el valor de un tipo de cambio con el locale de la empresa (4.13-3c).
+- `entities/tipos-cambio.ts`, `entities/integraciones.ts` — tipos y reglas puras de lo que viene. `textoParaEditar(valor, locale)` abre el valor de un tipo de cambio con el locale de la empresa y `valorTipeado(texto, locale)` lo lee con el lector de `shared/lib/numero-tipeado` (en es-BO «12.405» es 12405 y «6.96» dice su aviso; 4.13-3c).
 - `entities/uso-apibara.ts` — `UsoDeApibara`, `usoDesdeRespuesta()`, `resumenDeUso()` y los mensajes con que puede fallar pedirlo. `infra/apibara.client.ts` — `consultarUso()` (en el navegador, por `invocarFuncion()` de `shared`).
 - `entities/motivos.ts` — por qué algo aparece deshabilitado. `entities/repositorios.ts` — las interfaces.
 - `infra/queries/` — lecturas (`server-only`). `infra/{empresa,tipos-cambio,integraciones}.ts` — escrituras, todas por RPC. `infra/{logo,iconos}.client.ts` — preparar, subir y descartar en Storage desde el navegador.

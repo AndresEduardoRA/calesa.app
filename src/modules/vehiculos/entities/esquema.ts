@@ -51,8 +51,10 @@ function categoria(fuentes: Fuentes): Esquema {
 const ESQUEMA_COMUN: Record<CampoComun['tipo'], (campo: CampoComun, fuentes: Fuentes) => Esquema> =
   {
     texto: (campo) => texto(campo.largo ?? LARGO_DE_TEXTO),
-    entero: (campo) => numero(campo.minimo ?? 0, campo.maximo ?? NUMERO_MAXIMO, true),
-    monto: (campo) => numero(campo.minimo ?? 0, campo.maximo ?? NUMERO_MAXIMO, false),
+    entero: (campo, fuentes) =>
+      numero(campo.minimo ?? 0, campo.maximo ?? NUMERO_MAXIMO, true, fuentes.locale),
+    monto: (campo, fuentes) =>
+      numero(campo.minimo ?? 0, campo.maximo ?? NUMERO_MAXIMO, false, fuentes.locale),
     si_no: siONo,
     vin,
     enlace,
@@ -69,6 +71,7 @@ export function esquemaDeVehiculo(fuentes: Fuentes) {
   for (const campo of fuentes.campos) {
     const esquema = esquemaDeValor(campo, {
       zona: fuentes.zona,
+      locale: fuentes.locale,
       guardado: fuentes.actuales?.atributos[campo.clave],
     })
     forma[claveDeAtributo(campo.clave)] = campo.requerido ? requerir(esquema) : esquema

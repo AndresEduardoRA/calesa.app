@@ -44,9 +44,7 @@ export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: 
   const router = useRouter()
   const [intento] = useState(() => crypto.randomUUID())
   const { locale } = useRegional()
-  const [valores, setValores] = useState<ValoresDeOportunidad>(
-    valoresDeOportunidad(oportunidad, locale),
-  )
+  const [valores, setValores] = useState(() => valoresDeOportunidad(oportunidad, locale))
   const [embudo, setEmbudo] = useState('')
   const [errores, setErrores] = useState<ErroresDelFormulario>({})
   const [conflicto, setConflicto] = useState<string | null>(null)
@@ -64,7 +62,7 @@ export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: 
   }
 
   async function enviar() {
-    const locales = validarOportunidad(valores)
+    const locales = validarOportunidad(valores, locale)
     if (Object.keys(locales).length > 0) {
       setErrores(locales)
       return
@@ -74,7 +72,7 @@ export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: 
           guardar.executeAsync({
             id: oportunidad.id,
             actualizadoEnEsperado: oportunidad.actualizadoEn,
-            cambios: cambiosDeOportunidad(oportunidad, valores),
+            cambios: cambiosDeOportunidad(oportunidad, valores, locale),
           }),
           MENSAJE_DE_VALIDACION,
         )
@@ -82,7 +80,10 @@ export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: 
           crear.executeAsync({
             id: intento,
             leadId,
-            datos: { ...datosDeOportunidad(valores), ...(embudo ? { embudo_id: embudo } : {}) },
+            datos: {
+              ...datosDeOportunidad(valores, locale),
+              ...(embudo ? { embudo_id: embudo } : {}),
+            },
           }),
           MENSAJE_DE_VALIDACION,
         )
@@ -106,13 +107,14 @@ export function useFormularioDeOportunidad({ leadId, oportunidad, alTerminar }: 
     setEmbudo,
     // Al editar sin cambios no hay nada que mandar.
     sinCambios:
-      oportunidad !== null && Object.keys(cambiosDeOportunidad(oportunidad, valores)).length === 0,
+      oportunidad !== null &&
+      Object.keys(cambiosDeOportunidad(oportunidad, valores, locale)).length === 0,
     // Algo escrito que todavía no se guardó (un aviso que sale de la pantalla pregunta antes de irse).
     hayCambios:
       oportunidad === null
         ? embudo !== '' ||
           JSON.stringify(valores) !== JSON.stringify(valoresDeOportunidad(null, locale))
-        : Object.keys(cambiosDeOportunidad(oportunidad, valores)).length > 0,
+        : Object.keys(cambiosDeOportunidad(oportunidad, valores, locale)).length > 0,
     errores,
     conflicto,
     enCurso: crear.isPending || guardar.isPending,

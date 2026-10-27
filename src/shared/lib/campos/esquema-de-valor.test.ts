@@ -19,12 +19,12 @@ function pasa(esquema: Esquema, valor: unknown): unknown {
 describe('esquemaDeValor', () => {
   it('todo tipo de campo tiene su esquema', () => {
     for (const tipo of TIPOS_DE_CAMPO) {
-      expect(esquemaDeValor({ tipo, opciones: OPCIONES })).toBeDefined()
+      expect(esquemaDeValor({ tipo, opciones: OPCIONES }, { locale: 'es-BO' })).toBeDefined()
     }
   })
 
   it('el correo acepta la forma de un correo y lo vacío es sin dato', () => {
-    const esquema = esquemaDeValor({ tipo: 'correo', opciones: [] })
+    const esquema = esquemaDeValor({ tipo: 'correo', opciones: [] }, { locale: 'es-BO' })
     expect(pasa(esquema, ' ana@correo.com ')).toBe('ana@correo.com')
     expect(pasa(esquema, '')).toBeNull()
     expect(pasa(esquema, 'ana@correo')).toBe('ERROR')
@@ -33,7 +33,7 @@ describe('esquemaDeValor', () => {
   })
 
   it('el documento lleva letras, números y separadores, hasta 30', () => {
-    const esquema = esquemaDeValor({ tipo: 'documento', opciones: [] })
+    const esquema = esquemaDeValor({ tipo: 'documento', opciones: [] }, { locale: 'es-BO' })
     expect(pasa(esquema, '1234567 LP')).toBe('1234567 LP')
     expect(pasa(esquema, 'AB-12/3.4')).toBe('AB-12/3.4')
     expect(pasa(esquema, '')).toBeNull()
@@ -43,28 +43,37 @@ describe('esquemaDeValor', () => {
   })
 
   it('una opción que se sacó vale mientras el registro la tenga guardada', () => {
-    const sin = esquemaDeValor({ tipo: 'opcion', opciones: OPCIONES })
-    const con = esquemaDeValor({ tipo: 'opcion', opciones: OPCIONES }, { guardado: 'vieja' })
+    const sin = esquemaDeValor({ tipo: 'opcion', opciones: OPCIONES }, { locale: 'es-BO' })
+    const con = esquemaDeValor(
+      { tipo: 'opcion', opciones: OPCIONES },
+      { locale: 'es-BO', guardado: 'vieja' },
+    )
     expect(pasa(sin, 'vieja')).toBe('ERROR')
     expect(pasa(con, 'vieja')).toBe('vieja')
     expect(pasa(con, 'a')).toBe('a')
   })
 
   it('varias opciones: sin duplicados y vacío es sin dato', () => {
-    const esquema = esquemaDeValor({ tipo: 'multi_opcion', opciones: OPCIONES })
+    const esquema = esquemaDeValor(
+      { tipo: 'multi_opcion', opciones: OPCIONES },
+      { locale: 'es-BO' },
+    )
     expect(pasa(esquema, ['a', 'a'])).toEqual(['a'])
     expect(pasa(esquema, [])).toBeNull()
     expect(pasa(esquema, ['z'])).toBe('ERROR')
   })
 
   it('una fecha con hora se guarda como instante, en la zona de la empresa', () => {
-    const esquema = esquemaDeValor({ tipo: 'fecha_hora', opciones: [] }, { zona: 'America/La_Paz' })
+    const esquema = esquemaDeValor(
+      { tipo: 'fecha_hora', opciones: [] },
+      { locale: 'es-BO', zona: 'America/La_Paz' },
+    )
     expect(pasa(esquema, '2026-10-14T09:00')).toBe('2026-10-14T13:00:00.000Z')
     expect(pasa(esquema, 'ayer')).toBe('ERROR')
   })
 
   it('un número acepta la coma decimal', () => {
-    const esquema = esquemaDeValor({ tipo: 'numero', opciones: [] })
+    const esquema = esquemaDeValor({ tipo: 'numero', opciones: [] }, { locale: 'es-BO' })
     expect(pasa(esquema, '1,6')).toBe(1.6)
     expect(pasa(esquema, 'x')).toBe('ERROR')
   })
@@ -82,9 +91,9 @@ describe('requerir', () => {
 
 describe('numero', () => {
   it('respeta el rango y que sea entero', () => {
-    expect(pasa(numero(1, 10, true), '5')).toBe(5)
-    expect(pasa(numero(1, 10, true), '5,5')).toBe('ERROR')
-    expect(pasa(numero(1, 10, true), '11')).toBe('ERROR')
+    expect(pasa(numero(1, 10, true, 'es-BO'), '5')).toBe(5)
+    expect(pasa(numero(1, 10, true, 'es-BO'), '5,5')).toBe('ERROR')
+    expect(pasa(numero(1, 10, true, 'es-BO'), '11')).toBe('ERROR')
   })
 })
 
@@ -98,5 +107,24 @@ describe('motivosPorCampo', () => {
       { code: 'custom', path: ['b'], message: 'tres' },
     ])
     expect(motivos).toEqual({ 'a.x': 'uno', b: 'tres' })
+  })
+})
+
+// 4-25: el número tipeado, con el locale de la empresa.
+describe('un número con el locale de la empresa', () => {
+  const moneda = (locale: string) => esquemaDeValor({ tipo: 'moneda', opciones: [] }, { locale })
+  it('en es-BO el punto agrupa de a 3 y un punto en otro lugar dice su aviso como motivo', () => {
+    expect(pasa(moneda('es-BO'), '1.234')).toBe(1234)
+    expect(pasa(moneda('es-BO'), '1.234,5')).toBe(1234.5)
+    const leido = moneda('es-BO').safeParse('1.5')
+    expect(leido.success ? 'pasó' : leido.error.issues[0]?.message).toBe(
+      'Usa coma para los decimales: 1,5.',
+    )
+    const raro = moneda('es-BO').safeParse('1e3')
+    expect(raro.success ? 'pasó' : raro.error.issues[0]?.message).toBe('Tiene que ser un número.')
+  })
+  it('en en-US la coma agrupa', () => {
+    expect(pasa(moneda('en-US'), '1,234')).toBe(1234)
+    expect(pasa(moneda('en-US'), '1.5')).toBe(1.5)
   })
 })

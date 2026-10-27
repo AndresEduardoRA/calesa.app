@@ -42,7 +42,7 @@ export function useVitrina(vehiculo: Vehiculo, alGuardar: () => void) {
   }
 
   async function guardar() {
-    const validacion = validarVitrina(valores)
+    const validacion = validarVitrina(valores, locale)
     setAviso(null)
     setConflicto(null)
     if (!validacion.ok) {

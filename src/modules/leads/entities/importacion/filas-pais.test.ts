@@ -53,6 +53,7 @@ function preparar(
     campos: CON_PAIS,
     contexto: CONTEXTO,
     zona: 'America/La_Paz',
+    locale: 'es-BO',
     eleccion: { origenId: WEB, tipoLeadId: TIPO_PRO },
     paises: TABLA_DE_PAISES,
     nuevoId: () => `id-${String((n += 1))}`,

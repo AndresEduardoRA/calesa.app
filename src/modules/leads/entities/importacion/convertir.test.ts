@@ -66,74 +66,110 @@ describe('fechaHoraLocal', () => {
 
 describe('valorDeFormularioDesdeTexto', () => {
   it('una celda vacía es «sin dato» de la forma del campo', () => {
-    expect(valorDeFormularioDesdeTexto(campo('texto'), '  ')).toEqual({ ok: true, valor: '' })
-    expect(valorDeFormularioDesdeTexto(campo('booleano'), '')).toEqual({ ok: true, valor: null })
-    expect(valorDeFormularioDesdeTexto(campo('multi_opcion'), '')).toEqual({ ok: true, valor: [] })
+    expect(valorDeFormularioDesdeTexto(campo('texto'), '  ', 'es-BO')).toEqual({
+      ok: true,
+      valor: '',
+    })
+    expect(valorDeFormularioDesdeTexto(campo('booleano'), '', 'es-BO')).toEqual({
+      ok: true,
+      valor: null,
+    })
+    expect(valorDeFormularioDesdeTexto(campo('multi_opcion'), '', 'es-BO')).toEqual({
+      ok: true,
+      valor: [],
+    })
   })
 
   it('sí y no, en las formas que escribe la gente', () => {
     const c = campo('booleano')
     for (const si of ['Sí', 'si', 'SI', 'Verdadero', 'true', '1', 'x']) {
-      expect(valorDeFormularioDesdeTexto(c, si)).toEqual({ ok: true, valor: true })
+      expect(valorDeFormularioDesdeTexto(c, si, 'es-BO')).toEqual({ ok: true, valor: true })
     }
     for (const no of ['No', 'NO', 'falso', 'false', '0']) {
-      expect(valorDeFormularioDesdeTexto(c, no)).toEqual({ ok: true, valor: false })
+      expect(valorDeFormularioDesdeTexto(c, no, 'es-BO')).toEqual({ ok: true, valor: false })
     }
-    expect(valorDeFormularioDesdeTexto(c, 'quizás')).toMatchObject({ ok: false })
+    expect(valorDeFormularioDesdeTexto(c, 'quizás', 'es-BO')).toMatchObject({ ok: false })
   })
 
   it('una opción por su etiqueta o su clave; una que no existe es un error que la nombra', () => {
     const c = campo('opcion', { opciones: OPCIONES })
-    expect(valorDeFormularioDesdeTexto(c, 'Sedán')).toEqual({ ok: true, valor: 'sedan' })
-    expect(valorDeFormularioDesdeTexto(c, 'sedan')).toEqual({ ok: true, valor: 'sedan' })
-    expect(valorDeFormularioDesdeTexto(c, 'SEDAN')).toEqual({ ok: true, valor: 'sedan' })
-    const mal = valorDeFormularioDesdeTexto(c, 'Camión')
+    expect(valorDeFormularioDesdeTexto(c, 'Sedán', 'es-BO')).toEqual({ ok: true, valor: 'sedan' })
+    expect(valorDeFormularioDesdeTexto(c, 'sedan', 'es-BO')).toEqual({ ok: true, valor: 'sedan' })
+    expect(valorDeFormularioDesdeTexto(c, 'SEDAN', 'es-BO')).toEqual({ ok: true, valor: 'sedan' })
+    const mal = valorDeFormularioDesdeTexto(c, 'Camión', 'es-BO')
     expect(mal).toMatchObject({ ok: false })
     expect(mal.ok ? '' : mal.motivo).toContain('Camión')
   })
 
   it('varias opciones separadas por «|»', () => {
     const c = campo('multi_opcion', { opciones: OPCIONES })
-    expect(valorDeFormularioDesdeTexto(c, 'Sedán | suv')).toEqual({
+    expect(valorDeFormularioDesdeTexto(c, 'Sedán | suv', 'es-BO')).toEqual({
       ok: true,
       valor: ['sedan', 'suv'],
     })
-    expect(valorDeFormularioDesdeTexto(c, 'Sedán | Moto')).toMatchObject({ ok: false })
+    expect(valorDeFormularioDesdeTexto(c, 'Sedán | Moto', 'es-BO')).toMatchObject({ ok: false })
   })
 
   it('fechas', () => {
     const c = campo('fecha')
-    expect(valorDeFormularioDesdeTexto(c, '4/3/2026')).toEqual({ ok: true, valor: '2026-03-04' })
-    expect(valorDeFormularioDesdeTexto(c, '31/02/2026')).toMatchObject({ ok: false })
-    expect(valorDeFormularioDesdeTexto(campo('fecha_hora'), '4/3/2026 9:30')).toEqual({
+    expect(valorDeFormularioDesdeTexto(c, '4/3/2026', 'es-BO')).toEqual({
+      ok: true,
+      valor: '2026-03-04',
+    })
+    expect(valorDeFormularioDesdeTexto(c, '31/02/2026', 'es-BO')).toMatchObject({ ok: false })
+    expect(valorDeFormularioDesdeTexto(campo('fecha_hora'), '4/3/2026 9:30', 'es-BO')).toEqual({
       ok: true,
       valor: '2026-03-04T09:30',
     })
   })
 
-  it('números: con coma o con punto, y con miles', () => {
-    const c = campo('numero')
-    expect(valorDeFormularioDesdeTexto(c, '35')).toEqual({ ok: true, valor: '35' })
-    expect(valorDeFormularioDesdeTexto(c, '1.234,5')).toEqual({ ok: true, valor: '1234,5' })
-    expect(valorDeFormularioDesdeTexto(c, '1,234.5')).toEqual({ ok: true, valor: '1234.5' })
-    expect(valorDeFormularioDesdeTexto(c, '-7')).toEqual({ ok: true, valor: '-7' })
-  })
-
   it('quita el apóstrofo que puso la exportación, pero no uno propio', () => {
-    expect(valorDeFormularioDesdeTexto(campo('texto'), "'=1+1")).toEqual({
+    expect(valorDeFormularioDesdeTexto(campo('texto'), "'=1+1", 'es-BO')).toEqual({
       ok: true,
       valor: '=1+1',
     })
-    expect(valorDeFormularioDesdeTexto(campo('texto'), "O'Brien")).toEqual({
+    expect(valorDeFormularioDesdeTexto(campo('texto'), "O'Brien", 'es-BO')).toEqual({
       ok: true,
       valor: "O'Brien",
     })
   })
 
   it('un texto que parece una fórmula queda como texto: nada se interpreta', () => {
-    expect(valorDeFormularioDesdeTexto(campo('texto'), '=HYPERLINK("x")')).toEqual({
+    expect(valorDeFormularioDesdeTexto(campo('texto'), '=HYPERLINK("x")', 'es-BO')).toEqual({
       ok: true,
       valor: '=HYPERLINK("x")',
     })
+  })
+})
+
+describe('un número del archivo (4.13-3c)', () => {
+  it('números: con coma o con punto, y con miles', () => {
+    const c = campo('numero')
+    expect(valorDeFormularioDesdeTexto(c, '35', 'es-BO')).toEqual({ ok: true, valor: '35' })
+    expect(valorDeFormularioDesdeTexto(c, '1.234,5', 'es-BO')).toEqual({
+      ok: true,
+      valor: '1234,5',
+    })
+    expect(valorDeFormularioDesdeTexto(c, '1,234.5', 'es-BO')).toEqual({
+      ok: true,
+      valor: '1234,5',
+    })
+    expect(valorDeFormularioDesdeTexto(c, '-7', 'es-BO')).toEqual({ ok: true, valor: '-7' })
+  })
+
+  // P1 del 4.13-3c: el archivo conserva lo que aceptaba (viene de otro sistema) y llega al alta escrito en el formato de la empresa.
+  it('un archivo lee los dos formatos y «1.5» como decimal, y lo escribe con el locale de la empresa', () => {
+    const c = campo('moneda')
+    expect(valorDeFormularioDesdeTexto(c, '1.5', 'es-BO')).toEqual({ ok: true, valor: '1,5' })
+    expect(valorDeFormularioDesdeTexto(c, '1,5', 'es-BO')).toEqual({ ok: true, valor: '1,5' })
+    expect(valorDeFormularioDesdeTexto(c, '1.234', 'es-BO')).toEqual({ ok: true, valor: '1234' })
+    expect(valorDeFormularioDesdeTexto(c, '1,234', 'en-US')).toEqual({ ok: true, valor: '1234' })
+    expect(valorDeFormularioDesdeTexto(c, '1.5', 'en-US')).toEqual({ ok: true, valor: '1.5' })
+    for (const texto of ['1e3', '0x10', 'Infinity', 'mucho']) {
+      expect(valorDeFormularioDesdeTexto(c, texto, 'es-BO'), texto).toEqual({
+        ok: false,
+        motivo: 'Escribe un número, por ejemplo 1234,5.',
+      })
+    }
   })
 })

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRegional } from '@/shared/ui/regional'
 import { useId, useState } from 'react'
 import { enfocarPrimerError, errorDeCampo, valoresDe } from '@/shared/lib/formularios'
 import { Aviso } from '@/shared/ui/aviso'
@@ -21,15 +22,14 @@ type Props = {
   alCerrar: () => void
 }
 
-const VALOR_INVALIDO = 'Escribe un valor mayor que cero, con hasta 6 decimales.'
-
 type PropsDeCampos = {
   opciones: readonly { valor: string; etiqueta: string }[]
   monedaBase: string
   // La moneda que se propone del otro lado.
   otra: string
   errores: EdicionesDeTiposCambio['errores']['crear']
-  valorInvalido: boolean
+  // El motivo de un valor que no se lee, o null.
+  valorInvalido: string | null
 }
 
 function Campos({ opciones, monedaBase, otra, errores, valorInvalido }: PropsDeCampos) {
@@ -64,7 +64,7 @@ function Campos({ opciones, monedaBase, otra, errores, valorInvalido }: PropsDeC
         etiqueta="Valor"
         inputMode="decimal"
         autoComplete="off"
-        error={valorInvalido ? VALOR_INVALIDO : errorDeCampo(errores, 'valor')}
+        error={valorInvalido ?? errorDeCampo(errores, 'valor')}
       />
     </>
   )
@@ -84,7 +84,8 @@ function Formulario({
   ediciones,
   alCerrar,
 }: PropsDelFormulario) {
-  const [valorInvalido, setValorInvalido] = useState(false)
+  const [valorInvalido, setValorInvalido] = useState<string | null>(null)
+  const { locale } = useRegional()
   const errores = ediciones.errores.crear
   const { formulario, hayCambios } = useHayCambiosEnFormulario([
     'nombre',
@@ -97,12 +98,13 @@ function Formulario({
 
   async function crear(elemento: HTMLFormElement) {
     const campos = valoresDe(elemento, ['nombre', 'monedaDe', 'monedaA', 'valor'])
-    const valor = valorTipeado(campos.valor)
-    setValorInvalido(valor === null)
-    if (valor === null) {
+    const leido = valorTipeado(campos.valor, locale)
+    setValorInvalido(leido.ok ? null : leido.motivo)
+    if (!leido.ok) {
       enfocarPrimerError(elemento)
       return
     }
+    const valor = leido.valor
     const hecho = await ediciones.crear({ ...campos, valor })
     if (hecho.ok) {
       alCerrar()

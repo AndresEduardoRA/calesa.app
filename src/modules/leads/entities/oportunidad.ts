@@ -3,6 +3,7 @@
 // cartera y `leads.editar` (la base decide). El estado sale de la etapa: una ganada o perdida la
 // cierra (y se queda en su columna), una abierta la reabre. `cancelada` la pone la baja de su dueña.
 import { formatearParaEditar } from '@/shared/lib/formato'
+import { avisoDeNumero, leerNumeroTipeado } from '@/shared/lib/numero-tipeado'
 import { z } from 'zod'
 import { esquemaEtapa, etapaDesde, type EtapaGuardada } from './embudo'
 import {
@@ -174,34 +175,37 @@ export type ValoresDeOportunidad = {
   vehiculo: string
 }
 
-// El monto tipeado: acepta «25000», «25.000,50» o «25000.5». Vacío es «sin monto».
-export function montoDesdeTexto(texto: string): number | null | 'invalido' {
-  const limpio = texto.trim().replace(/\s/g, '')
-  if (limpio === '') {
-    return null
+export type MontoTipeado = number | null | 'invalido' | { aviso: string }
+
+// El monto tipeado, con el lector de toda la app y el locale de la empresa (4-25; P2 del 4.13-3c): en es-BO «25.000,50» es 25000,5 y
+// «25,000.5» dice su aviso. Vacío es «sin monto»; un negativo no es un monto.
+export function montoDesdeTexto(texto: string, locale: string): MontoTipeado {
+  const leido = leerNumeroTipeado(texto, locale)
+  if (!leido.ok) {
+    return leido.motivo === 'separador'
+      ? { aviso: avisoDeNumero(texto, leido.motivo, locale) }
+      : 'invalido'
   }
-  // El separador decimal es el último «,» o «.» seguido de 1 o 2 dígitos al final; los demás son de miles.
-  const decimal = /[.,](\d{1,2})$/.exec(limpio)
-  const entero = decimal ? limpio.slice(0, decimal.index) : limpio
-  if (!/^\d{1,3}([.,]?\d{3})*$|^\d+$/.test(entero)) {
-    return 'invalido'
-  }
-  const valor = Number(`${entero.replace(/[.,]/g, '')}${decimal ? `.${decimal[1] ?? ''}` : ''}`)
-  return Number.isFinite(valor) ? valor : 'invalido'
+  return leido.valor !== null && leido.valor < 0 ? 'invalido' : leido.valor
 }
 
 export type ErroresDeOportunidad = Partial<Record<'titulo' | 'monto_estimado' | 'notas', string>>
 
 // Lo que pasa antes de enviar, con el mismo mensaje que la base y por campo.
-export function validarOportunidad(valores: ValoresDeOportunidad): ErroresDeOportunidad {
+export function validarOportunidad(
+  valores: ValoresDeOportunidad,
+  locale: string,
+): ErroresDeOportunidad {
   const errores: ErroresDeOportunidad = {}
   const titulo = valores.titulo.trim()
   if (titulo.length < 1 || titulo.length > LARGO_MAXIMO_DE_TITULO) {
     errores.titulo = `El título lleva entre 1 y ${String(LARGO_MAXIMO_DE_TITULO)} caracteres.`
   }
-  const monto = montoDesdeTexto(valores.monto)
+  const monto = montoDesdeTexto(valores.monto, locale)
   if (monto === 'invalido') {
     errores.monto_estimado = 'Escribe el monto con números, por ejemplo 25000 o 25.000,50.'
+  } else if (typeof monto === 'object' && monto !== null) {
+    errores.monto_estimado = monto.aviso
   } else if (monto !== null && monto >= MONTO_MAXIMO) {
     errores.monto_estimado = 'El monto es demasiado grande.'
   }
@@ -236,8 +240,11 @@ export type DatosDeOportunidad = {
 }
 
 // Lo que viaja al crear (con los valores ya validados).
-export function datosDeOportunidad(valores: ValoresDeOportunidad): DatosDeOportunidad {
-  const monto = montoDesdeTexto(valores.monto)
+export function datosDeOportunidad(
+  valores: ValoresDeOportunidad,
+  locale: string,
+): DatosDeOportunidad {
+  const monto = montoDesdeTexto(valores.monto, locale)
   return {
     titulo: valores.titulo.trim(),
     monto_estimado: typeof monto === 'number' ? monto : null,
@@ -250,8 +257,9 @@ export function datosDeOportunidad(valores: ValoresDeOportunidad): DatosDeOportu
 export function cambiosDeOportunidad(
   antes: Oportunidad,
   valores: ValoresDeOportunidad,
+  locale: string,
 ): Partial<DatosDeOportunidad> {
-  const datos = datosDeOportunidad(valores)
+  const datos = datosDeOportunidad(valores, locale)
   const cambios: Partial<DatosDeOportunidad> = {}
   if (datos.titulo !== antes.titulo) {
     cambios.titulo = datos.titulo

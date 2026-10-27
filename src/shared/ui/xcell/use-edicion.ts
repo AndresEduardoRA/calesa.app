@@ -26,7 +26,8 @@ export type Edicion = {
   texto: string
   // El texto con el que se habría abierto: contra él se mide si hubo un cambio.
   abierto: string
-  invalido: boolean
+  // El aviso de lo escrito que no se leyó como número (`null` mientras se lee bien).
+  aviso: string | null
   seleccion: 'todo' | 'final'
 }
 
@@ -58,7 +59,7 @@ export function useEdicion({ ladoDe, bloqueado, locale, onCommit }: Entrada) {
     const l = ladoDe(lado)
     const completo = textoParaEditar(l.valor, l.formato, locale)
     abierta.current = true
-    setEdicion({ lado, texto: escrito ?? completo, abierto: completo, invalido: false, seleccion })
+    setEdicion({ lado, texto: escrito ?? completo, abierto: completo, aviso: null, seleccion })
   }
 
   function terminar() {
@@ -66,17 +67,17 @@ export function useEdicion({ ladoDe, bloqueado, locale, onCommit }: Entrada) {
     setEdicion(null)
   }
 
-  // Emite sólo si cambió; devuelve false si lo escrito no es un número (la edición sigue abierta con su aviso).
-  function confirmar(e: Edicion): boolean {
+  // Emite sólo si cambió; devuelve el aviso si lo escrito no se lee como número (la edición sigue abierta con él), o null.
+  function confirmar(e: Edicion): string | null {
     const l = ladoDe(e.lado)
-    const leido = leerTipeado(e.texto, l.formato)
+    const leido = leerTipeado(e.texto, l.formato, locale)
     if (!leido.ok) {
-      return false
+      return leido.aviso
     }
     if (hayCambio(e.abierto, e.texto, leido.valor, l.valor)) {
       onCommit(l.id, leido.valor)
     }
-    return true
+    return null
   }
 
   function alCerrar(tecla: TeclaDeCierre, evento: KeyboardEvent<HTMLInputElement>) {
@@ -86,10 +87,13 @@ export function useEdicion({ ladoDe, bloqueado, locale, onCommit }: Entrada) {
     if (tecla === 'esc') {
       volverARef.current = edicion.lado
       terminar()
-    } else if (!confirmar(edicion)) {
+      return
+    }
+    const aviso = confirmar(edicion)
+    if (aviso !== null) {
       // Ni Enter ni Tab siguen su camino con un texto que no es un número.
       evento.preventDefault()
-      setEdicion({ ...edicion, invalido: true })
+      setEdicion({ ...edicion, aviso })
     } else if (tecla === 'enter') {
       volverARef.current = edicion.lado
       terminar()
@@ -109,7 +113,7 @@ export function useEdicion({ ladoDe, bloqueado, locale, onCommit }: Entrada) {
 
   function alEscribir(texto: string) {
     if (edicion !== null) {
-      setEdicion({ ...edicion, texto, invalido: false })
+      setEdicion({ ...edicion, texto, aviso: null })
     }
   }
 

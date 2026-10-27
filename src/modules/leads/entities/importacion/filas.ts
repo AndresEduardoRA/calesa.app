@@ -68,6 +68,8 @@ export type EntradaDePreparacion = {
   campos: readonly CampoDeLead[]
   contexto: ContextoDeImportacion
   zona: string
+  // El de la empresa: con él se escriben los números del archivo y los lee el alta (4.13-3c). Obligatorio.
+  locale: string
   eleccion: EleccionParaTodoElArchivo
   // La tabla de países, para completar «País» con el del teléfono. Sin ella (todavía no llegó) no se
   // completa nada.
@@ -171,14 +173,14 @@ function leerOrigen(
 function leerAtributo(
   destino: string,
   celda: string,
-  { campos }: ContextoDeLectura,
+  { campos, entrada }: ContextoDeLectura,
   { valores, propios }: Lectura,
 ): void {
   const campo = campos.get(destino.slice(PREFIJO_DE_ATRIBUTO.length))
   if (!campo) {
     return
   }
-  const conversion = valorDeFormularioDesdeTexto(campo, celda)
+  const conversion = valorDeFormularioDesdeTexto(campo, celda, entrada.locale)
   if (conversion.ok) {
     valores[destino] = conversion.valor
   } else {
@@ -247,6 +249,7 @@ function prepararFila(
     layout: entrada.campos,
     contexto: entrada.contexto,
     zona: entrada.zona,
+    locale: entrada.locale,
   })
   const porCampo = new Map(validacion.ok ? [] : Object.entries(validacion.porCampo))
   // Un dato que no se pudo leer ya dice por qué: no se repite con «es obligatorio».

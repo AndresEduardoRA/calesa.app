@@ -105,7 +105,7 @@ function XCellBase(props: XCellProps) {
     locale,
     onCommit: props.onCommit,
   })
-  const aviso = notaDe(edicion.edicion?.invalido === true, props.error)
+  const aviso = notaDe(edicion.edicion?.aviso, props.error)
   const { notas, deLado, deLaEntrada } = notasDe(uid, aviso, candados, hayPar)
 
   const lado = (cual: Lado) => (
