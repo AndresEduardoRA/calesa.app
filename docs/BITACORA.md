@@ -3302,3 +3302,47 @@ Y los dos de la integración: `f9f3087` `refactor(config): escribir en e2e.md la
 **ESTADO:** el piloto existe y cómo se arranca (`docs/PILOTO.md`); lo siguiente es la decisión sobre Next y después el 4.13-3b, con el piloto; **12.254 B** (`wc -c`, tope 12.288). Lo que salió, copiado arriba en «Movido de ESTADO (A0)».
 
 **Lo que no se hizo:** el primer `arrancar.sh` real ni aceptar la confianza de la carpeta (los hace la persona), calibrar los topes, nada de la nube (**E1**, `docs/DECISIONES.md`), `next upgrade`, ningún `db:*` ni e2e, y el 4.13-3b. El push a `origin` lo autoriza la persona.
+
+## 2026-10-26 — Paso DEP-1: Next 16.4.3 y Node 24 (DEP-1)
+
+**Qué se pidió:** un paso manual antes del 4.13-3b: subir Next al último parche de 16.4 y fijar Node 24; cierra **4-35** y **4-37**. Fila nueva en `docs/PLAN.md` › «Partición» (compuerta `dependencia`), versiones verificadas hoy, 4-37 reproducida en frío antes y después, Nivel 1 y el e2e completo de los dos proyectos, docs, y commits sin push.
+
+Antes de empezar: `df -h /` dijo **94 %**, el árbol estaba limpio (HEAD `6b8be16`) y no había procesos de `playwright`, `next build`, `vitest` ni `lefthook` (sólo el `next-server` viejo de la persona y la base de Supabase).
+
+**Versiones (`npm view`, 2026-10-26):** `next` `latest` = **16.4.3** (16.4.1 el 2026-10-14, 16.4.2 el 10-15, 16.4.3 el 10-23); `eslint-config-next@16.4.3` existe; `next@16.4.3` pide `engines.node >=20.9.0` y `sharp ^0.35.5`. Elegida **16.4.3**, exactas. `pnpm why sharp` antes y después: **0.35.5** (cumple ≥ 0.35.5; no hizo falta ningún override).
+
+**La roja de 4-37 (HEAD, 16.4.0, en frío):** borrado `.next-e2e` y `NEXT_DIST_DIR=.next-e2e pnpm next build` → compiló (8,1 s), pasó TypeScript (20,2 s), imprimió la tabla de rutas y **terminó con código 1**:
+
+```
+> Build error occurred
+Error [SecurityFatalError]: Your version of Next.js is affected by a known security vulnerability.
+**We strongly recommend you upgrade Next.js.**
+This command stopped to show the upgrade recommendation. Retry the same command to continue the original task.
+…
+Reference: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk
+    at ignore-listed frames { exitCode: 1 }
+```
+
+La salida recomienda correr `next upgrade --agent=security`; **no se corrió** (el hook lo veta y el paso se hace con `package.json` y `pnpm install`).
+
+**Lo que se hizo:**
+
+- **`package.json` y `pnpm-lock.yaml`** (`b510268`): `next` y `eslint-config-next` de 16.4.0 a 16.4.3, exactas; `pnpm install` sin nombres (+7 −7 paquetes, según pnpm; el diff del lockfile sólo toca la familia de Next y las claves de peer de `next-safe-action` y `nuqs`).
+- **4-35** (`2efdd75`): `engines.node` `>=24`, `.nvmrc` con `24` y `scripts/configurar-package.mjs` (escribe el mismo `engines`). `node -v` local: **v24.18.0**; CI ya usa 24 (`.github/acciones/preparar`). `@types/node` sigue en `^20`.
+- **`docs/PLAN.md`:** la fila **DEP-1** antes del 4.13 (la columna «N.º» se ensanchó un espacio y Prettier reajustó todas las filas de la tabla), y **4-35** y **4-37** tachados con los commits.
+- **`docs/DECISIONES.md`:** «DEP-1: Next 16.4.3 y Node 24».
+
+**4-37 en frío con 16.4.3** (el directorio `.next-e2e` borrado antes de cada una, bajo esta sesión de agente): **corrida 1, código 0** (compiló en 7,5 s, TypeScript 19,9 s); **corrida 2, código 0** (9,6 s, 20,4 s). Ninguna tuvo `SecurityFatalError` ni el aviso. Las dos pasaron a la primera, sin reintentos y sin `agentUpgrade: false`. El build del propio e2e completo (Next 16.4.3) tampoco lo dio.
+
+**Verificación:**
+
+- **Nivel 1:** `pnpm lint` y `pnpm typecheck` limpios; `pnpm test` en verde (**399 archivos y 5.066 pruebas**, 105 s, en Node 24.18.0); `bash scripts/mapa.sh --check` pasa.
+- **e2e completo, los dos proyectos** (`pnpm test:e2e:completo`, sin bandera, con `npx supabase functions serve`; de las 22:58 a las 23:44, hora de La Paz): **1.252 en verde, 34 saltados, 0 fallos, 45,3 min.** Escritorio **735 ✓ y 16 saltados**, móvil **517 ✓ y 18 saltados**: los mismos 16 y 18 del último marcador (cierre de la Fase 3, 640/16 y 425/18). Son los saltos por proyecto de siempre (specs de celular que en escritorio se saltan y al revés); no se comparó nombre por nombre contra el marcador viejo, porque no se guardó la lista. `db:reset` y las carreras (**13,1 s**) corrieron dentro del completo, a la primera. Los 5 de `presupuesto-js` (el JS en frío de `/leads`, `/perfil` y `/vehiculos`) pasaron en escritorio con Next 16.4.3.
+- **Nivel 2:** lo cubre el completo (Next toca todas las rutas). **e2e completo: sí (DEP-1, ambos).** La cuenta de pasos de pantalla seguidos sin completo vuelve a **0**.
+- **Cadena db:** no aplica (nada de `supabase/`).
+
+**Del entorno:** (1) el hook de Bash trata `2>&1` como el nombre de un paquete en `pnpm install 2>&1` y lo bloquea; `pnpm install` solo pasa. (2) `pkill -f 'functions serve'` mata al propio shell (su línea de comandos tiene el patrón, código 144): cerré las funciones y no quedó ningún proceso ni el contenedor `supabase_edge_runtime_*`. (3) Para dejar `package.json` con sólo las líneas de Next en el primer commit, `engines` volvió un momento a `>=22.13.0` y se restauró para el segundo.
+
+**ESTADO:** «Fase actual» y «Siguiente» dicen DEP-1 hecho y el 4.13-3b es lo que sigue; ya no dice «Next 16.4.0, dos advisories críticos, decide la persona»; el último completo pasa a ser el de DEP-1 y la cuenta de pantallas sin completo, 0. **12.221 B** (`wc -c`, tope 12.288). Lo que salió (el Nivel 3 de la Fase 3 y el aviso de Next) ya está en esta bitácora (2026-10-22 y «CI-1»), así que no se copia otra vez.
+
+**Lo que no se hizo:** el 4.13-3b, ningún push (lo hace la persona después de que el piloto lo revise), `next upgrade`, `experimental.agentUpgrade`, subir `@types/node` a 24, ni cambiar nada de `supabase/`.
