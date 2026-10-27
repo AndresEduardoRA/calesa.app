@@ -20,6 +20,8 @@ Una compuerta es lo único que el piloto le pregunta a la persona (al celular, p
 - `motivo`: una línea, el hecho (no la opinión). `pregunta`: lo que la persona va a leer en el celular, sin jerga: una frase.
 - `opciones`: de 2 a 4, **la recomendada primero y con «(recomendado)» en su descripción**. Cada etiqueta empieza con la acción en una palabra (`aprobar`, `cambiar`, `parar`, `seguir`): el bucle
   entiende `aprobar` y `parar`; cualquier otra cosa se la pasa tal cual al paso en `hechos.json` › `decision`, junto con lo que la persona haya escrito en «Other».
+- **`producto`: una pregunta por decisión** (`preguntas`, con el `Pn` del plan como `id`), nunca un «¿apruebo todo?»: en el 4.13-3b llegaron nueve decisiones en una sola
+  pregunta. Cada una con su texto corto y de 2 a 4 opciones, la recomendada primero. Las demás compuertas llevan una sola `pregunta`.
 - `contexto`: las rutas que ayudan a decidir (el plan `.piloto/planes/<paso>.md`, el informe, un archivo concreto). La sesión de decidir sólo lee.
 - **No pidas lo ya respondido:** si `hechos.json` › `decision` contesta tu pregunta, sigue.
 - **Nunca** escribas tú la aprobación. Con una `datos` aprobada, es el bucle quien escribe `aprobado-<paso>`, y sin ella no se publica un SQL de seguridad.

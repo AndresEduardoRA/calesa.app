@@ -29,7 +29,7 @@
 | Quitar la parada               | `rm .piloto/PARAR` y `arrancar.sh`                                                                                                                                 |
 | Retomar tras un reinicio       | `bash scripts/piloto/arrancar.sh`: un paso a medias se retoma con `--resume` de **su** sesión, nunca con una nueva                                                 |
 | Ensayo en seco                 | `bash scripts/piloto/arrancar.sh --en-seco --nota <archivo>`: un ruteo real y el paso sin ejecutar nada (planificador y auditor), por permisos y no por obediencia |
-| Probar el circuito del celular | `bash scripts/piloto/decidir.sh --prueba` (una compuerta de mentira)                                                                                               |
+| Probar el circuito del celular | `bash scripts/piloto/decidir.sh --prueba` (una compuerta de mentira); `--prueba-tandas`, otra con 5 preguntas en dos tandas, como la de producto                   |
 
 `arrancar.sh` **copia** `scripts/piloto/` (sin pruebas) a `<carpeta común de git>/piloto/bin/`, anota un sha256 por archivo en `bin.sha256` y lanza ESA copia. El bucle llama siempre a las piezas de la copia, nunca a las de
 `scripts/piloto/`: un paso no puede cambiar el código con que se lo verifica y publica. Si un paso toca `scripts/piloto/`, la compuerta «guardas» lo pregunta, y aprobada la vuelta termina pidiendo re-arrancar.
@@ -72,6 +72,8 @@ Cualquier falla en a), b) o d) es un aviso; no se publica. El aviso de b) es la 
 **La sesión de decidir** (`decidir.sh abrir`): `tmux` + `claude --remote-control 'piloto · <tipo> <paso>' --model sonnet --effort low --tools 'Read,AskUserQuestion' --disallowedTools 'mcp__*' --no-chrome --settings <copia>/decidir.settings.json '/piloto-decidir'`, con `ENABLE_CLAUDEAI_MCP_SERVERS=false` y `disableClaudeAiConnectors` en sus ajustes (la de control, igual): `--tools` no quita las MCP y, sin `ToolSearch`, se cargan enteras; en el 4.13-3b eran 677 KB a mitad de cada sesión, ≈ 1,2 USD por compuerta. **No escribe nada** (escribir en `.git/` preguntaría por permiso en el celular y
 ninguna regla allow lo aprueba): la respuesta la anota un hook `PostToolUse` de `AskUserQuestion` (`anotar-decision.sh`), que es bash y escribe `<común>/piloto/decision.md` con el `id` de la compuerta, la opción, las notas y «me respondió: «…»» literal. El bucle sólo la acepta si su `id`
 es el de la compuerta vigente, es posterior a `compuerta.md` y **ningún paso estaba vivo** (`en-curso.json` y `pgrep`); si no, la borra y sigue esperando. Con `datos` aprobada escribe `aprobado-<paso>`. Nada sigue sin respuesta.
+
+**La compuerta de producto, una pregunta por decisión** (CAL-1; en el 4.13-3b llegaron P0–P9 en una sola): el paso la pide con `compuerta.preguntas` (de 1 a 12, cada una `{ id, pregunta, opciones }` con de 2 a 4 opciones; `id` ≤ 12 caracteres, va de `header`). El bucle las escribe en `compuerta.md` (`preguntas: N`, `tandas: K` y una decisión por línea con sus opciones indentadas) y la sesión de decidir las hace en tandas de hasta 4, una llamada a `AskUserQuestion` por tanda, en la **misma** sesión. El hook anota cada tanda en `<común>/piloto/decision-parcial-<id>.json` (empareja por el `header` y, si no, por el texto de la pregunta) y escribe `decision.md` sólo con todas: una línea `- P0: …` por decisión, en el orden de la compuerta. «parar» (o «parado», «detener») en cualquiera para el bucle; «no partir» no. El paso lee las respuestas en `hechos.json` › `decision` (hasta 8.000 B). Las demás compuertas, y la de producto que ve el ruteo, siguen con una pregunta.
 
 ## Las guardas y su prueba
 
@@ -132,7 +134,8 @@ La verificación de siempre del Stop (mapa + typecheck + lint + test + mapa) ≈
 
 ## Pendiente
 
-- **El primer `bash scripts/piloto/arrancar.sh` real**, que hace la persona. `decidir.sh --prueba` ya se repitió en verde (abajo): el circuito del celular (push, pregunta y hook que anota la decisión) anda de punta a punta con el modelo, pero un paso entero con sus compuertas, el cierre y la publicación aún no.
+- **`bash scripts/piloto/decidir.sh --prueba-tandas`**, que hace la persona (desde el árbol, no la copia): dos tandas en el celular (4 y 1), una con algo en «Other». Después se comprueba con comandos que `decision.md` trae 5 líneas `- Pn:` con el id de la prueba, que el transcript tiene 2 llamadas a `AskUserQuestion`, menos de 60 K tokens de caché escrita y ningún «tools just became available», y su línea en `consumo.csv`.
+- El primer `arrancar.sh` real ya hizo el 4.13-3b (CAL-1); un paso de Nivel 2 con sus compuertas, el cierre y la publicación, aún no.
 - Aceptar la confianza de la carpeta (arriba) para que valgan las `permissions.allow`.
 - Integrado a `main` con el cierre del A0 (`docs/DECISIONES.md`, «Paso A0»; `docs/BITACORA.md`, «Paso A0»).
 

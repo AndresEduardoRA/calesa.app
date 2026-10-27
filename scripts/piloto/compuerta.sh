@@ -5,7 +5,8 @@
 # ningún paso vivía cuando apareció (`en-curso.json` y `pgrep`); si no, la borra y sigue esperando. Con la decisión aceptada cierra la
 # sesión de decidir y, con `datos` aprobada, escribe `aprobado-<paso>`. Nada sigue sin respuesta. Se prueba en `bucle.test.ts`.
 #
-# Variables que espera: COMUN, ESTADO, BIN, POLL (segundos entre lecturas), EN_SECO y la función `registro`.
+# Variables que espera: COMUN, ESTADO, BIN, POLL (segundos entre lecturas), EN_SECO y la función `registro`. PREGUNTAS (JSON, opcional):
+# las de una compuerta «producto», una por decisión; compuerta.md las lleva con cuántas tandas de 4 son (CAL-1).
 # Resultado de `compuerta`: 0 sigue, 1 reintentar, 2 seguir ignorando el aviso, 3 parar. La decisión queda en DECISION_OPCION y DECISION_TEXTO.
 
 PATRON_PASO_VIVO="${PILOTO_PGREP_PATRON:--p /piloto }"
@@ -35,12 +36,13 @@ clave_de() {
   esac
 }
 
-# escribir_compuerta <tipo> <paso> <motivo> <pregunta> [opciones…] (sin opciones, las de su tipo); CONTEXTO (arreglo) = rutas
+# escribir_compuerta <tipo> <paso> <motivo> <pregunta> [opciones…] (sin opciones, las de su tipo); CONTEXTO (arreglo) = rutas.
+# Con PREGUNTAS no hay opciones generales: cada decisión trae las suyas.
 escribir_compuerta() {
   local tipo="$1" paso="$2" motivo="$3" pregunta="$4"
   shift 4
   local opciones=("$@") o
-  [ "${#opciones[@]}" -gt 0 ] || mapfile -t opciones < <(opciones_de "$tipo")
+  [ "${#opciones[@]}" -gt 0 ] || [ -n "${PREGUNTAS:-}" ] || mapfile -t opciones < <(opciones_de "$tipo")
   mkdir -p "$COMUN" "$ESTADO"
   rm -f "$COMUN/decision.md"
   COMPUERTA_ID="g-$(date +%s)-$RANDOM"
@@ -52,9 +54,14 @@ escribir_compuerta() {
     echo "motivo: ${motivo//$'\n'/ }"
     echo "pregunta: ${pregunta//$'\n'/ }"
     echo "opciones:"
-    for o in "${opciones[@]}"; do echo "- $o"; done
+    for o in "${opciones[@]:-}"; do [ -n "$o" ] && echo "- $o"; done
     echo "contexto:"
     for o in "${CONTEXTO[@]:-}"; do [ -n "$o" ] && echo "- $o"; done
+    if [ -n "${PREGUNTAS:-}" ]; then
+      jq -r 'def una_linea: gsub("\n"; " ");
+        "preguntas: \(length)", "tandas: \((length + 3) / 4 | floor)",
+        (.[] | "- \(.id): \(.pregunta | una_linea)", (.opciones[] | "  - \(.etiqueta | una_linea) — \(.descripcion | una_linea)"))' <<<"$PREGUNTAS"
+    fi
   } >"$COMUN/compuerta.md.tmp"
   mv -f "$COMUN/compuerta.md.tmp" "$COMUN/compuerta.md"
 }
@@ -110,6 +117,11 @@ compuerta() {
   case "$clave" in
     parar) return 3 ;;
   esac
+  # Varias decisiones: «parar» (o «parado», «detener») en cualquiera para. «no …» no: «no partir» es una respuesta.
+  if [ -n "${PREGUNTAS:-}" ] && sed -n 's/^- [^:]*: *//p' "$COMUN/decision.md" | sed -E 's/^(«|"|'"'"')//' |
+    grep -qiE '^(parar|parado|detener)'; then
+    return 3
+  fi
   case "$tipo" in
     parada)
       case "$clave" in reintentar) return 1 ;; sigo) return 2 ;; *) return 3 ;; esac ;;

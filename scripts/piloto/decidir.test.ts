@@ -170,3 +170,20 @@ describe('decidir.sh › sin herramientas MCP', () => {
     expect(ajustes.disableClaudeAiConnectors).toBe(true)
   })
 })
+
+describe('decidir.sh › varias preguntas por compuerta (producto)', () => {
+  it('--prueba-tandas: una compuerta de mentira con 5 preguntas en 2 tandas, leída donde la skill la busca', () => {
+    const r = decidir(['--prueba-tandas'], { FAKE_RESPONDE: '1' })
+    expect(r.status, r.stderr).toBe(0)
+    expect(leido()).toMatch(/^id: prueba-tandas-\d+$/m)
+    expect(leido()).toContain('preguntas: 5\ntandas: 2\n')
+    expect(leido()).toMatch(/^- P0: .+\n {2}- .+ — .+\n/m)
+    expect(leido()).toMatch(/^- P4: /m)
+    expect(tmux()).toContain('kill-session -t piloto-decidir')
+  })
+
+  it('la skill hace una llamada por tanda de hasta 4, con el id de cada decisión como header', () => {
+    expect(SKILL).toContain('Con `preguntas:`, pregunta en tandas de hasta 4')
+    expect(SKILL).toMatch(/`header` = (el )?`id`/)
+  })
+})

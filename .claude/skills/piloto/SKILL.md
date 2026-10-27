@@ -61,6 +61,9 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
 - **`listo`:** los commits son **todos** los del paso (`HEAD de arranque..HEAD`, ni uno más) y el árbol está limpio. `e2e_dirigidos`: los specs que tocan lo que cambiaste (grepea `e2e/` por el texto tocado); el bucle los repite.
 - **`compuerta`:** `compuerta` es `{ "tipo", "motivo", "pregunta", "opciones": [{ "etiqueta", "descripcion" }, …], "contexto": ["<ruta>", …] }`; de **2 a 4 opciones, la recomendada primero**; `contexto` lleva las
   rutas que la persona puede abrir (el plan, el informe). Te retoman con `continuar`: la respuesta literal está en `hechos.json` › `decision`.
+  La de **`producto`** lleva, en vez de `pregunta` y `opciones`, **una pregunta por decisión** abierta del plan, en su orden, en `preguntas`: cada una
+  `{ "id": "P0", "pregunta", "opciones" }` (de 1 a 12 preguntas; `id` de ≤ 12 caracteres y sin repetir; de 2 a 4 opciones cada una, la recomendada primero). La persona las
+  contesta en tandas de 4 y la respuesta trae una línea `- P0: …` por decisión.
 - **`falla`:** lo que no pudiste y por qué (una prueba que no se pone verde, el entorno). No inventes un `listo`.
 
 Con `--en-seco`: planificador y auditor y nada más (el bucle te lo limita por permisos, no por obediencia): imprime el plan, el veredicto y, como sonda, haz que el auditor corra

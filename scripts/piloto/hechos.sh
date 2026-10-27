@@ -5,7 +5,8 @@
 # hora (La Paz), rama, head, origin_main, arbol_limpio, disco_pct, candado {libre, dueno}, ci (el último de main, o null),
 # e2e (`cuenta-e2e.mjs` sobre docs/BITACORA.md), bytes_estado, ultimo (.piloto/ultimo.json), en_curso (.piloto/en-curso.json),
 # fallas_seguidas, nota (la del ensayo en seco) y decision (el texto de la decisión vigente: la del `decision.md` cuyo id es el de la
-# `compuerta.md` actual; el paso la lee de aquí porque no puede abrir esos archivos).
+# `compuerta.md` actual, hasta 8.000 B: la de «producto» trae una línea por decisión; el paso la lee de aquí porque no puede abrir esos
+# archivos).
 set -uo pipefail
 # shellcheck source=comun.sh
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
@@ -44,7 +45,7 @@ DECISION=""
 if [ -s "$COMUN/compuerta.md" ] && [ -s "$COMUN/decision.md" ]; then
   ID_C=$(sed -n 's/^id: *//p' "$COMUN/compuerta.md" | head -n 1)
   ID_D=$(sed -n 's/^id: *//p' "$COMUN/decision.md" | head -n 1)
-  [ -n "$ID_C" ] && [ "$ID_C" = "$ID_D" ] && DECISION=$(head -c 3000 "$COMUN/decision.md")
+  [ -n "$ID_C" ] && [ "$ID_C" = "$ID_D" ] && DECISION=$(head -c 8000 "$COMUN/decision.md")
 fi
 
 jq -n \

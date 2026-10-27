@@ -21,8 +21,14 @@ ultimo_valido() {
     type == "object" and (.paso | type == "string") and (.resultado | IN("listo", "compuerta", "falla"))
     and (.resumen | type == "string") and (.commits | type == "array") and (.e2e_dirigidos | type == "array")
     and (if .resultado == "compuerta"
-         then (.compuerta | type == "object" and (.tipo | type == "string") and (.pregunta | type == "string")
-               and (.opciones | type == "array" and length >= 2))
+         then (.compuerta | type == "object" and (.tipo | type == "string")
+               and (if .tipo == "producto"
+                    then (.preguntas | type == "array" and length >= 1 and length <= 12
+                          and all(.[]; type == "object" and (.id | type == "string" and length >= 1 and length <= 12)
+                                  and (.pregunta | type == "string")
+                                  and (.opciones | type == "array" and length >= 2 and length <= 4))
+                          and (map(.id) | unique | length) == length)
+                    else (.pregunta | type == "string") and (.opciones | type == "array" and length >= 2) end))
          else true end)' "$ESTADO/ultimo.json" >/dev/null 2>&1
 }
 

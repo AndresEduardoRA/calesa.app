@@ -35,7 +35,8 @@ escribir bajo `.piloto/planes/` (un hook lo hace cumplir) y tu Bash es de sólo 
   anota en PLAN. Un paso que no cabe en una sesión no se planifica entero.
 - El nivel sale de `node scripts/piloto/nivel.mjs <archivos>` y la cuenta de `node scripts/piloto/cuenta-e2e.mjs docs/BITACORA.md`; no lo adivines.
 - Si hay una pregunta de producto o de UX abierta, un dato o un permiso que decidir, una dependencia nueva, o una policy/RLS/`security definer`/Vault:
-  no la resuelvas: ponla en «Preguntas abiertas» con tu recomendación primero; el paso la lleva como compuerta.
+  no la resuelvas: ponla en «Preguntas abiertas», **una por decisión** con su `Pn` y de 2 a 4 opciones, tu recomendación primero; el paso la lleva como compuerta
+  (la de `producto` copia cada `Pn` a una pregunta propia).
 - Nunca planifiques leer ni llamar la clave real de apibara ni credenciales; nunca `git push`, `db:*` fuera del candado ni tocar `main`.
 
 ## Escribir el plan

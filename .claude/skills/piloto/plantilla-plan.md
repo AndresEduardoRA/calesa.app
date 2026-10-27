@@ -55,7 +55,8 @@ Uno por intención, en orden, con su asunto (español, minúscula, ≤ 72 caract
 
 ## Preguntas abiertas
 
-De producto, de UX, de datos o de dependencias: cada una con la **recomendación primero**. Si hay alguna, el paso termina en una compuerta.
+De producto, de UX, de datos o de dependencias: **una por decisión**, `Pn · la pregunta · de 2 a 4 opciones, la recomendada primero`. Si hay alguna, el paso termina en una
+compuerta (la de `producto` lleva cada `Pn` como una pregunta propia).
 
 ## Modelo y esfuerzo sugeridos
 

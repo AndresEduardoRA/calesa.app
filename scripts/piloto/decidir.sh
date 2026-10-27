@@ -7,6 +7,7 @@
 #                        (`piloto-decidir`); no espera la respuesta
 #   decidir.sh cerrar    anota el consumo de la sesión (tokens del transcript), la cierra y borra la copia de lectura
 #   decidir.sh --prueba  una compuerta de mentira, para que la persona pruebe el push, la pregunta y el hook la primera vez
+#   decidir.sh --prueba-tandas  otra con 5 preguntas (como la de «producto»): dos tandas en el celular y el hook que las junta
 #
 # La sesión: sonnet, esfuerzo bajo, sólo `Read` y `AskUserQuestion`, con `decidir.settings.json` de la copia (el hook). Con
 # `PILOTO_SESION=decidir` los hooks de guarda no la tocan. Sin herramientas MCP ni Chrome: `--tools` no las quita, y sin `ToolSearch`
@@ -51,6 +52,26 @@ cerrar() {
   return 0
 }
 
+# esperar_prueba <id>: abre la sesión y espera hasta 10 minutos la decisión de esa compuerta de mentira.
+esperar_prueba() {
+  local id="$1" i
+  rm -f "$COMUN/decision.md"
+  abrir || exit 1
+  echo "decidir: sesión «$SESION_TMUX» abierta; responde desde el celular (Remote Control). Espero hasta 10 minutos." >&2
+  for i in $(seq 1 120); do
+    if [ -s "$COMUN/decision.md" ] && [ "$(sed -n 's/^id: *//p' "$COMUN/decision.md" | head -n 1)" = "$id" ]; then
+      echo "decidir: llegó la decisión:" >&2
+      cat "$COMUN/decision.md"
+      cerrar
+      return 0
+    fi
+    sleep 5
+  done
+  echo "decidir: no llegó ninguna decisión; se cierra la sesión." >&2
+  cerrar
+  exit 1
+}
+
 prueba() {
   mkdir -p "$COMUN"
   local id="prueba-$(date +%s)"
@@ -66,27 +87,46 @@ opciones:
 - no llegó — igual se cierra la sesión
 contexto:
 EOF
-  rm -f "$COMUN/decision.md"
-  abrir || exit 1
-  echo "decidir: sesión «$SESION_TMUX» abierta; responde desde el celular (Remote Control). Espero hasta 10 minutos." >&2
-  local i
-  for i in $(seq 1 120); do
-    if [ -s "$COMUN/decision.md" ] && [ "$(sed -n 's/^id: *//p' "$COMUN/decision.md" | head -n 1)" = "$id" ]; then
-      echo "decidir: llegó la decisión:" >&2
-      cat "$COMUN/decision.md"
-      cerrar
-      return 0
-    fi
-    sleep 5
-  done
-  echo "decidir: no llegó ninguna decisión; se cierra la sesión." >&2
-  cerrar
-  exit 1
+  esperar_prueba "$id"
+}
+
+prueba_tandas() {
+  mkdir -p "$COMUN"
+  local id="prueba-tandas-$(date +%s)"
+  cat >"$COMUN/compuerta.md" <<EOF
+id: $id
+creada: $(date +%s)
+tipo: prueba
+paso: decidir --prueba-tandas
+motivo: prueba de una compuerta con varias preguntas: dos tandas (4 y 1) y el hook que las junta en una decisión
+pregunta: prueba de varias preguntas en tandas
+opciones:
+contexto:
+preguntas: 5
+tandas: 2
+- P0: ¿Llegó la primera tanda al celular?
+  - sí — debería quedar «- P0: sí» en decision.md
+  - no — igual se sigue
+- P1: ¿Se lee bien cada pregunta por separado?
+  - sí — una pregunta por decisión
+  - no — dime qué no se lee en «Other»
+- P2: ¿Cada pregunta muestra su id (P0, P1…) arriba?
+  - sí — el header es el id
+  - no — no se ve
+- P3: Escribe cualquier texto en «Other»
+  - listo — si prefieres no escribir
+  - no — igual se sigue
+- P4: ¿Llegó la segunda tanda, con una sola pregunta?
+  - sí — dos tandas: 4 y 1
+  - no — llegaron juntas o no llegó
+EOF
+  esperar_prueba "$id"
 }
 
 case "${1:-}" in
   abrir) abrir ;;
   cerrar) cerrar ;;
   --prueba) prueba ;;
-  *) echo "uso: decidir.sh abrir | cerrar | --prueba" >&2; exit 64 ;;
+  --prueba-tandas) prueba_tandas ;;
+  *) echo "uso: decidir.sh abrir | cerrar | --prueba | --prueba-tandas" >&2; exit 64 ;;
 esac

@@ -2,47 +2,127 @@
   "type": "object",
   "description": "Lo que el paso deja en .piloto/ultimo.json al terminar. El bucle lo valida con jq (ultimo_valido en bucle.sh): paso, resultado, resumen, commits, e2e_dirigidos y compuerta.",
   "properties": {
-    "paso": { "type": "string" },
-    "resultado": { "type": "string", "enum": ["listo", "compuerta", "falla"] },
-    "resumen": { "type": "string", "description": "Qué se hizo o qué pasó, en pocas frases." },
+    "paso": {
+      "type": "string"
+    },
+    "resultado": {
+      "type": "string",
+      "enum": ["listo", "compuerta", "falla"]
+    },
+    "resumen": {
+      "type": "string",
+      "description": "Qué se hizo o qué pasó, en pocas frases."
+    },
     "commits": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Los commits del paso (sha), sin publicar. Con «listo» tienen que existir en HEAD de arranque..HEAD, y no puede haber otros."
     },
     "e2e_dirigidos": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Los specs de e2e/ dirigidos a lo tocado, que el bucle repite al verificar."
     },
     "compuerta": {
       "type": ["object", "null"],
-      "description": "Obligatoria con resultado «compuerta»; null en los demás.",
+      "description": "Obligatoria con resultado «compuerta»; null en los demás. La de «producto» lleva una pregunta por decisión en `preguntas` (la sesión de decidir las hace en tandas de hasta 4); las demás, `pregunta` y `opciones`.",
       "properties": {
         "tipo": {
           "type": "string",
           "enum": ["datos", "dependencia", "hito", "fase", "producto", "atasco", "afuera"]
         },
-        "motivo": { "type": "string" },
-        "pregunta": { "type": "string" },
+        "motivo": {
+          "type": "string"
+        },
+        "pregunta": {
+          "type": "string"
+        },
         "opciones": {
           "type": "array",
           "minItems": 2,
           "maxItems": 4,
           "items": {
             "type": "object",
-            "properties": { "etiqueta": { "type": "string" }, "descripcion": { "type": "string" } },
+            "properties": {
+              "etiqueta": {
+                "type": "string"
+              },
+              "descripcion": {
+                "type": "string"
+              }
+            },
             "required": ["etiqueta", "descripcion"]
           },
           "description": "De dos a cuatro opciones, la recomendada primero."
         },
         "contexto": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Rutas que la persona puede abrir (el plan, el informe)."
+        },
+        "preguntas": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "description": "Sólo «producto»: una por decisión, en orden (P0, P1…). `id` va de header de AskUserQuestion: ≤ 12 caracteres y sin repetir.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 12
+              },
+              "pregunta": {
+                "type": "string"
+              },
+              "opciones": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 4,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "etiqueta": {
+                      "type": "string"
+                    },
+                    "descripcion": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["etiqueta", "descripcion"]
+                },
+                "description": "De dos a cuatro opciones, la recomendada primero."
+              }
+            },
+            "required": ["id", "pregunta", "opciones"]
+          }
         }
       },
-      "required": ["tipo", "motivo", "pregunta", "opciones"]
+      "required": ["tipo", "motivo"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "tipo": {
+                "const": "producto"
+              }
+            }
+          },
+          "then": {
+            "required": ["preguntas"]
+          },
+          "else": {
+            "required": ["pregunta", "opciones"]
+          }
+        }
+      ]
     }
   },
   "required": ["paso", "resultado", "resumen", "commits", "e2e_dirigidos", "compuerta"]

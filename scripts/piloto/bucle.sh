@@ -202,13 +202,15 @@ correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [bandera
 # 6. La compuerta que pidió el paso (de ultimo.json).
 compuerta_del_paso() { # <paso>
   local paso="$1" opciones=() rc
-  mapfile -t opciones < <(jq -r '.compuerta.opciones[] | "\(.etiqueta) — \(.descripcion)"' "$ESTADO/ultimo.json")
+  mapfile -t opciones < <(jq -r '.compuerta.opciones[]? | "\(.etiqueta) — \(.descripcion)"' "$ESTADO/ultimo.json")
   mapfile -t CONTEXTO < <(jq -r '.compuerta.contexto[]? // empty' "$ESTADO/ultimo.json")
+  PREGUNTAS=$(jq -c '.compuerta.preguntas // empty | select(length > 0)' "$ESTADO/ultimo.json")
   jq -c '.estado = "compuerta"' "$ESTADO/en-curso.json" >"$ESTADO/en-curso.json.tmp" && mv -f "$ESTADO/en-curso.json.tmp" "$ESTADO/en-curso.json"
   compuerta "$(jq -r .compuerta.tipo "$ESTADO/ultimo.json")" "$paso" \
     "$(jq -r '.compuerta.motivo // ""' "$ESTADO/ultimo.json") (el paso lleva $(dinero "$(gastado)") de $(dinero "$(tope_del_paso)") USD)" \
-    "$(jq -r .compuerta.pregunta "$ESTADO/ultimo.json")" "${opciones[@]}"
+    "$(jq -r '.compuerta.pregunta // .compuerta.motivo // ""' "$ESTADO/ultimo.json")" "${opciones[@]}"
   rc=$?
+  PREGUNTAS=""
   [ "$rc" = 3 ] && { registro "parado por la persona en la compuerta de $paso."; exit 0; }
   return 0
 }
