@@ -12,8 +12,11 @@ type Props = {
   moneda: string | undefined
   idDelBoton: string
   idDeLaEtiqueta: string
+  // Lo que describe al botón de este lado y a la entrada abierta (que nunca nombra un candado).
   idDeLaNota: string | undefined
+  idDeLaNotaDeLaEntrada: string | undefined
   bloqueada: boolean
+  soloEsteLado: boolean
   conAtajo: boolean
   principalRef: RefObject<HTMLElement | null>
   edicion: ReturnType<typeof useEdicion>
@@ -28,7 +31,7 @@ export function LadoDeXCell(props: Props) {
         texto={e.edicion.texto}
         seleccion={e.edicion.seleccion}
         nombre={lado === 'principal' ? etiqueta : `${etiqueta}, ${datos.formato}`}
-        describedby={props.idDeLaNota}
+        describedby={props.idDeLaNotaDeLaEntrada}
         invalido={e.edicion.invalido}
         alEscribir={e.alEscribir}
         alCerrar={e.alCerrar}
@@ -45,6 +48,7 @@ export function LadoDeXCell(props: Props) {
       idDeLaEtiqueta={props.idDeLaEtiqueta}
       idDeLaNota={props.idDeLaNota}
       bloqueada={props.bloqueada}
+      soloEsteLado={props.soloEsteLado}
       conAtajo={props.conAtajo}
       volverARef={e.volverARef}
       principalRef={props.principalRef}

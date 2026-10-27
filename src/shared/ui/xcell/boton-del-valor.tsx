@@ -1,7 +1,7 @@
 'use client'
 
 import type { KeyboardEvent, RefObject } from 'react'
-import { BOTON_DEL_VALOR } from './clases'
+import { BOTON_DEL_LADO_BLOQUEADO, BOTON_DEL_VALOR } from './clases'
 import { ID_DEL_ATAJO } from './simbolos-de-xcell'
 import { TextoDeValor } from './texto-de-valor'
 import type { DatosDeLado, Lado } from './use-edicion'
@@ -13,8 +13,11 @@ type Props = {
   // Los ids que lo nombran: la etiqueta de la celda y él mismo.
   idDelBoton: string
   idDeLaEtiqueta: string
+  // Las notas que lo describen (el aviso o el error, y su candado), separadas por espacio.
   idDeLaNota: string | undefined
   bloqueada: boolean
+  // Bloqueado sólo este lado del par: la caja lleva el borde discontinuo (con la celda entera bloqueada lo lleva la celda).
+  soloEsteLado: boolean
   conAtajo: boolean
   // Al cerrar con Enter o Esc este botón se monta de nuevo y, si es el lado marcado, recibe el foco una vez.
   volverARef: RefObject<Lado | null>
@@ -32,7 +35,7 @@ export function BotonDelValor(props: Props) {
       id={idDelBoton}
       type="button"
       data-parada={lado === 'principal' ? 0 : 1}
-      className={BOTON_DEL_VALOR}
+      className={props.soloEsteLado ? BOTON_DEL_LADO_BLOQUEADO : BOTON_DEL_VALOR}
       aria-labelledby={`${idDeLaEtiqueta} ${idDelBoton}`}
       aria-describedby={
         conAtajo

@@ -9,9 +9,10 @@ import {
   leerTipeado,
   textoParaEditar,
   type FormatoDeXCell,
+  type Lado,
 } from './estado'
 
-export type Lado = 'principal' | 'secundario'
+export type { Lado }
 
 export type DatosDeLado = {
   id: string
@@ -31,12 +32,13 @@ export type Edicion = {
 
 type Entrada = {
   ladoDe: (lado: Lado) => DatosDeLado
-  bloqueada: boolean
+  // El candado de cada lado (4.13-3c): un lado bloqueado no abre; el otro sí.
+  bloqueado: (lado: Lado) => boolean
   locale: string
   onCommit: (id: string, valor: number | null) => void
 }
 
-export function useEdicion({ ladoDe, bloqueada, locale, onCommit }: Entrada) {
+export function useEdicion({ ladoDe, bloqueado, locale, onCommit }: Entrada) {
   const [edicion, setEdicion] = useState<Edicion | null>(null)
   // Mientras la edición espera su cierre: el `blur` que llega después de Enter o de Tab ya no confirma otra vez.
   const abierta = useRef(false)
@@ -44,13 +46,13 @@ export function useEdicion({ ladoDe, bloqueada, locale, onCommit }: Entrada) {
   // Nunca al montar la celda: 300 celdas se robarían el foco.
   const volverARef = useRef<Lado | null>(null)
 
-  // Si la base la deshabilita mientras se edita, la edición deja de existir (se ajusta durante el render, sin efecto).
-  if (bloqueada && edicion !== null) {
+  // Si la base bloquea el lado que se edita, la edición deja de existir (se ajusta durante el render, sin efecto); si bloquea el otro, sigue.
+  if (edicion !== null && bloqueado(edicion.lado)) {
     setEdicion(null)
   }
 
   function abrir(lado: Lado, escrito: string | null, seleccion: 'todo' | 'final') {
-    if (bloqueada) {
+    if (bloqueado(lado)) {
       return
     }
     const l = ladoDe(lado)
@@ -112,7 +114,7 @@ export function useEdicion({ ladoDe, bloqueada, locale, onCommit }: Entrada) {
   }
 
   function alTeclearEnElValor(lado: Lado, evento: KeyboardEvent<HTMLButtonElement>) {
-    if (bloqueada) {
+    if (bloqueado(lado)) {
       return
     }
     const { key, ctrlKey, metaKey, altKey } = evento

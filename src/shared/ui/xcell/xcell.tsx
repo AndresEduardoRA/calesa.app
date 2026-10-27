@@ -6,7 +6,7 @@ import { memo, useId, useRef, type KeyboardEvent } from 'react'
 import { useRegional } from '../regional'
 import { CabeceraDeXCell, PARADA_DE_ACCIONES_DESDE } from './cabecera-de-xcell'
 import { RAIZ } from './clases'
-import { accionesDe, estadosDe, notaDe, type FormatoDeXCell } from './estado'
+import { accionesDe, candadosDe, estadosDe, notaDe, notasDe, type FormatoDeXCell } from './estado'
 import { LadoDeXCell } from './lado-de-xcell'
 import { NotaDeXCell } from './nota-de-xcell'
 import { useEdicion, type DatosDeLado, type Lado } from './use-edicion'
@@ -25,8 +25,10 @@ export type XCellProps = {
   suggested: boolean
   // `fuentes[id] === 'override'`: la persona cambió un default o un sugerido.
   overridden: boolean
-  // Candado y el motivo escrito; la celda se lee y se alcanza con el teclado, pero no abre la edición.
+  // Candado y el motivo escrito; la celda se lee y se alcanza con el teclado, pero no abre la edición. En un par es el del principal: cada lado tiene el suyo.
   disabledReason?: string | undefined
+  // El candado del secundario de un par (4.13-3c); sin él, el porcentaje se edita aunque el monto esté bloqueado.
+  secondaryDisabledReason?: string | undefined
   // La clave de un tono de la empresa; una desconocida cae al neutro.
   tone?: string | undefined
   // El mensaje de la base sobre lo que se guardó (rango, obligatorio): la celda no valida nada de eso.
@@ -91,19 +93,20 @@ function XCellBase(props: XCellProps) {
   const uid = useId()
   const principalRef = useRef<HTMLElement | null>(null)
 
-  const bloqueada = props.disabledReason !== undefined && props.disabledReason !== ''
   const hayPar = props.secondaryId !== undefined && props.secondaryFormat !== undefined
-  const acciones = accionesDe({ ...props, bloqueada })
-  const estados = estadosDe({ suggested, overridden, disabledReason: props.disabledReason })
+  const { candados, toda } = candadosDe(props.disabledReason, props.secondaryDisabledReason, hayPar)
+  const bloqueado = (cual: Lado) => candados[cual] !== undefined
+  const acciones = accionesDe({ ...props, bloqueada: toda !== undefined })
+  const estados = estadosDe({ suggested, overridden, disabledReason: toda })
 
   const edicion = useEdicion({
     ladoDe: (lado) => datosDeLado(props, lado),
-    bloqueada,
+    bloqueado,
     locale,
     onCommit: props.onCommit,
   })
-  const nota = notaDe(edicion.edicion?.invalido === true, props.error, props.disabledReason)
-  const idDeLaNota = nota === undefined ? undefined : `${uid}n`
+  const aviso = notaDe(edicion.edicion?.invalido === true, props.error)
+  const { notas, deLado, deLaEntrada } = notasDe(uid, aviso, candados, hayPar)
 
   const lado = (cual: Lado) => (
     <LadoDeXCell
@@ -113,8 +116,10 @@ function XCellBase(props: XCellProps) {
       moneda={currency}
       idDelBoton={`${uid}${cual === 'principal' ? 'p' : 's'}`}
       idDeLaEtiqueta={`${uid}e`}
-      idDeLaNota={idDeLaNota}
-      bloqueada={bloqueada}
+      idDeLaNota={deLado[cual]}
+      idDeLaNotaDeLaEntrada={deLaEntrada}
+      bloqueada={bloqueado(cual)}
+      soloEsteLado={bloqueado(cual) && toda === undefined}
       conAtajo={acciones.hay}
       principalRef={principalRef}
       edicion={edicion}
@@ -148,9 +153,9 @@ function XCellBase(props: XCellProps) {
       />
       {lado('principal')}
       {hayPar ? lado('secundario') : null}
-      {nota === undefined || idDeLaNota === undefined ? null : (
-        <NotaDeXCell id={idDeLaNota} nota={nota} />
-      )}
+      {notas.map(({ id: idDeLaNota, nota }) => (
+        <NotaDeXCell key={idDeLaNota} id={idDeLaNota} nota={nota} />
+      ))}
     </div>
   )
 }

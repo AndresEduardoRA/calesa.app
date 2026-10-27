@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  bloqueoDeCelda,
   FALTA_UN_DATO,
   formatoDeCelda,
   itemSeDibuja,
@@ -119,17 +118,6 @@ describe('el candado: de la lectura y del recálculo, siempre con su motivo escr
     expect(textoDelCandado(null)).toBe('No se edita en esta hoja.')
   })
 
-  it('un par con el monto calculado se bloquea entero con el motivo del monto (la XCell tiene un solo candado: el del porcentaje por separado es del 4.13-3)', () => {
-    expect(props('transferencia', c)).toMatchObject({
-      disabledReason: 'Se calcula con los demás datos.',
-      secondaryId: 'transf_pct',
-    })
-  })
-
-  it('un par con el porcentaje bloqueado también se bloquea entero, con su motivo', () => {
-    expect(props('seguro', c).disabledReason).toBe('Lo edita quien tiene el nivel «Gerencia».')
-  })
-
   it('el estado del recálculo manda: una celda apagada lleva el motivo del estado aunque la lectura la deje editar', () => {
     const r = respuestaDePrueba({ estados: { cuenta_esp: 'condicion_apagada' } })
     expect(props('cuenta_esp', contexto(r)).disabledReason).toBe(
@@ -159,11 +147,6 @@ describe('el candado: de la lectura y del recálculo, siempre con su motivo escr
       props('cuenta_esp', contexto(r, alternarBandera(ENTRADAS_VACIAS, 'cuenta', true)))
         .disabledReason,
     ).toBeUndefined()
-  })
-
-  it('bloqueoDeCelda es lo mismo que el motivo de las props', () => {
-    expect(bloqueoDeCelda(celda('del_vehiculo'), c)).toBe('Viene del vehículo.')
-    expect(bloqueoDeCelda(celda('remate'), c)).toBeUndefined()
   })
 })
 

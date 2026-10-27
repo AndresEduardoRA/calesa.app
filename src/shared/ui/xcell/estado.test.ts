@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   accionesDe,
   abreConSuCaracter,
+  candadosDe,
   estadosDe,
   hayCambio,
   leerTipeado,
   normalizar,
+  notasDe,
   textoParaEditar,
 } from './estado'
 
@@ -190,5 +192,32 @@ describe('accionesDe', () => {
     expect(accionesDe({ ...base, overridden: true, defaultValue: null }).restablecer).toBe(
       'Volver al valor por defecto',
     )
+  })
+})
+
+describe('candadosDe y notasDe (4.13-3c)', () => {
+  it('la celda entera está bloqueada sólo con todos sus lados; vacío es sin candado', () => {
+    expect(candadosDe('Se calcula.', undefined, true).toda).toBeUndefined()
+    expect(candadosDe('Se calcula.', 'Nivel.', true).toda).toBe('Se calcula.')
+    expect(candadosDe('Se calcula.', undefined, false).toda).toBe('Se calcula.')
+    expect(candadosDe('', '', true)).toEqual({
+      candados: { principal: undefined, secundario: undefined },
+      toda: undefined,
+    })
+    expect(candadosDe(undefined, 'Nivel.', false).candados.secundario).toBeUndefined()
+  })
+
+  it('una nota por texto distinto; cada lado nombra el aviso y su candado; la entrada, sólo el aviso', () => {
+    const aviso = { texto: 'Error.', esError: true }
+    const n = notasDe('x', aviso, { principal: 'A', secundario: undefined }, true)
+    expect(n.notas.map((m) => m.nota.texto)).toEqual(['Error.', 'A'])
+    expect(n.deLado).toEqual({ principal: 'xn xc1', secundario: 'xn' })
+    expect(n.deLaEntrada).toBe('xn')
+    const iguales = notasDe('x', undefined, { principal: 'A', secundario: 'A' }, true)
+    expect(iguales.notas).toHaveLength(1)
+    expect(iguales.deLado).toEqual({ principal: 'xc0', secundario: 'xc0' })
+    expect(iguales.deLaEntrada).toBeUndefined()
+    const distintos = notasDe('x', undefined, { principal: 'A', secundario: 'B' }, true)
+    expect(distintos.deLado).toEqual({ principal: 'xc0', secundario: 'xc1' })
   })
 })

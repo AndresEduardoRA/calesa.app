@@ -15,14 +15,20 @@ export const ETIQUETA = 'min-w-[6rem] flex-1 py-1 font-medium [overflow-wrap:any
 // Las acciones se separan 8 px, como los valores: el contorno del foco de una ocupa 4 y no toca a la vecina.
 export const ACCIONES = 'ml-auto flex shrink-0 items-center gap-2'
 
-export const CAJA = `${BLANCO_TACTIL} block w-full min-w-0 flex-1 basis-28 rounded-sm border-0 px-2 py-1 text-right text-sm leading-5 tabular-nums [overflow-wrap:anywhere]`
+const CAJA_SIN_BORDE = `${BLANCO_TACTIL} block w-full min-w-0 flex-1 basis-28 rounded-sm text-right text-sm leading-5 tabular-nums [overflow-wrap:anywhere]`
+export const CAJA = `${CAJA_SIN_BORDE} border-0 px-2 py-1`
+// El lado bloqueado de un par cuyo otro lado se edita (4.13-3c, P3): su caja lleva el borde discontinuo que, con la celda entera bloqueada, lleva la celda. El relleno
+// pierde el píxel del borde: la caja mide lo mismo que la del otro lado.
+const CAJA_DISCONTINUA = `${CAJA_SIN_BORDE} border border-dashed border-[color:var(--tono-borde,var(--color-line-strong))] px-[7px] py-[3px]`
 
 // El foco es un contorno EXTERIOR, en el `-ink` del color primario (≥ 3:1 sobre la superficie en claro y en oscuro; el primario a secas da 2,8:1 en oscuro);
 // el «modificado» es un anillo INTERIOR en la tinta: no se confunden y se ven a la vez. Los controles de una celda se separan 8 px: el contorno ocupa 4.
 export const FOCO =
   'outline-offset-2 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-(--color-primario-ink)'
 
-export const BOTON_DEL_VALOR = `${CAJA} ${FOCO} ${TINTA} cursor-text bg-transparent hover:bg-black/5 dark:hover:bg-white/10 group-data-[estado~=modificado]/xc:ring-2 group-data-[estado~=modificado]/xc:ring-inset group-data-[estado~=modificado]/xc:ring-[color:var(--tono-tinta,var(--color-ink))] aria-disabled:cursor-not-allowed`
+const BOTON = `${FOCO} ${TINTA} cursor-text bg-transparent hover:bg-black/5 dark:hover:bg-white/10 group-data-[estado~=modificado]/xc:ring-2 group-data-[estado~=modificado]/xc:ring-inset group-data-[estado~=modificado]/xc:ring-[color:var(--tono-tinta,var(--color-ink))] aria-disabled:cursor-not-allowed`
+export const BOTON_DEL_VALOR = `${CAJA} ${BOTON}`
+export const BOTON_DEL_LADO_BLOQUEADO = `${CAJA_DISCONTINUA} ${BOTON}`
 
 // Transparente, sin borde propio ni el fondo de `<Input>` (que trae `dark:bg-input/30` y `aria-invalid:border-destructive`).
 export const ENTRADA = `${CAJA} ${FOCO} ${TINTA} bg-transparent`

@@ -289,4 +289,21 @@ describe('HojaDeCotizar: avisos y atajos', () => {
       factor: 0.328,
     })
   })
+
+  it('los atajos van por el lado de su nodo: con el monto calculado, los del porcentaje se pulsan y los del monto no', async () => {
+    recalcular.mockResolvedValue(ok(respuestaDePrueba()))
+    const { container } = montar()
+    const chip = (nodo: string) => {
+      const boton = container.querySelector<HTMLButtonElement>(`[data-atajos="${nodo}"] button`)
+      if (!boton) throw new Error(`No hay atajos de ${nodo}`)
+      return boton
+    }
+    expect(chip('transferencia').disabled).toBe(true)
+    expect(chip('transf_pct').disabled).toBe(false)
+    fireEvent.click(chip('transf_pct'))
+    await avanzar(150)
+    expect((recalcular.mock.calls[0]?.[0] as PedidoDeRecalculo).entradas.overrides).toEqual({
+      transf_pct: 0.03,
+    })
+  })
 })

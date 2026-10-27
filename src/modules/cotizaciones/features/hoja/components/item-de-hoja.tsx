@@ -1,6 +1,6 @@
 'use client'
 
-import { bloqueoDeCelda, valorDeSubtotal, type ContextoDeHoja } from '../../../entities/binding'
+import { bloqueoDeLado, valorDeSubtotal, type ContextoDeHoja } from '../../../entities/binding'
 import type { ItemDeHoja as Item } from '../../../entities/hoja'
 import type { AccionesDeHoja } from '../hooks/use-hoja'
 import { AtajosDeHoja } from './atajos-de-hoja'
@@ -33,7 +33,7 @@ function Atajos({ item, contexto, acciones }: Props & { item: Extract<Item, { ti
     <AtajosDeHoja
       item={item}
       etiquetaDeLaCelda={celda.etiqueta}
-      bloqueada={bloqueoDeCelda(celda, contexto) !== undefined}
+      bloqueada={bloqueoDeLado(item.nodo, contexto) !== undefined}
       pulsado={vigente ? (posicion ?? null) : null}
       alElegir={acciones.alElegirAtajo}
     />

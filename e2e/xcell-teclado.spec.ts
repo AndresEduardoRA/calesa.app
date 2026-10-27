@@ -177,6 +177,28 @@ test('las flechas llegan a la ayuda, al ⚙ y a ↺; Enter las acciona y el foco
   expect(await enfoque(page)).toEqual({ caso: 'deshabilitado-con-acciones', donde: '11' })
 })
 
+test('un par con un lado bloqueado: Tab llega a los dos, el bloqueado no abre y sólo él dice su candado', async ({
+  page,
+}) => {
+  await abrir(page)
+  await valorDe(page, 'par-con-un-lado-bloqueado', 0).focus()
+  await page.keyboard.press('Enter')
+  await expect(entradaDe(page, 'par-con-un-lado-bloqueado')).toHaveCount(0)
+  await page.keyboard.press('5')
+  await expect(entradaDe(page, 'par-con-un-lado-bloqueado')).toHaveCount(0)
+  await page.keyboard.press('Tab')
+  expect(await enfoque(page)).toEqual({ caso: 'par-con-un-lado-bloqueado', donde: '1' })
+  expect(await descripcionDe(page, 'par-con-un-lado-bloqueado', 0)).toContain(
+    'Se calcula con los demás datos.',
+  )
+  expect(await descripcionDe(page, 'par-con-un-lado-bloqueado', 1)).toBe('')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.type('5')
+  await page.keyboard.press('Enter')
+  expect(await emitidos(page)).toEqual([['transf_b_pct', 0.05]])
+})
+
 test('un texto que no es un número no avanza: queda con su aviso', async ({ page }) => {
   await abrir(page)
   await valorDe(page, 'normal').focus()

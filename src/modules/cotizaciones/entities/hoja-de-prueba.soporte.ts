@@ -99,6 +99,9 @@ const itemsDeCeldas = () => [
     ],
   },
   celda('factor', 'tabla', { formato: 'raw' }),
+  // Atajos sobre los dos lados de un par cuyo monto se calcula: los del porcentaje se pulsan, los del monto no (4.13-3c).
+  { tipo: 'atajos', nodo: 'transf_pct', chips: [{ etiqueta: '3 %', valor: 0.03 }] },
+  { tipo: 'atajos', nodo: 'transferencia', chips: [{ etiqueta: 'Cero', valor: 0 }] },
   celda('del_vehiculo', 'campo_vehiculo', {
     editable: false,
     motivo: { codigo: 'del_vehiculo' },

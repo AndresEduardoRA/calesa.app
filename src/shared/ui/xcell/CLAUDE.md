@@ -13,10 +13,14 @@ no lee la base y **no calcula nada**. Dice «esta celda pasó a N» (`onCommit`)
 ## El contrato con la hoja (props primitivas)
 
 `id, label, format ('monto'|'porcentaje'|'numero'), currency?, decimals?` (sólo la vista), `value, defaultValue?, suggested, overridden,
-disabledReason?, tone?, error?, secondaryId?, secondaryValue?, secondaryFormat?, secondaryDecimals?, hasHelp?, hasSettings?, onHelp?(id), onSettings?(id), onCommit(id, valor|null), onReset(id)`.
+disabledReason?, secondaryDisabledReason?, tone?, error?, secondaryId?, secondaryValue?, secondaryFormat?, secondaryDecimals?, hasHelp?, hasSettings?, onHelp?(id), onSettings?(id), onCommit(id, valor|null), onReset(id)`.
 
 - `suggested = fuentes[id] === 'sugerido'` y `overridden = fuentes[id] === 'override'`. **`overridden` no estaba en el binding**: con `value`, `defaultValue` y
   `suggested` no se distingue «modificado» de «input» en un sobrescribible (con un override el motor no calcula el sugerido, 4-1).
+- **Un candado por lado (4.13-3c).** `disabledReason` es el del principal (en una celda sin par, el de la celda) y `secondaryDisabledReason` el del secundario: el monto calculado de Transferencia se
+  bloquea y su porcentaje se edita. Un lado bloqueado lleva `aria-disabled` (se alcanza con Tab y se lee) y no abre la edición (ni clic, ni un carácter, ni F2, ni Retroceso); si se bloquea **el lado que
+  se edita**, la edición se va en el render; si se bloquea el otro, sigue. Con **todos** los lados bloqueados la celda entera es `deshabilitado` (su borde discontinuo, sin ↺); con uno solo, el borde
+  discontinuo es de la caja de ese botón (P3) y ↺ sigue con `overridden`. Las guardas son tres (abrir, las teclas y el render): quitar una sola no cambia nada que se vea (mutaciones equivalentes).
 - `defaultValue` sólo decide la palabra de ↺: con él, «Volver al valor por defecto»; sin él, «Volver al sugerido». **Nunca la cifra** (4-1).
 - Los callbacks son uno por hoja y estables: la celda está en `memo` y una hoja de cientos de celdas recalcula cada 150 ms. Un objeto o una función nuevos por
   render dibujan **todas** las celdas (`xcell-hoja.test.tsx` lo mide: cambiar una dibuja una).
@@ -41,14 +45,19 @@ disabledReason?, tone?, error?, secondaryId?, secondaryValue?, secondaryFormat?,
 ## Estados (`data-estado`, suman)
 
 `normal` · `sugerido` (punto + «Sugerido» para el lector, sin «Sugerido: X» junto al modificado) · `modificado` (anillo interior en la tinta + ↺) · `deshabilitado`
-(candado + el motivo escrito, borde discontinuo; `aria-disabled`, no `disabled`: se lee y se alcanza con Tab, y no abre la edición). Ningún estado es sólo color.
+(candado + el motivo escrito, borde discontinuo; `aria-disabled`, no `disabled`: se lee y se alcanza con Tab, y no abre la edición), **sólo con todos los lados bloqueados**. Ningún estado es sólo color.
+
+**Las notas (4.13-3c, `notasDe()` en `estado.ts`).** Primero el aviso de lo tipeado o, si no hay, el `error` (`role=alert`): describe a todos los lados. Después el candado de cada lado bloqueado, **una nota por texto
+distinto** (dos lados con el mismo motivo, una sola que describe a los dos). El error y un candado **conviven**: un lado bloqueado nunca queda sin su motivo. Cada botón describe, en orden, el aviso o el error,
+**su** candado y el atajo; la entrada abierta, sólo el aviso o el error (nunca el candado del otro lado).
 
 ## Qué emite y quién valida
 
 - Emite sólo si **cambió**: el texto es otro que el que se abrió **y** el número leído, a 15 cifras, es otro que `value` a 15 cifras. Abrir y salir con Tab sin tocar nada
   no convierte un sugerido en override. El texto de edición lleva la precisión completa (`formatearParaEditar`), no los decimales con que se muestra.
 - Vacío emite `null` (la hoja decide qué significa). Lo que no es un número finito («abc», «Infinity», «1e999», «1,2,3») no se emite: la edición sigue, con su aviso.
-- **El rango, lo obligatorio y lo entero los valida la base** (`cotizacion_evaluar`, `_cotizacion_tipeado`); su mensaje llega por la prop `error`.
+- **El rango, lo obligatorio y lo entero no los valida la celda ni llegan como un error de la base:** `cotizacion_evaluar` los dice en `faltantes` (`fuera_de_rango`, `requerido_sin_valor`) con el
+  valor en null, y la hoja los traduce a un texto propio (`textoDelFaltante()` de `cotizaciones`) y los pasa por `error`.
 - Un porcentaje se tipea en puntos («14,94») y se emite como la fracción que guarda `valores` (0,1494), a 15 cifras: una unidad, no un cálculo.
 - El número se lee con `aNumero` de `@/shared/lib/campos/esquema-de-valor` (coma o punto decimal), igual que los campos numéricos; se hace `trim` antes y se exige
   `Number.isFinite`. Heredado, y de ese parser compartido: «1e3» y «0x10» se leen, y «1.234» es 1,234 (`docs/PLAN.md`).
@@ -79,7 +88,8 @@ disabledReason?, tone?, error?, secondaryId?, secondaryValue?, secondaryFormat?,
 - **Tamaños:** la etiqueta se parte (`[overflow-wrap:anywhere]`), nunca se corta. La entrada ocupa la caja exacta del valor (sin salto) y mide 44 px en px con el dedo.
   El anillo del modificado es **interior** (`ring-inset`) y el foco, un contorno **exterior**: se ven a la vez.
 - **Nodos por celda** (medidos, `xcell-hoja.test.tsx`): normal 8, par 9, sugerido 10, modificado 11, deshabilitado 11, con error 11; **la ayuda o el ⚙ suman 3 cada uno** (11; los dos, 14; modificado con los dos, 17;
-  deshabilitado con los dos, 17); **par modificado con error, ayuda y ⚙: 21 (el peor)**. Iconos por sprite (`<SimbolosDeXCell/>`, 2 nodos cada uno). 300 celdas de la mezcla del banco, con acciones: **3.000** (tope 3.100;
+  deshabilitado con los dos, 17); par modificado con error, ayuda y ⚙: 21. **El candado por lado (4.13-3c):** un lado, 12; los dos con el mismo motivo, 12; con dos motivos o un lado y un error, 15;
+  **par modificado con un lado bloqueado, error, ayuda y ⚙: 24 (el peor)**. Iconos por sprite (`<SimbolosDeXCell/>`, 2 nodos cada uno). 300 celdas de la mezcla del banco, con acciones: **3.000** (tope 3.100;
   eran 2.688 sin ellas); la mezcla de `xcell-hoja.test.tsx`: 3.368 (tope 3.500). Un nodo más por celda son 300: lo ven los dos topes.
 
 ## Cómo se prueba

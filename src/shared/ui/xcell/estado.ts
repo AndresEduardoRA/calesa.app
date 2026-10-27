@@ -130,20 +130,85 @@ export const MENSAJE_NO_ES_NUMERO = 'Escribe un número, por ejemplo 1234,5.'
 
 export type Nota = { texto: string; esError: boolean }
 
-// Lo que dice la línea de abajo de la celda, por prioridad: lo tipeado que no es un número, lo que dijo la base y, al final, el motivo del candado.
-export function notaDe(
-  invalido: boolean,
-  error: string | undefined,
-  disabledReason: string | undefined,
-): Nota | undefined {
+// Lo que dice la primera línea de abajo de la celda, por prioridad: lo tipeado que no es un número y, si no, lo que dijo la base. Describe a todos los lados.
+export function notaDe(invalido: boolean, error: string | undefined): Nota | undefined {
   if (invalido) {
     return { texto: MENSAJE_NO_ES_NUMERO, esError: true }
   }
   if (error !== undefined && error !== '') {
     return { texto: error, esError: true }
   }
-  if (disabledReason !== undefined && disabledReason !== '') {
-    return { texto: disabledReason, esError: false }
-  }
   return undefined
+}
+
+export type Lado = 'principal' | 'secundario'
+
+// El candado de cada lado (4.13-3c): el principal es el de `disabledReason`; el del secundario, el de `secondaryDisabledReason`. Vacío es sin candado.
+export type Candados = { principal: string | undefined; secundario: string | undefined }
+
+const motivo = (texto: string | undefined) => (texto === '' ? undefined : texto)
+
+// Los candados de la celda desde sus props y, si TODOS sus lados están bloqueados, el motivo de la celda entera (su borde discontinuo y sin ↺).
+export function candadosDe(
+  disabledReason: string | undefined,
+  secondaryDisabledReason: string | undefined,
+  hayPar: boolean,
+): { candados: Candados; toda: string | undefined } {
+  const candados = {
+    principal: motivo(disabledReason),
+    secundario: hayPar ? motivo(secondaryDisabledReason) : undefined,
+  }
+  const toda =
+    candados.principal !== undefined && (!hayPar || candados.secundario !== undefined)
+      ? candados.principal
+      : undefined
+  return { candados, toda }
+}
+
+export type NotaConId = { id: string; nota: Nota }
+
+export type NotasDeXCell = {
+  notas: NotaConId[]
+  // Lo que describe cada botón: el aviso o el error, y SU candado (nunca el del otro lado).
+  deLado: Record<Lado, string | undefined>
+  // La entrada abierta: sólo el aviso o el error (su lado no tiene candado: si lo tuviera no estaría abierta).
+  deLaEntrada: string | undefined
+}
+
+// Las notas de una celda, con sus ids y a quién describe cada una: el aviso o el error primero y, después, el candado de cada lado bloqueado, una nota por
+// texto distinto (dos lados con el mismo motivo dan una sola nota, que describe a los dos). El error y un candado conviven: un lado bloqueado nunca queda sin su motivo.
+export function notasDe(
+  prefijo: string,
+  aviso: Nota | undefined,
+  candados: Candados,
+  hayPar: boolean,
+): NotasDeXCell {
+  const notas: NotaConId[] = aviso === undefined ? [] : [{ id: `${prefijo}n`, nota: aviso }]
+  const idDelCandado: Partial<Record<Lado, string>> = {}
+  const lados: Lado[] = hayPar ? ['principal', 'secundario'] : ['principal']
+  for (const lado of lados) {
+    const texto = motivo(candados[lado])
+    if (texto === undefined) {
+      continue
+    }
+    const igual = notas.find((n) => !n.nota.esError && n.nota.texto === texto)
+    const id = igual?.id ?? `${prefijo}c${String(notas.length)}`
+    if (igual === undefined) {
+      notas.push({ id, nota: { texto, esError: false } })
+    }
+    idDelCandado[lado] = id
+  }
+  const idDelAviso = aviso === undefined ? undefined : `${prefijo}n`
+  const unir = (...ids: (string | undefined)[]) => {
+    const presentes = ids.filter((id) => id !== undefined)
+    return presentes.length === 0 ? undefined : presentes.join(' ')
+  }
+  return {
+    notas,
+    deLado: {
+      principal: unir(idDelAviso, idDelCandado.principal),
+      secundario: unir(idDelAviso, idDelCandado.secundario),
+    },
+    deLaEntrada: idDelAviso,
+  }
 }

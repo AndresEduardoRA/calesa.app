@@ -246,7 +246,7 @@ async function accionesConFoco(page: Page, info: TestInfo, nombre: string): Prom
 for (const { tema, zoom } of COMBINACIONES) {
   test(`la celda en ${tema}, con el texto al ${zoom} %`, async ({ page }, info) => {
     await abrir(page, { tema, zoom })
-    await expect(page.locator('[data-xcell]')).toHaveCount(20)
+    await expect(page.locator('[data-xcell]')).toHaveCount(21)
     await sinScrollHorizontal(page)
     await sinTextoCortado(page.locator('#banco'))
     expect(await problemasDeCaja(page)).toEqual([])
@@ -266,7 +266,21 @@ for (const { tema, zoom } of COMBINACIONES) {
     await capturar(page, info, `${tema}-${zoom}-editando-con-error`)
     await entradaIgualAlBoton(page, 'error', 0)
     await sinScrollHorizontal(page)
+    await ladoBloqueadoDiscontinuo(page)
   })
+}
+
+// 4.13-3c (P3): con un solo lado del par bloqueado, el borde discontinuo es del botón de ese lado y no de la celda; con la celda entera bloqueada, al revés.
+async function ladoBloqueadoDiscontinuo(page: Page): Promise<void> {
+  const estilo = (caso: string, selector: string) =>
+    page
+      .locator(`[data-caso="${caso}"] ${selector}`)
+      .evaluate((e) => getComputedStyle(e).borderTopStyle)
+  expect(await estilo('par-con-un-lado-bloqueado', '[data-parada="0"]')).toBe('dashed')
+  expect(await estilo('par-con-un-lado-bloqueado', '[data-parada="1"]')).not.toBe('dashed')
+  expect(await estilo('par-con-un-lado-bloqueado', '[data-xcell]')).not.toBe('dashed')
+  expect(await estilo('deshabilitado-con-acciones', '[data-xcell]')).toBe('dashed')
+  expect(await estilo('deshabilitado-con-acciones', '[data-parada="0"]')).not.toBe('dashed')
 }
 
 // Lo que el navegador le entrega a un lector de pantalla: el árbol de accesibilidad de verdad (CDP), no `ariaSnapshot()`, que se arma

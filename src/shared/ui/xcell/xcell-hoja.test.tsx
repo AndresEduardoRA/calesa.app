@@ -48,6 +48,21 @@ describe('el tope de nodos', () => {
     }
   })
 
+  it('el candado por lado (4.13-3c): un lado, 12; los dos con el mismo motivo, 12; con dos motivos o un lado y un error, 15; el par modificado con un lado, error, ayuda y ⚙, 24 (el peor)', () => {
+    const UN_LADO: Partial<XCellProps> = { ...PAR, disabledReason: 'Se calcula' }
+    expect(nodos(UN_LADO)).toBe(12)
+    cleanup()
+    expect(nodos({ ...UN_LADO, secondaryDisabledReason: 'Se calcula' })).toBe(12)
+    cleanup()
+    expect(nodos({ ...UN_LADO, secondaryDisabledReason: 'Nivel' })).toBe(15)
+    cleanup()
+    expect(nodos({ ...UN_LADO, error: 'Fuera de rango' })).toBe(15)
+    cleanup()
+    expect(
+      nodos({ ...UN_LADO, overridden: true, error: 'Fuera de rango', ...AYUDA, ...AJUSTES }),
+    ).toBe(24)
+  })
+
   it('300 celdas, todas en el peor estado, caben en 3.500 nodos (la mezcla mide 3.368: 11 por celda; el peor estado, 21)', () => {
     const mezcla = (i: number): XCellProps => ({
       ...BASE,

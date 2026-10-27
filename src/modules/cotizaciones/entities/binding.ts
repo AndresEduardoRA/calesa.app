@@ -24,7 +24,9 @@ export type PropsDeCelda = {
   defaultValue: null | undefined
   suggested: boolean
   overridden: boolean
+  // Un candado por lado (4.13-3c): el del principal y el del secundario del par.
   disabledReason: string | undefined
+  secondaryDisabledReason: string | undefined
   tone: string | undefined
   error: string | undefined
   secondaryId: string | undefined
@@ -146,23 +148,23 @@ function valorDe(id: string, esInput: boolean, c: ContextoDeHoja): number | null
   return tipeado ?? numeroDe(c.respuesta?.valores.get(id))
 }
 
-function disabledReasonDe(
+type CandadosDeCelda = { principal: string | undefined; secundario: string | undefined }
+
+// El candado de cada lado (4.13-3c): el par es una celda con dos lados y cada uno dice el suyo. Una celda apagada lo está entera, con el texto del estado en los dos.
+function candadosDe(
   celda: CeldaDeHoja,
   apagada: Exclude<Estado, 'activo'> | null,
   c: ContextoDeHoja,
-) {
+): CandadosDeCelda {
   if (apagada !== null) {
-    return textoDelEstado(apagada, celda, c.indice)
+    const texto = textoDelEstado(apagada, celda, c.indice)
+    return { principal: texto, secundario: celda.secundario ? texto : undefined }
   }
-  // El par es una celda con dos lados y la XCell tiene un solo candado (el del secundario por separado llega con el 4.13-3): si cualquiera de los dos no se edita,
-  // se bloquea entera con su motivo, y no se deja un lado que parece editable y no lo es.
-  if (!celda.editable) {
-    return textoDelCandado(celda.motivo)
+  const secundario = celda.secundario
+  return {
+    principal: celda.editable ? undefined : textoDelCandado(celda.motivo),
+    secundario: secundario && !secundario.editable ? textoDelCandado(secundario.motivo) : undefined,
   }
-  if (celda.secundario && !celda.secundario.editable) {
-    return textoDelCandado(celda.secundario.motivo)
-  }
-  return undefined
 }
 
 function apagadaDe(celda: CeldaDeHoja, c: ContextoDeHoja): Exclude<Estado, 'activo'> | null {
@@ -170,18 +172,27 @@ function apagadaDe(celda: CeldaDeHoja, c: ContextoDeHoja): Exclude<Estado, 'acti
   return estado === undefined || estado === 'activo' ? null : estado
 }
 
-// El aviso de una celda activa: su faltante, o «falta un dato» si vale null y no es donde nació el hueco (un cálculo que lee uno vacío).
-function errorDe(celda: CeldaDeHoja, value: number | null, c: ContextoDeHoja): string | undefined {
+// El aviso de una celda activa, sólo de lo que se edita en ella (P6 del 4.13-3c): el faltante de un lado que se edita, o «falta un dato» si el principal se edita, vale null y no es
+// donde nació el hueco. Un lado con candado dice su motivo y no «falta un dato»; el total dice si algo falta.
+function errorDe(
+  celda: CeldaDeHoja,
+  value: number | null,
+  candados: CandadosDeCelda,
+  c: ContextoDeHoja,
+): string | undefined {
   if (c.respuesta === null) {
     return undefined
   }
+  const principal = candados.principal === undefined
+  const secundario = celda.secundario !== null && candados.secundario === undefined
   const propio = c.respuesta.faltantes.find(
-    (f) => f.donde === celda.nodo || f.donde === celda.secundario?.nodo,
+    (f) =>
+      (principal && f.donde === celda.nodo) || (secundario && f.donde === celda.secundario?.nodo),
   )
   if (propio) {
     return textoDelFaltante(propio.codigo)
   }
-  return value === null ? FALTA_UN_DATO : undefined
+  return principal && value === null ? FALTA_UN_DATO : undefined
 }
 
 function valorDelSecundario(nodo: string, c: ContextoDeHoja): number | null {
@@ -195,15 +206,22 @@ function valorDelSecundario(nodo: string, c: ContextoDeHoja): number | null {
 const tieneValorPorDefecto = (celda: CeldaDeHoja) =>
   celda.tipoDeNodo === 'constante' || celda.tipoDeNodo === 'tipo_cambio'
 
-// Si la celda no se puede editar ahora, por qué (la usan los atajos, que van sobre la celda y no se pulsan si está bloqueada).
-export const bloqueoDeCelda = (celda: CeldaDeHoja, c: ContextoDeHoja): string | undefined =>
-  disabledReasonDe(celda, apagadaDe(celda, c), c)
+// Si el lado que nombra el id (de cualquiera de los dos de un par) no se puede editar ahora, por qué. Lo usan los atajos, que van sobre un nodo y no se pulsan si su lado
+// está bloqueado: los del porcentaje de Transferencia se pulsan aunque el monto se calcule.
+export function bloqueoDeLado(nodo: string, c: ContextoDeHoja): string | undefined {
+  const lado = c.indice.lados.get(nodo)
+  if (!lado) {
+    return undefined
+  }
+  const candados = candadosDe(lado.celda, apagadaDe(lado.celda, c), c)
+  return lado.lado === 'principal' ? candados.principal : candados.secundario
+}
 
 export function propsDeCelda(celda: CeldaDeHoja, c: ContextoDeHoja): PropsDeCelda {
   const apagada = apagadaDe(celda, c)
   const secundario = celda.secundario
   const value = valorDe(celda.nodo, celda.tipoDeNodo === 'input', c)
-  const disabledReason = disabledReasonDe(celda, apagada, c)
+  const candados = candadosDe(celda, apagada, c)
   const overridden =
     c.entradas.overrides.has(celda.nodo) ||
     (secundario !== null && c.entradas.overrides.has(secundario.nodo))
@@ -218,10 +236,10 @@ export function propsDeCelda(celda: CeldaDeHoja, c: ContextoDeHoja): PropsDeCeld
     suggested:
       apagada === null && !overridden && c.respuesta?.fuentes.get(celda.nodo) === 'sugerido',
     overridden,
-    disabledReason,
+    disabledReason: candados.principal,
+    secondaryDisabledReason: candados.secundario,
     tone: celda.tono ?? undefined,
-    // La `XCell` dice el error antes que el candado: una celda que no se edita dice su motivo y no «falta un dato» (el total dice si algo falta).
-    error: disabledReason === undefined ? errorDe(celda, value, c) : undefined,
+    error: errorDe(celda, value, candados, c),
     secondaryId: secundario?.nodo,
     secondaryValue: secundario ? valorDelSecundario(secundario.nodo, c) : undefined,
     secondaryFormat: secundario ? formatoDeCelda(secundario.formato) : undefined,

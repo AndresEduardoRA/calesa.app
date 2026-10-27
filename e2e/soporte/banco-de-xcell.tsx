@@ -202,6 +202,18 @@ const CASOS: Caso[] = [
     hasHelp: true,
     hasSettings: true,
   },
+  // 4.13-3c: un par con el monto calculado y el porcentaje editable (Transferencia): el candado es sólo del monto.
+  {
+    caso: 'par-con-un-lado-bloqueado',
+    id: 'transf_b',
+    label: 'Transferencia a USA',
+    format: 'monto',
+    value: 52,
+    disabledReason: 'Se calcula con los demás datos.',
+    secondaryId: 'transf_b_pct',
+    secondaryFormat: 'porcentaje',
+    secondaryValue: 0.04,
+  },
 ]
 
 // `?modo=300`: 300 celdas de la mezcla, con ids propios.
