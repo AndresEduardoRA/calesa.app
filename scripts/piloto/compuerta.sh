@@ -63,7 +63,9 @@ paso_vivo() {
   local pid
   pid=$(jq -r '.pid // empty' "$ESTADO/en-curso.json" 2>/dev/null)
   [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
-  pgrep -f -- "$PATRON_PASO_VIVO" >/dev/null 2>&1
+  # `pgrep -f` sólo se excluye a sí mismo: el `pgrep` de otro bucle a la vez lleva el patrón en su línea y pasaba por un paso vivo
+  # (rechazaba una decisión buena, 1 de cada 8 corridas de `pnpm test`). Se listan las líneas y se descartan las de otro `pgrep`.
+  pgrep -af -- "$PATRON_PASO_VIVO" 2>/dev/null | awk '$2 != "pgrep" { vivo = 1 } END { exit !vivo }'
 }
 
 rechazar_decision() {
