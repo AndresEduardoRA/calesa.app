@@ -2,6 +2,7 @@ import { expect, test } from './soporte/prueba'
 import { entrar } from './soporte/alta'
 import { vigilarRecalculos } from './soporte/cotizar'
 import {
+  celdaDeLaHoja,
   cotizacionGuardada,
   escribirEnLaHoja,
   formulaVigente,
@@ -87,4 +88,42 @@ test('sin lead, «Guardar» está apagado con su motivo y Ctrl+S no manda nada',
   await guardarConElAtajo(page)
   await expect(totalDeLaHoja(page)).toContainText('10,00')
   expect(guardados.pedidos).toHaveLength(0)
+})
+
+test('el borrador (4-29): lo tipeado vuelve al recargar, sin la hoja abierta ni la respuesta; «Descartar» lo quita y guardar lo borra', async ({
+  page,
+}) => {
+  const recalculos = await vigilarRecalculos(page)
+  await entrar(page, duena, { fresco: true })
+  const url = `/cotizaciones/nuevo?origen=${origen.id}&lead=${lead}`
+  await page.goto(url)
+  const vacio = sinEspacios(await totalDeLaHoja(page).textContent())
+  await tipearEnLaHoja(page, 'pub', '1200')
+  await expect.poll(() => recalculos.respuestas.length).toBe(1)
+  await tipearEnLaHoja(page, 'con_ayuda', '10')
+  await expect.poll(() => recalculos.respuestas.length).toBe(2)
+  const total = sinEspacios(await totalDeLaHoja(page).textContent())
+  const guardado = await page.evaluate(() =>
+    Object.entries(window.sessionStorage)
+      .filter(([clave]) => clave.startsWith('borrador-estado:cotizar:'))
+      .map(([, valor]) => valor)
+      .join(''),
+  )
+  expect(guardado).toContain('pub')
+  expect(guardado).not.toContain(recalculos.pedidos.at(-1)?.p_abierta ?? '-')
+  expect(guardado).not.toMatch(/[0-9a-f]{64}/)
+  expect(guardado).not.toMatch(/valores|totales/)
+  await page.reload()
+  await expect(page.getByText('Recuperamos lo que habías escrito y no guardaste.')).toBeVisible()
+  await expect.poll(async () => sinEspacios(await totalDeLaHoja(page).textContent())).toBe(total)
+  await expect(celdaDeLaHoja(page, 'pub')).toContainText('1.200,00')
+  await page.getByRole('button', { name: 'Descartar' }).click()
+  await expect.poll(async () => sinEspacios(await totalDeLaHoja(page).textContent())).toBe(vacio)
+  await tipearEnLaHoja(page, 'pub', '3')
+  await guardarConElAtajo(page)
+  await expect(tarjetaGuardada(page)).toBeVisible()
+  await page.goto(url)
+  await expect(totalDeLaHoja(page)).toBeVisible()
+  expect(sinEspacios(await totalDeLaHoja(page).textContent())).toBe(vacio)
+  await expect(page.getByText('Recuperamos lo que habías escrito y no guardaste.')).toBeHidden()
 })

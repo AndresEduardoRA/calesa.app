@@ -8,6 +8,7 @@ import type { RecalculoInicial } from '../../../entities/apertura'
 import { seccionSeDibuja, type ContextoDeHoja } from '../../../entities/binding'
 import { FALTA_EL_VEHICULO } from '../../../entities/guardado'
 import type { HojaLista } from '../../../entities/hoja'
+import { claveDelBorrador } from '../../../entities/claves-de-la-hoja'
 import type { Guardado } from '../hooks/use-guardado'
 import { useGuardarLaHoja } from '../hooks/use-guardar-la-hoja'
 import { useHoja } from '../hooks/use-hoja'
@@ -23,13 +24,15 @@ type Props = {
   vehiculoSoltado: boolean
   leadId: string | null
   guardado: Guardado
+  // «Descartar» el borrador: el marco vuelve a montar la hoja vacía.
+  alDescartar: () => void
 }
 
-function avisoDelVehiculo(vehiculoSoltado: boolean, obligatorio: boolean, hay: boolean) {
+function avisoDelVehiculo(vehiculoSoltado: boolean, faltaVehiculo: boolean) {
   if (vehiculoSoltado) {
     return 'No se puede usar ese vehículo.'
   }
-  return obligatorio && !hay ? FALTA_EL_VEHICULO : null
+  return faltaVehiculo ? FALTA_EL_VEHICULO : null
 }
 
 // La hoja de cotizar: las secciones del diseño en su orden, cada celda con su `XCell`, y el resumen. Recalcula en la base 150 ms después de la última confirmación.
@@ -42,14 +45,22 @@ export function HojaDeCotizar({
   vehiculoSoltado,
   leadId,
   guardado,
+  alDescartar,
 }: Props) {
   const router = useRouter()
   const raiz = useRef<HTMLDivElement>(null)
-  const h = useHoja({ hoja, inicial, vehiculoId, alCambiar: guardado.olvidarAviso })
+  const h = useHoja({
+    hoja,
+    inicial,
+    vehiculoId,
+    alCambiar: guardado.olvidarAviso,
+    borrador: { clave: claveDelBorrador(hoja.origen.id, leadId, vehiculoId), alDescartar },
+  })
   const contexto = useMemo<ContextoDeHoja>(
     () => ({ indice: h.indice, entradas: h.entradas, respuesta: h.respuesta }),
     [h.indice, h.entradas, h.respuesta],
   )
+  const faltaVehiculo = hoja.vehiculoObligatorio && vehiculoId === null
   const { boton, armar } = useGuardarLaHoja({
     h,
     contexto,
@@ -87,24 +98,16 @@ export function HojaDeCotizar({
         tarjeta={hoja.tarjetaTotal}
         contexto={contexto}
         estado={h.estado}
-        avisoDelVehiculo={avisoDelVehiculo(
-          vehiculoSoltado,
-          hoja.vehiculoObligatorio,
-          vehiculoId !== null,
-        )}
+        avisoDelVehiculo={avisoDelVehiculo(vehiculoSoltado, faltaVehiculo)}
         alReintentar={h.reintentar}
-        alRecargar={() => {
-          router.refresh()
-        }}
+        alRecargar={router.refresh}
         guardar={boton}
         avisoDeGuardado={
           <AvisoDeGuardado
             estado={guardado.estado}
             hayPendiente={guardado.hayPendiente}
             enLinea={guardado.enLinea}
-            alRecargar={() => {
-              router.refresh()
-            }}
+            alRecargar={router.refresh}
             alReintentar={() => {
               guardado.guardar(armar)
             }}

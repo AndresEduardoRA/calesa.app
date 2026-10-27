@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { guardarBorradorDeEstado } from '@/shared/lib/borrador'
 import type { RecalculoInicial } from '../../../entities/apertura'
-import { claveDeLaHoja } from '../../../entities/claves-de-la-hoja'
+import { claveDeLaHoja, claveDelBorrador } from '../../../entities/claves-de-la-hoja'
 import type { HojaLista } from '../../../entities/hoja'
 import { useGuardado } from '../hooks/use-guardado'
 import { CotizacionGuardada } from './cotizacion-guardada'
@@ -23,12 +24,24 @@ type Props = PropsDeLaHoja & { leadId: string | null }
 // que renueva la cookie de la sesión vuelve a dibujar la página con otra hoja abierta, y la hoja no cambia a medio guardar. Al responder vuelve a seguirlas.
 export function PantallaDeCotizar({ leadId, ...props }: Props) {
   const router = useRouter()
+  const [vuelta, setVuelta] = useState(0)
+  // Lo guardado ya está en la base: el borrador se va (también con «Cotizar otra»).
+  const borrarElBorrador = () => {
+    guardarBorradorDeEstado(
+      window.sessionStorage,
+      claveDelBorrador(props.hoja.origen.id, leadId, props.vehiculoId),
+      {},
+    )
+  }
   const guardado = useGuardado({
     origenId: props.hoja.origen.id,
     leadId,
     vehiculoId: props.vehiculoId,
-    alGuardar: () => {},
+    alGuardar: borrarElBorrador,
   })
+  const otraVuelta = () => {
+    setVuelta((v) => v + 1)
+  }
   const [vistas, setVistas] = useState<PropsDeLaHoja>(props)
   const congelada = guardado.estado.tipo === 'guardando'
   const cambiaron =
@@ -46,6 +59,7 @@ export function PantallaDeCotizar({ leadId, ...props }: Props) {
         cotizacion={guardado.estado.cotizacion}
         fueReenvio={guardado.estado.fueReenvio}
         alCotizarOtra={() => {
+          borrarElBorrador()
           guardado.reiniciar()
           router.refresh()
         }}
@@ -54,10 +68,11 @@ export function PantallaDeCotizar({ leadId, ...props }: Props) {
   }
   return (
     <HojaDeCotizar
-      key={claveDeLaHoja({ formulaId: hoja.hoja.formula.id, vehiculoId: hoja.vehiculoId })}
+      key={claveDeLaHoja({ formulaId: hoja.hoja.formula.id, vehiculoId: hoja.vehiculoId, vuelta })}
       {...hoja}
       leadId={leadId}
       guardado={guardado}
+      alDescartar={otraVuelta}
     />
   )
 }

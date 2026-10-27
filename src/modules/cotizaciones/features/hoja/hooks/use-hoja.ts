@@ -12,10 +12,12 @@ import {
   indiceDeHoja,
   restablecer,
   type Entradas,
+  type IndiceDeHoja,
 } from '../../../entities/entradas'
 import type { HojaLista } from '../../../entities/hoja'
 import type { PedidoDeRecalculo } from '../../../entities/pedido-de-recalculo'
 import { recalcular } from '../../../composicion.client'
+import { useBorradorDeHoja } from './use-borrador-de-hoja'
 import { useRecalculo } from './use-recalculo'
 
 // Los callbacks de la hoja: **los mismos para todas las celdas** (la `XCell` está en `memo` y una hoja de cientos de celdas recalcula en cada pausa; una función
@@ -28,17 +30,47 @@ export type AccionesDeHoja = {
   alElegirAtajo: (nodo: string, posicion: number, valor: number) => void
 }
 
+// Los callbacks de las celdas, todos sobre la misma puerta (`cambiar`).
+function useAcciones(
+  cambiar: (cambio: (antes: Entradas) => Entradas) => void,
+  indice: IndiceDeHoja,
+): AccionesDeHoja {
+  return useMemo<AccionesDeHoja>(
+    () => ({
+      alConfirmar: (id, valor) => {
+        cambiar((e) => confirmar(e, { indice }, id, valor))
+      },
+      alRestablecer: (id) => {
+        cambiar((e) => restablecer(e, indice, id))
+      },
+      alAlternarBandera: (nodo, encendida) => {
+        cambiar((e) => alternarBandera(e, nodo, encendida))
+      },
+      alElegirVariante: (clave) => {
+        cambiar((e) => elegirVariante(e, clave))
+      },
+      alElegirAtajo: (nodo, posicion, valor) => {
+        cambiar((e) => elegirAtajo(e, { indice }, nodo, { posicion, valor }))
+      },
+    }),
+    [cambiar, indice],
+  )
+}
+
 export function useHoja({
   hoja,
   inicial,
   vehiculoId,
   alCambiar,
+  borrador,
 }: {
   hoja: HojaLista
   inicial: RecalculoInicial
   vehiculoId: string | null
   // Cada confirmación (el aviso del último guardado ya no habla de lo que se ve).
   alCambiar?: () => void
+  // El borrador de lo tipeado (4-29): su clave en la pestaña y qué hace «Descartar».
+  borrador?: { clave: string; alDescartar: () => void }
 }) {
   const alCambiarRef = useRef(alCambiar)
   useEffect(() => {
@@ -80,26 +112,23 @@ export function useHoja({
     [programar],
   )
 
-  const acciones = useMemo<AccionesDeHoja>(
-    () => ({
-      alConfirmar: (id, valor) => {
-        cambiar((e) => confirmar(e, { indice }, id, valor))
-      },
-      alRestablecer: (id) => {
-        cambiar((e) => restablecer(e, indice, id))
-      },
-      alAlternarBandera: (nodo, encendida) => {
-        cambiar((e) => alternarBandera(e, nodo, encendida))
-      },
-      alElegirVariante: (clave) => {
-        cambiar((e) => elegirVariante(e, clave))
-      },
-      alElegirAtajo: (nodo, posicion, valor) => {
-        cambiar((e) => elegirAtajo(e, { indice }, nodo, { posicion, valor }))
-      },
-    }),
-    [cambiar, indice],
+  // El borrador que vuelve (4-29): como una confirmación, con su recálculo.
+  const reponer = useCallback(
+    (e: Entradas) => {
+      cambiar(() => e)
+    },
+    [cambiar],
   )
 
-  return { indice, entradas, abierta, acciones, ...recalculo }
+  useBorradorDeHoja({
+    clave: borrador?.clave ?? null,
+    entradas,
+    indice,
+    reponer,
+    alDescartar: borrador?.alDescartar ?? (() => {}),
+  })
+
+  const acciones = useAcciones(cambiar, indice)
+
+  return { indice, entradas, abierta, acciones, reponer, ...recalculo }
 }

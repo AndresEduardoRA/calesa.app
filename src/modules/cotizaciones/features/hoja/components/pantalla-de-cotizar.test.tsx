@@ -1,7 +1,8 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ok } from '@/shared/lib/errores'
 import type { RecalculoInicial } from '../../../entities/apertura'
-import { claveDelPendiente } from '../../../entities/claves-de-la-hoja'
+import { claveDelBorrador, claveDelPendiente } from '../../../entities/claves-de-la-hoja'
 import type { ResultadoDeCrear } from '../../../entities/guardado'
 import { hojaDePrueba, respuestaDePrueba } from '../../../entities/hoja-de-prueba.soporte'
 import type { HojaLista } from '../../../entities/hoja'
@@ -13,7 +14,8 @@ const refrescar = vi.hoisted(() => vi.fn())
 const avisar = vi.hoisted(() => vi.fn())
 vi.mock('next-safe-action/hooks', () => ({ useAction: () => ({ executeAsync: ejecutar }) }))
 vi.mock('../actions/crear-cotizacion', () => ({ crearCotizacion: {} }))
-vi.mock('../../../composicion.client', () => ({ recalcular: vi.fn() }))
+const recalcular = vi.hoisted(() => vi.fn())
+vi.mock('../../../composicion.client', () => ({ recalcular }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: refrescar }) }))
 vi.mock('@/shared/ui/toasts', () => ({ avisar }))
 
@@ -55,6 +57,8 @@ beforeEach(() => {
   ejecutar.mockReset()
   refrescar.mockReset()
   avisar.mockReset()
+  recalcular.mockReset()
+  recalcular.mockResolvedValue(ok(respuestaDePrueba({ usd: 7 })))
 })
 afterEach(cleanup)
 
@@ -142,5 +146,32 @@ describe('PantallaDeCotizar › la hoja abierta y la instantánea', () => {
     })
     expect(screen.getByText('Cotización n.º 41 guardada')).toBeTruthy()
     expect(avisar).not.toHaveBeenCalled()
+  })
+})
+
+describe('PantallaDeCotizar › el borrador', () => {
+  const clave = () => `borrador-estado:${claveDelBorrador(hojaDePrueba().origen.id, LEAD, null)}`
+
+  it('un guardado con éxito borra el borrador', async () => {
+    window.sessionStorage.setItem(clave(), JSON.stringify({ inputs: [['remate', 7]] }))
+    ejecutar.mockResolvedValue(guardada(false))
+    render(pantalla(hojaDePrueba()))
+    // El borrador vuelve con su recálculo: el guardado espera al total al día (P8).
+    guardar()
+    expect(await screen.findByText('Cotización n.º 41 guardada')).toBeTruthy()
+    expect(window.sessionStorage.getItem(clave())).toBeNull()
+  })
+
+  it('Ctrl+S esperando el total y después «Descartar»: vuelve a «Guardar» y no sale nada', () => {
+    window.sessionStorage.setItem(clave(), JSON.stringify({ inputs: [['remate', 7]] }))
+    render(pantalla(hojaDePrueba()))
+    guardar()
+    expect(screen.getByRole('button', { name: 'Guardando…' })).toBeTruthy()
+    const { alHacer } = avisar.mock.calls[0]?.[1] as { alHacer: () => void }
+    act(() => {
+      alHacer()
+    })
+    expect(screen.getByRole('button', { name: 'Guardar' })).toHaveProperty('disabled', false)
+    expect(ejecutar).not.toHaveBeenCalled()
   })
 })

@@ -41,6 +41,7 @@ const montar = (inicial: RecalculoInicial = AL_DIA, vehiculoId: string | null = 
       vehiculoSoltado={false}
       leadId={null}
       guardado={QUIETO}
+      alDescartar={() => {}}
     />,
   )
 
@@ -69,6 +70,7 @@ const avanzar = (ms: number) =>
   })
 
 beforeEach(() => {
+  window.sessionStorage.clear()
   vi.useFakeTimers()
   recalcular.mockReset()
 })
@@ -237,6 +239,7 @@ describe('HojaDeCotizar: avisos y atajos', () => {
         vehiculoSoltado={false}
         leadId={null}
         guardado={QUIETO}
+        alDescartar={() => {}}
       />,
     )
     expect(screen.getByText('Este origen pide un vehículo para guardar.')).toBeTruthy()
@@ -251,6 +254,7 @@ describe('HojaDeCotizar: avisos y atajos', () => {
         vehiculoSoltado={false}
         leadId={null}
         guardado={QUIETO}
+        alDescartar={() => {}}
       />,
     )
     expect(screen.getByText('No puedes ver esta hoja')).toBeTruthy()
@@ -266,6 +270,7 @@ describe('HojaDeCotizar: avisos y atajos', () => {
         vehiculoSoltado
         leadId={null}
         guardado={QUIETO}
+        alDescartar={() => {}}
       />,
     )
     expect(screen.getByText('No se puede usar ese vehículo.')).toBeTruthy()

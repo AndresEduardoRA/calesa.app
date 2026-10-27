@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { claveDeLaHoja, claveDelBorrador, claveDelPendiente } from './claves-de-la-hoja'
 
 describe('claveDeLaHoja', () => {
-  it('cambia con la fórmula y con el vehículo', () => {
-    const base = claveDeLaHoja({ formulaId: 'f', vehiculoId: null })
-    expect(claveDeLaHoja({ formulaId: 'g', vehiculoId: null })).not.toBe(base)
-    expect(claveDeLaHoja({ formulaId: 'f', vehiculoId: 'v' })).not.toBe(base)
-    expect(claveDeLaHoja({ formulaId: 'f', vehiculoId: null })).toBe(base)
+  it('cambia con la fórmula, con el vehículo y con la vuelta («Descartar», «Cotizar otra»)', () => {
+    const base = claveDeLaHoja({ formulaId: 'f', vehiculoId: null, vuelta: 0 })
+    expect(claveDeLaHoja({ formulaId: 'g', vehiculoId: null, vuelta: 0 })).not.toBe(base)
+    expect(claveDeLaHoja({ formulaId: 'f', vehiculoId: 'v', vuelta: 0 })).not.toBe(base)
+    expect(claveDeLaHoja({ formulaId: 'f', vehiculoId: null, vuelta: 1 })).not.toBe(base)
+    expect(claveDeLaHoja({ formulaId: 'f', vehiculoId: null, vuelta: 0 })).toBe(base)
   })
 })
 

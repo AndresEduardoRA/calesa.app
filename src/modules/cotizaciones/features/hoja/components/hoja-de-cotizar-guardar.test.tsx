@@ -48,6 +48,7 @@ const montar = (
       vehiculoSoltado={false}
       leadId={leadId}
       guardado={guardado}
+      alDescartar={() => {}}
     />,
     {
       wrapper: ({ children }: { children: ReactNode }) => (
@@ -76,6 +77,7 @@ const ctrlS = (donde: Element) => fireEvent.keyDown(donde, { key: 's', ctrlKey: 
 const botonGuardar = () => screen.getByRole('button', { name: 'Guardar' })
 
 beforeEach(() => {
+  window.sessionStorage.clear()
   recalcular.mockReset()
 })
 afterEach(() => {

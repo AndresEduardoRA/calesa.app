@@ -1,13 +1,16 @@
 // Las claves de la hoja de cotizar: la `key` de React con la que se vuelve a montar, y las de la pestaña (`sessionStorage`) donde viven el pendiente del guardado y el
 // borrador. Las de la pestaña son por hoja (origen, lead y vehículo): otra hoja no reenvía el pendiente ni repone el borrador de ésta. No llevan a la persona (4-38).
 
+// `vuelta` la sube el marco para volver a montar la hoja vacía («Descartar», «Cotizar otra»).
 export const claveDeLaHoja = ({
   formulaId,
   vehiculoId,
+  vuelta,
 }: {
   formulaId: string
   vehiculoId: string | null
-}): string => `${formulaId}:${vehiculoId ?? '-'}`
+  vuelta: number
+}): string => `${formulaId}:${vehiculoId ?? '-'}:${String(vuelta)}`
 
 const deLaHoja = (origenId: string, leadId: string | null, vehiculoId: string | null) =>
   `${origenId}:${leadId ?? '-'}:${vehiculoId ?? '-'}`
