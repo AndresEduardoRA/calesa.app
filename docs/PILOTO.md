@@ -126,13 +126,14 @@ La verificación de siempre del Stop (mapa + typecheck + lint + test + mapa) ≈
 
 ## Pendiente
 
-- **`bash scripts/piloto/decidir.sh --prueba`** desde el celular (el push, la pregunta y el hook que anota la decisión; confirma si `tool_response` de `AskUserQuestion` trae la respuesta o hay que leer el transcript) y **el primer `bash scripts/piloto/arrancar.sh`** real: ambos los hace la persona. Sin eso las compuertas nunca se probaron de punta a punta con el modelo.
+- **El primer `bash scripts/piloto/arrancar.sh` real**, que hace la persona. `decidir.sh --prueba` ya se repitió en verde (abajo): el circuito del celular (push, pregunta y hook que anota la decisión) anda de punta a punta con el modelo, pero un paso entero con sus compuertas, el cierre y la publicación aún no.
 - Aceptar la confianza de la carpeta (arriba) para que valgan las `permissions.allow`.
-- Integrar: `git rebase main` en el worktree, entradas A0 en DECISIONES y BITACORA, ESTADO por sustitución y `docs(docs): cerrar el paso a0 del piloto` (ver el plan de A0).
+- Calibrar los topes (`PILOTO_TOPE_USD_RUTEO` 2 y `PILOTO_TOPE_USD_PASO` 50) con el primer paso real.
+- Integrado a `main` con el cierre del A0 (`docs/DECISIONES.md`, «Paso A0»; `docs/BITACORA.md`, «Paso A0»).
 
 ## La primera prueba en vivo de decidir (2026-10-26)
 
-`decidir.sh --prueba` abrió la sesión «piloto · prueba decidir --prueba» y ésta contestó «No hay una compuerta abierta.» sin preguntar nada. **Causa:** `--prueba` escribía la compuerta sólo en `<común>/piloto/compuerta.md`, y la skill lee la copia `.piloto/compuerta.md`, que sólo hacía `escribir_compuerta` del bucle (el transcript: un `Read` de esa ruta, «File does not exist»). El camino real del bucle funcionaba; el de `--prueba` no. **Por qué las pruebas no lo vieron:** `decidir.test.ts` sembraba `comun/compuerta.md` a mano y su `tmux` falso no leía nada, y `FALSO_DECIDIR` del arnés del bucle lee `$PILOTO_COMUN`: ninguno leía por el camino de la skill. **Arreglo:** la copia la hace `decidir.sh abrir` (un solo lugar, vale para cualquier escritor) y `cerrar` la borra; el `tmux` falso de `decidir.test.ts` lee, desde el `-c` que recibe, la ruta que sale del propio `SKILL.md`, y `--prueba` tiene test. Pasa a BITACORA al integrar.
+`decidir.sh --prueba` abrió la sesión «piloto · prueba decidir --prueba» y ésta contestó «No hay una compuerta abierta.» sin preguntar nada. **Causa:** `--prueba` escribía la compuerta sólo en `<común>/piloto/compuerta.md`, y la skill lee la copia `.piloto/compuerta.md`, que sólo hacía `escribir_compuerta` del bucle (el transcript: un `Read` de esa ruta, «File does not exist»). El camino real del bucle funcionaba; el de `--prueba` no. **Por qué las pruebas no lo vieron:** `decidir.test.ts` sembraba `comun/compuerta.md` a mano y su `tmux` falso no leía nada, y `FALSO_DECIDIR` del arnés del bucle lee `$PILOTO_COMUN`: ninguno leía por el camino de la skill. **Arreglo:** la copia la hace `decidir.sh abrir` (un solo lugar, vale para cualquier escritor) y `cerrar` la borra; el `tmux` falso de `decidir.test.ts` lee, desde el `-c` que recibe, la ruta que sale del propio `SKILL.md`, y `--prueba` tiene test. **Repetida en verde** (2026-10-26, 20:08): la compuerta `prueba-1793059712` llegó al celular, la respuesta «si llegó (Recommended)» quedó en `decision.md` con el mismo id y «me respondió: «si llegó (Recommended)»». El relato completo está en `docs/BITACORA.md`, «Paso A0».
 
 ## Lo que la doc no confirma
 
@@ -144,4 +145,4 @@ La verificación de siempre del Stop (mapa + typecheck + lint + test + mapa) ≈
 - `verificar.sh` repite los e2e dirigidos: necesita la base libre (candado) y, si el spec las pide, las funciones edge; si no puede, es aviso, no «verde».
 - La copia protege la lógica del bucle, no lo que `verificar.sh` ejecuta (`pnpm lint|typecheck|test`, `package.json`, los hooks son del árbol que el paso cambió): lo cubre la compuerta «guardas», que corre antes.
 - `total_cost_usd` y los topes `--max-budget-usd` son estimaciones del cliente.
-- `.claude/rules/e2e.md` dice que los e2e dirigidos van «en `escritorio` y en `movil`»; la regla «sólo escritorio salvo que el rango toque interfaz» es la de `nivel.mjs` (`toca_interfaz`), conservadora, y está escrita ahí.
+- La regla de «e2e dirigidos también en `movil` sólo si lo tocado es interfaz» vive en un solo lugar, `.claude/rules/e2e.md` › «Interfaz: cuándo los e2e dirigidos corren también en `movil`»; `nivel.mjs` (`toca_interfaz`) la aplica y la cita, y `nivel.test.ts` falla si la lista de la regla y la del código se separan. Es conservadora: ante la duda, `movil`.

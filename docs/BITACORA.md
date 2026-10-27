@@ -3213,3 +3213,92 @@ Antes de empezar: `df -h /` dijo **94 %** (bajo el 95 %), el árbol estaba limpi
 **ESTADO:** la línea «Fase actual» y el punto 1 de «Siguiente» dicen el 4.13-3a hecho y el 3b; los abiertos pierden **4-27**, **4-28**, **4-31** y **4-32** y suman **4-33** y **4-34**; **12.241 B** (`wc -c`, tope 12.288). Lo que salió, copiado sin resumir en «Movido de ESTADO (4.13-3a)», arriba.
 
 **Lo que no se hizo:** la pantalla de guardar, el candado por lado del par, **4-25** y **4-29**, el Nivel 2 ni el 3, `next upgrade`, ningún push ni dispatch, y el 3b.
+
+## 2026-10-26 — Movido de ESTADO (A0)
+
+Lo que `docs/ESTADO.md` decía y ya no es actual (copiado, no resumido):
+
+- «**Del 4.13-2:** el candado por lado de la `XCell` (y corregir su ficha); `useRecalculo().estado` dice si el total está al día; el rango y lo obligatorio vuelven por `faltantes`; la ayuda, el ⚙ y el foco son del 4.13-4.»
+- «; el transporte sembrado casa `tipo` con `tipo_vehiculo` (el de la subasta no casa: queda sin valor y se tipea)» (sigue en **4-10**, `docs/PLAN.md`).
+- «Cotizar pide `crear` y `ver` del origen.» (sigue en `docs/DECISIONES.md`, «Paso 4.13 (3a de 5)», **jg**).
+- «Último Nivel 2 (escritorio), el paso 4.11: 695 en verde, 16 saltados, 0 fallos, 25,9 min.» (sigue en la entrada del 4.11, arriba).
+
+## 2026-10-26 — Paso A0: el piloto, el bucle que avanza PLAN un paso por sesión (A0)
+
+**Qué se pidió:** el paso A0: montar el **piloto** (`docs/PILOTO.md`), un bucle en bash sin modelo que avanza `docs/PLAN.md` un paso por sesión nueva de `claude -p` y sólo le pregunta a la persona en las compuertas, al celular. Se construyó en el worktree `../importadora-piloto` (rama `piloto-a0`) mientras el 4.13-3a corría en el principal, sin tocar `main`, ESTADO, PLAN, BITACORA ni DECISIONES, sin `db:*` ni `test:e2e*`. Esta entrada es la **integración**: `git rebase main` (limpio, sin conflictos, 11 commits sobre `1b08b99`), la regla de móvil en `e2e.md`, las entradas A0 y E1 de DECISIONES, tres abiertos nuevos en PLAN, ESTADO por sustitución y el cierre. Lo que se hizo en vivo con la persona (el ensayo, la sonda, la prueba de decidir) va aquí porque es lo que enseñó cada cambio.
+
+**Los 11 commits** (hashes de después del rebase; los de la prueba en vivo y el `pgrep` eran `cf0c5d3` y `c297f92` antes de él):
+
+1. `69b13db` `build(config): dejar worktrees y piloto fuera de tsc, eslint y git`
+2. `834a7dd` `feat(config): bloquear en bash lo irreversible y lo de afuera`
+3. `0e166d6` `feat(config): tomar el candado de la base en db y e2e`
+4. `89abbdd` `feat(config): sumar el auditor y el planificador de solo lectura`
+5. `19a9578` `feat(config): orquestar el piloto con un bucle sin modelo`
+6. `cd9085b` `feat(config): verificar mas barato en el hook stop`
+7. `00d7d71` `fix(config): no descartar el primer archivo de nivel.mjs sin --rango`
+8. `f63fd16` `fix(config): hacer valer la solo lectura de los agentes sin confianza`
+9. `d4bd227` `docs(docs): documentar el piloto`
+10. `8350aba` `fix(config): copiar la compuerta donde la skill de decidir la lee`
+11. `a115461` `fix(config): no contar el pgrep de otro bucle como paso vivo`
+
+Y los dos de la integración: `f9f3087` `refactor(config): escribir en e2e.md la regla de movil que usa nivel.mjs` (separado del cierre porque no es documentación: toca `nivel.mjs` y su prueba) y `docs(docs): cerrar el paso a0 del piloto`.
+
+**Rojas contra el código de hoy** (cada prueba se escribió y se vio fallar antes de su guarda, salvo lo que dice «desviaciones»):
+
+| Pieza                                                                                               | Roja                                                                                                                          |
+| --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `ignorados-del-piloto.test.ts` (`.gitignore`, `tsconfig`, ESLint y Prettier)                        | 5 rojas                                                                                                                       |
+| `ajustes.test.ts` (reglas `deny`, hooks cableados, frontmatter de los agentes, scripts con candado) | 17 de 29 antes de cablear `settings.json`                                                                                     |
+| `nivel`, `cuenta-e2e` y `saltadas` (las herramientas `.mjs`)                                        | 34 rojas antes de escribirlas                                                                                                 |
+| `verificar-al-terminar.test.ts` (el Stop barato)                                                    | 18 rojas antes del hook nuevo                                                                                                 |
+| `decidir.test.ts` (la primera prueba en vivo)                                                       | `abrir` y `--prueba` fallaban contra el código de antes (la skill no hallaba su compuerta); el tmux falso ahora lee como ella |
+| `compuerta-vivo.test.ts` (el `pgrep` del otro bucle)                                                | el señuelo `pgrep -f -- <patrón>` contaba como paso vivo                                                                      |
+
+**Mutaciones: 104 por nombre en el A0 y 7 nuevas de hoy (más la repetición de `gh api`)** (cada una rompe a propósito el código de producto, se ve que cae la prueba de abajo y se restaura con `cp` + `cmp`, nunca con `git checkout --`):
+
+| Área                                                                                                                                                                   | Mutaciones | Resultado                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bloquear-peligrosos.sh` (git clean, push, `pnpm add`, candado, `claude`, `gh api`)                                                                                    |         10 | 9 caen; **`gh api` que escribe sobrevivió** en la primera tanda y no consta que se arreglara: repetida hoy con dos mutaciones reales (sin bloquear `-f`/`--input`; sin bloquear `-X`/`--method`) caen las dos (208 pruebas, 3 fallan en cada una) |
+| `candado.sh`                                                                                                                                                           |          6 | caen                                                                                                                                                                                                                                              |
+| `solo-lectura.sh` y `escribir-solo-en-piloto.sh`                                                                                                                       |         10 | caen                                                                                                                                                                                                                                              |
+| `nivel.mjs`, `cuenta-e2e.mjs`, `saltadas.mjs`, `consumo.sh`                                                                                                            |         17 | caen                                                                                                                                                                                                                                              |
+| `anotar-decision.sh`, `guardar-autorizaciones.sh`, `por-agente.sh`                                                                                                     |         11 | caen                                                                                                                                                                                                                                              |
+| El hook Stop y `lint-archivo.sh`                                                                                                                                       |         10 | caen                                                                                                                                                                                                                                              |
+| `publicar.sh`                                                                                                                                                          |          5 | caen                                                                                                                                                                                                                                              |
+| `bucle.sh`, `cierre.sh` y `verificar.sh`                                                                                                                               |         35 | 33 caen a la primera; **sobrevivieron «el ruteo con Bash» y «la decisión rechazada no se borra»**: pidieron reforzar la prueba y en la corrida siguiente caen las dos                                                                             |
+| **De hoy:** la regla de móvil (la lista de `e2e.md` sin `design/`; el título citado cambiado; `nivel.mjs` sin `design/` ni `public/`; `nivel.mjs` sin citar el título) |          4 | caen las cuatro; **una sobrevivía** («`nivel.mjs` sin citar la regla»: la prueba sólo buscaba la ruta, que ya está en la cabecera del archivo) y pidió comparar el **título** de la sección                                                       |
+| **De hoy:** `decidir.sh abrir` sin la copia; `cerrar` sin borrarla; `paso_vivo` con `pgrep -f`                                                                         |          3 | caen                                                                                                                                                                                                                                              |
+
+**Medidas del Stop** (mediana de 3 tras un calentamiento, en este worktree, `loadavg` < 1,5; la tabla entera, en `docs/PILOTO.md`): la verificación de cada fin de turno tardaba **≈ 160 s** (`mapa.sh` 2,5 s; `typecheck` en frío 19,1 s y en tibio 3,6; `lint` 52,4 s; `pnpm test` 99,2 s con 4.997 pruebas y 395 archivos). El Stop nuevo, aprobado por la persona, corre **17–27 s** con el árbol sucio (`typecheck`, `eslint --cache` de los cambiados, `vitest related`, `scripts/guardas`, `mapa.sh --check`) y la suite una vez con el árbol limpio; sale sin verificar en las sesiones que no editan, con trabajo en segundo plano o con la huella de la última verificación verde.
+
+**Ensayo en seco** (`arrancar.sh --en-seco --nota .piloto/contexto/3a.md`, con `PILOTO_TOPE_USD_PASO=15`): el **ruteo** real (sonnet, low) tardó 15 s, **0,142 USD**, 78.606 tokens; eligió `4.13-3b`, opus/high, Nivel 2 por `src/shared`. El **paso en seco** (opus/high) tardó 20,3 min y costó **7,03 USD** (97.320 tokens de salida): el planificador escribió un plan de 32 KB y el auditor lo bloqueó con 13 objeciones. Costo del ensayo: **7,17 USD** más 0,115 de la sonda.
+
+**La sonda y su arreglo:** la sonda (`touch .piloto/sonda` pedido al auditor) **se ejecutó**: el frontmatter de un agente no aplica sus hooks con la carpeta sin confiar. `por-agente.sh`, un hook de `settings.json` (corre dentro de los subagentes y su entrada trae `agent_type`), manda el Bash del auditor y del planificador por `solo-lectura.sh` y el Write/Edit por `escribir-solo-en-piloto.sh`. Repetida con un auditor real lanzado desde `claude -p`: rechazada con «solo-lectura: «touch» no está en la lista de lectura», sin archivo (**0,115 USD**). El auditor encontró además un defecto real en `nivel.mjs`: sin `--rango` descartaba el primer archivo (`indexOf` devolvía -1 y el filtro `k !== i + 1` quitaba el argumento 0); corregido con su prueba.
+
+**La prueba en vivo de `decidir.sh --prueba` (falló, causa, arreglo, repetida en verde):**
+
+- **Falló (19:54):** la sesión de Remote Control «piloto · prueba decidir --prueba» contestó «No hay una compuerta abierta.» y no hizo ninguna pregunta. La compuerta (`prueba-1793058886`) estaba bien en `.git/piloto/compuerta.md`. **Causa:** `--prueba` escribía la compuerta sólo ahí, y la skill `piloto-decidir` lee la copia `.piloto/compuerta.md` (SKILL.md, paso 1), que sólo hacía `escribir_compuerta` del bucle. El transcript lo muestra: un único `Read` de esa ruta, «File does not exist». No era el directorio de tmux ni la sesión de `claude rc` que se cortó con Ctrl+C: había un solo proceso `--remote-control`, el de tmux.
+- **Por qué las pruebas no lo vieron:** `decidir.test.ts` sembraba `comun/compuerta.md` y su `tmux` falso sólo anotaba la línea de órdenes; `FALSO_DECIDIR` del arnés del bucle lee `$PILOTO_COMUN`. Ninguno leía por el camino de la skill, y `--prueba` no tenía prueba.
+- **Arreglo (`cf0c5d3`, hoy `8350aba`):** la copia la hace `decidir.sh abrir` y `cerrar` la borra; el `tmux` falso lee, desde el `-c` que recibe, la ruta que sale del propio SKILL.md.
+- **Repetida en verde (20:08):** la persona repitió `decidir.sh --prueba` desde el celular. Compuerta `prueba-1793059712`; el hook anotó `decision.md` con **el mismo id**, `opcion: si llegó (Recommended)` y **`me respondió: «si llegó (Recommended)»`** (20:08:51). No se averiguó cuál de los caminos del hook trajo la respuesta (`tool_response` o el transcript): llegó, y eso es lo que importa.
+
+**Lo que salió de correr `pnpm test` mientras tanto:** el hook Stop falló dos veces en `bucle-cierre` y `bucle-decision`, que no tocan `decidir.sh`. `paso_vivo` usaba `pgrep -f`, que sólo se excluye a sí mismo: con dos archivos de bucle en paralelo, cada `pgrep` veía el del otro y rechazaba una decisión buena (el bucle esperaba hasta su tope de 25 s). **No era una regresión del arreglo:** contra el commit anterior falló 1 de 8 corridas de esos dos archivos, y con el cambio también 1 de 8. Arreglado en `a115461` (`pgrep -af` y se descartan las líneas de otro `pgrep`) con `compuerta-vivo.test.ts`: 10 de 10 corridas limpias con carga extra en paralelo. Lo que no se probó: que no queden otras carreras parecidas (los fallos pararon, eso es todo).
+
+**Las desviaciones del A0:**
+
+- **Orden de las pruebas rojas:** se guardaron antes de cada guarda en los commits 1 a 4, en el Stop y en `por-agente`. En `bucle.sh`, `anotar-decision.sh` y `guardar-autorizaciones.sh` el código y las pruebas se escribieron casi a la vez; ahí la prueba es que sus mutaciones caen.
+- **La regla de móvil no estaba escrita:** `e2e.md` decía «en `escritorio` y en `movil`» y `nivel.mjs` usaba una regla conservadora propia. **Cerrada en esta integración:** vive en `.claude/rules/e2e.md` › «Interfaz: cuándo los e2e dirigidos corren también en `movil`», `nivel.mjs` la cita y una prueba falla si se separan. Es un cambio de la regla del Nivel 1 (antes, dirigidos siempre en los dos proyectos; ahora `movil` sólo si lo tocado es interfaz), pedido por la persona.
+- **La prueba del Stop** se hizo con `pnpm` y `npx` falsos, no con la variable `NODE_ENV=test` que decía el plan.
+- **Basura del ensayo:** el ensayo dejó una copia de sólo lectura en `.git/piloto/bin` del repo principal; es inofensiva y `arrancar.sh` la reemplaza.
+
+**Verificación de la integración:**
+
+- **Nivel 1:** `pnpm lint` y `pnpm typecheck` limpios; `pnpm test` en verde (**399 archivos y 5.066 pruebas**); `bash scripts/mapa.sh --check` pasa. Los e2e dirigidos no aplican: no hay pantalla ni `src/` tocado.
+- **Nivel 2: no corre** (ningún disparador: ni `src/shared`, proxy, auth, RLS, layout ni `supabase/schemas`). Nada de `supabase/`: ni `db:probar` ni la cadena db.
+- **e2e completo: no (A0, config y scripts; no es un paso de pantalla: la cuenta sigue).** La cuenta de pasos de pantalla seguidos sin completo queda como estaba (2 de 3, hasta el 4.13-3b).
+
+**Abiertos nuevos** (en `docs/PLAN.md` › «Abiertos de la Fase 4»): **4-35** (Node: `engines` pide `>=22.13.0` y los corpus sólo pasan con Node 24), **4-36** (`medir-publicar.sql` no se repite sin `db:reset`) y **4-37** (`SecurityFatalError` en el primer `next build` bajo un agente). **4-35** y **4-37** van en el paso de Next 16.4.1; **4-36** va en el 4.20 (lo elegí yo al integrar: la persona no le dio paso). Ese paso de Next todavía no tiene fila en la Partición.
+
+**ESTADO:** el piloto existe y cómo se arranca (`docs/PILOTO.md`); lo siguiente es la decisión sobre Next y después el 4.13-3b, con el piloto; **12.254 B** (`wc -c`, tope 12.288). Lo que salió, copiado arriba en «Movido de ESTADO (A0)».
+
+**Lo que no se hizo:** el primer `arrancar.sh` real ni aceptar la confianza de la carpeta (los hace la persona), calibrar los topes, nada de la nube (**E1**, `docs/DECISIONES.md`), `next upgrade`, ningún `db:*` ni e2e, y el 4.13-3b. El push a `origin` lo autoriza la persona.

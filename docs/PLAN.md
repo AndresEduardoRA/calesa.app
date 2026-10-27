@@ -610,6 +610,21 @@ db» es `db:base`, `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuan
   - **Hoy:** `cotizacion_guardar` usa `puede_cotizacion(id, 'cotizaciones.editar')` y la lectura de nodos pide `ver`: sin `ver`, nada se ve ni se edita, y lo guardado se conserva.
   - **Assert:** un rol con sólo `cotizaciones.editar` no puede guardar (42501), como `cotizacion_crear` sin `ver`.
   - **Lugar:** 4.15 (el paso que edita con SU versión).
+- **4-35 · `package.json` pide Node `>=22.13.0`, pero los corpus sólo pasan con Node 24 (A0, E1 en la nube).**
+  - **Hoy:** CI corre con Node 24. En la VM de la nube, con Node 22.22, `pnpm test` falla en `corpus-de-contraste` y `corpus-del-motor`. `engines` promete una versión en la que el repo no pasa sus propias pruebas.
+  - **Assert:** `pnpm test` pasa entero con la versión más baja que declara `engines.node`.
+  - **Salida sugerida:** subir `engines.node` a la versión que CI usa (y el setup de cualquier verificador en la nube a la misma); o averiguar qué de Node 24 piden los dos corpus y, si es una función suelta, no depender de ella.
+  - **Lugar:** el paso de Next 16.4.1 (la decisión sobre Next, que ya toca dependencias y `engines`). Aún sin fila en la Partición: se numera cuando la persona decida.
+- **4-36 · `supabase/tests/medir-publicar.sql` no se puede repetir sin `db:reset` (visto en el 4.13-3a; es del 4.08).**
+  - **Hoy:** una segunda `pnpm db:medir` sobre la misma base falla en esa medición y pide `db:reset` antes. Cada otra medición se repite.
+  - **Assert:** dos `pnpm db:medir` seguidas, sin `db:reset` entre ellas, pasan las dos.
+  - **Lugar:** 4.20 (publicar la fórmula con su diseño: toca la misma ruta que mide). Elegido al integrar el A0; no lo fijó la persona.
+- **4-37 · `SecurityFatalError` en el primer `next build` bajo un agente (visto dos veces: en la PC, 4.13-3a, y en la nube, E1).**
+  - **Hoy:** el aviso de seguridad de Next (`docs/DECISIONES.md`, CI-1) detiene el primer `next build` cuando detecta un agente y el registro de npm tiene un advisory para la versión; el segundo anda. Se repite una vez a mano. En CI no pasa (no hay agente).
+  - **Por qué importa:** el bucle del piloto (`verificar.sh`) y el Nivel 2 corren `next build` bajo un agente: el primer build de cada sesión es un falso rojo.
+  - **Assert:** el primer `next build` de una sesión de agente no se detiene, o `verificar.sh` lo repite una vez ante ese error y sólo ante ése.
+  - **Salida sugerida:** actualizar Next quita el advisory y, con él, la causa; si la decisión es quedarse en 16.4.0, el reintento en `verificar.sh`. `agentUpgrade: false` sigue descartado (esconde la señal).
+  - **Lugar:** el paso de Next 16.4.1.
 
 ## Fase 5 — Flujos (configuración)
 
