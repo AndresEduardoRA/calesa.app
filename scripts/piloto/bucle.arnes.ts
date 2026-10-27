@@ -22,6 +22,7 @@ const PIEZAS_REALES = [
   'comun.sh',
   'compuerta.sh',
   'cierre.sh',
+  'gasto.sh',
   'hechos.sh',
   'consumo.sh',
   'cuenta-e2e.mjs',

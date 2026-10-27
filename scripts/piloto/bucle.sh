@@ -11,8 +11,9 @@
 #   0 la copia coincide con bin.sha256 · 1 hechos (sin modelo) · 2 paradas deterministas (PARAR, rama, árbol, disco, CI) · 3 ruteo
 #   (sólo lee; sonnet, esfuerzo bajo) · 4 las compuertas que no se le dejan al modelo y el paso a medias · 5 el paso (una sesión nueva,
 #   o `--resume`) · 6 su resultado: listo (el cierre de `cierre.sh`), compuerta o falla · 7 el límite de uso · 8 el consumo.
-# Un solo bucle a la vez (flock sobre `.piloto/bucle.lock`). Variables: CLAUDE_BIN, PILOTO_DISCO_MAX (90), PILOTO_TOPE_USD_RUTEO (2),
-# PILOTO_TOPE_USD_PASO (50), PILOTO_DORMIR (sleep), PILOTO_POLL (5 s entre lecturas de la decisión), PILOTO_ESPERA_MAX (sin tope).
+# Un solo bucle a la vez (flock sobre `.piloto/bucle.lock`). Variables: CLAUDE_BIN, PILOTO_DISCO_MAX (90), PILOTO_TOPE_USD_RUTEO (0,5),
+# PILOTO_TOPE_USD_PASO (60: el paso ENTERO, con sus retomas y reintentos), PILOTO_TOPE_USD_MIN (5: con menos, el paso no se lanza),
+# PILOTO_DORMIR (sleep), PILOTO_POLL (5 s entre lecturas de la decisión), PILOTO_ESPERA_MAX (sin tope).
 set -uo pipefail
 # shellcheck source=comun.sh
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
@@ -20,6 +21,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
 source "$BIN/compuerta.sh"
 # shellcheck source=cierre.sh
 source "$BIN/cierre.sh"
+# shellcheck source=gasto.sh
+source "$BIN/gasto.sh"
 cd "$RAIZ" || exit 1
 
 HASTA="" EN_SECO=0 NOTA="" UNA_VUELTA=0
@@ -32,7 +35,8 @@ while [ "$#" -gt 0 ]; do
     *) echo "uso: bucle.sh [--hasta <paso>] [--en-seco [--nota <archivo>]] [--una-vuelta]" >&2; exit 64 ;;
   esac
 done
-DISCO_MAX="${PILOTO_DISCO_MAX:-90}" TOPE_RUTEO="${PILOTO_TOPE_USD_RUTEO:-2}" TOPE_PASO="${PILOTO_TOPE_USD_PASO:-50}"
+DISCO_MAX="${PILOTO_DISCO_MAX:-90}" TOPE_RUTEO="${PILOTO_TOPE_USD_RUTEO:-0.5}" TOPE_PASO="${PILOTO_TOPE_USD_PASO:-60}"
+TOPE_MIN="${PILOTO_TOPE_USD_MIN:-5}"
 DORMIR="${PILOTO_DORMIR:-sleep}" POLL="${PILOTO_POLL:-5}"
 CLAUDE=$(claude_bin)
 [ -n "$CLAUDE" ] || { echo "bucle: no encuentro el binario de claude (CLAUDE_BIN)." >&2; exit 1; }
@@ -81,13 +85,14 @@ ruteo_valido() {
     and (.compuerta.tipo | IN("ninguna", "datos", "dependencia", "hito", "fase", "producto", "atasco", "afuera"))' "$1" >/dev/null 2>&1
 }
 rutear() {
-  local salida="$ESTADO/llamadas/ruteo-ultimo.json" intento espera
+  local salida="$ESTADO/llamadas/ruteo-ultimo.json" intento espera inicio
   for intento in 1 2; do
+    inicio=$SECONDS
     PILOTO=1 PILOTO_SESION=ruteo "$CLAUDE" -p "/piloto-ruteo" --model sonnet --effort low --tools "Read,Grep,Glob" \
       --disallowedTools "mcp__*" --permission-mode dontAsk --permission-prompts none --max-turns 25 \
       --max-budget-usd "$TOPE_RUTEO" --output-format json --json-schema "$(cat "$BIN/ruteo.schema.json")" \
       >"$salida" 2>"$ESTADO/llamadas/ruteo.err" 8>&-
-    consumo ruteo "-" sonnet low "$(ruteo_valido "$salida" && echo listo || echo falla)" "$salida"
+    consumo ruteo "-" sonnet low "$(ruteo_valido "$salida" && echo listo || echo falla)" "$salida" "$((SECONDS - inicio))"
     if ruteo_valido "$salida"; then
       jq -c .structured_output "$salida" >"$ESTADO/ruteo.json"
       return 0
@@ -146,7 +151,7 @@ lanzar_paso() { # <modo: nueva|resume> <session_id> <prompt> <modelo> <effort> [
   [ "$modo" = resume ] && sesion=(--resume "$sid")
   mv -f "$ESTADO/ultimo.json" "$ESTADO/ultimo-anterior.json" 2>/dev/null
   PILOTO=1 PILOTO_SESION=paso "$CLAUDE" -p "$prompt" --model "$modelo" --effort "$effort" --permission-mode auto \
-    --permission-prompts none --disallowedTools "mcp__*" --max-budget-usd "$TOPE_PASO" --output-format json "${sesion[@]}" "$@" \
+    --permission-prompts none --disallowedTools "mcp__*" --max-budget-usd "$(restante)" --output-format json "${sesion[@]}" "$@" \
     >"$SALIDA_PASO" 2>"$ESTADO/llamadas/paso.err" 8>&- &
   jq -c --argjson pid "$!" '.pid = $pid | .estado = "corriendo"' "$ESTADO/en-curso.json" >"$ESTADO/en-curso.json.tmp" && mv -f "$ESTADO/en-curso.json.tmp" "$ESTADO/en-curso.json"
   wait "$!"
@@ -156,15 +161,20 @@ lanzar_paso() { # <modo: nueva|resume> <session_id> <prompt> <modelo> <effort> [
 }
 
 # Corre el paso con sus reintentos: el del límite de uso (duerme y retoma, una vez) y el del fallo del proceso (retoma con el mismo
-# session_id, una vez). Deja el resultado en $SALIDA_PASO y en ultimo.json; devuelve 1 si no hubo un ultimo.json válido.
+# session_id, una vez). Deja el resultado en $SALIDA_PASO y en ultimo.json; devuelve 1 si no hubo un ultimo.json válido y 3 si el
+# paso llegó a su tope (o le queda menos de PILOTO_TOPE_USD_MIN): eso no es un fallo, no se reintenta.
 correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [banderas…]
-  local paso="$1" modo="$2" sid="$3" prompt="$4" modelo="$5" effort="$6" rc espera limite=0 reintento=0 resultado
+  local paso="$1" modo="$2" sid="$3" prompt="$4" modelo="$5" effort="$6" rc espera limite=0 reintento=0 resultado inicio dur
   shift 6
   while :; do
+    le_queda || return 3
+    inicio=$SECONDS
     lanzar_paso "$modo" "$sid" "$prompt" "$modelo" "$effort" "$@"
     rc=$?
+    dur=$((SECONDS - inicio))
+    anotar_gasto "$SALIDA_PASO"
     if espera=$(segundos_de_limite "$SALIDA_PASO" "$ESTADO/llamadas/paso.err"); then
-      consumo paso "$paso" "$modelo" "$effort" limite "$SALIDA_PASO"
+      consumo paso "$paso" "$modelo" "$effort" limite "$SALIDA_PASO" "$dur"
       if [ "$limite" = 1 ]; then registro "el límite de uso volvió tras dormir: aviso."; return 2; fi
       limite=1
       registro "límite de uso en $paso: duermo $espera s y retomo con --resume."
@@ -172,12 +182,16 @@ correr_paso() { # <paso> <modo> <session_id> <prompt> <modelo> <effort> [bandera
       modo=resume prompt="/piloto $paso continuar"
       continue
     fi
+    if jq -e '.subtype == "error_max_budget_usd"' "$SALIDA_PASO" >/dev/null 2>&1; then
+      consumo paso "$paso" "$modelo" "$effort" tope "$SALIDA_PASO" "$dur"
+      return 3
+    fi
     if [ "$rc" = 0 ] && ultimo_valido && [ "$(jq -r .paso "$ESTADO/ultimo.json")" = "$paso" ]; then
       resultado=$(jq -r .resultado "$ESTADO/ultimo.json")
-      consumo paso "$paso" "$modelo" "$effort" "$resultado" "$SALIDA_PASO"
+      consumo paso "$paso" "$modelo" "$effort" "$resultado" "$SALIDA_PASO" "$dur"
       return 0
     fi
-    consumo paso "$paso" "$modelo" "$effort" fallo-proceso "$SALIDA_PASO"
+    consumo paso "$paso" "$modelo" "$effort" fallo-proceso "$SALIDA_PASO" "$dur"
     if [ "$reintento" = 1 ]; then return 1; fi
     reintento=1
     registro "el paso $paso falló (rc=$rc o sin ultimo.json válido): un reintento con --resume $sid."
@@ -191,7 +205,8 @@ compuerta_del_paso() { # <paso>
   mapfile -t opciones < <(jq -r '.compuerta.opciones[] | "\(.etiqueta) — \(.descripcion)"' "$ESTADO/ultimo.json")
   mapfile -t CONTEXTO < <(jq -r '.compuerta.contexto[]? // empty' "$ESTADO/ultimo.json")
   jq -c '.estado = "compuerta"' "$ESTADO/en-curso.json" >"$ESTADO/en-curso.json.tmp" && mv -f "$ESTADO/en-curso.json.tmp" "$ESTADO/en-curso.json"
-  compuerta "$(jq -r .compuerta.tipo "$ESTADO/ultimo.json")" "$paso" "$(jq -r '.compuerta.motivo // ""' "$ESTADO/ultimo.json")" \
+  compuerta "$(jq -r .compuerta.tipo "$ESTADO/ultimo.json")" "$paso" \
+    "$(jq -r '.compuerta.motivo // ""' "$ESTADO/ultimo.json") (el paso lleva $(dinero "$(gastado)") de $(dinero "$(tope_del_paso)") USD)" \
     "$(jq -r .compuerta.pregunta "$ESTADO/ultimo.json")" "${opciones[@]}"
   rc=$?
   [ "$rc" = 3 ] && { registro "parado por la persona en la compuerta de $paso."; exit 0; }
@@ -281,6 +296,7 @@ vuelta() {
   case "$?" in
     1) fallas; parada "el paso $paso falló dos veces (el proceso o sin ultimo.json válido); su transcript queda en .piloto/llamadas/" "$paso"; return 0 ;;
     2) parada "el límite de uso volvió tras dormir en $paso" "$paso"; return 0 ;;
+    3) parada_tope "$paso"; return 0 ;;
   esac
   case "$(jq -r .resultado "$ESTADO/ultimo.json")" in
     listo)

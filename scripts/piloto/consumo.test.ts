@@ -6,10 +6,12 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 // `consumo.sh` agrega una línea por llamada a `.piloto/consumo.csv`. Los tokens son la suma de `modelUsage` (que incluye a los
 // subagentes: `usage` no); con `--resume` el JSON acumula toda la sesión, así que se resta lo que esa sesión ya llevaba
-// (`.piloto/sesiones/<session_id>.json`). La sesión de decidir es interactiva y sin JSON: se cuenta el transcript, sin dólares.
+// (`.piloto/sesiones/<session_id>.json`), también de los dólares de cada modelo (`usd_por_modelo`). La duración la mide el bucle
+// cuando la pasa (el `duration_ms` del JSON es el del último turno). La sesión de decidir es interactiva y sin JSON: se cuenta el
+// transcript, sin dólares, una vez por mensaje (`message.id`: el transcript repite el mensaje por cada bloque).
 const SCRIPT = resolve('scripts/piloto/consumo.sh')
 const CABECERA =
-  'fecha,llamada,paso,modelo,effort,session_id,tokens_entrada,tokens_salida,tokens_cache_lectura,tokens_cache_escritura,tokens,total_cost_usd,duracion_s,resultado'
+  'fecha,llamada,paso,modelo,effort,session_id,tokens_entrada,tokens_salida,tokens_cache_lectura,tokens_cache_escritura,tokens,total_cost_usd,duracion_s,resultado,usd_por_modelo'
 
 let dir = ''
 const dirs: string[] = []
@@ -82,7 +84,36 @@ describe('consumo.sh › una llamada con JSON', () => {
       '1.5',
       '90',
       'listo',
+      'claude-opus-5-5=1;claude-sonnet-5-5=0.5', // los dólares de cada modelo, por nombre
     ])
+  })
+
+  it('con la duración que mide el bucle, ésa y no la del JSON', () => {
+    const json = llamada('s-1', 1, { m: uso(1, 1, 1, 1, 1) }, 192_378)
+    correr('llamada', 'paso', '4.13-3b', 'opus', 'high', 'compuerta', json, '3035')
+    expect(campos(lineas()[1])[12]).toBe('3035')
+  })
+
+  it('un consumo.csv con la cabecera de antes la gana sin perder sus líneas', () => {
+    const viejo = CABECERA.replace(',usd_por_modelo', '')
+    writeFileSync(
+      join(dir, 'consumo.csv'),
+      `${viejo}\n2026-10-27T00:13:41-04:00,ruteo,-,sonnet,low,s-0,1,1,1,1,4,0.1,9,listo\n`,
+    )
+    correr(
+      'llamada',
+      'ruteo',
+      '-',
+      'sonnet',
+      'low',
+      'listo',
+      llamada('s-1', 1, { m: uso(1, 1, 1, 1, 1) }),
+    )
+    const [cabecera, vieja, nueva] = lineas()
+    expect(cabecera).toBe(CABECERA)
+    expect(campos(vieja)).toHaveLength(15)
+    expect(campos(vieja)[14]).toBe('')
+    expect(campos(nueva)[14]).toBe('m=1')
   })
 
   it('guarda el JSON entero en llamadas/ y la cabecera sólo una vez', () => {
@@ -113,7 +144,7 @@ describe('consumo.sh › una sesión que se retoma (--resume)', () => {
     const segunda = llamada('s-9', 5, { m: uso(160, 90, 1700, 10, 5) }, 30_000)
     correr('llamada', 'paso', '4.13-3b', 'opus', 'high', 'listo', segunda)
     const c = campos(lineas()[2])
-    expect(c.slice(6, 14)).toEqual(['60', '40', '700', '0', '800', '3', '30', 'listo'])
+    expect(c.slice(6, 15)).toEqual(['60', '40', '700', '0', '800', '3', '30', 'listo', 'm=3'])
   })
 
   it('guarda los totales de la sesión para la próxima resta', () => {
@@ -133,6 +164,7 @@ describe('consumo.sh › una sesión que se retoma (--resume)', () => {
       cache_lectura: 9,
       cache_escritura: 10,
       usd: 4,
+      por_modelo: { m: 4 },
     })
   })
 
@@ -176,6 +208,34 @@ describe('consumo.sh › una sesión que se retoma (--resume)', () => {
   })
 })
 
+describe('consumo.sh › los dólares de cada modelo', () => {
+  it('los dólares de cada modelo también se restan, modelo por modelo', () => {
+    const modelos = (opus: number, sonnet: number) => ({
+      'claude-opus-5-5': uso(1, 1, 1, 1, opus),
+      'claude-sonnet-5-5': uso(1, 1, 1, 1, sonnet),
+    })
+    correr(
+      'llamada',
+      'paso',
+      'x',
+      'opus',
+      'high',
+      'compuerta',
+      llamada('s-7', 17.7569, modelos(17.7569, 0)),
+    )
+    correr(
+      'llamada',
+      'paso',
+      'x',
+      'opus',
+      'high',
+      'listo',
+      llamada('s-7', 43.6546, modelos(43.5546, 0.1)),
+    )
+    expect(campos(lineas()[2])[14]).toBe('claude-opus-5-5=25.7977;claude-sonnet-5-5=0.1')
+  })
+})
+
 describe('consumo.sh › la sesión de decidir (transcript, sin dólares)', () => {
   it('suma el uso de los mensajes del asistente y deja los dólares vacíos', () => {
     const transcript = join(dir, 'abc-123.jsonl')
@@ -211,5 +271,27 @@ describe('consumo.sh › la sesión de decidir (transcript, sin dólares)', () =
     ])
     expect(c.slice(6, 13)).toEqual(['11', '7', '103', '24', '145', '', ''])
     expect(c[13]).toBe('listo')
+    expect(c[14]).toBe('')
+  })
+
+  it('un mensaje que el transcript repite (uno por bloque, mismo message.id) cuenta una vez', () => {
+    const transcript = join(dir, 'def-456.jsonl')
+    const mensaje = (id: string, u: Record<string, number>) =>
+      JSON.stringify({ type: 'assistant', message: { id, usage: u } })
+    const u = {
+      input_tokens: 2,
+      output_tokens: 88,
+      cache_read_input_tokens: 0,
+      cache_creation_input_tokens: 18_333,
+    }
+    const v = {
+      input_tokens: 2,
+      output_tokens: 152,
+      cache_read_input_tokens: 18_333,
+      cache_creation_input_tokens: 39_896,
+    }
+    writeFileSync(transcript, [mensaje('m1', u), mensaje('m1', u), mensaje('m2', v)].join('\n'))
+    correr('transcript', 'decidir', 'producto 4.13-3b', 'sonnet', 'low', 'listo', transcript)
+    expect(campos(lineas()[1]).slice(6, 11)).toEqual(['4', '240', '18333', '58229', '76806'])
   })
 })

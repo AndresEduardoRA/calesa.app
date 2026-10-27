@@ -80,6 +80,7 @@ describe('arrancar.sh › la copia', () => {
       'bucle.sh',
       'compuerta.sh',
       'cierre.sh',
+      'gasto.sh',
       'comun.sh',
       'hechos.sh',
       'verificar.sh',
@@ -134,6 +135,16 @@ describe('arrancar.sh › lo que lanza', () => {
     expect(lineas).toContain("--remote-control 'piloto · control'")
     expect(lineas).toContain('PILOTO_SESION=control')
     expect(lineas).toContain("'/piloto-control'")
+  })
+
+  it('la sesión de control no carga herramientas MCP ni Chrome (en decidir eran 677 KB de esquemas por sesión)', () => {
+    arrancar('--hasta', '4.15')
+    const control = tmux()
+      .split('\n')
+      .find((l) => l.includes('piloto-control') && l.includes('--remote-control'))
+    expect(control).toContain('ENABLE_CLAUDEAI_MCP_SERVERS=false')
+    expect(control).toContain("--disallowedTools 'mcp__*'")
+    expect(control).toContain('--no-chrome')
   })
 
   it('no lanza el bucle si ya hay una sesión piloto-bucle', () => {

@@ -41,6 +41,6 @@ tmux has-session -t piloto-bucle 2>/dev/null && falta "ya hay una sesión de tmu
 tmux new-session -d -s piloto-bucle -c "$RAIZ" "bash '$COMUN/bin/bucle.sh' $* 2>&1 | tee -a '$ESTADO/bucle.log'; echo; echo 'El bucle terminó (¿PARAR, una compuerta o un error?). Enter para cerrar.'; read -r"
 if ! tmux has-session -t piloto-control 2>/dev/null; then
   tmux new-session -d -s piloto-control -c "$RAIZ" \
-    "env PILOTO_SESION=control '$CLAUDE' --remote-control 'piloto · control' --model sonnet --effort low --tools 'Read,Bash' --allowedTools 'Read' 'Bash(touch .piloto/PARAR)' 'Bash(bash scripts/piloto/parar.sh*)' 'Bash(cat .piloto/*)' 'Bash(tail *)' '/piloto-control'"
+    "env PILOTO_SESION=control ENABLE_CLAUDEAI_MCP_SERVERS=false '$CLAUDE' --remote-control 'piloto · control' --model sonnet --effort low --tools 'Read,Bash' --disallowedTools 'mcp__*' --no-chrome --allowedTools 'Read' 'Bash(touch .piloto/PARAR)' 'Bash(bash scripts/piloto/parar.sh*)' 'Bash(cat .piloto/*)' 'Bash(tail *)' '/piloto-control'"
 fi
 echo "arrancar: bucle en «tmux attach -t piloto-bucle»; control en «piloto-control» (Remote Control)."

@@ -158,3 +158,15 @@ describe('decidir.sh', () => {
     expect(hook.hooks[0].command).toContain('$PILOTO_BIN/anotar-decision.sh')
   })
 })
+
+describe('decidir.sh › sin herramientas MCP', () => {
+  it('la sesión no carga herramientas MCP ni Chrome: en el 4.13-3b eran 677 KB de esquemas, ≈ 1,2 USD por compuerta', () => {
+    decidir(['abrir'])
+    const linea = tmux()
+    expect(linea).toContain('ENABLE_CLAUDEAI_MCP_SERVERS=false')
+    expect(linea).toContain("--disallowedTools 'mcp__*'")
+    expect(linea).toContain('--no-chrome')
+    const ajustes = JSON.parse(readFileSync(join(BIN, 'decidir.settings.json'), 'utf8'))
+    expect(ajustes.disableClaudeAiConnectors).toBe(true)
+  })
+})

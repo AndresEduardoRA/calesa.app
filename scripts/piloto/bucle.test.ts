@@ -36,7 +36,7 @@ describe('bucle.sh › un paso listo', () => {
     )
     expect(ruteo).toContain('--disallowedTools mcp__*')
     expect(ruteo).toContain(
-      '--permission-mode dontAsk --permission-prompts none --max-turns 25 --max-budget-usd 2',
+      '--permission-mode dontAsk --permission-prompts none --max-turns 25 --max-budget-usd 0.5 ',
     )
     expect(ruteo).toContain('--json-schema')
     const [paso] = a.llamadas('paso')
@@ -44,7 +44,7 @@ describe('bucle.sh › un paso listo', () => {
       '-p /piloto 4.99 --model sonnet --effort medium --permission-mode auto --permission-prompts none',
     )
     expect(paso).toContain(
-      '--disallowedTools mcp__* --max-budget-usd 50 --output-format json --session-id ',
+      '--disallowedTools mcp__* --max-budget-usd 60.00 --output-format json --session-id ',
     )
     expect(paso).not.toContain('--resume')
   })
@@ -57,8 +57,11 @@ describe('bucle.sh › un paso listo', () => {
     expect(filas[1]).toContain(',ruteo,')
     const paso = (filas[2] ?? '').split(',')
     expect(paso.slice(1, 4)).toEqual(['paso', '4.99', 'sonnet'])
-    expect(paso.slice(6, 13)).toEqual(['10', '5', '100', '20', '135', '0.5', '1'])
+    // La duración es la del reloj del bucle (el falso tarda menos de un segundo), no la del JSON.
+    expect(paso.slice(6, 12)).toEqual(['10', '5', '100', '20', '135', '0.5'])
+    expect(paso[12]).toMatch(/^[01]$/)
     expect(paso[13]).toBe('listo')
+    expect(paso[14]).toBe('claude-opus-5-5=0.5')
   })
 
   it('--una-vuelta corre una sola y sale', () => {

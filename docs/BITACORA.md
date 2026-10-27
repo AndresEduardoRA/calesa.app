@@ -3428,3 +3428,13 @@ La línea «Fase actual» y el punto 1 de «Siguiente», como estaban antes del 
 - **e2e completo: no (FIX-PILOTO-1, config y scripts; no es un paso de pantalla: la cuenta sigue).** La cuenta de pasos de pantalla seguidos sin completo queda en 1 de 3.
 
 **Lo que no se hizo:** que el bucle compruebe o levante las funciones para un paso de Nivel 2 (es de la calibración del piloto), copiar los scripts a `.git/piloto/bin` (lo hace el próximo `arrancar.sh`), el 4.13-3c, CI-5 y el push, que lo hace la persona.
+
+## 2026-10-27 — CAL-1: la calibración del piloto con el 4.13-3b (CAL-1)
+
+**Qué se pidió:** medir el 4.13-3b (costo por fase y por modelo, auditor, plan, commits) sin regenerar nada y proponer un plan por piezas; la persona aprobó con ajustes (`docs/DECISIONES.md`, «CAL-1»). Sesión manual con el piloto parado: nada llama a `claude` de verdad y `.git/piloto/bin` no cambia hasta el próximo `arrancar.sh`.
+
+**Lo medido:** el paso costó 43,55 USD, todo Opus (planificador 11,02; auditor 8,74 en tres corridas; ejecutor 23,80, 14,62 de ellos caché leída); el reparto por los transcripts de los subagentes cuadra al centavo con `total_cost_usd`. Plan: 50,6 min y 87.116 B (no 73 KB: el ejecutor leyó 749 de sus 775 líneas); ejecución: 93,5 min; 5 commits. El auditor puso 39 hallazgos (1 bloquea, 18 debería, 20 menor), ninguno refutado. Las dos sesiones de decidir cargaban 677 KB de esquemas MCP cada una.
+
+**Lo que se hizo:**
+
+- `feat(config): llevar el gasto del paso entero contra su tope`: el tope del paso entero (60 USD, lo que queda en cada llamada, la parada con «sigo» una sola vez, el ruteo a 0,5) en la pieza nueva `scripts/piloto/gasto.sh`; decidir y control sin MCP ni Chrome; `usd_por_modelo`, `duracion_s` del reloj del bucle y el transcript contado por `message.id` en `consumo.sh`. Rojo primero: 16 pruebas contra HEAD (`.piloto/salidas/CAL-1/rojas-c1.txt`); 15 mutaciones, todas caen (`mutaciones-c1.txt`; la del segundo «sigo» sobrevivió y pidió su prueba).

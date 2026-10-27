@@ -9,7 +9,9 @@
 #   decidir.sh --prueba  una compuerta de mentira, para que la persona pruebe el push, la pregunta y el hook la primera vez
 #
 # La sesión: sonnet, esfuerzo bajo, sólo `Read` y `AskUserQuestion`, con `decidir.settings.json` de la copia (el hook). Con
-# `PILOTO_SESION=decidir` los hooks de guarda no la tocan. «Push when actions required» de `/config` hace que la pregunta llegue.
+# `PILOTO_SESION=decidir` los hooks de guarda no la tocan. Sin herramientas MCP ni Chrome: `--tools` no las quita, y sin `ToolSearch`
+# se cargan enteras; en el 4.13-3b llegaron a mitad de sesión 677 KB de esquemas (≈ 260 K tokens, ≈ 1,2 USD por compuerta).
+# `--disallowedTools 'mcp__*'` las saca del contexto; los conectores de claude.ai ni se conectan (la variable y el ajuste). «Push when actions required» de `/config` hace que la pregunta llegue.
 set -uo pipefail
 # shellcheck source=comun.sh
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
@@ -34,7 +36,7 @@ abrir() {
   # El nombre lleva el tipo y el paso (sin comillas): es lo que la persona ve en la lista de sesiones del celular.
   local nombre="piloto · ${tipo//[\'\"]/} ${paso//[\'\"]/}"
   tmux new-session -d -s "$SESION_TMUX" -c "$RAIZ" \
-    "env PILOTO=1 PILOTO_SESION=decidir PILOTO_COMUN='$COMUN' PILOTO_BIN='$BIN' PILOTO_DIR='$ESTADO' '$claude' --remote-control '$nombre' --session-id '$uuid' --model sonnet --effort low --tools 'Read,AskUserQuestion' --settings '$BIN/decidir.settings.json' '/piloto-decidir'"
+    "env PILOTO=1 PILOTO_SESION=decidir PILOTO_COMUN='$COMUN' PILOTO_BIN='$BIN' PILOTO_DIR='$ESTADO' ENABLE_CLAUDEAI_MCP_SERVERS=false '$claude' --remote-control '$nombre' --session-id '$uuid' --model sonnet --effort low --tools 'Read,AskUserQuestion' --disallowedTools 'mcp__*' --no-chrome --settings '$BIN/decidir.settings.json' '/piloto-decidir'"
 }
 
 cerrar() {
