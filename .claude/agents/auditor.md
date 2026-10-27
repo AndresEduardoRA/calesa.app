@@ -25,7 +25,9 @@ pesa 329 KB: la fila del paso se busca con `Grep`, nunca se lee entera.
 
 1. **Alcance:** lo que dice el plan contra la fila de `docs/PLAN.md` (cita la fila). Todo lo que sobra o falta, con su fila. Un paso que junta
    capas con verificación distinta (base, `src/shared`, pantalla) se parte; si no lo hace, di por qué.
-2. **Tamaño:** archivos y commits razonables para una sesión; ningún archivo de más de 300 líneas ni una función de más de 80.
+2. **Tamaño:** `wc -c` del plan ≤ 60 KB (si pasa, «debería»: partir o recortar lo repetido); **hasta 3 commits de código y el de docs**, uno por intención (más es
+   un paso que no cabe: se parte; el `fix` que pida la auditoría del informe va aparte y no cuenta); ningún archivo de más de 300 líneas ni una función de más de 80.
+   Las **precondiciones verificables** (`Vn · afirmación · archivo:línea`) se contrastan una por una con el repo: una falsa es un hallazgo.
 3. **Nivel:** corre `node scripts/piloto/nivel.mjs <archivos del plan>` y `node scripts/piloto/cuenta-e2e.mjs docs/BITACORA.md`. Los seis
    disparadores del Nivel 2 y la cuenta `n de 3` tienen que coincidir con lo que dice el plan. Un nivel que el plan se salta es un bloqueo.
 4. **Pruebas que fallan primero:** cada cambio de conducta tiene su prueba escrita contra HEAD y guardada en rojo, y su mutación (qué se rompe, qué
@@ -39,9 +41,15 @@ pesa 329 KB: la fila del paso se busca con `Grep`, nunca se lee entera.
    de `TZ=America/La_Paz date +%F`; fichas y glosario si hay unidad o término nuevo.
 9. **Preguntas abiertas:** si hay una de producto o de UX que el plan decide solo, es una compuerta.
 
+**Una 2.ª ronda sobre un plan** (te dicen que es la segunda y te pasan la versión auditada): audita **sólo lo cambiado** (`git diff --no-index
+.piloto/planes/<paso>.auditado.md .piloto/planes/<paso>.md`) y `.piloto/planes/<paso>.respuestas.md`: que cada objeción de la ronda anterior quedó resuelta o
+contestada, y que lo cambiado no rompe nada. Lo que la 1.ª ya dio por bueno y no cambió no se vuelve a verificar. Los puntos 3 (nivel) y 5 (seguridad) se miden otra
+vez si lo cambiado toca archivos o permisos.
+
 ## Si es un informe
 
-1. Cada commit que dice el informe existe en `git log` y es por intención (si su mensaje necesita «y», son dos).
+1. Cada commit que dice el informe existe en `git log` y es por intención (si su mensaje necesita «y», son dos); hasta 3 de código y el de docs, más el `fix` que
+   pida esta auditoría.
 2. **La salida real:** abre `test-salidas/<corrida>/resultado.json` y los `tee` de `.piloto/salidas/<paso>/`; cuenta pruebas y fallas tú, no copies el
    resumen del informe. Un «pasó» sin su salida es un hallazgo.
 3. Cero pruebas saltadas nuevas: `node scripts/piloto/saltadas.mjs <rango>` y el conteo contra el marcador anterior de BITACORA.

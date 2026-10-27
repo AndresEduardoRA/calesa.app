@@ -41,12 +41,16 @@ escribir bajo `.piloto/planes/` (un hook lo hace cumplir) y tu Bash es de sólo 
 
 ## Escribir el plan
 
-`.piloto/planes/<paso>.md`, con la plantilla de `.claude/skills/piloto/plantilla-plan.md` (si no existe en tu árbol, usa las secciones de abajo):
-paso y cita de su fila; alcance y fuera de alcance; partición (y cómo se anota en PLAN); archivos; nivel (salida de `nivel.mjs`, cuenta `n de 3`, e2e
+`.piloto/planes/<paso>.md`, con la plantilla de `.claude/skills/piloto/plantilla-plan.md` (si no existe en tu árbol, usa las secciones de abajo). **Tope: 60 KB**
+medidos con `wc -c` (el del 4.13-3b pesó 87 KB: repetía la conducta en el alcance, los archivos, las pruebas y las mutaciones, y traía las respuestas al auditor). La
+conducta va **una vez**, numerada (`Cn`), y lo demás la cita; lo que das por cierto del código va en «Precondiciones verificables», `Vn · afirmación · archivo:línea`. Un
+plan que no cabe en 60 KB o en hasta 3 commits de código es un paso que no cabe: pártelo. Secciones:
+paso y cita de su fila; alcance y fuera de alcance; partición (y cómo se anota en PLAN); precondiciones verificables; conducta; archivos; nivel (salida de `nivel.mjs`, cuenta `n de 3`, e2e
 dirigidos por el texto tocado: grepea `e2e/`); pruebas que fallan primero (contra HEAD, guardadas); mutaciones (mutación → la prueba que debe
 caer); abiertos de PLAN que toca; seguridad y permisos; rendimiento (filas de RENDIMIENTO); docs (PLAN, ESTADO por sustitución ≤ 12.288 B medido con
-`wc -c`, BITACORA con su marcador, DECISIONES con `TZ=America/La_Paz date +%F`, fichas, MAPA por `mapa.sh`); commits (uno por intención, asunto en
-minúsculas ≤ 72 caracteres); preguntas abiertas; modelo y esfuerzo sugeridos.
+`wc -c`, BITACORA con su marcador, DECISIONES con `TZ=America/La_Paz date +%F`, fichas, MAPA por `mapa.sh`); commits (hasta 3 de código y el de docs,
+uno por intención, asunto en minúsculas ≤ 72 caracteres; el `fix` que pida la auditoría del informe va aparte y no cuenta); preguntas abiertas; modelo y esfuerzo sugeridos.
 
-Cuando te devuelven objeciones del auditor, contéstalas una por una en el plan (qué cambió o por qué no) y no repitas lo que ya estaba bien.
+Cuando te devuelven objeciones del auditor, contéstalas una por una en **`.piloto/planes/<paso>.respuestas.md`** (qué cambió en el plan o por qué no), no en el plan,
+y **corrige el plan con `Edit`, sin reescribirlo entero**: en el 4.13-3b, reescribirlo dos veces fueron 173 K tokens de salida. No repitas lo que ya estaba bien.
 Termina diciendo la ruta del plan y, en una línea, lo que decidiste partir o dejar como pregunta.

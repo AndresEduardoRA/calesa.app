@@ -7,6 +7,8 @@ export const PASA = [
   'git show HEAD:docs/ESTADO.md',
   'git diff HEAD~1 --stat',
   'git diff ef21834..HEAD -- src',
+  // La 2.ª ronda del auditor sobre un plan: sólo lo cambiado desde la versión auditada (CAL-1).
+  'git diff --no-index .piloto/planes/4.13-3c.auditado.md .piloto/planes/4.13-3c.md',
   'git status --short',
   'git rev-parse HEAD',
   'git rev-parse --git-common-dir',

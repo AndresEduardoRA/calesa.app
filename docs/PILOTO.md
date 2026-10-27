@@ -80,6 +80,19 @@ es el de la compuerta vigente, es posterior a `compuerta.md` y **ningún paso es
 
 **La compuerta de producto, una pregunta por decisión** (CAL-1; en el 4.13-3b llegaron P0–P9 en una sola): el paso la pide con `compuerta.preguntas` (de 1 a 12, cada una `{ id, pregunta, opciones }` con de 2 a 4 opciones; `id` ≤ 12 caracteres, va de `header`). El bucle las escribe en `compuerta.md` (`preguntas: N`, `tandas: K` y una decisión por línea con sus opciones indentadas) y la sesión de decidir las hace en tandas de hasta 4, una llamada a `AskUserQuestion` por tanda, en la **misma** sesión. El hook anota cada tanda en `<común>/piloto/decision-parcial-<id>.json` (empareja por el `header` y, si no, por el texto de la pregunta) y escribe `decision.md` sólo con todas: una línea `- P0: …` por decisión, en el orden de la compuerta. «parar» (o «parado», «detener») en cualquiera para el bucle; «no partir» no. El paso lee las respuestas en `hechos.json` › `decision` (hasta 8.000 B). Las demás compuertas, y la de producto que ve el ruteo, siguen con una pregunta.
 
+## El plan, la auditoría y los commits del paso (CAL-1)
+
+Medido en el 4.13-3b: el plan pesó **87.116 B** (el alcance, 25 KB, era el diseño entero, y archivos, pruebas y mutaciones lo volvían a contar; 6 KB eran respuestas al auditor), el
+planificador lo reescribió entero dos veces (173 K tokens de salida) y el ejecutor leyó 749 de sus 775 líneas. El auditor corrió tres veces (8,74 USD), puso 39 hallazgos sin
+ninguno refutado y frenó tres defectos que habrían llegado a `main`; se queda en Opus en todos los pasos.
+
+- **El plan** (`plantilla-plan.md`): ≤ **60 KB** con `wc -c` (el auditor lo marca «debería»; baja a 40 cuando haya un plan nuevo medido). La conducta va una vez, numerada (`Cn`), y lo demás la
+  cita; lo que el plan da por cierto, en «Precondiciones verificables» (`Vn · afirmación · archivo:línea`). Las respuestas al auditor van en `.piloto/planes/<paso>.respuestas.md` y el plan
+  se corrige con `Edit`, sin reescribirlo.
+- **La 2.ª ronda** de la auditoría de un plan mira sólo lo cambiado (`git diff --no-index` contra `.piloto/planes/<paso>.auditado.md`, que copia `/piloto`) y las respuestas.
+- **Commits:** hasta 3 de código y el de docs, uno por intención; si el plan necesita más, el paso se parte. El `fix` que pida la auditoría del informe va aparte y no cuenta (el 3b: 3 de
+  código, el `fix` de `inert` y el de docs).
+
 ## Las guardas y su prueba
 
 | Guarda                                           | Qué hace                                                                                                                                                                                    | Prueba                                                                                                          |

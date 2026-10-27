@@ -31,6 +31,9 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    [plantilla-plan.md](plantilla-plan.md). No escribes tú el plan: el planificador es el único que lo hace, y su Bash es de sólo lectura.
 3. **Auditar el plan.** Invoca al subagente `auditor` (opus, en un contexto aparte) sobre ese plan. Su primera línea es `VEREDICTO: pasa|observaciones|bloquea`.
    `observaciones`: las atiendes en el plan y sigues. `bloquea`: un `planificador` nuevo con sus objeciones, otra auditoría; **a la segunda que bloquee, compuerta `atasco`**.
+   Antes de esa 2.ª ronda copia el plan auditado a `.piloto/planes/<paso>.auditado.md` y dile al auditor que es la segunda: audita sólo lo cambiado y
+   `<paso>.respuestas.md` (en el 4.13-3b la 2.ª ronda volvió a verificar todo: 2,63 USD). El planificador contesta las objeciones en ese archivo y corrige el plan con
+   `Edit`, sin reescribirlo; el plan pesa ≤ 60 KB (`wc -c`).
 4. **Compuertas del plan** ([compuertas.md](compuertas.md)): si el plan toca datos o seguridad (policy, RLS, permiso, `security definer`, Vault), pide una dependencia
    nueva o deja una pregunta de producto o de UX abierta → termina con `resultado: compuerta` (ver «Terminar»). Con `--hasta-plan`, tras auditar el plan terminas
    **siempre** con una compuerta `datos` que lleve el plan en su `contexto`: la persona lo ve antes de que se ejecute. Si el plan es de **Nivel 2** (o corre el completo)
@@ -44,7 +47,8 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
 7. **Auditar el informe.** Mismo `auditor`, mismo tope: dos bloqueos y es una compuerta `atasco`.
 8. **Docs y commits.** Los docs que dice el plan (ESTADO por sustitución, ≤ 12.288 B medido con `wc -c`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con
    la fecha de `TZ=America/La_Paz date +%F`; fichas; `bash scripts/mapa.sh`). **Commits por intención**, asunto en español, minúscula, ≤ 72 caracteres, mensaje con `-F`, `mapa.sh`
-   antes. **Sin push.** Verifica con `git log` que existen.
+   antes: **hasta 3 de código y el de docs** (si el plan necesitaba más, el paso no cabía y se partía); el `fix` que pida la auditoría del informe va aparte y no cuenta.
+   **Sin push.** Verifica con `git log` que existen.
 9. **Terminar.** Escribe `.piloto/ultimo.json` (abajo) y responde con una línea. El bucle lo valida con `jq`; un `ultimo.json` que falte o no valide es un fallo del proceso.
 
 ## `.piloto/ultimo.json`
