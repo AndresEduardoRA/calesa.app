@@ -256,8 +256,11 @@ export async function crearOrigenDeCotizar(
   return origen
 }
 
+// Las cotizaciones guardadas de esos orígenes se van primero (4.13-3b): retienen el origen y la fórmula.
 export function borrarOrigenesDeCotizar(): void {
-  sql(`delete from public.origenes where clave like '${CLAVE_BASE}%'`)
+  sql(`
+    delete from public.cotizaciones where origen_id in (select id from public.origenes where clave like '${CLAVE_BASE}%');
+    delete from public.origenes where clave like '${CLAVE_BASE}%'`)
 }
 
 // Los nodos de las secciones de un nivel de una fórmula publicada de un origen de la semilla, con su etiqueta: lo que quien no ve ese nivel no tiene que recibir.

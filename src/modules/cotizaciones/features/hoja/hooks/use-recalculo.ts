@@ -15,6 +15,13 @@ export const ESPERA_DE_RECALCULO_MS = 150
 
 type Pedir = (entradas: Entradas) => Promise<Resultado<RespuestaDeRecalculo>>
 
+// Lo que recibe quien espera el total al día para guardar (P8): las entradas que calculó ese recálculo y su respuesta, o por qué no llegó (`se_fue`: la hoja se desmontó o la
+// pantalla se escondió).
+export type AlDia =
+  | { ok: true; entradas: Entradas; respuesta: RespuestaDeRecalculo | null }
+  | { ok: false; porque: 'fallo' | 'se_fue' }
+type Espera = (r: AlDia) => void
+
 type Motor = {
   // Está montado y a la vista: un efecto lo marca y lo apaga al desmontar o al esconderse (Next guarda la pantalla oculta y StrictMode monta dos veces).
   vivo: boolean
@@ -26,6 +33,17 @@ type Motor = {
   generacion: number
   entradas: Entradas
   respuesta: RespuestaDeRecalculo | null
+  // El último estado puesto, para quien pregunta desde un manejador antes de que React dibuje.
+  estado: EstadoDeRecalculo
+  // Quien espera el total al día (a lo sumo uno): se llama desde la resolución del pedido, nunca desde un efecto.
+  espera: Espera | null
+}
+
+// La que esperaba recibe su resultado una sola vez.
+function avisarALaQueEspera(m: Motor, r: AlDia): void {
+  const espera = m.espera
+  m.espera = null
+  espera?.(r)
 }
 
 type PonerEstado = (estado: EstadoDeRecalculo) => void
@@ -61,10 +79,41 @@ function enviarPedido(
         m.respuesta = resultado.data
         ponerRespuesta(resultado.data)
         ponerEstado({ tipo: 'al_dia' })
+        avisarALaQueEspera(m, { ok: true, entradas, respuesta: resultado.data })
       } else {
         ponerEstado({ tipo: 'fallo', recargar: pideRecargar(resultado.error) })
+        avisarALaQueEspera(m, { ok: false, porque: 'fallo' })
       }
     })
+}
+
+function esperarAlDia(m: Motor, fn: Espera): void {
+  if (m.estado.tipo === 'esperando' || m.estado.tipo === 'recalculando') {
+    m.espera = fn
+    return
+  }
+  fn(
+    m.estado.tipo === 'al_dia'
+      ? { ok: true, entradas: m.entradas, respuesta: m.respuesta }
+      : { ok: false, porque: 'fallo' },
+  )
+}
+
+// Al desmontarse o esconderse: nada sale por su cuenta; lo que quedaba sin aplicar deja «No se pudo recalcular», y quien esperaba el total sabe que la hoja se fue.
+function apagar(m: Motor, ponerEstado: PonerEstado): void {
+  m.vivo = false
+  if (m.temporizador !== null) {
+    clearTimeout(m.temporizador)
+    m.temporizador = null
+  }
+  const quedabaAlgo = m.pendiente || m.enVuelo
+  m.pendiente = false
+  m.enVuelo = false
+  m.generacion += 1
+  if (quedabaAlgo) {
+    ponerEstado({ tipo: 'fallo', recargar: false })
+  }
+  avisarALaQueEspera(m, { ok: false, porque: 'se_fue' })
 }
 
 // La cola del recálculo de la hoja:
@@ -83,7 +132,7 @@ export function useRecalculo({
   espera?: number
 }) {
   const [respuesta, setRespuesta] = useState(inicial.respuesta)
-  const [estado, setEstado] = useState<EstadoDeRecalculo>(inicial.estado)
+  const [estado, setEstadoDibujado] = useState<EstadoDeRecalculo>(inicial.estado)
   const pedirRef = useRef(pedir)
   const motor = useRef<Motor>({
     vivo: false,
@@ -93,11 +142,17 @@ export function useRecalculo({
     generacion: 0,
     entradas: ENTRADAS_VACIAS,
     respuesta: inicial.respuesta,
+    estado: inicial.estado,
+    espera: null,
   })
+  const setEstado = useCallback((e: EstadoDeRecalculo) => {
+    motor.current.estado = e
+    setEstadoDibujado(e)
+  }, [])
 
   const enviar = useCallback(
     () => enviarPedido(motor.current, pedirRef.current, setRespuesta, setEstado),
-    [],
+    [setEstado],
   )
 
   const alVencer = useCallback(() => {
@@ -120,7 +175,7 @@ export function useRecalculo({
       m.temporizador = setTimeout(alVencer, espera)
       setEstado({ tipo: 'esperando' })
     },
-    [alVencer, espera],
+    [alVencer, espera, setEstado],
   )
 
   // «Reintentar» pasa por la misma puerta: si algo iba en vuelo, esa respuesta se descarta y sale uno solo.
@@ -133,24 +188,18 @@ export function useRecalculo({
     }
   }, [enviar])
 
+  // El total al día para guardar (P8): si no hay nada en camino, enseguida con lo último; si no, con el último recálculo, el que da el total que la persona ve.
+  const alQuedarAlDia = useCallback((fn: Espera) => {
+    esperarAlDia(motor.current, fn)
+  }, [])
+
   useEffect(() => {
     const m = motor.current
     m.vivo = true
     return () => {
-      m.vivo = false
-      if (m.temporizador !== null) {
-        clearTimeout(m.temporizador)
-        m.temporizador = null
-      }
-      const quedabaAlgo = m.pendiente || m.enVuelo
-      m.pendiente = false
-      m.enVuelo = false
-      m.generacion += 1
-      if (quedabaAlgo) {
-        setEstado({ tipo: 'fallo', recargar: false })
-      }
+      apagar(m, setEstado)
     }
-  }, [])
+  }, [setEstado])
 
-  return { respuesta, estado, programar, reintentar }
+  return { respuesta, estado, programar, reintentar, alQuedarAlDia }
 }

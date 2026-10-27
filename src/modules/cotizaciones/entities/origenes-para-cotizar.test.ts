@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Permisos } from '@/shared/lib/permisos'
-import { origenElegido, origenesParaCotizar } from './origenes-para-cotizar'
+import { origenElegido, origenesParaCotizar, puedeCotizarEn } from './origenes-para-cotizar'
 
 const ORIGENES = [
   { id: 'a', nombre: 'A', activo: true },
@@ -51,5 +51,20 @@ describe('origenElegido', () => {
     expect(origenElegido(ORIGENES, 'zzz')?.id).toBe('a')
     expect(origenElegido(ORIGENES, undefined)?.id).toBe('a')
     expect(origenElegido([], 'a')).toBeNull()
+  })
+})
+
+describe('puedeCotizarEn', () => {
+  it('con crear y ver del origen, sí; «todos» vale para cualquiera', () => {
+    expect(puedeCotizarEn(concede('a'), 'a')).toBe(true)
+    expect(puedeCotizarEn(concede(null), 'b')).toBe(true)
+    expect(puedeCotizarEn(concede('a'), 'b')).toBe(false)
+  })
+
+  it('sin crear, o sin ver, no (4-32)', () => {
+    const soloVer: Permisos = [{ clave: 'cotizaciones.ver', origenId: 'a', alcance: 'todos' }]
+    const soloCrear: Permisos = [{ clave: 'cotizaciones.crear', origenId: 'a', alcance: 'todos' }]
+    expect(puedeCotizarEn(soloVer, 'a')).toBe(false)
+    expect(puedeCotizarEn(soloCrear, 'a')).toBe(false)
   })
 })

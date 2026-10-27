@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { RecalculoInicial } from '../../../entities/apertura'
 import {
   alternarBandera,
@@ -32,18 +32,26 @@ export function useHoja({
   hoja,
   inicial,
   vehiculoId,
+  alCambiar,
 }: {
   hoja: HojaLista
   inicial: RecalculoInicial
   vehiculoId: string | null
+  // Cada confirmación (el aviso del último guardado ya no habla de lo que se ve).
+  alCambiar?: () => void
 }) {
+  const alCambiarRef = useRef(alCambiar)
+  useEffect(() => {
+    alCambiarRef.current = alCambiar
+  })
   const indice = useMemo(() => indiceDeHoja(hoja.secciones), [hoja.secciones])
   const [entradas, setEntradas] = useState<Entradas>(ENTRADAS_VACIAS)
   // Lo último tipeado, para que dos confirmaciones seguidas partan de la anterior sin esperar a que React dibuje. Se escribe en el manejador del evento, nunca en un
   // `setState`: StrictMode los llama dos veces.
   const ultimas = useRef<Entradas>(ENTRADAS_VACIAS)
   const origenId = hoja.origen.id
-  const abierta = hoja.abierta
+  // La hoja abierta, fijada al montarse: la misma para el recálculo y para el guardado (D2). Una prop nueva no los separa; una abierta nueva vuelve a montar la hoja.
+  const [abierta] = useState(() => hoja.abierta)
   // El pedido, estable: el hook del recálculo lo lee una vez. La hoja se vuelve a montar si cambia la fórmula o el vehículo (la `key` de la pantalla).
   const pedir = useCallback(
     (e: Entradas) => {
@@ -67,6 +75,7 @@ export function useHoja({
       ultimas.current = nuevas
       setEntradas(nuevas)
       programar(nuevas)
+      alCambiarRef.current?.()
     },
     [programar],
   )
@@ -92,5 +101,5 @@ export function useHoja({
     [cambiar, indice],
   )
 
-  return { indice, entradas, acciones, ...recalculo }
+  return { indice, entradas, abierta, acciones, ...recalculo }
 }

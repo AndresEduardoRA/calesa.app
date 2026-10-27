@@ -15,7 +15,7 @@ import {
 import {
   EsqueletoDeHoja,
   FormulaSinPublicar,
-  HojaDeCotizar,
+  PantallaDeCotizar,
   PestanasDeOrigen,
 } from '@/modules/cotizaciones/pantallas/cotizar'
 import { requerirSesion } from '@/modules/equipo'
@@ -28,7 +28,7 @@ export const metadata: Metadata = { title: 'Cotizar' }
 
 // La hoja de cotizar (`docs/UX.md` › «Cotizar»): una pestaña por origen donde la persona cotiza y, de cada uno, la hoja que dibuja su fórmula publicada. `?origen=`
 // elige el origen; `?lead=` y `?vehiculo=` llegan de la ficha del lead o del vehículo (sus paneles son del 4.14): se validan y se llevan. Sin entrada en la navegación
-// todavía: se llega por URL. No guarda (4.13-3).
+// todavía: se llega por URL. Guarda con el lead de la URL (4.13-3b); sin él, «Guardar» dice por qué no.
 export default function PaginaDeCotizar({ searchParams }: PageProps<'/cotizaciones/nuevo'>) {
   return (
     <div className="grid min-w-0 gap-4">
@@ -103,12 +103,13 @@ async function Hoja({
   return (
     <>
       {pestanas}
-      <HojaDeCotizar
-        key={`${apertura.hoja.formula.id}:${vehiculoUsado ?? ''}`}
+      <PantallaDeCotizar
+        key={`${origen.id}:${lead ?? '-'}:${vehiculoUsado ?? '-'}`}
         hoja={apertura.hoja}
         inicial={apertura.inicial}
         vehiculoId={vehiculoUsado}
         vehiculoSoltado={vehiculoSoltado}
+        leadId={lead}
       />
     </>
   )

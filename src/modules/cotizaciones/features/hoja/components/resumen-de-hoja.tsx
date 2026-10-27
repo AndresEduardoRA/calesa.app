@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Monto } from '@/shared/ui/monto'
 import {
@@ -19,6 +20,45 @@ type Props = {
   avisoDelVehiculo: string | null
   alReintentar: () => void
   alRecargar: () => void
+  guardar: BotonDeGuardar
+  // Lo que dice el último guardado (`<AvisoDeGuardado>`): va en la misma región viva.
+  avisoDeGuardado: ReactNode
+}
+
+export type BotonDeGuardar = {
+  // Por qué no se guarda ahora, dicho junto al botón; nulo, se puede.
+  motivo: string | null
+  // El resumen ya lo dice (sin total, el vehículo que falta): no se repite junto al botón.
+  motivoYaDicho: boolean
+  // Esperando el total al día o guardando: «Guardando…» y apagado (nunca un doble envío).
+  ocupado: boolean
+  alGuardar: () => void
+}
+
+// «Guardar», además de `Ctrl/Cmd+S` (el celular no tiene atajo). Frena el `mousedown`: así el foco no sale de una celda abierta (un clic afuera descartaría lo que no es un
+// número) y el clic hace lo mismo que el atajo, que confirma la celda antes de guardar.
+function BotonGuardar({ motivo, motivoYaDicho, ocupado, alGuardar }: BotonDeGuardar) {
+  const dicho = motivo !== null && !motivoYaDicho
+  return (
+    <div className="grid gap-1">
+      <Button
+        className="min-h-11 justify-self-start md:min-h-8"
+        disabled={motivo !== null || ocupado}
+        aria-describedby={dicho ? 'motivo-para-no-guardar' : undefined}
+        onMouseDown={(evento) => {
+          evento.preventDefault()
+        }}
+        onClick={alGuardar}
+      >
+        {ocupado ? 'Guardando…' : 'Guardar'}
+      </Button>
+      {!dicho ? null : (
+        <p id="motivo-para-no-guardar" className="text-(length:--text-sm) text-(--color-ink-soft)">
+          {motivo}
+        </p>
+      )}
+    </div>
+  )
 }
 
 function AvisoDeFallo({
@@ -54,6 +94,8 @@ export function ResumenDeHoja({
   avisoDelVehiculo,
   alReintentar,
   alRecargar,
+  guardar,
+  avisoDeGuardado,
 }: Props) {
   const total = totalDelResumen(contexto)
   const viejo = estado.tipo !== 'al_dia'
@@ -105,7 +147,9 @@ export function ResumenDeHoja({
         {avisoDelVehiculo === null ? null : (
           <p className="text-(length:--text-sm) text-(--color-ink-soft)">{avisoDelVehiculo}</p>
         )}
+        {avisoDeGuardado}
       </div>
+      <BotonGuardar {...guardar} />
     </aside>
   )
 }

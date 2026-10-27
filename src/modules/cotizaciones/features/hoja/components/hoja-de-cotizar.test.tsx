@@ -4,12 +4,24 @@ import { fallo, ok } from '@/shared/lib/errores'
 import type { RecalculoInicial } from '../../../entities/apertura'
 import { hojaDePrueba, respuestaDePrueba } from '../../../entities/hoja-de-prueba.soporte'
 import type { PedidoDeRecalculo } from '../../../entities/pedido-de-recalculo'
+import type { Guardado } from '../hooks/use-guardado'
 import { HojaDeCotizar } from './hoja-de-cotizar'
 
 const recalcular = vi.hoisted(() => vi.fn())
 const refrescar = vi.hoisted(() => vi.fn())
 vi.mock('../../../composicion.client', () => ({ recalcular }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: refrescar }) }))
+
+// Lo que dibuja la hoja no depende de guardar: un guardado quieto (lo prueban `hoja-de-cotizar-guardar.test.tsx` y `pantalla-de-cotizar.test.tsx`).
+const QUIETO: Guardado = {
+  estado: { tipo: 'listo' },
+  enLinea: true,
+  hayPendiente: false,
+  ocupado: false,
+  guardar: () => {},
+  olvidarAviso: () => {},
+  reiniciar: () => {},
+}
 
 const AL_DIA: RecalculoInicial = {
   respuesta: respuestaDePrueba({
@@ -27,6 +39,8 @@ const montar = (inicial: RecalculoInicial = AL_DIA, vehiculoId: string | null = 
       inicial={inicial}
       vehiculoId={vehiculoId}
       vehiculoSoltado={false}
+      leadId={null}
+      guardado={QUIETO}
     />,
   )
 
@@ -221,6 +235,8 @@ describe('HojaDeCotizar: avisos y atajos', () => {
         inicial={AL_DIA}
         vehiculoId={null}
         vehiculoSoltado={false}
+        leadId={null}
+        guardado={QUIETO}
       />,
     )
     expect(screen.getByText('Este origen pide un vehículo para guardar.')).toBeTruthy()
@@ -233,6 +249,8 @@ describe('HojaDeCotizar: avisos y atajos', () => {
         inicial={AL_DIA}
         vehiculoId={null}
         vehiculoSoltado={false}
+        leadId={null}
+        guardado={QUIETO}
       />,
     )
     expect(screen.getByText('No puedes ver esta hoja')).toBeTruthy()
@@ -241,7 +259,14 @@ describe('HojaDeCotizar: avisos y atajos', () => {
 
   it('un vehículo de la URL que no se pudo usar se dice', () => {
     render(
-      <HojaDeCotizar hoja={hojaDePrueba()} inicial={AL_DIA} vehiculoId={null} vehiculoSoltado />,
+      <HojaDeCotizar
+        hoja={hojaDePrueba()}
+        inicial={AL_DIA}
+        vehiculoId={null}
+        vehiculoSoltado
+        leadId={null}
+        guardado={QUIETO}
+      />,
     )
     expect(screen.getByText('No se puede usar ese vehículo.')).toBeTruthy()
   })

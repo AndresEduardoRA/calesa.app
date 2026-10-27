@@ -1,5 +1,7 @@
 import type { Resultado } from '@/shared/lib/errores'
+import type { ResultadoDeCrear } from './guardado'
 import type { HojaParaCotizar } from './hoja'
+import type { PedidoDeGuardado } from './pedido-de-guardado'
 import type { PedidoDeRecalculo } from './pedido-de-recalculo'
 import type { RespuestaDeRecalculo } from './recalculo'
 
@@ -20,3 +22,6 @@ export type RecalculadorAlAbrir = (pedido: {
   resultado: Resultado<RespuestaDeRecalculo>
   vehiculoSoltado: boolean
 }>
+
+// El guardado de la hoja (`cotizacion_crear()`, con la sesión y la RLS de quien cotiza): lo guardado, la respuesta perdida o el rechazo con su motivo. Nunca lanza.
+export type CreadorDeCotizacion = (pedido: PedidoDeGuardado) => Promise<ResultadoDeCrear>
