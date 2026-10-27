@@ -302,3 +302,21 @@ describe('el pie del drawer y el aviso de un lead guardado', () => {
     )
   })
 })
+
+// C14 del 4.13-3c: el valor por defecto numérico con que arranca el alta, escrito con el locale, el lector lo lee igual.
+describe('el alta con un número por defecto lo guarda igual sin tocarlo', () => {
+  it('2,125 y 21500,25 en es-BO y en en-US', () => {
+    for (const locale of ['es-BO', 'en-US']) {
+      for (const valor of [2.125, 21500.25]) {
+        const layout = [campo({ clave: 'cuota', tipo: 'moneda', valorDefecto: valor, orden: 1 })]
+        const valores = {
+          ...valoresIniciales(CONTEXTO, layout, ZONA, locale),
+          [CLAVE_DEL_ALTA.telefono]: '700 11 002',
+          [CLAVE_DEL_ALTA.nombre]: 'Ana',
+        }
+        const r = validarAlta({ valores, layout, contexto: CONTEXTO, zona: ZONA, locale })
+        expect(r.ok && r.datos.atributos, `${locale} ${String(valor)}`).toEqual({ cuota: valor })
+      }
+    }
+  })
+})
