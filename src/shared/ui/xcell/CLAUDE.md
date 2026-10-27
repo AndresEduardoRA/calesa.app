@@ -90,8 +90,7 @@ distinto** (dos lados con el mismo motivo, una sola que describe a los dos). El 
   El anillo del modificado es **interior** (`ring-inset`) y el foco, un contorno **exterior**: se ven a la vez.
 - **Nodos por celda** (medidos, `xcell-hoja.test.tsx`): normal 8, par 9, sugerido 10, modificado 11, deshabilitado 11, con error 11; **la ayuda o el ⚙ suman 3 cada uno** (11; los dos, 14; modificado con los dos, 17;
   deshabilitado con los dos, 17); par modificado con error, ayuda y ⚙: 21. **El candado por lado (4.13-3c):** un lado, 12; los dos con el mismo motivo, 12; con dos motivos o un lado y un error, 15;
-  **par modificado con un lado bloqueado, error, ayuda y ⚙: 24 (el peor)**. Iconos por sprite (`<SimbolosDeXCell/>`, 2 nodos cada uno). 300 celdas de la mezcla del banco, con acciones: **3.000** (tope 3.100;
-  eran 2.688 sin ellas); la mezcla de `xcell-hoja.test.tsx`: 3.368 (tope 3.500). Un nodo más por celda son 300: lo ven los dos topes.
+  **par modificado con un lado bloqueado, error, ayuda y ⚙: 24 (el peor)**. Iconos por sprite (`<SimbolosDeXCell/>`, 2 nodos cada uno). 300 celdas de la mezcla del banco, con acciones: **3.000** en el 4.12-2 (tope 3.100; el 4.13-3c le sumó un caso, el par con un lado bloqueado, y sigue bajo el tope sin volver a medirse con número); la mezcla de `xcell-hoja.test.tsx`, con el candado del porcentaje en uno de cada ocho: **3.485** (tope 3.500, 4.13-3c; era 3.368). Un nodo más por celda son 300: lo ven los dos topes.
 
 ## Cómo se prueba
 

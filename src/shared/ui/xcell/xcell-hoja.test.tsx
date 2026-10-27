@@ -63,13 +63,15 @@ describe('el tope de nodos', () => {
     ).toBe(24)
   })
 
-  it('300 celdas, todas en el peor estado, caben en 3.500 nodos (la mezcla mide 3.368: 11 por celda; el peor estado, 21)', () => {
+  it('300 celdas de la mezcla caben en 3.500 nodos (4.13-3c: mide 3.485 con los candados por lado; el peor estado de una celda, 24)', () => {
     const mezcla = (i: number): XCellProps => ({
       ...BASE,
       id: `n${String(i)}`,
       suggested: i % 3 === 0,
       overridden: i % 5 === 0,
       ...(i % 7 === 0 ? { disabledReason: 'Apagado' } : {}),
+      // 4.13-3c: el candado del porcentaje de un par, aparte del del monto.
+      ...(i % 8 === 0 ? { secondaryDisabledReason: 'Lo edita otro nivel.' } : {}),
       ...(i % 3 === 0 ? { hasHelp: true, onHelp } : {}),
       ...(i % 6 === 0 ? { hasSettings: true, onSettings } : {}),
       ...(i % 4 === 0
