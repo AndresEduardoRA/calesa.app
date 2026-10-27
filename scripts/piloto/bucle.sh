@@ -263,6 +263,19 @@ vuelta() {
     return 0
   fi
 
+  # Un paso de Nivel 2 (o con el completo de la cuenta) corre `pnpm test:e2e:completo`, que exige las funciones edge, y el bucle no
+  # las levanta (un proceso largo con contenedores, compartido entre worktrees, que carga el entorno de las funciones). Se avisa antes
+  # de gastar el paso, no a mitad. Antes de anotar en-curso.json: si la persona para, no queda un paso que nunca empezó.
+  if jq -e '.nivel.completo == true or (.nivel.nivel // 1) >= 2' "$ESTADO/ruteo.json" >/dev/null 2>&1; then
+    local faltan
+    faltan=$(hecho 'if (.funciones | type) == "object" then [.funciones | to_entries[] | select(.value != true) | .key] | join(", ") else "no se pudo mirar" end')
+    if [ -n "$faltan" ]; then
+      parada "el paso $paso corre el e2e completo (Nivel 2) y faltan las funciones edge ($faltan): corre «npx supabase functions serve» en otra terminal" \
+        "$paso" 'parado — no sigue (recomendado)' 'reintentar — vuelve a mirar las funciones' 'sigo — corre el paso igual'
+      [ "$?" = 1 ] && return 0
+    fi
+  fi
+
   if [ -f "$ESTADO/en-curso.json" ]; then
     # [cambio 3] Un paso a medias: se retoma con --resume de SU sesión, diga lo que diga el ruteo; nunca una sesión nueva sobre un árbol a medias.
     en_curso_vivo && { parada "el paso $(jq -r .paso "$ESTADO/en-curso.json") sigue vivo (pid $(jq -r .pid "$ESTADO/en-curso.json"))" ""; return 0; }

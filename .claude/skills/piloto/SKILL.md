@@ -33,7 +33,9 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    `observaciones`: las atiendes en el plan y sigues. `bloquea`: un `planificador` nuevo con sus objeciones, otra auditoría; **a la segunda que bloquee, compuerta `atasco`**.
 4. **Compuertas del plan** ([compuertas.md](compuertas.md)): si el plan toca datos o seguridad (policy, RLS, permiso, `security definer`, Vault), pide una dependencia
    nueva o deja una pregunta de producto o de UX abierta → termina con `resultado: compuerta` (ver «Terminar»). Con `--hasta-plan`, tras auditar el plan terminas
-   **siempre** con una compuerta `datos` que lleve el plan en su `contexto`: la persona lo ve antes de que se ejecute.
+   **siempre** con una compuerta `datos` que lleve el plan en su `contexto`: la persona lo ve antes de que se ejecute. Si el plan es de **Nivel 2** (o corre el completo)
+   y `hechos.json` › `funciones` no las tiene todas en `true`, compuerta `afuera` antes de ejecutar («faltan las funciones edge (…): `npx supabase functions serve`»): el
+   completo las exige y el bucle no las levanta. El bucle ya lo mira por el nivel del ruteo; esto cubre el plan que sube de nivel.
 5. **Ejecutar y verificar** (Nivel 1, 2 o 3 de `.claude/rules/e2e.md`, el que dice el plan): primero las pruebas que fallan, **guardadas en rojo contra HEAD**; después el
    código; después las mutaciones del plan (cada una tiene que hacer caer su prueba). Cada salida va a `.piloto/salidas/<paso>/` con `tee`; las corridas largas con
    `nohup … ; echo $? > <algo>.fin` y una espera de primer plano. **Antes de una corrida pesada** (`pnpm test`, `typecheck`, `lint`, mediciones) espera, en un bucle de primer plano

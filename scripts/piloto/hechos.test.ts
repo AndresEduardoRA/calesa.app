@@ -1,5 +1,13 @@
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
@@ -43,12 +51,22 @@ beforeEach(() => {
     '#!/usr/bin/env bash\nprintf \'%s\' \'[{"databaseId":7,"status":"completed","conclusion":"success","headSha":"abc","displayTitle":"x"}]\'\n',
   )
   chmodSync(join(raiz, 'bin/gh'), 0o755)
+  // Un `curl` falso: anota la URL y contesta el código de la función que nombra (FAKE_CURL: «apibara=204 storage-gc=404»); 000 si no.
+  writeFileSync(
+    join(raiz, 'bin/curl'),
+    `#!/usr/bin/env bash
+url="\${@: -1}"; echo "$url" >> "${join(raiz, 'curl.log')}"; codigo=000
+for par in \${FAKE_CURL:-}; do case "$url" in */"\${par%%=*}") codigo="\${par#*=}" ;; esac; done
+printf '%s' "$codigo"
+`,
+  )
+  chmodSync(join(raiz, 'bin/curl'), 0o755)
 })
 afterAll(() => {
   for (const r of raices) rmSync(r, { recursive: true, force: true })
 })
 
-function hechos() {
+function hechos(entorno: Record<string, string> = {}) {
   const r = spawnSync('bash', [SCRIPT], {
     cwd: repo,
     encoding: 'utf8',
@@ -58,6 +76,7 @@ function hechos() {
       PILOTO_RAIZ: repo,
       PILOTO_COMUN: comun,
       CANDADO_DIR: join(raiz, 'candado'),
+      ...entorno,
     },
   })
   expect(r.status, r.stderr).toBe(0)
@@ -140,5 +159,28 @@ describe('hechos.sh', () => {
     } finally {
       dueno.stdin.end()
     }
+  })
+})
+
+// Las funciones edge que el e2e completo exige (`scripts/e2e-completo.mjs`, `e2e/soporte/guardia.ts`): el bucle no las levanta, así que
+// mira antes de un paso de Nivel 2 si están servidas, con la regla de la guardia (`OPTIONS`; servida si responde y no es 404 ni ≥ 500).
+describe('hechos.sh › las funciones edge', () => {
+  it('dice cuáles responden: un 404, un 500 o sin respuesta no están servidas', () => {
+    const h = hechos({ FAKE_CURL: 'apibara=204 storage-gc=404 avatares-miniaturas=503' })
+    expect(h['funciones']).toEqual({
+      apibara: true,
+      'storage-gc': false,
+      'avatares-miniaturas': false,
+    })
+    expect(hechos({ FAKE_CURL: 'apibara=200' })['funciones']).toMatchObject({ 'storage-gc': false })
+  })
+
+  it('pregunta al stack local (la API en el 54621) o a PILOTO_SUPABASE_URL, a cada función por su nombre', () => {
+    hechos({ FAKE_CURL: 'apibara=204 storage-gc=204 avatares-miniaturas=204' })
+    hechos({ PILOTO_SUPABASE_URL: 'http://otro:1', FAKE_CURL: 'apibara=204' })
+    const urls = readFileSync(join(raiz, 'curl.log'), 'utf8')
+    expect(urls).toContain('http://127.0.0.1:54621/functions/v1/apibara\n')
+    expect(urls).toContain('http://127.0.0.1:54621/functions/v1/avatares-miniaturas\n')
+    expect(urls).toContain('http://otro:1/functions/v1/storage-gc\n')
   })
 })

@@ -160,3 +160,66 @@ describe('bucle.sh › un paso que no es de datos', () => {
     expect(a.llamadas('paso')[0]).not.toContain('--hasta-plan')
   })
 })
+
+// Un paso de Nivel 2 corre `pnpm test:e2e:completo`, que exige las funciones edge; el bucle no las levanta. Sin ellas el paso caía a
+// mitad de camino, después de gastar el plan y la ejecución: se avisa antes de lanzarlo (CAL-1).
+describe('bucle.sh › las funciones edge, antes de un paso de Nivel 2', () => {
+  const nivel2 = { nivel: 2, disparadores: ['shared'], cuenta_e2e: 1, completo: false }
+
+  it('Nivel 2 y una función caída: aviso antes de gastar el paso, con lo que hay que correr', () => {
+    a.ruteo({ ...RUTEO_BASE, nivel: nivel2 })
+    a.caerFunciones('storage-gc', 'avatares-miniaturas')
+    a.decidir(1, responder('parado'))
+    const r = a.correr()
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.llamadas('paso')).toEqual([])
+    const c = a.leerFake('compuerta-1.md')
+    expect(c).toContain('tipo: parada')
+    expect(c).toContain('faltan las funciones edge (storage-gc, avatares-miniaturas)')
+    expect(c).toContain('npx supabase functions serve')
+    expect(a.estado('en-curso.json')).toBe('')
+  })
+
+  it('«reintentar» vuelve a mirar: con las funciones servidas, el paso corre', () => {
+    a.ruteo({ ...RUTEO_BASE, nivel: nivel2 })
+    a.caerFunciones('apibara')
+    a.decidir(1, `rm -f "$FAKE_DIR/funciones-caidas"\n${responder('reintentar')}`)
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }))
+    expect(a.correr(['--hasta', '4.99']).estado).toBe(0)
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+
+  it('«reintentar» con las funciones todavía caídas vuelve a avisar, sin correr el paso', () => {
+    a.ruteo({ ...RUTEO_BASE, nivel: nivel2 })
+    a.caerFunciones('apibara')
+    a.decidir(1, responder('reintentar'))
+    a.decidir(2, responder('parado'))
+    expect(a.correr().estado).toBe(0)
+    expect(a.llamadas('paso')).toEqual([])
+    expect(a.leerFake('compuerta-2.md')).toContain('faltan las funciones edge (apibara)')
+  })
+
+  it('el e2e completo de un paso de pantalla (la cuenta) también las pide', () => {
+    a.ruteo({ ...RUTEO_BASE, nivel: { ...RUTEO_BASE.nivel, completo: true } })
+    a.caerFunciones('apibara')
+    a.decidir(1, responder('parado'))
+    a.correr()
+    expect(a.llamadas('paso')).toEqual([])
+  })
+
+  it('un paso de Nivel 1 sin completo no las pide', () => {
+    a.caerFunciones('apibara', 'storage-gc', 'avatares-miniaturas')
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }))
+    expect(a.correr(['--hasta', '4.99']).estado).toBe(0)
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+
+  it('«sigo» corre el paso igual', () => {
+    a.ruteo({ ...RUTEO_BASE, nivel: nivel2 })
+    a.caerFunciones('apibara')
+    a.decidir(1, responder('sigo'))
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }))
+    expect(a.correr(['--hasta', '4.99']).estado).toBe(0)
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+})

@@ -25,10 +25,23 @@ PASO=$(jq -r '.paso // "sin-paso"' "$ULTIMO")
 SALIDAS="$ESTADO/salidas/${PASO//[^A-Za-z0-9._-]/_}"
 mkdir -p "$SALIDAS"
 
-# Por qué cayó, en una línea del log: la primera «Error:»; si no hay, la primera con ✘, FAIL o error; si tampoco, el log. Sin colores
-# ni sangría y cortada en 200 caracteres (no bytes: `LC_ALL` local). La cola del log termina en el pie de la herramienta, no en esto.
+# Por qué cayó, en una línea del log. Un e2e rojo: la cabecera de la prueba que Playwright imprime antes de su error
+# («  1) [escritorio] › e2e/x.spec.ts:33:5 › título ───»), sin la numeración ni los ─, y la primera «Error:» que la sigue, cortada en
+# 300 caracteres (el aviso del 4.13-3b no decía qué prueba había caído). Si no: la primera «Error:»; si no hay, la primera con ✘, FAIL
+# o error; si tampoco, el log, cortada en 200. Sin colores ni sangría, por caracteres y no bytes (`LC_ALL` local). La cola del log
+# termina en el pie de la herramienta, no en esto.
 causa() {
-  local log="$1" linea LC_ALL=C.UTF-8
+  local log="$1" linea cabecera n error LC_ALL=C.UTF-8
+  cabecera=$(grep -m1 -nE '^[[:space:]]*[0-9]+\) \[[^]]+\] › ' < <(sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log"))
+  if [ -n "$cabecera" ]; then
+    n="${cabecera%%:*}"
+    linea=$(sed -E 's/^[[:space:]]*[0-9]+\) //; s/[[:space:]]*(─)+[[:space:]]*$//; s/[[:space:]]+$//' <<<"${cabecera#*:}")
+    error=$(grep -m1 -F 'Error:' < <(sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | tail -n +"$((n + 1))"))
+    error="${error#"${error%%[![:space:]]*}"}"
+    [ -n "$error" ] && linea="$linea — $error"
+    printf '%s' "${linea:0:300}"
+    return
+  fi
   # grep lee por sustitución de proceso: con `pipefail`, un `sed | grep -m1` que corta temprano daría el SIGPIPE de sed como falla.
   linea=$(grep -m1 -F 'Error:' < <(sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log")) ||
     linea=$(grep -m1 -E '✘|FAIL|error' < <(sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log")) ||

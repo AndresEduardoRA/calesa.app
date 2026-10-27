@@ -4,7 +4,7 @@
 #
 # hora (La Paz), rama, head, origin_main, arbol_limpio, disco_pct, candado {libre, dueno}, ci (el último de main, o null),
 # e2e (`cuenta-e2e.mjs` sobre docs/BITACORA.md), bytes_estado, ultimo (.piloto/ultimo.json), en_curso (.piloto/en-curso.json),
-# fallas_seguidas, nota (la del ensayo en seco) y decision (el texto de la decisión vigente: la del `decision.md` cuyo id es el de la
+# fallas_seguidas, nota (la del ensayo en seco), funciones (las edge que exige el e2e completo: servida o no) y decision (el texto de la decisión vigente: la del `decision.md` cuyo id es el de la
 # `compuerta.md` actual, hasta 8.000 B: la de «producto» trae una línea por decisión; el paso la lee de aquí porque no puede abrir esos
 # archivos).
 set -uo pipefail
@@ -36,6 +36,24 @@ E2E=$(node "$BIN/cuenta-e2e.mjs" docs/BITACORA.md 2>/dev/null)
 jq -e . >/dev/null 2>&1 <<<"$E2E" || E2E=null
 BYTES_ESTADO=$(wc -c <docs/ESTADO.md 2>/dev/null | tr -d ' ')
 
+# Las funciones edge que exige `pnpm test:e2e:completo` (el Nivel 2): el bucle no las levanta, así que mira si están servidas antes de
+# un paso que las pide. La regla de `e2e/soporte/guardia.ts`: `OPTIONS` (no ejecuta nada ni llama a apibara), servida si responde y no
+# es 404 ni ≥ 500; dos intentos de 2 s. El stack local tiene la API en el 54621 (PILOTO_SUPABASE_URL para otro): no se lee `.env*`.
+URL_SUPABASE="${PILOTO_SUPABASE_URL:-http://127.0.0.1:54621}"
+servida() {
+  local codigo intento
+  for intento in 1 2; do
+    codigo=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS --max-time 2 "$URL_SUPABASE/functions/v1/$1" 2>/dev/null)
+    [[ "$codigo" =~ ^[1-4][0-9][0-9]$ ]] && [ "$codigo" != 404 ] && return 0
+  done
+  return 1
+}
+FUNCIONES='{}'
+for funcion in apibara storage-gc avatares-miniaturas; do
+  servida "$funcion" && valor=true || valor=false
+  FUNCIONES=$(jq -c --arg f "$funcion" --argjson v "$valor" '.[$f] = $v' <<<"$FUNCIONES")
+done
+
 FALLAS=$(cat "$ESTADO/fallas" 2>/dev/null)
 NOTA=""
 [ -s "$ESTADO/nota-en-seco.md" ] && NOTA=$(head -c 6000 "$ESTADO/nota-en-seco.md")
@@ -53,7 +71,7 @@ jq -n \
   --argjson limpio "$LIMPIO" --arg disco "$DISCO" --argjson libre "$LIBRE" --arg dueno "$DUENO" \
   --argjson ci "$CI" --argjson e2e "$E2E" --arg bytes "${BYTES_ESTADO:-0}" \
   --argjson ultimo "$(json_o_null "$ESTADO/ultimo.json")" --argjson en_curso "$(json_o_null "$ESTADO/en-curso.json")" \
-  --arg fallas "${FALLAS:-0}" --arg nota "$NOTA" --arg decision "$DECISION" '{
+  --arg fallas "${FALLAS:-0}" --arg nota "$NOTA" --arg decision "$DECISION" --argjson funciones "$FUNCIONES" '{
     hora: $hora,
     rama: $rama,
     head: $head,
@@ -68,5 +86,6 @@ jq -n \
     en_curso: $en_curso,
     fallas_seguidas: ($fallas | tonumber? // 0),
     nota: (if $nota == "" then null else $nota end),
+    funciones: $funciones,
     decision: (if $decision == "" then null else $decision end)
   }'

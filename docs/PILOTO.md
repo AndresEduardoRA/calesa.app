@@ -15,7 +15,11 @@
   `projects["<ruta del repo principal>"].hasTrustDialogAccepted: true` en `~/.claude.json` (la ruta del mensaje es la del repo principal, no la del worktree). Es una decisión de la persona; el piloto no la toma.
 - **Disco:** el bucle para si pasa de `PILOTO_DISCO_MAX` (90 % por defecto). Con 94 % hay que liberar espacio o arrancar con `PILOTO_DISCO_MAX=95`; el ensayo en seco sólo avisa.
 - **Las funciones edge, para un paso de Nivel 2.** El bucle no las levanta. Un paso de Nivel 2 corre `pnpm test:e2e:completo`, y `scripts/e2e-completo.mjs` exige `apibara` y `storage-gc` y no lee `E2E_SIN_FUNCIONES`; después su `test:e2e` pasa por la guardia, que pide las tres. Antes de arrancar
-  el piloto para un paso así (el 4.13-3c), `npx supabase functions serve` en otra terminal. Los e2e dirigidos de `verificar.sh` no las piden (el cierre, abajo).
+  el piloto para un paso así (el 4.13-3c), `npx supabase functions serve` en otra terminal. Los e2e dirigidos de `verificar.sh` no las piden (el cierre, abajo). Si faltan, **el bucle avisa antes de
+  lanzar el paso** (CAL-1): `hechos.sh` mira las tres con `OPTIONS` (la regla de la guardia) en el stack local (`PILOTO_SUPABASE_URL`, por defecto la API del 54621), y un ruteo de Nivel 2 o con el
+  completo sin todas servidas es una parada con «reintentar» (vuelve a mirar). El paso pide además una compuerta `afuera` si su plan sube a Nivel 2 sin ellas. No las levanta el bucle: sería un
+  proceso largo con contenedores que habría que cerrar en `PARAR`, en `parar.sh --ya` y tras un reinicio, el runtime es uno por stack y lo comparten los worktrees, y `serve` carga el entorno de
+  las funciones, que el bucle no toca.
 - La rama de trabajo es `main` (el bucle publica con `git push origin main`; nunca un PR). Si hay otro checkout con trabajo, el piloto convive con él por el candado de la base (abajo).
 
 ## Arrancar, parar, retomar
@@ -37,11 +41,11 @@
 ## El bucle, vuelta por vuelta (`scripts/piloto/bucle.sh`)
 
 0. La copia coincide con `bin.sha256` (y no hay archivos de más): si no, aviso antes de rutear.
-1. **Hechos, sin modelo** (`hechos.sh` → `.piloto/hechos.json`): hora de La Paz, rama, HEAD, árbol, disco, candado, último CI, la cuenta `n de 3` de e2e, bytes de ESTADO, `ultimo.json`, `en-curso.json`, fallas seguidas, la nota del ensayo y el texto de la decisión vigente.
+1. **Hechos, sin modelo** (`hechos.sh` → `.piloto/hechos.json`): hora de La Paz, rama, HEAD, árbol, disco, candado, último CI, la cuenta `n de 3` de e2e, bytes de ESTADO, `ultimo.json`, `en-curso.json`, fallas seguidas, la nota del ensayo, las funciones edge servidas (`funciones`) y el texto de la decisión vigente.
 2. **Paradas deterministas:** `.piloto/PARAR`, rama ≠ main, árbol sucio sin un paso en curso, disco, último CI de main en rojo. Cada una es un aviso; «sigo» la ignora una vez.
 3. **Ruteo** (`/piloto-ruteo`, Sonnet, esfuerzo bajo, sólo `Read`/`Grep`/`Glob`): `paso`, `titulo`, `modelo`, `effort`, `sesion`, `nivel`, `compuerta`, `particion`, `por_que` (`ruteo.schema.json`). Política de modelos: docs → sonnet/medium; pantalla → sonnet/high; `src/shared`,
    un disparador de Nivel 2, datos o seguridad, carreras o cierre → opus/high; `continuar` → el de antes. Planificador y auditor, siempre opus.
-4. **Lo que el bucle no deja al modelo:** el paso 4.18 o 4.28, o abrir una fase, es un aviso; 4.15 y 4.24–4.27 corren con `--hasta-plan` (la compuerta de datos con el plan en la mano). Si `en-curso.json` nombra un paso cuyo pid ya no vive, **sólo** se retoma con `--resume`.
+4. **Lo que el bucle no deja al modelo:** el paso 4.18 o 4.28, o abrir una fase, es un aviso; un paso de Nivel 2 (o con el completo) sin las funciones edge, también; 4.15 y 4.24–4.27 corren con `--hasta-plan` (la compuerta de datos con el plan en la mano). Si `en-curso.json` nombra un paso cuyo pid ya no vive, **sólo** se retoma con `--resume`.
 5. **Paso** (`/piloto <paso>`): `claude -p` con `--permission-mode auto --permission-prompts none --disallowedTools "mcp__*" --max-budget-usd <lo que le queda al paso>` y `--session-id` nuevo o `--resume`. Antes de lanzarlo, `en-curso.json` anota paso, session_id, pid, HEAD de arranque; después de cada llamada, `usd` (el `total_cost_usd` del JSON, acumulado de la sesión).
    **Los topes son del paso entero** (CAL-1): `--max-budget-usd` vale por invocación y una retoma empieza de cero, así que el bucle pasa a cada llamada `PILOTO_TOPE_USD_PASO` (60) menos lo gastado (más `tope_extra`, abajo); con menos de `PILOTO_TOPE_USD_MIN` (5) no lanza. Un JSON con `subtype: error_max_budget_usd` no es un fallo del proceso: no se reintenta, se anota `tope` y es una parada «el paso X gastó G de T USD» con `parado` (recomendado), «sigo — 30 USD más, una sola vez» (deja `tope_extra` en `en-curso.json`) y `reintentar`; la segunda vez ya no ofrece seguir. Toda compuerta del paso dice cuánto lleva. El ruteo va con `PILOTO_TOPE_USD_RUTEO` (0,5).
 6. **Resultado** (`.piloto/ultimo.json`, validado con `jq`): `listo` → el cierre (abajo); `compuerta` → se pregunta y se vuelve a rutear (el ruteo dirá `continuar`); `falla` → aviso. Un fallo del proceso: **un** reintento con `--resume` y el mismo `session_id`; si no se puede retomar o vuelve a fallar, aviso.
@@ -51,7 +55,8 @@
 **El cierre de un «listo»**, en este orden y por el bucle (`cierre.sh`): a) árbol limpio y cada commit de `ultimo.json` en `HEAD de arranque..HEAD` (y ningún otro); c) compuerta **guardas** si el rango toca las guardas; b) `verificar.sh` **de la copia**
 (`pnpm lint`, `typecheck`, `test`, `mapa.sh --check`, `db:probar` si el rango toca `supabase/`, y los e2e dirigidos de `ultimo.json`, en escritorio y, sólo si `nivel.mjs` dice que el rango toca interfaz, también en móvil); d) `publicar.sh` **de la copia**.
 Los e2e dirigidos corren con `E2E_SIN_FUNCIONES=1`: el bucle no levanta las funciones edge, la guardia de `e2e/global-setup.ts` las exigiría para cualquier spec (así cayó el 4.13-3b), y un spec que llama a una de verdad falla solo sin ella, así que sigue siendo un rojo. Sin la base libre (candado), también.
-Cualquier falla en a), b) o d) es un aviso; no se publica. El aviso de b) es la última línea de `verificar.sh`: «verificar: <nombre> falló: <causa>», con la primera línea `Error:` del log.
+Cualquier falla en a), b) o d) es un aviso; no se publica. El aviso de b) es la última línea de `verificar.sh`: «verificar: <nombre> falló: <causa>», con la primera línea `Error:` del log; con un e2e rojo, la prueba que cayó y su error («[escritorio] › e2e/x.spec.ts:33:5 › título — Error: …»,
+hasta 300 caracteres).
 
 **Publicar** (`publicar.sh`, sólo lo corre el bucle): rama main, árbol limpio, `git fetch` sin divergencia, espera el CI del push anterior (`gh run watch`; rojo → aviso), SQL de seguridad en el rango (policy, RLS, `security definer`, `grant`/`revoke`, Vault) sin
 `<común>/piloto/aprobado-<paso>` → se niega, y `git push origin main`. Con `PILOTO=1` el hook `bloquear-peligrosos.sh` le niega a una **sesión** todo `git push`: el hook no ve al bucle porque el bucle no es una sesión. **Nunca un PR.**

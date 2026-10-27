@@ -261,3 +261,45 @@ describe('verificar.sh › la última línea dice la causa', () => {
     expect(ultimaLinea(r.salida)).toBe(`verificar: e2e falló: ${larga.slice(0, 200)}`)
   })
 })
+
+// Con un e2e rojo, la causa nombra la prueba: Playwright imprime «  1) [proyecto] › spec:línea:col › título ───» antes de su «Error:».
+// El aviso del 4.13-3b no decía qué prueba había caído.
+describe('verificar.sh › la causa de un e2e rojo nombra la prueba', () => {
+  const ESC = '\u001b'
+  const TITULO =
+    '[escritorio] › e2e/cotizar-guardar-intento.spec.ts:33:5 › con la respuesta perdida, el próximo guardado manda el pedido viejo'
+  const ultimaLinea = (salida: string) => salida.trimEnd().split('\n').at(-1)
+  function fallarE2e(lineas: string[]) {
+    commitear('src/modules/leads/features/tabla/tabla.tsx')
+    return verificar(['e2e/leads.spec.ts'], {
+      FAKE_FALLA: 'test:e2e',
+      FAKE_SALIDA: lineas.join('\n'),
+    })
+  }
+
+  it('«[proyecto] › spec › prueba — Error: …», sin la numeración, los ─ ni los colores', () => {
+    const r = fallarE2e([
+      'Running 6 tests using 1 worker',
+      '',
+      `${ESC}[31m  1) ${TITULO} ${'─'.repeat(40)}${ESC}[39m`,
+      '',
+      '    Error: expect(locator).toBeVisible() failed',
+      '    Error: element(s) not found',
+      '[ELIFECYCLE] Command failed with exit code 1.',
+    ])
+    expect(ultimaLinea(r.salida)).toBe(
+      `verificar: e2e falló: ${TITULO} — Error: expect(locator).toBeVisible() failed`,
+    )
+  })
+
+  it('sin «Error:» después de la cabecera, la cabecera sola', () => {
+    const r = fallarE2e(['Error: de antes, de otra cosa', `  1) ${TITULO} ───`, '    Timeout'])
+    expect(ultimaLinea(r.salida)).toBe(`verificar: e2e falló: ${TITULO}`)
+  })
+
+  it('con la prueba, se corta en 300 caracteres', () => {
+    const titulo = `[movil] › e2e/x.spec.ts:1:1 › ${'ñ'.repeat(400)}`
+    const r = fallarE2e([`  1) ${titulo}`, '    Error: algo'])
+    expect(ultimaLinea(r.salida)).toBe(`verificar: e2e falló: ${titulo.slice(0, 300)}`)
+  })
+})

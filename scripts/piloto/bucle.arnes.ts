@@ -130,6 +130,11 @@ export class Arnes {
     this.escribirFake('claude', FALSO_CLAUDE)
     this.escribirFake('dormir', '#!/usr/bin/env bash\necho "$*" >> "$FAKE_DIR/dormir.log"\n')
     this.escribirFake('bin/gh', '#!/usr/bin/env bash\nprintf \'%s\' "${FAKE_GH_LISTA:-[]}"\n')
+    // Las funciones edge: todas servidas, salvo las que nombre `funciones-caidas` (una por línea; `caerFunciones`).
+    this.escribirFake(
+      'bin/curl',
+      '#!/usr/bin/env bash\nurl="${@: -1}"\ngrep -qxF "${url##*/}" "$FAKE_DIR/funciones-caidas" 2>/dev/null && { printf 404; exit 0; }\nprintf 204\n',
+    )
     this.ruteo(RUTEO_BASE)
   }
 
@@ -199,6 +204,11 @@ export class Arnes {
       writeFileSync(join(this.fake, `paso-${n}.out.json`), JSON.stringify(extra.salida))
     if (extra.salida_codigo !== undefined)
       writeFileSync(join(this.fake, `paso-${n}.exit`), String(extra.salida_codigo))
+  }
+
+  /** Las funciones edge que no responden (hasta que se borre `funciones-caidas`). */
+  caerFunciones(...nombres: string[]) {
+    writeFileSync(join(this.fake, 'funciones-caidas'), nombres.map((n) => `${n}\n`).join(''))
   }
 
   /** El guion de la compuerta n: lo que la persona (y, a veces, un intruso) escribe en decision.md. */
