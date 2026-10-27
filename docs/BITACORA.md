@@ -3400,3 +3400,27 @@ La línea «Fase actual» y el punto 1 de «Siguiente», como estaban antes del 
 **Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho **DEP-1** (Next 16.4.3 y Node 24; cierra **4-35** y **4-37**), el **4.13, prompt 3a de 5** (la base antes de guardar: la hoja abierta que firma la base; antes, el 2: la hoja dibujada, y el 1: `cotizacion_hoja()`), el **4.12** (`XCell`), el **4.11** y el **4.10 entero**. **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20**, **4-21**, **4-23** a **4-26**, **4-29**, **4-30**, **4-33** y **4-34** siguen abiertos. Partición: **28 pasos y 66 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 a 2026-10-26, «movido de ESTADO», 4.08-1 a 4.13-3a).
 
 1. **El 4.13, prompt 3b, con el piloto** (guardar, **con Nivel 2**: toca `src/shared`; son 5 prompts: `docs/PLAN.md` fila 4.13) y en orden hasta 4.28, **un prompt a la vez, y se para a reportar** (`docs/PLAN.md` › «Partición»); la cuenta de pantallas sin completo está en 0 (el completo de DEP-1; `.claude/rules/e2e.md`). **Del 3a:** `cotizacion_hoja().abierta` es la hoja abierta firmada por la base y viaja como `p_abierta` a `cotizacion_evaluar` (el recálculo, ya hecho) y a `cotizacion_crear(id, origen, lead, entradas, abierta, vehículo?, vehículo_nuevo?, modo_tc?, clase, con_la_abierta)` (D2: PT409 `desactualizada`; `abierta_vencida` pide recargar); guardar usa **la misma abierta que el recálculo**; el intento es un uuid por `Ctrl/Cmd+S`, reusado sólo para reintentar **el mismo** pedido, y con `repetido: true` se muestra lo guardado (**4-21**). Hereda del 4.10: nadie escribe `cotizaciones` directo; `cotizacion_guardar(id, intento, versión, entradas, modo, título, notas, vehículo)` es la otra puerta; guarda lo oculto, recalcula lo derivado, una final pide `cotizaciones.final.gestionar` y el orden de candados es vehículo(s) → cotización (`docs/DECISIONES.md`, «Paso 4.10 (3 de 3)»). `cotizaciones.modo_tc` guarda la clave de un modo; el ⚙ de un tipo de cambio es `tipo_cambio_guardar`; las `entradas` sólo llevan `inputs`, `banderas`, `overrides` y `variante`.
+
+## 2026-10-27 — Paso FIX-PILOTO-1: la verificación del bucle, sin exigir las funciones edge (FIX-PILOTO-1)
+
+**Qué se pidió:** el diagnóstico de por qué la verificación del bucle (`verificar.sh` de la copia) cayó en el 4.13-3b a las 02:42, tres minutos después de un «listo» en verde, y los arreglos al piloto que salieron de él. Sin arrancar el piloto, sin push y sin tocar `.git/piloto/bin`; el 3b ya está publicado (`origin/main` = `9f1cd35`).
+
+**El diagnóstico:**
+
+- **No falló ninguna prueba.** `verificar.sh` corrió los seis dirigidos del 3b (los mismos specs, `escritorio` y `movil`, sin `db:reset`, 1 worker, con el candado) **sin `E2E_SIN_FUNCIONES=1` y sin `functions serve`**. La guardia (`e2e/global-setup.ts:5` → `e2e/soporte/guardia.ts:38`) exige las tres funciones para cualquier spec y abortó antes de la primera prueba: por eso `e2e-fallos/2026-10-27_06-42/` sólo tiene el reporte, sin traza ni `error-context.md`. El paso había hecho sus nueve corridas con la variable (lo dice la línea 62 de su salida), y ninguno de los seis specs llama a una función.
+- **Reproducido en `9f1cd35`:** el comando de `verificar.sh` cae en 9 s con el mismo error; con `E2E_SIN_FUNCIONES=1`, **65 de 65** en 1,8 min. Es determinista: ni defecto del 3b ni intermitente, sino del piloto. `docs/PILOTO.md` lo tenía como riesgo («si el spec las pide») y el script nunca se lo preguntaba a los specs.
+- **Por qué no lo vio ninguna prueba:** las del bucle (`bucle*.test.ts`) usan un `verificar.sh` falso que sólo anota que corrió, y `verificar.test.ts` no miraba el entorno con que se llama a `pnpm`.
+- **El aviso citó el pie de Playwright** («pnpm exec playwright show-report», «ELIFECYCLE»): `cierre.sh:92` arma el motivo con las tres últimas líneas de `verificar.err`, que con un e2e rojo son siempre el pie.
+- **«Lo que veses» (P3):** no está en el repo, ni en el historial (`git log -S`), ni en `.piloto/`; el build compila «Lo que ves es lo guardado».
+
+**Lo que se hizo:**
+
+- `fix(config): no exigir las funciones edge en los e2e del bucle`: `verificar.sh` corre los dirigidos con `env E2E_SIN_FUNCIONES=1`. La regla queda en un solo lugar de `docs/PILOTO.md`, el párrafo del cierre (sale de «Lo que la doc no confirma»), y «Requisitos» dice que el bucle no levanta las funciones y que el Nivel 2 las exige: para el 4.13-3c, `npx supabase functions serve` en otra terminal antes de arrancar. `docs/DECISIONES.md`, «FIX-PILOTO-1», con la excepción de `vehiculos-apibara.spec.ts:283`.
+
+**Verificación:**
+
+- **Rojo primero:** `verificar.test.ts` › «corren con E2E_SIN_FUNCIONES=1 aunque el bucle no la traiga en su entorno», contra el `verificar.sh` de `9f1cd35`: esperaba `E2E_SIN_FUNCIONES=1` y recibió `E2E_SIN_FUNCIONES=` (1 de 15 cae); con el cambio, 15 de 15.
+- **Nivel 1:** `pnpm lint` y `pnpm typecheck` en 0; `pnpm test` con 410 archivos y 5.211 pruebas; `bash scripts/mapa.sh --check` pasa. Nada de `supabase/`.
+- **e2e completo: no (FIX-PILOTO-1, config y scripts; no es un paso de pantalla: la cuenta sigue).** La cuenta de pasos de pantalla seguidos sin completo queda en 1 de 3.
+
+**Lo que no se hizo:** que el bucle compruebe o levante las funciones para un paso de Nivel 2 (es de la calibración del piloto), copiar los scripts a `.git/piloto/bin` (lo hace el próximo `arrancar.sh`), el 4.13-3c, CI-5 y el push, que lo hace la persona.

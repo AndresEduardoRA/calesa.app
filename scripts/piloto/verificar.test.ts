@@ -47,11 +47,12 @@ beforeEach(() => {
   mkdirSync(bin)
   execFileSync('git', ['init', '-q', '-b', 'main', repo])
   for (const pieza of PIEZAS) copyFileSync(resolve('scripts/piloto', pieza), join(bin, pieza))
-  // `pnpm` y `bash scripts/mapa.sh` falsos: registran qué se les pidió, y uno falla si se lo piden.
+  // `pnpm` y `bash scripts/mapa.sh` falsos: registran qué se les pidió (y, a `test:e2e`, con qué entorno), y uno falla si se lo piden.
   writeFileSync(
     join(bin, 'pnpm'),
     `#!/usr/bin/env bash
 echo "pnpm $*" >> "${join(raiz, 'llamadas.txt')}"
+[ "$1" = test:e2e ] && echo "E2E_SIN_FUNCIONES=\${E2E_SIN_FUNCIONES:-}" >> "${join(raiz, 'entorno-e2e.txt')}"
 [ -n "\${FAKE_FALLA:-}" ] && [[ "$*" == "$FAKE_FALLA"* ]] && { echo "falló $*"; exit 1; }
 exit 0
 `,
@@ -146,6 +147,14 @@ describe('verificar.sh › los e2e dirigidos', () => {
     commitear('src/shared/ui/boton.tsx')
     verificar(SPECS)
     expect(llamadas().at(-1)).toContain('--project=movil')
+  })
+
+  // La guardia de `e2e/global-setup.ts` exige las tres funciones edge para cualquier spec, y el bucle no las levanta: sin la
+  // variable, el 4.13-3b cayó antes de la primera prueba. Un spec que llama a una función de verdad falla solo sin ella.
+  it('corren con E2E_SIN_FUNCIONES=1 aunque el bucle no la traiga en su entorno', () => {
+    commitear('src/modules/leads/features/tabla/tabla.tsx')
+    expect(verificar(SPECS).estado).toBe(0)
+    expect(readFileSync(join(raiz, 'entorno-e2e.txt'), 'utf8').trim()).toBe('E2E_SIN_FUNCIONES=1')
   })
 
   it('sin e2e dirigidos no corre ninguno', () => {

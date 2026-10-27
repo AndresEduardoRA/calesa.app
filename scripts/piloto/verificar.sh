@@ -5,9 +5,10 @@
 #
 # En orden y parando en el primer rojo: `pnpm lint`, `pnpm typecheck`, `pnpm test`, `mapa.sh --check`, `pnpm db:probar` si el rango
 # `<HEAD de arranque>..HEAD` toca `supabase/`, y los e2e dirigidos que lista `ultimo.json` (`pnpm test:e2e <specs…>`, que toma el
-# candado de la base) en escritorio y, sólo si `nivel.mjs` dice que el rango toca interfaz, también en móvil. El Nivel 2 y el 3 no
-# los repite: el auditor ya leyó su salida. Si todo pasó deja la huella verde (`huella.sh --escribir`) para que el hook Stop no repita
-# la suite. Sale con 1 y dice qué falló; sin la base libre o sin las funciones edge que pide un spec, es un rojo, no un verde.
+# candado de la base) en escritorio y, sólo si `nivel.mjs` dice que el rango toca interfaz, también en móvil. Los e2e corren con
+# `E2E_SIN_FUNCIONES=1`: el bucle no levanta las funciones edge, y un spec que llama a una de verdad falla solo sin ella. El Nivel 2
+# y el 3 no los repite: el auditor ya leyó su salida. Si todo pasó deja la huella verde (`huella.sh --escribir`) para que el hook Stop
+# no repita la suite. Sale con 1 y dice qué falló; sin la base libre, o sin una función que un spec llama, es un rojo, no un verde.
 # Cada salida queda en `.piloto/salidas/<paso>/verificar-<nombre>.log`. Se prueba en `verificar.test.ts`.
 set -uo pipefail
 # shellcheck source=comun.sh
@@ -51,7 +52,8 @@ if [ "${#SPECS[@]}" -gt 0 ]; then
   }
   PROYECTOS=(--project=escritorio)
   [ "$INTERFAZ" = true ] && PROYECTOS+=(--project=movil)
-  correr e2e pnpm test:e2e "${SPECS[@]}" "${PROYECTOS[@]}"
+  # La guardia de `e2e/global-setup.ts` exige las tres funciones para cualquier spec; un spec que llama a una falla solo sin ella.
+  correr e2e env E2E_SIN_FUNCIONES=1 pnpm test:e2e "${SPECS[@]}" "${PROYECTOS[@]}"
 fi
 
 bash "$BIN/huella.sh" --escribir

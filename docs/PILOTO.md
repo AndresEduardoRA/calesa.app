@@ -14,6 +14,8 @@
   subagentes), y por eso la sola lectura del auditor y del planificador no depende de la confianza (`por-agente.sh`); pero las `permissions.allow` se ignoran, y un paso en `--permission-mode auto` queda en manos del clasificador. Para que valgan: abrir `claude` una vez, interactivo, en la carpeta y aceptar el diálogo, o
   `projects["<ruta del repo principal>"].hasTrustDialogAccepted: true` en `~/.claude.json` (la ruta del mensaje es la del repo principal, no la del worktree). Es una decisión de la persona; el piloto no la toma.
 - **Disco:** el bucle para si pasa de `PILOTO_DISCO_MAX` (90 % por defecto). Con 94 % hay que liberar espacio o arrancar con `PILOTO_DISCO_MAX=95`; el ensayo en seco sólo avisa.
+- **Las funciones edge, para un paso de Nivel 2.** El bucle no las levanta. Un paso de Nivel 2 corre `pnpm test:e2e:completo`, y `scripts/e2e-completo.mjs` exige `apibara` y `storage-gc` y no lee `E2E_SIN_FUNCIONES`; después su `test:e2e` pasa por la guardia, que pide las tres. Antes de arrancar
+  el piloto para un paso así (el 4.13-3c), `npx supabase functions serve` en otra terminal. Los e2e dirigidos de `verificar.sh` no las piden (el cierre, abajo).
 - La rama de trabajo es `main` (el bucle publica con `git push origin main`; nunca un PR). Si hay otro checkout con trabajo, el piloto convive con él por el candado de la base (abajo).
 
 ## Arrancar, parar, retomar
@@ -47,6 +49,7 @@
 
 **El cierre de un «listo»**, en este orden y por el bucle (`cierre.sh`): a) árbol limpio y cada commit de `ultimo.json` en `HEAD de arranque..HEAD` (y ningún otro); c) compuerta **guardas** si el rango toca las guardas; b) `verificar.sh` **de la copia**
 (`pnpm lint`, `typecheck`, `test`, `mapa.sh --check`, `db:probar` si el rango toca `supabase/`, y los e2e dirigidos de `ultimo.json`, en escritorio y, sólo si `nivel.mjs` dice que el rango toca interfaz, también en móvil); d) `publicar.sh` **de la copia**.
+Los e2e dirigidos corren con `E2E_SIN_FUNCIONES=1`: el bucle no levanta las funciones edge, la guardia de `e2e/global-setup.ts` las exigiría para cualquier spec (así cayó el 4.13-3b), y un spec que llama a una de verdad falla solo sin ella, así que sigue siendo un rojo. Sin la base libre (candado), también.
 Cualquier falla en a), b) o d) es un aviso; no se publica.
 
 **Publicar** (`publicar.sh`, sólo lo corre el bucle): rama main, árbol limpio, `git fetch` sin divergencia, espera el CI del push anterior (`gh run watch`; rojo → aviso), SQL de seguridad en el rango (policy, RLS, `security definer`, `grant`/`revoke`, Vault) sin
@@ -144,7 +147,6 @@ La verificación de siempre del Stop (mapa + typecheck + lint + test + mapa) ≈
 - Que `tool_response` de `AskUserQuestion` traiga la respuesta en el hook `PostToolUse`: el respaldo es el transcript de la sesión, y lo confirma `decidir.sh --prueba`.
 - Que los hooks del frontmatter corran (exigen la carpeta confiada): lo prueba la sonda del ensayo.
 - El clasificador de `auto` puede negar algo legítimo en un paso (escribir en `.claude/` es ruta protegida): el paso lo informa como compuerta; se calibra con los primeros pasos.
-- `verificar.sh` repite los e2e dirigidos: necesita la base libre (candado) y, si el spec las pide, las funciones edge; si no puede, es aviso, no «verde».
 - La copia protege la lógica del bucle, no lo que `verificar.sh` ejecuta (`pnpm lint|typecheck|test`, `package.json`, los hooks son del árbol que el paso cambió): lo cubre la compuerta «guardas», que corre antes.
 - `total_cost_usd` y los topes `--max-budget-usd` son estimaciones del cliente.
 - La regla de «e2e dirigidos también en `movil` sólo si lo tocado es interfaz» vive en un solo lugar, `.claude/rules/e2e.md` › «Interfaz: cuándo los e2e dirigidos corren también en `movil`»; `nivel.mjs` (`toca_interfaz`) la aplica y la cita, y `nivel.test.ts` falla si la lista de la regla y la del código se separan. Es conservadora: ante la duda, `movil`.
