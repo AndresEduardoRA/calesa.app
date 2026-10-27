@@ -47,13 +47,14 @@ beforeEach(() => {
   mkdirSync(bin)
   execFileSync('git', ['init', '-q', '-b', 'main', repo])
   for (const pieza of PIEZAS) copyFileSync(resolve('scripts/piloto', pieza), join(bin, pieza))
-  // `pnpm` y `bash scripts/mapa.sh` falsos: registran qué se les pidió (y, a `test:e2e`, con qué entorno), y uno falla si se lo piden.
+  // `pnpm` y `bash scripts/mapa.sh` falsos: registran qué se les pidió (y, a `test:e2e`, con qué entorno), y uno falla si se lo piden
+  // (con la salida de `FAKE_SALIDA`, si la hay).
   writeFileSync(
     join(bin, 'pnpm'),
     `#!/usr/bin/env bash
 echo "pnpm $*" >> "${join(raiz, 'llamadas.txt')}"
 [ "$1" = test:e2e ] && echo "E2E_SIN_FUNCIONES=\${E2E_SIN_FUNCIONES:-}" >> "${join(raiz, 'entorno-e2e.txt')}"
-[ -n "\${FAKE_FALLA:-}" ] && [[ "$*" == "$FAKE_FALLA"* ]] && { echo "falló $*"; exit 1; }
+[ -n "\${FAKE_FALLA:-}" ] && [[ "$*" == "$FAKE_FALLA"* ]] && { printf '%s\\n' "\${FAKE_SALIDA:-falló $*}"; exit 1; }
 exit 0
 `,
   )
@@ -201,5 +202,62 @@ describe('verificar.sh › cuando algo falla', () => {
       },
     })
     expect(r.status).toBe(1)
+  })
+})
+
+// El bucle arma el aviso con la última línea de stderr (`cierre.sh`): tiene que ser la causa, no el pie de Playwright, que es lo que
+// citó el aviso del 4.13-3b («pnpm exec playwright show-report», «ELIFECYCLE»).
+describe('verificar.sh › la última línea dice la causa', () => {
+  const ESC = '\u001b'
+  const PIE = [
+    '[e2e] Falló: los artefactos quedaron en e2e-fallos/2026-10-27_06-42/.',
+    'To open last HTML report run:',
+    `${ESC}[36m  pnpm exec playwright show-report${ESC}[39m`,
+    '[ELIFECYCLE] Command failed with exit code 1.',
+  ]
+  const ultimaLinea = (salida: string) => salida.trimEnd().split('\n').at(-1)
+
+  function fallarE2e(lineas: string[]) {
+    commitear('src/modules/leads/features/tabla/tabla.tsx')
+    return verificar(['e2e/leads.spec.ts'], {
+      FAKE_FALLA: 'test:e2e',
+      FAKE_SALIDA: lineas.join('\n'),
+    })
+  }
+
+  it('la primera línea «Error:» del log, sin colores ni sangría, y no el pie', () => {
+    const r = fallarE2e([
+      '  ✘  1 [escritorio] › e2e/leads.spec.ts:12:5 › un título (5.0s)',
+      `${ESC}[31m  Error: Las funciones edge no están servidas (apibara, storage-gc)${ESC}[39m`,
+      '   at soporte/guardia.ts:38',
+      'Error: otra, que no es la primera',
+      ...PIE,
+    ])
+    expect(r.estado).toBe(1)
+    expect(ultimaLinea(r.salida)).toBe(
+      'verificar: e2e falló: Error: Las funciones edge no están servidas (apibara, storage-gc)',
+    )
+  })
+
+  it('sin «Error:», la primera con ✘, FAIL o error', () => {
+    const r = fallarE2e([
+      'Running 2 tests using 1 worker',
+      '  ✘  1 [escritorio] › e2e/leads.spec.ts:12:5 › un título (5.0s)',
+      ...PIE,
+    ])
+    expect(ultimaLinea(r.salida)).toBe(
+      'verificar: e2e falló: ✘  1 [escritorio] › e2e/leads.spec.ts:12:5 › un título (5.0s)',
+    )
+  })
+
+  it('sin ninguna, remite al log completo', () => {
+    const r = fallarE2e(['una línea cualquiera', 'To open last HTML report run:'])
+    expect(ultimaLinea(r.salida)).toMatch(/^verificar: e2e falló: ver \S+\/verificar-e2e\.log$/)
+  })
+
+  it('una causa larga se corta en 200 caracteres, no en 200 bytes', () => {
+    const larga = `Error: ${'ñ'.repeat(300)}`
+    const r = fallarE2e([larga, ...PIE])
+    expect(ultimaLinea(r.salida)).toBe(`verificar: e2e falló: ${larga.slice(0, 200)}`)
   })
 })

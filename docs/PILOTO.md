@@ -50,7 +50,7 @@
 **El cierre de un «listo»**, en este orden y por el bucle (`cierre.sh`): a) árbol limpio y cada commit de `ultimo.json` en `HEAD de arranque..HEAD` (y ningún otro); c) compuerta **guardas** si el rango toca las guardas; b) `verificar.sh` **de la copia**
 (`pnpm lint`, `typecheck`, `test`, `mapa.sh --check`, `db:probar` si el rango toca `supabase/`, y los e2e dirigidos de `ultimo.json`, en escritorio y, sólo si `nivel.mjs` dice que el rango toca interfaz, también en móvil); d) `publicar.sh` **de la copia**.
 Los e2e dirigidos corren con `E2E_SIN_FUNCIONES=1`: el bucle no levanta las funciones edge, la guardia de `e2e/global-setup.ts` las exigiría para cualquier spec (así cayó el 4.13-3b), y un spec que llama a una de verdad falla solo sin ella, así que sigue siendo un rojo. Sin la base libre (candado), también.
-Cualquier falla en a), b) o d) es un aviso; no se publica.
+Cualquier falla en a), b) o d) es un aviso; no se publica. El aviso de b) es la última línea de `verificar.sh`: «verificar: <nombre> falló: <causa>», con la primera línea `Error:` del log.
 
 **Publicar** (`publicar.sh`, sólo lo corre el bucle): rama main, árbol limpio, `git fetch` sin divergencia, espera el CI del push anterior (`gh run watch`; rojo → aviso), SQL de seguridad en el rango (policy, RLS, `security definer`, `grant`/`revoke`, Vault) sin
 `<común>/piloto/aprobado-<paso>` → se niega, y `git push origin main`. Con `PILOTO=1` el hook `bloquear-peligrosos.sh` le niega a una **sesión** todo `git push`: el hook no ve al bucle porque el bucle no es una sesión. **Nunca un PR.**

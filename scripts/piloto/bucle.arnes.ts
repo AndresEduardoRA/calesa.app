@@ -78,7 +78,7 @@ exit 0
 
 const FALSO_VERIFICAR = `#!/usr/bin/env bash
 echo "verificar:copia" >> "$FAKE_DIR/secuencia.log"
-[ -n "\${FAKE_VERIFICAR_FALLA:-}" ] && { echo "verificar: lint falló" >&2; exit 1; }
+[ -n "\${FAKE_VERIFICAR_FALLA:-}" ] && { [ -n "\${FAKE_VERIFICAR_PIE:-}" ] && printf '%s\\n' "$FAKE_VERIFICAR_PIE" >&2; echo "verificar: lint falló" >&2; exit 1; }
 exit 0
 `
 

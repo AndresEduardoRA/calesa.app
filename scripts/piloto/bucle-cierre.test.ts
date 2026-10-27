@@ -80,6 +80,24 @@ describe('bucle.sh › b) la verificación es del bucle, y d) la publicación', 
     )
   })
 
+  // `verificar.sh` termina con «verificar: <nombre> falló: <causa>», después de la cola de la salida: el aviso del 4.13-3b citó el pie.
+  it('el aviso lleva la última línea de verificar, no el pie de Playwright que la precede', () => {
+    correrListo(pasoListo({ 'src/a.ts': 'a' }), {
+      FAKE_VERIFICAR_FALLA: '1',
+      FAKE_VERIFICAR_PIE: [
+        'To open last HTML report run:',
+        '  pnpm exec playwright show-report',
+        '[ELIFECYCLE] Command failed with exit code 1.',
+      ].join('\n'),
+    })
+    const compuerta = a.leerFake('compuerta-1.md')
+    expect(compuerta).toContain(
+      'motivo: la verificación del bucle falló en 4.99: verificar: lint falló',
+    )
+    expect(compuerta).not.toContain('show-report')
+    expect(compuerta).not.toContain('ELIFECYCLE')
+  })
+
   it('publicar rojo (el CI, una divergencia): aviso', () => {
     correrListo(pasoListo({ 'src/a.ts': 'a' }), { FAKE_PUBLICAR_FALLA: '1' })
     expect(a.secuencia()).toEqual([

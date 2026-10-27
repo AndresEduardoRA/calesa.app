@@ -87,9 +87,9 @@ cerrar_listo() {
     fi
   fi
 
-  # b)
+  # b) La última línea de verificar es su causa («verificar: <nombre> falló: …»); las de antes son la cola del log y su pie.
   if ! bash "$BIN/verificar.sh" "$desde" "$ESTADO/ultimo.json" 2>"$ESTADO/verificar.err"; then
-    parada "la verificación del bucle falló en $paso: $(tail -n 3 "$ESTADO/verificar.err" | tr '\n' ' ')" "$paso" "${SOLO_REINTENTO[@]}"
+    parada "la verificación del bucle falló en $paso: $(tail -n 1 "$ESTADO/verificar.err" | tr '\n' ' ')" "$paso" "${SOLO_REINTENTO[@]}"
     return 0
   fi
 
