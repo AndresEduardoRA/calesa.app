@@ -37,7 +37,7 @@
 | 1 — Aplastar y resetear la demo | hecho (2026-10-28)                                             | principal 140 K · 92,3 M; subagentes (Sonnet) 25 K · 4,8 M; 1,41 h  |
 | 2 — Entornos y configuración    | hecha en local (2026-10-28); espera `.env.demo` y Vercel       | principal 96 K · 87,4 M; subagentes (Opus) 102 K · 21,4 M; 0,75 h   |
 | 4 — Quitar lo que sobra         | hecho lo aprobado (2026-10-28); el resto espera tu visto bueno | principal 12 K · 11,3 M; 0,1 h (más knip en la etapa 2)             |
-| 5 — Worktrees en paralelo       | en curso (desde 20:13 UTC)                                     | —                                                                   |
+| 5 — Worktrees en paralelo       | hecho (2026-10-28)                                             | principal 72 K · 23,2 M; 0,55 h                                     |
 | 6 — Flujo de dos carriles       | pendiente                                                      | —                                                                   |
 | 7 — Cierre                      | pendiente                                                      | —                                                                   |
 
@@ -164,6 +164,28 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
   workflows y la acción `preparar`; `.piloto/informes/` (las salidas y planes viejos ya se borraron en la etapa 0).
 - **Sin tocar:** knip cuenta 113 exports y 184 tipos sin uso; casi todos son API de un módulo o se usan sólo en sus pruebas, y sin un
   `knip.json` con las entradas del repo no se distinguen. Sugerencia: configurarlo en la Fase 9 (no lo hago sin tu visto bueno).
+
+## Etapa 5 — Worktrees en paralelo (hecha)
+
+- **La CLI acepta overrides por entorno** (verificado): `SUPABASE_PROJECT_ID` cambia los contenedores; `SUPABASE_API_PORT`, `_DB_PORT`,
+  `_STUDIO_PORT`, `_LOCAL_SMTP_PORT` y `SUPABASE_AUTH_SITE_URL` (`GOTRUE_SITE_URL` del contenedor) cambian lo suyo. Así un carril no toca
+  `config.toml`: `scripts/worktree/preparar.sh` escribe `.env.carril` (ignorado) con el project_id `importadora-<carril>` y los puertos con
+  desfase (a: 547xx, app 3100, e2e 3310; b: 548xx, 3200, 3410).
+- **Un solo ayudante por lenguaje:** `scripts/lib/stack-local.mjs` (JS: e2e de SQL y de volumen, carreras, medir, sembrar volumen, jobs de
+  verdad, resetear) y `scripts/lib/carril.sh` (bash: lo cargan `candado.sh`, `hechos.sh`, `restaurar.sh --local`). El candado es uno por
+  puerto de la base (`candado-base-<puerto>.lock`) y exporta el carril al comando: `pnpm db:*` y `test:e2e` usan el stack de su worktree.
+- `pnpm dev` y `pnpm funciones` pasan por `scripts/worktree/con-carril.sh` (sólo `next dev` y `supabase functions serve|start|stop|status`).
+  Los avisos y reglas dicen `pnpm funciones`. `quitar.sh` baja el stack sin volúmenes.
+- **Orca** (doc vigente): `orca.yaml` › `worktree.sharedDirectories` enlaza `docs/referencias/cotizador-actual` (ignorada, de lectura);
+  `.worktreeinclude` copia `.env.local` y `.env.demo`. Orca no da variables por worktree: por eso `.env.carril`.
+- **Prueba real** (dos worktrees de `af80fa22`, ramas `a/…` y `b/…`): `preparar.sh` en 78 s y 68 s; después, **a la vez** en los dos,
+  `pnpm db:reset` (30 s) y `pnpm test:e2e acceso + roles-conteo-acotado --project=escritorio` con su build (52 s): 7 de 7 en cada uno. **Sin
+  cruces:** cada base registró sus propias 1.053 altas de `auth.users`, y la principal ninguna (4, las de antes; su Kong, 0 pedidos de
+  Auth). `pnpm dev` del carril a abrió en el 3100 contra su API. `quitar.sh`: 6 s, sin contenedores ni volúmenes.
+- **RAM:** stack de un carril ≈ 0,85 GB (sin Studio, imgproxy ni logs); la principal, 1,78 GB (con Studio y analytics). Sistema: 11 GB con
+  la principal sola; 14 GB con los tres stacks; **pico de 19,6 GB** con los dos builds, los dos `next start` y los dos Chromium (de 30 GB).
+  Disco por worktree: ≈ 0,3 GB más sus builds.
+- Verde: lint, typecheck, test (5.371), `db:probar`, `db:lint`, `mapa.sh --check`; `jobs-de-verdad.sh` con `pnpm funciones` (200).
 
 ## Recogido de «Lista para la nube» (salió de ESTADO en la etapa 3; original en `docs/archivo/ESTADO.md`)
 
