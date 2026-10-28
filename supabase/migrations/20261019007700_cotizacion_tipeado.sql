@@ -85,7 +85,7 @@ begin
 end $$;
 revoke all on function public._cotizacion_tipeado(jsonb, jsonb, jsonb, jsonb) from public, anon, authenticated;
 comment on function public._cotizacion_tipeado(jsonb, jsonb, jsonb, jsonb) is
-  'Revisa lo que tipeó la persona (forma, fórmula inválida, inputs, banderas y variante sólo de nodos que ve) con el texto y el orden del motor, y devuelve los overrides de nodos que no ve. De nadie; la llaman cotizacion_evaluar y cotizacion_crear. docs/COTIZADOR.md › «En la base (4.10-2)».';
+  'Revisa lo que tipeó la persona (forma, fórmula inválida, inputs, banderas y variante sólo de nodos que ve) con el texto y el orden del motor, y devuelve los overrides de nodos que no ve. De nadie; la llaman cotizacion_evaluar y cotizacion_crear. docs/COTIZADOR.md › «Quién escribe una cotización y cómo (4.10-2)».';
 
 -- La respuesta de una cotización: las columnas que lee `authenticated` y el snapshot recortado por el nivel de quien llama (con SU versión de la fórmula). Con el contexto ya armado
 -- (`_cotizacion_contexto`) no vuelve a pedir `_nodos_visibles()`.
@@ -107,7 +107,7 @@ begin
 end $$;
 revoke all on function public._cotizacion_respuesta(public.cotizaciones, jsonb) from public, anon, authenticated;
 comment on function public._cotizacion_respuesta(public.cotizaciones, jsonb) is
-  'La fila de una cotización (las columnas que lee authenticated) con su snapshot recortado por nivel. De nadie; la llaman cotizacion_leer y cotizacion_crear. docs/COTIZADOR.md › «En la base (4.10-2)».';
+  'La fila de una cotización (las columnas que lee authenticated) con su snapshot recortado por nivel. De nadie; la llaman cotizacion_leer y cotizacion_crear. docs/COTIZADOR.md › «Quién escribe una cotización y cómo (4.10-2)».';
 
 create or replace function public.cotizacion_leer(p_id uuid)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$

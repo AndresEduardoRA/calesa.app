@@ -209,7 +209,7 @@ end $$;
 revoke all on function public.cotizacion_crear(uuid, uuid, uuid, jsonb, uuid, jsonb, text, public.clase_cotizacion) from public, anon;
 grant execute on function public.cotizacion_crear(uuid, uuid, uuid, jsonb, uuid, jsonb, text, public.clase_cotizacion) to authenticated;
 comment on function public.cotizacion_crear(uuid, uuid, uuid, jsonb, uuid, jsonb, text, public.clase_cotizacion) is
-  'Crea una cotización calculada en la base (evaluar_formula sobre la fórmula publicada del origen) y devuelve lo que quien llama ve (_cotizacion_respuesta). Idempotente por el id del intento. docs/COTIZADOR.md › «En la base (4.10-2)».';
+  'Crea una cotización calculada en la base (evaluar_formula sobre la fórmula publicada del origen) y devuelve lo que quien llama ve (_cotizacion_respuesta). Idempotente por el id del intento. docs/COTIZADOR.md › «Quién escribe una cotización y cómo (4.10-2)».';
 
 -- El enforcement de los dos permisos pasa de la policy de insert (que se va en la migración siguiente) a esta función.
 update public.permisos set aplicado_en = 'cotizacion_crear' where clave = 'cotizaciones.crear';

@@ -1,4 +1,4 @@
--- `editar_sin_ver` (paso 4.09, prompt 1; docs/COTIZADOR.md › «Las reglas (4.09-1)»): lo que no se ve no se edita. Un nivel de ver restringido con el de editar abierto se
+-- `editar_sin_ver` (paso 4.09, prompt 1; docs/COTIZADOR.md › «Las reglas (4.08-1)»): lo que no se ve no se edita. Un nivel de ver restringido con el de editar abierto se
 -- rechaza, en una sección (justo después de sus niveles; `donde` = su id) y en una celda (su nivel efectivo, después de `nivel_no_admitido` y antes de
 -- `nodo_repetido`; `donde` = el nodo). Ver abierto con editar restringido vale: se ve y no se edita sin el permiso. Dos niveles restringidos distintos también valen
 -- (`_nodos_visibles()` exige ver para editar). Es `_diseno_secciones()` entera (create or replace) con esas dos comprobaciones más; la firma y los grants no cambian.
