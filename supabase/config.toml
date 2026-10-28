@@ -62,7 +62,7 @@ enable_confirmations = true
 otp_expiry = 3600
 
 # Correos en español con `token_hash`: /auth/callback los canjea sin depender del navegador que
-# pidió el enlace. En la nube estas plantillas se cargan a mano en Auth › Emails.
+# pidió el enlace. En la nube las sube scripts/demo/restaurar.sh (docs/ENTORNOS.md).
 [auth.email.template.confirmation]
 subject = "Confirmación de tu cuenta"
 content_path = "./supabase/templates/confirmacion.html"
@@ -75,6 +75,18 @@ content_path = "./supabase/templates/recuperacion.html"
 [auth.email.template.invite]
 subject = "Invitación al equipo"
 content_path = "./supabase/templates/invitacion.html"
+
+[auth.email.template.email_change]
+subject = "Confirma el cambio de tu correo"
+content_path = "./supabase/templates/cambio-de-correo.html"
+
+[auth.email.template.magic_link]
+subject = "Tu enlace para ingresar"
+content_path = "./supabase/templates/enlace-de-ingreso.html"
+
+[auth.email.template.reauthentication]
+subject = "Tu código de confirmación"
+content_path = "./supabase/templates/reautenticacion.html"
 
 # Apagado en local: sin credenciales reales el botón aparecería y fallaría en la página de Google.
 # La app lo dibuja sólo si Auth dice que el proveedor está encendido (/auth/v1/settings).
@@ -112,3 +124,36 @@ verify_jwt = false
 # la clave de apibara de Vault (supabase/functions/README.md).
 [functions.apibara]
 verify_jwt = true
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# La demo (Supabase Pro, sin datos reales). Lo sube scripts/demo/restaurar.sh con las variables de `.env.demo` (docs/ENTORNOS.md);
+# lo demás de este archivo vale igual allá (las plantillas, el registro, las funciones). El comodín de los previews de Vercel es
+# **sólo de la demo: se quita en la instalación de un cliente**.
+[remotes.demo]
+project_id = "fjvrjndglytyhvlxifeb"
+
+[remotes.demo.auth]
+site_url = "env(DEMO_SITE_URL)"
+# El sitio, los previews de Vercel (`https://*-<equipo>.vercel.app/**`, sólo demo) y los puertos locales de los carriles.
+additional_redirect_urls = [
+  "env(DEMO_REDIRECCION_SITIO)",
+  "env(DEMO_REDIRECCION_PREVIEWS)",
+  "http://localhost:3000/**",
+  "http://localhost:3100/**",
+  "http://localhost:3200/**",
+]
+
+[remotes.demo.auth.email]
+# 24 h: lo que vive una invitación (el máximo de la nube; decidido el 2026-10-21). En local, 1 h.
+otp_expiry = 86400
+
+# Los correos de Auth por SMTP, con nombres genéricos: Resend hoy, Cloudflare Email Service después; cambiar es cambiar variables.
+# El puerto va fijo porque la CLI no lee `env()` en un número: 465 (TLS implícito) es el de los dos (Cloudflare sólo ofrece ése).
+[remotes.demo.auth.email.smtp]
+enabled = true
+host = "env(SMTP_HOST)"
+port = 465
+user = "env(SMTP_USUARIO)"
+pass = "env(SMTP_CLAVE)"
+admin_email = "env(EMAIL_REMITENTE)"
+sender_name = "env(EMAIL_REMITENTE_NOMBRE)"

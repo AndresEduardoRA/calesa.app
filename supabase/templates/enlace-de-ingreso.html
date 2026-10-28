@@ -1,0 +1,7 @@
+<!-- Enlace de ingreso (magic link). La app no lo ofrece hoy; si Auth lo manda, que llegue en español y por /auth/callback. -->
+<h2>Tu enlace para ingresar</h2>
+<p>Abre este enlace para ingresar a tu cuenta:</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink">Ingresar</a>
+</p>
+<p>El enlace vence pronto y sirve una sola vez. Si no lo pediste, ignora este mensaje.</p>

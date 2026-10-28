@@ -1,0 +1,8 @@
+<!-- Cambio de correo (`double_confirm_changes = true`: llega a la dirección vieja y a la nueva). Mismo mecanismo que la
+     confirmación: `token_hash` canjeado por /auth/callback. -->
+<h2>Confirma el cambio de tu correo</h2>
+<p>Pediste cambiar el correo de tu cuenta de {{ .Email }} a {{ .NewEmail }}. Abre este enlace para confirmarlo:</p>
+<p>
+  <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email_change">Confirmar el cambio de correo</a>
+</p>
+<p>El enlace vence pronto y sirve una sola vez. Si no lo pediste, ignora este mensaje: tu correo no cambia.</p>
