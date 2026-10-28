@@ -189,6 +189,7 @@ for (const archivo of [
   'jobs.sql',
   'semilla-cotizador.sql',
   'humo.sql',
+  'registro.sql',
   'configuracion-de-leads.sql',
   'matriz-leads.sql',
   'portal-cliente.sql',
