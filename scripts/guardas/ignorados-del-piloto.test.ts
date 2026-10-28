@@ -39,7 +39,7 @@ describe('lo que el piloto y los worktrees dejan fuera de las herramientas', () 
     expect(ignoradas).toContain('.piloto')
   })
 
-  it('.worktreeinclude copia sólo el .env.local', () => {
-    expect(lineas('.worktreeinclude')).toEqual(['.env.local'])
+  it('.worktreeinclude copia sólo los .env: el de la app y el de las credenciales de demo', () => {
+    expect(lineas('.worktreeinclude')).toEqual(['.env.local', '.env.demo'])
   })
 })
