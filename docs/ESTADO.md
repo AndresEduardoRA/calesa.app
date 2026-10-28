@@ -1,45 +1,60 @@
 # Estado
 
-> Este archivo es la fuente de verdad de "en qué vamos". Claude Code lo actualiza al cerrar cada
-> tarea; la skill `piloto-prompts` lo lee para saber qué pedir después. Si está desactualizado,
-> el siguiente prompt va a asumir cosas falsas. Máximo 80 líneas y 12 KB: lo que ya no es actual se mueve
-> a `docs/BITACORA.md`, copiado y no resumido. Qué existe en el código no va aquí: eso lo dice `docs/MAPA.md`.
+> La fuente de verdad de «en qué vamos». **60 líneas como máximo**: lo que deja de ser actual se mueve a `docs/BITACORA.md`. Qué existe
+> en el código lo dice `docs/MAPA.md`; los abiertos con su paso, `docs/PLAN.md`. La versión anterior completa: `docs/archivo/ESTADO.md`.
 
-**Última actualización:** 2026-10-27
-**Fase actual:** 4 — Cotizaciones, **abierta el 2026-10-22**. Hecho el **4.13, prompt 3c de 6** (un candado por lado del par en la `XCell` y un solo lector de números con el locale de la empresa: **4-25** cerrado; antes, el 3b: guardar la hoja, el 3a, el 2 y el 1), **DEP-1** (Next 16.4.3 y Node 24), el **4.12** (`XCell`), el **4.11** y el **4.10 entero**. **4-4**, **4-5**, **4-6**, **4-8**, **4-10**, **4-14**, **4-17**, **4-19**, **4-20**, **4-23**, **4-24**, **4-26**, **4-30**, **4-33** y **4-34** siguen abiertos. Partición: **28 pasos y 67 prompts**, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Fase 4» › «Partición»). Lo anterior, en `docs/BITACORA.md` (2026-10-24 a 2026-10-27, «movido de ESTADO», 4.08-1 a 4.13-3c).
+**Última actualización:** 2026-10-28
+**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.13, prompt 3c de 6**; sigue el **4.13, prompt 4**. La
+partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Partición»).
+**Aparte:** la preparación para Orca, en la rama `preparar-orca` (`docs/PREPARACION.md`). No toca código de producto; la integra la persona.
 
 ## Funcionando
 
-- Verdes: lint, typecheck, test, `db:probar` (matrices, cinturón de la auditoría y cinturón de enforcement de permisos), `db:lint`, `db:carreras` (dos o tres conexiones reales, sin `sleep`), `db:medir:volumen`, `mapa.sh` y el e2e completo. Último completo, el de escritorio del 4.13-3c: 749 en verde y 16 saltados, 0 fallos, ≈ 28 min (BITACORA, 2026-10-27); el último de los dos proyectos, DEP-1 (735 y 517, 45,3 min); el Nivel 3 de la Fase 3 duró 40,1 min. **e2e:** `pnpm test:e2e:completo` resetea y corre todo (pide `npx supabase functions serve`); los tres niveles de verificación, en `.claude/rules/e2e.md`. Apibara sin clave: lo grabado.
-- **CI** (GitHub, privado; desde 2026-10-23): `nivel-1` siempre; `base` y e2e en 4 bloques si cambia código; e2e en PR y a mano (`escritorio|ambos`), no en push. Facturables: push con código 22, dispatch de escritorio ≈ 94; reloj del dispatch: 27 a 32 min. CI-4 arregló `leads-exportar:263` (esperaba un texto, no el POST); lo confirma el dispatch del 4.18 (**4-26**). Next 16.4.3 y Node 24 (`.nvmrc`), sin aviso de seguridad.
-- **El piloto** (A0, 2026-10-26) avanza `docs/PLAN.md` un paso por sesión de `claude -p`, con un bucle en bash que verifica y publica (el modelo nunca) y sólo pregunta en compuertas, al celular. Arranca con `bash scripts/piloto/arrancar.sh`; todo en `docs/PILOTO.md`. Falta aceptar la confianza de la carpeta. El primer arranque real hizo el 4.13-3b; su verificación cayó porque los e2e del bucle exigían las funciones edge (**FIX-PILOTO-1**, arreglado). **CAL-1** lo calibró: topes por paso, producto por decisión, funciones antes del paso (`docs/PILOTO.md`); falta tu `decidir.sh --prueba-tandas`.
-- **Fases 0 a 2 completas** (equipo, empresa, orígenes, vehículos) y **Leads** (alta, campos, listado, ficha, seguimientos, recordatorios, oportunidades y kanban, portal del cliente, CSV, papelera, marcas, «Quién lo tiene», tipos y orígenes del lead configurables con icono y un origen por defecto, tipos de seguimiento configurables, número propio y global, ítems por página). Código: `docs/MAPA.md`; qué se mide y con qué tope: `docs/RENDIMIENTO.md`; las reglas de escala: `.claude/rules/escala.md`.
-- **Equipo y roles:** la matriz de Roles lee el catálogo de `permisos` (fijo por código, sembrado por migración, más los dos de cada nivel de acceso); «Ver como» y «Rol a la vista» lo reflejan. **La rueda de la web:** `habilitado` es de la persona (`cola_web_configurar`, `web.cola.gestionar`); el rol decide si puede estar (`web.cola.participar`); Mi perfil dice «Tu rol recibe / no recibe turnos de la web». Sin pantalla todavía: el tablero de la cola y el interruptor de disponibilidad (Fase 8, `docs/PLAN.md` 8-1).
+- Verdes: lint, typecheck, test, `db:probar`, `db:lint`, `db:carreras`, `db:medir:volumen`, `mapa.sh` y el e2e completo. Último completo:
+  el de escritorio del 4.13-3c, 749 en verde y 16 saltados, ≈ 28 min. Los niveles de verificación, en `.claude/rules/e2e.md`.
+- **CI** (GitHub): `nivel-1` siempre; `base` y el e2e en 4 bloques si cambia código; e2e en PR y a mano (`escritorio|ambos`).
+- **El piloto** (`docs/PILOTO.md`) avanza `docs/PLAN.md` un paso por sesión de `claude -p`, con un bucle en bash que verifica y publica;
+  sólo pregunta en las compuertas, al celular. Falta aceptar la confianza de la carpeta y la prueba `decidir.sh --prueba-tandas`.
+- **Fases 0 a 3 completas** (equipo, empresa, orígenes, vehículos y leads). **Fase 4:** fórmula, motor, niveles, crear y guardar una
+  cotización, y la hoja dibujada que guarda (4.01 a 4.13-3c).
+- **La rueda de la web:** `habilitado` es de la persona (`cola_web_configurar`); el rol decide si puede estar (`web.cola.participar`). Sin
+  pantalla todavía: el tablero de la cola y el interruptor de disponibilidad (Fase 8, 8-1).
 
 ## Siguiente
 
-1. **El 4.13, prompt 4, con el piloto** (lo que se abre y los anchos: «Avanzado», la ayuda con su URL, los modos y «Ver total Bs», el resumen fijo, los e2e a 412 y 1.280 px al 100 y al 200 %, la tarea de oro 2 con teclado y el presupuesto de JS de la ruta; `docs/PLAN.md` fila 4.13) y en orden hasta 4.28, **un prompt a la vez, y se para a reportar**; la cuenta de pantallas sin completo vuelve a **0 de 3** (el completo de escritorio del 3c). **Del 3c** (`docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»): un número tipeado se lee con `leerNumeroTipeado(texto, locale)` de `src/shared/lib/numero-tipeado.ts` (en es-BO «1.234» es 1234 y «1.5» es un aviso), y lo guardado se abre con `formatearParaEditar` y el locale (obligatorio: lo encuentra `typecheck`); la importación CSV lee más permisiva a propósito. La `XCell` tiene un candado por lado (`secondaryDisabledReason`). **Para la persona:** la sesión de decidir guardó corridas las respuestas de la 1.ª tanda de P1–P6 (`.piloto/informes/4.13-3c.md` › «Para la persona»).
-2. Abiertos con número, assert y lugar en `docs/PLAN.md`: los de la Fase 4 van en su paso (**4-4** cuando una fórmula real pida `HOY()`, **4-33** (una tarifa que confirma tras abrir) en 4.20, **4-34** (`guardar` con `editar` y sin `ver`) en 4.15, **4-5** y **4-6** —el editor corta el texto de más de 2.000 antes de guardarlo— en 4.21, **4-10** (el tipo de vehículo de la subasta no casa con las filas del transporte) en 4.14, **4-14** («todas las que veo» de quien ve «propios» recorre el índice global) y **4-23** (lo mismo en el inventario de vehículos) en 4.16, **4-24** (`puede_cotizacion` mira el alcance dos veces) y **4-26** (la base lenta) en 4.15, **4-17** (la final directa no vincula ni limpia) en 4.25, **4-19** y **4-20** (el «·» solo y el aviso angosto) en 4.20, 5a-12 en 4.17, 5a-29 y 5a-30 en 4.20, 5b-7 en 4.23, 5a-4b y 5a-33 —el conteo del rol, tapado por «Permiso» al 200 % en Roles— en 4.28); **5a-28** pasa a la Fase 9; **5a-39** («Dadas de baja» dice «Por ahora el equipo eres tú»), **5a-40** (`cartera` indexada: la baja de 200.000 sin updates HOT) y **5a-42** (`medir-bajas.sql` cae con un `sync` de disco largo) y **4-39** (cuatro `entities/` de más de 300 líneas) sin fase, las decide la persona; **8-1** (la habilitada cuyo rol no recibe turnos no se ve en la cola) es de la 8; **6-1** (campo «principal» de un origen), **9-1** (dominancia sobre la persona), **9-2** (rango de un campo numérico) y **9-3** (`leads.campos.gestionar`), de la suya, y **9-4** a **9-6** (`db:medir`, `db:medir:volumen` y `db:carreras` fuera de CI; carreras va 3 de 5), **9-10** y **9-11** (esperas del e2e, logs de CI), de la 9.
+1. **El 4.13, prompt 4, con el piloto**: lo que se abre y los anchos («Avanzado», la ayuda con su URL, los modos y «Ver total Bs», el resumen
+   fijo, los e2e a 412 y 1.280 px al 100 y al 200 %, la tarea de oro 2 con teclado y el presupuesto de JS de la ruta). Después, en orden
+   hasta el 4.28, **un prompt a la vez, y se para a reportar**. La cuenta de pantallas sin completo está en **0 de 3**.
+2. **Del 3c:** un número tipeado se lee con `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre
+   con `formatearParaEditar` y el locale; la importación CSV lee más permisiva a propósito. **Para la persona:** la sesión de decidir dejó
+   anotadas las respuestas de la 1.ª tanda de P1–P6 (`.piloto/informes/4.13-3c.md` › «Para la persona»).
+3. **Abiertos sin fase, los decide la persona:** 5a-39 («Dadas de baja» dice «Por ahora el equipo eres tú»), 5a-40 (`cartera` indexada:
+   la baja de 200.000 sin updates HOT), 5a-42 (`medir-bajas.sql` cae con un `sync` de disco largo) y 4-39 (cuatro `entities/` de más de
+   300 líneas). Los demás abiertos, con su paso, en `docs/PLAN.md` › «Abiertos de la Fase 4» y en cada fase.
 
 ## Pendientes que se arrastran
 
-- **Ficha:** «Datos» 39,2 de 43 KB, «Oportunidades» 38,4, «Portal» 30,3 (con 100 orígenes y 100 tipos, «Datos» 40,1); si se pasa, se recortan las props. **Embudos:** plantilla de etapas por empresa; tablero de equipo (Fase 9, `tablero.metricas.ver`). **Portal:** plantilla del texto por empresa; `ajustes_web.direccion_publica` sin pantalla; la Fase 8 hace `api/portal/*`, la cookie con `otorgado_en`, el límite por IP y el ingreso según el contrato de `docs/DECISIONES.md` (2026-10-15).
-- **Lead sin dueño y con compartidos** (tras una baja): lo rescata la supervisión transfiriéndolo con `p_dueno_esperado` nulo. **Fase 7:** la notificación al compartir o transferir; la agenda dibuja el número del lead con `<NumeroDeLead>`.
-- **Fase 4** (cada uno en su paso de la Partición): la cotización final como ancla de la limpieza; desvincular con cotización final; `cotizacion_marcar_final` vincula el lead antes de tomar el vehículo (al revés que vincular: posible deadlock; ya toma primero su cotización); campos del lead en la tarjeta o el PDF. **Fase 6:** mover de fase y publicar sin mover la versión de la ficha; la papelera manual no mira `documentos`. **Fases 7 y 8:** el CTA «Escribirle por chat»; la notificación de la limpieza; el buscador de leads, sin los privados; el atajo `?` sin lista. `recordatorios_notificar()` existe sin cron y su `ruta` nombra el lead aunque su dueño ya no lo vea.
+- **Ficha del lead:** «Datos» 39,2 de 43 KB, «Oportunidades» 38,4 y «Portal» 30,3 (con 100 orígenes y 100 tipos, «Datos» 40,1); si se
+  pasa, se recortan las props. **Embudos:** plantilla de etapas por empresa; tablero de equipo (Fase 9). **Portal:** plantilla del texto
+  por empresa; `ajustes_web.direccion_publica` sin pantalla; la Fase 8 hace `api/portal/*`, la cookie con `otorgado_en` y el límite por IP.
+- **Lead sin dueño y con compartidos** (tras una baja): lo rescata la supervisión transfiriendo con `p_dueno_esperado` nulo.
+- **Fase 4, en su paso:** la cotización final como ancla de la limpieza; desvincular con cotización final; `cotizacion_marcar_final`
+  vincula el lead antes de tomar el vehículo (posible deadlock); campos del lead en la tarjeta o el PDF.
+- **Fase 6:** mover de fase y publicar sin mover la versión de la ficha; la papelera manual no mira `documentos`.
+- **Fases 7 y 8:** la notificación al compartir o transferir y la de la limpieza; el CTA «Escribirle por chat»; la agenda dibuja el número
+  del lead con `<NumeroDeLead>`; el buscador de leads sin los privados; el atajo `?` sin lista; `recordatorios_notificar()` existe sin cron
+  y su `ruta` nombra el lead aunque su dueño ya no lo vea.
 - **Fase 9:** Actividad leerá el diff recortado.
-
-## Lista para la nube (una persona)
-
-- Proyecto y `supabase link`; primer `db push --include-seed`; plantillas de correo; `Site URL`; SMTP; Google; `supabase functions deploy storage-gc` y `apibara`, y `select public.storage_gc_programar('https://<ref>.supabase.co/functions/v1/storage-gc');` (sin eso la purga deja los archivos); lo mismo con `avatares-miniaturas` (`avatares_miniaturas_programar(url)`).
-- **El día del primer `db push`** `db:base` se congela (la migración base ya estará aplicada) y los cambios son sólo migraciones: cambia la regla de `docs/DECISIONES.md` (2026-10-11) y el chequeo de `db:probar`.
-- **Jobs** (`limpieza-automatica`, `apibara-consultas-purgar`, `papelera-purgar`, `importaciones-vinculos-purgar`, `leads-campos-privacidad`, `equipo-bajas`; el de `web_expirar_solicitudes` se programa con la Fase 8): comprobar en `cron.job` (`pg_cron` corre en UTC) y que el runtime inyecta `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_ANON_KEY`.
-- **Antes de desplegar, probar apibara con una clave real (plan de pago):** alta por enlace (Copart e IAAI), VIN y lote; Refrescar; fotos (hasta 24); cuota agotada (429) y clave rechazada (401); y comparar la respuesta real con `e2e/fixtures/apibara`.
-- **Colación del índice de búsqueda:** `leads_busqueda_idx` (trigram) y el `ilike` pliegan mayúsculas y tildes con la colación de la base (local: ICU `en-US`). Tras el primer `db push`, repetir la huella de `supabase/tests/busqueda-volumen.sql` (ñ, tildes) contra esa base; un cambio de ICU o glibc pide `reindex index leads_busqueda_idx`. `perfiles_busqueda_idx` (la lista del equipo) se arma sobre `unaccent`: si la extensión cambia sus reglas, `reindex index public.perfiles_busqueda_idx`.
-- **Invitaciones:** `otp_expiry` en **24 h (86400 s)** en el panel de Auth (el máximo de la nube; decidido el 2026-10-21); `config.toml` local sigue en 1 h.
-- **Siembra:** el seed corre en el orden de `supabase/config.toml` › `[db.seed] sql_paths` (`seed.sql`, `semillas/cotizador-*.sql`, `semillas/estadisticas.sql`). Un permiso nuevo en una base viva lleva su `insert … on conflict` y la concesión al dueño en la misma migración (y, si debe seguir donde estaba, a los roles que ya lo ejercían: `web.cola.participar`); `tipos_seguimiento` y `origenes_lead` nacen de `seed.sql` con su icono y se configuran en su pestaña (una base viva recibe los iconos por `…004000`, que pasa los nombres de lucide a claves del catálogo). El **código de país** va en Empresa › Región.
 
 ## Deuda aceptada
 
-- `registrar_actividad()` y `storage_refcount()` tienen `execute` para `authenticated`; `marca` y `avatares` borran con `quitarSiHuerfano()`. `cambiar_fase` acepta `p_fase_esperada` nulo. `vehiculos.papelera.purgar` gobierna también la de cotizaciones, sin versión ni purga automática (Fase 4). `web.solicitar_asesor` no valida el vehículo; `cotizacion_marcar_final` vincula sin mirar la papelera. `limpieza_el` corre con los derechos de la base. Despublicar no revoca la URL de una foto.
-- «Ver como» acota la interfaz, no las filas que entrega la base (en leads fuerza «míos»). `storage-gc` y `apibara` (Deno) no entran en lint ni typecheck. Falta probar fotos en iPhone. `tipo_acceso = 'adoptado'` quedó sin uso.
-- Un mensaje de RPC habla de vos: `cambiar_fase` (flujos). `db:lint` da 32 avisos cosméticos en `_formula_*` y 15 en `evaluar_formula` (variables de bucle redeclaradas, sin usar, `'{}'` a arreglo, bigint a int): `…004900` y `…005200` no se editan. Sin interfaz: `demora_dias_default`, `lead_dormido_meses`, el logo oscuro, `push_web`, `web_publica`, `ajustes_web.origenes_visibles`, `fases.publica_web`, el `icono` y el orden de los orígenes de vehículos. Permisos sin enforcement en la base (excepciones con motivo en `supabase/tests/permisos-enforcement.sql`): `tablero.metricas.ver`, `datos.exportar.todo`, `notificaciones.push`, `logistica.pagos.confirmar`.
+- `registrar_actividad()` y `storage_refcount()` tienen `execute` para `authenticated`; `marca` y `avatares` borran con `quitarSiHuerfano()`.
+  `cambiar_fase` acepta `p_fase_esperada` nulo y tiene un mensaje que habla de vos. `vehiculos.papelera.purgar` gobierna también la papelera
+  de cotizaciones, sin versión ni purga automática. `web.solicitar_asesor` no valida el vehículo; `cotizacion_marcar_final` vincula sin mirar
+  la papelera. `limpieza_el` corre con los derechos de la base. Despublicar no revoca la URL de una foto.
+- «Ver como» acota la interfaz, no las filas que entrega la base. `storage-gc` y `apibara` (Deno) no entran en lint ni typecheck. Falta
+  probar fotos en iPhone. `tipo_acceso = 'adoptado'` quedó sin uso.
+- `db:lint` da 32 avisos cosméticos en `_formula_*` y 15 en `evaluar_formula`. Sin interfaz: `demora_dias_default`, `lead_dormido_meses`,
+  el logo oscuro, `push_web`, `web_publica`, `ajustes_web.origenes_visibles`, `fases.publica_web`, el `icono` y el orden de los orígenes de
+  vehículos. Permisos sin enforcement en la base, con su motivo en `supabase/tests/permisos-enforcement.sql`: `tablero.metricas.ver`,
+  `datos.exportar.todo`, `notificaciones.push`, `logistica.pagos.confirmar`.
