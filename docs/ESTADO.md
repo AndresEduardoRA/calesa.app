@@ -12,9 +12,10 @@ partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` �
 
 - Verdes: lint, typecheck, test, `db:probar`, `db:lint`, `db:carreras`, `db:medir:volumen`, `mapa.sh` y el e2e completo. Último completo:
   el de escritorio del 4.13-3c, 749 en verde y 16 saltados, ≈ 28 min. Los niveles de verificación, en `.claude/rules/e2e.md`.
-- **CI** (GitHub): `nivel-1` siempre; `base` y el e2e en 4 bloques si cambia código; e2e en PR y a mano (`escritorio|ambos`).
-- **El piloto** (`docs/PILOTO.md`) avanza `docs/PLAN.md` un paso por sesión de `claude -p`, con un bucle en bash que verifica y publica;
-  sólo pregunta en las compuertas, al celular. Falta aceptar la confianza de la carpeta y la prueba `decidir.sh --prueba-tandas`.
+- **CI** (GitHub): `nivel-1` siempre y `carriles` en cada PR; `base` si cambia código; en un PR, los e2e dirigidos a lo tocado (el
+  completo si toca un disparador del Nivel 2); el completo de escritorio cada noche y a mano (`escritorio|ambos`).
+- **El piloto** (`docs/PILOTO.md`) es el carril A de Orca (`docs/ORCA.md`): avanza `docs/PLAN.md` un paso por sesión y publica su rama
+  `a/…` por PR; sólo pregunta en las compuertas. Falta aceptar la confianza de la carpeta y `decidir.sh --prueba-tandas`.
 - **Fases 0 a 3 completas** (equipo, empresa, orígenes, vehículos y leads). **Fase 4:** fórmula, motor, niveles, crear y guardar una
   cotización, y la hoja dibujada que guarda (4.01 a 4.13-3c).
 - **La rueda de la web:** `habilitado` es de la persona (`cola_web_configurar`); el rol decide si puede estar (`web.cola.participar`). Sin
@@ -43,8 +44,7 @@ partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` �
 - **Fase 6:** mover de fase y publicar sin mover la versión de la ficha; la papelera manual no mira `documentos`.
 - **Fases 7 y 8:** la notificación al compartir o transferir y la de la limpieza; el CTA «Escribirle por chat»; la agenda dibuja el número
   del lead con `<NumeroDeLead>`; el buscador de leads sin los privados; el atajo `?` sin lista; `recordatorios_notificar()` existe sin cron
-  y su `ruta` nombra el lead aunque su dueño ya no lo vea.
-- **Fase 9:** Actividad leerá el diff recortado.
+  y su `ruta` nombra el lead aunque su dueño ya no lo vea. **Fase 9:** Actividad leerá el diff recortado.
 
 ## Deuda aceptada
 

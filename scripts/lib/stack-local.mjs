@@ -1,7 +1,7 @@
 // El stack local de Supabase de ESTE worktree: su project_id (los contenedores se llaman `supabase_<servicio>_<project_id>`) y sus
 // puertos. Manda, en este orden: la variable `SUPABASE_*` del entorno, `.env.carril` (lo escribe scripts/worktree/preparar.sh en un
 // carril de Orca) y `supabase/config.toml` (la principal). La CLI de Supabase lee las mismas variables, así que un carril tiene su
-// stack sin tocar config.toml (docs/PREPARACION.md, etapa 5).
+// stack sin tocar config.toml (docs/ORCA.md).
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseEnv } from 'node:util'

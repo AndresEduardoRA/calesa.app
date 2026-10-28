@@ -1057,3 +1057,19 @@ daba a `anon` y `authenticated` todo sobre cada tabla y función (medido: `anon`
 `db:probar` al aplastar: PGlite no tenía los privilegios por defecto y la prueba de `leads_cartera_vista` pasaba sin que la base real
 cumpliera. Queda abierto (4-40, lo decide la persona): `anon` conserva por esos mismos privilegios uso de 15 secuencias y `EXECUTE` en 32
 funciones de `public`, sin camino por PostgREST.
+
+## 2026-10-28 — Un stack de Supabase por carril, por variables de entorno y no por `config.toml`
+
+Cada carril de Orca tiene su stack (`importadora-a` y `-b`, puertos +100 y +200) sin tocar `supabase/config.toml`: la CLI lee
+`SUPABASE_PROJECT_ID`, `SUPABASE_*_PORT` y `SUPABASE_AUTH_SITE_URL` del entorno (verificado), y `scripts/worktree/preparar.sh` los deja en
+`.env.carril`, que cargan el candado, `pnpm dev` y `pnpm funciones`. El candado pasa a ser uno por puerto de la base. Medido: dos carriles
+con `db:reset` y e2e a la vez, sin cruces, con un pico de 19,6 GB de 30 (`docs/PREPARACION.md`, etapa 5). Generar un `config.toml` por
+worktree habría exigido esconderlo de git y una guarda para no commitearlo.
+
+## 2026-10-28 — Dos carriles por rama y PR: sólo la persona integra en `main`
+
+El piloto es el carril A y publica su rama `a/…` con su PR; el carril B son sesiones de Orca en `b/…`. Ninguna sesión empuja `main` ni
+integra un PR (el hook lo bloquea); sólo A edita ESTADO, PLAN, DECISIONES y BITACORA y crea migraciones de dominios compartidos, y lo hace
+cumplir una guarda de CI sobre el diff del PR (`scripts/guardas/carriles.mjs`), no `cierre.sh`, que es del piloto. `MAPA.md` deja de
+versionarse: lo cambiaba cada PR. Un PR corre el Nivel 1 y los e2e dirigidos a lo tocado (el completo si toca un disparador del Nivel 2);
+el completo corre cada noche: con dos carriles, el completo por PR costaba cuatro runners en cada push. Guía: `docs/ORCA.md`.

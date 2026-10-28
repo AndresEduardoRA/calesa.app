@@ -20,7 +20,7 @@
   completo sin todas servidas es una parada con «reintentar» (vuelve a mirar). El paso pide además una compuerta `afuera` si su plan sube a Nivel 2 sin ellas. No las levanta el bucle: sería un
   proceso largo con contenedores que habría que cerrar en `PARAR`, en `parar.sh --ya` y tras un reinicio, el runtime es uno por stack y lo comparten los worktrees, y `serve` carga el entorno de
   las funciones, que el bucle no toca.
-- **El piloto es el carril A**: corre en el worktree del carril, con su stack (`scripts/worktree/preparar.sh a`), sobre una rama `a/…`, y publica esa rama con su PR contra `main`; nunca empuja `main` ni integra (lo hace la persona). El carril B no usa el piloto.
+- **El piloto es el carril A** (`docs/ORCA.md`): corre en el worktree del carril, con su stack (`scripts/worktree/preparar.sh a`), sobre una rama `a/…`, y publica esa rama con su PR contra `main`; nunca empuja `main` ni integra (lo hace la persona). El carril B no usa el piloto.
 
 ## Arrancar, parar, retomar
 
