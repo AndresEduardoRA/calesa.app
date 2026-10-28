@@ -27,7 +27,8 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `lib/ancho.ts` — `anchoDeLaPeticion()` y los cortes `CORTE_DEL_TABLERO`/`CORTE_DE_LA_TABLA`/`CORTE_DEL_PANEL`; `ui/ancho-de-pantalla.tsx` (`useAlMenos()`).
 - `lib/atajos.ts` + `ui/atajos/` — `ATAJOS`, `<ProveedorAtajos>`, `useAtajo()`: responde el último registrado.
 - `lib/color.ts` (`tokensDeMarca()`, `cssDeMarca()`), `lib/imagenes.ts` (`comprimirImagen()`, `extensionDe()`, `hashDe()`), `lib/almacen.ts`, `lib/iconos.ts` (catálogo cerrado de 24 iconos), `lib/apibara.ts`.
-- `config/entorno.ts` (`entornoPublico()`), `config/app.ts` (nombre y colores por defecto).
+- `config/esquemas.ts` — el entorno en Zod (puro): `entornoPublico()`, `entornoDelServidor()`, el arranque, el build y `pnpm env:check`. `config/app.ts`: nombre y colores.
+- `lib/email/` — `enviarEmail()`: la única puerta del correo; un adaptador REST por proveedor (`EMAIL_PROVEEDOR`; hoy `mailpit`).
 - `ui/diferido.tsx` — `diferido()`: el único lugar que carga código diferido (el lint prohíbe `next/dynamic`).
 - `ui/modal.tsx`, `ui/drawer.tsx`, `ui/confirmar.tsx` — diálogos controlados desde la URL. `ui/modal-de-formulario.tsx` es el contrato de un formulario en un modal; `ui/use-envio-de-modal.ts` el envío de uno sin versión.
 - `ui/lista/` — el patrón de lista (`UnaSolaVista`, `TablaDeLista`, `FilaDeLista`, `TarjetaDeLista`, `MasAcciones`, `AbrirResumen`, `SimbolosDeLista`).
@@ -64,4 +65,3 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `entornoPublico()` valida al primer uso; las `NEXT_PUBLIC_*` se leen con el nombre literal.
 - Los textos hablan de tú, también los `MENSAJE_*` de `errores.ts`.
 - `vitest` no limpia solo entre pruebas: un test que monta diálogos usa `afterEach(cleanup)`.
-- `useUltimo()` pide un valor estable (uno nuevo en cada render es un bucle).

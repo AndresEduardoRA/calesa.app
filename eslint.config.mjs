@@ -68,6 +68,22 @@ const SOLO_DONDE_SE_PERMITE_EL_ADMIN = {
 }
 const DONDE_SE_PERMITE_EL_ADMIN = ['src/modules/equipo/infra/invitaciones.ts']
 
+// El correo sale por un solo módulo, `src/shared/lib/email/` (`enviarEmail()`), con un adaptador por proveedor por su API REST: cambiar de
+// proveedor es cambiar variables, nunca código (docs/ENTORNOS.md). Nadie importa el SDK de un proveedor, tampoco el módulo.
+const NINGUN_SDK_DE_CORREO = {
+  group: [
+    'resend',
+    'resend/*',
+    'nodemailer',
+    'nodemailer/*',
+    '@react-email/*',
+    '@sendgrid/*',
+    'postmark',
+  ],
+  message:
+    'El correo sale por enviarEmail() de @/shared/lib/email (un adaptador por proveedor, por su API REST): nunca el SDK de un proveedor.',
+}
+
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -222,7 +238,7 @@ export default defineConfig([
         'error',
         {
           paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS],
-          patterns: [SOLO_CLIENTES_DE_SHARED, SOLO_LAS_ENTRADAS],
+          patterns: [SOLO_CLIENTES_DE_SHARED, SOLO_LAS_ENTRADAS, NINGUN_SDK_DE_CORREO],
         },
       ],
     },
@@ -239,6 +255,7 @@ export default defineConfig([
           patterns: [
             SOLO_CLIENTES_DE_SHARED,
             SOLO_LAS_ENTRADAS,
+            NINGUN_SDK_DE_CORREO,
             {
               group: [
                 './index',
@@ -262,13 +279,16 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': [
         'error',
-        { paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS] },
+        {
+          paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS],
+          patterns: [NINGUN_SDK_DE_CORREO],
+        },
       ],
     },
   },
   {
     files: ['src/shared/lib/supabase/**/*.ts', ...DONDE_SE_PERMITE_EL_ADMIN],
-    rules: { 'no-restricted-imports': 'off' },
+    rules: { 'no-restricted-imports': ['error', { patterns: [NINGUN_SDK_DE_CORREO] }] },
   },
 
   // `src/app` compone las pantallas: además de las dos entradas, importa `pantallas/<pantalla>` de cada módulo. El layout `(app)` y su
@@ -280,7 +300,7 @@ export default defineConfig([
         'error',
         {
           paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS],
-          patterns: [SOLO_CLIENTES_DE_SHARED, LAS_ENTRADAS_Y_LAS_PANTALLAS],
+          patterns: [SOLO_CLIENTES_DE_SHARED, LAS_ENTRADAS_Y_LAS_PANTALLAS, NINGUN_SDK_DE_CORREO],
         },
       ],
     },
@@ -294,10 +314,16 @@ export default defineConfig([
         'error',
         {
           paths: [SOLO_DONDE_SE_PERMITE_EL_ADMIN, SOLO_EL_AYUDANTE_DE_DIFERIDOS],
-          patterns: [SOLO_CLIENTES_DE_SHARED, LAS_ENTRADAS_Y_LA_DEL_SHELL],
+          patterns: [SOLO_CLIENTES_DE_SHARED, LAS_ENTRADAS_Y_LA_DEL_SHELL, NINGUN_SDK_DE_CORREO],
         },
       ],
     },
+  },
+
+  // Fuera de src (scripts, e2e, configuración) tampoco se manda correo por el SDK de un proveedor.
+  {
+    files: ['scripts/**/*.{ts,mjs,js}', 'e2e/**/*.ts', '*.{ts,mjs,js}'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [NINGUN_SDK_DE_CORREO] }] },
   },
 
   prettier,
