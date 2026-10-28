@@ -13,9 +13,12 @@ import { dirname, join, resolve } from 'node:path'
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 
 // `publicar.sh` es lo único que hace `git push` en el piloto, y sólo lo corre el bucle (a una sesión `bloquear-peligrosos.sh` se lo
-// niega). Se prueba contra un repo temporal con un remoto local y un `gh` falso: main limpia y sin divergencia, el CI del push
-// anterior en verde (si corre, se espera), y el SQL de seguridad del rango sólo con `aprobado-<paso>` de la persona.
+// niega). El piloto es el carril A: publica su rama `a/…` y su PR contra main, nunca main ni un merge. Se prueba contra un repo
+// temporal con un remoto local y un `gh` falso: la rama limpia y sin divergencia, el CI del push anterior de la rama en verde (si
+// corre, se espera), el SQL de seguridad del rango sólo con `aprobado-<paso>` de la persona, y el PR (se abre una vez; después, un
+// comentario por paso).
 const SCRIPT = resolve('scripts/piloto/publicar.sh')
+const RAMA = 'a/carril'
 
 let raiz = ''
 let repo = ''
@@ -37,7 +40,8 @@ function commitear(archivo: string, texto: string, mensaje = archivo) {
   git(repo, 'commit', '-q', '-m', mensaje)
 }
 
-// El `gh` falso: `gh run list` imprime $FAKE_GH_LISTA, `gh run watch` sale con $FAKE_GH_WATCH, y cada llamada queda en llamadas-gh.txt.
+// El `gh` falso: `gh run list` imprime $FAKE_GH_LISTA, `gh run watch` sale con $FAKE_GH_WATCH, `gh pr list` imprime $FAKE_GH_PRS,
+// `gh pr create|comment` salen con $FAKE_GH_PR, y cada llamada queda en llamadas-gh.txt.
 function gh() {
   mkdirSync(join(raiz, 'bin'), { recursive: true })
   const archivo = join(raiz, 'bin/gh')
@@ -48,6 +52,8 @@ echo "$*" >> "${join(raiz, 'llamadas-gh.txt')}"
 case "$1 $2" in
   "run list") printf '%s' "\${FAKE_GH_LISTA:-[]}" ;;
   "run watch") exit "\${FAKE_GH_WATCH:-0}" ;;
+  "pr list") printf '%s' "\${FAKE_GH_PRS:-[]}" ;;
+  "pr create" | "pr comment") exit "\${FAKE_GH_PR:-0}" ;;
 esac
 `,
   )
@@ -67,6 +73,7 @@ beforeEach(() => {
   commitear('README.md', 'x\n', 'inicio')
   git(repo, 'push', '-q', 'origin', 'main')
   ayuda = git(repo, 'rev-parse', 'HEAD')
+  git(repo, 'checkout', '-q', '-b', RAMA)
   gh()
 })
 afterAll(() => {
@@ -88,7 +95,14 @@ function publicar(paso = '4.99', extra: Record<string, string> = {}, desde = ayu
   return { estado: r.status, salida: r.stdout + r.stderr }
 }
 
-const remotoEn = () => git(remoto, 'rev-parse', 'main')
+/** El commit de una rama en el remoto, o '' si no está. */
+function remotoEn(rama = RAMA) {
+  try {
+    return git(remoto, 'rev-parse', '--verify', '-q', `refs/heads/${rama}`)
+  } catch {
+    return ''
+  }
+}
 const llamadasGh = () =>
   existsSync(join(raiz, 'llamadas-gh.txt'))
     ? readFileSync(join(raiz, 'llamadas-gh.txt'), 'utf8')
@@ -96,21 +110,47 @@ const llamadasGh = () =>
 const ci = (status: string, conclusion: string) =>
   JSON.stringify([{ databaseId: 77, status, conclusion, headSha: ayuda }])
 
-describe('publicar.sh › el estado del repo', () => {
-  it('main limpia, sin divergencia y sin CI previo: empuja', () => {
+describe('publicar.sh › la rama del carril A', () => {
+  it('limpia, sin divergencia y sin PR: empuja la rama y abre su PR contra main, sin tocar main', () => {
     commitear('src/a.ts', 'a\n')
     const r = publicar()
     expect(r.estado, r.salida).toBe(0)
     expect(remotoEn()).toBe(git(repo, 'rev-parse', 'HEAD'))
+    expect(remotoEn('main')).toBe(ayuda)
+    expect(llamadasGh()).toContain(`pr create --base main --head ${RAMA}`)
+    expect(llamadasGh()).not.toContain('pr merge')
   })
 
-  it('una rama que no es main no empuja', () => {
-    git(repo, 'checkout', '-q', '-b', 'otra')
+  it('con el PR ya abierto, comenta el paso en vez de abrir otro', () => {
+    commitear('src/a.ts', 'a\n')
+    const r = publicar('4.99', { FAKE_GH_PRS: '[{"number":12}]' })
+    expect(r.estado, r.salida).toBe(0)
+    expect(llamadasGh()).toContain('pr comment 12 --body Paso 4.99 publicado')
+    expect(llamadasGh()).not.toContain('pr create')
+  })
+
+  it('si el PR no se puede abrir, avisa: la rama ya quedó empujada y la vuelta siguiente lo reintenta', () => {
+    commitear('src/a.ts', 'a\n')
+    const r = publicar('4.99', { FAKE_GH_PR: '1' })
+    expect(r.estado).toBe(1)
+    expect(r.salida).toContain('gh pr create falló')
+    expect(remotoEn()).toBe(git(repo, 'rev-parse', 'HEAD'))
+  })
+
+  it('main no se publica nunca', () => {
+    git(repo, 'checkout', '-q', 'main')
     commitear('src/a.ts', 'a\n')
     const r = publicar()
     expect(r.estado).toBe(1)
-    expect(r.salida).toContain('main')
-    expect(remotoEn()).toBe(ayuda)
+    expect(r.salida).toContain('a/…')
+    expect(remotoEn('main')).toBe(ayuda)
+  })
+
+  it('una rama que no es del carril A tampoco', () => {
+    git(repo, 'checkout', '-q', '-b', 'b/otra')
+    commitear('src/a.ts', 'a\n')
+    expect(publicar().estado).toBe(1)
+    expect(remotoEn('b/otra')).toBe('')
   })
 
   it('un árbol sucio (cambio sin commitear o archivo nuevo) no empuja', () => {
@@ -120,31 +160,42 @@ describe('publicar.sh › el estado del repo', () => {
     git(repo, 'checkout', '--', 'src/a.ts')
     writeFileSync(join(repo, 'nuevo.txt'), 'x')
     expect(publicar().estado).toBe(1)
-    expect(remotoEn()).toBe(ayuda)
+    expect(remotoEn()).toBe('')
   })
 
-  it('si origin/main tiene algo que no tenemos (divergencia) no empuja', () => {
+  it('un push anterior de la rama que HEAD contiene: avanza sin forzar', () => {
+    commitear('src/a.ts', 'a\n')
+    expect(publicar('4.98').estado).toBe(0)
+    commitear('src/b.ts', 'b\n')
+    expect(publicar('4.99', { FAKE_GH_PRS: '[{"number":12}]' }).estado).toBe(0)
+    expect(remotoEn()).toBe(git(repo, 'rev-parse', 'HEAD'))
+  })
+
+  it('si origin/<rama> tiene algo que no tenemos (divergencia) no empuja ni fuerza', () => {
+    commitear('src/a.ts', 'a\n')
+    expect(publicar('4.98').estado).toBe(0)
     const otro = join(raiz, 'otro')
-    execFileSync('git', ['clone', '-q', remoto, otro])
+    execFileSync('git', ['clone', '-q', '-b', RAMA, remoto, otro])
     writeFileSync(join(otro, 'otro.txt'), 'x')
     git(otro, 'add', '.')
     git(otro, 'commit', '-q', '-m', 'de otro')
-    git(otro, 'push', '-q', 'origin', 'main')
+    git(otro, 'push', '-q', 'origin', RAMA)
     const desdeOtro = remotoEn()
-    commitear('src/a.ts', 'a\n')
+    commitear('src/b.ts', 'b\n')
     const r = publicar()
     expect(r.estado).toBe(1)
-    expect(r.salida).toMatch(/diverg|origin\/main/)
+    expect(r.salida).toMatch(/diverg/)
     expect(remotoEn()).toBe(desdeOtro)
   })
 })
 
-describe('publicar.sh › el CI del push anterior', () => {
+describe('publicar.sh › el CI del push anterior de la rama', () => {
   beforeEach(() => commitear('src/a.ts', 'a\n'))
 
-  it('en verde: empuja sin esperar', () => {
+  it('en verde: empuja sin esperar, y pregunta por el CI de la rama, no el de main', () => {
     const r = publicar('4.99', { FAKE_GH_LISTA: ci('completed', 'success') })
     expect(r.estado, r.salida).toBe(0)
+    expect(llamadasGh()).toContain(`run list --branch ${RAMA}`)
     expect(llamadasGh()).not.toContain('run watch')
   })
 
@@ -158,14 +209,14 @@ describe('publicar.sh › el CI del push anterior', () => {
   it('en curso y termina en rojo: no empuja', () => {
     const r = publicar('4.99', { FAKE_GH_LISTA: ci('in_progress', ''), FAKE_GH_WATCH: '1' })
     expect(r.estado).toBe(1)
-    expect(remotoEn()).toBe(ayuda)
+    expect(remotoEn()).toBe('')
   })
 
   it.each(['failure', 'cancelled', 'timed_out'])('terminado en «%s»: no empuja', (conclusion) => {
     const r = publicar('4.99', { FAKE_GH_LISTA: ci('completed', conclusion) })
     expect(r.estado).toBe(1)
     expect(r.salida).toContain('CI')
-    expect(remotoEn()).toBe(ayuda)
+    expect(remotoEn()).toBe('')
   })
 })
 
@@ -185,7 +236,7 @@ describe('publicar.sh › el SQL de seguridad necesita la aprobación de la pers
     const r = publicar('4.15')
     expect(r.estado).toBe(1)
     expect(r.salida).toContain('aprobado-4.15')
-    expect(remotoEn()).toBe(ayuda)
+    expect(remotoEn()).toBe('')
   })
 
   it('con aprobado-<paso> empuja', () => {
@@ -210,7 +261,7 @@ describe('publicar.sh › el SQL de seguridad necesita la aprobación de la pers
       'supabase/migrations/20261001000000_vieja.sql',
       'create policy a on x using (true);\n',
     )
-    git(repo, 'push', '-q', 'origin', 'main')
+    git(repo, 'push', '-q', 'origin', RAMA)
     const desde = git(repo, 'rev-parse', 'HEAD')
     commitear(
       'supabase/migrations/20261001000000_vieja.sql',

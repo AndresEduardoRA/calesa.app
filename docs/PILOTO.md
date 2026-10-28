@@ -20,7 +20,7 @@
   completo sin todas servidas es una parada con «reintentar» (vuelve a mirar). El paso pide además una compuerta `afuera` si su plan sube a Nivel 2 sin ellas. No las levanta el bucle: sería un
   proceso largo con contenedores que habría que cerrar en `PARAR`, en `parar.sh --ya` y tras un reinicio, el runtime es uno por stack y lo comparten los worktrees, y `serve` carga el entorno de
   las funciones, que el bucle no toca.
-- La rama de trabajo es `main` (el bucle publica con `git push origin main`; nunca un PR). Si hay otro checkout con trabajo, el piloto convive con él por el candado de la base (abajo).
+- **El piloto es el carril A**: corre en el worktree del carril, con su stack (`scripts/worktree/preparar.sh a`), sobre una rama `a/…`, y publica esa rama con su PR contra `main`; nunca empuja `main` ni integra (lo hace la persona). El carril B no usa el piloto.
 
 ## Arrancar, parar, retomar
 
@@ -42,7 +42,7 @@
 
 0. La copia coincide con `bin.sha256` (y no hay archivos de más): si no, aviso antes de rutear.
 1. **Hechos, sin modelo** (`hechos.sh` → `.piloto/hechos.json`): hora de La Paz, rama, HEAD, árbol, disco, candado, último CI, la cuenta `n de 3` de e2e, bytes de ESTADO, `ultimo.json`, `en-curso.json`, fallas seguidas, la nota del ensayo, las funciones edge servidas (`funciones`) y el texto de la decisión vigente.
-2. **Paradas deterministas:** `.piloto/PARAR`, rama ≠ main, árbol sucio sin un paso en curso, disco, último CI de main en rojo. Cada una es un aviso; «sigo» la ignora una vez.
+2. **Paradas deterministas:** `.piloto/PARAR`, rama que no es `a/…`, árbol sucio sin un paso en curso, disco, último CI de la rama en rojo. Cada una es un aviso; «sigo» la ignora una vez.
 3. **Ruteo** (`/piloto-ruteo`, Sonnet, esfuerzo bajo, sólo `Read`/`Grep`/`Glob`): `paso`, `titulo`, `modelo`, `effort`, `sesion`, `nivel`, `compuerta`, `particion`, `por_que` (`ruteo.schema.json`). Política de modelos: docs → sonnet/medium; pantalla → sonnet/high; `src/shared`,
    un disparador de Nivel 2, datos o seguridad, carreras o cierre → opus/high; `continuar` → el de antes. Planificador y auditor, siempre opus.
 4. **Lo que el bucle no deja al modelo:** el paso 4.18 o 4.28, o abrir una fase, es un aviso; un paso de Nivel 2 (o con el completo) sin las funciones edge, también; 4.15 y 4.24–4.27 corren con `--hasta-plan` (la compuerta de datos con el plan en la mano). Si `en-curso.json` nombra un paso cuyo pid ya no vive, **sólo** se retoma con `--resume`.
@@ -58,8 +58,8 @@ Los e2e dirigidos corren con `E2E_SIN_FUNCIONES=1`: el bucle no levanta las func
 Cualquier falla en a), b) o d) es un aviso; no se publica. El aviso de b) es la última línea de `verificar.sh`: «verificar: <nombre> falló: <causa>», con la primera línea `Error:` del log; con un e2e rojo, la prueba que cayó y su error («[escritorio] › e2e/x.spec.ts:33:5 › título — Error: …»,
 hasta 300 caracteres).
 
-**Publicar** (`publicar.sh`, sólo lo corre el bucle): rama main, árbol limpio, `git fetch` sin divergencia, espera el CI del push anterior (`gh run watch`; rojo → aviso), SQL de seguridad en el rango (policy, RLS, `security definer`, `grant`/`revoke`, Vault) sin
-`<común>/piloto/aprobado-<paso>` → se niega, y `git push origin main`. Con `PILOTO=1` el hook `bloquear-peligrosos.sh` le niega a una **sesión** todo `git push`: el hook no ve al bucle porque el bucle no es una sesión. **Nunca un PR.**
+**Publicar** (`publicar.sh`, sólo lo corre el bucle): rama `a/…`, árbol limpio, sin divergencia con `origin/<rama>` (nunca fuerza), espera el CI del push anterior de la rama (`gh run watch`; rojo → aviso), SQL de seguridad en el rango (policy, RLS, `security definer`, `grant`/`revoke`, Vault) sin
+`<común>/piloto/aprobado-<paso>` → se niega; después empuja la rama y abre su PR contra `main` (`gh pr create`) o, si ya está, le comenta el paso. Con `PILOTO=1` el hook `bloquear-peligrosos.sh` le niega a una **sesión** todo `git push`: el hook no ve al bucle porque el bucle no es una sesión. **Nunca un merge.**
 
 ## Las compuertas
 

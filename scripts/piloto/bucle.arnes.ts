@@ -99,7 +99,7 @@ export class Arnes {
   constructor() {
     for (const d of [this.repo, this.comun, this.bin, join(this.fake, 'bin')])
       mkdirSync(d, { recursive: true })
-    execFileSync('git', ['init', '-q', '-b', 'main', this.repo])
+    execFileSync('git', ['init', '-q', '-b', 'a/piloto', this.repo])
     this.escribirRepo('.gitignore', '.piloto/\n')
     this.escribirRepo('README.md', 'x\n')
     this.escribirRepo('docs/ESTADO.md', 'estado\n')

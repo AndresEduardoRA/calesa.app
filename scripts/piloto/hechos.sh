@@ -2,7 +2,7 @@
 # Los hechos de cada vuelta del bucle, sin modelo: un JSON por stdout (el bucle lo guarda en `.piloto/hechos.json`). El ruteo y el
 # paso leen de aquí lo que necesitaría un comando: el ruteo no tiene Bash. Se prueba en `hechos.test.ts`.
 #
-# hora (La Paz), rama, head, origin_main, arbol_limpio, disco_pct, candado {libre, dueno}, ci (el último de main, o null),
+# hora (La Paz), rama, head, origin_main, arbol_limpio, disco_pct, candado {libre, dueno}, ci (el último de la rama, o null),
 # e2e (`cuenta-e2e.mjs` sobre docs/BITACORA.md), bytes_estado, ultimo (.piloto/ultimo.json), en_curso (.piloto/en-curso.json),
 # fallas_seguidas, nota (la del ensayo en seco), funciones (las edge que exige el e2e completo: servida o no) y decision (el texto de la decisión vigente: la del `decision.md` cuyo id es el de la
 # `compuerta.md` actual, hasta 8.000 B: la de «producto» trae una línea por decisión; el paso la lee de aquí porque no puede abrir esos
@@ -33,8 +33,8 @@ if [ -e "$CANDADO.lock" ] && ! flock -n "$CANDADO.lock" true 2>/dev/null; then
   DUENO=$(tr '\n' ';' <"$CANDADO.info" 2>/dev/null)
 fi
 
-# El último CI de main: null si `gh` no responde (sin red, sin sesión).
-CI=$(timeout 20 gh run list --branch main --limit 1 --json databaseId,status,conclusion,headSha,displayTitle 2>/dev/null | jq -c '.[0] // null' 2>/dev/null)
+# El último CI de la rama (la del carril A; publicar.sh la empuja con su PR): null si `gh` no responde (sin red, sin sesión).
+CI=$(timeout 20 gh run list --branch "${RAMA:-main}" --limit 1 --json databaseId,status,conclusion,headSha,displayTitle 2>/dev/null | jq -c '.[0] // null' 2>/dev/null)
 [ -n "$CI" ] || CI=null
 
 E2E=$(node "$BIN/cuenta-e2e.mjs" docs/BITACORA.md 2>/dev/null)

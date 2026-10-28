@@ -118,7 +118,11 @@ chequeo() {
 paradas_deterministas() {
   [ -f "$ESTADO/PARAR" ] && { registro "PARAR: el bucle se detiene entre pasos."; exit 0; }
   local disco
-  [ "$(hecho .rama)" = main ] || chequeo rama "la rama es «$(hecho .rama)», no main" || return 1
+  # El piloto es el carril A: trabaja en su rama `a/…` y publica por PR (publicar.sh), nunca en main.
+  case "$(hecho .rama)" in
+    a/?*) ;;
+    *) chequeo rama "la rama es «$(hecho .rama)», no la del carril A (a/…)" || return 1 ;;
+  esac
   if [ "$(hecho .arbol_limpio)" != true ] && [ ! -f "$ESTADO/en-curso.json" ]; then
     chequeo arbol "el árbol está sucio y no hay un paso en curso" || return 1
   fi
@@ -127,7 +131,7 @@ paradas_deterministas() {
     chequeo disco "el disco está al ${disco} % (tope ${DISCO_MAX} %: libera espacio o arranca con PILOTO_DISCO_MAX)" || return 1
   fi
   case "$(hecho '(.ci // {}) | select(.status == "completed") | .conclusion // ""')" in
-    failure | cancelled | timed_out) chequeo ci "el último CI de main está en rojo" || return 1 ;;
+    failure | cancelled | timed_out) chequeo ci "el último CI de la rama está en rojo" || return 1 ;;
   esac
   return 0
 }
