@@ -6,78 +6,77 @@ paths:
 
 # e2e y capturas
 
-- **Un e2e que falla no se reintenta** (`retries: 0`): se busca la causa en `e2e-fallos/<fecha>/` (traza, video, captura, reporte): un reporter de Playwright (`e2e/soporte/reporter-de-fallos.ts`) lo guarda en **toda** corrida que falla, también la de un spec suelto; quedan los cinco últimos. **Un `pnpm test` que cae** deja solo su salida completa y su JSON en `test-salidas/<fecha_hora-pid>/` (`salida.txt`, `resultado.json`; ignorada por git, quedan las cinco últimas; un Ctrl+C deja la salida hasta donde llegó y no el JSON): se mira ahí, no en las últimas 40 líneas del hook. Un
-  número que sólo se explica con «la máquina estaba ocupada» no se explicó: se mide (carga, contadores, qué más corría).
-- **La base local y el servidor de e2e son de una sola sesión a la vez**, aunque haya varios worktrees: `db:reset`, `db:types`, `db:diff`, `db:medir`, `db:carreras`, `db:lint`, `db:sembrar-volumen`, `db:medir:volumen`, `test:e2e` y `test:e2e:completo` toman `scripts/candado.sh` (no `db:base` ni `db:probar`, que corren en memoria): ocupado falla al instante con 75 y dice quién lo tiene (`CANDADO_ESPERA=<s>` espera). Saltárselo (el `supabase` o el `playwright test` sueltos) lo rechaza `bloquear-peligrosos.sh`; ver `docs/PILOTO.md`.
-- `pnpm test:e2e <spec>` corre un spec sobre la base como esté (pide `npx supabase functions serve`); `--project=escritorio` o
-  `--project=movil` elige el proyecto. **`pnpm test:e2e:completo`** resetea la base, corre las carreras y TODO, y pasa los argumentos a
-  Playwright: `pnpm test:e2e:completo --project=escritorio` sirve para iterar sobre un proyecto.
-- **Los tres niveles de verificación** (desde la 9i):
-  - **Nivel 1 — toda tarea:** `pnpm lint`, `pnpm typecheck`, `pnpm test` y los e2e **dirigidos** a lo tocado, en `escritorio` y, si lo
-    tocado es interfaz (la regla de abajo), también en `movil`.
-  - **Nivel 2 — si la tarea toca algo que usan todas las pantallas o toda la base, y sólo entonces.** Los disparadores son estos seis y
-    ningún otro: (1) lo compartido, `src/shared`; (2) el proxy, `src/proxy.ts`; (3) auth: `src/modules/equipo/features/auth`,
-    `src/app/auth` y `src/app/(acceso)`; (4) RLS: una migración que crea, cambia o borra una policy, o enciende RLS en una tabla; (5) el
-    layout: `src/app/layout.tsx`, `src/app/(app)/layout.tsx`, `src/app/(app)/_shell` y `src/app/(acceso)/layout.tsx`; (6) el esquema base:
-    `supabase/schemas` y `supabase/migrations/20261011000000_esquema_base.sql`. Además de lo dirigido corre
-    `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve` en otra terminal): **sólo escritorio, ≈ 24 min**. Un
-    componente, el proxy, una policy o el layout los usan todas las pantallas: lo dirigido no alcanza para ver lo que rompe en otra. Corre
-    **después del último cambio de código**; si el código cambia después, se vuelve a correr.
-  - **Nivel 3 — un cierre de fase:** `pnpm test:e2e:completo` con los dos proyectos, sin la bandera (**40,1 min** medido el 2026-10-22 en el
-    cierre de la Fase 3, 1.065 pruebas; 31,7 en el cierre 5a-fix-3 con 845; antes 42).
-    La BITACORA dice cuál se corrió: `e2e completo: sí|no (<tarea>)`. Un nivel que no se corrió se dice, no se da por pasado.
-  - **En la Fase 4** (decidido por la persona el 2026-10-25, `docs/DECISIONES.md`): los pasos de pura pantalla (4.12–4.14 y 4.16–4.23) van
-    con el Nivel 1, más el Nivel 2 si tocan uno de sus disparadores. Además, el completo de escritorio corre en el **tercer paso de pantalla
-    seguido sin completo** y en el **hito 4-A** (al cerrar 4.18). Los pasos de datos y seguridad (4.11, 4.15, 4.24–4.27) van con el Nivel 1 y
-    el Nivel 2, como siempre. La cuenta sale del marcador de BITACORA: un paso de pantalla que no lo corre escribe
-    `e2e completo: no (4.xx, pantalla, n de 3)`, y la cuenta vuelve a 0 con cada `e2e completo: sí`, sea del paso que sea.
-- **Interfaz: cuándo los e2e dirigidos corren también en `movil`** (la regla vive aquí y en ningún otro lugar; `scripts/piloto/nivel.mjs` la aplica
-  como `toca_interfaz` y la cita, `verificar.sh` del piloto la usa, y `scripts/piloto/nivel.test.ts` falla si esta lista y el código se separan).
-  Un archivo cambiado **es interfaz** si no es una prueba (`*.test.*` o `*.spec.*`) y es un `.tsx` o un `.css` de `src/`, algo de `design/`,
-  `public/`, `src/app/` o `src/shared/ui/`, o algo de `src/modules/<módulo>/pantallas/`. **No lo es** lo demás: `entities/`, `infra/`,
-  `features/` sin componentes, `src/shared/lib`, `supabase/`, `scripts/`, `e2e/` y los docs. Eso sólo se ve a través de una pantalla, y si esa
-  pantalla cambia es ella la que cuenta. La regla es conservadora: ante la duda, `movil`. Un cambio sin interfaz corre los dirigidos sólo en
-  `escritorio`. Esto no toca al completo (Nivel 2 y 3), ni a que todo spec corra en los dos proyectos.
-- **Una captura para mirar se toma con `capturar()` de `e2e/soporte/recorrido.ts`** (o `capturarEn()` de `e2e/soporte/capturas.ts`), nunca
-  con un `page.screenshot` suelto: espera a que la pantalla esté quieta (dos cuadros y todas las animaciones y transiciones con fin, con
-  tope de 2 s que dice cuáles seguían) y deja `animations: 'disabled'` como respaldo para las infinitas (un spinner, el pulso de un
-  esqueleto). Dos lecturas equivocadas de los botones fueron capturas a media transición. Sólo con `E2E_CAPTURAS=<carpeta>`;
-  `e2e/capturas-quietas.spec.ts` prueba que muerde.
-- **«Mirar las capturas» significa abrir TODAS las hojas.** `node scripts/hoja-de-contacto.mjs <carpeta>` monta cada proyecto en
-  `<carpeta>/hojas/<proyecto>-NN.png` (escritorio de a 4, celular de a 3, cada una rotulada con su nombre, a un tamaño que `Read` lee sin
-  reducir) y `hojas/indice.txt` dice qué lleva cada hoja. Se abren con `Read` todas, una por una; abrir las que «parecían importantes» es
-  no haber mirado (el cierre 3 abrió 17 de 115). **El informe lista las hojas abiertas** y lo que se vio en cada una (también «sin
-  novedad»). Una captura suelta sólo se abre para ampliar un detalle de una hoja.
-- Un defecto visto al mirar que no es de la tarea va a `docs/PLAN.md` con su número y su lugar; no se arregla de paso.
-- Lo que se puede afirmar sin mirar se afirma (cajas, tamaños de letra, contraste, quién recibe el clic: `e2e/soporte/recorrido.ts`);
-  las capturas son para lo que se juzga mirando (solapamientos, redacción, jerarquía).
-- Cada spec limpia lo que crea: `beforeAll`/`afterAll` con los ayudantes de `e2e/soporte/` (`prepararAlta`, `prepararListado`,
-  `prepararRecorrido`) y un nombre de prueba con el prefijo `E2E` y el proyecto, para que dos proyectos no se pisen.
-- **Todo spec corre en los dos proyectos, `escritorio` y `movil`; un spec nuevo no tiene que hacer nada.** Salir del celular exige **marcarlo
-  en el propio spec, con el motivo escrito**, y haber demostrado que el celular no le agrega nada. La marca es un comentario (no toca el
-  código ni su formato): `// @sin-celular-archivo: <motivo>` suelto, al principio de una línea, para el archivo entero, o `// @sin-celular:
-<motivo>` justo encima de un `test('título', …)` del nivel superior (título entre comillas en esa línea, sin plantillas). El motivo dice por
-  qué el ancho no importa (≥ 40 caracteres). Las lee `playwright.config.ts` (el proyecto `movil` deja fuera lo marcado con `testIgnore` y
-  `grepInvert`) y **`scripts/guardas/sin-celular.test.ts` (en `pnpm test`) la lista y falla** si falta el motivo o es corto, si la marca no está
-  sobre un `test(…)`, si dos pruebas llevan la misma, si la prueba pregunta por el ancho o el proyecto (`esMovil`, `isMobile`,
-  `project.name ===`, `setViewportSize`, el 200 %), si llama a un ayudante de `e2e/soporte` que mide (`tactil`, `panelDeFiltros`,
-  `sinScrollHorizontal`, `avisoNoTapaElPie`…, también a través de otros ayudantes), o si lo hace un `beforeEach` o una función del propio spec.
-  Una prueba que alimenta a la siguiente de un archivo `serial` (estado en la base o en una variable) **no se marca**: `movil` la dejaría
-  sin su alimentadora.
-- **La demostración** es `E2E_HUELLA=<carpeta> pnpm test:e2e:completo` (graba, por prueba, los pasos con la huella de cada elemento, los errores
-  de consola y el JS ejecutado: `e2e/soporte/huella.ts`) y `node scripts/comparar-anchos.mjs <carpeta> [salida.json] [resultado.json]`, que dice
-  IGUAL, DISTINTO (con el primer paso que difiere), SALTADA o SOLO_UNO. **Sale sólo una IGUAL cuyo JS de más del celular ejecuta otra prueba
-  que se queda.** Una diferencia real —tabla contra tarjetas, panel a la derecha contra desde abajo, el menú del celular, las pestañas de
-  etapas— deja la prueba en celular. `node scripts/areas-cubiertas.mjs <antes-esc> <antes-mov> <despues-esc> <despues-mov> [bajadas.json]`
-  (con `playwright test --list --project=<p>` de antes y de después) comprueba que cada nombre que sale de un proyecto sigue en el otro o
-  bajó a una prueba que lo cubre. Medido en el cierre 5a-fix-3: `docs/RENDIMIENTO.md` › «Cierre 5a-fix-3».
-- **Una prueba que baja de nivel (Vitest o `db:probar`) se prueba con una mutación:** se rompe a propósito la conducta en el código de producto,
-  se ve que cae la prueba de abajo, se revierte y recién entonces se borra el e2e. Si no cae, el e2e se queda. Lo que sólo se prueba con dos
-  conexiones va a `scripts/carreras/` (`pnpm db:carreras`).
-- **Después de un Esc que cierra un diálogo o de un `fill` que la app anota en un efecto, se espera antes del paso siguiente:**
-  `expect(dialogo).toBeHidden()` (mientras se cierra, el menú o el panel aún tienen su copia de un botón o su nombre, y un locator ve dos) y
-  `esperarDosCuadros(page)` de `e2e/soporte/barra-de-filtros.ts` entre el `fill` y el Esc (la app anota «hay algo escrito» después de pintar;
-  un Esc 1 ms después, que una persona no da, cerraba el panel sin preguntar). Un `getByRole('dialog', { name })` busca por subcadena: «Editar
-  <nombre>» también contiene el nombre.
-- **Un spec prepara todo el estado que usa y no depende de lo que dejó otro** (CI-2): los bloques de CI (`--shard=i/4`, cada uno desde `db:reset`) cambian el orden y el conjunto. Una clave en Vault, un ajuste o un catálogo que el spec asume y no fija pasa en local por lo que dejó un spec anterior y cae en CI; si necesita algo, lo deja (sin pisar lo que ya exista) y lo quita (`soporte/apibara-clave.ts`). Se prueba corriendo el spec solo tras `pnpm db:reset`.
-- **Antes de medir una caja o ver quién recibe un clic se espera el estado final, no sólo que aparezca el aviso** (CI-2): el pie sigue en «Guardando…», con los botones `disabled` (`pointer-events: none`), un rato después de que el aviso de guardado se ve. `avisoNoTapaElPie()` y `recibeElClic()` lo esperan (`soporte/esperas.ts`); una espera nueva es de un estado y nunca de un tiempo. Lo mismo tras un `goto` con lo que acomoda un efecto de la hidratación (CI-3): la pestaña abierta de una barra con desborde ya se ve con el HTML del servidor y la barra se desplaza después; se mide con `aLaVistaAlAcomodarse()`. Para probarlo: una copia del spec con `Emulation.setCPUThrottlingRate` de 14 a 20 por CDP.
+## Fallos y base local
+
+- Un e2e que falla no se reintenta (`retries: 0`): se busca la causa en `e2e-fallos/<fecha>/` (traza,
+  video, captura, reporte), que guarda `e2e/soporte/reporter-de-fallos.ts` en toda corrida que falla.
+  Un `pnpm test` que cae deja su salida en `test-salidas/<fecha_hora-pid>/`. «La máquina estaba
+  ocupada» no explica nada: se mide.
+- La base local y el servidor de e2e son de una sola sesión a la vez: `db:reset`, `db:types`, `db:diff`,
+  `db:medir`, `db:carreras`, `db:lint`, `db:sembrar-volumen`, `db:medir:volumen`, `test:e2e` y
+  `test:e2e:completo` toman `scripts/candado.sh` (no `db:base` ni `db:probar`). Ocupado falla con 75
+  (`CANDADO_ESPERA=<s>` espera); `bloquear-peligrosos.sh` rechaza `supabase` y el runner suelto.
+- `pnpm test:e2e <spec>` corre un spec sobre la base como esté (pide `npx supabase functions serve`);
+  `--project=escritorio` o `--project=movil` elige el proyecto. `pnpm test:e2e:completo` resetea la base,
+  corre las carreras y todo; pasa sus argumentos a Playwright.
+
+## Niveles de verificación
+
+- Nivel 1, toda tarea: `pnpm lint`, `pnpm typecheck`, `pnpm test` y los e2e dirigidos a lo tocado, en
+  `escritorio` y, si es interfaz (regla de abajo), también en `movil`.
+- Nivel 2, sólo si la tarea toca uno de estos seis disparadores y ningún otro: (1) lo compartido,
+  `src/shared`; (2) el proxy, `src/proxy.ts`; (3) auth: `src/modules/equipo/features/auth`, `src/app/auth` y
+  `src/app/(acceso)`; (4) RLS: una migración que crea, cambia o borra una policy, o enciende RLS en una
+  tabla; (5) el layout: `src/app/layout.tsx`, `src/app/(app)/layout.tsx`, `src/app/(app)/_shell` y
+  `src/app/(acceso)/layout.tsx`; (6) el esquema base: `supabase/schemas` y
+  `supabase/migrations/20261011000000_esquema_base.sql`. Además de lo dirigido corre
+  `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve`),
+  después del último cambio de código.
+- Nivel 3, un cierre de fase: `pnpm test:e2e:completo` con los dos proyectos. La BITACORA dice cuál se
+  corrió: `e2e completo: sí|no (<tarea>)`. Un nivel no corrido se dice.
+- Fase 4 (`docs/DECISIONES.md`): los pasos de pura pantalla (4.12–4.14, 4.16–4.23) van con el Nivel 1
+  (más el 2 si tocan un disparador); el completo de escritorio corre en el tercer paso de pantalla seguido
+  sin completo y en el hito 4-A (4.18). Sin completo: `e2e completo: no (4.xx, pantalla, n de 3)`.
+- **Interfaz: cuándo los e2e dirigidos corren también en `movil`** (la regla vive aquí; la aplica
+  `scripts/piloto/nivel.mjs` como `toca_interfaz` y `scripts/piloto/nivel.test.ts` falla si se separan).
+  Un archivo cambiado es interfaz si no es una prueba (`*.test.*` o `*.spec.*`) y es un `.tsx` o un `.css`
+  de `src/`, algo de `design/`, `public/`, `src/app/` o `src/shared/ui/`, o algo de
+  `src/modules/<módulo>/pantallas/`. No lo es lo demás (`entities/`, `infra/`, `src/shared/lib`,
+  `supabase/`, `scripts/`, `e2e/`, docs). Ante la duda, `movil`; sin interfaz, sólo `escritorio`. No toca
+  al completo (Niveles 2 y 3).
+
+## Escribir specs
+
+- Cada spec limpia lo que crea (`prepararAlta`, `prepararListado`, `prepararRecorrido`)
+  y nombra sus pruebas con prefijo `E2E` y el proyecto.
+- Un spec prepara todo el estado que usa y no depende de otro (CI corre en `--shard=i/4`, cada uno desde
+  `db:reset`): lo que necesita lo deja sin pisar lo existente y lo quita (`soporte/apibara-clave.ts`).
+- Antes de medir una caja o ver quién recibe un clic se espera el estado final, nunca un tiempo
+  (`soporte/esperas.ts`; tras un `goto` con desborde, `aLaVistaAlAcomodarse()`).
+- Tras un Esc que cierra un diálogo: `expect(dialogo).toBeHidden()`; entre un `fill` y el Esc:
+  `esperarDosCuadros(page)` de `e2e/soporte/barra-de-filtros.ts`.
+- Una prueba que baja de nivel (Vitest o `db:probar`) se prueba con una mutación: se rompe la conducta en
+  el producto, cae la de abajo, se revierte y recién entonces se borra el e2e. Lo que exige dos
+  conexiones va a `scripts/carreras/`.
+
+## Celular
+
+- Todo spec corre en `escritorio` y `movil`. Salir del celular exige marcarlo en el spec con motivo de
+  ≥ 40 caracteres: `// @sin-celular-archivo: <motivo>` para el archivo, o `// @sin-celular: <motivo>`
+  justo encima de un `test('título', …)` del nivel superior. La leen `playwright.config.ts`
+  (`testIgnore`, `grepInvert`) y `scripts/guardas/sin-celular.test.ts` (`pnpm test`), que falla si falta el
+  motivo, la marca no está sobre un `test(…)`, dos pruebas llevan la misma, la prueba pregunta por el
+  ancho o el proyecto (`esMovil`, `isMobile`, `project.name ===`, `setViewportSize`) o llama a un
+  ayudante que mide (`tactil`, `sinScrollHorizontal`, `avisoNoTapaElPie`…).
+- Una prueba que alimenta a otra de un archivo `serial` no se marca.
+- Demostración: `E2E_HUELLA=<carpeta> pnpm test:e2e:completo` y
+  `node scripts/comparar-anchos.mjs <carpeta>`; sólo sale una IGUAL cuyo JS de más lo ejecuta otra
+  prueba que se queda.
+
+## Capturas
+
+- Una captura para mirar se toma con `capturar()` (`e2e/soporte/recorrido.ts`) o `capturarEn()`
+  (`e2e/soporte/capturas.ts`), nunca con `page.screenshot`; sólo con `E2E_CAPTURAS=<carpeta>`.
+- «Mirar las capturas» es abrir todas las hojas de `node scripts/hoja-de-contacto.mjs <carpeta>` con
+  `Read`; el informe lista las hojas abiertas y lo visto en cada una.
+- Un defecto ajeno va a `docs/PLAN.md`, no se arregla de paso.

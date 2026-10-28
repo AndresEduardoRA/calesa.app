@@ -6,71 +6,41 @@ paths:
 
 # Capa de datos
 
-- Lecturas en `infra/queries/*.ts` con `import 'server-only'`; realtime y fetch desde el browser en
-  `infra/*.client.ts` (cliente de `@/shared/lib/supabase/browser`). Nunca desde componentes.
-- El cliente de servidor se crea por request (`createClient()` de `@/shared/lib/supabase/server`),
-  jamás en una variable global.
-- El cliente admin (`secret key`) salta la RLS. Sólo se crea en route handlers del portal,
-  webhooks y crons, con **una excepción**: invitar personas, que exige la API de admin de Auth.
-  Esa excepción vive en un solo lugar, `conAdminDeAuth()` de
-  `src/modules/equipo/infra/invitaciones.ts`, y con tres candados: comprueba
-  `equipo.usuarios.gestionar` en la base con el cliente de quien invita **antes** de crear el
-  cliente admin; entrega sólo `auth.admin` envuelto en `CuentasInvitadas` (nunca `.from()` ni
-  `.rpc()`); y no asigna el rol (eso lo hace `rbac_asignar_rol` con la sesión de quien invita).
-  El lint prohíbe importar `@/shared/lib/supabase/admin` desde cualquier otro archivo. En ningún
-  caso el cliente admin lee `leads`, `vehiculos` ni `cotizaciones` (saltaría la papelera).
-- Los tipos vienen de `@/shared/types/database.types` (`Tables<'leads'>`, `Enums<'clase_tipo_lead'>`).
-  Si un tipo contradice el código, el código está mal.
-- Leads: se leen de `leads_vista` (teléfono enmascarado salvo cartera). Nunca `from('leads')`
-  para leer el teléfono. «Míos» de quien tiene `leads.ver` «propios» se lee de `leads_cartera_vista`
-  (las mismas columnas y la misma RLS, por la cartera de quien mira: cuesta lo que pesa, no el total de
-  la tabla): la elige `fuenteDelListado()` de `modules/leads/entities`, nunca cada pantalla; quien ve «todos» y tiene una cartera corta (`leads_cartera_corta()`, ≤ 5.000 filas) también la lee así (`leerMiosDeLaCartera()`, 5a-5). **Una búsqueda por nombre o un campo, público o privado, en opciones, texto o rango**
-  (`ilike` y `@>` no son _leakproof_: bajo RLS ningún índice los sostiene; un privado lo calcula `atributos_lead()` por lead, 66 µs) no se pide a la vista: primero `leads_candidatos()` y
-  después `leads_vista_por_ids()` con lo demás (`leerPorCandidatos()`; `docs/RENDIMIENTO.md` › «Cierre 5a-fix-1b»). Una función
-  `returns setof leads_vista` nace dentro de `_leads_vista_crear()` y no lleva `strict`, `set`, `security definer` ni `volatile`:
-  si no, Postgres no la inlinea y calcula las columnas caras de todos los ids.
-- Los orígenes, su layout de campos y sus categorías se escriben sólo por RPC (`origen_*`,
-  `categoria_*`): sus tablas son de sólo lectura, y un campo con datos no cambia de tipo ni se elimina.
-- Los vehículos se escriben sólo por RPC: `vehiculo_crear` (con el `id` que genera el navegador:
-  reintentar no duplica; con `p_consulta`, el id de una consulta a apibara), `vehiculo_guardar` (con
-  versión) y `vehiculo_subasta_refrescar` (con versión y `p_consulta`, más lo que la app decidió
-  actualizar). **El bruto de apibara no llega nunca del navegador:** lo guarda la edge function en
-  `apibara_consultas` (sólo `service_role`) y la RPC lo copia por id (suya, del mismo origen, de las
-  últimas 24 h, de un solo vehículo). `subasta_en`, `estado_subasta`, `apibara_*` e
-  `importado_apibara` los escribe sólo la base. La clave de apibara la lee sólo `integracion_secreto()` (service role) desde la edge
-  function: nunca el cliente admin de la app. La tabla es de sólo lectura: no hay
-  `.insert()` ni `.update()` sobre `vehiculos`. Un error de validación trae en `hint` el campo
-  (`anio`, `atributos.<clave>`). Bajo RLS los filtros sobre `atributos` no usan el GIN.
-- Las fotos de un vehículo se escriben sólo por RPC: `vehiculo_fotos_agregar` (idempotente por
-  hash; devuelve `agregadas`, `repetidas` y `sin_lugar`), `vehiculo_foto_mover`,
-  `vehiculo_foto_portada` y `vehiculo_foto_eliminar`. `vehiculos_imagenes` es de sólo lectura. Su
-  versión es la de `vehiculos_imagenes_version`, no la del vehículo.
+- Lecturas en `infra/queries/*.ts` con `import 'server-only'`; realtime y fetch del browser en
+  `infra/*.client.ts` (`@/shared/lib/supabase/browser`). Nunca desde componentes.
+- El cliente de servidor se crea por request (`createClient()` de `@/shared/lib/supabase/server`).
+- El cliente admin (secret key) salta la RLS: sólo en route handlers del portal, webhooks y crons. Única
+  excepción, invitar personas: `conAdminDeAuth()` de `src/modules/equipo/infra/invitaciones.ts`, que
+  comprueba `equipo.usuarios.gestionar` con el cliente de quien invita antes de crear el admin, entrega
+  sólo `auth.admin` (`CuentasInvitadas`) y no asigna el rol. El lint prohíbe importar
+  `@/shared/lib/supabase/admin` desde otro archivo. Nunca lee `leads`, `vehiculos` ni `cotizaciones`.
+- Los tipos salen de `@/shared/types/database.types`.
+- Leads: se leen de `leads_vista`, nunca `from('leads')` para el teléfono. «Míos» de quien tiene
+  `leads.ver` «propios» se lee de `leads_cartera_vista`, elegida por `fuenteDelListado()`
+  (`modules/leads/entities`), no por cada pantalla. Una búsqueda por nombre o por un campo (público o privado)
+  va a `leads_candidatos()` y luego a `leads_vista_por_ids()` (`leerPorCandidatos()`). Una función
+  `returns setof leads_vista` nace en `_leads_vista_crear()` sin `strict`, `set`, `security definer` ni
+  `volatile`.
+- Sin `.insert()` ni `.update()` sobre la tabla, sólo RPC: orígenes y categorías (`origen_*`,
+  `categoria_*`); vehículos (`vehiculo_crear` con el `id` del navegador, `vehiculo_guardar`,
+  `vehiculo_subasta_refrescar`); fotos (`vehiculo_foto*`; versión de `vehiculos_imagenes_version`).
+- El bruto de apibara no llega del navegador (lo guarda la edge function en `apibara_consultas`); su clave
+  la lee sólo `integracion_secreto()`, nunca el cliente admin.
 - Lo que otorga permisos se escribe por RPC: `crear_lead`, `cambiar_fase`, `vehiculo_vitrina`,
-  `vehiculo_vincular` (el vínculo da ver y editar con alcance «propios»),
-  `vehiculos_papelera_*` y `leads_papelera_*` (las `papelera_*` genéricas son sólo de cotizaciones:
-  rechazan vehículos y leads), `formula_*`, `rbac_*`, `otorgar_portal`, `lead_transferir`, `lead_compartir`,
-  `lead_revocar_acceso`, `lead_salir` (actuar sobre el contenido de un lead exige la cartera: `puede_actuar_lead()`,
-  nunca `puede_lead(…, 'leads.editar')`; el cinturón de `db:probar` lo vigila), `cotizacion_marcar_final`, `comprobante_emitir`, `web_confirmar_contacto`, `cola_web_configurar`.
-  Un `.update()` sobre `fase_id`, `lead_id`, `publicado_web`, `eliminado_en`, `creado_por` o `responsable_id`
-  es un bug (la base lo rechaza).
-- Toda mutación de edición manda `p_actualizado_en_esperado` o `p_fase_esperada` (la RPC los exige: un
-  nulo se rechaza) y trata `PT409` como conflicto legible (`conflicto()` de `@/shared/lib/errores`),
-  nunca como error genérico. Una RPC de lote (`vehiculos_papelera_enviar`) lleva la versión de cada
-  fila en su arreglo (`[{id, actualizado_en}]`) y devuelve un resultado parcial: lo que no pasó
-  vuelve con su `codigo` y su `motivo`, y se muestra entero.
-- La vitrina se escribe con `vehiculo_vitrina` (versión del vehículo, el estado entero) y se lee
-  con `vehiculo_vitrina_previa` y `vitrina_del_origen`. Nada de la app lee el esquema `interno`.
-- La papelera de vehículos se lee con `vehiculos_papelera_listar()` (la RLS esconde lo eliminado a
-  todos) y se restaura o purga con la versión **del lote** (`lotes_papelera.actualizado_en`).
-- Una query de seguimiento sobre una página ya paginada se acota con los ids de esa página
-  (`.in('id', ids)`), nunca con un filtro sin cota. Listas grandes: keyset por `(creado_en, id)`.
-- Uploads desde el browser: fotos por `comprimirImagen()` o `comprimirEnTamanos()` (WebP, o JPEG
-  donde el navegador no lo codifica; ≤ 1600 px) y `subirPorHash()`, con la extensión de
-  `extensionDe(blob.type)`; documentos sin comprimir. Commit diferido: el archivo se sube al
-  confirmar, nunca al elegirlo.
-- Borrar un objeto de Storage nunca es un `remove` directo de algo que otra fila pueda
-  referenciar. En `marca` y `avatares`, `quitarSiHuerfano()` (cuenta con `storage_refcount`). En
-  `vehiculos` el navegador no borra nada (no hay policy): eliminar una foto encola sus objetos, y
-  lo que se subió y no llegó a tener fila lo junta el barrido de huérfanos
-  (`storage_gc_reclamar`).
-- `revalidatePath` en la action que muta; sin `router.refresh()` encima en el camino de éxito.
+  `vehiculo_vincular`, `vehiculos_papelera_*`, `leads_papelera_*`, `formula_*`, `rbac_*`, `otorgar_portal`, `lead_transferir`, `lead_compartir`,
+  `lead_revocar_acceso`, `lead_salir`, `cotizacion_marcar_final`, `comprobante_emitir`,
+  `web_confirmar_contacto`, `cola_web_configurar`. Actuar sobre un lead exige `puede_actuar_lead()`,
+  nunca `puede_lead(…, 'leads.editar')`. Un `.update()` sobre `fase_id`, `lead_id`, `publicado_web`,
+  `eliminado_en`, `creado_por` o `responsable_id` es un bug.
+- Toda edición manda `p_actualizado_en_esperado` o `p_fase_esperada` y trata `PT409` con `conflicto()`
+  de `@/shared/lib/errores`. Una RPC de lote lleva `[{id, actualizado_en}]` y devuelve un resultado
+  parcial con `codigo` y `motivo` por fila, que se muestra.
+- La vitrina se lee con `vehiculo_vitrina_previa` y `vitrina_del_origen`; nada lee el esquema `interno`.
+  La papelera de vehículos, con `vehiculos_papelera_listar()`; se restaura o purga con la versión del
+  lote (`lotes_papelera.actualizado_en`).
+- Una query de seguimiento sobre una página ya paginada se acota con `.in('id', ids)`.
+- Uploads: fotos por `comprimirImagen()` o `comprimirEnTamanos()` y `subirPorHash()` con
+  `extensionDe(blob.type)`; documentos sin comprimir.
+- Borrar de Storage nunca es un `remove` directo: en `marca` y `avatares`, `quitarSiHuerfano()`; en
+  `vehiculos` el navegador no borra (barre `storage_gc_reclamar`).
+- `revalidatePath` en la action que muta; sin `router.refresh()` en el éxito.
