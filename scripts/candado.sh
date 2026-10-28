@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# El turno de la base local y del servidor de e2e: lo que se corre con ellos es de una sola sesión a la vez, aunque haya varios
-# worktrees (la base de Supabase, los puertos 546xx y `.next-e2e` son una sola). Se prueba en `scripts/candado.test.ts`.
+# El turno de la base local y del servidor de e2e: lo que se corre con ellos es de una sola sesión a la vez. Hay uno por stack: la
+# principal (la base en el 54622) y cada carril de Orca (su `.env.carril`, que este script exporta al comando: así `supabase`, el e2e
+# y los scripts de medir usan el stack y los puertos de su worktree). Se prueba en `scripts/candado.test.ts`.
 #
 #   bash scripts/candado.sh <nombre> -- <comando…>
 #
-# `flock -n` sobre `<carpeta común de git>/candado-base.lock` (común a todos los worktrees, fuera del árbol). Ocupado falla al
-# instante con 75 y dice quién lo tiene (nombre, pid, carpeta, comando y hora, de `candado-base.info`). Variables:
+# `flock -n` sobre `<carpeta común de git>/candado-base-<puerto de la base>.lock` (fuera del árbol: dos worktrees del mismo stack
+# comparten el candado). Ocupado falla al instante con 75 y dice quién lo tiene (nombre, pid, carpeta, comando y hora, del `.info`).
+# Variables:
 #   CANDADO_ESPERA=<s>  espera hasta <s> segundos a que se libere (sin ella, falla al instante)
 #   CANDADO_DIR=<dir>   dónde viven el candado y su registro (para las pruebas: nunca el candado real)
 # Es reentrante: un comando que corre con el candado (`test:e2e:completo` llama a `db:reset`, `db:carreras` y `test:e2e`) lo
@@ -19,6 +21,8 @@ set -uo pipefail
 }
 NOMBRE="$1"
 shift 2
+# shellcheck source=lib/carril.sh
+source "$(dirname "${BASH_SOURCE[0]}")/lib/carril.sh"
 
 DIR="${CANDADO_DIR:-$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)}"
 [ -n "$DIR" ] || {
@@ -26,8 +30,8 @@ DIR="${CANDADO_DIR:-$(git rev-parse --path-format=absolute --git-common-dir 2>/d
   exit 64
 }
 mkdir -p "$DIR"
-CANDADO="$DIR/candado-base.lock"
-INFO="$DIR/candado-base.info"
+CANDADO="$(ruta_del_candado "$DIR").lock"
+INFO="$(ruta_del_candado "$DIR").info"
 
 # Ya lo tiene un ancestro de este comando: sigue.
 if [ "${CANDADO_TOMADO:-}" = "$CANDADO" ]; then

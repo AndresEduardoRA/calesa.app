@@ -29,6 +29,9 @@ elif [ "$MODO" = demo ]; then
 fi
 
 if [ "$MODO" = local ]; then
+  # El stack de este worktree: la principal o un carril (`.env.carril`; para `supabase status` y el puerto de la app).
+  # shellcheck source=../lib/carril.sh
+  source scripts/lib/carril.sh
   for v in DEMO_DUENO_EMAIL DEMO_DUENO_CLAVE DEMO_CLAVE_USUARIOS; do [ -n "${!v:-}" ] || falta "falta $v (en .env.demo o en el entorno)"; done
   pnpm db:reset >/dev/null 2>&1 || pnpm db:reset >/dev/null
   echo "✓ base local reseteada (migraciones y seed)"
@@ -38,7 +41,6 @@ if [ "$MODO" = local ]; then
   SEMBRAR_URL=$(leer API_URL) SEMBRAR_CLAVE_PUBLICA=$(leer PUBLISHABLE_KEY) SEMBRAR_CLAVE_SECRETA=$(leer SECRET_KEY) \
     DUENO_EMAIL="$DEMO_DUENO_EMAIL" DUENO_CLAVE="$DEMO_DUENO_CLAVE" CLAVE_USUARIOS="$DEMO_CLAVE_USUARIOS" \
     APIBARA_CLAVE="${APIBARA_CLAVE:-}" SEMBRAR_URL_APP="http://localhost:${PUERTO_APP:-3000}" node scripts/demo/sembrar.mjs
-  # El puerto de la app de este worktree lo deja scripts/worktree/preparar.sh en PUERTO_APP; la principal usa el 3000.
   exit 0
 fi
 

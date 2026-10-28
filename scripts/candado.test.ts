@@ -1,5 +1,5 @@
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { execFileSync, spawn, spawnSync, type ChildProcess } from 'node:child_process'
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -12,18 +12,21 @@ const SCRIPT = resolve('scripts/candado.sh')
 let dir = ''
 const abiertos: ChildProcess[] = []
 
+// El puerto de la base va explícito: una variable del entorno manda sobre el `.env.carril` del worktree que corre las pruebas.
 const entorno = (extra: Record<string, string> = {}): NodeJS.ProcessEnv => ({
   NODE_ENV: 'test',
   PATH: process.env['PATH'] ?? '',
   CANDADO_DIR: dir,
+  SUPABASE_DB_PORT: '54622',
   ...extra,
 })
 
-function correr(args: string[], extra: Record<string, string> = {}) {
+function correr(args: string[], extra: Record<string, string> = {}, cwd?: string) {
   return spawnSync('bash', [SCRIPT, ...args], {
     encoding: 'utf8',
     env: entorno(extra),
     timeout: 30_000,
+    ...(cwd ? { cwd } : {}),
   })
 }
 
@@ -34,7 +37,7 @@ async function tomar(nombre: string, extra: Record<string, string> = {}): Promis
     stdio: ['pipe', 'ignore', 'ignore'],
   })
   abiertos.push(dueno)
-  for (let i = 0; i < 200 && !existsSync(join(dir, 'candado-base.info')); i++) {
+  for (let i = 0; i < 200 && !existsSync(join(dir, 'candado-base-54622.info')); i++) {
     await new Promise((r) => setTimeout(r, 25))
   }
   return dueno
@@ -89,7 +92,7 @@ describe('candado.sh', () => {
   it('queda libre al terminar el dueño, y su registro se borra', async () => {
     const dueno = await tomar('uno')
     await soltar(dueno)
-    expect(existsSync(join(dir, 'candado-base.info'))).toBe(false)
+    expect(existsSync(join(dir, 'candado-base-54622.info'))).toBe(false)
     expect(correr(['otro', '--', 'echo', 'ok']).status).toBe(0)
   })
 
@@ -161,5 +164,38 @@ describe('candado.sh › reentrada y espera', () => {
     expect(correr(['uno', '--']).status).toBe(64)
     expect(correr(['uno', 'echo', 'x']).status).toBe(64)
     expect(correr(['otro', '--', 'echo', 'ok']).status).toBe(0)
+  })
+})
+
+// Un stack por carril de Orca (scripts/worktree/preparar.sh): cada uno con su base, su puerto y su candado.
+describe('candado.sh › carriles', () => {
+  it('hay un candado por puerto de la base: dos stacks corren a la vez', async () => {
+    await tomar('e2e-principal')
+    expect(existsSync(join(dir, 'candado-base-54622.lock'))).toBe(true)
+    const r = correr(['e2e-carril-a', '--', 'echo', 'a la vez'], { SUPABASE_DB_PORT: '54722' })
+    expect({ estado: r.status, salida: r.stdout.trim() }).toEqual({ estado: 0, salida: 'a la vez' })
+    expect(existsSync(join(dir, 'candado-base-54722.lock'))).toBe(true)
+  })
+
+  it('exporta al comando el `.env.carril` del worktree, salvo lo que ya trae el entorno', () => {
+    const worktree = mkdtempSync(join(tmpdir(), 'candado-carril-'))
+    try {
+      execFileSync('git', ['init', '-q', worktree])
+      writeFileSync(
+        join(worktree, '.env.carril'),
+        '# carril a\nSUPABASE_PROJECT_ID=importadora-a\nSUPABASE_DB_PORT=54722\nE2E_PORT=3310\n',
+      )
+      const { SUPABASE_DB_PORT: _, ...sinPuerto } = entorno({ E2E_PORT: '9999' })
+      const r = spawnSync(
+        'bash',
+        [SCRIPT, 'x', '--', 'sh', '-c', 'echo "$SUPABASE_PROJECT_ID $SUPABASE_DB_PORT $E2E_PORT"'],
+        { encoding: 'utf8', env: sinPuerto, cwd: worktree },
+      )
+      expect(r.stdout.trim()).toBe('importadora-a 54722 9999')
+      expect(existsSync(join(dir, 'candado-base-54722.info'))).toBe(false)
+      expect(existsSync(join(dir, 'candado-base-54722.lock'))).toBe(true)
+    } finally {
+      rmSync(worktree, { recursive: true, force: true })
+    }
   })
 })

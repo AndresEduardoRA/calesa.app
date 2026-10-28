@@ -1,6 +1,7 @@
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -146,10 +147,11 @@ describe('hechos.sh', () => {
   it('dice quién tiene el candado de la base cuando está ocupado', async () => {
     const candado = join(raiz, 'candado')
     const dueno = spawn('bash', [resolve('scripts/candado.sh'), 'db:reset', '--', 'cat'], {
+      cwd: repo,
       env: { NODE_ENV: 'test', PATH: process.env['PATH'] ?? '', CANDADO_DIR: candado },
       stdio: ['pipe', 'ignore', 'ignore'],
     })
-    for (let i = 0; i < 200 && !existsSync(join(candado, 'candado-base.info')); i++) {
+    for (let i = 0; i < 200 && !existsSync(join(candado, 'candado-base-54622.info')); i++) {
       await new Promise((r) => setTimeout(r, 25))
     }
     try {
@@ -182,5 +184,31 @@ describe('hechos.sh › las funciones edge', () => {
     expect(urls).toContain('http://127.0.0.1:54621/functions/v1/apibara\n')
     expect(urls).toContain('http://127.0.0.1:54621/functions/v1/avatares-miniaturas\n')
     expect(urls).toContain('http://otro:1/functions/v1/storage-gc\n')
+  })
+
+  it('en un carril lee su `.env.carril`: la API y el candado de su stack', async () => {
+    mkdirSync(join(repo, 'scripts/lib'), { recursive: true })
+    copyFileSync(resolve('scripts/lib/carril.sh'), join(repo, 'scripts/lib/carril.sh'))
+    writeFileSync(
+      join(repo, '.env.carril'),
+      'SUPABASE_DB_PORT=54722\nPILOTO_SUPABASE_URL=http://127.0.0.1:54721\n',
+    )
+    const candado = join(raiz, 'candado')
+    const dueno = spawn('bash', [resolve('scripts/candado.sh'), 'db:reset', '--', 'cat'], {
+      cwd: repo,
+      env: { NODE_ENV: 'test', PATH: process.env['PATH'] ?? '', CANDADO_DIR: candado },
+      stdio: ['pipe', 'ignore', 'ignore'],
+    })
+    for (let i = 0; i < 200 && !existsSync(join(candado, 'candado-base-54722.info')); i++) {
+      await new Promise((r) => setTimeout(r, 25))
+    }
+    try {
+      expect(hechos({ FAKE_CURL: 'apibara=204' })['candado']).toMatchObject({ libre: false })
+      expect(readFileSync(join(raiz, 'curl.log'), 'utf8')).toContain(
+        'http://127.0.0.1:54721/functions/v1/apibara\n',
+      )
+    } finally {
+      dueno.stdin.end()
+    }
   })
 })
