@@ -16,3 +16,6 @@ supabase/tests/corpus-de-diseno.json
 supabase/tests/corpus-de-contraste.json
 .claude/worktrees
 .piloto
+
+# el archivo de los docs: copias tal cual, nunca se reformatean (docs/archivo/LEEME.md)
+docs/archivo
