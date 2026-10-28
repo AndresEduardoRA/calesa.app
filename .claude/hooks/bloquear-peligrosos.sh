@@ -3,7 +3,7 @@
 # que es lo que Claude recibe). Lee la entrada con jq (`tool_input.command`, `cwd`). Se prueba en `bloquear-peligrosos.test.ts`.
 #
 #   Siempre:          lo irreversible (reset --hard, clean, checkout --, branch -D…), lo que publica fuera de main (push),
-#                     lo remoto (supabase --linked, gh api …/dispatches, vercel), cambiar dependencias y saltarse el candado
+#                     lo remoto (supabase --linked salvo leer, config push, gh api …/dispatches, vercel), cambiar dependencias y saltarse el candado
 #                     de la base (`scripts/candado.sh`).
 #   Sólo PILOTO=1:    todo `git push` (lo publica el bucle, que no es una sesión), `gh` que escribe y `claude`.
 #
@@ -182,8 +182,18 @@ revisar_gh() {
 revisar_supabase() {
   local sub="${A[0]:-}" sub2="${A[1]:-}"
   case "$ARGS" in
-    *" --linked"* | *" --project-ref"*) bloquear "supabase con --linked o --project-ref toca el proyecto remoto: lo hace una persona." ;;
+    *" --linked"* | *" --project-ref"*)
+      # Sólo lectura del proyecto remoto (docs/PREPARACION.md, etapa 0): volcar, listar migraciones, comparar e inspeccionar.
+      # Lo que cambia la demo pasa por scripts/demo/*.sh, que corre una persona o la sesión con su aviso.
+      case "$sub $sub2" in
+        "db dump" | "migration list" | "db diff") ;;
+        inspect\ *) ;;
+        *) bloquear "supabase con --linked o --project-ref toca el proyecto remoto: lo hace una persona (sólo se leen db dump, migration list, db diff e inspect)." ;;
+      esac ;;
+  esac
+  case "$ARGS" in
     *"functions deploy"*) bloquear "supabase functions deploy publica en el proyecto remoto: lo hace una persona." ;;
+    *"config push"*) bloquear "supabase config push cambia la configuración del proyecto remoto: va por scripts/demo/restaurar.sh." ;;
   esac
   case "$sub" in link | secrets) bloquear "supabase $sub toca el proyecto remoto: lo hace una persona." ;; esac
   [ "$CON_CANDADO" = 1 ] && return 0
