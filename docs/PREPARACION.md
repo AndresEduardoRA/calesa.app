@@ -38,8 +38,8 @@
 | 2 — Entornos y configuración    | hecha en local (2026-10-28); espera `.env.demo` y Vercel       | principal 96 K · 87,4 M; subagentes (Opus) 102 K · 21,4 M; 0,75 h   |
 | 4 — Quitar lo que sobra         | hecho lo aprobado (2026-10-28); el resto espera tu visto bueno | principal 12 K · 11,3 M; 0,1 h (más knip en la etapa 2)             |
 | 5 — Worktrees en paralelo       | hecho (2026-10-28)                                             | principal 72 K · 23,2 M; 0,55 h                                     |
-| 6 — Flujo de dos carriles       | pendiente                                                      | —                                                                   |
-| 7 — Cierre                      | pendiente                                                      | —                                                                   |
+| 6 — Flujo de dos carriles       | hecho (2026-10-28)                                             | principal 98 K · 29,3 M; 0,39 h                                     |
+| 7 — Cierre                      | en curso (desde 21:12 UTC)                                     | —                                                                   |
 
 ## Etapa 0 — Backup y disco
 
@@ -186,6 +186,24 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
   la principal sola; 14 GB con los tres stacks; **pico de 19,6 GB** con los dos builds, los dos `next start` y los dos Chromium (de 30 GB).
   Disco por worktree: ≈ 0,3 GB más sus builds.
 - Verde: lint, typecheck, test (5.371), `db:probar`, `db:lint`, `mapa.sh --check`; `jobs-de-verdad.sh` con `pnpm funciones` (200).
+
+## Etapa 6 — Flujo de dos carriles (hecha)
+
+- **Guía:** `docs/ORCA.md` (111 líneas): quién hace qué, abrir un carril, puertos, reglas, niveles, integrar, la demo, qué hacer si se
+  acaba el uso, quitar un carril y los primeros prompts. B anota en `docs/carriles/b.md`.
+- **El piloto es el carril A** (sin reescribir bucle, hechos, cierre ni tmux): el bucle exige una rama `a/…` y mira el CI de esa rama;
+  `publicar.sh` empuja la rama sin forzar y abre su PR contra `main` (o le comenta el paso). Nunca integra.
+- **Hook:** ninguna sesión empuja `main` ni integra un PR; sólo empuja su rama actual, sin forzar ni borrar, y nunca junto a un `cd`. Con
+  `PILOTO=1`, ningún push (263 casos).
+- **CI:** job `carriles` en cada PR (`scripts/guardas/carriles.mjs`: B no toca ESTADO, PLAN, DECISIONES ni BITACORA y sólo crea migraciones
+  de agenda, chat, notificaciones, buscador o web; toda migración nueva posterior a la última de la base; ninguna aplicada se edita; única
+  excepción, el borrado de las anteriores a la base aplastada, que es este PR). Los e2e del PR los elige `scripts/e2e-dirigidos.mjs` (el
+  completo si toca un disparador del Nivel 2 o lo que mueve a todos; si no, los specs de lo tocado, con el cierre entre ayudantes; ninguno
+  si no toca la app); cada noche (03:00 de La Paz), el completo de escritorio si `main` tuvo commits.
+- **`docs/MAPA.md` deja de versionarse:** lo regeneran lefthook (pre-commit, post-checkout, post-merge), el hook Stop, `preparar.sh` y CI.
+- **Reglas:** el rigor máximo sólo en fórmulas, dinero, RLS y permisos (`.claude/rules/e2e.md`); las microdecisiones de interfaz no se
+  preguntan (`.claude/rules/ui.md`). Dos entradas nuevas en DECISIONES.
+- Verde: lint, typecheck, test (5.426), `mapa.sh --check`. Sin cambios en `supabase/`.
 
 ## Recogido de «Lista para la nube» (salió de ESTADO en la etapa 3; original en `docs/archivo/ESTADO.md`)
 
