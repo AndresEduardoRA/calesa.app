@@ -212,7 +212,13 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
 - **`restaurar.sh` contra la demo: no corrió.** Falta `.env.demo` (lo escribe la persona). Hasta entonces la demo está reseteada y alineada
   (3 migraciones, `db diff` vacío, 8 jobs) pero **sin dueño**: la primera cuenta que se registre ahí queda dueña. Con el archivo, una sola
   corrida (`bash scripts/demo/restaurar.sh`) crea al dueño, los usuarios por rol y los datos de ejemplo, y sube Auth.
-- **Rama empujada y PR abierto contra `main`, sin merge** (el enlace va en el resumen final).
+- **Rama empujada y PR abierto contra `main`, sin merge:** https://github.com/AndresEduardoRA/calesa.app/pull/1.
+- **CI del PR encontró un fallo:** `next typegen` (dentro de `pnpm typecheck`) carga `next.config.ts` con la fase del build, y la
+  validación de las públicas (etapa 2) lo tumbaba en CI, donde no hay `.env.local`; en local no se veía. Arreglado
+  (`validaLaCompilacion()`, con su prueba), y verificado sin `.env.local`: typecheck y test en verde. En el PR, verdes Nivel 1, Base,
+  Carriles, Cambios (eligió el completo: el PR toca disparadores del Nivel 2), el build del e2e y el preview de Vercel. El e2e:
+  bloques 1, 3 y 4 en verde; el 2, **un rojo**, `leads-ficha-edicion.spec.ts:262`: una carrera del propio test, ajena a esta rama (la traza
+  y el arreglo propuesto, en PLAN **4-42**). No se reintentó; en la corrida local completa, esa prueba pasó.
 
 ## Recogido de «Lista para la nube» (salió de ESTADO en la etapa 3; original en `docs/archivo/ESTADO.md`)
 

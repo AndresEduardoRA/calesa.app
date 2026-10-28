@@ -243,6 +243,12 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-41** (sin fase: lo decide la persona): `pnpm env:check` sólo revisa `.env.local` y `.env.demo`. Falta leer por API, sin valores, las
   variables de Vercel (producción y preview) y los secretos de las funciones y la configuración de Auth de Supabase. Assert: con
   `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN`, `env:check produccion` dice qué falta en cada lugar de la tabla de docs/ENTORNOS.md.
+- **4-42** (el próximo paso del carril A; cayó en el CI del PR de la preparación, 2026-10-28, bloque 2): `e2e/leads-ficha-edicion.spec.ts:262`
+  («se cae la conexión al guardar») es una carrera del test. «No hay conexión» sale de `useEnLinea()`, no del envío fallido: la traza
+  muestra `setOffline(false)` 7 ms **antes** de que llegue el `ERR_INTERNET_DISCONNECTED` del guardado. El fallo se resuelve con red, y
+  `useReintentoAlVolver` no reenvía solo (a propósito): queda «No pudimos llegar al servidor» con «Reintentar» y ningún segundo POST. Arreglo:
+  esperar el `requestfailed` del guardado (o el aviso del envío fallido, no el de la red) antes de volver a conectar. Assert: el spec pasa
+  20 de 20 con `--repeat-each=20`, y una mutación que reconecta antes del fallo lo hace caer.
 - **5a-4b** (4.28): la suite completa no baja de 25 min (el Nivel 3 tarda 40,1 min con 1.065 pruebas; el Nivel 2 ≈ 24; el último completo
   de escritorio, ≈ 28 min). Decidido el 2026-10-19: no se monta la segunda pila local; los shards de CI son la salida (`.github/workflows/ci.yml`,
   CI-1: 4 runners, cada uno con su pila y su base; escritorio por defecto y `proyectos: ambos` a mano; los bloques de escritorio suman 5,7 a
