@@ -23,9 +23,9 @@ partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` �
 
 ## Siguiente
 
-1. **El 4.13, prompt 4, con el piloto**: lo que se abre y los anchos («Avanzado», la ayuda con su URL, los modos y «Ver total Bs», el resumen
-   fijo, los e2e a 412 y 1.280 px al 100 y al 200 %, la tarea de oro 2 con teclado y el presupuesto de JS de la ruta). Después, en orden
-   hasta el 4.28, **un prompt a la vez, y se para a reportar**. La cuenta de pantallas sin completo está en **0 de 3**.
+1. **Carril A, primero 4-42** (`docs/PLAN.md`: la carrera del e2e de la ficha sin red). Después **el 4.13, prompt 4, con el piloto** (lo
+   que se abre y los anchos; el detalle, en su fila de PLAN) y en orden hasta el 4.28, **un prompt a la vez, y se para a reportar**. La
+   cuenta de pantallas sin completo está en **0 de 3**.
 2. **Del 3c:** un número tipeado se lee con `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre
    con `formatearParaEditar` y el locale; la importación CSV lee más permisiva a propósito. **Para la persona:** la sesión de decidir dejó
    anotadas las respuestas de la 1.ª tanda de P1–P6 (`.piloto/informes/4.13-3c.md` › «Para la persona»).

@@ -151,7 +151,7 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
 
 - **Hecho (aprobado):** fuera `@tanstack/react-query`, `sanitize-html` y `@types/sanitize-html` (ningún import; knip y grep). Verde:
   lint, typecheck, test (5.363).
-- **Propuesto, espera tu aprobación** (salida de `pnpm dlx knip@5`, revisada a mano):
+- **Propuesto y aprobado el 2026-10-28, hecho** (salida de `pnpm dlx knip@5`, revisada a mano):
   1. `src/shared/ui/select.tsx`, `separator.tsx` y `tooltip.tsx`: componentes de shadcn que nadie importa (se vuelven a traer con
      `shadcn add`).
   2. `setup.sh` y `scripts/configurar-package.mjs`: el andamiaje de una sola vez; nadie los llama.
@@ -237,9 +237,23 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
 
 - **Urgente (cierra la ventana de la demo sin dueño):** el `.env.demo` (plantilla en `docs/ENTORNOS.md` › «.env.demo»). Con él corro
   `bash scripts/demo/restaurar.sh` contra la demo.
-- **4-40** (decisión): apagar o no los privilegios por defecto de Supabase en `public` (`anon` con 15 secuencias y 32 funciones).
-- **4-41** (decisión): si `env:check` debe leer Vercel y Supabase por API (pide `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN`).
-- **Etapa 4:** aprobar (o no) los cuatro borrados propuestos de la sección «Etapa 4».
+- **Integrar el PR #1** cuando su CI esté en verde (lo integra la persona).
+
+## Decisiones del 2026-10-28 (después del PR) y lo hecho con cada una
+
+- **4-40, sí:** `20261028224755_anon_fuera_de_public.sql`. **Antes del cambio**, como `anon` por `/rest/v1/rpc` con la clave publicable:
+  `_lead_visible_para` (→ `true`), `_embudo_patron`, `claves_dato_requisito`, `enmascarar_telefono`, `normalizar_telefono` y `slugificar`
+  respondían 200 con resultado; `flujo_regla_activa` se ejecutaba pero caía en `flujos_reglas` (42501). Eran las 7 no-trigger de las 32 que
+  `anon` ejecutaba (por PUBLIC y por grant propio); ninguna `security definer` ni lectora de datos. **Después:** las 7 dan 401 (42501).
+  `authenticated` ya no tiene EXECUTE en las 25 de trigger ni `select`/`update` en las 15 secuencias; los privilegios por defecto de `anon`
+  en `public` se apagaron. El EXECUTE de PUBLIC en una función nueva queda como default global de Postgres (apagarlo rompía 61 pruebas
+  de `db:probar` y alcanzaba a `web`): lo quita cada migración y lo vigila `supabase/tests/privilegios-de-anon.sql` (`aclexplode`, en
+  `db:probar` y en el job `base` de CI), que cae con cuatro mutaciones (grant a `anon`, default a `anon`, truncate a `authenticated`,
+  función nueva sin revoke). Verde: `db:probar` (426), `db:lint`, `db:types` sin diff, e2e dirigido de permisos, acceso, portal, vitrina,
+  teléfonos, embudo y alta (74 de 74, escritorio).
+- **4-41, no:** queda como abierto de la Fase 9 en PLAN.
+- **Etapa 4, los cuatro borrados:** hechos (`chore(deps)` y `chore(config)`); el README ya no cita `setup.sh`.
+- **4-42:** el primer paso del carril A (PLAN y ESTADO › «Siguiente»).
 
 ## Lo que necesito de ti, por etapa
 

@@ -1073,3 +1073,14 @@ integra un PR (el hook lo bloquea); sólo A edita ESTADO, PLAN, DECISIONES y BIT
 cumplir una guarda de CI sobre el diff del PR (`scripts/guardas/carriles.mjs`), no `cierre.sh`, que es del piloto. `MAPA.md` deja de
 versionarse: lo cambiaba cada PR. Un PR corre el Nivel 1 y los e2e dirigidos a lo tocado (el completo si toca un disparador del Nivel 2);
 el completo corre cada noche: con dos carriles, el completo por PR costaba cuatro runners en cada push. Guía: `docs/ORCA.md`.
+
+## 2026-10-28 — `anon` no toca `public`, tampoco por los privilegios por defecto (cierra 4-40)
+
+Medido antes del cambio: `anon` ejecutaba 32 funciones de `public` (25 de trigger y 7 puras) y usaba 15 secuencias; de las 7, seis se
+podían llamar por `/rest/v1/rpc` con la clave publicable y devolvían resultado (`_lead_visible_para` daba `true`; `flujo_regla_activa`
+caía en la tabla). Ninguna leía datos ni es `security definer`. `20261028224755_anon_fuera_de_public.sql` quita a `anon` y a PUBLIC todo
+en `public`, a `authenticated` el EXECUTE de las funciones de trigger y `select`/`update` de las secuencias, y los privilegios por defecto
+de `anon` (y truncate, references, trigger y maintain de `authenticated`) para lo que se cree después. El EXECUTE de PUBLIC en una función
+nueva es un default global de Postgres: quitarlo para todo lo que crea `postgres` rompía 61 pruebas de `db:probar` (sus funciones de
+`pg_temp`) y alcanzaba a `web`, así que lo sigue quitando cada migración y `supabase/tests/privilegios-de-anon.sql` (db:probar y job
+`base` de CI, con `aclexplode`) cae si una lo olvida: probado con cuatro mutaciones.

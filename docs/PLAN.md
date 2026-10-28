@@ -235,15 +235,7 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   pasan de 300 líneas — `vehiculos/entities/vitrina.ts` 358, `leads/entities/oportunidad.ts` 321, `leads/entities/alta.ts` 331 y
   `leads/entities/importacion/filas.ts` 333 — `wc -l` de cada uno ≤ 300, partido por responsabilidad (en `vitrina.ts`, el formulario y su
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
-- **4-40** (sin fase: lo decide la persona; lo destapó el aplastado del 2026-10-28): por los privilegios por defecto de Supabase, `anon`
-  tiene uso de 15 secuencias de `public` y `EXECUTE` en 32 funciones (las de trigger, `_lead_visible_para`…). PostgREST no expone ni
-  secuencias ni funciones de trigger, pero contradice «`anon` sólo toca `web`». Assert: una consulta a `aclexplode` en la base real (job
-  `base` de CI) no da ningún privilegio de `anon` en `public`; la salida probable, apagar esos privilegios por defecto en `public` con una
-  migración y dar todo explícito.
-- **4-41** (sin fase: lo decide la persona): `pnpm env:check` sólo revisa `.env.local` y `.env.demo`. Falta leer por API, sin valores, las
-  variables de Vercel (producción y preview) y los secretos de las funciones y la configuración de Auth de Supabase. Assert: con
-  `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN`, `env:check produccion` dice qué falta en cada lugar de la tabla de docs/ENTORNOS.md.
-- **4-42** (el próximo paso del carril A; cayó en el CI del PR de la preparación, 2026-10-28, bloque 2): `e2e/leads-ficha-edicion.spec.ts:262`
+- **4-42** (el primer paso del carril A, decidido el 2026-10-28; cayó en el CI del PR de la preparación, bloque 2): `e2e/leads-ficha-edicion.spec.ts:262`
   («se cae la conexión al guardar») es una carrera del test. «No hay conexión» sale de `useEnLinea()`, no del envío fallido: la traza
   muestra `setOffline(false)` 7 ms **antes** de que llegue el `ERR_INTERNET_DISCONNECTED` del guardado. El fallo se resuelve con red, y
   `useReintentoAlVolver` no reenvía solo (a propósito): queda «No pudimos llegar al servidor» con «Reintentar» y ningún segundo POST. Arreglo:
@@ -403,6 +395,9 @@ Pro.
 
 Abiertos de esta fase:
 
+- **4-41** (Fase 9; decidido el 2026-10-28: no antes): `pnpm env:check` sólo revisa `.env.local` y `.env.demo`. Falta leer por API, sin
+  valores, las variables de Vercel (producción y preview) y los secretos de las funciones y la configuración de Auth de Supabase. Assert:
+  con `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN`, `env:check produccion` dice qué falta en cada lugar de la tabla de docs/ENTORNOS.md.
 - **5a-28** (Fase 9: la auditoría AA recorre Configuración al 200 %): el formulario de apibara toca el borde de su tarjeta al 200 % en el
   celular (el campo «Dirección del servicio», el `fieldset` de plataformas y el botón «Guardar configuración», `nowrap`, miden 315 px
   dentro de 282 y terminan en x = 380) — al 200 % en 412 px, ningún descendiente del cuerpo de la tarjeta de Integraciones pasa de su
