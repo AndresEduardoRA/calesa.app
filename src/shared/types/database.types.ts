@@ -7691,6 +7691,7 @@ export type Database = {
       _tonos_de_grupos: { Args: { p_def: Json }; Returns: Json }
       _tonos_lista: { Args: Record<PropertyKey, never>; Returns: Json }
       _tonos_tope: { Args: Record<PropertyKey, never>; Returns: number }
+      _url_del_proyecto: { Args: Record<PropertyKey, never>; Returns: string }
       _uuid_de: { Args: { p_hint: string; p_valor: Json }; Returns: string }
       _vehiculo_a_lote: {
         Args: {
@@ -7850,6 +7851,7 @@ export type Database = {
         Args: { p_avatar_ruta: string; p_miniatura: string; p_usuario: string }
         Returns: boolean
       }
+      avatares_miniaturas_correr: { Args: Record<PropertyKey, never>; Returns: number }
       avatares_miniaturas_disparar: { Args: { p_url: string }; Returns: number }
       avatares_miniaturas_pendientes: {
         Args: { p_max: number }
@@ -8621,6 +8623,7 @@ export type Database = {
       slugificar: { Args: { p: string }; Returns: string }
       storage_gc_abrir: { Args: { p_pase: string }; Returns: boolean }
       storage_gc_confirmar: { Args: { p_bucket: string; p_rutas: string[] }; Returns: number }
+      storage_gc_correr: { Args: Record<PropertyKey, never>; Returns: number }
       storage_gc_disparar: { Args: { p_url: string }; Returns: number }
       storage_gc_encolar_huerfanos: {
         Args: { p_bucket: string; p_gracia: string }
