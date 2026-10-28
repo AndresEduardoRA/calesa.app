@@ -176,7 +176,7 @@ describe('bucle.sh › las funciones edge, antes de un paso de Nivel 2', () => {
     const c = a.leerFake('compuerta-1.md')
     expect(c).toContain('tipo: parada')
     expect(c).toContain('faltan las funciones edge (storage-gc, avatares-miniaturas)')
-    expect(c).toContain('npx supabase functions serve')
+    expect(c).toContain('pnpm funciones')
     expect(a.estado('en-curso.json')).toBe('')
   })
 

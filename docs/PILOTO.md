@@ -15,7 +15,7 @@
   `projects["<ruta del repo principal>"].hasTrustDialogAccepted: true` en `~/.claude.json` (la ruta del mensaje es la del repo principal, no la del worktree). Es una decisión de la persona; el piloto no la toma.
 - **Disco:** el bucle para si pasa de `PILOTO_DISCO_MAX` (90 % por defecto). Con 94 % hay que liberar espacio o arrancar con `PILOTO_DISCO_MAX=95`; el ensayo en seco sólo avisa.
 - **Las funciones edge, para un paso de Nivel 2.** El bucle no las levanta. Un paso de Nivel 2 corre `pnpm test:e2e:completo`, y `scripts/e2e-completo.mjs` exige `apibara` y `storage-gc` y no lee `E2E_SIN_FUNCIONES`; después su `test:e2e` pasa por la guardia, que pide las tres. Antes de arrancar
-  el piloto para un paso así (el 4.13-3c), `npx supabase functions serve` en otra terminal. Los e2e dirigidos de `verificar.sh` no las piden (el cierre, abajo). Si faltan, **el bucle avisa antes de
+  el piloto para un paso así (el 4.13-3c), `pnpm funciones` en otra terminal. Los e2e dirigidos de `verificar.sh` no las piden (el cierre, abajo). Si faltan, **el bucle avisa antes de
   lanzar el paso** (CAL-1): `hechos.sh` mira las tres con `OPTIONS` (la regla de la guardia) en el stack local (`PILOTO_SUPABASE_URL`, por defecto la API del 54621), y un ruteo de Nivel 2 o con el
   completo sin todas servidas es una parada con «reintentar» (vuelve a mirar). El paso pide además una compuerta `afuera` si su plan sube a Nivel 2 sin ellas. No las levanta el bucle: sería un
   proceso largo con contenedores que habría que cerrar en `PARAR`, en `parar.sh --ya` y tras un reinicio, el runtime es uno por stack y lo comparten los worktrees, y `serve` carga el entorno de

@@ -12,11 +12,13 @@ paths:
   video, captura, reporte), que guarda `e2e/soporte/reporter-de-fallos.ts` en toda corrida que falla.
   Un `pnpm test` que cae deja su salida en `test-salidas/<fecha_hora-pid>/`. «La máquina estaba
   ocupada» no explica nada: se mide.
-- La base local y el servidor de e2e son de una sola sesión a la vez: `db:reset`, `db:types`, `db:diff`,
-  `db:medir`, `db:carreras`, `db:lint`, `db:sembrar-volumen`, `db:medir:volumen`, `test:e2e` y
-  `test:e2e:completo` toman `scripts/candado.sh` (no `db:probar`, que es PGlite). Ocupado falla con 75
-  (`CANDADO_ESPERA=<s>` espera); `bloquear-peligrosos.sh` rechaza `supabase` y el runner suelto.
-- `pnpm test:e2e <spec>` corre un spec sobre la base como esté (pide `npx supabase functions serve`);
+- La base local y el servidor de e2e de un stack son de una sola sesión a la vez: `db:reset`, `db:types`,
+  `db:diff`, `db:medir`, `db:carreras`, `db:lint`, `db:sembrar-volumen`, `db:medir:volumen`, `test:e2e` y
+  `test:e2e:completo` toman `scripts/candado.sh` (no `db:probar`, que es PGlite). Hay un candado por stack:
+  la principal y cada carril de Orca, que el candado reconoce por su `.env.carril` (`scripts/worktree/preparar.sh`).
+  Ocupado falla con 75 (`CANDADO_ESPERA=<s>` espera); `bloquear-peligrosos.sh` rechaza `supabase` y el
+  runner suelto. En un carril, `pnpm dev` y `pnpm funciones` ya usan su stack; `supabase` suelto, no.
+- `pnpm test:e2e <spec>` corre un spec sobre la base como esté (pide `pnpm funciones`);
   `--project=escritorio` o `--project=movil` elige el proyecto. `pnpm test:e2e:completo` resetea la base,
   corre las carreras y todo; pasa sus argumentos a Playwright.
 
@@ -30,7 +32,7 @@ paths:
   tabla; (5) el layout: `src/app/layout.tsx`, `src/app/(app)/layout.tsx`, `src/app/(app)/_shell` y
   `src/app/(acceso)/layout.tsx`; (6) la estructura: una migración que crea, cambia o borra una tabla o un
   índice (la base no cambia nunca). Además de lo dirigido corre
-  `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve`),
+  `pnpm test:e2e:completo --project=escritorio` (con `pnpm funciones`),
   después del último cambio de código.
 - Nivel 3, un cierre de fase: `pnpm test:e2e:completo` con los dos proyectos. La BITACORA dice cuál se
   corrió: `e2e completo: sí|no (<tarea>)`. Un nivel no corrido se dice.

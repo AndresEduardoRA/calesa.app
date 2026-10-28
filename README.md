@@ -22,7 +22,7 @@ Los hooks de git y de Claude Code corren esto solos; saltarse los hooks de commi
 ### e2e
 
 Playwright contra la app compilada (`.next-e2e`) y el Supabase local, en escritorio y móvil. Necesita
-`npx supabase start` y, en otra terminal, `npx supabase functions serve` (si no, falla en segundos y lo
+`npx supabase start` y, en otra terminal, `pnpm funciones` (si no, falla en segundos y lo
 dice). La integración de apibara queda apagada y sin clave: se prueba con las respuestas grabadas.
 
 - `pnpm test:e2e:completo`: **resetea la base local** (`db:reset`) y corre todo, sin saltar nada. Es el

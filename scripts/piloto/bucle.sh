@@ -270,7 +270,7 @@ vuelta() {
     local faltan
     faltan=$(hecho 'if (.funciones | type) == "object" then [.funciones | to_entries[] | select(.value != true) | .key] | join(", ") else "no se pudo mirar" end')
     if [ -n "$faltan" ]; then
-      parada "el paso $paso corre el e2e completo (Nivel 2) y faltan las funciones edge ($faltan): corre «npx supabase functions serve» en otra terminal" \
+      parada "el paso $paso corre el e2e completo (Nivel 2) y faltan las funciones edge ($faltan): corre «pnpm funciones» en otra terminal" \
         "$paso" 'parado — no sigue (recomendado)' 'reintentar — vuelve a mirar las funciones' 'sigo — corre el paso igual'
       [ "$?" = 1 ] && return 0
     fi
