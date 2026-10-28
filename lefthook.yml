@@ -14,10 +14,21 @@ pre-commit:
       glob: '*.{ts,tsx,mts}'
       run: pnpm typecheck
     - name: mapa
-      run: bash scripts/mapa.sh --check # docs/MAPA.md va en .prettierignore
+      run: bash scripts/mapa.sh --check # docs/MAPA.md no se versiona y va en .prettierignore
     - name: schema
       glob: 'supabase/**/*.sql'
       run: node scripts/probar-schema.mjs supabase
+
+# docs/MAPA.md no se versiona: se regenera al cambiar de rama y al integrar (scripts/mapa.sh).
+post-checkout:
+  jobs:
+    - name: mapa
+      run: bash scripts/mapa.sh >/dev/null
+
+post-merge:
+  jobs:
+    - name: mapa
+      run: bash scripts/mapa.sh >/dev/null
 
 commit-msg:
   jobs:

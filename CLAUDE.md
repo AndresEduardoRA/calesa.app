@@ -35,7 +35,7 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
 - Lo que otorga permisos (fase, dueño, vitrina, papelera, publicar fórmula) se escribe por RPC, nunca con `.update()`.
 - Cambio de base = una migración nueva, con `db:reset`, `db:types` y `db:probar` en el mismo commit.
 - Unidad nueva = su `CLAUDE.md`. Término nuevo = entrada en `docs/GLOSARIO.md`, y ese nombre en tipos, tablas y UI; nunca un sinónimo.
-- `docs/MAPA.md` lo genera `scripts/mapa.sh`. Fechas de DECISIONES y BITACORA: `TZ=America/La_Paz date +%F`.
+- `docs/MAPA.md` lo genera `scripts/mapa.sh` y no se versiona (si falta, córrelo). Fechas de DECISIONES y BITACORA: `TZ=America/La_Paz date +%F`.
 - Orígenes, fases, tipos de documento, categorías y monedas salen de la base: ningún texto fijo los nombra.
 - Nadie prueba a mano: toda verificación es un test o un recorrido de la IA.
 

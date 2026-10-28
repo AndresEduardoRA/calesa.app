@@ -47,3 +47,6 @@ docs/referencias/cotizador-actual/
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# el mapa se genera (scripts/mapa.sh) y no se versiona: dos carriles lo cambiarían a la vez
+docs/MAPA.md

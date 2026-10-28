@@ -2,7 +2,7 @@
 # Genera docs/MAPA.md: el índice del proyecto que la IA lee ANTES de explorar con grep.
 #
 #   bash scripts/mapa.sh           regenera docs/MAPA.md
-#   bash scripts/mapa.sh --check   falla (exit 1) si MAPA.md está desactualizado, si una unidad
+#   bash scripts/mapa.sh --check   lo regenera también, y falla (exit 1) si una unidad
 #                                  no tiene CLAUDE.md, o si un módulo importa las tripas de otro
 #                                  (cualquier cosa que no sea `@/modules/<x>` o `@/modules/<x>/client`), o si una
 #                                  entrada de DECISIONES o BITACORA lleva una fecha de mañana o fuera de orden
@@ -10,8 +10,9 @@
 #                                  enlace interno está roto (`scripts/enlaces-internos.mjs`: un doc citado que no existe, o
 #                                  una sección «…» que no es título del doc ni de su copia en docs/archivo/)
 #
-# Lo corre el hook Stop de Claude Code (regenera), lefthook en pre-commit (--check) y CI (--check).
-# No escribe fechas a propósito: la salida es determinista, así --check solo falla si algo cambió.
+# docs/MAPA.md no se versiona (está en .gitignore): con dos carriles, cada PR lo cambiaría y chocarían. Lo regeneran el hook Stop de
+# Claude Code, lefthook (pre-commit con --check; post-checkout y post-merge), scripts/worktree/preparar.sh y CI (--check).
+# No escribe fechas a propósito: la salida es determinista.
 # Compatible con bash 3.2 (macOS) y Git Bash: sin arrays asociativos ni globstar.
 set -euo pipefail
 export LC_ALL=C
@@ -238,11 +239,11 @@ generar() {
 generar > "$TMPD/mapa.md"
 AVISOS_TXT=$(sort -u "$TMPD/avisos")
 
+mkdir -p docs
+cp "$TMPD/mapa.md" "$SALIDA"
+
 if [ "$MODO" = "--check" ]; then
   fallo=0
-  if ! cmp -s "$TMPD/mapa.md" "$SALIDA" 2>/dev/null; then
-    echo "✗ docs/MAPA.md está desactualizado. Corre: bash scripts/mapa.sh" >&2; fallo=1
-  fi
   if [ -n "$AVISOS_TXT" ]; then
     echo "✗ El mapa tiene pendientes:" >&2; echo "$AVISOS_TXT" >&2; fallo=1
   fi
@@ -252,8 +253,6 @@ if [ "$MODO" = "--check" ]; then
   exit $fallo
 fi
 
-mkdir -p docs
-cp "$TMPD/mapa.md" "$SALIDA"
 echo "✓ $SALIDA ($(wc -l < "$SALIDA" | tr -d ' ') líneas)"
 [ -n "$AVISOS_TXT" ] && { echo "$AVISOS_TXT" >&2; }
 exit 0
