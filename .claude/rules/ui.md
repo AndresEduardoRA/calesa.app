@@ -72,3 +72,10 @@ Antes de construir una pantalla, lee su fila en `docs/UX.md` (patrón, roles, es
   neutro con tuteo (nunca voseo ni usted); igual para los `raise exception` de la base.
 - Transiciones de página con `<Link>` + View Transitions; respeta `prefers-reduced-motion`. Objetivos
   táctiles ≥ 44 px en móvil; densidad desde `useDensidad()`.
+
+## Microdecisiones
+
+- Un texto, un espacio, un icono, el orden de dos botones o el tamaño de un vacío no se preguntan: se
+  deciden con `docs/UX.md`, `docs/GLOSARIO.md` y el patrón más parecido que ya exista, y se dicen en
+  el informe (o en `docs/carriles/b.md`). Se pregunta sólo lo que cambia un flujo, lo que ve o puede un
+  rol, o un dato que se guarda.

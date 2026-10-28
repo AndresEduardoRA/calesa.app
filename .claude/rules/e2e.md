@@ -34,6 +34,9 @@ paths:
   índice (la base no cambia nunca). Además de lo dirigido corre
   `pnpm test:e2e:completo --project=escritorio` (con `pnpm funciones`),
   después del último cambio de código.
+- Rigor máximo (mutaciones, carreras, volumen, el auditor que bloquea) sólo en fórmulas del cotizador,
+  dinero, RLS y permisos; lo demás, con el nivel que le toque y sin pruebas de más. En CI, un PR corre el
+  Nivel 1 y los e2e dirigidos (`scripts/e2e-dirigidos.mjs`); cada noche, el completo (`docs/ORCA.md`).
 - Nivel 3, un cierre de fase: `pnpm test:e2e:completo` con los dos proyectos. La BITACORA dice cuál se
   corrió: `e2e completo: sí|no (<tarea>)`. Un nivel no corrido se dice.
 - Fase 4 (`docs/DECISIONES.md`): los pasos de pura pantalla (4.12–4.14, 4.16–4.23) van con el Nivel 1
