@@ -1,4 +1,4 @@
-# Supabase CLI — proyecto importadora. Generado por arranque-proyecto; setup.sh lo completa con el project_id.
+# Supabase CLI — proyecto importadora. Un carril de Orca cambia el project_id y los puertos por entorno (.env.carril, docs/ORCA.md).
 # Puertos en el bloque 546xx: el 5432x por defecto choca con otros stacks locales de la misma máquina.
 project_id = "importadora"
 

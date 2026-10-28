@@ -1,17 +1,19 @@
 # importadora
 
 Sistema interno white-label para importadoras de vehículos (Next 16 + Supabase). Una empresa por
-despliegue. Antes de tocar código leé `CLAUDE.md`, `docs/ESTADO.md` y `docs/MAPA.md`.
+despliegue. Antes de tocar código lee `CLAUDE.md`, `docs/ESTADO.md` y `docs/MAPA.md` (si falta: `bash scripts/mapa.sh`).
 
 ## Arrancar en local
 
 ```bash
-bash setup.sh                     # una sola vez: scaffolding con las versiones del día + deps + hooks
-cp .env.example .env.local        # y llená las claves (publishable key sb_publishable_…, no la anon)
+pnpm install                      # dependencias y hooks de git (lefthook)
+cp .env.example .env.local        # y completa las claves (publishable key sb_publishable_…, no la anon): docs/ENTORNOS.md
 npx supabase start                # Postgres + Auth + Storage locales (Docker)
-pnpm db:reset && pnpm db:types    # migraciones (la base sale de schemas/) + seed, y los tipos generados
+pnpm db:reset && pnpm db:types    # las migraciones (supabase/migrations) + seed, y los tipos generados
 pnpm dev                          # http://localhost:3000  (PWA: pnpm dev --experimental-https)
 ```
+
+Un carril de Orca (un worktree con su propio stack) se arranca con `bash scripts/worktree/preparar.sh`: `docs/ORCA.md`.
 
 ## Verificar
 

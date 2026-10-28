@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 // Ninguna prueba de la base arma un dato con `random()` (`docs/PLAN.md`, 4-22). Un teléfono al azar chocaba con un lead vivo que otra
 // prueba dejó con el mismo prefijo (`leads_telefono_unico`): 1 de cada 8.400 corridas daba un 23505 que no era de la prueba. Un número
 // fijo choca siempre o nunca; una secuencia sirve cuando la misma llamada se repite en una transacción (`medir-escala.sql`), y una base
-// que corre con lo que dejó la corrida anterior, cuando se confirma de verdad (`medir-importacion-etapas.sql`). `gen_random_uuid()` sí:
+// que corre con lo que dejó la corrida anterior, cuando se confirma de verdad (un diagnóstico de la importación, ya retirado). `gen_random_uuid()` sí:
 // un uuid no choca. Lo que usa `random()` para otra cosa que un dato que tiene que ser único figura aquí con su motivo y cuántas veces.
 const CON_MOTIVO: Record<string, { veces: number; motivo: string }> = {
   'supabase/tests/derivados-leads.sql': {
