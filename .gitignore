@@ -26,6 +26,9 @@ e2e/.auth/
 supabase/.branches/
 supabase/.temp/
 
+# volcados de la demo (scripts/demo, docs/PREPARACION.md): esquema y datos, nunca en git
+respaldos/
+
 # claude code (contador del hook Stop, su huella verde, los worktrees y lo que escribe el piloto)
 .claude/.intentos-stop
 .claude/.verificado-stop
