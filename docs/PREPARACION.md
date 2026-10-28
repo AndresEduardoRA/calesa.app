@@ -34,8 +34,8 @@
 | Plan (exploración y preguntas)  | hecho                      | principal 89 K · 9,6 M; subagentes (Opus) 180 K · 33,3 M; 1,5 h     |
 | 0 — Backup y disco              | hecho (2026-10-28)         | principal 20 K · 12,3 M; 0,24 h                                     |
 | 3 — Docs livianos               | hecho (2026-10-28)         | principal 93 K · 31,6 M; subagentes (Sonnet) 960 K · 48,5 M; 0,72 h |
-| 1 — Aplastar y resetear la demo | en curso (desde 17:58 UTC) | —                                                                   |
-| 2 — Entornos y configuración    | pendiente                  | —                                                                   |
+| 1 — Aplastar y resetear la demo | hecho (2026-10-28)         | principal 140 K · 92,3 M; subagentes (Sonnet) 25 K · 4,8 M; 1,41 h  |
+| 2 — Entornos y configuración    | en curso (desde 19:22 UTC) | —                                                                   |
 | 4 — Quitar lo que sobra         | pendiente                  | —                                                                   |
 | 5 — Worktrees en paralelo       | pendiente                  | —                                                                   |
 | 6 — Flujo de dos carriles       | pendiente                  | —                                                                   |
@@ -93,6 +93,36 @@
 **Lo que carga una sesión:** siempre CLAUDE 5,8 + ESTADO 5,6 + MAPA 25,0 = 36,4 KB. Tocar un componente de un módulo suma escala, ui,
 modulos y la ficha: **≈ 58,8 KB**. El peor caso (componente + infra + e2e del mismo módulo) llega a 67,8 KB: MAPA es lo más pesado, y su
 sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se compacta en la etapa 1, al retirar `schemas/`.
+
+## Etapa 1 — Aplastar y resetear la demo (hecha)
+
+- **Inventario de lo que el volcado no conserva** (en las 146 viejas; están en git, en el padre de `dba2118`):
+  - datos de catálogo sólo en migraciones: 9 buckets (`…000800`), 6 campos de fábrica de `leads_campos` (`…20261014000800`, con 6
+    filas de `actividad` de efecto lateral), `tipos_lead` (`…002800`, icono por `…004000`), 3 `tonos` (`…005700`), niveles `todos` y
+    `costos` con 2 permisos (`…006100`), 4 permisos repetidos del seed (`…20261015000400`, `…20261016000400`, `…000900`, `…003800`);
+  - Vault: `cotizacion:abierta` (`…009000`); cron: 6 jobs (`…001000`, `…20261014000400`, `…000500`, `…20261017000100`,
+    `…20261019000500`, `…001500`, `…001700`; los 5 de `…20261011000800` nunca corrían);
+  - en esquemas de Supabase: 3 triggers de `auth.users` (`…20261011000100`) y 18 policies de `storage.objects` (`…000800`, `…20261013000500`);
+  - sin publicaciones de Realtime, sin `alter default privileges`, sin configuración de base; extensiones `pg_cron`/`pg_net` condicionales.
+- **La base** `20261028180656_base.sql`: privilegios por defecto apagados → `supabase db dump --local` → triggers y policies ajenos →
+  datos (buckets, catálogo con `session_replication_role = replica`, la clave de Vault, los jobs). **Diff cero al primer intento**, con
+  seed y sin seed: `pg_dump --schema-only` de toda la base (26.801 líneas), ACL por rol (relaciones, columnas, funciones, esquemas, por
+  defecto), datos normalizados, cron, buckets, Vault, policies, triggers ajenos, extensiones y secuencias. Control negativo: con seed contra
+  sin seed da 1.110 líneas distintas. **Mutación:** sin la sección de privilegios, `anon` lee `leads` y `authenticated` lee
+  `telefono_principal` y `cotizaciones.valores`.
+- **Hallazgos:** las vistas de la app tenían escritura para `authenticated` y lectura para `anon` por los privilegios por defecto (no llegaba
+  a ninguna fila: son `security_invoker`); lo arregla `20261028181638_vistas_de_la_app_solo_se_leen.sql`. Queda **4-40** (tu decisión):
+  `anon` tiene uso de 15 secuencias y `EXECUTE` en 32 funciones de `public` por esos mismos privilegios.
+- **Una sola fuente:** se retiraron `supabase/schemas/`, `db:base` y `esquema-base.mjs`; `probar-schema` aplica migraciones y seed;
+  `rls-en-todo.sql`; la guarda del orden fija el sha256 de la base y exige fecha real; `scripts/lib/definicion-sql.ts` para las 13 pruebas
+  que leían archivos; el disparador 6 del Nivel 2 es «la estructura»; MAPA saca las tablas de las migraciones (19 KB).
+- **Jobs solos:** `20261028183622_jobs_con_la_url_del_proyecto.sql` (Vault `url_proyecto`); `jobs.sql` en `db:probar` y
+  `supabase/tests/jobs-de-verdad.sh` contra la base local: el job llegó a `storage-gc`, 200, pase canjeado.
+- **Demo reseteada** con `scripts/demo/resetear.sh` (respaldo en `respaldos/2026-10-28_151236/`): `migration list` alineado (3), `db diff
+--linked` vacío, los 8 jobs en `cron.job`, colación igual a la local (ICU `en-US`), seed aplicado (74 permisos, 4 roles).
+- Verde: lint, typecheck, test (5.318), `db:probar` (417), `db:lint`, `db:carreras`, splinter sin errores, `db:types` (3 funciones nuevas).
+- **Ventana abierta:** la demo quedó **sin usuarios**; la primera cuenta que se registre queda dueña. Se cierra en la etapa 2 con
+  `restaurar.sh`, que necesita tu `.env.demo`.
 
 ## Recogido de «Lista para la nube» (salió de ESTADO en la etapa 3; original en `docs/archivo/ESTADO.md`)
 
