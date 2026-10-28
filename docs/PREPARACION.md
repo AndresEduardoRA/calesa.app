@@ -39,7 +39,7 @@
 | 4 — Quitar lo que sobra         | hecho lo aprobado (2026-10-28); el resto espera tu visto bueno | principal 12 K · 11,3 M; 0,1 h (más knip en la etapa 2)             |
 | 5 — Worktrees en paralelo       | hecho (2026-10-28)                                             | principal 72 K · 23,2 M; 0,55 h                                     |
 | 6 — Flujo de dos carriles       | hecho (2026-10-28)                                             | principal 98 K · 29,3 M; 0,39 h                                     |
-| 7 — Cierre                      | en curso (desde 21:12 UTC)                                     | —                                                                   |
+| 7 — Cierre                      | hecho salvo la demo (2026-10-28): espera `.env.demo`           | principal 8 K · 5,8 M; 0,8 h (casi todo, el e2e completo)           |
 
 ## Etapa 0 — Backup y disco
 
@@ -204,6 +204,15 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
 - **Reglas:** el rigor máximo sólo en fórmulas, dinero, RLS y permisos (`.claude/rules/e2e.md`); las microdecisiones de interfaz no se
   preguntan (`.claude/rules/ui.md`). Dos entradas nuevas en DECISIONES.
 - Verde: lint, typecheck, test (5.426), `mapa.sh --check`. Sin cambios en `supabase/`.
+
+## Etapa 7 — Cierre
+
+- **`pnpm test:e2e:completo`** con los dos proyectos y las funciones servidas: **1.281 en verde, 34 saltadas, 0 fallos, 46,3 min**
+  (BITACORA: `e2e completo: sí (preparar-orca)`).
+- **`restaurar.sh` contra la demo: no corrió.** Falta `.env.demo` (lo escribe la persona). Hasta entonces la demo está reseteada y alineada
+  (3 migraciones, `db diff` vacío, 8 jobs) pero **sin dueño**: la primera cuenta que se registre ahí queda dueña. Con el archivo, una sola
+  corrida (`bash scripts/demo/restaurar.sh`) crea al dueño, los usuarios por rol y los datos de ejemplo, y sube Auth.
+- **Rama empujada y PR abierto contra `main`, sin merge** (el enlace va en el resumen final).
 
 ## Recogido de «Lista para la nube» (salió de ESTADO en la etapa 3; original en `docs/archivo/ESTADO.md`)
 
