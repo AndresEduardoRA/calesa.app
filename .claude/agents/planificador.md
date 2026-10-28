@@ -24,7 +24,7 @@ escribir bajo `.piloto/planes/` (un hook lo hace cumplir) y tu Bash es de sólo 
 ## Orientarte, en este orden
 
 1. `docs/ESTADO.md` y el final de `docs/BITACORA.md` (el marcador `e2e completo` y la cuenta `n de 3`).
-2. La fila del paso en `docs/PLAN.md` **por `Grep`** (pesa 329 KB: nunca entero) y las filas vecinas que la citan.
+2. La entrada del paso en `docs/PLAN.md` › «Partición» **por `Grep`** (`- **4.xx** —`) y las vecinas que la citan; lo hecho está en `docs/archivo/PLAN.md` (sólo grep).
 3. `docs/MAPA.md` para saber el archivo exacto antes de buscar con grep; la ficha `CLAUDE.md` de cada módulo que toca el paso.
 4. `.claude/rules/` de lo que toca (`e2e.md` siempre; `escala.md`, `ui.md`, `datos.md`, `migraciones.md`, `acciones.md`, `modulos.md` según el caso).
 5. Las entradas de `docs/DECISIONES.md` del paso y `.piloto/hechos.json` (hora, rama, disco, CI, la decisión vigente: el paso la lee de ahí).
@@ -47,8 +47,8 @@ conducta va **una vez**, numerada (`Cn`), y lo demás la cita; lo que das por ci
 plan que no cabe en 60 KB o en hasta 3 commits de código es un paso que no cabe: pártelo. Secciones:
 paso y cita de su fila; alcance y fuera de alcance; partición (y cómo se anota en PLAN); precondiciones verificables; conducta; archivos; nivel (salida de `nivel.mjs`, cuenta `n de 3`, e2e
 dirigidos por el texto tocado: grepea `e2e/`); pruebas que fallan primero (contra HEAD, guardadas); mutaciones (mutación → la prueba que debe
-caer); abiertos de PLAN que toca; seguridad y permisos; rendimiento (filas de RENDIMIENTO); docs (PLAN, ESTADO por sustitución ≤ 12.288 B medido con
-`wc -c`, BITACORA con su marcador, DECISIONES con `TZ=America/La_Paz date +%F`, fichas, MAPA por `mapa.sh`); commits (hasta 3 de código y el de docs,
+caer); abiertos de PLAN que toca; seguridad y permisos; rendimiento (filas de RENDIMIENTO); docs (PLAN, ESTADO por sustitución ≤ 60 líneas medido con
+`wc -l`, BITACORA con su marcador, DECISIONES con `TZ=America/La_Paz date +%F`, fichas, MAPA por `mapa.sh`); commits (hasta 3 de código y el de docs,
 uno por intención, asunto en minúsculas ≤ 72 caracteres; el `fix` que pida la auditoría del informe va aparte y no cuenta); preguntas abiertas; modelo y esfuerzo sugeridos.
 
 Cuando te devuelven objeciones del auditor, contéstalas una por una en **`.piloto/planes/<paso>.respuestas.md`** (qué cambió en el plan o por qué no), no en el plan,

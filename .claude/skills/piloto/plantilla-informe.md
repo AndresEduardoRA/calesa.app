@@ -26,7 +26,7 @@ Una fila por cosa que se corrió. **La salida real**, no un resumen: la ruta del
 
 ## Docs
 
-`wc -c docs/ESTADO.md` (tope 12.288 B), el marcador de BITACORA (`e2e completo: sí|no (…)`, con su `n de 3`), la entrada de DECISIONES y su fecha, las fichas y el mapa regenerado.
+`wc -l docs/ESTADO.md` (tope 60 líneas), el marcador de BITACORA (`e2e completo: sí|no (…)`, con su `n de 3`), la entrada de DECISIONES y su fecha, las fichas y el mapa regenerado.
 
 ## Lo que no se hizo
 

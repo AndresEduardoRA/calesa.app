@@ -15,7 +15,7 @@ comandos ya está en `.piloto/hechos.json`. Tu respuesta es **un solo objeto JSO
 1. `.piloto/hechos.json`: hora, rama, HEAD, árbol, disco, candado de la base, último CI, la cuenta `n de 3` de e2e (`e2e`), bytes de ESTADO, `ultimo` (lo que
    dejó el paso anterior), `en_curso` (un paso a medias), `nota` (un ensayo en seco) y `decision` (la decisión vigente de la persona, **literal**).
 2. `docs/ESTADO.md` (en qué vamos y qué sigue) y el final de `docs/BITACORA.md` (`Grep` del último `e2e completo:`).
-3. La fila del paso en `docs/PLAN.md` **por `Grep`**: pesa 329 KB, nunca entero. Los pasos se hacen **en orden**, uno a la vez (`docs/PLAN.md` › «Partición»).
+3. La entrada del paso en `docs/PLAN.md` › «Partición» (`- **4.xx** —`) **por `Grep`**; lo hecho está en `docs/archivo/PLAN.md` (sólo grep). Los pasos se hacen **en orden**, uno a la vez (`docs/PLAN.md` › «Partición»).
 4. Sólo si el paso toca una pantalla o una regla que dudas: `.claude/rules/e2e.md` (los tres niveles, los seis disparadores).
 
 ## Cómo decidir

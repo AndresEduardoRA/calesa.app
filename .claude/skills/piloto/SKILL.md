@@ -45,7 +45,7 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    de ≤ 9 minutos, a que no haya procesos de otra sesión (`playwright`, `next build`, `vitest`, `carreras`, `medir`, `supabase db|start` fuera de este árbol) y a que `loadavg` < 1,5.
 6. **Informe** en `.piloto/informes/<paso>.md` ([plantilla-informe.md](plantilla-informe.md)): qué se hizo, la salida real de cada prueba (con su ruta), lo que no se hizo.
 7. **Auditar el informe.** Mismo `auditor`, mismo tope: dos bloqueos y es una compuerta `atasco`.
-8. **Docs y commits.** Los docs que dice el plan (ESTADO por sustitución, ≤ 12.288 B medido con `wc -c`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con
+8. **Docs y commits.** Los docs que dice el plan (ESTADO por sustitución, ≤ 60 líneas medido con `wc -l`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con
    la fecha de `TZ=America/La_Paz date +%F`; fichas; `bash scripts/mapa.sh`). **Commits por intención**, asunto en español, minúscula, ≤ 72 caracteres, mensaje con `-F`, `mapa.sh`
    antes: **hasta 3 de código y el de docs** (si el plan necesitaba más, el paso no cabía y se partía); el `fix` que pida la auditoría del informe va aparte y no cuenta.
    **Sin push.** Verifica con `git log` que existen.

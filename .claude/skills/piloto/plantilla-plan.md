@@ -67,7 +67,7 @@ Las filas de `docs/RENDIMIENTO.md` de cada lista que toca: tope, índice y presu
 
 ## Docs
 
-`docs/PLAN.md`; `docs/ESTADO.md` **por sustitución, ≤ 12.288 B medido con `wc -c`**; `docs/BITACORA.md` con su marcador `e2e completo: sí|no (…)`; `docs/DECISIONES.md` con la fecha de
+`docs/PLAN.md`; `docs/ESTADO.md` **por sustitución, ≤ 60 líneas medido con `wc -l`**; `docs/BITACORA.md` con su marcador `e2e completo: sí|no (…)`; `docs/DECISIONES.md` con la fecha de
 `TZ=America/La_Paz date +%F`; las fichas `CLAUDE.md` de lo que cambia; `docs/GLOSARIO.md` si hay un término nuevo; `docs/MAPA.md` por `bash scripts/mapa.sh`.
 
 ## Commits
