@@ -8,6 +8,7 @@ import {
   readdirSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -164,13 +165,21 @@ describe('arrancar.sh › lo que lanza', () => {
       writeFileSync(join(raiz, 'sin-claude', nombre), readFileSync(join(raiz, 'bin', nombre)))
       chmodSync(join(raiz, 'sin-claude', nombre), 0o755)
     }
+    // Un PATH sin el de la máquina: con `claude` instalado (~/.local/bin) la prueba lo encontraba y pasaba de largo.
+    // Sólo los programas que arrancar.sh pide, enlazados, más /usr/bin y /bin para lo básico.
+    for (const programa of ['git', 'jq', 'flock', 'node']) {
+      const ruta = execFileSync('bash', ['-c', `command -v ${programa}`], {
+        encoding: 'utf8',
+      }).trim()
+      symlinkSync(ruta, join(raiz, 'sin-claude', programa))
+    }
     const r = spawnSync('bash', [SCRIPT], {
       cwd: repo,
       encoding: 'utf8',
       env: {
         NODE_ENV: 'test',
         HOME: raiz,
-        PATH: `${join(raiz, 'sin-claude')}:${process.env['PATH'] ?? ''}`,
+        PATH: `${join(raiz, 'sin-claude')}:/usr/bin:/bin`,
         PILOTO_RAIZ: repo,
         CLAUDE_BIN: '',
       },
