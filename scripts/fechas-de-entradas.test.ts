@@ -23,10 +23,12 @@ describe('fechas de las entradas: qué es una entrada', () => {
       '2026-10-12 — fase 1, parte 3',
       'sigue el texto de la entrada, la carpeta e2e-fallos/2026-10-17_21-08/ no es una entrada',
       '2026-10-13 — fase 2',
+      '## 2026-10-28 — Preparación para Orca',
     ].join('\n')
     expect(fechasDeEntradas(texto, 'bitacora')).toEqual([
       { linea: 2, fecha: '2026-10-12' },
       { linea: 4, fecha: '2026-10-13' },
+      { linea: 5, fecha: '2026-10-28' },
     ])
   })
 })
@@ -78,14 +80,17 @@ describe('fechas de las entradas: el día de hoy es el de La Paz', () => {
 })
 
 describe('fechas de las entradas: los docs del repo', () => {
+  // Los vivos empiezan cortos (docs/PREPARACION.md, etapa 3); las copias de docs/archivo/ son las completas, congeladas.
   it.each([
-    ['docs/DECISIONES.md', 'decisiones'],
-    ['docs/BITACORA.md', 'bitacora'],
+    ['docs/DECISIONES.md', 'decisiones', 1],
+    ['docs/BITACORA.md', 'bitacora', 1],
+    ['docs/archivo/DECISIONES.md', 'decisiones', 20],
+    ['docs/archivo/BITACORA.md', 'bitacora', 20],
   ] as const)(
     '%s: todas las entradas tienen fecha de hoy o anterior y van en orden',
-    (archivo, formato) => {
+    (archivo, formato, minimo) => {
       const entradas = fechasDeEntradas(readFileSync(archivo, 'utf8'), formato)
-      expect(entradas.length).toBeGreaterThan(20)
+      expect(entradas.length).toBeGreaterThanOrEqual(minimo)
       expect(problemasDeFechas(entradas, hoyEnLaPaz())).toEqual([])
     },
   )
