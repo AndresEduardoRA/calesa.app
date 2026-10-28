@@ -14,7 +14,7 @@ paths:
   ocupada» no explica nada: se mide.
 - La base local y el servidor de e2e son de una sola sesión a la vez: `db:reset`, `db:types`, `db:diff`,
   `db:medir`, `db:carreras`, `db:lint`, `db:sembrar-volumen`, `db:medir:volumen`, `test:e2e` y
-  `test:e2e:completo` toman `scripts/candado.sh` (no `db:base` ni `db:probar`). Ocupado falla con 75
+  `test:e2e:completo` toman `scripts/candado.sh` (no `db:probar`, que es PGlite). Ocupado falla con 75
   (`CANDADO_ESPERA=<s>` espera); `bloquear-peligrosos.sh` rechaza `supabase` y el runner suelto.
 - `pnpm test:e2e <spec>` corre un spec sobre la base como esté (pide `npx supabase functions serve`);
   `--project=escritorio` o `--project=movil` elige el proyecto. `pnpm test:e2e:completo` resetea la base,
@@ -28,8 +28,8 @@ paths:
   `src/shared`; (2) el proxy, `src/proxy.ts`; (3) auth: `src/modules/equipo/features/auth`, `src/app/auth` y
   `src/app/(acceso)`; (4) RLS: una migración que crea, cambia o borra una policy, o enciende RLS en una
   tabla; (5) el layout: `src/app/layout.tsx`, `src/app/(app)/layout.tsx`, `src/app/(app)/_shell` y
-  `src/app/(acceso)/layout.tsx`; (6) el esquema base: `supabase/schemas` y
-  `supabase/migrations/20261011000000_esquema_base.sql`. Además de lo dirigido corre
+  `src/app/(acceso)/layout.tsx`; (6) la estructura: una migración que crea, cambia o borra una tabla o un
+  índice (la base no cambia nunca). Además de lo dirigido corre
   `pnpm test:e2e:completo --project=escritorio` (con `npx supabase functions serve`),
   después del último cambio de código.
 - Nivel 3, un cierre de fase: `pnpm test:e2e:completo` con los dos proyectos. La BITACORA dice cuál se

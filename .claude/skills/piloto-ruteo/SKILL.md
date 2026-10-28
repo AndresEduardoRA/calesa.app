@@ -26,7 +26,7 @@ comandos ya está en `.piloto/hechos.json`. Tu respuesta es **un solo objeto JSO
 - **`modelo` y `effort`** (política ajustable): docs → `sonnet`/`medium`; una pantalla → `sonnet`/`high`; `src/shared`, un disparador de Nivel 2, datos o
   seguridad, las carreras o un cierre → `opus`/`high`; `continuar` → el de antes (`en_curso`). El planificador y el auditor son siempre `opus`: no los eliges tú.
 - **`nivel`:** `nivel` 1, 2 o 3 (`.claude/rules/e2e.md`), los `disparadores` del Nivel 2 que el paso toca (por la fila del PLAN: `shared`, `proxy`, `auth`, `rls`,
-  `layout`, `base`), `cuenta_e2e` (la `n` de `hechos.e2e.n`) y `completo` (si el paso corre el e2e completo: lo pide la cuenta —`hechos.e2e.el_siguiente_corre_completo`
+  `layout`, `estructura`), `cuenta_e2e` (la `n` de `hechos.e2e.n`) y `completo` (si el paso corre el e2e completo: lo pide la cuenta —`hechos.e2e.el_siguiente_corre_completo`
   y el paso es de pantalla—, el hito 4-A o un cierre de fase). No lo adivines: si no sabes qué toca, di `1` y `disparadores: []`; el planificador lo mide con `nivel.mjs`.
 - **`particion`:** si la fila junta capas con verificación distinta (la base, `src/shared`, la pantalla), cómo se parte; si no, `""`.
 - **`compuerta`** (`.claude/skills/piloto/compuertas.md` las define): `ninguna` salvo que haya una razón. `datos` si el paso toca policy, RLS, permisos,

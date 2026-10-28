@@ -22,8 +22,6 @@ describe('nivel.mjs › los seis disparadores del Nivel 2', () => {
     ['src/app/layout.tsx', 'layout'],
     ['src/app/(app)/layout.tsx', 'layout'],
     ['src/app/(app)/_shell/menu.tsx', 'layout'],
-    ['supabase/schemas/leads/tablas.sql', 'base'],
-    ['supabase/migrations/20261011000000_esquema_base.sql', 'base'],
   ])('%s dispara «%s»', (archivo, id) => {
     expect(ids([archivo])).toEqual([id])
   })
@@ -72,8 +70,8 @@ describe('nivel.mjs › RLS se lee por contenido', () => {
     'alter table public.leads enable row level security;',
     'ALTER TABLE leads\n  ENABLE ROW LEVEL SECURITY;',
     'create table x (id int);\ncreate policy a on x for all using (true);',
-  ])('dispara: %s', (sql) => {
-    expect(con(sql)).toEqual(['rls'])
+  ])('dispara «rls»: %s', (sql) => {
+    expect(con(sql)).toContain('rls')
   })
 
   it.each([
@@ -82,18 +80,26 @@ describe('nivel.mjs › RLS se lee por contenido', () => {
     '-- comentario sobre una policy vieja\nselect 1;',
     'alter table leads add column x int;',
     'create function f() returns int language sql as $$ select 1 $$;',
-  ])('no dispara: %s', (sql) => {
-    expect(con(sql)).toEqual([])
+  ])('no dispara «rls»: %s', (sql) => {
+    expect(con(sql)).not.toContain('rls')
   })
 
   it('una migración borrada (sin contenido) no dispara', () => {
     expect(ids([migracion], () => null)).toEqual([])
   })
 
-  it('el esquema base dispara «base» y, si lleva policies, también «rls»', () => {
-    const base = 'supabase/migrations/20261011000000_esquema_base.sql'
-    expect(ids([base], () => 'create policy a on x using (true);')).toEqual(['rls', 'base'])
-    expect(ids([base], sinContenido)).toEqual(['base'])
+  it('la estructura (crear, cambiar o borrar una tabla o un índice) dispara «estructura» y, con policies, también «rls»', () => {
+    expect(con('create table public.x (id uuid primary key);')).toEqual(['estructura'])
+    expect(con('ALTER TABLE public.leads ADD COLUMN x text;')).toEqual(['estructura'])
+    expect(con('create unique index x_idx on public.x (id);')).toEqual(['estructura'])
+    expect(con('drop index if exists public.x_idx;')).toEqual(['estructura'])
+    expect(
+      con('create table public.x (id uuid); create policy a on public.x using (true);'),
+    ).toEqual(['rls', 'estructura'])
+    expect(con('-- create table public.x (id uuid);\nselect 1;')).toEqual([])
+    expect(
+      con('create or replace function public.f() returns int language sql as $$ select 1 $$;'),
+    ).toEqual([])
   })
 })
 
