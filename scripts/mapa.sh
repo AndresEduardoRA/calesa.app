@@ -6,7 +6,9 @@
 #                                  no tiene CLAUDE.md, o si un módulo importa las tripas de otro
 #                                  (cualquier cosa que no sea `@/modules/<x>` o `@/modules/<x>/client`), o si una
 #                                  entrada de DECISIONES o BITACORA lleva una fecha de mañana o fuera de orden
-#                                  (`scripts/fechas-de-entradas.mjs`: la fecha sale de `TZ=America/La_Paz date +%F`)
+#                                  (`scripts/fechas-de-entradas.mjs`: la fecha sale de `TZ=America/La_Paz date +%F`), o si un
+#                                  enlace interno está roto (`scripts/enlaces-internos.mjs`: un doc citado que no existe, o
+#                                  una sección «…» que no es título del doc ni de su copia en docs/archivo/)
 #
 # Lo corre el hook Stop de Claude Code (regenera), lefthook en pre-commit (--check) y CI (--check).
 # No escribe fechas a propósito: la salida es determinista, así --check solo falla si algo cambió.
@@ -244,6 +246,7 @@ if [ "$MODO" = "--check" ]; then
   fi
   # No depende del mapa sino de los docs: va aparte para que `generar` no escriba fechas en MAPA.md.
   if [ -f scripts/fechas-de-entradas.mjs ] && ! node scripts/fechas-de-entradas.mjs; then fallo=1; fi
+  if [ -f scripts/enlaces-internos.mjs ] && ! node scripts/enlaces-internos.mjs; then fallo=1; fi
   exit $fallo
 fi
 
