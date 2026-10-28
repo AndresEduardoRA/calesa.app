@@ -1,8 +1,7 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { definicionSql } from '../../../../scripts/lib/definicion-sql'
 import { CASOS_DE_TELEFONO } from './telefono.casos'
 import { normalizarTelefono, telefonoParaMostrar } from './telefono'
 
@@ -36,15 +35,8 @@ describe('contra normalizar_telefono() de la base', () => {
   let db: PGlite
 
   beforeAll(async () => {
-    const sql = readFileSync(
-      join(process.cwd(), 'supabase/schemas/00_base/03_utilidades.sql'),
-      'utf8',
-    )
-    const inicio = sql.indexOf('create or replace function public.normalizar_telefono')
-    const fin = sql.indexOf('$$;', sql.indexOf('begin', inicio)) + 3
-    expect(inicio).toBeGreaterThan(-1)
     db = new PGlite()
-    await db.exec(sql.slice(inicio, fin))
+    await db.exec(definicionSql('normalizar_telefono').texto)
   })
 
   afterAll(async () => {

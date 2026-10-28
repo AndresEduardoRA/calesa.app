@@ -1,8 +1,7 @@
 // @vitest-environment node
-import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { definicionSql } from '../../../../scripts/lib/definicion-sql'
 import { condicionDeCampo, type CondicionDeAtributo } from '@/shared/lib/filtros'
 import { aplicarCondicionDeAtributo, patronContiene } from '@/shared/lib/supabase/consultas'
 import { filtrosDeCandidatos } from './candidatos'
@@ -11,39 +10,14 @@ import type { ColumnaDeAtributos } from './campo'
 import type { CondicionDeLead } from './filtros'
 
 // El contrato entre lo que la app le pide a `leads_candidatos()` y lo que la base entiende (4.03, 5a-9 y 5a-34): las condiciones que arma el filtro de un campo
-// (`condicionDeCampo()`) pasan por `filtrosDeCandidatos()` y la base las cumple (`_leads_candidatos_sql`, la última migración que la define, en PGlite con tablas de juguete);
+// (`condicionDeCampo()`) pasan por `filtrosDeCandidatos()` y la base las cumple (`_leads_candidatos_sql`, su definición vigente entre las migraciones, en PGlite con tablas de juguete);
 // la consulta de siempre las arma `aplicarCondicionDeAtributo()` para PostgREST. Las dos tienen que dar los mismos leads, con valores de todos los tipos JSON (un número, un
 // texto, un booleano, un nulo, una clave que falta): `->` compara jsonb con jsonb, y un valor de texto ordena antes que cualquier número.
 const YO = '00000000-0000-0000-0000-0000000000aa'
 
 let db: PGlite
 
-// La última migración que define la función: una migración nueva que la redefina cambia lo que esta prueba mira, sin editarla.
-function migracionDeCandidatos(): string {
-  const carpeta = join(process.cwd(), 'supabase/migrations')
-  const archivos = readdirSync(carpeta)
-    .filter((nombre) => nombre.endsWith('.sql'))
-    .sort()
-    .filter((nombre) =>
-      readFileSync(join(carpeta, nombre), 'utf8').includes(
-        'create or replace function public._leads_candidatos_sql',
-      ),
-    )
-  const ultima = archivos.at(-1)
-  expect(ultima).toBeDefined()
-  return readFileSync(join(carpeta, ultima ?? ''), 'utf8')
-}
-
-function funcion(sql: string, empieza: string, termina: string): string {
-  const inicio = sql.indexOf(empieza)
-  expect(inicio, empieza).toBeGreaterThan(-1)
-  const fin = sql.indexOf(termina, inicio)
-  expect(fin, termina).toBeGreaterThan(inicio)
-  return sql.slice(inicio, fin + termina.length)
-}
-
 beforeAll(async () => {
-  const migracion = migracionDeCandidatos()
   db = new PGlite()
   await db.exec(`
     create type public.alcance_permiso as enum ('propios', 'todos');
@@ -56,19 +30,10 @@ beforeAll(async () => {
     create function public._leads_candidatos_etiquetas(jsonb, uuid) returns uuid[] language sql as 'select ''{}''::uuid[]';
     create function public._lead_visible_para(timestamptz, uuid[], public.alcance_permiso, uuid, uuid[]) returns boolean language sql as 'select true';
   `)
-  // La función que arma el patrón: la de su migración.
-  const patron = readFileSync(
-    join(process.cwd(), 'supabase/migrations/20261019003300_busqueda_por_candidatos.sql'),
-    'utf8',
-  )
-  await db.exec(funcion(patron, 'create or replace function public._lead_busqueda_patron', '$$;'))
-  // Las dos funciones que arman la consulta, tal como las deja la migración.
-  await db.exec(
-    funcion(migracion, 'create or replace function public._leads_candidatos_indexable', '\n$$;'),
-  )
-  await db.exec(
-    funcion(migracion, 'create or replace function public._leads_candidatos_sql', 'end $$;'),
-  )
+  // Las tres funciones, tal como las deja la última migración que las define: una migración nueva que las redefina cambia lo que esta prueba mira, sin editarla.
+  await db.exec(definicionSql('_lead_busqueda_patron').texto)
+  await db.exec(definicionSql('_leads_candidatos_indexable').texto)
+  await db.exec(definicionSql('_leads_candidatos_sql').texto)
   for (const [i, fila] of FILAS.entries()) {
     await db.query(
       `insert into public.leads (id, nombre, creado_en, cartera, atributos, atributos_publicos)

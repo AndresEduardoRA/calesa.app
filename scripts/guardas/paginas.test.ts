@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { migracionesEnOrden, tablaSql } from '../lib/definicion-sql'
 import { TAMANO_DE_PAGINA_DE_EXPORTACION } from '../../src/modules/leads/entities/exportacion'
 import { MAXIMO_DE_PAGINA_DE_LEADS } from '../../src/modules/leads/entities/listado'
 import { MAXIMO_DE_PAGINA_DE_VEHICULOS } from '../../src/modules/vehiculos/entities/vehiculo'
@@ -23,13 +24,7 @@ import { RPC_PAGINADAS } from './paginas-en-la-base'
 
 const RAIZ = process.cwd()
 
-const migraciones = readdirSync(join(RAIZ, 'supabase/migrations'))
-  .filter((nombre) => nombre.endsWith('.sql'))
-  .sort()
-  .map((archivo) => ({
-    archivo,
-    texto: readFileSync(join(RAIZ, 'supabase/migrations', archivo), 'utf8'),
-  }))
+const migraciones = migracionesEnOrden(RAIZ)
 
 function* archivosDeSrc(dir: string): Generator<string> {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -66,6 +61,20 @@ $$;`
     expect(ultimaDefinicion([vieja], 'otra')).toBeNull()
   })
 
+  it('entiende el estilo del volcado, con cualquier etiqueta de dólar', () => {
+    const volcado = {
+      archivo: 'c.sql',
+      texto: `CREATE OR REPLACE FUNCTION "public"."mi_lista"("p_tamano" integer DEFAULT 20) RETURNS "jsonb"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $_$
+begin return public._acotar_pagina(p_tamano, 25, 100); end $_$;`,
+    }
+    const hallada = ultimaDefinicion([{ archivo: 'a.sql', texto: rpc }, volcado], 'mi_lista')
+    expect(hallada?.archivo).toBe('c.sql')
+    expect(cotaDeLaBase(hallada?.cuerpo ?? '', 'p_tamano')).toEqual({ defecto: 25, maximo: 100 })
+  })
+
   it('un parámetro sin acotar, o acotado a mano, no pasa', () => {
     expect(cotaDeLaBase('select 1 limit p_tamano', 'p_tamano')).toBeNull()
     expect(cotaDeLaBase('_acotar_pagina(p_otro, 20, 50)', 'p_tamano')).toBeNull()
@@ -98,6 +107,11 @@ $$;`
     expect(
       tamanosDelCheck(`constraint preferencias_por_pagina_valida check (
     clave <> 'listas.por_pagina' or valor in ('10'::jsonb, '25'::jsonb))`),
+    ).toEqual([10, 25])
+    expect(
+      tamanosDelCheck(
+        `CONSTRAINT "preferencias_por_pagina_valida" CHECK ((("clave" <> 'listas.por_pagina'::"text") OR ("valor" = ANY (ARRAY['10'::"jsonb", '25'::"jsonb"]))))`,
+      ),
     ).toEqual([10, 25])
     expect(tamanosDelCheck('nada')).toBeNull()
     expect(maxRows('[api]\nmax_rows = 1000\n')).toBe(1000)
@@ -164,8 +178,7 @@ describe('cada RPC con tamaño de página acota en la base', () => {
 
 describe('el tamaño de las listas con selector', () => {
   it('la base sólo admite los tamaños del selector, en el mismo orden', () => {
-    const esquema = readFileSync(join(RAIZ, 'supabase/schemas/02_equipo/01_equipo.sql'), 'utf8')
-    expect(tamanosDelCheck(esquema)).toEqual([...TAMANOS_DE_PAGINA])
+    expect(tamanosDelCheck(tablaSql('preferencias_usuario').texto)).toEqual([...TAMANOS_DE_PAGINA])
   })
 
   it('el tamaño de fábrica y el máximo de cada lista son tamaños del selector', () => {

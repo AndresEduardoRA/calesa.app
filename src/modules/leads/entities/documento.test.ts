@@ -1,8 +1,7 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { definicionSql } from '../../../../scripts/lib/definicion-sql'
 import { CASOS_DE_DOCUMENTO } from './documento.casos'
 import { hrefSeguro, validarDocumento } from './documento'
 
@@ -46,18 +45,8 @@ describe('contra _seguimiento_detalle() de la base', () => {
   ]
 
   beforeAll(async () => {
-    const sql = readFileSync(
-      join(process.cwd(), 'supabase/migrations/20261015000100_seguimientos_recordatorios.sql'),
-      'utf8',
-    )
     db = new PGlite()
-    for (const nombre of FUNCIONES) {
-      const inicio = sql.indexOf(`create or replace function public.${nombre}(`)
-      expect(inicio).toBeGreaterThan(-1)
-      const cuerpo = sql.indexOf('$$', inicio)
-      const fin = sql.indexOf('$$;', cuerpo + 2) + 3
-      await db.exec(sql.slice(inicio, fin))
-    }
+    for (const nombre of FUNCIONES) await db.exec(definicionSql(nombre).texto)
   })
 
   afterAll(async () => {

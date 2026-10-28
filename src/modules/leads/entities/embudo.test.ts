@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { tablaSql } from '../../../../scripts/lib/definicion-sql'
 import {
   conFinal,
   conInicial,
@@ -187,11 +186,11 @@ describe('editar etapas', () => {
 
 describe('la paleta de las etapas', () => {
   it('es la de las etiquetas, en el check de la base', () => {
-    const esquema = readFileSync(
-      join(process.cwd(), 'supabase/schemas/05_leads/01_leads.sql'),
-      'utf8',
-    )
-    const check = /embudos_etapas_color_paleta check \(color in \(([^)]*)\)\)/.exec(esquema)?.[1]
-    expect(check?.split(',').map((x) => x.trim().replaceAll("'", ''))).toEqual([...CLAVES_DE_COLOR])
+    const tabla = tablaSql('embudos_etapas').texto
+    const check = /CONSTRAINT "?embudos_etapas_color_paleta"? CHECK \((.*)\),?$/im.exec(tabla)?.[1]
+    expect(check).toBeDefined()
+    expect([...(check ?? '').matchAll(/'([a-z]+)'/g)].map((m) => m[1])).toEqual([
+      ...CLAVES_DE_COLOR,
+    ])
   })
 })

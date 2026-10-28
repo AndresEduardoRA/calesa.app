@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { definicionSql } from '../../../../scripts/lib/definicion-sql'
 import {
   camposPreconfigurados,
   reglasPreconfiguradas,
@@ -10,14 +9,8 @@ import { CLAVES_RESERVADAS } from './campo'
 
 // El espejo se compara con el SQL que de verdad crea los campos: si alguien cambia el trigger y
 // no esto, la pantalla de alta le promete a la persona lo que no va a nacer.
-const TRIGGERS = readFileSync(
-  join(process.cwd(), 'supabase/migrations/20261011000300_triggers.sql'),
-  'utf8',
-)
-const APIBARA = readFileSync(
-  join(process.cwd(), 'supabase/migrations/20261014000200_apibara.sql'),
-  'utf8',
-)
+const TRIGGER = definicionSql('origen_preconfigurar_campos').texto
+const CATALOGO = definicionSql('_apibara_catalogo').texto
 
 type FilaSql = {
   clave: string
@@ -33,11 +26,9 @@ type FilaSql = {
 
 // Las filas de `_apibara_catalogo()`: cada una es `('clave', 'Etiqueta', 'tipo', 'Grupo', orden, …)`.
 function filasDelCatalogo(): FilaSql[] {
-  const inicio = APIBARA.indexOf('create or replace function public._apibara_catalogo')
-  const fin = APIBARA.indexOf('revoke all on function public._apibara_catalogo')
   const patron =
     /\('([a-z_0-9]+)', '([^']+)', '([a-z_]+)', '([^']+)', (\d+), (true|false), (true|false), (true|false), (null|'[a-z_.A-Z0-9]+'), (true|false)\)/g
-  return [...APIBARA.slice(inicio, fin).matchAll(patron)].map((m) => ({
+  return [...CATALOGO.matchAll(patron)].map((m) => ({
     clave: m[1] ?? '',
     etiqueta: m[2] ?? '',
     tipo: m[3] ?? '',
@@ -51,10 +42,7 @@ function filasDelCatalogo(): FilaSql[] {
 }
 
 function filasManuales(): FilaSql[] {
-  const inicio = TRIGGERS.indexOf('create or replace function public.origen_preconfigurar_campos')
-  const fin = TRIGGERS.indexOf('create trigger trg_origen_preconfigurar_campos')
-  const funcion = TRIGGERS.slice(inicio, fin)
-  const manual = funcion.slice(funcion.indexOf('  else\n'))
+  const manual = TRIGGER.slice(TRIGGER.indexOf('  else\n'))
   const patron =
     /\(new\.id, '([a-z_0-9]+)', '([^']+)', '([a-z_]+)', (?:true|false), '([^']+)', (\d+), (true|false), (true|false), (true|false), true\)/g
   return [...manual.matchAll(patron)].map((m) => ({
@@ -95,12 +83,7 @@ describe('preconfiguraciones', () => {
   })
 
   it('el trigger de preconfiguración arma la subasta desde el catálogo', () => {
-    const inicio = APIBARA.indexOf('create or replace function public.origen_preconfigurar_campos')
-    const funcion = APIBARA.slice(
-      inicio,
-      APIBARA.indexOf('revoke all on function public.origen_apibara_completar'),
-    )
-    expect(funcion).toContain('from public._apibara_catalogo() c')
+    expect(TRIGGER).toContain('from public._apibara_catalogo() c')
   })
 
   it('los campos manuales son los que crea el trigger', () => {
@@ -112,9 +95,7 @@ describe('preconfiguraciones', () => {
   })
 
   it('las reglas del flujo son las que crea origen_crear_flujo', () => {
-    const inicio = TRIGGERS.indexOf('create or replace function public.origen_crear_flujo')
-    const fin = TRIGGERS.indexOf('create trigger trg_origen_crear_flujo')
-    const funcion = TRIGGERS.slice(inicio, fin)
+    const funcion = definicionSql('origen_crear_flujo').texto
     const comunes = [
       ...(funcion.match(/array\[([^\]]+)\]/)?.[1] ?? '').matchAll(/'([a-z_]+)'/g),
     ].map((m) => m[1])

@@ -1,9 +1,10 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { definicionSql } from '../lib/definicion-sql'
 
 // El tamaño del lote de la importación de leads vive en UN punto del código, `FILAS_POR_LOTE`, y hay otros cuatro lugares que lo
-// repiten porque no pueden importarlo: el tope de la RPC `leads_importar_lote` (su última migración), la prueba de la matriz de leads
+// repiten porque no pueden importarlo: el tope de la RPC `leads_importar_lote` (su definición vigente), la prueba de la matriz de leads
 // que manda un lote de más, el motivo de `escala.sql` y la medición (que lo recibe como variable de psql). Subir `FILAS_POR_LOTE` sin
 // subir el de la base haría que la pantalla mandara lotes que la base rechaza («Un lote lleva de 1 a 50 filas.»); esta prueba lo impide.
 // Se probó pasar a 100 en el cierre 4 y se quedó en 50 (`docs/DECISIONES.md`): cambiarlo es un cambio en estos cinco sitios a la vez.
@@ -17,20 +18,6 @@ const FILAS_POR_LOTE = Number(
   )?.[1],
 )
 
-// La última migración que (re)define la RPC es la que vale.
-function definicionVigente(): { archivo: string; texto: string } {
-  const archivos = readdirSync(join(RAIZ, 'supabase/migrations'))
-    .filter((nombre) => nombre.endsWith('.sql'))
-    .sort()
-  const definen = archivos.filter((nombre) =>
-    /create or replace function public\.leads_importar_lote\(/.test(
-      leer(`supabase/migrations/${nombre}`),
-    ),
-  )
-  const archivo = definen.at(-1) ?? ''
-  return { archivo, texto: leer(`supabase/migrations/${archivo}`) }
-}
-
 describe('el lote de la importación de leads', () => {
   it('FILAS_POR_LOTE es un número de verdad', () => {
     expect(Number.isInteger(FILAS_POR_LOTE)).toBe(true)
@@ -38,11 +25,8 @@ describe('el lote de la importación de leads', () => {
     expect(500 % FILAS_POR_LOTE, 'un archivo de 500 filas se parte en lotes enteros').toBe(0)
   })
 
-  it('el tope de la RPC en su última migración es FILAS_POR_LOTE, en la condición y en el mensaje', () => {
-    const { archivo, texto } = definicionVigente()
-    const cuerpo = texto.slice(
-      texto.indexOf('create or replace function public.leads_importar_lote('),
-    )
+  it('el tope de la RPC en su definición vigente es FILAS_POR_LOTE, en la condición y en el mensaje', () => {
+    const { archivo, texto: cuerpo } = definicionSql('leads_importar_lote')
     const tope = /jsonb_array_length\(p_filas\) > (\d+)/.exec(cuerpo)?.[1]
     const mensaje = /Un lote lleva de 1 a (\d+) filas\./.exec(cuerpo)?.[1]
     expect(Number(tope), `${archivo}: el tope de la condición`).toBe(FILAS_POR_LOTE)

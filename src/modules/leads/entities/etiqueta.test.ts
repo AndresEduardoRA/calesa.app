@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { definicionSql, tablaSql } from '../../../../scripts/lib/definicion-sql'
 import { CONTRASTE_AA, contraste } from '@/shared/lib/color'
 import {
   CLAVES_DE_COLOR,
@@ -166,17 +167,13 @@ describe('la paleta', () => {
     new RegExp(`--${nombre}: (#[0-9a-f]{6});`).exec(texto)?.[1]
 
   it('es la misma que la del check y la de _etiquetas_paleta()', () => {
-    const esquema = readFileSync(
-      join(process.cwd(), 'supabase/schemas/05_leads/01_leads.sql'),
-      'utf8',
-    )
-    const check = /etiquetas_color_paleta check \(color in \(([^)]*)\)\)/.exec(esquema)?.[1]
-    expect(check?.split(',').map((x) => x.trim().replaceAll("'", ''))).toEqual([...CLAVES_DE_COLOR])
-    const migracion = readFileSync(
-      join(process.cwd(), 'supabase/migrations/20261015000200_marcas_de_leads.sql'),
-      'utf8',
-    )
-    const funcion = /select array\[([^\]]*)\];/.exec(migracion)?.[1]
+    const tabla = tablaSql('etiquetas').texto
+    const check = /CONSTRAINT "?etiquetas_color_paleta"? CHECK \((.*)\),?$/im.exec(tabla)?.[1]
+    expect(check).toBeDefined()
+    expect([...(check ?? '').matchAll(/'([a-z]+)'/g)].map((m) => m[1])).toEqual([
+      ...CLAVES_DE_COLOR,
+    ])
+    const funcion = /select array\[([^\]]*)\];/.exec(definicionSql('_etiquetas_paleta').texto)?.[1]
     expect(funcion?.split(',').map((x) => x.trim().replaceAll("'", ''))).toEqual([
       ...CLAVES_DE_COLOR,
     ])

@@ -1,5 +1,5 @@
 // El teléfono de un lead: cómo se normaliza lo que la persona escribe o pega. La fuente es
-// `normalizar_telefono()` de la base (`supabase/schemas/00_base/03_utilidades.sql`): esto es su
+// `normalizar_telefono()` de la base: esto es su
 // espejo, para responder al tipear sin ir al servidor. Un test corre las dos funciones sobre la misma
 // tabla de casos (`telefono.casos.ts`) y exige el mismo número y el mismo motivo.
 //
