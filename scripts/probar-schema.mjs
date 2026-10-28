@@ -186,6 +186,7 @@ const SOLO = process.env['SOLO']?.split(',')
 for (const archivo of [
   // Primero: mira el seed tal como queda, antes de que el humo publique la v2 de una fórmula o cambie un tipo de cambio.
   'rls-en-todo.sql',
+  'privilegios-de-anon.sql',
   'jobs.sql',
   'semilla-cotizador.sql',
   'humo.sql',

@@ -133,6 +133,9 @@ jobs:
           pnpm db:types
           git diff --exit-code -- src/shared/types/database.types.ts
       - run: pnpm db:probar
+      # 4-40: anon no toca public, y lo nuevo nace sin privilegios de más (los mismos asserts que db:probar, contra la base real).
+      - name: privilegios de anon y authenticated en public
+        run: psql "$SUPABASE_DB_LOCAL" -v ON_ERROR_STOP=1 -f supabase/tests/privilegios-de-anon.sql
       - run: pnpm db:lint
       - name: splinter (advisors de seguridad, la copia del repo)
         run: |

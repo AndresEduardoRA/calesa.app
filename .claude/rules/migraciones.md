@@ -22,9 +22,10 @@ paths:
 
 ## Privilegios
 
-- **Supabase da todo a `anon`, `authenticated` y `service_role` sobre cada tabla, vista, secuencia y función nueva de `public`**
-  (privilegios por defecto). Todo objeto nuevo quita lo que no corresponde: `revoke all … from anon, authenticated` (y `public` en una
-  función), y da explícito lo que sí. Una función que recrea una vista (`_leads_vista_crear()`) lo repite cada vez.
+- **Una tabla, vista, secuencia o función nueva de `public` nace con todo para `authenticated` y `service_role`, y la función además con
+  EXECUTE para PUBLIC** (privilegios por defecto; desde 4-40 nada para `anon`). Todo objeto nuevo quita lo que no corresponde:
+  `revoke all … from anon, authenticated` (y `public` en una función), y da explícito lo que sí. Una función que recrea una vista
+  (`_leads_vista_crear()`) lo repite cada vez. `supabase/tests/privilegios-de-anon.sql` cae si `anon` o PUBLIC quedan con algo en `public`.
 - Toda tabla nueva en `public`: `enable row level security`, el revoke, grants explícitos y una policy por operación `to authenticated`.
   `anon` sólo toca el esquema `web`. `supabase/tests/rls-en-todo.sql` falla si una tabla de `public` queda sin RLS.
 - `security definer` = `set search_path = ''`, todo calificado con esquema, `revoke all … from public, anon` y `grant execute` explícito.
