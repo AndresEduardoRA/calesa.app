@@ -29,17 +29,17 @@
 
 ## Etapas
 
-| Etapa                           | Estado                     | Uso (salida · caché leída)                                          |
-| ------------------------------- | -------------------------- | ------------------------------------------------------------------- |
-| Plan (exploración y preguntas)  | hecho                      | principal 89 K · 9,6 M; subagentes (Opus) 180 K · 33,3 M; 1,5 h     |
-| 0 — Backup y disco              | hecho (2026-10-28)         | principal 20 K · 12,3 M; 0,24 h                                     |
-| 3 — Docs livianos               | hecho (2026-10-28)         | principal 93 K · 31,6 M; subagentes (Sonnet) 960 K · 48,5 M; 0,72 h |
-| 1 — Aplastar y resetear la demo | hecho (2026-10-28)         | principal 140 K · 92,3 M; subagentes (Sonnet) 25 K · 4,8 M; 1,41 h  |
-| 2 — Entornos y configuración    | en curso (desde 19:22 UTC) | —                                                                   |
-| 4 — Quitar lo que sobra         | pendiente                  | —                                                                   |
-| 5 — Worktrees en paralelo       | pendiente                  | —                                                                   |
-| 6 — Flujo de dos carriles       | pendiente                  | —                                                                   |
-| 7 — Cierre                      | pendiente                  | —                                                                   |
+| Etapa                           | Estado                                                   | Uso (salida · caché leída)                                          |
+| ------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
+| Plan (exploración y preguntas)  | hecho                                                    | principal 89 K · 9,6 M; subagentes (Opus) 180 K · 33,3 M; 1,5 h     |
+| 0 — Backup y disco              | hecho (2026-10-28)                                       | principal 20 K · 12,3 M; 0,24 h                                     |
+| 3 — Docs livianos               | hecho (2026-10-28)                                       | principal 93 K · 31,6 M; subagentes (Sonnet) 960 K · 48,5 M; 0,72 h |
+| 1 — Aplastar y resetear la demo | hecho (2026-10-28)                                       | principal 140 K · 92,3 M; subagentes (Sonnet) 25 K · 4,8 M; 1,41 h  |
+| 2 — Entornos y configuración    | hecha en local (2026-10-28); espera `.env.demo` y Vercel | principal 96 K · 87,4 M; subagentes (Opus) 102 K · 21,4 M; 0,75 h   |
+| 4 — Quitar lo que sobra         | en curso (desde 20:07 UTC)                               | —                                                                   |
+| 5 — Worktrees en paralelo       | pendiente                                                | —                                                                   |
+| 6 — Flujo de dos carriles       | pendiente                                                | —                                                                   |
+| 7 — Cierre                      | pendiente                                                | —                                                                   |
 
 ## Etapa 0 — Backup y disco
 
@@ -124,6 +124,29 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
 - **Ventana abierta:** la demo quedó **sin usuarios**; la primera cuenta que se registre queda dueña. Se cierra en la etapa 2 con
   `restaurar.sh`, que necesita tu `.env.demo`.
 
+## Etapa 2 — Entornos y configuración (hecha en local; lo remoto espera a la persona)
+
+- `docs/ENTORNOS.md`: la tabla de cada variable y ajuste (para qué, dónde vive, si es secreta, quién la pone), la plantilla de `.env.demo`,
+  Auth en la nube (con el paso a paso del panel), el registro, Vercel, el correo y «Cambiar de Resend a Cloudflare».
+- **Validación:** `src/shared/config/esquemas.ts` (Zod, puro); el build cae sin las públicas, el arranque sin las del servidor
+  (`src/instrumentation.ts`); `pnpm env:check` revisa `.env.local` y `.env.demo` sin mostrar valores.
+- **Auth en la nube:** `[remotes.demo]` en `config.toml` (Site URL, redirecciones con el comodín de previews «sólo demo», `otp_expiry`
+  86400, SMTP con `env()`; el puerto fijo en 465 porque la CLI no lee `env()` en un número, verificado) y las 6 plantillas en español. La
+  CLI acepta `env()` sin definir dentro de `[remotes]` (verificado en local). Lo sube `restaurar.sh` (el push de configuración de la CLI)
+  si hay SMTP.
+- **Registro:** ya se cerraba en la base; nuevas pruebas (`registro.sql`: Google sin marca cae, abierto no crea otro dueño, cambiar una
+  cuenta existente no pasa por el candado) y un e2e del `signUp` directo a la API.
+- **Vercel:** sin acceso todavía (el proyecto está en otra cuenta). `.github/workflows/demo.yml` migra la demo al integrar en `main`.
+- **`scripts/demo/restaurar.sh [--local]`** y `sembrar.mjs` (subagente): el dueño y un usuario por rol (`<rol>@demo.invalid`) por la API de
+  admin, registro cerrado, clave de apibara opcional, 30 leads, 10 vehículos y 5 cotizaciones por las RPC (totales del motor), sin datos
+  reales; idempotente. **Probado de punta a punta en local.** Contra la demo, espera tu `.env.demo`.
+- **Correo:** `enviarEmail()` + adaptador `mailpit` (probado contra el Mailpit real), regla de ESLint contra los SDK de proveedores;
+  `resend`, `cloudflare` y `pnpm email:probar` son el abierto **7-1**.
+- **Verificado en la doc vigente:** Resend SMTP (`smtp.resend.com`, 465 implícito, usuario `resend`); Cloudflare SMTP
+  (`smtp.mx.cloudflare.net`, sólo 465, usuario `api_token`, token con «Email Sending: Edit») y que su dominio tiene que ser una zona de tu
+  cuenta (por eso la recomendación del DNS en Cloudflare).
+- Verde: lint, typecheck, test (5.363), `db:probar` (421), `db:lint`, `mapa.sh --check`.
+
 ## Recogido de «Lista para la nube» (salió de ESTADO en la etapa 3; original en `docs/archivo/ESTADO.md`)
 
 - **Etapa 1:** al congelar la base, `db:base` deja de existir y la regla «sólo migraciones» reemplaza a la de DECISIONES (2026-10-11) y al
@@ -139,10 +162,22 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
 
 ## Esperando a la persona
 
-- (nada todavía)
+- **Urgente (cierra la ventana de la demo sin dueño):** el `.env.demo` (plantilla en `docs/ENTORNOS.md` › «.env.demo»). Con él corro
+  `bash scripts/demo/restaurar.sh` contra la demo.
+- **4-40** (decisión): apagar o no los privilegios por defecto de Supabase en `public` (`anon` con 15 secuencias y 32 funciones).
+- **4-41** (decisión): si `env:check` debe leer Vercel y Supabase por API (pide `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN`).
 
 ## Lo que necesito de ti, por etapa
 
-- **Etapa 2:** `.env.demo` (email y clave del dueño de la demo, clave de los usuarios de demo, `SMTP_*`/`EMAIL_*` de Resend, Google;
-  `APIBARA_CLAVE` opcional); la API key de Resend y el dominio con su subdominio de envío; acceso a la cuenta de Vercel.
-- **Etapa 6:** los secretos de GitHub para `desplegar-demo` (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, el ref).
+- **Etapa 2:**
+  - `.env.demo` completo: `DEMO_CLAVE_PUBLICA` y `DEMO_CLAVE_SECRETA` de la demo (panel › Project Settings › API Keys), `DEMO_SITE_URL`
+    (la URL de producción en Vercel), `DEMO_VERCEL_EQUIPO` (el slug del equipo), `DEMO_DUENO_EMAIL`, `DEMO_DUENO_CLAVE` y
+    `DEMO_CLAVE_USUARIOS` (12 o más caracteres), y el SMTP de Resend (`SMTP_CLAVE` = la API key; `EMAIL_REMITENTE` en el subdominio).
+  - **Resend:** crear la cuenta, dar de alta `correo.<tu dominio>` y poner en el DNS los registros que te muestra (SPF, DKIM y DMARC del
+    subdominio); recomendación: mover antes el DNS del dominio a Cloudflare (gratis), que es lo que pide Email Sending para migrar después.
+  - **Vercel:** acceso al proyecto (está en otra cuenta) para cargar las variables de producción y preview, o cargarlas tú: las tres
+    públicas y `SUPABASE_SECRET_KEY` de la demo en «Production» y «Preview».
+  - Google (opcional): client id y secret de OAuth.
+- **Etapa 6:** en GitHub, la variable `DEMO_PROJECT_REF` = `fjvrjndglytyhvlxifeb` y los secretos `SUPABASE_ACCESS_TOKEN` (un token
+  personal de Supabase) y `SUPABASE_DB_PASSWORD` (la clave de la base de la demo): con eso `.github/workflows/demo.yml` migra la demo al
+  integrar en `main`.

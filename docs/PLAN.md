@@ -240,6 +240,9 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   secuencias ni funciones de trigger, pero contradice «`anon` sólo toca `web`». Assert: una consulta a `aclexplode` en la base real (job
   `base` de CI) no da ningún privilegio de `anon` en `public`; la salida probable, apagar esos privilegios por defecto en `public` con una
   migración y dar todo explícito.
+- **4-41** (sin fase: lo decide la persona): `pnpm env:check` sólo revisa `.env.local` y `.env.demo`. Falta leer por API, sin valores, las
+  variables de Vercel (producción y preview) y los secretos de las funciones y la configuración de Auth de Supabase. Assert: con
+  `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN`, `env:check produccion` dice qué falta en cada lugar de la tabla de docs/ENTORNOS.md.
 - **5a-4b** (4.28): la suite completa no baja de 25 min (el Nivel 3 tarda 40,1 min con 1.065 pruebas; el Nivel 2 ≈ 24; el último completo
   de escritorio, ≈ 28 min). Decidido el 2026-10-19: no se monta la segunda pila local; los shards de CI son la salida (`.github/workflows/ci.yml`,
   CI-1: 4 runners, cada uno con su pila y su base; escritorio por defecto y `proyectos: ambos` a mano; los bloques de escritorio suman 5,7 a
@@ -340,6 +343,12 @@ caracteres y ámbito en servidor, acciones, últimos abiertos; incluye «Nueva c
 
 **Terminado cuando:** una tarea dada desde el chat le llega como notificación y push al responsable; una mención a un lead que no puedo ver
 muestra placeholder; el buscador nunca devuelve algo que la RLS esconde ni busca por teléfono.
+
+- **7-1** (correo de la app, preparado el 2026-10-28): `enviarEmail()` de `src/shared/lib/email/` ya existe con el adaptador `mailpit`. Falta
+  lo de producción: los adaptadores `resend` y `cloudflare` por su API REST (mismo contrato, con su prueba de contrato con `fetch` simulado),
+  su variable de clave en `src/shared/config/esquemas.ts`, `pnpm email:probar <destino>` (un correo real con el proveedor configurado), y el
+  mismo contrato en `supabase/functions/` si una función edge manda correo. Assert: cambiar `EMAIL_PROVEEDOR` de `resend` a `cloudflare`
+  no cambia código (docs/ENTORNOS.md › «Cambiar de Resend a Cloudflare»).
 
 ## Fase 8 — Web pública (contenido, cola y portal) y repuestos
 
