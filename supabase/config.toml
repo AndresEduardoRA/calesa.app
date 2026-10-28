@@ -42,12 +42,17 @@ port = 54627
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-# Destinos permitidos para `redirectTo` (ingreso con Google). 3210 es el puerto de los e2e.
+# Destinos permitidos para `redirectTo` (ingreso con Google). 3210 es el puerto de los e2e; 3100/3310 y 3200/3410, la app y los e2e
+# de los carriles de Orca (scripts/lib/stack-local.mjs; cada carril pone su site_url con SUPABASE_AUTH_SITE_URL).
 additional_redirect_urls = [
   "https://localhost:3000/**",
   "http://localhost:3000/**",
   "http://127.0.0.1:3000/**",
   "http://localhost:3210/**",
+  "http://localhost:3100/**",
+  "http://localhost:3310/**",
+  "http://localhost:3200/**",
+  "http://localhost:3410/**",
 ]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true

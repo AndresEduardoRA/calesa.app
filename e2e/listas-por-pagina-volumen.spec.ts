@@ -17,6 +17,10 @@ import { sql } from './soporte/sql'
 import { MAXIMO_DE_PAGINA_DE_LEADS } from '../src/modules/leads/entities/listado'
 import { MAXIMO_DE_PAGINA_DE_VEHICULOS } from '../src/modules/vehiculos/entities/vehiculo'
 import { tamanosHasta } from '../src/shared/lib/paginacion'
+import { stackLocal } from '../scripts/lib/stack-local.mjs'
+
+// Los pedidos a la API de Supabase de ESTE worktree (la principal o un carril).
+const A_LA_BASE = new RegExp(`:${String(stackLocal().puertoApi)}/`)
 
 // «Ítems por página» con VOLUMEN (9g): el listado de leads (50.000 en total, la dueña con «todos» y Ana con «propios») y
 // el inventario de vehículos (10.000), cada uno con **su valor máximo**, en escritorio y celular. Se afirma lo
@@ -63,7 +67,7 @@ function observar(page: Page) {
   const pedidos: Request[] = []
   page.on('request', (pedido) => pedidos.push(pedido))
   return {
-    aLaBase: () => pedidos.filter((p) => /:54621\//.test(p.url())).length,
+    aLaBase: () => pedidos.filter((p) => A_LA_BASE.test(p.url())).length,
     acciones: () =>
       pedidos.filter((p) => p.method() === 'POST' && p.headers()['next-action'] !== undefined)
         .length,

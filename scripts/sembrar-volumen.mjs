@@ -4,15 +4,10 @@
 // Uso: pnpm db:sembrar-volumen                      (50.000 leads, lo que mide `db:medir:volumen`)
 //      pnpm db:sembrar-volumen -- --leads 200000    (otra cantidad, con el mismo reparto: para medir una vez y anotar)
 import { spawnSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { stackLocal } from './lib/stack-local.mjs'
 
-const toml = readFileSync('supabase/config.toml', 'utf8')
-const proyecto = /^project_id\s*=\s*"([^"]+)"/m.exec(toml)?.[1]
-if (!proyecto) {
-  console.error('supabase/config.toml no dice el project_id.')
-  process.exit(1)
-}
-const contenedor = `supabase_db_${proyecto}`
+// El contenedor de la base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
+const { contenedorDb: contenedor } = stackLocal()
 const posicion = process.argv.indexOf('--leads')
 const leads = posicion === -1 ? 50000 : Number(process.argv[posicion + 1])
 if (!Number.isInteger(leads) || leads < 50000 || leads > 1000000) {

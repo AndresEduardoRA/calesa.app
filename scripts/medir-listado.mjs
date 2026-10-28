@@ -7,15 +7,11 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { loadavg } from 'node:os'
+import { stackLocal } from './lib/stack-local.mjs'
 import { DATOS_DE_MEDICION, MEDICIONES_BASE, MEDICIONES_CON_VOLUMEN } from './mediciones.mjs'
 
-const toml = readFileSync('supabase/config.toml', 'utf8')
-const proyecto = /^project_id\s*=\s*"([^"]+)"/m.exec(toml)?.[1]
-if (!proyecto) {
-  console.error('supabase/config.toml no dice el project_id.')
-  process.exit(1)
-}
-const contenedor = `supabase_db_${proyecto}`
+// El contenedor de la base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
+const { contenedorDb: contenedor } = stackLocal()
 const CON_VOLUMEN = process.argv.includes('--volumen')
 
 // Los tamaños de página salen del código, no del SQL (9g): `medir-escala.sql` los recibe como variables de psql. Si una

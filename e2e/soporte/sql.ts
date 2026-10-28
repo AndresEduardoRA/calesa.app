@@ -3,16 +3,11 @@
 // (miles de filas con `generate_series`) que por PostgREST costaría minutos. Sólo local: el contenedor
 // existe sólo con `supabase start`.
 import { execFileSync, spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
 
-function contenedor(): string {
-  const toml = readFileSync('supabase/config.toml', 'utf8')
-  const proyecto = /^project_id\s*=\s*"([^"]+)"/m.exec(toml)?.[1]
-  if (!proyecto) {
-    throw new Error('supabase/config.toml no dice el project_id.')
-  }
-  return `supabase_db_${proyecto}`
-}
+import { stackLocal } from '../../scripts/lib/stack-local.mjs'
+
+// El contenedor de la base de ESTE worktree: la principal o un carril (`.env.carril`, scripts/lib/stack-local.mjs).
+const contenedor = (): string => stackLocal().contenedorDb
 
 const psql = () => [
   'exec',
