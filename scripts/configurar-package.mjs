@@ -26,8 +26,6 @@ pkg.scripts = {
   'db:types':
     'supabase gen types typescript --local --schema public --schema web > src/shared/types/database.types.ts && prettier --ignore-path .gitignore --write src/shared/types/database.types.ts',
   'db:diff': 'supabase db diff -f',
-  // regenera la migración base desde supabase/schemas (lo que aplica `supabase db reset`)
-  'db:base': 'node scripts/esquema-base.mjs',
   'db:probar': 'node scripts/probar-schema.mjs supabase',
   'db:lint': 'supabase db lint --fail-on error',
   mapa: 'bash scripts/mapa.sh',

@@ -48,7 +48,7 @@ env:
 jobs:
   # Siempre: algunas guardas de `pnpm test` leen docs/, así que un cambio sólo de documentación también lo corre.
   nivel-1:
-    name: Nivel 1 · lint, tipos, tests, migración base y mapa
+    name: Nivel 1 · lint, tipos, tests y mapa
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -57,8 +57,6 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck # corre `next typegen` antes de tsc
       - run: pnpm test
-      - name: db:base sin diff (la migración base es copia fiel de supabase/schemas)
-        run: node scripts/esquema-base.mjs --check
       - run: bash scripts/mapa.sh --check
 
   # Decide si corren los jobs pesados: scripts/ci-cambios.sh (probado en scripts/ci-cambios.test.ts).

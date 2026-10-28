@@ -17,7 +17,6 @@
     "db:reset": "bash scripts/candado.sh db:reset -- supabase db reset",
     "db:types": "bash scripts/candado.sh db:types -- sh -c 'supabase gen types typescript --local --schema public --schema web > src/shared/types/database.types.ts' && prettier --ignore-path .gitignore --write src/shared/types/database.types.ts",
     "db:diff": "bash scripts/candado.sh db:diff -- supabase db diff -f",
-    "db:base": "node scripts/esquema-base.mjs",
     "db:probar": "node scripts/probar-schema.mjs supabase",
     "db:medir": "bash scripts/candado.sh db:medir -- node scripts/medir-listado.mjs",
     "db:carreras": "bash scripts/candado.sh db:carreras -- node scripts/carreras.mjs",

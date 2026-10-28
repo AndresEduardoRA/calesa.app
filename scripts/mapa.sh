@@ -180,11 +180,13 @@ compartido() {
   return 0
 }
 
+# Las tablas de `public` que crea cada migración (la base trae casi todas), en orden alfabético dentro de cada una.
 tablas() {
-  [ -d supabase/schemas ] || return 0
-  find supabase/schemas -type f -name '*.sql' | sort | while IFS= read -r f; do
-    grep -hoiE 'create table( if not exists)? +[a-z0-9_."]+' "$f" \
-      | sed -E 's/.* //; s/"//g; s/^public\.//' | sed "s#.*#- \`&\` — \`$f\`#" || true
+  [ -d supabase/migrations ] || return 0
+  find supabase/migrations -type f -name '*.sql' | sort | while IFS= read -r f; do
+    t=$(grep -hoiE 'create table( if not exists)? +"?public"?\."?[a-z0-9_]+' "$f" \
+      | sed -E 's/.* //; s/"//g; s/^public\.//' | sort -u | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g' || true)
+    if [ -n "$t" ]; then printf -- '- `%s`: %s\n' "$(basename "$f")" "$t"; fi
   done
 }
 
@@ -225,7 +227,7 @@ generar() {
   fi
   c=$(compartido); [ -n "$c" ] && printf '## Compartido (`%s/shared/`)\n\n%s\n\n' "$RAIZ" "$c"
   r=$(rutas);  [ -n "$r" ] && printf '## Rutas\n\n%s\n\n' "$r"
-  t=$(tablas); [ -n "$t" ] && printf '## Tablas (supabase/schemas)\n\n%s\n\n' "$t"
+  t=$(tablas); [ -n "$t" ] && printf '## Tablas (supabase/migrations)\n\n%s\n\n' "$t"
   g=$(reglas); [ -n "$g" ] && printf '## Reglas que se cargan solas (.claude/rules)\n\n%s\n\n' "$g"
   if [ -s "$TMPD/avisos" ]; then
     printf '## ⚠️ Pendientes del mapa\n\n'

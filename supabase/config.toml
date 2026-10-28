@@ -14,28 +14,6 @@ port = 54622
 shadow_port = 54620
 major_version = 17
 
-[db.migrations]
-# Declarativo: el estado deseado vive en schemas/; las migraciones a mano llevan RLS, grants,
-# triggers, RPC, storage y cron. El orden importa por las FKs entre dominios.
-schema_paths = [
-  "./schemas/00_base/*.sql",
-  "./schemas/01_empresa/*.sql",
-  "./schemas/02_equipo/*.sql",
-  "./schemas/03_origenes/*.sql",
-  "./schemas/04_flujos/*.sql",
-  "./schemas/05_leads/*.sql",
-  "./schemas/06_vehiculos/*.sql",
-  "./schemas/07_cotizaciones/*.sql",
-  "./schemas/08_repuestos/*.sql",
-  "./schemas/09_logistica/*.sql",
-  "./schemas/10_agenda/*.sql",
-  "./schemas/11_chat/*.sql",
-  "./schemas/12_notificaciones/*.sql",
-  "./schemas/13_actividad/*.sql",
-  "./schemas/14_web/*.sql",
-  "./schemas/15_datos/*.sql",
-]
-
 [db.seed]
 enabled = true
 # El orden es el de las dependencias: el seed (empresa, permisos, orígenes, flujos), las fórmulas del cotizador (necesitan los orígenes, los tonos y los tipos de
