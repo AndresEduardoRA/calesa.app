@@ -1,3 +1,4 @@
+import { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } from 'next/constants'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -6,6 +7,7 @@ import {
   esquemaPublico,
   mensajeDeProblemas,
   problemasDe,
+  validaLaCompilacion,
 } from './esquemas'
 
 describe('el entorno: lo público', () => {
@@ -107,5 +109,15 @@ describe('el mensaje', () => {
     expect(mensajeDeProblemas('la app', [{ variable: 'X', motivo: 'falta' }])).toBe(
       'El entorno de la app está incompleto (docs/ENTORNOS.md):\n  - X: falta',
     )
+  })
+})
+
+// next.config.ts valida las públicas sólo en `next build`: `next typegen` (pnpm typecheck) llega con la misma fase y en CI no hay
+// `.env.local` (así cayó el Nivel 1 del PR de la preparación).
+describe('cuándo valida la compilación', () => {
+  it('en next build sí; en next typegen y en desarrollo no', () => {
+    expect(validaLaCompilacion(PHASE_PRODUCTION_BUILD, ['node', 'next', 'build'])).toBe(true)
+    expect(validaLaCompilacion(PHASE_PRODUCTION_BUILD, ['node', 'next', 'typegen'])).toBe(false)
+    expect(validaLaCompilacion(PHASE_DEVELOPMENT_SERVER, ['node', 'next', 'dev'])).toBe(false)
   })
 })

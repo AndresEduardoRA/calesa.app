@@ -103,6 +103,12 @@ export function problemasDe(
   }))
 }
 
+// Si `next.config.ts` valida las públicas: sólo en `next build`. `next typegen` (el `pnpm typecheck`) carga la configuración con la
+// misma fase y no las necesita; se reconoce por su subcomando.
+export function validaLaCompilacion(fase: string, argv: readonly string[]): boolean {
+  return fase === 'phase-production-build' && !argv.includes('typegen')
+}
+
 // Un mensaje para cortar el arranque o el build, con cada variable y su motivo.
 export function mensajeDeProblemas(donde: string, problemas: readonly Problema[]): string {
   return [
