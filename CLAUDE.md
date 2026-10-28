@@ -48,7 +48,7 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
   `getAll`/`setAll`. `db reset` sólo aplica `migrations/`. Local en 546xx (API 54621, base 54622, Studio 54623, correo 54624).
   `storage.objects`: sólo policies. RLS no esconde columnas (la app lee `leads_vista`). Conflictos: `PT409` con mensaje humano, nunca `40001`.
 - **Tailwind 4** sin config (loader en `next.config.ts`); tokens en `design/tokens.css`; propios con `bg-(--color-surface)`; shadcn en `src/shared/ui`.
-- **Zod 4** (`z.email()`, `{ error }`, `z.record(k, v)`), **TanStack Query 5.1xx** (`queryClient.query()`), **TypeScript 6** a propósito,
+- **Zod 4** (`z.email()`, `{ error }`, `z.record(k, v)`), **TypeScript 6** a propósito,
   `noUncheckedIndexedAccess`. Vitest no testea Server Components async (Playwright). Fechas cruzan como ISO y se muestran con `fechas.ts`.
 - Uploads: fotos a WebP ≤ 1600 px, documentos sin comprimir, objetos por hash, borrar por refcount. PDF con `@react-pdf/renderer` (TTF).
 
