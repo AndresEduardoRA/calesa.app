@@ -29,17 +29,17 @@
 
 ## Etapas
 
-| Etapa                           | Estado                                                   | Uso (salida · caché leída)                                          |
-| ------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
-| Plan (exploración y preguntas)  | hecho                                                    | principal 89 K · 9,6 M; subagentes (Opus) 180 K · 33,3 M; 1,5 h     |
-| 0 — Backup y disco              | hecho (2026-10-28)                                       | principal 20 K · 12,3 M; 0,24 h                                     |
-| 3 — Docs livianos               | hecho (2026-10-28)                                       | principal 93 K · 31,6 M; subagentes (Sonnet) 960 K · 48,5 M; 0,72 h |
-| 1 — Aplastar y resetear la demo | hecho (2026-10-28)                                       | principal 140 K · 92,3 M; subagentes (Sonnet) 25 K · 4,8 M; 1,41 h  |
-| 2 — Entornos y configuración    | hecha en local (2026-10-28); espera `.env.demo` y Vercel | principal 96 K · 87,4 M; subagentes (Opus) 102 K · 21,4 M; 0,75 h   |
-| 4 — Quitar lo que sobra         | en curso (desde 20:07 UTC)                               | —                                                                   |
-| 5 — Worktrees en paralelo       | pendiente                                                | —                                                                   |
-| 6 — Flujo de dos carriles       | pendiente                                                | —                                                                   |
-| 7 — Cierre                      | pendiente                                                | —                                                                   |
+| Etapa                           | Estado                                                         | Uso (salida · caché leída)                                          |
+| ------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Plan (exploración y preguntas)  | hecho                                                          | principal 89 K · 9,6 M; subagentes (Opus) 180 K · 33,3 M; 1,5 h     |
+| 0 — Backup y disco              | hecho (2026-10-28)                                             | principal 20 K · 12,3 M; 0,24 h                                     |
+| 3 — Docs livianos               | hecho (2026-10-28)                                             | principal 93 K · 31,6 M; subagentes (Sonnet) 960 K · 48,5 M; 0,72 h |
+| 1 — Aplastar y resetear la demo | hecho (2026-10-28)                                             | principal 140 K · 92,3 M; subagentes (Sonnet) 25 K · 4,8 M; 1,41 h  |
+| 2 — Entornos y configuración    | hecha en local (2026-10-28); espera `.env.demo` y Vercel       | principal 96 K · 87,4 M; subagentes (Opus) 102 K · 21,4 M; 0,75 h   |
+| 4 — Quitar lo que sobra         | hecho lo aprobado (2026-10-28); el resto espera tu visto bueno | principal 12 K · 11,3 M; 0,1 h (más knip en la etapa 2)             |
+| 5 — Worktrees en paralelo       | en curso (desde 20:13 UTC)                                     | —                                                                   |
+| 6 — Flujo de dos carriles       | pendiente                                                      | —                                                                   |
+| 7 — Cierre                      | pendiente                                                      | —                                                                   |
 
 ## Etapa 0 — Backup y disco
 
@@ -147,6 +147,24 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
   cuenta (por eso la recomendación del DNS en Cloudflare).
 - Verde: lint, typecheck, test (5.363), `db:probar` (421), `db:lint`, `mapa.sh --check`.
 
+## Etapa 4 — Quitar lo que sobra
+
+- **Hecho (aprobado):** fuera `@tanstack/react-query`, `sanitize-html` y `@types/sanitize-html` (ningún import; knip y grep). Verde:
+  lint, typecheck, test (5.363).
+- **Propuesto, espera tu aprobación** (salida de `pnpm dlx knip@5`, revisada a mano):
+  1. `src/shared/ui/select.tsx`, `separator.tsx` y `tooltip.tsx`: componentes de shadcn que nadie importa (se vuelven a traer con
+     `shadcn add`).
+  2. `setup.sh` y `scripts/configurar-package.mjs`: el andamiaje de una sola vez; nadie los llama.
+  3. `supabase/tests/medir-importacion-etapas.sql`: un diagnóstico manual que ningún script corre.
+  4. `shadcn` de `dependencies` a `devDependencies`: sólo lo importa el CSS al compilar.
+- **Se queda, con su motivo:** los corpus JSON de `supabase/tests/` (los usan vitest, `db:probar` y `db:medir`); `src/shared/lib/utils.ts`
+  (el alias de `shadcn add`); los `index.ts`/`client.ts` de módulos vacíos (la API de cada módulo); los scripts que knip da por sin uso
+  (los llama `package.json` a través del candado); `supabase/functions/*` y `public/sw.js` (entradas); `@react-pdf/renderer` y `web-push`
+  (4.18 y Fase 7); `pg`, `@tailwindcss/turbopack` y `typescript-eslint` (carreras, `next.config.ts`, `eslint.config.mjs`); los dos
+  workflows y la acción `preparar`; `.piloto/informes/` (las salidas y planes viejos ya se borraron en la etapa 0).
+- **Sin tocar:** knip cuenta 113 exports y 184 tipos sin uso; casi todos son API de un módulo o se usan sólo en sus pruebas, y sin un
+  `knip.json` con las entradas del repo no se distinguen. Sugerencia: configurarlo en la Fase 9 (no lo hago sin tu visto bueno).
+
 ## Recogido de «Lista para la nube» (salió de ESTADO en la etapa 3; original en `docs/archivo/ESTADO.md`)
 
 - **Etapa 1:** al congelar la base, `db:base` deja de existir y la regla «sólo migraciones» reemplaza a la de DECISIONES (2026-10-11) y al
@@ -166,6 +184,7 @@ sección «Tablas» (8 KB, una línea por tabla con su archivo de `schemas/`) se
   `bash scripts/demo/restaurar.sh` contra la demo.
 - **4-40** (decisión): apagar o no los privilegios por defecto de Supabase en `public` (`anon` con 15 secuencias y 32 funciones).
 - **4-41** (decisión): si `env:check` debe leer Vercel y Supabase por API (pide `VERCEL_TOKEN` y `SUPABASE_ACCESS_TOKEN`).
+- **Etapa 4:** aprobar (o no) los cuatro borrados propuestos de la sección «Etapa 4».
 
 ## Lo que necesito de ti, por etapa
 
