@@ -136,10 +136,12 @@ Lo que el CRM configura para la web pública y el portal del cliente: ajustes de
 
 Infraestructura transversal sin reglas de negocio: clientes de Supabase, permisos, errores como valores, formato de números y fechas, configuración y los componentes de interfaz que usan todos los módulos.
 
-- `config/`: `app.ts`, `entorno.ts`
+- `config/`: `app.ts`, `entorno.ts`, `esquemas.ts`, `servidor.ts`
 - `lib/`: `almacen.ts`, `ancho.server.ts`, `ancho.ts`, `apibara.ts`, `atajos.ts`, `borrador.ts`, `clic-de-fila.ts`, `color.ts`, `conteo.ts`, `enviar-accion.ts`, `errores.ts`, `fechas.ts`, `formato.ts`, `formularios.ts`, `iconos.ts`, `imagenes.ts`, `memoria-de-lectura.ts`, `navegacion.ts`, `numero-tipeado.ts`, `numeros-de-lead.ts`, `paginacion.ts`, `permisos.ts`, `rutas.ts`, `safe-action.ts`, `utils.ts`
 - `lib/campos/`: `agrupar.ts`, `cambios.ts`, `clave.ts`, `controles.ts`, `esquema-de-valor.ts`, `esquemas.ts`, `impacto.ts`, `index.ts`, `mostrar.ts`, `motivos.ts`, `orden.ts`, `tipos.ts`, `valor-defecto.ts`, `valor.ts`
 - `lib/csv/`: `descargar.ts`, `escribir.ts`, `leer.ts`
+- `lib/email/`: `index.ts`, `tipos.ts`
+- `lib/email/adaptadores/`: `mailpit.ts`
 - `lib/filtros/`: `campos.ts`, `chips.ts`, `esquema.ts`, `index.ts`, `minimo.ts`, `opciones.ts`, `url.ts`
 - `lib/supabase/`: `admin.ts`, `almacen.client.ts`, `browser.ts`, `consultas.ts`, `funciones.client.ts`, `proxy.ts`, `server.ts`
 - `types/`: `database.types.ts`

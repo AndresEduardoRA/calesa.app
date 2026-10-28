@@ -1,23 +1,29 @@
-import { z } from 'zod'
+import type { z } from 'zod'
 
-// Variables públicas (viajan al navegador). Las secretas se leen sólo donde se usan, en servidor:
-// ver src/shared/lib/supabase/admin.ts.
-const esquemaPublico = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
-})
+import { esquemaPublico, mensajeDeProblemas, problemasDe } from './esquemas'
 
+// Variables públicas (viajan al navegador). Las del servidor: `servidor.ts`.
 export type EntornoPublico = z.infer<typeof esquemaPublico>
 
 let cache: EntornoPublico | undefined
 
-// Perezoso a propósito: validar al importar rompería los tests y el build de cualquier archivo
-// que sólo pase cerca de un cliente de Supabase.
-export function entornoPublico(): EntornoPublico {
-  cache ??= esquemaPublico.parse({
-    // Acceso literal: Next sólo incrusta en el bundle del navegador las NEXT_PUBLIC_* escritas así.
+// Lo público tal como lo ve Next. Acceso literal: Next sólo incrusta en el bundle del navegador las NEXT_PUBLIC_* escritas así.
+export function leerEntornoPublico(): Record<string, string | undefined> {
+  return {
     NEXT_PUBLIC_SUPABASE_URL: process.env['NEXT_PUBLIC_SUPABASE_URL'],
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env['NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'],
-  })
+    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env['NEXT_PUBLIC_VAPID_PUBLIC_KEY'],
+  }
+}
+
+// Perezoso a propósito: validar al importar rompería los tests de cualquier archivo que sólo pase cerca de un cliente de Supabase.
+// El build y el arranque ya lo validan antes (next.config.ts e instrumentation.ts).
+export function entornoPublico(): EntornoPublico {
+  if (!cache) {
+    const crudo = leerEntornoPublico()
+    const problemas = problemasDe(esquemaPublico, crudo)
+    if (problemas.length > 0) throw new Error(mensajeDeProblemas('la app (públicas)', problemas))
+    cache = esquemaPublico.parse(crudo)
+  }
   return cache
 }
