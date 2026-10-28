@@ -68,6 +68,7 @@ describe('los workflows del repo cumplen', () => {
   it('lee los jobs de ci.yml', () => {
     expect(jobsDe(ci).map((j) => j.nombre)).toEqual([
       'nivel-1',
+      'carriles',
       'cambios',
       'base',
       'carreras',
@@ -78,13 +79,42 @@ describe('los workflows del repo cumplen', () => {
 })
 
 // Cada mutación rompe una regla en el ci.yml real y la guarda tiene que caer con el motivo.
+// CI por niveles y carriles (docs/ORCA.md): la guarda de carriles en cada PR, sobre todo el diff; los e2e del PR según
+// scripts/e2e-dirigidos.mjs; el completo cada noche.
+describe('ci.yml por niveles y carriles', () => {
+  const job = (nombre: string) => jobsDe(ci).find((j) => j.nombre === nombre)?.bloque ?? ''
+
+  it('el job carriles corre en cada PR, con la historia entera, la guarda de carriles', () => {
+    const carriles = job('carriles')
+    expect(carriles).toMatch(/if: github\.event_name == 'pull_request'/)
+    expect(carriles).toMatch(/fetch-depth: 0/)
+    expect(carriles).toContain('node scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"')
+  })
+
+  it('el PR elige sus e2e con scripts/e2e-dirigidos.mjs, y la matriz y los specs salen de esa elección', () => {
+    expect(job('cambios')).toContain(
+      'node scripts/e2e-dirigidos.mjs --rango "$BASE_PR...HEAD" --github',
+    )
+    expect(job('e2e')).toContain('fromJSON(needs.cambios.outputs.e2e_bloques')
+    expect(job('e2e')).toContain('"${especs[@]}"')
+    for (const nombre of ['e2e', 'e2e-build']) {
+      expect(job(nombre)).toContain("needs.cambios.outputs.e2e_modo != 'ninguno'")
+    }
+  })
+
+  it('cada noche corre el completo (schedule), sólo si hubo commits', () => {
+    expect(ci).toMatch(/^ {2}schedule:\n {4}- cron: '[^']+'/m)
+    expect(leer('scripts/ci-cambios.sh')).toMatch(/schedule\)/)
+  })
+})
+
 describe('las mutaciones caen', () => {
   const casos: [string, string | RegExp, string, RegExp][] = [
     [
       'un job sin timeout-minutes',
       /( {4}timeout-minutes: 5\n)/,
       '',
-      /job cambios no tiene timeout-minutes/,
+      /job carriles no tiene timeout-minutes/,
     ],
     [
       'una acción de GitHub por tag',
@@ -117,8 +147,13 @@ describe('las mutaciones caen', () => {
       '- run: pnpm test:e2e:completo',
       /test:e2e:completo no corre/,
     ],
-    ['sin fetch-depth: 0', 'fetch-depth: 0', 'fetch-depth: 1', /no pide fetch-depth: 0/],
-    ['el e2e sin bloques', '--shard=${{ matrix.bloque }}/4 ', '', /sin bloques/],
+    [
+      'sin fetch-depth: 0',
+      /(todo cae a «pesado».\n\s+)fetch-depth: 0/,
+      '$1fetch-depth: 1',
+      /no pide fetch-depth: 0/,
+    ],
+    ['el e2e sin bloques', '--shard=${{ matrix.bloque }}/"$DE" ', '', /sin bloques/],
     ['el e2e sin E2E_COMPLETO', "E2E_COMPLETO: '1'", "E2E_COMPLETO: '0'", /sin E2E_COMPLETO=1/],
     ['el e2e sólo en celular', '--project=escritorio', '--project=movil', /--project=movil/],
     ['sin el input proyectos', 'default: escritorio', 'default: ambos', /input «proyectos»/],

@@ -1,10 +1,15 @@
 name: ci
 
 # Cómo corre y cuánto cuesta: docs/DECISIONES.md, «CI-1». Las reglas de este archivo las prueba scripts/guardas/workflows.test.ts.
+# Por niveles (docs/ORCA.md): un PR corre el Nivel 1 y los e2e dirigidos a lo tocado (el completo de escritorio si toca un disparador del
+# Nivel 2: scripts/e2e-dirigidos.mjs); cada noche, el completo de escritorio sobre main si hubo commits; antes de cerrar una fase, el
+# completo con los dos proyectos a mano (workflow_dispatch, `proyectos: ambos`).
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '0 7 * * *' # 03:00 en La Paz
   workflow_dispatch:
     inputs:
       proyectos:
@@ -59,7 +64,24 @@ jobs:
       - run: pnpm test
       - run: bash scripts/mapa.sh --check
 
-  # Decide si corren los jobs pesados: scripts/ci-cambios.sh (probado en scripts/ci-cambios.test.ts).
+  # Lo que un PR puede tocar según su carril (scripts/guardas/carriles.mjs, docs/ORCA.md): el carril B no edita ESTADO, PLAN,
+  # DECISIONES ni BITACORA ni crea migraciones de dominios compartidos; ninguna migración se intercala ni se edita.
+  carriles:
+    name: Carriles · lo que el PR puede tocar
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - env:
+          BASE_PR: ${{ github.event.pull_request.base.sha }}
+          RAMA: ${{ github.head_ref }}
+        run: node scripts/guardas/carriles.mjs "$BASE_PR" "$RAMA"
+
+  # Decide si corren los jobs pesados (scripts/ci-cambios.sh, probado en scripts/ci-cambios.test.ts) y qué e2e corre un PR: el completo
+  # en 4 bloques, los dirigidos en 1, o ninguno (scripts/e2e-dirigidos.mjs). Fuera de un PR, el completo.
   cambios:
     name: Cambios · ¿base y e2e?
     runs-on: ubuntu-24.04
@@ -67,6 +89,11 @@ jobs:
     outputs:
       pesado: ${{ steps.filtro.outputs.pesado }}
       e2e: ${{ steps.filtro.outputs.e2e }}
+      e2e_modo: ${{ steps.e2e.outputs.e2e_modo }}
+      e2e_specs: ${{ steps.e2e.outputs.e2e_specs }}
+      e2e_bloques: ${{ steps.e2e.outputs.e2e_bloques }}
+      e2e_de: ${{ steps.e2e.outputs.e2e_de }}
+      e2e_proyectos: ${{ steps.e2e.outputs.e2e_proyectos }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,6 +105,16 @@ jobs:
           ANTES: ${{ github.event.before }}
           BASE_PR: ${{ github.event.pull_request.base.sha }}
         run: bash scripts/ci-cambios.sh >> "$GITHUB_OUTPUT"
+      - id: e2e
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE_PR: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENTO" = pull_request ]; then
+            node scripts/e2e-dirigidos.mjs --rango "$BASE_PR...HEAD" --github >> "$GITHUB_OUTPUT"
+          else
+            printf '%s\n' e2e_modo=completo e2e_specs= 'e2e_bloques=[1,2,3,4]' e2e_de=4 e2e_proyectos=escritorio >> "$GITHUB_OUTPUT"
+          fi
 
   base:
     name: Base · reset, tipos, probar, lint y advisors
@@ -116,13 +153,13 @@ jobs:
       - run: pnpm db:reset
       - run: pnpm db:carreras
 
-  # La app se compila una vez y los cuatro bloques bajan la misma (docs/DECISIONES.md, «CI-1»: factura menos y corre en
-  # paralelo con el Nivel 1, que los bloques esperan igual).
+  # La app se compila una vez y los bloques bajan la misma (docs/DECISIONES.md, «CI-1»: factura menos y corre en
+  # paralelo con el Nivel 1, que los bloques esperan igual). Un PR sin e2e que correr (`e2e_modo: ninguno`) no compila.
   # Con workflow_dispatch, `e2e: false` lo apaga (para correr sólo las carreras).
   e2e-build:
     name: e2e · compilar la app
     needs: cambios
-    if: needs.cambios.outputs.e2e == 'true' && (github.event_name != 'workflow_dispatch' || inputs.e2e)
+    if: needs.cambios.outputs.e2e == 'true' && needs.cambios.outputs.e2e_modo != 'ninguno' && (github.event_name != 'workflow_dispatch' || inputs.e2e)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -146,18 +183,22 @@ jobs:
   # Cada bloque tiene su runner y su pila de Supabase: una base por bloque. Sin reintentos (`retries: 0`): la causa de un
   # fallo va a los artefactos y a e2e-fallos/. Las carreras (`db:carreras`) van en su job, a mano (docs/PLAN.md, 9-6).
   e2e:
-    name: e2e · bloque ${{ matrix.bloque }} de 4
+    name: e2e · bloque ${{ matrix.bloque }} de ${{ needs.cambios.outputs.e2e_de }}
     needs: [cambios, nivel-1, e2e-build]
-    if: needs.cambios.outputs.e2e == 'true' && (github.event_name != 'workflow_dispatch' || inputs.e2e)
+    if: needs.cambios.outputs.e2e == 'true' && needs.cambios.outputs.e2e_modo != 'ninguno' && (github.event_name != 'workflow_dispatch' || inputs.e2e)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        bloque: [1, 2, 3, 4]
+        # 4 bloques para el completo; 1 para los dirigidos de un PR (scripts/e2e-dirigidos.mjs).
+        bloque: ${{ fromJSON(needs.cambios.outputs.e2e_bloques || '[1,2,3,4]') }}
     env:
-      # Escritorio por defecto; `proyectos: ambos` (workflow_dispatch) corre los dos, el Nivel 3.
-      PROYECTOS: ${{ inputs.proyectos || 'escritorio' }}
+      # Escritorio por defecto; `proyectos: ambos` (workflow_dispatch) corre los dos, el Nivel 3. Los dirigidos de un PR que toca
+      # interfaz, también los dos (el Nivel 1).
+      PROYECTOS: ${{ inputs.proyectos || needs.cambios.outputs.e2e_proyectos || 'escritorio' }}
+      # Vacío: el completo. Si no, los specs dirigidos, separados por espacios.
+      ESPECS: ${{ needs.cambios.outputs.e2e_specs }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/acciones/preparar
@@ -210,14 +251,16 @@ jobs:
           cat "$RUNNER_TEMP/funciones.log"
           echo "::error::Las funciones edge no respondieron en 120 s:$faltan"
           exit 1
-      - name: e2e completo, bloque ${{ matrix.bloque }} de 4
+      - name: e2e (${{ needs.cambios.outputs.e2e_modo }}), bloque ${{ matrix.bloque }} de ${{ needs.cambios.outputs.e2e_de }}
         env:
           E2E_PROD: '1'
           E2E_COMPLETO: '1'
+          DE: ${{ needs.cambios.outputs.e2e_de || '4' }}
         run: |
           proyecto=(--project=escritorio)
           if [ "$PROYECTOS" = ambos ]; then proyecto=(); fi
-          pnpm exec playwright test --shard=${{ matrix.bloque }}/4 "${proyecto[@]}"
+          read -ra especs <<< "$ESPECS"
+          pnpm exec playwright test --shard=${{ matrix.bloque }}/"$DE" "${proyecto[@]}" "${especs[@]}"
       - name: el log de las funciones, junto a los artefactos
         if: failure()
         run: cp "$RUNNER_TEMP/funciones.log" e2e-fallos/ 2>/dev/null || { mkdir -p e2e-fallos && cp "$RUNNER_TEMP/funciones.log" e2e-fallos/; }
