@@ -6,8 +6,10 @@ sin imprimir valores; la app cae al compilar si falta una pública y al arrancar
 
 ## Los entornos
 
-- **Local:** la principal usa el stack de Supabase en 546xx y la app en el 3000; cada carril de Orca tiene el suyo (etapa 5 de
-  `docs/PREPARACION.md`). `.env.local` sale de `supabase status -o env` más lo que no es de Supabase.
+- **Local:** la principal usa el stack de Supabase `importadora` (546xx), la app en el 3000 y el e2e en el 3210. Cada carril de Orca tiene
+  el suyo: `importadora-a` con +100 (547xx, app 3100, e2e 3310) e `importadora-b` con +200 (548xx, 3200, 3410), que deja
+  `scripts/worktree/preparar.sh` en `.env.carril` (no se edita a mano). `.env.local` sale de `supabase status -o env` más lo que no es de
+  Supabase, copiado de la principal.
 - **Demo = producción:** Supabase Pro (`calesa.app`, ref `fjvrjndglytyhvlxifeb`) y Vercel. **Sin datos reales**: se resetea cuando
   hace falta con `scripts/demo/restaurar.sh`. Registro apagado; el dueño lo crea el script.
 - **Previews de Vercel** (uno por PR): apuntan a la misma demo. Nunca aplican migraciones: eso pasa sólo al integrar en `main`.
@@ -25,6 +27,7 @@ sin imprimir valores; la app cae al compilar si falta una pública y al arrancar
 | `EMAIL_PROVEEDOR`                                                | `ninguno`, `mailpit` (resend y cloudflare: Fase 7) | `.env.local`; Vercel                        | no                | la persona                                               |
 | `EMAIL_REMITENTE`, `…_NOMBRE`                                    | Remitente de la app y de Auth                      | `.env.local`; Vercel; `.env.demo`           | no                | la persona                                               |
 | `MAILPIT_URL`                                                    | Correo local (`http://127.0.0.1:54624`)            | `.env.local`                                | no                | `preparar.sh`                                            |
+| `SUPABASE_PROJECT_ID`, `SUPABASE_*_PORT`, `PUERTO_APP`, `E2E_*`  | El stack, la app y el e2e de un carril de Orca     | `.env.carril` (sólo en un carril)           | no                | `preparar.sh`                                            |
 | `SMTP_HOST`, `SMTP_USUARIO`, `SMTP_CLAVE`                        | SMTP de los correos de Auth                        | `.env.demo` → Supabase Auth                 | la clave **sí**   | la persona                                               |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_*`                                | Google OAuth                                       | `.env.demo` → panel de Auth                 | el secret **sí**  | la persona                                               |
 | Site URL y Redirect URLs                                         | Enlaces de los correos y OAuth                     | `config.toml` › `[auth]` y `[remotes.demo]` | no                | `restaurar.sh`                                           |

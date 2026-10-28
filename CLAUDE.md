@@ -45,7 +45,8 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
   `cacheComponents`: nada de `export const dynamic`, `useSearchParams()` dentro de `<Suspense>`, y leer sesión o base va tras `<Suspense>` con
   `await connection()`. Una pantalla conserva su estado al volver (`key` para reiniciar). `redirect()` tipado: `redirigir()`.
 - **Supabase:** `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`; en servidor `getClaims()`, nunca `getSession()`; cliente por request; cookies
-  `getAll`/`setAll`. `db reset` sólo aplica `migrations/`. Local en 546xx (API 54621, base 54622, Studio 54623, correo 54624).
+  `getAll`/`setAll`. `db reset` sólo aplica `migrations/`. Local en 546xx (API 54621, base 54622, Studio 54623, correo 54624); un carril de
+  Orca, +100 o +200 (`.env.carril`): ahí `pnpm dev`, `pnpm funciones` y `pnpm db:*`, nunca `supabase` suelto.
   `storage.objects`: sólo policies. RLS no esconde columnas (la app lee `leads_vista`). Conflictos: `PT409` con mensaje humano, nunca `40001`.
 - **Tailwind 4** sin config (loader en `next.config.ts`); tokens en `design/tokens.css`; propios con `bg-(--color-surface)`; shadcn en `src/shared/ui`.
 - **Zod 4** (`z.email()`, `{ error }`, `z.record(k, v)`), **TypeScript 6** a propósito,
