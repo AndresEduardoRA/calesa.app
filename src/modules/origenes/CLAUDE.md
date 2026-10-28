@@ -26,7 +26,7 @@ Ficha completa: `docs/archivo/modulos/origenes.md`, sólo con grep.
 
 ## Tablas
 
-`origenes`, `origenes_campos`, `categorias`: sólo lectura para la app, se escriben por RPC (`supabase/migrations/20261011001400_origenes.sql`). Reglas comunes en el motor `_campo_*`, `_campos_*`, `_atributos_*` (`…20261014000600_campos_motor.sql`), que usan también los leads.
+`origenes`, `origenes_campos`, `categorias`: sólo lectura para la app, se escriben por RPC (en la base, `supabase/migrations/20261028180656_base.sql`). Reglas comunes en el motor `_campo_*`, `_campos_*`, `_atributos_*`, que usan también los leads.
 RPC: `origen_apibara_rutas_sin_campo`, `origen_apibara_agregar` (`origen_apibara_completar()` y `_apibara_catalogo()` internas), `origen_crear`, `origen_guardar`, `origen_eliminar`, `origen_campo_crear|guardar|mover|eliminar|impacto`, `categoria_crear|guardar|mover|eliminar`, `origenes_resumen`, `categorias_con_uso`. Triggers: `origen_crear_flujo`, `origen_preconfigurar_campos`, `origen_tipo_inmutable`, `origen_campo_validar`, `origen_activo_requerido` (en `vehiculos` y `cotizaciones`).
 
 ## No se rompe

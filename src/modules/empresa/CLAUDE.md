@@ -27,7 +27,7 @@ Ficha completa: `docs/archivo/modulos/empresa.md`, sólo con grep.
 
 ## Tablas
 
-`ajustes_empresa` (fila única), `monedas`, `tipos_cambio`, `tipos_cambio_historial`, `integraciones`: sólo lectura para la app, se escriben por RPC (`supabase/migrations/20261011001200_empresa.sql`).
+`ajustes_empresa` (fila única), `monedas`, `tipos_cambio`, `tipos_cambio_historial`, `integraciones`: sólo lectura para la app, se escriben por RPC (en la base, `supabase/migrations/20261028180656_base.sql`).
 RPC: `web.ajustes_acceso` (lo único que lee `anon`), `empresa_guardar_ajustes`, `empresa_con_datos_cargados`, `moneda_crear`, `moneda_guardar`, `tipo_cambio_crear`, `tipo_cambio_guardar`, `integracion_guardar`, `integracion_guardar_secreto`, `integracion_secreto` (sólo `service_role`).
 
 ## No se rompe

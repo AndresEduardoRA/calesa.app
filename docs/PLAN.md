@@ -29,7 +29,7 @@ base cumple su tiempo (4.06, hecho).
 **Hito 4-A al cerrar el 4.18:** se cotiza de punta a punta con la fórmula y el diseño de la semilla, con su PDF; corre un **Nivel 2** y la
 BITACORA lo anota como «hito 4-A».
 
-**Verificación de los pasos de la Fase 4:** los niveles son los de `.claude/rules/e2e.md` (Nivel 1, 2 y 3). «Cadena db» = `db:base`,
+**Verificación de los pasos de la Fase 4:** los niveles son los de `.claude/rules/e2e.md` (Nivel 1, 2 y 3). «Cadena db» = una migración nueva,
 `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuando hay carrera). Cada paso de pantalla anota en la BITACORA su marca
 `e2e completo: sí|no (<paso>, <tipo>, N de 3)`: la cuenta de pantallas sin e2e completo vuelve a 0 con cada completo y a los 3 se corre
 uno (hoy: **0 de 3**, por el completo de escritorio del 4.13-3c). Compuerta `dependencia` para subir una dependencia (el piloto no las sube).
@@ -235,6 +235,11 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   pasan de 300 líneas — `vehiculos/entities/vitrina.ts` 358, `leads/entities/oportunidad.ts` 321, `leads/entities/alta.ts` 331 y
   `leads/entities/importacion/filas.ts` 333 — `wc -l` de cada uno ≤ 300, partido por responsabilidad (en `vitrina.ts`, el formulario y su
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
+- **4-40** (sin fase: lo decide la persona; lo destapó el aplastado del 2026-10-28): por los privilegios por defecto de Supabase, `anon`
+  tiene uso de 15 secuencias de `public` y `EXECUTE` en 32 funciones (las de trigger, `_lead_visible_para`…). PostgREST no expone ni
+  secuencias ni funciones de trigger, pero contradice «`anon` sólo toca `web`». Assert: una consulta a `aclexplode` en la base real (job
+  `base` de CI) no da ningún privilegio de `anon` en `public`; la salida probable, apagar esos privilegios por defecto en `public` con una
+  migración y dar todo explícito.
 - **5a-4b** (4.28): la suite completa no baja de 25 min (el Nivel 3 tarda 40,1 min con 1.065 pruebas; el Nivel 2 ≈ 24; el último completo
   de escritorio, ≈ 28 min). Decidido el 2026-10-19: no se monta la segunda pila local; los shards de CI son la salida (`.github/workflows/ci.yml`,
   CI-1: 4 runners, cada uno con su pila y su base; escritorio por defecto y `proyectos: ambos` a mano; los bloques de escritorio suman 5,7 a
@@ -265,12 +270,12 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   aparece acá.» con una persona en la lista (el aviso de la cabecera cuenta al equipo activo y no mira el filtro) — con un estado que no es
   «En el equipo» y al menos una fila, el aviso no sale o no contradice la lista; lo mira `e2e/equipo.spec.ts`
   (`src/modules/equipo/features/equipo/components/cabecera-equipo.tsx:29`).
-- **5a-40** (sin fase: lo decide la persona, después del hito 4-A; toca `supabase/schemas`): la baja de 200.000 sigue en 9 corridas y 15 s
+- **5a-40** (sin fase: lo decide la persona, después del hito 4-A; toca la estructura de `leads`): la baja de 200.000 sigue en 9 corridas y 15 s
   porque `cartera` está indexada y ningún update de la cartera es HOT (0 de 200.000; cada uno entra a los 11 btree: 11,7 de 15,7 s; con el
   GIN sin la cartera 84 % HOT, 7 corridas y 9.953,8 ms; con `fillfactor` 90, 91 % y 6) — el job de la baja de 200.000 ≤ 6 corridas o ≤ 10,1 s
   **y** `medir-escala.sql` sin una aserción rota (el GIN sin la cartera rompió 41: Berta «Mamani» leía 25.016 leads ajenos del heap); un
   índice que sostenga lo ajeno sin nombrar la cartera, o que la búsqueda de quien tiene «propios» no dependa de ella, entra con su
-  `EXPLAIN`. Lugar: `leads_busqueda_idx` y `leads.cartera` (`supabase/schemas/05_leads/01_leads.sql`, la policy y `_lead_visible_para()`).
+  `EXPLAIN`. Lugar: `leads_busqueda_idx` y `leads.cartera` (la tabla `leads` en la base, la policy y `_lead_visible_para()`).
   La persona aceptó el número de hoy (5a-11, opción A); `medir-bajas.sql` asserta el job ≤ 12 corridas, ≤ 20.000 ms y la corrida más larga
   ≤ 3.000 ms. Nada queda «a vigilar».
 - **5a-42** (sin fase: lo decide la persona): `medir-bajas.sql` cae sin regresión cuando el disco tarda en `fsync`: sus cinco topes (≤ 12
@@ -289,8 +294,7 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **5b-7** (4.23, antes de escribir cómo se reordenan las filas de una tabla de referencia): la carrera «dos personas reordenan tipos de
   seguimiento» no distingue el candado de `tipo_seguimiento_mover`: al quitarle `lock table … share row exclusive` la prueba de
   `scripts/carreras/configuracion-de-leads.mjs` sigue en verde — quitar el candado hace caer `pnpm db:carreras` (una carrera donde B calcule
-  su lugar con la lista de antes de que A termine) o, si se demuestra que no hace falta, se quita y la RPC dice por qué en su comentario
-  (`supabase/migrations/20261019004000_configuracion_de_leads.sql`).
+  su lugar con la lista de antes de que A termine) o, si se demuestra que no hace falta, se quita y la RPC dice por qué en su comentario (en la base, `supabase/migrations/20261028180656_base.sql`).
 
 ---
 

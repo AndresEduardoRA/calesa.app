@@ -66,10 +66,6 @@ Fuera de alcance: editor de artes (Konva) y directorio de contactos (`navieras` 
 
 `eslint-plugin-boundaries` 7: elementos como carpetas (`src/modules/*/features`, sin `**/*`), reglas en `policies` y `captured: { modulo: "{{ from.element.captured.modulo }}" }` para «mismo módulo». La sintaxis vieja muere en la v8.
 
-## 2026-10-11 — Migración base generada desde `supabase/schemas`
-
-`pnpm db:base` (`scripts/esquema-base.mjs`) concatena `schemas/` en `migrations/20261011000000_esquema_base.sql`, archivo generado que no se edita; `db:probar` lo salta y falla si está desactualizado. Tras el primer `db push` la base queda congelada y rige migraciones incrementales.
-
 ## 2026-10-11 — shadcn dentro de `src/shared/ui`, con sus variables puenteadas a los tokens
 
 Los componentes shadcn viven en `src/shared/ui`; `globals.css` importa `design/tokens.css` y define las variables semánticas de shadcn (`--primary`, `--border`…) como referencias a tokens, sin registrarlos en `@theme`. Un token nuevo que shadcn use necesita su línea en el puente.
@@ -1037,3 +1033,27 @@ Guardar es la Server Action `crear-cotizacion.ts` (responde `ok(ResultadoDeCrear
 ## 2026-10-27 — Paso 4.13 (3c de 6): el candado por lado del par y un solo lector de números (cierra 4-25)
 
 La `XCell` tiene un candado por lado (`disabledReason` y `secondaryDisabledReason`). Un solo lector `leerNumeroTipeado(texto, locale)` en `src/shared/lib/numero-tipeado.ts`; los escritores abren con `formatearParaEditar(n, { locale })`, `locale` obligatorio; el CSV es la excepción. Reemplaza ih de «2026-10-26 — Paso 4.13 (2 de 4): la hoja dibujada y el recálculo, sin guardar» y el parser heredado de «2026-10-26 — Paso 4.12 (1 de 2): el núcleo de la `XCell`».
+
+## 2026-10-28 — Las 146 migraciones se aplastan en una base que no se edita, y las migraciones son la única fuente
+
+`supabase/migrations/20261028180656_base.sql` es el volcado de la base con las 146 de antes, más lo que el volcado no lleva (triggers de
+`auth.users`, policies de `storage.objects`) y los datos que ponían (buckets, catálogo, la clave de la hoja abierta, los jobs). Diff cero
+contra la base vieja, medido con y sin seed: esquema entero, ACL por rol, datos, cron, Vault, policies y extensiones. Se retiran
+`supabase/schemas/` y `db:base`; todo cambio es una migración nueva con fecha y hora reales (`supabase migration new`), y una guarda fija
+el sha256 de la base. Reemplaza a «2026-10-11 — Migración base generada desde `supabase/schemas`». Descartado: conservar `schemas/` como
+estado declarativo (dos fuentes, y el diff declarativo no lleva policies ni grants).
+
+## 2026-10-28 — La base apaga los privilegios por defecto de Supabase mientras crea los objetos
+
+El volcado escribe los grants contra los privilegios por omisión de Postgres, no contra los de Supabase: sin apagarlos, una base nueva le
+daba a `anon` y `authenticated` todo sobre cada tabla y función (medido: `anon` leía `leads` y `authenticated` leía `telefono_principal` y
+`cotizaciones.valores`). La base los apaga al empezar y el volcado los repone al final. Toda migración nueva quita lo que no corresponde
+(`.claude/rules/migraciones.md`).
+
+## 2026-10-28 — Las vistas de la app sólo se leen y anon no toca `public`
+
+`20261028181638_vistas_de_la_app_solo_se_leen.sql` quita a `anon` todo sobre `leads_vista`, `leads_cartera_vista`, `etiquetas_vista`,
+`recordatorios_vista` y `estado_cola_web`, y a `authenticated` todo menos leer; `_leads_vista_crear()` lo repite al recrearlas. Lo destapó
+`db:probar` al aplastar: PGlite no tenía los privilegios por defecto y la prueba de `leads_cartera_vista` pasaba sin que la base real
+cumpliera. Queda abierto (4-40, lo decide la persona): `anon` conserva por esos mismos privilegios uso de 15 secuencias y `EXECUTE` en 32
+funciones de `public`, sin camino por PostgREST.

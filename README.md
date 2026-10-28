@@ -42,5 +42,5 @@ cuentas, leads, vehículos, ajustes de la empresa, layouts y archivos. Para volv
 
 ## Dónde está cada cosa
 
-`src/modules/<dominio>/` (ficha en su `CLAUDE.md`) · `src/shared/` · `supabase/schemas` (estado
-declarativo) y `supabase/migrations` (RLS, RPC, cron) · `docs/` (producto, UX, plan, decisiones).
+`src/modules/<dominio>/` (ficha en su `CLAUDE.md`) · `src/shared/` · `supabase/migrations` (la base
+aplastada y una migración por cambio) · `docs/` (producto, UX, plan, decisiones).

@@ -52,7 +52,7 @@ RPC: `mi_sesion(p_perspectiva)`, `permisos_efectivos`, `mis_permisos`, `tiene_pe
 - La invitación vence con `otp_expiry` (1 h local; 24 h en la nube): «Generar otro enlace». Si abrió el enlace sin elegir contraseña, Auth sólo deja uno de recuperación.
 - `equipo.roles.ver` tiene un solo punto de enforcement en la base, `niveles_con_uso()`; `equipo.usuarios.ver` está en la policy de `equipo_bajas` y en `equipo_lista()`.
 - Bloquear y dar de baja **aún no** exigen dominar los roles de la persona; decidido el 2026-10-21, se implementa en 9-1 (`docs/PLAN.md`).
-- Las policies llaman `(select tiene_permiso('…'))` como InitPlan: no cambiar la firma sin tocar `20261011000200_rls_y_grants.sql`. Si la llamada nombra una columna de la fila corre por fila; por origen: `origen_id = any ((select origenes_con_alcance('x', 'todos'))::uuid[])`.
+- Las policies llaman `(select tiene_permiso('…'))` como InitPlan: no cambiar su firma: la usan todas las policies de la base. Si la llamada nombra una columna de la fila corre por fila; por origen: `origen_id = any ((select origenes_con_alcance('x', 'todos'))::uuid[])`.
 - `_bajas_en_curso()` sólo habla a una cuenta activa o a los jobs (apagada/bloqueada recibe `{}`).
 - Una persona bloqueada no lee `perfiles`: su estado sale de `mi_sesion()` (DEFINER). `perfiles.rol` no existe a propósito.
 - `DropdownMenuLabel` sólo vale dentro de un grupo. Correos de Auth: `token_hash` (`supabase/templates/`; en la nube, a mano).

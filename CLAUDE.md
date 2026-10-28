@@ -12,7 +12,7 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
 
 ## Comandos
 
-`pnpm dev` (:3000) · `test` · `lint` · `typecheck` · `test:e2e <spec>` · `test:e2e:completo` · `db:base` · `db:reset` · `db:types` ·
+`pnpm dev` (:3000) · `test` · `lint` · `typecheck` · `test:e2e <spec>` · `test:e2e:completo` · `db:reset` · `db:types` ·
 `db:probar` · `db:lint` · `db:carreras` · `db:medir:volumen` · `bash scripts/mapa.sh`. La base y el e2e van con candado (`scripts/candado.sh`).
 
 ## Arquitectura: monolito modular
@@ -22,8 +22,8 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
 - Entradas: `index.ts` (Server Components; sin componentes), `client.ts` (Client Components), `shell.ts`/`shell.client.ts` (sólo el
   layout `(app)`), `pantallas/<pantalla>.ts` (sólo `src/app`: lo que dibuja esa pantalla). Entre módulos sólo entradas; adentro, rutas
   relativas. `src/app` = rutas y composición; `src/shared` sólo importa `shared`. Lo vigilan `eslint-plugin-boundaries` y `mapa.sh --check`.
-- `supabase/schemas/` (estructura) → `pnpm db:base` genera `migrations/20261011000000_esquema_base.sql` (no se edita); RLS, grants,
-  triggers, RPC, `web`, storage y cron van en `supabase/migrations/` a mano.
+- `supabase/migrations/`: la base (`20261028180656_base.sql`, el volcado de las 146 de antes: **no se edita nunca**) y una migración
+  nueva por cambio (`supabase migration new`), con su RLS, grants, triggers, RPC y datos de catálogo (`.claude/rules/migraciones.md`).
 
 ## Reglas
 
@@ -33,7 +33,7 @@ chat, agenda y la web pública. Una empresa por despliegue. Sólo español, de t
 - Zod en todo límite (formulario, action, params, RPC); ids con `z.guid()`. Errores como valores (`{ ok: false, error }`).
 - Ningún componente ni hook consulta Supabase: lecturas en `infra/`, mutaciones por Server Actions (`next-safe-action`), realtime en `*.client.ts`.
 - Lo que otorga permisos (fase, dueño, vitrina, papelera, publicar fórmula) se escribe por RPC, nunca con `.update()`.
-- Cambio de schema = `db:base`, `db:reset`, `db:types` y `db:probar` en el mismo commit.
+- Cambio de base = una migración nueva, con `db:reset`, `db:types` y `db:probar` en el mismo commit.
 - Unidad nueva = su `CLAUDE.md`. Término nuevo = entrada en `docs/GLOSARIO.md`, y ese nombre en tipos, tablas y UI; nunca un sinónimo.
 - `docs/MAPA.md` lo genera `scripts/mapa.sh`. Fechas de DECISIONES y BITACORA: `TZ=America/La_Paz date +%F`.
 - Orígenes, fases, tipos de documento, categorías y monedas salen de la base: ningún texto fijo los nombra.
