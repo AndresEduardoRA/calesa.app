@@ -1,4 +1,4 @@
-// Aplica supabase/schemas + migrations + seed.sql en un Postgres embebido (PGlite 0.5: Postgres 18,
+// Aplica supabase/migrations + el seed en un Postgres embebido (PGlite 0.5: Postgres 18,
 // uno más que la base real: nada de sintaxis nueva) con stubs de auth/storage/pgcrypto/vault/cron/net y corre supabase/tests/humo.sql. Uso: node scripts/probar-schema.mjs supabase
 // No reemplaza a `supabase db reset` ni a splinter: es la red rápida del pre-commit.
 import { PGlite } from '@electric-sql/pglite'
@@ -8,7 +8,6 @@ import { unaccent } from '@electric-sql/pglite/contrib/unaccent'
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { NOMBRE_BASE, esquemaBaseAlDia } from './esquema-base.mjs'
 
 const base = process.argv[2] ?? 'supabase'
 const db = new PGlite({ extensions: { pg_trgm, citext, unaccent, pgcrypto } })
@@ -97,18 +96,9 @@ function* archivos(dir) {
   }
 }
 
-// La migración base es la copia generada de schemas/ (lo que aplica `supabase db reset`). Acá se
-// aplica schemas/ directo, así que se salta; pero si quedó vieja, la base local no es lo que se probó.
-if (!esquemaBaseAlDia(base)) {
-  console.error(
-    `✗ migrations/${NOMBRE_BASE} está desactualizada respecto de schemas/. Corre: pnpm db:base`,
-  )
-  process.exit(1)
-}
-const migraciones = [...archivos(path.join(base, 'migrations'))].filter(
-  (f) => path.basename(f) !== NOMBRE_BASE,
-)
-const lista = [...archivos(path.join(base, 'schemas')), ...migraciones]
+// Las migraciones, en orden: la base (el volcado de las 146 aplastadas el 2026-10-28) y las que le siguen. Es lo mismo que
+// aplica un reset de la base local.
+const lista = [...archivos(path.join(base, 'migrations'))]
 // El seed: los archivos de `[db.seed] sql_paths` de config.toml, en su orden (lo que aplica `supabase db reset`). Sin config.toml, sólo seed.sql.
 const configToml = path.join(base, 'config.toml')
 const rutasDelSeed = fs.existsSync(configToml)
@@ -124,12 +114,20 @@ for (const r of rutasDelSeed) if (fs.existsSync(path.join(base, r))) lista.push(
 
 await db.exec(preambulo)
 let ok = 0
+// Lo que PGlite no tiene: las extensiones de Supabase (el preámbulo pone sus dobles) y la publicación de Realtime.
+const sinLoDeSupabase = (sql) =>
+  sql
+    .replace(/^CREATE EXTENSION IF NOT EXISTS [^;]+;$/gim, '')
+    .replace(/^ALTER PUBLICATION "supabase_realtime" [^;]+;$/gim, '')
 for (const f of lista) {
-  let sql = fs.readFileSync(f, 'utf8')
-  // en producción las extensiones ya existen; en el test las saltamos
-  if (f.endsWith('01_extensiones.sql')) continue
+  const sql = f.includes(`${path.sep}migrations${path.sep}`)
+    ? sinLoDeSupabase(fs.readFileSync(f, 'utf8'))
+    : fs.readFileSync(f, 'utf8')
   try {
     await db.exec(sql)
+    // El volcado de la base abre con `SET row_security = off` y `search_path = ''`: en la base real cada migración tiene su
+    // conexión; acá todo es una sesión, y eso no puede llegar al archivo siguiente ni a las pruebas.
+    await db.exec('reset all')
     ok++
   } catch (e) {
     console.error(`✗ ${path.relative(base, f)}\n  ${e.message}`)
@@ -187,6 +185,8 @@ async function cargarDatos(archivo) {
 const SOLO = process.env['SOLO']?.split(',')
 for (const archivo of [
   // Primero: mira el seed tal como queda, antes de que el humo publique la v2 de una fórmula o cambie un tipo de cambio.
+  'rls-en-todo.sql',
+  'jobs.sql',
   'semilla-cotizador.sql',
   'humo.sql',
   'configuracion-de-leads.sql',
