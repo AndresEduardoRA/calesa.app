@@ -270,7 +270,8 @@ test('se cae la conexión al guardar: lo escrito queda y sale una sola vez al vo
 
   await page.context().setOffline(true)
   await page.getByRole('button', { name: 'Guardar', exact: true }).click()
-  await expect(panel.getByText(/No hay conexión/).first()).toBeVisible()
+  // «No hay conexión» sale de la red y está antes del clic; el aviso de abajo sale del envío fallido, que es lo que el reintento necesita.
+  await expect(panel.getByText(/se va a guardar solo cuando vuelva/)).toBeVisible()
   await expect(panel.getByLabel('Nombre')).toHaveValue(escrito)
   expect((await leadEnLaBase(lead.id)).nombre).toBe(lead.nombre)
 
