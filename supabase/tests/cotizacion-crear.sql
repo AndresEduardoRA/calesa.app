@@ -115,6 +115,13 @@ returns text language sql as $f$
                 p_v, p_nuevo, p_modo, p_clase, p_con_la_abierta, p_ver)
 $f$;
 
+-- Pone en el diseño de esa versión lo que ofrece la cabecera: «Ver total Bs» (`ofrece` en texto: 'true', 'false' o nulo para sacar la clave).
+create or replace function pg_temp.cc_ofrece_ver_total_bs(p_f uuid, p_ofrece text) returns void language plpgsql as $f$
+begin
+  update public.formulas set diseno = case when p_ofrece is null then '{}'::jsonb
+                                           else jsonb_build_object('cabecera', jsonb_build_object('ver_total_bs', p_ofrece::boolean)) end where id = p_f;
+end $f$;
+
 -- @test cotizacion_crear: calcula en la base, guarda el snapshot entero (los nodos que no se ven, con su valor de la fórmula) y devuelve sólo lo que se ve
 begin;
 do $$
@@ -640,13 +647,6 @@ begin
   if r ->> 'hint' is distinct from 'tipo_cambio' then raise exception 'una tarifa sin historial a esa hora debía contar como cambiada: %', r; end if;
 end $$;
 rollback;
-
--- Pone en el diseño de esa versión lo que ofrece la cabecera: «Ver total Bs» (`ofrece` en texto: 'true', 'false' o nulo para sacar la clave).
-create or replace function pg_temp.cc_ofrece_ver_total_bs(p_f uuid, p_ofrece text) returns void language plpgsql as $f$
-begin
-  update public.formulas set diseno = case when p_ofrece is null then '{}'::jsonb
-                                           else jsonb_build_object('cabecera', jsonb_build_object('ver_total_bs', p_ofrece::boolean)) end where id = p_f;
-end $f$;
 
 -- @test cotizacion_crear: «Ver total Bs» se guarda si el diseño de la versión lo ofrece, nace en falso, viaja en la respuesta y en cotizacion_leer; nulo o no ofrecido es 22023 sin escribir; el ayudante no lo ejecuta authenticated
 begin;
