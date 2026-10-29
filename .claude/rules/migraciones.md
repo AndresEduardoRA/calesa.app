@@ -6,76 +6,55 @@ paths:
 
 # Base de datos
 
-- Estructura (tablas, columnas, índices de unicidad, comentarios) en `supabase/schemas/<dominio>/`.
-  RLS, grants, triggers, RPC, vistas `web`, storage y cron en `supabase/migrations/`, a mano.
-  El diff declarativo (`pnpm db:diff <nombre>`) no trackea policies ni grants: nunca los pongas en `schemas/`.
-- Toda tabla nueva en `public`: `alter table … enable row level security`, `revoke all … from
-anon, authenticated`, grants explícitos y una policy por operación con `to authenticated`.
-  `anon` sólo toca el esquema `web`.
-- `(select auth.uid())`, nunca `auth.uid()` suelto. `(select public.tiene_permiso(...))` envuelto.
-  Sólo es InitPlan (una evaluación por sentencia) si la llamada **no nombra una columna de la fila**:
-  `(select alcance_de('x', origen_id))` corre por fila. Para acotar por origen, comparar la columna
-  con un arreglo ya calculado: `origen_id = any ((select origenes_con_alcance('x', 'todos'))::uuid[])`.
-  Compruébalo con `EXPLAIN` como `authenticated` (como dueño de la tabla la RLS no aplica).
-- Función `security definer` = `set search_path = ''` + todo calificado con schema + `revoke all
-… from public, anon` + `grant execute` explícito.
-- Índice en toda FK y en toda columna que aparece en una policy.
-- Policies de la fila propia (`vehiculos`, `leads`, `cotizaciones`) se escriben inline sobre las
-  columnas; `puede_*(id)` es para tablas hijas. Una función STABLE no ve la fila recién insertada
-  en `INSERT … RETURNING`.
-- Conflictos de edición: `raise exception … using errcode = 'PT409'`. Jamás `40001`.
-  Si la fila tiene auditoría, `_conflicto_de_edicion(tabla, id, cuando, 'este vehículo')` lo levanta
-  diciendo quién y cuándo. Un error de validación lleva en `hint` el campo que lo causó.
-- Bajo RLS un operador que no es `leakproof` (`@>`, `ilike`) no se evalúa antes que la policy: su
-  índice (GIN, trigram) no se usa. Un listado filtrado se apoya en un btree de su orden.
-- Toda RPC de edición nace con `p_actualizado_en_esperado timestamptz` **sin default** (va antes de los
-  parámetros con default) y rechaza un nulo con un mensaje legible: `_exigir_version()` hace las dos
-  cosas. El seed y `humo.sql` pasan la versión real; un nulo «para las pruebas» es un control que no
-  existe. Las de crear no la llevan: no hay fila que versionar. Una RPC de lote la lleva por
-  elemento, dentro de su arreglo, y rechaza el elemento que no la trae. Excepción hasta el 4.20: `formula_guardar_borrador` (y con él el ⚙, `docs/PLAN.md`, 4-8).
-  Excepción decidida: enviar leads
-  a la papelera (`leads_papelera_enviar`) es todo o nada, sin versión por lead, e idempotente por el id de
-  lote que genera el cliente (`docs/DECISIONES.md`, 2026-10-15).
-- **La versión de una cotización** (`actualizado_en`) la sella `cotizacion_version()` (4.10-3), no el trigger genérico: un cambio sólo de `reportes_count` o `favoritos_count` no la mueve (un favorito ajeno daba PT409 a quien editaba) y se mueve también dos veces en la misma transacción. **Un `if` de plpgsql termina en el primer `then`, también en el de un `case`**: la condición con `case … then` va a una variable antes.
-- Una versión que tiene que moverse en cada operación (también dos en la misma transacción) no usa
-  el trigger genérico (`now()` es la hora de inicio): se quita `trg_actualizado_en` de esa tabla y
-  la RPC sella con `greatest(clock_timestamp(), anterior + 1 µs)` (fotos, lotes de papelera).
-- Permiso nuevo = fila en `seed.sql` (`permisos`) **en la misma migración** que crea su punto de
-  enforcement, con `aplicado_en` diciendo cuál. Sin enforcement no hay permiso. Única excepción: los `cotizaciones.nivel.<clave>.ver|editar`
-  los genera `nivel_crear()` (D7, paso 4.09); su enforcement es estructural (`_nodos_visibles()` recorre `cotizaciones_niveles`, y un check, una FK
-  y un trigger diferido atan permisos y niveles) y `permisos-enforcement.sql` lo prueba con un caso genérico por cada nivel de la tabla.
-- Clave de dato nueva para requisitos de fase = caso en `_requisito_dato_cumplido()` **y** en
-  `claves_dato_requisito()`.
-- Columna nueva que guarde una ruta de storage = sumarla a `storage_refcount()`. Si sus objetos
-  se borran por la cola (`cola_gc_storage`): un trigger `before insert` llama
-  `storage_gc_rescatar(bucket, ruta)` (toma el candado del objeto y se niega si la limpieza ya lo
-  reclamó), y quien borra la fila encola la ruta. Nunca `delete` sobre `storage.objects`.
-- Un dato que sólo algunas personas pueden leer **por fila** (no por columna: un grant de columna no mira la fila) va en una
-  tabla de lectura cuya policy es la regla (`leads_numeros_globales`), y la columna original pierde su grant
-  (`revoke select (numero)`). Lo que la lee con los derechos de la base (`definer`) calcula el permiso una vez por consulta; lo
-  que la lee como quien mira se apoya en la policy, con subconsultas en la lista de columnas y no uniones. `numero-global.sql`
-  falla si `authenticated`, `anon` o PUBLIC pueden leer la columna, o si la tabla entra a una publicación de Realtime.
-- Una tabla cuyas columnas no lee todo el que lee la fila (`cotizaciones.valores|fuentes|totales|tipos_cambio` y `cotizaciones_revisiones.diff|intento|huella`, además de `leads.telefono_principal`) pierde el `select` de tabla y da
-  `select (columnas legibles)`: un `revoke select (columna)` no hace nada mientras exista el de tabla. La lista sale del catálogo (`pg_attribute`), así una columna nueva nace sin grant. Lo oculto se lee por una RPC que lo recorta
-  (`cotizacion_leer`, `cotizacion_revisiones`, `cotizacion_tabla`), y toda función que pueda devolverlo figura en el inventario de `supabase/tests/cotizaciones-visibilidad.sql` con su clase y su sonda; una nueva sin registrar rompe la prueba.
-- **`cotizaciones` y `cotizaciones_revisiones` se escriben sólo por RPC `security definer`** (4.10-2): ningún rol de la app tiene `insert`, `update` ni `delete`, ni de tabla ni de columna, ni policies para escribir. Un `revoke … on table` ya quita los de columna; el de columna se deja explícito. El alta es `cotizacion_crear` y la edición, `cotizacion_guardar` (4.10-3: calcula con SU versión y conserva lo que quien guarda no ve ni edita; `docs/COTIZADOR.md` › «Cómo se guarda»); una columna nueva nace sin grant y la prueba de privilegios de `cotizaciones-visibilidad.sql` (por rol, tabla y columna, y la copia contra la base real en `scripts/carreras/cotizaciones.mjs`) falla si alguien lo concede.
-- Tabla nueva en `schemas/` = su `_rls(...)` en `…000200_rls_y_grants.sql`: ese archivo termina
-  comprobando que ninguna tabla de `public` quede sin RLS.
-- **Una prueba de la base no busca texto suelto en una respuesta que trae uuids o fechas al azar** (`r::text ~ '99'` caía 1 de cada 9 corridas por el `usuario_id`;
-  `'6.96'` calza con una hora `…:36.961…`, 4.10-3b): compara claves exactas y hojas (`jsonb_path_query(r, 'strict $.**')`, `pg_temp.cv_trae()`). Sólo se busca como texto
-  lo que no puede salir de un uuid ni de una fecha (un nombre de nodo con letras fuera de `0-9a-f`), y el comentario dice por qué.
-- Después de cualquier cambio: `pnpm db:base` (si tocaste `schemas/`), `pnpm db:reset`, `pnpm db:types`,
-  `pnpm db:probar`, y si tocaste policies agregá una prueba a `supabase/tests/humo.sql` con un usuario
-  simulado.
-- `migrations/20261011000000_esquema_base.sql` es la copia generada de `schemas/` (lo único que aplica
-  `supabase db reset`): no se edita a mano, se regenera con `pnpm db:base`.
-- `storage.objects` no es nuestra: se le crean policies, nunca `alter table` (falla en Postgres real y
-  PGlite no lo detecta). El `storage.objects` de `db:probar` es un doble con RLS encendida: sirve
-  para probar las policies en humo, y `db:reset` confirma que aplican en el real. La carpeta de una
-  ruta se lee con una función que niegue lo que no es uuid (`puede_objeto_de_vehiculo`), no con un
-  cast suelto.
-- Renombrar columnas o tablas: migración a mano con `alter … rename`; el diff lo ve como drop+add.
-- **El nombre de una migración nueva lleva un prefijo mayor al de la última** (`ls supabase/migrations | tail -1`: hoy
-  `20261019003300`, y la siguiente `20261019003400`), no la fecha de hoy: los prefijos van por delante de la fecha real y
-  `supabase migration new` la dejaría antes de las que ya la necesitan (`db reset` aplica por orden de nombre). Una guarda de
-  `pnpm test` (`scripts/guardas/orden-de-migraciones.test.ts`) lo exige a toda migración que HEAD no tiene. Las que ya están no se renombran.
+## Una sola fuente: las migraciones
+
+- `supabase/migrations/20261028180656_base.sql` es la base: el volcado de las 146 migraciones de antes, aplastadas el 2026-10-28.
+  **No se edita nunca** (`scripts/guardas/orden-de-migraciones.test.ts` fija su sha256). Una cita `…2026101xxxxxxx` en un
+  comentario es historia: esa migración está en git, en el padre del commit que las borró (`git log --diff-filter=D -- supabase/migrations`).
+- Todo cambio es una migración nueva: `pnpm exec supabase migration new <nombre>` (fecha y hora reales, UTC). Si al integrar quedó
+  antes de una que ya entró, se crea de nuevo con otra fecha. La misma guarda lo exige.
+- Cambiar una función: `create or replace` en la migración nueva, partiendo de su definición vigente (la última entre la base y las
+  que siguen: `definicionSql()` de `scripts/lib/definicion-sql.ts`). Renombrar es `alter … rename`.
+- Un dato de catálogo (permiso, tono, nivel, bucket, job) va en su migración con `insert … on conflict`: la nube no vuelve a correr
+  el seed. `seed.sql` es lo configurable por empresa y los ejemplos.
+- Después de cualquier cambio: `pnpm db:reset`, `pnpm db:types` y `pnpm db:probar`; si tocaste policies, un caso en
+  `supabase/tests/humo.sql` con un usuario simulado.
+
+## Privilegios
+
+- **Una tabla, vista, secuencia o función nueva de `public` nace con todo para `authenticated` y `service_role`, y la función además con
+  EXECUTE para PUBLIC** (privilegios por defecto; desde 4-40 nada para `anon`). Todo objeto nuevo quita lo que no corresponde:
+  `revoke all … from anon, authenticated` (y `public` en una función), y da explícito lo que sí. Una función que recrea una vista
+  (`_leads_vista_crear()`) lo repite cada vez. `supabase/tests/privilegios-de-anon.sql` cae si `anon` o PUBLIC quedan con algo en `public`.
+- Toda tabla nueva en `public`: `enable row level security`, el revoke, grants explícitos y una policy por operación `to authenticated`.
+  `anon` sólo toca el esquema `web`. `supabase/tests/rls-en-todo.sql` falla si una tabla de `public` queda sin RLS.
+- `security definer` = `set search_path = ''`, todo calificado con esquema, `revoke all … from public, anon` y `grant execute` explícito.
+- `(select auth.uid())`, nunca suelto; `(select public.tiene_permiso(...))` envuelto. Es InitPlan sólo si no nombra una columna de la
+  fila: para acotar por origen, `origen_id = any ((select origenes_con_alcance('x', 'todos'))::uuid[])`. Se comprueba con `EXPLAIN`
+  como `authenticated`.
+- Un dato que sólo algunos leen **por fila** va en su tabla con la policy como regla (`leads_numeros_globales`) y la columna original
+  pierde su grant. Una tabla con columnas que no lee todo el que lee la fila pierde el `select` de tabla y da `select (columnas)`
+  (sale de `pg_attribute`: una columna nueva nace sin grant): `leads`, `cotizaciones`, `cotizaciones_revisiones`.
+- `cotizaciones` y `cotizaciones_revisiones` se escriben sólo por RPC `security definer` (`cotizacion_crear`, `cotizacion_guardar`);
+  `supabase/tests/cotizaciones-visibilidad.sql` falla si alguien concede escritura o una función nueva que devuelve lo oculto no figura.
+- Permiso nuevo = su fila en `permisos` con `aplicado_en` en la migración que crea su punto de enforcement; sin enforcement no hay
+  permiso. Los de un nivel (`cotizaciones.nivel.<clave>.*`) los genera `nivel_crear()`.
+
+## Forma
+
+- Índice en toda FK y en toda columna de una policy. Bajo RLS un operador no `leakproof` (`@>`, `ilike`) no usa su índice: un
+  listado filtrado se apoya en un btree de su orden.
+- Policies de la fila propia (`vehiculos`, `leads`, `cotizaciones`) inline sobre columnas; `puede_*(id)` para tablas hijas. Una
+  función STABLE no ve la fila recién insertada en `INSERT … RETURNING`.
+- Conflicto de edición: `raise exception … using errcode = 'PT409'` (o `_conflicto_de_edicion()`), jamás `40001`. Un error de
+  validación lleva en `hint` el campo.
+- Toda RPC de edición nace con `p_actualizado_en_esperado timestamptz` sin default y lo pasa por `_exigir_version()`; las de crear
+  no. Una de lote, por elemento. Excepciones: `formula_guardar_borrador` hasta el 4.20 y `leads_papelera_enviar` (todo o nada,
+  idempotente por lote). Una versión que debe moverse dos veces en una transacción no usa el trigger genérico:
+  `greatest(clock_timestamp(), anterior + 1 µs)`; la de una cotización la sella `cotizacion_version()`.
+- Un `if` de plpgsql termina en el primer `then`, también el de un `case`: esa condición va a una variable antes.
+- Clave nueva de requisito de fase = caso en `_requisito_dato_cumplido()` y en `claves_dato_requisito()`.
+- Columna nueva con una ruta de storage = sumarla a `storage_refcount()`; si sus objetos se borran por la cola, un trigger
+  `before insert` llama `storage_gc_rescatar()` y quien borra la fila encola la ruta. Nunca `delete` sobre `storage.objects`, y a
+  esa tabla sólo se le crean policies (nunca `alter table`).
+- Una prueba de la base compara claves exactas y hojas (`jsonb_path_query`), nunca texto suelto en una respuesta con uuids o fechas.

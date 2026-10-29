@@ -97,7 +97,7 @@ Un módulo tiene **dos entradas** y nada más se importa desde afuera:
 - `src/shared/lib/` — `supabase/` (server, browser, admin, proxy), `safe-action.ts`,
   `permisos.ts` (`puede()`), `formato.ts`, `fechas.ts`, `errores.ts`, `imagenes/`.
 - `src/shared/types/database.types.ts` — generado.
-- `supabase/schemas/<dominio>/` · `supabase/migrations/` · `supabase/functions/<nombre>/` ·
+- `supabase/migrations/` (la base, que no se edita, y una migración por cambio) · `supabase/functions/<nombre>/` ·
   `supabase/tests/humo.sql`.
 - `e2e/` — Playwright de los flujos críticos (tareas de oro de `docs/UX.md`).
 

@@ -19,7 +19,7 @@ Tu Bash es de sólo lectura (git log|show|diff|status, grep, rg, jq, wc, find, `
 si un comando te lo rechaza, es la regla y no un fallo: lee con `Read` o `Grep`.
 
 Antes de opinar lee `CLAUDE.md`, `docs/ESTADO.md`, `.claude/rules/e2e.md` y la ficha `CLAUDE.md` del módulo que toca el paso. `docs/PLAN.md`
-pesa 329 KB: la fila del paso se busca con `Grep`, nunca se lee entera.
+se lee por `Grep`: la entrada del paso en «Partición» (lo hecho está en `docs/archivo/PLAN.md`).
 
 ## Si es un plan
 
@@ -37,7 +37,7 @@ pesa 329 KB: la fila del paso se busca con `Grep`, nunca se lee entera.
    `security definer` o Vault, tiene que pedir la compuerta de datos.
 6. **Abiertos de `docs/PLAN.md`** que el paso toca: están nombrados y se cierran o se dejan dicho por qué.
 7. **Rendimiento:** las filas de `docs/RENDIMIENTO.md` de cada lista que toca; lo que crece, con su tope.
-8. **Docs:** ESTADO por sustitución y ≤ 12.288 B medido con `wc -c`; BITACORA con su marcador `e2e completo: sí|no (…)`; DECISIONES con la fecha
+8. **Docs:** ESTADO por sustitución y ≤ 60 líneas medido con `wc -l`; BITACORA con su marcador `e2e completo: sí|no (…)`; DECISIONES con la fecha
    de `TZ=America/La_Paz date +%F`; fichas y glosario si hay unidad o término nuevo.
 9. **Preguntas abiertas:** si hay una de producto o de UX que el plan decide solo, es una compuerta.
 

@@ -2,7 +2,9 @@
 # Decide qué jobs pesados de CI corren (`.github/workflows/ci.yml`, job `cambios`). Imprime dos líneas para $GITHUB_OUTPUT:
 #
 #   pesado=true|false   la base (`base`): el cambio toca código, base, e2e, scripts o la configuración que los mueve
-#   e2e=true|false      el e2e en bloques: pesado y, además, el evento lo pide (hoy: pull_request y workflow_dispatch, no push)
+#   e2e=true|false      el e2e en bloques: pesado y, además, el evento lo pide (pull_request, schedule y workflow_dispatch; no push)
+#
+# `schedule` (el completo de cada noche sobre main) corre sólo si main tuvo commits en las últimas 25 horas.
 #
 # Entradas (variables): EVENTO (push | pull_request | workflow_dispatch), ANTES (`github.event.before`), BASE_PR
 # (`github.event.pull_request.base.sha`) y DESPUES (por defecto HEAD). La razón va a stderr, para el log del job.
@@ -27,6 +29,12 @@ salir() {
 }
 
 case "$EVENTO" in
+  schedule)
+    if [ -n "$(git log -1 --since='25 hours ago' --format=%H 2>/dev/null)" ]; then
+      salir true "la noche: main tuvo commits en las últimas 25 h"
+    fi
+    salir false "la noche: main no tuvo commits en las últimas 25 h"
+    ;;
   push) desde="${ANTES:-}" ;;
   pull_request) desde="${BASE_PR:-}" ;;
   *) salir true "evento «${EVENTO:-ninguno}»: corre todo" ;;

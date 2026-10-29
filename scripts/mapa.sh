@@ -2,15 +2,17 @@
 # Genera docs/MAPA.md: el índice del proyecto que la IA lee ANTES de explorar con grep.
 #
 #   bash scripts/mapa.sh           regenera docs/MAPA.md
-#   bash scripts/mapa.sh --check   falla (exit 1) si MAPA.md está desactualizado, si una unidad
+#   bash scripts/mapa.sh --check   lo regenera también, y falla (exit 1) si una unidad
 #                                  no tiene CLAUDE.md, o si un módulo importa las tripas de otro
 #                                  (cualquier cosa que no sea `@/modules/<x>` o `@/modules/<x>/client`), o si una
 #                                  entrada de DECISIONES o BITACORA lleva una fecha de mañana o fuera de orden
-#                                  (`scripts/fechas-de-entradas.mjs`: la fecha sale de `TZ=America/La_Paz date +%F`), o si el
-#                                  índice de docs/DECISIONES.md está viejo (`scripts/indice-de-decisiones.mjs`)
+#                                  (`scripts/fechas-de-entradas.mjs`: la fecha sale de `TZ=America/La_Paz date +%F`), o si un
+#                                  enlace interno está roto (`scripts/enlaces-internos.mjs`: un doc citado que no existe, o
+#                                  una sección «…» que no es título del doc ni de su copia en docs/archivo/)
 #
-# Lo corre el hook Stop de Claude Code (regenera), lefthook en pre-commit (--check) y CI (--check).
-# No escribe fechas a propósito: la salida es determinista, así --check solo falla si algo cambió.
+# docs/MAPA.md no se versiona (está en .gitignore): con dos carriles, cada PR lo cambiaría y chocarían. Lo regeneran el hook Stop de
+# Claude Code, lefthook (pre-commit con --check; post-checkout y post-merge), scripts/worktree/preparar.sh y CI (--check).
+# No escribe fechas a propósito: la salida es determinista.
 # Compatible con bash 3.2 (macOS) y Git Bash: sin arrays asociativos ni globstar.
 set -euo pipefail
 export LC_ALL=C
@@ -179,11 +181,13 @@ compartido() {
   return 0
 }
 
+# Las tablas de `public` que crea cada migración (la base trae casi todas), en orden alfabético dentro de cada una.
 tablas() {
-  [ -d supabase/schemas ] || return 0
-  find supabase/schemas -type f -name '*.sql' | sort | while IFS= read -r f; do
-    grep -hoiE 'create table( if not exists)? +[a-z0-9_."]+' "$f" \
-      | sed -E 's/.* //; s/"//g; s/^public\.//' | sed "s#.*#- \`&\` — \`$f\`#" || true
+  [ -d supabase/migrations ] || return 0
+  find supabase/migrations -type f -name '*.sql' | sort | while IFS= read -r f; do
+    t=$(grep -hoiE 'create table( if not exists)? +"?public"?\."?[a-z0-9_]+' "$f" \
+      | sed -E 's/.* //; s/"//g; s/^public\.//' | sort -u | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g' || true)
+    if [ -n "$t" ]; then printf -- '- `%s`: %s\n' "$(basename "$f")" "$t"; fi
   done
 }
 
@@ -224,7 +228,7 @@ generar() {
   fi
   c=$(compartido); [ -n "$c" ] && printf '## Compartido (`%s/shared/`)\n\n%s\n\n' "$RAIZ" "$c"
   r=$(rutas);  [ -n "$r" ] && printf '## Rutas\n\n%s\n\n' "$r"
-  t=$(tablas); [ -n "$t" ] && printf '## Tablas (supabase/schemas)\n\n%s\n\n' "$t"
+  t=$(tablas); [ -n "$t" ] && printf '## Tablas (supabase/migrations)\n\n%s\n\n' "$t"
   g=$(reglas); [ -n "$g" ] && printf '## Reglas que se cargan solas (.claude/rules)\n\n%s\n\n' "$g"
   if [ -s "$TMPD/avisos" ]; then
     printf '## ⚠️ Pendientes del mapa\n\n'
@@ -235,24 +239,20 @@ generar() {
 generar > "$TMPD/mapa.md"
 AVISOS_TXT=$(sort -u "$TMPD/avisos")
 
+mkdir -p docs
+cp "$TMPD/mapa.md" "$SALIDA"
+
 if [ "$MODO" = "--check" ]; then
   fallo=0
-  if ! cmp -s "$TMPD/mapa.md" "$SALIDA" 2>/dev/null; then
-    echo "✗ docs/MAPA.md está desactualizado. Corre: bash scripts/mapa.sh" >&2; fallo=1
-  fi
   if [ -n "$AVISOS_TXT" ]; then
     echo "✗ El mapa tiene pendientes:" >&2; echo "$AVISOS_TXT" >&2; fallo=1
   fi
   # No depende del mapa sino de los docs: va aparte para que `generar` no escriba fechas en MAPA.md.
   if [ -f scripts/fechas-de-entradas.mjs ] && ! node scripts/fechas-de-entradas.mjs; then fallo=1; fi
-  if [ -f scripts/indice-de-decisiones.mjs ] && ! node scripts/indice-de-decisiones.mjs --check; then fallo=1; fi
+  if [ -f scripts/enlaces-internos.mjs ] && ! node scripts/enlaces-internos.mjs; then fallo=1; fi
   exit $fallo
 fi
 
-mkdir -p docs
-cp "$TMPD/mapa.md" "$SALIDA"
-# El índice de DECISIONES también se regenera aquí (reescribe el bloque entre sus marcas; sin cambios no toca el archivo).
-[ -f scripts/indice-de-decisiones.mjs ] && node scripts/indice-de-decisiones.mjs
 echo "✓ $SALIDA ($(wc -l < "$SALIDA" | tr -d ' ') líneas)"
 [ -n "$AVISOS_TXT" ] && { echo "$AVISOS_TXT" >&2; }
 exit 0

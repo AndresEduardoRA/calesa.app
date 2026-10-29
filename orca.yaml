@@ -1,0 +1,5 @@
+# Orca (onorca.dev): lo que comparten los worktrees de los carriles. Sólo carpetas ignoradas por git y de lectura: se enlazan, no se
+# copian. `node_modules` no va: pnpm ya enlaza desde su store, y cada carril corre su propio `pnpm install` (scripts/worktree/preparar.sh).
+worktree:
+  sharedDirectories:
+    - docs/referencias/cotizador-actual

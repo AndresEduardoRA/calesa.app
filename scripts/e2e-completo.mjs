@@ -36,7 +36,7 @@ async function exigirFunciones(cuando) {
   if (caidas.length > 0) {
     console.error(
       `Las funciones edge no están servidas ${cuando} (${caidas.join(', ')}): corre ` +
-        '`npx supabase functions serve` en otra terminal y vuelve a intentar.',
+        '`pnpm funciones` en otra terminal y vuelve a intentar.',
     )
     process.exit(1)
   }

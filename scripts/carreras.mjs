@@ -4,7 +4,6 @@
 // esperando un lock; A confirma y se mira cómo terminó B. Si B no llega a esperar, la carrera no se
 // probó y el script falla (no reintenta). Trabaja sobre su propio terreno (prefijo «Carreras») y lo
 // borra al terminar y al empezar. Uso: pnpm db:carreras
-import { readFileSync } from 'node:fs'
 import pg from 'pg'
 import {
   PERSONAS,
@@ -28,12 +27,11 @@ import { carrerasDeConfiguracionDeLeads } from './carreras/configuracion-de-lead
 import { carrerasDeMarcas } from './carreras/marcas.mjs'
 import { carrerasDeNumeros } from './carreras/numeros.mjs'
 import { carrerasDeLaRueda } from './carreras/rueda.mjs'
+import { stackLocal } from './lib/stack-local.mjs'
 import { carrerasDeLaCartera, carrerasDePrivacidad } from './carreras/cartera.mjs'
 
-const toml = readFileSync('supabase/config.toml', 'utf8')
-const puerto = /^\[db\][^[]*?^port\s*=\s*(\d+)/ms.exec(toml)?.[1]
-const url =
-  process.env.CARRERAS_DB_URL ?? `postgresql://postgres:postgres@127.0.0.1:${puerto}/postgres`
+// La base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
+const url = process.env.CARRERAS_DB_URL ?? stackLocal().urlDb
 if (!/@(127\.0\.0\.1|localhost)[:/]/.test(url)) {
   console.error('Las carreras escriben y borran datos: sólo contra la base local.')
   process.exit(1)

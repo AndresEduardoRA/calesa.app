@@ -36,13 +36,18 @@ describe('bucle.sh › las paradas deterministas', () => {
     ])
   })
 
-  it('una rama que no es main es un aviso', () => {
-    a.git('checkout', '-q', '-b', 'otra')
-    a.decidir(1, responder('parado'))
-    a.correr()
-    expect(a.leerFake('compuerta-1.md')).toContain('la rama es «otra», no main')
-    expect(a.llamadas('ruteo')).toEqual([])
-  })
+  it.each(['otra', 'main', 'b/notificaciones'])(
+    'una rama que no es del carril A (%s) es un aviso',
+    (rama) => {
+      a.git('checkout', '-q', '-b', rama)
+      a.decidir(1, responder('parado'))
+      a.correr()
+      expect(a.leerFake('compuerta-1.md')).toContain(
+        `la rama es «${rama}», no la del carril A (a/…)`,
+      )
+      expect(a.llamadas('ruteo')).toEqual([])
+    },
+  )
 
   it('un árbol sucio sin un paso en curso es un aviso; con un paso en curso no', () => {
     a.escribirRepo('suelto.txt', 'x')
@@ -51,12 +56,12 @@ describe('bucle.sh › las paradas deterministas', () => {
     expect(a.leerFake('compuerta-1.md')).toContain('el árbol está sucio y no hay un paso en curso')
   })
 
-  it('el último CI de main en rojo es un aviso', () => {
+  it('el último CI de la rama en rojo es un aviso', () => {
     a.decidir(1, responder('parado'))
     a.correr([], {
       FAKE_GH_LISTA: '[{"databaseId":1,"status":"completed","conclusion":"failure","headSha":"x"}]',
     })
-    expect(a.leerFake('compuerta-1.md')).toContain('el último CI de main está en rojo')
+    expect(a.leerFake('compuerta-1.md')).toContain('el último CI de la rama está en rojo')
     expect(a.llamadas('ruteo')).toEqual([])
   })
 
@@ -176,7 +181,7 @@ describe('bucle.sh › las funciones edge, antes de un paso de Nivel 2', () => {
     const c = a.leerFake('compuerta-1.md')
     expect(c).toContain('tipo: parada')
     expect(c).toContain('faltan las funciones edge (storage-gc, avatares-miniaturas)')
-    expect(c).toContain('npx supabase functions serve')
+    expect(c).toContain('pnpm funciones')
     expect(a.estado('en-curso.json')).toBe('')
   })
 

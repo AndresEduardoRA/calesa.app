@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { disenoSintetico } from '@/modules/cotizaciones/entities/diseno-sintetico'
+import { definicionSql } from '../../scripts/lib/definicion-sql'
 import type { Definicion } from '@/modules/cotizaciones/entities/formula'
 import { REGLAS_DE_DISENO } from '@/modules/cotizaciones/entities/motivos-de-diseno'
 import { validarFormula } from '@/modules/cotizaciones/entities/validar'
@@ -20,7 +21,8 @@ import type { Json, Objeto } from './mutadores-de-formula'
 // Las rutas van por variables (Vite reescribe un `new URL('literal', import.meta.url)`).
 const JUEGO = 'src/modules/cotizaciones/entities/casos-de-diseno.json'
 const FORMULAS = 'src/modules/cotizaciones/entities/casos-de-formula.json'
-const MIGRACION = 'supabase/migrations/20261019005600_validar_diseno.sql'
+// Las comprobaciones de forma (marcadas /*D01*/ …) viven en estas dos funciones de la base.
+const FUNCIONES_DE_FORMA = ['_diseno_forma', '_diseno_forma_item']
 const CORPUS = 'supabase/tests/corpus-de-diseno.json'
 const REGENERAR = 'ACTUALIZAR_CORPUS=1 pnpm vitest run supabase/tests/corpus-de-diseno.test.ts'
 
@@ -116,9 +118,9 @@ describe('corpus-de-diseno.json', () => {
   })
 
   it('cada comprobación de forma de la migración tiene su mutador, y todos los mutadores se aplican', () => {
-    const marcas = new Set(
-      [...readFileSync(MIGRACION, 'utf8').matchAll(/\/\*(D\d+)\*\//g)].map((m) => m[1]),
-    )
+    const sqlDeForma = FUNCIONES_DE_FORMA.map((f) => definicionSql(f).texto).join('\n')
+    const marcas = new Set([...sqlDeForma.matchAll(/\/\*(D\d+)\*\//g)].map((m) => m[1]))
+    expect(marcas.size).toBeGreaterThan(0)
     const conMutador = new Set(
       MUTADORES_DE_FORMA_DE_DISENO.map((m) => m.nombre.replace('forma_', '')),
     )

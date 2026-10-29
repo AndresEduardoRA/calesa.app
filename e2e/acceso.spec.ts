@@ -1,3 +1,5 @@
+import { createClient } from '@supabase/supabase-js'
+
 import { expect, test } from './soporte/prueba'
 import {
   admin,
@@ -5,6 +7,7 @@ import {
   correoDePrueba,
   crearPersona,
   enlaceDelCorreo,
+  entorno,
   hayEquipoQueImpide,
   rolesDe,
 } from './soporte/base'
@@ -98,6 +101,25 @@ test('con el equipo ya creado y el registro cerrado no se ofrece crear cuenta', 
   await page.goto('/registro')
   await expect(page.getByText('El registro de cuentas nuevas está cerrado')).toBeVisible()
   await expect(page.getByLabel('Contraseña')).toHaveCount(0)
+})
+
+// @sin-celular: no abre ninguna pantalla; le pide el alta a la API de Auth con la clave pública, igual en cualquier ancho
+test('con el registro cerrado, el alta directa a la API de Auth también se rechaza', async () => {
+  // Esconder el botón no alcanza: quien tenga la URL y la clave pública puede llamar a Auth. El candado es el trigger de la base.
+  const publico = createClient(
+    entorno('NEXT_PUBLIC_SUPABASE_URL'),
+    entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  )
+  const colado = correoDePrueba('colado')
+  const { data, error } = await publico.auth.signUp({
+    email: colado,
+    password: 'una-clave-de-prueba-9',
+  })
+  expect(error, 'Auth aceptó un alta con el registro cerrado').not.toBeNull()
+  expect(data.user).toBeNull()
+  const perfiles = await admin().from('perfiles').select('id').eq('email', colado)
+  expect(perfiles.data).toEqual([])
 })
 
 // @sin-celular: igual en pasos y elementos en escritorio y celular, y su JS del celular lo ejecuta otra prueba que se queda (scripts/comparar-anchos.mjs, 5a-fix-3)

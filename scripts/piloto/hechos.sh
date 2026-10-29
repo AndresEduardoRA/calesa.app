@@ -2,7 +2,7 @@
 # Los hechos de cada vuelta del bucle, sin modelo: un JSON por stdout (el bucle lo guarda en `.piloto/hechos.json`). El ruteo y el
 # paso leen de aquí lo que necesitaría un comando: el ruteo no tiene Bash. Se prueba en `hechos.test.ts`.
 #
-# hora (La Paz), rama, head, origin_main, arbol_limpio, disco_pct, candado {libre, dueno}, ci (el último de main, o null),
+# hora (La Paz), rama, head, origin_main, arbol_limpio, disco_pct, candado {libre, dueno}, ci (el último de la rama, o null),
 # e2e (`cuenta-e2e.mjs` sobre docs/BITACORA.md), bytes_estado, ultimo (.piloto/ultimo.json), en_curso (.piloto/en-curso.json),
 # fallas_seguidas, nota (la del ensayo en seco), funciones (las edge que exige el e2e completo: servida o no) y decision (el texto de la decisión vigente: la del `decision.md` cuyo id es el de la
 # `compuerta.md` actual, hasta 8.000 B: la de «producto» trae una línea por decisión; el paso la lee de aquí porque no puede abrir esos
@@ -11,6 +11,10 @@ set -uo pipefail
 # shellcheck source=comun.sh
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
 cd "$RAIZ" || exit 1
+# El stack de este worktree: la principal o el carril A, cuyo `.env.carril` trae PILOTO_SUPABASE_URL y el puerto de la base (lo carga
+# scripts/lib/carril.sh, del árbol: la copia de las piezas en bin/ no lo lleva).
+# shellcheck source=../lib/carril.sh
+[ -f "$RAIZ/scripts/lib/carril.sh" ] && source "$RAIZ/scripts/lib/carril.sh"
 
 HORA=$(ahora_lapaz)
 RAMA=$(git symbolic-ref --quiet --short HEAD || echo "")
@@ -23,13 +27,14 @@ DISCO=$(df --output=pcent / 2>/dev/null | tail -n 1 | tr -dc '0-9')
 DIR_CANDADO="${CANDADO_DIR:-$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)}"
 LIBRE=true
 DUENO=""
-if [ -e "$DIR_CANDADO/candado-base.lock" ] && ! flock -n "$DIR_CANDADO/candado-base.lock" true 2>/dev/null; then
+CANDADO="$DIR_CANDADO/candado-base-${SUPABASE_DB_PORT:-54622}" # el nombre de ruta_del_candado (scripts/lib/carril.sh)
+if [ -e "$CANDADO.lock" ] && ! flock -n "$CANDADO.lock" true 2>/dev/null; then
   LIBRE=false
-  DUENO=$(tr '\n' ';' <"$DIR_CANDADO/candado-base.info" 2>/dev/null)
+  DUENO=$(tr '\n' ';' <"$CANDADO.info" 2>/dev/null)
 fi
 
-# El último CI de main: null si `gh` no responde (sin red, sin sesión).
-CI=$(timeout 20 gh run list --branch main --limit 1 --json databaseId,status,conclusion,headSha,displayTitle 2>/dev/null | jq -c '.[0] // null' 2>/dev/null)
+# El último CI de la rama (la del carril A; publicar.sh la empuja con su PR): null si `gh` no responde (sin red, sin sesión).
+CI=$(timeout 20 gh run list --branch "${RAMA:-main}" --limit 1 --json databaseId,status,conclusion,headSha,displayTitle 2>/dev/null | jq -c '.[0] // null' 2>/dev/null)
 [ -n "$CI" ] || CI=null
 
 E2E=$(node "$BIN/cuenta-e2e.mjs" docs/BITACORA.md 2>/dev/null)
@@ -38,7 +43,7 @@ BYTES_ESTADO=$(wc -c <docs/ESTADO.md 2>/dev/null | tr -d ' ')
 
 # Las funciones edge que exige `pnpm test:e2e:completo` (el Nivel 2): el bucle no las levanta, así que mira si están servidas antes de
 # un paso que las pide. La regla de `e2e/soporte/guardia.ts`: `OPTIONS` (no ejecuta nada ni llama a apibara), servida si responde y no
-# es 404 ni ≥ 500; dos intentos de 2 s. El stack local tiene la API en el 54621 (PILOTO_SUPABASE_URL para otro): no se lee `.env*`.
+# es 404 ni ≥ 500; dos intentos de 2 s. La API del stack local está en el 54621 (PILOTO_SUPABASE_URL, de `.env.carril`, en un carril).
 URL_SUPABASE="${PILOTO_SUPABASE_URL:-http://127.0.0.1:54621}"
 servida() {
   local codigo intento

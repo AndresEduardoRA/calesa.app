@@ -9,7 +9,6 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-const ESQUEMA_BASE = 'supabase/migrations/20261011000000_esquema_base.sql'
 const TIPOS = 'src/shared/types/database.types.ts'
 const empieza = (archivo, ...prefijos) => prefijos.some((p) => archivo.startsWith(p))
 
@@ -18,8 +17,13 @@ const sinComentarios = (sql) => sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/-
 const cambiaRls = (sql) =>
   sql !== null &&
   /\b(create|alter|drop)\s+policy\b|\benable\s+row\s+level\s+security\b/i.test(sinComentarios(sql))
+// La estructura: una migración que crea, cambia o borra una tabla o un índice (la base aplastada no cambia nunca: lo que cambia la
+// estructura es una migración nueva).
+const cambiaEstructura = (sql) =>
+  sql !== null &&
+  /\b(create|alter|drop)\s+table\b|\b(create|drop)\s+(unique\s+)?index\b/i.test(sinComentarios(sql))
 
-// El orden es el de la regla: (1) lo compartido … (6) el esquema base.
+// El orden es el de la regla: (1) lo compartido … (6) la estructura.
 const DISPARADORES = [
   { id: 'shared', aplica: (a) => a.startsWith('src/shared/') && a !== TIPOS },
   { id: 'proxy', aplica: (a) => a === 'src/proxy.ts' },
@@ -40,7 +44,10 @@ const DISPARADORES = [
       a === 'src/app/(acceso)/layout.tsx' ||
       a.startsWith('src/app/(app)/_shell/'),
   },
-  { id: 'base', aplica: (a) => a.startsWith('supabase/schemas/') || a === ESQUEMA_BASE },
+  {
+    id: 'estructura',
+    aplica: (a, leer) => /^supabase\/migrations\/[^/]+\.sql$/.test(a) && cambiaEstructura(leer(a)),
+  },
 ]
 
 // Interfaz: la regla está escrita en un solo lugar, `.claude/rules/e2e.md` › «Interfaz: cuándo los e2e dirigidos corren también en

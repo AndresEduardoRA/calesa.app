@@ -222,3 +222,14 @@ from public.origenes o where not exists (select 1 from public.plantillas_tarjeta
 
 -- Chat global
 insert into public.conversaciones (tipo, nombre, es_global) select 'grupo', 'Equipo', true where not exists (select 1 from public.conversaciones where es_global);
+
+-- ---------------------------------------------------------------------------
+-- La URL del proyecto para los jobs que llaman a una función edge (`storage_gc_correr`, `avatares_miniaturas_correr`). En local, el
+-- gateway visto desde la base (el mismo en todo stack local); en la nube la pisa `scripts/demo/restaurar.sh` con `SUPABASE_URL`.
+-- ---------------------------------------------------------------------------
+do $$
+begin
+  if not exists (select 1 from vault.secrets where name = 'url_proyecto') then
+    perform vault.create_secret('http://api.supabase.internal:8000', 'url_proyecto', 'URL del proyecto para los jobs que llaman a funciones edge');
+  end if;
+end $$;

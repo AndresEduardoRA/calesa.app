@@ -27,6 +27,10 @@ import {
   TAMANO_DE_PAGINA_POR_DEFECTO,
   TOPE_DE_LO_CARGADO,
 } from '../src/shared/lib/paginacion'
+import { stackLocal } from '../scripts/lib/stack-local.mjs'
+
+// Los pedidos a la API de Supabase de ESTE worktree (la principal o un carril).
+const A_LA_BASE = new RegExp(`:${String(stackLocal().puertoApi)}/`)
 
 // La escala de lo que se dibuja (9e, `.claude/rules/escala.md`): el listado y una columna del kanban tienen
 // un tope de nodos aunque haya miles detrás, el tope se dice, y abrir un modal cuyo código nunca se pidió sin
@@ -174,7 +178,7 @@ test('girar el celular o redimensionar cambia de vista sin red, sin recargar y c
     ancho >= 768 ? { si: tabla, no: tarjetas } : { si: tarjetas, no: tabla }
   const documentos: string[] = []
   page.on('request', (pedido) => {
-    if (pedido.resourceType() === 'document' || /:54621\//.test(pedido.url())) {
+    if (pedido.resourceType() === 'document' || A_LA_BASE.test(pedido.url())) {
       documentos.push(pedido.url())
     }
   })

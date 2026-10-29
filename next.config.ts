@@ -1,5 +1,13 @@
 import type { NextConfig } from 'next'
 
+import { leerEntornoPublico } from './src/shared/config/entorno'
+import {
+  esquemaPublico,
+  mensajeDeProblemas,
+  problemasDe,
+  validaLaCompilacion,
+} from './src/shared/config/esquemas'
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   typedRoutes: true,
@@ -36,4 +44,13 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+// El build cae si falta una variable pública: quedaría incrustada vacía en el JS del navegador (docs/ENTORNOS.md). Sólo al compilar:
+// el desarrollo y `next typegen` (pnpm typecheck, que llega con la misma fase que el build) también leen este archivo y no las necesitan.
+export default function configuracion(fase: string): NextConfig {
+  if (validaLaCompilacion(fase, process.argv)) {
+    const problemas = problemasDe(esquemaPublico, leerEntornoPublico())
+    if (problemas.length > 0)
+      throw new Error(mensajeDeProblemas('la compilación (públicas)', problemas))
+  }
+  return nextConfig
+}

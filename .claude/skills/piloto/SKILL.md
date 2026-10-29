@@ -37,7 +37,7 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
 4. **Compuertas del plan** ([compuertas.md](compuertas.md)): si el plan toca datos o seguridad (policy, RLS, permiso, `security definer`, Vault), pide una dependencia
    nueva o deja una pregunta de producto o de UX abierta → termina con `resultado: compuerta` (ver «Terminar»). Con `--hasta-plan`, tras auditar el plan terminas
    **siempre** con una compuerta `datos` que lleve el plan en su `contexto`: la persona lo ve antes de que se ejecute. Si el plan es de **Nivel 2** (o corre el completo)
-   y `hechos.json` › `funciones` no las tiene todas en `true`, compuerta `afuera` antes de ejecutar («faltan las funciones edge (…): `npx supabase functions serve`»): el
+   y `hechos.json` › `funciones` no las tiene todas en `true`, compuerta `afuera` antes de ejecutar («faltan las funciones edge (…): `pnpm funciones`»): el
    completo las exige y el bucle no las levanta. El bucle ya lo mira por el nivel del ruteo; esto cubre el plan que sube de nivel.
 5. **Ejecutar y verificar** (Nivel 1, 2 o 3 de `.claude/rules/e2e.md`, el que dice el plan): primero las pruebas que fallan, **guardadas en rojo contra HEAD**; después el
    código; después las mutaciones del plan (cada una tiene que hacer caer su prueba). Cada salida va a `.piloto/salidas/<paso>/` con `tee`; las corridas largas con
@@ -45,7 +45,7 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    de ≤ 9 minutos, a que no haya procesos de otra sesión (`playwright`, `next build`, `vitest`, `carreras`, `medir`, `supabase db|start` fuera de este árbol) y a que `loadavg` < 1,5.
 6. **Informe** en `.piloto/informes/<paso>.md` ([plantilla-informe.md](plantilla-informe.md)): qué se hizo, la salida real de cada prueba (con su ruta), lo que no se hizo.
 7. **Auditar el informe.** Mismo `auditor`, mismo tope: dos bloqueos y es una compuerta `atasco`.
-8. **Docs y commits.** Los docs que dice el plan (ESTADO por sustitución, ≤ 12.288 B medido con `wc -c`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con
+8. **Docs y commits.** Los docs que dice el plan (ESTADO por sustitución, ≤ 60 líneas medido con `wc -l`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con
    la fecha de `TZ=America/La_Paz date +%F`; fichas; `bash scripts/mapa.sh`). **Commits por intención**, asunto en español, minúscula, ≤ 72 caracteres, mensaje con `-F`, `mapa.sh`
    antes: **hasta 3 de código y el de docs** (si el plan necesitaba más, el paso no cabía y se partía); el `fix` que pida la auditoría del informe va aparte y no cuenta.
    **Sin push.** Verifica con `git log` que existen.

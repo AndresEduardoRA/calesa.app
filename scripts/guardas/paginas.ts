@@ -1,4 +1,5 @@
 // Lo que lee `paginas.test.ts` de las migraciones y del código: puro, sin disco (cada función recibe el texto).
+import { definicionesEn } from '../lib/definicion-sql'
 
 // Los parámetros que son un tamaño de página: lo que una RPC recibe y no puede dejarle al cliente.
 export const PARAMETROS_DE_TAMANO =
@@ -6,18 +7,17 @@ export const PARAMETROS_DE_TAMANO =
 
 export type CotaDeLaBase = { defecto: number; maximo: number }
 
-// El texto de la **última** definición de `public.<rpc>(` entre las migraciones, que se dan en el orden en que corren.
+// El texto de la **última** definición de `public.<rpc>(` entre las migraciones, que se dan en el orden en que corren. Entiende el estilo escrito
+// a mano y el del volcado de la base aplastada (`CREATE OR REPLACE FUNCTION "public"."x"(`, cuerpo entre cualquier `$etiqueta$`).
 export function ultimaDefinicion(
   migraciones: readonly { archivo: string; texto: string }[],
   rpc: string,
 ): { archivo: string; cuerpo: string } | null {
-  const inicio = new RegExp(`create (?:or replace )?function public\\.${rpc}\\(`, 'gi')
   let hallada: { archivo: string; cuerpo: string } | null = null
   for (const { archivo, texto } of migraciones) {
-    for (const m of texto.matchAll(inicio)) {
-      const desde = m.index
-      const fin = texto.indexOf('\n$$;', desde)
-      hallada = { archivo, cuerpo: texto.slice(desde, fin === -1 ? undefined : fin) }
+    const cuerpo = definicionesEn(texto, rpc).at(-1)
+    if (cuerpo !== undefined) {
+      hallada = { archivo, cuerpo }
     }
   }
   return hallada
@@ -74,16 +74,17 @@ export function llamadasConTamano(fuente: string): LlamadaConTamano[] {
   return salida
 }
 
-// Los tamaños que admite el `check` de `preferencias_usuario` para `listas.por_pagina`, en orden.
+// Los tamaños que admite el `check` de `preferencias_usuario` para `listas.por_pagina`, en orden. Lee el texto de la tabla en el estilo escrito a mano
+// (`valor in ('10'::jsonb, …)`) o en el del volcado (`"valor" = ANY (ARRAY['10'::"jsonb", …])`).
 export function tamanosDelCheck(esquema: string): number[] | null {
   const m =
     /preferencias_por_pagina_valida check \(\s*clave <> 'listas\.por_pagina' or valor in \(([^)]*)\)\)/.exec(
       esquema,
-    )
+    ) ?? /"preferencias_por_pagina_valida" CHECK \([^\n]*?\bANY \(ARRAY\[([^\]]*)\]/.exec(esquema)
   if (!m) {
     return null
   }
-  return [...(m[1] ?? '').matchAll(/'(\d+)'::jsonb/g)].map((x) => Number(x[1]))
+  return [...(m[1] ?? '').matchAll(/'(\d+)'::"?jsonb"?/g)].map((x) => Number(x[1]))
 }
 
 // El `max_rows` de PostgREST en `config.toml`: lo máximo que devuelve cualquier lectura por la API.

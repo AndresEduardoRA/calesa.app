@@ -1,0 +1,40 @@
+name: demo
+
+# Al integrar en main, aplica a la demo las migraciones nuevas y despliega sus funciones edge, sólo si cambió supabase/
+# (docs/ENTORNOS.md › «Vercel»). Un preview nunca migra. Corre sólo con la variable DEMO_PROJECT_REF y los secretos
+# SUPABASE_ACCESS_TOKEN y SUPABASE_DB_PASSWORD del repo; sin ellos no hace nada. Resetear y sembrar la demo es otra cosa:
+# scripts/demo/restaurar.sh, a mano.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+
+permissions:
+  contents: read
+
+# Dos integraciones seguidas no migran a la vez: la segunda espera.
+concurrency:
+  group: demo
+  cancel-in-progress: false
+
+jobs:
+  desplegar-demo:
+    name: Demo · migraciones y funciones
+    if: vars.DEMO_PROJECT_REF != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      DEMO_PROJECT_REF: ${{ vars.DEMO_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/acciones/preparar
+      # La CLI es la devDependency (`pnpm exec supabase`): la misma versión que en local.
+      - run: pnpm exec supabase link --project-ref "$DEMO_PROJECT_REF"
+      - name: migraciones nuevas (las que la demo no tiene)
+        run: pnpm exec supabase db push --yes
+      - name: funciones edge
+        run: pnpm exec supabase functions deploy --use-api

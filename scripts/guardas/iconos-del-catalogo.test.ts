@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { CLAVES_DE_ICONO } from '../../src/shared/lib/iconos'
+import { definicionSql } from '../lib/definicion-sql'
 import { importacionesDe, resolver } from './barriles'
 
 // El catálogo de iconos vive en TRES lugares que tienen que decir lo mismo: `src/shared/lib/iconos.ts` (la lista que ofrece el selector y
@@ -12,19 +13,10 @@ import { importacionesDe, resolver } from './barriles'
 const RAIZ = process.cwd()
 const leer = (ruta: string) => readFileSync(join(RAIZ, ruta), 'utf8')
 
-// La última migración que (re)define la función es la que vale.
+// La definición vigente de la función es la que vale.
 function clavesDeLaBase(): string[] {
-  const definen = readdirSync(join(RAIZ, 'supabase/migrations'))
-    .filter((nombre) => nombre.endsWith('.sql'))
-    .sort()
-    .filter((nombre) =>
-      /create or replace function public\._iconos_del_catalogo\(\)/.test(
-        leer(`supabase/migrations/${nombre}`),
-      ),
-    )
-  const texto = leer(`supabase/migrations/${definen.at(-1) ?? ''}`)
   const cuerpo =
-    /_iconos_del_catalogo\(\)[\s\S]*?select array\[([\s\S]*?)\];/.exec(texto)?.[1] ?? ''
+    /select array\[([\s\S]*?)\];/.exec(definicionSql('_iconos_del_catalogo').texto)?.[1] ?? ''
   return [...cuerpo.matchAll(/'([a-z]+)'/g)].map((m) => m[1] ?? '')
 }
 

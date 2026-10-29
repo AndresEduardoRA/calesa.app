@@ -1,17 +1,19 @@
 # importadora
 
 Sistema interno white-label para importadoras de vehículos (Next 16 + Supabase). Una empresa por
-despliegue. Antes de tocar código leé `CLAUDE.md`, `docs/ESTADO.md` y `docs/MAPA.md`.
+despliegue. Antes de tocar código lee `CLAUDE.md`, `docs/ESTADO.md` y `docs/MAPA.md` (si falta: `bash scripts/mapa.sh`).
 
 ## Arrancar en local
 
 ```bash
-bash setup.sh                     # una sola vez: scaffolding con las versiones del día + deps + hooks
-cp .env.example .env.local        # y llená las claves (publishable key sb_publishable_…, no la anon)
+pnpm install                      # dependencias y hooks de git (lefthook)
+cp .env.example .env.local        # y completa las claves (publishable key sb_publishable_…, no la anon): docs/ENTORNOS.md
 npx supabase start                # Postgres + Auth + Storage locales (Docker)
-pnpm db:reset && pnpm db:types    # migraciones (la base sale de schemas/) + seed, y los tipos generados
+pnpm db:reset && pnpm db:types    # las migraciones (supabase/migrations) + seed, y los tipos generados
 pnpm dev                          # http://localhost:3000  (PWA: pnpm dev --experimental-https)
 ```
+
+Un carril de Orca (un worktree con su propio stack) se arranca con `bash scripts/worktree/preparar.sh`: `docs/ORCA.md`.
 
 ## Verificar
 
@@ -22,7 +24,7 @@ Los hooks de git y de Claude Code corren esto solos; saltarse los hooks de commi
 ### e2e
 
 Playwright contra la app compilada (`.next-e2e`) y el Supabase local, en escritorio y móvil. Necesita
-`npx supabase start` y, en otra terminal, `npx supabase functions serve` (si no, falla en segundos y lo
+`npx supabase start` y, en otra terminal, `pnpm funciones` (si no, falla en segundos y lo
 dice). La integración de apibara queda apagada y sin clave: se prueba con las respuestas grabadas.
 
 - `pnpm test:e2e:completo`: **resetea la base local** (`db:reset`) y corre todo, sin saltar nada. Es el
@@ -42,5 +44,5 @@ cuentas, leads, vehículos, ajustes de la empresa, layouts y archivos. Para volv
 
 ## Dónde está cada cosa
 
-`src/modules/<dominio>/` (ficha en su `CLAUDE.md`) · `src/shared/` · `supabase/schemas` (estado
-declarativo) y `supabase/migrations` (RLS, RPC, cron) · `docs/` (producto, UX, plan, decisiones).
+`src/modules/<dominio>/` (ficha en su `CLAUDE.md`) · `src/shared/` · `supabase/migrations` (la base
+aplastada y una migración por cambio) · `docs/` (producto, UX, plan, decisiones).

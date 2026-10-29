@@ -2,9 +2,9 @@
 # Hook PreToolUse sobre Bash: bloquea lo que ninguna sesión de IA debería correr sola (exit 2 y el motivo por stderr,
 # que es lo que Claude recibe). Lee la entrada con jq (`tool_input.command`, `cwd`). Se prueba en `bloquear-peligrosos.test.ts`.
 #
-#   Siempre:          lo irreversible (reset --hard, clean, checkout --, branch -D…), lo que publica fuera de main (push),
-#                     lo remoto (supabase --linked, gh api …/dispatches, vercel), cambiar dependencias y saltarse el candado
-#                     de la base (`scripts/candado.sh`).
+#   Siempre:          lo irreversible (reset --hard, clean, checkout --, branch -D…), publicar en main (push a main, `gh pr merge`:
+#                     lo integra la persona; una sesión empuja sólo su rama, sin forzar), lo remoto (supabase --linked salvo leer,
+#                     config push, gh api …/dispatches, vercel), cambiar dependencias y saltarse el candado de la base (`scripts/candado.sh`).
 #   Sólo PILOTO=1:    todo `git push` (lo publica el bucle, que no es una sesión), `gh` que escribe y `claude`.
 #
 # Un comando se parte en segmentos (`&&`, `||`, `;`, `|`, `$(`, comillas invertidas, saltos de línea) y de cada uno se
@@ -60,36 +60,36 @@ hay_posicional() {
   return 1
 }
 
+# Una sesión empuja sólo la rama en la que está (la de su carril o su PR), sin forzar ni borrar, y nunca main: main lo integra la
+# persona al aprobar el PR. `cd x && git push` cambiaría de rama sin que el hook lo vea: se rechaza.
 revisar_push() {
   local dir="$1"
   shift
-  local pos=() t
+  local pos=() t rama
   [ "$PILOTO" = 1 ] && bloquear "Con PILOTO=1 ninguna sesión hace git push: publica el bucle, después de verificar por su cuenta."
   for t in "$@"; do
     case "$t" in
       --all | --mirror | --tags | --delete | -d | --prune | -f | --force* | --no-verify)
-        bloquear "git push $t: sólo se publica la rama main, sin forzar, sin borrar y sin etiquetas." ;;
+        bloquear "git push $t: sólo se empuja la rama propia, sin forzar, sin borrar y sin etiquetas." ;;
       -*) ;;
       *) pos+=("$t") ;;
     esac
   done
+  if printf '%s' "$CMD" | grep -qE '(^|[[:space:];&|])cd[[:space:]]'; then
+    bloquear "git push junto a un cd: el hook no ve en qué rama queda. Usa git -C <carpeta> push."
+  fi
+  rama=$(rama_de "$dir")
+  case "$rama" in
+    '') bloquear "git push sin una rama (HEAD suelto o fuera de un repo): no se sabe qué se publica." ;;
+    main) bloquear "git push desde main: main lo integra la persona al aprobar el PR. Trabaja en tu rama y empújala." ;;
+  esac
   case "${#pos[@]}" in
-    0 | 1)
-      # push sin refspec: sube la rama actual. `cd x && git push` la cambiaría sin que el hook lo vea.
-      if printf '%s' "$CMD" | grep -qE '(^|[[:space:];&|])cd[[:space:]]'; then
-        bloquear "git push sin rama junto a un cd: nombra main (git push origin main)."
-      fi
-      [ "$(rama_de "$dir")" = main ] || bloquear "git push sólo desde la rama main."
-      ;;
+    0 | 1) ;;
     2)
-      local refspec="${pos[1]}"
-      if [ "$refspec" = HEAD ]; then
-        [ "$(rama_de "$dir")" = main ] || bloquear "git push HEAD sólo desde la rama main."
-      elif [ "$refspec" != main ]; then
-        bloquear "git push sólo a main (sin ':', 'refs/', '+' ni otra rama): se pidió «$refspec»."
-      fi
+      [ "${pos[1]}" = HEAD ] || [ "${pos[1]}" = "$rama" ] ||
+        bloquear "git push sólo de la rama actual («$rama»; sin ':', 'refs/', '+' ni otra rama): se pidió «${pos[1]}»."
       ;;
-    *) bloquear "git push con más de un refspec: sólo origin main." ;;
+    *) bloquear "git push con más de un refspec: sólo origin <tu rama>." ;;
   esac
 }
 
@@ -160,6 +160,9 @@ revisar_gh() {
   if [ "$sub" = api ] && printf '%s' "$ARGS" | grep -qE '/dispatches'; then
     bloquear "gh api …/dispatches dispara un flujo de trabajo: lo hace una persona."
   fi
+  if [ "$sub $sub2" = "pr merge" ] || { [ "$sub" = api ] && printf '%s' "$ARGS" | grep -qE '/pulls/[0-9]+/merge'; }; then
+    bloquear "gh pr merge integra en main: lo hace la persona al revisar el PR."
+  fi
   [ "$PILOTO" = 1 ] || return 0
   case "$sub $sub2" in
     "pr create" | "pr merge" | "repo edit" | "run rerun" | "run cancel")
@@ -182,8 +185,18 @@ revisar_gh() {
 revisar_supabase() {
   local sub="${A[0]:-}" sub2="${A[1]:-}"
   case "$ARGS" in
-    *" --linked"* | *" --project-ref"*) bloquear "supabase con --linked o --project-ref toca el proyecto remoto: lo hace una persona." ;;
+    *" --linked"* | *" --project-ref"*)
+      # Sólo lectura del proyecto remoto (docs/PREPARACION.md, etapa 0): volcar, listar migraciones, comparar e inspeccionar.
+      # Lo que cambia la demo pasa por scripts/demo/*.sh, que corre una persona o la sesión con su aviso.
+      case "$sub $sub2" in
+        "db dump" | "migration list" | "db diff") ;;
+        inspect\ *) ;;
+        *) bloquear "supabase con --linked o --project-ref toca el proyecto remoto: lo hace una persona (sólo se leen db dump, migration list, db diff e inspect)." ;;
+      esac ;;
+  esac
+  case "$ARGS" in
     *"functions deploy"*) bloquear "supabase functions deploy publica en el proyecto remoto: lo hace una persona." ;;
+    *"config push"*) bloquear "supabase config push cambia la configuración del proyecto remoto: va por scripts/demo/restaurar.sh." ;;
   esac
   case "$sub" in link | secrets) bloquear "supabase $sub toca el proyecto remoto: lo hace una persona." ;; esac
   [ "$CON_CANDADO" = 1 ] && return 0

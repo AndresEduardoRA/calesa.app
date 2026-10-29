@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { definicionSql, migracionesEnOrden, tablaSql } from '../../../scripts/lib/definicion-sql'
 import {
   CLAVES_PERMISO,
   MODULOS_PERMISO,
@@ -55,12 +56,14 @@ describe('catálogo', () => {
 
   it('no lista a mano los permisos de un nivel: los reconoce por su patrón', () => {
     expect(CLAVES_PERMISO.filter((clave) => clave.startsWith('cotizaciones.nivel.'))).toEqual([])
-    // «costos» lo siembra la migración de los niveles (no el seed): tiene que pasar el patrón.
-    const migracion = readFileSync(
-      path.join(process.cwd(), 'supabase/migrations/20261019006100_niveles_de_acceso.sql'),
-      'utf8',
-    )
-    expect(migracion).toContain("_nivel_permisos_crear('costos'")
+    // «costos» lo siembra la base (no el seed) como filas de `permisos` con `nivel_clave = 'costos'`, sin listarlas en ningún catálogo a mano: tiene que pasar el patrón.
+    const migraciones = migracionesEnOrden()
+      .map((m) => m.texto)
+      .join('\n')
+    for (const sufijo of ['ver', 'editar']) {
+      const fila = new RegExp(`\\('cotizaciones\\.nivel\\.costos\\.${sufijo}',[^\\n]*, 'costos'\\)`)
+      expect(migraciones, sufijo).toMatch(fila)
+    }
     expect(esClavePermiso('cotizaciones.nivel.costos.ver')).toBe(true)
     expect(esClavePermiso('cotizaciones.nivel.costos.editar')).toBe(true)
     expect(moduloDe('cotizaciones.nivel.costos.ver')).toBe('cotizaciones')
@@ -130,24 +133,17 @@ describe('permisos de un nivel de acceso (D7)', () => {
   })
 })
 
-// Lo que la base exige de una clave de nivel, leído de sus archivos (no copiado): el check de la tabla y la regla de la clave de un permiso.
-const leerSql = (ruta: string) => readFileSync(path.join(process.cwd(), ruta), 'utf8')
-function reglaDe(archivo: string, desde: string, patron: RegExp): RegExp {
-  const sql = leerSql(archivo)
-  const texto = patron.exec(sql.slice(sql.indexOf(desde)))?.[1]
+// Lo que la base exige de una clave de nivel, leído de su definición vigente (no copiado): el check de la tabla y la regla de la clave de un permiso.
+function reglaDe(tabla: string, restriccion: string): RegExp {
+  const sql = tablaSql(tabla).texto
+  const texto = new RegExp(
+    `CONSTRAINT "?${restriccion}"? CHECK \\(\\("?clave"? ~ '([^']+)'`,
+    'i',
+  ).exec(sql)?.[1]
   return new RegExp(texto ?? '(no se leyó)')
 }
-const MIGRACION_DE_NIVELES = 'supabase/migrations/20261019006100_niveles_de_acceso.sql'
-const checkDeLaTabla = reglaDe(
-  'supabase/schemas/07_cotizaciones/01_cotizaciones.sql',
-  'create table public.cotizaciones_niveles',
-  /clave\s+text not null unique check \(clave ~ '([^']+)'\)/,
-)
-const reglaDeUnPermiso = reglaDe(
-  'supabase/schemas/02_equipo/01_equipo.sql',
-  'create table public.permisos',
-  /clave\s+text primary key check \(clave ~ '([^']+)'\)/,
-)
+const checkDeLaTabla = reglaDe('cotizaciones_niveles', 'cotizaciones_niveles_clave_check')
+const reglaDeUnPermiso = reglaDe('permisos', 'permisos_clave_check')
 
 const NOMBRES_DIFICILES = [
   'Gerencia',
@@ -171,12 +167,8 @@ describe('contra _nivel_clave() de la base', () => {
   let db: PGlite
 
   beforeAll(async () => {
-    const migracion = leerSql(MIGRACION_DE_NIVELES)
-    const inicio = migracion.indexOf('create or replace function public._nivel_clave')
-    const fin = migracion.indexOf('$$;', migracion.indexOf('begin', inicio)) + 3
-    expect(inicio).toBeGreaterThan(-1)
     db = new PGlite()
-    await db.exec(migracion.slice(inicio, fin))
+    await db.exec(definicionSql('_nivel_clave').texto)
   })
 
   afterAll(async () => {

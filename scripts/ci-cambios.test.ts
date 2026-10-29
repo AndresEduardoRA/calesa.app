@@ -144,3 +144,30 @@ describe('ci-cambios.sh', () => {
     })
   })
 })
+
+// El completo de cada noche (`schedule` en ci.yml) sólo corre si main se movió.
+describe('ci-cambios.sh › la noche', () => {
+  it('la noche (schedule) corre todo si main tuvo commits en las últimas 25 h; si no, nada', () => {
+    expect(decidir(repo, { EVENTO: 'schedule' }, 'HEAD')).toEqual({ pesado: 'true', e2e: 'true' })
+    const quieto = join(raiz, 'quieto')
+    mkdirSync(quieto)
+    git(quieto, 'init', '-q', '-b', 'main')
+    writeFileSync(join(quieto, 'README.md'), 'x\n')
+    git(quieto, 'add', '.')
+    execFileSync(
+      'git',
+      ['-c', 'user.name=ci', '-c', 'user.email=ci@ejemplo.test', 'commit', '-q', '-m', 'viejo'],
+      {
+        cwd: quieto,
+        env: {
+          ...process.env,
+          GIT_AUTHOR_DATE: '2020-01-01T00:00:00Z',
+          GIT_COMMITTER_DATE: '2020-01-01T00:00:00Z',
+        },
+      },
+    )
+    const r = correr(quieto, { EVENTO: 'schedule' }, 'HEAD')
+    expect(r.salida).toEqual({ pesado: 'false', e2e: 'false' })
+    expect(r.motivo).toContain('no tuvo commits')
+  })
+})

@@ -8,10 +8,11 @@ import { pathToFileURL } from 'node:url'
 
 export const ZONA_DE_LAS_FECHAS = 'America/La_Paz'
 
-// DECISIONES: `## AAAA-MM-DD — título`. BITACORA: `AAAA-MM-DD — …` al principio de la línea. La plantilla (`## AAAA-MM-DD`) no tiene dígitos.
+// DECISIONES: `## AAAA-MM-DD — título`. BITACORA: `## AAAA-MM-DD — …` o `AAAA-MM-DD — …` (el formato viejo, que
+// quedan en `docs/archivo/BITACORA.md`), al principio de la línea. La plantilla (`## AAAA-MM-DD`) no tiene dígitos.
 export const FORMATOS = {
   decisiones: /^## (\d{4}-\d{2}-\d{2}) — /,
-  bitacora: /^(\d{4}-\d{2}-\d{2}) — /,
+  bitacora: /^(?:## )?(\d{4}-\d{2}-\d{2}) — /,
 }
 
 // El día de hoy como AAAA-MM-DD en la zona de las fechas del repo.

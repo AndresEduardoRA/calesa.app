@@ -59,13 +59,13 @@ afterAll(() => {
 
 describe('bloquear-peligrosos.sh', () => {
   it.each(BLOQUEA)('bloquea: %s', (comando) => {
-    const real = comando.replace('ENOTRA', enOtra)
+    const real = comando.replace('ENOTRA', enOtra).replace('ENMAIN', enMain)
     const { estado, motivo } = correr(real)
     expect({ estado, motivo: motivo.trim().length > 0 }).toEqual({ estado: 2, motivo: true })
   })
 
   it.each(PASA)('deja pasar: %s', (comando) => {
-    const real = comando.replace('ENMAIN', enMain)
+    const real = comando.replace('ENOTRA', enOtra).replace('ENMAIN', enMain)
     expect(correr(real).estado).toBe(0)
   })
 
@@ -77,34 +77,40 @@ describe('bloquear-peligrosos.sh', () => {
   })
 })
 
+// Una sesión empuja sólo la rama en la que está; main lo integra la persona al aprobar el PR.
 describe('la rama del push', () => {
-  it('un push sin rama sale de la rama del cwd: main pasa, otra no', () => {
-    expect(correr('git push', { cwd: enMain }).estado).toBe(0)
-    expect(correr('git push', { cwd: enOtra }).estado).toBe(2)
-    expect(correr('git push origin', { cwd: enOtra }).estado).toBe(2)
-    expect(correr('git push origin HEAD', { cwd: enOtra }).estado).toBe(2)
+  it('un push sin rama sale de la rama del cwd: otra pasa, main no', () => {
+    expect(correr('git push', { cwd: enOtra }).estado).toBe(0)
+    expect(correr('git push origin', { cwd: enOtra }).estado).toBe(0)
+    expect(correr('git push origin HEAD', { cwd: enOtra }).estado).toBe(0)
+    expect(correr('git push', { cwd: enMain }).estado).toBe(2)
+    expect(correr('git push origin HEAD', { cwd: enMain }).estado).toBe(2)
   })
 
   it('`git -C <carpeta>` manda sobre el cwd, también con una carpeta relativa', () => {
-    expect(correr(`git -C ${enOtra} push`, { cwd: enMain }).estado).toBe(2)
-    expect(correr(`git -C ${enMain} push`, { cwd: enOtra }).estado).toBe(0)
-    expect(correr('git -C ../en-otra push', { cwd: enMain }).estado).toBe(2)
-    expect(correr('git -C ../en-main push', { cwd: enOtra }).estado).toBe(0)
+    expect(correr(`git -C ${enOtra} push`, { cwd: enMain }).estado).toBe(0)
+    expect(correr(`git -C ${enMain} push`, { cwd: enOtra }).estado).toBe(2)
+    expect(correr('git -C ../en-otra push', { cwd: enMain }).estado).toBe(0)
+    expect(correr('git -C ../en-main push', { cwd: enOtra }).estado).toBe(2)
   })
 
-  it('un push de main con la rama explícita pasa desde cualquier rama', () => {
-    expect(correr('git push origin main', { cwd: enOtra }).estado).toBe(0)
+  it('main nunca, ni nombrada desde otra rama; y sólo la rama propia', () => {
+    expect(correr('git push origin main', { cwd: enOtra }).estado).toBe(2)
+    expect(correr('git push origin otra', { cwd: enOtra }).estado).toBe(0)
+    expect(correr('git push origin tercera', { cwd: enOtra }).estado).toBe(2)
   })
 
-  it('un push sin rama junto a un `cd` se rechaza: el hook no ve a dónde va', () => {
+  it('un push junto a un `cd` se rechaza: el hook no ve en qué rama queda', () => {
     expect(correr('cd ../en-otra && git push', { cwd: enMain }).estado).toBe(2)
-    expect(correr('cd ../en-otra && git push origin main', { cwd: enMain }).estado).toBe(0)
+    expect(correr('cd ../en-otra && git push origin otra', { cwd: enOtra }).estado).toBe(2)
   })
 })
 
 describe('bloquear-peligrosos.sh con PILOTO=1', () => {
   it.each(BLOQUEA_PILOTO)('bloquea: %s', (comando) => {
-    const { estado, motivo } = correr(comando.replace('ENMAIN', enMain), { piloto: true })
+    const { estado, motivo } = correr(comando.replace('ENOTRA', enOtra).replace('ENMAIN', enMain), {
+      piloto: true,
+    })
     expect({ estado, motivo: motivo.trim().length > 0 }).toEqual({ estado: 2, motivo: true })
   })
 
@@ -114,12 +120,12 @@ describe('bloquear-peligrosos.sh con PILOTO=1', () => {
 
   it('sin PILOTO=1 lo mismo pasa (una sesión de la persona)', () => {
     for (const comando of [
-      'git push origin main',
+      'git push origin otra',
       'gh pr create --fill',
       'claude -p hola',
       'gh run rerun 1',
     ]) {
-      expect(correr(comando).estado, comando).toBe(0)
+      expect(correr(comando, { cwd: enOtra }).estado, comando).toBe(0)
     }
   })
 

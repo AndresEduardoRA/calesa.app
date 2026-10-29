@@ -2,7 +2,7 @@
 -- Estadísticas iniciales (cierre 4). Tras un `db reset` (o el primer `db push --include-seed`) ninguna tabla tiene estadísticas hasta que
 -- el autovacuum las analiza, minutos después de las primeras filas: sin ellas el planificador elige mal los planes de las RPC y la
 -- primera importación de 500 filas tardaba ~20 s (lotes de 3,8 s contra el corte de 8 s de `authenticated`); con ellas, ~1 s
--- (`docs/RENDIMIENTO.md`, «Importación»). Un `analyze` aunque las tablas estén casi vacías ya lo evita.
+-- (`docs/RENDIMIENTO.md`, «B. Importar 500 filas»). Un `analyze` aunque las tablas estén casi vacías ya lo evita.
 do $$
 declare v_tabla record;
 begin

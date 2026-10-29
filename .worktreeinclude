@@ -1,2 +1,4 @@
-# Lo ignorado por git que un worktree de Claude Code copia: lo que pide `next build`.
+# Lo ignorado por git que un worktree nuevo copia (Claude Code y Orca; sólo rutas literales). `.env.local` es lo que pide `next build`
+# (en un carril, scripts/worktree/preparar.sh le reescribe lo de Supabase); `.env.demo`, las credenciales de demo con que siembra.
 .env.local
+.env.demo

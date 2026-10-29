@@ -1,8 +1,7 @@
 // @vitest-environment node
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { definicionSql } from '../../../../scripts/lib/definicion-sql'
 import { patronContiene } from '@/shared/lib/supabase/consultas'
 import { CASOS_DE_BUSQUEDA } from './busqueda.casos'
 
@@ -12,15 +11,8 @@ describe('_lead_busqueda_patron() de la base contra patronContiene()', () => {
   let db: PGlite
 
   beforeAll(async () => {
-    const sql = readFileSync(
-      join(process.cwd(), 'supabase/migrations/20261019003300_busqueda_por_candidatos.sql'),
-      'utf8',
-    )
-    const inicio = sql.indexOf('create or replace function public._lead_busqueda_patron')
-    const fin = sql.indexOf('$$;', inicio) + 3
-    expect(inicio).toBeGreaterThan(-1)
     db = new PGlite()
-    await db.exec(sql.slice(inicio, fin))
+    await db.exec(definicionSql('_lead_busqueda_patron').texto)
   })
 
   afterAll(async () => {

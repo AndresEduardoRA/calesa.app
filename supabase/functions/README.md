@@ -68,7 +68,7 @@ la carga en Node con un `Deno` mínimo y un `fetch` simulado que responde con lo
 función real local sólo cubre los caminos que no llegan a apibara (sin sesión, sin permiso, apagada,
 host de foto no permitido).
 
-**En local:** `npx supabase functions serve` (o `supabase start` con el edge runtime arriba). Se la
+**En local:** `pnpm funciones` (o `supabase start` con el edge runtime arriba). Se la
 alcanza en `http://127.0.0.1:54621/functions/v1/apibara`. No hay nada que desplegar aparte del
 `supabase functions deploy apibara`: la clave ya está en Vault.
 
@@ -137,4 +137,4 @@ en `cola_gc_pases` (el mismo mecanismo de `storage-gc`) y lo manda por `pg_net`;
 Una miniatura que se reemplaza o se quita la encola un trigger de `perfiles` y la borra `storage-gc` recontando. `verify_jwt =
 false` (la llama la base). En la nube: `supabase functions deploy avatares-miniaturas` y `select
 public.avatares_miniaturas_programar('https://<ref>.supabase.co/functions/v1/avatares-miniaturas');`. La cubre
-`e2e/perfil-avatar.spec.ts` (con `npx supabase functions serve`).
+`e2e/perfil-avatar.spec.ts` (con `pnpm funciones`).

@@ -1,12 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { definicionSql } from '../../../../scripts/lib/definicion-sql'
 import { CATALOGO_APIBARA, GRUPOS_DEL_CATALOGO, rutaIgnorada } from './catalogo-apibara'
-
-const APIBARA = readFileSync(
-  join(process.cwd(), 'supabase/migrations/20261014000200_apibara.sql'),
-  'utf8',
-)
 
 function fixture(nombre: string): Record<string, unknown> {
   const texto = readFileSync(join(process.cwd(), 'e2e/fixtures/apibara', nombre), 'utf8')
@@ -84,11 +80,7 @@ describe('catálogo de apibara', () => {
   })
 
   it('la regla de lo que se ignora es la del SQL', () => {
-    const inicio = APIBARA.indexOf('create or replace function public._apibara_ruta_ignorada')
-    const funcion = APIBARA.slice(
-      inicio,
-      APIBARA.indexOf('revoke all on function public._apibara_ruta_ignorada'),
-    )
+    const funcion = definicionSql('_apibara_ruta_ignorada').texto
     for (const ruta of [
       'title',
       'odometer.km',
