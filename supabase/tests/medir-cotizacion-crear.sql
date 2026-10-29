@@ -103,13 +103,26 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_id, 'role', 'authenticated')::text, true);
 end $$;
 
--- 7 corridas de EXPLAIN de la llamada: la mediana de ms y de buffers de las 5 últimas.
-create function pg_temp.medir(p_sql text) returns jsonb language plpgsql as $$
+-- El peor caso (4.14-1): cada corrida reescribe la fila del vehículo (`cotizado_en`, su trigger). Con `now()` fijo en la transacción sólo la primera lo haría, así que antes de cada
+-- corrida, fuera de lo medido, el vehículo vuelve a no estar cotizado (como postgres: authenticated no escribe `vehiculos`). `escrituras()`: las filas de `vehiculos` que lleva actualizadas la transacción.
+create function pg_temp.sin_cotizar() returns void language sql security definer as $$
+  update public.vehiculos set cotizado_en = null where id in (select id from _x where clave = 'vehiculo') and cotizado_en is not null
+$$;
+create function pg_temp.escrituras() returns bigint language sql as $$
+  select coalesce(n_tup_upd, 0) from pg_stat_xact_user_tables where schemaname = 'public' and relname = 'vehiculos'
+$$;
+
+-- 7 corridas de EXPLAIN de la llamada: la mediana de ms y de buffers de las 5 últimas. Cada corrida reescribe `vehiculos` exactamente `p_escrituras` veces.
+create function pg_temp.medir(p_sql text, p_escrituras int) returns jsonb language plpgsql as $$
 declare
-  v_plan jsonb; v_ms numeric[] := '{}'; v_buf bigint[] := '{}'; v_clave text; v_b bigint; i int;
+  v_plan jsonb; v_ms numeric[] := '{}'; v_buf bigint[] := '{}'; v_clave text; v_b bigint; i int; v_antes bigint; v_d bigint;
 begin
   for i in 1 .. 7 loop
+    perform pg_temp.sin_cotizar();
+    v_antes := pg_temp.escrituras();
     execute 'explain (analyze, buffers, format json) ' || p_sql into v_plan;
+    v_d := pg_temp.escrituras() - v_antes;
+    if v_d <> p_escrituras then raise exception 'la corrida % actualizó % filas de vehiculos y se esperaban %: %', i, v_d, p_escrituras, p_sql; end if;
     continue when i <= 2;
     v_ms := v_ms || (v_plan -> 0 ->> 'Execution Time')::numeric;
     v_b := 0;
@@ -146,13 +159,14 @@ begin
     if v_caso = 'repetido' then
       execute pg_temp.sql_de('repetido');
     end if;
-    v_m := pg_temp.medir(pg_temp.sql_de(v_caso));
+    -- Las que pagan la reescritura del vehículo: la preventa, la asesora y «a mano» (que además fija la fase de entrada del vehículo nuevo); el repetido vuelve antes.
+    v_m := pg_temp.medir(pg_temp.sql_de(v_caso), case v_caso when 'repetido' then 0 when 'a_mano' then 2 else 1 end);
     v_r := pg_temp.recorridos(pg_temp.sql_de(v_caso));
     insert into _med values (p_fase, v_caso, (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, v_r);
   end loop;
   if p_con_mala then
     perform pg_temp.como('duena');
-    v_m := pg_temp.medir(pg_temp.sql_de('mala'));
+    v_m := pg_temp.medir(pg_temp.sql_de('mala'), 1);
     v_r := pg_temp.recorridos(pg_temp.sql_de('mala'));
     insert into _med values (p_fase, 'mala', (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, v_r);
   end if;

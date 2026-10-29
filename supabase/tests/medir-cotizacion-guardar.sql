@@ -161,13 +161,23 @@ end $$;
 create temp table _versiones (caso text primary key, valor timestamptz);
 grant all on _versiones to authenticated;
 
--- 7 corridas de EXPLAIN de la llamada: la mediana de ms y de buffers de las 5 últimas.
-create function pg_temp.medir(p_sql text) returns jsonb language plpgsql as $$
+-- El peor caso (4.14-1): pasar a otro vehículo reescribe su fila (`cotizado_en`) en cada corrida, como en `medir-cotizacion-crear.sql`; `escrituras()`, lo actualizado en `vehiculos`.
+create function pg_temp.sin_cotizar() returns void language sql security definer as $$
+  update public.vehiculos set cotizado_en = null where id in (select id from _x where clave like 'vehiculo%') and cotizado_en is not null
+$$;
+create function pg_temp.escrituras() returns bigint language sql as $$ select coalesce(n_tup_upd, 0) from pg_stat_xact_user_tables where schemaname = 'public' and relname = 'vehiculos' $$;
+
+-- 7 corridas de EXPLAIN de la llamada: la mediana de ms y de buffers de las 5 últimas. Cada corrida reescribe `vehiculos` exactamente `p_escrituras` veces.
+create function pg_temp.medir(p_sql text, p_escrituras int) returns jsonb language plpgsql as $$
 declare
-  v_plan jsonb; v_ms numeric[] := '{}'; v_buf bigint[] := '{}'; v_clave text; v_b bigint; i int;
+  v_plan jsonb; v_ms numeric[] := '{}'; v_buf bigint[] := '{}'; v_clave text; v_b bigint; i int; v_antes bigint; v_d bigint;
 begin
   for i in 1 .. 7 loop
+    perform pg_temp.sin_cotizar();
+    v_antes := pg_temp.escrituras();
     execute 'explain (analyze, buffers, format json) ' || p_sql into v_plan;
+    v_d := pg_temp.escrituras() - v_antes;
+    if v_d <> p_escrituras then raise exception 'la corrida % actualizó % filas de vehiculos y se esperaban %: %', i, v_d, p_escrituras, p_sql; end if;
     continue when i <= 2;
     v_ms := v_ms || (v_plan -> 0 ->> 'Execution Time')::numeric;
     v_b := 0;
@@ -215,14 +225,15 @@ begin
     v_quien := case v_caso when 'asesora' then 'asesora' else 'duena' end;
     perform pg_temp.como(v_quien);
     v_sql := pg_temp.sql_de(p_fase, v_caso);
-    v_m := pg_temp.medir(v_sql);
+    -- Sólo «vehiculo» pasa a otro vehículo (y paga su reescritura); los demás guardan sobre el mismo.
+    v_m := pg_temp.medir(v_sql, case v_caso when 'vehiculo' then 1 else 0 end);
     v_r := pg_temp.recorridos(v_sql);
     insert into _med values (p_fase, v_caso, (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, v_r);
   end loop;
   if p_con_mala then
     perform pg_temp.como('duena');
     v_sql := pg_temp.sql_de(p_fase, 'mala');
-    v_m := pg_temp.medir(v_sql);
+    v_m := pg_temp.medir(v_sql, 0);
     v_r := pg_temp.recorridos(v_sql);
     insert into _med values (p_fase, 'mala', (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, v_r);
   end if;

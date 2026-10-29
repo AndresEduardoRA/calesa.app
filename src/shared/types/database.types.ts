@@ -5877,6 +5877,7 @@ export type Database = {
           apibara_sync_en: string | null
           atributos: NonNullable<Json>
           categoria_id: string | null
+          cotizado_en: string | null
           creado_en: string
           creado_por: string | null
           destacado_web: boolean
@@ -5929,6 +5930,7 @@ export type Database = {
           apibara_sync_en?: string | null
           atributos?: NonNullable<Json>
           categoria_id?: string | null
+          cotizado_en?: string | null
           creado_en?: string
           creado_por?: string | null
           destacado_web?: boolean
@@ -5970,6 +5972,7 @@ export type Database = {
           apibara_sync_en?: string | null
           atributos?: NonNullable<Json>
           categoria_id?: string | null
+          cotizado_en?: string | null
           creado_en?: string
           creado_por?: string | null
           destacado_web?: boolean
@@ -7732,6 +7735,7 @@ export type Database = {
           apibara_sync_en: string | null
           atributos: NonNullable<Json>
           categoria_id: string | null
+          cotizado_en: string | null
           creado_en: string
           creado_por: string | null
           destacado_web: boolean
@@ -7823,6 +7827,7 @@ export type Database = {
         Args: { p_clave: string; p_datos: Json; p_largo: number; p_nombre: string }
         Returns: string
       }
+      _vehiculos_cotizado_rellenar: { Args: Record<PropertyKey, never>; Returns: number }
       _vehiculos_papelera_lote_json: {
         Args: {
           p_dias: number
