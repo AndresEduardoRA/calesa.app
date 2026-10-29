@@ -160,7 +160,7 @@ end $$;
 
 -- La copia mala: la función de verdad, más una búsqueda por una columna sin índice (`notas`) que recorre `cotizaciones` entera.
 do $$
-declare v_def text := pg_get_functiondef('public.cotizacion_crear(uuid, uuid, uuid, jsonb, text, uuid, jsonb, text, public.clase_cotizacion, boolean)'::regprocedure);
+declare v_def text := pg_get_functiondef('public.cotizacion_crear(uuid, uuid, uuid, jsonb, text, uuid, jsonb, text, public.clase_cotizacion, boolean, boolean)'::regprocedure);
 begin
   v_def := replace(v_def, 'FUNCTION public.cotizacion_crear(', 'FUNCTION pg_temp.cotizacion_crear_mala(');
   if position('perform pg_advisory_xact_lock(hashtextextended(''cotizacion_crear:'' || p_id::text, 0));' in v_def) = 0 then raise exception 'la copia mala: no está el candado del intento'; end if;

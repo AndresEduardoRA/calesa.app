@@ -720,6 +720,7 @@ export type Database = {
           totales: NonNullable<Json>
           valores: NonNullable<Json>
           vehiculo_id: string | null
+          ver_total_bs: boolean
           version: number
         }
         ComputedFields: never
@@ -751,6 +752,7 @@ export type Database = {
           totales: NonNullable<Json>
           valores: NonNullable<Json>
           vehiculo_id?: string | null
+          ver_total_bs?: boolean
           version?: number
         }
         Update: {
@@ -781,6 +783,7 @@ export type Database = {
           totales?: NonNullable<Json>
           valores?: NonNullable<Json>
           vehiculo_id?: string | null
+          ver_total_bs?: boolean
           version?: number
         }
         Relationships: [
@@ -7024,6 +7027,7 @@ export type Database = {
         Returns: string[]
       }
       _cotizacion_vehiculo: { Args: { p_vehiculo: string }; Returns: undefined }
+      _cotizacion_ver_total_bs: { Args: { p_formula: string; p_ver: boolean }; Returns: undefined }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
       _diseno_modos: {
@@ -7947,6 +7951,7 @@ export type Database = {
           p_origen: string
           p_vehiculo?: string
           p_vehiculo_nuevo?: Json
+          p_ver_total_bs?: boolean
         }
         Returns: Json
       }

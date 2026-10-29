@@ -254,7 +254,7 @@ rollback;
 begin;
 do $$
 declare
-  v_legible_c constant text := 'id, numero, origen_id, lead_id, vehiculo_id, creado_por, clase, estado, titulo, formula_id, plantilla_id, total_base, moneda_mostrar, modo_tc, notas, version, creado_en, actualizado_en';
+  v_legible_c constant text := 'id, numero, origen_id, lead_id, vehiculo_id, creado_por, clase, estado, titulo, formula_id, plantilla_id, total_base, moneda_mostrar, modo_tc, ver_total_bs, notas, version, creado_en, actualizado_en';
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
