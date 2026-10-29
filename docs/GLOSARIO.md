@@ -163,6 +163,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Dirección de la web** — `ajustes_web.direccion_publica` / `leerDireccionPublica()`: la dirección pública del sitio.
 - **Cotización** — `cotizaciones`: cálculo de una fórmula para un lead/vehículo, con snapshot.
 - **Preventa / Final** — `clase_cotizacion`: borrador comercial / la que cierra el vehículo (una activa por vehículo).
+- **Última cotización (de un vehículo)** — `vehiculos.cotizado_en`, `_vehiculo_cotizado()`: cuándo se cotizó por última vez; ordena «Últ. cotización» del panel del vehículo. Cotizar no edita el vehículo.
 - **Fórmula** — `formulas` (`definicion`, `params`): grafo de nodos versionado por origen; ver `docs/COTIZADOR.md`.
 - **Nodo** — `definicion.nodos[]`: una línea de la fórmula: input, constante, tipo de cambio, campo, bandera, tabla, tramo, cálculo.
 - **Constante** — nodo `constante` + `params`: valor por defecto versionado que el ⚙ de la XCell cambia.
@@ -288,6 +289,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Intacto (lead importado)** — `_lead_motivo_para_deshacer()`: sólo en la cartera de quien importó, sin editar y sin nada colgado; las marcas no cuentan.
 - **Tus importaciones recientes** — `leads_importaciones_recientes()`, `<ImportacionesRecientes>`: importaciones propias de 24 h, con «Deshacer», en `/leads/importar`.
 - **Subasta (de un vehículo)** — `SubastaDeVehiculo` / `<BloqueDeSubasta>`, `leerSubasta()`: cuándo es, en qué está, cuánto va y cuándo se consultó.
+- **Cierre (de una subasta)** — `vehiculos.cierre_subasta_en` (generada): cuándo cierra una subasta abierta o en vivo, `coalesce(subasta_fin_en, subasta_en)`; nula si no está viva. Ordena «Cierre subasta» del panel del vehículo, desde ahora menos 24 h.
 - **Estado de subasta** — `vehiculos.estado_subasta` / `EstadoDeSubasta`: `abierta`, `en vivo`, `terminada` o `vendida`; lo deriva la base, nadie lo escribe.
 - **Respuesta guardada** — `vehiculos.apibara_raw` / `leerSubasta().raw`: lo que apibara devolvió, entero; sólo el servidor la lee.
 - **Consulta de apibara** — `apibara_consultas` / `apibara_consulta_guardar()`, `FichaDeApibara.consulta`: cada respuesta de la edge function, a nombre de quien consultó.

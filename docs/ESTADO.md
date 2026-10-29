@@ -4,31 +4,31 @@
 > en el código lo dice `docs/MAPA.md`; los abiertos con su paso, `docs/PLAN.md`. La versión anterior completa: `docs/archivo/ESTADO.md`.
 
 **Última actualización:** 2026-10-29
-**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.13** (los 12 prompts); sigue el **4.14**. La
-partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Partición»).
+**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.14-1** (la base del panel del vehículo); sigue el **4.14-2**.
+La partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Partición»).
 **Aparte:** la preparación para Orca, en la rama `preparar-orca` (`docs/PREPARACION.md`). No toca código de producto; la integra la persona.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar`, `db:lint`, `db:carreras`, `db:medir:volumen`, `mapa.sh` y el e2e completo. Último completo:
-  el de escritorio del 4.13-4d, 795 en verde y 16 saltados, 28,4 min. Los niveles de verificación, en `.claude/rules/e2e.md`.
+  el de escritorio del 4.14-1, 795 en verde y 16 saltados, 28,6 min. Los niveles de verificación, en `.claude/rules/e2e.md`.
 - **CI** (GitHub): `nivel-1` siempre y `carriles` en cada PR; `base` si cambia código; en un PR, los e2e dirigidos a lo tocado (el
   completo si toca un disparador del Nivel 2); el completo de escritorio cada noche y a mano (`escritorio|ambos`).
 - **El piloto** (`docs/PILOTO.md`) es el carril A de Orca (`docs/ORCA.md`): avanza `docs/PLAN.md` un paso por sesión y publica su rama
   `a/…` por PR; sólo pregunta en las compuertas. Falta aceptar la confianza de la carpeta y `decidir.sh --prueba-tandas`.
 - **Fases 0 a 3 completas** (equipo, empresa, orígenes, vehículos y leads). **Fase 4:** fórmula, motor, niveles, crear y guardar una
-  cotización, y la hoja dibujada que guarda, con «Avanzado», la ayuda de texto, «Ver total Bs», los modos, el resumen fijo, la ayuda de una tabla, la tarea de oro 2 (tramo de la hoja) y el presupuesto de JS de la hoja, en la base y en la pantalla (4.01 a 4.13).
+  cotización, y la hoja dibujada que guarda, con «Avanzado», la ayuda de texto, «Ver total Bs», los modos, el resumen fijo, la ayuda de una tabla, la tarea de oro 2 (tramo de la hoja) y el presupuesto de JS de la hoja, en la base y en la pantalla (4.01 a 4.13). La base del panel del vehículo: `vehiculos.cotizado_en` (cotizar no edita el vehículo), `cierre_subasta_en` (generada) y los índices de sus tres listas (4.14-1).
 - **La rueda de la web:** `habilitado` es de la persona (`cola_web_configurar`); el rol decide si puede estar (`web.cola.participar`). Sin
   pantalla todavía: el tablero de la cola y el interruptor de disponibilidad (Fase 8, 8-1).
 
 ## Siguiente
 
-1. **Carril A: el 4.14, con el piloto** (los paneles del vehículo y del cliente) y en orden hasta el 4.28, **un prompt a la vez, y se para a reportar**. Cuenta sin
-   completo: **0 de 3**. La hoja mide 468 nodos al abrir y 490 usada contra un tope de 500 (P7, P8; 2,0 % de margen): lo que sume nodos se para y se reporta. JS de
-   `/cotizaciones/nuevo` ≤ 460 KB (429,5). Abiertos nuevos: 4-49 (tras recargar, «atrás» pierde el foco en todo panel por URL, `src/shared`) y 4-50 (el resumen al pie al 200 %).
-2. **Del 3c:** un número tipeado se lee con `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre
-   con `formatearParaEditar` y el locale; la importación CSV lee más permisiva a propósito. **Para la persona:** la sesión de decidir dejó
-   anotadas las respuestas de la 1.ª tanda de P1–P6 (`.piloto/informes/4.13-3c.md` › «Para la persona»).
+1. **Carril A: el 4.14-2, con el piloto** (el panel del vehículo, la entrada desde el resumen del vehículo y 4-10 con P6), después el 4.14-3 (el panel del cliente) y en orden
+   hasta el 4.28, **un prompt a la vez, y se para a reportar**. Cuenta sin completo: **0 de 3**. El 4.14-2 elige el cursor por otra columna (`aplicarCursor` está fijo a
+   `creado_en`; en `src/shared`, Nivel 2). La hoja mide 468 nodos al abrir y 490 usada contra 500: la barra va fuera de `[data-hoja]` o se para y se reporta. JS de
+   `/cotizaciones/nuevo` ≤ 460 KB (429,5). Abiertos nuevos: 4-51 (`on delete set null` sin índice), 4-52 (un `medir-*.sql` > 300 líneas), 4-53 (`db:sembrar-volumen` cae).
+2. **Del 3c:** un número tipeado se lee con `leerNumeroTipeado(texto, locale)` y lo guardado se abre con `formatearParaEditar` y el locale (la importación CSV, más
+   permisiva). **Para la persona:** las respuestas de la 1.ª tanda de P1–P6 del 4.13-3c (`.piloto/informes/4.13-3c.md` › «Para la persona»).
 3. **Abiertos sin fase, los decide la persona:** 5a-39 («Dadas de baja» dice «Por ahora el equipo eres tú»), 5a-40 (`cartera` indexada:
    la baja de 200.000 sin updates HOT), 5a-42 (`medir-bajas.sql` cae con un `sync` de disco largo) y 4-39 (cuatro `entities/` de más de
    300 líneas). Los demás abiertos, con su paso, en `docs/PLAN.md` › «Abiertos de la Fase 4» y en cada fase.

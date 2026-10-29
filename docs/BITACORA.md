@@ -102,3 +102,24 @@ Con este paso se cierra el 4.13.
   de antes. La persona eligió dejarlo para 4-49. Es nuevo también 4-50: al 200 %, el resumen al pie tapa cerca del 40 % del alto.
 - **Commits:** `8e05898b`, `da5c2932` y el `fix` de la auditoría del informe, `2b4849ea` (el tope de Tab de la prueba de cada celda, fijado en lo medido: 24 y 28).
   e2e completo: sí (4.13-4d, pantalla, 3 de 3)
+
+## 2026-10-29 — 4.14-1: la base del panel del vehículo
+
+El 4.14 se parte en tres. El 4.14-2 dibuja el panel del vehículo y el 4.14-3, el del cliente.
+
+- **`vehiculos.cotizado_en`.** La escribe el trigger `trg_vehiculo_cotizado` de `cotizaciones` al crear con un vehículo (también «a mano») y al pasarle una cotización. Nunca
+  retrocede. Cuando sólo cambia ella, ni se mueve la versión de la ficha ni se escribe en `actividad` (P1). El relleno, `_vehiculos_cotizado_rellenar()`, queda en la base.
+- **`vehiculos.cierre_subasta_en`**, la primera columna generada: el cierre de una subasta abierta o en vivo, `coalesce(subasta_fin_en, subasta_en)` (P5, P7).
+- **Tres índices:**
+  - `vehiculos_cotizado_idx`, para «Últ. cotización»;
+  - `vehiculos_cierre_subasta_idx`, para «Cierre subasta»;
+  - `cotizaciones_vehiculo_creado_idx`, el historial, que reemplaza a `cotizaciones_vehiculo_idx`.
+- **Medido con 50.000 y 250.000.** Las dos listas, de 0,3 a 0,9 ms y de 71 a 246 buffers; el historial, 0,35 ms y 77. Sin `Sort` y sin crecer con N. Cotizar con la reescritura del
+  vehículo en cada corrida suma 0,2 ms y de 50 a 140 buffers.
+- **Verificación.** En verde: lint, typecheck, test (5.527), `db:probar` (448), `db:medir` y `db:medir:volumen`, los 9 specs dirigidos en escritorio (40) y el completo de
+  escritorio: 795 en verde, 16 saltadas (0 nuevas), 28,6 min, con las carreras en verde. Los rojos de las pruebas y de las mediciones, contra HEAD y contra cada commit, quedaron
+  guardados. Caen las 15 mutaciones de las dos primeras migraciones, M10 y M13 de los índices y M18a/M18b; los índices de la fila del PLAN, que son las guardas de cada medición, rompen sus asserts.
+- **El historial se siembra con 100 vehículos.** Con 1.000, el plan genérico a veces ordenaba la página profunda.
+- **`db:sembrar-volumen` está roto en HEAD** (falta un import): se sembró con una copia fuera del repo y queda el abierto 4-53. También son nuevos 4-51 y 4-52.
+- **Commits:** `6cc27730`, `b0b3c2dd` y `6a924d8f`.
+  e2e completo: sí (4.14-1, base, Nivel 2)

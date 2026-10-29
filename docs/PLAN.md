@@ -115,12 +115,26 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
     dinero, pasan por `<Monto>` con la moneda de la celda; si no (un factor, `raw`), quedan a la vista.
 - **4.14** — Los paneles del vehículo y del cliente (cursor, nunca «Página N de M»). Vehículo: link o lote (apibara grabado), un nombre,
   «+» y «cargar a mano», que crean el vehículo (D3); «Últ. cotización» por `vehiculos.cotizado_en` con su índice
-  `(origen_id, cotizado_en desc, id)`; «Cierre subasta» por `vehiculos_subasta_estado_idx`, que ya existe pero sin `origen_id` (se mide
-  por origen con volumen y, si el plan descarta de más, se suma `(origen_id, estado_subasta, subasta_en)`); el historial del vehículo con
-  el **índice nuevo `(vehiculo_id, creado_en desc, id)`**, porque `cotizaciones_vehiculo_idx` es sólo `(vehiculo_id)`; «Cotizado (n)»
-  por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
+  `vehiculos_cotizado_idx (origen_id, cotizado_en desc, id desc)`; «Cierre subasta» por la columna generada `vehiculos.cierre_subasta_en` con
+  `vehiculos_cierre_subasta_idx (origen_id, cierre_subasta_en, id)`; el historial del vehículo con `cotizaciones_vehiculo_creado_idx
+(vehiculo_id, creado_en desc, id desc)`, que reemplaza a `cotizaciones_vehiculo_idx`; «Cotizado (n)» por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
   etiqueta y «+» que abre «Nuevo lead». Se entra desde la ficha del lead y desde el resumen del vehículo. Cierra **4-10** (el tipo de
-  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 3.
+  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 3 (queda 2).
+  **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
+  versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
+  hecho. Faltan el **4.14-2** (el panel del vehículo, la entrada desde el resumen del vehículo y 4-10, con P6; el cursor por otra columna: `aplicarCursor` está fijo a
+  `creado_en` y sólo pagina hacia lo más viejo, así que generaliza el cursor en `src/shared` —Nivel 2, marca `sí`— o escribe uno local en `vehiculos/infra` —Nivel 1, `1 de
+3`—; la barra va fuera de `[data-hoja]` o se para y se reporta) y el **4.14-3** (el panel del cliente y la entrada desde la ficha del lead; `2 de 3`, o un paso menos si
+  el 4.14-2 fue Nivel 2; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`.
+  - **P1** (contestada el 2026-10-29; hecha en el 4.14-1): `cotizado_en` va en `vehiculos`, y cuando sólo cambia ella ni se mueve la versión de la ficha ni se audita.
+  - **P2** (contestada el 2026-10-29; hecha en el 4.14-1): la ve quien ve el vehículo (sólo cuándo, no quién ni cuánto).
+  - **P3** (contestada el 2026-10-29; hecha en el 4.14-1): la mueven crear una cotización con el vehículo y guardar una que pasa a él; nunca retrocede.
+  - **P4** (contestada el 2026-10-29; hecha en el 4.14-1): «Últ. cotización» lista sólo los cotizados (índice parcial).
+  - **P5** (contestada el 2026-10-29; el índice, en el 4.14-1; el margen, en el 4.14-2): «Cierre subasta» lista las abiertas o en vivo con cierre desde ahora menos 24 h,
+    la más próxima primero.
+  - **P6** (contestada el 2026-10-29; para el 4.14-2, 4-10): en el panel del vehículo se elige el tipo de vehículo entre las filas de la tabla de transporte, con el
+    sugerido marcado si el dato de la subasta coincide con una clave.
+  - **P7** (contestada el 2026-10-29; hecha en el 4.14-1): el cierre es `coalesce(subasta_fin_en, subasta_en)`, como la limpieza.
 - **4.15** — Editar con SU versión, cotizar encima (N+1) y revisiones por nodo, recortadas y por páginas. `cotizacion_revisiones` ya
   existe (4.10-1): se registra en `RPC_PAGINADAS` (`scripts/guardas/paginas-en-la-base.ts`) cuando la pantalla la llame.
   `cotizacion_revision` guarda `valores`, `fuentes` y `totales` enteros en cada edición: se corrige aquí. **Antes: 4-26** (la base
@@ -169,7 +183,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 73 prompts; faltan los pasos 4.14 a 4.28.
+Total de la fase: 28 pasos y 73 prompts; faltan el 4.14-2 y el 4.14-3 y los pasos 4.15 a 4.28.
 
 ### Abiertos de la Fase 4
 
@@ -205,6 +219,7 @@ Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fase
   transporte queda sin valor (`fila_sin_coincidencia`) — un vehículo creado con la respuesta grabada de apibara (`e2e/fixtures/apibara`)
   da un transporte sugerido en `subasta_usa`, o la persona elige su tipo de las filas de la tabla en el panel del vehículo y el sugerido
   aparece. 4.14 decide si se mapea el vocabulario de la subasta a las claves o si el campo pasa a ser una opción de las filas.
+  **Decidido (P6 del 4.14-1, 2026-10-29):** en el panel del vehículo se elige el tipo entre las filas de la tabla, con el sugerido marcado; lo hace el 4.14-2.
 - **4-14** (4.16): «todas las que veo» de quien ve «propios» recorre el índice global. Con 250.000 cotizaciones **Ana** (5.000 propias y
   1.000 de otras personas sobre su cartera) tarda ≈ 1,6 s y ≈ 42.000 buffers y la **«chica»** ≈ 2,0 s y ≈ 58.000 (`cotizaciones_listado_idx`
   entera, descartando lo ajeno; la familia de 5a-2) — en `medir-cotizaciones-lectura.sql`, la página 1 y una profunda por cursor de Ana y
@@ -213,6 +228,9 @@ Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fase
   tiene 0 cotizaciones, no 3 (la rama de Ana va primero en `pg_temp.rellenar`): su rama va antes, como en `medir-vehiculos-lectura.sql`.
   Salida probable: «propias» por `creado_por` y por la cartera (`leads_asesores_usuario_vigente_idx` hacia `cotizaciones_lead_idx`),
   juntas por `creado_en desc, id desc`, en una función con sus dos consultas y un umbral; se decide con el `EXPLAIN` delante.
+  Suma (4.14-1, sin assert): el historial de un vehículo de Ana («propios», ve 5 de sus 5.000 cotizaciones) recorre las del vehículo: 38 ms y 1.452 buffers la página 1,
+  igual con 50.000 que con 250.000 (crece con las del vehículo, no con N; `medir-historial-del-vehiculo.sql`). Y con un promedio bajo de cotizaciones por vehículo, el plan
+  genérico de la página profunda de un vehículo muy cotizado puede ordenar las suyas (334 buffers, ~1 ms, con 1.000 vehículos y 5.000 en uno): por eso la medición siembra 100.
 - **4-17** (4.25): una final creada con `cotizacion_crear` no hace lo que `cotizacion_marcar_final`. `cotizacion_crear(…,
 p_clase := 'final')` exige `cotizaciones.final.gestionar`, un vehículo y el índice de «una final por vehículo» (23505), pero no
   vincula el vehículo al lead ni manda las preventas del vehículo a la papelera, y ninguna de las dos pasa el lead al primer tipo de la
@@ -232,6 +250,8 @@ p_clase := 'final')` exige `cotizaciones.final.gestionar`, un vehículo y el ín
   que devuelve es lo que dice la regla (`vehiculos-visibilidad.sql`); se escribe antes de arreglar y cae contra lo de hoy. Lugar:
   `buscarVehiculos()` (`src/modules/vehiculos/infra/queries/listado.ts`) y una función de lectura con las dos rutas de 4-14 (`creado_por`,
   que no tiene índice, y la cartera hacia `vehiculos_lead_idx`), con los filtros del inventario que hoy van por PostgREST; se decide con 4-14.
+  Suma (4.14-1, sin assert): la chica recorre también las dos listas del panel del vehículo. Con 50.000 y 250.000, «Últ. cotización» 3,0 y 10,8 ms (1.039 y 4.924 buffers) y
+  «Cierre subasta» 2,9 y 11,3 ms (1.010 y 5.191) (`medir-panel-ultima-cotizacion.sql`, `medir-panel-cierre-subasta.sql`).
 - **4-24** (4.15): `puede_cotizacion()` mira el alcance dos veces para quien ve «propios» (el `cross join lateral` se aplana; 2 llamadas a
   `alcance_de`, con «todos» 1) — en `medir-cotizaciones-lectura.sql`, `cotizacion_leer` de Ana pide `alcance_de` = 1, y en
   `cotizaciones-visibilidad.sql` el texto de `puede_cotizacion` lo evalúa como argumento de un `case` (como `puede_vehiculo()`; un
@@ -278,6 +298,14 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-50** (sin fase, lo decide la persona; salió del 4.13-4d, de las capturas): al 200 %, el resumen fijo al pie (escritorio y celular) ocupa cerca del 40 % del alto de la pantalla y
   tapa la hoja mientras se desplaza; se pliega con su «—», pero nace abierto. Assert: al 200 % el resumen al pie no pasa de un alto que se decida, o nace plegado, y
   `aLaVistaSinDesplazar()` de la celda con el foco sigue verde.
+- **4-51** (sin fase; se mide y se decide en el paso de la purga de vehículos; salió del 4.14-1): el `on delete set null` de `cotizaciones.vehiculo_id` (`base.sql:25020`) no tiene
+  un índice que lo sirva: `cotizaciones_vehiculo_creado_idx` (el del 4.14-1) y el de antes son parciales (`eliminado_en is null`), así que purgar un vehículo busca sus
+  cotizaciones de la papelera recorriendo. No empeora con el 4.14-1. Assert: purgar un vehículo con 250.000 cotizaciones no recorre `cotizaciones` (`seq_scan` = 0).
+- **4-52** (sin fase, lo decide la persona; del tipo de 4-46): `supabase/tests/medir-cotizacion-guardar.sql` mide 319 líneas (> 300; ya medía 308 antes del 4.14-1). Partirlo por
+  responsabilidad (el terreno y las funciones de medición, los casos). Assert: `wc -l` de cada parte ≤ 300 y lo mismo medido en verde.
+- **4-53** (sin fase; el próximo paso que siembre volumen; salió del 4.14-1): `pnpm db:sembrar-volumen` cae con `ReferenceError: readFileSync is not defined`:
+  `scripts/sembrar-volumen.mjs` lo usa sin importarlo desde `c300ad7b` (el ayudante del stack de cada worktree). El 4.14-1 sembró con una copia que lo importa, fuera del repo.
+  Assert: `pnpm db:sembrar-volumen` termina y `pnpm db:medir:volumen` corre detrás.
 - **4-45** (4.18; salió del 4.13-4b1): `cotizaciones.moneda_mostrar` (`char(3)`, legible) no la escribe ninguna RPC ni la lee la app, y con
   `ver_total_bs` su propósito queda en duda. Se decide en el 4.18, con la tarjeta y el PDF: se usa o se quita (migración que la borra, con
   su `db:types`).

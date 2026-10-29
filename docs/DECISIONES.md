@@ -1213,3 +1213,34 @@ Nivel 2 y pide su propio plan.
 - **El presupuesto de JS** de `/cotizaciones/nuevo` es 460 KB: lo medido (429,5) más un 5 %, hacia arriba a la decena. Es una entrada más de `PRESUPUESTO_DE_JS_EN_KB`, y el
   bucle de `presupuesto-js.spec.ts` la mide con su `test.skip` de siempre: un `.skip(` nuevo contaría como saltada y `@sin-celular` no puede preguntar por el proyecto. Lleva
   `?origen=` de la subasta, porque sin él abre el primer origen, que puede pesar menos.
+
+## 2026-10-29 — Paso 4.14 (1 de 3): la base del panel del vehículo
+
+**El 4.14 se parte en tres:** el 4.14-1 (la base del panel del vehículo), el 4.14-2 (el panel del vehículo en la pantalla, la entrada desde el resumen del vehículo y 4-10) y
+el 4.14-3 (el panel del cliente y la entrada desde la ficha del lead). El plan pasó tres auditorías (dos bloqueos y, tras la compuerta, observaciones). Las respuestas de la
+persona (P1 a P7) fueron todas las recomendadas.
+
+- **P1: cotizar no edita el vehículo.** `vehiculos.cotizado_en` la escribe sólo el trigger `trg_vehiculo_cotizado` de `cotizaciones`. `trg_actualizado_en` y
+  `trg_auditar_cambio` (el `trg_auditar` de antes, partido: un `when` que nombra `old` no puede ir en un trigger de `insert`) llevan
+  `when (old.cotizado_en is not distinct from new.cotizado_en)`. Así, quien tiene la ficha abierta no recibe un PT409 por una cotización, la vitrina web (`actualizado_en` ordena
+  `web.vehiculos`) no se mueve y `actividad` no duplica lo que ya registra `cotizaciones.insert`. Descartados: los triggers de siempre (PT409 a quien edita, la web se mueve y la
+  carrera de crear contra la papelera daría PT409) y una tabla aparte como `vehiculos_imagenes_version` (más lenta: la visibilidad se preguntaría por fila).
+- **P2 y P3.** La ve quien ve el vehículo, como `estado_subasta` (sólo cuándo, no quién ni cuánto). La mueven crear con el vehículo (también «a mano») y guardar una
+  cotización que pasa a él, «sólo si es mayor»: nunca retrocede, la papelera no la toca y no reescribe la fila si no cambia. El costo es que cotizar toma la fila del vehículo
+  `for no key update` hasta confirmar y la reescribe sin HOT: ≈ 0,2 ms y 50 a 140 buffers, medido con la reescritura en cada corrida (C9).
+- **El relleno queda como función** (`_vehiculos_cotizado_rellenar()`, sin `execute` para nadie de la app), para que la prueba corra la misma sentencia que corrió la migración.
+  Toma la cotización más nueva de cada vehículo, también las de la papelera (con P3, la papelera no hace retroceder la columna). No ve lo ya purgado ni cuándo una cotización
+  pasó a otro vehículo.
+- **P5 y P7: «Cierre subasta» va sobre una columna generada**, `cierre_subasta_en` (`case` abierta o en vivo, `coalesce(subasta_fin_en, subasta_en)`), la primera de la base.
+  El panel lee por PostgREST, que no ordena ni filtra por una expresión y manda el estado como parámetro, así que un índice parcial con `estado_subasta in (…)` no se probaría.
+  Descartados: una RPC `security invoker` (grants y registro de páginas nuevos, y el 4.14-2 leería distinto del inventario) y un índice de expresión. La columna entra en
+  `antes` y `despues` de `actividad` (`auditar()` guarda la fila entera), y nadie lo lee. El margen de 24 h es una constante del 4.14-2.
+- **Los índices difieren de la fila del PLAN:** `vehiculos_cotizado_idx` lleva `id desc` (un `(desc, asc)` no sirve el orden de la página, cae en `Sort`); «Cierre subasta» va sobre
+  la columna generada y no sobre `(origen_id, estado_subasta, subasta_en)` (con dos estados, la página ordena); `cotizaciones_vehiculo_creado_idx` reemplaza a
+  `cotizaciones_vehiculo_idx`, con el mismo prefijo y predicado. Cada medición lleva escrita su guarda con el índice de la fila.
+- **El historial se siembra con 100 vehículos, no 1.000.** El plan genérico estima las filas de un vehículo por el promedio: con 1.000 vehículos y 50.000 cotizaciones estima 50,
+  menos de una página con el cursor, y según la muestra de ANALYZE ordenaba la profunda del vehículo caliente (5.000 cotizaciones): 334 buffers, ~1 ms, una corrida sí y la
+  siguiente no. Con 100 dio el mismo plan en 3 de 3 corridas. **Queda un límite sin assert:** con un promedio bajo de cotizaciones por vehículo (lo realista), la página profunda
+  de un vehículo muy cotizado puede ordenar las suyas. Crece con las cotizaciones de ese vehículo, no con N (la familia de lo de Ana, 4-14), y se anota en RENDIMIENTO y en 4-14.
+- **El tiempo en las pruebas de base:** dentro de un bloque `now()` no cambia, así que lo que tiene que moverse se deja antes en el pasado como postgres con
+  `session_replication_role = replica`. Sin eso, dos mutaciones no caían (la 1.ª auditoría).
