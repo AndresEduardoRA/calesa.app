@@ -21,6 +21,7 @@ export type PedidoDeGuardadoVisto = {
     variante?: string
   }
   modoTc: string | null
+  verTotalBs: boolean
   conLaAbierta: boolean
 }
 

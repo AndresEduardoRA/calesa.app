@@ -26,8 +26,8 @@ test.describe.configure({ mode: 'serial' })
 // El tope de nodos del DOM del subárbol `[data-hoja]` para la fórmula más grande del juego (la subasta: 47 nodos, 39 ítems), medida como quien ve «costos». Una celda pesa de 8 a 15
 // nodos (`src/shared/ui/xcell/CLAUDE.md`); se propuso en 650 (32 celdas × 15 nodos + ≈ 170 de estructura) y se fijó en lo medido más un 5 %: 430 con la hoja usada (31 celdas al abrir, 411 nodos), 460.
 // P7 (4.13-4b3, la persona): el tope sube con lo nuevo de la hoja, siempre lo medido con la hoja usada más un 5 %, con techo en 500; si eso pasa de 500, se para y se reporta.
-// Con los modos de tipo de cambio de la subasta (4.13-4b3, commit 1): 442 al abrir y 461 usada, 485.
-const TOPE_DE_NODOS = 485
+// Con los modos de tipo de cambio de la subasta (4.13-4b3, commit 1): 442 al abrir y 461 usada, 485. Con «Ver total Bs» (commit 2): 449 y 468, 492.
+const TOPE_DE_NODOS = 492
 
 let duena = ''
 let subasta = ''

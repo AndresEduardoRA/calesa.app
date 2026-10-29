@@ -28,6 +28,15 @@ type Props = {
   borrador: { clave: string; alDescartar: () => void }
 }
 
+function SinDatosQueVer() {
+  return (
+    <EstadoSinPermiso
+      titulo="No puedes ver esta hoja"
+      descripcion="Tu rol puede cotizar en este origen, pero no ve los datos de su hoja. Pídeselo a quien administra los roles."
+    />
+  )
+}
+
 function avisoDelVehiculo(vehiculoSoltado: boolean, faltaVehiculo: boolean) {
   if (vehiculoSoltado) {
     return 'No se puede usar ese vehículo.'
@@ -66,12 +75,7 @@ export function HojaDeCotizar({
   const dibujadas = hoja.secciones.filter((seccion) => seccionSeDibuja(seccion, contexto))
   // Puede cotizar en el origen pero su rol no ve ningún dato de la hoja (`cotizaciones.ver`): no hay nada que dibujar ni un total que dar.
   if (dibujadas.length === 0) {
-    return (
-      <EstadoSinPermiso
-        titulo="No puedes ver esta hoja"
-        descripcion="Tu rol puede cotizar en este origen, pero no ve los datos de su hoja. Pídeselo a quien administra los roles."
-      />
-    )
+    return <SinDatosQueVer />
   }
   return (
     <div
@@ -86,6 +90,8 @@ export function HojaDeCotizar({
         cabecera={hoja.cabecera}
         modoElegido={h.entradas.modoTc}
         alElegirModo={h.acciones.alElegirModo}
+        verTotalBs={h.verTotalBs}
+        alCambiarVerTotalBs={h.alCambiarVerTotalBs}
       />
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @5xl:grid-cols-2">
         <LugaresDeLaHoja
@@ -97,6 +103,7 @@ export function HojaDeCotizar({
       </div>
       <ResumenDeHoja
         tarjeta={hoja.tarjetaTotal}
+        monedaDelTotalBs={h.verTotalBs ? hoja.cabecera.monedaBs : null}
         contexto={contexto}
         estado={h.estado}
         avisoDelVehiculo={avisoDelVehiculo(

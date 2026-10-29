@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { cambiosDeEstado } from '@/shared/lib/borrador'
-import { entradasComoBorrador, entradasDelBorrador, esDescarte } from './borrador-de-hoja'
+import {
+  entradasComoBorrador,
+  entradasDelBorrador,
+  esDescarte,
+  verTotalBsDelBorrador,
+} from './borrador-de-hoja'
 import { ENTRADAS_VACIAS, entradasIniciales, indiceDeHoja, type Entradas } from './entradas'
 import { hojaDePrueba } from './hoja-de-prueba.soporte'
 
@@ -28,7 +33,7 @@ describe('el borrador de la hoja', () => {
     expect(idaYVuelta(TIPEADAS)).toEqual(TIPEADAS)
   })
 
-  it('sólo guarda lo tipeado: exactamente las seis claves de las entradas, ni la respuesta ni la abierta', () => {
+  it('sólo guarda lo tipeado: exactamente las seis claves de las entradas y «Ver total Bs», ni la respuesta ni la abierta', () => {
     expect(Object.keys(entradasComoBorrador(TIPEADAS)).sort()).toEqual([
       'atajos',
       'banderas',
@@ -36,6 +41,7 @@ describe('el borrador de la hoja', () => {
       'modoTc',
       'overrides',
       'variante',
+      'verTotalBs',
     ])
   })
 
@@ -106,5 +112,22 @@ describe('el modo en el borrador', () => {
     const vacio = entradasComoBorrador(entradasIniciales(CON_MODOS))
     expect(esDescarte(entradasComoBorrador(entradasIniciales(CON_MODOS)), vacio)).toBe(true)
     expect(esDescarte({ modoTc: 'unificado' }, vacio)).toBe(false)
+  })
+})
+
+describe('«Ver total Bs» en el borrador', () => {
+  it('va y vuelve sólo si la hoja de ahora todavía lo ofrece', () => {
+    const b = JSON.parse(JSON.stringify(entradasComoBorrador(ENTRADAS_VACIAS, true))) as Record<
+      string,
+      unknown
+    >
+    expect(verTotalBsDelBorrador(b, true)).toBe(true)
+    expect(verTotalBsDelBorrador(b, false)).toBe(false)
+  })
+
+  it('un borrador de antes, sin la clave, vuelve apagado; el vacío lo lleva apagado', () => {
+    expect(verTotalBsDelBorrador({ inputs: [] }, true)).toBe(false)
+    expect(entradasComoBorrador(ENTRADAS_VACIAS).verTotalBs).toBe(false)
+    expect(esDescarte({ verTotalBs: true }, entradasComoBorrador(ENTRADAS_VACIAS))).toBe(false)
   })
 })

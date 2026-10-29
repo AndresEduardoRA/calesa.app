@@ -38,10 +38,12 @@ const ir = async (page: Page, origen: string) => {
 }
 const cabecera = (page: Page) => page.locator('[data-cabecera]')
 const modo = (page: Page, nombre: string) => cabecera(page).getByRole('radio', { name: nombre })
+const verTotalBs = (page: Page) => page.getByRole('switch', { name: 'Ver total en moneda local' })
+const lineaEnBs = (page: Page) => page.locator('[data-total-bs]')
 const elegirModo = (page: Page, nombre: string) =>
   cabecera(page).getByText(nombre, { exact: true }).click()
 
-test('la subasta abre con «Paralelo» marcado, elegir «Unificado» sale en el recálculo y vuelve tras recargar', async ({
+test('la hoja abre con «Modo uno» marcado, elegir «Modo dos» sale en el recálculo y vuelve tras recargar', async ({
   page,
 }) => {
   const recalculos = await vigilarRecalculos(page)
@@ -77,6 +79,43 @@ test('guardar manda el primer modo sin tocar nada y el elegido tras elegir, y la
   await expect(tarjetaGuardada(page)).toBeVisible()
   expect(guardados.pedidos[1]?.modoTc).toBe('m2')
   expect(cotizacionGuardada(guardados.pedidos[1]?.intento ?? '').modoTc).toBe('m2')
+})
+
+test('«Ver total en moneda local» nace apagado, encendido suma la línea en el resumen y vuelve con el borrador', async ({
+  page,
+}) => {
+  await ir(page, origen.id)
+  await expect(verTotalBs(page)).not.toBeChecked()
+  await expect(lineaEnBs(page)).toHaveCount(0)
+  await tipearEnLaHoja(page, 'pub', '1200')
+  await expect(totalDeLaHoja(page)).toContainText('1.205,00')
+  await verTotalBs(page).click()
+  await expect(lineaEnBs(page)).toContainText('Total en moneda local')
+  await expect(lineaEnBs(page)).toContainText(/\d/)
+  await page.reload()
+  await expect(page.getByText('Recuperamos lo que habías escrito y no guardaste.')).toBeVisible()
+  await expect(verTotalBs(page)).toBeChecked()
+  await expect(lineaEnBs(page)).toContainText(/\d/)
+})
+
+test('guardar con «Ver total Bs» encendido lo deja en la cotización, y apagado también', async ({
+  page,
+}) => {
+  const guardados = await vigilarGuardados(page)
+  await ir(page, origen.id)
+  await tipearEnLaHoja(page, 'pub', '1200')
+  await expect(totalDeLaHoja(page)).toContainText('1.205,00')
+  await guardarConElAtajo(page)
+  await expect(tarjetaGuardada(page)).toBeVisible()
+  expect(guardados.pedidos[0]?.verTotalBs).toBe(false)
+  expect(cotizacionGuardada(guardados.pedidos[0]?.intento ?? '').verTotalBs).toBe(false)
+  await page.getByRole('button', { name: 'Cotizar otra' }).click()
+  await tipearEnLaHoja(page, 'pub', '1200')
+  await verTotalBs(page).click()
+  await guardarConElAtajo(page)
+  await expect(tarjetaGuardada(page)).toBeVisible()
+  expect(guardados.pedidos[1]?.verTotalBs).toBe(true)
+  expect(cotizacionGuardada(guardados.pedidos[1]?.intento ?? '').verTotalBs).toBe(true)
 })
 
 test('una fórmula sin modos (la planilla) no dibuja la cabecera', async ({ page }) => {

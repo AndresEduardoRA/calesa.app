@@ -8,17 +8,16 @@ import {
   elegirAtajo,
   elegirModo,
   elegirVariante,
-  entradasDelPedido,
   entradasIniciales,
   indiceDeHoja,
   restablecer,
   type Entradas,
   type IndiceDeHoja,
 } from '../../../entities/entradas'
+import { ofreceVerTotalBs } from '../../../entities/cabecera-de-la-hoja'
 import type { HojaLista } from '../../../entities/hoja'
-import type { PedidoDeRecalculo } from '../../../entities/pedido-de-recalculo'
-import { recalcular } from '../../../composicion.client'
 import { useBorradorDeHoja } from './use-borrador-de-hoja'
+import { usePedirRecalculo } from './use-pedir-recalculo'
 import { useRecalculo } from './use-recalculo'
 
 // Los callbacks de la hoja: **los mismos para todas las celdas** (la `XCell` está en `memo` y una hoja de cientos de celdas recalcula en cada pausa; una función
@@ -93,23 +92,13 @@ export function useHoja({
   // Lo último tipeado, para que dos confirmaciones seguidas partan de la anterior sin esperar a que React dibuje. Se escribe en el manejador del evento, nunca en un
   // `setState`: StrictMode los llama dos veces.
   const ultimas = useRef<Entradas>(iniciales)
+  // «Ver total Bs» nace apagado (P5). No es una entrada: no cambia el cálculo ni pide un recálculo.
+  const [verTotalBs, setVerTotalBs] = useState(false)
+  const ofrece = ofreceVerTotalBs(hoja.cabecera)
   const origenId = hoja.origen.id
   // La hoja abierta, fijada al montarse: la misma para el recálculo y para el guardado (D2). Una prop nueva no los separa; una abierta nueva vuelve a montar la hoja.
   const [abierta] = useState(() => hoja.abierta)
-  // El pedido, estable: el hook del recálculo lo lee una vez. La hoja se vuelve a montar si cambia la fórmula o el vehículo (la `key` de la pantalla).
-  const pedir = useCallback(
-    (e: Entradas) => {
-      const pedido: PedidoDeRecalculo = {
-        origenId,
-        vehiculoId,
-        abierta,
-        entradas: entradasDelPedido(e),
-        modoTc: e.modoTc,
-      }
-      return recalcular(pedido)
-    },
-    [origenId, vehiculoId, abierta],
-  )
+  const pedir = usePedirRecalculo(origenId, vehiculoId, abierta)
   const recalculo = useRecalculo({ inicial, iniciales, pedir })
   const { programar } = recalculo
 
@@ -126,15 +115,23 @@ export function useHoja({
 
   // El borrador que vuelve (4-29): como una confirmación, con su recálculo.
   const reponer = useCallback(
-    (e: Entradas) => {
+    (e: Entradas, ver: boolean) => {
       cambiar(() => e)
+      setVerTotalBs(ver)
     },
     [cambiar],
   )
 
+  const alCambiarVerTotalBs = useCallback((valor: boolean) => {
+    setVerTotalBs(valor)
+    alCambiarRef.current?.()
+  }, [])
+
   useBorradorDeHoja({
     clave: borrador?.clave ?? null,
     entradas,
+    verTotalBs,
+    ofrece,
     indice,
     reponer,
     alDescartar: borrador?.alDescartar ?? (() => {}),
@@ -142,5 +139,14 @@ export function useHoja({
 
   const acciones = useAcciones(cambiar, indice)
 
-  return { indice, entradas, abierta, acciones, reponer, ...recalculo }
+  return {
+    indice,
+    entradas,
+    verTotalBs: ofrece && verTotalBs,
+    alCambiarVerTotalBs,
+    abierta,
+    acciones,
+    reponer,
+    ...recalculo,
+  }
 }

@@ -11,6 +11,8 @@ export type PedidoDeGuardado = {
   abierta: string
   entradas: EntradasDelPedido
   modoTc: string | null
+  // «Ver total Bs»: lo que quien cotiza dejó encendido, y sólo si la hoja lo ofrecía (la base lo rechaza si no).
+  verTotalBs: boolean
   conLaAbierta: boolean
 }
 
@@ -23,6 +25,7 @@ export function argumentosDeCrear(p: PedidoDeGuardado) {
     p_abierta: p.abierta,
     ...(p.vehiculoId === null ? {} : { p_vehiculo: p.vehiculoId }),
     ...(p.modoTc === null ? {} : { p_modo_tc: p.modoTc }),
+    p_ver_total_bs: p.verTotalBs,
     p_clase: 'preventa' as const,
     p_con_la_abierta: p.conLaAbierta,
   }

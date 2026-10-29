@@ -17,6 +17,7 @@ const pedido = (intento: string, valor: number): PedidoDeGuardado => ({
   abierta: 'f.1.ab',
   entradas: { inputs: { pub: valor }, banderas: {}, overrides: {} },
   modoTc: null,
+  verTotalBs: false,
   conLaAbierta: false,
 })
 
@@ -78,10 +79,10 @@ describe('el pendiente en la pestaña', () => {
     expect(leerPendiente(JSON.stringify({ intento: 'a' }))).toBeNull()
   })
 
-  it('un pendiente de antes, sin modoTc, se lee con nulo; uno con modo, igual', () => {
-    const { modoTc: _, ...viejo } = pedido('a', 1)
+  it('un pendiente de antes, sin modoTc ni verTotalBs, se lee con nulo y falso; uno con ellos, igual', () => {
+    const { modoTc: _, verTotalBs: __, ...viejo } = pedido('a', 1)
     expect(leerPendiente(JSON.stringify(viejo))).toEqual(pedido('a', 1))
-    const conModo = { ...pedido('b', 2), modoTc: 'unificado' }
+    const conModo = { ...pedido('b', 2), modoTc: 'unificado', verTotalBs: true }
     expect(leerPendiente(serializarPendiente(conModo))).toEqual(conModo)
   })
 })

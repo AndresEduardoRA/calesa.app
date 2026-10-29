@@ -17,5 +17,6 @@ export const esquemaDeGuardado = z.object({
   abierta: z.string().min(1).max(300),
   entradas,
   modoTc: z.string().min(1).max(200).nullable(),
+  verTotalBs: z.boolean(),
   conLaAbierta: z.boolean(),
 })

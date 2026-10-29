@@ -2,7 +2,7 @@ import { z } from 'zod'
 import type { Entradas, IndiceDeHoja } from './entradas'
 
 // El borrador de la hoja (4-29): lo que la persona tipeó y no guardó, en la pestaña (`useBorradorDeEstado`), para que una recarga, «Recargar» o «Usar la versión nueva» lo
-// repongan. **Sólo lo tipeado**: las seis claves de `Entradas`, en arreglos de pares (nunca un objeto con ids por clave: un id como «__proto__» es legal). Ni la respuesta
+// repongan. **Sólo lo tipeado**: las seis claves de `Entradas` y «Ver total Bs», en arreglos de pares (nunca un objeto con ids por clave: un id como «__proto__» es legal). Ni la respuesta
 // de la base ni la hoja abierta.
 export type BorradorDeHoja = {
   inputs: [string, number][]
@@ -11,9 +11,11 @@ export type BorradorDeHoja = {
   variante: string | null
   modoTc: string | null
   atajos: [string, number][]
+  // «Ver total Bs»: no es una entrada (no cambia el cálculo) pero sí un dato que se guarda, y vuelve con lo tipeado.
+  verTotalBs: boolean
 }
 
-export function entradasComoBorrador(e: Entradas): BorradorDeHoja {
+export function entradasComoBorrador(e: Entradas, verTotalBs = false): BorradorDeHoja {
   return {
     inputs: [...e.inputs],
     banderas: [...e.banderas],
@@ -21,7 +23,13 @@ export function entradasComoBorrador(e: Entradas): BorradorDeHoja {
     variante: e.variante,
     modoTc: e.modoTc,
     atajos: [...e.atajos],
+    verTotalBs,
   }
+}
+
+// «Ver total Bs» vuelve sólo si la hoja de ahora todavía lo ofrece; un borrador de antes, sin la clave, vuelve apagado.
+export function verTotalBsDelBorrador(b: Readonly<Record<string, unknown>>, ofrece: boolean) {
+  return ofrece && b['verTotalBs'] === true
 }
 
 const pares = z.array(z.tuple([z.string(), z.number()])).catch([])

@@ -42,6 +42,7 @@ const esquemaDelPendiente = z.object({
   }),
   // Un pendiente de antes del despliegue no los traía: se reenvía igual que salió.
   modoTc: z.string().nullable().default(null),
+  verTotalBs: z.boolean().default(false),
   conLaAbierta: z.boolean(),
 })
 

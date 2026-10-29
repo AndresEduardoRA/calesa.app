@@ -106,6 +106,7 @@ describe('PantallaDeCotizar › lo guardado', () => {
       abierta: 'vieja',
       entradas: { inputs: {}, banderas: {}, overrides: {} },
       modoTc: null,
+      verTotalBs: false,
       conLaAbierta: false,
     }
     window.sessionStorage.setItem(

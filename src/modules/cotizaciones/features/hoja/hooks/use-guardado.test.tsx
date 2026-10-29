@@ -19,6 +19,7 @@ const armado = (valor: number): PedidoArmado => ({
   abierta: 'f.1.ab',
   entradas: { inputs: { pub: valor }, banderas: {}, overrides: {} },
   modoTc: null,
+  verTotalBs: false,
 })
 const armarCon =
   (valor: number): Armar =>

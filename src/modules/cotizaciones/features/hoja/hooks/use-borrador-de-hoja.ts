@@ -6,6 +6,7 @@ import {
   entradasComoBorrador,
   entradasDelBorrador,
   esDescarte,
+  verTotalBsDelBorrador,
   type BorradorDeHoja,
 } from '../../../entities/borrador-de-hoja'
 import { entradasIniciales, type Entradas, type IndiceDeHoja } from '../../../entities/entradas'
@@ -16,6 +17,8 @@ import { entradasIniciales, type Entradas, type IndiceDeHoja } from '../../../en
 export function useBorradorDeHoja({
   clave,
   entradas,
+  verTotalBs,
+  ofrece,
   indice,
   reponer,
   alDescartar,
@@ -23,11 +26,14 @@ export function useBorradorDeHoja({
   // Nula: sin borrador (una hoja de prueba suelta).
   clave: string | null
   entradas: Entradas
+  verTotalBs: boolean
+  // La hoja ofrece «Ver total Bs»: si no, el borrador no lo enciende.
+  ofrece: boolean
   indice: IndiceDeHoja
-  reponer: (e: Entradas) => void
+  reponer: (e: Entradas, verTotalBs: boolean) => void
   alDescartar: () => void
 }): void {
-  const valores = useMemo(() => entradasComoBorrador(entradas), [entradas])
+  const valores = useMemo(() => entradasComoBorrador(entradas, verTotalBs), [entradas, verTotalBs])
   // La hoja recién abierta (con el primer modo marcado): «Descartar» y abrir sin tocar nada no dejan borrador.
   const vacio = useMemo(() => entradasComoBorrador(entradasIniciales(indice)), [indice])
   useBorradorDeEstado<BorradorDeHoja>({
@@ -40,7 +46,8 @@ export function useBorradorDeHoja({
         alDescartar()
         return
       }
-      reponer(entradasDelBorrador({ ...vacio, ...cambios }, indice))
+      const leido = { ...vacio, ...cambios }
+      reponer(entradasDelBorrador(leido, indice), verTotalBsDelBorrador(leido, ofrece))
     },
   })
 }

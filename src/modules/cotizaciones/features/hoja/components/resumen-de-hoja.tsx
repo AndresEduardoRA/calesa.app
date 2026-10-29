@@ -10,10 +10,13 @@ import {
 } from '../../../entities/binding'
 import type { HojaLista } from '../../../entities/hoja'
 import type { EstadoDeRecalculo } from '../../../entities/recalculo'
+import { TotalEnMonedaLocal } from './total-en-moneda-local'
 import { ValorDeNodo } from './valor-de-nodo'
 
 type Props = {
   tarjeta: HojaLista['tarjetaTotal']
+  // La moneda del total en la moneda local, si «Ver total Bs» está encendido; nula, no se dibuja.
+  monedaDelTotalBs: string | null
   contexto: ContextoDeHoja
   estado: EstadoDeRecalculo
   // Lo que se dice del vehículo: el ajuste lo pide y no hay, o el de la URL no se pudo usar.
@@ -89,6 +92,7 @@ function AvisoDeFallo({
 // se recalcula o si falló, el total se marca desactualizado con su texto. Los avisos van en una región viva; «Recalculando» no se anuncia (pasa cada 150 ms).
 export function ResumenDeHoja({
   tarjeta,
+  monedaDelTotalBs,
   contexto,
   estado,
   avisoDelVehiculo,
@@ -126,6 +130,9 @@ export function ResumenDeHoja({
       {total.tipo === 'faltante' ? (
         <p className="text-(length:--text-sm) text-(--color-ink-soft)">Sin total: {total.motivo}</p>
       ) : null}
+      {monedaDelTotalBs === null ? null : (
+        <TotalEnMonedaLocal respuesta={contexto.respuesta} moneda={monedaDelTotalBs} />
+      )}
       {estado.tipo === 'sin_variante' ? (
         <p className="text-(length:--text-sm) text-(--color-ink-soft)">
           Elige {variante?.toLowerCase() ?? 'una opción'} para calcular.
