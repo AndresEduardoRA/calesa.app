@@ -27,12 +27,14 @@ import { formatearMonto, formatearNumero } from '../src/shared/lib/formato'
 test.describe.configure({ mode: 'serial' })
 
 // Las teclas de control del tramo de la hoja (Tab y Enter a «Saltar al contenido», los Tab hasta `remate` y su Enter, los Tab hasta `grua` y su Enter, y Ctrl+S), contadas al
-// escribirlo (4.13-4d): 23 en los dos proyectos, con 0,7 s el robot y KLM 12,5 s. Es determinista: una parada nueva en el camino lo rompe a propósito.
-const CONTROLES_MAXIMOS = 23
+// escribirlo (4.13-4d): 23 en los dos proyectos, con 0,7 s el robot y KLM 12,5 s. Es determinista: una parada nueva en el camino lo rompe a propósito. 24 desde el 4.14-2a:
+// la barra del vehículo, entre «Saltar al contenido» y la hoja, es una parada más (el tramo del panel lo suma el 4.14-2c).
+const CONTROLES_MAXIMOS = 24
 
 // Los Tab que cuesta pasar por cada lado editable de la subasta como la dueña, medidos (4.13-4d, los dos proyectos): 12 lados de la hoja en 24 Tab desde «Saltar al contenido» y 16
-// de «Avanzado» en 28 desde el primer valor. Como las teclas de control, es determinista: una parada nueva entre dos editables lo rompe a propósito.
-const TABS_DE_LA_HOJA = 24
+// de «Avanzado» en 28 desde el primer valor. Como las teclas de control, es determinista: una parada nueva entre dos editables lo rompe a propósito. La hoja, 25 desde el
+// 4.14-2a: la barra del vehículo se cruza antes del primer lado.
+const TABS_DE_LA_HOJA = 25
 const TABS_DE_AVANZADO = 28
 
 let asesora = ''

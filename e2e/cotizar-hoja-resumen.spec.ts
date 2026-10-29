@@ -163,10 +163,17 @@ for (const texto of ['al 100 %', 'al 200 %']) {
     await ir(page, origen.id)
     await tipearEnLaHoja(page, 'pub', '1200')
     await expect(totalDeLaHoja(page)).toContainText('1.205,00')
-    await page.evaluate(() => {
-      window.scrollTo(0, 0)
+    // Con la hoja arriba de la ventana (o lo más arriba que deje la página). Desde el 4.14-2a la barra del vehículo va encima de la hoja; con la página arriba de todo, al
+    // 200 % el resumen —que no sube más allá del borde de arriba de la hoja y mide hasta el 40 % del alto— queda 107 px debajo del borde de la ventana (antes cabía por 1 px; 4-50).
+    const destino = await page.evaluate(() => {
+      const hoja = document.querySelector('[data-hoja]')?.getBoundingClientRect().top ?? 0
+      const hasta = Math.round(
+        Math.min(window.scrollY + hoja, document.documentElement.scrollHeight - window.innerHeight),
+      )
+      window.scrollTo(0, hasta)
+      return hasta
     })
-    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBe(destino)
     const m = await medidas(page)
     info.annotations.push({
       type: `resumen ${texto}`,

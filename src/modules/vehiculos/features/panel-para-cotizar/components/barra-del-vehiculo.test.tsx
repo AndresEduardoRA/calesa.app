@@ -1,0 +1,45 @@
+import { cleanup, render, screen } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import { afterEach, describe, expect, it } from 'vitest'
+import { BarraDelVehiculo } from './barra-del-vehiculo'
+
+afterEach(cleanup)
+
+const ID = '00000000-0000-4000-8000-000000000001'
+
+function montar(props: Partial<Parameters<typeof BarraDelVehiculo>[0]> = {}) {
+  render(
+    <NuqsTestingAdapter searchParams="?origen=o">
+      <BarraDelVehiculo
+        origenId="o"
+        esSubasta
+        elegido={null}
+        puedeVer
+        claveDeLaUrl="vehiculo"
+        {...props}
+      />
+    </NuqsTestingAdapter>,
+  )
+}
+
+describe('BarraDelVehiculo', () => {
+  it('sin vehículo invita a elegir uno', () => {
+    montar()
+    expect(screen.getByRole('button', { name: /Selecciona un vehículo/ })).toBeTruthy()
+  })
+
+  it('con vehículo dice su título, su número y su lote', () => {
+    montar({
+      elegido: { id: ID, numero: 12, titulo: 'Toyota Corolla', lote: '4455', portadaRuta: null },
+    })
+    const boton = screen.getByRole('button', { name: /Toyota Corolla/ })
+    expect(boton.textContent).toContain('#12 · Lote 4455')
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+  })
+
+  it('sin permiso para ver los vehículos del origen no ofrece elegir', () => {
+    montar({ puedeVer: false })
+    expect(screen.getByText('No puedes ver los vehículos de este origen.')).toBeTruthy()
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+})

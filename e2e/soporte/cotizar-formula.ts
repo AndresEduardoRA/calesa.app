@@ -258,10 +258,25 @@ export async function crearOrigenDeCotizar(
   return origen
 }
 
-// Las cotizaciones guardadas de esos orígenes se van primero (4.13-3b): retienen el origen y la fórmula.
+// Lo mismo, de tipo subasta y con la fórmula: para lo que sólo se ve en un origen de subasta («Cierre subasta» del panel del vehículo, 4.14-2a).
+export async function crearOrigenDeSubastaDeCotizar(
+  proyecto: string,
+  resto: string,
+): Promise<{ id: string; nombre: string }> {
+  const origen = await crearOrigenDePrueba(
+    `E2E 4.13 ${resto} ${proyecto}`,
+    `4_13_${resto}_${proyecto}`,
+    { tipo: 'subasta' },
+  )
+  publicarFormulaDePrueba(origen.id, false)
+  return origen
+}
+
+// Las cotizaciones guardadas de esos orígenes se van primero (4.13-3b): retienen el origen y la fórmula. Después sus vehículos (los del panel del vehículo, 4.14-2a): retienen el origen.
 export function borrarOrigenesDeCotizar(): void {
   sql(`
     delete from public.cotizaciones where origen_id in (select id from public.origenes where clave like '${CLAVE_BASE}%');
+    delete from public.vehiculos where origen_id in (select id from public.origenes where clave like '${CLAVE_BASE}%');
     delete from public.origenes where clave like '${CLAVE_BASE}%'`)
 }
 

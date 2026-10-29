@@ -67,6 +67,10 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
     sinFormulario:
       'el resumen sólo muestra; editar abre el panel de edición encima, que pregunta por su cuenta (useCierreConCambios)',
   },
+  // El panel del vehículo de la hoja de cotizar (4.14-2a) sólo elige: un clic en un vehículo lo pone en la URL de la hoja.
+  'src/modules/vehiculos/features/panel-para-cotizar/components/panel-del-vehiculo.tsx': {
+    sinFormulario: 'elige un vehículo; no guarda nada tipeado',
+  },
   // --- origenes
   'src/modules/origenes/features/categorias/components/panel-de-categoria.tsx': {
     formulario: 'src/modules/origenes/features/categorias/components/panel-de-categoria.tsx',

@@ -14,6 +14,8 @@ export {
 export { MAXIMO_DE_PAGINA_DE_VEHICULOS } from './entities/vehiculo'
 export type { Vehiculo } from './entities/vehiculo'
 export type { Galeria } from './entities/foto'
+// El vehículo de la hoja de cotizar, como lo dibuja su barra (`pantallas/cotizar`)
+export { elegidoDesde, type VehiculoElegido } from './entities/panel-para-cotizar'
 
 // Qué ve y qué puede hacer la persona
 export {

@@ -21,15 +21,18 @@ import {
 } from '@/modules/cotizaciones/pantallas/cotizar'
 import { requerirSesion } from '@/modules/equipo'
 import { getOrigenes } from '@/modules/origenes'
+import { elegidoDesde, leerVehiculo } from '@/modules/vehiculos'
+import { BarraDelVehiculo } from '@/modules/vehiculos/pantallas/cotizar'
 import { datosO } from '@/shared/lib/errores'
+import { puede } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 
 export const metadata: Metadata = { title: 'Cotizar' }
 
 // La hoja de cotizar (`docs/UX.md` › «Cotizar»): una pestaña por origen donde la persona cotiza y, de cada uno, la hoja que dibuja su fórmula publicada. `?origen=`
-// elige el origen; `?lead=` y `?vehiculo=` llegan de la ficha del lead o del vehículo (sus paneles son del 4.14): se validan y se llevan. Sin entrada en la navegación
-// todavía: se llega por URL. Guarda con el lead de la URL (4.13-3b); sin él, «Guardar» dice por qué no.
+// elige el origen; `?lead=` y `?vehiculo=` llegan de la ficha del lead o del vehículo, o el vehículo se elige en la barra de arriba de la hoja (su panel, `?panel=vehiculo`,
+// 4.14-2a): se validan y se llevan. Sin entrada en la navegación todavía: se llega por URL. Guarda con el lead de la URL (4.13-3b); sin él, «Guardar» dice por qué no.
 export default function PaginaDeCotizar({ searchParams }: PageProps<'/cotizaciones/nuevo'>) {
   return (
     <div className="grid min-w-0 gap-4">
@@ -67,6 +70,15 @@ async function abrirLaHoja(origenId: string, vehiculoId: string | null) {
   }
 }
 
+// El vehículo de la URL como lo dibuja la barra; null si no vino, no existe o no se ve.
+async function elegidoDeLaUrl(id: string | null) {
+  if (id === null) {
+    return null
+  }
+  const leido = await leerVehiculo(id)
+  return leido.ok && leido.data ? elegidoDesde(leido.data) : null
+}
+
 async function Hoja({
   parametros,
 }: {
@@ -83,7 +95,11 @@ async function Hoja({
   }
   const lead = idDeUrl(url[CLAVE_DE_LEAD])
   const vehiculo = idDeUrl(url[CLAVE_DE_VEHICULO])
-  const { apertura, vehiculoSoltado } = await abrirLaHoja(origen.id, vehiculo)
+  // El vehículo de la barra se lee a la vez que la hoja; si la hoja lo suelta, la barra queda sin él.
+  const [{ apertura, vehiculoSoltado }, elegido] = await Promise.all([
+    abrirLaHoja(origen.id, vehiculo),
+    elegidoDeLaUrl(vehiculo),
+  ])
   if (apertura.tipo === 'sin_permiso') {
     return (
       <EstadoSinPermiso descripcion="No tienes permiso para cotizar en este origen. Pídeselo a quien administra los roles." />
@@ -109,6 +125,14 @@ async function Hoja({
   return (
     <>
       {pestanas}
+      {/* Fuera de la hoja (`[data-hoja]`) y del componente con `key`: elegir otro vehículo no la vuelve a montar. */}
+      <BarraDelVehiculo
+        origenId={origen.id}
+        esSubasta={origen.tipo === 'subasta'}
+        elegido={vehiculoSoltado ? null : elegido}
+        puedeVer={puede(sesion.permisos, 'vehiculos.ver', origen.id)}
+        claveDeLaUrl={CLAVE_DE_VEHICULO}
+      />
       <PantallaDeCotizar
         key={`${origen.id}:${lead ?? '-'}:${vehiculoUsado ?? '-'}`}
         hoja={apertura.hoja}

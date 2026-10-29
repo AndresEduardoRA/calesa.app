@@ -7,14 +7,15 @@ Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/mod
 ## Entra y sale
 
 - Entra: `/vehiculos` (`?origen=`, filtros, `?cursor=`, `?vitrina=si|no`, `?vehiculo=<id>` abre el resumen con `?pestana=fotos|interesados`), `/vehiculos/papelera`, `/vehiculos/[id]` (`?seccion=ficha|fotos`). Paneles por URL: `?panel=nuevo`, `?editar=<id>`, `?panel=vitrina`, `?panel=desvincular`, `?panel=purgar&lote=`. Layout, categorías y orígenes vienen de `origenes`; fases de `flujos`; vistas guardadas de `equipo`: la página los lee y los pasa por props.
-- `index.ts` (servidor) **no exporta componentes**; las pantallas los traen por `pantallas/<pantalla>.ts` (`listado`, `ficha`, `papelera`, `vehiculos-del-lead`). Una pantalla nueva = su archivo. Exporta lecturas y reglas (`buscarVehiculos`, `leerVehiculo` —null si no existe, está en papelera o no se ve—, `condicionesDe`, `editablesDe`, `leerPapelera`, `leerSubasta`, `limpiezaDe`…: ver `docs/MAPA.md`) y `MAXIMO_DE_PAGINA_DE_VEHICULOS` (100); el tamaño sale de `tamanoDePagina()`.
+- `/cotizaciones/nuevo` (la compone `app/`): la barra del vehículo sobre la hoja (`pantallas/cotizar`, `<BarraDelVehiculo>`) abre el panel del vehículo en `?panel=vehiculo&lista=ultima|cierre&cursor=`: «Últ. cotización» y, en un origen de subasta, «Cierre subasta», leídas desde el navegador (`infra/panel-para-cotizar.client.ts`) y escritas en la URL sin ir al servidor; elegir o quitar escribe el vehículo en la clave que le pasa la página (`claveDeLaUrl`) y cierra el panel.
+- `index.ts` (servidor) **no exporta componentes**; las pantallas los traen por `pantallas/<pantalla>.ts` (`listado`, `ficha`, `papelera`, `vehiculos-del-lead`, `cotizar`). Una pantalla nueva = su archivo. Exporta lecturas y reglas (`buscarVehiculos`, `leerVehiculo` —null si no existe, está en papelera o no se ve—, `condicionesDe`, `editablesDe`, `leerPapelera`, `leerSubasta`, `limpiezaDe`…: ver `docs/MAPA.md`) y `MAXIMO_DE_PAGINA_DE_VEHICULOS` (100); el tamaño sale de `tamanoDePagina()`.
 - `client.ts`: `<TarjetaVehiculo>`, `<BadgeDeFase>`, `Vehiculo`.
 - Depende de `origenes`, `flujos`, `equipo`. `leads` no importa `vehiculos`: vínculo e interesados viven acá aunque se muestren en la ficha del lead (`app/` los compone).
 
 ## Archivos clave
 
 - `entities/`: `filtros.ts` (devuelve `Condicion[]` neutras que `infra/` traduce), `comunes.ts` (`camposComunes()`: único lugar con etiquetas fijas), `esquema.ts` (`validarVehiculo()`: lo usan igual formulario y action), `acciones-de-vehiculo.ts` (lista única del «⋯»), `limpieza.ts` (sólo lee y dice), y `papelera`, `vinculo`, `vitrina`, `foto`, `apibara`, `subasta*`, `resumen`. `infra/`: lecturas en `queries/`, escrituras por RPC, `*.client.ts` para el navegador.
-- `features/`: `alta`, `ficha`, `fotos`, `vitrina`, `papelera`, `vinculo`, `listado`, `acciones`, `resumen`, `subasta`, `limpieza`. `CLAVE_DE_EDICION` vive en `features/alta/claves.ts`, no en un `'use client'`.
+- `features/`: `alta`, `ficha`, `fotos`, `vitrina`, `papelera`, `vinculo`, `listado`, `acciones`, `resumen`, `subasta`, `limpieza`, `panel-para-cotizar` (la barra y el panel del vehículo de la hoja de cotizar; sus listas y su margen, en `entities/panel-para-cotizar.ts`). `CLAVE_DE_EDICION` vive en `features/alta/claves.ts`, no en un `'use client'`.
 - El listado dibuja una sola vista (tabla o tarjetas) elegida en servidor; los e2e buscan filas con `tbody tr, li article`.
 - Pestañas de la ficha: `src/app/(app)/vehiculos/[id]/pestanas.ts`, cada una con su `seccion-<clave>.tsx`.
 
