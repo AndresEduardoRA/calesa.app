@@ -1188,3 +1188,28 @@ vieja con cualquier respuesta y no se toca aquí (daría Nivel 2): abierto **4-4
   1.000 filas, 7.023, tope 7.374 (lo medido más un 5 %).
 - La URL sólo abre una celda que se dibuja en esas secciones **y** cuya ayuda es del tipo nombrado (`celdaConAyuda`); la de «Avanzado» se abre dentro del modal y con el modal cerrado no
   abre nada. Cada apertura vuelve a leer (el panel se monta de nuevo por `key`).
+
+## 2026-10-29 — Paso 4.13 (4d de 12): el cierre de la hoja
+
+**P0 (la persona): 4-44 (a) no se arregla en el 4d; pasa a 4-49, de todos los paneles por URL.** Medido, no supuesto. Se abre «Avanzado» con su botón, se recarga y se pulsa «atrás».
+El documento no se recarga (una marca en `window` sigue), la hoja se monta de nuevo (la marca de su elemento se pierde), sale un pedido RSC de la entrada de antes y el foco
+queda en `body`. Lo mismo con `?panel=nuevo-nivel` de `/configuracion/cotizacion?seccion=niveles`: el router de Next no tiene en caché la entrada de antes, la vuelve a pedir y la
+dibuja, el modal no se cierra montado y `focoAlCerrar` no corre. Por la regla del plan (C9-2), un defecto de todos los paneles no se arregla en la hoja. Descartados: el arreglo sólo en
+«Avanzado» (la marca en la entrada de antes y un pendiente en `sessionStorage`), porque deja dos maneras de resolver lo mismo, y hacerlo en `src/shared` dentro del 4d, porque sube a
+Nivel 2 y pide su propio plan.
+
+- **4-44 (b), la causa.** Bajo `@lg` de la sección todo ítem ocupa las 12 pistas, y con `gap-3` las pistas colapsan a 0 px y los 11 huecos (24 px cada uno al 200 %) fijan el ancho
+  mínimo de la rejilla. Son 264 px contra 218 px de contenido en la sección del modal a 412 px, y sobresalían 46 px. Sin modal la sección es más ancha y cabía. Arreglo:
+  `gap-x-0 gap-y-3 @lg:gap-x-3`. No cambia nada a la vista ni suma nodos (468 y 490).
+- **Medir cajas dentro de un modal, quieto.** El modal entra con una escala (0,96 a mitad): las cajas que da `getBoundingClientRect` están escaladas y el padding que da
+  `getComputedStyle`, no. `celdasFueraDeSuSeccion()` espera `quieto()` antes de medir. Sin eso daba 1 px falso en cada celda.
+- **Cómo se mide la tarea de oro 2**, como la 1 y la 4: lo que no cambia entre máquinas es lo pulsado (tope de teclas de control, medido 23); el reloj del robot es un tope
+  generoso (< 30 s); la hora de una persona, KLM (≤ 90 s, con 3 decisiones: el remate, la grúa y guardar). Es sólo el tramo de la hoja: la asesora de la semilla (rol `asesor` tal
+  cual), con un lead suyo y un vehículo del inventario en la URL. El panel del vehículo (4.14) y el PDF (4.18) suman su tramo y el 4.28 mide la tarea entera. Que el total de la base
+  sea el de la tarjeta prueba que lo guardado es lo que se ve. «Un total que no cuadre con las líneas» es del PDF y la tarjeta (4.18). La dueña se crea antes que la asesora: con la
+  empresa vacía, la primera cuenta tiene que poder gestionar el equipo y la base rechaza a una asesora sola.
+- **Cada celda con teclado:** se cuentan los lados que se pueden tipear (`[data-parada="0|1"]` sin `disabled` ni `aria-disabled`), sacados del DOM, como subsecuencia del foco
+  real. Tab también pasa por la ayuda, ↺, los chips y los lados bloqueados, y ésos no se cuentan.
+- **El presupuesto de JS** de `/cotizaciones/nuevo` es 460 KB: lo medido (429,5) más un 5 %, hacia arriba a la decena. Es una entrada más de `PRESUPUESTO_DE_JS_EN_KB`, y el
+  bucle de `presupuesto-js.spec.ts` la mide con su `test.skip` de siempre: un `.skip(` nuevo contaría como saltada y `@sin-celular` no puede preguntar por el proyecto. Lleva
+  `?origen=` de la subasta, porque sin él abre el primer origen, que puede pesar menos.

@@ -2,7 +2,7 @@
 
 El plan vivo: sólo lo que falta. Cada fase tiene un criterio de terminado verificable (algo que se puede correr y ver); las metas de las
 tareas de oro de `docs/UX.md` son criterio de terminado de su fase y se miden con un e2e. El alcance es todo el brief; no hay MVP: hay orden.
-Fases 0 a 3 completas y la Fase 4 hecha hasta el 4.13-4b3: el detalle (lo hecho, lo cerrado y la historia), en `docs/archivo/PLAN.md`
+Fases 0 a 3 completas y la Fase 4 hecha hasta el 4.13: el detalle (lo hecho, lo cerrado y la historia), en `docs/archivo/PLAN.md`
 (sólo con grep). Se avanza **un paso a la vez** (un prompt, un commit, su verificación) y **se para a reportar**; nunca más de una fase
 sin parar. Los pasos tachados o cerrados no están aquí.
 
@@ -32,7 +32,7 @@ BITACORA lo anota como «hito 4-A».
 **Verificación de los pasos de la Fase 4:** los niveles son los de `.claude/rules/e2e.md` (Nivel 1, 2 y 3). «Cadena db» = una migración nueva,
 `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuando hay carrera). Cada paso de pantalla anota en la BITACORA su marca
 `e2e completo: sí|no (<paso>, <tipo>, N de 3)`: la cuenta de pantallas sin e2e completo vuelve a 0 con cada completo y a los 3 se corre
-uno (hoy: **2 de 3**: el 4.13-4c2, pantalla; el 4.13-4b1 corrió el completo de escritorio por su Nivel 2). Compuerta `dependencia` para subir una dependencia
+uno (hoy: **0 de 3**: el 4.13-4d corrió el completo de escritorio). Compuerta `dependencia` para subir una dependencia
 (el piloto no las sube).
 
 **Decisiones de apertura vigentes** (la persona, 2026-10-22; `docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones» y «D7»):
@@ -66,31 +66,30 @@ snapshot.
 ### Partición
 
 Un paso, un commit y su verificación; se para a reportar después de cada uno. Los niveles son los de `.claude/rules/e2e.md`. Hecho:
-4.01 a 4.12, DEP-1 y el 4.13 prompts 1, 2, 3a, 3b, 3c, 4a, 4b1, 4b2 y 4b3 (ver `docs/archivo/PLAN.md`). **Orden fijo: papelera propia (4.24) → marcar final
+4.01 a 4.13 y DEP-1 (ver `docs/archivo/PLAN.md`; el 4.13, abajo hasta que pase al archivo). **Orden fijo: papelera propia (4.24) → marcar final
 (4.25) → comprobantes (4.26)** (la final manda las preventas a la papelera, y un comprobante sólo se emite de una final). Lo que ya existe y
 los siguientes pasos usan: `cotizacion_hoja(origen)`, `cotizacion_evaluar` (recortada por nivel, con `p_abierta`), `cotizacion_crear`,
 `cotizacion_guardar`, `cotizacion_leer`, `cotizacion_revisiones`, `formula_para_cotizar`, `cotizacion_tabla`, `_nodos_visibles()`, los
-niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/shared/ui/xcell` y `leerNumeroTipeado()`.
+niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/shared/ui/xcell`, `leerNumeroTipeado()`, `?panel=avanzado` y `?ayuda=texto|tabla&nodo=`
+de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.spec.ts`) y el presupuesto de JS de `/cotizaciones/nuevo` (460 KB, `e2e/soporte/presupuestos.ts`).
 
-- **4.13** — La hoja dibujada desde el diseño, en 12 prompts; hechos el 1 (la lectura que abre la hoja), el 2 (la hoja dibujada y el recálculo),
+- **4.13** (hecho el 2026-10-29) — La hoja dibujada desde el diseño, en 12 prompts; hechos el 1 (la lectura que abre la hoja), el 2 (la hoja dibujada y el recálculo),
   el 3a (lo que la base da antes de guardar), el 3b (guardar, la pantalla), el 3c (`XCell` y parser) y el 4a («Avanzado» en un modal con
   `?panel=avanzado` y la ayuda de texto con `?ayuda=texto&nodo=`), el 4b1 («Ver total Bs» en la base: `cotizaciones.ver_total_bs`, en
   `cotizacion_crear` y `cotizacion_guardar`; Nivel 2, con el completo de escritorio) y el 4b2 (la moneda del total en Bs en la lectura:
   `cabecera.moneda_bs` de `cotizacion_hoja()`; Nivel 1, base) y el 4b3 (los modos con el primero marcado, «Ver total Bs» en la hoja y el resumen
   fijo, al pie y al costado; Nivel 1) y el 4c1 (`cotizacion_tabla` con la hoja abierta y `cotizaciones.ver`; Nivel 1, base) y el 4c2 (la ayuda de una tabla, la pantalla: el botón «Ayuda de X»,
-  `?ayuda=tabla&nodo=`, el panel de sólo lectura con la hoja abierta; Nivel 1): hechos; ver archivo y, del 4a
-  al 4c2, `docs/DECISIONES.md` › «Paso 4.13 (4a de 9)», «Paso 4.13 (4b1 de 10)», «Paso 4.13 (4b2 de 11)», «Paso 4.13 (4b3 de 11)», «Paso 4.13 (4c1 de 12)» y
-  «Paso 4.13 (4c2 de 12)» y BITACORA. **Falta el 4d** (la tarea de oro 2 con teclado, KLM ≤ 90 s; el presupuesto
-  formal de JS de `/cotizaciones/nuevo`, hoy 429,5 KB (4c2); la hoja entera a 412 y 1.280 px, al 100 y al 200 %, con el resumen fijo; nodos de la hoja
-  con «Avanzado» abierto: medido en el 4c2 con el botón de la ayuda de una tabla, **468 al abrir y 490 usada**, tope 500 (P7, P8), y si se pasa de 500 se para y se reporta;
-  cierra 4-44). Marcas: 4a `1 de 3`; 4b1 `sí`
+  `?ayuda=tabla&nodo=`, el panel de sólo lectura con la hoja abierta; Nivel 1) y el 4d (la tarea de oro 2 con teclado, tramo de la hoja; el presupuesto de JS de la hoja, 460 KB;
+  los dos diseños a 412 y 1.280 px, al 100 y al 200 %; 4-44 (b); Nivel 1 con el completo de escritorio): hechos; ver archivo y, del 4a
+  al 4c2, `docs/DECISIONES.md` › «Paso 4.13 (4a de 9)», «Paso 4.13 (4b1 de 10)», «Paso 4.13 (4b2 de 11)», «Paso 4.13 (4b3 de 11)», «Paso 4.13 (4c1 de 12)»,
+  «Paso 4.13 (4c2 de 12)» y «Paso 4.13 (4d de 12)» y BITACORA. Marcas: 4a `1 de 3`; 4b1 `sí`
   (el completo de escritorio por su Nivel 2: la cuenta vuelve a 0); 4b2 `no` (base, Nivel 1: la cuenta sigue en 0); 4b3 `1 de 3`; 4c1 `no` (base, Nivel 1: la cuenta sigue en 1); 4c2 `2 de
-3` (hecha); 4d `3 de 3` y corre el completo de escritorio. El ⚙ no se abre hasta el 4.20 (sin callback la `XCell` no dibuja el botón). Sin paso
+3` (hecha); 4d `sí` (el completo de escritorio, por la cuenta: vuelve a 0). El ⚙ no se abre hasta el 4.20 (sin callback la `XCell` no dibuja el botón). Sin paso
   «Oficina». Los paneles de vehículo y cliente son del 4.14: aquí el lead llega preseleccionado desde su ficha y el vehículo, como diga el ajuste
   (la lectura lo trae). Para el prompt 4 (de 3c, `docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»): un número tipeado se lee con
   `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre con `formatearParaEditar` y el locale; la `XCell`
   tiene un candado por lado (`secondaryDisabledReason`). El diseño recortado es una lectura propia y está en el inventario de
-  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 12 (queda 1).
+  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 12 (hechos).
   - **P1** (contestada el 2026-10-28; hecha en el 4b3): la hoja abre con el primero de los modos que declara el diseño, marcado.
   - **P2** (contestada el 2026-10-28; hecha en el 4b1): «Ver total Bs» se guarda con la cotización (`cotizaciones.ver_total_bs`, `not null default false`).
   - **P4** (contestada el 2026-10-29; hecha en el 4b2): el total en Bs se escribe con la moneda `a` del tipo de cambio de `total_en` de la versión,
@@ -170,7 +169,7 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 73 prompts; faltan el 4.13-4d y los pasos 4.14 a 4.28.
+Total de la fase: 28 pasos y 73 prompts; faltan los pasos 4.14 a 4.28.
 
 ### Abiertos de la Fase 4
 
@@ -269,11 +268,16 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
 - **4-43** (sin fase: lo decide la persona; salió del 4-42): `e2e/leads-ficha-edicion.spec.ts` tiene 331 líneas (> 300) — partirlo por
   responsabilidad (edición, borrador, sin red, permisos). Assert: `wc -l` de cada parte ≤ 300 y las mismas pruebas en verde.
-- **4-44** (4.13-4d; salió del 4.13-4a): dos defectos de «Avanzado» sin arreglar. (a) Tras **recargar** con `?panel=avanzado` abierto, «atrás» cierra el modal pero
-  vuelve a montar la hoja y el foco queda en el cuerpo (sin recargar sí vuelve al botón); la causa no se averiguó (el router de Next al recibir la historia que escribe
-  nuqs, a verificar). (b) Al 200 % en el celular, dentro del modal, la celda y los chips de años sobresalen unos 20 px de la tarjeta de su sección (no desplazan la
-  página ni cortan texto, así que `sinScrollHorizontal` y `sinTextoCortado` no lo ven): medirlo contra la hoja sin modal y, si es del modal, arreglarlo. Assert: un
-  e2e que pruebe cada uno (foco al botón tras «atrás» recargado; las cajas de las celdas dentro de la de su sección a 412 px al 200 %).
+- **4-49** (sin fase, lo decide la persona; el próximo paso que toque `src/shared/ui`; salió de 4-44 (a), 4.13-4d): tras **recargar** con un panel por URL abierto, «atrás»
+  cierra el panel pero el foco queda en `body`, en todos los paneles de la app y no sólo en «Avanzado» (medido con `?panel=avanzado` y `?panel=nuevo-nivel` de
+  `/configuracion/cotizacion?seccion=niveles`). El documento no se recarga: el router de Next no tiene en caché la entrada de antes, la pide (un pedido RSC) y la vuelve a dibujar.
+  El modal no se cierra montado y `focoAlCerrar` no corre (`docs/DECISIONES.md` › «Paso 4.13 (4d de 12)»). La persona eligió no arreglarlo en el 4d. Arreglo probable en
+  `usePanelPorUrl()`: quien abre deja una marca en la entrada de antes y, al volver a ella, el foco va a quien abrió. Assert: un e2e por tipo de panel (modal y drawer) con abrir,
+  recargar y «atrás», con el foco en el botón que lo abrió; y Esc, «atrás» y recargar no le roba el foco a «Saltar al contenido». (4-44 (b), las celdas que sobresalían de
+  su sección al 200 %, se cerró en el 4.13-4d.)
+- **4-50** (sin fase, lo decide la persona; salió del 4.13-4d, de las capturas): al 200 %, el resumen fijo al pie (escritorio y celular) ocupa cerca del 40 % del alto de la pantalla y
+  tapa la hoja mientras se desplaza; se pliega con su «—», pero nace abierto. Assert: al 200 % el resumen al pie no pasa de un alto que se decida, o nace plegado, y
+  `aLaVistaSinDesplazar()` de la celda con el foco sigue verde.
 - **4-45** (4.18; salió del 4.13-4b1): `cotizaciones.moneda_mostrar` (`char(3)`, legible) no la escribe ninguna RPC ni la lee la app, y con
   `ver_total_bs` su propósito queda en duda. Se decide en el 4.18, con la tarjeta y el PDF: se usa o se quita (migración que la borra, con
   su `db:types`).

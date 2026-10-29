@@ -17,7 +17,7 @@ Los roles son libres (el dueño los crea); la interfaz se arma por **permisos**,
 ## Tareas de oro
 
 - **1. Registrar lead y anotar un seguimiento** (asesor, ~30/día). Meta: ≤ 25 s desde `N` hasta lead guardado (seguimiento opcional); duplicado detectado al terminar de tipear el teléfono. Nunca: crear un lead con teléfono ajeno; perder lo tipeado.
-- **2. Cotizar un vehículo para un lead** (asesor, ~15/día). Meta: ≤ 90 s con link de subasta o vehículo del inventario; cada celda editable con teclado; PDF en 1 clic. Nunca: guardar con una constante vencida sin saberlo; un total que no cuadre con las líneas.
+- **2. Cotizar un vehículo para un lead** (asesor, ~15/día). Meta: ≤ 90 s con link de subasta o vehículo del inventario; cada celda editable con teclado; PDF en 1 clic (el tramo de la hoja, `e2e/cotizar-tarea-de-oro.spec.ts`; el panel del vehículo y el PDF suman el suyo en el 4.14 y el 4.18). Nunca: guardar con una constante vencida sin saberlo; un total que no cuadre con las líneas.
 - **3. Mover vehículos de fase con documentos** (logística, ~40/día). Meta: mover 1 en ≤ 15 s; marcar llegada de un contenedor de 8 en ≤ 60 s; ver _antes_ de confirmar qué falta en cada uno. Nunca: mover sin el documento bloqueante; perder un archivo subido; pisar el cambio de otro.
 - **4. Atender un turno de la web y dar acceso al portal** (asesor, ~5/día). Meta: «contacté» en 2 toques desde el celular; otorgar portal desde la ficha en ≤ 30 s con sólo el teclado (`e2e/leads-portal-acceso.spec.ts`). Nunca: dejar vencer un turno sin aviso; un código que no se pueda dictar.
 
