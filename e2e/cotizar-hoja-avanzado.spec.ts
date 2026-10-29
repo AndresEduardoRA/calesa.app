@@ -121,7 +121,7 @@ test('recargar con ?panel=avanzado lo abre', async ({ page }) => {
   expect(panelEnLaUrl(page)).toBe('avanzado')
 })
 
-test('Esc, la ✕ y el clic afuera lo cierran, también abierto por la URL, y el foco vuelve al botón', async ({
+test('Esc y la ✕ lo cierran, también abierto por la URL, y el foco vuelve al botón', async ({
   page,
 }) => {
   await abrir(page, `/cotizaciones/nuevo?origen=${subasta}&panel=avanzado`)
