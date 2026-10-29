@@ -32,7 +32,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `ui/diferido.tsx` — `diferido()`: el único lugar que carga código diferido (el lint prohíbe `next/dynamic`).
 - `ui/modal.tsx`, `ui/drawer.tsx`, `ui/confirmar.tsx` — diálogos controlados desde la URL. `ui/modal-de-formulario.tsx` es el contrato de un formulario en un modal; `ui/use-envio-de-modal.ts` el envío de uno sin versión.
 - `ui/lista/` — el patrón de lista (`UnaSolaVista`, `TablaDeLista`, `FilaDeLista`, `TarjetaDeLista`, `MasAcciones`, `AbrirResumen`, `SimbolosDeLista`).
-- `ui/filtros/` — `<FilterShell>` (búsqueda, chips, panel al costado o en hoja, «Ítems por página»); `ui/por-pagina.tsx`, `ui/paginacion.tsx`, `ui/aviso-de-tope.tsx`.
+- `ui/filtros/` — `<FilterShell>` (búsqueda, chips, panel al costado o en hoja, «Ítems por página»); `ui/por-pagina.tsx`, `ui/paginacion.tsx` (enlaces a la misma URL; con `alIr`, botones que cambian de página sin ir al servidor), `ui/aviso-de-tope.tsx`.
 - `ui/monto.tsx` + `live.ts` + `guion-live.tsx` (Modo Live), `regional.tsx`, `densidad.tsx`, `marca.tsx`, `estilo-de-marca.tsx`.
 - `ui/estados/` y `ui/esqueletos/` — los cinco estados y los esqueletos de toda vista. `ui/toasts.ts` (`avisarError()`, `avisarConDeshacer()`), `ui/sonner.tsx`, `ui/pie-del-panel.tsx`, `ui/zona-de-archivos.tsx`.
 - `types/database.types.ts` — generado por `pnpm db:types`. No se edita.
