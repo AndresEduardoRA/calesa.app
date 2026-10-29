@@ -94,7 +94,11 @@ export type HojaLista = {
   abierta: string
   vehiculoObligatorio: boolean
   // Los modos de tipo de cambio se identifican por su clave: sus buckets no viajan (nombran tipos de cambio que un nivel puede esconder).
-  cabecera: { modos: { clave: string; nombre: string }[]; verTotalBs: boolean }
+  cabecera: {
+    modos: { clave: string; nombre: string }[]
+    verTotalBs: boolean
+    monedaBs: string | null
+  }
   secciones: SeccionDeHoja[]
   tarjetaTotal: NodoDeTarjeta & { secundarios: NodoDeTarjeta[] }
   tonos: Tono[]
@@ -188,7 +192,11 @@ function listaDe(h: Crudo<typeof esquemaLista>): HojaLista {
     abiertaEn: h.abierta_en,
     abierta: h.abierta,
     vehiculoObligatorio: h.vehiculo_obligatorio,
-    cabecera: { modos: h.cabecera.modos, verTotalBs: h.cabecera.ver_total_bs },
+    cabecera: {
+      modos: h.cabecera.modos,
+      verTotalBs: h.cabecera.ver_total_bs,
+      monedaBs: h.cabecera.moneda_bs,
+    },
     secciones: h.secciones.map((s) => ({
       id: s.id,
       titulo: s.titulo ?? null,

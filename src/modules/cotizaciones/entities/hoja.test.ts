@@ -16,6 +16,7 @@ describe('hojaDesde: lo que abre la hoja de cotizar', () => {
     expect(hoja.cabecera).toEqual({
       modos: [{ clave: 'unificado', nombre: 'Unificado' }],
       verTotalBs: true,
+      monedaBs: 'BOB',
     })
     expect(hoja.tarjetaTotal.secundarios).toHaveLength(1)
     expect(hoja.tonos[0]?.clave).toBe('verde')
@@ -208,6 +209,23 @@ describe('hojaDesde: la hoja abierta y el tipo del par que la base promete', () 
     for (const [caso, rompe] of Object.entries(casos)) {
       expect(hojaDesde(rompe(lista())), caso).toBeNull()
     }
+  })
+})
+
+describe('hojaDesde: la moneda del total en Bs', () => {
+  it('es nula si la base la manda nula; sin la clave o con otro largo, la hoja no se lee', () => {
+    const conMoneda = (moneda_bs: unknown) => {
+      const h = lista()
+      return { ...h, cabecera: { modos: h.cabecera.modos, ver_total_bs: true, moneda_bs } }
+    }
+    expect((hojaDesde(conMoneda(null)) as HojaLista).cabecera.monedaBs).toBeNull()
+    expect((hojaDesde(conMoneda('XTS')) as HojaLista).cabecera.monedaBs).toBe('XTS')
+    const h = lista()
+    expect(
+      hojaDesde({ ...h, cabecera: { modos: h.cabecera.modos, ver_total_bs: true } }),
+      'sin la clave',
+    ).toBeNull()
+    expect(hojaDesde(conMoneda('BOBO')), 'con otro largo').toBeNull()
   })
 })
 

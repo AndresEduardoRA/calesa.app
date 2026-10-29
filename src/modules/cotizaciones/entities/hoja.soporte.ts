@@ -73,7 +73,11 @@ export const lista = () => ({
   abierta_en: '2026-10-26T14:00:00.123456+00:00',
   abierta: ABIERTA,
   vehiculo_obligatorio: true,
-  cabecera: { modos: [{ clave: 'unificado', nombre: 'Unificado' }], ver_total_bs: true },
+  cabecera: {
+    modos: [{ clave: 'unificado', nombre: 'Unificado' }],
+    ver_total_bs: true,
+    moneda_bs: 'BOB',
+  },
   secciones: [
     {
       id: 'hoja',

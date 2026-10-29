@@ -151,6 +151,8 @@ export const esquemaLista = z.object({
   cabecera: z.object({
     modos: z.array(z.object({ clave: esquemaId, nombre: z.string().min(1) })),
     ver_total_bs: z.boolean(),
+    // La moneda en que se escribe el total en Bs (`cabecera.moneda_bs`): nula sin `total_en` o sin su tipo de cambio activo.
+    moneda_bs: z.string().length(3).nullable(),
   }),
   secciones: z.array(esquemaSeccion),
   tarjeta_total: esquemaDeNodoDeTarjeta.extend({ secundarios: z.array(esquemaDeNodoDeTarjeta) }),
