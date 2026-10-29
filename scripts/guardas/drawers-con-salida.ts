@@ -104,4 +104,8 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
   'src/app/(app)/_shell/menu-movil.tsx': {
     sinFormulario: 'la navegación del celular',
   },
+  // --- cotizaciones
+  'src/modules/cotizaciones/features/hoja/components/ayuda-de-celda.tsx': {
+    sinFormulario: 'de sólo lectura: el texto de ayuda de una celda de la hoja',
+  },
 }

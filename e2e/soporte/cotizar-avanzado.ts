@@ -47,15 +47,22 @@ export function ordenConAvanzado(claveDelOrigen: string, sin: readonly string[] 
   }
 }
 
-// Publica en un origen la fórmula de prueba con la sección del nivel «costos» como `avanzado`: el modal trae un interruptor, dos celdas (una con ayuda de texto), unos atajos y un
+// El texto de la ayuda de la celda `pub` de la hoja (la de `x_celda`, en «Avanzado», es `AYUDA-qz4h13` de la fórmula de prueba).
+export const AYUDA_DE_LA_HOJA = 'Cuánto pide el vendedor por la pública. Se paga al recoger.'
+
+// Publica en un origen la fórmula de prueba con la sección del nivel «costos» como `avanzado`, y con una ayuda de texto en una celda de la hoja: el modal trae un interruptor, dos celdas (una con ayuda de texto), unos atajos y un
 // subtotal; el total la suma (`x_celda`), así que tipear ahí cambia el total de la hoja.
 export function publicarFormulaConAvanzado(origenId: string): void {
   const { definicion, params, diseno } = formulaDePrueba()
   const conAvanzado = {
     ...diseno,
-    secciones: diseno.secciones.map((s) =>
-      s.id === 'del_nivel' ? { ...s, presentacion: 'avanzado' } : s,
-    ),
+    secciones: diseno.secciones.map((s) => ({
+      ...s,
+      presentacion: s.id === 'del_nivel' ? 'avanzado' : s.presentacion,
+      items: s.items.map((i) =>
+        'nodo' in i && i.nodo === 'pub' ? { ...i, ayuda: { texto: AYUDA_DE_LA_HOJA } } : i,
+      ),
+    })),
   }
   const json = (valor: unknown) => `$e2e$${JSON.stringify(valor)}$e2e$::jsonb`
   sql(`

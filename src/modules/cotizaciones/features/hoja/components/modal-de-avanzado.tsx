@@ -4,7 +4,9 @@ import type { RefObject } from 'react'
 import { Modal } from '@/shared/ui/modal'
 import type { ContextoDeHoja } from '../../../entities/binding'
 import type { SeccionDeHoja as Seccion } from '../../../entities/hoja'
+import type { AyudaDeLaHoja } from '../hooks/use-ayuda-de-la-hoja'
 import type { AccionesDeHoja } from '../hooks/use-hoja'
+import { LugarDeAyuda } from './lugar-de-ayuda'
 import { SeccionDeHoja } from './seccion-de-hoja'
 
 type Props = {
@@ -15,6 +17,8 @@ type Props = {
   acciones: AccionesDeHoja
   // Mientras guarda el modal no se cierra y sus celdas no se tocan (lo guardado reemplaza a la hoja).
   guardando: boolean
+  // La ayuda de una celda de «Avanzado» se abre encima del modal, dentro de él (un modal no abre otro: es un panel).
+  ayuda: AyudaDeLaHoja
   // El botón «Avanzado»: el foco vuelve a él al cerrar, también si el modal se abrió por la URL.
   botonDeAvanzado: RefObject<HTMLButtonElement | null>
 }
@@ -41,6 +45,7 @@ export function ModalDeAvanzado({
   contexto,
   acciones,
   guardando,
+  ayuda,
   botonDeAvanzado,
 }: Props) {
   return (
@@ -63,6 +68,7 @@ export function ModalDeAvanzado({
           />
         ))}
       </div>
+      <LugarDeAyuda secciones={secciones} contexto={contexto} ayuda={ayuda} />
     </Modal>
   )
 }

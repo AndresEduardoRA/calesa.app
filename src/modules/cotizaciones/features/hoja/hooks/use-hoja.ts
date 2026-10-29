@@ -28,6 +28,8 @@ export type AccionesDeHoja = {
   alAlternarBandera: (nodo: string, encendida: boolean) => void
   alElegirVariante: (clave: string) => void
   alElegirAtajo: (nodo: string, posicion: number, valor: number) => void
+  // La ayuda de texto de una celda (4.13-4a): la pone la hoja, que es quien guarda en la URL cuál se abre.
+  alAyudar?: (nodo: string) => void
 }
 
 // Los callbacks de las celdas, todos sobre la misma puerta (`cambiar`).
