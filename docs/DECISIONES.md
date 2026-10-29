@@ -1109,3 +1109,17 @@ Medido: la ayuda de una celda de «Avanzado» sí se abre dentro del modal, Esc 
 Medido: «atrás» desde una página que se recargó con el panel abierto vuelve a montar la hoja (la marca puesta en el botón se pierde; no se averiguó por qué) y el foco
 no vuelve al botón; sin recargar, «atrás» cierra el modal y el foco vuelve. El e2e prueba lo segundo. Descartado: un popover o la ayuda en línea; un «Guardar» en el pie del modal (el del
 resumen queda detrás del modal; en el celular se cierra y se guarda desde el resumen).
+
+## 2026-10-29 — Paso 4.13 (4b1 de 10): «Ver total Bs» es una columna de la cotización
+
+El 4b juntaba la base (una columna y dos RPC `security definer`) con la pantalla (modos, interruptor y resumen fijo): verificaciones distintas y cuatro intenciones, que no
+caben en tres commits; se parte en **4b1** (la base) y **4b2** (la pantalla), y el total de prompts pasa de 70 a 71. La persona contestó P1 (la hoja abre con el primero de
+los modos, marcado) y P2: «Ver total Bs» **se guarda con la cotización**. Se llama `ver_total_bs`, como la clave del diseño (un término, un nombre), `boolean not null
+default false`, con `grant select` a `authenticated` como `modo_tc`: viaja por `_cotizacion_respuesta()`, por `cotizacion_leer()` y por el diff de las revisiones. Lo valida
+`_cotizacion_ver_total_bs(formula, valor)`, de nadie, `void` y no `security definer` (lo llaman dos que ya lo son): nulo es `ver_total_bs_falta` y verdadero sin que el
+diseño de **esa** versión lo ofrezca es `ver_total_bs_no_ofrecido` (22023, como `modo_invalido`; en `crear` con «Guardar con la N» vale la versión abierta, y en `guardar` SU
+versión, no la publicada). `crear` lo recibe como último parámetro con default falso; `guardar`, sin default, porque recibe el estado entero de lo que se edita, y entra en
+la huella del intento, en «nada cambió» y en el `update` (una final también lo cambia). Efecto de la huella nueva: un reintento con el mismo intento que empezó antes del
+despliegue y llega después da `intento_reusado`; el riesgo es casi nulo porque ninguna pantalla llama todavía a `cotizacion_guardar` (4.15). Nivel 2 por el `alter table`
+(`nivel.mjs`), con el completo de escritorio. No se tocó `cotizaciones.moneda_mostrar` (nadie la escribe): abierto 4-45, para el 4.18. Descartado: guardarlo por persona o
+dejarlo sólo en la pantalla (P2), y un `check` en la columna contra el diseño (la versión puede cambiar de diseño; se valida al escribir).

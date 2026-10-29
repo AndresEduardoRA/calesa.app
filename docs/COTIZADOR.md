@@ -288,7 +288,7 @@ share`, valida fórmula y diseño completo (`_preparar_publicacion()`) y compila
 La lectura de una cotización: lo que quien llama no ve no viaja (`supabase/tests/cotizaciones-visibilidad.sql`).
 
 - **Ninguna lectura directa del snapshot:** `authenticated` y `anon` no leen `cotizaciones.valores|fuentes|totales|tipos_cambio` ni
-  `cotizaciones_revisiones.diff` (grant de columnas; una columna nueva nace sin grant); `total_base`, `modo_tc`, `titulo`… sí.
+  `cotizaciones_revisiones.diff` (grant de columnas; una columna nueva nace sin grant); `total_base`, `modo_tc`, `ver_total_bs`, `titulo`… sí.
   `cotizacion_auditar()` quita esas columnas de `actividad`.
 - **El recorte** (`_cotizacion_contexto`, `_cotizacion_recorte`): `valores`, `estados`, `fuentes`: los nodos de `_nodos_visibles` y
   siempre el total y lo `aparte`. `totales`: `bs`, `usd`, `suma_usd` siempre; un grupo sólo si se ven **todos** sus nodos, y su `bs` sólo
@@ -311,7 +311,8 @@ tienen privilegio de escritura y no hay policies de crear ni editar. Escriben, c
 escritura de `cotizaciones_revisiones`), `cotizacion_contadores()` y `cotizacion_auditar()`.
 
 **`cotizacion_crear(id, origen, lead, entradas, abierta, vehículo?, vehículo_nuevo?, modo_tc?, clase = 'preventa', con_la_abierta =
-false)`** calcula en la base sobre la fórmula publicada del origen y devuelve `{cotizacion, valores, fuentes, totales, tipos_cambio,
+false, ver_total_bs = false)`** calcula en la base sobre la fórmula publicada del origen y devuelve `{cotizacion, valores, fuentes, totales,
+tipos_cambio,
 repetido}`, recortado por `_cotizacion_respuesta()` (el recorte de `cotizacion_leer()`). En este orden:
 
 1. `cotizaciones.crear` **del origen de la cotización** antes de mirar nada; con una final, además `cotizaciones.final.gestionar`.
@@ -322,7 +323,9 @@ repetido}`, recortado por `_cotizacion_respuesta()` (el recorte de `cotizacion_l
 4. **El vehículo:** obligatorio si `ajustes_empresa.vehiculo_obligatorio_al_cotizar` (sí por defecto) y siempre en una final. «Cargar a
    mano» (`p_vehiculo_nuevo`) llama a `vehiculo_crear()` en la misma transacción. Uno que quien llama no ve: 42501.
 5. **La fórmula** publicada, `for share` (publicar espera a las altas en curso; si publicaron, se relee: tres vueltas y PT409).
-6. **El modo** (`p_modo_tc`): nulo o la `clave` de un modo de esa versión (`modo_invalido`).
+6. **El modo** (`p_modo_tc`): nulo o la `clave` de un modo de esa versión (`modo_invalido`). Y **«Ver total Bs»** (`p_ver_total_bs`,
+   4.13-4b1): `_cotizacion_ver_total_bs()` rechaza (22023) un nulo (`ver_total_bs_falta`) y un verdadero que `diseno.cabecera.ver_total_bs` de la
+   versión que se usa no ofrece (`ver_total_bs_no_ofrecido`); con «Guardar con la N» vale la versión abierta.
 7. **Lo tipeado**, con `_cotizacion_tipeado()` (de nadie; el mismo chequeo que el motor, compartido por evaluar, crear y guardar): un
    valor para un nodo que se ve y no se edita → 42501 `nodo_no_editable`; un override de un nodo oculto o inexistente →
    `nodo_inexistente`; sin variante y sin `por_defecto`, `variante_sin_eleccion`.
@@ -337,11 +340,15 @@ Candados: intento, lead, vehículo, fórmula. **D2** vive en `cotizacion_crear()
 
 ### Cómo se guarda (4.10-3)
 
-**`cotizacion_guardar(id, intento, actualizado_en_esperado, entradas, modo_tc, titulo, notas, vehículo)`** es la única edición: calcula en
+**`cotizacion_guardar(id, intento, actualizado_en_esperado, entradas, modo_tc, titulo, notas, vehículo, ver_total_bs)`** es la única
+edición: calcula en
 la base con SU versión de la fórmula (nunca la publicada de hoy) y SUS tipos de cambio congelados, conserva lo que quien guarda no ve ni
-edita, y devuelve lo mismo que crear. Recibe el **estado entero de lo que la persona edita** (`modo_tc`, `titulo`, `notas` y `vehículo`
-sin valor por omisión: nulo es un valor); lo que no manda en `entradas` queda sin tipear (↺). Se edita `modo_tc` (clave de un modo de
-SU versión, o nulo), `titulo` (hasta 120), `notas` (hasta 2.000) y `vehiculo_id` (poner o **cambiar**, no se quita, **una final no lo
+edita, y devuelve lo mismo que crear. Recibe el **estado entero de lo que la persona edita** (`modo_tc`, `titulo`, `notas`, `vehículo` y
+`ver_total_bs`
+sin valor por omisión: nulo es un valor, salvo en `ver_total_bs`, donde nulo es `ver_total_bs_falta`); lo que no manda en `entradas` queda
+sin tipear (↺). Se edita `modo_tc` (clave de un modo de
+SU versión, o nulo), `ver_total_bs` (verdadero sólo si el diseño de SU versión lo ofrece; también en una final), `titulo` (hasta 120),
+`notas` (hasta 2.000) y `vehiculo_id` (poner o **cambiar**, no se quita, **una final no lo
 cambia**). No se editan `tipos_cambio` (se congelan al crear), `clase`, `lead_id`, `plantilla_id` ni `moneda_mostrar`.
 
 **En este orden** (cada error igual para lo que no existe y para lo que no se ve): (1) **permiso:** una preventa pide
@@ -407,8 +414,9 @@ guardado. Inválida (nula, mal formada, de otra persona u origen, firma mala): 2
 
 `formula_id` (recalcular o editar usa **esa** versión, nunca la vigente); `valores` (`{nodo_id: número | null}` de TODOS los nodos; el
 `opcion` guarda su clave; un nodo fuera de variante o apagado guarda 0); `fuentes` (`{nodo_id: default|sugerido|override|input}`);
-`tipos_cambio` (`{clave: valor}` congelados); `totales` (por moneda y por grupo). **Nada se lee directo** (salen por `cotizacion_leer()`, recortados por el nivel; `total_base` y
-`modo_tc` sí son legibles) **ni se escribe directo**: se crea con `cotizacion_crear()` y se edita con `cotizacion_guardar()`.
+`tipos_cambio` (`{clave: valor}` congelados); `totales` (por moneda y por grupo). **Nada se lee directo** (salen por `cotizacion_leer()`,
+recortados por el nivel; `total_base`,
+`modo_tc` y `ver_total_bs` sí son legibles) **ni se escribe directo**: se crea con `cotizacion_crear()` y se edita con `cotizacion_guardar()`.
 
 ## Binding con la XCell
 
