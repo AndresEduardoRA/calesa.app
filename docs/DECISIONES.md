@@ -1084,3 +1084,12 @@ de `anon` (y truncate, references, trigger y maintain de `authenticated`) para l
 nueva es un default global de Postgres: quitarlo para todo lo que crea `postgres` rompía 61 pruebas de `db:probar` (sus funciones de
 `pg_temp`) y alcanzaba a `web`, así que lo sigue quitando cada migración y `supabase/tests/privilegios-de-anon.sql` (db:probar y job
 `base` de CI, con `aclexplode`) cae si una lo olvida: probado con cuatro mutaciones.
+
+## 2026-10-28 — En un e2e sin red se reconecta tras el aviso del envío fallido (cierra 4-42)
+
+«No hay conexión» sale de `useEnLinea()` y ya está visible antes del clic: reconectar tras leerlo deja el fallo del guardado para después y
+`useReintentoAlVolver` (2026-10-15, «El reintento al volver la conexión sólo sale al volver») no reenvía si la red volvió antes de que
+`pendiente` esté puesto. La CI-4 manda esperar el POST; sin red no hay respuesta, y lo que hay que esperar es «…se va a guardar solo cuando
+vuelva», que sólo sale con `pendiente` puesto, justo la condición del reenvío. Esperar el `requestfailed` dejaría la misma carrera con una
+ventana menor (M2 no la hizo caer en 20 corridas, por eso es argumento y no prueba). Probado con un `page.route` que demora el fallo 1 s:
+HEAD cae, el arreglo pasa. Otros specs de la misma forma: sólo `e2e/origenes.spec.ts:326`, donde la carrera no rompe nada.

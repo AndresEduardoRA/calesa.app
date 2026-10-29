@@ -23,8 +23,7 @@ partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` �
 
 ## Siguiente
 
-1. **Carril A, primero 4-42** (`docs/PLAN.md`: la carrera del e2e de la ficha sin red). Después **el 4.13, prompt 4, con el piloto** (lo
-   que se abre y los anchos; el detalle, en su fila de PLAN) y en orden hasta el 4.28, **un prompt a la vez, y se para a reportar**. La
+1. **Carril A: el 4.13, prompt 4, con el piloto** (lo que se abre y los anchos; el detalle, en su fila de PLAN; el 4-42 ya está) y en orden hasta el 4.28, **un prompt a la vez, y se para a reportar**. La
    cuenta de pantallas sin completo está en **0 de 3**.
 2. **Del 3c:** un número tipeado se lee con `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre
    con `formatearParaEditar` y el locale; la importación CSV lee más permisiva a propósito. **Para la persona:** la sesión de decidir dejó

@@ -235,12 +235,8 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   pasan de 300 líneas — `vehiculos/entities/vitrina.ts` 358, `leads/entities/oportunidad.ts` 321, `leads/entities/alta.ts` 331 y
   `leads/entities/importacion/filas.ts` 333 — `wc -l` de cada uno ≤ 300, partido por responsabilidad (en `vitrina.ts`, el formulario y su
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
-- **4-42** (el primer paso del carril A, decidido el 2026-10-28; cayó en el CI del PR de la preparación, bloque 2): `e2e/leads-ficha-edicion.spec.ts:262`
-  («se cae la conexión al guardar») es una carrera del test. «No hay conexión» sale de `useEnLinea()`, no del envío fallido: la traza
-  muestra `setOffline(false)` 7 ms **antes** de que llegue el `ERR_INTERNET_DISCONNECTED` del guardado. El fallo se resuelve con red, y
-  `useReintentoAlVolver` no reenvía solo (a propósito): queda «No pudimos llegar al servidor» con «Reintentar» y ningún segundo POST. Arreglo:
-  esperar el `requestfailed` del guardado (o el aviso del envío fallido, no el de la red) antes de volver a conectar. Assert: el spec pasa
-  20 de 20 con `--repeat-each=20`, y una mutación que reconecta antes del fallo lo hace caer.
+- **4-43** (sin fase: lo decide la persona; salió del 4-42): `e2e/leads-ficha-edicion.spec.ts` tiene 331 líneas (> 300) — partirlo por
+  responsabilidad (edición, borrador, sin red, permisos). Assert: `wc -l` de cada parte ≤ 300 y las mismas pruebas en verde.
 - **5a-4b** (4.28): la suite completa no baja de 25 min (el Nivel 3 tarda 40,1 min con 1.065 pruebas; el Nivel 2 ≈ 24; el último completo
   de escritorio, ≈ 28 min). Decidido el 2026-10-19: no se monta la segunda pila local; los shards de CI son la salida (`.github/workflows/ci.yml`,
   CI-1: 4 runners, cada uno con su pila y su base; escritorio por defecto y `proyectos: ambos` a mano; los bloques de escritorio suman 5,7 a

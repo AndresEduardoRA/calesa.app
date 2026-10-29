@@ -17,3 +17,10 @@ La rama `preparar-orca` (`docs/PREPARACION.md`): las 146 migraciones en una base
 livianos, un stack de Supabase por carril y el flujo de los dos carriles (`docs/ORCA.md`). Verde: lint, typecheck, test (5.426),
 `db:probar`, `db:lint` y el completo con los dos proyectos y las funciones servidas: 1.281 pruebas y 34 saltadas, 0 fallos, 46,3 min.
 e2e completo: sí (preparar-orca)
+
+## 2026-10-28 — 4-42: la ficha sin red espera el envío fallido antes de reconectar
+
+La prueba «se cae la conexión al guardar» (`e2e/leads-ficha-edicion.spec.ts`) esperaba «No hay conexión», que sale de la red y está antes del
+clic; ahora espera el aviso del envío fallido. Verde: 20 de 20 con `--repeat-each=20`, el spec entero (10), lint, typecheck y test (5.427).
+Contra HEAD con el fallo demorado 1 s cae (M1); esperar el `requestfailed` (M2) pasó 20 de 20, así que no cambia la elección.
+Commit `da341ed6`. e2e completo: no (4-42, sólo un spec e2e)
