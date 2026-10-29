@@ -1166,3 +1166,25 @@ origen pide también `cotizaciones.ver`, la puerta de la hoja; es coherencia, no
 nadie, `_cotizacion_tabla_version()` (devuelve un `uuid`: fuera del inventario), para que la función quede ≤ 80 líneas. **P9 (la persona):** el tope de bytes con 1.000 filas para una
 asesora con «costos» es lo medido más un 5 %, 52.752; el provisional de 48 KB no cabía por el factor de relleno de la medición (escala 20). Quien configura sigue recibiendo las filas
 sin recortar a `columnas` (fuera de alcance; lo puede proponer el 4c2).
+
+## 2026-10-29 — Paso 4.13 (4c2 de 12): la ayuda de una tabla en la hoja
+
+**P13 (la persona): el Modo Live tapa la ayuda de una tabla como tapa la celda que la abre.** Una tabla de referencia no dice qué columna es plata (`numero`, `anio`, `texto`); la celda sí
+(`formato`: `usd`/`moneda` es dinero, `raw` no). Si la celda es de dinero, cada cifra `numero` pasa por `<Monto>` con la moneda de la celda y Live la tapa con su símbolo; si no, va con
+`formatearNumero`, a la vista (un factor). Descartados: tapar toda cifra con `useLive()` (tapa un factor que la celda de al lado muestra), mostrarlas igual, y no dibujar la tabla con Live.
+Supone que toda columna `numero` está en la moneda de la celda (en la semilla, sí). La ficha de la `XCell` (`xcell/CLAUDE.md:38`, «lo que abran pasa sus cifras por `<Monto>`») queda
+vieja con cualquier respuesta y no se toca aquí (daría Nivel 2): abierto **4-48**.
+
+- **Columnas y ancho.** Se dibujan sólo las columnas declaradas (una clave de más en las filas de quien configura no se ve); sin declaradas (una congelada que ya no tiene tabla viva) las
+  claves de la primera fila, con la clave de encabezado y **como texto** (sin tipo no se sabe si un número es dinero o un año: va con `formatearNumero`, a la vista, «2.018»; lo corrige 4-47). El texto se parte en cualquier punto (`wrap-anywhere`: `break-words` no encoge una palabra larga en una tabla) y una cifra no; lo que
+  no entra se desplaza dentro del panel (`useDesborde` y `<PistaDeDesborde>`), nunca la página. Encabezado fijo arriba en el contenedor que desplaza.
+- **Año sin separador de miles** (`formatearParaEditar`: «2018», no «2.018»); un `numero`, hasta 6 decimales y sin ceros de relleno (la precisión de la tabla).
+- **El fallo sigue al del recálculo, no a `<EstadoError>`** (que sólo sabe decir «Reintentar»): «Recargar» si `pideRecargar(error)`, si no «Reintentar». Su límite: el 42501 de una tabla
+  sin copia congelada ni viva también lleva a «Recargar», que puede repetir el fallo; no se suma otro estado.
+- **El tope sin camino** (1.000 filas, «Mostrando las 1.000 primeras filas.») se aparta de `escala.md` («siempre hay un camino a lo antiguo») hasta que el editor de tablas (4.23) lo dé: 4-47.
+- **El lector va en el chunk inicial de la hoja** (`composicion.client.ts` es un barril que ya importa el recálculo); sólo el panel es diferido. El JS en frío de `/cotizaciones/nuevo`
+  midió 428,6 KB antes del paso con el lector ya exportado por el barril (`2b829e0c`) y 429,5 después (+0,9); contra los 428,1 de `ed0fe2ef` son +1,4 KB: se dice, y el presupuesto formal es del 4d.
+- **Nodos.** La hoja mide 468 al abrir y 490 usada con el botón en 3 celdas (P11: sigue por ≤ 500; margen 2,0 %). El panel suma 7 nodos por fila de 3 columnas con una de dinero; con
+  1.000 filas, 7.023, tope 7.374 (lo medido más un 5 %).
+- La URL sólo abre una celda que se dibuja en esas secciones **y** cuya ayuda es del tipo nombrado (`celdaConAyuda`); la de «Avanzado» se abre dentro del modal y con el modal cerrado no
+  abre nada. Cada apertura vuelve a leer (el panel se monta de nuevo por `key`).

@@ -32,7 +32,7 @@ BITACORA lo anota como «hito 4-A».
 **Verificación de los pasos de la Fase 4:** los niveles son los de `.claude/rules/e2e.md` (Nivel 1, 2 y 3). «Cadena db» = una migración nueva,
 `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuando hay carrera). Cada paso de pantalla anota en la BITACORA su marca
 `e2e completo: sí|no (<paso>, <tipo>, N de 3)`: la cuenta de pantallas sin e2e completo vuelve a 0 con cada completo y a los 3 se corre
-uno (hoy: **1 de 3**: el 4.13-4b3, pantalla; el 4.13-4b1 corrió el completo de escritorio por su Nivel 2). Compuerta `dependencia` para subir una dependencia
+uno (hoy: **2 de 3**: el 4.13-4c2, pantalla; el 4.13-4b1 corrió el completo de escritorio por su Nivel 2). Compuerta `dependencia` para subir una dependencia
 (el piloto no las sube).
 
 **Decisiones de apertura vigentes** (la persona, 2026-10-22; `docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones» y «D7»):
@@ -77,19 +77,20 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   `?panel=avanzado` y la ayuda de texto con `?ayuda=texto&nodo=`), el 4b1 («Ver total Bs» en la base: `cotizaciones.ver_total_bs`, en
   `cotizacion_crear` y `cotizacion_guardar`; Nivel 2, con el completo de escritorio) y el 4b2 (la moneda del total en Bs en la lectura:
   `cabecera.moneda_bs` de `cotizacion_hoja()`; Nivel 1, base) y el 4b3 (los modos con el primero marcado, «Ver total Bs» en la hoja y el resumen
-  fijo, al pie y al costado; Nivel 1) y el 4c1 (`cotizacion_tabla` con la hoja abierta y `cotizaciones.ver`; Nivel 1, base): hechos; ver archivo y, del 4a
-  al 4c1, `docs/DECISIONES.md` › «Paso 4.13 (4a de 9)», «Paso 4.13 (4b1 de 10)», «Paso 4.13 (4b2 de 11)», «Paso 4.13 (4b3 de 11)» y «Paso 4.13 (4c1 de 12)»
-  y BITACORA. **Faltan el 4c2** (la ayuda de una tabla, la pantalla: «Ayuda de X» en las celdas con `ayuda: {tabla}`, `?ayuda=tabla&nodo=`, el panel de sólo lectura
-  que lee `cotizacion_tabla` con la hoja abierta; P11, P12; marca `2 de 3`) **y el 4d** (la tarea de oro 2 con teclado, KLM ≤ 90 s; el presupuesto
-  formal de JS de `/cotizaciones/nuevo`, hoy 426,8 KB; la hoja entera a 412 y 1.280 px, al 100 y al 200 %, con el resumen fijo; nodos de la hoja
-  con «Avanzado» abierto: medido en el 4b3, 459 al abrir y 481 usada, tope 500 (P7, P8), y si se pasa de 500 se para y se reporta; cierra 4-44). Marcas: 4a `1 de 3`; 4b1 `sí`
+  fijo, al pie y al costado; Nivel 1) y el 4c1 (`cotizacion_tabla` con la hoja abierta y `cotizaciones.ver`; Nivel 1, base) y el 4c2 (la ayuda de una tabla, la pantalla: el botón «Ayuda de X»,
+  `?ayuda=tabla&nodo=`, el panel de sólo lectura con la hoja abierta; Nivel 1): hechos; ver archivo y, del 4a
+  al 4c2, `docs/DECISIONES.md` › «Paso 4.13 (4a de 9)», «Paso 4.13 (4b1 de 10)», «Paso 4.13 (4b2 de 11)», «Paso 4.13 (4b3 de 11)», «Paso 4.13 (4c1 de 12)» y
+  «Paso 4.13 (4c2 de 12)» y BITACORA. **Falta el 4d** (la tarea de oro 2 con teclado, KLM ≤ 90 s; el presupuesto
+  formal de JS de `/cotizaciones/nuevo`, hoy 429,5 KB (4c2); la hoja entera a 412 y 1.280 px, al 100 y al 200 %, con el resumen fijo; nodos de la hoja
+  con «Avanzado» abierto: medido en el 4c2 con el botón de la ayuda de una tabla, **468 al abrir y 490 usada**, tope 500 (P7, P8), y si se pasa de 500 se para y se reporta;
+  cierra 4-44). Marcas: 4a `1 de 3`; 4b1 `sí`
   (el completo de escritorio por su Nivel 2: la cuenta vuelve a 0); 4b2 `no` (base, Nivel 1: la cuenta sigue en 0); 4b3 `1 de 3`; 4c1 `no` (base, Nivel 1: la cuenta sigue en 1); 4c2 `2 de
-3`; 4d `3 de 3` y corre el completo de escritorio. El ⚙ no se abre hasta el 4.20 (sin callback la `XCell` no dibuja el botón). Sin paso
+3` (hecha); 4d `3 de 3` y corre el completo de escritorio. El ⚙ no se abre hasta el 4.20 (sin callback la `XCell` no dibuja el botón). Sin paso
   «Oficina». Los paneles de vehículo y cliente son del 4.14: aquí el lead llega preseleccionado desde su ficha y el vehículo, como diga el ajuste
   (la lectura lo trae). Para el prompt 4 (de 3c, `docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»): un número tipeado se lee con
   `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre con `formatearParaEditar` y el locale; la `XCell`
   tiene un candado por lado (`secondaryDisabledReason`). El diseño recortado es una lectura propia y está en el inventario de
-  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 12 (quedan 2).
+  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 12 (queda 1).
   - **P1** (contestada el 2026-10-28; hecha en el 4b3): la hoja abre con el primero de los modos que declara el diseño, marcado.
   - **P2** (contestada el 2026-10-28; hecha en el 4b1): «Ver total Bs» se guarda con la cotización (`cotizaciones.ver_total_bs`, `not null default false`).
   - **P4** (contestada el 2026-10-29; hecha en el 4b2): el total en Bs se escribe con la moneda `a` del tipo de cambio de `total_en` de la versión,
@@ -108,9 +109,11 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   - **P9** (contestada el 2026-10-29; hecha en el 4c1): el tope de bytes de `cotizacion_tabla` con 1.000 filas para una asesora con «costos» es lo medido más un
     5 %, 52.752 (el provisional de 48 KB no cabía por el relleno de la medición). Las P10 a P12 eran P4 a P6 en el plan del 4c.
   - **P10** (contestada el 2026-10-29; hecha en el 4c1): `cotizacion_tabla` por origen pide también `cotizaciones.ver` del origen, la puerta de la hoja.
-  - **P11** (contestada el 2026-10-29; para el 4c2): la ayuda de una tabla suma ~3 nodos por celda (estimado 490 usada): sigue si la medida queda ≤ 500 y se
-    para sólo si pasa.
-  - **P12** (contestada el 2026-10-29; para el 4c2): la ayuda de una tabla es de sólo lectura (no escribe un valor en la celda).
+  - **P11** (contestada el 2026-10-29; hecha en el 4c2: medido 468 al abrir y 490 usada, 2,0 % de margen): la ayuda de una tabla suma ~3 nodos por celda: sigue si la
+    medida queda ≤ 500 y se para sólo si pasa.
+  - **P12** (contestada el 2026-10-29; hecha en el 4c2): la ayuda de una tabla es de sólo lectura (no escribe un valor en la celda).
+  - **P13** (contestada el 2026-10-29; hecha en el 4c2): con el Modo Live, las cifras de la ayuda de una tabla se tapan como las de la celda que la abre: si es
+    dinero, pasan por `<Monto>` con la moneda de la celda; si no (un factor, `raw`), quedan a la vista.
 - **4.14** — Los paneles del vehículo y del cliente (cursor, nunca «Página N de M»). Vehículo: link o lote (apibara grabado), un nombre,
   «+» y «cargar a mano», que crean el vehículo (D3); «Últ. cotización» por `vehiculos.cotizado_en` con su índice
   `(origen_id, cotizado_en desc, id)`; «Cierre subasta» por `vehiculos_subasta_estado_idx`, que ya existe pero sin `origen_id` (se mide
@@ -167,7 +170,7 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 73 prompts; faltan el 4.13-4c2 a 4d y los pasos 4.14 a 4.28.
+Total de la fase: 28 pasos y 73 prompts; faltan el 4.13-4d y los pasos 4.14 a 4.28.
 
 ### Abiertos de la Fase 4
 
@@ -280,6 +283,13 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-46** (sin fase, lo decide la persona; salió del 4.13-4b2; del tipo de 4-39 y 4-43): `supabase/tests/cotizacion-hoja.sql` tiene 705 líneas (> 300). Partirlo
   por responsabilidad: los ayudantes `pg_temp.ch_*` a un archivo que `scripts/probar-schema.mjs` cargue antes, y la conducta, los niveles y la moneda aparte, con
   `SOLO` sabiendo cargar los ayudantes. Assert: `wc -l` de cada parte ≤ 300 y los mismos `@test` en verde.
+- **4-47** (4.23; salió del 4.13-4c2): la ayuda de una tabla dibuja hasta 1.000 filas y dice «Mostrando las 1.000 primeras filas.» sin un camino a las demás (se aparta de
+  la regla de `.claude/rules/escala.md`: siempre hay un camino a lo antiguo); el editor de tablas (4.23) lo da. Además, sin copia viva de la tabla, la base manda la clave como
+  nombre y `columnas` vacía, y la pantalla deriva las columnas de la primera fila (con la clave de encabezado). Assert: una tabla de más de 1.000 filas llega a todas desde
+  el editor, y una tabla congelada sin viva se rotula con etiquetas.
+- **4-48** (sin fase; el próximo paso que toque `src/shared`): `src/shared/ui/xcell/CLAUDE.md:38` dice «lo que abran [los botones] pasa sus cifras por `<Monto>`»; con la
+  ayuda de una tabla (4.13-4c2, P13) sólo es cierto para una celda de dinero (un factor `raw` queda a la vista). No se corrigió en el 4c2 porque tocar esa ficha da Nivel 2.
+  Assert: la línea dice lo que hace la hoja.
 - **5a-4b** (4.28): la suite completa no baja de 25 min (el Nivel 3 tarda 40,1 min con 1.065 pruebas; el Nivel 2 ≈ 24; el último completo
   de escritorio, ≈ 28 min). Decidido el 2026-10-19: no se monta la segunda pila local; los shards de CI son la salida (`.github/workflows/ci.yml`,
   CI-1: 4 runners, cada uno con su pila y su base; escritorio por defecto y `proyectos: ambos` a mano; los bloques de escritorio suman 5,7 a

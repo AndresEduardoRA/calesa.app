@@ -221,6 +221,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Avanzado** — `presentacion: 'avanzado'` de una sección: celdas que se editan en un modal aparte (hoy, los componentes del CIF y de la póliza).
 - **Sección (de la hoja)** — `diseno.secciones[]`: bloque de ítems con título, presentación (`principal` o `avanzado`) y nivel opcional.
 - **Celda (de la hoja)** — ítem `celda` del diseño: la `XCell` de un nodo en la hoja: ancho (`completo`, `mitad` o `tercio`), ayuda y niveles.
+- **Ayuda (de una celda)** — `ayuda` de una `celda` del diseño: un texto o una tabla de referencia que abre su botón «Ayuda de X» en un panel de sólo lectura, con su URL (`?ayuda=texto|tabla&nodo=<id>`); la tabla se lee con la hoja abierta.
 - **Secundario (de una celda)** — `secundario` de una `celda`: el % (o monto) junto al valor en un `porcentaje_de`; obligatorio si el monto se sobrescribe.
 - **Subtotal (de la hoja)** — ítem `subtotal` del diseño: un nodo de cálculo dibujado como franja (el «CIF» de «avanzado»).
 - **Tarjeta del total** — `diseno.tarjeta_total`: resumen fijo (al pie en celular): nodo total y secundarios; no se ubica en el diseño.

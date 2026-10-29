@@ -4,7 +4,7 @@
 > en el código lo dice `docs/MAPA.md`; los abiertos con su paso, `docs/PLAN.md`. La versión anterior completa: `docs/archivo/ESTADO.md`.
 
 **Última actualización:** 2026-10-29
-**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.13, prompt 4c1 de 12**; sigue el **4.13-4c2**. La
+**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.13, prompt 4c2 de 12**; sigue el **4.13-4d**. La
 partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Partición»).
 **Aparte:** la preparación para Orca, en la rama `preparar-orca` (`docs/PREPARACION.md`). No toca código de producto; la integra la persona.
 
@@ -17,15 +17,15 @@ partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` �
 - **El piloto** (`docs/PILOTO.md`) es el carril A de Orca (`docs/ORCA.md`): avanza `docs/PLAN.md` un paso por sesión y publica su rama
   `a/…` por PR; sólo pregunta en las compuertas. Falta aceptar la confianza de la carpeta y `decidir.sh --prueba-tandas`.
 - **Fases 0 a 3 completas** (equipo, empresa, orígenes, vehículos y leads). **Fase 4:** fórmula, motor, niveles, crear y guardar una
-  cotización, y la hoja dibujada que guarda, con «Avanzado», la ayuda de texto, «Ver total Bs», los modos, el resumen fijo y, en la base, la tabla de una ayuda con la hoja abierta (4.01 a 4.13-4c1).
+  cotización, y la hoja dibujada que guarda, con «Avanzado», la ayuda de texto, «Ver total Bs», los modos, el resumen fijo y la ayuda de una tabla, en la base y en la pantalla (4.01 a 4.13-4c2).
 - **La rueda de la web:** `habilitado` es de la persona (`cola_web_configurar`); el rol decide si puede estar (`web.cola.participar`). Sin
   pantalla todavía: el tablero de la cola y el interruptor de disponibilidad (Fase 8, 8-1).
 
 ## Siguiente
 
-1. **Carril A: el 4.13-4c2, con el piloto** (la ayuda de una tabla, la pantalla: el panel de sólo lectura que lee `cotizacion_tabla` con la hoja abierta; P11 y P12
-   contestadas en la fila 4.13 de PLAN) y en orden hasta el 4.28, **un prompt a la vez, y se para a reportar**. La cuenta de pantallas sin completo está en **1 de 3** (el 4c1 fue base). **La hoja mide 481 nodos usada
-   contra un tope de 500** (P7, P8: techo): lo que le sume nodos se para y se reporta (el 4d mide con «Avanzado»). Abiertos nuevos: 4-45 (`moneda_mostrar`, 4.18) y 4-46.
+1. **Carril A: el 4.13-4d, con el piloto** (la tarea de oro 2, el presupuesto formal de JS de `/cotizaciones/nuevo`, hoy 429,5 KB, y la hoja a 412 y 1.280 px; cierra 4-44) y en orden hasta
+   el 4.28, **un prompt a la vez, y se para a reportar**. Cuenta sin completo: **2 de 3**, así que **el 4d corre el completo de escritorio**. **La hoja mide 468 nodos al abrir y 490 usada
+   contra un tope de 500** (P7, P8; 2,0 % de margen): lo que sume nodos se para y se reporta. Abiertos nuevos: 4-45 (4.18), 4-46, 4-47 (tope de la ayuda de una tabla, 4.23) y 4-48 (ficha de la `XCell`).
 2. **Del 3c:** un número tipeado se lee con `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre
    con `formatearParaEditar` y el locale; la importación CSV lee más permisiva a propósito. **Para la persona:** la sesión de decidir dejó
    anotadas las respuestas de la 1.ª tanda de P1–P6 (`.piloto/informes/4.13-3c.md` › «Para la persona»).
