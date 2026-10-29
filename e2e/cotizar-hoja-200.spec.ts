@@ -8,7 +8,6 @@ import {
 } from './soporte/base'
 import { vigilarRecalculos } from './soporte/cotizar'
 import { celdasFueraDeSuSeccion, ordenConAvanzado } from './soporte/cotizar-avanzado'
-import { enKB, medirJsEnFrio } from './soporte/js-en-frio'
 import {
   capturar,
   sinScrollHorizontal,
@@ -20,7 +19,7 @@ import { formatearNumero } from '../src/shared/lib/formato'
 
 // La hoja de cotizar a cada ancho y a cada tamaño del texto (paso 4.13-2, `docs/UX.md` › «Cotizar», 3): el viewport es el de cada proyecto (412 y 1.280 px), al 100 y al 200 %.
 // Una columna donde el contenedor es angosto —el corte es en rem del contenedor, así el 200 % colapsa solo— sin desplazar la página ni cortar un texto, y el orden del DOM es el
-// declarado. Con el tope de nodos del DOM de la hoja más grande del juego y, anotado, el JS de la ruta (su presupuesto formal es del 4.13-4).
+// declarado. Con el tope de nodos del DOM de la hoja más grande del juego; el JS de la ruta tiene su presupuesto en `presupuesto-js.spec.ts` (4.13-4d).
 test.describe.configure({ mode: 'serial' })
 
 // El tope de nodos del DOM del subárbol `[data-hoja]` para la fórmula más grande del juego (la subasta: 47 nodos, 39 ítems), medida como quien ve «costos». Una celda pesa de 8 a 15
@@ -174,23 +173,4 @@ test('la hoja más grande del juego cabe en el tope de nodos del DOM, al abrir y
   )
   expect(alAbrir).toBeLessThanOrEqual(TOPE_DE_NODOS)
   expect(usada).toBeLessThanOrEqual(TOPE_DE_NODOS)
-})
-
-// @sin-celular: el JS que paga quien llega a la ruta no depende del ancho de la pantalla; se mide una vez, con el build, como el presupuesto de JS de las demás pantallas.
-test('el JS en frío de la ruta de cotizar, anotado (el presupuesto formal es del 4.13-4)', async ({
-  page,
-}, info) => {
-  await entrar(page, duena)
-  const { bytes, chunks } = await medirJsEnFrio(
-    page.context(),
-    `/cotizaciones/nuevo?origen=${subasta}`,
-  )
-  info.annotations.push({
-    type: 'JS en frío',
-    description: `/cotizaciones/nuevo: ${String(enKB(bytes))} KB con gzip en ${String(chunks)} chunks`,
-  })
-  console.warn(
-    `[js] /cotizaciones/nuevo: ${String(enKB(bytes))} KB con gzip en ${String(chunks)} chunks`,
-  )
-  expect(bytes).toBeGreaterThan(0)
 })
