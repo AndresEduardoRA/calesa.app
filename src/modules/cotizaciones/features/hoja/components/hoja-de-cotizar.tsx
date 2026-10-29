@@ -64,15 +64,7 @@ export function HojaDeCotizar({
     () => ({ indice: h.indice, entradas: h.entradas, respuesta: h.respuesta }),
     [h.indice, h.entradas, h.respuesta],
   )
-  const { boton } = useGuardarLaHoja({
-    h,
-    contexto,
-    hoja,
-    leadId,
-    vehiculoId,
-    guardado,
-    raiz,
-  })
+  const { boton } = useGuardarLaHoja({ h, contexto, hoja, leadId, vehiculoId, guardado, raiz })
   const dibujadas = hoja.secciones.filter((seccion) => seccionSeDibuja(seccion, contexto))
   // Puede cotizar en el origen pero su rol no ve ningún dato de la hoja (`cotizaciones.ver`): no hay nada que dibujar ni un total que dar.
   if (dibujadas.length === 0) {
@@ -101,6 +93,8 @@ export function HojaDeCotizar({
             contexto={contexto}
             acciones={h.acciones}
             guardando={guardado.estado.tipo === 'guardando'}
+            origenId={hoja.origen.id}
+            abierta={h.abierta}
           />
         </div>
         <ResumenDeHoja

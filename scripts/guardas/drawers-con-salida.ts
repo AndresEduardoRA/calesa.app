@@ -108,4 +108,7 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
   'src/modules/cotizaciones/features/hoja/components/ayuda-de-celda.tsx': {
     sinFormulario: 'de sólo lectura: el texto de ayuda de una celda de la hoja',
   },
+  'src/modules/cotizaciones/features/hoja/components/ayuda-de-tabla.tsx': {
+    sinFormulario: 'de sólo lectura: la tabla de referencia de una celda de la hoja',
+  },
 }

@@ -16,12 +16,22 @@ type Props = {
   contexto: ContextoDeHoja
   acciones: AccionesDeHoja
   guardando: boolean
+  // De dónde lee la ayuda de una tabla: el origen y la hoja abierta de esta hoja.
+  origenId: string
+  abierta: string
 }
 
-// Las secciones principales en su orden, con «Avanzado» (el botón y su modal) donde estaba la primera avanzada, y la ayuda de texto de sus celdas: quien guarda en la URL cuál se
-// abre es la hoja, y el callback que reciben las celdas es uno solo (la `XCell` está en `memo`).
-export function LugaresDeLaHoja({ secciones, contexto, acciones: deLaHoja, guardando }: Props) {
-  const { ayuda, alAyudar } = useAyudaDeLaHoja()
+// Las secciones principales en su orden, con «Avanzado» (el botón y su modal) donde estaba la primera avanzada, y la ayuda (de texto o de una tabla) de sus celdas: quien guarda
+// en la URL cuál se abre es la hoja, y el callback que reciben las celdas es uno solo (la `XCell` está en `memo`).
+export function LugaresDeLaHoja({
+  secciones,
+  contexto,
+  acciones: deLaHoja,
+  guardando,
+  origenId,
+  abierta,
+}: Props) {
+  const { ayuda, alAyudar } = useAyudaDeLaHoja(secciones, { origenId, abierta })
   const acciones = useMemo(() => ({ ...deLaHoja, alAyudar }), [deLaHoja, alAyudar])
   const lugares = ordenDeLaHoja(secciones)
   return (

@@ -96,9 +96,9 @@ describe('HojaDeCotizar: la ayuda de texto', () => {
     expect(within(panel).getByText('Cómo se usa b1')).toBeTruthy()
   })
 
-  it('una celda con ayuda de tabla no tiene botón (es del 4.13-4c) y una sin ayuda tampoco', () => {
+  it('una celda con ayuda de tabla tiene su botón y una sin ayuda no', () => {
     montar()
-    expect(screen.queryByRole('button', { name: 'Ayuda de B2' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Ayuda de B2' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Ayuda de A1' })).toBeNull()
   })
 

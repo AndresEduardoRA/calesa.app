@@ -5,9 +5,11 @@ import { hojaDesde, type CeldaDeHoja, type HojaLista, type SeccionDeHoja } from 
 import { crudaDeLaHoja, respuestaDePrueba } from './hoja-de-prueba.soporte'
 import {
   ayudaDeTexto,
-  celdaConAyudaDeTexto,
+  celdaConAyuda,
   hayDatosPorRevisar,
   ordenDeLaHoja,
+  tablaDeAyuda,
+  tipoDeAyuda,
   titulosDeAvanzado,
 } from './presentacion-de-la-hoja'
 
@@ -132,7 +134,7 @@ describe('hayDatosPorRevisar: un aviso en lo que el botón esconde', () => {
   })
 })
 
-describe('ayudaDeTexto: sólo el texto; una tabla es del 4.13-4c', () => {
+describe('ayudaDeTexto y tablaDeAyuda: cada una, lo suyo', () => {
   const de = (nodo: string): CeldaDeHoja => {
     const c = contexto(DOS_AVANZADAS).indice.celdas.get(nodo)
     if (!c) {
@@ -154,24 +156,53 @@ describe('ayudaDeTexto: sólo el texto; una tabla es del 4.13-4c', () => {
   })
 })
 
-describe('celdaConAyudaDeTexto: la URL no abre lo que la hoja no muestra', () => {
+describe('tipoDeAyuda y tablaDeAyuda', () => {
+  const de = (nodo: string): CeldaDeHoja => {
+    const c = contexto(DOS_AVANZADAS).indice.celdas.get(nodo)
+    if (!c) {
+      throw new Error(`No hay ${nodo}`)
+    }
+    return c
+  }
+
+  it('dice si la ayuda es de texto, de una tabla o no hay', () => {
+    expect(tipoDeAyuda(de('b1'))).toBe('texto')
+    expect(tipoDeAyuda(de('y1'))).toBe('tabla')
+    expect(tipoDeAyuda(de('a1'))).toBeNull()
+  })
+
+  it('la clave de la tabla, sólo si la ayuda es de una tabla', () => {
+    expect(tablaDeAyuda(de('y1'))).toBe('poliza')
+    expect(tablaDeAyuda(de('b1'))).toBeNull()
+    expect(tablaDeAyuda(de('a1'))).toBeNull()
+  })
+})
+
+describe('celdaConAyuda: la URL no abre lo que la hoja no muestra ni lo que es de otro tipo', () => {
   const c = contexto(DOS_AVANZADAS)
   const principales = DOS_AVANZADAS.secciones.filter((s) => s.presentacion === 'principal')
   const avanzadas = DOS_AVANZADAS.secciones.filter((s) => s.presentacion === 'avanzado')
 
-  it('encuentra la celda con ayuda de texto en las secciones que se miran', () => {
-    expect(celdaConAyudaDeTexto(principales, 'b1', c)?.nodo).toBe('b1')
-    expect(celdaConAyudaDeTexto(avanzadas, 'x1', c)?.nodo).toBe('x1')
+  it('encuentra la celda con ayuda de ese tipo en las secciones que se miran', () => {
+    expect(celdaConAyuda(principales, 'b1', 'texto', c)?.nodo).toBe('b1')
+    expect(celdaConAyuda(avanzadas, 'x1', 'texto', c)?.nodo).toBe('x1')
+    expect(celdaConAyuda(avanzadas, 'y1', 'tabla', c)?.nodo).toBe('y1')
   })
 
   it('una celda de otra parte (la de «Avanzado» con el modal cerrado) no se abre', () => {
-    expect(celdaConAyudaDeTexto(principales, 'x1', c)).toBeNull()
+    expect(celdaConAyuda(principales, 'x1', 'texto', c)).toBeNull()
+    expect(celdaConAyuda(principales, 'y1', 'tabla', c)).toBeNull()
   })
 
-  it('una tabla, una celda sin ayuda, un id inventado o la falta de nodo no abren nada', () => {
-    expect(celdaConAyudaDeTexto(avanzadas, 'y1', c)).toBeNull()
-    expect(celdaConAyudaDeTexto(principales, 'a1', c)).toBeNull()
-    expect(celdaConAyudaDeTexto(principales, 'no_existe', c)).toBeNull()
-    expect(celdaConAyudaDeTexto(principales, null, c)).toBeNull()
+  it('«tabla» no abre una celda de texto, ni «texto» una de tabla', () => {
+    expect(celdaConAyuda(principales, 'b1', 'tabla', c)).toBeNull()
+    expect(celdaConAyuda(avanzadas, 'y1', 'texto', c)).toBeNull()
+  })
+
+  it('una celda sin ayuda, un id inventado o la falta de nodo no abren nada', () => {
+    expect(celdaConAyuda(principales, 'a1', 'texto', c)).toBeNull()
+    expect(celdaConAyuda(principales, 'a1', 'tabla', c)).toBeNull()
+    expect(celdaConAyuda(principales, 'no_existe', 'texto', c)).toBeNull()
+    expect(celdaConAyuda(principales, null, 'tabla', c)).toBeNull()
   })
 })

@@ -40,19 +40,41 @@ export const hayDatosPorRevisar = (
   c: ContextoDeHoja,
 ): boolean => celdasQueSeDibujan(secciones, c).some((celda) => propsDeCelda(celda, c).error)
 
-// El texto de la ayuda de una celda, o nulo si no tiene o es de una tabla (la ayuda de tabla es del 4.13-4c: sin botón, para no dibujar uno muerto).
+// La ayuda de una celda es un texto del diseño o una tabla de referencia (`ayuda: {texto}` o `ayuda: {tabla}`): lo que abre su botón lo decide la hoja.
+export type TipoDeAyuda = 'texto' | 'tabla'
+
+export const tipoDeAyuda = (celda: CeldaDeHoja): TipoDeAyuda | null =>
+  celda.ayuda === null ? null : 'texto' in celda.ayuda ? 'texto' : 'tabla'
+
+// El texto de la ayuda de una celda, o nulo si no tiene o es de una tabla.
 export const ayudaDeTexto = (celda: CeldaDeHoja): string | null =>
   celda.ayuda !== null && 'texto' in celda.ayuda ? celda.ayuda.texto : null
 
-// La celda a la que apunta `?nodo=` si se dibuja ahora en estas secciones y tiene ayuda de texto; si no (otro nivel, un id inventado, una tabla, una celda apagada), nada:
-// la URL no abre lo que la hoja no muestra.
-export const celdaConAyudaDeTexto = (
+// La clave de la tabla de la ayuda de una celda, o nulo si no tiene o es de texto.
+export const tablaDeAyuda = (celda: CeldaDeHoja): string | null =>
+  celda.ayuda !== null && 'tabla' in celda.ayuda ? celda.ayuda.tabla : null
+
+// El tipo de ayuda de cada celda de estas secciones, por nodo (para que el callback único de las celdas sepa qué abrir sin cambiar).
+export const tiposDeAyuda = (secciones: readonly SeccionDeHoja[]): Map<string, TipoDeAyuda> =>
+  new Map(
+    secciones
+      .flatMap((s) => s.items)
+      .flatMap((item) => {
+        const tipo = item.tipo === 'celda' ? tipoDeAyuda(item) : null
+        return item.tipo === 'celda' && tipo !== null ? [[item.nodo, tipo] as const] : []
+      }),
+  )
+
+// La celda a la que apunta `?nodo=` si se dibuja ahora en estas secciones y su ayuda es de ese tipo; si no (otro nivel, un id inventado, una ayuda de otro tipo, una celda
+// apagada), nada: la URL no abre lo que la hoja no muestra.
+export const celdaConAyuda = (
   secciones: readonly SeccionDeHoja[],
   nodo: string | null,
+  tipo: TipoDeAyuda,
   c: ContextoDeHoja,
 ): CeldaDeHoja | null =>
   nodo === null
     ? null
     : (celdasQueSeDibujan(secciones, c).find(
-        (celda) => celda.nodo === nodo && ayudaDeTexto(celda) !== null,
+        (celda) => celda.nodo === nodo && tipoDeAyuda(celda) === tipo,
       ) ?? null)
