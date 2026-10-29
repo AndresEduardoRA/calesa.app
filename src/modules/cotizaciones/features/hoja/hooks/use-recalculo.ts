@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fallo, type Resultado } from '@/shared/lib/errores'
 import type { RecalculoInicial } from '../../../entities/apertura'
-import { ENTRADAS_VACIAS, type Entradas } from '../../../entities/entradas'
+import type { Entradas } from '../../../entities/entradas'
 import {
   pideRecargar,
   type EstadoDeRecalculo,
@@ -124,10 +124,13 @@ function apagar(m: Motor, ponerEstado: PonerEstado): void {
 // `pedir` tiene que ser estable: se lee una vez.
 export function useRecalculo({
   inicial,
+  iniciales,
   pedir,
   espera = ESPERA_DE_RECALCULO_MS,
 }: {
   inicial: RecalculoInicial
+  // Las entradas con que abre la hoja (el primer modo): «al día» sin nada tipeado devuelve éstas.
+  iniciales: Entradas
   pedir: Pedir
   espera?: number
 }) {
@@ -140,7 +143,7 @@ export function useRecalculo({
     enVuelo: false,
     pendiente: false,
     generacion: 0,
-    entradas: ENTRADAS_VACIAS,
+    entradas: iniciales,
     respuesta: inicial.respuesta,
     estado: inicial.estado,
     espera: null,

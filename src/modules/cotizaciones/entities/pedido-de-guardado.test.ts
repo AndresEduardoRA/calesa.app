@@ -8,6 +8,7 @@ const PEDIDO: PedidoDeGuardado = {
   vehiculoId: null,
   abierta: 'f.1.ab',
   entradas: { inputs: { pub: 1 }, banderas: {}, overrides: {} },
+  modoTc: null,
   conLaAbierta: false,
 }
 
@@ -28,5 +29,10 @@ describe('argumentosDeCrear', () => {
     const args = argumentosDeCrear({ ...PEDIDO, vehiculoId: 'v', conLaAbierta: true })
     expect(args.p_vehiculo).toBe('v')
     expect(args.p_con_la_abierta).toBe(true)
+  })
+
+  it('manda p_modo_tc con el modo y lo omite sin él', () => {
+    expect(argumentosDeCrear({ ...PEDIDO, modoTc: 'unificado' }).p_modo_tc).toBe('unificado')
+    expect('p_modo_tc' in argumentosDeCrear(PEDIDO)).toBe(false)
   })
 })

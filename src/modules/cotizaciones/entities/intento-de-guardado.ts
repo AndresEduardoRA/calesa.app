@@ -40,6 +40,8 @@ const esquemaDelPendiente = z.object({
     overrides: z.record(z.string(), z.number()),
     variante: z.string().optional(),
   }),
+  // Un pendiente de antes del despliegue no los traía: se reenvía igual que salió.
+  modoTc: z.string().nullable().default(null),
   conLaAbierta: z.boolean(),
 })
 

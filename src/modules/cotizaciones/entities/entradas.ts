@@ -1,3 +1,4 @@
+import { modoInicial } from './cabecera-de-la-hoja'
 import type { CeldaDeHoja, InterruptorDeHoja, SeccionDeHoja, VarianteDeHoja } from './hoja'
 
 // Lo que la persona tipeó en la hoja y se manda a recalcular (`cotizacion_evaluar`, paso 4.13-2): sólo lo que cambió. Es inmutable: cada cambio devuelve otro
@@ -10,6 +11,8 @@ export type Entradas = {
   overrides: ReadonlyMap<string, number>
   // La clave elegida; nula, la que traiga la fórmula por defecto.
   variante: string | null
+  // El modo de tipo de cambio elegido (su clave); nulo, el que trae la fórmula (la hoja abre con el primero de los que declara el diseño, P1). Cambia el cálculo: viaja con lo que calculó cada recálculo (P8).
+  modoTc: string | null
   // El chip que se pulsó de unos atajos (nodo → posición): con años que repiten el valor, cuatro chips valen lo mismo y sólo uno quedó pulsado.
   atajos: ReadonlyMap<string, number>
 }
@@ -19,6 +22,7 @@ export const ENTRADAS_VACIAS: Entradas = {
   banderas: new Set(),
   overrides: new Map(),
   variante: null,
+  modoTc: null,
   atajos: new Map(),
 }
 
@@ -55,10 +59,21 @@ export type IndiceDeHoja = {
   variante: VarianteDeHoja | null
   // Clave de una opción de la variante → su etiqueta.
   opciones: ReadonlyMap<string, string>
+  // Las claves de los modos de tipo de cambio que declara el diseño y el primero, con el que abre la hoja.
+  modos: ReadonlySet<string>
+  modoInicial: string | null
+}
+
+// Las entradas con que abre la hoja: nada tipeado y el primer modo, marcado (P1).
+export function entradasIniciales(indice: IndiceDeHoja): Entradas {
+  return { ...ENTRADAS_VACIAS, modoTc: indice.modoInicial }
 }
 
 // Se arma una vez por hoja: un nodo se dibuja a lo sumo una vez («aparecer una vez», `docs/COTIZADOR.md` › «El diseño de la hoja»).
-export function indiceDeHoja(secciones: readonly SeccionDeHoja[]): IndiceDeHoja {
+export function indiceDeHoja(
+  secciones: readonly SeccionDeHoja[],
+  modos: readonly { clave: string }[] = [],
+): IndiceDeHoja {
   const celdas = new Map<string, CeldaDeHoja>()
   const lados = new Map<string, LadoDeCelda>()
   const interruptores = new Map<string, InterruptorDeHoja>()
@@ -85,7 +100,16 @@ export function indiceDeHoja(secciones: readonly SeccionDeHoja[]): IndiceDeHoja 
       }
     }
   }
-  return { celdas, lados, interruptores, subtotales, variante, opciones }
+  return {
+    celdas,
+    lados,
+    interruptores,
+    subtotales,
+    variante,
+    opciones,
+    modos: new Set(modos.map((m) => m.clave)),
+    modoInicial: modoInicial({ modos }),
+  }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -172,6 +196,10 @@ export function alternarBandera(e: Entradas, nodo: string, encendida: boolean): 
 
 export function elegirVariante(e: Entradas, clave: string): Entradas {
   return { ...e, variante: clave }
+}
+
+export function elegirModo(e: Entradas, clave: string): Entradas {
+  return { ...e, modoTc: clave }
 }
 
 // Un chip de unos atajos: su valor pasa a ser el override del nodo (o del porcentaje que la celda muestra), y se recuerda cuál fue.

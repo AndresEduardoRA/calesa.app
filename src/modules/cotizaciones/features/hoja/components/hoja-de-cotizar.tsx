@@ -12,6 +12,7 @@ import type { Guardado } from '../hooks/use-guardado'
 import { useGuardarLaHoja } from '../hooks/use-guardar-la-hoja'
 import { useHoja } from '../hooks/use-hoja'
 import { AvisoDelGuardado } from './aviso-de-guardado'
+import { CabeceraDeHoja } from './cabecera-de-hoja'
 import { ResumenDeHoja } from './resumen-de-hoja'
 import { LugaresDeLaHoja } from './lugares-de-la-hoja'
 
@@ -81,6 +82,11 @@ export function HojaDeCotizar({
     >
       <SimbolosDeXCell />
       <EstiloDeTonos tonos={hoja.tonos} />
+      <CabeceraDeHoja
+        cabecera={hoja.cabecera}
+        modoElegido={h.entradas.modoTc}
+        alElegirModo={h.acciones.alElegirModo}
+      />
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @5xl:grid-cols-2">
         <LugaresDeLaHoja
           secciones={dibujadas}

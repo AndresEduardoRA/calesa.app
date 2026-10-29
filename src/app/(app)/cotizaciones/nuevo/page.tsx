@@ -8,6 +8,7 @@ import {
   CLAVE_DE_ORIGEN,
   CLAVE_DE_VEHICULO,
   leerHojaParaCotizar,
+  modoInicial,
   origenElegido,
   origenesParaCotizar,
   recalcularAlAbrir,
@@ -53,7 +54,12 @@ async function abrirLaHoja(origenId: string, vehiculoId: string | null) {
   const hoja = await leerHojaParaCotizar(origenId)
   const alAbrir =
     hoja.ok && hoja.data.estado === 'lista'
-      ? await recalcularAlAbrir({ origenId, vehiculoId, abierta: hoja.data.abierta })
+      ? await recalcularAlAbrir({
+          origenId,
+          vehiculoId,
+          abierta: hoja.data.abierta,
+          modoTc: modoInicial(hoja.data.cabecera),
+        })
       : null
   return {
     apertura: aperturaDe(hoja, alAbrir?.resultado ?? null),

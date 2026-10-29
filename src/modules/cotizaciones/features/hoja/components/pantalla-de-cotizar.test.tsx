@@ -105,6 +105,7 @@ describe('PantallaDeCotizar › lo guardado', () => {
       vehiculoId: null,
       abierta: 'vieja',
       entradas: { inputs: {}, banderas: {}, overrides: {} },
+      modoTc: null,
       conLaAbierta: false,
     }
     window.sessionStorage.setItem(

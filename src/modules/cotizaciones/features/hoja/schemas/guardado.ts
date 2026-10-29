@@ -16,5 +16,6 @@ export const esquemaDeGuardado = z.object({
   vehiculoId: z.guid().nullable(),
   abierta: z.string().min(1).max(300),
   entradas,
+  modoTc: z.string().min(1).max(200).nullable(),
   conLaAbierta: z.boolean(),
 })

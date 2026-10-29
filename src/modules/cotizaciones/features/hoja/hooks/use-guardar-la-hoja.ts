@@ -67,6 +67,7 @@ export function useGuardarLaHoja({
               vehiculoId,
               abierta: h.abierta,
               entradas: entradasDelPedido(r.entradas),
+              modoTc: r.entradas.modoTc,
             }
           : null,
       )

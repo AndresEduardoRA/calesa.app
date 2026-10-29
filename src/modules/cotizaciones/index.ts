@@ -65,6 +65,7 @@ export type {
 // `pantallas/cotizar.ts`. `recalcularAlAbrir` sólo se importa desde un Server Component.
 export { recalcularAlAbrir } from './composicion'
 export { aperturaDe } from './entities/apertura'
+export { modoInicial } from './entities/cabecera-de-la-hoja'
 export type { Apertura, RecalculoInicial } from './entities/apertura'
 export { origenElegido, origenesParaCotizar } from './entities/origenes-para-cotizar'
 export {

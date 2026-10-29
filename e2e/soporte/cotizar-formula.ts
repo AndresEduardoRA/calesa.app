@@ -141,20 +141,21 @@ const celda = (nodo: string, ancho: string, mas: Record<string, unknown> = {}) =
   ...mas,
 })
 
-const CABECERA = {
-  ver_total_bs: true,
-  modos: [
-    {
-      clave: 'm1',
-      nombre: 'Modo uno',
-      total_en: 'tc',
-      buckets: [
-        { bucket: 'origen', nodo: 'tc' },
-        { bucket: 'alt', nodo: 'tc_x' },
-      ],
-    },
+const MODO_UNO = {
+  clave: 'm1',
+  nombre: 'Modo uno',
+  total_en: 'tc',
+  buckets: [
+    { bucket: 'origen', nodo: 'tc' },
+    { bucket: 'alt', nodo: 'tc_x' },
   ],
 }
+
+// Un modo (`m1`: la hoja no dibuja qué elegir) o dos (`m1` y `m2`, iguales: la hoja dibuja los radios, 4.13-4b3).
+const cabeceraDePrueba = (dosModos: boolean) => ({
+  ver_total_bs: true,
+  modos: dosModos ? [MODO_UNO, { ...MODO_UNO, clave: 'm2', nombre: 'Modo dos' }] : [MODO_UNO],
+})
 
 function seccionesDePrueba() {
   return [
@@ -198,12 +199,12 @@ function seccionesDePrueba() {
   ]
 }
 
-export function formulaDePrueba() {
+export function formulaDePrueba(dosModos = false) {
   return {
     definicion: definicionDePrueba(),
     params: paramsDePrueba(),
     diseno: {
-      cabecera: CABECERA,
+      cabecera: cabeceraDePrueba(dosModos),
       secciones: seccionesDePrueba(),
       tarjeta_total: { nodo: 'total', secundarios: [] },
     },
@@ -211,8 +212,8 @@ export function formulaDePrueba() {
 }
 
 // Publica una fórmula en un origen por el camino de verdad (`_preparar_publicacion()`: la valida y compila su visibilidad con los niveles y los tonos de la base).
-export function publicarFormulaDePrueba(origenId: string): void {
-  const { definicion, params, diseno } = formulaDePrueba()
+export function publicarFormulaDePrueba(origenId: string, dosModos = false): void {
+  const { definicion, params, diseno } = formulaDePrueba(dosModos)
   const json = (valor: unknown) => `$e2e$${JSON.stringify(valor)}$e2e$::jsonb`
   sql(`
     do $f$
@@ -242,6 +243,7 @@ export async function crearOrigenDeCotizar(
   proyecto: string,
   resto: string,
   conFormula: boolean,
+  dosModos = false,
 ): Promise<{ id: string; nombre: string }> {
   const origen = await crearOrigenDePrueba(
     `E2E 4.13 ${resto} ${proyecto}`,
@@ -251,7 +253,7 @@ export async function crearOrigenDeCotizar(
     },
   )
   if (conFormula) {
-    publicarFormulaDePrueba(origen.id)
+    publicarFormulaDePrueba(origen.id, dosModos)
   }
   return origen
 }

@@ -2,13 +2,14 @@ import { z } from 'zod'
 import type { Entradas, IndiceDeHoja } from './entradas'
 
 // El borrador de la hoja (4-29): lo que la persona tipeó y no guardó, en la pestaña (`useBorradorDeEstado`), para que una recarga, «Recargar» o «Usar la versión nueva» lo
-// repongan. **Sólo lo tipeado**: las cinco claves de `Entradas`, en arreglos de pares (nunca un objeto con ids por clave: un id como «__proto__» es legal). Ni la respuesta
+// repongan. **Sólo lo tipeado**: las seis claves de `Entradas`, en arreglos de pares (nunca un objeto con ids por clave: un id como «__proto__» es legal). Ni la respuesta
 // de la base ni la hoja abierta.
 export type BorradorDeHoja = {
   inputs: [string, number][]
   banderas: string[]
   overrides: [string, number][]
   variante: string | null
+  modoTc: string | null
   atajos: [string, number][]
 }
 
@@ -18,6 +19,7 @@ export function entradasComoBorrador(e: Entradas): BorradorDeHoja {
     banderas: [...e.banderas],
     overrides: [...e.overrides],
     variante: e.variante,
+    modoTc: e.modoTc,
     atajos: [...e.atajos],
   }
 }
@@ -28,6 +30,7 @@ const esquema = z.object({
   banderas: z.array(z.string()).catch([]),
   overrides: pares,
   variante: z.string().nullable().catch(null),
+  modoTc: z.string().nullable().catch(null),
   atajos: pares,
 })
 
@@ -42,6 +45,7 @@ export function entradasDelBorrador(
     banderas: [],
     overrides: [],
     variante: null,
+    modoTc: null,
     atajos: [],
     ...b,
   })
@@ -53,6 +57,9 @@ export function entradasDelBorrador(
     overrides: deLaHoja(leido.overrides),
     variante:
       leido.variante !== null && indice.opciones.has(leido.variante) ? leido.variante : null,
+    // Un modo que la hoja de ahora no declara (u otro borrador, sin la clave) vuelve como el inicial.
+    modoTc:
+      leido.modoTc !== null && indice.modos.has(leido.modoTc) ? leido.modoTc : indice.modoInicial,
     atajos: deLaHoja(leido.atajos),
   }
 }

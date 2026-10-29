@@ -18,6 +18,8 @@ export type RecalculadorAlAbrir = (pedido: {
   origenId: string
   vehiculoId: string | null
   abierta: string
+  // El modo con que abre la hoja (P1): el primer cálculo ya lo lleva.
+  modoTc: string | null
 }) => Promise<{
   resultado: Resultado<RespuestaDeRecalculo>
   vehiculoSoltado: boolean

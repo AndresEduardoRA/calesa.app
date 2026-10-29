@@ -6,9 +6,10 @@ import {
   alternarBandera,
   confirmar,
   elegirAtajo,
+  elegirModo,
   elegirVariante,
-  ENTRADAS_VACIAS,
   entradasDelPedido,
+  entradasIniciales,
   indiceDeHoja,
   restablecer,
   type Entradas,
@@ -27,6 +28,7 @@ export type AccionesDeHoja = {
   alRestablecer: (id: string) => void
   alAlternarBandera: (nodo: string, encendida: boolean) => void
   alElegirVariante: (clave: string) => void
+  alElegirModo: (clave: string) => void
   alElegirAtajo: (nodo: string, posicion: number, valor: number) => void
   // La ayuda de texto de una celda (4.13-4a): la pone la hoja, que es quien guarda en la URL cuál se abre.
   alAyudar?: (nodo: string) => void
@@ -50,6 +52,9 @@ function useAcciones(
       },
       alElegirVariante: (clave) => {
         cambiar((e) => elegirVariante(e, clave))
+      },
+      alElegirModo: (clave) => {
+        cambiar((e) => elegirModo(e, clave))
       },
       alElegirAtajo: (nodo, posicion, valor) => {
         cambiar((e) => elegirAtajo(e, { indice }, nodo, { posicion, valor }))
@@ -78,11 +83,16 @@ export function useHoja({
   useEffect(() => {
     alCambiarRef.current = alCambiar
   })
-  const indice = useMemo(() => indiceDeHoja(hoja.secciones), [hoja.secciones])
-  const [entradas, setEntradas] = useState<Entradas>(ENTRADAS_VACIAS)
+  const indice = useMemo(
+    () => indiceDeHoja(hoja.secciones, hoja.cabecera.modos),
+    [hoja.secciones, hoja.cabecera.modos],
+  )
+  // La hoja abre con el primer modo marcado (P1), el mismo con que el servidor hizo el primer cálculo.
+  const iniciales = useMemo(() => entradasIniciales(indice), [indice])
+  const [entradas, setEntradas] = useState<Entradas>(iniciales)
   // Lo último tipeado, para que dos confirmaciones seguidas partan de la anterior sin esperar a que React dibuje. Se escribe en el manejador del evento, nunca en un
   // `setState`: StrictMode los llama dos veces.
-  const ultimas = useRef<Entradas>(ENTRADAS_VACIAS)
+  const ultimas = useRef<Entradas>(iniciales)
   const origenId = hoja.origen.id
   // La hoja abierta, fijada al montarse: la misma para el recálculo y para el guardado (D2). Una prop nueva no los separa; una abierta nueva vuelve a montar la hoja.
   const [abierta] = useState(() => hoja.abierta)
@@ -94,13 +104,13 @@ export function useHoja({
         vehiculoId,
         abierta,
         entradas: entradasDelPedido(e),
-        modoTc: null,
+        modoTc: e.modoTc,
       }
       return recalcular(pedido)
     },
     [origenId, vehiculoId, abierta],
   )
-  const recalculo = useRecalculo({ inicial, pedir })
+  const recalculo = useRecalculo({ inicial, iniciales, pedir })
   const { programar } = recalculo
 
   const cambiar = useCallback(

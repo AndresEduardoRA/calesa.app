@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { cambiosDeEstado } from '@/shared/lib/borrador'
 import { entradasComoBorrador, entradasDelBorrador, esDescarte } from './borrador-de-hoja'
-import { ENTRADAS_VACIAS, indiceDeHoja, type Entradas } from './entradas'
+import { ENTRADAS_VACIAS, entradasIniciales, indiceDeHoja, type Entradas } from './entradas'
 import { hojaDePrueba } from './hoja-de-prueba.soporte'
 
 const INDICE = indiceDeHoja(hojaDePrueba().secciones)
@@ -13,6 +13,7 @@ const TIPEADAS: Entradas = {
   banderas: new Set([bandera]),
   overrides: new Map([[otro, 20]]),
   variante: opcion,
+  modoTc: null,
   atajos: new Map([[nodo, 2]]),
 }
 const VACIO = entradasComoBorrador(ENTRADAS_VACIAS)
@@ -27,11 +28,12 @@ describe('el borrador de la hoja', () => {
     expect(idaYVuelta(TIPEADAS)).toEqual(TIPEADAS)
   })
 
-  it('sólo guarda lo tipeado: exactamente las cinco claves de las entradas, ni la respuesta ni la abierta', () => {
+  it('sólo guarda lo tipeado: exactamente las seis claves de las entradas, ni la respuesta ni la abierta', () => {
     expect(Object.keys(entradasComoBorrador(TIPEADAS)).sort()).toEqual([
       'atajos',
       'banderas',
       'inputs',
+      'modoTc',
       'overrides',
       'variante',
     ])
@@ -53,6 +55,7 @@ describe('el borrador de la hoja', () => {
       banderas: new Set([bandera]),
       overrides: new Map(),
       variante: null,
+      modoTc: null,
       atajos: new Map(),
     })
   })
@@ -73,5 +76,35 @@ describe('el borrador de la hoja', () => {
       Object.keys(repone).map((k) => [k, VACIO[k as keyof typeof VACIO]]),
     )
     expect(esDescarte(descarta, VACIO)).toBe(true)
+  })
+})
+
+describe('el modo en el borrador', () => {
+  const MODOS = [
+    { clave: 'paralelo', nombre: 'Paralelo' },
+    { clave: 'unificado', nombre: 'Unificado' },
+  ]
+  const CON_MODOS = indiceDeHoja(hojaDePrueba().secciones, MODOS)
+  const vuelta = (b: Record<string, unknown>) => entradasDelBorrador(b, CON_MODOS).modoTc
+
+  it('el modo va y vuelve', () => {
+    const e = { ...entradasIniciales(CON_MODOS), modoTc: 'unificado' }
+    expect(
+      vuelta(JSON.parse(JSON.stringify(entradasComoBorrador(e))) as Record<string, unknown>),
+    ).toBe('unificado')
+  })
+
+  it('un modo que la hoja de ahora no tiene vuelve como el inicial', () => {
+    expect(vuelta({ modoTc: 'viejo' })).toBe('paralelo')
+  })
+
+  it('un borrador de antes, sin la clave, repone el inicial', () => {
+    expect(vuelta({ inputs: [] })).toBe('paralelo')
+  })
+
+  it('la hoja recién abierta no deja borrador: es igual al vacío con el primer modo', () => {
+    const vacio = entradasComoBorrador(entradasIniciales(CON_MODOS))
+    expect(esDescarte(entradasComoBorrador(entradasIniciales(CON_MODOS)), vacio)).toBe(true)
+    expect(esDescarte({ modoTc: 'unificado' }, vacio)).toBe(false)
   })
 })
