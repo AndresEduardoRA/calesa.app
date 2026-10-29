@@ -95,10 +95,10 @@ describe('columnasDeLaTabla', () => {
     expect(leida && columnasDeLaTabla(leida).map((c) => c.clave)).toEqual(['tipo', 'cliente'])
   })
 
-  it('sin columnas declaradas, las claves de la primera fila, en su orden, con la clave de encabezado', () => {
+  it('sin columnas declaradas, las claves de la primera fila, en su orden, con la clave de encabezado y como texto (no se sabe si un número es dinero)', () => {
     const t = tabla({ filas: [{ desde: 2018, nota: 'x' }, { otra: 1 }] })
     expect(columnasDeLaTabla(t)).toEqual([
-      { clave: 'desde', etiqueta: 'desde', tipo: 'numero' },
+      { clave: 'desde', etiqueta: 'desde', tipo: 'texto' },
       { clave: 'nota', etiqueta: 'nota', tipo: 'texto' },
     ])
   })

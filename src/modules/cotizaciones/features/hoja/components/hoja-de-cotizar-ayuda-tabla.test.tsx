@@ -190,6 +190,9 @@ describe('HojaDeCotizar: lo que dibuja la ayuda de una tabla', () => {
     const panel = await abrir('A1')
     const encabezados = await within(panel).findAllByRole('columnheader')
     expect(encabezados.map((c) => c.textContent)).toEqual(['anio', 'factor', 'oficina'])
+    // Sin tipo no se sabe si un número es dinero o un año: ninguno va por `<Monto>` (aunque la celda sea de dinero) y salen con `formatearNumero`.
+    expect(panel.querySelectorAll('[data-monto]')).toHaveLength(0)
+    expect(within(panel).getByText('2.018')).toBeTruthy()
   })
 
   it('una tabla sin filas lo dice', async () => {

@@ -10,6 +10,7 @@ import {
   ordenDeLaHoja,
   tablaDeAyuda,
   tipoDeAyuda,
+  tiposDeAyuda,
   titulosDeAvanzado,
 } from './presentacion-de-la-hoja'
 
@@ -175,6 +176,18 @@ describe('tipoDeAyuda y tablaDeAyuda', () => {
     expect(tablaDeAyuda(de('y1'))).toBe('poliza')
     expect(tablaDeAyuda(de('b1'))).toBeNull()
     expect(tablaDeAyuda(de('a1'))).toBeNull()
+  })
+})
+
+describe('tiposDeAyuda: qué abre el botón de cada celda, de todas las secciones', () => {
+  it('un tipo por nodo con ayuda, principales y avanzadas; sin ayuda, nada', () => {
+    const tipos = tiposDeAyuda(DOS_AVANZADAS.secciones)
+    expect(Object.fromEntries(tipos)).toEqual({ x1: 'texto', b1: 'texto', y1: 'tabla' })
+    expect(tipos.has('a1')).toBe(false)
+  })
+
+  it('sólo cuenta las celdas (un interruptor o un subtotal no tienen ayuda)', () => {
+    expect(tiposDeAyuda([]).size).toBe(0)
   })
 })
 

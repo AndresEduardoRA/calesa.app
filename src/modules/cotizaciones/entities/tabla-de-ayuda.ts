@@ -62,7 +62,7 @@ export function resultadoDeTabla(respuesta: {
 }
 
 // Las columnas que se dibujan: sólo las declaradas (una clave de más en las filas de quien configura no se ve). Sin declaradas (una copia congelada que ya no tiene tabla
-// viva), las claves de la primera fila, en su orden, con la clave de encabezado; una columna cuyo primer valor es un número es numérica.
+// viva), las claves de la primera fila, en su orden, con la clave de encabezado y como texto: sin tipo no se sabe si un número es dinero o un año, así que va con `formatearNumero` y a la vista (4-47).
 export function columnasDeLaTabla(tabla: TablaDeAyuda): ColumnaDeTabla[] {
   if (tabla.columnas.length > 0) {
     return tabla.columnas
@@ -71,7 +71,7 @@ export function columnasDeLaTabla(tabla: TablaDeAyuda): ColumnaDeTabla[] {
   return Object.keys(primera).map((clave) => ({
     clave,
     etiqueta: clave,
-    tipo: typeof primera[clave] === 'number' ? 'numero' : 'texto',
+    tipo: 'texto',
   }))
 }
 
