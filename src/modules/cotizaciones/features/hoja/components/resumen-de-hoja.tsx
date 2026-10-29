@@ -10,6 +10,8 @@ import {
 } from '../../../entities/binding'
 import type { HojaLista } from '../../../entities/hoja'
 import type { EstadoDeRecalculo } from '../../../entities/recalculo'
+import { LiveDelResumen } from './live-del-resumen'
+import { ModoDelResumen } from './modo-del-resumen'
 import { TotalEnMonedaLocal } from './total-en-moneda-local'
 import { ValorDeNodo } from './valor-de-nodo'
 
@@ -17,6 +19,8 @@ type Props = {
   tarjeta: HojaLista['tarjetaTotal']
   // La moneda del total en la moneda local, si «Ver total Bs» está encendido; nula, no se dibuja.
   monedaDelTotalBs: string | null
+  // El nombre del modo de tipo de cambio con que se calculó; nulo, la hoja no tiene modos.
+  modo: string | null
   contexto: ContextoDeHoja
   estado: EstadoDeRecalculo
   // Lo que se dice del vehículo: el ajuste lo pide y no hay, o el de la URL no se pudo usar.
@@ -88,11 +92,12 @@ function AvisoDeFallo({
   )
 }
 
-// El resumen: el total de la hoja (sin fijar: el 4.13-4 lo lleva al pie y al costado) y lo que la tarjeta suma aparte. **No deja pasar por bueno un total viejo:** mientras
+// El resumen: el total de la hoja, fijo (al pie en el celular y al costado, a la derecha de las secciones, desde un ancho de la hoja: `sticky`, 4.13-4b3) y lo que la tarjeta suma aparte. **No deja pasar por bueno un total viejo:** mientras
 // se recalcula o si falló, el total se marca desactualizado con su texto. Los avisos van en una región viva; «Recalculando» no se anuncia (pasa cada 150 ms).
 export function ResumenDeHoja({
   tarjeta,
   monedaDelTotalBs,
+  modo,
   contexto,
   estado,
   avisoDelVehiculo,
@@ -111,7 +116,8 @@ export function ResumenDeHoja({
       data-resumen=""
       data-viejo={viejo}
       aria-busy={ocupado}
-      className="grid gap-2 rounded-(--radius-card) border border-(--color-line-strong) bg-(--color-surface) p-4"
+      data-pie-de-panel=""
+      className="sticky bottom-0 z-10 grid max-h-[40dvh] gap-2 overflow-y-auto rounded-(--radius-card) border border-(--color-line-strong) bg-(--color-surface) p-4 @4xl:top-[calc(var(--topbar)+1rem)] @4xl:bottom-auto @4xl:max-h-[calc(100dvh-var(--topbar)-2rem)] @4xl:w-[22rem] @4xl:shrink-0"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="text-(length:--text-sm) font-medium [overflow-wrap:anywhere] text-(--color-ink-soft)">
@@ -149,6 +155,7 @@ export function ResumenDeHoja({
           </li>
         ))}
       </ul>
+      <ModoDelResumen nombre={modo} />
       <div role="status" className="grid gap-1">
         <AvisoDeFallo estado={estado} alReintentar={alReintentar} alRecargar={alRecargar} />
         {avisoDelVehiculo === null ? null : (
@@ -156,7 +163,10 @@ export function ResumenDeHoja({
         )}
         {avisoDeGuardado}
       </div>
-      <BotonGuardar {...guardar} />
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <BotonGuardar {...guardar} />
+        <LiveDelResumen />
+      </div>
     </aside>
   )
 }

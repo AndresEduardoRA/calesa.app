@@ -24,3 +24,11 @@ export function totalBsDelResumen(respuesta: RespuestaDeRecalculo | null): Total
   const bs = respuesta.totales.bs
   return bs === null ? { tipo: 'faltante' } : { tipo: 'valor', bs }
 }
+
+// El nombre (el de la base) del modo elegido, para decirlo en el resumen; nulo si la hoja no declara modos o no hay uno elegido.
+export function nombreDelModo(
+  cabecera: { modos: readonly { clave: string; nombre: string }[] },
+  clave: string | null,
+): string | null {
+  return cabecera.modos.find((m) => m.clave === clave)?.nombre ?? null
+}

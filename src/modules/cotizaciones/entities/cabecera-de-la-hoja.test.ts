@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { modoInicial, ofreceVerTotalBs, totalBsDelResumen } from './cabecera-de-la-hoja'
+import {
+  modoInicial,
+  nombreDelModo,
+  ofreceVerTotalBs,
+  totalBsDelResumen,
+} from './cabecera-de-la-hoja'
 import { respuestaDePrueba } from './hoja-de-prueba.soporte'
 
 const modo = (clave: string) => ({ clave, nombre: clave.toUpperCase() })
@@ -35,5 +40,16 @@ describe('totalBsDelResumen', () => {
       tipo: 'valor',
       bs: 69.6,
     })
+  })
+})
+
+describe('nombreDelModo', () => {
+  const cabecera = { modos: [modo('paralelo'), modo('unificado')] }
+
+  it('da el nombre del modo elegido; nulo si no hay elegido o no es de la hoja', () => {
+    expect(nombreDelModo(cabecera, 'unificado')).toBe('UNIFICADO')
+    expect(nombreDelModo(cabecera, null)).toBeNull()
+    expect(nombreDelModo(cabecera, 'otro')).toBeNull()
+    expect(nombreDelModo({ modos: [] }, 'paralelo')).toBeNull()
   })
 })

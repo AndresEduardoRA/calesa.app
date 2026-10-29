@@ -6,6 +6,7 @@ import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { EstiloDeTonos, SimbolosDeXCell } from '@/shared/ui/xcell'
 import type { RecalculoInicial } from '../../../entities/apertura'
 import { seccionSeDibuja, type ContextoDeHoja } from '../../../entities/binding'
+import { nombreDelModo } from '../../../entities/cabecera-de-la-hoja'
 import { FALTA_EL_VEHICULO } from '../../../entities/guardado'
 import type { HojaLista } from '../../../entities/hoja'
 import type { Guardado } from '../hooks/use-guardado'
@@ -14,7 +15,7 @@ import { useHoja } from '../hooks/use-hoja'
 import { AvisoDelGuardado } from './aviso-de-guardado'
 import { CabeceraDeHoja } from './cabecera-de-hoja'
 import { ResumenDeHoja } from './resumen-de-hoja'
-import { LugaresDeLaHoja } from './lugares-de-la-hoja'
+import { SeccionesDeLaHoja } from './secciones-de-la-hoja'
 
 type Props = {
   hoja: HojaLista
@@ -86,42 +87,45 @@ export function HojaDeCotizar({
     >
       <SimbolosDeXCell />
       <EstiloDeTonos tonos={hoja.tonos} />
-      <CabeceraDeHoja
-        cabecera={hoja.cabecera}
-        modoElegido={h.entradas.modoTc}
-        alElegirModo={h.acciones.alElegirModo}
-        verTotalBs={h.verTotalBs}
-        alCambiarVerTotalBs={h.alCambiarVerTotalBs}
-      />
-      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @5xl:grid-cols-2">
-        <LugaresDeLaHoja
-          secciones={dibujadas}
+      <div className="flex min-w-0 flex-col gap-4 @4xl:flex-row @4xl:items-start">
+        <div className="grid min-w-0 flex-1 gap-4">
+          <CabeceraDeHoja
+            cabecera={hoja.cabecera}
+            modoElegido={h.entradas.modoTc}
+            alElegirModo={h.acciones.alElegirModo}
+            verTotalBs={h.verTotalBs}
+            alCambiarVerTotalBs={h.alCambiarVerTotalBs}
+          />
+          <SeccionesDeLaHoja
+            secciones={dibujadas}
+            contexto={contexto}
+            acciones={h.acciones}
+            guardando={guardado.estado.tipo === 'guardando'}
+          />
+        </div>
+        <ResumenDeHoja
+          tarjeta={hoja.tarjetaTotal}
+          monedaDelTotalBs={h.verTotalBs ? hoja.cabecera.monedaBs : null}
+          modo={nombreDelModo(hoja.cabecera, h.entradas.modoTc)}
           contexto={contexto}
-          acciones={h.acciones}
-          guardando={guardado.estado.tipo === 'guardando'}
+          estado={h.estado}
+          avisoDelVehiculo={avisoDelVehiculo(
+            vehiculoSoltado,
+            hoja.vehiculoObligatorio && vehiculoId === null,
+          )}
+          alReintentar={h.reintentar}
+          alRecargar={router.refresh}
+          guardar={boton}
+          avisoDeGuardado={
+            <AvisoDelGuardado
+              guardado={guardado}
+              alReintentar={boton.alGuardar}
+              version={hoja.formula.version}
+              alRecargar={router.refresh}
+            />
+          }
         />
       </div>
-      <ResumenDeHoja
-        tarjeta={hoja.tarjetaTotal}
-        monedaDelTotalBs={h.verTotalBs ? hoja.cabecera.monedaBs : null}
-        contexto={contexto}
-        estado={h.estado}
-        avisoDelVehiculo={avisoDelVehiculo(
-          vehiculoSoltado,
-          hoja.vehiculoObligatorio && vehiculoId === null,
-        )}
-        alReintentar={h.reintentar}
-        alRecargar={router.refresh}
-        guardar={boton}
-        avisoDeGuardado={
-          <AvisoDelGuardado
-            guardado={guardado}
-            alReintentar={boton.alGuardar}
-            version={hoja.formula.version}
-            alRecargar={router.refresh}
-          />
-        }
-      />
     </div>
   )
 }

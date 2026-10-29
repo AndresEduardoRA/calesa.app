@@ -27,7 +27,9 @@ test.describe.configure({ mode: 'serial' })
 // nodos (`src/shared/ui/xcell/CLAUDE.md`); se propuso en 650 (32 celdas × 15 nodos + ≈ 170 de estructura) y se fijó en lo medido más un 5 %: 430 con la hoja usada (31 celdas al abrir, 411 nodos), 460.
 // P7 (4.13-4b3, la persona): el tope sube con lo nuevo de la hoja, siempre lo medido con la hoja usada más un 5 %, con techo en 500; si eso pasa de 500, se para y se reporta.
 // Con los modos de tipo de cambio de la subasta (4.13-4b3, commit 1): 442 al abrir y 461 usada, 485. Con «Ver total Bs» (commit 2): 449 y 468, 492.
-const TOPE_DE_NODOS = 492
+// Con el resumen fijo, el modo y Live, el peor caso (el segundo modo y «Ver total Bs» encendido): 459 al abrir y 481 usada; más un 5 % son 506, que pasa del techo de 500: el tope queda en el
+// techo (4,0 % de margen) y el paso lo reporta a la persona (P7).
+const TOPE_DE_NODOS = 500
 
 let duena = ''
 let subasta = ''
@@ -68,12 +70,12 @@ async function abrir(page: Page): Promise<void> {
   await expect(hoja(page)).toBeVisible()
 }
 
-// Qué tan angosto es el contenedor de la hoja y el de cada sección, en rem, y si las celdas de cada sección están en una sola columna.
+// Qué tan angosto es el contenedor de las secciones (`data-secciones`: lo que le queda cuando el resumen va al costado) y el de cada sección, en rem, y si las celdas de cada sección están en una sola columna.
 async function columnas(page: Page) {
   return page.evaluate(() => {
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
     const ancho = (e: Element) => e.getBoundingClientRect().width / rem
-    const raiz = document.querySelector('[data-hoja]')
+    const raiz = document.querySelector('[data-secciones]')
     const secciones = [...document.querySelectorAll('[data-seccion]')].map((s) => {
       const izquierdas = [...s.querySelectorAll('[data-nodo]')].map((n) =>
         Math.round(n.getBoundingClientRect().left),
@@ -106,7 +108,7 @@ for (const zoom of [100, 200]) {
     expect(await lista(page, 'data-atajos')).toEqual(orden.atajos)
 
     const medida = await columnas(page)
-    // Una sola columna de secciones si el contenedor mide menos de 64 rem; una sola de celdas si la sección mide menos de 32 rem (`mitad`) o 48 (`tercio`): el corte es del contenedor.
+    // Una sola columna de secciones si su contenedor (`data-secciones`) mide menos de 64 rem; una sola de celdas si la sección mide menos de 32 rem (`mitad`) o 48 (`tercio`): el corte es del contenedor.
     if (medida.hojaRem < 64) {
       expect(
         new Set(medida.secciones.map((s) => s.izquierda)).size,
@@ -149,6 +151,10 @@ test('la hoja más grande del juego cabe en el tope de nodos del DOM, al abrir y
   await celda(page, 'fees').locator('[data-parada="0"]').click()
   await celda(page, 'fees').locator('input').fill('1300')
   await celda(page, 'fees').locator('input').press('Enter')
+  // El peor caso: el segundo modo elegido y «Ver total Bs» encendido (4.13-4b3), con su línea en el resumen.
+  await page.locator('[data-cabecera]').getByText('Unificado', { exact: true }).click()
+  await page.getByRole('switch', { name: 'Ver total en moneda local' }).click()
+  await expect(page.locator('[data-total-bs]')).toBeVisible()
   await expect.poll(() => vigilante.respuestas.length).toBeGreaterThan(0)
   await expect(page.getByLabel('Resumen')).toHaveAttribute('aria-busy', 'false')
   const usada = (await nodosDelDom(page)) + (await medirElModal(page)).nodos
