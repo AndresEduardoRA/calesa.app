@@ -636,9 +636,9 @@ begin
       it := pg_temp.ch_item(r, 'celda', 'solo_n');
       if (it ->> 'editable')::boolean is distinct from (v_txt in ('ed', 'con', 'ver_como')) then raise exception 'nivel %: «%» edita solo_n = %', v_nivel, v_txt, it; end if;
       if v_txt not in ('ed', 'con', 'ver_como') and it -> 'motivo' is distinct from jsonb_build_object('codigo', 'nivel', 'nivel', v_nombre) then raise exception 'nivel %: el motivo de solo_n para «%»: %', v_nivel, v_txt, it; end if;
-      -- La ayuda de la tabla: llega a quien configura y a quien ve la celda que la lee; las dos mismas personas a las que `cotizacion_tabla` se la da.
+      -- La ayuda de la tabla: llega a quien configura y a quien ve la celda que la lee; las dos mismas personas a las que `cotizacion_tabla` se la da con la misma hoja abierta.
       it := pg_temp.ch_item(r, 'celda', 'con_ayuda');
-      r2 := pg_temp.ch_corre(v_quien, format('select public.cotizacion_tabla(%L, null, %L)', 'ch_tabla', o));
+      r2 := pg_temp.ch_corre(v_quien, format('select public.cotizacion_tabla(%L, null, %L, %L)', 'ch_tabla', o, r ->> 'abierta'));
       if ((it ? 'ayuda') is distinct from (v_txt in ('cfg', 'solo_ver', 'con', 'ver_como')) or (it ? 'ayuda') is distinct from not (r2 ? 'error')) then
         raise exception 'nivel %: la ayuda de la tabla para «%»: celda % y cotizacion_tabla %', v_nivel, v_txt, it, left(r2::text, 120);
       end if;

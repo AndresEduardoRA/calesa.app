@@ -7022,6 +7022,10 @@ export type Database = {
         }
         Returns: Json
       }
+      _cotizacion_tabla_version: {
+        Args: { p_abierta: string; p_cotizacion: string; p_origen: string }
+        Returns: string
+      }
       _cotizacion_tipeado: {
         Args: { p_def: Json; p_entrada: Json; p_modo: Json; p_ok: Json; p_tiene_variante?: boolean }
         Returns: string[]
@@ -7993,7 +7997,7 @@ export type Database = {
         Returns: Json
       }
       cotizacion_tabla: {
-        Args: { p_cotizacion?: string; p_origen?: string; p_tabla: string }
+        Args: { p_abierta?: string; p_cotizacion?: string; p_origen?: string; p_tabla: string }
         Returns: Json
       }
       crear_lead: {

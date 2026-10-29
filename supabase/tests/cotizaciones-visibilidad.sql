@@ -147,7 +147,7 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
     'formula_para_cotizar', jsonb_build_object('clase', 'configurar', 'sonda', 'select public.formula_para_cotizar({origen})',
       'motivo', 'la publicada entera (definicion, params, diseno y visibilidad) sólo con cotizaciones.configurar del origen; el permiso se pide antes de mirar si el origen existe'),
     'cotizacion_tabla', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'el bloque «las tablas de referencia se leen por lo que la hoja ve» (necesita tablas, no nodos)',
-      'motivo', 'una tabla de referencia con sólo las columnas que leen los nodos que quien llama ve (la entera, a quien configura); sin acceso, el error de una tabla que no existe'),
+      'motivo', 'una tabla de referencia con sólo las columnas que leen los nodos que quien llama ve en SU versión (la de la cotización, la de la hoja abierta por origen o la publicada; la entera, a quien configura); sin acceso, el error de una tabla que no existe'),
     'cotizacion_revisiones', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_revisiones({cot})',
       'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
     'cotizacion_hoja', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'el último bloque de cotizacion-hoja.sql, por cada nivel (necesita fórmulas con lo oculto en toda forma, no un nodo centinela)',
@@ -1508,8 +1508,8 @@ begin
   r := pg_temp.cv_corre(cfg_todos, 'select jsonb_build_object(''compartida'', (select count(*) from public.tablas_referencia where origen_id is null and clave = ''compartida''), ''filas'', (select count(*) from public.tablas_referencia_filas f join public.tablas_referencia t on t.id = f.tabla_id where t.clave = ''compartida''))');
   if r is distinct from '{"compartida": 1, "filas": 1}'::jsonb then raise exception 'quien configura todos los orígenes lee también la compartida: %', r; end if;
   -- 10. Los grants.
-  if has_function_privilege('anon', 'public.cotizacion_tabla(text,uuid,uuid)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_tabla(text,uuid,uuid)', 'execute')
-     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_tabla(text,uuid,uuid)'::regprocedure and x.grantee = 0) then
+  if has_function_privilege('anon', 'public.cotizacion_tabla(text,uuid,uuid,text)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_tabla(text,uuid,uuid,text)', 'execute')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_tabla(text,uuid,uuid,text)'::regprocedure and x.grantee = 0) then
     raise exception 'los grants de cotizacion_tabla';
   end if;
 end $$;

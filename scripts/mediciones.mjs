@@ -48,7 +48,7 @@ export const MEDICIONES_BASE = [
   ],
   [
     'supabase/tests/medir-cotizacion-hoja.sql',
-    'cotizacion_hoja() como authenticated con el plan genérico: la hoja de las capturas como dueña y como asesora (ms, bytes de la respuesta y que no lee cotizaciones ni sus revisiones), los atajos de una tabla viva de 1.000 filas, las sintéticas de 255 y de 2.487 nodos y cotizacion_evaluar() por origen con y sin la hoja abierta que firma la base (ms)',
+    'cotizacion_hoja() como authenticated con el plan genérico: la hoja de las capturas como dueña y como asesora (ms, bytes de la respuesta y que no lee cotizaciones ni sus revisiones), los atajos de una tabla viva de 1.000 filas, las sintéticas de 255 y de 2.487 nodos, cotizacion_evaluar() por origen con y sin la hoja abierta que firma la base (ms) y cotizacion_tabla() de esa tabla viva con y sin la hoja abierta, como la dueña y como una asesora con «costos» (ms y bytes)',
     'mediana de 5 de 7 corridas',
   ],
   [
