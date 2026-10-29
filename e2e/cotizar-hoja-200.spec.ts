@@ -7,7 +7,7 @@ import {
   crearDuenaDePrueba,
 } from './soporte/base'
 import { vigilarRecalculos } from './soporte/cotizar'
-import { ordenConAvanzado } from './soporte/cotizar-avanzado'
+import { celdasFueraDeSuSeccion, ordenConAvanzado } from './soporte/cotizar-avanzado'
 import { enKB, medirJsEnFrio } from './soporte/js-en-frio'
 import {
   capturar,
@@ -33,6 +33,7 @@ const TOPE_DE_NODOS = 500
 
 let duena = ''
 let subasta = ''
+let planilla = ''
 
 test.beforeAll(async ({}, info) => {
   await borrarPersonasDePrueba()
@@ -40,6 +41,7 @@ test.beforeAll(async ({}, info) => {
   duena = correoDePrueba(`duena-hoja-ancho-${info.project.name}`)
   await crearDuenaDePrueba({ email: duena, contrasena: CONTRASENA, nombre: 'Dora Ancha' })
   subasta = sql("select id from public.origenes where clave = 'subasta_usa'")
+  planilla = sql("select id from public.origenes where clave = 'planilla_usa'")
 })
 
 test.afterAll(async () => {
@@ -64,9 +66,9 @@ async function medirElModal(page: Page): Promise<{ nodos: number; celdas: number
   return { nodos, celdas }
 }
 
-async function abrir(page: Page): Promise<void> {
+async function abrir(page: Page, origen = subasta): Promise<void> {
   await entrar(page, duena)
-  await page.goto(`/cotizaciones/nuevo?origen=${subasta}`)
+  await page.goto(`/cotizaciones/nuevo?origen=${origen}`)
   await expect(hoja(page)).toBeVisible()
 }
 
@@ -91,46 +93,51 @@ async function columnas(page: Page) {
   })
 }
 
-for (const zoom of [100, 200]) {
-  test(`la hoja de la subasta al ${String(zoom)} % cabe, no corta nada y mantiene el orden declarado`, async ({
-    page,
-  }, info) => {
-    if (zoom === 200) {
-      await textoGrandeAlCargar(page)
-    }
-    await abrir(page)
-    await sinScrollHorizontal(page)
-    await sinTextoCortado(hoja(page))
-    // La hoja dibuja las secciones principales; las avanzadas están detrás del botón «Avanzado» (`cotizar-hoja-avanzado.spec.ts` mira su modal).
-    const orden = ordenConAvanzado('subasta_usa').hoja
-    expect(await lista(page, 'data-seccion')).toEqual(orden.secciones)
-    expect(await lista(page, 'data-nodo')).toEqual(orden.nodos)
-    expect(await lista(page, 'data-atajos')).toEqual(orden.atajos)
-
-    const medida = await columnas(page)
-    // Una sola columna de secciones si su contenedor (`data-secciones`) mide menos de 64 rem; una sola de celdas si la sección mide menos de 32 rem (`mitad`) o 48 (`tercio`): el corte es del contenedor.
-    if (medida.hojaRem < 64) {
-      expect(
-        new Set(medida.secciones.map((s) => s.izquierda)).size,
-        'las secciones en una columna',
-      ).toBe(1)
-    }
-    for (const s of medida.secciones) {
-      if (s.rem < 32) {
-        expect(
-          s.unaColumnaDeCeldas,
-          `la sección ${String(s.id)} (${formatearNumero(s.rem, { decimales: 1 })} rem) en una columna`,
-        ).toBe(true)
+// Los dos diseños de la semilla (el del cotizador actual y el del Excel, `docs/PLAN.md` › criterio de la fase), con el resumen fijo al costado o al pie (4.13-4d).
+for (const clave of ['subasta_usa', 'planilla_usa']) {
+  for (const zoom of [100, 200]) {
+    test(`la hoja de ${clave} al ${String(zoom)} % cabe, no corta nada, sus celdas caben en su sección y mantiene el orden declarado`, async ({
+      page,
+    }, info) => {
+      if (zoom === 200) {
+        await textoGrandeAlCargar(page)
       }
-    }
-    info.annotations.push({
-      type: `columnas al ${String(zoom)} %`,
-      description: `hoja ${formatearNumero(medida.hojaRem, { decimales: 1 })} rem; secciones ${medida.secciones.map((s) => formatearNumero(s.rem, { decimales: 1 })).join(', ')} rem`,
+      await abrir(page, clave === 'subasta_usa' ? subasta : planilla)
+      await sinScrollHorizontal(page)
+      await sinTextoCortado(hoja(page))
+      await sinTextoCortado(page.getByLabel('Resumen'))
+      expect(await celdasFueraDeSuSeccion(hoja(page))).toEqual([])
+      // La hoja dibuja las secciones principales; las avanzadas están detrás del botón «Avanzado» (`cotizar-hoja-avanzado.spec.ts` mira su modal).
+      const orden = ordenConAvanzado(clave, clave === 'subasta_usa' ? ['garantia'] : []).hoja
+      expect(await lista(page, 'data-seccion')).toEqual(orden.secciones)
+      expect(await lista(page, 'data-nodo')).toEqual(orden.nodos)
+      expect(await lista(page, 'data-atajos')).toEqual(orden.atajos)
+
+      const medida = await columnas(page)
+      // Una sola columna de secciones si su contenedor (`data-secciones`) mide menos de 64 rem; una sola de celdas si la sección mide menos de 32 rem (`mitad`) o 48 (`tercio`): el corte es del contenedor.
+      if (medida.hojaRem < 64) {
+        expect(
+          new Set(medida.secciones.map((s) => s.izquierda)).size,
+          'las secciones en una columna',
+        ).toBe(1)
+      }
+      for (const s of medida.secciones) {
+        if (s.rem < 32) {
+          expect(
+            s.unaColumnaDeCeldas,
+            `la sección ${String(s.id)} (${formatearNumero(s.rem, { decimales: 1 })} rem) en una columna`,
+          ).toBe(true)
+        }
+      }
+      info.annotations.push({
+        type: `columnas al ${String(zoom)} %`,
+        description: `hoja ${formatearNumero(medida.hojaRem, { decimales: 1 })} rem; secciones ${medida.secciones.map((s) => formatearNumero(s.rem, { decimales: 1 })).join(', ')} rem`,
+      })
+      await capturar(page, info, `cotizar-hoja-${clave}-${String(zoom)}`)
+      await page.getByLabel('Resumen').scrollIntoViewIfNeeded()
+      await capturar(page, info, `cotizar-resumen-${clave}-${String(zoom)}`)
     })
-    await capturar(page, info, `cotizar-hoja-${String(zoom)}`)
-    await page.getByLabel('Resumen').scrollIntoViewIfNeeded()
-    await capturar(page, info, `cotizar-resumen-${String(zoom)}`)
-  })
+  }
 }
 
 test('la hoja más grande del juego cabe en el tope de nodos del DOM, al abrir y con la hoja usada', async ({

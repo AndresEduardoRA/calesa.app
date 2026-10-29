@@ -1,6 +1,8 @@
 // Lo que los e2e de «Avanzado» y de la ayuda de la hoja (paso 4.13-4a) preparan y miran: el orden que declara el diseño separado en lo que va en la hoja y lo que va detrás del
 // botón «Avanzado», y una variante de la fórmula de prueba cuya sección del nivel «costos» es `avanzado` (la semilla de la subasta no trae una ayuda de texto en «Avanzado»).
+import type { Locator } from '@playwright/test'
 import { formulaDePrueba } from './cotizar-formula'
+import { quieto } from './esperas'
 import { literal, sql } from './sql'
 
 type Item = { tipo: string; nodo: string }
@@ -73,4 +75,39 @@ export function publicarFormulaConAvanzado(origenId: string): void {
       insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, nota, publicado_en)
       values (${literal(origenId)}::uuid, 1, 'publicada', v_def, v_par, v_dis, public._preparar_publicacion(v_def, v_par, v_dis, false), 'E2E 4.13-4a', now());
     end $f$`)
+}
+
+// Lo que se sale de la caja de contenido de su sección (4.13-4d, 4-44 b): cada `[data-nodo]`, su `[data-xcell]`, cada `[data-atajos]` y cada chip (`li` y su botón), contra el
+// borde interno de su `[data-seccion]` (±0,5 px). Un hijo que desborda una caja que sí cabe también cuenta. Vacío si todo cabe; si no, qué sobresale y cuántos px. Mide quieto: mientras
+// el modal entra con su escala, las cajas están escaladas y el padding de la sección no.
+export async function celdasFueraDeSuSeccion(lugar: Locator): Promise<string[]> {
+  await quieto(lugar)
+  return lugar.evaluate((raiz) => {
+    const fuera: string[] = []
+    for (const seccion of raiz.querySelectorAll<HTMLElement>('[data-seccion]')) {
+      const caja = seccion.getBoundingClientRect()
+      const estilo = getComputedStyle(seccion)
+      const izquierda =
+        caja.left + parseFloat(estilo.borderLeftWidth) + parseFloat(estilo.paddingLeft)
+      const derecha =
+        caja.right - parseFloat(estilo.borderRightWidth) - parseFloat(estilo.paddingRight)
+      const hijos = seccion.querySelectorAll(
+        '[data-nodo], [data-nodo] [data-xcell], [data-atajos], [data-atajos] li, [data-atajos] button',
+      )
+      for (const hijo of hijos) {
+        const h = hijo.getBoundingClientRect()
+        const sobra = Math.max(izquierda - h.left, h.right - derecha)
+        if (sobra > 0.5) {
+          const nombre =
+            hijo.getAttribute('data-nodo') ??
+            hijo.getAttribute('data-atajos') ??
+            `${hijo.tagName.toLowerCase()} «${hijo.textContent.trim().slice(0, 20)}»`
+          fuera.push(
+            `${String(seccion.getAttribute('data-seccion'))} › ${nombre}: ${String(Math.round(sobra))} px`,
+          )
+        }
+      }
+    }
+    return fuera
+  })
 }

@@ -7,7 +7,11 @@ import {
   crearPersona,
   darRolDePrueba,
 } from './soporte/base'
-import { ordenConAvanzado, publicarFormulaConAvanzado } from './soporte/cotizar-avanzado'
+import {
+  celdasFueraDeSuSeccion,
+  ordenConAvanzado,
+  publicarFormulaConAvanzado,
+} from './soporte/cotizar-avanzado'
 import {
   celdaDeLaHoja,
   escribirEnLaHoja,
@@ -38,6 +42,7 @@ let duena = ''
 let lead = ''
 let todos = ''
 let subasta = ''
+let planilla = ''
 
 const BOTON = /^Avanzado/
 
@@ -56,6 +61,7 @@ test.beforeAll(async ({}, info) => {
     permisos: ['cotizaciones.ver', 'cotizaciones.crear'],
   })
   subasta = sql("select id from public.origenes where clave = 'subasta_usa'")
+  planilla = sql("select id from public.origenes where clave = 'planilla_usa'")
 })
 
 test.afterAll(async () => {
@@ -209,20 +215,26 @@ test('quien no ve ninguna sección avanzada abre ?panel=avanzado y no hay botón
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
-for (const zoom of [100, 200]) {
-  test(`«Avanzado» al ${String(zoom)} %: el modal no desplaza de costado, no corta nada y mantiene el orden declarado`, async ({
-    page,
-  }, info) => {
-    if (zoom === 200) {
-      await textoGrandeAlCargar(page)
-    }
-    const orden = ordenConAvanzado('subasta_usa')
-    await abrir(page, `/cotizaciones/nuevo?origen=${subasta}&panel=avanzado`)
-    await expect(dialogo(page)).toBeVisible()
-    await sinScrollHorizontal(page)
-    await sinTextoCortado(dialogo(page))
-    expect(await lista(dialogo(page), 'data-seccion')).toEqual(orden.avanzado.secciones)
-    expect(await lista(dialogo(page), 'data-nodo')).toEqual(orden.avanzado.nodos)
-    await capturar(page, info, `cotizar-avanzado-${String(zoom)}`)
-  })
+// Los dos diseños de la semilla (`docs/PLAN.md` › criterio de la fase: el del cotizador actual y el del Excel), a cada ancho y tamaño (4.13-4d). 4-44 (b): al 200 % en el celular las
+// celdas y los chips no se salen de la tarjeta de su sección (no desplazan la página ni cortan texto: `sinScrollHorizontal` y `sinTextoCortado` no lo ven).
+for (const clave of ['subasta_usa', 'planilla_usa']) {
+  for (const zoom of [100, 200]) {
+    test(`«Avanzado» de ${clave} al ${String(zoom)} %: el modal no desplaza de costado, no corta nada, sus celdas caben en su sección y mantiene el orden declarado`, async ({
+      page,
+    }, info) => {
+      if (zoom === 200) {
+        await textoGrandeAlCargar(page)
+      }
+      const orden = ordenConAvanzado(clave, clave === 'subasta_usa' ? ['garantia'] : [])
+      const origenId = clave === 'subasta_usa' ? subasta : planilla
+      await abrir(page, `/cotizaciones/nuevo?origen=${origenId}&panel=avanzado`)
+      await expect(dialogo(page)).toBeVisible()
+      await sinScrollHorizontal(page)
+      await sinTextoCortado(dialogo(page))
+      expect(await celdasFueraDeSuSeccion(dialogo(page))).toEqual([])
+      expect(await lista(dialogo(page), 'data-seccion')).toEqual(orden.avanzado.secciones)
+      expect(await lista(dialogo(page), 'data-nodo')).toEqual(orden.avanzado.nodos)
+      await capturar(page, info, `cotizar-avanzado-${clave}-${String(zoom)}`)
+    })
+  }
 }
