@@ -5877,6 +5877,7 @@ export type Database = {
           apibara_sync_en: string | null
           atributos: NonNullable<Json>
           categoria_id: string | null
+          cierre_subasta_en: string | null
           cotizado_en: string | null
           creado_en: string
           creado_por: string | null
@@ -5930,6 +5931,7 @@ export type Database = {
           apibara_sync_en?: string | null
           atributos?: NonNullable<Json>
           categoria_id?: string | null
+          cierre_subasta_en?: never
           cotizado_en?: string | null
           creado_en?: string
           creado_por?: string | null
@@ -5972,6 +5974,7 @@ export type Database = {
           apibara_sync_en?: string | null
           atributos?: NonNullable<Json>
           categoria_id?: string | null
+          cierre_subasta_en?: never
           cotizado_en?: string | null
           creado_en?: string
           creado_por?: string | null
@@ -7735,6 +7738,7 @@ export type Database = {
           apibara_sync_en: string | null
           atributos: NonNullable<Json>
           categoria_id: string | null
+          cierre_subasta_en: string | null
           cotizado_en: string | null
           creado_en: string
           creado_por: string | null
