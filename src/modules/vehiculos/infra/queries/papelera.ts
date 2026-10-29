@@ -17,7 +17,7 @@ export const getPapelera: LectorDePapelera = async ({ cursor, tamano }) => {
   // Por keyset `(creado_en, id)` con `lotes_papelera_tipo_idx`; `tamano + 1` para saber si hay otra. De cada lote, los
   // primeros `PRIMEROS_DEL_LOTE` y cuántos quedan (cierre 1).
   const { data, error } = await supabase.rpc('vehiculos_papelera_listar', {
-    ...(cursor ? { p_antes_en: cursor.creadoEn, p_antes_id: cursor.id } : {}),
+    ...(cursor ? { p_antes_en: cursor.instante, p_antes_id: cursor.id } : {}),
     p_hacia_atras: cursor?.sentido === 'anterior',
     p_tope: tamano + 1,
     p_primeros: PRIMEROS_DEL_LOTE,

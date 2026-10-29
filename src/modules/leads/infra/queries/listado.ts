@@ -122,7 +122,7 @@ function recorridoAcotado(
   return {
     recorridos: candidatos.recorridos ?? 0,
     hastaEn: hasta.creado_en,
-    seguir: codificarCursor({ creadoEn: hasta.creado_en, id: hasta.id, sentido }),
+    seguir: codificarCursor({ instante: hasta.creado_en, id: hasta.id, sentido }),
   }
 }
 
@@ -175,7 +175,7 @@ async function leerPorCandidatos(
     if (hasta === null) {
       return null
     }
-    desde = { creadoEn: hasta.creado_en, id: hasta.id, sentido }
+    desde = { instante: hasta.creado_en, id: hasta.id, sentido }
   }
   return null
 }
@@ -226,7 +226,7 @@ export const contarLeadsHasta: ContadorDeLeads = async (condiciones, tope) => {
     if (data.length < pedir || !ultimo?.creado_en || !ultimo.id) {
       break
     }
-    cursor = { creadoEn: ultimo.creado_en, id: ultimo.id, sentido: 'siguiente' }
+    cursor = { instante: ultimo.creado_en, id: ultimo.id, sentido: 'siguiente' }
   }
   return ok(conteoAcotado(leidos, tope))
 }

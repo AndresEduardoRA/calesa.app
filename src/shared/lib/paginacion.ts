@@ -71,12 +71,19 @@ export function enElTope(lista: readonly unknown[]): boolean {
 export type Sentido = 'siguiente' | 'anterior'
 
 export type Cursor = {
-  // Tal como lo devolvió la base, como texto: pasarlo por `Date` pierde los microsegundos y la
-  // página siguiente repetiría o saltearía filas.
-  creadoEn: string
+  // El instante de la columna que ordena la lista (`creado_en` casi siempre; `cotizado_en` o
+  // `cierre_subasta_en` en el panel del vehículo). Tal como lo devolvió la base, como texto: pasarlo
+  // por `Date` pierde los microsegundos y la página siguiente repetiría o saltearía filas.
+  instante: string
   id: string
   sentido: Sentido
 }
+
+// Por qué columna de fecha y en qué orden camina la lista (siempre con `id` de desempate, en el
+// mismo orden). Lo usan `aplicarCursor()` y `ordenarPorCursor()` de `supabase/consultas`.
+export type OrdenDeCursor = { columna: string; ascendente: boolean }
+// El de casi todas: de la más nueva a la más vieja por alta.
+export const POR_ALTA: OrdenDeCursor = { columna: 'creado_en', ascendente: false }
 
 export type Paginable = { id: string; creadoEn: string }
 
@@ -92,7 +99,7 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // base64url: letras, números, `-` y `_`. Un `+` en la URL llegaría como un espacio.
 export function codificarCursor(cursor: Cursor): string {
-  const crudo = `${cursor.sentido === 'siguiente' ? 's' : 'a'}|${cursor.creadoEn}|${cursor.id}`
+  const crudo = `${cursor.sentido === 'siguiente' ? 's' : 'a'}|${cursor.instante}|${cursor.id}`
   return btoa(crudo).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
 }
 
@@ -106,18 +113,18 @@ export function leerCursor(texto: string | null | undefined): Cursor | null {
   } catch {
     return null
   }
-  const [sentido, creadoEn, id, ...resto] = crudo.split('|')
+  const [sentido, instante, id, ...resto] = crudo.split('|')
   if (
     resto.length > 0 ||
     (sentido !== 's' && sentido !== 'a') ||
-    !creadoEn ||
+    !instante ||
     !id ||
-    !INSTANTE.test(creadoEn) ||
+    !INSTANTE.test(instante) ||
     !GUID.test(id)
   ) {
     return null
   }
-  return { sentido: sentido === 's' ? 'siguiente' : 'anterior', creadoEn, id }
+  return { sentido: sentido === 's' ? 'siguiente' : 'anterior', instante, id }
 }
 
 // Arma la página a partir de lo que devolvió la consulta, que pide `tamano + 1` filas para saber
@@ -127,6 +134,17 @@ export function armarPagina<Fila extends Paginable>(
   leidas: readonly Fila[],
   tamano: number,
   cursor: Cursor | null,
+): Pagina<Fila> {
+  return armarPaginaPor(leidas, tamano, cursor, (fila) => fila.creadoEn)
+}
+
+// Lo mismo para una lista ordenada por otra columna: `instanteDe` da el valor de esa columna en la
+// fila, que es lo que lleva el cursor (`OrdenDeCursor`).
+export function armarPaginaPor<Fila extends { id: string }>(
+  leidas: readonly Fila[],
+  tamano: number,
+  cursor: Cursor | null,
+  instanteDe: (fila: Fila) => string,
 ): Pagina<Fila> {
   const hayMas = leidas.length > tamano
   const deLaPagina = leidas.slice(0, tamano)
@@ -138,7 +156,7 @@ export function armarPagina<Fila extends Paginable>(
     return { filas: [], siguiente: null, anterior: null }
   }
   const hacia = (fila: Fila, sentido: Sentido) =>
-    codificarCursor({ creadoEn: fila.creadoEn, id: fila.id, sentido })
+    codificarCursor({ instante: instanteDe(fila), id: fila.id, sentido })
   // Hacia adelante: hay «anterior» si se llegó con un cursor. Hacia atrás: siempre hay
   // «siguiente» (de ahí se vino), y «anterior» sólo si la consulta trajo una fila de más.
   const haySiguiente = haciaAtras || hayMas

@@ -116,7 +116,7 @@ describe('filtrosDeCandidatos', () => {
     expect(
       filtrosDeCandidatos(
         [busqueda()],
-        { creadoEn: '2026-10-18T10:00:00.123456+00:00', id: ID_A, sentido: 'anterior' },
+        { instante: '2026-10-18T10:00:00.123456+00:00', id: ID_A, sentido: 'anterior' },
         'anterior',
       ),
     ).toEqual({

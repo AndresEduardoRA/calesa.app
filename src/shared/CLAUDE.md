@@ -11,14 +11,14 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 
 ## Archivos clave
 
-- `lib/supabase/` — `server.ts` (`createClient()`, uno por request), `browser.ts`, `admin.ts` (secret key, salta la RLS), `proxy.ts` (`actualizarSesion()`), `consultas.ts` (`citar()`, `aplicarCondicionDeAtributo()`, `aplicarRango()`, `aplicarCursor()`), `almacen.client.ts` (`subirPorHash()`, `quitarSiHuerfano()`).
+- `lib/supabase/` — `server.ts` (`createClient()`, uno por request), `browser.ts`, `admin.ts` (secret key, salta la RLS), `proxy.ts` (`actualizarSesion()`), `consultas.ts` (`citar()`, `aplicarCondicionDeAtributo()`, `aplicarRango()`, `aplicarCursor()` y `ordenarPorCursor()`, por `creado_en` u otra columna de fecha en los dos órdenes), `almacen.client.ts` (`subirPorHash()`, `quitarSiHuerfano()`).
 - `lib/safe-action.ts` — `actionClient` (exige sesión; `ctx` trae `supabase`, `usuarioId`, `permisos`) y `actionClientPublico`. Toda mutación entra por acá.
 - `lib/errores.ts` — `Resultado<T>`, `ok()`, `fallo()`, `conflicto()`, `errorDePostgrest()` (`PT409` → conflicto, `42501` → sin_permiso), `datosO()`.
 - `lib/permisos.ts` — `puede()`, `alcanceDe()`, `origenesCon()`, `CLAVES_PERMISO`; las claves de nivel de acceso (`esClaveDeNivel()`) las crea la empresa y no están en la lista.
 - `lib/rutas.ts` (`decidirAcceso()`, `returnToSeguro()`) y `lib/navegacion.ts` (`redirigir()`).
 - `lib/formato.ts`, `lib/fechas.ts` — todo número y toda fecha salen de acá, en el locale y la zona de la empresa.
 - `lib/numero-tipeado.ts` — el lector de un número tipeado, uno solo: `leerNumeroTipeado(texto, locale)`. Lo usan `XCell`, `esquemaDeValor()` y los formularios de dinero.
-- `lib/paginacion.ts` — el tamaño de toda página sale de acá (`TAMANOS_DE_PAGINA`, `tamanoDePagina()`, `TAMANO_DE_VER_MAS`, `TOPE_DE_LO_CARGADO`, `TAMANO_DE_COLUMNA`, `TOPE_DEL_EQUIPO`); keyset `leerCursor()`, `codificarCursor()`, `armarPagina()`.
+- `lib/paginacion.ts` — el tamaño de toda página sale de acá (`TAMANOS_DE_PAGINA`, `tamanoDePagina()`, `TAMANO_DE_VER_MAS`, `TOPE_DE_LO_CARGADO`, `TAMANO_DE_COLUMNA`, `TOPE_DEL_EQUIPO`); keyset `leerCursor()`, `codificarCursor()`, `armarPagina()` y, por otra columna, `armarPaginaPor()` con un `OrdenDeCursor` (`POR_ALTA` el de siempre). El cursor lleva `instante`, el valor de la columna que ordena.
 - `lib/conteo.ts` — un número que se muestra nunca es un total exacto: `conteoAcotado()`, `cantidadAcotada()`, `cortarAlTope()`, `textoDelTope()`.
 - `lib/memoria-de-lectura.ts` — `memoriaDeLectura(leer, vidaMs)`: lectura del navegador compartida y con vida corta.
 - `lib/enviar-accion.ts`, `lib/formularios.ts`, `lib/borrador.ts` + `ui/use-borrador.ts` — lo común de un formulario con `useAction`: envío con `sinRed`, errores por campo, borrador en `sessionStorage`.
