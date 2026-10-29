@@ -2,7 +2,7 @@
 
 El plan vivo: sólo lo que falta. Cada fase tiene un criterio de terminado verificable (algo que se puede correr y ver); las metas de las
 tareas de oro de `docs/UX.md` son criterio de terminado de su fase y se miden con un e2e. El alcance es todo el brief; no hay MVP: hay orden.
-Fases 0 a 3 completas y la Fase 4 hecha hasta el 4.13-4b2: el detalle (lo hecho, lo cerrado y la historia), en `docs/archivo/PLAN.md`
+Fases 0 a 3 completas y la Fase 4 hecha hasta el 4.13-4b3: el detalle (lo hecho, lo cerrado y la historia), en `docs/archivo/PLAN.md`
 (sólo con grep). Se avanza **un paso a la vez** (un prompt, un commit, su verificación) y **se para a reportar**; nunca más de una fase
 sin parar. Los pasos tachados o cerrados no están aquí.
 
@@ -32,7 +32,7 @@ BITACORA lo anota como «hito 4-A».
 **Verificación de los pasos de la Fase 4:** los niveles son los de `.claude/rules/e2e.md` (Nivel 1, 2 y 3). «Cadena db» = una migración nueva,
 `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuando hay carrera). Cada paso de pantalla anota en la BITACORA su marca
 `e2e completo: sí|no (<paso>, <tipo>, N de 3)`: la cuenta de pantallas sin e2e completo vuelve a 0 con cada completo y a los 3 se corre
-uno (hoy: **0 de 3**: el 4.13-4b1 corrió el completo de escritorio por su Nivel 2 y el 4.13-4b2 es de base). Compuerta `dependencia` para subir una dependencia
+uno (hoy: **1 de 3**: el 4.13-4b3, pantalla; el 4.13-4b1 corrió el completo de escritorio por su Nivel 2). Compuerta `dependencia` para subir una dependencia
 (el piloto no las sube).
 
 **Decisiones de apertura vigentes** (la persona, 2026-10-22; `docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones» y «D7»):
@@ -66,7 +66,7 @@ snapshot.
 ### Partición
 
 Un paso, un commit y su verificación; se para a reportar después de cada uno. Los niveles son los de `.claude/rules/e2e.md`. Hecho:
-4.01 a 4.12, DEP-1 y el 4.13 prompts 1, 2, 3a, 3b, 3c, 4a, 4b1 y 4b2 (ver `docs/archivo/PLAN.md`). **Orden fijo: papelera propia (4.24) → marcar final
+4.01 a 4.12, DEP-1 y el 4.13 prompts 1, 2, 3a, 3b, 3c, 4a, 4b1, 4b2 y 4b3 (ver `docs/archivo/PLAN.md`). **Orden fijo: papelera propia (4.24) → marcar final
 (4.25) → comprobantes (4.26)** (la final manda las preventas a la papelera, y un comprobante sólo se emite de una final). Lo que ya existe y
 los siguientes pasos usan: `cotizacion_hoja(origen)`, `cotizacion_evaluar` (recortada por nivel, con `p_abierta`), `cotizacion_crear`,
 `cotizacion_guardar`, `cotizacion_leer`, `cotizacion_revisiones`, `formula_para_cotizar`, `cotizacion_tabla`, `_nodos_visibles()`, los
@@ -76,30 +76,32 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   el 3a (lo que la base da antes de guardar), el 3b (guardar, la pantalla), el 3c (`XCell` y parser) y el 4a («Avanzado» en un modal con
   `?panel=avanzado` y la ayuda de texto con `?ayuda=texto&nodo=`), el 4b1 («Ver total Bs» en la base: `cotizaciones.ver_total_bs`, en
   `cotizacion_crear` y `cotizacion_guardar`; Nivel 2, con el completo de escritorio) y el 4b2 (la moneda del total en Bs en la lectura:
-  `cabecera.moneda_bs` de `cotizacion_hoja()`; Nivel 1, base): hechos; ver archivo y, del 4a, el 4b1 y el 4b2, `docs/DECISIONES.md`
-  › «Paso 4.13 (4a de 9)», «Paso 4.13 (4b1 de 10)» y «Paso 4.13 (4b2 de 11)» y BITACORA. **Faltan el 4b3** (los modos, con el primero marcado;
-  «Ver total Bs» en la hoja, apagado al nacer, con el total en Bs en `cabecera.moneda_bs`; el resumen fijo, al pie en el celular y al costado en
-  escritorio, con la garantía, el modo y Live; P6; tope de nodos 460: si se pasa, se para; marca `1 de 3`), **el 4c** (la ayuda de una tabla,
+  `cabecera.moneda_bs` de `cotizacion_hoja()`; Nivel 1, base) y el 4b3 (los modos con el primero marcado, «Ver total Bs» en la hoja y el resumen
+  fijo, al pie y al costado; Nivel 1): hechos; ver archivo y, del 4a, el 4b1, el 4b2 y el 4b3, `docs/DECISIONES.md` › «Paso 4.13 (4a de 9)»,
+  «Paso 4.13 (4b1 de 10)», «Paso 4.13 (4b2 de 11)» y «Paso 4.13 (4b3 de 11)» y BITACORA. **Faltan el 4c** (la ayuda de una tabla,
   una lectura nueva con permisos; P3, compuerta `datos`; marca `2 de 3`) **y el 4d** (la tarea de oro 2 con teclado, KLM ≤ 90 s; el presupuesto
   formal de JS de `/cotizaciones/nuevo`, hoy 426,8 KB; la hoja entera a 412 y 1.280 px, al 100 y al 200 %, con el resumen fijo; nodos de la hoja
-  con «Avanzado» abierto: 434 al abrir y 453 usada, tope 460, y si se pasa se para y se reporta; cierra 4-44). Marcas: 4a `1 de 3`; 4b1 `sí`
+  con «Avanzado» abierto: medido en el 4b3, 459 al abrir y 481 usada, tope 500 (P7, P8), y si se pasa de 500 se para y se reporta; cierra 4-44). Marcas: 4a `1 de 3`; 4b1 `sí`
   (el completo de escritorio por su Nivel 2: la cuenta vuelve a 0); 4b2 `no` (base, Nivel 1: la cuenta sigue en 0); 4b3 `1 de 3`; 4c `2 de
 3`; 4d `3 de 3` y corre el completo de escritorio. El ⚙ no se abre hasta el 4.20 (sin callback la `XCell` no dibuja el botón). Sin paso
   «Oficina». Los paneles de vehículo y cliente son del 4.14: aquí el lead llega preseleccionado desde su ficha y el vehículo, como diga el ajuste
   (la lectura lo trae). Para el prompt 4 (de 3c, `docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»): un número tipeado se lee con
   `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre con `formatearParaEditar` y el locale; la `XCell`
   tiene un candado por lado (`secondaryDisabledReason`). El diseño recortado es una lectura propia y está en el inventario de
-  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 11 (quedan 3).
-  - **P1** (contestada el 2026-10-28; la usa el 4b3): la hoja abre con el primero de los modos que declara el diseño, marcado (hoy `modoTc: null`).
+  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 11 (quedan 2).
+  - **P1** (contestada el 2026-10-28; hecha en el 4b3): la hoja abre con el primero de los modos que declara el diseño, marcado.
   - **P2** (contestada el 2026-10-28; hecha en el 4b1): «Ver total Bs» se guarda con la cotización (`cotizaciones.ver_total_bs`, `not null default false`).
   - **P4** (contestada el 2026-10-29; hecha en el 4b2): el total en Bs se escribe con la moneda `a` del tipo de cambio de `total_en` de la versión,
     `cabecera.moneda_bs`.
-  - **P5** (contestada el 2026-10-29; la usa el 4b3): «Ver total Bs» nace apagado cuando el diseño lo ofrece.
-  - **P6** (4b3, `producto`): qué hace la hoja cuando el diseño ofrece «Ver total Bs» y `cabecera.moneda_bs` es nula (la versión no tiene `total_en`, o su
+  - **P5** (contestada el 2026-10-29; hecha en el 4b3): «Ver total Bs» nace apagado cuando el diseño lo ofrece.
+  - **P6** (contestada el 2026-10-29; hecha en el 4b3: sin `cabecera.moneda_bs` la hoja no dibuja «Ver total Bs» y guarda `ver_total_bs` en falso, la 1): qué hacía la hoja cuando el diseño ofrece «Ver total Bs» y `cabecera.moneda_bs` es nula (la versión no tiene `total_en`, o su
     tipo de cambio no existe o está inactivo; ojo: `totales.bs` puede tener valor igual, porque el Bs sale del tipo de cambio de cada bucket). Hoy
     sólo `subasta_usa` ofrece el interruptor y tiene `total_en`; el diseño lo permitiría. (1) No dibujar el interruptor y guardar `ver_total_bs` en
     falso (recomendada); (2) dibujarlo con la moneda base de la empresa, lo que hace hoy `binding.ts`; (3) una regla nueva del diseño: ofrecerlo
     exige `total_en` (`validar_diseno()` y `validarDiseno()`; cubre una sola de las dos causas y es otro paso de base).
+  - **P7** (contestada el 2026-10-29; hecha en el 4b3): el tope de nodos de la hoja es lo medido con la hoja usada en el peor caso (el segundo modo y «Ver total
+    Bs» encendido) más un 5 %, con techo 500; si se pasa de 500, se para y se reporta. **P8** (contestada el 2026-10-29; hecha en el 4b3): medido 481 usada
+    (506 con el 5 %), el tope queda en el techo, 500 (4,0 % de margen).
   - **P3** (4c, `datos`): quién lee las filas de la tabla de una ayuda (`formulas.params.tablas`, hoy sólo `cotizaciones.configurar`): quien ve
     la celda, por una RPC `security definer` nueva recortada por nivel y registrada en el inventario de lo oculto (recomendada); sólo
     `cotizaciones.configurar`; o las filas viajan con `cotizacion_hoja()`.
@@ -159,7 +161,7 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 72 prompts; faltan el 4.13-4b3 a 4d y los pasos 4.14 a 4.28.
+Total de la fase: 28 pasos y 72 prompts; faltan el 4.13-4c a 4d y los pasos 4.14 a 4.28.
 
 ### Abiertos de la Fase 4
 

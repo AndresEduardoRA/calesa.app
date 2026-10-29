@@ -4,7 +4,7 @@
 > en el código lo dice `docs/MAPA.md`; los abiertos con su paso, `docs/PLAN.md`. La versión anterior completa: `docs/archivo/ESTADO.md`.
 
 **Última actualización:** 2026-10-29
-**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.13, prompt 4b2 de 11**; sigue el **4.13-4b3**. La
+**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.13, prompt 4b3 de 11**; sigue el **4.13-4c**. La
 partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Partición»).
 **Aparte:** la preparación para Orca, en la rama `preparar-orca` (`docs/PREPARACION.md`). No toca código de producto; la integra la persona.
 
@@ -17,15 +17,15 @@ partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` �
 - **El piloto** (`docs/PILOTO.md`) es el carril A de Orca (`docs/ORCA.md`): avanza `docs/PLAN.md` un paso por sesión y publica su rama
   `a/…` por PR; sólo pregunta en las compuertas. Falta aceptar la confianza de la carpeta y `decidir.sh --prueba-tandas`.
 - **Fases 0 a 3 completas** (equipo, empresa, orígenes, vehículos y leads). **Fase 4:** fórmula, motor, niveles, crear y guardar una
-  cotización, y la hoja dibujada que guarda, con «Avanzado», la ayuda de texto y «Ver total Bs» guardado en la base, con su moneda en la lectura (4.01 a 4.13-4b2).
+  cotización, y la hoja dibujada que guarda, con «Avanzado», la ayuda de texto «Ver total Bs» guardado en la base y en la hoja, los modos y el resumen fijo (4.01 a 4.13-4b3).
 - **La rueda de la web:** `habilitado` es de la persona (`cola_web_configurar`); el rol decide si puede estar (`web.cola.participar`). Sin
   pantalla todavía: el tablero de la cola y el interruptor de disponibilidad (Fase 8, 8-1).
 
 ## Siguiente
 
-1. **Carril A: el 4.13-4b3, con el piloto** (los modos con el primero marcado, «Ver total Bs» apagado al nacer con el total en `cabecera.moneda_bs` y el resumen fijo;
-   antes **la persona contesta P6**, nueva, copiada en la fila 4.13 de PLAN junto con P3 del 4c) y en orden hasta el 4.28, **un prompt a la vez, y se para a reportar**.
-   La cuenta de pantallas sin completo está en **0 de 3** (el 4.13-4b2 fue de base). Abiertos nuevos: 4-45 (`moneda_mostrar`, para el 4.18) y 4-46 (partir `cotizacion-hoja.sql`).
+1. **Carril A: el 4.13-4c, con el piloto** (la ayuda de una tabla: una lectura nueva con permisos, **compuerta `datos`**, P3 en la fila 4.13 de PLAN) y en orden
+   hasta el 4.28, **un prompt a la vez, y se para a reportar**. La cuenta de pantallas sin completo está en **1 de 3** (el 4.13-4b3). **La hoja mide 481 nodos usada
+   contra un tope de 500** (P7, P8: techo): lo que le sume nodos se para y se reporta (el 4d mide con «Avanzado»). Abiertos nuevos: 4-45 (`moneda_mostrar`, 4.18) y 4-46.
 2. **Del 3c:** un número tipeado se lee con `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre
    con `formatearParaEditar` y el locale; la importación CSV lee más permisiva a propósito. **Para la persona:** la sesión de decidir dejó
    anotadas las respuestas de la 1.ª tanda de P1–P6 (`.piloto/informes/4.13-3c.md` › «Para la persona»).

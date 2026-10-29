@@ -35,13 +35,13 @@ Estados propios: teléfono en verificación (spinner, resto editable); sin permi
 
 La hoja es **configurable por origen** (D7, `docs/COTIZADOR.md` › «El diseño de la hoja»): la semilla trae un diseño igual al cotizador actual (`docs/referencias/cotizador-actual.md`) y otro al Excel (`docs/referencias/excel-de-cotizacion.md`).
 
-1. **Entrada:** desde la ficha del lead, el resumen de un vehículo o el listado. Arriba, pestañas de orígenes (nombres de la base; «Oficina» es un origen) y los **modos** de tipo de cambio del diseño (Aduana, Paralelo, Unificado…). `Ctrl/Cmd+K → «Nueva cotización»` llega con el buscador (Fase 7).
+1. **Entrada:** desde la ficha del lead, el resumen de un vehículo o el listado. Arriba, pestañas de orígenes (nombres de la base; «Oficina» es un origen) y los **modos** de tipo de cambio del diseño (Aduana, Paralelo, Unificado…; se eligen con dos o más, la hoja abre con el primero marcado y con uno solo no se elige: el resumen lo nombra). `Ctrl/Cmd+K → «Nueva cotización»` llega con el buscador (Fase 7).
 2. **Pasos:** **la hoja** (preventa o final), **vehículo**, **cliente**, **vista previa**; no hay paso «Oficina».
    - **Vehículo:** título; pegar link o lote (`apibara` llena ficha y fotos), buscar por nombre o «+» a mano; **ambas crean el vehículo en el inventario** (D3); pestañas «Últ. cotización» y «Cierre subasta»; el elegido muestra su historial.
    - **Cliente:** búsqueda desde 3 letras o `#n`; sin buscar, «míos» por actividad; pestañas por clase; «+» abre «Nuevo lead». Los dos paneles van por cursor (Anterior y Siguiente), nunca «Página N de M».
    - **El lead es obligatorio siempre** (preseleccionado desde su ficha). El vehículo, salvo que el ajuste «Vehículo obligatorio al cotizar» diga que no; una final lo exige siempre.
 3. **La hoja:** secciones en el orden declarado; cada monto en una **XCell** (`Tab` avanza, tipear abre edición, `Esc` cancela) con el tono de su grupo, ayuda y ⚙ si el permiso lo da. Lo **sugerido** lleva un punto; sobrescrito queda **modificado** (anillo y ↺). Atajos (chips de año), **variante** (Moto, Auto Gasolina…), **interruptores** (habilitar fila, mostrar garantía). **Una celda que quien mira no puede ver no se dibuja ni llega**; una que no puede editar va con candado y su motivo. **Recalcula en la base** 150 ms después de la última tecla. En el celular y al 200 %, una columna en el mismo orden.
-4. **Resumen fijo:** total (y Bs si se pidió), garantía si está a la vista, modo de tipo de cambio y toggle **Live**; al pie en el celular. `Ctrl/Cmd+S` guarda (preventa); «Vista previa» abre la tarjeta; «Compartir» copia el texto y descarga el PDF.
+4. **Resumen fijo:** total (y el total en moneda local si se pidió: «Ver total en moneda local», apagado al nacer y sólo si la versión da su moneda), garantía si está a la vista, modo de tipo de cambio y toggle **Live**; al pie en el celular (alto máximo del 40 % de la ventana) y al costado, pegado bajo la barra, desde 56 rem de la hoja (el 200 % lo pasa al pie). `Ctrl/Cmd+S` guarda (preventa); «Vista previa» abre la tarjeta; «Compartir» copia el texto y descarga el PDF.
 
 Estados propios:
 

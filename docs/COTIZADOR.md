@@ -391,7 +391,7 @@ vehiculo_obligatorio, cabecera, secciones, tarjeta_total, tonos}`. La `cabecera`
 - **`cabecera.moneda_bs` (4.13-4b2):** la `moneda_a` del tipo de cambio **activo** que nombra el `total_en` de esa versión (una fila por `tipos_cambio_clave_key`); JSON `null`, con la clave
   presente, si la versión no tiene `total_en` o ese tipo de cambio no existe o está inactivo. Viaja a todos, sin recorte por nivel (el total en Bs ya viaja siempre y `authenticated` lee
   `tipos_cambio`), y nunca el id ni la clave del nodo o del tipo de cambio. **Nula no quiere decir sin Bs:** el motor calcula el Bs con el tipo de cambio de cada bucket y usa `total_en`
-  sólo para dividir y sacar los dólares (`oficina` no tiene `total_en` y su `totales.bs` sí tiene valor); qué hace la hoja con ese hueco es P6, del 4.13-4b3.
+  sólo para dividir y sacar los dólares (`oficina` no tiene `total_en` y su `totales.bs` sí tiene valor); la hoja, con ese hueco (P6, 4.13-4b3), no dibuja «Ver total Bs» y guarda `ver_total_bs` en falso.
 
 - Un ítem viaja si su nodo es visible (su `pct`, en un par); una sección, si le queda algún ítem. **Nunca viaja:** `de`, `texto`,
   `match`, `sobre`, `sugerido_de`, `descripcion`, los grupos, ni los `buckets` y `total_en` de un modo.

@@ -1137,3 +1137,19 @@ nivel: el total en Bs ya viaja siempre y `authenticated` ya lee `tipos_cambio`; 
 el nivel «costos»). **La de la versión y no la del modo:** los modos siguen con sólo `clave` y `nombre`; un modo cuyo `total_en` tenga otra `moneda_a` escribiría el total con la de
 la versión (límite aceptado: hoy todos son USD → BOB). Nivel 1: `create or replace function` no sube a Nivel 2. Abierto 4-46: `cotizacion-hoja.sql` pasó de 300 líneas (705). Descartado:
 una moneda por modo (abría los modos) y leerla de `monedas` sin pasar por el tipo de cambio.
+
+## 2026-10-29 — Paso 4.13 (4b3 de 11): los modos, «Ver total Bs» y el resumen fijo
+
+**P6 (la persona):** si el diseño ofrece «Ver total Bs» y `cabecera.moneda_bs` es nula, la hoja **no dibuja el interruptor** y guarda `ver_total_bs` en falso (`ofreceVerTotalBs()`).
+**El modo es parte de `Entradas`** (`modoTc`): cambia el cálculo, así que viaja con lo que calculó cada recálculo (P8, lo guardado es lo calculado), en el primer cálculo del servidor
+(`modoInicial()` sale por `index.ts` y la página se lo pasa a `recalcularAlAbrir`), en el borrador (vuelve si la hoja de ahora lo declara; si no, el inicial) y en el pendiente de la
+pestaña (`default(null)`). Descartado: el modo como estado aparte (el guardado podía mandar un modo que el total a la vista no calculó). **«Ver total Bs» queda fuera de `Entradas`**
+(no cambia el cálculo ni pide un recálculo) **pero dentro del borrador**: es un dato que se guarda y, si se repone lo tipeado, se repone esa elección; sólo si la hoja todavía lo ofrece.
+**Los modos se dibujan sólo con dos o más** (microdecisión: con uno no hay qué elegir; el resumen dice cuál es). **Textos:** «Ver total en moneda local» (ningún texto fijo nombra una
+moneda: el código sale de la base). **Live:** un botón propio del módulo en el resumen (`LiveDelResumen`); mover `ConmutadorLive` a `src/shared/ui` dispara el Nivel 2 dos veces (`shared`
+y `layout`), así que se duplica (lo puede proponer el 4d). **El resumen:** un solo `<aside>` (varios e2e cuentan con un solo `getByLabel('Resumen')` y `[data-total]`, descartado el
+resumen doble), `sticky`: al costado desde `@4xl` del contenedor **nombrado** `hoja` (56 rem; el 200 % colapsa solo) y al pie debajo, con alto máximo de 40 dvh, `data-pie-de-panel` para
+que un aviso no lo tape y `scroll-margin-bottom` de 40 dvh en lo enfocable mientras va al pie. **La cabecera va dentro del contenedor del resumen**: con ella fuera, un `sticky bottom-0` no
+aparecía hasta que la hoja entraba en la ventana. **Trampa:** una consulta de contenedor dentro de un descendiente la resuelve el contenedor más cercano a ese descendiente (la sección),
+no el del elemento que lleva la clase: por eso la hoja es `@container/hoja` y el corte, `@4xl/hoja`. **P7 y P8 (la persona):** el tope de nodos es lo medido con el peor caso más un 5 %
+con techo 500; medido 481 usada (506), el tope quedó en 500 (4,0 % de margen). Sin cambios de base. Abierto: ninguno nuevo; el 4d mide con «Avanzado» abierto y se para si pasa de 500.
