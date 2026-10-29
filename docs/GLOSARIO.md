@@ -164,6 +164,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Cotización** — `cotizaciones`: cálculo de una fórmula para un lead/vehículo, con snapshot.
 - **Preventa / Final** — `clase_cotizacion`: borrador comercial / la que cierra el vehículo (una activa por vehículo).
 - **Última cotización (de un vehículo)** — `vehiculos.cotizado_en`, `_vehiculo_cotizado()`: cuándo se cotizó por última vez; ordena «Últ. cotización» del panel del vehículo. Cotizar no edita el vehículo.
+- **Panel del vehículo** — `?panel=vehiculo` de `/cotizaciones/nuevo`, `<BarraDelVehiculo>` / `PanelDelVehiculo` (`vehiculos/features/panel-para-cotizar`): donde se elige el vehículo de la cotización, por «Últ. cotización» o «Cierre subasta» (`?lista=ultima|cierre`), por cursor. Lo abre la barra del vehículo, sobre la hoja.
 - **Fórmula** — `formulas` (`definicion`, `params`): grafo de nodos versionado por origen; ver `docs/COTIZADOR.md`.
 - **Nodo** — `definicion.nodos[]`: una línea de la fórmula: input, constante, tipo de cambio, campo, bandera, tabla, tramo, cálculo.
 - **Constante** — nodo `constante` + `params`: valor por defecto versionado que el ⚙ de la XCell cambia.

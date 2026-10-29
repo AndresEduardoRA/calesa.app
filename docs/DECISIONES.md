@@ -1244,3 +1244,32 @@ persona (P1 a P7) fueron todas las recomendadas.
   de un vehículo muy cotizado puede ordenar las suyas. Crece con las cotizaciones de ese vehículo, no con N (la familia de lo de Ana, 4-14), y se anota en RENDIMIENTO y en 4-14.
 - **El tiempo en las pruebas de base:** dentro de un bloque `now()` no cambia, así que lo que tiene que moverse se deja antes en el pasado como postgres con
   `session_replication_role = replica`. Sin eso, dos mutaciones no caían (la 1.ª auditoría).
+
+## 2026-10-29 — Paso 4.14 (2a): el panel del vehículo
+
+**El 4.14-2 se parte en tres:** el 4.14-2a (el cursor por columna en `src/shared`, la barra y el panel con «Últ. cotización» y «Cierre subasta»), el 4.14-2b (el historial
+del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo) y el 4.14-2c (crear el vehículo desde el panel y 4-10). Entero eran 7 u 8 commits de código. El plan
+pasó dos auditorías (un bloqueo y, después, observaciones) y la persona eligió las respuestas recomendadas (P1 a P4 y, tras la auditoría del informe, P5). Por P4 se suma el 4.14-2a2 (4-49).
+
+- **El cursor, en `src/shared` y no en `vehiculos/infra`:** lo usarán el historial del 2b (por `creado_en`) y el panel del cliente del 4.14-3. `Cursor.creadoEn` pasa a
+  llamarse `instante` (el valor de la columna que ordena) **sin cambiar la codificación**: un cursor de una URL vieja se sigue leyendo. `aplicarCursor()` recibe un
+  `OrdenDeCursor` (`POR_ALTA` por omisión: el filtro de siempre, carácter por carácter) y `ordenarPorCursor()` pone el orden que lo acompaña; los que ordenaban a mano no se tocan.
+- **El panel lee desde el navegador y escribe su URL sin ir al servidor** (`?lista=`, `?cursor=`, con `replace`): pedirle la página al servidor volvería a montar la hoja
+  abierta detrás. `<Paginacion alIr>` cambia de página con botones en vez de enlaces. El borde de «Cierre subasta» (P5 del 4.14-1: ahora menos 24 h) se toma con el reloj del navegador al
+  abrir el panel y queda fijo mientras está abierto, para que ir y volver de página use el mismo.
+- **La barra va fuera de `[data-hoja]` y del componente con `key`:** no suma nodos a la hoja (468 y 490 contra 500) y elegir otro vehículo no la desmonta, así que el foco
+  vuelve a ella. Suma una parada de Tab: la tarea de oro 2 pasa de 23 a 24 teclas de control y de 24 a 25 Tab hasta la hoja.
+- **Elegir y quitar escriben la URL por `nuqs`** (el vehículo en la clave de la hoja, sin `panel`, `lista` ni `cursor`; `shallow: false` y `replace`), no con
+  `router.replace`: el panel lee su URL de `nuqs`, y con el router la URL cambiaba pero el panel seguía abierto (medido en el e2e). `replace` reemplaza la entrada de abrir el
+  panel: «atrás» vuelve a la hoja del vehículo de antes con el panel cerrado. El módulo `vehiculos` no conoce la clave de la hoja: se la pasa `src/app`.
+- **P1:** al elegir otro vehículo, lo tipeado queda en el borrador del de antes (la hoja y su borrador llevan el vehículo en la clave) y vuelve si se lo elige otra vez. **P2:**
+  elegir cierra el panel. **P3** (para el 2c): el tipo de vehículo se guarda en el vehículo. **P4:** 4-49 va a un paso propio.
+- **Ctrl+S con el panel abierto no guarda:** el panel registra «guardar» sin hacer nada y el último registro responde. Queda un límite, **4-54**: elegir otro vehículo mientras
+  se guarda guarda con el de antes y la hoja pasa al nuevo sin la tarjeta de éxito.
+- **Presupuestos antes de medir:** 370 nodos y 12.000 bytes para el panel con 20 tarjetas; medido 284 y 4.660, y los topes quedan en lo medido más un 5 % (299 y 4.900).
+- **El resumen fijo al 200 %:** no sube más allá del borde de arriba de la hoja y mide hasta el 40 % del alto. Con la página arriba de todo cabía por 1 px; con la barra encima
+  queda debajo del borde de la ventana: 107 px en escritorio y 37,6 en el celular, sólo al 200 % (el completo lo atrapó). `cotizar-hoja-resumen.spec.ts` mide ahora con la hoja
+  arriba de la ventana, que es lo que prueba que el resumen queda fijo. La auditoría del informe lo bloqueó por ser una regresión visible aceptada sin la persona, y se le
+  preguntó (P5): **la aceptó por ahora y endureció 4-50**, que exigirá que el resumen quepa entero con la página arriba de todo al 200 %.
+- **Al 200 % en el celular** la columna del panel crecía con lo más ancho de adentro y una tarjeta llegaba a 594 px en una pantalla de 412: el contenido va en una sola columna
+  `minmax(0, 1fr)` y las pestañas se desplazan por dentro.

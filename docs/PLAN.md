@@ -119,13 +119,14 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   `vehiculos_cierre_subasta_idx (origen_id, cierre_subasta_en, id)`; el historial del vehículo con `cotizaciones_vehiculo_creado_idx
 (vehiculo_id, creado_en desc, id desc)`, que reemplaza a `cotizaciones_vehiculo_idx`; «Cotizado (n)» por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
   etiqueta y «+» que abre «Nuevo lead». Se entra desde la ficha del lead y desde el resumen del vehículo. Cierra **4-10** (el tipo de
-  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 3 (queda 2).
+  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 6 (quedan 4).
   **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
   versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
-  hecho. Faltan el **4.14-2** (el panel del vehículo, la entrada desde el resumen del vehículo y 4-10, con P6; el cursor por otra columna: `aplicarCursor` está fijo a
-  `creado_en` y sólo pagina hacia lo más viejo, así que generaliza el cursor en `src/shared` —Nivel 2, marca `sí`— o escribe uno local en `vehiculos/infra` —Nivel 1, `1 de
-3`—; la barra va fuera de `[data-hoja]` o se para y se reporta) y el **4.14-3** (el panel del cliente y la entrada desde la ficha del lead; `2 de 3`, o un paso menos si
-  el 4.14-2 fue Nivel 2; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`.
+  hecho. El **4.14-2** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2a)»): el **4.14-2a** (el cursor por columna en `src/shared`, la barra y el panel del vehículo
+  con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. Faltan el **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2,
+  `sí`; P4), el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
+  nombre, «+» y «a mano»; 4-10 con P6 y P3; el tramo del panel en la tarea de oro 2; `2 de 3`, o se parte si P3 pidiera base) y el **4.14-3** (el panel del cliente y la
+  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`.
   - **P1** (contestada el 2026-10-29; hecha en el 4.14-1): `cotizado_en` va en `vehiculos`, y cuando sólo cambia ella ni se mueve la versión de la ficha ni se audita.
   - **P2** (contestada el 2026-10-29; hecha en el 4.14-1): la ve quien ve el vehículo (sólo cuándo, no quién ni cuánto).
   - **P3** (contestada el 2026-10-29; hecha en el 4.14-1): la mueven crear una cotización con el vehículo y guardar una que pasa a él; nunca retrocede.
@@ -135,6 +136,11 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   - **P6** (contestada el 2026-10-29; para el 4.14-2, 4-10): en el panel del vehículo se elige el tipo de vehículo entre las filas de la tabla de transporte, con el
     sugerido marcado si el dato de la subasta coincide con una clave.
   - **P7** (contestada el 2026-10-29; hecha en el 4.14-1): el cierre es `coalesce(subasta_fin_en, subasta_en)`, como la limpieza.
+  - Del plan del 4.14-2a, contestadas el 2026-10-29: **P1** (hecha): al elegir otro vehículo, lo tipeado queda en el borrador del vehículo de antes y vuelve si se lo elige
+    otra vez. **P2** (hecha): elegir o quitar cierra el panel y el foco vuelve a la barra. **P3** (para el 4.14-2c): el tipo de vehículo elegido se guarda en el vehículo
+    (`atributos.tipo_vehiculo` por `vehiculo_guardar`, con su versión); quien no puede editarlo ve el sugerido sin elegir. **P4**: 4-49 se arregla en un paso propio, el 4.14-2a2.
+    **P5** (de la auditoría del informe): con la barra encima, al 200 % y con la página arriba de todo, el resumen fijo queda debajo del borde de la ventana; se acepta por
+    ahora y 4-50 endurece su assert.
 - **4.15** — Editar con SU versión, cotizar encima (N+1) y revisiones por nodo, recortadas y por páginas. `cotizacion_revisiones` ya
   existe (4.10-1): se registra en `RPC_PAGINADAS` (`scripts/guardas/paginas-en-la-base.ts`) cuando la pantalla la llame.
   `cotizacion_revision` guarda `valores`, `fuentes` y `totales` enteros en cada edición: se corrige aquí. **Antes: 4-26** (la base
@@ -183,7 +189,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 73 prompts; faltan el 4.14-2 y el 4.14-3 y los pasos 4.15 a 4.28.
+Total de la fase: 28 pasos y 76 prompts; faltan el 4.14-2a2, el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
 
 ### Abiertos de la Fase 4
 
@@ -219,7 +225,8 @@ Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fase
   transporte queda sin valor (`fila_sin_coincidencia`) — un vehículo creado con la respuesta grabada de apibara (`e2e/fixtures/apibara`)
   da un transporte sugerido en `subasta_usa`, o la persona elige su tipo de las filas de la tabla en el panel del vehículo y el sugerido
   aparece. 4.14 decide si se mapea el vocabulario de la subasta a las claves o si el campo pasa a ser una opción de las filas.
-  **Decidido (P6 del 4.14-1, 2026-10-29):** en el panel del vehículo se elige el tipo entre las filas de la tabla, con el sugerido marcado; lo hace el 4.14-2.
+  **Decidido (P6 del 4.14-1, 2026-10-29):** en el panel del vehículo se elige el tipo entre las filas de la tabla, con el sugerido marcado; lo hace el 4.14-2c, y se guarda
+  en el vehículo (P3 del 4.14-2a).
 - **4-14** (4.16): «todas las que veo» de quien ve «propios» recorre el índice global. Con 250.000 cotizaciones **Ana** (5.000 propias y
   1.000 de otras personas sobre su cartera) tarda ≈ 1,6 s y ≈ 42.000 buffers y la **«chica»** ≈ 2,0 s y ≈ 58.000 (`cotizaciones_listado_idx`
   entera, descartando lo ajeno; la familia de 5a-2) — en `medir-cotizaciones-lectura.sql`, la página 1 y una profunda por cursor de Ana y
@@ -288,16 +295,19 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
 - **4-43** (sin fase: lo decide la persona; salió del 4-42): `e2e/leads-ficha-edicion.spec.ts` tiene 331 líneas (> 300) — partirlo por
   responsabilidad (edición, borrador, sin red, permisos). Assert: `wc -l` de cada parte ≤ 300 y las mismas pruebas en verde.
-- **4-49** (sin fase, lo decide la persona; el próximo paso que toque `src/shared/ui`; salió de 4-44 (a), 4.13-4d): tras **recargar** con un panel por URL abierto, «atrás»
+- **4-49** (el **4.14-2a2**, P4 del 4.14-2a, 2026-10-29; salió de 4-44 (a), 4.13-4d; el panel del vehículo, `?panel=vehiculo`, es un caso más): tras **recargar** con un panel por URL abierto, «atrás»
   cierra el panel pero el foco queda en `body`, en todos los paneles de la app y no sólo en «Avanzado» (medido con `?panel=avanzado` y `?panel=nuevo-nivel` de
   `/configuracion/cotizacion?seccion=niveles`). El documento no se recarga: el router de Next no tiene en caché la entrada de antes, la pide (un pedido RSC) y la vuelve a dibujar.
   El modal no se cierra montado y `focoAlCerrar` no corre (`docs/DECISIONES.md` › «Paso 4.13 (4d de 12)»). La persona eligió no arreglarlo en el 4d. Arreglo probable en
   `usePanelPorUrl()`: quien abre deja una marca en la entrada de antes y, al volver a ella, el foco va a quien abrió. Assert: un e2e por tipo de panel (modal y drawer) con abrir,
   recargar y «atrás», con el foco en el botón que lo abrió; y Esc, «atrás» y recargar no le roba el foco a «Saltar al contenido». (4-44 (b), las celdas que sobresalían de
   su sección al 200 %, se cerró en el 4.13-4d.)
-- **4-50** (sin fase, lo decide la persona; salió del 4.13-4d, de las capturas): al 200 %, el resumen fijo al pie (escritorio y celular) ocupa cerca del 40 % del alto de la pantalla y
+- **4-50** (antes del 4.18, P5 del 4.14-2a; el cómo lo decide la persona; salió del 4.13-4d, de las capturas): al 200 %, el resumen fijo al pie (escritorio y celular) ocupa cerca del 40 % del alto de la pantalla y
   tapa la hoja mientras se desplaza; se pliega con su «—», pero nace abierto. Assert: al 200 % el resumen al pie no pasa de un alto que se decida, o nace plegado, y
-  `aLaVistaSinDesplazar()` de la celda con el foco sigue verde.
+  `aLaVistaSinDesplazar()` de la celda con el foco sigue verde. Suma (4.14-2a, P5): el resumen no sube más allá del borde de arriba de la hoja, y con la barra del vehículo
+  encima, al 200 % y con la página arriba de todo, queda debajo del borde de la ventana: 107 px en escritorio y 37,6 en el celular (al 100 % cabe; antes cabía por 1 px).
+  `cotizar-hoja-resumen.spec.ts` lo mide ahora con la hoja arriba de la ventana. La persona lo aceptó (P5) y **endureció el assert**: además, al 200 % en los dos
+  proyectos y con la página arriba de todo, el resumen cabe entero en la ventana (su borde de abajo a ≤ 1 px del de la ventana). Se arregla al decidir 4-50, antes del 4.18.
 - **4-51** (sin fase; se mide y se decide en el paso de la purga de vehículos; salió del 4.14-1): el `on delete set null` de `cotizaciones.vehiculo_id` (`base.sql:25020`) no tiene
   un índice que lo sirva: `cotizaciones_vehiculo_creado_idx` (el del 4.14-1) y el de antes son parciales (`eliminado_en is null`), así que purgar un vehículo busca sus
   cotizaciones de la papelera recorriendo. No empeora con el 4.14-1. Assert: purgar un vehículo con 250.000 cotizaciones no recorre `cotizaciones` (`seq_scan` = 0).
@@ -306,6 +316,15 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-53** (sin fase; el próximo paso que siembre volumen; salió del 4.14-1): `pnpm db:sembrar-volumen` cae con `ReferenceError: readFileSync is not defined`:
   `scripts/sembrar-volumen.mjs` lo usa sin importarlo desde `c300ad7b` (el ayudante del stack de cada worktree). El 4.14-1 sembró con una copia que lo importa, fuera del repo.
   Assert: `pnpm db:sembrar-volumen` termina y `pnpm db:medir:volumen` corre detrás.
+- **4-54** (sin fase, lo decide la persona; salió del 4.14-2a): si una cotización se está guardando cuando se elige otro vehículo en el panel (abrirlo y elegir dentro de lo que
+  tarda el guardado), se guarda con el de antes —lo que se veía al guardar— y la hoja pasa al nuevo sin la tarjeta de éxito; quien guardó puede creer que no se guardó y
+  guardar otra vez: una cotización de más. La barra queda fuera de `[data-hoja]` y no se apaga con su `inert`. Assert: con el guardado demorado (la action interceptada), abrir
+  el panel y elegir otro vehículo; al terminar, o la pantalla dice que se guardó o el panel no dejó elegir, y el lead tiene una sola cotización nueva.
+- **4-56** (sin fase, lo decide la persona; del tipo de 4-43): `e2e/soporte/cotizar-formula.ts` mide 330 líneas (> 300; 315 antes del 4.14-2a, que le sumó el origen de subasta
+  y el borrado de sus vehículos). Partirlo por responsabilidad (la fórmula de prueba, los orígenes y su limpieza, lo que se mira en la base). Assert: `wc -l` de cada parte ≤ 300
+  y los mismos specs en verde.
+- **4-55** (4.18; salió del 4.14-2a): la referencia del cotizador pone el título de la cotización en el panel del vehículo; `cotizacion_crear` no recibe título. Se decide con
+  la tarjeta y el PDF. Assert: lo que se decida, con su e2e.
 - **4-45** (4.18; salió del 4.13-4b1): `cotizaciones.moneda_mostrar` (`char(3)`, legible) no la escribe ninguna RPC ni la lee la app, y con
   `ver_total_bs` su propósito queda en duda. Se decide en el 4.18, con la tarjeta y el PDF: se usa o se quita (migración que la borra, con
   su `db:types`).

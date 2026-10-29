@@ -123,3 +123,26 @@ El 4.14 se parte en tres. El 4.14-2 dibuja el panel del vehículo y el 4.14-3, e
 - **`db:sembrar-volumen` está roto en HEAD** (falta un import): se sembró con una copia fuera del repo y queda el abierto 4-53. También son nuevos 4-51 y 4-52.
 - **Commits:** `6cc27730`, `b0b3c2dd` y `6a924d8f`.
   e2e completo: sí (4.14-1, base, Nivel 2)
+
+## 2026-10-29 — 4.14-2a: el panel del vehículo
+
+El 4.14-2 se parte en tres (2a, 2b y 2c) y, por P4, se suma el 4.14-2a2 (4-49).
+
+- **El cursor por cualquier columna**, en `src/shared`: `Cursor.instante` (antes `creadoEn`, con la misma codificación), `OrdenDeCursor` con `POR_ALTA`, `ordenarPorCursor()`
+  y `armarPaginaPor()`. `<Paginacion alIr>` cambia de página sin ir al servidor.
+- **La barra del vehículo**, sobre la hoja de cotizar y fuera de `[data-hoja]`, abre `?panel=vehiculo` con «Últ. cotización» y, en un origen de subasta, «Cierre subasta»
+  (las vivas desde hace 24 h). Se lee desde el navegador por cursor. Elegir o quitar escribe el vehículo en la URL de la hoja por `nuqs`, cierra el panel y reemplaza la entrada de
+  abrirlo. Con el panel abierto, Ctrl+S no guarda.
+- **Medido:** JS de `/cotizaciones/nuevo` 432 KB (antes 429,5; tope 460); el panel con 20 tarjetas, 284 nodos y 4.660 bytes (presupuestos de 370 y 12.000; topes de 299 y
+  4.900); la tarea de oro 2 pasa a 24 teclas de control; los nodos de la hoja no cambian.
+- **P5:** con la barra encima, al 200 % y con la página arriba de todo, el resumen fijo queda debajo del borde de la ventana (107 px en escritorio, 37,6 en el celular). La persona lo
+  aceptó por ahora y 4-50 endurece su assert. En el celular al 200 %, las tarjetas del panel se pasaban del ancho: una sola columna y `<PestanasConDesborde>`.
+- **Verificación:**
+  - En verde: lint, typecheck y test (5.559).
+  - El completo de escritorio sobre el código final: 802 en verde y 16 saltadas (0 nuevas), 29,2 min, con las carreras.
+  - Los dirigidos en móvil: 148 en verde y 8 saltadas. El volumen, 5 en verde, sembrado con la copia arreglada del 4.14-1 (4-53 sigue abierto).
+  - Tras el `fix` de la auditoría: el panel, el resumen y el JS, 39 en verde.
+  - Los rojos quedaron guardados contra HEAD y caen las 13 mutaciones.
+- **Abiertos nuevos:** 4-54 (elegir otro vehículo mientras se guarda), 4-55 (el título de la cotización, para el 4.18) y 4-56 (`cotizar-formula.ts`, 330 líneas).
+- **Commits:** `314f28d5`, `fba04e51`, `1a7ff3a2` y el `fix` `ee93b46a`.
+  e2e completo: sí (4.14-2a, shared, Nivel 2)
