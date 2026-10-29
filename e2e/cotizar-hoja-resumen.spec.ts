@@ -188,7 +188,7 @@ for (const texto of ['al 100 %', 'al 200 %']) {
       return
     }
     if (m.hojaRem < CORTE_DEL_COSTADO_EN_REM) {
-      // Al pie: con la página arriba de todo, el resumen está dentro de la ventana con su borde de abajo en el de la ventana, y no pasa del 40 % de su alto.
+      // Al pie: con la hoja arriba de la ventana, el resumen está dentro de ella con su borde de abajo en el de la ventana, y no pasa del 40 % de su alto.
       expect(Math.abs(m.resumen.y + m.resumen.h - m.alto)).toBeLessThanOrEqual(1)
       expect(m.resumen.h).toBeLessThanOrEqual(m.alto * 0.4 + 1)
       expect(await scrollMarginDeLoEnfocable(page)).not.toBe('0px')

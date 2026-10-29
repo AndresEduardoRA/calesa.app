@@ -6,7 +6,7 @@ import { CLAVE_DE_CURSOR, CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Button } from '@/shared/ui/button'
 import { Drawer } from '@/shared/ui/drawer'
-import { Tabs, TabsList, TabsTrigger } from '@/shared/ui/tabs'
+import { PestanasConDesborde } from '@/shared/ui/pestanas-con-desborde'
 import {
   desdeDelCierre,
   listaDelPanel,
@@ -72,6 +72,11 @@ export function PanelDelVehiculo(props: Props) {
   )
 }
 
+const PESTANAS = [
+  { clave: 'ultima', titulo: 'Últ. cotización' },
+  { clave: 'cierre', titulo: 'Cierre subasta' },
+] as const
+
 // Se monta en cada apertura: el borde de «Cierre subasta» se toma al abrir y queda fijo mientras el panel está abierto.
 function ContenidoDelPanel(props: {
   origenId: string
@@ -112,21 +117,14 @@ function ContenidoDelPanel(props: {
         </section>
       ) : null}
       {esSubasta ? (
-        <Tabs
-          value={lista}
-          onValueChange={(valor) => {
-            cambiarLista(listaDelPanel(String(valor), true))
+        // Al 200 % en el celular no entran las dos: la barra se desplaza dentro de su ancho y dice por dónde sigue.
+        <PestanasConDesborde
+          pestanas={PESTANAS}
+          valor={lista}
+          alElegir={(clave) => {
+            cambiarLista(listaDelPanel(clave, true))
           }}
-        >
-          <TabsList className="h-11 w-full max-w-full justify-start overflow-x-auto md:h-8">
-            <TabsTrigger value="ultima" className="px-3">
-              Últ. cotización
-            </TabsTrigger>
-            <TabsTrigger value="cierre" className="px-3">
-              Cierre subasta
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        />
       ) : (
         <h3 className="text-(length:--text-sm) font-medium text-(--color-ink)">Últ. cotización</h3>
       )}

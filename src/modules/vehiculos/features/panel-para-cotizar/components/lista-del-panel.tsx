@@ -1,7 +1,8 @@
 'use client'
 
+import { CarFrontIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Button } from '@/shared/ui/button'
+import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { Paginacion } from '@/shared/ui/paginacion'
 import { Skeleton } from '@/shared/ui/skeleton'
 import type { ListaDelPanel as Lista } from '../../../entities/panel-para-cotizar'
@@ -32,22 +33,14 @@ export function ListaDelPanel({ lista, leida, elegidoId, alElegir, alIr, alReint
   }
   if (leida.estado === 'error') {
     return (
-      <div role="alert" className="grid gap-2 text-(length:--text-sm)">
-        <p>No se pudieron cargar los vehículos.</p>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-11 w-fit md:h-9"
-          onClick={alReintentar}
-        >
-          Reintentar
-        </Button>
+      <div role="alert">
+        <EstadoError titulo="No se pudieron cargar los vehículos." alReintentar={alReintentar} />
       </div>
     )
   }
   const { filas, siguiente, anterior } = leida.pagina
   if (filas.length === 0) {
-    return <p className="text-(length:--text-sm) text-(--color-ink-soft)">{VACIO[lista]}</p>
+    return <EstadoVacio Icono={CarFrontIcon} titulo={VACIO[lista]} compacto />
   }
   return (
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
