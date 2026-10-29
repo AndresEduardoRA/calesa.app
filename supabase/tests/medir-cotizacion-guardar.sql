@@ -145,17 +145,17 @@ declare
   v_cambia text := 'jsonb_build_object(''inputs'', jsonb_build_object(''remate'', (random() * 1000)::int), ''overrides'', jsonb_build_object(''transporte_bolivia'', 0, ''nacionalizacion'', 1201))';
 begin
   return case p_caso
-    when 'duena' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L)', v_id, v_ver, v_cambia, v_v1)
-    when 'asesora' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L)', v_id, v_ver, v_cambia, v_v1)
+    when 'duena' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L, false)', v_id, v_ver, v_cambia, v_v1)
+    when 'asesora' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L, false)', v_id, v_ver, v_cambia, v_v1)
     -- Cambiar de vehículo: el que no es el de ahora.
-    when 'vehiculo' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, null, null, (select case when c.vehiculo_id = %L then %L::uuid else %L::uuid end from public.cotizaciones c where c.id = %L))',
+    when 'vehiculo' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, null, null, (select case when c.vehiculo_id = %L then %L::uuid else %L::uuid end from public.cotizaciones c where c.id = %L), false)',
                                 v_id, v_ver, v_cambia, v_v1, v_v2, v_v1, v_id)
-    when 'sin_cambios' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, ''{"inputs": {"remate": 5000}, %s}''::jsonb, null, ''fijo'', null, %L)', v_id, v_ver, c_overrides, v_v1)
+    when 'sin_cambios' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, ''{"inputs": {"remate": 5000}, %s}''::jsonb, null, ''fijo'', null, %L, false)', v_id, v_ver, c_overrides, v_v1)
     -- El mismo intento y los mismos datos que la primera vez (con la versión de entonces): la vuelta temprana.
-    when 'repetido' then format('select public.cotizacion_guardar(%L, %L, %L, ''{"inputs": {"remate": 7000}, %s}''::jsonb, null, ''repetido'', null, %L)', v_id, (select id from _x where clave = 'intento_repetido'),
+    when 'repetido' then format('select public.cotizacion_guardar(%L, %L, %L, ''{"inputs": {"remate": 7000}, %s}''::jsonb, null, ''repetido'', null, %L, false)', v_id, (select id from _x where clave = 'intento_repetido'),
                                 (select valor from _versiones where caso = 'repetido'), c_overrides, v_v1)
-    when 'sintetica' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, (select doc from _entrada_sint), null, ''T'' || gen_random_uuid()::text, null, %L)', v_id, v_ver, v_vs)
-    when 'mala' then format('select pg_temp.cotizacion_guardar_mala(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L)', v_id, v_ver, v_cambia, v_v1)
+    when 'sintetica' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, (select doc from _entrada_sint), null, ''T'' || gen_random_uuid()::text, null, %L, false)', v_id, v_ver, v_vs)
+    when 'mala' then format('select pg_temp.cotizacion_guardar_mala(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L, false)', v_id, v_ver, v_cambia, v_v1)
   end;
 end $$;
 create temp table _versiones (caso text primary key, valor timestamptz);
@@ -230,7 +230,7 @@ end $$;
 
 -- La copia mala: la función de verdad, pero el intento se busca SIN la cotización (`where intento = …`): el índice único empieza por `cotizacion_id`, así que recorre las revisiones.
 do $$
-declare v_def text := pg_get_functiondef('public.cotizacion_guardar(uuid, uuid, timestamptz, jsonb, text, text, text, uuid)'::regprocedure);
+declare v_def text := pg_get_functiondef('public.cotizacion_guardar(uuid, uuid, timestamptz, jsonb, text, text, text, uuid, boolean)'::regprocedure);
 begin
   v_def := replace(v_def, 'FUNCTION public.cotizacion_guardar(', 'FUNCTION pg_temp.cotizacion_guardar_mala(');
   if position('x.cotizacion_id = p_id and x.intento = p_intento' in v_def) = 0 then raise exception 'la copia mala: no está la búsqueda del intento'; end if;

@@ -47,7 +47,7 @@ const guarda = (
   { intento = nuevoId(), a = 11, titulo = 'T', vehiculo = t.vehiculo } = {},
 ) => ({
   persona,
-  sql: 'public.cotizacion_guardar($1, $2, $3::timestamptz, $4::jsonb, null, $5, null, $6)',
+  sql: 'public.cotizacion_guardar($1, $2, $3::timestamptz, $4::jsonb, null, $5, null, $6, false)',
   args: [c, intento, v, JSON.stringify({ inputs: { a } }), titulo, vehiculo],
 })
 
@@ -593,7 +593,7 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
   console.log('Los privilegios de lo nuevo, en la base real, y el orden en bytes de un nodo')
   {
     const llamables = [
-      'public.cotizacion_guardar(uuid,uuid,timestamptz,jsonb,text,text,text,uuid)',
+      'public.cotizacion_guardar(uuid,uuid,timestamptz,jsonb,text,text,text,uuid,boolean)',
       'public.cotizacion_crear(uuid,uuid,uuid,jsonb,text,uuid,jsonb,text,clase_cotizacion,boolean,boolean)',
       'public.cotizacion_hoja(uuid)',
       'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb,text,text)',

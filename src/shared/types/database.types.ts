@@ -7977,6 +7977,7 @@ export type Database = {
           p_notas: string
           p_titulo: string
           p_vehiculo: string
+          p_ver_total_bs: boolean
         }
         Returns: Json
       }
