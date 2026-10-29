@@ -72,23 +72,24 @@ los siguientes pasos usan: `cotizacion_hoja(origen)`, `cotizacion_evaluar` (reco
 `cotizacion_guardar`, `cotizacion_leer`, `cotizacion_revisiones`, `formula_para_cotizar`, `cotizacion_tabla`, `_nodos_visibles()`, los
 niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/shared/ui/xcell` y `leerNumeroTipeado()`.
 
-- **4.13** — La hoja dibujada desde el diseño, en 11 prompts; hechos el 1 (la lectura que abre la hoja), el 2 (la hoja dibujada y el recálculo),
+- **4.13** — La hoja dibujada desde el diseño, en 12 prompts; hechos el 1 (la lectura que abre la hoja), el 2 (la hoja dibujada y el recálculo),
   el 3a (lo que la base da antes de guardar), el 3b (guardar, la pantalla), el 3c (`XCell` y parser) y el 4a («Avanzado» en un modal con
   `?panel=avanzado` y la ayuda de texto con `?ayuda=texto&nodo=`), el 4b1 («Ver total Bs» en la base: `cotizaciones.ver_total_bs`, en
   `cotizacion_crear` y `cotizacion_guardar`; Nivel 2, con el completo de escritorio) y el 4b2 (la moneda del total en Bs en la lectura:
   `cabecera.moneda_bs` de `cotizacion_hoja()`; Nivel 1, base) y el 4b3 (los modos con el primero marcado, «Ver total Bs» en la hoja y el resumen
-  fijo, al pie y al costado; Nivel 1): hechos; ver archivo y, del 4a, el 4b1, el 4b2 y el 4b3, `docs/DECISIONES.md` › «Paso 4.13 (4a de 9)»,
-  «Paso 4.13 (4b1 de 10)», «Paso 4.13 (4b2 de 11)» y «Paso 4.13 (4b3 de 11)» y BITACORA. **Faltan el 4c** (la ayuda de una tabla,
-  una lectura nueva con permisos; P3, compuerta `datos`; marca `2 de 3`) **y el 4d** (la tarea de oro 2 con teclado, KLM ≤ 90 s; el presupuesto
+  fijo, al pie y al costado; Nivel 1) y el 4c1 (`cotizacion_tabla` con la hoja abierta y `cotizaciones.ver`; Nivel 1, base): hechos; ver archivo y, del 4a
+  al 4c1, `docs/DECISIONES.md` › «Paso 4.13 (4a de 9)», «Paso 4.13 (4b1 de 10)», «Paso 4.13 (4b2 de 11)», «Paso 4.13 (4b3 de 11)» y «Paso 4.13 (4c1 de 12)»
+  y BITACORA. **Faltan el 4c2** (la ayuda de una tabla, la pantalla: «Ayuda de X» en las celdas con `ayuda: {tabla}`, `?ayuda=tabla&nodo=`, el panel de sólo lectura
+  que lee `cotizacion_tabla` con la hoja abierta; P11, P12; marca `2 de 3`) **y el 4d** (la tarea de oro 2 con teclado, KLM ≤ 90 s; el presupuesto
   formal de JS de `/cotizaciones/nuevo`, hoy 426,8 KB; la hoja entera a 412 y 1.280 px, al 100 y al 200 %, con el resumen fijo; nodos de la hoja
   con «Avanzado» abierto: medido en el 4b3, 459 al abrir y 481 usada, tope 500 (P7, P8), y si se pasa de 500 se para y se reporta; cierra 4-44). Marcas: 4a `1 de 3`; 4b1 `sí`
-  (el completo de escritorio por su Nivel 2: la cuenta vuelve a 0); 4b2 `no` (base, Nivel 1: la cuenta sigue en 0); 4b3 `1 de 3`; 4c `2 de
+  (el completo de escritorio por su Nivel 2: la cuenta vuelve a 0); 4b2 `no` (base, Nivel 1: la cuenta sigue en 0); 4b3 `1 de 3`; 4c1 `no` (base, Nivel 1: la cuenta sigue en 1); 4c2 `2 de
 3`; 4d `3 de 3` y corre el completo de escritorio. El ⚙ no se abre hasta el 4.20 (sin callback la `XCell` no dibuja el botón). Sin paso
   «Oficina». Los paneles de vehículo y cliente son del 4.14: aquí el lead llega preseleccionado desde su ficha y el vehículo, como diga el ajuste
   (la lectura lo trae). Para el prompt 4 (de 3c, `docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»): un número tipeado se lee con
   `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre con `formatearParaEditar` y el locale; la `XCell`
   tiene un candado por lado (`secondaryDisabledReason`). El diseño recortado es una lectura propia y está en el inventario de
-  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 11 (quedan 2).
+  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 12 (quedan 2).
   - **P1** (contestada el 2026-10-28; hecha en el 4b3): la hoja abre con el primero de los modos que declara el diseño, marcado.
   - **P2** (contestada el 2026-10-28; hecha en el 4b1): «Ver total Bs» se guarda con la cotización (`cotizaciones.ver_total_bs`, `not null default false`).
   - **P4** (contestada el 2026-10-29; hecha en el 4b2): el total en Bs se escribe con la moneda `a` del tipo de cambio de `total_en` de la versión,
@@ -102,9 +103,14 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   - **P7** (contestada el 2026-10-29; hecha en el 4b3): el tope de nodos de la hoja es lo medido con la hoja usada en el peor caso (el segundo modo y «Ver total
     Bs» encendido) más un 5 %, con techo 500; si se pasa de 500, se para y se reporta. **P8** (contestada el 2026-10-29; hecha en el 4b3): medido 481 usada
     (506 con el 5 %), el tope queda en el techo, 500 (4,0 % de margen).
-  - **P3** (4c, `datos`): quién lee las filas de la tabla de una ayuda (`formulas.params.tablas`, hoy sólo `cotizaciones.configurar`): quien ve
-    la celda, por una RPC `security definer` nueva recortada por nivel y registrada en el inventario de lo oculto (recomendada); sólo
-    `cotizaciones.configurar`; o las filas viajan con `cotizacion_hoja()`.
+  - **P3** (contestada el 2026-10-29; hecha en el 4c1): la lectura recortada por nivel ya existía (`cotizacion_tabla`, 4.10-1, en el inventario de lo oculto); la
+    ayuda de una tabla lee **la versión de la hoja abierta** (`p_abierta`, como `cotizacion_evaluar`), no la publicada.
+  - **P9** (contestada el 2026-10-29; hecha en el 4c1): el tope de bytes de `cotizacion_tabla` con 1.000 filas para una asesora con «costos» es lo medido más un
+    5 %, 52.752 (el provisional de 48 KB no cabía por el relleno de la medición). Las P10 a P12 eran P4 a P6 en el plan del 4c.
+  - **P10** (contestada el 2026-10-29; hecha en el 4c1): `cotizacion_tabla` por origen pide también `cotizaciones.ver` del origen, la puerta de la hoja.
+  - **P11** (contestada el 2026-10-29; para el 4c2): la ayuda de una tabla suma ~3 nodos por celda (estimado 490 usada): sigue si la medida queda ≤ 500 y se
+    para sólo si pasa.
+  - **P12** (contestada el 2026-10-29; para el 4c2): la ayuda de una tabla es de sólo lectura (no escribe un valor en la celda).
 - **4.14** — Los paneles del vehículo y del cliente (cursor, nunca «Página N de M»). Vehículo: link o lote (apibara grabado), un nombre,
   «+» y «cargar a mano», que crean el vehículo (D3); «Últ. cotización» por `vehiculos.cotizado_en` con su índice
   `(origen_id, cotizado_en desc, id)`; «Cierre subasta» por `vehiculos_subasta_estado_idx`, que ya existe pero sin `origen_id` (se mide
@@ -161,7 +167,7 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 72 prompts; faltan el 4.13-4c a 4d y los pasos 4.14 a 4.28.
+Total de la fase: 28 pasos y 73 prompts; faltan el 4.13-4c2 a 4d y los pasos 4.14 a 4.28.
 
 ### Abiertos de la Fase 4
 

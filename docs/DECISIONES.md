@@ -1153,3 +1153,16 @@ que un aviso no lo tape y `scroll-margin-bottom` de 40 dvh en lo enfocable mient
 aparecía hasta que la hoja entraba en la ventana. **Trampa:** una consulta de contenedor dentro de un descendiente la resuelve el contenedor más cercano a ese descendiente (la sección),
 no el del elemento que lleva la clase: por eso la hoja es `@container/hoja` y el corte, `@4xl/hoja`. **P7 y P8 (la persona):** el tope de nodos es lo medido con el peor caso más un 5 %
 con techo 500; medido 481 usada (506), el tope quedó en 500 (4,0 % de margen). Sin cambios de base. Abierto: ninguno nuevo; el 4d mide con «Avanzado» abierto y se para si pasa de 500.
+
+## 2026-10-29 — Paso 4.13 (4c1 de 12): la tabla de una ayuda se lee con la versión de la hoja abierta
+
+**El hallazgo:** la lectura que P3 daba por faltante ya existía: `cotizacion_tabla()` (4.10-1) da a quien ve la celda sólo las columnas que leen los nodos que ve, está en el inventario
+de lo oculto, y `cotizacion_hoja()` ya manda `ayuda: {tabla}` con la misma regla. Lo que faltaba era la versión: leía la publicada, y la hoja calcula con la de la hoja abierta (4-28);
+editar una tabla publica la N+1 (D5). **P3 (la persona):** la ayuda lee **la versión de la hoja abierta**: `cotizacion_tabla` recibe `p_abierta` como `cotizacion_evaluar`, con sus errores
+(`abierta_invalida`, `abierta_vencida`, `abierta_no_disponible`, `llamada_invalida` si llega con una cotización, y ésta gana a «las dos o ninguna»). Descartados: la publicada (precios que
+la hoja no usa hasta recargar), sólo quien configura, y las filas dentro de `cotizacion_hoja()` (bytes al abrir por una ayuda que casi nunca se abre). **P10 (era la P4 del plan):** por
+origen pide también `cotizaciones.ver`, la puerta de la hoja; es coherencia, no un cierre de fuga (sin `ver`, `_nodos_visibles` ya no daba nodos; sólo cambia para quien configura sin
+`ver`, que igual lee `tablas_referencia` por la policy). **La firma se recrea por `drop` + `create`** (una sola, sin sobrecarga ambigua) y la versión y la puerta van a un ayudante de
+nadie, `_cotizacion_tabla_version()` (devuelve un `uuid`: fuera del inventario), para que la función quede ≤ 80 líneas. **P9 (la persona):** el tope de bytes con 1.000 filas para una
+asesora con «costos» es lo medido más un 5 %, 52.752; el provisional de 48 KB no cabía por el factor de relleno de la medición (escala 20). Quien configura sigue recibiendo las filas
+sin recortar a `columnas` (fuera de alcance; lo puede proponer el 4c2).

@@ -301,8 +301,8 @@ La lectura de una cotización: lo que quien llama no ve no viaja (`supabase/test
   inexistente; un override de un nodo oculto vuelve como `nodo_inexistente`. Quien no configura el origen sólo elige uno de los
   `cabecera.modos` de esa versión.
 - **`cotizacion_revisiones(cotización, antes?, tamaño?)`:** página por cursor, con cada `diff` recortado. **`formula_para_cotizar(
-origen)`** y la lectura de `formulas`: sólo con `cotizaciones.configurar`. **`cotizacion_tabla(clave, cotización | origen)`:** sólo
-  las columnas que leen los nodos que quien llama ve.
+origen)`** y la lectura de `formulas`: sólo con `cotizaciones.configurar`. **`cotizacion_tabla(clave, cotización | origen, abierta?)`:** sólo
+  las columnas que leen los nodos que quien llama ve, de SU versión: la de la cotización, la de la hoja abierta o la publicada (4.13-4c1).
 
 ### Quién escribe una cotización y cómo (4.10-2)
 
@@ -413,7 +413,9 @@ guardado. Inválida (nula, mal formada, de otra persona u origen, firma mala): 2
   `p_con_la_abierta` la valida y la toma `for share`; con `p_con_la_abierta` el tope de 24 h corre **siempre**.
 - **`cotizacion_evaluar` (por origen):** calcula con **la versión y las tarifas de la abierta**. Si ya no se puede usar,
   `abierta_vencida` y la hoja pide «Recargar» (de otro origen, borrador o inexistente: `abierta_no_disponible`).
-- **Cotizar pide `cotizaciones.crear` y `cotizaciones.ver` del origen** en `cotizacion_hoja`, `cotizacion_evaluar` por origen y
+- **`cotizacion_tabla` (por origen, 4.13-4c1):** la tabla de una ayuda sale de **la versión de la abierta** (su definición, su copia congelada y lo
+  que deja ver); los mismos errores que el recálculo y `llamada_invalida` con una cotización. La resuelve `_cotizacion_tabla_version()` (de nadie).
+- **Cotizar pide `cotizaciones.crear` y `cotizaciones.ver` del origen** en `cotizacion_hoja`, `cotizacion_evaluar` y `cotizacion_tabla` por origen y
   `cotizacion_crear`. Pendiente 4-34: `cotizacion_guardar` con `editar` sin `ver`.
 
 ## Lo que se guarda en una cotización
