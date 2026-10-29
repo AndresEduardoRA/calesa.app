@@ -1093,3 +1093,19 @@ nueva es un default global de Postgres: quitarlo para todo lo que crea `postgres
 vuelva», que sólo sale con `pendiente` puesto, justo la condición del reenvío. Esperar el `requestfailed` dejaría la misma carrera con una
 ventana menor (M2 no la hizo caer en 20 corridas, por eso es argumento y no prueba). Probado con un `page.route` que demora el fallo 1 s:
 HEAD cae, el arreglo pasa. Otros specs de la misma forma: sólo `e2e/origenes.spec.ts:326`, donde la carrera no rompe nada.
+
+## 2026-10-28 — Paso 4.13 (4a de 9): «Avanzado» va en un modal con su URL y la ayuda es un panel
+
+El prompt 4 del 4.13 junta cuatro cosas con verificación distinta (el modal y la ayuda, el modo que se guarda, la ayuda de una tabla con su lectura
+nueva, y la medición de cierre) y no cabe en un paso: se parte en 4a a 4d. En el 4a, las secciones `avanzado` van juntas detrás de **un** botón
+«Avanzado» que ocupa el lugar de la primera (`ordenDeLaHoja()`), con un modal en `?panel=avanzado`; la ayuda de texto es un `<Drawer>` (un modal no
+abre otro) en `?ayuda=texto&nodo=<id>`, que deja `?ayuda=tabla` libre para el 4c. Las celdas del modal son las de la hoja (mismas acciones, recálculo y borrador),
+y `Ctrl/Cmd+S` confirma también la celda abierta del modal (`confirmarCeldaAbierta()` busca en la hoja y en `[data-avanzado-cuerpo]`, porque el modal va en un
+portal). El modal se registra `sinFormulario` en `scripts/guardas/modales-con-salida.ts` con este motivo: dibuja celdas tipeables de la hoja, que confirman
+en la hoja y su borrador; cerrar o «atrás» las desmonta sin confirmar: un número abierto se confirma al perder el foco, lo demás se descarta, y Esc con una
+celda abierta cancela sólo la celda. Guardada la hoja, `?panel=avanzado` y `?ayuda`/`?nodo` se borran de la URL (si no, «Cotizar otra» reabre el modal).
+La URL no abre lo que la hoja no dibuja (`celdaConAyudaDeTexto()`): una celda de «Avanzado» con el modal cerrado, una de tabla o un id inventado no abren nada.
+Medido: la ayuda de una celda de «Avanzado» sí se abre dentro del modal, Esc cierra sólo la ayuda y el foco vuelve a su botón (no hizo falta la parada del plan).
+Medido: «atrás» desde una página que se recargó con el panel abierto vuelve a montar la hoja (la marca puesta en el botón se pierde; no se averiguó por qué) y el foco
+no vuelve al botón; sin recargar, «atrás» cierra el modal y el foco vuelve. El e2e prueba lo segundo. Descartado: un popover o la ayuda en línea; un «Guardar» en el pie del modal (el del
+resumen queda detrás del modal; en el celular se cierra y se guarda desde el resumen).
