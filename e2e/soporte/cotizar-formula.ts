@@ -198,7 +198,7 @@ function seccionesDePrueba() {
   ]
 }
 
-function formulaDePrueba() {
+export function formulaDePrueba() {
   return {
     definicion: definicionDePrueba(),
     params: paramsDePrueba(),

@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ok, type Resultado } from '@/shared/lib/errores'
 import type { RecalculoInicial } from '../../../entities/apertura'
@@ -27,14 +28,16 @@ const INICIAL: RecalculoInicial = {
 }
 const montar = () =>
   render(
-    <PantallaDeCotizar
-      hoja={HOJA}
-      inicial={INICIAL}
-      vehiculoId={null}
-      vehiculoSoltado={false}
-      leadId={LEAD}
-      personaId={PERSONA}
-    />,
+    <NuqsTestingAdapter>
+      <PantallaDeCotizar
+        hoja={HOJA}
+        inicial={INICIAL}
+        vehiculoId={null}
+        vehiculoSoltado={false}
+        leadId={LEAD}
+        personaId={PERSONA}
+      />
+    </NuqsTestingAdapter>,
   )
 const total = () => document.querySelector('[data-total]')?.textContent ?? ''
 const avanzar = (ms: number) =>

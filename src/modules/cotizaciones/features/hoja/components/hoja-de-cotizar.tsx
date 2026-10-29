@@ -13,7 +13,7 @@ import { useGuardarLaHoja } from '../hooks/use-guardar-la-hoja'
 import { useHoja } from '../hooks/use-hoja'
 import { AvisoDelGuardado } from './aviso-de-guardado'
 import { ResumenDeHoja } from './resumen-de-hoja'
-import { SeccionDeHoja } from './seccion-de-hoja'
+import { LugaresDeLaHoja } from './lugares-de-la-hoja'
 
 type Props = {
   hoja: HojaLista
@@ -34,7 +34,7 @@ function avisoDelVehiculo(vehiculoSoltado: boolean, faltaVehiculo: boolean) {
   return faltaVehiculo ? FALTA_EL_VEHICULO : null
 }
 
-// La hoja de cotizar: las secciones del diseño en su orden, cada celda con su `XCell`, y el resumen. Recalcula en la base 150 ms después de la última confirmación.
+// La hoja de cotizar: las secciones del diseño en su orden (las avanzadas, detrás de un botón «Avanzado» con su modal), cada celda con su `XCell`, y el resumen. Recalcula en la base 150 ms después de la última confirmación.
 // Guarda con `Ctrl/Cmd+S` o «Guardar» (el guardado vive en el marco, `useGuardado`): confirma la celda abierta, espera al total al día (P8) y arma el pedido con las
 // entradas que ese recálculo calculó y la misma hoja abierta. Mientras guarda no se toca (`inert`): lo guardado la reemplaza y lo tecleado en el medio se perdería sin aviso. Los iconos y los tonos se montan una sola vez por hoja.
 export function HojaDeCotizar({
@@ -82,14 +82,12 @@ export function HojaDeCotizar({
       <SimbolosDeXCell />
       <EstiloDeTonos tonos={hoja.tonos} />
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @5xl:grid-cols-2">
-        {dibujadas.map((seccion) => (
-          <SeccionDeHoja
-            key={seccion.id}
-            seccion={seccion}
-            contexto={contexto}
-            acciones={h.acciones}
-          />
-        ))}
+        <LugaresDeLaHoja
+          secciones={dibujadas}
+          contexto={contexto}
+          acciones={h.acciones}
+          guardando={guardado.estado.tipo === 'guardando'}
+        />
       </div>
       <ResumenDeHoja
         tarjeta={hoja.tarjetaTotal}

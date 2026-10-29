@@ -6,6 +6,7 @@ import type { RecalculoInicial } from '../../../entities/apertura'
 import { claveDeLaHoja, claveDelBorrador } from '../../../entities/claves-de-la-hoja'
 import type { HojaLista } from '../../../entities/hoja'
 import { useGuardado } from '../hooks/use-guardado'
+import { useSoltarLoAbierto } from '../hooks/urls-de-la-hoja'
 import { CotizacionGuardada } from './cotizacion-guardada'
 import { HojaDeCotizar } from './hoja-de-cotizar'
 
@@ -34,7 +35,15 @@ export function PantallaDeCotizar({ leadId, personaId, ...props }: Props) {
   const borrarElBorrador = () => {
     guardarBorradorDeEstado(window.sessionStorage, borrador, {})
   }
-  const guardado = useGuardado({ hoja: deLaPestana, alGuardar: borrarElBorrador })
+  const soltarLoAbierto = useSoltarLoAbierto()
+  // Guardada, lo que la hoja tenía abierto (el modal «Avanzado», una ayuda) se va de la URL: «Cotizar otra» la vuelve a montar sin reabrirlo.
+  const guardado = useGuardado({
+    hoja: deLaPestana,
+    alGuardar: () => {
+      borrarElBorrador()
+      soltarLoAbierto()
+    },
+  })
   const otraVuelta = () => {
     setVuelta((v) => v + 1)
   }

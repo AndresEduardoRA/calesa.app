@@ -7,7 +7,7 @@ import {
   crearDuenaDePrueba,
 } from './soporte/base'
 import { vigilarRecalculos } from './soporte/cotizar'
-import { ordenDeclarado } from './soporte/cotizar-formula'
+import { ordenConAvanzado } from './soporte/cotizar-avanzado'
 import { enKB, medirJsEnFrio } from './soporte/js-en-frio'
 import {
   capturar,
@@ -48,6 +48,17 @@ const celda = (page: Page, nodo: string) => page.locator(`[data-nodo="${nodo}"]`
 const lista = (page: Page, atributo: string) =>
   page.locator(`[${atributo}]`).evaluateAll((es, a) => es.map((e) => e.getAttribute(a)), atributo)
 const nodosDelDom = (page: Page) => hoja(page).evaluate((e) => e.querySelectorAll('*').length + 1)
+// Los nodos del modal «Avanzado» abierto (su diálogo), que se suman a los de la hoja: es la hoja entera.
+async function medirElModal(page: Page): Promise<{ nodos: number; celdas: number }> {
+  const dialogo = page.getByRole('dialog', { name: 'Avanzado' })
+  await page.locator('[data-avanzado]').getByRole('button').click()
+  await expect(dialogo).toBeVisible()
+  const nodos = await dialogo.evaluate((e) => e.querySelectorAll('*').length + 1)
+  const celdas = await dialogo.locator('[data-nodo] [data-xcell]').count()
+  await page.keyboard.press('Escape')
+  await expect(dialogo).toBeHidden()
+  return { nodos, celdas }
+}
 
 async function abrir(page: Page): Promise<void> {
   await entrar(page, duena)
@@ -86,7 +97,8 @@ for (const zoom of [100, 200]) {
     await abrir(page)
     await sinScrollHorizontal(page)
     await sinTextoCortado(hoja(page))
-    const orden = ordenDeclarado('subasta_usa')
+    // La hoja dibuja las secciones principales; las avanzadas están detrás del botón «Avanzado» (`cotizar-hoja-avanzado.spec.ts` mira su modal).
+    const orden = ordenConAvanzado('subasta_usa').hoja
     expect(await lista(page, 'data-seccion')).toEqual(orden.secciones)
     expect(await lista(page, 'data-nodo')).toEqual(orden.nodos)
     expect(await lista(page, 'data-atajos')).toEqual(orden.atajos)
@@ -122,8 +134,9 @@ test('la hoja más grande del juego cabe en el tope de nodos del DOM, al abrir y
 }, info) => {
   const vigilante = await vigilarRecalculos(page)
   await abrir(page)
-  const alAbrir = await nodosDelDom(page)
-  const celdas = await page.locator('[data-nodo] [data-xcell]').count()
+  const modalAlAbrir = await medirElModal(page)
+  const alAbrir = (await nodosDelDom(page)) + modalAlAbrir.nodos
+  const celdas = (await page.locator('[data-nodo] [data-xcell]').count()) + modalAlAbrir.celdas
   // La hoja usada: un monto tipeado, los dos interruptores encendidos (la garantía se dibuja) y un override con ↺.
   await celda(page, 'remate').locator('[data-parada="0"]').click()
   await celda(page, 'remate').locator('input').fill('9500')
@@ -136,7 +149,7 @@ test('la hoja más grande del juego cabe en el tope de nodos del DOM, al abrir y
   await celda(page, 'fees').locator('input').press('Enter')
   await expect.poll(() => vigilante.respuestas.length).toBeGreaterThan(0)
   await expect(page.getByLabel('Resumen')).toHaveAttribute('aria-busy', 'false')
-  const usada = await nodosDelDom(page)
+  const usada = (await nodosDelDom(page)) + (await medirElModal(page)).nodos
   info.annotations.push({
     type: 'nodos del DOM de la hoja',
     description: `${String(celdas)} celdas: ${String(alAbrir)} al abrir y ${String(usada)} usada (tope ${String(TOPE_DE_NODOS)})`,
