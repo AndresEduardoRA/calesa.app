@@ -80,6 +80,7 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
 - `cotizacion_evaluar()` con volumen → `supabase/tests/medir-evaluar.sql` (`pnpm db:medir:volumen`)
 - Lectura de cotizaciones con volumen → `supabase/tests/medir-cotizaciones-lectura.sql` (`pnpm db:medir:volumen`)
 - Lectura de vehículos con volumen → `supabase/tests/medir-vehiculos-lectura.sql` (`pnpm db:medir:volumen`)
+- Las listas del panel del vehículo con volumen → `supabase/tests/medir-panel-ultima-cotizacion.sql`, `medir-panel-cierre-subasta.sql`, `medir-historial-del-vehiculo.sql` (`pnpm db:medir:volumen`)
 - `cotizacion_crear()` con volumen → `supabase/tests/medir-cotizacion-crear.sql` (`pnpm db:medir`)
 - `cotizacion_guardar()` con volumen → `supabase/tests/medir-cotizacion-guardar.sql` (`pnpm db:medir`)
 - Baja de una persona con 200.000 leads → `supabase/tests/medir-bajas.sql` (`pnpm db:medir:volumen`)

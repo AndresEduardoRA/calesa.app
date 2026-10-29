@@ -107,6 +107,21 @@ export const MEDICIONES_CON_VOLUMEN = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-panel-ultima-cotizacion.sql',
+    '«Últ. cotización» del panel del vehículo con 50.000 y con 250.000 vivos, como authenticated y con el plan genérico: una página de n + 1 de los cotizados de un origen (primera y profunda por cursor) de la dueña, de Pía y de Beto, por vehiculos_cotizado_idx (ms y buffers del EXPLAIN); la «chica», sin assert (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-panel-cierre-subasta.sql',
+    '«Cierre subasta» del panel del vehículo con 50.000 y con 250.000 vivos, como authenticated y con el plan genérico: una página de n + 1 de las subastas vivas de un origen desde ahora menos 24 h (primera y profunda por cursor) de la dueña, de Pía y de Beto, por vehiculos_cierre_subasta_idx (ms y buffers del EXPLAIN); la «chica», sin assert (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-historial-del-vehiculo.sql',
+    'El historial de un vehículo con 5.000 cotizaciones entre 50.000 y 250.000, como authenticated y con el plan genérico: una página de n + 1 (primera y profunda por cursor) de la dueña, por cotizaciones_vehiculo_creado_idx (ms y buffers del EXPLAIN); Ana («propios»), sin assert',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-bajas.sql',
     'La baja de una persona con 200.000 leads (con transacciones de verdad: confirma y borra lo que crea)',
     UNA,
