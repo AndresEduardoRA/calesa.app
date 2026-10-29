@@ -204,7 +204,8 @@ motor lo ignora; otro nodo con `texto` es `forma`.
   **Publicar no comprueba** que `tipos_cambio` tenga la clave de cada nodo `tipo_cambio`: `cotizacion_evaluar()` lo da como faltante.
 - **Un modo** lo declara el diseño; el elegido se guarda en `cotizaciones.modo_tc`. **El motor lo recibe
   completo**, con la forma de la fórmula: `{ buckets: {bucket: id de nodo tipo_cambio}, total_en }` (`ModoDeCambio` en
-  `entities/formula.ts`). Un modo es otro mapa, no otra cuenta.
+  `entities/formula.ts`). Un modo es otro mapa, no otra cuenta. **Límite (4.13-4b2):** `cabecera.moneda_bs` es la de la versión, no la del modo elegido; un modo cuyo `total_en`
+  tenga otra `moneda_a` escribiría el total en Bs con la de la versión (hoy todos los tipos de cambio son USD → BOB).
 
 ## El diseño de la hoja (D7)
 
@@ -385,7 +386,12 @@ vuelve antes que D2.
 **`cotizacion_hoja(origen)`** es UNA lectura al abrir la pantalla de cotizar: el diseño publicado **recortado al nivel de quien mira** y
 lo que la hoja necesita para dibujarse. No lee `cotizaciones` ni el snapshot. **Orden:** `assert_permiso('cotizaciones.crear', origen)` **antes de mirar nada**; sin versión publicada, `{estado:
 'sin_publicar', origen, puede_configurar}`; con ella, `{estado: 'lista', formula: {id, version}, abierta_en, abierta,
-vehiculo_obligatorio, cabecera, secciones, tarjeta_total, tonos}`.
+vehiculo_obligatorio, cabecera, secciones, tarjeta_total, tonos}`. La `cabecera` es `{modos, ver_total_bs, moneda_bs}`.
+
+- **`cabecera.moneda_bs` (4.13-4b2):** la `moneda_a` del tipo de cambio **activo** que nombra el `total_en` de esa versión (una fila por `tipos_cambio_clave_key`); JSON `null`, con la clave
+  presente, si la versión no tiene `total_en` o ese tipo de cambio no existe o está inactivo. Viaja a todos, sin recorte por nivel (el total en Bs ya viaja siempre y `authenticated` lee
+  `tipos_cambio`), y nunca el id ni la clave del nodo o del tipo de cambio. **Nula no quiere decir sin Bs:** el motor calcula el Bs con el tipo de cambio de cada bucket y usa `total_en`
+  sólo para dividir y sacar los dólares (`oficina` no tiene `total_en` y su `totales.bs` sí tiene valor); qué hace la hoja con ese hueco es P6, del 4.13-4b3.
 
 - Un ítem viaja si su nodo es visible (su `pct`, en un par); una sección, si le queda algún ítem. **Nunca viaja:** `de`, `texto`,
   `match`, `sobre`, `sugerido_de`, `descripcion`, los grupos, ni los `buckets` y `total_en` de un modo.

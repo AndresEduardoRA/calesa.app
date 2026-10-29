@@ -1123,3 +1123,17 @@ la huella del intento, en «nada cambió» y en el `update` (una final también 
 despliegue y llega después da `intento_reusado`; el riesgo es casi nulo porque ninguna pantalla llama todavía a `cotizacion_guardar` (4.15). Nivel 2 por el `alter table`
 (`nivel.mjs`), con el completo de escritorio. No se tocó `cotizaciones.moneda_mostrar` (nadie la escribe): abierto 4-45, para el 4.18. Descartado: guardarlo por persona o
 dejarlo sólo en la pantalla (P2), y un `check` en la columna contra el diseño (la versión puede cambiar de diseño; se valida al escribir).
+
+## 2026-10-29 — Paso 4.13 (4b2 de 11): la moneda del total en Bs sale de la lectura de la hoja
+
+La persona contestó P4 (el total en Bs se escribe con la moneda `a` del tipo de cambio de `total_en` de la versión, que `cotizacion_hoja()` suma a `cabecera`) y P5 («Ver total Bs»
+nace apagado). **La partición:** la fila 4.13 de PLAN nunca nombró un 4b3; P4 pedía su capa de base «en un sub-paso propio antes del 4b2»: ese sub-paso es este 4b2, y la pantalla
+que la fila llamaba 4b2 pasa a llamarse 4b3, con el mismo alcance (no es un cambio de alcance); los prompts pasan de 10 a 11 y la fase, de 71 a 72. **La clave:** `cabecera.moneda_bs`
+(el nombre sigue al de `totales.bs` y `ver_total_bs`), el `moneda_a` de la fila **activa** de `tipos_cambio` cuya clave es la del nodo `total_en` de esa versión (una fila, por
+`tipos_cambio_clave_key`); sólo los activos, como lee el motor. Sin `total_en` o sin ese tipo de cambio es JSON `null` **con la clave presente** (la pantalla la exige: sin la
+clave, `hojaDesde()` devuelve nulo). **Nula no quiere decir sin Bs:** el motor calcula el Bs con el tipo de cambio de cada bucket y usa `total_en` sólo para sacar los dólares;
+`oficina` no tiene `total_en` y su `totales.bs` sí tiene valor. Ese hueco (un Bs con valor y sin moneda) lo decide P6, nueva, en el 4b3. **Quién la recibe:** todos, sin recorte por
+nivel: el total en Bs ya viaja siempre y `authenticated` ya lee `tipos_cambio`; nunca viaja el id ni la clave del nodo o del tipo de cambio (la prueba lo exige con una asesora sin
+el nivel «costos»). **La de la versión y no la del modo:** los modos siguen con sólo `clave` y `nombre`; un modo cuyo `total_en` tenga otra `moneda_a` escribiría el total con la de
+la versión (límite aceptado: hoy todos son USD → BOB). Nivel 1: `create or replace function` no sube a Nivel 2. Abierto 4-46: `cotizacion-hoja.sql` pasó de 300 líneas (705). Descartado:
+una moneda por modo (abría los modos) y leerla de `monedas` sin pasar por el tipo de cambio.
