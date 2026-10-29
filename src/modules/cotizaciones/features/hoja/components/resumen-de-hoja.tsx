@@ -117,7 +117,7 @@ export function ResumenDeHoja({
       data-viejo={viejo}
       aria-busy={ocupado}
       data-pie-de-panel=""
-      className="sticky bottom-0 z-10 grid max-h-[40dvh] gap-2 overflow-y-auto rounded-(--radius-card) border border-(--color-line-strong) bg-(--color-surface) p-4 @4xl:top-[calc(var(--topbar)+1rem)] @4xl:bottom-auto @4xl:max-h-[calc(100dvh-var(--topbar)-2rem)] @4xl:w-[22rem] @4xl:shrink-0"
+      className="sticky bottom-0 z-10 grid max-h-[40dvh] gap-2 overflow-y-auto rounded-(--radius-card) border border-(--color-line-strong) bg-(--color-surface) p-4 @4xl/hoja:top-[calc(var(--topbar)+1rem)] @4xl/hoja:bottom-auto @4xl/hoja:max-h-[calc(100dvh-var(--topbar)-2rem)] @4xl/hoja:w-[22rem] @4xl/hoja:shrink-0"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <span className="text-(length:--text-sm) font-medium [overflow-wrap:anywhere] text-(--color-ink-soft)">

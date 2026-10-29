@@ -83,11 +83,11 @@ export function HojaDeCotizar({
       ref={raiz}
       data-hoja=""
       inert={guardado.estado.tipo === 'guardando'}
-      className="@container grid min-w-0 gap-4"
+      className="@container/hoja grid min-w-0 gap-4"
     >
       <SimbolosDeXCell />
       <EstiloDeTonos tonos={hoja.tonos} />
-      <div className="flex min-w-0 flex-col gap-4 @4xl:flex-row @4xl:items-start">
+      <div className="flex min-w-0 flex-col gap-4 @4xl/hoja:flex-row @4xl/hoja:items-start">
         <div className="grid min-w-0 flex-1 gap-4">
           <CabeceraDeHoja
             cabecera={hoja.cabecera}

@@ -131,6 +131,12 @@ test('una fórmula sin modos (la planilla) no dibuja la cabecera', async ({ page
   await expect(cabecera(page)).toHaveCount(0)
 })
 
+const scrollMarginDeLoEnfocable = (page: Page) =>
+  page
+    .locator('[data-secciones] [data-parada="0"]')
+    .first()
+    .evaluate((e) => getComputedStyle(e).scrollMarginBottom)
+
 async function medidas(page: Page) {
   return page.evaluate(() => {
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize)
@@ -178,6 +184,7 @@ for (const texto of ['al 100 %', 'al 200 %']) {
       // Al pie: con la página arriba de todo, el resumen está dentro de la ventana con su borde de abajo en el de la ventana, y no pasa del 40 % de su alto.
       expect(Math.abs(m.resumen.y + m.resumen.h - m.alto)).toBeLessThanOrEqual(1)
       expect(m.resumen.h).toBeLessThanOrEqual(m.alto * 0.4 + 1)
+      expect(await scrollMarginDeLoEnfocable(page)).not.toBe('0px')
       // Tab hasta la última celda: la que recibe el foco no queda bajo el resumen.
       const ultima = page.locator('[data-secciones] [data-parada="0"]').last()
       // La celda queda a la vista pero bajo el resumen (en el borde de abajo de la ventana): sin `scroll-margin` el navegador no la mueve al enfocarla.
@@ -189,6 +196,8 @@ for (const texto of ['al 100 %', 'al 200 %']) {
       const resumenAhora = await resumen(page).boundingBox()
       expect(celda && resumenAhora && celda.y + celda.height <= resumenAhora.y + 1).toBe(true)
     } else {
+      // Al costado: lo enfocable ya no deja el margen del pie.
+      expect(await scrollMarginDeLoEnfocable(page)).toBe('0px')
       // Al costado: a la derecha de las secciones y a la vista aunque se baje hasta el final.
       expect(m.resumen.x).toBeGreaterThanOrEqual(m.secciones.x + m.secciones.w - 1)
       await page.evaluate(() => {
