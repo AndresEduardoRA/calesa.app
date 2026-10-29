@@ -30,6 +30,11 @@ test.describe.configure({ mode: 'serial' })
 // escribirlo (4.13-4d): 23 en los dos proyectos, con 0,7 s el robot y KLM 12,5 s. Es determinista: una parada nueva en el camino lo rompe a propósito.
 const CONTROLES_MAXIMOS = 23
 
+// Los Tab que cuesta pasar por cada lado editable de la subasta como la dueña, medidos (4.13-4d, los dos proyectos): 12 lados de la hoja en 24 Tab desde «Saltar al contenido» y 16
+// de «Avanzado» en 28 desde el primer valor. Como las teclas de control, es determinista: una parada nueva entre dos editables lo rompe a propósito.
+const TABS_DE_LA_HOJA = 24
+const TABS_DE_AVANZADO = 28
+
 let asesora = ''
 let duena = ''
 let subasta = ''
@@ -176,7 +181,7 @@ test('cada celda editable de la hoja y de «Avanzado» se alcanza con Tab, en or
   await page.keyboard.press('Tab')
   await expect(page.getByRole('link', { name: 'Saltar al contenido' })).toBeFocused()
   await page.keyboard.press('Enter')
-  const deLaHoja = await tabularPorLosEditables(page, enLaHoja, 200)
+  const deLaHoja = await tabularPorLosEditables(page, enLaHoja, TABS_DE_LA_HOJA)
   expect(deLaHoja.vistos).toEqual([...Array(enLaHoja).keys()])
 
   const boton = page.locator('[data-avanzado]').getByRole('button', { name: /^Avanzado/ })
@@ -188,7 +193,7 @@ test('cada celda editable de la hoja y de «Avanzado» se alcanza con Tab, en or
   expect(enElModal).toBeGreaterThan(0)
   // Al abrir, el foco está en el primer valor que se puede tipear (el primero de la lista).
   await expect(dialogo.locator('[data-e2e-editable="0"]')).toBeFocused()
-  const delModal = await tabularPorLosEditables(page, enElModal, 200)
+  const delModal = await tabularPorLosEditables(page, enElModal, TABS_DE_AVANZADO)
   expect(delModal.vistos).toEqual([...Array(enElModal).keys()])
   const medida = `hoja: ${String(enLaHoja)} lados en ${String(deLaHoja.tabs)} Tab; «Avanzado»: ${String(enElModal)} en ${String(delModal.tabs)}`
   console.warn(`[Tab por los editables] ${info.project.name}: ${medida}`)
