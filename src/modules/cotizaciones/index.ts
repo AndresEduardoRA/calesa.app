@@ -74,3 +74,7 @@ export {
   CLAVE_DE_VEHICULO,
   RUTA_DE_LA_HOJA,
 } from './entities/ruta-de-la-hoja'
+
+// El panel del vehículo de la hoja (4.14-2b): «Cotizado (n)», el conteo acotado de las cotizaciones del vehículo que quien mira ve. Sólo se importa desde un Server
+// Component. El historial se lee desde el navegador por `composicion.client.ts` y se dibuja con `pantallas/cotizar.ts`.
+export { contarCotizacionesDelVehiculo } from './composicion'
