@@ -1,10 +1,11 @@
 import { expect, test, type Locator, type Page } from './soporte/prueba'
 import { entrar } from './soporte/alta'
 import { limpiarGuardado, prepararGuardado } from './soporte/cotizar-guardar'
+import { abrirNiveles, modalDeNivel } from './soporte/niveles'
 import { sql } from './soporte/sql'
 
 // La vuelta del foco (4-49, paso 4.14-2a2, `src/shared/ui/vuelta-del-foco.ts`): tras recargar con un panel por URL abierto, «atrás» lo cierra y el foco vuelve a
-// quien lo abrió, en un modal de la hoja («Avanzado») y en el drawer del vehículo. Recargar nunca mueve el foco: tras cada
+// quien lo abrió, en un modal de la hoja («Avanzado»), en uno de Configuración («Nuevo nivel») y en el drawer del vehículo. Recargar nunca mueve el foco: tras cada
 // recarga, el primer Tab sigue yendo a «Saltar al contenido».
 test.describe.configure({ mode: 'serial' })
 
@@ -74,6 +75,17 @@ test('«Avanzado», un modal de la hoja: abrir, recargar y «atrás» devuelve e
 }) => {
   await abrirLaHoja(page)
   await abrirRecargarYVolver(page, avanzado(page))
+})
+
+test('«Nuevo nivel», un modal de Configuración: abrir, recargar y «atrás» devuelve el foco al botón', async ({
+  page,
+}) => {
+  await entrar(page, duena, { fresco: true })
+  await abrirNiveles(page)
+  await abrirRecargarYVolver(page, {
+    boton: page.getByRole('button', { name: 'Nuevo nivel' }),
+    dialogo: modalDeNivel(page, 'Nuevo nivel de acceso'),
+  })
 })
 
 test('el panel del vehículo, un drawer: abrir, recargar y «atrás» devuelve el foco a la barra', async ({
