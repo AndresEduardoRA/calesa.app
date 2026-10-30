@@ -95,6 +95,22 @@ test('exportar, desde el menú «CSV»: abrir, recargar y «atrás» devuelve el
   })
 })
 
+test('el lead rápido, desde el nombre de la fila: abrir, recargar y «atrás» devuelve el foco al nombre', async ({
+  page,
+}) => {
+  await alListado(page)
+  const abrir = aLaVista(page.getByRole('button', { name: `Abrir ${DALIA}`, exact: true })).first()
+  await abrirRecargarYVolver(page, {
+    boton: abrir,
+    dialogo: page.getByRole('dialog', { name: DALIA }),
+    clave: 'lead',
+    abrir: async () => {
+      await abrir.focus()
+      await page.keyboard.press('Enter')
+    },
+  })
+})
+
 test('«Etapas», en el embudo: abrir, recargar y «atrás» devuelve el foco al botón', async ({
   page,
 }) => {
