@@ -283,3 +283,18 @@ hasta 500, con la RLS de quien mira (P2) y sin función de base. Lo une `src/app
     reexportada por `composicion.client.ts` y `<Badge>` en la barra; ver DECISIONES), `/vehiculos` 473,5 de 500, `/perfil` 418 de 440.
 - **Commits:** `ba111574` (la lectura), `7d7df7c` (el historial y la insignia) y `b2921c3` («Cotizar»).
   e2e completo: no (4.14-2b, pantalla, 1 de 3)
+
+## 2026-10-30 — 4.14-2c1: buscar, traer, «+», crear y elegir desde el panel del vehículo
+
+El panel del vehículo de la hoja de cotizar tiene arriba un campo que busca por nombre, VIN o lote y trae un enlace de Copart o IAAI, un VIN o un lote; «+» carga a mano. Los dos abren el alta del inventario dentro
+del panel y «Crear y elegir» crea el vehículo y la hoja lo elige, sin guardar la cotización (P1). El layout del alta se lee del navegador al abrirla (P2: en el documento de la hoja sumaba 69.098 B).
+El 4.14-2c se partió en tres; el 4.14-2c1 no cierra 4-10. `docs/DECISIONES.md` › «Paso 4.14 (2c)».
+
+- **Verificación:**
+  - En verde: lint, typecheck (sin warnings), Vitest completo (5.839 pruebas en 479 archivos) y `mapa.sh --check`.
+  - e2e dirigidos (22 specs, escritorio y móvil, más `presupuesto-js`): 267 en verde, 5 saltadas y 2 en rojo (el tope de bytes del panel: la búsqueda pedía `creado_en` también en las pestañas, 5.627 B); arreglado, los tres specs que lo tocan se repitieron: 38 en verde (`.piloto/salidas/4.14-2c1/dirigidos.txt`, `dirigidos-2.txt`).
+  - Rojos contra el estado anterior: Vitest (`rojo-vitest-1|2|3.txt`) y el spec nuevo (`rojo-e2e-*.txt`; es serial: cae B2 y los demás quedan sin correr). Sin mutaciones: paso de pantalla.
+  - Medido: el panel con el buscador, 295 nodos y 4.681 B (topes 299 y 4.900); JS en frío de `/cotizaciones/nuevo` 443,9 KB de 460 y de `/vehiculos` 476,3 de 500; el documento de la dueña +17.373 B sobre el de un rol sin
+    `vehiculos.crear` (tope 40.000); tarea de oro 2 con el panel, 28 teclas, KLM 20,8 s / 19,4 s.
+- **Commits:** `3f834f78` (la búsqueda), `487a37c1` (crear y elegir, con el layout del alta en `origenes`) y `f33fb12f` (la tarea de oro con el panel).
+  e2e completo: no (4.14-2c1, pantalla, 2 de 3)

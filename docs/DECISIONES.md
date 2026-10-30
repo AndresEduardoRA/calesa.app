@@ -1409,3 +1409,26 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **Sin camino a lo antiguo todavía:** el tope de 500 muestra «Mostrando las 500 más recientes.» sin cómo seguir; lo traen el 4.16 (listado con filtro) y el 4.17 (la sección del vehículo).
 - **El autor sale embebido de `perfiles`** y `autorVisible()` repite la regla de `nombreVisible()` de `equipo` (que no llega al navegador); su comentario nombra el original.
 - **Cierra sin abiertos nuevos.** «Cotizar» en la ficha `/vehiculos/[id]` y en el «⋯» del inventario no entró (la fila nombra sólo el resumen).
+
+## 2026-10-30 — Paso 4.14 (2c): crear desde el panel y la partición en 2c1, 2c2 y 2c3
+
+- **Por qué se parte.** 4-10 con P6 («elegir el tipo entre las filas de la tabla de transporte, con el sugerido marcado») no cabe en pantalla pura: la hoja no sabe qué dato del vehículo casa con qué
+  columna de qué tabla (el `match` vive en `formulas.definicion`, que no viaja a quien cotiza, D7). Guardar el tipo (P3 del 2a) no pide base (`vehiculo_guardar` ya funde `atributos`); saber qué
+  ofrecer, sí. 2c1 (este) = buscar, traer, «+», crear y elegir, tarea de oro con un vehículo buscado por nombre; 2c2 = la base (rigor máximo, compuerta `datos`); 2c3 = el tipo en el panel y la tarea de oro
+  con un enlace de Copart (con `AUTOMOBILE` el transporte de `subasta_usa` queda sin valor y la hoja no guarda sin total).
+- **P1 (se crea al confirmar en el panel).** «Crear y elegir» llama a `vehiculo_crear` (la action de siempre) y la hoja calcula enseguida con el año y el tipo, porque `cotizacion_evaluar` sólo recibe un
+  vehículo que ya existe. Si la cotización no se guarda, el vehículo queda en el inventario (el de subasta lo recoge la limpieza; el de a mano, no). `p_vehiculo_nuevo` queda en la base sin uso desde la pantalla.
+- **P2 (el layout se lee al abrir el alta).** La primera versión pasaba el layout activo del origen desde la página: con 106 campos eran +69.098 B sin comprimir en el documento de cada apertura de la hoja
+  (presupuesto 40.000), se abra o no el panel. El alta lo lee ahora desde el navegador (`useLayoutActivo()` en `origenes`, con la sesión de quien mira) y la página sólo pasa `alta` = origen y si apibara
+  está encendida; el documento de la dueña pesa 17.373 B más que el de un rol sin `vehiculos.crear` (el resto es del shell). Costo: una espera corta (esqueleto) al abrir «+» o «Traer».
+- **Un campo, tres cosas.** El campo de arriba del panel busca (título, VIN, lote; desde 3 letras o números, `leerTextoDelPanel()`), y si el texto es un enlace de Copart o IAAI, un VIN o un lote lo ofrece
+  traer. Un enlace no se busca (no está en un título). Un enlace que no se puede traer (origen manual, apibara apagada, sin `vehiculos.crear`) dice por qué debajo del campo; un VIN o un lote sólo se buscan.
+- **Enter y la cuota de apibara.** Enter trae un enlace; un VIN o un lote sólo si su búsqueda ya volvió vacía (las repetidas se marcan _después_ de consultar y cada consulta gasta cuota). El botón «Traer» queda
+  para quien lo quiera igual. Recargar con `?alta=subasta` muestra lo pegado y **no** vuelve a consultar: la consulta se pide con una marca en memoria que se pone sólo al decidir traer.
+- **El alta es la del inventario.** Mismo formulario, mismas reglas y mismo borrador (`vehiculo-nuevo-<origen>`: lo escrito en un lado aparece en el otro); sin «Abrir ficha» (saldría de la hoja) ni «Guardar y cargar
+  otro». Ctrl+S y el atajo de «guardar y seguir» crean y eligen, y no guardan la cotización de detrás (el último registro responde). Varias líneas guardadas con «Guardar las listas» se crean sin elegir ninguna.
+- **El texto vive en la URL.** `?buscar=` y `?alta=mano|subasta` se escriben con `replace`, sin ir al servidor; el campo lleva `useTextoDeUrl()` (si no, la vuelta de la URL le quita el foco). La pausa de tecleo
+  (300 ms) es una constante local: la de los listados es privada de `src/shared` y exportarla lo subía a Nivel 2 por un número.
+- **Medido.** `creado_en` lo pide sólo la búsqueda: pedirlo en las pestañas subió la primera respuesta del panel a 5.627 B (tope 4.900); con el buscador, el panel mide 295 nodos y 4.681 B (topes 299 y 4.900).
+  JS en frío de la hoja 443,9 KB de 460 (+10,4 KB del buscador y su alta) y de `/vehiculos` 476,3 de 500. La tarea de oro con el panel: 28 teclas de control, KLM 20,8 s (escritorio) y 19,4 s (móvil).
+- **Una consulta de un lote que ya está en el inventario no llena la ficha** (queda marcada «ya está»): el e2e A2 corre antes de T1, que crea el lote 58540656 en el origen.
