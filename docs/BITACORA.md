@@ -167,3 +167,30 @@ El 4.14-2 se parte en tres (2a, 2b y 2c) y, por P4, se suma el 4.14-2a2 (4-49).
     vuelve a copiar `__NA`.
 - **Commits:** `ae332fb2`, `2869854b`, `854bb1f3` y el `fix` `234b3147` (la auditoría del informe: soltar la escritura pendiente si falla).
   e2e completo: sí (4.14-2a2, shared, Nivel 2)
+
+## 2026-10-30 — 4.14-2a3: la vuelta del foco desde un menú, en los filtros y en vehículos
+
+- **La sonda C0, contra HEAD antes del código** (`.piloto/salidas/4.14-2a3/medicion-0.json`, en los dos proyectos): K1 (renombrar un nivel), K2 (la hoja de filtros, a
+  560 px), K3 (nuevo vehículo), K4 (editar), K5 (el resumen), K6 (agregar vehículo) y K7 (la vitrina).
+  - m1: ningún «atrás» recarga el documento. m2: en todos cierra el panel y su clave sale de la URL. m6: en los siete, el foco queda en `body` (0 a 2.000 ms).
+  - m7 (K1 y K7, sin recargar): tras «atrás» y tras Esc, Base UI devuelve el foco al «⋯».
+  - m8 (la línea de tiempo): en K1, en el instante de la marca (T) el foco está en el ítem, dentro del menú, que sigue en el DOM con su `aria-labelledby` (el «⋯»); el
+    «⋯» ya no lleva `aria-controls`. Después: el foco sale (`focusout` sin destino), sale el menú, el foco entra al «⋯» y escribe `nuqs` (T'). K7, sin marca en HEAD,
+    da el mismo orden. Es la rama **R1**. No se dio S1, S4, S5 ni S6; los siete casos reproducen el defecto y todos llevan e2e (E1 a E7).
+- **Lo que no estaba en el plan:** en los hooks con `shallow: false` (editar lo mostró siempre), Next pone su estado en la entrada del panel al llegar la respuesta del
+  servidor y se lleva `vueltaDesde` (medido con un registro de cada escritura del historial); escribirla en `pagehide` no sobrevive a recargar en Chromium. La ficha queda
+  también en `sessionStorage` (`docs/DECISIONES.md` › «Paso 4.14 (2a3)»). Está en `vuelta-del-foco.ts`: alcanza a todo panel con la vuelta (`usePanelPorUrl()`, los filtros,
+  los niveles y los hooks de `leads` del 2a4), aunque fue en el commit de `vehiculos`, los únicos `shallow: false` del paso.
+- **La partición:** los 14 hooks de `leads` y el guardián sin pendientes van al 4.14-2a4 (Nivel 2). La fila del 4.14 pasa a «Prompts: 8 (quedan 4)»: el 6 ya estaba atrasado
+  (con 1, 2a y 2a2 hechos y 4 por hacer eran 7) y suma el 2a4; el total de la fase, a 29 pasos y 78 prompts.
+- **Verificación:**
+  - En verde: lint, typecheck y test (5.615), y `mapa.sh --check`.
+  - El completo de escritorio sobre el árbol de los tres commits de código: 813 en verde y 16 saltadas (0 nuevas), 30,4 min, con las carreras.
+  - Los 56 dirigidos en escritorio y móvil: 518 en verde y 9 saltadas; dos de escritorio cayeron una vez (`vehiculos-resumen-casos` y `vehiculos-resumen`: una apertura sin
+    efecto justo tras cargar o tras cerrar), y repetidos dos veces (24) y en el completo, en verde. La sonda contra HEAD tuvo una del mismo tipo (un clic en «Filtros»
+    recién cargado): queda como 4-57. JS de `/cotizaciones/nuevo` 433,2 KB de 460.
+  - Rojos contra HEAD: 24 de Vitest (los hooks no marcan), 4 de C1 y E1 a E7 en los dos proyectos (14, el foco inactivo). Caen las 13 mutaciones en Vitest (M1 a M12 y M14,
+    la ficha guardada) y las 8 del e2e (M1 dos veces, M3, M5, M7, M9, M10 y M14).
+- **Commits:** `fb4e452d`, `0faa58d5`, `7af5d2e5` y el de la auditoría del informe, `612a8e16` (dos pruebas de la ficha guardada: otra URL no se toma y sin
+  `sessionStorage` alcanza la del historial; cae la mutación de la condición de la URL).
+  e2e completo: sí (4.14-2a3, shared, Nivel 2)

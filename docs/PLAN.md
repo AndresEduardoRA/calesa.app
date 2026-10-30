@@ -119,14 +119,15 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   `vehiculos_cierre_subasta_idx (origen_id, cierre_subasta_en, id)`; el historial del vehículo con `cotizaciones_vehiculo_creado_idx
 (vehiculo_id, creado_en desc, id desc)`, que reemplaza a `cotizaciones_vehiculo_idx`; «Cotizado (n)» por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
   etiqueta y «+» que abre «Nuevo lead». Se entra desde la ficha del lead y desde el resumen del vehículo. Cierra **4-10** (el tipo de
-  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 6 (quedan 4).
+  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 8 (quedan 4).
   **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
   versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
   hecho. El **4.14-2** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2a)»): el **4.14-2a** (el cursor por columna en `src/shared`, la barra y el panel del vehículo
   con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. El **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2):
-  hecho. Faltan el **4.14-2a3** (los 19 hooks propios de `scripts/guardas/paneles-con-vuelta.ts`; Nivel 2, `sí`; cierra 4-49), el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
+  hecho. El **4.14-2a3** (la vuelta desde un menú, el panel de filtros y los 4 hooks de `vehiculos`; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a3)»): hecho. Faltan el
+  **4.14-2a4** (los 14 hooks de `leads` y el guardián sin pendientes; Nivel 2, `sí`; cierra 4-49), el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
   nombre, «+» y «a mano»; 4-10 con P6 y P3; el tramo del panel en la tarea de oro 2; `2 de 3`, o se parte si P3 pidiera base) y el **4.14-3** (el panel del cliente y la
-  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`.
+  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`.
   - **P1** (contestada el 2026-10-29; hecha en el 4.14-1): `cotizado_en` va en `vehiculos`, y cuando sólo cambia ella ni se mueve la versión de la ficha ni se audita.
   - **P2** (contestada el 2026-10-29; hecha en el 4.14-1): la ve quien ve el vehículo (sólo cuándo, no quién ni cuánto).
   - **P3** (contestada el 2026-10-29; hecha en el 4.14-1): la mueven crear una cotización con el vehículo y guardar una que pasa a él; nunca retrocede.
@@ -189,7 +190,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 76 prompts; faltan el 4.14-2a3, el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
+Total de la fase: 29 pasos y 78 prompts; faltan el 4.14-2a4, el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
 
 ### Abiertos de la Fase 4
 
@@ -295,13 +296,15 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
 - **4-43** (sin fase: lo decide la persona; salió del 4-42): `e2e/leads-ficha-edicion.spec.ts` tiene 331 líneas (> 300) — partirlo por
   responsabilidad (edición, borrador, sin red, permisos). Assert: `wc -l` de cada parte ≤ 300 y las mismas pruebas en verde.
-- **4-49** (el **4.14-2a3**; hecho en parte en el 4.14-2a2, 2026-10-29; P4 del 4.14-2a; salió de 4-44 (a), 4.13-4d): tras **recargar** con un panel por URL abierto, «atrás»
+- **4-49** (el **4.14-2a4**; hecho en parte en el 4.14-2a2, 2026-10-29, y en el 4.14-2a3, 2026-10-30; P4 del 4.14-2a; salió de 4-44 (a), 4.13-4d): tras **recargar** con un panel por URL abierto, «atrás»
   cierra el panel pero el foco queda en `body`. Medido en el 4.14-2a2 (`docs/DECISIONES.md` › «Paso 4.14 (2a2)»): el documento y el botón no se montan de nuevo; el modal se
   cierra montado y Base UI no devuelve el foco; el drawer del vehículo, que le pasa una ref a `focoAlCerrar`, sí lo devuelve. **Hecho** en `usePanelPorUrl()` y en «Nuevo nivel»
-  con la vuelta del foco (`src/shared/ui/vuelta-del-foco.ts`; `e2e/paneles-foco-al-volver.spec.ts`, en verde). **Falta** (el 4.14-2a3, con P1 del 2a2): los 19 hooks que escriben su
-  `?panel=` a mano, en `PENDIENTES` de `scripts/guardas/paneles-con-vuelta.ts` (14 de `leads`, 4 de `vehiculos` y `use-filtros.ts`). Assert: `PENDIENTES` vacío; antes del código, una
-  sonda mide si esos paneles reproducen el defecto (los drawers que guardan a quien abre en memoria, `recordarQuienAbre()`, son los candidatos), y cada uno que lo reproduzca
-  lleva su e2e en rojo contra HEAD; si ninguno, se dice y alcanzan el guardián y Vitest. Se cierra con él, y 4-44 (a) también.
+  con la vuelta del foco (`src/shared/ui/vuelta-del-foco.ts`; `e2e/paneles-foco-al-volver.spec.ts`, en verde). **Hecho en el 4.14-2a3** (`docs/DECISIONES.md` › «Paso 4.14 (2a3)»):
+  desde un menú la vuelta va al «⋯» (también renombrar un nivel), la ficha sobrevive a una navegación del servidor, y `use-filtros.ts` y los 4 hooks de `vehiculos` salen de
+  `PENDIENTES` (la sonda midió el defecto en los siete casos; `e2e/paneles-foco-al-volver-vehiculos.spec.ts`). **Falta** (el 4.14-2a4): los 14 hooks de `leads` en `PENDIENTES` de
+  `scripts/guardas/paneles-con-vuelta.ts`. Assert: `PENDIENTES` vacío y el registro borrado, el guardián exige también `useVueltaDelFoco` y `src/shared/CLAUDE.md` deja de nombrar
+  la lista; antes del código, una sonda mide si esos paneles reproducen el defecto, y cada uno que lo reproduzca lleva su e2e en rojo contra HEAD (`probarLaVuelta()` para Vitest,
+  `e2e/soporte/vuelta-del-foco.ts` para el e2e). Se cierra con él, y 4-44 (a) también.
 - **4-50** (antes del 4.18, P5 del 4.14-2a; el cómo lo decide la persona; salió del 4.13-4d, de las capturas): al 200 %, el resumen fijo al pie (escritorio y celular) ocupa cerca del 40 % del alto de la pantalla y
   tapa la hoja mientras se desplaza; se pliega con su «—», pero nace abierto. Assert: al 200 % el resumen al pie no pasa de un alto que se decida, o nace plegado, y
   `aLaVistaSinDesplazar()` de la celda con el foco sigue verde. Suma (4.14-2a, P5): el resumen no sube más allá del borde de arriba de la hoja, y con la barra del vehículo
@@ -323,6 +326,11 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-56** (sin fase, lo decide la persona; del tipo de 4-43): `e2e/soporte/cotizar-formula.ts` mide 330 líneas (> 300; 315 antes del 4.14-2a, que le sumó el origen de subasta
   y el borrado de sus vehículos). Partirlo por responsabilidad (la fórmula de prueba, los orígenes y su limpieza, lo que se mira en la base). Assert: `wc -l` de cada parte ≤ 300
   y los mismos specs en verde.
+- **4-57** (sin fase, el próximo paso que toque esas pantallas; salió del 4.14-2a3): en una corrida larga de escritorio, una apertura justo tras cargar la página o tras
+  cerrar un panel `shallow: false` no tuvo efecto: `vehiculos-resumen.spec.ts:68` (Enter en el nombre recién cargado `/vehiculos`), `vehiculos-resumen-casos.spec.ts:66` (el
+  segundo «Editar» tras «Cancelar») y, contra HEAD, la sonda del 4.14-2a3 (un clic en «Filtros» recién cargado; `.piloto/salidas/4.14-2a3/sonda-c0.txt`). Repetidos, en verde.
+  Sin causa todavía (¿la hidratación?, ¿una navegación pendiente que pisa la nueva?). Assert: `--repeat-each=20` de esos dos specs en escritorio, con la página recién
+  cargada, sin caídas; si caen, la causa medida y su arreglo.
 - **4-55** (4.18; salió del 4.14-2a): la referencia del cotizador pone el título de la cotización en el panel del vehículo; `cotizacion_crear` no recibe título. Se decide con
   la tarjeta y el PDF. Assert: lo que se decida, con su e2e.
 - **4-45** (4.18; salió del 4.13-4b1): `cotizaciones.moneda_mostrar` (`char(3)`, legible) no la escribe ninguna RPC ni la lee la app, y con

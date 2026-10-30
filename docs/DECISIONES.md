@@ -1297,3 +1297,27 @@ en el drawer del vehículo; se siguió porque los dos modales medidos en 4-49 lo
   claves propias vecinas (la `vueltaDesde` de un panel con un `eliminar` adentro): lo prueba Vitest. Si la escritura de la URL falla, la clave deja de estar «escribiendo».
 - **P1 (la persona): los 19 hooks propios van al 4.14-2a3**, el paso siguiente, con el guardián `scripts/guardas/paneles-con-vuelta.test.ts`, cuya lista de pendientes sólo
   se achica. 4-49 queda abierto hasta entonces.
+
+## 2026-10-30 — Paso 4.14 (2a3): la vuelta desde un menú, tras una navegación del servidor y la partición en 2a3 y 2a4
+
+**Medido antes del código** (una sonda contra HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a3/medicion-0.json`): los siete casos (renombrar un nivel, la hoja de
+filtros, nuevo vehículo, editar, el resumen, agregar vehículo y la vitrina) dejan el foco en `body` tras recargar y «atrás»; ninguno recarga el documento y en todos
+«atrás» cierra el panel. Sin recargar, desde un «⋯», Base UI devuelve el foco al «⋯» (tras «atrás» y tras Esc). En el instante en que corre una acción `despuesDeCerrar`
+(el `replaceState` de la marca), el foco sigue en el ítem, el menú sigue en el DOM con su `aria-labelledby` (el `id` del «⋯») y el «⋯» ya no lleva `aria-controls`; después
+salen el foco y el menú, el foco entra al «⋯» y recién ahí escribe `nuqs`. El mismo orden en la vitrina. No se dio S1, S4, S5 ni S6: es la rama R1 del plan.
+
+- **Desde un menú, la marca es la del botón del menú** (`disparadorDelMenu()` en `vuelta-del-foco.ts`): el ítem ya no existe al volver, y el «⋯» es a donde Base UI devuelve
+  el foco sin recargar. Se busca primero por el `aria-labelledby` del menú, que es lo que está en ese instante; si no, por el `aria-controls` (un menú que corre su acción
+  abierto); si no, las señas del foco, como antes. Arregla el límite del 2a2 (renombrar un nivel) y todo panel o `<Confirmar>` que se abre desde un «⋯».
+- **La ficha de la entrada del panel queda también en `sessionStorage`** (la última por clave, con un hash de la URL): con `shallow: false`, la respuesta del servidor llega
+  después de que `nuqs` resuelve, y Next pone su estado en la entrada del panel sin conservar el resto (`preserveCustomHistoryState: false`): `vueltaDesde` se pierde a los
+  ~60 ms y tras recargar el panel no sabe su ficha (medido con un registro de cada escritura del historial). Volver a escribirla en `pagehide` no sirve: Chromium no conserva
+  un `replaceState` hecho al salir. La marca sigue en el historial (la entrada de antes no la toca Next) y lo que decide la vuelta sigue siendo un `popstate` a esa entrada
+  con la misma ficha: una ficha guardada de otra apertura no coincide y no mueve nada. Sin `sessionStorage`, queda la del historial. Lo que dijo el 2a2 («no en
+  `sessionStorage`») vale para la marca y la memoria; esto es sólo un respaldo de la ficha.
+- **Se parte en 2a3 y 2a4:** son cuatro intenciones con su scope (`shared` desde un menú, `shared` los filtros, `vehiculos` y `leads`) y la verificación no es la misma (los
+  hooks de `leads` no son interfaz). El 4.14-2a4 hace los 14 de `leads`, deja `PENDIENTES` vacío, borra el registro, exige también `useVueltaDelFoco` en el guardián y corrige
+  la ficha de `shared`: por esa ficha es Nivel 2.
+- **Las pruebas de un hook salen de un ayudante** (`probarLaVuelta()`, `ui/vuelta-del-foco.soporte.tsx`): cuatro por función que abre (marca, vuelve tras recargar, cerrar
+  olvida y abrir lo abierto no marca otra vez). Con `hasMemory` en `NuqsTestingAdapter`, y el cierre se espera hasta que quede: `useFiltros` escribe en una transición y el
+  adaptador pasa un instante por el valor de antes.

@@ -3,30 +3,30 @@
 > La fuente de verdad de «en qué vamos». **60 líneas como máximo**: lo que deja de ser actual se mueve a `docs/BITACORA.md`. Qué existe
 > en el código lo dice `docs/MAPA.md`; los abiertos con su paso, `docs/PLAN.md`. La versión anterior completa: `docs/archivo/ESTADO.md`.
 
-**Última actualización:** 2026-10-29
-**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.14-2a2** (la vuelta del foco); sigue el **4.14-2a3**.
-La partición tiene 28 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Partición»).
+**Última actualización:** 2026-10-30
+**Fase actual:** 4 — Cotizaciones (abierta el 2026-10-22). Hecho hasta el **4.14-2a3** (la vuelta desde un menú, en los filtros y en vehículos); sigue el **4.14-2a4**.
+La partición tiene 29 pasos, con el **hito 4-A** al cerrar 4.18 (`docs/PLAN.md` › «Partición»).
 **Aparte:** la preparación para Orca, en la rama `preparar-orca` (`docs/PREPARACION.md`). No toca código de producto; la integra la persona.
 
 ## Funcionando
 
 - Verdes: lint, typecheck, test, `db:probar`, `db:lint`, `db:carreras`, `db:medir:volumen`, `mapa.sh` y el e2e completo. Último completo:
-  el de escritorio del 4.14-2a2, 806 en verde y 16 saltados, 29,2 min. Los niveles de verificación, en `.claude/rules/e2e.md`.
+  el de escritorio del 4.14-2a3, 813 en verde y 16 saltados, 30,4 min. Los niveles de verificación, en `.claude/rules/e2e.md`.
 - **CI** (GitHub): `nivel-1` siempre y `carriles` en cada PR; `base` si cambia código; en un PR, los e2e dirigidos a lo tocado (el
   completo si toca un disparador del Nivel 2); el completo de escritorio cada noche y a mano (`escritorio|ambos`).
 - **El piloto** (`docs/PILOTO.md`) es el carril A de Orca (`docs/ORCA.md`): avanza `docs/PLAN.md` un paso por sesión y publica su rama
   `a/…` por PR; sólo pregunta en las compuertas. Falta aceptar la confianza de la carpeta y `decidir.sh --prueba-tandas`.
 - **Fases 0 a 3 completas** (equipo, empresa, orígenes, vehículos y leads). **Fase 4:** fórmula, motor, niveles, crear y guardar una
-  cotización, y la hoja dibujada que guarda, con «Avanzado», la ayuda de texto, «Ver total Bs», los modos, el resumen fijo, la ayuda de una tabla, la tarea de oro 2 (tramo de la hoja) y el presupuesto de JS de la hoja, en la base y en la pantalla (4.01 a 4.13). La base del panel del vehículo: `vehiculos.cotizado_en` (cotizar no edita el vehículo), `cierre_subasta_en` (generada) y los índices de sus tres listas (4.14-1). El panel del vehículo: la barra sobre la hoja abre «Últ. cotización» y «Cierre subasta» por cursor, sin ir al servidor; el cursor sirve para cualquier columna (4.14-2a). Tras recargar con un panel por URL abierto, «atrás» devuelve el foco a quien lo abrió en `usePanelPorUrl()` y «Nuevo nivel» (4.14-2a2).
+  cotización, y la hoja dibujada que guarda, con «Avanzado», la ayuda de texto, «Ver total Bs», los modos, el resumen fijo, la ayuda de una tabla, la tarea de oro 2 (tramo de la hoja) y el presupuesto de JS de la hoja, en la base y en la pantalla (4.01 a 4.13). La base del panel del vehículo: `vehiculos.cotizado_en` (cotizar no edita el vehículo), `cierre_subasta_en` (generada) y los índices de sus tres listas (4.14-1). El panel del vehículo: la barra sobre la hoja abre «Últ. cotización» y «Cierre subasta» por cursor, sin ir al servidor; el cursor sirve para cualquier columna (4.14-2a). Tras recargar con un panel por URL abierto, «atrás» devuelve el foco a quien lo abrió en `usePanelPorUrl()` y «Nuevo nivel» (4.14-2a2); desde un menú, al «⋯», y en la hoja de filtros y los paneles de vehículos, también con `shallow: false` (4.14-2a3).
 - **La rueda de la web:** `habilitado` es de la persona (`cola_web_configurar`); el rol decide si puede estar (`web.cola.participar`). Sin
   pantalla todavía: el tablero de la cola y el interruptor de disponibilidad (Fase 8, 8-1).
 
 ## Siguiente
 
-1. **Carril A: el 4.14-2a3, con el piloto** (4-49: la vuelta del foco en los 19 hooks de `scripts/guardas/paneles-con-vuelta.ts`; Nivel 2), después el 4.14-2b (el historial del
+1. **Carril A: el 4.14-2a4, con el piloto** (4-49: la vuelta del foco en los 14 hooks de `leads` y el guardián sin pendientes; Nivel 2), después el 4.14-2b (el historial del
    elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo), el 4.14-2c (crear desde el panel; 4-10 con P6 y P3) y el 4.14-3 (el panel del cliente), y en orden hasta
-   el 4.28, **un prompt a la vez, y se para a reportar**. Cuenta sin completo: **0 de 3**. La hoja, 468 y 490 nodos contra 500; JS de `/cotizaciones/nuevo` 432,9 KB de 460.
-   Abiertos: 4-50 endurecido (P5: al 200 % el resumen fijo no cabe con la página arriba), 4-51, 4-52, 4-53 (`db:sembrar-volumen` cae), 4-54, 4-55 y 4-56.
+   el 4.28, **un prompt a la vez, y se para a reportar**. Cuenta sin completo: **0 de 3**. La hoja, 468 y 490 nodos contra 500; JS de `/cotizaciones/nuevo` 433,2 KB de 460.
+   Abiertos: 4-50 endurecido (P5: al 200 % el resumen fijo no cabe con la página arriba), 4-51, 4-52, 4-53 (`db:sembrar-volumen` cae), 4-54, 4-55, 4-56 y 4-57 (una apertura sin efecto tras cargar).
 2. **Del 3c:** un número tipeado se lee con `leerNumeroTipeado(texto, locale)` y lo guardado se abre con `formatearParaEditar` y el locale (la importación CSV, más
    permisiva). **Para la persona:** las respuestas de la 1.ª tanda de P1–P6 del 4.13-3c (`.piloto/informes/4.13-3c.md` › «Para la persona»).
 3. **Abiertos sin fase, los decide la persona:** 5a-39 («Dadas de baja» dice «Por ahora el equipo eres tú»), 5a-40 (`cartera` indexada:
