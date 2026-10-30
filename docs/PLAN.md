@@ -123,10 +123,10 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
   versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
   hecho. El **4.14-2** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2a)»): el **4.14-2a** (el cursor por columna en `src/shared`, la barra y el panel del vehículo
-  con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. Faltan el **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2,
-  `sí`; P4), el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
+  con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. El **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2):
+  hecho. Faltan el **4.14-2a3** (los 19 hooks propios de `scripts/guardas/paneles-con-vuelta.ts`; Nivel 2, `sí`; cierra 4-49), el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
   nombre, «+» y «a mano»; 4-10 con P6 y P3; el tramo del panel en la tarea de oro 2; `2 de 3`, o se parte si P3 pidiera base) y el **4.14-3** (el panel del cliente y la
-  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`.
+  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`.
   - **P1** (contestada el 2026-10-29; hecha en el 4.14-1): `cotizado_en` va en `vehiculos`, y cuando sólo cambia ella ni se mueve la versión de la ficha ni se audita.
   - **P2** (contestada el 2026-10-29; hecha en el 4.14-1): la ve quien ve el vehículo (sólo cuándo, no quién ni cuánto).
   - **P3** (contestada el 2026-10-29; hecha en el 4.14-1): la mueven crear una cotización con el vehículo y guardar una que pasa a él; nunca retrocede.
@@ -189,7 +189,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 76 prompts; faltan el 4.14-2a2, el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
+Total de la fase: 28 pasos y 76 prompts; faltan el 4.14-2a3, el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
 
 ### Abiertos de la Fase 4
 
@@ -295,13 +295,13 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
 - **4-43** (sin fase: lo decide la persona; salió del 4-42): `e2e/leads-ficha-edicion.spec.ts` tiene 331 líneas (> 300) — partirlo por
   responsabilidad (edición, borrador, sin red, permisos). Assert: `wc -l` de cada parte ≤ 300 y las mismas pruebas en verde.
-- **4-49** (el **4.14-2a2**, P4 del 4.14-2a, 2026-10-29; salió de 4-44 (a), 4.13-4d; el panel del vehículo, `?panel=vehiculo`, es un caso más): tras **recargar** con un panel por URL abierto, «atrás»
-  cierra el panel pero el foco queda en `body`, en todos los paneles de la app y no sólo en «Avanzado» (medido con `?panel=avanzado` y `?panel=nuevo-nivel` de
-  `/configuracion/cotizacion?seccion=niveles`). El documento no se recarga: el router de Next no tiene en caché la entrada de antes, la pide (un pedido RSC) y la vuelve a dibujar.
-  El modal no se cierra montado y `focoAlCerrar` no corre (`docs/DECISIONES.md` › «Paso 4.13 (4d de 12)»). La persona eligió no arreglarlo en el 4d. Arreglo probable en
-  `usePanelPorUrl()`: quien abre deja una marca en la entrada de antes y, al volver a ella, el foco va a quien abrió. Assert: un e2e por tipo de panel (modal y drawer) con abrir,
-  recargar y «atrás», con el foco en el botón que lo abrió; y Esc, «atrás» y recargar no le roba el foco a «Saltar al contenido». (4-44 (b), las celdas que sobresalían de
-  su sección al 200 %, se cerró en el 4.13-4d.)
+- **4-49** (el **4.14-2a3**; hecho en parte en el 4.14-2a2, 2026-10-29; P4 del 4.14-2a; salió de 4-44 (a), 4.13-4d): tras **recargar** con un panel por URL abierto, «atrás»
+  cierra el panel pero el foco queda en `body`. Medido en el 4.14-2a2 (`docs/DECISIONES.md` › «Paso 4.14 (2a2)»): el documento y el botón no se montan de nuevo; el modal se
+  cierra montado y Base UI no devuelve el foco; el drawer del vehículo, que le pasa una ref a `focoAlCerrar`, sí lo devuelve. **Hecho** en `usePanelPorUrl()` y en «Nuevo nivel»
+  con la vuelta del foco (`src/shared/ui/vuelta-del-foco.ts`; `e2e/paneles-foco-al-volver.spec.ts`, en verde). **Falta** (el 4.14-2a3, con P1 del 2a2): los 19 hooks que escriben su
+  `?panel=` a mano, en `PENDIENTES` de `scripts/guardas/paneles-con-vuelta.ts` (14 de `leads`, 4 de `vehiculos` y `use-filtros.ts`). Assert: `PENDIENTES` vacío; antes del código, una
+  sonda mide si esos paneles reproducen el defecto (los drawers que guardan a quien abre en memoria, `recordarQuienAbre()`, son los candidatos), y cada uno que lo reproduzca
+  lleva su e2e en rojo contra HEAD; si ninguno, se dice y alcanzan el guardián y Vitest. Se cierra con él, y 4-44 (a) también.
 - **4-50** (antes del 4.18, P5 del 4.14-2a; el cómo lo decide la persona; salió del 4.13-4d, de las capturas): al 200 %, el resumen fijo al pie (escritorio y celular) ocupa cerca del 40 % del alto de la pantalla y
   tapa la hoja mientras se desplaza; se pliega con su «—», pero nace abierto. Assert: al 200 % el resumen al pie no pasa de un alto que se decida, o nace plegado, y
   `aLaVistaSinDesplazar()` de la celda con el foco sigue verde. Suma (4.14-2a, P5): el resumen no sube más allá del borde de arriba de la hoja, y con la barra del vehículo

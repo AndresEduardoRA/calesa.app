@@ -1273,3 +1273,27 @@ pasó dos auditorías (un bloqueo y, después, observaciones) y la persona eligi
   preguntó (P5): **la aceptó por ahora y endureció 4-50**, que exigirá que el resumen quepa entero con la página arriba de todo al 200 %.
 - **Al 200 % en el celular** la columna del panel crecía con lo más ancho de adentro y una tarjeta llegaba a 594 px en una pantalla de 412: el contenido va en una sola columna
   `minmax(0, 1fr)` y las pestañas se desplazan por dentro.
+
+## 2026-10-29 — Paso 4.14 (2a2): la vuelta del foco tras recargar y «atrás»
+
+**La causa, medida antes del código** (una sonda contra los hooks de HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a2/medicion-0.json`, de `medicion-0b-*.json`): tras recargar con el panel abierto, «atrás»
+no recarga el documento y **no vuelve a montar ni el botón ni la página** (una marca en el elemento sigue), aunque sale un pedido RSC de la entrada de antes. Lo que el 4d escribió
+(«la hoja se monta de nuevo», «el modal no se cierra montado») no se repitió: el modal se cierra montado, con su animación, y Base UI **no llama a `focus()`** sobre el botón;
+sin recargar, sí. En el drawer del vehículo, que le pasa a `focoAlCerrar` una ref al botón, el foco vuelve (su e2e queda como no regresión). Una clave propia en
+`history.state` sobrevive a la escritura de `nuqs`, a recargar y a ir y volver, en las dos entradas. No se dio S1 ni S2. S3 («el defecto no se reproduce») se dio sólo
+en el drawer del vehículo; se siguió porque los dos modales medidos en 4-49 lo reproducen, y E3 queda como prueba de no regresión.
+
+- **La marca va en el historial y la memoria es del documento** (`src/shared/ui/vuelta-del-foco.ts`), no en `sessionStorage`: quien abre deja en la entrada de antes una ficha
+  y las señas de quien tenía el foco, y la entrada del panel guarda la misma ficha, que el hook recuerda al montarse abierto tras recargar. Sólo un `popstate` a la entrada
+  marcada con la ficha recordada devuelve el foco, así que recargar nunca lo mueve y Esc lo olvida. La vuelta mira un cuadro a la vez, hasta 3 s: enfoca a quien abrió si
+  el foco está en `body`, espera si está en otro lado (sin recargar, lo devuelve Base UI) y se corta con una tecla o el puntero.
+- **Señas y no una referencia de quien llama:** 16 archivos llaman a `usePanelPorUrl()` y 20 hooks escriben su `?panel=` a mano; las señas (el camino en el DOM, la etiqueta y
+  un hash FNV-1a del nombre) encuentran al botón sin que nadie lo pase. El nombre va como hash porque `history.state` queda en la sesión del navegador y el texto de un
+  botón puede nombrar un lead o un vehículo.
+- **Se olvida al verse cerrado, no con un «olvidar» en cada `cerrar()`:** hay cierres que no pasan por `cerrar()` (`ir()` del panel del vehículo, guardar la hoja). El hook
+  olvida su ficha cuando ve el panel cerrado, salvo que la entrada actual sea la marcada (un «atrás», del que se ocupa el `popstate`).
+- **Límites:** renombrar un nivel se abre desde el «⋯» de una fila, que ya no está al volver: el foco queda donde lo deje Base UI. En Safari un clic no enfoca el botón y no
+  se marca nada. Una marca que reemplaza el estado en vez de sumarse no pierde `__NA` en el navegador (el `replaceState` parchado de Next lo vuelve a copiar), pero sí las
+  claves propias vecinas (la `vueltaDesde` de un panel con un `eliminar` adentro): lo prueba Vitest. Si la escritura de la URL falla, la clave deja de estar «escribiendo».
+- **P1 (la persona): los 19 hooks propios van al 4.14-2a3**, el paso siguiente, con el guardián `scripts/guardas/paneles-con-vuelta.test.ts`, cuya lista de pendientes sólo
+  se achica. 4-49 queda abierto hasta entonces.

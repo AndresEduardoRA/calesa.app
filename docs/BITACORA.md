@@ -146,3 +146,24 @@ El 4.14-2 se parte en tres (2a, 2b y 2c) y, por P4, se suma el 4.14-2a2 (4-49).
 - **Abiertos nuevos:** 4-54 (elegir otro vehículo mientras se guarda), 4-55 (el título de la cotización, para el 4.18) y 4-56 (`cotizar-formula.ts`, 330 líneas).
 - **Commits:** `314f28d5`, `fba04e51`, `1a7ff3a2` y el `fix` `ee93b46a`.
   e2e completo: sí (4.14-2a, shared, Nivel 2)
+
+## 2026-10-29 — 4.14-2a2: el foco vuelve a quien abrió el panel
+
+- **La causa, medida contra HEAD antes del código** (`.piloto/salidas/4.14-2a2/medicion-0.json`, en los dos proyectos y en `?panel=avanzado`, `?panel=nuevo-nivel` y
+  `?panel=vehiculo`):
+  - m1: el documento no se recarga. m2: el botón y la página no se montan de nuevo. m3: sale un pedido RSC de la entrada de antes.
+  - m4 y m4b: una clave propia en `history.state` sobrevive en las dos entradas a la escritura de `nuqs`, a recargar y a ir y volver.
+  - m5: no aplica (el botón está conectado desde el `popstate`). m6: en los dos modales, el foco queda en `body` desde los 100–500 ms; en el drawer del vehículo vuelve a la barra.
+  - El modal se cierra montado y Base UI no llama a `focus()` sobre el botón tras recargar; sin recargar, sí.
+  - No se dio S1 ni S2. S3 sólo en el drawer del vehículo, porque los dos modales reproducen el defecto: se siguió y E3 queda como no regresión.
+- **La vuelta del foco** (`src/shared/ui/vuelta-del-foco.ts`), en `usePanelPorUrl()` y en «Nuevo nivel». Los 19 hooks propios quedan en
+  `PENDIENTES` de `scripts/guardas/paneles-con-vuelta.ts` para el 4.14-2a3 (P1), que cierra 4-49.
+- **Verificación:**
+  - En verde: lint, typecheck y test (5.585, tras el `fix` de la auditoría).
+  - El completo de escritorio sobre los tres commits de código: 806 en verde y 16 saltadas (0 nuevas), 29,2 min, con las carreras. Tras el `fix`, el spec nuevo en los
+    dos proyectos (8) y Vitest.
+  - Los 34 dirigidos en escritorio y móvil: 330 en verde y 5 saltadas. JS de `/cotizaciones/nuevo` 432,9 KB de 460.
+  - Rojos contra HEAD: E1 y E2 (el foco inactivo), E4 en su tercera secuencia y Vitest por el import. Caen las 23 mutaciones en Vitest; M14 no cae en el e2e, porque Next le
+    vuelve a copiar `__NA`.
+- **Commits:** `ae332fb2`, `2869854b`, `854bb1f3` y el `fix` `234b3147` (la auditoría del informe: soltar la escritura pendiente si falla).
+  e2e completo: sí (4.14-2a2, shared, Nivel 2)
