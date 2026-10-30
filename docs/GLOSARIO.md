@@ -165,6 +165,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Cotización** — `cotizaciones`: cálculo de una fórmula para un lead/vehículo, con snapshot.
 - **Preventa / Final** — `clase_cotizacion`: borrador comercial / la que cierra el vehículo (una activa por vehículo).
 - **Última cotización (de un vehículo)** — `vehiculos.cotizado_en`, `_vehiculo_cotizado()`: cuándo se cotizó por última vez; ordena «Últ. cotización» del panel del vehículo. Cotizar no edita el vehículo.
+- **Historial de cotizaciones (de un vehículo)** — `cotizaciones` por `vehiculo_id` / `<HistorialDelVehiculo>` (`cotizaciones/features/historial`): las cotizaciones que quien mira ve (su RLS), de la más nueva, con número, autor y clase; plegado en la región «Elegido» del panel del vehículo, de a 20 con «Ver más». **Cotizado (n)** es su conteo acotado (`contarCotizacionesDelVehiculo()`), la insignia de la barra y la etiqueta del botón.
 - **Panel del vehículo** — `?panel=vehiculo` de `/cotizaciones/nuevo`, `<BarraDelVehiculo>` / `PanelDelVehiculo` (`vehiculos/features/panel-para-cotizar`): donde se elige el vehículo de la cotización, por «Últ. cotización» o «Cierre subasta» (`?lista=ultima|cierre`), por cursor. Lo abre la barra del vehículo, sobre la hoja.
 - **Fórmula** — `formulas` (`definicion`, `params`): grafo de nodos versionado por origen; ver `docs/COTIZADOR.md`.
 - **Nodo** — `definicion.nodos[]`: una línea de la fórmula: input, constante, tipo de cambio, campo, bandera, tabla, tramo, cálculo.

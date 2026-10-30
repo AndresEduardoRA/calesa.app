@@ -1389,3 +1389,23 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **Límite:** un clic en la fila fuera del nombre abre la edición con el foco en `body` y no marca, igual que en el listado de leads del 2a4. Con teclado se abre por el
   nombre (`<AbrirResumen>`), que sí marca.
 - 4-49 se cierra con este paso, y 4-44 (a) con él. 4-61, 4-62 y 4-63 siguen sin fase.
+
+## 2026-10-30 — Paso 4.14 (2b): el historial del elegido y «Cotizar» desde el resumen
+
+- **La composición es una ranura desde `src/app`.** `vehiculos` no importa `cotizaciones` ni lee su tabla: la página de cotizar arma `<HistorialDelVehiculo>` (la cáscara de `diferido()` de
+  `cotizaciones`, con `aviso: 'aqui'`) y se lo pasa a la barra como `historial: ReactNode`; el panel lo dibuja dentro de la región «Elegido». El conteo se lee en el servidor, en el mismo
+  `Promise.all` que la hoja y el elegido; el historial se lee en el navegador al desplegarlo.
+- **«Cotizado (n)» es sólo una etiqueta y puede estar vieja.** Guardar no vuelve a pedir la página (`crear-cotizacion.ts` no revalida): la insignia y el «(n)» del botón cambian al elegir,
+  quitar o recargar. El historial no depende de ella: su botón está siempre y lo que muestra lo dice la lectura al desplegarlo (H5: guardar la primera cotización de un vehículo y abrir el
+  panel sin recargar la muestra).
+- **P1 (sin lead).** «Cotizar» del resumen abre la hoja con el origen y el vehículo; guardar espera al cliente (4.14-3). **P2 (sólo lo que ve).** El número y la lista salen de la misma
+  lectura con la RLS de quien mira; con «propios» (H3) se ve una sola cotización; sin ninguna, «Sin cotizaciones que puedas ver.» (no afirma que no las haya). Sin función de base.
+- **«Ver más» y no «Anterior/Siguiente»:** el panel ya tiene una `<Paginacion>` con esos nombres, y una segunda los repetiría. Es el mecanismo 2 de `paginacion.ts` (una lista dentro de un drawer).
+- **Medido: el JS en frío de la hoja.** La primera versión sumó 20,4 KB (453,6 de 460) aunque el historial va por `diferido()`: (1) `composicion.client.ts` reexportaba la lectura del historial y la hoja
+  lo importa (+11,4 KB), así que la lectura vive en `composicion-historial.client.ts`; (2) la barra importaba `<Badge>` (+8,5 KB: arrastra Base UI a la carga en frío) y `conteoCorto` (+0,3 KB): ahora recibe el
+  «n» ya escrito y dibuja una etiqueta propia. Queda en 433,5 de 460 (antes 433,2). **Regla:** un archivo de la carga en frío de la hoja no importa `<Badge>` (ni `conteoCorto`: lo escribe la página); se mide con `presupuesto-js`.
+- **P3 (el tope de bytes).** La estimación del plan (150 B por fila, 4.000 B) se quedó corta: 4.972 B (escritorio) y 4.867 (móvil) con 21 filas. La persona fijó el tope en lo medido más un 5 %,
+  5.250 B; los nodos, 61 medidos, con tope 65.
+- **Sin camino a lo antiguo todavía:** el tope de 500 muestra «Mostrando las 500 más recientes.» sin cómo seguir; lo traen el 4.16 (listado con filtro) y el 4.17 (la sección del vehículo).
+- **El autor sale embebido de `perfiles`** y `autorVisible()` repite la regla de `nombreVisible()` de `equipo` (que no llega al navegador); su comentario nombra el original.
+- **Cierra sin abiertos nuevos.** «Cotizar» en la ficha `/vehiculos/[id]` y en el «⋯» del inventario no entró (la fila nombra sólo el resumen).

@@ -119,16 +119,19 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   `vehiculos_cierre_subasta_idx (origen_id, cierre_subasta_en, id)`; el historial del vehículo con `cotizaciones_vehiculo_creado_idx
 (vehiculo_id, creado_en desc, id desc)`, que reemplaza a `cotizaciones_vehiculo_idx`; «Cotizado (n)» por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
   etiqueta y «+» que abre «Nuevo lead». Se entra desde la ficha del lead y desde el resumen del vehículo. Cierra **4-10** (el tipo de
-  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 10 (quedan 3).
+  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 10 (quedan 2).
   **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
   versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
   hecho. El **4.14-2** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2a)»): el **4.14-2a** (el cursor por columna en `src/shared`, la barra y el panel del vehículo
   con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. El **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2):
   hecho. El **4.14-2a3** (la vuelta desde un menú, el panel de filtros y los 4 hooks de `vehiculos`; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a3)»): hecho. El
   **4.14-2a4** (los paneles del listado de leads: «Nuevo lead», etiquetas, exportar, la acción de fila, el embudo y el lead rápido; Nivel 1; `docs/DECISIONES.md` › «Paso
-  4.14 (2a4)»): hecho. El **4.14-2a5** (los 5 hooks de la ficha del lead, con las pestañas del rápido; 4-58 y 4-59; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2a5)»): hecho. El **4.14-2a6** (los 3 hooks de configuración, el guardián sin pendientes y F6; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a6)»): hecho. Faltan el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
+  4.14 (2a4)»): hecho. El **4.14-2a5** (los 5 hooks de la ficha del lead, con las pestañas del rápido; 4-58 y 4-59; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2a5)»): hecho. El **4.14-2a6** (los 3 hooks de configuración, el guardián sin pendientes y F6; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a6)»): hecho. El **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2b)»): hecho. Faltan el **4.14-2c** (crear desde el panel: link o lote,
   nombre, «+» y «a mano»; 4-10 con P6 y P3; el tramo del panel en la tarea de oro 2; `2 de 3`, o se parte si P3 pidiera base) y el **4.14-3** (el panel del cliente y la
-  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`, 4.14-2a5 `sí`, 4.14-2a6 `sí`.
+  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`, 4.14-2a5 `sí`, 4.14-2a6 `sí`, 4.14-2b `no` (pantalla, `1 de 3`).
+  - **P1** (2b, contestada el 2026-10-30; hecha en el 4.14-2b): «Cotizar» desde el resumen del vehículo abre la hoja con el origen y el vehículo y **sin lead**; guardar espera al cliente (4.14-3).
+  - **P2** (2b, contestada el 2026-10-30; hecha en el 4.14-2b): «Cotizado (n)» y el historial cuentan sólo lo que quien mira ve por su alcance (la RLS); sin ninguna dice «Sin cotizaciones que puedas ver.».
+  - **P3** (2b, contestada el 2026-10-30; hecha en el 4.14-2b): el tope de bytes del historial desplegado se fija en lo medido más un 5 % (5.250 B), no en los 4.000 B de la estimación.
   - **P1** (contestada el 2026-10-29; hecha en el 4.14-1): `cotizado_en` va en `vehiculos`, y cuando sólo cambia ella ni se mueve la versión de la ficha ni se audita.
   - **P2** (contestada el 2026-10-29; hecha en el 4.14-1): la ve quien ve el vehículo (sólo cuándo, no quién ni cuánto).
   - **P3** (contestada el 2026-10-29; hecha en el 4.14-1): la mueven crear una cotización con el vehículo y guardar una que pasa a él; nunca retrocede.
@@ -151,9 +154,11 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   intento y otros datos da 22023 `intento_reusado`. Depende de 4.13. Nivel 1 + cadena db. Prompts: 2.
 - **4.16** — El listado `/cotizaciones` (resumen `?cotizacion=`, «Vencida», cursor, el máximo medido, sin el snapshot), la siembra de
   volumen y `medir-escala.sql`; se enciende la navegación. Cierra **4-14** («todas las que veo» de quien ve «propios») y **4-23** (el
-  gemelo en el inventario de vehículos). Depende de 4.10 y 4.13. Nivel **2** (`_shell`) + `db:medir:volumen` + `E2E_VOLUMEN=1`.
+  gemelo en el inventario de vehículos), la entrada a cotizar desde el listado (`docs/UX.md:38`) y el camino a lo antiguo del historial del vehículo (el tope de 500 del 4.14-2b: un
+  filtro por vehículo). Depende de 4.10 y 4.13. Nivel **2** (`_shell`) + `db:medir:volumen` + `E2E_VOLUMEN=1`.
   Prompts: 2.
-- **4.17** — **5a-12** y, con el mismo «Ver más», las secciones «Cotizaciones» de la ficha del lead y del vehículo. Depende de 4.13 a
+- **4.17** — **5a-12** y, con el mismo «Ver más», las secciones «Cotizaciones» de la ficha del lead y del vehículo (la del vehículo puede usar la lectura
+  `leerHistorialDelVehiculo()` del 4.14-2b y es el camino a lo antiguo de su tope de 500). Depende de 4.13 a
   4.16. Nivel 1 + cadena db + `db:carreras`. Prompts: 2.
 - **4.18** — La tarjeta, el PDF y compartir: filas por grupo con su tono (el del grupo, o el que la plantilla elija del catálogo), celdas
   combinadas de tipo de cambio y plazo, título de la variante, asesor, logo, nota, leyenda y la garantía condicionada, Live, y el total en Bs
@@ -191,7 +196,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 31 pasos y 80 prompts; faltan el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
+Total de la fase: 31 pasos y 80 prompts; faltan el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
@@ -233,7 +238,7 @@ Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fase
   aparece. 4.14 decide si se mapea el vocabulario de la subasta a las claves o si el campo pasa a ser una opción de las filas.
   **Decidido (P6 del 4.14-1, 2026-10-29):** en el panel del vehículo se elige el tipo entre las filas de la tabla, con el sugerido marcado; lo hace el 4.14-2c, y se guarda
   en el vehículo (P3 del 4.14-2a).
-- **4-14** (4.16): «todas las que veo» de quien ve «propios» recorre el índice global. Con 250.000 cotizaciones **Ana** (5.000 propias y
+- **4-14** (4.16): (suma del 4.14-2b: el historial de Ana en pantalla recorre sólo las cotizaciones del vehículo, de a 21, y no crece con N) «todas las que veo» de quien ve «propios» recorre el índice global. Con 250.000 cotizaciones **Ana** (5.000 propias y
   1.000 de otras personas sobre su cartera) tarda ≈ 1,6 s y ≈ 42.000 buffers y la **«chica»** ≈ 2,0 s y ≈ 58.000 (`cotizaciones_listado_idx`
   entera, descartando lo ajeno; la familia de 5a-2) — en `medir-cotizaciones-lectura.sql`, la página 1 y una profunda por cursor de Ana y
   de la «chica» con 50.000 y 250.000: ≤ 50 ms y un tope de buffers que no crece con N, y lo que devuelve es lo que dice la regla

@@ -268,3 +268,18 @@ El 4.14-2 se parte en tres (2a, 2b y 2c) y, por P4, se suma el 4.14-2a2 (4-49).
     guardia sin caída demostrable (DECISIONES).
 - **Commits:** `baea6897` (los 3 hooks de configuración), `ef48909c` (el guardián sin lista) y `a6fdf76d` (F6).
   e2e completo: sí (4.14-2a6, shared, Nivel 2)
+
+## 2026-10-30 — 4.14-2b: el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen
+
+La barra del vehículo de la hoja dice «Cotizado (n)» y el panel trae, en la región «Elegido», el historial de cotizaciones plegado: se lee al desplegarlo, de a 20 con «Ver más»
+hasta 500, con la RLS de quien mira (P2) y sin función de base. Lo une `src/app` (la barra recibe el historial armado). El resumen de un vehículo suma «Cotizar», sin lead (P1), con
+`origenesParaCotizar()`. Con P3 (la persona), el tope de bytes del historial se fijó en lo medido (5.250 B, no los 4.000 de la estimación). `docs/DECISIONES.md` › «Paso 4.14 (2b)».
+
+- **Verificación:**
+  - En verde: lint, typecheck (sin warnings), Vitest de los módulos (1.597) y `mapa.sh --check`. `pnpm test` completo lo corre el bucle.
+  - e2e dirigidos (25 specs, escritorio y móvil, más `presupuesto-js`): 306 en verde y 5 saltadas (`.piloto/salidas/4.14-2b/verde-e2e-dirigidos-2.txt`).
+  - Rojos contra HEAD: Vitest (los tres bloques, `rojo-vitest-1|2|3.txt`) y los dos specs nuevos (`rojo-e2e-*.txt`). Sin mutaciones: paso de pantalla.
+  - Medido: el historial con 21 filas pesa 4.972 B (escritorio) y 4.867 (móvil) y 61 nodos. JS en frío de `/cotizaciones/nuevo` 433,5 KB de 460 (la primera versión sumó 20,4: la lectura
+    reexportada por `composicion.client.ts` y `<Badge>` en la barra; ver DECISIONES), `/vehiculos` 473,5 de 500, `/perfil` 418 de 440.
+- **Commits:** `ba111574` (la lectura), `7d7df7c` (el historial y la insignia) y `b2921c3` («Cotizar»).
+  e2e completo: no (4.14-2b, pantalla, 1 de 3)
