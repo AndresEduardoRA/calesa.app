@@ -118,6 +118,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Número global** — `leads.numero` / `leads_numeros_globales`, `leads.numero_global.ver`, `NumerosDeLead.numero`: consecutivo de la empresa («N.º 1.234»); nulo sin el permiso.
 - **Resumen** — `?lead=` y `?vehiculo=` / `<DrawerDeLead>`, `<ResumenDeVehiculo>`: vistazo sin salir de la lista («drawer rápido» en el código).
 - **Patrón de lista** — `@/shared/ui/lista` (`<UnaSolaVista>`, `<FilaDeLista>`, `<MasAcciones>`…): toda lista es tabla o tarjetas, nombre a la izquierda, «⋯» a la derecha.
+- **Vuelta del foco** — `abrirConVuelta()`, `useVueltaDelFoco()` (`src/shared/ui/vuelta-del-foco.ts`): tras recargar con un panel por URL abierto, «atrás» devuelve el foco a quien lo abrió.
 - **Más acciones («⋯»)** — `<MasAcciones>` / `accionesDeLead()`, `accionesDeVehiculo()`: menú de fila, tarjeta, resumen o ficha.
 - **Filtro descartado** — `filtrosDescartados()` / `<AvisoDeFiltrosDescartados>`: filtro de la URL sobre un campo desactivado o eliminado.
 - **Ficha del lead** — `/leads/[id]` / `lead_ficha()`, `<FichaDeLead>`: pantalla de un lead (cabecera, «Datos», edición en `?panel=editar-lead`).

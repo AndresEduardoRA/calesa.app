@@ -3,6 +3,7 @@
 import { parseAsString, useQueryStates, type Options } from 'nuqs'
 import { useMemo } from 'react'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
+import { abrirConVuelta, useVueltaDelFoco } from './vuelta-del-foco'
 
 // Un modal o un panel que vive en la URL (`?panel=purgar&lote=<id>`): lo que se abre se puede recargar, se
 // cierra con «atrás» y se comparte (.claude/rules/ui.md). `panel` es el valor de `?panel=` que lo abre y `claves`
@@ -12,7 +13,8 @@ import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 // Un diálogo dentro de un panel que ya ocupa `?panel=` (el «Eliminar embudo» del panel de etapas) usa otra clave:
 // `{ clave: 'eliminar' }` lo lleva en `?eliminar=embudo` y deja el `?panel=` como está.
 //
-// Abrir suma al historial; cerrar lo reemplaza. Sin `shallow: false`: abrirlo no necesita al servidor.
+// Abrir suma al historial; cerrar lo reemplaza. Tras recargar con el panel abierto, «atrás» devuelve el foco a quien lo abrió
+// (`vuelta-del-foco.ts`). Sin `shallow: false`: abrirlo no necesita al servidor.
 // Cuántas veces se abre, qué dato muestra y si ese dato existe lo resuelve quien lo usa
 // (`useRevisionAlAbrir()`): acá sólo está la URL.
 export function usePanelPorUrl(
@@ -33,15 +35,21 @@ export function usePanelPorUrl(
   )
   const [valores, escribir] = useQueryStates(parsers)
   const opciones: Options = { history: 'push' }
+  const abierto = valores[clavePanel] === panel
+  useVueltaDelFoco(clavePanel, abierto)
   return {
-    abierto: valores[clavePanel] === panel,
+    abierto,
     // La clave de la URL que nombra lo que el panel muestra (nula si falta).
     valor: (clave: string): string | null => valores[clave] ?? null,
     abrir: (nombrados: Readonly<Record<string, string>> = {}) => {
       const todos: Record<string, string | null> = Object.fromEntries(
         Object.keys(parsers).map((clave) => [clave, null]),
       )
-      void escribir({ ...todos, ...nombrados, [clavePanel]: panel }, opciones)
+      abrirConVuelta(
+        clavePanel,
+        () => escribir({ ...todos, ...nombrados, [clavePanel]: panel }, opciones),
+        abierto,
+      )
     },
     cerrar: () => {
       void escribir(Object.fromEntries(Object.keys(parsers).map((clave) => [clave, null])))
