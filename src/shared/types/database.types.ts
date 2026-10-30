@@ -7190,6 +7190,10 @@ export type Database = {
         Args: { p_columna: string; p_filas: number; p_nodo: Json; p_origen: string; p_params: Json }
         Returns: Json
       }
+      _hoja_datos_del_vehiculo: {
+        Args: { p_nodos: Json; p_origen: string; p_tablas: Json; p_vivas: Json }
+        Returns: Json
+      }
       _hoja_estado: {
         Args: {
           p_celda: boolean

@@ -223,6 +223,7 @@ for (const archivo of [
   'cotizacion-guardar.sql',
   'cotizacion-hoja.sql',
   'cotizacion-tabla.sql',
+  'cotizacion-hoja-dato-del-vehiculo.sql',
   'vehiculos-cotizado-en.sql',
   'vehiculos-cierre-subasta.sql',
   // Al final: sus `pg_temp` (la copia vieja de `puede_vehiculo`) no llegan a los archivos de antes.
