@@ -22,14 +22,17 @@ import { cargarVehiculos, vehiculoPorTitulo } from './soporte/vehiculos'
 import { formatearMonto, formatearNumero } from '../src/shared/lib/formato'
 
 // Tarea de oro 2 (`docs/UX.md`): cotizar un vehículo del inventario en ≤ 90 s, con cada celda editable alcanzable con el teclado (paso 4.13-4d). El panel del vehículo
-// (4.14) y el PDF en 1 clic (4.18) no existen todavía: esto mide el tramo de la hoja, que llega con el lead y el vehículo en la URL, y el 4.28 mide la tarea entera. Como
+// (4.14-2c1) elige el vehículo por nombre; el PDF en 1 clic (4.18) no existe todavía: esto mide el tramo de la hoja, con el vehículo en la URL, y el del panel, con el vehículo buscado por nombre (con un enlace de subasta lo mide el 4.14-2c3, que cierra 4-10); el 4.28 mide la tarea entera. Como
 // la 1 y la 4 (`docs/DECISIONES.md`): lo que no cambia de una máquina a otra es lo pulsado; el reloj del robot es un tope generoso; la hora de una persona, KLM.
 test.describe.configure({ mode: 'serial' })
 
 // Las teclas de control del tramo de la hoja (Tab y Enter a «Saltar al contenido», los Tab hasta `remate` y su Enter, los Tab hasta `grua` y su Enter, y Ctrl+S), contadas al
 // escribirlo (4.13-4d): 23 en los dos proyectos, con 0,7 s el robot y KLM 12,5 s. Es determinista: una parada nueva en el camino lo rompe a propósito. 24 desde el 4.14-2a:
-// la barra del vehículo, entre «Saltar al contenido» y la hoja, es una parada más (el tramo del panel lo suma el 4.14-2c).
+// la barra del vehículo, entre «Saltar al contenido» y la hoja, es una parada más.
 const CONTROLES_MAXIMOS = 24
+// Con el tramo del panel (4.14-2c1): Tab y Enter a «Saltar al contenido», los Tab hasta la barra y su Enter (el panel abre con el foco en el buscador), los Tab hasta la
+// tarjeta del vehículo y su Enter, y el tramo de la hoja de arriba (Tab hasta `remate` y Enter, hasta `grua` y Enter, y Ctrl+S). Medido en la primera corrida verde: 28 en los dos proyectos, con 1,5 s el robot y KLM 20,8 s (escritorio) y 19,4 s (móvil); determinista: una parada nueva en el camino lo rompe a propósito.
+const CONTROLES_CON_EL_PANEL = 28
 
 // Los Tab que cuesta pasar por cada lado editable de la subasta como la dueña, medidos (4.13-4d, los dos proyectos): 12 lados de la hoja en 24 Tab desde «Saltar al contenido» y 16
 // de «Avanzado» en 28 desde el primer valor. Como las teclas de control, es determinista: una parada nueva entre dos editables lo rompe a propósito. La hoja, 25 desde el
@@ -43,6 +46,7 @@ let subasta = ''
 let lead = ''
 let vehiculo = ''
 let cotizacion = ''
+let cotizacionConPanel = ''
 
 test.beforeAll(async ({}, info) => {
   const proyecto = info.project.name
@@ -67,6 +71,9 @@ test.beforeAll(async ({}, info) => {
 test.afterAll(async () => {
   if (cotizacion !== '') {
     sql(`delete from public.cotizaciones where id = ${literal(cotizacion)}::uuid`)
+  }
+  if (cotizacionConPanel !== '') {
+    sql(`delete from public.cotizaciones where id = ${literal(cotizacionConPanel)}::uuid`)
   }
   if (vehiculo !== '') {
     sql(`delete from public.vehiculos where id = ${literal(vehiculo)}::uuid`)
@@ -132,6 +139,68 @@ test('tarea de oro 2: de la hoja abierta a la cotización guardada, sólo con el
   console.warn(`[tarea de oro 2] ${info.project.name}: ${resumen}`)
   info.annotations.push({ type: 'meta de 90 s', description: resumen })
   expect(controles).toBeLessThanOrEqual(CONTROLES_MAXIMOS)
+  expect(robot).toBeLessThan(30)
+  expect(klm).toBeLessThanOrEqual(90)
+})
+
+test('tarea de oro 2, con el panel: el vehículo se busca por nombre y se elige, y de ahí a la cotización guardada, sólo con el teclado', async ({
+  page,
+}, info) => {
+  const titulo = `E2E oro 2 ${info.project.name}`
+  const guardados = await vigilarGuardados(page)
+  await entrar(page, asesora, { fresco: true })
+  await page.goto(`/cotizaciones/nuevo?origen=${subasta}&lead=${lead}`)
+  await expect(page.locator('[data-hoja]')).toBeVisible()
+  const teclado = new Teclado(page)
+  const inicio = performance.now()
+
+  await teclado.pulsar('Tab')
+  await expect(page.getByRole('link', { name: 'Saltar al contenido' })).toBeFocused()
+  await teclado.pulsar('Enter')
+  const barra = page.getByRole('button', { name: /^Vehículo:/ })
+  await teclado.tabularHasta(barra)
+  await teclado.pulsar('Enter')
+  // El panel abre con el foco en el buscador: se tipea el nombre y la tarjeta del vehículo es lo siguiente que se alcanza con Tab.
+  const panel = page.getByRole('dialog', { name: 'Vehículo' })
+  await expect(panel.getByRole('searchbox')).toBeFocused()
+  await teclado.escribir(titulo)
+  const tarjeta = panel.getByRole('list', { name: 'Vehículos' }).getByRole('button').first()
+  await expect(tarjeta).toContainText(titulo)
+  await teclado.tabularHasta(tarjeta)
+  await teclado.pulsar('Enter')
+  await expect(barra).toContainText(titulo)
+  await expect(page).toHaveURL(new RegExp(`vehiculo=${vehiculo}`))
+  await expect(barra).toBeFocused()
+  await teclado.tabularHasta(valor(page, 'remate'))
+  await teclado.escribir('9500')
+  await teclado.pulsar('Enter')
+  await expect(valor(page, 'remate')).toBeFocused()
+  await teclado.tabularHasta(valor(page, 'grua'))
+  await teclado.escribir('450')
+  await teclado.pulsar('Enter')
+  await expect(page.getByLabel('Resumen')).toHaveAttribute('aria-busy', 'false')
+  await expect(totalDeLaHoja(page)).toContainText(/\d/)
+  await teclado.pulsar('ControlOrMeta+s')
+  await expect(tarjetaGuardada(page)).toContainText(/Cotización n\.º \d+ guardada/)
+  const fin = performance.now()
+
+  const [pedido] = guardados.pedidos
+  expect(guardados.pedidos).toHaveLength(1)
+  cotizacionConPanel = pedido?.intento ?? ''
+  expect(
+    sql(
+      `select lead_id || '|' || vehiculo_id from public.cotizaciones where id = ${literal(cotizacionConPanel)}::uuid`,
+    ),
+  ).toBe(`${lead}|${vehiculo}`)
+
+  const controles = teclado.pulsaciones
+  const klm = teclado.klm(4)
+  const robot = (fin - inicio) / 1000
+  const seg = (v: number) => `${formatearNumero(v, { decimales: 1 })} s`
+  const resumen = `${seg(robot)} el robot · ${String(controles)} teclas de control · KLM ${seg(klm)} · 0 clics`
+  console.warn(`[tarea de oro 2, con el panel] ${info.project.name}: ${resumen}`)
+  info.annotations.push({ type: 'meta de 90 s, con el panel', description: resumen })
+  expect(controles).toBeLessThanOrEqual(CONTROLES_CON_EL_PANEL)
   expect(robot).toBeLessThan(30)
   expect(klm).toBeLessThanOrEqual(90)
 })
