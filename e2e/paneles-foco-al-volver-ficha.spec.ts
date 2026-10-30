@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from './soporte/prueba'
 import { entrar } from './soporte/alta'
+import { idDePersona } from './soporte/leads-alta'
 import { aLaVista } from './soporte/inventario'
 import { bloqueDeCartera, panelDeCartera } from './soporte/leads-cartera'
 import {
@@ -23,7 +24,7 @@ import {
 import { abrirMenuDeLaFicha, menuDeLaFicha } from './soporte/leads-marcas'
 import { embudoPorDefecto, oportunidad } from './soporte/leads-oportunidades'
 import { dialogoDeOtorgar, otorgarComo, seccionPortal } from './soporte/leads-portal'
-import { modalDeRecordatorio, modalDeSeguimiento } from './soporte/leads-seguimientos'
+import { compartirCon, modalDeRecordatorio, modalDeSeguimiento } from './soporte/leads-seguimientos'
 import { abrirRecargarYVolver } from './soporte/vuelta-del-foco'
 
 // La vuelta del foco en los paneles de la ficha del lead (4-49, paso 4.14-2a5): tras recargar con el panel abierto, «atrás» lo cierra y el foco vuelve a
@@ -142,6 +143,33 @@ test('«Revocar» el acceso al portal: abrir, recargar y «atrás» devuelve el 
   await expect(seccionPortal(page)).toBeVisible()
   const boton = seccionPortal(page).getByRole('button', { name: 'Revocar' })
   const dialogo = page.getByRole('dialog', { name: /^Revocar el acceso de/ })
+  await abrirRecargarYVolver(page, {
+    boton,
+    dialogo,
+    abrir: hastaAbrir(page, dialogo, () => boton.click()),
+  })
+})
+
+// «Salir de este lead» ya volvía desde el 4.14-2a5 (`abre(PANEL_SALIR)` marca): la sonda del 4.14-2a6 midió que, si abre sin marcar, el foco queda en
+// `body`. Berta, con un lead propio del caso compartido.
+test('«Salir de este lead»: abrir, recargar y «atrás» devuelve el foco al botón', async ({
+  page,
+}, info) => {
+  const lead = await nuevoLead({
+    corto: `Vuelta Salir ${info.project.name}`,
+    telefono: completoCon(t, nacional()),
+    deQuien: t.personas.duena,
+  })
+  await compartirCon(
+    lead.id,
+    await idDePersona(t.personas.berta),
+    await idDePersona(t.personas.duena),
+  )
+  await entrar(page, t.personas.berta, { fresco: true })
+  await irAFicha(page, lead.id)
+  await expect(tituloDeLaFicha(page, lead.nombre)).toBeVisible()
+  const boton = page.getByRole('button', { name: 'Salir de este lead' })
+  const dialogo = page.getByRole('dialog', { name: `Salir de «${lead.nombre}»` })
   await abrirRecargarYVolver(page, {
     boton,
     dialogo,
