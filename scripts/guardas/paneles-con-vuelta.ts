@@ -2,11 +2,7 @@
 // (`src/shared/ui/vuelta-del-foco.ts`, 4-49): importa `abrirConVuelta`. La guarda `paneles-con-vuelta.test.ts` falla si aparece uno que no lo hace y no
 // figura acá. Esta lista sólo se achica: un pendiente que ya importa `abrirConVuelta` o que no existe también la hace fallar.
 export const PENDIENTES: Record<string, string> = {
-  'src/modules/leads/features/embudo/hooks/use-vista-de-embudo.ts': '4.14-2a4',
-  'src/modules/leads/features/etiquetas/hooks/use-panel-de-etiquetas.ts': '4.14-2a4',
-  'src/modules/leads/features/exportar/hooks/use-panel-de-exportar.ts': '4.14-2a4',
   'src/modules/leads/features/ficha/hooks/use-panel-de-lead.ts': '4.14-2a4',
-  'src/modules/leads/features/listado/hooks/use-accion-de-fila.ts': '4.14-2a4',
   'src/modules/leads/features/oportunidades/hooks/use-panel-de-oportunidad.ts': '4.14-2a4',
   'src/modules/leads/features/origenes/hooks/use-panel-de-origen.ts': '4.14-2a4',
   'src/modules/leads/features/portal/hooks/use-panel-de-portal.ts': '4.14-2a4',
