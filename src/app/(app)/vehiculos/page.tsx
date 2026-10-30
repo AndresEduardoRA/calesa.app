@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
+import { CLAVE_DE_VEHICULO, origenesParaCotizar, rutaDeLaHoja } from '@/modules/cotizaciones'
 import { getAjustes, getPoliticaDeLimpieza, integracionActiva } from '@/modules/empresa'
 import { leerVistas, puede, requerirSesion } from '@/modules/equipo'
 import { leerFasesDeOrigen } from '@/modules/flujos'
-import { getOrigenes, leerLayout } from '@/modules/origenes'
+import { getOrigenes, leerLayout, type OrigenResumen } from '@/modules/origenes'
 import {
   MAXIMO_DE_PAGINA_DE_VEHICULOS,
   buscarVehiculos,
@@ -22,12 +23,20 @@ import {
 import { ListadoDeVehiculos } from '@/modules/vehiculos/pantallas/listado'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR, CLAVE_DE_POR_PAGINA, leerFiltros } from '@/shared/lib/filtros'
+import type { Permisos } from '@/shared/lib/permisos'
 import { leerCursor, leerPorPagina, tamanoDePagina, tamanosHasta } from '@/shared/lib/paginacion'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { vehiculoEnEdicion } from './edicion'
 
 export const metadata: Metadata = { title: 'Vehículos' }
+
+// «Cotizar» del resumen: la hoja de cotizar de este origen si la persona tiene las dos claves y el origen está activo; si no, el botón no está (la base vuelve a exigirlas).
+function paraCotizarDe(permisos: Permisos, origen: OrigenResumen) {
+  return origenesParaCotizar(permisos, [origen]).length === 1
+    ? { ruta: rutaDeLaHoja({ origen: origen.id, lead: null }), claveDelVehiculo: CLAVE_DE_VEHICULO }
+    : null
+}
 
 // El inventario, una pestaña por origen. Las pestañas son los orígenes donde la persona tiene
 // `vehiculos.ver` (también los desactivados); lo que ve adentro lo decide la RLS. El origen, los
@@ -108,6 +117,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
       verPapelera={puedeAbrirLaPapelera(sesion.permisos)}
       verInteresados={puede(sesion.permisos, 'leads.ver')}
       publicar={permisoDeVitrina(sesion.permisos, origen)}
+      paraCotizar={paraCotizarDe(sesion.permisos, origen)}
       enEdicion={enEdicion}
       apibara={{
         activa: apibaraActiva,

@@ -12,6 +12,7 @@ import {
   vistaDelResumen,
   type VistaDelResumen,
 } from '../../../entities/resumen'
+import type { ParaCotizar } from '../../../entities/ruta-para-cotizar'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { FichaDeVehiculo } from '../../ficha/components/ficha-de-vehiculo'
@@ -31,6 +32,8 @@ type Props = DatosDelOrigen & {
   publicar: PermisoDeVitrina
   // «Interesados» existe sólo con `leads.ver`.
   verInteresados: boolean
+  // «Cotizar» de la cabecera: la hoja de cotizar de este origen, o null si la persona no cotiza en él.
+  paraCotizar: ParaCotizar | null
   // El panel de edición: se dibuja dentro del resumen para que Esc, «Cancelar» y guardar cierren sólo el de arriba y el resumen quede
   // debajo (Base UI anida los diálogos por el árbol de React).
   children?: ReactNode
@@ -51,6 +54,7 @@ function EsqueletoDelResumen({ etiqueta }: { etiqueta: string }) {
 type PropsDelContenido = DatosDelOrigen & {
   eliminables: ReadonlySet<string>
   publicar: PermisoDeVitrina
+  paraCotizar: ParaCotizar | null
   vista: VistaDelResumen
   // Hay un vehículo en la URL (el resumen no se está cerrando).
   abierto: boolean
