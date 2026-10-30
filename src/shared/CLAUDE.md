@@ -47,7 +47,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `<Monto>` manda al DOM el valor y su reemplazo; el CSS elige con la clase `live` de `<html>`. Nunca una cifra a la vista antes de hidratar.
 - `cssDeMarca()` sólo recibe colores que pasaron por `tokensDeMarca()`: a un `<style>` nunca llega texto libre.
 - Cada `<Confirmar>` vive en su URL (`usePanelPorUrl()`) y se registra en `scripts/guardas/confirmar-con-url.ts`; cada `<Drawer>` en `drawers-con-salida.ts`; cada `<Modal>` con algo escrito en `modales-con-salida.ts`. Sus tests fallan si hay uno sin registrar.
-- Cada `history: 'push'` de `src/` marca la vuelta del foco (`abrirConVuelta()`) o figura en `PENDIENTES` de `scripts/guardas/paneles-con-vuelta.ts`, que sólo se achica (su test falla si no).
+- Cada `history: 'push'` de `src/` marca la vuelta del foco: importa `abrirConVuelta()` y `useVueltaDelFoco()` (lo vigila `scripts/guardas/paneles-con-vuelta.test.ts`).
 - Nada anima `font-size` ni el alto: sin `transition-all` (`scripts/guardas/sin-transition-all.test.ts`).
 - La lista de iconos de `lib/iconos.ts` es la de `_iconos_del_catalogo()` de la base: se guarda la clave, nunca un nombre libre ni un SVG.
 - Una tabla o lista nueva usa `ui/lista`; lo vigila `scripts/guardas/listas-con-patron.ts`.

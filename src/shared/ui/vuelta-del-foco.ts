@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react'
 // devuelve el foco: recargar no dispara `popstate` y cerrarse de otra manera (Esc, la ✕, otra escritura de la URL) olvida la ficha.
 //
 // `clave` es la de la URL que abre el panel (`panel`, `eliminar`): dos diálogos anidados no se pisan. Lo usan `usePanelPorUrl()` y los hooks que escriben
-// su `?panel=` a mano (`scripts/guardas/paneles-con-vuelta.ts`).
+// su `?panel=` a mano (`scripts/guardas/paneles-con-vuelta.test.ts` exige las dos funciones en cada panel que suma al historial).
 
 export type Senas = { camino: number[]; etiqueta: string; nombre: number }
 type Marca = { ficha: string; senas: Senas }
