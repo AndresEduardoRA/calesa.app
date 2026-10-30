@@ -119,17 +119,16 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   `vehiculos_cierre_subasta_idx (origen_id, cierre_subasta_en, id)`; el historial del vehículo con `cotizaciones_vehiculo_creado_idx
 (vehiculo_id, creado_en desc, id desc)`, que reemplaza a `cotizaciones_vehiculo_idx`; «Cotizado (n)» por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
   etiqueta y «+» que abre «Nuevo lead». Se entra desde la ficha del lead y desde el resumen del vehículo. Cierra **4-10** (el tipo de
-  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 10 (quedan 5).
+  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 10 (quedan 4).
   **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
   versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
   hecho. El **4.14-2** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2a)»): el **4.14-2a** (el cursor por columna en `src/shared`, la barra y el panel del vehículo
   con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. El **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2):
   hecho. El **4.14-2a3** (la vuelta desde un menú, el panel de filtros y los 4 hooks de `vehiculos`; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a3)»): hecho. El
   **4.14-2a4** (los paneles del listado de leads: «Nuevo lead», etiquetas, exportar, la acción de fila, el embudo y el lead rápido; Nivel 1; `docs/DECISIONES.md` › «Paso
-  4.14 (2a4)»): hecho. Faltan el **4.14-2a5** (los 5 hooks de la ficha del lead, también donde abren en las pestañas del lead rápido, y etiquetas en la ficha; 4-58 y 4-59;
-  Nivel 1, `1 de 3`), el **4.14-2a6** (los 3 de configuración y el guardián sin pendientes; Nivel 2, `sí`; cierra 4-49), el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
+  4.14 (2a4)»): hecho. El **4.14-2a5** (los 5 hooks de la ficha del lead, con las pestañas del rápido; 4-58 y 4-59; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2a5)»): hecho. Faltan el **4.14-2a6** (los 3 de configuración y el guardián sin pendientes; Nivel 2, `sí`; cierra 4-49), el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
   nombre, «+» y «a mano»; 4-10 con P6 y P3; el tramo del panel en la tarea de oro 2; `2 de 3`, o se parte si P3 pidiera base) y el **4.14-3** (el panel del cliente y la
-  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`.
+  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`, 4.14-2a5 `sí`.
   - **P1** (contestada el 2026-10-29; hecha en el 4.14-1): `cotizado_en` va en `vehiculos`, y cuando sólo cambia ella ni se mueve la versión de la ficha ni se audita.
   - **P2** (contestada el 2026-10-29; hecha en el 4.14-1): la ve quien ve el vehículo (sólo cuándo, no quién ni cuánto).
   - **P3** (contestada el 2026-10-29; hecha en el 4.14-1): la mueven crear una cotización con el vehículo y guardar una que pasa a él; nunca retrocede.
@@ -192,7 +191,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 31 pasos y 80 prompts; faltan el 4.14-2a5, el 4.14-2a6, el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
+Total de la fase: 31 pasos y 80 prompts; faltan el 4.14-2a6, el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
 
 ### Abiertos de la Fase 4
 
@@ -305,18 +304,27 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   desde un menú la vuelta va al «⋯» (también renombrar un nivel), la ficha sobrevive a una navegación del servidor, y `use-filtros.ts` y los 4 hooks de `vehiculos` salen de
   `PENDIENTES` (la sonda midió el defecto en los siete casos; `e2e/paneles-foco-al-volver-vehiculos.spec.ts`). **Hecho en el 4.14-2a4** (`docs/DECISIONES.md` › «Paso 4.14
   (2a4)»): los 6 hooks del listado de leads (alta, etiquetas, exportar, la acción de fila, el embudo y el lead rápido) salen de `PENDIENTES`; la sonda midió el defecto en
-  siete de doce casos (`e2e/paneles-foco-al-volver-leads.spec.ts`), y desde el selector del «⋯» el foco va al «⋯» antes de «Gestionar etiquetas». **Falta:** el 4.14-2a5
-  (los 5 de la ficha; su sonda mide también las pestañas del lead rápido y etiquetas en la ficha) y el 4.14-2a6 (los 3 de configuración, marcados así en `PENDIENTES` de
-  `scripts/guardas/paneles-con-vuelta.ts`, y el cierre). No se cierra sin 4-58 y 4-59. Assert: `PENDIENTES` vacío y el registro borrado, el guardián exige también `useVueltaDelFoco` y `src/shared/CLAUDE.md` deja de nombrar
+  siete de doce casos (`e2e/paneles-foco-al-volver-leads.spec.ts`), y desde el selector del «⋯» el foco va al «⋯» antes de «Gestionar etiquetas». **Hecho en el 4.14-2a5** (`docs/DECISIONES.md` › «Paso
+  4.14 (2a5)»): los 5 hooks de la ficha salen de `PENDIENTES`; la sonda midió el defecto en 8 de los 16 casos medidos de la ficha (F6 no se midió), con su e2e (`e2e/paneles-foco-al-volver-ficha.spec.ts`), y en F16 y F17 (4-61), y cierran 4-58
+  y 4-59 en el lead rápido. F6 («Salir de este lead») no se midió: la sonda del 2a6 lo mide. **Falta:** el 4.14-2a6 (los 3 de configuración, marcados así en `PENDIENTES` de
+  `scripts/guardas/paneles-con-vuelta.ts`, y el cierre). Assert: `PENDIENTES` vacío y el registro borrado, el guardián exige también `useVueltaDelFoco` y `src/shared/CLAUDE.md` deja de nombrar
   la lista; antes del código, una sonda mide si esos paneles reproducen el defecto, y cada uno que lo reproduzca lleva su e2e en rojo contra HEAD (`probarLaVuelta()` para Vitest,
   `e2e/soporte/vuelta-del-foco.ts` para el e2e). Se cierra con él, y 4-44 (a) también.
-- **4-58** (el 4.14-2a5; salió del 4.14-2a4, K9 y K10 de su sonda): en el lead rápido, anotar o agendar desde el «⋯» del resumen, recargar y «atrás» deja el foco en
-  «Editar» (sin recargar vuelve al «⋯»): el modal de la pestaña se montó tras recargar y devuelve el foco a lo que lo tenía, y la vuelta del foco sólo actúa con el foco en
-  `body`. `useDrawerDeLead().abrirModal` ya marca la vuelta. Assert: en los dos proyectos, abrir anotar y agendar desde el «⋯» del resumen, recargar y «atrás» deja el foco
-  en el «⋯», con su e2e en rojo contra HEAD.
-- **4-59** (el 4.14-2a5, con 4-58; salió del 4.14-2a4, m9 de su sonda): tras recargar con `?lead=<id>&panel=editar-lead`, el primer «atrás» deja el foco en «Editar» y el
-  segundo cierra el lead rápido con el foco en `body` (medido contra HEAD; con la vuelta del 2a4, sin medir: la ficha de `lead` está en otra entrada). Assert: el segundo
-  «atrás» devuelve el foco al nombre de la fila que abrió el rápido, o se mide que ya lo hace.
+- **4-58** (**cerrado** en el 4.14-2a5, 2026-10-30; salió del 4.14-2a4, K9 y K10 de su sonda): en el lead rápido, anotar o agendar desde el «⋯» del resumen, recargar y «atrás»
+  dejaba el foco en «Editar». Medido: el botón de la pestaña ya no está en el DOM y el modal devolvía el foco a lo que lo tenía. Hecho con `enPestana` (`docs/DECISIONES.md` ›
+  «Paso 4.14 (2a5)»); `e2e/paneles-foco-al-volver-leads.spec.ts`, en los dos proyectos, en rojo contra HEAD.
+- **4-59** (**cerrado** en el 4.14-2a5, 2026-10-30; salió del 4.14-2a4, m9 de su sonda): tras recargar con `?lead=<id>&panel=editar-lead`, el segundo «atrás» cerraba el lead rápido
+  con el foco en `body`. Hecho con `esperaSinPanel` en `useDrawerDeLead` (en rojo contra HEAD, en los dos proyectos); queda su límite en 4-62.
+- **4-61** (sin fase; salió del 4.14-2a5, F16 y F17 de su sonda): anotar o agendar desde el «⋯» de la cabecera de la ficha llegan por `router.push` a `?seccion=seguimientos&panel=…`
+  (navegación del servidor, sin la marca del guardián). Sin recargar, «atrás» devuelve el foco al «⋯» (guardia en `paneles-foco-al-volver-ficha.spec.ts`); tras recargar lo deja
+  en `body` (F16 en los dos proyectos; F17 sólo medido en móvil: en escritorio la sonda no vio el diálogo tras recargar). Assert: tras recargar y «atrás», el foco en el «⋯».
+- **4-63** (sin fase; salió del 4.14-2a5): en el lead rápido, un segundo `page.goBack()` justo tras el primero (recargar con «Editar» abierto, «atrás» y «atrás») deja la URL en `/leads`
+  con el rápido todavía visible: 1 de 10 corridas en escritorio (`.piloto/salidas/4.14-2a5/repetir-dos-atras.txt`), y 4 de 15 con C4 anulado (M10: `mut/repetir-M10-editar.txt`), así que no
+  nace de `esperaSinPanel`. La traza de la caída (`e2e-fallos/2026-10-30_12-38/`) muestra la URL ya sin `lead`. Puede ser la sincronización de nuqs con un «atrás» rápido o una carrera de `e2e/paneles-foco-al-volver-leads.spec.ts:196`.
+  Assert: `--repeat-each=20` de ese spec sin caídas, y la causa medida (la URL cambió y el rápido no).
+- **4-62** (sin fase; límite de 4-59, del 4.14-2a5): tras recargar con anotar o agendar abierto desde el botón de la pestaña del lead rápido, o con un panel que se cierra con Esc,
+  la ✕ o guardar en una URL distinta de la de apertura (la que lleva `&pestana=`), el segundo «atrás» deja el foco en `body`: la ficha de `lead` sólo se recupera en la URL
+  donde se abrió. Assert: el segundo «atrás» devuelve el foco al nombre de la fila también desde la pestaña.
 - **4-60** (sin fase, el próximo paso que toque la paginación del listado; salió del 4.14-2a4): en el completo de escritorio,
   `e2e/listas-por-pagina-pendiente.spec.ts:102` cayó una vez: tras volver la red, el listado y la URL quedaron en 25 pero la preferencia guardada siguió en 10 (5 s de
   espera). La traza (`e2e-fallos/2026-10-30_07-04/`): la única POST, la action que guarda la preferencia, salió 6 ms antes de `setOffline(true)`, falló (status −1) y no se

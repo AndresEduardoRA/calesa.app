@@ -1340,3 +1340,32 @@ salen el foco y el menú, el foco entra al «⋯» y recién ahí escribe `nuqs`
 - **En la acción de una fila, «ya abierto» mira también el lead (`para`):** abrir anotar en otra fila con el modal de una abierto es otra apertura y marca otra vez.
 - **4-58 no se arregla aquí:** tras recargar, el foco queda en «Editar» (medido) y la vuelta del foco sólo actúa con el foco en `body` (espera a que Base UI lo devuelva).
   La hipótesis, sin medir: el modal de la pestaña se monta tras recargar con el foco en «Editar» y lo devuelve ahí. El arreglo está en el modal de la pestaña (`use-modal-de-seguimiento`, `use-modal-de-recordatorio`), que es del 2a5.
+
+## 2026-10-30 — Paso 4.14 (2a5): la vuelta en la ficha del lead, el modal de la pestaña y el segundo «atrás»
+
+**Medido antes del código** (una sonda contra HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a5/medicion-0.json`): ningún «atrás» recarga el documento y en todos cierra el panel.
+
+- Dejan el foco en `body` tras recargar y «atrás» ocho casos de la ficha: «Editar», «Cambiar» el teléfono, «Compartir», «Transferir», «Nueva oportunidad», «Editar» una
+  oportunidad (desde su «⋯»), «Dar acceso» y «Revocar». Llevan e2e. F6 («Salir de este lead») no se midió: su apertura lleva la vuelta como las otras cinco de `usePanelDeLead`, con
+  su prueba de Vitest.
+- Ya volvían, sin e2e nuevo (sólo Vitest): «Agregar teléfono», anotar, agendar y sus «Editar», y «Gestionar etiquetas» desde el «⋯» de la ficha. En el rápido, los botones de
+  las pestañas ya volvían a su botón.
+- Anotar y agendar desde el «⋯» de la cabecera de la ficha dejan el foco en `body` tras recargar (F16 en los dos proyectos; F17 sólo medido en móvil): van por `router.push`, el
+  guardián no los ve (4-61). Sin recargar vuelven al «⋯»: guardia en el e2e.
+- 4-58 (R3 y R4): tras recargar y «atrás», el foco queda en «Editar» y el botón de la pestaña ya no está en el DOM. 4-59 (R5 y las pestañas): el segundo «atrás» deja el foco en
+  `body`.
+
+- **4-58, `enPestana`:** el modal de la pestaña devuelve el foco, cuando no hay «Editar» de un ítem ni botón, a lo que lo tenía al abrirse (`true`, de Base UI): tras
+  recargar es «Editar». Con `false` no mueve el foco, que cae en `body` al desmontarse, y la vuelta (la marca de `abrirModal`) lo lleva al «⋯» del resumen. Sólo en el rápido
+  (`enPestana`, por defecto `false`, que ponen sus dos pestañas): la ficha monta los mismos modales y anotar desde su «⋯» llega sin marca. Esc, la ✕ y guardar siguen yendo al botón de
+  la pestaña. Sin recargar el destino ya era el «⋯» del resumen (R3s y R4s, medido) y su e2e lo fija. **M13** (la ficha también pone `enPestana`) **sobrevive**: en la ficha, con `true` o
+  `false`, el foco queda en el «⋯» de la cabecera (la causa no se midió), así que el guardia fija el destino y no el mecanismo; el cambio no habría sido una regresión. Límite: con el
+  modal abierto y el foco en `body`, el foco queda en `body`.
+- **4-59, `esperaSinPanel`:** el hook del rápido se ve «cerrado» para `lead` mientras siga montado con el panel que encontró al cargar, y toma la ficha de la entrada
+  `?lead=<id>` al quedar sin panel (la del historial o la de `sessionStorage`, de esa URL). Sin recargar nada cambia: `abierto` es `id !== null`. No se usa la compuerta pura
+  `panel === null`: olvidaría la ficha al abrir el panel (la cubre su prueba de Vitest, M12); en el e2e M12 **sobrevive** (Esc y dos «atrás» vuelven al nombre también con la compuerta
+  pura; la causa no se midió), así que R7 y R8 son guardias del destino. **Límite** (4-62): tras recargar, el segundo «atrás» sólo devuelve el foco al
+  nombre si el panel se abrió desde la URL `?lead=<id>` (el «⋯» del resumen, «Editar»); desde el botón de una pestaña, la entrada anterior ya es `&pestana=` y deja el foco en `body`;
+  igual si el panel se cierra con Esc, la ✕ o guardar en una URL distinta de la de apertura.
+- **`yaAbierto` mira el id en las ediciones** (oportunidad, recordatorio, seguimiento): abrir la edición de otro ítem con la de uno abierta marca otra vez, como la acción de una fila del 2a4.
+- **Los 5 hooks de la ficha salen de `PENDIENTES`:** `usePanelDeLead` marca con `recordarQuienAbre()` y `abrirConVuelta()`; quedan los 3 de configuración del 2a6. Sin `src/shared`: Nivel 1.

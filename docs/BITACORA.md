@@ -219,3 +219,31 @@ El 4.14-2 se parte en tres (2a, 2b y 2c) y, por P4, se suma el 4.14-2a2 (4-49).
     y las 6 del e2e (M1, M2, M6, M7, M9 y M11, en dos tandas).
 - **Commits:** `62a9671c`, `a54f3ed4` y `ae8c1141`.
   e2e completo: sí (4.14-2a4, leads, Nivel 1; 1 caída: 4-60)
+
+## 2026-10-30 — 4.14-2a5: la vuelta del foco en la ficha del lead
+
+- **La sonda C0, contra HEAD antes del código** (`.piloto/salidas/4.14-2a5/medicion-0.json` y `medicion-0-resumen.txt`, en los dos proyectos): F1 a F17 en la ficha (sin F6),
+  R1 a R5, R6 (el segundo «atrás» de R3, `m9`) y R7 y R8 en el lead rápido, y los casos sin recargar F16s, F17s, R3s y R4s; m1, m2, m6, m9 y m10 de R3.
+  - m1: ningún «atrás» recarga el documento. m2: en todos cierra el panel y su clave sale de la URL.
+  - m6: «Editar», «Cambiar» el teléfono, «Compartir», «Transferir», «Nueva oportunidad», «Editar» una oportunidad, «Dar acceso» y «Revocar» dejan el foco en `body`: llevan e2e.
+    «Agregar teléfono», anotar, agendar, sus «Editar» y «Gestionar etiquetas» desde el «⋯» de la ficha ya volvían: sólo Vitest. F16 y F17 (anotar y agendar desde el «⋯»
+    de la ficha) dejan `body` tras recargar y sin recargar vuelven al «⋯»: 4-61, con guardia. F17 en escritorio: la sonda no vio el diálogo tras recargar (sin medir).
+  - R3 y R4 dejan el foco en «Editar» y el botón de la pestaña ya no está en el DOM (m10 = 0): 4-58. R1 y R2 ya volvían al botón de su pestaña; R5, R1 y R2 dejan `body`
+    con el segundo «atrás» (m9): 4-59. R3s y R4s: el «⋯» del resumen. R7 y R8 (Esc y dos «atrás»): el nombre de la fila, ya en HEAD. R6: el segundo «atrás» de R3 y de R4 cierra el rápido con el foco en el «⋯» de la fila, fuera del diálogo (no `body`). No se dio S1 ni S5. F6 no se midió.
+- **Las ramas:** C3 (4-58, `enPestana`) y C4 (4-59, `esperaSinPanel`) pasaron su e2e sin tocar `src/shared`; no se movió nada al 2a6. El segundo «atrás» desde el botón de una pestaña
+  no se recupera (R1; el e2e que lo mostraba se cambió por el del «⋯» del resumen): 4-62.
+- **Verificación:**
+  - En verde: lint, typecheck, test (5.721) y `mapa.sh --check`. Saltadas nuevas: 0 (`saltadas.txt`).
+  - El completo de escritorio sobre los tres commits de código (los dirigidos eran 86 specs, más de la mitad de 165): 838 en verde, 16 saltadas y ninguna caída, 30,1 min.
+  - En móvil, los dos specs de la vuelta y los 15 que nombran los modales de la pestaña: 62 en verde, 5 saltadas (sus marcas `@sin-celular`).
+  - JS en frío (`presupuesto-js` en el completo): `/perfil` 418 KB de 440 (antes 418,1), `/leads` 509,1 de 530, `/vehiculos` 473,5 de 500 y `/cotizaciones/nuevo` 433,2 de 460;
+    «Datos», «Oportunidades» y «Portal» de la ficha, dentro de su presupuesto de 43 KB (sus specs, en verde).
+  - Rojos contra HEAD: 60 de Vitest (56 de `probarLaVuelta`, 3 «quintas» y C4 (a)); 16 e2e de la ficha (8 casos × 2 proyectos) y 8 del rápido (R3, R4, «Editar» con dos «atrás» y el de la pestaña, × 2 proyectos; el de la pestaña se cambió después por el del «⋯» del resumen, cuyo rojo es M10).
+    Las guardias (F16s, F17s, R3s, R4s, R7 y R8 y C4 (b)) están en verde en HEAD.
+  - Mutaciones: en Vitest caen M3, M4, M6, M7, M10, M11 y M12; en e2e, M1, M5, M8 y M13 corrieron en una tanda (`mut/e2e-A.txt`; caen F1 a F5, F9, F10 y R3, y M13 no cae), M2 y M9 en otra
+    (`e2e-B.txt`; caen F2, F4, F5 y R4) y M10 en dos (`e2e-M10-*.txt`). Para M1, M2 y M5 no hay salida de Vitest. **Sobreviven en el e2e** M12 (la compuerta pura de C4: cae su prueba de Vitest)
+    y M13 (la ficha con `enPestana`: en la ficha el foco va al «⋯» con `true` y con `false`); las dos, anotadas en DECISIONES.
+- **Una caída suelta, sin causa de C4:** «Editar» con dos «atrás» (escritorio) vio el rápido aún abierto con la URL en `/leads` (`e2e-fallos/2026-10-30_12-38/`): 1 de 10 con C4 y 4 de 15 con C4 anulado
+  (`repetir-dos-atras.txt`, `mut/repetir-M10-editar.txt`). Queda como 4-63.
+- **Commits:** `fc0d8684` (los 5 hooks de la ficha), `aad3bfeb` (4-58) y `e1284c0f` (4-59).
+  e2e completo: sí (4.14-2a5, leads, Nivel 1)
