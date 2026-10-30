@@ -221,3 +221,46 @@ describe('la vuelta del foco: cuándo no vuelve', () => {
     expect(document.activeElement).toBe(abrePanel)
   })
 })
+
+describe('la vuelta del foco: mientras se escribe la URL', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'Date'] })
+  })
+
+  it('un panel abierto desde otro con la misma clave no toma la ficha vieja de la entrada', async () => {
+    const quien = boton('Otro panel')
+    const { rerender } = renderHook(({ abierto }) => useVueltaDelFoco('k', abierto), {
+      initialProps: { abierto: false },
+    })
+    // La entrada actual es la de otro panel, con su ficha; la escritura del nuevo todavía no terminó.
+    history.replaceState({ vueltaDesde: { k: 'vieja' } }, '')
+    quien.focus()
+    let terminar = () => {}
+    abrirConVuelta('k', () => new Promise<void>((listo) => (terminar = listo)))
+    const marcada: unknown = history.state
+    rerender({ abierto: true })
+    terminar()
+    await Promise.resolve()
+    quien.blur()
+    volverA(marcada)
+    cuadros(2)
+    expect(document.activeElement).toBe(quien)
+  })
+
+  it('si la escritura falla, el panel vuelve a recordar la ficha de su entrada', async () => {
+    const quien = boton('Abrir')
+    quien.focus()
+    abrirConVuelta('m', () => Promise.reject(new Error('sin red')))
+    const marcada = history.state as { vueltaDelFoco: Record<string, { ficha: string }> }
+    await Promise.resolve()
+    await Promise.resolve()
+    const ficha = marcada.vueltaDelFoco['m']?.ficha
+    history.replaceState({ vueltaDesde: { m: 'otra' } }, '')
+    renderHook(() => useVueltaDelFoco('m', true))
+    quien.blur()
+    volverA({ vueltaDelFoco: { m: { ...marcada.vueltaDelFoco['m'], ficha: 'otra' } } })
+    cuadros(2)
+    expect(ficha).toEqual(expect.any(String))
+    expect(document.activeElement).toBe(quien)
+  })
+})

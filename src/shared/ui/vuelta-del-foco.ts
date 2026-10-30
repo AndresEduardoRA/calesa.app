@@ -107,10 +107,16 @@ export function abrirConVuelta(
   sumarA(MARCAS, clave, { ficha, senas: senasDe(foco) } satisfies Marca)
   abiertos.set(clave, ficha)
   escribiendo.add(clave)
-  void escribir().then(() => {
-    escribiendo.delete(clave)
-    sumarA(DESDE, clave, ficha)
-  })
+  // Si la escritura falla, la clave deja de estar «escribiendo»: si no, ese panel no volvería a tomar la ficha de su entrada.
+  void escribir().then(
+    () => {
+      escribiendo.delete(clave)
+      sumarA(DESDE, clave, ficha)
+    },
+    () => {
+      escribiendo.delete(clave)
+    },
+  )
 }
 
 // --- La vuelta: cuadro a cuadro, hasta que quien abrió esté y el foco esté libre ---
