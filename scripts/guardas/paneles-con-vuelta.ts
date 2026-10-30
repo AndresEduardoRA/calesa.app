@@ -17,8 +17,4 @@ export const PENDIENTES: Record<string, string> = {
   'src/modules/leads/features/tipos-de-seguimiento/hooks/use-panel-de-tipo-de-seguimiento.ts':
     '4.14-2a4',
   'src/modules/leads/features/tipos/hooks/use-panel-de-tipo.ts': '4.14-2a4',
-  'src/modules/vehiculos/features/alta/hooks/use-panel-de-vehiculo.ts': '4.14-2a3',
-  'src/modules/vehiculos/features/resumen/hooks/use-resumen-de-vehiculo.ts': '4.14-2a3',
-  'src/modules/vehiculos/features/vinculo/hooks/use-panel-agregar-vehiculo.ts': '4.14-2a3',
-  'src/modules/vehiculos/features/vitrina/hooks/use-panel-de-vitrina.ts': '4.14-2a3',
 }

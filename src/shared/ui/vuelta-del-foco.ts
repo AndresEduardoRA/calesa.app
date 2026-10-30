@@ -92,6 +92,43 @@ function fichaDeLaMarca(clave: string): string | null {
 
 const fichaNueva = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
 
+// Una navegación del servidor (`shallow: false`) pone, al llegar, el estado de Next en la entrada del panel y se lleva la ficha; y lo que se escribe al
+// salir de la página no sobrevive a recargar. Por eso la ficha queda también en `sessionStorage`: la última de cada clave, con dónde se abrió (un hash
+// de la URL, sin su texto). Sin `sessionStorage` (Safari privado), queda sólo la del historial.
+const GUARDADAS = 'vuelta-del-foco'
+type Guardada = { donde: number; ficha: string }
+const aqui = () => hashDe(`${location.pathname}${location.search}`)
+
+function guardadas(): Record<string, Guardada> {
+  try {
+    const leido: unknown = JSON.parse(sessionStorage.getItem(GUARDADAS) ?? '{}')
+    return typeof leido === 'object' && leido !== null ? (leido as Record<string, Guardada>) : {}
+  } catch {
+    return {}
+  }
+}
+
+function guardarFicha(clave: string, ficha: string): void {
+  try {
+    sessionStorage.setItem(
+      GUARDADAS,
+      JSON.stringify({ ...guardadas(), [clave]: { donde: aqui(), ficha } }),
+    )
+  } catch {
+    // Sin almacenamiento: queda la ficha del historial.
+  }
+}
+
+// La ficha de la entrada del panel: la del historial o, si Next la borró, la guardada para esta URL.
+function fichaDeLaEntrada(clave: string): string | null {
+  const desde = leerDe(DESDE, clave)
+  if (typeof desde === 'string') {
+    return desde
+  }
+  const guardada = guardadas()[clave]
+  return guardada?.donde === aqui() && typeof guardada.ficha === 'string' ? guardada.ficha : null
+}
+
 // Desde un ítem de menú, que ya no existe al volver, quien abrió es el botón del menú (el «⋯»; es a donde Base UI devuelve el foco sin recargar). Una
 // acción `despuesDeCerrar` corre con el foco aún en el ítem, el menú todavía en el DOM y el botón ya sin `aria-controls`: primero el `aria-labelledby`
 // del menú; si no, el botón que lo controla (un menú que corre su acción abierto).
@@ -132,6 +169,7 @@ export function abrirConVuelta(
     () => {
       escribiendo.delete(clave)
       sumarA(DESDE, clave, ficha)
+      guardarFicha(clave, ficha)
     },
     () => {
       escribiendo.delete(clave)
@@ -200,8 +238,8 @@ export function useVueltaDelFoco(clave: string, abierto: boolean): void {
   useEffect(oirElHistorial, [])
   useEffect(() => {
     if (abierto) {
-      const desde = leerDe(DESDE, clave)
-      if (!escribiendo.has(clave) && typeof desde === 'string') {
+      const desde = fichaDeLaEntrada(clave)
+      if (!escribiendo.has(clave) && desde !== null) {
         abiertos.set(clave, desde)
       }
       vista.current = abiertos.get(clave) ?? null

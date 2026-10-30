@@ -264,3 +264,33 @@ describe('la vuelta del foco: mientras se escribe la URL', () => {
     expect(document.activeElement).toBe(quien)
   })
 })
+
+describe('la vuelta del foco: una navegación del servidor', () => {
+  it('si Next reescribe el estado de la entrada del panel, tras recargar la ficha sale de sessionStorage', async () => {
+    sessionStorage.clear()
+    vi.resetModules()
+    const antes = await import('./vuelta-del-foco')
+    const quien = boton('Editar')
+    quien.focus()
+    let marcada: unknown = null
+    antes.abrirConVuelta('s', () => {
+      marcada = history.state
+      history.replaceState({ panel: 's' }, '')
+      return Promise.resolve()
+    })
+    await Promise.resolve()
+    // `shallow: false`: al llegar del servidor, Next pone su estado en la entrada y se lleva el resto. Después, recargar (el módulo de nuevo).
+    history.replaceState({ __NA: true }, '')
+    vi.resetModules()
+    const despues = await import('./vuelta-del-foco')
+    renderHook(() => {
+      despues.useVueltaDelFoco('s', true)
+    })
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'Date'] })
+    quien.blur()
+    volverA(marcada)
+    cuadros(2)
+    sessionStorage.clear()
+    expect(document.activeElement).toBe(quien)
+  })
+})

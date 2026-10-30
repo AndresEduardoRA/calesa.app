@@ -11,6 +11,12 @@ import {
   sembrarNivel,
 } from './soporte/niveles'
 import { sql } from './soporte/sql'
+import {
+  abrirConElBoton,
+  abrirRecargarYVolver,
+  volver,
+  type PanelConVuelta,
+} from './soporte/vuelta-del-foco'
 
 // La vuelta del foco (4-49, paso 4.14-2a2, `src/shared/ui/vuelta-del-foco.ts`): tras recargar con un panel por URL abierto, «atrás» lo cierra y el foco vuelve a
 // quien lo abrió, en un modal de la hoja («Avanzado»), en uno de Configuración («Nuevo nivel») y en el drawer del vehículo. Recargar nunca mueve el foco: tras cada
@@ -31,12 +37,9 @@ test.afterAll(async () => {
   await limpiarGuardado()
 })
 
-const panelEnLaUrl = (page: Page) => new URL(page.url()).searchParams.get('panel')
 const saltar = (page: Page): Locator => page.getByRole('link', { name: 'Saltar al contenido' })
 
-type Panel = { boton: Locator; dialogo: Locator }
-
-const avanzado = (page: Page): Panel => ({
+const avanzado = (page: Page): PanelConVuelta => ({
   boton: page.locator('[data-avanzado]').getByRole('button', { name: /^Avanzado/ }),
   dialogo: page.getByRole('dialog', { name: 'Avanzado' }),
 })
@@ -47,32 +50,8 @@ async function abrirLaHoja(page: Page, extra = ''): Promise<void> {
   await expect(page.locator('[data-hoja]')).toBeVisible()
 }
 
-async function abrirConElBoton({ boton, dialogo }: Panel): Promise<void> {
-  await boton.click()
-  await expect(dialogo).toBeVisible()
-}
-
-async function recargar(page: Page, { dialogo }: Panel): Promise<void> {
-  await page.reload()
-  await expect(dialogo).toBeVisible()
-}
-
-async function volver(page: Page, { dialogo }: Panel): Promise<void> {
-  await page.goBack()
-  await expect(dialogo).toBeHidden()
-  expect(panelEnLaUrl(page)).toBeNull()
-}
-
-// Abrir con el botón, recargar y «atrás»: el panel cerrado y el foco en el botón.
-async function abrirRecargarYVolver(page: Page, panel: Panel): Promise<void> {
-  await abrirConElBoton(panel)
-  await recargar(page, panel)
-  await volver(page, panel)
-  await expect(panel.boton).toBeFocused()
-}
-
 // Tras una recarga sin panel, con el botón ya a la vista, el primer Tab va a «Saltar al contenido».
-async function recargarSinRobarElFoco(page: Page, { boton }: Panel): Promise<void> {
+async function recargarSinRobarElFoco(page: Page, { boton }: PanelConVuelta): Promise<void> {
   await page.reload()
   await expect(boton).toBeVisible()
   await page.keyboard.press('Tab')
@@ -134,15 +113,11 @@ test('renombrar un nivel, desde el «⋯» de su fila: abrir, recargar y «atrá
   sembrarNivel(nombre)
   await entrar(page, duena, { fresco: true })
   await abrirNiveles(page)
-  const panel = {
+  await abrirRecargarYVolver(page, {
     boton: masAccionesDe(page, nombre),
     dialogo: modalDeNivel(page, 'Renombrar nivel'),
-  }
-  await elegirDelMenu(page, nombre, 'Renombrar')
-  await expect(panel.dialogo).toBeVisible()
-  await recargar(page, panel)
-  await volver(page, panel)
-  await expect(panel.boton).toBeFocused()
+    abrir: () => elegirDelMenu(page, nombre, 'Renombrar'),
+  })
 })
 
 test('la hoja de filtros: abrir con «Filtros», recargar y «atrás» devuelve el foco a «Filtros»', async ({
