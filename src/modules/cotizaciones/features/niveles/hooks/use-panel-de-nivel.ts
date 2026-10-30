@@ -12,7 +12,7 @@ const PARAMETROS = {
 
 // El modal de un nivel, en la URL: `?panel=nuevo-nivel` o `?panel=renombrar-nivel&nivel=<id>`. Abrir suma al historial («atrás» lo cierra);
 // cerrar quita las dos claves. Sin `shallow: false`: abrirlo no necesita al servidor, la lista ya está. Tras recargar con el modal abierto, «atrás»
-// devuelve el foco a quien lo abrió (`vuelta-del-foco.ts`; el «⋯» de una fila ya no está al volver y el foco queda donde lo deje Base UI).
+// devuelve el foco a quien lo abrió (`vuelta-del-foco.ts`; renombrar se abre desde el «⋯» de la fila: el foco vuelve al «⋯»).
 export function usePanelDeNivel() {
   const [url, setUrl] = useQueryStates(PARAMETROS)
   const panel = url[CLAVE_DE_PANEL]

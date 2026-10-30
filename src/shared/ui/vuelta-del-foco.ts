@@ -92,7 +92,27 @@ function fichaDeLaMarca(clave: string): string | null {
 
 const fichaNueva = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
 
+// Desde un ítem de menú, que ya no existe al volver, quien abrió es el botón del menú (el «⋯»; es a donde Base UI devuelve el foco sin recargar). Una
+// acción `despuesDeCerrar` corre con el foco aún en el ítem, el menú todavía en el DOM y el botón ya sin `aria-controls`: primero el `aria-labelledby`
+// del menú; si no, el botón que lo controla (un menú que corre su acción abierto).
+function disparadorDelMenu(foco: HTMLElement): HTMLElement {
+  const menu = foco.closest('[role="menu"]')
+  if (!menu) {
+    return foco
+  }
+  const etiqueta = menu.getAttribute('aria-labelledby')
+  const nombrado = etiqueta ? document.getElementById(etiqueta) : null
+  if (nombrado?.isConnected && nombrado.getAttribute('aria-haspopup') === 'menu') {
+    return nombrado
+  }
+  const controla = menu.id
+    ? document.querySelector(`[aria-controls="${CSS.escape(menu.id)}"]`)
+    : null
+  return controla instanceof HTMLElement ? controla : foco
+}
+
 // Abre un panel (`escribir` suma la entrada al historial) dejando la marca para volver: sólo si el foco está en un elemento y el panel no estaba abierto.
+// Desde un menú, la marca es la de su botón (`disparadorDelMenu`).
 export function abrirConVuelta(
   clave: string,
   escribir: () => Promise<unknown>,
@@ -104,7 +124,7 @@ export function abrirConVuelta(
     return
   }
   const ficha = fichaNueva()
-  sumarA(MARCAS, clave, { ficha, senas: senasDe(foco) } satisfies Marca)
+  sumarA(MARCAS, clave, { ficha, senas: senasDe(disparadorDelMenu(foco)) } satisfies Marca)
   abiertos.set(clave, ficha)
   escribiendo.add(clave)
   // Si la escritura falla, la clave deja de estar «escribiendo»: si no, ese panel no volvería a tomar la ficha de su entrada.
