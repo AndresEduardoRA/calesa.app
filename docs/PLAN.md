@@ -193,6 +193,10 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
 
 Total de la fase: 31 pasos y 80 prompts; faltan el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
 
+**Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
+(4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
+auditoría AA de la Fase 9, con 5a-28. Los defectos de pulido nuevos se anotan aquí, en una línea.
+
 ### Abiertos de la Fase 4
 
 Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fases están en su sección: **5a-28** (Fase 9), **6-1** (Fase 6),
