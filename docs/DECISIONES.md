@@ -1321,3 +1321,22 @@ salen el foco y el menú, el foco entra al «⋯» y recién ahí escribe `nuqs`
 - **Las pruebas de un hook salen de un ayudante** (`probarLaVuelta()`, `ui/vuelta-del-foco.soporte.tsx`): cuatro por función que abre (marca, vuelve tras recargar, cerrar
   olvida y abrir lo abierto no marca otra vez). Con `hasMemory` en `NuqsTestingAdapter`, y el cierre se espera hasta que quede: `useFiltros` escribe en una transición y el
   adaptador pasa un instante por el valor de antes.
+
+## 2026-10-30 — Paso 4.14 (2a4): la vuelta en el listado de leads y la partición en 2a4, 2a5 y 2a6
+
+**Medido antes del código** (una sonda contra HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a4/medicion-0.json`): de doce casos del listado, siete dejan el foco en
+`body` tras recargar y «atrás» («Nuevo lead», «Gestionar etiquetas» desde los filtros y desde el selector del «⋯», exportar desde «CSV», el lead rápido desde el nombre,
+«Etapas» y «Nuevo embudo»). Anotar y agendar desde el «⋯» de una fila y «Editar» del lead rápido ya volvían: su modal busca a quien lo abrió. Anotar y agendar desde el
+«⋯» del resumen del rápido dejan el foco en «Editar» (4-58). Ningún «atrás» recarga el documento y en todos cierra el panel.
+
+- **Se parte en tres:** los 14 hooks tienen 29 funciones que abren, en tres superficies (el listado, la ficha y la configuración). El 2a4 hace las 10 del listado (6 hooks),
+  el 2a5 las 14 de la ficha (5 hooks; también donde abren en las pestañas del rápido) y el 2a6 las 6 de configuración y el cierre del guardián, que toca la ficha de `shared`
+  (Nivel 2). Sin `src/shared`, el 2a4 y el 2a5 son Nivel 1.
+- **«Gestionar etiquetas» desde el selector del «⋯» enfoca el «⋯» antes de abrir el panel:** el selector se ancla al «⋯» sin disparador propio y el foco estaba en su
+  campo de búsqueda, que desaparece; la vuelta no tenía a quién volver. Sin recargar, Base UI ya devuelve el foco al «⋯» (tras «atrás» y tras Esc): es el mismo destino. Sin
+  ancla, el selector no mueve el foco.
+- **El hook de «Nuevo lead» corre en el shell:** la vuelta del foco viaja en toda pantalla de `(app)`. `presupuesto-js` antes y después: `/perfil` 416,8 → 418,1 KB (de 440; el
+  plan estimaba ≈ 1,5), `/leads` 508,9 → 509 (de 530), `/vehiculos` 475,7 → 473,5 (de 500) y `/cotizaciones/nuevo` 433,2 → 433,3 (de 460).
+- **En la acción de una fila, «ya abierto» mira también el lead (`para`):** abrir anotar en otra fila con el modal de una abierto es otra apertura y marca otra vez.
+- **4-58 no se arregla aquí:** tras recargar, el foco queda en «Editar» (medido) y la vuelta del foco sólo actúa con el foco en `body` (espera a que Base UI lo devuelva).
+  La hipótesis, sin medir: el modal de la pestaña se monta tras recargar con el foco en «Editar» y lo devuelve ahí. El arreglo está en el modal de la pestaña (`use-modal-de-seguimiento`, `use-modal-de-recordatorio`), que es del 2a5.

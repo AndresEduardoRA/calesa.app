@@ -194,3 +194,28 @@ El 4.14-2 se parte en tres (2a, 2b y 2c) y, por P4, se suma el 4.14-2a2 (4-49).
 - **Commits:** `fb4e452d`, `0faa58d5`, `7af5d2e5` y el de la auditoría del informe, `612a8e16` (dos pruebas de la ficha guardada: otra URL no se toma y sin
   `sessionStorage` alcanza la del historial; cae la mutación de la condición de la URL).
   e2e completo: sí (4.14-2a3, shared, Nivel 2)
+
+## 2026-10-30 — 4.14-2a4: la vuelta del foco en el listado de leads
+
+- **La sonda C0, contra HEAD antes del código** (`.piloto/salidas/4.14-2a4/medicion-0.json`, en los dos proyectos; dos corridas, la segunda para K4 y para m7 del
+  rápido): K1 («Nuevo lead»), K2 y K3 («Gestionar etiquetas» desde los filtros, a 1.280 px, y desde el selector del «⋯»), K4 (exportar desde «CSV»), K5 y K6 (anotar y
+  agendar desde el «⋯» de una fila), K7 (el lead rápido desde el nombre), K8 a K10 («Editar», anotar y agendar en el rápido), K11 («Etapas») y K12 («Nuevo embudo»).
+  - m1: ningún «atrás» recarga el documento. m2: en todos cierra el panel y su clave sale de la URL (en K8 a K10 queda el rápido).
+  - m6: K1 a K4, K7, K11 y K12 dejan el foco en `body` (0 a 2.000 ms): llevan e2e. K5 y K6 vuelven al «⋯» y K8 a «Editar»: no reproducen. K9 y K10 dejan el foco en
+    «Editar» (sin recargar, en el «⋯» del resumen): es 4-58.
+  - m7 (K3, sin recargar): tras «atrás» y tras Esc, el foco va al «⋯»: rama **R1** (el selector enfoca el «⋯» antes de «Gestionar etiquetas»).
+  - m9 (K8): el segundo «atrás» cierra el rápido con el foco en `body`: es 4-59. No se dio S1, S4 ni S5.
+- **La partición:** el 2a4 hace el listado (6 hooks); la ficha va al 4.14-2a5 y la configuración con el cierre del guardián al 4.14-2a6. La fila del 4.14 pasa a «Prompts:
+  10 (quedan 5)» y el total de la fase a 31 pasos y 80 prompts. `PENDIENTES` marca los 5 de la ficha como «4.14-2a5» y los 3 de configuración como «4.14-2a6».
+- **Verificación:**
+  - En verde: lint, typecheck y test (5.660), y `mapa.sh --check`. Saltadas nuevas: 0.
+  - El completo de escritorio sobre los tres commits de código (los dirigidos eran 85 specs, más de la mitad): 819 en verde, 16 saltadas y una caída,
+    `listas-por-pagina-pendiente.spec.ts:102` (la preferencia sin guardar tras volver la red; la traza: la action salió 6 ms antes del corte, falló y no se reintentó), que
+    repetida 5 veces pasa: queda como 4-60. 31,2 min, con las carreras.
+  - En móvil, por R1, los 6 specs que nombran el selector o «Gestionar etiquetas»: 32 en verde.
+  - JS en frío antes y después del commit del alta (corre en el shell): `/perfil` 416,8 → 418,1 KB de 440, `/leads` 508,9 → 509 de 530, `/vehiculos` 475,7 → 473,5 de 500
+    y `/cotizaciones/nuevo` 433,2 → 433,3 de 460. El cuerpo de `62a9671c` las da invertidas (antes por después).
+  - Rojos contra HEAD: 42 de Vitest (41 de los hooks y el del selector) y E1 a E4, E7, E11 y E12 en los dos proyectos (14, el foco inactivo). Caen las 11 mutaciones en Vitest (M1 a M11)
+    y las 6 del e2e (M1, M2, M6, M7, M9 y M11, en dos tandas).
+- **Commits:** `62a9671c`, `a54f3ed4` y `ae8c1141`.
+  e2e completo: sí (4.14-2a4, leads, Nivel 1; 1 caída: 4-60)
