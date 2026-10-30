@@ -1,6 +1,7 @@
 'use client'
 
 import { parseAsString, useQueryStates } from 'nuqs'
+import { useState } from 'react'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 import { recordarQuienAbre } from '@/shared/ui/foco-de-quien-abre'
 import { abrirConVuelta, useVueltaDelFoco } from '@/shared/ui/vuelta-del-foco'
@@ -41,7 +42,14 @@ export function useDrawerDeLead() {
   const id = parametros[CLAVE_DE_LEAD]
   const conModal = hayModalEnLaPestana(pestana, parametros[CLAVE_DE_PANEL])
   const editando = parametros[CLAVE_DE_PANEL] === PANEL_EDITAR_LEAD
-  useVueltaDelFoco(CLAVE_DE_LEAD, id !== null)
+  // Montado con un panel encima (tras recargar), la ficha de `lead` no está en la entrada del panel: el hook se ve «cerrado» para `lead` hasta que
+  // queda sin panel, y entonces toma la ficha de esa entrada (la del primer «atrás»). Sin recargar no cambia nada: abrir un panel no olvida la ficha
+  // (4-59).
+  const [esperaSinPanel, setEsperaSinPanel] = useState(parametros[CLAVE_DE_PANEL] !== null)
+  if (esperaSinPanel && parametros[CLAVE_DE_PANEL] === null) {
+    setEsperaSinPanel(false)
+  }
+  useVueltaDelFoco(CLAVE_DE_LEAD, id !== null && !esperaSinPanel)
   useVueltaDelFoco(CLAVE_DE_PANEL, editando || conModal)
   return {
     id,
