@@ -12,6 +12,7 @@ afterEach(() => {
   cleanup()
   vi.useRealTimers()
   document.body.replaceChildren()
+  sessionStorage.clear()
   history.replaceState(null, '')
 })
 
@@ -267,7 +268,6 @@ describe('la vuelta del foco: mientras se escribe la URL', () => {
 
 describe('la vuelta del foco: una navegación del servidor', () => {
   it('si Next reescribe el estado de la entrada del panel, tras recargar la ficha sale de sessionStorage', async () => {
-    sessionStorage.clear()
     vi.resetModules()
     const antes = await import('./vuelta-del-foco')
     const quien = boton('Editar')
@@ -290,7 +290,6 @@ describe('la vuelta del foco: una navegación del servidor', () => {
     quien.blur()
     volverA(marcada)
     cuadros(2)
-    sessionStorage.clear()
     expect(document.activeElement).toBe(quien)
   })
 })
