@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { leerTextoDelPanel, MINIMO_DEL_PANEL } from './texto-del-panel'
+import {
+  leerTextoDelPanel,
+  MINIMO_DEL_PANEL,
+  queSePuedeTraer,
+  type ContextoDeTraer,
+} from './texto-del-panel'
 
 const COPART = 'https://www.copart.com/lot/58540656/clean-title-2024-ford-bronco-big-bend'
 const VIN = '1FMDE5BH9RLA12345'
@@ -57,5 +62,51 @@ describe('leerTextoDelPanel', () => {
   it('corta lo largo a 100 caracteres', () => {
     const leido = leerTextoDelPanel('a'.repeat(150))
     expect(leido.busqueda).toBe('a'.repeat(100))
+  })
+})
+
+describe('queSePuedeTraer', () => {
+  const todo: ContextoDeTraer = { puedeCargar: true, esSubasta: true, apibaraActiva: true }
+  const enlace = leerTextoDelPanel(COPART).traer
+  const lote = leerTextoDelPanel('58540656').traer
+  const vin = leerTextoDelPanel(VIN).traer
+
+  it('con permiso, origen de subasta y apibara encendida dice qué trae', () => {
+    expect(queSePuedeTraer(enlace, todo)).toEqual({
+      puede: true,
+      etiqueta: 'Traer el enlace de Copart',
+      aviso: null,
+    })
+    expect(queSePuedeTraer(lote, todo).etiqueta).toBe('Traer el lote 58540656')
+    expect(queSePuedeTraer(vin, todo).etiqueta).toBe(`Traer el VIN ${VIN}`)
+  })
+
+  it('sin nada que traer no hay botón ni aviso', () => {
+    expect(queSePuedeTraer(null, todo)).toEqual({ puede: false, etiqueta: null, aviso: null })
+  })
+
+  it('un enlace que no se puede traer dice por qué', () => {
+    expect(queSePuedeTraer(enlace, { ...todo, apibaraActiva: false }).aviso).toBe(
+      'La consulta de subastas está apagada: carga el vehículo a mano.',
+    )
+    expect(queSePuedeTraer(enlace, { ...todo, esSubasta: false }).aviso).toBe(
+      'Este origen no trae vehículos de una subasta: búscalo por nombre o cárgalo a mano.',
+    )
+    expect(queSePuedeTraer(enlace, { ...todo, puedeCargar: false })).toEqual({
+      puede: false,
+      etiqueta: null,
+      aviso: 'No puedes dar de alta en este origen: busca el vehículo por nombre, VIN o lote.',
+    })
+  })
+
+  it('un VIN o un lote que no se pueden traer sólo se buscan, sin aviso', () => {
+    for (const contexto of [
+      { ...todo, apibaraActiva: false },
+      { ...todo, esSubasta: false },
+      { ...todo, puedeCargar: false },
+    ]) {
+      expect(queSePuedeTraer(lote, contexto)).toEqual({ puede: false, etiqueta: null, aviso: null })
+      expect(queSePuedeTraer(vin, contexto).aviso).toBeNull()
+    }
   })
 })

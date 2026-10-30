@@ -3,9 +3,38 @@ import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProveedorAtajos, useAtajo } from '@/shared/ui/atajos'
+import type { AltaDelPanel } from '../alta-del-panel'
 import type { VehiculoDelPanel } from '../../../entities/panel-para-cotizar'
 import { PanelDelVehiculo } from './panel-del-vehiculo'
 
+const altaMontada = vi.fn()
+vi.mock('./diferidos', () => ({
+  AltaDesdeElPanelDiferida: (props: {
+    vista: string
+    textoInicial: string
+    consultarAlMontar: boolean
+    alVolver: () => void
+    alElegir: (id: string) => void
+  }) => {
+    altaMontada(props)
+    return (
+      <div>
+        <p>Alta {props.vista}</p>
+        <button type="button" onClick={props.alVolver}>
+          Volver a la lista
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            props.alElegir(NUEVO)
+          }}
+        >
+          Crear y elegir
+        </button>
+      </div>
+    )
+  },
+}))
 vi.mock('next/navigation', () => ({
   usePathname: () => '/cotizaciones/nuevo',
   useSearchParams: () => new URLSearchParams('origen=o&lead=l&panel=vehiculo'),
@@ -13,6 +42,7 @@ vi.mock('next/navigation', () => ({
 
 const ELEGIDO = '00000000-0000-4000-8000-000000000001'
 const OTRO = '00000000-0000-4000-8000-000000000002'
+const NUEVO = '00000000-0000-4000-8000-000000000099'
 const vehiculo = (id: string, titulo: string): VehiculoDelPanel => ({
   id,
   numero: 3,
@@ -51,6 +81,7 @@ function montar({
   conElegido = true,
   historial = null as ReactNode,
   url = '?origen=o&lead=l&panel=vehiculo&lista=ultima',
+  alta = null as AltaDelPanel | null,
 } = {}) {
   const cambios: UrlUpdateEvent[] = []
   render(
@@ -67,6 +98,7 @@ function montar({
               ? { id: ELEGIDO, numero: 3, titulo: 'Corolla elegido', lote: '77', portadaRuta: null }
               : null
           }
+          alta={alta}
           claveDeLaUrl="vehiculo"
           historial={historial}
         />

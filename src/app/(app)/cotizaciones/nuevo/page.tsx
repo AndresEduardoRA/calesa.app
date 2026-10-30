@@ -22,12 +22,13 @@ import {
   PestanasDeOrigen,
 } from '@/modules/cotizaciones/pantallas/cotizar'
 import { requerirSesion } from '@/modules/equipo'
-import { getOrigenes } from '@/modules/origenes'
-import { elegidoDesde, leerVehiculo } from '@/modules/vehiculos'
-import { BarraDelVehiculo } from '@/modules/vehiculos/pantallas/cotizar'
+import { integracionActiva } from '@/modules/empresa'
+import { getOrigenes, type OrigenResumen } from '@/modules/origenes'
+import { elegidoDesde, leerVehiculo, permisoDeAlta } from '@/modules/vehiculos'
+import { BarraDelVehiculo, type AltaDelPanel } from '@/modules/vehiculos/pantallas/cotizar'
 import { conteoCorto } from '@/shared/lib/conteo'
 import { datosO } from '@/shared/lib/errores'
-import { puede } from '@/shared/lib/permisos'
+import { puede, type Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 
@@ -82,17 +83,38 @@ async function elegidoDeLaUrl(id: string | null) {
   return leido.ok && leido.data ? elegidoDesde(leido.data) : null
 }
 
+// Lo que el panel del vehículo necesita para dar de alta desde él: sólo si quien mira ve los vehículos del origen y puede crearlos en él (el origen de la hoja está
+// siempre activo). Se lee a la vez que la hoja. El layout del origen no viaja: el alta lo lee desde el navegador al abrirse (P2 del 4.14-2c).
+async function altaDelPanelDe(
+  permisos: Permisos,
+  origen: OrigenResumen,
+): Promise<AltaDelPanel | null> {
+  if (
+    !puede(permisos, 'vehiculos.ver', origen.id) ||
+    permisoDeAlta(permisos, origen).estado !== 'habilitado'
+  ) {
+    return null
+  }
+  const activa = origen.tipo === 'subasta' ? await integracionActiva('apibara') : false
+  return {
+    origen,
+    apibara: { activa, puedeConfigurar: puede(permisos, 'empresa.ajustes.gestionar') },
+  }
+}
+
 // La barra del vehículo con su «Cotizado (n)» y su historial. Lo une esta página: `vehiculos` recibe el historial armado, sin importar `cotizaciones`. Sin elegido (soltado
 // por la hoja, inexistente o que no se ve) no hay insignia ni historial; un conteo que falló es sólo una etiqueta menos. Plegado, el historial se lee al desplegarlo.
 function BarraConHistorial({
   origen,
   elegido,
   conteo,
+  alta,
   puedeVer,
 }: {
   origen: { id: string; tipo: string }
   elegido: Awaited<ReturnType<typeof elegidoDeLaUrl>>
   conteo: Awaited<ReturnType<typeof contarCotizacionesDelVehiculo>> | null
+  alta: AltaDelPanel | null
   puedeVer: boolean
 }) {
   const cotizado = elegido && conteo?.ok ? conteo.data : null
@@ -103,6 +125,7 @@ function BarraConHistorial({
       origenId={origen.id}
       esSubasta={origen.tipo === 'subasta'}
       elegido={elegido}
+      alta={alta}
       puedeVer={puedeVer}
       claveDeLaUrl={CLAVE_DE_VEHICULO}
       cotizado={insignia}
@@ -132,10 +155,11 @@ async function Hoja({
   const lead = idDeUrl(url[CLAVE_DE_LEAD])
   const vehiculo = idDeUrl(url[CLAVE_DE_VEHICULO])
   // El vehículo de la barra y su «Cotizado (n)» se leen a la vez que la hoja; si la hoja lo suelta, la barra queda sin él.
-  const [{ apertura, vehiculoSoltado }, elegido, conteo] = await Promise.all([
+  const [{ apertura, vehiculoSoltado }, elegido, conteo, alta] = await Promise.all([
     abrirLaHoja(origen.id, vehiculo),
     elegidoDeLaUrl(vehiculo),
     vehiculo === null ? null : contarCotizacionesDelVehiculo(vehiculo),
+    altaDelPanelDe(sesion.permisos, origen),
   ])
   if (apertura.tipo === 'sin_permiso') {
     return (
@@ -167,6 +191,7 @@ async function Hoja({
         origen={origen}
         elegido={vehiculoSoltado ? null : elegido}
         conteo={conteo}
+        alta={alta}
         puedeVer={puede(sesion.permisos, 'vehiculos.ver', origen.id)}
       />
       <PantallaDeCotizar

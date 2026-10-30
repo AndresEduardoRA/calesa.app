@@ -32,6 +32,9 @@ type Props = {
   }) => Promise<ResultadoDeFotos>
   // Lo último que se dio de alta desde el formulario, y de qué línea venía.
   guardado: GuardadoDeLinea | null
+  // Lo que arranca pegado y si se consulta al montarse (el panel del vehículo de la hoja de cotizar; el inventario no pasa ninguno).
+  textoInicial?: string
+  consultarAlMontar?: boolean
 }
 
 // Lo que se avisa tras cargar una ficha: de dónde salió y cuántas fotos se traen al guardar.
@@ -142,6 +145,8 @@ export function AltaPorSubasta({
   apibara,
   traerFotos,
   guardado,
+  textoInicial,
+  consultarAlMontar,
 }: Props) {
   const alta = useAltaPorSubasta({
     origenId: origen.id,
@@ -150,6 +155,8 @@ export function AltaPorSubasta({
     estado,
     traerFotos,
     guardado,
+    ...(textoInicial === undefined ? {} : { textoInicial }),
+    ...(consultarAlMontar === undefined ? {} : { consultarAlMontar }),
   })
   const { consulta, lote } = alta
 

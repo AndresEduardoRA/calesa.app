@@ -3,6 +3,10 @@
 export const PANEL_DEL_VEHICULO = 'vehiculo'
 export const CLAVE_DE_LISTA = 'lista'
 export const CLAVE_DE_BUSQUEDA = 'buscar'
+// `?alta=mano|subasta`: el cuerpo del panel pasa a dar de alta un vehículo (el inventario, sin salir de la hoja).
+export const CLAVE_DE_ALTA = 'alta'
+export const VISTAS_DE_ALTA = ['mano', 'subasta'] as const
+export type VistaDeAlta = (typeof VISTAS_DE_ALTA)[number]
 // La pausa al tipear antes de escribir `?buscar=`: la de los listados (`DEMORA_AL_TIPEAR_MS` de `src/shared/ui/filtros/use-filtros.ts`, privada; un
 // export ahí cambia `src/shared`) y como en `lista-equipo.tsx`, que también la escribe en su sitio.
 export const PAUSA_AL_TIPEAR_MS = 300

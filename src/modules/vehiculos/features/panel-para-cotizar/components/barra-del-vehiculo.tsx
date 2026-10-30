@@ -6,7 +6,8 @@ import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
 import { referenciaDelVehiculo, type VehiculoElegido } from '../../../entities/panel-para-cotizar'
 import { Miniatura } from '../../listado/components/miniatura'
-import { CLAVE_DE_BUSQUEDA, CLAVE_DE_LISTA, PANEL_DEL_VEHICULO } from '../claves'
+import type { AltaDelPanel } from '../alta-del-panel'
+import { CLAVE_DE_ALTA, CLAVE_DE_BUSQUEDA, CLAVE_DE_LISTA, PANEL_DEL_VEHICULO } from '../claves'
 import { PanelDelVehiculoDiferido } from './diferidos'
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
   esSubasta: boolean
   // El de la hoja; null = la hoja no tiene vehículo (o lo soltó: la hoja dice por qué).
   elegido: VehiculoElegido | null
+  // Para dar de alta desde el panel (4.14-2c1): lo arma la página sólo si quien mira puede crear vehículos en el origen; null = el panel sólo busca y elige.
+  alta: AltaDelPanel | null
   // `vehiculos.ver` del origen (lo decide la página con `puede()`); lo que protege es la base.
   puedeVer: boolean
   // La clave de la URL donde la hoja lleva su vehículo: este módulo no la conoce.
@@ -29,10 +32,11 @@ type Props = {
 // La barra del vehículo sobre la hoja de cotizar: una sola parada de Tab que abre el panel del vehículo (`?panel=vehiculo`). Va fuera de
 // la hoja (`[data-hoja]`) y del componente que se vuelve a montar al cambiar de vehículo: elegir otro no la desmonta y el foco vuelve a ella.
 export function BarraDelVehiculo(props: Props) {
-  const { origenId, esSubasta, elegido, puedeVer, claveDeLaUrl, cotizado, historial } = props
+  const { origenId, esSubasta, elegido, alta, puedeVer, claveDeLaUrl, cotizado, historial } = props
   const panel = usePanelPorUrl(PANEL_DEL_VEHICULO, [
     CLAVE_DE_LISTA,
     CLAVE_DE_BUSQUEDA,
+    CLAVE_DE_ALTA,
     CLAVE_DE_CURSOR,
   ])
   const montado = useAbiertoAlgunaVez(panel.abierto)
@@ -83,6 +87,7 @@ export function BarraDelVehiculo(props: Props) {
           origenId={origenId}
           esSubasta={esSubasta}
           elegido={elegido}
+          alta={alta}
           claveDeLaUrl={claveDeLaUrl}
           historial={historial}
           focoAlCerrar={boton}

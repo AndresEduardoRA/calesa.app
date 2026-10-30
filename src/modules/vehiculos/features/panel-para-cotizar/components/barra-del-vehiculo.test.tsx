@@ -1,19 +1,32 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { AltaDelPanel } from '../alta-del-panel'
 import { BarraDelVehiculo } from './barra-del-vehiculo'
 
-afterEach(cleanup)
+const panelMontado = vi.fn()
+vi.mock('./diferidos', () => ({
+  PanelDelVehiculoDiferido: (props: { alta: AltaDelPanel | null }) => {
+    panelMontado(props)
+    return null
+  },
+}))
+
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+})
 
 const ID = '00000000-0000-4000-8000-000000000001'
 
-function montar(props: Partial<Parameters<typeof BarraDelVehiculo>[0]> = {}) {
+function montar(props: Partial<Parameters<typeof BarraDelVehiculo>[0]> = {}, url = '?origen=o') {
   render(
-    <NuqsTestingAdapter searchParams="?origen=o">
+    <NuqsTestingAdapter searchParams={url}>
       <BarraDelVehiculo
         origenId="o"
         esSubasta
         elegido={null}
+        alta={null}
         puedeVer
         claveDeLaUrl="vehiculo"
         cotizado={null}
@@ -70,5 +83,17 @@ describe('BarraDelVehiculo', () => {
     expect(
       screen.getByRole('button', { name: /Selecciona un vehículo/ }).textContent,
     ).not.toContain('Cotizado')
+  })
+
+  it('le pasa al panel el alta que arma la página; sin alta, null', () => {
+    const alta = {
+      origen: { id: 'o', tipo: 'manual' },
+      apibara: { activa: false, puedeConfigurar: false },
+    } as unknown as AltaDelPanel
+    montar({ alta }, '?origen=o&panel=vehiculo')
+    expect(panelMontado).toHaveBeenLastCalledWith(expect.objectContaining({ alta }))
+    cleanup()
+    montar({}, '?origen=o&panel=vehiculo')
+    expect(panelMontado).toHaveBeenLastCalledWith(expect.objectContaining({ alta: null }))
   })
 })

@@ -232,12 +232,11 @@ test('E2E la barra va fuera de la hoja; el panel cabe en su presupuesto de nodos
   const bytes = (await (await respuesta).body()).length
   await expect(tarjetas(page)).toHaveCount(20)
   const nodos = await panel(page).evaluate((e) => e.querySelectorAll('*').length + 1)
-  test
-    .info()
-    .annotations.push({
-      type: 'medido',
-      description: `nodos ${String(nodos)}, bytes ${String(bytes)}`,
-    })
+  test.info().annotations.push({
+    type: 'medido',
+    description: `nodos ${String(nodos)}, bytes ${String(bytes)}`,
+  })
+  console.warn(`[panel del vehículo] nodos ${String(nodos)}, bytes ${String(bytes)}`)
   expect(nodos).toBeLessThanOrEqual(TOPE_DE_NODOS)
   expect(bytes).toBeLessThanOrEqual(TOPE_DE_BYTES)
 })
