@@ -119,16 +119,16 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   `vehiculos_cierre_subasta_idx (origen_id, cierre_subasta_en, id)`; el historial del vehículo con `cotizaciones_vehiculo_creado_idx
 (vehiculo_id, creado_en desc, id desc)`, que reemplaza a `cotizaciones_vehiculo_idx`; «Cotizado (n)» por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
   etiqueta y «+» que abre «Nuevo lead». Se entra desde la ficha del lead y desde el resumen del vehículo. Cierra **4-10** (el tipo de
-  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 10 (quedan 4).
+  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 10 (quedan 3).
   **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
   versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
   hecho. El **4.14-2** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2a)»): el **4.14-2a** (el cursor por columna en `src/shared`, la barra y el panel del vehículo
   con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. El **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2):
   hecho. El **4.14-2a3** (la vuelta desde un menú, el panel de filtros y los 4 hooks de `vehiculos`; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a3)»): hecho. El
   **4.14-2a4** (los paneles del listado de leads: «Nuevo lead», etiquetas, exportar, la acción de fila, el embudo y el lead rápido; Nivel 1; `docs/DECISIONES.md` › «Paso
-  4.14 (2a4)»): hecho. El **4.14-2a5** (los 5 hooks de la ficha del lead, con las pestañas del rápido; 4-58 y 4-59; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2a5)»): hecho. Faltan el **4.14-2a6** (los 3 de configuración y el guardián sin pendientes; Nivel 2, `sí`; cierra 4-49), el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
+  4.14 (2a4)»): hecho. El **4.14-2a5** (los 5 hooks de la ficha del lead, con las pestañas del rápido; 4-58 y 4-59; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2a5)»): hecho. El **4.14-2a6** (los 3 hooks de configuración, el guardián sin pendientes y F6; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a6)»): hecho. Faltan el **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; `1 de 3`), el **4.14-2c** (crear desde el panel: link o lote,
   nombre, «+» y «a mano»; 4-10 con P6 y P3; el tramo del panel en la tarea de oro 2; `2 de 3`, o se parte si P3 pidiera base) y el **4.14-3** (el panel del cliente y la
-  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`, 4.14-2a5 `sí`.
+  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`, 4.14-2a5 `sí`, 4.14-2a6 `sí`.
   - **P1** (contestada el 2026-10-29; hecha en el 4.14-1): `cotizado_en` va en `vehiculos`, y cuando sólo cambia ella ni se mueve la versión de la ficha ni se audita.
   - **P2** (contestada el 2026-10-29; hecha en el 4.14-1): la ve quien ve el vehículo (sólo cuándo, no quién ni cuánto).
   - **P3** (contestada el 2026-10-29; hecha en el 4.14-1): la mueven crear una cotización con el vehículo y guardar una que pasa a él; nunca retrocede.
@@ -191,7 +191,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 31 pasos y 80 prompts; faltan el 4.14-2a6, el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
+Total de la fase: 31 pasos y 80 prompts; faltan el 4.14-2b, el 4.14-2c y el 4.14-3 y los pasos 4.15 a 4.28.
 
 ### Abiertos de la Fase 4
 
@@ -297,7 +297,7 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
 - **4-43** (sin fase: lo decide la persona; salió del 4-42): `e2e/leads-ficha-edicion.spec.ts` tiene 331 líneas (> 300) — partirlo por
   responsabilidad (edición, borrador, sin red, permisos). Assert: `wc -l` de cada parte ≤ 300 y las mismas pruebas en verde.
-- **4-49** (el **4.14-2a6**; hecho en parte en el 4.14-2a2, 2026-10-29, en el 4.14-2a3 y en el 4.14-2a4, 2026-10-30; P4 del 4.14-2a; salió de 4-44 (a), 4.13-4d): tras **recargar** con un panel por URL abierto, «atrás»
+- **4-49** (**cerrado** en el 4.14-2a6, 2026-10-30; hecho en parte en el 4.14-2a2, 2026-10-29, en el 4.14-2a3 y en el 4.14-2a4, 2026-10-30; P4 del 4.14-2a; salió de 4-44 (a), 4.13-4d): tras **recargar** con un panel por URL abierto, «atrás»
   cierra el panel pero el foco queda en `body`. Medido en el 4.14-2a2 (`docs/DECISIONES.md` › «Paso 4.14 (2a2)»): el documento y el botón no se montan de nuevo; el modal se
   cierra montado y Base UI no devuelve el foco; el drawer del vehículo, que le pasa una ref a `focoAlCerrar`, sí lo devuelve. **Hecho** en `usePanelPorUrl()` y en «Nuevo nivel»
   con la vuelta del foco (`src/shared/ui/vuelta-del-foco.ts`; `e2e/paneles-foco-al-volver.spec.ts`, en verde). **Hecho en el 4.14-2a3** (`docs/DECISIONES.md` › «Paso 4.14 (2a3)»):
@@ -306,10 +306,9 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   (2a4)»): los 6 hooks del listado de leads (alta, etiquetas, exportar, la acción de fila, el embudo y el lead rápido) salen de `PENDIENTES`; la sonda midió el defecto en
   siete de doce casos (`e2e/paneles-foco-al-volver-leads.spec.ts`), y desde el selector del «⋯» el foco va al «⋯» antes de «Gestionar etiquetas». **Hecho en el 4.14-2a5** (`docs/DECISIONES.md` › «Paso
   4.14 (2a5)»): los 5 hooks de la ficha salen de `PENDIENTES`; la sonda midió el defecto en 8 de los 16 casos medidos de la ficha (F6 no se midió), con su e2e (`e2e/paneles-foco-al-volver-ficha.spec.ts`), y en F16 y F17 (4-61), y cierran 4-58
-  y 4-59 en el lead rápido. F6 («Salir de este lead») no se midió: la sonda del 2a6 lo mide. **Falta:** el 4.14-2a6 (los 3 de configuración, marcados así en `PENDIENTES` de
-  `scripts/guardas/paneles-con-vuelta.ts`, y el cierre). Assert: `PENDIENTES` vacío y el registro borrado, el guardián exige también `useVueltaDelFoco` y `src/shared/CLAUDE.md` deja de nombrar
-  la lista; antes del código, una sonda mide si esos paneles reproducen el defecto, y cada uno que lo reproduzca lleva su e2e en rojo contra HEAD (`probarLaVuelta()` para Vitest,
-  `e2e/soporte/vuelta-del-foco.ts` para el e2e). Se cierra con él, y 4-44 (a) también.
+  y 4-59 en el lead rápido. **Cerrado en el 4.14-2a6** (`docs/DECISIONES.md` › «Paso 4.14 (2a6)»): los 3 hooks de Configuración › Leads marcan la vuelta (la sonda midió el defecto en los 9
+  casos, `e2e/paneles-foco-al-volver-configuracion.spec.ts`); F6 ya volvía y lleva su e2e porque sin la marca cae; `scripts/guardas/paneles-con-vuelta.ts` se borró y
+  el guardián exige `abrirConVuelta` y `useVueltaDelFoco` en cada `history: 'push'` de `src/`. Se cierra también 4-44 (a).
 - **4-58** (**cerrado** en el 4.14-2a5, 2026-10-30; salió del 4.14-2a4, K9 y K10 de su sonda): en el lead rápido, anotar o agendar desde el «⋯» del resumen, recargar y «atrás»
   dejaba el foco en «Editar». Medido: el botón de la pestaña ya no está en el DOM y el modal devolvía el foco a lo que lo tenía. Hecho con `enPestana` (`docs/DECISIONES.md` ›
   «Paso 4.14 (2a5)»); `e2e/paneles-foco-al-volver-leads.spec.ts`, en los dos proyectos, en rojo contra HEAD.

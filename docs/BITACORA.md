@@ -247,3 +247,24 @@ El 4.14-2 se parte en tres (2a, 2b y 2c) y, por P4, se suma el 4.14-2a2 (4-49).
   (`repetir-dos-atras.txt`, `mut/repetir-M10-editar.txt`). Queda como 4-63.
 - **Commits:** `fc0d8684` (los 5 hooks de la ficha), `aad3bfeb` (4-58) y `e1284c0f` (4-59).
   e2e completo: sí (4.14-2a5, leads, Nivel 1)
+
+## 2026-10-30 — 4.14-2a6: la vuelta del foco en configuración y el guardián sin pendientes
+
+- **Qué:** `usePanelDeOrigen`, `usePanelDeTipo` y `usePanelDeTipoDeSeguimiento` abren con `abrirConVuelta()` y llaman a `useVueltaDelFoco()`. En la edición, «ya abierto»
+  mira el id. Se borró `scripts/guardas/paneles-con-vuelta.ts`, y su test exige las dos funciones en cada `history: 'push'` de `src/` (salvo `usePanelPorUrl()`). F6
+  («Salir de este lead») suma su e2e al spec de la ficha. Cierra 4-49 y 4-44 (a) (`docs/DECISIONES.md` › «Paso 4.14 (2a6)»).
+- **La sonda (C0)**, contra HEAD y en los dos proyectos (`.piloto/salidas/4.14-2a6/medicion-0.jsonl`):
+  - m1 y m2 dan bien en todos los casos.
+  - Los 9 casos de configuración dejan el foco en `body` a los 500 ms a más tardar (O1, T1 y G1 desde los 0; O3 y T2 en escritorio, desde los 500)
+    y llevan e2e. O2s, sin recargar, vuelve al «⋯».
+  - F6 vuelve al botón, y F6m (con M7) deja `body`. No se dio S1 ni S2 y no nace 4-64.
+- **Verificación:**
+  - En verde: lint, typecheck, test (5.748) y `mapa.sh --check`. Saltadas nuevas: 0.
+  - El completo de escritorio sobre los tres commits de código (Nivel 2, por `src/shared`): 849 en verde, 16 saltadas y ninguna caída, 30,8 min.
+  - En móvil: los specs de la vuelta, los que abren los modales de configuración, `leads-confirmar-por-url` y `leads-cartera` (20 specs), 102 en verde.
+  - JS en frío: `/perfil` 418 KB de 440, `/leads` 509,1 de 530, `/vehiculos` 473,5 de 500 y `/cotizaciones/nuevo` 433,2 de 460.
+  - Rojos contra HEAD: 27 de Vitest, la guarda nueva (lista los 3 hooks) y 18 e2e (los 9 casos en los dos proyectos). La guardia O2s queda en verde.
+  - Mutaciones: en Vitest caen las 8 (M1 a M8). En el e2e corrieron M1, M2, M5 y M7 en una tanda, y caen O1, O2, O3, G1, G2, G3 y F6. O2s no cae con ninguna: es una
+    guardia sin caída demostrable (DECISIONES).
+- **Commits:** `baea6897` (los 3 hooks de configuración), `ef48909c` (el guardián sin lista) y `a6fdf76d` (F6).
+  e2e completo: sí (4.14-2a6, shared, Nivel 2)

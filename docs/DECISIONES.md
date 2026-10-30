@@ -1369,3 +1369,23 @@ salen el foco y el menú, el foco entra al «⋯» y recién ahí escribe `nuqs`
   igual si el panel se cierra con Esc, la ✕ o guardar en una URL distinta de la de apertura.
 - **`yaAbierto` mira el id en las ediciones** (oportunidad, recordatorio, seguimiento): abrir la edición de otro ítem con la de uno abierta marca otra vez, como la acción de una fila del 2a4.
 - **Los 5 hooks de la ficha salen de `PENDIENTES`:** `usePanelDeLead` marca con `recordarQuienAbre()` y `abrirConVuelta()`; quedan los 3 de configuración del 2a6. Sin `src/shared`: Nivel 1.
+
+## 2026-10-30 — Paso 4.14 (2a6): la vuelta en configuración y el guardián sin lista
+
+**Medido antes del código** (una sonda contra HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a6/medicion-0.jsonl`): ningún «atrás» recarga el documento y en todos cierra
+el modal y quita `panel` y el id de la URL. En Configuración › Leads los 9 casos («Nuevo», «Editar» desde el «⋯» y el nombre de la fila, en orígenes, tipos y tipos de
+seguimiento) dejan el foco en `body` tras recargar y «atrás»: llevan e2e. Sin recargar, «Editar» desde el «⋯» ya vuelve al «⋯» (O2s). «Salir de este lead» (F6) ya volvía
+desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foco queda en `body` (F6m).
+
+- **El criterio para llevar e2e** es el mismo en los dos lados: lo lleva un caso que, sin la vuelta del hook, deja el foco en `body`. En configuración se ve en HEAD; en F6,
+  con M7. Por eso F6 entra al spec de la ficha como regresión, en verde en HEAD, y M7 lo tumba. Si M7 no lo hubiera tumbado, no habría llevado e2e.
+- **O2s es una guardia sin caída demostrable.** Sin recargar, Base UI devuelve el foco al «⋯» y `volverA()` sólo enfoca con el foco en `body`, así que ninguna mutación de
+  los hooks la tumba (M2 tampoco, medido). Se queda porque fija que la vuelta no estropea el camino de siempre.
+- **El guardián exige también `useVueltaDelFoco`:** sin él, `abrirConVuelta` deja la marca, pero tras recargar nadie recuerda la ficha y «atrás» deja el foco en `body`.
+  La guarda acepta uno o varios `import`; con `noUnusedLocals`, importarlo obliga a llamarlo. M5 (sin `useVueltaDelFoco`) y M8 (sin `abrirConVuelta`) la tumban.
+- **Se borra el registro en lugar de dejarlo vacío:** una lista vacía invita a volver a llenarla. Un `history: 'push'` nuevo sin las dos funciones hace caer `pnpm test`, y
+  el único exento es `usePanelPorUrl()`, que las usa por dentro. La guarda lee el texto: un comentario que nombre el literal `history: 'push'` cuenta como panel.
+- **En la edición, «ya abierto» mira el id** (`editando === id`), como en la ficha: abrir la edición de otro ítem con la de uno abierta marca otra vez.
+- **Límite:** un clic en la fila fuera del nombre abre la edición con el foco en `body` y no marca, igual que en el listado de leads del 2a4. Con teclado se abre por el
+  nombre (`<AbrirResumen>`), que sí marca.
+- 4-49 se cierra con este paso, y 4-44 (a) con él. 4-61, 4-62 y 4-63 siguen sin fase.
