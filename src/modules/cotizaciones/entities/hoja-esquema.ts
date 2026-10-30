@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { ANCHOS, EFECTOS_DE_INTERRUPTOR, PRESENTACIONES, SECUNDARIOS } from './diseno'
-import { esquemaId, FORMATOS } from './nodos'
+import { esquemaCampo, esquemaId, FORMATOS } from './nodos'
 
 // Lo que la hoja de cotizar lee al abrir (paso 4.13, `cotizacion_hoja()` en `…20261019008900_cotizacion_hoja.sql`): el diseño publicado de un origen RECORTADO al nivel de
 // quien mira, con lo que la hoja necesita para dibujarse sin otra consulta, la versión de la fórmula, la hora de la base y la hoja abierta firmada (`p_abierta` de
@@ -55,6 +55,12 @@ const esquemaAyuda = z.union([
   z.object({ texto: z.string().min(1) }),
 ])
 
+// Qué columna de la tabla de una celda casa con qué dato del vehículo (4.14-2c2): las filas para elegirlo las da `cotizacion_tabla`.
+const esquemaDatoDelVehiculo = z.object({
+  tabla: esquemaId,
+  columnas: z.array(z.object({ columna: esquemaId, campo: esquemaCampo })).min(1),
+})
+
 export const esquemaCelda = z
   .object({
     tipo: z.literal('celda'),
@@ -66,6 +72,7 @@ export const esquemaCelda = z
     tono: esquemaId.optional(),
     ajustes: z.boolean(),
     ayuda: esquemaAyuda.optional(),
+    dato_del_vehiculo: esquemaDatoDelVehiculo.optional(),
     solo_en: z.array(esquemaId).optional(),
     condicion: esquemaId.optional(),
     requerido_si: esquemaId.optional(),
