@@ -144,3 +144,16 @@ test('renombrar un nivel, desde el «⋯» de su fila: abrir, recargar y «atrá
   await volver(page, panel)
   await expect(panel.boton).toBeFocused()
 })
+
+test('la hoja de filtros: abrir con «Filtros», recargar y «atrás» devuelve el foco a «Filtros»', async ({
+  page,
+}) => {
+  // La hoja se abre cuando el panel no cabe al costado (40 rem de contenedor): a 560 px, en los dos proyectos.
+  await page.setViewportSize({ width: 560, height: 900 })
+  await entrar(page, duena, { fresco: true })
+  await page.goto('/leads')
+  await abrirRecargarYVolver(page, {
+    boton: page.getByRole('button', { name: /^Filtros/ }).filter({ visible: true }),
+    dialogo: page.getByRole('dialog', { name: 'Filtros' }),
+  })
+})

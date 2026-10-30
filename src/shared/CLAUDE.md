@@ -67,3 +67,4 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `entornoPublico()` valida al primer uso; las `NEXT_PUBLIC_*` se leen con el nombre literal.
 - Los textos hablan de tú, también los `MENSAJE_*` de `errores.ts`.
 - `vitest` no limpia solo entre pruebas: un test que monta diálogos usa `afterEach(cleanup)`.
+- La vuelta del foco de un hook se prueba con `probarLaVuelta()` de `ui/vuelta-del-foco.soporte.tsx` (sólo de las pruebas; `mapa.sh` no lista los `*.soporte.*`): cuatro pruebas por función que abre.
