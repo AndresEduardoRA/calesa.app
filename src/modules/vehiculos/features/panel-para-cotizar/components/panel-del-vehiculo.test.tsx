@@ -20,25 +20,23 @@ const vehiculo = (id: string, titulo: string): VehiculoDelPanel => ({
   anio: 2020,
   lote: '77',
   precio: null,
+  creadoEn: '2026-10-01T08:00:00Z',
   cotizadoEn: '2026-10-29T08:00:00Z',
   cierreSubastaEn: null,
   portadaRuta: null,
 })
+let filas = [vehiculo(ELEGIDO, 'Corolla elegido'), vehiculo(OTRO, 'Civic otro')]
+const leer = vi.fn((_pedido: { lista: string; texto?: string }) =>
+  Promise.resolve({ ok: true, data: { filas, siguiente: null, anterior: null } }),
+)
 vi.mock('../../../composicion.client', () => ({
-  leerListaDelPanel: () =>
-    Promise.resolve({
-      ok: true,
-      data: {
-        filas: [vehiculo(ELEGIDO, 'Corolla elegido'), vehiculo(OTRO, 'Civic otro')],
-        siguiente: null,
-        anterior: null,
-      },
-    }),
+  leerListaDelPanel: (pedido: { lista: string; texto?: string }) => leer(pedido),
 }))
 
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  filas = [vehiculo(ELEGIDO, 'Corolla elegido'), vehiculo(OTRO, 'Civic otro')]
 })
 
 // La hoja registra «guardar» antes de que se abra el panel.
@@ -52,14 +50,11 @@ function montar({
   alGuardar = vi.fn(),
   conElegido = true,
   historial = null as ReactNode,
+  url = '?origen=o&lead=l&panel=vehiculo&lista=ultima',
 } = {}) {
   const cambios: UrlUpdateEvent[] = []
   render(
-    <NuqsTestingAdapter
-      searchParams="?origen=o&lead=l&panel=vehiculo&lista=ultima"
-      onUrlUpdate={(cambio) => cambios.push(cambio)}
-      hasMemory
-    >
+    <NuqsTestingAdapter searchParams={url} onUrlUpdate={(cambio) => cambios.push(cambio)} hasMemory>
       <ProveedorAtajos>
         <Hoja alGuardar={alGuardar} />
         <PanelDelVehiculo
@@ -130,5 +125,50 @@ describe('PanelDelVehiculo', () => {
     montar({ conElegido: false, historial: <p>Aquí va el historial</p> })
     await screen.findByText('Civic otro')
     expect(screen.queryByText('Aquí va el historial')).toBeNull()
+  })
+})
+
+describe('PanelDelVehiculo: el buscador', () => {
+  it('sin texto: el campo de búsqueda va arriba de «Elegido» y las pestañas siguen', async () => {
+    montar()
+    const campo = await screen.findByRole('searchbox', { name: 'Buscar un vehículo' })
+    const elegido = screen.getByRole('region', { name: 'Elegido' })
+    expect(campo.compareDocumentPosition(elegido) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Últ. cotización' })).toBeTruthy()
+    expect(screen.queryByText('Resultados')).toBeNull()
+  })
+
+  it('con un texto que se busca no hay pestañas: dice «Resultados» y pide la búsqueda', async () => {
+    montar({ url: '?origen=o&lead=l&panel=vehiculo&lista=ultima&buscar=Civic' })
+    await screen.findByText('Civic otro')
+    expect(screen.getByRole('heading', { name: 'Resultados' })).toBeTruthy()
+    expect(screen.queryByRole('tab')).toBeNull()
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('Civic')
+    expect(leer).toHaveBeenCalledWith(
+      expect.objectContaining({ lista: 'busqueda', texto: 'Civic' }),
+    )
+  })
+
+  it('sin resultados dice qué se buscó; con menos de 3 letras avisa y deja las pestañas', async () => {
+    filas = []
+    montar({ url: '?origen=o&lead=l&panel=vehiculo&buscar=zzq' })
+    expect(
+      await screen.findByText(
+        'Ningún vehículo de este origen tiene «zzq» en el título, el VIN o el lote.',
+      ),
+    ).toBeTruthy()
+    cleanup()
+    montar({ url: '?origen=o&lead=l&panel=vehiculo&buscar=Ci' })
+    expect(await screen.findByText('Escribe al menos 3 letras o números.')).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Últ. cotización' })).toBeTruthy()
+    expect(screen.queryByText('Resultados')).toBeNull()
+  })
+
+  it('elegir un resultado quita también lo buscado', async () => {
+    const { cambios } = montar({ url: '?origen=o&lead=l&panel=vehiculo&buscar=Civic' })
+    fireEvent.click(await screen.findByRole('button', { name: /Civic otro/ }))
+    await waitFor(() =>
+      expect(cambios.at(-1)?.queryString).toBe(`?origen=o&lead=l&vehiculo=${OTRO}`),
+    )
   })
 })

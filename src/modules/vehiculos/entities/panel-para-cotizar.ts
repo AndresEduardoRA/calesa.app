@@ -3,7 +3,7 @@
 // listas van por cursor sobre la columna que las ordena (`OrdenDeCursor`) y las sostienen los índices del 4.14-1
 // (`docs/RENDIMIENTO.md`, panel del vehículo).
 import { z } from 'zod'
-import type { OrdenDeCursor } from '@/shared/lib/paginacion'
+import { POR_ALTA, type OrdenDeCursor } from '@/shared/lib/paginacion'
 import type { Vehiculo } from './vehiculo'
 
 // «Cierre subasta» muestra también las que cerraron hace poco (P5 del 4.14-1): una subasta que cerró hace unas horas todavía se cotiza.
@@ -16,10 +16,13 @@ export function desdeDelCierre(ahora: Date): string {
 }
 
 export const LISTAS_DEL_PANEL = ['ultima', 'cierre'] as const
-export type ListaDelPanel = (typeof LISTAS_DEL_PANEL)[number]
+// Las pestañas del panel (`?lista=`).
+export type PestanaDelPanel = (typeof LISTAS_DEL_PANEL)[number]
+// Lo que el panel lee: una pestaña o, mientras hay un texto que buscar (`?buscar=`), la búsqueda. La búsqueda no es una pestaña: no sale de `?lista=`.
+export type ListaDelPanel = PestanaDelPanel | 'busqueda'
 
 // La pestaña de `?lista=`: «Cierre subasta» sólo en un origen de subasta; otra cosa o nada, «Últ. cotización».
-export function listaDelPanel(valor: string | null, esSubasta: boolean): ListaDelPanel {
+export function listaDelPanel(valor: string | null, esSubasta: boolean): PestanaDelPanel {
   return valor === 'cierre' && esSubasta ? 'cierre' : 'ultima'
 }
 
@@ -27,11 +30,18 @@ export function listaDelPanel(valor: string | null, esSubasta: boolean): ListaDe
 export const ORDEN_DEL_PANEL: Record<ListaDelPanel, OrdenDeCursor> = {
   ultima: { columna: 'cotizado_en', ascendente: false },
   cierre: { columna: 'cierre_subasta_en', ascendente: true },
+  // La búsqueda va de lo más nuevo a lo más viejo por alta, como el inventario.
+  busqueda: POR_ALTA,
 }
 
 // Lo que se pide de cada vehículo: lo que dibuja su tarjeta, con la miniatura de la portada embebida (`FILTRO_DE_PORTADA`).
 export const COLUMNAS_DEL_PANEL =
   'id, numero, titulo, anio, lote, precio, cotizado_en, cierre_subasta_en, vehiculos_imagenes(ruta_miniatura)'
+
+// La búsqueda pagina por alta: pide además `creado_en`. Las pestañas no lo piden (cada fila de más pesa en la primera respuesta, con tope de bytes).
+export function columnasDelPanel(lista: ListaDelPanel): string {
+  return lista === 'busqueda' ? `${COLUMNAS_DEL_PANEL}, creado_en` : COLUMNAS_DEL_PANEL
+}
 
 export type VehiculoDelPanel = {
   id: string
@@ -40,6 +50,8 @@ export type VehiculoDelPanel = {
   anio: number | null
   lote: string | null
   precio: number | null
+  // Sólo lo trae la búsqueda (`columnasDelPanel()`).
+  creadoEn: string | null
   cotizadoEn: string | null
   cierreSubastaEn: string | null
   portadaRuta: string | null
@@ -53,15 +65,23 @@ const esquemaDelPanel = z.array(
     anio: z.number().nullable(),
     lote: z.string().nullable(),
     precio: z.number().nullable(),
+    creado_en: z.string().nullish(),
     cotizado_en: z.string().nullable(),
     cierre_subasta_en: z.string().nullable(),
     vehiculos_imagenes: z.array(z.object({ ruta_miniatura: z.string() })).catch([]),
   }),
 )
 
-// El instante por el que pagina cada lista; el filtro de la lectura garantiza que no es nulo.
+// El instante por el que pagina cada lista; el filtro de la lectura garantiza que no es nulo (la búsqueda pagina por alta, que nunca lo es).
 export function instanteDelPanel(lista: ListaDelPanel, vehiculo: VehiculoDelPanel): string | null {
-  return lista === 'ultima' ? vehiculo.cotizadoEn : vehiculo.cierreSubastaEn
+  switch (lista) {
+    case 'ultima':
+      return vehiculo.cotizadoEn
+    case 'cierre':
+      return vehiculo.cierreSubastaEn
+    case 'busqueda':
+      return vehiculo.creadoEn
+  }
 }
 
 // Las filas de una lista, en el orden en que llegaron. Una sin el instante de su lista (no debería: lo filtra la consulta) hace de la
@@ -77,6 +97,7 @@ export function vehiculosDelPanelDesde(
     anio: fila.anio,
     lote: fila.lote,
     precio: fila.precio,
+    creadoEn: fila.creado_en ?? null,
     cotizadoEn: fila.cotizado_en,
     cierreSubastaEn: fila.cierre_subasta_en,
     portadaRuta: fila.vehiculos_imagenes[0]?.ruta_miniatura ?? null,

@@ -10,14 +10,19 @@ import { useListaDelPanel } from './use-lista-del-panel'
 type Respuesta = Resultado<Pagina<VehiculoDelPanel>>
 type Pedido = {
   lista: string
+  texto?: string
   cursor: { instante: string } | null
   resolver: (r: Respuesta) => void
 }
 const pedidos: Pedido[] = []
 vi.mock('../../../composicion.client', () => ({
-  leerListaDelPanel: (pedido: { lista: string; cursor: { instante: string } | null }) =>
+  leerListaDelPanel: (pedido: {
+    lista: string
+    texto?: string
+    cursor: { instante: string } | null
+  }) =>
     new Promise<Respuesta>((resolver) => {
-      pedidos.push({ lista: pedido.lista, cursor: pedido.cursor, resolver })
+      pedidos.push({ lista: pedido.lista, texto: pedido.texto, cursor: pedido.cursor, resolver })
     }),
 }))
 
@@ -33,6 +38,7 @@ const vehiculo = (id: string): VehiculoDelPanel => ({
   anio: null,
   lote: null,
   precio: null,
+  creadoEn: '2026-10-01T08:00:00Z',
   cotizadoEn: '2026-10-29T08:00:00Z',
   cierreSubastaEn: null,
   portadaRuta: null,
@@ -121,5 +127,41 @@ describe('useListaDelPanel', () => {
       await Promise.resolve()
     })
     await waitFor(() => expect(result.current.leida.estado).toBe('lista'))
+  })
+})
+
+describe('useListaDelPanel: la búsqueda', () => {
+  it('con `?buscar=Bronco` lee la búsqueda y no la pestaña; con `?buscar=Br`, la pestaña', async () => {
+    const { result } = montar('?panel=vehiculo&lista=cierre&buscar=Bronco')
+    expect(result.current.lista).toBe('busqueda')
+    expect(result.current.pestana).toBe('cierre')
+    await waitFor(() => expect(pedidos).toHaveLength(1))
+    expect(pedidos[0]?.lista).toBe('busqueda')
+    expect(pedidos[0]?.texto).toBe('Bronco')
+    cleanup()
+    pedidos.length = 0
+    const corto = montar('?panel=vehiculo&lista=cierre&buscar=Br')
+    expect(corto.result.current.lista).toBe('cierre')
+    expect(corto.result.current.leido.aviso).toBe('Escribe al menos 3 letras o números.')
+    await waitFor(() => expect(pedidos).toHaveLength(1))
+    expect(pedidos[0]?.lista).toBe('cierre')
+    expect(pedidos[0]?.texto).toBeUndefined()
+  })
+
+  it('cambiar el texto borra el cursor, reemplaza la entrada y escribir vacío quita `buscar`', async () => {
+    const { result, cambios } = montar(`?panel=vehiculo&buscar=Bronco&cursor=${CURSOR}`)
+    await waitFor(() => expect(pedidos).toHaveLength(1))
+    act(() => {
+      result.current.cambiarTexto('Bronc')
+    })
+    await waitFor(() => expect(cambios.at(-1)?.queryString).toBe('?panel=vehiculo&buscar=Bronc'))
+    expect(cambios.at(-1)?.options.history).toBe('replace')
+    expect(cambios.at(-1)?.options.shallow).not.toBe(false)
+    await waitFor(() => expect(pedidos.at(-1)?.texto).toBe('Bronc'))
+    expect(pedidos.at(-1)?.cursor).toBeNull()
+    act(() => {
+      result.current.cambiarTexto('')
+    })
+    await waitFor(() => expect(cambios.at(-1)?.queryString).toBe('?panel=vehiculo'))
   })
 })

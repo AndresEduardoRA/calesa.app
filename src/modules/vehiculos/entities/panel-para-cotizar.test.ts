@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   COLUMNAS_DEL_PANEL,
+  columnasDelPanel,
   desdeDelCierre,
   elegidoDesde,
   instanteDelPanel,
   listaDelPanel,
+  LISTAS_DEL_PANEL,
   MARGEN_DEL_CIERRE_EN_HORAS,
   ORDEN_DEL_PANEL,
   referenciaDelVehiculo,
@@ -20,6 +22,7 @@ const fila = (cambios: Record<string, unknown> = {}) => ({
   anio: 2020,
   lote: '4455',
   precio: 12000,
+  creado_en: '2026-10-01T08:00:00.5+00:00',
   cotizado_en: '2026-10-29T08:00:00.123456+00:00',
   cierre_subasta_en: null,
   vehiculos_imagenes: [{ ruta_miniatura: 'v/abc.webp' }],
@@ -48,6 +51,16 @@ describe('listaDelPanel', () => {
     expect(COLUMNAS_DEL_PANEL).toContain('cotizado_en')
     expect(COLUMNAS_DEL_PANEL).toContain('cierre_subasta_en')
   })
+
+  it('la búsqueda camina por alta y no es una pestaña', () => {
+    expect(ORDEN_DEL_PANEL.busqueda).toEqual({ columna: 'creado_en', ascendente: false })
+    expect(COLUMNAS_DEL_PANEL).not.toContain('creado_en')
+    expect(columnasDelPanel('busqueda')).toContain('creado_en')
+    expect(columnasDelPanel('ultima')).toBe(COLUMNAS_DEL_PANEL)
+    expect(columnasDelPanel('cierre')).toBe(COLUMNAS_DEL_PANEL)
+    expect(LISTAS_DEL_PANEL).not.toContain('busqueda')
+    expect(listaDelPanel('busqueda', true)).toBe('ultima')
+  })
 })
 
 describe('vehiculosDelPanelDesde', () => {
@@ -60,6 +73,7 @@ describe('vehiculosDelPanelDesde', () => {
         anio: 2020,
         lote: '4455',
         precio: 12000,
+        creadoEn: '2026-10-01T08:00:00.5+00:00',
         cotizadoEn: '2026-10-29T08:00:00.123456+00:00',
         cierreSubastaEn: null,
         portadaRuta: 'v/abc.webp',
@@ -67,6 +81,13 @@ describe('vehiculosDelPanelDesde', () => {
     ])
     expect(
       vehiculosDelPanelDesde([fila({ vehiculos_imagenes: [] })], 'ultima')?.[0]?.portadaRuta,
+    ).toBeNull()
+  })
+
+  it('una fila de la búsqueda sin `creado_en` hace de la lectura un error; las pestañas no lo piden', () => {
+    expect(vehiculosDelPanelDesde([fila({ creado_en: undefined })], 'busqueda')).toBeNull()
+    expect(
+      vehiculosDelPanelDesde([fila({ creado_en: undefined })], 'ultima')?.[0]?.creadoEn,
     ).toBeNull()
   })
 
@@ -90,6 +111,7 @@ describe('vehiculosDelPanelDesde', () => {
       '2026-10-29T08:00:00.123456+00:00',
     )
     expect(vehiculo && instanteDelPanel('cierre', vehiculo)).toBe('2026-10-30T10:00:00+00:00')
+    expect(vehiculo && instanteDelPanel('busqueda', vehiculo)).toBe('2026-10-01T08:00:00.5+00:00')
   })
 })
 

@@ -6,7 +6,7 @@ import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
 import { referenciaDelVehiculo, type VehiculoElegido } from '../../../entities/panel-para-cotizar'
 import { Miniatura } from '../../listado/components/miniatura'
-import { CLAVE_DE_LISTA, PANEL_DEL_VEHICULO } from '../claves'
+import { CLAVE_DE_BUSQUEDA, CLAVE_DE_LISTA, PANEL_DEL_VEHICULO } from '../claves'
 import { PanelDelVehiculoDiferido } from './diferidos'
 
 type Props = {
@@ -30,7 +30,11 @@ type Props = {
 // la hoja (`[data-hoja]`) y del componente que se vuelve a montar al cambiar de vehículo: elegir otro no la desmonta y el foco vuelve a ella.
 export function BarraDelVehiculo(props: Props) {
   const { origenId, esSubasta, elegido, puedeVer, claveDeLaUrl, cotizado, historial } = props
-  const panel = usePanelPorUrl(PANEL_DEL_VEHICULO, [CLAVE_DE_LISTA, CLAVE_DE_CURSOR])
+  const panel = usePanelPorUrl(PANEL_DEL_VEHICULO, [
+    CLAVE_DE_LISTA,
+    CLAVE_DE_BUSQUEDA,
+    CLAVE_DE_CURSOR,
+  ])
   const montado = useAbiertoAlgunaVez(panel.abierto)
   const boton = useRef<HTMLButtonElement>(null)
   if (!puedeVer) {

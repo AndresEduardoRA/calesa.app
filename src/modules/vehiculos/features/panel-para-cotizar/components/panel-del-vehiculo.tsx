@@ -13,8 +13,9 @@ import {
   type VehiculoElegido,
 } from '../../../entities/panel-para-cotizar'
 import { Miniatura } from '../../listado/components/miniatura'
-import { CLAVE_DE_LISTA } from '../claves'
+import { CLAVE_DE_BUSQUEDA, CLAVE_DE_LISTA } from '../claves'
 import { useListaDelPanel } from '../hooks/use-lista-del-panel'
+import { BuscadorDelPanel } from './buscador-del-panel'
 import { ListaDelPanel } from './lista-del-panel'
 
 type Props = {
@@ -40,10 +41,9 @@ export function PanelDelVehiculo(props: Props) {
   const parsers = useMemo(
     () =>
       Object.fromEntries(
-        [CLAVE_DE_PANEL, CLAVE_DE_LISTA, CLAVE_DE_CURSOR, claveDeLaUrl].map((clave) => [
-          clave,
-          parseAsString,
-        ]),
+        [CLAVE_DE_PANEL, CLAVE_DE_LISTA, CLAVE_DE_BUSQUEDA, CLAVE_DE_CURSOR, claveDeLaUrl].map(
+          (clave) => [clave, parseAsString],
+        ),
       ),
     [claveDeLaUrl],
   )
@@ -55,6 +55,7 @@ export function PanelDelVehiculo(props: Props) {
       {
         [CLAVE_DE_PANEL]: null,
         [CLAVE_DE_LISTA]: null,
+        [CLAVE_DE_BUSQUEDA]: null,
         [CLAVE_DE_CURSOR]: null,
         [claveDeLaUrl]: id,
       },
@@ -91,14 +92,16 @@ function ContenidoDelPanel(props: {
 }) {
   const { origenId, esSubasta, elegido, historial, alElegir } = props
   const [desde] = useState(() => desdeDelCierre(new Date()))
-  const { lista, leida, cambiarLista, irA, reintentar } = useListaDelPanel({
-    origenId,
-    esSubasta,
-    desde,
-  })
+  const { lista, pestana, texto, leido, leida, cambiarLista, cambiarTexto, irA, reintentar } =
+    useListaDelPanel({
+      origenId,
+      esSubasta,
+      desde,
+    })
   return (
     // Una sola columna que no crece con lo de adentro: al 200 % en el celular, las pestañas no ensanchan las tarjetas.
     <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4">
+      <BuscadorDelPanel textoDeUrl={texto} aviso={leido.aviso} alCambiar={cambiarTexto} />
       {elegido ? (
         <section
           aria-label="Elegido"
@@ -124,11 +127,13 @@ function ContenidoDelPanel(props: {
           {historial}
         </section>
       ) : null}
-      {esSubasta ? (
+      {lista === 'busqueda' ? (
+        <h3 className="text-(length:--text-sm) font-medium text-(--color-ink)">Resultados</h3>
+      ) : esSubasta ? (
         // Al 200 % en el celular no entran las dos: la barra se desplaza dentro de su ancho y dice por dónde sigue.
         <PestanasConDesborde
           pestanas={PESTANAS}
-          valor={lista}
+          valor={pestana}
           alElegir={(clave) => {
             cambiarLista(listaDelPanel(clave, true))
           }}
@@ -138,6 +143,7 @@ function ContenidoDelPanel(props: {
       )}
       <ListaDelPanel
         lista={lista}
+        texto={leido.busqueda ?? ''}
         leida={leida}
         elegidoId={elegido?.id ?? null}
         alElegir={alElegir}
