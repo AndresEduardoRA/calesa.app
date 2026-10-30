@@ -1,7 +1,7 @@
 'use client'
 
 import { parseAsString, useQueryStates } from 'nuqs'
-import { useMemo, useState, type RefObject } from 'react'
+import { useMemo, useState, type ReactNode, type RefObject } from 'react'
 import { CLAVE_DE_CURSOR, CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Button } from '@/shared/ui/button'
@@ -24,6 +24,8 @@ type Props = {
   esSubasta: boolean
   elegido: VehiculoElegido | null
   claveDeLaUrl: string
+  // El historial del elegido (lo arma la página; `vehiculos` no conoce `cotizaciones`): va dentro de «Elegido», debajo de su título. Sin elegido no se dibuja.
+  historial?: ReactNode
   focoAlCerrar?: RefObject<HTMLButtonElement | null>
 }
 
@@ -33,7 +35,8 @@ type Props = {
 // panel: «atrás» vuelve a la hoja de antes con el panel cerrado. Por `nuqs` y no con el router: el panel lee su URL de `nuqs`, que no
 // se entera de un `router.replace`. Mientras está abierto, Ctrl+S no guarda la hoja que quedó detrás.
 export function PanelDelVehiculo(props: Props) {
-  const { abierto, alCerrar, origenId, esSubasta, elegido, claveDeLaUrl, focoAlCerrar } = props
+  const { abierto, alCerrar, origenId, esSubasta, elegido, claveDeLaUrl, historial, focoAlCerrar } =
+    props
   const parsers = useMemo(
     () =>
       Object.fromEntries(
@@ -65,6 +68,7 @@ export function PanelDelVehiculo(props: Props) {
           origenId={origenId}
           esSubasta={esSubasta}
           elegido={elegido}
+          historial={historial}
           alElegir={ir}
         />
       ) : null}
@@ -82,9 +86,10 @@ function ContenidoDelPanel(props: {
   origenId: string
   esSubasta: boolean
   elegido: VehiculoElegido | null
+  historial: ReactNode
   alElegir: (id: string | null) => void
 }) {
-  const { origenId, esSubasta, elegido, alElegir } = props
+  const { origenId, esSubasta, elegido, historial, alElegir } = props
   const [desde] = useState(() => desdeDelCierre(new Date()))
   const { lista, leida, cambiarLista, irA, reintentar } = useListaDelPanel({
     origenId,
@@ -97,23 +102,26 @@ function ContenidoDelPanel(props: {
       {elegido ? (
         <section
           aria-label="Elegido"
-          className="flex min-w-0 items-center gap-3 rounded-(--radius-card) border border-(--color-line) p-2"
+          className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 rounded-(--radius-card) border border-(--color-line) p-2"
         >
-          <Miniatura ruta={elegido.portadaRuta} className="w-12" />
-          <span className="grid min-w-0 flex-1">
-            <span className="text-(length:--text-xs) text-(--color-ink-soft)">Elegido</span>
-            <span className="truncate font-medium text-(--color-ink)">{elegido.titulo}</span>
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 md:h-9"
-            onClick={() => {
-              alElegir(null)
-            }}
-          >
-            Quitar
-          </Button>
+          <div className="flex min-w-0 items-center gap-3">
+            <Miniatura ruta={elegido.portadaRuta} className="w-12" />
+            <span className="grid min-w-0 flex-1">
+              <span className="text-(length:--text-xs) text-(--color-ink-soft)">Elegido</span>
+              <span className="truncate font-medium text-(--color-ink)">{elegido.titulo}</span>
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 md:h-9"
+              onClick={() => {
+                alElegir(null)
+              }}
+            >
+              Quitar
+            </Button>
+          </div>
+          {historial}
         </section>
       ) : null}
       {esSubasta ? (

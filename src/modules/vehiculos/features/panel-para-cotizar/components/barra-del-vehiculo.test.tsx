@@ -16,6 +16,8 @@ function montar(props: Partial<Parameters<typeof BarraDelVehiculo>[0]> = {}) {
         elegido={null}
         puedeVer
         claveDeLaUrl="vehiculo"
+        cotizado={null}
+        historial={null}
         {...props}
       />
     </NuqsTestingAdapter>,
@@ -41,5 +43,32 @@ describe('BarraDelVehiculo', () => {
     montar({ puedeVer: false })
     expect(screen.getByText('No puedes ver los vehículos de este origen.')).toBeTruthy()
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('dice «Cotizado (n)» dentro del botón, sin sumar una parada de Tab', () => {
+    const elegido = { id: ID, numero: 12, titulo: 'Toyota Corolla', lote: null, portadaRuta: null }
+    montar({ elegido, cotizado: '2' })
+    const boton = screen.getByRole('button', { name: /Toyota Corolla/ })
+    expect(boton.textContent).toContain('Cotizado (2)')
+    expect(boton.getAttribute('aria-label') ?? boton.textContent).toContain('Cotizado (2)')
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    cleanup()
+    montar({ elegido, cotizado: '20+' })
+    expect(screen.getByRole('button', { name: /Toyota Corolla/ }).textContent).toContain(
+      'Cotizado (20+)',
+    )
+  })
+
+  it('no dice «Cotizado» sin conteo ni sin vehículo', () => {
+    const elegido = { id: ID, numero: 12, titulo: 'Toyota Corolla', lote: null, portadaRuta: null }
+    montar({ elegido, cotizado: null })
+    expect(screen.getByRole('button', { name: /Toyota Corolla/ }).textContent).not.toContain(
+      'Cotizado',
+    )
+    cleanup()
+    montar({ elegido: null, cotizado: '3' })
+    expect(
+      screen.getByRole('button', { name: /Selecciona un vehículo/ }).textContent,
+    ).not.toContain('Cotizado')
   })
 })

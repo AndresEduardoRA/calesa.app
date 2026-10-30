@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
+import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ProveedorAtajos, useAtajo } from '@/shared/ui/atajos'
 import type { VehiculoDelPanel } from '../../../entities/panel-para-cotizar'
@@ -46,7 +47,12 @@ function Hoja({ alGuardar }: { alGuardar: () => void }) {
   return null
 }
 
-function montar({ esSubasta = true, alGuardar = vi.fn() } = {}) {
+function montar({
+  esSubasta = true,
+  alGuardar = vi.fn(),
+  conElegido = true,
+  historial = null as ReactNode,
+} = {}) {
   const cambios: UrlUpdateEvent[] = []
   render(
     <NuqsTestingAdapter
@@ -61,14 +67,13 @@ function montar({ esSubasta = true, alGuardar = vi.fn() } = {}) {
           alCerrar={vi.fn()}
           origenId="o"
           esSubasta={esSubasta}
-          elegido={{
-            id: ELEGIDO,
-            numero: 3,
-            titulo: 'Corolla elegido',
-            lote: '77',
-            portadaRuta: null,
-          }}
+          elegido={
+            conElegido
+              ? { id: ELEGIDO, numero: 3, titulo: 'Corolla elegido', lote: '77', portadaRuta: null }
+              : null
+          }
           claveDeLaUrl="vehiculo"
+          historial={historial}
         />
       </ProveedorAtajos>
     </NuqsTestingAdapter>,
@@ -115,5 +120,15 @@ describe('PanelDelVehiculo', () => {
     await screen.findByText('Civic otro')
     fireEvent.keyDown(window, { key: 's', ctrlKey: true })
     expect(alGuardar).not.toHaveBeenCalled()
+  })
+
+  it('el historial se dibuja dentro de la región «Elegido»; sin elegido, no', async () => {
+    montar({ historial: <p>Aquí va el historial</p> })
+    const region = await screen.findByRole('region', { name: 'Elegido' })
+    expect(region.textContent).toContain('Aquí va el historial')
+    cleanup()
+    montar({ conElegido: false, historial: <p>Aquí va el historial</p> })
+    await screen.findByText('Civic otro')
+    expect(screen.queryByText('Aquí va el historial')).toBeNull()
   })
 })

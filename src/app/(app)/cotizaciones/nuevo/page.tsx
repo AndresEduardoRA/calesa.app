@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { z } from 'zod'
 import {
   aperturaDe,
+  contarCotizacionesDelVehiculo,
   CLAVE_DE_LEAD,
   CLAVE_DE_ORIGEN,
   CLAVE_DE_VEHICULO,
@@ -16,6 +17,7 @@ import {
 import {
   EsqueletoDeHoja,
   FormulaSinPublicar,
+  HistorialDelVehiculo,
   PantallaDeCotizar,
   PestanasDeOrigen,
 } from '@/modules/cotizaciones/pantallas/cotizar'
@@ -23,6 +25,7 @@ import { requerirSesion } from '@/modules/equipo'
 import { getOrigenes } from '@/modules/origenes'
 import { elegidoDesde, leerVehiculo } from '@/modules/vehiculos'
 import { BarraDelVehiculo } from '@/modules/vehiculos/pantallas/cotizar'
+import { conteoCorto } from '@/shared/lib/conteo'
 import { datosO } from '@/shared/lib/errores'
 import { puede } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
@@ -79,6 +82,39 @@ async function elegidoDeLaUrl(id: string | null) {
   return leido.ok && leido.data ? elegidoDesde(leido.data) : null
 }
 
+// La barra del vehículo con su «Cotizado (n)» y su historial. Lo une esta página: `vehiculos` recibe el historial armado, sin importar `cotizaciones`. Sin elegido (soltado
+// por la hoja, inexistente o que no se ve) no hay insignia ni historial; un conteo que falló es sólo una etiqueta menos. Plegado, el historial se lee al desplegarlo.
+function BarraConHistorial({
+  origen,
+  elegido,
+  conteo,
+  puedeVer,
+}: {
+  origen: { id: string; tipo: string }
+  elegido: Awaited<ReturnType<typeof elegidoDeLaUrl>>
+  conteo: Awaited<ReturnType<typeof contarCotizacionesDelVehiculo>> | null
+  puedeVer: boolean
+}) {
+  const cotizado = elegido && conteo?.ok ? conteo.data : null
+  // El «n» de la insignia ya escrito («2», «20+»); con 0, sin insignia. La barra va en la carga en frío de la hoja y recibe el texto, no el conteo.
+  const insignia = cotizado !== null && cotizado.n > 0 ? conteoCorto(cotizado) : null
+  return (
+    <BarraDelVehiculo
+      origenId={origen.id}
+      esSubasta={origen.tipo === 'subasta'}
+      elegido={elegido}
+      puedeVer={puedeVer}
+      claveDeLaUrl={CLAVE_DE_VEHICULO}
+      cotizado={insignia}
+      historial={
+        elegido ? (
+          <HistorialDelVehiculo key={elegido.id} vehiculoId={elegido.id} conteo={cotizado} />
+        ) : null
+      }
+    />
+  )
+}
+
 async function Hoja({
   parametros,
 }: {
@@ -95,10 +131,11 @@ async function Hoja({
   }
   const lead = idDeUrl(url[CLAVE_DE_LEAD])
   const vehiculo = idDeUrl(url[CLAVE_DE_VEHICULO])
-  // El vehículo de la barra se lee a la vez que la hoja; si la hoja lo suelta, la barra queda sin él.
-  const [{ apertura, vehiculoSoltado }, elegido] = await Promise.all([
+  // El vehículo de la barra y su «Cotizado (n)» se leen a la vez que la hoja; si la hoja lo suelta, la barra queda sin él.
+  const [{ apertura, vehiculoSoltado }, elegido, conteo] = await Promise.all([
     abrirLaHoja(origen.id, vehiculo),
     elegidoDeLaUrl(vehiculo),
+    vehiculo === null ? null : contarCotizacionesDelVehiculo(vehiculo),
   ])
   if (apertura.tipo === 'sin_permiso') {
     return (
@@ -126,12 +163,11 @@ async function Hoja({
     <>
       {pestanas}
       {/* Fuera de la hoja (`[data-hoja]`) y del componente con `key`: elegir otro vehículo no la vuelve a montar. */}
-      <BarraDelVehiculo
-        origenId={origen.id}
-        esSubasta={origen.tipo === 'subasta'}
+      <BarraConHistorial
+        origen={origen}
         elegido={vehiculoSoltado ? null : elegido}
+        conteo={conteo}
         puedeVer={puede(sesion.permisos, 'vehiculos.ver', origen.id)}
-        claveDeLaUrl={CLAVE_DE_VEHICULO}
       />
       <PantallaDeCotizar
         key={`${origen.id}:${lead ?? '-'}:${vehiculoUsado ?? '-'}`}
