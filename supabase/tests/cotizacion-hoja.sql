@@ -636,9 +636,9 @@ begin
       it := pg_temp.ch_item(r, 'celda', 'solo_n');
       if (it ->> 'editable')::boolean is distinct from (v_txt in ('ed', 'con', 'ver_como')) then raise exception 'nivel %: «%» edita solo_n = %', v_nivel, v_txt, it; end if;
       if v_txt not in ('ed', 'con', 'ver_como') and it -> 'motivo' is distinct from jsonb_build_object('codigo', 'nivel', 'nivel', v_nombre) then raise exception 'nivel %: el motivo de solo_n para «%»: %', v_nivel, v_txt, it; end if;
-      -- La ayuda de la tabla: llega a quien configura y a quien ve la celda que la lee; las dos mismas personas a las que `cotizacion_tabla` se la da.
+      -- La ayuda de la tabla: llega a quien configura y a quien ve la celda que la lee; las dos mismas personas a las que `cotizacion_tabla` se la da con la misma hoja abierta.
       it := pg_temp.ch_item(r, 'celda', 'con_ayuda');
-      r2 := pg_temp.ch_corre(v_quien, format('select public.cotizacion_tabla(%L, null, %L)', 'ch_tabla', o));
+      r2 := pg_temp.ch_corre(v_quien, format('select public.cotizacion_tabla(%L, null, %L, %L)', 'ch_tabla', o, r ->> 'abierta'));
       if ((it ? 'ayuda') is distinct from (v_txt in ('cfg', 'solo_ver', 'con', 'ver_como')) or (it ? 'ayuda') is distinct from not (r2 ? 'error')) then
         raise exception 'nivel %: la ayuda de la tabla para «%»: celda % y cotizacion_tabla %', v_nivel, v_txt, it, left(r2::text, 120);
       end if;
@@ -649,5 +649,57 @@ begin
     -- La misma lectura de quien no tiene el nivel, sobre el origen donde sólo lo tiene `ajeno`: la hoja del origen de la fórmula no se mueve por permisos de otro.
     if pg_temp.ch_items(pg_temp.ch_corre(ajeno, format('select public.cotizacion_hoja(%L)', o))) is distinct from v_abierta then raise exception 'nivel %: el nivel de otro origen abre la hoja de éste', v_nivel; end if;
   end loop;
+end $$;
+rollback;
+
+-- @test cotizacion_hoja: la moneda del total en Bs (moneda_bs) es la moneda_a del tipo de cambio de total_en de la versión, para todos; nula sin total_en o sin ese tipo de cambio activo
+-- Nula no quiere decir sin Bs: el motor calcula el Bs con el tipo de cambio de cada bucket y usa `total_en` sólo para los dólares (`oficina` tiene Bs y no tiene total_en).
+begin;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  a constant uuid := '00000000-0000-0000-0000-000000000f12';
+  o uuid; f uuid; v_clave text; r jsonb; v_esperada text;
+begin
+  -- (a) Las tres sembradas: subasta_usa y planilla_usa traen total_en (USD → BOB); oficina no, y la clave viaja nula.
+  foreach v_clave in array array['subasta_usa', 'planilla_usa', 'oficina'] loop
+    select x.id into o from public.origenes x where x.clave = v_clave;
+    r := pg_temp.ch_corre(duena, format('select public.cotizacion_hoja(%L)', o));
+    if r ? 'error' then raise exception '%: la dueña no recibe la hoja: %', v_clave, r; end if;
+    if not (r -> 'cabecera') ? 'moneda_bs' then raise exception '%: la cabecera no trae moneda_bs: %', v_clave, r -> 'cabecera'; end if;
+    if v_clave = 'oficina' then
+      if jsonb_typeof(r -> 'cabecera' -> 'moneda_bs') is distinct from 'null' then raise exception 'oficina: moneda_bs debía ser nula: %', r -> 'cabecera'; end if;
+    elsif r -> 'cabecera' -> 'moneda_bs' is distinct from '"BOB"'::jsonb then
+      raise exception '%: moneda_bs debía ser BOB: %', v_clave, r -> 'cabecera';
+    end if;
+  end loop;
+  -- (b) Una fórmula cuyo total_en apunta a un tipo de cambio USD → XTS (activo); el modo m1 sigue en `tc` (USD → BOB), así que la moneda es la de la versión y no la del modo.
+  insert into public.origenes (clave, nombre) values ('ch_mbs', 'CH moneda bs') returning id into o;
+  f := pg_temp.ch_formula(o, 'costos', 'mbs');
+  insert into public.monedas (codigo, nombre, simbolo) values ('XTS', 'CH XTS', 'x');
+  insert into public.tipos_cambio (clave, nombre, moneda_de, moneda_a, valor, activo, orden) values ('ch_xts', 'CH XTS', 'USD', 'XTS', 2, true, 9);
+  update public.formulas
+     set definicion = jsonb_set(jsonb_set(definicion, '{total_en}', '"tc_x"'),
+                                '{nodos}', (select jsonb_agg(case when n ->> 'id' = 'tc_x' then jsonb_set(n, '{clave}', '"ch_xts"') else n end)
+                                              from jsonb_array_elements(definicion -> 'nodos') n))
+   where id = f;
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_hoja(%L)', o));
+  if r ? 'error' or r -> 'cabecera' -> 'moneda_bs' is distinct from '"XTS"'::jsonb then raise exception 'la dueña: moneda_bs debía ser XTS: %', r; end if;
+  -- Una asesora sin el nivel «costos» (el nodo tc_x es de ese nivel y no le llega) recibe la misma moneda, y nada que nombre el nodo ni el tipo de cambio.
+  perform pg_temp.ch_persona(a, pg_temp.ch_conc('cotizaciones.ver', 'cotizaciones.crear'));
+  r := pg_temp.ch_corre(a, format('select public.cotizacion_hoja(%L)', o));
+  if r ? 'error' or r -> 'cabecera' -> 'moneda_bs' is distinct from '"XTS"'::jsonb then raise exception 'la asesora: moneda_bs debía ser XTS: %', r; end if;
+  if pg_temp.ch_item(r, 'celda', 'tc_x') is not null or 'tc_x' = any (pg_temp.ch_textos(r)) or 'ch_xts' = any (pg_temp.ch_textos(r)) then
+    raise exception 'la asesora recibe el nodo o el tipo de cambio: %', array(select t from unnest(pg_temp.ch_textos(r)) t where t in ('tc_x', 'ch_xts'));
+  end if;
+  -- (c) Con el tipo de cambio inactivo (como lo lee el motor): la clave está y es nula.
+  update public.tipos_cambio set activo = false where clave = 'ch_xts';
+  r := pg_temp.ch_corre(duena, format('select public.cotizacion_hoja(%L)', o));
+  if r ? 'error' or not (r -> 'cabecera') ? 'moneda_bs' or jsonb_typeof(r -> 'cabecera' -> 'moneda_bs') is distinct from 'null' then raise exception 'con el tipo de cambio inactivo: moneda_bs debía ser nula: %', r -> 'cabecera'; end if;
+  -- (d) La lectura interna sigue siendo de nadie y la pública, de quien inicia sesión.
+  if has_function_privilege('authenticated', 'public._cotizacion_hoja(uuid, uuid)', 'execute') or has_function_privilege('anon', 'public._cotizacion_hoja(uuid, uuid)', 'execute') then
+    raise exception '_cotizacion_hoja la ejecuta authenticated o anon';
+  end if;
+  if not has_function_privilege('authenticated', 'public.cotizacion_hoja(uuid)', 'execute') then raise exception 'cotizacion_hoja no la ejecuta authenticated'; end if;
 end $$;
 rollback;

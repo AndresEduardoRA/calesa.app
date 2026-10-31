@@ -9,3 +9,4 @@ export {
   leerRelacionesDelResumen,
   leerVehiculoDelResumen,
 } from './infra/resumen.client'
+export { leerListaDelPanel } from './infra/panel-para-cotizar.client'

@@ -50,6 +50,22 @@ paths:
   `supabase/`, `scripts/`, `e2e/`, docs). Ante la duda, `movil`; sin interfaz, sólo `escritorio`. No toca
   al completo (Niveles 2 y 3).
 
+## Pulido y rigor por tipo de paso
+
+Medido en el 4.14-2a2 a 2a6 (el 4-49, foco tras recargar y «atrás»): 5 sub-pasos, ≈15 h de reloj y ≈86 USD en pulido de accesibilidad. El rigor va donde
+se pierde dinero o se filtran datos; el pulido espera a la auditoría AA de la Fase 9. El plan de un paso dice de cuál de estos dos tipos es:
+
+- **Rigor máximo:** fórmulas del cotizador, dinero, RLS, permisos, `security definer`, migraciones y `src/shared/lib`. Plan auditado (con 2.ª ronda si bloquea),
+  pruebas en rojo contra HEAD, mutaciones, informe auditado, carreras y volumen, como en «Niveles de verificación».
+- **Pantalla pura** (sólo `features/`, `components/`, `pantallas/` o `src/app/`, sin datos ni permisos nuevos): el plan se audita una vez; las pruebas que fallan
+  primero sí (son baratas), pero **sin mutaciones, sin sondas de medición contra HEAD, sin capturas para mirar y sin informe auditado**. Verifica el bucle.
+
+**Pulido** (no se recoge en un paso de producto, no abre otro paso y no se escribe prueba nueva para él): el texto o el diseño al 200 %; el foco tras recargar o
+tras «atrás»; `aLaVistaSinDesplazar()` o `sinScrollHorizontal()` nuevos; las capturas para juzgar con `E2E_CAPTURAS`. `ui.md` sigue diciendo cómo se
+construye (`min-w-0`, rem, `@container`); las pruebas que ya existen siguen corriendo y no se rompen. Un defecto de pulido que aparezca se anota en una línea en
+`docs/PLAN.md` › «Pulido para la Fase 9» y el paso sigue. **No es pulido** lo que falla al 100 %: un botón inalcanzable, un monto mal dibujado, un dato que no se
+ve o un permiso que no se respeta; eso se arregla en su paso.
+
 ## Escribir specs
 
 - Cada spec limpia lo que crea (`prepararAlta`, `prepararListado`, `prepararRecorrido`)

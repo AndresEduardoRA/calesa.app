@@ -141,20 +141,21 @@ const celda = (nodo: string, ancho: string, mas: Record<string, unknown> = {}) =
   ...mas,
 })
 
-const CABECERA = {
-  ver_total_bs: true,
-  modos: [
-    {
-      clave: 'm1',
-      nombre: 'Modo uno',
-      total_en: 'tc',
-      buckets: [
-        { bucket: 'origen', nodo: 'tc' },
-        { bucket: 'alt', nodo: 'tc_x' },
-      ],
-    },
+const MODO_UNO = {
+  clave: 'm1',
+  nombre: 'Modo uno',
+  total_en: 'tc',
+  buckets: [
+    { bucket: 'origen', nodo: 'tc' },
+    { bucket: 'alt', nodo: 'tc_x' },
   ],
 }
+
+// Un modo (`m1`: la hoja no dibuja qué elegir) o dos (`m1` y `m2`, iguales: la hoja dibuja los radios, 4.13-4b3).
+const cabeceraDePrueba = (dosModos: boolean) => ({
+  ver_total_bs: true,
+  modos: dosModos ? [MODO_UNO, { ...MODO_UNO, clave: 'm2', nombre: 'Modo dos' }] : [MODO_UNO],
+})
 
 function seccionesDePrueba() {
   return [
@@ -198,12 +199,12 @@ function seccionesDePrueba() {
   ]
 }
 
-function formulaDePrueba() {
+export function formulaDePrueba(dosModos = false) {
   return {
     definicion: definicionDePrueba(),
     params: paramsDePrueba(),
     diseno: {
-      cabecera: CABECERA,
+      cabecera: cabeceraDePrueba(dosModos),
       secciones: seccionesDePrueba(),
       tarjeta_total: { nodo: 'total', secundarios: [] },
     },
@@ -211,8 +212,8 @@ function formulaDePrueba() {
 }
 
 // Publica una fórmula en un origen por el camino de verdad (`_preparar_publicacion()`: la valida y compila su visibilidad con los niveles y los tonos de la base).
-export function publicarFormulaDePrueba(origenId: string): void {
-  const { definicion, params, diseno } = formulaDePrueba()
+export function publicarFormulaDePrueba(origenId: string, dosModos = false): void {
+  const { definicion, params, diseno } = formulaDePrueba(dosModos)
   const json = (valor: unknown) => `$e2e$${JSON.stringify(valor)}$e2e$::jsonb`
   sql(`
     do $f$
@@ -242,6 +243,7 @@ export async function crearOrigenDeCotizar(
   proyecto: string,
   resto: string,
   conFormula: boolean,
+  dosModos = false,
 ): Promise<{ id: string; nombre: string }> {
   const origen = await crearOrigenDePrueba(
     `E2E 4.13 ${resto} ${proyecto}`,
@@ -251,15 +253,30 @@ export async function crearOrigenDeCotizar(
     },
   )
   if (conFormula) {
-    publicarFormulaDePrueba(origen.id)
+    publicarFormulaDePrueba(origen.id, dosModos)
   }
   return origen
 }
 
-// Las cotizaciones guardadas de esos orígenes se van primero (4.13-3b): retienen el origen y la fórmula.
+// Lo mismo, de tipo subasta y con la fórmula: para lo que sólo se ve en un origen de subasta («Cierre subasta» del panel del vehículo, 4.14-2a).
+export async function crearOrigenDeSubastaDeCotizar(
+  proyecto: string,
+  resto: string,
+): Promise<{ id: string; nombre: string }> {
+  const origen = await crearOrigenDePrueba(
+    `E2E 4.13 ${resto} ${proyecto}`,
+    `4_13_${resto}_${proyecto}`,
+    { tipo: 'subasta' },
+  )
+  publicarFormulaDePrueba(origen.id, false)
+  return origen
+}
+
+// Las cotizaciones guardadas de esos orígenes se van primero (4.13-3b): retienen el origen y la fórmula. Después sus vehículos (los del panel del vehículo, 4.14-2a): retienen el origen.
 export function borrarOrigenesDeCotizar(): void {
   sql(`
     delete from public.cotizaciones where origen_id in (select id from public.origenes where clave like '${CLAVE_BASE}%');
+    delete from public.vehiculos where origen_id in (select id from public.origenes where clave like '${CLAVE_BASE}%');
     delete from public.origenes where clave like '${CLAVE_BASE}%'`)
 }
 

@@ -34,6 +34,9 @@ export type SecundarioDeCelda = EdicionDeHoja & {
 
 export type AyudaDeCelda = { tabla: string } | { texto: string }
 
+// La columna de la tabla de una celda y el dato del vehículo con que se busca (`tipo` ← `tipo_vehiculo`).
+export type DatoDelVehiculo = { tabla: string; columnas: { columna: string; campo: string }[] }
+
 export type CeldaDeHoja = EdicionDeHoja & {
   tipo: 'celda'
   nodo: string
@@ -45,6 +48,7 @@ export type CeldaDeHoja = EdicionDeHoja & {
   // El ⚙: lo da el permiso del origen (constante) o el de los tipos de cambio; no depende de `editable`.
   ajustes: boolean
   ayuda: AyudaDeCelda | null
+  datoDelVehiculo: DatoDelVehiculo | null
   soloEn: string[] | null
   condicion: string | null
   requeridoSi: string | null
@@ -94,7 +98,11 @@ export type HojaLista = {
   abierta: string
   vehiculoObligatorio: boolean
   // Los modos de tipo de cambio se identifican por su clave: sus buckets no viajan (nombran tipos de cambio que un nivel puede esconder).
-  cabecera: { modos: { clave: string; nombre: string }[]; verTotalBs: boolean }
+  cabecera: {
+    modos: { clave: string; nombre: string }[]
+    verTotalBs: boolean
+    monedaBs: string | null
+  }
   secciones: SeccionDeHoja[]
   tarjetaTotal: NodoDeTarjeta & { secundarios: NodoDeTarjeta[] }
   tonos: Tono[]
@@ -125,6 +133,7 @@ function celdaDe(c: Crudo<typeof esquemaCelda>): CeldaDeHoja {
     tono: c.tono ?? null,
     ajustes: c.ajustes,
     ayuda: c.ayuda ?? null,
+    datoDelVehiculo: c.dato_del_vehiculo ?? null,
     soloEn: c.solo_en ?? null,
     condicion: c.condicion ?? null,
     requeridoSi: c.requerido_si ?? null,
@@ -188,7 +197,11 @@ function listaDe(h: Crudo<typeof esquemaLista>): HojaLista {
     abiertaEn: h.abierta_en,
     abierta: h.abierta,
     vehiculoObligatorio: h.vehiculo_obligatorio,
-    cabecera: { modos: h.cabecera.modos, verTotalBs: h.cabecera.ver_total_bs },
+    cabecera: {
+      modos: h.cabecera.modos,
+      verTotalBs: h.cabecera.ver_total_bs,
+      monedaBs: h.cabecera.moneda_bs,
+    },
     secciones: h.secciones.map((s) => ({
       id: s.id,
       titulo: s.titulo ?? null,

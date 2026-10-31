@@ -48,7 +48,7 @@ export const MEDICIONES_BASE = [
   ],
   [
     'supabase/tests/medir-cotizacion-hoja.sql',
-    'cotizacion_hoja() como authenticated con el plan genérico: la hoja de las capturas como dueña y como asesora (ms, bytes de la respuesta y que no lee cotizaciones ni sus revisiones), los atajos de una tabla viva de 1.000 filas, las sintéticas de 255 y de 2.487 nodos y cotizacion_evaluar() por origen con y sin la hoja abierta que firma la base (ms)',
+    'cotizacion_hoja() como authenticated con el plan genérico: la hoja de las capturas como dueña y como asesora (ms, bytes de la respuesta y que no lee cotizaciones ni sus revisiones), los atajos de una tabla viva de 1.000 filas, las sintéticas de 255 y de 2.487 nodos, cotizacion_evaluar() por origen con y sin la hoja abierta que firma la base (ms) y cotizacion_tabla() de esa tabla viva con y sin la hoja abierta, como la dueña y como una asesora con «costos» (ms y bytes)',
     'mediana de 5 de 7 corridas',
   ],
   [
@@ -104,6 +104,21 @@ export const MEDICIONES_CON_VOLUMEN = [
   [
     'supabase/tests/medir-cotizaciones-lectura.sql',
     'La lectura de cotizaciones con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: una página de n + 1 (primera y profunda por cursor) de la dueña («todas») y de Ana y la «chica» («mías»), con la policy por fila (ms y buffers del EXPLAIN, y las llamadas por página)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-panel-ultima-cotizacion.sql',
+    '«Últ. cotización» del panel del vehículo con 50.000 y con 250.000 vivos, como authenticated y con el plan genérico: una página de n + 1 de los cotizados de un origen (primera y profunda por cursor) de la dueña, de Pía y de Beto, por vehiculos_cotizado_idx (ms y buffers del EXPLAIN); la «chica», sin assert (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-panel-cierre-subasta.sql',
+    '«Cierre subasta» del panel del vehículo con 50.000 y con 250.000 vivos, como authenticated y con el plan genérico: una página de n + 1 de las subastas vivas de un origen desde ahora menos 24 h (primera y profunda por cursor) de la dueña, de Pía y de Beto, por vehiculos_cierre_subasta_idx (ms y buffers del EXPLAIN); la «chica», sin assert (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-historial-del-vehiculo.sql',
+    'El historial de un vehículo con 5.000 cotizaciones entre 50.000 y 250.000, como authenticated y con el plan genérico: una página de n + 1 (primera y profunda por cursor) de la dueña, por cotizaciones_vehiculo_creado_idx (ms y buffers del EXPLAIN); Ana («propios»), sin assert',
     'mediana de 5 de 7 corridas',
   ],
   [

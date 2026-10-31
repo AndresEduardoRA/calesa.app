@@ -16,6 +16,12 @@ test.describe.configure({ mode: 'serial' })
 let personas: PersonasDelAlta
 let restaurar = async () => {}
 
+// La hoja de cotizar se mide con la subasta de la semilla: sin `?origen=` abriría el primero, que puede no tener fórmula y pesar menos.
+const destinoDe = (ruta: string): string =>
+  ruta === '/cotizaciones/nuevo'
+    ? `${ruta}?origen=${sql("select id from public.origenes where clave = 'subasta_usa'")}`
+    : ruta
+
 test.beforeAll(async ({}, info) => {
   const terreno = await prepararAlta(`${info.project.name}-js`)
   personas = terreno.personas
@@ -30,7 +36,7 @@ for (const [ruta, presupuesto] of Object.entries(PRESUPUESTO_DE_JS_EN_KB)) {
   test(`${ruta}: el JS en frío cabe en ${String(presupuesto)} KB`, async ({ page }, info) => {
     test.skip(info.project.name !== 'escritorio', 'Sólo escritorio: el JS no depende del viewport.')
     await entrar(page, personas.duena)
-    const { bytes, chunks } = await medirJsEnFrio(page.context(), ruta)
+    const { bytes, chunks } = await medirJsEnFrio(page.context(), destinoDe(ruta))
     info.annotations.push({
       type: 'JS en frío',
       description: `${ruta}: ${String(enKB(bytes))} KB con gzip en ${String(chunks)} chunks (presupuesto ${String(presupuesto)})`,

@@ -20,6 +20,8 @@ export type PedidoDeGuardadoVisto = {
     overrides: Record<string, number>
     variante?: string
   }
+  modoTc: string | null
+  verTotalBs: boolean
   conLaAbierta: boolean
 }
 
@@ -74,12 +76,29 @@ export function cotizacionGuardada(id: string): {
   creadoPor: string
   formulaId: string
   totalBase: string
+  // El modo de tipo de cambio con que se calculó (vacío si no se mandó) y «Ver total Bs» (4.13-4b).
+  modoTc: string
+  verTotalBs: boolean
 } {
   const salida = sql(
-    `select count(*) over (), creado_por, formula_id, total_base from public.cotizaciones where id = ${literal(id)}::uuid`,
+    `select count(*) over (), creado_por, formula_id, total_base, coalesce(modo_tc, ''), ver_total_bs from public.cotizaciones where id = ${literal(id)}::uuid`,
   )
-  const [filas = '0', creadoPor = '', formulaId = '', totalBase = ''] = salida.split('|')
-  return { filas: Number(filas), creadoPor, formulaId, totalBase }
+  const [
+    filas = '0',
+    creadoPor = '',
+    formulaId = '',
+    totalBase = '',
+    modoTc = '',
+    verTotalBs = '',
+  ] = salida.split('|')
+  return {
+    filas: Number(filas),
+    creadoPor,
+    formulaId,
+    totalBase,
+    modoTc,
+    verTotalBs: verTotalBs === 't',
+  }
 }
 
 export const formulaVigente = (origenId: string): string =>
@@ -93,6 +112,7 @@ let vehiculoObligatorioDeAntes: string | null = null
 export async function prepararGuardado(
   proyecto: string,
   resto: string,
+  dosModos = false,
 ): Promise<{ origen: { id: string; nombre: string }; duena: string; lead: string }> {
   borrarOrigenesDeCotizar()
   await borrarLeadsDePrueba()
@@ -102,7 +122,7 @@ export async function prepararGuardado(
     'select vehiculo_obligatorio_al_cotizar from public.ajustes_empresa',
   )
   sql('update public.ajustes_empresa set vehiculo_obligatorio_al_cotizar = false')
-  const origen = await crearOrigenDeCotizar(proyecto, resto, true)
+  const origen = await crearOrigenDeCotizar(proyecto, resto, true, dosModos)
   const duena = correoDePrueba(`duena-${resto}-${proyecto}`)
   await crearDuenaDePrueba({ email: duena, contrasena: CONTRASENA, nombre: 'Gala Guarda' })
   const lead = await crearLead({

@@ -54,7 +54,7 @@ export async function contarPorCandidatos(pedido: {
     if (hasta === null) {
       return null
     }
-    desde = { creadoEn: hasta.creado_en, id: hasta.id, sentido: 'siguiente' }
+    desde = { instante: hasta.creado_en, id: hasta.id, sentido: 'siguiente' }
   }
   return null
 }

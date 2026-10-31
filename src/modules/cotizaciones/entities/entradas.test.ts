@@ -4,7 +4,9 @@ import {
   confirmar,
   ENTRADAS_VACIAS,
   elegirAtajo,
+  elegirModo,
   elegirVariante,
+  entradasIniciales,
   entradasDelPedido,
   indiceDeHoja,
   restablecer,
@@ -147,5 +149,32 @@ describe('banderas, variante y atajos', () => {
       banderas: { cuenta: true },
       overrides: {},
     })
+  })
+})
+
+describe('los modos de tipo de cambio', () => {
+  const MODOS = [
+    { clave: 'paralelo', nombre: 'Paralelo' },
+    { clave: 'unificado', nombre: 'Unificado' },
+  ]
+  const conModos = indiceDeHoja(hojaDePrueba().secciones, MODOS)
+
+  it('el índice sabe los modos y el primero, y sin modos no hay inicial', () => {
+    expect(conModos.modos).toEqual(new Set(['paralelo', 'unificado']))
+    expect(conModos.modoInicial).toBe('paralelo')
+    expect(indice.modos.size).toBe(0)
+    expect(indice.modoInicial).toBeNull()
+  })
+
+  it('la hoja abre con el primer modo y nada más tipeado', () => {
+    expect(entradasIniciales(conModos)).toEqual({ ...ENTRADAS_VACIAS, modoTc: 'paralelo' })
+    expect(entradasIniciales(indice)).toEqual(ENTRADAS_VACIAS)
+  })
+
+  it('elegirModo cambia sólo el modo y no muta las entradas de antes', () => {
+    const antes = entradasIniciales(conModos)
+    const despues = elegirModo(antes, 'unificado')
+    expect(despues).toEqual({ ...antes, modoTc: 'unificado' })
+    expect(antes.modoTc).toBe('paralelo')
   })
 })

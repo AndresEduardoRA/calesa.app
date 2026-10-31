@@ -51,7 +51,7 @@ Una tabla: `archivo · prueba · Cn · dónde queda en rojo contra HEAD` (`.pilo
 
 ## Mutaciones
 
-Una tabla: `Mn · archivo de producto · qué se rompe · Cn · la prueba que debe caer`. Se hacen después de verde y se revierten con `cp` + `cmp`.
+Sólo en un paso de rigor máximo (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»); en pantalla pura, «No aplica». Una tabla: `Mn · archivo de producto · qué se rompe · Cn · la prueba que debe caer`. Se hacen después de verde y se revierten con `cp` + `cmp`.
 
 ## Abiertos de `docs/PLAN.md` que toca
 

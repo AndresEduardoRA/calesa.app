@@ -9,5 +9,5 @@ import { RecordatoriosDelLead } from '../../recordatorios/components/recordatori
 // anida: Esc cierra sólo el de arriba).
 export function RecordatoriosDelRapido({ leadId }: { leadId: string }) {
   const { zonaHoraria } = useRegional()
-  return <RecordatoriosDelLead leadId={leadId} zona={zonaHoraria} />
+  return <RecordatoriosDelLead leadId={leadId} zona={zonaHoraria} enPestana />
 }

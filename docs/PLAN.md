@@ -2,7 +2,7 @@
 
 El plan vivo: sólo lo que falta. Cada fase tiene un criterio de terminado verificable (algo que se puede correr y ver); las metas de las
 tareas de oro de `docs/UX.md` son criterio de terminado de su fase y se miden con un e2e. El alcance es todo el brief; no hay MVP: hay orden.
-Fases 0 a 3 completas y la Fase 4 hecha hasta el 4.13-3c: el detalle (lo hecho, lo cerrado y la historia), en `docs/archivo/PLAN.md`
+Fases 0 a 3 completas y la Fase 4 hecha hasta el 4.13: el detalle (lo hecho, lo cerrado y la historia), en `docs/archivo/PLAN.md`
 (sólo con grep). Se avanza **un paso a la vez** (un prompt, un commit, su verificación) y **se para a reportar**; nunca más de una fase
 sin parar. Los pasos tachados o cerrados no están aquí.
 
@@ -32,7 +32,8 @@ BITACORA lo anota como «hito 4-A».
 **Verificación de los pasos de la Fase 4:** los niveles son los de `.claude/rules/e2e.md` (Nivel 1, 2 y 3). «Cadena db» = una migración nueva,
 `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuando hay carrera). Cada paso de pantalla anota en la BITACORA su marca
 `e2e completo: sí|no (<paso>, <tipo>, N de 3)`: la cuenta de pantallas sin e2e completo vuelve a 0 con cada completo y a los 3 se corre
-uno (hoy: **0 de 3**, por el completo de escritorio del 4.13-3c). Compuerta `dependencia` para subir una dependencia (el piloto no las sube).
+uno (hoy: **0 de 3**: el 4.13-4d corrió el completo de escritorio). Compuerta `dependencia` para subir una dependencia
+(el piloto no las sube).
 
 **Decisiones de apertura vigentes** (la persona, 2026-10-22; `docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones» y «D7»):
 
@@ -65,32 +66,93 @@ snapshot.
 ### Partición
 
 Un paso, un commit y su verificación; se para a reportar después de cada uno. Los niveles son los de `.claude/rules/e2e.md`. Hecho:
-4.01 a 4.12, DEP-1 y el 4.13 prompts 1, 2, 3a, 3b y 3c (ver `docs/archivo/PLAN.md`). **Orden fijo: papelera propia (4.24) → marcar final
+4.01 a 4.13 y DEP-1 (ver `docs/archivo/PLAN.md`; el 4.13, abajo hasta que pase al archivo). **Orden fijo: papelera propia (4.24) → marcar final
 (4.25) → comprobantes (4.26)** (la final manda las preventas a la papelera, y un comprobante sólo se emite de una final). Lo que ya existe y
 los siguientes pasos usan: `cotizacion_hoja(origen)`, `cotizacion_evaluar` (recortada por nivel, con `p_abierta`), `cotizacion_crear`,
 `cotizacion_guardar`, `cotizacion_leer`, `cotizacion_revisiones`, `formula_para_cotizar`, `cotizacion_tabla`, `_nodos_visibles()`, los
-niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/shared/ui/xcell` y `leerNumeroTipeado()`.
+niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/shared/ui/xcell`, `leerNumeroTipeado()`, `?panel=avanzado` y `?ayuda=texto|tabla&nodo=`
+de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.spec.ts`) y el presupuesto de JS de `/cotizaciones/nuevo` (460 KB, `e2e/soporte/presupuestos.ts`).
 
-- **4.13** — La hoja dibujada desde el diseño, en 6 prompts; hechos el 1 (la lectura que abre la hoja), el 2 (la hoja dibujada y el
-  recálculo), el 3a (lo que la base da antes de guardar), el 3b (guardar, la pantalla) y el 3c (`XCell` y parser): hechos; ver archivo.
-  **Falta el prompt 4: lo que se abre y los anchos.** «Avanzado» (modal con URL); la ayuda, con su URL y el foco que vuelve a la celda;
-  los modos y «Ver total Bs»; el resumen fijo (al pie en el celular, al costado en escritorio) con la garantía, el modo y Live; e2e a
-  412 y 1.280 px, al 100 y al 200 %, con el orden del DOM igual al declarado; la tarea de oro 2 con teclado (KLM ≤ 90 s); el presupuesto
-  de JS de la ruta (la hoja pesa hoy 423,8 KB de JS y 413/432 nodos; tope de nodos de la hoja: 460). Marca de e2e completo: `1 de 3`.
-  El ⚙ no se abre hasta el 4.20 (sin callback la `XCell` no dibuja el botón). Sin paso «Oficina». Los paneles de vehículo y cliente son
-  del 4.14: aquí el lead llega preseleccionado desde su ficha y el vehículo, como diga el ajuste (la lectura lo trae). Para el prompt 4
-  (de 3c, `docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»): un número tipeado se lee con `leerNumeroTipeado(texto, locale)`
-  (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre con `formatearParaEditar` y el locale; la `XCell` tiene un candado por lado
-  (`secondaryDisabledReason`). El diseño recortado es una lectura propia y está en el inventario de `cotizaciones-visibilidad.sql`.
-  Depende de 4.10 y 4.12. Nivel 1. Prompts: 6 (queda 1).
+- **4.13** (hecho el 2026-10-29) — La hoja dibujada desde el diseño, en 12 prompts; hechos el 1 (la lectura que abre la hoja), el 2 (la hoja dibujada y el recálculo),
+  el 3a (lo que la base da antes de guardar), el 3b (guardar, la pantalla), el 3c (`XCell` y parser) y el 4a («Avanzado» en un modal con
+  `?panel=avanzado` y la ayuda de texto con `?ayuda=texto&nodo=`), el 4b1 («Ver total Bs» en la base: `cotizaciones.ver_total_bs`, en
+  `cotizacion_crear` y `cotizacion_guardar`; Nivel 2, con el completo de escritorio) y el 4b2 (la moneda del total en Bs en la lectura:
+  `cabecera.moneda_bs` de `cotizacion_hoja()`; Nivel 1, base) y el 4b3 (los modos con el primero marcado, «Ver total Bs» en la hoja y el resumen
+  fijo, al pie y al costado; Nivel 1) y el 4c1 (`cotizacion_tabla` con la hoja abierta y `cotizaciones.ver`; Nivel 1, base) y el 4c2 (la ayuda de una tabla, la pantalla: el botón «Ayuda de X»,
+  `?ayuda=tabla&nodo=`, el panel de sólo lectura con la hoja abierta; Nivel 1) y el 4d (la tarea de oro 2 con teclado, tramo de la hoja; el presupuesto de JS de la hoja, 460 KB;
+  los dos diseños a 412 y 1.280 px, al 100 y al 200 %; 4-44 (b); Nivel 1 con el completo de escritorio): hechos; ver archivo y, del 4a
+  al 4c2, `docs/DECISIONES.md` › «Paso 4.13 (4a de 9)», «Paso 4.13 (4b1 de 10)», «Paso 4.13 (4b2 de 11)», «Paso 4.13 (4b3 de 11)», «Paso 4.13 (4c1 de 12)»,
+  «Paso 4.13 (4c2 de 12)» y «Paso 4.13 (4d de 12)» y BITACORA. Marcas: 4a `1 de 3`; 4b1 `sí`
+  (el completo de escritorio por su Nivel 2: la cuenta vuelve a 0); 4b2 `no` (base, Nivel 1: la cuenta sigue en 0); 4b3 `1 de 3`; 4c1 `no` (base, Nivel 1: la cuenta sigue en 1); 4c2 `2 de
+3` (hecha); 4d `sí` (el completo de escritorio, por la cuenta: vuelve a 0). El ⚙ no se abre hasta el 4.20 (sin callback la `XCell` no dibuja el botón). Sin paso
+  «Oficina». Los paneles de vehículo y cliente son del 4.14: aquí el lead llega preseleccionado desde su ficha y el vehículo, como diga el ajuste
+  (la lectura lo trae). Para el prompt 4 (de 3c, `docs/DECISIONES.md`, «Paso 4.13 (3c de 6)»): un número tipeado se lee con
+  `leerNumeroTipeado(texto, locale)` (`src/shared/lib/numero-tipeado.ts`) y lo guardado se abre con `formatearParaEditar` y el locale; la `XCell`
+  tiene un candado por lado (`secondaryDisabledReason`). El diseño recortado es una lectura propia y está en el inventario de
+  `cotizaciones-visibilidad.sql`. Depende de 4.10 y 4.12. Nivel 1 (el 4b1, **2**). Prompts: 12 (hechos).
+  - **P1** (contestada el 2026-10-28; hecha en el 4b3): la hoja abre con el primero de los modos que declara el diseño, marcado.
+  - **P2** (contestada el 2026-10-28; hecha en el 4b1): «Ver total Bs» se guarda con la cotización (`cotizaciones.ver_total_bs`, `not null default false`).
+  - **P4** (contestada el 2026-10-29; hecha en el 4b2): el total en Bs se escribe con la moneda `a` del tipo de cambio de `total_en` de la versión,
+    `cabecera.moneda_bs`.
+  - **P5** (contestada el 2026-10-29; hecha en el 4b3): «Ver total Bs» nace apagado cuando el diseño lo ofrece.
+  - **P6** (contestada el 2026-10-29; hecha en el 4b3: sin `cabecera.moneda_bs` la hoja no dibuja «Ver total Bs» y guarda `ver_total_bs` en falso, la 1): qué hacía la hoja cuando el diseño ofrece «Ver total Bs» y `cabecera.moneda_bs` es nula (la versión no tiene `total_en`, o su
+    tipo de cambio no existe o está inactivo; ojo: `totales.bs` puede tener valor igual, porque el Bs sale del tipo de cambio de cada bucket). Hoy
+    sólo `subasta_usa` ofrece el interruptor y tiene `total_en`; el diseño lo permitiría. (1) No dibujar el interruptor y guardar `ver_total_bs` en
+    falso (recomendada); (2) dibujarlo con la moneda base de la empresa, lo que hace hoy `binding.ts`; (3) una regla nueva del diseño: ofrecerlo
+    exige `total_en` (`validar_diseno()` y `validarDiseno()`; cubre una sola de las dos causas y es otro paso de base).
+  - **P7** (contestada el 2026-10-29; hecha en el 4b3): el tope de nodos de la hoja es lo medido con la hoja usada en el peor caso (el segundo modo y «Ver total
+    Bs» encendido) más un 5 %, con techo 500; si se pasa de 500, se para y se reporta. **P8** (contestada el 2026-10-29; hecha en el 4b3): medido 481 usada
+    (506 con el 5 %), el tope queda en el techo, 500 (4,0 % de margen).
+  - **P3** (contestada el 2026-10-29; hecha en el 4c1): la lectura recortada por nivel ya existía (`cotizacion_tabla`, 4.10-1, en el inventario de lo oculto); la
+    ayuda de una tabla lee **la versión de la hoja abierta** (`p_abierta`, como `cotizacion_evaluar`), no la publicada.
+  - **P9** (contestada el 2026-10-29; hecha en el 4c1): el tope de bytes de `cotizacion_tabla` con 1.000 filas para una asesora con «costos» es lo medido más un
+    5 %, 52.752 (el provisional de 48 KB no cabía por el relleno de la medición). Las P10 a P12 eran P4 a P6 en el plan del 4c.
+  - **P10** (contestada el 2026-10-29; hecha en el 4c1): `cotizacion_tabla` por origen pide también `cotizaciones.ver` del origen, la puerta de la hoja.
+  - **P11** (contestada el 2026-10-29; hecha en el 4c2: medido 468 al abrir y 490 usada, 2,0 % de margen): la ayuda de una tabla suma ~3 nodos por celda: sigue si la
+    medida queda ≤ 500 y se para sólo si pasa.
+  - **P12** (contestada el 2026-10-29; hecha en el 4c2): la ayuda de una tabla es de sólo lectura (no escribe un valor en la celda).
+  - **P13** (contestada el 2026-10-29; hecha en el 4c2): con el Modo Live, las cifras de la ayuda de una tabla se tapan como las de la celda que la abre: si es
+    dinero, pasan por `<Monto>` con la moneda de la celda; si no (un factor, `raw`), quedan a la vista.
 - **4.14** — Los paneles del vehículo y del cliente (cursor, nunca «Página N de M»). Vehículo: link o lote (apibara grabado), un nombre,
   «+» y «cargar a mano», que crean el vehículo (D3); «Últ. cotización» por `vehiculos.cotizado_en` con su índice
-  `(origen_id, cotizado_en desc, id)`; «Cierre subasta» por `vehiculos_subasta_estado_idx`, que ya existe pero sin `origen_id` (se mide
-  por origen con volumen y, si el plan descarta de más, se suma `(origen_id, estado_subasta, subasta_en)`); el historial del vehículo con
-  el **índice nuevo `(vehiculo_id, creado_en desc, id)`**, porque `cotizaciones_vehiculo_idx` es sólo `(vehiculo_id)`; «Cotizado (n)»
-  por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
+  `vehiculos_cotizado_idx (origen_id, cotizado_en desc, id desc)`; «Cierre subasta» por la columna generada `vehiculos.cierre_subasta_en` con
+  `vehiculos_cierre_subasta_idx (origen_id, cierre_subasta_en, id)`; el historial del vehículo con `cotizaciones_vehiculo_creado_idx
+(vehiculo_id, creado_en desc, id desc)`, que reemplaza a `cotizaciones_vehiculo_idx`; «Cotizado (n)» por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
   etiqueta y «+» que abre «Nuevo lead». Se entra desde la ficha del lead y desde el resumen del vehículo. Cierra **4-10** (el tipo de
-  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 3.
+  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 12 (quedan 1).
+  **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
+  versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
+  hecho. El **4.14-2** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2a)»): el **4.14-2a** (el cursor por columna en `src/shared`, la barra y el panel del vehículo
+  con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. El **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2):
+  hecho. El **4.14-2a3** (la vuelta desde un menú, el panel de filtros y los 4 hooks de `vehiculos`; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a3)»): hecho. El
+  **4.14-2a4** (los paneles del listado de leads: «Nuevo lead», etiquetas, exportar, la acción de fila, el embudo y el lead rápido; Nivel 1; `docs/DECISIONES.md` › «Paso
+  4.14 (2a4)»): hecho. El **4.14-2a5** (los 5 hooks de la ficha del lead, con las pestañas del rápido; 4-58 y 4-59; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2a5)»): hecho. El **4.14-2a6** (los 3 hooks de configuración, el guardián sin pendientes y F6; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a6)»): hecho. El **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2b)»): hecho. El **4.14-2c** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2c)»): el **4.14-2c1** (buscar por nombre, VIN o lote, traer de la subasta, «+» a mano, crear y elegir, y el tramo del panel de la tarea de oro 2 con un vehículo buscado por nombre; Nivel 1): hecho. El **4.14-2c2** (la celda de tabla dice qué dato del vehículo casa con su tabla, `dato_del_vehiculo`; las filas, por `cotizacion_tabla`; Nivel 1 + cadena db, con el completo; `docs/DECISIONES.md` › «Paso 4.14 (2c2)»): hecho. El **4.14-2c3** (el tipo de vehículo en el panel, P6 y P3; la tarea de oro 2 con un enlace de subasta; cierra 4-10; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2c3)»): hecho. Falta el **4.14-3** (el panel del cliente y la
+  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base; la cuenta, la de `cuenta-e2e.mjs`). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`, 4.14-2a5 `sí`, 4.14-2a6 `sí`, 4.14-2b `no` (pantalla, `1 de 3`), 4.14-2c1 `no` (pantalla, `2 de 3`), 4.14-2c2 `sí`, 4.14-2c3 `no` (pantalla, `1 de 3`).
+  - **P1** (2c, contestada el 2026-10-30; hecha en el 4.14-2c1): «Cargar a mano» y «Traer de la subasta» desde el panel crean el vehículo **al confirmarlo en el panel** («Crear y elegir», `vehiculo_crear`), no al guardar la cotización; si la cotización no se guarda, el vehículo queda en el inventario.
+  - **P2** (2c, contestada el 2026-10-30; hecha en el 4.14-2c1): el layout del origen para el alta se lee **desde el navegador al abrir el alta** (`useLayoutActivo()` de `origenes`), no viaja en el documento de la hoja (sumaba 69.098 B sin comprimir contra 40.000 de presupuesto).
+  - **P1** (2b, contestada el 2026-10-30; hecha en el 4.14-2b): «Cotizar» desde el resumen del vehículo abre la hoja con el origen y el vehículo y **sin lead**; guardar espera al cliente (4.14-3).
+  - **P2** (2b, contestada el 2026-10-30; hecha en el 4.14-2b): «Cotizado (n)» y el historial cuentan sólo lo que quien mira ve por su alcance (la RLS); sin ninguna dice «Sin cotizaciones que puedas ver.».
+  - **P3** (2b, contestada el 2026-10-30; hecha en el 4.14-2b): el tope de bytes del historial desplegado se fija en lo medido más un 5 % (5.250 B), no en los 4.000 B de la estimación.
+  - **P1** (contestada el 2026-10-29; hecha en el 4.14-1): `cotizado_en` va en `vehiculos`, y cuando sólo cambia ella ni se mueve la versión de la ficha ni se audita.
+  - **P2** (contestada el 2026-10-29; hecha en el 4.14-1): la ve quien ve el vehículo (sólo cuándo, no quién ni cuánto).
+  - **P3** (contestada el 2026-10-29; hecha en el 4.14-1): la mueven crear una cotización con el vehículo y guardar una que pasa a él; nunca retrocede.
+  - **P4** (contestada el 2026-10-29; hecha en el 4.14-1): «Últ. cotización» lista sólo los cotizados (índice parcial).
+  - **P5** (contestada el 2026-10-29; el índice, en el 4.14-1; el margen, en el 4.14-2): «Cierre subasta» lista las abiertas o en vivo con cierre desde ahora menos 24 h,
+    la más próxima primero.
+  - **P6** (contestada el 2026-10-29; para el 4.14-2, 4-10): en el panel del vehículo se elige el tipo de vehículo entre las filas de la tabla de transporte, con el
+    sugerido marcado si el dato de la subasta coincide con una clave.
+  - **P7** (contestada el 2026-10-29; hecha en el 4.14-1): el cierre es `coalesce(subasta_fin_en, subasta_en)`, como la limpieza.
+  - Del plan del 4.14-2a, contestadas el 2026-10-29: **P1** (hecha): al elegir otro vehículo, lo tipeado queda en el borrador del vehículo de antes y vuelve si se lo elige
+    otra vez. **P2** (hecha): elegir o quitar cierra el panel y el foco vuelve a la barra. **P3** (para el 4.14-2c): el tipo de vehículo elegido se guarda en el vehículo
+    (`atributos.tipo_vehiculo` por `vehiculo_guardar`, con su versión); quien no puede editarlo ve el sugerido sin elegir. **P4**: 4-49 se arregla en un paso propio, el 4.14-2a2.
+    **P5** (de la auditoría del informe): con la barra encima, al 200 % y con la página arriba de todo, el resumen fijo queda debajo del borde de la ventana; se acepta por
+    ahora y 4-50 endurece su assert.
+  - Del plan del 4.14-2c2 (P1 y P2, contestadas el 2026-10-30 y hechas; P3, contestada el 2026-10-30 y hecha en el 4.14-2c3): **P1** el dato viaja en la celda de `cotizacion_hoja` (`dato_del_vehiculo`) y las filas se leen con `cotizacion_tabla`, sin RPC nueva.
+    **P2** cuenta un valor del `match` que no es el id de ningún nodo y que el motor lee para ese origen (columna fija o campo activo); un `campo_vehiculo` no. **P3** (contestada el 2026-10-30; hecha en el 4.14-2c3):
+    cada fila se nombra **tal cual sale de la tabla**, como la ayuda de una tabla.
+  - Del plan del 4.14-2c3 (contestadas el 2026-10-30; hechas en el 4.14-2c3): **P1** cada fila, tal cual sale de la tabla (la P3 del 2c2). **P2** se eligen sólo campos de texto del layout
+    (`texto`, `texto_largo`); una columna fija (año, marca…) se cambia en la ficha. **P3** tras «Crear y elegir» el panel se cierra como siempre y la celda sin valor dice que se elige en
+    «Vehículo». **P4** un toque guarda el tipo en el vehículo, cierra el panel y la hoja recalcula.
 - **4.15** — Editar con SU versión, cotizar encima (N+1) y revisiones por nodo, recortadas y por páginas. `cotizacion_revisiones` ya
   existe (4.10-1): se registra en `RPC_PAGINADAS` (`scripts/guardas/paginas-en-la-base.ts`) cuando la pantalla la llame.
   `cotizacion_revision` guarda `valores`, `fuentes` y `totales` enteros en cada edición: se corrige aquí. **Antes: 4-26** (la base
@@ -99,12 +161,15 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   intento y otros datos da 22023 `intento_reusado`. Depende de 4.13. Nivel 1 + cadena db. Prompts: 2.
 - **4.16** — El listado `/cotizaciones` (resumen `?cotizacion=`, «Vencida», cursor, el máximo medido, sin el snapshot), la siembra de
   volumen y `medir-escala.sql`; se enciende la navegación. Cierra **4-14** («todas las que veo» de quien ve «propios») y **4-23** (el
-  gemelo en el inventario de vehículos). Depende de 4.10 y 4.13. Nivel **2** (`_shell`) + `db:medir:volumen` + `E2E_VOLUMEN=1`.
+  gemelo en el inventario de vehículos), la entrada a cotizar desde el listado (`docs/UX.md:38`) y el camino a lo antiguo del historial del vehículo (el tope de 500 del 4.14-2b: un
+  filtro por vehículo). Depende de 4.10 y 4.13. Nivel **2** (`_shell`) + `db:medir:volumen` + `E2E_VOLUMEN=1`.
   Prompts: 2.
-- **4.17** — **5a-12** y, con el mismo «Ver más», las secciones «Cotizaciones» de la ficha del lead y del vehículo. Depende de 4.13 a
+- **4.17** — **5a-12** y, con el mismo «Ver más», las secciones «Cotizaciones» de la ficha del lead y del vehículo (la del vehículo puede usar la lectura
+  `leerHistorialDelVehiculo()` del 4.14-2b y es el camino a lo antiguo de su tope de 500). Depende de 4.13 a
   4.16. Nivel 1 + cadena db + `db:carreras`. Prompts: 2.
 - **4.18** — La tarjeta, el PDF y compartir: filas por grupo con su tono (el del grupo, o el que la plantilla elija del catálogo), celdas
-  combinadas de tipo de cambio y plazo, título de la variante, asesor, logo, nota, leyenda y la garantía condicionada, Live.
+  combinadas de tipo de cambio y plazo, título de la variante, asesor, logo, nota, leyenda y la garantía condicionada, Live, y el total en Bs
+  si `cotizaciones.ver_total_bs`.
   `validar_plantilla` rechaza un nodo que no sea del nivel «todos». e2e: el total del PDF es la suma de las líneas. **Hito 4-A al
   cerrarlo.** Depende de 4.15. Nivel 1; **Nivel 2 del hito**. Prompts: 3.
 - **4.19** — El editor de la plantilla, con la vista previa en vivo. Depende de 4.18. Nivel 1. Prompts: 2.
@@ -138,7 +203,11 @@ niveles (`cotizaciones_niveles`, `cotizaciones.nivel.<clave>.ver|editar`), `src/
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 28 pasos y 67 prompts; faltan el 4.13-4 y los pasos 4.14 a 4.28.
+Total de la fase: 33 pasos y 82 prompts; falta el 4.14-3 y los pasos 4.15 a 4.28.
+
+**Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
+(4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
+auditoría AA de la Fase 9, con 5a-28. Los defectos de pulido nuevos se anotan aquí, en una línea.
 
 ### Abiertos de la Fase 4
 
@@ -169,12 +238,15 @@ Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fase
   excepción de `.claude/rules/migraciones.md`) pisa el de otra persona; publicar toma el borrador más reciente — una carrera o prueba: A
   guarda un borrador, B hace el ⚙ y A ve un conflicto (PT409) al guardar o publicar, o el ⚙ se niega diciendo que hay un borrador;
   `formula_revertir` publica una copia con el diseño de la versión elegida. Se decide en 4.20 si el ⚙ se niega o archiva el borrador.
-- **4-10** (4.14): el tipo de vehículo que trae la subasta no casa con las claves de la tabla de transporte. El transporte sembrado casa
+- **4-10** (**cerrado** en el 4.14-2c3, 2026-10-30; 4.14): el tipo de vehículo que trae la subasta no casa con las claves de la tabla de transporte. El transporte sembrado casa
   `tipo` con el campo `tipo_vehiculo` (`autos`, `motos`, `vagonetas_medianas`…) y apibara guarda otro vocabulario (`AUTOMOBILE`…): el
   transporte queda sin valor (`fila_sin_coincidencia`) — un vehículo creado con la respuesta grabada de apibara (`e2e/fixtures/apibara`)
   da un transporte sugerido en `subasta_usa`, o la persona elige su tipo de las filas de la tabla en el panel del vehículo y el sugerido
   aparece. 4.14 decide si se mapea el vocabulario de la subasta a las claves o si el campo pasa a ser una opción de las filas.
-- **4-14** (4.16): «todas las que veo» de quien ve «propios» recorre el índice global. Con 250.000 cotizaciones **Ana** (5.000 propias y
+  **Decidido (P6 del 4.14-1, 2026-10-29):** en el panel del vehículo se elige el tipo entre las filas de la tabla, con el sugerido marcado; lo hacen el 4.14-2c2 (la base: la hoja no sabe qué dato casa con qué tabla, la fórmula no viaja a quien cotiza, D7) y el 4.14-2c3 (la pantalla), y se guarda
+  en el vehículo (P3 del 4.14-2a). El 4.14-2c2 (la base) está hecho: la celda de tabla dice qué dato del vehículo casa con su tabla y sus filas salen de `cotizacion_tabla`. El 4.14-2c3 lo cierra: «Elegido»
+  ofrece las filas, elegir guarda `atributos.tipo_vehiculo` y el transporte toma valor; la tarea de oro 2 con un enlace de Copart lo recorre (`e2e/cotizar-tarea-de-oro-enlace.spec.ts`).
+- **4-14** (4.16): (suma del 4.14-2b: el historial de Ana en pantalla recorre sólo las cotizaciones del vehículo, de a 21, y no crece con N) «todas las que veo» de quien ve «propios» recorre el índice global. Con 250.000 cotizaciones **Ana** (5.000 propias y
   1.000 de otras personas sobre su cartera) tarda ≈ 1,6 s y ≈ 42.000 buffers y la **«chica»** ≈ 2,0 s y ≈ 58.000 (`cotizaciones_listado_idx`
   entera, descartando lo ajeno; la familia de 5a-2) — en `medir-cotizaciones-lectura.sql`, la página 1 y una profunda por cursor de Ana y
   de la «chica» con 50.000 y 250.000: ≤ 50 ms y un tope de buffers que no crece con N, y lo que devuelve es lo que dice la regla
@@ -182,6 +254,9 @@ Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fase
   tiene 0 cotizaciones, no 3 (la rama de Ana va primero en `pg_temp.rellenar`): su rama va antes, como en `medir-vehiculos-lectura.sql`.
   Salida probable: «propias» por `creado_por` y por la cartera (`leads_asesores_usuario_vigente_idx` hacia `cotizaciones_lead_idx`),
   juntas por `creado_en desc, id desc`, en una función con sus dos consultas y un umbral; se decide con el `EXPLAIN` delante.
+  Suma (4.14-1, sin assert): el historial de un vehículo de Ana («propios», ve 5 de sus 5.000 cotizaciones) recorre las del vehículo: 38 ms y 1.452 buffers la página 1,
+  igual con 50.000 que con 250.000 (crece con las del vehículo, no con N; `medir-historial-del-vehiculo.sql`). Y con un promedio bajo de cotizaciones por vehículo, el plan
+  genérico de la página profunda de un vehículo muy cotizado puede ordenar las suyas (334 buffers, ~1 ms, con 1.000 vehículos y 5.000 en uno): por eso la medición siembra 100.
 - **4-17** (4.25): una final creada con `cotizacion_crear` no hace lo que `cotizacion_marcar_final`. `cotizacion_crear(…,
 p_clase := 'final')` exige `cotizaciones.final.gestionar`, un vehículo y el índice de «una final por vehículo» (23505), pero no
   vincula el vehículo al lead ni manda las preventas del vehículo a la papelera, y ninguna de las dos pasa el lead al primer tipo de la
@@ -201,6 +276,8 @@ p_clase := 'final')` exige `cotizaciones.final.gestionar`, un vehículo y el ín
   que devuelve es lo que dice la regla (`vehiculos-visibilidad.sql`); se escribe antes de arreglar y cae contra lo de hoy. Lugar:
   `buscarVehiculos()` (`src/modules/vehiculos/infra/queries/listado.ts`) y una función de lectura con las dos rutas de 4-14 (`creado_por`,
   que no tiene índice, y la cartera hacia `vehiculos_lead_idx`), con los filtros del inventario que hoy van por PostgREST; se decide con 4-14.
+  Suma (4.14-1, sin assert): la chica recorre también las dos listas del panel del vehículo. Con 50.000 y 250.000, «Últ. cotización» 3,0 y 10,8 ms (1.039 y 4.924 buffers) y
+  «Cierre subasta» 2,9 y 11,3 ms (1.010 y 5.191) (`medir-panel-ultima-cotizacion.sql`, `medir-panel-cierre-subasta.sql`).
 - **4-24** (4.15): `puede_cotizacion()` mira el alcance dos veces para quien ve «propios» (el `cross join lateral` se aplana; 2 llamadas a
   `alcance_de`, con «todos» 1) — en `medir-cotizaciones-lectura.sql`, `cotizacion_leer` de Ana pide `alcance_de` = 1, y en
   `cotizaciones-visibilidad.sql` el texto de `puede_cotizacion` lo evalúa como argumento de un `case` (como `puede_vehiculo()`; un
@@ -235,12 +312,85 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   pasan de 300 líneas — `vehiculos/entities/vitrina.ts` 358, `leads/entities/oportunidad.ts` 321, `leads/entities/alta.ts` 331 y
   `leads/entities/importacion/filas.ts` 333 — `wc -l` de cada uno ≤ 300, partido por responsabilidad (en `vitrina.ts`, el formulario y su
   validación aparte de la vista previa; en `oportunidad.ts`, el formulario aparte del modelo), con sus pruebas al lado y `pnpm test` igual.
-- **4-42** (el primer paso del carril A, decidido el 2026-10-28; cayó en el CI del PR de la preparación, bloque 2): `e2e/leads-ficha-edicion.spec.ts:262`
-  («se cae la conexión al guardar») es una carrera del test. «No hay conexión» sale de `useEnLinea()`, no del envío fallido: la traza
-  muestra `setOffline(false)` 7 ms **antes** de que llegue el `ERR_INTERNET_DISCONNECTED` del guardado. El fallo se resuelve con red, y
-  `useReintentoAlVolver` no reenvía solo (a propósito): queda «No pudimos llegar al servidor» con «Reintentar» y ningún segundo POST. Arreglo:
-  esperar el `requestfailed` del guardado (o el aviso del envío fallido, no el de la red) antes de volver a conectar. Assert: el spec pasa
-  20 de 20 con `--repeat-each=20`, y una mutación que reconecta antes del fallo lo hace caer.
+- **4-43** (sin fase: lo decide la persona; salió del 4-42): `e2e/leads-ficha-edicion.spec.ts` tiene 331 líneas (> 300) — partirlo por
+  responsabilidad (edición, borrador, sin red, permisos). Assert: `wc -l` de cada parte ≤ 300 y las mismas pruebas en verde.
+- **4-49** (**cerrado** en el 4.14-2a6, 2026-10-30; hecho en parte en el 4.14-2a2, 2026-10-29, en el 4.14-2a3 y en el 4.14-2a4, 2026-10-30; P4 del 4.14-2a; salió de 4-44 (a), 4.13-4d): tras **recargar** con un panel por URL abierto, «atrás»
+  cierra el panel pero el foco queda en `body`. Medido en el 4.14-2a2 (`docs/DECISIONES.md` › «Paso 4.14 (2a2)»): el documento y el botón no se montan de nuevo; el modal se
+  cierra montado y Base UI no devuelve el foco; el drawer del vehículo, que le pasa una ref a `focoAlCerrar`, sí lo devuelve. **Hecho** en `usePanelPorUrl()` y en «Nuevo nivel»
+  con la vuelta del foco (`src/shared/ui/vuelta-del-foco.ts`; `e2e/paneles-foco-al-volver.spec.ts`, en verde). **Hecho en el 4.14-2a3** (`docs/DECISIONES.md` › «Paso 4.14 (2a3)»):
+  desde un menú la vuelta va al «⋯» (también renombrar un nivel), la ficha sobrevive a una navegación del servidor, y `use-filtros.ts` y los 4 hooks de `vehiculos` salen de
+  `PENDIENTES` (la sonda midió el defecto en los siete casos; `e2e/paneles-foco-al-volver-vehiculos.spec.ts`). **Hecho en el 4.14-2a4** (`docs/DECISIONES.md` › «Paso 4.14
+  (2a4)»): los 6 hooks del listado de leads (alta, etiquetas, exportar, la acción de fila, el embudo y el lead rápido) salen de `PENDIENTES`; la sonda midió el defecto en
+  siete de doce casos (`e2e/paneles-foco-al-volver-leads.spec.ts`), y desde el selector del «⋯» el foco va al «⋯» antes de «Gestionar etiquetas». **Hecho en el 4.14-2a5** (`docs/DECISIONES.md` › «Paso
+  4.14 (2a5)»): los 5 hooks de la ficha salen de `PENDIENTES`; la sonda midió el defecto en 8 de los 16 casos medidos de la ficha (F6 no se midió), con su e2e (`e2e/paneles-foco-al-volver-ficha.spec.ts`), y en F16 y F17 (4-61), y cierran 4-58
+  y 4-59 en el lead rápido. **Cerrado en el 4.14-2a6** (`docs/DECISIONES.md` › «Paso 4.14 (2a6)»): los 3 hooks de Configuración › Leads marcan la vuelta (la sonda midió el defecto en los 9
+  casos, `e2e/paneles-foco-al-volver-configuracion.spec.ts`); F6 ya volvía y lleva su e2e porque sin la marca cae; `scripts/guardas/paneles-con-vuelta.ts` se borró y
+  el guardián exige `abrirConVuelta` y `useVueltaDelFoco` en cada `history: 'push'` de `src/`. Se cierra también 4-44 (a).
+- **4-58** (**cerrado** en el 4.14-2a5, 2026-10-30; salió del 4.14-2a4, K9 y K10 de su sonda): en el lead rápido, anotar o agendar desde el «⋯» del resumen, recargar y «atrás»
+  dejaba el foco en «Editar». Medido: el botón de la pestaña ya no está en el DOM y el modal devolvía el foco a lo que lo tenía. Hecho con `enPestana` (`docs/DECISIONES.md` ›
+  «Paso 4.14 (2a5)»); `e2e/paneles-foco-al-volver-leads.spec.ts`, en los dos proyectos, en rojo contra HEAD.
+- **4-59** (**cerrado** en el 4.14-2a5, 2026-10-30; salió del 4.14-2a4, m9 de su sonda): tras recargar con `?lead=<id>&panel=editar-lead`, el segundo «atrás» cerraba el lead rápido
+  con el foco en `body`. Hecho con `esperaSinPanel` en `useDrawerDeLead` (en rojo contra HEAD, en los dos proyectos); queda su límite en 4-62.
+- **4-61** (sin fase; salió del 4.14-2a5, F16 y F17 de su sonda): anotar o agendar desde el «⋯» de la cabecera de la ficha llegan por `router.push` a `?seccion=seguimientos&panel=…`
+  (navegación del servidor, sin la marca del guardián). Sin recargar, «atrás» devuelve el foco al «⋯» (guardia en `paneles-foco-al-volver-ficha.spec.ts`); tras recargar lo deja
+  en `body` (F16 en los dos proyectos; F17 sólo medido en móvil: en escritorio la sonda no vio el diálogo tras recargar). Assert: tras recargar y «atrás», el foco en el «⋯».
+- **4-63** (sin fase; salió del 4.14-2a5): en el lead rápido, un segundo `page.goBack()` justo tras el primero (recargar con «Editar» abierto, «atrás» y «atrás») deja la URL en `/leads`
+  con el rápido todavía visible: 1 de 10 corridas en escritorio (`.piloto/salidas/4.14-2a5/repetir-dos-atras.txt`), y 4 de 15 con C4 anulado (M10: `mut/repetir-M10-editar.txt`), así que no
+  nace de `esperaSinPanel`. La traza de la caída (`e2e-fallos/2026-10-30_12-38/`) muestra la URL ya sin `lead`. Puede ser la sincronización de nuqs con un «atrás» rápido o una carrera de `e2e/paneles-foco-al-volver-leads.spec.ts:196`.
+  Assert: `--repeat-each=20` de ese spec sin caídas, y la causa medida (la URL cambió y el rápido no).
+- **4-62** (sin fase; límite de 4-59, del 4.14-2a5): tras recargar con anotar o agendar abierto desde el botón de la pestaña del lead rápido, o con un panel que se cierra con Esc,
+  la ✕ o guardar en una URL distinta de la de apertura (la que lleva `&pestana=`), el segundo «atrás» deja el foco en `body`: la ficha de `lead` sólo se recupera en la URL
+  donde se abrió. Assert: el segundo «atrás» devuelve el foco al nombre de la fila también desde la pestaña.
+- **4-60** (sin fase, el próximo paso que toque la paginación del listado; salió del 4.14-2a4): en el completo de escritorio,
+  `e2e/listas-por-pagina-pendiente.spec.ts:102` cayó una vez: tras volver la red, el listado y la URL quedaron en 25 pero la preferencia guardada siguió en 10 (5 s de
+  espera). La traza (`e2e-fallos/2026-10-30_07-04/`): la única POST, la action que guarda la preferencia, salió 6 ms antes de `setOffline(true)`, falló (status −1) y no se
+  reintentó al volver la red (103 ms después). Repetido 5 veces, en verde (`.piloto/salidas/4.14-2a4/repetir-listas.txt`): la prueba es una carrera entre el envío y el
+  corte. No se descartó que los hooks del 4.14-2a4 en `/leads` cambien el instante del envío. Assert: con la red cortada mientras la action está en vuelo, al volver la
+  preferencia queda guardada (el envío se reintenta), y `--repeat-each=20` de ese spec sin caídas.
+- **4-50** (antes del 4.18, P5 del 4.14-2a; el cómo lo decide la persona; salió del 4.13-4d, de las capturas): al 200 %, el resumen fijo al pie (escritorio y celular) ocupa cerca del 40 % del alto de la pantalla y
+  tapa la hoja mientras se desplaza; se pliega con su «—», pero nace abierto. Assert: al 200 % el resumen al pie no pasa de un alto que se decida, o nace plegado, y
+  `aLaVistaSinDesplazar()` de la celda con el foco sigue verde. Suma (4.14-2a, P5): el resumen no sube más allá del borde de arriba de la hoja, y con la barra del vehículo
+  encima, al 200 % y con la página arriba de todo, queda debajo del borde de la ventana: 107 px en escritorio y 37,6 en el celular (al 100 % cabe; antes cabía por 1 px).
+  `cotizar-hoja-resumen.spec.ts` lo mide ahora con la hoja arriba de la ventana. La persona lo aceptó (P5) y **endureció el assert**: además, al 200 % en los dos
+  proyectos y con la página arriba de todo, el resumen cabe entero en la ventana (su borde de abajo a ≤ 1 px del de la ventana). Se arregla al decidir 4-50, antes del 4.18.
+- **4-51** (sin fase; se mide y se decide en el paso de la purga de vehículos; salió del 4.14-1): el `on delete set null` de `cotizaciones.vehiculo_id` (`base.sql:25020`) no tiene
+  un índice que lo sirva: `cotizaciones_vehiculo_creado_idx` (el del 4.14-1) y el de antes son parciales (`eliminado_en is null`), así que purgar un vehículo busca sus
+  cotizaciones de la papelera recorriendo. No empeora con el 4.14-1. Assert: purgar un vehículo con 250.000 cotizaciones no recorre `cotizaciones` (`seq_scan` = 0).
+- **4-52** (sin fase, lo decide la persona; del tipo de 4-46): `supabase/tests/medir-cotizacion-guardar.sql` mide 319 líneas (> 300; ya medía 308 antes del 4.14-1). Partirlo por
+  responsabilidad (el terreno y las funciones de medición, los casos). Assert: `wc -l` de cada parte ≤ 300 y lo mismo medido en verde.
+- **4-53** (sin fase; el próximo paso que siembre volumen; salió del 4.14-1): `pnpm db:sembrar-volumen` cae con `ReferenceError: readFileSync is not defined`:
+  `scripts/sembrar-volumen.mjs` lo usa sin importarlo desde `c300ad7b` (el ayudante del stack de cada worktree). El 4.14-1 sembró con una copia que lo importa, fuera del repo.
+  Assert: `pnpm db:sembrar-volumen` termina y `pnpm db:medir:volumen` corre detrás.
+- **4-54** (sin fase, lo decide la persona; salió del 4.14-2a): si una cotización se está guardando cuando se elige otro vehículo en el panel (abrirlo y elegir dentro de lo que
+  tarda el guardado), se guarda con el de antes —lo que se veía al guardar— y la hoja pasa al nuevo sin la tarjeta de éxito; quien guardó puede creer que no se guardó y
+  guardar otra vez: una cotización de más. La barra queda fuera de `[data-hoja]` y no se apaga con su `inert`. Assert: con el guardado demorado (la action interceptada), abrir
+  el panel y elegir otro vehículo; al terminar, o la pantalla dice que se guardó o el panel no dejó elegir, y el lead tiene una sola cotización nueva.
+- **4-56** (sin fase, lo decide la persona; del tipo de 4-43): `e2e/soporte/cotizar-formula.ts` mide 330 líneas (> 300; 315 antes del 4.14-2a, que le sumó el origen de subasta
+  y el borrado de sus vehículos). Partirlo por responsabilidad (la fórmula de prueba, los orígenes y su limpieza, lo que se mira en la base). Assert: `wc -l` de cada parte ≤ 300
+  y los mismos specs en verde.
+- **4-57** (sin fase, el próximo paso que toque esas pantallas; salió del 4.14-2a3): en una corrida larga de escritorio, una apertura justo tras cargar la página o tras
+  cerrar un panel `shallow: false` no tuvo efecto: `vehiculos-resumen.spec.ts:68` (Enter en el nombre recién cargado `/vehiculos`), `vehiculos-resumen-casos.spec.ts:66` (el
+  segundo «Editar» tras «Cancelar») y, contra HEAD, la sonda del 4.14-2a3 (un clic en «Filtros» recién cargado; `.piloto/salidas/4.14-2a3/sonda-c0.txt`). Repetidos, en verde.
+  Sin causa todavía (¿la hidratación?, ¿una navegación pendiente que pisa la nueva?). Assert: `--repeat-each=20` de esos dos specs en escritorio, con la página recién
+  cargada, sin caídas; si caen, la causa medida y su arreglo.
+- **4-55** (4.18; salió del 4.14-2a): la referencia del cotizador pone el título de la cotización en el panel del vehículo; `cotizacion_crear` no recibe título. Se decide con
+  la tarjeta y el PDF. Assert: lo que se decida, con su e2e.
+- **4-45** (4.18; salió del 4.13-4b1): `cotizaciones.moneda_mostrar` (`char(3)`, legible) no la escribe ninguna RPC ni la lee la app, y con
+  `ver_total_bs` su propósito queda en duda. Se decide en el 4.18, con la tarjeta y el PDF: se usa o se quita (migración que la borra, con
+  su `db:types`).
+  Assert: o una prueba de base que la escribe y la lee, o `moneda_mostrar` fuera de `cotizaciones` y de `database.types.ts`.
+  Suma (4.13-4b2): la tarjeta y el PDF de una cotización guardada necesitan la moneda del total en Bs; la hoja la lee de `cabecera.moneda_bs`, que sale de
+  la versión y del tipo de cambio de hoy. `moneda_mostrar` podría guardarla al crear: se decide aquí.
+- **4-46** (sin fase, lo decide la persona; salió del 4.13-4b2; del tipo de 4-39 y 4-43): `supabase/tests/cotizacion-hoja.sql` tiene 705 líneas (> 300). Partirlo
+  por responsabilidad: los ayudantes `pg_temp.ch_*` a un archivo que `scripts/probar-schema.mjs` cargue antes, y la conducta, los niveles y la moneda aparte, con
+  `SOLO` sabiendo cargar los ayudantes. Assert: `wc -l` de cada parte ≤ 300 y los mismos `@test` en verde.
+- **4-47** (4.23; salió del 4.13-4c2): la ayuda de una tabla dibuja hasta 1.000 filas y dice «Mostrando las 1.000 primeras filas.» sin un camino a las demás (se aparta de
+  la regla de `.claude/rules/escala.md`: siempre hay un camino a lo antiguo); el editor de tablas (4.23) lo da. Además, sin copia viva de la tabla, la base manda la clave como
+  nombre y `columnas` vacía, y la pantalla deriva las columnas de la primera fila (con la clave de encabezado). Assert: una tabla de más de 1.000 filas llega a todas desde
+  el editor, y una tabla congelada sin viva se rotula con etiquetas.
+- **4-48** (sin fase; el próximo paso que toque `src/shared`): `src/shared/ui/xcell/CLAUDE.md:38` dice «lo que abran [los botones] pasa sus cifras por `<Monto>`»; con la
+  ayuda de una tabla (4.13-4c2, P13) sólo es cierto para una celda de dinero (un factor `raw` queda a la vista). No se corrigió en el 4c2 porque tocar esa ficha da Nivel 2.
+  Assert: la línea dice lo que hace la hoja.
 - **5a-4b** (4.28): la suite completa no baja de 25 min (el Nivel 3 tarda 40,1 min con 1.065 pruebas; el Nivel 2 ≈ 24; el último completo
   de escritorio, ≈ 28 min). Decidido el 2026-10-19: no se monta la segunda pila local; los shards de CI son la salida (`.github/workflows/ci.yml`,
   CI-1: 4 runners, cada uno con su pila y su base; escritorio por defecto y `proyectos: ambos` a mano; los bloques de escritorio suman 5,7 a

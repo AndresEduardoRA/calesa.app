@@ -7,6 +7,8 @@ export const PRESUPUESTO_DE_JS_EN_KB: Readonly<Record<string, number>> = {
   '/leads': 530,
   '/perfil': 440,
   '/vehiculos': 500,
+  // La hoja de cotizar con la subasta de la semilla (`?origen=`, el diseño más grande del juego), su presupuesto formal desde el 4.13-4d: medido 429,5 KB en 25 chunks, más un 5 % hacia arriba a la decena.
+  '/cotizaciones/nuevo': 460,
 }
 
 // Lo que una sección de la ficha puede aportar al documento sobre `/perfil`, en KB. Era 44 hasta la 9e; con el shell delgado (`/perfil` ya

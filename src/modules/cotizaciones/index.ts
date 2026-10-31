@@ -65,6 +65,7 @@ export type {
 // `pantallas/cotizar.ts`. `recalcularAlAbrir` sólo se importa desde un Server Component.
 export { recalcularAlAbrir } from './composicion'
 export { aperturaDe } from './entities/apertura'
+export { modoInicial } from './entities/cabecera-de-la-hoja'
 export type { Apertura, RecalculoInicial } from './entities/apertura'
 export { origenElegido, origenesParaCotizar } from './entities/origenes-para-cotizar'
 export {
@@ -72,4 +73,13 @@ export {
   CLAVE_DE_ORIGEN,
   CLAVE_DE_VEHICULO,
   RUTA_DE_LA_HOJA,
+  rutaDeLaHoja,
 } from './entities/ruta-de-la-hoja'
+
+// El panel del vehículo de la hoja (4.14-2b): «Cotizado (n)», el conteo acotado de las cotizaciones del vehículo que quien mira ve. Sólo se importa desde un Server
+// Component. El historial se lee desde el navegador por `composicion.client.ts` y se dibuja con `pantallas/cotizar.ts`.
+export { contarCotizacionesDelVehiculo } from './composicion'
+
+// El dato del vehículo de una tabla de la hoja (4.14-2c3): qué campos casan con qué tablas. La página lo pasa al panel del vehículo, que decide cuáles se eligen.
+export { datosDelVehiculoDeLaHoja } from './entities/dato-del-vehiculo'
+export type { DatoDeLaHoja } from './entities/dato-del-vehiculo'

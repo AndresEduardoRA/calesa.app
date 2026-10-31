@@ -2,6 +2,7 @@
 
 import type { RefObject } from 'react'
 import { useAtajo } from '@/shared/ui/atajos'
+import { ofreceVerTotalBs } from '../../../entities/cabecera-de-la-hoja'
 import { totalDelResumen, type ContextoDeHoja } from '../../../entities/binding'
 import { entradasDelPedido, type Entradas } from '../../../entities/entradas'
 import type { HojaLista } from '../../../entities/hoja'
@@ -67,6 +68,8 @@ export function useGuardarLaHoja({
               vehiculoId,
               abierta: h.abierta,
               entradas: entradasDelPedido(r.entradas),
+              modoTc: r.entradas.modoTc,
+              verTotalBs: ofreceVerTotalBs(hoja.cabecera) && h.verTotalBs,
             }
           : null,
       )

@@ -28,7 +28,12 @@ describe('recalcularAlAbrir: el primer cálculo del servidor', () => {
 
   it('calcula con la hoja abierta que entregó la lectura (p_abierta), el origen y el vehículo, en UNA llamada', async () => {
     rpc.mockResolvedValue({ data: cruda, error: null })
-    const r = await recalcularAlAbrir({ origenId: ORIGEN, vehiculoId: VEHICULO, abierta: ABIERTA })
+    const r = await recalcularAlAbrir({
+      origenId: ORIGEN,
+      vehiculoId: VEHICULO,
+      abierta: ABIERTA,
+      modoTc: null,
+    })
     expect(rpc).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('cotizacion_evaluar', {
       p_entradas: { inputs: {}, banderas: {}, overrides: {} },
@@ -43,7 +48,12 @@ describe('recalcularAlAbrir: el primer cálculo del servidor', () => {
     rpc
       .mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'x' } })
       .mockResolvedValueOnce({ data: cruda, error: null })
-    const r = await recalcularAlAbrir({ origenId: ORIGEN, vehiculoId: VEHICULO, abierta: ABIERTA })
+    const r = await recalcularAlAbrir({
+      origenId: ORIGEN,
+      vehiculoId: VEHICULO,
+      abierta: ABIERTA,
+      modoTc: null,
+    })
     expect(rpc).toHaveBeenCalledTimes(2)
     expect(rpc.mock.calls[1]).toEqual([
       'cotizacion_evaluar',
@@ -54,5 +64,21 @@ describe('recalcularAlAbrir: el primer cálculo del servidor', () => {
       },
     ])
     expect(r.vehiculoSoltado).toBe(true)
+  })
+
+  it('lleva p_modo_tc del modo con que abre la hoja, también al soltar el vehículo', async () => {
+    rpc
+      .mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'x' } })
+      .mockResolvedValueOnce({ data: cruda, error: null })
+    await recalcularAlAbrir({
+      origenId: ORIGEN,
+      vehiculoId: VEHICULO,
+      abierta: ABIERTA,
+      modoTc: 'paralelo',
+    })
+    expect(rpc.mock.calls.map(([, args]) => (args as { p_modo_tc?: string }).p_modo_tc)).toEqual([
+      'paralelo',
+      'paralelo',
+    ])
   })
 })

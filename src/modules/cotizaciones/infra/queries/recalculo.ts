@@ -4,16 +4,21 @@ import { argumentosDeEvaluar, resultadoDeEvaluar } from '../../entities/pedido-d
 import type { RecalculadorAlAbrir } from '../../entities/repositorios-de-hoja'
 import { createClient } from '@/shared/lib/supabase/server'
 
-// El primer cálculo de la hoja, con las entradas vacías, junto con la lectura de la hoja: así llega dibujada con sus valores y el navegador no pide nada al abrir.
+// El primer cálculo de la hoja, con las entradas vacías y el modo con que abre la hoja, junto con la lectura de la hoja: así llega dibujada con sus valores y el navegador no pide nada al abrir.
 // Una sola llamada a `cotizacion_evaluar()`; la segunda sólo existe si la base rechazó el vehículo de la URL (42501 o de otro origen) y se vuelve a calcular sin él.
-export const recalcularAlAbrir: RecalculadorAlAbrir = async ({ origenId, vehiculoId, abierta }) => {
+export const recalcularAlAbrir: RecalculadorAlAbrir = async ({
+  origenId,
+  vehiculoId,
+  abierta,
+  modoTc,
+}) => {
   const supabase = await createClient()
   const entradas = entradasDelPedido(ENTRADAS_VACIAS)
   const evaluar = async (vehiculo: string | null) =>
     resultadoDeEvaluar(
       await supabase.rpc(
         'cotizacion_evaluar',
-        argumentosDeEvaluar({ origenId, vehiculoId: vehiculo, abierta, entradas, modoTc: null }),
+        argumentosDeEvaluar({ origenId, vehiculoId: vehiculo, abierta, entradas, modoTc }),
       ),
     )
   const primero = await evaluar(vehiculoId)

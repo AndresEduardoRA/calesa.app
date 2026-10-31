@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fallo, ok } from '@/shared/lib/errores'
@@ -53,7 +54,9 @@ const montar = (
     />,
     {
       wrapper: ({ children }: { children: ReactNode }) => (
-        <ProveedorAtajos>{children}</ProveedorAtajos>
+        <NuqsTestingAdapter>
+          <ProveedorAtajos>{children}</ProveedorAtajos>
+        </NuqsTestingAdapter>
       ),
     },
   )

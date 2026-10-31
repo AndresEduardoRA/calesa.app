@@ -67,6 +67,13 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
     sinFormulario:
       'el resumen sólo muestra; editar abre el panel de edición encima, que pregunta por su cuenta (useCierreConCambios)',
   },
+  // El panel del vehículo de la hoja de cotizar (4.14-2a) elige un vehículo; desde el 4.14-2c1 también lo da de alta en su propio cuerpo (`?alta=`): ese formulario es el del
+  // inventario y pregunta por su cuenta (`useCierreConCambios`). Desde el 4.14-2c3 «Elegido» elige el tipo de vehículo con un toque, que guarda al momento: no deja nada sin guardar.
+  'src/modules/vehiculos/features/panel-para-cotizar/components/panel-del-vehiculo.tsx': {
+    formulario:
+      'src/modules/vehiculos/features/panel-para-cotizar/components/alta-desde-el-panel.tsx',
+    mecanismo: 'propio',
+  },
   // --- origenes
   'src/modules/origenes/features/categorias/components/panel-de-categoria.tsx': {
     formulario: 'src/modules/origenes/features/categorias/components/panel-de-categoria.tsx',
@@ -103,5 +110,12 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
   },
   'src/app/(app)/_shell/menu-movil.tsx': {
     sinFormulario: 'la navegación del celular',
+  },
+  // --- cotizaciones
+  'src/modules/cotizaciones/features/hoja/components/ayuda-de-celda.tsx': {
+    sinFormulario: 'de sólo lectura: el texto de ayuda de una celda de la hoja',
+  },
+  'src/modules/cotizaciones/features/hoja/components/ayuda-de-tabla.tsx': {
+    sinFormulario: 'de sólo lectura: la tabla de referencia de una celda de la hoja',
   },
 }

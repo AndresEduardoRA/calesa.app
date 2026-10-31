@@ -11,6 +11,7 @@ import type { LectorDeNiveles, RepositorioDeNiveles } from './entities/repositor
 import { crearCotizacion } from './infra/cotizaciones'
 import { nivelesSupabase } from './infra/niveles'
 import { getHojaParaCotizar } from './infra/queries/hoja'
+import { contarCotizacionesDelVehiculo as contarDeInfra } from './infra/queries/historial-del-vehiculo'
 import { getNivelesDeAcceso } from './infra/queries/niveles'
 import { recalcularAlAbrir as recalcularAlAbrirDeInfra } from './infra/queries/recalculo'
 
@@ -19,3 +20,4 @@ export const leerNivelesDeAcceso: LectorDeNiveles = getNivelesDeAcceso
 export const leerHojaParaCotizar: LectorDeHoja = getHojaParaCotizar
 export const recalcularAlAbrir: RecalculadorAlAbrir = recalcularAlAbrirDeInfra
 export const creadorDeCotizacion: CreadorDeCotizacion = crearCotizacion
+export const contarCotizacionesDelVehiculo = contarDeInfra

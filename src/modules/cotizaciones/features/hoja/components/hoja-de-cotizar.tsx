@@ -6,14 +6,16 @@ import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { EstiloDeTonos, SimbolosDeXCell } from '@/shared/ui/xcell'
 import type { RecalculoInicial } from '../../../entities/apertura'
 import { seccionSeDibuja, type ContextoDeHoja } from '../../../entities/binding'
+import { nombreDelModo } from '../../../entities/cabecera-de-la-hoja'
 import { FALTA_EL_VEHICULO } from '../../../entities/guardado'
 import type { HojaLista } from '../../../entities/hoja'
 import type { Guardado } from '../hooks/use-guardado'
 import { useGuardarLaHoja } from '../hooks/use-guardar-la-hoja'
 import { useHoja } from '../hooks/use-hoja'
 import { AvisoDelGuardado } from './aviso-de-guardado'
+import { CabeceraDeHoja } from './cabecera-de-hoja'
 import { ResumenDeHoja } from './resumen-de-hoja'
-import { SeccionDeHoja } from './seccion-de-hoja'
+import { SeccionesDeLaHoja } from './secciones-de-la-hoja'
 
 type Props = {
   hoja: HojaLista
@@ -25,6 +27,17 @@ type Props = {
   guardado: Guardado
   // El borrador de lo tipeado: su clave en la pestaña (de quien cotiza) y «Descartar», con el que el marco vuelve a montar la hoja vacía.
   borrador: { clave: string; alDescartar: () => void }
+  // Los campos del vehículo que quien mira elige en el panel del vehículo (4.14-2c3): la celda sin valor por uno de ellos dice dónde se elige.
+  seEligen?: ReadonlySet<string> | undefined
+}
+
+function SinDatosQueVer() {
+  return (
+    <EstadoSinPermiso
+      titulo="No puedes ver esta hoja"
+      descripcion="Tu rol puede cotizar en este origen, pero no ve los datos de su hoja. Pídeselo a quien administra los roles."
+    />
+  )
 }
 
 function avisoDelVehiculo(vehiculoSoltado: boolean, faltaVehiculo: boolean) {
@@ -34,7 +47,7 @@ function avisoDelVehiculo(vehiculoSoltado: boolean, faltaVehiculo: boolean) {
   return faltaVehiculo ? FALTA_EL_VEHICULO : null
 }
 
-// La hoja de cotizar: las secciones del diseño en su orden, cada celda con su `XCell`, y el resumen. Recalcula en la base 150 ms después de la última confirmación.
+// La hoja de cotizar: las secciones del diseño en su orden (las avanzadas, detrás de un botón «Avanzado» con su modal), cada celda con su `XCell`, y el resumen. Recalcula en la base 150 ms después de la última confirmación.
 // Guarda con `Ctrl/Cmd+S` o «Guardar» (el guardado vive en el marco, `useGuardado`): confirma la celda abierta, espera al total al día (P8) y arma el pedido con las
 // entradas que ese recálculo calculó y la misma hoja abierta. Mientras guarda no se toca (`inert`): lo guardado la reemplaza y lo tecleado en el medio se perdería sin aviso. Los iconos y los tonos se montan una sola vez por hoja.
 export function HojaDeCotizar({
@@ -45,72 +58,76 @@ export function HojaDeCotizar({
   leadId,
   borrador,
   guardado,
+  seEligen,
 }: Props) {
   const router = useRouter()
   const raiz = useRef<HTMLDivElement>(null)
   const h = useHoja({ hoja, inicial, vehiculoId, alCambiar: guardado.olvidarAviso, borrador })
   const contexto = useMemo<ContextoDeHoja>(
-    () => ({ indice: h.indice, entradas: h.entradas, respuesta: h.respuesta }),
-    [h.indice, h.entradas, h.respuesta],
+    () => ({
+      indice: h.indice,
+      entradas: h.entradas,
+      respuesta: h.respuesta,
+      ...(seEligen ? { seEligen } : {}),
+    }),
+    [h.indice, h.entradas, h.respuesta, seEligen],
   )
-  const { boton } = useGuardarLaHoja({
-    h,
-    contexto,
-    hoja,
-    leadId,
-    vehiculoId,
-    guardado,
-    raiz,
-  })
+  const { boton } = useGuardarLaHoja({ h, contexto, hoja, leadId, vehiculoId, guardado, raiz })
   const dibujadas = hoja.secciones.filter((seccion) => seccionSeDibuja(seccion, contexto))
   // Puede cotizar en el origen pero su rol no ve ningún dato de la hoja (`cotizaciones.ver`): no hay nada que dibujar ni un total que dar.
   if (dibujadas.length === 0) {
-    return (
-      <EstadoSinPermiso
-        titulo="No puedes ver esta hoja"
-        descripcion="Tu rol puede cotizar en este origen, pero no ve los datos de su hoja. Pídeselo a quien administra los roles."
-      />
-    )
+    return <SinDatosQueVer />
   }
   return (
     <div
       ref={raiz}
       data-hoja=""
       inert={guardado.estado.tipo === 'guardando'}
-      className="@container grid min-w-0 gap-4"
+      className="@container/hoja grid min-w-0 gap-4"
     >
       <SimbolosDeXCell />
       <EstiloDeTonos tonos={hoja.tonos} />
-      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 @5xl:grid-cols-2">
-        {dibujadas.map((seccion) => (
-          <SeccionDeHoja
-            key={seccion.id}
-            seccion={seccion}
+      <div className="flex min-w-0 flex-col gap-4 @4xl/hoja:flex-row @4xl/hoja:items-start">
+        <div className="grid min-w-0 flex-1 gap-4">
+          <CabeceraDeHoja
+            cabecera={hoja.cabecera}
+            modoElegido={h.entradas.modoTc}
+            alElegirModo={h.acciones.alElegirModo}
+            verTotalBs={h.verTotalBs}
+            alCambiarVerTotalBs={h.alCambiarVerTotalBs}
+          />
+          <SeccionesDeLaHoja
+            secciones={dibujadas}
             contexto={contexto}
             acciones={h.acciones}
+            guardando={guardado.estado.tipo === 'guardando'}
+            origenId={hoja.origen.id}
+            abierta={h.abierta}
           />
-        ))}
+        </div>
+        <ResumenDeHoja
+          tarjeta={hoja.tarjetaTotal}
+          monedaDelTotalBs={h.verTotalBs ? hoja.cabecera.monedaBs : null}
+          modo={nombreDelModo(hoja.cabecera, h.entradas.modoTc)}
+          contexto={contexto}
+          estado={h.estado}
+          avisoDelVehiculo={avisoDelVehiculo(
+            vehiculoSoltado,
+            hoja.vehiculoObligatorio && vehiculoId === null,
+          )}
+          alReintentar={h.reintentar}
+          alRecargar={router.refresh}
+          guardar={boton}
+          avisoDeGuardado={
+            <AvisoDelGuardado
+              guardado={guardado}
+              alReintentar={boton.alGuardar}
+              version={hoja.formula.version}
+              alRecargar={router.refresh}
+            />
+          }
+        />
       </div>
-      <ResumenDeHoja
-        tarjeta={hoja.tarjetaTotal}
-        contexto={contexto}
-        estado={h.estado}
-        avisoDelVehiculo={avisoDelVehiculo(
-          vehiculoSoltado,
-          hoja.vehiculoObligatorio && vehiculoId === null,
-        )}
-        alReintentar={h.reintentar}
-        alRecargar={router.refresh}
-        guardar={boton}
-        avisoDeGuardado={
-          <AvisoDelGuardado
-            guardado={guardado}
-            alReintentar={boton.alGuardar}
-            version={hoja.formula.version}
-            alRecargar={router.refresh}
-          />
-        }
-      />
     </div>
   )
 }

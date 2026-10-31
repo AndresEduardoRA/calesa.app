@@ -134,13 +134,13 @@ declare
     -- Lee una cotización recortada por nivel (4.10): el recorte lo prueba cotizaciones-visibilidad.sql.
     ('cotizacion_leer(uuid)', 'L'),
     ('cotizacion_revisiones(uuid,bigint,integer)', 'L'),
-    ('cotizacion_tabla(text,uuid,uuid)', 'L'),
+    ('cotizacion_tabla(text,uuid,uuid,text)', 'L'),
     -- Crear una cotización (4.10-2): el lead es obligatorio y se pide visible (`leads.ver`, la regla de la policy de insert que se fue), no de la cartera: una cotización cuelga de un lead que quien
     -- cotiza ve (D3). Lo bloquea `for key share` entre dos comprobaciones, igual para el que no existe y el que no ve (`cotizacion-crear.sql` y `cotizaciones-visibilidad.sql`).
-    ('cotizacion_crear(uuid,uuid,uuid,jsonb,text,uuid,jsonb,text,clase_cotizacion,boolean)', 'X'),
+    ('cotizacion_crear(uuid,uuid,uuid,jsonb,text,uuid,jsonb,text,clase_cotizacion,boolean,boolean)', 'X'),
     -- Guardar una cotización (4.10-3): no recibe un lead; la cotización que edita ya cuelga de uno que su dueña vio, y editarla no cambia quién la ve. El permiso es el de la cotización
     -- (`puede_cotizacion`) y no toma el lead: lo prueban `cotizacion-guardar.sql` y `cotizaciones-visibilidad.sql`.
-    ('cotizacion_guardar(uuid,uuid,timestamp with time zone,jsonb,text,text,text,uuid)', 'X'),
+    ('cotizacion_guardar(uuid,uuid,timestamp with time zone,jsonb,text,text,text,uuid,boolean)', 'X'),
     ('reasignar_tarea(uuid,uuid)', 'X'),
     ('storage_refcount(text,text)', 'X')
   ) t (f, c));

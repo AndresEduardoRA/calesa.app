@@ -3,7 +3,7 @@
 // comilla sin escapar rompen el filtro entero (400). Sólo tipos y funciones puras: no crea
 // clientes.
 import type { CondicionDeAtributo } from '../filtros/campos'
-import type { Cursor } from '../paginacion'
+import { POR_ALTA, type Cursor, type OrdenDeCursor } from '../paginacion'
 
 // Un valor dentro de `or()` / `and()`: entre comillas, con `\` y `"` escapados.
 export function citar(valor: string): string {
@@ -97,18 +97,38 @@ export function aplicarCondicionDeAtributo<Consulta extends Filtrable<Consulta>>
   }
 }
 
-// Keyset `(creado_en, id)`. El borde sobre `creado_en` va como condición propia para que entre al
-// índice del listado; el `or` desempata por id dentro del mismo instante. Varios `or` de una
-// misma consulta se combinan con AND. El cursor ya viene validado (`leerCursor`).
+// Keyset `(columna, id)`, por omisión `(creado_en, id)` de la más nueva a la más vieja. El borde sobre
+// la columna va como condición propia para que entre al índice de la lista; el `or` desempata por id
+// dentro del mismo instante. Varios `or` de una misma consulta se combinan con AND. El cursor ya viene
+// validado (`leerCursor`). Va hacia lo menor si se sigue en una lista descendente o se vuelve en una
+// ascendente; si no, hacia lo mayor.
 export function aplicarCursor<Consulta extends Filtrable<Consulta>>(
   consulta: Consulta,
   cursor: Cursor | null,
+  orden: OrdenDeCursor = POR_ALTA,
 ): Consulta {
   if (cursor === null) {
     return consulta
   }
-  const instante = citar(cursor.creadoEn)
-  return cursor.sentido === 'siguiente'
-    ? consulta.lte('creado_en', cursor.creadoEn).or(`creado_en.lt.${instante},id.lt.${cursor.id}`)
-    : consulta.gte('creado_en', cursor.creadoEn).or(`creado_en.gt.${instante},id.gt.${cursor.id}`)
+  const { columna } = orden
+  const instante = citar(cursor.instante)
+  return (cursor.sentido === 'siguiente') !== orden.ascendente
+    ? consulta.lte(columna, cursor.instante).or(`${columna}.lt.${instante},id.lt.${cursor.id}`)
+    : consulta.gte(columna, cursor.instante).or(`${columna}.gt.${instante},id.gt.${cursor.id}`)
+}
+
+// Lo que se usa del `order` de PostgREST. Así se prueba sin base.
+export type Ordenable<Consulta> = {
+  order: (columna: string, opciones: { ascending: boolean }) => Consulta
+}
+
+// El orden que acompaña a `aplicarCursor()`: hacia atrás la consulta camina el índice al revés y
+// `armarPaginaPor()` da vuelta la página.
+export function ordenarPorCursor<Consulta extends Ordenable<Consulta>>(
+  consulta: Consulta,
+  cursor: Cursor | null,
+  orden: OrdenDeCursor,
+): Consulta {
+  const ascending = orden.ascendente !== (cursor?.sentido === 'anterior')
+  return consulta.order(orden.columna, { ascending }).order('id', { ascending })
 }

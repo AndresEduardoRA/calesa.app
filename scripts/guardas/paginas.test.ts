@@ -88,7 +88,7 @@ begin return public._acotar_pagina(p_tamano, 25, 100); end $_$;`,
       await supabase.rpc('lead_seguimientos', { p_lead: id, p_tamano: TAMANO_DE_VER_MAS })
       await supabase.rpc('otra', { p_lead: id })
       await supabase.rpc('con_spread', {
-        ...(cursor ? { p_antes_en: cursor.creadoEn, p_antes_id: cursor.id } : {}),
+        ...(cursor ? { p_antes_en: cursor.instante, p_antes_id: cursor.id } : {}),
         p_tope: tamano + 1,
       })`
     expect(llamadasConTamano(fuente)).toEqual([

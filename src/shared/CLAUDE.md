@@ -11,14 +11,14 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 
 ## Archivos clave
 
-- `lib/supabase/` — `server.ts` (`createClient()`, uno por request), `browser.ts`, `admin.ts` (secret key, salta la RLS), `proxy.ts` (`actualizarSesion()`), `consultas.ts` (`citar()`, `aplicarCondicionDeAtributo()`, `aplicarRango()`, `aplicarCursor()`), `almacen.client.ts` (`subirPorHash()`, `quitarSiHuerfano()`).
+- `lib/supabase/` — `server.ts` (`createClient()`, uno por request), `browser.ts`, `admin.ts` (secret key, salta la RLS), `proxy.ts` (`actualizarSesion()`), `consultas.ts` (`citar()`, `aplicarCondicionDeAtributo()`, `aplicarRango()`, `aplicarCursor()` y `ordenarPorCursor()`, por `creado_en` u otra columna de fecha en los dos órdenes), `almacen.client.ts` (`subirPorHash()`, `quitarSiHuerfano()`).
 - `lib/safe-action.ts` — `actionClient` (exige sesión; `ctx` trae `supabase`, `usuarioId`, `permisos`) y `actionClientPublico`. Toda mutación entra por acá.
 - `lib/errores.ts` — `Resultado<T>`, `ok()`, `fallo()`, `conflicto()`, `errorDePostgrest()` (`PT409` → conflicto, `42501` → sin_permiso), `datosO()`.
 - `lib/permisos.ts` — `puede()`, `alcanceDe()`, `origenesCon()`, `CLAVES_PERMISO`; las claves de nivel de acceso (`esClaveDeNivel()`) las crea la empresa y no están en la lista.
 - `lib/rutas.ts` (`decidirAcceso()`, `returnToSeguro()`) y `lib/navegacion.ts` (`redirigir()`).
 - `lib/formato.ts`, `lib/fechas.ts` — todo número y toda fecha salen de acá, en el locale y la zona de la empresa.
 - `lib/numero-tipeado.ts` — el lector de un número tipeado, uno solo: `leerNumeroTipeado(texto, locale)`. Lo usan `XCell`, `esquemaDeValor()` y los formularios de dinero.
-- `lib/paginacion.ts` — el tamaño de toda página sale de acá (`TAMANOS_DE_PAGINA`, `tamanoDePagina()`, `TAMANO_DE_VER_MAS`, `TOPE_DE_LO_CARGADO`, `TAMANO_DE_COLUMNA`, `TOPE_DEL_EQUIPO`); keyset `leerCursor()`, `codificarCursor()`, `armarPagina()`.
+- `lib/paginacion.ts` — el tamaño de toda página sale de acá (`TAMANOS_DE_PAGINA`, `tamanoDePagina()`, `TAMANO_DE_VER_MAS`, `TOPE_DE_LO_CARGADO`, `TAMANO_DE_COLUMNA`, `TOPE_DEL_EQUIPO`); keyset `leerCursor()`, `codificarCursor()`, `armarPagina()` y, por otra columna, `armarPaginaPor()` con un `OrdenDeCursor` (`POR_ALTA` el de siempre). El cursor lleva `instante`, el valor de la columna que ordena.
 - `lib/conteo.ts` — un número que se muestra nunca es un total exacto: `conteoAcotado()`, `cantidadAcotada()`, `cortarAlTope()`, `textoDelTope()`.
 - `lib/memoria-de-lectura.ts` — `memoriaDeLectura(leer, vidaMs)`: lectura del navegador compartida y con vida corta.
 - `lib/enviar-accion.ts`, `lib/formularios.ts`, `lib/borrador.ts` + `ui/use-borrador.ts` — lo común de un formulario con `useAction`: envío con `sinRed`, errores por campo, borrador en `sessionStorage`.
@@ -31,8 +31,9 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `lib/email/` — `enviarEmail()`: la única puerta del correo; un adaptador REST por proveedor (`EMAIL_PROVEEDOR`; hoy `mailpit`).
 - `ui/diferido.tsx` — `diferido()`: el único lugar que carga código diferido (el lint prohíbe `next/dynamic`).
 - `ui/modal.tsx`, `ui/drawer.tsx`, `ui/confirmar.tsx` — diálogos controlados desde la URL. `ui/modal-de-formulario.tsx` es el contrato de un formulario en un modal; `ui/use-envio-de-modal.ts` el envío de uno sin versión.
+- `ui/vuelta-del-foco.ts` — `abrirConVuelta()` y `useVueltaDelFoco()`: tras recargar con un panel por URL abierto, «atrás» devuelve el foco a quien lo abrió (una marca en `history.state`, con señas sin texto); desde un ítem de menú, al botón del menú. La ficha de la entrada del panel queda también en `sessionStorage` (una por clave): una navegación del servidor (`shallow: false`) la borra del historial. La usa `usePanelPorUrl()`; un hook que escribe su `?panel=` a mano la llama él.
 - `ui/lista/` — el patrón de lista (`UnaSolaVista`, `TablaDeLista`, `FilaDeLista`, `TarjetaDeLista`, `MasAcciones`, `AbrirResumen`, `SimbolosDeLista`).
-- `ui/filtros/` — `<FilterShell>` (búsqueda, chips, panel al costado o en hoja, «Ítems por página»); `ui/por-pagina.tsx`, `ui/paginacion.tsx`, `ui/aviso-de-tope.tsx`.
+- `ui/filtros/` — `<FilterShell>` (búsqueda, chips, panel al costado o en hoja, «Ítems por página»); `ui/por-pagina.tsx`, `ui/paginacion.tsx` (enlaces a la misma URL; con `alIr`, botones que cambian de página sin ir al servidor), `ui/aviso-de-tope.tsx`.
 - `ui/monto.tsx` + `live.ts` + `guion-live.tsx` (Modo Live), `regional.tsx`, `densidad.tsx`, `marca.tsx`, `estilo-de-marca.tsx`.
 - `ui/estados/` y `ui/esqueletos/` — los cinco estados y los esqueletos de toda vista. `ui/toasts.ts` (`avisarError()`, `avisarConDeshacer()`), `ui/sonner.tsx`, `ui/pie-del-panel.tsx`, `ui/zona-de-archivos.tsx`.
 - `types/database.types.ts` — generado por `pnpm db:types`. No se edita.
@@ -46,6 +47,7 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `<Monto>` manda al DOM el valor y su reemplazo; el CSS elige con la clase `live` de `<html>`. Nunca una cifra a la vista antes de hidratar.
 - `cssDeMarca()` sólo recibe colores que pasaron por `tokensDeMarca()`: a un `<style>` nunca llega texto libre.
 - Cada `<Confirmar>` vive en su URL (`usePanelPorUrl()`) y se registra en `scripts/guardas/confirmar-con-url.ts`; cada `<Drawer>` en `drawers-con-salida.ts`; cada `<Modal>` con algo escrito en `modales-con-salida.ts`. Sus tests fallan si hay uno sin registrar.
+- Cada `history: 'push'` de `src/` marca la vuelta del foco: importa `abrirConVuelta()` y `useVueltaDelFoco()` (lo vigila `scripts/guardas/paneles-con-vuelta.test.ts`).
 - Nada anima `font-size` ni el alto: sin `transition-all` (`scripts/guardas/sin-transition-all.test.ts`).
 - La lista de iconos de `lib/iconos.ts` es la de `_iconos_del_catalogo()` de la base: se guarda la clave, nunca un nombre libre ni un SVG.
 - Una tabla o lista nueva usa `ui/lista`; lo vigila `scripts/guardas/listas-con-patron.ts`.
@@ -65,3 +67,4 @@ Ficha completa (cada componente con su historia y sus trampas): `docs/archivo/mo
 - `entornoPublico()` valida al primer uso; las `NEXT_PUBLIC_*` se leen con el nombre literal.
 - Los textos hablan de tú, también los `MENSAJE_*` de `errores.ts`.
 - `vitest` no limpia solo entre pruebas: un test que monta diálogos usa `afterEach(cleanup)`.
+- La vuelta del foco de un hook se prueba con `probarLaVuelta()` de `ui/vuelta-del-foco.soporte.tsx` (sólo de las pruebas; `mapa.sh` no lista los `*.soporte.*`): cuatro pruebas por función que abre.

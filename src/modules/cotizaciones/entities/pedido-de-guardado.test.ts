@@ -8,6 +8,8 @@ const PEDIDO: PedidoDeGuardado = {
   vehiculoId: null,
   abierta: 'f.1.ab',
   entradas: { inputs: { pub: 1 }, banderas: {}, overrides: {} },
+  modoTc: null,
+  verTotalBs: false,
   conLaAbierta: false,
 }
 
@@ -19,6 +21,7 @@ describe('argumentosDeCrear', () => {
       p_lead: 'l',
       p_entradas: { inputs: { pub: 1 }, banderas: {}, overrides: {} },
       p_abierta: 'f.1.ab',
+      p_ver_total_bs: false,
       p_clase: 'preventa',
       p_con_la_abierta: false,
     })
@@ -28,5 +31,15 @@ describe('argumentosDeCrear', () => {
     const args = argumentosDeCrear({ ...PEDIDO, vehiculoId: 'v', conLaAbierta: true })
     expect(args.p_vehiculo).toBe('v')
     expect(args.p_con_la_abierta).toBe(true)
+  })
+
+  it('manda p_modo_tc con el modo y lo omite sin él', () => {
+    expect(argumentosDeCrear({ ...PEDIDO, modoTc: 'unificado' }).p_modo_tc).toBe('unificado')
+    expect('p_modo_tc' in argumentosDeCrear(PEDIDO)).toBe(false)
+  })
+
+  it('manda p_ver_total_bs siempre, con lo que quien cotiza dejó', () => {
+    expect(argumentosDeCrear({ ...PEDIDO, verTotalBs: true }).p_ver_total_bs).toBe(true)
+    expect(argumentosDeCrear(PEDIDO).p_ver_total_bs).toBe(false)
   })
 })

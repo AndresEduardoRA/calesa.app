@@ -17,6 +17,7 @@ function Contenido({ leadId, datos }: { leadId: string; datos: DatosDelRapido })
         tipos={datos.tipos}
         zona={zonaHoraria}
         seguimientos={seguimientos}
+        enPestana
       />
     </div>
   )

@@ -3,6 +3,7 @@ import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { usePanelPorUrl } from './use-panel-por-url'
+import { senasDe } from './vuelta-del-foco'
 
 afterEach(cleanup)
 
@@ -114,5 +115,130 @@ describe('usePanelPorUrl: escribir la URL', () => {
     })
     expect(eventos.at(-1)?.searchParams.get('panel')).toBe('etapas')
     expect(eventos.at(-1)?.searchParams.get('eliminar')).toBeNull()
+  })
+})
+
+// La vuelta del foco (`vuelta-del-foco.ts`): `NuqsTestingAdapter` no toca `window.history`, así que la marca de la entrada de antes y la ficha de la entrada del
+// panel quedan en el mismo `history.state`, que es lo que se mira.
+type Estado = {
+  __NA?: boolean
+  ajena?: number
+  vueltaDelFoco?: Record<string, { ficha: string }>
+  vueltaDesde?: Record<string, string>
+}
+const estado = () => (history.state ?? {}) as Estado
+
+function botonConFoco(): HTMLButtonElement {
+  const boton = document.createElement('button')
+  boton.textContent = 'Purgar'
+  document.body.append(boton)
+  boton.focus()
+  return boton
+}
+
+function volverConPopstate(): void {
+  window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }))
+}
+
+describe('usePanelPorUrl: la vuelta del foco', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    document.body.replaceChildren()
+    history.replaceState(null, '')
+  })
+
+  it('abrir con el foco en un botón marca la entrada antes de escribir y conserva lo que había', async () => {
+    history.replaceState({ __NA: true, ajena: 1 }, '')
+    botonConFoco()
+    let alEscribir: Estado | null = null
+    const { result } = renderHook(() => usePanelPorUrl('purgar'), {
+      wrapper: envoltura('', () => {
+        alEscribir = structuredClone(estado())
+      }),
+    })
+    act(() => {
+      result.current.abrir()
+    })
+    await waitFor(() => {
+      expect(estado().vueltaDesde?.['panel']).toBeDefined()
+    })
+    const ficha = estado().vueltaDelFoco?.['panel']?.ficha
+    expect(ficha).toEqual(expect.any(String))
+    expect((alEscribir as Estado | null)?.vueltaDelFoco?.['panel']?.ficha).toBe(ficha)
+    expect(estado().__NA).toBe(true)
+    expect(estado().ajena).toBe(1)
+    expect(estado().vueltaDesde?.['panel']).toBe(ficha)
+  })
+
+  it('con el foco en body no marca nada', async () => {
+    const { result } = renderHook(() => usePanelPorUrl('purgar'), { wrapper: envoltura('') })
+    act(() => {
+      result.current.abrir()
+    })
+    await waitFor(() => {
+      expect(result.current.abierto).toBe(true)
+    })
+    expect(history.state).toBeNull()
+  })
+
+  it('con el panel ya abierto, abrir otra vez no cambia history.state', async () => {
+    history.replaceState({ __NA: true }, '')
+    botonConFoco()
+    const { result } = renderHook(() => usePanelPorUrl('purgar'), {
+      wrapper: envoltura('?panel=purgar'),
+    })
+    act(() => {
+      result.current.abrir()
+    })
+    await Promise.resolve()
+    expect(history.state).toEqual({ __NA: true })
+  })
+})
+
+describe('usePanelPorUrl: la vuelta del foco tras recargar y cerrar', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    document.body.replaceChildren()
+    history.replaceState(null, '')
+  })
+
+  it('montado abierto tras recargar, recuerda la ficha de la entrada: un «atrás» a la marcada devuelve el foco', () => {
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'Date'] })
+    const boton = botonConFoco()
+    const senas = senasDe(boton)
+    history.replaceState({ vueltaDesde: { panel: 'f-recargar' } }, '')
+    renderHook(() => usePanelPorUrl('purgar'), { wrapper: envoltura('?panel=purgar') })
+    boton.blur()
+    history.replaceState({ vueltaDelFoco: { panel: { ficha: 'f-recargar', senas } } }, '')
+    volverConPopstate()
+    vi.advanceTimersToNextFrame()
+    expect(document.activeElement).toBe(boton)
+  })
+
+  it('cerrar() la olvida: un «atrás» posterior a la entrada marcada no mueve el foco', async () => {
+    const boton = botonConFoco()
+    const { result } = renderHook(() => usePanelPorUrl('purgar'), { wrapper: envoltura('') })
+    act(() => {
+      result.current.abrir()
+    })
+    await waitFor(() => {
+      expect(estado().vueltaDesde?.['panel']).toBeDefined()
+    })
+    const marcada = structuredClone(estado())
+    // La entrada del panel: la de antes es la que lleva la marca.
+    history.replaceState({ vueltaDesde: marcada.vueltaDesde }, '')
+    act(() => {
+      result.current.cerrar()
+    })
+    await waitFor(() => {
+      expect(result.current.abierto).toBe(false)
+    })
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'Date'] })
+    boton.blur()
+    history.replaceState(marcada, '')
+    volverConPopstate()
+    vi.advanceTimersToNextFrame()
+    vi.advanceTimersToNextFrame()
+    expect(document.activeElement).toBe(document.body)
   })
 })

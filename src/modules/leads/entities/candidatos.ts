@@ -225,7 +225,7 @@ export function filtrosDeCandidatos(
     filtros.comparaciones_privadas = grupos.comparacionesPrivadas
   }
   if (desde) {
-    filtros.cursor = { creado_en: desde.creadoEn, id: desde.id }
+    filtros.cursor = { creado_en: desde.instante, id: desde.id }
   }
   return filtros
 }

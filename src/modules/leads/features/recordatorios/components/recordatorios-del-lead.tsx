@@ -10,11 +10,13 @@ type Props = {
   zona: string
   // Los que nacieron con un seguimiento (el «Próximo contacto» de la ficha): se ponen en su lugar.
   agendados?: readonly Recordatorio[]
+  // La pestaña del drawer rápido (`BloqueDeRecordatorios`).
+  enPestana?: boolean
 }
 
 // «Tus recordatorios» de un lead con su lectura por páginas: lo que montan la sección de la ficha
 // (diferido: su código no viaja con el resto de la pantalla) y la pestaña del drawer.
-export function RecordatoriosDelLead({ leadId, zona, agendados = [] }: Props) {
+export function RecordatoriosDelLead({ leadId, zona, agendados = [], enPestana = false }: Props) {
   const recordatorios = useRecordatorios(leadId)
   const puestos = useRef(new Set<string>())
   const { poner } = recordatorios
@@ -26,5 +28,12 @@ export function RecordatoriosDelLead({ leadId, zona, agendados = [] }: Props) {
       }
     }
   }, [agendados, poner])
-  return <BloqueDeRecordatorios leadId={leadId} zona={zona} recordatorios={recordatorios} />
+  return (
+    <BloqueDeRecordatorios
+      leadId={leadId}
+      zona={zona}
+      recordatorios={recordatorios}
+      enPestana={enPestana}
+    />
+  )
 }
