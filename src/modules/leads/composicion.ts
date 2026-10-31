@@ -2,6 +2,7 @@
 // de `entities/repositorios`. Los casos de uso de `features/` importan de este archivo, nunca de
 // `infra/` (lo verifica eslint-plugin-boundaries).
 import 'server-only'
+import type { LectorDeClienteElegido } from './entities/panel-para-cotizar'
 import type { BuscadorDeLeads, ContadorDeLeads } from './entities/repositorios-del-listado'
 import type {
   LectorDeCartera,
@@ -67,6 +68,7 @@ import { getCartera, getCarteraCorta } from './infra/queries/cartera'
 import { getLayoutDeLeads } from './infra/queries/campos'
 import { getEmbudos, getTablero } from './infra/queries/embudos'
 import { getOportunidadesDelLead } from './infra/queries/oportunidades'
+import { getClienteElegido } from './infra/queries/cliente-elegido'
 import { getEtiquetas } from './infra/queries/etiquetas'
 import { getFicha } from './infra/queries/ficha'
 import {
@@ -104,6 +106,9 @@ export const contarLeadsHasta: ContadorDeLeads = contarEnBase
 export const leerIdsDelNumero: LectorDeIdsDelNumero = getIdsDelNumero
 
 export const leerCarteraCorta: LectorDeCarteraCorta = getCarteraCorta
+
+// El lead de `?lead=` de la hoja de cotizar (4.14-3b).
+export const leerClienteElegido: LectorDeClienteElegido = getClienteElegido
 
 // Los orígenes y los tipos con que se nombra a un lead, en un solo pedido.
 export const leerCatalogosDeLead: LectorDeCatalogosDeLead = getCatalogosDeLead

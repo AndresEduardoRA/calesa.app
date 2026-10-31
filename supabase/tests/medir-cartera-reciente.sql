@@ -1,7 +1,7 @@
 -- Medición de «míos» del panel del cliente por lo más reciente (paso 4.14-3a): `pnpm db:medir:volumen`, contra el Supabase LOCAL con la siembra de volumen (62.000 leads, con los
 -- 50.000 «Volumen»; se repite a mano con `pnpm db:sembrar-volumen -- --leads 200000`, 212.000). Todo en una transacción que se revierte.
 --
--- Qué se mide: la lectura que escribirá el 4.14-3b por PostgREST, de `leads_cartera_vista`: `select id, numero_visible, nombre, tipo_lead_id, reciente_en … order by reciente_en
+-- Qué se mide: la lectura del 4.14-3b por PostgREST (`leerMios`), de `leads_cartera_vista`: `select id, nombre, tipo_lead_id, numero, numero_propio, numero_propio_creador, reciente_en … order by reciente_en
 -- desc, id desc limit TAMANO_DE_VER_MAS + 1`, como `authenticated`, con el plan genérico, `EXPLAIN (ANALYZE, BUFFERS)` ×7 y la mediana de las 5 últimas. Quién: la dueña (~20.000 en
 -- su cartera, con seguimientos), Ana (~2.400, con seguimientos y compartidos), Berta (~7.000, sin seguimientos: lo reciente es el alta) y una «chica» con 3 leads creada aquí.
 -- Lecturas: la página 1, una profunda por cursor (la fila 5.000 de la dueña, la 1.000 de Ana, la 1.000 de Berta) y la página 1 de la clase cliente (~15 %).
@@ -81,9 +81,9 @@ end $$;
 create temp table _med (fase text, ruta text, quien text, ms numeric, buffers bigint, indices jsonb, seq boolean, sort boolean, descartadas numeric);
 grant all on _med to authenticated;
 
--- La lectura del 3b: las columnas que dibuja el panel, `order by reciente_en desc, id desc`; con cursor `reciente_en <= $2 and (reciente_en < $2 or id < $3)`; con clase, `tipo_lead_id = any ($1)`.
+-- La lectura del 3b (`infra/panel-para-cotizar.client.ts`, `leerMios`): las columnas que dibuja el panel —con los tres números del lead—, `order by reciente_en desc, id desc`; con cursor `reciente_en <= $2 and (reciente_en < $2 or id < $3)`; con clase, `tipo_lead_id = any ($1)`.
 create function pg_temp.preparar() returns void language plpgsql as $$
-declare v_cols constant text := 'id, numero_visible, nombre, tipo_lead_id, reciente_en'; v_n constant text := current_setting('medir.pagina');
+declare v_cols constant text := 'id, nombre, tipo_lead_id, numero, numero_propio, numero_propio_creador, reciente_en'; v_n constant text := current_setting('medir.pagina');
 begin
   execute 'prepare r_pagina as select ' || v_cols || ' from public.leads_cartera_vista order by reciente_en desc, id desc limit ' || v_n;
   execute 'prepare r_cursor(timestamptz, uuid) as select ' || v_cols || ' from public.leads_cartera_vista where reciente_en <= $1 and (reciente_en < $1 or id < $2) order by reciente_en desc, id desc limit ' || v_n;
