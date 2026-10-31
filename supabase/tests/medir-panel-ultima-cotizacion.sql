@@ -54,8 +54,8 @@ grant select on _p, _o to authenticated;
 -- Sin triggers de aquí en más (`numero` es una identidad y se llena igual). Pía: 5.000 propios en A; Beto: 5.000 de su cartera en B (los creó la dueña); los dos bloques
 -- cotizados en el futuro, lo más reciente de su origen. La chica: 3 propios en A, cotizados hace mucho.
 set local session_replication_role = replica;
-insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en)
-select c.lead, '00000000-0000-0000-0000-0000000000f5', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en from _cartera c join public.leads l on l.id = c.lead;
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en, lead_reciente_en)
+select c.lead, '00000000-0000-0000-0000-0000000000f5', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en, coalesce(l.ultimo_seguimiento_en, l.creado_en) from _cartera c join public.leads l on l.id = c.lead;
 insert into public.vehiculos (origen_id, titulo, creado_por, lead_id, creado_en, actualizado_en, cotizado_en)
 select (select id from _o where clave = 'a'), 'Medir panel Pía ' || g, '00000000-0000-0000-0000-0000000000f4', null, now(), now(), now() + interval '1 hour' + g * interval '1 millisecond'
   from generate_series(1, 5000) g;

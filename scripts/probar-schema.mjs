@@ -202,6 +202,7 @@ for (const archivo of [
   'derivados-leads.sql',
   'cartera-policy.sql',
   'listado-cartera.sql',
+  'cartera-reciente.sql',
   'busqueda-leads.sql',
   'privados-candidatos.sql',
   'comparaciones-candidatos.sql',

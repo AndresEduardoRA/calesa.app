@@ -2561,6 +2561,7 @@ export type Database = {
           desde: string
           lead_creado_en: string
           lead_id: string
+          lead_reciente_en: string
           revocado_en: string | null
           revocado_por: string | null
           tipo_acceso: Database['public']['Enums']['tipo_acceso_lead']
@@ -2572,6 +2573,7 @@ export type Database = {
           desde?: string
           lead_creado_en: string
           lead_id: string
+          lead_reciente_en: string
           revocado_en?: string | null
           revocado_por?: string | null
           tipo_acceso: Database['public']['Enums']['tipo_acceso_lead']
@@ -2582,6 +2584,7 @@ export type Database = {
           desde?: string
           lead_creado_en?: string
           lead_id?: string
+          lead_reciente_en?: string
           revocado_en?: string | null
           revocado_por?: string | null
           tipo_acceso?: Database['public']['Enums']['tipo_acceso_lead']
@@ -6723,6 +6726,7 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
@@ -6795,6 +6799,7 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
@@ -7356,6 +7361,7 @@ export type Database = {
       }
       _lead_vivo_en_mi_cartera: { Args: { p_lead: string }; Returns: boolean }
       _leads_al_limbo_de: { Args: { p_tope: number; p_usuario: string }; Returns: number }
+      _leads_asesores_reciente_rellenar: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_candidatos_etiquetas: { Args: { p_filtros: Json; p_yo: string }; Returns: string[] }
       _leads_candidatos_indexable: { Args: { p_filtros: Json }; Returns: boolean }
       _leads_candidatos_recorrido: { Args: Record<PropertyKey, never>; Returns: number }
@@ -8287,6 +8293,7 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null

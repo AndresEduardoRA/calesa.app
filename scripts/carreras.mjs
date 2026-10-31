@@ -29,6 +29,7 @@ import { carrerasDeNumeros } from './carreras/numeros.mjs'
 import { carrerasDeLaRueda } from './carreras/rueda.mjs'
 import { stackLocal } from './lib/stack-local.mjs'
 import { carrerasDeLaCartera, carrerasDePrivacidad } from './carreras/cartera.mjs'
+import { carrerasDeLoReciente } from './carreras/cartera-reciente.mjs'
 
 // La base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).
 const url = process.env.CARRERAS_DB_URL ?? stackLocal().urlDb
@@ -338,6 +339,7 @@ try {
   await carrerasDeNumeros({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDeLaCartera({ orquesta, carrera, espero, conectar, esperarBloqueo })
   await carrerasDePrivacidad({ orquesta, carrera, espero })
+  await carrerasDeLoReciente({ orquesta, carrera, espero })
   await carrerasDeLaRueda({ orquesta, espero, conectar, esperarBloqueo })
 } finally {
   await limpiar(orquesta).catch((e) => fallas.push(`limpiar: ${e.message}`))

@@ -59,6 +59,10 @@ create or replace function pg_temp.derivados_discrepancia() returns text languag
     (select format('lead_creado_en de %s / %s: %s, y el lead dice %s', la.lead_id, la.usuario_id, la.lead_creado_en, l.creado_en)
        from public.leads_asesores la join public.leads l on l.id = la.lead_id
       where la.lead_creado_en is distinct from l.creado_en order by la.lead_id, la.usuario_id limit 1),
+    -- Lo reciente del lead en cada fila de su cartera, también las revocadas (4.14-3a): `leads_cartera_vista` ordena «míos» por ella.
+    (select format('lead_reciente_en de %s / %s: %s, y el lead dice %s', la.lead_id, la.usuario_id, la.lead_reciente_en, coalesce(l.ultimo_seguimiento_en, l.creado_en))
+       from public.leads_asesores la join public.leads l on l.id = la.lead_id
+      where la.lead_reciente_en is distinct from coalesce(l.ultimo_seguimiento_en, l.creado_en) order by la.lead_id, la.usuario_id limit 1),
     -- Un campo con un cambio de privacidad a medias (`solo_cartera_pendiente`) puede estar o no según el lote: se compara lo demás.
     (select format('atributos_publicos de %s (%s): %s, y recalculados %s', l.id, l.nombre, l.atributos_publicos,
                    public._lead_atributos_publicos(l.atributos))
@@ -143,6 +147,17 @@ do $$ declare v text; begin
   exception when sqlstate 'P0004' then null;
   end;
   begin
+    -- Con replica: a profundidad 0 la guarda de la cartera no deja escribir la copia.
+    set local session_replication_role = replica;
+    update public.leads_asesores set lead_reciente_en = '1999-01-01'
+     where (lead_id, usuario_id) = (select la.lead_id, la.usuario_id from public.leads_asesores la order by la.lead_id, la.usuario_id limit 1);
+    set local session_replication_role = origin;
+    v := pg_temp.derivados_discrepancia();
+    if v is null or v not like 'lead_reciente_en %' then raise exception 'no vio lo reciente roto: %', v; end if;
+    raise exception using errcode = 'P0004', message = 'deshacer';
+  exception when sqlstate 'P0004' then null;
+  end;
+  begin
     update public.leads_campos set solo_cartera = true where clave = 'ciudad';
     v := pg_temp.derivados_discrepancia();
     if (select count(*) from public.leads where atributos_publicos ? 'ciudad') > 0 and v is null then
@@ -177,7 +192,7 @@ begin
     perform set_config('request.jwt.claims', '', true);
     v_lead := v_leads[1 + floor(random() * 30)::int];
     v_persona := v_personas[1 + floor(random() * 5)::int];
-    v_op := floor(random() * 15)::int;
+    v_op := floor(random() * 18)::int;
     case v_op
       when 0 then  -- compartir (o volver a compartir un acceso revocado)
         insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) values (v_lead, v_persona, 'compartido')
@@ -225,6 +240,14 @@ begin
       when 13, 14 then  -- un lote chico de la baja en curso
         v_baja := (select b.usuario_id from public.equipo_bajas b where b.terminada_en is null and b.usuario_id = any (v_personas) limit 1);
         if v_baja is not null then perform public._baja_lote(v_baja, 3); end if;
+      when 15 then  -- un seguimiento (explícito, en el pasado) de alguien: mueve lo reciente de todas las filas del lead
+        insert into public.seguimientos (lead_id, usuario_id, tipo_id, titulo, ocurrido_en)
+        values (v_lead, v_persona, (select id from public.tipos_seguimiento order by clave limit 1), 'Derivados ' || i, '2020-01-01'::timestamptz + (i || ' days')::interval);
+      when 16 then  -- eliminar o restaurar el último seguimiento (lo que hacen las RPC)
+        update public.seguimientos set eliminado_en = case when eliminado_en is null then now() end
+         where id = (select s.id from public.seguimientos s where s.lead_id = v_lead order by s.ocurrido_en desc, s.id desc limit 1);
+      when 17 then  -- cambiar el alta del lead (la copia del alta y, sin seguimientos, lo reciente)
+        update public.leads set creado_en = '2019-01-01'::timestamptz + (i || ' hours')::interval where id = v_lead;
       else  -- tomar del limbo: un lead sin nadie recibe dueño
         if public._lead_cartera_calcular(v_lead) = '{}' then
           insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso) values (v_lead, v_persona, 'dueno')

@@ -56,8 +56,8 @@ grant select on _p, _o to authenticated;
 -- Sin triggers de aquí en más (`numero` es una identidad y se llena igual; la columna generada se calcula igual). Pía: 5.000 propios en A; Beto: 5.000 de su cartera en B (los
 -- creó la dueña); los dos bloques, abiertos o en vivo (alternando) con cierre en 2 h, lo más próximo de su origen. La chica: 3 propios en A que cierran en 100 días.
 set local session_replication_role = replica;
-insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en)
-select c.lead, '00000000-0000-0000-0000-0000000000f5', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en from _cartera c join public.leads l on l.id = c.lead;
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en, lead_reciente_en)
+select c.lead, '00000000-0000-0000-0000-0000000000f5', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en, coalesce(l.ultimo_seguimiento_en, l.creado_en) from _cartera c join public.leads l on l.id = c.lead;
 insert into public.vehiculos (origen_id, titulo, creado_por, lead_id, creado_en, actualizado_en, estado_subasta, subasta_en, subasta_fin_en)
 select (select id from _o where clave = 'a'), 'Medir panel Pía ' || g, '00000000-0000-0000-0000-0000000000f4', null, now(), now(),
        (array['abierta', 'en_vivo'])[1 + g % 2]::public.estado_subasta, now() - interval '1 day', now() + interval '2 hours' + g * interval '1 millisecond'
