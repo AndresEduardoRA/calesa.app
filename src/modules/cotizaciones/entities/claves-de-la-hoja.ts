@@ -1,6 +1,6 @@
 // Las claves de la hoja de cotizar: la `key` de React con la que se vuelve a montar, y las de la pestaña (`sessionStorage`) donde viven el pendiente del guardado y el
-// borrador. Las de la pestaña son por persona y por hoja (origen, lead y vehículo): otra hoja, u otra cuenta que entra en la misma pestaña, no reenvía el pendiente ni
-// repone el borrador de ésta.
+// borrador. El pendiente es por persona y por hoja (origen, lead y vehículo): otra hoja, u otra cuenta que entra en la misma pestaña, no reenvía el de ésta. El borrador
+// es por persona, origen y vehículo, **sin el lead** (4.14-3b, P1): elegir o cambiar el cliente vuelve a montar la hoja y lo tipeado se repone con su aviso.
 
 // Lleva la hoja abierta: cada una nueva («Recargar», «Usar la versión nueva», un `router.refresh()` con la misma versión) vuelve a montar la hoja, así el recálculo y el guardado
 // usan la misma (D2) y el borrador repone lo tipeado. `vuelta` la sube el marco para volver a montarla vacía («Descartar»).
@@ -29,4 +29,10 @@ const deLaHoja = ({ personaId, origenId, leadId, vehiculoId }: DeLaPestana) =>
 
 export const claveDelPendiente = (h: DeLaPestana): string => `cotizar-pendiente:${deLaHoja(h)}`
 
-export const claveDelBorrador = (h: DeLaPestana): string => `cotizar:${deLaHoja(h)}`
+// `leadId` se acepta y se ignora: quien llama arma una sola `DeLaPestana` para el borrador y el pendiente.
+export const claveDelBorrador = ({
+  personaId,
+  origenId,
+  vehiculoId,
+}: Omit<DeLaPestana, 'leadId'> & { leadId?: string | null }): string =>
+  `cotizar:${personaId}:${origenId}:${vehiculoId ?? '-'}`

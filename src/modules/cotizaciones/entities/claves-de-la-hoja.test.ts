@@ -34,13 +34,14 @@ describe('las claves de la pestaña', () => {
     expect(new Set(claves).size).toBe(combinaciones.length)
   })
 
-  it('el borrador también, y no se confunde con el pendiente', () => {
+  it('el borrador es de una persona, un origen y un vehículo: el lead no lo cambia (4.14-3b, P1: elegir el cliente conserva lo tipeado)', () => {
     const claves = combinaciones.map((c) => claveDelBorrador(de(c)))
-    expect(new Set(claves).size).toBe(combinaciones.length)
+    // Seis hojas, dos de ellas sólo distintas por el lead: cinco claves de borrador.
+    expect(new Set(claves).size).toBe(combinaciones.length - 1)
     const h = { personaId: 'p', origenId: 'o', vehiculoId: null }
-    expect(claveDelBorrador({ ...h, leadId: null })).not.toBe(
-      claveDelBorrador({ ...h, leadId: 'l' }),
-    )
+    expect(claveDelBorrador({ ...h, leadId: null })).toBe(claveDelBorrador({ ...h, leadId: 'l' }))
+    expect(claveDelBorrador({ ...h, leadId: 'l1' })).toBe(claveDelBorrador({ ...h, leadId: 'l2' }))
+    expect(claveDelBorrador({ ...h, vehiculoId: 'v' })).not.toBe(claveDelBorrador(h))
     expect(claveDelBorrador({ ...h, leadId: 'l' })).not.toBe(
       claveDelPendiente({ ...h, leadId: 'l' }),
     )
