@@ -177,9 +177,12 @@ export function abrirConVuelta(
   )
 }
 
-// --- La vuelta: cuadro a cuadro, hasta que quien abrió esté y el foco esté libre ---
+// --- La vuelta: cuadro a cuadro, hasta que quien abrió esté y el foco esté libre; y, devuelto, hasta el tope por si se vuelve a crear ---
 
-function volverA(senas: Senas): void {
+// La de cada `popstate`: un «atrás» nuevo deja sin efecto a las vueltas del anterior (dos diálogos anidados, dos «atrás» seguidos).
+let generacion = 0
+
+function volverA(senas: Senas, deEstaGeneracion: number): void {
   const inicio = Date.now()
   let cortada = false
   const cortar = () => {
@@ -191,34 +194,39 @@ function volverA(senas: Senas): void {
     window.removeEventListener('keydown', cortar, true)
     window.removeEventListener('pointerdown', cortar, true)
   }
+  // Con el foco ya devuelto se sigue mirando hasta el tope: la respuesta del servidor a un «atrás» tras recargar puede volver a montar la hoja y llevarse al botón con
+  // el foco (en CI, ~50 ms después). Si el foco cae al cuerpo vuelve al botón nuevo; si lo toma otro elemento, se respeta.
+  let devuelto = false
   const mirar = () => {
-    if (cortada || Date.now() - inicio > TOPE_DE_LA_VUELTA_MS) {
+    if (cortada || deEstaGeneracion !== generacion || Date.now() - inicio > TOPE_DE_LA_VUELTA_MS) {
       terminar()
       return
     }
     const quien = buscarPorSenas(senas)
     const activo = document.activeElement
+    const libre = activo === null || activo === document.body
     if (quien && activo === quien) {
-      terminar()
-      return
-    }
-    // Con el foco en otro elemento se espera: Base UI puede estar devolviéndolo.
-    if (quien && (activo === null || activo === document.body)) {
+      devuelto = true
+    } else if (quien && libre) {
       quien.focus({ preventScroll: true })
+      devuelto = true
+    } else if (devuelto && !libre) {
       terminar()
       return
     }
+    // Sin devolver, con el foco en otro elemento se espera: Base UI puede estar devolviéndolo.
     requestAnimationFrame(mirar)
   }
   requestAnimationFrame(mirar)
 }
 
 function alCambiarDeEntrada(): void {
+  const generacionDeEstaVuelta = ++generacion
   for (const [clave, ficha] of abiertos) {
     const marca = leerDe(MARCAS, clave) as Partial<Marca> | undefined
     if (marca?.ficha === ficha && marca.senas) {
       abiertos.delete(clave)
-      volverA(marca.senas)
+      volverA(marca.senas, generacionDeEstaVuelta)
     }
   }
 }
