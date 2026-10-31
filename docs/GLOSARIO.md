@@ -208,7 +208,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Moneda base de la cotización** — `total_base` / `ajustes_empresa.moneda_base`: total guardado en `total_base`; sólo `USD` y `BOB`.
 - **Serie de comprobantes** — `comprobantes_contadores.serie` (una por empresa, «A» por defecto): serie con que se numeran, sin huecos, los comprobantes.
 - **Diseño de la hoja** — `formulas.diseno` / `entities/diseno.ts`, `validarDiseno()`, `validar_diseno()`: cómo se ve la hoja de un origen (secciones, celdas, atajos, variantes, interruptores, modos, tarjeta).
-- **Dato del vehículo (de una celda)** — `dato_del_vehiculo` de una celda de `cotizacion_hoja()` / `datoDelVehiculo` (`entities/hoja.ts`), `_hoja_datos_del_vehiculo()`: qué columna de la tabla de una celda casa con qué campo del vehículo (`tipo` ← `tipo_vehiculo`); sus opciones son las filas de `cotizacion_tabla`.
+- **Dato del vehículo (de una celda)** — `dato_del_vehiculo` de una celda de `cotizacion_hoja()` / `datoDelVehiculo` (`entities/hoja.ts`), `_hoja_datos_del_vehiculo()`: qué columna de la tabla de una celda casa con qué campo del vehículo (`tipo` ← `tipo_vehiculo`); sus opciones son las filas de `cotizacion_tabla` y las elige el panel del vehículo, en «Elegido» (4.14-2c3, `datosParaElegirDe()`, `guardarDatoDelVehiculo`).
 - **Nivel de acceso** — `cotizaciones_niveles` / permisos `cotizaciones.nivel.<clave>.ver|editar` (`permisos.nivel_clave`) / `nivel_crear|renombrar|retirar|restaurar|eliminar()`: quién ve y edita una celda o sección.
 - **Retirar un nivel** — `nivel_retirar()` / `cotizaciones_niveles.retirado_en`: deja de ofrecerse.
 - **Restaurar un nivel** — `nivel_restaurar()` / `cotizaciones_niveles.retirado_en`: deshace un retiro; no cambia clave, permisos ni concesiones.

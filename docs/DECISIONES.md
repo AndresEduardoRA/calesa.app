@@ -1449,3 +1449,24 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
   inventario de lo oculto: no lee `formulas` ni `tablas_referencia` (recibe la definición desarmada), como `evaluar_formula`. Así `_cotizacion_hoja()` crece 3 líneas; que pase de 80 viene de antes.
 - **`collate "C"` y PGlite.** `db:probar` corre en PGlite, con colación C: quitar el `collate "C"` no cambia ningún orden allí (M16). En la base local (ICU, `en_US.UTF-8`) sí (`a_` antes que `a1`;
   la premisa del plan, que ICU ignora `_` y pone `anio` antes que `a_z`, era falsa), así que T5 mira que la definición ordene con `collate "C"`.
+
+## 2026-10-30 — Paso 4.14 (2c3): el tipo de vehículo en el panel
+
+- **P1–P4 (compuerta de producto, todas la recomendada).** Cada fila se nombra **tal cual sale de la tabla**, como la ayuda de una tabla: quien configura la tabla decide cómo se lee, y lo que se ve
+  es lo que se guarda. Se eligen **sólo campos de texto del layout** (`texto`, `texto_largo`); una columna fija (año, marca…) se cambia en la ficha con su validación. Tras «Crear y elegir» el panel
+  **se cierra como siempre** y la celda sin valor dice «Elige el dato del vehículo en «Vehículo», arriba de la hoja, o escribe el valor.»: un camino, el mismo para un vehículo del inventario.
+  **Un toque guarda** el tipo en el vehículo, cierra el panel y la hoja recalcula; equivocarse se corrige eligiendo otra, y el panel nunca queda con algo sin guardar.
+- **El lector cruza por `src/app`.** `vehiculos` no conoce `cotizaciones` y una función no viaja del servidor al navegador: la página arma en el servidor `paraElegir` (los datos de la hoja, su valor, la
+  versión y si quien mira lo edita, por `editablesDe`) y un componente de cliente de la página (`barra-de-la-hoja.tsx`) le suma el lector con `useLectorDeOpciones` de `cotizaciones/client`. Las formas de
+  `vehiculos/entities/dato-para-elegir.ts` son estructurales. Qué se elige lo decide **un solo lugar** (`datosParaElegirDe`, C3) y la celda lo recibe como `seEligen`: no puede mandar a elegir algo que
+  el panel no ofrece (una celda que sólo casa `anio` dice lo de siempre).
+- **Límites.** Sólo campos `texto`/`texto_largo` y sólo valores de texto de la tabla: un número se leería con el locale al guardar («1.5» como 15) y el motor compara con igualdad estricta; un `opcion`
+  exigiría que la clave de la fila sea una de sus opciones. Las opciones son la **unión** de las tablas del dato (dos en `subasta_usa`, una por variante): una clave que esté sólo en la tabla de la
+  otra variante quedaría marcada y la celda visible seguiría sin valor (no pasa con la semilla, que tiene las mismas 8 claves). Se dibujan a lo sumo 50, con «Buscar en las opciones» como camino.
+- **Guardar recarga la hoja.** Elegir hace lo mismo que elegir el vehículo (la URL con el mismo id, al servidor): la página lee el vehículo y la hoja de nuevo (otra hoja abierta) y la hoja se vuelve a
+  montar con el borrador. Con algo tipeado, el aviso «Recuperamos lo que habías escrito…» sale a lo sumo una vez (E5); sin nada tipeado, ninguno.
+- **Por qué es pantalla pura aunque escriba.** La action nueva (`guardarDatoDelVehiculo`) no crea un permiso ni una RPC: escribe sólo ese atributo por `vehiculo_guardar`, que ya exige `vehiculos.editar`
+  por fila y la versión, y repite el permiso por origen y la validación del campo con el layout de hoy, como `guardarVehiculo`. La base no cambia.
+- **La tarea de oro 2 con un enlace** (`e2e/cotizar-tarea-de-oro-enlace.spec.ts`, aparte porque el de la tarea de oro ya medía 272 líneas): 32 teclas de control, KLM 39,5 s con 6 decisiones, robot
+  2,5 s (escritorio) y 3,0 s (móvil). apibara se intercepta con otro VIN y otro lote: el VIN es único entre los vivos y `cotizar-panel-crear-vehiculo` usa los de la ficha grabada.
+- **Medido.** El grupo con dos tablas de 1.000 claves: 56 nodos (presupuesto previo 260; tope 59) y ≈ 55.100 B por lectura. JS en frío de la hoja 444,7 KB de 460 (+0,8).

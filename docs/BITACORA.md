@@ -315,3 +315,17 @@ aprobada (P1 y P2); P3 queda para el 2c3. No cierra 4-10. `docs/DECISIONES.md` �
     verde, 16 saltadas y ninguna caída, 32,7 min.
 - **Commits:** `3c51b571` (la base), `faa0e802` (el tipo de la hoja) y `2827e6df` (el `fix` de la auditoría del informe).
   e2e completo: sí (4.14-2c2)
+
+## 2026-10-30 — 4.14-2c3: el tipo de vehículo en el panel
+
+Con un vehículo elegido, «Elegido» del panel ofrece el dato que casa con una tabla de la hoja (el tipo de vehículo del transporte de `subasta_usa`) entre las filas de la tabla, tal cual salen de ella y
+con el del vehículo marcado; un toque lo guarda en el vehículo (`guardarDatoDelVehiculo` por `vehiculo_guardar`), cierra el panel y la hoja recalcula. Quien no puede editar el vehículo lo ve sin elegir;
+la celda sin valor dice que se elige en «Vehículo». La tarea de oro 2 con un enlace de Copart lo recorre sólo con el teclado. Cierra 4-10. `docs/DECISIONES.md` › «Paso 4.14 (2c3)».
+
+- **Verificación:**
+  - En verde: lint y typecheck (sin warnings), Vitest completo (5.887 pruebas en 488 archivos) y `mapa.sh --check`.
+  - Rojos contra HEAD: Vitest de los 7 archivos nuevos (`.piloto/salidas/4.14-2c3/rojo-vitest.txt`). Los e2e nuevos no se corrieron contra HEAD (no hay grupo que buscar). Sin mutaciones: paso de pantalla.
+  - e2e dirigidos (15 specs, escritorio y móvil, con `presupuesto-js`): 153 en verde y 5 saltadas (`.piloto/salidas/4.14-2c3/dirigidos-1.txt`).
+  - Medido: el grupo con 1.000 claves por tabla, 56 nodos (tope 59) y ≈ 55.100 B por lectura; JS en frío de `/cotizaciones/nuevo` 444,7 KB de 460; la tarea de oro con enlace, 32 teclas, KLM 39,5 s.
+- **Commits:** `65841c37` (la lectura de las opciones), `da63e3df` (elegir en el panel) y `f95a7d4b` (la tarea de oro con enlace).
+  e2e completo: no (4.14-2c3, pantalla, 1 de 3)

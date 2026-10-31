@@ -119,15 +119,15 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   `vehiculos_cierre_subasta_idx (origen_id, cierre_subasta_en, id)`; el historial del vehículo con `cotizaciones_vehiculo_creado_idx
 (vehiculo_id, creado_en desc, id desc)`, que reemplaza a `cotizaciones_vehiculo_idx`; «Cotizado (n)» por `limit n + 1`. Cliente: `leads_candidatos()` (3 letras, `#n`); sin buscar, «míos» por actividad; pestañas por clase, el tipo como
   etiqueta y «+» que abre «Nuevo lead». Se entra desde la ficha del lead y desde el resumen del vehículo. Cierra **4-10** (el tipo de
-  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 12 (quedan 2).
+  vehículo de la subasta). Depende de 4.13. Nivel **2** (esquema) + `db:medir:volumen`. Prompts: 12 (quedan 1).
   **Partido en 3** (`docs/DECISIONES.md` › «Paso 4.14 (1 de 3)»): el **4.14-1** (la base del panel del vehículo: `vehiculos.cotizado_en` con su trigger, que no mueve la
   versión de la ficha ni audita; `vehiculos.cierre_subasta_en`, generada; los índices de «Últ. cotización», «Cierre subasta» y el historial; Nivel 2 + `db:medir:volumen`):
   hecho. El **4.14-2** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2a)»): el **4.14-2a** (el cursor por columna en `src/shared`, la barra y el panel del vehículo
   con «Últ. cotización» y «Cierre subasta»; Nivel 2): hecho. El **4.14-2a2** (4-49, el foco tras recargar y «atrás» en un panel por URL, en `src/shared/ui`; Nivel 2):
   hecho. El **4.14-2a3** (la vuelta desde un menú, el panel de filtros y los 4 hooks de `vehiculos`; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a3)»): hecho. El
   **4.14-2a4** (los paneles del listado de leads: «Nuevo lead», etiquetas, exportar, la acción de fila, el embudo y el lead rápido; Nivel 1; `docs/DECISIONES.md` › «Paso
-  4.14 (2a4)»): hecho. El **4.14-2a5** (los 5 hooks de la ficha del lead, con las pestañas del rápido; 4-58 y 4-59; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2a5)»): hecho. El **4.14-2a6** (los 3 hooks de configuración, el guardián sin pendientes y F6; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a6)»): hecho. El **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2b)»): hecho. El **4.14-2c** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2c)»): el **4.14-2c1** (buscar por nombre, VIN o lote, traer de la subasta, «+» a mano, crear y elegir, y el tramo del panel de la tarea de oro 2 con un vehículo buscado por nombre; Nivel 1): hecho. El **4.14-2c2** (la celda de tabla dice qué dato del vehículo casa con su tabla, `dato_del_vehiculo`; las filas, por `cotizacion_tabla`; Nivel 1 + cadena db, con el completo; `docs/DECISIONES.md` › «Paso 4.14 (2c2)»): hecho. Faltan el **4.14-2c3** (el tipo de vehículo en el panel, P6 y P3; la tarea de oro 2 con un enlace de subasta; cierra 4-10) y el **4.14-3** (el panel del cliente y la
-  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base; la cuenta, la de `cuenta-e2e.mjs`). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`, 4.14-2a5 `sí`, 4.14-2a6 `sí`, 4.14-2b `no` (pantalla, `1 de 3`), 4.14-2c1 `no` (pantalla, `2 de 3`), 4.14-2c2 `sí`.
+  4.14 (2a4)»): hecho. El **4.14-2a5** (los 5 hooks de la ficha del lead, con las pestañas del rápido; 4-58 y 4-59; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2a5)»): hecho. El **4.14-2a6** (los 3 hooks de configuración, el guardián sin pendientes y F6; Nivel 2; `docs/DECISIONES.md` › «Paso 4.14 (2a6)»): hecho. El **4.14-2b** (el historial del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2b)»): hecho. El **4.14-2c** se parte en tres (`docs/DECISIONES.md` › «Paso 4.14 (2c)»): el **4.14-2c1** (buscar por nombre, VIN o lote, traer de la subasta, «+» a mano, crear y elegir, y el tramo del panel de la tarea de oro 2 con un vehículo buscado por nombre; Nivel 1): hecho. El **4.14-2c2** (la celda de tabla dice qué dato del vehículo casa con su tabla, `dato_del_vehiculo`; las filas, por `cotizacion_tabla`; Nivel 1 + cadena db, con el completo; `docs/DECISIONES.md` › «Paso 4.14 (2c2)»): hecho. El **4.14-2c3** (el tipo de vehículo en el panel, P6 y P3; la tarea de oro 2 con un enlace de subasta; cierra 4-10; Nivel 1; `docs/DECISIONES.md` › «Paso 4.14 (2c3)»): hecho. Falta el **4.14-3** (el panel del cliente y la
+  entrada desde la ficha del lead; `3 de 3`, con el completo; se parte en 3a/3b si «míos» por actividad pide base; la cuenta, la de `cuenta-e2e.mjs`). Marcas: 4.14-1 `sí`, 4.14-2a `sí`, 4.14-2a2 `sí`, 4.14-2a3 `sí`, 4.14-2a4 `sí`, 4.14-2a5 `sí`, 4.14-2a6 `sí`, 4.14-2b `no` (pantalla, `1 de 3`), 4.14-2c1 `no` (pantalla, `2 de 3`), 4.14-2c2 `sí`, 4.14-2c3 `no` (pantalla, `1 de 3`).
   - **P1** (2c, contestada el 2026-10-30; hecha en el 4.14-2c1): «Cargar a mano» y «Traer de la subasta» desde el panel crean el vehículo **al confirmarlo en el panel** («Crear y elegir», `vehiculo_crear`), no al guardar la cotización; si la cotización no se guarda, el vehículo queda en el inventario.
   - **P2** (2c, contestada el 2026-10-30; hecha en el 4.14-2c1): el layout del origen para el alta se lee **desde el navegador al abrir el alta** (`useLayoutActivo()` de `origenes`), no viaja en el documento de la hoja (sumaba 69.098 B sin comprimir contra 40.000 de presupuesto).
   - **P1** (2b, contestada el 2026-10-30; hecha en el 4.14-2b): «Cotizar» desde el resumen del vehículo abre la hoja con el origen y el vehículo y **sin lead**; guardar espera al cliente (4.14-3).
@@ -147,9 +147,12 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
     (`atributos.tipo_vehiculo` por `vehiculo_guardar`, con su versión); quien no puede editarlo ve el sugerido sin elegir. **P4**: 4-49 se arregla en un paso propio, el 4.14-2a2.
     **P5** (de la auditoría del informe): con la barra encima, al 200 % y con la página arriba de todo, el resumen fijo queda debajo del borde de la ventana; se acepta por
     ahora y 4-50 endurece su assert.
-  - Del plan del 4.14-2c2 (P1 y P2, contestadas el 2026-10-30 y hechas; P3, abierta): **P1** el dato viaja en la celda de `cotizacion_hoja` (`dato_del_vehiculo`) y las filas se leen con `cotizacion_tabla`, sin RPC nueva.
-    **P2** cuenta un valor del `match` que no es el id de ningún nodo y que el motor lee para ese origen (columna fija o campo activo); un `campo_vehiculo` no. **P3** (abierta, para el 2c3):
-    cómo se nombra cada fila en el panel: tal cual sale de la tabla (la recomendada, como la ayuda de una tabla), humanizada por la pantalla, o una columna `etiqueta` en la tabla (la única que toca la base).
+  - Del plan del 4.14-2c2 (P1 y P2, contestadas el 2026-10-30 y hechas; P3, contestada el 2026-10-30 y hecha en el 4.14-2c3): **P1** el dato viaja en la celda de `cotizacion_hoja` (`dato_del_vehiculo`) y las filas se leen con `cotizacion_tabla`, sin RPC nueva.
+    **P2** cuenta un valor del `match` que no es el id de ningún nodo y que el motor lee para ese origen (columna fija o campo activo); un `campo_vehiculo` no. **P3** (contestada el 2026-10-30; hecha en el 4.14-2c3):
+    cada fila se nombra **tal cual sale de la tabla**, como la ayuda de una tabla.
+  - Del plan del 4.14-2c3 (contestadas el 2026-10-30; hechas en el 4.14-2c3): **P1** cada fila, tal cual sale de la tabla (la P3 del 2c2). **P2** se eligen sólo campos de texto del layout
+    (`texto`, `texto_largo`); una columna fija (año, marca…) se cambia en la ficha. **P3** tras «Crear y elegir» el panel se cierra como siempre y la celda sin valor dice que se elige en
+    «Vehículo». **P4** un toque guarda el tipo en el vehículo, cierra el panel y la hoja recalcula.
 - **4.15** — Editar con SU versión, cotizar encima (N+1) y revisiones por nodo, recortadas y por páginas. `cotizacion_revisiones` ya
   existe (4.10-1): se registra en `RPC_PAGINADAS` (`scripts/guardas/paginas-en-la-base.ts`) cuando la pantalla la llame.
   `cotizacion_revision` guarda `valores`, `fuentes` y `totales` enteros en cada edición: se corrige aquí. **Antes: 4-26** (la base
@@ -200,7 +203,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 33 pasos y 82 prompts; faltan el 4.14-2c3 y el 4.14-3 y los pasos 4.15 a 4.28.
+Total de la fase: 33 pasos y 82 prompts; falta el 4.14-3 y los pasos 4.15 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
@@ -235,13 +238,14 @@ Sólo los abiertos; lo cerrado vive en `docs/archivo/PLAN.md`. Los de otras fase
   excepción de `.claude/rules/migraciones.md`) pisa el de otra persona; publicar toma el borrador más reciente — una carrera o prueba: A
   guarda un borrador, B hace el ⚙ y A ve un conflicto (PT409) al guardar o publicar, o el ⚙ se niega diciendo que hay un borrador;
   `formula_revertir` publica una copia con el diseño de la versión elegida. Se decide en 4.20 si el ⚙ se niega o archiva el borrador.
-- **4-10** (4.14): el tipo de vehículo que trae la subasta no casa con las claves de la tabla de transporte. El transporte sembrado casa
+- **4-10** (**cerrado** en el 4.14-2c3, 2026-10-30; 4.14): el tipo de vehículo que trae la subasta no casa con las claves de la tabla de transporte. El transporte sembrado casa
   `tipo` con el campo `tipo_vehiculo` (`autos`, `motos`, `vagonetas_medianas`…) y apibara guarda otro vocabulario (`AUTOMOBILE`…): el
   transporte queda sin valor (`fila_sin_coincidencia`) — un vehículo creado con la respuesta grabada de apibara (`e2e/fixtures/apibara`)
   da un transporte sugerido en `subasta_usa`, o la persona elige su tipo de las filas de la tabla en el panel del vehículo y el sugerido
   aparece. 4.14 decide si se mapea el vocabulario de la subasta a las claves o si el campo pasa a ser una opción de las filas.
   **Decidido (P6 del 4.14-1, 2026-10-29):** en el panel del vehículo se elige el tipo entre las filas de la tabla, con el sugerido marcado; lo hacen el 4.14-2c2 (la base: la hoja no sabe qué dato casa con qué tabla, la fórmula no viaja a quien cotiza, D7) y el 4.14-2c3 (la pantalla), y se guarda
-  en el vehículo (P3 del 4.14-2a). El 4.14-2c2 (la base) está hecho: la celda de tabla dice qué dato del vehículo casa con su tabla y sus filas salen de `cotizacion_tabla`. Lo cierra el 2c3.
+  en el vehículo (P3 del 4.14-2a). El 4.14-2c2 (la base) está hecho: la celda de tabla dice qué dato del vehículo casa con su tabla y sus filas salen de `cotizacion_tabla`. El 4.14-2c3 lo cierra: «Elegido»
+  ofrece las filas, elegir guarda `atributos.tipo_vehiculo` y el transporte toma valor; la tarea de oro 2 con un enlace de Copart lo recorre (`e2e/cotizar-tarea-de-oro-enlace.spec.ts`).
 - **4-14** (4.16): (suma del 4.14-2b: el historial de Ana en pantalla recorre sólo las cotizaciones del vehículo, de a 21, y no crece con N) «todas las que veo» de quien ve «propios» recorre el índice global. Con 250.000 cotizaciones **Ana** (5.000 propias y
   1.000 de otras personas sobre su cartera) tarda ≈ 1,6 s y ≈ 42.000 buffers y la **«chica»** ≈ 2,0 s y ≈ 58.000 (`cotizaciones_listado_idx`
   entera, descartando lo ajeno; la familia de 5a-2) — en `medir-cotizaciones-lectura.sql`, la página 1 y una profunda por cursor de Ana y
