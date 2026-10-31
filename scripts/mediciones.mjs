@@ -122,6 +122,11 @@ export const MEDICIONES_CON_VOLUMEN = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-cartera-reciente.sql',
+    '«Míos» del panel del cliente por lo más reciente, con el volumen sembrado y como authenticated con el plan genérico: una página de n + 1 de la cartera (primera, profunda por cursor y la clase cliente) de la dueña, de Ana y de Berta, por leads_asesores_reciente_idx (ms y buffers del EXPLAIN); la clase ausente de la dueña (tope 100 ms), el costo del trigger de lo reciente en un seguimiento y el relleno de la migración con todo el volumen; la «chica», sin assert',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-bajas.sql',
     'La baja de una persona con 200.000 leads (con transacciones de verdad: confirma y borra lo que crea)',
     UNA,
