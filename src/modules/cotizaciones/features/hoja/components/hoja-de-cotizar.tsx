@@ -27,6 +27,8 @@ type Props = {
   guardado: Guardado
   // El borrador de lo tipeado: su clave en la pestaña (de quien cotiza) y «Descartar», con el que el marco vuelve a montar la hoja vacía.
   borrador: { clave: string; alDescartar: () => void }
+  // Los campos del vehículo que quien mira elige en el panel del vehículo (4.14-2c3): la celda sin valor por uno de ellos dice dónde se elige.
+  seEligen?: ReadonlySet<string> | undefined
 }
 
 function SinDatosQueVer() {
@@ -56,13 +58,19 @@ export function HojaDeCotizar({
   leadId,
   borrador,
   guardado,
+  seEligen,
 }: Props) {
   const router = useRouter()
   const raiz = useRef<HTMLDivElement>(null)
   const h = useHoja({ hoja, inicial, vehiculoId, alCambiar: guardado.olvidarAviso, borrador })
   const contexto = useMemo<ContextoDeHoja>(
-    () => ({ indice: h.indice, entradas: h.entradas, respuesta: h.respuesta }),
-    [h.indice, h.entradas, h.respuesta],
+    () => ({
+      indice: h.indice,
+      entradas: h.entradas,
+      respuesta: h.respuesta,
+      ...(seEligen ? { seEligen } : {}),
+    }),
+    [h.indice, h.entradas, h.respuesta, seEligen],
   )
   const { boton } = useGuardarLaHoja({ h, contexto, hoja, leadId, vehiculoId, guardado, raiz })
   const dibujadas = hoja.secciones.filter((seccion) => seccionSeDibuja(seccion, contexto))

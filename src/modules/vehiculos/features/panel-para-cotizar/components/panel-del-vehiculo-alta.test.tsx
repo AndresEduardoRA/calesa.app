@@ -8,6 +8,8 @@ import { PanelDelVehiculo } from './panel-del-vehiculo'
 
 // El alta de adentro del panel (4.14-2c1): «+», «Traer», Enter y los avisos de un enlace. El alta en sí se prueba en `alta-desde-el-panel.test.tsx`.
 const altaMontada = vi.fn()
+// La action del dato del vehículo importa el servidor: aquí no se elige ningún dato.
+vi.mock('../actions/guardar-dato-del-vehiculo', () => ({ guardarDatoDelVehiculo: {} }))
 vi.mock('./diferidos', () => ({
   AltaDesdeElPanelDiferida: (props: {
     vista: string

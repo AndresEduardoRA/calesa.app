@@ -8,6 +8,8 @@ import type { VehiculoDelPanel } from '../../../entities/panel-para-cotizar'
 import { PanelDelVehiculo } from './panel-del-vehiculo'
 
 const altaMontada = vi.fn()
+// La action del dato del vehículo importa el servidor: aquí no se elige ningún dato.
+vi.mock('../actions/guardar-dato-del-vehiculo', () => ({ guardarDatoDelVehiculo: {} }))
 vi.mock('./diferidos', () => ({
   AltaDesdeElPanelDiferida: (props: {
     vista: string

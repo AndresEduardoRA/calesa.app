@@ -4,6 +4,7 @@ import { useRef, type ReactNode } from 'react'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
+import type { ParaElegirConLector } from '../../../entities/dato-para-elegir'
 import { referenciaDelVehiculo, type VehiculoElegido } from '../../../entities/panel-para-cotizar'
 import { Miniatura } from '../../listado/components/miniatura'
 import type { AltaDelPanel } from '../alta-del-panel'
@@ -27,12 +28,15 @@ type Props = {
   cotizado: string | null
   // El historial del elegido, armado por la página (`src/app`): `vehiculos` no conoce `cotizaciones`. Va dentro del panel, en la región «Elegido».
   historial: ReactNode
+  // El dato del elegido que se elige entre las filas de una tabla de la hoja (4.14-2c3), con su lector: lo arma `src/app` (`vehiculos` no conoce `cotizaciones`). null = ninguno.
+  paraElegir?: ParaElegirConLector | null
 }
 
 // La barra del vehículo sobre la hoja de cotizar: una sola parada de Tab que abre el panel del vehículo (`?panel=vehiculo`). Va fuera de
 // la hoja (`[data-hoja]`) y del componente que se vuelve a montar al cambiar de vehículo: elegir otro no la desmonta y el foco vuelve a ella.
 export function BarraDelVehiculo(props: Props) {
   const { origenId, esSubasta, elegido, alta, puedeVer, claveDeLaUrl, cotizado, historial } = props
+  const paraElegir = props.paraElegir ?? null
   const panel = usePanelPorUrl(PANEL_DEL_VEHICULO, [
     CLAVE_DE_LISTA,
     CLAVE_DE_BUSQUEDA,
@@ -90,6 +94,7 @@ export function BarraDelVehiculo(props: Props) {
           alta={alta}
           claveDeLaUrl={claveDeLaUrl}
           historial={historial}
+          paraElegir={paraElegir}
           focoAlCerrar={boton}
         />
       ) : null}

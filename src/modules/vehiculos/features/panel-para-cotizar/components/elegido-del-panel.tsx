@@ -2,18 +2,24 @@
 
 import type { ReactNode } from 'react'
 import { Button } from '@/shared/ui/button'
+import type { ParaElegirConLector } from '../../../entities/dato-para-elegir'
 import type { VehiculoElegido } from '../../../entities/panel-para-cotizar'
 import { Miniatura } from '../../listado/components/miniatura'
+import { DatoDelElegido } from './dato-del-elegido'
 
 type Props = {
   elegido: VehiculoElegido
   // El historial del elegido, armado por la página (`vehiculos` no conoce `cotizaciones`): va debajo de su título.
   historial: ReactNode
   alQuitar: () => void
+  // Los datos del vehículo que se eligen entre las filas de una tabla de la hoja (4.14-2c3), con su lector; null = ninguno.
+  paraElegir: ParaElegirConLector | null
+  // Guardado un dato: el panel cierra como al elegir el vehículo.
+  alGuardado: () => void
 }
 
-// La región «Elegido» del panel del vehículo: el de la hoja, con «Quitar» y su historial.
-export function ElegidoDelPanel({ elegido, historial, alQuitar }: Props) {
+// La región «Elegido» del panel del vehículo: el de la hoja, con «Quitar», el dato que se elige de una tabla de la hoja y su historial.
+export function ElegidoDelPanel({ elegido, historial, alQuitar, paraElegir, alGuardado }: Props) {
   return (
     <section
       aria-label="Elegido"
@@ -29,6 +35,17 @@ export function ElegidoDelPanel({ elegido, historial, alQuitar }: Props) {
           Quitar
         </Button>
       </div>
+      {paraElegir?.datos.map((dato) => (
+        <DatoDelElegido
+          key={dato.campo}
+          vehiculoId={elegido.id}
+          version={paraElegir.version}
+          editable={paraElegir.editable}
+          dato={dato}
+          leerOpciones={paraElegir.leerOpciones}
+          alGuardado={alGuardado}
+        />
+      ))}
       {historial}
     </section>
   )

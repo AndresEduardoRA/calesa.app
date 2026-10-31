@@ -6,6 +6,7 @@ import { CLAVE_DE_CURSOR, CLAVE_DE_PANEL } from '@/shared/lib/filtros'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Drawer } from '@/shared/ui/drawer'
 import { PestanasConDesborde } from '@/shared/ui/pestanas-con-desborde'
+import type { ParaElegirConLector } from '../../../entities/dato-para-elegir'
 import {
   desdeDelCierre,
   listaDelPanel,
@@ -32,6 +33,8 @@ type Props = {
   // El historial del elegido (lo arma la página; `vehiculos` no conoce `cotizaciones`): va dentro de «Elegido», debajo de su título. Sin elegido no se dibuja.
   historial?: ReactNode
   focoAlCerrar?: RefObject<HTMLButtonElement | null>
+  // El dato del elegido que se elige entre las filas de una tabla de la hoja (4.14-2c3); null = ninguno.
+  paraElegir?: ParaElegirConLector | null
 }
 
 // El panel del vehículo de la hoja de cotizar (`?panel=vehiculo`): el elegido arriba y, en pestañas, los vehículos del origen por
@@ -50,6 +53,7 @@ export function PanelDelVehiculo(props: Props) {
     claveDeLaUrl,
     historial,
     focoAlCerrar,
+    paraElegir = null,
   } = props
   const parsers = useMemo(
     () =>
@@ -90,6 +94,7 @@ export function PanelDelVehiculo(props: Props) {
           elegido={elegido}
           alta={alta}
           historial={historial}
+          paraElegir={paraElegir}
           alElegir={ir}
         />
       ) : null}
@@ -109,9 +114,10 @@ function ContenidoDelPanel(props: {
   elegido: VehiculoElegido | null
   alta: AltaDelPanel | null
   historial: ReactNode
+  paraElegir: ParaElegirConLector | null
   alElegir: (id: string | null) => void
 }) {
-  const { origenId, esSubasta, elegido, alta, historial, alElegir } = props
+  const { origenId, esSubasta, elegido, alta, historial, paraElegir, alElegir } = props
   const [desde] = useState(() => desdeDelCierre(new Date()))
   const { lista, pestana, texto, leido, leida, cambiarLista, cambiarTexto, irA, reintentar } =
     useListaDelPanel({ origenId, esSubasta, desde })
@@ -146,6 +152,11 @@ function ContenidoDelPanel(props: {
           historial={historial}
           alQuitar={() => {
             alElegir(null)
+          }}
+          paraElegir={paraElegir}
+          // Guardado el dato, lo mismo que elegir este vehículo: la hoja se vuelve a abrir con él.
+          alGuardado={() => {
+            alElegir(elegido.id)
           }}
         />
       ) : null}

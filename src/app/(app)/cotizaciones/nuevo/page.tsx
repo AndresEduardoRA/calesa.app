@@ -5,6 +5,7 @@ import { z } from 'zod'
 import {
   aperturaDe,
   contarCotizacionesDelVehiculo,
+  datosDelVehiculoDeLaHoja,
   CLAVE_DE_LEAD,
   CLAVE_DE_ORIGEN,
   CLAVE_DE_VEHICULO,
@@ -23,14 +24,23 @@ import {
 } from '@/modules/cotizaciones/pantallas/cotizar'
 import { requerirSesion } from '@/modules/equipo'
 import { integracionActiva } from '@/modules/empresa'
-import { getOrigenes, type OrigenResumen } from '@/modules/origenes'
-import { elegidoDesde, leerVehiculo, permisoDeAlta } from '@/modules/vehiculos'
-import { BarraDelVehiculo, type AltaDelPanel } from '@/modules/vehiculos/pantallas/cotizar'
+import { getOrigenes, leerLayout, type OrigenResumen } from '@/modules/origenes'
+import {
+  datosParaElegirDe,
+  editablesDe,
+  elegidoDesde,
+  leerVehiculo,
+  permisoDeAlta,
+  type Vehiculo,
+  type VehiculoElegido,
+} from '@/modules/vehiculos'
+import type { AltaDelPanel, ParaElegir } from '@/modules/vehiculos/pantallas/cotizar'
 import { conteoCorto } from '@/shared/lib/conteo'
 import { datosO } from '@/shared/lib/errores'
 import { puede, type Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
+import { BarraDeLaHoja } from './barra-de-la-hoja'
 
 export const metadata: Metadata = { title: 'Cotizar' }
 
@@ -74,14 +84,44 @@ async function abrirLaHoja(origenId: string, vehiculoId: string | null) {
   }
 }
 
-// El vehículo de la URL como lo dibuja la barra; null si no vino, no existe o no se ve.
-async function elegidoDeLaUrl(id: string | null) {
+type Quien = { permisos: Permisos; usuarioId: string }
+
+// El vehículo de la URL, con si quien mira lo puede editar (en serie: `editablesDe` necesita el vehículo leído; casi siempre sin ir a la base); null si no vino, no existe o
+// no se ve.
+async function elegidoDeLaUrl(quien: Quien, id: string | null) {
   if (id === null) {
     return null
   }
   const leido = await leerVehiculo(id)
-  return leido.ok && leido.data ? elegidoDesde(leido.data) : null
+  if (!leido.ok || !leido.data) {
+    return null
+  }
+  const editables = await editablesDe(quien, [leido.data])
+  return { vehiculo: leido.data, editable: editables.has(leido.data.id) }
 }
+
+// El layout del origen sólo hace falta con un vehículo: dice qué datos del vehículo se eligen en el panel.
+const layoutSiHayVehiculo = (origenId: string, vehiculo: string | null) =>
+  vehiculo === null ? null : leerLayout(origenId, { conUso: false })
+
+// Lo que el panel ofrece elegir del vehículo entre las filas de una tabla de la hoja (4.14-2c3, el tipo de vehículo del transporte): sólo con un elegido y su layout.
+function paraElegirDe(
+  hoja: Parameters<typeof datosDelVehiculoDeLaHoja>[0],
+  elegido: { vehiculo: Vehiculo; editable: boolean } | null,
+  layout: Awaited<ReturnType<typeof leerLayout>> | null,
+): ParaElegir | null {
+  if (elegido === null || layout === null || !layout.ok) {
+    return null
+  }
+  const datos = datosDelVehiculoDeLaHoja(hoja)
+  return datos.length === 0
+    ? null
+    : datosParaElegirDe(elegido.vehiculo, datos, layout.data.campos, elegido.editable)
+}
+
+// Los campos que quien mira elige en el panel: la celda sin valor por uno de ellos dice dónde se elige.
+const camposQueSeEligen = (paraElegir: ParaElegir | null): string[] =>
+  paraElegir?.editable ? paraElegir.datos.map((dato) => dato.campo) : []
 
 // Lo que el panel del vehículo necesita para dar de alta desde él: sólo si quien mira ve los vehículos del origen y puede crearlos en él (el origen de la hoja está
 // siempre activo). Se lee a la vez que la hoja. El layout del origen no viaja: el alta lo lee desde el navegador al abrirse (P2 del 4.14-2c).
@@ -110,18 +150,22 @@ function BarraConHistorial({
   conteo,
   alta,
   puedeVer,
+  paraElegir,
+  abierta,
 }: {
   origen: { id: string; tipo: string }
-  elegido: Awaited<ReturnType<typeof elegidoDeLaUrl>>
+  elegido: VehiculoElegido | null
   conteo: Awaited<ReturnType<typeof contarCotizacionesDelVehiculo>> | null
   alta: AltaDelPanel | null
   puedeVer: boolean
+  paraElegir: ParaElegir | null
+  abierta: string
 }) {
   const cotizado = elegido && conteo?.ok ? conteo.data : null
   // El «n» de la insignia ya escrito («2», «20+»); con 0, sin insignia. La barra va en la carga en frío de la hoja y recibe el texto, no el conteo.
   const insignia = cotizado !== null && cotizado.n > 0 ? conteoCorto(cotizado) : null
   return (
-    <BarraDelVehiculo
+    <BarraDeLaHoja
       origenId={origen.id}
       esSubasta={origen.tipo === 'subasta'}
       elegido={elegido}
@@ -129,6 +173,8 @@ function BarraConHistorial({
       puedeVer={puedeVer}
       claveDeLaUrl={CLAVE_DE_VEHICULO}
       cotizado={insignia}
+      paraElegir={paraElegir}
+      abierta={abierta}
       historial={
         elegido ? (
           <HistorialDelVehiculo key={elegido.id} vehiculoId={elegido.id} conteo={cotizado} />
@@ -155,11 +201,13 @@ async function Hoja({
   const lead = idDeUrl(url[CLAVE_DE_LEAD])
   const vehiculo = idDeUrl(url[CLAVE_DE_VEHICULO])
   // El vehículo de la barra y su «Cotizado (n)» se leen a la vez que la hoja; si la hoja lo suelta, la barra queda sin él.
-  const [{ apertura, vehiculoSoltado }, elegido, conteo, alta] = await Promise.all([
+  // Con un vehículo, el layout del origen (qué datos del vehículo se eligen en el panel) también va en paralelo.
+  const [{ apertura, vehiculoSoltado }, leido, conteo, alta, layout] = await Promise.all([
     abrirLaHoja(origen.id, vehiculo),
-    elegidoDeLaUrl(vehiculo),
+    elegidoDeLaUrl(sesion, vehiculo),
     vehiculo === null ? null : contarCotizacionesDelVehiculo(vehiculo),
     altaDelPanelDe(sesion.permisos, origen),
+    layoutSiHayVehiculo(origen.id, vehiculo),
   ])
   if (apertura.tipo === 'sin_permiso') {
     return (
@@ -183,16 +231,20 @@ async function Hoja({
     )
   }
   const vehiculoUsado = vehiculoSoltado ? null : vehiculo
+  const elegido = vehiculoSoltado ? null : leido
+  const paraElegir = paraElegirDe(apertura.hoja, elegido, layout)
   return (
     <>
       {pestanas}
       {/* Fuera de la hoja (`[data-hoja]`) y del componente con `key`: elegir otro vehículo no la vuelve a montar. */}
       <BarraConHistorial
         origen={origen}
-        elegido={vehiculoSoltado ? null : elegido}
+        elegido={elegido ? elegidoDesde(elegido.vehiculo) : null}
         conteo={conteo}
         alta={alta}
         puedeVer={puede(sesion.permisos, 'vehiculos.ver', origen.id)}
+        paraElegir={paraElegir}
+        abierta={apertura.hoja.abierta}
       />
       <PantallaDeCotizar
         key={`${origen.id}:${lead ?? '-'}:${vehiculoUsado ?? '-'}`}
@@ -202,6 +254,8 @@ async function Hoja({
         vehiculoSoltado={vehiculoSoltado}
         leadId={lead}
         personaId={sesion.usuarioId}
+        // La celda sin valor por un dato que quien mira elige en el panel dice dónde se elige (4.14-2c3).
+        seEligen={camposQueSeEligen(paraElegir)}
       />
     </>
   )
