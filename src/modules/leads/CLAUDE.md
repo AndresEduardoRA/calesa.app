@@ -39,12 +39,13 @@ Ficha completa (historia, partes, mediciones, trampas viejas): `docs/archivo/mod
 - **CSV:** exportar sólo la cartera (`en_cartera = true`), tope 5.000, 5 por hora, apóstrofo ante `= + - @`. Importar pasa cada fila por `validarAlta()` y no adopta del limbo. `FILAS_POR_LOTE` (50) lo compara `scripts/guardas/lote-de-importacion.test.ts`.
 - **Portal:** la clave se ve una vez y nunca cruza registro, URL ni almacenamiento (`logging.serverFunctions` apagado); `otorgado_en` es la versión del acceso.
 - **Visibilidad:** `_lead_visible_para(eliminado_en, cartera, alcance, yo, fuera)`; una función que lee `leads_asesores … revocado_en is null` entra al inventario de `humo.sql` o filtra con `_bajas_en_curso()`.
+- **Lo reciente en la cartera:** `leads_asesores.lead_reciente_en` es una copia de `coalesce(ultimo_seguimiento_en, creado_en)` en **todas** las filas del lead, también las revocadas (compartir revive una fila por `on conflict` y ahí lo del `before insert` se descarta). La llena `leads_asesores_creado_en()`, la sigue `leads_reciente_seguir()` (trigger de `leads`) y nadie más la escribe (`leads_asesores_creado_en_guarda()`); las dos vistas la exponen como `reciente_en`. Un `insert` en `leads_asesores` con los triggers apagados nombra las dos copias.
 - Ningún componente decide qué número de lead mostrar: dibujan el global si llegó, si no el propio.
 
 ## Ojo
 
 - Los números mostrados son acotados (`contarLeadsHasta`, «500+») y las listas hijas tienen tope (`.claude/rules/escala.md`); un resultado de RPC se pone sólo dentro de lo cargado (`ponerEnLaVentana()`).
-- Búsqueda y campos van por `leads_candidatos()` (`security definer`): `condicionesDeLaPagina()` **quita** lo que ya cumplen (repetirlo cambia el plan). `_leads_vista_crear()` define `leads_vista` y `leads_cartera_vista`: no `drop view` a mano. `atributos_lead()` lleva `COST 20000`; un campo público se filtra por `atributos_publicos`.
+- Búsqueda y campos van por `leads_candidatos()` (`security definer`): `condicionesDeLaPagina()` **quita** lo que ya cumplen (repetirlo cambia el plan). `_leads_vista_crear()` define `leads_vista` y `leads_cartera_vista` (con `reciente_en`): no `drop view` a mano. `atributos_lead()` lleva `COST 20000`; un campo público se filtra por `atributos_publicos`.
 - La tabla de países (`entities/paises/`) sólo con `import()`, nunca estática; un lead existente no cambia de país al cambiar un teléfono.
 - Los e2e que insertan leads con el cliente de servicio completan los requeridos (`e2e/soporte/leads.ts`).
 - Las carreras se prueban en `pnpm db:carreras`, no en `db:probar`.

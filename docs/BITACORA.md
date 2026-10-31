@@ -329,3 +329,19 @@ la celda sin valor dice que se elige en «Vehículo». La tarea de oro 2 con un 
   - Medido: el grupo con 1.000 claves por tabla, 56 nodos (tope 59) y ≈ 55.100 B por lectura; JS en frío de `/cotizaciones/nuevo` 444,7 KB de 460; la tarea de oro con enlace, 32 teclas, KLM 39,5 s.
 - **Commits:** `65841c37` (la lectura de las opciones), `da63e3df` (elegir en el panel) y `f95a7d4b` (la tarea de oro con enlace).
   e2e completo: no (4.14-2c3, pantalla, 1 de 3)
+
+## 2026-10-31 — 4.14-3a: «míos» del panel del cliente por lo más reciente
+
+La cartera de una persona se lee ahora ordenada por lo más reciente de cada lead (el último seguimiento vivo o, sin ninguno, el alta) con un índice y sin ordenar: `leads_asesores.lead_reciente_en` es una copia
+que mantienen triggers en todas las filas del lead (también las revocadas), y `leads_vista` y `leads_cartera_vista` la exponen como `reciente_en`. Es la base del panel del cliente (4.14-3b). Cierra 4-53.
+`docs/DECISIONES.md` › «Paso 4.14 (3a)».
+
+- **Verificación:**
+  - En verde: `pnpm lint`, `pnpm typecheck` (sin warnings), `pnpm test` (5.892 pruebas en 489 archivos), `bash scripts/mapa.sh --check`, `pnpm db:probar` (466 ✓), `pnpm db:lint` y `pnpm db:carreras` (con las carreras K1–K3 nuevas).
+  - Rojos contra HEAD: `cartera-reciente.sql` cae en 10 de sus 11 bloques (el primero sólo arma ayudantes), `derivados-leads.sql` en 9 (`rojo-derivados.txt`) y las carreras caen por la columna que no existe (`.piloto/salidas/4.14-3a/rojo-probar.txt`, `rojo-carreras.txt`).
+  - Mutaciones: M1–M10 hacen caer su prueba (`.piloto/salidas/4.14-3a/mut/`); M11 (la migración no apaga el trigger de la cartera en el relleno) sobrevive por diseño (`M11-sin-apagarlo.txt`), y dejarlo apagado tras el relleno cae en T10 y en 36 pruebas más (`M11-dejarlo-apagado.txt`).
+  - Nivel 2 (estructura): `pnpm test:e2e:completo --project=escritorio`, 873 en verde, 16 saltadas, 31,4 min (`.piloto/salidas/4.14-3a/e2e-completo.txt`).
+  - Medido con 62.000 y 212.000 (`db:medir:volumen`, `.piloto/salidas/4.14-3a/f50-medir.txt` y `f200-medir.txt`): página 1 y profunda 1,6–2,2 ms y 485–733 buffers; la pestaña por clase de la dueña 1.535–1.551
+    buffers (tope 2.500); la clase ausente 66 ms y 289 ms (tope 400, límite declarado); un seguimiento cuesta +0,1 ms y +144/+147 buffers; el relleno de 201.600 filas, 10,7 s.
+- **Commits:** `31219462` (4-53), `c39cef65` (la migración, sus pruebas, las carreras y los tipos) y `b8b9e959` (la medición con volumen) y `4d7e6041` (el `fix` de la auditoría: K3 de salir en el otro orden).
+  e2e completo: sí (4.14-3a)

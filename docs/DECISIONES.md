@@ -1470,3 +1470,29 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **La tarea de oro 2 con un enlace** (`e2e/cotizar-tarea-de-oro-enlace.spec.ts`, aparte porque el de la tarea de oro ya medía 272 líneas): 32 teclas de control, KLM 39,5 s con 6 decisiones, robot
   2,5 s (escritorio) y 3,0 s (móvil). apibara se intercepta con otro VIN y otro lote: el VIN es único entre los vivos y `cotizar-panel-crear-vehiculo` usa los de la ficha grabada.
 - **Medido.** El grupo con dos tablas de 1.000 claves: 56 nodos (presupuesto previo 260; tope 59) y ≈ 55.100 B por lectura. JS en frío de la hoja 444,7 KB de 460 (+0,8).
+
+## 2026-10-31 — Paso 4.14 (3a): «míos» por lo más reciente y la partición en 3a, 3b y 3c
+
+- **El 4.14-3 se parte en tres.** La base (rigor máximo, compuerta `datos`) y la pantalla se verifican distinto, y la pantalla sola son dos superficies: el **3a** (esta base: Nivel 2 + cadena db +
+  `db:carreras` + `db:medir:volumen`), el **3b** (el panel del cliente sobre la hoja; Nivel 1) y el **3c** («Nuevo lead» desde el panel, «Cotizar» en la ficha del lead y el tramo del cliente de la tarea
+  de oro 2; Nivel 1). Lo que el 3b y el 3c tendrán que preguntar: si lo tipeado en la hoja se conserva al elegir el cliente, si las pestañas son «Todos» más una por clase, si tras «Nuevo lead» la hoja
+  elige el creado y dónde va «Cotizar» en la ficha.
+- **P1 (producto): «por actividad» es lo reciente del lead.** El último seguimiento vivo y, sin ninguno, el alta: `coalesce(leads.ultimo_seguimiento_en, leads.creado_en)`. Nunca es nulo, y por eso el
+  cursor de `src/shared` (que no admite nulos en la columna de orden) lo usa tal cual. «Actividad» se queda para la auditoría (glosario: **Reciente**).
+- **P2 (datos): una copia en la cartera.** `leads_asesores.lead_reciente_en`, con `leads_asesores_reciente_idx (usuario_id, lead_reciente_en desc, lead_id desc) where revocado_en is null`. Sin la copia,
+  «míos» por lo reciente ordena la cartera entera en cada página o camina el único índice por seguimiento, que es global y no tiene persona. La copia está en **todas** las filas del lead, también las
+  revocadas: compartir y «Tomar lead» del limbo reviven una fila por `on conflict do update`, y ahí lo que calcula el `before insert` se descarta; lo que la deja bien es el trigger del lead.
+- **Una función de trigger aparte.** `leads_reciente_seguir()` no es `leads_creado_en_seguir()` ampliada: una sola responsabilidad. Si cambia `creado_en` de un lead sin seguimientos corren los dos (raro,
+  aceptado). El relleno es una función invocadora, sin `security definer` y sin `execute` para la app; la migración la llama una vez, con `trg_leads_asesores_cartera_cambio` apagado (el relleno no cambia
+  quién tiene qué lead). Medido, apagarlo no ahorra nada visible (10,6 y 10,7 s con 201.600 filas), pero tampoco cuesta.
+- **P3 (datos): `trg_leads_asesores_cartera_cambio` no se toca.** El recálculo no reescribe el lead (`is distinct from`). Se midió el costo de escribir: 0,1 ms y 144/147 buffers más por seguimiento.
+- **T1–T3 (los topes provisionales del plan, que el plan mandaba no subir sin la persona):** la pestaña por clase de la dueña (~15 % cliente) cuesta 1.535–1.551 buffers contra 1.500 → tope 2.500 (camina ~7
+  leads por cada uno que muestra; no crece con N); escribir un seguimiento, 144/147 buffers contra 60 → tope 250 (0,1 ms contra 0,5); la clase ausente (la dueña sin ningún lead de una clase), 66 ms con
+  62.000 y 289 ms con 212.000 contra 100 → se declara el límite (400 ms con 80.000 leads en su cartera) en `docs/RENDIMIENTO.md`: crece con la cartera de quien mira y no con los demás; la salida, si hace
+  falta, es copiar también la clase en la cartera (índice por clase), que decide la persona en el 3b.
+- **Lo que las pruebas tuvieron que cuidar.** Dentro de un bloque `now()` no cambia: todo lead del terreno parte con `creado_en` en el pasado y todo seguimiento lleva un `ocurrido_en` explícito, en el
+  pasado y distinto de los demás; sin eso M1, M3, M4 y M8 no podían caer. La guarda de la copia corta a profundidad 0 (`pg_trigger_depth() < 2`), así que T1 y el relleno con volumen corren con
+  `session_replication_role = replica` o con la guarda apagada. M9 (el `max()` de los seguimientos en vez de leer `new`) **no** es equivalente: cae con el recorrido al azar de `derivados-leads.sql`.
+  M11 («la migración no apaga el trigger durante el relleno») sobrevive: ninguna prueba mira el resultado, que es el mismo; lo mira la medición y el trigger encendido después (T10).
+- **Medido** (`docs/RENDIMIENTO.md`): página 1 y profunda de «míos» 1,6–2,2 ms y 485–733 buffers con 62.000 y con 212.000, sin `Sort`; sin el índice, 71 y 296 ms. La siembra de volumen y cuatro `medir-*.sql`
+  que insertaban cartera con los triggers apagados nombran ahora `lead_reciente_en` (la columna es `not null` sin default).

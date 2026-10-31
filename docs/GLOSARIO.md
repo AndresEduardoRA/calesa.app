@@ -109,6 +109,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Primer seguimiento** — `crear_lead()` (`p_seguimiento`): el que se anota al dar de alta: tipo, resumen y recordatorio opcional.
 - **En cartera** — `leads_vista.en_cartera` (de `leads.cartera`) / `en_cartera()`: el lead está en la cartera de quien mira; da el teléfono completo y los privados.
 - **Lectura por la cartera** — `leads_cartera_vista` / `fuenteDelListado()`, `leads_asesores.lead_creado_en`, `leads_asesores_listado_idx`: «míos» de quien tiene «propios», leído por su cartera.
+- **Reciente (de un lead)** — `leads_asesores.lead_reciente_en`, `reciente_en` de `leads_vista` y `leads_cartera_vista`, `leads_asesores_reciente_idx`: el último seguimiento vivo del lead o, sin ninguno, su alta (`coalesce(ultimo_seguimiento_en, creado_en)`). Ordena «míos» del panel del cliente; la copia está en todas las filas de la cartera del lead, también las revocadas. No: «actividad» (es la auditoría).
 - **Candidatos de la búsqueda** — `leads_candidatos()`, `leads_vista_por_ids()`, `leads_busqueda_idx` / `entities/candidatos.ts`: primeros leads que coinciden con un nombre, sacados de un índice.
 - **Míos / Todos** — `?alcance=todos` / `alcanceDelListado()`, `<SelectorDeAlcance>`: modos del listado de leads; «míos» (defecto) = `en_cartera`.
 - **Enmascarado** — `enmascarar_telefono()` / `telefono_lead()`: teléfono de un lead fuera de tu cartera: 3 primeros y 2 últimos dígitos («591•••••01»).
