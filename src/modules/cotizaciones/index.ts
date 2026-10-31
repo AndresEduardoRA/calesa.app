@@ -79,3 +79,7 @@ export {
 // El panel del vehículo de la hoja (4.14-2b): «Cotizado (n)», el conteo acotado de las cotizaciones del vehículo que quien mira ve. Sólo se importa desde un Server
 // Component. El historial se lee desde el navegador por `composicion.client.ts` y se dibuja con `pantallas/cotizar.ts`.
 export { contarCotizacionesDelVehiculo } from './composicion'
+
+// El dato del vehículo de una tabla de la hoja (4.14-2c3): qué campos casan con qué tablas. La página lo pasa al panel del vehículo, que decide cuáles se eligen.
+export { datosDelVehiculoDeLaHoja } from './entities/dato-del-vehiculo'
+export type { DatoDeLaHoja } from './entities/dato-del-vehiculo'
