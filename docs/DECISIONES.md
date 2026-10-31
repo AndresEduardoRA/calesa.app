@@ -1496,3 +1496,30 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
   M11 («la migración no apaga el trigger durante el relleno») sobrevive: ninguna prueba mira el resultado, que es el mismo; lo mira la medición y el trigger encendido después (T10).
 - **Medido** (`docs/RENDIMIENTO.md`): página 1 y profunda de «míos» 1,6–2,2 ms y 485–733 buffers con 62.000 y con 212.000, sin `Sort`; sin el índice, 71 y 296 ms. La siembra de volumen y cuatro `medir-*.sql`
   que insertaban cartera con los triggers apagados nombran ahora `lead_reciente_en` (la columna es `not null` sin default).
+
+## 2026-10-31 — Paso 4.14 (3b): el panel del cliente sobre la hoja
+
+- **P1 (producto): elegir el cliente conserva lo tipeado.** El borrador de la hoja (`sessionStorage`) deja de ir por lead: queda por persona, origen y vehículo; el pendiente del guardado sigue yendo por lead
+  (es de una cotización con su cliente). Elegir o cambiar el cliente vuelve a montar la hoja (el lead va en su `key`) y el borrador repone lo tipeado con el aviso de siempre. Efecto aceptado: en la misma pestaña,
+  abrir otra hoja del mismo origen y vehículo con otro lead también lo recupera, con el mismo aviso y «Descartar». Se hizo en su propio commit, antes del panel.
+- **P2 (producto): «Todos», «Prospecto» y «Cliente», abre en «Todos»** (la lectura medida más barata). **P3 (producto): el campo busca entre los leads que quien cotiza ve**, como el listado
+  (`leads_candidatos` sin `mios`): `cotizacion_crear` ya acepta cualquier lead que se ve. **P4 (producto): «Quitar» sí**, frente a `docs/UX.md` («el lead es obligatorio siempre»): lo obligatorio es para guardar,
+  no para tipear; quitar corrige un cliente elegido por error y «Guardar» vuelve a pedir el cliente.
+- **El panel vive en `leads`** (lee leads y es su vocabulario: el tipo, los números), no en `cotizaciones`; `src/app` lo compone con `pantallas/cotizar.ts`, como el del vehículo. Las lecturas van por el navegador
+  (cambiar de pestaña o de página no puede ir al servidor) con la sesión de quien mira; ninguna policy, grant ni RPC nuevos.
+- **Un `?lead=` que quien mira no ve se suelta**, como el vehículo: la barra queda sin cliente, y la hoja y las pestañas de origen no lo llevan (antes lo llevaban sin leerlo y guardar fallaba en la base). Sólo
+  `ok(null)` —la lectura respondió sin fila— suelta el lead; un error de la lectura sube al `error.tsx` con «Reintentar». Sin `leads.ver` ni se lee. `e2e/cotizar-hoja.spec.ts` probaba que cambiar de origen
+  conserva el lead con un id inventado y con una persona sin `leads.ver`; esa prueba pasó a `cotizar-panel-del-cliente.spec.ts`, con un lead sembrado.
+- **Una ventana de candidatos basta para la búsqueda**: sin condiciones de página (sin marcas ni filtros), los candidatos son la página y la ventana trae hasta 300 (≥ 21). Sólo número (`#n` o corto): son los
+  ids del número, de `leads_ids_del_numero` (con `leads.numero_global.ver`, el global y el propio de cualquier creador; sin él, el propio).
+- **El catálogo al abrir**: `leads_catalogos()` entero (tipos y hasta 100 orígenes que el panel no usa; es la lectura que ya existe) se lee una vez al abrir el panel, con memoria de 60 s. En «Todos» y en la búsqueda
+  va a la vez que la primera página; la pestaña de una clase lo espera (necesita los ids de sus tipos, también los apagados). Sin el catálogo no se pueden nombrar los tipos: la lista entera es el error.
+- **Una parada de Tab más en las tareas de oro**: la barra del cliente va entre la del vehículo y la hoja, y los topes suben en 1, como en el 4.14-2a (`docs/DECISIONES.md`, «Paso 4.14 (2a)»): 25 (la hoja), 29
+  (con el panel del vehículo), 26 (los Tab hasta el primer lado editable) y 33 (con el enlace). Medido: 25, 29 y 33 en los dos proyectos.
+- **Los localizadores `Guardar` de los e2e de guardado pasan a `exact`**: el nombre accesible de la barra («Cliente: …») contiene el nombre del lead, y el del lead de prueba contiene «guardar».
+- **4-65 se acepta como límite** (T3): la pestaña de una clase que quien mira no tiene recorre su cartera (72 ms con 20.000 leads en su cartera, 285 ms con 80.000; tope 400) y el panel muestra el esqueleto
+  mientras tanto. La salida —copiar la clase del lead en la cartera, con índice y triggers— no se hace. **4-50** empeora con la barra nueva: 227 px bajo el borde en escritorio y 157,6 en el celular, al 200 % y con la
+  página arriba (107 y 37,6 con una sola barra); no se arregla aquí. **4-54**: elegir un cliente mientras se guarda es el mismo caso.
+- **Topes del panel**: lo medido más un 5 %, 159 nodos y 5.282 bytes (151 y 4.988–5.030 con 20 filas; el presupuesto previo era 320 y 6.000). JS en frío de `/cotizaciones/nuevo`: 452,9 KB contra 460.
+- **Los textos de los estados son microdecisiones**: «No se pudieron cargar los leads.», «Todavía no tienes leads en tu cartera.», «No tienes leads de esta clase en tu cartera.», «Ningún lead que puedas ver
+  tiene «x» en el nombre o ese número.», «No puedes ver los leads.», «Selecciona un cliente» y «Escribe al menos 3 letras» (el mínimo del listado).

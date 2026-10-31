@@ -345,3 +345,21 @@ que mantienen triggers en todas las filas del lead (también las revocadas), y `
     buffers (tope 2.500); la clase ausente 66 ms y 289 ms (tope 400, límite declarado); un seguimiento cuesta +0,1 ms y +144/+147 buffers; el relleno de 201.600 filas, 10,7 s.
 - **Commits:** `31219462` (4-53), `c39cef65` (la migración, sus pruebas, las carreras y los tipos) y `b8b9e959` (la medición con volumen) y `4d7e6041` (el `fix` de la auditoría: K3 de salir en el otro orden).
   e2e completo: sí (4.14-3a)
+
+## 2026-10-31 — 4.14-3b: el panel del cliente sobre la hoja
+
+La barra «Cliente», debajo de la del vehículo, abre `?panel=cliente`: «míos» por lo más reciente en las pestañas «Todos», «Prospecto» y «Cliente», o la búsqueda por nombre o `#n` entre los leads que quien
+cotiza ve, por cursor y sin ir al servidor, con el tipo de cada lead como texto. Elegir o quitar escribe `?lead=` y conserva lo tipeado; un lead que no se ve se suelta. Cierra 4-65 (límite aceptado).
+`docs/DECISIONES.md` › «Paso 4.14 (3b)».
+
+- **Verificación:**
+  - En verde: `pnpm lint`, `pnpm typecheck` (sin warnings), `pnpm test` (5.932 pruebas en 493 archivos) y `bash scripts/mapa.sh --check`.
+  - Rojos contra HEAD (`.piloto/salidas/4.14-3b/rojo-vitest.txt`): los módulos nuevos no existen y `claves-de-la-hoja.test.ts` cae (seis claves de borrador y no cinco).
+  - e2e dirigidos en `escritorio` y `movil` (`.piloto/salidas/4.14-3b/dirigidos-escritorio.txt`, `dirigidos-movil.txt`, `guardar-esc.txt`, `final-*.txt`): el spec nuevo (10 pruebas), todos los `cotizar-*`, `paneles-foco-al-volver`,
+    `vehiculos-resumen-cotizar` y `presupuesto-js` (JS de `/cotizaciones/nuevo` 452,9 KB de 460). Las tareas de oro miden 25, 29 y 33 teclas de control.
+  - Medido con 62.000 y 212.000 (`medir-cartera-reciente.sql`, `f50b-medir.txt` y `f200-medir.txt`): página 1 y profunda 2,0–3,1 ms y 515–1.009 buffers; la clase cliente de la dueña 3,3–3,5 ms y 1.849–2.042 buffers;
+    la clase ausente 72 y 285 ms (tope 400). El `db:medir:volumen` entero con 62.000 cayó en `medir-importacion-volumen.sql` (el tiempo por fila de la pasada 2 fue 0,67 veces el de la 1, con la máquina a carga 4–5; no toca
+    este paso) y con 212.000 pasó entero; la de «míos» se repitió sola con 62.000.
+  - Panel en pantalla: 151 nodos y 4.988–5.030 bytes con 20 filas (topes 159 y 5.282). Resumen al 200 % con las dos barras y la página arriba: 227 px (escritorio) y 157,6 (celular) bajo el borde (4-50).
+- **Commits:** `dc315de5` (las lecturas), `94932b22` (conservar lo tipeado) y `98a16e17` (la barra, el panel y sus pruebas).
+  e2e completo: no (4.14-3b, pantalla, 1 de 3)
