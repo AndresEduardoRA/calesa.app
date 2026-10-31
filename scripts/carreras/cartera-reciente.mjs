@@ -126,6 +126,19 @@ export async function carrerasDeLoReciente({ orquesta, carrera, espero }) {
     )
   }
   {
+    const lead = await leadConCartera(orquesta, 'reciente anotar y salir')
+    const r = await carrera(orquesta, {
+      a: anotar(duena, lead, MAR),
+      b: { persona: compartido, sql: 'public.lead_salir($1)', args: [lead] },
+    })
+    const c = await cuenta(orquesta, lead, MAR)
+    espero(
+      'anota primero y salir espera: la fila de quien sale también trae el seguimiento',
+      r.a.ok && r.b.ok && c.filas === 2 && c.bien === 2,
+      { r, c },
+    )
+  }
+  {
     const lead = await leadConCartera(orquesta, 'reciente salir')
     const r = await carrera(orquesta, {
       a: { persona: compartido, sql: 'public.lead_salir($1)', args: [lead] },

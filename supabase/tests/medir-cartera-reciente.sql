@@ -1,5 +1,5 @@
--- Medición de «míos» del panel del cliente por lo más reciente (paso 4.14-3a): `pnpm db:medir:volumen`, contra el Supabase LOCAL con la siembra de volumen (50.000 leads
--- «Volumen»; se repite a mano con `pnpm db:sembrar-volumen -- --leads 200000`). Todo en una transacción que se revierte.
+-- Medición de «míos» del panel del cliente por lo más reciente (paso 4.14-3a): `pnpm db:medir:volumen`, contra el Supabase LOCAL con la siembra de volumen (62.000 leads, con los
+-- 50.000 «Volumen»; se repite a mano con `pnpm db:sembrar-volumen -- --leads 200000`, 212.000). Todo en una transacción que se revierte.
 --
 -- Qué se mide: la lectura que escribirá el 4.14-3b por PostgREST, de `leads_cartera_vista`: `select id, numero_visible, nombre, tipo_lead_id, reciente_en … order by reciente_en
 -- desc, id desc limit TAMANO_DE_VER_MAS + 1`, como `authenticated`, con el plan genérico, `EXPLAIN (ANALYZE, BUFFERS)` ×7 y la mediana de las 5 últimas. Quién: la dueña (~20.000 en
@@ -8,8 +8,8 @@
 --
 -- Asserta: `leads_asesores_reciente_idx`, sin `Seq Scan` de `leads` ni de `leads_asesores`, sin `Sort`; ≤ 30 ms, ≤ 3.000 filas descartadas y ≤ 1.500 buffers por página (la clase cliente, ≤ 2.500: camina ~7 leads por cada uno que muestra);
 -- con el volumen mayor, el tiempo a lo sumo `greatest(1,5 × t, t + 3 ms)` del menor lo compara el informe. La clase ausente (la dueña con 0 % de la clase cliente: la pestaña filtra
--- `tipo_lead_id`, que no está en el índice, y recorre su cartera entera) tiene su tope aparte: ≤ 400 ms con 200.000 leads (80.000 en su cartera; 64–73 ms con 50.000), un límite declarado en docs/RENDIMIENTO.md. La guarda: sin el índice la página 1 de la dueña ordena o recorre y el assert cae.
--- C9: `seguimiento_crear` sobre un lead de la dueña compartido con Ana, ×7, con `trg_leads_reciente_seguir` encendido y apagado: la diferencia de la mediana ≤ 0,5 ms y ≤ 250 buffers (se midieron 0,15 ms y 140–146).
+-- `tipo_lead_id`, que no está en el índice, y recorre su cartera entera) tiene su tope aparte: ≤ 400 ms con 212.000 leads (80.000 en su cartera; 66 ms con 62.000), un límite declarado en docs/RENDIMIENTO.md. La guarda: sin el índice la página 1 de la dueña ordena o recorre y el assert cae.
+-- C9: `seguimiento_crear` sobre un lead de la dueña compartido con Ana, ×7, con `trg_leads_reciente_seguir` encendido y apagado: la diferencia de la mediana ≤ 0,5 ms y ≤ 250 buffers (se midieron 0,1 ms y 144/147).
 -- El relleno de la migración con el volumen de la base, sin assert de tiempo salvo ≤ 60 s con el trigger de la cartera apagado: se informan los dos tiempos (apagado y encendido).
 \set ON_ERROR_STOP 1
 \set carga `cat /proc/loadavg`
