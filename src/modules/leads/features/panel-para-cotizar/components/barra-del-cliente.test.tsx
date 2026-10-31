@@ -28,7 +28,14 @@ function montar(props: Partial<Parameters<typeof BarraDelCliente>[0]> = {}, url 
   const cambios: UrlUpdateEvent[] = []
   render(
     <NuqsTestingAdapter searchParams={url} onUrlUpdate={(c) => cambios.push(c)} hasMemory>
-      <BarraDelCliente elegido={null} puedeVer numeroGlobal claveDeLaUrl="lead" {...props} />
+      <BarraDelCliente
+        elegido={null}
+        puedeVer
+        numeroGlobal
+        puedeCrear={false}
+        claveDeLaUrl="lead"
+        {...props}
+      />
     </NuqsTestingAdapter>,
   )
   return { cambios }
@@ -48,6 +55,18 @@ describe('BarraDelCliente', () => {
     expect(boton.textContent).toContain('N.º 1.234')
     expect(boton.getAttribute('aria-haspopup')).toBe('dialog')
     expect(screen.getAllByRole('button')).toHaveLength(1)
+  })
+
+  it('el botón lleva `data-elige` con la clave de la URL: a él vuelve el foco al cerrar «Nuevo lead»', () => {
+    montar()
+    expect(
+      screen.getByRole('button', { name: /Selecciona un cliente/ }).getAttribute('data-elige'),
+    ).toBe('lead')
+  })
+
+  it('le pasa al panel si se puede crear un lead', () => {
+    montar({ puedeCrear: true }, '?origen=o&panel=cliente')
+    expect(panelMontado).toHaveBeenLastCalledWith(expect.objectContaining({ puedeCrear: true }))
   })
 
   it('sin permiso para ver los leads dice por qué y no ofrece nada', () => {

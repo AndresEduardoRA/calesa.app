@@ -16,13 +16,21 @@ type Props = {
   puedeVer: boolean
   // `leads.numero_global.ver`: con él «#n» busca el número global y el propio de cualquier creador.
   numeroGlobal: boolean
+  // `leads.crear` (lo decide la página con `puede()`): el panel ofrece «+», que abre «Nuevo lead».
+  puedeCrear: boolean
   // La clave de la URL donde la hoja lleva su lead: este módulo no la conoce.
   claveDeLaUrl: string
 }
 
 // La barra del cliente sobre la hoja de cotizar: una sola parada de Tab que abre el panel del cliente (`?panel=cliente`). Va fuera de la hoja (`[data-hoja]`) y del
 // componente que se vuelve a montar al cambiar de lead: elegir otro no la desmonta y el foco vuelve a ella. Sin `<Badge>` (arrastra Base UI a la carga en frío de la hoja).
-export function BarraDelCliente({ elegido, puedeVer, numeroGlobal, claveDeLaUrl }: Props) {
+export function BarraDelCliente({
+  elegido,
+  puedeVer,
+  numeroGlobal,
+  puedeCrear,
+  claveDeLaUrl,
+}: Props) {
   const panel = usePanelPorUrl(PANEL_DEL_CLIENTE, [
     CLAVE_DE_CLASE,
     CLAVE_DE_BUSQUEDA,
@@ -41,6 +49,8 @@ export function BarraDelCliente({ elegido, puedeVer, numeroGlobal, claveDeLaUrl 
         ref={boton}
         type="button"
         aria-haspopup="dialog"
+        // A este botón vuelve el foco al cerrar «Nuevo lead» abierto desde el «+» del panel (`marco-del-alta.tsx`): quien lo abrió ya no existe.
+        data-elige={claveDeLaUrl}
         onClick={() => {
           panel.abrir()
         }}
@@ -68,6 +78,7 @@ export function BarraDelCliente({ elegido, puedeVer, numeroGlobal, claveDeLaUrl 
           elegido={elegido}
           claveDeLaUrl={claveDeLaUrl}
           numeroGlobal={numeroGlobal}
+          puedeCrear={puedeCrear}
           focoAlCerrar={boton}
         />
       ) : null}

@@ -39,6 +39,21 @@ export function MarcoDelAlta({ children }: { children: ReactNode }) {
   const [conPie, setConPie] = useState(false)
   const [descripcion, setDescripcion] = useState(DESCRIPCION_INICIAL)
   const cierre = useRef<(() => void) | null>(null)
+  // El último `?elegir=` visto con el alta abierta: al cerrar (y al guardar) la URL ya no lo trae, y de él depende a dónde vuelve el foco.
+  const elegida = useRef<string | null>(null)
+  useEffect(() => {
+    if (panel.abierto) {
+      elegida.current = panel.paraElegir
+    }
+  }, [panel.abierto, panel.paraElegir])
+  // Una función estable: el drawer no se entera de un cambio que no hay.
+  const foco = useCallback(
+    () =>
+      elegida.current === null
+        ? true
+        : (document.querySelector<HTMLElement>(`[data-elige="${elegida.current}"]`) ?? true),
+    [],
+  )
 
   const registrarCierre = useCallback((alCerrar: (() => void) | null) => {
     cierre.current = alCerrar
@@ -69,6 +84,9 @@ export function MarcoDelAlta({ children }: { children: ReactNode }) {
         titulo="Nuevo lead"
         descripcion={descripcion}
         ancho="amplio"
+        // Abierto con `?elegir=` desde el «+» del panel del cliente, quien lo abrió ya no existe: el foco vuelve a la barra «Cliente» (`data-elige`).
+        // Sin `?elegir=`, a quien lo abrió, como siempre.
+        focoAlCerrar={foco}
         pie={conPie ? <div ref={setPie} className="contents" /> : undefined}
       >
         <div ref={setCuerpo} className="contents" />

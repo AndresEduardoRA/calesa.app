@@ -279,6 +279,7 @@ async function HojaDelOrigen({
         elegido={cliente}
         puedeVer={puede(sesion.permisos, 'leads.ver')}
         numeroGlobal={puede(sesion.permisos, 'leads.numero_global.ver')}
+        puedeCrear={puede(sesion.permisos, 'leads.crear')}
         claveDeLaUrl={CLAVE_DE_LEAD}
       />
       <PantallaDeCotizar

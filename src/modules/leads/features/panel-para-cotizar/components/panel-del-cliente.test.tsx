@@ -49,6 +49,7 @@ function Hoja({ alGuardar }: { alGuardar: () => void }) {
 function montar({
   alGuardar = vi.fn(),
   conElegido = true,
+  puedeCrear = false,
   url = '?origen=o&vehiculo=v&panel=cliente',
 } = {}) {
   const cambios: UrlUpdateEvent[] = []
@@ -71,6 +72,7 @@ function montar({
           }
           claveDeLaUrl="lead"
           numeroGlobal
+          puedeCrear={puedeCrear}
         />
       </ProveedorAtajos>
     </NuqsTestingAdapter>,
@@ -136,6 +138,27 @@ describe('PanelDelCliente', () => {
     await screen.findByText('Beto otro')
     fireEvent.keyDown(window, { key: 's', ctrlKey: true })
     expect(alGuardar).not.toHaveBeenCalled()
+  })
+})
+
+describe('PanelDelCliente: «Nuevo lead»', () => {
+  it('con permiso para crear, «Nuevo lead» abre el alta del shell con `elegir` y quita pestaña, búsqueda y página, reemplazando la entrada y sin ir al servidor', async () => {
+    const { cambios } = montar({
+      puedeCrear: true,
+      url: '?origen=o&vehiculo=v&panel=cliente&clase=cliente&buscar=Beto&cursor=abc',
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Nuevo lead' }))
+    await waitFor(() =>
+      expect(cambios.at(-1)?.queryString).toBe('?origen=o&vehiculo=v&panel=nuevo-lead&elegir=lead'),
+    )
+    expect(cambios.at(-1)?.options.history).toBe('replace')
+    expect(cambios.at(-1)?.options.shallow).not.toBe(false)
+  })
+
+  it('sin permiso para crear no hay «Nuevo lead»', async () => {
+    montar()
+    await screen.findByText('Beto otro')
+    expect(screen.queryByRole('button', { name: 'Nuevo lead' })).toBeNull()
   })
 })
 
