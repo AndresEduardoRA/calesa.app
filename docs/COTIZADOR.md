@@ -394,8 +394,14 @@ vehiculo_obligatorio, cabecera, secciones, tarjeta_total, tonos}`. La `cabecera`
   sólo para dividir y sacar los dólares (`oficina` no tiene `total_en` y su `totales.bs` sí tiene valor); la hoja, con ese hueco (P6, 4.13-4b3), no dibuja «Ver total Bs» y guarda `ver_total_bs` en falso.
 
 - Un ítem viaja si su nodo es visible (su `pct`, en un par); una sección, si le queda algún ítem. **Nunca viaja:** `de`, `texto`,
-  `match`, `sobre`, `sugerido_de`, `descripcion`, los grupos, ni los `buckets` y `total_en` de un modo.
-- **Una celda** lleva `nodo`, `etiqueta`, `tipo_nodo`, `formato`, `ancho`, `tono`, `editable`, `motivo`, `ajustes`, `ayuda`, `solo_en` y
+  `match` (salvo `dato_del_vehiculo`, abajo), `sobre`, `sugerido_de`, `descripcion`, los grupos, ni los `buckets` y `total_en` de un modo.
+- **`dato_del_vehiculo` (4.14-2c2):** la celda de un nodo `tabla` que se ve lleva `{tabla, columnas: [{columna, campo}]}`, qué columna de su tabla casa con qué dato del vehículo,
+  si alguna entrada de su `match` lo nombra; si no, no trae la clave. Cuenta una entrada cuyo valor **no es el id de ningún nodo** (aunque coincida con la clave de un campo: el
+  motor lee el nodo) y es `anio`, `marca`, `modelo`, `kilometraje`, `precio` o un campo **activo** del origen de la hoja; un `campo_vehiculo` no cuenta. La tabla, congelada en la
+  versión o viva y activa (la regla de la ayuda). `columnas` va por `columna` con `collate "C"`. La regla es la misma para todos; lo arma `_hoja_datos_del_vehiculo()` (invoker,
+  de nadie) una vez por lectura. **El contrato son las filas:** `cotizacion_tabla()` con la hoja abierta las da y cada una trae la `columna`; `columnas` puede venir vacío (congelada
+  sin viva activa) y `filas` también (una tabla vacía: el motor da `tabla_sin_filas`, y la pantalla lo dice).
+- **Una celda** lleva `nodo`, `etiqueta`, `tipo_nodo`, `formato`, `ancho`, `tono`, `editable`, `motivo`, `ajustes`, `ayuda`, `dato_del_vehiculo`, `solo_en` y
   `condicion`/`requerido_si` **sólo si su bandera se ve**. **`editable`:** `editar` de `_nodos_visibles()` **y** que el nodo acepte un
   valor. **`motivo`** (lo que no se edita): `se_calcula`, `del_vehiculo`, `nivel` (con el **nombre** del nivel que falta) o
   `no_se_edita`. **`ajustes` (⚙):** una constante con `cotizaciones.configurar` del origen, o un tipo de cambio con

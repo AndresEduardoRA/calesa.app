@@ -298,3 +298,20 @@ El 4.14-2c se partió en tres; el 4.14-2c1 no cierra 4-10. `docs/DECISIONES.md` 
     `vehiculos.crear` (tope 40.000); tarea de oro 2 con el panel, 28 teclas, KLM 20,8 s / 19,4 s.
 - **Commits:** `3f834f78` (la búsqueda), `487a37c1` (crear y elegir, con el layout del alta en `origenes`) y `f33fb12f` (la tarea de oro con el panel).
   e2e completo: no (4.14-2c1, pantalla, 2 de 3)
+
+## 2026-10-30 — 4.14-2c2: el dato del vehículo de una celda de tabla
+
+La celda de un nodo `tabla` que quien cotiza ve, en `cotizacion_hoja()`, lleva `dato_del_vehiculo: {tabla, columnas: [{columna, campo}]}`: qué columna de su tabla casa con qué dato del vehículo
+(`tipo` ← `tipo_vehiculo` en el transporte sembrado). Las filas para elegirlo las da `cotizacion_tabla()`. Lo arma `_hoja_datos_del_vehiculo()` (invoker, de nadie) una vez por lectura. Compuerta `datos`
+aprobada (P1 y P2); P3 queda para el 2c3. No cierra 4-10. `docs/DECISIONES.md` › «Paso 4.14 (2c2)».
+
+- **Verificación:**
+  - Cadena db: `db:reset`, `db:types` (suma el ayudante), `db:probar` (454 en verde), `db:lint` (sin avisos nuevos) y `db:medir`. `db:carreras` no aplica (lectura `STABLE`).
+  - En verde: lint, typecheck (sin warnings), Vitest completo (5.842 pruebas en 480 archivos) y `mapa.sh --check`.
+  - Rojos contra HEAD: T1–T5 de `cotizacion-hoja-dato-del-vehiculo.sql` (T5 sólo en el ayudante) y las 3 de `hoja-dato-del-vehiculo.test.ts` (`.piloto/salidas/4.14-2c2/rojo-*.txt`).
+  - Mutaciones: 17 en SQL y 4 en TS, cada una con su prueba. M16 (sin `collate "C"`) no la veía PGlite (colación C) y sí cambia el orden con ICU: T5 lo vigila desde el `fix` (`2827e6df`).
+  - Medido: la hoja de la dueña 10.630 → 10.866 B (+236), la asesora 6.198 → 6.434, `planilla_usa` 9.750 → 9.986; 4,6 ms; sintéticas 12,4 y 161,4 ms (razón 13,0).
+  - e2e dirigidos (9 specs, escritorio): una caída de `cotizar-hoja.spec.ts:145` (la variante, con la máquina cargada) que pasa al repetir el spec (14 de 14). Completo de escritorio: 866 en
+    verde, 16 saltadas y ninguna caída, 32,7 min.
+- **Commits:** `3c51b571` (la base), `faa0e802` (el tipo de la hoja) y `2827e6df` (el `fix` de la auditoría del informe).
+  e2e completo: sí (4.14-2c2)

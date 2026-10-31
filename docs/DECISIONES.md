@@ -1432,3 +1432,20 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **Medido.** `creado_en` lo pide sólo la búsqueda: pedirlo en las pestañas subió la primera respuesta del panel a 5.627 B (tope 4.900); con el buscador, el panel mide 295 nodos y 4.681 B (topes 299 y 4.900).
   JS en frío de la hoja 443,9 KB de 460 (+10,4 KB del buscador y su alta) y de `/vehiculos` 476,3 de 500. La tarea de oro con el panel: 28 teclas de control, KLM 20,8 s (escritorio) y 19,4 s (móvil).
 - **Una consulta de un lote que ya está en el inventario no llena la ficha** (queda marcada «ya está»): el e2e A2 corre antes de T1, que crea el lote 58540656 en el origen.
+
+## 2026-10-30 — Paso 4.14 (2c2): el dato del vehículo de una celda de tabla
+
+- **P1 (la celda, sin RPC nueva).** La celda de un nodo `tabla` que quien mira ve, en `cotizacion_hoja()`, lleva `dato_del_vehiculo: {tabla, columnas: [{columna, campo}]}`; las filas para elegir las
+  da `cotizacion_tabla()`, que ya entrega esa columna a quien ve el nodo. Una RPC aparte sumaba un `security definer` más al inventario y a la matriz por nivel y una lectura por apertura del panel;
+  mandar los valores en la hoja los pagaba cada apertura, se abra o no el panel. Cuesta +236 B por hoja sembrada (dos celdas de transporte), contra el tope de 16 KB.
+- **P2 (qué cuenta).** Un valor del `match` que **no es el id de ningún nodo** —aunque coincida con la clave de un campo activo: el motor lee el nodo— y que el motor lee para ese origen (`anio`, `marca`,
+  `modelo`, `kilometraje`, `precio` o un campo activo del origen de la hoja). Un `campo_vehiculo` (`factor_dp` sobre `anio`) no cuenta: ese dato se tipea en el vehículo, no se elige de una tabla.
+- **Qué cambia en D7.** Hasta hoy el `match` no viajaba a nadie fuera de `cotizaciones.configurar`. Ahora viajan, de una celda que ya se ve, el vínculo «columna ← campo» y, en una celda **sin**
+  ayuda de tabla, la clave de su tabla (antes sólo salía en `ayuda`). Las entradas que nombran un nodo nunca: el centinela de la prueba es un nodo oculto del nivel cuyo id es también un campo activo.
+- **El contrato son las filas, no `columnas`.** `cotizacion_tabla()` saca `columnas` sólo de la tabla viva: con una congelada sin viva activa llega `[]`. No se exige la viva porque, desactivada, la
+  versión publicada sigue calculando con la congelada y el motor sigue pidiendo el dato: el panel se quedaría sin opciones justo entonces, y la regla se separaría de la de la ayuda. `filas` también
+  puede venir vacío (congelada `[]` o viva sin filas activas): el dato viaja sin opciones, el motor da `tabla_sin_filas` y el 2c3 tiene que decirlo en pantalla.
+- **Un ayudante de nadie.** `_hoja_datos_del_vehiculo()` (invoker, `search_path ''`, sin `execute` para nadie fuera de `service_role`) arma el objeto nodo → dato una vez por lectura y no entra al
+  inventario de lo oculto: no lee `formulas` ni `tablas_referencia` (recibe la definición desarmada), como `evaluar_formula`. Así `_cotizacion_hoja()` crece 3 líneas; que pase de 80 viene de antes.
+- **`collate "C"` y PGlite.** `db:probar` corre en PGlite, con colación C: quitar el `collate "C"` no cambia ningún orden allí (M16). En la base local (ICU, `en_US.UTF-8`) sí (`a_` antes que `a1`;
+  la premisa del plan, que ICU ignora `_` y pone `anio` antes que `a_z`, era falsa), así que T5 mira que la definición ordene con `collate "C"`.
