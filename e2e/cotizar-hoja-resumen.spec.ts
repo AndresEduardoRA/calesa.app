@@ -163,6 +163,19 @@ for (const texto of ['al 100 %', 'al 200 %']) {
     await ir(page, origen.id)
     await tipearEnLaHoja(page, 'pub', '1200')
     await expect(totalDeLaHoja(page)).toContainText('1.205,00')
+    // 4-50 (4.14-3b): con las dos barras encima de la hoja (vehículo y cliente) y la página arriba de todo, cuánto queda el borde de abajo del resumen bajo el de la ventana. Sólo se informa.
+    await page.evaluate(() => {
+      window.scrollTo(0, 0)
+    })
+    const arriba = await medidas(page)
+    const bajoElBorde = arriba.resumen
+      ? Math.round((arriba.resumen.y + arriba.resumen.h - arriba.alto) * 10) / 10
+      : null
+    info.annotations.push({
+      type: `resumen ${texto}, página arriba`,
+      description: `${String(bajoElBorde)} px bajo el borde de la ventana`,
+    })
+    console.warn(`[resumen] ${texto}, página arriba: ${String(bajoElBorde)} px bajo el borde`)
     // Con la hoja arriba de la ventana (o lo más arriba que deje la página). Desde el 4.14-2a la barra del vehículo va encima de la hoja; con la página arriba de todo, al
     // 200 % el resumen —que no sube más allá del borde de arriba de la hoja y mide hasta el 40 % del alto— queda 107 px debajo del borde de la ventana (antes cabía por 1 px; 4-50).
     const destino = await page.evaluate(() => {

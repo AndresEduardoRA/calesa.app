@@ -23,6 +23,8 @@ import {
   PestanasDeOrigen,
 } from '@/modules/cotizaciones/pantallas/cotizar'
 import { requerirSesion } from '@/modules/equipo'
+import { leerClienteElegido, type ClienteElegido } from '@/modules/leads'
+import { BarraDelCliente } from '@/modules/leads/pantallas/cotizar'
 import { integracionActiva } from '@/modules/empresa'
 import { getOrigenes, leerLayout, type OrigenResumen } from '@/modules/origenes'
 import {
@@ -98,6 +100,15 @@ async function elegidoDeLaUrl(quien: Quien, id: string | null) {
   }
   const editables = await editablesDe(quien, [leido.data])
   return { vehiculo: leido.data, editable: editables.has(leido.data.id) }
+}
+
+// El lead de la URL para la barra del cliente (4.14-3b), con la sesión de quien mira: null si no vino, si quien mira no ve los leads o si la lectura no lo encontró (no
+// existe, está en la papelera o no se ve: la hoja y las pestañas de origen lo sueltan, y guardar pide elegir otro). Un error de la lectura sube al `error.tsx`: no es «no se ve».
+async function clienteDeLaUrl(
+  permisos: Permisos,
+  id: string | null,
+): Promise<ClienteElegido | null> {
+  return id === null || !puede(permisos, 'leads.ver') ? null : datosO(await leerClienteElegido(id))
 }
 
 // El layout del origen sólo hace falta con un vehículo: dice qué datos del vehículo se eligen en el panel.
@@ -198,16 +209,32 @@ async function Hoja({
       <EstadoSinPermiso descripcion="No tienes permiso para cotizar en ningún origen. Pídeselo a quien administra los roles." />
     )
   }
+  return <HojaDelOrigen sesion={sesion} url={url} origenes={origenes} origen={origen} />
+}
+
+// La hoja del origen elegido, con sus dos barras (vehículo y cliente) y las pestañas de origen.
+async function HojaDelOrigen({
+  sesion,
+  url,
+  origenes,
+  origen,
+}: {
+  sesion: Quien & { permisos: Permisos }
+  url: Awaited<PageProps<'/cotizaciones/nuevo'>['searchParams']>
+  origenes: readonly OrigenResumen[]
+  origen: OrigenResumen
+}) {
   const lead = idDeUrl(url[CLAVE_DE_LEAD])
   const vehiculo = idDeUrl(url[CLAVE_DE_VEHICULO])
   // El vehículo de la barra y su «Cotizado (n)» se leen a la vez que la hoja; si la hoja lo suelta, la barra queda sin él.
   // Con un vehículo, el layout del origen (qué datos del vehículo se eligen en el panel) también va en paralelo.
-  const [{ apertura, vehiculoSoltado }, leido, conteo, alta, layout] = await Promise.all([
+  const [{ apertura, vehiculoSoltado }, leido, conteo, alta, layout, cliente] = await Promise.all([
     abrirLaHoja(origen.id, vehiculo),
     elegidoDeLaUrl(sesion, vehiculo),
     vehiculo === null ? null : contarCotizacionesDelVehiculo(vehiculo),
     altaDelPanelDe(sesion.permisos, origen),
     layoutSiHayVehiculo(origen.id, vehiculo),
+    clienteDeLaUrl(sesion.permisos, lead),
   ])
   if (apertura.tipo === 'sin_permiso') {
     return (
@@ -218,7 +245,9 @@ async function Hoja({
     // Sube al `error.tsx` de la pantalla, que ofrece «Reintentar».
     throw new Error(apertura.error.mensaje)
   }
-  const pestanas = <PestanasDeOrigen origenes={origenes} actual={origen.id} leadId={lead} />
+  // Un lead que no se ve se suelta, como el vehículo: ni la hoja ni las pestañas de origen lo llevan.
+  const leadUsado = cliente?.id ?? null
+  const pestanas = <PestanasDeOrigen origenes={origenes} actual={origen.id} leadId={leadUsado} />
   if (apertura.tipo === 'sin_publicar') {
     return (
       <>
@@ -246,13 +275,19 @@ async function Hoja({
         paraElegir={paraElegir}
         abierta={apertura.hoja.abierta}
       />
+      <BarraDelCliente
+        elegido={cliente}
+        puedeVer={puede(sesion.permisos, 'leads.ver')}
+        numeroGlobal={puede(sesion.permisos, 'leads.numero_global.ver')}
+        claveDeLaUrl={CLAVE_DE_LEAD}
+      />
       <PantallaDeCotizar
-        key={`${origen.id}:${lead ?? '-'}:${vehiculoUsado ?? '-'}`}
+        key={`${origen.id}:${leadUsado ?? '-'}:${vehiculoUsado ?? '-'}`}
         hoja={apertura.hoja}
         inicial={apertura.inicial}
         vehiculoId={vehiculoUsado}
         vehiculoSoltado={vehiculoSoltado}
-        leadId={lead}
+        leadId={leadUsado}
         personaId={sesion.usuarioId}
         // La celda sin valor por un dato que quien mira elige en el panel dice dónde se elige (4.14-2c3).
         seEligen={camposQueSeEligen(paraElegir)}

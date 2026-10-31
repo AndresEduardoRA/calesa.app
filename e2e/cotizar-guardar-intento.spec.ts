@@ -72,7 +72,7 @@ test('tras recargar, el pendiente sigue en la pestaña y se reenvía con el mism
   await expect(page.getByText('El último guardado no se confirmó.', { exact: false })).toBeVisible()
   await page.reload()
   await expect(page.getByText('El último guardado no se confirmó.', { exact: false })).toBeVisible()
-  await page.getByRole('button', { name: 'Guardar' }).click()
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(tarjetaGuardada(page)).toContainText('ya se había guardado')
   const [primero, segundo] = guardados.pedidos
   expect(segundo?.intento).toBe(primero?.intento)

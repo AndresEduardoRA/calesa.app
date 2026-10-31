@@ -47,6 +47,10 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
     sinFormulario:
       'sólo dice que la ficha está llegando, que no se pudo leer o que el lead ya no se ve; el formulario es PanelDeEdicion, que pregunta por su cuenta',
   },
+  // El panel del cliente de la hoja de cotizar (4.14-3b): elige un lead; lo único que se escribe es el texto de la búsqueda, que vive en la URL.
+  'src/modules/leads/features/panel-para-cotizar/components/panel-del-cliente.tsx': {
+    sinFormulario: 'elige un lead; no guarda nada tipeado (la búsqueda vive en la URL)',
+  },
   // --- vehiculos
   'src/modules/vehiculos/features/alta/components/panel-de-vehiculo.tsx': {
     formulario: 'src/modules/vehiculos/features/alta/components/panel-de-vehiculo.tsx',

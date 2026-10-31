@@ -38,8 +38,8 @@ test.describe.configure({ mode: 'serial' })
 
 // Las teclas de control: Tab y Enter a «Saltar al contenido», los Tab hasta la barra y su Enter, Enter para traer el enlace, Ctrl+S («Crear y elegir»), Enter en la barra (el foco
 // vuelve a ella), los Tab hasta el tipo y su Enter, los Tab hasta `remate` y su Enter, hasta `grua` y su Enter, y Ctrl+S. Medido en la primera corrida verde (2026-10-30): 32,
-// con 2,5 s el robot y KLM 39,5 s en escritorio; determinista: una parada nueva en el camino lo rompe a propósito.
-const CONTROLES_CON_EL_ENLACE = 32
+// con 2,5 s el robot y KLM 39,5 s en escritorio; determinista: una parada nueva en el camino lo rompe a propósito. 33 desde el 4.14-3b: la barra del cliente es una parada más entre la del vehículo y la hoja.
+const CONTROLES_CON_EL_ENLACE = 33
 
 let asesora = ''
 let subasta = ''
