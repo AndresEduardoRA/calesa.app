@@ -153,7 +153,7 @@ const RECARGAR_HOJA = 'Esta hoja ya no se puede guardar: recárgala. Lo que escr
 const NO_SE_PUDO = 'No se pudo guardar. Vuelve a intentar en un momento.'
 export const VALOR_DESCARTADO =
   'Hay un valor que esta hoja no acepta: restablece la celda con aviso.'
-export const FALTA_EL_LEAD = 'Para guardar, abre la hoja desde un lead.'
+export const FALTA_EL_LEAD = 'Para guardar, elige el cliente en «Cliente».'
 export const FALTA_EL_VEHICULO = 'Este origen pide un vehículo para guardar.'
 
 // Exhaustivo: un motivo nuevo sin su texto no compila.

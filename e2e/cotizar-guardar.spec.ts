@@ -83,7 +83,7 @@ test('sin lead, «Guardar» está apagado con su motivo y Ctrl+S no manda nada',
   await entrar(page, duena, { fresco: true })
   await page.goto(`/cotizaciones/nuevo?origen=${origen.id}`)
   await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toBeDisabled()
-  await expect(page.getByText('Para guardar, abre la hoja desde un lead.')).toBeVisible()
+  await expect(page.getByText('Para guardar, elige el cliente en «Cliente».')).toBeVisible()
   await tipearEnLaHoja(page, 'pub', '5')
   await guardarConElAtajo(page)
   await expect(totalDeLaHoja(page)).toContainText('10,00')

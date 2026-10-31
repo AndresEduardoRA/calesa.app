@@ -23,7 +23,7 @@ describe('motivoParaNoGuardar', () => {
   it('sin la variante elegida, sin lead o sin el vehículo que el ajuste pide, tampoco', () => {
     expect(motivoParaNoGuardar({ ...LIBRE, estado: { tipo: 'sin_variante' } })).not.toBeNull()
     expect(motivoParaNoGuardar({ ...LIBRE, leadId: null })).toBe(
-      'Para guardar, abre la hoja desde un lead.',
+      'Para guardar, elige el cliente en «Cliente».',
     )
     expect(motivoParaNoGuardar({ ...LIBRE, faltaVehiculo: true })).toBe(
       'Este origen pide un vehículo para guardar.',

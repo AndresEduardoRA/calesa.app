@@ -72,7 +72,7 @@ test('E2E «Cotizar» lleva a la hoja de ese origen con el vehículo en la barra
   )
   await expect(page.locator('[data-hoja]')).toBeVisible()
   await expect(page.getByRole('button', { name: /^Vehículo:/ })).toContainText(TITULO)
-  await expect(page.getByText('Para guardar, abre la hoja desde un lead.')).toBeVisible()
+  await expect(page.getByText('Para guardar, elige el cliente en «Cliente».')).toBeVisible()
 })
 
 test('E2E con «ver vehículos» y sin «crear cotizaciones», el resumen no ofrece «Cotizar»', async ({

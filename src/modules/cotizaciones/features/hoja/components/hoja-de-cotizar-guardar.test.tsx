@@ -160,7 +160,7 @@ describe('HojaDeCotizar › cuándo «Guardar» no guarda', () => {
     const { guardado } = guardadoDePrueba()
     montar(guardado, { leadId: null })
     expect(botonGuardar()).toHaveProperty('disabled', true)
-    expect(screen.getByText('Para guardar, abre la hoja desde un lead.')).toBeTruthy()
+    expect(screen.getByText('Para guardar, elige el cliente en «Cliente».')).toBeTruthy()
   })
 
   it('con el total nulo, apagado (P9)', () => {
