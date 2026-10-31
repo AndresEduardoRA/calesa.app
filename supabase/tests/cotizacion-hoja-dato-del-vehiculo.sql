@@ -319,7 +319,7 @@ begin
 end $$;
 rollback;
 
--- @test dato_del_vehiculo: T5 _cotizacion_hoja sigue prosecdef con search_path vacío y de nadie; su ayudante _hoja_datos_del_vehiculo es invoker, con search_path vacío y de nadie
+-- @test dato_del_vehiculo: T5 _cotizacion_hoja sigue prosecdef con search_path vacío y de nadie; su ayudante _hoja_datos_del_vehiculo es invoker, con search_path vacío, de nadie y ordena con collate "C"
 do $$
 declare v_f text; p record;
 begin
@@ -333,4 +333,8 @@ begin
       raise exception 'T5: % la ejecuta PUBLIC, anon o authenticated', v_f;
     end if;
   end loop;
+  -- El orden de `columnas` es el de collate "C": PGlite ya ordena así (datcollate C) y ninguna clave lo separa aquí, pero una base con ICU pone `a_` antes que `a1`.
+  if pg_get_functiondef(to_regprocedure('public._hoja_datos_del_vehiculo(jsonb, uuid, jsonb, jsonb)')) not like '%order by m.key collate "C"%' then
+    raise exception 'T5: _hoja_datos_del_vehiculo no ordena columnas con collate "C"';
+  end if;
 end $$;
