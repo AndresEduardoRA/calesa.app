@@ -363,3 +363,22 @@ cotiza ve, por cursor y sin ir al servidor, con el tipo de cada lead como texto.
   - Panel en pantalla: 151 nodos y 4.988–5.030 bytes con 20 filas (topes 159 y 5.282). Resumen al 200 % con las dos barras y la página arriba: 227 px (escritorio) y 157,6 (celular) bajo el borde (4-50).
 - **Commits:** `dc315de5` (las lecturas), `94932b22` (conservar lo tipeado) y `98a16e17` (la barra, el panel y sus pruebas).
   e2e completo: no (4.14-3b, pantalla, 1 de 3)
+
+## 2026-10-31 — 4.14-3c: «Nuevo lead» desde el panel, «Cotizar» en la ficha y la tarea de oro del cliente
+
+El panel del cliente de la hoja suma «+», que abre «Nuevo lead» (el del shell) con `?elegir=lead`; al guardar, el alta se cierra, la hoja elige al creado conservando lo tipeado y el foco vuelve a la barra «Cliente».
+«Guardar» sin cliente dice «Para guardar, elige el cliente en «Cliente».». La cabecera de la ficha del lead suma «Cotizar», entre «Editar» y el «⋯», que abre la hoja con ese lead en el primer origen donde quien mira cotiza.
+La tarea de oro 2 suma su tramo del cliente (uno que existe y uno nuevo). Cierra el 4.14. `docs/DECISIONES.md` › «Paso 4.14 (3c)».
+
+- **Verificación:**
+  - En verde: `pnpm lint`, `pnpm typecheck` (sin warnings), `pnpm test` (5.947 pruebas en 495 archivos) y `bash scripts/mapa.sh --check`. Sin esquema: ni `db:*`.
+  - Rojos contra HEAD (`.piloto/salidas/4.14-3c/rojo-vitest.txt`, `rojo-vitest-c2.txt`, `rojo-vitest-c3.txt`): 7 pruebas del «+» y de `?elegir=`, las dos del texto de «Guardar» y las dos del enlace «Cotizar» de la ficha; los e2e nuevos no se corren contra HEAD (no hay «+» ni «Cotizar»).
+  - e2e dirigidos en `escritorio` y `movil` (`.piloto/salidas/4.14-3c/e2e-commit1b.txt`, `e2e-commit2.txt`, `e2e-commit3.txt`): los tres specs nuevos (`cotizar-panel-nuevo-lead`, `cotizar-tarea-de-oro-cliente`, `leads-ficha-cotizar`), `cotizar-panel-del-cliente`,
+    `leads-alta*`, `paneles-foco-al-volver*`, las tareas de oro 2 y 4, `cotizar-guardar*`, `cotizar-hoja`, `leads-ficha*`, `vehiculos-resumen-cotizar` y `presupuesto-js`.
+  - Medido: panel del cliente 156 nodos con el «+» (tope 159) y 5.030 bytes; JS en frío de `/cotizaciones/nuevo` 453,1 KB de 460, `/perfil` 418,4 de 440, `/vehiculos` 476,3 de 500 y `/leads` 510,7 de 530; tarea de oro 4 en 32 y 31 teclas (tope 32); tarea de oro 2 del cliente 29 y 30
+    teclas de control en los dos proyectos (KLM 17,2 y 28,3 s).
+  - Un hallazgo: el panel del cliente devolvía el foco a su barra un instante después de pasar al alta y se lo quitaba al teléfono a media palabra (la tarea de oro del cliente nuevo perdía letras en varias corridas y medía de 30 a 35 teclas);
+    arreglado en el mismo commit y medido 6 veces seguidas en 30.
+  - Una caída ajena: `cotizar-guardar-d2` cayó una vez en la corrida grande del commit 2 y pasó sola al repetirla (la máquina, a carga 4–8 por el escritorio de la persona).
+- **Commits:** `75393f8e` (el «+» y elegir al creado), `9b8bdb8b` (el texto de «Guardar» y la tarea de oro del cliente) y `d5686178` («Cotizar» en la ficha).
+  e2e completo: no (4.14-3c, pantalla, 2 de 3)

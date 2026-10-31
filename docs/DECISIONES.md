@@ -1523,3 +1523,27 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **Topes del panel**: lo medido más un 5 %, 159 nodos y 5.282 bytes (151 y 4.988–5.030 con 20 filas; el presupuesto previo era 320 y 6.000). JS en frío de `/cotizaciones/nuevo`: 452,9 KB contra 460.
 - **Los textos de los estados son microdecisiones**: «No se pudieron cargar los leads.», «Todavía no tienes leads en tu cartera.», «No tienes leads de esta clase en tu cartera.», «Ningún lead que puedas ver
   tiene «x» en el nombre o ese número.», «No puedes ver los leads.», «Selecciona un cliente» y «Escribe al menos 3 letras» (el mínimo del listado).
+
+## 2026-10-31 — Paso 4.14 (3c): «Nuevo lead» desde el panel del cliente y «Cotizar» en la ficha
+
+- **P1 (producto): guardar «Nuevo lead» abierto con «+» elige al creado.** El alta se cierra, la hoja elige al lead creado (la barra lo muestra, lo tipeado se conserva por el 3b y el foco vuelve a la barra) y el aviso
+  «Lead creado · …» va sin «Abrir ficha»: salir dejaría la cotización a medias, como «Crear y elegir» del vehículo. La tecla `N` sobre la hoja abre «Nuevo lead» como en cualquier pantalla y no elige al creado: sólo el «+»
+  lleva `?elegir=`.
+- **P2 (producto): «Cotizar» es un botón de la cabecera de la ficha**, entre «Editar» y el «⋯», como en el resumen del vehículo; suma una parada de Tab a quien cotiza (la tarea de oro 4 no cambia: su asesora no cotiza). Abre la
+  hoja en el primer origen donde quien mira cotiza (las pestañas cambian de origen y conservan el lead). Se ofrece también a quien no puede editar el lead: cotizar pide ver el lead.
+- **P3 (producto): sin «Elegir» cuando el teléfono ya es de un lead que quien cotiza ve.** Se busca en el panel del cliente; queda como 4-66.
+- **Se reusa el «Nuevo lead» del shell**, no un alta dentro del panel: un solo drawer con su borrador, su verificación del teléfono y la tarea de oro 1, y el código del alta no viaja con la hoja (JS de `/cotizaciones/nuevo`
+  453,1 KB de 460). El panel sólo lo abre con una escritura de la URL (`replace`: «atrás» vuelve a la hoja sin panel).
+- **`?elegir=<clave>` nombra una clave de la URL de la misma página**, validada por `claveParaElegir()` (1 a 20 letras minúsculas, ni `panel` ni `elegir`) antes de usarla en la escritura y en el selector del foco; nunca llega a
+  una consulta. Un enlace armado a mano con `elegir` en otra pantalla sólo escribe `?<clave>=<id del creado>` ahí (en `/leads`, abre el rápido del creado): inofensivo.
+- **El foco**: al pasar del panel del cliente al alta, el panel no devuelve el suyo (`focoAlCerrar` devuelve `false` si el que sigue es «Nuevo lead»): Base UI lo habría devuelto a la barra un instante después, quitándoselo al
+  teléfono (medido: varias corridas perdían letras). Al cerrar el alta abierta con `?elegir=`, el foco va a la barra «Cliente» (`data-elige`), no a quien abrió (el «+», que ya no existe); `MarcoDelAlta` guarda el último
+  `elegir` visto con el alta abierta porque, al cerrar, la URL ya no lo trae.
+- **El texto de «Guardar» sin cliente** es «Para guardar, elige el cliente en «Cliente».» (microdecisión, como «Elige el dato del vehículo en «Vehículo»…»). Sin `leads.ver` (la barra dice «No puedes ver los leads.») el texto es el mismo:
+  distinguirlo pediría pasar el permiso a la hoja para un rol que no puede guardar de todos modos (`cotizacion_crear` exige ver el lead).
+- **La ficha lee los orígenes sólo para quien tiene `cotizaciones.crear`**, a la vez que la ficha (`paraCotizarDe()`): si la lectura falla, el botón no está y la ficha sigue. La base vuelve a exigir los permisos al guardar. Las
+  cuatro secciones diferidas de la página pasaron a `seccionesDe()` para no pasar de las 80 líneas de `PaginaLead`.
+- **Topes de la tarea de oro del cliente**: lo medido, igual en los dos proyectos: 29 teclas de control con un cliente que existe y 30 con uno nuevo (el Tab hasta el «+» y su Enter, un Tab del teléfono al nombre y el Ctrl+S
+  del alta); robot < 30 s y KLM ≤ 90 s (17,2 y 28,3 s). Panel del cliente con el «+»: 156 nodos (tope 159).
+- **Los e2e esperan estados finales, no teclas**: el spec del alta espera `toHaveValue(nombre)` antes del Ctrl+S (el robot tipea más rápido de lo que la página confirma) y que los resultados de la búsqueda lleguen antes de
+  tabular a la fila (la lista «míos» se reemplaza al llegar). La pausa de nuqs al escribir la URL se espera con `expect.poll`.
