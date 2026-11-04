@@ -46,6 +46,7 @@ declare
     ('leads_exportacion_registrar', 'las exportaciones de UNA persona en la última hora (a lo sumo 5)'),
     ('storage_refcount', 'las referencias de UNA ruta de Storage (una o dos)'),
     ('_encolar_para_limpiar', 'las rutas de un lote de hasta 200 vehículos'),
+    ('_cotizacion_descartados', 'las entradas tipeadas de UNA cotización (claves de su snapshot): a lo sumo los nodos de su fórmula'),
     ('cotizacion_contadores', 'trigger: los reportes o favoritos de UNA cotización'),
     ('estado_cola_web', 'la cola de asesores de la web (el equipo)')
   ) t (f, m));

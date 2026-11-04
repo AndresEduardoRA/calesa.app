@@ -175,7 +175,8 @@ begin
     raise notice 'medicion|cotizacion_hoja_guardada, %, % (ms)|%', r.fase, r.caso, round(r.ms, 2);
     raise notice 'medicion|cotizacion_hoja_guardada, %, % (buffers)|%', r.fase, r.caso, r.buffers;
     raise notice 'medicion|cotizacion_hoja_guardada, %, % (bytes)|%', r.fase, r.caso, r.bytes;
-    raise notice 'medicion|cotizacion_hoja_guardada, %, % (recorridos de cotizaciones; llamadas a _nodos_visibles)|% ; %', r.fase, r.caso, r.seq, r.nv;
+    raise notice 'medicion|cotizacion_hoja_guardada, %, % (recorridos de cotizaciones)|%', r.fase, r.caso, r.seq;
+    raise notice 'medicion|cotizacion_hoja_guardada, %, % (llamadas a _nodos_visibles)|%', r.fase, r.caso, r.nv;
   end loop;
   for r in select * from _med where caso <> 'mala' loop
     if r.ms > c_ms then v_fallas := v_fallas || format(E'\n  %s, %s: %s ms (tope %s)', r.fase, r.caso, round(r.ms, 2), c_ms); end if;

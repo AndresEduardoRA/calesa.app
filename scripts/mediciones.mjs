@@ -57,6 +57,11 @@ export const MEDICIONES_BASE = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-cotizacion-encima.sql',
+    'cotizacion_encima() con 50.000 y con 250.000 cotizaciones, como authenticated con el plan genérico: la dueña y la asesora («propios») cotizan encima de una anterior distinta en cada corrida (ms y buffers del EXPLAIN de la llamada entera, y que no recorre cotizaciones)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-cotizacion-guardar.sql',
     'cotizacion_guardar() con 50.000 y con 250.000 cotizaciones, como authenticated con el plan genérico: una preventa de la dueña, una de la asesora («propios»), cambiando de vehículo, sin cambios, el intento repetido y la fórmula sintética de 200 nodos con 4 tablas de 1.000 filas (ms y buffers del EXPLAIN de la llamada entera, y que no recorre cotizaciones ni sus revisiones)',
     'mediana de 5 de 7 corridas',

@@ -7024,6 +7024,17 @@ export type Database = {
         Args: { p_def: Json; p_visibilidad: Json; p_visibles: string[] }
         Returns: Json
       }
+      _cotizacion_descartados: {
+        Args: {
+          p_def_ant: Json
+          p_fuentes: Json
+          p_lleva: Json
+          p_res: Json
+          p_valores: Json
+          p_visibles: string[]
+        }
+        Returns: number
+      }
       _cotizacion_diff_recortado: {
         Args: { p_ctx: Json; p_diff: Json; p_legibles: string[] }
         Returns: Json
@@ -7035,6 +7046,10 @@ export type Database = {
       _cotizacion_guardable: { Args: { p_mandados: Json; p_res: Json }; Returns: number }
       _cotizacion_hoja: {
         Args: { p_edita?: boolean; p_formula: string; p_origen: string }
+        Returns: Json
+      }
+      _cotizacion_lo_que_se_lleva: {
+        Args: { p_def: Json; p_entrada: Json; p_fuentes: Json; p_valores: Json }
         Returns: Json
       }
       _cotizacion_modo: { Args: { p_formula: string; p_modo_tc: string }; Returns: Json }
@@ -7660,6 +7675,7 @@ export type Database = {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
       }
+      _revision_etiquetas: { Args: { p_def: Json; p_filas: Json }; Returns: Json }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
       _rol_tocar: { Args: { p_rol: string }; Returns: string }
       _seguimiento_conflicto: { Args: { p_cuando: string }; Returns: undefined }
@@ -8002,6 +8018,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cotizacion_encima: { Args: { p_anterior: string; p_id: string }; Returns: Json }
       cotizacion_evaluar: {
         Args: {
           p_abierta?: string
