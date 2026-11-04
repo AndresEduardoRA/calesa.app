@@ -31,6 +31,16 @@ export type LoGuardado = {
   totalUsd: number | null
 }
 
+// Una versión de la cadena de una cotización (`cotizacion_padre_id`): la anterior o la nueva. El número es el suyo («v2 de #123»).
+export type VersionDeLaCadena = { id: string; numero: number; version: number }
+
+// Lo que `_cotizacion_cadena()` dice a quien mira (4.15-2): la anterior si la ve; la versión nueva viva (la suya si la ve, y si no sólo que existe: P11); y si puede cotizar encima.
+export type CadenaDeLaCotizacion = {
+  anterior: VersionDeLaCadena | null
+  encima: VersionDeLaCadena | { oculta: true } | null
+  puedeCotizarEncima: boolean
+}
+
 export type HojaDeUnaGuardada = {
   diseno: DisenoDeHoja
   cotizacion: CotizacionDeLaHoja
@@ -40,6 +50,9 @@ export type HojaDeUnaGuardada = {
   // El último día en que vale (un día `YYYY-MM-DD` de la zona de la empresa) y si ya pasó.
   venceEl: string
   vencida: boolean
+  // La versión publicada de la fórmula del origen hoy (la cotización usa SU versión: `diseno.formula`); nula si el origen no tiene una publicada.
+  publicada: { id: string; version: number } | null
+  cadena: CadenaDeLaCotizacion
 }
 
 // El diseño de una guardada como la hoja que dibuja `HojaDeCotizar`. No tiene hoja abierta ni su hora (calcula por su cotización, `DeDondeCalcula`: nunca se lee) y el vehículo

@@ -4,7 +4,7 @@ import { esquemaDeDiseno } from './hoja-esquema'
 import type { HojaDeUnaGuardada } from './hoja-de-una-guardada'
 
 // La respuesta de `cotizacion_hoja_guardada()` (4.15-2) leída con Zod, en la forma de `hoja-de-una-guardada.ts`. Sólo la importa el servidor (la lectura): el navegador recibe la
-// hoja ya leída y no necesita los esquemas. La respuesta trae además la cadena (`anterior`, `encima`) y la publicada de hoy: el 4.15-3b las dibuja, acá se caen (`z.object` no es estricto).
+// hoja ya leída y no necesita los esquemas. Trae además la cadena (`anterior`, `encima`, `puede_cotizar_encima`) y la publicada de hoy (4.15-3b): una respuesta sin ellas no es lo que la base promete.
 
 const esquemaDeLaCotizacion = z.object({
   id: z.guid(),
@@ -22,6 +22,8 @@ const esquemaDeLaCotizacion = z.object({
   actualizado_en: z.string().min(1),
 })
 
+const esquemaDeUnaVersion = z.object({ id: z.guid(), numero: z.int(), version: z.int().positive() })
+
 const esquemaDeUnaGuardada = esquemaDeDiseno.extend({
   estado: z.literal('lista'),
   cotizacion: esquemaDeLaCotizacion,
@@ -31,6 +33,10 @@ const esquemaDeUnaGuardada = esquemaDeDiseno.extend({
   puede_guardar: z.boolean(),
   vence_el: z.string().min(1),
   vencida: z.boolean(),
+  publicada: z.object({ id: z.guid(), version: z.int().positive() }).nullable(),
+  anterior: esquemaDeUnaVersion.nullable(),
+  encima: z.union([esquemaDeUnaVersion, z.object({ oculta: z.literal(true) })]).nullable(),
+  puede_cotizar_encima: z.boolean(),
 })
 
 // La respuesta de la base ya en la forma que usa la página, o nulo si no es lo que la base promete.
@@ -66,5 +72,7 @@ export function hojaDeUnaGuardadaDesde(crudo: unknown): HojaDeUnaGuardada | null
     puedeGuardar: h.puede_guardar,
     venceEl: h.vence_el,
     vencida: h.vencida,
+    publicada: h.publicada,
+    cadena: { anterior: h.anterior, encima: h.encima, puedeCotizarEncima: h.puede_cotizar_encima },
   }
 }

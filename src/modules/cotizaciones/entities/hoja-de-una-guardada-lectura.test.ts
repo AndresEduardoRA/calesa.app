@@ -77,3 +77,32 @@ describe('hojaDeUnaGuardadaDesde: lo que lee la página de una cotización guard
     expect(hojaDeUnaGuardadaDesde(crudaDeUnaGuardada({ cotizacion: { id: 'x' } }))).toBeNull()
   })
 })
+
+describe('hojaDeUnaGuardadaDesde: la cadena y la publicada (4.15-3b)', () => {
+  it('lee la cadena y la publicada de hoy', () => {
+    const ANTERIOR = '00000000-0000-4000-8000-0000000000bb'
+    const NUEVA = '00000000-0000-4000-8000-0000000000cc'
+    const h = hojaDeUnaGuardadaDesde(
+      crudaDeUnaGuardada({
+        anterior: { id: ANTERIOR, numero: 40, version: 1 },
+        encima: { id: NUEVA, numero: 42, version: 3 },
+        puede_cotizar_encima: true,
+      }),
+    )
+    expect(h?.cadena).toEqual({
+      anterior: { id: ANTERIOR, numero: 40, version: 1 },
+      encima: { id: NUEVA, numero: 42, version: 3 },
+      puedeCotizarEncima: true,
+    })
+    expect(h?.publicada).toEqual({ id: '00000000-0000-0000-0000-000000000001', version: 3 })
+    const oculta = hojaDeUnaGuardadaDesde(crudaDeUnaGuardada({ encima: { oculta: true } }))
+    expect(oculta?.cadena.encima).toEqual({ oculta: true })
+    expect(hojaDeUnaGuardadaDesde(crudaDeUnaGuardada({ publicada: null }))?.publicada).toBeNull()
+  })
+
+  it('una respuesta sin puede_cotizar_encima no es lo que la base promete', () => {
+    const { puede_cotizar_encima: _quitada, ...sin } = crudaDeUnaGuardada()
+    expect(hojaDeUnaGuardadaDesde(sin)).toBeNull()
+    expect(hojaDeUnaGuardadaDesde(crudaDeUnaGuardada({ encima: { raro: 1 } }))).toBeNull()
+  })
+})
