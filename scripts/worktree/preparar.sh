@@ -2,7 +2,7 @@
 # Deja un worktree de Orca listo para trabajar como un carril, con su propio stack de Supabase, sin pisar a la principal ni al otro
 # carril. Idempotente: corre las veces que haga falta. Se corre en el worktree del carril, nunca en la principal.
 #
-#   bash scripts/worktree/preparar.sh [a|b]     (sin carril: lo saca de la rama, `a/…` o `b/…`)
+#   bash scripts/worktree/preparar.sh [a|b|c]   (sin carril: lo saca de la rama, `a/…`, `b/…` o `c/…`)
 #
 # 1) `.env.carril`: el project_id `importadora-<carril>` y los puertos con su desfase (scripts/lib/stack-local.mjs: a = +100, b = +200).
 #    Lo cargan el candado (`pnpm db:*`, `test:e2e`), `pnpm dev`, `pnpm funciones` y los scripts de medir: config.toml no se toca.
@@ -25,6 +25,7 @@ if [ -z "$CARRIL" ]; then
   case "$(git symbolic-ref --quiet --short HEAD || true)" in
     a/*) CARRIL=a ;;
     b/*) CARRIL=b ;;
+    c/*) CARRIL=c ;;
     *) falta "no sé el carril: pásalo (a o b) o usa una rama a/… o b/…" ;;
   esac
 fi

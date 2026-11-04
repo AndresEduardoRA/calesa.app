@@ -14,6 +14,18 @@ source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
 cd "$RAIZ" || exit 1
 
 falta() { echo "arrancar: $1" >&2; exit 1; }
+# `--carril <id>`: este árbol es el de un carril de docs/plan.yaml; el bucle le pide sus pasos al coordinador (carril.sh). La sesión de tmux
+# pasa a llamarse `piloto-bucle-<id>` y se lanza (una vez) el coordinador, `piloto-coordinador`, que integra los PR verdes.
+CARRIL=""
+ARGS=()
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --carril) CARRIL="${2:-}"; [ -n "$CARRIL" ] || falta "--carril pide el id del carril."; shift 2 ;;
+    *) ARGS+=("$1"); shift ;;
+  esac
+done
+set -- "${ARGS[@]+"${ARGS[@]}"}"
+SESION="piloto-bucle${CARRIL:+-$CARRIL}"
 for programa in git jq flock tmux node; do command -v "$programa" >/dev/null || falta "falta $programa en el PATH."; done
 CLAUDE=$(claude_bin)
 [ -n "$CLAUDE" ] || falta "no encuentro el binario de claude (CLAUDE_BIN, o la extensión de VS Code)."
@@ -37,10 +49,13 @@ echo "arrancar: copia en $COMUN/bin ($(wc -l <"$COMUN/bin/bin.sha256") archivos,
 if [[ " $* " == *" --en-seco "* ]]; then
   exec bash "$COMUN/bin/bucle.sh" "$@"
 fi
-tmux has-session -t piloto-bucle 2>/dev/null && falta "ya hay una sesión de tmux «piloto-bucle»: tmux attach -t piloto-bucle (o bash scripts/piloto/parar.sh)."
-tmux new-session -d -s piloto-bucle -c "$RAIZ" "bash '$COMUN/bin/bucle.sh' $* 2>&1 | tee -a '$ESTADO/bucle.log'; echo; echo 'El bucle terminó (¿PARAR, una compuerta o un error?). Enter para cerrar.'; read -r"
+tmux has-session -t "$SESION" 2>/dev/null && falta "ya hay una sesión de tmux «$SESION»: tmux attach -t $SESION (o bash scripts/piloto/parar.sh)."
+tmux new-session -d -s "$SESION" -c "$RAIZ" "${CARRIL:+PILOTO_CARRIL='$CARRIL' }bash '$COMUN/bin/bucle.sh' $* 2>&1 | tee -a '$ESTADO/bucle.log'; echo; echo 'El bucle terminó (¿PARAR, una compuerta o un error?). Enter para cerrar.'; read -r"
 if ! tmux has-session -t piloto-control 2>/dev/null; then
   tmux new-session -d -s piloto-control -c "$RAIZ" \
     "env PILOTO_SESION=control ENABLE_CLAUDEAI_MCP_SERVERS=false '$CLAUDE' --remote-control 'piloto · control' --model sonnet --effort low --tools 'Read,Bash' --disallowedTools 'mcp__*' --no-chrome --allowedTools 'Read' 'Bash(touch .piloto/PARAR)' 'Bash(bash scripts/piloto/parar.sh*)' 'Bash(cat .piloto/*)' 'Bash(tail *)' '/piloto-control'"
 fi
-echo "arrancar: bucle en «tmux attach -t piloto-bucle»; control en «piloto-control» (Remote Control)."
+if [ -n "$CARRIL" ] && ! tmux has-session -t piloto-coordinador 2>/dev/null && [ -f "$RAIZ/scripts/coordinador/sincronizar.sh" ]; then
+  tmux new-session -d -s piloto-coordinador -c "$RAIZ" "bash scripts/coordinador/sincronizar.sh 2>&1 | tee -a '$ESTADO/coordinador.log'; echo; echo 'El coordinador terminó. Enter para cerrar.'; read -r"
+fi
+echo "arrancar: bucle en «tmux attach -t $SESION»; control en «piloto-control» (Remote Control)."

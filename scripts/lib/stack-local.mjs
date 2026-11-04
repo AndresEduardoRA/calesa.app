@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { parseEnv } from 'node:util'
 
 // Cada carril corre su stack y su app con un desfase sobre los de la principal (la principal es el 0).
-export const DESFASES = { a: 100, b: 200 }
+export const DESFASES = { a: 100, b: 200, c: 300 }
 
 const BASE = {
   SUPABASE_API_PORT: 54621,

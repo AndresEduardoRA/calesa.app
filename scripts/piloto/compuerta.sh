@@ -100,10 +100,10 @@ decision_valida() {
 esperar_decision() {
   local inicio=$SECONDS
   until decision_valida; do
-    [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras se esperaba una decisión."; "$BIN/decidir.sh" cerrar 8>&-; exit 0; }
+    [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras se esperaba una decisión."; "$BIN/decidir.sh" cerrar 8>&- 9>&-; exit 0; }
     if [ "${PILOTO_ESPERA_MAX:-0}" -gt 0 ] && [ $((SECONDS - inicio)) -ge "$PILOTO_ESPERA_MAX" ]; then
       registro "nadie respondió en ${PILOTO_ESPERA_MAX} s."
-      "$BIN/decidir.sh" cerrar 8>&-
+      "$BIN/decidir.sh" cerrar 8>&- 9>&-
       exit 3
     fi
     sleep "$POLL"
@@ -161,8 +161,22 @@ contestar_solo() { # <tipo> <paso> [opciones…]
   registro "compuerta $tipo ($paso) contestada sola con la recomendada: $elegidas"
 }
 
-# compuerta <tipo> <paso> <motivo> <pregunta> [opciones…]
+# Una compuerta a la vez en toda la máquina: `compuerta.md` y `decision.md` son únicos (los lee la sesión de decidir), así que con varios
+# carriles el segundo espera a que el primero sea respondido. El candado (fd 9) se suelta al volver; un `exit` lo suelta con el proceso.
 compuerta() {
+  local rc
+  mkdir -p "$COMUN"
+  exec 9>"$COMUN/compuerta.lock"
+  flock 9
+  _compuerta "$@"
+  rc=$?
+  flock -u 9
+  exec 9>&-
+  return "$rc"
+}
+
+# compuerta <tipo> <paso> <motivo> <pregunta> [opciones…]
+_compuerta() {
   local tipo="$1" paso="$2" clave
   escribir_compuerta "$@"
   if auto_contesta "$tipo" "$paso"; then
@@ -171,9 +185,9 @@ compuerta() {
     DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$COMUN/decision.md" | head -n 1)
   else
     registro "compuerta $tipo ($paso): $3"
-    "$BIN/decidir.sh" abrir 8>&- || { registro "no se pudo abrir la sesión de decidir."; exit 3; }
+    "$BIN/decidir.sh" abrir 8>&- 9>&- || { registro "no se pudo abrir la sesión de decidir."; exit 3; }
     esperar_decision
-    "$BIN/decidir.sh" cerrar 8>&-
+    "$BIN/decidir.sh" cerrar 8>&- 9>&-
     registro "me respondió: $DECISION_TEXTO"
   fi
   clave=$(clave_de "$DECISION_OPCION")

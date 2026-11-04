@@ -26,7 +26,8 @@ negar() {
 
 RAMA=$(git symbolic-ref --quiet --short HEAD)
 case "$RAMA" in
-  a/?*) ;;
+  a/?*) [ -z "${PILOTO_CARRIL:-}" ] || negar "el carril $PILOTO_CARRIL publica sólo ramas $PILOTO_CARRIL/…: se está en «$RAMA»." ;;
+  "${PILOTO_CARRIL:-/}"/?*) ;;
   *) negar "el piloto publica sólo la rama del carril A (a/…), nunca main: se está en «${RAMA:-HEAD suelto}»." ;;
 esac
 [ -z "$(git status --porcelain)" ] || negar "el árbol no está limpio."
@@ -56,11 +57,24 @@ git push --quiet -u origin "$RAMA" || negar "git push origin $RAMA falló."
 # El PR de la rama: se abre una vez; cada paso publicado deja un comentario. Nunca un merge.
 PR=$(gh pr list --head "$RAMA" --state open --json number 2>/dev/null | jq -r '.[0].number // empty' 2>/dev/null)
 CORTO=$(git rev-parse --short HEAD)
-if [ -z "$PR" ]; then
+if [ -z "$PR" ] && [ -n "${PILOTO_CARRIL:-}" ]; then
+  # Un PR por paso (el coordinador integra los verdes): su rama es `<carril>/<paso>`.
+  gh pr create --base main --head "$RAMA" --title "Paso $PASO (carril $PILOTO_CARRIL)" --body "El paso $PASO del carril $PILOTO_CARRIL, verificado por el bucle antes de publicar ($CORTO). Lo integra el coordinador cuando el CI esté en verde." >/dev/null ||
+    negar "se empujó $RAMA, pero gh pr create falló."
+  PR=$(gh pr list --head "$RAMA" --state open --json number 2>/dev/null | jq -r '.[0].number // empty' 2>/dev/null)
+elif [ -z "$PR" ]; then
   gh pr create --base main --head "$RAMA" --title "Carril A: $RAMA" --body "Los pasos del piloto (carril A), uno por commit de docs al final de cada uno. Cada paso lo verificó el bucle antes de publicarlo (lint, typecheck, test, \`db:probar\` si toca \`supabase/\` y los e2e dirigidos). Lo integra la persona; el piloto nunca hace merge.
 
 Primer paso publicado: $PASO ($CORTO)." >/dev/null || negar "se empujó $RAMA, pero gh pr create falló: el PR se abre a mano o en la vuelta siguiente."
 else
   gh pr comment "$PR" --body "Paso $PASO publicado ($CORTO)." >/dev/null || negar "se empujó $RAMA, pero no se pudo comentar el PR #$PR."
+fi
+# Con carril, el coordinador anota el paso como publicado (con el número de su PR).
+if [ -n "${PILOTO_CARRIL:-}" ]; then
+  [ -n "$PR" ] || PR=$(gh pr list --head "$RAMA" --state open --json number 2>/dev/null | jq -r '.[0].number // empty' 2>/dev/null)
+  registro() { echo "publicar: $*" >&2; }
+  # shellcheck source=carril.sh
+  source "$(dirname "${BASH_SOURCE[0]}")/carril.sh"
+  [ -n "$PR" ] && carril_publicado "$PASO" "$PR"
 fi
 echo "publicar: $PASO en $RAMA ($CORTO), PR ${PR:-nuevo}."

@@ -189,3 +189,21 @@ describe('arrancar.sh › lo que lanza', () => {
     expect(r.stderr).toContain('claude')
   })
 })
+
+describe('arrancar.sh › con carril', () => {
+  it('--carril lanza piloto-bucle-<carril> con PILOTO_CARRIL y el coordinador, una vez', () => {
+    mkdirSync(join(repo, 'scripts/coordinador'), { recursive: true })
+    writeFileSync(join(repo, 'scripts/coordinador/sincronizar.sh'), '#!/usr/bin/env bash\nexit 0\n')
+    const r = arrancar('--carril', 'formula')
+    expect(r.status, r.stderr).toBe(0)
+    expect(tmux()).toMatch(/new-session -d -s piloto-bucle-formula .*PILOTO_CARRIL='formula' bash /)
+    expect(tmux()).toMatch(/new-session -d -s piloto-coordinador .*sincronizar\.sh/)
+    expect(tmux()).not.toMatch(/-s piloto-bucle -c/)
+  })
+
+  it('sin --carril, lo de siempre: piloto-bucle y ningún coordinador', () => {
+    arrancar()
+    expect(tmux()).toMatch(/-s piloto-bucle -c/)
+    expect(tmux()).not.toContain('piloto-coordinador')
+  })
+})
