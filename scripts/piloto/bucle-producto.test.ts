@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Arnes, pasoFalla, pasoListo, responder } from './bucle.arnes'
+import { Arnes, pasoCompuerta, pasoFalla, pasoListo, responder } from './bucle.arnes'
 
 // La compuerta «producto» con una pregunta por decisión (CAL-1). El paso la pide con `compuerta.preguntas` (id, pregunta, de 2 a 4
 // opciones; la recomendada primero); el bucle las escribe en compuerta.md con cuántas tandas de 4 son, y acepta la decisión entera
@@ -129,5 +129,36 @@ describe('bucle.sh › una compuerta de producto mal formada es un fallo del pro
     expect(r.estado, r.salida).toBe(0)
     expect(a.llamadas('paso')).toHaveLength(2)
     expect(a.estado('consumo.csv')).toContain('fallo-proceso')
+  })
+})
+
+describe('bucle.sh › la compuerta de producto se contesta sola con las recomendadas', () => {
+  it('no abre decidir, deja la decisión y el paso se retoma con ella', () => {
+    a.paso(1, pasoProducto(seis))
+    a.paso(2, pasoListo({ 'src/a.ts': 'a' }))
+    const r = a.correr(['--hasta', '4.99'], { PILOTO_AUTO: 'producto' })
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia().some((l) => l.startsWith('decidir:'))).toBe(false)
+    expect(a.llamadas('paso')).toHaveLength(2)
+    expect(a.llamadas('paso')[1]).toContain('--resume')
+    expect(r.salida).toContain('contestada sola con las recomendadas')
+    const registro = a.estado('decisiones-automaticas.md')
+    expect(registro).toContain('P0 — ¿Decisión 0?')
+    expect(registro).toContain('→ sí — la recomendada (recomendado)')
+    expect(registro).toContain('P5 — ¿Decisión 5?')
+  })
+
+  it('con PILOTO_AUTO vacío sigue preguntando a la persona', () => {
+    a.paso(1, pasoProducto(seis))
+    a.decidir(1, responderTodas(['parar', 'no', 'no', 'no', 'no', 'no']))
+    a.correr([], { PILOTO_AUTO: '' })
+    expect(a.secuencia()[0]).toBe('decidir:abrir producto 4.99')
+  })
+
+  it('una compuerta de datos nunca se contesta sola', () => {
+    a.paso(1, pasoCompuerta('datos'))
+    a.decidir(1, responder('parar'))
+    a.correr([], { PILOTO_AUTO: 'producto' })
+    expect(a.secuencia()[0]).toBe('decidir:abrir datos 4.99')
   })
 })

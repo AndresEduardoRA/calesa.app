@@ -56,12 +56,25 @@ describe('bucle.sh › las paradas deterministas', () => {
     expect(a.leerFake('compuerta-1.md')).toContain('el árbol está sucio y no hay un paso en curso')
   })
 
-  it('el último CI de la rama en rojo es un aviso', () => {
+  it('el último CI de la rama en rojo (un job común) no para: se anota y el bucle sigue', () => {
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }))
+    const r = a.correr(['--hasta', '4.99'], {
+      FAKE_GH_LISTA: '[{"databaseId":1,"status":"completed","conclusion":"failure","headSha":"x"}]',
+      FAKE_GH_JOBS: '{"jobs":[{"name":"e2e · bloque 1","conclusion":"failure"}]}',
+    })
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.llamadas('ruteo')).not.toEqual([])
+    expect(a.estado('ci-rojos.md')).toContain('e2e · bloque 1')
+  })
+
+  it('el último CI con la base en rojo es un aviso y no sigue', () => {
     a.decidir(1, responder('parado'))
     a.correr([], {
       FAKE_GH_LISTA: '[{"databaseId":1,"status":"completed","conclusion":"failure","headSha":"x"}]',
+      FAKE_GH_JOBS:
+        '{"jobs":[{"name":"Base · reset, tipos, probar, lint y advisors","conclusion":"failure"}]}',
     })
-    expect(a.leerFake('compuerta-1.md')).toContain('el último CI de la rama está en rojo')
+    expect(a.leerFake('compuerta-1.md')).toContain('base en rojo')
     expect(a.llamadas('ruteo')).toEqual([])
   })
 
@@ -75,32 +88,90 @@ describe('bucle.sh › las paradas deterministas', () => {
   })
 })
 
-describe('bucle.sh › lo que no se le deja al modelo', () => {
-  it.each(['4.18', '4.28', '4.18-2'])('el paso %s es un aviso, y el paso no corre', (paso) => {
-    a.ruteo({ ...RUTEO_BASE, paso })
-    a.decidir(1, responder('parado'))
-    const r = a.correr()
-    expect(r.estado).toBe(0)
-    expect(a.secuencia()[0]).toBe(`decidir:abrir parada ${paso}`)
-    expect(a.llamadas('paso')).toEqual([])
-  })
+describe('bucle.sh › la puerta de fase la decide el CI, no la persona', () => {
+  const CI_VERDE = '[{"databaseId":1,"status":"completed","conclusion":"success","headSha":"x"}]'
+  const CI_ROJO = '[{"databaseId":2,"status":"completed","conclusion":"failure","headSha":"x"}]'
+  const CI_CURSO = '[{"databaseId":3,"status":"in_progress","conclusion":null,"headSha":"x"}]'
+  const JOBS_ROJO = '{"jobs":[{"name":"e2e · bloque 1","conclusion":"failure"}]}'
 
-  it('abrir una fase es un aviso', () => {
+  it.each(['4.18', '4.28', '4.18-2'])(
+    'el paso %s con el CI en verde corre sin preguntar',
+    (paso) => {
+      a.ruteo({ ...RUTEO_BASE, paso })
+      a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { paso }))
+      const r = a.correr(['--hasta', paso], { FAKE_GH_LISTA: CI_VERDE })
+      expect(r.estado, r.salida).toBe(0)
+      expect(a.llamadas('paso')).toHaveLength(1)
+      expect(a.secuencia().some((l) => l.startsWith('decidir:'))).toBe(false)
+    },
+  )
+
+  it('abrir una fase con el CI en verde sigue sin preguntar', () => {
     a.ruteo({ ...RUTEO_BASE, paso: '5.01', compuerta: { tipo: 'fase', motivo: 'abre la Fase 5' } })
-    a.decidir(1, responder('parado'))
-    a.correr()
-    expect(a.llamadas('paso')).toEqual([])
-    expect(a.leerFake('compuerta-1.md')).toContain('abre una fase')
-  })
-
-  it('«sigo» en un aviso de 4.18 corre el paso; «reintentar» vuelve a rutear sin correrlo', () => {
-    a.ruteo({ ...RUTEO_BASE, paso: '4.18' })
-    a.decidir(1, responder('sigo'))
-    a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { paso: '4.18' }))
-    expect(a.correr(['--hasta', '4.18']).estado).toBe(0)
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { paso: '5.01' }))
+    const r = a.correr(['--hasta', '5.01'], { FAKE_GH_LISTA: CI_VERDE })
+    expect(r.estado, r.salida).toBe(0)
     expect(a.llamadas('paso')).toHaveLength(1)
   })
 
+  it('con el CI en rojo, el primer paso es ci-fix y no el 4.18', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.18' }, 1)
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { paso: 'ci-fix' }))
+    const r = a.correr(['--hasta', 'ci-fix'], { FAKE_GH_LISTA: CI_ROJO, FAKE_GH_JOBS: JOBS_ROJO })
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.llamadas('paso')[0]).toContain('/piloto ci-fix')
+    expect(a.llamadas('ruteo')).toHaveLength(1)
+    expect(a.estado('ci-fix-intentos').trim()).toBe('1')
+  })
+
+  it('tras 2 intentos de arreglarlo, el CI sigue en rojo: es un aviso', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.18' })
+    a.escribirRepo('.piloto/ci-fix-intentos', '2\n')
+    a.decidir(1, responder('parado'))
+    a.correr([], { FAKE_GH_LISTA: CI_ROJO, FAKE_GH_JOBS: JOBS_ROJO })
+    expect(a.leerFake('compuerta-1.md')).toContain('sigue en rojo tras 2 intentos')
+    expect(a.llamadas('paso')).toEqual([])
+  })
+
+  it('con el CI aún en curso tras la espera máxima: es un aviso', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.18' })
+    a.decidir(1, responder('parado'))
+    a.correr([], { FAKE_GH_LISTA: CI_CURSO, PILOTO_CI_ESPERA_MAX: '0' })
+    expect(a.leerFake('compuerta-1.md')).toContain('sigue corriendo')
+    expect(a.llamadas('paso')).toEqual([])
+  })
+
+  it('«sigo» en ese aviso corre el paso igual', () => {
+    a.ruteo({ ...RUTEO_BASE, paso: '4.18' })
+    a.decidir(1, responder('sigo'))
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { paso: '4.18' }))
+    const r = a.correr(['--hasta', '4.18'], { FAKE_GH_LISTA: CI_CURSO, PILOTO_CI_ESPERA_MAX: '0' })
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.llamadas('paso')).toHaveLength(1)
+  })
+})
+
+describe('bucle.sh › los CI rojos acumulados se arreglan antes del paso siguiente', () => {
+  const tres = [1, 2, 3].map((n) => `- 2026-11-04 run ${n} (abc): e2e · bloque ${n}\n`).join('')
+
+  it('con 3 rojos anotados, el paso es ci-fix y no se llama al ruteo', () => {
+    a.escribirRepo('.piloto/ci-rojos.md', tres)
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }, { paso: 'ci-fix' }))
+    const r = a.correr(['--hasta', 'ci-fix'])
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.llamadas('paso')[0]).toContain('/piloto ci-fix')
+    expect(a.llamadas('ruteo')).toEqual([])
+  })
+
+  it('con 2 rojos todavía se sigue con el ruteo', () => {
+    a.escribirRepo('.piloto/ci-rojos.md', tres.split('\n').slice(0, 2).join('\n') + '\n')
+    a.paso(1, pasoListo({ 'src/a.ts': 'a' }))
+    expect(a.correr(['--hasta', '4.99']).estado).toBe(0)
+    expect(a.llamadas('ruteo')).toHaveLength(1)
+  })
+})
+
+describe('bucle.sh › lo que no se le deja al modelo', () => {
   it('una compuerta de producto o dependencia que ve el ruteo se pregunta antes de gastar el paso', () => {
     a.ruteo(
       { ...RUTEO_BASE, compuerta: { tipo: 'producto', motivo: '¿el aviso va arriba o abajo?' } },

@@ -53,6 +53,16 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    **Sin push.** Verifica con `git log` que existen.
 9. **Terminar.** Escribe `.piloto/ultimo.json` (abajo) y responde con una línea. El bucle lo valida con `jq`; un `ultimo.json` que falte o no valide es un fallo del proceso.
 
+## El paso especial `ci-fix`
+
+Si `$ARGUMENTS` es `ci-fix`, **no hay fila en `docs/PLAN.md`, ni planificador, ni auditor**: el bucle junta los CI rojos y manda arreglarlos (`.piloto/ci-rojos.md`, y `hechos.json` › `ci_rojos`). Camino corto:
+
+1. Lee `.piloto/ci-rojos.md`. Por cada corrida, `gh run view <id> --log-failed | tail -n 200 > .piloto/salidas/ci-fix/<id>.log` (sólo lectura: nada de `gh` que escriba, ni `gh run rerun`).
+2. Encuentra la **causa**, no el síntoma: la prueba o el job que cayó, el commit que lo rompió (`git log` del rango). Un test inestable no se arregla con un reintento ni quitándolo: se hace determinista o se dice en `falla`.
+3. Reprodúcelo **sólo lo que cayó** (un archivo de vitest, un spec de e2e, un job) y arréglalo. No corras la suite entera: el CI lo vuelve a correr.
+4. Uno o dos commits `fix(<scope>): …` en el estilo de siempre, `mapa.sh` antes, sin push. Docs sólo si la corrección cambia una regla.
+5. `ultimo.json` con `paso: "ci-fix"`; `listo` si arreglaste todos los rojos anotados, `falla` si no pudiste (di cuál y por qué). Si el rojo es de la base (RLS, grants, advisors) o de un secreto, compuerta `datos` o `afuera`.
+
 ## `.piloto/ultimo.json`
 
 ```json

@@ -212,3 +212,15 @@ describe('hechos.sh › las funciones edge', () => {
     }
   })
 })
+
+describe('hechos.sh › los CI rojos', () => {
+  it('ci_rojos cuenta las corridas rojas sin arreglar y trae las últimas 10', () => {
+    expect(hechos()['ci_rojos']).toEqual({ n: 0, ultimos: [] })
+    const lineas = Array.from({ length: 12 }, (_, i) => `- 2026-11-04 run ${i + 1} (abc): e2e\n`)
+    writeFileSync(join(repo, '.piloto/ci-rojos.md'), lineas.join(''))
+    const rojos = hechos()['ci_rojos'] as { n: number; ultimos: string[] }
+    expect(rojos.n).toBe(12)
+    expect(rojos.ultimos).toHaveLength(10)
+    expect(rojos.ultimos[9]).toContain('run 12')
+  })
+})

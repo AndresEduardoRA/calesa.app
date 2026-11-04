@@ -82,6 +82,7 @@ describe('arrancar.sh › la copia', () => {
       'compuerta.sh',
       'cierre.sh',
       'gasto.sh',
+      'ci.sh',
       'comun.sh',
       'hechos.sh',
       'verificar.sh',

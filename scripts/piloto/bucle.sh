@@ -12,7 +12,7 @@
 #   (sólo lee; sonnet, esfuerzo bajo) · 4 las compuertas que no se le dejan al modelo y el paso a medias · 5 el paso (una sesión nueva,
 #   o `--resume`) · 6 su resultado: listo (el cierre de `cierre.sh`), compuerta o falla · 7 el límite de uso · 8 el consumo.
 # Un solo bucle a la vez (flock sobre `.piloto/bucle.lock`). Variables: CLAUDE_BIN, PILOTO_DISCO_MAX (90), PILOTO_TOPE_USD_RUTEO (0,5),
-# PILOTO_TOPE_USD_PASO (60: el paso ENTERO, con sus retomas y reintentos), PILOTO_TOPE_USD_MIN (5: con menos, el paso no se lanza),
+# PILOTO_TOPE_USD_PASO (200: el paso ENTERO, con sus retomas y reintentos; era 60 hasta el 4.15), PILOTO_TOPE_USD_MIN (5: con menos, el paso no se lanza),
 # PILOTO_DORMIR (sleep), PILOTO_POLL (5 s entre lecturas de la decisión), PILOTO_ESPERA_MAX (sin tope).
 set -uo pipefail
 # shellcheck source=comun.sh
@@ -23,6 +23,8 @@ source "$BIN/compuerta.sh"
 source "$BIN/cierre.sh"
 # shellcheck source=gasto.sh
 source "$BIN/gasto.sh"
+# shellcheck source=ci.sh
+source "$BIN/ci.sh"
 cd "$RAIZ" || exit 1
 
 HASTA="" EN_SECO=0 NOTA="" UNA_VUELTA=0
@@ -35,9 +37,13 @@ while [ "$#" -gt 0 ]; do
     *) echo "uso: bucle.sh [--hasta <paso>] [--en-seco [--nota <archivo>]] [--una-vuelta]" >&2; exit 64 ;;
   esac
 done
-DISCO_MAX="${PILOTO_DISCO_MAX:-90}" TOPE_RUTEO="${PILOTO_TOPE_USD_RUTEO:-0.5}" TOPE_PASO="${PILOTO_TOPE_USD_PASO:-60}"
+DISCO_MAX="${PILOTO_DISCO_MAX:-90}" TOPE_RUTEO="${PILOTO_TOPE_USD_RUTEO:-0.5}" TOPE_PASO="${PILOTO_TOPE_USD_PASO:-200}"
 TOPE_MIN="${PILOTO_TOPE_USD_MIN:-5}"
 DORMIR="${PILOTO_DORMIR:-sleep}" POLL="${PILOTO_POLL:-5}"
+# El CI ya no frena (ci.sh): los rojos se anotan, y se arreglan con un paso «ci-fix» sin ruteo cuando se juntan CI_ARREGLAR_DESDE (3) o en la
+# puerta de fase. CI_FIX_MAX intentos (2) por racha de rojos; CI_ESPERA_MAX s (5400) esperando un CI en curso en la puerta de fase.
+CI_ARREGLAR_DESDE="${PILOTO_CI_ARREGLAR_DESDE:-3}" CI_FIX_MAX="${PILOTO_CI_FIX_MAX:-2}"
+CI_ESPERA_MAX="${PILOTO_CI_ESPERA_MAX:-5400}" CI_POLL="${PILOTO_CI_POLL:-60}"
 CLAUDE=$(claude_bin)
 [ -n "$CLAUDE" ] || { echo "bucle: no encuentro el binario de claude (CLAUDE_BIN)." >&2; exit 1; }
 
@@ -135,9 +141,8 @@ paradas_deterministas() {
   if [ -n "$disco" ] && [ "$disco" != null ] && [ "$disco" -gt "$DISCO_MAX" ]; then
     chequeo disco "el disco está al ${disco} % (tope ${DISCO_MAX} %: libera espacio o arranca con PILOTO_DISCO_MAX)" || return 1
   fi
-  case "$(hecho '(.ci // {}) | select(.status == "completed") | .conclusion // ""')" in
-    failure | cancelled | timed_out) chequeo ci "el último CI de la rama está en rojo" || return 1 ;;
-  esac
+  # Un CI rojo no frena: se anota en .piloto/ci-rojos.md y el ruteo lo ve (ci.sh). Frena la base en rojo y la acumulación.
+  ci_resolver "$(hecho .rama)" || chequeo ci "$CI_MOTIVO" || return 1
   return 0
 }
 
@@ -243,9 +248,60 @@ paso_en_seco() { # <paso> <modelo> <effort>
   jq '.modelUsage' "$ESTADO/llamadas/paso-en-seco.json"
 }
 
+# El paso «ci-fix»: arreglar los CI rojos anotados. No sale del PLAN, así que no pasa por el ruteo: se escribe su ruteo.json y el resto de la
+# vuelta (sesión nueva, tope, cierre con verificar y publicar) es el de cualquier paso. Cuenta el intento; un CI verde lo reinicia (ci.sh).
+ruteo_ci_fix() {
+  local n
+  n=$(cat "$ESTADO/ci-fix-intentos" 2>/dev/null || echo 0)
+  echo $((n + 1)) >"$ESTADO/ci-fix-intentos"
+  registro "paso ci-fix ($((n + 1)) de $CI_FIX_MAX): $(ci_rojos_n) CI rojos sin arreglar."
+  jq -nc '{paso: "ci-fix", titulo: "Arreglar los CI rojos anotados", modelo: "opus", effort: "high",
+    sesion: {tipo: "nueva", session_id: null}, nivel: {nivel: 1, disparadores: [], cuenta_e2e: 0, completo: false},
+    compuerta: {tipo: "ninguna", motivo: ""}, particion: "", por_que: "hay CI rojos sin arreglar (.piloto/ci-rojos.md)"}' >"$ESTADO/ruteo.json"
+}
+ci_acumulado() {
+  [ "$(ci_rojos_n)" -ge "$CI_ARREGLAR_DESDE" ] && [ "$(cat "$ESTADO/ci-fix-intentos" 2>/dev/null || echo 0)" -lt "$CI_FIX_MAX" ]
+}
+
+# La puerta de fase (abrir una fase, o los pasos 4.18 y 4.28): el CI de la rama tiene que estar en verde, sin rojos anotados. Un CI en
+# curso se espera; uno rojo se manda a arreglar (paso ci-fix, hasta CI_FIX_MAX veces) y la puerta se vuelve a mirar. Ya no la decide la
+# persona: la decide el CI. Devuelve 0 si pasa, 1 si hay que volver a rutear (va un ci-fix o la persona dijo «reintentar»).
+puerta_de_fase() { # <paso>
+  local paso="$1" inicio=$SECONDS n rc
+  while :; do
+    ci_resolver "$(hecho .rama)" || { parada "$CI_MOTIVO" "$paso"; rc=$?; [ "$rc" = 2 ] && return 0; return 1; }
+    case "$CI_ESTADO" in
+      verde)
+        registro "puerta de fase ($paso): el CI $CI_ID está en verde."
+        return 0 ;;
+      corriendo)
+        if [ $((SECONDS - inicio)) -ge "$CI_ESPERA_MAX" ]; then
+          parada "el CI $CI_ID sigue corriendo tras ${CI_ESPERA_MAX} s: la puerta de fase de $paso espera un verde" "$paso"
+          rc=$?; [ "$rc" = 2 ] && return 0
+          return 1
+        fi
+        $DORMIR "$CI_POLL" ;;
+      rojo)
+        n=$(cat "$ESTADO/ci-fix-intentos" 2>/dev/null || echo 0)
+        if [ "$n" -ge "$CI_FIX_MAX" ]; then
+          parada "la puerta de fase de $paso: el CI $CI_ID sigue en rojo tras $n intentos de arreglarlo ($CI_FALLO)" "$paso"
+          rc=$?; [ "$rc" = 2 ] && return 0
+          return 1
+        fi
+        registro "puerta de fase ($paso): el CI $CI_ID está en rojo ($CI_FALLO): se arregla antes de seguir."
+        touch "$ESTADO/forzar-ci-fix"
+        return 1 ;;
+      *)
+        parada "la puerta de fase de $paso no encuentra un CI completo de la rama ($CI_ESTADO): ¿sigo?" "$paso"
+        rc=$?; [ "$rc" = 2 ] && return 0
+        return 1 ;;
+    esac
+  done
+}
+
 # Una vuelta. Devuelve 0 cuando hay que volver a rutear; los avisos que paran salen del bucle desde `parada`.
 vuelta() {
-  local paso modelo effort modo sid prompt desde banderas=() tipo_ruteo abre
+  local paso modelo effort modo sid prompt desde banderas=() tipo_ruteo
   verificar_copia || { parada "la copia de los scripts del piloto no coincide con bin.sha256 (alterada o con archivos de más)"; return 0; }
   bash "$BIN/hechos.sh" >"$ESTADO/hechos.json.tmp" 2>"$ESTADO/hechos.err" && mv -f "$ESTADO/hechos.json.tmp" "$ESTADO/hechos.json" ||
     { parada "hechos.sh falló: $(tail -n 2 "$ESTADO/hechos.err" | tr '\n' ' ')"; return 0; }
@@ -259,7 +315,12 @@ vuelta() {
     return 0
   fi
 
-  rutear || { parada "el ruteo no devolvió un resultado válido"; return 0; }
+  if [ -f "$ESTADO/forzar-ci-fix" ] || { [ ! -f "$ESTADO/en-curso.json" ] && ci_acumulado; }; then
+    rm -f "$ESTADO/forzar-ci-fix"
+    ruteo_ci_fix
+  else
+    rutear || { parada "el ruteo no devolvió un resultado válido"; return 0; }
+  fi
   paso=$(jq -r .paso "$ESTADO/ruteo.json") modelo=$(jq -r .modelo "$ESTADO/ruteo.json") effort=$(jq -r .effort "$ESTADO/ruteo.json")
   [ "$paso" = ninguno ] && { registro "PLAN: el ruteo no ve ningún paso por avanzar."; exit 0; }
   tipo_ruteo=$(jq -r .compuerta.tipo "$ESTADO/ruteo.json")
@@ -294,13 +355,9 @@ vuelta() {
     [ -n "$modelo" ] || modelo=$(jq -r .modelo "$ESTADO/ruteo.json")
     [ -n "$effort" ] || effort=$(jq -r .effort "$ESTADO/ruteo.json")
   else
-    # Las compuertas que el bucle no deja al modelo: 4.18 y 4.28, y abrir una fase.
+    # La puerta de fase (4.18, 4.28, abrir una fase): la decide el CI en verde, no la persona.
     if [[ "$paso" =~ ^4\.(18|28)(-|$) ]] || [ "$tipo_ruteo" = fase ]; then
-      abre=""
-      [ "$tipo_ruteo" = fase ] && abre="abre una fase y "
-      parada "el paso $paso ${abre}es una compuerta del bucle: lo decide la persona" "$paso" \
-        'parado — no sigue (recomendado)' 'reintentar — vuelve a rutear' 'sigo — corre el paso'
-      [ "$?" = 1 ] && return 0
+      puerta_de_fase "$paso" || return 0
     fi
     modo=nueva sid=$(cat /proc/sys/kernel/random/uuid) desde=$(git rev-parse HEAD) prompt="/piloto $paso"
     if [ "$(jq -r .sesion.tipo "$ESTADO/ruteo.json")" = continuar ] && [ "$(jq -r '.sesion.session_id // ""' "$ESTADO/ruteo.json")" != "" ]; then

@@ -69,4 +69,4 @@ commit convencional.
 
 `--no-verify` · versiones nuevas sin verificarlas hoy · la secret key fuera del servidor o en `NEXT_PUBLIC_*` · desactivar una regla de lint ·
 una tabla sin RLS, un `security definer` sin `set search_path = ''`, `auth.uid()` suelto (va `(select auth.uid())`) · `if (rol === 'dueno')`
-en la UI (va `puede(permisos, clave, origen)`) · dinero sin `<Monto>` o fecha sin `formato.ts` · más de una fase de `docs/PLAN.md` sin parar.
+en la UI (va `puede(permisos, clave, origen)`) · dinero sin `<Monto>` o fecha sin `formato.ts` · cerrar una fase de `docs/PLAN.md` con el CI en rojo o con rojos sin arreglar (el piloto no para entre fases; la puerta es el CI, `docs/PILOTO.md`).

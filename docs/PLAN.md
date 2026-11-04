@@ -3,8 +3,9 @@
 El plan vivo: sólo lo que falta. Cada fase tiene un criterio de terminado verificable (algo que se puede correr y ver); las metas de las
 tareas de oro de `docs/UX.md` son criterio de terminado de su fase y se miden con un e2e. El alcance es todo el brief; no hay MVP: hay orden.
 Fases 0 a 3 completas y la Fase 4 hecha hasta el 4.13: el detalle (lo hecho, lo cerrado y la historia), en `docs/archivo/PLAN.md`
-(sólo con grep). Se avanza **un paso a la vez** (un prompt, un commit, su verificación) y **se para a reportar**; nunca más de una fase
-sin parar. Los pasos tachados o cerrados no están aquí.
+(sólo con grep). Se avanza **un paso a la vez** (un prompt, un commit, su verificación) y el piloto sigue con el siguiente **sin parar a
+reportar**: el reporte queda en el registro (`.piloto/registro.md`). Entre fases la puerta es el CI de la rama en verde y sin rojos
+anotados (`docs/PILOTO.md`, «Sin esperar al CI»). Los pasos tachados o cerrados no están aquí.
 
 ---
 
@@ -65,7 +66,7 @@ snapshot.
 
 ### Partición
 
-Un paso, un commit y su verificación; se para a reportar después de cada uno. Los niveles son los de `.claude/rules/e2e.md`. Hecho:
+Un paso, un commit y su verificación; no se para a reportar entre pasos (el registro lo dice); la puerta de fase es el CI en verde. Los niveles son los de `.claude/rules/e2e.md`. Hecho:
 4.01 a 4.13 y DEP-1 (ver `docs/archivo/PLAN.md`; el 4.13, abajo hasta que pase al archivo). **Orden fijo: papelera propia (4.24) → marcar final
 (4.25) → comprobantes (4.26)** (la final manda las preventas a la papelera, y un comprobante sólo se emite de una final). Lo que ya existe y
 los siguientes pasos usan: `cotizacion_hoja(origen)`, `cotizacion_evaluar` (recortada por nivel, con `p_abierta`), `cotizacion_crear`,

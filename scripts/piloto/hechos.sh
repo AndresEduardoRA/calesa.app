@@ -63,6 +63,13 @@ FALLAS=$(cat "$ESTADO/fallas" 2>/dev/null)
 NOTA=""
 [ -s "$ESTADO/nota-en-seco.md" ] && NOTA=$(head -c 6000 "$ESTADO/nota-en-seco.md")
 
+# Los CI rojos sin arreglar (`ci.sh` los anota en .piloto/ci-rojos.md): cuántos y los últimos 10. El ruteo decide cuándo arreglarlos.
+CI_ROJOS_N=0 CI_ROJOS_ULTIMOS='[]'
+if [ -s "$ESTADO/ci-rojos.md" ]; then
+  CI_ROJOS_N=$(grep -c '^- ' "$ESTADO/ci-rojos.md") || CI_ROJOS_N=0
+  CI_ROJOS_ULTIMOS=$(grep '^- ' "$ESTADO/ci-rojos.md" | tail -n 10 | jq -Rsc 'split("\n") | map(select(length > 0))')
+fi
+
 # La decisión vigente: sólo si es de la compuerta de ahora.
 DECISION=""
 if [ -s "$COMUN/compuerta.md" ] && [ -s "$COMUN/decision.md" ]; then
@@ -76,7 +83,8 @@ jq -n \
   --argjson limpio "$LIMPIO" --arg disco "$DISCO" --argjson libre "$LIBRE" --arg dueno "$DUENO" \
   --argjson ci "$CI" --argjson e2e "$E2E" --arg bytes "${BYTES_ESTADO:-0}" \
   --argjson ultimo "$(json_o_null "$ESTADO/ultimo.json")" --argjson en_curso "$(json_o_null "$ESTADO/en-curso.json")" \
-  --arg fallas "${FALLAS:-0}" --arg nota "$NOTA" --arg decision "$DECISION" --argjson funciones "$FUNCIONES" '{
+  --arg fallas "${FALLAS:-0}" --arg nota "$NOTA" --arg decision "$DECISION" --argjson funciones "$FUNCIONES" \
+  --argjson rojos_n "$CI_ROJOS_N" --argjson rojos_ultimos "$CI_ROJOS_ULTIMOS" '{
     hora: $hora,
     rama: $rama,
     head: $head,
@@ -85,6 +93,7 @@ jq -n \
     disco_pct: (if $disco == "" then null else ($disco | tonumber) end),
     candado: { libre: $libre, dueno: (if $dueno == "" then null else $dueno end) },
     ci: $ci,
+    ci_rojos: { n: $rojos_n, ultimos: $rojos_ultimos },
     e2e: $e2e,
     bytes_estado: ($bytes | tonumber? // null),
     ultimo: $ultimo,

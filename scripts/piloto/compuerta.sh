@@ -112,10 +112,44 @@ esperar_decision() {
   DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$COMUN/decision.md" | head -n 1)
 }
 
+# La compuerta «producto» se contesta sola con la recomendada de cada decisión (la primera opción), sin abrir la sesión de decidir: el
+# piloto no espera a la persona por una decisión que el plan ya dejó recomendada. Cada respuesta queda en `.piloto/decisiones-automaticas.md`
+# (decisión, opciones y la elegida) para que la persona la revise cuando quiera; si no está de acuerdo, lo dice y el paso siguiente lo
+# corrige. `PILOTO_AUTO` lista los tipos que se contestan solos (por omisión «producto»; vacío los apaga). Nunca `datos`, `guardas`,
+# `dependencia`, `afuera` ni `atasco`: tocan seguridad, credenciales o algo que el piloto no puede juzgar.
+auto_contesta() { # <tipo> <paso>
+  [ "${EN_SECO:-0}" != 1 ] && [ -n "${PREGUNTAS:-}" ] && [ "$1" = producto ] && [[ ",${PILOTO_AUTO-producto}," == *",producto,"* ]]
+}
+contestar_solo() { # <paso>
+  local elegidas tmp
+  elegidas=$(jq -r '[.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; ")' <<<"$PREGUNTAS")
+  tmp=$(mktemp "$COMUN/decision.XXXXXX") || return 1
+  jq -r --arg id "$COMPUERTA_ID" --arg creada "$(date +%s)" '
+    "id: \($id)",
+    "opcion: \([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join(" · "))",
+    "notas: ",
+    "creada: \($creada)",
+    "respuestas:",
+    (.[] | "- \(.id): \(.opciones[0].etiqueta) (Recommended)"),
+    "me respondió: «\([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; "))»"' <<<"$PREGUNTAS" >"$tmp" || { rm -f "$tmp"; return 1; }
+  mv -f "$tmp" "$COMUN/decision.md"
+  {
+    echo "## $(ahora_lapaz) · $1 · compuerta producto (contestada sola)"
+    jq -r '.[] | "- \(.id) — \(.pregunta | gsub("\n"; " "))", (.opciones | to_entries[] | "    \(if .key == 0 then "→" else " " end) \(.value.etiqueta) — \(.value.descripcion | gsub("\n"; " "))")' <<<"$PREGUNTAS"
+    echo
+  } >>"$ESTADO/decisiones-automaticas.md"
+  registro "compuerta producto ($1) contestada sola con las recomendadas: $elegidas"
+}
+
 # compuerta <tipo> <paso> <motivo> <pregunta> [opciones…]
 compuerta() {
   local tipo="$1" paso="$2" clave
   escribir_compuerta "$@"
+  if auto_contesta "$tipo" "$paso" && contestar_solo "$paso"; then
+    DECISION_OPCION=$(sed -n 's/^opcion: *//p' "$COMUN/decision.md" | head -n 1)
+    DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$COMUN/decision.md" | head -n 1)
+    return 0
+  fi
   registro "compuerta $tipo ($paso): $3"
   "$BIN/decidir.sh" abrir 8>&- || { registro "no se pudo abrir la sesión de decidir."; exit 3; }
   esperar_decision

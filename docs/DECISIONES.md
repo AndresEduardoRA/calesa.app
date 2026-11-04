@@ -1586,3 +1586,18 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
   los buckets de la fórmula, que es lo que la anterior calculaba; ponerle el primero cambiaría el total en silencio. Un modo que ya no existe pasa al primero de hoy (E2).
 - **Las etiquetas de las revisiones salen de la página ya recortada**, no de la definición entera: lo que no viaja no tiene etiqueta (ni un nodo oculto ni uno que no cambió).
 - **El paso es de Nivel 2** (estructura: la columna y el índice), no el 1 de la fila: corrió el completo de escritorio y la cuenta de pantallas sin completo vuelve a 0.
+
+## 2026-11-04 — El piloto sin esperar al CI: verificación local mínima, `ci-fix` y puerta de fase por CI
+
+- **El piloto no se detiene por un CI rojo ni lo espera**: lo anota (`.piloto/ci-rojos.md`) y sigue con el paso siguiente.
+  - El 4.15 y el 4.14-3c ya habían parado dos veces por «el último CI está en rojo», y cada parada esperaba a la persona.
+  - Frenan sólo un job `Base ·` en rojo (RLS, grants, advisors contaminan lo que se construye encima) y 5 corridas rojas juntas.
+- **El CI es la autoridad de la suite, el lint y los e2e**; local queda lo barato: `verificar.sh` hacía ≈ 11 min por paso (4.14-3c) que el CI repetía.
+  - El hook Stop de un paso del piloto sólo tipa y revisa el mapa con el árbol limpio; el pre-commit no repite el typecheck con `PILOTO=1`.
+  - Una sesión de la persona sigue verificando todo.
+- **Un rojo se arregla con un paso `ci-fix`** sin ruteo, desde 3 rojos juntos o en la puerta de fase, hasta 2 intentos.
+- **La puerta de fase ya no es una pregunta a la persona**: es el CI de la rama en verde y sin rojos anotados. Cambia la regla de `CLAUDE.md` y `docs/PLAN.md` «nunca más de una fase sin parar»; la persona lo pidió así (2026-11-04) para que la app siga andando al 100 % sin que el piloto se detenga.
+- **El 4.15 estuvo parado ≈ 4 días por un texto**: el detector del límite de uso buscaba «session limit» y el mensaje decía «5-hour limit». Ahora reconoce el texto y la señal estructurada (`usage_limit_reached`).
+- **Producto se contesta solo con la recomendada** y queda en `.piloto/decisiones-automaticas.md`; `datos`, `guardas`, `dependencia`, `afuera` y `atasco` siguen siendo de la persona.
+- **El tope por paso sube de 60 a 200 USD**: en la Fase 4 un paso costó entre 9 y 36 USD (423,52 USD en 57 llamadas); el tope sirve de freno a un paso atascado, no a un paso normal.
+- **Pendiente, medido y no hecho**: el contexto de ≈ 320.000 tokens por turno es lo que más cuesta (la lectura de caché pasa de 1.000 M de tokens en la Fase 4). La salida es ejecutar cada commit con un subagente de contexto nuevo; se prueba en un paso real y se mide antes de dejarlo por omisión.
