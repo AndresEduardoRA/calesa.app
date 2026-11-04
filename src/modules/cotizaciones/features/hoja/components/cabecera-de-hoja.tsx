@@ -11,6 +11,8 @@ type Props = {
   alElegirModo: (clave: string) => void
   verTotalBs: boolean
   alCambiarVerTotalBs: (valor: boolean) => void
+  // Sólo lectura (una cotización guardada que quien mira no puede guardar): los modos y «Ver total Bs» se ven y no se tocan.
+  deshabilitado?: boolean
 }
 
 // Lo que es de la hoja entera y va arriba de las secciones (`docs/UX.md` › «Cotizar»). Los modos de tipo de cambio sólo se dibujan si hay dos o más: con uno no hay qué elegir
@@ -22,6 +24,7 @@ export function CabeceraDeHoja({
   alElegirModo,
   verTotalBs,
   alCambiarVerTotalBs,
+  deshabilitado = false,
 }: Props) {
   const conModos = cabecera.modos.length >= 2
   const conTotalBs = ofreceVerTotalBs(cabecera)
@@ -31,7 +34,12 @@ export function CabeceraDeHoja({
   return (
     <div data-cabecera="" className="grid min-w-0 gap-3">
       {conModos ? (
-        <ModosDeLaHoja modos={cabecera.modos} elegido={modoElegido} alElegir={alElegirModo} />
+        <ModosDeLaHoja
+          modos={cabecera.modos}
+          elegido={modoElegido}
+          alElegir={alElegirModo}
+          deshabilitado={deshabilitado}
+        />
       ) : null}
       {conTotalBs ? (
         <Interruptor
@@ -39,6 +47,7 @@ export function CabeceraDeHoja({
           ayuda="Suma al resumen el total en moneda local y se guarda con la cotización."
           valor={verTotalBs}
           alCambiar={alCambiarVerTotalBs}
+          deshabilitado={deshabilitado}
         />
       ) : null}
     </div>

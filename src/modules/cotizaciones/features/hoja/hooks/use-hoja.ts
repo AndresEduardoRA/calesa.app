@@ -98,9 +98,9 @@ export function useHoja({
   inicial: RecalculoInicial
   vehiculoId: string | null
   // Cada confirmación (el aviso del último guardado ya no habla de lo que se ve).
-  alCambiar?: () => void
+  alCambiar?: (() => void) | undefined
   // El borrador de lo tipeado (4-29): su clave en la pestaña y qué hace «Descartar».
-  borrador?: { clave: string; alDescartar: () => void }
+  borrador?: { clave: string; alDescartar: () => void } | undefined
 }) {
   const alCambiarRef = useRef(alCambiar)
   useEffect(() => {

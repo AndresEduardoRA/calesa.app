@@ -1,6 +1,8 @@
 import type { Resultado } from '@/shared/lib/errores'
 import type { ResultadoDeCrear } from './guardado'
+import type { RecalculoInicial } from './apertura'
 import type { HojaParaCotizar } from './hoja'
+import type { HojaDeUnaGuardada } from './hoja-de-una-guardada'
 import type { PedidoDeGuardado } from './pedido-de-guardado'
 import type { PedidoDeRecalculo } from './pedido-de-recalculo'
 import type { RespuestaDeRecalculo } from './recalculo'
@@ -31,3 +33,10 @@ export type RecalculadorAlAbrir = (pedido: {
 
 // El guardado de la hoja (`cotizacion_crear()`, con la sesión y la RLS de quien cotiza): lo guardado, la respuesta perdida o el rechazo con su motivo. Nunca lanza.
 export type CreadorDeCotizacion = (pedido: PedidoDeGuardado) => Promise<ResultadoDeCrear>
+
+// La hoja de una cotización guardada (`cotizacion_hoja_guardada()`, 4.15-2) con su primer cálculo, que hace el servidor con la hoja ya leída: por la cotización (SU versión y SUS
+// tipos de cambio) y con lo guardado como entradas. `sin_permiso` es una cotización que no existe, está en la papelera o no se ve (la base no distingue). Un cálculo que falla no
+// tumba la hoja: llega con su estado.
+export type LectorDeUnaGuardada = (
+  id: string,
+) => Promise<Resultado<{ hoja: HojaDeUnaGuardada; inicial: RecalculoInicial }>>

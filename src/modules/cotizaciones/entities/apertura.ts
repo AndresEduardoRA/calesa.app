@@ -17,7 +17,11 @@ export type Apertura =
   | { tipo: 'error'; error: ErrorApp }
   | { tipo: 'lista'; hoja: HojaLista; inicial: RecalculoInicial }
 
-function inicialDe(hoja: HojaLista, recalculo: Resultado<RespuestaDeRecalculo>): RecalculoInicial {
+// También lo usa la hoja de una guardada (su primer cálculo es por la cotización y su fallo se lee igual).
+export function inicialDe(
+  hoja: Pick<HojaLista, 'secciones'>,
+  recalculo: Resultado<RespuestaDeRecalculo>,
+): RecalculoInicial {
   if (recalculo.ok) {
     return { respuesta: recalculo.data, estado: { tipo: 'al_dia' } }
   }

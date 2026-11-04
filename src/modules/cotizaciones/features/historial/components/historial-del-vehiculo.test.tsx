@@ -190,3 +190,23 @@ describe('HistorialDelVehiculo: «Ver más», el tope y los errores', () => {
     expect(screen.queryByRole('list')).toBeNull()
   })
 })
+
+describe('HistorialDelVehiculo: cada fila lleva a su cotización', () => {
+  it('el texto de la fila es un enlace a la página de la cotización, con el texto de siempre', async () => {
+    montar({ n: 2, hayMas: false })
+    abrir()
+    await responder({
+      ok: true,
+      data: { filas: [cotizacion(1, 'final'), cotizacion(2)], siguiente: null, anterior: null },
+    })
+    const lista = await screen.findByRole('list', { name: 'Historial de cotizaciones' })
+    const enlaces = lista.querySelectorAll('li a')
+    expect(enlaces).toHaveLength(2)
+    expect(enlaces[0]?.getAttribute('href')).toBe(`/cotizaciones/${idDe(1)}`)
+    expect(enlaces[0]?.textContent).toMatch(/^N\.º 99 · .* · Gala Guarda$/)
+    expect(enlaces[1]?.getAttribute('href')).toBe(`/cotizaciones/${idDe(2)}`)
+    // La clase sigue en su insignia, fuera del enlace.
+    expect(lista.querySelectorAll('li')[0]?.textContent).toContain('Final')
+    expect(enlaces[0]?.textContent).not.toContain('Final')
+  })
+})

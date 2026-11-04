@@ -61,6 +61,16 @@ export type {
   VarianteDeHoja,
 } from './entities/hoja'
 
+// La hoja de una cotización guardada (4.15-3): UNA lectura con su primer cálculo por la cotización, y la ruta de su página. Sólo se importa desde un Server Component.
+export { leerHojaDeUnaGuardada } from './composicion'
+export { rutaDeLaCotizacion } from './entities/ruta-de-la-hoja'
+export type {
+  CotizacionDeLaHoja,
+  HojaDeUnaGuardada,
+  LoGuardado,
+} from './entities/hoja-de-una-guardada'
+export type { DisenoDeHoja } from './entities/hoja'
+
 // La pantalla de cotizar (4.13-2): el primer cálculo que hace el servidor junto con la hoja, qué orígenes se cotizan, qué se ve al abrir y la URL. Los componentes salen por
 // `pantallas/cotizar.ts`. `recalcularAlAbrir` sólo se importa desde un Server Component.
 export { recalcularAlAbrir } from './composicion'

@@ -33,12 +33,13 @@ export function useGuardarLaHoja({
   hoja: HojaLista
   leadId: string | null
   vehiculoId: string | null
-  guardado: Guardado
+  // Nulo: la hoja no guarda (una guardada de sólo lectura, o todavía sin «Guardar»): ni botón ni `Ctrl/Cmd+S`.
+  guardado: Guardado | null
   raiz: RefObject<HTMLDivElement | null>
 }) {
   const faltaVehiculo = hoja.vehiculoObligatorio && vehiculoId === null
   // Un pendiente se reenvía tal cual: las guardas de la hoja no le aplican (4-21).
-  const motivo = guardado.hayPendiente
+  const motivo = guardado?.hayPendiente
     ? null
     : motivoParaNoGuardar({
         estado: h.estado,
@@ -76,7 +77,7 @@ export function useGuardarLaHoja({
     })
   }
   const alGuardar = () => {
-    if (guardado.ocupado) {
+    if (guardado === null || guardado.ocupado) {
       return
     }
     const celda = confirmarCeldaAbierta(raiz.current)
@@ -86,13 +87,16 @@ export function useGuardarLaHoja({
     }
     guardado.guardar(armar)
   }
-  useAtajo('guardar', alGuardar)
+  useAtajo('guardar', alGuardar, guardado !== null)
   const total = totalDelResumen(contexto)
-  const boton: BotonDeGuardar = {
-    motivo,
-    motivoYaDicho: total.tipo === 'faltante' || faltaVehiculo,
-    ocupado: guardado.ocupado,
-    alGuardar,
-  }
+  const boton: BotonDeGuardar | null =
+    guardado === null
+      ? null
+      : {
+          motivo,
+          motivoYaDicho: total.tipo === 'faltante' || faltaVehiculo,
+          ocupado: guardado.ocupado,
+          alGuardar,
+        }
   return { boton }
 }

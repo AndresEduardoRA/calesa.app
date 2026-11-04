@@ -1,6 +1,8 @@
 'use client'
 
 import { ChevronDownIcon, FileTextIcon } from 'lucide-react'
+import type { Route } from 'next'
+import Link from 'next/link'
 import { useEffect, useId, useState } from 'react'
 import { conteoCorto, textoDelTope, type ConteoAcotado } from '@/shared/lib/conteo'
 import { fechaRelativa } from '@/shared/lib/fechas'
@@ -12,6 +14,7 @@ import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
+import { rutaDeLaCotizacion } from '../../../entities/ruta-de-la-hoja'
 import { useHistorialDelVehiculo } from '../hooks/use-historial-del-vehiculo'
 
 // Lo que tarda menos que esto no muestra el esqueleto: un parpadeo cuesta más que la espera.
@@ -81,10 +84,13 @@ function Contenido({ historial }: { historial: ReturnType<typeof useHistorialDel
             key={cotizacion.id}
             className="flex min-w-0 items-center gap-2 rounded-(--radius-md) p-2 text-(length:--text-sm) text-(--color-ink)"
           >
-            <span className="min-w-0 flex-1 truncate">
+            <Link
+              href={rutaDeLaCotizacion(cotizacion.id) as Route}
+              className="min-w-0 flex-1 truncate hover:underline"
+            >
               N.º {cotizacion.numero} · {fechaRelativa(cotizacion.creadoEn, { zona: zonaHoraria })}{' '}
               · {cotizacion.autor}
-            </span>
+            </Link>
             <Badge className="shrink-0">{ETIQUETA_DE_CLASE[cotizacion.clase]}</Badge>
           </li>
         ))}

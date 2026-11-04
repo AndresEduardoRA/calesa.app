@@ -27,7 +27,12 @@ type Props = {
   avisoDelVehiculo: string | null
   alReintentar: () => void
   alRecargar: () => void
-  guardar: BotonDeGuardar
+  // Nulo: esta hoja no guarda (una guardada todavía sin «Guardar», o de sólo lectura).
+  guardar: BotonDeGuardar | null
+  // Quien sólo ve una cotización guardada: lo dice donde iría «Guardar» (P13).
+  soloLectura?: boolean
+  // El total con que se guardó cuando lo de hoy no es lo guardado (`<TotalGuardado>`, C11): va bajo el total.
+  totalGuardado?: ReactNode
   // Lo que dice el último guardado (`<AvisoDelGuardado>`): va en la misma región viva.
   avisoDeGuardado: ReactNode
 }
@@ -92,6 +97,57 @@ function AvisoDeFallo({
   )
 }
 
+// Lo que el total dice de sí mismo: que está desactualizado, por qué falta o qué elegir para calcular.
+function AvisosDelTotal({
+  total,
+  estado,
+  variante,
+}: {
+  total: ReturnType<typeof totalDelResumen>
+  estado: EstadoDeRecalculo
+  variante: string | undefined
+}) {
+  return (
+    <>
+      {estado.tipo !== 'al_dia' && total.tipo === 'valor' ? (
+        <p className="text-(length:--text-sm) text-(--color-ink-soft)">Total desactualizado.</p>
+      ) : null}
+      {total.tipo === 'faltante' ? (
+        <p className="text-(length:--text-sm) text-(--color-ink-soft)">Sin total: {total.motivo}</p>
+      ) : null}
+      {estado.tipo === 'sin_variante' ? (
+        <p className="text-(length:--text-sm) text-(--color-ink-soft)">
+          Elige {variante?.toLowerCase() ?? 'una opción'} para calcular.
+        </p>
+      ) : null}
+    </>
+  )
+}
+
+// El pie: «Guardar», o, en una cotización guardada que quien mira sólo ve, que es de sólo lectura (P13); y el botón Live.
+function PieDelResumen({
+  guardar,
+  soloLectura,
+}: {
+  guardar: BotonDeGuardar | null
+  soloLectura: boolean
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      {guardar === null ? (
+        soloLectura ? (
+          <p className="text-(length:--text-sm) text-(--color-ink-soft)">
+            Sólo lectura: no puedes guardar esta cotización.
+          </p>
+        ) : null
+      ) : (
+        <BotonGuardar {...guardar} />
+      )}
+      <LiveDelResumen />
+    </div>
+  )
+}
+
 // El resumen: el total de la hoja, fijo (al pie en el celular y al costado, a la derecha de las secciones, desde un ancho de la hoja: `sticky`, 4.13-4b3) y lo que la tarjeta suma aparte. **No deja pasar por bueno un total viejo:** mientras
 // se recalcula o si falló, el total se marca desactualizado con su texto. Los avisos van en una región viva; «Recalculando» no se anuncia (pasa cada 150 ms).
 export function ResumenDeHoja({
@@ -104,6 +160,8 @@ export function ResumenDeHoja({
   alReintentar,
   alRecargar,
   guardar,
+  soloLectura = false,
+  totalGuardado = null,
   avisoDeGuardado,
 }: Props) {
   const total = totalDelResumen(contexto)
@@ -130,20 +188,11 @@ export function ResumenDeHoja({
           {total.tipo === 'valor' ? <Monto valor={total.usd} moneda="USD" /> : '—'}
         </strong>
       </div>
-      {viejo && total.tipo === 'valor' ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">Total desactualizado.</p>
-      ) : null}
-      {total.tipo === 'faltante' ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">Sin total: {total.motivo}</p>
-      ) : null}
+      <AvisosDelTotal total={total} estado={estado} variante={variante} />
+      {totalGuardado}
       {monedaDelTotalBs === null ? null : (
         <TotalEnMonedaLocal respuesta={contexto.respuesta} moneda={monedaDelTotalBs} />
       )}
-      {estado.tipo === 'sin_variante' ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-          Elige {variante?.toLowerCase() ?? 'una opción'} para calcular.
-        </p>
-      ) : null}
       <ul className="grid gap-1">
         {secundariosDelResumen(tarjeta.secundarios, contexto.respuesta).map((s) => (
           <li
@@ -163,10 +212,7 @@ export function ResumenDeHoja({
         )}
         {avisoDeGuardado}
       </div>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <BotonGuardar {...guardar} />
-        <LiveDelResumen />
-      </div>
+      <PieDelResumen guardar={guardar} soloLectura={soloLectura} />
     </aside>
   )
 }

@@ -5,12 +5,14 @@ import 'server-only'
 import type {
   CreadorDeCotizacion,
   LectorDeHoja,
+  LectorDeUnaGuardada,
   RecalculadorAlAbrir,
 } from './entities/repositorios-de-hoja'
 import type { LectorDeNiveles, RepositorioDeNiveles } from './entities/repositorios-de-niveles'
 import { crearCotizacion } from './infra/cotizaciones'
 import { nivelesSupabase } from './infra/niveles'
 import { getHojaParaCotizar } from './infra/queries/hoja'
+import { getHojaDeUnaGuardada } from './infra/queries/hoja-de-una-guardada'
 import { contarCotizacionesDelVehiculo as contarDeInfra } from './infra/queries/historial-del-vehiculo'
 import { getNivelesDeAcceso } from './infra/queries/niveles'
 import { recalcularAlAbrir as recalcularAlAbrirDeInfra } from './infra/queries/recalculo'
@@ -18,6 +20,7 @@ import { recalcularAlAbrir as recalcularAlAbrirDeInfra } from './infra/queries/r
 export const repositorioDeNiveles: RepositorioDeNiveles = nivelesSupabase
 export const leerNivelesDeAcceso: LectorDeNiveles = getNivelesDeAcceso
 export const leerHojaParaCotizar: LectorDeHoja = getHojaParaCotizar
+export const leerHojaDeUnaGuardada: LectorDeUnaGuardada = getHojaDeUnaGuardada
 export const recalcularAlAbrir: RecalculadorAlAbrir = recalcularAlAbrirDeInfra
 export const creadorDeCotizacion: CreadorDeCotizacion = crearCotizacion
 export const contarCotizacionesDelVehiculo = contarDeInfra

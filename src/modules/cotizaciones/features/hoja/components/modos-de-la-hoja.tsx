@@ -7,11 +7,12 @@ type Props = {
   // La clave elegida; nula, ninguna marcada.
   elegido: string | null
   alElegir: (clave: string) => void
+  deshabilitado?: boolean
 }
 
 // Los modos de tipo de cambio que declara el diseño: uno solo a la vez, con radios nativos como la variante (una parada de Tab, las flechas cambian de modo). El nombre sale de la
 // base. Elegir uno pide un recálculo, como confirmar una celda.
-export function ModosDeLaHoja({ modos, elegido, alElegir }: Props) {
+export function ModosDeLaHoja({ modos, elegido, alElegir, deshabilitado = false }: Props) {
   const nombre = useId()
   return (
     <fieldset className="grid min-w-0 gap-2 border-0 p-0">
@@ -29,6 +30,7 @@ export function ModosDeLaHoja({ modos, elegido, alElegir }: Props) {
               name={nombre}
               value={modo.clave}
               checked={elegido === modo.clave}
+              disabled={deshabilitado}
               onChange={() => {
                 alElegir(modo.clave)
               }}
