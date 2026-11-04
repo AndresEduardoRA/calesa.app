@@ -467,6 +467,38 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
     )
   }
 
+  // 4-34: quien edita y no ve se rechaza en la PRIMERA comprobación, antes del candado. Se le quita `cotizaciones.ver` a quien sólo edita (como el `revocar` de g9) y se le repone al final.
+  console.log('Quien edita y no ve no queda esperando el candado de la cotización')
+  {
+    const t = await terreno(orquesta, 'g10b')
+    const c = nuevoId()
+    await insertaCotizacion(orquesta, t, c)
+    const quitarVer = {
+      rol: 'service_role',
+      consulta: `with d as (delete from public.roles_permisos where permiso_clave = 'cotizaciones.ver' and rol_id = (select id from public.roles where clave = 'carreras_solo_edita') returning 1) select count(*) as r from d`,
+      args: [],
+    }
+    try {
+      const rq = await llamar(quitarVer)
+      espero('a quien sólo edita se le quitó cotizaciones.ver', rq.ok && Number(rq.valor) === 1, {
+        rq,
+      })
+      const rb = await sinEspera({
+        a: guarda(duena, t, c, await version(orquesta, c)),
+        b: guarda(soloEdita, t, c, await version(orquesta, c), { a: 12 }),
+      })
+      espero(
+        'quien edita y no ve recibe el error de una cotización que no existe (42501) sin esperar a A (no el corte por tiempo 57014)',
+        rb.codigo === '42501' && rb.mensaje === 'No tienes acceso a esta cotización.',
+        { rb },
+      )
+    } finally {
+      await orquesta.query(
+        `insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance) select r.id, 'cotizaciones.ver', null, 'todos' from public.roles r where r.clave = 'carreras_solo_edita' and not exists (select 1 from public.roles_permisos rp where rp.rol_id = r.id and rp.permiso_clave = 'cotizaciones.ver')`,
+      )
+    }
+  }
+
   console.log('Quien no ve el vehículo nuevo no queda esperando su candado')
   {
     const t = await terreno(orquesta, 'g15')

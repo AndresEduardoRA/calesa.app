@@ -394,6 +394,62 @@ begin
 end $$;
 rollback;
 
+-- @test cotizacion_guardar: quien edita y no ve (4-34) recibe lo mismo que lo inexistente antes de todo lo demás — sin PT409, sin 22023 ni intento_reusado, sin escribir
+-- Hasta el 4.15-1 una preventa pedía sólo `cotizaciones.editar`: quien edita sin ver no escribía (`_cotizacion_armar` pide ver), pero antes de esa línea tomaba el candado y
+-- respondía distinto de lo inexistente (quién y cuándo editó, el vehículo, el título, el intento). Ahora el permiso se pregunta primero, con ver y editar.
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; r0 jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; k uuid := (t ->> 'k')::uuid; v uuid := (t ->> 'v')::uuid;
+  o uuid := (t ->> 'o')::uuid; ev uuid := gen_random_uuid(); vp uuid := gen_random_uuid(); ik uuid := gen_random_uuid(); ver timestamptz; n bigint; fila jsonb;
+  e constant text := '{"inputs": {"visible": 100}}'; v_fallas text := '';
+begin
+  -- ev: cotiza y edita, sin `cotizaciones.ver`. vp: edita con «todos» y ve sólo «propios» (la cotización no es suya ni de su cartera).
+  perform pg_temp.cg_persona(ev, array['cotizaciones.crear', 'cotizaciones.editar', 'leads.ver', 'vehiculos.ver'], o);
+  perform pg_temp.cg_persona(vp, array['cotizaciones.ver', 'cotizaciones.editar', 'leads.ver', 'vehiculos.ver'], o);
+  update public.roles_permisos set alcance = 'propios'
+   where permiso_clave = 'cotizaciones.ver' and rol_id = (select rol_id from public.usuarios_roles where usuario_id = vp);
+  r0 := pg_temp.cg_corre(ev, pg_temp.cg_sql(gen_random_uuid(), gen_random_uuid(), now(), e, null, 'x', null, v));
+  if r0 ->> 'error' is distinct from '42501' or r0 ->> 'mensaje' is distinct from 'No tienes acceso a esta cotización.' then raise exception 'una inexistente: %', r0; end if;
+  -- Primero un guardado de k (mueve la versión y deja su intento); después la versión y las revisiones de ahora.
+  r := pg_temp.cg_corre(k, pg_temp.cg_sql(c, ik, pg_temp.cg_ver(c), '{"inputs": {"visible": 150, "oculto": 25, "bono_costos": 7, "aparte_costos": 3}, "banderas": {"b_costos": true}}', null, null, null, v));
+  if r ? 'error' then raise exception 'el guardado previo de k: %', r; end if;
+  ver := pg_temp.cg_ver(c); n := pg_temp.cg_revs(c); fila := (select to_jsonb(x) from public.cotizaciones x where x.id = c);
+  -- Las cinco llamadas de ev: cada una, idéntica a lo inexistente.
+  r := pg_temp.cg_corre(ev, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'x', null, v));
+  if r is distinct from r0 then v_fallas := v_fallas || format(E'\n  (a) la de siempre: %s', r); end if;
+  r := pg_temp.cg_corre(ev, pg_temp.cg_sql(c, gen_random_uuid(), ver - interval '1 second', e, null, 'x', null, v));
+  if r is distinct from r0 then v_fallas := v_fallas || format(E'\n  (b) con la versión vieja: %s', r); end if;
+  r := pg_temp.cg_corre(ev, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'x', null, null));
+  if r is distinct from r0 then v_fallas := v_fallas || format(E'\n  (c) sin vehículo: %s', r); end if;
+  r := pg_temp.cg_corre(ev, pg_temp.cg_sql(c, ik, ver, e, null, 'x', null, v));
+  if r is distinct from r0 then v_fallas := v_fallas || format(E'\n  (d) con el intento de k: %s', r); end if;
+  r := pg_temp.cg_corre(ev, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, repeat('t', 121), null, v));
+  if r is distinct from r0 then v_fallas := v_fallas || format(E'\n  (e) con un título de 121: %s', r); end if;
+  -- vp (ve «propios», edita «todos»): lo mismo, con la de siempre y con la versión vieja.
+  r := pg_temp.cg_corre(vp, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'x', null, v));
+  if r is distinct from r0 then v_fallas := v_fallas || format(E'\n  vp (a) la de siempre: %s', r); end if;
+  r := pg_temp.cg_corre(vp, pg_temp.cg_sql(c, gen_random_uuid(), ver - interval '1 second', e, null, 'x', null, v));
+  if r is distinct from r0 then v_fallas := v_fallas || format(E'\n  vp (b) con la versión vieja: %s', r); end if;
+  if v_fallas <> '' then raise exception 'quien edita y no ve se distingue de lo inexistente:%', v_fallas; end if;
+  if pg_temp.cg_revs(c) is distinct from n or (select to_jsonb(x) from public.cotizaciones x where x.id = c) is distinct from fila then raise exception 'quien edita y no ve dejó rastro'; end if;
+  -- Con el lead de la cotización en su cartera, vp la ve y la guarda.
+  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por) values ((t ->> 'l')::uuid, vp, 'compartido', '00000000-0000-0000-0000-000000000001');
+  r := pg_temp.cg_corre(vp, pg_temp.cg_sql(c, gen_random_uuid(), ver, e, null, 'De vp', null, v));
+  if r ? 'error' or (select titulo from public.cotizaciones where id = c) is distinct from 'De vp' then raise exception 'con el lead en su cartera, vp debía guardar: %', r; end if;
+end $$;
+-- El ayudante que decide quién guarda es de nadie, invocador y con search_path vacío; y el catálogo dice que guardar pide ver.
+do $$
+declare v_f constant text := 'public._cotizacion_puede_guardar(uuid, public.clase_cotizacion, uuid)';
+begin
+  if has_function_privilege('authenticated', v_f, 'execute') or has_function_privilege('anon', v_f, 'execute') then raise exception '_cotizacion_puede_guardar() se puede ejecutar desde la app'; end if;
+  if (select prosecdef from pg_proc where oid = v_f::regprocedure) then raise exception '_cotizacion_puede_guardar() es security definer'; end if;
+  if not coalesce((select proconfig from pg_proc where oid = v_f::regprocedure) @> array['search_path=""'], false) then raise exception '_cotizacion_puede_guardar() no fija search_path vacío'; end if;
+  if (select aplicado_en from public.permisos where clave = 'cotizaciones.ver') !~ 'cotizacion_guardar' then raise exception 'el aplicado_en de cotizaciones.ver no nombra cotizacion_guardar'; end if;
+  if (select descripcion from public.permisos where clave = 'cotizaciones.editar') !~ 'pide también cotizaciones\.ver' then raise exception 'la descripción de cotizaciones.editar no dice que pide cotizaciones.ver'; end if;
+end $$;
+rollback;
+
 -- @test cotizacion_guardar: el intento — repetirlo devuelve lo guardado, con otros datos o de otra persona es un error claro, y no escribir nada no escribe
 begin;
 do $$

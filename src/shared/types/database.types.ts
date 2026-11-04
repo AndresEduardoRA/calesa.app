@@ -7022,6 +7022,14 @@ export type Database = {
       _cotizacion_guardable: { Args: { p_mandados: Json; p_res: Json }; Returns: number }
       _cotizacion_hoja: { Args: { p_formula: string; p_origen: string }; Returns: Json }
       _cotizacion_modo: { Args: { p_formula: string; p_modo_tc: string }; Returns: Json }
+      _cotizacion_puede_guardar: {
+        Args: {
+          p_clase: Database['public']['Enums']['clase_cotizacion']
+          p_cot: string
+          p_origen: string
+        }
+        Returns: boolean
+      }
       _cotizacion_recorte: { Args: { p_ctx: Json; p_res: Json }; Returns: Json }
       _cotizacion_respuesta: {
         Args: {
