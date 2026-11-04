@@ -80,6 +80,11 @@ cerrar_listo() {
     guardas=$(guardas_tocadas "$desde")
     if [ -n "$guardas" ]; then
       mapfile -t CONTEXTO < <(printf '%s\n' "$guardas" | head -n 20 | sed 's/^package.json: .*/package.json/' | sort -u)
+      # El diff completo de lo que tocó, guardado: si la compuerta se contesta sola, la persona lo revisa después.
+      GUARDAS_DIFF="$ESTADO/guardas/$(sanear "$paso").diff"
+      mkdir -p "$ESTADO/guardas"
+      # shellcheck disable=SC2046
+      git diff "$desde" HEAD -- $(printf '%s\n' "$guardas" | sed 's/:.*//' | sort -u | tr '\n' ' ') >"$GUARDAS_DIFF" 2>/dev/null
       compuerta guardas "$paso" "el paso tocó las guardas: $(printf '%s' "$guardas" | head -n 8 | tr '\n' ' ')" \
         "El paso $paso cambió archivos que protegen al piloto (hooks, settings, scripts del piloto, lefthook, CI, db:* o test:e2e*). ¿Apruebas el cambio?" ||
         { registro "guardas de $paso no aprobadas: no se verifica ni se publica."; exit 0; }

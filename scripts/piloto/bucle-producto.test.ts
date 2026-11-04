@@ -141,7 +141,7 @@ describe('bucle.sh › la compuerta de producto se contesta sola con las recomen
     expect(a.secuencia().some((l) => l.startsWith('decidir:'))).toBe(false)
     expect(a.llamadas('paso')).toHaveLength(2)
     expect(a.llamadas('paso')[1]).toContain('--resume')
-    expect(r.salida).toContain('contestada sola con las recomendadas')
+    expect(r.salida).toContain('contestada sola con la recomendada')
     const registro = a.estado('decisiones-automaticas.md')
     expect(registro).toContain('P0 — ¿Decisión 0?')
     expect(registro).toContain('→ sí — la recomendada (recomendado)')
@@ -155,10 +155,29 @@ describe('bucle.sh › la compuerta de producto se contesta sola con las recomen
     expect(a.secuencia()[0]).toBe('decidir:abrir producto 4.99')
   })
 
-  it('una compuerta de datos nunca se contesta sola', () => {
+  it('una compuerta de datos sin PILOTO_AUTO=datos sigue preguntando', () => {
     a.paso(1, pasoCompuerta('datos'))
     a.decidir(1, responder('parar'))
     a.correr([], { PILOTO_AUTO: 'producto' })
     expect(a.secuencia()[0]).toBe('decidir:abrir datos 4.99')
+  })
+
+  it('una compuerta de datos con PILOTO_AUTO=datos se aprueba sola, queda anotada y el paso sigue', () => {
+    a.paso(1, pasoCompuerta('datos'))
+    a.paso(2, pasoListo({ 'src/a.ts': 'a' }))
+    const r = a.correr(['--hasta', '4.99'], { PILOTO_AUTO: 'datos' })
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia().some((l) => l.startsWith('decidir:'))).toBe(false)
+    expect(a.llamadas('paso')[1]).toContain('--resume')
+    expect(a.estado('decisiones-automaticas.md')).toContain('compuerta datos (contestada sola)')
+    expect(r.salida).toContain('compuerta datos (4.99) contestada sola con la recomendada: aprobar')
+  })
+
+  it('una parada nunca se contesta sola, aunque esté en PILOTO_AUTO', () => {
+    a.paso(1, 'true', { salida_codigo: 1 })
+    a.paso(2, 'true', { salida_codigo: 1 })
+    a.decidir(1, responder('parado'))
+    a.correr([], { PILOTO_AUTO: 'producto,datos,guardas,parada' })
+    expect(a.secuencia()[0]).toBe('decidir:abrir parada 4.99')
   })
 })
