@@ -13,6 +13,7 @@ import {
   type HojaDeUnaGuardada,
 } from '../../../entities/hoja-de-una-guardada'
 import { useGuardadoDeUnaGuardada } from '../hooks/use-guardado-de-una-guardada'
+import { useLecturaDeUnaGuardada } from '../hooks/use-lectura-de-una-guardada'
 import type { AperturaDeHoja } from '../hooks/use-hoja'
 import { HojaDeCotizar } from './hoja-de-cotizar'
 import { TotalGuardado } from './total-guardado'
@@ -33,7 +34,7 @@ type Props = PropsDeLaHoja & {
 // referencia y los datos del vehículo de hoy; si da otra cosa se dice y se muestra el total con que se guardó (C11, P2). Se decide una vez, al abrir: tipear después no lo cambia.
 // Lleva lo que tiene que sobrevivir a que la hoja se vuelva a montar con la versión nueva —el guardado con su pendiente y su «Cambios guardados.»— y, **mientras guarda,
 // congela las props de la hoja** (como la nueva): una action que renueva la cookie de la sesión vuelve a dibujar la página, y la hoja no cambia a medio guardar. Su `key` es el
-// id de la cotización; la de la hoja, su versión (`actualizadoEn`) y la vuelta de «Descartar».
+// id de la cotización; la de la hoja, su versión (`actualizadoEn`), la vuelta de «Descartar» y la lectura que trajo «Recargar».
 export function PantallaDeUnaGuardada({ personaId, ...props }: Props) {
   const [vuelta, setVuelta] = useState(0)
   const [vistas, setVistas] = useState<PropsDeLaHoja>(props)
@@ -52,9 +53,12 @@ export function PantallaDeUnaGuardada({ personaId, ...props }: Props) {
       guardarBorradorDeEstado(window.sessionStorage, borrador, {})
     },
   })
+  // «Recargar» sin que la versión se mueva: cuando la lectura llega, la hoja se vuelve a montar con ella.
+  const lectura = useLecturaDeUnaGuardada(guardado.olvidarAviso)
   const congelada = guardado.estado.tipo === 'guardando'
   if (!congelada && (vistas.hoja !== props.hoja || vistas.inicial !== props.inicial)) {
     setVistas(props)
+    lectura.llego()
   }
   // Otra versión (el «Recargar» de un conflicto abre la de la otra persona): el aviso del último guardado hablaba de la de antes. Lo guardado por este mismo guardado no se olvida:
   // «Cambios guardados.» se queda hasta el próximo cambio.
@@ -81,7 +85,7 @@ export function PantallaDeUnaGuardada({ personaId, ...props }: Props) {
   const muestraElTotal = muestraElTotalGuardado(hoja.guardado, inicial.respuesta)
   return (
     <HojaDeCotizar
-      key={`${hoja.cotizacion.actualizadoEn}:${String(vuelta)}`}
+      key={`${hoja.cotizacion.actualizadoEn}:${String(vuelta)}:${String(lectura.lecturas)}`}
       hoja={diseno}
       inicial={inicial}
       vehiculoId={hoja.cotizacion.vehiculoId}
@@ -89,6 +93,7 @@ export function PantallaDeUnaGuardada({ personaId, ...props }: Props) {
       leadId={hoja.cotizacion.leadId}
       guardado={null}
       abre={abre}
+      alRecargar={lectura.recargar}
       soloLectura={!hoja.puedeGuardar}
       {...(hoja.puedeGuardar
         ? {

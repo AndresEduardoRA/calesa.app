@@ -39,6 +39,8 @@ type Props = {
   abre?: AperturaDeHoja
   // Una cotización guardada que quien mira puede guardar (4.15-3): su guardado, su versión y si lo de hoy no es lo guardado. Con ella, `guardado` va nulo.
   edicion?: EdicionDeLaHoja
+  // «Recargar»: sin nada, vuelve a pedir la página al servidor; el marco de una guardada lo suma para volver a montar la hoja con lo que llegue (4.15-3).
+  alRecargar?: () => void
 }
 
 function SinDatosQueVer() {
@@ -73,7 +75,7 @@ function useContextoDeLaHoja(
   )
 }
 
-type PropsDelResumen = Pick<Props, 'hoja' | 'totalGuardado'> & {
+type PropsDelResumen = Pick<Props, 'hoja' | 'totalGuardado' | 'alRecargar'> & {
   guardado: VistaDelGuardado | null
   // «Cambios guardados.» de una guardada.
   confirmacion: string | null
@@ -95,8 +97,10 @@ function ResumenDeLaHoja({
   boton,
   soloLectura,
   totalGuardado,
+  alRecargar,
 }: PropsDelResumen) {
   const router = useRouter()
+  const recargar = alRecargar ?? router.refresh
   return (
     <ResumenDeHoja
       tarjeta={hoja.tarjetaTotal}
@@ -109,7 +113,7 @@ function ResumenDeLaHoja({
         hoja.vehiculoObligatorio && vehiculo.id === null,
       )}
       alReintentar={h.reintentar}
-      alRecargar={router.refresh}
+      alRecargar={recargar}
       guardar={boton}
       soloLectura={soloLectura}
       totalGuardado={totalGuardado}
@@ -119,7 +123,7 @@ function ResumenDeLaHoja({
             guardado={guardado}
             alReintentar={boton.alGuardar}
             version={hoja.formula.version}
-            alRecargar={router.refresh}
+            alRecargar={recargar}
             confirmacion={confirmacion}
           />
         )
@@ -144,6 +148,7 @@ export function HojaDeCotizar({
   edicion,
   soloLectura = false,
   totalGuardado,
+  alRecargar,
 }: Props) {
   const raiz = useRef<HTMLDivElement>(null)
   // El guardado que ve la hoja: el de la guardada que edita o el de la nueva.
@@ -198,6 +203,7 @@ export function HojaDeCotizar({
           boton={boton}
           soloLectura={soloLectura}
           totalGuardado={totalGuardado}
+          alRecargar={alRecargar}
         />
       </div>
     </div>
