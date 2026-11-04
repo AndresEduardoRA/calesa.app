@@ -286,6 +286,8 @@ begin
       -- Una página de revisiones: la cotización se busca una vez, `_nodos_visibles()` se llama una sola vez y no se mira ninguna cartera entera.
       if coalesce((r.llamadas ->> '_nodos_visibles')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s llama a _nodos_visibles %s veces: %s', r.fase, r.ruta, r.quien, coalesce(r.llamadas ->> '_nodos_visibles', '0'), r.llamadas); end if;
       if r.llamadas ? 'mis_leads' or coalesce((r.llamadas ->> 'puede_cotizacion')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s pregunta mal por el permiso: %s', r.fase, r.ruta, r.quien, r.llamadas); end if;
+      -- puede_cotizacion() mira el alcance una vez, también para quien ve «propios» (4-24: con el lateral de antes, dos).
+      if coalesce((r.llamadas ->> 'alcance_de')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s pide alcance_de %s veces (debe ser 1): %s', r.fase, r.ruta, r.quien, coalesce(r.llamadas ->> 'alcance_de', '0'), r.llamadas); end if;
       if r.ms > 12 then v_fallas := v_fallas || format(E'\n  %s · %s · %s: %s ms, el presupuesto de una página de revisiones es 12', r.fase, r.ruta, r.quien, round(r.ms, 1)); end if;
       continue;
     end if;
@@ -293,6 +295,8 @@ begin
       -- Leer una cotización: se busca por su clave una vez, se recortan sus nodos una vez (`_nodos_visibles()` se llama una sola vez) y no se mira ninguna cartera entera.
       if coalesce((r.llamadas ->> '_nodos_visibles')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s llama a _nodos_visibles %s veces: %s', r.fase, r.ruta, r.quien, coalesce(r.llamadas ->> '_nodos_visibles', '0'), r.llamadas); end if;
       if r.llamadas ? 'mis_leads' or coalesce((r.llamadas ->> 'puede_cotizacion')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s pregunta mal por el permiso: %s', r.fase, r.ruta, r.quien, r.llamadas); end if;
+      -- puede_cotizacion() mira el alcance una vez, también para quien ve «propios» (4-24: con el lateral de antes, dos).
+      if coalesce((r.llamadas ->> 'alcance_de')::int, 0) <> 1 then v_fallas := v_fallas || format(E'\n  %s · %s · %s pide alcance_de %s veces (debe ser 1): %s', r.fase, r.ruta, r.quien, coalesce(r.llamadas ->> 'alcance_de', '0'), r.llamadas); end if;
       continue;
     end if;
     if not r.indices ? (v_indice ->> split_part(r.ruta, ' ', 1)) then

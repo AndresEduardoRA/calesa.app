@@ -659,6 +659,60 @@ begin
   if public.puede_cotizacion(v_la, 'cotizaciones.final.gestionar') is distinct from false then raise exception 'una clave que no tiene no da falso'; end if;
   reset role;
 end $$;
+-- puede_cotizacion() mira el alcance UNA vez (4-24): el alcance es el argumento de un `case`, como en puede_vehiculo(); con el `cross join lateral` de antes, quien ve
+-- «propios» lo pedía dos veces (el lateral se aplana y `a.alcance` se nombraba dos veces). Primero el texto; después la conducta, con un espía de alcance_de().
+do $$
+declare v_src text := (select prosrc from pg_proc where proname = 'puede_cotizacion' and pronamespace = 'public'::regnamespace);
+begin
+  if v_src !~ 'case public\.alcance_de\(' then raise exception 'puede_cotizacion() no evalúa el alcance como argumento de un case: %', v_src; end if;
+  if v_src ~* 'lateral' then raise exception 'puede_cotizacion() todavía usa un lateral'; end if;
+  if regexp_count(v_src, 'alcance_de') <> 1 then raise exception 'puede_cotizacion() nombra alcance_de % veces (debe ser 1)', regexp_count(v_src, 'alcance_de'); end if;
+end $$;
+-- El espía: la misma firma, `stable` y `security definer` (como la real: una volátil impediría aplanar el lateral y no probaría nada), cuenta en un ajuste de la transacción
+-- y devuelve lo de la real. Se deshace con el rollback del bloque.
+create or replace function public.alcance_de(p_clave text, p_origen uuid default null) returns public.alcance_permiso
+  language plpgsql stable security definer
+  set search_path = ''
+as $f$
+declare v public.alcance_permiso;
+begin
+  perform set_config('prueba.alcance', (coalesce(nullif(current_setting('prueba.alcance', true), ''), '0')::int + 1)::text, true);
+  select case when bool_or(rp.alcance = 'todos') then 'todos'::public.alcance_permiso
+              when count(*) > 0 then 'propios'::public.alcance_permiso
+         end into v
+    from public.usuarios_roles ur
+    join public.roles_permisos rp on rp.rol_id = ur.rol_id
+    join public.perfiles p on p.id = ur.usuario_id
+   where ur.usuario_id = (select auth.uid())
+     and p.activo and not p.bloqueado
+     and rp.permiso_clave = p_clave
+     and (rp.origen_id is null or p_origen is null or rp.origen_id = p_origen);
+  return v;
+end $f$;
+create or replace function pg_temp.cv_llamadas(p_quien uuid, p_cot uuid, p_clave text, out puede boolean, out llamadas int) language plpgsql as $f$
+begin
+  perform pg_temp.cv_como(p_quien);
+  perform set_config('prueba.alcance', '0', true);
+  set local role authenticated;
+  puede := public.puede_cotizacion(p_cot, p_clave);
+  reset role;
+  llamadas := current_setting('prueba.alcance', true)::int;
+exception when others then
+  reset role;
+  raise;
+end $f$;
+do $$
+declare
+  a constant uuid := '00000000-0000-0000-0000-000000000ca1'; t constant uuid := '00000000-0000-0000-0000-000000000cc1';
+  v_la uuid := (select id from cv_c where nombre = 'a_la'); r record;
+begin
+  select * into r from pg_temp.cv_llamadas(a, v_la, 'cotizaciones.ver');
+  if r.puede is distinct from true or r.llamadas <> 1 then raise exception 'como «propios», puede_cotizacion() da % con % llamadas a alcance_de (debe ser verdadero con 1)', r.puede, r.llamadas; end if;
+  select * into r from pg_temp.cv_llamadas(t, v_la, 'cotizaciones.ver');
+  if r.puede is distinct from true or r.llamadas <> 1 then raise exception 'como «todos», puede_cotizacion() da % con % llamadas a alcance_de (debe ser verdadero con 1)', r.puede, r.llamadas; end if;
+  select * into r from pg_temp.cv_llamadas(a, gen_random_uuid(), 'cotizaciones.ver');
+  if r.puede is distinct from false or r.llamadas <> 0 then raise exception 'con una que no existe, puede_cotizacion() da % con % llamadas a alcance_de (debe ser falso con 0)', r.puede, r.llamadas; end if;
+end $$;
 rollback;
 
 -- @test visibilidad: _cotizacion_recorte deja lo visible, el total y lo aparte, los grupos que se ven enteros y las faltas de lo visible; a quien lo ve todo, lo mismo que el motor
