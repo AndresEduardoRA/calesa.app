@@ -424,3 +424,19 @@ El 2 de 3 del 4.15, de base. P1–P13 contestadas con la recomendada; plan aprob
   - Nivel 2 por estructura (la columna y el índice): el completo de escritorio, 890 en verde, 16 saltados, ninguna caída, 33,9 min.
 - **Commits:** `da93a3a8` (la hoja de una guardada), `58dd4ea0` (revisiones con autor) y `7b38f9b4` (cotizar encima).
   e2e completo: sí (4.15-2, base, Nivel 2)
+
+## 2026-11-04 — 4.15-3a: abrir y guardar una cotización guardada en `/cotizaciones/[id]`
+
+El 3a de 4 del 4.15, de pantalla (Nivel 1, rigor de pantalla con una escritura de dinero). P1 y P2 contestadas con la recomendada; plan auditado en dos rondas y aprobado en la
+compuerta `datos`. `docs/DECISIONES.md` › «Paso 4.15 (3a de 4)».
+
+- `/cotizaciones/[id]`: la hoja de SU versión (sólo lectura para quien no la guarda), «Guardar» con la versión esperada, el conflicto con quién y cuándo, `intento_reusado`, y
+  «Total guardado» con el aviso cuando lo de hoy no es lo guardado; se llega desde el historial del vehículo y la tarjeta de lo guardado. El vehículo no se cambia (P1; 4-71).
+- **Verificación** (`.piloto/salidas/4.15-3a/`, informe en `.piloto/informes/4.15-3a.md`, auditado: observaciones; la 1.ª se arregló en un `fix`):
+  - En verde, lo mínimo local de cada commit: eslint, `vitest related` (2.300 en 116 archivos tras el 3) y `typecheck`; `lint` y `test` enteros los corre el CI.
+  - e2e dirigidos en escritorio y móvil, 0 caídas: los dos specs nuevos (26 pasadas), los del guardado y la hoja (94) y, tras el `fix`, los de C1 (146).
+  - Rojos contra HEAD (`rojo-*.txt`) y 5 mutaciones que caen (`mutaciones.txt`); la M2 en e2e cae por la lectura, no por el guardado.
+  - JS en frío: `/cotizaciones/[id]` 440,3 KB (tope 448) y `/cotizaciones/nuevo` 456,2 (tope 460; subió 3,1: 4-73).
+- Hallazgo de la auditoría: «Recargar» tras `nodo_no_editable` no volvía a montar la hoja y lo rechazado se reenviaba; ahora la lectura que pidió suma a la `key`.
+- **Commits:** `9df08f05` (la hoja calcula por su origen o su cotización), `47ce6f8a` (abrir una guardada), `4d5a868a` (guardar) y `c141e3a3` (el `fix`: volver a montar al recargar).
+  e2e completo: no (4.15-3a, pantalla, 1 de 3)

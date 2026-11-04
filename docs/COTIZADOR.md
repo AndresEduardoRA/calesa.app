@@ -452,6 +452,14 @@ hoy. La anterior no cambia. **Una viva por anterior** (`cotizaciones_encima_unic
 - **`descartados`** (`_cotizacion_descartados`): cuántas entradas tipeadas de la anterior que quien llama **ve** no llegan (no siguen, no se aceptan, la variante, un
   override que el motor descarta). Lo oculto que se pierde no se cuenta.
 
+**La pantalla (4.15-3a), `/cotizaciones/[id]`.** La hoja calcula por su origen (la nueva) o por su cotización (`DeDondeCalcula`): la guardada manda `p_entradas`, `p_cotizacion`
+y `p_modo_tc`, nunca `p_origen` ni `p_abierta`. Abre con lo guardado como sus entradas (`entradasDeLoGuardado`, el espejo de `_cotizacion_entradas_de`: lo tipeado y los
+overrides, sin el porcentaje de un par pisado) y con **una** llamada a `cotizacion_hoja_guardada` y otra a `cotizacion_evaluar(p_cotizacion)`. El recálculo usa las tablas de
+referencia **vivas** y los datos de hoy del vehículo: si no da lo guardado (sus valores o su total, `difiereAlAbrir`), la pantalla lo avisa, muestra «Total guardado» con `<Monto>`
+y «Guardar» la deja con lo de hoy. «Guardar» llama a `cotizacion_guardar` con la versión que vio quien edita (`actualizadoEn` como el texto de la base, nunca por `Date`, que
+pierde los microsegundos), las entradas del recálculo al día y el título, las notas y el vehículo de la cotización sin tocarlos; lo que la hoja no manda lo conserva la base. El PT409
+dice quién y cuándo; «Recargar» vuelve a montar la hoja con la lectura nueva y lo tipeado no vuelve sobre la versión de la otra persona.
+
 ## Lo que se guarda en una cotización
 
 `formula_id` (recalcular o editar usa **esa** versión, nunca la vigente); `valores` (`{nodo_id: número | null}` de TODOS los nodos; el

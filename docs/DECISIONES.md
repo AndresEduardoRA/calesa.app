@@ -1601,3 +1601,15 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **Producto se contesta solo con la recomendada** y queda en `.piloto/decisiones-automaticas.md`; `datos`, `guardas`, `dependencia`, `afuera` y `atasco` siguen siendo de la persona.
 - **El tope por paso sube de 60 a 200 USD**: en la Fase 4 un paso costó entre 9 y 36 USD (423,52 USD en 57 llamadas); el tope sirve de freno a un paso atascado, no a un paso normal.
 - **Pendiente, medido y no hecho**: el contexto de ≈ 320.000 tokens por turno es lo que más cuesta (la lectura de caché pasa de 1.000 M de tokens en la Fase 4). La salida es ejecutar cada commit con un subagente de contexto nuevo; se prueba en un paso real y se mide antes de dejarlo por omisión.
+
+## 2026-11-04 — Paso 4.15 (3a de 4): abrir y guardar en `/cotizaciones/[id]`
+
+- **Partición:** el 3 de la fila (pantalla, revisiones y «Cotizar encima») no cabía en 3 commits; el 3a es abrir y guardar, el 3b las revisiones y encima. P1: la página no cambia el vehículo
+  de una preventa (se anota 4-71); P2: al abrir se recalcula y, si no da lo guardado, se avisa y «Total guardado» muestra el de antes; descartadas: abrir con el snapshot sin recalcular
+  (otra forma de respuesta de la hoja) y recalcular sin aviso (se vería otro total que el cotizado).
+- **`actualizadoEn` viaja como el texto de la base**, nunca por `Date` ni `fechas.ts` (pierden los microsegundos y daría siempre PT409). La versión esperada se manda tal cual la leyó la página; el intento es uno nuevo por guardado.
+- **El borrador y el pendiente de una guardada** van por persona y cotización, y el borrador lleva la versión: tras un conflicto lo tipeado no vuelve sobre lo que guardó la otra persona; el aviso lo dice.
+- **«Guardar» está apagado sin cambios**, salvo con un pendiente (se reenvía, 4-21) o con lo de hoy distinto de lo guardado. El único texto de la base que se muestra es el del PT409 (nombra a una persona y una hora); un 22023 del vehículo sin `details` dice que la cotización cambió.
+- **Quién guarda lo dice `puede_guardar` de la base**, no `puede()`: no conoce el alcance por cotización. `difiereAlAbrir` compara los `valores` y `totales.usd`, no sólo el total (una celda puede cambiar sin mover el total).
+- **«Recargar» vuelve a montar la hoja con la lectura que pidió** (la `key` suma una lectura pedida); una lectura que nadie pidió no la remonta y lo tipeado se queda. **La lectura del cliente y del vehículo va en serie tras la hoja** (sus ids salen de ella), no en paralelo.
+- **Rigor:** pruebas que fallan primero, 5 mutaciones e informe auditado; sin carreras ni volumen (ningún SQL cambia).
