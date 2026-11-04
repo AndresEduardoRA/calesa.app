@@ -71,8 +71,10 @@ cerrar_listo() {
     return 0
   fi
   if ! motivo=$(commits_coinciden "$desde"); then
-    parada "los commits de ultimo.json no coinciden con el repo: $motivo" "$paso" "${SOLO_REINTENTO[@]}"
-    return 0
+    if ! { reparar_commits "$desde" && motivo=$(commits_coinciden "$desde"); }; then
+      parada "los commits de ultimo.json no coinciden con el repo: $motivo" "$paso" "${SOLO_REINTENTO[@]}"
+      return 0
+    fi
   fi
 
   # c)

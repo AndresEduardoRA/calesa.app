@@ -19,6 +19,8 @@ set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
 # shellcheck source=compuerta.sh
 source "$BIN/compuerta.sh"
+# shellcheck source=reparar.sh
+source "$BIN/reparar.sh"
 # shellcheck source=cierre.sh
 source "$BIN/cierre.sh"
 # shellcheck source=gasto.sh
@@ -139,7 +141,7 @@ paradas_deterministas() {
   fi
   disco=$(hecho .disco_pct)
   if [ -n "$disco" ] && [ "$disco" != null ] && [ "$disco" -gt "$DISCO_MAX" ]; then
-    chequeo disco "el disco está al ${disco} % (tope ${DISCO_MAX} %: libera espacio o arranca con PILOTO_DISCO_MAX)" || return 1
+    reparar_disco "$DISCO_MAX" || chequeo disco "el disco está al ${disco} % (tope ${DISCO_MAX} %: libera espacio o arranca con PILOTO_DISCO_MAX)" || return 1
   fi
   # Un CI rojo no frena: se anota en .piloto/ci-rojos.md y el ruteo lo ve (ci.sh). Frena la base en rojo y la acumulación.
   ci_resolver "$(hecho .rama)" || chequeo ci "$CI_MOTIVO" || return 1
@@ -339,6 +341,7 @@ vuelta() {
   if jq -e '.nivel.completo == true or (.nivel.nivel // 1) >= 2' "$ESTADO/ruteo.json" >/dev/null 2>&1; then
     local faltan
     faltan=$(hecho 'if (.funciones | type) == "object" then [.funciones | to_entries[] | select(.value != true) | .key] | join(", ") else "no se pudo mirar" end')
+    if [ -n "$faltan" ] && reparar_funciones; then faltan=; fi
     if [ -n "$faltan" ]; then
       parada "el paso $paso corre el e2e completo (Nivel 2) y faltan las funciones edge ($faltan): corre «pnpm funciones» en otra terminal" \
         "$paso" 'parado — no sigue (recomendado)' 'reintentar — vuelve a mirar las funciones' 'sigo — corre el paso igual'
