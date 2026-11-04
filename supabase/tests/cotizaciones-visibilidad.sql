@@ -1354,7 +1354,9 @@ begin
   r2 := pg_temp.cv_corre(con, format('select public.cotizacion_revisiones(%L)', c));
   if r2 -> 'revisiones' -> 4 -> 'diff' is distinct from '{"valores": {"de": {"flete": 41111.5}, "a": {"flete": 50123.5}}}'::jsonb then raise exception 'con el nivel, el costo: %', r2 -> 'revisiones' -> 4 -> 'diff'; end if;
   if r2 -> 'revisiones' -> 3 -> 'diff' is distinct from '{"valores": {"de": {"remate": 1000.5, "flete": 50123.5}, "a": {"remate": 2000.5, "flete": 60123.5}}}'::jsonb then raise exception 'con el nivel, el dato y el costo: %', r2 -> 'revisiones' -> 3 -> 'diff'; end if;
-  if r2 -> 'revisiones' -> 2 -> 'diff' is distinct from jsonb_build_object('totales', jsonb_build_object('de', t0, 'a', jsonb_set(t0, '{grupos,g2,usd}', '77123.5'))) then
+  -- La revisión guarda totales por clave (4.15-1): sólo el grupo que cambió, entero.
+  if r2 -> 'revisiones' -> 2 -> 'diff' is distinct from jsonb_build_object('totales', jsonb_build_object('de', jsonb_build_object('grupos', jsonb_build_object('g2', t0 #> '{grupos,g2}')),
+                                                                                    'a', jsonb_build_object('grupos', jsonb_build_object('g2', jsonb_set(t0 #> '{grupos,g2}', '{usd}', '77123.5'))))) then
     raise exception 'con el nivel, el subtotal del grupo: %', r2 -> 'revisiones' -> 2 -> 'diff';
   end if;
   if r2 -> 'revisiones' -> 1 -> 'diff' is distinct from '{"tipos_cambio": {"de": {"oficial": 6.96, "paralelo": 12.4}, "a": {"oficial": 7.75, "paralelo": 12.4}}}'::jsonb then raise exception 'con el nivel, la tarifa: %', r2 -> 'revisiones' -> 1 -> 'diff'; end if;
@@ -1394,6 +1396,27 @@ begin
   r := jsonb_build_object('d', public._cotizacion_diff_recortado(jsonb_build_object('valores', jsonb_build_object('de', v1, 'a', v2)),
          public._cotizacion_contexto(array['remate', 'fees', 'tc_p'], v_def, v_vis), array['notas']));
   if r -> 'd' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v1 - 'tc_o' - 'flete' - 'margen', 'a', v2 - 'tc_o' - 'flete' - 'margen')) then raise exception 'una revisión con dos snapshots enteros no se recorta: %', r; end if;
+  -- 7. Lo que un nivel esconde no se delata por los totales (4.15-1). (i) Sólo cambia el Bs de g1 (visible para `sin`, sin su Bs: el tipo de cambio oficial está oculto) y el
+  -- Bs de primer nivel, como al cambiar el modo: `sin` lee el Bs y no ve g1 (le diría que el Bs de ESE grupo cambió); `con` ve g1 con su Bs en los dos lados.
+  update public.cotizaciones set totales = jsonb_set(jsonb_set(totales, '{grupos,g1,bs}', '8000'), '{bs}', '100000000.5') where id = c;
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, null, 1)', c));
+  if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"totales": {"de": {"bs": 99999000.5}, "a": {"bs": 100000000.5}}}'::jsonb then
+    raise exception 'sin el nivel, el Bs de un grupo visible se delata: %', r -> 'revisiones' -> 0 -> 'diff';
+  end if;
+  r2 := pg_temp.cv_corre(con, format('select public.cotizacion_revisiones(%L, null, 1)', c));
+  if r2 #> '{revisiones,0,diff,totales,de,grupos,g1,bs}' is distinct from '7308'::jsonb or r2 #> '{revisiones,0,diff,totales,a,grupos,g1,bs}' is distinct from '8000'::jsonb then
+    raise exception 'con el nivel, el Bs del grupo: %', r2 -> 'revisiones' -> 0 -> 'diff';
+  end if;
+  -- (ii) Una revisión de antes (totales entero) con ese mismo cambio, recortada para `sin`: tampoco nombra los grupos.
+  r := jsonb_build_object('d', public._cotizacion_diff_recortado(jsonb_build_object('totales', jsonb_build_object('de', t0, 'a', jsonb_set(jsonb_set(t0, '{grupos,g1,bs}', '8000'), '{bs}', '100000000.5'))),
+         public._cotizacion_contexto(array['remate', 'fees', 'tc_p'], v_def, v_vis), array['notas']));
+  if not (r #> '{d,totales}') ? 'a' or (r #> '{d,totales,de}') ? 'grupos' or (r #> '{d,totales,a}') ? 'grupos' then raise exception 'una revisión entera delata el Bs de un grupo: %', r; end if;
+  -- (iii) Se mueve un grupo oculto (g2) junto con el Bs y el total: `sin` no recibe ni un `grupos` vacío.
+  update public.cotizaciones set totales = jsonb_set(jsonb_set(jsonb_set(totales, '{grupos,g2,usd}', '80000.5'), '{bs}', '100000001.5'), '{usd}', '99999.75') where id = c;
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, null, 1)', c));
+  if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"totales": {"de": {"bs": 100000000.5, "usd": 99999.5}, "a": {"bs": 100000001.5, "usd": 99999.75}}}'::jsonb then
+    raise exception 'sin el nivel, un grupo oculto que se movió se delata: %', r -> 'revisiones' -> 0 -> 'diff';
+  end if;
 end $$;
 rollback;
 

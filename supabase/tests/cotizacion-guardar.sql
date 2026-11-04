@@ -178,6 +178,23 @@ begin
   update public.cotizaciones set titulo = 'Nuevo', totales = '{"usd": 11}' where id = c;
   select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
   if r.diff is distinct from '{"titulo": {"de": null, "a": "Nuevo"}, "totales": {"de": {"usd": 10}, "a": {"usd": 11}}}'::jsonb then raise exception 'las demás columnas, tal cual: %', r.diff; end if;
+  -- `totales`, por clave (4.15-1): las de primer nivel que cambiaron y, en `grupos`, cada grupo entero que cambió; lo que no cambió no figura.
+  update public.cotizaciones set totales = '{"usd": 10, "bs": 70, "grupos": {"g1": {"usd": 1}, "g2": {"usd": 2}}}' where id = c;
+  update public.cotizaciones set totales = '{"usd": 11, "bs": 70, "grupos": {"g1": {"usd": 1}, "g2": {"usd": 3}}}' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.diff is distinct from '{"totales": {"de": {"usd": 10, "grupos": {"g2": {"usd": 2}}}, "a": {"usd": 11, "grupos": {"g2": {"usd": 3}}}}}'::jsonb then raise exception 'totales no es por clave y por grupo: %', r.diff; end if;
+  -- Un grupo que aparece y una clave nueva de primer nivel figuran sólo del lado donde están.
+  update public.cotizaciones set totales = '{"usd": 11, "bs": 70, "suma_usd": 5, "grupos": {"g1": {"usd": 1}, "g2": {"usd": 3}, "g3": {"usd": 4}}}' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.diff is distinct from '{"totales": {"de": {}, "a": {"suma_usd": 5, "grupos": {"g3": {"usd": 4}}}}}'::jsonb then raise exception 'un grupo y una clave que aparecen: %', r.diff; end if;
+  -- Y los que se van, sólo del lado de antes.
+  update public.cotizaciones set totales = '{"usd": 11, "bs": 70, "grupos": {"g1": {"usd": 1}, "g2": {"usd": 3}}}' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.diff is distinct from '{"totales": {"de": {"suma_usd": 5, "grupos": {"g3": {"usd": 4}}}, "a": {}}}'::jsonb then raise exception 'un grupo y una clave que se van: %', r.diff; end if;
+  -- Un cambio que no toca totales no lo nombra.
+  update public.cotizaciones set titulo = 'Otro' where id = c;
+  select * into r from public.cotizaciones_revisiones where cotizacion_id = c order by id desc limit 1;
+  if r.diff ? 'totales' then raise exception 'totales figura sin cambiar: %', r.diff; end if;
 
   -- El intento y la huella que deja cotizacion_guardar en el ajuste de la transacción.
   perform set_config('importadora.guardado', jsonb_build_object('intento', i, 'huella', 'abc')::text, true);
@@ -351,6 +368,30 @@ begin
   -- k sí lo ve.
   r := pg_temp.cg_corre(k, format('select public.cotizacion_revisiones(%L)', c));
   if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"valores": {"de": {"aparte_costos": 3}, "a": {"aparte_costos": 99}}}'::jsonb then raise exception 'quien ve el nivel debía ver el cambio: %', r -> 'revisiones' -> 0 -> 'diff'; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_guardar: la revisión de un guardado guarda en totales sólo lo que cambió (4.15-1) y se lee igual quien vea o no el nivel; un grupo que no está en la fórmula no viaja
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cg_preparar(); r jsonb; d jsonb; c uuid := (t ->> 'c')::uuid; a uuid := (t ->> 'a')::uuid; k uuid := (t ->> 'k')::uuid; v uuid := (t ->> 'v')::uuid; x text;
+begin
+  r := pg_temp.cg_corre(k, pg_temp.cg_sql(c, gen_random_uuid(), pg_temp.cg_ver(c), '{"inputs": {"visible": 200, "oculto": 25, "bono_costos": 7, "aparte_costos": 3}, "banderas": {"b_costos": true}}', null, null, null, v));
+  if r ? 'error' then raise exception 'k no pudo guardar: %', r; end if;
+  d := pg_temp.cg_corre(k, format('select public.cotizacion_revisiones(%L)', c)) -> 'revisiones' -> 0 -> 'diff' -> 'totales';
+  if d is null or not (d -> 'a') ? 'usd' then raise exception 'la revisión no trae el total que cambió: %', d; end if;
+  -- Sólo lo que cambió: cada clave de los dos lados es distinta en el otro.
+  for x in select jsonb_object_keys(d -> 'de') union select jsonb_object_keys(d -> 'a') loop
+    if (d -> 'de') -> x is not distinct from (d -> 'a') -> x then raise exception 'totales trae «%», que no cambió: %', x, d; end if;
+  end loop;
+  if pg_temp.cg_corre(a, format('select public.cotizacion_revisiones(%L)', c)) -> 'revisiones' -> 0 -> 'diff' -> 'totales' is distinct from d then raise exception 'quien no ve el nivel lee otro totales: %', d; end if;
+  -- Un grupo que no está en la fórmula, escrito directo: no viaja a nadie (la columna no figura).
+  update public.cotizaciones set totales = totales || '{"grupos": {"gx": {"usd": 1}}}' where id = c;
+  if pg_temp.cg_corre(a, format('select public.cotizacion_revisiones(%L)', c)) -> 'revisiones' -> 0 -> 'diff' ? 'totales'
+     or pg_temp.cg_corre(k, format('select public.cotizacion_revisiones(%L)', c)) -> 'revisiones' -> 0 -> 'diff' ? 'totales' then
+    raise exception 'un grupo que no está en la fórmula viaja';
+  end if;
 end $$;
 rollback;
 
