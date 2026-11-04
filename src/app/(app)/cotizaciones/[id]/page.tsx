@@ -72,8 +72,10 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
   return (
     <>
       <CabeceraDeLaGuardada
+        id={hoja.cotizacion.id}
         numero={hoja.cotizacion.numero}
         clase={hoja.cotizacion.clase}
+        version={hoja.cotizacion.actualizadoEn}
         venceEl={hoja.venceEl}
         vencida={hoja.vencida}
         origen={hoja.diseno.origen.nombre}

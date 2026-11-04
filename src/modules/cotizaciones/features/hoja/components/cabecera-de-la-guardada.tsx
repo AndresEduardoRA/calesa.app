@@ -4,10 +4,14 @@ import { formatearFecha } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
 import { useRegional } from '@/shared/ui/regional'
 import { ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
+import { RevisionesDeLaCotizacion } from '../../revisiones/components/revisiones-de-la-cotizacion'
 
 type Props = {
+  id: string
   numero: number
   clase: keyof typeof ETIQUETA_DE_CLASE
+  // La versión de la cotización (`actualizadoEn`): las revisiones leídas son de una versión.
+  version: string
   // El último día en que vale, `YYYY-MM-DD` de la zona de la empresa, y si ya pasó.
   venceEl: string
   vencida: boolean
@@ -20,8 +24,10 @@ type Props = {
 // La cabecera de una cotización guardada: «Cotización n.º N», su clase, hasta cuándo vale (o «Vencida») y de qué origen, cliente y vehículo es. El número es un identificador:
 // va sin separador de miles. La fecha se muestra en la zona de la empresa.
 export function CabeceraDeLaGuardada({
+  id,
   numero,
   clase,
+  version,
   venceEl,
   vencida,
   origen,
@@ -43,6 +49,9 @@ export function CabeceraDeLaGuardada({
             Vale hasta el {formatearFecha(venceEl, { zona: zonaHoraria })}
           </span>
         )}
+        <div className="ml-auto">
+          <RevisionesDeLaCotizacion cotizacionId={id} numero={numero} version={version} />
+        </div>
       </div>
       <p className="flex flex-wrap gap-x-4 gap-y-1 text-(length:--text-sm) [overflow-wrap:anywhere] text-(--color-ink-soft)">
         <span>{origen}</span>

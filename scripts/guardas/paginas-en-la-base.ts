@@ -28,6 +28,12 @@ export const RPC_PAGINADAS: readonly RpcPaginada[] = [
     lista: '«Ver más» de seguimientos',
   },
   {
+    rpc: 'cotizacion_revisiones',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_VER_MAS,
+    lista: 'panel de revisiones de una cotización',
+  },
+  {
     rpc: 'lead_recordatorios',
     parametro: 'p_tamano',
     pideElCodigo: TAMANO_DE_VER_MAS,
