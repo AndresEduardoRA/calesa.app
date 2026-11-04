@@ -11,7 +11,7 @@ import { FALTA_EL_VEHICULO } from '../../../entities/guardado'
 import type { HojaLista } from '../../../entities/hoja'
 import type { Guardado } from '../hooks/use-guardado'
 import { useGuardarLaHoja } from '../hooks/use-guardar-la-hoja'
-import { useHoja } from '../hooks/use-hoja'
+import { useHoja, type AperturaDeHoja } from '../hooks/use-hoja'
 import { AvisoDelGuardado } from './aviso-de-guardado'
 import { CabeceraDeHoja } from './cabecera-de-hoja'
 import { ResumenDeHoja } from './resumen-de-hoja'
@@ -29,6 +29,8 @@ type Props = {
   borrador: { clave: string; alDescartar: () => void }
   // Los campos del vehículo que quien mira elige en el panel del vehículo (4.14-2c3): la celda sin valor por uno de ellos dice dónde se elige.
   seEligen?: ReadonlySet<string> | undefined
+  // De dónde calcula y con qué abre (C1, C2). Sin nada, la hoja nueva.
+  abre?: AperturaDeHoja
 }
 
 function SinDatosQueVer() {
@@ -47,6 +49,22 @@ function avisoDelVehiculo(vehiculoSoltado: boolean, faltaVehiculo: boolean) {
   return faltaVehiculo ? FALTA_EL_VEHICULO : null
 }
 
+// Lo que ven las celdas: el índice, lo tipeado, la última respuesta y los campos que se eligen en el panel del vehículo.
+function useContextoDeLaHoja(
+  h: ReturnType<typeof useHoja>,
+  seEligen: ReadonlySet<string> | undefined,
+) {
+  return useMemo<ContextoDeHoja>(
+    () => ({
+      indice: h.indice,
+      entradas: h.entradas,
+      respuesta: h.respuesta,
+      ...(seEligen ? { seEligen } : {}),
+    }),
+    [h.indice, h.entradas, h.respuesta, seEligen],
+  )
+}
+
 // La hoja de cotizar: las secciones del diseño en su orden (las avanzadas, detrás de un botón «Avanzado» con su modal), cada celda con su `XCell`, y el resumen. Recalcula en la base 150 ms después de la última confirmación.
 // Guarda con `Ctrl/Cmd+S` o «Guardar» (el guardado vive en el marco, `useGuardado`): confirma la celda abierta, espera al total al día (P8) y arma el pedido con las
 // entradas que ese recálculo calculó y la misma hoja abierta. Mientras guarda no se toca (`inert`): lo guardado la reemplaza y lo tecleado en el medio se perdería sin aviso. Los iconos y los tonos se montan una sola vez por hoja.
@@ -59,19 +77,19 @@ export function HojaDeCotizar({
   borrador,
   guardado,
   seEligen,
+  abre,
 }: Props) {
   const router = useRouter()
   const raiz = useRef<HTMLDivElement>(null)
-  const h = useHoja({ hoja, inicial, vehiculoId, alCambiar: guardado.olvidarAviso, borrador })
-  const contexto = useMemo<ContextoDeHoja>(
-    () => ({
-      indice: h.indice,
-      entradas: h.entradas,
-      respuesta: h.respuesta,
-      ...(seEligen ? { seEligen } : {}),
-    }),
-    [h.indice, h.entradas, h.respuesta, seEligen],
-  )
+  const h = useHoja({
+    hoja,
+    inicial,
+    vehiculoId,
+    alCambiar: guardado.olvidarAviso,
+    borrador,
+    ...abre,
+  })
+  const contexto = useContextoDeLaHoja(h, seEligen)
   const { boton } = useGuardarLaHoja({ h, contexto, hoja, leadId, vehiculoId, guardado, raiz })
   const dibujadas = hoja.secciones.filter((seccion) => seccionSeDibuja(seccion, contexto))
   // Puede cotizar en el origen pero su rol no ve ningún dato de la hoja (`cotizaciones.ver`): no hay nada que dibujar ni un total que dar.
@@ -101,8 +119,7 @@ export function HojaDeCotizar({
             contexto={contexto}
             acciones={h.acciones}
             guardando={guardado.estado.tipo === 'guardando'}
-            origenId={hoja.origen.id}
-            abierta={h.abierta}
+            de={h.de}
           />
         </div>
         <ResumenDeHoja

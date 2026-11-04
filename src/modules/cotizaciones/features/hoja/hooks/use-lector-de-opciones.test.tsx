@@ -48,8 +48,8 @@ describe('useLectorDeOpciones: las opciones de un dato, recordadas por hoja abie
     const segunda = await result.current(TABLAS)
     expect(primera).toEqual(segunda)
     expect(leerTablaDeAyuda.mock.calls.map(([p]) => p)).toEqual([
-      { tabla: 'bo', origenId: 'o', abierta },
-      { tabla: 'cl', origenId: 'o', abierta },
+      { tabla: 'bo', de: { tipo: 'abierta', origenId: 'o', abierta, vehiculoId: null } },
+      { tabla: 'cl', de: { tipo: 'abierta', origenId: 'o', abierta, vehiculoId: null } },
     ])
   })
 

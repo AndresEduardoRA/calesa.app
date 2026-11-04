@@ -4,34 +4,36 @@ import { argumentosDeEvaluar, resultadoDeEvaluar } from './pedido-de-recalculo'
 
 const VACIAS = entradasDelPedido(ENTRADAS_VACIAS)
 
+const NUEVA = (vehiculoId: string | null) =>
+  ({ tipo: 'abierta', origenId: 'o', abierta: 'ab', vehiculoId }) as const
+const GUARDADA = { tipo: 'guardada', cotizacionId: 'c' } as const
+
 describe('argumentosDeEvaluar', () => {
-  it('manda el origen, la hoja abierta y las entradas; el vehículo y el modo sólo si los hay (nunca nulos)', () => {
-    expect(
-      argumentosDeEvaluar({
-        origenId: 'o',
-        vehiculoId: null,
-        abierta: 'ab',
-        entradas: VACIAS,
-        modoTc: null,
-      }),
-    ).toEqual({
+  it('la hoja nueva manda el origen, la hoja abierta y las entradas; el vehículo y el modo sólo si los hay (nunca nulos)', () => {
+    expect(argumentosDeEvaluar({ de: NUEVA(null), entradas: VACIAS, modoTc: null })).toEqual({
       p_entradas: VACIAS,
       p_origen: 'o',
       p_abierta: 'ab',
     })
-    expect(
-      argumentosDeEvaluar({
-        origenId: 'o',
-        vehiculoId: 'v',
-        abierta: 'ab',
-        entradas: VACIAS,
-        modoTc: 'unificado',
-      }),
-    ).toEqual({
+    expect(argumentosDeEvaluar({ de: NUEVA('v'), entradas: VACIAS, modoTc: 'unificado' })).toEqual({
       p_entradas: VACIAS,
       p_origen: 'o',
       p_abierta: 'ab',
       p_vehiculo: 'v',
+      p_modo_tc: 'unificado',
+    })
+  })
+
+  it('una guardada manda exactamente sus entradas y su cotización, y el modo sólo si lo hay; nunca el origen, la hoja abierta ni el vehículo', () => {
+    expect(argumentosDeEvaluar({ de: GUARDADA, entradas: VACIAS, modoTc: null })).toStrictEqual({
+      p_entradas: VACIAS,
+      p_cotizacion: 'c',
+    })
+    expect(
+      argumentosDeEvaluar({ de: GUARDADA, entradas: VACIAS, modoTc: 'unificado' }),
+    ).toStrictEqual({
+      p_entradas: VACIAS,
+      p_cotizacion: 'c',
       p_modo_tc: 'unificado',
     })
   })

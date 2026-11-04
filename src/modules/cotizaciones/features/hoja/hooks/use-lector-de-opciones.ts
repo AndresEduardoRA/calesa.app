@@ -19,7 +19,11 @@ function memoriaDe(origenId: string, abierta: string, tabla: string) {
   const clave = `${abierta}\u0000${tabla}`
   let memoria = memorias.get(clave)
   if (!memoria) {
-    memoria = memoriaDeLectura(() => leerTablaDeAyuda({ tabla, origenId, abierta }), VIDA_MS)
+    memoria = memoriaDeLectura(
+      () =>
+        leerTablaDeAyuda({ tabla, de: { tipo: 'abierta', origenId, abierta, vehiculoId: null } }),
+      VIDA_MS,
+    )
     memorias.set(clave, memoria)
   }
   return memoria

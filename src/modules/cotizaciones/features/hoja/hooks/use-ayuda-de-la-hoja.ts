@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { usePanelPorUrl } from '@/shared/ui/use-panel-por-url'
 import type { SeccionDeHoja } from '../../../entities/hoja'
+import type { DeDondeCalcula } from '../../../entities/pedido-de-recalculo'
 import { tiposDeAyuda } from '../../../entities/presentacion-de-la-hoja'
 import { AYUDA_DE_TABLA, AYUDA_DE_TEXTO, CLAVE_DE_AYUDA, CLAVE_DEL_NODO } from './urls-de-la-hoja'
 
@@ -13,17 +14,15 @@ export type AyudaAbierta = {
   cerrar: () => void
 }
 
-// De dónde lee el panel de una tabla: el origen y la hoja abierta de la hoja montada (la misma del recálculo y del guardado), opaca.
-export type DeDondeLeer = { origenId: string; abierta: string }
-
 // Las dos ayudas de una celda en la URL (`?ayuda=texto&nodo=<id>` y `?ayuda=tabla&nodo=<id>`): recargar la abre y «atrás» la cierra.
 export type AyudaDeLaHoja = {
   texto: AyudaAbierta
   tabla: AyudaAbierta
-  lectura: DeDondeLeer
+  // De dónde lee el panel de una tabla: el de la hoja montada, el mismo del recálculo.
+  lectura: DeDondeCalcula
 }
 
-export function useAyudaDeLaHoja(secciones: readonly SeccionDeHoja[], lectura: DeDondeLeer) {
+export function useAyudaDeLaHoja(secciones: readonly SeccionDeHoja[], lectura: DeDondeCalcula) {
   const deTexto = usePanelPorUrl(AYUDA_DE_TEXTO, [CLAVE_DEL_NODO], { clave: CLAVE_DE_AYUDA })
   const deTabla = usePanelPorUrl(AYUDA_DE_TABLA, [CLAVE_DEL_NODO], { clave: CLAVE_DE_AYUDA })
   // El callback que reciben todas las celdas es uno solo y no cambia (la `XCell` está en `memo`): abre con las últimas funciones de la URL y decide el tipo por la ayuda de la

@@ -13,7 +13,8 @@ import type { CeldaDeHoja, SeccionDeHoja } from '../../../entities/hoja'
 import { celdaConAyuda, tablaDeAyuda } from '../../../entities/presentacion-de-la-hoja'
 import { pideRecargar } from '../../../entities/recalculo'
 import { leerTablaDeAyuda } from '../../../composicion.client'
-import type { AyudaAbierta, DeDondeLeer } from '../hooks/use-ayuda-de-la-hoja'
+import type { DeDondeCalcula } from '../../../entities/pedido-de-recalculo'
+import type { AyudaAbierta } from '../hooks/use-ayuda-de-la-hoja'
 import { botonDeAyuda } from './boton-de-ayuda'
 import { TablaDeLaAyuda } from './tabla-de-la-ayuda'
 
@@ -22,14 +23,14 @@ type Props = {
   secciones: readonly SeccionDeHoja[]
   contexto: ContextoDeHoja
   ayuda: AyudaAbierta
-  lectura: DeDondeLeer
+  lectura: DeDondeCalcula
 }
 
 type PropsDelPanel = {
   celda: CeldaDeHoja
   abierto: boolean
   alCerrar: () => void
-  lectura: DeDondeLeer
+  lectura: DeDondeCalcula
 }
 
 function Leyendo() {
@@ -63,10 +64,10 @@ function Fallo({ recargar, alReintentar }: { recargar: boolean; alReintentar: ()
   )
 }
 
-// Lee la tabla al montarse, con la hoja abierta de esta hoja (nunca la publicada de hoy). Se monta de nuevo en cada apertura (`key`): cada una lee otra vez.
+// Lee la tabla al montarse, de donde calcula esta hoja: su hoja abierta (nunca la publicada de hoy) o su cotización. Se monta de nuevo en cada apertura (`key`): cada una lee otra vez.
 function PanelDeLaTabla({ celda, abierto, alCerrar, lectura }: PropsDelPanel) {
   const tabla = tablaDeAyuda(celda) ?? ''
-  const leer = useLecturaAlMontar(() => leerTablaDeAyuda({ tabla, ...lectura }), tabla)
+  const leer = useLecturaAlMontar(() => leerTablaDeAyuda({ tabla, de: lectura }), tabla)
   const { estado } = leer.lectura
   const dinero =
     formatoDeCelda(celda.formato) === 'monto' ? { moneda: monedaDeFormato(celda.formato) } : null

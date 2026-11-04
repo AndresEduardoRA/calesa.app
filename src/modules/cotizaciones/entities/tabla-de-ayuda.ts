@@ -1,14 +1,14 @@
 import { z } from 'zod'
 import { errorDePostgrest, fallo, ok, type Resultado } from '@/shared/lib/errores'
 import { formatearNumero, formatearParaEditar } from '@/shared/lib/formato'
+import type { DeDondeCalcula } from './pedido-de-recalculo'
 
 // La tabla de referencia que abre la ayuda de una celda (paso 4.13-4c2): `cotizacion_tabla()` con la hoja abierta, leída desde el navegador. Puro: este archivo viaja al
 // navegador con el lector. El esquema no es estricto (lo que no nombra se cae) y una fila que no es un objeto cuenta como vacía.
 export type PedidoDeTabla = {
   tabla: string
-  origenId: string
-  // La hoja abierta que firmó la base (la misma del recálculo y del guardado): con ella la tabla es la de la versión que se dibujó, no la publicada hoy.
-  abierta: string
+  // De dónde lee la hoja (la misma del recálculo): con la hoja abierta que firmó la base la tabla es la de la versión que se dibujó, no la publicada hoy; con una cotización, la de SU versión.
+  de: DeDondeCalcula
 }
 
 export type ColumnaDeTabla = { clave: string; etiqueta: string; tipo: string }
@@ -22,12 +22,11 @@ export type TablaDeAyuda = {
   hayMas: boolean
 }
 
-// Nunca `p_cotizacion`: la ayuda de la hoja es de la versión abierta, no de una cotización guardada.
-export const argumentosDeTabla = (p: PedidoDeTabla) => ({
-  p_tabla: p.tabla,
-  p_origen: p.origenId,
-  p_abierta: p.abierta,
-})
+// Nunca las dos a la vez (`p_abierta` con `p_cotizacion` es una llamada inválida): la hoja nueva manda su origen y su hoja abierta; una guardada, su cotización.
+export const argumentosDeTabla = (p: PedidoDeTabla) =>
+  p.de.tipo === 'guardada'
+    ? { p_tabla: p.tabla, p_cotizacion: p.de.cotizacionId }
+    : { p_tabla: p.tabla, p_origen: p.de.origenId, p_abierta: p.de.abierta }
 
 const esquemaDeTabla = z.object({
   clave: z.string(),

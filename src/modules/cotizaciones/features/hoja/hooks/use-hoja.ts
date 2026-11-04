@@ -16,6 +16,7 @@ import {
 } from '../../../entities/entradas'
 import { ofreceVerTotalBs } from '../../../entities/cabecera-de-la-hoja'
 import type { HojaLista } from '../../../entities/hoja'
+import type { DeDondeCalcula } from '../../../entities/pedido-de-recalculo'
 import { useBorradorDeHoja } from './use-borrador-de-hoja'
 import { usePedirRecalculo } from './use-pedir-recalculo'
 import { useRecalculo } from './use-recalculo'
@@ -63,13 +64,36 @@ function useAcciones(
   )
 }
 
+// Cómo abre la hoja: de dónde calcula (C1) y con qué entradas y «Ver total Bs» (C2). Sin nada, la hoja nueva: por su hoja abierta, el origen y el vehículo; con las entradas vacías
+// y el primer modo marcado (P1), el mismo con que el servidor hizo el primer cálculo; y «Ver total Bs» apagado (P5). Todo estable: la hoja lo lee al montarse.
+export type AperturaDeHoja = {
+  de?: DeDondeCalcula
+  // A partir del índice de la hoja.
+  iniciales?: (indice: IndiceDeHoja) => Entradas
+  verTotalBsInicial?: boolean
+}
+
+// La hoja abierta se fija al montarse: la misma para el recálculo y para el guardado (D2). Una prop nueva no los separa; una abierta nueva vuelve a montar la hoja.
+function useDeDondeCalcula(hoja: HojaLista, vehiculoId: string | null, deQuien?: DeDondeCalcula) {
+  const [abierta] = useState(() => hoja.abierta)
+  const origenId = hoja.origen.id
+  const de = useMemo<DeDondeCalcula>(
+    () => deQuien ?? { tipo: 'abierta', origenId, abierta, vehiculoId },
+    [deQuien, origenId, abierta, vehiculoId],
+  )
+  return { abierta, de }
+}
+
 export function useHoja({
   hoja,
   inicial,
   vehiculoId,
+  de: deQuien,
+  iniciales: inicialesDe = entradasIniciales,
+  verTotalBsInicial = false,
   alCambiar,
   borrador,
-}: {
+}: AperturaDeHoja & {
   hoja: HojaLista
   inicial: RecalculoInicial
   vehiculoId: string | null
@@ -86,19 +110,16 @@ export function useHoja({
     () => indiceDeHoja(hoja.secciones, hoja.cabecera.modos),
     [hoja.secciones, hoja.cabecera.modos],
   )
-  // La hoja abre con el primer modo marcado (P1), el mismo con que el servidor hizo el primer cálculo.
-  const iniciales = useMemo(() => entradasIniciales(indice), [indice])
+  const iniciales = useMemo(() => inicialesDe(indice), [inicialesDe, indice])
   const [entradas, setEntradas] = useState<Entradas>(iniciales)
   // Lo último tipeado, para que dos confirmaciones seguidas partan de la anterior sin esperar a que React dibuje. Se escribe en el manejador del evento, nunca en un
   // `setState`: StrictMode los llama dos veces.
   const ultimas = useRef<Entradas>(iniciales)
-  // «Ver total Bs» nace apagado (P5). No es una entrada: no cambia el cálculo ni pide un recálculo.
-  const [verTotalBs, setVerTotalBs] = useState(false)
+  // No es una entrada: «Ver total Bs» no cambia el cálculo ni pide un recálculo.
+  const [verTotalBs, setVerTotalBs] = useState(verTotalBsInicial)
   const ofrece = ofreceVerTotalBs(hoja.cabecera)
-  const origenId = hoja.origen.id
-  // La hoja abierta, fijada al montarse: la misma para el recálculo y para el guardado (D2). Una prop nueva no los separa; una abierta nueva vuelve a montar la hoja.
-  const [abierta] = useState(() => hoja.abierta)
-  const pedir = usePedirRecalculo(origenId, vehiculoId, abierta)
+  const { abierta, de } = useDeDondeCalcula(hoja, vehiculoId, deQuien)
+  const pedir = usePedirRecalculo(de)
   const recalculo = useRecalculo({ inicial, iniciales, pedir })
   const { programar } = recalculo
 
@@ -131,6 +152,8 @@ export function useHoja({
     clave: borrador?.clave ?? null,
     entradas,
     verTotalBs,
+    iniciales,
+    verTotalBsInicial,
     ofrece,
     indice,
     reponer,
@@ -145,6 +168,7 @@ export function useHoja({
     verTotalBs: ofrece && verTotalBs,
     alCambiarVerTotalBs,
     abierta,
+    de,
     acciones,
     reponer,
     ...recalculo,

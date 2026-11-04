@@ -129,7 +129,10 @@ describe('HojaDeCotizar: la ayuda de una tabla', () => {
     await abrir('A1')
     expect(leerTablaDeAyuda).toHaveBeenCalledTimes(1)
     const pedido = leerTablaDeAyuda.mock.calls[0]?.[0] as Record<string, unknown>
-    expect(pedido).toEqual({ tabla: 'aduana', origenId: hoja.origen.id, abierta: hoja.abierta })
+    expect(pedido).toEqual({
+      tabla: 'aduana',
+      de: { tipo: 'abierta', origenId: hoja.origen.id, abierta: hoja.abierta, vehiculoId: null },
+    })
   })
 
   it('una celda con ayuda de texto sigue abriendo su texto, no una tabla', async () => {
