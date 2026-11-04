@@ -22,7 +22,8 @@
 --   - `cotizacion_leer()` de una cotización de la fórmula sembrada de `subasta_usa` (la dueña y Ana): ≤ 10 ms y ≤ 300 buffers como las páginas, `_nodos_visibles()` una sola vez y el permiso
 --     una sola vez, sin mirar ninguna cartera entera, y sin crecer con las cotizaciones;
 --   - `cotizacion_revisiones()` de una cotización con 500 revisiones (cada una con el snapshot entero de antes y de después): una página de 20 y la siguiente por el cursor, ≤ 12 ms
---     (medido: 4 a 6 ms), `_nodos_visibles()` una sola vez, y sin crecer con las cotizaciones.
+--     (medido: 4 a 6 ms), `_nodos_visibles()` una sola vez, y sin crecer con las cotizaciones. Desde el 4.15-2 cada fila trae su autor (`left join` por la clave de `perfiles`)
+--     y la página, las etiquetas de lo que nombran sus diffs (con el snapshot entero, todos los nodos que se ven: el peor caso).
 -- Cada línea `medicion|…|número` sale por el runner (`scripts/medir-listado.mjs`); las `nota|…`, también.
 -- Las corridas anteriores de esta medición se revierten, pero sus 300.000 tuplas muertas quedan en el heap y en los índices hasta que alguien las limpie, con las mismas fechas que
 -- las de ahora: la página 1 (las más nuevas) tendría que saltar las muertas de las corridas de antes (102 buffers la primera vez, 1.873 la segunda). Se limpian antes de medir y,

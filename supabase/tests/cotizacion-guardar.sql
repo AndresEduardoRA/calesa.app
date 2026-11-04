@@ -355,9 +355,11 @@ begin
   r := pg_temp.cg_corre(a, format('select public.cotizacion_revisiones(%L)', c));
   if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{}'::jsonb or (r -> 'revisiones' -> 0 ->> 'usuario_id')::uuid is distinct from k then raise exception 'la revisión de sólo lo oculto se delata o no dice quién: %', r -> 'revisiones' -> 0; end if;
   -- Lo oculto no viaja: se mira la forma de la respuesta y los valores del diff, nunca su texto (el uuid y la fecha de una revisión son al azar).
-  if (select array_agg(x order by x) from jsonb_object_keys(r) x) is distinct from array['hay_mas', 'revisiones', 'siguiente'] then raise exception 'la respuesta trae otras claves: %', r; end if;
+  if (select array_agg(x order by x) from jsonb_object_keys(r) x) is distinct from array['etiquetas', 'hay_mas', 'revisiones', 'siguiente'] then raise exception 'la respuesta trae otras claves: %', r; end if;
+  -- Las etiquetas (4.15-2) son de lo que viaja: una revisión de sólo lo oculto no nombra nada.
+  if r -> 'etiquetas' is distinct from '{"nodos": {}, "grupos": {}}'::jsonb then raise exception 'las etiquetas delatan lo oculto: %', r -> 'etiquetas'; end if;
   if exists (select 1 from jsonb_array_elements(r -> 'revisiones') e
-              where (select array_agg(x order by x) from jsonb_object_keys(e) x) is distinct from array['creado_en', 'diff', 'id', 'usuario_id']) then
+              where (select array_agg(x order by x) from jsonb_object_keys(e) x) is distinct from array['autor', 'creado_en', 'diff', 'id', 'usuario_id']) then
     raise exception 'una revisión trae otras claves: %', r;
   end if;
   if exists (select 1 from pg_temp.cg_claves(r) x where x in ('oculto', 'b_costos', 'bono_costos', 'der_costos', 'aparte_costos')) then raise exception 'un nodo oculto viaja como clave: %', r; end if;
