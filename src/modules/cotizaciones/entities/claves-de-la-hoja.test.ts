@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { claveDeLaHoja, claveDelBorrador, claveDelPendiente } from './claves-de-la-hoja'
+import {
+  claveDeLaHoja,
+  claveDelBorrador,
+  claveDelBorradorDeUnaGuardada,
+  claveDelPendiente,
+  claveDelPendienteDeUnaGuardada,
+} from './claves-de-la-hoja'
 
 describe('claveDeLaHoja', () => {
   it('cambia con la fórmula, con el vehículo, con la vuelta («Descartar») y con la hoja abierta (D2)', () => {
@@ -45,5 +51,35 @@ describe('las claves de la pestaña', () => {
     expect(claveDelBorrador({ ...h, leadId: 'l' })).not.toBe(
       claveDelPendiente({ ...h, leadId: 'l' }),
     )
+  })
+})
+
+describe('las claves de una cotización guardada (C9)', () => {
+  const base = { personaId: 'p', cotizacionId: 'c', actualizadoEn: 'v1' }
+
+  it('el pendiente es de una persona y una cotización, sin la versión', () => {
+    const k = claveDelPendienteDeUnaGuardada(base)
+    expect(claveDelPendienteDeUnaGuardada({ ...base, personaId: 'q' })).not.toBe(k)
+    expect(claveDelPendienteDeUnaGuardada({ ...base, cotizacionId: 'd' })).not.toBe(k)
+    const conOtraVersion = { ...base, actualizadoEn: 'v2' }
+    expect(claveDelPendienteDeUnaGuardada(conOtraVersion)).toBe(k)
+  })
+
+  it('el borrador lleva la versión: tras «Recargar» por un conflicto lo tipeado no vuelve sobre lo de la otra persona', () => {
+    const k = claveDelBorradorDeUnaGuardada(base)
+    expect(claveDelBorradorDeUnaGuardada({ ...base, actualizadoEn: 'v2' })).not.toBe(k)
+    expect(claveDelBorradorDeUnaGuardada({ ...base, personaId: 'q' })).not.toBe(k)
+    expect(claveDelBorradorDeUnaGuardada({ ...base, cotizacionId: 'd' })).not.toBe(k)
+  })
+
+  it('no chocan con las de la hoja nueva ni entre sí', () => {
+    const nueva = { personaId: 'p', origenId: 'c', leadId: null, vehiculoId: null }
+    const claves = [
+      claveDelPendienteDeUnaGuardada(base),
+      claveDelBorradorDeUnaGuardada(base),
+      claveDelPendiente(nueva),
+      claveDelBorrador(nueva),
+    ]
+    expect(new Set(claves).size).toBe(4)
   })
 })

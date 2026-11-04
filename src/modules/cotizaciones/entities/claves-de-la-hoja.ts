@@ -36,3 +36,17 @@ export const claveDelBorrador = ({
   vehiculoId,
 }: Omit<DeLaPestana, 'leadId'> & { leadId?: string | null }): string =>
   `cotizar:${personaId}:${origenId}:${vehiculoId ?? '-'}`
+
+// Una cotización guardada (`/cotizaciones/[id]`, 4.15-3): el pendiente es de una persona y una cotización; el borrador lleva además su versión (`actualizadoEn`, el texto de la
+// base): después de «Recargar» por un conflicto, lo tipeado no vuelve entero sobre la versión de la otra persona.
+export type DeUnaGuardada = { personaId: string; cotizacionId: string }
+
+export const claveDelPendienteDeUnaGuardada = ({ personaId, cotizacionId }: DeUnaGuardada) =>
+  `cotizar-guardada-pendiente:${personaId}:${cotizacionId}`
+
+export const claveDelBorradorDeUnaGuardada = ({
+  personaId,
+  cotizacionId,
+  actualizadoEn,
+}: DeUnaGuardada & { actualizadoEn: string }) =>
+  `cotizar-guardada:${personaId}:${cotizacionId}:${actualizadoEn}`

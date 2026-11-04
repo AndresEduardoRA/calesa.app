@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { Envio } from '@/shared/lib/enviar-accion'
 import type { ResultadoDeCrear } from './guardado'
+import type { PedidoDeEdicion } from './pedido-de-edicion'
 import type { PedidoDeGuardado } from './pedido-de-guardado'
 
 // El intento de un guardado (4-21): un pedido que salió y del que no se sabe si llegó queda **pendiente**, y el próximo guardado reenvía ese pedido con ese intento, no lo
@@ -9,10 +10,7 @@ import type { PedidoDeGuardado } from './pedido-de-guardado'
 // Lo que vuelve de un guardado: la action siempre responde `ok(ResultadoDeCrear)` cuando corrió; `{ ok: false }` sale de `enviarAccion()`.
 export type EnvioDeGuardado = Envio<ResultadoDeCrear>
 
-export function queEnviar(
-  pendiente: PedidoDeGuardado | null,
-  nuevo: PedidoDeGuardado,
-): { pedido: PedidoDeGuardado; esReenvio: boolean } {
+export function queEnviar<P>(pendiente: P | null, nuevo: P): { pedido: P; esReenvio: boolean } {
   return pendiente === null
     ? { pedido: nuevo, esReenvio: false }
     : { pedido: pendiente, esReenvio: true }
@@ -55,6 +53,35 @@ export function leerPendiente(texto: string | null): PedidoDeGuardado | null {
   }
   try {
     const leido = esquemaDelPendiente.safeParse(JSON.parse(texto))
+    return leido.success ? leido.data : null
+  } catch {
+    return null
+  }
+}
+
+// El pendiente de una edición (4.15-3, C9): la misma idea para `cotizacion_guardar`, con la versión que vio quien editó (el texto de la base) y los nueve datos. Un pedido de la hoja
+// nueva no se lee como una edición, ni al revés.
+const esquemaDelPendienteDeEdicion = z.object({
+  intento: z.string().min(1),
+  cotizacionId: z.string(),
+  actualizadoEn: z.string().min(1),
+  entradas: esquemaDelPendiente.shape.entradas,
+  modoTc: z.string().nullable(),
+  verTotalBs: z.boolean(),
+  titulo: z.string().nullable(),
+  notas: z.string().nullable(),
+  vehiculoId: z.string().nullable(),
+})
+
+export const serializarPendienteDeEdicion = (pedido: PedidoDeEdicion): string =>
+  JSON.stringify(pedido)
+
+export function leerPendienteDeEdicion(texto: string | null): PedidoDeEdicion | null {
+  if (texto === null) {
+    return null
+  }
+  try {
+    const leido = esquemaDelPendienteDeEdicion.safeParse(JSON.parse(texto))
     return leido.success ? leido.data : null
   } catch {
     return null

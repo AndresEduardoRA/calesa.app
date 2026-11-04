@@ -12,6 +12,10 @@ import { render } from './render-con-url.soporte'
 const { recalcular } = vi.hoisted(() => ({ recalcular: vi.fn() }))
 vi.mock('../../../composicion.client', () => ({ recalcular }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }))
+vi.mock('next-safe-action/hooks', () => ({ useAction: () => ({ executeAsync: vi.fn() }) }))
+vi.mock('../actions/guardar-cotizacion', () => ({ guardarCotizacion: {} }))
+
+const PERSONA = '3b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'
 
 // La hoja de una cotización guardada (4.15-3, C5, C6 y C11): sólo lectura para quien no la guarda, el total guardado cuando lo de hoy no es lo guardado.
 const VALORES = { remate: 1000, variante: 'gasolina', cuenta: 0, total: 2350 }
@@ -31,7 +35,7 @@ function montar(cruda: Record<string, unknown> = {}, inicial: RecalculoInicial =
   if (!hoja) {
     throw new Error('La hoja de prueba no se leyó.')
   }
-  return render(<PantallaDeUnaGuardada hoja={hoja} inicial={inicial} />)
+  return render(<PantallaDeUnaGuardada hoja={hoja} inicial={inicial} personaId={PERSONA} />)
 }
 const SOLO_LECTURA = 'Sólo lectura: no puedes guardar esta cotización.'
 const totalGuardado = () => document.querySelector('[data-total-cotizado]')

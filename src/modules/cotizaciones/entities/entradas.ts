@@ -26,6 +26,19 @@ export const ENTRADAS_VACIAS: Entradas = {
   atajos: new Map(),
 }
 
+const mapasIguales = (a: ReadonlyMap<string, number>, b: ReadonlyMap<string, number>) =>
+  a.size === b.size && [...a].every(([id, valor]) => b.get(id) === valor)
+
+// Las mismas entradas, sin mirar el orden con que se tipearon (una hoja que vuelve a lo guardado a mano no tiene cambios).
+export const entradasIguales = (a: Entradas, b: Entradas): boolean =>
+  mapasIguales(a.inputs, b.inputs) &&
+  mapasIguales(a.overrides, b.overrides) &&
+  mapasIguales(a.atajos, b.atajos) &&
+  a.banderas.size === b.banderas.size &&
+  [...a.banderas].every((nodo) => b.banderas.has(nodo)) &&
+  a.variante === b.variante &&
+  a.modoTc === b.modoTc
+
 // La forma que acepta `cotizacion_evaluar()`: sólo estas cuatro claves, y la variante sólo si se eligió una.
 export type EntradasDelPedido = {
   inputs: Record<string, number>

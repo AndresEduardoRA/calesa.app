@@ -9,8 +9,9 @@ import { seccionSeDibuja, type ContextoDeHoja } from '../../../entities/binding'
 import { nombreDelModo } from '../../../entities/cabecera-de-la-hoja'
 import { FALTA_EL_VEHICULO } from '../../../entities/guardado'
 import type { HojaLista } from '../../../entities/hoja'
-import type { Guardado } from '../hooks/use-guardado'
+import { useGuardarLaGuardada, type EdicionDeLaHoja } from '../hooks/use-guardar-la-guardada'
 import { useGuardarLaHoja } from '../hooks/use-guardar-la-hoja'
+import type { Guardado, VistaDelGuardado } from '../hooks/use-nucleo-del-guardado'
 import { useHoja, type AperturaDeHoja } from '../hooks/use-hoja'
 import { AvisoDelGuardado } from './aviso-de-guardado'
 import { CabeceraDeHoja } from './cabecera-de-hoja'
@@ -36,6 +37,8 @@ type Props = {
   seEligen?: ReadonlySet<string> | undefined
   // De dónde calcula y con qué abre (C1, C2). Sin nada, la hoja nueva.
   abre?: AperturaDeHoja
+  // Una cotización guardada que quien mira puede guardar (4.15-3): su guardado, su versión y si lo de hoy no es lo guardado. Con ella, `guardado` va nulo.
+  edicion?: EdicionDeLaHoja
 }
 
 function SinDatosQueVer() {
@@ -70,7 +73,10 @@ function useContextoDeLaHoja(
   )
 }
 
-type PropsDelResumen = Pick<Props, 'hoja' | 'guardado' | 'totalGuardado'> & {
+type PropsDelResumen = Pick<Props, 'hoja' | 'totalGuardado'> & {
+  guardado: VistaDelGuardado | null
+  // «Cambios guardados.» de una guardada.
+  confirmacion: string | null
   h: ReturnType<typeof useHoja>
   contexto: ContextoDeHoja
   vehiculo: { id: string | null; soltado: boolean }
@@ -85,6 +91,7 @@ function ResumenDeLaHoja({
   contexto,
   vehiculo,
   guardado,
+  confirmacion,
   boton,
   soloLectura,
   totalGuardado,
@@ -113,6 +120,7 @@ function ResumenDeLaHoja({
             alReintentar={boton.alGuardar}
             version={hoja.formula.version}
             alRecargar={router.refresh}
+            confirmacion={confirmacion}
           />
         )
       }
@@ -133,21 +141,26 @@ export function HojaDeCotizar({
   guardado,
   seEligen,
   abre,
+  edicion,
   soloLectura = false,
   totalGuardado,
 }: Props) {
   const raiz = useRef<HTMLDivElement>(null)
+  // El guardado que ve la hoja: el de la guardada que edita o el de la nueva.
+  const vista = edicion?.guardado ?? guardado
   const h = useHoja({
     hoja,
     inicial,
     vehiculoId,
-    alCambiar: guardado?.olvidarAviso,
+    alCambiar: vista?.olvidarAviso,
     borrador,
     ...abre,
   })
   const contexto = useContextoDeLaHoja(h, seEligen)
-  const { boton } = useGuardarLaHoja({ h, contexto, hoja, leadId, vehiculoId, guardado, raiz })
-  const guardando = guardado?.estado.tipo === 'guardando'
+  const botonDeLaNueva = useGuardarLaHoja({ h, contexto, hoja, leadId, vehiculoId, guardado, raiz })
+  const botonDeLaGuardada = useGuardarLaGuardada({ h, contexto, edicion: edicion ?? null, raiz })
+  const boton = botonDeLaNueva.boton ?? botonDeLaGuardada.boton
+  const guardando = vista?.estado.tipo === 'guardando'
   const dibujadas = hoja.secciones.filter((seccion) => seccionSeDibuja(seccion, contexto))
   // Puede cotizar en el origen pero su rol no ve ningún dato de la hoja (`cotizaciones.ver`): no hay nada que dibujar ni un total que dar.
   if (dibujadas.length === 0) {
@@ -180,7 +193,8 @@ export function HojaDeCotizar({
           h={h}
           contexto={contexto}
           vehiculo={{ id: vehiculoId, soltado: vehiculoSoltado }}
-          guardado={guardado}
+          guardado={vista}
+          confirmacion={edicion ? 'Cambios guardados.' : null}
           boton={boton}
           soloLectura={soloLectura}
           totalGuardado={totalGuardado}

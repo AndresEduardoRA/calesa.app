@@ -1,6 +1,8 @@
 // Lo que los e2e de la página de una cotización guardada (paso 4.15-3, `/cotizaciones/[id]`) preparan y miran: guardar una cotización por la hoja y devolver su id, un vehículo de
 // prueba, la fórmula de prueba con una tabla de referencia viva (lo que cambia entre guardar y abrir, C11) y el envejecimiento de una cotización por SQL.
+import { createClient } from '@supabase/supabase-js'
 import { expect, type Page } from '@playwright/test'
+import { entorno } from './base'
 import { formulaDePrueba } from './cotizar-formula'
 import {
   guardarConElAtajo,
@@ -102,4 +104,105 @@ export function cambiarElFactorVivo(origenId: string, factorDe2019: number): voi
     update public.tablas_referencia_filas f set valores = jsonb_set(f.valores, '{factor}', to_jsonb(${String(factorDe2019)}::numeric))
       from public.tablas_referencia t
      where f.tabla_id = t.id and t.origen_id = ${literal(origenId)}::uuid and t.clave = 'ch_tabla' and f.valores ->> 'anio' = '2019'`)
+}
+
+// Los guardados de una cotización guardada (4.15-3): cada POST de la Server Action de `/cotizaciones/<id>` (lleva la cabecera `next-action`), con lo que mandó.
+export type PedidoDeEdicionVisto = {
+  intento: string
+  cotizacionId: string
+  actualizadoEn: string
+  entradas: {
+    inputs: Record<string, number>
+    banderas: Record<string, boolean>
+    overrides: Record<string, number>
+    variante?: string
+  }
+  modoTc: string | null
+  verTotalBs: boolean
+  titulo: string | null
+  notas: string | null
+  vehiculoId: string | null
+}
+
+export async function vigilarGuardadosDeUnaGuardada(
+  page: Page,
+  id: string,
+): Promise<{ pedidos: PedidoDeEdicionVisto[] }> {
+  const pedidos: PedidoDeEdicionVisto[] = []
+  await page.route(
+    (url) => url.pathname === `/cotizaciones/${id}`,
+    async (ruta) => {
+      const pedido = ruta.request()
+      if (pedido.method() === 'POST' && (await pedido.headerValue('next-action')) !== null) {
+        const [visto] = JSON.parse(pedido.postData() ?? '[]') as [PedidoDeEdicionVisto]
+        pedidos.push(visto)
+      }
+      await ruta.fallback()
+    },
+  )
+  return { pedidos }
+}
+
+// Cuántas revisiones tiene la cotización y qué nodos cambió la última (en `valores` o en `fuentes`): un guardado que no toca lo demás no nombra lo que no tocó.
+export const revisionesDe = (id: string): number =>
+  Number(
+    sql(
+      `select count(*) from public.cotizaciones_revisiones where cotizacion_id = ${literal(id)}::uuid`,
+    ),
+  )
+
+export function nodosDeLaUltimaRevision(id: string, columna: 'valores' | 'fuentes'): string[] {
+  const claves = sql(`
+    select coalesce(string_agg(k, ',' order by k), '')
+      from (select jsonb_object_keys(diff #> '{${columna},a}') as k
+              from public.cotizaciones_revisiones where cotizacion_id = ${literal(id)}::uuid order by id desc limit 1) x`)
+  return claves === '' ? [] : claves.split(',')
+}
+
+// Lo guardado de un nodo en la fila: su valor y su fuente.
+export const loGuardadoDe = (id: string, nodo: string): { valor: string; fuente: string } => {
+  const [valor = '', fuente = ''] = sql(
+    `select coalesce(valores ->> ${literal(nodo)}, ''), coalesce(fuentes ->> ${literal(nodo)}, '') from public.cotizaciones where id = ${literal(id)}::uuid`,
+  ).split('|')
+  return { valor, fuente }
+}
+
+// Una persona que no es quien tiene la hoja abierta guarda un cambio de `pub` por la RPC con su sesión (V32): la versión de la cotización se mueve y deja su nombre en la actividad.
+export async function guardarComo(
+  persona: { email: string; contrasena: string },
+  datos: { cotizacionId: string; pub: number },
+): Promise<void> {
+  const cliente = createClient(
+    entorno('NEXT_PUBLIC_SUPABASE_URL'),
+    entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  )
+  const sesion = await cliente.auth.signInWithPassword({
+    email: persona.email,
+    password: persona.contrasena,
+  })
+  if (sesion.error) {
+    throw new Error(`No se pudo ingresar como ${persona.email}: ${sesion.error.message}`)
+  }
+  const id = literal(datos.cotizacionId)
+  const version = sql(
+    `select to_char(actualizado_en at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"+00:00"') from public.cotizaciones where id = ${id}::uuid`,
+  )
+  const vehiculo = sql(
+    `select coalesce(vehiculo_id::text, '') from public.cotizaciones where id = ${id}::uuid`,
+  )
+  const { error } = await cliente.rpc('cotizacion_guardar', {
+    p_id: datos.cotizacionId,
+    p_intento: crypto.randomUUID(),
+    p_actualizado_en_esperado: version,
+    p_entradas: { inputs: { pub: datos.pub }, banderas: {}, overrides: {} },
+    p_modo_tc: null,
+    p_titulo: null,
+    p_notas: null,
+    p_vehiculo: vehiculo === '' ? null : vehiculo,
+    p_ver_total_bs: false,
+  })
+  if (error) {
+    throw new Error(`${persona.email} no pudo guardar: ${error.message}`)
+  }
 }

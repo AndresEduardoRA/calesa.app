@@ -80,7 +80,12 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
         cliente={cliente?.nombre ?? null}
         vehiculo={vehiculo?.titulo ?? null}
       />
-      <PantallaDeUnaGuardada key={hoja.cotizacion.id} hoja={hoja} inicial={inicial} />
+      <PantallaDeUnaGuardada
+        key={hoja.cotizacion.id}
+        hoja={hoja}
+        inicial={inicial}
+        personaId={sesion.usuarioId}
+      />
     </>
   )
 }

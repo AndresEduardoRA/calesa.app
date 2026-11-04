@@ -9,11 +9,13 @@ type Props = {
   hayAviso: boolean
   // Se dice el total de antes: el de hoy es otro, o no hay uno de hoy.
   muestraElTotal: boolean
+  // Quien puede guardar: se le dice qué pasa si guarda (desde el 4.15-3; quien sólo ve no guarda).
+  puedeGuardar: boolean
 }
 
 // Lo de hoy contra lo guardado (C11): al abrir una cotización guardada la hoja recalcula con SU versión y SUS tipos de cambio, pero con las tablas y los datos del vehículo de hoy.
 // Si eso no da lo guardado se dice, y si el total es otro, también el total con que se guardó: el snapshot es la autoridad. Quien sólo ve lee las dos cifras.
-export function TotalGuardado({ totalUsd, hayAviso, muestraElTotal }: Props) {
+export function TotalGuardado({ totalUsd, hayAviso, muestraElTotal, puedeGuardar }: Props) {
   if (!hayAviso && !muestraElTotal) {
     return null
   }
@@ -34,6 +36,11 @@ export function TotalGuardado({ totalUsd, hayAviso, muestraElTotal }: Props) {
           className="text-(length:--text-sm) text-(--color-ink-soft)"
         >
           Lo de hoy no es lo guardado: cambió una tabla o un dato del vehículo desde que se guardó.
+        </p>
+      ) : null}
+      {hayAviso && puedeGuardar ? (
+        <p className="text-(length:--text-sm) text-(--color-ink-soft)">
+          Guardar lo deja con lo de hoy.
         </p>
       ) : null}
     </div>

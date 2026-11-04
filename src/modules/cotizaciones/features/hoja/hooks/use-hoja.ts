@@ -169,6 +169,9 @@ export function useHoja({
     alCambiarVerTotalBs,
     abierta,
     de,
+    // Con lo que abrió la hoja: contra eso se mide si hay algo que guardar.
+    iniciales,
+    verTotalBsInicial,
     acciones,
     reponer,
     ...recalculo,

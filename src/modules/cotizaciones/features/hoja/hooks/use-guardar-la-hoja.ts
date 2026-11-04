@@ -1,16 +1,15 @@
 'use client'
 
 import type { RefObject } from 'react'
-import { useAtajo } from '@/shared/ui/atajos'
 import { ofreceVerTotalBs } from '../../../entities/cabecera-de-la-hoja'
 import { totalDelResumen, type ContextoDeHoja } from '../../../entities/binding'
 import { entradasDelPedido, type Entradas } from '../../../entities/entradas'
 import type { HojaLista } from '../../../entities/hoja'
 import type { RespuestaDeRecalculo } from '../../../entities/recalculo'
 import { motivoParaNoGuardar } from '../../../entities/se-puede-guardar'
-import { confirmarCeldaAbierta } from './confirmar-celda-abierta'
 import type { BotonDeGuardar } from '../components/resumen-de-hoja'
-import type { Armar, Guardado } from './use-guardado'
+import { useAlGuardar } from './use-al-guardar'
+import type { Armar, Guardado } from './use-nucleo-del-guardado'
 import type { useHoja } from './use-hoja'
 
 // Un override que la persona mandó y el recálculo descartó: la base lo rechaza al guardar (P9).
@@ -76,18 +75,7 @@ export function useGuardarLaHoja({
       )
     })
   }
-  const alGuardar = () => {
-    if (guardado === null || guardado.ocupado) {
-      return
-    }
-    const celda = confirmarCeldaAbierta(raiz.current)
-    // Lo que se acaba de confirmar puede arreglar el motivo: lo decide el total al día.
-    if (celda === 'invalida' || (celda === 'ninguna' && motivo !== null)) {
-      return
-    }
-    guardado.guardar(armar)
-  }
-  useAtajo('guardar', alGuardar, guardado !== null)
+  const alGuardar = useAlGuardar({ guardado, motivo, armar, raiz })
   const total = totalDelResumen(contexto)
   const boton: BotonDeGuardar | null =
     guardado === null

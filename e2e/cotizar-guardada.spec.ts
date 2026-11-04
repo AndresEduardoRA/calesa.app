@@ -17,6 +17,7 @@ import {
   guardarPorLaHoja,
   numeroDeLaCotizacion,
   publicarConTablaViva,
+  revisionesDe,
   urlDeLaHoja,
 } from './soporte/cotizar-guardada'
 import {
@@ -201,5 +202,15 @@ test('E2E si una tabla viva cambia entre guardar y abrir, se dice y se ve el tot
     'Lo de hoy no es lo guardado: cambió una tabla o un dato del vehículo desde que se guardó.',
   )
   await expect(page.locator(TOTAL_GUARDADO)).toContainText('205,00')
+  await expect(totalDeLaHoja(page)).toContainText('405,00')
+  // Sin tipear nada «Guardar» está encendido y dice qué pasa: lo deja con lo de hoy, y deja una revisión.
+  await expect(page.getByText('Guardar lo deja con lo de hoy.')).toBeVisible()
+  const antes = revisionesDe(id)
+  await page.getByRole('button', { name: 'Guardar', exact: true }).click()
+  await expect(page.getByText('Cambios guardados.')).toBeVisible()
+  expect(revisionesDe(id)).toBe(antes + 1)
+  await page.reload()
+  await expect(page.locator(AVISO_DE_HOY)).toHaveCount(0)
+  await expect(page.locator(TOTAL_GUARDADO)).toHaveCount(0)
   await expect(totalDeLaHoja(page)).toContainText('405,00')
 })
