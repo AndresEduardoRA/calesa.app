@@ -426,6 +426,19 @@ guardado. Inválida (nula, mal formada, de otra persona u origen, firma mala): 2
 - **Cotizar pide `cotizaciones.crear` y `cotizaciones.ver` del origen** en `cotizacion_hoja`, `cotizacion_evaluar` y `cotizacion_tabla` por origen y
   `cotizacion_crear`; guardar (`cotizacion_guardar`) pide `cotizaciones.ver` y `cotizaciones.editar` (4.15-1).
 
+### La hoja de una guardada y cotizar encima (4.15-2)
+
+`cotizacion_hoja_guardada(p_id)` abre una cotización guardada para quien **la ve** (lo que no existe, está en la papelera o no se ve: el 42501 de
+`cotizacion_leer`; antes, `assert_activo()`). Devuelve:
+
+- la fila y el snapshot recortados (`_cotizacion_respuesta`, como `cotizacion_leer`) y el diseño de **SU versión** (`_cotizacion_hoja`, como la hoja nueva);
+- `puede_guardar` = `_cotizacion_puede_guardar()` (el ayudante de guardar): sin él, **ninguna** celda es editable y el motivo no es un nivel
+  (`no_se_edita`); con él, se edita lo que `_nodos_visibles()` deja, como en `cotizacion_guardar`. Quien sólo ve abre el diseño en sólo lectura;
+- `publicada: {id, version}` (la de hoy del origen, o nula), `vence_el` y `vencida`: el día de `creado_en` en la zona de la empresa +
+  `ajustes_empresa.vigencia_dias`, vencida si ese día ya pasó (por día, no por hora);
+- `anterior: {id, numero, version}` si se ve; `encima`, la versión nueva viva: `{id, numero, version}` si se ve, `{"oculta": true}` si no (P11);
+- `puede_cotizar_encima`: `cotizaciones.crear` del origen, ve su lead, ve su vehículo (o no lleva y no es obligatorio), sin versión nueva viva y con publicada.
+
 ## Lo que se guarda en una cotización
 
 `formula_id` (recalcular o editar usa **esa** versión, nunca la vigente); `valores` (`{nodo_id: número | null}` de TODOS los nodos; el

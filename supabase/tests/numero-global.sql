@@ -269,6 +269,7 @@ declare
     '_oportunidad_json', 'recibe una oportunidad y devuelve el número del vehículo, nunca el de un lead',
     'lead_seguimiento', 'devuelve un seguimiento: sólo el número del vehículo que nombra',
     'leads_exportacion_registrar', 'deja la constancia (cuántas filas y qué filtros): ningún lead',
+    'cotizacion_hoja_guardada', 'devuelve una cotización: el número de cotización de la anterior y de la nueva (_cotizacion_cadena), nunca el de un lead; del lead, sólo su id y si se ve',
     'lead_campo_crear', 'devuelve el campo creado: nada de leads',
     'leads_candidatos', 'devuelve ids de leads (los que quien llama ve), si hay más y hasta dónde llegó: nunca un número; la página la lee leads_vista_por_ids, que tiene su sonda',
     'leads_ids_del_numero', 'devuelve ids de leads (los que quien llama ve con ese número, según la policy de las copias), nunca un número; numero-busqueda.sql prueba qué ve cada quien');

@@ -642,7 +642,7 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
       'public._cotizacion_tipeado(jsonb,jsonb,jsonb,jsonb,boolean)',
       'public._cotizacion_armar(jsonb,uuid,uuid,uuid,uuid,timestamptz,boolean)',
       'public.cotizacion_version()',
-      'public._cotizacion_hoja(uuid,uuid)',
+      'public._cotizacion_hoja(uuid,uuid,boolean)',
       'public._hoja_estado(jsonb,boolean,boolean,text,text,boolean,boolean)',
       'public._hoja_chips(uuid,jsonb,jsonb,text,integer)',
     ]

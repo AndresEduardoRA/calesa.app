@@ -194,7 +194,7 @@ $$;
 -- Las copias malas. (1) La función de verdad, más una búsqueda por una columna sin índice (`notas`) que recorre `cotizaciones`. (2) La de los atajos sin su `limit`.
 do $$
 declare
-  v_hoja text := pg_get_functiondef('public._cotizacion_hoja(uuid, uuid)'::regprocedure);
+  v_hoja text := pg_get_functiondef('public._cotizacion_hoja(uuid, uuid, boolean)'::regprocedure);
   v_chips text := pg_get_functiondef('public._hoja_chips(uuid, jsonb, jsonb, text, integer)'::regprocedure);
   v_cot text; v_sin text;
 begin

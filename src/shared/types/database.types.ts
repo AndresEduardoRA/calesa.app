@@ -150,6 +150,7 @@ export type Database = {
           telefono: string | null
           telefono_cc: string | null
           vehiculo_obligatorio_al_cotizar: boolean
+          vigencia_dias: number
           whatsapp: string | null
           zona_horaria: string
         }
@@ -181,6 +182,7 @@ export type Database = {
           telefono?: string | null
           telefono_cc?: string | null
           vehiculo_obligatorio_al_cotizar?: boolean
+          vigencia_dias?: number
           whatsapp?: string | null
           zona_horaria?: string
         }
@@ -211,6 +213,7 @@ export type Database = {
           telefono?: string | null
           telefono_cc?: string | null
           vehiculo_obligatorio_al_cotizar?: boolean
+          vigencia_dias?: number
           whatsapp?: string | null
           zona_horaria?: string
         }
@@ -7003,6 +7006,16 @@ export type Database = {
           visibilidad: Json
         }[]
       }
+      _cotizacion_cadena: {
+        Args: {
+          c: Omit<
+            Database['public']['Tables']['cotizaciones']['Row'],
+            Database['public']['Tables']['cotizaciones']['ComputedFields']
+          >
+          p_publicada: string
+        }
+        Returns: Json
+      }
       _cotizacion_conservar: {
         Args: { p_def: Json; p_editables: Json; p_entrada: Json; p_guardado: Json }
         Returns: Json
@@ -7020,7 +7033,10 @@ export type Database = {
         Returns: Json
       }
       _cotizacion_guardable: { Args: { p_mandados: Json; p_res: Json }; Returns: number }
-      _cotizacion_hoja: { Args: { p_formula: string; p_origen: string }; Returns: Json }
+      _cotizacion_hoja: {
+        Args: { p_edita?: boolean; p_formula: string; p_origen: string }
+        Returns: Json
+      }
       _cotizacion_modo: { Args: { p_formula: string; p_modo_tc: string }; Returns: Json }
       _cotizacion_puede_guardar: {
         Args: {
@@ -8013,6 +8029,7 @@ export type Database = {
         Returns: Json
       }
       cotizacion_hoja: { Args: { p_origen: string }; Returns: Json }
+      cotizacion_hoja_guardada: { Args: { p_id: string }; Returns: Json }
       cotizacion_leer: { Args: { p_id: string }; Returns: Json }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {

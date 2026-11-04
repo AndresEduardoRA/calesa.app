@@ -323,7 +323,7 @@ rollback;
 do $$
 declare v_f text; p record;
 begin
-  foreach v_f in array array['public._cotizacion_hoja(uuid, uuid)', 'public._hoja_datos_del_vehiculo(jsonb, uuid, jsonb, jsonb)'] loop
+  foreach v_f in array array['public._cotizacion_hoja(uuid, uuid, boolean)', 'public._hoja_datos_del_vehiculo(jsonb, uuid, jsonb, jsonb)'] loop
     if to_regprocedure(v_f) is null then raise exception 'T5: % no existe', v_f; end if;
     select * into p from pg_proc x where x.oid = to_regprocedure(v_f);
     if p.prosecdef is distinct from (v_f like 'public._cotizacion_hoja%') then raise exception 'T5: % prosecdef = %', v_f, p.prosecdef; end if;

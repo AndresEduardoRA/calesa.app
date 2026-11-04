@@ -554,7 +554,7 @@ do $$
 declare
   duena constant uuid := '00000000-0000-0000-0000-000000000001';
   v_nuevo uuid := gen_random_uuid(); v_niveles text[]; v_nivel text; v_otro text; v_i int := 0; v_tag text; v_nombre text;
-  o uuid; o2 uuid; sin uuid; ed uuid; ajeno uuid; otro uuid; cfg uuid; solo_crear uuid; con uuid; solo_ver uuid; ver_como uuid;
+  o uuid; o2 uuid; sin uuid; ed uuid; ajeno uuid; otro uuid; cfg uuid; solo_crear uuid; con uuid; solo_ver uuid; ver_como uuid; lee uuid; v_cot uuid; v_res jsonb; v_ent jsonb;
   v_txt text; v_quien uuid; r jsonb; r2 jsonb; v_ocultos text[]; it jsonb; v_abierta text[]; v_todo text[]; v_con_nivel boolean;
   v_base constant text[] := array['cotizaciones.ver', 'cotizaciones.crear', 'cotizaciones.editar', 'leads.ver'];
 begin
@@ -648,6 +648,36 @@ begin
     if pg_temp.ch_items(r) is distinct from v_todo then raise exception 'nivel %: con «ver como» cambia lo que decide la base', v_nivel; end if;
     -- La misma lectura de quien no tiene el nivel, sobre el origen donde sólo lo tiene `ajeno`: la hoja del origen de la fórmula no se mueve por permisos de otro.
     if pg_temp.ch_items(pg_temp.ch_corre(ajeno, format('select public.cotizacion_hoja(%L)', o))) is distinct from v_abierta then raise exception 'nivel %: el nivel de otro origen abre la hoja de éste', v_nivel; end if;
+    -- H1 (4.15-2): la hoja de una guardada recorta igual que la hoja nueva, también su snapshot (centinelas: x_celda 9195.5, tc_x 9196.5, el grupo gx). Quien sólo ve
+    -- (`lee`, sin crear ni editar) recibe el diseño de su nivel sin nada editable; quien sólo crea, el 42501 de lo que no ve.
+    lee := gen_random_uuid();
+    perform pg_temp.ch_persona(lee, pg_temp.ch_conc('cotizaciones.ver', 'leads.ver', 'cotizaciones.nivel.' || v_nivel || '.ver'));
+    v_ent := jsonb_build_object('inputs', jsonb_build_object('pub', 1, 'x_celda', 9195.5), 'banderas', '{}'::jsonb, 'overrides', '{}'::jsonb, 'vehiculo', '{}'::jsonb, 'tablas', '{}'::jsonb,
+                                'tipos_cambio', jsonb_build_object('oficial', 6.96, 'paralelo', 9196.5));
+    v_res := public.evaluar_formula((select definicion from public.formulas where origen_id = o), (select params from public.formulas where origen_id = o), v_ent, null);
+    insert into public.cotizaciones (origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base)
+    values (o, duena, (select id from public.formulas where origen_id = o), v_res -> 'valores', v_res -> 'fuentes', v_ent -> 'tipos_cambio', v_res -> 'totales', 1) returning id into v_cot;
+    if not pg_temp.ch_trae(pg_temp.ch_corre(con, format('select public.cotizacion_leer(%L)', v_cot)), '{9195.5, 9196.5}') then raise exception 'H1 %: el snapshot no trae los centinelas', v_nivel; end if;
+    foreach v_txt in array array['sin', 'ed', 'ajeno', 'otro', 'cfg', 'solo_crear', 'solo_ver', 'con', 'ver_como', 'lee'] loop
+      v_quien := case v_txt when 'sin' then sin when 'ed' then ed when 'ajeno' then ajeno when 'otro' then otro when 'cfg' then cfg when 'solo_crear' then solo_crear
+                            when 'solo_ver' then solo_ver when 'con' then con when 'lee' then lee else ver_como end;
+      v_con_nivel := v_txt in ('solo_ver', 'con', 'ver_como', 'lee');
+      r := pg_temp.ch_corre(v_quien, format('select public.cotizacion_hoja_guardada(%L)', v_cot));
+      if v_txt = 'solo_crear' then
+        if r ->> 'error' is distinct from '42501' or r ->> 'mensaje' is distinct from 'No tienes acceso a esta cotización.' then raise exception 'H1 %: solo_crear: %', v_nivel, left(r::text, 200); end if;
+        continue;
+      end if;
+      if r ? 'error' or pg_temp.ch_items(r) is distinct from (case when v_con_nivel then v_todo else v_abierta end) then
+        raise exception 'H1 %: los ítems de «%»: %', v_nivel, v_txt, coalesce(pg_temp.ch_items(r)::text, left(r::text, 300));
+      end if;
+      if not v_con_nivel and (exists (select 1 from unnest(pg_temp.ch_textos(r)) t where t = any (v_ocultos)) or pg_temp.ch_trae(r, '{9191.5, 9192.5, 9193.5, 9194.5, 9195.5, 9196.5}')) then
+        raise exception 'H1 %: «%» recibe algo del nivel: %', v_nivel, v_txt, (select array_agg(t) from unnest(pg_temp.ch_textos(r)) t where t = any (v_ocultos));
+      end if;
+      if v_con_nivel and not pg_temp.ch_trae(r, '{9195.5, 9196.5}') then raise exception 'H1 %: «%» no recibe los valores del nivel', v_nivel, v_txt; end if;
+      if v_txt = 'lee' and exists (select 1 from jsonb_path_query(r, 'strict $.secciones[*].items[*]') i where (i ->> 'editable')::boolean) then
+        raise exception 'H1 %: quien sólo ve edita algo', v_nivel;
+      end if;
+    end loop;
   end loop;
 end $$;
 rollback;
@@ -697,7 +727,7 @@ begin
   r := pg_temp.ch_corre(duena, format('select public.cotizacion_hoja(%L)', o));
   if r ? 'error' or not (r -> 'cabecera') ? 'moneda_bs' or jsonb_typeof(r -> 'cabecera' -> 'moneda_bs') is distinct from 'null' then raise exception 'con el tipo de cambio inactivo: moneda_bs debía ser nula: %', r -> 'cabecera'; end if;
   -- (d) La lectura interna sigue siendo de nadie y la pública, de quien inicia sesión.
-  if has_function_privilege('authenticated', 'public._cotizacion_hoja(uuid, uuid)', 'execute') or has_function_privilege('anon', 'public._cotizacion_hoja(uuid, uuid)', 'execute') then
+  if has_function_privilege('authenticated', 'public._cotizacion_hoja(uuid, uuid, boolean)', 'execute') or has_function_privilege('anon', 'public._cotizacion_hoja(uuid, uuid, boolean)', 'execute') then
     raise exception '_cotizacion_hoja la ejecuta authenticated o anon';
   end if;
   if not has_function_privilege('authenticated', 'public.cotizacion_hoja(uuid)', 'execute') then raise exception 'cotizacion_hoja no la ejecuta authenticated'; end if;

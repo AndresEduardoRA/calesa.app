@@ -152,6 +152,8 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
       'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
     'cotizacion_hoja', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'el último bloque de cotizacion-hoja.sql, por cada nivel (necesita fórmulas con lo oculto en toda forma, no un nodo centinela), y T3 de cotizacion-hoja-dato-del-vehiculo.sql (el dato del vehículo de una celda de tabla, por cada nivel)',
       'motivo', 'el diseño de la hoja publicada recortado con _cotizacion_contexto() y _nodos_visibles(): un ítem viaja si su nodo se ve (más el total y lo aparte); sin etiquetas, ayudas, tonos, secciones ni modos (sólo clave y nombre) de lo oculto; la ayuda de una tabla con la regla de cotizacion_tabla; el dato del vehículo de una celda de tabla que se ve (dato_del_vehiculo: las entradas del match que no nombran un nodo, 4.14-2c2)'),
+    'cotizacion_hoja_guardada', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_hoja_guardada({cot})',
+      'motivo', 'la hoja de una guardada: _cotizacion_respuesta() (el recorte de cotizacion_leer) más _cotizacion_hoja() de SU versión (el de cotizacion_hoja; H1 de cotizacion-hoja.sql por cada nivel) y la cadena: de la versión nueva que no se ve, sólo que existe'),
     'cotizacion_leer', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_leer({cot})',
       'motivo', 'el snapshot de una cotización recortado con _nodos_visibles() de SU versión: el total y lo aparte siempre, los subtotales por grupo sólo si se ve el grupo entero'),
     'cotizacion_guardar', jsonb_build_object('clase', 'recorta',
