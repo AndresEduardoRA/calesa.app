@@ -72,7 +72,15 @@ paso_vivo() {
   [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
   # `pgrep -f` sólo se excluye a sí mismo: el `pgrep` de otro bucle a la vez lleva el patrón en su línea y pasaba por un paso vivo
   # (rechazaba una decisión buena, 1 de cada 8 corridas de `pnpm test`). Se listan las líneas y se descartan las de otro `pgrep`.
-  pgrep -af -- "$PATRON_PASO_VIVO" 2>/dev/null | awk '$2 != "pgrep" { vivo = 1 } END { exit !vivo }'
+  # Y sólo cuentan los de ESTE repo: el bucle de otro proyecto de la misma máquina (`calesa-web`) también corre `claude -p /piloto …`, y su
+  # paso rechazó una decisión buena (2026-10-31, «apareció con un paso vivo»). Un paso vive en la raíz de su repo: se compara su `cwd`.
+  local raiz otro
+  raiz=$(cd -P "${RAIZ:-$(dirname "$ESTADO")}" 2>/dev/null && pwd -P) || return 1
+  while read -r pid; do
+    otro=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
+    [ "$otro" = "$raiz" ] && return 0
+  done < <(pgrep -af -- "$PATRON_PASO_VIVO" 2>/dev/null | awk '$2 != "pgrep" { print $1 }')
+  return 1
 }
 
 rechazar_decision() {
