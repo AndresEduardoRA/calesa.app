@@ -24,7 +24,10 @@ const ID_CARRIL = /^[a-z][a-z0-9-]{0,19}$/
 const dentro = (ruta, dueno) =>
   (ruta.replace(/\/$/, '') + '/').startsWith(dueno.replace(/\/$/, '') + '/')
 const solapan = (a, b) => dentro(a, b) || dentro(b, a)
-const esDoc = (ruta) => ruta.startsWith('docs/')
+// Rutas que ningún carril posee y que todos pueden tocar sin chocar: `docs/` y las `compartido` del plan (carpetas donde cada paso
+// sólo AGREGA archivos con nombre propio, como `supabase/migrations/`, que lleva una marca de tiempo distinta por paso).
+const esLibre = (ruta, plan) =>
+  ruta.startsWith('docs/') || (plan.compartido ?? []).some((c) => dentro(ruta, c))
 
 /** Lee el texto de plan.yaml. No valida: para eso, `problemasDelPlan`. */
 export function leerPlan(texto) {
@@ -32,12 +35,17 @@ export function leerPlan(texto) {
   return {
     esquema: plan.esquema,
     agentes_disponibles: plan.agentes_disponibles ?? [],
+    compartido: plan.compartido ?? [],
     carriles: plan.carriles ?? [],
     pasos: plan.pasos ?? [],
   }
 }
 
-/** Todo lo que impide correr el plan en paralelo sin choques. Puro. */
+/**
+ * Todo lo que impide correr el plan en paralelo sin choques. Puro. Un carril con `base: true` puede poseer carpetas que contienen las
+ * de otros (el carril de los pasos que preparan o cierran el módulo); no choca porque sus pasos van antes o después de todos los demás:
+ * lo verifica la comprobación de pasos que pueden correr a la vez.
+ */
 export function problemasDelPlan(plan) {
   const p = []
   if (plan.esquema !== 'plan/v1') p.push('esquema: debe ser plan/v1')
@@ -60,7 +68,7 @@ export function problemasDelPlan(plan) {
     for (let j = i + 1; j < lista.length; j++)
       for (const ra of lista[i].dueno_de ?? [])
         for (const rb of lista[j].dueno_de ?? [])
-          if (solapan(ra, rb))
+          if (!lista[i].base && !lista[j].base && solapan(ra, rb))
             p.push(`OWNERS: ${lista[i].id} y ${lista[j].id} comparten ${ra} / ${rb}`)
 
   const pasos = new Map()
@@ -85,7 +93,7 @@ export function problemasDelPlan(plan) {
     const carril = carriles.get(paso.carril)
     if (!carril) p.push(`${e} el carril ${paso.carril} no existe`)
     for (const m of paso.modulos ?? [])
-      if (carril && !esDoc(m) && !carril.dueno_de.some((d) => dentro(m, d)))
+      if (carril && !esLibre(m, plan) && !carril.dueno_de.some((d) => dentro(m, d)))
         p.push(`${e} toca ${m}, que no es del carril ${paso.carril}`)
     for (const d of paso.depende_de ?? [])
       if (!pasos.has(d)) p.push(`${e} depende de ${d}, que no existe`)
@@ -119,7 +127,7 @@ export function problemasDelPlan(plan) {
         if (anc.get(a.id).has(b.id) || anc.get(b.id).has(a.id)) continue
         for (const ma of a.modulos ?? [])
           for (const mb of b.modulos ?? [])
-            if (!esDoc(ma) && solapan(ma, mb))
+            if (!esLibre(ma, plan) && !esLibre(mb, plan) && solapan(ma, mb))
               p.push(`${a.id} y ${b.id} pueden correr a la vez y los dos tocan ${ma} / ${mb}`)
       }
   }

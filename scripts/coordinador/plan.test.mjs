@@ -84,6 +84,42 @@ test('detecta OWNERS solapados, módulos ajenos, ciclos, pasos paralelos sobre l
   )
 })
 
+test('una ruta «compartido» la pueden tocar pasos paralelos de carriles distintos; sin ella, no', () => {
+  const dos = (compartido) => ({
+    ...PLAN,
+    compartido,
+    carriles: [
+      { id: 'datos', dueno_de: ['src/modules/x/infra/'] },
+      { id: 'ui', dueno_de: ['src/modules/x/features/', 'src/app/'] },
+    ],
+    pasos: [
+      paso('P01', 'datos', [], ['src/modules/x/infra/', 'supabase/migrations/'], 'ambar'),
+      paso('P03', 'ui', [], ['src/app/', 'supabase/migrations/'], 'verde'),
+    ],
+  })
+  assert.ok(problemasDelPlan(dos([])).some((x) => x.includes('supabase/migrations/')))
+  assert.deepEqual(problemasDelPlan(dos(['supabase/migrations/'])), [])
+})
+
+test('un carril base puede poseer lo que contiene a otros, si sus pasos no corren a la vez con ellos', () => {
+  const plan = (depende) => ({
+    ...PLAN,
+    carriles: [
+      { id: 'base', base: true, dueno_de: ['src/modules/x/'] },
+      { id: 'ui', dueno_de: ['src/modules/x/features/'] },
+    ],
+    pasos: [
+      paso('P01', 'base', [], ['src/modules/x/'], 'ambar'),
+      paso('P02', 'ui', depende, ['src/modules/x/features/lista/'], 'verde'),
+    ],
+  })
+  assert.deepEqual(problemasDelPlan(plan(['P01'])), [])
+  assert.ok(problemasDelPlan(plan([])).some((x) => x.includes('pueden correr a la vez')))
+  const sinBase = plan(['P01'])
+  sinBase.carriles[0] = { id: 'base', dueno_de: ['src/modules/x/'] }
+  assert.ok(problemasDelPlan(sinBase).some((x) => x.startsWith('OWNERS')))
+})
+
 test('codex sólo si está disponible', () => {
   const p = structuredClone(PLAN)
   p.pasos[2].ruteo = ruteo({ agente: 'codex', modelo: 'codex' })
