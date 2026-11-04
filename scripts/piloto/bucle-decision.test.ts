@@ -246,6 +246,24 @@ describe('bucle.sh › el límite de uso', () => {
     expect(a.estado('fallas').trim()).toBe('0')
   })
 
+  // El texto real de la cuenta (2026-10-31, 4.15): «5-hour» lleva un dígito y un guion, y el patrón de sólo letras no lo reconocía:
+  // el bucle lo contó como un fallo del paso (dos intentos y una compuerta) y estuvo parado tres días en vez de dormir.
+  it('el límite de 5 horas («hit your 5-hour limit · resets 9:30pm») también duerme y retoma', () => {
+    const cinco = {
+      ...LIMITE,
+      result: "You've hit your 5-hour limit · resets 9:30pm (America/La_Paz)",
+    }
+    a.paso(1, 'true', { salida: cinco, salida_codigo: 1 })
+    a.paso(2, pasoListo({ 'src/a.ts': 'a' }))
+    const r = a.correr(['--hasta', '4.99'])
+    expect(r.estado, r.salida).toBe(0)
+    const [segundos] = a.lineas('dormir.log')
+    expect(Number(segundos)).toBeGreaterThanOrEqual(300)
+    expect(Number(segundos)).toBeLessThanOrEqual(86_400 + 300)
+    expect(a.llamadas('paso')[1]).toContain('--resume')
+    expect(a.estado('fallas').trim()).toBe('0')
+  })
+
   it('si el límite vuelve tras dormir: aviso', () => {
     a.paso(1, 'true', { salida: LIMITE, salida_codigo: 1 })
     a.paso(2, 'true', { salida: LIMITE, salida_codigo: 1 })

@@ -66,7 +66,8 @@ verificar_copia() {
 segundos_de_limite() {
   local texto hora objetivo ahora
   texto="$(jq -r '(.result // "") + " " + (.error // "")' "$1" 2>/dev/null) $(cat "$2" 2>/dev/null)"
-  [[ "$texto" =~ hit\ your[A-Za-z\ ]*limit ]] || return 1
+  # Entre «your» y «limit» puede ir «session», «weekly» o «5-hour» (con dígito y guion: un patrón de sólo letras no lo reconocía).
+  [[ "$texto" =~ hit\ your[^·.]*limit ]] || return 1
   if [[ "$texto" =~ resets\ ([0-9]{1,2}(:[0-9]{2})?\ ?[apAP][mM]) ]]; then
     hora="${BASH_REMATCH[1]}"
     ahora=$(date +%s)
