@@ -32,7 +32,7 @@ BITACORA lo anota como «hito 4-A».
 **Verificación de los pasos de la Fase 4:** los niveles son los de `.claude/rules/e2e.md` (Nivel 1, 2 y 3). «Cadena db» = una migración nueva,
 `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuando hay carrera). Cada paso de pantalla anota en la BITACORA su marca
 `e2e completo: sí|no (<paso>, <tipo>, N de 3)`: la cuenta de pantallas sin e2e completo vuelve a 0 con cada completo y a los 3 se corre
-uno (hoy: **2 de 3**: el 4.14-3a corrió el completo de escritorio). Compuerta `dependencia` para subir una dependencia
+uno (hoy: **0 de 3**: el 4.15-2 corrió el completo de escritorio). Compuerta `dependencia` para subir una dependencia
 (el piloto no las sube).
 
 **Decisiones de apertura vigentes** (la persona, 2026-10-22; `docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones» y «D7»):
@@ -165,17 +165,18 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
     «Vehículo». **P4** un toque guarda el tipo en el vehículo, cierra el panel y la hoja recalcula.
 - **4.15** — Editar con SU versión, cotizar encima (N+1) y revisiones por nodo, recortadas y por páginas. En **3 prompts**:
   el **1** (hecho el 2026-11-04): **4-26** medido antes («no reproducida»), **4-24** (`puede_cotizacion` mira el alcance una vez), **4-34** (guardar pide ver y
-  editar, en `_cotizacion_puede_guardar()`) y la revisión que guarda `totales` por clave (los grupos enteros; leída sin delatar lo que un nivel esconde). El **2**: la
-  base de editar con SU versión y cotizar encima (P1–P7): la lectura de la hoja de una guardada (`_cotizacion_hoja` de su versión; qué se edita lo decide el ayudante de
-  guardar, porque `_nodos_visibles()` da «editar» con `crear` o `editar`), cotizar encima (`cotizacion_crear(…, p_padre)` o la que decida P1) y `cotizacion_revisiones` con
-  el autor y las etiquetas; Nivel 1 + cadena db + `db:carreras` + `db:medir`. El **3**: la pantalla (P7 y P8), `/cotizaciones/[id]`, el panel de revisiones por cursor
-  (se registra en `RPC_PAGINADAS` de `scripts/guardas/paginas-en-la-base.ts`) y «Cotizar encima»; es la tercera de pantalla sin completo: corre el completo de escritorio.
+  editar, en `_cotizacion_puede_guardar()`) y la revisión que guarda `totales` por clave (los grupos enteros; leída sin delatar lo que un nivel esconde). El **2** (hecho el 2026-11-04): la
+  lectura de una guardada (`cotizacion_hoja_guardada`: SU versión, lo editable por `_cotizacion_puede_guardar()`, la vigencia `vigencia_dias` y la cadena), las revisiones
+  con autor y etiquetas y cotizar encima (`cotizacion_encima`, la N+1 al tocarla, una viva por anterior; P9–P13); Nivel 2 (estructura) + cadena db + `db:carreras` + `db:medir`.
+  El **3**: la pantalla (P7 y P8), `/cotizaciones/[id]`, el panel de revisiones por cursor
+  (se registra en `RPC_PAGINADAS` de `scripts/guardas/paginas-en-la-base.ts`) y «Cotizar encima»; no corre el completo por la cuenta (será 1 de 3: el 4.15-2 lo corrió).
   `cotizacion_guardar` con el mismo intento y otros datos ya da 22023 `intento_reusado` (lo lleva a la pantalla el 3). Depende de 4.13. Prompts: 3.
-  - Preguntas del plan del 4.15 (abiertas; se preguntan en la compuerta `producto` del 4.15-2; recomendada primero, `.piloto/planes/4.15.md` › «Preguntas abiertas»):
+  - Preguntas del plan del 4.15 (contestadas el 2026-11-04, todas con la recomendada; `.piloto/planes/4.15.md` y `4.15-2.md` › «Preguntas abiertas»):
     **P1** qué es cotizar encima (una cotización nueva con `cotizacion_padre_id` y `version` + 1; la anterior no se toca). **P2** qué se lleva (lo tipeado de los nodos
     que siguen, también lo que quien cotiza no ve). **P3** de cuál (de la última de su cadena, una a la vez). **P4** su número (el suyo, «v2 de #123»). **P5** quién
     (quien cotiza en el origen y ve la anterior y su lead). **P6** la anterior queda igual. **P7** dónde se ofrece (al editar una de otra versión, y siempre en una vencida).
-    **P8** dónde se edita (`/cotizaciones/[id]`).
+    **P8** dónde se edita (`/cotizaciones/[id]`). Del 4.15-2: **P9** la N+1 nace al tocar «Cotizar encima»; **P10** siempre preventa; **P11** quien no ve la N+1 sólo sabe
+    que existe; **P12** la vigencia nace ahora (sin pantalla hasta el 4.20); **P13** quien sólo ve abre la hoja de una guardada en sólo lectura.
 - **4.16** — El listado `/cotizaciones` (resumen `?cotizacion=`, «Vencida», cursor, el máximo medido, sin el snapshot), la siembra de
   volumen y `medir-escala.sql`; se enciende la navegación. Cierra **4-14** («todas las que veo» de quien ve «propios») y **4-23** (el
   gemelo en el inventario de vehículos), la entrada a cotizar desde el listado (`docs/UX.md:38`) y el camino a lo antiguo del historial del vehículo (el tope de 500 del 4.14-2b: un
@@ -220,7 +221,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 33 pasos y 83 prompts; faltan el 4.15-2, el 4.15-3 y los pasos 4.16 a 4.28.
+Total de la fase: 33 pasos y 83 prompts; faltan el 4.15-3 y los pasos 4.16 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
@@ -375,7 +376,7 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
   cotizaciones de la papelera recorriendo. No empeora con el 4.14-1. Assert: purgar un vehículo con 250.000 cotizaciones no recorre `cotizaciones` (`seq_scan` = 0).
 - **4-52** (sin fase, lo decide la persona; del tipo de 4-46): `supabase/tests/medir-cotizacion-guardar.sql` mide 319 líneas (> 300; ya medía 308 antes del 4.14-1). Partirlo por
   responsabilidad (el terreno y las funciones de medición, los casos). Assert: `wc -l` de cada parte ≤ 300 y lo mismo medido en verde.
-- **4-64** (sin fase, lo decide la persona; del tipo de 4-52, salió del 4.14-3a): `supabase/tests/derivados-leads.sql` mide 493 líneas y `scripts/carreras.mjs` 355 (> 300; ya medían 470 y 353 antes). Partirlos por tema, o registrar las carreras nuevas desde `scripts/carreras/`. Del 4.15-1: `supabase/tests/cotizaciones-visibilidad.sql` (1.730 → 1.807 líneas), `supabase/tests/cotizacion-guardar.sql` (665 → 762) y `scripts/carreras/cotizaciones-guardar.mjs` (666 → 698); y `cotizacion_guardar` mide 121 líneas de función (> 80): partir una RPC `security definer` mueve su inventario y sus carreras.
+- **4-64** (sin fase, lo decide la persona; del tipo de 4-52, salió del 4.14-3a): `supabase/tests/derivados-leads.sql` mide 493 líneas y `scripts/carreras.mjs` 355 (> 300; ya medían 470 y 353 antes). Partirlos por tema, o registrar las carreras nuevas desde `scripts/carreras/`. Del 4.15-1: `supabase/tests/cotizaciones-visibilidad.sql` (1.730 → 1.807 líneas), `supabase/tests/cotizacion-guardar.sql` (665 → 762) y `scripts/carreras/cotizaciones-guardar.mjs` (666 → 698); y `cotizacion_guardar` mide 121 líneas de función (> 80): partir una RPC `security definer` mueve su inventario y sus carreras. Del 4.15-2: `cotizaciones-visibilidad.sql` (→ 1.811), `scripts/carreras.mjs` (→ 357), `cotizacion-hoja.sql` (705 → 735), `cotizacion-guardar.sql` (→ 764), `medir-cotizaciones-lectura.sql` (359 → 360); `cotizacion-hoja-dato-del-vehiculo.sql` (340) y `cotizaciones-guardar.mjs` (698) sólo cambian la firma; y las funciones `_cotizacion_hoja` (≈ 127 líneas, recreada igual) y `cotizacion_encima` (106 de cuerpo).
 - **4-65** (**cerrado** en el 4.14-3b, 2026-10-31: límite aceptado por la T3, declarado en `docs/RENDIMIENTO.md` y con su assert en `medir-cartera-reciente.sql`: 285 ms con 212.000 leads, tope 400; sin fase; salió del 4.14-3a, T3): la pestaña por clase del panel del cliente recorre toda la cartera de quien mira cuando no tiene ningún lead de esa clase (`tipo_lead_id` no está en `leads_asesores_reciente_idx`): 66 ms con 20.000 leads en su cartera y 289 ms con 80.000 (tope declarado 400 ms). Si el 3b lo siente en la pantalla, la salida es copiar también la clase del lead en la cartera, con su índice y sus triggers (otro plan, a auditar). Assert: la pestaña de la clase ausente de `supabase/tests/medir-cartera-reciente.sql`.
 - **4-53** (**cerrado** en el 4.14-3a, 2026-10-31: `scripts/sembrar-volumen.mjs` importa `readFileSync`, y `db:sembrar-volumen` y `db:medir:volumen` corren detrás; sin fase; salió del 4.14-1): `pnpm db:sembrar-volumen` cae con `ReferenceError: readFileSync is not defined`:
   `scripts/sembrar-volumen.mjs` lo usa sin importarlo desde `c300ad7b` (el ayudante del stack de cada worktree). El 4.14-1 sembró con una copia que lo importa, fuera del repo.
@@ -384,6 +385,7 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-67** (sin fase, lo decide la persona; salió del 4.15-1, 4-26): el conteo de exportar (`contarLeadsHasta`, `leads_cartera_vista` de a 1.000) de una cartera recién sembrada de 5.001: tras `analyze leads, leads_asesores` su primera página elige `Nested Loop` con `Seq Scan on leads` adentro (12,5 millones de filas descartadas, 828.878 buffers): 3.095 ms; sin `analyze`, sus páginas crecen con la profundidad (31, 60, 95, 131 y 167 ms). Medido en SQL (`.piloto/salidas/4.15-1/4-26/`), no por la e2e (allí el autoanalyze cayó y la respuesta siguió en 299 ms). Cierre: en `db:medir:volumen`, las páginas del conteo de exportar de una cartera de 5.001, tras `analyze`, sin `Seq Scan on leads` en el bucle, sin crecer con la página y bajo 50 ms cada una.
 - **4-68** (4.24, la papelera propia; salió del 4.15-1): `papelera_enviar` deja mandar una cotización a la papelera con `cotizaciones.editar` y sin `cotizaciones.ver` (el mismo defecto que 4-34, en otra puerta) — que pida ver, con el error de lo inexistente.
 - **4-69** (4.27, adjuntos; salió del 4.15-1): las policies «cotizaciones_adjuntos: crear» y «cotizaciones: subir» (`storage.objects`) piden `editar` sin `ver` — que pidan ver; son policies: su paso corre el Nivel 2.
+- **4-70** (4.24, la papelera propia; salió del 4.15-2): `papelera_restaurar` de una versión nueva (cotizar encima) cuando su anterior ya tiene otra viva da el 23505 de `cotizaciones_encima_unica`, sin texto humano: un PT409 «Esa cotización ya tiene otra versión nueva», o restaurarla sin la marca de anterior.
 - **4-54** (sin fase, lo decide la persona; salió del 4.14-2a): si una cotización se está guardando cuando se elige otro vehículo en el panel (abrirlo y elegir dentro de lo que
   tarda el guardado), se guarda con el de antes —lo que se veía al guardar— y la hoja pasa al nuevo sin la tarjeta de éxito; quien guardó puede creer que no se guardó y
   guardar otra vez: una cotización de más. La barra queda fuera de `[data-hoja]` y no se apaga con su `inert`. Assert: con el guardado demorado (la action interceptada), abrir

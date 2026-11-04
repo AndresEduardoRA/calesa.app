@@ -194,8 +194,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Fórmula como texto** — `compilarExpresion()` (`entities/compilador.ts`): `=(remate+fees)*4%`, `=SUMA(aduana)`; se compila a nodos al configurar.
 - **Nodo auxiliar** — `<fila>__<n>` en `compilarExpresion()`: cada operación anidada o número de una fórmula como texto es un nodo propio, numerado en post-orden.
 - **Tramo (de un error de texto)** — `Tramo`, `ErrorDeCompilacion` (`entities/motivos-del-compilador.ts`): dónde está el error en una fórmula como texto (`desde`, `largo`; `linea`, `columna`).
-- **Vigencia** — `vigencia_dias` de la empresa (7 por defecto): cuántos días vale una cotización desde `creado_en`.
-- **Vencida** — derivada: `creado_en` + vigencia < hoy: cotización que pasó su vigencia. No es un estado guardado.
+- **Vigencia** — `ajustes_empresa.vigencia_dias` (7 por defecto, de 1 a 365): cuántos días vale una cotización desde el día de su `creado_en`.
+- **Vencida** — derivada: `creado_en` + vigencia < hoy, por día y en la zona de la empresa (`vence_el` y `vencida` de `cotizacion_hoja_guardada()`): cotización que pasó su vigencia. No es un estado guardado.
+- **Cotizar encima (N+1)** — `cotizacion_encima()`, `cotizacion_padre_id`, `version`: crear la versión nueva de una cotización (otra cotización, preventa, con la publicada y las tarifas de hoy y lo tipeado de la anterior); la anterior no cambia; una viva por anterior.
+- **Hoja de una guardada** — `cotizacion_hoja_guardada()`: la lectura que abre una cotización guardada con SU versión, lo que quien mira puede guardar, la vigencia y la cadena (anterior y versión nueva).
 - **Desactualizada** — `cotizacion_crear(… p_abierta …)` (PT409 `desactualizada`): la fórmula o un tipo de cambio cambió tras abrir la hoja: «Usar la versión N+1» o «Guardar con la N». No es «vencida».
 - **Vehículo obligatorio al cotizar** — `ajustes_empresa.vehiculo_obligatorio_al_cotizar` (sí por defecto): con «no», una preventa se guarda sin vehículo.
 - **Intento (de una cotización)** — `id` uuid del cliente: `cotizacion_crear` (`p_id`), `cotizacion_guardar` (`p_intento`): repetirlo devuelve lo mismo (`repetido: true`); con otros datos, `intento_reusado`.

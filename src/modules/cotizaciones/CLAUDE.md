@@ -40,6 +40,9 @@ RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador
 - `cotizacion_guardar` es la única edición: calcula con SU fórmula y SUS tipos de cambio y conserva lo que quien guarda no ve ni edita; mismo `intento` con otros datos = `intento_reusado`; quién guarda lo decide sólo `_cotizacion_puede_guardar()` (ver y editar; una final, ver y `cotizaciones.final.gestionar`), antes y después del candado. La revisión guarda `totales` por clave (los grupos enteros) y su lectura no delata un grupo por lo que un nivel esconde.
 - **La hoja abierta la firma la base** (`abierta` = fórmula.µs.HMAC con la clave de Vault `cotizacion:abierta`): `cotizacion_crear`, `cotizacion_evaluar` y `cotizacion_tabla` la reciben como `p_abierta`, nunca una hora del cliente (4-27); el recálculo y la tabla de una ayuda usan la versión (y el recálculo, las tarifas) de la hoja dibujada (4-28). La pantalla la trata como opaca. Un cálculo o alta nuevo recibe `p_abierta`; una prueba SQL la firma por persona.
 - En el cliente: las entradas son inmutables; lo que se busca por id usa `Map`; los textos del candado, estado y faltante son **propios, nunca el mensaje de la base**; el porcentaje de un par va a `inputs` o `overrides` según `secundario.tipoDeNodo` (4-31); todo error con SQLSTATE suelta el pendiente de guardado; la `key` de la hoja lleva la abierta (D2).
+- **La hoja de una guardada** (`cotizacion_hoja_guardada`, 4.15-2) edita sólo con `_cotizacion_puede_guardar()` (no con `_nodos_visibles()`, que da editar con `crear`): quien
+  sólo ve abre su diseño en sólo lectura. **Cotizar encima** (`cotizacion_encima`) crea la N+1 en el acto, una viva por anterior (`cotizaciones_encima_unica`), y se lleva también
+  lo oculto (se guarda, no se devuelve); es la excepción a «un alta nueva recibe `p_abierta`»: no sale de una hoja vista ni lleva una hora del cliente.
 - D1 a D6: `docs/PLAN.md` › «Fase 4».
 
 ## Ojo

@@ -1561,3 +1561,28 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
   - Al leer, `_cotizacion_diff_recortado()` compara después de recortar y saca el grupo igual y el `grupos: {}`. Si no, un grupo visible cuyo único cambio es su Bs, para quien no ve ese tipo de cambio, diría que el Bs de ESE grupo cambió. Las revisiones viejas (enteras) se leen igual.
 - **4-26 se cierra «no reproducida»** con las 10 + 2 corridas, y el hallazgo del conteo tras `analyze` queda aparte (4-67, lo decide la persona): no hay causa demostrada de la caída de CI, y arreglar el conteo de leads no es de este paso.
 - **El `update public.permisos` de la migración** (`aplicado_en` y la descripción de `editar`) es para la nube: en local la tabla está vacía al correr las migraciones y lo pone el seed, que es lo que prueba `cotizacion-guardar.sql`.
+
+## 2026-11-04 — Paso 4.15 (2 de 3): la hoja de una guardada, revisiones con autor y cotizar encima
+
+- **Las preguntas del 4.15, contestadas por la persona el 2026-11-04, todas con la recomendada:** P1–P8 (la N+1 es otra cotización con `cotizacion_padre_id` y `version` + 1;
+  se lleva lo tipeado, también lo oculto; de la última de su cadena, una a la vez; su número; quien cotiza y ve la anterior y su lead; la anterior queda igual; dónde se
+  ofrece y dónde se edita, del 4.15-3) y las nuevas del plan:
+  - **P9** la N+1 nace al tocar «Cotizar encima» (`cotizacion_encima`), no al guardar: una sola RPC, sin hoja abierta ni recálculo nuevos; si se abandona, queda una cotización más.
+  - **P10** siempre preventa, también encima de una final.
+  - **P11** quien ve la anterior y no la N+1 sabe que existe (`encima: {"oculta": true}`; el PT409 sin el id), sin su número ni su id.
+  - **P12** la vigencia (D1) nace ahora: `ajustes_empresa.vigencia_dias`, sin pantalla hasta el 4.20.
+  - **P13** quien sólo ve una cotización abre su hoja en sólo lectura, con secciones, etiquetas, ayudas y atajos de su nivel (aprobada con el plan en la compuerta `datos`).
+- **Lo editable de la hoja de una guardada lo decide el ayudante de guardar** (`_cotizacion_puede_guardar()`), y dentro de eso, el nivel de `_nodos_visibles()`, como en
+  `cotizacion_guardar`. `_nodos_visibles()` solo daba «editar» a quien tiene `crear` sin `editar` o `editar` con otro alcance: la hoja habría ofrecido celdas que guardar rechaza.
+  Sin poder guardar, el motivo de una celda es `no_se_edita` y no un nivel (el motivo es la cotización, no el nivel).
+- **«Vencida», por día en la zona de la empresa**, como el glosario: vale hasta el día de `creado_en` + `vigencia_dias`, entero. Por hora, una del lunes a las 18:00 vencería
+  el lunes siguiente a las 18:00 y la misma tarde diría dos cosas.
+- **`descartados` cuenta sólo lo que quien cotiza ve** (estrecha P2, «la hoja dice cuántos»): contar lo oculto que se pierde delataría cuántos nodos ocultos había.
+- **`cotizacion_encima` va sin `p_abierta`**, excepción a «un alta nueva recibe `p_abierta`» (4-27): la N+1 no sale de una hoja que la persona vio ni lleva una hora del cliente;
+  usa la publicada y las tarifas del momento, como pide P1.
+- **El índice de una N+1 viva es parcial** (`where eliminado_en is null`): mandar la nueva a la papelera deja cotizar otra. Restaurar la primera cuando ya hay otra da el 23505
+  del índice sin texto humano: 4-70, para el 4.24 (la papelera propia reescribe restaurar).
+- **Cotizar encima de una anterior sin modo deja la nueva sin modo**, aunque el diseño de hoy tenga modos (el plan decía «el primero del diseño»): sin modo, el motor usa
+  los buckets de la fórmula, que es lo que la anterior calculaba; ponerle el primero cambiaría el total en silencio. Un modo que ya no existe pasa al primero de hoy (E2).
+- **Las etiquetas de las revisiones salen de la página ya recortada**, no de la definición entera: lo que no viaja no tiene etiqueta (ni un nodo oculto ni uno que no cambió).
+- **El paso es de Nivel 2** (estructura: la columna y el índice), no el 1 de la fila: corrió el completo de escritorio y la cuenta de pantallas sin completo vuelve a 0.

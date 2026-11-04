@@ -408,3 +408,19 @@ El 4.15 se partió en 3 (`docs/PLAN.md` › 4.15). Este primero es de base:
   - Sin e2e dirigidos: ningún spec usa lo que cambia.
 - **Commits:** `ffb39d58` (`puede_cotizacion` con un alcance), `91d65e12` (guardar pide ver) y `9b9062ac` (`totales` por clave en la revisión).
   e2e completo: no (4.15-1, base, Nivel 1)
+
+## 2026-11-04 — 4.15-2: la hoja de una guardada, revisiones con autor y cotizar encima
+
+El 2 de 3 del 4.15, de base. P1–P13 contestadas con la recomendada; plan aprobado en la compuerta `datos`. `docs/DECISIONES.md` › «Paso 4.15 (2 de 3)».
+
+- `cotizacion_hoja_guardada()`: SU versión, lo editable sólo para quien la guarda (`_cotizacion_puede_guardar()`; quien sólo ve, en sólo lectura), la publicada, la
+  vigencia (`ajustes_empresa.vigencia_dias`, «vencida» por día en la zona de la empresa) y la cadena (la anterior; la nueva, o sólo que existe).
+- `cotizacion_revisiones` nombra al autor y trae las etiquetas de lo que viaja recortado en la página.
+- `cotizacion_encima()`: la N+1 en el acto, preventa, una viva por anterior (`cotizaciones_encima_unica`), con lo tipeado de los nodos que siguen (también lo oculto).
+- **Verificación** (`.piloto/salidas/4.15-2/`, informe en `.piloto/informes/4.15-2.md`, auditado: observaciones, atendidas):
+  - En verde: `lint`, `typecheck`, `test` (5.947 en 495), `db:probar` (491), `db:lint`, `db:carreras` (k1–k5 nuevas), `db:medir` y la lectura de revisiones con volumen.
+  - `cotizacion_hoja_guardada` 6,2 a 7,1 ms y `cotizacion_encima` 7,8 a 8,3 ms con 250.000, sin recorrer `cotizaciones`; las dos guardas, ≈ 112 ms y un recorrido.
+  - Rojos contra HEAD (`rojo-*.txt`) y 33 mutaciones que caen (`mut/`); M21 sobrevivía hasta sumar a E4 los casos «con una nueva ya creada».
+  - Nivel 2 por estructura (la columna y el índice): el completo de escritorio, 890 en verde, 16 saltados, ninguna caída, 33,9 min.
+- **Commits:** `da93a3a8` (la hoja de una guardada), `58dd4ea0` (revisiones con autor) y `7b38f9b4` (cotizar encima).
+  e2e completo: sí (4.15-2, base, Nivel 2)
