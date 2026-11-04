@@ -1,0 +1,347 @@
+// La lógica del coordinador, sin I/O: leer y validar `plan.yaml` (esquema plan/v1, el que entrega la skill idea-a-semilla), decidir
+// el siguiente paso de un carril, las transiciones de estado de cada paso y el tablero. La CLI (`coordinador.mjs`) le pone el disco,
+// el candado y `gh` alrededor. Se prueba en `plan.test.mjs`.
+//
+// Un paso pasa por: pendiente → asignado (un carril lo está haciendo) → publicado (su PR está abierto) → integrado (está en main).
+// Un paso puede empezar cuando todas sus dependencias están integradas: así cada carril parte de un main que ya las tiene.
+import { parse } from 'yaml'
+
+export const ESTADOS = ['pendiente', 'asignado', 'publicado', 'integrado']
+const TRANSICIONES = {
+  pendiente: ['asignado'],
+  asignado: ['publicado', 'pendiente'],
+  publicado: ['integrado', 'asignado'],
+  integrado: [],
+}
+const RIESGOS = ['rojo', 'ambar', 'verde']
+const AGENTES = ['claude', 'codex']
+const MODELOS = ['haiku', 'sonnet', 'opus', 'opusplan', 'fable', 'codex']
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
+const MODOS = ['auto', 'plan', 'manual', 'plan→auto', 'plan→manual']
+const REVISORES = ['codex', 'claude-sesion-nueva', 'ninguno']
+const ID_CARRIL = /^[a-z][a-z0-9-]{0,19}$/
+
+const dentro = (ruta, dueno) =>
+  (ruta.replace(/\/$/, '') + '/').startsWith(dueno.replace(/\/$/, '') + '/')
+const solapan = (a, b) => dentro(a, b) || dentro(b, a)
+const esDoc = (ruta) => ruta.startsWith('docs/')
+
+/** Lee el texto de plan.yaml. No valida: para eso, `problemasDelPlan`. */
+export function leerPlan(texto) {
+  const plan = parse(texto) ?? {}
+  return {
+    esquema: plan.esquema,
+    agentes_disponibles: plan.agentes_disponibles ?? [],
+    carriles: plan.carriles ?? [],
+    pasos: plan.pasos ?? [],
+  }
+}
+
+/** Todo lo que impide correr el plan en paralelo sin choques. Puro. */
+export function problemasDelPlan(plan) {
+  const p = []
+  if (plan.esquema !== 'plan/v1') p.push('esquema: debe ser plan/v1')
+  const agentes = new Set(plan.agentes_disponibles)
+  if (!agentes.has('claude') || [...agentes].some((a) => !AGENTES.includes(a)))
+    p.push('agentes_disponibles: debe incluir claude y sólo claude o codex')
+
+  const carriles = new Map()
+  for (const c of plan.carriles) {
+    if (!ID_CARRIL.test(String(c.id)))
+      p.push(`carril «${c.id}»: id en minúsculas, sin espacios, hasta 20 caracteres`)
+    if (carriles.has(c.id)) p.push(`carril ${c.id}: repetido`)
+    if (!Array.isArray(c.dueno_de) || c.dueno_de.length === 0)
+      p.push(`carril ${c.id}: sin dueno_de`)
+    carriles.set(c.id, c)
+  }
+  if (carriles.size === 0) p.push('sin carriles')
+  const lista = [...carriles.values()]
+  for (let i = 0; i < lista.length; i++)
+    for (let j = i + 1; j < lista.length; j++)
+      for (const ra of lista[i].dueno_de ?? [])
+        for (const rb of lista[j].dueno_de ?? [])
+          if (solapan(ra, rb))
+            p.push(`OWNERS: ${lista[i].id} y ${lista[j].id} comparten ${ra} / ${rb}`)
+
+  const pasos = new Map()
+  for (const paso of plan.pasos) {
+    if (pasos.has(paso.id)) p.push(`paso ${paso.id}: repetido`)
+    pasos.set(paso.id, paso)
+  }
+  for (const paso of plan.pasos) {
+    const e = `paso ${paso.id}:`
+    for (const campo of [
+      'titulo',
+      'depende_de',
+      'carril',
+      'riesgo',
+      'modulos',
+      'ruteo',
+      'verificacion',
+      'terminado',
+    ])
+      if (paso[campo] === undefined) p.push(`${e} falta ${campo}`)
+    if (!RIESGOS.includes(paso.riesgo)) p.push(`${e} riesgo inválido`)
+    const carril = carriles.get(paso.carril)
+    if (!carril) p.push(`${e} el carril ${paso.carril} no existe`)
+    for (const m of paso.modulos ?? [])
+      if (carril && !esDoc(m) && !carril.dueno_de.some((d) => dentro(m, d)))
+        p.push(`${e} toca ${m}, que no es del carril ${paso.carril}`)
+    for (const d of paso.depende_de ?? [])
+      if (!pasos.has(d)) p.push(`${e} depende de ${d}, que no existe`)
+    const r = paso.ruteo ?? {}
+    if (!AGENTES.includes(r.agente)) p.push(`${e} agente inválido`)
+    else if (!agentes.has(r.agente)) p.push(`${e} usa ${r.agente}, que no está disponible`)
+    if (!MODELOS.includes(r.modelo)) p.push(`${e} modelo inválido`)
+    if (!EFFORTS.includes(r.effort)) p.push(`${e} effort inválido`)
+    if (!MODOS.includes(r.modo)) p.push(`${e} modo inválido`)
+    if (!REVISORES.includes(r.revisor)) p.push(`${e} revisor inválido`)
+    if (r.revisor === 'codex' && !agentes.has('codex'))
+      p.push(`${e} revisor codex sin codex disponible`)
+    if (paso.riesgo === 'rojo') {
+      if (r.modelo !== 'opus') p.push(`${e} un paso rojo va con opus`)
+      if (!['high', 'xhigh', 'max'].includes(r.effort))
+        p.push(`${e} un paso rojo necesita effort high o más`)
+      if (!String(r.modo ?? '').startsWith('plan')) p.push(`${e} un paso rojo empieza en modo plan`)
+      if (r.revisor === 'ninguno') p.push(`${e} un paso rojo necesita revisor`)
+    }
+  }
+
+  const orden = ordenTopologico(plan)
+  if (!orden) p.push('las dependencias tienen un ciclo')
+  else {
+    const anc = ancestros(plan)
+    const ids = plan.pasos.map((x) => x.id)
+    for (let i = 0; i < ids.length; i++)
+      for (let j = i + 1; j < ids.length; j++) {
+        const a = pasos.get(ids[i])
+        const b = pasos.get(ids[j])
+        if (anc.get(a.id).has(b.id) || anc.get(b.id).has(a.id)) continue
+        for (const ma of a.modulos ?? [])
+          for (const mb of b.modulos ?? [])
+            if (!esDoc(ma) && solapan(ma, mb))
+              p.push(`${a.id} y ${b.id} pueden correr a la vez y los dos tocan ${ma} / ${mb}`)
+      }
+  }
+  return p
+}
+
+/** Los ids en un orden que respeta las dependencias, o null si hay un ciclo. */
+export function ordenTopologico(plan) {
+  const pendientes = new Map(plan.pasos.map((p) => [p.id, new Set(p.depende_de ?? [])]))
+  const orden = []
+  while (pendientes.size > 0) {
+    const libres = [...pendientes]
+      .filter(([, deps]) => [...deps].every((d) => !pendientes.has(d)))
+      .map(([id]) => id)
+    if (libres.length === 0) return null
+    for (const id of libres.sort()) {
+      orden.push(id)
+      pendientes.delete(id)
+    }
+  }
+  return orden
+}
+
+/** Para cada paso, todos los pasos de los que depende (directa o indirectamente). */
+export function ancestros(plan) {
+  const porId = new Map(plan.pasos.map((p) => [p.id, p]))
+  const memo = new Map()
+  const de = (id) => {
+    if (memo.has(id)) return memo.get(id)
+    const acc = new Set()
+    memo.set(id, acc)
+    for (const d of porId.get(id)?.depende_de ?? []) {
+      acc.add(d)
+      for (const x of de(d)) acc.add(x)
+    }
+    return acc
+  }
+  for (const p of plan.pasos) de(p.id)
+  return memo
+}
+
+/**
+ * El largo del camino más largo desde cada paso hasta el final (él incluido). Los pasos con el número más alto son el camino
+ * crítico: si se atrasan, se atrasa el proyecto entero.
+ */
+export function caminoCritico(plan) {
+  const hijos = new Map(plan.pasos.map((p) => [p.id, []]))
+  for (const p of plan.pasos) for (const d of p.depende_de ?? []) hijos.get(d)?.push(p.id)
+  const memo = new Map()
+  const largo = (id) => {
+    if (!memo.has(id)) memo.set(id, 1 + Math.max(0, ...hijos.get(id).map(largo)))
+    return memo.get(id)
+  }
+  for (const p of plan.pasos) largo(p.id)
+  return memo
+}
+
+/** El estado inicial: todos pendientes. Conserva lo que ya traía `previo` (un plan que creció en una versión nueva de la semilla). */
+export function estadoInicial(plan, previo = { pasos: {} }) {
+  const pasos = {}
+  for (const p of plan.pasos) pasos[p.id] = previo.pasos?.[p.id] ?? { estado: 'pendiente' }
+  return { pasos }
+}
+
+/** Cambia el estado de un paso, si la transición vale. Devuelve un estado nuevo; no muta. */
+export function marcar(estado, id, nuevo, datos = {}, ahora = new Date().toISOString()) {
+  const actual = estado.pasos[id]
+  if (!actual) throw new Error(`el paso ${id} no está en el plan`)
+  if (!TRANSICIONES[actual.estado].includes(nuevo))
+    throw new Error(`el paso ${id} no puede pasar de ${actual.estado} a ${nuevo}`)
+  return {
+    ...estado,
+    pasos: { ...estado.pasos, [id]: { ...actual, ...datos, estado: nuevo, desde: ahora } },
+  }
+}
+
+/**
+ * Qué hace ahora el carril. `cuota` es la fracción usada de la ventana de 5 h (0 a 1, o null si no está calibrada); con `umbral` o más,
+ * sólo avanzan los pasos del camino crítico; con 1 o más, nadie.
+ * @returns {{accion: 'paso', paso: object, rama: string} | {accion: 'esperar', motivo: string} | {accion: 'terminado'}}
+ */
+export function siguiente(plan, estado, carril, { cuota = null, umbral = 0.8 } = {}) {
+  const propios = plan.pasos.filter((p) => p.carril === carril)
+  if (propios.length === 0)
+    return { accion: 'esperar', motivo: `el carril ${carril} no tiene pasos en el plan` }
+  const enCurso = propios.find((p) => estado.pasos[p.id]?.estado === 'asignado')
+  if (enCurso)
+    return { accion: 'paso', paso: enCurso, rama: rama(carril, enCurso.id), retomar: true }
+  // Un PR propio con el CI rojo o en conflicto con main va antes que un paso nuevo: bloquea a los que dependen de él.
+  const roto = propios.find(
+    (p) => estado.pasos[p.id]?.estado === 'publicado' && estado.pasos[p.id]?.arreglar,
+  )
+  if (roto)
+    return {
+      accion: 'paso',
+      paso: roto,
+      rama: rama(carril, roto.id),
+      retomar: true,
+      arreglar: estado.pasos[roto.id].arreglar,
+    }
+  if (propios.every((p) => estado.pasos[p.id]?.estado === 'integrado'))
+    return { accion: 'terminado' }
+
+  const integrado = (id) => estado.pasos[id]?.estado === 'integrado'
+  const pendientes = propios.filter((p) => estado.pasos[p.id]?.estado === 'pendiente')
+  const listos = pendientes.filter((p) => (p.depende_de ?? []).every(integrado))
+  if (listos.length === 0) {
+    if (pendientes.length === 0)
+      return { accion: 'esperar', motivo: 'sus pasos están publicados: falta que se integren' }
+    // Lo que bloquea al primero de sus pasos en el orden del plan (los demás esperan detrás de él).
+    const orden = ordenTopologico(plan) ?? plan.pasos.map((p) => p.id)
+    const primero = pendientes.sort((a, b) => orden.indexOf(a.id) - orden.indexOf(b.id))[0]
+    const faltan = (primero.depende_de ?? []).filter((d) => !integrado(d))
+    return {
+      accion: 'esperar',
+      motivo: `${primero.id} espera a que se integren: ${faltan.sort().join(', ')}`,
+    }
+  }
+
+  const largo = caminoCritico(plan)
+  if (cuota !== null && cuota >= 1)
+    return { accion: 'esperar', motivo: 'cuota: se llegó al tope de la ventana de 5 h' }
+  let candidatos = listos
+  if (cuota !== null && cuota >= umbral) {
+    const maximo = Math.max(
+      ...plan.pasos
+        .filter((p) => estado.pasos[p.id]?.estado !== 'integrado')
+        .map((p) => largo.get(p.id)),
+    )
+    candidatos = listos.filter((p) => largo.get(p.id) === maximo)
+    if (candidatos.length === 0)
+      return {
+        accion: 'esperar',
+        motivo: `cuota al ${Math.round(cuota * 100)} %: sólo avanza el camino crítico`,
+      }
+  }
+  const elegido = [...candidatos].sort(
+    (a, b) => largo.get(b.id) - largo.get(a.id) || a.id.localeCompare(b.id),
+  )[0]
+  return { accion: 'paso', paso: elegido, rama: rama(carril, elegido.id), retomar: false }
+}
+
+export const rama = (carril, paso) => `${carril}/${paso.toLowerCase()}`
+
+/** Si el coordinador puede integrar el PR de este paso sin la persona. Un paso rojo nunca. */
+export function integraSolo(paso, mergeAuto = ['verde', 'ambar']) {
+  return paso.riesgo !== 'rojo' && mergeAuto.includes(paso.riesgo)
+}
+
+/** El desfase de puertos de cada carril (la principal es 0): 100, 200, … en el orden de plan.yaml. */
+export function desfases(plan) {
+  return Object.fromEntries(plan.carriles.map((c, i) => [c.id, 100 * (i + 1)]))
+}
+
+/** El tablero en Markdown: por carril, cada paso con su estado y su PR. */
+export function tablero(plan, estado, { cuota = null, ahora = new Date().toISOString() } = {}) {
+  const marca = { pendiente: '·', asignado: '▶', publicado: '⧗', integrado: '✓' }
+  const total = plan.pasos.length
+  const hechos = plan.pasos.filter((p) => estado.pasos[p.id]?.estado === 'integrado').length
+  const lineas = [
+    `# Tablero`,
+    '',
+    `${hechos} de ${total} pasos integrados · cuota de la ventana: ${cuota === null ? 'sin calibrar' : `${Math.round(cuota * 100)} %`} · ${ahora}`,
+    '',
+    '`·` pendiente · `▶` en curso · `⧗` PR abierto · `✓` integrado',
+  ]
+  for (const c of plan.carriles) {
+    lineas.push(
+      '',
+      `## ${c.id}`,
+      '',
+      '| | Paso | Riesgo | Depende de | PR |',
+      '|---|---|---|---|---|',
+    )
+    for (const p of plan.pasos.filter((x) => x.carril === c.id)) {
+      const e = estado.pasos[p.id] ?? { estado: 'pendiente' }
+      lineas.push(
+        `| ${marca[e.estado]} | ${p.id} ${p.titulo} | ${p.riesgo} | ${(p.depende_de ?? []).join(', ') || '—'} | ${e.pr ? `#${e.pr}` : '—'} |`,
+      )
+    }
+  }
+  return lineas.join('\n') + '\n'
+}
+
+/**
+ * La fracción usada de la ventana de 5 h, sumando el `total_cost_usd` de las filas de consumo.csv de todos los carriles en esas 5 h.
+ * Es una aproximación (dólares equivalentes, no el % que muestra Claude): por eso `usdVentana` se calibra midiendo, y sin él es null.
+ * @param {{fecha: string, usd: number}[]} filas  @param {number|null} usdVentana  @param {number} topePct
+ */
+export function fraccionDeCuota(filas, usdVentana, topePct = 100, ahora = Date.now()) {
+  if (!usdVentana || usdVentana <= 0) return null
+  const desde = ahora - 5 * 3600 * 1000
+  const usado = filas
+    .filter((f) => Date.parse(f.fecha) >= desde)
+    .reduce((s, f) => s + (Number(f.usd) || 0), 0)
+  return usado / (usdVentana * (topePct / 100))
+}
+
+/** Las filas de un consumo.csv del piloto (las columnas `fecha` y `total_cost_usd`). Tolera comillas. */
+export function leerConsumo(texto) {
+  const filas = texto.split('\n').filter((l) => l.trim() !== '')
+  if (filas.length === 0) return []
+  const campos = (linea) => {
+    const out = []
+    let actual = ''
+    let comillas = false
+    for (const ch of linea) {
+      if (ch === '"') comillas = !comillas
+      else if (ch === ',' && !comillas) {
+        out.push(actual)
+        actual = ''
+      } else actual += ch
+    }
+    out.push(actual)
+    return out
+  }
+  const cabecera = campos(filas[0])
+  const iFecha = cabecera.indexOf('fecha')
+  const iUsd = cabecera.indexOf('total_cost_usd')
+  if (iFecha < 0 || iUsd < 0) return []
+  return filas.slice(1).map((l) => {
+    const c = campos(l)
+    return { fecha: c[iFecha], usd: Number(c[iUsd]) || 0 }
+  })
+}
