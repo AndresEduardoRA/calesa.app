@@ -352,9 +352,9 @@ SU versión, o nulo), `ver_total_bs` (verdadero sólo si el diseño de SU versi�
 `notas` (hasta 2.000) y `vehiculo_id` (poner o **cambiar**, no se quita, **una final no lo
 cambia**). No se editan `tipos_cambio` (se congelan al crear), `clase`, `lead_id`, `plantilla_id` ni `moneda_mostrar`.
 
-**En este orden** (cada error igual para lo que no existe y para lo que no se ve): (1) **permiso:** una preventa pide
-`cotizaciones.editar` (`puede_cotizacion`); una **final**, además, `cotizaciones.final.gestionar`; inexistente, en la papelera o no
-vista: 42501; (2) candados, **intento**, **versión** y validación de título, notas, vehículo y modo; (3) **ARMAR con SU versión**
+**En este orden** (cada error igual para lo que no existe y para lo que no se ve): (1) **permiso** (`_cotizacion_puede_guardar()`, antes y
+después del candado): una preventa pide `cotizaciones.ver` **y** `cotizaciones.editar` (`puede_cotizacion`, por su alcance); una **final**, `cotizaciones.ver` y
+`cotizaciones.final.gestionar` del origen; inexistente, en la papelera o no vista: 42501, antes del vehículo, del candado, del intento y de la versión (4.15-1); (2) candados, **intento**, **versión** y validación de título, notas, vehículo y modo; (3) **ARMAR con SU versión**
 (`_cotizacion_armar`), `_cotizacion_tipeado()` y `_cotizacion_conservar()`; (4) `evaluar_formula()` y `_cotizacion_guardable()`: un
 override **mandado** que el motor descarta, o un total sin valor o que no cabe, se rechaza (22023); (5) si nada cambió, no escribe.
 
@@ -369,7 +369,9 @@ PT409**; el mismo intento con otros datos u otra persona es 22023 `intento_reusa
 
 **La versión.** `cotizaciones.actualizado_en` la sella `cotizacion_version()` y **no se mueve con los contadores de favoritos y
 reportes**. Vieja: `_conflicto_de_edicion()` (PT409 diciendo quién y cuándo). La revisión (`cotizacion_revision()`) guarda **sólo los
-nodos que cambiaron** (`{de, a}`).
+nodos que cambiaron** (`{de, a}`) en `valores` y `fuentes`, y en `totales` **sólo las claves que cambiaron**, con cada grupo de `grupos` entero si
+cambió (4.15-1). Al leerla, `_cotizacion_diff_recortado()` recorta los dos lados y saca el grupo que quedó igual y un `grupos` vacío: un grupo
+visible cuyo único cambio es su Bs oculto, o un grupo oculto que se movió, no se delata.
 
 **D2, «desactualizada», en el alta.** Aplica a guardar una cotización **nueva** (editar una vieja no avisa): vive en
 `cotizacion_crear()`, que recibe la hoja abierta (`p_abierta`: «La hoja abierta (4.13-3a)»). Si la versión publicada de hoy es otra (se compara **por id**) o
@@ -422,7 +424,7 @@ guardado. Inválida (nula, mal formada, de otra persona u origen, firma mala): 2
 - **`cotizacion_tabla` (por origen, 4.13-4c1):** la tabla de una ayuda sale de **la versión de la abierta** (su definición, su copia congelada y lo
   que deja ver); los mismos errores que el recálculo y `llamada_invalida` con una cotización. La resuelve `_cotizacion_tabla_version()` (de nadie).
 - **Cotizar pide `cotizaciones.crear` y `cotizaciones.ver` del origen** en `cotizacion_hoja`, `cotizacion_evaluar` y `cotizacion_tabla` por origen y
-  `cotizacion_crear`. Pendiente 4-34: `cotizacion_guardar` con `editar` sin `ver`.
+  `cotizacion_crear`; guardar (`cotizacion_guardar`) pide `cotizaciones.ver` y `cotizaciones.editar` (4.15-1).
 
 ## Lo que se guarda en una cotización
 

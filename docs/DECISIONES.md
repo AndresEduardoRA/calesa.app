@@ -1547,3 +1547,17 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
   del alta); robot < 30 s y KLM ≤ 90 s (17,2 y 28,3 s). Panel del cliente con el «+»: 156 nodos (tope 159).
 - **Los e2e esperan estados finales, no teclas**: el spec del alta espera `toHaveValue(nombre)` antes del Ctrl+S (el robot tipea más rápido de lo que la página confirma) y que los resultados de la búsqueda lleguen antes de
   tabular a la fila (la lista «míos» se reemplaza al llegar). La pausa de nuqs al escribir la URL se espera con `expect.poll`.
+
+## 2026-11-04 — Paso 4.15 (1 de 3): guardar pide ver y editar; la revisión guarda los totales por clave; 4-26
+
+- **El 4.15 en tres pasos y no en dos**:
+  - La base de editar y la de cotizar encima ya son dos RPC `security definer` con su inventario, su matriz y sus carreras.
+  - La pantalla suma otros tres commits.
+  - El 1 cierra los abiertos de la base. El 2 hace la base de editar y cotizar encima, con P1–P7. El 3 hace la pantalla, con P7 y P8.
+- **Un solo ayudante decide quién guarda** (`_cotizacion_puede_guardar()`, invocador y de nadie), y no dos `case` repetidos en `cotizacion_guardar`:
+  - La misma regla se pregunta antes del candado (con la fila sin tomar) y después (la clase o el alcance pudieron cambiar mientras esperaba). El 4.15-2 la usará para decidir qué se edita en la hoja de una guardada.
+  - Pedir ver primero hace que quien no ve reciba el 42501 de lo inexistente antes de tomar el candado y antes del PT409, el 22023 o el `intento_reusado`, que delataban que existía.
+- **`totales` por clave, con los grupos enteros**: un grupo es la unidad que el recorte deja ver o no (`usd`, `bs`, `se_dibuja`), y partirlo por clave no ahorra nada.
+  - Al leer, `_cotizacion_diff_recortado()` compara después de recortar y saca el grupo igual y el `grupos: {}`. Si no, un grupo visible cuyo único cambio es su Bs, para quien no ve ese tipo de cambio, diría que el Bs de ESE grupo cambió. Las revisiones viejas (enteras) se leen igual.
+- **4-26 se cierra «no reproducida»** con las 10 + 2 corridas, y el hallazgo del conteo tras `analyze` queda aparte (4-67, lo decide la persona): no hay causa demostrada de la caída de CI, y arreglar el conteo de leads no es de este paso.
+- **El `update public.permisos` de la migración** (`aplicado_en` y la descripción de `editar`) es para la nube: en local la tabla está vacía al correr las migraciones y lo pone el seed, que es lo que prueba `cotizacion-guardar.sql`.

@@ -382,3 +382,29 @@ La tarea de oro 2 suma su tramo del cliente (uno que existe y uno nuevo). Cierra
   - Una caída ajena: `cotizar-guardar-d2` cayó una vez en la corrida grande del commit 2 y pasó sola al repetirla (la máquina, a carga 4–8 por el escritorio de la persona).
 - **Commits:** `75393f8e` (el «+» y elegir al creado), `9b8bdb8b` (el texto de «Guardar» y la tarea de oro del cliente) y `d5686178` («Cotizar» en la ficha).
   e2e completo: no (4.14-3c, pantalla, 2 de 3)
+
+## 2026-11-04 — 4.15-1: 4-26 medido, `puede_cotizacion` con un alcance, guardar pide ver y `totales` por clave
+
+El 4.15 se partió en 3 (`docs/PLAN.md` › 4.15). Este primero es de base:
+
+- **4-26** se midió antes de tocar nada y se cierra «no reproducida».
+- `puede_cotizacion()` mira el alcance una vez (cierra 4-24).
+- `cotizacion_guardar` pide ver y editar en `_cotizacion_puede_guardar()`, antes y después del candado (cierra 4-34).
+- La revisión guarda `totales` por clave, cada grupo entero, y su lectura saca el grupo que el recorte deja igual y un `grupos` vacío.
+- Plan aprobado por la persona en la compuerta `datos`. `docs/DECISIONES.md` › «Paso 4.15 (1 de 3)».
+
+- **4-26** (`.piloto/salidas/4.15-1/4-26/`):
+  - `leads-exportar` corrió 10 veces y respondió de 273 a 359 ms. El bloque 2 corrió dos veces desde `db:reset` y respondió en 321 y 299 ms.
+  - Lo que pasó de 1 s fue la siembra (de 1,2 a 3,6 s por lote de 1.000) y el arnés.
+  - Checkpoints con `sync` de 0,40 a 0,54 s. No hubo esperas de candado. La siembra escribe ≈ 37 MB de WAL.
+  - Hallazgo (4-67): tras `analyze`, la primera página del conteo de exportar de una cartera recién sembrada tarda 3,1 s (`Seq Scan on leads` en un `Nested Loop`), medido en SQL y no por la e2e.
+  - Las dos corridas del bloque 2 tenían ya aplicadas las migraciones nuevas del paso, que no tocan leads.
+- **Verificación:**
+  - En verde: `pnpm lint`, `pnpm typecheck`, `pnpm test` (5.947 en 495 archivos), `db:reset`, `db:types` (el ayudante), `db:probar` (467), `db:lint` (sin avisos nuevos), `db:carreras` (174, con g10b) y `db:medir`.
+  - `cotizacion_guardar`: la dueña 6,6 ms y 305 buffers, la asesora 6,7 y 311, con 50.000.
+  - La medición con volumen de la lectura: Ana pedía `alcance_de` 2 veces y ahora 1.
+  - Rojos contra HEAD (`.piloto/salidas/4.15-1/rojo-*.txt`): T1, T3, T4 (PT409 con quién y cuándo, 22023 del vehículo, del intento y del título), T8, T9a, `:1303` y g10b (57014).
+  - 15 mutaciones, cada una con su prueba (`.piloto/salidas/4.15-1/mut/`). M11 sobrevivía como estaba escrita (un solo lado); simétrica, cae, y T8 suma «lo que se va».
+  - Sin e2e dirigidos: ningún spec usa lo que cambia.
+- **Commits:** `ffb39d58` (`puede_cotizacion` con un alcance), `91d65e12` (guardar pide ver) y `9b9062ac` (`totales` por clave en la revisión).
+  e2e completo: no (4.15-1, base, Nivel 1)
