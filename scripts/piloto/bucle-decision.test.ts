@@ -274,6 +274,20 @@ describe('bucle.sh › el límite de uso', () => {
     expect(a.secuencia()[0]).toBe('decidir:abrir parada 4.99')
   })
 
+  it('el 429 estructurado (usage_limit_reached) vale aunque el texto cambie', () => {
+    const e = {
+      ...LIMITE,
+      result: 'otro texto',
+      api_error_status: 429,
+      api_error: 'usage_limit_reached',
+    }
+    a.paso(1, 'true', { salida: e, salida_codigo: 1 })
+    a.paso(2, pasoListo({ 'src/a.ts': 'a' }))
+    expect(a.correr(['--hasta', '4.99']).estado).toBe(0)
+    expect(a.lineas('dormir.log')).toHaveLength(1)
+    expect(a.llamadas('paso')[1]).toContain('--resume')
+  })
+
   it('sin hora legible duerme 60 minutos', () => {
     a.paso(1, 'true', {
       salida: { ...LIMITE, result: "You've hit your weekly limit" },

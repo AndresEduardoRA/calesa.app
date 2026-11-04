@@ -66,8 +66,12 @@ verificar_copia() {
 segundos_de_limite() {
   local texto hora objetivo ahora
   texto="$(jq -r '(.result // "") + " " + (.error // "")' "$1" 2>/dev/null) $(cat "$2" 2>/dev/null)"
-  # Entre «your» y «limit» puede ir «session», «weekly» o «5-hour» (con dígito y guion: un patrón de sólo letras no lo reconocía).
-  [[ "$texto" =~ hit\ your[^·.]*limit ]] || return 1
+  # «session limit», «weekly limit» y «5-hour limit» (el texto real del 31-oct-2026): entre «your» y «limit» cabe una palabra con cifras y
+  # guion. La señal estructurada (429 + usage_limit_reached) vale aunque el texto cambie.
+  if ! [[ "$texto" =~ hit\ your\ [A-Za-z0-9\ -]{0,30}limit ]] &&
+    ! jq -e '.api_error == "usage_limit_reached"' "$1" >/dev/null 2>&1; then
+    return 1
+  fi
   if [[ "$texto" =~ resets\ ([0-9]{1,2}(:[0-9]{2})?\ ?[apAP][mM]) ]]; then
     hora="${BASH_REMATCH[1]}"
     ahora=$(date +%s)
