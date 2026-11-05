@@ -530,3 +530,21 @@ El 4.16-2 se partió en 2a (la base) y 2b (la app, que cierra 4-23), tras tres s
 - Abierto nuevo **4-79**: Configuración › Orígenes dibuja un total exacto de cotizaciones por origen.
 - **Commits:** `f20a8aae` (el truncate), `d30cb63c` (la siembra) y `addf0b2a` (la fila de `medir-escala.sql`).
   e2e completo: no (4.16-3, siembra y medición, Nivel 1)
+
+## 2026-11-05 — Paso 4.16-4a: la pantalla `/cotizaciones`, «Nueva cotización» y el camino desde el historial del vehículo
+
+`docs/DECISIONES.md` › «Paso 4.16-4a». Sin migración, sin `db:types`. El 4.16-4 se partió: el resumen `?cotizacion=` queda para el 4.16-4b.
+
+- `/cotizaciones` dibuja `cotizaciones_listado()` con los filtros origen, clase, «Cuáles» y vehículo, cursor, «Vencida» y los nombres del cliente, el vehículo y el autor
+  (tres lecturas por clave primaria sobre la página, con la RLS de quien mira; lo que no se ve es «—»). La entrada «Cotizaciones» del menú se enciende, «Nueva cotización» y
+  la tecla `N` abren la hoja, y el tope de 500 del historial del vehículo dice «Ver todas en Cotizaciones» (`?vehiculo=`).
+- **Verificación** (`.piloto/salidas/4.16-4a/`; informe en `.piloto/informes/4.16-4.md`):
+  - En verde: `lint`, `typecheck`, `test` (529 archivos, 6.234 pruebas), `mapa.sh --check`, `cotizaciones-listado.spec.ts` (E1 a E7, 18 en los dos proyectos), los dirigidos
+    de menú, historial y presupuestos en los dos proyectos (150, 12 saltadas de antes) y el volumen (14: dueña y Ana con 100 filas, 37,5 KB y 2.024 nodos).
+  - Rojos contra HEAD: la prueba de `navegacion.test.ts`, los módulos de `filtros-del-listado` y `filas-del-listado`, la ruta y el tope del historial, y E1 del e2e.
+  - Sin mutaciones: no es un paso de rigor máximo.
+  - Nivel 2 por `navegacion.ts` (layout): el completo de escritorio dio 928 en verde, 16 saltados y **1 caída**, `leads-etiquetas.spec.ts:216`, ajena al paso y verde 3 de 3 sola
+    sobre el mismo build (`etiquetas-1.txt` a `-3`); abierto **4-80**. Una prueba de `scripts/piloto/auto-carriles.test.ts` cayó una vez por su tope de 5 s con la carga en 10 y pasa sola.
+- Topes nuevos: JS de `/cotizaciones` 358,4 KB de 380; con 100 filas y 50.000 cotizaciones, 39.500 B y 2.130 nodos.
+- **Commits:** `c63d3991` (la pantalla y la navegación), `91b94b7e` (el filtro por vehículo y el camino del historial) y `07347edc` (la medición con volumen).
+  e2e completo: sí (4.16-4a, layout, Nivel 2: escritorio, 928 en verde, 16 saltados, 1 caída, 35,3 min)

@@ -1735,3 +1735,25 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
   `medir-cotizaciones-listado.sql`; acá se mide el tiempo con datos repartidos como en uso. La página 1, la profunda y «mías» tienen que volver llenas, porque una vacía pasaría
   cualquier tope. Los finales y el origen de Ana no, porque la siembra no se los garantiza.
 - **`origenes_resumen()` cuenta exacto** las cotizaciones por origen, y Configuración › Orígenes dibuja ese total. Con la siembra, 7,5 ms (tope 100). No se arregla acá: **4-79**.
+
+## 2026-11-05 — Paso 4.16-4a: la pantalla `/cotizaciones`, «Nueva cotización» y el camino desde el historial del vehículo
+
+- **El 4.16-4 se parte en dos.** El 4.16-4a es el listado (servidor, tres módulos, Nivel 2 por la navegación y volumen); el 4.16-4b, el resumen `?cotizacion=` (un panel
+  diferido con su propia lectura desde el navegador, la vuelta del foco y su URL; Nivel 1, interfaz, sin base). Juntos no caben en tres commits de código. **Mientras llega el
+  4.16-4b la fila no abre nada**: no tiene `alAbrir` (el patrón de lista lo admite) y el enlace «N.º n» es la parada de Tab y lleva a `/cotizaciones/[id]`.
+- **Los nombres se leen sobre la página, no en la lectura.** `cotizaciones_listado()` no cambia (no hay migración). `page.tsx` compone tres lecturas por clave primaria, una vez por
+  página y en paralelo: `leerNombresDeLeads` (`leads_vista_por_ids`, sólo con `leads.ver`), `leerTitulosDeVehiculos` (sin los de la papelera, como `leerVehiculo`) y
+  `leerAutoresDeCotizaciones` (`perfiles`). Cada módulo lee lo suyo y `cotizaciones` no importa `leads` ni `vehiculos`. Sin medición SQL nueva: a lo sumo 100 ids por clave
+  primaria, como el autor embebido del historial («límite sin assert», `docs/RENDIMIENTO.md`).
+- **«—» sin distinguir.** Una cotización sin lead, o con uno que quien mira no ve, dibuja lo mismo (como `/cotizaciones/[id]`): distinguirlos delataría que el lead existe.
+- **«Cuáles» es una elección** («Todas» y «Mías») y no un booleano: la base no tiene «las que no creé yo». «Origen» sólo aparece con dos o más orígenes donde elegir.
+- **`?vehiculo=` no es del esquema de filtros**: ni chip ni lo borra «Limpiar»; un valor que no es guid se ignora. Es el camino a lo antiguo del tope de 500 del historial del
+  vehículo («Ver todas en Cotizaciones», en la misma pestaña: lo tipeado vuelve con el borrador). Un cursor sin filas con el origen puesto dice «Nada coincide con los
+  filtros» (como `/vehiculos`: un filtro activo manda sobre «No hay más en esta página»).
+- **«Nueva cotización» y la tecla `N`:** el origen del filtro si ahí se cotiza (`origenParaNueva()`); si no, el primero donde sí; sin ninguno, el botón no está. `N` hace lo mismo
+  mientras el botón esté; sin él, cae al «Nuevo lead» del shell.
+- **Presupuestos medidos** (más un 5 %, hacia arriba a la decena en el JS): JS en frío de `/cotizaciones` 358,4 KB → **380**; con 100 filas y las 50.000 de la siembra, 37,5 KB
+  comprimidos → **39.500 B** y 2.024 nodos → **2.130** (previos 40.000 y 3.000). `/cotizaciones/nuevo` 456,7 de 460 y `/cotizaciones/[id]` 442,8 de 448: el enlace del tope no los
+  movió casi nada (0,1 KB).
+- **El completo corrió con la cuenta en 1 de 3.** Por la cuenta no tocaba, pero `src/app/(app)/_shell/navegacion.ts` es el disparador «layout» del Nivel 2 y `navegacion.test.ts`
+  ata `disponible: true` al `page.tsx` nuevo: no se puede separar. La cuenta vuelve a 0 de 3.
