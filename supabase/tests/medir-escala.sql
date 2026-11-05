@@ -7,6 +7,7 @@
 -- Cada fila: la consulta tal como la corre la app (PostgREST o plpgsql), el índice que la sostiene, las
 -- tablas que NO se pueden recorrer enteras y cuántas filas se pueden descartar. Se asserta con plan
 -- genérico, que es el que usa plpgsql tras unas llamadas. Si una consulta cambia de forma, falla.
+-- El listado de cotizaciones (4.16-3) se mide sobre las 50.000 de `sembrar-cotizaciones.sql`: sin ellas, se niega.
 \set ON_ERROR_STOP 1
 begin;
 
@@ -14,13 +15,16 @@ do $$ begin
   if (select count(*) from public.leads where nombre like 'Volumen %') < 50000 then
     raise exception 'Sin volumen: corre pnpm db:sembrar-volumen (y después pnpm db:reset).';
   end if;
+  if (select count(*) from public.cotizaciones where titulo like 'Volumen cotización %') < 50000 then
+    raise exception 'Sin la siembra de cotizaciones: corre pnpm db:reset y pnpm db:sembrar-volumen.';
+  end if;
 end $$;
 
 -- Los tamaños de página, de `paginacion.ts` y de lo que declara cada lista (los pasa `scripts/medir-listado.mjs` como
 -- variables de psql: acá no se escribe ningún tamaño a mano). `max_*` es el máximo del selector de esa lista.
 select set_config('medir.max_leads', :'max_leads', true), set_config('medir.max_vehiculos', :'max_vehiculos', true),
        set_config('medir.tam_columna', :'tam_columna', true), set_config('medir.tope_cargado', :'tope_cargado', true),
-       set_config('medir.lotes', :'lotes', true);
+       set_config('medir.lotes', :'lotes', true), set_config('medir.max_cotizaciones', :'max_cotizaciones', true);
 select set_config('medir.tope_ocultos', :'tope_ocultos', true), set_config('medir.tope_exportacion', :'tope_exportacion', true), set_config('medir.por_ventana', :'por_ventana', true);
 
 -- El total de leads de la base medida: sólo para decirlo al final. Ningún presupuesto de este archivo depende de él (la persona con pocos
@@ -205,6 +209,12 @@ select set_config('medir.vcursor_en', (select creado_en::text from public.vehicu
   order by creado_en desc, id desc offset 2000 limit 1), true);
 select set_config('medir.vcursor_id', (select id::text from public.vehiculos where origen_id = current_setting('medir.origen')::uuid and eliminado_en is null
   order by creado_en desc, id desc offset 2000 limit 1), true);
+-- El cursor de la página profunda del listado de cotizaciones: el de la dueña, la fila 5.000 de lo vivo; el de Ana, la 1.000 de sus propias vivas.
+select set_config('medir.ccursor_en_duena', c.creado_en::text, true), set_config('medir.ccursor_id_duena', c.id::text, true)
+  from (select creado_en, id from public.cotizaciones where eliminado_en is null order by creado_en desc, id desc offset 4999 limit 1) c;
+select set_config('medir.ccursor_en_ana', c.creado_en::text, true), set_config('medir.ccursor_id_ana', c.id::text, true)
+  from (select creado_en, id from public.cotizaciones where creado_por = '00000000-0000-0000-0000-0000000000a1' and eliminado_en is null
+         order by creado_en desc, id desc offset 999 limit 1) c;
 
 -- Cuántas veces se llama a una función mientras corre una consulta como `p_quien` (`track_functions` es de superusuario:
 -- se enciende antes de cambiar de rol). Sirve para probar que el permiso se calcula una vez por consulta y no por fila.
@@ -635,8 +645,40 @@ begin
   end if;
 end $$;
 
+-- El listado de cotizaciones (4.16-3): `cotizaciones_listado()` (4.16-1) con el máximo, sobre la siembra. Los topes son los del listado (`docs/RENDIMIENTO.md`):
+-- la dueña 10 ms y Ana 50 ms, también en la profunda. La RPC es opaca para `explain`: su forma (rutas, índices, bloques) la asserta
+-- `medir-cotizaciones-listado.sql`; acá, el tiempo con datos repartidos como en uso. Una página vacía pasaría cualquier tope: la página 1, la profunda y «mías»
+-- tienen que volver llenas (`max + 1`); los finales y el origen no, porque la siembra no se los garantiza a Ana.
+create function pg_temp.cotizaciones(p_quien text) returns void language plpgsql as $$
+declare
+  v_max int := current_setting('medir.max_cotizaciones')::int;
+  v_ms numeric := case p_quien when 'duena' then 10 else 50 end;
+  v_cursor text := format('p_cursor_en => %L, p_cursor_id => %L', current_setting('medir.ccursor_en_' || p_quien, true), current_setting('medir.ccursor_id_' || p_quien, true));
+  r record; v_n int;
+begin
+  for r in select * from (values
+      ('página 1', format('select * from public.cotizaciones_listado(%s)', v_max), true),
+      ('una profunda por cursor', format('select * from public.cotizaciones_listado(%s, %s)', v_max, v_cursor), true),
+      ('por origen', format('select * from public.cotizaciones_listado(%s, p_origen => %L)', v_max, current_setting('medir.origen')), false),
+      ('finales', format('select * from public.cotizaciones_listado(%s, p_clase => %L)', v_max, 'final'), false),
+      ('«mías»', format('select * from public.cotizaciones_listado(%s, p_mias => true)', v_max), true)) c (caso, consulta, llena)
+  loop
+    perform pg_temp.escala('cotizaciones: ' || r.caso, p_quien, r.consulta, v_ms);
+    if r.llena then
+      perform pg_temp.quien(p_quien);
+      set local role authenticated;
+      execute format('select count(*) from (%s) x', r.consulta) into v_n;
+      reset role;
+      if v_n <> v_max + 1 then
+        insert into pg_temp.violaciones values (format('cotizaciones: %s de %s trae %s filas, se esperaban %s', r.caso, p_quien, v_n, v_max + 1));
+      end if;
+    end if;
+  end loop;
+end $$;
+
 do $medir$ declare q text; begin
   foreach q in array array['duena', 'ana'] loop
+    perform pg_temp.cotizaciones(q);
     perform pg_temp.listado(q, true);
     if q = 'duena' then perform pg_temp.listado(q, false); end if;
     -- La numeración (9f-2). Los números salen de dos copias bajo su policy, como subconsultas de la lista de columnas
