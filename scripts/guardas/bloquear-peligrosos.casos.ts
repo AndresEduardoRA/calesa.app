@@ -139,10 +139,6 @@ export const BLOQUEA = [
   'git -C ENOTRA push origin otra tercera',
   'cd ENOTRA && git push',
   'cd ENOTRA && git push origin otra',
-  // el merge a main es de la persona
-  'gh pr merge 1 --squash',
-  'gh pr merge --auto --merge',
-  'gh api -X PUT repos/o/r/pulls/1/merge',
 ]
 
 export const PASA = [
@@ -246,6 +242,8 @@ export const BLOQUEA_PILOTO = [
   'git push origin HEAD',
   'gh pr create --fill',
   'gh pr merge 1 --squash',
+  'gh pr merge --auto --merge',
+  'gh api -X PUT repos/o/r/pulls/1/merge',
   'gh repo edit --description x',
   'gh secret set X',
   'gh variable set X',

@@ -44,7 +44,7 @@ rama y abre o actualiza su PR.
 
 ## Reglas de los dos
 
-- **Push:** sólo la rama propia, sin forzar ni borrar (`git push -u origin <rama>`); nunca `main`, nunca `gh pr merge`. Lo hace cumplir
+- **Push:** sólo la rama propia, sin forzar ni borrar (`git push -u origin <rama>`); nunca `main`; `gh pr merge` sólo en una sesión interactiva a la que la persona se lo pidió, nunca el piloto. Lo hace cumplir
   `.claude/hooks/bloquear-peligrosos.sh`; con `PILOTO=1`, ninguna sesión empuja (lo hace el bucle).
 - **Migraciones:** una nueva por cambio, con `supabase migration new` (fecha real) y **posterior a la última de `main`**; ninguna
   aplicada se edita. Las de B llevan su dominio al principio del nombre (`<versión>_notificaciones_….sql`) y sólo tocan agenda, chat,
