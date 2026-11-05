@@ -73,7 +73,7 @@ export const NAVEGACION = [
     Icono: CalculatorIcon,
     zona: 'principal',
     permisos: ['cotizaciones.ver'],
-    disponible: false,
+    disponible: true,
   },
   {
     clave: 'logistica',

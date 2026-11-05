@@ -193,14 +193,15 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   volumen y `medir-escala.sql`; se enciende la navegación. Cierra **4-14** («todas las que veo» de quien ve «propios») y **4-23** (el
   gemelo en el inventario de vehículos), la entrada a cotizar desde el listado (`docs/UX.md:38`) y el camino a lo antiguo del historial del vehículo (el tope de 500 del 4.14-2b: un
   filtro por vehículo). Depende de 4.10 y 4.13. Nivel **2** (`_shell`) + `db:medir:volumen` + `E2E_VOLUMEN=1`.
-  Prompts: 5 (queda 1).
-  **Partido en 5** (`docs/DECISIONES.md` › «Paso 4.16 (1 de 4)» y «Paso 4.16-2a»): el **4.16-1** (4-14: `cotizaciones_listado()` por cursor y por alcance, sus índices, su medición y
+  Prompts: 6 (queda 1).
+  **Partido en 6** (`docs/DECISIONES.md` › «Paso 4.16 (1 de 4)» y «Paso 4.16-2a»): el **4.16-1** (4-14: `cotizaciones_listado()` por cursor y por alcance, sus índices, su medición y
   `MAXIMO_DE_PAGINA_DE_COTIZACIONES`; Nivel 2 + `db:medir:volumen`): hecho. El **4.16-2** (4-23), **partido en 2** tras las sondas S0, S0' y S0''
   (`docs/DECISIONES.md` › «Paso 4.16-2a»): el **4.16-2a** (`vehiculos_inventario()`: las rutas, el cursor y los filtros del layout en SQL, sus índices, la equivalencia con
   PostgREST, su medición y el número de 4-77; Nivel 2 + `db:medir:volumen`): hecho. El **4.16-2b** (la app: `fuenteDelInventario()`, `buscarVehiculos()` por la función para quien
   ve «propios», el registro de páginas y el e2e de quien ve «propios»; Nivel 1, interfaz; cierra 4-23): hecho. El **4.16-3** (la siembra de cotizaciones de `db:sembrar-volumen` (`sembrar-cotizaciones.sql`), su fila en `medir-escala.sql` y las mediciones que pedían una base sin cotizaciones; Nivel 1 +
-  `db:medir:volumen`): hecho. Queda el **4.16-4** (la pantalla `/cotizaciones`, la navegación, la entrada a cotizar desde el listado de `docs/UX.md:38` y el enlace desde el historial del vehículo;
-  Nivel 2 + `E2E_VOLUMEN=1`; puede partirse al planificarlo). Marcas: 4.16-1 `sí`, 4.16-2a `sí`, 4.16-2b `no`, 4.16-3 `no`.
+  `db:medir:volumen`): hecho. El **4.16-4**, **partido en 2** (`docs/DECISIONES.md` › «Paso 4.16-4a»): el **4.16-4a** (la pantalla `/cotizaciones` sin resumen, la navegación, «Nueva cotización», el filtro por vehículo y el
+  enlace desde el tope del historial, y el listado con volumen; Nivel 2 + `E2E_VOLUMEN=1`): hecho. Queda el **4.16-4b** (el resumen `?cotizacion=`: la fila y la tarjeta lo abren, lee la suya si no está
+  en la página, estados, `diferido()` y la vuelta del foco; Nivel 1, interfaz). Marcas: 4.16-1 `sí`, 4.16-2a `sí`, 4.16-2b `no`, 4.16-3 `no`, 4.16-4a `sí`.
   - **P1** (1, contestada el 2026-11-04 con la recomendada): «Mías» son las que creó quien mira (`creado_por`), para cualquiera; no es «Míos» de leads.
   - **P2** (1, contestada el 2026-11-04 con la recomendada): todas las versiones de una cadena salen en el listado, cada una en su fila.
 - **4.17** — **5a-12** y, con el mismo «Ver más», las secciones «Cotizaciones» de la ficha del lead y del vehículo (la del vehículo puede usar la lectura
@@ -242,7 +243,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 35 pasos y 88 prompts; faltan los pasos 4.15-4 y 4.16-4 a 4.28.
+Total de la fase: 36 pasos y 89 prompts; faltan los pasos 4.15-4 y 4.16-4b a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
@@ -417,6 +418,7 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-77** (4.16-2 lo vuelve a medir; arreglarlo es un paso propio con compuerta `datos`; salió del 4.16-1): cada lectura con la policy de `cotizaciones` carga ≈ 160–240 buffers fijos por llamada: `origenes_con_alcance()` → `mis_permisos()` relee `perfiles` ≈ 74 veces (una por fila de su join, `base.sql:14318-14323`) y la policy de cada ruta activa trae sus InitPlan (`.piloto/salidas/4.16-1/sonda-costo-fijo.txt`). No crece con N; probablemente crece con las filas de `roles_permisos` de quien mira (permisos × orígenes: inferencia, sin medir). Es de toda lectura con esa policy, no del listado, y bajarlo toca una `security definer` de todas las policies. El 4.16-2 lo mide con dos roles de distinto tamaño y deja el número. **Medido en el 4.16-2a** (`medir-vehiculos-inventario-costo-fijo.sql`, con `analyze`): `origenes_con_alcance()` con 1, 74 (la dueña) y 122 concesiones da 7 buffers y ≈ 0,3 ms en los tres, y 1 bloque de `perfiles` (8 filas): no crece con las concesiones de quien mira. Los ≈ 160–240 buffers (148 bloques de `perfiles`) del 4.16-1 no se reproducen: su causa sigue sin medir.
 - **4-78** (sin fase; salió del 4.16-2): las listas del panel del vehículo de la hoja de cotizar («Últ. cotización», «Cierre subasta» y su búsqueda) leen `from('vehiculos')` desde el navegador: para quien ve «propios» recorren el origen como el inventario antes del 4.16-2a (`medir-panel-*.sql`: «la chica, sin assert (4-23)»). Se arreglan con las rutas de `vehiculos_inventario()` (o una lectura gemela con los índices de cada lista); se decide al planificarlo.
 - **4-79** (sin fase, lo decide la persona; salió del 4.16-3): Configuración › Orígenes dibuja un total exacto de cotizaciones y de vehículos por origen (`origenes_resumen()`, `count(*)` por origen; `lista-de-origenes.tsx`), y la regla dice que un número que se muestra nunca es un total exacto (`.claude/rules/escala.md`). Con la siembra de 50.000 cotizaciones, 7,5 ms (`medir-escala.sql`, tope 100); con 250.000, 51.000 buffers (`docs/RENDIMIENTO.md`, el listado). Arreglarlo es `limit n + 1` por origen y `conteoCorto()` en la pantalla, o quitar el número.
+- **4-80** (sin fase; salió del 4.16-4a): `e2e/leads-etiquetas.spec.ts:216` («Etiquetas…» desde el «⋯» de la fila, con el teclado) cayó una vez en el completo de escritorio del 4.16-4a (la etiqueta no llegó a la base en 5 s) y pasa 3 de 3 sola sobre el mismo build (`.piloto/salidas/4.16-4a/etiquetas-1.txt` a `-3`). Escribe el nombre y pulsa Enter sin esperar que el selector muestre la opción: una carrera con la hidratación o la lectura de etiquetas. Se hace determinista esperando el estado (`soporte/esperas.ts`), no con un reintento.
 - **4-54** (sin fase, lo decide la persona; salió del 4.14-2a): si una cotización se está guardando cuando se elige otro vehículo en el panel (abrirlo y elegir dentro de lo que
   tarda el guardado), se guarda con el de antes —lo que se veía al guardar— y la hoja pasa al nuevo sin la tarjeta de éxito; quien guardó puede creer que no se guardó y
   guardar otra vez: una cotización de más. La barra queda fuera de `[data-hoja]` y no se apaga con su `inert`. Assert: con el guardado demorado (la action interceptada), abrir

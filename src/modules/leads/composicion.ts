@@ -69,6 +69,7 @@ import { getLayoutDeLeads } from './infra/queries/campos'
 import { getEmbudos, getTablero } from './infra/queries/embudos'
 import { getOportunidadesDelLead } from './infra/queries/oportunidades'
 import { getClienteElegido } from './infra/queries/cliente-elegido'
+import { getNombresDeLeads } from './infra/queries/nombres-de-leads'
 import { getEtiquetas } from './infra/queries/etiquetas'
 import { getFicha } from './infra/queries/ficha'
 import {
@@ -109,6 +110,9 @@ export const leerCarteraCorta: LectorDeCarteraCorta = getCarteraCorta
 
 // El lead de `?lead=` de la hoja de cotizar (4.14-3b).
 export const leerClienteElegido: LectorDeClienteElegido = getClienteElegido
+
+// Los nombres de los clientes de una página de otro listado (`/cotizaciones`, 4.16-4a): con la RLS de quien mira, el que no se ve no llega.
+export const leerNombresDeLeads = getNombresDeLeads
 
 // Los orígenes y los tipos con que se nombra a un lead, en un solo pedido.
 export const leerCatalogosDeLead: LectorDeCatalogosDeLead = getCatalogosDeLead

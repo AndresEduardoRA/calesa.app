@@ -13,5 +13,15 @@ export function rutaDeLaHoja(datos: { origen: string; lead: string | null }): st
   return `${RUTA_DE_LA_HOJA}?${parametros.toString()}`
 }
 
+// El listado `/cotizaciones` (4.16-4a): sin vehículo es el listado entero; con él, el camino a lo antiguo del historial de un vehículo (`?vehiculo=`, que no es un filtro del
+// esquema: ni chip ni lo borra «Limpiar»). El único lugar que escribe esa ruta.
+export const RUTA_DEL_LISTADO = '/cotizaciones'
+
+export function rutaDelListado(datos: { vehiculo?: string }): string {
+  return datos.vehiculo === undefined
+    ? RUTA_DEL_LISTADO
+    : `${RUTA_DEL_LISTADO}?${new URLSearchParams({ [CLAVE_DE_VEHICULO]: datos.vehiculo }).toString()}`
+}
+
 // La página de una cotización guardada (`/cotizaciones/[id]`, 4.15-3): de ahí se ve y se edita. El único lugar que escribe esa ruta.
 export const rutaDeLaCotizacion = (id: string): string => `/cotizaciones/${id}`

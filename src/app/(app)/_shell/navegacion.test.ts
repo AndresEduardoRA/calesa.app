@@ -44,6 +44,13 @@ describe('entradasVisibles', () => {
     expect(visibles.length).toBe(NAVEGACION.filter((entrada) => entrada.disponible).length)
   })
 
+  it('con cotizaciones.ver se ve Cotizaciones; sin él, no', () => {
+    const con = entradasVisibles(concesiones('cotizaciones.ver'), 'principal')
+    expect(con.map((entrada) => entrada.clave)).toContain('cotizaciones')
+    const sin = entradasVisibles(concesiones('vehiculos.ver'), 'principal')
+    expect(sin.map((entrada) => entrada.clave)).not.toContain('cotizaciones')
+  })
+
   it('una entrada con permisos pide alguno de ellos', () => {
     const leads = NAVEGACION.find((entrada) => entrada.clave === 'leads')
     expect(leads?.permisos).toEqual(['leads.ver'])

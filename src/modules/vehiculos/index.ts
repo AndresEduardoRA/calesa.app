@@ -9,6 +9,7 @@ export {
   leerGaleria,
   leerRelaciones,
   leerSubasta,
+  leerTitulosDeVehiculos,
   leerVehiculo,
 } from './composicion'
 export { MAXIMO_DE_PAGINA_DE_VEHICULOS } from './entities/vehiculo'
