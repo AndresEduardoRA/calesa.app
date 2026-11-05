@@ -22,6 +22,10 @@ export type EdicionDeLaHoja = {
   diferido: boolean
 }
 
+// Lo tipeado y sin guardar, o un guardado pendiente; sin guardado (la nueva, o quien sólo ve) no hay cambios que esperar.
+const tieneCambios = (guardado: GuardadoDeUnaGuardada | null, sinCambios: boolean) =>
+  guardado !== null && (!sinCambios || guardado.hayPendiente)
+
 const descartoLoTipeado = (
   respuesta: RespuestaDeRecalculo | null,
   overrides: ReadonlyMap<string, number>,
@@ -88,6 +92,8 @@ export function useGuardarLaGuardada({
     })
   }
   const alGuardar = useAlGuardar({ guardado, motivo, armar, raiz })
+  // «Cotizar encima» espera a que no haya cambios, porque la versión nueva lleva lo guardado (4.15-3b, P1 a).
+  const hayCambios = tieneCambios(guardado, sinCambios)
   const boton: BotonDeGuardar | null =
     guardado === null
       ? null
@@ -97,5 +103,5 @@ export function useGuardarLaGuardada({
           ocupado: guardado.ocupado,
           alGuardar,
         }
-  return { boton }
+  return { boton, hayCambios }
 }

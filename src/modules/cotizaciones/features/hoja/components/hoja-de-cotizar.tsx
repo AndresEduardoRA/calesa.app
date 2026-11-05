@@ -41,6 +41,8 @@ type Props = {
   edicion?: EdicionDeLaHoja
   // «Recargar»: sin nada, vuelve a pedir la página al servidor; el marco de una guardada lo suma para volver a montar la hoja con lo que llegue (4.15-3).
   alRecargar?: () => void
+  // Lo que el marco de una guardada pone sobre la hoja (el aviso de versión, 4.15-3b); recibe si hay cambios sin guardar. La hoja nueva no lo llena.
+  encima?: (hayCambios: boolean) => ReactNode
 }
 
 function SinDatosQueVer() {
@@ -149,6 +151,7 @@ export function HojaDeCotizar({
   soloLectura = false,
   totalGuardado,
   alRecargar,
+  encima,
 }: Props) {
   const raiz = useRef<HTMLDivElement>(null)
   // El guardado que ve la hoja: el de la guardada que edita o el de la nueva.
@@ -177,6 +180,7 @@ export function HojaDeCotizar({
       <EstiloDeTonos tonos={hoja.tonos} />
       <div className="flex min-w-0 flex-col gap-4 @4xl/hoja:flex-row @4xl/hoja:items-start">
         <div className="grid min-w-0 flex-1 gap-4">
+          {encima?.(botonDeLaGuardada.hayCambios)}
           <CabeceraDeHoja
             cabecera={hoja.cabecera}
             modoElegido={h.entradas.modoTc}

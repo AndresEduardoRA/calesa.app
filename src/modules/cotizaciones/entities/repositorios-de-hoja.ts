@@ -3,6 +3,7 @@ import type { ResultadoDeCrear } from './guardado'
 import type { RecalculoInicial } from './apertura'
 import type { HojaParaCotizar } from './hoja'
 import type { HojaDeUnaGuardada } from './hoja-de-una-guardada'
+import type { ResultadoDeEncima } from './resultado-de-encima'
 import type { PedidoDeEdicion } from './pedido-de-edicion'
 import type { PedidoDeGuardado } from './pedido-de-guardado'
 import type { PedidoDeRecalculo } from './pedido-de-recalculo'
@@ -37,6 +38,13 @@ export type CreadorDeCotizacion = (pedido: PedidoDeGuardado) => Promise<Resultad
 
 // Los cambios de una cotización guardada (`cotizacion_guardar()`, 4.15-3): lo guardado, la respuesta perdida o el rechazo con su motivo. Nunca lanza.
 export type GuardadorDeCotizacion = (pedido: PedidoDeEdicion) => Promise<ResultadoDeCrear>
+
+// Cotizar encima de una guardada (`cotizacion_encima()`, 4.15-2): crea la N+1 en el acto. El intento es el id de la nueva (el mismo intento, de esta anterior, devuelve la misma).
+// La nueva o el rechazo con su motivo, la respuesta perdida. Nunca lanza.
+export type CotizadorEncima = (pedido: {
+  anterior: string
+  intento: string
+}) => Promise<ResultadoDeEncima>
 
 // La hoja de una cotización guardada (`cotizacion_hoja_guardada()`, 4.15-2) con su primer cálculo, que hace el servidor con la hoja ya leída: por la cotización (SU versión y SUS
 // tipos de cambio) y con lo guardado como entradas. `sin_permiso` es una cotización que no existe, está en la papelera o no se ve (la base no distingue). Un cálculo que falla no

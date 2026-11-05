@@ -167,11 +167,8 @@ export const loGuardadoDe = (id: string, nodo: string): { valor: string; fuente:
   return { valor, fuente }
 }
 
-// Una persona que no es quien tiene la hoja abierta guarda un cambio de `pub` por la RPC con su sesión (V32): la versión de la cotización se mueve y deja su nombre en la actividad.
-export async function guardarComo(
-  persona: { email: string; contrasena: string },
-  datos: { cotizacionId: string; pub: number },
-): Promise<void> {
+// El cliente de Supabase de una persona, con su propia sesión (no la del navegador): lo que hace otra persona mientras quien mira tiene la hoja abierta.
+export async function clienteComo(persona: { email: string; contrasena: string }) {
   const cliente = createClient(
     entorno('NEXT_PUBLIC_SUPABASE_URL'),
     entorno('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
@@ -184,6 +181,15 @@ export async function guardarComo(
   if (sesion.error) {
     throw new Error(`No se pudo ingresar como ${persona.email}: ${sesion.error.message}`)
   }
+  return cliente
+}
+
+// Una persona que no es quien tiene la hoja abierta guarda un cambio de `pub` por la RPC con su sesión (V32): la versión de la cotización se mueve y deja su nombre en la actividad.
+export async function guardarComo(
+  persona: { email: string; contrasena: string },
+  datos: { cotizacionId: string; pub: number },
+): Promise<void> {
+  const cliente = await clienteComo(persona)
   const id = literal(datos.cotizacionId)
   const version = sql(
     `select to_char(actualizado_en at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"+00:00"') from public.cotizaciones where id = ${id}::uuid`,

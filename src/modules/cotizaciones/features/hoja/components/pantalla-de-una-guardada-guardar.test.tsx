@@ -21,6 +21,7 @@ vi.mock('../../../composicion.client', () => ({ recalcular }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }))
 vi.mock('next-safe-action/hooks', () => ({ useAction: () => ({ executeAsync: ejecutar }) }))
 vi.mock('../actions/guardar-cotizacion', () => ({ guardarCotizacion: {} }))
+vi.mock('../../encima/actions/cotizar-encima', () => ({ cotizarEncima: {} }))
 
 // «Guardar» en la hoja de una cotización guardada (4.15-3, C8, C9 y C11): apagado sin cambios, salvo con un pendiente o cuando lo de hoy no es lo guardado.
 const PERSONA = '3b7a2f0e-1c2d-4e5f-8a9b-0c1d2e3f4a5b'

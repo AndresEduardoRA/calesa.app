@@ -3,6 +3,7 @@
 // `infra/` (lo verifica eslint-plugin-boundaries).
 import 'server-only'
 import type {
+  CotizadorEncima,
   CreadorDeCotizacion,
   GuardadorDeCotizacion,
   LectorDeHoja,
@@ -10,7 +11,7 @@ import type {
   RecalculadorAlAbrir,
 } from './entities/repositorios-de-hoja'
 import type { LectorDeNiveles, RepositorioDeNiveles } from './entities/repositorios-de-niveles'
-import { crearCotizacion, guardarCotizacion } from './infra/cotizaciones'
+import { cotizarEncima, crearCotizacion, guardarCotizacion } from './infra/cotizaciones'
 import { nivelesSupabase } from './infra/niveles'
 import { getHojaParaCotizar } from './infra/queries/hoja'
 import { getHojaDeUnaGuardada } from './infra/queries/hoja-de-una-guardada'
@@ -26,3 +27,4 @@ export const recalcularAlAbrir: RecalculadorAlAbrir = recalcularAlAbrirDeInfra
 export const creadorDeCotizacion: CreadorDeCotizacion = crearCotizacion
 export const guardadorDeCotizacion: GuardadorDeCotizacion = guardarCotizacion
 export const contarCotizacionesDelVehiculo = contarDeInfra
+export const cotizadorEncima: CotizadorEncima = cotizarEncima

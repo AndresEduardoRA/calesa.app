@@ -12,6 +12,7 @@ import {
   muestraElTotalGuardado,
   type HojaDeUnaGuardada,
 } from '../../../entities/hoja-de-una-guardada'
+import { AvisoDeVersion } from '../../encima/components/aviso-de-version'
 import { useGuardadoDeUnaGuardada } from '../hooks/use-guardado-de-una-guardada'
 import { useLecturaDeUnaGuardada } from '../hooks/use-lectura-de-una-guardada'
 import type { AperturaDeHoja } from '../hooks/use-hoja'
@@ -94,6 +95,7 @@ export function PantallaDeUnaGuardada({ personaId, ...props }: Props) {
       guardado={null}
       abre={abre}
       alRecargar={lectura.recargar}
+      encima={(hayCambios) => <AvisoDeVersion hoja={hoja} hayCambios={hayCambios} />}
       soloLectura={!hoja.puedeGuardar}
       {...(hoja.puedeGuardar
         ? {
