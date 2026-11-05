@@ -480,3 +480,20 @@ medido y se auditó dos veces más. `docs/DECISIONES.md` › «Paso 4.16 (1 de 4
 - Abierto nuevo **4-77**: el costo fijo de ≈ 160–240 buffers por lectura con la policy de cotizaciones, de `mis_permisos()`.
 - **Commits:** `33252377` (la base), `2fc8ad5d` (la medición) y `f5667be4` (el lector).
   e2e completo: sí (4.16-1, base, Nivel 2: escritorio, 914 en verde, 16 saltados, 0 caídas, 33,2 min)
+
+## 2026-11-05 — 4.16-2a: el inventario por rutas, con los filtros del layout en SQL (4-23, la base)
+
+El 4.16-2 se partió en 2a (la base) y 2b (la app, que cierra 4-23), tras tres sondas con volumen y dos compuertas de la persona (P-parada, P-limpieza).
+`docs/DECISIONES.md` › «Paso 4.16-2a».
+
+- `vehiculos_inventario()`: invocadora, con rutas por índice (el origen, lo creado y la cartera corta por lead), los filtros `Condicion[]` en SQL dinámico sin valores en el
+  texto y `limpieza_el` sin releer la fila. Índice nuevo `vehiculos_creador_idx`; se van `vehiculos_creado_por_idx` y `vehiculos_lead_idx`.
+- **Verificación** (`.piloto/salidas/4.16-2a/`; informe en `.piloto/informes/4.16-2.md`, auditado: observaciones, atendidas con un `fix`):
+  - En verde: `lint`, `typecheck`, `test` (523 archivos, 6.178 pruebas), `db:probar` (508), `db:lint`, `db:medir` y `db:medir:volumen` entero.
+  - Los dirigidos (23) y el e2e de equivalencia con PostgREST (47 casos).
+  - Rojos contra HEAD: PGlite (7 ✗), el e2e (`PGRST202`) y la medición contra hoy (la chica de 7,0 a 32,1 ms).
+  - Las 33 mutaciones muerden.
+- Con 250.000: la chica de 32,3 a 2,5 ms y Vera de 78,5 a 28,1. Beto (6,3 → 8,1) y Pía (5,0 → 6,0) pagan algo, dentro de 10 ms. 4-77, medido: no crece con las concesiones.
+- Abierto nuevo **4-78**: las listas del panel del vehículo de quien ve «propios» recorren el origen.
+- **Commits:** `bce960bf` (la base), `8918e044` (el e2e), `c6e2b63d` (la medición) y `6b85221d` (el `fix` de la auditoría).
+  e2e completo: sí (4.16-2a, base, Nivel 2: escritorio, 915 en verde, 16 saltados, 0 caídas, 32,9 min)

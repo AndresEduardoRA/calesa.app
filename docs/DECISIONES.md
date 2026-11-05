@@ -1648,3 +1648,41 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **El paso se detuvo una vez en su parada (4)** (los índices por clase no servían) y la persona eligió replanificar: el plan se corrigió con lo medido, se auditó dos veces más y una sonda en
   la transacción confirmó, antes de tocar la función, que los parciales se usan con el literal y que el plan de Ana es el mismo con los dos volúmenes (`d = 0`).
 - **Rigor:** pruebas que fallan primero (también la medición, con «lo de hoy»: 1,8 s Ana y 2,3 s la «chica» con 250.000), 19 mutaciones que caen e informe auditado; sin carreras (no hay escritura nueva).
+
+## 2026-11-05 — Paso 4.16-2a: el inventario por rutas, con los filtros del layout en SQL
+
+- **Cómo se llegó.** 4-23 pedía que quien ve «propios» no recorra el origen. Tres sondas con volumen, antes de escribir nada (`.piloto/informes/4.16-2.md`), descartaron dos
+  diseños:
+  - **S0:** una función `setof` con ramas `union all`, leída por PostgREST con su `order by … limit`, ordena todo. En Postgres 17 una hoja con `where` no se aplana en el
+    appendrel (`is_safe_append_member`).
+  - **S0':** con el `order by` en cada hoja hay `Merge Append` **sólo con `enable_sort = off`**. Con el plan normal y un `order by` o un join afuera, cada hoja se planea para
+    leerse entera (`tuple_fraction = 0`): Beto quedó en 72–75 ms. **Una forma probada con `enable_sort = off` no prueba el plan real.**
+  - La persona eligió (P-parada) dos lecturas por sentido y, si no cabían, los filtros en SQL. S0' no cupo y se pasó a lo segundo, como el 4.16-1.
+- **`vehiculos_inventario()`, plpgsql invocadora:** cada ruta lleva su `order by … limit` y Postgres sabe que lee una página.
+  - R1, el origen (`vehiculos_origen_listado_idx`): para quien ve «todos» y para una cartera de más de 5.000 (`leads_cartera_corta()`), como hoy.
+  - R2, lo creado (`vehiculos_creador_idx`, nuevo).
+  - R3, la cartera corta: un lateral por lead de `mis_leads()` sobre `vehiculos_lead_id_idx`.
+  - Se quitan `vehiculos_creado_por_idx` y `vehiculos_lead_idx`: un solo índice entero por columna que se sondea (la regla del 4.16-1).
+- **SQL dinámico.**
+  - Por qué: un número variable de condiciones de atributos (un `and` de `or`) pedía, en SQL estático, una subconsulta por fila.
+  - El texto lo arman `_vehiculos_inventario_sql()` y sus ayudantes, y depende sólo de la forma del pedido. **Ningún valor entra al texto:** todos llegan como `$1 -> i` por
+    `execute … using`. El precedente `_leads_candidatos_sql` los mete con `%L`.
+  - Los ayudantes son invocadores con EXECUTE para `authenticated` (como `_diseno_*`), porque los llama una invocadora. Exponen el texto, no datos. El patrón «contiene» copia
+    la expresión de `_lead_busqueda_patron()` en el texto (L1 prueba que es la misma) y `_lead_busqueda_patron` sigue siendo de `service_role`.
+- **Los topes de la validación** (la URL ya no los pone): 100 condiciones; 500 por arreglo (en 16 KB de URL caben ≤ 442 uuids); 1.000 sumando el pedido; 1.000 caracteres por
+  texto y por alternativa. El año, un entero de `smallint` (±32.767). Un `2010.0` caía al leer con `22P02`.
+- **P-limpieza: no releer la fila.** S0'' paró en Beto (10,3–10,8 ms contra 10; hoy 6,7) porque la lateral de `limpieza_el` relee cada fila y paga otra pasada de la RLS:
+  InitPlans, `mis_permisos` y un `en_cartera` por fila. La persona eligió calcularla sobre la fila que la ruta ya leyó.
+  - R1 y R2 cortan en su `limit` antes de proyectar.
+  - R3 relee sólo las filas de la página, por un `case` con una subconsulta escalar. Una lateral con `where f.releer` relee igual.
+  - Calcularla en R3 para toda la cartera dejaba a Vera en 63 ms.
+  - Con la regla de hoy toda fila de R3 tiene lead y queda anclada (`vinculo`), así que su relectura da nulo. Se paga por robustez.
+- **Contra hoy** (página 1, 250.000, por PostgREST / nuevo): la chica 32,3 / 2,5 ms; Vera 78,5 / 28,1. **Beto paga 1,8 ms más que hoy (6,3 → 8,1) y Pía 1,0 (5,0 → 6,0),
+  dentro de los 10 ms.** El 4.16-2b decide con ese dato: Beto pasa por la función.
+- **La equivalencia con PostgREST** la ata un e2e sin pantalla (`e2e/vehiculos-inventario-postgrest.spec.ts`: 47 casos, la dueña y una persona «propios», de a 3 y de vuelta).
+  L5 la repite en PGlite contra una referencia escrita a mano. S1 capturó 69 textos de PostgREST: cambia la notación, nunca el significado.
+- **Partido en 2:** el 2a es la base; el 2b, la app, que cierra 4-23. El registro en `paginas-en-la-base.ts` va en el 2b, porque su guarda hace caer una entrada que nadie llama
+  desde `src/`.
+- **4-77:** `origenes_con_alcance()` con 1, 74 (la dueña) y 122 concesiones da 7 buffers y ≈ 0,3 ms en los tres. No crece con las concesiones. Los 148 bloques de `perfiles`
+  del 4.16-1 no se reproducen y su causa sigue sin medir.
+- **Atribuciones corregidas del plan:** M1 la ve L2 (no L4); M27 la ve L1c (no L1b (b)). M14 no tenía caso en el e2e y el `fix` lo sumó (`lote(`).

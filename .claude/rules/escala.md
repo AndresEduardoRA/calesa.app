@@ -42,6 +42,7 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
   filas que crezcan con la profundidad, y dentro de su presupuesto de tiempo.
 - En plpgsql, con cursor y sin cursor son dos consultas: un `p_x is null or (…)` o un `coalesce` en
   el cursor dejan de ser condición de índice.
+- Una lectura por rutas va en plpgsql, cada ruta con su `order by … limit`. Nunca ramas filtradas de una `setof` bajo un `order by … limit` de afuera: Postgres 17 no las aplana y cada una ordena todo (y una forma probada con `enable_sort = off` no prueba el plan real). Un filtro armado en SQL dinámico lleva todo valor por `using`. Lo derivado de la fila (`limpieza_el`) se calcula sobre la que la ruta ya leyó: releerla paga otra pasada de la RLS.
 - Una función cara lleva su `COST` verdadero (`atributos_lead()`); con el barato Postgres lee todo y ordena.
 - Un filtro de leads que no es una columna ni una marca de quien mira (`ilike` o `@>` sobre `leads`,
   etiqueta, campo público o privado) no se lee de la vista: va a `leads_candidatos()` con su índice.
@@ -81,6 +82,7 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
 - Lectura de cotizaciones con volumen → `supabase/tests/medir-cotizaciones-lectura.sql` (`pnpm db:medir:volumen`)
 - El listado de cotizaciones (`cotizaciones_listado()`: rutas, índices por caso, bloques y llamadas) con volumen → `supabase/tests/medir-cotizaciones-listado.sql` (`pnpm db:medir:volumen`)
 - Lectura de vehículos con volumen → `supabase/tests/medir-vehiculos-lectura.sql` (`pnpm db:medir:volumen`)
+- El inventario por rutas (`vehiculos_inventario()`: rutas, forma, contra hoy) → `supabase/tests/medir-vehiculos-inventario.sql`, `-forma.sql`, `-guarda.sql` (`pnpm db:medir:volumen`); su equivalencia con PostgREST → `e2e/vehiculos-inventario-postgrest.spec.ts` (`pnpm test:e2e`)
 - Las listas del panel del vehículo con volumen → `supabase/tests/medir-panel-ultima-cotizacion.sql`, `medir-panel-cierre-subasta.sql`, `medir-historial-del-vehiculo.sql` (`pnpm db:medir:volumen`)
 - `cotizacion_crear()` con volumen → `supabase/tests/medir-cotizacion-crear.sql` (`pnpm db:medir`)
 - `cotizacion_guardar()` con volumen → `supabase/tests/medir-cotizacion-guardar.sql` (`pnpm db:medir`)
