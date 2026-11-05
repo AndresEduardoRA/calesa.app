@@ -93,7 +93,7 @@ union all select t.reltoastrelid, 'toast' from pg_class t where t.oid = 'public.
 grant select on _rel, _p, _l to authenticated;
 create temp table _med (fase text, pagina int, ms numeric, bloques jsonb, total numeric, bytes int);
 grant all on _med to authenticated;
-create temp table _plan (fase text, ruta text, indices jsonb, sort boolean, seq boolean, descartadas numeric);
+create temp table _plan (fase text, ruta text, indices jsonb, sort boolean, seq boolean, descartadas numeric, cursor_en_la_condicion boolean);
 grant all on _plan to authenticated;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------
@@ -179,7 +179,8 @@ begin
     if (v_plan -> 0 -> 'Plan' ->> 'Actual Rows')::int <> v_n + 1 then raise exception 'la ruta % devolvió % filas y esperaba %', v_ruta, v_plan -> 0 -> 'Plan' ->> 'Actual Rows', v_n + 1; end if;
     insert into _plan values (p_fase, v_ruta, coalesce((select jsonb_agg(distinct m[1]) from regexp_matches(v_plan::text, '"Index Name": "([^"]+)"', 'g') m), '[]'::jsonb),
       v_plan::text ~ '"Node Type": "(Incremental )?Sort"', v_plan::text ~ '"Node Type": "Seq Scan"[^{}]*?"Relation Name": "oportunidades"',
-      coalesce((select sum(m[1]::numeric) from regexp_matches(v_plan::text, '"Rows Removed by Filter": (\d+)', 'g') m), 0));
+      coalesce((select sum(m[1]::numeric) from regexp_matches(v_plan::text, '"Rows Removed by Filter": (\d+)', 'g') m), 0),
+      v_plan::text ~ '"Index Cond": "[^"]*ROW\(ultima_actividad_en, id\) <');
   end loop;
 end $$;
 grant execute on all functions in schema pg_temp to authenticated;
@@ -195,6 +196,7 @@ begin
   for r in select * from _plan where fase = p_fase order by ruta loop
     if not r.indices ? (c_ruta ->> r.ruta) then v_f := v_f || format(E'\n  ruta %s no camina %s: %s', r.ruta, c_ruta ->> r.ruta, r.indices); end if;
     if r.sort then v_f := v_f || format(E'\n  ruta %s ordena (Sort)', r.ruta); end if;
+    if r.ruta in ('r_b', 'r_c') and not r.cursor_en_la_condicion then v_f := v_f || format(E'\n  ruta %s: la comparación de filas del cursor no es condición del índice', r.ruta); end if;
     if r.seq then v_f := v_f || format(E'\n  ruta %s recorre oportunidades entera', r.ruta); end if;
     if r.descartadas > 1 then v_f := v_f || format(E'\n  ruta %s descarta %s filas', r.ruta, r.descartadas); end if;
   end loop;
@@ -210,7 +212,8 @@ begin
         v_f := v_f || format(E'\n  página %s: %s con %s bloques, esperaba %s', r.pagina, v_ix, r.bloques ->> v_ix, case when v_ix = any (v_esperados) then 'bloques' else 'ninguno' end);
       end if;
     end loop;
-    for v_otro in select k from jsonb_object_keys(r.bloques) k where k like '%\_idx' and k not in ('oportunidades_lead_abiertas_idx', 'oportunidades_lead_cerradas_idx') loop
+    -- Todo lo demás de `oportunidades` (cada otro índice, también la clave primaria: releer las filas por id pasaría por ella) tiene cero; el heap y el TOAST se miden aparte.
+    for v_otro in select k from jsonb_object_keys(r.bloques) k where k not in ('heap', 'toast', 'oportunidades_lead_abiertas_idx', 'oportunidades_lead_cerradas_idx') loop
       if (r.bloques ->> v_otro)::numeric > 0 then v_f := v_f || format(E'\n  página %s: leyó %s (%s bloques)', r.pagina, v_otro, r.bloques ->> v_otro); end if;
     end loop;
     if r.ms > 15 then v_f := v_f || format(E'\n  página %s: %s ms, el tope es 15', r.pagina, round(r.ms, 1)); end if;
