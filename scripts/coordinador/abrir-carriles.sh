@@ -4,7 +4,7 @@
 #
 #   bash scripts/coordinador/abrir-carriles.sh [<carril>…]     (sin carriles: los primeros CARRILES_MAX con pasos sin integrar)
 #
-# Los worktrees quedan en <carpeta del repo>.carriles/<carril>, en la rama <carril>/base desde origin/main. El piloto de cada carril
+# Los worktrees quedan en <CARRILES_DIR, por defecto carpeta del repo>.carriles/<carril>, en la rama <carril>/base desde origin/main. El piloto de cada carril
 # crea después una rama por paso (<carril>/<paso>). Idempotente: un carril que ya tiene worktree sólo se vuelve a preparar.
 set -euo pipefail
 RAIZ=$(git rev-parse --show-toplevel)
@@ -41,7 +41,8 @@ necesita=$(( ${#PEDIDOS[@]} * 2 ))
 
 BASE="origin/main"
 git fetch --quiet origin main 2>/dev/null || BASE="main"
-DESTINO="$(dirname "$RAIZ")/$(basename "$RAIZ").carriles"
+source scripts/piloto/carriles-dir.sh
+DESTINO="$CARRILES_DIR"
 mkdir -p "$DESTINO"
 for carril in "${PEDIDOS[@]}"; do
   dir="$DESTINO/$carril"

@@ -58,4 +58,8 @@ fi
 if [ -n "$CARRIL" ] && ! tmux has-session -t piloto-coordinador 2>/dev/null && [ -f "$RAIZ/scripts/coordinador/sincronizar.sh" ]; then
   tmux new-session -d -s piloto-coordinador -c "$RAIZ" "bash scripts/coordinador/sincronizar.sh 2>&1 | tee -a '$ESTADO/coordinador.log'; echo; echo 'El coordinador terminó. Enter para cerrar.'; read -r"
 fi
+# Sin carril: el vigilante abre solo los carriles b y c cuando 4.15-4 llegó a origin/main y hay disco y RAM (auto-carriles.sh).
+if [ -z "$CARRIL" ] && ! tmux has-session -t piloto-auto-carriles 2>/dev/null && [ -f "$COMUN/bin/auto-carriles.sh" ]; then
+  tmux new-session -d -s piloto-auto-carriles -c "$RAIZ" "bash '$COMUN/bin/auto-carriles.sh' 2>&1 | tee -a '$ESTADO/auto-carriles.log'; echo; echo 'El vigilante terminó.'; sleep 86400"
+fi
 echo "arrancar: bucle en «tmux attach -t $SESION»; control en «piloto-control» (Remote Control)."
