@@ -11,6 +11,7 @@
 -- Asserta para la dueña, con los dos volúmenes: `cotizaciones_vehiculo_creado_idx`, sin `Seq Scan` de `cotizaciones`, sin `Sort` y sin descartar filas que crezcan con N; ≤ 10 ms y ≤ 300
 -- buffers; que no crece con N (con 250.000, el tiempo a lo sumo `greatest(1,5 × t, t + 3 ms)` y los buffers 1,2 × + 20). Ana se mide y se anota: recorre las cotizaciones DEL
 -- VEHÍCULO hasta llenar la página (crece con ellas, no con N). La guarda: con el índice de antes, `cotizaciones_vehiculo_idx` (sólo `vehiculo_id`), la página ordena las 5.000.
+-- La siembra de volumen trae 50.000 cotizaciones (4.16-3): esta medición las vacía en su transacción (`truncate … cascade`, que el `rollback` devuelve) y mide sólo las suyas.
 \set ON_ERROR_STOP 1
 \set carga `cat /proc/loadavg`
 vacuum public.cotizaciones;
@@ -22,9 +23,13 @@ do $$ begin
   if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000d1') or not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000a1') then
     raise exception 'faltan la dueña y Ana de la siembra de volumen: corre pnpm db:sembrar-volumen (y después pnpm db:reset)';
   end if;
-  if (select count(*) from public.cotizaciones) > 0 then
-    raise exception 'la base ya trae cotizaciones: la medición cuenta con 50.000 y 250.000 propias (pnpm db:reset)';
+  -- La base puede traer la siembra de cotizaciones (`sembrar-cotizaciones.sql`, 4.16-3) y esta medición cuenta con las suyas solas: vacía la tabla en su
+  -- transacción y el `rollback` del final la devuelve entera. Nunca en autocommit, donde el truncate borraría la siembra.
+  if transaction_timestamp() = statement_timestamp() then
+    raise exception 'la medición tiene que correr dentro de su begin: vaciar las cotizaciones fuera de una transacción borraría la siembra';
   end if;
+  raise notice 'nota|La medición vacía las % cotizaciones de la base en su transacción (se revierte)|', (select count(*) from public.cotizaciones);
+  truncate public.cotizaciones cascade;
   raise notice 'nota|Carga (/proc/loadavg) al empezar a medir el historial del vehículo: %|', current_setting('medir.carga');
 end $$;
 

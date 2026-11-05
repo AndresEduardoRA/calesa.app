@@ -25,6 +25,7 @@
 -- topes de Ana y de la «chica» (4-14: recorre `cotizaciones_listado_idx` descartando lo ajeno). Si no los rompe, «la guarda no muerde».
 -- Con `-v contra_hoy=1` (el rojo del 4.16-1 contra HEAD, sin la función) mide «lo de hoy» como si fuera el listado, con los mismos topes: tiene que caer.
 -- Cada línea `medicion|…|número` sale por el runner (`scripts/medir-listado.mjs`); las `nota|…`, también.
+-- La siembra de volumen trae 50.000 cotizaciones (4.16-3): esta medición las vacía en su transacción (`truncate … cascade`, que el `rollback` devuelve) y mide sólo las suyas.
 \set ON_ERROR_STOP 1
 \set carga `cat /proc/loadavg`
 \if :{?contra_hoy}
@@ -39,7 +40,13 @@ do $$ begin
   if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000d1') or not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000a1') then
     raise exception 'faltan la dueña y Ana de la siembra de volumen: corre pnpm db:sembrar-volumen (y después pnpm db:reset)';
   end if;
-  if (select count(*) from public.cotizaciones) > 0 then raise exception 'la base ya trae cotizaciones: la medición cuenta con 50.000 y 250.000 propias (pnpm db:reset)'; end if;
+  -- La base puede traer la siembra de cotizaciones (`sembrar-cotizaciones.sql`, 4.16-3) y esta medición cuenta con las suyas solas: vacía la tabla en su
+  -- transacción y el `rollback` del final la devuelve entera. Nunca en autocommit, donde el truncate borraría la siembra.
+  if transaction_timestamp() = statement_timestamp() then
+    raise exception 'la medición tiene que correr dentro de su begin: vaciar las cotizaciones fuera de una transacción borraría la siembra';
+  end if;
+  raise notice 'nota|La medición vacía las % cotizaciones de la base en su transacción (se revierte)|', (select count(*) from public.cotizaciones);
+  truncate public.cotizaciones cascade;
   raise notice 'nota|Carga (/proc/loadavg) al empezar a medir el listado de cotizaciones: %|', current_setting('medir.carga');
 end $$;
 
