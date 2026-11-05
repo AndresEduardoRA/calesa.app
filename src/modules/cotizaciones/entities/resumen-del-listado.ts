@@ -9,6 +9,7 @@ export const CLAVE_DE_RESUMEN_DE_COTIZACION = 'cotizacion'
 // El tamaño de la búsqueda de UNA cotización por su id (`cotizaciones_listado()` con el cursor justo después de ella): no es un tamaño de página.
 export const UNA = 1
 
+// Lo que dice el resumen de una cotización que no existe o que quien mira no ve (`docs/UX.md`): lo mismo, sin explicar por qué.
 export const MENSAJE_DE_COTIZACION_NO_DISPONIBLE =
   'Esta cotización ya no está disponible: no existe o ya no tienes acceso.'
 

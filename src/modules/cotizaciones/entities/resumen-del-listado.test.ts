@@ -4,6 +4,7 @@ import {
   CLAVE_DE_RESUMEN_DE_COTIZACION,
   idDelResumen,
   idSiguiente,
+  MENSAJE_DE_COTIZACION_NO_DISPONIBLE,
   UNA,
   vistaDelResumen,
 } from './resumen-del-listado'
@@ -35,6 +36,9 @@ describe('constantes', () => {
   it('la clave de la URL y el tamaño de la búsqueda de una', () => {
     expect(CLAVE_DE_RESUMEN_DE_COTIZACION).toBe('cotizacion')
     expect(UNA).toBe(1)
+    expect(MENSAJE_DE_COTIZACION_NO_DISPONIBLE).toBe(
+      'Esta cotización ya no está disponible: no existe o ya no tienes acceso.',
+    )
   })
 })
 

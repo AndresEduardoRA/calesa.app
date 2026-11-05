@@ -1,25 +1,34 @@
 'use client'
 
-import type { Route } from 'next'
-import Link from 'next/link'
 import { fechaRelativa } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/badge'
-import { CabeceraPegada, CeldaPegada, FilaDeLista, TablaDeLista } from '@/shared/ui/lista'
+import {
+  AbrirResumen,
+  CabeceraPegada,
+  CeldaPegada,
+  FilaDeLista,
+  TablaDeLista,
+} from '@/shared/ui/lista'
 import { Monto } from '@/shared/ui/monto'
 import { useRegional } from '@/shared/ui/regional'
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
-import { rutaDeLaCotizacion } from '../../../entities/ruta-de-la-hoja'
 import { nombreDelOrigen, SIN_NOMBRE, type FilaDeCotizacion, type OrigenDelListado } from './tipos'
 import { Vigencia } from './vigencia'
 
-type Props = { cotizaciones: readonly FilaDeCotizacion[]; origenes: readonly OrigenDelListado[] }
+type Props = {
+  cotizaciones: readonly FilaDeCotizacion[]
+  origenes: readonly OrigenDelListado[]
+  alAbrir: (id: string) => void
+  // La cotización abierta en el resumen, para marcarla.
+  abierta: string | null
+}
 
 const VACIO = <span className="text-(--color-ink-faint)">{SIN_NOMBRE}</span>
 
-// Las cotizaciones de la página en escritorio, con el patrón de lista (`@/shared/ui/lista`): «N.º n» es el enlace de la fila (la parada de Tab) y, debajo, su título. Sin «⋯» y sin
-// clic de fila: el resumen es del 4.16-4b.
-export function TablaDeCotizaciones({ cotizaciones, origenes }: Props) {
+// Las cotizaciones de la página en escritorio, con el patrón de lista (`@/shared/ui/lista`): «N.º n» es el botón de la fila (`<AbrirResumen>`, la parada de Tab) y, debajo, su título. Un clic en la
+// fila abre el resumen `?cotizacion=` (4.16-4b); sin «⋯»: las acciones son de los pasos 4.2x.
+export function TablaDeCotizaciones({ cotizaciones, origenes, alAbrir, abierta }: Props) {
   const { zonaHoraria } = useRegional()
   return (
     <TablaDeLista>
@@ -37,15 +46,21 @@ export function TablaDeCotizaciones({ cotizaciones, origenes }: Props) {
       </TableHeader>
       <TableBody>
         {cotizaciones.map((cotizacion) => (
-          <FilaDeLista key={cotizacion.id}>
+          <FilaDeLista
+            key={cotizacion.id}
+            abierta={abierta === cotizacion.id}
+            alAbrir={() => {
+              alAbrir(cotizacion.id)
+            }}
+          >
             <CeldaPegada lado="nombre">
               <div className="grid min-w-0">
-                <Link
-                  href={rutaDeLaCotizacion(cotizacion.id) as Route}
-                  className="font-medium text-(--color-ink) tabular-nums hover:underline"
+                <AbrirResumen
+                  nombre={`N.º ${String(cotizacion.numero)}`}
+                  className="w-fit font-medium text-(--color-ink) tabular-nums"
                 >
                   N.º {cotizacion.numero}
-                </Link>
+                </AbrirResumen>
                 {cotizacion.titulo ? (
                   <span className="max-w-60 truncate text-(length:--text-xs) text-(--color-ink-soft)">
                     {cotizacion.titulo}
