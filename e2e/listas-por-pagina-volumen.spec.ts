@@ -14,6 +14,7 @@ import { esMovil } from './soporte/inventario'
 import { entrarConSesion } from './soporte/pasos'
 import { capturar, sinScrollHorizontal } from './soporte/recorrido'
 import { sql } from './soporte/sql'
+import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../src/modules/cotizaciones/entities/listado'
 import { MAXIMO_DE_PAGINA_DE_LEADS } from '../src/modules/leads/entities/listado'
 import { MAXIMO_DE_PAGINA_DE_VEHICULOS } from '../src/modules/vehiculos/entities/vehiculo'
 import { tamanosHasta } from '../src/shared/lib/paginacion'
@@ -37,13 +38,15 @@ const ANA = 'ana-volumen@ejemplo.com'
 // Cuántos nodos del DOM aguanta cada lista con su máximo: lo medido con un margen. Desde el cierre 1 se dibuja una sola vista
 // (la tabla o las tarjetas): leads a 100 filas, 5.020 → 2.594 en escritorio y 5.015 → 2.781 en el celular; inventario
 // 7.894 → 4.916 y 7.888 → 3.295. Antes las dos vistas estaban en el DOM.
-const NODOS_MAXIMOS = { leads: 3_500, vehiculos: 6_000 }
+const NODOS_MAXIMOS = { leads: 3_500, vehiculos: 6_000, cotizaciones: 2_130 }
 // Lo que pesa, comprimido, el documento de la primera respuesta (el HTML y el flujo de React) con el máximo de la lista:
 // lo medido con un margen. Cierre 1: leads a 100, 46,5 → 37,6 KB (705 → 465 KB crudos en escritorio, 427 en el celular);
 // inventario 57,2 → 47,3 KB (1,39 MB → 920 KB crudos; 740 en el celular). Un peso que de pronto se duplica es una columna
 // que nadie pensó, o la otra vista que volvió al HTML.
-const BYTES_MAXIMOS_DEL_DOCUMENTO = { leads: 48_000, vehiculos: 60_000 }
+const BYTES_MAXIMOS_DEL_DOCUMENTO = { leads: 48_000, vehiculos: 60_000, cotizaciones: 39_500 }
 
+// Las cotizaciones (4.16-4a, 8 columnas) a 100 filas, medidas con las 50.000 de la siembra: 482 KB crudos y 37,1 KB comprimidos la dueña, 514 KB y 37,5 KB Ana (escritorio);
+// 400 y 431 KB crudos y 35,9 y 36,3 KB comprimidos en el celular; 1.979 nodos en escritorio y 2.024 en el celular. Los topes, lo medido más un 5 % (previos: 40.000 B y 3.000 nodos).
 const nodos = (page: Page) => page.evaluate(() => document.querySelectorAll('*').length)
 
 test.beforeAll(() => {
@@ -232,3 +235,46 @@ test('inventario de vehículos de la dueña: con el máximo (100) cabe en bytes 
   await selectorDeTamano(page).scrollIntoViewIfNeeded()
   await capturar(page, info, 'vehiculos-selector')
 })
+
+// El listado de cotizaciones (4.16-4a) con las 50.000 de la siembra (`sembrar-cotizaciones.sql`: la dueña 2/5, Ana 1/25): el máximo (100) de la dueña y de Ana, en una sola vista, sin
+// pedidos del navegador y con una página profunda que no pesa más.
+for (const [quien, correo] of [
+  ['la dueña («todos»)', DUENA],
+  ['Ana («propios»)', ANA],
+] as const) {
+  test(`listado de cotizaciones de ${quien}: con el máximo (${String(MAXIMO_DE_PAGINA_DE_COTIZACIONES)}) cabe en bytes y en nodos, y una página profunda no pesa más`, async ({
+    page,
+  }, info) => {
+    test.setTimeout(240_000)
+    await entrarConSesion(page, correo, CLAVE)
+    await fijarPreferencia(correo, null)
+    const pedidos = observar(page)
+    const maximo = MAXIMO_DE_PAGINA_DE_COTIZACIONES
+    const peso = await pesoDelDocumento(page, `/cotizaciones?por=${String(maximo)}`)
+    await esperarLista(page)
+    // La lista y los nombres llegan con el HTML del servidor: el navegador no le pide nada a la base ni ejecuta acciones.
+    expect(pedidos.aLaBase()).toBe(0)
+    expect(pedidos.acciones()).toBe(0)
+    await expect(filasDelListado(page)).toHaveCount(maximo)
+    const primera = await nodos(page)
+    notas(
+      info,
+      'listado de cotizaciones',
+      `${quien}: ${String(peso.crudo)} bytes (${String(peso.gzip)} comprimidos), ${String(primera)} nodos, ${String(maximo)} filas`,
+    )
+    expect(peso.gzip).toBeLessThan(BYTES_MAXIMOS_DEL_DOCUMENTO.cotizaciones)
+    expect(primera).toBeLessThan(NODOS_MAXIMOS.cotizaciones)
+    await sinScrollHorizontal(page)
+    // Una página profunda (10 «Siguiente»): las filas son 100 y el DOM no crece con la profundidad.
+    await pasarPaginas(page, 10)
+    await expect(filasDelListado(page)).toHaveCount(maximo)
+    const profunda = await nodos(page)
+    notas(
+      info,
+      'página profunda de cotizaciones',
+      `${quien}: ${String(profunda)} nodos (la primera ${String(primera)})`,
+    )
+    expect(profunda).toBeLessThanOrEqual(Math.ceil(primera * 1.15))
+    expect(parametrosDe(page).get('por')).toBe(String(maximo))
+  })
+}
