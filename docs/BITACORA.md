@@ -513,3 +513,20 @@ El 4.16-2 se partió en 2a (la base) y 2b (la app, que cierra 4-23), tras tres s
 - 4-23 se cierra. 4-77 y 4-78 siguen abiertos.
 - **Commits:** `f244143c` (la fuente), `dc5f9fa5` (la lectura por la función) y `7af6fe49` (el e2e de pantalla).
   e2e completo: no (4.16-2b, pantalla, 1 de 3)
+
+## 2026-11-05 — 4.16-3: la siembra de cotizaciones del volumen y las mediciones que vacían la tabla en su transacción
+
+`docs/DECISIONES.md` › «Paso 4.16-3». Sin migración, sin `src/`, sin `db:types`.
+
+- `pnpm db:sembrar-volumen` siembra además 50.000 cotizaciones (`sembrar-cotizaciones.sql`, en un archivo aparte para no pasar de 300 líneas) y llena `cotizado_en` (7.120 vehículos).
+  Las cuatro mediciones que sembraban las suyas vacían la tabla en su transacción. `medir-escala.sql` mide `cotizaciones_listado()` sobre la siembra.
+- **Verificación** (`.piloto/salidas/4.16-3/`; informe en `.piloto/informes/4.16-3.md`):
+  - En verde: `lint`, `typecheck`, `test` (526 archivos, 6.207 pruebas), `db:probar`, `mapa.sh --check` y `db:medir:volumen` entero desde `db:reset` + `db:sembrar-volumen`.
+    Después de medir siguen las 50.000 (`despues-de-medir.txt`). Al final, `db:reset`.
+  - Rojos contra HEAD: `medir-escala.sql` nuevo sobre la siembra de HEAD cae por la guarda (R1) y, con la guarda puenteada, por las seis páginas vacías (R1b). Las cuatro
+    mediciones de HEAD con la siembra nueva caen con «la base ya trae cotizaciones» (R2). La siembra se niega la segunda vez (R3).
+  - Sin mutaciones: no es un paso de rigor máximo. Que `db:medir:volumen` esté verde en el estado de los commits 1 y 2 se razona y no se midió: lo medido es el estado final.
+- Medido: la dueña 1,4–1,5 ms en los cinco casos; Ana 7,6–11,5 ms («mías» 1,5). `origenes_resumen()` 7,5 ms. La carga estaba entre 2 y 5 (otra sesión de otro proyecto).
+- Abierto nuevo **4-79**: Configuración › Orígenes dibuja un total exacto de cotizaciones por origen.
+- **Commits:** `f20a8aae` (el truncate), `d30cb63c` (la siembra) y `addf0b2a` (la fila de `medir-escala.sql`).
+  e2e completo: no (4.16-3, siembra y medición, Nivel 1)

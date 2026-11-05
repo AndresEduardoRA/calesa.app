@@ -75,7 +75,7 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
 - SQL con `offset` o `count(` sin `limit` y sin motivo → `supabase/tests/escala.sql` (`pnpm db:probar`)
 - Función con tamaño de página sin `_acotar_pagina`; preferencia distinta de 10, 25, 50, 100 → `supabase/tests/escala.sql` (`pnpm db:probar`)
 - RPC con tamaño fuera del registro, tamaño a mano, `check` distinto de `TAMANOS_DE_PAGINA`, `max_rows` corto → `scripts/guardas/paginas.test.ts` y `paginas-en-la-base.ts` (`pnpm test`)
-- Plan o tiempo de leads, inventario, búsqueda, campos y kanban → `supabase/tests/medir-escala.sql` (`pnpm db:medir:volumen`)
+- Plan o tiempo de leads, inventario, búsqueda, campos, kanban y el listado de cotizaciones sobre la siembra → `supabase/tests/medir-escala.sql` (`pnpm db:medir:volumen`)
 - Búsqueda por candidatos distinta de la consulta de siempre → `supabase/tests/busqueda-volumen.sql`, `busqueda-leads.sql` en PGlite (`pnpm db:medir:volumen`)
 - Jobs con 100.000 filas por purgar → `supabase/tests/medir-jobs.sql` (`pnpm db:medir:volumen`)
 - `cotizacion_evaluar()` con volumen → `supabase/tests/medir-evaluar.sql` (`pnpm db:medir:volumen`)
