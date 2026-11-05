@@ -93,7 +93,13 @@ export { contarCotizacionesDelVehiculo } from './composicion'
 
 // El listado `/cotizaciones` (4.16-1, la pantalla en el 4.16-4a): una página por cursor, con la RLS de quien mira, y su máximo medido; los autores de la página, por clave
 // primaria; sus filtros y las filas con los nombres que la pantalla le suma. Los componentes salen por `pantallas/listado.ts`.
-export { leerAutoresDeCotizaciones, leerListadoDeCotizaciones } from './composicion'
+export {
+  leerAutoresDeCotizaciones,
+  leerListadoDeCotizaciones,
+  leerUnaDelListado,
+} from './composicion'
+export { CLAVE_DE_RESUMEN_DE_COTIZACION, idDelResumen } from './entities/resumen-del-listado'
+export type { LecturaDelServidor } from './entities/resumen-del-listado'
 export { filasConNombres, idsDe } from './entities/filas-del-listado'
 export type { CotizacionDelListado } from './entities/filas-del-listado'
 export {

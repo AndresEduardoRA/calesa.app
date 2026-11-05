@@ -141,6 +141,11 @@ Salvo que se diga otro, mide `pnpm db:medir` en la base de la semilla; el tope e
   **La pantalla** (4.16-4a, `e2e/cotizaciones-listado.spec.ts` y `e2e/listas-por-pagina-volumen.spec.ts`, `E2E_VOLUMEN=1`, ambos proyectos): una sola vista, 8 columnas, el máximo (100) sin pedidos
   del navegador a la base ni acciones; con las 50.000 de la siembra, el documento pesa 37,1 KB comprimidos la dueña y 37,5 Ana (escritorio; 35,9 y 36,3 en el celular) y 1.979 nodos en escritorio y
   2.024 en el celular; diez «Siguiente» no suben los nodos más de un 15 % (1.973–1.980 y 2.024–2.025). Topes: **39.500 B** y **2.130 nodos**. JS en frío de `/cotizaciones`: 358,4 KB de **380**.
+  **El resumen `?cotizacion=`** (4.16-4b, `e2e/cotizaciones-listado-resumen.spec.ts`): abrir desde la fila no pide nada a la base ni a la página; el drawer va en su chunk (JS en frío 359 KB de 380) y con 100 filas el documento
+  midió 35,4 KB y 1.979 nodos (escritorio) y 34,4 KB y 2.024 (celular), bajo los topes. Una cotización fuera de la página (recargar, enlace, «Siguiente») cuesta un pedido por `cotizaciones_pkey` y una
+  llamada a `cotizaciones_listado()` de tamaño 1 por su índice, más sus tres lecturas de nombres (un id cada una); sin medición SQL nueva. **`router.refresh()`**: sólo si la URL trae una que ni la página ni el servidor
+  trajeron (una vez por id) y en cada clic en «Reintentar»; vuelve a dibujar la página entera (hasta 100 filas, sus tres lecturas de nombres, la búsqueda por clave primaria y la llamada de tamaño 1), y si falla la
+  lectura de la página cae al `error.tsx`.
   Los nombres de la página (cliente, vehículo, autor) son tres lecturas por clave primaria de a lo sumo 100 ids, en paralelo, una vez por página (`leads_vista_por_ids`, `vehiculos_pkey`,
   `perfiles_pkey`); sin medición SQL propia, como el autor del historial («límite sin assert»).
   Límites sin assert: el costo fijo de cada llamada, ≈ 160–240 buffers de `mis_permisos()` (4-77; no crece con N ni, medido en el 4.16-2a, con las concesiones de quien mira: su causa sigue sin medir); la

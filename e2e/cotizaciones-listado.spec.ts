@@ -13,8 +13,8 @@ import {
 import { literal, sql } from './soporte/sql'
 
 // El listado `/cotizaciones` (paso 4.16-4a, `docs/UX.md` › «Cotizaciones»): lo que ve cada quien (la RLS decide), sus filtros en la URL, la paginación por cursor, «Nueva
-// cotización» y el filtro por vehículo. Todo se filtra por el origen de la prueba para no ver lo de otros specs. Sin resumen todavía (4.16-4b): el número de cada fila es el
-// enlace a su página. El terreno (origen, personas, vehículos y cotizaciones sembradas) lo arma `soporte/listado-de-cotizaciones.ts`.
+// cotización» y el filtro por vehículo. Todo se filtra por el origen de la prueba para no ver lo de otros specs. El resumen `?cotizacion=` (4.16-4b) está en
+// `cotizaciones-listado-resumen.spec.ts`: un clic en la fila lo abre y su «Abrir cotización» lleva a la página. El terreno (origen, personas, vehículos y cotizaciones sembradas) lo arma `soporte/listado-de-cotizaciones.ts`.
 test.describe.configure({ mode: 'serial' })
 
 let t: TerrenoDelListado
@@ -77,8 +77,9 @@ test('E1 la dueña ve Cotizaciones en el menú y cada fila con su cliente, vehí
   await expect(conVehiculo).toContainText('Gala Guarda')
   await expect(conVehiculo.getByText(/\d/).first()).toBeVisible()
 
-  // El número lleva a la página de su cotización.
-  await vieja.getByRole('link', { name: /^N\.º / }).click()
+  // Un clic en la fila abre su resumen y «Abrir cotización» lleva a la página de la cotización.
+  await vieja.getByRole('button', { name: /^Abrir N\.º / }).click()
+  await page.getByRole('dialog').getByRole('link', { name: 'Abrir cotización' }).click()
   await expect(page).toHaveURL(/\/cotizaciones\/[0-9a-f-]{36}$/)
 })
 

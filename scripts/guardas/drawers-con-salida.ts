@@ -122,6 +122,9 @@ export const DRAWERS: Record<string, RegistroDeDrawer> = {
   'src/modules/cotizaciones/features/hoja/components/ayuda-de-tabla.tsx': {
     sinFormulario: 'de sólo lectura: la tabla de referencia de una celda de la hoja',
   },
+  'src/modules/cotizaciones/features/listado/components/resumen-de-cotizacion.tsx': {
+    sinFormulario: 'de sólo lectura: el resumen de una cotización del listado (4.16-4b)',
+  },
   'src/modules/cotizaciones/features/revisiones/components/panel-de-revisiones.tsx': {
     sinFormulario: 'de sólo lectura: las revisiones de una cotización guardada',
   },

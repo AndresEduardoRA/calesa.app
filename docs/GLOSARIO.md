@@ -118,7 +118,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Ítems por página** — `listas.por_pagina`, `tamanoDePagina()`, `?por=`: 10, 25, 50 o 100 por cuenta; cada lista tiene un máximo (leads 50, vehículos 100).
 - **Número propio** — `leads.numero_propio` / `leads_numeros_propios`, `NumerosDeLead.numeroPropio`: consecutivo por creador (desde 1): «Tu n.º 12». Se busca con `12` o `#12`.
 - **Número global** — `leads.numero` / `leads_numeros_globales`, `leads.numero_global.ver`, `NumerosDeLead.numero`: consecutivo de la empresa («N.º 1.234»); nulo sin el permiso.
-- **Resumen** — `?lead=` y `?vehiculo=` / `<DrawerDeLead>`, `<ResumenDeVehiculo>`: vistazo sin salir de la lista («drawer rápido» en el código).
+- **Resumen** — `?lead=`, `?vehiculo=` y `?cotizacion=` / `<DrawerDeLead>`, `<ResumenDeVehiculo>`, `<ResumenDeCotizacion>`: vistazo sin salir de la lista («drawer rápido» en el código).
 - **Patrón de lista** — `@/shared/ui/lista` (`<UnaSolaVista>`, `<FilaDeLista>`, `<MasAcciones>`…): toda lista es tabla o tarjetas, nombre a la izquierda, «⋯» a la derecha.
 - **Vuelta del foco** — `abrirConVuelta()`, `useVueltaDelFoco()` (`src/shared/ui/vuelta-del-foco.ts`): tras recargar con un panel por URL abierto, «atrás» devuelve el foco a quien lo abrió (desde un menú, al botón del menú).
 - **Más acciones («⋯»)** — `<MasAcciones>` / `accionesDeLead()`, `accionesDeVehiculo()`: menú de fila, tarjeta, resumen o ficha.

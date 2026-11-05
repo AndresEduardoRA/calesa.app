@@ -20,11 +20,21 @@ type Props = {
   accionDeVacio?: ReactNode
   // Con `?vehiculo=`: el vacío sin otros filtros habla de ese vehículo.
   deUnVehiculo?: boolean
+  // Abre el resumen de una cotización y cuál está abierta (`?cotizacion=`).
+  alAbrir: (id: string) => void
+  abierta: string | null
 }
 
 // La lista o el estado que corresponda: vacío de primera vez, vacío por filtro (con «Limpiar») o una página que se quedó sin filas. Una sola vista (`<UnaSolaVista>`): la tabla
 // desde `md` y las tarjetas por debajo. Sin total ni «Página N de M»: sólo dónde estás y Anterior o Siguiente.
-export function ResultadoDelListado({ pagina, origenes, accionDeVacio, deUnVehiculo }: Props) {
+export function ResultadoDelListado({
+  pagina,
+  origenes,
+  accionDeVacio,
+  deUnVehiculo,
+  alAbrir,
+  abierta,
+}: Props) {
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
 
@@ -56,8 +66,22 @@ export function ResultadoDelListado({ pagina, origenes, accionDeVacio, deUnVehic
     <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
       <UbicacionDeLaPagina ubicacion={ubicacionDeLaPagina(pagina)} />
       <UnaSolaVista
-        tabla={() => <TablaDeCotizaciones cotizaciones={pagina.filas} origenes={origenes} />}
-        tarjetas={() => <TarjetasDeCotizaciones cotizaciones={pagina.filas} origenes={origenes} />}
+        tabla={() => (
+          <TablaDeCotizaciones
+            cotizaciones={pagina.filas}
+            origenes={origenes}
+            alAbrir={alAbrir}
+            abierta={abierta}
+          />
+        )}
+        tarjetas={() => (
+          <TarjetasDeCotizaciones
+            cotizaciones={pagina.filas}
+            origenes={origenes}
+            alAbrir={alAbrir}
+            abierta={abierta}
+          />
+        )}
       />
       <Paginacion siguiente={pagina.siguiente} anterior={pagina.anterior} />
     </div>
