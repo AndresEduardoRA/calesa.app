@@ -8061,6 +8061,34 @@ export type Database = {
         Args: { p_abierta?: string; p_cotizacion?: string; p_origen?: string; p_tabla: string }
         Returns: Json
       }
+      cotizaciones_listado: {
+        Args: {
+          p_clase?: Database['public']['Enums']['clase_cotizacion']
+          p_cursor_en?: string
+          p_cursor_id?: string
+          p_hacia_atras?: boolean
+          p_mias?: boolean
+          p_origen?: string
+          p_tamano: number
+          p_vehiculo?: string
+        }
+        Returns: {
+          clase: Database['public']['Enums']['clase_cotizacion']
+          creado_en: string
+          creado_por: string
+          estado: Database['public']['Enums']['estado_cotizacion']
+          id: string
+          lead_id: string
+          moneda_mostrar: string
+          numero: number
+          origen_id: string
+          titulo: string
+          total_base: number
+          vehiculo_id: string
+          vence_el: string
+          vencida: boolean
+        }[]
+      }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
         Returns: Json
