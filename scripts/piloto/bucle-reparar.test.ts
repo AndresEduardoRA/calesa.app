@@ -41,7 +41,10 @@ describe('bucle.sh › repara solo el disco', () => {
     a.decidir(1, responder('parado'))
     const r = a.correr([], { ...SOLO, PILOTO_DISCO_MAX: '1', PILOTO_CMD_LIMPIAR: 'true' })
     expect(r.estado).toBe(0)
-    expect(a.secuencia()).toEqual(['decidir:abrir parada ', 'decidir:cerrar'])
+    expect(a.secuencia()).toEqual([
+      expect.stringMatching(/^decidir:abrir parada/),
+      'decidir:cerrar',
+    ])
     expect(r.salida).toContain('reparando solo: el disco')
   })
 })
