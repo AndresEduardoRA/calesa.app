@@ -85,6 +85,15 @@ describe('instalar-servicios.sh', () => {
     expect(r.salida).not.toContain('--carril c')
   })
 
+  it('con CARRILES_DIR los carriles ≠ a viven ahí (otro disco)', () => {
+    const r = ejecutar('instalar-servicios.sh', ['--en-seco', 'a', 'b'], {
+      CARRILES_DIR: '/mnt/orca-carriles',
+    })
+    expect(r.estado, r.salida).toBe(0)
+    expect(r.salida).toContain('WorkingDirectory=/mnt/orca-carriles/b')
+    expect(r.salida).not.toContain(`${repo}.carriles`)
+  })
+
   it('en seco no escribe ninguna unidad', () => {
     ejecutar('instalar-servicios.sh', ['--en-seco'], { UNIDADES: join(raiz, 'unidades') })
     expect(existsSync(join(raiz, 'unidades'))).toBe(false)

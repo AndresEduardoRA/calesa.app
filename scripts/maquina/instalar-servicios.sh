@@ -5,6 +5,7 @@
 #   bash scripts/maquina/instalar-servicios.sh [--en-seco] [carril…]    (sin carriles: a b c)
 set -euo pipefail
 RAIZ=$(git rev-parse --show-toplevel)
+source "$(dirname "${BASH_SOURCE[0]}")/../piloto/carriles-dir.sh"
 EN_SECO=0
 CARRILES=()
 for a in "$@"; do
@@ -18,7 +19,7 @@ escribir() { # <nombre> <texto>
 for c in "${CARRILES[@]}"; do
   # Un carril ≠ a vive en su worktree (abrir-carriles.sh); el a, en la principal.
   arbol="$RAIZ"
-  [ "$c" = a ] || arbol="$RAIZ.carriles/$c"
+  [ "$c" = a ] || arbol="$CARRILES_DIR/$c"
   escribir "piloto-$c.service" "[Unit]
 Description=Piloto de importadora, carril $c
 After=network-online.target docker.service

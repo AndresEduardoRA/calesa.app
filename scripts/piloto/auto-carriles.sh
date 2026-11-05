@@ -8,6 +8,7 @@
 set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
 cd "$RAIZ" || exit 1
+source "$BIN/carriles-dir.sh"
 MAX_PEDIDO="${CARRILES_MAX:-}"
 [ -f piloto.config ] && source piloto.config
 CARRILES_MAX="${MAX_PEDIDO:-${CARRILES_MAX:-3}}"
@@ -29,7 +30,7 @@ listo() {
   git fetch --quiet origin main 2>/dev/null || return 1
   local f; for f in $AUTO_LISTO; do git cat-file -e "origin/main:$f" 2>/dev/null || return 1; done
 }
-disco_libre_gb() { df --output=avail -BG / | tail -1 | tr -dc 0-9; }
+disco_libre_gb() { mkdir -p "$CARRILES_DIR" 2>/dev/null; df --output=avail -BG "$CARRILES_DIR" | tail -1 | tr -dc 0-9; }
 ram_libre_gb() { awk '/MemAvailable/ { printf "%d", $2 / 1048576 }' /proc/meminfo; }
 corre() { tmux has-session -t "piloto-bucle-$1" 2>/dev/null; }
 
@@ -48,7 +49,7 @@ revisar() {
   if [ -n "${AUTO_EN_SECO:-}" ]; then echo "abriría $c"; return 1; fi
   log "abro el carril $c"
   $AUTO_CMD_ABRIR "$c" >>"$ESTADO/bucle.log" 2>&1 || { log "no pude abrir el carril $c"; return 1; }
-  local dir; dir="$(dirname "$RAIZ")/$(basename "$RAIZ").carriles/$c"
+  local dir="$CARRILES_DIR/$c"
   (cd "$dir" && bash scripts/piloto/arrancar.sh --carril "$c") >>"$ESTADO/bucle.log" 2>&1 || { log "no pude arrancar el carril $c"; return 1; }
   echo "abierto $c"; return 1   # 1: vuelve a revisar por si cabe otro
 }
