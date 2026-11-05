@@ -183,6 +183,12 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
     (se muestra sin cambiarlo; **4-71**). **P2** al abrir se recalcula y, si no da lo guardado, se avisa y «Total guardado» muestra el de antes con `<Monto>`, con «Guardar» encendido.
     Del 4.15-3b (contestadas el 2026-11-04 con la recomendada; `.piloto/planes/4.15-3b.md` › «Preguntas abiertas»): **P1** con cambios sin guardar (o un guardado pendiente) «Cotizar encima» queda apagado y dice «Guarda o descarta
     tus cambios antes de cotizar encima: la versión nueva lleva lo guardado.». **P2** las revisiones no tienen camino a lo antiguo tras 500 por ahora (**4-75**, para el 4.17); el aviso dice «Mostrando las 500 más recientes.».
+- **4.15-4** — **Preparar los carriles en paralelo** (sin cambiar lo que ve la persona): partir las entradas de `src/modules/cotizaciones/` por área
+  (`listado`, `tarjeta`, `plantilla`, `formula`, `diseno`, `tablas`, `papelera`, `final`, `comprobantes`, `comentarios`) para que los pasos 4.16 a 4.27
+  agreguen archivos propios y no editen los compartidos: carpetas `features/<área>/`, `entities/<área>/`, `infra/<área>/` y `pantallas/<área>.ts`;
+  `index.ts`, `client.ts` y `composicion.ts` sólo reexportan por área (un archivo por área) y un paso nuevo no los toca; una guarda de arquitectura
+  falla si un área importa a otra. El plan de los carriles está en `docs/plan.yaml` (`dueno_de` por área, `base` para este paso y el 4.28).
+  Depende de 4.15-3. Nivel 1 (nada cambia de pantalla: los tests y los e2e existentes siguen verdes). Prompts: 1.
 - **4.16** — El listado `/cotizaciones` (resumen `?cotizacion=`, «Vencida», cursor, el máximo medido, sin el snapshot), la siembra de
   volumen y `medir-escala.sql`; se enciende la navegación. Cierra **4-14** («todas las que veo» de quien ve «propios») y **4-23** (el
   gemelo en el inventario de vehículos), la entrada a cotizar desde el listado (`docs/UX.md:38`) y el camino a lo antiguo del historial del vehículo (el tope de 500 del 4.14-2b: un
@@ -234,7 +240,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 33 pasos y 86 prompts; faltan los pasos 4.16-2 a 4.28.
+Total de la fase: 34 pasos y 87 prompts; faltan los pasos 4.15-4 y 4.16-2 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la

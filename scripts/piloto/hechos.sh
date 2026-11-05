@@ -82,7 +82,7 @@ jq -n \
   --arg hora "$HORA" --arg rama "$RAMA" --arg head "$HEAD_SHA" --arg origin "$ORIGIN" \
   --argjson limpio "$LIMPIO" --arg disco "$DISCO" --argjson libre "$LIBRE" --arg dueno "$DUENO" \
   --argjson ci "$CI" --argjson e2e "$E2E" --arg bytes "${BYTES_ESTADO:-0}" \
-  --argjson ultimo "$(json_o_null "$ESTADO/ultimo.json")" --argjson en_curso "$(json_o_null "$ESTADO/en-curso.json")" \
+  --argjson ultimo "$(json_o_null "$ESTADO/ultimo.json")" --argjson en_curso "$(json_o_null "$ESTADO/en-curso.json")" --argjson asignado "$(json_o_null "$ESTADO/asignado.json")" \
   --arg fallas "${FALLAS:-0}" --arg nota "$NOTA" --arg decision "$DECISION" --argjson funciones "$FUNCIONES" \
   --argjson rojos_n "$CI_ROJOS_N" --argjson rojos_ultimos "$CI_ROJOS_ULTIMOS" '{
     hora: $hora,
@@ -98,6 +98,7 @@ jq -n \
     bytes_estado: ($bytes | tonumber? // null),
     ultimo: $ultimo,
     en_curso: $en_curso,
+    asignado: $asignado,
     fallas_seguidas: ($fallas | tonumber? // 0),
     nota: (if $nota == "" then null else $nota end),
     funciones: $funciones,

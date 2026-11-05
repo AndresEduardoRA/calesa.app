@@ -20,7 +20,7 @@ comandos ya está en `.piloto/hechos.json`. Tu respuesta es **un solo objeto JSO
 
 ## Cómo decidir
 
-- **`paso`:** si `en_curso` nombra un paso, es ése (se retoma). Si no, el primero sin hacer según ESTADO y PLAN. Si la persona respondió algo en `decision`, tenlo en
+- **`paso`:** si `asignado` no es `null` (un carril con coordinador), es **ése**: `asignado.paso`; no elijas otro ni mires el orden de ESTADO (su `ruteo` ya trae modelo y effort; tú decides el nivel, la compuerta y la partición). Si `en_curso` nombra un paso, es ése (se retoma). Si no, el primero sin hacer según ESTADO y PLAN. Si la persona respondió algo en `decision`, tenlo en
   cuenta (el paso lo lee de `hechos.json`, no de un archivo). Si no queda nada, `paso: "ninguno"`.
 - **`sesion`:** `continuar` con el `session_id` de `en_curso` si hay un paso a medias o `ultimo.resultado` fue `compuerta`; si no, `nueva` con `session_id: null`.
 - **`modelo` y `effort`** (política ajustable): docs → `sonnet`/`medium`; una pantalla → `sonnet`/`high`; `src/shared`, un disparador de Nivel 2, datos o

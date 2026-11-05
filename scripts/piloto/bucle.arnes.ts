@@ -17,19 +17,10 @@ import { dirname, join, resolve } from 'node:path'
 // bash por llamada que corre en el repo), `decidir.sh` (un guion por compuerta, que escribe `decision.md` como lo haría el hook),
 // `verificar.sh` y `publicar.sh` (sólo registran que corrieron), `gh` y `sleep`. El registro de llamadas fija el orden.
 const REAL = resolve('scripts/piloto')
-const PIEZAS_REALES = [
-  'bucle.sh',
-  'comun.sh',
-  'compuerta.sh',
-  'cierre.sh',
-  'gasto.sh',
-  'ci.sh',
-  'hechos.sh',
-  'consumo.sh',
-  'cuenta-e2e.mjs',
-  'ruteo.schema.json',
-  'ultimo.schema.json',
-]
+const PIEZAS_REALES =
+  'bucle.sh comun.sh compuerta.sh reparar.sh carril.sh cierre.sh gasto.sh ci.sh hechos.sh consumo.sh cuenta-e2e.mjs ruteo.schema.json ultimo.schema.json'.split(
+    ' ',
+  )
 
 export const RUTEO_BASE = {
   paso: '4.99',
@@ -236,6 +227,7 @@ export class Arnes {
         PILOTO_DISCO_MAX: '99',
         PILOTO_TOPE_USD_PASO: '60',
         PILOTO_AUTO: '',
+        PILOTO_REPARAR: '0',
         PILOTO_DORMIR: join(this.fake, 'dormir'),
         PILOTO_PGREP_PATRON: 'un-proceso-que-no-existe-ni-existira',
         CLAUDE_BIN: join(this.fake, 'claude'),

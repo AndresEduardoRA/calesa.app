@@ -19,6 +19,10 @@ set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/comun.sh"
 # shellcheck source=compuerta.sh
 source "$BIN/compuerta.sh"
+# shellcheck source=reparar.sh
+source "$BIN/reparar.sh"
+# shellcheck source=carril.sh
+source "$BIN/carril.sh"
 # shellcheck source=cierre.sh
 source "$BIN/cierre.sh"
 # shellcheck source=gasto.sh
@@ -131,15 +135,16 @@ paradas_deterministas() {
   local disco
   # El piloto es el carril A: trabaja en su rama `a/…` y publica por PR (publicar.sh), nunca en main.
   case "$(hecho .rama)" in
-    a/?*) ;;
-    *) chequeo rama "la rama es «$(hecho .rama)», no la del carril A (a/…)" || return 1 ;;
+    a/?*) modo_carril || true ;;
+    "${PILOTO_CARRIL:-/}"/?*) ;;
+    *) chequeo rama "la rama es «$(hecho .rama)», no la del carril ${PILOTO_CARRIL:-A} (${PILOTO_CARRIL:-a}/…)" || return 1 ;;
   esac
   if [ "$(hecho .arbol_limpio)" != true ] && [ ! -f "$ESTADO/en-curso.json" ]; then
     chequeo arbol "el árbol está sucio y no hay un paso en curso" || return 1
   fi
   disco=$(hecho .disco_pct)
   if [ -n "$disco" ] && [ "$disco" != null ] && [ "$disco" -gt "$DISCO_MAX" ]; then
-    chequeo disco "el disco está al ${disco} % (tope ${DISCO_MAX} %: libera espacio o arranca con PILOTO_DISCO_MAX)" || return 1
+    reparar_disco "$DISCO_MAX" || chequeo disco "el disco está al ${disco} % (tope ${DISCO_MAX} %: libera espacio o arranca con PILOTO_DISCO_MAX)" || return 1
   fi
   # Un CI rojo no frena: se anota en .piloto/ci-rojos.md y el ruteo lo ve (ci.sh). Frena la base en rojo y la acumulación.
   ci_resolver "$(hecho .rama)" || chequeo ci "$CI_MOTIVO" || return 1
@@ -315,6 +320,17 @@ vuelta() {
     return 0
   fi
 
+  # Con carril: el coordinador da el paso (y su rama) antes del ruteo; sin paso libre, el carril espera.
+  if modo_carril && [ ! -f "$ESTADO/en-curso.json" ] && [ ! -f "$ESTADO/forzar-ci-fix" ]; then
+    carril_asignar
+    case "$?" in
+      0) ;;
+      10) registro "carril $PILOTO_CARRIL: sin paso libre; espero ${PILOTO_ESPERA_S:-120} s."; $DORMIR "${PILOTO_ESPERA_S:-120}"; return 0 ;;
+      11) registro "carril $PILOTO_CARRIL: el coordinador no tiene más pasos para este carril."; exit 0 ;;
+      *) parada "el coordinador no pudo asignar un paso al carril $PILOTO_CARRIL: $(tail -n 1 "$ESTADO/coordinador.err" 2>/dev/null)"; return 0 ;;
+    esac
+  fi
+
   if [ -f "$ESTADO/forzar-ci-fix" ] || { [ ! -f "$ESTADO/en-curso.json" ] && ci_acumulado; }; then
     rm -f "$ESTADO/forzar-ci-fix"
     ruteo_ci_fix
@@ -323,6 +339,10 @@ vuelta() {
   fi
   paso=$(jq -r .paso "$ESTADO/ruteo.json") modelo=$(jq -r .modelo "$ESTADO/ruteo.json") effort=$(jq -r .effort "$ESTADO/ruteo.json")
   [ "$paso" = ninguno ] && { registro "PLAN: el ruteo no ve ningún paso por avanzar."; exit 0; }
+  if modo_carril && [ -f "$ESTADO/asignado.json" ] && [ "$paso" != "$(jq -r .paso "$ESTADO/asignado.json")" ] && [ "$paso" != ci-fix ]; then
+    parada "el ruteo eligió $paso, pero el coordinador asignó $(jq -r .paso "$ESTADO/asignado.json") al carril $PILOTO_CARRIL" "$paso"
+    return 0
+  fi
   tipo_ruteo=$(jq -r .compuerta.tipo "$ESTADO/ruteo.json")
 
   # Una compuerta que ve el ruteo (dependencia, hito, producto, atasco, afuera): se pregunta antes de gastar el paso y antes de anotar nada en en-curso.json (el paso no empezó). Una sola vez por paso y tipo.
@@ -339,6 +359,7 @@ vuelta() {
   if jq -e '.nivel.completo == true or (.nivel.nivel // 1) >= 2' "$ESTADO/ruteo.json" >/dev/null 2>&1; then
     local faltan
     faltan=$(hecho 'if (.funciones | type) == "object" then [.funciones | to_entries[] | select(.value != true) | .key] | join(", ") else "no se pudo mirar" end')
+    if [ -n "$faltan" ] && reparar_funciones; then faltan=; fi
     if [ -n "$faltan" ]; then
       parada "el paso $paso corre el e2e completo (Nivel 2) y faltan las funciones edge ($faltan): corre «pnpm funciones» en otra terminal" \
         "$paso" 'parado — no sigue (recomendado)' 'reintentar — vuelve a mirar las funciones' 'sigo — corre el paso igual'

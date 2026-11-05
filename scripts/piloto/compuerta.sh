@@ -100,10 +100,10 @@ decision_valida() {
 esperar_decision() {
   local inicio=$SECONDS
   until decision_valida; do
-    [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras se esperaba una decisión."; "$BIN/decidir.sh" cerrar 8>&-; exit 0; }
+    [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras se esperaba una decisión."; "$BIN/decidir.sh" cerrar 8>&- 9>&-; exit 0; }
     if [ "${PILOTO_ESPERA_MAX:-0}" -gt 0 ] && [ $((SECONDS - inicio)) -ge "$PILOTO_ESPERA_MAX" ]; then
       registro "nadie respondió en ${PILOTO_ESPERA_MAX} s."
-      "$BIN/decidir.sh" cerrar 8>&-
+      "$BIN/decidir.sh" cerrar 8>&- 9>&-
       exit 3
     fi
     sleep "$POLL"
@@ -112,50 +112,85 @@ esperar_decision() {
   DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$COMUN/decision.md" | head -n 1)
 }
 
-# La compuerta «producto» se contesta sola con la recomendada de cada decisión (la primera opción), sin abrir la sesión de decidir: el
-# piloto no espera a la persona por una decisión que el plan ya dejó recomendada. Cada respuesta queda en `.piloto/decisiones-automaticas.md`
-# (decisión, opciones y la elegida) para que la persona la revise cuando quiera; si no está de acuerdo, lo dice y el paso siguiente lo
-# corrige. `PILOTO_AUTO` lista los tipos que se contestan solos (por omisión «producto»; vacío los apaga). Nunca `datos`, `guardas`,
-# `dependencia`, `afuera` ni `atasco`: tocan seguridad, credenciales o algo que el piloto no puede juzgar.
+# Una compuerta se contesta sola con la recomendada (la primera opción), sin abrir la sesión de decidir: el piloto no espera a la persona
+# por algo que el plan ya dejó recomendado. Cada respuesta queda en `.piloto/decisiones-automaticas.md` (qué, opciones y la elegida; en
+# «guardas», la ruta del diff guardado en `.piloto/guardas/<paso>.diff`) para que la persona lo revise cuando quiera; si no está de
+# acuerdo, lo dice y el paso siguiente lo corrige. `PILOTO_AUTO` lista los tipos que se contestan solos (por omisión «producto,datos,
+# guardas»; vacío los apaga; la persona decidió el 2026-11-04 que pasen todas por la recomendada). Nunca `parada`, `dependencia`, `afuera`
+# ni `atasco`: son avisos de algo que el piloto no puede juzgar.
 auto_contesta() { # <tipo> <paso>
-  [ "${EN_SECO:-0}" != 1 ] && [ -n "${PREGUNTAS:-}" ] && [ "$1" = producto ] && [[ ",${PILOTO_AUTO-producto}," == *",producto,"* ]]
+  [ "${EN_SECO:-0}" != 1 ] || return 1
+  [[ ",${PILOTO_AUTO-producto,datos,guardas}," == *",$1,"* ]] || return 1
+  case "$1" in
+    producto) [ -n "${PREGUNTAS:-}" ] ;;
+    datos | guardas) [ -z "${PREGUNTAS:-}" ] ;;
+    *) return 1 ;;
+  esac
 }
-contestar_solo() { # <paso>
-  local elegidas tmp
-  elegidas=$(jq -r '[.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; ")' <<<"$PREGUNTAS")
+contestar_solo() { # <tipo> <paso> [opciones…]
+  local tipo="$1" paso="$2" elegidas tmp primera
+  shift 2
   tmp=$(mktemp "$COMUN/decision.XXXXXX") || return 1
-  jq -r --arg id "$COMPUERTA_ID" --arg creada "$(date +%s)" '
-    "id: \($id)",
-    "opcion: \([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join(" · "))",
-    "notas: ",
-    "creada: \($creada)",
-    "respuestas:",
-    (.[] | "- \(.id): \(.opciones[0].etiqueta) (Recommended)"),
-    "me respondió: «\([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; "))»"' <<<"$PREGUNTAS" >"$tmp" || { rm -f "$tmp"; return 1; }
+  if [ -n "${PREGUNTAS:-}" ]; then
+    elegidas=$(jq -r '[.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; ")' <<<"$PREGUNTAS")
+    jq -r --arg id "$COMPUERTA_ID" --arg creada "$(date +%s)" '
+      "id: \($id)",
+      "opcion: \([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join(" · "))",
+      "notas: ",
+      "creada: \($creada)",
+      "respuestas:",
+      (.[] | "- \(.id): \(.opciones[0].etiqueta) (Recommended)"),
+      "me respondió: «\([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; "))»"' <<<"$PREGUNTAS" >"$tmp" || { rm -f "$tmp"; return 1; }
+  else
+    primera="${1:-$(opciones_de "$tipo" | head -n 1)}"
+    elegidas="${primera%% — *}"
+    { echo "id: $COMPUERTA_ID"; echo "opcion: $elegidas"; echo "notas: "; echo "creada: $(date +%s)"; echo "me respondió: «$elegidas»"; } >"$tmp"
+  fi
   mv -f "$tmp" "$COMUN/decision.md"
   {
-    echo "## $(ahora_lapaz) · $1 · compuerta producto (contestada sola)"
-    jq -r '.[] | "- \(.id) — \(.pregunta | gsub("\n"; " "))", (.opciones | to_entries[] | "    \(if .key == 0 then "→" else " " end) \(.value.etiqueta) — \(.value.descripcion | gsub("\n"; " "))")' <<<"$PREGUNTAS"
+    echo "## $(ahora_lapaz) · $paso · compuerta $tipo (contestada sola)"
+    if [ -n "${PREGUNTAS:-}" ]; then
+      jq -r '.[] | "- \(.id) — \(.pregunta | gsub("\n"; " "))", (.opciones | to_entries[] | "    \(if .key == 0 then "→" else " " end) \(.value.etiqueta) — \(.value.descripcion | gsub("\n"; " "))")' <<<"$PREGUNTAS"
+    else
+      echo "- ${MOTIVO_COMPUERTA:-$tipo}"
+      echo "    → $elegidas"
+      [ -n "${GUARDAS_DIFF:-}" ] && echo "    diff guardado: $GUARDAS_DIFF"
+    fi
     echo
   } >>"$ESTADO/decisiones-automaticas.md"
-  registro "compuerta producto ($1) contestada sola con las recomendadas: $elegidas"
+  registro "compuerta $tipo ($paso) contestada sola con la recomendada: $elegidas"
+}
+
+# Una compuerta a la vez en toda la máquina: `compuerta.md` y `decision.md` son únicos (los lee la sesión de decidir), así que con varios
+# carriles el segundo espera a que el primero sea respondido. El candado (fd 9) se suelta al volver; un `exit` lo suelta con el proceso.
+compuerta() {
+  local rc
+  mkdir -p "$COMUN"
+  exec 9>"$COMUN/compuerta.lock"
+  flock 9
+  _compuerta "$@"
+  rc=$?
+  flock -u 9
+  exec 9>&-
+  return "$rc"
 }
 
 # compuerta <tipo> <paso> <motivo> <pregunta> [opciones…]
-compuerta() {
+_compuerta() {
   local tipo="$1" paso="$2" clave
   escribir_compuerta "$@"
-  if auto_contesta "$tipo" "$paso" && contestar_solo "$paso"; then
+  if auto_contesta "$tipo" "$paso"; then
+    MOTIVO_COMPUERTA="$3" contestar_solo "$tipo" "$paso" "${@:5:1}" || return 3
     DECISION_OPCION=$(sed -n 's/^opcion: *//p' "$COMUN/decision.md" | head -n 1)
     DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$COMUN/decision.md" | head -n 1)
-    return 0
+  else
+    registro "compuerta $tipo ($paso): $3"
+    "$BIN/decidir.sh" abrir 8>&- 9>&- || { registro "no se pudo abrir la sesión de decidir."; exit 3; }
+    esperar_decision
+    "$BIN/decidir.sh" cerrar 8>&- 9>&-
+    registro "me respondió: $DECISION_TEXTO"
   fi
-  registro "compuerta $tipo ($paso): $3"
-  "$BIN/decidir.sh" abrir 8>&- || { registro "no se pudo abrir la sesión de decidir."; exit 3; }
-  esperar_decision
-  "$BIN/decidir.sh" cerrar 8>&-
   clave=$(clave_de "$DECISION_OPCION")
-  registro "me respondió: $DECISION_TEXTO"
   case "$clave" in
     parar) return 3 ;;
   esac

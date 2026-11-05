@@ -140,6 +140,17 @@ const GUARDAS = [
 ]
 
 describe('bucle.sh › c) la compuerta «guardas»', () => {
+  it('con PILOTO_AUTO=guardas se aprueba sola y deja el diff completo guardado y anotado', () => {
+    a.paso(1, pasoListo({ 'lefthook.yml': 'nuevo' }))
+    const r = a.correr(['--una-vuelta'], { PILOTO_AUTO: 'guardas' })
+    expect(r.estado, r.salida).toBe(0)
+    expect(a.secuencia().some((l) => l.startsWith('decidir:'))).toBe(false)
+    const diff = a.estado('guardas/4.99.diff')
+    expect(diff).toContain('lefthook.yml')
+    expect(diff).toContain('+nuevo')
+    expect(a.estado('decisiones-automaticas.md')).toContain('diff guardado:')
+  })
+
   it.each(GUARDAS)('un paso que toca %s la pregunta antes de verificar', (ruta) => {
     a.paso(1, pasoListo({ [ruta]: 'nuevo' }))
     a.decidir(1, responder('parar'))
