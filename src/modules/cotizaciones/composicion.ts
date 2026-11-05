@@ -16,6 +16,7 @@ import { nivelesSupabase } from './infra/niveles'
 import { getHojaParaCotizar } from './infra/queries/hoja'
 import { getHojaDeUnaGuardada } from './infra/queries/hoja-de-una-guardada'
 import { contarCotizacionesDelVehiculo as contarDeInfra } from './infra/queries/historial-del-vehiculo'
+import { getListadoDeCotizaciones } from './infra/queries/listado'
 import { getNivelesDeAcceso } from './infra/queries/niveles'
 import { recalcularAlAbrir as recalcularAlAbrirDeInfra } from './infra/queries/recalculo'
 
@@ -28,3 +29,4 @@ export const creadorDeCotizacion: CreadorDeCotizacion = crearCotizacion
 export const guardadorDeCotizacion: GuardadorDeCotizacion = guardarCotizacion
 export const contarCotizacionesDelVehiculo = contarDeInfra
 export const cotizadorEncima: CotizadorEncima = cotizarEncima
+export const leerListadoDeCotizaciones = getListadoDeCotizaciones

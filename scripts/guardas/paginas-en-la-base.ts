@@ -10,6 +10,7 @@ import {
   TOPE_DE_LO_CARGADO,
   TOPE_DEL_EQUIPO,
 } from '../../src/shared/lib/paginacion'
+import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../src/modules/cotizaciones/entities/listado'
 
 export type RpcPaginada = {
   rpc: string
@@ -89,5 +90,12 @@ export const RPC_PAGINADAS: readonly RpcPaginada[] = [
     parametro: 'p_tope',
     pideElCodigo: TAMANO_DE_COLUMNA,
     lista: 'kanban, «Ver más»',
+  },
+  // El listado `/cotizaciones` (4.16-1): el selector de tamaño llega hasta su máximo medido, y sin pedido la base da ese.
+  {
+    rpc: 'cotizaciones_listado',
+    parametro: 'p_tamano',
+    pideElCodigo: MAXIMO_DE_PAGINA_DE_COTIZACIONES,
+    lista: 'listado de cotizaciones',
   },
 ]

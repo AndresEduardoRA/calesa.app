@@ -90,6 +90,16 @@ export {
 // Component. El historial se lee desde el navegador por `composicion.client.ts` y se dibuja con `pantallas/cotizar.ts`.
 export { contarCotizacionesDelVehiculo } from './composicion'
 
+// El listado `/cotizaciones` (4.16-1): una página por cursor, con la RLS de quien mira, y su máximo medido. La pantalla llega en el 4.16-4.
+export { leerListadoDeCotizaciones } from './composicion'
+export { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from './entities/listado'
+export type {
+  ClaseDeCotizacion,
+  EstadoDeCotizacion,
+  FilaDelListado,
+  PedidoDelListado,
+} from './entities/listado'
+
 // El dato del vehículo de una tabla de la hoja (4.14-2c3): qué campos casan con qué tablas. La página lo pasa al panel del vehículo, que decide cuáles se eligen.
 export { datosDelVehiculoDeLaHoja } from './entities/dato-del-vehiculo'
 export type { DatoDeLaHoja } from './entities/dato-del-vehiculo'
