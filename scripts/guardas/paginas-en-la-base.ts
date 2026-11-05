@@ -11,6 +11,7 @@ import {
   TOPE_DEL_EQUIPO,
 } from '../../src/shared/lib/paginacion'
 import { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from '../../src/modules/cotizaciones/entities/listado'
+import { MAXIMO_DE_PAGINA_DE_VEHICULOS } from '../../src/modules/vehiculos/entities/vehiculo'
 
 export type RpcPaginada = {
   rpc: string
@@ -97,5 +98,12 @@ export const RPC_PAGINADAS: readonly RpcPaginada[] = [
     parametro: 'p_tamano',
     pideElCodigo: MAXIMO_DE_PAGINA_DE_COTIZACIONES,
     lista: 'listado de cotizaciones',
+  },
+  // El inventario de quien ve «propios» (4.16-2b): la pantalla pide su tamaño de página (hasta 100) y sin pedido la base da 100.
+  {
+    rpc: 'vehiculos_inventario',
+    parametro: 'p_tamano',
+    pideElCodigo: MAXIMO_DE_PAGINA_DE_VEHICULOS,
+    lista: 'inventario de vehículos de quien ve «propios»',
   },
 ]

@@ -4,6 +4,7 @@ import type { ErrorApp, Resultado } from '@/shared/lib/errores'
 import type { Cursor, Pagina } from '@/shared/lib/paginacion'
 import type { DatosDeVehiculo } from './esquema'
 import type { Condicion } from './filtros'
+import type { FuenteDelInventario } from './fuente-del-inventario'
 import type { Foto, FotoEliminada, FotoSubida, Galeria } from './foto'
 import type {
   LimpiezaPendiente,
@@ -27,8 +28,9 @@ import type { Relaciones } from './vinculo'
 import type { DatosDeVitrina, VistaPreviaDeVitrina, VitrinaDelOrigen } from './vitrina'
 
 // Una página del inventario de un origen, de lo más nuevo a lo más viejo. La RLS decide qué ve
-// quien llama: acá no se filtra por permiso.
+// quien llama: acá no se filtra por permiso. `fuente` sólo elige el camino de la lectura (`fuenteDelInventario()`).
 export type BuscadorDeVehiculos = (pedido: {
+  fuente: FuenteDelInventario
   origenId: string
   condiciones: readonly Condicion[]
   cursor: Cursor | null

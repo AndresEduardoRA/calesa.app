@@ -11,6 +11,7 @@ import {
   editablesDe,
   eliminablesDe,
   esquemaDeFiltros,
+  fuenteDelInventario,
   hoyEnZona,
   limiteDeAviso,
   origenElegido,
@@ -79,6 +80,7 @@ export default async function PaginaVehiculos({ searchParams }: PageProps<'/vehi
   })
   const [leida, enEdicion] = await Promise.all([
     buscarVehiculos({
+      fuente: fuenteDelInventario(sesion.permisos, origen.id),
       origenId: origen.id,
       condiciones: condicionesDe(campos, leerFiltros(esquema, parametros), {
         zona: ajustes.zonaHoraria,
