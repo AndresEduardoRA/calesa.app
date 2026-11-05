@@ -1,5 +1,6 @@
 // Siembra volumen para medir y mirar la app (9e): 50.000 leads, 10.000 vehículos, 200.000
-// seguimientos, etc. (`supabase/tests/volumen/sembrar.sql`). Sólo contra el Supabase LOCAL, con el
+// seguimientos, etc. (`supabase/tests/volumen/sembrar.sql`) y, en la misma corrida de `psql`, 50.000
+// cotizaciones (`sembrar-cotizaciones.sql`, 4.16-3). Sólo contra el Supabase LOCAL, con el
 // `psql` del contenedor de la base. Fuera de la suite y de `db:reset`. Después: `pnpm db:reset`.
 // Uso: pnpm db:sembrar-volumen                      (50.000 leads, lo que mide `db:medir:volumen`)
 //      pnpm db:sembrar-volumen -- --leads 200000    (otra cantidad, con el mismo reparto: para medir una vez y anotar)
@@ -34,7 +35,9 @@ const corrida = spawnSync(
     `n=${String(leads)}`,
   ],
   {
-    input: readFileSync('supabase/tests/volumen/sembrar.sql', 'utf8'),
+    input: ['supabase/tests/volumen/sembrar.sql', 'supabase/tests/volumen/sembrar-cotizaciones.sql']
+      .map((archivo) => readFileSync(archivo, 'utf8'))
+      .join('\n'),
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
   },
@@ -71,6 +74,7 @@ const TABLAS_SEMBRADAS = [
   'lotes_papelera',
   'importaciones',
   'importaciones_leads',
+  'cotizaciones',
 ]
 const limpieza = spawnSync(
   'docker',
@@ -99,7 +103,9 @@ if (limpieza.error || limpieza.status !== 0) {
   )
   process.exit(1)
 }
-console.log(`Sembrado en ${((Date.now() - inicio) / 1000).toFixed(0)} s.`)
+console.log(
+  `Sembrado (leads, vehículos y cotizaciones) en ${((Date.now() - inicio) / 1000).toFixed(0)} s.`,
+)
 console.log(
   'Cuentas: duena-volumen@ejemplo.com y ana-volumen@ejemplo.com, clave «Volumen-9e-clave».',
 )
