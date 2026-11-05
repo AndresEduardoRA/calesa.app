@@ -193,15 +193,15 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   volumen y `medir-escala.sql`; se enciende la navegación. Cierra **4-14** («todas las que veo» de quien ve «propios») y **4-23** (el
   gemelo en el inventario de vehículos), la entrada a cotizar desde el listado (`docs/UX.md:38`) y el camino a lo antiguo del historial del vehículo (el tope de 500 del 4.14-2b: un
   filtro por vehículo). Depende de 4.10 y 4.13. Nivel **2** (`_shell`) + `db:medir:volumen` + `E2E_VOLUMEN=1`.
-  Prompts: 6 (queda 1).
+  Prompts: 6.
   **Partido en 6** (`docs/DECISIONES.md` › «Paso 4.16 (1 de 4)» y «Paso 4.16-2a»): el **4.16-1** (4-14: `cotizaciones_listado()` por cursor y por alcance, sus índices, su medición y
   `MAXIMO_DE_PAGINA_DE_COTIZACIONES`; Nivel 2 + `db:medir:volumen`): hecho. El **4.16-2** (4-23), **partido en 2** tras las sondas S0, S0' y S0''
   (`docs/DECISIONES.md` › «Paso 4.16-2a»): el **4.16-2a** (`vehiculos_inventario()`: las rutas, el cursor y los filtros del layout en SQL, sus índices, la equivalencia con
   PostgREST, su medición y el número de 4-77; Nivel 2 + `db:medir:volumen`): hecho. El **4.16-2b** (la app: `fuenteDelInventario()`, `buscarVehiculos()` por la función para quien
   ve «propios», el registro de páginas y el e2e de quien ve «propios»; Nivel 1, interfaz; cierra 4-23): hecho. El **4.16-3** (la siembra de cotizaciones de `db:sembrar-volumen` (`sembrar-cotizaciones.sql`), su fila en `medir-escala.sql` y las mediciones que pedían una base sin cotizaciones; Nivel 1 +
   `db:medir:volumen`): hecho. El **4.16-4**, **partido en 2** (`docs/DECISIONES.md` › «Paso 4.16-4a»): el **4.16-4a** (la pantalla `/cotizaciones` sin resumen, la navegación, «Nueva cotización», el filtro por vehículo y el
-  enlace desde el tope del historial, y el listado con volumen; Nivel 2 + `E2E_VOLUMEN=1`): hecho. Queda el **4.16-4b** (el resumen `?cotizacion=`: la fila y la tarjeta lo abren, lee la suya si no está
-  en la página, estados, `diferido()` y la vuelta del foco; Nivel 1, interfaz). Marcas: 4.16-1 `sí`, 4.16-2a `sí`, 4.16-2b `no`, 4.16-3 `no`, 4.16-4a `sí`.
+  enlace desde el tope del historial, y el listado con volumen; Nivel 2 + `E2E_VOLUMEN=1`): hecho. El **4.16-4b** (el resumen `?cotizacion=`: la fila y la tarjeta lo abren, el servidor lee la que no está en la página, estados, `diferido()` y la vuelta del
+  foco; Nivel 1, interfaz): hecho. Marcas: 4.16-1 `sí`, 4.16-2a `sí`, 4.16-2b `no`, 4.16-3 `no`, 4.16-4a `sí`, 4.16-4b `no`.
   - **P1** (1, contestada el 2026-11-04 con la recomendada): «Mías» son las que creó quien mira (`creado_por`), para cualquiera; no es «Míos» de leads.
   - **P2** (1, contestada el 2026-11-04 con la recomendada): todas las versiones de una cadena salen en el listado, cada una en su fila.
 - **4.17** — **5a-12** y, con el mismo «Ver más», las secciones «Cotizaciones» de la ficha del lead y del vehículo (la del vehículo puede usar la lectura
@@ -243,7 +243,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 36 pasos y 89 prompts; faltan los pasos 4.15-4 y 4.16-4b a 4.28.
+Total de la fase: 36 pasos y 89 prompts; faltan los pasos 4.15-4 y 4.17 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la

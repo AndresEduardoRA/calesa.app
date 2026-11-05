@@ -548,3 +548,21 @@ El 4.16-2 se partió en 2a (la base) y 2b (la app, que cierra 4-23), tras tres s
 - Topes nuevos: JS de `/cotizaciones` 358,4 KB de 380; con 100 filas y 50.000 cotizaciones, 39.500 B y 2.130 nodos.
 - **Commits:** `c63d3991` (la pantalla y la navegación), `91b94b7e` (el filtro por vehículo y el camino del historial) y `07347edc` (la medición con volumen).
   e2e completo: sí (4.16-4a, layout, Nivel 2: escritorio, 928 en verde, 16 saltados, 1 caída, 35,3 min)
+
+## 2026-11-05 — Paso 4.16-4b: el resumen `?cotizacion=` del listado de cotizaciones
+
+`docs/DECISIONES.md` › «Paso 4.16-4b». Sin migración, sin `db:types`. Pantalla pura (Nivel 1, interfaz): plan auditado una vez (observaciones, atendidas), sin mutaciones y sin informe auditado.
+
+- La fila y la tarjeta de `/cotizaciones` abren el resumen (`?cotizacion=`, `history: 'push'`, vuelta del foco con `abrirConVuelta`, drawer por `diferido()`): lo que trae la fila y
+  «Abrir cotización» a `/cotizaciones/[id]`. El número «N.º n» pasa a ser el botón `<AbrirResumen>`. La que no está en la página (recargar, un enlace, «Siguiente» con el resumen abierto)
+  la lee el servidor en `page.tsx` (`leerUnaDelListado()`: su fila por clave primaria y `cotizaciones_listado()` de tamaño 1 con el cursor `(creado_en, id + 1)`); si tampoco llega,
+  `usePedidoAlServidor()` pide la página una vez y, si sigue sin llegar, «Reintentar». Una que no existe o que quien mira no ve dice lo mismo.
+- **Verificación** (`.piloto/salidas/4.16-4b/`):
+  - En verde: `lint`, `typecheck`, `test` (534 archivos, 6.276 pruebas), `mapa.sh --check`; `cotizaciones-listado-resumen.spec.ts` (R1 a R5 con R4b, 12 en los dos proyectos), los dirigidos
+    `cotizaciones-listado`, `cotizar-historial-del-vehiculo` y `presupuesto-js` (37 en verde, 7 saltadas de antes) y el volumen (`E2E_VOLUMEN=1`, 14: la dueña y Ana con 100 filas,
+    35,4 KB y 1.979 nodos en escritorio y 34,4 KB y 2.024 en el celular; antes 37,5 KB).
+  - Rojos contra HEAD guardados: `entities`, `infra`, el hook, el pedido y el componente (el módulo no existe) y R1 del e2e (el clic en la fila no abre nada).
+  - Sin mutaciones ni sondas: no es un paso de rigor máximo.
+- Topes: JS de `/cotizaciones` 359 KB de 380 (antes 358,4); `/cotizaciones/nuevo` 456,3 de 460 y `/cotizaciones/[id]` 442,4 de 448, sin cambio relevante.
+- **Commits:** `eefe148e` (leer una cotización del listado por su id) y `4f27b04f` (abrir el resumen desde el listado).
+  e2e completo: no (4.16-4b, pantalla, 1 de 3)

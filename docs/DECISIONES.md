@@ -1757,3 +1757,23 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
   movió casi nada (0,1 KB).
 - **El completo corrió con la cuenta en 1 de 3.** Por la cuenta no tocaba, pero `src/app/(app)/_shell/navegacion.ts` es el disparador «layout» del Nivel 2 y `navegacion.test.ts`
   ata `disponible: true` al `page.tsx` nuevo: no se puede separar. La cuenta vuelve a 0 de 3.
+
+## 2026-11-05 — Paso 4.16-4b: el resumen `?cotizacion=` del listado de cotizaciones
+
+- **La que no está en la página la lee el servidor, no el navegador** (corrige lo que anticipó «Paso 4.16-4a»). «Vencida» sólo la calcula la base, dentro de `cotizaciones_listado()`,
+  y los nombres del cliente, el vehículo y el autor son de tres módulos que `cotizaciones` no importa: una lectura suelta desde el navegador no los traería. `page.tsx` la lee con
+  `leerUnaDelListado(id)`: su fila por clave primaria (con la RLS de quien mira; sin fila, «no disponible» y nada más) y `cotizaciones_listado()` de tamaño `UNA` con el cursor
+  `(creado_en, id + 1)`: entre `id` e `id + 1` no cabe ningún uuid, así que la primera fila estrictamente anterior es ella o nada. Se descartó una RPC nueva (una migración y otro paso
+  por una fila). Sus nombres se leen aparte (sólo ella): una página de 100 con 100 clientes distintos ya llena el tope de ids de cada lectura de nombres.
+- **Sólo el origen va en esa búsqueda**, no `?clase=` ni `?cuales=mias`: una cotización que el filtro deja afuera se abre igual (es la del enlace; el filtro acota la lista, no lo
+  que se ve). Sus dos pedidos van en serie tras la página: la espera se paga sólo cuando no está en ella.
+- **El id se lee en un solo lugar**: `idDelResumen(texto)` (minúsculas o `null`); la página, el hook y las comparaciones lo usan. Un enlace con mayúsculas abre la misma cotización.
+- **Si la lectura falla, el listado no cae**: llega `estado: 'error'` y el resumen ofrece «Reintentar»; la lectura de la página sigue subiendo al `error.tsx`.
+- **El pedido único por id** (`usePedidoAlServidor`): si la URL trae una que ni la página ni el servidor trajeron, el resumen pide la página una vez (`router.refresh()`) y, si vuelve
+  sin ella, dice «error» con «Reintentar», nunca un esqueleto para siempre. Cuesta lo que una carga del listado: una vez por id y una por cada clic en «Reintentar».
+- **El número abre el resumen y la página va por «Abrir cotización»** (patrón de lista, `docs/UX.md`). Se pierde el Ctrl/Cmd+clic del número para abrirla en otra pestaña; el del
+  botón «Abrir cotización» sigue. Microdecisión de qué muestra el resumen: lo que ya trae la fila, de sólo lectura, sin «⋯» (las acciones son de los pasos 4.2x).
+- **Sin releer al volver a la pestaña** (el resumen de vehículos sí lo hace): es de sólo lectura y «Abrir cotización» lee de nuevo y dice si ya no está.
+- **Carpetas**: el resumen vive en `features/listado/{hooks,components}/` (como da `docs/plan.yaml`); `entities/` e `infra/` dejan los archivos sueltos, como los del 4.16-1 a 4a, hasta
+  que el 4.15-4 cree `entities/listado/` e `infra/listado/` y los mueva.
+- **El 4.15-4 sigue pendiente y el 4.16 se hizo sin él**, en el orden de `docs/PLAN.md` (`docs/plan.yaml` lo pone de dependencia del 4.16): ningún registro dice por qué. Lo ordena la persona.
