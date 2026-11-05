@@ -37,12 +37,15 @@ import { getVehiculosDelLead } from './infra/queries/vehiculos-del-lead'
 import { getRelaciones } from './infra/queries/vinculo'
 import { getVistaPrevia, getVitrinaDelOrigen } from './infra/queries/vitrina'
 import { buscarVehiculos as buscarEnSupabase, getVehiculo } from './infra/queries/listado'
+import { getTitulosDeVehiculos } from './infra/queries/titulos-de-vehiculos'
 import { vehiculosSupabase } from './infra/vehiculos'
 import { vinculoSupabase } from './infra/vinculo'
 import { vitrinaSupabase } from './infra/vitrina'
 
 export const buscarVehiculos: BuscadorDeVehiculos = buscarEnSupabase
 export const leerVehiculo: LectorDeVehiculo = getVehiculo
+// Los títulos de los vehículos de una página de otro listado (`/cotizaciones`, 4.16-4a): con la RLS de quien mira; uno en la papelera no se nombra.
+export const leerTitulosDeVehiculos = getTitulosDeVehiculos
 export const repositorioVehiculos: RepositorioVehiculos = vehiculosSupabase
 export const leerGaleria: LectorDeGaleria = getGaleria
 export const leerSubasta: LectorDeSubasta = getSubasta

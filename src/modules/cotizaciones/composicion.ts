@@ -16,6 +16,7 @@ import { nivelesSupabase } from './infra/niveles'
 import { getHojaParaCotizar } from './infra/queries/hoja'
 import { getHojaDeUnaGuardada } from './infra/queries/hoja-de-una-guardada'
 import { contarCotizacionesDelVehiculo as contarDeInfra } from './infra/queries/historial-del-vehiculo'
+import { getAutoresDeCotizaciones } from './infra/queries/autores-del-listado'
 import { getListadoDeCotizaciones } from './infra/queries/listado'
 import { getNivelesDeAcceso } from './infra/queries/niveles'
 import { recalcularAlAbrir as recalcularAlAbrirDeInfra } from './infra/queries/recalculo'
@@ -30,3 +31,5 @@ export const guardadorDeCotizacion: GuardadorDeCotizacion = guardarCotizacion
 export const contarCotizacionesDelVehiculo = contarDeInfra
 export const cotizadorEncima: CotizadorEncima = cotizarEncima
 export const leerListadoDeCotizaciones = getListadoDeCotizaciones
+// Quién hizo cada cotización de una página del listado (4.16-4a): los nombres por clave primaria de `perfiles`.
+export const leerAutoresDeCotizaciones = getAutoresDeCotizaciones

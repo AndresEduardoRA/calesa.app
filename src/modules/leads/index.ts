@@ -82,4 +82,6 @@ export { puedeGestionarPortal } from './entities/portal'
 // La hoja de cotizar (`/cotizaciones/nuevo`, 4.14-3b): el lead de `?lead=` para la barra del cliente (`leerClienteElegido`: `ok(null)` si no existe o no se ve; un error
 // es un error) y la clave de la URL del panel. La barra y su panel salen por `pantallas/cotizar`.
 export { leerClienteElegido } from './composicion'
+// Los nombres de unos leads por clave primaria, con la RLS de quien mira (`/cotizaciones`, 4.16-4a): lo que no llega no se ve, y no se distingue de lo que no existe.
+export { leerNombresDeLeads } from './composicion'
 export type { ClienteElegido } from './entities/panel-para-cotizar'

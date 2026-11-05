@@ -7,6 +7,8 @@ export const PRESUPUESTO_DE_JS_EN_KB: Readonly<Record<string, number>> = {
   '/leads': 530,
   '/perfil': 440,
   '/vehiculos': 500,
+  // El listado de cotizaciones (4.16-4a), sin el resumen (4.16-4b): medido 358,4 KB en 23 chunks, más un 5 % hacia arriba a la decena.
+  '/cotizaciones': 380,
   // La hoja de cotizar con la subasta de la semilla (`?origen=`, el diseño más grande del juego), su presupuesto formal desde el 4.13-4d: medido 429,5 KB en 25 chunks, más un 5 % hacia arriba a la decena.
   '/cotizaciones/nuevo': 460,
   // La página de una cotización guardada (4.15-3), con una cotización sembrada en la subasta de la semilla: el mismo marco y la misma hoja, sin las barras del vehículo y del cliente: medido 438,6 KB en 27 chunks, más un 2 % hacia arriba.

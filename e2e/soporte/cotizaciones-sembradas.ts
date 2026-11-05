@@ -1,4 +1,5 @@
-// Cotizaciones sembradas por SQL en un vehículo (paso 4.14-2b): el historial y «Cotizado (n)» se prueban con filas que la hoja no tiene que guardar una por una.
+// Cotizaciones sembradas por SQL en un vehículo (paso 4.14-2b): el historial y «Cotizado (n)» se prueban con filas que la hoja no tiene que guardar una por una. Desde el 4.16-4a
+// pueden no tener vehículo y llevar un lead (`leadId`): el listado `/cotizaciones` se prueba con filas de cada clase.
 // Se escriben con la fórmula publicada del origen y un snapshot mínimo (cada nodo con un valor, como la medición `medir-historial-del-vehiculo.sql`), con
 // `session_replication_role = replica`: así no corren `cotizacion_validar` ni el trigger de `cotizado_en`, que la siembra mueve a mano. `creado_en` va escalonado
 // por minuto hacia atrás: la primera (g = 1) es la más nueva. La limpieza es la de siempre (`borrarOrigenesDeCotizar()` borra las cotizaciones del origen).
@@ -10,14 +11,27 @@ export function idDePersona(email: string): string {
 
 export function sembrarCotizaciones(datos: {
   origenId: string
-  vehiculoId: string
+  // Sin él, la cotización no tiene vehículo.
+  vehiculoId?: string | null
+  // El lead de la cotización (el cliente que dibuja el listado); sin él, ninguno.
+  leadId?: string | null
   creadoPor: string
   cuantas: number
   clase?: 'preventa' | 'final'
   // Cuántos minutos más viejas que ahora empiezan: la g-ésima queda `desde + g` minutos atrás.
   desde?: number
 }): void {
-  const { origenId, vehiculoId, creadoPor, cuantas, clase = 'preventa', desde = 0 } = datos
+  const {
+    origenId,
+    vehiculoId = null,
+    leadId = null,
+    creadoPor,
+    cuantas,
+    clase = 'preventa',
+    desde = 0,
+  } = datos
+  const vehiculo = vehiculoId === null ? 'null::uuid' : `${literal(vehiculoId)}::uuid`
+  const lead = leadId === null ? 'null::uuid' : `${literal(leadId)}::uuid`
   sql(`
     begin;
     set local session_replication_role = replica;
@@ -26,12 +40,16 @@ export function sembrarCotizaciones(datos: {
                       (select jsonb_object_agg(n ->> 'id', round((n_ord * 13.37)::numeric, 2)) from jsonb_array_elements(f.definicion -> 'nodos') with ordinality x (n, n_ord)) as valores,
                       (select jsonb_object_agg(n ->> 'id', 'input') from jsonb_array_elements(f.definicion -> 'nodos') n where n ->> 'tipo' in ('input', 'constante', 'tipo_cambio')) as fuentes
                  from f)
-    insert into public.cotizaciones (origen_id, creado_por, formula_id, vehiculo_id, valores, fuentes, tipos_cambio, totales, total_base, titulo, clase, creado_en, actualizado_en)
-      select s.origen_id, ${literal(creadoPor)}::uuid, s.id, ${literal(vehiculoId)}::uuid, s.valores, s.fuentes, '{"oficial": 6.96, "paralelo": 12.4}', '{"usd": 1234.5}', 1234.5,
+    insert into public.cotizaciones (origen_id, creado_por, formula_id, vehiculo_id, lead_id, valores, fuentes, tipos_cambio, totales, total_base, titulo, clase, creado_en, actualizado_en)
+      select s.origen_id, ${literal(creadoPor)}::uuid, s.id, ${vehiculo}, ${lead}, s.valores, s.fuentes, '{"oficial": 6.96, "paralelo": 12.4}', '{"usd": 1234.5}', 1234.5,
              'Sembrada ' || g, ${literal(clase)}::public.clase_cotizacion,
              now() - (${String(desde)} + g) * interval '1 minute', now() - (${String(desde)} + g) * interval '1 minute'
         from generate_series(1, ${String(cuantas)}) g cross join s;
-    update public.vehiculos set cotizado_en = greatest(coalesce(cotizado_en, '-infinity'), now() - (${String(desde)} + 1) * interval '1 minute')
-      where id = ${literal(vehiculoId)}::uuid;
+    ${
+      vehiculoId === null
+        ? ''
+        : `update public.vehiculos set cotizado_en = greatest(coalesce(cotizado_en, '-infinity'), now() - (${String(desde)} + 1) * interval '1 minute')
+      where id = ${literal(vehiculoId)}::uuid;`
+    }
     commit;`)
 }
