@@ -1777,3 +1777,26 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **Carpetas**: el resumen vive en `features/listado/{hooks,components}/` (como da `docs/plan.yaml`); `entities/` e `infra/` dejan los archivos sueltos, como los del 4.16-1 a 4a, hasta
   que el 4.15-4 cree `entities/listado/` e `infra/listado/` y los mueva.
 - **El 4.15-4 sigue pendiente y el 4.16 se hizo sin él**, en el orden de `docs/PLAN.md` (`docs/plan.yaml` lo pone de dependencia del 4.16): ningún registro dice por qué. Lo ordena la persona.
+
+## 2026-11-05 — Paso 4.17 (1 de 5): las oportunidades de un lead por cursor, en la base
+
+- **El 4.17 se parte en 5**, porque la fila junta una base, tres pantallas en dos módulos y un panel con su propio camino: **4.17-1** la lectura de 5a-12 en la base (este; Nivel 2, porque crea
+  índices); **4.17-2** el «Ver más» de «Oportunidades», que cierra 5a-12; **4.17-3** la pestaña «Cotizaciones» de `/vehiculos/[id]`; **4.17-4** la sección «Cotizaciones» de `/leads/[id]`
+  (se parte en 4a y 4b si el camino tras 500 pide un filtro `?lead=` en `cotizaciones_listado()`); **4.17-5** «Ir a una fecha» de «Revisiones» (**4-75**). Los prompts de la fila pasan de 2 a 6.
+- **La lectura va por tres rutas y dos índices parciales**, no por un `order by` sobre las dos clases juntas: el orden es «las abiertas primero» y, en cada grupo, `ultima_actividad_en desc, id desc`,
+  y `enum_eq` no es leakproof, así que bajo la RLS una comparación de enum no es condición de índice (medido en el 4.16-1). Cada ruta lleva `estado = 'abierta'` o `estado <> 'abierta'` con el literal,
+  y su parcial `(lead_id, usuario_id, ultima_actividad_en desc, id desc)`. Completar la página con las cerradas es leerlas desde la primera con `limit v_n + 1 - k`; con el cursor en una cerrada, sólo
+  la ruta de las cerradas. `oportunidades_lead_id_idx` se queda (la FK). Sin `usuario_id` en el índice la ruta descarta las filas de otras personas (mutación M8: 21 descartadas por ruta en el Assert 1).
+- **El cursor es una tripleta** (`p_antes_abierta`, `p_antes_en`, `p_antes_id`), la última fila de la página anterior. Sin `p_antes_en` se lee la primera página aunque lleguen los otros dos; con él y
+  sin uno de los otros, `22023` con `hint = 'cursor'`. `ultima_actividad_en` viaja con sus microsegundos, así que el ida y vuelta es exacto.
+- **Valor por defecto 20, máximo 100** (`_acotar_pagina(p_tamano, 20, 100)`): el 20 es `TAMANO_DE_VER_MAS`, el 100 es el tope de hoy. La sección pide `TOPE_DE_OPORTUNIDADES_DEL_LEAD` (100) sin cursor hasta el
+  4.17-2, así que la pantalla no cambia. El registro de páginas sólo compara contra 20; el 100 lo protege T4 de `lead-oportunidades-pagina.sql` (`p_tamano` 1000 da 100).
+- **El JSON se arma sobre las filas que la ruta ya leyó** (`public.oportunidades[]`, como `lead_seguimientos()`), cruzando sólo `embudos` y `embudos_etapas`: releer `oportunidades` por id pagaría otra pasada
+  de la policy. La función ocupa 53 líneas.
+- **Sigue de invocadora** y con los mismos privilegios (authenticated y service_role; nada para anon ni PUBLIC). No hubo compuerta `datos`: no cambia policy, RLS, permiso ni `security definer`; la
+  mutación M7 (la función como `security definer`) la tiran T5 y T7. Si ninguna forma de invocadora hubiera cumplido los Asserts, el paso se detenía sin pasar a `security definer`.
+- **Medición** (`medir-lead-oportunidades.sql`): un lead con 1.000 de Ana (500 y 500) y 1.000 de la dueña, más 20.000 de fondo entre 200 leads (≈ 100 por lead: con miles de leads de una o dos el plan
+  genérico estimaría menos de una página y elegiría la FK). Las páginas salen de 500 y de `:ver_mas`. Medido: ≈ 3 ms por página y 4 a 8 bloques de `oportunidades` en todas, la última (50) igual que la
+  primera. Tiene un assert propio de que cada ruta devuelve sus `n + 1` filas: una primera versión medía los planes sin la sesión de Ana (la policy vaciaba las rutas) y el Assert 1 pasaba sin medir nada. El Assert 2 mira todos los índices de `oportunidades` menos los dos parciales, la clave primaria incluida: releer las filas por id para armar el JSON (M14) lee 40 bloques de ella en cada página y cae.
+- **`db:medir:volumen` completo cayó dos veces en mediciones ajenas** (el crecimiento con N de la «chica» en `medir-vehiculos-inventario.sql` y la razón 0,78 de `medir-importacion-volumen.sql`, con la máquina
+  ocupada por otras sesiones) y pasó entero a la tercera y a la cuarta. Ninguna toca oportunidades.
