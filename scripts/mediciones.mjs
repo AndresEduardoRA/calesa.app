@@ -48,7 +48,17 @@ export const MEDICIONES_BASE = [
   ],
   [
     'supabase/tests/medir-cotizacion-hoja.sql',
-    'cotizacion_hoja() como authenticated con el plan genérico: la hoja de las capturas como dueña y como asesora (ms, bytes de la respuesta y que no lee cotizaciones ni sus revisiones), los atajos de una tabla viva de 1.000 filas, las sintéticas de 255 y de 2.487 nodos y cotizacion_evaluar() por origen con y sin la hoja abierta que firma la base (ms)',
+    'cotizacion_hoja() como authenticated con el plan genérico: la hoja de las capturas como dueña y como asesora (ms, bytes de la respuesta y que no lee cotizaciones ni sus revisiones), los atajos de una tabla viva de 1.000 filas, las sintéticas de 255 y de 2.487 nodos, cotizacion_evaluar() por origen con y sin la hoja abierta que firma la base (ms) y cotizacion_tabla() de esa tabla viva con y sin la hoja abierta, como la dueña y como una asesora con «costos» (ms y bytes)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-cotizacion-hoja-guardada.sql',
+    'cotizacion_hoja_guardada() con 50.000 y con 250.000 cotizaciones, como authenticated con el plan genérico: la del medio de una cadena de tres como la dueña (ve la anterior y la nueva) y como la asesora («propios»: la nueva, oculta) (ms y buffers del EXPLAIN, bytes de la respuesta, que no recorre cotizaciones y que llama 2 veces a _nodos_visibles)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-cotizacion-encima.sql',
+    'cotizacion_encima() con 50.000 y con 250.000 cotizaciones, como authenticated con el plan genérico: la dueña y la asesora («propios») cotizan encima de una anterior distinta en cada corrida (ms y buffers del EXPLAIN de la llamada entera, y que no recorre cotizaciones)',
     'mediana de 5 de 7 corridas',
   ],
   [
@@ -102,8 +112,53 @@ export const MEDICIONES_CON_VOLUMEN = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-vehiculos-inventario.sql',
+    'El inventario por rutas (vehiculos_inventario()) con 50.000 y con 250.000 vivos, como authenticated con el plan normal: página 1, profunda y «Anterior» de Pía (también con búsqueda, fase y atributos), de la «chica», de Beto (cartera de 50.000) y de Vera (cartera de 5.000), y la dueña; ms, bloques de vehiculos por relación, crecimiento con N y llamadas (en_cartera de Beto ≤ filas + portadas); y «contra hoy», la consulta de PostgREST sobre la tabla, como nota (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-vehiculos-inventario-forma.sql',
+    'La forma del plan de vehiculos_inventario() con 50.000 y con 250.000 vivos, como authenticated: los cuatro puntos por caso y sentido (cada ruta por su índice bajo su Limit, la cartera por un lateral, sin recorrer vehiculos y sin releer la fila) y que la forma muerde; el Planning Time y el plegado, como notas',
+    UNA,
+  ],
+  [
+    'supabase/tests/medir-vehiculos-inventario-guarda.sql',
+    'La guarda del inventario: lo de hoy (PostgREST sobre la tabla) para la «chica» crece con N de 50.000 a 250.000 vivos (bloques de vehiculos y ms); si no, la medición de la función no prueba nada',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-vehiculos-inventario-costo-fijo.sql',
+    'El costo fijo de cada llamada al inventario (4-77): origenes_con_alcance() de una persona con una concesión y de otra con una por cada permiso y origen, sin volumen (ms y buffers del EXPLAIN, bloques de perfiles, usuarios_roles y roles_permisos, y las filas de mis_permisos())',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-cotizaciones-lectura.sql',
     'La lectura de cotizaciones con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: una página de n + 1 (primera y profunda por cursor) de la dueña («todas») y de Ana y la «chica» («mías»), con la policy por fila (ms y buffers del EXPLAIN, y las llamadas por página)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-cotizaciones-listado.sql',
+    'El listado /cotizaciones (cotizaciones_listado()) con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: la página 1, una profunda por cursor y una hacia atrás de la dueña (por origen, clase y «mías»), de Ana («propios», con su cartera y un vehículo muy cotizado), de la «chica» y de Teo («todos» en un origen), con los bloques de cotizaciones por relación y las llamadas; y la guarda: lo de hoy por PostgREST rompe los topes (4-14)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-panel-ultima-cotizacion.sql',
+    '«Últ. cotización» del panel del vehículo con 50.000 y con 250.000 vivos, como authenticated y con el plan genérico: una página de n + 1 de los cotizados de un origen (primera y profunda por cursor) de la dueña, de Pía y de Beto, por vehiculos_cotizado_idx (ms y buffers del EXPLAIN); la «chica», sin assert (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-panel-cierre-subasta.sql',
+    '«Cierre subasta» del panel del vehículo con 50.000 y con 250.000 vivos, como authenticated y con el plan genérico: una página de n + 1 de las subastas vivas de un origen desde ahora menos 24 h (primera y profunda por cursor) de la dueña, de Pía y de Beto, por vehiculos_cierre_subasta_idx (ms y buffers del EXPLAIN); la «chica», sin assert (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-historial-del-vehiculo.sql',
+    'El historial de un vehículo con 5.000 cotizaciones entre 50.000 y 250.000, como authenticated y con el plan genérico: una página de n + 1 (primera y profunda por cursor) de la dueña, por cotizaciones_vehiculo_creado_idx (ms y buffers del EXPLAIN); Ana («propios»), sin assert',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-cartera-reciente.sql',
+    '«Míos» del panel del cliente por lo más reciente, con el volumen sembrado y como authenticated con el plan genérico: una página de n + 1 de la cartera (primera, profunda por cursor y la clase cliente) de la dueña, de Ana y de Berta, por leads_asesores_reciente_idx (ms y buffers del EXPLAIN); la clase ausente de la dueña (tope 100 ms), el costo del trigger de lo reciente en un seguimiento y el relleno de la migración con todo el volumen; la «chica», sin assert',
     'mediana de 5 de 7 corridas',
   ],
   [

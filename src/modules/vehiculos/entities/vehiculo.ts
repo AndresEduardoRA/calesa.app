@@ -59,47 +59,59 @@ export const COLUMNAS_DE_VEHICULO =
 
 export const FILTRO_DE_PORTADA = { columna: 'vehiculos_imagenes.es_portada', valor: true } as const
 
+// Las columnas de un vehículo, tal como las dan las dos lecturas (la tabla y `vehiculos_inventario()`); cada una suma la portada a su modo.
+const columnasDeVehiculo = {
+  id: z.guid(),
+  numero: z.number(),
+  origen_id: z.guid(),
+  titulo: z.string(),
+  marca: z.string().nullable(),
+  modelo: z.string().nullable(),
+  anio: z.number().nullable(),
+  vin: z.string().nullable(),
+  lote: z.string().nullable(),
+  plataforma: z.string().nullable(),
+  url_origen: z.string().nullable(),
+  precio: z.number().nullable(),
+  precio_negociable: z.boolean().nullable(),
+  acepta_permuta: z.boolean().nullable(),
+  placado: z.boolean().nullable(),
+  kilometraje: z.number().nullable(),
+  categoria_id: z.guid().nullable(),
+  fase_id: z.guid().nullable(),
+  // Unos atributos ilegibles no tumban la lista: ese vehículo se muestra sin ellos.
+  atributos: z.record(z.string(), z.unknown()).catch({}),
+  lead_id: z.guid().nullable(),
+  publicado_web: z.boolean(),
+  destacado_web: z.boolean(),
+  precio_web: z.number().nullable(),
+  precio_web_hasta: z.number().nullable(),
+  precio_web_nota: z.string().nullable(),
+  // Columna calculada de la base (`limpieza_el()`); nunca tumba la lista.
+  limpieza_el: z.string().nullable().catch(null),
+  creado_por: z.guid().nullable(),
+  creado_en: z.string(),
+  actualizado_en: z.string(),
+}
+
 const esquemaVehiculos = z.array(
   z.object({
-    id: z.guid(),
-    numero: z.number(),
-    origen_id: z.guid(),
-    titulo: z.string(),
-    marca: z.string().nullable(),
-    modelo: z.string().nullable(),
-    anio: z.number().nullable(),
-    vin: z.string().nullable(),
-    lote: z.string().nullable(),
-    plataforma: z.string().nullable(),
-    url_origen: z.string().nullable(),
-    precio: z.number().nullable(),
-    precio_negociable: z.boolean().nullable(),
-    acepta_permuta: z.boolean().nullable(),
-    placado: z.boolean().nullable(),
-    kilometraje: z.number().nullable(),
-    categoria_id: z.guid().nullable(),
-    fase_id: z.guid().nullable(),
-    // Unos atributos ilegibles no tumban la lista: ese vehículo se muestra sin ellos.
-    atributos: z.record(z.string(), z.unknown()).catch({}),
-    lead_id: z.guid().nullable(),
-    publicado_web: z.boolean(),
-    destacado_web: z.boolean(),
-    precio_web: z.number().nullable(),
-    precio_web_hasta: z.number().nullable(),
-    precio_web_nota: z.string().nullable(),
-    // Columna calculada de la base (`limpieza_el()`); nunca tumba la lista.
-    limpieza_el: z.string().nullable().catch(null),
+    ...columnasDeVehiculo,
     // A lo sumo una: la portada. Sin fotos (o si no llegaron) el vehículo se muestra sin ella.
     vehiculos_imagenes: z.array(z.object({ ruta_miniatura: z.string() })).catch([]),
-    creado_por: z.guid().nullable(),
-    creado_en: z.string(),
-    actualizado_en: z.string(),
   }),
 )
 
-// En el orden en que llegaron: el orden es de la consulta.
-export function vehiculosDesde(filas: unknown): Vehiculo[] {
-  return esquemaVehiculos.parse(filas).map((fila) => ({
+// Lo que devuelve `vehiculos_inventario()`: la portada ya viene como una columna (`portada_ruta`).
+const esquemaDelInventario = z.array(
+  z.object({ ...columnasDeVehiculo, portada_ruta: z.string().nullable().catch(null) }),
+)
+
+function vehiculoDesde(
+  fila: z.infer<z.ZodObject<typeof columnasDeVehiculo>>,
+  portadaRuta: string | null,
+): Vehiculo {
+  return {
     id: fila.id,
     numero: fila.numero,
     origenId: fila.origen_id,
@@ -126,9 +138,21 @@ export function vehiculosDesde(filas: unknown): Vehiculo[] {
     precioWebHasta: fila.precio_web_hasta,
     precioWebNota: fila.precio_web_nota,
     limpiezaEl: fila.limpieza_el,
-    portadaRuta: fila.vehiculos_imagenes[0]?.ruta_miniatura ?? null,
+    portadaRuta,
     creadoPor: fila.creado_por,
     creadoEn: fila.creado_en,
     actualizadoEn: fila.actualizado_en,
-  }))
+  }
+}
+
+// En el orden en que llegaron: el orden es de la consulta.
+export function vehiculosDesde(filas: unknown): Vehiculo[] {
+  return esquemaVehiculos
+    .parse(filas)
+    .map((fila) => vehiculoDesde(fila, fila.vehiculos_imagenes[0]?.ruta_miniatura ?? null))
+}
+
+// Las filas de `vehiculos_inventario()`: el mismo `Vehiculo` que `vehiculosDesde()` (4.16-2b).
+export function vehiculosDelInventario(filas: unknown): Vehiculo[] {
+  return esquemaDelInventario.parse(filas).map((fila) => vehiculoDesde(fila, fila.portada_ruta))
 }

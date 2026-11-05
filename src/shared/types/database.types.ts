@@ -150,6 +150,7 @@ export type Database = {
           telefono: string | null
           telefono_cc: string | null
           vehiculo_obligatorio_al_cotizar: boolean
+          vigencia_dias: number
           whatsapp: string | null
           zona_horaria: string
         }
@@ -181,6 +182,7 @@ export type Database = {
           telefono?: string | null
           telefono_cc?: string | null
           vehiculo_obligatorio_al_cotizar?: boolean
+          vigencia_dias?: number
           whatsapp?: string | null
           zona_horaria?: string
         }
@@ -211,6 +213,7 @@ export type Database = {
           telefono?: string | null
           telefono_cc?: string | null
           vehiculo_obligatorio_al_cotizar?: boolean
+          vigencia_dias?: number
           whatsapp?: string | null
           zona_horaria?: string
         }
@@ -720,6 +723,7 @@ export type Database = {
           totales: NonNullable<Json>
           valores: NonNullable<Json>
           vehiculo_id: string | null
+          ver_total_bs: boolean
           version: number
         }
         ComputedFields: never
@@ -751,6 +755,7 @@ export type Database = {
           totales: NonNullable<Json>
           valores: NonNullable<Json>
           vehiculo_id?: string | null
+          ver_total_bs?: boolean
           version?: number
         }
         Update: {
@@ -781,6 +786,7 @@ export type Database = {
           totales?: NonNullable<Json>
           valores?: NonNullable<Json>
           vehiculo_id?: string | null
+          ver_total_bs?: boolean
           version?: number
         }
         Relationships: [
@@ -2558,6 +2564,7 @@ export type Database = {
           desde: string
           lead_creado_en: string
           lead_id: string
+          lead_reciente_en: string
           revocado_en: string | null
           revocado_por: string | null
           tipo_acceso: Database['public']['Enums']['tipo_acceso_lead']
@@ -2569,6 +2576,7 @@ export type Database = {
           desde?: string
           lead_creado_en: string
           lead_id: string
+          lead_reciente_en: string
           revocado_en?: string | null
           revocado_por?: string | null
           tipo_acceso: Database['public']['Enums']['tipo_acceso_lead']
@@ -2579,6 +2587,7 @@ export type Database = {
           desde?: string
           lead_creado_en?: string
           lead_id?: string
+          lead_reciente_en?: string
           revocado_en?: string | null
           revocado_por?: string | null
           tipo_acceso?: Database['public']['Enums']['tipo_acceso_lead']
@@ -5874,6 +5883,8 @@ export type Database = {
           apibara_sync_en: string | null
           atributos: NonNullable<Json>
           categoria_id: string | null
+          cierre_subasta_en: string | null
+          cotizado_en: string | null
           creado_en: string
           creado_por: string | null
           destacado_web: boolean
@@ -5926,6 +5937,8 @@ export type Database = {
           apibara_sync_en?: string | null
           atributos?: NonNullable<Json>
           categoria_id?: string | null
+          cierre_subasta_en?: never
+          cotizado_en?: string | null
           creado_en?: string
           creado_por?: string | null
           destacado_web?: boolean
@@ -5967,6 +5980,8 @@ export type Database = {
           apibara_sync_en?: string | null
           atributos?: NonNullable<Json>
           categoria_id?: string | null
+          cierre_subasta_en?: never
+          cotizado_en?: string | null
           creado_en?: string
           creado_por?: string | null
           destacado_web?: boolean
@@ -6714,6 +6729,7 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
@@ -6786,6 +6802,7 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
@@ -6989,6 +7006,16 @@ export type Database = {
           visibilidad: Json
         }[]
       }
+      _cotizacion_cadena: {
+        Args: {
+          c: Omit<
+            Database['public']['Tables']['cotizaciones']['Row'],
+            Database['public']['Tables']['cotizaciones']['ComputedFields']
+          >
+          p_publicada: string
+        }
+        Returns: Json
+      }
       _cotizacion_conservar: {
         Args: { p_def: Json; p_editables: Json; p_entrada: Json; p_guardado: Json }
         Returns: Json
@@ -6996,6 +7023,17 @@ export type Database = {
       _cotizacion_contexto: {
         Args: { p_def: Json; p_visibilidad: Json; p_visibles: string[] }
         Returns: Json
+      }
+      _cotizacion_descartados: {
+        Args: {
+          p_def_ant: Json
+          p_fuentes: Json
+          p_lleva: Json
+          p_res: Json
+          p_valores: Json
+          p_visibles: string[]
+        }
+        Returns: number
       }
       _cotizacion_diff_recortado: {
         Args: { p_ctx: Json; p_diff: Json; p_legibles: string[] }
@@ -7006,8 +7044,23 @@ export type Database = {
         Returns: Json
       }
       _cotizacion_guardable: { Args: { p_mandados: Json; p_res: Json }; Returns: number }
-      _cotizacion_hoja: { Args: { p_formula: string; p_origen: string }; Returns: Json }
+      _cotizacion_hoja: {
+        Args: { p_edita?: boolean; p_formula: string; p_origen: string }
+        Returns: Json
+      }
+      _cotizacion_lo_que_se_lleva: {
+        Args: { p_def: Json; p_entrada: Json; p_fuentes: Json; p_valores: Json }
+        Returns: Json
+      }
       _cotizacion_modo: { Args: { p_formula: string; p_modo_tc: string }; Returns: Json }
+      _cotizacion_puede_guardar: {
+        Args: {
+          p_clase: Database['public']['Enums']['clase_cotizacion']
+          p_cot: string
+          p_origen: string
+        }
+        Returns: boolean
+      }
       _cotizacion_recorte: { Args: { p_ctx: Json; p_res: Json }; Returns: Json }
       _cotizacion_respuesta: {
         Args: {
@@ -7019,11 +7072,16 @@ export type Database = {
         }
         Returns: Json
       }
+      _cotizacion_tabla_version: {
+        Args: { p_abierta: string; p_cotizacion: string; p_origen: string }
+        Returns: string
+      }
       _cotizacion_tipeado: {
         Args: { p_def: Json; p_entrada: Json; p_modo: Json; p_ok: Json; p_tiene_variante?: boolean }
         Returns: string[]
       }
       _cotizacion_vehiculo: { Args: { p_vehiculo: string }; Returns: undefined }
+      _cotizacion_ver_total_bs: { Args: { p_formula: string; p_ver: boolean }; Returns: undefined }
       _diseno_forma: { Args: { p_diseno: Json }; Returns: undefined }
       _diseno_forma_item: { Args: { p_i: Json }; Returns: boolean }
       _diseno_modos: {
@@ -7174,6 +7232,10 @@ export type Database = {
       _hace: { Args: { p_cuando: string }; Returns: string }
       _hoja_chips: {
         Args: { p_columna: string; p_filas: number; p_nodo: Json; p_origen: string; p_params: Json }
+        Returns: Json
+      }
+      _hoja_datos_del_vehiculo: {
+        Args: { p_nodos: Json; p_origen: string; p_tablas: Json; p_vivas: Json }
         Returns: Json
       }
       _hoja_estado: {
@@ -7338,6 +7400,7 @@ export type Database = {
       }
       _lead_vivo_en_mi_cartera: { Args: { p_lead: string }; Returns: boolean }
       _leads_al_limbo_de: { Args: { p_tope: number; p_usuario: string }; Returns: number }
+      _leads_asesores_reciente_rellenar: { Args: Record<PropertyKey, never>; Returns: number }
       _leads_candidatos_etiquetas: { Args: { p_filtros: Json; p_yo: string }; Returns: string[] }
       _leads_candidatos_indexable: { Args: { p_filtros: Json }; Returns: boolean }
       _leads_candidatos_recorrido: { Args: Record<PropertyKey, never>; Returns: number }
@@ -7612,6 +7675,7 @@ export type Database = {
         Args: { p_clave: string; p_config: Json; p_repuesto: string; p_vehiculo: string }
         Returns: boolean
       }
+      _revision_etiquetas: { Args: { p_def: Json; p_filas: Json }; Returns: Json }
       _rol_para_editar: { Args: { p_esperado: string; p_rol: string }; Returns: undefined }
       _rol_tocar: { Args: { p_rol: string }; Returns: string }
       _seguimiento_conflicto: { Args: { p_cuando: string }; Returns: undefined }
@@ -7724,6 +7788,8 @@ export type Database = {
           apibara_sync_en: string | null
           atributos: NonNullable<Json>
           categoria_id: string | null
+          cierre_subasta_en: string | null
+          cotizado_en: string | null
           creado_en: string
           creado_por: string | null
           destacado_web: boolean
@@ -7815,6 +7881,17 @@ export type Database = {
         Args: { p_clave: string; p_datos: Json; p_largo: number; p_nombre: string }
         Returns: string
       }
+      _vehiculos_cotizado_rellenar: { Args: Record<PropertyKey, never>; Returns: number }
+      _vehiculos_inventario_condicion: {
+        Args: { p_columna: string; p_i: number; p_tipo: string }
+        Returns: string
+      }
+      _vehiculos_inventario_patron: { Args: { p_i: number }; Returns: string }
+      _vehiculos_inventario_sql: {
+        Args: { p_filtros: Json; p_rutas: string; p_sentido: string }
+        Returns: string
+      }
+      _vehiculos_inventario_validar: { Args: { p_filtros: Json }; Returns: undefined }
       _vehiculos_papelera_lote_json: {
         Args: {
           p_dias: number
@@ -7947,9 +8024,11 @@ export type Database = {
           p_origen: string
           p_vehiculo?: string
           p_vehiculo_nuevo?: Json
+          p_ver_total_bs?: boolean
         }
         Returns: Json
       }
+      cotizacion_encima: { Args: { p_anterior: string; p_id: string }; Returns: Json }
       cotizacion_evaluar: {
         Args: {
           p_abierta?: string
@@ -7972,10 +8051,12 @@ export type Database = {
           p_notas: string
           p_titulo: string
           p_vehiculo: string
+          p_ver_total_bs: boolean
         }
         Returns: Json
       }
       cotizacion_hoja: { Args: { p_origen: string }; Returns: Json }
+      cotizacion_hoja_guardada: { Args: { p_id: string }; Returns: Json }
       cotizacion_leer: { Args: { p_id: string }; Returns: Json }
       cotizacion_marcar_final: { Args: { p_cotizacion: string }; Returns: undefined }
       cotizacion_moderar: {
@@ -7987,8 +8068,36 @@ export type Database = {
         Returns: Json
       }
       cotizacion_tabla: {
-        Args: { p_cotizacion?: string; p_origen?: string; p_tabla: string }
+        Args: { p_abierta?: string; p_cotizacion?: string; p_origen?: string; p_tabla: string }
         Returns: Json
+      }
+      cotizaciones_listado: {
+        Args: {
+          p_clase?: Database['public']['Enums']['clase_cotizacion']
+          p_cursor_en?: string
+          p_cursor_id?: string
+          p_hacia_atras?: boolean
+          p_mias?: boolean
+          p_origen?: string
+          p_tamano: number
+          p_vehiculo?: string
+        }
+        Returns: {
+          clase: Database['public']['Enums']['clase_cotizacion']
+          creado_en: string
+          creado_por: string
+          estado: Database['public']['Enums']['estado_cotizacion']
+          id: string
+          lead_id: string
+          moneda_mostrar: string
+          numero: number
+          origen_id: string
+          titulo: string
+          total_base: number
+          vehiculo_id: string
+          vence_el: string
+          vencida: boolean
+        }[]
       }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
@@ -8264,6 +8373,7 @@ export type Database = {
           numero_propio_de: string | null
           numero_visible: number | null
           origen_lead_id: string | null
+          reciente_en: string | null
           telefono_cc: string | null
           telefono_principal: string | null
           telefono_visible: boolean | null
@@ -8804,6 +8914,48 @@ export type Database = {
       vehiculo_vitrina_previa: { Args: { p_vehiculo: string }; Returns: Json }
       vehiculos_con_permiso: { Args: { p_clave: string; p_ids: string[] }; Returns: string[] }
       vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
+      vehiculos_inventario: {
+        Args: {
+          p_cursor_en?: string
+          p_cursor_id?: string
+          p_filtros?: Json
+          p_hacia_atras?: boolean
+          p_origen: string
+          p_tamano?: number
+        }
+        Returns: {
+          acepta_permuta: boolean
+          actualizado_en: string
+          anio: number
+          atributos: Json
+          categoria_id: string
+          creado_en: string
+          creado_por: string
+          destacado_web: boolean
+          fase_id: string
+          id: string
+          kilometraje: number
+          lead_id: string
+          limpieza_el: string
+          lote: string
+          marca: string
+          modelo: string
+          numero: number
+          origen_id: string
+          placado: boolean
+          plataforma: string
+          portada_ruta: string
+          precio: number
+          precio_negociable: boolean
+          precio_web: number
+          precio_web_hasta: number
+          precio_web_nota: string
+          publicado_web: boolean
+          titulo: string
+          url_origen: string
+          vin: string
+        }[]
+      }
       vehiculos_papelera_enviar: { Args: { p_vehiculos: Json }; Returns: Json }
       vehiculos_papelera_listar: {
         Args: {

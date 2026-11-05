@@ -24,6 +24,14 @@ esac
 if printf '%s' "$ENTRADA" | jq -e '(.background_tasks // []) | length > 0' >/dev/null 2>&1; then
   exit 0
 fi
+# Una sesión que no escribió en este árbol no tiene nada que verificar en él (el árbol sucio es de otra: un paso del piloto, otra sesión).
+# Sin transcript legible o con un jq que falla, se verifica: lo seguro es lo de antes.
+TRANSCRIPT=$(printf '%s' "$ENTRADA" | jq -r '.transcript_path // empty' 2>/dev/null)
+FILTRO="$(dirname "${BASH_SOURCE[0]}")/sesion-edito.jq"
+if [ -n "$TRANSCRIPT" ] && [ -r "$TRANSCRIPT" ] && [ -f "$FILTRO" ]; then
+  edito=$(jq -n -f "$FILTRO" --arg raiz "$(pwd -P)" <"$TRANSCRIPT" 2>/dev/null)
+  if [ "$edito" = false ]; then rm -f "$CONTADOR"; exit 0; fi
+fi
 if [ -f scripts/piloto/huella.sh ] && bash scripts/piloto/huella.sh --igual; then
   rm -f "$CONTADOR"
   exit 0
@@ -58,7 +66,13 @@ barata() {
 
 completa() {
   bash scripts/mapa.sh >/dev/null 2>&1 || true
-  pnpm typecheck && pnpm lint && pnpm test && bash scripts/mapa.sh --check
+  # En un paso del piloto (PILOTO=1) la suite entera, el lint de todo y los e2e son del CI de la rama (`scripts/piloto/ci.sh`): aquí sólo lo
+  # barato y global, typecheck y mapa. Una sesión de la persona sigue verificando todo antes de parar.
+  if [ "${PILOTO:-}" = 1 ]; then
+    pnpm typecheck && bash scripts/mapa.sh --check
+  else
+    pnpm typecheck && pnpm lint && pnpm test && bash scripts/mapa.sh --check
+  fi
 }
 
 if [ -n "$(git status --porcelain)" ]; then

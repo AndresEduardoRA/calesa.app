@@ -23,8 +23,8 @@
 --     `mis_leads()`, ≤ 5 ms;
 --   - que no crece con N: con 250.000 el tiempo es a lo sumo `greatest(1,5 × el de 50.000, el de 50.000 + 3 ms)` y los buffers a lo sumo 1,2 × los de 50.000 + 20;
 --   - la guarda: con la policy y la función de antes puestas en su lugar, la página de Beto llama a `mis_leads()` y la función también: tienen que romper estos asserts.
--- La «chica» («propios», 3 vehículos, los más viejos de A, sin cartera) recorre todo A hasta llenar la página: se mide sin assert de tiempo con la policy nueva y con la
--- vieja (crece con N: `docs/PLAN.md`, 4-23). Sí se asserta que no llama a `en_cartera()`: un vehículo sin lead no pregunta (`lead_id is not null`).
+-- La «chica» («propios», 3 vehículos, los más viejos de A, sin cartera) recorre aquí todo A: es lo de hoy, sin assert de tiempo; su inventario por la función
+-- (`vehiculos_inventario()`, 4.16-2a) se mide en `medir-vehiculos-inventario.sql`. Sí se asserta que no llama a `en_cartera()` (un vehículo sin lead no pregunta).
 -- Cada línea `medicion|…|número` sale por el runner (`scripts/medir-listado.mjs`); las `nota|…`, también.
 -- Las corridas anteriores se revierten, pero sus tuplas muertas (250.000 vehículos y 50.000 filas de cartera) quedan en el heap y en los índices hasta que alguien las limpie, y
 -- `medir-bajas.sql` trabaja `leads_asesores`: se limpian antes de medir y después. VACUUM no corre dentro de una transacción: va fuera del begin. En el runner va antes
@@ -79,8 +79,8 @@ grant select on _p, _o to authenticated;
 
 -- Sin triggers de aquí en más (cada fila auditaría, validaría atributos y armaría su historial de vínculo); `numero` es una identidad y se llena igual.
 set local session_replication_role = replica;
-insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en)
-select c.lead, '00000000-0000-0000-0000-0000000000f2', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en, lead_reciente_en)
+select c.lead, '00000000-0000-0000-0000-0000000000f2', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en, coalesce(l.ultimo_seguimiento_en, l.creado_en)
   from _cartera c join public.leads l on l.id = c.lead;
 -- Pía: 5.000 propios, lo más nuevo de A. Beto: 5.000 de su cartera (uno por lead, los creó la dueña), lo más nuevo de B. La chica: 3 propios, lo más viejo de A.
 insert into public.vehiculos (origen_id, titulo, creado_por, lead_id, creado_en, actualizado_en)

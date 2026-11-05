@@ -1,7 +1,14 @@
 import 'server-only'
 import { resultadoDeCrear } from '../entities/guardado'
 import { argumentosDeCrear } from '../entities/pedido-de-guardado'
-import type { CreadorDeCotizacion } from '../entities/repositorios-de-hoja'
+import { argumentosDeGuardar } from '../entities/pedido-de-edicion'
+import { resultadoDeGuardar } from '../entities/resultado-de-guardar'
+import { resultadoDeEncima } from '../entities/resultado-de-encima'
+import type {
+  CotizadorEncima,
+  CreadorDeCotizacion,
+  GuardadorDeCotizacion,
+} from '../entities/repositorios-de-hoja'
 import { createClient } from '@/shared/lib/supabase/server'
 
 // Guardar la hoja: UNA llamada a `cotizacion_crear()` con la sesión de quien cotiza. La base comprueba los permisos, el lead, el vehículo y la hoja abierta firmada, calcula
@@ -10,4 +17,20 @@ import { createClient } from '@/shared/lib/supabase/server'
 export const crearCotizacion: CreadorDeCotizacion = async (pedido) => {
   const supabase = await createClient()
   return resultadoDeCrear(await supabase.rpc('cotizacion_crear', argumentosDeCrear(pedido)))
+}
+
+// Guardar los cambios de una cotización guardada: UNA llamada a `cotizacion_guardar()` con la sesión de quien edita. La base comprueba quién puede guardar, la versión, el intento
+// y calcula con SU versión de la fórmula; lo que trae `code` es un rechazo, lo que no, una respuesta perdida (`resultadoDeGuardar()`).
+export const guardarCotizacion: GuardadorDeCotizacion = async (pedido) => {
+  const supabase = await createClient()
+  return resultadoDeGuardar(await supabase.rpc('cotizacion_guardar', argumentosDeGuardar(pedido)))
+}
+
+// Cotizar encima: UNA llamada a `cotizacion_encima()` con la sesión de quien cotiza. La base comprueba quién puede, el lead, el vehículo y la fórmula publicada, y lleva lo guardado
+// de la anterior; lo que trae `code` es un rechazo, lo que no, una respuesta perdida (`resultadoDeEncima()`).
+export const cotizarEncima: CotizadorEncima = async ({ anterior, intento }) => {
+  const supabase = await createClient()
+  return resultadoDeEncima(
+    await supabase.rpc('cotizacion_encima', { p_id: intento, p_anterior: anterior }),
+  )
 }

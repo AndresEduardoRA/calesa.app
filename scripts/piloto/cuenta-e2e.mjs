@@ -4,7 +4,8 @@
 // cuenta y se informa en `no_reconocidos`: un «sí» mal escrito no resetea nada.
 //
 // Uso: node scripts/piloto/cuenta-e2e.mjs [docs/BITACORA.md]   → JSON por stdout. Se prueba en `cuenta-e2e.test.ts`.
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const DE = 3
@@ -47,5 +48,18 @@ export function cuentaE2e(texto) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const archivo = process.argv[2] ?? 'docs/BITACORA.md'
-  console.log(JSON.stringify(cuentaE2e(readFileSync(archivo, 'utf8'))))
+  let texto = readFileSync(archivo, 'utf8')
+  // Con carriles, lo que un paso dejó en docs/pasos/<paso>/bitacora.md y aún no se pasó a la bitácora también cuenta.
+  if (existsSync('docs/pasos') && existsSync('docs/plan.yaml')) {
+    try {
+      // La copia del bucle vive fuera del árbol: la librería se carga de scripts/coordinador/ del árbol de trabajo.
+      const carga = (f) => import(pathToFileURL(join(process.cwd(), 'scripts/coordinador', f)).href)
+      const { textoParaLaCuenta } = await carga('consolidar-docs.mjs')
+      const { leerPlan } = await carga('plan.mjs')
+      texto = textoParaLaCuenta('.', leerPlan(readFileSync('docs/plan.yaml', 'utf8')))
+    } catch {
+      // sin la librería del plan, vale la bitácora sola
+    }
+  }
+  console.log(JSON.stringify(cuentaE2e(texto)))
 }

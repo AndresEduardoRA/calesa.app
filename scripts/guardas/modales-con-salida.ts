@@ -36,4 +36,9 @@ export const MODALES: Record<string, RegistroDeModal> = {
     sinFormulario: 'muestra un enlace generado para pasarlo a mano: de sólo lectura',
     tambien: ['src/modules/equipo/features/equipo/components/enlace-invitacion.tsx'],
   },
+  // --- cotizaciones
+  'src/modules/cotizaciones/features/hoja/components/modal-de-avanzado.tsx': {
+    sinFormulario:
+      'dibuja celdas tipeables de la hoja, que confirman en la hoja y su borrador; cerrar o «atrás» las desmonta sin confirmar: un número abierto se confirma al perder el foco, lo demás se descarta, y Esc con una celda abierta cancela sólo la celda',
+  },
 }

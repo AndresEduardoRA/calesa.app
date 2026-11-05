@@ -7,6 +7,7 @@ import { buttonVariants } from '@/shared/ui/button'
 import { Dato } from '@/shared/ui/campos'
 import { camposDeTarjeta } from '../../../entities/campo'
 import { motivoParaNoEnviar, permisoDePapelera } from '../../../entities/papelera'
+import { rutaParaCotizar, type ParaCotizar } from '../../../entities/ruta-para-cotizar'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { MenuDeVehiculo } from '../../acciones/components/menu-de-vehiculo'
 import { BotonEditarVehiculo } from '../../alta/components/botones'
@@ -31,6 +32,8 @@ type Props = DatosDelOrigen & {
   publicar: PermisoDeVitrina
   // Se envió a la papelera: el resumen se cierra.
   alEnviado: () => void
+  // La hoja de cotizar con este origen, si la persona puede cotizar en él (lo decide la página con `origenesParaCotizar()`); null = sin «Cotizar».
+  paraCotizar: ParaCotizar | null
 }
 
 function tieneValor(valor: unknown) {
@@ -39,10 +42,10 @@ function tieneValor(valor: unknown) {
 
 // Lo de arriba, en todas las pestañas: la portada, lo que identifica al vehículo —su número, el VIN o el lote y los datos que el
 // layout de su origen pone «en tarjeta», los mismos que lo reconocen en la lista—, su estado (la fase, la vitrina y la limpieza) y lo
-// que se puede hacer: «Editar» (sólo con permiso) y «Abrir ficha».
+// que se puede hacer: «Editar» (sólo con permiso), «Cotizar» (sólo con permiso para cotizar en el origen) y «Abrir ficha».
 export function CabeceraDelResumen(props: Props) {
   const { vehiculo, campos, fases, origen, vitrina, limpiezaHoy, editable } = props
-  const { eliminable, publicar, alEnviado } = props
+  const { eliminable, publicar, alEnviado, paraCotizar } = props
   const fase = faseDe(fases, vehiculo.faseId)
   const datos = camposDeTarjeta(campos).filter((campo) =>
     tieneValor(vehiculo.atributos[campo.clave]),
@@ -82,6 +85,14 @@ export function CabeceraDelResumen(props: Props) {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {editable ? <BotonEditarVehiculo vehiculo={vehiculo} /> : null}
+        {paraCotizar ? (
+          <Link
+            href={rutaParaCotizar(paraCotizar, vehiculo.id) as Route}
+            className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-9' })}
+          >
+            Cotizar
+          </Link>
+        ) : null}
         <Link
           href={`${RUTAS.vehiculos}/${vehiculo.id}` as Route}
           className={buttonVariants({ variant: 'outline', className: 'h-11 md:h-9' })}

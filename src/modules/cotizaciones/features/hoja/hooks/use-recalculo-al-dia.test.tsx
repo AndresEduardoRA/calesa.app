@@ -34,7 +34,9 @@ afterEach(() => {
 describe('useRecalculo › alQuedarAlDia', () => {
   it('al día, llama enseguida con lo último y la respuesta vigente', () => {
     const { pedir } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     const fn = vi.fn<(r: AlDia) => void>()
     hook.result.current.alQuedarAlDia(fn)
     expect(fn).toHaveBeenCalledWith({
@@ -46,7 +48,9 @@ describe('useRecalculo › alQuedarAlDia', () => {
 
   it('esperando, llama al llegar la respuesta, con las entradas de ese recálculo; si se confirma otra en el medio, espera a la última', async () => {
     const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(1))
     })
@@ -74,7 +78,9 @@ describe('useRecalculo › alQuedarAlDia', () => {
 
   it('si el recálculo falla, llama con «fallo»', async () => {
     const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(1))
     })
@@ -90,7 +96,9 @@ describe('useRecalculo › alQuedarAlDia', () => {
 
   it('desmontar con una que espera la llama con «se_fue», y no sale ningún pedido', async () => {
     const { pedir } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(1))
     })
@@ -100,5 +108,16 @@ describe('useRecalculo › alQuedarAlDia', () => {
     expect(fn).toHaveBeenCalledWith({ ok: false, porque: 'se_fue' })
     await avanzar(ESPERA_DE_RECALCULO_MS * 2)
     expect(pedir).not.toHaveBeenCalled()
+  })
+})
+
+describe('useRecalculo › iniciales', () => {
+  it('con `iniciales`, «al día» sin nada tipeado devuelve esas entradas (el primer modo)', () => {
+    const { pedir } = pedidor()
+    const iniciales: Entradas = { ...ENTRADAS_VACIAS, modoTc: 'paralelo' }
+    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, iniciales, pedir }))
+    const fn = vi.fn<(r: AlDia) => void>()
+    hook.result.current.alQuedarAlDia(fn)
+    expect(fn).toHaveBeenCalledWith({ ok: true, entradas: iniciales, respuesta: INICIAL.respuesta })
   })
 })

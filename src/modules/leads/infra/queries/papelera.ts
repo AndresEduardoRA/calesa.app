@@ -12,7 +12,7 @@ import type { LectorDePapeleraDeLeads } from '../../entities/repositorios'
 export const getPapeleraDeLeads: LectorDePapeleraDeLeads = async ({ cursor, tamano }) => {
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('leads_papelera_listar', {
-    ...(cursor ? { p_antes_en: cursor.creadoEn, p_antes_id: cursor.id } : {}),
+    ...(cursor ? { p_antes_en: cursor.instante, p_antes_id: cursor.id } : {}),
     p_hacia_atras: cursor?.sentido === 'anterior',
     p_tope: tamano + 1,
     p_primeros: PRIMEROS_DEL_LOTE,

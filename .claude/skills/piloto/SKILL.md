@@ -23,6 +23,8 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
 - Sigues `CLAUDE.md` y las reglas de `.claude/rules/`. Un número de dinero va por `<Monto>`; los nombres salen de la base; ninguna tabla sin RLS. «Nadie prueba a mano».
 - Nunca `--no-verify`, nunca desactivar una regla de lint, nunca la clave real de apibara ni una credencial. No instalas ni cambias dependencias (compuerta `dependencia`).
 - Una sola fase de `docs/PLAN.md`: tu paso. Nada de paso de más.
+- **Un subagente se invoca con `run_in_background: false`** y recibes su informe en este mismo turno: no termines el turno esperándolo, porque en `-p` nadie te
+  reanima (4.14-2, 2026-10-29: sin ese parámetro corrió en segundo plano, el turno terminó con «Espero al planificador.» y costó ≈10 min y 4 USD).
 
 ## El camino
 
@@ -40,16 +42,26 @@ el número del paso y, opcionales, `continuar` (retomas esta sesión tras una co
    y `hechos.json` › `funciones` no las tiene todas en `true`, compuerta `afuera` antes de ejecutar («faltan las funciones edge (…): `pnpm funciones`»): el
    completo las exige y el bucle no las levanta. El bucle ya lo mira por el nivel del ruteo; esto cubre el plan que sube de nivel.
 5. **Ejecutar y verificar** (Nivel 1, 2 o 3 de `.claude/rules/e2e.md`, el que dice el plan): primero las pruebas que fallan, **guardadas en rojo contra HEAD**; después el
-   código; después las mutaciones del plan (cada una tiene que hacer caer su prueba). Cada salida va a `.piloto/salidas/<paso>/` con `tee`; las corridas largas con
+   código; después las mutaciones del plan (cada una tiene que hacer caer su prueba), sólo en un paso de rigor máximo: en pantalla pura no hay mutaciones ni sondas de medición (`.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Cada salida va a `.piloto/salidas/<paso>/` con `tee`; las corridas largas con
    `nohup … ; echo $? > <algo>.fin` y una espera de primer plano. **Antes de una corrida pesada** (`pnpm test`, `typecheck`, `lint`, mediciones) espera, en un bucle de primer plano
    de ≤ 9 minutos, a que no haya procesos de otra sesión (`playwright`, `next build`, `vitest`, `carreras`, `medir`, `supabase db|start` fuera de este árbol) y a que `loadavg` < 1,5.
 6. **Informe** en `.piloto/informes/<paso>.md` ([plantilla-informe.md](plantilla-informe.md)): qué se hizo, la salida real de cada prueba (con su ruta), lo que no se hizo.
-7. **Auditar el informe.** Mismo `auditor`, mismo tope: dos bloqueos y es una compuerta `atasco`.
-8. **Docs y commits.** Los docs que dice el plan (ESTADO por sustitución, ≤ 60 líneas medido con `wc -l`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con
+7. **Auditar el informe**, sólo en un paso de rigor máximo (en pantalla pura se salta: verifica el bucle). Mismo `auditor`, mismo tope: dos bloqueos y es una compuerta `atasco`.
+8. **Docs y commits.** **Con `asignado` en `hechos.json` (un carril con coordinador) no edites `docs/ESTADO.md`, `PLAN.md`, `BITACORA.md` ni `DECISIONES.md`** (los editarían todos los carriles a la vez): escribe lo mismo en `docs/pasos/<paso>/` (`bitacora.md`, con el marcador `e2e completo: …`, y `decisiones.md`); el carril `a` los pasa con `node scripts/coordinador/consolidar-docs.mjs` antes de su commit de docs, y el `ESTADO` lo lleva el carril `a`. Sin `asignado`: los docs que dice el plan (ESTADO por sustitución, ≤ 60 líneas medido con `wc -l`; BITACORA con el marcador `e2e completo: sí|no (…)`; DECISIONES con
    la fecha de `TZ=America/La_Paz date +%F`; fichas; `bash scripts/mapa.sh`). **Commits por intención**, asunto en español, minúscula, ≤ 72 caracteres, mensaje con `-F`, `mapa.sh`
    antes: **hasta 3 de código y el de docs** (si el plan necesitaba más, el paso no cabía y se partía); el `fix` que pida la auditoría del informe va aparte y no cuenta.
    **Sin push.** Verifica con `git log` que existen.
 9. **Terminar.** Escribe `.piloto/ultimo.json` (abajo) y responde con una línea. El bucle lo valida con `jq`; un `ultimo.json` que falte o no valide es un fallo del proceso.
+
+## El paso especial `ci-fix`
+
+Si `$ARGUMENTS` es `ci-fix`, **no hay fila en `docs/PLAN.md`, ni planificador, ni auditor**: el bucle junta los CI rojos y manda arreglarlos (`.piloto/ci-rojos.md`, y `hechos.json` › `ci_rojos`). Camino corto:
+
+1. Lee `.piloto/ci-rojos.md`. Por cada corrida, `gh run view <id> --log-failed | tail -n 200 > .piloto/salidas/ci-fix/<id>.log` (sólo lectura: nada de `gh` que escriba, ni `gh run rerun`).
+2. Encuentra la **causa**, no el síntoma: la prueba o el job que cayó, el commit que lo rompió (`git log` del rango). Un test inestable no se arregla con un reintento ni quitándolo: se hace determinista o se dice en `falla`.
+3. Reprodúcelo **sólo lo que cayó** (un archivo de vitest, un spec de e2e, un job) y arréglalo. No corras la suite entera: el CI lo vuelve a correr.
+4. Uno o dos commits `fix(<scope>): …` en el estilo de siempre, `mapa.sh` antes, sin push. Docs sólo si la corrección cambia una regla.
+5. `ultimo.json` con `paso: "ci-fix"`; `listo` si arreglaste todos los rojos anotados, `falla` si no pudiste (di cuál y por qué). Si el rojo es de la base (RLS, grants, advisors) o de un secreto, compuerta `datos` o `afuera`.
 
 ## `.piloto/ultimo.json`
 

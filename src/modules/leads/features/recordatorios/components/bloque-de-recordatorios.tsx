@@ -18,6 +18,8 @@ type Props = {
   // `useRecordatorios(leadId)`: lo llama quien monta el bloque (la ficha le pone ahí el recordatorio
   // que nace con un seguimiento).
   recordatorios: Recordatorios
+  // Dentro de una pestaña del drawer rápido: sin botón a quien volver, el modal no devuelve el foco a ciegas (4-58, como `LineaDeSeguimientos`).
+  enPestana?: boolean
 }
 
 // Los pendientes: lo que hay, el vacío o el error de la primera lectura.
@@ -75,7 +77,7 @@ function Pendientes({
 // leen al abrirse. Son personales: nadie más los ve. Agendar y editar abren un modal con su URL
 // (`?panel=agendar-recordatorio`, `?panel=editar-recordatorio&recordatorio=<id>`); uno de la URL que
 // no está cargado se lee por su id antes de decir que no está.
-export function BloqueDeRecordatorios({ leadId, zona, recordatorios }: Props) {
+export function BloqueDeRecordatorios({ leadId, zona, recordatorios, enPestana = false }: Props) {
   const botonAgendar = useRef<HTMLButtonElement>(null)
   const { pendientes, completados } = recordatorios.listas
   const cargados = [...pendientes.lista, ...(completados?.lista ?? []), ...recordatorios.sueltos]
@@ -132,7 +134,7 @@ export function BloqueDeRecordatorios({ leadId, zona, recordatorios }: Props) {
             recordatorios.poner(guardado)
             modal.cerrar()
           }}
-          focoAlCerrar={() => modal.focoAlCerrar() ?? botonAgendar.current ?? true}
+          focoAlCerrar={() => modal.focoAlCerrar() ?? botonAgendar.current ?? !enPestana}
           // «Recargar» tras un conflicto: sólo ése, por su id.
           alRecargar={() => {
             if (modal.original) {

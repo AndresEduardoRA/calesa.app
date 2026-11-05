@@ -57,7 +57,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Atributos** — `vehiculos.atributos`, `leads.atributos`: campos del layout que no son columna. En un lead se leen por `leads_vista`, recortados.
 - **Dato común** — `camposComunes()` / columnas de `vehiculos`: lo que tiene todo vehículo y es columna (título, marca, año, VIN, precio…).
 - **Sin fase** — `vehiculos.fase_id` nulo / `<BadgeDeFase>`: vehículo que todavía no entró al flujo de su origen; lo ubica quien mueve.
-- **Inventario** — `/vehiculos` / `<ListadoDeVehiculos>`: el listado de vehículos, una pestaña por origen.
+- **Inventario** — `/vehiculos` / `<ListadoDeVehiculos>`: el listado de vehículos, una pestaña por origen. `vehiculos_inventario()` lee una página de un origen por rutas (lo de «todos», lo creado, la cartera), con los filtros del layout en SQL (4.16-2a). La pantalla la lee para quien ve «propios» (`fuenteDelInventario()`); quien ve «todos», por PostgREST (4.16-2b).
 - **Lote de subasta** — `vehiculos.lote` + `plataforma`: identificador en la subasta (Copart/IAAI). No es el lote de papelera.
 - **Foto** — `vehiculos_imagenes` / `Foto`, `<SeccionDeFotos>`: una imagen de un vehículo (hasta 24).
 - **Portada** — `vehiculos_imagenes.es_portada` / `vehiculo_foto_portada()`: la foto principal de un vehículo, una sola.
@@ -109,8 +109,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Primer seguimiento** — `crear_lead()` (`p_seguimiento`): el que se anota al dar de alta: tipo, resumen y recordatorio opcional.
 - **En cartera** — `leads_vista.en_cartera` (de `leads.cartera`) / `en_cartera()`: el lead está en la cartera de quien mira; da el teléfono completo y los privados.
 - **Lectura por la cartera** — `leads_cartera_vista` / `fuenteDelListado()`, `leads_asesores.lead_creado_en`, `leads_asesores_listado_idx`: «míos» de quien tiene «propios», leído por su cartera.
+- **Reciente (de un lead)** — `leads_asesores.lead_reciente_en`, `reciente_en` de `leads_vista` y `leads_cartera_vista`, `leads_asesores_reciente_idx`: el último seguimiento vivo del lead o, sin ninguno, su alta (`coalesce(ultimo_seguimiento_en, creado_en)`). Ordena «míos» del panel del cliente; la copia está en todas las filas de la cartera del lead, también las revocadas. No: «actividad» (es la auditoría).
 - **Candidatos de la búsqueda** — `leads_candidatos()`, `leads_vista_por_ids()`, `leads_busqueda_idx` / `entities/candidatos.ts`: primeros leads que coinciden con un nombre, sacados de un índice.
 - **Míos / Todos** — `?alcance=todos` / `alcanceDelListado()`, `<SelectorDeAlcance>`: modos del listado de leads; «míos» (defecto) = `en_cartera`.
+- **Mías** (cotizaciones) — `p_mias` de `cotizaciones_listado()`, `PedidoDelListado.mias`: filtro del listado `/cotizaciones`: las que creó quien mira (`creado_por`). No es «Míos» de leads (`en_cartera`).
 - **Enmascarado** — `enmascarar_telefono()` / `telefono_lead()`: teléfono de un lead fuera de tu cartera: 3 primeros y 2 últimos dígitos («591•••••01»).
 - **País del teléfono** — `paisDelNumero()` / `TABLA_DE_PAISES`: país del código de llamada, calculado en el navegador.
 - **Ítems por página** — `listas.por_pagina`, `tamanoDePagina()`, `?por=`: 10, 25, 50 o 100 por cuenta; cada lista tiene un máximo (leads 50, vehículos 100).
@@ -118,6 +120,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Número global** — `leads.numero` / `leads_numeros_globales`, `leads.numero_global.ver`, `NumerosDeLead.numero`: consecutivo de la empresa («N.º 1.234»); nulo sin el permiso.
 - **Resumen** — `?lead=` y `?vehiculo=` / `<DrawerDeLead>`, `<ResumenDeVehiculo>`: vistazo sin salir de la lista («drawer rápido» en el código).
 - **Patrón de lista** — `@/shared/ui/lista` (`<UnaSolaVista>`, `<FilaDeLista>`, `<MasAcciones>`…): toda lista es tabla o tarjetas, nombre a la izquierda, «⋯» a la derecha.
+- **Vuelta del foco** — `abrirConVuelta()`, `useVueltaDelFoco()` (`src/shared/ui/vuelta-del-foco.ts`): tras recargar con un panel por URL abierto, «atrás» devuelve el foco a quien lo abrió (desde un menú, al botón del menú).
 - **Más acciones («⋯»)** — `<MasAcciones>` / `accionesDeLead()`, `accionesDeVehiculo()`: menú de fila, tarjeta, resumen o ficha.
 - **Filtro descartado** — `filtrosDescartados()` / `<AvisoDeFiltrosDescartados>`: filtro de la URL sobre un campo desactivado o eliminado.
 - **Ficha del lead** — `/leads/[id]` / `lead_ficha()`, `<FichaDeLead>`: pantalla de un lead (cabecera, «Datos», edición en `?panel=editar-lead`).
@@ -163,6 +166,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Dirección de la web** — `ajustes_web.direccion_publica` / `leerDireccionPublica()`: la dirección pública del sitio.
 - **Cotización** — `cotizaciones`: cálculo de una fórmula para un lead/vehículo, con snapshot.
 - **Preventa / Final** — `clase_cotizacion`: borrador comercial / la que cierra el vehículo (una activa por vehículo).
+- **Última cotización (de un vehículo)** — `vehiculos.cotizado_en`, `_vehiculo_cotizado()`: cuándo se cotizó por última vez; ordena «Últ. cotización» del panel del vehículo. Cotizar no edita el vehículo.
+- **Historial de cotizaciones (de un vehículo)** — `cotizaciones` por `vehiculo_id` / `<HistorialDelVehiculo>` (`cotizaciones/features/historial`): las cotizaciones que quien mira ve (su RLS), de la más nueva, con número, autor y clase; plegado en la región «Elegido» del panel del vehículo, de a 20 con «Ver más». **Cotizado (n)** es su conteo acotado (`contarCotizacionesDelVehiculo()`), la insignia de la barra y la etiqueta del botón.
+- **Panel del vehículo** — `?panel=vehiculo` de `/cotizaciones/nuevo`, `<BarraDelVehiculo>` / `PanelDelVehiculo` (`vehiculos/features/panel-para-cotizar`): donde se elige el vehículo de la cotización, por «Últ. cotización» o «Cierre subasta» (`?lista=ultima|cierre`), por cursor. Lo abre la barra del vehículo, sobre la hoja. Arriba tiene un campo que busca por nombre, VIN o lote (`?buscar=`) y trae un enlace, un VIN o un lote de la subasta; «+» y «Traer» abren el alta del inventario dentro del panel (`?alta=mano|subasta`).
+- **Panel del cliente** — `?panel=cliente` de `/cotizaciones/nuevo`, `<BarraDelCliente>` / `PanelDelCliente` (`leads/features/panel-para-cotizar`): donde se elige el lead de la cotización; «míos» por lo más reciente con pestañas por clase (`?clase=`), la búsqueda por nombre o `#n` (`?buscar=`), por cursor. Lo abre la barra del cliente, debajo de la del vehículo. Su «+» («Nuevo lead») abre el alta del shell con `?elegir=<clave>` (la clave de la URL donde la hoja lleva su lead; `claveParaElegir()`), y al guardar la hoja elige al creado.
 - **Fórmula** — `formulas` (`definicion`, `params`): grafo de nodos versionado por origen; ver `docs/COTIZADOR.md`.
 - **Nodo** — `definicion.nodos[]`: una línea de la fórmula: input, constante, tipo de cambio, campo, bandera, tabla, tramo, cálculo.
 - **Constante** — nodo `constante` + `params`: valor por defecto versionado que el ⚙ de la XCell cambia.
@@ -176,7 +183,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Reporte** — `cotizaciones_reportes` / `cotizacion_moderar`: marca de problema; sólo quien modera invalida.
 - **Comprobante** — `comprobantes`, `comprobantes_contadores`: comprobante de venta interno, numeración sin huecos; se anula, no se borra.
 - **Tipo de cambio oficial / paralelo** — `tipos_cambio.clave` (`oficial`, `paralelo`): los dos del Excel (TCO y TCP); cada fila o grupo elige el suyo.
-- **Modo de tipo de cambio** — `diseno.cabecera.modos[]` / `cotizaciones.modo_tc`: lo declara el diseño: un nombre (Aduana, Paralelo, Unificado…) y qué tipo de cambio llena cada bucket.
+- **Modo de tipo de cambio** — `diseno.cabecera.modos[]` / `cotizaciones.modo_tc`: lo declara el diseño: un nombre (Aduana, Paralelo, Unificado…) y qué tipo de cambio llena cada bucket. La hoja abre con el primero marcado (`Entradas.modoTc`); con uno solo no se elige y el resumen lo nombra.
 - **Grupo (de la hoja)** — `definicion.grupos[]` / `nodo.grupo`: filas con bucket, plazo de pago y tono, con subtotal en USD y en Bs. No es un nodo.
 - **Plazo de pago** — atributo del grupo: cuándo se paga lo de un grupo, como texto («2 días», «4 meses (Aprox.)»).
 - **Total en dólares** — `definicion.total_en`; en el motor, `totales.usd` (y `totales.suma_usd`): total en Bs ÷ tipo de cambio de `total_en`.
@@ -188,8 +195,10 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Fórmula como texto** — `compilarExpresion()` (`entities/compilador.ts`): `=(remate+fees)*4%`, `=SUMA(aduana)`; se compila a nodos al configurar.
 - **Nodo auxiliar** — `<fila>__<n>` en `compilarExpresion()`: cada operación anidada o número de una fórmula como texto es un nodo propio, numerado en post-orden.
 - **Tramo (de un error de texto)** — `Tramo`, `ErrorDeCompilacion` (`entities/motivos-del-compilador.ts`): dónde está el error en una fórmula como texto (`desde`, `largo`; `linea`, `columna`).
-- **Vigencia** — `vigencia_dias` de la empresa (7 por defecto): cuántos días vale una cotización desde `creado_en`.
-- **Vencida** — derivada: `creado_en` + vigencia < hoy: cotización que pasó su vigencia. No es un estado guardado.
+- **Vigencia** — `ajustes_empresa.vigencia_dias` (7 por defecto, de 1 a 365): cuántos días vale una cotización desde el día de su `creado_en`.
+- **Vencida** — derivada: `creado_en` + vigencia < hoy, por día y en la zona de la empresa (`vence_el` y `vencida` de `cotizacion_hoja_guardada()`): cotización que pasó su vigencia. No es un estado guardado.
+- **Cotizar encima (N+1)** — `cotizacion_encima()`, `cotizacion_padre_id`, `version`: crear la versión nueva de una cotización (otra cotización, preventa, con la publicada y las tarifas de hoy y lo tipeado de la anterior); la anterior no cambia; una viva por anterior.
+- **Hoja de una guardada** — `cotizacion_hoja_guardada()`: la lectura que abre una cotización guardada con SU versión, lo que quien mira puede guardar, la vigencia y la cadena (anterior y versión nueva).
 - **Desactualizada** — `cotizacion_crear(… p_abierta …)` (PT409 `desactualizada`): la fórmula o un tipo de cambio cambió tras abrir la hoja: «Usar la versión N+1» o «Guardar con la N». No es «vencida».
 - **Vehículo obligatorio al cotizar** — `ajustes_empresa.vehiculo_obligatorio_al_cotizar` (sí por defecto): con «no», una preventa se guarda sin vehículo.
 - **Intento (de una cotización)** — `id` uuid del cliente: `cotizacion_crear` (`p_id`), `cotizacion_guardar` (`p_intento`): repetirlo devuelve lo mismo (`repetido: true`); con otros datos, `intento_reusado`.
@@ -200,10 +209,11 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Entradas (de la hoja)** — `Entradas` / `entradasDelPedido()`: lo tipeado que se manda a recalcular: `inputs`, `banderas`, `overrides`, variante.
 - **Reconstruir lo guardado** — `_cotizacion_entradas_de()`, `_cotizacion_conservar()`: volver de `valores` y `fuentes` a lo tipeado, para completar lo que quien guarda no ve.
 - **Huella (de un guardado)** — `cotizaciones_revisiones.huella`: `md5` de lo que mandó quien guarda; compara el mismo intento con otros datos. No se lee.
-- **Cargar a mano** — `p_vehiculo_nuevo` de `cotizacion_crear`: crea el vehículo en la misma transacción.
+- **Cargar a mano** — «+» del panel del vehículo de la hoja de cotizar: abre el alta del inventario dentro del panel y «Crear y elegir» crea el vehículo con `vehiculo_crear()` y la hoja lo elige (P1 del 4.14-2c: se crea al confirmarlo en el panel, no al guardar la cotización). `p_vehiculo_nuevo` de `cotizacion_crear` (crearlo en la misma transacción que la cotización) queda en la base sin uso desde la pantalla.
 - **Moneda base de la cotización** — `total_base` / `ajustes_empresa.moneda_base`: total guardado en `total_base`; sólo `USD` y `BOB`.
 - **Serie de comprobantes** — `comprobantes_contadores.serie` (una por empresa, «A» por defecto): serie con que se numeran, sin huecos, los comprobantes.
 - **Diseño de la hoja** — `formulas.diseno` / `entities/diseno.ts`, `validarDiseno()`, `validar_diseno()`: cómo se ve la hoja de un origen (secciones, celdas, atajos, variantes, interruptores, modos, tarjeta).
+- **Dato del vehículo (de una celda)** — `dato_del_vehiculo` de una celda de `cotizacion_hoja()` / `datoDelVehiculo` (`entities/hoja.ts`), `_hoja_datos_del_vehiculo()`: qué columna de la tabla de una celda casa con qué campo del vehículo (`tipo` ← `tipo_vehiculo`); sus opciones son las filas de `cotizacion_tabla` y las elige el panel del vehículo, en «Elegido» (4.14-2c3, `datosParaElegirDe()`, `guardarDatoDelVehiculo`).
 - **Nivel de acceso** — `cotizaciones_niveles` / permisos `cotizaciones.nivel.<clave>.ver|editar` (`permisos.nivel_clave`) / `nivel_crear|renombrar|retirar|restaurar|eliminar()`: quién ve y edita una celda o sección.
 - **Retirar un nivel** — `nivel_retirar()` / `cotizaciones_niveles.retirado_en`: deja de ofrecerse.
 - **Restaurar un nivel** — `nivel_restaurar()` / `cotizaciones_niveles.retirado_en`: deshace un retiro; no cambia clave, permisos ni concesiones.
@@ -221,6 +231,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Avanzado** — `presentacion: 'avanzado'` de una sección: celdas que se editan en un modal aparte (hoy, los componentes del CIF y de la póliza).
 - **Sección (de la hoja)** — `diseno.secciones[]`: bloque de ítems con título, presentación (`principal` o `avanzado`) y nivel opcional.
 - **Celda (de la hoja)** — ítem `celda` del diseño: la `XCell` de un nodo en la hoja: ancho (`completo`, `mitad` o `tercio`), ayuda y niveles.
+- **Ayuda (de una celda)** — `ayuda` de una `celda` del diseño: un texto o una tabla de referencia que abre su botón «Ayuda de X» en un panel de sólo lectura, con su URL (`?ayuda=texto|tabla&nodo=<id>`); la tabla se lee con la hoja abierta.
 - **Secundario (de una celda)** — `secundario` de una `celda`: el % (o monto) junto al valor en un `porcentaje_de`; obligatorio si el monto se sobrescribe.
 - **Subtotal (de la hoja)** — ítem `subtotal` del diseño: un nodo de cálculo dibujado como franja (el «CIF» de «avanzado»).
 - **Tarjeta del total** — `diseno.tarjeta_total`: resumen fijo (al pie en celular): nodo total y secundarios; no se ubica en el diseño.
@@ -287,6 +298,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Intacto (lead importado)** — `_lead_motivo_para_deshacer()`: sólo en la cartera de quien importó, sin editar y sin nada colgado; las marcas no cuentan.
 - **Tus importaciones recientes** — `leads_importaciones_recientes()`, `<ImportacionesRecientes>`: importaciones propias de 24 h, con «Deshacer», en `/leads/importar`.
 - **Subasta (de un vehículo)** — `SubastaDeVehiculo` / `<BloqueDeSubasta>`, `leerSubasta()`: cuándo es, en qué está, cuánto va y cuándo se consultó.
+- **Cierre (de una subasta)** — `vehiculos.cierre_subasta_en` (generada): cuándo cierra una subasta abierta o en vivo, `coalesce(subasta_fin_en, subasta_en)`; nula si no está viva. Ordena «Cierre subasta» del panel del vehículo, desde ahora menos 24 h.
 - **Estado de subasta** — `vehiculos.estado_subasta` / `EstadoDeSubasta`: `abierta`, `en vivo`, `terminada` o `vendida`; lo deriva la base, nadie lo escribe.
 - **Respuesta guardada** — `vehiculos.apibara_raw` / `leerSubasta().raw`: lo que apibara devolvió, entero; sólo el servidor la lee.
 - **Consulta de apibara** — `apibara_consultas` / `apibara_consulta_guardar()`, `FichaDeApibara.consulta`: cada respuesta de la edge function, a nombre de quien consultó.
@@ -314,3 +326,5 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Pregunta al descartar** — `useCierreConCambios()`, `<ConfirmarDescarte>`, `useCambiosSinGuardar()` (`preguntaAlCerrar`): «Tienes cambios sin guardar.» con «Seguir editando» / «Descartar».
 - **Recorte (de una cotización)** — `_cotizacion_recorte()`, `_cotizacion_contexto()` / `cotizacion_leer()`, `cotizacion_evaluar()`, `cotizacion_revisiones()`, `cotizacion_tabla()`: lo que viaja según el nivel de quien lee.
 - **Inventario de lo oculto** — `pg_temp.cv_registro()` en `supabase/tests/cotizaciones-visibilidad.sql`: funciones que pueden devolver `valores`, `fuentes`, `totales` o `formulas.*`, con su clase y sonda.
+- **Ver total Bs** — `diseno.cabecera.ver_total_bs` (el diseño de la versión lo ofrece) / `cotizaciones.ver_total_bs` (quien cotizó lo eligió), `_cotizacion_ver_total_bs()`, `p_ver_total_bs` de `cotizacion_crear()` y `cotizacion_guardar()`: sumar el total en Bs al resumen, la tarjeta y el PDF. Sólo vale si la versión que se usa lo ofrece; nace en falso. En la pantalla se llama «Ver total en moneda local» (ningún texto fijo nombra la moneda) y sólo se dibuja si la lectura trae `cabecera.moneda_bs`; sin ella se guarda en falso.
+- **Moneda del total en Bs** — `cabecera.moneda_bs` de `cotizacion_hoja()` / `HojaLista.cabecera.monedaBs`: el `moneda_a` del tipo de cambio activo de `definicion.total_en` de la versión; nula sin `total_en` o sin ese tipo de cambio activo, aunque `totales.bs` tenga valor (el Bs sale del tipo de cambio de cada bucket). Con ella se escribe `totales.bs`.

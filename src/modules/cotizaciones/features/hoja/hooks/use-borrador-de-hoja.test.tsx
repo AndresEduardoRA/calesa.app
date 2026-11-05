@@ -1,12 +1,15 @@
-import { act, cleanup, fireEvent, render } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ok, type Resultado } from '@/shared/lib/errores'
 import type { RecalculoInicial } from '../../../entities/apertura'
 import { claveDelBorrador } from '../../../entities/claves-de-la-hoja'
+import { entradasIniciales, indiceDeHoja, type Entradas } from '../../../entities/entradas'
 import { hojaDePrueba, respuestaDePrueba } from '../../../entities/hoja-de-prueba.soporte'
 import type { PedidoDeRecalculo } from '../../../entities/pedido-de-recalculo'
 import type { RespuestaDeRecalculo } from '../../../entities/recalculo'
 import { PantallaDeCotizar } from '../components/pantalla-de-cotizar'
+import { useBorradorDeHoja } from './use-borrador-de-hoja'
 
 const recalcular = vi.hoisted(() => vi.fn())
 const avisar = vi.hoisted(() => vi.fn())
@@ -27,14 +30,16 @@ const INICIAL: RecalculoInicial = {
 }
 const montar = () =>
   render(
-    <PantallaDeCotizar
-      hoja={HOJA}
-      inicial={INICIAL}
-      vehiculoId={null}
-      vehiculoSoltado={false}
-      leadId={LEAD}
-      personaId={PERSONA}
-    />,
+    <NuqsTestingAdapter>
+      <PantallaDeCotizar
+        hoja={HOJA}
+        inicial={INICIAL}
+        vehiculoId={null}
+        vehiculoSoltado={false}
+        leadId={LEAD}
+        personaId={PERSONA}
+      />
+    </NuqsTestingAdapter>,
   )
 const total = () => document.querySelector('[data-total]')?.textContent ?? ''
 const avanzar = (ms: number) =>
@@ -114,5 +119,61 @@ describe('useBorradorDeHoja', () => {
     expect(recalcular).toHaveBeenCalledTimes(1)
     expect(window.sessionStorage.getItem(CLAVE)).toBeNull()
     expect(document.querySelector('[data-nodo="remate"]')?.textContent).not.toContain('700')
+  })
+})
+
+// C2: la hoja abre con las entradas que recibe (la nueva, las vacías con el primer modo; una guardada, lo que ya tiene), y el borrador mide lo tipeado contra ESAS.
+describe('useBorradorDeHoja: contra las iniciales que recibe', () => {
+  const CLAVE_DIRECTA = 'borrador-estado:cotizar:iniciales'
+  const INDICE = indiceDeHoja(HOJA.secciones, HOJA.cabecera.modos)
+  const INICIALES: Entradas = {
+    ...entradasIniciales(INDICE),
+    inputs: new Map([['remate', 800]]),
+  }
+  const montarDirecto = (alDescartar = vi.fn(), reponer = vi.fn()) => {
+    renderHook(() =>
+      useBorradorDeHoja({
+        clave: 'cotizar:iniciales',
+        entradas: INICIALES,
+        verTotalBs: true,
+        iniciales: INICIALES,
+        verTotalBsInicial: true,
+        ofrece: true,
+        indice: INDICE,
+        reponer,
+        alDescartar,
+      }),
+    )
+    return { alDescartar, reponer }
+  }
+  const guardado = () => JSON.parse(window.sessionStorage.getItem(CLAVE_DIRECTA) ?? '{}') as unknown
+
+  it('abrir sin tocar nada con unas iniciales que no son las vacías no deja borrador', () => {
+    const { reponer } = montarDirecto()
+    expect(guardado()).toEqual({})
+    expect(reponer).not.toHaveBeenCalled()
+  })
+
+  it('un borrador igual a las iniciales no vuelve ni avisa (no hay nada que recuperar)', () => {
+    window.sessionStorage.setItem(
+      CLAVE_DIRECTA,
+      JSON.stringify({ inputs: [['remate', 800]], verTotalBs: true }),
+    )
+    const { reponer } = montarDirecto()
+    expect(reponer).not.toHaveBeenCalled()
+    expect(avisar).not.toHaveBeenCalled()
+  })
+
+  it('un borrador distinto vuelve, y «Descartar» le pide al marco volver a montar la hoja con las iniciales', () => {
+    window.sessionStorage.setItem(CLAVE_DIRECTA, JSON.stringify({ inputs: [['remate', 700]] }))
+    const { reponer, alDescartar } = montarDirecto()
+    expect(reponer).toHaveBeenCalledTimes(1)
+    expect([...(reponer.mock.calls[0]?.[0] as Entradas).inputs]).toEqual([['remate', 700]])
+    const { alHacer } = avisar.mock.calls[0]?.[1] as { alHacer: () => void }
+    act(() => {
+      alHacer()
+    })
+    expect(alDescartar).toHaveBeenCalledTimes(1)
+    expect(guardado()).toEqual({})
   })
 })

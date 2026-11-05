@@ -6,12 +6,25 @@ import { createClient } from '@/shared/lib/supabase/server'
 import type { BuscadorDeVehiculos, LectorDeVehiculo } from '../../entities/repositorios'
 import { COLUMNAS_DE_VEHICULO, FILTRO_DE_PORTADA, vehiculosDesde } from '../../entities/vehiculo'
 import { aplicarCondiciones } from './condiciones'
+import { FILTROS_RECHAZADOS, leerPorLaFuncion } from './inventario'
 
-// Una página del inventario de un origen, con la portada de cada vehículo: una sola consulta, de lo más nuevo a lo más viejo, con
-// una fila de más para saber si hay otra página. Lo que ve cada quien lo decide la RLS. Bajo RLS
-// los filtros sobre `atributos` no usan el GIN: la base camina el índice del listado
-// (`vehiculos_origen_listado_idx`) filtrando, y corta en `tamano + 1`.
+// Una página del inventario de un origen, de lo más nuevo a lo más viejo. Lo que ve cada quien lo decide la RLS; la fuente (4.16-2b)
+// sólo elige el camino: quien ve «propios» lee por `vehiculos_inventario()` y el resto, por la tabla. Si la base rechaza los filtros de
+// la función, esa página se lee por la tabla, como antes (una ida más, que la URL no alcanza: `docs/DECISIONES.md` › «Paso 4.16-2b»).
 export const buscarVehiculos: BuscadorDeVehiculos = async (pedido) => {
+  if (pedido.fuente === 'vehiculos_inventario') {
+    const porLaFuncion = await leerPorLaFuncion(pedido)
+    if (porLaFuncion !== FILTROS_RECHAZADOS) {
+      return porLaFuncion
+    }
+  }
+  return leerDeLaTabla(pedido)
+}
+
+// La página por la tabla, con la portada de cada vehículo: una sola consulta, con una fila de más para saber si hay otra página. Bajo
+// RLS los filtros sobre `atributos` no usan el GIN: la base camina el índice del listado (`vehiculos_origen_listado_idx`) filtrando, y
+// corta en `tamano + 1`.
+const leerDeLaTabla: BuscadorDeVehiculos = async (pedido) => {
   const { origenId, condiciones, cursor, tamano } = pedido
   const supabase = await createClient()
   // La portada viene embebida y acotada: el filtro es sobre las fotos, no sobre los vehículos

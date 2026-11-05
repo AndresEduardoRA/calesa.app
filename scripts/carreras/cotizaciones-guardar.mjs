@@ -47,7 +47,7 @@ const guarda = (
   { intento = nuevoId(), a = 11, titulo = 'T', vehiculo = t.vehiculo } = {},
 ) => ({
   persona,
-  sql: 'public.cotizacion_guardar($1, $2, $3::timestamptz, $4::jsonb, null, $5, null, $6)',
+  sql: 'public.cotizacion_guardar($1, $2, $3::timestamptz, $4::jsonb, null, $5, null, $6, false)',
   args: [c, intento, v, JSON.stringify({ inputs: { a } }), titulo, vehiculo],
 })
 
@@ -467,6 +467,38 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
     )
   }
 
+  // 4-34: quien edita y no ve se rechaza en la PRIMERA comprobación, antes del candado. Se le quita `cotizaciones.ver` a quien sólo edita (como el `revocar` de g9) y se le repone al final.
+  console.log('Quien edita y no ve no queda esperando el candado de la cotización')
+  {
+    const t = await terreno(orquesta, 'g10b')
+    const c = nuevoId()
+    await insertaCotizacion(orquesta, t, c)
+    const quitarVer = {
+      rol: 'service_role',
+      consulta: `with d as (delete from public.roles_permisos where permiso_clave = 'cotizaciones.ver' and rol_id = (select id from public.roles where clave = 'carreras_solo_edita') returning 1) select count(*) as r from d`,
+      args: [],
+    }
+    try {
+      const rq = await llamar(quitarVer)
+      espero('a quien sólo edita se le quitó cotizaciones.ver', rq.ok && Number(rq.valor) === 1, {
+        rq,
+      })
+      const rb = await sinEspera({
+        a: guarda(duena, t, c, await version(orquesta, c)),
+        b: guarda(soloEdita, t, c, await version(orquesta, c), { a: 12 }),
+      })
+      espero(
+        'quien edita y no ve recibe el error de una cotización que no existe (42501) sin esperar a A (no el corte por tiempo 57014)',
+        rb.codigo === '42501' && rb.mensaje === 'No tienes acceso a esta cotización.',
+        { rb },
+      )
+    } finally {
+      await orquesta.query(
+        `insert into public.roles_permisos (rol_id, permiso_clave, origen_id, alcance) select r.id, 'cotizaciones.ver', null, 'todos' from public.roles r where r.clave = 'carreras_solo_edita' and not exists (select 1 from public.roles_permisos rp where rp.rol_id = r.id and rp.permiso_clave = 'cotizaciones.ver')`,
+      )
+    }
+  }
+
   console.log('Quien no ve el vehículo nuevo no queda esperando su candado')
   {
     const t = await terreno(orquesta, 'g15')
@@ -593,8 +625,8 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
   console.log('Los privilegios de lo nuevo, en la base real, y el orden en bytes de un nodo')
   {
     const llamables = [
-      'public.cotizacion_guardar(uuid,uuid,timestamptz,jsonb,text,text,text,uuid)',
-      'public.cotizacion_crear(uuid,uuid,uuid,jsonb,text,uuid,jsonb,text,clase_cotizacion,boolean)',
+      'public.cotizacion_guardar(uuid,uuid,timestamptz,jsonb,text,text,text,uuid,boolean)',
+      'public.cotizacion_crear(uuid,uuid,uuid,jsonb,text,uuid,jsonb,text,clase_cotizacion,boolean,boolean)',
       'public.cotizacion_hoja(uuid)',
       'public.cotizacion_evaluar(jsonb,uuid,uuid,uuid,jsonb,text,text)',
     ]
@@ -610,7 +642,7 @@ export async function carrerasDeGuardar({ orquesta, carrera, espero, conectar, e
       'public._cotizacion_tipeado(jsonb,jsonb,jsonb,jsonb,boolean)',
       'public._cotizacion_armar(jsonb,uuid,uuid,uuid,uuid,timestamptz,boolean)',
       'public.cotizacion_version()',
-      'public._cotizacion_hoja(uuid,uuid)',
+      'public._cotizacion_hoja(uuid,uuid,boolean)',
       'public._hoja_estado(jsonb,boolean,boolean,text,text,boolean,boolean)',
       'public._hoja_chips(uuid,jsonb,jsonb,text,integer)',
     ]

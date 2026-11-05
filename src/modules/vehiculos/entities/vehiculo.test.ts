@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLUMNAS_DE_VEHICULO, vehiculosDesde } from './vehiculo'
+import { COLUMNAS_DE_VEHICULO, vehiculosDelInventario, vehiculosDesde } from './vehiculo'
 
 const FILA = {
   id: '00000000-0000-0000-0000-000000000001',
@@ -84,5 +84,40 @@ describe('vehiculosDesde', () => {
 
   it('una fila sin título se rechaza', () => {
     expect(() => vehiculosDesde([{ ...FILA, titulo: null }])).toThrow()
+  })
+})
+
+describe('vehiculosDelInventario', () => {
+  const { vehiculos_imagenes: imagenes, ...SIN_EMBEBIDO } = FILA
+  const RUTA = imagenes[0]?.ruta_miniatura ?? ''
+
+  it('da el mismo vehículo que vehiculosDesde, de la misma fila con la portada como columna', () => {
+    expect(vehiculosDelInventario([{ ...SIN_EMBEBIDO, portada_ruta: RUTA }])).toEqual(
+      vehiculosDesde([FILA]),
+    )
+  })
+
+  it('una portada nula es un vehículo sin portada', () => {
+    const [vehiculo] = vehiculosDelInventario([{ ...SIN_EMBEBIDO, portada_ruta: null }])
+    expect(vehiculo?.portadaRuta).toBeNull()
+  })
+
+  it('una portada ilegible no tumba la lista', () => {
+    const [vehiculo] = vehiculosDelInventario([{ ...SIN_EMBEBIDO, portada_ruta: 7 }])
+    expect(vehiculo?.portadaRuta).toBeNull()
+  })
+
+  it('una limpieza ilegible es nula', () => {
+    const [vehiculo] = vehiculosDelInventario([
+      { ...SIN_EMBEBIDO, portada_ruta: null, limpieza_el: 3 },
+    ])
+    expect(vehiculo?.limpiezaEl).toBeNull()
+  })
+
+  it('conserva el orden de las filas', () => {
+    const otra = { ...SIN_EMBEBIDO, id: '00000000-0000-0000-0000-000000000002', portada_ruta: null }
+    expect(
+      vehiculosDelInventario([otra, { ...SIN_EMBEBIDO, portada_ruta: null }]).map((v) => v.id),
+    ).toEqual([otra.id, FILA.id])
   })
 })

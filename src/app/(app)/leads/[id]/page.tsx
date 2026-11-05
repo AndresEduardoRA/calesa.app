@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { z } from 'zod'
+import { origenesParaCotizar, rutaDeLaHoja } from '@/modules/cotizaciones'
 import { getAjustes } from '@/modules/empresa'
 import { puede, requerirSesion } from '@/modules/equipo'
 import {
@@ -25,6 +26,7 @@ import {
   SeccionPortal,
   SeccionSeguimientos,
 } from '@/modules/leads/pantallas/ficha'
+import { getOrigenes } from '@/modules/origenes'
 import { opcionesDeVehiculoDelLead } from '@/modules/vehiculos'
 import {
   EsqueletoDeVehiculosDelLead,
@@ -46,6 +48,67 @@ const loQueVe = (permisos: Permisos, enCartera: boolean) => ({
   portal: puedeGestionarPortal(permisos, enCartera),
 })
 
+// «Cotizar» de la cabecera: la hoja de cotizar con este lead elegido, en el primer origen donde quien mira cotiza (las pestañas de la hoja cambian de origen y
+// conservan el lead). Sin `cotizaciones.crear` en ningún origen no lee nada; si la lectura de los orígenes falla, el botón no está y la ficha sigue. La base vuelve a exigirlo.
+async function paraCotizarDe(permisos: Permisos, leadId: string): Promise<string | null> {
+  if (!puede(permisos, 'cotizaciones.crear')) {
+    return null
+  }
+  const [primero] = origenesParaCotizar(permisos, datosO(await getOrigenes()))
+  return primero ? rutaDeLaHoja({ origen: primero.id, lead: leadId }) : null
+}
+
+// Las secciones que se leen con su pestaña abierta: «Datos» no paga la línea de tiempo ni nada de lo demás. Cada una es lo que su `<Suspense>` espera.
+function seccionesDe(
+  datos: { ficha: { id: string; nombre: string } },
+  seccion: string,
+  ve: { vehiculos: boolean },
+  parametros: Record<string, string | string[] | undefined>,
+) {
+  return {
+    // Sólo se lee con la sección abierta: «Datos» no paga la línea de tiempo.
+    seguimientos:
+      seccion === 'seguimientos' ? (
+        <Suspense fallback={<EsqueletoDeSeguimientos />}>
+          <SeccionSeguimientos
+            leadId={datos.ficha.id}
+            // Para elegir un vehículo en un seguimiento o un recordatorio (sólo con el permiso).
+            {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
+          />
+        </Suspense>
+      ) : null,
+    // La sección vive en `vehiculos`: la página la compone (`leads` no importa `vehiculos`).
+    vehiculos:
+      seccion === 'vehiculos' ? (
+        <Suspense fallback={<EsqueletoDeVehiculosDelLead />}>
+          <SeccionVehiculosDelLead leadId={datos.ficha.id} leadNombre={datos.ficha.nombre} />
+        </Suspense>
+      ) : null,
+    oportunidades:
+      seccion === 'oportunidades' ? (
+        <Suspense fallback={<EsqueletoDeOportunidades />}>
+          <SeccionOportunidades
+            leadId={datos.ficha.id}
+            todas={unParametro(parametros[CLAVE_DE_TODAS_LAS_OPORTUNIDADES]) === '1'}
+            {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
+          />
+        </Suspense>
+      ) : null,
+    // El nombre de la empresa y la dirección de la web los componen `empresa` y `web` (`leads` no los importa).
+    portal:
+      seccion === 'portal' ? (
+        <Suspense fallback={<EsqueletoDePortal />}>
+          <SeccionPortal
+            leadId={datos.ficha.id}
+            leadNombre={datos.ficha.nombre}
+            empresa={getAjustes().then((ajustes) => ajustes.nombre)}
+            direccion={leerDireccionPublica().then(datosO)}
+          />
+        </Suspense>
+      ) : null,
+  }
+}
+
 // La ficha de un lead. Lo que no existe, lo que está en la papelera o sin dueño y lo que la
 // persona no ve se muestran igual: decir «no tienes permiso» confirmaría que existe. Qué recibe de
 // él (el teléfono completo, los datos «solo la cartera») lo decide la base.
@@ -59,7 +122,12 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
   if (!z.guid().safeParse(id).success) {
     return <LeadNoDisponible />
   }
-  const datos = datosO(await leerFichaDeLead(id))
+  // La lectura de los orígenes corre a la vez que la de la ficha (sólo para quien cotiza).
+  const [lectura, paraCotizar] = await Promise.all([
+    leerFichaDeLead(id),
+    paraCotizarDe(sesion.permisos, id),
+  ])
+  const datos = datosO(lectura)
   if (!datos) {
     return <LeadNoDisponible />
   }
@@ -76,6 +144,7 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
       puedeCambiarTelefono={puedeCambiarTelefonoDeLead(sesion.permisos, datos.ficha.enCartera)}
       seccion={seccion}
       ve={ve}
+      paraCotizar={paraCotizar}
       etiquetas={datos.etiquetas}
       cartera={datos.cartera}
       accionesDeCartera={accionesDeCartera(sesion.permisos, datos.cartera)}
@@ -84,50 +153,7 @@ export default async function PaginaLead({ params, searchParams }: PageProps<'/l
         duenoDe(datos.cartera)?.usuarioId ?? null,
         sesion.usuarioId,
       )}
-      // Sólo se lee con la sección abierta: «Datos» no paga la línea de tiempo.
-      seguimientos={
-        seccion === 'seguimientos' ? (
-          <Suspense fallback={<EsqueletoDeSeguimientos />}>
-            <SeccionSeguimientos
-              leadId={datos.ficha.id}
-              // Para elegir un vehículo en un seguimiento o un recordatorio (sólo con el permiso).
-              {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
-            />
-          </Suspense>
-        ) : null
-      }
-      // La sección vive en `vehiculos`: la página la compone (`leads` no importa `vehiculos`).
-      vehiculos={
-        seccion === 'vehiculos' ? (
-          <Suspense fallback={<EsqueletoDeVehiculosDelLead />}>
-            <SeccionVehiculosDelLead leadId={datos.ficha.id} leadNombre={datos.ficha.nombre} />
-          </Suspense>
-        ) : null
-      }
-      oportunidades={
-        seccion === 'oportunidades' ? (
-          <Suspense fallback={<EsqueletoDeOportunidades />}>
-            <SeccionOportunidades
-              leadId={datos.ficha.id}
-              todas={unParametro(parametros[CLAVE_DE_TODAS_LAS_OPORTUNIDADES]) === '1'}
-              {...(ve.vehiculos ? { vehiculos: opcionesDeVehiculoDelLead(datos.ficha.id) } : {})}
-            />
-          </Suspense>
-        ) : null
-      }
-      // El nombre de la empresa y la dirección de la web los componen `empresa` y `web` (`leads` no los importa).
-      portal={
-        seccion === 'portal' ? (
-          <Suspense fallback={<EsqueletoDePortal />}>
-            <SeccionPortal
-              leadId={datos.ficha.id}
-              leadNombre={datos.ficha.nombre}
-              empresa={getAjustes().then((ajustes) => ajustes.nombre)}
-              direccion={leerDireccionPublica().then(datosO)}
-            />
-          </Suspense>
-        ) : null
-      }
+      {...seccionesDe(datos, seccion, ve, parametros)}
     />
   )
 }

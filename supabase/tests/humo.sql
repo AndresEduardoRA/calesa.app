@@ -594,7 +594,7 @@ do $$ declare r uuid := (select id from public.roles where clave = 'humo_persona
     get stacked diagnostics m = message_text;
     if m not like 'Falta la versión%' then raise; end if;
   end;
-  begin perform public.cotizacion_guardar(current_setting('humo.cotizacion')::uuid, gen_random_uuid(), null, '{}', null, null, null, (select c.vehiculo_id from public.cotizaciones c where c.id = current_setting('humo.cotizacion')::uuid)); raise exception 'guardó una cotización sin versión';
+  begin perform public.cotizacion_guardar(current_setting('humo.cotizacion')::uuid, gen_random_uuid(), null, '{}', null, null, null, (select c.vehiculo_id from public.cotizaciones c where c.id = current_setting('humo.cotizacion')::uuid), false); raise exception 'guardó una cotización sin versión';
   exception when raise_exception then
     get stacked diagnostics m = message_text;
     if m not like 'Falta la versión%' then raise; end if;

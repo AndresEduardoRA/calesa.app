@@ -145,29 +145,39 @@ declare
   v_cambia text := 'jsonb_build_object(''inputs'', jsonb_build_object(''remate'', (random() * 1000)::int), ''overrides'', jsonb_build_object(''transporte_bolivia'', 0, ''nacionalizacion'', 1201))';
 begin
   return case p_caso
-    when 'duena' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L)', v_id, v_ver, v_cambia, v_v1)
-    when 'asesora' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L)', v_id, v_ver, v_cambia, v_v1)
+    when 'duena' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L, false)', v_id, v_ver, v_cambia, v_v1)
+    when 'asesora' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L, false)', v_id, v_ver, v_cambia, v_v1)
     -- Cambiar de vehículo: el que no es el de ahora.
-    when 'vehiculo' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, null, null, (select case when c.vehiculo_id = %L then %L::uuid else %L::uuid end from public.cotizaciones c where c.id = %L))',
+    when 'vehiculo' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, %s, null, null, null, (select case when c.vehiculo_id = %L then %L::uuid else %L::uuid end from public.cotizaciones c where c.id = %L), false)',
                                 v_id, v_ver, v_cambia, v_v1, v_v2, v_v1, v_id)
-    when 'sin_cambios' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, ''{"inputs": {"remate": 5000}, %s}''::jsonb, null, ''fijo'', null, %L)', v_id, v_ver, c_overrides, v_v1)
+    when 'sin_cambios' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, ''{"inputs": {"remate": 5000}, %s}''::jsonb, null, ''fijo'', null, %L, false)', v_id, v_ver, c_overrides, v_v1)
     -- El mismo intento y los mismos datos que la primera vez (con la versión de entonces): la vuelta temprana.
-    when 'repetido' then format('select public.cotizacion_guardar(%L, %L, %L, ''{"inputs": {"remate": 7000}, %s}''::jsonb, null, ''repetido'', null, %L)', v_id, (select id from _x where clave = 'intento_repetido'),
+    when 'repetido' then format('select public.cotizacion_guardar(%L, %L, %L, ''{"inputs": {"remate": 7000}, %s}''::jsonb, null, ''repetido'', null, %L, false)', v_id, (select id from _x where clave = 'intento_repetido'),
                                 (select valor from _versiones where caso = 'repetido'), c_overrides, v_v1)
-    when 'sintetica' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, (select doc from _entrada_sint), null, ''T'' || gen_random_uuid()::text, null, %L)', v_id, v_ver, v_vs)
-    when 'mala' then format('select pg_temp.cotizacion_guardar_mala(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L)', v_id, v_ver, v_cambia, v_v1)
+    when 'sintetica' then format('select public.cotizacion_guardar(%L, gen_random_uuid(), %s, (select doc from _entrada_sint), null, ''T'' || gen_random_uuid()::text, null, %L, false)', v_id, v_ver, v_vs)
+    when 'mala' then format('select pg_temp.cotizacion_guardar_mala(%L, gen_random_uuid(), %s, %s, null, ''T'' || gen_random_uuid()::text, null, %L, false)', v_id, v_ver, v_cambia, v_v1)
   end;
 end $$;
 create temp table _versiones (caso text primary key, valor timestamptz);
 grant all on _versiones to authenticated;
 
--- 7 corridas de EXPLAIN de la llamada: la mediana de ms y de buffers de las 5 últimas.
-create function pg_temp.medir(p_sql text) returns jsonb language plpgsql as $$
+-- El peor caso (4.14-1): pasar a otro vehículo reescribe su fila (`cotizado_en`) en cada corrida, como en `medir-cotizacion-crear.sql`; `escrituras()`, lo actualizado en `vehiculos`.
+create function pg_temp.sin_cotizar() returns void language sql security definer as $$
+  update public.vehiculos set cotizado_en = null where id in (select id from _x where clave like 'vehiculo%') and cotizado_en is not null
+$$;
+create function pg_temp.escrituras() returns bigint language sql as $$ select coalesce(n_tup_upd, 0) from pg_stat_xact_user_tables where schemaname = 'public' and relname = 'vehiculos' $$;
+
+-- 7 corridas de EXPLAIN de la llamada: la mediana de ms y de buffers de las 5 últimas. Cada corrida reescribe `vehiculos` exactamente `p_escrituras` veces.
+create function pg_temp.medir(p_sql text, p_escrituras int) returns jsonb language plpgsql as $$
 declare
-  v_plan jsonb; v_ms numeric[] := '{}'; v_buf bigint[] := '{}'; v_clave text; v_b bigint; i int;
+  v_plan jsonb; v_ms numeric[] := '{}'; v_buf bigint[] := '{}'; v_clave text; v_b bigint; i int; v_antes bigint; v_d bigint;
 begin
   for i in 1 .. 7 loop
+    perform pg_temp.sin_cotizar();
+    v_antes := pg_temp.escrituras();
     execute 'explain (analyze, buffers, format json) ' || p_sql into v_plan;
+    v_d := pg_temp.escrituras() - v_antes;
+    if v_d <> p_escrituras then raise exception 'la corrida % actualizó % filas de vehiculos y se esperaban %: %', i, v_d, p_escrituras, p_sql; end if;
     continue when i <= 2;
     v_ms := v_ms || (v_plan -> 0 ->> 'Execution Time')::numeric;
     v_b := 0;
@@ -215,14 +225,15 @@ begin
     v_quien := case v_caso when 'asesora' then 'asesora' else 'duena' end;
     perform pg_temp.como(v_quien);
     v_sql := pg_temp.sql_de(p_fase, v_caso);
-    v_m := pg_temp.medir(v_sql);
+    -- Sólo «vehiculo» pasa a otro vehículo (y paga su reescritura); los demás guardan sobre el mismo.
+    v_m := pg_temp.medir(v_sql, case v_caso when 'vehiculo' then 1 else 0 end);
     v_r := pg_temp.recorridos(v_sql);
     insert into _med values (p_fase, v_caso, (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, v_r);
   end loop;
   if p_con_mala then
     perform pg_temp.como('duena');
     v_sql := pg_temp.sql_de(p_fase, 'mala');
-    v_m := pg_temp.medir(v_sql);
+    v_m := pg_temp.medir(v_sql, 0);
     v_r := pg_temp.recorridos(v_sql);
     insert into _med values (p_fase, 'mala', (v_m ->> 'ms')::numeric, (v_m ->> 'buffers')::bigint, v_r);
   end if;
@@ -230,7 +241,7 @@ end $$;
 
 -- La copia mala: la función de verdad, pero el intento se busca SIN la cotización (`where intento = …`): el índice único empieza por `cotizacion_id`, así que recorre las revisiones.
 do $$
-declare v_def text := pg_get_functiondef('public.cotizacion_guardar(uuid, uuid, timestamptz, jsonb, text, text, text, uuid)'::regprocedure);
+declare v_def text := pg_get_functiondef('public.cotizacion_guardar(uuid, uuid, timestamptz, jsonb, text, text, text, uuid, boolean)'::regprocedure);
 begin
   v_def := replace(v_def, 'FUNCTION public.cotizacion_guardar(', 'FUNCTION pg_temp.cotizacion_guardar_mala(');
   if position('x.cotizacion_id = p_id and x.intento = p_intento' in v_def) = 0 then raise exception 'la copia mala: no está la búsqueda del intento'; end if;

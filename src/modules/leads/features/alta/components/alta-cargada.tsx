@@ -1,25 +1,20 @@
 'use client'
 
-import type { Route } from 'next'
-import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, type RefObject } from 'react'
 import { enfocarPrimerError } from '@/shared/lib/formularios'
-import { RUTAS } from '@/shared/lib/rutas'
 import { useAtajo } from '@/shared/ui/atajos'
 import { Button } from '@/shared/ui/button'
 import { ConfirmarDescarte } from '@/shared/ui/confirmar-descarte'
 import { useRegional } from '@/shared/ui/regional'
-import { avisarExito } from '@/shared/ui/toasts'
 import { useCierreConCambios, type CierreConCambios } from '@/shared/ui/use-cierre-con-cambios'
 import {
   ID_DEL_SEGUIMIENTO_DEL_ALTA,
   avisoDelPieDelAlta,
-  textoDeLeadGuardado,
   type ContextoDeAlta,
 } from '../../../entities/alta'
 import type { CampoDeLead } from '../../../entities/campo'
-import { CLAVE_DE_SECCION } from '../../../entities/ficha'
-import { useAltaDeLead, type AltaDeLead, type Guardado, type Paso } from '../hooks/use-alta-de-lead'
+import { useAlGuardarDelAlta } from '../hooks/use-al-guardar-del-alta'
+import { useAltaDeLead, type AltaDeLead, type Paso } from '../hooks/use-alta-de-lead'
 import { usePanelDeAlta } from '../hooks/use-panel-de-alta'
 import { EnElMarco, useAjustesDelMarco } from './marco-del-alta'
 import { PanelDeAlta } from './panel-de-alta'
@@ -189,29 +184,18 @@ function useSalidaDelAlta(alta: AltaDeLead, panel: ReturnType<typeof usePanelDeA
 // (`marco-del-alta.tsx`): acá se dibuja el cuerpo y el pie en sus dos ranuras, y se le dice la descripción del paso y qué cierra Esc.
 export function AltaCargada({ contexto, campos }: Props) {
   const idFormulario = useId()
-  const router = useRouter()
   const panel = usePanelDeAlta()
   const { zonaHoraria } = useRegional()
   // Tras guardar, el foco vuelve al teléfono cuando los campos dejan de estar deshabilitados.
   const enfocarTelefono = useRef(false)
 
+  const alGuardar = useAlGuardarDelAlta(panel, enfocarTelefono)
   const alta = useAltaDeLead({
     contexto,
     layout: campos,
     zona: zonaHoraria,
     abierto: panel.abierto,
-    alGuardar: ({ id, numeros, adoptado, conSeguimiento }: Guardado) => {
-      // Sin primer seguimiento, «Abrir ficha» lleva a donde se anota después.
-      const seccion = conSeguimiento ? '' : `?${CLAVE_DE_SECCION}=seguimientos`
-      avisarExito(textoDeLeadGuardado({ numeros, adoptado, conSeguimiento }), {
-        etiqueta: 'Abrir ficha',
-        sale: true,
-        alHacer: () => {
-          router.push(`${RUTAS.leads}/${id}${seccion}` as Route)
-        },
-      })
-      enfocarTelefono.current = true
-    },
+    alGuardar,
   })
   const { paso, enCurso, enviar, guardar } = alta
   const salida = useSalidaDelAlta(alta, panel)

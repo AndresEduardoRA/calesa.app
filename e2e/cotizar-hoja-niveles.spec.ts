@@ -19,6 +19,7 @@ import {
   type Ficha,
   type Oculto,
 } from './soporte/cotizar'
+import { ordenConAvanzado } from './soporte/cotizar-avanzado'
 import {
   MARCA,
   OCULTO,
@@ -26,7 +27,6 @@ import {
   borrarOrigenesDeCotizar,
   crearOrigenDeCotizar,
   ocultoDeUnaFormulaSembrada,
-  ordenDeclarado,
 } from './soporte/cotizar-formula'
 import { capturar } from './soporte/recorrido'
 import { sql } from './soporte/sql'
@@ -122,7 +122,7 @@ async function verComo(
   page: Page,
   correo: string,
   url: string,
-  celdaATipear: string,
+  { celda: celdaATipear, avanzado: abrirAvanzado = false }: { celda: string; avanzado?: boolean },
 ): Promise<Visto> {
   const vigilante = await vigilarRecalculos(page)
   await page.context().clearCookies()
@@ -132,6 +132,11 @@ async function verComo(
   await expect(page.locator('[data-hoja]')).toBeVisible()
   await tipear(page, celdaATipear, '100')
   await expect.poll(() => vigilante.respuestas.length).toBeGreaterThan(0)
+  // Las secciones avanzadas están detrás de «Avanzado» (4.13-4a): quien las ve las abre antes de que se junte el DOM.
+  if (abrirAvanzado) {
+    await page.locator('[data-avanzado]').getByRole('button').click()
+    await expect(page.getByRole('dialog', { name: 'Avanzado' })).toBeVisible()
+  }
   return {
     secciones: await lista(page, 'data-seccion'),
     nodos: await lista(page, 'data-nodo'),
@@ -154,7 +159,7 @@ const hallazgos = (v: Visto, oculto: Oculto) => ({
 test('en la fórmula de prueba, quien ve «todos» no recibe ni un id, una etiqueta ni un valor de lo que esconde el nivel', async ({
   page,
 }, info) => {
-  const v = await verComo(page, todos, `/cotizaciones/nuevo?origen=${origen.id}`, 'pub')
+  const v = await verComo(page, todos, `/cotizaciones/nuevo?origen=${origen.id}`, { celda: 'pub' })
   expect(v.secciones).toEqual(['abierta', 'solo_editar'])
   expect(v.nodos).toEqual(VISIBLE_SIN_COSTOS)
   expect(hallazgos(v, OCULTO)).toEqual({ dom: [], rsc: [], recalculo: [] })
@@ -166,7 +171,7 @@ test('en la fórmula de prueba, quien ve «todos» no recibe ni un id, una etiqu
 test('quien ve «costos» recibe todo eso, por los tres canales: así se ve que la prueba muerde', async ({
   page,
 }, info) => {
-  const v = await verComo(page, costos, `/cotizaciones/nuevo?origen=${origen.id}`, 'pub')
+  const v = await verComo(page, costos, `/cotizaciones/nuevo?origen=${origen.id}`, { celda: 'pub' })
   expect(v.secciones).toEqual(['abierta', 'solo_editar', 'del_nivel'])
   expect(v.nodos).toEqual([
     ...VISIBLE_SIN_COSTOS,
@@ -237,20 +242,21 @@ test('en la fórmula sembrada de la subasta, quien ve «todos» no recibe ningun
   expect(oculto.ids.length).toBeGreaterThan(10)
   const buscado: Oculto = { ids: oculto.ids, etiquetas: oculto.etiquetas, numeros: [] }
   const url = `/cotizaciones/nuevo?origen=${sql("select id from public.origenes where clave = 'subasta_usa'")}`
-  const orden = ordenDeclarado('subasta_usa')
-  expect(orden.secciones).toEqual(expect.arrayContaining(['cif', 'impuestos', 'poliza']))
+  const orden = ordenConAvanzado('subasta_usa')
+  expect(orden.avanzado.secciones).toEqual(['cif', 'impuestos', 'poliza'])
 
-  const sin = await verComo(page, todos, url, 'remate')
-  expect(sin.secciones).toEqual(
-    orden.secciones.filter((s) => !['cif', 'impuestos', 'poliza'].includes(s)),
-  )
+  const sin = await verComo(page, todos, url, { celda: 'remate' })
+  expect(sin.secciones).toEqual(orden.hoja.secciones)
+  // Sin ninguna avanzada que ver, no hay botón «Avanzado».
+  await expect(page.locator('[data-avanzado]')).toHaveCount(0)
   expect(hallazgos(sin, buscado)).toEqual({ dom: [], rsc: [], recalculo: [] })
   expect(sin.nodos.some((n) => oculto.ids.includes(n ?? ''))).toBe(false)
   await capturar(page, info, 'cotizar-subasta-todos')
 
-  const con = await verComo(page, costos, url, 'remate')
-  expect(con.secciones).toEqual(orden.secciones)
-  expect(con.nodos).toEqual(orden.nodos)
+  const con = await verComo(page, costos, url, { celda: 'remate', avanzado: true })
+  // El DOM trae la hoja y, detrás, el diálogo de «Avanzado» (va en un portal, al final).
+  expect(con.secciones).toEqual([...orden.hoja.secciones, ...orden.avanzado.secciones])
+  expect(con.nodos).toEqual([...orden.hoja.nodos, ...orden.avanzado.nodos])
   const h = hallazgos(con, buscado)
   expect(h.dom.length).toBeGreaterThan(0)
   expect(h.rsc.length).toBeGreaterThan(0)

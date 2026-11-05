@@ -21,7 +21,8 @@ export function SeccionDeHoja({ seccion, contexto, acciones }: Props) {
           {seccion.titulo}
         </h2>
       )}
-      <div className="grid grid-cols-12 gap-3">
+      {/* Bajo `@lg` todo ítem ocupa las 12 pistas: sin huecos de columna, que al 200 % suman 11 × 0,75 rem y no caben en la sección del modal (4-44 b). */}
+      <div className="grid grid-cols-12 gap-x-0 gap-y-3 @lg:gap-x-3">
         {seccion.items
           .filter((item) => itemSeDibuja(item, contexto))
           .map((item, posicion) => (

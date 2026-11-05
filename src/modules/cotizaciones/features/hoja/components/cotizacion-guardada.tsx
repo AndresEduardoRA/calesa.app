@@ -1,8 +1,11 @@
 'use client'
 
-import { Button } from '@/shared/ui/button'
+import type { Route } from 'next'
+import Link from 'next/link'
+import { Button, buttonVariants } from '@/shared/ui/button'
 import { Monto } from '@/shared/ui/monto'
 import type { CotizacionGuardada as Guardada } from '../../../entities/guardado'
+import { rutaDeLaCotizacion } from '../../../entities/ruta-de-la-hoja'
 
 type Props = {
   cotizacion: Guardada
@@ -11,7 +14,7 @@ type Props = {
   alCotizarOtra: () => void
 }
 
-// Lo que se ve al guardar (P1): el número y el total de **lo guardado** (la respuesta de la base, no lo tipeado), y «Cotizar otra». Ver y editar la cotización es del 4.15.
+// Lo que se ve al guardar (P1): el número y el total de **lo guardado** (la respuesta de la base, no lo tipeado), «Cotizar otra» y «Abrir la cotización» (su página, 4.15-3).
 // El número es un identificador: va sin separador de miles.
 export function CotizacionGuardada({ cotizacion, fueReenvio, alCotizarOtra }: Props) {
   return (
@@ -48,10 +51,16 @@ export function CotizacionGuardada({ cotizacion, fueReenvio, alCotizarOtra }: Pr
           </p>
         ) : null}
       </div>
-      <div>
+      <div className="flex flex-wrap gap-2">
         <Button className="min-h-11 md:min-h-8" onClick={alCotizarOtra}>
           Cotizar otra
         </Button>
+        <Link
+          href={rutaDeLaCotizacion(cotizacion.id) as Route}
+          className={buttonVariants({ variant: 'outline', className: 'min-h-11 md:min-h-8' })}
+        >
+          Abrir la cotización
+        </Link>
       </div>
     </section>
   )

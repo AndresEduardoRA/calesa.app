@@ -9,6 +9,7 @@ import { FilterShell } from '@/shared/ui/filtros'
 import { useAbiertoAlgunaVez } from '@/shared/ui/use-abierto-alguna-vez'
 import { camposFiltrables } from '../../../entities/filtros'
 import type { PermisoDeAlta } from '../../../entities/permisos'
+import type { ParaCotizar } from '../../../entities/ruta-para-cotizar'
 import type { Vehiculo } from '../../../entities/vehiculo'
 import type { PermisoDeVitrina } from '../../../entities/vitrina'
 import { BotonNuevoVehiculo, ID_DEL_MOTIVO_DE_ALTA } from '../../alta/components/botones'
@@ -46,6 +47,8 @@ type Props = DatosDelOrigen & {
   publicar: PermisoDeVitrina
   // «Interesados» del resumen: sólo con `leads.ver`.
   verInteresados: boolean
+  // «Cotizar» del resumen: la hoja de cotizar de este origen, o null si no cotiza en él (lo decide la página).
+  paraCotizar: ParaCotizar | null
 }
 
 // Por qué «Nuevo» está apagado (el origen está desactivado), arriba de la lista.
@@ -73,7 +76,7 @@ export function ListadoDeVehiculos(props: Props) {
     porPagina,
     ...demas
   } = props
-  const { verPapelera, apibara, verInteresados, ...resto } = demas
+  const { verPapelera, apibara, verInteresados, paraCotizar, ...resto } = demas
   const { origen, campos, categorias, fases, vitrina, limpiezaHoy, pagina, editables } = resto
   const nuevo = <BotonNuevoVehiculo origen={origen} permiso={permisoDeAlta} />
   const resumen = useResumenDeVehiculo({ verInteresados })
@@ -135,6 +138,7 @@ export function ListadoDeVehiculos(props: Props) {
           eliminables={new Set(resto.eliminables)}
           publicar={resto.publicar}
           verInteresados={verInteresados}
+          paraCotizar={paraCotizar}
         >
           {panel}
         </ResumenDeVehiculoDiferido>

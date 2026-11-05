@@ -83,7 +83,7 @@ test('D2 por fórmula: «Usar la versión nueva» reabre la hoja con la vigente 
   await expect(celdaDeLaHoja(page, 'pub')).toContainText('200,00')
   const vieja = guardados.pedidos[0]?.abierta
   await expect.poll(() => recalculos.pedidos.at(-1)?.p_abierta).not.toBe(vieja)
-  await expect(page.getByRole('button', { name: 'Guardar' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Guardar', exact: true })).toBeEnabled()
   await guardarConElAtajo(page)
   await expect(tarjetaGuardada(page)).toBeVisible()
   const ultimo = guardados.pedidos.at(-1)

@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fallo, ok } from '@/shared/lib/errores'
 import type { RecalculoInicial } from '../../../entities/apertura'
@@ -6,9 +6,9 @@ import { hojaDePrueba, respuestaDePrueba } from '../../../entities/hoja-de-prueb
 import type { PedidoDeRecalculo } from '../../../entities/pedido-de-recalculo'
 import type { Guardado } from '../hooks/use-guardado'
 import { HojaDeCotizar } from './hoja-de-cotizar'
+import { render } from './render-con-url.soporte'
 
-const recalcular = vi.hoisted(() => vi.fn())
-const refrescar = vi.hoisted(() => vi.fn())
+const { recalcular, refrescar } = vi.hoisted(() => ({ recalcular: vi.fn(), refrescar: vi.fn() }))
 vi.mock('../../../composicion.client', () => ({ recalcular }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: refrescar }) }))
 
@@ -139,9 +139,9 @@ describe('HojaDeCotizar: tipear y recalcular', () => {
     expect(recalcular).toHaveBeenCalledOnce()
     const pedido = recalcular.mock.calls[0]?.[0] as PedidoDeRecalculo
     expect(pedido.entradas.inputs).toEqual({ remate: 9500 })
-    expect(pedido.origenId).toBe('00000000-0000-0000-0000-000000000001')
     // La hoja abierta de la lectura viaja en cada pedido (4-28): el recálculo calcula con la versión y las tarifas de la hoja que se dibujó.
-    expect(pedido.abierta).toBe(hojaDePrueba().abierta)
+    expect(pedido.de).toMatchObject({ tipo: 'abierta', abierta: hojaDePrueba().abierta })
+    expect(pedido.de).toHaveProperty('origenId', '00000000-0000-0000-0000-000000000001')
     expect(total().textContent).toContain('9.876')
   })
 

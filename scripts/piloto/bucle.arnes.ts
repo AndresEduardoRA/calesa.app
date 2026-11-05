@@ -15,20 +15,12 @@ import { dirname, join, resolve } from 'node:path'
 // El arnés de las pruebas del bucle (`bucle*.test.ts`): un repo de git temporal con su carpeta común, una copia de las piezas REALES
 // del piloto (`bin/`, con su `bin.sha256`) y, en su lugar, falsos de lo que habla con el mundo: `claude` (JSON enlatado y un guion de
 // bash por llamada que corre en el repo), `decidir.sh` (un guion por compuerta, que escribe `decision.md` como lo haría el hook),
-// `verificar.sh` y `publicar.sh` (sólo registran que corrieron), `gh` y `sleep`. El registro de llamadas de los falsos fija el orden.
+// `verificar.sh` y `publicar.sh` (sólo registran que corrieron), `gh` y `sleep`. El registro de llamadas fija el orden.
 const REAL = resolve('scripts/piloto')
-const PIEZAS_REALES = [
-  'bucle.sh',
-  'comun.sh',
-  'compuerta.sh',
-  'cierre.sh',
-  'gasto.sh',
-  'hechos.sh',
-  'consumo.sh',
-  'cuenta-e2e.mjs',
-  'ruteo.schema.json',
-  'ultimo.schema.json',
-]
+const PIEZAS_REALES =
+  'bucle.sh comun.sh compuerta.sh reparar.sh carril.sh cierre.sh gasto.sh ci.sh hechos.sh consumo.sh cuenta-e2e.mjs ruteo.schema.json ultimo.schema.json'.split(
+    ' ',
+  )
 
 export const RUTEO_BASE = {
   paso: '4.99',
@@ -129,7 +121,10 @@ export class Arnes {
     this.firmar()
     this.escribirFake('claude', FALSO_CLAUDE)
     this.escribirFake('dormir', '#!/usr/bin/env bash\necho "$*" >> "$FAKE_DIR/dormir.log"\n')
-    this.escribirFake('bin/gh', '#!/usr/bin/env bash\nprintf \'%s\' "${FAKE_GH_LISTA:-[]}"\n')
+    this.escribirFake(
+      'bin/gh',
+      '#!/usr/bin/env bash\nif [ "$1 $2" = "run view" ]; then\n  if [ -n "$FAKE_GH_JOBS" ]; then printf \'%s\' "$FAKE_GH_JOBS"; else printf \'{"jobs":[]}\'; fi\n  exit 0\nfi\nprintf \'%s\' "${FAKE_GH_LISTA:-[]}"\n',
+    )
     // Las funciones edge: todas servidas, salvo las que nombre `funciones-caidas` (una por línea; `caerFunciones`).
     this.escribirFake(
       'bin/curl',
@@ -230,6 +225,9 @@ export class Arnes {
         PILOTO_POLL: '0.05',
         PILOTO_ESPERA_MAX: '25',
         PILOTO_DISCO_MAX: '99',
+        PILOTO_TOPE_USD_PASO: '60',
+        PILOTO_AUTO: '',
+        PILOTO_REPARAR: '0',
         PILOTO_DORMIR: join(this.fake, 'dormir'),
         PILOTO_PGREP_PATRON: 'un-proceso-que-no-existe-ni-existira',
         CLAUDE_BIN: join(this.fake, 'claude'),

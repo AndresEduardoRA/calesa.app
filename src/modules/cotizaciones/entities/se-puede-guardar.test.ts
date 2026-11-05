@@ -23,7 +23,7 @@ describe('motivoParaNoGuardar', () => {
   it('sin la variante elegida, sin lead o sin el vehículo que el ajuste pide, tampoco', () => {
     expect(motivoParaNoGuardar({ ...LIBRE, estado: { tipo: 'sin_variante' } })).not.toBeNull()
     expect(motivoParaNoGuardar({ ...LIBRE, leadId: null })).toBe(
-      'Para guardar, abre la hoja desde un lead.',
+      'Para guardar, elige el cliente en «Cliente».',
     )
     expect(motivoParaNoGuardar({ ...LIBRE, faltaVehiculo: true })).toBe(
       'Este origen pide un vehículo para guardar.',
@@ -52,5 +52,23 @@ describe('esperaAlRecalculo', () => {
     expect(esperaAlRecalculo({ tipo: 'recalculando' })).toBe(true)
     expect(esperaAlRecalculo({ tipo: 'al_dia' })).toBe(false)
     expect(esperaAlRecalculo({ tipo: 'fallo', recargar: false })).toBe(false)
+  })
+})
+
+describe('motivoParaNoGuardar de una cotización guardada (4.15-3)', () => {
+  it('sin cliente y con `exigeLead` falso no pide el cliente; con él (por defecto), sí', () => {
+    expect(motivoParaNoGuardar({ ...LIBRE, leadId: null })).not.toBeNull()
+    expect(motivoParaNoGuardar({ ...LIBRE, leadId: null, exigeLead: false })).toBeNull()
+  })
+
+  it('con `exigeLead` falso el resto de las guardas siguen: el recálculo que falló no deja guardar', () => {
+    expect(
+      motivoParaNoGuardar({
+        ...LIBRE,
+        leadId: null,
+        exigeLead: false,
+        estado: { tipo: 'fallo', recargar: false },
+      }),
+    ).toMatch(/recalcular/)
   })
 })

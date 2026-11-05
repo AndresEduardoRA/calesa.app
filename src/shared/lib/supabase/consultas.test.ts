@@ -5,9 +5,12 @@ import {
   aplicarCursor,
   aplicarRango,
   citar,
+  ordenarPorCursor,
   patronContiene,
   type Filtrable,
+  type Ordenable,
 } from './consultas'
+import { POR_ALTA } from '../paginacion'
 
 // Un constructor de consultas de mentira: anota lo que se le pide, como lo mandaría PostgREST.
 interface Anotador extends Filtrable<Anotador> {
@@ -124,7 +127,7 @@ describe('aplicarCondicionDeAtributo', () => {
 })
 
 describe('aplicarCursor', () => {
-  const base = { creadoEn: '2026-10-13T12:00:00.123456+00:00', id: 'abc' }
+  const base = { instante: '2026-10-13T12:00:00.123456+00:00', id: 'abc' }
 
   it('sin cursor es la primera página', () => {
     expect(aplicarCursor(anotador(), null).pedidos).toEqual([])
@@ -141,6 +144,86 @@ describe('aplicarCursor', () => {
     expect(aplicarCursor(anotador(), { ...base, sentido: 'anterior' }).pedidos).toEqual([
       'creado_en=gte.2026-10-13T12:00:00.123456+00:00',
       'or=(creado_en.gt."2026-10-13T12:00:00.123456+00:00",id.gt.abc)',
+    ])
+  })
+})
+
+describe('aplicarCursor por otra columna y orden', () => {
+  const base = { instante: '2026-10-29T08:00:00.5+00:00', id: 'abc' }
+  const cotizado = { columna: 'cotizado_en', ascendente: false }
+  const cierre = { columna: 'cierre_subasta_en', ascendente: true }
+
+  it('con POR_ALTA, lo mismo que sin orden', () => {
+    for (const sentido of ['siguiente', 'anterior'] as const) {
+      expect(aplicarCursor(anotador(), { ...base, sentido }, POR_ALTA).pedidos).toEqual(
+        aplicarCursor(anotador(), { ...base, sentido }).pedidos,
+      )
+    }
+  })
+
+  it('descendente por cotizado_en: adelante hacia lo menor, atrás hacia lo mayor', () => {
+    expect(aplicarCursor(anotador(), { ...base, sentido: 'siguiente' }, cotizado).pedidos).toEqual([
+      'cotizado_en=lte.2026-10-29T08:00:00.5+00:00',
+      'or=(cotizado_en.lt."2026-10-29T08:00:00.5+00:00",id.lt.abc)',
+    ])
+    expect(aplicarCursor(anotador(), { ...base, sentido: 'anterior' }, cotizado).pedidos).toEqual([
+      'cotizado_en=gte.2026-10-29T08:00:00.5+00:00',
+      'or=(cotizado_en.gt."2026-10-29T08:00:00.5+00:00",id.gt.abc)',
+    ])
+  })
+
+  it('ascendente por cierre_subasta_en: adelante hacia lo mayor, atrás hacia lo menor', () => {
+    expect(aplicarCursor(anotador(), { ...base, sentido: 'siguiente' }, cierre).pedidos).toEqual([
+      'cierre_subasta_en=gte.2026-10-29T08:00:00.5+00:00',
+      'or=(cierre_subasta_en.gt."2026-10-29T08:00:00.5+00:00",id.gt.abc)',
+    ])
+    expect(aplicarCursor(anotador(), { ...base, sentido: 'anterior' }, cierre).pedidos).toEqual([
+      'cierre_subasta_en=lte.2026-10-29T08:00:00.5+00:00',
+      'or=(cierre_subasta_en.lt."2026-10-29T08:00:00.5+00:00",id.lt.abc)',
+    ])
+  })
+})
+
+describe('ordenarPorCursor', () => {
+  // Anota los `order` como los mandaría PostgREST.
+  interface Ordenador extends Ordenable<Ordenador> {
+    orden: string[]
+  }
+  function ordenador(orden: string[] = []): Ordenador {
+    return {
+      orden,
+      order: (columna: string, opciones: { ascending: boolean }) =>
+        ordenador([...orden, `${columna}.${opciones.ascending ? 'asc' : 'desc'}`]),
+    }
+  }
+  const atras = { instante: '2026-10-29T08:00:00Z', id: 'abc', sentido: 'anterior' as const }
+
+  it('con POR_ALTA y sin cursor, de la más nueva a la más vieja', () => {
+    expect(ordenarPorCursor(ordenador(), null, POR_ALTA).orden).toEqual([
+      'creado_en.desc',
+      'id.desc',
+    ])
+  })
+
+  it('hacia atrás da vuelta el orden de la columna y del id', () => {
+    expect(ordenarPorCursor(ordenador(), atras, POR_ALTA).orden).toEqual([
+      'creado_en.asc',
+      'id.asc',
+    ])
+  })
+
+  it('ascendente: adelante asc, atrás desc', () => {
+    const cierre = { columna: 'cierre_subasta_en', ascendente: true }
+    expect(ordenarPorCursor(ordenador(), null, cierre).orden).toEqual([
+      'cierre_subasta_en.asc',
+      'id.asc',
+    ])
+    expect(ordenarPorCursor(ordenador(), { ...atras, sentido: 'siguiente' }, cierre).orden).toEqual(
+      ['cierre_subasta_en.asc', 'id.asc'],
+    )
+    expect(ordenarPorCursor(ordenador(), atras, cierre).orden).toEqual([
+      'cierre_subasta_en.desc',
+      'id.desc',
     ])
   })
 })

@@ -72,7 +72,15 @@ paso_vivo() {
   [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
   # `pgrep -f` sólo se excluye a sí mismo: el `pgrep` de otro bucle a la vez lleva el patrón en su línea y pasaba por un paso vivo
   # (rechazaba una decisión buena, 1 de cada 8 corridas de `pnpm test`). Se listan las líneas y se descartan las de otro `pgrep`.
-  pgrep -af -- "$PATRON_PASO_VIVO" 2>/dev/null | awk '$2 != "pgrep" { vivo = 1 } END { exit !vivo }'
+  # Y sólo cuentan los de ESTE repo: el bucle de otro proyecto de la misma máquina (`calesa-web`) también corre `claude -p /piloto …`, y su
+  # paso rechazó una decisión buena (2026-10-31, «apareció con un paso vivo»). Un paso vive en la raíz de su repo: se compara su `cwd`.
+  local raiz otro
+  raiz=$(cd -P "${RAIZ:-$(dirname "$ESTADO")}" 2>/dev/null && pwd -P) || return 1
+  while read -r pid; do
+    otro=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
+    [ "$otro" = "$raiz" ] && return 0
+  done < <(pgrep -af -- "$PATRON_PASO_VIVO" 2>/dev/null | awk '$2 != "pgrep" { print $1 }')
+  return 1
 }
 
 rechazar_decision() {
@@ -92,10 +100,10 @@ decision_valida() {
 esperar_decision() {
   local inicio=$SECONDS
   until decision_valida; do
-    [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras se esperaba una decisión."; "$BIN/decidir.sh" cerrar 8>&-; exit 0; }
+    [ -f "$ESTADO/PARAR" ] && { registro "PARAR mientras se esperaba una decisión."; "$BIN/decidir.sh" cerrar 8>&- 9>&-; exit 0; }
     if [ "${PILOTO_ESPERA_MAX:-0}" -gt 0 ] && [ $((SECONDS - inicio)) -ge "$PILOTO_ESPERA_MAX" ]; then
       registro "nadie respondió en ${PILOTO_ESPERA_MAX} s."
-      "$BIN/decidir.sh" cerrar 8>&-
+      "$BIN/decidir.sh" cerrar 8>&- 9>&-
       exit 3
     fi
     sleep "$POLL"
@@ -104,16 +112,85 @@ esperar_decision() {
   DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$COMUN/decision.md" | head -n 1)
 }
 
-# compuerta <tipo> <paso> <motivo> <pregunta> [opciones…]
+# Una compuerta se contesta sola con la recomendada (la primera opción), sin abrir la sesión de decidir: el piloto no espera a la persona
+# por algo que el plan ya dejó recomendado. Cada respuesta queda en `.piloto/decisiones-automaticas.md` (qué, opciones y la elegida; en
+# «guardas», la ruta del diff guardado en `.piloto/guardas/<paso>.diff`) para que la persona lo revise cuando quiera; si no está de
+# acuerdo, lo dice y el paso siguiente lo corrige. `PILOTO_AUTO` lista los tipos que se contestan solos (por omisión «producto,datos,
+# guardas»; vacío los apaga; la persona decidió el 2026-11-04 que pasen todas por la recomendada). Nunca `parada`, `dependencia`, `afuera`
+# ni `atasco`: son avisos de algo que el piloto no puede juzgar.
+auto_contesta() { # <tipo> <paso>
+  [ "${EN_SECO:-0}" != 1 ] || return 1
+  [[ ",${PILOTO_AUTO-producto,datos,guardas}," == *",$1,"* ]] || return 1
+  case "$1" in
+    producto) [ -n "${PREGUNTAS:-}" ] ;;
+    datos | guardas) [ -z "${PREGUNTAS:-}" ] ;;
+    *) return 1 ;;
+  esac
+}
+contestar_solo() { # <tipo> <paso> [opciones…]
+  local tipo="$1" paso="$2" elegidas tmp primera
+  shift 2
+  tmp=$(mktemp "$COMUN/decision.XXXXXX") || return 1
+  if [ -n "${PREGUNTAS:-}" ]; then
+    elegidas=$(jq -r '[.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; ")' <<<"$PREGUNTAS")
+    jq -r --arg id "$COMPUERTA_ID" --arg creada "$(date +%s)" '
+      "id: \($id)",
+      "opcion: \([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join(" · "))",
+      "notas: ",
+      "creada: \($creada)",
+      "respuestas:",
+      (.[] | "- \(.id): \(.opciones[0].etiqueta) (Recommended)"),
+      "me respondió: «\([.[] | "\(.id): \(.opciones[0].etiqueta) (Recommended)"] | join("; "))»"' <<<"$PREGUNTAS" >"$tmp" || { rm -f "$tmp"; return 1; }
+  else
+    primera="${1:-$(opciones_de "$tipo" | head -n 1)}"
+    elegidas="${primera%% — *}"
+    { echo "id: $COMPUERTA_ID"; echo "opcion: $elegidas"; echo "notas: "; echo "creada: $(date +%s)"; echo "me respondió: «$elegidas»"; } >"$tmp"
+  fi
+  mv -f "$tmp" "$COMUN/decision.md"
+  {
+    echo "## $(ahora_lapaz) · $paso · compuerta $tipo (contestada sola)"
+    if [ -n "${PREGUNTAS:-}" ]; then
+      jq -r '.[] | "- \(.id) — \(.pregunta | gsub("\n"; " "))", (.opciones | to_entries[] | "    \(if .key == 0 then "→" else " " end) \(.value.etiqueta) — \(.value.descripcion | gsub("\n"; " "))")' <<<"$PREGUNTAS"
+    else
+      echo "- ${MOTIVO_COMPUERTA:-$tipo}"
+      echo "    → $elegidas"
+      [ -n "${GUARDAS_DIFF:-}" ] && echo "    diff guardado: $GUARDAS_DIFF"
+    fi
+    echo
+  } >>"$ESTADO/decisiones-automaticas.md"
+  registro "compuerta $tipo ($paso) contestada sola con la recomendada: $elegidas"
+}
+
+# Una compuerta a la vez en toda la máquina: `compuerta.md` y `decision.md` son únicos (los lee la sesión de decidir), así que con varios
+# carriles el segundo espera a que el primero sea respondido. El candado (fd 9) se suelta al volver; un `exit` lo suelta con el proceso.
 compuerta() {
+  local rc
+  mkdir -p "$COMUN"
+  exec 9>"$COMUN/compuerta.lock"
+  flock 9
+  _compuerta "$@"
+  rc=$?
+  flock -u 9
+  exec 9>&-
+  return "$rc"
+}
+
+# compuerta <tipo> <paso> <motivo> <pregunta> [opciones…]
+_compuerta() {
   local tipo="$1" paso="$2" clave
   escribir_compuerta "$@"
-  registro "compuerta $tipo ($paso): $3"
-  "$BIN/decidir.sh" abrir 8>&- || { registro "no se pudo abrir la sesión de decidir."; exit 3; }
-  esperar_decision
-  "$BIN/decidir.sh" cerrar 8>&-
+  if auto_contesta "$tipo" "$paso"; then
+    MOTIVO_COMPUERTA="$3" contestar_solo "$tipo" "$paso" "${@:5:1}" || return 3
+    DECISION_OPCION=$(sed -n 's/^opcion: *//p' "$COMUN/decision.md" | head -n 1)
+    DECISION_TEXTO=$(sed -n 's/^me respondió: *//p' "$COMUN/decision.md" | head -n 1)
+  else
+    registro "compuerta $tipo ($paso): $3"
+    "$BIN/decidir.sh" abrir 8>&- 9>&- || { registro "no se pudo abrir la sesión de decidir."; exit 3; }
+    esperar_decision
+    "$BIN/decidir.sh" cerrar 8>&- 9>&-
+    registro "me respondió: $DECISION_TEXTO"
+  fi
   clave=$(clave_de "$DECISION_OPCION")
-  registro "me respondió: $DECISION_TEXTO"
   case "$clave" in
     parar) return 3 ;;
   esac

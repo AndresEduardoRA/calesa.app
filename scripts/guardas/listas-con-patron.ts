@@ -6,4 +6,6 @@
 export const LISTAS_SIN_PATRON: Record<string, string> = {
   'src/modules/equipo/features/roles/components/matriz-de-roles.tsx':
     'es una matriz de permisos (roles contra permisos), no una lista de registros: no tiene resumen ni «⋯» por fila',
+  'src/modules/cotizaciones/features/hoja/components/tabla-de-la-ayuda.tsx':
+    'es una tabla de referencia de sólo lectura en un panel, no una lista de registros: no tiene resumen ni «⋯» por fila',
 }

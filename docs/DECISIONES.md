@@ -1084,3 +1084,627 @@ de `anon` (y truncate, references, trigger y maintain de `authenticated`) para l
 nueva es un default global de Postgres: quitarlo para todo lo que crea `postgres` rompía 61 pruebas de `db:probar` (sus funciones de
 `pg_temp`) y alcanzaba a `web`, así que lo sigue quitando cada migración y `supabase/tests/privilegios-de-anon.sql` (db:probar y job
 `base` de CI, con `aclexplode`) cae si una lo olvida: probado con cuatro mutaciones.
+
+## 2026-10-28 — En un e2e sin red se reconecta tras el aviso del envío fallido (cierra 4-42)
+
+«No hay conexión» sale de `useEnLinea()` y ya está visible antes del clic: reconectar tras leerlo deja el fallo del guardado para después y
+`useReintentoAlVolver` (2026-10-15, «El reintento al volver la conexión sólo sale al volver») no reenvía si la red volvió antes de que
+`pendiente` esté puesto. La CI-4 manda esperar el POST; sin red no hay respuesta, y lo que hay que esperar es «…se va a guardar solo cuando
+vuelva», que sólo sale con `pendiente` puesto, justo la condición del reenvío. Esperar el `requestfailed` dejaría la misma carrera con una
+ventana menor (M2 no la hizo caer en 20 corridas, por eso es argumento y no prueba). Probado con un `page.route` que demora el fallo 1 s:
+HEAD cae, el arreglo pasa. Otros specs de la misma forma: sólo `e2e/origenes.spec.ts:326`, donde la carrera no rompe nada.
+
+## 2026-10-28 — Paso 4.13 (4a de 9): «Avanzado» va en un modal con su URL y la ayuda es un panel
+
+El prompt 4 del 4.13 junta cuatro cosas con verificación distinta (el modal y la ayuda, el modo que se guarda, la ayuda de una tabla con su lectura
+nueva, y la medición de cierre) y no cabe en un paso: se parte en 4a a 4d. En el 4a, las secciones `avanzado` van juntas detrás de **un** botón
+«Avanzado» que ocupa el lugar de la primera (`ordenDeLaHoja()`), con un modal en `?panel=avanzado`; la ayuda de texto es un `<Drawer>` (un modal no
+abre otro) en `?ayuda=texto&nodo=<id>`, que deja `?ayuda=tabla` libre para el 4c. Las celdas del modal son las de la hoja (mismas acciones, recálculo y borrador),
+y `Ctrl/Cmd+S` confirma también la celda abierta del modal (`confirmarCeldaAbierta()` busca en la hoja y en `[data-avanzado-cuerpo]`, porque el modal va en un
+portal). El modal se registra `sinFormulario` en `scripts/guardas/modales-con-salida.ts` con este motivo: dibuja celdas tipeables de la hoja, que confirman
+en la hoja y su borrador; cerrar o «atrás» las desmonta sin confirmar: un número abierto se confirma al perder el foco, lo demás se descarta, y Esc con una
+celda abierta cancela sólo la celda. Guardada la hoja, `?panel=avanzado` y `?ayuda`/`?nodo` se borran de la URL (si no, «Cotizar otra» reabre el modal).
+La URL no abre lo que la hoja no dibuja (`celdaConAyudaDeTexto()`): una celda de «Avanzado» con el modal cerrado, una de tabla o un id inventado no abren nada.
+Medido: la ayuda de una celda de «Avanzado» sí se abre dentro del modal, Esc cierra sólo la ayuda y el foco vuelve a su botón (no hizo falta la parada del plan).
+Medido: «atrás» desde una página que se recargó con el panel abierto vuelve a montar la hoja (la marca puesta en el botón se pierde; no se averiguó por qué) y el foco
+no vuelve al botón; sin recargar, «atrás» cierra el modal y el foco vuelve. El e2e prueba lo segundo. Descartado: un popover o la ayuda en línea; un «Guardar» en el pie del modal (el del
+resumen queda detrás del modal; en el celular se cierra y se guarda desde el resumen).
+
+## 2026-10-29 — Paso 4.13 (4b1 de 10): «Ver total Bs» es una columna de la cotización
+
+El 4b juntaba la base (una columna y dos RPC `security definer`) con la pantalla (modos, interruptor y resumen fijo): verificaciones distintas y cuatro intenciones, que no
+caben en tres commits; se parte en **4b1** (la base) y **4b2** (la pantalla), y el total de prompts pasa de 70 a 71. La persona contestó P1 (la hoja abre con el primero de
+los modos, marcado) y P2: «Ver total Bs» **se guarda con la cotización**. Se llama `ver_total_bs`, como la clave del diseño (un término, un nombre), `boolean not null
+default false`, con `grant select` a `authenticated` como `modo_tc`: viaja por `_cotizacion_respuesta()`, por `cotizacion_leer()` y por el diff de las revisiones. Lo valida
+`_cotizacion_ver_total_bs(formula, valor)`, de nadie, `void` y no `security definer` (lo llaman dos que ya lo son): nulo es `ver_total_bs_falta` y verdadero sin que el
+diseño de **esa** versión lo ofrezca es `ver_total_bs_no_ofrecido` (22023, como `modo_invalido`; en `crear` con «Guardar con la N» vale la versión abierta, y en `guardar` SU
+versión, no la publicada). `crear` lo recibe como último parámetro con default falso; `guardar`, sin default, porque recibe el estado entero de lo que se edita, y entra en
+la huella del intento, en «nada cambió» y en el `update` (una final también lo cambia). Efecto de la huella nueva: un reintento con el mismo intento que empezó antes del
+despliegue y llega después da `intento_reusado`; el riesgo es casi nulo porque ninguna pantalla llama todavía a `cotizacion_guardar` (4.15). Nivel 2 por el `alter table`
+(`nivel.mjs`), con el completo de escritorio. No se tocó `cotizaciones.moneda_mostrar` (nadie la escribe): abierto 4-45, para el 4.18. Descartado: guardarlo por persona o
+dejarlo sólo en la pantalla (P2), y un `check` en la columna contra el diseño (la versión puede cambiar de diseño; se valida al escribir).
+
+## 2026-10-29 — Paso 4.13 (4b2 de 11): la moneda del total en Bs sale de la lectura de la hoja
+
+La persona contestó P4 (el total en Bs se escribe con la moneda `a` del tipo de cambio de `total_en` de la versión, que `cotizacion_hoja()` suma a `cabecera`) y P5 («Ver total Bs»
+nace apagado). **La partición:** la fila 4.13 de PLAN nunca nombró un 4b3; P4 pedía su capa de base «en un sub-paso propio antes del 4b2»: ese sub-paso es este 4b2, y la pantalla
+que la fila llamaba 4b2 pasa a llamarse 4b3, con el mismo alcance (no es un cambio de alcance); los prompts pasan de 10 a 11 y la fase, de 71 a 72. **La clave:** `cabecera.moneda_bs`
+(el nombre sigue al de `totales.bs` y `ver_total_bs`), el `moneda_a` de la fila **activa** de `tipos_cambio` cuya clave es la del nodo `total_en` de esa versión (una fila, por
+`tipos_cambio_clave_key`); sólo los activos, como lee el motor. Sin `total_en` o sin ese tipo de cambio es JSON `null` **con la clave presente** (la pantalla la exige: sin la
+clave, `hojaDesde()` devuelve nulo). **Nula no quiere decir sin Bs:** el motor calcula el Bs con el tipo de cambio de cada bucket y usa `total_en` sólo para sacar los dólares;
+`oficina` no tiene `total_en` y su `totales.bs` sí tiene valor. Ese hueco (un Bs con valor y sin moneda) lo decide P6, nueva, en el 4b3. **Quién la recibe:** todos, sin recorte por
+nivel: el total en Bs ya viaja siempre y `authenticated` ya lee `tipos_cambio`; nunca viaja el id ni la clave del nodo o del tipo de cambio (la prueba lo exige con una asesora sin
+el nivel «costos»). **La de la versión y no la del modo:** los modos siguen con sólo `clave` y `nombre`; un modo cuyo `total_en` tenga otra `moneda_a` escribiría el total con la de
+la versión (límite aceptado: hoy todos son USD → BOB). Nivel 1: `create or replace function` no sube a Nivel 2. Abierto 4-46: `cotizacion-hoja.sql` pasó de 300 líneas (705). Descartado:
+una moneda por modo (abría los modos) y leerla de `monedas` sin pasar por el tipo de cambio.
+
+## 2026-10-29 — Paso 4.13 (4b3 de 11): los modos, «Ver total Bs» y el resumen fijo
+
+**P6 (la persona):** si el diseño ofrece «Ver total Bs» y `cabecera.moneda_bs` es nula, la hoja **no dibuja el interruptor** y guarda `ver_total_bs` en falso (`ofreceVerTotalBs()`).
+**El modo es parte de `Entradas`** (`modoTc`): cambia el cálculo, así que viaja con lo que calculó cada recálculo (P8, lo guardado es lo calculado), en el primer cálculo del servidor
+(`modoInicial()` sale por `index.ts` y la página se lo pasa a `recalcularAlAbrir`), en el borrador (vuelve si la hoja de ahora lo declara; si no, el inicial) y en el pendiente de la
+pestaña (`default(null)`). Descartado: el modo como estado aparte (el guardado podía mandar un modo que el total a la vista no calculó). **«Ver total Bs» queda fuera de `Entradas`**
+(no cambia el cálculo ni pide un recálculo) **pero dentro del borrador**: es un dato que se guarda y, si se repone lo tipeado, se repone esa elección; sólo si la hoja todavía lo ofrece.
+**Los modos se dibujan sólo con dos o más** (microdecisión: con uno no hay qué elegir; el resumen dice cuál es). **Textos:** «Ver total en moneda local» (ningún texto fijo nombra una
+moneda: el código sale de la base). **Live:** un botón propio del módulo en el resumen (`LiveDelResumen`); mover `ConmutadorLive` a `src/shared/ui` dispara el Nivel 2 dos veces (`shared`
+y `layout`), así que se duplica (lo puede proponer el 4d). **El resumen:** un solo `<aside>` (varios e2e cuentan con un solo `getByLabel('Resumen')` y `[data-total]`, descartado el
+resumen doble), `sticky`: al costado desde `@4xl` del contenedor **nombrado** `hoja` (56 rem; el 200 % colapsa solo) y al pie debajo, con alto máximo de 40 dvh, `data-pie-de-panel` para
+que un aviso no lo tape y `scroll-margin-bottom` de 40 dvh en lo enfocable mientras va al pie. **La cabecera va dentro del contenedor del resumen**: con ella fuera, un `sticky bottom-0` no
+aparecía hasta que la hoja entraba en la ventana. **Trampa:** una consulta de contenedor dentro de un descendiente la resuelve el contenedor más cercano a ese descendiente (la sección),
+no el del elemento que lleva la clase: por eso la hoja es `@container/hoja` y el corte, `@4xl/hoja`. **P7 y P8 (la persona):** el tope de nodos es lo medido con el peor caso más un 5 %
+con techo 500; medido 481 usada (506), el tope quedó en 500 (4,0 % de margen). Sin cambios de base. Abierto: ninguno nuevo; el 4d mide con «Avanzado» abierto y se para si pasa de 500.
+
+## 2026-10-29 — Paso 4.13 (4c1 de 12): la tabla de una ayuda se lee con la versión de la hoja abierta
+
+**El hallazgo:** la lectura que P3 daba por faltante ya existía: `cotizacion_tabla()` (4.10-1) da a quien ve la celda sólo las columnas que leen los nodos que ve, está en el inventario
+de lo oculto, y `cotizacion_hoja()` ya manda `ayuda: {tabla}` con la misma regla. Lo que faltaba era la versión: leía la publicada, y la hoja calcula con la de la hoja abierta (4-28);
+editar una tabla publica la N+1 (D5). **P3 (la persona):** la ayuda lee **la versión de la hoja abierta**: `cotizacion_tabla` recibe `p_abierta` como `cotizacion_evaluar`, con sus errores
+(`abierta_invalida`, `abierta_vencida`, `abierta_no_disponible`, `llamada_invalida` si llega con una cotización, y ésta gana a «las dos o ninguna»). Descartados: la publicada (precios que
+la hoja no usa hasta recargar), sólo quien configura, y las filas dentro de `cotizacion_hoja()` (bytes al abrir por una ayuda que casi nunca se abre). **P10 (era la P4 del plan):** por
+origen pide también `cotizaciones.ver`, la puerta de la hoja; es coherencia, no un cierre de fuga (sin `ver`, `_nodos_visibles` ya no daba nodos; sólo cambia para quien configura sin
+`ver`, que igual lee `tablas_referencia` por la policy). **La firma se recrea por `drop` + `create`** (una sola, sin sobrecarga ambigua) y la versión y la puerta van a un ayudante de
+nadie, `_cotizacion_tabla_version()` (devuelve un `uuid`: fuera del inventario), para que la función quede ≤ 80 líneas. **P9 (la persona):** el tope de bytes con 1.000 filas para una
+asesora con «costos» es lo medido más un 5 %, 52.752; el provisional de 48 KB no cabía por el factor de relleno de la medición (escala 20). Quien configura sigue recibiendo las filas
+sin recortar a `columnas` (fuera de alcance; lo puede proponer el 4c2).
+
+## 2026-10-29 — Paso 4.13 (4c2 de 12): la ayuda de una tabla en la hoja
+
+**P13 (la persona): el Modo Live tapa la ayuda de una tabla como tapa la celda que la abre.** Una tabla de referencia no dice qué columna es plata (`numero`, `anio`, `texto`); la celda sí
+(`formato`: `usd`/`moneda` es dinero, `raw` no). Si la celda es de dinero, cada cifra `numero` pasa por `<Monto>` con la moneda de la celda y Live la tapa con su símbolo; si no, va con
+`formatearNumero`, a la vista (un factor). Descartados: tapar toda cifra con `useLive()` (tapa un factor que la celda de al lado muestra), mostrarlas igual, y no dibujar la tabla con Live.
+Supone que toda columna `numero` está en la moneda de la celda (en la semilla, sí). La ficha de la `XCell` (`xcell/CLAUDE.md:38`, «lo que abran pasa sus cifras por `<Monto>`») queda
+vieja con cualquier respuesta y no se toca aquí (daría Nivel 2): abierto **4-48**.
+
+- **Columnas y ancho.** Se dibujan sólo las columnas declaradas (una clave de más en las filas de quien configura no se ve); sin declaradas (una congelada que ya no tiene tabla viva) las
+  claves de la primera fila, con la clave de encabezado y **como texto** (sin tipo no se sabe si un número es dinero o un año: va con `formatearNumero`, a la vista, «2.018»; lo corrige 4-47). El texto se parte en cualquier punto (`wrap-anywhere`: `break-words` no encoge una palabra larga en una tabla) y una cifra no; lo que
+  no entra se desplaza dentro del panel (`useDesborde` y `<PistaDeDesborde>`), nunca la página. Encabezado fijo arriba en el contenedor que desplaza.
+- **Año sin separador de miles** (`formatearParaEditar`: «2018», no «2.018»); un `numero`, hasta 6 decimales y sin ceros de relleno (la precisión de la tabla).
+- **El fallo sigue al del recálculo, no a `<EstadoError>`** (que sólo sabe decir «Reintentar»): «Recargar» si `pideRecargar(error)`, si no «Reintentar». Su límite: el 42501 de una tabla
+  sin copia congelada ni viva también lleva a «Recargar», que puede repetir el fallo; no se suma otro estado.
+- **El tope sin camino** (1.000 filas, «Mostrando las 1.000 primeras filas.») se aparta de `escala.md` («siempre hay un camino a lo antiguo») hasta que el editor de tablas (4.23) lo dé: 4-47.
+- **El lector va en el chunk inicial de la hoja** (`composicion.client.ts` es un barril que ya importa el recálculo); sólo el panel es diferido. El JS en frío de `/cotizaciones/nuevo`
+  midió 428,6 KB antes del paso con el lector ya exportado por el barril (`2b829e0c`) y 429,5 después (+0,9); contra los 428,1 de `ed0fe2ef` son +1,4 KB: se dice, y el presupuesto formal es del 4d.
+- **Nodos.** La hoja mide 468 al abrir y 490 usada con el botón en 3 celdas (P11: sigue por ≤ 500; margen 2,0 %). El panel suma 7 nodos por fila de 3 columnas con una de dinero; con
+  1.000 filas, 7.023, tope 7.374 (lo medido más un 5 %).
+- La URL sólo abre una celda que se dibuja en esas secciones **y** cuya ayuda es del tipo nombrado (`celdaConAyuda`); la de «Avanzado» se abre dentro del modal y con el modal cerrado no
+  abre nada. Cada apertura vuelve a leer (el panel se monta de nuevo por `key`).
+
+## 2026-10-29 — Paso 4.13 (4d de 12): el cierre de la hoja
+
+**P0 (la persona): 4-44 (a) no se arregla en el 4d; pasa a 4-49, de todos los paneles por URL.** Medido, no supuesto. Se abre «Avanzado» con su botón, se recarga y se pulsa «atrás».
+El documento no se recarga (una marca en `window` sigue), la hoja se monta de nuevo (la marca de su elemento se pierde), sale un pedido RSC de la entrada de antes y el foco
+queda en `body`. Lo mismo con `?panel=nuevo-nivel` de `/configuracion/cotizacion?seccion=niveles`: el router de Next no tiene en caché la entrada de antes, la vuelve a pedir y la
+dibuja, el modal no se cierra montado y `focoAlCerrar` no corre. Por la regla del plan (C9-2), un defecto de todos los paneles no se arregla en la hoja. Descartados: el arreglo sólo en
+«Avanzado» (la marca en la entrada de antes y un pendiente en `sessionStorage`), porque deja dos maneras de resolver lo mismo, y hacerlo en `src/shared` dentro del 4d, porque sube a
+Nivel 2 y pide su propio plan.
+
+- **4-44 (b), la causa.** Bajo `@lg` de la sección todo ítem ocupa las 12 pistas, y con `gap-3` las pistas colapsan a 0 px y los 11 huecos (24 px cada uno al 200 %) fijan el ancho
+  mínimo de la rejilla. Son 264 px contra 218 px de contenido en la sección del modal a 412 px, y sobresalían 46 px. Sin modal la sección es más ancha y cabía. Arreglo:
+  `gap-x-0 gap-y-3 @lg:gap-x-3`. No cambia nada a la vista ni suma nodos (468 y 490).
+- **Medir cajas dentro de un modal, quieto.** El modal entra con una escala (0,96 a mitad): las cajas que da `getBoundingClientRect` están escaladas y el padding que da
+  `getComputedStyle`, no. `celdasFueraDeSuSeccion()` espera `quieto()` antes de medir. Sin eso daba 1 px falso en cada celda.
+- **Cómo se mide la tarea de oro 2**, como la 1 y la 4: lo que no cambia entre máquinas es lo pulsado (tope de teclas de control, medido 23); el reloj del robot es un tope
+  generoso (< 30 s); la hora de una persona, KLM (≤ 90 s, con 3 decisiones: el remate, la grúa y guardar). Es sólo el tramo de la hoja: la asesora de la semilla (rol `asesor` tal
+  cual), con un lead suyo y un vehículo del inventario en la URL. El panel del vehículo (4.14) y el PDF (4.18) suman su tramo y el 4.28 mide la tarea entera. Que el total de la base
+  sea el de la tarjeta prueba que lo guardado es lo que se ve. «Un total que no cuadre con las líneas» es del PDF y la tarjeta (4.18). La dueña se crea antes que la asesora: con la
+  empresa vacía, la primera cuenta tiene que poder gestionar el equipo y la base rechaza a una asesora sola.
+- **Cada celda con teclado:** se cuentan los lados que se pueden tipear (`[data-parada="0|1"]` sin `disabled` ni `aria-disabled`), sacados del DOM, como subsecuencia del foco
+  real. Tab también pasa por la ayuda, ↺, los chips y los lados bloqueados, y ésos no se cuentan.
+- **El presupuesto de JS** de `/cotizaciones/nuevo` es 460 KB: lo medido (429,5) más un 5 %, hacia arriba a la decena. Es una entrada más de `PRESUPUESTO_DE_JS_EN_KB`, y el
+  bucle de `presupuesto-js.spec.ts` la mide con su `test.skip` de siempre: un `.skip(` nuevo contaría como saltada y `@sin-celular` no puede preguntar por el proyecto. Lleva
+  `?origen=` de la subasta, porque sin él abre el primer origen, que puede pesar menos.
+
+## 2026-10-29 — Paso 4.14 (1 de 3): la base del panel del vehículo
+
+**El 4.14 se parte en tres:** el 4.14-1 (la base del panel del vehículo), el 4.14-2 (el panel del vehículo en la pantalla, la entrada desde el resumen del vehículo y 4-10) y
+el 4.14-3 (el panel del cliente y la entrada desde la ficha del lead). El plan pasó tres auditorías (dos bloqueos y, tras la compuerta, observaciones). Las respuestas de la
+persona (P1 a P7) fueron todas las recomendadas.
+
+- **P1: cotizar no edita el vehículo.** `vehiculos.cotizado_en` la escribe sólo el trigger `trg_vehiculo_cotizado` de `cotizaciones`. `trg_actualizado_en` y
+  `trg_auditar_cambio` (el `trg_auditar` de antes, partido: un `when` que nombra `old` no puede ir en un trigger de `insert`) llevan
+  `when (old.cotizado_en is not distinct from new.cotizado_en)`. Así, quien tiene la ficha abierta no recibe un PT409 por una cotización, la vitrina web (`actualizado_en` ordena
+  `web.vehiculos`) no se mueve y `actividad` no duplica lo que ya registra `cotizaciones.insert`. Descartados: los triggers de siempre (PT409 a quien edita, la web se mueve y la
+  carrera de crear contra la papelera daría PT409) y una tabla aparte como `vehiculos_imagenes_version` (más lenta: la visibilidad se preguntaría por fila).
+- **P2 y P3.** La ve quien ve el vehículo, como `estado_subasta` (sólo cuándo, no quién ni cuánto). La mueven crear con el vehículo (también «a mano») y guardar una
+  cotización que pasa a él, «sólo si es mayor»: nunca retrocede, la papelera no la toca y no reescribe la fila si no cambia. El costo es que cotizar toma la fila del vehículo
+  `for no key update` hasta confirmar y la reescribe sin HOT: ≈ 0,2 ms y 50 a 140 buffers, medido con la reescritura en cada corrida (C9).
+- **El relleno queda como función** (`_vehiculos_cotizado_rellenar()`, sin `execute` para nadie de la app), para que la prueba corra la misma sentencia que corrió la migración.
+  Toma la cotización más nueva de cada vehículo, también las de la papelera (con P3, la papelera no hace retroceder la columna). No ve lo ya purgado ni cuándo una cotización
+  pasó a otro vehículo.
+- **P5 y P7: «Cierre subasta» va sobre una columna generada**, `cierre_subasta_en` (`case` abierta o en vivo, `coalesce(subasta_fin_en, subasta_en)`), la primera de la base.
+  El panel lee por PostgREST, que no ordena ni filtra por una expresión y manda el estado como parámetro, así que un índice parcial con `estado_subasta in (…)` no se probaría.
+  Descartados: una RPC `security invoker` (grants y registro de páginas nuevos, y el 4.14-2 leería distinto del inventario) y un índice de expresión. La columna entra en
+  `antes` y `despues` de `actividad` (`auditar()` guarda la fila entera), y nadie lo lee. El margen de 24 h es una constante del 4.14-2.
+- **Los índices difieren de la fila del PLAN:** `vehiculos_cotizado_idx` lleva `id desc` (un `(desc, asc)` no sirve el orden de la página, cae en `Sort`); «Cierre subasta» va sobre
+  la columna generada y no sobre `(origen_id, estado_subasta, subasta_en)` (con dos estados, la página ordena); `cotizaciones_vehiculo_creado_idx` reemplaza a
+  `cotizaciones_vehiculo_idx`, con el mismo prefijo y predicado. Cada medición lleva escrita su guarda con el índice de la fila.
+- **El historial se siembra con 100 vehículos, no 1.000.** El plan genérico estima las filas de un vehículo por el promedio: con 1.000 vehículos y 50.000 cotizaciones estima 50,
+  menos de una página con el cursor, y según la muestra de ANALYZE ordenaba la profunda del vehículo caliente (5.000 cotizaciones): 334 buffers, ~1 ms, una corrida sí y la
+  siguiente no. Con 100 dio el mismo plan en 3 de 3 corridas. **Queda un límite sin assert:** con un promedio bajo de cotizaciones por vehículo (lo realista), la página profunda
+  de un vehículo muy cotizado puede ordenar las suyas. Crece con las cotizaciones de ese vehículo, no con N (la familia de lo de Ana, 4-14), y se anota en RENDIMIENTO y en 4-14.
+- **El tiempo en las pruebas de base:** dentro de un bloque `now()` no cambia, así que lo que tiene que moverse se deja antes en el pasado como postgres con
+  `session_replication_role = replica`. Sin eso, dos mutaciones no caían (la 1.ª auditoría).
+
+## 2026-10-29 — Paso 4.14 (2a): el panel del vehículo
+
+**El 4.14-2 se parte en tres:** el 4.14-2a (el cursor por columna en `src/shared`, la barra y el panel con «Últ. cotización» y «Cierre subasta»), el 4.14-2b (el historial
+del elegido, «Cotizado (n)» y «Cotizar» desde el resumen del vehículo) y el 4.14-2c (crear el vehículo desde el panel y 4-10). Entero eran 7 u 8 commits de código. El plan
+pasó dos auditorías (un bloqueo y, después, observaciones) y la persona eligió las respuestas recomendadas (P1 a P4 y, tras la auditoría del informe, P5). Por P4 se suma el 4.14-2a2 (4-49).
+
+- **El cursor, en `src/shared` y no en `vehiculos/infra`:** lo usarán el historial del 2b (por `creado_en`) y el panel del cliente del 4.14-3. `Cursor.creadoEn` pasa a
+  llamarse `instante` (el valor de la columna que ordena) **sin cambiar la codificación**: un cursor de una URL vieja se sigue leyendo. `aplicarCursor()` recibe un
+  `OrdenDeCursor` (`POR_ALTA` por omisión: el filtro de siempre, carácter por carácter) y `ordenarPorCursor()` pone el orden que lo acompaña; los que ordenaban a mano no se tocan.
+- **El panel lee desde el navegador y escribe su URL sin ir al servidor** (`?lista=`, `?cursor=`, con `replace`): pedirle la página al servidor volvería a montar la hoja
+  abierta detrás. `<Paginacion alIr>` cambia de página con botones en vez de enlaces. El borde de «Cierre subasta» (P5 del 4.14-1: ahora menos 24 h) se toma con el reloj del navegador al
+  abrir el panel y queda fijo mientras está abierto, para que ir y volver de página use el mismo.
+- **La barra va fuera de `[data-hoja]` y del componente con `key`:** no suma nodos a la hoja (468 y 490 contra 500) y elegir otro vehículo no la desmonta, así que el foco
+  vuelve a ella. Suma una parada de Tab: la tarea de oro 2 pasa de 23 a 24 teclas de control y de 24 a 25 Tab hasta la hoja.
+- **Elegir y quitar escriben la URL por `nuqs`** (el vehículo en la clave de la hoja, sin `panel`, `lista` ni `cursor`; `shallow: false` y `replace`), no con
+  `router.replace`: el panel lee su URL de `nuqs`, y con el router la URL cambiaba pero el panel seguía abierto (medido en el e2e). `replace` reemplaza la entrada de abrir el
+  panel: «atrás» vuelve a la hoja del vehículo de antes con el panel cerrado. El módulo `vehiculos` no conoce la clave de la hoja: se la pasa `src/app`.
+- **P1:** al elegir otro vehículo, lo tipeado queda en el borrador del de antes (la hoja y su borrador llevan el vehículo en la clave) y vuelve si se lo elige otra vez. **P2:**
+  elegir cierra el panel. **P3** (para el 2c): el tipo de vehículo se guarda en el vehículo. **P4:** 4-49 va a un paso propio.
+- **Ctrl+S con el panel abierto no guarda:** el panel registra «guardar» sin hacer nada y el último registro responde. Queda un límite, **4-54**: elegir otro vehículo mientras
+  se guarda guarda con el de antes y la hoja pasa al nuevo sin la tarjeta de éxito.
+- **Presupuestos antes de medir:** 370 nodos y 12.000 bytes para el panel con 20 tarjetas; medido 284 y 4.660, y los topes quedan en lo medido más un 5 % (299 y 4.900).
+- **El resumen fijo al 200 %:** no sube más allá del borde de arriba de la hoja y mide hasta el 40 % del alto. Con la página arriba de todo cabía por 1 px; con la barra encima
+  queda debajo del borde de la ventana: 107 px en escritorio y 37,6 en el celular, sólo al 200 % (el completo lo atrapó). `cotizar-hoja-resumen.spec.ts` mide ahora con la hoja
+  arriba de la ventana, que es lo que prueba que el resumen queda fijo. La auditoría del informe lo bloqueó por ser una regresión visible aceptada sin la persona, y se le
+  preguntó (P5): **la aceptó por ahora y endureció 4-50**, que exigirá que el resumen quepa entero con la página arriba de todo al 200 %.
+- **Al 200 % en el celular** la columna del panel crecía con lo más ancho de adentro y una tarjeta llegaba a 594 px en una pantalla de 412: el contenido va en una sola columna
+  `minmax(0, 1fr)` y las pestañas se desplazan por dentro.
+
+## 2026-10-29 — Paso 4.14 (2a2): la vuelta del foco tras recargar y «atrás»
+
+**La causa, medida antes del código** (una sonda contra los hooks de HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a2/medicion-0.json`, de `medicion-0b-*.json`): tras recargar con el panel abierto, «atrás»
+no recarga el documento y **no vuelve a montar ni el botón ni la página** (una marca en el elemento sigue), aunque sale un pedido RSC de la entrada de antes. Lo que el 4d escribió
+(«la hoja se monta de nuevo», «el modal no se cierra montado») no se repitió: el modal se cierra montado, con su animación, y Base UI **no llama a `focus()`** sobre el botón;
+sin recargar, sí. En el drawer del vehículo, que le pasa a `focoAlCerrar` una ref al botón, el foco vuelve (su e2e queda como no regresión). Una clave propia en
+`history.state` sobrevive a la escritura de `nuqs`, a recargar y a ir y volver, en las dos entradas. No se dio S1 ni S2. S3 («el defecto no se reproduce») se dio sólo
+en el drawer del vehículo; se siguió porque los dos modales medidos en 4-49 lo reproducen, y E3 queda como prueba de no regresión.
+
+- **La marca va en el historial y la memoria es del documento** (`src/shared/ui/vuelta-del-foco.ts`), no en `sessionStorage`: quien abre deja en la entrada de antes una ficha
+  y las señas de quien tenía el foco, y la entrada del panel guarda la misma ficha, que el hook recuerda al montarse abierto tras recargar. Sólo un `popstate` a la entrada
+  marcada con la ficha recordada devuelve el foco, así que recargar nunca lo mueve y Esc lo olvida. La vuelta mira un cuadro a la vez, hasta 3 s: enfoca a quien abrió si
+  el foco está en `body`, espera si está en otro lado (sin recargar, lo devuelve Base UI) y se corta con una tecla o el puntero.
+- **Señas y no una referencia de quien llama:** 16 archivos llaman a `usePanelPorUrl()` y 20 hooks escriben su `?panel=` a mano; las señas (el camino en el DOM, la etiqueta y
+  un hash FNV-1a del nombre) encuentran al botón sin que nadie lo pase. El nombre va como hash porque `history.state` queda en la sesión del navegador y el texto de un
+  botón puede nombrar un lead o un vehículo.
+- **Se olvida al verse cerrado, no con un «olvidar» en cada `cerrar()`:** hay cierres que no pasan por `cerrar()` (`ir()` del panel del vehículo, guardar la hoja). El hook
+  olvida su ficha cuando ve el panel cerrado, salvo que la entrada actual sea la marcada (un «atrás», del que se ocupa el `popstate`).
+- **Límites:** renombrar un nivel se abre desde el «⋯» de una fila, que ya no está al volver: el foco queda donde lo deje Base UI. En Safari un clic no enfoca el botón y no
+  se marca nada. Una marca que reemplaza el estado en vez de sumarse no pierde `__NA` en el navegador (el `replaceState` parchado de Next lo vuelve a copiar), pero sí las
+  claves propias vecinas (la `vueltaDesde` de un panel con un `eliminar` adentro): lo prueba Vitest. Si la escritura de la URL falla, la clave deja de estar «escribiendo».
+- **P1 (la persona): los 19 hooks propios van al 4.14-2a3**, el paso siguiente, con el guardián `scripts/guardas/paneles-con-vuelta.test.ts`, cuya lista de pendientes sólo
+  se achica. 4-49 queda abierto hasta entonces.
+
+## 2026-10-30 — Paso 4.14 (2a3): la vuelta desde un menú, tras una navegación del servidor y la partición en 2a3 y 2a4
+
+**Medido antes del código** (una sonda contra HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a3/medicion-0.json`): los siete casos (renombrar un nivel, la hoja de
+filtros, nuevo vehículo, editar, el resumen, agregar vehículo y la vitrina) dejan el foco en `body` tras recargar y «atrás»; ninguno recarga el documento y en todos
+«atrás» cierra el panel. Sin recargar, desde un «⋯», Base UI devuelve el foco al «⋯» (tras «atrás» y tras Esc). En el instante en que corre una acción `despuesDeCerrar`
+(el `replaceState` de la marca), el foco sigue en el ítem, el menú sigue en el DOM con su `aria-labelledby` (el `id` del «⋯») y el «⋯» ya no lleva `aria-controls`; después
+salen el foco y el menú, el foco entra al «⋯» y recién ahí escribe `nuqs`. El mismo orden en la vitrina. No se dio S1, S4, S5 ni S6: es la rama R1 del plan.
+
+- **Desde un menú, la marca es la del botón del menú** (`disparadorDelMenu()` en `vuelta-del-foco.ts`): el ítem ya no existe al volver, y el «⋯» es a donde Base UI devuelve
+  el foco sin recargar. Se busca primero por el `aria-labelledby` del menú, que es lo que está en ese instante; si no, por el `aria-controls` (un menú que corre su acción
+  abierto); si no, las señas del foco, como antes. Arregla el límite del 2a2 (renombrar un nivel) y todo panel o `<Confirmar>` que se abre desde un «⋯».
+- **La ficha de la entrada del panel queda también en `sessionStorage`** (la última por clave, con un hash de la URL): con `shallow: false`, la respuesta del servidor llega
+  después de que `nuqs` resuelve, y Next pone su estado en la entrada del panel sin conservar el resto (`preserveCustomHistoryState: false`): `vueltaDesde` se pierde a los
+  ~60 ms y tras recargar el panel no sabe su ficha (medido con un registro de cada escritura del historial). Volver a escribirla en `pagehide` no sirve: Chromium no conserva
+  un `replaceState` hecho al salir. La marca sigue en el historial (la entrada de antes no la toca Next) y lo que decide la vuelta sigue siendo un `popstate` a esa entrada
+  con la misma ficha: una ficha guardada de otra apertura no coincide y no mueve nada. Sin `sessionStorage`, queda la del historial. Lo que dijo el 2a2 («no en
+  `sessionStorage`») vale para la marca y la memoria; esto es sólo un respaldo de la ficha.
+- **Se parte en 2a3 y 2a4:** son cuatro intenciones con su scope (`shared` desde un menú, `shared` los filtros, `vehiculos` y `leads`) y la verificación no es la misma (los
+  hooks de `leads` no son interfaz). El 4.14-2a4 hace los 14 de `leads`, deja `PENDIENTES` vacío, borra el registro, exige también `useVueltaDelFoco` en el guardián y corrige
+  la ficha de `shared`: por esa ficha es Nivel 2.
+- **Las pruebas de un hook salen de un ayudante** (`probarLaVuelta()`, `ui/vuelta-del-foco.soporte.tsx`): cuatro por función que abre (marca, vuelve tras recargar, cerrar
+  olvida y abrir lo abierto no marca otra vez). Con `hasMemory` en `NuqsTestingAdapter`, y el cierre se espera hasta que quede: `useFiltros` escribe en una transición y el
+  adaptador pasa un instante por el valor de antes.
+
+## 2026-10-30 — Paso 4.14 (2a4): la vuelta en el listado de leads y la partición en 2a4, 2a5 y 2a6
+
+**Medido antes del código** (una sonda contra HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a4/medicion-0.json`): de doce casos del listado, siete dejan el foco en
+`body` tras recargar y «atrás» («Nuevo lead», «Gestionar etiquetas» desde los filtros y desde el selector del «⋯», exportar desde «CSV», el lead rápido desde el nombre,
+«Etapas» y «Nuevo embudo»). Anotar y agendar desde el «⋯» de una fila y «Editar» del lead rápido ya volvían: su modal busca a quien lo abrió. Anotar y agendar desde el
+«⋯» del resumen del rápido dejan el foco en «Editar» (4-58). Ningún «atrás» recarga el documento y en todos cierra el panel.
+
+- **Se parte en tres:** los 14 hooks tienen 29 funciones que abren, en tres superficies (el listado, la ficha y la configuración). El 2a4 hace las 10 del listado (6 hooks),
+  el 2a5 las 14 de la ficha (5 hooks; también donde abren en las pestañas del rápido) y el 2a6 las 6 de configuración y el cierre del guardián, que toca la ficha de `shared`
+  (Nivel 2). Sin `src/shared`, el 2a4 y el 2a5 son Nivel 1.
+- **«Gestionar etiquetas» desde el selector del «⋯» enfoca el «⋯» antes de abrir el panel:** el selector se ancla al «⋯» sin disparador propio y el foco estaba en su
+  campo de búsqueda, que desaparece; la vuelta no tenía a quién volver. Sin recargar, Base UI ya devuelve el foco al «⋯» (tras «atrás» y tras Esc): es el mismo destino. Sin
+  ancla, el selector no mueve el foco.
+- **El hook de «Nuevo lead» corre en el shell:** la vuelta del foco viaja en toda pantalla de `(app)`. `presupuesto-js` antes y después: `/perfil` 416,8 → 418,1 KB (de 440; el
+  plan estimaba ≈ 1,5), `/leads` 508,9 → 509 (de 530), `/vehiculos` 475,7 → 473,5 (de 500) y `/cotizaciones/nuevo` 433,2 → 433,3 (de 460).
+- **En la acción de una fila, «ya abierto» mira también el lead (`para`):** abrir anotar en otra fila con el modal de una abierto es otra apertura y marca otra vez.
+- **4-58 no se arregla aquí:** tras recargar, el foco queda en «Editar» (medido) y la vuelta del foco sólo actúa con el foco en `body` (espera a que Base UI lo devuelva).
+  La hipótesis, sin medir: el modal de la pestaña se monta tras recargar con el foco en «Editar» y lo devuelve ahí. El arreglo está en el modal de la pestaña (`use-modal-de-seguimiento`, `use-modal-de-recordatorio`), que es del 2a5.
+
+## 2026-10-30 — Paso 4.14 (2a5): la vuelta en la ficha del lead, el modal de la pestaña y el segundo «atrás»
+
+**Medido antes del código** (una sonda contra HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a5/medicion-0.json`): ningún «atrás» recarga el documento y en todos cierra el panel.
+
+- Dejan el foco en `body` tras recargar y «atrás» ocho casos de la ficha: «Editar», «Cambiar» el teléfono, «Compartir», «Transferir», «Nueva oportunidad», «Editar» una
+  oportunidad (desde su «⋯»), «Dar acceso» y «Revocar». Llevan e2e. F6 («Salir de este lead») no se midió: su apertura lleva la vuelta como las otras cinco de `usePanelDeLead`, con
+  su prueba de Vitest.
+- Ya volvían, sin e2e nuevo (sólo Vitest): «Agregar teléfono», anotar, agendar y sus «Editar», y «Gestionar etiquetas» desde el «⋯» de la ficha. En el rápido, los botones de
+  las pestañas ya volvían a su botón.
+- Anotar y agendar desde el «⋯» de la cabecera de la ficha dejan el foco en `body` tras recargar (F16 en los dos proyectos; F17 sólo medido en móvil): van por `router.push`, el
+  guardián no los ve (4-61). Sin recargar vuelven al «⋯»: guardia en el e2e.
+- 4-58 (R3 y R4): tras recargar y «atrás», el foco queda en «Editar» y el botón de la pestaña ya no está en el DOM. 4-59 (R5 y las pestañas): el segundo «atrás» deja el foco en
+  `body`.
+
+- **4-58, `enPestana`:** el modal de la pestaña devuelve el foco, cuando no hay «Editar» de un ítem ni botón, a lo que lo tenía al abrirse (`true`, de Base UI): tras
+  recargar es «Editar». Con `false` no mueve el foco, que cae en `body` al desmontarse, y la vuelta (la marca de `abrirModal`) lo lleva al «⋯» del resumen. Sólo en el rápido
+  (`enPestana`, por defecto `false`, que ponen sus dos pestañas): la ficha monta los mismos modales y anotar desde su «⋯» llega sin marca. Esc, la ✕ y guardar siguen yendo al botón de
+  la pestaña. Sin recargar el destino ya era el «⋯» del resumen (R3s y R4s, medido) y su e2e lo fija. **M13** (la ficha también pone `enPestana`) **sobrevive**: en la ficha, con `true` o
+  `false`, el foco queda en el «⋯» de la cabecera (la causa no se midió), así que el guardia fija el destino y no el mecanismo; el cambio no habría sido una regresión. Límite: con el
+  modal abierto y el foco en `body`, el foco queda en `body`.
+- **4-59, `esperaSinPanel`:** el hook del rápido se ve «cerrado» para `lead` mientras siga montado con el panel que encontró al cargar, y toma la ficha de la entrada
+  `?lead=<id>` al quedar sin panel (la del historial o la de `sessionStorage`, de esa URL). Sin recargar nada cambia: `abierto` es `id !== null`. No se usa la compuerta pura
+  `panel === null`: olvidaría la ficha al abrir el panel (la cubre su prueba de Vitest, M12); en el e2e M12 **sobrevive** (Esc y dos «atrás» vuelven al nombre también con la compuerta
+  pura; la causa no se midió), así que R7 y R8 son guardias del destino. **Límite** (4-62): tras recargar, el segundo «atrás» sólo devuelve el foco al
+  nombre si el panel se abrió desde la URL `?lead=<id>` (el «⋯» del resumen, «Editar»); desde el botón de una pestaña, la entrada anterior ya es `&pestana=` y deja el foco en `body`;
+  igual si el panel se cierra con Esc, la ✕ o guardar en una URL distinta de la de apertura.
+- **`yaAbierto` mira el id en las ediciones** (oportunidad, recordatorio, seguimiento): abrir la edición de otro ítem con la de uno abierta marca otra vez, como la acción de una fila del 2a4.
+- **Los 5 hooks de la ficha salen de `PENDIENTES`:** `usePanelDeLead` marca con `recordarQuienAbre()` y `abrirConVuelta()`; quedan los 3 de configuración del 2a6. Sin `src/shared`: Nivel 1.
+
+## 2026-10-30 — Paso 4.14 (2a6): la vuelta en configuración y el guardián sin lista
+
+**Medido antes del código** (una sonda contra HEAD, en los dos proyectos; `.piloto/salidas/4.14-2a6/medicion-0.jsonl`): ningún «atrás» recarga el documento y en todos cierra
+el modal y quita `panel` y el id de la URL. En Configuración › Leads los 9 casos («Nuevo», «Editar» desde el «⋯» y el nombre de la fila, en orígenes, tipos y tipos de
+seguimiento) dejan el foco en `body` tras recargar y «atrás»: llevan e2e. Sin recargar, «Editar» desde el «⋯» ya vuelve al «⋯» (O2s). «Salir de este lead» (F6) ya volvía
+desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foco queda en `body` (F6m).
+
+- **El criterio para llevar e2e** es el mismo en los dos lados: lo lleva un caso que, sin la vuelta del hook, deja el foco en `body`. En configuración se ve en HEAD; en F6,
+  con M7. Por eso F6 entra al spec de la ficha como regresión, en verde en HEAD, y M7 lo tumba. Si M7 no lo hubiera tumbado, no habría llevado e2e.
+- **O2s es una guardia sin caída demostrable.** Sin recargar, Base UI devuelve el foco al «⋯» y `volverA()` sólo enfoca con el foco en `body`, así que ninguna mutación de
+  los hooks la tumba (M2 tampoco, medido). Se queda porque fija que la vuelta no estropea el camino de siempre.
+- **El guardián exige también `useVueltaDelFoco`:** sin él, `abrirConVuelta` deja la marca, pero tras recargar nadie recuerda la ficha y «atrás» deja el foco en `body`.
+  La guarda acepta uno o varios `import`; con `noUnusedLocals`, importarlo obliga a llamarlo. M5 (sin `useVueltaDelFoco`) y M8 (sin `abrirConVuelta`) la tumban.
+- **Se borra el registro en lugar de dejarlo vacío:** una lista vacía invita a volver a llenarla. Un `history: 'push'` nuevo sin las dos funciones hace caer `pnpm test`, y
+  el único exento es `usePanelPorUrl()`, que las usa por dentro. La guarda lee el texto: un comentario que nombre el literal `history: 'push'` cuenta como panel.
+- **En la edición, «ya abierto» mira el id** (`editando === id`), como en la ficha: abrir la edición de otro ítem con la de uno abierta marca otra vez.
+- **Límite:** un clic en la fila fuera del nombre abre la edición con el foco en `body` y no marca, igual que en el listado de leads del 2a4. Con teclado se abre por el
+  nombre (`<AbrirResumen>`), que sí marca.
+- 4-49 se cierra con este paso, y 4-44 (a) con él. 4-61, 4-62 y 4-63 siguen sin fase.
+
+## 2026-10-30 — Paso 4.14 (2b): el historial del elegido y «Cotizar» desde el resumen
+
+- **La composición es una ranura desde `src/app`.** `vehiculos` no importa `cotizaciones` ni lee su tabla: la página de cotizar arma `<HistorialDelVehiculo>` (la cáscara de `diferido()` de
+  `cotizaciones`, con `aviso: 'aqui'`) y se lo pasa a la barra como `historial: ReactNode`; el panel lo dibuja dentro de la región «Elegido». El conteo se lee en el servidor, en el mismo
+  `Promise.all` que la hoja y el elegido; el historial se lee en el navegador al desplegarlo.
+- **«Cotizado (n)» es sólo una etiqueta y puede estar vieja.** Guardar no vuelve a pedir la página (`crear-cotizacion.ts` no revalida): la insignia y el «(n)» del botón cambian al elegir,
+  quitar o recargar. El historial no depende de ella: su botón está siempre y lo que muestra lo dice la lectura al desplegarlo (H5: guardar la primera cotización de un vehículo y abrir el
+  panel sin recargar la muestra).
+- **P1 (sin lead).** «Cotizar» del resumen abre la hoja con el origen y el vehículo; guardar espera al cliente (4.14-3). **P2 (sólo lo que ve).** El número y la lista salen de la misma
+  lectura con la RLS de quien mira; con «propios» (H3) se ve una sola cotización; sin ninguna, «Sin cotizaciones que puedas ver.» (no afirma que no las haya). Sin función de base.
+- **«Ver más» y no «Anterior/Siguiente»:** el panel ya tiene una `<Paginacion>` con esos nombres, y una segunda los repetiría. Es el mecanismo 2 de `paginacion.ts` (una lista dentro de un drawer).
+- **Medido: el JS en frío de la hoja.** La primera versión sumó 20,4 KB (453,6 de 460) aunque el historial va por `diferido()`: (1) `composicion.client.ts` reexportaba la lectura del historial y la hoja
+  lo importa (+11,4 KB), así que la lectura vive en `composicion-historial.client.ts`; (2) la barra importaba `<Badge>` (+8,5 KB: arrastra Base UI a la carga en frío) y `conteoCorto` (+0,3 KB): ahora recibe el
+  «n» ya escrito y dibuja una etiqueta propia. Queda en 433,5 de 460 (antes 433,2). **Regla:** un archivo de la carga en frío de la hoja no importa `<Badge>` (ni `conteoCorto`: lo escribe la página); se mide con `presupuesto-js`.
+- **P3 (el tope de bytes).** La estimación del plan (150 B por fila, 4.000 B) se quedó corta: 4.972 B (escritorio) y 4.867 (móvil) con 21 filas. La persona fijó el tope en lo medido más un 5 %,
+  5.250 B; los nodos, 61 medidos, con tope 65.
+- **Sin camino a lo antiguo todavía:** el tope de 500 muestra «Mostrando las 500 más recientes.» sin cómo seguir; lo traen el 4.16 (listado con filtro) y el 4.17 (la sección del vehículo).
+- **El autor sale embebido de `perfiles`** y `autorVisible()` repite la regla de `nombreVisible()` de `equipo` (que no llega al navegador); su comentario nombra el original.
+- **Cierra sin abiertos nuevos.** «Cotizar» en la ficha `/vehiculos/[id]` y en el «⋯» del inventario no entró (la fila nombra sólo el resumen).
+
+## 2026-10-30 — Paso 4.14 (2c): crear desde el panel y la partición en 2c1, 2c2 y 2c3
+
+- **Por qué se parte.** 4-10 con P6 («elegir el tipo entre las filas de la tabla de transporte, con el sugerido marcado») no cabe en pantalla pura: la hoja no sabe qué dato del vehículo casa con qué
+  columna de qué tabla (el `match` vive en `formulas.definicion`, que no viaja a quien cotiza, D7). Guardar el tipo (P3 del 2a) no pide base (`vehiculo_guardar` ya funde `atributos`); saber qué
+  ofrecer, sí. 2c1 (este) = buscar, traer, «+», crear y elegir, tarea de oro con un vehículo buscado por nombre; 2c2 = la base (rigor máximo, compuerta `datos`); 2c3 = el tipo en el panel y la tarea de oro
+  con un enlace de Copart (con `AUTOMOBILE` el transporte de `subasta_usa` queda sin valor y la hoja no guarda sin total).
+- **P1 (se crea al confirmar en el panel).** «Crear y elegir» llama a `vehiculo_crear` (la action de siempre) y la hoja calcula enseguida con el año y el tipo, porque `cotizacion_evaluar` sólo recibe un
+  vehículo que ya existe. Si la cotización no se guarda, el vehículo queda en el inventario (el de subasta lo recoge la limpieza; el de a mano, no). `p_vehiculo_nuevo` queda en la base sin uso desde la pantalla.
+- **P2 (el layout se lee al abrir el alta).** La primera versión pasaba el layout activo del origen desde la página: con 106 campos eran +69.098 B sin comprimir en el documento de cada apertura de la hoja
+  (presupuesto 40.000), se abra o no el panel. El alta lo lee ahora desde el navegador (`useLayoutActivo()` en `origenes`, con la sesión de quien mira) y la página sólo pasa `alta` = origen y si apibara
+  está encendida; el documento de la dueña pesa 17.373 B más que el de un rol sin `vehiculos.crear` (el resto es del shell). Costo: una espera corta (esqueleto) al abrir «+» o «Traer».
+- **Un campo, tres cosas.** El campo de arriba del panel busca (título, VIN, lote; desde 3 letras o números, `leerTextoDelPanel()`), y si el texto es un enlace de Copart o IAAI, un VIN o un lote lo ofrece
+  traer. Un enlace no se busca (no está en un título). Un enlace que no se puede traer (origen manual, apibara apagada, sin `vehiculos.crear`) dice por qué debajo del campo; un VIN o un lote sólo se buscan.
+- **Enter y la cuota de apibara.** Enter trae un enlace; un VIN o un lote sólo si su búsqueda ya volvió vacía (las repetidas se marcan _después_ de consultar y cada consulta gasta cuota). El botón «Traer» queda
+  para quien lo quiera igual. Recargar con `?alta=subasta` muestra lo pegado y **no** vuelve a consultar: la consulta se pide con una marca en memoria que se pone sólo al decidir traer.
+- **El alta es la del inventario.** Mismo formulario, mismas reglas y mismo borrador (`vehiculo-nuevo-<origen>`: lo escrito en un lado aparece en el otro); sin «Abrir ficha» (saldría de la hoja) ni «Guardar y cargar
+  otro». Ctrl+S y el atajo de «guardar y seguir» crean y eligen, y no guardan la cotización de detrás (el último registro responde). Varias líneas guardadas con «Guardar las listas» se crean sin elegir ninguna.
+- **El texto vive en la URL.** `?buscar=` y `?alta=mano|subasta` se escriben con `replace`, sin ir al servidor; el campo lleva `useTextoDeUrl()` (si no, la vuelta de la URL le quita el foco). La pausa de tecleo
+  (300 ms) es una constante local: la de los listados es privada de `src/shared` y exportarla lo subía a Nivel 2 por un número.
+- **Medido.** `creado_en` lo pide sólo la búsqueda: pedirlo en las pestañas subió la primera respuesta del panel a 5.627 B (tope 4.900); con el buscador, el panel mide 295 nodos y 4.681 B (topes 299 y 4.900).
+  JS en frío de la hoja 443,9 KB de 460 (+10,4 KB del buscador y su alta) y de `/vehiculos` 476,3 de 500. La tarea de oro con el panel: 28 teclas de control, KLM 20,8 s (escritorio) y 19,4 s (móvil).
+- **Una consulta de un lote que ya está en el inventario no llena la ficha** (queda marcada «ya está»): el e2e A2 corre antes de T1, que crea el lote 58540656 en el origen.
+
+## 2026-10-30 — Paso 4.14 (2c2): el dato del vehículo de una celda de tabla
+
+- **P1 (la celda, sin RPC nueva).** La celda de un nodo `tabla` que quien mira ve, en `cotizacion_hoja()`, lleva `dato_del_vehiculo: {tabla, columnas: [{columna, campo}]}`; las filas para elegir las
+  da `cotizacion_tabla()`, que ya entrega esa columna a quien ve el nodo. Una RPC aparte sumaba un `security definer` más al inventario y a la matriz por nivel y una lectura por apertura del panel;
+  mandar los valores en la hoja los pagaba cada apertura, se abra o no el panel. Cuesta +236 B por hoja sembrada (dos celdas de transporte), contra el tope de 16 KB.
+- **P2 (qué cuenta).** Un valor del `match` que **no es el id de ningún nodo** —aunque coincida con la clave de un campo activo: el motor lee el nodo— y que el motor lee para ese origen (`anio`, `marca`,
+  `modelo`, `kilometraje`, `precio` o un campo activo del origen de la hoja). Un `campo_vehiculo` (`factor_dp` sobre `anio`) no cuenta: ese dato se tipea en el vehículo, no se elige de una tabla.
+- **Qué cambia en D7.** Hasta hoy el `match` no viajaba a nadie fuera de `cotizaciones.configurar`. Ahora viajan, de una celda que ya se ve, el vínculo «columna ← campo» y, en una celda **sin**
+  ayuda de tabla, la clave de su tabla (antes sólo salía en `ayuda`). Las entradas que nombran un nodo nunca: el centinela de la prueba es un nodo oculto del nivel cuyo id es también un campo activo.
+- **El contrato son las filas, no `columnas`.** `cotizacion_tabla()` saca `columnas` sólo de la tabla viva: con una congelada sin viva activa llega `[]`. No se exige la viva porque, desactivada, la
+  versión publicada sigue calculando con la congelada y el motor sigue pidiendo el dato: el panel se quedaría sin opciones justo entonces, y la regla se separaría de la de la ayuda. `filas` también
+  puede venir vacío (congelada `[]` o viva sin filas activas): el dato viaja sin opciones, el motor da `tabla_sin_filas` y el 2c3 tiene que decirlo en pantalla.
+- **Un ayudante de nadie.** `_hoja_datos_del_vehiculo()` (invoker, `search_path ''`, sin `execute` para nadie fuera de `service_role`) arma el objeto nodo → dato una vez por lectura y no entra al
+  inventario de lo oculto: no lee `formulas` ni `tablas_referencia` (recibe la definición desarmada), como `evaluar_formula`. Así `_cotizacion_hoja()` crece 3 líneas; que pase de 80 viene de antes.
+- **`collate "C"` y PGlite.** `db:probar` corre en PGlite, con colación C: quitar el `collate "C"` no cambia ningún orden allí (M16). En la base local (ICU, `en_US.UTF-8`) sí (`a_` antes que `a1`;
+  la premisa del plan, que ICU ignora `_` y pone `anio` antes que `a_z`, era falsa), así que T5 mira que la definición ordene con `collate "C"`.
+
+## 2026-10-30 — Paso 4.14 (2c3): el tipo de vehículo en el panel
+
+- **P1–P4 (compuerta de producto, todas la recomendada).** Cada fila se nombra **tal cual sale de la tabla**, como la ayuda de una tabla: quien configura la tabla decide cómo se lee, y lo que se ve
+  es lo que se guarda. Se eligen **sólo campos de texto del layout** (`texto`, `texto_largo`); una columna fija (año, marca…) se cambia en la ficha con su validación. Tras «Crear y elegir» el panel
+  **se cierra como siempre** y la celda sin valor dice «Elige el dato del vehículo en «Vehículo», arriba de la hoja, o escribe el valor.»: un camino, el mismo para un vehículo del inventario.
+  **Un toque guarda** el tipo en el vehículo, cierra el panel y la hoja recalcula; equivocarse se corrige eligiendo otra, y el panel nunca queda con algo sin guardar.
+- **El lector cruza por `src/app`.** `vehiculos` no conoce `cotizaciones` y una función no viaja del servidor al navegador: la página arma en el servidor `paraElegir` (los datos de la hoja, su valor, la
+  versión y si quien mira lo edita, por `editablesDe`) y un componente de cliente de la página (`barra-de-la-hoja.tsx`) le suma el lector con `useLectorDeOpciones` de `cotizaciones/client`. Las formas de
+  `vehiculos/entities/dato-para-elegir.ts` son estructurales. Qué se elige lo decide **un solo lugar** (`datosParaElegirDe`, C3) y la celda lo recibe como `seEligen`: no puede mandar a elegir algo que
+  el panel no ofrece (una celda que sólo casa `anio` dice lo de siempre).
+- **Límites.** Sólo campos `texto`/`texto_largo` y sólo valores de texto de la tabla: un número se leería con el locale al guardar («1.5» como 15) y el motor compara con igualdad estricta; un `opcion`
+  exigiría que la clave de la fila sea una de sus opciones. Las opciones son la **unión** de las tablas del dato (dos en `subasta_usa`, una por variante): una clave que esté sólo en la tabla de la
+  otra variante quedaría marcada y la celda visible seguiría sin valor (no pasa con la semilla, que tiene las mismas 8 claves). Se dibujan a lo sumo 50, con «Buscar en las opciones» como camino.
+- **Guardar recarga la hoja.** Elegir hace lo mismo que elegir el vehículo (la URL con el mismo id, al servidor): la página lee el vehículo y la hoja de nuevo (otra hoja abierta) y la hoja se vuelve a
+  montar con el borrador. Con algo tipeado, el aviso «Recuperamos lo que habías escrito…» sale a lo sumo una vez (E5); sin nada tipeado, ninguno.
+- **Por qué es pantalla pura aunque escriba.** La action nueva (`guardarDatoDelVehiculo`) no crea un permiso ni una RPC: escribe sólo ese atributo por `vehiculo_guardar`, que ya exige `vehiculos.editar`
+  por fila y la versión, y repite el permiso por origen y la validación del campo con el layout de hoy, como `guardarVehiculo`. La base no cambia.
+- **La tarea de oro 2 con un enlace** (`e2e/cotizar-tarea-de-oro-enlace.spec.ts`, aparte porque el de la tarea de oro ya medía 272 líneas): 32 teclas de control, KLM 39,5 s con 6 decisiones, robot
+  2,5 s (escritorio) y 3,0 s (móvil). apibara se intercepta con otro VIN y otro lote: el VIN es único entre los vivos y `cotizar-panel-crear-vehiculo` usa los de la ficha grabada.
+- **Medido.** El grupo con dos tablas de 1.000 claves: 56 nodos (presupuesto previo 260; tope 59) y ≈ 55.100 B por lectura. JS en frío de la hoja 444,7 KB de 460 (+0,8).
+
+## 2026-10-31 — Paso 4.14 (3a): «míos» por lo más reciente y la partición en 3a, 3b y 3c
+
+- **El 4.14-3 se parte en tres.** La base (rigor máximo, compuerta `datos`) y la pantalla se verifican distinto, y la pantalla sola son dos superficies: el **3a** (esta base: Nivel 2 + cadena db +
+  `db:carreras` + `db:medir:volumen`), el **3b** (el panel del cliente sobre la hoja; Nivel 1) y el **3c** («Nuevo lead» desde el panel, «Cotizar» en la ficha del lead y el tramo del cliente de la tarea
+  de oro 2; Nivel 1). Lo que el 3b y el 3c tendrán que preguntar: si lo tipeado en la hoja se conserva al elegir el cliente, si las pestañas son «Todos» más una por clase, si tras «Nuevo lead» la hoja
+  elige el creado y dónde va «Cotizar» en la ficha.
+- **P1 (producto): «por actividad» es lo reciente del lead.** El último seguimiento vivo y, sin ninguno, el alta: `coalesce(leads.ultimo_seguimiento_en, leads.creado_en)`. Nunca es nulo, y por eso el
+  cursor de `src/shared` (que no admite nulos en la columna de orden) lo usa tal cual. «Actividad» se queda para la auditoría (glosario: **Reciente**).
+- **P2 (datos): una copia en la cartera.** `leads_asesores.lead_reciente_en`, con `leads_asesores_reciente_idx (usuario_id, lead_reciente_en desc, lead_id desc) where revocado_en is null`. Sin la copia,
+  «míos» por lo reciente ordena la cartera entera en cada página o camina el único índice por seguimiento, que es global y no tiene persona. La copia está en **todas** las filas del lead, también las
+  revocadas: compartir y «Tomar lead» del limbo reviven una fila por `on conflict do update`, y ahí lo que calcula el `before insert` se descarta; lo que la deja bien es el trigger del lead.
+- **Una función de trigger aparte.** `leads_reciente_seguir()` no es `leads_creado_en_seguir()` ampliada: una sola responsabilidad. Si cambia `creado_en` de un lead sin seguimientos corren los dos (raro,
+  aceptado). El relleno es una función invocadora, sin `security definer` y sin `execute` para la app; la migración la llama una vez, con `trg_leads_asesores_cartera_cambio` apagado (el relleno no cambia
+  quién tiene qué lead). Medido, apagarlo no ahorra nada visible (10,6 y 10,7 s con 201.600 filas), pero tampoco cuesta.
+- **P3 (datos): `trg_leads_asesores_cartera_cambio` no se toca.** El recálculo no reescribe el lead (`is distinct from`). Se midió el costo de escribir: 0,1 ms y 144/147 buffers más por seguimiento.
+- **T1–T3 (los topes provisionales del plan, que el plan mandaba no subir sin la persona):** la pestaña por clase de la dueña (~15 % cliente) cuesta 1.535–1.551 buffers contra 1.500 → tope 2.500 (camina ~7
+  leads por cada uno que muestra; no crece con N); escribir un seguimiento, 144/147 buffers contra 60 → tope 250 (0,1 ms contra 0,5); la clase ausente (la dueña sin ningún lead de una clase), 66 ms con
+  62.000 y 289 ms con 212.000 contra 100 → se declara el límite (400 ms con 80.000 leads en su cartera) en `docs/RENDIMIENTO.md`: crece con la cartera de quien mira y no con los demás; la salida, si hace
+  falta, es copiar también la clase en la cartera (índice por clase), que decide la persona en el 3b.
+- **Lo que las pruebas tuvieron que cuidar.** Dentro de un bloque `now()` no cambia: todo lead del terreno parte con `creado_en` en el pasado y todo seguimiento lleva un `ocurrido_en` explícito, en el
+  pasado y distinto de los demás; sin eso M1, M3, M4 y M8 no podían caer. La guarda de la copia corta a profundidad 0 (`pg_trigger_depth() < 2`), así que T1 y el relleno con volumen corren con
+  `session_replication_role = replica` o con la guarda apagada. M9 (el `max()` de los seguimientos en vez de leer `new`) **no** es equivalente: cae con el recorrido al azar de `derivados-leads.sql`.
+  M11 («la migración no apaga el trigger durante el relleno») sobrevive: ninguna prueba mira el resultado, que es el mismo; lo mira la medición y el trigger encendido después (T10).
+- **Medido** (`docs/RENDIMIENTO.md`): página 1 y profunda de «míos» 1,6–2,2 ms y 485–733 buffers con 62.000 y con 212.000, sin `Sort`; sin el índice, 71 y 296 ms. La siembra de volumen y cuatro `medir-*.sql`
+  que insertaban cartera con los triggers apagados nombran ahora `lead_reciente_en` (la columna es `not null` sin default).
+
+## 2026-10-31 — Paso 4.14 (3b): el panel del cliente sobre la hoja
+
+- **P1 (producto): elegir el cliente conserva lo tipeado.** El borrador de la hoja (`sessionStorage`) deja de ir por lead: queda por persona, origen y vehículo; el pendiente del guardado sigue yendo por lead
+  (es de una cotización con su cliente). Elegir o cambiar el cliente vuelve a montar la hoja (el lead va en su `key`) y el borrador repone lo tipeado con el aviso de siempre. Efecto aceptado: en la misma pestaña,
+  abrir otra hoja del mismo origen y vehículo con otro lead también lo recupera, con el mismo aviso y «Descartar». Se hizo en su propio commit, antes del panel.
+- **P2 (producto): «Todos», «Prospecto» y «Cliente», abre en «Todos»** (la lectura medida más barata). **P3 (producto): el campo busca entre los leads que quien cotiza ve**, como el listado
+  (`leads_candidatos` sin `mios`): `cotizacion_crear` ya acepta cualquier lead que se ve. **P4 (producto): «Quitar» sí**, frente a `docs/UX.md` («el lead es obligatorio siempre»): lo obligatorio es para guardar,
+  no para tipear; quitar corrige un cliente elegido por error y «Guardar» vuelve a pedir el cliente.
+- **El panel vive en `leads`** (lee leads y es su vocabulario: el tipo, los números), no en `cotizaciones`; `src/app` lo compone con `pantallas/cotizar.ts`, como el del vehículo. Las lecturas van por el navegador
+  (cambiar de pestaña o de página no puede ir al servidor) con la sesión de quien mira; ninguna policy, grant ni RPC nuevos.
+- **Un `?lead=` que quien mira no ve se suelta**, como el vehículo: la barra queda sin cliente, y la hoja y las pestañas de origen no lo llevan (antes lo llevaban sin leerlo y guardar fallaba en la base). Sólo
+  `ok(null)` —la lectura respondió sin fila— suelta el lead; un error de la lectura sube al `error.tsx` con «Reintentar». Sin `leads.ver` ni se lee. `e2e/cotizar-hoja.spec.ts` probaba que cambiar de origen
+  conserva el lead con un id inventado y con una persona sin `leads.ver`; esa prueba pasó a `cotizar-panel-del-cliente.spec.ts`, con un lead sembrado.
+- **Una ventana de candidatos basta para la búsqueda**: sin condiciones de página (sin marcas ni filtros), los candidatos son la página y la ventana trae hasta 300 (≥ 21). Sólo número (`#n` o corto): son los
+  ids del número, de `leads_ids_del_numero` (con `leads.numero_global.ver`, el global y el propio de cualquier creador; sin él, el propio).
+- **El catálogo al abrir**: `leads_catalogos()` entero (tipos y hasta 100 orígenes que el panel no usa; es la lectura que ya existe) se lee una vez al abrir el panel, con memoria de 60 s. En «Todos» y en la búsqueda
+  va a la vez que la primera página; la pestaña de una clase lo espera (necesita los ids de sus tipos, también los apagados). Sin el catálogo no se pueden nombrar los tipos: la lista entera es el error.
+- **Una parada de Tab más en las tareas de oro**: la barra del cliente va entre la del vehículo y la hoja, y los topes suben en 1, como en el 4.14-2a (`docs/DECISIONES.md`, «Paso 4.14 (2a)»): 25 (la hoja), 29
+  (con el panel del vehículo), 26 (los Tab hasta el primer lado editable) y 33 (con el enlace). Medido: 25, 29 y 33 en los dos proyectos.
+- **Los localizadores `Guardar` de los e2e de guardado pasan a `exact`**: el nombre accesible de la barra («Cliente: …») contiene el nombre del lead, y el del lead de prueba contiene «guardar».
+- **4-65 se acepta como límite** (T3): la pestaña de una clase que quien mira no tiene recorre su cartera (72 ms con 20.000 leads en su cartera, 285 ms con 80.000; tope 400) y el panel muestra el esqueleto
+  mientras tanto. La salida —copiar la clase del lead en la cartera, con índice y triggers— no se hace. **4-50** empeora con la barra nueva: 227 px bajo el borde en escritorio y 157,6 en el celular, al 200 % y con la
+  página arriba (107 y 37,6 con una sola barra); no se arregla aquí. **4-54**: elegir un cliente mientras se guarda es el mismo caso.
+- **Topes del panel**: lo medido más un 5 %, 159 nodos y 5.282 bytes (151 y 4.988–5.030 con 20 filas; el presupuesto previo era 320 y 6.000). JS en frío de `/cotizaciones/nuevo`: 452,9 KB contra 460.
+- **Los textos de los estados son microdecisiones**: «No se pudieron cargar los leads.», «Todavía no tienes leads en tu cartera.», «No tienes leads de esta clase en tu cartera.», «Ningún lead que puedas ver
+  tiene «x» en el nombre o ese número.», «No puedes ver los leads.», «Selecciona un cliente» y «Escribe al menos 3 letras» (el mínimo del listado).
+
+## 2026-10-31 — Paso 4.14 (3c): «Nuevo lead» desde el panel del cliente y «Cotizar» en la ficha
+
+- **P1 (producto): guardar «Nuevo lead» abierto con «+» elige al creado.** El alta se cierra, la hoja elige al lead creado (la barra lo muestra, lo tipeado se conserva por el 3b y el foco vuelve a la barra) y el aviso
+  «Lead creado · …» va sin «Abrir ficha»: salir dejaría la cotización a medias, como «Crear y elegir» del vehículo. La tecla `N` sobre la hoja abre «Nuevo lead» como en cualquier pantalla y no elige al creado: sólo el «+»
+  lleva `?elegir=`.
+- **P2 (producto): «Cotizar» es un botón de la cabecera de la ficha**, entre «Editar» y el «⋯», como en el resumen del vehículo; suma una parada de Tab a quien cotiza (la tarea de oro 4 no cambia: su asesora no cotiza). Abre la
+  hoja en el primer origen donde quien mira cotiza (las pestañas cambian de origen y conservan el lead). Se ofrece también a quien no puede editar el lead: cotizar pide ver el lead.
+- **P3 (producto): sin «Elegir» cuando el teléfono ya es de un lead que quien cotiza ve.** Se busca en el panel del cliente; queda como 4-66.
+- **Se reusa el «Nuevo lead» del shell**, no un alta dentro del panel: un solo drawer con su borrador, su verificación del teléfono y la tarea de oro 1, y el código del alta no viaja con la hoja (JS de `/cotizaciones/nuevo`
+  453,1 KB de 460). El panel sólo lo abre con una escritura de la URL (`replace`: «atrás» vuelve a la hoja sin panel).
+- **`?elegir=<clave>` nombra una clave de la URL de la misma página**, validada por `claveParaElegir()` (1 a 20 letras minúsculas, ni `panel` ni `elegir`) antes de usarla en la escritura y en el selector del foco; nunca llega a
+  una consulta. Un enlace armado a mano con `elegir` en otra pantalla sólo escribe `?<clave>=<id del creado>` ahí (en `/leads`, abre el rápido del creado): inofensivo.
+- **El foco**: al pasar del panel del cliente al alta, el panel no devuelve el suyo (`focoAlCerrar` devuelve `false` si el que sigue es «Nuevo lead»): Base UI lo habría devuelto a la barra un instante después, quitándoselo al
+  teléfono (medido: varias corridas perdían letras). Al cerrar el alta abierta con `?elegir=`, el foco va a la barra «Cliente» (`data-elige`), no a quien abrió (el «+», que ya no existe); `MarcoDelAlta` guarda el último
+  `elegir` visto con el alta abierta porque, al cerrar, la URL ya no lo trae.
+- **El texto de «Guardar» sin cliente** es «Para guardar, elige el cliente en «Cliente».» (microdecisión, como «Elige el dato del vehículo en «Vehículo»…»). Sin `leads.ver` (la barra dice «No puedes ver los leads.») el texto es el mismo:
+  distinguirlo pediría pasar el permiso a la hoja para un rol que no puede guardar de todos modos (`cotizacion_crear` exige ver el lead).
+- **La ficha lee los orígenes sólo para quien tiene `cotizaciones.crear`**, a la vez que la ficha (`paraCotizarDe()`): si la lectura falla, el botón no está y la ficha sigue. La base vuelve a exigir los permisos al guardar. Las
+  cuatro secciones diferidas de la página pasaron a `seccionesDe()` para no pasar de las 80 líneas de `PaginaLead`.
+- **Topes de la tarea de oro del cliente**: lo medido, igual en los dos proyectos: 29 teclas de control con un cliente que existe y 30 con uno nuevo (el Tab hasta el «+» y su Enter, un Tab del teléfono al nombre y el Ctrl+S
+  del alta); robot < 30 s y KLM ≤ 90 s (17,2 y 28,3 s). Panel del cliente con el «+»: 156 nodos (tope 159).
+- **Los e2e esperan estados finales, no teclas**: el spec del alta espera `toHaveValue(nombre)` antes del Ctrl+S (el robot tipea más rápido de lo que la página confirma) y que los resultados de la búsqueda lleguen antes de
+  tabular a la fila (la lista «míos» se reemplaza al llegar). La pausa de nuqs al escribir la URL se espera con `expect.poll`.
+
+## 2026-11-04 — Paso 4.15 (1 de 3): guardar pide ver y editar; la revisión guarda los totales por clave; 4-26
+
+- **El 4.15 en tres pasos y no en dos**:
+  - La base de editar y la de cotizar encima ya son dos RPC `security definer` con su inventario, su matriz y sus carreras.
+  - La pantalla suma otros tres commits.
+  - El 1 cierra los abiertos de la base. El 2 hace la base de editar y cotizar encima, con P1–P7. El 3 hace la pantalla, con P7 y P8.
+- **Un solo ayudante decide quién guarda** (`_cotizacion_puede_guardar()`, invocador y de nadie), y no dos `case` repetidos en `cotizacion_guardar`:
+  - La misma regla se pregunta antes del candado (con la fila sin tomar) y después (la clase o el alcance pudieron cambiar mientras esperaba). El 4.15-2 la usará para decidir qué se edita en la hoja de una guardada.
+  - Pedir ver primero hace que quien no ve reciba el 42501 de lo inexistente antes de tomar el candado y antes del PT409, el 22023 o el `intento_reusado`, que delataban que existía.
+- **`totales` por clave, con los grupos enteros**: un grupo es la unidad que el recorte deja ver o no (`usd`, `bs`, `se_dibuja`), y partirlo por clave no ahorra nada.
+  - Al leer, `_cotizacion_diff_recortado()` compara después de recortar y saca el grupo igual y el `grupos: {}`. Si no, un grupo visible cuyo único cambio es su Bs, para quien no ve ese tipo de cambio, diría que el Bs de ESE grupo cambió. Las revisiones viejas (enteras) se leen igual.
+- **4-26 se cierra «no reproducida»** con las 10 + 2 corridas, y el hallazgo del conteo tras `analyze` queda aparte (4-67, lo decide la persona): no hay causa demostrada de la caída de CI, y arreglar el conteo de leads no es de este paso.
+- **El `update public.permisos` de la migración** (`aplicado_en` y la descripción de `editar`) es para la nube: en local la tabla está vacía al correr las migraciones y lo pone el seed, que es lo que prueba `cotizacion-guardar.sql`.
+
+## 2026-11-04 — Paso 4.15 (2 de 3): la hoja de una guardada, revisiones con autor y cotizar encima
+
+- **Las preguntas del 4.15, contestadas por la persona el 2026-11-04, todas con la recomendada:** P1–P8 (la N+1 es otra cotización con `cotizacion_padre_id` y `version` + 1;
+  se lleva lo tipeado, también lo oculto; de la última de su cadena, una a la vez; su número; quien cotiza y ve la anterior y su lead; la anterior queda igual; dónde se
+  ofrece y dónde se edita, del 4.15-3) y las nuevas del plan:
+  - **P9** la N+1 nace al tocar «Cotizar encima» (`cotizacion_encima`), no al guardar: una sola RPC, sin hoja abierta ni recálculo nuevos; si se abandona, queda una cotización más.
+  - **P10** siempre preventa, también encima de una final.
+  - **P11** quien ve la anterior y no la N+1 sabe que existe (`encima: {"oculta": true}`; el PT409 sin el id), sin su número ni su id.
+  - **P12** la vigencia (D1) nace ahora: `ajustes_empresa.vigencia_dias`, sin pantalla hasta el 4.20.
+  - **P13** quien sólo ve una cotización abre su hoja en sólo lectura, con secciones, etiquetas, ayudas y atajos de su nivel (aprobada con el plan en la compuerta `datos`).
+- **Lo editable de la hoja de una guardada lo decide el ayudante de guardar** (`_cotizacion_puede_guardar()`), y dentro de eso, el nivel de `_nodos_visibles()`, como en
+  `cotizacion_guardar`. `_nodos_visibles()` solo daba «editar» a quien tiene `crear` sin `editar` o `editar` con otro alcance: la hoja habría ofrecido celdas que guardar rechaza.
+  Sin poder guardar, el motivo de una celda es `no_se_edita` y no un nivel (el motivo es la cotización, no el nivel).
+- **«Vencida», por día en la zona de la empresa**, como el glosario: vale hasta el día de `creado_en` + `vigencia_dias`, entero. Por hora, una del lunes a las 18:00 vencería
+  el lunes siguiente a las 18:00 y la misma tarde diría dos cosas.
+- **`descartados` cuenta sólo lo que quien cotiza ve** (estrecha P2, «la hoja dice cuántos»): contar lo oculto que se pierde delataría cuántos nodos ocultos había.
+- **`cotizacion_encima` va sin `p_abierta`**, excepción a «un alta nueva recibe `p_abierta`» (4-27): la N+1 no sale de una hoja que la persona vio ni lleva una hora del cliente;
+  usa la publicada y las tarifas del momento, como pide P1.
+- **El índice de una N+1 viva es parcial** (`where eliminado_en is null`): mandar la nueva a la papelera deja cotizar otra. Restaurar la primera cuando ya hay otra da el 23505
+  del índice sin texto humano: 4-70, para el 4.24 (la papelera propia reescribe restaurar).
+- **Cotizar encima de una anterior sin modo deja la nueva sin modo**, aunque el diseño de hoy tenga modos (el plan decía «el primero del diseño»): sin modo, el motor usa
+  los buckets de la fórmula, que es lo que la anterior calculaba; ponerle el primero cambiaría el total en silencio. Un modo que ya no existe pasa al primero de hoy (E2).
+- **Las etiquetas de las revisiones salen de la página ya recortada**, no de la definición entera: lo que no viaja no tiene etiqueta (ni un nodo oculto ni uno que no cambió).
+- **El paso es de Nivel 2** (estructura: la columna y el índice), no el 1 de la fila: corrió el completo de escritorio y la cuenta de pantallas sin completo vuelve a 0.
+
+## 2026-11-04 — El piloto sin esperar al CI: verificación local mínima, `ci-fix` y puerta de fase por CI
+
+- **El piloto no se detiene por un CI rojo ni lo espera**: lo anota (`.piloto/ci-rojos.md`) y sigue con el paso siguiente.
+  - El 4.15 y el 4.14-3c ya habían parado dos veces por «el último CI está en rojo», y cada parada esperaba a la persona.
+  - Frenan sólo un job `Base ·` en rojo (RLS, grants, advisors contaminan lo que se construye encima) y 5 corridas rojas juntas.
+- **El CI es la autoridad de la suite, el lint y los e2e**; local queda lo barato: `verificar.sh` hacía ≈ 11 min por paso (4.14-3c) que el CI repetía.
+  - El hook Stop de un paso del piloto sólo tipa y revisa el mapa con el árbol limpio; el pre-commit no repite el typecheck con `PILOTO=1`.
+  - Una sesión de la persona sigue verificando todo.
+- **Un rojo se arregla con un paso `ci-fix`** sin ruteo, desde 3 rojos juntos o en la puerta de fase, hasta 2 intentos.
+- **La puerta de fase ya no es una pregunta a la persona**: es el CI de la rama en verde y sin rojos anotados. Cambia la regla de `CLAUDE.md` y `docs/PLAN.md` «nunca más de una fase sin parar»; la persona lo pidió así (2026-11-04) para que la app siga andando al 100 % sin que el piloto se detenga.
+- **El 4.15 estuvo parado ≈ 4 días por un texto**: el detector del límite de uso buscaba «session limit» y el mensaje decía «5-hour limit». Ahora reconoce el texto y la señal estructurada (`usage_limit_reached`).
+- **Producto se contesta solo con la recomendada** y queda en `.piloto/decisiones-automaticas.md`; `datos`, `guardas`, `dependencia`, `afuera` y `atasco` siguen siendo de la persona.
+- **El tope por paso sube de 60 a 200 USD**: en la Fase 4 un paso costó entre 9 y 36 USD (423,52 USD en 57 llamadas); el tope sirve de freno a un paso atascado, no a un paso normal.
+- **Pendiente, medido y no hecho**: el contexto de ≈ 320.000 tokens por turno es lo que más cuesta (la lectura de caché pasa de 1.000 M de tokens en la Fase 4). La salida es ejecutar cada commit con un subagente de contexto nuevo; se prueba en un paso real y se mide antes de dejarlo por omisión.
+
+## 2026-11-04 — Paso 4.15 (3a de 4): abrir y guardar en `/cotizaciones/[id]`
+
+- **Partición:** el 3 de la fila (pantalla, revisiones y «Cotizar encima») no cabía en 3 commits; el 3a es abrir y guardar, el 3b las revisiones y encima. P1: la página no cambia el vehículo
+  de una preventa (se anota 4-71); P2: al abrir se recalcula y, si no da lo guardado, se avisa y «Total guardado» muestra el de antes; descartadas: abrir con el snapshot sin recalcular
+  (otra forma de respuesta de la hoja) y recalcular sin aviso (se vería otro total que el cotizado).
+- **`actualizadoEn` viaja como el texto de la base**, nunca por `Date` ni `fechas.ts` (pierden los microsegundos y daría siempre PT409). La versión esperada se manda tal cual la leyó la página; el intento es uno nuevo por guardado.
+- **El borrador y el pendiente de una guardada** van por persona y cotización, y el borrador lleva la versión: tras un conflicto lo tipeado no vuelve sobre lo que guardó la otra persona; el aviso lo dice.
+- **«Guardar» está apagado sin cambios**, salvo con un pendiente (se reenvía, 4-21) o con lo de hoy distinto de lo guardado. El único texto de la base que se muestra es el del PT409 (nombra a una persona y una hora); un 22023 del vehículo sin `details` dice que la cotización cambió.
+- **Quién guarda lo dice `puede_guardar` de la base**, no `puede()`: no conoce el alcance por cotización. `difiereAlAbrir` compara los `valores` y `totales.usd`, no sólo el total (una celda puede cambiar sin mover el total).
+- **«Recargar» vuelve a montar la hoja con la lectura que pidió** (la `key` suma una lectura pedida); una lectura que nadie pidió no la remonta y lo tipeado se queda. **La lectura del cliente y del vehículo va en serie tras la hoja** (sus ids salen de ella), no en paralelo.
+- **Rigor:** pruebas que fallan primero, 5 mutaciones e informe auditado; sin carreras ni volumen (ningún SQL cambia).
+
+## 2026-11-04 — Paso 4.15 (3b de 4): las revisiones, la cadena y «Cotizar encima»
+
+- **P1: con cambios sin guardar «Cotizar encima» espera.** La versión nueva lleva lo **guardado** de la anterior (`cotizacion_encima`), así que lo tipeado no llegaría; el botón se apaga y dice «Guarda o descarta tus cambios antes de cotizar encima: la versión nueva lleva lo guardado.». `hayCambios` lo calcula un solo lugar (`useGuardarLaGuardada`: lo tipeado, «Ver total Bs» o un guardado pendiente). Descartadas: dejarlo tocar (quien tipeó creería que la nueva lleva su cambio) y guardar primero (dos escrituras con el conflicto en medio).
+- **P2: ningún camino a las revisiones de más de 500, por ahora (4-75).** Excepción nombrada a «siempre hay un camino a lo antiguo» (`.claude/rules/escala.md`), como el historial del vehículo: 500 ediciones de una cotización no es un caso real y la base lee de a 20 por índice. El camino («Ir a una fecha») va al 4.17.
+- **El aviso de versión lo ve todo el que abre la página y el botón sólo quien puede** (`puede_cotizar_encima` de la base): dice algo de la cotización, no de quien mira. **La action no llama a `puede()`**: la base lo pide todo (`cotizacion_encima`) y la pantalla no conoce el alcance por cotización.
+- **El intento de cotizar encima se conserva sólo tras una pérdida:** reintentar devuelve la misma versión nueva (`repetido`) y no crea otra; cualquier otra respuesta lo olvida. Dos toques seguidos crean una sola (el ref de «ocupado» y el índice único `cotizaciones_encima_unica`).
+- **Lo descartado se dice en un aviso efímero** («Versión 2 creada (n.º M). 1 dato que tipeaste no sigue en la versión de hoy.»): la página cambia y no queda dónde. `descartados` es la cuenta de la base sobre lo que quien cotiza ve.
+- **Ningún texto de la base se muestra** (`resultadoDeEncima` y `textoDeEncima`); los once casos de `cotizacion_encima` tienen el suyo. Un `fuera_de_rango` del total cae en «sin total».
+- **La hoja compartida sólo suma un hueco** (`encima`, que recibe `hayCambios`); la hoja nueva no lo llena y su JS no cambió. El panel de revisiones y la cadena viajan en `features/revisiones` con `diferido()`; las revisiones se leen por `composicion-revisiones.client.ts`, aparte de la composición que importa la hoja.
+- **Los topes del panel se fijaron midiendo, por encima del previo del plan:** 200 nodos no alcanzaba (≈ 12 por fila con dos `<Monto>`); 241 medidos, tope 254 (+ 5 %), y 11.907 B, tope 12.503. Lo decidió la sesión y se dice en el informe y RENDIMIENTO.
+- **Rigor:** pruebas que fallan primero, 6 mutaciones con Vitest (y 2 más del `fix` de la auditoría) e informe auditado en dos rondas; sin carreras ni volumen SQL (ningún SQL cambia; la RPC de revisiones ya estaba medida con 500).
+
+## 2026-11-04 — Paso 4.16 (1 de 4): el listado de cotizaciones por cursor y por alcance (4-14)
+
+- **Partición en cuatro:** el 4.16-1 es la lectura (4-14), el 4.16-2 el gemelo del inventario (4-23), el 4.16-3 la siembra de cotizaciones y `medir-escala.sql`, el 4.16-4 la pantalla.
+  Se verifican distinto (base con volumen, base de vehículos por PostgREST, siembra, pantalla con el shell) y la base sola ya llenaba una sesión.
+- **P1: «Mías» son las que creó quien mira** (`creado_por`), para cualquiera. No es «Míos» de leads (`en_cartera`): con la cartera, a un asesor el filtro no le cambiaría nada.
+  **P2: todas las versiones de una cadena salen**, cada una en su fila; la cadena se ve al abrirla.
+- **`cotizaciones_listado()` es invocadora:** la RLS de «cotizaciones: leer» sigue decidiendo y las rutas sólo eligen el índice. Lo que devuelve se compara, persona por persona y con cada
+  filtro, con la regla escrita a mano (`cotizaciones-visibilidad.sql`, L2). La cartera sale de `mis_leads()` (una llamada; el conjunto de `en_cartera()`): leer `leads_asesores` como quien
+  mira pasaría por la RLS de `leads` y perdería el lead en la papelera y a quien no tiene `leads.ver` (Q en L2). No es el arreglo que prohíbe `escala.md`: no es una policy.
+- **La clase nunca es columna de un índice:** `enum_eq` no es _leakproof_ y bajo la RLS `c.clase = …` no puede ser condición de índice. Medido: con `(clase, …)` y `(origen_id, clase, …)` la
+  dueña y Teo leían `cotizaciones_listado_idx` filtrado (1.056–4.764 bloques). La final va por parciales `… where clase = 'final'` con `'final'` literal en su rama (la prueba del predicado no
+  pasa por la RLS); la preventa, por el índice del orden con la clase como filtro (las finales son la minoría).
+- **`lead_id` y `origen_id` con un solo índice entero al frente** (`cotizaciones_lead_creado_idx`, `cotizaciones_origen_creado_idx`; se van `cotizaciones_lead_idx`, `cotizaciones_lead_id_idx` y
+  `cotizaciones_origen_id_idx`): entero, porque cubre la FK de verdad (también la papelera; el lint de splinter no lo distingue y no falla, la guarda es L8); uno solo, porque dos que sirven
+  a la misma consulta compiten en el plan genérico: con 50.000 la cartera sondeaba por la FK y ordenaba, y con 250.000 por el del orden. `creado_por` sigue con dos (la ruta 2 leyó siempre
+  `cotizaciones_creador_idx`) y `vehiculo_id` sólo con parciales (4-51).
+- **El tope de la dueña es de bloques de `cotizaciones` (≤ 116), no de buffers totales:** cada llamada carga ≈ 160–240 buffers fijos de `origenes_con_alcance()` → `mis_permisos()` y de las
+  InitPlan de la policy (4-77), que no son de este listado y no crecen con N. Bajarlos toca una `security definer` de todas las policies: es otro paso, con compuerta `datos`.
+- **El máximo es 100** (`MAXIMO_DE_PAGINA_DE_COTIZACIONES`): con 101 filas, 1,1–2,1 ms la dueña, 1,6 ms la «chica», 10–23 ms Ana, ≤ 2,3 ms Teo, con 50.000 y 250.000.
+- **El paso se detuvo una vez en su parada (4)** (los índices por clase no servían) y la persona eligió replanificar: el plan se corrigió con lo medido, se auditó dos veces más y una sonda en
+  la transacción confirmó, antes de tocar la función, que los parciales se usan con el literal y que el plan de Ana es el mismo con los dos volúmenes (`d = 0`).
+- **Rigor:** pruebas que fallan primero (también la medición, con «lo de hoy»: 1,8 s Ana y 2,3 s la «chica» con 250.000), 19 mutaciones que caen e informe auditado; sin carreras (no hay escritura nueva).
+
+## 2026-11-05 — Paso 4.16-2a: el inventario por rutas, con los filtros del layout en SQL
+
+- **Cómo se llegó.** 4-23 pedía que quien ve «propios» no recorra el origen. Tres sondas con volumen, antes de escribir nada (`.piloto/informes/4.16-2.md`), descartaron dos
+  diseños:
+  - **S0:** una función `setof` con ramas `union all`, leída por PostgREST con su `order by … limit`, ordena todo. En Postgres 17 una hoja con `where` no se aplana en el
+    appendrel (`is_safe_append_member`).
+  - **S0':** con el `order by` en cada hoja hay `Merge Append` **sólo con `enable_sort = off`**. Con el plan normal y un `order by` o un join afuera, cada hoja se planea para
+    leerse entera (`tuple_fraction = 0`): Beto quedó en 72–75 ms. **Una forma probada con `enable_sort = off` no prueba el plan real.**
+  - La persona eligió (P-parada) dos lecturas por sentido y, si no cabían, los filtros en SQL. S0' no cupo y se pasó a lo segundo, como el 4.16-1.
+- **`vehiculos_inventario()`, plpgsql invocadora:** cada ruta lleva su `order by … limit` y Postgres sabe que lee una página.
+  - R1, el origen (`vehiculos_origen_listado_idx`): para quien ve «todos» y para una cartera de más de 5.000 (`leads_cartera_corta()`), como hoy.
+  - R2, lo creado (`vehiculos_creador_idx`, nuevo).
+  - R3, la cartera corta: un lateral por lead de `mis_leads()` sobre `vehiculos_lead_id_idx`.
+  - Se quitan `vehiculos_creado_por_idx` y `vehiculos_lead_idx`: un solo índice entero por columna que se sondea (la regla del 4.16-1).
+- **SQL dinámico.**
+  - Por qué: un número variable de condiciones de atributos (un `and` de `or`) pedía, en SQL estático, una subconsulta por fila.
+  - El texto lo arman `_vehiculos_inventario_sql()` y sus ayudantes, y depende sólo de la forma del pedido. **Ningún valor entra al texto:** todos llegan como `$1 -> i` por
+    `execute … using`. El precedente `_leads_candidatos_sql` los mete con `%L`.
+  - Los ayudantes son invocadores con EXECUTE para `authenticated` (como `_diseno_*`), porque los llama una invocadora. Exponen el texto, no datos. El patrón «contiene» copia
+    la expresión de `_lead_busqueda_patron()` en el texto (L1 prueba que es la misma) y `_lead_busqueda_patron` sigue siendo de `service_role`.
+- **Los topes de la validación** (la URL ya no los pone): 100 condiciones; 500 por arreglo (en 16 KB de URL caben ≤ 442 uuids); 1.000 sumando el pedido; 1.000 caracteres por
+  texto y por alternativa. El año, un entero de `smallint` (±32.767). Un `2010.0` caía al leer con `22P02`.
+- **P-limpieza: no releer la fila.** S0'' paró en Beto (10,3–10,8 ms contra 10; hoy 6,7) porque la lateral de `limpieza_el` relee cada fila y paga otra pasada de la RLS:
+  InitPlans, `mis_permisos` y un `en_cartera` por fila. La persona eligió calcularla sobre la fila que la ruta ya leyó.
+  - R1 y R2 cortan en su `limit` antes de proyectar.
+  - R3 relee sólo las filas de la página, por un `case` con una subconsulta escalar. Una lateral con `where f.releer` relee igual.
+  - Calcularla en R3 para toda la cartera dejaba a Vera en 63 ms.
+  - Con la regla de hoy toda fila de R3 tiene lead y queda anclada (`vinculo`), así que su relectura da nulo. Se paga por robustez.
+- **Contra hoy** (página 1, 250.000, por PostgREST / nuevo): la chica 32,3 / 2,5 ms; Vera 78,5 / 28,1. **Beto paga 1,8 ms más que hoy (6,3 → 8,1) y Pía 1,0 (5,0 → 6,0),
+  dentro de los 10 ms.** El 4.16-2b decide con ese dato: Beto pasa por la función.
+- **La equivalencia con PostgREST** la ata un e2e sin pantalla (`e2e/vehiculos-inventario-postgrest.spec.ts`: 47 casos, la dueña y una persona «propios», de a 3 y de vuelta).
+  L5 la repite en PGlite contra una referencia escrita a mano. S1 capturó 69 textos de PostgREST: cambia la notación, nunca el significado.
+- **Partido en 2:** el 2a es la base; el 2b, la app, que cierra 4-23. El registro en `paginas-en-la-base.ts` va en el 2b, porque su guarda hace caer una entrada que nadie llama
+  desde `src/`.
+- **4-77:** `origenes_con_alcance()` con 1, 74 (la dueña) y 122 concesiones da 7 buffers y ≈ 0,3 ms en los tres. No crece con las concesiones. Los 148 bloques de `perfiles`
+  del 4.16-1 no se reproducen y su causa sigue sin medir.
+- **Atribuciones corregidas del plan:** M1 la ve L2 (no L4); M27 la ve L1c (no L1b (b)). M14 no tenía caso en el e2e y el `fix` lo sumó (`lote(`).
+
+## 2026-11-05 — Paso 4.16-2b: la pantalla lee el inventario de «propios» por `vehiculos_inventario()` (cierra 4-23)
+
+- **La fuente va en el pedido.** `fuenteDelInventario(permisos, origenId)` (`entities/fuente-del-inventario.ts`) da `'vehiculos_inventario'` si el alcance de `vehiculos.ver` en ese
+  origen es «propios» y `'vehiculos'` si es «todos» o nulo. La calcula la página y viaja en `BuscadorDeVehiculos` (`fuente`, obligatoria); `buscarVehiculos()` despacha.
+  - **No se pregunta el tamaño de la cartera:** costaría otra ida a la base. Todo «propios» va por la función y es la base la que elige entre R1 y R2 + R3 (el 4.16-2a: Beto 6,3 → 8,1 ms).
+  - Es un camino, no un permiso: la función responde igual a cualquiera y la RLS decide lo que se ve. Bajo «Ver como» la fuente sale de los permisos simulados; la base elige la ruta con los reales.
+- **Si la base rechaza los filtros (`22023`, hint `filtros`), esa página se lee por la tabla, una sola vez.** El 2a dejó al 2b qué hacer con los topes de la validación.
+  - Copiarlos en TS sería una tercera copia de la regla, y no mide igual (`a::text` de Postgres pone espacios que `JSON.stringify` no pone). La URL no llega a ellos (texto ≤ 100; 442 uuids contra 500).
+  - Ningún otro error vuelve a leer (`origen`, `cursor`, `42501`, transporte).
+  - **La vuelta esconde una desviación**, así que hay dos redes. El e2e de equivalencia (`vehiculos-inventario-postgrest.spec.ts`), con los casos que ya tiene, y un **contrato de tipos** en `inventario.test.ts`:
+    `Record<Condicion['tipo'], true>` y los `when '<tipo>' then` de `_vehiculos_inventario_validar` y `_vehiculos_inventario_condicion`, leídos con `definicionSql()`. Un tipo de `Condicion` nuevo sin su caso en la
+    base rompe `pnpm test`, no la producción. Se descartó un registro en el servidor: avisaría después, en un log que nadie mira.
+- **Excepción a «Zod en todo límite (… RPC)»** (`CLAUDE.md` › «Reglas»): `p_filtros` no pasa por Zod en TS. Se descarta el `esquemaDeCondiciones` del esbozo del 2a (`.piloto/planes/4.16-2.md:46-47`): las condiciones las arma
+  `condicionesDe()` desde un esquema ya validado, la base las valida enteras y, si las rechaza, se lee lo de hoy. El pedido (`origenId`, `tamano`, cursor) y las filas sí pasan por Zod (`inventario.ts`).
+- **E4 prueba que la pantalla usa la función.** `e2e/vehiculos-propios.spec.ts` mide con `pg_stat_statements` (sirve porque `workers: 1`): con Pía crecen las llamadas a `vehiculos_inventario` y **no** las lecturas de la
+  tabla (`select "public"."vehiculos"."id"`) en la página sin filtros, en la búsqueda y en la limpieza (sí y no). Con la dueña pasa lo contrario, y eso prueba que el patrón de la tabla ve su lectura. Sólo con que crezca la
+  función no bastaría: la vuelta de arriba también la llama antes de leer la tabla.
+- **Quién lee por PostgREST:** la dueña y quien ve «todos». El título de `scripts/guardas/paginas.test.ts:195` («el listado y el inventario se leen por PostgREST») no se toca: su aserción (`max_rows` ≥ 101) sigue valiendo para ellos.
+- **«Sin assert, 4-23» de `medir-vehiculos-lectura.sql:298-302` queda.** Mide a la chica por la tabla, que la pantalla ya no usa para ella; su assert por la función está en `medir-vehiculos-inventario.sql`. Cambiar el texto obligaba a
+  `db:medir:volumen` en un paso sin base.
+- **Una guarda tocada:** la entrada de `vehiculos_inventario` en `scripts/guardas/paginas-en-la-base.ts` (`pideElCodigo` = `MAXIMO_DE_PAGINA_DE_VEHICULOS`, el defecto de la base, 100). Sin ella cae `paginas.test.ts`.

@@ -1,9 +1,12 @@
 import type { FormatoDeXCell } from '@/shared/ui/xcell'
 import type { Entradas, IndiceDeHoja } from './entradas'
 import type { CeldaDeHoja, ItemDeHoja, MotivoDeCandado, NodoDeTarjeta, SeccionDeHoja } from './hoja'
-import type { CodigoDeFaltante, Estado } from './motor-contexto'
+import type { Estado } from './motor-contexto'
 import type { Formato } from './nodos'
 import type { RespuestaDeRecalculo } from './recalculo'
+import { textoDelFaltante } from './textos-de-faltantes'
+
+export { SE_ELIGE_EN_EL_PANEL, textoDelFaltante } from './textos-de-faltantes'
 
 // El binding de la hoja con la XCell (`docs/COTIZADOR.md` › «Binding con la XCell»): de la lectura que abrió la hoja, lo que la persona tipeó y la última respuesta del
 // recálculo, las props primitivas de cada celda. Puro: la celda no calcula nada y la hoja sólo traduce. **Los textos son de este archivo y nunca el mensaje de la base**:
@@ -13,6 +16,8 @@ export type ContextoDeHoja = {
   entradas: Entradas
   // Nula mientras no hay una respuesta (la inicial falló, o la variante espera su elección).
   respuesta: RespuestaDeRecalculo | null
+  // Los campos del vehículo que quien mira elige en el panel del vehículo (4.14-2c3): la celda sin valor por uno de ellos dice dónde se elige.
+  seEligen?: ReadonlySet<string>
 }
 
 export type PropsDeCelda = {
@@ -83,30 +88,11 @@ export function textoDelEstado(
 
 export const FALTA_UN_DATO = 'Falta un dato para calcular esto.'
 
-export function textoDelFaltante(codigo: CodigoDeFaltante): string {
-  switch (codigo) {
-    case 'fuera_de_rango':
-      return 'El valor está fuera de rango.'
-    case 'requerido_sin_valor':
-      return 'Este dato es obligatorio.'
-    case 'campo_sin_valor':
-      return 'Falta un dato del vehículo.'
-    case 'tabla_sin_filas':
-      return 'La tabla de referencia no tiene filas.'
-    case 'fila_sin_coincidencia':
-      return 'La tabla no tiene un valor para este caso: escríbelo.'
-    case 'celda_sin_valor':
-      return 'A la tabla le falta un valor.'
-    case 'division_por_cero':
-      return 'Se divide por cero.'
-    case 'tipo_de_cambio_sin_valor':
-      return 'Falta el tipo de cambio.'
-    default: {
-      const _: never = codigo
-      return _
-    }
-  }
-}
+// Un faltante por el dato del vehículo (sin valor, o que la tabla no tiene) de una celda cuyo dato se elige en el panel dice dónde se elige.
+const seEligeEnElPanel = (celda: CeldaDeHoja, c: ContextoDeHoja): boolean =>
+  c.seEligen !== undefined &&
+  celda.datoDelVehiculo !== null &&
+  celda.datoDelVehiculo.columnas.some(({ campo }) => c.seEligen?.has(campo) === true)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Qué se dibuja
@@ -190,7 +176,7 @@ function errorDe(
       (principal && f.donde === celda.nodo) || (secundario && f.donde === celda.secundario?.nodo),
   )
   if (propio) {
-    return textoDelFaltante(propio.codigo)
+    return textoDelFaltante(propio.codigo, seEligeEnElPanel(celda, c))
   }
   return principal && value === null ? FALTA_UN_DATO : undefined
 }

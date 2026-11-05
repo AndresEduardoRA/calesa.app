@@ -1,0 +1,141 @@
+import { describe, expect, it } from 'vitest'
+import {
+  COLUMNAS_DEL_PANEL,
+  columnasDelPanel,
+  desdeDelCierre,
+  elegidoDesde,
+  instanteDelPanel,
+  listaDelPanel,
+  LISTAS_DEL_PANEL,
+  MARGEN_DEL_CIERRE_EN_HORAS,
+  ORDEN_DEL_PANEL,
+  referenciaDelVehiculo,
+  vehiculosDelPanelDesde,
+} from './panel-para-cotizar'
+import type { Vehiculo } from './vehiculo'
+
+const ID = '00000000-0000-4000-8000-000000000001'
+const fila = (cambios: Record<string, unknown> = {}) => ({
+  id: ID,
+  numero: 7,
+  titulo: 'Toyota Corolla 2020',
+  anio: 2020,
+  lote: '4455',
+  precio: 12000,
+  creado_en: '2026-10-01T08:00:00.5+00:00',
+  cotizado_en: '2026-10-29T08:00:00.123456+00:00',
+  cierre_subasta_en: null,
+  vehiculos_imagenes: [{ ruta_miniatura: 'v/abc.webp' }],
+  ...cambios,
+})
+
+describe('el margen de «Cierre subasta»', () => {
+  it('son 24 horas antes de ahora, en ISO', () => {
+    expect(MARGEN_DEL_CIERRE_EN_HORAS).toBe(24)
+    expect(desdeDelCierre(new Date('2026-10-29T12:00:00.000Z'))).toBe('2026-10-28T12:00:00.000Z')
+  })
+})
+
+describe('listaDelPanel', () => {
+  it('«Cierre subasta» sólo en un origen de subasta; lo demás es «Últ. cotización»', () => {
+    expect(listaDelPanel('cierre', true)).toBe('cierre')
+    expect(listaDelPanel('cierre', false)).toBe('ultima')
+    expect(listaDelPanel('ultima', true)).toBe('ultima')
+    expect(listaDelPanel(null, true)).toBe('ultima')
+    expect(listaDelPanel('otra', true)).toBe('ultima')
+  })
+
+  it('cada lista camina su columna: lo cotizado de lo más nuevo, el cierre de lo más próximo', () => {
+    expect(ORDEN_DEL_PANEL.ultima).toEqual({ columna: 'cotizado_en', ascendente: false })
+    expect(ORDEN_DEL_PANEL.cierre).toEqual({ columna: 'cierre_subasta_en', ascendente: true })
+    expect(COLUMNAS_DEL_PANEL).toContain('cotizado_en')
+    expect(COLUMNAS_DEL_PANEL).toContain('cierre_subasta_en')
+  })
+
+  it('la búsqueda camina por alta y no es una pestaña', () => {
+    expect(ORDEN_DEL_PANEL.busqueda).toEqual({ columna: 'creado_en', ascendente: false })
+    expect(COLUMNAS_DEL_PANEL).not.toContain('creado_en')
+    expect(columnasDelPanel('busqueda')).toContain('creado_en')
+    expect(columnasDelPanel('ultima')).toBe(COLUMNAS_DEL_PANEL)
+    expect(columnasDelPanel('cierre')).toBe(COLUMNAS_DEL_PANEL)
+    expect(LISTAS_DEL_PANEL).not.toContain('busqueda')
+    expect(listaDelPanel('busqueda', true)).toBe('ultima')
+  })
+})
+
+describe('vehiculosDelPanelDesde', () => {
+  it('mapea la fila y toma la miniatura de la portada', () => {
+    expect(vehiculosDelPanelDesde([fila()], 'ultima')).toEqual([
+      {
+        id: ID,
+        numero: 7,
+        titulo: 'Toyota Corolla 2020',
+        anio: 2020,
+        lote: '4455',
+        precio: 12000,
+        creadoEn: '2026-10-01T08:00:00.5+00:00',
+        cotizadoEn: '2026-10-29T08:00:00.123456+00:00',
+        cierreSubastaEn: null,
+        portadaRuta: 'v/abc.webp',
+      },
+    ])
+    expect(
+      vehiculosDelPanelDesde([fila({ vehiculos_imagenes: [] })], 'ultima')?.[0]?.portadaRuta,
+    ).toBeNull()
+  })
+
+  it('una fila de la búsqueda sin `creado_en` hace de la lectura un error; las pestañas no lo piden', () => {
+    expect(vehiculosDelPanelDesde([fila({ creado_en: undefined })], 'busqueda')).toBeNull()
+    expect(
+      vehiculosDelPanelDesde([fila({ creado_en: undefined })], 'ultima')?.[0]?.creadoEn,
+    ).toBeNull()
+  })
+
+  it('una fila sin el instante de su lista hace de la lectura un error', () => {
+    expect(vehiculosDelPanelDesde([fila()], 'cierre')).toBeNull()
+    expect(vehiculosDelPanelDesde([fila({ cotizado_en: null })], 'ultima')).toBeNull()
+    expect(vehiculosDelPanelDesde([], 'cierre')).toEqual([])
+  })
+
+  it('una fila que no es un vehículo no pasa', () => {
+    expect(() => vehiculosDelPanelDesde([{ id: 'no' }], 'ultima')).toThrow()
+  })
+
+  it('instanteDelPanel da la columna de cada lista', () => {
+    const [vehiculo] =
+      vehiculosDelPanelDesde(
+        [fila({ cierre_subasta_en: '2026-10-30T10:00:00+00:00' })],
+        'cierre',
+      ) ?? []
+    expect(vehiculo && instanteDelPanel('ultima', vehiculo)).toBe(
+      '2026-10-29T08:00:00.123456+00:00',
+    )
+    expect(vehiculo && instanteDelPanel('cierre', vehiculo)).toBe('2026-10-30T10:00:00+00:00')
+    expect(vehiculo && instanteDelPanel('busqueda', vehiculo)).toBe('2026-10-01T08:00:00.5+00:00')
+  })
+})
+
+describe('el vehículo elegido', () => {
+  it('lleva sólo lo que dibujan la barra y el panel', () => {
+    const vehiculo = {
+      id: ID,
+      numero: 7,
+      titulo: 'Toyota',
+      lote: null,
+      portadaRuta: null,
+      atributos: { color: 'rojo' },
+    } as unknown as Vehiculo
+    expect(elegidoDesde(vehiculo)).toEqual({
+      id: ID,
+      numero: 7,
+      titulo: 'Toyota',
+      lote: null,
+      portadaRuta: null,
+    })
+  })
+
+  it('su referencia es el número y, si tiene, el lote', () => {
+    expect(referenciaDelVehiculo({ numero: 7, lote: '4455' })).toBe('#7 · Lote 4455')
+    expect(referenciaDelVehiculo({ numero: 7, lote: null })).toBe('#7')
+  })
+})

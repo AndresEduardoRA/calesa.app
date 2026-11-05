@@ -213,6 +213,65 @@ describe('verificar-al-terminar.sh › con el árbol limpio (un paso cerrado)', 
   })
 })
 
+describe('verificar-al-terminar.sh › un paso del piloto con el árbol limpio', () => {
+  it('sólo typecheck y mapa: la suite, el lint y los e2e son del CI de la rama', () => {
+    const r = stop({}, { PILOTO: '1', PILOTO_SESION: 'paso' })
+    expect(r.estado, r.stderr).toBe(0)
+    expect(llamadas()).toEqual(['mapa', 'pnpm typecheck', 'mapa --check'])
+    expect(existsSync(huellaGuardada())).toBe(true)
+  })
+})
+
+// Si la sesión no escribió en este árbol, lo que haya sucio es de otra (un paso del piloto, otra sesión): no se verifica.
+describe('verificar-al-terminar.sh › una sesión que no escribió en el árbol', () => {
+  type Uso = { name: string; input: Record<string, unknown> }
+  const transcript = (usos: Uso[]) => {
+    const ruta = join(raiz, 'sesion.jsonl')
+    writeFileSync(
+      ruta,
+      usos
+        .map((u) =>
+          JSON.stringify({
+            type: 'assistant',
+            message: { content: [{ type: 'tool_use', id: 'x', ...u }] },
+          }),
+        )
+        .join('\n') + '\n',
+    )
+    return ruta
+  }
+  const bash = (command: string): Uso => ({ name: 'Bash', input: { command } })
+
+  const dentro = { name: 'Edit', input: { file_path: '/RAIZ/src/a.ts' } }
+  const casos: [string, Uso[], boolean][] = [
+    [
+      'sólo leyó',
+      [{ name: 'Read', input: { file_path: '/RAIZ/src/a.ts' } }, bash('git status')],
+      false,
+    ],
+    ['editó un archivo del árbol', [dentro], true],
+    [
+      'editó un archivo de otro árbol',
+      [{ name: 'Write', input: { file_path: '/tmp/otro/a.ts' } }],
+      false,
+    ],
+    ['un cp aquí', [bash('cp a.ts src/b.ts')], true],
+    ['una redirección aquí', [bash('echo x > src/a.ts')], true],
+    ['un git commit aquí', [bash('git commit -q -m x')], true],
+    [
+      'un Bash que escribe tras cd a otro árbol',
+      [bash('cd /tmp/otro && cp a.ts b.ts && git add -A')],
+      false,
+    ],
+  ]
+  it.each(casos)('%s', (_nombre, usos, verifica) => {
+    ensuciar()
+    const crudo = JSON.stringify(usos).replaceAll('/RAIZ', repo)
+    stop({ transcript_path: transcript(JSON.parse(crudo) as Uso[]) })
+    expect(llamadas().includes('pnpm typecheck')).toBe(verifica)
+  })
+})
+
 describe('verificar-al-terminar.sh › el tope de 3 intentos', () => {
   beforeEach(ensuciar)
 

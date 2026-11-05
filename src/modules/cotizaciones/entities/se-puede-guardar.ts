@@ -7,12 +7,14 @@ import type { EstadoDeRecalculo } from './recalculo'
 export function motivoParaNoGuardar(h: {
   estado: EstadoDeRecalculo
   leadId: string | null
+  // La hoja nueva pide el cliente; una cotización guardada ya lo tiene (o nunca lo tuvo) y guardar no lo cambia (4.15-3). Por defecto, sí.
+  exigeLead?: boolean
   faltaVehiculo: boolean
   total: TotalDelResumen
   // El último recálculo descartó un valor que la persona escribió: la base lo rechaza siempre.
   descartoLoTipeado: boolean
 }): string | null {
-  if (h.leadId === null) {
+  if (h.leadId === null && h.exigeLead !== false) {
     return FALTA_EL_LEAD
   }
   if (h.faltaVehiculo) {

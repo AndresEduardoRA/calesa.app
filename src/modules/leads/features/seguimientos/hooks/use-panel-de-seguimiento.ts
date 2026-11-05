@@ -2,6 +2,7 @@
 
 import { parseAsString, useQueryStates } from 'nuqs'
 import { CLAVE_DE_PANEL } from '@/shared/lib/filtros'
+import { abrirConVuelta, useVueltaDelFoco } from '@/shared/ui/vuelta-del-foco'
 import { CLAVE_PARA } from '../../../entities/acciones-de-fila'
 import {
   CLAVE_DE_SEGUIMIENTO,
@@ -17,25 +18,39 @@ const PARAMETROS = {
 
 // «Anotar seguimiento» (`?panel=anotar-seguimiento`) y «Editar» (`?panel=editar-seguimiento&
 // seguimiento=<id>`) en la URL: recargar los vuelve a abrir. Comparten la clave con los demás
-// paneles: nunca se apilan. Abrir suma al historial («atrás» lo cierra).
+// paneles: nunca se apilan. Abrir suma al historial («atrás» lo cierra; tras recargar, devuelve el foco a quien lo abrió: `vuelta-del-foco.ts`).
 export function usePanelDeSeguimiento() {
   const [parametros, setParametros] = useQueryStates(PARAMETROS)
   // Con `?para=` el panel es del listado (el «⋯» de una fila), no de la ficha ni del drawer.
   const panel = parametros[CLAVE_PARA] === null ? parametros[CLAVE_DE_PANEL] : null
+  const anotando = panel === PANEL_ANOTAR_SEGUIMIENTO
+  const editando =
+    panel === PANEL_EDITAR_SEGUIMIENTO ? (parametros[CLAVE_DE_SEGUIMIENTO] ?? '') : null
+  useVueltaDelFoco(CLAVE_DE_PANEL, anotando || editando !== null)
   return {
-    anotando: panel === PANEL_ANOTAR_SEGUIMIENTO,
+    anotando,
     // El id tal como vino en la URL: puede no ser de nadie.
-    editando: panel === PANEL_EDITAR_SEGUIMIENTO ? (parametros[CLAVE_DE_SEGUIMIENTO] ?? '') : null,
+    editando,
     abrirAnotar: () => {
-      void setParametros(
-        { [CLAVE_DE_PANEL]: PANEL_ANOTAR_SEGUIMIENTO, [CLAVE_DE_SEGUIMIENTO]: null },
-        { history: 'push' },
+      abrirConVuelta(
+        CLAVE_DE_PANEL,
+        () =>
+          setParametros(
+            { [CLAVE_DE_PANEL]: PANEL_ANOTAR_SEGUIMIENTO, [CLAVE_DE_SEGUIMIENTO]: null },
+            { history: 'push' },
+          ),
+        anotando,
       )
     },
     abrirEdicion: (id: string) => {
-      void setParametros(
-        { [CLAVE_DE_PANEL]: PANEL_EDITAR_SEGUIMIENTO, [CLAVE_DE_SEGUIMIENTO]: id },
-        { history: 'push' },
+      abrirConVuelta(
+        CLAVE_DE_PANEL,
+        () =>
+          setParametros(
+            { [CLAVE_DE_PANEL]: PANEL_EDITAR_SEGUIMIENTO, [CLAVE_DE_SEGUIMIENTO]: id },
+            { history: 'push' },
+          ),
+        editando === id,
       )
     },
     cerrar: () => {

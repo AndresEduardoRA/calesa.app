@@ -18,6 +18,7 @@ import {
   type ValorDeFiltro,
   type ValoresDeFiltros,
 } from '@/shared/lib/filtros'
+import { abrirConVuelta, useVueltaDelFoco } from '@/shared/ui/vuelta-del-foco'
 
 const DEMORA_AL_TIPEAR_MS = 300
 
@@ -54,6 +55,8 @@ export function useFiltros(esquema: EsquemaDeFiltros): Filtros {
   const [pendiente, startTransition] = useTransition()
   const [parametros, setParametros] = useQueryStates(parsers, { shallow: false, startTransition })
   const valores = leerFiltros(esquema, parametros)
+  const panelAbierto = parametros[CLAVE_DE_PANEL] === PANEL_DE_FILTROS
+  useVueltaDelFoco(CLAVE_DE_PANEL, panelAbierto)
   // Lo último que se le pidió a la URL con la búsqueda: no es lo que la URL tiene (la escritura va detrás) sino lo que la persona dejó escrito.
   const ultimaBusqueda = useRef(valores.busqueda)
 
@@ -98,10 +101,15 @@ export function useFiltros(esquema: EsquemaDeFiltros): Filtros {
     aplicarPorPagina: (tamano) => {
       aplicar({ [CLAVE_DE_POR_PAGINA]: String(tamano) })
     },
-    panelAbierto: parametros[CLAVE_DE_PANEL] === PANEL_DE_FILTROS,
-    // Abrir un panel suma al historial: «atrás» lo cierra.
+    panelAbierto,
+    // Abrir un panel suma al historial: «atrás» lo cierra (y, tras recargar, devuelve el foco a «Filtros»).
     abrirPanel: () => {
-      void setParametros({ [CLAVE_DE_PANEL]: PANEL_DE_FILTROS }, { history: 'push', shallow: true })
+      abrirConVuelta(
+        CLAVE_DE_PANEL,
+        () =>
+          setParametros({ [CLAVE_DE_PANEL]: PANEL_DE_FILTROS }, { history: 'push', shallow: true }),
+        panelAbierto,
+      )
     },
     // Cerrar no cambia lo que se lista: alcanza con tocar la URL. Salvo que la lista todavía se
     // esté pidiendo con un filtro recién elegido: un cambio sólo de URL pisa esa navegación (la URL

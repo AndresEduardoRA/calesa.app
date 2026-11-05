@@ -2,24 +2,34 @@ import { z } from 'zod'
 import type { Entradas, IndiceDeHoja } from './entradas'
 
 // El borrador de la hoja (4-29): lo que la persona tipeó y no guardó, en la pestaña (`useBorradorDeEstado`), para que una recarga, «Recargar» o «Usar la versión nueva» lo
-// repongan. **Sólo lo tipeado**: las cinco claves de `Entradas`, en arreglos de pares (nunca un objeto con ids por clave: un id como «__proto__» es legal). Ni la respuesta
+// repongan. **Sólo lo tipeado**: las seis claves de `Entradas` y «Ver total Bs», en arreglos de pares (nunca un objeto con ids por clave: un id como «__proto__» es legal). Ni la respuesta
 // de la base ni la hoja abierta.
 export type BorradorDeHoja = {
   inputs: [string, number][]
   banderas: string[]
   overrides: [string, number][]
   variante: string | null
+  modoTc: string | null
   atajos: [string, number][]
+  // «Ver total Bs»: no es una entrada (no cambia el cálculo) pero sí un dato que se guarda, y vuelve con lo tipeado.
+  verTotalBs: boolean
 }
 
-export function entradasComoBorrador(e: Entradas): BorradorDeHoja {
+export function entradasComoBorrador(e: Entradas, verTotalBs = false): BorradorDeHoja {
   return {
     inputs: [...e.inputs],
     banderas: [...e.banderas],
     overrides: [...e.overrides],
     variante: e.variante,
+    modoTc: e.modoTc,
     atajos: [...e.atajos],
+    verTotalBs,
   }
+}
+
+// «Ver total Bs» vuelve sólo si la hoja de ahora todavía lo ofrece; un borrador de antes, sin la clave, vuelve apagado.
+export function verTotalBsDelBorrador(b: Readonly<Record<string, unknown>>, ofrece: boolean) {
+  return ofrece && b['verTotalBs'] === true
 }
 
 const pares = z.array(z.tuple([z.string(), z.number()])).catch([])
@@ -28,6 +38,7 @@ const esquema = z.object({
   banderas: z.array(z.string()).catch([]),
   overrides: pares,
   variante: z.string().nullable().catch(null),
+  modoTc: z.string().nullable().catch(null),
   atajos: pares,
 })
 
@@ -42,6 +53,7 @@ export function entradasDelBorrador(
     banderas: [],
     overrides: [],
     variante: null,
+    modoTc: null,
     atajos: [],
     ...b,
   })
@@ -53,6 +65,9 @@ export function entradasDelBorrador(
     overrides: deLaHoja(leido.overrides),
     variante:
       leido.variante !== null && indice.opciones.has(leido.variante) ? leido.variante : null,
+    // Un modo que la hoja de ahora no declara (u otro borrador, sin la clave) vuelve como el inicial.
+    modoTc:
+      leido.modoTc !== null && indice.modos.has(leido.modoTc) ? leido.modoTc : indice.modoInicial,
     atajos: deLaHoja(leido.atajos),
   }
 }

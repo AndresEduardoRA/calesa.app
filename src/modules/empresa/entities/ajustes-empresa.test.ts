@@ -25,6 +25,7 @@ const fila: Tables<'ajustes_empresa'> = {
   papelera_dias: 30,
   actividad_dias: 14,
   demora_dias_default: 7,
+  vigencia_dias: 7,
   lead_dormido_meses: 3,
   limpieza_automatica: true,
   limpieza_dias_gracia: 7,

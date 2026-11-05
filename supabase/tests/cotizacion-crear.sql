@@ -103,16 +103,24 @@ begin
   return jsonb_build_object('o', o, 'f', f, 'l', l, 'v', v, 'a', a, 'k', k, 'kv', kv, 'ke', ke, 'sl', sl, 'sv', sv, 'sc', sc, 'fg', fg);
 end $f$;
 
--- Una llamada a cotizacion_crear con esos argumentos (el id del intento y el modo, opcionales). La hoja abierta va como marcador y `cc_corre` la firma para quien llama: por omisión «se abrió»
+-- Una llamada a cotizacion_crear con esos argumentos (el id del intento, el modo y «Ver total Bs» —`p_ver`, en texto para poder mandar nulo—, opcionales). La hoja abierta va como marcador y `cc_corre` la firma para quien llama: por omisión «se abrió»
 -- ahora sobre la versión publicada del origen (D2): ni la fórmula ni los tipos de cambio cambiaron desde entonces. `p_raw` pone en su lugar un texto cualquiera (una firma rota, basura).
 create or replace function pg_temp.cc_sql(p_id uuid, p_o uuid, p_l uuid, p_entradas text, p_v uuid default null, p_nuevo text default null, p_modo text default null, p_clase text default 'preventa',
-                                         p_abierta uuid default null, p_abierta_en timestamptz default null, p_con_la_abierta boolean default false, p_raw text default 'marcador')
+                                         p_abierta uuid default null, p_abierta_en timestamptz default null, p_con_la_abierta boolean default false, p_raw text default 'marcador',
+                                         p_ver text default 'false')
 returns text language sql as $f$
-  select format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L, %L::jsonb, %L, %L::public.clase_cotizacion, %L)', p_id, p_o, p_l, p_entradas,
+  select format('select public.cotizacion_crear(%L, %L, %L, %L::jsonb, %L, %L, %L::jsonb, %L, %L::public.clase_cotizacion, %L, %L::boolean)', p_id, p_o, p_l, p_entradas,
                 case when p_raw = 'marcador' then '@@abierta|' || p_o || '|' || coalesce(p_abierta, (select f.id from public.formulas f where f.origen_id = p_o and f.estado = 'publicada')) || '|'
                                                   || round(extract(epoch from coalesce(p_abierta_en, now())) * 1000000)::bigint || '@@' else p_raw end,
-                p_v, p_nuevo, p_modo, p_clase, p_con_la_abierta)
+                p_v, p_nuevo, p_modo, p_clase, p_con_la_abierta, p_ver)
 $f$;
+
+-- Pone en el diseño de esa versión lo que ofrece la cabecera: «Ver total Bs» (`ofrece` en texto: 'true', 'false' o nulo para sacar la clave).
+create or replace function pg_temp.cc_ofrece_ver_total_bs(p_f uuid, p_ofrece text) returns void language plpgsql as $f$
+begin
+  update public.formulas set diseno = case when p_ofrece is null then '{}'::jsonb
+                                           else jsonb_build_object('cabecera', jsonb_build_object('ver_total_bs', p_ofrece::boolean)) end where id = p_f;
+end $f$;
 
 -- @test cotizacion_crear: calcula en la base, guarda el snapshot entero (los nodos que no se ven, con su valor de la fórmula) y devuelve sólo lo que se ve
 begin;
@@ -637,5 +645,82 @@ begin
   delete from public.tipos_cambio_historial where tipo_cambio_id = v_id_oficial;
   r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta_en => v_abierta));
   if r ->> 'hint' is distinct from 'tipo_cambio' then raise exception 'una tarifa sin historial a esa hora debía contar como cambiada: %', r; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_crear: «Ver total Bs» se guarda si el diseño de la versión lo ofrece, nace en falso, viaja en la respuesta y en cotizacion_leer; nulo o no ofrecido es 22023 sin escribir; el ayudante no lo ejecuta authenticated
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cc_preparar(); r jsonb; r_leer jsonb; c public.cotizaciones; n int; id_r uuid := gen_random_uuid();
+  o uuid := (t ->> 'o')::uuid; l uuid := (t ->> 'l')::uuid; v uuid := (t ->> 'v')::uuid; f uuid := (t ->> 'f')::uuid; a uuid := (t ->> 'a')::uuid;
+  e constant text := '{"inputs": {"visible": 100}}';
+begin
+  -- Un diseño que no dice nada (la fórmula de prueba): sin pedirlo, la columna nace en falso y viaja en la respuesta.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v));
+  if r ? 'error' then raise exception 'sin pedir «Ver total Bs» debía guardar: %', r; end if;
+  if not jsonb_path_exists(r, '$.cotizacion.ver_total_bs ? (@ == false)') then raise exception 'la respuesta no trae ver_total_bs en falso: %', r -> 'cotizacion'; end if;
+  select * into c from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid;
+  if c.ver_total_bs is distinct from false then raise exception 'sin pedirlo, ver_total_bs debía nacer en falso: %', c.ver_total_bs; end if;
+  -- Pedirlo cuando la versión no lo ofrece (falso, ausente o sin diseño): 22023 y nada escrito.
+  select count(*) into n from public.cotizaciones where origen_id = o;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_ver => 'true'));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'ver_total_bs_no_ofrecido' or r ->> 'hint' is distinct from 'ver_total_bs' then
+    raise exception 'pedir «Ver total Bs» sin diseño debía dar ver_total_bs_no_ofrecido: %', r;
+  end if;
+  perform pg_temp.cc_ofrece_ver_total_bs(f, 'false');
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_ver => 'true'));
+  if r ->> 'detail' is distinct from 'ver_total_bs_no_ofrecido' then raise exception 'pedir «Ver total Bs» con la clave en falso debía dar ver_total_bs_no_ofrecido: %', r; end if;
+  -- Nulo: falta decirlo.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_ver => null));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'ver_total_bs_falta' or r ->> 'hint' is distinct from 'ver_total_bs' then
+    raise exception 'un «Ver total Bs» nulo debía dar ver_total_bs_falta: %', r;
+  end if;
+  if (select count(*) from public.cotizaciones where origen_id = o) <> n then raise exception 'un rechazo dejó una cotización'; end if;
+
+  -- La versión lo ofrece: se guarda en verdadero, viaja en la respuesta y en cotizacion_leer, y apagarlo también vale.
+  perform pg_temp.cc_ofrece_ver_total_bs(f, 'true');
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_ver => 'true'));
+  if r ? 'error' then raise exception 'pedir «Ver total Bs» con la versión que lo ofrece debía guardar: %', r; end if;
+  if not jsonb_path_exists(r, '$.cotizacion.ver_total_bs ? (@ == true)') then raise exception 'la respuesta no trae ver_total_bs en verdadero: %', r -> 'cotizacion'; end if;
+  select * into c from public.cotizaciones where id = (r -> 'cotizacion' ->> 'id')::uuid;
+  if c.ver_total_bs is distinct from true then raise exception 'ver_total_bs no se guardó: %', c.ver_total_bs; end if;
+  r_leer := pg_temp.cc_corre(a, format('select public.cotizacion_leer(%L)', c.id));
+  if r_leer ? 'error' or not jsonb_path_exists(r_leer, '$.cotizacion.ver_total_bs ? (@ == true)') then raise exception 'cotizacion_leer no trae ver_total_bs en verdadero: %', r_leer; end if;
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_ver => 'false'));
+  if r ? 'error' or not jsonb_path_exists(r, '$.cotizacion.ver_total_bs ? (@ == false)') then raise exception 'ofrecido y apagado debía guardar en falso: %', r; end if;
+
+  -- El intento repetido vuelve lo guardado sin mirar el valor nuevo.
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(id_r, o, l, e, v, p_ver => 'true'));
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(id_r, o, l, e, v, p_ver => 'false'));
+  if r ->> 'repetido' <> 'true' or (select ver_total_bs from public.cotizaciones where id = id_r) is distinct from true then raise exception 'el intento repetido debía devolver lo guardado: %', r; end if;
+
+  -- El ayudante es de nadie: ni authenticated ni anon lo ejecutan.
+  if has_function_privilege('authenticated', 'public._cotizacion_ver_total_bs(uuid, boolean)', 'execute') or has_function_privilege('anon', 'public._cotizacion_ver_total_bs(uuid, boolean)', 'execute') then
+    raise exception 'el ayudante _cotizacion_ver_total_bs lo ejecuta authenticated o anon';
+  end if;
+  if not has_function_privilege('service_role', 'public._cotizacion_ver_total_bs(uuid, boolean)', 'execute') then raise exception 'el ayudante no lo ejecuta service_role'; end if;
+end $$;
+rollback;
+
+-- @test cotizacion_crear: con «Guardar con la N», «Ver total Bs» vale según la versión abierta, no la publicada
+begin;
+do $$
+declare
+  t jsonb := pg_temp.cc_preparar(); r jsonb; f2 uuid;
+  o uuid := (t ->> 'o')::uuid; l uuid := (t ->> 'l')::uuid; v uuid := (t ->> 'v')::uuid; f1 uuid := (t ->> 'f')::uuid; a uuid := (t ->> 'a')::uuid;
+  e constant text := '{"inputs": {"visible": 100}}';
+begin
+  -- La v1 (la abierta) lo ofrece; la v2 (la publicada) no: con la abierta se guarda en verdadero.
+  perform pg_temp.cc_ofrece_ver_total_bs(f1, 'true');
+  f2 := pg_temp.cc_publicar_v2(o, f1, now());
+  perform pg_temp.cc_ofrece_ver_total_bs(f2, 'false');
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f1, p_con_la_abierta => true, p_ver => 'true'));
+  if r ? 'error' or not jsonb_path_exists(r, '$.cotizacion.ver_total_bs ? (@ == true)') then raise exception 'con la abierta que lo ofrece debía guardar en verdadero: %', r; end if;
+  -- Al revés: la abierta no lo ofrece y la publicada sí → no ofrecido.
+  perform pg_temp.cc_ofrece_ver_total_bs(f1, 'false');
+  perform pg_temp.cc_ofrece_ver_total_bs(f2, 'true');
+  r := pg_temp.cc_corre(a, pg_temp.cc_sql(gen_random_uuid(), o, l, e, v, p_abierta => f1, p_con_la_abierta => true, p_ver => 'true'));
+  if r ->> 'error' is distinct from '22023' or r ->> 'detail' is distinct from 'ver_total_bs_no_ofrecido' then raise exception 'con la abierta que no lo ofrece debía dar ver_total_bs_no_ofrecido: %', r; end if;
 end $$;
 rollback;

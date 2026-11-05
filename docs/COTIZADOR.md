@@ -204,7 +204,8 @@ motor lo ignora; otro nodo con `texto` es `forma`.
   **Publicar no comprueba** que `tipos_cambio` tenga la clave de cada nodo `tipo_cambio`: `cotizacion_evaluar()` lo da como faltante.
 - **Un modo** lo declara el diseño; el elegido se guarda en `cotizaciones.modo_tc`. **El motor lo recibe
   completo**, con la forma de la fórmula: `{ buckets: {bucket: id de nodo tipo_cambio}, total_en }` (`ModoDeCambio` en
-  `entities/formula.ts`). Un modo es otro mapa, no otra cuenta.
+  `entities/formula.ts`). Un modo es otro mapa, no otra cuenta. **Límite (4.13-4b2):** `cabecera.moneda_bs` es la de la versión, no la del modo elegido; un modo cuyo `total_en`
+  tenga otra `moneda_a` escribiría el total en Bs con la de la versión (hoy todos los tipos de cambio son USD → BOB).
 
 ## El diseño de la hoja (D7)
 
@@ -288,7 +289,7 @@ share`, valida fórmula y diseño completo (`_preparar_publicacion()`) y compila
 La lectura de una cotización: lo que quien llama no ve no viaja (`supabase/tests/cotizaciones-visibilidad.sql`).
 
 - **Ninguna lectura directa del snapshot:** `authenticated` y `anon` no leen `cotizaciones.valores|fuentes|totales|tipos_cambio` ni
-  `cotizaciones_revisiones.diff` (grant de columnas; una columna nueva nace sin grant); `total_base`, `modo_tc`, `titulo`… sí.
+  `cotizaciones_revisiones.diff` (grant de columnas; una columna nueva nace sin grant); `total_base`, `modo_tc`, `ver_total_bs`, `titulo`… sí.
   `cotizacion_auditar()` quita esas columnas de `actividad`.
 - **El recorte** (`_cotizacion_contexto`, `_cotizacion_recorte`): `valores`, `estados`, `fuentes`: los nodos de `_nodos_visibles` y
   siempre el total y lo `aparte`. `totales`: `bs`, `usd`, `suma_usd` siempre; un grupo sólo si se ven **todos** sus nodos, y su `bs` sólo
@@ -299,9 +300,9 @@ La lectura de una cotización: lo que quien llama no ve no viaja (`supabase/test
 - **`cotizacion_evaluar`** devuelve lo recortado y **no es un oráculo:** un `input` o `bandera` oculta da el mismo error que uno
   inexistente; un override de un nodo oculto vuelve como `nodo_inexistente`. Quien no configura el origen sólo elige uno de los
   `cabecera.modos` de esa versión.
-- **`cotizacion_revisiones(cotización, antes?, tamaño?)`:** página por cursor, con cada `diff` recortado. **`formula_para_cotizar(
-origen)`** y la lectura de `formulas`: sólo con `cotizaciones.configurar`. **`cotizacion_tabla(clave, cotización | origen)`:** sólo
-  las columnas que leen los nodos que quien llama ve.
+- **`cotizacion_revisiones(cotización, antes?, tamaño?)`:** página por cursor, con cada `diff` recortado; cada fila con su `autor` (`{id, nombre}`) y la página con las `etiquetas` de los nodos y grupos que nombran sus diffs ya recortados (4.15-2). **`formula_para_cotizar(
+origen)`** y la lectura de `formulas`: sólo con `cotizaciones.configurar`. **`cotizacion_tabla(clave, cotización | origen, abierta?)`:** sólo
+  las columnas que leen los nodos que quien llama ve, de SU versión: la de la cotización, la de la hoja abierta o la publicada (4.13-4c1).
 
 ### Quién escribe una cotización y cómo (4.10-2)
 
@@ -311,7 +312,8 @@ tienen privilegio de escritura y no hay policies de crear ni editar. Escriben, c
 escritura de `cotizaciones_revisiones`), `cotizacion_contadores()` y `cotizacion_auditar()`.
 
 **`cotizacion_crear(id, origen, lead, entradas, abierta, vehículo?, vehículo_nuevo?, modo_tc?, clase = 'preventa', con_la_abierta =
-false)`** calcula en la base sobre la fórmula publicada del origen y devuelve `{cotizacion, valores, fuentes, totales, tipos_cambio,
+false, ver_total_bs = false)`** calcula en la base sobre la fórmula publicada del origen y devuelve `{cotizacion, valores, fuentes, totales,
+tipos_cambio,
 repetido}`, recortado por `_cotizacion_respuesta()` (el recorte de `cotizacion_leer()`). En este orden:
 
 1. `cotizaciones.crear` **del origen de la cotización** antes de mirar nada; con una final, además `cotizaciones.final.gestionar`.
@@ -322,7 +324,9 @@ repetido}`, recortado por `_cotizacion_respuesta()` (el recorte de `cotizacion_l
 4. **El vehículo:** obligatorio si `ajustes_empresa.vehiculo_obligatorio_al_cotizar` (sí por defecto) y siempre en una final. «Cargar a
    mano» (`p_vehiculo_nuevo`) llama a `vehiculo_crear()` en la misma transacción. Uno que quien llama no ve: 42501.
 5. **La fórmula** publicada, `for share` (publicar espera a las altas en curso; si publicaron, se relee: tres vueltas y PT409).
-6. **El modo** (`p_modo_tc`): nulo o la `clave` de un modo de esa versión (`modo_invalido`).
+6. **El modo** (`p_modo_tc`): nulo o la `clave` de un modo de esa versión (`modo_invalido`). Y **«Ver total Bs»** (`p_ver_total_bs`,
+   4.13-4b1): `_cotizacion_ver_total_bs()` rechaza (22023) un nulo (`ver_total_bs_falta`) y un verdadero que `diseno.cabecera.ver_total_bs` de la
+   versión que se usa no ofrece (`ver_total_bs_no_ofrecido`); con «Guardar con la N» vale la versión abierta.
 7. **Lo tipeado**, con `_cotizacion_tipeado()` (de nadie; el mismo chequeo que el motor, compartido por evaluar, crear y guardar): un
    valor para un nodo que se ve y no se edita → 42501 `nodo_no_editable`; un override de un nodo oculto o inexistente →
    `nodo_inexistente`; sin variante y sin `por_defecto`, `variante_sin_eleccion`.
@@ -337,16 +341,20 @@ Candados: intento, lead, vehículo, fórmula. **D2** vive en `cotizacion_crear()
 
 ### Cómo se guarda (4.10-3)
 
-**`cotizacion_guardar(id, intento, actualizado_en_esperado, entradas, modo_tc, titulo, notas, vehículo)`** es la única edición: calcula en
+**`cotizacion_guardar(id, intento, actualizado_en_esperado, entradas, modo_tc, titulo, notas, vehículo, ver_total_bs)`** es la única
+edición: calcula en
 la base con SU versión de la fórmula (nunca la publicada de hoy) y SUS tipos de cambio congelados, conserva lo que quien guarda no ve ni
-edita, y devuelve lo mismo que crear. Recibe el **estado entero de lo que la persona edita** (`modo_tc`, `titulo`, `notas` y `vehículo`
-sin valor por omisión: nulo es un valor); lo que no manda en `entradas` queda sin tipear (↺). Se edita `modo_tc` (clave de un modo de
-SU versión, o nulo), `titulo` (hasta 120), `notas` (hasta 2.000) y `vehiculo_id` (poner o **cambiar**, no se quita, **una final no lo
+edita, y devuelve lo mismo que crear. Recibe el **estado entero de lo que la persona edita** (`modo_tc`, `titulo`, `notas`, `vehículo` y
+`ver_total_bs`
+sin valor por omisión: nulo es un valor, salvo en `ver_total_bs`, donde nulo es `ver_total_bs_falta`); lo que no manda en `entradas` queda
+sin tipear (↺). Se edita `modo_tc` (clave de un modo de
+SU versión, o nulo), `ver_total_bs` (verdadero sólo si el diseño de SU versión lo ofrece; también en una final), `titulo` (hasta 120),
+`notas` (hasta 2.000) y `vehiculo_id` (poner o **cambiar**, no se quita, **una final no lo
 cambia**). No se editan `tipos_cambio` (se congelan al crear), `clase`, `lead_id`, `plantilla_id` ni `moneda_mostrar`.
 
-**En este orden** (cada error igual para lo que no existe y para lo que no se ve): (1) **permiso:** una preventa pide
-`cotizaciones.editar` (`puede_cotizacion`); una **final**, además, `cotizaciones.final.gestionar`; inexistente, en la papelera o no
-vista: 42501; (2) candados, **intento**, **versión** y validación de título, notas, vehículo y modo; (3) **ARMAR con SU versión**
+**En este orden** (cada error igual para lo que no existe y para lo que no se ve): (1) **permiso** (`_cotizacion_puede_guardar()`, antes y
+después del candado): una preventa pide `cotizaciones.ver` **y** `cotizaciones.editar` (`puede_cotizacion`, por su alcance); una **final**, `cotizaciones.ver` y
+`cotizaciones.final.gestionar` del origen; inexistente, en la papelera o no vista: 42501, antes del vehículo, del candado, del intento y de la versión (4.15-1); (2) candados, **intento**, **versión** y validación de título, notas, vehículo y modo; (3) **ARMAR con SU versión**
 (`_cotizacion_armar`), `_cotizacion_tipeado()` y `_cotizacion_conservar()`; (4) `evaluar_formula()` y `_cotizacion_guardable()`: un
 override **mandado** que el motor descarta, o un total sin valor o que no cabe, se rechaza (22023); (5) si nada cambió, no escribe.
 
@@ -361,7 +369,9 @@ PT409**; el mismo intento con otros datos u otra persona es 22023 `intento_reusa
 
 **La versión.** `cotizaciones.actualizado_en` la sella `cotizacion_version()` y **no se mueve con los contadores de favoritos y
 reportes**. Vieja: `_conflicto_de_edicion()` (PT409 diciendo quién y cuándo). La revisión (`cotizacion_revision()`) guarda **sólo los
-nodos que cambiaron** (`{de, a}`).
+nodos que cambiaron** (`{de, a}`) en `valores` y `fuentes`, y en `totales` **sólo las claves que cambiaron**, con cada grupo de `grupos` entero si
+cambió (4.15-1). Al leerla, `_cotizacion_diff_recortado()` recorta los dos lados y saca el grupo que quedó igual y un `grupos` vacío: un grupo
+visible cuyo único cambio es su Bs oculto, o un grupo oculto que se movió, no se delata.
 
 **D2, «desactualizada», en el alta.** Aplica a guardar una cotización **nueva** (editar una vieja no avisa): vive en
 `cotizacion_crear()`, que recibe la hoja abierta (`p_abierta`: «La hoja abierta (4.13-3a)»). Si la versión publicada de hoy es otra (se compara **por id**) o
@@ -378,11 +388,22 @@ vuelve antes que D2.
 **`cotizacion_hoja(origen)`** es UNA lectura al abrir la pantalla de cotizar: el diseño publicado **recortado al nivel de quien mira** y
 lo que la hoja necesita para dibujarse. No lee `cotizaciones` ni el snapshot. **Orden:** `assert_permiso('cotizaciones.crear', origen)` **antes de mirar nada**; sin versión publicada, `{estado:
 'sin_publicar', origen, puede_configurar}`; con ella, `{estado: 'lista', formula: {id, version}, abierta_en, abierta,
-vehiculo_obligatorio, cabecera, secciones, tarjeta_total, tonos}`.
+vehiculo_obligatorio, cabecera, secciones, tarjeta_total, tonos}`. La `cabecera` es `{modos, ver_total_bs, moneda_bs}`.
+
+- **`cabecera.moneda_bs` (4.13-4b2):** la `moneda_a` del tipo de cambio **activo** que nombra el `total_en` de esa versión (una fila por `tipos_cambio_clave_key`); JSON `null`, con la clave
+  presente, si la versión no tiene `total_en` o ese tipo de cambio no existe o está inactivo. Viaja a todos, sin recorte por nivel (el total en Bs ya viaja siempre y `authenticated` lee
+  `tipos_cambio`), y nunca el id ni la clave del nodo o del tipo de cambio. **Nula no quiere decir sin Bs:** el motor calcula el Bs con el tipo de cambio de cada bucket y usa `total_en`
+  sólo para dividir y sacar los dólares (`oficina` no tiene `total_en` y su `totales.bs` sí tiene valor); la hoja, con ese hueco (P6, 4.13-4b3), no dibuja «Ver total Bs» y guarda `ver_total_bs` en falso.
 
 - Un ítem viaja si su nodo es visible (su `pct`, en un par); una sección, si le queda algún ítem. **Nunca viaja:** `de`, `texto`,
-  `match`, `sobre`, `sugerido_de`, `descripcion`, los grupos, ni los `buckets` y `total_en` de un modo.
-- **Una celda** lleva `nodo`, `etiqueta`, `tipo_nodo`, `formato`, `ancho`, `tono`, `editable`, `motivo`, `ajustes`, `ayuda`, `solo_en` y
+  `match` (salvo `dato_del_vehiculo`, abajo), `sobre`, `sugerido_de`, `descripcion`, los grupos, ni los `buckets` y `total_en` de un modo.
+- **`dato_del_vehiculo` (4.14-2c2):** la celda de un nodo `tabla` que se ve lleva `{tabla, columnas: [{columna, campo}]}`, qué columna de su tabla casa con qué dato del vehículo,
+  si alguna entrada de su `match` lo nombra; si no, no trae la clave. Cuenta una entrada cuyo valor **no es el id de ningún nodo** (aunque coincida con la clave de un campo: el
+  motor lee el nodo) y es `anio`, `marca`, `modelo`, `kilometraje`, `precio` o un campo **activo** del origen de la hoja; un `campo_vehiculo` no cuenta. La tabla, congelada en la
+  versión o viva y activa (la regla de la ayuda). `columnas` va por `columna` con `collate "C"`. La regla es la misma para todos; lo arma `_hoja_datos_del_vehiculo()` (invoker,
+  de nadie) una vez por lectura. **El contrato son las filas:** `cotizacion_tabla()` con la hoja abierta las da y cada una trae la `columna`; `columnas` puede venir vacío (congelada
+  sin viva activa) y `filas` también (una tabla vacía: el motor da `tabla_sin_filas`, y la pantalla lo dice).
+- **Una celda** lleva `nodo`, `etiqueta`, `tipo_nodo`, `formato`, `ancho`, `tono`, `editable`, `motivo`, `ajustes`, `ayuda`, `dato_del_vehiculo`, `solo_en` y
   `condicion`/`requerido_si` **sólo si su bandera se ve**. **`editable`:** `editar` de `_nodos_visibles()` **y** que el nodo acepte un
   valor. **`motivo`** (lo que no se edita): `se_calcula`, `del_vehiculo`, `nivel` (con el **nombre** del nivel que falta) o
   `no_se_edita`. **`ajustes` (⚙):** una constante con `cotizaciones.configurar` del origen, o un tipo de cambio con
@@ -400,15 +421,52 @@ guardado. Inválida (nula, mal formada, de otra persona u origen, firma mala): 2
   `p_con_la_abierta` la valida y la toma `for share`; con `p_con_la_abierta` el tope de 24 h corre **siempre**.
 - **`cotizacion_evaluar` (por origen):** calcula con **la versión y las tarifas de la abierta**. Si ya no se puede usar,
   `abierta_vencida` y la hoja pide «Recargar» (de otro origen, borrador o inexistente: `abierta_no_disponible`).
-- **Cotizar pide `cotizaciones.crear` y `cotizaciones.ver` del origen** en `cotizacion_hoja`, `cotizacion_evaluar` por origen y
-  `cotizacion_crear`. Pendiente 4-34: `cotizacion_guardar` con `editar` sin `ver`.
+- **`cotizacion_tabla` (por origen, 4.13-4c1):** la tabla de una ayuda sale de **la versión de la abierta** (su definición, su copia congelada y lo
+  que deja ver); los mismos errores que el recálculo y `llamada_invalida` con una cotización. La resuelve `_cotizacion_tabla_version()` (de nadie).
+- **Cotizar pide `cotizaciones.crear` y `cotizaciones.ver` del origen** en `cotizacion_hoja`, `cotizacion_evaluar` y `cotizacion_tabla` por origen y
+  `cotizacion_crear`; guardar (`cotizacion_guardar`) pide `cotizaciones.ver` y `cotizaciones.editar` (4.15-1).
+
+### La hoja de una guardada y cotizar encima (4.15-2)
+
+`cotizacion_hoja_guardada(p_id)` abre una cotización guardada para quien **la ve** (lo que no existe, está en la papelera o no se ve: el 42501 de
+`cotizacion_leer`; antes, `assert_activo()`). Devuelve:
+
+- la fila y el snapshot recortados (`_cotizacion_respuesta`, como `cotizacion_leer`) y el diseño de **SU versión** (`_cotizacion_hoja`, como la hoja nueva);
+- `puede_guardar` = `_cotizacion_puede_guardar()` (el ayudante de guardar): sin él, **ninguna** celda es editable y el motivo no es un nivel
+  (`no_se_edita`); con él, se edita lo que `_nodos_visibles()` deja, como en `cotizacion_guardar`. Quien sólo ve abre el diseño en sólo lectura;
+- `publicada: {id, version}` (la de hoy del origen, o nula), `vence_el` y `vencida`: el día de `creado_en` en la zona de la empresa +
+  `ajustes_empresa.vigencia_dias`, vencida si ese día ya pasó (por día, no por hora);
+- `anterior: {id, numero, version}` si se ve; `encima`, la versión nueva viva: `{id, numero, version}` si se ve, `{"oculta": true}` si no (P11);
+- `puede_cotizar_encima`: `cotizaciones.crear` del origen, ve su lead, ve su vehículo (o no lleva y no es obligatorio), sin versión nueva viva y con publicada.
+
+`cotizacion_encima(p_id, p_anterior)` (P1–P6, P9 y P10 del 4.15) crea **en el acto** la versión nueva: otra cotización, preventa (también encima de una final), con
+`cotizacion_padre_id` = la anterior, `version` + 1, su propio número, el lead y el vehículo de la anterior, quien llama como `creado_por`, la publicada y las tarifas de
+hoy. La anterior no cambia. **Una viva por anterior** (`cotizaciones_encima_unica`, parcial: una en la papelera no cuenta). Sin `p_abierta` (no sale de una hoja vista).
+
+- **El orden y los errores:** `assert_activo`; ver la anterior (lo que no existe, está en la papelera o no se ve: el 42501 de `cotizacion_leer`, antes que todo lo
+  demás); `cotizaciones.crear` y `ver` del origen; su lead (nulo: 22023 `lead`; no visible: 42501); el intento (el candado de `cotizacion_crear`: repetido devuelve la
+  misma; mío con otra anterior: 22023 `intento_reusado`); la anterior `for share` y otra vez visible; ya tiene una nueva viva: PT409 `ya_tiene_encima` (el id en el hint
+  sólo a quien la ve, P11); el lead `for key share`, el vehículo (o 22023 `vehiculo` si es obligatorio); la publicada `for share`; el total (22023 `total_sin_valor`: no se crea).
+- **Lo que se lleva** (`_cotizacion_lo_que_se_lleva`): lo tipeado de cada nodo que sigue en la versión de hoy con un tipo que lo acepta, **también lo que quien llama no
+  ve** (se guarda y no se le devuelve); la variante sólo si es opción de hoy; el modo si sigue (si no, el primero de hoy); «Ver total Bs» si hoy se ofrece; título y notas.
+- **`descartados`** (`_cotizacion_descartados`): cuántas entradas tipeadas de la anterior que quien llama **ve** no llegan (no siguen, no se aceptan, la variante, un
+  override que el motor descarta). Lo oculto que se pierde no se cuenta.
+
+**La pantalla (4.15-3a), `/cotizaciones/[id]`.** La hoja calcula por su origen (la nueva) o por su cotización (`DeDondeCalcula`): la guardada manda `p_entradas`, `p_cotizacion`
+y `p_modo_tc`, nunca `p_origen` ni `p_abierta`. Abre con lo guardado como sus entradas (`entradasDeLoGuardado`, el espejo de `_cotizacion_entradas_de`: lo tipeado y los
+overrides, sin el porcentaje de un par pisado) y con **una** llamada a `cotizacion_hoja_guardada` y otra a `cotizacion_evaluar(p_cotizacion)`. El recálculo usa las tablas de
+referencia **vivas** y los datos de hoy del vehículo: si no da lo guardado (sus valores o su total, `difiereAlAbrir`), la pantalla lo avisa, muestra «Total guardado» con `<Monto>`
+y «Guardar» la deja con lo de hoy. «Guardar» llama a `cotizacion_guardar` con la versión que vio quien edita (`actualizadoEn` como el texto de la base, nunca por `Date`, que
+pierde los microsegundos), las entradas del recálculo al día y el título, las notas y el vehículo de la cotización sin tocarlos; lo que la hoja no manda lo conserva la base. El PT409
+dice quién y cuándo; «Recargar» vuelve a montar la hoja con la lectura nueva y lo tipeado no vuelve sobre la versión de la otra persona.
 
 ## Lo que se guarda en una cotización
 
 `formula_id` (recalcular o editar usa **esa** versión, nunca la vigente); `valores` (`{nodo_id: número | null}` de TODOS los nodos; el
 `opcion` guarda su clave; un nodo fuera de variante o apagado guarda 0); `fuentes` (`{nodo_id: default|sugerido|override|input}`);
-`tipos_cambio` (`{clave: valor}` congelados); `totales` (por moneda y por grupo). **Nada se lee directo** (salen por `cotizacion_leer()`, recortados por el nivel; `total_base` y
-`modo_tc` sí son legibles) **ni se escribe directo**: se crea con `cotizacion_crear()` y se edita con `cotizacion_guardar()`.
+`tipos_cambio` (`{clave: valor}` congelados); `totales` (por moneda y por grupo). **Nada se lee directo** (salen por `cotizacion_leer()`,
+recortados por el nivel; `total_base`,
+`modo_tc` y `ver_total_bs` sí son legibles) **ni se escribe directo**: se crea con `cotizacion_crear()` y se edita con `cotizacion_guardar()`.
 
 ## Binding con la XCell
 
@@ -423,6 +481,8 @@ el default global (versión N+1); «Aplicar también a esta cotización» es el 
 ni entero: lo dice la base en `faltantes`** y la hoja lo pasa por `error`. **La celda no decide permisos ni abre nada:** la hoja calcula
 las banderas, pasa **los mismos callbacks a todas las celdas** y decide qué abrir. Una parada de `Tab` por valor; ayuda, ⚙ y ↺ se
 alcanzan con `→` (**las flechas son de la celda**).
+
+Lo dibuja el 4.15-3b en `/cotizaciones/[id]`: «Revisiones» (`cotizacion_revisiones` desde el navegador, de a 20 por cursor), la cadena (`anterior` y `encima`) y el aviso de versión con «Cotizar encima» (`cotizacion_encima`, con un intento que sólo se conserva tras una pérdida). El botón sale con `puede_cotizar_encima`, no con `puede()`; con cambios sin guardar espera, porque la nueva lleva lo guardado.
 
 ### La hoja dibujada y el recálculo (4.13-2)
 

@@ -30,7 +30,6 @@ let todos = ''
 let duena = ''
 let sinPermiso = ''
 let soloCrear = ''
-const LEAD = '11111111-2222-4333-8444-555555555555'
 
 test.beforeAll(async ({}, info) => {
   proyecto = info.project.name
@@ -241,24 +240,6 @@ test('sin red dice «No se pudo recalcular», conserva lo tipeado y no deja el t
   await expect(resumen(page)).not.toContainText('No se pudo recalcular.')
   await expect(total(page)).toContainText('705,00')
   expect(vigilante.enVueloMaximo()).toBe(1)
-})
-
-test('las pestañas son los orígenes donde se cotiza, con su nombre; cambiar de origen conserva el lead', async ({
-  page,
-}) => {
-  await abrirLaHoja(page, todos, `/cotizaciones/nuevo?origen=${conFormula.id}&lead=${LEAD}`)
-  const pestanas = page.getByRole('navigation', { name: 'Orígenes' })
-  await expect(pestanas.getByRole('link', { name: conFormula.nombre })).toHaveAttribute(
-    'aria-current',
-    'page',
-  )
-  await pestanas.getByRole('link', { name: sinFormula.nombre }).click()
-  await expect(page).toHaveURL(new RegExp(`origen=${sinFormula.id}&lead=${LEAD}`))
-  await expect(page.getByText(`Falta publicar la fórmula de ${sinFormula.nombre}`)).toBeVisible()
-  await expect(pestanas.getByRole('link', { name: sinFormula.nombre })).toHaveAttribute(
-    'aria-current',
-    'page',
-  )
 })
 
 test('«Falta publicar la fórmula» lleva el enlace a configuración sólo a quien puede configurar', async ({

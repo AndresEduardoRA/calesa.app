@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ok } from '@/shared/lib/errores'
 import type { RecalculoInicial } from '../../../entities/apertura'
@@ -42,14 +43,16 @@ const conEtiqueta = (hoja: HojaLista, etiqueta: string, abierta = hoja.abierta):
   tarjetaTotal: { ...hoja.tarjetaTotal, etiqueta },
 })
 const pantalla = (hoja: HojaLista) => (
-  <PantallaDeCotizar
-    hoja={hoja}
-    inicial={INICIAL}
-    vehiculoId={null}
-    vehiculoSoltado={false}
-    leadId={LEAD}
-    personaId={PERSONA}
-  />
+  <NuqsTestingAdapter>
+    <PantallaDeCotizar
+      hoja={hoja}
+      inicial={INICIAL}
+      vehiculoId={null}
+      vehiculoSoltado={false}
+      leadId={LEAD}
+      personaId={PERSONA}
+    />
+  </NuqsTestingAdapter>
 )
 const guardar = () => fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 function tipearRemate(texto: string) {
@@ -102,6 +105,8 @@ describe('PantallaDeCotizar › lo guardado', () => {
       vehiculoId: null,
       abierta: 'vieja',
       entradas: { inputs: {}, banderas: {}, overrides: {} },
+      modoTc: null,
+      verTotalBs: false,
       conLaAbierta: false,
     }
     window.sessionStorage.setItem(

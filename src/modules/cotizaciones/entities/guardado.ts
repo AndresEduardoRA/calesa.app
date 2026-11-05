@@ -3,8 +3,9 @@ import type { Envio } from '@/shared/lib/enviar-accion'
 import { MENSAJE_SESION_VENCIDA } from '@/shared/lib/errores'
 import { DESCARTES_DE_RECALCULO } from './recalculo-esquema'
 
-// Guardar la hoja (`cotizacion_crear()`, paso 4.13-3b): lo que vuelve, en la forma que usa la pantalla. **El mensaje de la base nunca se muestra** (puede nombrar un nodo que
-// quien mira no ve): cada rechazo se lee de su código, su `details` y su `hint`, y la pantalla dice su propio texto.
+// Guardar la hoja (`cotizacion_crear()`, paso 4.13-3b; y `cotizacion_guardar()`, 4.15-3): lo que vuelve, en la forma que usa la pantalla. **El mensaje de la base no se muestra**
+// (puede nombrar un nodo que quien mira no ve): cada rechazo se lee de su código, su `details` y su `hint`, y la pantalla dice su propio texto. **Una sola excepción:** el
+// PT409 sin `details` de `cotizacion_guardar` (`version_cambiada`), cuyo mensaje sólo nombra a una persona y cuándo cambió la cotización (`_conflicto_de_edicion`).
 
 // Lo que la pantalla muestra de lo guardado: el número y el total. El resto del snapshot no viaja al DOM.
 export type CotizacionGuardada = {
@@ -26,6 +27,10 @@ export type MotivoDeRechazo =
   | 'moneda_no_soportada'
   | 'valor_descartado'
   | 'variante_oculta'
+  // Guardar una cotización guardada (4.15-3): otra versión, el mismo intento con otros datos, o la cotización cambió de vehículo o de clase mientras estaba abierta.
+  | 'version_cambiada'
+  | 'guardado_reusado'
+  | 'cotizacion_cambio'
   | 'falta_lead'
   | 'falta_vehiculo'
   | 'sin_acceso'
@@ -37,7 +42,8 @@ export type MotivoDeRechazo =
 export type ResultadoDeCrear =
   | { tipo: 'guardada'; cotizacion: CotizacionGuardada }
   | { tipo: 'perdida' }
-  | { tipo: 'rechazo'; motivo: MotivoDeRechazo }
+  // `mensaje`: sólo el del conflicto de versión (`version_cambiada`), que dice quién y cuándo.
+  | { tipo: 'rechazo'; motivo: MotivoDeRechazo; mensaje?: string }
 
 export type ErrorDeCrear = {
   code?: string | null
@@ -153,8 +159,9 @@ const RECARGAR_HOJA = 'Esta hoja ya no se puede guardar: recárgala. Lo que escr
 const NO_SE_PUDO = 'No se pudo guardar. Vuelve a intentar en un momento.'
 export const VALOR_DESCARTADO =
   'Hay un valor que esta hoja no acepta: restablece la celda con aviso.'
-export const FALTA_EL_LEAD = 'Para guardar, abre la hoja desde un lead.'
+export const FALTA_EL_LEAD = 'Para guardar, elige el cliente en «Cliente».'
 export const FALTA_EL_VEHICULO = 'Este origen pide un vehículo para guardar.'
+const AL_RECARGAR = 'Al recargar se abre esa versión; lo que escribiste no vuelve.'
 
 // Exhaustivo: un motivo nuevo sin su texto no compila.
 const TEXTOS: Readonly<Record<MotivoDeRechazo, TextoDelAviso>> = {
@@ -187,6 +194,16 @@ const TEXTOS: Readonly<Record<MotivoDeRechazo, TextoDelAviso>> = {
     texto: 'La hoja necesita una opción que no puedes ver. Avisa a quien configura el cotizador.',
     salida: null,
   },
+  // El texto de la base lo pone `textoDelRechazo()` (lleva a la persona y la hora).
+  version_cambiada: { texto: `Esta cotización cambió. ${AL_RECARGAR}`, salida: 'recargar' },
+  guardado_reusado: {
+    texto: 'Este guardado ya se hizo con otros datos. Recarga la cotización.',
+    salida: 'recargar',
+  },
+  cotizacion_cambio: {
+    texto: 'Esta cotización cambió mientras la tenías abierta: recárgala.',
+    salida: 'recargar',
+  },
   falta_lead: { texto: FALTA_EL_LEAD, salida: null },
   falta_vehiculo: { texto: FALTA_EL_VEHICULO, salida: null },
   // Los seis orígenes del 42501 sin detalle (sin permiso, la cuenta bloqueada, el lead, el vehículo, el id ajeno, la propia action) dicen lo mismo: no confirman qué existe.
@@ -203,7 +220,13 @@ const TEXTOS: Readonly<Record<MotivoDeRechazo, TextoDelAviso>> = {
   },
 }
 
-export const textoDelRechazo = (motivo: MotivoDeRechazo): TextoDelAviso => TEXTOS[motivo]
+// `mensaje` sólo cuenta en el conflicto de versión: ahí es el texto de la base («<Nombre> cambió esta cotización <hace…>.»), al que se suma la línea propia.
+export function textoDelRechazo(motivo: MotivoDeRechazo, mensaje?: string): TextoDelAviso {
+  if (motivo === 'version_cambiada' && mensaje) {
+    return { texto: `${mensaje} ${AL_RECARGAR}`, salida: 'recargar' }
+  }
+  return TEXTOS[motivo]
+}
 
 // Lo que no es una respuesta de la action: no llegó (`sinRed`), la entrada no pasó el esquema (`validacion`) o el `serverError` (la sesión vencida antes de correr, o lo que
 // la action lanzó). `enviarAccion()` no marca cuál es cuál: **la validación y el `serverError` se distinguen sólo por `error.codigo`** (ningún camino de `safe-action.ts` da

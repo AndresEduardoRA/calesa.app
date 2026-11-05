@@ -147,15 +147,19 @@ create or replace function pg_temp.cv_registro() returns jsonb language sql as $
     'formula_para_cotizar', jsonb_build_object('clase', 'configurar', 'sonda', 'select public.formula_para_cotizar({origen})',
       'motivo', 'la publicada entera (definicion, params, diseno y visibilidad) sólo con cotizaciones.configurar del origen; el permiso se pide antes de mirar si el origen existe'),
     'cotizacion_tabla', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'el bloque «las tablas de referencia se leen por lo que la hoja ve» (necesita tablas, no nodos)',
-      'motivo', 'una tabla de referencia con sólo las columnas que leen los nodos que quien llama ve (la entera, a quien configura); sin acceso, el error de una tabla que no existe'),
+      'motivo', 'una tabla de referencia con sólo las columnas que leen los nodos que quien llama ve en SU versión (la de la cotización, la de la hoja abierta por origen o la publicada; la entera, a quien configura); sin acceso, el error de una tabla que no existe'),
     'cotizacion_revisiones', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_revisiones({cot})',
       'motivo', 'cada diff recortado por nodo con _nodos_visibles() de SU versión; una revisión de sólo lo oculto viaja con el diff vacío'),
-    'cotizacion_hoja', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'el último bloque de cotizacion-hoja.sql, por cada nivel (necesita fórmulas con lo oculto en toda forma, no un nodo centinela)',
-      'motivo', 'el diseño de la hoja publicada recortado con _cotizacion_contexto() y _nodos_visibles(): un ítem viaja si su nodo se ve (más el total y lo aparte); sin etiquetas, ayudas, tonos, secciones ni modos (sólo clave y nombre) de lo oculto; la ayuda de una tabla con la regla de cotizacion_tabla'),
+    'cotizacion_hoja', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'el último bloque de cotizacion-hoja.sql, por cada nivel (necesita fórmulas con lo oculto en toda forma, no un nodo centinela), y T3 de cotizacion-hoja-dato-del-vehiculo.sql (el dato del vehículo de una celda de tabla, por cada nivel)',
+      'motivo', 'el diseño de la hoja publicada recortado con _cotizacion_contexto() y _nodos_visibles(): un ítem viaja si su nodo se ve (más el total y lo aparte); sin etiquetas, ayudas, tonos, secciones ni modos (sólo clave y nombre) de lo oculto; la ayuda de una tabla con la regla de cotizacion_tabla; el dato del vehículo de una celda de tabla que se ve (dato_del_vehiculo: las entradas del match que no nombran un nodo, 4.14-2c2)'),
+    'cotizacion_hoja_guardada', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_hoja_guardada({cot})',
+      'motivo', 'la hoja de una guardada: _cotizacion_respuesta() (el recorte de cotizacion_leer) más _cotizacion_hoja() de SU versión (el de cotizacion_hoja; H1 de cotizacion-hoja.sql por cada nivel) y la cadena: de la versión nueva que no se ve, sólo que existe'),
+    'cotizacion_encima', jsonb_build_object('clase', 'recorta', 'cubierta_por', 'E7 de cotizacion-encima-niveles.sql, por cada nivel (una sonda que crea no se repite: una versión nueva viva por anterior)',
+      'motivo', 'crea la versión nueva con lo tipeado de la anterior (también lo oculto, que se guarda) y devuelve _cotizacion_respuesta() (el recorte de cotizacion_leer); descartados cuenta sólo lo que quien llama ve; del PT409 de una nueva que no ve, sólo que existe'),
     'cotizacion_leer', jsonb_build_object('clase', 'recorta', 'sonda', 'select public.cotizacion_leer({cot})',
       'motivo', 'el snapshot de una cotización recortado con _nodos_visibles() de SU versión: el total y lo aparte siempre, los subtotales por grupo sólo si se ve el grupo entero'),
     'cotizacion_guardar', jsonb_build_object('clase', 'recorta',
-      'sonda', 'select public.cotizacion_guardar({cot}, gen_random_uuid(), {version}, jsonb_build_object(''inputs'', jsonb_build_object(''visible'', 1.5, {oculto}, {centinela}::numeric)), null, null, null, null)',
+      'sonda', 'select public.cotizacion_guardar({cot}, gen_random_uuid(), {version}, jsonb_build_object(''inputs'', jsonb_build_object(''visible'', 1.5, {oculto}, {centinela}::numeric)), null, null, null, null, false)',
       'motivo', 'calcula con SU versión (_cotizacion_armar de la cotización), completa lo que quien llama no ve ni edita con lo guardado (_cotizacion_conservar) y devuelve _cotizacion_respuesta() (el mismo recorte de cotizacion_leer): lo que se tipea sólo nombra lo que se ve y se edita (un nodo oculto da el error de uno inexistente) y la revisión que deja se recorta al leerla'),
     'cotizacion_crear', jsonb_build_object('clase', 'recorta',
       'sonda', 'select public.cotizacion_crear(gen_random_uuid(), {origen}, {lead}, jsonb_build_object(''inputs'', jsonb_build_object(''visible'', 1.5, {oculto}, {centinela}::numeric)), (public.cotizacion_hoja({origen}) ->> ''abierta''))',
@@ -254,7 +258,7 @@ rollback;
 begin;
 do $$
 declare
-  v_legible_c constant text := 'id, numero, origen_id, lead_id, vehiculo_id, creado_por, clase, estado, titulo, formula_id, plantilla_id, total_base, moneda_mostrar, modo_tc, notas, version, creado_en, actualizado_en';
+  v_legible_c constant text := 'id, numero, origen_id, lead_id, vehiculo_id, creado_por, clase, estado, titulo, formula_id, plantilla_id, total_base, moneda_mostrar, modo_tc, ver_total_bs, notas, version, creado_en, actualizado_en';
 begin
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
   set local role authenticated;
@@ -448,7 +452,7 @@ begin
 end $$;
 rollback;
 
--- @test visibilidad: la policy de lectura y la de edición de cotizaciones, puede_cotizacion() y la regla escrita a mano dan lo mismo por persona, y siguen a un lead transferido
+-- @test visibilidad: la policy de lectura y la de edición de cotizaciones, puede_cotizacion(), el listado (con cada filtro) y la regla escrita a mano dan lo mismo por persona, y siguen a un lead transferido
 -- La regla (D2/D3 y «Confirmado de lo escrito»): «propios» = las que creé o las de un lead de mi cartera vigente; «todos», todas las del origen; la papelera no se ve; una cuenta
 -- bloqueada no ve nada. Editar: una preventa por el alcance de `cotizaciones.editar`, o cualquier clase con `cotizaciones.final.gestionar` del origen. La regla de abajo se
 -- escribió aparte, desde `usuarios_roles`, `roles_permisos` y `leads_asesores`, sin mirar la policy, `puede_cotizacion()` ni `mis_permisos()`.
@@ -479,6 +483,38 @@ begin
   select coalesce(array_agg(x.id order by x.id), '{}') into v from cv_c x where public.puede_cotizacion(x.id, p_clave);
   reset role;
   return v;
+exception when others then
+  reset role;
+  raise;
+end $f$;
+
+-- Lo que `cotizaciones_listado()` le entrega a esa persona, recorrido de a uno por cursor y filtrado a las de la prueba (4.16-1, L2): falla si repite una (también en una
+-- página entera) o si no va en (creado_en desc, id desc). Devuelve los ids ordenados por id, para compararlos con la regla.
+create or replace function pg_temp.cv_listado(p_quien uuid, p_origen uuid default null, p_clase public.clase_cotizacion default null, p_mias boolean default false,
+                                              p_vehiculo uuid default null) returns uuid[] language plpgsql as $f$
+declare v_ids uuid[] := '{}'; v_en timestamptz; v_id uuid; r record; v_n int; v_vueltas int := 0;
+begin
+  perform pg_temp.cv_como(p_quien);
+  set local role authenticated;
+  loop
+    v_n := 0;
+    for r in select l.id, l.creado_en from public.cotizaciones_listado(1, p_origen, p_clase, p_mias, p_vehiculo, v_en, v_id) l loop
+      v_n := v_n + 1;
+      exit when v_n > 1;
+      if v_en is not null and (r.creado_en, r.id) >= (v_en, v_id) then raise exception 'el listado no va en orden para %: % tras %', p_quien, r.id, v_id; end if;
+      if r.id = any (v_ids) then raise exception 'el listado le repite % a %', r.id, p_quien; end if;
+      v_ids := v_ids || r.id; v_en := r.creado_en; v_id := r.id;
+    end loop;
+    exit when v_n <= 1;
+    v_vueltas := v_vueltas + 1;
+    if v_vueltas > 5000 then raise exception 'el recorrido del listado no termina'; end if;
+  end loop;
+  -- De a uno, el cursor estricto salta una fila repetida: una página entera tampoco repite ninguna (dos rutas que traen la misma).
+  if exists (select 1 from public.cotizaciones_listado(100, p_origen, p_clase, p_mias, p_vehiculo) l group by l.id having count(*) > 1) then
+    raise exception 'el listado le repite una cotización a % en una misma página', p_quien;
+  end if;
+  reset role;
+  return (select coalesce(array_agg(x order by x), '{}') from unnest(v_ids) x where x in (select id from cv_c));
 exception when others then
   reset role;
   raise;
@@ -563,9 +599,14 @@ end $$;
 create or replace function pg_temp.cv_verificar(p_quien uuid, p_nombre text, p_ve text[]) returns void language plpgsql as $f$
 declare v_regla uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.ver'); v_lee uuid[] := pg_temp.cv_lee(p_quien);
         v_puede uuid[] := pg_temp.cv_puede(p_quien, 'cotizaciones.ver'); v_puede_e uuid[] := pg_temp.cv_puede(p_quien, 'cotizaciones.editar'); v_regla_e uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.editar');
+        v_lista uuid[] := pg_temp.cv_listado(p_quien);
 begin
   if v_lee is distinct from v_regla then
     raise exception 'la policy entrega a % algo distinto de la regla: policy %, regla %', p_nombre, pg_temp.cv_nombres(v_lee), pg_temp.cv_nombres(v_regla);
+  end if;
+  -- El listado (4.16-1, L2): sus rutas cubren todo lo que la policy deja ver, sin repetir ni sumar nada.
+  if v_lista is distinct from v_regla then
+    raise exception 'el listado le entrega a % algo distinto de la regla: listado %, regla %', p_nombre, pg_temp.cv_nombres(v_lista), pg_temp.cv_nombres(v_regla);
   end if;
   if v_puede is distinct from v_regla then
     raise exception 'puede_cotizacion() le deja ver a % algo distinto de la regla: función %, regla %', p_nombre, pg_temp.cv_nombres(v_puede), pg_temp.cv_nombres(v_regla);
@@ -578,11 +619,31 @@ begin
   end if;
 end $f$;
 
+-- El listado con cada filtro, solo y de a dos, contra la regla de ver filtrada a mano (como postgres): origen 1 y 2, la clase, «mías» (las que creó, P1) y el vehículo.
+create or replace function pg_temp.cv_filtros(p_quien uuid, p_nombre text) returns void language plpgsql as $f$
+declare v_regla uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.ver'); o1 uuid := (select id from public.origenes where clave = 'cv_pol_1');
+        o2 uuid := (select id from public.origenes where clave = 'cv_pol_2'); v uuid := (select id from public.vehiculos where titulo = 'CV final'); k record; v_lista uuid[]; v_esperado uuid[];
+begin
+  for k in select * from (values (o1, null::public.clase_cotizacion, false, null::uuid, 'origen 1'), (o2, null, false, null, 'origen 2'), (null, 'final', false, null, 'final'),
+                                 (null, 'preventa', false, null, 'preventa'), (o1, 'preventa', false, null, 'origen 1 y preventa'), (null, null, true, null, 'mías'),
+                                 (o2, null, true, null, 'mías del origen 2'), (null, 'final', true, null, 'mías finales'), (null, null, false, v, 'el vehículo'),
+                                 (o2, null, false, v, 'el vehículo y el origen 2')) z (origen, clase, mias, veh, nombre) loop
+    v_lista := pg_temp.cv_listado(p_quien, k.origen, k.clase, k.mias, k.veh);
+    select coalesce(array_agg(c.id order by c.id), '{}') into v_esperado from public.cotizaciones c
+     where c.id = any (v_regla) and (k.origen is null or c.origen_id = k.origen) and (k.clase is null or c.clase = k.clase)
+       and (not k.mias or c.creado_por = p_quien) and (k.veh is null or c.vehiculo_id = k.veh);
+    if v_lista is distinct from v_esperado then
+      raise exception 'el listado de % con «%» da % y la regla %', p_nombre, k.nombre, pg_temp.cv_nombres(v_lista), pg_temp.cv_nombres(v_esperado);
+    end if;
+  end loop;
+end $f$;
+
 do $$
 declare
   a constant uuid := '00000000-0000-0000-0000-000000000ca1'; b constant uuid := '00000000-0000-0000-0000-000000000cb1'; t constant uuid := '00000000-0000-0000-0000-000000000cc1';
   c constant uuid := '00000000-0000-0000-0000-000000000cd1'; l constant uuid := '00000000-0000-0000-0000-000000000ce1'; x constant uuid := '00000000-0000-0000-0000-000000000cf1';
   f constant uuid := '00000000-0000-0000-0000-000000000c01'; s constant uuid := '00000000-0000-0000-0000-000000000c02'; r constant uuid := '00000000-0000-0000-0000-000000000c03'; d constant uuid := '00000000-0000-0000-0000-000000000001';
+  q constant uuid := '00000000-0000-0000-0000-000000000c04';
   v_todas constant text[] := array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'a_o2', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'a_final', 'c_o2', 'c_o1', 'r_o1'];
   la uuid := (select id from public.leads where nombre = 'CV lead de A'); v_r jsonb;
 begin
@@ -601,6 +662,16 @@ begin
   perform pg_temp.cv_verificar(f, 'F (ve todo el origen 1 y gestiona finales ahí)', array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'a_final', 'c_o1', 'r_o1']);
   perform pg_temp.cv_verificar(d, 'la dueña', v_todas);
 
+  -- El listado con cada filtro (4.16-1, L2): la regla filtrada a mano, para cada persona.
+  perform pg_temp.cv_filtros(p, n) from (values (a, 'A'), (b, 'B'), (t, 'T'), (c, 'C'), (f, 'F'), (r, 'R'), (x, 'X'), (s, 'S'), (d, 'la dueña')) z (p, n);
+  -- Q ve cotizaciones «propios» y no tiene `leads.ver`: ve por su cartera lo del lead de B que le compartieron (la ruta de la cartera sale de `mis_leads()`, no de
+  -- `leads_asesores` leída como ella, que pasaría por la RLS de `leads`).
+  perform pg_temp.cv_persona(q, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'alcance', 'propios')));
+  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, lead_creado_en)
+  select l.id, q, 'compartido', b, l.creado_en from public.leads l where l.nombre = 'CV lead de B';
+  perform pg_temp.cv_verificar(q, 'Q (propios sin leads.ver, con el lead de B compartido)', array['b_lb']);
+  perform pg_temp.cv_filtros(q, 'Q');
+
   -- El lead de A pasa a B: la cartera nueva ve sus cotizaciones en el acto (a_la y la final, que no veía); A, que queda como compartida, sigue viéndolas.
   perform pg_temp.cv_como(a);
   set local role authenticated;
@@ -616,6 +687,8 @@ begin
   reset role;
   perform pg_temp.cv_verificar(a, 'A (sin acceso al lead)', array['a_la', 'a_o2', 'b_lead_borrado', 'a_final']);
   perform pg_temp.cv_verificar(b, 'B (sigue siendo la dueña)', array['a_la', 'a_final', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado']);
+  perform pg_temp.cv_filtros(a, 'A (sin acceso al lead)');
+  perform pg_temp.cv_filtros(b, 'B (dueña de lo transferido)');
 end $$;
 
 -- La policy y la función ya no arman el arreglo de la cartera, y usan la regla por fila. Y no hay policy de escritura: desde el 4.10-2 se escribe por RPC.
@@ -658,6 +731,60 @@ begin
   if public.puede_cotizacion(v_papelera, 'cotizaciones.ver') is distinct from false then raise exception 'una en la papelera no da falso'; end if;
   if public.puede_cotizacion(v_la, 'cotizaciones.final.gestionar') is distinct from false then raise exception 'una clave que no tiene no da falso'; end if;
   reset role;
+end $$;
+-- puede_cotizacion() mira el alcance UNA vez (4-24): el alcance es el argumento de un `case`, como en puede_vehiculo(); con el `cross join lateral` de antes, quien ve
+-- «propios» lo pedía dos veces (el lateral se aplana y `a.alcance` se nombraba dos veces). Primero el texto; después la conducta, con un espía de alcance_de().
+do $$
+declare v_src text := (select prosrc from pg_proc where proname = 'puede_cotizacion' and pronamespace = 'public'::regnamespace);
+begin
+  if v_src !~ 'case public\.alcance_de\(' then raise exception 'puede_cotizacion() no evalúa el alcance como argumento de un case: %', v_src; end if;
+  if v_src ~* 'lateral' then raise exception 'puede_cotizacion() todavía usa un lateral'; end if;
+  if regexp_count(v_src, 'alcance_de') <> 1 then raise exception 'puede_cotizacion() nombra alcance_de % veces (debe ser 1)', regexp_count(v_src, 'alcance_de'); end if;
+end $$;
+-- El espía: la misma firma, `stable` y `security definer` (como la real: una volátil impediría aplanar el lateral y no probaría nada), cuenta en un ajuste de la transacción
+-- y devuelve lo de la real. Se deshace con el rollback del bloque.
+create or replace function public.alcance_de(p_clave text, p_origen uuid default null) returns public.alcance_permiso
+  language plpgsql stable security definer
+  set search_path = ''
+as $f$
+declare v public.alcance_permiso;
+begin
+  perform set_config('prueba.alcance', (coalesce(nullif(current_setting('prueba.alcance', true), ''), '0')::int + 1)::text, true);
+  select case when bool_or(rp.alcance = 'todos') then 'todos'::public.alcance_permiso
+              when count(*) > 0 then 'propios'::public.alcance_permiso
+         end into v
+    from public.usuarios_roles ur
+    join public.roles_permisos rp on rp.rol_id = ur.rol_id
+    join public.perfiles p on p.id = ur.usuario_id
+   where ur.usuario_id = (select auth.uid())
+     and p.activo and not p.bloqueado
+     and rp.permiso_clave = p_clave
+     and (rp.origen_id is null or p_origen is null or rp.origen_id = p_origen);
+  return v;
+end $f$;
+create or replace function pg_temp.cv_llamadas(p_quien uuid, p_cot uuid, p_clave text, out puede boolean, out llamadas int) language plpgsql as $f$
+begin
+  perform pg_temp.cv_como(p_quien);
+  perform set_config('prueba.alcance', '0', true);
+  set local role authenticated;
+  puede := public.puede_cotizacion(p_cot, p_clave);
+  reset role;
+  llamadas := current_setting('prueba.alcance', true)::int;
+exception when others then
+  reset role;
+  raise;
+end $f$;
+do $$
+declare
+  a constant uuid := '00000000-0000-0000-0000-000000000ca1'; t constant uuid := '00000000-0000-0000-0000-000000000cc1';
+  v_la uuid := (select id from cv_c where nombre = 'a_la'); r record;
+begin
+  select * into r from pg_temp.cv_llamadas(a, v_la, 'cotizaciones.ver');
+  if r.puede is distinct from true or r.llamadas <> 1 then raise exception 'como «propios», puede_cotizacion() da % con % llamadas a alcance_de (debe ser verdadero con 1)', r.puede, r.llamadas; end if;
+  select * into r from pg_temp.cv_llamadas(t, v_la, 'cotizaciones.ver');
+  if r.puede is distinct from true or r.llamadas <> 1 then raise exception 'como «todos», puede_cotizacion() da % con % llamadas a alcance_de (debe ser verdadero con 1)', r.puede, r.llamadas; end if;
+  select * into r from pg_temp.cv_llamadas(a, gen_random_uuid(), 'cotizaciones.ver');
+  if r.puede is distinct from false or r.llamadas <> 0 then raise exception 'con una que no existe, puede_cotizacion() da % con % llamadas a alcance_de (debe ser falso con 0)', r.puede, r.llamadas; end if;
 end $$;
 rollback;
 
@@ -990,7 +1117,7 @@ begin
     -- a. Quien no ve el nivel guarda lo suyo: lo oculto queda idéntico (leído como postgres), y ni la respuesta ni la revisión que deja lo traen.
     select jsonb_build_object('valores', c.valores -> v_oculto, 'fuentes', c.fuentes -> v_oculto) into v_antes from public.cotizaciones c where c.id = v_c;
     v_int := gen_random_uuid(); v_ver := (select c.actualizado_en from public.cotizaciones c where c.id = v_c);
-    v_gsql := format('select public.cotizacion_guardar(%L, %L, %L, ''{"inputs": {"visible": 3.5}}'', null, ''título nuevo'', null, null)', v_c, v_int, v_ver);
+    v_gsql := format('select public.cotizacion_guardar(%L, %L, %L, ''{"inputs": {"visible": 3.5}}'', null, ''título nuevo'', null, null, false)', v_c, v_int, v_ver);
     r := pg_temp.cv_corre(sin, v_gsql);
     if r ? 'error' then raise exception 'nivel %: quien no ve el nivel no pudo guardar: %', v_nivel, r; end if;
     if position(v_oculto in r::text) > 0 or position(v_centinela in r::text) > 0 then raise exception 'nivel %: la respuesta de guardar trae el nodo del nivel a quien no lo ve: %', v_nivel, r; end if;
@@ -1001,14 +1128,14 @@ begin
     -- Repetir el intento y guardar sin cambiar nada devuelven lo mismo que se ve, también sin el nodo del nivel.
     r := pg_temp.cv_corre(sin, v_gsql);
     if r ? 'error' or r ->> 'repetido' is distinct from 'true' or position(v_oculto in r::text) > 0 or position(v_centinela in r::text) > 0 then raise exception 'nivel %: el intento repetido falla o trae el nodo del nivel: %', v_nivel, r; end if;
-    r := pg_temp.cv_corre(sin, pg_temp.cv_ver_en(format('select public.cotizacion_guardar(%L, gen_random_uuid(), {version}, ''{"inputs": {"visible": 3.5}}'', null, ''título nuevo'', null, null)', v_c), v_c));
+    r := pg_temp.cv_corre(sin, pg_temp.cv_ver_en(format('select public.cotizacion_guardar(%L, gen_random_uuid(), {version}, ''{"inputs": {"visible": 3.5}}'', null, ''título nuevo'', null, null, false)', v_c), v_c));
     if r ? 'error' or r ->> 'repetido' is distinct from 'false' or position(v_oculto in r::text) > 0 or position(v_centinela in r::text) > 0 then raise exception 'nivel %: guardar sin cambios falla o trae el nodo del nivel: %', v_nivel, r; end if;
     -- b. Paridad: calcular sin guardar y guardar dan lo mismo (el total y los valores visibles), para quien no ve el nivel y para quien sí.
     foreach v_txt in array array['sin', 'con'] loop
       v_quien := case v_txt when 'sin' then sin else con end;
       v_gsql := case v_txt when 'sin' then '{"inputs": {"visible": 9.5}}' else format('{"inputs": {"visible": 9.5, "%s": 40.25}}', v_oculto) end;
       v_e := pg_temp.cv_corre(v_quien, format('select public.cotizacion_evaluar(%L::jsonb, %L)', v_gsql, v_c));
-      v_g := pg_temp.cv_corre(v_quien, pg_temp.cv_ver_en(format('select public.cotizacion_guardar(%L, gen_random_uuid(), {version}, %L::jsonb, null, null, null, null)', v_c, v_gsql), v_c));
+      v_g := pg_temp.cv_corre(v_quien, pg_temp.cv_ver_en(format('select public.cotizacion_guardar(%L, gen_random_uuid(), {version}, %L::jsonb, null, null, null, null, false)', v_c, v_gsql), v_c));
       if v_e ? 'error' or v_g ? 'error' or v_e -> 'valores' is distinct from v_g -> 'valores' or v_e -> 'totales' is distinct from v_g -> 'totales' then
         raise exception 'nivel %: evaluar y guardar no dan lo mismo para «%»: % contra %', v_nivel, v_txt, v_e, v_g;
       end if;
@@ -1018,12 +1145,12 @@ begin
     -- d. Los errores de una que no existe, está en la papelera, es de otro origen o sólo se ve son el mismo, palabra por palabra.
     ed_o2 := gen_random_uuid();
     perform pg_temp.cv_persona(ed_o2, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'origen', o2), jsonb_build_object('clave', 'cotizaciones.editar', 'origen', o2), jsonb_build_object('clave', 'leads.ver')));
-    r0 := pg_temp.cv_corre(sin, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null)', gen_random_uuid()));
+    r0 := pg_temp.cv_corre(sin, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null, false)', gen_random_uuid()));
     if r0 ->> 'error' is distinct from '42501' or r0 ->> 'mensaje' is distinct from 'No tienes acceso a esta cotización.' then raise exception 'nivel %: guardar una inexistente: %', v_nivel, r0; end if;
-    if pg_temp.cv_corre(ed_o2, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar la de otro origen se distingue de una inexistente', v_nivel; end if;
-    if pg_temp.cv_corre(solo_ver, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar sin poder editar se distingue de una inexistente', v_nivel; end if;
+    if pg_temp.cv_corre(ed_o2, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null, false)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar la de otro origen se distingue de una inexistente', v_nivel; end if;
+    if pg_temp.cv_corre(solo_ver, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null, false)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar sin poder editar se distingue de una inexistente', v_nivel; end if;
     update public.cotizaciones set eliminado_en = now() where id = v_c;
-    if pg_temp.cv_corre(sin, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar la de la papelera se distingue de una inexistente', v_nivel; end if;
+    if pg_temp.cv_corre(sin, format('select public.cotizacion_guardar(%L, gen_random_uuid(), now(), ''{}'', null, null, null, null, false)', v_c)) is distinct from r0 then raise exception 'nivel %: guardar la de la papelera se distingue de una inexistente', v_nivel; end if;
     update public.cotizaciones set eliminado_en = null where id = v_c;
   end loop;
 end $$;
@@ -1300,7 +1427,9 @@ begin
   r2 := pg_temp.cv_corre(con, format('select public.cotizacion_revisiones(%L)', c));
   if r2 -> 'revisiones' -> 4 -> 'diff' is distinct from '{"valores": {"de": {"flete": 41111.5}, "a": {"flete": 50123.5}}}'::jsonb then raise exception 'con el nivel, el costo: %', r2 -> 'revisiones' -> 4 -> 'diff'; end if;
   if r2 -> 'revisiones' -> 3 -> 'diff' is distinct from '{"valores": {"de": {"remate": 1000.5, "flete": 50123.5}, "a": {"remate": 2000.5, "flete": 60123.5}}}'::jsonb then raise exception 'con el nivel, el dato y el costo: %', r2 -> 'revisiones' -> 3 -> 'diff'; end if;
-  if r2 -> 'revisiones' -> 2 -> 'diff' is distinct from jsonb_build_object('totales', jsonb_build_object('de', t0, 'a', jsonb_set(t0, '{grupos,g2,usd}', '77123.5'))) then
+  -- La revisión guarda totales por clave (4.15-1): sólo el grupo que cambió, entero.
+  if r2 -> 'revisiones' -> 2 -> 'diff' is distinct from jsonb_build_object('totales', jsonb_build_object('de', jsonb_build_object('grupos', jsonb_build_object('g2', t0 #> '{grupos,g2}')),
+                                                                                    'a', jsonb_build_object('grupos', jsonb_build_object('g2', jsonb_set(t0 #> '{grupos,g2}', '{usd}', '77123.5'))))) then
     raise exception 'con el nivel, el subtotal del grupo: %', r2 -> 'revisiones' -> 2 -> 'diff';
   end if;
   if r2 -> 'revisiones' -> 1 -> 'diff' is distinct from '{"tipos_cambio": {"de": {"oficial": 6.96, "paralelo": 12.4}, "a": {"oficial": 7.75, "paralelo": 12.4}}}'::jsonb then raise exception 'con el nivel, la tarifa: %', r2 -> 'revisiones' -> 1 -> 'diff'; end if;
@@ -1340,6 +1469,27 @@ begin
   r := jsonb_build_object('d', public._cotizacion_diff_recortado(jsonb_build_object('valores', jsonb_build_object('de', v1, 'a', v2)),
          public._cotizacion_contexto(array['remate', 'fees', 'tc_p'], v_def, v_vis), array['notas']));
   if r -> 'd' is distinct from jsonb_build_object('valores', jsonb_build_object('de', v1 - 'tc_o' - 'flete' - 'margen', 'a', v2 - 'tc_o' - 'flete' - 'margen')) then raise exception 'una revisión con dos snapshots enteros no se recorta: %', r; end if;
+  -- 7. Lo que un nivel esconde no se delata por los totales (4.15-1). (i) Sólo cambia el Bs de g1 (visible para `sin`, sin su Bs: el tipo de cambio oficial está oculto) y el
+  -- Bs de primer nivel, como al cambiar el modo: `sin` lee el Bs y no ve g1 (le diría que el Bs de ESE grupo cambió); `con` ve g1 con su Bs en los dos lados.
+  update public.cotizaciones set totales = jsonb_set(jsonb_set(totales, '{grupos,g1,bs}', '8000'), '{bs}', '100000000.5') where id = c;
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, null, 1)', c));
+  if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"totales": {"de": {"bs": 99999000.5}, "a": {"bs": 100000000.5}}}'::jsonb then
+    raise exception 'sin el nivel, el Bs de un grupo visible se delata: %', r -> 'revisiones' -> 0 -> 'diff';
+  end if;
+  r2 := pg_temp.cv_corre(con, format('select public.cotizacion_revisiones(%L, null, 1)', c));
+  if r2 #> '{revisiones,0,diff,totales,de,grupos,g1,bs}' is distinct from '7308'::jsonb or r2 #> '{revisiones,0,diff,totales,a,grupos,g1,bs}' is distinct from '8000'::jsonb then
+    raise exception 'con el nivel, el Bs del grupo: %', r2 -> 'revisiones' -> 0 -> 'diff';
+  end if;
+  -- (ii) Una revisión de antes (totales entero) con ese mismo cambio, recortada para `sin`: tampoco nombra los grupos.
+  r := jsonb_build_object('d', public._cotizacion_diff_recortado(jsonb_build_object('totales', jsonb_build_object('de', t0, 'a', jsonb_set(jsonb_set(t0, '{grupos,g1,bs}', '8000'), '{bs}', '100000000.5'))),
+         public._cotizacion_contexto(array['remate', 'fees', 'tc_p'], v_def, v_vis), array['notas']));
+  if not (r #> '{d,totales}') ? 'a' or (r #> '{d,totales,de}') ? 'grupos' or (r #> '{d,totales,a}') ? 'grupos' then raise exception 'una revisión entera delata el Bs de un grupo: %', r; end if;
+  -- (iii) Se mueve un grupo oculto (g2) junto con el Bs y el total: `sin` no recibe ni un `grupos` vacío.
+  update public.cotizaciones set totales = jsonb_set(jsonb_set(jsonb_set(totales, '{grupos,g2,usd}', '80000.5'), '{bs}', '100000001.5'), '{usd}', '99999.75') where id = c;
+  r := pg_temp.cv_corre(sin, format('select public.cotizacion_revisiones(%L, null, 1)', c));
+  if r -> 'revisiones' -> 0 -> 'diff' is distinct from '{"totales": {"de": {"bs": 100000000.5, "usd": 99999.5}, "a": {"bs": 100000001.5, "usd": 99999.75}}}'::jsonb then
+    raise exception 'sin el nivel, un grupo oculto que se movió se delata: %', r -> 'revisiones' -> 0 -> 'diff';
+  end if;
 end $$;
 rollback;
 
@@ -1508,8 +1658,8 @@ begin
   r := pg_temp.cv_corre(cfg_todos, 'select jsonb_build_object(''compartida'', (select count(*) from public.tablas_referencia where origen_id is null and clave = ''compartida''), ''filas'', (select count(*) from public.tablas_referencia_filas f join public.tablas_referencia t on t.id = f.tabla_id where t.clave = ''compartida''))');
   if r is distinct from '{"compartida": 1, "filas": 1}'::jsonb then raise exception 'quien configura todos los orígenes lee también la compartida: %', r; end if;
   -- 10. Los grants.
-  if has_function_privilege('anon', 'public.cotizacion_tabla(text,uuid,uuid)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_tabla(text,uuid,uuid)', 'execute')
-     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_tabla(text,uuid,uuid)'::regprocedure and x.grantee = 0) then
+  if has_function_privilege('anon', 'public.cotizacion_tabla(text,uuid,uuid,text)', 'execute') or not has_function_privilege('authenticated', 'public.cotizacion_tabla(text,uuid,uuid,text)', 'execute')
+     or exists (select 1 from pg_proc p, aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) x where p.oid = 'public.cotizacion_tabla(text,uuid,uuid,text)'::regprocedure and x.grantee = 0) then
     raise exception 'los grants de cotizacion_tabla';
   end if;
 end $$;

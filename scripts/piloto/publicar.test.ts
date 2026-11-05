@@ -51,6 +51,7 @@ function gh() {
 echo "$*" >> "${join(raiz, 'llamadas-gh.txt')}"
 case "$1 $2" in
   "run list") printf '%s' "\${FAKE_GH_LISTA:-[]}" ;;
+  "run view") if [ -n "\$FAKE_GH_JOBS" ]; then printf '%s' "\$FAKE_GH_JOBS"; else printf '{"jobs":[]}'; fi ;;
   "run watch") exit "\${FAKE_GH_WATCH:-0}" ;;
   "pr list") printf '%s' "\${FAKE_GH_PRS:-[]}" ;;
   "pr create" | "pr comment") exit "\${FAKE_GH_PR:-0}" ;;
@@ -189,34 +190,97 @@ describe('publicar.sh › la rama del carril A', () => {
   })
 })
 
-describe('publicar.sh › el CI del push anterior de la rama', () => {
-  beforeEach(() => commitear('src/a.ts', 'a\n'))
+const rojos = () => join(raiz, 'estado/ci-rojos.md')
+const env = (extra: Record<string, string>) => ({ PILOTO_DIR: join(raiz, 'estado'), ...extra })
+const jobs = (...caidos: string[]) =>
+  JSON.stringify({ jobs: caidos.map((name) => ({ name, conclusion: 'failure' })) })
 
-  it('en verde: empuja sin esperar, y pregunta por el CI de la rama, no el de main', () => {
-    const r = publicar('4.99', { FAKE_GH_LISTA: ci('completed', 'success') })
+describe('publicar.sh › el CI del push anterior de la rama (no frena)', () => {
+  beforeEach(() => commitear('src/a.ts', 'a\n'))
+  it.each([
+    ['en verde', 'completed', 'success'],
+    ['en curso', 'in_progress', ''],
+    ['cancelado por el push siguiente', 'completed', 'cancelled'],
+  ])('%s: empuja sin esperar (nada de gh run watch) y no anota nada', (_n, status, conclusion) => {
+    const r = publicar('4.99', env({ FAKE_GH_LISTA: ci(status, conclusion) }))
     expect(r.estado, r.salida).toBe(0)
     expect(llamadasGh()).toContain(`run list --branch ${RAMA}`)
     expect(llamadasGh()).not.toContain('run watch')
-  })
-
-  it('en curso: espera con gh run watch y, si termina bien, empuja', () => {
-    const r = publicar('4.99', { FAKE_GH_LISTA: ci('in_progress', ''), FAKE_GH_WATCH: '0' })
-    expect(r.estado, r.salida).toBe(0)
-    expect(llamadasGh()).toContain('run watch 77 --exit-status')
     expect(remotoEn()).toBe(git(repo, 'rev-parse', 'HEAD'))
+    expect(existsSync(rojos())).toBe(false)
   })
 
-  it('en curso y termina en rojo: no empuja', () => {
-    const r = publicar('4.99', { FAKE_GH_LISTA: ci('in_progress', ''), FAKE_GH_WATCH: '1' })
+  it.each(['failure', 'timed_out'])(
+    'terminado en «%s» en un job común: empuja y lo anota con su job',
+    (conclusion) => {
+      const r = publicar(
+        '4.99',
+        env({
+          FAKE_GH_LISTA: ci('completed', conclusion),
+          FAKE_GH_JOBS: jobs('Nivel 1 · lint, tipos, tests y mapa'),
+        }),
+      )
+      expect(r.estado, r.salida).toBe(0)
+      expect(remotoEn()).toBe(git(repo, 'rev-parse', 'HEAD'))
+      const texto = readFileSync(rojos(), 'utf8')
+      expect(texto).toContain('run 77')
+      expect(texto).toContain('Nivel 1 · lint, tipos, tests y mapa')
+    },
+  )
+
+  it('el mismo run rojo no se anota dos veces', () => {
+    const e = env({
+      FAKE_GH_LISTA: ci('completed', 'failure'),
+      FAKE_GH_JOBS: jobs('e2e · bloque 1'),
+    })
+    publicar('4.99', e)
+    commitear('src/b.ts', 'b\n')
+    publicar('4.99', e)
+    expect(readFileSync(rojos(), 'utf8').match(/^- /gm)).toHaveLength(1)
+  })
+})
+
+describe('publicar.sh › el CI rojo que sí frena, y el verde que limpia', () => {
+  beforeEach(() => commitear('src/a.ts', 'a\n'))
+  const rojos = () => join(raiz, 'estado/ci-rojos.md')
+  const env = (extra: Record<string, string>) => ({ PILOTO_DIR: join(raiz, 'estado'), ...extra })
+  const jobs = (...caidos: string[]) =>
+    JSON.stringify({ jobs: caidos.map((name) => ({ name, conclusion: 'failure' })) })
+
+  it('con la base en rojo: no empuja y dice por qué', () => {
+    const r = publicar(
+      '4.99',
+      env({
+        FAKE_GH_LISTA: ci('completed', 'failure'),
+        FAKE_GH_JOBS: jobs('Base · reset, tipos, probar, lint y advisors'),
+      }),
+    )
     expect(r.estado).toBe(1)
+    expect(r.salida).toContain('base en rojo')
     expect(remotoEn()).toBe('')
   })
 
-  it.each(['failure', 'cancelled', 'timed_out'])('terminado en «%s»: no empuja', (conclusion) => {
-    const r = publicar('4.99', { FAKE_GH_LISTA: ci('completed', conclusion) })
+  it('con 5 corridas rojas sin arreglar: no empuja (el tope de acumulación)', () => {
+    mkdirSync(join(raiz, 'estado'), { recursive: true })
+    writeFileSync(
+      rojos(),
+      [1, 2, 3, 4].map((n) => `- 2026-11-04 run ${n} (abc): e2e · bloque 1\n`).join(''),
+    )
+    const r = publicar(
+      '4.99',
+      env({ FAKE_GH_LISTA: ci('completed', 'failure'), FAKE_GH_JOBS: jobs('e2e · bloque 2') }),
+    )
     expect(r.estado).toBe(1)
-    expect(r.salida).toContain('CI')
+    expect(r.salida).toContain('sin arreglar')
     expect(remotoEn()).toBe('')
+  })
+
+  it('un CI verde más nuevo borra los rojos anotados', () => {
+    mkdirSync(join(raiz, 'estado'), { recursive: true })
+    writeFileSync(rojos(), '- 2026-11-04 run 1 (abc): e2e · bloque 1\n')
+    const r = publicar('4.99', env({ FAKE_GH_LISTA: ci('completed', 'success') }))
+    expect(r.estado, r.salida).toBe(0)
+    expect(existsSync(rojos())).toBe(false)
   })
 })
 

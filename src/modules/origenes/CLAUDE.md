@@ -12,7 +12,7 @@ Ficha completa: `docs/archivo/modulos/origenes.md`, sólo con grep.
   - `leerDatosNuevosDeApibara(origenId)`; `leerLayout(origenId, { conUso })` — todos los campos (también desactivados: quien consume filtra `activo`) y categorías, con sus tipos (`CampoDeLayout`, `Categoria`, `LayoutDeOrigen`…) y `agruparCampos()`, `tieneOpciones()`.
   - Para la pantalla: `leerOrigenes()` y `pasosDe()`.
 - Componentes por `pantallas/<pantalla>.ts` (sólo `src/app`): `origenes` (`<ListaDeOrigenes>`) y `origen` (`<DatosDelOrigen>`, `<SiguientesPasos>`, `<EditorDeCampos>`, `<DatosNuevosDeApibara>`, `<ArbolDeCategorias>`).
-- `client.ts`: `pluralDe()`, `contados()`, `articulo()`, `ninguno()`, `concordar()`, `generoSugerido()`, `frasePorVacio()`, tipos `Genero`, `TipoDeOrigen`, `OrigenResumen`, `agruparCampos()`, `tieneOpciones()` y los del layout.
+- `client.ts`: `pluralDe()`, `contados()`, `articulo()`, `ninguno()`, `concordar()`, `generoSugerido()`, `frasePorVacio()`, tipos `Genero`, `TipoDeOrigen`, `OrigenResumen`, `agruparCampos()`, `tieneOpciones()`, los del layout y `useLayoutActivo(origenId)` (el layout activo leído desde el navegador por `infra/queries/layout.client.ts`, con la sesión de quien mira; lo pide el alta del panel del vehículo de la hoja de cotizar al abrirse, para que la hoja no lo cargue en cada apertura: 106 campos eran ≈ 52 KB sin comprimir en su documento).
 - Lo consumen `vehiculos`, `app/`, luego `cotizaciones`, `flujos`, `web`. Depende de `equipo` (permiso `origenes.gestionar`). **No** depende de `empresa`, `flujos` ni `vehiculos`: lo que necesita (¿apibara activa?, ¿hay fases?) lo trae la página por props o lo cuenta la base (`origenes_resumen()`). `equipo` nunca importa este módulo.
 
 ## Archivos clave
@@ -21,7 +21,7 @@ Ficha completa: `docs/archivo/modulos/origenes.md`, sólo con grep.
 - `entities/preconfiguraciones.ts` — espejo de `origen_preconfigurar_campos()` y `origen_crear_flujo()`. `entities/catalogo-apibara.ts` (+ `-datos.ts`) — espejo de `_apibara_catalogo()`; `rutaIgnorada()` dice qué no es campo; test contra el SQL y `e2e/fixtures/apibara/`.
 - **El motor de campos es de `shared`** (`lib/campos`, `ui/campos`). Acá: `entities/campo.ts` (`CampoDeLayout` = `CampoBase` + `origenId`, `enTarjeta`, `filtrable`, `publicoWeb`, `claveApibara`; `CLAVES_RESERVADAS`, `claveDeCampo()`), `entities/cambios-de-campo.ts` (`cambiosRespectoDe()`: sólo viaja lo que cambió), `entities/impacto.ts`, `features/campos/configuracion.tsx` (`configuracionDeOrigen()`).
 - `entities/{categoria,pasos,motivos,repositorios}.ts`.
-- `infra/{origenes,campos,categorias}.ts` — escrituras por RPC. `infra/queries/{origenes,layout}.ts`. `composicion.ts`; sin `.client`.
+- `infra/{origenes,campos,categorias}.ts` — escrituras por RPC. `infra/queries/{origenes,layout}.ts`. `composicion.ts`; `composicion.client.ts` sólo para `leerLayoutActivo()`.
 - `features/{origenes,campos,categorias,pasos}/`. La página compone: `src/app/(app)/configuracion/origenes/` (`acceso.ts` quién entra; `pasos.ts` a dónde lleva cada paso, con test contra las pantallas existentes).
 
 ## Tablas

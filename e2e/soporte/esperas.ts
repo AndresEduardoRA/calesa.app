@@ -37,21 +37,33 @@ export async function recibeElClic(lugar: Locator): Promise<void> {
   await expect(lugar).toBeVisible()
   const lo = await lugar.evaluate(async (elemento) => {
     const cuadro = () => new Promise<void>((seguir) => requestAnimationFrame(() => seguir()))
+    const ancestros = (e: Element): Element[] =>
+      e.parentElement ? [e.parentElement, ...ancestros(e.parentElement)] : []
     const medir = () => {
       const caja = elemento.getBoundingClientRect()
       return [caja.left, caja.top, caja.width, caja.height]
     }
     const igual = (a: number[], b: number[]) => a.every((v, i) => Math.abs(v - (b[i] ?? 0)) < 0.5)
     const limite = performance.now() + 2000
-    let antes = medir()
+    // Una transición recién iniciada mide lo mismo en sus primeros cuadros (en un runner cargado, el reloj de la animación aún no
+    // avanzó): se espera a que terminen las del elemento y sus ancestros, y luego a tres cuadros iguales.
+    const terminan = () =>
+      Promise.all(
+        [elemento, ...ancestros(elemento)].flatMap((e) =>
+          e.getAnimations().map((a) => a.finished.catch(() => undefined)),
+        ),
+      )
     await cuadro()
+    await Promise.race([terminan(), new Promise((seguir) => setTimeout(seguir, 2000))])
+    let iguales = 0
     let ahora = medir()
-    while (!igual(antes, ahora) && performance.now() < limite) {
-      antes = ahora
+    while (iguales < 2 && performance.now() < limite) {
+      const antes = ahora
       await cuadro()
       ahora = medir()
+      iguales = igual(antes, ahora) ? iguales + 1 : 0
     }
-    const quieta = igual(antes, ahora)
+    const quieta = iguales >= 2
     const [izquierda = 0, arriba = 0, ancho = 0, alto = 0] = ahora
     const encima = document.elementFromPoint(izquierda + ancho / 2, arriba + alto / 2)
     const describir = (e: Element | null) =>

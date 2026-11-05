@@ -30,8 +30,8 @@ se lee por `Grep`: la entrada del paso en «Partición» (lo hecho está en `doc
    Las **precondiciones verificables** (`Vn · afirmación · archivo:línea`) se contrastan una por una con el repo: una falsa es un hallazgo.
 3. **Nivel:** corre `node scripts/piloto/nivel.mjs <archivos del plan>` y `node scripts/piloto/cuenta-e2e.mjs docs/BITACORA.md`. Los seis
    disparadores del Nivel 2 y la cuenta `n de 3` tienen que coincidir con lo que dice el plan. Un nivel que el plan se salta es un bloqueo.
-4. **Pruebas que fallan primero:** cada cambio de conducta tiene su prueba escrita contra HEAD y guardada en rojo, y su mutación (qué se rompe, qué
-   prueba debe caer). Una prueba que no puede caer no prueba nada.
+4. **Pruebas que fallan primero:** cada cambio de conducta tiene su prueba escrita contra HEAD y guardada en rojo, y, si el paso es de rigor máximo, su mutación (qué se rompe, qué
+   prueba debe caer; en pantalla pura no se exige: `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Una prueba que no puede caer no prueba nada.
 5. **Seguridad y permisos:** nada que un nivel oculte; ningún permiso por rol en la UI (`puede(permisos, clave, origen)`); lo que otorga permisos
    se escribe por RPC; ninguna tabla sin RLS; Vault y la clave real de apibara nunca se leen ni se llaman. Si el plan toca policy, RLS, permiso,
    `security definer` o Vault, tiene que pedir la compuerta de datos.

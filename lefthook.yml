@@ -12,6 +12,9 @@ pre-commit:
       stage_fixed: true
     - name: typecheck
       glob: '*.{ts,tsx,mts}'
+      # En un paso del piloto (PILOTO=1) el hook Stop ya tipó el árbol y el CI lo vuelve a tipar: no se repite en cada commit.
+      skip:
+        - run: test "$PILOTO" = 1
       run: pnpm typecheck
     - name: mapa
       run: bash scripts/mapa.sh --check # docs/MAPA.md no se versiona y va en .prettierignore

@@ -1,5 +1,5 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -12,19 +12,23 @@ const COMPUERTA = resolve('scripts/piloto/compuerta.sh')
 const PATRON = 'patron-unico-de-compuerta-vivo'
 
 let dir = ''
+let raiz = ''
 const hijos: ChildProcess[] = []
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'compuerta-vivo-'))
+  // La raíz del repo de la prueba: `<raiz>/.piloto` es el ESTADO y los pasos de este repo viven con `<raiz>` por directorio de trabajo.
+  raiz = mkdtempSync(join(tmpdir(), 'compuerta-vivo-'))
+  dir = join(raiz, '.piloto')
+  mkdirSync(dir)
 })
 afterEach(() => {
   for (const h of hijos.splice(0)) h.kill()
-  rmSync(dir, { recursive: true, force: true })
+  rmSync(raiz, { recursive: true, force: true })
 })
 
 /** Un proceso quieto cuya línea de comandos empieza por `argv0` (lo que `pgrep -f` y `ps` ven). */
-function proceso(argv0: string) {
-  const h = spawn('bash', ['-c', `exec -a "${argv0}" sleep 60`], { stdio: 'ignore' })
+function proceso(argv0: string, cwd = raiz) {
+  const h = spawn('bash', ['-c', `exec -a "${argv0}" sleep 60`], { stdio: 'ignore', cwd })
   hijos.push(h)
   // Espera a que el `exec -a` haya ocurrido: lo que importa es la línea de comandos del propio señuelo.
   spawnSync('bash', [
@@ -57,6 +61,11 @@ describe('compuerta.sh › paso_vivo', () => {
   it('un proceso de verdad con el patrón en su línea de comandos es un paso vivo', () => {
     proceso(`claude -p /piloto ${PATRON}`)
     expect(pasoVivo()).toBe(0)
+  })
+
+  it('un paso con el patrón pero de otro repo (otro directorio de trabajo) no es un paso vivo', () => {
+    proceso(`claude -p /piloto ${PATRON}`, tmpdir())
+    expect(pasoVivo()).toBe(1)
   })
 
   it('el pgrep de otro bucle, con el patrón en su línea, no es un paso vivo', () => {

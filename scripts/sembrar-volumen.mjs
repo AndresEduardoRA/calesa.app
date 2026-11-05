@@ -4,6 +4,7 @@
 // Uso: pnpm db:sembrar-volumen                      (50.000 leads, lo que mide `db:medir:volumen`)
 //      pnpm db:sembrar-volumen -- --leads 200000    (otra cantidad, con el mismo reparto: para medir una vez y anotar)
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { stackLocal } from './lib/stack-local.mjs'
 
 // El contenedor de la base de ESTE worktree (la principal o un carril: scripts/lib/stack-local.mjs).

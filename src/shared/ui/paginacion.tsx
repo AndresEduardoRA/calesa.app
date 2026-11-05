@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { formatearFecha } from '@/shared/lib/fechas'
 import { CLAVE_DE_CURSOR } from '@/shared/lib/filtros'
 import type { UbicacionDeLaPagina } from '@/shared/lib/paginacion'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { buttonVariants } from '@/shared/ui/button'
 import { useRegional } from './regional'
 import { useEnLinea } from './use-en-linea'
@@ -16,23 +16,20 @@ type Props = {
   // Los cursores de la página que sigue y de la anterior; null = no hay.
   siguiente: string | null
   anterior: string | null
+  // Con `alIr`, cambiar de página no navega: «Anterior» y «Siguiente» son botones que le pasan el
+  // cursor (una lista de un panel que se lee desde el navegador, sin pedirle la página al servidor).
+  alIr?: (cursor: string) => void
 }
 
-// Anterior y siguiente del listado. Son enlaces a la misma URL con otro cursor: la página se
-// puede recargar y compartir, y «atrás» del navegador vuelve a la que se estaba viendo.
-export function Paginacion({ siguiente, anterior }: Props) {
+// Anterior y siguiente del listado. Sin `alIr` son enlaces a la misma URL con otro cursor: la página
+// se puede recargar y compartir, y «atrás» del navegador vuelve a la que se estaba viendo.
+export function Paginacion({ siguiente, anterior, alIr }: Props) {
   const ruta = usePathname()
   const parametros = useSearchParams()
   const enLinea = useEnLinea()
   // Sin red, un enlace de página cae a una navegación completa y el navegador muestra su página vacía:
   // no se navega y se dice, y lo que se ve queda como estaba.
   const [intento, setIntento] = useState(false)
-  const sinRed = (evento: { preventDefault: () => void }) => {
-    if (!enLinea) {
-      evento.preventDefault()
-      setIntento(true)
-    }
-  }
   if (siguiente === null && anterior === null) {
     return null
   }
@@ -41,33 +38,18 @@ export function Paginacion({ siguiente, anterior }: Props) {
     nuevos.set(CLAVE_DE_CURSOR, cursor)
     return `${ruta}?${nuevos.toString()}` as Route
   }
-  const clases = buttonVariants({ variant: 'outline', className: 'h-11 md:h-9' })
-  const apagado = `${clases} pointer-events-none opacity-50`
+  const lado = { enLinea, hacia, alIr, alFallar: () => setIntento(true) }
   return (
     <div className="grid justify-items-end gap-2">
       <nav aria-label="Páginas" className="flex flex-wrap justify-end gap-2">
-        {anterior === null ? (
-          <span aria-disabled="true" className={apagado}>
-            <ChevronLeftIcon aria-hidden />
-            Anterior
-          </span>
-        ) : (
-          <Link href={hacia(anterior)} className={clases} onClick={sinRed}>
-            <ChevronLeftIcon aria-hidden />
-            Anterior
-          </Link>
-        )}
-        {siguiente === null ? (
-          <span aria-disabled="true" className={apagado}>
-            Siguiente
-            <ChevronRightIcon aria-hidden />
-          </span>
-        ) : (
-          <Link href={hacia(siguiente)} className={clases} onClick={sinRed}>
-            Siguiente
-            <ChevronRightIcon aria-hidden />
-          </Link>
-        )}
+        <Lado {...lado} cursor={anterior}>
+          <ChevronLeftIcon aria-hidden />
+          Anterior
+        </Lado>
+        <Lado {...lado} cursor={siguiente}>
+          Siguiente
+          <ChevronRightIcon aria-hidden />
+        </Lado>
       </nav>
       {intento && !enLinea ? (
         <p role="status" className="text-(length:--text-sm) text-(--color-ink-soft)">
@@ -75,6 +57,45 @@ export function Paginacion({ siguiente, anterior }: Props) {
         </p>
       ) : null}
     </div>
+  )
+}
+
+// Un lado de la paginación: apagado si no hay cursor; si no, un enlace o, con `alIr`, un botón.
+function Lado(props: {
+  cursor: string | null
+  enLinea: boolean
+  hacia: (cursor: string) => Route
+  alIr: ((cursor: string) => void) | undefined
+  alFallar: () => void
+  children: ReactNode
+}) {
+  const { cursor, enLinea, hacia, alIr, alFallar, children } = props
+  const clases = buttonVariants({ variant: 'outline', className: 'h-11 md:h-9' })
+  if (cursor === null) {
+    return (
+      <span aria-disabled="true" className={`${clases} pointer-events-none opacity-50`}>
+        {children}
+      </span>
+    )
+  }
+  if (alIr) {
+    const ir = () => (enLinea ? alIr(cursor) : alFallar())
+    return (
+      <button type="button" className={clases} onClick={ir}>
+        {children}
+      </button>
+    )
+  }
+  const sinRed = (evento: { preventDefault: () => void }) => {
+    if (!enLinea) {
+      evento.preventDefault()
+      alFallar()
+    }
+  }
+  return (
+    <Link href={hacia(cursor)} className={clases} onClick={sinRed}>
+      {children}
+    </Link>
   )
 }
 

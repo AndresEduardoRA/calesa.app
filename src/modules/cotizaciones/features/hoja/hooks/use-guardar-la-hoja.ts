@@ -1,15 +1,15 @@
 'use client'
 
 import type { RefObject } from 'react'
-import { useAtajo } from '@/shared/ui/atajos'
+import { ofreceVerTotalBs } from '../../../entities/cabecera-de-la-hoja'
 import { totalDelResumen, type ContextoDeHoja } from '../../../entities/binding'
 import { entradasDelPedido, type Entradas } from '../../../entities/entradas'
 import type { HojaLista } from '../../../entities/hoja'
 import type { RespuestaDeRecalculo } from '../../../entities/recalculo'
 import { motivoParaNoGuardar } from '../../../entities/se-puede-guardar'
-import { confirmarCeldaAbierta } from './confirmar-celda-abierta'
 import type { BotonDeGuardar } from '../components/resumen-de-hoja'
-import type { Armar, Guardado } from './use-guardado'
+import { useAlGuardar } from './use-al-guardar'
+import type { Armar, Guardado } from './use-nucleo-del-guardado'
 import type { useHoja } from './use-hoja'
 
 // Un override que la persona mandó y el recálculo descartó: la base lo rechaza al guardar (P9).
@@ -32,12 +32,13 @@ export function useGuardarLaHoja({
   hoja: HojaLista
   leadId: string | null
   vehiculoId: string | null
-  guardado: Guardado
+  // Nulo: la hoja no guarda (una guardada de sólo lectura, o todavía sin «Guardar»): ni botón ni `Ctrl/Cmd+S`.
+  guardado: Guardado | null
   raiz: RefObject<HTMLDivElement | null>
 }) {
   const faltaVehiculo = hoja.vehiculoObligatorio && vehiculoId === null
   // Un pendiente se reenvía tal cual: las guardas de la hoja no le aplican (4-21).
-  const motivo = guardado.hayPendiente
+  const motivo = guardado?.hayPendiente
     ? null
     : motivoParaNoGuardar({
         estado: h.estado,
@@ -67,29 +68,23 @@ export function useGuardarLaHoja({
               vehiculoId,
               abierta: h.abierta,
               entradas: entradasDelPedido(r.entradas),
+              modoTc: r.entradas.modoTc,
+              verTotalBs: ofreceVerTotalBs(hoja.cabecera) && h.verTotalBs,
             }
           : null,
       )
     })
   }
-  const alGuardar = () => {
-    if (guardado.ocupado) {
-      return
-    }
-    const celda = confirmarCeldaAbierta(raiz.current)
-    // Lo que se acaba de confirmar puede arreglar el motivo: lo decide el total al día.
-    if (celda === 'invalida' || (celda === 'ninguna' && motivo !== null)) {
-      return
-    }
-    guardado.guardar(armar)
-  }
-  useAtajo('guardar', alGuardar)
+  const alGuardar = useAlGuardar({ guardado, motivo, armar, raiz })
   const total = totalDelResumen(contexto)
-  const boton: BotonDeGuardar = {
-    motivo,
-    motivoYaDicho: total.tipo === 'faltante' || faltaVehiculo,
-    ocupado: guardado.ocupado,
-    alGuardar,
-  }
+  const boton: BotonDeGuardar | null =
+    guardado === null
+      ? null
+      : {
+          motivo,
+          motivoYaDicho: total.tipo === 'faltante' || faltaVehiculo,
+          ocupado: guardado.ocupado,
+          alGuardar,
+        }
   return { boton }
 }

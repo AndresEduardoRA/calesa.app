@@ -26,6 +26,14 @@ type Props = {
   ancla?: RefObject<HTMLElement | null>
 }
 
+// «Gestionar etiquetas» cierra el selector y lleva el foco al ancla (el «⋯», a donde vuelve sin recargar) antes de abrir el panel: el campo de
+// búsqueda desaparece, y la vuelta del foco tras recargar necesita a quién volver.
+function gestionar(props: Props, cerrar: (abierto: boolean) => void): void {
+  cerrar(false)
+  props.ancla?.current?.focus({ preventScroll: true })
+  props.alGestionar()
+}
+
 // Elegir las etiquetas de quien mira para un lead: buscar, marcar y desmarcar, y crear una nueva
 // escribiendo su nombre y presionando Enter. Las coincidencias van primero y «Crear» al final, así
 // Enter sobre lo que ya existe la marca y sobre algo nuevo la crea (la opción resaltada la decide
@@ -104,8 +112,7 @@ export function SelectorDeEtiquetas(props: Props) {
             alCambiar={alCambiar}
             alCrear={() => void crear()}
             alGestionar={() => {
-              cambiarAbierto(false)
-              props.alGestionar()
+              gestionar(props, cambiarAbierto)
             }}
           />
         </Command>

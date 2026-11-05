@@ -94,12 +94,13 @@ select v.id, 'Volumen ' || v.n || ' ' || (array['Pérez', 'Gómez', 'Rojas', 'Su
        (select t.id from public.tipos_lead t
          where t.clave = case when v.n % 100 = 0 then 'volumen_mayorista' when v.n % 100 <= 14 then 'cliente' else 'prospecto' end)
   from volumen_leads v;
--- `lead_creado_en` (5a-fix-1a) lo llena un trigger al insertar; con los triggers apagados se copia del lead a mano.
-insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde, lead_creado_en)
-select v.id, v.dueno, 'dueno', now(), l.creado_en from volumen_leads v join public.leads l on l.id = v.id;
+-- `lead_creado_en` (5a-fix-1a) y `lead_reciente_en` (4.14-3a) los llena un trigger al insertar; con los triggers apagados se copian del lead a mano
+-- (lo reciente, otra vez tras fijar `ultimo_seguimiento_en`, más abajo).
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, desde, lead_creado_en, lead_reciente_en)
+select v.id, v.dueno, 'dueno', now(), l.creado_en, l.creado_en from volumen_leads v join public.leads l on l.id = v.id;
 -- Compartidos: el 2 % de los de la dueña, con Ana.
-insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en)
-select v.id, '00000000-0000-0000-0000-0000000000a1', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en
+insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, desde, lead_creado_en, lead_reciente_en)
+select v.id, '00000000-0000-0000-0000-0000000000a1', 'compartido', '00000000-0000-0000-0000-0000000000d1', now(), l.creado_en, l.creado_en
   from volumen_leads v join public.leads l on l.id = v.id where v.n <= :n * 2 / 5 and v.n % 50 = 0;
 
 -- Marcas: tachados 5 %, favoritos 3 % de la dueña; los de Ana, sus propias.
@@ -134,6 +135,9 @@ select l.id, l.dueno, (select id from public.tipos_seguimiento order by orden, i
 update public.leads l set ultimo_seguimiento_en = s.ultimo
   from (select lead_id, max(ocurrido_en) ultimo from public.seguimientos where titulo like 'Volumen seguimiento %' group by lead_id) s
  where s.lead_id = l.id;
+-- Lo reciente de la cartera sigue al último seguimiento (sin triggers, a mano).
+update public.leads_asesores la set lead_reciente_en = l.ultimo_seguimiento_en
+  from public.leads l where l.id = la.lead_id and l.ultimo_seguimiento_en is not null;
 insert into public.recordatorios (usuario_id, lead_id, titulo, recordar_en, completado_en)
 select l.dueno, l.id, 'Volumen recordatorio ' || g,
        case when g % 3 = 0 then now() - make_interval(hours => g % 700) else now() + make_interval(hours => 1 + g % 900) end,

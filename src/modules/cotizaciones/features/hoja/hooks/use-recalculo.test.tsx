@@ -57,7 +57,9 @@ afterEach(() => {
 describe('useRecalculo: la cola del recálculo de la hoja', () => {
   it('nace como lo dejó el servidor y no pide nada solo', async () => {
     const { pedir } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     await avanzar(1000)
     expect(pedir).not.toHaveBeenCalled()
     expect(hook.result.current.estado).toEqual({ tipo: 'al_dia' })
@@ -66,7 +68,9 @@ describe('useRecalculo: la cola del recálculo de la hoja', () => {
 
   it('pide 150 ms después de la confirmación, con las entradas de ese momento, y aplica la respuesta', async () => {
     const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(5))
     })
@@ -87,7 +91,9 @@ describe('useRecalculo: la cola del recálculo de la hoja', () => {
 
   it('varias confirmaciones seguidas son un solo pedido, con la última', async () => {
     const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     for (const n of [1, 2, 3]) {
       act(() => {
         hook.result.current.programar(entradas(n))
@@ -103,7 +109,9 @@ describe('useRecalculo: la cola del recálculo de la hoja', () => {
 describe('useRecalculo: uno en vuelo y la respuesta más nueva', () => {
   it('con uno en vuelo no sale otro: queda pendiente y sale uno solo, con lo último, cuando vuelve; la respuesta vieja no se aplica', async () => {
     const { pedir, pendientes, cuenta } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(1))
     })
@@ -135,7 +143,9 @@ describe('useRecalculo: uno en vuelo y la respuesta más nueva', () => {
 
   it('si la espera todavía no venció cuando vuelve la vieja, no sale un pedido de más', async () => {
     const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(1))
     })
@@ -155,7 +165,9 @@ describe('useRecalculo: uno en vuelo y la respuesta más nueva', () => {
 
   it('un error de un pedido que ya no es el último no se aplica', async () => {
     const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(1))
     })
@@ -174,7 +186,9 @@ describe('useRecalculo: uno en vuelo y la respuesta más nueva', () => {
 describe('useRecalculo: fallos y reintentos', () => {
   it('un fallo deja «No se pudo recalcular» (y el total viejo no pasa por bueno); Reintentar vuelve a pedir y lo arregla', async () => {
     const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(5))
     })
@@ -199,7 +213,9 @@ describe('useRecalculo: fallos y reintentos', () => {
 
   it('una regla rota (la fórmula cambió) pide Recargar, no Reintentar', async () => {
     const { pedir, pendientes } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(5))
     })
@@ -213,7 +229,9 @@ describe('useRecalculo: fallos y reintentos', () => {
 
   it('un pedido que se rechaza (la red se cortó a mitad) es un fallo, no una pantalla rota', async () => {
     const pedir = vi.fn(() => Promise.reject(new Error('sin red')))
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(5))
     })
@@ -223,7 +241,9 @@ describe('useRecalculo: fallos y reintentos', () => {
 
   it('reintentar con uno en vuelo descarta esa respuesta y sale uno solo', async () => {
     const { pedir, pendientes, cuenta } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }))
+    const hook = renderHook(() =>
+      useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+    )
     act(() => {
       hook.result.current.programar(entradas(5))
     })
@@ -244,9 +264,12 @@ describe('useRecalculo: fallos y reintentos', () => {
 describe('useRecalculo: montaje y pantalla escondida', () => {
   it('con StrictMode (monta, desmonta y vuelve a montar) pide lo mismo: uno por pausa', async () => {
     const { pedir } = pedidor()
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }), {
-      wrapper: StrictMode,
-    })
+    const hook = renderHook(
+      () => useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+      {
+        wrapper: StrictMode,
+      },
+    )
     act(() => {
       hook.result.current.programar(entradas(5))
     })
@@ -260,7 +283,10 @@ describe('useRecalculo: montaje y pantalla escondida', () => {
     const Pantalla = ({ children }: { children: ReactNode }) => (
       <Activity mode={modo}>{children}</Activity>
     )
-    const hook = renderHook(() => useRecalculo({ inicial: INICIAL, pedir }), { wrapper: Pantalla })
+    const hook = renderHook(
+      () => useRecalculo({ inicial: INICIAL, iniciales: ENTRADAS_VACIAS, pedir }),
+      { wrapper: Pantalla },
+    )
     act(() => {
       hook.result.current.programar(entradas(5))
     })

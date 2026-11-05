@@ -113,14 +113,21 @@ const itemsDeCeldas = () => [
   { tipo: 'subtotal', nodo: 'cif', etiqueta: 'CIF', formato: 'usd', tono: 'verde' },
 ]
 
-export const crudaDeLaHoja = () => ({
+// La cabecera que una prueba cambia: los modos de tipo de cambio, si el diseño ofrece «Ver total Bs» y la moneda del total en Bs.
+export type CabeceraCruda = {
+  modos: { clave: string; nombre: string }[]
+  ver_total_bs: boolean
+  moneda_bs: string | null
+}
+
+export const crudaDeLaHoja = (cabecera: Partial<CabeceraCruda> = {}) => ({
   estado: 'lista',
   origen: { id: ID, nombre: 'Subasta' },
   formula: { id: ID, version: 3 },
   abierta_en: '2026-10-26T14:00:00+00:00',
   abierta: `${ID}.1792850400000000.${'a'.repeat(64)}`,
   vehiculo_obligatorio: false,
-  cabecera: { modos: [], ver_total_bs: false },
+  cabecera: { modos: [], ver_total_bs: false, moneda_bs: 'BOB', ...cabecera },
   secciones: [
     {
       id: 'hoja',
@@ -138,8 +145,8 @@ export const crudaDeLaHoja = () => ({
   tonos: [{ clave: 'verde', claro: COLORES, oscuro: COLORES }],
 })
 
-export const hojaDePrueba = (): HojaLista => {
-  const hoja = hojaDesde(crudaDeLaHoja())
+export const hojaDePrueba = (cabecera: Partial<CabeceraCruda> = {}): HojaLista => {
+  const hoja = hojaDesde(crudaDeLaHoja(cabecera))
   if (hoja?.estado !== 'lista') {
     throw new Error('La hoja de prueba no se leyó.')
   }

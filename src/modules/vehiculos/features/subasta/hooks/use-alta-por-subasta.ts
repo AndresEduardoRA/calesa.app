@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CampoDeLayout } from '@/modules/origenes/client'
 import type { CampoDeVehiculo } from '../../../entities/campo'
 import type { Fuentes } from '../../../entities/esquema'
@@ -25,6 +25,30 @@ type Args = {
   }) => Promise<ResultadoDeFotos>
   // Lo último que se guardó desde el formulario y de qué línea venía.
   guardado: GuardadoDeLinea | null
+  // Lo que arranca escrito en el pegado (el panel del vehículo de la hoja de cotizar trae lo que se tipeó en su buscador).
+  textoInicial?: string
+  // Consulta una vez al montarse, con ese texto. Cada consulta gasta cuota de apibara: quien lo pide es quien acaba de decidir traer.
+  consultarAlMontar?: boolean
+}
+
+// Consulta una vez, al montarse, con lo que arrancó pegado. Un ref con la última `consultar` evita depender de su identidad (cambia en cada dibujo), y otro,
+// que corra de nuevo (el modo estricto monta los efectos dos veces): cada consulta gasta cuota de apibara.
+function useConsultaAlMontar(
+  consultar: (texto: string) => Promise<void>,
+  texto: string,
+  pedido: boolean,
+) {
+  const ultima = useRef(consultar)
+  useEffect(() => {
+    ultima.current = consultar
+  })
+  const hecho = useRef(false)
+  useEffect(() => {
+    if (pedido && !hecho.current) {
+      hecho.current = true
+      void ultima.current(texto)
+    }
+  }, [pedido, texto])
 }
 
 const SIN_DATOS: DatosDeSubasta = { columnas: {}, atributos: {}, sinCoincidencia: [] }
@@ -38,8 +62,10 @@ export function useAltaPorSubasta({
   estado,
   traerFotos,
   guardado,
+  textoInicial = '',
+  consultarAlMontar = false,
 }: Args) {
-  const [texto, setTexto] = useState('')
+  const [texto, setTexto] = useState(textoInicial)
   const [sinLlenar, setSinLlenar] = useState<string[]>([])
   const consulta = useConsultaDeSubasta({ origenId, campos })
   const { fijarEstado } = consulta
@@ -78,6 +104,15 @@ export function useAltaPorSubasta({
     })
   }
 
+  const consultar = async (aConsultar: string) => {
+    const finales = await consulta.consultar(aConsultar)
+    const [una] = finales
+    if (finales.length === 1 && una) {
+      usar(una, 1)
+    }
+  }
+  useConsultaAlMontar(consultar, textoInicial, consultarAlMontar)
+
   return {
     texto,
     setTexto,
@@ -86,13 +121,7 @@ export function useAltaPorSubasta({
     lote,
     ocupado,
     // Una sola línea y bien: llena la ficha sin pedir otro clic.
-    consultar: async () => {
-      const finales = await consulta.consultar(texto)
-      const [una] = finales
-      if (finales.length === 1 && una) {
-        usar(una, 1)
-      }
-    },
+    consultar: () => consultar(texto),
     usar: (linea: Linea) => {
       usar(linea, consulta.lineas.length)
     },

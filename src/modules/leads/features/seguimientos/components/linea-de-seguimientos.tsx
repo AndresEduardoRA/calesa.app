@@ -28,6 +28,9 @@ type Props = {
   // El próximo contacto que entró con un seguimiento: va a «Tus recordatorios» si están a la vista (en
   // el drawer viven en su pestaña, que lo lee al abrirse).
   alAgendar?: (recordatorio: Recordatorio) => void
+  // Dentro de una pestaña del drawer rápido: si al cerrarse el modal la pestaña ya no está (un «atrás» a otra), no devuelve el foco a ciegas (a
+  // «Editar», que lo tenía al abrirse el drawer) y lo deja a la vuelta del foco, que lo lleva al «⋯» del resumen que abrió el modal (4-58).
+  enPestana?: boolean
 }
 
 const sinSuscripcion = () => () => undefined
@@ -158,7 +161,14 @@ function Lista({
 // lo propio), «Ver más» hasta el tope e «Ir a una fecha». Anotar y editar abren el modal con su URL. Lo que cada quien ve lo decidió la
 // base; acá no se cuenta nada, para no insinuar los privados de otros. La usan la ficha y la pestaña
 // «Seguimientos» del drawer (el modal se dibuja adentro: Base UI lo anida).
-export function LineaDeSeguimientos({ leadId, tipos, zona, seguimientos, alAgendar }: Props) {
+export function LineaDeSeguimientos({
+  leadId,
+  tipos,
+  zona,
+  seguimientos,
+  alAgendar,
+  enPestana = false,
+}: Props) {
   const boton = useRef<HTMLButtonElement>(null)
   const { puedoAnotar } = seguimientos
   const eliminacion = useEliminarSeguimiento(seguimientos.poner)
@@ -202,7 +212,7 @@ export function LineaDeSeguimientos({ leadId, tipos, zona, seguimientos, alAgend
             }
             modal.cerrar()
           }}
-          focoAlCerrar={() => modal.focoAlCerrar() ?? boton.current ?? true}
+          focoAlCerrar={() => modal.focoAlCerrar() ?? boton.current ?? !enPestana}
           // «Recargar» tras un conflicto: la primera página y, si no vino ahí, el que se edita por su id.
           recargar={() => void seguimientos.releer(modal.original?.id ?? null)}
           recargando={seguimientos.cargando}
