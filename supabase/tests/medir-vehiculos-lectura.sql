@@ -23,8 +23,8 @@
 --     `mis_leads()`, ≤ 5 ms;
 --   - que no crece con N: con 250.000 el tiempo es a lo sumo `greatest(1,5 × el de 50.000, el de 50.000 + 3 ms)` y los buffers a lo sumo 1,2 × los de 50.000 + 20;
 --   - la guarda: con la policy y la función de antes puestas en su lugar, la página de Beto llama a `mis_leads()` y la función también: tienen que romper estos asserts.
--- La «chica» («propios», 3 vehículos, los más viejos de A, sin cartera) recorre todo A hasta llenar la página: se mide sin assert de tiempo con la policy nueva y con la
--- vieja (crece con N: `docs/PLAN.md`, 4-23). Sí se asserta que no llama a `en_cartera()`: un vehículo sin lead no pregunta (`lead_id is not null`).
+-- La «chica» («propios», 3 vehículos, los más viejos de A, sin cartera) recorre aquí todo A: es lo de hoy, sin assert de tiempo; su inventario por la función
+-- (`vehiculos_inventario()`, 4.16-2a) se mide en `medir-vehiculos-inventario.sql`. Sí se asserta que no llama a `en_cartera()` (un vehículo sin lead no pregunta).
 -- Cada línea `medicion|…|número` sale por el runner (`scripts/medir-listado.mjs`); las `nota|…`, también.
 -- Las corridas anteriores se revierten, pero sus tuplas muertas (250.000 vehículos y 50.000 filas de cartera) quedan en el heap y en los índices hasta que alguien las limpie, y
 -- `medir-bajas.sql` trabaja `leads_asesores`: se limpian antes de medir y después. VACUUM no corre dentro de una transacción: va fuera del begin. En el runner va antes
