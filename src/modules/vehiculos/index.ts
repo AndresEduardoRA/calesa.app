@@ -12,6 +12,8 @@ export {
   leerVehiculo,
 } from './composicion'
 export { MAXIMO_DE_PAGINA_DE_VEHICULOS } from './entities/vehiculo'
+// De dónde se lee una página del inventario: quien ve «propios» por `vehiculos_inventario()`, el resto por la tabla (4.16-2b)
+export { fuenteDelInventario, type FuenteDelInventario } from './entities/fuente-del-inventario'
 export type { Vehiculo } from './entities/vehiculo'
 export type { Galeria } from './entities/foto'
 // El vehículo de la hoja de cotizar, como lo dibuja su barra (`pantallas/cotizar`)
