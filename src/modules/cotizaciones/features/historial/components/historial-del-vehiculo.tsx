@@ -14,7 +14,7 @@ import { EstadoError, EstadoVacio } from '@/shared/ui/estados'
 import { useRegional } from '@/shared/ui/regional'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { ETIQUETA_DE_CLASE } from '../../../entities/historial-del-vehiculo'
-import { rutaDeLaCotizacion } from '../../../entities/ruta-de-la-hoja'
+import { rutaDeLaCotizacion, rutaDelListado } from '../../../entities/ruta-de-la-hoja'
 import { useHistorialDelVehiculo } from '../hooks/use-historial-del-vehiculo'
 
 // Lo que tarda menos que esto no muestra el esqueleto: un parpadeo cuesta más que la espera.
@@ -52,13 +52,19 @@ export function HistorialDelVehiculo({ vehiculoId, conteo }: Props) {
         />
       </Button>
       <div id={id} hidden={!historial.abierto} className="min-w-0">
-        {historial.abierto ? <Contenido historial={historial} /> : null}
+        {historial.abierto ? <Contenido historial={historial} vehiculoId={vehiculoId} /> : null}
       </div>
     </div>
   )
 }
 
-function Contenido({ historial }: { historial: ReturnType<typeof useHistorialDelVehiculo> }) {
+function Contenido({
+  historial,
+  vehiculoId,
+}: {
+  historial: ReturnType<typeof useHistorialDelVehiculo>
+  vehiculoId: string
+}) {
   const { zonaHoraria } = useRegional()
   if (!historial.leido) {
     if (historial.error) {
@@ -95,35 +101,54 @@ function Contenido({ historial }: { historial: ReturnType<typeof useHistorialDel
           </li>
         ))}
       </ul>
-      {historial.error ? (
-        <div role="alert" className="flex flex-wrap items-center gap-2">
-          <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-            No se pudieron cargar más.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11 md:min-h-9"
-            onClick={historial.reintentar}
-          >
-            Reintentar
-          </Button>
-        </div>
-      ) : historial.enElTope ? (
-        <AvisoDeTope texto={textoDelTope(TOPE_DE_LO_CARGADO, { articulo: 'las' })} />
-      ) : historial.hayMasParaPedir ? (
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-11 md:min-h-9"
-          disabled={historial.cargando}
-          onClick={historial.verMas}
-        >
-          {historial.cargando ? 'Cargando…' : 'Ver más'}
-        </Button>
-      ) : null}
+      <PieDelHistorial historial={historial} vehiculoId={vehiculoId} />
     </div>
   )
+}
+
+// Lo que va debajo de las filas: el error de «Ver más», el tope con su camino al listado, o «Ver más».
+function PieDelHistorial({
+  historial,
+  vehiculoId,
+}: {
+  historial: ReturnType<typeof useHistorialDelVehiculo>
+  vehiculoId: string
+}) {
+  return historial.error ? (
+    <div role="alert" className="flex flex-wrap items-center gap-2">
+      <p className="text-(length:--text-sm) text-(--color-ink-soft)">No se pudieron cargar más.</p>
+      <Button
+        type="button"
+        variant="outline"
+        className="min-h-11 md:min-h-9"
+        onClick={historial.reintentar}
+      >
+        Reintentar
+      </Button>
+    </div>
+  ) : historial.enElTope ? (
+    <AvisoDeTope
+      texto={textoDelTope(TOPE_DE_LO_CARGADO, { articulo: 'las' })}
+      camino={
+        <Link
+          href={rutaDelListado({ vehiculo: vehiculoId }) as Route}
+          className="underline hover:text-(--color-ink)"
+        >
+          Ver todas en Cotizaciones
+        </Link>
+      }
+    />
+  ) : historial.hayMasParaPedir ? (
+    <Button
+      type="button"
+      variant="outline"
+      className="min-h-11 md:min-h-9"
+      disabled={historial.cargando}
+      onClick={historial.verMas}
+    >
+      {historial.cargando ? 'Cargando…' : 'Ver más'}
+    </Button>
+  ) : null
 }
 
 // Mientras llega la lista: tres filas, con letrero para quien lee en voz alta.

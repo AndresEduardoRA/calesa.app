@@ -154,6 +154,18 @@ describe('HistorialDelVehiculo: «Ver más», el tope y los errores', () => {
     }
     expect(screen.getByText('Mostrando las 500 más recientes.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Ver más' })).toBeNull()
+    // El camino a lo antiguo: el listado de cotizaciones filtrado por este vehículo.
+    expect(
+      screen.getByRole('link', { name: 'Ver todas en Cotizaciones' }).getAttribute('href'),
+    ).toBe(`/cotizaciones?vehiculo=${VEHICULO}`)
+  })
+
+  it('antes del tope no hay camino al listado', async () => {
+    montar({ n: 2, hayMas: false })
+    abrir()
+    await responder(pagina(1, 2))
+    await screen.findByRole('list')
+    expect(screen.queryByRole('link', { name: 'Ver todas en Cotizaciones' })).toBeNull()
   })
 
   it('un error en la primera página ofrece «Reintentar», que vuelve a leer', async () => {

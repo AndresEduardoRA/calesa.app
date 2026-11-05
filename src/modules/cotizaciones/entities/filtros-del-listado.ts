@@ -1,5 +1,6 @@
 // Los filtros del listado `/cotizaciones` (`docs/UX.md` › «Cotizaciones»): qué ofrece su barra y qué pide cada URL a `cotizaciones_listado()`. Puro: la página
 // lee la URL con `leerFiltros()` y este archivo la vuelve un pedido. Un valor que no corresponde se descarta al leer (nunca un error).
+import { z } from 'zod'
 import type { EsquemaDeFiltros, OpcionDeFiltro, ValoresDeFiltros } from '@/shared/lib/filtros'
 import type { Cursor } from '@/shared/lib/paginacion'
 import type { Permisos } from '@/shared/lib/permisos'
@@ -72,16 +73,19 @@ function eleccion(valores: ValoresDeFiltros, clave: string): string | null {
 // Lo que pide la URL, ya leída con el esquema: el origen sólo es uno de los que se ofrecen, la clase una de las dos y «Mías» la única que no es el valor por defecto.
 export function pedidoDelListado(
   valores: ValoresDeFiltros,
-  resto: { cursor: Cursor | null; tamano: number },
+  // `vehiculo` es el texto de `?vehiculo=` tal como llegó: sólo vale un guid. No es un filtro del esquema (ni chip, ni lo borra «Limpiar»).
+  resto: { cursor: Cursor | null; tamano: number; vehiculo?: string | undefined },
 ): PedidoDelListado {
   const origenId = eleccion(valores, CLAVE_DE_ORIGEN)
   const clase = eleccion(valores, CLAVE_DE_CLASE)
+  const vehiculo = z.guid().safeParse(resto.vehiculo)
   return {
     ...(origenId === null ? {} : { origenId }),
     ...(clase === 'preventa' || clase === 'final'
       ? { clase: clase satisfies ClaseDeCotizacion }
       : {}),
     ...(eleccion(valores, CLAVE_DE_CUALES) === MIAS ? { mias: true } : {}),
+    ...(vehiculo.success ? { vehiculoId: vehiculo.data } : {}),
     cursor: resto.cursor,
     tamano: resto.tamano,
   }

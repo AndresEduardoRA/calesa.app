@@ -11,12 +11,13 @@ import {
   origenParaNueva,
   pedidoDelListado,
   rutaDeLaHoja,
+  CLAVE_DE_VEHICULO,
 } from '@/modules/cotizaciones'
 import { ListadoDeCotizaciones } from '@/modules/cotizaciones/pantallas/listado'
 import { requerirSesion } from '@/modules/equipo'
 import { leerNombresDeLeads } from '@/modules/leads'
 import { getOrigenes } from '@/modules/origenes'
-import { leerTitulosDeVehiculos } from '@/modules/vehiculos'
+import { leerTitulosDeVehiculos, leerVehiculo } from '@/modules/vehiculos'
 import { datosO } from '@/shared/lib/errores'
 import { CLAVE_DE_CURSOR, CLAVE_DE_POR_PAGINA, leerFiltros } from '@/shared/lib/filtros'
 import { leerCursor, leerPorPagina, tamanoDePagina, tamanosHasta } from '@/shared/lib/paginacion'
@@ -61,6 +62,7 @@ async function Listado({
   const pedido = pedidoDelListado(leerFiltros(esquema, parametros), {
     cursor: leerCursor(unParametro(parametros[CLAVE_DE_CURSOR])),
     tamano,
+    vehiculo: unParametro(parametros[CLAVE_DE_VEHICULO]),
   })
   const pagina = datosO(await leerListadoDeCotizaciones(pedido))
   // Los nombres de esta página, una vez y por clave primaria: el cliente sólo con `leads.ver`; lo que quien mira no ve no llega y se dibuja «—».
@@ -76,6 +78,11 @@ async function Listado({
     vehiculos: datosO(vehiculos),
     autores: datosO(autores),
   })
+  // Con `?vehiculo=`, de quién son estas cotizaciones: el título sólo si quien mira ve el vehículo (la lectura es nula si no existe o no se ve).
+  const deUnVehiculo =
+    pedido.vehiculoId === undefined
+      ? undefined
+      : { titulo: datosO(await leerVehiculo(pedido.vehiculoId))?.titulo ?? null }
   const origenDeNueva = origenParaNueva(sesion.permisos, visibles, pedido.origenId)
 
   return (
@@ -84,6 +91,7 @@ async function Listado({
       pagina={{ ...pagina, filas }}
       porPagina={{ valor: tamano, opciones: tamanosHasta(MAXIMO_DE_PAGINA_DE_COTIZACIONES) }}
       origenes={visibles.map((origen) => ({ id: origen.id, nombre: origen.nombre }))}
+      {...(deUnVehiculo === undefined ? {} : { vehiculo: deUnVehiculo })}
       rutaDeNueva={
         origenDeNueva === null ? null : rutaDeLaHoja({ origen: origenDeNueva, lead: null })
       }

@@ -8,6 +8,7 @@ import { EstadoPaginaSinFilas, EstadoSinResultados, EstadoVacio } from '@/shared
 import { useFiltrosDelListado } from '@/shared/ui/filtros'
 import { UnaSolaVista } from '@/shared/ui/lista'
 import { Paginacion, UbicacionDeLaPagina } from '@/shared/ui/paginacion'
+import { EnlaceVerTodas } from './aviso-del-vehiculo'
 import { TablaDeCotizaciones } from './tabla-de-cotizaciones'
 import { TarjetasDeCotizaciones } from './tarjetas-de-cotizaciones'
 import type { FilaDeCotizacion, OrigenDelListado } from './tipos'
@@ -17,11 +18,13 @@ type Props = {
   origenes: readonly OrigenDelListado[]
   // «Nueva cotización», si la persona puede cotizar en algún origen: llena el vacío de primera vez.
   accionDeVacio?: ReactNode
+  // Con `?vehiculo=`: el vacío sin otros filtros habla de ese vehículo.
+  deUnVehiculo?: boolean
 }
 
 // La lista o el estado que corresponda: vacío de primera vez, vacío por filtro (con «Limpiar») o una página que se quedó sin filas. Una sola vista (`<UnaSolaVista>`): la tabla
 // desde `md` y las tarjetas por debajo. Sin total ni «Página N de M»: sólo dónde estás y Anterior o Siguiente.
-export function ResultadoDelListado({ pagina, origenes, accionDeVacio }: Props) {
+export function ResultadoDelListado({ pagina, origenes, accionDeVacio, deUnVehiculo }: Props) {
   const filtros = useFiltrosDelListado()
   const hayCursor = useSearchParams().has(CLAVE_DE_CURSOR)
 
@@ -31,6 +34,14 @@ export function ResultadoDelListado({ pagina, origenes, accionDeVacio }: Props) 
     }
     if (hayCursor) {
       return <EstadoPaginaSinFilas />
+    }
+    if (deUnVehiculo) {
+      return (
+        <EstadoVacio
+          titulo="Sin cotizaciones de este vehículo que puedas ver."
+          accion={<EnlaceVerTodas />}
+        />
+      )
     }
     return (
       <EstadoVacio

@@ -84,6 +84,16 @@ describe('pedidoDelListado', () => {
     expect(pedido({ origen: A }, [origenes[0]!])).toEqual({ cursor: null, tamano: 50 })
   })
 
+  it('lee el vehículo si es un guid y lo ignora si no', () => {
+    const valores = leerFiltros(esquemaDelListado(origenes), {})
+    const de = (vehiculo: string | undefined) =>
+      pedidoDelListado(valores, { cursor: null, tamano: 50, vehiculo })
+    expect(de(B)).toEqual({ vehiculoId: B, cursor: null, tamano: 50 })
+    expect(de('no-es-un-guid')).toEqual({ cursor: null, tamano: 50 })
+    expect(de(undefined)).toEqual({ cursor: null, tamano: 50 })
+    expect(de('')).toEqual({ cursor: null, tamano: 50 })
+  })
+
   it('conserva el cursor y el tamaño', () => {
     const cursor = {
       instante: '2026-11-05T10:00:00.123456+00:00',
