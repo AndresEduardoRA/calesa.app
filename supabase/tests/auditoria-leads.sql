@@ -116,7 +116,7 @@ declare
     -- Lecturas de oportunidades: la RLS da sólo las propias sobre leads vivos de la cartera.
     ('_lead_vivo_en_mi_cartera(uuid)', 'L'),
     ('_tarjeta_json(oportunidades,jsonb,jsonb)', 'L'),
-    ('lead_oportunidades(uuid)', 'L'),
+    ('lead_oportunidades(uuid,boolean,timestamp with time zone,uuid,integer)', 'L'),
     ('etiqueta_guardar(uuid,timestamp with time zone,text,text)', 'M'),
     ('lead_campo_crear(text,text,tipo_campo,jsonb,boolean,text,boolean,boolean,boolean,jsonb,text)', 'X'),
     ('lead_campo_guardar(uuid,timestamp with time zone,jsonb)', 'X'),

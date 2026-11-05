@@ -8263,7 +8263,16 @@ export type Database = {
         Args: { p_actualizado_en_esperado: string; p_cambios: Json; p_lead: string }
         Returns: Json
       }
-      lead_oportunidades: { Args: { p_lead: string }; Returns: Json }
+      lead_oportunidades: {
+        Args: {
+          p_antes_abierta?: boolean
+          p_antes_en?: string
+          p_antes_id?: string
+          p_lead: string
+          p_tamano?: number
+        }
+        Returns: Json
+      }
       lead_recordatorios: {
         Args: {
           p_completados?: boolean

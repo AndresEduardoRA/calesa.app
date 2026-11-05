@@ -24,6 +24,14 @@ export type RpcPaginada = {
 
 export const RPC_PAGINADAS: readonly RpcPaginada[] = [
   {
+    // Hasta el 4.17-2 la sección pide `TOPE_DE_OPORTUNIDADES_DEL_LEAD` (100, el máximo de la base), no esto. El registro sólo compara contra 20, así que ese 100 lo protege
+    // T4 de `supabase/tests/lead-oportunidades-pagina.sql` (`p_tamano` 1000 da 100), en `pnpm db:probar`.
+    rpc: 'lead_oportunidades',
+    parametro: 'p_tamano',
+    pideElCodigo: TAMANO_DE_VER_MAS,
+    lista: '«Ver más» de oportunidades de un lead',
+  },
+  {
     rpc: 'lead_seguimientos',
     parametro: 'p_tamano',
     pideElCodigo: TAMANO_DE_VER_MAS,
