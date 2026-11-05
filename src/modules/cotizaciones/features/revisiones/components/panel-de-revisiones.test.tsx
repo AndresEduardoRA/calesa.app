@@ -117,4 +117,26 @@ describe('PanelDeRevisiones', () => {
     expect(total.querySelectorAll('[data-monto]')).toHaveLength(2)
     expect(screen.getByText('Sin cambios que puedas ver.')).toBeTruthy()
   })
+
+  it('dos nodos con la misma etiqueta no repiten la clave de la fila', async () => {
+    const aviso = vi.spyOn(console, 'error').mockImplementation(() => {})
+    montar()
+    await responder({
+      ok: true,
+      data: {
+        revisiones: [revision(2, { valores: { de: { a: 1, b: 1 }, a: { a: 2, b: 2 } } })],
+        siguiente: null,
+        etiquetas: {
+          nodos: new Map([
+            ['a', 'Igual'],
+            ['b', 'Igual'],
+          ]),
+          grupos: new Map(),
+        },
+      },
+    })
+    await screen.findAllByText('Cambió «Igual»')
+    expect(aviso.mock.calls.some(([m]) => String(m).includes('same key'))).toBe(false)
+    aviso.mockRestore()
+  })
 })

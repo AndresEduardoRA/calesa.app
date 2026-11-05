@@ -2,13 +2,14 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ResultadoDeEncima } from '../../../entities/resultado-de-encima'
 
-const { ejecutar, push, avisarExito } = vi.hoisted(() => ({
+const { ejecutar, push, refresh, avisarExito } = vi.hoisted(() => ({
   ejecutar: vi.fn(),
   push: vi.fn(),
+  refresh: vi.fn(),
   avisarExito: vi.fn(),
 }))
 vi.mock('next-safe-action/hooks', () => ({ useAction: () => ({ executeAsync: ejecutar }) }))
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push, refresh }) }))
 vi.mock('@/shared/ui/toasts', () => ({ avisarExito }))
 vi.mock('../actions/cotizar-encima', () => ({ cotizarEncima: {} }))
 
@@ -30,6 +31,7 @@ const intentoDe = (llamada: number) =>
 beforeEach(() => {
   ejecutar.mockReset()
   push.mockReset()
+  refresh.mockReset()
   avisarExito.mockReset()
 })
 
@@ -92,7 +94,9 @@ describe('useCotizarEncima (C12)', () => {
       await primero
     })
   })
+})
 
+describe('useCotizarEncima: la nueva y «Recargar»', () => {
   it('creada: avisa «Versión W creada (n.º M).» y navega a la nueva', async () => {
     ejecutar.mockResolvedValueOnce(respuesta(creada()))
     const { result } = renderHook(() => useCotizarEncima({ anterior: ANTERIOR }))
@@ -115,5 +119,19 @@ describe('useCotizarEncima (C12)', () => {
       })
       expect(avisarExito).toHaveBeenLastCalledWith(texto)
     }
+  })
+
+  it('«Recargar» pide la página al servidor y olvida el mensaje de antes', async () => {
+    ejecutar.mockResolvedValueOnce(respuesta({ tipo: 'sin_acceso' }))
+    const { result } = renderHook(() => useCotizarEncima({ anterior: ANTERIOR }))
+    await act(async () => {
+      await result.current.cotizar()
+    })
+    expect(result.current.resultado).toEqual({ tipo: 'sin_acceso' })
+    act(() => {
+      result.current.recargar()
+    })
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect(result.current.resultado).toBeNull()
   })
 })

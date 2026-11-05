@@ -53,6 +53,7 @@ export function useCotizarEncima({ anterior }: { anterior: string }) {
 
   // «Recargar»: vuelve a pedir la página al servidor (la cotización cambió, o ya no se puede cotizar encima).
   const recargar = () => {
+    setResultado(null)
     router.refresh()
   }
 

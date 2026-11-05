@@ -29,7 +29,7 @@ export function Revision({ revision, etiquetas }: Props) {
           {cambios.vistos.length === 0 ? null : (
             <p className="[overflow-wrap:anywhere] text-(--color-ink-soft)">
               {cambios.vistos.map((texto, i) => (
-                <Fragment key={texto}>
+                <Fragment key={`${String(i)}:${texto}`}>
                   {i === 0 ? null : ' · '}
                   <span>{texto}</span>
                 </Fragment>

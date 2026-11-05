@@ -53,6 +53,7 @@ export function AvisoDeVersion({ hoja, hayCambios }: Props) {
           {hayCambios ? <p className="text-(--color-ink-soft)">{CON_CAMBIOS}</p> : null}
           <Respuesta
             resultado={encima.resultado}
+            hayCambios={hayCambios}
             alReintentar={() => void encima.cotizar()}
             alRecargar={encima.recargar}
           />
@@ -65,10 +66,12 @@ export function AvisoDeVersion({ hoja, hayCambios }: Props) {
 // Lo que dijo la base cuando no entró, con su salida: abrir la nueva que ya hay, reintentar o recargar la página.
 function Respuesta({
   resultado,
+  hayCambios,
   alReintentar,
   alRecargar,
 }: {
   resultado: ResultadoDeEncima | null
+  hayCambios: boolean
   alReintentar: () => void
   alRecargar: () => void
 }) {
@@ -92,7 +95,12 @@ function Respuesta({
           type="button"
           variant="outline"
           className="min-h-11 md:min-h-9"
-          onClick={alReintentar}
+          aria-disabled={hayCambios ? true : undefined}
+          onClick={() => {
+            if (!hayCambios) {
+              alReintentar()
+            }
+          }}
         >
           Reintentar
         </Button>

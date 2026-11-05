@@ -4,11 +4,14 @@ import type { ResultadoDeEncima } from '../../../entities/resultado-de-encima'
 import { hojaDeUnaGuardadaDesde } from '../../../entities/hoja-de-una-guardada-lectura'
 import { crudaDeUnaGuardada } from '../../../entities/hoja-de-una-guardada.soporte'
 
-const { cotizar } = vi.hoisted(() => ({ cotizar: vi.fn() }))
+const { cotizar, estado } = vi.hoisted(() => ({
+  cotizar: vi.fn(),
+  estado: { resultado: null as unknown },
+}))
 vi.mock('../hooks/use-cotizar-encima', () => ({
   useCotizarEncima: () => ({
     enviando: false,
-    resultado: null as ResultadoDeEncima | null,
+    resultado: estado.resultado as ResultadoDeEncima | null,
     cotizar,
     recargar: () => {},
   }),
@@ -37,6 +40,7 @@ const AVISO_DE_CAMBIOS =
 afterEach(() => {
   cleanup()
   cotizar.mockReset()
+  estado.resultado = null
 })
 
 describe('AvisoDeVersion (C8, C9)', () => {
@@ -87,5 +91,20 @@ describe('AvisoDeVersion (C8, C9)', () => {
     )
     expect(screen.getByText('Esta cotización está vencida.')).toBeTruthy()
     expect(boton()).toBeTruthy()
+  })
+
+  it('«Reintentar» tras una pérdida también espera si hay cambios sin guardar', () => {
+    estado.resultado = { tipo: 'perdida' }
+    const { rerender } = render(<AvisoDeVersion hoja={hoja()} hayCambios={false} />)
+    const reintentar = screen.getByRole('button', { name: 'Reintentar' })
+    expect(reintentar.getAttribute('aria-disabled')).toBeNull()
+    fireEvent.click(reintentar)
+    expect(cotizar).toHaveBeenCalledTimes(1)
+    rerender(<AvisoDeVersion hoja={hoja()} hayCambios />)
+    expect(screen.getByRole('button', { name: 'Reintentar' }).getAttribute('aria-disabled')).toBe(
+      'true',
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(cotizar).toHaveBeenCalledTimes(1)
   })
 })
