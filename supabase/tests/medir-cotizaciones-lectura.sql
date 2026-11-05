@@ -25,9 +25,10 @@
 --     (medido: 4 a 6 ms), `_nodos_visibles()` una sola vez, y sin crecer con las cotizaciones. Desde el 4.15-2 cada fila trae su autor (`left join` por la clave de `perfiles`)
 --     y la página, las etiquetas de lo que nombran sus diffs (con el snapshot entero, todos los nodos que se ven: el peor caso).
 -- Cada línea `medicion|…|número` sale por el runner (`scripts/medir-listado.mjs`); las `nota|…`, también.
--- Las corridas anteriores de esta medición se revierten, pero sus 300.000 tuplas muertas quedan en el heap y en los índices hasta que alguien las limpie, con las mismas fechas que
--- las de ahora: la página 1 (las más nuevas) tendría que saltar las muertas de las corridas de antes (102 buffers la primera vez, 1.873 la segunda). Se limpian antes de medir y,
--- para no ensuciar la medición que sigue, después. VACUUM no corre dentro de una transacción: va fuera del begin.
+-- Los `vacuum` de antes y de después: hasta el 4.16-3 las corridas anteriores dejaban sus 300.000 tuplas muertas en el heap y en los índices, con las mismas fechas que las de
+-- ahora (la página 1 saltaba las muertas: 102 buffers la primera vez, 1.873 la segunda). Con el truncate, lo que se inserta va a la relación nueva y el `rollback` la descarta
+-- entera: ya no quedan muertas de esta medición. Se conservan por lo que otra corrida o medición pueda dejar. VACUUM no corre dentro de una transacción: va fuera del begin.
+-- La siembra de volumen trae 50.000 cotizaciones (4.16-3): esta medición las vacía en su transacción (`truncate … cascade`, que el `rollback` devuelve) y mide sólo las suyas.
 \set ON_ERROR_STOP 1
 \set carga `cat /proc/loadavg`
 vacuum public.cotizaciones;
@@ -39,9 +40,13 @@ do $$ begin
   if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000d1') or not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000a1') then
     raise exception 'faltan la dueña y Ana de la siembra de volumen: corre pnpm db:sembrar-volumen (y después pnpm db:reset)';
   end if;
-  if (select count(*) from public.cotizaciones) > 0 then
-    raise exception 'la base ya trae cotizaciones: la medición cuenta con 50.000 y 250.000 propias (pnpm db:reset)';
+  -- La base puede traer la siembra de cotizaciones (`sembrar-cotizaciones.sql`, 4.16-3) y esta medición cuenta con las suyas solas: vacía la tabla en su
+  -- transacción y el `rollback` del final la devuelve entera. Nunca en autocommit, donde el truncate borraría la siembra.
+  if transaction_timestamp() = statement_timestamp() then
+    raise exception 'la medición tiene que correr dentro de su begin: vaciar las cotizaciones fuera de una transacción borraría la siembra';
   end if;
+  raise notice 'nota|La medición vacía las % cotizaciones de la base en su transacción (se revierte)|', (select count(*) from public.cotizaciones);
+  truncate public.cotizaciones cascade;
   raise notice 'nota|Carga (/proc/loadavg) al empezar a medir la lectura de cotizaciones: %|', current_setting('medir.carga');
 end $$;
 

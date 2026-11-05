@@ -27,6 +27,7 @@
 --     orígenes) tienen que caer; y **por relación** (4-11): lo que ARMAR pide de `tablas_referencia(_filas)` es lo que pide la misma consulta sobre las cuatro tablas
 --     que la fórmula nombra (+ 2), y seis versiones malas —las dos de arriba, una tabla viva de más, un N+1 por fila, una lectura doble y un N+1 por tabla— lo superan.
 -- Cada línea `medicion|…|número` sale por el runner (`scripts/medir-listado.mjs`); las `nota|…`, también.
+-- La siembra de volumen trae 50.000 cotizaciones (4.16-3): esta medición las vacía en su transacción (`truncate … cascade`, que el `rollback` devuelve) y mide sólo las suyas.
 \set ON_ERROR_STOP 1
 begin;
 
@@ -37,9 +38,13 @@ do $$ begin
   if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000d1') then
     raise exception 'falta la dueña de la siembra de volumen: corre pnpm db:sembrar-volumen (y después pnpm db:reset)';
   end if;
-  if (select count(*) from public.cotizaciones) > 0 then
-    raise exception 'la base ya trae cotizaciones: la medición cuenta con 50.000 y 250.000 propias (pnpm db:reset)';
+  -- La base puede traer la siembra de cotizaciones (`sembrar-cotizaciones.sql`, 4.16-3) y esta medición cuenta con las suyas solas: vacía la tabla en su
+  -- transacción y el `rollback` del final la devuelve entera. Nunca en autocommit, donde el truncate borraría la siembra.
+  if transaction_timestamp() = statement_timestamp() then
+    raise exception 'la medición tiene que correr dentro de su begin: vaciar las cotizaciones fuera de una transacción borraría la siembra';
   end if;
+  raise notice 'nota|La medición vacía las % cotizaciones de la base en su transacción (se revierte)|', (select count(*) from public.cotizaciones);
+  truncate public.cotizaciones cascade;
 end $$;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------

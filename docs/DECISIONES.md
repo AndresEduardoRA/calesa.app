@@ -1708,3 +1708,30 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **«Sin assert, 4-23» de `medir-vehiculos-lectura.sql:298-302` queda.** Mide a la chica por la tabla, que la pantalla ya no usa para ella; su assert por la función está en `medir-vehiculos-inventario.sql`. Cambiar el texto obligaba a
   `db:medir:volumen` en un paso sin base.
 - **Una guarda tocada:** la entrada de `vehiculos_inventario` en `scripts/guardas/paginas-en-la-base.ts` (`pideElCodigo` = `MAXIMO_DE_PAGINA_DE_VEHICULOS`, el defecto de la base, 100). Sin ella cae `paginas.test.ts`.
+
+## 2026-11-05 — Paso 4.16-3: la siembra de cotizaciones y las mediciones que vacían la tabla en su transacción
+
+- **La siembra va en un archivo aparte**, `supabase/tests/volumen/sembrar-cotizaciones.sql`, y no dentro de `sembrar.sql` como decía la fila: `sembrar.sql` medía 258 líneas y
+  con ≈ 180 más pasaba de 300. La corre el mismo `pnpm db:sembrar-volumen`, en la misma corrida de `psql`, y `cotizaciones` entra al `vacuum (analyze)` de después. No usa las
+  temporales de `sembrar.sql` (`volumen_etiquetas` y `volumen_origenes` siguen vivas en la sesión): las suyas llevan el prefijo `volumen_cot_` y son `on commit drop`.
+- **50.000 fijas**, sea cual sea `--leads`, como los vehículos: el reparto por persona de los leads (la dueña 2/5, Ana 1/25), 90 % con un lead de quien la creó, 70 % con un
+  vehículo de su origen, 2 % finales (una por vehículo) y 2 % en la papelera. Sin `random()`: se revuelve con `(g * 7919) % 50000`, una biyección.
+  - **La papelera con lote** (`tipo` cotizaciones, ≤ 200 del mismo creador), como lo deja `papelera_enviar()`: el 4.17 no se encuentra con un estado que la app no produce. Las
+    mediciones propias del listado sí siembran papelera sin lote (`medir-cotizaciones-listado.sql`): ahí sólo importa `eliminado_en`.
+  - **Sin cadenas, revisiones, comentarios ni adjuntos**: versión 1 sin padre. Si el 4.16-4 o el 4.17 los necesitan, los suman ellos.
+  - Las fechas son relativas a `now()` y no miran la del vehículo: una cotización puede ser más vieja que su vehículo. Ninguna medición lo lee; ninguna fecha queda en el futuro
+    (`medir-panel-ultima-cotizacion.sql` cotiza sus bloques en `now() + 1 h`).
+- **Las cuatro mediciones que sembraban sus propias cotizaciones** (lectura, listado, historial del vehículo y evaluar) se negaban con «la base ya trae cotizaciones». Ahora,
+  dentro de su `begin`, hacen `truncate public.cotizaciones cascade` y el `rollback` del final devuelve la siembra entera (comprobado: 50.000 tras `db:medir:volumen`).
+  - **Por qué `truncate` y no `delete`:** un `delete` revertido deja las entradas en los índices y cambia los bloques que se miden. Con el truncate, lo insertado va a una relación
+    nueva que el `rollback` descarta: tampoco quedan las filas muertas de la propia medición (los 398 MB del 4.16-1).
+  - **Por qué no asertar «sembradas + propias»:** obligaba a volver a medir los topes y los conteos exactos de las cuatro.
+  - **Por qué `cascade`:** arrastra las diez tablas que apuntan a `cotizaciones` (comprobantes, adjuntos, comentarios, favoritos, reportes, revisiones, mensajes, tareas y
+    menciones). Ninguna de las cuatro lee lo que había en ellas; `medir-cotizaciones-lectura.sql` inserta y lee sus propias revisiones, después del truncate. El truncate toma
+    ACCESS EXCLUSIVE sobre las diez mientras dura la medición: es una sola sesión y ningún cron las toca.
+  - **La guarda:** si el bloque no corre dentro de una transacción (`transaction_timestamp() = statement_timestamp()`), cae sin vaciar nada. En autocommit, el truncate borraría
+    la siembra.
+- **La fila de `medir-escala.sql`** mide `cotizaciones_listado()` con el máximo, con los topes del 4.16-1 (la dueña 10 ms, Ana 50). La forma la sigue asertando
+  `medir-cotizaciones-listado.sql`; acá se mide el tiempo con datos repartidos como en uso. La página 1, la profunda y «mías» tienen que volver llenas, porque una vacía pasaría
+  cualquier tope. Los finales y el origen de Ana no, porque la siembra no se los garantiza.
+- **`origenes_resumen()` cuenta exacto** las cotizaciones por origen, y Configuración › Orígenes dibuja ese total. Con la siembra, 7,5 ms (tope 100). No se arregla acá: **4-79**.

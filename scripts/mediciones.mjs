@@ -77,7 +77,7 @@ export const MEDICIONES_BASE = [
 export const MEDICIONES_CON_VOLUMEN = [
   [
     'supabase/tests/medir-escala.sql',
-    'Escala de toda la app, 50.000 leads (dueña «todos» y Ana «propios»)',
+    'Escala de toda la app, 50.000 leads y 50.000 cotizaciones sembradas (dueña «todos» y Ana «propios»)',
     MEDIANA,
   ],
   [
