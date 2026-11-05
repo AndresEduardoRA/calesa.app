@@ -1686,3 +1686,25 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **4-77:** `origenes_con_alcance()` con 1, 74 (la dueña) y 122 concesiones da 7 buffers y ≈ 0,3 ms en los tres. No crece con las concesiones. Los 148 bloques de `perfiles`
   del 4.16-1 no se reproducen y su causa sigue sin medir.
 - **Atribuciones corregidas del plan:** M1 la ve L2 (no L4); M27 la ve L1c (no L1b (b)). M14 no tenía caso en el e2e y el `fix` lo sumó (`lote(`).
+
+## 2026-11-05 — Paso 4.16-2b: la pantalla lee el inventario de «propios» por `vehiculos_inventario()` (cierra 4-23)
+
+- **La fuente va en el pedido.** `fuenteDelInventario(permisos, origenId)` (`entities/fuente-del-inventario.ts`) da `'vehiculos_inventario'` si el alcance de `vehiculos.ver` en ese
+  origen es «propios» y `'vehiculos'` si es «todos» o nulo. La calcula la página y viaja en `BuscadorDeVehiculos` (`fuente`, obligatoria); `buscarVehiculos()` despacha.
+  - **No se pregunta el tamaño de la cartera:** costaría otra ida a la base. Todo «propios» va por la función y es la base la que elige entre R1 y R2 + R3 (el 4.16-2a: Beto 6,3 → 8,1 ms).
+  - Es un camino, no un permiso: la función responde igual a cualquiera y la RLS decide lo que se ve. Bajo «Ver como» la fuente sale de los permisos simulados; la base elige la ruta con los reales.
+- **Si la base rechaza los filtros (`22023`, hint `filtros`), esa página se lee por la tabla, una sola vez.** El 2a dejó al 2b qué hacer con los topes de la validación.
+  - Copiarlos en TS sería una tercera copia de la regla, y no mide igual (`a::text` de Postgres pone espacios que `JSON.stringify` no pone). La URL no llega a ellos (texto ≤ 100; 442 uuids contra 500).
+  - Ningún otro error vuelve a leer (`origen`, `cursor`, `42501`, transporte).
+  - **La vuelta esconde una desviación**, así que hay dos redes. El e2e de equivalencia (`vehiculos-inventario-postgrest.spec.ts`), con los casos que ya tiene, y un **contrato de tipos** en `inventario.test.ts`:
+    `Record<Condicion['tipo'], true>` y los `when '<tipo>' then` de `_vehiculos_inventario_validar` y `_vehiculos_inventario_condicion`, leídos con `definicionSql()`. Un tipo de `Condicion` nuevo sin su caso en la
+    base rompe `pnpm test`, no la producción. Se descartó un registro en el servidor: avisaría después, en un log que nadie mira.
+- **Excepción a «Zod en todo límite (… RPC)»** (`CLAUDE.md` › «Reglas»): `p_filtros` no pasa por Zod en TS. Se descarta el `esquemaDeCondiciones` del esbozo del 2a (`.piloto/planes/4.16-2.md:46-47`): las condiciones las arma
+  `condicionesDe()` desde un esquema ya validado, la base las valida enteras y, si las rechaza, se lee lo de hoy. El pedido (`origenId`, `tamano`, cursor) y las filas sí pasan por Zod (`inventario.ts`).
+- **E4 prueba que la pantalla usa la función.** `e2e/vehiculos-propios.spec.ts` mide con `pg_stat_statements` (sirve porque `workers: 1`): con Pía crecen las llamadas a `vehiculos_inventario` y **no** las lecturas de la
+  tabla (`select "public"."vehiculos"."id"`) en la página sin filtros, en la búsqueda y en la limpieza (sí y no). Con la dueña pasa lo contrario, y eso prueba que el patrón de la tabla ve su lectura. Sólo con que crezca la
+  función no bastaría: la vuelta de arriba también la llama antes de leer la tabla.
+- **Quién lee por PostgREST:** la dueña y quien ve «todos». El título de `scripts/guardas/paginas.test.ts:195` («el listado y el inventario se leen por PostgREST») no se toca: su aserción (`max_rows` ≥ 101) sigue valiendo para ellos.
+- **«Sin assert, 4-23» de `medir-vehiculos-lectura.sql:298-302` queda.** Mide a la chica por la tabla, que la pantalla ya no usa para ella; su assert por la función está en `medir-vehiculos-inventario.sql`. Cambiar el texto obligaba a
+  `db:medir:volumen` en un paso sin base.
+- **Una guarda tocada:** la entrada de `vehiculos_inventario` en `scripts/guardas/paginas-en-la-base.ts` (`pideElCodigo` = `MAXIMO_DE_PAGINA_DE_VEHICULOS`, el defecto de la base, 100). Sin ella cae `paginas.test.ts`.

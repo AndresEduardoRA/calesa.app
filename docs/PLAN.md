@@ -193,14 +193,14 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   volumen y `medir-escala.sql`; se enciende la navegación. Cierra **4-14** («todas las que veo» de quien ve «propios») y **4-23** (el
   gemelo en el inventario de vehículos), la entrada a cotizar desde el listado (`docs/UX.md:38`) y el camino a lo antiguo del historial del vehículo (el tope de 500 del 4.14-2b: un
   filtro por vehículo). Depende de 4.10 y 4.13. Nivel **2** (`_shell`) + `db:medir:volumen` + `E2E_VOLUMEN=1`.
-  Prompts: 5 (quedan 3).
+  Prompts: 5 (quedan 2).
   **Partido en 5** (`docs/DECISIONES.md` › «Paso 4.16 (1 de 4)» y «Paso 4.16-2a»): el **4.16-1** (4-14: `cotizaciones_listado()` por cursor y por alcance, sus índices, su medición y
   `MAXIMO_DE_PAGINA_DE_COTIZACIONES`; Nivel 2 + `db:medir:volumen`): hecho. El **4.16-2** (4-23), **partido en 2** tras las sondas S0, S0' y S0''
   (`docs/DECISIONES.md` › «Paso 4.16-2a»): el **4.16-2a** (`vehiculos_inventario()`: las rutas, el cursor y los filtros del layout en SQL, sus índices, la equivalencia con
   PostgREST, su medición y el número de 4-77; Nivel 2 + `db:medir:volumen`): hecho. El **4.16-2b** (la app: `fuenteDelInventario()`, `buscarVehiculos()` por la función para quien
-  ve «propios», el registro de páginas y el e2e de quien ve «propios»; Nivel 1, interfaz; cierra 4-23). El **4.16-3** (la siembra de cotizaciones de `sembrar.sql`, su fila en `medir-escala.sql` y las mediciones que piden una base sin cotizaciones; Nivel 1 +
+  ve «propios», el registro de páginas y el e2e de quien ve «propios»; Nivel 1, interfaz; cierra 4-23): hecho. El **4.16-3** (la siembra de cotizaciones de `sembrar.sql`, su fila en `medir-escala.sql` y las mediciones que piden una base sin cotizaciones; Nivel 1 +
   `db:medir:volumen`) y el **4.16-4** (la pantalla `/cotizaciones`, la navegación, la entrada a cotizar desde el listado de `docs/UX.md:38` y el enlace desde el historial del vehículo;
-  Nivel 2 + `E2E_VOLUMEN=1`; puede partirse al planificarlo). Marcas: 4.16-1 `sí`, 4.16-2a `sí`.
+  Nivel 2 + `E2E_VOLUMEN=1`; puede partirse al planificarlo). Marcas: 4.16-1 `sí`, 4.16-2a `sí`, 4.16-2b `no`.
   - **P1** (1, contestada el 2026-11-04 con la recomendada): «Mías» son las que creó quien mira (`creado_por`), para cualquiera; no es «Míos» de leads.
   - **P2** (1, contestada el 2026-11-04 con la recomendada): todas las versiones de una cadena salen en el listado, cada una en su fila.
 - **4.17** — **5a-12** y, con el mismo «Ver más», las secciones «Cotizaciones» de la ficha del lead y del vehículo (la del vehículo puede usar la lectura
@@ -242,7 +242,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 35 pasos y 88 prompts; faltan los pasos 4.15-4 y 4.16-2b a 4.28.
+Total de la fase: 35 pasos y 88 prompts; faltan los pasos 4.15-4 y 4.16-3 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
@@ -310,7 +310,7 @@ p_clase := 'final')` exige `cotizaciones.final.gestionar`, un vehículo y el ín
   unas diez líneas y al 200 % (432 px) un aviso cubre campos de un panel — en `e2e/avisos-con-descripcion.spec.ts`, al 100 % en
   escritorio el aviso con descripción cabe en seis líneas o menos, y ningún aviso cubre un campo con foco (`src/shared/ui/sonner.tsx` y
   `--ancho-del-aviso` de `src/app/globals.css`; el pie del panel no se tapa: `avisoNoTapaElPie`).
-- **4-23** (**resuelto en la base** en el 4.16-2a, 2026-11-05: `vehiculos_inventario()`, la chica 32,3 → 2,5 ms con 250.000; **lo cierra el 4.16-2b**, cuando la pantalla la usa; el diseño de las rutas está en `cotizaciones_listado()` del 4.16-1: cada ruta por su índice, uno solo entero por columna que se sondea): el inventario de quien ve «propios» y casi nada es suyo recorre el origen entero: la «chica» (3 propios) 6,8 ms y 1.744
+- **4-23** (**cerrado** en el 4.16-2b, 2026-11-05: la pantalla lee por `vehiculos_inventario()` a quien ve «propios» (`fuenteDelInventario()`); el «sin assert, 4-23» de `medir-vehiculos-lectura.sql` queda: mide la lectura por la tabla. Antes, **resuelto en la base** en el 4.16-2a: la chica 32,3 → 2,5 ms con 250.000; el diseño de las rutas está en `cotizaciones_listado()` del 4.16-1: cada ruta por su índice, uno solo entero por columna que se sondea): el inventario de quien ve «propios» y casi nada es suyo recorre el origen entero: la «chica» (3 propios) 6,8 ms y 1.744
   buffers con 50.000 vehículos y **32,7 ms y 6.647** con 250.000 (no es regresión del 4.11; sólo con `vehiculos.ver` en «propios») — en
   `medir-vehiculos-lectura.sql`, la página 1 y una profunda de la chica con 50.000 y 250.000: ≤ 10 ms y buffers que no crecen con N, y lo
   que devuelve es lo que dice la regla (`vehiculos-visibilidad.sql`); se escribe antes de arreglar y cae contra lo de hoy. Lugar:

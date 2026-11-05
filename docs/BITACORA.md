@@ -497,3 +497,19 @@ El 4.16-2 se partió en 2a (la base) y 2b (la app, que cierra 4-23), tras tres s
 - Abierto nuevo **4-78**: las listas del panel del vehículo de quien ve «propios» recorren el origen.
 - **Commits:** `bce960bf` (la base), `8918e044` (el e2e), `c6e2b63d` (la medición) y `6b85221d` (el `fix` de la auditoría).
   e2e completo: sí (4.16-2a, base, Nivel 2: escritorio, 915 en verde, 16 saltados, 0 caídas, 32,9 min)
+
+## 2026-11-05 — 4.16-2b: la pantalla lee el inventario de «propios» por `vehiculos_inventario()` (4-23, cerrado)
+
+`docs/DECISIONES.md` › «Paso 4.16-2b». Sin base: ninguna migración, ni `db:types`, ni medición nueva (los números son los del 4.16-2a).
+
+- `fuenteDelInventario()` elige el camino (quien ve «propios» en el origen, por la función; el resto, por la tabla) y viaja en el pedido de `buscarVehiculos()`.
+  `leerPorLaFuncion()` (Zod en el pedido y en las filas) hace una llamada; si la base rechaza los filtros, esa página se lee por la tabla, una vez. `vehiculosDelInventario()` da el
+  mismo `Vehiculo`. La entrada del registro de páginas es una guarda tocada.
+- **Verificación** (`.piloto/salidas/4.16-2b/`; informe en `.piloto/informes/4.16-2b.md`, auditado: observaciones, sin `fix` de código):
+  - En verde: `lint`, `typecheck`, `test` (526 archivos, 6.207 pruebas), `vehiculos-propios.spec.ts` (E1 a E4, escritorio y móvil: 8), los dirigidos de vehículos en los dos proyectos (46, 1 saltada de antes) y la equivalencia con PostgREST.
+  - Rojos contra HEAD: Vitest (4 archivos, 9 pruebas), el e2e (E4: la página no llamaba a la función) y el registro de páginas sin su entrada.
+  - Sin mutaciones: no es un paso de rigor máximo. Sin `verde-head-e1-e3.txt` por separado: en `serial` el primero que cae corta los demás.
+  - `mapa.sh --check` pasó sobre el árbol de trabajo; los commits de código citan `DECISIONES.md`, que va en el commit de docs: por sí solos fallarían.
+- 4-23 se cierra. 4-77 y 4-78 siguen abiertos.
+- **Commits:** `f244143c` (la fuente), `dc5f9fa5` (la lectura por la función) y `7af6fe49` (el e2e de pantalla).
+  e2e completo: no (4.16-2b, pantalla, 1 de 3)

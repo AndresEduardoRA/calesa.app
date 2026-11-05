@@ -57,7 +57,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Atributos** — `vehiculos.atributos`, `leads.atributos`: campos del layout que no son columna. En un lead se leen por `leads_vista`, recortados.
 - **Dato común** — `camposComunes()` / columnas de `vehiculos`: lo que tiene todo vehículo y es columna (título, marca, año, VIN, precio…).
 - **Sin fase** — `vehiculos.fase_id` nulo / `<BadgeDeFase>`: vehículo que todavía no entró al flujo de su origen; lo ubica quien mueve.
-- **Inventario** — `/vehiculos` / `<ListadoDeVehiculos>`: el listado de vehículos, una pestaña por origen. `vehiculos_inventario()` lee una página de un origen por rutas (lo de «todos», lo creado, la cartera), con los filtros del layout en SQL (4.16-2a; la pantalla, desde el 4.16-2b).
+- **Inventario** — `/vehiculos` / `<ListadoDeVehiculos>`: el listado de vehículos, una pestaña por origen. `vehiculos_inventario()` lee una página de un origen por rutas (lo de «todos», lo creado, la cartera), con los filtros del layout en SQL (4.16-2a). La pantalla la lee para quien ve «propios» (`fuenteDelInventario()`); quien ve «todos», por PostgREST (4.16-2b).
 - **Lote de subasta** — `vehiculos.lote` + `plataforma`: identificador en la subasta (Copart/IAAI). No es el lote de papelera.
 - **Foto** — `vehiculos_imagenes` / `Foto`, `<SeccionDeFotos>`: una imagen de un vehículo (hasta 24).
 - **Portada** — `vehiculos_imagenes.es_portada` / `vehiculo_foto_portada()`: la foto principal de un vehículo, una sola.
