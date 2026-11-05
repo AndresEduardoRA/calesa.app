@@ -1625,3 +1625,26 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **La hoja compartida sólo suma un hueco** (`encima`, que recibe `hayCambios`); la hoja nueva no lo llena y su JS no cambió. El panel de revisiones y la cadena viajan en `features/revisiones` con `diferido()`; las revisiones se leen por `composicion-revisiones.client.ts`, aparte de la composición que importa la hoja.
 - **Los topes del panel se fijaron midiendo, por encima del previo del plan:** 200 nodos no alcanzaba (≈ 12 por fila con dos `<Monto>`); 241 medidos, tope 254 (+ 5 %), y 11.907 B, tope 12.503. Lo decidió la sesión y se dice en el informe y RENDIMIENTO.
 - **Rigor:** pruebas que fallan primero, 6 mutaciones con Vitest (y 2 más del `fix` de la auditoría) e informe auditado en dos rondas; sin carreras ni volumen SQL (ningún SQL cambia; la RPC de revisiones ya estaba medida con 500).
+
+## 2026-11-04 — Paso 4.16 (1 de 4): el listado de cotizaciones por cursor y por alcance (4-14)
+
+- **Partición en cuatro:** el 4.16-1 es la lectura (4-14), el 4.16-2 el gemelo del inventario (4-23), el 4.16-3 la siembra de cotizaciones y `medir-escala.sql`, el 4.16-4 la pantalla.
+  Se verifican distinto (base con volumen, base de vehículos por PostgREST, siembra, pantalla con el shell) y la base sola ya llenaba una sesión.
+- **P1: «Mías» son las que creó quien mira** (`creado_por`), para cualquiera. No es «Míos» de leads (`en_cartera`): con la cartera, a un asesor el filtro no le cambiaría nada.
+  **P2: todas las versiones de una cadena salen**, cada una en su fila; la cadena se ve al abrirla.
+- **`cotizaciones_listado()` es invocadora:** la RLS de «cotizaciones: leer» sigue decidiendo y las rutas sólo eligen el índice. Lo que devuelve se compara, persona por persona y con cada
+  filtro, con la regla escrita a mano (`cotizaciones-visibilidad.sql`, L2). La cartera sale de `mis_leads()` (una llamada; el conjunto de `en_cartera()`): leer `leads_asesores` como quien
+  mira pasaría por la RLS de `leads` y perdería el lead en la papelera y a quien no tiene `leads.ver` (Q en L2). No es el arreglo que prohíbe `escala.md`: no es una policy.
+- **La clase nunca es columna de un índice:** `enum_eq` no es _leakproof_ y bajo la RLS `c.clase = …` no puede ser condición de índice. Medido: con `(clase, …)` y `(origen_id, clase, …)` la
+  dueña y Teo leían `cotizaciones_listado_idx` filtrado (1.056–4.764 bloques). La final va por parciales `… where clase = 'final'` con `'final'` literal en su rama (la prueba del predicado no
+  pasa por la RLS); la preventa, por el índice del orden con la clase como filtro (las finales son la minoría).
+- **`lead_id` y `origen_id` con un solo índice entero al frente** (`cotizaciones_lead_creado_idx`, `cotizaciones_origen_creado_idx`; se van `cotizaciones_lead_idx`, `cotizaciones_lead_id_idx` y
+  `cotizaciones_origen_id_idx`): entero, porque cubre la FK de verdad (también la papelera; el lint de splinter no lo distingue y no falla, la guarda es L8); uno solo, porque dos que sirven
+  a la misma consulta compiten en el plan genérico: con 50.000 la cartera sondeaba por la FK y ordenaba, y con 250.000 por el del orden. `creado_por` sigue con dos (la ruta 2 leyó siempre
+  `cotizaciones_creador_idx`) y `vehiculo_id` sólo con parciales (4-51).
+- **El tope de la dueña es de bloques de `cotizaciones` (≤ 116), no de buffers totales:** cada llamada carga ≈ 160–240 buffers fijos de `origenes_con_alcance()` → `mis_permisos()` y de las
+  InitPlan de la policy (4-77), que no son de este listado y no crecen con N. Bajarlos toca una `security definer` de todas las policies: es otro paso, con compuerta `datos`.
+- **El máximo es 100** (`MAXIMO_DE_PAGINA_DE_COTIZACIONES`): con 101 filas, 1,1–2,1 ms la dueña, 1,6 ms la «chica», 10–23 ms Ana, ≤ 2,3 ms Teo, con 50.000 y 250.000.
+- **El paso se detuvo una vez en su parada (4)** (los índices por clase no servían) y la persona eligió replanificar: el plan se corrigió con lo medido, se auditó dos veces más y una sonda en
+  la transacción confirmó, antes de tocar la función, que los parciales se usan con el literal y que el plan de Ana es el mismo con los dos volúmenes (`d = 0`).
+- **Rigor:** pruebas que fallan primero (también la medición, con «lo de hoy»: 1,8 s Ana y 2,3 s la «chica» con 250.000), 19 mutaciones que caen e informe auditado; sin carreras (no hay escritura nueva).

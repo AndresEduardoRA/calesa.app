@@ -457,3 +457,26 @@ y aprobado en la compuerta `datos`. No toca la base. `docs/DECISIONES.md` › «
 - **4-73** atribuido (el chunk de la guardada que también carga la hoja nueva) y abierto nuevo **4-75** (el camino a lo antiguo de las revisiones, 4.17).
 - **Commits:** `73cb967f` (el panel de revisiones), `189c9966` (la cadena), `38c11a0b` (cotizar encima) y `410339dd` (el `fix` de la auditoría del informe).
   e2e completo: no (4.15-3b, pantalla, 2 de 3)
+
+## 2026-11-05 — 4.16-1: la lectura del listado de cotizaciones por cursor y por alcance (4-14)
+
+El 1 de 4 del 4.16, de base (Nivel 2 por estructura, rigor máximo). P1 («Mías» son las que creó quien mira) y P2 (todas las versiones salen) contestadas con la recomendada.
+El paso paró una vez en su parada (4): los índices por clase no servían bajo la RLS (`enum_eq` no es leakproof). La persona eligió replanificar, y el plan se corrigió con lo
+medido y se auditó dos veces más. `docs/DECISIONES.md` › «Paso 4.16 (1 de 4)».
+
+- `cotizaciones_listado()`: invocadora, por cursor, con «Vencida» y los filtros origen, clase, «mías» y vehículo. «Todos» va por el índice del orden o por origen (la final por
+  parciales con la clase literal), lo propio por `creado_por` y la cartera de `mis_leads()` por lead. `lead_id` y `origen_id` quedan con un solo índice entero al frente.
+  Máximo: 100. El lector `leerListadoDeCotizaciones()`.
+- **Verificación** (`.piloto/salidas/4.16-1/`, informe en `.piloto/informes/4.16-1.md`, auditado: observaciones, atendidas):
+  - En verde: `lint`, `typecheck`, `test` (517 archivos, 6.149 pruebas), `db:probar` (498), `db:lint`, `db:medir` y `db:medir:volumen` entero (desde `db:reset` y siembra limpia).
+  - Rojos contra HEAD (`rojo-*.txt`): con 250.000, «lo de hoy» tarda 1,7 s Ana y 2,2 s la «chica». Con la función, 18,6 y 1,6 ms, sin crecer con N; la dueña, ≤ 105 bloques de
+    `cotizaciones` en cada filtro.
+  - 19 mutaciones que caen (`mutaciones.txt`; M2 sobrevivió una vez y se sumó la comprobación de una página entera).
+  - Crear y guardar contra HEAD: +5 a +10 buffers, con el mismo tiempo.
+- **Tropiezos del entorno:**
+  - Las mediciones que cayeron a mitad dejaron 398 MB de filas revertidas, y `origenes_resumen` pasó a 365 ms; tras `vacuum`, verde.
+  - `medir-bajas.sql` cayó una vez por checkpoints (5a-42) y dejó sus 200.000 leads.
+  - La carga llegó a 19, con otra sesión y unos bucles de CPU huérfanos.
+- Abierto nuevo **4-77**: el costo fijo de ≈ 160–240 buffers por lectura con la policy de cotizaciones, de `mis_permisos()`.
+- **Commits:** `33252377` (la base), `2fc8ad5d` (la medición) y `f5667be4` (el lector).
+  e2e completo: sí (4.16-1, base, Nivel 2: escritorio, 914 en verde, 16 saltados, 0 caídas, 33,2 min)

@@ -79,6 +79,7 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
 - Jobs con 100.000 filas por purgar → `supabase/tests/medir-jobs.sql` (`pnpm db:medir:volumen`)
 - `cotizacion_evaluar()` con volumen → `supabase/tests/medir-evaluar.sql` (`pnpm db:medir:volumen`)
 - Lectura de cotizaciones con volumen → `supabase/tests/medir-cotizaciones-lectura.sql` (`pnpm db:medir:volumen`)
+- El listado de cotizaciones (`cotizaciones_listado()`: rutas, índices por caso, bloques y llamadas) con volumen → `supabase/tests/medir-cotizaciones-listado.sql` (`pnpm db:medir:volumen`)
 - Lectura de vehículos con volumen → `supabase/tests/medir-vehiculos-lectura.sql` (`pnpm db:medir:volumen`)
 - Las listas del panel del vehículo con volumen → `supabase/tests/medir-panel-ultima-cotizacion.sql`, `medir-panel-cierre-subasta.sql`, `medir-historial-del-vehiculo.sql` (`pnpm db:medir:volumen`)
 - `cotizacion_crear()` con volumen → `supabase/tests/medir-cotizacion-crear.sql` (`pnpm db:medir`)
