@@ -33,7 +33,7 @@ BITACORA lo anota como «hito 4-A».
 **Verificación de los pasos de la Fase 4:** los niveles son los de `.claude/rules/e2e.md` (Nivel 1, 2 y 3). «Cadena db» = una migración nueva,
 `db:reset`, `db:types` y `db:probar` (más `db:carreras` cuando hay carrera). Cada paso de pantalla anota en la BITACORA su marca
 `e2e completo: sí|no (<paso>, <tipo>, N de 3)`: la cuenta de pantallas sin e2e completo vuelve a 0 con cada completo y a los 3 se corre
-uno (hoy: **1 de 3**: el 4.15-3a, de pantalla, sin completo; el 4.15-2 corrió el completo de escritorio). Compuerta `dependencia` para subir una dependencia
+uno (hoy: **2 de 3**: el 4.15-3a y el 4.15-3b, de pantalla, sin completo; el 4.15-2 corrió el completo de escritorio). Compuerta `dependencia` para subir una dependencia
 (el piloto no las sube).
 
 **Decisiones de apertura vigentes** (la persona, 2026-10-22; `docs/DECISIONES.md`, «Apertura de la Fase 4 — Cotizaciones» y «D7»):
@@ -41,7 +41,7 @@ uno (hoy: **1 de 3**: el 4.15-3a, de pantalla, sin completo; el 4.15-2 corrió e
 - **D1 Sin estado comercial nuevo.** «Vencida» = `creado_en` + `vigencia_dias` de la empresa (7 por defecto). Se ve en el listado, la
   tarjeta y el PDF, y una vencida se recotiza encima (N+1).
 - **D2 «Desactualizada»** (no es «vencida»): una nueva cuya fórmula publicada o un tipo de cambio cambió desde que se abrió la hoja. La
-  pantalla ofrece «Usar la versión N+1» o «Guardar con la N». Editar una vieja no avisa.
+  pantalla ofrece «Usar la versión N+1» o «Guardar con la N». Editar una vieja avisa de su versión (P7 del 4.15, hecho en el 4.15-3b): dice cuál usa y cuál es la de hoy, o que venció, y ofrece «Cotizar encima».
 - **D3 El lead es obligatorio siempre.** El vehículo también, salvo que el ajuste «Vehículo obligatorio al cotizar» diga que no (por
   defecto dice que sí; lo cambia `cotizaciones.configurar`); una final lo exige siempre. «Cargar a mano» y el link de subasta crean el
   vehículo en el inventario.
@@ -170,8 +170,8 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   lectura de una guardada (`cotizacion_hoja_guardada`: SU versión, lo editable por `_cotizacion_puede_guardar()`, la vigencia `vigencia_dias` y la cadena), las revisiones
   con autor y etiquetas y cotizar encima (`cotizacion_encima`, la N+1 al tocarla, una viva por anterior; P9–P13); Nivel 2 (estructura) + cadena db + `db:carreras` + `db:medir`.
   El **3a** (hecho el 2026-11-04): `/cotizaciones/[id]` y la hoja de SU versión (sólo lectura para quien no la guarda), «Guardar» (la versión esperada, el conflicto con quién y cuándo,
-  `intento_reusado`; P1 y P2) y la entrada desde el historial del vehículo y la tarjeta; pantalla, Nivel 1, sin completo (1 de 3). El **3b**: el panel de revisiones por cursor
-  (se registra en `RPC_PAGINADAS` de `scripts/guardas/paginas-en-la-base.ts`) y «Cotizar encima» (P7: el aviso de versión y la cadena); no corre el completo por la cuenta (será 2 de 3).
+  `intento_reusado`; P1 y P2) y la entrada desde el historial del vehículo y la tarjeta; pantalla, Nivel 1, sin completo (1 de 3). El **3b** (hecho el 2026-11-04): el panel de revisiones por cursor
+  (`?panel=revisiones`, registrado en `RPC_PAGINADAS`), la cadena (la anterior y la nueva) en la cabecera y «Cotizar encima» (P7: el aviso de versión o de vencida; P1 y P2 del 3b); pantalla, Nivel 1, sin completo (2 de 3).
   `cotizacion_guardar` con el mismo intento y otros datos da 22023 `intento_reusado` (lo lleva a la pantalla el 3a). Depende de 4.13. Prompts: 4.
   - Preguntas del plan del 4.15 (contestadas el 2026-11-04, todas con la recomendada; `.piloto/planes/4.15.md` y `4.15-2.md` › «Preguntas abiertas»):
     **P1** qué es cotizar encima (una cotización nueva con `cotizacion_padre_id` y `version` + 1; la anterior no se toca). **P2** qué se lleva (lo tipeado de los nodos
@@ -181,6 +181,8 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
     que existe; **P12** la vigencia nace ahora (sin pantalla hasta el 4.20); **P13** quien sólo ve abre la hoja de una guardada en sólo lectura.
     Del 4.15-3 (contestadas el 2026-11-04 con la recomendada; `.piloto/planes/4.15-3.md` › «Decisiones contestadas»): **P1** la página de una guardada no cambia el vehículo de una preventa
     (se muestra sin cambiarlo; **4-71**). **P2** al abrir se recalcula y, si no da lo guardado, se avisa y «Total guardado» muestra el de antes con `<Monto>`, con «Guardar» encendido.
+    Del 4.15-3b (contestadas el 2026-11-04 con la recomendada; `.piloto/planes/4.15-3b.md` › «Preguntas abiertas»): **P1** con cambios sin guardar (o un guardado pendiente) «Cotizar encima» queda apagado y dice «Guarda o descarta
+    tus cambios antes de cotizar encima: la versión nueva lleva lo guardado.». **P2** las revisiones no tienen camino a lo antiguo tras 500 por ahora (**4-75**, para el 4.17); el aviso dice «Mostrando las 500 más recientes.».
 - **4.16** — El listado `/cotizaciones` (resumen `?cotizacion=`, «Vencida», cursor, el máximo medido, sin el snapshot), la siembra de
   volumen y `medir-escala.sql`; se enciende la navegación. Cierra **4-14** («todas las que veo» de quien ve «propios») y **4-23** (el
   gemelo en el inventario de vehículos), la entrada a cotizar desde el listado (`docs/UX.md:38`) y el camino a lo antiguo del historial del vehículo (el tope de 500 del 4.14-2b: un
@@ -225,7 +227,7 @@ de la hoja, la tarea de oro 2 del tramo de la hoja (`e2e/cotizar-tarea-de-oro.sp
   cada proyecto (con la decisión vigente, sin segunda pila local, su assert de 25 min no se cumple en esta fase), **5a-33** (el conteo
   del rol, tapado al 200 % en Roles), ESTADO y BITACORA. Depende de todo. Nivel **3**. Prompts: 2.
 
-Total de la fase: 33 pasos y 84 prompts; faltan el 4.15-3b y los pasos 4.16 a 4.28.
+Total de la fase: 33 pasos y 84 prompts; faltan los pasos 4.16 a 4.28.
 
 **Pulido para la Fase 9** (2026-10-30; regla en `.claude/rules/e2e.md` › «Pulido y rigor por tipo de paso»). Ningún paso los recoge ni abre otro por ellos, aunque su fila los nombre
 (4.20 y 4.28): **4-61**, **4-62** y **4-63** (el foco tras recargar y «atrás» que quedó del 4-49), **5a-29** y **5a-30** (del 4.20) y **5a-33** (del 4.28). Los recorre la
@@ -392,8 +394,10 @@ playwright test --shard=2/4 --project=escritorio`), con `log_min_duration_statem
 - **4-70** (4.24, la papelera propia; salió del 4.15-2): `papelera_restaurar` de una versión nueva (cotizar encima) cuando su anterior ya tiene otra viva da el 23505 de `cotizaciones_encima_unica`, sin texto humano: un PT409 «Esa cotización ya tiene otra versión nueva», o restaurarla sin la marca de anterior.
 - **4-71** (sin fase, lo decide la persona; salió del 4.15-3a, P1): cambiar el vehículo de una preventa guardada desde su página `/cotizaciones/[id]`. La base lo deja (`cotizacion_guardar(p_vehiculo)`: una preventa cambia de vehículo y nunca lo quita); la página lo muestra sin cambiarlo y «Guardar» manda el que tiene. Hacerlo es la barra del vehículo de la hoja nueva (un 4.15-3c) o sólo elegir entre los ya cargados.
 - **4-72** (sin fase, lo decide la persona; salió del 4.15-3a): quien ve una cotización y no ve su vehículo no la recalcula ni la guarda (`_cotizacion_armar` pide ver el vehículo): la página dice «No se pudo recalcular» y muestra «Total guardado», pero sus cifras de hoy no se ven. Que el recálculo de una guardada no dependa del vehículo que quien mira no ve, o que la pantalla lo diga.
-- **4-73** (sin fase; salió del 4.15-3a): el JS en frío de `/cotizaciones/nuevo` subió de 453,1 a 456,9 KB tras el 4.15-3a (commit 2) y quedó en 456,2 tras el commit 3, tope 460 (margen 3,8 KB); el plan decía «no sube». Viene de lo compartido que tocaron los commits 1 y 2 (la hoja generalizada: `DeDondeCalcula`, `iniciales`, `abre`); sin atribuir a un commit (habría pedido compilar `9df08f05`). La guardada también viaja con la hoja nueva: `hoja-de-cotizar.tsx` importa su guardado. Antes de sumar peso a la hoja (el 4.15-3b, el 4.19): atribuirlo y, si hace falta, pedir lo de la guardada con `diferido()`.
+- **4-73** (sin fase; salió del 4.15-3a): el JS en frío de `/cotizaciones/nuevo` subió de 453,1 a 456,9 KB tras el 4.15-3a (commit 2) y quedó en 456,2 tras el commit 3, tope 460 (margen 3,8 KB); el plan decía «no sube». Viene de lo compartido que tocaron los commits 1 y 2 (la hoja generalizada: `DeDondeCalcula`, `iniciales`, `abre`); sin atribuir a un commit (habría pedido compilar `9df08f05`). La guardada también viaja con la hoja nueva: `hoja-de-cotizar.tsx` importa su guardado. Antes de sumar peso a la hoja (el 4.15-3b, el 4.19): atribuirlo y, si hace falta, pedir lo de la guardada con `diferido()`. **Atribuido en el 4.15-3b:** los textos que sólo dice la guardada («Al recargar se abre esa versión», «no puedes guardar esta cotización») viajan en el chunk `3e8zry20292r8.js` (10,4 KB con gzip), que carga también `/cotizaciones/nuevo`; el 3b no lo movió (456,2 KB de 460, igual que antes) y suma sólo a `/cotizaciones/[id]` (440,3 → 442,3 de 448). Sigue abierto, sin fase.
 - **4-74** (menor, sin fase; salió del 4.15-3a): `schemas/edicion.ts:14` acota `notas` con `.max(2000)`, que cuenta unidades UTF-16 y la base cuenta caracteres (una nota con emoji cerca del tope bloquearía «Guardar»; hoy ninguna pantalla escribe notas); y `e2e/cotizar-guardada-guardar.spec.ts:124` usa `waitForTimeout(600)` para afirmar que no salió ningún guardado (no hay un estado final que esperar sin un guardado centinela).
+- **4-75** (4.17, el camino a lo antiguo; salió del 4.15-3b, P2): el panel «Revisiones» de una guardada se detiene en las 500 más recientes (`<AvisoDeTope>`, «Mostrando las 500 más recientes.») y no tiene cómo llegar a las más viejas: el 4.17, que hace los «Ver más» de las secciones «Cotizaciones» y el camino a lo antiguo del historial, suma ahí «Ir a una fecha» al panel. Motivo de no hacerlo ya: 500 ediciones de una sola cotización no es un caso real y la base lee de a 20 por `cotizaciones_revisiones_cotizacion_idx`.
+- **4-76** (menor, sin fase; salió del 4.15-3b): (a) el aviso de versión no sale si la hoja no tiene secciones que dibujar (`hoja-de-cotizar.tsx` corta con `SinDatosQueVer` antes del hueco `encima`), aunque el aviso lo ve todo el que abre la página; (b) `e2e/cotizar-encima.spec.ts` afirma «sin envío» tras un toque forzado sin un centinela (el mismo caso que 4-74); (c) la prueba de «otra persona cotizó encima» usa a la dueña en otra sesión, no a otra persona; (d) falta la prueba de que la hoja nueva no dibuja el aviso (cierto por construcción).
 - **4-54** (sin fase, lo decide la persona; salió del 4.14-2a): si una cotización se está guardando cuando se elige otro vehículo en el panel (abrirlo y elegir dentro de lo que
   tarda el guardado), se guarda con el de antes —lo que se veía al guardar— y la hoja pasa al nuevo sin la tarjeta de éxito; quien guardó puede creer que no se guardó y
   guardar otra vez: una cotización de más. La barra queda fuera de `[data-hoja]` y no se apaga con su `inert`. Assert: con el guardado demorado (la action interceptada), abrir

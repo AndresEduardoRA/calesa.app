@@ -440,3 +440,20 @@ compuerta `datos`. `docs/DECISIONES.md` › «Paso 4.15 (3a de 4)».
 - Hallazgo de la auditoría: «Recargar» tras `nodo_no_editable` no volvía a montar la hoja y lo rechazado se reenviaba; ahora la lectura que pidió suma a la `key`.
 - **Commits:** `9df08f05` (la hoja calcula por su origen o su cotización), `47ce6f8a` (abrir una guardada), `4d5a868a` (guardar) y `c141e3a3` (el `fix`: volver a montar al recargar).
   e2e completo: no (4.15-3a, pantalla, 1 de 3)
+
+## 2026-11-04 — 4.15-3b: las revisiones, la cadena y «Cotizar encima» en `/cotizaciones/[id]`
+
+El 3b de 4 del 4.15, de pantalla (Nivel 1, rigor de pantalla con una escritura de dinero). P1 y P2 contestadas con la recomendada; plan auditado una vez (observaciones, las 13 atendidas)
+y aprobado en la compuerta `datos`. No toca la base. `docs/DECISIONES.md` › «Paso 4.15 (3b de 4)».
+
+- La cabecera de una guardada suma «Revisiones» (`?panel=revisiones`: un panel de sólo lectura, de a 20 por cursor hasta 500), la cadena («Versión V de la n.º N», «Hay una versión nueva») y,
+  si usa otra versión de la fórmula que la de hoy o venció, un aviso con «Cotizar encima», que crea la versión nueva en el acto (`cotizacion_encima`, intento sólo tras una pérdida) y espera si hay cambios sin guardar.
+- **Verificación** (`.piloto/salidas/4.15-3b/`, informe en `.piloto/informes/4.15-3b.md`):
+  - En verde: `pnpm lint`, `pnpm typecheck` y `pnpm test` (516 archivos, 6.141 pruebas) tras el último commit de código (`410339dd`).
+  - e2e dirigidos en escritorio y móvil, 0 caídas: los dos specs nuevos (revisiones 3 y encima 7, por proyecto), los de la página (`cotizar-guardada`, `cotizar-guardada-guardar`) y `presupuesto-js` (54 pasadas, 6 saltadas).
+  - Rojos contra HEAD (`rojo-*.txt`) y 8 mutaciones que caen con Vitest (`mutaciones.txt`: M1 a M6 del plan y F3 y F6 del `fix`).
+  - JS en frío: `/cotizaciones/[id]` 442,3 KB (tope 448) y `/cotizaciones/nuevo` 456,2 (tope 460, sin cambio). El panel: 241 nodos y 11.907 B con 20 filas (topes 254 y 12.503).
+- **El previo de nodos del panel (200) no alcanzó:** 281 en la primera corrida, 241 tras quitar un envoltorio; topes 254 y 12.503 B fijados por la sesión (`docs/RENDIMIENTO.md`). Los dirigidos de la hoja que el plan dejó al CI no se corrieron en local.
+- **4-73** atribuido (el chunk de la guardada que también carga la hoja nueva) y abierto nuevo **4-75** (el camino a lo antiguo de las revisiones, 4.17).
+- **Commits:** `73cb967f` (el panel de revisiones), `189c9966` (la cadena), `38c11a0b` (cotizar encima) y `410339dd` (el `fix` de la auditoría del informe).
+  e2e completo: no (4.15-3b, pantalla, 2 de 3)

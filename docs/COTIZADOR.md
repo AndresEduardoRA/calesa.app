@@ -482,6 +482,8 @@ ni entero: lo dice la base en `faltantes`** y la hoja lo pasa por `error`. **La 
 las banderas, pasa **los mismos callbacks a todas las celdas** y decide qué abrir. Una parada de `Tab` por valor; ayuda, ⚙ y ↺ se
 alcanzan con `→` (**las flechas son de la celda**).
 
+Lo dibuja el 4.15-3b en `/cotizaciones/[id]`: «Revisiones» (`cotizacion_revisiones` desde el navegador, de a 20 por cursor), la cadena (`anterior` y `encima`) y el aviso de versión con «Cotizar encima» (`cotizacion_encima`, con un intento que sólo se conserva tras una pérdida). El botón sale con `puede_cotizar_encima`, no con `puede()`; con cambios sin guardar espera, porque la nueva lleva lo guardado.
+
 ### La hoja dibujada y el recálculo (4.13-2)
 
 `/cotizaciones/nuevo?origen=&lead=&vehiculo=`. **Una lectura y un cálculo al abrir, en el
