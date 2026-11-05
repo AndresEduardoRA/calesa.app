@@ -101,6 +101,8 @@ function casosDe({ fases, categorias, hasta }: TerrenoPostgrest): Caso[] {
     '(paréntesis)',
     'ÑANDÚ',
     'jtdbr',
+    // Sólo coincide por el lote (`lote(1)`): ata `lote` en la búsqueda y los paréntesis dentro del `or()` de PostgREST.
+    'lote(',
   ]
   return [
     enCorea(SIN_FILTROS),

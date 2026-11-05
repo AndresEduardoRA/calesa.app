@@ -2,7 +2,7 @@
 -- cuántos vehículos hay, sino de cuántos permisos tiene quien mira (`mis_permisos()` junta `usuarios_roles`, `roles_permisos` y `perfiles`). Sin volumen: corre igual sobre
 -- la semilla y en `pnpm db:medir:volumen`, tras la guarda. Todo en una transacción que se revierte.
 --
--- Dos personas sin vehículos: el «chico» (un rol con una sola concesión, `vehiculos.ver` «propios») y el «grande» (un rol con una concesión por cada clave de `permisos`:
+-- Tres personas sin vehículos: la dueña de la semilla (el rol real, si existe), el «chico» (un rol con una sola concesión, `vehiculos.ver` «propios») y el «grande» (un rol con una concesión por cada clave de `permisos`:
 -- una por origen si es por origen, una sin origen si no; contadas). De cada una, como `authenticated`, 7 corridas de
 -- `EXPLAIN (ANALYZE, BUFFERS) select public.origenes_con_alcance('vehiculos.ver', 'todos')` y la mediana de las 5 últimas: ms y buffers, lo leído por relación de
 -- `perfiles`, `usuarios_roles` y `roles_permisos` (el heap y sus índices, `pg_stat_get_xact_blocks_fetched`, el promedio de las 5) y las filas de `mis_permisos()`.
@@ -34,6 +34,10 @@ select p.id, r.id, true from _p p join public.roles r on r.clave = 'medir_477_' 
 do $$ begin
   if (select count(*) from public.perfiles where id in (select id from _p) and activo and not bloqueado) <> 2 then raise exception 'las personas de la medición no tienen perfil activo'; end if;
 end $$;
+-- La dueña de la semilla (el rol `dueno`), si existe: el rol real.
+insert into _p select 'duena', ur.usuario_id from public.usuarios_roles ur join public.roles r on r.id = ur.rol_id where r.clave = 'dueno' order by ur.usuario_id limit 1;
+-- Estadísticas al día tras los inserts: sin esto el planificador no sabe que el rol grande es grande.
+analyze public.perfiles, public.usuarios_roles, public.roles_permisos;
 grant select on _p to authenticated;
 
 -- Las relaciones de `mis_permisos()`: cada tabla con sus índices, sumados por tabla.
@@ -61,7 +65,7 @@ begin
   end loop;
   insert into _med values (p_quien, (select percentile_cont(0.5) within group (order by m) from unnest(v_ms) m), (select percentile_disc(0.5) within group (order by b) from unnest(v_buf) b),
     (select jsonb_object_agg(key, round(value::numeric / 5, 1)) from jsonb_each_text(v_suma)), (select count(*) from public.mis_permisos()),
-    (select count(*) from public.roles_permisos rp join public.roles r on r.id = rp.rol_id where r.clave = 'medir_477_' || p_quien));
+    (select count(*) from public.roles_permisos rp join public.usuarios_roles ur on ur.rol_id = rp.rol_id where ur.usuario_id = v_id));
 end $$;
 grant execute on all functions in schema pg_temp to authenticated;
 
@@ -69,6 +73,7 @@ set local track_functions = 'all';
 set local role authenticated;
 select pg_temp.medir('chico') \g /dev/null
 select pg_temp.medir('grande') \g /dev/null
+select pg_temp.medir('duena') from _p where clave = 'duena' \g /dev/null
 reset role;
 
 do $$
@@ -83,6 +88,11 @@ begin
     end loop;
     raise notice 'nota|4-77 · % · % concesiones: % filas de mis_permisos(), % buffers, % ms; bloques %|', r.clave, r.concesiones, r.filas, r.buffers, round(r.ms, 3), r.bloques;
   end loop;
+  -- En una base sin cuentas la primera que entra queda como dueña (`perfiles`): el chico no sería chico. Corre con la siembra de volumen (`pnpm db:medir:volumen`).
+  if (select concesiones from _med where clave = 'chico') <> 1 then
+    raise exception 'el chico tiene % concesiones: la base no tenía cuentas y quedó como dueña (corre con la siembra de volumen)', (select concesiones from _med where clave = 'chico');
+  end if;
+  raise notice 'nota|4-77 · tamaño de perfiles: % (% filas)|', pg_size_pretty(pg_relation_size('public.perfiles')), (select count(*) from public.perfiles);
   if (select filas from _med where clave = 'grande') <= (select filas from _med where clave = 'chico') then
     raise exception 'el costo fijo no mide lo de 4-77: el grande no tiene más filas de mis_permisos() que el chico (% y %)',
       (select filas from _med where clave = 'grande'), (select filas from _med where clave = 'chico');

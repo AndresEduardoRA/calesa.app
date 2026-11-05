@@ -252,7 +252,7 @@ begin
     if r.ms > v_t then v_f := v_f || format(E'\n  %s · %s: %s ms (tope %s)', r.fase, r.caso, round(r.ms, 1), v_t); end if;
     v_ok := array['vehiculos', 'vehiculos_pkey'] || case r.quien when 'beto' then array['vehiculos_origen_listado_idx'] when 'vera' then array['vehiculos_lead_id_idx', 'vehiculos_creador_idx']
                                                    else array['vehiculos_creador_idx'] end;
-    -- Un índice vacío (sólo su metapágina: `cotizado`, `cierre_subasta`) no cuenta: el planificador lo lee al planear cada llamada (un btree vacío no guarda su altura).
+    -- Un índice vacío (sólo su metapágina; en la siembra, `vitrina` y `cierre_subasta`) no cuenta: el planificador lo lee al planear cada llamada (un btree vacío no guarda su altura).
     for x in select k from jsonb_object_keys(r.bloques) k where not k = any (v_ok) and pg_relation_size(('public.' || k)::regclass) > current_setting('block_size')::int loop
       v_f := v_f || format(E'\n  %s · %s usa %s', r.fase, r.caso, x);
     end loop;
