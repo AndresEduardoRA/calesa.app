@@ -232,6 +232,9 @@ for (const archivo of [
   'cotizaciones-listado.sql',
   'vehiculos-cotizado-en.sql',
   'vehiculos-cierre-subasta.sql',
+  'vehiculos-inventario-forma.sql',
+  'vehiculos-inventario.sql',
+  'vehiculos-inventario-filtros.sql',
   // Al final: sus `pg_temp` (la copia vieja de `puede_vehiculo`) no llegan a los archivos de antes.
   'vehiculos-visibilidad.sql',
 ]) {

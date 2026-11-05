@@ -139,6 +139,8 @@ declare
     ('cotizacion_tabla(text,uuid,uuid,text)', 'L'),
     -- El listado de cotizaciones (4.16-1): invocadora, la RLS de cotizaciones decide; devuelve el id del lead de cada fila y no recibe ninguno (la cartera la saca de mis_leads()).
     ('cotizaciones_listado(integer,uuid,clase_cotizacion,boolean,uuid,timestamp with time zone,uuid,boolean)', 'L'),
+    -- El inventario por rutas (4.16-2a): invocadora, la RLS de vehiculos decide; devuelve el lead_id de cada vehículo y no recibe ninguno (la cartera la saca de mis_leads()).
+    ('vehiculos_inventario(uuid,integer,jsonb,timestamp with time zone,uuid,boolean)', 'L'),
     -- Crear una cotización (4.10-2): el lead es obligatorio y se pide visible (`leads.ver`, la regla de la policy de insert que se fue), no de la cartera: una cotización cuelga de un lead que quien
     -- cotiza ve (D3). Lo bloquea `for key share` entre dos comprobaciones, igual para el que no existe y el que no ve (`cotizacion-crear.sql` y `cotizaciones-visibilidad.sql`).
     ('cotizacion_crear(uuid,uuid,uuid,jsonb,text,uuid,jsonb,text,clase_cotizacion,boolean,boolean)', 'X'),
