@@ -1601,3 +1601,88 @@ desde el 2a5; con su apertura sin marcar (M7, el estado de antes del 2a5) el foc
 - **Producto se contesta solo con la recomendada** y queda en `.piloto/decisiones-automaticas.md`; `datos`, `guardas`, `dependencia`, `afuera` y `atasco` siguen siendo de la persona.
 - **El tope por paso sube de 60 a 200 USD**: en la Fase 4 un paso costó entre 9 y 36 USD (423,52 USD en 57 llamadas); el tope sirve de freno a un paso atascado, no a un paso normal.
 - **Pendiente, medido y no hecho**: el contexto de ≈ 320.000 tokens por turno es lo que más cuesta (la lectura de caché pasa de 1.000 M de tokens en la Fase 4). La salida es ejecutar cada commit con un subagente de contexto nuevo; se prueba en un paso real y se mide antes de dejarlo por omisión.
+
+## 2026-11-04 — Paso 4.15 (3a de 4): abrir y guardar en `/cotizaciones/[id]`
+
+- **Partición:** el 3 de la fila (pantalla, revisiones y «Cotizar encima») no cabía en 3 commits; el 3a es abrir y guardar, el 3b las revisiones y encima. P1: la página no cambia el vehículo
+  de una preventa (se anota 4-71); P2: al abrir se recalcula y, si no da lo guardado, se avisa y «Total guardado» muestra el de antes; descartadas: abrir con el snapshot sin recalcular
+  (otra forma de respuesta de la hoja) y recalcular sin aviso (se vería otro total que el cotizado).
+- **`actualizadoEn` viaja como el texto de la base**, nunca por `Date` ni `fechas.ts` (pierden los microsegundos y daría siempre PT409). La versión esperada se manda tal cual la leyó la página; el intento es uno nuevo por guardado.
+- **El borrador y el pendiente de una guardada** van por persona y cotización, y el borrador lleva la versión: tras un conflicto lo tipeado no vuelve sobre lo que guardó la otra persona; el aviso lo dice.
+- **«Guardar» está apagado sin cambios**, salvo con un pendiente (se reenvía, 4-21) o con lo de hoy distinto de lo guardado. El único texto de la base que se muestra es el del PT409 (nombra a una persona y una hora); un 22023 del vehículo sin `details` dice que la cotización cambió.
+- **Quién guarda lo dice `puede_guardar` de la base**, no `puede()`: no conoce el alcance por cotización. `difiereAlAbrir` compara los `valores` y `totales.usd`, no sólo el total (una celda puede cambiar sin mover el total).
+- **«Recargar» vuelve a montar la hoja con la lectura que pidió** (la `key` suma una lectura pedida); una lectura que nadie pidió no la remonta y lo tipeado se queda. **La lectura del cliente y del vehículo va en serie tras la hoja** (sus ids salen de ella), no en paralelo.
+- **Rigor:** pruebas que fallan primero, 5 mutaciones e informe auditado; sin carreras ni volumen (ningún SQL cambia).
+
+## 2026-11-04 — Paso 4.15 (3b de 4): las revisiones, la cadena y «Cotizar encima»
+
+- **P1: con cambios sin guardar «Cotizar encima» espera.** La versión nueva lleva lo **guardado** de la anterior (`cotizacion_encima`), así que lo tipeado no llegaría; el botón se apaga y dice «Guarda o descarta tus cambios antes de cotizar encima: la versión nueva lleva lo guardado.». `hayCambios` lo calcula un solo lugar (`useGuardarLaGuardada`: lo tipeado, «Ver total Bs» o un guardado pendiente). Descartadas: dejarlo tocar (quien tipeó creería que la nueva lleva su cambio) y guardar primero (dos escrituras con el conflicto en medio).
+- **P2: ningún camino a las revisiones de más de 500, por ahora (4-75).** Excepción nombrada a «siempre hay un camino a lo antiguo» (`.claude/rules/escala.md`), como el historial del vehículo: 500 ediciones de una cotización no es un caso real y la base lee de a 20 por índice. El camino («Ir a una fecha») va al 4.17.
+- **El aviso de versión lo ve todo el que abre la página y el botón sólo quien puede** (`puede_cotizar_encima` de la base): dice algo de la cotización, no de quien mira. **La action no llama a `puede()`**: la base lo pide todo (`cotizacion_encima`) y la pantalla no conoce el alcance por cotización.
+- **El intento de cotizar encima se conserva sólo tras una pérdida:** reintentar devuelve la misma versión nueva (`repetido`) y no crea otra; cualquier otra respuesta lo olvida. Dos toques seguidos crean una sola (el ref de «ocupado» y el índice único `cotizaciones_encima_unica`).
+- **Lo descartado se dice en un aviso efímero** («Versión 2 creada (n.º M). 1 dato que tipeaste no sigue en la versión de hoy.»): la página cambia y no queda dónde. `descartados` es la cuenta de la base sobre lo que quien cotiza ve.
+- **Ningún texto de la base se muestra** (`resultadoDeEncima` y `textoDeEncima`); los once casos de `cotizacion_encima` tienen el suyo. Un `fuera_de_rango` del total cae en «sin total».
+- **La hoja compartida sólo suma un hueco** (`encima`, que recibe `hayCambios`); la hoja nueva no lo llena y su JS no cambió. El panel de revisiones y la cadena viajan en `features/revisiones` con `diferido()`; las revisiones se leen por `composicion-revisiones.client.ts`, aparte de la composición que importa la hoja.
+- **Los topes del panel se fijaron midiendo, por encima del previo del plan:** 200 nodos no alcanzaba (≈ 12 por fila con dos `<Monto>`); 241 medidos, tope 254 (+ 5 %), y 11.907 B, tope 12.503. Lo decidió la sesión y se dice en el informe y RENDIMIENTO.
+- **Rigor:** pruebas que fallan primero, 6 mutaciones con Vitest (y 2 más del `fix` de la auditoría) e informe auditado en dos rondas; sin carreras ni volumen SQL (ningún SQL cambia; la RPC de revisiones ya estaba medida con 500).
+
+## 2026-11-04 — Paso 4.16 (1 de 4): el listado de cotizaciones por cursor y por alcance (4-14)
+
+- **Partición en cuatro:** el 4.16-1 es la lectura (4-14), el 4.16-2 el gemelo del inventario (4-23), el 4.16-3 la siembra de cotizaciones y `medir-escala.sql`, el 4.16-4 la pantalla.
+  Se verifican distinto (base con volumen, base de vehículos por PostgREST, siembra, pantalla con el shell) y la base sola ya llenaba una sesión.
+- **P1: «Mías» son las que creó quien mira** (`creado_por`), para cualquiera. No es «Míos» de leads (`en_cartera`): con la cartera, a un asesor el filtro no le cambiaría nada.
+  **P2: todas las versiones de una cadena salen**, cada una en su fila; la cadena se ve al abrirla.
+- **`cotizaciones_listado()` es invocadora:** la RLS de «cotizaciones: leer» sigue decidiendo y las rutas sólo eligen el índice. Lo que devuelve se compara, persona por persona y con cada
+  filtro, con la regla escrita a mano (`cotizaciones-visibilidad.sql`, L2). La cartera sale de `mis_leads()` (una llamada; el conjunto de `en_cartera()`): leer `leads_asesores` como quien
+  mira pasaría por la RLS de `leads` y perdería el lead en la papelera y a quien no tiene `leads.ver` (Q en L2). No es el arreglo que prohíbe `escala.md`: no es una policy.
+- **La clase nunca es columna de un índice:** `enum_eq` no es _leakproof_ y bajo la RLS `c.clase = …` no puede ser condición de índice. Medido: con `(clase, …)` y `(origen_id, clase, …)` la
+  dueña y Teo leían `cotizaciones_listado_idx` filtrado (1.056–4.764 bloques). La final va por parciales `… where clase = 'final'` con `'final'` literal en su rama (la prueba del predicado no
+  pasa por la RLS); la preventa, por el índice del orden con la clase como filtro (las finales son la minoría).
+- **`lead_id` y `origen_id` con un solo índice entero al frente** (`cotizaciones_lead_creado_idx`, `cotizaciones_origen_creado_idx`; se van `cotizaciones_lead_idx`, `cotizaciones_lead_id_idx` y
+  `cotizaciones_origen_id_idx`): entero, porque cubre la FK de verdad (también la papelera; el lint de splinter no lo distingue y no falla, la guarda es L8); uno solo, porque dos que sirven
+  a la misma consulta compiten en el plan genérico: con 50.000 la cartera sondeaba por la FK y ordenaba, y con 250.000 por el del orden. `creado_por` sigue con dos (la ruta 2 leyó siempre
+  `cotizaciones_creador_idx`) y `vehiculo_id` sólo con parciales (4-51).
+- **El tope de la dueña es de bloques de `cotizaciones` (≤ 116), no de buffers totales:** cada llamada carga ≈ 160–240 buffers fijos de `origenes_con_alcance()` → `mis_permisos()` y de las
+  InitPlan de la policy (4-77), que no son de este listado y no crecen con N. Bajarlos toca una `security definer` de todas las policies: es otro paso, con compuerta `datos`.
+- **El máximo es 100** (`MAXIMO_DE_PAGINA_DE_COTIZACIONES`): con 101 filas, 1,1–2,1 ms la dueña, 1,6 ms la «chica», 10–23 ms Ana, ≤ 2,3 ms Teo, con 50.000 y 250.000.
+- **El paso se detuvo una vez en su parada (4)** (los índices por clase no servían) y la persona eligió replanificar: el plan se corrigió con lo medido, se auditó dos veces más y una sonda en
+  la transacción confirmó, antes de tocar la función, que los parciales se usan con el literal y que el plan de Ana es el mismo con los dos volúmenes (`d = 0`).
+- **Rigor:** pruebas que fallan primero (también la medición, con «lo de hoy»: 1,8 s Ana y 2,3 s la «chica» con 250.000), 19 mutaciones que caen e informe auditado; sin carreras (no hay escritura nueva).
+
+## 2026-11-05 — Paso 4.16-2a: el inventario por rutas, con los filtros del layout en SQL
+
+- **Cómo se llegó.** 4-23 pedía que quien ve «propios» no recorra el origen. Tres sondas con volumen, antes de escribir nada (`.piloto/informes/4.16-2.md`), descartaron dos
+  diseños:
+  - **S0:** una función `setof` con ramas `union all`, leída por PostgREST con su `order by … limit`, ordena todo. En Postgres 17 una hoja con `where` no se aplana en el
+    appendrel (`is_safe_append_member`).
+  - **S0':** con el `order by` en cada hoja hay `Merge Append` **sólo con `enable_sort = off`**. Con el plan normal y un `order by` o un join afuera, cada hoja se planea para
+    leerse entera (`tuple_fraction = 0`): Beto quedó en 72–75 ms. **Una forma probada con `enable_sort = off` no prueba el plan real.**
+  - La persona eligió (P-parada) dos lecturas por sentido y, si no cabían, los filtros en SQL. S0' no cupo y se pasó a lo segundo, como el 4.16-1.
+- **`vehiculos_inventario()`, plpgsql invocadora:** cada ruta lleva su `order by … limit` y Postgres sabe que lee una página.
+  - R1, el origen (`vehiculos_origen_listado_idx`): para quien ve «todos» y para una cartera de más de 5.000 (`leads_cartera_corta()`), como hoy.
+  - R2, lo creado (`vehiculos_creador_idx`, nuevo).
+  - R3, la cartera corta: un lateral por lead de `mis_leads()` sobre `vehiculos_lead_id_idx`.
+  - Se quitan `vehiculos_creado_por_idx` y `vehiculos_lead_idx`: un solo índice entero por columna que se sondea (la regla del 4.16-1).
+- **SQL dinámico.**
+  - Por qué: un número variable de condiciones de atributos (un `and` de `or`) pedía, en SQL estático, una subconsulta por fila.
+  - El texto lo arman `_vehiculos_inventario_sql()` y sus ayudantes, y depende sólo de la forma del pedido. **Ningún valor entra al texto:** todos llegan como `$1 -> i` por
+    `execute … using`. El precedente `_leads_candidatos_sql` los mete con `%L`.
+  - Los ayudantes son invocadores con EXECUTE para `authenticated` (como `_diseno_*`), porque los llama una invocadora. Exponen el texto, no datos. El patrón «contiene» copia
+    la expresión de `_lead_busqueda_patron()` en el texto (L1 prueba que es la misma) y `_lead_busqueda_patron` sigue siendo de `service_role`.
+- **Los topes de la validación** (la URL ya no los pone): 100 condiciones; 500 por arreglo (en 16 KB de URL caben ≤ 442 uuids); 1.000 sumando el pedido; 1.000 caracteres por
+  texto y por alternativa. El año, un entero de `smallint` (±32.767). Un `2010.0` caía al leer con `22P02`.
+- **P-limpieza: no releer la fila.** S0'' paró en Beto (10,3–10,8 ms contra 10; hoy 6,7) porque la lateral de `limpieza_el` relee cada fila y paga otra pasada de la RLS:
+  InitPlans, `mis_permisos` y un `en_cartera` por fila. La persona eligió calcularla sobre la fila que la ruta ya leyó.
+  - R1 y R2 cortan en su `limit` antes de proyectar.
+  - R3 relee sólo las filas de la página, por un `case` con una subconsulta escalar. Una lateral con `where f.releer` relee igual.
+  - Calcularla en R3 para toda la cartera dejaba a Vera en 63 ms.
+  - Con la regla de hoy toda fila de R3 tiene lead y queda anclada (`vinculo`), así que su relectura da nulo. Se paga por robustez.
+- **Contra hoy** (página 1, 250.000, por PostgREST / nuevo): la chica 32,3 / 2,5 ms; Vera 78,5 / 28,1. **Beto paga 1,8 ms más que hoy (6,3 → 8,1) y Pía 1,0 (5,0 → 6,0),
+  dentro de los 10 ms.** El 4.16-2b decide con ese dato: Beto pasa por la función.
+- **La equivalencia con PostgREST** la ata un e2e sin pantalla (`e2e/vehiculos-inventario-postgrest.spec.ts`: 47 casos, la dueña y una persona «propios», de a 3 y de vuelta).
+  L5 la repite en PGlite contra una referencia escrita a mano. S1 capturó 69 textos de PostgREST: cambia la notación, nunca el significado.
+- **Partido en 2:** el 2a es la base; el 2b, la app, que cierra 4-23. El registro en `paginas-en-la-base.ts` va en el 2b, porque su guarda hace caer una entrada que nadie llama
+  desde `src/`.
+- **4-77:** `origenes_con_alcance()` con 1, 74 (la dueña) y 122 concesiones da 7 buffers y ≈ 0,3 ms en los tres. No crece con las concesiones. Los 148 bloques de `perfiles`
+  del 4.16-1 no se reproducen y su causa sigue sin medir.
+- **Atribuciones corregidas del plan:** M1 la ve L2 (no L4); M27 la ve L1c (no L1b (b)). M14 no tenía caso en el e2e y el `fix` lo sumó (`lote(`).

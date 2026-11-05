@@ -424,3 +424,76 @@ El 2 de 3 del 4.15, de base. P1–P13 contestadas con la recomendada; plan aprob
   - Nivel 2 por estructura (la columna y el índice): el completo de escritorio, 890 en verde, 16 saltados, ninguna caída, 33,9 min.
 - **Commits:** `da93a3a8` (la hoja de una guardada), `58dd4ea0` (revisiones con autor) y `7b38f9b4` (cotizar encima).
   e2e completo: sí (4.15-2, base, Nivel 2)
+
+## 2026-11-04 — 4.15-3a: abrir y guardar una cotización guardada en `/cotizaciones/[id]`
+
+El 3a de 4 del 4.15, de pantalla (Nivel 1, rigor de pantalla con una escritura de dinero). P1 y P2 contestadas con la recomendada; plan auditado en dos rondas y aprobado en la
+compuerta `datos`. `docs/DECISIONES.md` › «Paso 4.15 (3a de 4)».
+
+- `/cotizaciones/[id]`: la hoja de SU versión (sólo lectura para quien no la guarda), «Guardar» con la versión esperada, el conflicto con quién y cuándo, `intento_reusado`, y
+  «Total guardado» con el aviso cuando lo de hoy no es lo guardado; se llega desde el historial del vehículo y la tarjeta de lo guardado. El vehículo no se cambia (P1; 4-71).
+- **Verificación** (`.piloto/salidas/4.15-3a/`, informe en `.piloto/informes/4.15-3a.md`, auditado: observaciones; la 1.ª se arregló en un `fix`):
+  - En verde, lo mínimo local de cada commit: eslint, `vitest related` (2.300 en 116 archivos tras el 3) y `typecheck`; `lint` y `test` enteros los corre el CI.
+  - e2e dirigidos en escritorio y móvil, 0 caídas: los dos specs nuevos (26 pasadas), los del guardado y la hoja (94) y, tras el `fix`, los de C1 (146).
+  - Rojos contra HEAD (`rojo-*.txt`) y 5 mutaciones que caen (`mutaciones.txt`); la M2 en e2e cae por la lectura, no por el guardado.
+  - JS en frío: `/cotizaciones/[id]` 440,3 KB (tope 448) y `/cotizaciones/nuevo` 456,2 (tope 460; subió 3,1: 4-73).
+- Hallazgo de la auditoría: «Recargar» tras `nodo_no_editable` no volvía a montar la hoja y lo rechazado se reenviaba; ahora la lectura que pidió suma a la `key`.
+- **Commits:** `9df08f05` (la hoja calcula por su origen o su cotización), `47ce6f8a` (abrir una guardada), `4d5a868a` (guardar) y `c141e3a3` (el `fix`: volver a montar al recargar).
+  e2e completo: no (4.15-3a, pantalla, 1 de 3)
+
+## 2026-11-04 — 4.15-3b: las revisiones, la cadena y «Cotizar encima» en `/cotizaciones/[id]`
+
+El 3b de 4 del 4.15, de pantalla (Nivel 1, rigor de pantalla con una escritura de dinero). P1 y P2 contestadas con la recomendada; plan auditado una vez (observaciones, las 13 atendidas)
+y aprobado en la compuerta `datos`. No toca la base. `docs/DECISIONES.md` › «Paso 4.15 (3b de 4)».
+
+- La cabecera de una guardada suma «Revisiones» (`?panel=revisiones`: un panel de sólo lectura, de a 20 por cursor hasta 500), la cadena («Versión V de la n.º N», «Hay una versión nueva») y,
+  si usa otra versión de la fórmula que la de hoy o venció, un aviso con «Cotizar encima», que crea la versión nueva en el acto (`cotizacion_encima`, intento sólo tras una pérdida) y espera si hay cambios sin guardar.
+- **Verificación** (`.piloto/salidas/4.15-3b/`, informe en `.piloto/informes/4.15-3b.md`):
+  - En verde: `pnpm lint`, `pnpm typecheck` y `pnpm test` (516 archivos, 6.141 pruebas) tras el último commit de código (`410339dd`).
+  - e2e dirigidos en escritorio y móvil, 0 caídas: los dos specs nuevos (revisiones 3 y encima 7, por proyecto), los de la página (`cotizar-guardada`, `cotizar-guardada-guardar`) y `presupuesto-js` (54 pasadas, 6 saltadas).
+  - Rojos contra HEAD (`rojo-*.txt`) y 8 mutaciones que caen con Vitest (`mutaciones.txt`: M1 a M6 del plan y F3 y F6 del `fix`).
+  - JS en frío: `/cotizaciones/[id]` 442,3 KB (tope 448) y `/cotizaciones/nuevo` 456,2 (tope 460, sin cambio). El panel: 241 nodos y 11.907 B con 20 filas (topes 254 y 12.503).
+- **El previo de nodos del panel (200) no alcanzó:** 281 en la primera corrida, 241 tras quitar un envoltorio; topes 254 y 12.503 B fijados por la sesión (`docs/RENDIMIENTO.md`). Los dirigidos de la hoja que el plan dejó al CI no se corrieron en local.
+- **4-73** atribuido (el chunk de la guardada que también carga la hoja nueva) y abierto nuevo **4-75** (el camino a lo antiguo de las revisiones, 4.17).
+- **Commits:** `73cb967f` (el panel de revisiones), `189c9966` (la cadena), `38c11a0b` (cotizar encima) y `410339dd` (el `fix` de la auditoría del informe).
+  e2e completo: no (4.15-3b, pantalla, 2 de 3)
+
+## 2026-11-05 — 4.16-1: la lectura del listado de cotizaciones por cursor y por alcance (4-14)
+
+El 1 de 4 del 4.16, de base (Nivel 2 por estructura, rigor máximo). P1 («Mías» son las que creó quien mira) y P2 (todas las versiones salen) contestadas con la recomendada.
+El paso paró una vez en su parada (4): los índices por clase no servían bajo la RLS (`enum_eq` no es leakproof). La persona eligió replanificar, y el plan se corrigió con lo
+medido y se auditó dos veces más. `docs/DECISIONES.md` › «Paso 4.16 (1 de 4)».
+
+- `cotizaciones_listado()`: invocadora, por cursor, con «Vencida» y los filtros origen, clase, «mías» y vehículo. «Todos» va por el índice del orden o por origen (la final por
+  parciales con la clase literal), lo propio por `creado_por` y la cartera de `mis_leads()` por lead. `lead_id` y `origen_id` quedan con un solo índice entero al frente.
+  Máximo: 100. El lector `leerListadoDeCotizaciones()`.
+- **Verificación** (`.piloto/salidas/4.16-1/`, informe en `.piloto/informes/4.16-1.md`, auditado: observaciones, atendidas):
+  - En verde: `lint`, `typecheck`, `test` (517 archivos, 6.149 pruebas), `db:probar` (498), `db:lint`, `db:medir` y `db:medir:volumen` entero (desde `db:reset` y siembra limpia).
+  - Rojos contra HEAD (`rojo-*.txt`): con 250.000, «lo de hoy» tarda 1,7 s Ana y 2,2 s la «chica». Con la función, 18,6 y 1,6 ms, sin crecer con N; la dueña, ≤ 105 bloques de
+    `cotizaciones` en cada filtro.
+  - 19 mutaciones que caen (`mutaciones.txt`; M2 sobrevivió una vez y se sumó la comprobación de una página entera).
+  - Crear y guardar contra HEAD: +5 a +10 buffers, con el mismo tiempo.
+- **Tropiezos del entorno:**
+  - Las mediciones que cayeron a mitad dejaron 398 MB de filas revertidas, y `origenes_resumen` pasó a 365 ms; tras `vacuum`, verde.
+  - `medir-bajas.sql` cayó una vez por checkpoints (5a-42) y dejó sus 200.000 leads.
+  - La carga llegó a 19, con otra sesión y unos bucles de CPU huérfanos.
+- Abierto nuevo **4-77**: el costo fijo de ≈ 160–240 buffers por lectura con la policy de cotizaciones, de `mis_permisos()`.
+- **Commits:** `33252377` (la base), `2fc8ad5d` (la medición) y `f5667be4` (el lector).
+  e2e completo: sí (4.16-1, base, Nivel 2: escritorio, 914 en verde, 16 saltados, 0 caídas, 33,2 min)
+
+## 2026-11-05 — 4.16-2a: el inventario por rutas, con los filtros del layout en SQL (4-23, la base)
+
+El 4.16-2 se partió en 2a (la base) y 2b (la app, que cierra 4-23), tras tres sondas con volumen y dos compuertas de la persona (P-parada, P-limpieza).
+`docs/DECISIONES.md` › «Paso 4.16-2a».
+
+- `vehiculos_inventario()`: invocadora, con rutas por índice (el origen, lo creado y la cartera corta por lead), los filtros `Condicion[]` en SQL dinámico sin valores en el
+  texto y `limpieza_el` sin releer la fila. Índice nuevo `vehiculos_creador_idx`; se van `vehiculos_creado_por_idx` y `vehiculos_lead_idx`.
+- **Verificación** (`.piloto/salidas/4.16-2a/`; informe en `.piloto/informes/4.16-2.md`, auditado: observaciones, atendidas con un `fix`):
+  - En verde: `lint`, `typecheck`, `test` (523 archivos, 6.178 pruebas), `db:probar` (508), `db:lint`, `db:medir` y `db:medir:volumen` entero.
+  - Los dirigidos (23) y el e2e de equivalencia con PostgREST (47 casos).
+  - Rojos contra HEAD: PGlite (7 ✗), el e2e (`PGRST202`) y la medición contra hoy (la chica de 7,0 a 32,1 ms).
+  - Las 33 mutaciones muerden.
+- Con 250.000: la chica de 32,3 a 2,5 ms y Vera de 78,5 a 28,1. Beto (6,3 → 8,1) y Pía (5,0 → 6,0) pagan algo, dentro de 10 ms. 4-77, medido: no crece con las concesiones.
+- Abierto nuevo **4-78**: las listas del panel del vehículo de quien ve «propios» recorren el origen.
+- **Commits:** `bce960bf` (la base), `8918e044` (el e2e), `c6e2b63d` (la medición) y `6b85221d` (el `fix` de la auditoría).
+  e2e completo: sí (4.16-2a, base, Nivel 2: escritorio, 915 en verde, 16 saltados, 0 caídas, 32,9 min)

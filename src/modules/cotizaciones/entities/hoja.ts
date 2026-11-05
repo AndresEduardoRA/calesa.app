@@ -8,6 +8,7 @@ import {
 } from './diseno'
 import {
   type esquemaCelda,
+  type esquemaDeDiseno,
   esquemaHoja,
   type esquemaItem,
   type esquemaLista,
@@ -88,15 +89,10 @@ export type SeccionDeHoja = {
 }
 export type NodoDeTarjeta = { nodo: string; etiqueta: string; formato: Formato }
 
-export type HojaLista = {
-  estado: 'lista'
+// El diseño de una versión de la fórmula recortado al nivel de quien mira: lo que dibuja la hoja, sea la de cotizar o la de una guardada.
+export type DisenoDeHoja = {
   origen: { id: string; nombre: string }
-  // La versión de la fórmula y la hora de la base con que se abrió (la hora es un texto ISO), y la hoja abierta que firma la base con las dos: es lo que se manda como
-  // `p_abierta` a `cotizacion_evaluar` (el recálculo calcula con esta versión y estas tarifas, 4-28) y a `cotizacion_crear` (D2, 4-27). Opaca: la pantalla no la lee.
   formula: { id: string; version: number }
-  abiertaEn: string
-  abierta: string
-  vehiculoObligatorio: boolean
   // Los modos de tipo de cambio se identifican por su clave: sus buckets no viajan (nombran tipos de cambio que un nivel puede esconder).
   cabecera: {
     modos: { clave: string; nombre: string }[]
@@ -106,6 +102,15 @@ export type HojaLista = {
   secciones: SeccionDeHoja[]
   tarjetaTotal: NodoDeTarjeta & { secundarios: NodoDeTarjeta[] }
   tonos: Tono[]
+}
+
+export type HojaLista = DisenoDeHoja & {
+  estado: 'lista'
+  // La hora de la base con que se abrió (un texto ISO), y la hoja abierta que firma la base con la versión de la fórmula y esa hora: es lo que se manda como
+  // `p_abierta` a `cotizacion_evaluar` (el recálculo calcula con esta versión y estas tarifas, 4-28) y a `cotizacion_crear` (D2, 4-27). Opaca: la pantalla no la lee.
+  abiertaEn: string
+  abierta: string
+  vehiculoObligatorio: boolean
 }
 export type HojaSinPublicar = {
   estado: 'sin_publicar'
@@ -189,14 +194,11 @@ function itemDe(i: Crudo<typeof esquemaItem>): ItemDeHoja {
   }
 }
 
-function listaDe(h: Crudo<typeof esquemaLista>): HojaLista {
+// El diseño leído, en camelCase: lo comparten `listaDe()` y la hoja de una guardada.
+export function disenoDe(h: Crudo<typeof esquemaDeDiseno>): DisenoDeHoja {
   return {
-    estado: 'lista',
     origen: h.origen,
     formula: h.formula,
-    abiertaEn: h.abierta_en,
-    abierta: h.abierta,
-    vehiculoObligatorio: h.vehiculo_obligatorio,
     cabecera: {
       modos: h.cabecera.modos,
       verTotalBs: h.cabecera.ver_total_bs,
@@ -210,6 +212,16 @@ function listaDe(h: Crudo<typeof esquemaLista>): HojaLista {
     })),
     tarjetaTotal: h.tarjeta_total,
     tonos: h.tonos,
+  }
+}
+
+function listaDe(h: Crudo<typeof esquemaLista>): HojaLista {
+  return {
+    ...disenoDe(h),
+    estado: 'lista',
+    abiertaEn: h.abierta_en,
+    abierta: h.abierta,
+    vehiculoObligatorio: h.vehiculo_obligatorio,
   }
 }
 

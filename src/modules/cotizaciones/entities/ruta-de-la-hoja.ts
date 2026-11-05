@@ -12,3 +12,6 @@ export function rutaDeLaHoja(datos: { origen: string; lead: string | null }): st
   }
   return `${RUTA_DE_LA_HOJA}?${parametros.toString()}`
 }
+
+// La página de una cotización guardada (`/cotizaciones/[id]`, 4.15-3): de ahí se ve y se edita. El único lugar que escribe esa ruta.
+export const rutaDeLaCotizacion = (id: string): string => `/cotizaciones/${id}`

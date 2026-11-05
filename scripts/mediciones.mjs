@@ -112,8 +112,33 @@ export const MEDICIONES_CON_VOLUMEN = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-vehiculos-inventario.sql',
+    'El inventario por rutas (vehiculos_inventario()) con 50.000 y con 250.000 vivos, como authenticated con el plan normal: página 1, profunda y «Anterior» de Pía (también con búsqueda, fase y atributos), de la «chica», de Beto (cartera de 50.000) y de Vera (cartera de 5.000), y la dueña; ms, bloques de vehiculos por relación, crecimiento con N y llamadas (en_cartera de Beto ≤ filas + portadas); y «contra hoy», la consulta de PostgREST sobre la tabla, como nota (4-23)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-vehiculos-inventario-forma.sql',
+    'La forma del plan de vehiculos_inventario() con 50.000 y con 250.000 vivos, como authenticated: los cuatro puntos por caso y sentido (cada ruta por su índice bajo su Limit, la cartera por un lateral, sin recorrer vehiculos y sin releer la fila) y que la forma muerde; el Planning Time y el plegado, como notas',
+    UNA,
+  ],
+  [
+    'supabase/tests/medir-vehiculos-inventario-guarda.sql',
+    'La guarda del inventario: lo de hoy (PostgREST sobre la tabla) para la «chica» crece con N de 50.000 a 250.000 vivos (bloques de vehiculos y ms); si no, la medición de la función no prueba nada',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-vehiculos-inventario-costo-fijo.sql',
+    'El costo fijo de cada llamada al inventario (4-77): origenes_con_alcance() de una persona con una concesión y de otra con una por cada permiso y origen, sin volumen (ms y buffers del EXPLAIN, bloques de perfiles, usuarios_roles y roles_permisos, y las filas de mis_permisos())',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-cotizaciones-lectura.sql',
     'La lectura de cotizaciones con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: una página de n + 1 (primera y profunda por cursor) de la dueña («todas») y de Ana y la «chica» («mías»), con la policy por fila (ms y buffers del EXPLAIN, y las llamadas por página)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
+    'supabase/tests/medir-cotizaciones-listado.sql',
+    'El listado /cotizaciones (cotizaciones_listado()) con 50.000 y con 250.000 filas, como authenticated y con el plan genérico: la página 1, una profunda por cursor y una hacia atrás de la dueña (por origen, clase y «mías»), de Ana («propios», con su cartera y un vehículo muy cotizado), de la «chica» y de Teo («todos» en un origen), con los bloques de cotizaciones por relación y las llamadas; y la guarda: lo de hoy por PostgREST rompe los topes (4-14)',
     'mediana de 5 de 7 corridas',
   ],
   [

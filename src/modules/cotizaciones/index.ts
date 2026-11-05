@@ -61,6 +61,16 @@ export type {
   VarianteDeHoja,
 } from './entities/hoja'
 
+// La hoja de una cotización guardada (4.15-3): UNA lectura con su primer cálculo por la cotización, y la ruta de su página. Sólo se importa desde un Server Component.
+export { leerHojaDeUnaGuardada } from './composicion'
+export { rutaDeLaCotizacion } from './entities/ruta-de-la-hoja'
+export type {
+  CotizacionDeLaHoja,
+  HojaDeUnaGuardada,
+  LoGuardado,
+} from './entities/hoja-de-una-guardada'
+export type { DisenoDeHoja } from './entities/hoja'
+
 // La pantalla de cotizar (4.13-2): el primer cálculo que hace el servidor junto con la hoja, qué orígenes se cotizan, qué se ve al abrir y la URL. Los componentes salen por
 // `pantallas/cotizar.ts`. `recalcularAlAbrir` sólo se importa desde un Server Component.
 export { recalcularAlAbrir } from './composicion'
@@ -79,6 +89,16 @@ export {
 // El panel del vehículo de la hoja (4.14-2b): «Cotizado (n)», el conteo acotado de las cotizaciones del vehículo que quien mira ve. Sólo se importa desde un Server
 // Component. El historial se lee desde el navegador por `composicion.client.ts` y se dibuja con `pantallas/cotizar.ts`.
 export { contarCotizacionesDelVehiculo } from './composicion'
+
+// El listado `/cotizaciones` (4.16-1): una página por cursor, con la RLS de quien mira, y su máximo medido. La pantalla llega en el 4.16-4.
+export { leerListadoDeCotizaciones } from './composicion'
+export { MAXIMO_DE_PAGINA_DE_COTIZACIONES } from './entities/listado'
+export type {
+  ClaseDeCotizacion,
+  EstadoDeCotizacion,
+  FilaDelListado,
+  PedidoDelListado,
+} from './entities/listado'
 
 // El dato del vehículo de una tabla de la hoja (4.14-2c3): qué campos casan con qué tablas. La página lo pasa al panel del vehículo, que decide cuáles se eligen.
 export { datosDelVehiculoDeLaHoja } from './entities/dato-del-vehiculo'

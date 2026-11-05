@@ -44,8 +44,10 @@ const VARIABLES_DE_PAGINA = {
   max_vehiculos: maximoDe(
     constante('src/modules/vehiculos/entities/vehiculo.ts', 'MAXIMO_DE_PAGINA_DE_VEHICULOS'),
   ),
-  // El listado de cotizaciones (4.16) todavía no declara su máximo: hasta entonces se mide con el mayor tamaño que ofrece el selector.
-  max_selector: Math.max(...TAMANOS),
+  // El listado de cotizaciones (4.16-1): `medir-cotizaciones-listado.sql` y `medir-cotizaciones-lectura.sql` miden con su máximo.
+  max_cotizaciones: maximoDe(
+    constante('src/modules/cotizaciones/entities/listado.ts', 'MAXIMO_DE_PAGINA_DE_COTIZACIONES'),
+  ),
   tam_columna: constante('src/shared/lib/paginacion.ts', 'TAMANO_DE_COLUMNA'),
   tope_cargado: constante('src/shared/lib/paginacion.ts', 'TOPE_DE_LO_CARGADO'),
   lotes: constante('src/shared/lib/paginacion.ts', 'LOTES_POR_PAGINA'),

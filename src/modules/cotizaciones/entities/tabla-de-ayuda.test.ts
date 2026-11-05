@@ -30,12 +30,23 @@ const tabla = (mas: Partial<TablaDeAyuda> = {}): TablaDeAyuda => ({
 })
 
 describe('argumentosDeTabla', () => {
-  it('manda la tabla, el origen y la hoja abierta, y nunca una cotización', () => {
-    expect(argumentosDeTabla({ tabla: 't', origenId: 'o', abierta: 'ab' })).toEqual({
+  it('la hoja nueva manda la tabla, el origen y la hoja abierta, y nunca una cotización', () => {
+    expect(
+      argumentosDeTabla({
+        tabla: 't',
+        de: { tipo: 'abierta', origenId: 'o', abierta: 'ab', vehiculoId: 'v' },
+      }),
+    ).toStrictEqual({
       p_tabla: 't',
       p_origen: 'o',
       p_abierta: 'ab',
     })
+  })
+
+  it('una guardada manda la tabla y su cotización, y nunca el origen ni la hoja abierta', () => {
+    expect(
+      argumentosDeTabla({ tabla: 't', de: { tipo: 'guardada', cotizacionId: 'c' } }),
+    ).toStrictEqual({ p_tabla: 't', p_cotizacion: 'c' })
   })
 })
 

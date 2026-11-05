@@ -6,6 +6,7 @@ import {
   elegirAtajo,
   elegirModo,
   elegirVariante,
+  entradasIguales,
   entradasIniciales,
   entradasDelPedido,
   indiceDeHoja,
@@ -176,5 +177,58 @@ describe('los modos de tipo de cambio', () => {
     const despues = elegirModo(antes, 'unificado')
     expect(despues).toEqual({ ...antes, modoTc: 'unificado' })
     expect(antes.modoTc).toBe('paralelo')
+  })
+})
+
+describe('entradasIguales', () => {
+  const base = con({
+    inputs: new Map([
+      ['a', 1],
+      ['b', 2],
+    ]),
+    banderas: new Set(['x', 'y']),
+    overrides: new Map([['o', 3]]),
+    variante: 'v',
+    modoTc: 'm',
+    atajos: new Map([['t', 1]]),
+  })
+
+  it('el orden con que se tipeó no cuenta', () => {
+    const otro = con({
+      inputs: new Map([
+        ['b', 2],
+        ['a', 1],
+      ]),
+      banderas: new Set(['y', 'x']),
+      overrides: new Map([['o', 3]]),
+      variante: 'v',
+      modoTc: 'm',
+      atajos: new Map([['t', 1]]),
+    })
+    expect(entradasIguales(base, otro)).toBe(true)
+  })
+
+  it('cada una de las seis claves la distingue', () => {
+    const cambios: Partial<Entradas>[] = [
+      {
+        inputs: new Map([
+          ['a', 1],
+          ['b', 9],
+        ]),
+      },
+      { inputs: new Map([['a', 1]]) },
+      { banderas: new Set(['x']) },
+      { overrides: new Map([['o', 4]]) },
+      { variante: null },
+      { modoTc: null },
+      { atajos: new Map([['t', 2]]) },
+    ]
+    for (const c of cambios) {
+      expect(entradasIguales(base, { ...base, ...c })).toBe(false)
+    }
+  })
+
+  it('las vacías son iguales entre sí', () => {
+    expect(entradasIguales(ENTRADAS_VACIAS, con({}))).toBe(true)
   })
 })

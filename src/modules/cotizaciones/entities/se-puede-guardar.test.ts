@@ -54,3 +54,21 @@ describe('esperaAlRecalculo', () => {
     expect(esperaAlRecalculo({ tipo: 'fallo', recargar: false })).toBe(false)
   })
 })
+
+describe('motivoParaNoGuardar de una cotización guardada (4.15-3)', () => {
+  it('sin cliente y con `exigeLead` falso no pide el cliente; con él (por defecto), sí', () => {
+    expect(motivoParaNoGuardar({ ...LIBRE, leadId: null })).not.toBeNull()
+    expect(motivoParaNoGuardar({ ...LIBRE, leadId: null, exigeLead: false })).toBeNull()
+  })
+
+  it('con `exigeLead` falso el resto de las guardas siguen: el recálculo que falló no deja guardar', () => {
+    expect(
+      motivoParaNoGuardar({
+        ...LIBRE,
+        leadId: null,
+        exigeLead: false,
+        estado: { tipo: 'fallo', recargar: false },
+      }),
+    ).toMatch(/recalcular/)
+  })
+})

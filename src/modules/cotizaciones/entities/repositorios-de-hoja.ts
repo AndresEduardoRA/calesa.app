@@ -1,6 +1,10 @@
 import type { Resultado } from '@/shared/lib/errores'
 import type { ResultadoDeCrear } from './guardado'
+import type { RecalculoInicial } from './apertura'
 import type { HojaParaCotizar } from './hoja'
+import type { HojaDeUnaGuardada } from './hoja-de-una-guardada'
+import type { ResultadoDeEncima } from './resultado-de-encima'
+import type { PedidoDeEdicion } from './pedido-de-edicion'
 import type { PedidoDeGuardado } from './pedido-de-guardado'
 import type { PedidoDeRecalculo } from './pedido-de-recalculo'
 import type { RespuestaDeRecalculo } from './recalculo'
@@ -31,3 +35,20 @@ export type RecalculadorAlAbrir = (pedido: {
 
 // El guardado de la hoja (`cotizacion_crear()`, con la sesión y la RLS de quien cotiza): lo guardado, la respuesta perdida o el rechazo con su motivo. Nunca lanza.
 export type CreadorDeCotizacion = (pedido: PedidoDeGuardado) => Promise<ResultadoDeCrear>
+
+// Los cambios de una cotización guardada (`cotizacion_guardar()`, 4.15-3): lo guardado, la respuesta perdida o el rechazo con su motivo. Nunca lanza.
+export type GuardadorDeCotizacion = (pedido: PedidoDeEdicion) => Promise<ResultadoDeCrear>
+
+// Cotizar encima de una guardada (`cotizacion_encima()`, 4.15-2): crea la N+1 en el acto. El intento es el id de la nueva (el mismo intento, de esta anterior, devuelve la misma).
+// La nueva o el rechazo con su motivo, la respuesta perdida. Nunca lanza.
+export type CotizadorEncima = (pedido: {
+  anterior: string
+  intento: string
+}) => Promise<ResultadoDeEncima>
+
+// La hoja de una cotización guardada (`cotizacion_hoja_guardada()`, 4.15-2) con su primer cálculo, que hace el servidor con la hoja ya leída: por la cotización (SU versión y SUS
+// tipos de cambio) y con lo guardado como entradas. `sin_permiso` es una cotización que no existe, está en la papelera o no se ve (la base no distingue). Un cálculo que falla no
+// tumba la hoja: llega con su estado.
+export type LectorDeUnaGuardada = (
+  id: string,
+) => Promise<Resultado<{ hoja: HojaDeUnaGuardada; inicial: RecalculoInicial }>>

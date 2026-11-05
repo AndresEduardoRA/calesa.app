@@ -17,7 +17,7 @@
 --     decide), y `origenes_con_alcance()` a lo sumo dos veces (los dos InitPlan);
 --   - la guarda: la policy de antes (`lead_id in (select mis_leads())` y `alcance_de()` por fila) con los mismos datos llama a `alcance_de()` por fila (101 y 202 veces por página) y no
 --     pasa esta prueba. Su costo en ms con los datos de arriba es de 3 a 6 ms: lo que crecía con la cartera de quien mira era el arreglo de `mis_leads()`, que sólo se arma en lo ajeno.
--- No se asserta «todas las que veo» de quien ve «propios» (Ana, la «chica»): recorre el índice global descartando lo ajeno y crece con N. Se mide y se anota (`docs/PLAN.md`, 4-14).
+-- «Todas las que veo» de quien ve «propios» (Ana, la «chica») no se lee así: va por `cotizaciones_listado()` y su medición, `medir-cotizaciones-listado.sql` (4.16-1, 4-14).
 -- Además de la página del listado:
 --   - `cotizacion_leer()` de una cotización de la fórmula sembrada de `subasta_usa` (la dueña y Ana): ≤ 10 ms y ≤ 300 buffers como las páginas, `_nodos_visibles()` una sola vez y el permiso
 --     una sola vez, sin mirar ninguna cartera entera, y sin crecer con las cotizaciones;
@@ -33,7 +33,7 @@
 vacuum public.cotizaciones;
 begin;
 select set_config('medir.carga', :'carga', true) \g /dev/null
-select set_config('medir.pagina', (:max_selector + 1)::text, true) \g /dev/null
+select set_config('medir.pagina', (:max_cotizaciones + 1)::text, true) \g /dev/null
 
 do $$ begin
   if not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000d1') or not exists (select 1 from public.perfiles where id = '00000000-0000-0000-0000-0000000000a1') then
@@ -74,20 +74,20 @@ grant select on _p, _o to authenticated;
 
 -- Las filas g ∈ [desde, hasta], más nuevas cuanto mayor es g. Ana (5.000 propias, 3.000 de ellas con la MISMA fecha: lo que deja una importación, y lo que obliga a que `id` sea parte del
 -- índice y del cursor) y las 1.000 de otras personas sobre leads de su cartera están en las primeras 50.000;
--- la «chica» tiene 3; las demás son de la dueña y de cuatro asesores, la mayoría sin lead. Sin triggers (cada fila auditaría y numeraría): las FK no se mira, los ids son los de arriba.
+-- la «chica» tiene 3 (g que no cumplen g % 10 = 1 ni g % 50 = 2: antes caían en la rama de Ana y le quedaban 0); las demás son de la dueña y de cuatro asesores, la mayoría sin lead. Sin triggers (cada fila auditaría y numeraría): las FK no se mira, los ids son los de arriba.
 create function pg_temp.rellenar(p_desde int, p_hasta int) returns void language plpgsql as $$
 begin
   set local session_replication_role = replica;
   insert into public.cotizaciones (origen_id, creado_por, formula_id, lead_id, valores, fuentes, tipos_cambio, totales, total_base, titulo, creado_en, actualizado_en)
   select o.origen,
          case when g <= 50000 and g % 10 = 1 then (select id from _p where clave = 'ana')
-              when g in (10001, 20001, 30001) then (select id from _p where clave = 'chica')
+              when g in (10003, 20003, 30003) then (select id from _p where clave = 'chica')
               when g <= 50000 and g % 50 = 2 then (select id from _p where clave = 'berta')
               else (select id from _p where clave = (array['duena', 'berta', 'carlos', 'diana', 'elias'])[1 + g % 5]) end,
          o.formula,
          case when g <= 50000 and g % 50 = 2 then (select lead from _leads_de_ana where i = 1 + (g / 50) % 1000) end,
          s.valores, s.fuentes, '{"oficial": 6.96, "paralelo": 12.4}', '{"usd": 1234.5}', 1234.5,
-         case when g <= 50000 and (g % 10 = 1 or g in (10001, 20001, 30001)) then 'Cotización ' || g end,
+         case when g <= 50000 and (g % 10 = 1 or g in (10003, 20003, 30003)) then 'Cotización ' || g end,
          case when g between 2000 and 32000 and g % 10 = 1 then timestamptz '2026-01-01 00:00:00+00'      -- 3.000 de Ana con la misma fecha (una importación): el cursor cae dentro
               else timestamptz '2026-01-01 00:00:00+00' + g * interval '10 seconds' end,
          case when g between 2000 and 32000 and g % 10 = 1 then timestamptz '2026-01-01 00:00:00+00'
@@ -152,7 +152,6 @@ begin
   execute 'prepare c_todas_cursor(timestamptz, uuid) as select ' || v_cols || ' from public.cotizaciones where (creado_en, id) < ($1, $2) order by creado_en desc, id desc limit ' || v_n;
   execute 'prepare c_mias(uuid) as select ' || v_cols || ' from public.cotizaciones where creado_por = $1 order by creado_en desc, id desc limit ' || v_n;
   execute 'prepare c_mias_cursor(uuid, timestamptz, uuid) as select ' || v_cols || ' from public.cotizaciones where creado_por = $1 and (creado_en, id) < ($2, $3) order by creado_en desc, id desc limit ' || v_n;
-  execute 'prepare c_ver_todas(uuid) as select ' || v_cols || ' from public.cotizaciones order by creado_en desc, id desc limit ' || v_n;
 end $$;
 
 -- Una persona, una ruta y su cursor profundo (la fila 2.000 de esa ruta, vista por esa persona); apunta lo medido en `_med`.
@@ -208,6 +207,7 @@ analyze public.cotizaciones;
 do $$ begin
   if (select count(*) from public.cotizaciones) <> 50000 then raise exception 'esperaba 50.000 cotizaciones y hay %', (select count(*) from public.cotizaciones); end if;
   if (select count(*) from public.cotizaciones where creado_por = '00000000-0000-0000-0000-0000000000a1') <> 5000 then raise exception 'Ana debía tener 5.000 propias'; end if;
+  if (select count(*) from public.cotizaciones where creado_por = '00000000-0000-0000-0000-0000000000c9') <> 3 then raise exception 'la «chica» debía tener 3'; end if;
 end $$;
 -- 500 revisiones de una cotización de la dueña y de una de Ana (la más antigua de cada una de subasta_usa), con el snapshot entero de antes y de después, como las deja el trigger.
 set local session_replication_role = replica;
@@ -250,23 +250,6 @@ select pg_temp.ruta('250.000', 'leer', 'duena');
 select pg_temp.ruta('250.000', 'leer', 'ana');
 select pg_temp.ruta('250.000', 'revisiones', 'duena');
 select pg_temp.ruta('250.000', 'revisiones', 'ana');
-reset role;
-
--- «Todas las que veo» de quien ve «propios»: se mide y se anota, sin assert (4-14).
-set local role authenticated;
-do $$
-declare
-  v_id uuid; v_m jsonb; v_q text; v_quien text; v_fase text;
-begin
-  foreach v_quien in array array['ana', 'chica'] loop
-    v_id := (select id from _p where clave = v_quien);
-    perform set_config('request.jwt.claim.sub', v_id::text, true);
-    perform set_config('request.jwt.claims', json_build_object('sub', v_id, 'role', 'authenticated')::text, true);
-    v_m := pg_temp.medir('execute c_ver_todas(' || quote_literal(v_id) || ')');
-    raise notice 'medicion|Todas las que veo (sin assert, 4-14), %, página 1, 250.000 (ms)|%', v_quien, round((v_m ->> 'ms')::numeric, 2);
-    raise notice 'medicion|Todas las que veo (sin assert, 4-14), %, página 1, 250.000 (buffers)|%', v_quien, v_m ->> 'buffers';
-  end loop;
-end $$;
 reset role;
 
 -- ---------------------------------------------------------------------------------------------------------------------------------

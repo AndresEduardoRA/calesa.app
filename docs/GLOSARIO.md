@@ -57,7 +57,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Atributos** — `vehiculos.atributos`, `leads.atributos`: campos del layout que no son columna. En un lead se leen por `leads_vista`, recortados.
 - **Dato común** — `camposComunes()` / columnas de `vehiculos`: lo que tiene todo vehículo y es columna (título, marca, año, VIN, precio…).
 - **Sin fase** — `vehiculos.fase_id` nulo / `<BadgeDeFase>`: vehículo que todavía no entró al flujo de su origen; lo ubica quien mueve.
-- **Inventario** — `/vehiculos` / `<ListadoDeVehiculos>`: el listado de vehículos, una pestaña por origen.
+- **Inventario** — `/vehiculos` / `<ListadoDeVehiculos>`: el listado de vehículos, una pestaña por origen. `vehiculos_inventario()` lee una página de un origen por rutas (lo de «todos», lo creado, la cartera), con los filtros del layout en SQL (4.16-2a; la pantalla, desde el 4.16-2b).
 - **Lote de subasta** — `vehiculos.lote` + `plataforma`: identificador en la subasta (Copart/IAAI). No es el lote de papelera.
 - **Foto** — `vehiculos_imagenes` / `Foto`, `<SeccionDeFotos>`: una imagen de un vehículo (hasta 24).
 - **Portada** — `vehiculos_imagenes.es_portada` / `vehiculo_foto_portada()`: la foto principal de un vehículo, una sola.
@@ -112,6 +112,7 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Reciente (de un lead)** — `leads_asesores.lead_reciente_en`, `reciente_en` de `leads_vista` y `leads_cartera_vista`, `leads_asesores_reciente_idx`: el último seguimiento vivo del lead o, sin ninguno, su alta (`coalesce(ultimo_seguimiento_en, creado_en)`). Ordena «míos» del panel del cliente; la copia está en todas las filas de la cartera del lead, también las revocadas. No: «actividad» (es la auditoría).
 - **Candidatos de la búsqueda** — `leads_candidatos()`, `leads_vista_por_ids()`, `leads_busqueda_idx` / `entities/candidatos.ts`: primeros leads que coinciden con un nombre, sacados de un índice.
 - **Míos / Todos** — `?alcance=todos` / `alcanceDelListado()`, `<SelectorDeAlcance>`: modos del listado de leads; «míos» (defecto) = `en_cartera`.
+- **Mías** (cotizaciones) — `p_mias` de `cotizaciones_listado()`, `PedidoDelListado.mias`: filtro del listado `/cotizaciones`: las que creó quien mira (`creado_por`). No es «Míos» de leads (`en_cartera`).
 - **Enmascarado** — `enmascarar_telefono()` / `telefono_lead()`: teléfono de un lead fuera de tu cartera: 3 primeros y 2 últimos dígitos («591•••••01»).
 - **País del teléfono** — `paisDelNumero()` / `TABLA_DE_PAISES`: país del código de llamada, calculado en el navegador.
 - **Ítems por página** — `listas.por_pagina`, `tamanoDePagina()`, `?por=`: 10, 25, 50 o 100 por cuenta; cada lista tiene un máximo (leads 50, vehículos 100).

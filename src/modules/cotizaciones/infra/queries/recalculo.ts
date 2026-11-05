@@ -18,7 +18,11 @@ export const recalcularAlAbrir: RecalculadorAlAbrir = async ({
     resultadoDeEvaluar(
       await supabase.rpc(
         'cotizacion_evaluar',
-        argumentosDeEvaluar({ origenId, vehiculoId: vehiculo, abierta, entradas, modoTc }),
+        argumentosDeEvaluar({
+          de: { tipo: 'abierta', origenId, abierta, vehiculoId: vehiculo },
+          entradas,
+          modoTc,
+        }),
       ),
     )
   const primero = await evaluar(vehiculoId)

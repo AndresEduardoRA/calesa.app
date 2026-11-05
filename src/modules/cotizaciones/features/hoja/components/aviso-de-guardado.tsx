@@ -2,7 +2,7 @@
 
 import { RUTAS } from '@/shared/lib/rutas'
 import { Button } from '@/shared/ui/button'
-import type { EstadoDelGuardado, Guardado } from '../hooks/use-guardado'
+import type { EstadoDelGuardado, VistaDelGuardado } from '../hooks/use-nucleo-del-guardado'
 
 type Props = {
   estado: EstadoDelGuardado
@@ -15,6 +15,8 @@ type Props = {
   version: number
   alUsarLaNueva: () => void
   alGuardarConLaAbierta: () => void
+  // Una cotización guardada confirma lo guardado (4.15-3): «Cambios guardados.», hasta el próximo cambio.
+  confirmacion: string | null
 }
 
 function SalidasD2({
@@ -44,6 +46,32 @@ function SalidasD2({
 
 const CLASE_DEL_BOTON = 'min-h-11 md:min-h-8'
 
+function Confirmacion({
+  confirmacion,
+  estado,
+}: {
+  confirmacion: string | null
+  estado: EstadoDelGuardado
+}) {
+  return confirmacion !== null && estado.tipo === 'guardada' ? (
+    <p className="text-(length:--text-sm) text-(--color-ink-soft)">{confirmacion}</p>
+  ) : null
+}
+
+function PendienteSinConfirmar({
+  hayPendiente,
+  estado,
+}: {
+  hayPendiente: boolean
+  estado: EstadoDelGuardado
+}) {
+  return hayPendiente && estado.tipo !== 'guardando' ? (
+    <p className="text-(length:--text-sm) text-(--color-ink-soft)">
+      El último guardado no se confirmó. «Guardar» lo vuelve a mandar tal como estaba.
+    </p>
+  ) : null
+}
+
 // Lo que dice el último guardado que no entró, con la salida que lo arregla (`textoDelRechazo`, `textoDelFallo`): D2 (P2) en línea, «Usar la versión nueva» o «Guardar con
 // la versión N» (y las del tipo de cambio, sin decir cuál: puede ser de un nodo oculto); «Recargar» reabre la hoja, «Reintentar» vuelve a guardar,
 // «Ingresar» abre el ingreso en otra pestaña (lo escrito sigue acá). Sin salida, ningún botón: uno que no arregla nada no se ofrece. Va en la región viva del resumen.
@@ -56,10 +84,12 @@ function AvisoDeGuardado({
   version,
   alUsarLaNueva,
   alGuardarConLaAbierta,
+  confirmacion,
 }: Props) {
   const aviso = estado.tipo === 'aviso' ? estado.aviso : null
   return (
     <>
+      <Confirmacion confirmacion={confirmacion} estado={estado} />
       {aviso === null ? null : (
         <div data-aviso-de-guardado="" className="flex flex-wrap items-center gap-2">
           <p className="text-(length:--text-sm) font-medium text-(--color-peligro-ink)">
@@ -104,11 +134,7 @@ function AvisoDeGuardado({
           ) : null}
         </div>
       )}
-      {hayPendiente && estado.tipo !== 'guardando' ? (
-        <p className="text-(length:--text-sm) text-(--color-ink-soft)">
-          El último guardado no se confirmó. «Guardar» lo vuelve a mandar tal como estaba.
-        </p>
-      ) : null}
+      <PendienteSinConfirmar hayPendiente={hayPendiente} estado={estado} />
     </>
   )
 }
@@ -119,11 +145,13 @@ export function AvisoDelGuardado({
   alReintentar,
   version,
   alRecargar,
+  confirmacion = null,
 }: {
-  guardado: Guardado
+  guardado: VistaDelGuardado
   alReintentar: () => void
   version: number
   alRecargar: () => void
+  confirmacion?: string | null
 }) {
   return (
     <AvisoDeGuardado
@@ -135,6 +163,7 @@ export function AvisoDelGuardado({
       version={version}
       alUsarLaNueva={alRecargar}
       alGuardarConLaAbierta={guardado.guardarConLaAbierta}
+      confirmacion={confirmacion}
     />
   )
 }

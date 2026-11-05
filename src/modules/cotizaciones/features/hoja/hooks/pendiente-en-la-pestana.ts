@@ -1,7 +1,13 @@
 'use client'
 
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
-import { leerPendiente, serializarPendiente } from '../../../entities/intento-de-guardado'
+import {
+  leerPendiente,
+  leerPendienteDeEdicion,
+  serializarPendiente,
+  serializarPendienteDeEdicion,
+} from '../../../entities/intento-de-guardado'
+import type { PedidoDeEdicion } from '../../../entities/pedido-de-edicion'
 import type { PedidoDeGuardado } from '../../../entities/pedido-de-guardado'
 
 // El pedido pendiente de una hoja (4-21) vive en la pestaña (`sessionStorage`, con la clave de la hoja): una recarga tras perder la respuesta reenvía el mismo intento en
@@ -45,27 +51,41 @@ const suscribir = (oyente: () => void) => {
   }
 }
 
-export function usePendienteEnLaPestana(clave: string) {
+// Cómo se lee y se escribe el pedido de cada hoja (la nueva, una guardada). Constantes del módulo: el hook los compara por identidad.
+export type CodecDelPendiente<P> = {
+  leer: (texto: string | null) => P | null
+  serializar: (pedido: P) => string
+}
+export const CODEC_DE_LA_NUEVA: CodecDelPendiente<PedidoDeGuardado> = {
+  leer: leerPendiente,
+  serializar: serializarPendiente,
+}
+export const CODEC_DE_UNA_GUARDADA: CodecDelPendiente<PedidoDeEdicion> = {
+  leer: leerPendienteDeEdicion,
+  serializar: serializarPendienteDeEdicion,
+}
+
+export function usePendienteEnLaPestana<P>(clave: string, codec: CodecDelPendiente<P>) {
   const texto = useSyncExternalStore(
     suscribir,
     () => leer(clave),
     () => null,
   )
   // Estable entre renders mientras el texto no cambie: el reintento al volver la red lo compara.
-  const pendiente = useMemo(() => leerPendiente(texto), [texto])
+  const pendiente = useMemo(() => codec.leer(texto), [codec, texto])
   return {
     pendiente,
     // Al mandar: el pedido queda guardado antes de salir, por si la respuesta no vuelve.
     anotar: useCallback(
-      (pedido: PedidoDeGuardado) => {
-        escribir(clave, serializarPendiente(pedido))
+      (pedido: P) => {
+        escribir(clave, codec.serializar(pedido))
       },
-      [clave],
+      [clave, codec],
     ),
     soltar: useCallback(() => {
       escribir(clave, null)
     }, [clave]),
     // Lo de este momento, sin esperar a que React dibuje (dos guardados seguidos).
-    actual: useCallback(() => leerPendiente(leer(clave)), [clave]),
+    actual: useCallback(() => codec.leer(leer(clave)), [clave, codec]),
   }
 }

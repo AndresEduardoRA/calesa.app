@@ -1,11 +1,12 @@
 import { entrar, limpiarAlta, prepararAlta, type PersonasDelAlta } from './soporte/alta'
+import { idDePersona, sembrarCotizaciones } from './soporte/cotizaciones-sembradas'
 import { enKB, medirJsEnFrio } from './soporte/js-en-frio'
 import {
   PRESUPUESTO_DEL_DOCUMENTO_DE_PERFIL_EN_KB,
   PRESUPUESTO_DE_JS_EN_KB,
 } from './soporte/presupuestos'
 import { expect, test } from './soporte/prueba'
-import { sql } from './soporte/sql'
+import { literal, sql } from './soporte/sql'
 
 // El JS que paga quien llega por primera vez a una pantalla (`e2e/soporte/js-en-frio.ts`), contra el build.
 // Falla por encima del presupuesto de la ruta (`e2e/soporte/presupuestos.ts`): el shell (el layout de
@@ -16,19 +17,48 @@ test.describe.configure({ mode: 'serial' })
 let personas: PersonasDelAlta
 let restaurar = async () => {}
 
-// La hoja de cotizar se mide con la subasta de la semilla: sin `?origen=` abriría el primero, que puede no tener fórmula y pesar menos.
-const destinoDe = (ruta: string): string =>
-  ruta === '/cotizaciones/nuevo'
-    ? `${ruta}?origen=${sql("select id from public.origenes where clave = 'subasta_usa'")}`
-    : ruta
+// La hoja de cotizar se mide con la subasta de la semilla: sin `?origen=` abriría el primero, que puede no tener fórmula y pesar menos. La página de una cotización guardada, con
+// una sembrada en esa misma subasta (4.15-3), que el spec crea y quita.
+const TITULO_DEL_VEHICULO_MEDIDO = 'E2E JS de una cotización guardada'
+let cotizacionMedida = ''
+const destinoDe = (ruta: string): string => {
+  if (ruta === '/cotizaciones/nuevo') {
+    return `${ruta}?origen=${sql("select id from public.origenes where clave = 'subasta_usa'")}`
+  }
+  return ruta === '/cotizaciones/[id]' ? `/cotizaciones/${cotizacionMedida}` : ruta
+}
+
+// Una cotización de la subasta de la semilla sobre un vehículo suyo, creada por la dueña de la prueba.
+function sembrarLaCotizacionMedida(creadoPor: string): void {
+  const origen = sql("select id from public.origenes where clave = 'subasta_usa'")
+  sql(
+    `insert into public.vehiculos (origen_id, titulo) values (${literal(origen)}::uuid, ${literal(TITULO_DEL_VEHICULO_MEDIDO)})`,
+  )
+  const vehiculo = sql(
+    `select id from public.vehiculos where titulo = ${literal(TITULO_DEL_VEHICULO_MEDIDO)}`,
+  )
+  sembrarCotizaciones({ origenId: origen, vehiculoId: vehiculo, creadoPor, cuantas: 1 })
+  cotizacionMedida = sql(
+    `select id from public.cotizaciones where vehiculo_id = ${literal(vehiculo)}::uuid`,
+  )
+}
+
+function quitarLaCotizacionMedida(): void {
+  sql(`
+    delete from public.cotizaciones where vehiculo_id in (select id from public.vehiculos where titulo = ${literal(TITULO_DEL_VEHICULO_MEDIDO)});
+    delete from public.vehiculos where titulo = ${literal(TITULO_DEL_VEHICULO_MEDIDO)}`)
+}
 
 test.beforeAll(async ({}, info) => {
   const terreno = await prepararAlta(`${info.project.name}-js`)
   personas = terreno.personas
   restaurar = terreno.restaurarCatalogos
+  quitarLaCotizacionMedida()
+  sembrarLaCotizacionMedida(idDePersona(personas.duena))
 })
 
 test.afterAll(async () => {
+  quitarLaCotizacionMedida()
   await limpiarAlta(restaurar)
 })
 

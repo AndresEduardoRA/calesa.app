@@ -452,7 +452,7 @@ begin
 end $$;
 rollback;
 
--- @test visibilidad: la policy de lectura y la de edición de cotizaciones, puede_cotizacion() y la regla escrita a mano dan lo mismo por persona, y siguen a un lead transferido
+-- @test visibilidad: la policy de lectura y la de edición de cotizaciones, puede_cotizacion(), el listado (con cada filtro) y la regla escrita a mano dan lo mismo por persona, y siguen a un lead transferido
 -- La regla (D2/D3 y «Confirmado de lo escrito»): «propios» = las que creé o las de un lead de mi cartera vigente; «todos», todas las del origen; la papelera no se ve; una cuenta
 -- bloqueada no ve nada. Editar: una preventa por el alcance de `cotizaciones.editar`, o cualquier clase con `cotizaciones.final.gestionar` del origen. La regla de abajo se
 -- escribió aparte, desde `usuarios_roles`, `roles_permisos` y `leads_asesores`, sin mirar la policy, `puede_cotizacion()` ni `mis_permisos()`.
@@ -483,6 +483,38 @@ begin
   select coalesce(array_agg(x.id order by x.id), '{}') into v from cv_c x where public.puede_cotizacion(x.id, p_clave);
   reset role;
   return v;
+exception when others then
+  reset role;
+  raise;
+end $f$;
+
+-- Lo que `cotizaciones_listado()` le entrega a esa persona, recorrido de a uno por cursor y filtrado a las de la prueba (4.16-1, L2): falla si repite una (también en una
+-- página entera) o si no va en (creado_en desc, id desc). Devuelve los ids ordenados por id, para compararlos con la regla.
+create or replace function pg_temp.cv_listado(p_quien uuid, p_origen uuid default null, p_clase public.clase_cotizacion default null, p_mias boolean default false,
+                                              p_vehiculo uuid default null) returns uuid[] language plpgsql as $f$
+declare v_ids uuid[] := '{}'; v_en timestamptz; v_id uuid; r record; v_n int; v_vueltas int := 0;
+begin
+  perform pg_temp.cv_como(p_quien);
+  set local role authenticated;
+  loop
+    v_n := 0;
+    for r in select l.id, l.creado_en from public.cotizaciones_listado(1, p_origen, p_clase, p_mias, p_vehiculo, v_en, v_id) l loop
+      v_n := v_n + 1;
+      exit when v_n > 1;
+      if v_en is not null and (r.creado_en, r.id) >= (v_en, v_id) then raise exception 'el listado no va en orden para %: % tras %', p_quien, r.id, v_id; end if;
+      if r.id = any (v_ids) then raise exception 'el listado le repite % a %', r.id, p_quien; end if;
+      v_ids := v_ids || r.id; v_en := r.creado_en; v_id := r.id;
+    end loop;
+    exit when v_n <= 1;
+    v_vueltas := v_vueltas + 1;
+    if v_vueltas > 5000 then raise exception 'el recorrido del listado no termina'; end if;
+  end loop;
+  -- De a uno, el cursor estricto salta una fila repetida: una página entera tampoco repite ninguna (dos rutas que traen la misma).
+  if exists (select 1 from public.cotizaciones_listado(100, p_origen, p_clase, p_mias, p_vehiculo) l group by l.id having count(*) > 1) then
+    raise exception 'el listado le repite una cotización a % en una misma página', p_quien;
+  end if;
+  reset role;
+  return (select coalesce(array_agg(x order by x), '{}') from unnest(v_ids) x where x in (select id from cv_c));
 exception when others then
   reset role;
   raise;
@@ -567,9 +599,14 @@ end $$;
 create or replace function pg_temp.cv_verificar(p_quien uuid, p_nombre text, p_ve text[]) returns void language plpgsql as $f$
 declare v_regla uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.ver'); v_lee uuid[] := pg_temp.cv_lee(p_quien);
         v_puede uuid[] := pg_temp.cv_puede(p_quien, 'cotizaciones.ver'); v_puede_e uuid[] := pg_temp.cv_puede(p_quien, 'cotizaciones.editar'); v_regla_e uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.editar');
+        v_lista uuid[] := pg_temp.cv_listado(p_quien);
 begin
   if v_lee is distinct from v_regla then
     raise exception 'la policy entrega a % algo distinto de la regla: policy %, regla %', p_nombre, pg_temp.cv_nombres(v_lee), pg_temp.cv_nombres(v_regla);
+  end if;
+  -- El listado (4.16-1, L2): sus rutas cubren todo lo que la policy deja ver, sin repetir ni sumar nada.
+  if v_lista is distinct from v_regla then
+    raise exception 'el listado le entrega a % algo distinto de la regla: listado %, regla %', p_nombre, pg_temp.cv_nombres(v_lista), pg_temp.cv_nombres(v_regla);
   end if;
   if v_puede is distinct from v_regla then
     raise exception 'puede_cotizacion() le deja ver a % algo distinto de la regla: función %, regla %', p_nombre, pg_temp.cv_nombres(v_puede), pg_temp.cv_nombres(v_regla);
@@ -582,11 +619,31 @@ begin
   end if;
 end $f$;
 
+-- El listado con cada filtro, solo y de a dos, contra la regla de ver filtrada a mano (como postgres): origen 1 y 2, la clase, «mías» (las que creó, P1) y el vehículo.
+create or replace function pg_temp.cv_filtros(p_quien uuid, p_nombre text) returns void language plpgsql as $f$
+declare v_regla uuid[] := pg_temp.cv_regla(p_quien, 'cotizaciones.ver'); o1 uuid := (select id from public.origenes where clave = 'cv_pol_1');
+        o2 uuid := (select id from public.origenes where clave = 'cv_pol_2'); v uuid := (select id from public.vehiculos where titulo = 'CV final'); k record; v_lista uuid[]; v_esperado uuid[];
+begin
+  for k in select * from (values (o1, null::public.clase_cotizacion, false, null::uuid, 'origen 1'), (o2, null, false, null, 'origen 2'), (null, 'final', false, null, 'final'),
+                                 (null, 'preventa', false, null, 'preventa'), (o1, 'preventa', false, null, 'origen 1 y preventa'), (null, null, true, null, 'mías'),
+                                 (o2, null, true, null, 'mías del origen 2'), (null, 'final', true, null, 'mías finales'), (null, null, false, v, 'el vehículo'),
+                                 (o2, null, false, v, 'el vehículo y el origen 2')) z (origen, clase, mias, veh, nombre) loop
+    v_lista := pg_temp.cv_listado(p_quien, k.origen, k.clase, k.mias, k.veh);
+    select coalesce(array_agg(c.id order by c.id), '{}') into v_esperado from public.cotizaciones c
+     where c.id = any (v_regla) and (k.origen is null or c.origen_id = k.origen) and (k.clase is null or c.clase = k.clase)
+       and (not k.mias or c.creado_por = p_quien) and (k.veh is null or c.vehiculo_id = k.veh);
+    if v_lista is distinct from v_esperado then
+      raise exception 'el listado de % con «%» da % y la regla %', p_nombre, k.nombre, pg_temp.cv_nombres(v_lista), pg_temp.cv_nombres(v_esperado);
+    end if;
+  end loop;
+end $f$;
+
 do $$
 declare
   a constant uuid := '00000000-0000-0000-0000-000000000ca1'; b constant uuid := '00000000-0000-0000-0000-000000000cb1'; t constant uuid := '00000000-0000-0000-0000-000000000cc1';
   c constant uuid := '00000000-0000-0000-0000-000000000cd1'; l constant uuid := '00000000-0000-0000-0000-000000000ce1'; x constant uuid := '00000000-0000-0000-0000-000000000cf1';
   f constant uuid := '00000000-0000-0000-0000-000000000c01'; s constant uuid := '00000000-0000-0000-0000-000000000c02'; r constant uuid := '00000000-0000-0000-0000-000000000c03'; d constant uuid := '00000000-0000-0000-0000-000000000001';
+  q constant uuid := '00000000-0000-0000-0000-000000000c04';
   v_todas constant text[] := array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'a_o2', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'a_final', 'c_o2', 'c_o1', 'r_o1'];
   la uuid := (select id from public.leads where nombre = 'CV lead de A'); v_r jsonb;
 begin
@@ -605,6 +662,16 @@ begin
   perform pg_temp.cv_verificar(f, 'F (ve todo el origen 1 y gestiona finales ahí)', array['a_la', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado', 'x_bloqueada', 'a_final', 'c_o1', 'r_o1']);
   perform pg_temp.cv_verificar(d, 'la dueña', v_todas);
 
+  -- El listado con cada filtro (4.16-1, L2): la regla filtrada a mano, para cada persona.
+  perform pg_temp.cv_filtros(p, n) from (values (a, 'A'), (b, 'B'), (t, 'T'), (c, 'C'), (f, 'F'), (r, 'R'), (x, 'X'), (s, 'S'), (d, 'la dueña')) z (p, n);
+  -- Q ve cotizaciones «propios» y no tiene `leads.ver`: ve por su cartera lo del lead de B que le compartieron (la ruta de la cartera sale de `mis_leads()`, no de
+  -- `leads_asesores` leída como ella, que pasaría por la RLS de `leads`).
+  perform pg_temp.cv_persona(q, jsonb_build_array(jsonb_build_object('clave', 'cotizaciones.ver', 'alcance', 'propios')));
+  insert into public.leads_asesores (lead_id, usuario_id, tipo_acceso, compartido_por, lead_creado_en)
+  select l.id, q, 'compartido', b, l.creado_en from public.leads l where l.nombre = 'CV lead de B';
+  perform pg_temp.cv_verificar(q, 'Q (propios sin leads.ver, con el lead de B compartido)', array['b_lb']);
+  perform pg_temp.cv_filtros(q, 'Q');
+
   -- El lead de A pasa a B: la cartera nueva ve sus cotizaciones en el acto (a_la y la final, que no veía); A, que queda como compartida, sigue viéndolas.
   perform pg_temp.cv_como(a);
   set local role authenticated;
@@ -620,6 +687,8 @@ begin
   reset role;
   perform pg_temp.cv_verificar(a, 'A (sin acceso al lead)', array['a_la', 'a_o2', 'b_lead_borrado', 'a_final']);
   perform pg_temp.cv_verificar(b, 'B (sigue siendo la dueña)', array['a_la', 'a_final', 'b_la', 'b_lb', 'b_sin_lead', 'b_limbo', 'b_lead_borrado']);
+  perform pg_temp.cv_filtros(a, 'A (sin acceso al lead)');
+  perform pg_temp.cv_filtros(b, 'B (dueña de lo transferido)');
 end $$;
 
 -- La policy y la función ya no arman el arreglo de la cartera, y usan la regla por fila. Y no hay policy de escritura: desde el 4.10-2 se escribe por RPC.

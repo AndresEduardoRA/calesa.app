@@ -176,3 +176,26 @@ describe('textoDelFallo', () => {
     expect(inesperado.texto).not.toContain(MARCA)
   })
 })
+
+describe('textoDelRechazo de lo guardado de una cotización (4.15-3)', () => {
+  it('el conflicto de versión dice lo de la base y su línea propia; sin mensaje, uno propio', () => {
+    expect(textoDelRechazo('version_cambiada', 'Olga cambió esta cotización hace 1 min.')).toEqual({
+      texto:
+        'Olga cambió esta cotización hace 1 min. Al recargar se abre esa versión; lo que escribiste no vuelve.',
+      salida: 'recargar',
+    })
+    expect(textoDelRechazo('version_cambiada').texto).toMatch(
+      /^Esta cotización cambió\. Al recargar/,
+    )
+  })
+
+  it('los otros dos nuevos se recargan', () => {
+    expect(textoDelRechazo('guardado_reusado').salida).toBe('recargar')
+    expect(textoDelRechazo('cotizacion_cambio').salida).toBe('recargar')
+  })
+
+  it('el texto de la base no se muestra en ningún otro motivo', () => {
+    expect(textoDelRechazo('conflicto', 'MENSAJE-DE-LA-BASE-qz').texto).not.toMatch(/MENSAJE/)
+    expect(textoDelRechazo('otro', 'MENSAJE-DE-LA-BASE-qz').texto).not.toMatch(/MENSAJE/)
+  })
+})

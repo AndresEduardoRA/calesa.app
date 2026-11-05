@@ -7882,6 +7882,16 @@ export type Database = {
         Returns: string
       }
       _vehiculos_cotizado_rellenar: { Args: Record<PropertyKey, never>; Returns: number }
+      _vehiculos_inventario_condicion: {
+        Args: { p_columna: string; p_i: number; p_tipo: string }
+        Returns: string
+      }
+      _vehiculos_inventario_patron: { Args: { p_i: number }; Returns: string }
+      _vehiculos_inventario_sql: {
+        Args: { p_filtros: Json; p_rutas: string; p_sentido: string }
+        Returns: string
+      }
+      _vehiculos_inventario_validar: { Args: { p_filtros: Json }; Returns: undefined }
       _vehiculos_papelera_lote_json: {
         Args: {
           p_dias: number
@@ -8060,6 +8070,34 @@ export type Database = {
       cotizacion_tabla: {
         Args: { p_abierta?: string; p_cotizacion?: string; p_origen?: string; p_tabla: string }
         Returns: Json
+      }
+      cotizaciones_listado: {
+        Args: {
+          p_clase?: Database['public']['Enums']['clase_cotizacion']
+          p_cursor_en?: string
+          p_cursor_id?: string
+          p_hacia_atras?: boolean
+          p_mias?: boolean
+          p_origen?: string
+          p_tamano: number
+          p_vehiculo?: string
+        }
+        Returns: {
+          clase: Database['public']['Enums']['clase_cotizacion']
+          creado_en: string
+          creado_por: string
+          estado: Database['public']['Enums']['estado_cotizacion']
+          id: string
+          lead_id: string
+          moneda_mostrar: string
+          numero: number
+          origen_id: string
+          titulo: string
+          total_base: number
+          vehiculo_id: string
+          vence_el: string
+          vencida: boolean
+        }[]
       }
       crear_lead: {
         Args: { p_id: string; p_lead: Json; p_recordatorio?: Json; p_seguimiento?: Json }
@@ -8876,6 +8914,48 @@ export type Database = {
       vehiculo_vitrina_previa: { Args: { p_vehiculo: string }; Returns: Json }
       vehiculos_con_permiso: { Args: { p_clave: string; p_ids: string[] }; Returns: string[] }
       vehiculos_editables: { Args: { p_ids: string[] }; Returns: string[] }
+      vehiculos_inventario: {
+        Args: {
+          p_cursor_en?: string
+          p_cursor_id?: string
+          p_filtros?: Json
+          p_hacia_atras?: boolean
+          p_origen: string
+          p_tamano?: number
+        }
+        Returns: {
+          acepta_permuta: boolean
+          actualizado_en: string
+          anio: number
+          atributos: Json
+          categoria_id: string
+          creado_en: string
+          creado_por: string
+          destacado_web: boolean
+          fase_id: string
+          id: string
+          kilometraje: number
+          lead_id: string
+          limpieza_el: string
+          lote: string
+          marca: string
+          modelo: string
+          numero: number
+          origen_id: string
+          placado: boolean
+          plataforma: string
+          portada_ruta: string
+          precio: number
+          precio_negociable: boolean
+          precio_web: number
+          precio_web_hasta: number
+          precio_web_nota: string
+          publicado_web: boolean
+          titulo: string
+          url_origen: string
+          vin: string
+        }[]
+      }
       vehiculos_papelera_enviar: { Args: { p_vehiculos: Json }; Returns: Json }
       vehiculos_papelera_listar: {
         Args: {

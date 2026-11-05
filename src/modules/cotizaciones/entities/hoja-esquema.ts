@@ -147,14 +147,11 @@ const esquemaDeNodoDeTarjeta = z.object({
 })
 const esquemaOrigen = z.object({ id: z.guid(), nombre: z.string().min(1) })
 
-export const esquemaLista = z.object({
-  estado: z.literal('lista'),
+// El diseño de una versión de la fórmula recortado al nivel de quien mira: lo que comparten la hoja de cotizar y la de una guardada (`cotizacion_hoja_guardada()`, 4.15-2),
+// que no trae hoja abierta (calcula por su cotización).
+export const esquemaDeDiseno = z.object({
   origen: esquemaOrigen,
   formula: z.object({ id: z.guid(), version: z.int().positive() }),
-  abierta_en: z.string().min(1),
-  // La hoja abierta que firma la base: lo único que `cotizacion_crear` y `cotizacion_evaluar` aceptan como `p_abierta`. Para la pantalla es opaca.
-  abierta: z.string().min(1),
-  vehiculo_obligatorio: z.boolean(),
   cabecera: z.object({
     modos: z.array(z.object({ clave: esquemaId, nombre: z.string().min(1) })),
     ver_total_bs: z.boolean(),
@@ -164,6 +161,13 @@ export const esquemaLista = z.object({
   secciones: z.array(esquemaSeccion),
   tarjeta_total: esquemaDeNodoDeTarjeta.extend({ secundarios: z.array(esquemaDeNodoDeTarjeta) }),
   tonos: z.array(esquemaTono),
+})
+export const esquemaLista = esquemaDeDiseno.extend({
+  estado: z.literal('lista'),
+  abierta_en: z.string().min(1),
+  // La hoja abierta que firma la base: lo único que `cotizacion_crear` y `cotizacion_evaluar` aceptan como `p_abierta`. Para la pantalla es opaca.
+  abierta: z.string().min(1),
+  vehiculo_obligatorio: z.boolean(),
 })
 const esquemaSinPublicar = z.object({
   estado: z.literal('sin_publicar'),

@@ -179,6 +179,11 @@ test('E2E el panel abre con el historial plegado y sin leerlo; al desplegar, 20 
   await expect(filas(page).first()).toContainText('Gala Guarda')
   await expect(filas(page).first()).toContainText('Final')
   await expect(filas(page).nth(1)).toContainText('Preventa')
+  // Cada fila lleva a la página de su cotización (4.15-3).
+  await expect(filas(page).first().getByRole('link')).toHaveAttribute(
+    'href',
+    /^\/cotizaciones\/[0-9a-f-]{36}$/,
+  )
   await panel(page).getByRole('button', { name: 'Ver más' }).click()
   await expect(filas(page)).toHaveCount(22)
   await expect(panel(page).getByRole('button', { name: 'Ver más' })).toHaveCount(0)

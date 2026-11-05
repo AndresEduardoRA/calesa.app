@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import type { ContextoDeHoja } from '../../../entities/binding'
 import type { SeccionDeHoja as Seccion } from '../../../entities/hoja'
+import type { DeDondeCalcula } from '../../../entities/pedido-de-recalculo'
 import { ordenDeLaHoja } from '../../../entities/presentacion-de-la-hoja'
 import { useAyudaDeLaHoja } from '../hooks/use-ayuda-de-la-hoja'
 import type { AccionesDeHoja } from '../hooks/use-hoja'
@@ -16,22 +17,14 @@ type Props = {
   contexto: ContextoDeHoja
   acciones: AccionesDeHoja
   guardando: boolean
-  // De dónde lee la ayuda de una tabla: el origen y la hoja abierta de esta hoja.
-  origenId: string
-  abierta: string
+  // De dónde lee la ayuda de una tabla: de donde calcula esta hoja.
+  de: DeDondeCalcula
 }
 
 // Las secciones principales en su orden, con «Avanzado» (el botón y su modal) donde estaba la primera avanzada, y la ayuda (de texto o de una tabla) de sus celdas: quien guarda
 // en la URL cuál se abre es la hoja, y el callback que reciben las celdas es uno solo (la `XCell` está en `memo`).
-export function LugaresDeLaHoja({
-  secciones,
-  contexto,
-  acciones: deLaHoja,
-  guardando,
-  origenId,
-  abierta,
-}: Props) {
-  const { ayuda, alAyudar } = useAyudaDeLaHoja(secciones, { origenId, abierta })
+export function LugaresDeLaHoja({ secciones, contexto, acciones: deLaHoja, guardando, de }: Props) {
+  const { ayuda, alAyudar } = useAyudaDeLaHoja(secciones, de)
   const acciones = useMemo(() => ({ ...deLaHoja, alAyudar }), [deLaHoja, alAyudar])
   const lugares = ordenDeLaHoja(secciones)
   return (
