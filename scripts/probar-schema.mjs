@@ -8,6 +8,7 @@ import { unaccent } from '@electric-sql/pglite/contrib/unaccent'
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { pruebasEnOrden } from './lib/pruebas-de-la-base.mjs'
 
 const base = process.argv[2] ?? 'supabase'
 const db = new PGlite({ extensions: { pg_trgm, citext, unaccent, pgcrypto } })
@@ -194,9 +195,10 @@ async function cargarDatos(archivo) {
 
 // Pruebas: el humo y, después, lo que se apoya en su base (la matriz de leads y el cinturón de la
 // auditoría). Cada archivo se parte en bloques `-- @test <nombre>` y corre en la misma base.
-// SOLO=<archivo>[,<archivo>] corre sólo esos (para iterar sobre uno); sin él, todos y en este orden.
+// SOLO=<archivo>[,<archivo>] corre sólo esos (para iterar sobre uno; una de un área, por su ruta: `areas/papelera/x.sql`); sin él, todos y en este
+// orden. Después de esta lista corren las de `supabase/tests/areas/**` (`pruebasEnOrden`): ahí suma las suyas un carril que no es base.
 const SOLO = process.env['SOLO']?.split(',')
-for (const archivo of [
+const LISTA_FIJA = [
   // Primero: mira el seed tal como queda, antes de que el humo publique la v2 de una fórmula o cambie un tipo de cambio.
   'rls-en-todo.sql',
   'privilegios-de-anon.sql',
@@ -252,9 +254,10 @@ for (const archivo of [
   'vehiculos-inventario-filtros.sql',
   // Al final: sus `pg_temp` (la copia vieja de `puede_vehiculo`) no llegan a los archivos de antes.
   'vehiculos-visibilidad.sql',
-]) {
+]
+for (const archivo of pruebasEnOrden(LISTA_FIJA, path.join(base, 'tests'), SOLO)) {
   const t = path.join(base, 'tests', archivo)
-  if (!fs.existsSync(t) || (SOLO && !SOLO.includes(archivo))) continue
+  if (!fs.existsSync(t)) continue
   await cargarDatos(archivo)
   const bloques = fs
     .readFileSync(t, 'utf8')
