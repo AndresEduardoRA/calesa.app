@@ -539,6 +539,33 @@ N» reenvía con `p_con_la_abierta`).
 ## Plantilla de tarjeta (PDF)
 
 Filas por grupo con el tono del grupo (o el que la plantilla elija del catálogo), título de la opción de la variante y la garantía
-condicionada a su interruptor; sólo nodos del nivel «todos». `plantillas_tarjeta.definicion`: `paleta`, `columnas`, `encabezado`,
-`grupos`, `totales`, `pie`; variables: los `id` de los nodos más `titulo`, `fecha`, `asesor`, `cliente`, `vehiculo`, `ocultar_moneda`;
-sólo `{{id|formato}}`. PDF en servidor con `@react-pdf/renderer`.
+condicionada a su interruptor; sólo nodos del nivel «todos». PDF en servidor con `@react-pdf/renderer` (4.18-3).
+
+**La forma (4.18-1), declarativa como el diseño (D7):** `plantillas_tarjeta.definicion` = `{grupos: [{grupo, tono?}], etiquetas?, leyendas?,
+total: {etiqueta, leyenda?}, nota?, logo, columnas: {leyenda, tipo_cambio, plazo}}`, estricta y de hasta 32 KB: hasta 20 grupos (cada `grupo` y `tono`
+con la forma de un id), etiquetas (1 a 60 caracteres) y leyendas (0 a 160; vacía = sin leyenda) por id de nodo, hasta 200 de cada una; la etiqueta del
+total de 1 a 40, su leyenda y la nota hasta 160 y 300. Los textos se cuentan en caracteres. Sin hex, CSS ni plantillas de texto `{{…}}`.
+
+**`validar_plantilla(plantilla, def, diseno, visibilidad, tonos)`:** STABLE, invocadora, `search_path` vacío, sin leer tablas; 22023 con la regla en
+DETAIL y el `donde` en HINT; el primer rechazo manda, en este orden: `forma` (la clave o el índice), `grupo_inexistente`, `grupo_repetido`,
+`grupo_faltante` (la tarjeta lleva **todos** los grupos de la fórmula: lo que se ve suma el total), `tono_inexistente` (sólo con `tonos`),
+`nodo_inexistente` y `nodo_sin_lugar` (una clave de `etiquetas`/`leyendas` es un miembro de un grupo, el total o lo aparte de `tarjeta_total`),
+`nodo_restringido` (un miembro, el total o lo aparte sin `ver: todos` en la visibilidad compilada; **no figurar cuenta como restringido**) y, con
+`columnas.tipo_cambio`, `tipo_de_cambio_restringido` (el tipo de cambio del bucket de un grupo, por omisión o en un modo). Con `def` nulo, sólo la
+forma. Juego común: `entities/plantilla/casos-de-plantilla.json` (lo corre `plantilla-validar.sql`; lo correrá `validarPlantilla()` de TS, 4.19).
+`plantilla_guardar_borrador` valida la forma; `plantilla_publicar`, contra la fórmula **publicada** del origen y los tonos del catálogo, antes de
+archivar nada (sin fórmula publicada, `formula_sin_publicar@origen`). La tabla la lee sólo quien tiene `cotizaciones.configurar` del origen.
+
+### La lectura de la tarjeta (4.18-1)
+
+**`cotizacion_tarjeta(p_formula)`**, `security definer`, da lo que dibuja la tarjeta de **una versión** de la fórmula. Pide `cotizaciones.ver`
+(cualquier alcance) del origen de la versión; una versión que no existe y un borrador dan el mismo 42501 que no tener el permiso, también a la dueña.
+La plantilla es la **publicada hoy** del origen, validada otra vez contra **esa** versión (con `tonos` nulo): si no le sirve, `{estado: 'sin_plantilla'}`
+sin regla ni `donde` (la tarjeta «por omisión», 4.18-2). Con ella, `{estado: 'lista', plantilla: {version}, logo, nota, columnas, total: {nodo,
+etiqueta, leyenda}, secundarios: [{nodo, etiqueta}], grupos: [{id, etiqueta, plazo, tono, bucket, filas: [{nodo, etiqueta, leyenda}]}],
+tipos_de_cambio: {buckets: {bucket: nombre}, modos: {clave: {bucket: nombre}}}, variante: {nodo, opciones: [{clave, titulo}]}, tonos, moneda_bs}`.
+Las filas van en el orden de la fórmula; la etiqueta, la de la plantilla o la del nodo; la leyenda, la de la plantilla o la `descripcion`. El tono de un
+grupo es el que elige la plantilla si sigue en el catálogo; si no, el del grupo (`tono_eliminar` no mira las plantillas). Los tipos de cambio van por
+su `nombre` de `tipos_cambio` (nulo si no hay uno activo) y nunca por el id ni la clave del nodo; sin la columna, vacíos. `tonos` tiene la forma de la
+hoja (claro y oscuro) y `moneda_bs`, su regla. **Ningún id, etiqueta ni texto de un nodo sin `ver: todos` sale, para nadie** (K4 de
+`cotizacion-tarjeta.sql`, por cada nivel; el inventario de `cotizaciones-visibilidad.sql` la registra con ese bloque).

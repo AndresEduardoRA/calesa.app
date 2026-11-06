@@ -68,7 +68,7 @@ une por `pantallas/<área>-<pantalla>.ts`. Un hueco vacío es un objeto sin comp
 ## Tablas
 
 `formulas`, `tonos`, `cotizaciones_niveles`, `tablas_referencia`, `tablas_referencia_filas`, `plantillas_tarjeta`, `cotizaciones`, `cotizaciones_revisiones`, `cotizaciones_comentarios`, `cotizaciones_adjuntos`, `cotizaciones_reportes`, `cotizaciones_favoritos`, `comprobantes`, `comprobantes_contadores`.
-RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear|guardar|eliminar`, `nivel_crear|renombrar|retirar|restaurar|eliminar`, `niveles_con_uso`, `validar_formula`, `validar_diseno`, `validar_plantilla`, `evaluar_formula`, `cotizacion_evaluar`, `cotizacion_hoja`, `cotizacion_tabla`, `cotizacion_crear`, `cotizacion_guardar`, `cotizaciones_listado`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
+RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador`, `formula_cambiar_constante`, `tono_crear|guardar|eliminar`, `nivel_crear|renombrar|retirar|restaurar|eliminar`, `niveles_con_uso`, `validar_formula`, `validar_diseno`, `validar_plantilla`, `evaluar_formula`, `cotizacion_evaluar`, `cotizacion_hoja`, `cotizacion_tabla`, `cotizacion_tarjeta`, `cotizacion_crear`, `cotizacion_guardar`, `cotizaciones_listado`, `plantilla_*`, `cotizacion_marcar_final`, `cotizacion_moderar`, `comprobante_emitir/anular`, `margen_vehiculo`.
 
 ## No se rompe
 
@@ -90,6 +90,7 @@ RPC: `formula_guardar_borrador`, `formula_publicar`, `formula_descartar_borrador
 - **La hoja de una guardada** (`cotizacion_hoja_guardada`, 4.15-2) edita sólo con `_cotizacion_puede_guardar()` (no con `_nodos_visibles()`, que da editar con `crear`): quien
   sólo ve abre su diseño en sólo lectura. **Cotizar encima** (`cotizacion_encima`) crea la N+1 en el acto, una viva por anterior (`cotizaciones_encima_unica`), y se lleva también
   lo oculto (se guarda, no se devuelve); es la excepción a «un alta nueva recibe `p_abierta`»: no sale de una hoja vista ni lleva una hora del cliente.
+- **La tarjeta** (`cotizacion_tarjeta(p_formula)`, 4.18-1) dibuja la plantilla publicada del origen **validada otra vez contra la versión de esa cotización**: si no le sirve, `sin_plantilla` sin motivo. De la fórmula sólo sale lo del nivel «todos» (grupos enteros, el total, lo aparte, la variante); los tipos de cambio, sólo por su nombre de `tipos_cambio`. Ningún id ni texto de un nodo de un nivel sale, para nadie (K4 de `cotizacion-tarjeta.sql`).
 - D1 a D6: `docs/PLAN.md` › «Fase 4».
 
 ## Ojo

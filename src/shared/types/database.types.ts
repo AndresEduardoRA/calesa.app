@@ -7744,6 +7744,7 @@ export type Database = {
         Returns: Database['public']['Enums']['visibilidad_seguimiento']
       }
       _sin_tildes: { Args: { p_texto: string }; Returns: string }
+      _tarjeta_grupos: { Args: { p_def: Json; p_plantilla: Json; p_tonos: Json }; Returns: Json }
       _tarjeta_json: {
         Args: {
           o: Omit<
@@ -7753,6 +7754,10 @@ export type Database = {
           p_lead: Json
           p_vehiculo: Json
         }
+        Returns: Json
+      }
+      _tarjeta_tipos_de_cambio: {
+        Args: { p_buckets: string[]; p_def: Json; p_diseno: Json }
         Returns: Json
       }
       _telefono_o_nulo: { Args: { p_cc: string; p_tel: string }; Returns: string }
@@ -8090,6 +8095,7 @@ export type Database = {
         Args: { p_abierta?: string; p_cotizacion?: string; p_origen?: string; p_tabla: string }
         Returns: Json
       }
+      cotizacion_tarjeta: { Args: { p_formula: string }; Returns: Json }
       cotizaciones_listado: {
         Args: {
           p_clase?: Database['public']['Enums']['clase_cotizacion']
