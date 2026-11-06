@@ -5,6 +5,7 @@
 --   apibara-consultas-purgar        100.000 consultas de hace más de 48 h
 --   importaciones-vinculos-purgar   100.000 vínculos de 200 importaciones de hace más de 7 días
 --   papelera-purgar                 100.000 leads vencidos en 500 lotes de 200
+--   papelera-purgar (cotizaciones)  100.000 cotizaciones vencidas en 500 lotes de 200, con una revisión y un adjunto cada una (4.24-1b)
 --   limpieza-automatica             100.000 vehículos importados de una subasta terminada, sin comprador
 --   storage-gc                      100.000 objetos en el bucket `vehiculos` sin fila, y 100.000 en la cola
 -- Cada job tiene su presupuesto de tiempo por corrida (el último argumento): si lo pasa, la medición falla.
@@ -110,5 +111,101 @@ update public.cola_gc_barrido
    set ultimo_nombre = (select o.name from storage.objects o where o.bucket_id = 'vehiculos' order by o.name desc limit 1 offset 15000)
  where bucket = 'vehiculos';
 select pg_temp.cronometro('job: storage-gc, una pasada cerca del final del bucket (10.000 examinados)', $q$select public.storage_gc_encolar_huerfanos('vehiculos', interval '1 day')::text$q$, 1000);
+
+-- papelera-purgar con cotizaciones (4.24-1b): 500 lotes de 200 cotizaciones, cada una con una revisión y un adjunto de ruta propia, más viejos que los
+-- 450 lotes de leads que quedan vencidos. 50 cotizaciones vivas con un adjunto cada una, y en cada uno de los 50 lotes más viejos (los que purga la corrida)
+-- una cotización con otro adjunto que repite la ruta de una viva: el refcount no lo encola. Se mide la forma (la selección del job y el refcount por
+-- `cotizaciones_adjuntos_ruta_idx`), el tiempo y lo que hizo, exacto.
+set local session_replication_role = replica;
+create temporary table jobs_cot on commit drop as
+  select o.id as origen, gen_random_uuid() as formula from (select gen_random_uuid() as id) o;
+insert into public.origenes (id, clave, nombre) select origen, 'jobs_cot', 'Jobs cotizaciones' from jobs_cot;
+insert into public.formulas (id, origen_id, version, estado, definicion, params, diseno, visibilidad)
+select formula, origen, 1, 'publicada',
+       '{"nodos": [{"id": "visible", "tipo": "input", "etiqueta": "Visible", "bucket": "origen"}, {"id": "total", "tipo": "calculo", "op": "suma", "de": ["visible"], "etiqueta": "Total", "salida": "total", "bucket": "origen"}]}',
+       '{}', '{}', '{"visible": {"ver": "todos", "editar": "todos"}, "total": {"ver": "todos", "editar": null}}'
+  from jobs_cot;
+create temporary table jobs_lotes_cot on commit drop as
+  select k, gen_random_uuid() as id from generate_series(1, 500) k;
+insert into public.lotes_papelera (id, tipo, creado_por, creado_en, resumen, actualizado_en)
+select id, 'cotizaciones', '00000000-0000-0000-0000-0000000000e1', now() - interval '500 days' - make_interval(mins => k),
+       jsonb_build_object('cantidad', 200, 'restaurados', 0, 'purgados', 0), now() - interval '500 days'
+  from jobs_lotes_cot;
+create temporary table jobs_cots on commit drop as
+  select lo.k, j, gen_random_uuid() as id, lo.id as lote from jobs_lotes_cot lo cross join generate_series(1, 200) j;
+create temporary table jobs_vivas on commit drop as
+  select i, gen_random_uuid() as id from generate_series(1, 50) i;
+insert into public.cotizaciones (id, origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base, creado_en,
+                                 eliminado_en, eliminado_por, lote_papelera_id)
+select c.id, t.origen, '00000000-0000-0000-0000-0000000000e1', t.formula, '{"visible": 10, "total": 10}', '{"visible": "input"}', '{}', '{"usd": 10}', 10,
+       now() - interval '501 days', now() - interval '500 days', '00000000-0000-0000-0000-0000000000e1', c.lote
+  from jobs_cots c cross join jobs_cot t;
+insert into public.cotizaciones (id, origen_id, creado_por, formula_id, valores, fuentes, tipos_cambio, totales, total_base)
+select v.id, t.origen, '00000000-0000-0000-0000-0000000000e1', t.formula, '{"visible": 10, "total": 10}', '{"visible": "input"}', '{}', '{"usd": 10}', 10
+  from jobs_vivas v cross join jobs_cot t;
+insert into public.cotizaciones_revisiones (cotizacion_id, diff, creado_en) select id, '{}', now() - interval '501 days' from jobs_cots;
+insert into public.cotizaciones_adjuntos (cotizacion_id, ruta, nombre, mime, bytes) select id, id || '/1.pdf', '1.pdf', 'application/pdf', 10 from jobs_cots;
+insert into public.cotizaciones_adjuntos (cotizacion_id, ruta, nombre, mime, bytes) select id, id || '/a.pdf', 'a.pdf', 'application/pdf', 10 from jobs_vivas;
+insert into public.cotizaciones_adjuntos (cotizacion_id, ruta, nombre, mime, bytes)
+select c.id, v.id || '/a.pdf', 'a.pdf', 'application/pdf', 10 from jobs_cots c join jobs_vivas v on v.i = c.k - 450 where c.k > 450 and c.j = 1;
+set local session_replication_role = origin;
+analyze public.cotizaciones;
+analyze public.cotizaciones_revisiones;
+analyze public.cotizaciones_adjuntos;
+analyze public.lotes_papelera;
+
+do $$
+declare v_dias int := (select papelera_dias from public.ajustes_empresa where id = 1); v_plan jsonb; v_seq text;
+begin
+  -- El terreno es el que se dice: la cola sin nada de cotizaciones, y los 50 lotes vencidos más viejos son los k = 451…500.
+  if exists (select 1 from public.cola_gc_storage where bucket = 'cotizaciones') then raise exception 'la cola ya tenía rutas de cotizaciones'; end if;
+  if (select array_agg(id order by id) from (select l.id from public.lotes_papelera l
+        where l.purgado_en is null and l.restaurado_en is null and l.creado_en < now() - make_interval(days => v_dias) order by l.creado_en limit 50) x)
+     is distinct from (select array_agg(id order by id) from jobs_lotes_cot where k > 450) then
+    raise exception 'los 50 lotes vencidos más viejos no son los de cotizaciones k = 451…500'; end if;
+
+  -- (a) La forma, en el plan genérico: la selección del job sin recorrer lotes_papelera ni cotizaciones, y el refcount por su índice.
+  set local plan_cache_mode = force_generic_plan;
+  execute $q$prepare jobs_seleccion(int) as
+    select l.id, l.tipo from public.lotes_papelera l
+    where l.tipo in ('vehiculos', 'leads', 'cotizaciones') and l.purgado_en is null and l.restaurado_en is null
+      and l.creado_en < now() - make_interval(days => $1)
+      and ((l.tipo = 'vehiculos' and exists (select 1 from public.vehiculos v where v.lote_papelera_id = l.id and v.eliminado_en is not null))
+        or (l.tipo = 'leads' and exists (select 1 from public.leads x where x.lote_papelera_id = l.id and x.eliminado_en is not null))
+        or (l.tipo = 'cotizaciones' and (select true from public.cotizaciones c where c.lote_papelera_id = l.id and c.eliminado_en is not null limit 1)))
+    order by l.creado_en
+    limit 50$q$;
+  execute format('explain (format json) execute jobs_seleccion(%s)', v_dias) into v_plan;
+  raise notice 'plan|job: papelera-purgar, la selección|%', v_plan;
+  select string_agg(r #>> '{}', ', ') into v_seq from jsonb_path_query(v_plan, 'lax $.** ? (@."Node Type" == "Seq Scan")."Relation Name"') r
+   where r #>> '{}' in ('lotes_papelera', 'cotizaciones');
+  if v_seq is not null then raise exception 'la selección del job recorre %: %', v_seq, v_plan; end if;
+  execute $q$prepare jobs_refcount(text) as select count(*) from public.cotizaciones_adjuntos where ruta = $1$q$;
+  execute 'explain (format json) execute jobs_refcount(''x/1.pdf'')' into v_plan;
+  raise notice 'plan|job: papelera-purgar, el refcount de un adjunto|%', v_plan;
+  if not jsonb_path_exists(v_plan, 'lax $.** ? (@."Index Name" == "cotizaciones_adjuntos_ruta_idx")') then raise exception 'el refcount no va por cotizaciones_adjuntos_ruta_idx: %', v_plan; end if;
+  execute 'deallocate jobs_seleccion'; execute 'deallocate jobs_refcount';
+  reset plan_cache_mode;
+end $$;
+
+-- (b) El tiempo de una corrida.
+select pg_temp.cronometro('job: papelera-purgar, 100.000 cotizaciones en 500 lotes (revisiones y adjuntos)', 'select public.papelera_purgar_vencidos()::text', 25000);
+
+-- (c) Lo que hizo, exacto: los 50 lotes más viejos purgados y cerrados, sin hijas; las vivas intactas; la cola con las 10.000 rutas propias y ninguna de una viva.
+do $$
+begin
+  if (select count(*) from public.lotes_papelera l join jobs_lotes_cot j on j.id = l.id
+       where j.k > 450 and l.purgado_en is not null and (l.resumen ->> 'purgados')::int = 200) <> 50 then raise exception 'no purgó y cerró los 50 lotes más viejos'; end if;
+  if exists (select 1 from public.lotes_papelera l join jobs_lotes_cot j on j.id = l.id where j.k <= 450 and l.purgado_en is not null) then raise exception 'purgó un lote de más'; end if;
+  if (select count(*) from public.cotizaciones c join jobs_cots j on j.id = c.id) <> 90000 then raise exception 'no quedan las 90.000 de los otros lotes'; end if;
+  if (select count(*) from public.cotizaciones_revisiones r join jobs_cots j on j.id = r.cotizacion_id) <> 90000 then raise exception 'quedaron revisiones de las purgadas'; end if;
+  if (select count(*) from public.cotizaciones_adjuntos a join jobs_cots j on j.id = a.cotizacion_id) <> 90000 then raise exception 'quedaron adjuntos de las purgadas'; end if;
+  if (select count(*) from public.cotizaciones c join jobs_vivas v on v.id = c.id where c.eliminado_en is null) <> 50
+     or (select count(*) from public.cotizaciones_adjuntos a join jobs_vivas v on v.id = a.cotizacion_id) <> 50 then raise exception 'las vivas o sus adjuntos cambiaron'; end if;
+  if (select count(*) from public.cola_gc_storage where bucket = 'cotizaciones') <> 10000 then raise exception 'la cola no tiene exactamente 10.000 rutas de cotizaciones'; end if;
+  if exists (select 1 from public.cola_gc_storage g join jobs_vivas v on g.ruta = v.id || '/a.pdf' where g.bucket = 'cotizaciones') then raise exception 'encoló la ruta de una viva'; end if;
+  if (select count(*) from public.cola_gc_storage g join jobs_cots j on g.ruta = j.id || '/1.pdf' where g.bucket = 'cotizaciones' and j.k > 450) <> 10000 then raise exception 'la cola no son las rutas propias de las purgadas'; end if;
+  raise notice 'plan|job: papelera-purgar con cotizaciones|purgadas 10.000 de los lotes k = 451…500, la cola con sus 10.000 rutas propias';
+end $$;
 
 rollback;
