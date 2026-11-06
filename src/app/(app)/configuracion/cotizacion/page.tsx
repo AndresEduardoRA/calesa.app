@@ -1,20 +1,38 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
+import { SeccionDeLaFormula } from '@/modules/cotizaciones/pantallas/formula'
 import { puede, requerirSesion } from '@/modules/equipo'
+import { getOrigenes } from '@/modules/origenes'
+import { unParametro } from '@/shared/lib/rutas'
+import { EsqueletoFormulario } from '@/shared/ui/esqueletos'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
+import { alMenosUna } from '../empresa/pestanas'
+import { pestanaDe, pestanasVisibles } from './pestanas'
 import { PestanasDeCotizacion } from './pestanas-de-cotizacion'
 import { SeccionNiveles } from './seccion-niveles'
 
 export const metadata: Metadata = { title: 'Cotización' }
 
-// Configuración › Cotización. Hoy los niveles de acceso de la hoja; los ve quien lee los roles (`equipo.roles.ver`) y los cambia quien los
-// gestiona (`equipo.roles.gestionar`): cada nivel es un permiso de la matriz de Roles, y la base vuelve a exigir el permiso en cada RPC.
-// Sin ninguno de los dos, la misma pantalla «No tienes permiso» (y la sección no figura en Configuración).
-export default async function PaginaDeCotizacion() {
-  const sesion = await requerirSesion()
-  const puedeGestionar = puede(sesion.permisos, 'equipo.roles.gestionar')
-  if (!puedeGestionar && !puede(sesion.permisos, 'equipo.roles.ver')) {
+// Configuración › Cotización. Entra quien ve alguna pestaña (`pestanas.ts`): «Niveles de acceso» con `equipo.roles.ver` (los cambia quien tiene
+// `equipo.roles.gestionar`: cada nivel es un permiso de la matriz de Roles) y «Fórmula» con `cotizaciones.configurar` en algún origen (4.20-2a). La base vuelve a
+// exigir lo suyo en cada RPC y en la policy de `formulas`. Sin ninguna, «No tienes permiso» (y la sección no figura en Configuración).
+export default async function PaginaDeCotizacion({
+  searchParams,
+}: PageProps<'/configuracion/cotizacion'>) {
+  const [sesion, parametros] = await Promise.all([requerirSesion(), searchParams])
+  const visibles = alMenosUna(pestanasVisibles(sesion.permisos))
+  if (!visibles) {
     return <EstadoSinPermiso />
   }
+  const pestana = pestanaDe(unParametro(parametros['seccion']), visibles)
+  const origenPedido = unParametro(parametros['origen'])
+  // La barra no recibe los permisos: sólo cuáles pestañas dibujar.
+  const [primera, ...resto] = visibles
+  const quitarPermisos = ({ clave, titulo }: { clave: string; titulo: string }) => ({
+    clave,
+    titulo,
+  })
+  const paraLaBarra = [quitarPermisos(primera), ...resto.map(quitarPermisos)] as const
   return (
     <div className="grid max-w-3xl gap-4">
       <div className="grid gap-1">
@@ -23,8 +41,22 @@ export default async function PaginaDeCotizacion() {
           Lo que se configura de la hoja con la que se cotiza.
         </p>
       </div>
-      <PestanasDeCotizacion />
-      <SeccionNiveles puedeGestionar={puedeGestionar} />
+      <PestanasDeCotizacion pestanas={paraLaBarra} />
+      {pestana === 'niveles' ? (
+        <SeccionNiveles puedeGestionar={puede(sesion.permisos, 'equipo.roles.gestionar')} />
+      ) : null}
+      {pestana === 'formula' ? (
+        <Suspense
+          key={origenPedido ?? ''}
+          fallback={<EsqueletoFormulario bloques={2} campos={4} />}
+        >
+          <SeccionDeLaFormula
+            origenes={getOrigenes(true)}
+            permisos={sesion.permisos}
+            origenPedido={origenPedido}
+          />
+        </Suspense>
+      ) : null}
     </div>
   )
 }
