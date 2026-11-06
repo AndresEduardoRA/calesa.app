@@ -224,3 +224,17 @@ describe('hechos.sh › los CI rojos', () => {
     expect(rojos.ultimos[9]).toContain('run 12')
   })
 })
+
+describe('hechos.sh › la decisión de cada carril', () => {
+  it('la decisión vigente es la de una compuerta de este carril: la de otro carril no se lee como propia', () => {
+    writeFileSync(join(comun, 'compuerta.md'), 'id: g-3\ntipo: afuera\npaso: 4.20-2c\ncarril: b\n')
+    writeFileSync(join(comun, 'decision.md'), 'id: g-3\nopcion: parar\nme respondió: «parar»\n')
+    expect(hechos({ PILOTO_CARRIL: 'c' })['decision']).toBeNull()
+    expect(hechos()['decision']).toBeNull()
+    expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toContain('me respondió: «parar»')
+    // Una compuerta sin `carril:` (las de antes) es del carril A.
+    writeFileSync(join(comun, 'compuerta.md'), 'id: g-3\ntipo: afuera\n')
+    expect(hechos()['decision']).toContain('me respondió: «parar»')
+    expect(hechos({ PILOTO_CARRIL: 'b' })['decision']).toBeNull()
+  })
+})

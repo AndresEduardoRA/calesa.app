@@ -97,6 +97,8 @@ describe('bucle.sh › el carril pide su paso al coordinador', () => {
     expect(a.leerFake('compuerta-1.md')).toContain(
       'el ruteo eligió 4.50, pero el coordinador asignó 4.99',
     )
+    // La compuerta dice de qué carril es: otro carril no lee su decisión como propia.
+    expect(a.leerFake('compuerta-1.md')).toContain('carril: formula')
   })
 
   it('sin paso libre (depende de uno que sigue en otro carril) espera, sin gastar', () => {
