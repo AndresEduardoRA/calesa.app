@@ -252,10 +252,17 @@ test('«Falta publicar la fórmula» lleva el enlace a configuración sólo a qu
   )
   await irA(page, duena, `/cotizaciones/nuevo?origen=${sinFormula.id}`)
   await expect(page.getByText(`Falta publicar la fórmula de ${sinFormula.nombre}`)).toBeVisible()
-  await expect(
-    page.getByRole('link', { name: /Ir a la configuración de cotización/ }),
-  ).toHaveAttribute('href', '/configuracion/cotizacion')
+  const enlace = page.getByRole('link', { name: /Ir a la configuración de cotización/ })
+  await expect(enlace).toHaveAttribute(
+    'href',
+    `/configuracion/cotizacion?seccion=formula&origen=${sinFormula.id}`,
+  )
   await capturar(page, info, 'cotizar-falta-publicar')
+  // Lleva a la fórmula de ese origen (4.20-2a), que dice que todavía no tiene una versión publicada.
+  await enlace.click()
+  await expect(
+    page.getByText(`${sinFormula.nombre} todavía no tiene una versión publicada`),
+  ).toBeVisible()
 })
 
 test('quien puede cotizar pero no ver cotizaciones no tiene dónde cotizar: cotizar pide también ver (4-32)', async ({
