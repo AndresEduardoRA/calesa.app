@@ -41,6 +41,7 @@ n=$(( $(cat "$F/n-$modo" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$F/n-$modo"
 echo "$modo n=$n args: $*" >> "$F/llamadas.log"
 if [ "$modo" = ruteo ]; then
+  cp .piloto/hechos.json "$F/hechos-ruteo-$n.json" 2>/dev/null
   f="$F/ruteo-$n.json"; [ -f "$f" ] || f="$F/ruteo.json"
   cat "$f"
   exit 0
