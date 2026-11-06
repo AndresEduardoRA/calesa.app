@@ -221,7 +221,9 @@ pasos:
     modulos:
       [
         src/app/(app)/configuracion/secciones.ts,
+        src/app/(app)/configuracion/secciones.test.ts,
         src/app/(app)/configuracion/cotizacion/seccion.ts,
+        src/app/(app)/configuracion/cotizacion/seccion.test.ts,
         src/app/(app)/configuracion/empresa/,
         src/modules/empresa/,
         .claude/rules/modulos.md,
