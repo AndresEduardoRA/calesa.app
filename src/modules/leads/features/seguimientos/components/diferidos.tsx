@@ -9,14 +9,20 @@ export const ModalDeSeguimientoDiferido = diferido(() =>
 )
 
 // Lo de una línea larga («Ir a una fecha», «Desde el …», el aviso del tope) se pide al dibujarse: la
-// línea de tiempo casi nunca lo usa.
-const ventana = () => import('./ventana-de-la-linea')
-export const IrAUnaFechaDiferido = diferido(() => ventana().then((m) => m.IrAUnaFecha), {
+// línea de tiempo casi nunca lo usa. Los tres se piden juntos y una vez: tras «Ir», «Desde el …»
+// aparece sin volver a la red.
+const ventana = () =>
+  Promise.all([
+    import('@/shared/ui/ir-a-una-fecha'),
+    import('@/shared/ui/desde-una-fecha'),
+    import('./aviso-del-tope'),
+  ])
+export const IrAUnaFechaDiferido = diferido(() => ventana().then(([m]) => m.IrAUnaFecha), {
   aviso: 'aqui',
 })
-export const DesdeUnaFechaDiferido = diferido(() => ventana().then((m) => m.DesdeUnaFecha), {
+export const DesdeUnaFechaDiferido = diferido(() => ventana().then(([, m]) => m.DesdeUnaFecha), {
   aviso: 'aqui',
 })
-export const AvisoDelTopeDiferido = diferido(() => ventana().then((m) => m.AvisoDelTope), {
+export const AvisoDelTopeDiferido = diferido(() => ventana().then(([, , m]) => m.AvisoDelTope), {
   aviso: 'aqui',
 })

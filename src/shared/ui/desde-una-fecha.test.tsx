@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { Seguimientos } from '../hooks/use-seguimientos'
-import { DesdeUnaFecha } from './ventana-de-la-linea'
+import { DesdeUnaFecha } from './desde-una-fecha'
 
 afterEach(cleanup)
 
@@ -9,12 +8,9 @@ const VOLVER = 'Volver a los más recientes'
 
 function montar(dia: string, zona: string, ocupado = false) {
   const alVolver = vi.fn()
-  const seguimientos = {
-    desde: dia,
-    cargando: ocupado,
-    volverAlPrincipio: alVolver,
-  } as unknown as Seguimientos
-  render(<DesdeUnaFecha seguimientos={seguimientos} zona={zona} />)
+  render(
+    <DesdeUnaFecha dia={dia} zona={zona} ocupado={ocupado} volver={VOLVER} alVolver={alVolver} />,
+  )
   return { alVolver, volver: screen.getByRole('button', { name: VOLVER }) }
 }
 
@@ -35,11 +31,5 @@ describe('<DesdeUnaFecha>', () => {
     cleanup()
     const ocupado = montar('2026-10-13', 'America/La_Paz', true)
     expect((ocupado.volver as HTMLButtonElement).disabled).toBe(true)
-  })
-
-  it('sin día no dibuja nada', () => {
-    const seguimientos = { desde: null, cargando: false } as unknown as Seguimientos
-    const { container } = render(<DesdeUnaFecha seguimientos={seguimientos} zona="UTC" />)
-    expect(container.innerHTML).toBe('')
   })
 })

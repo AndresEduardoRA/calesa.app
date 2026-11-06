@@ -2,7 +2,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { TOPE_DE_LO_CARGADO } from '@/shared/lib/paginacion'
 import type { Seguimientos } from '../hooks/use-seguimientos'
-import { AvisoDelTope } from './ventana-de-la-linea'
+import { AvisoDelTope } from './aviso-del-tope'
 
 afterEach(cleanup)
 
