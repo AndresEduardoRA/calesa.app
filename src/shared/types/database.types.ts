@@ -6970,6 +6970,10 @@ export type Database = {
         Returns: undefined
       }
       _contraste_aa: { Args: { p_razon: number }; Returns: boolean }
+      _cotizacion_a_papelera: {
+        Args: { p_con_version: boolean; p_esperado: string; p_id: string; p_lote: string }
+        Returns: Json
+      }
       _cotizacion_abierta: {
         Args: { p_abierta_en: string; p_formula: string; p_origen: string }
         Returns: undefined
