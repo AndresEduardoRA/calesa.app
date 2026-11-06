@@ -47,6 +47,7 @@ carriles:
       - src/modules/cotizaciones/infra/formula/
       - src/modules/cotizaciones/areas/formula/
       - src/modules/cotizaciones/pantallas/formula.ts
+      - src/modules/cotizaciones/pantallas/formula-hoja.ts
       - src/modules/cotizaciones/features/diseno/
       - src/modules/cotizaciones/entities/diseno/
       - src/modules/cotizaciones/infra/diseno/

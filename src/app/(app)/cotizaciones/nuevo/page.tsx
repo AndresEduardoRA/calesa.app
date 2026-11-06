@@ -21,6 +21,7 @@ import {
   PantallaDeCotizar,
   PestanasDeOrigen,
 } from '@/modules/cotizaciones/pantallas/cotizar'
+import { HUECOS_DE_FORMULA_EN_LA_HOJA } from '@/modules/cotizaciones/pantallas/formula-hoja'
 import { requerirSesion } from '@/modules/equipo'
 import { leerClienteElegido, type ClienteElegido } from '@/modules/leads'
 import { BarraDelCliente } from '@/modules/leads/pantallas/cotizar'
@@ -40,6 +41,9 @@ import { puede, type Permisos } from '@/shared/lib/permisos'
 import { unParametro } from '@/shared/lib/rutas'
 import { EstadoSinPermiso } from '@/shared/ui/estados'
 import { BarraConHistorial } from './barra-con-historial'
+
+// Lo que el área `formula` llena en la hoja (`pantallas/formula-hoja.ts`): el enlace de «Falta publicar la fórmula».
+const { EnlaceSinPublicar } = HUECOS_DE_FORMULA_EN_LA_HOJA
 
 export const metadata: Metadata = { title: 'Cotizar' }
 
@@ -167,6 +171,27 @@ async function Hoja({
   return <HojaDelOrigen sesion={sesion} url={url} origenes={origenes} origen={origen} />
 }
 
+// «Falta publicar la fórmula»: con permiso para configurar, el enlace es el que llena el área `formula` (C7 del 4.15-6).
+function SinPublicar({
+  origenId,
+  nombre,
+  puedeConfigurar,
+}: {
+  origenId: string
+  nombre: string
+  puedeConfigurar: boolean
+}) {
+  return (
+    <FormulaSinPublicar
+      origen={nombre}
+      puedeConfigurar={puedeConfigurar}
+      accion={
+        puedeConfigurar && EnlaceSinPublicar ? <EnlaceSinPublicar origenId={origenId} /> : undefined
+      }
+    />
+  )
+}
+
 // La hoja del origen elegido, con sus dos barras (vehículo y cliente) y las pestañas de origen.
 async function HojaDelOrigen({
   sesion,
@@ -207,8 +232,9 @@ async function HojaDelOrigen({
     return (
       <>
         {pestanas}
-        <FormulaSinPublicar
-          origen={apertura.hoja.origen.nombre}
+        <SinPublicar
+          origenId={origen.id}
+          nombre={apertura.hoja.origen.nombre}
           puedeConfigurar={apertura.hoja.puedeConfigurar}
         />
       </>
