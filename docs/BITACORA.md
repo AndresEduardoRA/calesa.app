@@ -685,3 +685,40 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
 - **Abiertos:** 4-94 («Cotizar» desde la ficha del vehículo); 4-73 sigue abierto sin sumarle peso; el pulido del esqueleto doble queda en «Pulido para la Fase 9».
 - **Commits:** `54233483` (separar la paginación del historial del pliegue) y `41419f7b` (abrir la pestaña de cotizaciones en la ficha).
   e2e completo: no (4.17-3, pantalla, 2 de 3)
+
+## 2026-11-06 — Paso 4.17-4a: el listado de cotizaciones filtrado por lead, en la base
+
+- **Hecho.**
+  - El 4.17-4 se partió en 4a, la base, y 4b, la pantalla: P1 y P2 se contestaron con la recomendada, y el camino tras 500 de la sección del lead es `/cotizaciones?lead=`.
+  - `cotizaciones_listado()` suma `p_lead` al final de su firma: `drop` de la de 8 y `create` de la de 9, en `20261106102102_cotizaciones_listado_por_lead.sql`.
+  - Con el lead, una sola ruta por `cotizaciones_lead_creado_idx` con la RLS, en los tres bloques, sin la cartera. El vehículo, si llega, es un filtro sobre sus filas.
+  - Sigue invocadora y con los mismos privilegios.
+  - Las pruebas:
+    - L1 con los argumentos;
+    - L9: el lead con cada filtro, el cursor en los dos sentidos, la papelera, un lead que no se ve o no existe, «propios» con la cartera compartida;
+    - seis casos del lead en `cv_filtros`, contra la regla a mano;
+    - la firma de 9 en `auditoria-leads.sql`.
+  - La medición:
+    - las 5.005 del vehículo muy cotizado son de un lead ajeno;
+    - cinco casos del listado por lead;
+    - tres de la lectura de la sección del 4b, por PostgREST de a 21.
+- **Verificación** (`.piloto/salidas/4.17-4a/`):
+  - Rojos contra HEAD:
+    - `rojo-head-probar.txt`: 4 caídas con su mensaje, y L3 a L8 en verde;
+    - `rojo-head-medir.txt`: cae en el primer caso con `p_lead`.
+  - Verde:
+    - `db:probar`: 524 en verde (`db-probar.txt`);
+    - `db:lint`, `db:carreras` y `db:medir:volumen`;
+    - `lint` y `typecheck`;
+    - `pnpm test`: 6.433 de 6.438, y las 5 de `auto-carriles.test.ts`, ajenas (4-83);
+    - `mapa.sh --check` y `coordinador validar`;
+    - los dirigidos en escritorio, 20 en verde (`e2e-dirigidos.txt`), y `listas-por-pagina-volumen.spec.ts` con `E2E_VOLUMEN=1`, 7 en verde (`e2e-volumen.txt`).
+  - Mutaciones (`mutaciones.txt`): M1 a M10 caen en `db:probar`, en L1, L9, la visibilidad, la auditoría y `privilegios-de-anon`. M6 y M7 caen también en la medición, por el índice que leen; M7, además, crece de 271 a 42.006 bloques.
+- **Medido** (250.000; iguales con 50.000):
+  - la dueña, con un lead: 1,1–1,2 ms;
+  - Ana, con un lead de su cartera: 2,5 ms; con uno ajeno de 5.005, 50,8 ms (un `en_cartera()` por fila, como el vehículo; tope 100) y 3,7 con «mías»;
+  - la sección: la dueña 0,3 ms, Ana 0,9 y Ana con el ajeno 48,1.
+- **Estado del CI al empezar:** el run de `c0939a8f` en verde (`success`), según `hechos.json`.
+- **Abiertos:** ninguno nuevo. 4-64 suma `cotizaciones-listado.sql` (393), `medir-cotizaciones-listado.sql` (437), `cotizaciones-visibilidad.sql` (1.921) y la función (164 líneas).
+- **Commits:** `d7c93e66` (filtrar el listado de cotizaciones por lead) y `f489663a` (medir el listado por lead y la sección del lead).
+  e2e completo: no (4.17-4a, base, Nivel 1)

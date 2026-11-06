@@ -1914,3 +1914,28 @@ Lo pidió la persona después de que el A hiciera el 4.16 y el 4.17-1: se parti�
 - **Los topes de nodos.** Con 20 filas, 61 nodos (tope 65, el del panel); con 500, 1.501 (3 por fila + 1) y el tope queda en lo medido más un 5 %: 1.576 (el previo de 1.600 alcanzó). La respuesta de la 25.ª página pesa lo mismo que la 1.ª.
 - **Sin «Cotizar» en la ficha.** No está en la fila del paso y suma un camino a un flujo: se anota como 4-94 y lo decide la persona.
 - **El paso vale como pantalla.** Sin datos nuevos, permisos nuevos ni migración (la lectura, su índice y su RLS son los del 4.14-2b): sin mutaciones ni informe auditado.
+
+## 2026-11-06 — Paso 4.17-4a: el listado de cotizaciones por lead, en la base
+
+- **El 4.17-4 se partió en 4a (base) y 4b (pantalla).** P1, contestada con la recomendada: el camino tras 500 de la sección «Cotizaciones» de `/leads/[id]` es «Ver todas en Cotizaciones» a
+  `/cotizaciones?lead=<id>`, como el del vehículo con `?vehiculo=`. `cotizaciones_listado()` no tenía filtro por lead, y la fila manda partir cuando lo pide: la base y la pantalla se verifican distinto
+  (`db:probar`, mutaciones y mediciones, contra lint, e2e y móvil). Las otras dos opciones («Ir a una fecha» dentro de la sección, sin base; o sin camino, sólo el aviso y un abierto) se descartaron: la primera
+  llega distinto que el vehículo y el componente de fecha todavía no existe (lo hace el 4.17-5 para «Revisiones»); la segunda va contra `escala.md`.
+- **P2, contestada con la recomendada (la usa el 4b):** la sección la ve quien tiene `cotizaciones.ver` con cualquier alcance en **algún** origen, con la forma de «Vehículos» de la ficha, que pide `vehiculos.ver` en algún
+  origen. Un lead no tiene un solo origen de cotizaciones: la RLS va por el origen de cada una y recorta las filas; si no llega ninguna, el estado vacío. Se descartaron pedir además que el lead esté en la cartera (quien ve
+  «todos» no vería ahí lo que sí ve en `/cotizaciones`) y mostrarla a todo el que ve el lead (sin la clave, una sección vacía para siempre, contra UX.md).
+- **`p_lead` va al final de la firma, con `drop` de la de 8 y `create` de la de 9**, como el 4.17-1 con `lead_oportunidades()`: un `create or replace` con otro argumento deja dos sobrecargas (L1 y el cinturón de
+  `auditoria-leads.sql` lo hacen caer, M8). Al final, para que las llamadas posicionales de 8 sigan valiendo (`infra/listado/listado.ts` no cambia: el argumento es opcional).
+- **Con el lead, una sola ruta, y el vehículo es un filtro sobre ella.** `cotizaciones_lead_creado_idx` con la RLS, en los tres bloques; todas las demás banderas se apagan, también la de la cartera (`mis_leads()` no se llama)
+  y la del vehículo. Si llegan lead y vehículo, la respuesta es la intersección y el costo queda acotado por las cotizaciones del lead, no por N (`(p_vehiculo is null or c.vehiculo_id = p_vehiculo)` nunca es condición de índice).
+  El 4b puede no ofrecer la combinación, pero la URL la admite. M6 (el vehículo antes que el lead) y M7 (el lead como filtro de las rutas de siempre) caen en L9 y en la medición: M7 lee `cotizaciones_listado_idx` y crece de 271 a 42.006 bloques.
+- **El lead en la papelera sale con el filtro igual que sin él.** El plan decía que un lead en la papelera daba una página vacía; la regla que se prueba es la otra mitad de su C4: lo que devuelve con `p_lead` es lo de sin
+  él filtrado a `lead_id = p_lead`. La policy de `cotizaciones` no mira la papelera del lead (Ana ve `b_lead_borrado` sin filtro), y esconderlo sólo con el filtro pediría releer `leads` bajo su RLS. `cv_filtros` lo
+  fija con «el lead en la papelera».
+- **El terreno de la medición suma un lead ajeno**: las 5.005 del vehículo muy cotizado pasan a ser de un uuid sin fila en `leads` (como `_v`: la FK no se mira al sembrar), fijo entre los dos volúmenes y fuera de toda
+  cartera, así que ninguna ruta de antes cambia de filas. Ana con ese lead paga un `en_cartera()` por cada una de las 5.005 (51 ms con 250.000, tope 100, como el vehículo): crece con las del lead, no con N.
+- **La lectura de la sección (la del 4b, por PostgREST) se mide en `medir-cotizaciones-listado.sql`** y no en un archivo nuevo: usa el mismo terreno, las mismas familias de asserts y el mismo runner (un archivo aparte copiaría
+  ≈ 150 líneas de siembra). Su SQL es literal y se planea en cada corrida: lee al planear la metapágina de un índice vacío (`cotizaciones_lote_papelera_idx`, vacío tras el truncate; un btree vacío no guarda su altura), que no
+  cuenta como índice leído, igual que en `medir-vehiculos-inventario.sql`. Sólo en la forma `seccion`: el listado va con el plan genérico y no replanea.
+- **No hubo compuerta `datos`.** La función sigue invocadora, estable, con `search_path` vacío y los mismos privilegios (`revoke` de public y anon, `grant` a authenticated); no cambia ninguna policy, permiso ni `security definer`.
+  Lo único nuevo es que recibe un lead: su firma de 9 queda en `auditoria-leads.sql` con clase `L` (sólo como filtro, la RLS decide), que no pide fila en la matriz. M9 (definer) y M10 (EXECUTE a anon) caen.
