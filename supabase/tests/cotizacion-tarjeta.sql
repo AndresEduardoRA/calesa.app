@@ -3,13 +3,7 @@
 -- nombra el inventario de `cotizaciones-visibilidad.sql` (`cubierta_por`). Usa `pg_temp.pv_formula` y `pg_temp.pv_plantilla_g1` de `plantilla-validar.sql`, que corre antes.
 -- La dueña es `…0001` (la crea `humo.sql`). Cada bloque abre su transacción y la revierte. Compara claves y hojas, nunca texto suelto.
 
-create or replace function pg_temp.ct_como(p_quien uuid) returns void language plpgsql as $f$
-begin
-  perform set_config('request.jwt.claim.sub', p_quien::text, true);
-  perform set_config('request.jwt.claim.role', 'authenticated', true);
-  perform set_config('request.jwt.claims', json_build_object('sub', p_quien, 'role', 'authenticated')::text, true);
-end $f$;
-
+create or replace function pg_temp.ct_como(p_quien uuid) returns void language sql as $f$ select pg_temp.pv_como(p_quien) $f$;
 -- La tarjeta de esa versión como esa persona: la respuesta, o {error, mensaje} si falla.
 create or replace function pg_temp.ct_tarjeta(p_quien uuid, p_formula uuid) returns jsonb language plpgsql as $f$
 declare v jsonb; v_m text; v_e text;
@@ -46,10 +40,8 @@ end $f$;
 create or replace function pg_temp.ct_publicar(p_origen uuid, p_def jsonb) returns void language plpgsql as $f$
 begin
   update public.plantillas_tarjeta set estado = 'archivada' where origen_id = p_origen and estado = 'publicada';
-  insert into public.plantillas_tarjeta (origen_id, version, estado, definicion, publicado_en)
-  values (p_origen, (select coalesce(max(version), 0) + 1 from public.plantillas_tarjeta where origen_id = p_origen), 'publicada', p_def, now());
+  insert into public.plantillas_tarjeta (origen_id, version, estado, definicion, publicado_en) values (p_origen, (select coalesce(max(version), 0) + 1 from public.plantillas_tarjeta where origen_id = p_origen), 'publicada', p_def, now());
 end $f$;
-
 create or replace function pg_temp.ct_claves(p jsonb) returns text[] language sql as $f$ select array(select k from jsonb_object_keys(p) k order by k) $f$;
 create or replace function pg_temp.ct_nombre_tc(p_clave text) returns text language sql as $f$ select nombre from public.tipos_cambio where clave = p_clave and activo $f$;
 
@@ -107,13 +99,11 @@ begin
                         from public.tonos t where t.clave in ('amarillo', 'naranja')) then
     raise exception 'los tonos: %', r -> 'tonos';
   end if;
-  -- K6: la moneda del total en Bs, la de la hoja.
-  if r -> 'moneda_bs' is distinct from to_jsonb((select moneda_a::text from public.tipos_cambio where activo and clave = 'paralelo')) then raise exception 'moneda_bs: %', r -> 'moneda_bs'; end if;
   -- Una fórmula sin grupos (oficina): sólo el total, sin tipos de cambio, variante ni tonos.
   select id into v_of from public.formulas where origen_id = (select id from public.origenes where clave = 'oficina') and version = 1;
   r := pg_temp.ct_tarjeta(duena, v_of);
-  if r ->> 'estado' is distinct from 'lista' or r -> 'grupos' <> '[]' or r -> 'tipos_de_cambio' <> '{"buckets": {}, "modos": {}}' or r -> 'variante' <> 'null'
-     or r -> 'tonos' <> '[]' or r -> 'secundarios' <> '[]' or r -> 'total' ->> 'nodo' <> 'total' then
+  if r ->> 'estado' is distinct from 'lista' or r -> 'grupos' is distinct from '[]' or r -> 'tipos_de_cambio' is distinct from '{"buckets": {}, "modos": {}}'
+     or r -> 'variante' is distinct from 'null' or r -> 'tonos' is distinct from '[]' or r -> 'secundarios' is distinct from '[]' or r #>> '{total,nodo}' is distinct from 'total' then
     raise exception 'la de oficina: %', r;
   end if;
 end $$;
@@ -251,7 +241,8 @@ declare
 begin
   select id into f from public.formulas where origen_id = o and version = 1;
   r := pg_temp.ct_tarjeta(duena, f);
-  if r -> 'tipos_de_cambio' <> jsonb_build_object(
+  if r ->> 'estado' is distinct from 'lista' then raise exception 'no está lista: %', r; end if;
+  if r -> 'tipos_de_cambio' is distinct from jsonb_build_object(
        'buckets', jsonb_build_object('exterior', pg_temp.ct_nombre_tc('paralelo'), 'aduana', pg_temp.ct_nombre_tc('oficial')),
        'modos', jsonb_build_object('paralelo', jsonb_build_object('exterior', pg_temp.ct_nombre_tc('paralelo'), 'aduana', pg_temp.ct_nombre_tc('oficial')),
                                    'unificado', jsonb_build_object('exterior', pg_temp.ct_nombre_tc('unificado'), 'aduana', pg_temp.ct_nombre_tc('oficial')))) then
@@ -260,27 +251,50 @@ begin
   if position('tc_' in (r -> 'tipos_de_cambio')::text) > 0 then raise exception 'sale el id de un nodo tipo_cambio: %', r -> 'tipos_de_cambio'; end if;
   update public.tipos_cambio set activo = false where clave = 'unificado';
   r := pg_temp.ct_tarjeta(duena, f);
-  if r #> '{tipos_de_cambio,modos,unificado,exterior}' <> 'null'::jsonb or r #>> '{tipos_de_cambio,modos,unificado,aduana}' is distinct from pg_temp.ct_nombre_tc('oficial') then
+  if r ->> 'estado' is distinct from 'lista' then raise exception 'con uno inactivo no está lista: %', r; end if;
+  if r #> '{tipos_de_cambio,modos,unificado,exterior}' is distinct from 'null'::jsonb or r #>> '{tipos_de_cambio,modos,unificado,aduana}' is distinct from pg_temp.ct_nombre_tc('oficial') then
     raise exception 'uno inactivo: %', r -> 'tipos_de_cambio';
   end if;
   perform pg_temp.ct_publicar(o, jsonb_set((select definicion from public.plantillas_tarjeta where origen_id = o and estado = 'publicada'), '{columnas,tipo_cambio}', 'false'));
   r := pg_temp.ct_tarjeta(duena, f);
-  if r -> 'tipos_de_cambio' <> '{"buckets": {}, "modos": {}}' then raise exception 'sin la columna: %', r -> 'tipos_de_cambio'; end if;
+  if r ->> 'estado' is distinct from 'lista' or r -> 'tipos_de_cambio' is distinct from '{"buckets": {}, "modos": {}}' then raise exception 'sin la columna: %', r; end if;
+end $$;
+rollback;
+
+-- @test tarjeta K6: la moneda del total en Bs es la del tipo de cambio que nombra el total_en de ESA versión (no la de un bucket), la misma que da la hoja
+begin;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001'; o uuid := (select id from public.origenes where clave = 'subasta_usa'); f uuid; r jsonb; h jsonb; v_def jsonb;
+begin
+  -- Una versión cuyo total_en es un tipo de cambio a otra moneda (los de la semilla son todos a BOB): el del modo unificado, que ningún bucket usa por omisión.
+  insert into public.tipos_cambio (clave, nombre, moneda_de, moneda_a, valor) values ('ct_eur', 'CT a euros', 'USD', 'EUR', 0.92);
+  select jsonb_set(jsonb_set(x.definicion, '{total_en}', '"tc_unificado"'), '{nodos}',
+                   (select jsonb_agg(case when n ->> 'id' = 'tc_unificado' then n || '{"clave": "ct_eur"}' else n end order by t.pos)
+                      from jsonb_array_elements(x.definicion -> 'nodos') with ordinality t (n, pos)))
+    into v_def from public.formulas x where x.origen_id = o and x.version = 1;
+  update public.formulas set estado = 'archivada' where origen_id = o and estado = 'publicada';
+  insert into public.formulas (origen_id, version, estado, definicion, params, diseno, visibilidad, publicado_en)
+  select origen_id, (select max(version) + 1 from public.formulas where origen_id = o), 'publicada', v_def, params, diseno, visibilidad, now()
+    from public.formulas where origen_id = o and version = 1 returning id into f;
+  r := pg_temp.ct_tarjeta(duena, f);
+  if r ->> 'estado' is distinct from 'lista' or r -> 'moneda_bs' is distinct from '"EUR"' then raise exception 'moneda_bs de la versión: %', r; end if;
+  h := (pg_temp.pv_corre(duena, format('select public.cotizacion_hoja(%L)', o)) ->> 'ok')::jsonb;
+  if h #> '{cabecera,moneda_bs}' is distinct from r -> 'moneda_bs' then raise exception 'la hoja dice % y la tarjeta %', h #> '{cabecera,moneda_bs}', r -> 'moneda_bs'; end if;
+  -- La v1 (total_en = el paralelo, a BOB) sigue con la suya: la moneda es de la versión.
+  r := pg_temp.ct_tarjeta(duena, (select id from public.formulas where origen_id = o and version = 1));
+  if r -> 'moneda_bs' is distinct from '"BOB"' then raise exception 'moneda_bs de la v1: %', r -> 'moneda_bs'; end if;
 end $$;
 rollback;
 
 -- @test tarjeta K7: cotizacion_tarjeta es de authenticated y service_role (no de anon ni PUBLIC), corre con los derechos de su dueña y search_path vacío; sus ayudantes, sólo de service_role
-begin;
 do $$
-declare v_f text;
+declare v_f text; v_quien text[]; v_esperado text[];
 begin
-  v_f := 'public.cotizacion_tarjeta(uuid)';
-  if not has_function_privilege('authenticated', v_f, 'execute') or not has_function_privilege('service_role', v_f, 'execute')
-     or has_function_privilege('anon', v_f, 'execute') or has_function_privilege('public', v_f, 'execute') then raise exception 'privilegios de %', v_f; end if;
-  if not (select prosecdef and proconfig = array['search_path=""'] from pg_proc where oid = v_f::regprocedure) then raise exception '% no tiene los derechos de su dueña y search_path vacío', v_f; end if;
-  foreach v_f in array array['public._tarjeta_grupos(jsonb, jsonb, jsonb)', 'public._tarjeta_tipos_de_cambio(jsonb, jsonb, text[])'] loop
-    if not has_function_privilege('service_role', v_f, 'execute') or has_function_privilege('authenticated', v_f, 'execute')
-       or has_function_privilege('anon', v_f, 'execute') or has_function_privilege('public', v_f, 'execute') then raise exception 'privilegios de %', v_f; end if;
+  foreach v_f in array array['public.cotizacion_tarjeta(uuid)', 'public._tarjeta_grupos(jsonb, jsonb, jsonb)', 'public._tarjeta_tipos_de_cambio(jsonb, jsonb, text[])'] loop
+    v_quien := array(select r from unnest(array['authenticated', 'service_role', 'anon', 'public']) r where has_function_privilege(r, v_f, 'execute'));
+    v_esperado := case when v_f like '%cotizacion_tarjeta%' then array['authenticated', 'service_role'] else array['service_role'] end;
+    if v_quien is distinct from v_esperado then raise exception 'privilegios de %: %', v_f, v_quien; end if;
   end loop;
+  if not (select prosecdef and proconfig = array['search_path=""'] from pg_proc where oid = 'public.cotizacion_tarjeta(uuid)'::regprocedure) then raise exception 'cotizacion_tarjeta no tiene los derechos de su dueña y search_path vacío'; end if;
 end $$;
-rollback;
