@@ -86,6 +86,7 @@ sembrado, no a ojo (`pnpm db:sembrar-volumen`, `pnpm db:medir:volumen`). Cada su
 - El inventario por rutas (`vehiculos_inventario()`: rutas, forma, contra hoy) → `supabase/tests/medir-vehiculos-inventario.sql`, `-forma.sql`, `-guarda.sql` (`pnpm db:medir:volumen`); su equivalencia con PostgREST → `e2e/vehiculos-inventario-postgrest.spec.ts` (`pnpm test:e2e`)
 - Las listas del panel del vehículo con volumen → `supabase/tests/medir-panel-ultima-cotizacion.sql`, `medir-panel-cierre-subasta.sql`, `medir-historial-del-vehiculo.sql` (`pnpm db:medir:volumen`)
 - Las oportunidades de un lead por cursor con volumen → `supabase/tests/medir-lead-oportunidades.sql` (`pnpm db:medir:volumen`)
+- El salto a una fecha de las revisiones de una cotización (`cotizacion_revisiones(…, p_hasta)`: el ancla por su índice, la profundidad y el contraste con N) con volumen → `supabase/tests/medir-cotizacion-revisiones-fecha.sql` (`pnpm db:medir:volumen`)
 - `cotizacion_crear()` con volumen → `supabase/tests/medir-cotizacion-crear.sql` (`pnpm db:medir`)
 - `cotizacion_guardar()` con volumen → `supabase/tests/medir-cotizacion-guardar.sql` (`pnpm db:medir`)
 - Baja de una persona con 200.000 leads → `supabase/tests/medir-bajas.sql` (`pnpm db:medir:volumen`)

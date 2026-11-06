@@ -162,6 +162,11 @@ export const MEDICIONES_CON_VOLUMEN = [
     'mediana de 5 de 7 corridas',
   ],
   [
+    'supabase/tests/medir-cotizacion-revisiones-fecha.sql',
+    'El salto a una fecha de las revisiones de una cotización con 5.000 revisiones (y una de 500 y otra de fondo con 5.000 intercaladas), como authenticated y con el plan genérico: la página que empieza en la más nueva con creado_en < p_hasta, a tres profundidades de la dueña y de Ana, por cotizaciones_revisiones_cotizacion_creado_idx y cotizaciones_revisiones_cotizacion_idx (ms y bloques por relación de la llamada real; el contraste con N: la de 500 contra la de 5.000)',
+    'mediana de 5 de 7 corridas',
+  ],
+  [
     'supabase/tests/medir-cartera-reciente.sql',
     '«Míos» del panel del cliente por lo más reciente, con el volumen sembrado y como authenticated con el plan genérico: una página de n + 1 de la cartera (primera, profunda por cursor y la clase cliente) de la dueña, de Ana y de Berta, por leads_asesores_reciente_idx (ms y buffers del EXPLAIN); la clase ausente de la dueña (tope 100 ms), el costo del trigger de lo reciente en un seguimiento y el relleno de la migración con todo el volumen; la «chica», sin assert',
     'mediana de 5 de 7 corridas',
