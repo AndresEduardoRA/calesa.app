@@ -22,7 +22,7 @@ const MODOS = ['auto', 'plan', 'manual', 'plan→auto', 'plan→manual']
 const REVISORES = ['codex', 'claude-sesion-nueva', 'ninguno']
 const ID_CARRIL = /^[a-z][a-z0-9-]{0,19}$/
 
-const dentro = (ruta, dueno) =>
+export const dentro = (ruta, dueno) =>
   (ruta.replace(/\/$/, '') + '/').startsWith(dueno.replace(/\/$/, '') + '/')
 const solapan = (a, b) => dentro(a, b) || dentro(b, a)
 // Rutas que ningún carril posee y que todos pueden tocar sin chocar: `docs/` y las `compartido` del plan (carpetas donde cada paso

@@ -11,6 +11,7 @@ const BASE = '20261028183622'
 type Cambio = { estado: string; ruta: string; antes?: string }
 const PLAN = leerPlan(`
 esquema: plan/v1
+compartido: [supabase/migrations/, supabase/tests/, e2e/, src/shared/types/]
 carriles:
   - id: a
     base: true

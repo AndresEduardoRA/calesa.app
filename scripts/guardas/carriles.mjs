@@ -13,7 +13,10 @@
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 
+import { parse } from 'yaml'
+
 import { leerPlan } from '../coordinador/plan.mjs'
+import { problemasDeAlcance, problemasDelPlanDelPr } from './carriles-plan.mjs'
 
 export const SOLO_DE_A = [
   'docs/ESTADO.md',
@@ -34,12 +37,12 @@ export function carrilDe(rama, plan) {
 const BASE_APLASTADA = '20261028180656'
 
 /**
- * @param {{ rama: string, cambios: { estado: string, ruta: string, antes?: string }[], ultimaDeLaBase: string, plan: ReturnType<typeof leerPlan> | null, base?: string }} pr
+ * @param {{ rama: string, cambios: { estado: string, ruta: string, antes?: string }[], ultimaDeLaBase: string, plan: ReturnType<typeof leerPlan> | null, base?: string, crudos?: { base: any, pr: any } }} pr
  *   `cambios`: el `git diff --name-status` del PR (A, M, D, R…; `antes` es la ruta vieja de un renombre); `ultimaDeLaBase`: la
  *   versión de la última migración de la rama base; `plan`: docs/plan.yaml de la base (`null` si no se pudo leer). Puro: sin I/O.
  * @returns {string[]}
  */
-export function problemasDelPr({ rama, cambios, ultimaDeLaBase, plan, base = 'la base' }) {
+export function problemasDelPr({ rama, cambios, ultimaDeLaBase, plan, base = 'la base', crudos }) {
   if (!plan) {
     return [
       `docs/plan.yaml: no lo pude leer en la base (${base}); la guarda de carriles saca de él los carriles.`,
@@ -83,6 +86,14 @@ export function problemasDelPr({ rama, cambios, ultimaDeLaBase, plan, base = 'la
       }
     }
   }
+  if (carril) {
+    const { problemas: delPlan, sumadas } = problemasDelPlanDelPr({
+      carril,
+      cambios,
+      crudos: crudos ?? { base: null, pr: null },
+    })
+    problemas.push(...delPlan, ...problemasDeAlcance({ carril, plan, cambios, sumadas }))
+  }
   return problemas
 }
 
@@ -120,7 +131,15 @@ function principal([base, rama]) {
   } catch {
     plan = null
   }
-  const problemas = problemasDelPr({ rama, cambios, ultimaDeLaBase, plan, base })
+  const crudo = (rev) => {
+    try {
+      return parse(git('show', `${rev}:docs/plan.yaml`))
+    } catch {
+      return null
+    }
+  }
+  const crudos = { base: crudo(base), pr: crudo('HEAD') }
+  const problemas = problemasDelPr({ rama, cambios, ultimaDeLaBase, plan, base, crudos })
   for (const p of problemas) console.error(`✗ ${p}`)
   if (problemas.length > 0) process.exit(1)
   console.log(`✓ carriles: ${String(cambios.length)} archivos de ${rama} cumplen.`)
