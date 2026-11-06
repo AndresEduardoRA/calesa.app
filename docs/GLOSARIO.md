@@ -173,6 +173,8 @@ Versión completa: `docs/archivo/GLOSARIO.md`, sólo con grep.
 - **Fórmula** — `formulas` (`definicion`, `params`): grafo de nodos versionado por origen; ver `docs/COTIZADOR.md`.
 - **Nodo** — `definicion.nodos[]`: una línea de la fórmula: input, constante, tipo de cambio, campo, bandera, tabla, tramo, cálculo.
 - **Constante** — nodo `constante` + `params`: valor por defecto versionado que el ⚙ de la XCell cambia.
+- **Versión de origen** — `formulas.version_origen_id`: en un borrador, la publicada sobre la que se empezó (si ya no es la publicada, publicarlo da PT409); en una publicada o archivada, la publicada que reemplazó.
+- **Revertir la fórmula** — `formula_revertir()`: publica la N+1 como copia (con su diseño) de una versión archivada; no es el ↺ de la XCell.
 - **Bucket** — `definicion.buckets` (nombre → nodo `tipo_cambio`), `grupos[].bucket`: papel del dinero (pagado afuera, en aduana) y el tipo de cambio que lo convierte.
 - **Snapshot** — `cotizaciones.valores`, `fuentes`, `tipos_cambio`: todo lo que el cálculo usó.
 - **XCell** — `src/shared/ui/xcell`: celda numérica editable del cotizador: valor, default, revertir, ayuda, ⚙, sugerido, teclado.
