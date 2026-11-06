@@ -142,7 +142,8 @@ for (const f of lista) {
 console.log(`✓ ${ok} archivos aplicados`)
 
 // Los datos que una prueba lee del repo: la base no lee archivos, así que se los pasa el cliente en una tabla temporal
-// `<nombre> (doc jsonb)`, creada antes de correr su archivo. La ruta es relativa a la raíz del repo.
+// `<nombre> (doc jsonb)`, creada antes de correr su archivo. La ruta es relativa a la raíz del repo. `{ ruta, texto: true }` guarda el archivo
+// como texto (`to_jsonb(texto)`), no como JSON: una migración que la prueba vuelve a ejecutar (si se recrea con otra fecha, se corrige su ruta).
 const DATOS_DE_PRUEBA = {
   'validar-formula.sql': {
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
@@ -170,12 +171,24 @@ const DATOS_DE_PRUEBA = {
     _juego_de_diseno: 'src/modules/cotizaciones/entities/casos-de-diseno.json',
     _juego_de_formula: 'src/modules/cotizaciones/entities/casos-de-formula.json',
   },
+  'cotizaciones-papelera-permiso.sql': {
+    _migracion_cpp: {
+      ruta: path.join(base, 'migrations', '20261106062752_cotizaciones_papelera_purgar.sql'),
+      texto: true,
+    },
+  },
 }
 
 async function cargarDatos(archivo) {
-  for (const [tabla, ruta] of Object.entries(DATOS_DE_PRUEBA[archivo] ?? {})) {
+  for (const [tabla, dato] of Object.entries(DATOS_DE_PRUEBA[archivo] ?? {})) {
+    const { ruta, texto } = typeof dato === 'string' ? { ruta: dato, texto: false } : dato
     await db.exec(`drop table if exists pg_temp.${tabla}; create temp table ${tabla} (doc jsonb)`)
-    await db.query(`insert into ${tabla} (doc) values ($1::jsonb)`, [fs.readFileSync(ruta, 'utf8')])
+    await db.query(
+      texto
+        ? `insert into ${tabla} (doc) values (to_jsonb($1::text))`
+        : `insert into ${tabla} (doc) values ($1::jsonb)`,
+      [fs.readFileSync(ruta, 'utf8')],
+    )
   }
 }
 
@@ -220,6 +233,7 @@ for (const archivo of [
   'niveles.sql',
   'niveles-con-uso.sql',
   'cotizaciones-visibilidad.sql',
+  'cotizaciones-papelera-permiso.sql',
   'cotizacion-crear.sql',
   'cotizacion-conservar.sql',
   'cotizacion-guardar.sql',

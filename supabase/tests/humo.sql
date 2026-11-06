@@ -350,6 +350,86 @@ do $$ begin
   if exists (select 1 from public.lotes_papelera where tipo = 'vehiculos') then raise exception 'un envío sin ningún vehículo dejó un lote vacío'; end if;
 end $$;
 
+-- @test papelera de cotizaciones: un lote ajeno se lee con la clave de su tipo (policy lotes_papelera: leer; V y E, sin la clave nueva)
+-- La dueña tiene un lote de cada tipo; V tiene la de vehículos, E envía uno suyo de cotizaciones, L tiene la de leads. Todo se revierte: el humo de abajo cuenta lotes.
+begin;
+create or replace function pg_temp.humo_cpp_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
+declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
+begin
+  insert into auth.users (id, email, raw_app_meta_data) values (v_id, v_id || '@ejemplo.com', '{"invitado": true}');
+  insert into public.roles (clave, nombre) values ('hcpp_' || substr(v_id::text, 1, 8), 'HCPP ' || substr(v_id::text, 1, 8)) returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_id, v_rol, true);
+  foreach c in array p_concesiones loop insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (v_rol, c, 'todos'); end loop;
+  return v_id;
+end $f$;
+-- Los tipos de los lotes (entre estos) que esa persona lee de lotes_papelera, como authenticated.
+create or replace function pg_temp.humo_cpp_lee(p_quien uuid, p_lotes uuid[]) returns text language plpgsql as $f$
+declare v text;
+begin
+  perform set_config('request.jwt.claim.sub', p_quien::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  set local role authenticated;
+  select coalesce(string_agg(l.tipo::text || case when l.creado_por = p_quien then ':mio' else ':ajeno' end, ',' order by l.tipo::text), '-') into v
+    from public.lotes_papelera l where l.id = any (p_lotes);
+  reset role;
+  return v;
+end $f$;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  v uuid := pg_temp.humo_cpp_persona(array['vehiculos.papelera.purgar']);
+  e uuid := pg_temp.humo_cpp_persona(array['cotizaciones.ver', 'cotizaciones.editar']);
+  l uuid := pg_temp.humo_cpp_persona(array['leads.papelera.purgar']);
+  lotes uuid[]; x text;
+begin
+  with n as (insert into public.lotes_papelera (tipo, creado_por) values ('cotizaciones', duena), ('vehiculos', duena), ('leads', duena), ('cotizaciones', e) returning id)
+  select array_agg(id) into lotes from n;
+  x := pg_temp.humo_cpp_lee(v, lotes);
+  if x <> 'vehiculos:ajeno' then raise exception 'V (sólo vehiculos.papelera.purgar) lee «%» de lotes_papelera y debía leer sólo el ajeno de vehículos', x; end if;
+  x := pg_temp.humo_cpp_lee(e, lotes);
+  if x <> 'cotizaciones:mio' then raise exception 'E debía leer sólo su lote: «%»', x; end if;
+  x := pg_temp.humo_cpp_lee(l, lotes);
+  if x <> 'leads:ajeno' then raise exception 'L (leads.papelera.purgar) debía leer sólo el ajeno de leads: «%»', x; end if;
+end $$;
+reset role;
+rollback;
+
+-- @test papelera de cotizaciones: con cotizaciones.papelera.purgar se lee el lote ajeno de cotizaciones, y no los de vehículos ni de leads (K)
+begin;
+create or replace function pg_temp.humo_cpp_persona(p_concesiones text[]) returns uuid language plpgsql as $f$
+declare v_id uuid := gen_random_uuid(); v_rol uuid; c text;
+begin
+  insert into auth.users (id, email, raw_app_meta_data) values (v_id, v_id || '@ejemplo.com', '{"invitado": true}');
+  insert into public.roles (clave, nombre) values ('hcpp_' || substr(v_id::text, 1, 8), 'HCPP ' || substr(v_id::text, 1, 8)) returning id into v_rol;
+  insert into public.usuarios_roles (usuario_id, rol_id, es_principal) values (v_id, v_rol, true);
+  foreach c in array p_concesiones loop insert into public.roles_permisos (rol_id, permiso_clave, alcance) values (v_rol, c, 'todos'); end loop;
+  return v_id;
+end $f$;
+create or replace function pg_temp.humo_cpp_lee(p_quien uuid, p_lotes uuid[]) returns text language plpgsql as $f$
+declare v text;
+begin
+  perform set_config('request.jwt.claim.sub', p_quien::text, true);
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  set local role authenticated;
+  select coalesce(string_agg(l.tipo::text || case when l.creado_por = p_quien then ':mio' else ':ajeno' end, ',' order by l.tipo::text), '-') into v
+    from public.lotes_papelera l where l.id = any (p_lotes);
+  reset role;
+  return v;
+end $f$;
+do $$
+declare
+  duena constant uuid := '00000000-0000-0000-0000-000000000001';
+  k uuid := pg_temp.humo_cpp_persona(array['cotizaciones.papelera.purgar']);
+  lotes uuid[]; x text;
+begin
+  with n as (insert into public.lotes_papelera (tipo, creado_por) values ('cotizaciones', duena), ('vehiculos', duena), ('leads', duena) returning id)
+  select array_agg(id) into lotes from n;
+  x := pg_temp.humo_cpp_lee(k, lotes);
+  if x <> 'cotizaciones:ajeno' then raise exception 'K (cotizaciones.papelera.purgar) debía leer sólo el ajeno de cotizaciones: «%»', x; end if;
+end $$;
+reset role;
+rollback;
+
 -- @test fórmula: cambiar una constante desde el ⚙ publica v2 y archiva v1
 -- La semilla trae el diseño de cada fórmula (4.08-3): el ⚙ lo copia a la v2 y vuelve a validarlo.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', false);
