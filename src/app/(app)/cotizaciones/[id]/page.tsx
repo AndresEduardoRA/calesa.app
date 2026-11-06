@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
 import { z } from 'zod'
-import { leerHojaDeUnaGuardada } from '@/modules/cotizaciones'
+import { leerAsesorDeLaCotizacion, leerHojaDeUnaGuardada } from '@/modules/cotizaciones'
 import {
   CabeceraDeLaGuardada,
   EsqueletoDeHoja,
@@ -50,6 +50,12 @@ async function vehiculoDe(vehiculoId: string | null) {
   return vehiculoId === null ? null : datosO(await leerVehiculo(vehiculoId))
 }
 
+// A quien creó la cotización, para «Asesor:» de su tarjeta (P2 a): un error de esa lectura deja el asesor sin nombrar y no rompe la página.
+async function asesorDe(id: string) {
+  const lectura = await leerAsesorDeLaCotizacion(id)
+  return lectura.ok ? lectura.data : null
+}
+
 async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>['params'] }) {
   await connection()
   const [sesion, { id }] = await Promise.all([requerirSesion(), params])
@@ -67,9 +73,10 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
   const { hoja, inicial } = lectura.data
   const { leadId, vehiculoId } = hoja.cotizacion
   // El cliente y el vehículo sólo se nombran si quien mira los ve (los ids salen de la lectura, así que van después de ella).
-  const [cliente, vehiculo] = await Promise.all([
+  const [cliente, vehiculo, asesor] = await Promise.all([
     clienteDe(sesion.permisos, leadId),
     vehiculoDe(vehiculoId),
+    asesorDe(id),
   ])
   // Lo que reciben los huecos de las áreas (acciones de la cabecera y lo de bajo la hoja).
   const props = {
@@ -97,6 +104,13 @@ async function Cotizacion({ params }: { params: PageProps<'/cotizaciones/[id]'>[
         origenId={hoja.cotizacion.origenId}
         cotizacionId={hoja.cotizacion.id}
         permisos={sesion.permisos}
+        tarjeta={{
+          vehiculo: vehiculo?.titulo ?? null,
+          asesor,
+          numero: hoja.cotizacion.numero,
+          vencida: hoja.vencida,
+          guardadaEl: hoja.cotizacion.actualizadoEn,
+        }}
       >
         <PantallaDeUnaGuardada
           key={hoja.cotizacion.id}

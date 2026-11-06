@@ -838,3 +838,23 @@ con la recomendada) y plan aprobado antes de ejecutar. Nivel 1 con interfaz, sin
   `validarPlantilla()` de TS y el aviso del tono borrado.
 - **Commits:** `9dd7ff9c` (validar la plantilla), `b6c1ca62` (leer la tarjeta), `04ff5247` (la policy) y `eec9945` (el `fix` de K5 y K6 que pidió la auditoría del informe).
   e2e completo: sí (4.18-1, base, Nivel 2: escritorio, 950 en verde, 16 saltados, 1 caída, 35,2 min)
+
+## 2026-11-06 — Paso 4.18-2: la tarjeta de una cotización en pantalla
+
+- **Qué:** «Vista previa» en el pie del resumen de la hoja nueva y de la guardada (`?panel=vista-previa`): un modal que dibuja la tarjeta tal como la vería el cliente (grupos con su
+  tono, tipo de cambio y plazo una vez por grupo, total, total en Bs si se pidió, lo aparte, nota, logo y asesor; tarjeta por omisión sin plantilla; Modo Live). El modelo es puro
+  (`entities/tarjeta/`, `calculo-de-la-tarjeta.ts`), lo lee el navegador (`infra/tarjeta/`) y lo dibuja el área `tarjeta`; la guardada dibuja lo guardado. Cierra 4-55.
+- **Estado del CI al empezar:** el de HEAD (`abd2ee3d`) sin mirar: el de `43d98eb7` seguía en curso.
+- **Plan:** auditado en dos rondas (la 1.ª bloqueó: faltaba decidir qué números lleva la tarjeta de una guardada; la 2.ª, observaciones menores); compuerta `producto` P1–P5, todas con la
+  recomendada. `.piloto/planes/4.18-2.md`.
+- **Verificación** (`.piloto/salidas/4.18-2/`):
+  - Pruebas en rojo contra HEAD: `rojo-head-vitest.txt`, `rojo-head-vitest-commit2.txt`, `rojo-head-vitest-commit3.txt` y `rojo-head-e2e.txt` (no hay botón); verdes después.
+  - Mutaciones M1 a M4 (`mutaciones.txt`): cada una hace caer su prueba (modelo, cálculo de lo guardado y la hoja que pasa el cálculo).
+  - e2e `cotizar-vista-previa.spec.ts` E1–E8 en escritorio y móvil, 8 de 8 (`e2e-vista-previa-*.txt`); los 12 dirigidos: móvil 78 de 78, escritorio 76 y 2 caídas por carga de la
+    máquina (`loadavg` ≈ 14), 15 de 15 en las tres repeticiones (`repro-escritorio-*.txt`).
+  - Medidas: tarjeta de `subasta_usa` 105 nodos y `cotizacion_tarjeta` 2.950 bytes (topes 111 y 3.098); hoja 469 al abrir y 491 usada de 500; JS en frío de `/cotizaciones/nuevo`
+    458,5 de 460 KB (4-73) y de `/cotizaciones/[id]` 437,6 de 448.
+  - `lint`, `typecheck`, `scripts/guardas`, `vitest` de `cotizaciones` y `mapa.sh --check` en verde; `mapa.test.ts` T13 cae por tiempo cuando la máquina está cargada (pasa sola; 4-96).
+- **Abiertos:** 4-55 cerrado; 4-73 medido; sin nuevos. 4-55 sigue en `docs/PLAN.md` con su cierre: esta sesión no puede escribir en `docs/archivo/`.
+- **Commits:** `473bc65e` (el modelo), `9843ec99` (la tarjeta y su lectura) y `f55346ce` (el botón, las páginas y el e2e).
+  e2e completo: no (4.18-2, pantalla, 1 de 3)

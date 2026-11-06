@@ -37,6 +37,10 @@ export const MODALES: Record<string, RegistroDeModal> = {
     tambien: ['src/modules/equipo/features/equipo/components/enlace-invitacion.tsx'],
   },
   // --- cotizaciones
+  'src/modules/cotizaciones/features/tarjeta/components/vista-previa-de-la-tarjeta.tsx': {
+    sinFormulario:
+      'sólo dibuja la tarjeta de la cotización (lectura, carga, error y el botón Live): no hay nada tipeado que se pierda al cerrar',
+  },
   'src/modules/cotizaciones/features/hoja/components/modal-de-avanzado.tsx': {
     sinFormulario:
       'dibuja celdas tipeables de la hoja, que confirman en la hoja y su borrador; cerrar o «atrás» las desmonta sin confirmar: un número abierto se confirma al perder el foco, lo demás se descarta, y Esc con una celda abierta cancela sólo la celda',
